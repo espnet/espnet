@@ -13,7 +13,7 @@ from typeguard import typechecked
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 
 
-def get_task_cls(task_path: str):
+def get_task_class(task_path: str):
     """Get the ESPnet-2 Task class from the given task path."""
     try:
         ez_task = get_class(task_path)
@@ -25,7 +25,7 @@ def get_task_cls(task_path: str):
 @typechecked
 def get_espnet_model(task: str, config: Union[Dict, DictConfig]) -> AbsESPnetModel:
     """Build and return an ESPnet model from the given task and config."""
-    ez_task = get_task_cls(task)
+    ez_task = get_task_class(task)
 
     # workaround for calling get_default_config
     original_argv = sys.argv
@@ -48,7 +48,7 @@ def save_espnet_config(
     task: str, config: Union[Dict, DictConfig], output_dir: str
 ) -> None:
     """Save the ESPnet config used for training to the output directory."""
-    ez_task = get_task_cls(task)
+    ez_task = get_task_class(task)
 
     # workaround for calling get_default_config
     original_argv = sys.argv

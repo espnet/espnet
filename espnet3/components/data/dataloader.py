@@ -1,6 +1,7 @@
 """DataLoader builder for ESPnet3 trainer."""
 
 import copy
+import logging
 from typing import Union
 
 import numpy as np
@@ -9,6 +10,35 @@ from hydra.utils import instantiate
 from omegaconf import DictConfig, OmegaConf
 
 from espnet2.samplers.build_batch_sampler import build_batch_sampler
+from espnet3.utils.logging_utils import _dump_attrs, build_qualified_name
+
+logger = logging.getLogger(__name__)
+_LOGGED_DISTRIBUTED_BATCHES: set[str] = set()
+_LOGGED_DATALOADER: set[str] = set()
+
+
+def log_dataloader(logger: logging.Logger, loader, label: str) -> None:
+    """Log dataloader/iterator details once per process."""
+    # Log once per label (e.g., train/valid) in the process.
+    if label in _LOGGED_DATALOADER:
+        return
+    _LOGGED_DATALOADER.add(label)
+
+    logger.log(
+        logging.INFO,
+        "DataLoader[%s] class: %s",
+        label,
+        build_qualified_name(loader),
+        stacklevel=2,
+    )
+    _dump_attrs(
+        logger,
+        loader,
+        indent="  ",
+        depth=0,
+        max_depth=2,
+        seen=set(),
+    )
 
 
 def update_shard(config: Union[dict, list], shard_idx: int) -> Union[dict, list]:
@@ -147,13 +177,13 @@ class DataLoaderBuilder:
 
         config = copy.copy(mode_config)
         if hasattr(config, "multiple_iterator") and config.multiple_iterator:
-            return self._build_multiple_iterator(config)
+            return self._build_multiple_iterator(config, mode=mode)
         if config.iter_factory is not None:
             factory_config = OmegaConf.to_container(config.iter_factory, resolve=True)
-            return self._build_iter_factory(factory_config)
-        return self._build_standard_dataloader(config)
+            return self._build_iter_factory(factory_config, mode=mode)
+        return self._build_standard_dataloader(config, mode=mode)
 
-    def _build_standard_dataloader(self, dataloader_config, dataset=None):
+    def _build_standard_dataloader(self, dataloader_config, dataset=None, mode="train"):
         if dataset is None:
             dataset = self.dataset
 
@@ -173,15 +203,21 @@ class DataLoaderBuilder:
         # Remove default config for espnet's data loader
         config.pop("iter_factory")
 
-        return torch.utils.data.DataLoader(
+        loader = torch.utils.data.DataLoader(
             dataset,
             sampler=sampler,
             batch_sampler=batch_sampler,
             collate_fn=self.collate_fn,
             **config,
         )
+        log_dataloader(
+            logger,
+            loader,
+            label=mode,
+        )
+        return loader
 
-    def _build_iter_factory(self, factory_config, dataset=None):
+    def _build_iter_factory(self, factory_config, dataset=None, mode="train"):
         if dataset is None:
             dataset = self.dataset
 
@@ -191,19 +227,52 @@ class DataLoaderBuilder:
             batches = list(batches)
             world_size = torch.distributed.get_world_size()
             rank = torch.distributed.get_rank()
+            total_batches = len(batches)
+            remainder = total_batches % world_size
+            if remainder != 0:
+                # Drop tail batches so each rank sees the same number of batches.
+                # This avoids DDP barrier deadlocks when per-rank batch counts differ.
+                keep = total_batches - remainder
+                logger.warning(
+                    "[%s] Dropping %s tail batches to align with world_size=%s "
+                    "(total=%s -> keep=%s)",
+                    mode,
+                    remainder,
+                    world_size,
+                    total_batches,
+                    keep,
+                )
+                batches = batches[:keep]
+                total_batches = len(batches)
             for batch in batches:
                 if len(batch) < world_size:
                     raise RuntimeError(
                         "The batch-size must be equal or more than world_size:"
                         f"{len(batch)} < {world_size}"
                     )
-            batches = [batch[rank::world_size] for batch in batches]
+            batches = batches[rank::world_size]
+            if mode not in _LOGGED_DISTRIBUTED_BATCHES:
+                logger.info(
+                    "[%s] distributed batches: "
+                    + "world_size=%s, rank=%s, total=%s, per_rank=%s",
+                    mode,
+                    world_size,
+                    rank,
+                    total_batches,
+                    len(batches),
+                )
+                _LOGGED_DISTRIBUTED_BATCHES.add(mode)
 
         iter_factory = instantiate(factory_config, dataset, batches=batches)
+        iterator = iter_factory.build_iter(self.epoch, shuffle=False)
+        log_dataloader(
+            logger,
+            iterator,
+            label=mode,
+        )
+        return iterator
 
-        return iter_factory.build_iter(self.epoch, shuffle=False)
-
-    def _build_multiple_iterator(self, factory_config):
+    def _build_multiple_iterator(self, factory_config, mode="train"):
         assert self.dataset.multiple_iterator, (
             "All dataset must be a subclass of"
             "espnet3.components.data.dataset.ShardedDataset"
@@ -226,8 +295,8 @@ class DataLoaderBuilder:
             iter_factory_config = update_shard(
                 factory_config["iter_factory"], shard_idx
             )
-            return self._build_iter_factory(iter_factory_config, dataset)
+            return self._build_iter_factory(iter_factory_config, dataset, mode=mode)
         else:
             factory_config.pop("num_shards")
             factory_config.pop("multiple_iterator")
-            return self._build_standard_dataloader(factory_config, dataset)
+            return self._build_standard_dataloader(factory_config, dataset, mode=mode)

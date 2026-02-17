@@ -6,6 +6,8 @@ from typing import Any, Callable, List, Tuple
 
 from torch.utils.data.dataset import Dataset
 
+from espnet3.utils.logging_utils import build_callable_name, build_qualified_name
+
 
 class CombinedDataset:
     """Combines multiple datasets into a single unified dataset-like interface.
@@ -181,6 +183,27 @@ class CombinedDataset:
             self.use_espnet_preprocessor,
         )
 
+    def __repr__(self) -> str:
+        """Return a concise, inspectable summary of combined datasets."""
+        entries = []
+        for idx, (dataset, (transform, preprocessor)) in enumerate(
+            zip(self.datasets, self.transforms)
+        ):
+            entries.append(
+                f"{idx}: {build_qualified_name(dataset)}(len={len(dataset)}) "
+                f"transform={build_callable_name(transform)} "
+                f"preprocessor={build_callable_name(preprocessor)}"
+            )
+        datasets_desc = ", ".join(entries)
+        return (
+            f"{self.__class__.__name__}("
+            f"total_len={len(self)}, "
+            f"use_espnet_preprocessor={self.use_espnet_preprocessor}, "
+            f"multiple_iterator={self.multiple_iterator}, "
+            f"datasets=[{datasets_desc}]"
+            f")"
+        )
+
 
 class DatasetWithTransform:
     """Lightweight wrapper for applying a transform function to dataset items.
@@ -250,6 +273,18 @@ class DatasetWithTransform:
     def __call__(self, idx):
         """Alias for __getitem__ to allow callable access."""
         return self.__getitem__(idx)
+
+    def __repr__(self) -> str:
+        """Return a concise, inspectable summary of the wrapped dataset."""
+        return (
+            f"{self.__class__.__name__}("
+            f"dataset={build_qualified_name(self.dataset)}"
+            f"(len={len(self.dataset)}), "
+            f"transform={build_callable_name(self.transform)}, "
+            f"preprocessor={build_callable_name(self.preprocessor)}, "
+            f"use_espnet_preprocessor={self.use_espnet_preprocessor}"
+            f")"
+        )
 
 
 class ShardedDataset(ABC, Dataset):
