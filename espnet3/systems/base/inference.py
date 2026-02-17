@@ -66,14 +66,27 @@ def _collect_scp_lines(results, *, idx_key: str, hyp_keys, ref_keys):
     return scp_lines
 
 
-def infer(config: DictConfig):
+def inference(config: DictConfig):
     """Run inference over all configured test sets and write SCP files.
 
     Args:
         config: Hydra/omegaconf configuration with dataset and inference settings.
+
+    Returns:
+        None
+
+    Raises:
+        RuntimeError: If required inference config fields are missing.
+        TypeError: If the inference runner does not expose expected attributes.
+        AssertionError: If no test sets exist or duplicate names are present.
+
+    Example:
+        >>> from omegaconf import OmegaConf
+        >>> cfg = OmegaConf.load(\"conf/infer.yaml\")  # doctest: +SKIP
+        >>> inference(cfg)  # writes scp files under cfg.infer_dir  # doctest: +SKIP
     """
     start = time.perf_counter()
-    set_parallel(config.parallel)
+    set_parallel(getattr(config, "parallel", None))
 
     test_sets = [test_set.name for test_set in config.dataset.test]
     assert len(test_sets) > 0, "No test set found in dataset"

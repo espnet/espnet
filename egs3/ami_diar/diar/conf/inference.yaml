@@ -1,0 +1,66 @@
+# Inference configuration for diarization
+
+# Paths
+infer_dir: ???  # Set via command line or defaults to exp_dir/infer
+model_path: ???  # Path to trained model checkpoint
+
+# Test dataset
+dataset:
+  test:
+    _target_: egs3.ami_diar.diar.src.dataset.DiarizationDataset
+    manifest_path: ???  # Path to test_cuts.jsonl.gz
+    chunk_duration: null  # Use whole recordings for inference
+    chunk_shift: null
+    frame_shift: 0.02
+    max_speakers: 4
+    sample_rate: 16000
+
+# DataLoader
+dataloader:
+  test:
+    batch_size: 1
+    shuffle: false
+    num_workers: 2
+    pin_memory: true
+
+# Collate function
+collate_fn:
+  _target_: egs3.ami_diar.diar.src.dataset.collate_fn
+
+# Inference settings
+inference:
+  # Segmentation settings
+  apply_median_filtering: true
+  median_filter_size: 11  # Median filter kernel size (frames)
+  binarization_threshold: 0.5  # Threshold for binarizing speaker activities
+
+  # Speaker embedding extraction (if using)
+  use_speaker_embeddings: false  # Set to true to use speaker embeddings
+  speaker_embedding_model: null  # Path to ESPnet2 speaker embedding model
+  embedding_exclude_overlap: true  # Exclude overlapping speech for embeddings
+
+  # Clustering settings
+  clustering_backend: vbx  # "vbx" (Variational Bayes) or "ahc" (Agglomerative)
+  min_speakers: 1
+  max_speakers: 20
+
+  # VBx clustering parameters (if using vbx)
+  vbx:
+    fa: 0.3  # False alarm probability
+    fb: 17   # Factor for PLDA
+    loopP: 0.99
+
+  # AHC clustering parameters (if using ahc)
+  ahc:
+    metric: cosine
+    threshold: auto  # "auto" or float value
+
+  # Output format
+  output_format: rttm  # "rttm" or "json"
+  output_dir: ${infer_dir}/predictions
+
+# Device
+device: cuda  # "cuda" or "cpu"
+
+# Batch processing
+use_amp: true  # Use automatic mixed precision

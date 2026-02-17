@@ -5,7 +5,7 @@ from pathlib import Path
 
 from omegaconf import DictConfig
 
-from espnet3.systems.base.inference import infer
+from espnet3.systems.base.inference import inference
 from espnet3.systems.base.metric import metric
 from espnet3.systems.base.training import collect_stats, train
 
@@ -36,11 +36,17 @@ class BaseSystem:
         train_config: DictConfig | None = None,
         infer_config: DictConfig | None = None,
         metric_config: DictConfig | None = None,
+        publish_config: DictConfig | None = None,
+        demo_config: DictConfig | None = None,
+        demo_config_path: Path | None = None,
     ) -> None:
         """Initialize the system with optional stage configs."""
         self.train_config = train_config
         self.infer_config = infer_config
         self.metric_config = metric_config
+        self.publish_config = publish_config
+        self.demo_config = demo_config
+        self.demo_config_path = demo_config_path
         if train_config is not None:
             self.exp_dir = Path(train_config.exp_dir)
             self.exp_dir.mkdir(parents=True, exist_ok=True)
@@ -48,13 +54,35 @@ class BaseSystem:
             self.exp_dir = None
         logger.info(
             "Initialized %s with train_config=%s infer_config=%s "
-            "metric_config=%s exp_dir=%s",
+            "metric_config=%s publish_config=%s demo_config=%s exp_dir=%s",
             self.__class__.__name__,
             train_config is not None,
             infer_config is not None,
             metric_config is not None,
+            publish_config is not None,
+            demo_config is not None,
             self.exp_dir,
         )
+
+    def get_stage_log_dir(self, stage: str) -> Path:
+        """Return the default log directory for a stage.
+
+        BaseSystem treats all stages uniformly and writes logs into:
+          - ``train_config.exp_dir`` when available, or
+          - ``<cwd>/logs`` as a fallback when no experiment directory is set.
+
+        Subclasses can override this method to route specific stages to
+        stage-aware artifact locations (e.g., dataset or decode outputs).
+
+        Args:
+            stage (str): Stage name being executed (unused by BaseSystem).
+
+        Returns:
+            Path: Directory where the stage log should be placed.
+        """
+        if self.exp_dir is not None:
+            return self.exp_dir
+        return Path.cwd() / "logs"
 
     @staticmethod
     def _reject_stage_args(stage: str, args, kwargs) -> None:
@@ -121,4 +149,37 @@ class BaseSystem:
     def publish(self, *args, **kwargs):
         """Publish artifacts from the experiment."""
         self._reject_stage_args("publish", args, kwargs)
-        logger.info("Running publish() (BaseSystem stub). Nothing done.")
+        logger.info("Running publish(): pack_model -> upload_model")
+        self.pack_model()
+        return self.upload_model()
+
+    # ---------------------------------------------------------
+    # Publication stages (optional overrides)
+    # ---------------------------------------------------------
+    def pack_model(self, *args, **kwargs):
+        """Pack model artifacts into an espnet3 bundle."""
+        self._reject_stage_args("pack_model", args, kwargs)
+        from espnet3.utils.publish import pack_model
+
+        return pack_model(self)
+
+    def upload_model(self, *args, **kwargs):
+        """Upload model bundle to HuggingFace."""
+        self._reject_stage_args("upload_model", args, kwargs)
+        from espnet3.utils.publish import upload_model
+
+        return upload_model(self)
+
+    def pack_demo(self, *args, **kwargs):
+        """Pack demo artifacts into a runnable demo bundle."""
+        self._reject_stage_args("pack_demo", args, kwargs)
+        from espnet3.demo.pack import pack_demo
+
+        return pack_demo(self)
+
+    def upload_demo(self, *args, **kwargs):
+        """Upload demo bundle to HuggingFace Spaces (stub)."""
+        self._reject_stage_args("upload_demo", args, kwargs)
+        from espnet3.demo.pack import upload_demo
+
+        return upload_demo(self)

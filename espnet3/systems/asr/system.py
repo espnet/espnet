@@ -28,6 +28,11 @@ def load_function(path):
 
     Raises:
         (Exception): Propagated import or attribute lookup errors.
+
+    Example:
+        >>> fn = load_function(\"math.sqrt\")
+        >>> fn(9)
+        3.0
     """
     module_path, func_name = path.rsplit(".", 1)
     module = import_module(module_path)
@@ -69,6 +74,68 @@ class ASRSystem(BaseSystem):
         )
         return result
 
+    def get_stage_log_dir(self, stage: str) -> Path:
+        """Return stage-specific log directories when configured.
+
+        The ASR system routes logs to artifact directories when available:
+          - ``create_dataset``: ``train_config.create_dataset.dataset_dir`` or
+            ``train_config.dataset_dir`` or ``train_config.data_dir``.
+          - ``train_tokenizer``: ``train_config.tokenizer.save_path``.
+          - ``collect_stats``: ``train_config.stats_dir``.
+          - ``train``/``publish``: ``train_config.exp_dir``.
+          - ``infer``: ``infer_config.infer_dir``.
+          - ``measure``: ``metric_config.infer_dir`` or ``infer_config.infer_dir``.
+
+        If none of the stage-specific paths are configured, it falls back to
+        ``BaseSystem.get_stage_log_dir`` (``train_config.exp_dir`` or
+        ``<cwd>/logs``).
+
+        Args:
+            stage (str): Stage name being executed.
+
+        Returns:
+            Path: Directory where the stage log should be placed.
+        """
+        if stage == "create_dataset":
+            cfg = getattr(self.train_config, "create_dataset", None)
+            if cfg is not None:
+                dataset_dir = getattr(cfg, "dataset_dir", None)
+                if dataset_dir:
+                    return Path(dataset_dir)
+            dataset_dir = getattr(self.train_config, "dataset_dir", None)
+            if dataset_dir:
+                return Path(dataset_dir)
+            data_dir = getattr(self.train_config, "data_dir", None)
+            if data_dir:
+                return Path(data_dir)
+        elif stage == "train_tokenizer":
+            tokenizer_cfg = getattr(self.train_config, "tokenizer", None)
+            save_path = (
+                getattr(tokenizer_cfg, "save_path", None) if tokenizer_cfg else None
+            )
+            if save_path:
+                return Path(save_path)
+        elif stage == "collect_stats":
+            stats_dir = getattr(self.train_config, "stats_dir", None)
+            if stats_dir:
+                return Path(stats_dir)
+        elif stage in {"train", "publish", "pack_model", "upload_model"}:
+            exp_dir = getattr(self.train_config, "exp_dir", None)
+            if exp_dir:
+                return Path(exp_dir)
+        elif stage == "infer":
+            infer_dir = getattr(self.infer_config, "infer_dir", None)
+            if infer_dir:
+                return Path(infer_dir)
+        elif stage == "measure":
+            infer_dir = getattr(self.metric_config, "infer_dir", None)
+            if infer_dir:
+                return Path(infer_dir)
+            infer_dir = getattr(self.infer_config, "infer_dir", None)
+            if infer_dir:
+                return Path(infer_dir)
+        return super().get_stage_log_dir(stage)
+
     def train(self, *args, **kwargs):
         """Train the model, training the tokenizer first if needed.
 
@@ -86,11 +153,7 @@ class ASRSystem(BaseSystem):
             raise RuntimeError("train_config.dataset_dir must be set for training.")
 
         # Train tokenizer if not trained previously
-        tokenizer_path = (
-            Path(self.train_config.tokenizer.save_path)
-            / f"{self.train_config.tokenizer.model_type}.model"
-        )
-        if not tokenizer_path.exists():
+        if not self._has_tokenizer():
             self.train_tokenizer()
 
         # Proceed with standard training
@@ -118,7 +181,6 @@ class ASRSystem(BaseSystem):
         if self._has_tokenizer():
             logger.info("Tokenizer already exists. Skipping train_tokenizer().")
             return
-
         start = time.perf_counter()
         tokenizer_config = getattr(self.train_config, "tokenizer", None)
         builder_config = (
@@ -182,3 +244,29 @@ class ASRSystem(BaseSystem):
         logger.info(
             "Tokenizer training completed in %.2fs", time.perf_counter() - start
         )
+
+    # ---------------------------------------------------------
+    # Publication helpers
+    # ---------------------------------------------------------
+    def pack_model(self, *args, **kwargs):
+        """Pack model artifacts into an espnet3 bundle."""
+        self._reject_stage_args("pack_model", args, kwargs)
+        from espnet3.utils.publish import pack_model
+
+        extra_paths = []
+        if self.train_config is not None:
+            tokenizer_cfg = getattr(self.train_config, "tokenizer", None)
+            if tokenizer_cfg is not None:
+                save_path = getattr(tokenizer_cfg, "save_path", None)
+                if save_path:
+                    extra_paths.append(Path(save_path))
+            stats_dir = getattr(self.train_config, "stats_dir", None)
+            if stats_dir:
+                extra_paths.append(Path(stats_dir))
+            data_dir = getattr(self.train_config, "data_dir", None)
+            if data_dir:
+                data_tokenizer = Path(data_dir) / "tokenizer"
+                if data_tokenizer.exists():
+                    extra_paths.append(data_tokenizer)
+
+        return pack_model(self, extra=extra_paths)

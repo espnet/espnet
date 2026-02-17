@@ -27,9 +27,10 @@ def prepare_sentences(
     writing to the output file.
 
     Args:
-        dump_text_paths (Union[str, Path]):
-            A single dump text file path or a list of paths to the dump
-            text files that will be processed.
+        dump_text_paths (List[Union[str, Path]]):
+            Paths to dump text files that will be concatenated. Each line is
+            expected to be ``<utt_id><space><text>`` and the text after the
+            first space is used for training.
         output_path (Union[str, Path]):
             The directory where the `train.txt` file will be saved.
             If the directory does not exist, it will be created.
@@ -38,24 +39,24 @@ def prepare_sentences(
             Defaults to an empty string, meaning no characters will be
             removed.
 
+    Returns:
+        None
+
     Raises:
         FileNotFoundError: If any of the dump text files do not exist.
         IOError: If there is an error reading from the dump text files
         or writing to the output path.
 
-    Examples:
-        >>> prepare_sentences("data/dump.txt", "output", remove_characters=",.!")
-        This will create an `output/train.txt` file from `data/dump.txt`,
-        removing commas, periods, and exclamation marks from the text.
+    Example:
+        >>> prepare_sentences(
+        ...     dump_text_paths=["dump/train.txt"],
+        ...     output_path="tokenizer",
+        ...     remove_characters=",.!",
+        ... )  # writes tokenizer/train.txt
 
-        >>> prepare_sentences(["data/dump1.txt", "data/dump2.txt"], "output")
-        This will create an `output/train.txt` file by concatenating
-        `data/dump1.txt` and `data/dump2.txt` without removing any characters.
-
-    Note:
-        Ensure that the input dump text files are properly formatted, as
-        the function expects each line to have a space-separated format
-        where the text to be processed is after the first space.
+    Notes:
+        - This helper writes plain text (one sentence per line) for use with
+          :func:`train_sentencepiece`.
     """
     # Please join the dump set before running this function.
     if not os.path.exists(output_path):
@@ -112,12 +113,15 @@ def train_sentencepiece(
         user_defined_symbols (list, optional): A list of user-defined symbols
             that should be included in the model. Defaults to an empty list.
 
+    Returns:
+        None
+
     Raises:
         FileNotFoundError: If the specified `dump_text_path` does not exist.
         Exception: If the training of the SentencePiece model fails for any
             reason.
 
-    Examples:
+    Example:
         >>> train_sentencepiece(
         ...     dump_text_path='path/to/train.txt',
         ...     save_path='path/to/output',
@@ -127,10 +131,9 @@ def train_sentencepiece(
         ...     user_defined_symbols=['<user_sym1>', '<user_sym2>']
         ... )
 
-    Note:
-        Ensure that the `train.txt` file has been prepared using the
-        `prepare_sentences` function before calling this function.
-        The output directory will be created if it does not already exist.
+    Notes:
+        - Prepare the input file via :func:`prepare_sentences` (or equivalent).
+        - The output directory is created if it does not already exist.
     """
     # Please prepare sentences before running this function.
     spm.SentencePieceTrainer.Train(
@@ -183,6 +186,17 @@ def add_special_tokens(
             converter: new converter,
             embedding: new embedding,
         )
+
+    Raises:
+        ValueError: If ``insert_after`` is not present in the token list.
+
+    Example:
+        >>> new_tok, new_conv, new_emb = add_special_tokens(
+        ...     tokenizer,
+        ...     converter,
+        ...     embedding,
+        ...     ["<new_token>"],
+        ... )  # doctest: +SKIP
     """
     token_list = converter.token_list
 

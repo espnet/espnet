@@ -1,0 +1,18 @@
+system: asr
+infer_config: conf/infer.yaml
+
+output_keys:
+  text: hyp
+
+pack:
+  out_dir: demo
+  files:
+    - exp/your_exp_dir/last.ckpt  # override in recipe
+    - exp/your_exp_dir/config.yaml
+
+upload_demo:
+  hf_username: your-hf-username
+  repo_name: your-demo
+  repo_type: space
+  space_sdk: gradio
+  # organization: your-org

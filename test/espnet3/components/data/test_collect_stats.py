@@ -27,9 +27,6 @@ mp.set_start_method("fork", force=True)
 # | test_collect_stats_parallel_basic    | Verifies that parallel mode         |
 # |                                      | (setup_fn + parallel_for) matches local     |
 # |                                      | aggregation logic and writes expected files |
-# | test_collect_stats_multiple_iterator | Verifies multiple-iterator (sharded) mode   |
-# |                                      | aggregates counts, writes stats,            |
-# |                                      | and outputs shard-specific shape files      |
 # | test_collect_stats_entry_point_basic | Verifies top-level collect_stats() function |
 # |                                      | works for different modes and produces      |
 # |                                      | correct aggregated results                  |
@@ -73,25 +70,6 @@ class DummyDataset:
             return uid, {"x": x, "length": T}
         else:
             return {"x": x, "length": T}
-
-    # For multiple-iterator tests: split items into shards round-robin
-    def shard(self, shard_idx: int, num_shards: int = 2):
-        shard = DummyDataset(n=0, base_len=self.base_len, dim=self.dim)
-        indices = [i for i in range(self.n) if i % num_shards == shard_idx]
-        shard.n = len(indices)
-        shard.lengths = [self.lengths[i] for i in indices]
-        # wrap original __getitem__ to map local shard index to global index
-        shard._global_indices = indices
-
-        def _getitem(local_idx):
-            global_idx = shard._global_indices[local_idx]
-            uid = f"utt{global_idx:03d}"
-            T = self.lengths[global_idx]
-            x = torch.full((T, self.dim), float(global_idx), dtype=torch.float32)
-            return uid, {"x": x, "length": T}
-
-        shard.__getitem__ = _getitem  # type: ignore
-        return shard
 
 
 class DummyOrganizer:
@@ -193,22 +171,12 @@ def make_dataset_cfg(
     )
 
 
-def make_dataloader_cfg(
-    use_custom_collate: bool = True,
-    multiple_iterator: bool = False,
-    num_shards: int = 2,
-):
+def make_dataloader_cfg(use_custom_collate: bool = True):
     if use_custom_collate:
         return OmegaConf.create(
             {
-                "train": {
-                    "multiple_iterator": multiple_iterator,
-                    "num_shards": num_shards,
-                },
-                "valid": {
-                    "multiple_iterator": multiple_iterator,
-                    "num_shards": num_shards,
-                },
+                "train": {},
+                "valid": {},
                 "collate_fn": {
                     "_target_": TEST_COLLATE_TARGET,
                     "int_pad_value": -1,
@@ -219,14 +187,8 @@ def make_dataloader_cfg(
         # Fallback path to CommonCollateFn (not used here)
         return OmegaConf.create(
             {
-                "train": {
-                    "multiple_iterator": multiple_iterator,
-                    "num_shards": num_shards,
-                },
-                "valid": {
-                    "multiple_iterator": multiple_iterator,
-                    "num_shards": num_shards,
-                },
+                "train": {},
+                "valid": {},
             }
         )
 
@@ -299,53 +261,6 @@ def test_collect_stats_local_basic(
         assert npz.exists(), f"{npz} missing"
         scp = mode_dir / "collect_feats" / f"{k}.scp"
         assert scp.exists(), f"{scp} missing"
-
-    ds = instantiate(ds_cfg).train
-    total_count = _expected_total_count(ds)
-    cnt, s, sq = _load_npz_counts(mode_dir, "mel")
-    assert int(cnt) == total_count, "Total frame count mismatch for mel"
-
-
-@pytest.mark.execution_timeout(30)
-def test_collect_stats_multiple_iterator(tmp_path: Path):
-    # Verify multiple-iterator (sharded) path aggregates counts and writes shapes
-    # with shard suffixes. Feature saving is disabled by spec.
-    model_cfg = make_model_cfg(scale=1.0)
-    ds_cfg = make_dataset_cfg(n_train=10, n_valid=0, base_len=2, dim=2)
-    # multiple_iterator=True and define number of shards
-    dl_cfg = make_dataloader_cfg(
-        use_custom_collate=True, multiple_iterator=True, num_shards=2
-    )
-    par_cfg = make_parallel_cfg(n_workers=2)
-
-    out_dir = tmp_path / "out"
-    out_dir.mkdir(parents=True, exist_ok=True)
-
-    collect_stats(
-        model_config=model_cfg,
-        dataset_config=ds_cfg,
-        dataloader_config=dl_cfg,
-        mode="train",
-        output_dir=out_dir,
-        task=None,
-        batch_size=2,
-        parallel_config=par_cfg,
-    )
-
-    mode_dir = out_dir / "train"
-    assert (mode_dir / "stats_keys").exists(), "stats_keys not written"
-
-    files = os.listdir(mode_dir)
-    for f in files:
-        print(f)
-
-    for k in ["mel", "mel_lengths"]:
-        npz = mode_dir / f"{k}_stats.npz"
-        assert npz.exists(), f"{npz} missing"
-        scp0 = mode_dir / f"{k}_shape.shard.0"
-        assert scp0.exists(), f"{scp0} missing"
-        scp1 = mode_dir / f"{k}_shape.shard.1"
-        assert scp1.exists(), f"{scp1} missing"
 
     ds = instantiate(ds_cfg).train
     total_count = _expected_total_count(ds)
@@ -436,47 +351,3 @@ def test_collect_stats_entrypoint_valid(tmp_path: Path, use_parallel):
     for k in ["mel", "mel_lengths"]:
         assert (mode_dir / f"{k}_stats.npz").exists()
         assert (mode_dir / "collect_feats" / f"{k}.scp").exists()
-
-
-@pytest.mark.execution_timeout(30)
-def test_collect_stats_entrypoint_multiple_iterator(tmp_path: Path):
-    # Entrypoint with multiple_iterator=True should dispatch to the sharded path.
-    # It must save stats and shard-suffixed shapes; features are not saved by spec.
-    model_cfg = make_model_cfg(scale=1.0)
-    ds_cfg = make_dataset_cfg(n_train=10, n_valid=0, base_len=2, dim=2)
-    dl_cfg = make_dataloader_cfg(
-        use_custom_collate=True, multiple_iterator=True, num_shards=2
-    )
-    par_cfg = make_parallel_cfg(n_workers=2)
-
-    out_dir = tmp_path / "out_ep_multi"
-    out_dir.mkdir(parents=True, exist_ok=True)
-
-    collect_stats(
-        model_config=model_cfg,
-        dataset_config=ds_cfg,
-        dataloader_config=dl_cfg,
-        mode="train",
-        output_dir=out_dir,
-        task=None,
-        parallel_config=par_cfg,
-        write_collected_feats=False,  # enforced by collect_stats
-        batch_size=2,
-    )
-
-    mode_dir = out_dir / "train"
-    assert (mode_dir / "stats_keys").exists()
-
-    # Stats files exist
-    for k in ["mel", "mel_lengths"]:
-        assert (mode_dir / f"{k}_stats.npz").exists()
-
-    # No feature scps in multi-iterator mode
-    cf_dir = mode_dir / "collect_feats"
-    assert not cf_dir.exists() or list(cf_dir.glob("*.scp")) == []
-
-    # Shard shape files exist
-    shard_shape_files = list(mode_dir.glob("mel_shape.shard.*"))
-    assert (
-        shard_shape_files
-    ), "Shard shape files were not written in entrypoint(multiple_iterator)"

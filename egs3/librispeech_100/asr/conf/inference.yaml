@@ -1,0 +1,30 @@
+# Inference/decoding configuration for LibriSpeech 100h.
+# Keeps only the keys required by the infer stage.
+
+# Root output directory for .scp files written by the infer stage.
+infer_dir: exp/${load_yaml:conf/train.yaml,exp_tag}/infer
+
+# Dataset definition for test splits only (names become output subfolders).
+dataset:
+  _target_: espnet3.components.data.data_organizer.DataOrganizer
+  test:
+    - name: test-clean
+      dataset:
+        _target_: src.dataset.LibriSpeechDataset
+        data_dir: ${load_yaml:conf/train.yaml,dataset_dir}
+        split: test-clean
+    - name: test-other
+      dataset:
+        _target_: src.dataset.LibriSpeechDataset
+        data_dir: ${load_yaml:conf/train.yaml,dataset_dir}
+        split: test-other
+
+# Inference model: load the trained config/checkpoint.
+model:
+  _target_: espnet2.bin.asr_inference.Speech2Text
+  asr_train_config: exp/${load_yaml:conf/train.yaml,exp_tag}/config.yaml
+  asr_model_file: exp/${load_yaml:conf/train.yaml,exp_tag}/last.ckpt
+
+# Generic ESPnet3 inference entrypoint settings.
+input_key: speech
+output_fn: src.infer.output_fn

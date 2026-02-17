@@ -1,0 +1,24 @@
+tokenizer: ${load_yaml:conf/train.yaml,tokenizer}
+pack_model:
+  strategy: auto  # auto|espnet2|espnet3
+  out_dir: exp/model_pack
+  decode_dir: ${exp_dir}/decode
+  include:
+    - ${tokenizer.save_path}
+  extra: []
+  exclude:
+    - "**/*.log"
+    - "**/tensorboard/**"
+    - "**/wandb/**"
+  files: {}
+  yaml_files: {}
+  espnet2:
+    task: asr
+    yaml_files:
+      asr_train_config: ${exp_dir}/config.yaml
+    files:
+      asr_train_model: ${exp_dir}/model.pth
+    option: []
+
+upload_model:
+  hf_repo: yourname/your-model-repo

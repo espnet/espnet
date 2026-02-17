@@ -244,6 +244,17 @@ class ESPnetLightningModule(lightning.LightningModule):
             AssertionError: If configuration rules are violated.
             ValueError: If neither optimizer configuration is provided.
         """
+
+        def _get_val_scheduler_monitor():
+            criterion = getattr(self.config, "val_scheduler_criterion", None)
+            if criterion is None:
+                return None
+            if not isinstance(criterion, str):
+                raise ValueError(
+                    "val_scheduler_criterion must be a string like 'valid/loss'"
+                )
+            return criterion
+
         if getattr(self.config, "optimizer", None) and getattr(
             self.config, "scheduler", None
         ):
@@ -347,12 +358,23 @@ class ESPnetLightningModule(lightning.LightningModule):
                 "Must specify either `optimizer` or `optimizers` and `scheduler` or"
                 "`schedulers`"
             )
+
+        def _build_lr_scheduler_config(sch):
+            config = {"scheduler": sch, "interval": "step"}
+            monitor = _get_val_scheduler_monitor()
+            if monitor is not None:
+                config["interval"] = "epoch"
+                config["monitor"] = monitor
+            return config
+
+        if isinstance(scheduler, list):
+            lr_scheduler = [_build_lr_scheduler_config(sch) for sch in scheduler]
+        else:
+            lr_scheduler = _build_lr_scheduler_config(scheduler)
+
         return {
             "optimizer": optimizer,
-            "lr_scheduler": {
-                "scheduler": scheduler,
-                "interval": "step",  # assuming lr scheduler is updated per step
-            },
+            "lr_scheduler": lr_scheduler,
         }
 
     def train_dataloader(self):
@@ -419,6 +441,12 @@ class ESPnetLightningModule(lightning.LightningModule):
         )
 
         for mode in ["train", "valid"]:
+            print(dataset_config)
+            if mode == "train":
+                dataset_config.preprocessor.train = True
+            else:
+                dataset_config.preprocessor.train = False
+
             collect_stats(
                 model_config=OmegaConf.to_container(self.config.model, resolve=True),
                 dataset_config=dataset_config,

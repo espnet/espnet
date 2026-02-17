@@ -81,10 +81,10 @@ class InferenceRunner(BaseRunner):
 
     @staticmethod
     def forward(idx, dataset=None, model=None, **kwargs):
-        """Run inference for one or more dataset items and return output dict(s).
+        """Run inference for one dataset item and return output dict.
 
         Args:
-            idx: Integer index or an iterable of integer indices into the dataset.
+            idx: Integer index into the dataset.
             dataset: Dataset providing inference entries.
             model: Inference model callable on the configured input.
             **kwargs: Expects ``input_key`` and ``output_fn_path``.
