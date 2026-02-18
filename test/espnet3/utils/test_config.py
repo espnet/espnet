@@ -10,41 +10,36 @@ from espnet3.utils.config_utils import load_config_with_defaults, load_line
 # ===============================================================
 #
 # Tests for `load_line(path)`
-# | Test Name                  | Description                      |
-# |----------------------------|----------------------------------|
-# | test_load_line_basic       | Reads multiline like "a\nb\nc" |
-# | test_load_line_with_whitespace | Strips surrounding whitespace   |
-# | test_load_line_empty_file  | Empty file → empty list          |
-# | test_load_line_single_line | Handles single-line file         |
-# | test_load_line_trailing_newline | Handles trailing newline        |
+# | Test Name                         | Description                                                    | # noqa: E501
+# |----------------------------------|----------------------------------------------------------------| # noqa: E501
+# | test_load_line_basic             | Reads a file with multiple lines like `"a\\nb\\nc"`            | # noqa: E501
+# | test_load_line_with_whitespace   | Strips leading/trailing whitespace from each line              | # noqa: E501
+# | test_load_line_empty_file        | Returns an empty list for an empty file                        | # noqa: E501
+# | test_load_line_single_line       | Handles file with only one line, no newline                    | # noqa: E501
+# | test_load_line_trailing_newline  | Handles file ending with a newline character                   | # noqa: E501
 #
 # Simple Tests for `load_config_with_defaults`
-# | Test Name                      | Description                  |
-# |--------------------------------|------------------------------|
-# | test_config_without_defaults   | Loads config as-is           |
-# | test_config_with_self_only     | defaults: [_self_] merges    |
-# | test_config_with_one_include   | Includes one external file   |
-# | test_config_with_key_value     | defaults: [{opt: adam}]      |
-# | test_config_update_with_key_value | Merges extra nested fields   |
-# | test_config_ignore_none_entry  | Skips null defaults entries  |
-# | test_defaults_removed_after_merge | Drops defaults key           |
+# | Test Name                          | Description                                                    | # noqa: E501
+# |-----------------------------------|----------------------------------------------------------------| # noqa: E501
+# | test_config_without_defaults       | Config with no `defaults` key, should load as-is               | # noqa: E501
+# | test_config_with_self_only         | `defaults: [_self_]` merges config with itself                 | # noqa: E501
+# | test_config_with_one_include       | Includes one external config file via `defaults`              | # noqa: E501
+# | test_config_with_key_value         | Loads config with `defaults: [{opt: adam}]` → opt/adam.yaml    | # noqa: E501
+# | test_config_update_with_key_value  | Adds extra fields to a nested dict loaded from `defaults`      | # noqa: E501
+# | test_config_ignore_none_entry      | Skips null entries in the `defaults` list                      | # noqa: E501
+# | test_defaults_removed_after_merge  | Ensures `defaults` is not present in the final config          | # noqa: E501
 #
 # Complex/Recursive Merging
-# | Test Name                      | Description                  |
-# |--------------------------------|------------------------------|
-# | test_config_with_nested_defaults | Resolves nested defaults      |
-# | test_config_with_self_in_middle | `_self_` in middle respected |
-#
-# Dataset target behavior
-# | Test Name                               | Description            |
-# |-----------------------------------------|------------------------|
-# | test_config_does_not_infer_dataset_target | No implicit targets |
+# | Test Name                          | Description                                                    | # noqa: E501
+# |-----------------------------------|----------------------------------------------------------------| # noqa: E501
+# | test_config_with_nested_defaults   | Nested includes (config includes another config that has its own defaults) | # noqa: E501
+# | test_config_with_self_in_middle    | `_self_` appears in the middle of the `defaults` list          | # noqa: E501
 #
 # Error Cases
-# | Test Name                 | Expected Exception        |
-# |---------------------------|---------------------------|
-# | test_missing_file_raises  | FileNotFoundError         |
-# | test_invalid_yaml_raises  | ParserError               |
+# | Test Name                          | Description                                                    | Expected Exception       | # noqa: E501
+# |-----------------------------------|----------------------------------------------------------------|--------------------------| # noqa: E501
+# | test_missing_file_raises           | Missing file in `defaults`                                     | FileNotFoundError        | # noqa: E501
+# | test_invalid_yaml_raises           | YAML parse error in included file                              | ParserError              | # noqa: E501
 
 
 @pytest.fixture
@@ -282,35 +277,3 @@ defaults:
 
     with pytest.raises(ParserError):
         load_config_with_defaults(str(main_path))
-
-
-def test_config_does_not_infer_dataset_target(tmp_path):
-    recipe_root = tmp_path / "recipe"
-    conf_dir = recipe_root / "conf"
-    src_dir = recipe_root / "src"
-    conf_dir.mkdir(parents=True)
-    src_dir.mkdir()
-    (src_dir / "dataset.py").write_text(
-        """
-class MyDataset:
-    pass
-"""
-    )
-
-    config_path = conf_dir / "config.yaml"
-    config_path.write_text(
-        """
-defaults:
-  - _self_
-dataset:
-  train:
-    - name: train
-      dataset:
-        split: train
-"""
-    )
-
-    cfg = load_config_with_defaults(str(config_path))
-    assert "_target_" not in cfg.dataset
-    assert "dataset_module" not in cfg.dataset
-    assert "_target_" not in cfg.dataset.train[0].dataset

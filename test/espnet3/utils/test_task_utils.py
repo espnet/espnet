@@ -1,4 +1,4 @@
-# tests/test_task_wrapper.py
+# tests/test_task_utils.py
 from argparse import Namespace
 from pathlib import Path
 
@@ -7,10 +7,10 @@ import pytest
 from espnet3.utils.config_utils import load_config_with_defaults
 
 # Replace with your actual module path
-# Example: from espnet3task import get_task_cls, save_espnet_config, get_espnet_model
+# Example: from espnet3task import get_task_class, save_espnet_config, get_espnet_model
 from espnet3.utils.task_utils import (
     get_espnet_model,
-    get_task_cls,
+    get_task_class,
     save_espnet_config,
 )
 
@@ -18,10 +18,10 @@ from espnet3.utils.task_utils import (
 # Test Case Summary for Task Wrapper (espnet3.utils.task_utils)
 # ===============================================================
 #
-# Tests for `get_task_cls(task_name)`
+# Tests for `get_task_class(task_name)`
 # | Test Name                               | Description                      |
 # |----------------------------------------|-----------------------------------|
-# | test_get_task_cls_returns_correct_class  | Maps "asr" to ASRTask         |
+# | test_get_task_class_returns_correct_class  | Maps "asr" to ASRTask         |
 #
 
 
@@ -52,9 +52,9 @@ from espnet3.utils.task_utils import (
     ],
 )
 @pytest.mark.execution_timeout(30)
-def test_get_task_cls_returns_correct_class(task_path, expected_cls_name):
+def test_get_task_class_returns_correct_class(task_path, expected_cls_name):
     try:
-        cls = get_task_cls(task_path)
+        cls = get_task_class(task_path)
     except RuntimeError as e:
         # Skip when optional dependencies pull in broken binary wheels (e.g., sklearn)
         if "numpy.dtype size changed" in str(e):
