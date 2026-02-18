@@ -74,13 +74,14 @@ class VariancePredictor(torch.nn.Module):
             Tensor: Batch of predicted sequences (B, Tmax, 1).
 
         """
+        if x_masks is not None:
+            xs = xs.masked_fill(x_masks, 0.0)
         xs = xs.transpose(1, -1)  # (B, idim, Tmax)
         for f in self.conv:
             xs = f(xs)  # (B, C, Tmax)
+            if x_masks is not None:
+                xs = xs.masked_fill(x_masks.transpose(1, -1), 0.0)
 
         xs = self.linear(xs.transpose(1, 2))  # (B, Tmax, 1)
-
-        if x_masks is not None:
-            xs = xs.masked_fill(x_masks, 0.0)
 
         return xs

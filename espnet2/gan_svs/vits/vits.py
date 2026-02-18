@@ -1054,6 +1054,7 @@ class VITS(AbsGANSVS):
                 label_lengths=label_lengths,
                 melody=melody,
                 score_dur=score_dur,
+                gt_dur=gt_dur,
                 slur=slur,
                 sids=sids,
                 spembs=spembs,

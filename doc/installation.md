@@ -42,7 +42,7 @@ to prepare the appropriate environments.
 
 
 ### Step 1) [Optional] Install Kaldi
-- If you use ESPnet1 (under egs/), you must compile Kaldi.
+- ESPnet 1 is no longer supported.
 - If you use ESPnet2 (under egs2/), You can skip the installation of Kaldi.
 
 <details><summary>Click to compile Kaldi...</summary><div>
