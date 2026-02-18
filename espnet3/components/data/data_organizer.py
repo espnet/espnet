@@ -1,5 +1,6 @@
 """DataOrganizer class for managing datasets in ESPnet3."""
 
+import logging
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Optional, Union
 
@@ -8,6 +9,9 @@ from omegaconf import DictConfig
 
 from espnet2.train.preprocessor import AbsPreprocessor
 from espnet3.components.data.dataset import CombinedDataset, DatasetWithTransform
+from espnet3.utils.logging_utils import build_callable_name, build_qualified_name
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -56,6 +60,42 @@ def do_nothing(*x):
         return x[0]
     else:
         return x
+
+
+def _log_dataset(
+    log: logging.Logger,
+    label: str,
+    combined: CombinedDataset | DatasetWithTransform | None,
+) -> None:
+    """Log dataset structure and transforms for a given label."""
+    if combined is None:
+        log.info("%s dataset: None", label)
+        return
+
+    log.info("%s dataset: %s", label, build_qualified_name(combined))
+    if isinstance(combined, DatasetWithTransform):
+        log.info(
+            "%s dataset detail: %s(len=%s) transform=%s preprocessor=%s",
+            label,
+            build_qualified_name(combined.dataset),
+            len(combined),
+            build_callable_name(combined.transform),
+            build_callable_name(combined.preprocessor),
+        )
+        return
+
+    for idx, (dataset, (transform, preprocessor)) in enumerate(
+        zip(combined.datasets, combined.transforms)
+    ):
+        log.info(
+            "%s dataset[%d]: %s(len=%s) transform=%s preprocessor=%s",
+            label,
+            idx,
+            build_qualified_name(dataset),
+            len(dataset),
+            build_callable_name(transform),
+            build_callable_name(preprocessor),
+        )
 
 
 class DataOrganizer:
@@ -202,3 +242,45 @@ class DataOrganizer:
     def test(self):
         """Get the dictionary of test datasets."""
         return self.test_sets
+
+    def __repr__(self) -> str:
+        """Return a compact, human-readable representation for debugging."""
+        train_desc = (
+            f"{build_qualified_name(self.train)}(len={len(self.train)})"
+            if self.train is not None
+            else "None"
+        )
+        valid_desc = (
+            f"{build_qualified_name(self.valid)}(len={len(self.valid)})"
+            if self.valid is not None
+            else "None"
+        )
+        test_entries = []
+        for name, dataset in self.test_sets.items():
+            test_entries.append(
+                f"{name}: {build_qualified_name(dataset)}(len={len(dataset)})"
+            )
+        tests_desc = ", ".join(test_entries) if test_entries else "None"
+        return (
+            f"{self.__class__.__name__}("
+            f"preprocessor={build_callable_name(self.preprocessor)}, "
+            f"train={train_desc}, "
+            f"valid={valid_desc}, "
+            f"test={tests_desc}"
+            f")"
+        )
+
+    def log_summary(self, log: logging.Logger | None = None) -> None:
+        """Log a concise dataset summary."""
+        log = log or logger
+        log.info("Data organizer: %s", build_qualified_name(self))
+        _log_dataset(log, "train", self.train)
+        _log_dataset(log, "valid", self.valid)
+
+        if not self.test_sets:
+            log.info("test datasets: None")
+            return
+
+        log.info("test datasets: %d", len(self.test_sets))
+        for name, dataset in self.test_sets.items():
+            _log_dataset(log, f"test[{name}]", dataset)
