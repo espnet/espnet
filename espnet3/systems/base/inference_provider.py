@@ -10,8 +10,10 @@ from hydra.utils import instantiate
 from omegaconf import DictConfig
 
 from espnet3.parallel.env_provider import EnvironmentProvider
+from espnet3.utils.logging_utils import log_instance_dict
 
 logger = logging.getLogger(__name__)
+_LOGGED_ENV = False
 
 
 class InferenceProvider(EnvironmentProvider, ABC):
@@ -72,6 +74,7 @@ class InferenceProvider(EnvironmentProvider, ABC):
 
         env = {"dataset": dataset, "model": model}
         env.update(self.params)
+        self._log_env(env)
         return env
 
     def build_worker_setup_fn(self) -> Callable[[], Dict[str, Any]]:
@@ -101,9 +104,25 @@ class InferenceProvider(EnvironmentProvider, ABC):
             model = cls.build_model(config)
             env = {"dataset": dataset, "model": model}
             env.update(params)
+            cls._log_env_static(env)
             return env
 
         return setup_fn
+
+    def _log_env(self, env: Dict[str, Any]) -> None:
+        global _LOGGED_ENV
+        if _LOGGED_ENV:
+            return
+        _LOGGED_ENV = True
+        log_instance_dict(logger, kind="Env", entries=env, max_depth=2)
+
+    @classmethod
+    def _log_env_static(cls, env: Dict[str, Any]) -> None:
+        global _LOGGED_ENV
+        if _LOGGED_ENV:
+            return
+        _LOGGED_ENV = True
+        log_instance_dict(logger, kind="Env", entries=env, max_depth=2)
 
     @staticmethod
     def build_dataset(config: DictConfig):
