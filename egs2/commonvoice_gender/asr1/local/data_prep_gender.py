@@ -21,16 +21,29 @@ def get_parser():
     parser = argparse.ArgumentParser(
         description="Prepare CommonVoice data filtered by gender"
     )
-    parser.add_argument("--cv_dir", type=str, required=True,
-                        help="Path to CommonVoice language directory")
-    parser.add_argument("--split", type=str, required=True,
-                        choices=["validated", "train", "test", "dev"],
-                        help="Dataset split to process")
-    parser.add_argument("--gender", type=str, required=True,
-                        choices=["male", "female"],
-                        help="Gender to filter for")
-    parser.add_argument("--out_dir", type=str, required=True,
-                        help="Output data directory")
+    parser.add_argument(
+        "--cv_dir",
+        type=str,
+        required=True,
+        help="Path to CommonVoice language directory",
+    )
+    parser.add_argument(
+        "--split",
+        type=str,
+        required=True,
+        choices=["validated", "train", "test", "dev"],
+        help="Dataset split to process",
+    )
+    parser.add_argument(
+        "--gender",
+        type=str,
+        required=True,
+        choices=["male", "female"],
+        help="Gender to filter for",
+    )
+    parser.add_argument(
+        "--out_dir", type=str, required=True, help="Output data directory"
+    )
     return parser
 
 
@@ -120,10 +133,7 @@ def main():
 
             # Write to output files
             # Use ffmpeg to convert MP3 to WAV on-the-fly
-            wav_cmd = (
-                f"ffmpeg -i {audio_path} -f wav "
-                f"-ar 16000 -ab 16 -ac 1 - |"
-            )
+            wav_cmd = f"ffmpeg -i {audio_path} -f wav " f"-ar 16000 -ab 16 -ac 1 - |"
             wav_scp.write(f"{utt_id} {wav_cmd}\n")
 
             # Uppercase text (following CommonVoice convention)
@@ -148,16 +158,12 @@ def main():
     print(f"  Kept (gender={target_gender}): {filtered_count}")
 
     # Generate spk2utt from utt2spk
-    spk2utt_cmd = (
-        f"utils/utt2spk_to_spk2utt.pl {out_dir}/utt2spk > {out_dir}/spk2utt"
-    )
+    spk2utt_cmd = f"utils/utt2spk_to_spk2utt.pl {out_dir}/utt2spk > {out_dir}/spk2utt"
     os.system(spk2utt_cmd)
 
     # Fix and validate data directory
     os.system(f"utils/fix_data_dir.sh {out_dir}")
-    ret = os.system(
-        f"utils/validate_data_dir.sh --non-print --no-feats {out_dir}"
-    )
+    ret = os.system(f"utils/validate_data_dir.sh --non-print --no-feats {out_dir}")
     if ret != 0:
         print(f"Warning: Data validation failed for {out_dir}", file=sys.stderr)
 

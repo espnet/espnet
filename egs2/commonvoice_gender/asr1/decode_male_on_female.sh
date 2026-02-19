@@ -19,4 +19,3 @@ cd ~/bootcamp/espnet/egs2/commonvoice_gender/asr1
 . ./path.sh
 
 ./decode_cross_gender.sh male_on_female
-
