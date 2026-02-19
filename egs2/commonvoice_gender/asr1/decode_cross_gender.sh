@@ -5,7 +5,8 @@ set -e
 set -u
 set -o pipefail
 
-cd ~/bootcamp/espnet/egs2/commonvoice_gender/asr1
+# Get the directory where this script is located
+cd "$(dirname "$0")"
 
 case "${1:-}" in
   male_on_female)

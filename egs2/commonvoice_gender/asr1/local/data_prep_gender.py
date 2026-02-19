@@ -12,6 +12,7 @@ Kaldi-style data directories (wav.scp, text, utt2spk, spk2utt, utt2gender).
 import argparse
 import csv
 import os
+import shlex
 import subprocess
 import sys
 from pathlib import Path
@@ -120,8 +121,10 @@ def main():
 
             # Write to output files
             # Use ffmpeg to convert MP3 to WAV on-the-fly
+            # Escape audio_path to prevent command injection
+            audio_path_escaped = shlex.quote(audio_path)
             wav_cmd = (
-                f"ffmpeg -i {audio_path} -f wav "
+                f"ffmpeg -i {audio_path_escaped} -f wav "
                 f"-ar 16000 -ab 16 -ac 1 - |"
             )
             wav_scp.write(f"{utt_id} {wav_cmd}\n")
@@ -148,17 +151,21 @@ def main():
     print(f"  Kept (gender={target_gender}): {filtered_count}")
 
     # Generate spk2utt from utt2spk
-    spk2utt_cmd = (
-        f"utils/utt2spk_to_spk2utt.pl {out_dir}/utt2spk > {out_dir}/spk2utt"
-    )
-    os.system(spk2utt_cmd)
+    # Use subprocess.run with proper argument handling to prevent command injection
+    with open(os.path.join(out_dir, "spk2utt"), "w", encoding="utf-8") as spk2utt_f:
+        subprocess.run(
+            ["utils/utt2spk_to_spk2utt.pl", os.path.join(out_dir, "utt2spk")],
+            stdout=spk2utt_f,
+            check=False,
+        )
 
     # Fix and validate data directory
-    os.system(f"utils/fix_data_dir.sh {out_dir}")
-    ret = os.system(
-        f"utils/validate_data_dir.sh --non-print --no-feats {out_dir}"
+    subprocess.run(["utils/fix_data_dir.sh", out_dir], check=False)
+    ret = subprocess.run(
+        ["utils/validate_data_dir.sh", "--non-print", "--no-feats", out_dir],
+        check=False,
     )
-    if ret != 0:
+    if ret.returncode != 0:
         print(f"Warning: Data validation failed for {out_dir}", file=sys.stderr)
 
 
