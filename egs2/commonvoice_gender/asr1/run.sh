@@ -14,7 +14,6 @@ train_dev="dev_${gender}_${lang}"
 test_set="${train_dev} test_${gender}_${lang}"
 
 asr_config=conf/tuning/train_asr_conformer5.yaml
-lm_config=conf/train_lm.yaml
 inference_config=conf/decode_asr.yaml
 
 nbpe=150
@@ -27,7 +26,7 @@ nbpe=150
     --local_data_opts "--lang ${lang} --gender ${gender}" \
     --use_lm false \
     --token_type bpe \
-    --nbpe $nbpe \
+    --nbpe "${nbpe}" \
     --feats_type raw \
     --speed_perturb_factors "0.9 1.0 1.1" \
     --asr_config "${asr_config}" \

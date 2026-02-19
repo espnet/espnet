@@ -29,7 +29,7 @@ if [ -z "${COMMONVOICE}" ]; then
     log "Fill the value of 'COMMONVOICE' of db.sh"
     exit 1
 fi
-mkdir -p ${COMMONVOICE}
+mkdir -p "${COMMONVOICE}"
 
 set -e
 set -u
@@ -106,7 +106,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     n_train=$(wc -l < "data/${train_set}/wav.scp")
     if [ ${n_train} -gt ${max_utts} ]; then
         log "Subsampling training set from ${n_train} to ${max_utts} utterances (~100 hours)"
-        utils/subset_data_dir.sh "data/${train_set}" ${max_utts} "data/${train_set}_full"
+        utils/subset_data_dir.sh "data/${train_set}" "${max_utts}" "data/${train_set}_full"
         # swap: move subset into main train dir
         mv "data/${train_set}" "data/${train_set}_all"
         mv "data/${train_set}_full" "data/${train_set}"

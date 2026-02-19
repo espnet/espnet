@@ -26,7 +26,7 @@ nbpe=150
     --local_data_opts "--lang ${lang} --gender ${gender}" \
     --use_lm false \
     --token_type bpe \
-    --nbpe $nbpe \
+    --nbpe "${nbpe}" \
     --feats_type raw \
     --speed_perturb_factors "0.9 1.0 1.1" \
     --asr_config "${asr_config}" \
