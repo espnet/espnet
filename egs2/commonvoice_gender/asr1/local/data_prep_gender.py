@@ -137,8 +137,7 @@ def main():
             # Escape audio_path to prevent command injection
             audio_path_escaped = shlex.quote(audio_path)
             wav_cmd = (
-                f"ffmpeg -i {audio_path_escaped} -f wav "
-                f"-ar 16000 -ab 16 -ac 1 - |"
+                f"ffmpeg -i {audio_path_escaped} -f wav " f"-ar 16000 -ab 16 -ac 1 - |"
             )
             wav_scp.write(f"{utt_id} {wav_cmd}\n")
 
