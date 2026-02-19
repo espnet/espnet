@@ -59,12 +59,12 @@ This recipe demonstrates **gender-based ASR fairness analysis** using CommonVoic
 
 1. **Same-gender performance**: Both male and female models achieve similar WER (~32-33%) on their respective gender's speech, indicating balanced training data quality.
 
-2. **Cross-gender bias**: 
+2. **Cross-gender bias**:
    - **Male model shows significant bias** against female speech (54.6% WER vs 32.0% baseline)
    - **Female model shows moderate bias** against male speech (37.0% WER vs 33.1% baseline)
    - The asymmetry suggests that models trained on male speech generalize poorly to female speech, highlighting fairness concerns in ASR systems.
 
-3. **Dataset**: 
+3. **Dataset**:
    - Training: ~71.7K utterances per gender (~100 hours)
    - Male test: 1,753 utterances
    - Female test: 534 utterances

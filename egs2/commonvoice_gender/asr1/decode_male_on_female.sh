@@ -16,4 +16,3 @@ cd "$(dirname "$0")"
 . ./path.sh
 
 ./decode_cross_gender.sh male_on_female
-

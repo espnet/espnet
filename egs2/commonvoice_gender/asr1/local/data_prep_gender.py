@@ -22,16 +22,29 @@ def get_parser():
     parser = argparse.ArgumentParser(
         description="Prepare CommonVoice data filtered by gender"
     )
-    parser.add_argument("--cv_dir", type=str, required=True,
-                        help="Path to CommonVoice language directory")
-    parser.add_argument("--split", type=str, required=True,
-                        choices=["validated", "train", "test", "dev"],
-                        help="Dataset split to process")
-    parser.add_argument("--gender", type=str, required=True,
-                        choices=["male", "female"],
-                        help="Gender to filter for")
-    parser.add_argument("--out_dir", type=str, required=True,
-                        help="Output data directory")
+    parser.add_argument(
+        "--cv_dir",
+        type=str,
+        required=True,
+        help="Path to CommonVoice language directory",
+    )
+    parser.add_argument(
+        "--split",
+        type=str,
+        required=True,
+        choices=["validated", "train", "test", "dev"],
+        help="Dataset split to process",
+    )
+    parser.add_argument(
+        "--gender",
+        type=str,
+        required=True,
+        choices=["male", "female"],
+        help="Gender to filter for",
+    )
+    parser.add_argument(
+        "--out_dir", type=str, required=True, help="Output data directory"
+    )
     return parser
 
 
