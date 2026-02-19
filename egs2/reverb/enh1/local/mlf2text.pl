@@ -1,1 +1,1 @@
-../../../../egs/reverb/asr1/local/mlf2text.pl
+../../asr1/local/mlf2text.pl
