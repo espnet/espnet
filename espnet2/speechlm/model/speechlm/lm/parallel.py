@@ -50,12 +50,12 @@ def build_parallel_hf_class(model_hf_tag):
             pretrained_model_name_or_path,
             multimodal_io,
             vocab,
-vocab_intervals,
-max_loss_interval: int = 13192,
-# 13192 is an empirical value, based on our previous tokenizer setup: 
-# 5000 SSL code + 8 * 1024 codec code.
-# This is just a default value that can be overridden.
-# See https://github.com/espnet/espnet/pull/6354/changes#r2772187777
+            vocab_intervals,
+            max_loss_interval: int = 13192,
+            # 13192 is an empirical value, based on our previous tokenizer setup:
+            # 5000 SSL code + 8 * 1024 codec code.
+            # This is just a default value that can be overridden.
+            # See https://github.com/espnet/espnet/pull/6354/changes#r2772187777
             compile_transformer_body: bool = False,
             freeze_text_embeddings: bool = False,
             **kwargs,
