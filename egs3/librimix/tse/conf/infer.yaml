@@ -1,4 +1,4 @@
-# Inference/decoding configuration for LibriSpeech 100h.
+# Inference configuration for LibriMix.
 # Keeps only the keys required by the infer stage.
 
 # Root output directory for .scp files written by the infer stage.
@@ -8,11 +8,11 @@ infer_dir: exp/${load_yaml:conf/train.yaml,exp_tag}/infer
 dataset:
   _target_: espnet3.components.data.data_organizer.DataOrganizer
   test:
-    - name: test-mix-both
+    - name: 2mix_16k_max_test_mix-both
       dataset:
         _target_: src.dataset.LibriMixTSEDataset
         data_dir: ${load_yaml:conf/train.yaml,dataset_dir}
-        split: test-mix-both
+        split: 2mix_16k_max_test_mix-both
 
 # Inference model: load the trained config/checkpoint.
 model:

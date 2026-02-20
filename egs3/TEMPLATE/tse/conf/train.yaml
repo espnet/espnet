@@ -24,17 +24,17 @@ create_dataset:
 dataset:
   _target_: espnet3.components.data_organizer.DataOrganizer
   train:
-    - name: train-mix-both
+    - name: 2mix_16k_max_train_mix-both
       dataset:
         _target_: src.dataset.LibriMixTSEDataset
         data_dir: ${dataset_dir}
-        split: train-mix-both
+        split: 2mix_16k_max_train_mix-both
   valid:
-    - name: dev-mix-both
+    - name: 2mix_16k_max_dev_mix-both
       dataset:
         _target_: src.dataset.LibriMixTSEDataset
         data_dir: ${dataset_dir}
-        split: dev-mix-both
+        split: 2mix_16k_max_dev_mix-both
 
   # Optional global preprocessor; can also be omitted
   preprocessor:

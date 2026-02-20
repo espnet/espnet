@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Dict, Iterable, List
+from typing import Dict, Iterable, List, Tuple
 
 import numpy as np
 import soundfile as sf
@@ -30,7 +30,7 @@ class TSOS(AbsMetric):
     def __init__(
         self,
         ref_key: str = "ref",
-        inf_key: str = "inf",
+        hyp_key: str = "inf",
         batch_size: int = 1,
         power: float = 2.0,
         threshold: float = 0.1,
@@ -38,13 +38,14 @@ class TSOS(AbsMetric):
         win_length: int = None,
         hop_length: int = 128,
         window="hann",
+        ref_channel: int = 0,
         device: str = "cpu",
     ) -> None:
         """Initialize the TSOS measure.
 
         Args:
             ref_key: Key name for reference speech.
-            inf_key: Key name for extracted speech.
+            hyp_key: Key name for extracted speech.
             batch_size: batch size for batched inference.
             power: Factor for power-law compression in TSOS calculation.
             threshold: Threshold (gamma) for TSOS calculation.
@@ -52,10 +53,11 @@ class TSOS(AbsMetric):
             win_length: Window length in STFT.
             hop_length: Hop length in STFT.
             window: Window function in STFT.
+            ref_channel: Reference channel index for aligning multi-channel signals.
             device: device to use for inference.
         """
         self.ref_key = ref_key
-        self.inf_key = inf_key
+        self.hyp_key = hyp_key
         assert isinstance(batch_size, int) and batch_size > 0, batch_size
         self.batch_size = batch_size
         assert isinstance(power, (float, int)) and power > 0, power
@@ -69,20 +71,21 @@ class TSOS(AbsMetric):
             hop_length=hop_length,
             window=window,
         ).to(device)
+        self.ref_channel = ref_channel
         self.device = device
 
     def _align_shape(self, ref, inf):
         if ref.shape != inf.shape:
             if ref.ndim > inf.ndim:
                 # multi-channel reference and single-channel output
-                ref = ref[..., ref_channel]
+                ref = ref[..., self.ref_channel]
             elif ref.ndim < inf.ndim:
                 # single-channel reference and multi-channel output
-                inf = inf[..., ref_channel]
+                inf = inf[..., self.ref_channel]
             elif ref.ndim == inf.ndim == 2:
                 # multi-channel reference and output
-                ref = ref[..., ref_channel]
-                inf = inf[..., ref_channel]
+                ref = ref[..., self.ref_channel]
+                inf = inf[..., self.ref_channel]
             else:
                 raise ValueError(
                     "Reference and inference must have the same shape, "
@@ -91,7 +94,7 @@ class TSOS(AbsMetric):
         return ref, inf
 
     def load_audio_pairs(
-        self, ref_batch: List[str], inf_batch: List[str], ref_channel: int = 0
+        self, ref_batch: List[str], inf_batch: List[str]
     ) -> Tuple[List[Tensor], List[Tensor]]:
         ref_audios, inf_audios = [], []
         for ref_path, inf_path in zip(ref_batch, inf_batch):
@@ -100,7 +103,7 @@ class TSOS(AbsMetric):
             ref_audio = torch.as_tensor(ref_audio, device=self.device)
             inf_audio = torch.as_tensor(inf_audio, device=self.device)
             assert sr1 == sr2, f"Sampling rates must match, but got {sr1} and {sr2}"
-            ref_audio, inf_audio = self._align_shape(ref_audio, inf_audio, ref_channel)
+            ref_audio, inf_audio = self._align_shape(ref_audio, inf_audio)
             ref_audios.append(ref_audio)
             inf_audios.append(inf_audio)
         return ref_audios, inf_audios
@@ -114,7 +117,7 @@ class TSOS(AbsMetric):
         dim = x.ndim - dim - 1 if dim >= 0 else -dim - 1
         return F.pad(x, [0] * 2 * dim + list(pad), **kwargs)
 
-    def collate_fn(self, audio_paths: List[str]) -> Tensor:
+    def collate_fn(self, audios: List[Tensor]) -> Tensor:
         self._ensure_same_ndim(audios)
         ilens = audios[0].new_tensor([x.size(0) for x in audios], dtype=torch.long)
         max_len = ilens.max().item()
@@ -125,7 +128,7 @@ class TSOS(AbsMetric):
         self, data: Dict[str, List[str]]
     ) -> Iterable[Tuple[List[Tensor], List[Tensor]]]:
         uids = data["uttid"]
-        refs, infs = data[self.ref_key], data[self.inf_key]
+        refs, infs = data[self.ref_key], data[self.hyp_key]
         assert len(refs) == len(infs), (len(refs), len(infs))
         length = len(refs)
         i = 0
@@ -137,11 +140,13 @@ class TSOS(AbsMetric):
             # [Batch, Frames, (Channels)]
             ref_audios, ref_ilens = self.collate_fn(ref_audios)
             inf_audios, inf_ilens = self.collate_fn(inf_audios)
-            assert ref_ilens == inf_ilens, (ref_ilens, inf_ilens)
+            assert torch.all(ref_ilens == inf_ilens), (ref_ilens, inf_ilens)
             yield uids, ref_audios, inf_audios, ref_ilens
             i += self.batch_size
 
-    def compute_tsos(self, ref_spec: Tensor, inf_spec: Tensor) -> List[float]:
+    def compute_tsos(
+        self, ref_spec: Tensor, inf_spec: Tensor, flens: Tensor
+    ) -> List[float]:
         # [Batch, Frame, (Channel,) Freq]
         ref_mag, inf_mag = ref_spec.abs() ** self.power, inf_spec.abs() ** self.power
         oversuppression = torch.clamp_min(ref_mag - inf_mag, 0.0) ** 2
@@ -151,11 +156,7 @@ class TSOS(AbsMetric):
         return tsos.mean(-1).cpu().tolist()
 
     def __call__(
-        self,
-        data: Dict[str, List[str]],
-        test_name: str,
-        inference_dir: Path,
-        ref_channel: int = 0,
+        self, data: Dict[str, List[str]], test_name: str, inference_dir: Path
     ) -> Dict[str, float]:
         """Compute TSOS, and return the metric.
 
@@ -165,7 +166,6 @@ class TSOS(AbsMetric):
                 ``{"utt_id": [s1, s2, ..], "ref": [s1, s2, ..], "inf": [s1, s2, ..]}``.
             test_name: Test set name used for output directory naming.
             inference_dir: Base directory for storing per-sample metrics.
-            ref_channel: Reference channel index for aligning multi-channel signals.
 
         Returns:
             Dict containing mean TSOS measure.
@@ -177,7 +177,7 @@ class TSOS(AbsMetric):
         for uids, ref_audios, inf_audios, ilens in self.get_batches(data):
             ref_specs, flens = self.stft(ref_audios, ilens=ilens)
             inf_specs, _ = self.stft(inf_audios, ilens=ilens)
-            tsos_batch = self.compute_tsos(ref_specs, inf_spec)
+            tsos_batch = self.compute_tsos(ref_specs, inf_specs, flens)
             tsos.extend(tsos_batch)
 
             with (test_dir / "tsos").open("w", encoding="utf-8") as f:

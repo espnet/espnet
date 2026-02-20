@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import tarfile
 import urllib.request
+import zipfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
@@ -156,3 +157,15 @@ def extract_targz(
     _log(logger, f"Extracting: {archive_path.name}")
     with tarfile.open(archive_path, "r:gz") as tar:
         tar.extractall(path=dst_dir)
+
+
+
+def extract_zip(
+    archive_path: Path,
+    dst_dir: Path,
+    logger: logging.Logger | None = None,
+) -> None:
+    """Extract a .zip archive into ``dst_dir``."""
+    _log(logger, f"Extracting: {archive_path.name}")
+    with zipfile.ZipFile(archive_path, "r") as zip_ref:
+        zip_ref.extractall(dst_dir)

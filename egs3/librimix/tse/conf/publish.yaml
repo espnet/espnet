@@ -11,7 +11,7 @@ pack_model:
   files: {}
   yaml_files: {}
   espnet2:
-    task: asr
+    task: tse
     yaml_files: {}
     files: {}
     option: []
