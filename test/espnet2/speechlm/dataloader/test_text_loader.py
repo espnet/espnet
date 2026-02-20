@@ -2,8 +2,6 @@
 
 import json
 
-import pytest
-
 from espnet2.speechlm.dataloader.multimodal_loader.text_loader import TextReader
 
 # ---------- TextReader (plain format) ----------
