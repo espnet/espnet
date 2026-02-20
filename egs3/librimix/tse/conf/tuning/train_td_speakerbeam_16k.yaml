@@ -14,7 +14,7 @@ data_dir: ${recipe_dir}/data
 exp_tag: librimix_tse_td_speakerbeam
 exp_dir: ${recipe_dir}/exp/${exp_tag}
 stats_dir: ${recipe_dir}/exp/stats
-infer_dir: ${exp_dir}/infer 
+infer_dir: ${exp_dir}/infer
 dataset_dir: /path/to/LibriMix
 
 # Dataset creation function and arguments (downloads into dataset_dir cache).
