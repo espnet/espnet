@@ -331,9 +331,7 @@ class LibriMixTSEDataset(TorchDataset):
         # 1. Load scp files
         data_dir = self.librimix_root / self.split
         files = [(data_dir / "wav.scp").open("r")]
-        key2path = {
-            "speech_mix": data_dir / "wav.scp"
-        }
+        key2path = {"speech_mix": data_dir / "wav.scp"}
         for spk in range(1, self.num_spk + 1):
             key2path[f"speech_ref{spk}"] = data_dir / f"spk{spk}.scp"
             key2path[f"text_spk{spk}"] = data_dir / f"text_spk{spk}"
@@ -393,7 +391,5 @@ class LibriMixTSEDataset(TorchDataset):
         for uid in uids:
             kwargs = {k: info[k][uid] for k in keys}
             kwargs["uttid"] = uid
-            examples.append(
-                Example(**kwargs)
-            )
+            examples.append(Example(**kwargs))
         return examples

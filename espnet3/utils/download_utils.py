@@ -159,7 +159,6 @@ def extract_targz(
         tar.extractall(path=dst_dir)
 
 
-
 def extract_zip(
     archive_path: Path,
     dst_dir: Path,
