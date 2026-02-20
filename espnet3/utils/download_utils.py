@@ -15,7 +15,21 @@ def setup_logger(
     log_dir: Path | None = None,
     level: int = logging.INFO,
 ) -> logging.Logger:
-    """Create or fetch a namespaced logger with stream/file handlers."""
+    """Set up a logger with console and optional file handlers.
+
+    This helper configures a named logger with a standard formatter and:
+      - A stream handler for console output (added once per logger).
+      - A file handler that writes to `download.log` in `log_dir`, if provided.
+
+    Args:
+        name (str): Logger name (e.g., "espnet3.download").
+        log_dir (Path | None): Directory for the optional log file.
+            When provided, `download.log` is created under this directory.
+        level (int): Logging level (e.g., logging.INFO).
+
+    Returns:
+        logging.Logger: Configured logger instance.
+    """
     logger = logging.getLogger(name)
     logger.setLevel(level)
     logger.propagate = False
@@ -47,6 +61,7 @@ def setup_logger(
 
 
 def _log(logger: Optional[logging.Logger], message: str) -> None:
+    """Log a message using the logger if provided; otherwise print."""
     if logger is None:
         print(message)
     else:
@@ -92,7 +107,23 @@ def download_url(
     logger: logging.Logger | None = None,
     step_percent: int = 5,
 ) -> None:
-    """Download a URL to ``dst_path`` with progress logging."""
+    """Download a URL to a local path with progress logging.
+
+    This uses `urllib.request.urlretrieve` and logs progress at fixed
+    percentage intervals (default: every 5%). The destination directory
+    is created if needed.
+
+    Args:
+        url (str): The URL to download.
+        dst_path (Path): Destination file path.
+        logger (logging.Logger | None): Logger to emit progress messages.
+            If None, messages are printed to stdout.
+        step_percent (int): Percentage step for progress logging.
+
+    Raises:
+        URLError: If the download fails.
+        HTTPError: If the server returns an error response.
+    """
     dst_path.parent.mkdir(parents=True, exist_ok=True)
 
     progress = DownloadProgress(
@@ -112,7 +143,16 @@ def extract_targz(
     dst_dir: Path,
     logger: logging.Logger | None = None,
 ) -> None:
-    """Extract a .tar.gz archive into ``dst_dir``."""
+    """Extract a `.tar.gz` archive into a destination directory.
+
+    Args:
+        archive_path (Path): Path to the `.tar.gz` archive.
+        dst_dir (Path): Directory to extract files into.
+        logger (logging.Logger | None): Logger to emit progress messages.
+
+    Raises:
+        tarfile.TarError: If the archive is invalid or extraction fails.
+    """
     _log(logger, f"Extracting: {archive_path.name}")
     with tarfile.open(archive_path, "r:gz") as tar:
         tar.extractall(path=dst_dir)

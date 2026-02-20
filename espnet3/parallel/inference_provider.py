@@ -1,11 +1,16 @@
 """Inference-time provider helpers for dataset/model construction."""
 
+import logging
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional
 
 from omegaconf import DictConfig
 
 from espnet3.parallel.env_provider import EnvironmentProvider
+from espnet3.utils.logging_utils import log_instance_dict
+
+logger = logging.getLogger(__name__)
+_LOGGED_ENV = False
 
 
 class InferenceProvider(EnvironmentProvider, ABC):
@@ -15,7 +20,7 @@ class InferenceProvider(EnvironmentProvider, ABC):
     per-worker setup. Instances cache a local environment for reuse.
     """
 
-    def __init__(self, config: DictConfig, *, params: Optional[Dict[str, Any]] = None):
+    def __init__(self, config: DictConfig, params: Optional[Dict[str, Any]] = None):
         """Initialize the provider and prebuild the local environment.
 
         Args:
@@ -59,7 +64,9 @@ class InferenceProvider(EnvironmentProvider, ABC):
         Returns:
             Mapping with dataset/model and any extra params.
         """
-        return dict(self._local_env)
+        env = dict(self._local_env)
+        self._log_env(env)
+        return env
 
     def build_worker_setup_fn(self):
         """Return a setup function that rebuilds the env per worker.
@@ -76,6 +83,14 @@ class InferenceProvider(EnvironmentProvider, ABC):
                 "model": self.build_model(config),
             }
             env.update(params)
+            self._log_env(env)
             return env
 
         return setup
+
+    def _log_env(self, env: Dict[str, Any]) -> None:
+        global _LOGGED_ENV
+        if _LOGGED_ENV:
+            return
+        _LOGGED_ENV = True
+        log_instance_dict(logger, kind="Env", entries=env, max_depth=2)
