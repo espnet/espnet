@@ -1,6 +1,8 @@
 """Callbacks for ESPnet3 trainer."""
 
 import logging
+import time
+from collections import defaultdict
 from pathlib import Path
 from typing import List, Tuple, Union
 
@@ -12,6 +14,10 @@ from lightning.pytorch.callbacks import (
     TQDMProgressBar,
 )
 from typeguard import typechecked
+
+from espnet3.utils.logging_utils import log_component
+
+_LOGGED_CALLBACKS = False
 
 
 @typechecked
@@ -123,6 +129,191 @@ class AverageCheckpointsCallback(Callback):
 
 
 @typechecked
+class TrainBatchMetricsLogger(Callback):
+    """Log averaged training metrics every N steps as a single line.
+
+    This callback aggregates numeric metrics reported via Lightning's
+    ``trainer.callback_metrics`` during training and emits a compact, human-friendly
+    log line at a fixed interval (``log_every_n_steps``). Metrics are averaged over
+    the interval and the internal buffer is cleared after logging.
+
+    The log line is ordered as:
+      - Time metrics: ``iter_time``, ``forward_time``, ``backward_time``,
+        ``optim_step_time``, ``train_time`` (when available)
+      - User metrics (stats from the model, ``train/`` prefix removed)
+      - Learning rates (``optim{idx}_lr{group}``)
+
+    Example:
+        >>> cb = TrainBatchMetricsLogger(log_every_n_steps=200)
+        >>> trainer = Trainer(callbacks=[cb, ...])
+
+    Example log output:
+        20epoch:train:4201-4400batch: iter_time=6.212e-05, forward_time=0.145, \
+            backward_time=0.159, optim_step_time=0.015, train_time=0.562, \
+            loss_ctc=69.86, loss_att=32.128, acc=0.868, loss=46.669, \
+            optim0_lr0=2.458e-06
+    """
+
+    def __init__(self, log_every_n_steps: int = 500):
+        """Initialize the logger with a reporting interval."""
+        self.log_every_n_steps = int(log_every_n_steps)
+        self._sum = defaultdict(float)
+        self._count = 0
+        self._start_batch = None
+        self._epoch_sum = defaultdict(float)
+        self._epoch_count = 0
+        self._last_batch_end_time = None
+        self._batch_start_time = None
+        self._forward_start_time = None
+        self._backward_start_time = None
+        self._optim_step_start_time = None
+
+    def _reset(self):
+        """Clear buffered metrics for the next logging window."""
+        self._sum.clear()
+        self._count = 0
+        self._start_batch = None
+        self._batch_start_time = None
+        self._forward_start_time = None
+        self._backward_start_time = None
+        self._optim_step_start_time = None
+
+    def _reset_epoch(self):
+        """Clear epoch-level buffered metrics."""
+        self._epoch_sum.clear()
+        self._epoch_count = 0
+
+    def on_train_batch_start(self, trainer, pl_module, batch, batch_idx):
+        """Start timers for a training batch."""
+        # Use wall clock for simplicity; Lightning doesn't expose loader timing.
+        t = time.perf_counter()
+        if self._last_batch_end_time is not None:
+            iter_time = t - self._last_batch_end_time
+            self._sum["iter_time"] += iter_time
+        self._batch_start_time = t
+        self._forward_start_time = t
+
+    def on_before_backward(self, trainer, pl_module, loss):
+        """Mark the end of forward pass and start backward timing."""
+        t = time.perf_counter()
+        if self._forward_start_time is not None:
+            self._sum["forward_time"] += t - self._forward_start_time
+        self._backward_start_time = t
+
+    def on_after_backward(self, trainer, pl_module):
+        """Record backward time."""
+        t = time.perf_counter()
+        if self._backward_start_time is not None:
+            self._sum["backward_time"] += t - self._backward_start_time
+        self._backward_start_time = None
+
+    def on_before_optimizer_step(self, trainer, pl_module, optimizer):
+        """Start optimizer step timing."""
+        self._optim_step_start_time = time.perf_counter()
+
+    def on_after_optimizer_step(self, trainer, pl_module):
+        """Record optimizer step time."""
+        if self._optim_step_start_time is not None:
+            self._sum["optim_step_time"] += (
+                time.perf_counter() - self._optim_step_start_time
+            )
+        self._optim_step_start_time = None
+
+    def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
+        """Aggregate metrics and emit a summary line when due."""
+        metrics = trainer.callback_metrics or {}
+
+        if self._start_batch is None:
+            self._start_batch = batch_idx + 1
+
+        for key, value in metrics.items():
+            if key in {"epoch", "step"} or str(key).startswith("valid/"):
+                continue
+            key = str(key)
+            if key.startswith("train/"):
+                key = key[len("train/") :]
+            if hasattr(value, "detach"):
+                value = value.detach()
+            try:
+                value = float(value)
+            except Exception:
+                continue
+            self._sum[key] += value
+            self._epoch_sum[key] += value
+
+        # Optimizer learning rates
+        try:
+            optimizers = trainer.optimizers or []
+        except Exception:
+            optimizers = []
+        for opt_idx, optim in enumerate(optimizers):
+            for group_idx, group in enumerate(getattr(optim, "param_groups", [])):
+                lr = group.get("lr")
+                if lr is not None:
+                    self._sum[f"optim{opt_idx}_lr{group_idx}"] += float(lr)
+                    self._epoch_sum[f"optim{opt_idx}_lr{group_idx}"] += float(lr)
+
+        if self._batch_start_time is not None:
+            self._sum["train_time"] += time.perf_counter() - self._batch_start_time
+            self._epoch_sum["train_time"] += (
+                time.perf_counter() - self._batch_start_time
+            )
+
+        self._last_batch_end_time = time.perf_counter()
+        self._count += 1
+        self._epoch_count += 1
+        if self.log_every_n_steps <= 0:
+            return
+        if (batch_idx + 1) % self.log_every_n_steps != 0:
+            return
+
+        avg = {k: (v / self._count if self._count else v) for k, v in self._sum.items()}
+        time_keys = [
+            "iter_time",
+            "forward_time",
+            "backward_time",
+            "optim_step_time",
+            "train_time",
+        ]
+        lr_keys = sorted(k for k in avg if k.startswith("optim") and "_lr" in k)
+        user_keys = sorted(
+            k for k in avg.keys() if k not in time_keys and k not in lr_keys
+        )
+        keys = [k for k in time_keys if k in avg] + user_keys + lr_keys
+        metrics_str = ", ".join(f"{k}={avg[k]:.6g}" for k in keys)
+        start = self._start_batch or (batch_idx + 1)
+        end = batch_idx + 1
+        epoch = trainer.current_epoch + 1
+        logging.info("%depoch:train:%d-%dbatch: %s", epoch, start, end, metrics_str)
+        self._reset()
+
+    def on_train_epoch_end(self, trainer, pl_module):
+        """Reset buffers at the end of each training epoch."""
+        if self._epoch_count > 0:
+            avg = {
+                k: (v / self._epoch_count if self._epoch_count else v)
+                for k, v in self._epoch_sum.items()
+            }
+            time_keys = [
+                "iter_time",
+                "forward_time",
+                "backward_time",
+                "optim_step_time",
+                "train_time",
+            ]
+            lr_keys = sorted(k for k in avg if k.startswith("optim") and "_lr" in k)
+            user_keys = sorted(
+                k for k in avg.keys() if k not in time_keys and k not in lr_keys
+            )
+            keys = [k for k in time_keys if k in avg] + user_keys + lr_keys
+            metrics_str = ", ".join(f"{k}={avg[k]:.6g}" for k in keys)
+            epoch = trainer.current_epoch + 1
+            logging.info("epoch_summary:%depoch:train: %s", epoch, metrics_str)
+        self._reset()
+        self._reset_epoch()
+
+
+@typechecked
 def get_default_callbacks(
     exp_dir: str = "./exp",
     log_interval: int = 500,
@@ -202,10 +393,23 @@ def get_default_callbacks(
     # Progress bar
     progress_bar_callback = TQDMProgressBar(refresh_rate=log_interval)
 
-    return [
+    callbacks = [
         last_ckpt_callback,
         *best_ckpt_callbacks,  # unpack list to add them to the list of callbacks.
         ave_ckpt_callback,
         lr_callback,
+        TrainBatchMetricsLogger(log_every_n_steps=log_interval),
         progress_bar_callback,
     ]
+    global _LOGGED_CALLBACKS
+    if not _LOGGED_CALLBACKS:
+        _LOGGED_CALLBACKS = True
+        for idx, cb in enumerate(callbacks):
+            log_component(
+                logging.getLogger(__name__),
+                kind="Callback",
+                label=str(idx),
+                obj=cb,
+                max_depth=2,
+            )
+    return callbacks

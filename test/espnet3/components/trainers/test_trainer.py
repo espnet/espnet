@@ -65,6 +65,7 @@ exp_dir = "test_utils/espnet3"
 @pytest.fixture
 def dummy_dataset_config():
     config = {
+        "_target_": "espnet3.components.data.data_organizer.DataOrganizer",
         "train": [
             {
                 "name": "train_dummy",

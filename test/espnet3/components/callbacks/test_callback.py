@@ -100,7 +100,7 @@ def test_get_default_callbacks_structure():
         best_model_criterion=[("valid/loss", 2, "min"), ("valid/wer", 2, "min")],
     )
 
-    assert len(callbacks) == 6
+    assert len(callbacks) == 7
 
     monitor_names = [None, "valid/loss", "valid/wer"]  # None for last checkpoint
     ckpt_callbacks = [cb for cb in callbacks if isinstance(cb, ModelCheckpoint)]
