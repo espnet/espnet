@@ -88,7 +88,7 @@ def convert_paths(obj):
 
     Example:
         >>> from pathlib import Path
-        >>> convert_paths({\"p\": Path(\"a/b\")})
+        >>> convert_paths({"p": Path("a/b")})
         {'p': 'a/b'}
     """
     if isinstance(obj, dict):
@@ -263,11 +263,6 @@ class BaseRunner(ABC):
         """
         setup_fn = self.provider.build_worker_setup_fn()
         out = []
-        func = (
-            self.__class__.batch_forward
-            if self.batch_size is not None
-            else self.__class__.forward
-        )
         with get_client(get_parallel_config()) as client:
             for res in tqdm(
                 parallel_for(

@@ -170,7 +170,7 @@ def get_parallel_config() -> Optional[DictConfig]:
 
     Example:
         >>> cfg = get_parallel_config()
-        >>> cfg is None or hasattr(cfg, \"env\")
+        >>> cfg is None or hasattr(cfg, "env")
         True
     """
     return parallel_config

@@ -27,7 +27,9 @@ def load_line(path):
 
     Example:
         >>> from omegaconf import OmegaConf
-        >>> cfg = OmegaConf.create({\"vocab\": \"${load_line:tokens.txt}\"})  # doctest: +SKIP
+        >>> cfg = OmegaConf.create(
+        ...     {"vocab": "${load_line:tokens.txt}"}
+        ... )  # doctest: +SKIP
     """
     try:
         with open(path, "r") as f:
@@ -60,7 +62,9 @@ def load_yaml(path, key=None):
 
     Example:
         >>> from omegaconf import OmegaConf
-        >>> cfg = OmegaConf.create({\"tag\": \"${load_yaml:conf/train.yaml,exp_tag}\"})  # doctest: +SKIP
+        >>> cfg = OmegaConf.create(
+        ...     {"tag": "${load_yaml:conf/train.yaml,exp_tag}"}
+        ... )  # doctest: +SKIP
     """
     try:
         cfg = OmegaConf.load(path)

@@ -66,10 +66,11 @@ def build_runtime(demo_cfg, demo_dir: Path) -> DemoRuntime:
             output mapping, and extra kwargs.
 
     Raises:
-        RuntimeError: If inference provider is not configured or infer_config is missing.
+        RuntimeError: If inference provider is not configured or
+            infer_config is missing.
 
     Example:
-        >>> runtime = build_runtime(demo_cfg, Path(\"exp/demo\"))
+        >>> runtime = build_runtime(demo_cfg, Path("exp/demo"))
         >>> runtime.model is not None  # doctest: +SKIP
         True
     """

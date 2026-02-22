@@ -6,7 +6,7 @@ import logging
 import os
 import time
 from pathlib import Path
-from typing import Any, Iterable, List, Sequence
+from typing import Any, Callable, Iterable, List, Sequence
 
 from espnet3.utils.logging_utils import log_stage, set_stage_log_handler
 
@@ -66,7 +66,10 @@ def resolve_stages(
         List[str]: Stages to run, in the order of ``stages``.
 
     Example:
-        >>> resolve_stages([\"train\", \"infer\"], [\"collect_stats\", \"train\", \"infer\"])
+        >>> resolve_stages(
+        ...     ["train", "infer"],
+        ...     ["collect_stats", "train", "infer"],
+        ... )
         ['train', 'infer']
     """
     if "all" in requested:

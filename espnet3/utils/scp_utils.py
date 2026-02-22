@@ -21,7 +21,7 @@ def read_scp(scp_file):
         OSError: If the file cannot be read.
 
     Example:
-        >>> d = read_scp(\"data/text.scp\")  # doctest: +SKIP
+        >>> d = read_scp("data/text.scp")  # doctest: +SKIP
         >>> list(d.items())[:1]  # doctest: +SKIP
     """
     with open(scp_file, "r") as f:

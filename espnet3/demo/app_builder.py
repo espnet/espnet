@@ -33,7 +33,7 @@ def build_demo_app(demo_dir: Path) -> gr.Blocks:
     Example:
         >>> import gradio as gr
         >>> from pathlib import Path
-        >>> app = build_demo_app(Path(\"exp/demo\"))
+        >>> app = build_demo_app(Path("exp/demo"))
         >>> isinstance(app, gr.Blocks)
         True
         >>> # app.launch()  # run the UI

@@ -27,7 +27,7 @@ def get_task_class(task_path: str):
         RuntimeError: If the class cannot be imported/resolved.
 
     Example:
-        >>> cls = get_task_class(\"espnet2.tasks.asr.ASRTask\")  # doctest: +SKIP
+        >>> cls = get_task_class("espnet2.tasks.asr.ASRTask")  # doctest: +SKIP
         >>> cls.__name__  # doctest: +SKIP
         'ASRTask'
     """
@@ -106,7 +106,11 @@ def save_espnet_config(
         OSError: If the output directory cannot be created or written.
 
     Example:
-        >>> save_espnet_config(\"espnet2.tasks.asr.ASRTask\", cfg, \"exp\")  # doctest: +SKIP
+        >>> save_espnet_config(
+        ...     "espnet2.tasks.asr.ASRTask",
+        ...     cfg,
+        ...     "exp",
+        ... )  # doctest: +SKIP
     """
     ez_task = get_task_class(task)
 

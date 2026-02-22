@@ -31,7 +31,7 @@ def setup_logger(
         logging.Logger: Configured logger instance.
 
     Example:
-        >>> logger = setup_logger(\"espnet3.download\")
+        >>> logger = setup_logger("espnet3.download")
         >>> logger.name
         'espnet3.download'
     """
@@ -134,7 +134,10 @@ def download_url(
 
     Example:
         >>> from pathlib import Path
-        >>> download_url(\"https://example.com/file.tgz\", Path(\"./data/file.tgz\"))  # doctest: +SKIP
+        >>> download_url(
+        ...     "https://example.com/file.tgz",
+        ...     Path("./data/file.tgz"),
+        ... )  # doctest: +SKIP
     """
     dst_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -174,7 +177,10 @@ def extract_targz(
           sources.
 
     Example:
-        >>> extract_targz(Path(\"./data/file.tgz\"), Path(\"./data/out\"))  # doctest: +SKIP
+        >>> extract_targz(
+        ...     Path("./data/file.tgz"),
+        ...     Path("./data/out"),
+        ... )  # doctest: +SKIP
     """
     _log(logger, f"Extracting: {archive_path.name}")
     with tarfile.open(archive_path, "r:gz") as tar:

@@ -484,25 +484,13 @@ def test_data_organizer_transform_none():
 
 def test_combined_dataset_allows_missing_preprocessor():
     ds = DummyDataset()
-    combined = CombinedDataset([ds], [(do_nothing_transform, None)])
+    combined = CombinedDataset([ds], [(do_nothing, None)])
     assert combined[0]["text"] == "hello"
 
 
 def test_dataset_with_transform_allows_missing_preprocessor():
     ds = DummyDataset()
-    wrapped = DatasetWithTransform(ds, do_nothing_transform, None)
-    assert wrapped[0]["text"] == "hello"
-
-
-def test_combined_dataset_allows_missing_preprocessor():
-    ds = DummyDataset()
-    combined = CombinedDataset([ds], [(do_nothing_transform, None)])
-    assert combined[0]["text"] == "hello"
-
-
-def test_dataset_with_transform_allows_missing_preprocessor():
-    ds = DummyDataset()
-    wrapped = DatasetWithTransform(ds, do_nothing_transform, None)
+    wrapped = DatasetWithTransform(ds, do_nothing, None)
     assert wrapped[0]["text"] == "hello"
 
 
@@ -605,8 +593,8 @@ def test_combined_dataset_shard_returns_sharded_dataset():
     combined = CombinedDataset(
         [ds1, ds2],
         [
-            (DummyTransform(), do_nothing_transform),
-            (DummyTransform(), do_nothing_transform),
+            (DummyTransform(), do_nothing),
+            (DummyTransform(), do_nothing),
         ],
     )
     sharded = combined.shard(2)

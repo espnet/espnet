@@ -30,7 +30,7 @@ def load_function(path):
         (Exception): Propagated import or attribute lookup errors.
 
     Example:
-        >>> fn = load_function(\"math.sqrt\")
+        >>> fn = load_function("math.sqrt")
         >>> fn(9)
         3.0
     """

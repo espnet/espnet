@@ -35,7 +35,8 @@ def setup_demo_assets(
     """Create demo app scaffolding under a demo directory.
 
     This writes:
-      - ``app.py``: a small launcher that calls :func:`espnet3.demo.app_builder.build_demo_app`.
+      - ``app.py``: a small launcher that calls
+        :func:`espnet3.demo.app_builder.build_demo_app`.
       - ``requirements.txt``: either from the config, explicit ``requirements``,
         or a minimal default list.
       - Optional UI template YAMLs under ``ui_templates/``.
@@ -51,7 +52,7 @@ def setup_demo_assets(
 
     Example:
         >>> from pathlib import Path
-        >>> setup_demo_assets(demo_dir=Path(\"exp/demo\"), demo_config={})
+        >>> setup_demo_assets(demo_dir=Path("exp/demo"), demo_config={})
     """
     demo_dir.mkdir(parents=True, exist_ok=True)
     _write_app_py(demo_dir)

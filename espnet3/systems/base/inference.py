@@ -66,7 +66,7 @@ def _collect_scp_lines(results, idx_key: str, hyp_keys, ref_keys):
     return scp_lines
 
 
-def inference(config: DictConfig):
+def infer(config: DictConfig):
     """Run inference over all configured test sets and write SCP files.
 
     Args:
@@ -82,7 +82,7 @@ def inference(config: DictConfig):
 
     Example:
         >>> from omegaconf import OmegaConf
-        >>> cfg = OmegaConf.load(\"conf/infer.yaml\")  # doctest: +SKIP
+        >>> cfg = OmegaConf.load("conf/infer.yaml")  # doctest: +SKIP
         >>> inference(cfg)  # writes scp files under cfg.infer_dir  # doctest: +SKIP
     """
     start = time.perf_counter()

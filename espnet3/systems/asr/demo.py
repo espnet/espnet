@@ -14,7 +14,7 @@ def build_ui_default():
 
     Example:
         >>> cfg = build_ui_default()
-        >>> [c[\"name\"] for c in cfg[\"inputs\"]]
+        >>> [c["name"] for c in cfg["inputs"]]
         ['speech']
     """
     return {
@@ -39,7 +39,7 @@ def build_inference_default():
             ``extra_kwargs``.
 
     Example:
-        >>> build_inference_default()[\"output_keys\"][\"text\"]
+        >>> build_inference_default()["output_keys"]["text"]
         'hyp'
     """
     return {
@@ -59,8 +59,8 @@ def build_ui(demo_cfg):
 
     Example:
         >>> from omegaconf import OmegaConf
-        >>> cfg = OmegaConf.create({\"ui\": {\"title\": \"My ASR\"}})
-        >>> build_ui(cfg)[\"title\"]
+        >>> cfg = OmegaConf.create({"ui": {"title": "My ASR"}})
+        >>> build_ui(cfg)["title"]
         'My ASR'
     """
     title = getattr(getattr(demo_cfg, "ui", None), "title", None)
