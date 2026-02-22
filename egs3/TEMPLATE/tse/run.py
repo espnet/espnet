@@ -255,7 +255,7 @@ def _log_stage_metadata(
     if infer_config is not None:
         logger.info(
             "Inference config content:\n%s",
-            OmegaConf.to_yaml(infer_config, resolve=True)
+            OmegaConf.to_yaml(infer_config, resolve=True),
         )
     if measure_config is not None:
         logger.info(
