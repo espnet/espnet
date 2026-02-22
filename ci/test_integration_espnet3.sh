@@ -26,10 +26,10 @@ run_with_train_config() {
 
     ln -sfn "${train_config}" conf/train.yaml
     ${python} "${runner}" \
-        --stages create_dataset train_tokenizer collect_stats train infer metric \
+        --stages create_dataset train_tokenizer collect_stats train infer measure \
         --train_config conf/train.yaml \
         --infer_config "${infer_config}" \
-        --metric_config conf/metric.yaml
+        --measure_config conf/measure.yaml
     rm -rf exp data
 }
 
