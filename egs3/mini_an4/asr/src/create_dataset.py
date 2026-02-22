@@ -18,7 +18,7 @@ LOGGER = logging.getLogger(__name__)
 SPH_DIRS = {"train": "an4_clstk", "test": "an4test_clstk"}
 TRANSCRIPTS = {"train": "an4_train.transcription", "test": "an4_test.transcription"}
 
-# "<s> WORDS </s> (a-b-c)" を想定
+# Expect lines like "<s> WORDS </s> (a-b-c)"
 LINE_RE = re.compile(r"^(?P<words>.+?)\s+\((?P<src>[^)]+)\)\s*$")
 
 
@@ -61,13 +61,13 @@ def parse_line(line: str) -> tuple[str, str, str]:
         raise ValueError(f"Malformed transcript line: {line}")
 
     words = m.group("words")
-    # transcript の <s> </s> を雑に剥がす（現状仕様踏襲）
+    # Remove <s> and </s> from the transcript (keeps current behavior)
     if words.startswith("<s> "):
         words = words[4:]
     if words.endswith(" </s>"):
         words = words[:-5]
 
-    src = m.group("src")  # 例: abc-def-ghi
+    src = m.group("src")  # Example: abc-def-ghi
     pre, mid, last = src.split("-")
     utt_id = f"{mid}-{pre}-{last}"
     return utt_id, src, words
@@ -88,7 +88,7 @@ def load_entries(an4_root: Path, split: str) -> list[tuple[str, str, str]]:
     return entries
 
 
-def sph_to_wav(sph2pipe: str, sph: Path, wav: Path) -> None:
+def convert_sph_to_wav(sph2pipe: str, sph: Path, wav: Path) -> None:
     if wav.exists():
         return
     wav.parent.mkdir(parents=True, exist_ok=True)
@@ -111,7 +111,7 @@ def prepare_split(
             raise FileNotFoundError(f"Missing sph file: {sph}")
 
         wav = (wav_dir / f"{utt_id}.wav").resolve()
-        sph_to_wav(sph2pipe, sph, wav)
+        convert_sph_to_wav(sph2pipe, sph, wav)
         out.append(Entry(utt_id=utt_id, wav_path=wav, text=text))
     return out
 

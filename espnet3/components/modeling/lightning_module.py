@@ -575,7 +575,6 @@ class ESPnetLightningModule(lightning.LightningModule):
         )
 
         for mode in ["train", "valid"]:
-            print(dataset_config)
             if mode == "train":
                 dataset_config.preprocessor.train = True
             else:

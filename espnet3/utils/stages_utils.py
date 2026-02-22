@@ -146,13 +146,9 @@ def run_stages(
                 )
 
             set_stage_log_handler(
-                log,
                 Path(log_dir) if log_dir else None,
                 filename=filename,
             )
-            if on_stage_start is not None:
-                on_stage_start(stage, log)
-
             if on_stage_start is not None:
                 on_stage_start(stage, log)
 
