@@ -121,26 +121,6 @@ class BaseSystem:
             self.exp_dir,
         )
 
-    def get_stage_log_dir(self, stage: str) -> Path:
-        """Return the default log directory for a stage.
-
-        BaseSystem treats all stages uniformly and writes logs into:
-          - ``train_config.exp_dir`` when available, or
-          - ``<cwd>/logs`` as a fallback when no experiment directory is set.
-
-        Subclasses can override this method to route specific stages to
-        stage-aware artifact locations (e.g., dataset or decode outputs).
-
-        Args:
-            stage (str): Stage name being executed (unused by BaseSystem).
-
-        Returns:
-            Path: Directory where the stage log should be placed.
-        """
-        if self.exp_dir is not None:
-            return self.exp_dir
-        return Path.cwd() / "logs"
-
     def _resolve_stage_log_ref(
         self, ref: str | list[str] | tuple[str, ...] | None
     ) -> str | None:

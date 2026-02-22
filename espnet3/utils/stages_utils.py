@@ -6,7 +6,7 @@ import logging
 import os
 import time
 from pathlib import Path
-from typing import Any, Callable, Iterable, List, Sequence
+from typing import Any, Iterable, List, Sequence
 
 from espnet3.utils.logging_utils import log_stage, set_stage_log_handler
 
@@ -69,7 +69,7 @@ def run_stages(
     stages_to_run: Iterable[str],
     dry_run: bool = False,
     log: logging.Logger | None = None,
-    stage_log_dir_fn: Callable[[str], Path | None] | None = None,
+    on_stage_start: callable | None = None,
 ) -> None:
     """Invoke stage methods on ``system`` in order with logging and timing.
 
@@ -78,20 +78,14 @@ def run_stages(
         stages_to_run: Iterable of stage method names to execute.
         dry_run: If True, log intended stages without executing them.
         log: Optional logger instance; defaults to module logger.
-        stage_log_dir_fn: Optional callable that returns a stage log directory.
-            When provided (or resolved from ``system.get_stage_log_dir``),
-            a per-stage file handler is configured using
-            ``<log_dir>/<stage>.log`` before executing each stage.
-
+        on_stage_start: Optional callback invoked before each stage executes.
+            It receives the stage name and logger (``on_stage_start(stage, log)``).
     Raises:
         AttributeError: If a named stage method is missing on ``system``.
         TypeError: If a stage method rejects CLI-provided arguments.
         Exception: Re-raises any exception from a stage method.
     """
     log = log or logger
-    if stage_log_dir_fn is None and hasattr(system, "get_stage_log_dir"):
-        stage_log_dir_fn = getattr(system, "get_stage_log_dir")
-        
     for stage in stages_to_run:
         fn = getattr(system, stage, None)
         if fn is None:
@@ -130,9 +124,13 @@ def run_stages(
                 )
 
             set_stage_log_handler(
+                log,
                 Path(log_dir) if log_dir else None,
                 filename=filename,
             )
+
+            if on_stage_start is not None:
+                on_stage_start(stage, log)
 
             start = time.perf_counter()
             log.info("=== [START] stage: %s ===", stage)
