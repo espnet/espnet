@@ -6,7 +6,9 @@ from typing import Optional, Tuple
 import torch
 import torch.nn as nn
 
-from espnet2.gan_codec.shared.quantizer.modules.core_vq import BandVectorQuantization
+from espnet2.gan_codec.shared.quantizer.modules.core_vq import (
+    ResidualVectorQuantization,
+)
 from espnet2.gan_codec.shared.quantizer.modules.simvq import SimVQ
 
 
@@ -34,8 +36,9 @@ class BandVQ(nn.Module):
         self.kmeans_iters = kmeans_iters
         self.threshold_ema_dead_code = threshold_ema_dead_code
         self.quantizer_dropout = quantizer_dropout
-        self.vq = BandVectorQuantization(
-            num_bands=self.num_bands,
+        self.vq = ResidualVectorQuantization(
+            num_quantizers=self.num_bands,
+            mode="band",
             dim=self.dimension,
             codebook_dim=self.codebook_dim,
             codebook_size=self.bins,

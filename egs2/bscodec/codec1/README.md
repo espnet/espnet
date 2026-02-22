@@ -3,7 +3,7 @@ BSCodec is a codec that performs well across multiple domains, offering relative
 
 It is based on DAC structure and band-split strategy, and was trained using the ESPnet codec training pipeline.
 
-The model checkpoint is available at https://huggingface.co/anonymous-release/BSCodec/tree/main
+The model checkpoint is available at https://huggingface.co/espnet/BSCodec/tree/main
 
 ## Results
 Please refer to our paper for comprehensive evaluations. Below are selected results on reconstruction:
@@ -25,12 +25,12 @@ The model implementation is in `espnet2/gan_codec/bscodec`, and the recipe is in
 
 ### Download the model
 
-Download the `exp/` directory from [release](https://huggingface.co/anonymous-release/BSCodec/tree/main) and place it under `egs2/bscodec/codec1`
+Download the `exp/` directory from [release](https://huggingface.co/espnet/BSCodec/tree/main) and place it under `egs2/bscodec/codec1`
 
 
 ### Organize your test set
 
-Download the `dump/` directory from [release](https://huggingface.co/anonymous-release/BSCodec/tree/main) and also place it under `egs2/bscodec/codec1`
+Download the `dump/` directory from [release](https://huggingface.co/espnet/BSCodec/tree/main) and also place it under `egs2/bscodec/codec1`
 
 You can check the `wav.scp` and `utt2num_samples`. Add the "wavid wavpath" pairs to `wav.scp` and "wavid wav_samples_in_24kHz" to `utt2num_samples`. If your wav files are not in 24kHz, please resample them to 24kHz.
 

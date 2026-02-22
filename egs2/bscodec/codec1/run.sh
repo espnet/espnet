@@ -31,8 +31,6 @@ score_config=conf/score.yaml
     --fs ${fs} \
     --ngpu 1 \
     --nj 64\
-    --stage 6\
-    --stop_stage 6\
     --inference_model ${model}.pth\
     --train_config "${train_config}" \
     --inference_config "${inference_config}" \

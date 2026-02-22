@@ -504,15 +504,24 @@ class ResidualVectorQuantization(nn.Module):
     Follows Algorithm 1. in https://arxiv.org/pdf/2107.03312.pdf
     """
 
-    def __init__(self, *, num_quantizers, **kwargs):
+    def __init__(self, *, num_quantizers, mode: str = "residual", **kwargs):
         super().__init__()
+        if mode not in ("residual", "band"):
+            raise ValueError(f"Unsupported mode: {mode}")
+        assert not (
+            mode == "band" and kwargs.get("quantizer_dropout")
+        ), "band mode does not support quantizer_dropout"
+
+        self.mode = mode
+        self.num_quantizers = num_quantizers
         self.layers = nn.ModuleList(
             [VectorQuantization(**kwargs) for _ in range(num_quantizers)]
         )
         self.quantizer_dropout = kwargs.get("quantizer_dropout")
 
     def forward(self, x, n_q: Optional[int] = None):
-        quantized_out = 0.0
+        is_band = self.mode == "band"
+        quantized_out = [] if is_band else 0.0
         residual = x
 
         if not self.quantizer_dropout:
@@ -521,20 +530,28 @@ class ResidualVectorQuantization(nn.Module):
 
             n_q = n_q or len(self.layers)
 
-            for layer in self.layers[:n_q]:
-                quantized, indices, loss = layer(residual)
-                residual = residual - quantized.detach()
-                quantized_out = quantized_out + quantized
+            for i, layer in enumerate(self.layers[:n_q]):
+                layer_in = x[:, i, :, :] if is_band else residual
+                quantized, indices, loss = layer(layer_in)
+                if is_band:
+                    quantized_out.append(quantized)
+                else:
+                    residual = residual - quantized.detach()
+                    quantized_out = quantized_out + quantized
 
                 all_indices.append(indices)
                 all_losses.append(loss)
+
+            if is_band:
+                quantized_out = torch.stack(quantized_out, dim=1)
+            out_indices = torch.stack(all_indices, dim=1 if is_band else 0)
+            out_losses = torch.stack(all_losses)
 
             if self.training:
                 # Solving subtle bug with STE and RVQ
                 # For more, https://github.com/facebookresearch/encodec/issues/25
                 quantized_out = x + (quantized_out - x).detach()
 
-            out_losses, out_indices = map(torch.stack, (all_losses, all_indices))
             return quantized_out, out_indices, out_losses
         else:
             all_commit_losses = []
@@ -574,77 +591,31 @@ class ResidualVectorQuantization(nn.Module):
     def encode(
         self, x: torch.Tensor, n_q: Optional[int] = None, st: Optional[int] = None
     ) -> torch.Tensor:
+        is_band = self.mode == "band"
         residual = x
         all_indices = []
         n_q = n_q or len(self.layers)
         st = st or 0
-        for layer in self.layers[st:n_q]:  # 设置解码的起止layer
-            indices = layer.encode(residual)
-            quantized = layer.decode(indices)
-            residual = residual - quantized
+
+        for i, layer in enumerate(self.layers[st:n_q], start=st):
+            layer_in = x[:, i, :, :] if is_band else residual
+            indices = layer.encode(layer_in)
+            if not is_band:
+                quantized = layer.decode(indices)
+                residual = residual - quantized
             all_indices.append(indices)
-        out_indices = torch.stack(all_indices)
+
+        out_indices = torch.stack(all_indices, dim=1 if is_band else 0)
         return out_indices
 
     def decode(self, q_indices: torch.Tensor) -> torch.Tensor:
-        quantized_out = torch.tensor(0.0, device=q_indices.device)
-        for i, indices in enumerate(q_indices):
-            layer = self.layers[i]
-            quantized = layer.decode(indices)
-            quantized_out = quantized_out + quantized
-        return quantized_out
+        is_band = self.mode == "band"
+        if is_band:
+            _, bands, _ = q_indices.shape
+            recon_per = [self.layers[i].decode(q_indices[:, i, :]) for i in range(bands)]
+            return torch.stack(recon_per, dim=1)
 
-
-class BandVectorQuantization(nn.Module):
-
-    def __init__(self, *, num_bands: int, **kwargs):
-        super().__init__()
-        self.layers = nn.ModuleList(
-            [VectorQuantization(**kwargs) for _ in range(num_bands)]
-        )
-        self.num_bands = num_bands
-        self.quantizer_dropout = kwargs.get("quantizer_dropout")
-
-    def forward(self, x: torch.Tensor):
-        B, bands, d, n = x.shape
-        assert bands == self.num_bands, "error in input bands dim"
-
-        if not self.quantizer_dropout:
-            quantized_per = []
-            all_indices = []
-            all_loss = []
-
-            for i, layer in enumerate(self.layers):
-                inp = x[:, i, :, :]
-                quantized, indices, loss = layer(inp)
-
-                quantized_per.append(quantized)
-                all_indices.append(indices)
-                all_loss.append(loss)
-
-            quantized_per = torch.stack(quantized_per, dim=1)
-            all_indices = torch.stack(all_indices, dim=1)
-            all_loss = torch.stack(all_loss)
-            if self.training:
-                quantized_per = x + (quantized_per - x).detach()
-            return quantized_per, all_indices, all_loss
-
-    def encode(self, x: torch.Tensor) -> torch.Tensor:
-        B, bands, d, n = x.shape
-        assert bands == self.num_bands
-        all_indices = []
-
-        for i in range(bands):
-            inp = x[:, i, :, :]
-            idx = self.layers[i].encode(inp)
-            all_indices.append(idx)
-
-        return torch.stack(all_indices, dim=1)
-
-    def decode(self, q_indices: torch.Tensor) -> torch.Tensor:
-        recon_per = []
-        B, bands, n = q_indices.shape
-        for i in range(bands):
-            quant_i = self.layers[i].decode(q_indices[:, i, :])
-            recon_per.append(quant_i)
-        return torch.stack(recon_per, dim=1)
+        decoded = [layer.decode(indices) for layer, indices in zip(self.layers, q_indices)]
+        if len(decoded) == 0:
+            return torch.tensor(0.0, device=q_indices.device)
+        return torch.stack(decoded, dim=0).sum(dim=0)
