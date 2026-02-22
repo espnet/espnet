@@ -9,6 +9,7 @@ from espnet3.utils.stages_utils import resolve_stages, run_stages
 class DummySystem:
     def __init__(self):
         self.calls = []
+        self.stage_log_dirs = {"default": None}
 
     def stage_a(self):
         self.calls.append("a")
@@ -70,9 +71,7 @@ def test_run_stages_writes_stage_logs(tmp_path):
     class LoggingSystem:
         def __init__(self, log_dir):
             self.log_dir = log_dir
-
-        def get_stage_log_dir(self, stage):
-            return self.log_dir
+            self.stage_log_dirs = {"default": log_dir}
 
         def stage_a(self):
             pass
