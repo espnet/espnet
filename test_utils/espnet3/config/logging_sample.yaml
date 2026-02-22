@@ -1,0 +1,60 @@
+model:
+  _target_: test.espnet3.components.trainers.test_logging_integration.DummyModel
+  input_dim: 4
+  output_dim: 2
+
+dataset:
+  _target_: espnet3.components.data.data_organizer.DataOrganizer
+  train:
+    - name: train_dummy
+      dataset:
+        _target_: test.espnet3.components.trainers.test_logging_integration.DummyDataset
+  valid:
+    - name: valid_dummy
+      dataset:
+        _target_: test.espnet3.components.trainers.test_logging_integration.DummyDataset
+
+dataloader:
+  train:
+    iter_factory:
+      _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
+      shuffle: true
+      collate_fn:
+        _target_: espnet2.train.collate_fn.CommonCollateFn
+        int_pad_value: -1
+      batches:
+        _target_: espnet2.samplers.build_batch_sampler.build_batch_sampler
+        shape_files:
+          - test_utils/espnet3/stats/stats_dummy
+        type: unsorted
+        batch_size: 2
+        batch_bins: 4000000
+  valid:
+    iter_factory:
+      _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
+      shuffle: false
+      collate_fn:
+        _target_: espnet2.train.collate_fn.CommonCollateFn
+        int_pad_value: -1
+      batches:
+        _target_: espnet2.samplers.build_batch_sampler.build_batch_sampler
+        shape_files:
+          - test_utils/espnet3/stats/stats_dummy
+        type: unsorted
+        batch_size: 2
+        batch_bins: 4000000
+
+optimizer:
+  _target_: torch.optim.SGD
+  lr: 0.01
+
+scheduler:
+  _target_: torch.optim.lr_scheduler.StepLR
+  step_size: 1
+
+trainer:
+  accelerator: cpu
+  devices: 1
+  num_nodes: 1
+  log_every_n_steps: 1
+  max_epochs: 1

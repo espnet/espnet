@@ -5,8 +5,8 @@ import pytest
 from omegaconf import OmegaConf
 
 from espnet3.components.metrics.abs_metric import AbsMetric
-from espnet3.systems.base.metric import metric
-from espnet3.utils.scp_utils import get_cls_path
+from espnet3.systems.base.metric import measure
+from espnet3.utils.scp_utils import get_class_path
 
 
 class DummyMetric(AbsMetric):
@@ -46,9 +46,9 @@ def test_metric_uses_metric_keys_and_writes_json(tmp_path):
         }
     )
 
-    results = metric(cfg)
+    results = measure(cfg)
 
-    expected_key = get_cls_path(DummyMetric())
+    expected_key = get_class_path(DummyMetric())
     assert results[expected_key][test_name] == {"count": 2}
     metrics_path = inference_dir / "metrics.json"
     assert metrics_path.is_file()
@@ -76,9 +76,9 @@ def test_metric_uses_config_inputs_mapping(tmp_path):
         }
     )
 
-    results = metric(cfg)
+    results = measure(cfg)
 
-    expected_key = get_cls_path(NoKeyMetric())
+    expected_key = get_class_path(NoKeyMetric())
     assert results[expected_key][test_name] == {"ok": True}
 
 
@@ -92,7 +92,7 @@ def test_metric_rejects_non_metric_instance(tmp_path):
     )
 
     with pytest.raises(TypeError, match="not a valid AbsMetric instance"):
-        metric(cfg)
+        measure(cfg)
 
 
 def test_metric_requires_inputs_when_metric_has_no_keys(tmp_path):
@@ -105,4 +105,4 @@ def test_metric_requires_inputs_when_metric_has_no_keys(tmp_path):
     )
 
     with pytest.raises(ValueError, match="requires inputs in config"):
-        metric(cfg)
+        measure(cfg)

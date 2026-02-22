@@ -30,7 +30,6 @@ def _instantiate_model(config: DictConfig) -> Any:
 
 def _build_trainer(config: DictConfig) -> ESPnet3LightningTrainer:
     model = _instantiate_model(config)
-    logger.info("Model:\n%s", model)
     lit_model = ESPnetLightningModule(model, config)
     trainer = ESPnet3LightningTrainer(
         model=lit_model,

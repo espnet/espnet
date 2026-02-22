@@ -2,15 +2,15 @@ from pathlib import Path
 
 import pytest
 
-from espnet3.utils.scp_utils import get_cls_path, load_scp_fields
+from espnet3.utils.scp_utils import get_class_path, load_scp_fields
 
 
-def test_get_cls_path_reports_module_and_class():
+def test_get_class_path_reports_module_and_class():
     class Dummy:
         pass
 
     dummy = Dummy()
-    path = get_cls_path(dummy)
+    path = get_class_path(dummy)
     assert path.endswith(".Dummy")
     assert "Dummy" in path
 

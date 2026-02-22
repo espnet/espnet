@@ -74,7 +74,7 @@ class ESPnetLanguageModel(AbsESPnetModel):
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Compute negative log likelihood(nll) from transformer language model
 
-        To avoid OOM, this fuction seperate the input into batches.
+        To avoid OOM, this function separates the input into batches.
         Then call nll for each batch and combine and return results.
         Args:
             text: (Batch, Length)

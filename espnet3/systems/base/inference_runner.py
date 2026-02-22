@@ -32,7 +32,6 @@ class InferenceRunner(BaseRunner):
     def __init__(
         self,
         provider: EnvironmentProvider,
-        *,
         idx_key: str = "idx",
         hyp_key: str | Sequence[str] = "hyp",
         ref_key: str | Sequence[str] = "ref",

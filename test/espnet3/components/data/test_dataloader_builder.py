@@ -10,6 +10,20 @@ from espnet3.components.data.dataloader import DataLoaderBuilder
 from espnet3.components.data.dataset import ShardedDataset
 from espnet3.utils.config_utils import load_config_with_defaults
 
+# | Test Name                                         | Description                                                    | # noqa: E501
+# |--------------------------------------------------|----------------------------------------------------------------| # noqa: E501
+# | test_batch_sampler_only                          | Builds loader using batch_sampler without batch_size/shuffle   | # noqa: E501
+# | test_sampler_only                                | Builds loader using sampler                                    | # noqa: E501
+# | test_collate_fn_none                             | Uses default_collate when collate_fn is None                   | # noqa: E501
+# | test_common_collate_fn                           | Uses CommonCollateFn and checks audio/audio_lengths in batch   | # noqa: E501
+# | test_custom_collate_fn                           | Uses custom collate function and checks batch structure        | # noqa: E501
+# | test_sampler_and_batch_sampler_conflict          | Raises when sampler and batch_sampler are both set             | # noqa: E501
+# | test_iter_factory_from_default_yaml_with_organizer | Builds iter_factory from YAML and validates batch            | # noqa: E501
+# | test_iter_factory_with_collate_fn                | Prefers config-defined collate_fn over argument                | # noqa: E501
+# | test_iter_factory_drops_tail_batches_for_ddp     | Drops tail batches for DDP to match world size                 | # noqa: E501
+# | test_multiple_iterator_shard_initialization      | Selects correct shard at epoch 0                               | # noqa: E501
+# | test_multiple_iterator_epoch_shard_switching     | Switches shard with epoch index                                | # noqa: E501
+
 # ===============================================================
 # Test Case Summary for DataLoaderBuilder
 # ===============================================================
@@ -238,7 +252,7 @@ def test_sampler_and_batch_sampler_conflict():
     with pytest.raises(
         AssertionError, match="Cannot specify both sampler and batch_sampler"
     ):
-        _ = builder._build_standard_dataloader(config.dataloader.train)
+        _ = builder._build_standard_dataloader(config.dataloader.train, mode="train")
 
 
 # -------- IterFactory Mode & YAML-based Integration --------

@@ -16,7 +16,7 @@ def remove_repeated_and_leq(tokens: List[int], blank_id: int = 0):
     Fristly, remove repeated token from a "token alignment" seqs;
     Then remove blank symbols.
 
-    This fuction may be replaced by tokenizing word_seqs with tokenizer
+    This function may be replaced by tokenizing word_seqs with tokenizer
     or composeing word_seqs_fsas with L_inv.fst
     or composing token_seqs with ctc_topo.
     Current method is slelected other than previous three methods
