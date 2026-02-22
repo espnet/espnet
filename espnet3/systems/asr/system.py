@@ -39,7 +39,31 @@ class ASRSystem(BaseSystem):
 
     This system adds:
       - Tokenizer training inside train()
+      - Dataset creation via ``create_dataset``
+
+    Additional stage log paths:
+        | Stage           | Path reference                  |
+        |---              |---                              |
+        | train_tokenizer | train_config.tokenizer.save_path |
     """
+
+    def __init__(
+        self,
+        train_config=None,
+        infer_config=None,
+        measure_config=None,
+        **kwargs,
+    ) -> None:
+        """Initialize the ASR system with ASR-specific stage mappings."""
+        super().__init__(
+            train_config=train_config,
+            infer_config=infer_config,
+            measure_config=measure_config,
+            stage_log_mapping={
+                "train_tokenizer": "train_config.tokenizer.save_path",
+            },
+            **kwargs,
+        )
 
     def create_dataset(self, *args, **kwargs):
         """Create datasets using the configured helper function.

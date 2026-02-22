@@ -19,7 +19,7 @@ def read_scp(scp_file):
     return parsed
 
 
-def get_cls_path(obj) -> str:
+def get_class_path(obj) -> str:
     """Return the fully qualified class path for an object."""
     return f"{obj.__module__}.{obj.__class__.__name__}"
 

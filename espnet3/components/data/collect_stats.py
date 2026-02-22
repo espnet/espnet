@@ -30,7 +30,6 @@ __all__ = [
 
 def collect_stats_batch(
     idxs: List[int],
-    *,
     model=None,
     dataset=None,
     collate_fn=None,
@@ -105,7 +104,6 @@ def collect_stats_batch(
 
 
 def _accumulate_and_persist_batch(
-    *,
     stats: Dict,
     shape_info: Dict,
     feats: Optional[Dict],
@@ -242,7 +240,6 @@ class CollectStatsInferenceProvider(EnvironmentProvider):
 
     def __init__(
         self,
-        *,
         model_config,
         dataset_config,
         dataloader_config,
@@ -316,7 +313,6 @@ class CollectStatsRunner(BaseRunner):
     @staticmethod
     def forward(
         batch_indices: Iterable[int] | int,
-        *,
         dataset,
         model,
         collate_fn,
@@ -344,7 +340,6 @@ class CollectStatsRunner(BaseRunner):
 
 
 def _collect_stats_common(
-    *,
     model_config,
     dataset_config,
     dataloader_config,
