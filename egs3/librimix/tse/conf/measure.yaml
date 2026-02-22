@@ -22,4 +22,10 @@ dataset:
 
 # Metrics block intentionally empty in template; fill with SISNR/TSOS, etc.
 metrics:
--
+  - metric:
+    _target_: espnet3.systems.tse.metrics.tsos.TSOS
+    batch_size: 1
+    power: 2.0
+    threshold: 0.1
+    ref_channel: 0
+    device: str = "cpu

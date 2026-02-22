@@ -27,8 +27,8 @@ def measure(measure_config: DictConfig):
     results = {}
     assert hasattr(measure_config, "metrics"), "Please specify `metrics`!"
 
-    for idx, metric_config in enumerate(measure_config.metrics):
-        metric = instantiate(metric_config.metric)
+    for idx, measure_config in enumerate(measure_config.metrics):
+        metric = instantiate(measure_config.metric)
         if not isinstance(metric, AbsMetric):
             raise TypeError(f"{type(metric)} is not a valid AbsMetric instance")
 
@@ -41,8 +41,8 @@ def measure(measure_config: DictConfig):
         )
         results[get_class_path(metric)] = {}
         for test_name in test_sets:
-            if hasattr(metric_config, "inputs"):
-                inputs = OmegaConf.to_container(metric_config.inputs, resolve=True)
+            if hasattr(measure_config, "inputs"):
+                inputs = OmegaConf.to_container(measure_config.inputs, resolve=True)
             else:
                 ref_key = getattr(metric, "ref_key", None)
                 hyp_key = getattr(metric, "hyp_key", None)
