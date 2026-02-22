@@ -78,8 +78,10 @@ def run_stages(
         stages_to_run: Iterable of stage method names to execute.
         dry_run: If True, log intended stages without executing them.
         log: Optional logger instance; defaults to module logger.
-        on_stage_start: Optional callback invoked before each stage executes.
-            It receives the stage name and logger (``on_stage_start(stage, log)``).
+        on_stage_start: Optional hook invoked after stage logging is configured.
+            This can be used to emit per-stage metadata (configs, environment,
+            requirements snapshots, etc.) into the newly attached log file.
+
     Raises:
         AttributeError: If a named stage method is missing on ``system``.
         TypeError: If a stage method rejects CLI-provided arguments.
@@ -124,11 +126,9 @@ def run_stages(
                 )
 
             set_stage_log_handler(
-                log,
                 Path(log_dir) if log_dir else None,
                 filename=filename,
             )
-
             if on_stage_start is not None:
                 on_stage_start(stage, log)
 

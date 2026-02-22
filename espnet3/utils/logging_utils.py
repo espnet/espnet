@@ -163,9 +163,7 @@ def configure_logging(
 
 
 def set_stage_log_handler(
-    logger: logging.Logger,
     log_dir: Path | None,
-    *,
     filename: str,
 ) -> Path | None:
     """Attach a file handler for a stage log, replacing any prior stage handler.
