@@ -20,7 +20,7 @@ python run.py --stages train --train_tokenizer --collect_stats \
 python run.py --stages infer --infer_config conf/infer.yaml
 
 # 4) Score
-python run.py --stages metric --metric_config conf/metric.yaml
+python run.py --stages measure --measure_config conf/metrics.yaml
 ```
 
 All hyper-parameters are stored in `configs/` and can be overridden using

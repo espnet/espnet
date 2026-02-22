@@ -9,7 +9,7 @@ python=python3
 
 ${python} run.py \
     --stages all \
-    --train_config conf/train_asr_transformer_debug.yaml \
-    --infer_config conf/infer.yaml \
-    --metric_config conf/metric.yaml \
+    --train_config conf/train.yaml \
+    --infer_config conf/inference.yaml \
+    --measure_config conf/measure.yaml \
     "$@"
