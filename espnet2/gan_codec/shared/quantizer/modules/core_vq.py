@@ -612,10 +612,14 @@ class ResidualVectorQuantization(nn.Module):
         is_band = self.mode == "band"
         if is_band:
             _, bands, _ = q_indices.shape
-            recon_per = [self.layers[i].decode(q_indices[:, i, :]) for i in range(bands)]
+            recon_per = [
+                self.layers[i].decode(q_indices[:, i, :]) for i in range(bands)
+            ]
             return torch.stack(recon_per, dim=1)
 
-        decoded = [layer.decode(indices) for layer, indices in zip(self.layers, q_indices)]
+        decoded = [
+            layer.decode(indices) for layer, indices in zip(self.layers, q_indices)
+        ]
         if len(decoded) == 0:
             return torch.tensor(0.0, device=q_indices.device)
         return torch.stack(decoded, dim=0).sum(dim=0)
