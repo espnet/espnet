@@ -9,6 +9,7 @@ exp_dir: ${recipe_dir}/exp/${exp_tag}
 stats_dir: ${recipe_dir}/exp/stats
 decode_dir: ${exp_dir}/decode
 dataset_dir: ${load_yaml:conf/train.yaml,dataset_dir}
+inference_dir: exp/${load_yaml:conf/train.yaml,exp_tag}/infer
 
 # Dataset definition for test splits only (used to enumerate test names).
 dataset:

@@ -2,7 +2,7 @@
 # Keeps only the keys required by the infer stage.
 
 # Root output directory for .scp files written by the infer stage.
-infer_dir: exp/${load_yaml:conf/train.yaml,exp_tag}/infer
+inference_dir: exp/${load_yaml:conf/train.yaml,exp_tag}/infer
 
 # Dataset definition for test splits only (names become output subfolders).
 dataset:
@@ -23,8 +23,15 @@ dataset:
 model:
   _target_: espnet2.bin.asr_inference.Speech2Text
   asr_train_config: exp/${load_yaml:conf/train.yaml,exp_tag}/config.yaml
-  asr_model_file: exp/${load_yaml:conf/train.yaml,exp_tag}/last.ckpt
+  asr_model_file: exp/${load_yaml:conf/train.yaml,exp_tag}/epoch179_step40140_valid.loss.ckpt
 
 # Generic ESPnet3 inference entrypoint settings.
 input_key: speech
 output_fn: src.infer.output_fn
+
+
+provider:
+  _target_: espnet3.systems.base.inference_provider.InferenceProvider
+runner:
+  _target_: espnet3.systems.base.inference_runner.InferenceRunner
+
