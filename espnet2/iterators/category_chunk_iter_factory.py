@@ -213,10 +213,8 @@ class CategoryChunkIterFactory(AbsIterFactory):
                     cache_chunks = cache_chunks_dict.setdefault(0, {})
                     Z, N, W, S = 0, 1, L, 0
                 else:
-                    # Numpy compatible random choice for chunk length (with replacement)
-                    _choice = state.choice(chunk_lengths, 1)
-                    _choice = _choice if isinstance(_choice, int) else _choice.item()
-                    W = int(_choice)
+                    # Numpy compatible random choice for chunk length
+                    W = int(state.choice(chunk_lengths))
                     cache_id_list = cache_id_list_dict.setdefault(W, [])
                     cache_chunks = cache_chunks_dict.setdefault(W, {})
 
