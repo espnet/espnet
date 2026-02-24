@@ -44,15 +44,14 @@ class TestSPKSystem:
             {
                 "exp_dir": str(tmp_path / "exp"),
                 "create_dataset": {
-                    "func": "os.path.join",
-                    "a": str(tmp_path),
-                    "b": "data",
+                    "func": "os.path.exists",
+                    "path": str(tmp_path),
                 },
             }
         )
         system = SPKSystem(train_config=train_config)
         result = system.create_dataset()
-        assert result == str(tmp_path / "data")
+        assert result is True
 
     def test_create_dataset_rejects_args(self, tmp_path):
         train_config = OmegaConf.create({"exp_dir": str(tmp_path / "exp")})
