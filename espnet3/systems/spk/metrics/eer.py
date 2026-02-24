@@ -71,7 +71,7 @@ class EER(AbsMetric):
             Dict with ``EER`` (%) and ``minDCF`` values.
         """
         scores = [float(s) for s in data[self.score_key]]
-        labels = [int(l) for l in data[self.label_key]]
+        labels = [int(v) for v in data[self.label_key]]
 
         _, eer, _, _ = tuneThresholdfromScore(scores, labels, target_fa=[0.01])
 
