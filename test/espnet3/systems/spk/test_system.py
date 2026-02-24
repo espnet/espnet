@@ -1,7 +1,6 @@
 """Tests for the espnet3 speaker system."""
 
-from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 from omegaconf import OmegaConf
@@ -135,7 +134,6 @@ class TestSpeakerTask:
             frontend_choices,
             loss_choices,
             pooling_choices,
-            projector_choices,
         )
 
         assert len(SpeakerTask.class_choices_list) == 8
