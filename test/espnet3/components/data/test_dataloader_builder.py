@@ -5,7 +5,6 @@ from hydra.utils import instantiate
 from omegaconf import OmegaConf
 from torch.utils.data import BatchSampler, Sampler
 
-from espnet3.components.data.data_organizer import DataOrganizer, do_nothing
 from espnet3.components.data.dataloader import DataLoaderBuilder
 from espnet3.components.data.dataset import ShardedDataset
 from espnet3.utils.config_utils import load_config_with_defaults
@@ -44,16 +43,9 @@ from espnet3.utils.config_utils import load_config_with_defaults
 # | test_iter_factory_from_default_yaml_with_organizer | Uses a real YAML config with iter_factory and verifies batch structure | # noqa: E501
 # | test_iter_factory_with_collate_fn | Confirms config-defined collate_fn takes precedence over argument       | # noqa: E501
 #
-# Multiple Iterator Mode (Sharded Dataset)
-# | Test Name                              | Description                                                              | # noqa: E501
-# |---------------------------------------|--------------------------------------------------------------------------| # noqa: E501
-# | test_multiple_iterator_shard_initialization | Checks correct shard is selected based on epoch                         | # noqa: E501
-# | test_multiple_iterator_epoch_shard_switching | Ensures different shard is selected as epoch changes                  | # noqa: E501
-#
 # Note:
-# - DummyDataset and DummyShardedDataset are used to simulate real-world data layout
-# - All `DataLoaderBuilder.build(mode)` modes are exercised: standard, iter_factory,
-# and multiple_iterator
+# - DummyDataset and DummyDatasetSameLength are used to simulate real-world data layout
+# - All `DataLoaderBuilder.build(mode)` modes are exercised: standard, iter_factory
 
 DUMMY_DATASET_TARGET = (
     "test.espnet3.components.data.test_dataloader_builder." "DummyDataset"
@@ -127,13 +119,40 @@ def dummy_collate_fn(batch):
     return {"custom_collated": batch}
 
 
-class DummyIterFactory:
-    def __init__(self, dataset, batches, **kwargs):
-        self.dataset = dataset
-        self.batches = list(batches)
+class DummyShardedDataset(ShardedDataset):
+    def __init__(self, shard_id: int = 0, num_shards: int = 2, world_shard_size: int = 1):
+        self.shard_id = shard_id
+        self.num_shards = num_shards
+        self.world_shard_size = world_shard_size
+        self.data = [
+            {"text": f"shard{shard_id}_sample0"},
+            {"text": f"shard{shard_id}_sample1"},
+        ]
 
-    def build_iter(self, epoch, shuffle=False):
-        return list(self.batches)
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, idx):
+        return self.data[idx]
+
+    def shard(self, idx: int):
+        return DummyShardedDataset(
+            shard_id=idx,
+            num_shards=self.num_shards,
+            world_shard_size=self.world_shard_size,
+        )
+
+
+class DummyMissingShardMethod:
+    def __init__(self, num_shards=2, world_shard_size=1):
+        self.num_shards = num_shards
+        self.world_shard_size = world_shard_size
+
+    def __len__(self):
+        return 0
+
+    def __getitem__(self, idx):
+        raise IndexError
 
 
 # -------- Config mocks --------
@@ -270,7 +289,7 @@ def test_sampler_and_batch_sampler_conflict():
     with pytest.raises(
         AssertionError, match="Cannot specify both sampler and batch_sampler"
     ):
-        _ = builder._build_standard_dataloader(config.dataloader.train, mode="train")
+        _ = builder._build_standard_dataloader(config.dataloader.train)
 
 
 # -------- IterFactory Mode & YAML-based Integration --------
@@ -365,29 +384,20 @@ def test_multiple_iterator_is_rejected(flag):
         builder.build("train")
 
 
-# --- Multiple Iterator Mode (Sharded Dataset) ---
+def _collect_shard_ids(loader):
+    shard_ids = set()
+    for batch in loader:
+        text = batch["text"][0] if isinstance(batch, dict) else batch[0]["text"]
+        shard_ids.add(text.split("_")[0])
+        if len(shard_ids) >= 4:
+            break
+    return shard_ids
 
 
-# Dummy sharded dataset that returns shard-specific samples
-class DummyShardedDataset(ShardedDataset):
-    def __init__(self, shard_id: int = None):
-        if shard_id is None:
-            self.samples = []
-        else:
-            self.samples = [
-                {"text": f"shard{shard_id}_sample0"},
-                {"text": f"shard{shard_id}_sample1"},
-            ]
-        self.shard_id = shard_id
-
-    def __len__(self):
-        return len(self.samples)
-
-    def __getitem__(self, idx):
-        return self.samples[idx]
-
-    def shard(self, idx: int):
-        return DummyShardedDataset(idx)
+def _first_shard_id(loader):
+    batch = next(iter(loader))
+    text = batch["text"][0] if isinstance(batch, dict) else batch[0]["text"]
+    return text.split("_")[0]
 
 
 def test_sharded_dataset_single_gpu_multiple_shards():
