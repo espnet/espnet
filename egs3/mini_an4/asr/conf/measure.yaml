@@ -1,13 +1,8 @@
 # Mini AN4 ASR scoring config for ESPnet3 integration tests.
 
-recipe_dir: .
-data_dir: ${recipe_dir}/data
-exp_tag: ${load_yaml:conf/train.yaml,exp_tag}
-exp_dir: ${recipe_dir}/exp/${exp_tag}
-stats_dir: ${recipe_dir}/exp/stats
-decode_dir: ${exp_dir}/decode
+exp_dir: ${load_yaml:conf/train.yaml,exp_dir}
 inference_dir: ${exp_dir}/inference
-dataset_dir: ${data_dir}/mini_an4
+dataset_dir: ${load_yaml:conf/train.yaml,dataset_dir}
 
 dataset:
   _target_: espnet3.components.data.data_organizer.DataOrganizer

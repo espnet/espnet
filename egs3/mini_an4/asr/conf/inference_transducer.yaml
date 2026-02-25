@@ -1,11 +1,8 @@
 # Mini AN4 ASR inference config for ESPnet3 integration tests.
 
-recipe_dir: .
-data_dir: ${recipe_dir}/data
-exp_tag: ${load_yaml:conf/train.yaml,exp_tag}
-exp_dir: ${recipe_dir}/exp/${exp_tag}
-inference_dir: ${exp_dir}/infer
-dataset_dir: ${data_dir}/mini_an4
+exp_dir: ${load_yaml:conf/train.yaml,exp_dir}
+inference_dir: ${exp_dir}/inference
+dataset_dir: ${load_yaml:conf/train.yaml,dataset_dir}
 
 dataset:
   _target_: espnet3.components.data.data_organizer.DataOrganizer
@@ -26,4 +23,9 @@ model:
   beam_size: 1
 
 input_key: speech
-output_fn: src.infer.output_fn_transducer
+output_fn: src.inference.output_fn_transducer
+
+provider:
+  _target_: espnet3.systems.base.inference_provider.InferenceProvider
+runner:
+  _target_: espnet3.systems.base.inference_runner.InferenceRunner
