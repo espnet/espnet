@@ -45,6 +45,7 @@ for train_config in "${debug_configs[@]}"; do
     run_with_train_config "${train_config}" run.py conf/inference.yaml
 done
 
+# We need seprate inference config for transducer task
 run_with_train_config \
     train_transducer_asr_conformer_rnnt_debug.yaml \
     run.py \
