@@ -163,7 +163,7 @@ class XconfigConvLayer(XconfigLayerBase):
                 if a[i] >= a[i+1]:
                     return False
             return True
-        except:
+        except Exception:
             return False
 
     def check_configs(self):

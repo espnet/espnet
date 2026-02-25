@@ -32,7 +32,7 @@ def create_phone_lm(dir, tree_dir, run_opts, lm_opts=None):
         f = open(tree_dir + "/num_jobs", 'r')
         num_ali_jobs = int(f.readline())
         assert num_ali_jobs > 0
-    except:
+    except Exception:
         raise Exception("""There was an error getting the number of alignment
                         jobs from {0}/num_jobs""".format(tree_dir))
 

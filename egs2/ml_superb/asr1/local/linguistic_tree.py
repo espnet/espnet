@@ -146,7 +146,7 @@ if __name__ == "__main__":
     #         try:
     #             node = tree.get_node("iso", iso)
     #             print(node.get_ancestors()[1].name)
-    #         except:
+    #         except Exception:
     #             print(f"Can not found {iso}.")
     #     input()
     print(tree.lca("eng", "pol"))

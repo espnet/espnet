@@ -201,7 +201,7 @@ def validate_chunk_width(chunk_width):
             i = int(elem)
             if i < 1 and i != -1:
                 return False
-        except:
+        except Exception:
             return False
     return True
 
@@ -227,7 +227,7 @@ def validate_range_str(range_str):
         # a range may be either e.g. '64', or '128-256'
         try:
             c = [int(x) for x in r.split(":")]
-        except:
+        except Exception:
             return False
         # c should be either e.g. [ 128 ], or  [64,128].
         if len(c) == 1:
@@ -271,7 +271,7 @@ def validate_minibatch_size_str(minibatch_size_str):
         try:
             if int(b[0]) <= 0:
                 return False
-        except:
+        except Exception:
             return False  # not an integer at all.
 
         if not validate_range_str(b[1]):
@@ -404,7 +404,7 @@ def verify_egs_dir(egs_dir, feat_dim, ivector_dim, ivector_extractor_id,
                                         egs_dir)).readline().strip()
             if (egs_ivector_id == ""):
                 egs_ivector_id = None;
-        except:
+        except Exception:
             # it could actually happen that the file is not there
             # for example in cases where the egs were dumped by
             # an older version of the script
@@ -413,7 +413,7 @@ def verify_egs_dir(egs_dir, feat_dim, ivector_dim, ivector_extractor_id,
         try:
             egs_ivector_dim = int(open('{0}/info/ivector_dim'.format(
                 egs_dir)).readline())
-        except:
+        except Exception:
             egs_ivector_dim = 0
         egs_left_context = int(open('{0}/info/left_context'.format(
                                     egs_dir)).readline())
@@ -646,7 +646,7 @@ def should_do_shrinkage(iter, model_file, shrink_saturation_threshold,
         assert len(output) == 1
         saturation = float(output[0])
         assert saturation >= 0 and saturation <= 1
-    except:
+    except Exception:
         raise Exception("Something went wrong, could not get "
                         "saturation from the output '{0}' of "
                         "get_saturation.pl on the info of "

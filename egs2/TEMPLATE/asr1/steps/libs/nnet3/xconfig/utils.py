@@ -157,13 +157,13 @@ def convert_value_to_type(key, dest_type, string_value):
     elif dest_type == type(int()):
         try:
             return int(string_value)
-        except:
+        except Exception:
             raise RuntimeError("Invalid configuration value {0}={1} (expected int)".format(
                 key, string_value))
     elif dest_type == type(float()):
         try:
             return float(string_value)
-        except:
+        except Exception:
             raise RuntimeError("Invalid configuration value {0}={1} (expected int)".format(
                 key, string_value))
     elif dest_type == type(str()):
@@ -335,7 +335,7 @@ def parse_new_descriptor(tokens, pos, prev_names):
                 t_offset = int(tokens[pos])
                 pos += 1
                 d.items.append(t_offset)
-            except:
+            except Exception:
                 raise RuntimeError("Parsing Offset(), expected integer, got " + tokens[pos])
             if tokens[pos] == ')':
                 return (d, pos + 1)
@@ -346,7 +346,7 @@ def parse_new_descriptor(tokens, pos, prev_names):
                 x_offset = int(tokens[pos])
                 pos += 1
                 d.items.append(x_offset)
-            except:
+            except Exception:
                 raise RuntimeError("Parsing Offset(), expected integer, got " + tokens[pos])
             expect_token(')', tokens[pos], 'Offset()')
             pos += 1
@@ -375,7 +375,7 @@ def parse_new_descriptor(tokens, pos, prev_names):
                 assert t_modulus > 0
                 pos += 1
                 d.items.append(t_modulus)
-            except:
+            except Exception:
                 raise RuntimeError("Parsing Offset(), expected integer, got " + tokens[pos])
             expect_token(')', tokens[pos], 'Round()')
             pos += 1
@@ -394,7 +394,7 @@ def parse_new_descriptor(tokens, pos, prev_names):
                 new_value = int(tokens[pos])
                 pos += 1
                 d.items.append(new_value)
-            except:
+            except Exception:
                 raise RuntimeError("Parsing Offset(), expected integer, got " + tokens[pos])
             expect_token(')', tokens[pos], 'ReplaceIndex()')
             pos += 1
@@ -411,7 +411,7 @@ def parse_new_descriptor(tokens, pos, prev_names):
             value = float(tokens[pos])
             pos += 1
             d.items = [value]
-        except:
+        except Exception:
             raise RuntimeError("Parsing {0}, expected float, got {1}".format(
                 first_token, tokens[pos]))
         # Consume the comma.
@@ -427,7 +427,7 @@ def parse_new_descriptor(tokens, pos, prev_names):
                 dim = int(tokens[pos])
                 pos += 1
                 d.items.append(dim)
-            except:
+            except Exception:
                 raise RuntimeError("Parsing Const() expression, expected int, got {0}".format(
                     tokens[pos]))
         expect_token(')', tokens[pos], first_token)
@@ -450,7 +450,7 @@ def parse_new_descriptor(tokens, pos, prev_names):
             try:
                 offset_t = int(tokens[pos])
                 pos += 1
-            except:
+            except Exception:
                 raise RuntimeError("Parse error parsing {0}@{1}".format(
                     first_token, tokens[pos]))
             if offset_t != 0:
@@ -467,7 +467,7 @@ def parse_new_descriptor(tokens, pos, prev_names):
         # (with that time offset applied).
         try:
             offset_t = int(first_token)
-        except:
+        except Exception:
             raise RuntimeError("Parsing descriptor, expected descriptor but got " +
                             first_token)
         assert isinstance(prev_names, list)
@@ -513,7 +513,7 @@ def replace_bracket_expressions_in_descriptor(descriptor_string,
                 offset = int(fields[i])
                 assert offset < 0 and -offset <= len(prev_names)
                 i += 2  # consume the int and the ']'.
-            except:
+            except Exception:
                 raise RuntimeError("Error tokenizing string '{0}': expression [{1}] has an "
                                 "invalid or out of range offset.".format(descriptor_string, fields[i]))
             this_field = prev_names[offset]

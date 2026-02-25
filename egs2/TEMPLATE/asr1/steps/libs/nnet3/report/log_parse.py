@@ -512,7 +512,7 @@ def parse_rnnlm_prob_logs(exp_dir, key='objf'):
 def generate_acc_logprob_report(exp_dir, key="accuracy", output="output"):
     try:
         times = get_train_times(exp_dir)
-    except:
+    except Exception:
         tb = traceback.format_exc()
         logger.warning("Error getting info from logs, exception was: " + tb)
         times = {}
@@ -524,7 +524,7 @@ def generate_acc_logprob_report(exp_dir, key="accuracy", output="output"):
             data = list(parse_rnnlm_prob_logs(exp_dir, 'objf'))
         else:
             data = list(parse_prob_logs(exp_dir, key, output))
-    except:
+    except Exception:
         tb = traceback.format_exc()
         logger.warning("Error getting info from logs, exception was: " + tb)
         data = []

@@ -21,7 +21,7 @@ import threading
 
 try:
     import thread as thread_module
-except:
+except Exception:
     import _thread as thread_module
 
 logger = logging.getLogger(__name__)

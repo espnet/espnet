@@ -54,7 +54,7 @@ while True:
         [ utt_id, recording_id, start_time, end_time ] = line.split()
         start_time = float(start_time)
         end_time = float(end_time)
-    except:
+    except Exception:
         sys.exit("extend_segment_times.py: could not interpret line: " + line)
     if not end_time > start_time:
         print("extend_segment_times.py: bad segment (ignoring): " + line,
