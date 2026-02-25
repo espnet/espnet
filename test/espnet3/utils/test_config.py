@@ -1,9 +1,16 @@
 import os
 
 import pytest
+from omegaconf import OmegaConf
 from yaml.parser import ParserError
 
-from espnet3.utils.config_utils import load_config_with_defaults, load_line
+from espnet3.utils.config_utils import (
+    _build_config_path,
+    _ensure_target_convert_all,
+    load_config_with_defaults,
+    load_line,
+    load_yaml,
+)
 
 # ===============================================================
 # Test Case Summary for Config Utilities
@@ -277,3 +284,63 @@ defaults:
 
     with pytest.raises(ParserError):
         load_config_with_defaults(str(main_path))
+
+
+def test_load_yaml_full_config(write_yaml):
+    path = write_yaml(
+        "config.yaml",
+        """
+foo:
+  bar: 123
+""",
+    )
+    cfg = load_yaml(str(path))
+    assert cfg.foo.bar == 123
+
+
+def test_load_yaml_nested_key(write_yaml):
+    path = write_yaml(
+        "config.yaml",
+        """
+foo:
+  bar: 123
+""",
+    )
+    value = load_yaml(str(path), "foo.bar")
+    assert value == 123
+
+
+def test_load_yaml_missing_key_raises(write_yaml):
+    path = write_yaml("config.yaml", "foo: 1\n")
+    with pytest.raises(KeyError):
+        load_yaml(str(path), "missing.key")
+
+
+def test_ensure_target_convert_all_nested():
+    cfg = OmegaConf.create(
+        {
+            "a": {"_target_": "package.A", "x": 1},
+            "b": [{"_target_": "package.B", "y": 2}, {"z": 3}],
+            "c": {"nested": {"_target_": "package.C"}},
+        }
+    )
+    _ensure_target_convert_all(cfg)
+    assert cfg.a._convert_ == "all"
+    assert cfg.b[0]._convert_ == "all"
+    assert cfg.c.nested._convert_ == "all"
+    assert "_convert_" not in cfg.b[1]
+
+
+def test_build_config_path_adds_yaml(tmp_path):
+    path = _build_config_path(tmp_path, "train")
+    assert path == tmp_path / "train.yaml"
+
+
+def test_build_config_path_keeps_yaml(tmp_path):
+    path = _build_config_path(tmp_path, "train.yaml")
+    assert path == tmp_path / "train.yaml"
+
+
+def test_build_config_path_rejects_suffix(tmp_path):
+    with pytest.raises(ValueError):
+        _build_config_path(tmp_path, "train.txt")

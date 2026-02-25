@@ -157,6 +157,7 @@ def make_standard_dataloader_config(sampler=None, batch_sampler=None, collate_fn
 def make_dataset_config(dataset_target, dataset_kwargs=None):
     dataset_kwargs = dataset_kwargs or {}
     config = {
+        "_target_": "espnet3.components.data.data_organizer.DataOrganizer",
         "train": [
             {
                 "name": "train_dummy",
@@ -175,25 +176,17 @@ def make_dataset_config(dataset_target, dataset_kwargs=None):
 
 def build_organizer(dataset_target, dataset_kwargs=None):
     config = make_dataset_config(dataset_target, dataset_kwargs=dataset_kwargs)
-    return DataOrganizer(
-        train=instantiate(config["train"]),
-        valid=instantiate(config["valid"]),
-        preprocessor=do_nothing,
-    )
+    return instantiate(config)
 
 
 def build_builder(dataset, config, collate_fn, num_device, epoch):
-    builder_config = OmegaConf.create(
-        {
-            "_target_": "espnet3.components.data.dataloader.DataLoaderBuilder",
-            "dataset": dataset,
-            "config": config,
-            "collate_fn": collate_fn,
-            "num_device": num_device,
-            "epoch": epoch,
-        }
+    return DataLoaderBuilder(
+        dataset=dataset,
+        config=config,
+        collate_fn=collate_fn,
+        num_device=num_device,
+        epoch=epoch,
     )
-    return instantiate(builder_config)
 
 
 # -------- Standard PyTorch DataLoader mode --------
@@ -407,9 +400,47 @@ def test_sharded_dataset_single_gpu_multiple_shards():
         organizer.train, config, collate_fn=None, num_device=1, epoch=0
     )
     loader = builder.build("train")
-    batch = next(iter(loader))
-    assert "text" in batch
-    assert batch["text"][0].startswith("shard0_")
+    shard_ids = _collect_shard_ids(loader)
+    assert shard_ids == {"shard0"}
+
+
+@pytest.mark.parametrize(
+    "world_size,num_shards,rank,expected",
+    [
+        (2, 2, 0, {"shard0"}),
+        (2, 2, 1, {"shard1"}),
+        (2, 4, 0, {"shard0"}),
+        (2, 4, 1, {"shard1"}),
+    ],
+)
+def test_sharded_dataset_multi_gpu_assignment(
+    monkeypatch, world_size, num_shards, rank, expected
+):
+    def _get_world_size():
+        return world_size
+
+    def _get_rank():
+        return rank
+
+    monkeypatch.setattr(torch.distributed, "get_world_size", _get_world_size)
+    monkeypatch.setattr(torch.distributed, "get_rank", _get_rank)
+
+    organizer = build_organizer(
+        DUMMY_SHARDED_DATASET_TARGET,
+        dataset_kwargs={"num_shards": num_shards, "world_shard_size": world_size},
+    )
+    config = make_standard_dataloader_config()
+    config.dataloader.train.batch_size = 1
+    builder = build_builder(
+        organizer.train,
+        config,
+        collate_fn=None,
+        num_device=world_size,
+        epoch=0,
+    )
+    loader = builder.build("train")
+    shard_ids = _collect_shard_ids(loader)
+    assert shard_ids == expected
 
 
 def test_sharded_dataset_multi_gpu_rotates_with_epoch(monkeypatch):
@@ -440,6 +471,41 @@ def test_sharded_dataset_multi_gpu_rotates_with_epoch(monkeypatch):
 
     assert first_epoch0 == "shard0"
     assert first_epoch1 == "shard2"
+
+
+@pytest.mark.parametrize(
+    "epoch,expected_rank0,expected_rank1",
+    [
+        (0, "shard0", "shard1"),
+        (1, "shard2", "shard3"),
+        (2, "shard0", "shard1"),
+        (3, "shard2", "shard3"),
+    ],
+)
+def test_sharded_dataset_multi_gpu_rotates_epochs_0_to_3(
+    monkeypatch, epoch, expected_rank0, expected_rank1
+):
+    def _get_world_size():
+        return 2
+
+    monkeypatch.setattr(torch.distributed, "get_world_size", _get_world_size)
+
+    organizer = build_organizer(
+        DUMMY_SHARDED_DATASET_TARGET,
+        dataset_kwargs={"num_shards": 4, "world_shard_size": 2},
+    )
+    config = make_standard_dataloader_config()
+    config.dataloader.train.batch_size = 1
+
+    def _first_shard_for_rank(rank):
+        monkeypatch.setattr(torch.distributed, "get_rank", lambda: rank)
+        builder = build_builder(
+            organizer.train, config, collate_fn=None, num_device=2, epoch=epoch
+        )
+        return _first_shard_id(builder.build("train"))
+
+    assert _first_shard_for_rank(0) == expected_rank0
+    assert _first_shard_for_rank(1) == expected_rank1
 
 
 @pytest.mark.parametrize("num_shards", [1, 3])
