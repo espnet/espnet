@@ -178,7 +178,7 @@ def build_organizer(dataset_target, dataset_kwargs=None):
     return DataOrganizer(
         train=instantiate(config["train"]),
         valid=instantiate(config["valid"]),
-        preprocessor=do_nothing_transform,
+        preprocessor=do_nothing,
     )
 
 
@@ -410,39 +410,6 @@ def test_sharded_dataset_single_gpu_multiple_shards():
     batch = next(iter(loader))
     assert "text" in batch
     assert batch["text"][0].startswith("shard0_")
-
-
-@pytest.mark.parametrize(
-    "epoch,expected_shard", [(0, "shard0"), (1, "shard1"), (2, "shard2")]
-)
-def test_multiple_iterator_epoch_shard_switching(
-    dummy_multiple_iterator_dataset, epoch, expected_shard
-):
-    def _get_world_size():
-        return world_size
-
-    def _get_rank():
-        return rank
-
-    monkeypatch.setattr(torch.distributed, "get_world_size", _get_world_size)
-    monkeypatch.setattr(torch.distributed, "get_rank", _get_rank)
-
-    organizer = build_organizer(
-        DUMMY_SHARDED_DATASET_TARGET,
-        dataset_kwargs={"num_shards": num_shards, "world_shard_size": world_size},
-    )
-    config = make_standard_dataloader_config()
-    config.dataloader.train.batch_size = 1
-    builder = build_builder(
-        organizer.train,
-        config,
-        collate_fn=None,
-        num_device=world_size,
-        epoch=0,
-    )
-    loader = builder.build("train")
-    shard_ids = _collect_shard_ids(loader)
-    assert shard_ids == expected
 
 
 def test_sharded_dataset_multi_gpu_rotates_with_epoch(monkeypatch):
