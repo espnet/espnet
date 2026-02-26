@@ -29,7 +29,6 @@ ______________________________________________________________________
 ______________________________________________________________________
 
 [**Docs**](https://espnet.github.io/espnet/)
-| [**Example**](https://github.com/espnet/espnet/tree/master/egs)
 | [**Example (ESPnet2)**](https://github.com/espnet/espnet/tree/master/egs2)
 | [**Docker**](https://github.com/espnet/espnet/tree/master/docker)
 | [**Notebook**](https://github.com/espnet/notebook)
