@@ -141,6 +141,10 @@ class FastSpeech2(AbsTTS):
         use_masking: bool = False,
         use_weighted_masking: bool = False,
         apply_ff_mask: bool = False,
+        # shape-bucketing for inference (XPU / oneDNN)
+        bucket_infer: Optional[bool] = None,
+        enc_buckets: Optional[Sequence[int]] = None,
+        dec_buckets: Optional[Sequence[int]] = None,
     ):
         """Initialize FastSpeech2 module.
 
@@ -236,6 +240,16 @@ class FastSpeech2(AbsTTS):
             use_weighted_masking (bool): Whether to apply weighted masking in loss
                 calculation.
             apply_ff_mask (bool): Whether to apply mask in feed-forward layer.
+            bucket_infer (Optional[bool]): Enable shape-bucketing during
+                inference so that oneDNN / GEMM primitives are created once
+                and reused.  *None* (default) reads the
+                ``ESPNET_BUCKET_INFER`` env var ("1" = enabled).
+            enc_buckets (Optional[Sequence[int]]): Encoder-side bucket
+                boundaries (text-token lengths).  Defaults to
+                ``[16, 32, 64, 96, 128, 192, 256, 384, 512]``.
+            dec_buckets (Optional[Sequence[int]]): Decoder-side bucket
+                boundaries (mel-frame lengths).  Defaults to
+                ``[64, 128, 192, 256, 384, 512, 768, 1024, 1536, 2048]``.
 
         """
         super().__init__()
@@ -251,6 +265,42 @@ class FastSpeech2(AbsTTS):
         self.stop_gradient_from_energy_predictor = stop_gradient_from_energy_predictor
         self.use_scaled_pos_enc = use_scaled_pos_enc
         self.use_gst = use_gst
+
+        # Shape-bucketing configuration (XPU / oneDNN)
+        if bucket_infer is None:
+            bucket_infer = os.environ.get("ESPNET_BUCKET_INFER", "0") == "1"
+        self._bucket_infer = bucket_infer
+        self._enc_buckets = (
+            list(enc_buckets)
+            if enc_buckets is not None
+            else [
+                16,
+                32,
+                64,
+                96,
+                128,
+                192,
+                256,
+                384,
+                512,
+            ]
+        )
+        self._dec_buckets = (
+            list(dec_buckets)
+            if dec_buckets is not None
+            else [
+                64,
+                128,
+                192,
+                256,
+                384,
+                512,
+                768,
+                1024,
+                1536,
+                2048,
+            ]
+        )
 
         # use idx 0 as padding idx
         self.padding_idx = 0
@@ -619,21 +669,6 @@ class FastSpeech2(AbsTTS):
         else:
             return loss, stats, after_outs if after_outs is not None else before_outs
 
-    # ---------------------------------------------------------------------------
-    # Shape-bucketing for inference (controlled by ESPNET_BUCKET_INFER env var)
-    # ---------------------------------------------------------------------------
-    # When ESPNET_BUCKET_INFER=1, tensor dimensions are rounded up to the
-    # nearest bucket boundary so that oneDNN / GEMM primitives are created
-    # once and reused across batches with different text / mel lengths.
-    # Default: disabled (original behaviour).
-    # ---------------------------------------------------------------------------
-    _BUCKET_INFER = os.environ.get("ESPNET_BUCKET_INFER", "0") == "1"
-
-    # Encoder side (text tokens): typical range 10-150
-    _ENC_BUCKETS = [16, 32, 64, 96, 128, 192, 256, 384, 512]
-    # Decoder side (mel frames after length regulation): typical range 50-600
-    _DEC_BUCKETS = [64, 128, 192, 256, 384, 512, 768, 1024, 1536, 2048]
-
     @staticmethod
     def _bucket_pad_size(cur_len: int, buckets: list) -> int:
         """Return the smallest bucket size >= cur_len, or cur_len if it exceeds all."""
@@ -660,9 +695,9 @@ class FastSpeech2(AbsTTS):
         # --- Bucket-pad encoder input to a fixed size (inference only) ---
         # Controlled by ESPNET_BUCKET_INFER=1 environment variable.
         enc_bucketed = False
-        if self._BUCKET_INFER and is_inference:
+        if self._bucket_infer and is_inference:
             T_text = xs.size(1)
-            T_bucket = self._bucket_pad_size(T_text, self._ENC_BUCKETS)
+            T_bucket = self._bucket_pad_size(T_text, self._enc_buckets)
             if T_bucket > T_text:
                 xs = F.pad(xs, [0, T_bucket - T_text], value=0)
                 enc_bucketed = True
@@ -773,9 +808,9 @@ class FastSpeech2(AbsTTS):
         # Controlled by ESPNET_BUCKET_INFER=1 environment variable.
         T_feats_original = None
         dec_bucketed = False
-        if self._BUCKET_INFER and is_inference:
+        if self._bucket_infer and is_inference:
             T_feats_original = hs.size(1)
-            T_dec_bucket = self._bucket_pad_size(T_feats_original, self._DEC_BUCKETS)
+            T_dec_bucket = self._bucket_pad_size(T_feats_original, self._dec_buckets)
             if T_dec_bucket > T_feats_original:
                 dec_bucketed = True
                 dec_pad = T_dec_bucket - T_feats_original
