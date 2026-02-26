@@ -981,16 +981,18 @@ class FastSpeech2(AbsTTS):
 
         # Calculate output lengths from predicted durations
         # d_outs: (B, T_text + 1)
-        # IMPORTANT: floor each duration to int BEFORE summing, matching what
-        # the length regulator actually does (repeat_interleave with .long()).
+        # IMPORTANT: match the length regulator's behavior exactly:
+        # when alpha != 1.0, round each duration individually then sum,
+        # otherwise floor to int then sum.
         if use_teacher_forcing and durations is not None:
             olens = durations.long().clamp(min=0).sum(dim=1)
         else:
-            olens = d_outs.long().clamp(min=0).sum(dim=1)
-
-        # Apply alpha scaling to output lengths if needed
-        if alpha != 1.0 and not use_teacher_forcing:
-            olens = torch.round(olens.float() * alpha).long()
+            if alpha != 1.0:
+                olens = (
+                    torch.round(d_outs.float() * alpha).long().clamp(min=0).sum(dim=1)
+                )
+            else:
+                olens = d_outs.long().clamp(min=0).sum(dim=1)
 
         # Return unbatched outputs as list for variable length handling
         T_max = outs.size(1)
