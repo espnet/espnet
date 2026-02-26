@@ -40,6 +40,12 @@ from espnet2.tts.fastspeech2.loss import FastSpeech2Loss
 from espnet2.tts.fastspeech2.variance_predictor import VariancePredictor
 from espnet2.tts.gst.style_encoder import StyleEncoder
 
+# Default bucket boundaries for shape-bucketing during inference.
+# Encoder side (text tokens): typical range 10-150
+DEFAULT_ENC_BUCKETS = [16, 32, 64, 96, 128, 192, 256, 384, 512]
+# Decoder side (mel frames after length regulation): typical range 50-600
+DEFAULT_DEC_BUCKETS = [64, 128, 192, 256, 384, 512, 768, 1024, 1536, 2048]
+
 
 class FastSpeech2(AbsTTS):
     """FastSpeech2 module.
@@ -271,35 +277,10 @@ class FastSpeech2(AbsTTS):
             bucket_infer = os.environ.get("ESPNET_BUCKET_INFER", "0") == "1"
         self._bucket_infer = bucket_infer
         self._enc_buckets = (
-            list(enc_buckets)
-            if enc_buckets is not None
-            else [
-                16,
-                32,
-                64,
-                96,
-                128,
-                192,
-                256,
-                384,
-                512,
-            ]
+            list(enc_buckets) if enc_buckets is not None else DEFAULT_ENC_BUCKETS
         )
         self._dec_buckets = (
-            list(dec_buckets)
-            if dec_buckets is not None
-            else [
-                64,
-                128,
-                192,
-                256,
-                384,
-                512,
-                768,
-                1024,
-                1536,
-                2048,
-            ]
+            list(dec_buckets) if dec_buckets is not None else DEFAULT_DEC_BUCKETS
         )
 
         # use idx 0 as padding idx
