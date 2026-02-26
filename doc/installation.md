@@ -1,9 +1,6 @@
 ## Installation
 ### Requirements
 
-- Python 3.7+
-- gcc 4.9+ for PyTorch1.10.2+
-
 (If you'll use a conda environment at the installation step2,
 the following packages are installed using conda, so you can skip them.)
 
