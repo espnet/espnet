@@ -1,0 +1,70 @@
+ARG PYTHON_VERSION=3.10
+FROM python:${PYTHON_VERSION}-slim
+
+# Avoid interactive prompts
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install system dependencies
+RUN apt-get update -qq && \
+    apt-get install -qq -y --no-install-recommends \
+        build-essential \
+        cmake \
+        libsndfile1-dev \
+        bc \
+        sox \
+        ffmpeg \
+        libjpeg-dev \
+        git \
+        wget \
+        ca-certificates \
+        automake \
+        autoconf \
+        libtool \
+        pkg-config \
+        zlib1g-dev \
+        gfortran \
+        curl \
+        unzip && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Set working directory
+WORKDIR /espnet
+
+# Copy only necessary files for installation
+COPY pyproject.toml setup.cfg version.txt ./
+COPY espnet2/ ./espnet2/
+COPY espnet3/ ./espnet3/
+COPY tools/ ./tools/
+COPY ci/ ./ci/
+
+# Set build arguments
+ARG PYTORCH_VERSION=2.7.1
+ARG CHAINER_VERSION=6.0.0
+ARG USE_CONDA=false
+
+# Set environment variables for installation
+ENV ESPNET_PYTHON_VERSION=${PYTHON_VERSION}
+ENV TH_VERSION=${PYTORCH_VERSION}
+ENV CHAINER_VERSION=${CHAINER_VERSION}
+ENV USE_CONDA=${USE_CONDA}
+ENV WITH_OMP=ON
+
+# Run installation script
+RUN chmod +x ./ci/install.sh && \
+    ./ci/install.sh
+
+# Install Kaldi
+RUN chmod +x ./ci/install_kaldi.sh && \
+    ./ci/install_kaldi.sh
+
+# Set up activation script to be sourced on container start
+ENV PATH="/espnet/tools/venv/bin:$PATH"
+ENV PYTHONPATH="/espnet"
+
+# Activate Python environment by default
+SHELL ["/bin/bash", "-c"]
+RUN echo 'source /espnet/tools/activate_python.sh' >> ~/.bashrc
+
+# Set the default command
+CMD ["/bin/bash"]

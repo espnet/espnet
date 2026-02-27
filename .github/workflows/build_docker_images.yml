@@ -1,0 +1,96 @@
+name: Build Docker Images for CI
+
+on:
+  schedule:
+    # Run every Monday at 00:00 UTC
+    - cron: '0 0 * * 1'
+  workflow_dispatch:  # Allow manual trigger
+  push:
+    branches:
+      - master
+      - espnet3
+    paths:
+      - '.github/workflows/build_docker_images.yml'
+      - '.github/docker/Dockerfile.ci'
+      - 'ci/install.sh'
+      - 'ci/install_kaldi.sh'
+      - 'pyproject.toml'
+      - 'setup.cfg'
+  pull_request:
+    branches:
+      - master
+      - espnet3
+    types: [labeled, opened, synchronize, reopened]
+
+jobs:
+  build_and_push:
+    runs-on: ubuntu-latest
+    # Skip if it's a PR without the 'installation' label
+    if: |
+      github.event_name != 'pull_request' || 
+      contains(github.event.pull_request.labels.*.name, 'installation')
+    permissions:
+      contents: read
+      packages: write
+      pull-requests: read
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.12"]
+        pytorch-version: ["2.5.1", "2.7.1", "2.8.0", "2.9.1"]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check if image exists
+        id: check_image
+        run: |
+          IMAGE_NAME="ghcr.io/${{ github.repository_owner }}/espnet-ci:py${{ matrix.python-version }}-torch${{ matrix.pytorch-version }}"
+          IMAGE_NAME_LOWER=$(echo "$IMAGE_NAME" | tr '[:upper:]' '[:lower:]')
+          
+          # Check if PR has 'installation' label
+          if [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ contains(github.event.pull_request.labels.*.name, 'installation') }}" = "true" ]; then
+            echo "build=true" >> $GITHUB_OUTPUT
+            echo "PR has 'installation' label - will rebuild image"
+            exit 0
+          fi
+          
+          # Try to pull the image
+          if docker pull "$IMAGE_NAME_LOWER" 2>/dev/null; then
+            echo "Image exists"
+            if [ "${{ github.event_name }}" = "schedule" ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+              echo "build=true" >> $GITHUB_OUTPUT
+              echo "Scheduled build - will rebuild image"
+            else
+              echo "build=false" >> $GITHUB_OUTPUT
+              echo "Image exists - skipping build"
+            fi
+          else
+            echo "Image does not exist - will build"
+            echo "build=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build and push Docker image
+        if: steps.check_image.outputs.build == 'true'
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: .github/docker/Dockerfile.ci
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/espnet-ci:py${{ matrix.python-version }}-torch${{ matrix.pytorch-version }}
+          build-args: |
+            PYTHON_VERSION=${{ matrix.python-version }}
+            PYTORCH_VERSION=${{ matrix.pytorch-version }}
+            CHAINER_VERSION=6.0.0
+          cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/espnet-ci:py${{ matrix.python-version }}-torch${{ matrix.pytorch-version }}
+          cache-to: type=inline
