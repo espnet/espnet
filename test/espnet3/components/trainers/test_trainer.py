@@ -232,7 +232,9 @@ def test_collect_stats_then_train_does_not_mutate_trainer_config(
 
     model = nn.Linear(10, 1)
     lit = ESPnetLightningModule(model, model_config)
-    monkeypatch.setattr(ESPnetLightningModule, "collect_stats", lambda *args, **kwargs: None)
+    monkeypatch.setattr(
+        ESPnetLightningModule, "collect_stats", lambda *args, **kwargs: None
+    )
 
     wrapper_stats = ESPnet3LightningTrainer(
         model=lit, config=trainer_config, expdir=EXPDIR
@@ -245,7 +247,9 @@ def test_collect_stats_then_train_does_not_mutate_trainer_config(
 
     assert set(trainer_config.keys()) == original_keys
     assert hasattr(trainer_config, "logger")
-    assert OmegaConf.to_container(trainer_config.logger, resolve=True) == original_logger
+    assert (
+        OmegaConf.to_container(trainer_config.logger, resolve=True) == original_logger
+    )
 
 
 @pytest.mark.parametrize(
