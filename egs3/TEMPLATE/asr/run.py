@@ -26,8 +26,6 @@ DEFAULT_STAGES: List[str] = [
     "train",
     "infer",
     "measure",
-    "pack_model",
-    "upload_model",
 ]
 
 # Type alias for a System class
@@ -37,7 +35,6 @@ AddArgsFn = Callable[[argparse.ArgumentParser], None]
 
 def build_parser(
     stages: Sequence[str],
-    add_arguments: Optional[AddArgsFn] = None,
 ) -> argparse.ArgumentParser:
     """Build base ArgumentParser and let caller extend it."""
     parser = argparse.ArgumentParser()
@@ -62,13 +59,13 @@ def build_parser(
         "--infer_config",
         default=None,
         type=Path,
-        help="Hydra config for inference/decoding stage.",
+        help="Hydra config for infer stage.",
     )
     parser.add_argument(
         "--measure_config",
         default=None,
         type=Path,
-        help="Hydra config for measure/scoring stage.",
+        help="Hydra config for measure stage.",
     )
     parser.add_argument(
         "--dry_run",
@@ -80,25 +77,11 @@ def build_parser(
         action="store_true",
         help="Write requirements.txt alongside each stage log.",
     )
-
-    # Stage-specific arguments can be added here if needed
-    parser.add_argument(
-        "--train.dataset_dir",
-        default=None,
-        type=Path,
-        help="dataset directory for training (used in some stages).",
-    )
-
-    # Let caller add custom CLI arguments
-    if add_arguments is not None:
-        add_arguments(parser)
-
     return parser
 
 
 def parse_cli_and_stage_args(
     parser: argparse.ArgumentParser,
-    *,
     stages: Sequence[str],
 ) -> Tuple[argparse.Namespace, List[str]]:
     args = parser.parse_args()
@@ -110,7 +93,6 @@ def parse_cli_and_stage_args(
 def main(
     args,
     system_cls: SystemCls,
-    *,
     stages: Sequence[str] = DEFAULT_STAGES,
 ) -> None:
     stages_to_run = resolve_stages(args.stages, stages)
@@ -190,7 +172,6 @@ def main(
 
 def _log_stage_metadata(
     logger,
-    *,
     args: argparse.Namespace,
     train_config,
     infer_config,
@@ -200,24 +181,26 @@ def _log_stage_metadata(
         logger,
         argv=sys.argv,
         configs={
-            "train": Path(args.train_config) if args.train_config else None,
-            "infer": Path(args.infer_config) if args.infer_config else None,
-            "measure": Path(args.measure_config) if args.measure_config else None,
+            "Training": Path(args.train_config) if args.train_config else None,
+            "Inference": Path(args.infer_config) if args.infer_config else None,
+            "Metrics": Path(args.measure_config) if args.measure_config else None,
         },
         write_requirements=args.write_requirements,
     )
     log_env_metadata(logger)
     if train_config is not None:
         logger.info(
-            "Train config content:\n%s", OmegaConf.to_yaml(train_config, resolve=True)
+            "Training config content:\n%s",
+            OmegaConf.to_yaml(train_config, resolve=True),
         )
     if infer_config is not None:
         logger.info(
-            "Infer config content:\n%s", OmegaConf.to_yaml(infer_config, resolve=True)
+            "Inference config content:\n%s",
+            OmegaConf.to_yaml(infer_config, resolve=True),
         )
     if measure_config is not None:
         logger.info(
-            "measure config content:\n%s",
+            "Metrics config content:\n%s",
             OmegaConf.to_yaml(measure_config, resolve=True),
         )
 

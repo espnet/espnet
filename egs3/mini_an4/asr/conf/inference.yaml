@@ -1,8 +1,8 @@
 # Mini AN4 ASR inference config for ESPnet3 integration tests.
 
-exp_dir: ${load_yaml:conf/train.yaml,exp_dir}
+exp_dir: ${load_yaml:conf/training.yaml,exp_dir}
 inference_dir: ${exp_dir}/inference
-dataset_dir: ${load_yaml:conf/train.yaml,dataset_dir}
+dataset_dir: ${load_yaml:conf/training.yaml,dataset_dir}
 
 dataset:
   _target_: espnet3.components.data.data_organizer.DataOrganizer
@@ -24,7 +24,7 @@ model:
   ctc_weight: 0.3
 
 input_key: speech
-output_fn: src.inference.output_fn
+output_fn: src.inference.build_output
 
 provider:
   _target_: espnet3.systems.base.inference_provider.InferenceProvider

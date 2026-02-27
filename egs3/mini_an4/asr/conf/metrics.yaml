@@ -1,7 +1,7 @@
 # Mini AN4 ASR scoring config for ESPnet3 integration tests.
 
 exp_dir: ${load_yaml:conf/train.yaml,exp_dir}
-inference_dir: ${exp_dir}/inference
+inference_dir: ${exp_dir}/inferenceence
 dataset_dir: ${load_yaml:conf/train.yaml,dataset_dir}
 
 dataset:

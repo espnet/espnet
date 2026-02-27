@@ -1,23 +1,19 @@
 # This is a debug config for CI
-# Mini AN4 ASR training config for ESPnet3 integration tests.
-
-init: xavier_uniform
-
 
 num_device: 1
 num_nodes: 1
-task: espnet3.systems.asr.task.ASRTask
+task: espnet3.systems.asr.transducer_task.ASRTransducerTask
 
 recipe_dir: .
 data_dir: ${recipe_dir}/data
-exp_tag: train_asr_transducer_debug
+exp_tag: train_transducer_asr_conformer_rnnt_debug
 exp_dir: ${recipe_dir}/exp/${exp_tag}
 stats_dir: ${recipe_dir}/exp/stats
-inference_dir: ${exp_dir}/infer
+inference_dir: ${exp_dir}/inference
 dataset_dir: ${data_dir}/mini_an4
 
 create_dataset:
-  func: src.create_dataset.create_dataset
+  func: src.creating_dataset.create_dataset
   dataset_dir: ${dataset_dir}
   archive_path: ${recipe_dir}/../../egs2/mini_an4/asr1/downloads.tar.gz
 
@@ -58,10 +54,10 @@ dataloader:
       collate_fn: ${dataloader.collate_fn}
       num_workers: 0
       batches:
-        type: unsorted
+        type: sorted
         shape_files:
           - ${stats_dir}/train/feats_shape
-        batch_size: 2
+        batch_size: 32
         batch_bins: 200000
   valid:
     multiple_iterator: false
@@ -83,11 +79,11 @@ optimizer:
 
 scheduler:
   _target_: espnet2.schedulers.warmup_lr.WarmupLR
-  warmup_steps: 100
+  warmup_steps: 30000
 
 best_model_criterion:
   - - valid/loss
-    - 1
+    - 10
     - min
 
 trainer:
@@ -125,40 +121,18 @@ model:
   vocab_size: ${tokenizer.vocab_size}
   token_list: ${tokenizer.save_path}/tokens.txt
 
-  encoder: transformer
+  encoder: conformer
   encoder_conf:
-    output_size: 2
-    attention_heads: 2
-    linear_units: 2
-    num_blocks: 2
-    dropout_rate: 0.1
-    positional_dropout_rate: 0.1
-    attention_dropout_rate: 0.0
-    input_layer: conv1d2
-    normalize_before: true
+    body_conf:
+        - block_type: conformer
+          hidden_size: 2
+          linear_size: 4
+          heads: 2
+          conv_mod_kernel_size: 3
 
-  decoder: transducer
   decoder_conf:
-    rnn_type: lstm
-    num_layers: 1  # Decoder Layers
-    hidden_size: 4  # Decoder dim
-    dropout: 0.1
-    dropout_embed: 0.2
+    embed_size: 4
+    hidden_size: 4
 
-  joint_net_conf:
+  joint_network_conf:
     joint_space_size: 4
-
-  normalize: utterance_mvn
-  normalize_conf: {}
-
-  model: espnet
-  model_conf:
-    ctc_weight: 0.3
-    lsm_weight: 0.1
-    length_normalized_loss: false
-
-  frontend: default
-  frontend_conf:
-    n_fft: 512
-    win_length: 400
-    hop_length: 160

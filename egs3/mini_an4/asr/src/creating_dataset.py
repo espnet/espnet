@@ -34,7 +34,7 @@ def is_gzip(path: Path) -> bool:
 
 
 def ensure_extracted(
-    archive: Path, dataset_dir: Path, *, logger: logging.Logger
+    archive: Path, dataset_dir: Path, logger: logging.Logger
 ) -> Path:
     downloads_dir = dataset_dir / "downloads"
     an4_root = downloads_dir / "an4"
@@ -123,7 +123,7 @@ def write_manifest(path: Path, entries: Iterable[Entry]) -> None:
             f.write(f"{e.utt_id}\t{e.wav_path}\t{e.text}\n")
 
 
-def create_dataset(dataset_dir: Path, *, archive_path: Path | None = None) -> None:
+def create_dataset(dataset_dir: Path, archive_path: Path | None = None) -> None:
     dataset_dir = Path(dataset_dir)
     logger = setup_logger(name="mini_an4.create_dataset")
 

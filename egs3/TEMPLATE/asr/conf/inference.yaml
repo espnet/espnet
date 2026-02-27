@@ -27,7 +27,7 @@ model:
 
 # Inference I/O.
 input_key: speech
-output_fn: src.infer.output_fn
+output_fn: src.inference.build_output
 
 provider:
   _target_: espnet3.systems.base.inference_provider.InferenceProvider

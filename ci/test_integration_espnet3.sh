@@ -24,21 +24,21 @@ run_with_train_config() {
     local runner=$2
     local infer_config=$3
 
-    ln -sfn "${train_config}" conf/train.yaml
+    ln -sfn "${train_config}" conf/training.yaml
     ${python} "${runner}" \
         --stages create_dataset train_tokenizer collect_stats train infer measure \
-        --train_config conf/train.yaml \
+        --train_config conf/training.yaml \
         --infer_config "${infer_config}" \
         --measure_config conf/measure.yaml
     rm -rf exp data
 }
 
 debug_configs=(
-    train_asr_rnn_data_aug_debug.yaml
-    train_asr_rnn_debug.yaml
-    train_asr_streaming_debug.yaml
-    train_asr_transformer_debug.yaml
-    train_asr_transducer_debug.yaml
+    training_asr_rnn_data_aug.yaml
+    training_asr_rnn.yaml
+    training_asr_streaming.yaml
+    training_asr_transformer.yaml
+    training_asr_transducer.yaml
 )
 
 for train_config in "${debug_configs[@]}"; do
@@ -47,7 +47,7 @@ done
 
 # We need seprate inference config for transducer task
 run_with_train_config \
-    train_transducer_asr_conformer_rnnt_debug.yaml \
+    training_transducer_asr_conformer_rnnt.yaml \
     run.py \
     conf/inference_transducer.yaml
 

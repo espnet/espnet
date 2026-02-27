@@ -1,9 +1,5 @@
 # This is a debug config for CI
-# Mini AN4 ASR training config for ESPnet3 integration tests.
-
-
 init: xavier_uniform
-
 
 num_device: 1
 num_nodes: 1
@@ -11,14 +7,14 @@ task: espnet3.systems.asr.task.ASRTask
 
 recipe_dir: .
 data_dir: ${recipe_dir}/data
-exp_tag: train_asr_streaming_debug
+exp_tag: train_asr_transformer_debug
 exp_dir: ${recipe_dir}/exp/${exp_tag}
 stats_dir: ${recipe_dir}/exp/stats
-inference_dir: ${exp_dir}/infer
+inference_dir: ${exp_dir}/inference
 dataset_dir: ${data_dir}/mini_an4
 
 create_dataset:
-  func: src.create_dataset.create_dataset
+  func: src.creating_dataset.create_dataset
   dataset_dir: ${dataset_dir}
   archive_path: ${recipe_dir}/../../egs2/mini_an4/asr1/downloads.tar.gz
 
@@ -88,7 +84,7 @@ scheduler:
 
 best_model_criterion:
   - - valid/loss
-    - 1
+    - 10
     - min
 
 trainer:
@@ -126,21 +122,27 @@ model:
   vocab_size: ${tokenizer.vocab_size}
   token_list: ${tokenizer.save_path}/tokens.txt
 
-  encoder: contextual_block_transformer
+  encoder: transformer
   encoder_conf:
-    block_size: 40
-    hop_size: 16
-    look_ahead: 16
     output_size: 2
     attention_heads: 2
     linear_units: 2
-    num_blocks: 1
+    num_blocks: 2
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    attention_dropout_rate: 0.0
+    input_layer: conv1d2
+    normalize_before: true
 
   decoder: transformer
   decoder_conf:
     attention_heads: 2
     linear_units: 2
-    num_blocks: 1
+    num_blocks: 2
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    self_attention_dropout_rate: 0.0
+    src_attention_dropout_rate: 0.0
 
   normalize: utterance_mvn
   normalize_conf: {}
@@ -150,7 +152,6 @@ model:
     ctc_weight: 0.3
     lsm_weight: 0.1
     length_normalized_loss: false
-    extract_feats_in_collect_stats: false
 
   frontend: default
   frontend_conf:
