@@ -6,12 +6,23 @@ on:
     - cron: "0 0 * * 1"
 
 jobs:
-  docker:
+  docker-build:
     runs-on: ubuntu-latest
     environment: docker
     # Only runs if the current branch is 'master'
     # Only runs if the current repository is espnet/espnet
     if: github.repository == 'espnet/espnet' && github.ref == 'refs/heads/master'
+    strategy:
+      matrix:
+        include:
+          - variant: cpu
+            from_tag: runtime-latest
+            image_tag: espnet/espnet:cpu-latest
+            cuda_arg: ""
+          - variant: gpu
+            from_tag: cuda-latest
+            image_tag: espnet/espnet:gpu-latest
+            cuda_arg: "--build-arg CUDA_VER=11.1"
     steps:
       - uses: actions/checkout@master
 
@@ -27,21 +38,12 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and push CPU container
+      - name: Build and push ${{ matrix.variant }} container
         run: |
           cd docker
-          docker build --build-arg FROM_TAG=runtime-latest \
+          docker build --build-arg FROM_TAG=${{ matrix.from_tag }} \
+            ${{ matrix.cuda_arg }} \
             -f prebuilt/devel.dockerfile \
             --target devel \
-            -t espnet/espnet:cpu-latest .
-          docker push espnet/espnet:cpu-latest
-
-      - name: Build and push GPU container
-        run: |
-          cd docker
-          docker build --build-arg FROM_TAG=cuda-latest \
-            --build-arg CUDA_VER=11.1 \
-            -f prebuilt/devel.dockerfile \
-            --target devel \
-            -t espnet/espnet:gpu-latest .
-          docker push espnet/espnet:gpu-latest
+            -t ${{ matrix.image_tag }} .
+          docker push ${{ matrix.image_tag }}

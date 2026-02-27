@@ -1,0 +1,39 @@
+name: Action prepare environment
+description: This action prepares the environment for testing.
+
+inputs:
+  os-version:
+    required: true
+    type: string
+  python-version:
+    required: true
+    type: string
+  pytorch-version:
+    required: true
+    type: string
+  chainer-version:
+    required: true
+    type: string
+  use-conda:
+    required: true
+    type: string
+
+
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/setup-python@v6
+      if: ${{ inputs.os-version == 'ubuntu' }}
+      with:
+        python-version: ${{ inputs.python-version }}
+        architecture: 'x64'
+    # NOTE: System dependencies removed - they're not cached and will be installed in test jobs
+    - name: install espnet
+      shell: bash
+      env:
+        ESPNET_PYTHON_VERSION: ${{ inputs.python-version }}
+        TH_VERSION: ${{ inputs.pytorch-version }}
+        CHAINER_VERSION: ${{ inputs.chainer-version }}
+        USE_CONDA: ${{ inputs.use-conda }}
+      run: |
+        ./ci/install.sh
