@@ -14,7 +14,7 @@ data_dir: ${recipe_dir}/data
 exp_tag: librimix_tse_td_speakerbeam
 exp_dir: ${recipe_dir}/exp/${exp_tag}
 stats_dir: ${recipe_dir}/exp/stats
-infer_dir: ${exp_dir}/infer
+inference_dir: ${exp_dir}/infer
 dataset_dir: /path/to/LibriMix
 
 # Dataset creation function and arguments (downloads into dataset_dir cache).
@@ -25,23 +25,26 @@ create_dataset:
 # Dataset definition for training/validation splits. Each dataset entry passes
 # the root LibriMix path and split name into src.dataset:LibriMixTSEDataset.
 dataset:
-  _target_: espnet3.components.data_organizer.DataOrganizer
+  _target_: espnet3.components.data.data_organizer.DataOrganizer
   train:
     - name: 2mix_16k_max_train_mix-both
       dataset:
         _target_: src.dataset.LibriMixTSEDataset
         data_dir: ${dataset_dir}
         split: 2mix_16k_max_train_mix-both
+        skip_key_prefix: ["text_spk", "uttid", "num_spk"]
   valid:
     - name: 2mix_16k_max_dev_mix-both
       dataset:
         _target_: src.dataset.LibriMixTSEDataset
         data_dir: ${dataset_dir}
         split: 2mix_16k_max_dev_mix-both
+        skip_key_prefix: ["text_spk", "uttid", "num_spk"]
 
   preprocessor:
     _target_: espnet2.train.preprocessor.TSEPreprocessor
-    train_spk2enroll: ${data_dir}/train-100/spk2enroll.json
+    train: true
+    train_spk2enroll: ${data_dir}/2mix_16k_max_train_mix-both/spk2enroll.json
     enroll_segment: 48000
     load_spk_embedding: false
     load_all_speakers: true

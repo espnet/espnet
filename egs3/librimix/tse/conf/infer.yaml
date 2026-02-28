@@ -2,7 +2,7 @@
 # Keeps only the keys required by the infer stage.
 
 # Root output directory for .scp files written by the infer stage.
-infer_dir: exp/${load_yaml:conf/train.yaml,exp_tag}/infer
+inference_dir: ${load_yaml:conf/train.yaml,exp_dir}/infer
 
 # Dataset definition for test splits only (names become output subfolders).
 dataset:
@@ -17,8 +17,8 @@ dataset:
 # Inference model: load the trained config/checkpoint.
 model:
   _target_: espnet2.bin.enh_tse_inference.SeparateSpeech
-  train_config: exp/${load_yaml:conf/train.yaml,exp_tag}/config.yaml
-  model_file: exp/${load_yaml:conf/train.yaml,exp_tag}/last.ckpt
+  train_config: ${load_yaml:conf/train.yaml,exp_dir}/config.yaml
+  model_file: ${load_yaml:conf/train.yaml,exp_dir}/last.ckpt
 
 # Generic ESPnet3 inference entrypoint settings.
 input_key:

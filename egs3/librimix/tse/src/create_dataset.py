@@ -36,8 +36,10 @@ import os
 import shutil
 import subprocess
 import sys
+import zipfile
 from pathlib import Path
 from typing import Optional
+from functools import lru_cache
 
 from espnet3.utils.download_utils import download_url, extract_zip, setup_logger
 
@@ -80,7 +82,7 @@ def download_and_extract_if_needed(
     step_percent: int = 5,
 ) -> None:
     """Download and extract one split if not already present."""
-    if extracted_dir.exists():
+    if extracted_dir and extracted_dir.exists():
         logger.info(f"Skip split '{split}' (already exists): {extracted_dir}")
         return
 
@@ -96,8 +98,21 @@ def download_and_extract_if_needed(
             logger=logger,
             step_percent=step_percent,
         )
+    elif not zipfile.is_zipfile(archive_path):
+        # Check if zip file is valid before skipping extraction
+        logger.warning(
+            f"Archive already exists but is not a valid zip file: {archive_path}. "
+            "Re-downloading the archive."
+        )
+        archive_path.unlink()  # Remove the invalid file
+        download_url(
+            url=url,
+            dst_path=archive_path,
+            logger=logger,
+            step_percent=step_percent,
+        )
     else:
-        logger.info(f"Archive exists, skip download: {archive_name}")
+        logger.info(f"Archive exists, skip download: {archive_path}")
 
     extract_zip(archive_path, dataset_dir, logger)
     logger.info(f"Finished split: {split}")
@@ -109,7 +124,7 @@ def prepare_wham_noise(
     logger,
     step_percent: int = 5,
 ):
-    dest_dir = wham_noise
+    logger.info("Preparing WHAM noise data...")
     if wham_noise is None:
         wham_noise = dataset_dir / "data/wham_noise"
         if wham_noise.exists():
@@ -135,6 +150,7 @@ def prepare_wham_noise(
             logger.info(f"Using provided wham_noise directory: {wham_noise}")
             return wham_noise
 
+    dest_dir = wham_noise
     if wham_noise.stem != "wham_noise":
         dest_dir = dataset_dir / "wham_noise"
     download_and_extract_if_needed(
@@ -153,6 +169,8 @@ def prepare_wham_noise(
 def prepare_librimix_scripts(
     dataset_dir: Path, librimix_root: Path, logger, step_percent: int = 5
 ):
+    logger.info("Preparing LibriMix simulation scripts...")
+
     download_and_extract_if_needed(
         split="",
         url="https://github.com/JorisCos/LibriMix/archive/refs/heads/master.zip",
@@ -168,6 +186,8 @@ def prepare_librimix_scripts(
 
 
 def augment_wham_noise(wham_noise_dir: Path, librimix_root: Path, logger):
+    logger.info("Augmenting WHAM noise for LibriMix simulation...")
+
     cwd = os.getcwd()
     os.chdir(librimix_root)
 
@@ -191,6 +211,8 @@ def simulate_librimix(
     mode="min",
     fs="8k",
 ):
+    logger.info(f"Simulating Libri{num_spk}Mix mixtures {mode} mode ({fs} Hz)")
+
     cwd = os.getcwd()
     os.chdir(librimix_root)
 
@@ -250,6 +272,7 @@ def prepare_librimix_data(
     mode="min",
     fs="8k",
 ):
+    logger.info(f"Preparing Libri{num_spk}Mix data files ({fs} Hz, {mode} mode)")
     librimix_root = librimix_outdir / f"Libri{num_spk}Mix"
     data_dir = librimix_root / f"wav{fs}" / mode / "metadata"
 
@@ -257,10 +280,10 @@ def prepare_librimix_data(
         for dset in ("dev", "test", "train"):
             if dset == "train":
                 expected_files = list(data_dir.glob(f"mixture_train-*_{typ}.csv"))
-                splits = ["train-100", "train-360"]
+                splits = ["train-clean-100", "train-clean-360"]
             else:
                 expected_files = list(data_dir.glob(f"mixture_{dset}_{typ}.csv"))
-                splits = [dset]
+                splits = [f"{dset}-clean", f"{dset}-other"]
             if not expected_files:
                 raise FileNotFoundError(
                     f"Metadata files not found for split '{dset}' in {data_dir}. "
@@ -275,7 +298,7 @@ def prepare_librimix_data(
                     for idx, line in enumerate(f, 1):
                         fields = line.strip().split(",")
                         dic = dict(zip(headers, fields))
-                        if len(dic) != 5:
+                        if len(dic) < 5:
                             logger.warning(
                                 f"Invalid line (#{idx}) in '{csv_file}': {line.strip()}"
                             )
@@ -283,9 +306,10 @@ def prepare_librimix_data(
                         data[dic["mixture_ID"]] = dic
 
             uids = sorted(data.keys())
+            assert len(uids) > 0, (typ, dset, expected_files, len(uids))
 
             outdir = (
-                dataset_dir / f"{num_spk}mix_{fs}_{mode}_{dset}-{typ.replace('_', '-')}"
+                dataset_dir / f"{num_spk}mix_{fs}_{mode}_{dset}_{typ.replace('_', '-')}"
             )
             outdir.mkdir(parents=True, exist_ok=True)
             with (outdir / "utt2spk").open("w") as f:
@@ -300,17 +324,20 @@ def prepare_librimix_data(
             with (outdir / "spk1.scp").open("w") as f:
                 for uid in uids:
                     f.write(f"{uid} {data[uid]['source_1_path']}\n")
-            with (outdir / "spk2.scp").open("w") as f:
-                for uid in uids:
-                    f.write(f"{uid} {data[uid]['source_2_path']}\n")
-            with (outdir / "noise1.scp").open("w") as f:
-                for uid in uids:
-                    f.write(f"{uid} {data[uid]['noise_path']}\n")
+            if typ != "mix_single":
+                with (outdir / "spk2.scp").open("w") as f:
+                    for uid in uids:
+                        f.write(f"{uid} {data[uid]['source_2_path']}\n")
+            if "noise_path" in data[uids[0]]:
+                with (outdir / "noise1.scp").open("w") as f:
+                    for uid in uids:
+                        f.write(f"{uid} {data[uid]['noise_path']}\n")
             if num_spk == 3:
                 with (outdir / "spk3.scp").open("w") as f:
                     for uid in uids:
                         f.write(f"{uid} {data[uid]['source_3_path']}\n")
             prepare_librimix_transcripts(outdir, uids, splits, num_spk)
+            logger.info(f"    Prepared {outdir} with {len(uids)} utterances.")
 
         if dset != "train":
             continue
@@ -323,7 +350,7 @@ def prepare_librimix_data(
                 for idx, line in enumerate(f, 1):
                     fields = line.strip().split(",")
                     dic = dict(zip(headers, fields))
-                    if len(dic) != 5:
+                    if len(dic) < 5:
                         logger.warning(
                             f"Invalid line (#{idx}) in '{sset}' metadata: {line.strip()}"
                         )
@@ -356,6 +383,7 @@ def prepare_librimix_data(
                                 f.write(line)
 
 
+@lru_cache(maxsize=None)
 def prepare_librimix_transcripts(
     outdir: Path, uids: list[str], splits: list[str], num_spk: int
 ):

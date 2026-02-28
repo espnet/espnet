@@ -1,7 +1,7 @@
 pack_model:
   strategy: auto  # auto|espnet2|espnet3
   out_dir: exp/model_pack
-  decode_dir: ${exp_dir}/decode
+  decode_dir: ${load_yaml:conf/train.yaml,exp_dir}/decode
   include: []
   extra: []
   exclude:

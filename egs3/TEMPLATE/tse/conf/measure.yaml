@@ -7,12 +7,12 @@ data_dir: ${recipe_dir}/data
 exp_tag: tse_template_eval
 exp_dir: ${recipe_dir}/exp/${exp_tag}
 stats_dir: ${recipe_dir}/exp/stats
-infer_dir: ${exp_dir}/infer
+inference_dir: ${exp_dir}/infer
 dataset_dir: /path/to/your/dataset
 
 # Dataset definition for test splits only (used to enumerate test names).
 dataset:
-  _target_: espnet3.components.data_organizer.DataOrganizer
+  _target_: espnet3.components.data.data_organizer.DataOrganizer
   test:
     - name: 2mix_16k_max_test_mix-both
       dataset:

@@ -15,6 +15,7 @@ What this dataset returns
 -------------------------
 Each ``__getitem__`` returns a plain dict:
 
+- ``num_spk``: int, number of speakers in the mixture (2 or 3)
 - ``speech_mix``: ``np.float32`` waveform array (loaded from a ``.wav`` file)
 - ``enroll_ref1``: ``np.float32`` waveform array (loaded from a ``.wav`` file)
 - ``enroll_ref2``: ``np.float32`` waveform array (loaded from a ``.wav`` file)
@@ -79,6 +80,7 @@ from itertools import chain
 from pathlib import Path
 from typing import Dict, List
 
+import numpy as np
 import soundfile as sf
 from torch.utils.data import Dataset as TorchDataset
 
@@ -97,6 +99,7 @@ class Libri2MixTSEExample:
     speech_ref2: str
     text_spk1: str
     text_spk2: str
+    num_spk: int = 2
 
 
 @dataclass(frozen=True)
@@ -114,15 +117,19 @@ class Libri3MixTSEExample:
     text_spk1: str
     text_spk2: str
     text_spk3: str
+    num_spk: int = 3
 
 
 def get_spk2utt_librimix(paths, audio_format="wav"):
     spk2utt = defaultdict(list)
     for path in paths:
+        path_ = Path(path)
+        if path_.stem in ("mix_both", "mix_clean", "mix_single", "noise", "s1", "s2"):
+            path_ = path_.parent
         for audio in chain(
-            Path(path).rglob("s1/*.{}".format(audio_format)),
-            Path(path).rglob("s2/*.{}".format(audio_format)),
-            Path(path).rglob("s3/*.{}".format(audio_format)),
+            path_.rglob("s1/*.{}".format(audio_format)),
+            path_.rglob("s2/*.{}".format(audio_format)),
+            path_.rglob("s3/*.{}".format(audio_format)),
         ):
             spk_idx = int(audio.parent.stem[1:]) - 1
             mix_uid = audio.stem
@@ -130,6 +137,7 @@ def get_spk2utt_librimix(paths, audio_format="wav"):
             sid = uid.split("-")[0]
             spk2utt[sid].append((uid, str(audio)))
 
+    assert len(spk2utt) > 0, (paths, audio_format)
     return spk2utt
 
 
@@ -176,7 +184,7 @@ def _check_missing_files(folder: Path, split: str, num_spk: int) -> bool:
     # Check if the enrollment map file exists for the given split
     if "train" in split:
         return True
-    return (folder / f"data/{split}/mixture2enrollment").exists()
+    return (folder / f"{split}/mixture2enrollment").exists()
 
 
 def _download_missing_files(folder: Path, split: str) -> None:
@@ -184,13 +192,13 @@ def _download_missing_files(folder: Path, split: str) -> None:
         download_url(
             "https://raw.githubusercontent.com/BUTSpeechFIT/speakerbeam/"
             "main/egs/libri2mix/data/wav8k/min/dev/map_mixture2enrollment",
-            folder / f"data/{split}/mixture2enrollment",
+            folder / f"{split}/mixture2enrollment",
         )
     elif "test" in split:
         download_url(
             "https://raw.githubusercontent.com/BUTSpeechFIT/speakerbeam/"
             "main/egs/libri2mix/data/wav8k/min/test/map_mixture2enrollment",
-            folder / f"data/{split}/mixture2enrollment",
+            folder / f"{split}/mixture2enrollment",
         )
 
 
@@ -202,6 +210,13 @@ class LibriMixTSEDataset(TorchDataset):
             reads ``LIBRIMIX`` from the environment.
         split: LibriMix split directory name (default: ``2mix_16k_max_train_mix-both``).
             format: ``{num_spk}mix_{fs}_{mode}_{mix_type}``, e.g., ``2mix_16k_max_train_mix-both``.
+        skip_key_prefix: List of key prefixes to skip loading. Supported keys include:
+            - ``speech_mix``
+            - ``enroll_ref1``, ``enroll_ref2``, ``enroll_ref3``
+            - ``speech_ref1``, ``speech_ref2``, ``speech_ref3``
+            - ``text_spk1``, ``text_spk2``, ``text_spk3``
+            - ``uttid``
+            - ``num_spk``
 
     Raises:
         FileNotFoundError: If ``data_dir`` is missing and ``LIBRIMIX`` is not set,
@@ -218,6 +233,7 @@ class LibriMixTSEDataset(TorchDataset):
         self,
         data_dir: str | Path | None = None,
         split: str = "2mix_16k_max_train_mix-both",
+        skip_key_prefix: List[str] | None = ["text_spk", "uttid", "num_spk"],
     ) -> None:
         if data_dir is None:
             data_dir = os.environ.get("LIBRIMIX")
@@ -228,21 +244,27 @@ class LibriMixTSEDataset(TorchDataset):
         self.librimix_root = _resolve_librimix_root(data_dir, split)
         self.split = split
         num_spk, fs, mode, dset, mix_type = self.split.split("_")
+        mix_type = mix_type.replace("-", "_")
         self.num_spk = int(num_spk.split("mix")[0])
-        self.partition = dset
+        self.partition = f"{dset}/{mix_type}"
         self.split_dir = (
             self.librimix_root
-            / f"LibriMix/libri_mix/Libri{self.num_spk}Mix/wav{fs}/{mode}/{mix_type}"
+            / f"LibriMix/libri_mix/Libri{self.num_spk}Mix/wav{fs}/{mode}"
         )
         if not self.split_dir.is_dir():
             raise FileNotFoundError(f"Split directory not found: {self.split_dir}")
+        self.skip_key_prefix = tuple(skip_key_prefix) if skip_key_prefix else ()
 
         # Trying to download the enrollment lists if not found locally
         if _check_missing_files(self.librimix_root, split, self.num_spk):
-            self.enrollment_map = self._load_enrollment_map(self.librimix_root, split)
+            self.enrollment_map = self._load_enrollment_map(
+                self.librimix_root / f"{split}/mixture2enrollment", split
+            )
         elif os.access(data_dir, os.W_OK):
             _download_missing_files(self.librimix_root, split)
-            self.enrollment_map = self._load_enrollment_map(self.librimix_root, split)
+            self.enrollment_map = self._load_enrollment_map(
+                self.librimix_root / f"{split}/mixture2enrollment", split
+            )
         else:
             with tempfile.TemporaryDirectory() as tempdirname:
                 _download_missing_files(Path(tempdirname), split)
@@ -261,16 +283,19 @@ class LibriMixTSEDataset(TorchDataset):
 
         Returns:
             dict with keys:
+              - ``num_spk``: np.int, number of speakers in the mixture (2 or 3)
               - ``speech_mix``: np.float32 waveform
               - ``enroll_ref?``: np.float32 waveform
               - ``speech_ref?``: np.float32 waveform
               - ``text_spk?``: transcript string
         """
         ex = self._examples[int(idx)]
-        ret = {"uttid": ex.uttid}
-        keys = [field.name for field in fields(ex) if field.name != "uttid"]
+        keys = [field.name for field in fields(ex)]
+        ret = {}
         srs = []
         for k in keys:
+            if k.startswith(self.skip_key_prefix):
+                continue
             if k.startswith(("speech_mix", "speech_ref")):
                 audio, _sr = sf.read(str(getattr(ex, k)), dtype="float32")
                 srs.append(_sr)
@@ -293,6 +318,10 @@ class LibriMixTSEDataset(TorchDataset):
                     ret[k] = audio
             elif k.startswith("text_spk"):
                 ret[k] = getattr(ex, k)
+            elif k == "uttid":
+                continue
+            elif k == "num_spk":
+                ret[k] = np.array([ex.num_spk])
             else:
                 raise ValueError(f"Unexpected key in example: {k}")
         assert all(sr == srs[0] for sr in srs), (srs, keys)
@@ -301,6 +330,7 @@ class LibriMixTSEDataset(TorchDataset):
     def _load_enrollment_map(self, enrollment_map_path: Path, split: str):
         if "train" in split:
             return {}
+        partition = self.partition.split("/")[0]
         enrollment_map = {}
         with enrollment_map_path.open("r", encoding="utf-8") as f:
             for line in f:
@@ -313,7 +343,7 @@ class LibriMixTSEDataset(TorchDataset):
                 #     where enrollment samples are fixed.
                 # For 'train', enrollment samples are chosen on the fly,
                 #     so we don't need to load a map.
-                enroll_path = self.split_dir / f"{self.partition}/{enroll_id}.wav"
+                enroll_path = self.split_dir / f"{partition}/{enroll_id}.wav"
                 enrollment_map.setdefault(mix_id, {})[f"s{sid}"] = enroll_path
         return enrollment_map
 
@@ -364,9 +394,13 @@ class LibriMixTSEDataset(TorchDataset):
             if enroll_json.exists():
                 with enroll_json.open("r", encoding="utf-8") as f:
                     self.spk2enroll = json.load(f)
+                assert len(self.spk2enroll) > 0, enroll_json
             else:
                 self.spk2enroll = get_spk2utt_librimix(
-                    [self.split_dir / sset for sset in ["train-100", "train-360"]]
+                    [
+                        self.split_dir / self.partition.replace("train", sset)
+                        for sset in ["train-100", "train-360"]
+                    ]
                 )
                 with enroll_json.open("w", encoding="utf-8") as f:
                     json.dump(self.spk2enroll, f)
@@ -377,7 +411,7 @@ class LibriMixTSEDataset(TorchDataset):
                 # 100-121669-0004_3180-138043-0053
                 uttIDs = mixID.split("_")
                 for spk in range(1, self.num_spk + 1):
-                    uttID = uttIDs[spk]
+                    uttID = uttIDs[spk - 1]
                     spkID = uttID.split("-")[0]
                     info.setdefault(f"enroll_ref{spk}", {})[mixID] = f"*{uttID} {spkID}"
         else:
@@ -387,7 +421,7 @@ class LibriMixTSEDataset(TorchDataset):
                     info.setdefault(f"enroll_ref{spk}", {})[uid] = str(enroll_path)
 
         Example = Libri2MixTSEExample if self.num_spk == 2 else Libri3MixTSEExample
-        keys = [field.name for field in fields(Example) if field.name != "uttid"]
+        keys = [f.name for f in fields(Example) if f.name not in ("uttid", "num_spk")]
         for uid in uids:
             kwargs = {k: info[k][uid] for k in keys}
             kwargs["uttid"] = uid

@@ -206,7 +206,8 @@ def main(
         missing_str = ", ".join(missing)
         raise ValueError(
             f"Config not provided for stage(s): {missing_str}. "
-            "Use --train_config/--infer_config/--measure_config."
+            "Use --train_config/--infer_config/--measure_config/--publish_config/"
+            "--demo_config."
         )
     run_stages(
         system=system,
@@ -266,6 +267,11 @@ def _log_stage_metadata(
         logger.info(
             "Publish config content:\n%s",
             OmegaConf.to_yaml(publish_config, resolve=True),
+        )
+    if demo_config is not None:
+        logger.info(
+            "Demo config content:\n%s",
+            OmegaConf.to_yaml(demo_config, resolve=True),
         )
 
 

@@ -1,7 +1,7 @@
 # Inference configuration template for ESPnet3 TSE.
 
 # Root output directory for .scp files written by the infer stage.
-infer_dir: exp/tse_template_eval/infer
+inference_dir: exp/tse_template_eval/infer
 
 # Dataset definition for test splits only (names become output subfolders).
 dataset:
