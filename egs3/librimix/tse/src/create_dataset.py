@@ -37,9 +37,9 @@ import shutil
 import subprocess
 import sys
 import zipfile
+from functools import lru_cache
 from pathlib import Path
 from typing import Optional
-from functools import lru_cache
 
 from espnet3.utils.download_utils import download_url, extract_zip, setup_logger
 
