@@ -28,13 +28,13 @@ WITH_OMP=ON
 # Timer functions for measuring task execution time
 define start_timer
 	@echo "::group::$(1)"
-	@date +%s > .$(1)_start_time
+	@date +%s > .$(subst /,_,$(1))_start_time
 endef
 
 define end_timer_and_touch
 	@echo "::endgroup::"
-	@END_TIME=$$(date +%s); START_TIME=$$(cat .$(1)_start_time); ELAPSED=$$(($$END_TIME - $$START_TIME)); printf "⏱️  $(1) completed in %02d:%02d:%02d\n" $$(($$ELAPSED/3600)) $$(($$ELAPSED%3600/60)) $$(($$ELAPSED%60)); rm -f .$(1)_start_time
-	@touch $(1)
+	@END_TIME=$$(date +%s); START_TIME=$$(cat .$(subst /,_,$(1))_start_time); ELAPSED=$$(($$END_TIME - $$START_TIME)); printf "⏱️  $(1) completed in %02d:%02d:%02d\n" $$(($$ELAPSED/3600)) $$(($$ELAPSED%3600/60)) $$(($$ELAPSED%60)); rm -f .$(subst /,_,$(1))_start_time
+	@touch $(subst /,_,$(1))
 endef
 
 .PHONY: all clean
