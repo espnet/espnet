@@ -214,9 +214,7 @@ jobs:
           chainer-version: ${{ matrix.chainer-version }}
           use-conda: ${{ matrix.use-conda }}
       - name: test espnet2 integration
-        run: |
-          echo "Raising error for testing cache" && exit 1
-          ./ci/test_integration_espnet2.sh ${{ matrix.config-task }}
+        run: ./ci/test_integration_espnet2.sh ${{ matrix.config-task }}
       - uses: codecov/codecov-action@v5
         with:
           flags: test_integration_espnet2
@@ -289,9 +287,7 @@ jobs:
           chainer-version: ${{ matrix.chainer-version }}
           use-conda: ${{ matrix.use-conda }}
       - name: test python
-        run: |
-          echo "Raising error for testing cache" && exit 1
-          ./ci/test_python_espnet3.sh
+        run: ./ci/test_python_espnet3.sh
       - uses: codecov/codecov-action@v5
         with:
           flags: test_python_espnet3
