@@ -150,7 +150,7 @@ class MultiHeadedAttention(nn.Module):
 
         return self.linear_out(x)  # (batch, time1, d_model)
 
-    def forward(self, query, key, value, mask, expand_kv=False):
+    def forward(self, query, key, value, mask, expand_kv=False, attn_logit_bias=None):
         """Compute scaled dot product attention.
 
         Args:
@@ -262,6 +262,11 @@ class MultiHeadedAttention(nn.Module):
         # Fall back to the default implementation
         q, k, v = self.forward_qkv(query, key, value, expand_kv)
         scores = torch.matmul(q, k.transpose(-2, -1)) / math.sqrt(self.d_k)
+
+        if attn_logit_bias is not None:
+            # Broadcast (B,1,1,Tk) → (B,H,Tq,Tk) // Only for cross attention long-form inference trick: Gaussian Mask
+            scores = scores + attn_logit_bias
+
         return self.forward_attention(v, scores, mask)
 
 

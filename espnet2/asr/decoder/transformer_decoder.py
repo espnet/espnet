@@ -196,6 +196,7 @@ class BaseTransformerDecoder(
         *,
         cache: List[torch.Tensor] = None,
         return_hs: bool = False,
+        xattn_logit_bias: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, List[torch.Tensor]]:
         """Forward one step.
 
@@ -219,7 +220,12 @@ class BaseTransformerDecoder(
         new_cache = []
         for c, decoder in zip(cache, self.decoders):
             x, tgt_mask, memory, memory_mask = decoder(
-                x, tgt_mask, memory, memory_mask, cache=c
+                x,
+                tgt_mask,
+                memory,
+                memory_mask,
+                cache=c,
+                xattn_logit_bias=xattn_logit_bias,
             )
             new_cache.append(x)
 
@@ -264,6 +270,7 @@ class BaseTransformerDecoder(
         states: List[Any],
         xs: torch.Tensor,
         return_hs: bool = False,
+        xattn_logit_bias: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, List[Any]]:
         """Score new token batch.
 
@@ -296,11 +303,21 @@ class BaseTransformerDecoder(
         ys_mask = subsequent_mask(ys.size(-1), device=xs.device).unsqueeze(0)
         if return_hs:
             (logp, hs), states = self.forward_one_step(
-                ys, ys_mask, xs, cache=batch_state, return_hs=return_hs
+                ys,
+                ys_mask,
+                xs,
+                cache=batch_state,
+                return_hs=return_hs,
+                xattn_logit_bias=xattn_logit_bias,
             )
         else:
             logp, states = self.forward_one_step(
-                ys, ys_mask, xs, cache=batch_state, return_hs=return_hs
+                ys,
+                ys_mask,
+                xs,
+                cache=batch_state,
+                return_hs=return_hs,
+                xattn_logit_bias=xattn_logit_bias,
             )
 
         # transpose state of [layer, batch] into [batch, layer]
