@@ -28,7 +28,237 @@ jobs:
             echo "is_docker=false" >> "$GITHUB_OUTPUT"
           fi
 
-  setup_environment:
+  # setup_environment:
+  #   runs-on: ubuntu-latest
+  #   needs: process_labels
+  #   if: |
+  #     github.event.pull_request.draft == false
+  #   strategy:
+  #     max-parallel: 20
+  #     matrix:
+  #       python-version: ["3.10", "3.12"]
+  #       pytorch-version: [2.5.1, 2.7.1, 2.8.0, 2.9.1]
+  #       chainer-version: [6.0.0]
+  #       use-conda: [false]
+  #   steps:
+  #     - uses: actions/checkout@master
+  #     - uses: actions/cache@v5
+  #       with:
+  #         path: ~/.cache/pip
+  #         key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
+  #     # - name: Cache tools
+  #     #   uses: actions/cache@v5
+  #     #   with:
+  #     #     path: tools
+  #     #     key: ${{ runner.os }}-tools-${{ github.run_id }}-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
+  #     - name: Make environment
+  #       uses: ./.github/actions/prepare-environment
+  #       with:
+  #         os-version: ubuntu
+  #         python-version: ${{ matrix.python-version }}
+  #         pytorch-version: ${{ matrix.pytorch-version }}
+  #         chainer-version: ${{ matrix.chainer-version }}
+  #         use-conda: ${{ matrix.use-conda }}
+  #     - name: Install Kaldi
+  #       run: ./ci/install_kaldi.sh
+
+  test_python_espnet2:
+    runs-on: ubuntu-latest
+    needs: process_labels
+    if: |
+      github.event.pull_request.draft == false
+    strategy:
+      max-parallel: 20
+      matrix:
+        python-version: ["3.10", "3.12"]
+        pytorch-version: [2.5.1, 2.7.1, 2.8.0, 2.9.1]
+        use-conda: [false]
+        chainer-version: [6.0.0]
+    steps:
+      - uses: actions/checkout@master
+      - uses: actions/cache@v5
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
+      # - uses: actions/cache@v5
+      #   with:
+      #     path: tools
+      #     key: ${{ runner.os }}-tools-${{ github.run_id }}-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
+      - name: Make environment
+        uses: ./.github/actions/prepare-environment
+        with:
+          os-version: ubuntu
+          python-version: ${{ matrix.python-version }}
+          pytorch-version: ${{ matrix.pytorch-version }}
+          chainer-version: ${{ matrix.chainer-version }}
+          use-conda: ${{ matrix.use-conda }}
+      - name: test python
+        run: ./ci/test_python_espnet2.sh
+      - uses: codecov/codecov-action@v5
+        with:
+          flags: test_python_espnet2
+      - name: coverage erase
+        continue-on-error: true
+        run: |
+          source tools/activate_python.sh
+          coverage erase
+
+  test_utils_espnet2:
+    runs-on: ubuntu-latest
+    needs: process_labels
+    if: |
+      github.event.pull_request.draft == false
+    strategy:
+      max-parallel: 20
+      matrix:
+        python-version: ["3.10", "3.12"]
+        pytorch-version: [2.7.1]
+        use-conda: [false]
+        chainer-version: [6.0.0]
+    steps:
+      - uses: actions/checkout@master
+      - uses: actions/cache@v5
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
+      # - uses: actions/cache@v5
+      #   with:
+      #     path: tools
+      #     key: ${{ runner.os }}-tools-${{ github.run_id }}-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
+      - name: Make environment
+        uses: ./.github/actions/prepare-environment
+        with:
+          os-version: ubuntu
+          python-version: ${{ matrix.python-version }}
+          pytorch-version: ${{ matrix.pytorch-version }}
+          chainer-version: ${{ matrix.chainer-version }}
+          use-conda: ${{ matrix.use-conda }}
+      - name: test utils
+        run: ./ci/test_utils.sh
+      - uses: codecov/codecov-action@v5
+        with:
+          flags: test_utils
+      - name: coverage erase
+        continue-on-error: true
+        run: |
+          source tools/activate_python.sh
+          coverage erase
+
+  test_shell_espnet2:
+    runs-on: ubuntu-latest
+    needs: process_labels
+    if: |
+      github.event.pull_request.draft == false
+    strategy:
+      max-parallel: 20
+      matrix:
+        python-version: ["3.10"]
+        pytorch-version: [2.7.1]
+        use-conda: [false]
+        chainer-version: [6.0.0]
+    steps:
+      - uses: actions/checkout@master
+      - uses: actions/cache@v5
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
+      # - uses: actions/cache@v5
+      #   with:
+      #     path: tools
+      #     key: ${{ runner.os }}-tools-${{ github.run_id }}-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
+      - name: Make environment
+        uses: ./.github/actions/prepare-environment
+        with:
+          os-version: ubuntu
+          python-version: ${{ matrix.python-version }}
+          pytorch-version: ${{ matrix.pytorch-version }}
+          chainer-version: ${{ matrix.chainer-version }}
+          use-conda: ${{ matrix.use-conda }}
+      - name: test shell
+        run: |
+          ./ci/test_shell_espnet2.sh
+
+  test_integration_espnet2:
+    runs-on: ubuntu-latest
+    needs: process_labels
+    if: |
+      github.event.pull_request.draft == false
+    strategy:
+      max-parallel: 20
+      matrix:
+        python-version: ["3.10", "3.12"]
+        pytorch-version: [2.5.1, 2.9.1]
+        use-conda: [false]
+        chainer-version: [6.0.0]
+        config-task: ["asr", "tts", "asr2",  "enh", "ssl", "st", "spk", "lid", "s2t", "s2st", "lm", "codec"]
+        exclude:
+            - python-version: "3.12"
+              pytorch-version: 2.5.1
+              use-conda: false
+    steps:
+      - uses: actions/checkout@master
+      - uses: actions/cache@v5
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
+      # - uses: actions/cache@v5
+      #   with:
+      #     path: tools
+      #     key: ${{ runner.os }}-tools-${{ github.run_id }}-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
+      - name: Make environment
+        uses: ./.github/actions/prepare-environment
+        with:
+          os-version: ubuntu
+          python-version: ${{ matrix.python-version }}
+          pytorch-version: ${{ matrix.pytorch-version }}
+          chainer-version: ${{ matrix.chainer-version }}
+          use-conda: ${{ matrix.use-conda }}
+      - name: test espnet2 integration
+        run: |
+          echo "Raising error for testing cache" && exit 1
+          ./ci/test_integration_espnet2.sh ${{ matrix.config-task }}
+      - uses: codecov/codecov-action@v5
+        with:
+          flags: test_integration_espnet2
+
+  test_configuration_espnet2:
+    runs-on: ubuntu-latest
+    needs: process_labels
+    if: |
+      github.event.pull_request.draft == false
+    strategy:
+      max-parallel: 20
+      matrix:
+        python-version: ["3.10"]
+        pytorch-version: ["2.7.1"]
+        config-task: ["asr", "asr_transducer", "lm", "ssl", "tts", "enh",  "enh_asr"]
+        use-conda: [false]
+        chainer-version: [6.0.0]
+    steps:
+      - uses: actions/checkout@master
+      - uses: actions/cache@v5
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
+      # - uses: actions/cache@v5
+      #   with:
+      #     path: tools
+      #     key: ${{ runner.os }}-tools-${{ github.run_id }}-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
+      - name: Make environment
+        uses: ./.github/actions/prepare-environment
+        with:
+          os-version: ubuntu
+          python-version: ${{ matrix.python-version }}
+          pytorch-version: ${{ matrix.pytorch-version }}
+          chainer-version: ${{ matrix.chainer-version }}
+          use-conda: ${{ matrix.use-conda }}
+      - name: test configuration
+        run: ./ci/test_configuration_espnet2.sh ${{ matrix.config-task }}
+      - uses: codecov/codecov-action@v5
+        with:
+          flags: test_configuration_espnet2
+
+  test_python_espnet3:
     runs-on: ubuntu-latest
     needs: process_labels
     if: |
@@ -46,8 +276,7 @@ jobs:
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
-      # - name: Cache tools
-      #   uses: actions/cache@v5
+      # - uses: actions/cache@v5
       #   with:
       #     path: tools
       #     key: ${{ runner.os }}-tools-${{ github.run_id }}-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
@@ -59,194 +288,6 @@ jobs:
           pytorch-version: ${{ matrix.pytorch-version }}
           chainer-version: ${{ matrix.chainer-version }}
           use-conda: ${{ matrix.use-conda }}
-      - name: Install Kaldi
-        run: ./ci/install_kaldi.sh
-
-  test_python_espnet2:
-    runs-on: ubuntu-latest
-    needs: setup_environment
-    if: |
-      github.event.pull_request.draft == false
-    strategy:
-      max-parallel: 20
-      matrix:
-        python-version: ["3.10", "3.12"]
-        pytorch-version: [2.5.1, 2.7.1, 2.8.0, 2.9.1]
-        use-conda: [false]
-    steps:
-      - uses: actions/checkout@master
-      - uses: actions/cache@v5
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
-      # - uses: actions/cache@v5
-      #   with:
-      #     path: tools
-      #     key: ${{ runner.os }}-tools-${{ github.run_id }}-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
-      - name: Install System Dependencies
-        uses: ./.github/actions/install-system-dependencies
-      - name: test python
-        run: ./ci/test_python_espnet2.sh
-      - uses: codecov/codecov-action@v5
-        with:
-          flags: test_python_espnet2
-      - name: coverage erase
-        continue-on-error: true
-        run: |
-          source tools/activate_python.sh
-          coverage erase
-
-  test_utils_espnet2:
-    runs-on: ubuntu-latest
-    needs: setup_environment
-    if: |
-      github.event.pull_request.draft == false
-    strategy:
-      max-parallel: 20
-      matrix:
-        python-version: ["3.10", "3.12"]
-        pytorch-version: [2.7.1]
-        use-conda: [false]
-    steps:
-      - uses: actions/checkout@master
-      - uses: actions/cache@v5
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
-      # - uses: actions/cache@v5
-      #   with:
-      #     path: tools
-      #     key: ${{ runner.os }}-tools-${{ github.run_id }}-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
-      - name: Install System Dependencies
-        uses: ./.github/actions/install-system-dependencies
-      - name: test utils
-        run: ./ci/test_utils.sh
-      - uses: codecov/codecov-action@v5
-        with:
-          flags: test_utils
-      - name: coverage erase
-        continue-on-error: true
-        run: |
-          source tools/activate_python.sh
-          coverage erase
-
-  test_shell_espnet2:
-    runs-on: ubuntu-latest
-    needs: setup_environment
-    if: |
-      github.event.pull_request.draft == false
-    strategy:
-      max-parallel: 20
-      matrix:
-        python-version: ["3.10"]
-        pytorch-version: [2.7.1]
-        use-conda: [false]
-    steps:
-      - uses: actions/checkout@master
-      - uses: actions/cache@v5
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
-      # - uses: actions/cache@v5
-      #   with:
-      #     path: tools
-      #     key: ${{ runner.os }}-tools-${{ github.run_id }}-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
-      - name: Install System Dependencies
-        uses: ./.github/actions/install-system-dependencies
-      - name: test shell
-        run: |
-          ./ci/test_shell_espnet2.sh
-
-  test_integration_espnet2:
-    runs-on: ubuntu-latest
-    needs: setup_environment
-    if: |
-      github.event.pull_request.draft == false
-    strategy:
-      max-parallel: 20
-      matrix:
-        python-version: ["3.10", "3.12"]
-        pytorch-version: [2.5.1, 2.9.1]
-        use-conda: [false]
-        config-task: ["asr", "tts", "asr2",  "enh", "ssl", "st", "spk", "lid", "s2t", "s2st", "lm", "codec"]
-        exclude:
-            - python-version: "3.12"
-              pytorch-version: 2.5.1
-              use-conda: false
-    steps:
-      - uses: actions/checkout@master
-      - uses: actions/cache@v5
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
-      # - uses: actions/cache@v5
-      #   with:
-      #     path: tools
-      #     key: ${{ runner.os }}-tools-${{ github.run_id }}-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
-      - name: Install System Dependencies
-        uses: ./.github/actions/install-system-dependencies
-      - name: test espnet2 integration
-        run: |
-          echo "Raising error for testing cache" && exit 1
-          ./ci/test_integration_espnet2.sh ${{ matrix.config-task }}
-      - uses: codecov/codecov-action@v5
-        with:
-          flags: test_integration_espnet2
-
-  test_configuration_espnet2:
-    runs-on: ubuntu-latest
-    needs: setup_environment
-    if: |
-      github.event.pull_request.draft == false
-    strategy:
-      max-parallel: 20
-      matrix:
-        python-version: ["3.10"]
-        pytorch-version: ["2.7.1"]
-        config-task: ["asr", "asr_transducer", "lm", "ssl", "tts", "enh",  "enh_asr"]
-        use-conda: [false]
-    steps:
-      - uses: actions/checkout@master
-      - uses: actions/cache@v5
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
-      # - uses: actions/cache@v5
-      #   with:
-      #     path: tools
-      #     key: ${{ runner.os }}-tools-${{ github.run_id }}-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
-      - name: Install System Dependencies
-        uses: ./.github/actions/install-system-dependencies
-      - name: test configuration
-        run: ./ci/test_configuration_espnet2.sh ${{ matrix.config-task }}
-      - uses: codecov/codecov-action@v5
-        with:
-          flags: test_configuration_espnet2
-
-  test_python_espnet3:
-    runs-on: ubuntu-latest
-    needs: setup_environment
-    if: |
-      github.event.pull_request.draft == false
-    strategy:
-      max-parallel: 20
-      matrix:
-        python-version: ["3.10", "3.12"]
-        pytorch-version: [2.5.1, 2.7.1, 2.8.0, 2.9.1]
-        chainer-version: [6.0.0]
-        use-conda: [false]
-    steps:
-      - uses: actions/checkout@master
-      - uses: actions/cache@v5
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
-      # - uses: actions/cache@v5
-      #   with:
-      #     path: tools
-      #     key: ${{ runner.os }}-tools-${{ github.run_id }}-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
-      - name: Install System Dependencies
-        uses: ./.github/actions/install-system-dependencies
       - name: test python
         run: |
           echo "Raising error for testing cache" && exit 1
