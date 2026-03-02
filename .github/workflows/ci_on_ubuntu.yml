@@ -28,6 +28,8 @@ jobs:
             echo "is_docker=false" >> "$GITHUB_OUTPUT"
           fi
 
+  # NOTE (Nelson): The setup_environment job is currently disabled to avoid the cache CI issues. It can be re-enabled when needed.
+  # Or be replaced with a more efficient caching strategy for system dependencies. Will consider Docker-based caching or pre-built images if the issue persists.
   # setup_environment:
   #   runs-on: ubuntu-latest
   #   needs: process_labels
@@ -80,10 +82,6 @@ jobs:
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
-      # - uses: actions/cache@v5
-      #   with:
-      #     path: tools
-      #     key: ${{ runner.os }}-tools-${{ github.run_id }}-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
       - name: Make environment
         uses: ./.github/actions/prepare-environment
         with:
@@ -121,10 +119,6 @@ jobs:
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
-      # - uses: actions/cache@v5
-      #   with:
-      #     path: tools
-      #     key: ${{ runner.os }}-tools-${{ github.run_id }}-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
       - name: Make environment
         uses: ./.github/actions/prepare-environment
         with:
@@ -162,10 +156,6 @@ jobs:
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
-      # - uses: actions/cache@v5
-      #   with:
-      #     path: tools
-      #     key: ${{ runner.os }}-tools-${{ github.run_id }}-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
       - name: Make environment
         uses: ./.github/actions/prepare-environment
         with:
@@ -201,10 +191,6 @@ jobs:
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
-      # - uses: actions/cache@v5
-      #   with:
-      #     path: tools
-      #     key: ${{ runner.os }}-tools-${{ github.run_id }}-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
       - name: Install system dependencies
         uses: ./.github/actions/install-system-dependencies
       - name: Make environment
@@ -242,10 +228,6 @@ jobs:
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
-      # - uses: actions/cache@v5
-      #   with:
-      #     path: tools
-      #     key: ${{ runner.os }}-tools-${{ github.run_id }}-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
       - name: Make environment
         uses: ./.github/actions/prepare-environment
         with:
@@ -278,10 +260,6 @@ jobs:
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
-      # - uses: actions/cache@v5
-      #   with:
-      #     path: tools
-      #     key: ${{ runner.os }}-tools-${{ github.run_id }}-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
       - name: Make environment
         uses: ./.github/actions/prepare-environment
         with:
