@@ -89,12 +89,12 @@ class DataLoaderBuilder:
         return rank, world_size
 
     def _maybe_shard_dataset(self, dataset):
-        if not hasattr(dataset, "num_shards"):
+        if not hasattr(dataset.datasets[0], "num_shards"):
             return dataset
-        if not hasattr(dataset, "shard"):
+        if not hasattr(dataset.datasets[0], "shard"):
             raise RuntimeError("num_shards is set but shard() is not implemented.")
-        num_shards = getattr(dataset, "num_shards")
-        world_shard_size = getattr(dataset, "world_shard_size", None)
+        num_shards = getattr(dataset.datasets[0], "num_shards")
+        world_shard_size = getattr(dataset.datasets[0], "world_shard_size", None)
         if world_shard_size is None:
             raise RuntimeError(
                 "ShardedDataset requires world_shard_size to be set when used "
@@ -118,13 +118,7 @@ class DataLoaderBuilder:
         shard_indices = [
             (start + rank + world_size * i) % num_shards for i in range(shards_per_rank)
         ]
-        if len(shard_indices) == 1:
-            return dataset.shard(shard_indices[0])
-        shards = [dataset.shard(i) for i in shard_indices]
-        concat = torch.utils.data.ConcatDataset(shards)
-        if hasattr(shards[0], "use_espnet_collator"):
-            concat.use_espnet_collator = shards[0].use_espnet_collator
-        return concat
+        return dataset.shard(shard_indices[0])
 
     def build(self, mode: str):
         """Build and return a DataLoader for the specified mode ("train" or "valid").
