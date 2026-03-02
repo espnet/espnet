@@ -220,6 +220,8 @@ jobs:
       - uses: codecov/codecov-action@v5
         with:
           flags: test_integration_espnet2
+      - name: Install Kaldi
+        run: ./ci/install_kaldi.sh
 
   test_configuration_espnet2:
     runs-on: ubuntu-latest
