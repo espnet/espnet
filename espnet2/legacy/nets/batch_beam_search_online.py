@@ -239,10 +239,8 @@ class BatchBeamSearchOnline(BatchBeamSearch):
                 if (
                     self.running_hyps.yseq.shape[0] == 0
                 ):  # running_hyps will be empty if maxlen is reached
-                    logging.info(
-                        "search stopped by maxlen in a non final chunk. \
-                        reverting to prev running hyp"
-                    )
+                    logging.info("search stopped by maxlen in a non final chunk. \
+                        reverting to prev running hyp")
                     self.running_hyps = self.prev_incremental
                 logging.info(
                     "Hyps before incremental pruning: %d",

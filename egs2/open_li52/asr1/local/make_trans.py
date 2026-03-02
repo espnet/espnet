@@ -14,6 +14,7 @@ It checks if the prompts file have transcription for all audio files in the list
 if this is the case produces a transcript line for each file in the format:
 prefix_a0405 IT SEEMED THE ORDAINED ORDER OF THINGS THAT DOGS SHOULD WORK
 """
+
 import sys
 
 

@@ -124,10 +124,8 @@ def create_data_dir(args, exist_ok=False):
                     writer[f"dereverb{spk + 1}.scp"][uttid] = paths[
                         "speech_reverberation_early"
                     ][spk]
-                    writer[
-                        f"text_spk{spk
-                                   + 1}"
-                    ][uttid] = info["kaldi_transcription"][spk]
+                    writer[f"text_spk{spk
+                                   + 1}"][uttid] = info["kaldi_transcription"][spk]
 
 
 def get_parser():
