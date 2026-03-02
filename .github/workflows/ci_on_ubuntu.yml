@@ -215,13 +215,13 @@ jobs:
           pytorch-version: ${{ matrix.pytorch-version }}
           chainer-version: ${{ matrix.chainer-version }}
           use-conda: ${{ matrix.use-conda }}
+      - name: Install Kaldi
+        run: ./ci/install_kaldi.sh
       - name: test espnet2 integration
         run: ./ci/test_integration_espnet2.sh ${{ matrix.config-task }}
       - uses: codecov/codecov-action@v5
         with:
           flags: test_integration_espnet2
-      - name: Install Kaldi
-        run: ./ci/install_kaldi.sh
 
   test_configuration_espnet2:
     runs-on: ubuntu-latest
