@@ -205,6 +205,8 @@ jobs:
       #   with:
       #     path: tools
       #     key: ${{ runner.os }}-tools-${{ github.run_id }}-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
+      - name: Install system dependencies
+        uses: ./.github/actions/install-system-dependencies
       - name: Make environment
         uses: ./.github/actions/prepare-environment
         with:
