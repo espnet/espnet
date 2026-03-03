@@ -21,6 +21,8 @@ jobs:
         use-conda: [true, false]
     steps:
       - uses: actions/checkout@master
+      - name: Install FFmpeg
+        uses: ./.github/actions/install-ffmpeg
       - uses: actions/cache@v5
         with:
           path: ~/.cache/pip

@@ -86,7 +86,7 @@ def convert_paths(obj):
         return obj
 
 
-def get_full_cls_path_from_instance(obj):
+def get_full_class_path_from_instance(obj):
     """Return the full import path of the given object's class."""
     cls = obj.__class__
     module = cls.__module__
@@ -101,7 +101,7 @@ def get_full_cls_path_from_instance(obj):
     return f"{module}.{cls.__qualname__}"
 
 
-def get_job_cls(cluster, spec_path=None):
+def get_job_class(cluster, spec_path=None):
     """Dask Job class that submits async runner jobs with the given spec path."""
     parent_cls = cluster.job_cls
     assert spec_path is not None
@@ -128,7 +128,7 @@ class BaseRunner(ABC):
         - Keeping ``forward`` as a ``@staticmethod`` for pickle-safety.
 
     Subclass contract:
-        - Implement ``@staticmethod forward(idx, *, dataset, model, **env) -> Any``
+        - Implement ``@staticmethod forward(idx, dataset, model, **env) -> Any``
           without capturing ``self``. ``idx`` may be a single index or a batch
           of indices depending on ``batch_size``.
         - Provide an :class:`EnvironmentProvider` that builds the required env
@@ -155,7 +155,6 @@ class BaseRunner(ABC):
     def __init__(
         self,
         provider: EnvironmentProvider,
-        *,
         batch_size: int | None = None,
         async_mode: bool = False,
         async_specs_dir: str | Path = "./_async_specs",
@@ -170,7 +169,7 @@ class BaseRunner(ABC):
 
     @staticmethod
     @abstractmethod
-    def forward(idx: int | Iterable[int], *, dataset, model, **env) -> Any:
+    def forward(idx: int | Iterable[int], dataset, model, **env) -> Any:
         """Compute items for the given index or batch (to be implemented by subclasses).
 
         Keep this as a ``@staticmethod`` so that it is pickle-safe for Dask
@@ -191,7 +190,7 @@ class BaseRunner(ABC):
         Example:
             >>> class MyRunner(BaseRunner):
             ...     @staticmethod
-            ...     def forward(idx, *, dataset, model, **env):
+            ...     def forward(idx, dataset, model, **env):
             ...         if isinstance(idx, int):
             ...             x = dataset[idx]
             ...             return model(x)
@@ -276,8 +275,8 @@ class BaseRunner(ABC):
 
             # DictConfig -> dict
             config_dict = OmegaConf.to_container(self.provider.config, resolve=True)
-            provider_cls = get_full_cls_path_from_instance(self.provider)
-            runner_cls = get_full_cls_path_from_instance(self)
+            provider_cls = get_full_class_path_from_instance(self.provider)
+            runner_cls = get_full_class_path_from_instance(self)
 
             job_meta = []
             for rank, chunk in enumerate(chunks):
@@ -301,7 +300,7 @@ class BaseRunner(ABC):
                 with open(spec_path, "w", encoding="utf-8") as f:
                     json.dump(convert_paths(asdict(spec)), f, ensure_ascii=False)
 
-                client.cluster.job_cls = get_job_cls(client.cluster, spec_path)
+                client.cluster.job_cls = get_job_class(client.cluster, spec_path)
 
                 with tmpfile(extension="sh") as tf:
                     with open(tf, "w", encoding="utf-8") as wtf:

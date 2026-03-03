@@ -23,7 +23,7 @@ def _flatten_results(results):
     return flat
 
 
-def _collect_scp_lines(results, *, idx_key: str, hyp_keys, ref_keys):
+def _collect_scp_lines(results, idx_key: str, hyp_keys, ref_keys):
     scp_lines = {}
     hyp_keys = list(hyp_keys) if isinstance(hyp_keys, (list, tuple)) else [hyp_keys]
     ref_keys = list(ref_keys) if isinstance(ref_keys, (list, tuple)) else [ref_keys]

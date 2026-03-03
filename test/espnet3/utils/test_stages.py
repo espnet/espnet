@@ -2,6 +2,7 @@ import logging
 
 import pytest
 
+from espnet3.systems.base.system import BaseSystem
 from espnet3.utils.stages_utils import resolve_stages, run_stages
 
 
@@ -43,7 +44,7 @@ def test_run_stages_missing_method_raises():
 
 
 def test_run_stages_typeerror_wrapped():
-    class BadSystem:
+    class BadSystem(BaseSystem):
         def stage_a(self, arg):
             return arg
 
@@ -56,7 +57,7 @@ def test_run_stages_typeerror_wrapped():
 
 
 def test_run_stages_reraises_exception():
-    class CrashSystem:
+    class CrashSystem(BaseSystem):
         def stage_a(self):
             raise ValueError("boom")
 
