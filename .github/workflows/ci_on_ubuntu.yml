@@ -279,6 +279,50 @@ jobs:
           source tools/activate_python.sh
           coverage erase
 
+  test_integration_espnet3:
+    runs-on: ubuntu-latest
+    needs: setup_environment
+    if: |
+      github.event.pull_request.draft == false
+    strategy:
+      max-parallel: 20
+      matrix:
+        python-version: ["3.10", "3.12"]
+        pytorch-version: [2.5.1, 2.9.1]
+        use-conda: [false]
+        exclude:
+            - python-version: "3.12"
+              pytorch-version: 2.5.1
+              use-conda: false
+    steps:
+      - uses: actions/checkout@master
+      - uses: actions/cache@v5
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
+      - uses: actions/cache@v5
+        with:
+          path: tools
+          key: ${{ runner.os }}-tools-${{ github.run_id }}-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
+      - name: Install System Dependencies
+        uses: ./.github/actions/install-system-dependencies
+      - name: test espnet3 integration
+        run: ./ci/test_integration_espnet3.sh ${{ matrix.config-task }}
+      - uses: codecov/codecov-action@v5
+        with:
+          flags: test_python_espnet3
+      - name: coverage erase
+        continue-on-error: true
+        run: |
+          source tools/activate_python.sh
+          coverage erase
+
+      - name: test espnet3 integration
+        run: ./ci/test_integration_espnet3.sh
+      - uses: codecov/codecov-action@v5
+        with:
+          flags: test_integration_espnet3
+
   test_import:
     runs-on: ubuntu-latest
     needs: process_labels

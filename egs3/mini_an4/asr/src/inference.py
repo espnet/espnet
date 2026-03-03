@@ -1,4 +1,4 @@
-"""Inference output helpers for ASR recipes."""
+"""Inference output helpers for Mini AN4 ASR recipes."""
 
 
 def build_output(data, model_output, idx):

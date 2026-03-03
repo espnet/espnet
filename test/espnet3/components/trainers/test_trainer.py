@@ -213,6 +213,45 @@ def test_logger_variants(
     assert isinstance(wrapper.trainer.logger, expect_logger_type)
 
 
+def test_collect_stats_then_train_does_not_mutate_trainer_config(
+    base_trainer_config, model_config, dummy_dataset_config, monkeypatch
+):
+    model_config = OmegaConf.create(model_config)
+    model_config.dataset = dummy_dataset_config
+    trainer_config = OmegaConf.create(base_trainer_config)
+    trainer_config.logger = [
+        {
+            "_target_": "lightning.pytorch.loggers.TensorBoardLogger",
+            "save_dir": "exp/tb",
+            "name": "tb",
+        }
+    ]
+
+    original_logger = OmegaConf.to_container(trainer_config.logger, resolve=True)
+    original_keys = set(trainer_config.keys())
+
+    model = nn.Linear(10, 1)
+    lit = ESPnetLightningModule(model, model_config)
+    monkeypatch.setattr(
+        ESPnetLightningModule, "collect_stats", lambda *args, **kwargs: None
+    )
+
+    wrapper_stats = ESPnet3LightningTrainer(
+        model=lit, config=trainer_config, expdir=EXPDIR
+    )
+    wrapper_stats.collect_stats()
+
+    wrapper_train = ESPnet3LightningTrainer(
+        model=lit, config=trainer_config, expdir=EXPDIR
+    )
+
+    assert set(trainer_config.keys()) == original_keys
+    assert hasattr(trainer_config, "logger")
+    assert (
+        OmegaConf.to_container(trainer_config.logger, resolve=True) == original_logger
+    )
+
+
 @pytest.mark.parametrize(
     "accelerator, expect_type",
     [

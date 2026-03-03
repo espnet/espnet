@@ -110,11 +110,7 @@ class ASRSystem(BaseSystem):
             raise RuntimeError("train_config.dataset_dir must be set for training.")
 
         # Train tokenizer if not trained previously
-        tokenizer_path = (
-            Path(self.train_config.tokenizer.save_path)
-            / f"{self.train_config.tokenizer.model_type}.model"
-        )
-        if not tokenizer_path.exists():
+        if not self._has_tokenizer():
             self.train_tokenizer()
 
         # Proceed with standard training
@@ -142,7 +138,6 @@ class ASRSystem(BaseSystem):
         if self._has_tokenizer():
             logger.info("Tokenizer already exists. Skipping train_tokenizer().")
             return
-
         start = time.perf_counter()
         tokenizer_config = getattr(self.train_config, "tokenizer", None)
         builder_config = (

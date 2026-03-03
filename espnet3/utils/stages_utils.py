@@ -6,7 +6,7 @@ import logging
 import os
 import time
 from pathlib import Path
-from typing import Any, Callable, Iterable, List, Sequence
+from typing import Any, Iterable, List, Sequence
 
 from espnet3.utils.logging_utils import log_stage, set_stage_log_handler
 
@@ -69,7 +69,7 @@ def run_stages(
     stages_to_run: Iterable[str],
     dry_run: bool = False,
     log: logging.Logger | None = None,
-    on_stage_start: Callable[[str, logging.Logger], None] | None = None,
+    on_stage_start: callable | None = None,
 ) -> None:
     """Invoke stage methods on ``system`` in order with logging and timing.
 
