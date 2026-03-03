@@ -1,0 +1,39 @@
+# Inference configuration template for ESPnet3 TSE.
+
+# Root output directory for .scp files written by the infer stage.
+inference_dir: exp/tse_template_eval/infer
+
+# Dataset definition for test splits only (names become output subfolders).
+dataset:
+  _target_: espnet3.components.data.data_organizer.DataOrganizer
+  test:
+    - name: 2mix_16k_max_test_mix-both
+      dataset:
+        _target_: src.dataset.LibriMixTSEDataset
+        # Override this in your recipe.
+        data_dir: data/dataset
+        split: 2mix_16k_max_test_mix-both
+
+# Inference model entrypoint.
+model:
+  _target_: espnet2.enh_bin.tse_inference.SeparateSpeech
+  train_config: exp/tse_template_eval/config.yaml
+  model_file: exp/tse_template_eval/last.ckpt
+
+# Generic ESPnet3 inference entrypoint settings.
+input_key:
+- speech_mix
+- enroll_ref1
+- speech_ref1
+output_fn: src.infer.output_fn
+
+# Provider/runner definitions.
+provider:
+  _target_: espnet3.systems.base.inference_provider.InferenceProvider
+runner:
+  _target_: espnet3.systems.base.inference_runner.InferenceRunner
+
+# Parallel execution used during data loading / scoring (defaults to local).
+parallel:
+  env: local
+  n_workers: 1

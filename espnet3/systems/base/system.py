@@ -73,13 +73,18 @@ class BaseSystem:
         train_config: DictConfig | None = None,
         infer_config: DictConfig | None = None,
         measure_config: DictConfig | None = None,
+        publish_config: DictConfig | None = None,
+        demo_config: DictConfig | None = None,
+        demo_config_path: Path | None = None,
         stage_log_mapping: dict | None = None,
     ) -> None:
         """Initialize the system with optional stage configs."""
         self.train_config = train_config
         self.infer_config = infer_config
         self.measure_config = measure_config
-
+        self.publish_config = publish_config
+        self.demo_config = demo_config
+        self.demo_config_path = demo_config_path
         if train_config is not None:
             self.exp_dir = Path(train_config.exp_dir)
             self.exp_dir.mkdir(parents=True, exist_ok=True)
@@ -213,4 +218,37 @@ class BaseSystem:
     def publish(self, *args, **kwargs):
         """Publish artifacts from the experiment."""
         self._reject_stage_args("publish", args, kwargs)
-        logger.info("Running publish() (BaseSystem stub). Nothing done.")
+        logger.info("Running publish(): pack_model -> upload_model")
+        self.pack_model()
+        return self.upload_model()
+
+    # ---------------------------------------------------------
+    # Publication stages (optional overrides)
+    # ---------------------------------------------------------
+    def pack_model(self, *args, **kwargs):
+        """Pack model artifacts into an espnet3 bundle."""
+        self._reject_stage_args("pack_model", args, kwargs)
+        from espnet3.utils.publish import pack_model
+
+        return pack_model(self)
+
+    def upload_model(self, *args, **kwargs):
+        """Upload model bundle to HuggingFace."""
+        self._reject_stage_args("upload_model", args, kwargs)
+        from espnet3.utils.publish import upload_model
+
+        return upload_model(self)
+
+    def pack_demo(self, *args, **kwargs):
+        """Pack demo artifacts into a runnable demo bundle."""
+        self._reject_stage_args("pack_demo", args, kwargs)
+        from espnet3.demo.pack import pack_demo
+
+        return pack_demo(self)
+
+    def upload_demo(self, *args, **kwargs):
+        """Upload demo bundle to HuggingFace Spaces (stub)."""
+        self._reject_stage_args("upload_demo", args, kwargs)
+        from espnet3.demo.pack import upload_demo
+
+        return upload_demo(self)

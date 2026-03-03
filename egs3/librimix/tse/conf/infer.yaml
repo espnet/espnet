@@ -1,0 +1,39 @@
+# Inference configuration for LibriMix.
+# Keeps only the keys required by the infer stage.
+
+# Root output directory for .scp files written by the infer stage.
+inference_dir: ${load_yaml:conf/train.yaml,exp_dir}/infer
+
+# Dataset definition for test splits only (names become output subfolders).
+dataset:
+  _target_: espnet3.components.data.data_organizer.DataOrganizer
+  test:
+    - name: 2mix_16k_max_test_mix-both
+      dataset:
+        _target_: src.dataset.LibriMixTSEDataset
+        data_dir: ${load_yaml:conf/train.yaml,dataset_dir}
+        split: 2mix_16k_max_test_mix-both
+
+# Inference model: load the trained config/checkpoint.
+model:
+  _target_: espnet2.bin.enh_tse_inference.SeparateSpeech
+  train_config: ${load_yaml:conf/train.yaml,exp_dir}/config.yaml
+  model_file: ${load_yaml:conf/train.yaml,exp_dir}/last.ckpt
+
+# Generic ESPnet3 inference entrypoint settings.
+input_key:
+- speech_mix
+- enroll_ref1
+- speech_ref1
+output_fn: src.infer.output_fn
+
+# Provider/runner definitions.
+provider:
+  _target_: espnet3.systems.base.inference_provider.InferenceProvider
+runner:
+  _target_: espnet3.systems.base.inference_runner.InferenceRunner
+
+# Parallel execution used during data loading / scoring (defaults to local).
+parallel:
+  env: local
+  n_workers: 1

@@ -1,0 +1,31 @@
+# Metric/scoring configuration template for ESPnet3 TSE.
+# Consumes enhanced outputs under inference_dir and reports metrics.
+
+# Path scaffold relative to the recipe root; keep aligned with infer.yaml.
+recipe_dir: .
+data_dir: ${recipe_dir}/data
+exp_tag: tse_template_eval
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+stats_dir: ${recipe_dir}/exp/stats
+inference_dir: ${exp_dir}/infer
+dataset_dir: ${load_yaml:conf/train.yaml,dataset_dir}
+
+# Dataset definition for test splits only (used to enumerate test names).
+dataset:
+  _target_: espnet3.components.data.data_organizer.DataOrganizer
+  test:
+    - name: 2mix_16k_max_test_mix-both
+      dataset:
+        _target_: src.dataset.LibriMixTSEDataset
+        data_dir: ${dataset_dir}
+        split: 2mix_16k_max_test_mix-both
+
+# Metrics block intentionally empty in template; fill with SISNR/TSOS, etc.
+metrics:
+  - metric:
+    _target_: espnet3.systems.tse.metrics.tsos.TSOS
+    batch_size: 1
+    power: 2.0
+    threshold: 0.1
+    ref_channel: 0
+    device: str = "cpu

@@ -1897,6 +1897,7 @@ class TSEPreprocessor(EnhPreprocessor):
                     f"{num_spk * 2} columns, got {len(tup)} columns:\n{tup}"
                 )
 
+        fs = float(data.get("utt2fs", self.sample_rate))
         if self.train:
             assert len(ref_names) == len(aux_names), (len(ref_names), len(aux_names))
             if not self.load_all_speakers:
@@ -1916,6 +1917,24 @@ class TSEPreprocessor(EnhPreprocessor):
                     else:
                         data.pop(name)
                         continue
+                if not isinstance(data[name], str):
+                    if self.enroll_segment:
+                        enroll_segment = int(
+                            self.enroll_segment // self.sample_rate * fs
+                        )
+                        length = data[name].shape[0]
+                        if length <= enroll_segment:
+                            offset = np.random.randint(0, enroll_segment - length)
+                            data[name] = np.pad(
+                                data[name],
+                                [(offset, enroll_segment - length - offset)],
+                                mode="wrap",
+                            )
+                        else:
+                            start = np.random.randint(0, length - enroll_segment)
+                            data[name] = data[name][start : start + enroll_segment]
+                    continue
+
                 if self.train_spk2enroll is None:
                     # normal format in `enroll_spk?.scp`:
                     # MIXTURE_UID /path/to/enrollment_or_embedding
