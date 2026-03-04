@@ -7,7 +7,7 @@
 SUPPORTED_ENTRIES = (
     [f"audio{i}" for i in range(1, 11)]  # audio1 to audio10
     + [f"text{i}" for i in range(1, 11)]  # text1 to text10
-    + ["speaker"]
+    + ["dialogue", "speaker"]
 )
 
 
@@ -21,6 +21,9 @@ TASK_CONFIGS = {
     },
     "text_only": {
         "required_entries": ["text1"],
+    },
+    "dialogue": {
+        "required_entries": ["dialogue"],
     },
 }
 
