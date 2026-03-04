@@ -190,12 +190,10 @@ def main_phn_lab(
 
 
 def _main(uid2refs, uid2hyps, verbose):
-    (p_xy, ref2pid, hyp2lid, tot, frmdiff, skipped) = comp_joint_prob(
-        uid2refs, uid2hyps
-    )
+    p_xy, ref2pid, hyp2lid, tot, frmdiff, skipped = comp_joint_prob(uid2refs, uid2hyps)
     ref_pur_by_hyp, ref_pur = comp_purity(p_xy, axis=0)
     hyp_pur_by_ref, hyp_pur = comp_purity(p_xy, axis=1)
-    (mi, mi_norm_by_ref, mi_norm_by_hyp, h_ref, h_hyp) = comp_norm_mutual_info(p_xy)
+    mi, mi_norm_by_ref, mi_norm_by_hyp, h_ref, h_hyp = comp_norm_mutual_info(p_xy)
     outputs = {
         "ref pur": ref_pur,
         "hyp pur": hyp_pur,

@@ -24,7 +24,7 @@ def test_mixup_noop():
     speech_lengths = torch.tensor([10] * 6, dtype=torch.long)  # (Batch,)
 
     mixup = MixupAugment(mixup_probability=0.0)
-    (speech_aug, label_aug, speech_lengths_aug) = mixup(speech, label, speech_lengths)
+    speech_aug, label_aug, speech_lengths_aug = mixup(speech, label, speech_lengths)
 
     assert torch.allclose(label_aug, label, atol=1e-4)
     assert torch.allclose(speech_aug, speech, atol=1e-4)

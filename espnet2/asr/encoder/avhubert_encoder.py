@@ -7,6 +7,7 @@
 
 
 """Encoder definition."""
+
 import contextlib
 import copy
 import logging
@@ -159,10 +160,8 @@ class FairseqAVHubertEncoder(AbsEncoder):
             del ckpt
             model.load_state_dict(state)
         else:
-            logging.info(
-                "Training from scratch without \
-                         using pre-trained AV-HuBERT model"
-            )
+            logging.info("Training from scratch without \
+                         using pre-trained AV-HuBERT model")
 
         self.pretrained_params = copy.deepcopy(model.state_dict())
 

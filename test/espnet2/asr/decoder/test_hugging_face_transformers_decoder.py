@@ -131,8 +131,7 @@ def test_HuggingFaceTransformersDecoder_causal_lm(model_name_or_path, prefix, po
 @pytest.fixture()
 def json_config_path(tmp_path):
     json_config = tmp_path / "config.json"
-    json_config.write_text(
-        """
+    json_config.write_text("""
         {
             "model_name_or_path": "hf-internal-testing/tiny-random-T5Model",
             "encoder_output_size": 32,
@@ -140,8 +139,7 @@ def json_config_path(tmp_path):
             "prefix": "prefix",
             "postfix": "postfix"
         }
-        """
-    )
+        """)
     return str(json_config)
 
 
