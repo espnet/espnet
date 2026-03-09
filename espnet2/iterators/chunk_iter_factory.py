@@ -3,6 +3,7 @@ import re
 from collections import defaultdict
 from copy import deepcopy
 from math import inf
+from omegaconf.listconfig import ListConfig
 from typing import Any, Dict, Iterator, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
@@ -51,7 +52,7 @@ class ChunkIterFactory(AbsIterFactory):
         num_workers: int = 0,
         collate_fn=None,
         pin_memory: bool = False,
-        excluded_key_prefixes: Optional[List[str]] = None,
+        excluded_key_prefixes: Union[List[str], ListConfig, None] = None,
         discard_short_samples: bool = True,
         default_fs: Optional[int] = None,
         chunk_max_abs_length: Optional[int] = None,

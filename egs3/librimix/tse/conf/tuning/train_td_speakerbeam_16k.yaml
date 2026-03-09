@@ -15,7 +15,7 @@ exp_tag: librimix_tse_td_speakerbeam
 exp_dir: ${recipe_dir}/exp/${exp_tag}
 stats_dir: ${recipe_dir}/exp/stats
 inference_dir: ${exp_dir}/infer
-dataset_dir: /path/to/LibriMix
+dataset_dir: /path/for/storing/LibriMix
 
 # Dataset creation function and arguments (downloads into dataset_dir cache).
 create_dataset:
@@ -32,14 +32,14 @@ dataset:
         _target_: src.dataset.LibriMixTSEDataset
         data_dir: ${dataset_dir}
         split: 2mix_16k_max_train_mix-both
-        skip_key_prefix: ["text_spk", "uttid", "num_spk"]
+        ignore_key_prefix: ["text_spk", "uttid", "num_spk"]
   valid:
     - name: 2mix_16k_max_dev_mix-both
       dataset:
         _target_: src.dataset.LibriMixTSEDataset
         data_dir: ${dataset_dir}
         split: 2mix_16k_max_dev_mix-both
-        skip_key_prefix: ["text_spk", "uttid", "num_spk"]
+        ignore_key_prefix: ["text_spk", "uttid", "num_spk"]
 
   preprocessor:
     _target_: espnet2.train.preprocessor.TSEPreprocessor
@@ -66,6 +66,7 @@ dataloader:
     num_shards: 1
     iter_factory:
       _target_: espnet2.iterators.chunk_iter_factory.ChunkIterFactory
+      batch_size: 16
       shuffle: true
       collate_fn: ${dataloader.collate_fn}
       chunk_length: 48000
@@ -76,18 +77,17 @@ dataloader:
         - "enroll_ref"
       num_workers: 4
       batches:
-        type: folded
+        type: unsorted
         shape_files:
           - ${stats_dir}/train/feats_shape
-        fold_lengths:
-          - 80000
-        batch_size: 16
+        batch_size: 1
         batch_bins: -1
   valid:
     multiple_iterator: false
     num_shards: 1
     iter_factory:
       _target_: espnet2.iterators.chunk_iter_factory.ChunkIterFactory
+      batch_size: ${dataloader.train.iter_factory.batch_size}
       shuffle: false
       collate_fn: ${dataloader.collate_fn}
       chunk_length: ${dataloader.train.iter_factory.chunk_length}
@@ -98,25 +98,22 @@ dataloader:
         type: ${dataloader.train.iter_factory.batches.type}
         shape_files:
           - ${stats_dir}/valid/feats_shape
-        fold_lengths:
-          - 80000
-        batch_size: ${dataloader.train.iter_factory.batches.batch_size}
-        batch_bins: ${dataloader.train.iter_factory.batches.batch_bins}
+        batch_size: 1
+        batch_bins: -1
 
 
 # Optimizer and scheduler follow the template defaults.
-optim:
+optimizer:
   _target_: torch.optim.Adam
-  lr: 1.0e-03
+  lr: 1.0e-04
   eps: 1.0e-08
   weight_decay: 0
 
 
 scheduler:
-  _target_: torch.optim.lr_scheduler.ReduceLROnPlateau
-  mode: min
-  factor: 0.7
-  patience: 3
+  _target_: torch.optim.lr_scheduler.StepLR
+  step_size: 1  # epochs
+  gamma: 0.98
 
 
 best_model_criterion:
@@ -136,6 +133,7 @@ trainer:
   log_every_n_steps: 100
   max_epochs: 100
   precision: 32 # https://lightning.ai/docs/pytorch/stable/common/trainer.html#precision
+  limit_train_batches: 1.0
 
   logger:
     - _target_: lightning.pytorch.loggers.TensorBoardLogger
@@ -184,4 +182,6 @@ model:
     share_encoder: true
 
 
-fit: {}
+# If you want to resume training use the following config.
+# fit:
+#   ckpt_path: ${exp_dir}/last.ckpt

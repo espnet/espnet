@@ -210,7 +210,7 @@ class LibriMixTSEDataset(TorchDataset):
             reads ``LIBRIMIX`` from the environment.
         split: LibriMix split directory name (default: ``2mix_16k_max_train_mix-both``).
             format: ``{num_spk}mix_{fs}_{mode}_{mix_type}``, e.g., ``2mix_16k_max_train_mix-both``.
-        skip_key_prefix: List of key prefixes to skip loading. Supported keys include:
+        ignore_key_prefix: List of key prefixes to skip loading. Supported keys include:
             - ``speech_mix``
             - ``enroll_ref1``, ``enroll_ref2``, ``enroll_ref3``
             - ``speech_ref1``, ``speech_ref2``, ``speech_ref3``
@@ -233,7 +233,7 @@ class LibriMixTSEDataset(TorchDataset):
         self,
         data_dir: str | Path | None = None,
         split: str = "2mix_16k_max_train_mix-both",
-        skip_key_prefix: List[str] | None = ["text_spk", "uttid", "num_spk"],
+        ignore_key_prefix: List[str] | None = ["text_spk", "uttid", "num_spk"],
     ) -> None:
         if data_dir is None:
             data_dir = os.environ.get("LIBRIMIX")
@@ -253,7 +253,7 @@ class LibriMixTSEDataset(TorchDataset):
         )
         if not self.split_dir.is_dir():
             raise FileNotFoundError(f"Split directory not found: {self.split_dir}")
-        self.skip_key_prefix = tuple(skip_key_prefix) if skip_key_prefix else ()
+        self.ignore_key_prefix = tuple(ignore_key_prefix) if ignore_key_prefix else ()
 
         # Trying to download the enrollment lists if not found locally
         if _check_missing_files(self.librimix_root, split, self.num_spk):
@@ -294,7 +294,7 @@ class LibriMixTSEDataset(TorchDataset):
         ret = {}
         srs = []
         for k in keys:
-            if k.startswith(self.skip_key_prefix):
+            if k.startswith(self.ignore_key_prefix):
                 continue
             if k.startswith(("speech_mix", "speech_ref")):
                 audio, _sr = sf.read(str(getattr(ex, k)), dtype="float32")
