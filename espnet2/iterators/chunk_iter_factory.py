@@ -3,11 +3,11 @@ import re
 from collections import defaultdict
 from copy import deepcopy
 from math import inf
-from omegaconf.listconfig import ListConfig
 from typing import Any, Dict, Iterator, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import torch
+from omegaconf.listconfig import ListConfig
 from typeguard import typechecked
 
 from espnet2.iterators.abs_iter_factory import AbsIterFactory
