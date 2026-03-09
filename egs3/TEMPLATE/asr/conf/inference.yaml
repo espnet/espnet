@@ -1,31 +1,19 @@
 # Inference/decoding configuration template for ESPnet3 ASR.
 # Keep only inference-relevant knobs.
-
-# Path scaffold relative to the recipe root.
-recipe_dir: .
-data_dir: ${recipe_dir}/data
-dataset_dir: /path/to/your/dataset
-exp_tag: asr_template_eval
-exp_dir: ${recipe_dir}/exp/${exp_tag}
+exp_dir: ${load_yaml:conf/training.yaml,exp_dir}
 inference_dir: ${exp_dir}/inference
+dataset_dir: ${load_yaml:conf/training.yaml,dataset_dir}
 
-# Dataset definition for test splits only.
 dataset:
   _target_: espnet3.components.data.data_organizer.DataOrganizer
   test:
-    - name: test-clean
-      dataset:
-        _target_: src.dataset.LibriSpeechDataset
-        data_dir: ${dataset_dir}
-        split: test-clean
 
-# Inference model entrypoint.
+parallel:
+  env: local
+  n_workers: 1
+
 model:
-  _target_: espnet2.bin.asr_inference.Speech2Text
-  asr_train_config: ${exp_dir}/config.yaml
-  asr_model_file: ${exp_dir}/last.ckpt
 
-# Inference I/O.
 input_key: speech
 output_fn: src.inference.build_output
 
@@ -33,8 +21,3 @@ provider:
   _target_: espnet3.systems.base.inference_provider.InferenceProvider
 runner:
   _target_: espnet3.systems.base.inference_runner.InferenceRunner
-
-# Parallel execution used during data loading / scoring (defaults to local).
-parallel:
-  env: local
-  n_workers: 1

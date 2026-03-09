@@ -10,7 +10,7 @@ task:  # Hydra target of the training task (fill in per-recipe if needed).
 # Path scaffold relative to the recipe root.
 recipe_dir: .
 data_dir: ${recipe_dir}/data
-exp_tag: asr_template_train
+exp_tag: 
 exp_dir: ${recipe_dir}/exp/${exp_tag}
 stats_dir: ${recipe_dir}/exp/stats
 inference_dir: ${exp_dir}/inference
@@ -24,26 +24,15 @@ create_dataset:
 dataset:
   _target_: espnet3.components.data.data_organizer.DataOrganizer
   train:
-    - name: train-split
-      dataset:
-        _target_: src.dataset.LibriSpeechDataset
-        data_dir: ${dataset_dir}
-        split: train
   valid:
-    - name: valid-split
-      dataset:
-        _target_: src.dataset.LibriSpeechDataset
-        data_dir: ${dataset_dir}
-        split: dev
-
-  # Optional global preprocessor; can also be omitted
+  test:
   preprocessor:
 
 tokenizer:
   # Recipe should provide a text_builder that returns tokenizer text
   # (list[str] or path).
   text_builder:
-    func: src.tokenizer.gather_training_text
+    func:
     dataset_dir: ${dataset_dir}
     split: train
 
@@ -57,7 +46,6 @@ parallel:
 dataloader:
   collate_fn:
     _target_: espnet2.train.collate_fn.CommonCollateFn
-    int_pad_value: -1
   train:
     multiple_iterator: false
     num_shards: 1
@@ -113,7 +101,7 @@ trainer:
   check_val_every_n_epoch: 1
   gradient_clip_val: 1.0
   log_every_n_steps: 100
-  max_epochs: 10
+  max_epochs: 100
 
   logger:
     - _target_: lightning.pytorch.loggers.TensorBoardLogger

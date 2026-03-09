@@ -1,16 +1,9 @@
 # This is a debug config for CI
 init: xavier_uniform
 
-num_device: 1
-num_nodes: 1
 task: espnet3.systems.asr.task.ASRTask
 
-recipe_dir: .
-data_dir: ${recipe_dir}/data
 exp_tag: train_asr_transformer_debug
-exp_dir: ${recipe_dir}/exp/${exp_tag}
-stats_dir: ${recipe_dir}/exp/stats
-inference_dir: ${exp_dir}/inference
 dataset_dir: ${data_dir}/mini_an4
 
 create_dataset:
@@ -19,7 +12,6 @@ create_dataset:
   archive_path: ${recipe_dir}/../../egs2/mini_an4/asr1/downloads.tar.gz
 
 dataset:
-  _target_: espnet3.components.data.data_organizer.DataOrganizer
   train:
     - name: train_nodev
       dataset:
@@ -38,48 +30,17 @@ dataset:
     bpemodel: ${tokenizer.save_path}/bpe.model
     text_cleaner:
 
-parallel:
-  env: local
-  n_workers: 1
-
 dataloader:
-  collate_fn:
-    _target_: espnet2.train.collate_fn.CommonCollateFn
-    int_pad_value: -1
   train:
-    multiple_iterator: false
-    num_shards: 1
     iter_factory:
-      _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
-      shuffle: true
-      collate_fn: ${dataloader.collate_fn}
-      num_workers: 0
       batches:
         type: unsorted
-        shape_files:
-          - ${stats_dir}/train/feats_shape
         batch_size: 2
-        batch_bins: 200000
-  valid:
-    multiple_iterator: false
-    num_shards: 1
-    iter_factory:
-      _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
-      shuffle: false
-      collate_fn: ${dataloader.collate_fn}
-      batches:
-        type: ${dataloader.train.iter_factory.batches.type}
-        shape_files:
-          - ${stats_dir}/valid/feats_shape
-        batch_size: ${dataloader.train.iter_factory.batches.batch_size}
-        batch_bins: ${dataloader.train.iter_factory.batches.batch_bins}
 
 optimizer:
-  _target_: torch.optim.Adam
   lr: 0.005
 
 scheduler:
-  _target_: espnet2.schedulers.warmup_lr.WarmupLR
   warmup_steps: 100
 
 best_model_criterion:
@@ -88,22 +49,9 @@ best_model_criterion:
     - min
 
 trainer:
-  accelerator: auto
-  devices: ${num_device}
-  num_nodes: ${num_nodes}
-  accumulate_grad_batches: 1
-  check_val_every_n_epoch: 1
-  gradient_clip_val: 1.0
-  log_every_n_steps: 1
   max_epochs: 1
   limit_train_batches: 1
   limit_val_batches: 1
-  precision: 32
-
-  logger:
-    - _target_: lightning.pytorch.loggers.TensorBoardLogger
-      save_dir: ${exp_dir}/tensorboard
-      name: tb_logger
 
   strategy: auto
 
