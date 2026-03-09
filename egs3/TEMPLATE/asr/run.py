@@ -115,6 +115,7 @@ def _resolve_template_config_filename(config_arg_name: str) -> str:
     Todo:
         If new config are added to CLI options, extend this mapping.
     """
+    # Stage/method names use verbs, while config filenames use noun forms.
     if config_arg_name == "train_config":
         return "training.yaml"
     if config_arg_name == "infer_config":
