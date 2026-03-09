@@ -22,15 +22,24 @@ def test_resolve_template_config_filename_invalid() -> None:
 
 def test_load_template_defaults_train_contains_expected_targets() -> None:
     cfg = _load_template_defaults("train_config")
-    assert cfg.dataset._target_ == "espnet3.components.data.data_organizer.DataOrganizer"
+    assert (
+        cfg.dataset._target_
+        == "espnet3.components.data.data_organizer.DataOrganizer"
+    )
     assert cfg.optimizer._target_ == "torch.optim.Adam"
     assert cfg.scheduler._target_ == "espnet2.schedulers.warmup_lr.WarmupLR"
 
 
 def test_load_template_defaults_infer_contains_expected_targets() -> None:
     cfg = _load_template_defaults("infer_config")
-    assert cfg.provider._target_ == "espnet3.systems.base.inference_provider.InferenceProvider"
-    assert cfg.runner._target_ == "espnet3.systems.base.inference_runner.InferenceRunner"
+    assert (
+        cfg.provider._target_
+        == "espnet3.systems.base.inference_provider.InferenceProvider"
+    )
+    assert (
+        cfg.runner._target_
+        == "espnet3.systems.base.inference_runner.InferenceRunner"
+    )
 
 
 def test_load_and_merge_config_user_overrides_template_defaults(tmp_path: Path) -> None:
@@ -53,7 +62,10 @@ optimizer:
     assert cfg.optimizer._target_ == "torch.optim.SGD"
     assert cfg.optimizer.lr == 0.1
     # template defaults should still be present
-    assert cfg.dataset._target_ == "espnet3.components.data.data_organizer.DataOrganizer"
+    assert (
+        cfg.dataset._target_
+        == "espnet3.components.data.data_organizer.DataOrganizer"
+    )
 
 
 def test_load_and_merge_config_none_path_returns_none() -> None:

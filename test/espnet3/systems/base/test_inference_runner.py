@@ -94,9 +94,7 @@ def test_call_returns_none(monkeypatch):
 
 
 def test_call_propagates_validation_error(monkeypatch):
-    monkeypatch.setattr(
-        BaseRunner, "__call__", lambda self, indices: [{"hyp": "h"}]
-    )
+    monkeypatch.setattr(BaseRunner, "__call__", lambda self, indices: [{"hyp": "h"}])
     runner = DummyRunner(DummyProvider())
 
     with pytest.raises(ValueError, match="idx_key='utt_id'"):
