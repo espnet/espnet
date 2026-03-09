@@ -14,6 +14,62 @@ from espnet3.utils.scp_utils import get_class_path, load_scp_fields
 logger = logging.getLogger(__name__)
 
 
+def _resolve_test_sets(measure_config: DictConfig) -> list[str]:
+    """Resolve metric target test sets from config or inference outputs.
+
+    This helper decides which test-set names should be scored by the
+    measurement stage.
+
+    Resolution order:
+        1. If ``measure_config.dataset.test`` is defined, use its ``name``
+           fields as-is.
+        2. Otherwise, scan ``measure_config.inference_dir`` and treat every
+           subdirectory as a test set.
+
+    For example, if ``inference_dir`` contains:
+
+    .. code-block:: text
+
+        exp/my_run/inference/
+          test-clean/
+          test-other/
+
+    then this function returns ``["test-clean", "test-other"]``.
+
+    Args:
+        measure_config: Measurement config containing either
+            ``dataset.test`` entries or an ``inference_dir`` path.
+
+    Returns:
+        Sorted list of test-set names to score.
+
+    Raises:
+        ValueError: If neither ``dataset.test`` nor any subdirectories under
+            ``inference_dir`` are available.
+    """
+    dataset = getattr(measure_config, "dataset", None)
+    test_config = getattr(dataset, "test", None) if dataset is not None else None
+    if test_config:
+        return [t.name for t in test_config]
+
+    inference_dir = Path(measure_config.inference_dir)
+    test_sets = sorted(
+        entry.name
+        for entry in inference_dir.iterdir()
+        if entry.is_dir() and not entry.name.startswith(".")
+    )
+    if not test_sets:
+        raise ValueError(
+            "No test sets found. Specify `measure_config.dataset.test` or place "
+            f"test-set subdirectories under inference_dir: {inference_dir}"
+        )
+    logger.info(
+        "Resolved test sets from inference_dir: %s",
+        test_sets,
+    )
+    return test_sets
+
+
 def measure(measure_config: DictConfig):
     """Compute metrics for each test set and write a metrics JSON file.
 
@@ -23,7 +79,7 @@ def measure(measure_config: DictConfig):
     Returns:
         Nested dict keyed by metric class path and test set name.
     """
-    test_sets = [t.name for t in measure_config.dataset.test]
+    test_sets = _resolve_test_sets(measure_config)
     results = {}
     assert hasattr(measure_config, "metrics"), "Please specify `metrics`!"
 

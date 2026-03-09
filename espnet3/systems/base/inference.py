@@ -90,10 +90,8 @@ def infer(config: DictConfig):
         config.test_set = test_name
 
         output_fn_path = getattr(config, "output_fn", None)
-        if not output_fn_path:
-            raise RuntimeError("infer_config.output_fn must be set.")
-
-        _load_output_fn(output_fn_path)
+        if output_fn_path:
+            _load_output_fn(output_fn_path)
 
         input_key = getattr(config, "input_key", None)
         if input_key is None:
@@ -111,7 +109,7 @@ def infer(config: DictConfig):
             if not output_keys:
                 raise RuntimeError("infer_config.output_keys must not be empty.")
 
-        idx_key = getattr(config, "idx_key", "uttid")
+        idx_key = getattr(config, "idx_key", "utt_id")
 
         batch_size = getattr(config, "batch_size", None)
         provider_config = getattr(config, "provider", None)
@@ -124,7 +122,8 @@ def infer(config: DictConfig):
             provider_params = dict(raw_params)
 
         provider_params["input_key"] = input_key
-        provider_params["output_fn_path"] = output_fn_path
+        if output_fn_path:
+            provider_params["output_fn_path"] = output_fn_path
 
         provider = instantiate(
             provider_config,
@@ -143,6 +142,7 @@ def infer(config: DictConfig):
             "async_mode": False,
             "idx_key": idx_key,
             "hyp_key": hyp_keys,
+            "ref_key": [],
             "batch_size": batch_size,
         }
         runner = instantiate(runner_config, **runner_kwargs)
@@ -157,18 +157,19 @@ def infer(config: DictConfig):
             raise RuntimeError("Async inference is not supported in this entrypoint.")
         # Runner can return nested lists. normalize to flat list.
         results = _flatten_results(out)
+        if not results:
+            raise RuntimeError("No inference results available.")
+        first = results[0]
+        resolved_idx_key = runner.resolve_idx_key(first)
         if output_keys is None:
-            if not results:
-                raise RuntimeError("No inference results available.")
-            first = results[0]
-            output_keys = [key for key in first.keys() if key != runner.idx_key]
+            output_keys = [key for key in first.keys() if key != resolved_idx_key]
             if not output_keys:
                 raise RuntimeError("No output keys found in inference results.")
 
-        # Convert output dicts into per-key SCP lines (uttid + value).
+        # Convert output dicts into per-key SCP lines (utt_id + value).
         scp_lines = _collect_scp_lines(
             results,
-            idx_key=runner.idx_key,
+            idx_key=resolved_idx_key,
             hyp_keys=output_keys,
             ref_keys=[],
         )

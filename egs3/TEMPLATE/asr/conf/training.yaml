@@ -1,26 +1,71 @@
-# Main training config template for ESPnet3 ASR.
-# This file is intentionally verbose to document how each field is used in the
-# default recipe skeleton. Copy and trim it for your own recipe.
+##########################################################
+#                    TRAINING SETTING                    #
+##########################################################
+# Quick usage:
+#   python run.py --stages create_dataset --train_config conf/training.yaml
+#   python run.py --stages train          --train_config conf/training.yaml
+#
+# Main stages and what this config is used for:
+# - `create_dataset`: uses `create_dataset`
+# - `train_tokenizer`: uses `tokenizer`
+# - `collect_stats`: uses `dataset`, `dataloader`, `model`, and `parallel`
+# - `train`: uses most fields in this file
 
-# Number of devices/nodes; kept minimal for the template.
+##########################################################
+#                  SYSTEM AND PATH SETTING               #
+##########################################################
 num_device: 1
 num_nodes: 1
-task:  # Hydra target of the training task (fill in per-recipe if needed).
+
+# Optional ESPnet task class path used by `get_espnet_model(...)`.
+# If unset, `model` is instantiated directly via Hydra.
+task:
 
 # Path scaffold relative to the recipe root.
 recipe_dir: .
 data_dir: ${recipe_dir}/data
-exp_tag: 
+exp_tag:
 exp_dir: ${recipe_dir}/exp/${exp_tag}
 stats_dir: ${recipe_dir}/exp/stats
 inference_dir: ${exp_dir}/inference
 dataset_dir: /path/to/your/dataset
-# Dataset creation function (downloads into dataset_dir cache).
+
+##########################################################
+#                 DATASET CREATION SETTING               #
+##########################################################
+# Optional dataset creation hook for the `create_dataset` stage.
+# The function is resolved from `create_dataset.func` and called with the
+# remaining fields in this block as keyword arguments.
 create_dataset:
   func: src.creating_dataset.create_dataset
   dataset_dir: ${dataset_dir}
 
-# Dataset definition for training/validation splits.
+##########################################################
+#                    DATASET DEFINITION                  #
+##########################################################
+# Dataset organizer used across collect_stats/train/infer/measure.
+# Fill `train`, `valid`, and optionally `test` with named dataset entries.
+#
+# Example:
+# dataset:
+#   _target_: espnet3.components.data.data_organizer.DataOrganizer
+#   train:
+#     - name: train
+#       dataset:
+#         _target_: src.dataset.YourDataset
+#         manifest_path: ${dataset_dir}/manifest/train.tsv
+#   valid:
+#     - name: dev
+#       dataset:
+#         _target_: src.dataset.YourDataset
+#         manifest_path: ${dataset_dir}/manifest/dev.tsv
+#   test:
+#     - name: test
+#       dataset:
+#         _target_: src.dataset.YourDataset
+#         manifest_path: ${dataset_dir}/manifest/test.tsv
+#   preprocessor:
+#     _target_: src.preprocess.build_preprocessor
 dataset:
   _target_: espnet3.components.data.data_organizer.DataOrganizer
   train:
@@ -28,24 +73,51 @@ dataset:
   test:
   preprocessor:
 
+##########################################################
+#                   TOKENIZER SETTING                    #
+##########################################################
+# Used by the `train_tokenizer` stage in `espnet3.systems.asr.system.ASRSystem`.
+# `text_builder.func` must return either:
+# - a path to a text file, or
+# - an iterable of training strings
 tokenizer:
-  # Recipe should provide a text_builder that returns tokenizer text
-  # (list[str] or path).
+  save_path: ${exp_dir}/tokenizer
+  vocab_size: 500
+  model_type: bpe
+  # Optional explicit output file for tokenizer training text.
+  # If unset, `${tokenizer.save_path}/train.txt` is used.
+  train_file:
   text_builder:
-    func:
+    func: src.tokenizer.build_text
     dataset_dir: ${dataset_dir}
     split: train
 
-# Parallel execution settings used by espnet3.parallel (defaults to local).
+##########################################################
+#                   PARALLELIZATION SETTING              #
+##########################################################
+# Parallel backend used by collect_stats/train.
 parallel:
   env: local
   n_workers: 1
 
+##########################################################
+#                      MODEL SETTING                     #
+##########################################################
+# Training model definition.
+# If `task` is set, this block is passed to `get_espnet_model(task, model_conf)`.
+# Thus, you can reuse ESPnet2-style model configs here by setting `task` and
+# filling this block with the per-model config that ESPnet2 used.
+# If `task` is not set, this block is instantiated directly via Hydra.
+model:
 
-# DataLoader common collate and iterator setup.
+##########################################################
+#                   DATALOADER SETTING                   #
+##########################################################
 dataloader:
   collate_fn:
     _target_: espnet2.train.collate_fn.CommonCollateFn
+
+  # Training dataloader / iterator settings.
   train:
     multiple_iterator: false
     num_shards: 1
@@ -54,11 +126,15 @@ dataloader:
       shuffle: true
       collate_fn: ${dataloader.collate_fn}
       batches:
-        type: numel
+        # Typical batch modes include `unsorted`, `sorted`, and task-specific
+        # iterator/batcher setups. Adjust this to match your dataset.
+        type: unsorted
         shape_files:
           - ${stats_dir}/train/feats_shape
         batch_size: 4
         batch_bins: 4000000
+
+  # Validation dataloader / iterator settings.
   valid:
     multiple_iterator: false
     num_shards: 1
@@ -73,26 +149,42 @@ dataloader:
         batch_size: ${dataloader.train.iter_factory.batches.batch_size}
         batch_bins: ${dataloader.train.iter_factory.batches.batch_bins}
 
-
-# Optimizer and scheduler are intentionally lightweight defaults.
+##########################################################
+#            OPTIMIZER & SCHEDULER SETTING               #
+##########################################################
 optimizer:
   _target_: torch.optim.Adam
   lr: 0.002
   weight_decay: 0.000001
 
-
 scheduler:
   _target_: espnet2.schedulers.warmup_lr.WarmupLR
   warmup_steps: 15000
 
-
+##########################################################
+#                OTHER TRAINING SETTING                  #
+##########################################################
+# Checkpoint selection criteria passed to ESPnet3 callbacks.
+# Each item is:
+#   - monitor key
+#   - number of best checkpoints to keep
+#   - direction (`min` or `max`)
 best_model_criterion:
   - - valid/loss
     - 3
     - min
 
+# Optional random seed used by collect_stats/train.
+seed:
 
-# Trainer settings map to Lightning Trainer; override per-recipe as needed.
+# Extra model initialization mode forwarded to ESPnet's initializer.
+# Example: xavier_uniform
+init:
+
+##########################################################
+#                    TRAINER SETTING                     #
+##########################################################
+# These settings map to `lightning.Trainer(...)`.
 trainer:
   accelerator: auto
   devices: ${num_device}
@@ -110,5 +202,9 @@ trainer:
 
   strategy: auto
 
-
+##########################################################
+#                      FIT SETTING                       #
+##########################################################
+# Optional keyword arguments passed directly to `trainer.fit(**fit)`.
+# Leave `{}` for the default flow.
 fit: {}

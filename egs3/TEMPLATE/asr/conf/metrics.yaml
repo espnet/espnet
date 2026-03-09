@@ -1,19 +1,34 @@
-# Metric/scoring configuration template for ESPnet3 ASR.
-# Consumes decode outputs under decode_dir and reports metrics.
+##########################################################
+#                 METRIC SCORING SETTING                 #
+##########################################################
+# Quick usage:
+#   python run.py --stages measure --measure_config conf/metrics.yaml
+#
+# Assumptions:
+# - `conf/inference.yaml` has already produced `<test_name>/*.scp` files.
+# - Each metric reads matching SCP keys such as `ref.scp` and `hyp.scp`.
+# - If `dataset.test` is omitted, test sets are discovered from `${inference_dir}`
+#   subdirectories.
 
+##########################################################
+#                    PATHS AND INPUTS                    #
+##########################################################
 exp_dir: ${load_yaml:conf/training.yaml,exp_dir}
 inference_dir: ${exp_dir}/inference
-dataset_dir: ${load_yaml:conf/training.yaml,dataset_dir}
 
-dataset:
-  _target_: espnet3.components.data.data_organizer.DataOrganizer
-  test:
 
+##########################################################
+#                    METRIC DEFINITION                   #
+##########################################################
 metrics:
   - metric:
       _target_: espnet3.systems.asr.metrics.wer.WER
-      clean_types:
+      ref_key: ref        # reference text key -> `<test_name>/ref.scp`
+      hyp_key: hyp        # hypothesis text key -> `<test_name>/hyp.scp`
+      clean_types:        # optional TextCleaner pipeline, e.g. [tacotron]
 
   - metric:
       _target_: espnet3.systems.asr.metrics.cer.CER
-      clean_types:
+      ref_key: ref        # reference text key -> `<test_name>/ref.scp`
+      hyp_key: hyp        # hypothesis text key -> `<test_name>/hyp.scp`
+      clean_types:        # optional TextCleaner pipeline, e.g. [jaconv]
