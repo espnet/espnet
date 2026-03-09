@@ -3,7 +3,7 @@
 
 
 # DDP/Lightning runtime parameters.
-num_device: 1
+num_device: 1   # The default batch size of 4 requires a 24GB GPU for training
 num_nodes: 1
 task: espnet3.systems.tse.task.TSETask
 
@@ -66,7 +66,7 @@ dataloader:
     num_shards: 1
     iter_factory:
       _target_: espnet2.iterators.chunk_iter_factory.ChunkIterFactory
-      batch_size: 16
+      batch_size: 4
       shuffle: true
       collate_fn: ${dataloader.collate_fn}
       chunk_length: 48000
@@ -105,7 +105,7 @@ dataloader:
 # Optimizer and scheduler follow the template defaults.
 optimizer:
   _target_: torch.optim.Adam
-  lr: 1.0e-04
+  lr: 1.0e-03
   eps: 1.0e-08
   weight_decay: 0
 
@@ -173,13 +173,17 @@ model:
       adapt_enroll_dim: 256
       use_spk_emb: false
 
-  normalize: global_mvn
-  normalize_conf:
-    stats_file: ${stats_dir}/train/feats_stats.npz
-
   model_conf:
     num_spk: 2
     share_encoder: true
+
+  criterions:
+    - name: snr
+      conf:
+        eps: 1.0e-7
+      wrapper: fixed_order
+      wrapper_conf:
+        weight: 1.0
 
 
 # If you want to resume training use the following config.
