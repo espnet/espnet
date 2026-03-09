@@ -133,7 +133,7 @@ def _load_template_defaults(config_arg_name: str):
 
     Returns:
         DictConfig: Loaded template default config.
-        
+
     Examples:
         >>> cfg = _load_template_defaults("train_config")
         >>> "dataset" in cfg
@@ -299,7 +299,7 @@ if __name__ == "__main__":
 
     # Here you should replace `YourSystemClass` with the actual system class
     # you want to use for your experiment.
-    from espnet3.systems.asr.system import ASRSystem 
+    from espnet3.systems.asr.system import ASRSystem
 
     main(
         args=args,
