@@ -1,16 +1,32 @@
+##########################################################
+#                    TRAINING SETTING                    #
+##########################################################
+# Quick usage:
+#   python run.py --stages create_dataset --train_config conf/training.yaml
+#   python run.py --stages train          --train_config conf/training.yaml
+#
 # This is a debug config for CI
 # Mini AN4 ASR training config for ESPnet3 integration tests.
 
+##########################################################
+#                  SYSTEM AND PATH SETTING               #
+##########################################################
 task: espnet3.systems.asr.task.ASRTask
 
 exp_tag: train_asr_rnn_data_aug_debug
 dataset_dir: ${data_dir}/mini_an4
 
+##########################################################
+#                 DATASET CREATION SETTING               #
+##########################################################
 create_dataset:
   func: src.creating_dataset.create_dataset
   dataset_dir: ${dataset_dir}
   archive_path: ${recipe_dir}/../../egs2/mini_an4/asr1/downloads.tar.gz
 
+##########################################################
+#                    DATASET DEFINITION                  #
+##########################################################
 dataset:
   train:
     - name: train_nodev
@@ -40,41 +56,9 @@ dataset:
     token_list: ${tokenizer.save_path}/tokens.txt
     bpemodel: ${tokenizer.save_path}/bpe.model
 
-
-dataloader:
-  train:
-    iter_factory:
-      batches:
-        type: sorted
-        batch_size: 2
-
-optimizer:
-  _target_: torch.optim.AdamW
-  lr: 0.001
-  weight_decay: 0.0
-
-override scheduler:
-  _target_: torch.optim.lr_scheduler.ReduceLROnPlateau
-  mode: min
-  factor: 0.5
-  patience: 1
-
-val_scheduler_criterion: valid/loss
-
-best_model_criterion:
-  - - valid/acc
-    - 1
-    - max
-
-trainer:
-  log_every_n_steps: 1
-  max_epochs: 1
-  limit_train_batches: 1
-  limit_val_batches: 1
-  
-  strategy: auto
-
-
+##########################################################
+#                   TOKENIZER SETTING                    #
+##########################################################
 tokenizer:
   vocab_size: 30
   character_coverage: 1.0
@@ -83,8 +67,10 @@ tokenizer:
   text_builder:
     func: src.tokenizer.gather_training_text
     manifest_path: ${dataset_dir}/manifest/train_nodev.tsv
-
-
+  
+##########################################################
+#                      MODEL SETTING                     #
+##########################################################
 model:
   vocab_size: ${tokenizer.vocab_size}
   token_list: ${tokenizer.save_path}/tokens.txt
@@ -112,3 +98,50 @@ model:
     n_fft: 512
     win_length: 400
     hop_length: 160
+
+##########################################################
+#            OPTIMIZER & SCHEDULER SETTING               #
+##########################################################
+optimizer:
+  _target_: torch.optim.AdamW
+  lr: 0.001
+  weight_decay: 0.0
+
+override scheduler:
+  _target_: torch.optim.lr_scheduler.ReduceLROnPlateau
+  mode: min
+  factor: 0.5
+  patience: 1
+
+##########################################################
+#                OTHER TRAINING SETTING                  #
+##########################################################
+val_scheduler_criterion: valid/loss
+
+best_model_criterion:
+  - - valid/acc
+    - 1
+    - max
+
+##########################################################
+#                   DATALOADER SETTING                   #
+##########################################################
+dataloader:
+  train:
+    iter_factory:
+      batches:
+        type: sorted
+        batch_size: 2
+
+##########################################################
+#                    TRAINER SETTING                     #
+##########################################################
+# These settings map to `lightning.Trainer(...)`.
+trainer:
+  log_every_n_steps: 1
+  max_epochs: 1
+  limit_train_batches: 1
+  limit_val_batches: 1
+  
+  strategy: auto
+

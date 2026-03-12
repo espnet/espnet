@@ -1,16 +1,30 @@
-# This is a debug config for CI
+##########################################################
+#                    TRAINING SETTING                    #
+##########################################################
+# This is a debug config for CI.
 # Mini AN4 ASR training config for ESPnet3 integration tests.
 
+##########################################################
+#                  SYSTEM AND PATH SETTING               #
+##########################################################
 task: espnet3.systems.asr.task.ASRTask
 
 exp_tag: train_asr_rnn_debug
 dataset_dir: ${data_dir}/mini_an4
 
+##########################################################
+#                 DATASET CREATION SETTING               #
+##########################################################
+# Reuse the downloaded mini_an4 archive to create local manifests.
 create_dataset:
   func: src.creating_dataset.create_dataset
   dataset_dir: ${dataset_dir}
   archive_path: ${recipe_dir}/../../egs2/mini_an4/asr1/downloads.tar.gz
 
+##########################################################
+#                    DATASET DEFINITION                  #
+##########################################################
+# Use the tiny train/dev split prepared for CI-sized ASR runs.
 dataset:
   train:
     - name: train_nodev
@@ -26,7 +40,8 @@ dataset:
     _target_: espnet2.train.preprocessor.CommonPreprocessor
     fs: 16000
     train: true
-    data_aug_effects:   # no need to set the "sample_rate" argument for each effect here
+    # Keep the same augmentation pipeline as the data-aug reference config.
+    data_aug_effects:
         - [0.1, "contrast", {"enhancement_amount": 75.0}]
         - [0.1, "highpass", {"cutoff_freq": 5000, "Q": 0.707}]
         - [0.1, "equalization", {"center_freq": 1000, "gain": 0, "Q": 0.707}]
@@ -40,42 +55,10 @@ dataset:
     token_list: ${tokenizer.save_path}/tokens.txt
     bpemodel: ${tokenizer.save_path}/bpe.model
 
-
-dataloader:
-  train:
-    multiple_iterator: false
-    num_shards: 1
-    iter_factory:
-      batches:
-        type: sorted
-        batch_size: 2
-
-optimizer:
-  _target_: torch.optim.AdamW
-  lr: 0.001
-  weight_decay: 0.0
-
-scheduler:
-  _target_: torch.optim.lr_scheduler.ReduceLROnPlateau
-  mode: min
-  factor: 0.5
-  patience: 1
-
-val_scheduler_criterion: valid/loss
-
-best_model_criterion:
-  - - valid/loss
-    - 1
-    - min
-
-trainer:
-  max_epochs: 1
-  limit_train_batches: 1
-  limit_val_batches: 1
-
-  strategy: auto
-
-
+##########################################################
+#                   TOKENIZER SETTING                    #
+##########################################################
+# Build a small BPE model from the training transcript text.
 tokenizer:
   vocab_size: 30
   character_coverage: 1.0
@@ -85,7 +68,10 @@ tokenizer:
     func: src.tokenizer.gather_training_text
     manifest_path: ${dataset_dir}/manifest/train_nodev.tsv
 
-
+##########################################################
+#                      MODEL SETTING                     #
+##########################################################
+# Small VGG-RNN encoder/decoder stack for a fast debug run.
 model:
   vocab_size: ${tokenizer.vocab_size}
   token_list: ${tokenizer.save_path}/tokens.txt
@@ -113,3 +99,51 @@ model:
     n_fft: 512
     win_length: 400
     hop_length: 160
+
+##########################################################
+#            OPTIMIZER & SCHEDULER SETTING               #
+##########################################################
+optimizer:
+  _target_: torch.optim.AdamW
+  lr: 0.001
+  weight_decay: 0.0
+
+scheduler:
+  _target_: torch.optim.lr_scheduler.ReduceLROnPlateau
+  mode: min
+  factor: 0.5
+  patience: 1
+
+##########################################################
+#                OTHER TRAINING SETTING                  #
+##########################################################
+# ReduceLROnPlateau tracks validation loss for LR updates.
+val_scheduler_criterion: valid/loss
+
+best_model_criterion:
+  - - valid/loss
+    - 1
+    - min
+
+##########################################################
+#                   DATALOADER SETTING                   #
+##########################################################
+# Keep batches tiny so the config stays lightweight in CI.
+dataloader:
+  train:
+    multiple_iterator: false
+    num_shards: 1
+    iter_factory:
+      batches:
+        type: sorted
+        batch_size: 2
+
+##########################################################
+#                    TRAINER SETTING                     #
+##########################################################
+trainer:
+  max_epochs: 1
+  limit_train_batches: 1
+  limit_val_batches: 1
+
+  strategy: auto

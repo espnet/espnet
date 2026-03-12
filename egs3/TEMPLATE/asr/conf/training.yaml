@@ -83,14 +83,6 @@ dataset:
 tokenizer:
 
 ##########################################################
-#                   PARALLELIZATION SETTING              #
-##########################################################
-# Parallel backend used by collect_stats/train.
-parallel:
-  env: local
-  n_workers: 1
-
-##########################################################
 #                      MODEL SETTING                     #
 ##########################################################
 # Training model definition.
@@ -99,6 +91,46 @@ parallel:
 # filling this block with the per-model config that ESPnet2 used.
 # If `task` is not set, this block is instantiated directly via Hydra.
 model:
+
+##########################################################
+#            OPTIMIZER & SCHEDULER SETTING               #
+##########################################################
+optimizer:
+  _target_: torch.optim.Adam
+  lr: 0.002
+  weight_decay: 0.000001
+
+scheduler:
+  _target_: espnet2.schedulers.warmup_lr.WarmupLR
+  warmup_steps: 15000
+
+##########################################################
+#                OTHER TRAINING SETTING                  #
+##########################################################
+# Checkpoint selection criteria passed to ESPnet3 callbacks.
+# Each item is:
+#   - monitor key
+#   - number of best checkpoints to keep
+#   - direction (`min` or `max`)
+best_model_criterion:
+  - - valid/loss
+    - 3
+    - min
+
+# Optional random seed used by collect_stats/train.
+seed:
+
+# Extra model initialization mode forwarded to ESPnet's initializer.
+# Example: xavier_uniform
+init:
+
+##########################################################
+#                   PARALLELIZATION SETTING              #
+##########################################################
+# Parallel backend used by collect_stats/train.
+parallel:
+  env: local
+  n_workers: 1
 
 ##########################################################
 #                   DATALOADER SETTING                   #
@@ -138,38 +170,6 @@ dataloader:
           - ${stats_dir}/valid/feats_shape
         batch_size: ${dataloader.train.iter_factory.batches.batch_size}
         batch_bins: ${dataloader.train.iter_factory.batches.batch_bins}
-
-##########################################################
-#            OPTIMIZER & SCHEDULER SETTING               #
-##########################################################
-optimizer:
-  _target_: torch.optim.Adam
-  lr: 0.002
-  weight_decay: 0.000001
-
-scheduler:
-  _target_: espnet2.schedulers.warmup_lr.WarmupLR
-  warmup_steps: 15000
-
-##########################################################
-#                OTHER TRAINING SETTING                  #
-##########################################################
-# Checkpoint selection criteria passed to ESPnet3 callbacks.
-# Each item is:
-#   - monitor key
-#   - number of best checkpoints to keep
-#   - direction (`min` or `max`)
-best_model_criterion:
-  - - valid/loss
-    - 3
-    - min
-
-# Optional random seed used by collect_stats/train.
-seed:
-
-# Extra model initialization mode forwarded to ESPnet's initializer.
-# Example: xavier_uniform
-init:
 
 ##########################################################
 #                    TRAINER SETTING                     #

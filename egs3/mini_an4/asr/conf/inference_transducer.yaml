@@ -1,4 +1,16 @@
+##########################################################
+#                   Inference SETTING                    #
+##########################################################
+# Quick usage:
+#   python run.py --stages infer --infer_config conf/inference.yaml
+#
 # Mini AN4 ASR inference config for ESPnet3 integration tests.
+##########################################################
+#                    PATHS AND INPUTS                    #
+##########################################################
+exp_dir: ${load_yaml:training.yaml,exp_dir}
+inference_dir: ${exp_dir}/inference
+dataset_dir: ${load_yaml:training.yaml,dataset_dir}
 
 dataset:
   test:
@@ -7,7 +19,9 @@ dataset:
         _target_: src.dataset.MiniAN4Dataset
         manifest_path: ${dataset_dir}/manifest/test.tsv
 
-
+##########################################################
+#                    MODEL AND OUTPUT                    #
+##########################################################
 model:
   _target_: espnet2.bin.asr_transducer_inference.Speech2Text
   asr_train_config: ${exp_dir}/config.yaml
