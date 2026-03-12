@@ -1,5 +1,9 @@
 # Mini AN4 ASR inference config for ESPnet3 integration tests.
 
+exp_dir: ${load_yaml:training.yaml,exp_dir}
+inference_dir: ${exp_dir}/inference
+dataset_dir: ${load_yaml:training.yaml,dataset_dir}
+
 dataset:
   test:
     - name: test

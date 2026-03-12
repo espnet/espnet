@@ -24,7 +24,6 @@ dataset:
         manifest_path: ${dataset_dir}/manifest/train_dev.tsv
   preprocessor:
     _target_: espnet2.train.preprocessor.CommonPreprocessor
-    _convert_: all
     fs: 16000
     train: true
     data_aug_effects:   # no need to set the "sample_rate" argument for each effect here

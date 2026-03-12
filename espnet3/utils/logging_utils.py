@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 import contextvars
 import logging
 import os
@@ -14,9 +15,10 @@ from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
 from shutil import which
-from typing import Mapping
+from typing import Any, Mapping
 
 import torch
+from omegaconf import OmegaConf
 
 LOG_FORMAT = (
     "[%(hostname)s] %(asctime)s (%(filename)s:%(lineno)d) "
@@ -50,6 +52,96 @@ def log_stage(name: str):
         yield
     finally:
         _LOG_STAGE.reset(token)
+
+
+def log_stage_metadata(
+    logger: logging.Logger,
+    system: Any,
+    args: argparse.Namespace | None,
+) -> None:
+    """Write per-stage metadata into the active stage log.
+
+    This helper records the invocation context that is useful when auditing a
+    stage log after the fact: CLI command line, selected config file paths,
+    environment metadata, and the resolved in-memory configs attached to the
+    system object.
+
+    Args:
+        logger (logging.Logger): Logger that should receive the metadata
+            entries. In practice this is the stage logger configured immediately
+            before a stage starts.
+        system (Any): Instantiated system object. When present, the attributes
+            ``train_config``, ``infer_config``, and ``measure_config`` are read
+            and dumped as resolved YAML for reproducibility.
+        args (argparse.Namespace | None): Parsed CLI namespace. The function
+            reads ``train_config``, ``infer_config``, ``measure_config``, and
+            ``write_requirements`` from this namespace when available.
+
+    Returns:
+        None: This function is logging-only and does not return a value.
+
+    Examples:
+        >>> from argparse import Namespace
+        >>> class DummySystem:
+        ...     train_config = {"exp_dir": "./exp/train"}
+        ...     infer_config = None
+        ...     measure_config = None
+        >>> log_stage_metadata(
+        ...     logging.getLogger("espnet3"),
+        ...     system=DummySystem(),
+        ...     args=Namespace(
+        ...         train_config="conf/training.yaml",
+        ...         infer_config=None,
+        ...         measure_config=None,
+        ...         write_requirements=False,
+        ...     ),
+        ... )
+
+    """
+    train_config = getattr(system, "train_config", None)
+    infer_config = getattr(system, "infer_config", None)
+    measure_config = getattr(system, "measure_config", None)
+
+    log_run_metadata(
+        logger,
+        argv=sys.argv,
+        configs={
+            "Training": (
+                Path(args.train_config)
+                if args is not None and getattr(args, "train_config", None)
+                else None
+            ),
+            "Inference": (
+                Path(args.infer_config)
+                if args is not None and getattr(args, "infer_config", None)
+                else None
+            ),
+            "Metrics": (
+                Path(args.measure_config)
+                if args is not None and getattr(args, "measure_config", None)
+                else None
+            ),
+        },
+        write_requirements=bool(
+            getattr(args, "write_requirements", False) if args is not None else False
+        ),
+    )
+    log_env_metadata(logger)
+    if train_config is not None:
+        logger.info(
+            "Training config content:\n%s",
+            OmegaConf.to_yaml(train_config, resolve=True),
+        )
+    if infer_config is not None:
+        logger.info(
+            "Inference config content:\n%s",
+            OmegaConf.to_yaml(infer_config, resolve=True),
+        )
+    if measure_config is not None:
+        logger.info(
+            "Metrics config content:\n%s",
+            OmegaConf.to_yaml(measure_config, resolve=True),
+        )
 
 
 def set_log_format(

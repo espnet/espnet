@@ -13,7 +13,7 @@
 ##########################################################
 #                    PATHS AND INPUTS                    #
 ##########################################################
-exp_dir: ${load_yaml:conf/training.yaml,exp_dir}
+exp_dir: ${load_yaml:training.yaml,exp_dir}
 inference_dir: ${exp_dir}/inference
 
 

@@ -81,16 +81,6 @@ dataset:
 # - a path to a text file, or
 # - an iterable of training strings
 tokenizer:
-  save_path: ${exp_dir}/tokenizer
-  vocab_size: 500
-  model_type: bpe
-  # Optional explicit output file for tokenizer training text.
-  # If unset, `${tokenizer.save_path}/train.txt` is used.
-  train_file:
-  text_builder:
-    func: src.tokenizer.build_text
-    dataset_dir: ${dataset_dir}
-    split: train
 
 ##########################################################
 #                   PARALLELIZATION SETTING              #
@@ -116,7 +106,7 @@ model:
 dataloader:
   collate_fn:
     _target_: espnet2.train.collate_fn.CommonCollateFn
-
+    int_pad_value: -1
   # Training dataloader / iterator settings.
   train:
     multiple_iterator: false

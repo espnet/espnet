@@ -5,20 +5,16 @@ from __future__ import annotations
 
 import argparse
 import logging
-import sys
-from importlib import resources
 from pathlib import Path
-from typing import Any, Callable, List, Sequence, Tuple, Type
+from typing import List, Sequence
 
-from omegaconf import OmegaConf
-
-from espnet3.utils.config_utils import load_config_with_defaults
-from espnet3.utils.logging_utils import (
-    configure_logging,
-    log_env_metadata,
-    log_run_metadata,
+from espnet3.utils.config_utils import load_and_merge_config
+from espnet3.utils.logging_utils import configure_logging
+from espnet3.utils.stages_utils import (
+    parse_cli_and_stage_args,
+    resolve_stages,
+    run_stages,
 )
-from espnet3.utils.stages_utils import resolve_stages, run_stages
 
 # Default stage list (can be extended/overridden by callers)
 DEFAULT_STAGES: List[str] = [
@@ -31,8 +27,6 @@ DEFAULT_STAGES: List[str] = [
 ]
 
 # Type alias for a System class
-SystemCls = Type[Any]
-AddArgsFn = Callable[[argparse.ArgumentParser], None]
 logger = logging.getLogger(__name__)
 
 
@@ -82,118 +76,9 @@ def build_parser(
     )
     return parser
 
-
-def parse_cli_and_stage_args(
-    parser: argparse.ArgumentParser,
-    stages: Sequence[str],
-) -> Tuple[argparse.Namespace, List[str]]:
-    args = parser.parse_args()
-    stages_to_run = resolve_stages(args.stages, stages)
-
-    return args, stages_to_run
-
-
-def _resolve_template_config_filename(config_arg_name: str) -> str:
-    """Resolve template YAML filename from a CLI config argument key.
-
-    Args:
-        config_arg_name: Internal config argument key name
-            (``train_config``, ``infer_config``, or ``measure_config``).
-
-    Returns:
-        str: Template config filename under ``egs3.TEMPLATE.asr/conf``.
-
-    Raises:
-        ValueError: If an unknown config argument name is provided.
-
-    Examples:
-        >>> _resolve_template_config_filename("train_config")
-        'training.yaml'
-        >>> _resolve_template_config_filename("infer_config")
-        'inference.yaml'
-
-    Todo:
-        If new config are added to CLI options, extend this mapping.
-    """
-    # Stage/method names use verbs, while config filenames use noun forms.
-    if config_arg_name == "train_config":
-        return "training.yaml"
-    if config_arg_name == "infer_config":
-        return "inference.yaml"
-    if config_arg_name == "measure_config":
-        return "metrics.yaml"
-    raise ValueError(f"Unknown config argument name: {config_arg_name}")
-
-
-def _load_template_defaults(config_arg_name: str):
-    """Load packaged TEMPLATE defaults by config kind.
-
-    Args:
-        config_arg_name: Internal config argument key name
-            (``train_config``, ``infer_config``, or ``measure_config``).
-
-    Returns:
-        DictConfig: Loaded template default config.
-
-    Examples:
-        >>> cfg = _load_template_defaults("train_config")
-        >>> "dataset" in cfg
-        True
-        >>> cfg = _load_template_defaults("infer_config")
-        >>> cfg.get("provider", {}).get("_target_") is not None
-        True
-
-    Note:
-        Uses ``importlib.resources`` to avoid hard-coded file system paths, so
-        it also works after ``pip install`` as package data.
-
-    """
-    filename = _resolve_template_config_filename(config_arg_name)
-    package = "egs3.TEMPLATE.asr"
-    resource = resources.files(package).joinpath("conf", filename)
-    with resources.as_file(resource) as path:
-        return load_config_with_defaults(str(path))
-    return OmegaConf.create({})
-
-
-def _load_and_merge_config(config_path: Path | None, config_arg_name: str):
-    """Load user config and merge with TEMPLATE defaults.
-
-    Args:
-        config_path: Path to the user-provided YAML config. If ``None``,
-            this function returns ``None``.
-        config_arg_name: Internal config argument key name used to select
-            the corresponding TEMPLATE default config.
-
-    Returns:
-        DictConfig | None: Merged config if ``config_path`` is provided,
-        otherwise ``None``.
-
-    Examples:
-        >>> cfg = _load_and_merge_config(
-        ...     Path("egs3/mini_an4/asr/conf/inference.yaml"),
-        ...     "infer_config",
-        ... )
-        >>> cfg.provider._target_
-        'espnet3.systems.base.inference_provider.InferenceProvider'
-        >>> _load_and_merge_config(None, "measure_config") is None
-        True
-
-    Note:
-        Merge order is ``template_defaults -> user_config``. User config wins
-        on key conflicts, so recipe-specific overrides remain explicit.
-
-    """
-    if config_path is None:
-        return None
-    user_cfg = load_config_with_defaults(config_path)
-    default_cfg = _load_template_defaults(config_arg_name)
-    return OmegaConf.merge(default_cfg, user_cfg)
-
-
 def main(
     args,
-    system_cls: SystemCls,
+    system_cls,
     stages: Sequence[str] = DEFAULT_STAGES,
 ) -> None:
     stages_to_run = resolve_stages(args.stages, stages)
@@ -201,9 +86,21 @@ def main(
     # -----------------------------------------
     # Load configs
     # -----------------------------------------
-    train_config = _load_and_merge_config(args.train_config, "train_config")
-    infer_config = _load_and_merge_config(args.infer_config, "infer_config")
-    measure_config = _load_and_merge_config(args.measure_config, "measure_config")
+    train_config = load_and_merge_config(
+        args.train_config,
+        "train_config",
+        template_package=__package__,
+    )
+    infer_config = load_and_merge_config(
+        args.infer_config,
+        "infer_config",
+        template_package=__package__,
+    )
+    measure_config = load_and_merge_config(
+        args.measure_config,
+        "measure_config",
+        template_package=__package__,
+    )
 
     logger = configure_logging()
 
@@ -247,51 +144,9 @@ def main(
     run_stages(
         system=system,
         stages_to_run=stages_to_run,
-        dry_run=args.dry_run,
+        args=args,
         log=logger,
-        on_stage_start=lambda stage, log: _log_stage_metadata(
-            log,
-            args=args,
-            train_config=train_config,
-            infer_config=infer_config,
-            measure_config=measure_config,
-        ),
     )
-
-
-def _log_stage_metadata(
-    logger,
-    args: argparse.Namespace,
-    train_config,
-    infer_config,
-    measure_config,
-) -> None:
-    log_run_metadata(
-        logger,
-        argv=sys.argv,
-        configs={
-            "Training": Path(args.train_config) if args.train_config else None,
-            "Inference": Path(args.infer_config) if args.infer_config else None,
-            "Metrics": Path(args.measure_config) if args.measure_config else None,
-        },
-        write_requirements=args.write_requirements,
-    )
-    log_env_metadata(logger)
-    if train_config is not None:
-        logger.info(
-            "Training config content:\n%s",
-            OmegaConf.to_yaml(train_config, resolve=True),
-        )
-    if infer_config is not None:
-        logger.info(
-            "Inference config content:\n%s",
-            OmegaConf.to_yaml(infer_config, resolve=True),
-        )
-    if measure_config is not None:
-        logger.info(
-            "Metrics config content:\n%s",
-            OmegaConf.to_yaml(measure_config, resolve=True),
-        )
 
 
 if __name__ == "__main__":

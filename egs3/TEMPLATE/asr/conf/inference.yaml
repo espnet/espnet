@@ -11,9 +11,9 @@
 ##########################################################
 #                    PATHS AND INPUTS                    #
 ##########################################################
-exp_dir: ${load_yaml:conf/training.yaml,exp_dir}
+exp_dir: ${load_yaml:training.yaml,exp_dir}
 inference_dir: ${exp_dir}/inference
-dataset_dir: ${load_yaml:conf/training.yaml,dataset_dir}
+dataset_dir: ${load_yaml:training.yaml,dataset_dir}
 
 # Test split definitions are required for inference.
 # `dataset.test[*].name` becomes the output subdirectory name under
@@ -34,6 +34,7 @@ dataset_dir: ${load_yaml:conf/training.yaml,dataset_dir}
 dataset:
   _target_: espnet3.components.data.data_organizer.DataOrganizer
   test:
+  preprocessor:
 
 ##########################################################
 #                  PARALLELIZATION SETTING               #
