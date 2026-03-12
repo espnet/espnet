@@ -4,8 +4,8 @@ import pytest
 
 from egs3.TEMPLATE.asr.run import _load_and_merge_config
 from espnet3.utils.config_utils import (
-    load_template_defaults,
     _resolve_template_config_filename,
+    load_template_defaults,
 )
 
 
@@ -23,8 +23,7 @@ def test_resolve_template_config_filename_invalid() -> None:
 def test_load_template_defaults_train_contains_expected_targets() -> None:
     cfg = load_template_defaults("train_config", "egs3.TEMPLATE.asr")
     assert (
-        cfg.dataset._target_
-        == "espnet3.components.data.data_organizer.DataOrganizer"
+        cfg.dataset._target_ == "espnet3.components.data.data_organizer.DataOrganizer"
     )
     assert cfg.optimizer._target_ == "torch.optim.Adam"
     assert cfg.scheduler._target_ == "espnet2.schedulers.warmup_lr.WarmupLR"
@@ -37,8 +36,7 @@ def test_load_template_defaults_infer_contains_expected_targets() -> None:
         == "espnet3.systems.base.inference_provider.InferenceProvider"
     )
     assert (
-        cfg.runner._target_
-        == "espnet3.systems.base.inference_runner.InferenceRunner"
+        cfg.runner._target_ == "espnet3.systems.base.inference_runner.InferenceRunner"
     )
 
 
@@ -67,14 +65,16 @@ optimizer:
     assert cfg.optimizer.lr == 0.1
     # template defaults should still be present
     assert (
-        cfg.dataset._target_
-        == "espnet3.components.data.data_organizer.DataOrganizer"
+        cfg.dataset._target_ == "espnet3.components.data.data_organizer.DataOrganizer"
     )
 
 
 def test_load_and_merge_config_none_path_returns_none() -> None:
-    assert _load_and_merge_config(
-        None,
-        "measure_config",
-        template_package="egs3.TEMPLATE.asr",
-    ) is None
+    assert (
+        _load_and_merge_config(
+            None,
+            "measure_config",
+            template_package="egs3.TEMPLATE.asr",
+        )
+        is None
+    )

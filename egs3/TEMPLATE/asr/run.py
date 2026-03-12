@@ -76,6 +76,7 @@ def build_parser(
     )
     return parser
 
+
 def main(
     args,
     system_cls,
