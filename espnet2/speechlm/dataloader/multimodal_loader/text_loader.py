@@ -7,6 +7,109 @@
 import json
 import logging
 from pathlib import Path
+from typing import Iterator, Tuple
+
+import pyarrow as pa
+
+try:
+    from arkive.text.write_utils import _decompress_text_data
+except ImportError:
+    raise ImportError(
+        "arkive is not installed. Install at https://github.com/wanchichen/arkive"
+    )
+
+try:
+    import duckdb
+except ImportError:
+    raise ImportError(
+        "duckdb is not installed. Please install it with: pip install duckdb"
+    )
+
+
+class ArkiveTextReader:
+    """Dict-like lazy text reader using arkive parquets.
+
+    Reads compressed text data from arkive parquet files. Text is stored in
+    binary format with compression and accessed via byte offsets.
+
+    Args:
+        parquet_path: Path to the parquet file containing text metadata.
+        valid_ids: List of valid IDs to keep (optional, keeps all if None).
+    """
+
+    def __init__(
+        self,
+        parquet_path: str,
+        valid_ids: list = None,
+    ):
+        # Use a dedicated connection to avoid polluting global state
+        conn = duckdb.connect()
+
+        # Register valid_ids as a table for memory-efficient filtering
+        # Avoids building a huge SQL string with millions of IDs
+        if valid_ids is not None:
+            # Create PyArrow table and register - more memory efficient
+            valid_ids_table = pa.table({"utt_id": pa.array(valid_ids)})
+            conn.register("valid_ids_tbl", valid_ids_table)
+
+            # Use semi-join for efficient filtering
+            result = conn.execute(
+                f"""
+                SELECT p.* FROM read_parquet('{parquet_path}') p
+                SEMI JOIN valid_ids_tbl v ON p.utt_id = v.utt_id
+                """
+            )
+        else:
+            result = conn.execute(f"SELECT * FROM read_parquet('{parquet_path}')")
+
+        self.data = result.pl()
+
+        # Build index without calling to_list() to avoid extra memory copy
+        self.index = {
+            utt_id: idx for idx, utt_id in enumerate(self.data["utt_id"].to_physical())
+        }
+
+        # Clean up connection
+        conn.close()
+
+    def __getitem__(self, key: str) -> str:
+        """Get text by ID."""
+        idx = self.index[key]
+        row = self.data.row(idx, named=True)
+
+        bin_path = row["path"]
+        start_offset = row["start_byte_offset"]
+        file_size = row["file_size_bytes"]
+
+        with open(bin_path, "rb") as f:
+            f.seek(start_offset)
+            data_bytes = f.read(file_size)
+
+        text = _decompress_text_data(data_bytes)
+
+        return text
+
+    def __contains__(self, key: str) -> bool:
+        """Check if ID exists in manifest."""
+        return key in self.index
+
+    def __len__(self) -> int:
+        """Return number of items in manifest."""
+        return len(self.data)
+
+    def keys(self) -> Iterator[str]:
+        """Return iterator over IDs."""
+        return iter(self.index.keys())
+
+    def values(self) -> Iterator[str]:
+        """Return iterator over text values."""
+        for key in self.index:
+            yield self[key]
+
+    def items(self) -> Iterator[Tuple[str, str]]:
+        """Return iterator over (id, text) pairs."""
+        for key in self.index:
+            yield key, self[key]
 
 
 class TextReader:
