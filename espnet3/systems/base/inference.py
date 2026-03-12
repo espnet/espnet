@@ -150,7 +150,13 @@ def infer(config: DictConfig):
             raise TypeError(
                 f"{type(runner).__name__} must provide inference runner attributes"
             )
-        dataset_length = len(provider.build_dataset(config))
+        dataset = provider.build_dataset(config)
+        dataset_length = len(dataset)
+        if dataset_length == 0:
+            raise RuntimeError(
+                f"Test dataset '{test_name}' is empty. "
+                "Please check the dataset manifest and preprocessing outputs."
+            )
         logger.info("===> Processing %d samples..", dataset_length)
         out = runner(list(range(dataset_length)))
         if out is None:
