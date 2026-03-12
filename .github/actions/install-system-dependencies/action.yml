@@ -1,0 +1,39 @@
+name: Install System Dependencies
+description: Install required system packages for ESPnet testing
+
+inputs:
+  packages:
+    description: 'Space-separated list of packages to install'
+    required: false
+    default: 'cmake libsndfile1-dev bc sox ffmpeg libjpeg-dev'
+  enable-cache:
+    description: 'Enable apt cache to speed up installation'
+    required: false
+    default: 'true'
+
+runs:
+  using: "composite"
+  steps:
+    - name: Get Date
+      if: ${{ inputs.enable-cache == 'true' }}
+      id: get-date
+      shell: bash
+      run: echo "date=$(/bin/date -u '+%Y%m%d')" >> $GITHUB_OUTPUT
+
+    - name: Cache apt packages
+      if: ${{ inputs.enable-cache == 'true' }}
+      uses: actions/cache@v5
+      with:
+        path: |
+          /var/cache/apt/archives
+          /var/lib/apt/lists
+        key: ${{ runner.os }}-apt-${{ steps.get-date.outputs.date }}-${{ hashFiles('.github/actions/install-system-dependencies/action.yml') }}
+        restore-keys: |
+          ${{ runner.os }}-apt-${{ steps.get-date.outputs.date }}-
+          ${{ runner.os }}-apt-
+
+    - name: Install system packages
+      shell: bash
+      run: |
+        sudo apt-get update -qq
+        sudo apt-get install -qq -y ${{ inputs.packages }}
