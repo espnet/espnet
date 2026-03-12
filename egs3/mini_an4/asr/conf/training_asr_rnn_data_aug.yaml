@@ -67,7 +67,7 @@ tokenizer:
   text_builder:
     func: src.tokenizer.gather_training_text
     manifest_path: ${dataset_dir}/manifest/train_nodev.tsv
-  
+
 ##########################################################
 #                      MODEL SETTING                     #
 ##########################################################
@@ -142,6 +142,5 @@ trainer:
   max_epochs: 1
   limit_train_batches: 1
   limit_val_batches: 1
-  
-  strategy: auto
 
+  strategy: auto
