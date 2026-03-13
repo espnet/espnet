@@ -26,7 +26,6 @@ DEFAULT_STAGES: List[str] = [
     "measure",
 ]
 
-# Type alias for a System class
 logger = logging.getLogger(__name__)
 
 
@@ -87,19 +86,22 @@ def main(
     # -----------------------------------------
     # Load configs
     # -----------------------------------------
+    # Keep template_package explicit so the recipe declares which TEMPLATE
+    # package provides the default configs, instead of relying on path-based
+    # inference from the user-supplied config location.
     training_config = load_and_merge_config(
         args.training_config,
-        "training_config",
+        template_config_path="conf/training.yaml",
         template_package=__package__,
     )
     inference_config = load_and_merge_config(
         args.inference_config,
-        "inference_config",
+        template_config_path="conf/inference.yaml",
         template_package=__package__,
     )
     metrics_config = load_and_merge_config(
         args.metrics_config,
-        "metrics_config",
+        template_config_path="conf/metrics.yaml",
         template_package=__package__,
     )
 

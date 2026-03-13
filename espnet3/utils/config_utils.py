@@ -53,7 +53,7 @@ def load_yaml(path, key=None):
     """
     cfg_path = Path(path)
     try:
-        cfg = _load_yaml_for_resolver(cfg_path)
+        cfg = OmegaConf.load(cfg_path)
     except FileNotFoundError:
         logging.error(f"File not found: {path}")
         raise
@@ -68,19 +68,6 @@ def load_yaml(path, key=None):
     if value is None:
         raise KeyError(f"Key not found in YAML: {key}")
     return value
-
-
-def _load_yaml_for_resolver(path: Path):
-    config_arg_name = _resolve_template_config_arg_name(path.name)
-    if config_arg_name is not None:
-        template_package = _infer_template_package_from_config_path(path)
-        if template_package is not None:
-            return load_and_merge_config(
-                path,
-                config_arg_name,
-                template_package=template_package,
-            )
-    return OmegaConf.load(path)
 
 
 OMEGACONF_ESPNET3_RESOLVER = {
@@ -191,17 +178,19 @@ def load_config_with_defaults(path: str, resolve: bool = True) -> OmegaConf:
     return final_config
 
 
-def load_template_defaults(config_arg_name: str, template_package: str):
+def load_template_defaults(
+    template_config_path: str,
+    template_package: str,
+):
     """Load packaged TEMPLATE defaults by config kind."""
-    filename = _resolve_template_config_filename(config_arg_name)
-    resource = resources.files(template_package).joinpath("conf", filename)
+    resource = resources.files(template_package).joinpath(*Path(template_config_path).parts)
     with resources.as_file(resource) as path:
         return load_config_with_defaults(str(path), resolve=False)
 
 
 def load_and_merge_config(
     config_path: Path | None,
-    config_arg_name: str,
+    template_config_path: str,
     template_package: str | None = None,
 ):
     """Load user config and merge it with TEMPLATE defaults."""
@@ -213,7 +202,7 @@ def load_and_merge_config(
         raise ValueError(
             "template_package is required when it cannot be inferred from config_path"
         )
-    default_cfg = load_template_defaults(config_arg_name, template_package)
+    default_cfg = load_template_defaults(template_config_path, template_package)
     user_cfg = load_config_with_defaults(str(config_path), resolve=False)
     merged_cfg = OmegaConf.merge(default_cfg, user_cfg)
     OmegaConf.resolve(merged_cfg)
@@ -301,26 +290,6 @@ def _build_config_path(base_path: Path, entry: str) -> Path:
     if not entry_path.suffix:
         entry += ".yaml"
     return base_path / entry
-
-
-def _resolve_template_config_filename(config_arg_name: str) -> str:
-    if config_arg_name == "training_config":
-        return "training.yaml"
-    if config_arg_name == "inference_config":
-        return "inference.yaml"
-    if config_arg_name == "metrics_config":
-        return "metrics.yaml"
-    raise ValueError(f"Unknown config argument name: {config_arg_name}")
-
-
-def _resolve_template_config_arg_name(filename: str) -> str | None:
-    if filename == "training.yaml":
-        return "training_config"
-    if filename == "inference.yaml":
-        return "inference_config"
-    if filename == "metrics.yaml":
-        return "metrics_config"
-    return None
 
 
 def _infer_template_package_from_config_path(config_path: Path) -> str | None:
