@@ -401,7 +401,9 @@ custom_dir: ${exp_dir}/custom
         lambda _, __: load_config_with_defaults(str(template), resolve=False),
     )
 
-    cfg = load_and_merge_config(user, "training_config", template_package="dummy.package")
+    cfg = load_and_merge_config(
+        user, "training_config", template_package="dummy.package"
+    )
 
     assert cfg.exp_dir == "./exp/from_template"
     assert cfg.inference_dir == "./exp/from_template/inference"
@@ -430,7 +432,9 @@ exp_dir: ./exp/from_user
         lambda _, __: load_config_with_defaults(str(template), resolve=False),
     )
 
-    cfg = load_and_merge_config(user, "training_config", template_package="dummy.package")
+    cfg = load_and_merge_config(
+        user, "training_config", template_package="dummy.package"
+    )
 
     assert cfg.exp_dir == "./exp/from_user"
     assert cfg.custom_dir == "./exp/from_user/custom"
