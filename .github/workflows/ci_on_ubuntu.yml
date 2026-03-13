@@ -281,7 +281,7 @@ jobs:
 
   test_integration_espnet3:
     runs-on: ubuntu-latest
-    needs: setup_environment
+    needs: process_labels
     if: |
       github.event.pull_request.draft == false
     strategy:
