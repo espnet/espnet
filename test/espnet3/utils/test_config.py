@@ -340,43 +340,14 @@ def test_load_yaml_missing_key_raises(write_yaml):
         load_yaml(str(path), "missing.key")
 
 
-def test_load_yaml_training_config_merges_template_before_select(
-    write_yaml, monkeypatch
-):
-    template = write_yaml(
-        "template.yaml",
-        """
-data_dir: ./data
-dataset_dir: ${data_dir}/default
-""",
-    )
-    training = write_yaml(
-        "training.yaml",
-        """
-dataset_dir: ${data_dir}/mini_an4
-""",
-    )
-
-    monkeypatch.setattr(
-        "espnet3.utils.config_utils.load_template_defaults",
-        lambda _, __: load_config_with_defaults(str(template), resolve=False),
-    )
-    monkeypatch.setattr(
-        "espnet3.utils.config_utils._infer_template_package_from_config_path",
-        lambda _: "dummy.package",
-    )
-
-    assert load_yaml(str(training), "dataset_dir") == "./data/mini_an4"
-
-
 def test_load_template_defaults_train():
-    cfg = load_template_defaults("training_config", "egs3.TEMPLATE.asr")
+    cfg = load_template_defaults("conf/training.yaml", "egs3.TEMPLATE.asr")
     assert "dataset" in cfg
     assert "exp_dir" in cfg
 
 
 def test_load_and_merge_config_none():
-    assert load_and_merge_config(None, "metrics_config") is None
+    assert load_and_merge_config(None, "conf/metrics.yaml") is None
 
 
 def test_load_and_merge_config_resolves_user_reference_to_template_value(
@@ -401,7 +372,11 @@ custom_dir: ${exp_dir}/custom
         lambda _, __: load_config_with_defaults(str(template), resolve=False),
     )
 
-    cfg = load_and_merge_config(user, "training_config", template_package="dummy.package")
+    cfg = load_and_merge_config(
+        user,
+        "conf/training.yaml",
+        template_package="dummy.package",
+    )
 
     assert cfg.exp_dir == "./exp/from_template"
     assert cfg.inference_dir == "./exp/from_template/inference"
@@ -430,64 +405,14 @@ exp_dir: ./exp/from_user
         lambda _, __: load_config_with_defaults(str(template), resolve=False),
     )
 
-    cfg = load_and_merge_config(user, "training_config", template_package="dummy.package")
-
-    assert cfg.exp_dir == "./exp/from_user"
-    assert cfg.custom_dir == "./exp/from_user/custom"
-
-
-def test_load_and_merge_inference_config_can_read_training_yaml_with_template_values(
-    write_yaml, monkeypatch
-):
-    template_infer = write_yaml(
-        "template_inference.yaml",
-        """
-exp_dir: ${load_yaml:training.yaml,exp_dir}
-dataset_dir: ${load_yaml:training.yaml,dataset_dir}
-""",
-    )
-    template_train = write_yaml(
-        "template_training.yaml",
-        """
-data_dir: ./data
-exp_dir: ./exp/default
-dataset_dir: ${data_dir}/default
-""",
-    )
-    write_yaml(
-        "training.yaml",
-        """
-exp_dir: ./exp/train_debug
-dataset_dir: ${data_dir}/mini_an4
-""",
-    )
-    inference = write_yaml("inference.yaml", "custom_dir: ${dataset_dir}/manifest\n")
-
-    def fake_load_template_defaults(config_arg_name, template_package):
-        if config_arg_name == "training_config":
-            return load_config_with_defaults(str(template_train), resolve=False)
-        if config_arg_name == "inference_config":
-            return load_config_with_defaults(str(template_infer), resolve=False)
-        raise AssertionError(config_arg_name)
-
-    monkeypatch.setattr(
-        "espnet3.utils.config_utils.load_template_defaults",
-        fake_load_template_defaults,
-    )
-    monkeypatch.setattr(
-        "espnet3.utils.config_utils._infer_template_package_from_config_path",
-        lambda _: "dummy.package",
-    )
-
     cfg = load_and_merge_config(
-        inference,
-        "inference_config",
+        user,
+        "conf/training.yaml",
         template_package="dummy.package",
     )
 
-    assert cfg.exp_dir == "./exp/train_debug"
-    assert cfg.dataset_dir == "./data/mini_an4"
-    assert cfg.custom_dir == "./data/mini_an4/manifest"
+    assert cfg.exp_dir == "./exp/from_user"
+    assert cfg.custom_dir == "./exp/from_user/custom"
 
 
 def test_ensure_target_convert_all_nested():

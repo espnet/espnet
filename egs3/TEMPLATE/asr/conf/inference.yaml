@@ -11,9 +11,12 @@
 ##########################################################
 #                    PATHS AND INPUTS                    #
 ##########################################################
-exp_dir: ${load_yaml:training.yaml,exp_dir}
+recipe_dir: .
+exp_tag:
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+data_dir: ${recipe_dir}/data
 inference_dir: ${exp_dir}/inference
-dataset_dir: ${load_yaml:training.yaml,dataset_dir}
+
 
 # Test split definitions are required for inference.
 # `dataset.test[*].name` becomes the output subdirectory name under

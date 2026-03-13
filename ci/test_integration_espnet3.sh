@@ -29,7 +29,7 @@ run_with_training_config() {
         --stages create_dataset train_tokenizer collect_stats train infer measure \
         --training_config conf/training.yaml \
         --inference_config "${inference_config}" \
-        --metrics_config conf/measure.yaml
+        --metrics_config conf/metrics.yaml
     rm -rf exp data
 }
 
