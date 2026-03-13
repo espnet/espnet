@@ -2,7 +2,7 @@
 #                 METRIC SCORING SETTING                 #
 ##########################################################
 # Quick usage:
-#   python run.py --stages measure --measure_config conf/metrics.yaml
+#   python run.py --stages measure --metrics_config conf/metrics.yaml
 #
 # Assumptions:
 # - `conf/inference.yaml` has already produced `<test_name>/*.scp` files.

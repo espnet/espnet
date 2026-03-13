@@ -304,22 +304,22 @@ def _build_config_path(base_path: Path, entry: str) -> Path:
 
 
 def _resolve_template_config_filename(config_arg_name: str) -> str:
-    if config_arg_name == "train_config":
+    if config_arg_name == "training_config":
         return "training.yaml"
-    if config_arg_name == "infer_config":
+    if config_arg_name == "inference_config":
         return "inference.yaml"
-    if config_arg_name == "measure_config":
+    if config_arg_name == "metrics_config":
         return "metrics.yaml"
     raise ValueError(f"Unknown config argument name: {config_arg_name}")
 
 
 def _resolve_template_config_arg_name(filename: str) -> str | None:
     if filename == "training.yaml":
-        return "train_config"
+        return "training_config"
     if filename == "inference.yaml":
-        return "infer_config"
+        return "inference_config"
     if filename == "metrics.yaml":
-        return "measure_config"
+        return "metrics_config"
     return None
 
 

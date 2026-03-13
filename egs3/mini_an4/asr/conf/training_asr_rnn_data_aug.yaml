@@ -2,8 +2,8 @@
 #                    TRAINING SETTING                    #
 ##########################################################
 # Quick usage:
-#   python run.py --stages create_dataset --train_config conf/training.yaml
-#   python run.py --stages train          --train_config conf/training.yaml
+#   python run.py --stages create_dataset --training_config conf/training.yaml
+#   python run.py --stages train          --training_config conf/training.yaml
 #
 # This is a debug config for CI
 # Mini AN4 ASR training config for ESPnet3 integration tests.

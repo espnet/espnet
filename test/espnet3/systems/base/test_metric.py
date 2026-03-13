@@ -106,7 +106,7 @@ def test_metric_discovers_test_sets_from_inference_dir(tmp_path):
     assert results[expected_key]["test_b"] == {"count": 1}
 
 
-def test_resolve_test_sets_prefers_measure_config_dataset_over_inference_dir(tmp_path):
+def test_resolve_test_sets_prefers_metrics_config_dataset_over_inference_dir(tmp_path):
     inference_dir = tmp_path / "infer"
     for test_name in ("from_dir_a", "from_dir_b"):
         (inference_dir / test_name).mkdir(parents=True)

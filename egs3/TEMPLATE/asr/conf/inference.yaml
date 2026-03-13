@@ -2,7 +2,7 @@
 #                   Inference SETTING                    #
 ##########################################################
 # Quick usage:
-#   python run.py --stages infer --infer_config conf/inference.yaml
+#   python run.py --stages infer --inference_config conf/inference.yaml
 #
 # Outputs:
 # - `${inference_dir}/<test_name>/*.scp`

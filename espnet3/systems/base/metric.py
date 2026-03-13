@@ -14,16 +14,16 @@ from espnet3.utils.scp_utils import get_class_path, load_scp_fields
 logger = logging.getLogger(__name__)
 
 
-def _resolve_test_sets(measure_config: DictConfig) -> list[str]:
+def _resolve_test_sets(metrics_config: DictConfig) -> list[str]:
     """Resolve metric target test sets from config or inference outputs.
 
     This helper decides which test-set names should be scored by the
     measurement stage.
 
     Resolution order:
-        1. If ``measure_config.dataset.test`` is defined, use its ``name``
+        1. If ``metrics_config.dataset.test`` is defined, use its ``name``
            fields as-is.
-        2. Otherwise, scan ``measure_config.inference_dir`` and treat every
+        2. Otherwise, scan ``metrics_config.inference_dir`` and treat every
            subdirectory as a test set.
 
     For example, if ``inference_dir`` contains:
@@ -37,7 +37,7 @@ def _resolve_test_sets(measure_config: DictConfig) -> list[str]:
     then this function returns ``["test-clean", "test-other"]``.
 
     Args:
-        measure_config: Measurement config containing either
+        metrics_config: Measurement config containing either
             ``dataset.test`` entries or an ``inference_dir`` path.
 
     Returns:
@@ -47,12 +47,12 @@ def _resolve_test_sets(measure_config: DictConfig) -> list[str]:
         ValueError: If neither ``dataset.test`` nor any subdirectories under
             ``inference_dir`` are available.
     """
-    dataset = getattr(measure_config, "dataset", None)
+    dataset = getattr(metrics_config, "dataset", None)
     test_config = getattr(dataset, "test", None) if dataset is not None else None
     if test_config:
         return [t.name for t in test_config]
 
-    inference_dir = Path(measure_config.inference_dir)
+    inference_dir = Path(metrics_config.inference_dir)
     test_sets = sorted(
         entry.name
         for entry in inference_dir.iterdir()
@@ -60,7 +60,7 @@ def _resolve_test_sets(measure_config: DictConfig) -> list[str]:
     )
     if not test_sets:
         raise ValueError(
-            "No test sets found. Specify `measure_config.dataset.test` or place "
+            "No test sets found. Specify `metrics_config.dataset.test` or place "
             f"test-set subdirectories under inference_dir: {inference_dir}"
         )
     logger.info(
@@ -70,20 +70,20 @@ def _resolve_test_sets(measure_config: DictConfig) -> list[str]:
     return test_sets
 
 
-def measure(measure_config: DictConfig):
+def measure(metrics_config: DictConfig):
     """Compute metrics for each test set and write a metrics JSON file.
 
     Args:
-        measure_config: Omegaconf configuration with inference and metric settings.
+        metrics_config: Omegaconf configuration with inference and metric settings.
 
     Returns:
         Nested dict keyed by metric class path and test set name.
     """
-    test_sets = _resolve_test_sets(measure_config)
+    test_sets = _resolve_test_sets(metrics_config)
     results = {}
-    assert hasattr(measure_config, "metrics"), "Please specify `metrics`!"
+    assert hasattr(metrics_config, "metrics"), "Please specify `metrics`!"
 
-    for idx, metric_config in enumerate(measure_config.metrics):
+    for idx, metric_config in enumerate(metrics_config.metrics):
         metric = instantiate(metric_config.metric)
         if not isinstance(metric, AbsMetric):
             raise TypeError(f"{type(metric)} is not a valid AbsMetric instance")
@@ -108,15 +108,15 @@ def measure(measure_config: DictConfig):
                     )
                 inputs = [ref_key, hyp_key]
             data = load_scp_fields(
-                inference_dir=Path(measure_config.inference_dir),
+                inference_dir=Path(metrics_config.inference_dir),
                 test_name=test_name,
                 inputs=inputs,
                 file_suffix=".scp",
             )
-            metric_result = metric(data, test_name, measure_config.inference_dir)
+            metric_result = metric(data, test_name, metrics_config.inference_dir)
             results[get_class_path(metric)].update({test_name: metric_result})
 
-    out_path = Path(measure_config.inference_dir) / "metrics.json"
+    out_path = Path(metrics_config.inference_dir) / "metrics.json"
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(results, f, indent=2, ensure_ascii=False)
 

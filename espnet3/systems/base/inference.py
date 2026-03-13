@@ -95,10 +95,10 @@ def infer(config: DictConfig):
 
         input_key = getattr(config, "input_key", None)
         if input_key is None:
-            raise RuntimeError("infer_config.input_key must be set.")
+            raise RuntimeError("inference_config.input_key must be set.")
 
         if isinstance(input_key, (list, tuple)) and not input_key:
-            raise RuntimeError("infer_config.input_key must not be empty.")
+            raise RuntimeError("inference_config.input_key must not be empty.")
 
         output_keys = getattr(config, "output_keys", None)
         if output_keys is not None:
@@ -107,14 +107,14 @@ def infer(config: DictConfig):
             elif not isinstance(output_keys, (list, tuple)):
                 output_keys = list(output_keys)
             if not output_keys:
-                raise RuntimeError("infer_config.output_keys must not be empty.")
+                raise RuntimeError("inference_config.output_keys must not be empty.")
 
         idx_key = getattr(config, "idx_key", "utt_id")
 
         batch_size = getattr(config, "batch_size", None)
         provider_config = getattr(config, "provider", None)
         if provider_config is None:
-            raise RuntimeError("infer_config.provider must be set.")
+            raise RuntimeError("inference_config.provider must be set.")
         raw_params = getattr(provider_config, "params", {}) or {}
         if OmegaConf.is_config(raw_params):
             provider_params = OmegaConf.to_container(raw_params, resolve=True)
@@ -127,7 +127,7 @@ def infer(config: DictConfig):
 
         provider = instantiate(
             provider_config,
-            infer_config=config,
+            inference_config=config,
             params=provider_params,
             _recursive_=False,
         )
@@ -135,7 +135,7 @@ def infer(config: DictConfig):
         hyp_keys = output_keys if output_keys is not None else []
         runner_config = getattr(config, "runner", None)
         if runner_config is None:
-            raise RuntimeError("infer_config.runner must be set.")
+            raise RuntimeError("inference_config.runner must be set.")
 
         runner_kwargs = {
             "provider": provider,

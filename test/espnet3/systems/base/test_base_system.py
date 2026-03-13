@@ -40,9 +40,9 @@ def test_base_system_invokes_helpers(tmp_path, monkeypatch):
     monkeypatch.setattr(sysmod, "measure", fake_metric)
 
     system = BaseSystem(
-        train_config=train_cfg,
-        infer_config=infer_cfg,
-        measure_config=measure_cfg,
+        training_config=train_cfg,
+        inference_config=infer_cfg,
+        metrics_config=measure_cfg,
     )
 
     assert system.exp_dir.is_dir()

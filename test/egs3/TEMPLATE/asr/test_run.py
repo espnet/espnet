@@ -10,9 +10,9 @@ from espnet3.utils.config_utils import (
 
 
 def test_resolve_template_config_filename() -> None:
-    assert _resolve_template_config_filename("train_config") == "training.yaml"
-    assert _resolve_template_config_filename("infer_config") == "inference.yaml"
-    assert _resolve_template_config_filename("measure_config") == "metrics.yaml"
+    assert _resolve_template_config_filename("training_config") == "training.yaml"
+    assert _resolve_template_config_filename("inference_config") == "inference.yaml"
+    assert _resolve_template_config_filename("metrics_config") == "metrics.yaml"
 
 
 def test_resolve_template_config_filename_invalid() -> None:
@@ -21,7 +21,7 @@ def test_resolve_template_config_filename_invalid() -> None:
 
 
 def test_load_template_defaults_train_contains_expected_targets() -> None:
-    cfg = load_template_defaults("train_config", "egs3.TEMPLATE.asr")
+    cfg = load_template_defaults("training_config", "egs3.TEMPLATE.asr")
     assert (
         cfg.dataset._target_ == "espnet3.components.data.data_organizer.DataOrganizer"
     )
@@ -30,7 +30,7 @@ def test_load_template_defaults_train_contains_expected_targets() -> None:
 
 
 def test_load_template_defaults_infer_contains_expected_targets() -> None:
-    cfg = load_template_defaults("infer_config", "egs3.TEMPLATE.asr")
+    cfg = load_template_defaults("inference_config", "egs3.TEMPLATE.asr")
     assert (
         cfg.provider._target_
         == "espnet3.systems.base.inference_provider.InferenceProvider"
@@ -55,7 +55,7 @@ optimizer:
 
     cfg = _load_and_merge_config(
         user,
-        "train_config",
+        "training_config",
         template_package="egs3.TEMPLATE.asr",
     )
 
@@ -73,7 +73,7 @@ def test_load_and_merge_config_none_path_returns_none() -> None:
     assert (
         _load_and_merge_config(
             None,
-            "measure_config",
+            "metrics_config",
             template_package="egs3.TEMPLATE.asr",
         )
         is None

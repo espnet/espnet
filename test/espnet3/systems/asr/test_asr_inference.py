@@ -222,7 +222,7 @@ def test_inference_requires_provider_config():
             "parallel": {"env": "local", "n_workers": 1},
         }
     )
-    with pytest.raises(RuntimeError, match="infer_config.provider must be set"):
+    with pytest.raises(RuntimeError, match="inference_config.provider must be set"):
         infer(cfg)
 
 

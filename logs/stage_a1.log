@@ -1,0 +1,5 @@
+[MSI] 2026-03-12 16:47:09 EDT (stages_utils.py:186) ERROR:	[stage_a] Stage 'stage_a' failed (bad arguments)
+Traceback (most recent call last):
+  File "/mnt/c/Users/might/Documents/git/espnets/espnet3/espnet3/utils/stages_utils.py", line 184, in run_stages
+    fn()
+TypeError: test_run_stages_typeerror_wrapped.<locals>.BadSystem.stage_a() missing 1 required positional argument: 'arg'

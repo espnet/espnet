@@ -143,7 +143,7 @@ class DataOrganizer:
 
     Example (training + validation):
         >>> organizer = DataOrganizer(
-        ...     train=train_configs,
+        ...     train=training_configs,
         ...     valid=valid_configs,
         ...     preprocessor=MyPreprocessor()
         ... )

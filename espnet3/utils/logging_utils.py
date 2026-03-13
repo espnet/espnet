@@ -71,10 +71,10 @@ def log_stage_metadata(
             entries. In practice this is the stage logger configured immediately
             before a stage starts.
         system (Any): Instantiated system object. When present, the attributes
-            ``train_config``, ``infer_config``, and ``measure_config`` are read
+            ``training_config``, ``inference_config``, and ``metrics_config`` are read
             and dumped as resolved YAML for reproducibility.
         args (argparse.Namespace | None): Parsed CLI namespace. The function
-            reads ``train_config``, ``infer_config``, ``measure_config``, and
+            reads ``training_config``, ``inference_config``, ``metrics_config``, and
             ``write_requirements`` from this namespace when available.
 
     Returns:
@@ -83,42 +83,42 @@ def log_stage_metadata(
     Examples:
         >>> from argparse import Namespace
         >>> class DummySystem:
-        ...     train_config = {"exp_dir": "./exp/train"}
-        ...     infer_config = None
-        ...     measure_config = None
+        ...     training_config = {"exp_dir": "./exp/train"}
+        ...     inference_config = None
+        ...     metrics_config = None
         >>> log_stage_metadata(
         ...     logging.getLogger("espnet3"),
         ...     system=DummySystem(),
         ...     args=Namespace(
-        ...         train_config="conf/training.yaml",
-        ...         infer_config=None,
-        ...         measure_config=None,
+        ...         training_config="conf/training.yaml",
+        ...         inference_config=None,
+        ...         metrics_config=None,
         ...         write_requirements=False,
         ...     ),
         ... )
 
     """
-    train_config = getattr(system, "train_config", None)
-    infer_config = getattr(system, "infer_config", None)
-    measure_config = getattr(system, "measure_config", None)
+    training_config = getattr(system, "training_config", None)
+    inference_config = getattr(system, "inference_config", None)
+    metrics_config = getattr(system, "metrics_config", None)
 
     log_run_metadata(
         logger,
         argv=sys.argv,
         configs={
             "Training": (
-                Path(args.train_config)
-                if args is not None and getattr(args, "train_config", None)
+                Path(args.training_config)
+                if args is not None and getattr(args, "training_config", None)
                 else None
             ),
             "Inference": (
-                Path(args.infer_config)
-                if args is not None and getattr(args, "infer_config", None)
+                Path(args.inference_config)
+                if args is not None and getattr(args, "inference_config", None)
                 else None
             ),
             "Metrics": (
-                Path(args.measure_config)
-                if args is not None and getattr(args, "measure_config", None)
+                Path(args.metrics_config)
+                if args is not None and getattr(args, "metrics_config", None)
                 else None
             ),
         },
@@ -127,20 +127,20 @@ def log_stage_metadata(
         ),
     )
     log_env_metadata(logger)
-    if train_config is not None:
+    if training_config is not None:
         logger.info(
             "Training config content:\n%s",
-            OmegaConf.to_yaml(train_config, resolve=True),
+            OmegaConf.to_yaml(training_config, resolve=True),
         )
-    if infer_config is not None:
+    if inference_config is not None:
         logger.info(
             "Inference config content:\n%s",
-            OmegaConf.to_yaml(infer_config, resolve=True),
+            OmegaConf.to_yaml(inference_config, resolve=True),
         )
-    if measure_config is not None:
+    if metrics_config is not None:
         logger.info(
             "Metrics config content:\n%s",
-            OmegaConf.to_yaml(measure_config, resolve=True),
+            OmegaConf.to_yaml(metrics_config, resolve=True),
         )
 
 

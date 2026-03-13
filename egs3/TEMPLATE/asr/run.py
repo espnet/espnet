@@ -44,7 +44,7 @@ def build_parser(
         help="Which stages to run. Multiple values allowed.",
     )
     parser.add_argument(
-        "--train_config",
+        "--training_config",
         default=None,
         type=Path,
         help=(
@@ -53,13 +53,13 @@ def build_parser(
         ),
     )
     parser.add_argument(
-        "--infer_config",
+        "--inference_config",
         default=None,
         type=Path,
         help="Hydra config for infer stage.",
     )
     parser.add_argument(
-        "--measure_config",
+        "--metrics_config",
         default=None,
         type=Path,
         help="Hydra config for measure stage.",
@@ -87,19 +87,19 @@ def main(
     # -----------------------------------------
     # Load configs
     # -----------------------------------------
-    train_config = load_and_merge_config(
-        args.train_config,
-        "train_config",
+    training_config = load_and_merge_config(
+        args.training_config,
+        "training_config",
         template_package=__package__,
     )
-    infer_config = load_and_merge_config(
-        args.infer_config,
-        "infer_config",
+    inference_config = load_and_merge_config(
+        args.inference_config,
+        "inference_config",
         template_package=__package__,
     )
-    measure_config = load_and_merge_config(
-        args.measure_config,
-        "measure_config",
+    metrics_config = load_and_merge_config(
+        args.metrics_config,
+        "metrics_config",
         template_package=__package__,
     )
 
@@ -109,9 +109,9 @@ def main(
     # Instantiate system
     # -----------------------------------------
     system = system_cls(
-        train_config=train_config,
-        infer_config=infer_config,
-        measure_config=measure_config,
+        training_config=training_config,
+        inference_config=inference_config,
+        metrics_config=metrics_config,
     )
 
     # -----------------------------------------
@@ -129,8 +129,8 @@ def main(
         "train",
     }
     required_configs = {}
-    required_configs.update({stage: train_config for stage in pretrain_stages})
-    required_configs.update({"infer": infer_config, "measure": measure_config})
+    required_configs.update({stage: training_config for stage in pretrain_stages})
+    required_configs.update({"infer": inference_config, "measure": metrics_config})
     missing = [
         s
         for s in stages_to_run
@@ -140,7 +140,7 @@ def main(
         missing_str = ", ".join(missing)
         raise ValueError(
             f"Config not provided for stage(s): {missing_str}. "
-            "Use --train_config/--infer_config/--measure_config."
+            "Use --training_config/--inference_config/--metrics_config."
         )
     run_stages(
         system=system,

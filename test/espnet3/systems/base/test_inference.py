@@ -13,8 +13,8 @@ def dummy_output_fn(*, data, model_output, idx):
 
 
 class DummyProvider(InferenceProvider):
-    def __init__(self, infer_config, params):
-        super().__init__(infer_config)
+    def __init__(self, inference_config, params):
+        super().__init__(inference_config)
         self.params = params
 
     def build_dataset(self, _config):
@@ -42,8 +42,8 @@ class DummyRunner(InferenceRunner):
 class CaptureProvider(InferenceRunner):
     last_params = None
 
-    def __init__(self, infer_config, *, params):
-        super().__init__(infer_config)
+    def __init__(self, inference_config, *, params):
+        super().__init__(inference_config)
         CaptureProvider.last_params = params
 
     def build_dataset(self, _config):

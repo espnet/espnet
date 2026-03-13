@@ -1,0 +1,7 @@
+[MSI] 2026-03-12 16:47:21 EDT (stages_utils.py:193) ERROR:	[stage_a] Stage 'stage_a' failed after 0.00s
+Traceback (most recent call last):
+  File "/mnt/c/Users/might/Documents/git/espnets/espnet3/espnet3/utils/stages_utils.py", line 184, in run_stages
+    fn()
+  File "/mnt/c/Users/might/Documents/git/espnets/espnet3/test/espnet3/utils/test_stages.py", line 68, in stage_a
+    raise ValueError("boom")
+ValueError: boom

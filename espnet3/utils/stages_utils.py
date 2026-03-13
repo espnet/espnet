@@ -45,11 +45,11 @@ def _get_process_rank() -> int:
 
 
 def _get_stage_log_mode(system: Any) -> str:
-    """Return normalized stage_log_mode from train_config, defaulting to rank0."""
+    """Return normalized stage_log_mode from training_config, defaulting to rank0."""
     mode = "rank0"
-    train_config = getattr(system, "train_config", None)
-    if train_config is not None:
-        mode = getattr(train_config, "stage_log_mode", mode)
+    training_config = getattr(system, "training_config", None)
+    if training_config is not None:
+        mode = getattr(training_config, "stage_log_mode", mode)
     return str(mode).lower()
 
 

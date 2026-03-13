@@ -370,13 +370,13 @@ dataset_dir: ${data_dir}/mini_an4
 
 
 def test_load_template_defaults_train():
-    cfg = load_template_defaults("train_config", "egs3.TEMPLATE.asr")
+    cfg = load_template_defaults("training_config", "egs3.TEMPLATE.asr")
     assert "dataset" in cfg
     assert "exp_dir" in cfg
 
 
 def test_load_and_merge_config_none():
-    assert load_and_merge_config(None, "measure_config") is None
+    assert load_and_merge_config(None, "metrics_config") is None
 
 
 def test_load_and_merge_config_resolves_user_reference_to_template_value(
@@ -401,7 +401,7 @@ custom_dir: ${exp_dir}/custom
         lambda _, __: load_config_with_defaults(str(template), resolve=False),
     )
 
-    cfg = load_and_merge_config(user, "train_config", template_package="dummy.package")
+    cfg = load_and_merge_config(user, "training_config", template_package="dummy.package")
 
     assert cfg.exp_dir == "./exp/from_template"
     assert cfg.inference_dir == "./exp/from_template/inference"
@@ -430,13 +430,13 @@ exp_dir: ./exp/from_user
         lambda _, __: load_config_with_defaults(str(template), resolve=False),
     )
 
-    cfg = load_and_merge_config(user, "train_config", template_package="dummy.package")
+    cfg = load_and_merge_config(user, "training_config", template_package="dummy.package")
 
     assert cfg.exp_dir == "./exp/from_user"
     assert cfg.custom_dir == "./exp/from_user/custom"
 
 
-def test_load_and_merge_infer_config_can_read_training_yaml_with_template_values(
+def test_load_and_merge_inference_config_can_read_training_yaml_with_template_values(
     write_yaml, monkeypatch
 ):
     template_infer = write_yaml(
@@ -464,9 +464,9 @@ dataset_dir: ${data_dir}/mini_an4
     inference = write_yaml("inference.yaml", "custom_dir: ${dataset_dir}/manifest\n")
 
     def fake_load_template_defaults(config_arg_name, template_package):
-        if config_arg_name == "train_config":
+        if config_arg_name == "training_config":
             return load_config_with_defaults(str(template_train), resolve=False)
-        if config_arg_name == "infer_config":
+        if config_arg_name == "inference_config":
             return load_config_with_defaults(str(template_infer), resolve=False)
         raise AssertionError(config_arg_name)
 
@@ -481,7 +481,7 @@ dataset_dir: ${data_dir}/mini_an4
 
     cfg = load_and_merge_config(
         inference,
-        "infer_config",
+        "inference_config",
         template_package="dummy.package",
     )
 
