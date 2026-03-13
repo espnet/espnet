@@ -183,7 +183,9 @@ def load_template_defaults(
     template_package: str,
 ):
     """Load packaged TEMPLATE defaults by config kind."""
-    resource = resources.files(template_package).joinpath(*Path(template_config_path).parts)
+    resource = resources.files(template_package).joinpath(
+        *Path(template_config_path).parts
+    )
     with resources.as_file(resource) as path:
         return load_config_with_defaults(str(path), resolve=False)
 
