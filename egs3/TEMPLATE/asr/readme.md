@@ -1,8 +1,4 @@
-# LibriSpeech 100h ESPnet3 recipe
-
-This recipe follows the [lightning-hydra-template](
-https://github.com/ashleve/lightning-hydra-template
-) layout and uses the latest `espnet3` package utilities.
+# ESPnet3 ASR recipe
 
 ## Quick start
 
