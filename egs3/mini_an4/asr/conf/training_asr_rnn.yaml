@@ -108,7 +108,7 @@ optimizer:
   lr: 0.001
   weight_decay: 0.0
 
-scheduler:
+override scheduler:
   _target_: torch.optim.lr_scheduler.ReduceLROnPlateau
   mode: min
   factor: 0.5
