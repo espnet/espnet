@@ -38,6 +38,7 @@ featbin
 ubuntu16-featbin.tar.gz
 pyproject.toml.tmp
 build/
+logs/
 core
 
 out/config.yaml

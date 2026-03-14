@@ -47,40 +47,54 @@ mkdir -p doc/_gen/guide
 export LD_LIBRARY_PATH=${LD_LIBRARY_PATH-}
 set -euo pipefail
 # generate tools doc
+echo "::group::generate tools doc"
 mkdir utils_py
 ./doc/argparse2rst.py \
     --title utils_py \
     --output_dir utils_py \
     ./utils/*.py
 mv utils_py ./doc/_gen/tools
+echo "::endgroup::"
 
+echo "::group::generate espnet2_bin doc"
 mkdir espnet2_bin
 ./doc/argparse2rst.py \
     --title espnet2_bin \
     --output_dir espnet2_bin \
     ./espnet2/bin/*.py
 mv espnet2_bin ./doc/_gen/tools
+echo "::endgroup::"
 
+echo "::group::generate utils/tools doc"
 build_and_convert "utils/*.sh" utils
 build_and_convert "tools/sentencepiece_commands/spm_decode" spm
 build_and_convert "tools/sentencepiece_commands/spm_encode" spm
 # There seems no help prepared for spm_train command.
+echo "::endgroup::"
 
 # incorporate espnet/notebook repository to docs
+echo "::group::incorporate notebook to docs"
 ./doc/notebook2rst.sh
+echo "::endgroup::"
 
 # incorporate recipe template readme.md to docs
+echo "::group::incorporate recipe to docs"
 python ./doc/recipe2md.py --src ./egs2/TEMPLATE --dst ./doc/recipe
+echo "::endgroup::"
 
 # generate package doc
+echo "::group::generate package doc"
 python ./doc/members2rst.py --root espnet2 --dst ./doc/_gen/guide --exclude espnet2.bin
 python ./doc/members2rst.py --root espnetez --dst ./doc/_gen/guide
+echo "::endgroup::"
 
 # build markdown
+echo "::group::build markdown"
 cp ./doc/index.rst ./doc/_gen/index.rst
 cp ./doc/conf.py ./doc/_gen/
 rm -f ./doc/_gen/tools/espnet2_bin/*_train.rst
 sphinx-build -M markdown ./doc/_gen ./doc/build
+echo "::endgroup::"
 
 # copy markdown files to specific directory.
 cp -r ./doc/build/markdown/* ./doc/vuepress/src/

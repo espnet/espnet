@@ -218,7 +218,7 @@ class SLUTask(ASRTask):
 
     @classmethod
     def add_task_arguments(cls, parser: argparse.ArgumentParser):
-        group = parser.add_argument_group(description="Task related")
+        group = parser.add_argument_group("Task related")
 
         # NOTE(kamo): add_arguments(..., required=True) can't be used
         # to provide --print_config mode. Instead of it, do as
@@ -283,7 +283,7 @@ class SLUTask(ASRTask):
             help="The keyword arguments for joint network class.",
         )
 
-        group = parser.add_argument_group(description="Preprocess related")
+        group = parser.add_argument_group("Preprocess related")
         group.add_argument(
             "--use_preprocessor",
             type=str2bool,
