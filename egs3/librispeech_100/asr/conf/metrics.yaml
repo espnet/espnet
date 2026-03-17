@@ -1,0 +1,49 @@
+##########################################################
+#                 METRIC SCORING SETTING                 #
+##########################################################
+# Quick usage:
+#   python run.py --stages measure --metrics_config conf/metrics.yaml
+#
+# LibriSpeech 100h ASR metrics config.
+# This stage reads decode outputs and computes text-level scores.
+
+##########################################################
+#                    PATHS AND INPUTS                    #
+##########################################################
+# Keep these path keys aligned with training/inference config resolution.
+recipe_dir: .
+data_dir: ${recipe_dir}/data
+exp_tag: ${load_yaml:conf/training.yaml,exp_tag}
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+stats_dir: ${recipe_dir}/exp/stats
+decode_dir: ${exp_dir}/decode
+dataset_dir: ${load_yaml:conf/training.yaml,dataset_dir}
+
+# Test split definitions are reused here so the metric runner knows which
+# decode directories to score.
+dataset:
+  _target_: espnet3.components.data.data_organizer.DataOrganizer
+  test:
+    - name: test-clean
+      dataset:
+        _target_: src.dataset.LibriSpeechDataset
+        data_dir: ${dataset_dir}
+        split: test-clean
+    - name: test-other
+      dataset:
+        _target_: src.dataset.LibriSpeechDataset
+        data_dir: ${dataset_dir}
+        split: test-other
+
+##########################################################
+#                    METRIC DEFINITION                   #
+##########################################################
+# Compute standard ASR text metrics for each decoded test split.
+metrics:
+  - metric:
+      _target_: espnet3.systems.asr.metrics.wer.WER
+      clean_types:
+
+  - metric:
+      _target_: espnet3.systems.asr.metrics.cer.CER
+      clean_types:

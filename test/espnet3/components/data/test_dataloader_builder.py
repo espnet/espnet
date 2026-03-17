@@ -556,11 +556,6 @@ def test_sharded_dataset_multi_gpu_assignment(
     builder = DataLoaderBuilder(
         organizer.train, config, collate_fn=None, num_device=world_size, epoch=0
     )
-    config = make_standard_dataloader_config()
-    config.dataloader.train.batch_size = 1
-    builder = DataLoaderBuilder(
-        dataset, config, collate_fn=None, num_device=world_size, epoch=0
-    )
     loader = builder.build("train")
     shard_ids = _collect_shard_ids(loader)
     assert shard_ids == expected

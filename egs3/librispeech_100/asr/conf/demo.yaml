@@ -1,5 +1,5 @@
 system: asr
-infer_config: conf/infer.yaml
+infer_config: conf/inference.yaml
 
 output_keys:
   text: hyp

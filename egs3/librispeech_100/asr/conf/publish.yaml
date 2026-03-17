@@ -1,4 +1,4 @@
-tokenizer: ${load_yaml:conf/train.yaml,tokenizer}
+tokenizer: ${load_yaml:conf/training.yaml,tokenizer}
 pack_model:
   strategy: auto  # auto|espnet2|espnet3
   out_dir: exp/model_pack

@@ -2,9 +2,10 @@
 
 source path.sh
 
+# Add `--dry_run` below for a config-only sanity check.
 python run.py \
     --stages all \
-    --train_config conf/tuning/train_e_branchformer.yaml \
-    --infer_config conf/inference.yaml \
-    --metric_config conf/metric.yaml \
-    # --dry_run
+    --training_config conf/training.yaml \
+    --inference_config conf/inference.yaml \
+    --metrics_config conf/metrics.yaml \
+    "$@"

@@ -1,30 +1,45 @@
-# Inference/decoding configuration for LibriSpeech 100h.
-# Keeps only the keys required by the infer stage.
+##########################################################
+#                   INFERENCE SETTING                    #
+##########################################################
+# Quick usage:
+#   python run.py --stages infer --inference_config conf/inference.yaml
+#
+# LibriSpeech 100h ASR inference config.
+# This config is intentionally limited to the keys consumed by the infer stage.
 
-# Root output directory for .scp files written by the infer stage.
-infer_dir: exp/${load_yaml:conf/train.yaml,exp_tag}/infer
+##########################################################
+#                    PATHS AND INPUTS                    #
+##########################################################
+# Root output directory for decode outputs written by the infer stage.
+infer_dir: exp/${load_yaml:conf/training.yaml,exp_tag}/infer
 
-# Dataset definition for test splits only (names become output subfolders).
+# Test datasets to decode. Each `name` becomes an output subdirectory.
+# The dataset loader reads the original LibriSpeech directory layout.
 dataset:
   _target_: espnet3.components.data.data_organizer.DataOrganizer
   test:
     - name: test-clean
       dataset:
         _target_: src.dataset.LibriSpeechDataset
-        data_dir: ${load_yaml:conf/train.yaml,dataset_dir}
+        data_dir: ${load_yaml:conf/training.yaml,dataset_dir}
         split: test-clean
     - name: test-other
       dataset:
         _target_: src.dataset.LibriSpeechDataset
-        data_dir: ${load_yaml:conf/train.yaml,dataset_dir}
+        data_dir: ${load_yaml:conf/training.yaml,dataset_dir}
         split: test-other
 
-# Inference model: load the trained config/checkpoint.
+##########################################################
+#                    MODEL AND OUTPUT                    #
+##########################################################
+# Load the trained ESPnet model config/checkpoint pair.
 model:
   _target_: espnet2.bin.asr_inference.Speech2Text
-  asr_train_config: exp/${load_yaml:conf/train.yaml,exp_tag}/config.yaml
-  asr_model_file: exp/${load_yaml:conf/train.yaml,exp_tag}/last.ckpt
+  asr_train_config: exp/${load_yaml:conf/training.yaml,exp_tag}/config.yaml
+  asr_model_file: exp/${load_yaml:conf/training.yaml,exp_tag}/last.ckpt
 
 # Generic ESPnet3 inference entrypoint settings.
+# `input_key` selects the waveform field from the dataset item and `output_fn`
+# converts the model output into the structure expected by the writer.
 input_key: speech
 output_fn: src.infer.output_fn
