@@ -171,6 +171,35 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
         $ rm -f activate_python.sh && touch activate_python.sh
         ```
 
+    - Option E) Setup using uv and pixi
+
+        This option uses [uv](https://github.com/astral-sh/uv) for fast Python package management and [pixi](https://pixi.sh/) for system dependencies. This is the fastest installation method.
+
+        ```sh
+        $ cd <espnet-root>/tools
+        $ ./setup_uv.sh [options]
+        ```
+
+        Available options:
+        - `--python VERSION`: Specify Python version (default: 3.11)
+        - `--torch VERSION`: Specify PyTorch version (default: 2.9.1)
+        - `-h, --help`: Show help message
+
+        Example with custom versions:
+
+        ```sh
+        $ cd <espnet-root>/tools
+        $ ./setup_uv.sh --python 3.10 --torch 2.5.0
+        ```
+
+        This script will:
+        1. Install pixi and uv if not already available
+        2. Install ffmpeg via pixi
+        3. Create a `.venv` virtual environment with the specified Python version
+        4. Install PyTorch and torchaudio with the specified version
+        5. Install ESPnet in editable mode
+        6. Generate `activate_python.sh` for activating the environment
+
 1. Install ESPnet via `pyproject.toml`
 
     ESPnet adopts the modern Python packaging standard using `pyproject.toml`.
