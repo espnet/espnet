@@ -182,7 +182,8 @@ class LibriSpeechDataset(TorchDataset):
         self._examples: List[LibriSpeechExample] = _parse_transcripts(split_dir)
 
     def __len__(self) -> int:
-        return len(self._examples)
+        return 3
+        #return len(self._examples)
 
     def __getitem__(self, idx: int) -> Dict:
         """Load one item by index.

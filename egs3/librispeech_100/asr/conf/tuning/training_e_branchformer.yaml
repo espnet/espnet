@@ -20,11 +20,11 @@ stage_log_mode: rank0  # rank0 | per_rank
 # Path scaffold relative to the recipe root.
 recipe_dir: .
 data_dir: ${recipe_dir}/data
-exp_tag: librispeech100_asr_branchformer
+exp_tag: run2_gpu1
 exp_dir: ${recipe_dir}/exp/${exp_tag}
 stats_dir: ${recipe_dir}/exp/stats
 decode_dir: ${exp_dir}/decode
-dataset_dir: /path/to/LibriSpeech
+dataset_dir: ${recipe_dir}/download/LibriSpeech
 
 ##########################################################
 #                 DATASET CREATION SETTING               #
@@ -89,8 +89,6 @@ dataloader:
     _target_: espnet2.train.collate_fn.CommonCollateFn
     int_pad_value: -1
   train:
-    multiple_iterator: false
-    num_shards: 1
     iter_factory:
       _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
       shuffle: true
@@ -103,8 +101,6 @@ dataloader:
         batch_size: 16
         batch_bins: 12000000
   valid:
-    multiple_iterator: false
-    num_shards: 1
     iter_factory:
       _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
       shuffle: false
@@ -116,11 +112,9 @@ dataloader:
         batch_size: ${dataloader.train.iter_factory.batches.batch_size}
         batch_bins: ${dataloader.train.iter_factory.batches.batch_bins}
 
-##########################################################
-#            OPTIMIZER & SCHEDULER SETTING               #
-##########################################################
-# Adam + WarmupLR is the default optimization setup for this recipe.
-optim:
+
+# Optimizer and scheduler follow the template defaults.
+optimizer:
   _target_: torch.optim.Adam
   lr: 0.002
   weight_decay: 0.000001

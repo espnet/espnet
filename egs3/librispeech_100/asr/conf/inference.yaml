@@ -7,11 +7,8 @@
 # LibriSpeech 100h ASR inference config.
 # This config is intentionally limited to the keys consumed by the infer stage.
 
-##########################################################
-#                    PATHS AND INPUTS                    #
-##########################################################
-# Root output directory for decode outputs written by the infer stage.
-infer_dir: exp/${load_yaml:conf/training.yaml,exp_tag}/infer
+# Root output directory for .scp files written by the infer stage.
+inference_dir: exp/${load_yaml:conf/train.yaml,exp_tag}/infer
 
 # Test datasets to decode. Each `name` becomes an output subdirectory.
 # The dataset loader reads the original LibriSpeech directory layout.
@@ -43,3 +40,10 @@ model:
 # converts the model output into the structure expected by the writer.
 input_key: speech
 output_fn: src.infer.output_fn
+
+
+provider:
+  _target_: espnet3.systems.base.inference_provider.InferenceProvider
+runner:
+  _target_: espnet3.systems.base.inference_runner.InferenceRunner
+
