@@ -2,6 +2,9 @@
 
 set -euo pipefail
 
+# Change to script's directory to ensure relative paths work correctly
+cd "$(dirname "$0")"
+
 # Default values
 PYTHON_VERSION="3.11"
 TORCH_VERSION="2.9.1"
@@ -68,6 +71,11 @@ fi
 echo "Activating .venv..."
 . .venv/bin/activate
 
+if [[ "${TORCH_VERSION%%.*}" -lt 2 ]]; then
+    echo "Error: For torch versions < 2.0, the torchaudio version may not match. This script doesn't support that." >&2
+    echo "Please use torch>=2.0.0 or install torch and torchaudio manually." >&2
+    exit 1
+fi
 uv pip install torch=="${TORCH_VERSION}" torchaudio=="${TORCH_VERSION}"
 uv pip install -e ../
 
