@@ -1,0 +1,141 @@
+##########################################################
+#                    TRAINING SETTING                    #
+##########################################################
+# This is a debug config for CI.
+# Mini AN4 transformer ASR training config for ESPnet3 integration tests.
+
+##########################################################
+#                  SYSTEM AND PATH SETTING               #
+##########################################################
+task: espnet3.systems.asr.task.ASRTask
+
+exp_tag: train_asr_transformer_debug
+dataset_dir: ${data_dir}/mini_an4
+
+##########################################################
+#                 DATASET CREATION SETTING               #
+##########################################################
+create_dataset:
+  func: src.creating_dataset.create_dataset
+  dataset_dir: ${dataset_dir}
+  archive_path: ${recipe_dir}/../../egs2/mini_an4/asr1/downloads.tar.gz
+
+##########################################################
+#                    DATASET DEFINITION                  #
+##########################################################
+# Minimal train/dev split for transformer smoke tests.
+dataset:
+  train:
+    - name: train_nodev
+      dataset:
+        _target_: src.dataset.MiniAN4Dataset
+        manifest_path: ${dataset_dir}/manifest/train_nodev.tsv
+  valid:
+    - name: train_dev
+      dataset:
+        _target_: src.dataset.MiniAN4Dataset
+        manifest_path: ${dataset_dir}/manifest/train_dev.tsv
+  preprocessor:
+    _target_: espnet2.train.preprocessor.CommonPreprocessor
+    train: true
+    token_type: bpe
+    token_list: ${tokenizer.save_path}/tokens.txt
+    bpemodel: ${tokenizer.save_path}/bpe.model
+    text_cleaner:
+
+##########################################################
+#                   TOKENIZER SETTING                    #
+##########################################################
+tokenizer:
+  vocab_size: 30
+  character_coverage: 1.0
+  model_type: bpe
+  save_path: ${data_dir}/${tokenizer.model_type}_${tokenizer.vocab_size}
+  text_builder:
+    func: src.tokenizer.gather_training_text
+    manifest_path: ${dataset_dir}/manifest/train_nodev.tsv
+
+##########################################################
+#                      MODEL SETTING                     #
+##########################################################
+# Tiny transformer encoder/decoder pair to keep CI fast.
+model:
+  vocab_size: ${tokenizer.vocab_size}
+  token_list: ${tokenizer.save_path}/tokens.txt
+
+  encoder: transformer
+  encoder_conf:
+    output_size: 2
+    attention_heads: 2
+    linear_units: 2
+    num_blocks: 2
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    attention_dropout_rate: 0.0
+    input_layer: conv1d2
+    normalize_before: true
+
+  decoder: transformer
+  decoder_conf:
+    attention_heads: 2
+    linear_units: 2
+    num_blocks: 2
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    self_attention_dropout_rate: 0.0
+    src_attention_dropout_rate: 0.0
+
+  normalize: utterance_mvn
+  normalize_conf: {}
+
+  model: espnet
+  model_conf:
+    ctc_weight: 0.3
+    lsm_weight: 0.1
+    length_normalized_loss: false
+
+  frontend: default
+  frontend_conf:
+    n_fft: 512
+    win_length: 400
+    hop_length: 160
+
+##########################################################
+#            OPTIMIZER & SCHEDULER SETTING               #
+##########################################################
+optimizer:
+  lr: 0.005
+
+scheduler:
+  warmup_steps: 100
+
+##########################################################
+#                OTHER TRAINING SETTING                  #
+##########################################################
+# Xavier init is used to stabilize this transformer baseline.
+init: xavier_uniform
+
+best_model_criterion:
+  - - valid/loss
+    - 10
+    - min
+
+##########################################################
+#                   DATALOADER SETTING                   #
+##########################################################
+dataloader:
+  train:
+    iter_factory:
+      batches:
+        type: unsorted
+        batch_size: 2
+
+##########################################################
+#                    TRAINER SETTING                     #
+##########################################################
+trainer:
+  max_epochs: 1
+  limit_train_batches: 1
+  limit_val_batches: 1
+
+  strategy: auto

@@ -1,25 +1,36 @@
-# Metric/scoring configuration template for ESPnet3 ASR.
-# Consumes decode outputs under decode_dir and reports metrics.
+##########################################################
+#                 METRIC SCORING SETTING                 #
+##########################################################
+# Quick usage:
+#   python run.py --stages measure --metrics_config conf/metrics.yaml
+#
+# Assumptions:
+# - `conf/inference.yaml` has already produced `<test_name>/*.scp` files.
+# - Each metric reads matching SCP keys such as `ref.scp` and `hyp.scp`.
+# - If `dataset.test` is omitted, test sets are discovered from `${inference_dir}`
+#   subdirectories.
 
-# Path scaffold relative to the recipe root; keep aligned with infer.yaml.
+##########################################################
+#                    PATHS AND INPUTS                    #
+##########################################################
 recipe_dir: .
-data_dir: ${recipe_dir}/data
-exp_tag: asr_template_eval
+exp_tag:
 exp_dir: ${recipe_dir}/exp/${exp_tag}
-stats_dir: ${recipe_dir}/exp/stats
-decode_dir: ${exp_dir}/decode
 inference_dir: ${exp_dir}/inference
-dataset_dir: /path/to/your/dataset
 
-# Dataset definition for test splits only (used to enumerate test names).
-dataset:
-  _target_: espnet3.components.data.data_organizer.DataOrganizer
-  test:
-    - name: test-clean
-      dataset:
-        _target_: src.dataset.LibriSpeechDataset
-        data_dir: ${dataset_dir}
-        split: test-clean
 
-# Metrics block intentionally empty in template; fill with WER/CER, etc.
+##########################################################
+#                    METRIC DEFINITION                   #
+##########################################################
 metrics:
+  - metric:
+      _target_: espnet3.systems.asr.metrics.wer.WER
+      ref_key: ref        # reference text key -> `<test_name>/ref.scp`
+      hyp_key: hyp        # hypothesis text key -> `<test_name>/hyp.scp`
+      clean_types:        # optional TextCleaner pipeline, e.g. [tacotron]
+
+  - metric:
+      _target_: espnet3.systems.asr.metrics.cer.CER
+      ref_key: ref        # reference text key -> `<test_name>/ref.scp`
+      hyp_key: hyp        # hypothesis text key -> `<test_name>/hyp.scp`
+      clean_types:        # optional TextCleaner pipeline, e.g. [jaconv]

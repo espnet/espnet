@@ -1,24 +1,28 @@
+##########################################################
+#                   Inference SETTING                    #
+##########################################################
+# Quick usage:
+#   python run.py --stages infer --inference_config conf/inference.yaml
+#
 # Mini AN4 ASR inference config for ESPnet3 integration tests.
 
-recipe_dir: .
-data_dir: ${recipe_dir}/data
-exp_tag: ${load_yaml:conf/train.yaml,exp_tag}
-exp_dir: ${recipe_dir}/exp/${exp_tag}
+##########################################################
+#                    PATHS AND INPUTS                    #
+##########################################################
+exp_tag: ${load_yaml:training.yaml,exp_tag}
 inference_dir: ${exp_dir}/inference
 dataset_dir: ${data_dir}/mini_an4
 
 dataset:
-  _target_: espnet3.components.data.data_organizer.DataOrganizer
   test:
     - name: test
       dataset:
         _target_: src.dataset.MiniAN4Dataset
         manifest_path: ${dataset_dir}/manifest/test.tsv
 
-parallel:
-  env: local
-  n_workers: 1
-
+##########################################################
+#                    MODEL AND OUTPUT                    #
+##########################################################
 model:
   _target_: espnet2.bin.asr_inference.Speech2Text
   asr_train_config: ${exp_dir}/config.yaml
@@ -27,9 +31,4 @@ model:
   ctc_weight: 0.3
 
 input_key: speech
-output_fn: src.inference.output_fn
-
-provider:
-  _target_: espnet3.systems.base.inference_provider.InferenceProvider
-runner:
-  _target_: espnet3.systems.base.inference_runner.InferenceRunner
+output_fn: src.inference.build_output

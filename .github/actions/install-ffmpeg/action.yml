@@ -1,0 +1,11 @@
+name: 'Install FFmpeg'
+description: 'Installs FFmpeg via Homebrew on macOS'
+runs:
+  using: "composite"
+  steps:
+    - name: Install FFmpeg via Homebrew
+      run: brew install ffmpeg
+      shell: bash
+    - name: Verify FFmpeg installation
+      run: ffmpeg -version
+      shell: bash

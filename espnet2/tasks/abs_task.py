@@ -698,6 +698,12 @@ class AbsTask(ABC):
             help="Set the model log period",
         )
         group.add_argument(
+            "--wandb_allow_val_change",
+            type=str2bool,
+            default=True,
+            help="Allow wandb config values to be changed after initialization",
+        )
+        group.add_argument(
             "--detect_anomaly",
             type=str2bool,
             default=False,
@@ -1608,7 +1614,10 @@ class AbsTask(ABC):
                         id=args.wandb_id,
                         resume=args.resume,
                     )
-                    wandb.config.update(args)
+                    wandb.config.update(
+                        args,
+                        allow_val_change=args.wandb_allow_val_change,
+                    )
                 else:
                     # wandb also supports grouping for distributed training,
                     # but we only log aggregated data,
@@ -2503,6 +2512,10 @@ class AbsTask(ABC):
                 # for deepspeed checkpoints
                 if "module" in state_dict:
                     state_dict = state_dict["module"]
+                # for lightning checkpoints
+                if "state_dict" in state_dict:
+                    state_dict = state_dict["state_dict"]
+
                 model.load_state_dict(
                     state_dict,
                     strict=False,

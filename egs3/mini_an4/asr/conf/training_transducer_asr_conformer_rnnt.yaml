@@ -1,0 +1,126 @@
+##########################################################
+#                    TRAINING SETTING                    #
+##########################################################
+# This is a debug config for CI.
+# Mini AN4 conformer-RNNT training config for ESPnet3 integration tests.
+
+##########################################################
+#                  SYSTEM AND PATH SETTING               #
+##########################################################
+num_device: 1
+num_nodes: 1
+task: espnet3.systems.asr.transducer_task.ASRTransducerTask
+
+recipe_dir: .
+data_dir: ${recipe_dir}/data
+exp_tag: train_transducer_asr_conformer_rnnt_debug
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+stats_dir: ${recipe_dir}/exp/stats
+inference_dir: ${exp_dir}/inference
+dataset_dir: ${data_dir}/mini_an4
+
+##########################################################
+#                 DATASET CREATION SETTING               #
+##########################################################
+create_dataset:
+  func: src.creating_dataset.create_dataset
+  dataset_dir: ${dataset_dir}
+  archive_path: ${recipe_dir}/../../egs2/mini_an4/asr1/downloads.tar.gz
+
+##########################################################
+#                    DATASET DEFINITION                  #
+##########################################################
+# Use the same manifest layout as the other mini_an4 debug configs.
+dataset:
+  train:
+    - name: train_nodev
+      dataset:
+        _target_: src.dataset.MiniAN4Dataset
+        manifest_path: ${dataset_dir}/manifest/train_nodev.tsv
+  valid:
+    - name: train_dev
+      dataset:
+        _target_: src.dataset.MiniAN4Dataset
+        manifest_path: ${dataset_dir}/manifest/train_dev.tsv
+  preprocessor:
+    _target_: espnet2.train.preprocessor.CommonPreprocessor
+    train: true
+    token_type: bpe
+    token_list: ${tokenizer.save_path}/tokens.txt
+    bpemodel: ${tokenizer.save_path}/bpe.model
+    text_cleaner:
+
+##########################################################
+#                   TOKENIZER SETTING                    #
+##########################################################
+tokenizer:
+  vocab_size: 30
+  character_coverage: 1.0
+  model_type: bpe
+  save_path: ${data_dir}/${tokenizer.model_type}_${tokenizer.vocab_size}
+  text_builder:
+    func: src.tokenizer.gather_training_text
+    manifest_path: ${dataset_dir}/manifest/train_nodev.tsv
+
+##########################################################
+#                      MODEL SETTING                     #
+##########################################################
+# Compact conformer encoder and RNNT decoder for task-specific coverage.
+model:
+  vocab_size: ${tokenizer.vocab_size}
+  token_list: ${tokenizer.save_path}/tokens.txt
+
+  encoder: conformer
+  encoder_conf:
+    body_conf:
+        - block_type: conformer
+          hidden_size: 2
+          linear_size: 4
+          heads: 2
+          conv_mod_kernel_size: 3
+
+  decoder_conf:
+    embed_size: 4
+    hidden_size: 4
+
+  joint_network_conf:
+    joint_space_size: 4
+
+##########################################################
+#            OPTIMIZER & SCHEDULER SETTING               #
+##########################################################
+optimizer:
+  lr: 0.005
+
+scheduler:
+  warmup_steps: 30000
+
+##########################################################
+#                OTHER TRAINING SETTING                  #
+##########################################################
+best_model_criterion:
+  - - valid/loss
+    - 10
+    - min
+
+##########################################################
+#                   DATALOADER SETTING                   #
+##########################################################
+# Sorted batches reduce padding for the transducer example.
+dataloader:
+  train:
+    iter_factory:
+      batches:
+        type: sorted
+        batch_size: 32
+
+##########################################################
+#                    TRAINER SETTING                     #
+##########################################################
+trainer:
+  log_every_n_steps: 1
+  max_epochs: 1
+  limit_train_batches: 1
+  limit_val_batches: 1
+
+  strategy: auto

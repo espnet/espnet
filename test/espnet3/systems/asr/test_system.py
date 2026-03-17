@@ -17,7 +17,7 @@ def test_asr_system_create_dataset_invokes_helper(tmp_path, monkeypatch):
             "create_dataset": {"func": "dummy.dataset", "foo": "bar"},
         }
     )
-    system = ASRSystem(train_config=train_cfg)
+    system = ASRSystem(training_config=train_cfg)
     calls = {}
 
     def fake_fn(**kwargs):
@@ -42,7 +42,7 @@ def test_asr_system_train_runs_tokenizer_then_train(tmp_path, monkeypatch):
             },
         }
     )
-    system = ASRSystem(train_config=train_cfg)
+    system = ASRSystem(training_config=train_cfg)
     calls = {}
 
     def fake_train_tokenizer(self):
@@ -73,7 +73,7 @@ def test_asr_system_train_tokenizer_trains_sentencepiece(tmp_path, monkeypatch):
             },
         }
     )
-    system = ASRSystem(train_config=train_cfg)
+    system = ASRSystem(training_config=train_cfg)
     calls = {}
 
     def fake_builder(foo):

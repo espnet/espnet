@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from espnet3.utils.scp_utils import get_class_path, load_scp_fields
+from espnet3.utils.scp_utils import get_class_path, load_scp_fields, read_scp
 
 
 def test_get_class_path_reports_module_and_class():
@@ -13,6 +13,24 @@ def test_get_class_path_reports_module_and_class():
     path = get_class_path(dummy)
     assert path.endswith(".Dummy")
     assert "Dummy" in path
+
+
+def test_read_scp_skips_blank_lines(tmp_path: Path):
+    scp_path = tmp_path / "test.scp"
+    scp_path.write_text("utt1 value1\n\nutt2 value2\n", encoding="utf-8")
+
+    data = read_scp(scp_path)
+
+    assert data == {"utt1": "value1", "utt2": "value2"}
+
+
+def test_read_scp_accepts_key_without_value(tmp_path: Path):
+    scp_path = tmp_path / "test.scp"
+    scp_path.write_text("utt1\nutt2 value2\n", encoding="utf-8")
+
+    data = read_scp(scp_path)
+
+    assert data == {"utt1": "", "utt2": "value2"}
 
 
 def test_load_scp_fields_reads_and_aligns(tmp_path: Path):

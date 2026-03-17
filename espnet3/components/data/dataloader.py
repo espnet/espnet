@@ -2,6 +2,7 @@
 
 import copy
 import logging
+from typing import Union
 
 import torch
 from hydra.utils import instantiate
@@ -89,12 +90,14 @@ class DataLoaderBuilder:
         return rank, world_size
 
     def _maybe_shard_dataset(self, dataset):
-        if not hasattr(dataset, "num_shards"):
+        # Since we can assume the dataset is a CombinedDataset,
+        # we should look at dataset.datasets[:] for actual sharded dataset.
+        if not hasattr(dataset.datasets[0], "num_shards"):
             return dataset
-        if not hasattr(dataset, "shard"):
+        if not hasattr(dataset.datasets[0], "shard"):
             raise RuntimeError("num_shards is set but shard() is not implemented.")
-        num_shards = getattr(dataset, "num_shards")
-        world_shard_size = getattr(dataset, "world_shard_size", None)
+        num_shards = getattr(dataset.datasets[0], "num_shards")
+        world_shard_size = getattr(dataset.datasets[0], "world_shard_size", None)
         if world_shard_size is None:
             raise RuntimeError(
                 "ShardedDataset requires world_shard_size to be set when used "
@@ -118,13 +121,8 @@ class DataLoaderBuilder:
         shard_indices = [
             (start + rank + world_size * i) % num_shards for i in range(shards_per_rank)
         ]
-        if len(shard_indices) == 1:
-            return dataset.shard(shard_indices[0])
-        shards = [dataset.shard(i) for i in shard_indices]
-        concat = torch.utils.data.ConcatDataset(shards)
-        if hasattr(shards[0], "use_espnet_collator"):
-            concat.use_espnet_collator = shards[0].use_espnet_collator
-        return concat
+        # Use the first shard for the GPU and for the epoch.
+        return dataset.shard(shard_indices[0])
 
     def build(self, mode: str):
         """Build and return a DataLoader for the specified mode ("train" or "valid").
@@ -221,7 +219,6 @@ class DataLoaderBuilder:
 
         # Remove default config for espnet's data loader
         config.pop("iter_factory")
-
         loader = torch.utils.data.DataLoader(
             dataset,
             sampler=sampler,
@@ -282,11 +279,11 @@ class DataLoaderBuilder:
                 )
                 _LOGGED_DISTRIBUTED_BATCHES.add(mode)
 
-        # Avoid OmegaConf merge errors when passing list batches via kwargs.
-        factory_kwargs = factory_config
-        if isinstance(factory_config, dict):
-            factory_kwargs = dict(factory_config)
-            factory_kwargs.pop("batches", None)
-        iter_factory = instantiate(factory_kwargs, dataset, batches=batches)
-
-        return iter_factory.build_iter(self.epoch, shuffle=False)
+        iter_factory = instantiate(factory_config, dataset, batches=batches)
+        iterator = iter_factory.build_iter(self.epoch, shuffle=False)
+        log_dataloader(
+            logger,
+            iterator,
+            label=mode,
+        )
+        return iterator

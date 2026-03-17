@@ -121,7 +121,7 @@ class DiarizationTask(AbsTask):
 
     @classmethod
     def add_task_arguments(cls, parser: argparse.ArgumentParser):
-        group = parser.add_argument_group(description="Task related")
+        group = parser.add_argument_group("Task related")
 
         group.add_argument(
             "--num_spk",
@@ -158,7 +158,7 @@ class DiarizationTask(AbsTask):
             help="The keyword arguments for model class.",
         )
 
-        group = parser.add_argument_group(description="Preprocess related")
+        group = parser.add_argument_group("Preprocess related")
         group.add_argument(
             "--use_preprocessor",
             type=str2bool,

@@ -1,0 +1,1 @@
+../../TEMPLATE/s2t1/path.sh

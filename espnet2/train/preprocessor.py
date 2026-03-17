@@ -2085,13 +2085,9 @@ class SpkPreprocessor(CommonPreprocessor):
                 shortage = self.target_duration - len(audio) + 1
                 audio = np.pad(audio, (0, shortage), "wrap")
 
-            startframe = np.array(
-                [np.int64(random.random() * (len(audio) - self.target_duration))]
-            )
+            startframe = int(random.random() * (len(audio) - self.target_duration))
 
-            data["speech"] = audio[
-                int(startframe) : int(startframe) + self.target_duration
-            ]
+            data["speech"] = audio[startframe : startframe + self.target_duration]
 
             if self.noise_apply_prob > 0 or self.rir_apply_prob > 0:
                 data["speech"] = self._apply_data_augmentation(data["speech"])
@@ -2371,14 +2367,10 @@ class LIDPreprocessor(CommonPreprocessor):
                 shortage = self.target_duration - len(audio) + 1
                 audio = np.pad(audio, (0, shortage), "wrap")
 
-            startframe = np.array(
-                [np.int64(random.random() * (len(audio) - self.target_duration))]
-            )
+            startframe = int(random.random() * (len(audio) - self.target_duration))
             # Random select the start of the speech,
             # and only use the target duration of speech
-            data["speech"] = audio[
-                int(startframe) : int(startframe) + self.target_duration
-            ]
+            data["speech"] = audio[startframe : startframe + self.target_duration]
 
         if self.train and (self.noise_apply_prob > 0 or self.rir_apply_prob > 0):
             data["speech"] = self._apply_data_augmentation(data["speech"])

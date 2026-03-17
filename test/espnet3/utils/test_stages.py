@@ -1,3 +1,4 @@
+import argparse
 import logging
 
 import pytest
@@ -31,7 +32,11 @@ def test_resolve_stages_subset_preserves_stage_order():
 def test_run_stages_dry_run_skips_execution(caplog):
     system = DummySystem()
     with caplog.at_level(logging.INFO):
-        run_stages(system, ["stage_a", "stage_b"], dry_run=True)
+        run_stages(
+            system,
+            ["stage_a", "stage_b"],
+            args=argparse.Namespace(dry_run=True),
+        )
 
     assert system.calls == []
     assert "[DRY RUN] would run stage: stage_a" in caplog.text

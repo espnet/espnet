@@ -1,40 +1,134 @@
-# Inference/decoding configuration template for ESPnet3 ASR.
-# Keep only inference-relevant knobs.
+##########################################################
+#                   Inference SETTING                    #
+##########################################################
+# Quick usage:
+#   python run.py --stages infer --inference_config conf/inference.yaml
+#
+# Outputs:
+# - `${inference_dir}/<test_name>/*.scp`
+# - each SCP stores `utt_id value` pairs for one inference field
 
-# Path scaffold relative to the recipe root.
+##########################################################
+#                    PATHS AND INPUTS                    #
+##########################################################
 recipe_dir: .
-data_dir: ${recipe_dir}/data
-dataset_dir: /path/to/your/dataset
-exp_tag: asr_template_eval
+exp_tag:
 exp_dir: ${recipe_dir}/exp/${exp_tag}
+data_dir: ${recipe_dir}/data
 inference_dir: ${exp_dir}/inference
 
-# Dataset definition for test splits only.
+
+# Test split definitions are required for inference.
+# `dataset.test[*].name` becomes the output subdirectory name under
+# `${inference_dir}`.
+#
+# Example:
+# dataset:
+#   _target_: espnet3.components.data.data_organizer.DataOrganizer
+#   test:
+#     - name: test-clean
+#       dataset:
+#         _target_: src.dataset.YourDataset
+#         manifest_path: ${dataset_dir}/manifest/test-clean.tsv
+#     - name: test-other
+#       dataset:
+#         _target_: src.dataset.YourDataset
+#         manifest_path: ${dataset_dir}/manifest/test-other.tsv
 dataset:
   _target_: espnet3.components.data.data_organizer.DataOrganizer
   test:
-    - name: test-clean
-      dataset:
-        _target_: src.dataset.LibriSpeechDataset
-        data_dir: ${dataset_dir}
-        split: test-clean
+  preprocessor:
 
-# Inference model entrypoint.
+##########################################################
+#                  PARALLELIZATION SETTING               #
+##########################################################
+parallel:
+  env: local
+  n_workers: 1
+
+##########################################################
+#                    MODEL AND OUTPUT                    #
+##########################################################
 model:
-  _target_: espnet2.bin.asr_inference.Speech2Text
-  asr_train_config: ${exp_dir}/config.yaml
-  asr_model_file: ${exp_dir}/last.ckpt
 
-# Inference I/O.
+# Key name(s) selected from each dataset sample and passed to the model.
+# If `dataset[i]` returns `{"speech": ..., "text": ..., "utt_id": ...}` and
+# `input_key: speech`, inference uses `dataset[i]["speech"]` as model input.
+# If you set `input_key: [speech, text]`, inference builds
+# `{"speech": dataset[i]["speech"], "text": dataset[i]["text"]}` and calls
+# `model(**...)` with that dict.
 input_key: speech
-output_fn: src.infer.output_fn
 
+# Optional output key list.
+# These keys must exist in the dict returned by `output_fn`.
+# Only the fields listed here are written as SCP files under
+# `${inference_dir}/<test_name>/`.
+# If omitted, keys are inferred from the first returned sample except for
+# `idx_key`. Set this explicitly when you want stable SCP filenames.
+#
+# output_keys:
+#   - hyp
+
+# Sample identifier field name expected in the final inference output dict.
+# Inference uses `utt_id` by default, and the final output dict must contain it
+# unless you explicitly override `idx_key`.
+# This value becomes the first column in generated SCP files and is used to map
+# each inference result back to the corresponding dataset sample.
+#
+#idx_key: utt_id
+
+# Optional batch size.
+# Set to `null` if your model or `output_fn` only supports single-item decoding.
+# batch_size: 1
+
+# Optional recipe-provided formatter that converts raw model outputs into dicts such as:
+#   {"utt_id": "...", "hyp": "..."}
+# If omitted, the model output itself must already be a dict (or a list of dicts
+# for batched inference) and must contain `utt_id` unless `idx_key` is
+# overridden.
+#
+# Each output field must be a single value.
+# - Primitive values (`str`, `int`, `float`, `bool`) are written directly to SCP.
+# - `dict` values are serialized as JSON artifacts and the artifact path is
+#   written to SCP.
+# - Bare top-level `list` / `tuple` outputs are not supported.
+output_fn: src.inference.build_output
+
+# Optional artifact writers for non-scalar outputs.
+# Primitive values (str/int/float/bool) are written directly into SCP files.
+# Non-primitive values can be saved under:
+#   `${inference_dir}/<test_name>/<field>/<utt_id>.*`
+# and the generated file path is written to the SCP entry.
+#
+# Supported built-in types:
+#   - wav    : requires `sample_rate`
+#   - npy
+#   - json
+#   - pickle
+#
+# If an output field is a `dict`, it is saved as JSON by default. Any nested
+# lists inside that dict are preserved through JSON serialization.
+#
+# You can either declare a built-in type here, or provide a custom writer via
+# `_target_`. Custom writers must return the written file path.
+#
+# output_artifacts:
+#   audio:
+#     type: wav
+#     sample_rate: 16000
+#   posterior:
+#     type: npy
+#   debug_obj:
+#     type: pickle
+#   custom_field:
+#     writer:
+#       _target_: src.inference.write_custom_artifact
+#       some_option: 123
+
+##########################################################
+#               PROVIDER AND RUNNER SETTING              #
+##########################################################
 provider:
   _target_: espnet3.systems.base.inference_provider.InferenceProvider
 runner:
   _target_: espnet3.systems.base.inference_runner.InferenceRunner
-
-# Parallel execution used during data loading / scoring (defaults to local).
-parallel:
-  env: local
-  n_workers: 1

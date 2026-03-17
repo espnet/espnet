@@ -1,0 +1,25 @@
+##########################################################
+#                 METRIC SCORING SETTING                 #
+##########################################################
+# Quick usage:
+#   python run.py --stages measure --metrics_config conf/metrics.yaml
+#
+# Mini AN4 ASR metrics config for ESPnet3 integration tests.
+
+##########################################################
+#                    PATHS AND INPUTS                    #
+##########################################################
+exp_tag: ${load_yaml:training.yaml,exp_tag}
+inference_dir: ${exp_dir}/inference
+
+##########################################################
+#                    METRIC DEFINITION                   #
+##########################################################
+metrics:
+  - metric:
+      _target_: espnet3.systems.asr.metrics.wer.WER
+      clean_types:
+
+  - metric:
+      _target_: espnet3.systems.asr.metrics.cer.CER
+      clean_types:
