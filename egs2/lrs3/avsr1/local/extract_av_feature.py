@@ -92,10 +92,8 @@ def per_file(f, args, video_process, model, writer):
         if output is None:
             return
 
-        os.system(
-            f"ffmpeg -loglevel panic -nostdin -y -i {vid_name} \
-                -acodec pcm_s16le -ar 16000 -ac 1 {temp_aud_path}.wav"
-        )
+        os.system(f"ffmpeg -loglevel panic -nostdin -y -i {vid_name} \
+                -acodec pcm_s16le -ar 16000 -ac 1 {temp_aud_path}.wav")
 
         video_feats, _, _ = output  # T, H, W
 

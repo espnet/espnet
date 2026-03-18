@@ -50,7 +50,7 @@ class ClothoMixupDataset(Dataset):
             split_name if split_name is not None else os.path.basename(audio_dir)
         )
 
-        (self.idx_to_sample, self.idx_to_audio, self.captions) = self.get_captions(
+        self.idx_to_sample, self.idx_to_audio, self.captions = self.get_captions(
             chatgpt_augmented_data_path,
             chatgpt_rejected_data_path,
         )

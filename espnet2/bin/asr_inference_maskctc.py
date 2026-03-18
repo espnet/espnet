@@ -260,7 +260,7 @@ def inference(
 
             # Only supporting batch_size==1
             key = keys[0]
-            (text, token, token_int, hyp) = results[0]
+            text, token, token_int, hyp = results[0]
 
             # Create a directory: outdir/{n}best_recog
             ibest_writer = writer["1best_recog"]
