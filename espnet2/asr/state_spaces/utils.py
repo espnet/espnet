@@ -1,6 +1,7 @@
 # This code is derived from https://github.com/HazyResearch/state-spaces
 
 """Utilities for dealing with collection objects (lists, dicts) and configs."""
+
 import functools
 from typing import Callable, Mapping, Sequence
 

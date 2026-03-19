@@ -7,13 +7,13 @@ from espnet3.systems.base.inference_runner import InferenceRunner
 
 
 def _output_fn(*, data, model_output, idx):
-    return {"uttid": data["uttid"], "hyp": model_output[0][0], "ref": data["text"]}
+    return {"utt_id": data["uttid"], "hyp": model_output[0][0], "ref": data["text"]}
 
 
 def _batch_output_fn(*, data, model_output, idx):
     return [
         {
-            "uttid": sample["uttid"],
+            "utt_id": sample["uttid"],
             "hyp": output[0][0],
             "ref": sample["text"],
         }
@@ -22,7 +22,7 @@ def _batch_output_fn(*, data, model_output, idx):
 
 
 def _param_output_fn(*, data, model_output, idx):
-    return {"uttid": data["uttid"], "hyp": model_output, "ref": "ref"}
+    return {"utt_id": data["uttid"], "hyp": model_output, "ref": "ref"}
 
 
 class DummyProvider(InferenceProvider):
@@ -121,7 +121,7 @@ def test_forward_returns_hyp_and_ref():
         output_fn_path=output_path,
     )
 
-    assert out == {"uttid": "utt1", "hyp": "hyp", "ref": "ref"}
+    assert out == {"utt_id": "utt1", "hyp": "hyp", "ref": "ref"}
 
 
 def test_forward_batch_with_batched_inputs():
@@ -145,8 +145,8 @@ def test_forward_batch_with_batched_inputs():
     )
 
     assert out == [
-        {"uttid": "utt1", "hyp": "hyp1", "ref": "ref1"},
-        {"uttid": "utt2", "hyp": "hyp2", "ref": "ref2"},
+        {"utt_id": "utt1", "hyp": "hyp1", "ref": "ref1"},
+        {"utt_id": "utt2", "hyp": "hyp2", "ref": "ref2"},
     ]
 
 
@@ -204,7 +204,7 @@ def test_inference_requires_provider_config():
             "parallel": {"env": "local", "n_workers": 1},
         }
     )
-    with pytest.raises(RuntimeError, match="infer_config.provider must be set"):
+    with pytest.raises(RuntimeError, match="inference_config.provider must be set"):
         infer(cfg)
 
 

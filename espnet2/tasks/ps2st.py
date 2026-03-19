@@ -38,7 +38,7 @@ class PS2STTask(AbsTask):
     @classmethod
     def add_task_arguments(cls, parser: argparse.ArgumentParser):
         """Add task-specific arguments"""
-        group = parser.add_argument_group(description="Task related")
+        group = parser.add_argument_group("Task related")
 
         group.add_argument(
             "--model_name",

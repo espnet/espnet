@@ -8,7 +8,6 @@
 
 """Encodec SEANet-based encoder and decoder implementation."""
 
-
 import logging
 import math
 from typing import Any, Dict, List, Tuple, Union

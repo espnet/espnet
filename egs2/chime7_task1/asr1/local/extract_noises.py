@@ -18,9 +18,7 @@ def get_args():
         """Extract noises from the corpus based on the non-speech regions.
         e.g. {} /export/corpora4/CHiME5/audio/train/ \\
                 /export/corpora4/CHiME5/transcriptions/train/ \\
-                /export/b05/zhiqiw/noise/""".format(
-            sys.argv[0]
-        )
+                /export/b05/zhiqiw/noise/""".format(sys.argv[0])
     )
 
     parser.add_argument("--segment-length", default=20)

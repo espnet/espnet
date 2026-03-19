@@ -143,7 +143,7 @@ class DataOrganizer:
 
     Example (training + validation):
         >>> organizer = DataOrganizer(
-        ...     train=train_configs,
+        ...     train=training_configs,
         ...     valid=valid_configs,
         ...     preprocessor=MyPreprocessor()
         ... )
@@ -181,10 +181,12 @@ class DataOrganizer:
                 dataset = config.dataset
                 if isinstance(dataset, (dict, DictConfig)):
                     dataset = instantiate(dataset)
-                if hasattr(config, "transform"):
+
+                if hasattr(config, "transform") and config.transform is not None:
                     transform = config.transform
                 else:
                     transform = do_nothing
+
                 if isinstance(transform, (dict, DictConfig)):
                     transform = instantiate(transform)
 
@@ -226,11 +228,21 @@ class DataOrganizer:
         self.test_sets = {}
         if test is not None:
             for config in test:
+                if isinstance(config, dict):
+                    config = DatasetConfig(**config)
+
                 dataset = config.dataset
-                if hasattr(config, "transform"):
+                if isinstance(dataset, (dict, DictConfig)):
+                    dataset = instantiate(dataset)
+
+                if hasattr(config, "transform") and config.transform is not None:
                     transform = config.transform
                 else:
                     transform = do_nothing
+
+                if isinstance(transform, (dict, DictConfig)):
+                    transform = instantiate(transform)
+
                 self.test_sets[config.name] = DatasetWithTransform(
                     dataset,
                     transform,

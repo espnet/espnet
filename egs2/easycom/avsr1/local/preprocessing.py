@@ -263,10 +263,8 @@ def main():
                     save_video(save_vid_name, video_sequences, None, fps=25)
 
                     os.makedirs(os.path.dirname(save_aud_name), exist_ok=True)
-                    os.system(
-                        f"ffmpeg -loglevel panic -nostdin -y -i {file} \
-                            -acodec pcm_s16le -ar 16000 -ac 1 {save_aud_name}"
-                    )
+                    os.system(f"ffmpeg -loglevel panic -nostdin -y -i {file} \
+                            -acodec pcm_s16le -ar 16000 -ac 1 {save_aud_name}")
 
                     os.makedirs(os.path.dirname(save_txt_name), exist_ok=True)
                     with open(save_txt_name, "w") as txtw:

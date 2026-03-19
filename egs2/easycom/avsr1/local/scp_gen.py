@@ -30,10 +30,8 @@ def main():
         os.makedirs(os.path.dirname(audio_scp), exist_ok=True)
         with open(audio_scp, "w") as txt:
             for line in file_lists:
-                txt.write(
-                    f'{"_".join(line.split(os.sep))} \
-                        {os.path.join(args.data_dir, line)}.wav\n'
-                )
+                txt.write(f'{"_".join(line.split(os.sep))} \
+                        {os.path.join(args.data_dir, line)}.wav\n')
 
         text_scp = f"data/{split}_with_LRS3/text" if args.LRS3 else f"data/{split}/text"
         with open(text_scp, "w") as txtw:
@@ -42,10 +40,8 @@ def main():
                     os.path.join(args.data_dir, line.replace("Audio", "Text")) + ".txt",
                     "r",
                 ) as txt:
-                    txtw.write(
-                        f'{"_".join(line.split(os.sep))}\
-                            \t{txt.readlines()[0].strip()}\n'
-                    )
+                    txtw.write(f'{"_".join(line.split(os.sep))}\
+                            \t{txt.readlines()[0].strip()}\n')
 
         if args.LRS3 and split == "train":
             file_lists = sorted(
@@ -59,20 +55,16 @@ def main():
             ]
             with open(audio_scp, "a") as txt:
                 for line in file_lists:
-                    txt.write(
-                        f'{"_".join(line.split(os.sep))} \
-                            {os.path.join(args.data_dir, "LRS3", "Audio", line)}.wav\n'
-                    )
+                    txt.write(f'{"_".join(line.split(os.sep))} \
+                            {os.path.join(args.data_dir, "LRS3", "Audio", line)}.wav\n')
 
             with open(text_scp, "a") as txtw:
                 for line in file_lists:
                     with open(
                         os.path.join(args.data_dir, "LRS3", "Text", line + ".txt"), "r"
                     ) as txt:
-                        txtw.write(
-                            f'{"_".join(line.split(os.sep))}\
-                                \t{txt.readlines()[0].strip()}\n'
-                        )
+                        txtw.write(f'{"_".join(line.split(os.sep))}\
+                                \t{txt.readlines()[0].strip()}\n')
 
 
 def get_parser():

@@ -12,6 +12,7 @@ from abc import ABC
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
+import torch
 from torch.nn import Module
 
 
@@ -209,5 +210,22 @@ class AbsIO(ABC, Module):
         Returns:
             List of weight values for each stream (typically between 0.0 and 1.0),
             None for continuous modalities
+        """
+        raise NotImplementedError
+
+    def dummy_forward(self, ref_tensor: torch.Tensor) -> torch.Tensor:
+        """Perform a dummy forward pass to include parameters in the graph.
+
+        This method ensures all encoder parameters participate in the backward
+        pass for proper gradient synchronization in distributed training
+        (e.g., DeepSpeed ZeRO). It should be called when a modality is not
+        present in the current batch to prevent gradient mismatch errors.
+
+        Args:
+            ref_tensor: Reference tensor to get device and dtype from
+
+        Returns:
+            Output tensor from the encoder (raw, not summed). The caller
+            is responsible for summing and adding to the computation graph.
         """
         raise NotImplementedError

@@ -7,7 +7,7 @@ from typing import Any, Callable, Dict
 
 import torch
 from hydra.utils import instantiate
-from omegaconf import DictConfig
+from omegaconf import DictConfig, OmegaConf
 
 from espnet3.parallel.env_provider import EnvironmentProvider
 from espnet3.utils.logging_utils import log_instance_dict
@@ -30,14 +30,14 @@ class InferenceProvider(EnvironmentProvider, ABC):
           pickle-safe for Dask.
 
     Args:
-        infer_config (DictConfig): Hydra configuration used to build dataset/model.
+        inference_config (DictConfig): Hydra configuration used to build dataset/model.
         params (Dict[str, Any] | None): Optional additional key-value pairs
             that will be merged into the returned environment (e.g., device,
             tokenizer, beam size).
 
     Notes:
         - Subclasses must implement ``build_dataset`` and ``build_model``.
-        - ``self.infer_config.update(self.params)`` allows lightweight overrides
+        - ``self.inference_config.update(self.params)`` allows lightweight overrides
           (e.g., runtime overrides) but avoid mutating deep structures unless
           intended.
     """
@@ -45,10 +45,10 @@ class InferenceProvider(EnvironmentProvider, ABC):
     # TODO(Masao) Add detailed description on Runner/Provider in the document.
 
     def __init__(
-        self, infer_config: DictConfig = None, params: Dict[str, Any] | None = None
+        self, inference_config: DictConfig = None, params: Dict[str, Any] | None = None
     ):
         """Initialize InferenceProvider object."""
-        super().__init__(infer_config)
+        super().__init__(inference_config)
         self.params = params or {}
         self.config.update(self.params)
 
@@ -157,7 +157,13 @@ class InferenceProvider(EnvironmentProvider, ABC):
             - Rely on fields already present in ``config`` instead of reading
               global state whenever possible.
         """
-        organizer = instantiate(config.dataset)
+        if isinstance(config, dict):
+            config = OmegaConf.create(config)
+            organizer = instantiate(config.dataset)
+
+        if isinstance(config, DictConfig):
+            organizer = instantiate(config.dataset)
+
         test_set = config.test_set
         logger.info("Building dataset for test set: %s", test_set)
         return organizer.test[test_set]
@@ -193,6 +199,9 @@ class InferenceProvider(EnvironmentProvider, ABC):
             - Do not perform training/optimization here, this is for inference
               setup only.
         """
+        if isinstance(config, dict):
+            config = OmegaConf.create(config)
+
         device = "cuda" if torch.cuda.is_available() else "cpu"
         if device == "cuda":
             device_id = os.getenv("CUDA_VISIBLE_DEVICES", "0").split(",")[0].strip()

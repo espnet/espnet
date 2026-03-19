@@ -36,7 +36,7 @@ dependencies = [
     "soundfile>=0.10.2",
     "torch_optimizer",
     "kaldiio>=2.18.0",
-    "sentencepiece==0.2.0",
+    "sentencepiece==0.2.1",
     "librosa>=0.10.2",
     "lightning",
     "torch_complex",
@@ -69,7 +69,10 @@ version = {attr = "espnet2.__version__"}
 readme = {file = ["README.md"], content-type = "text/markdown"}
 
 [tool.setuptools.packages.find]
-include = ["espnet*"]
+include = ["espnet*", "egs3*"]
+
+[tool.setuptools.package-data]
+egs3 = ["egs3/TEMPLATE/**/*.yaml"]
 
 
 
@@ -78,6 +81,7 @@ asr = [
   "ctc-segmentation @ git+https://github.com/espnet/ctc-segmentation.git@9b9ea1d",
   "editdistance",
   "opt_einsum",
+  "jiwer",
 ]
 
 tts = [

@@ -1,0 +1,100 @@
+##########################################################
+#                   Inference SETTING                    #
+##########################################################
+# Quick usage:
+#   python run.py --stages infer --inference_config conf/inference.yaml
+#
+# Outputs:
+# - `${inference_dir}/<test_name>/*.scp`
+# - each SCP stores `utt_id value` pairs for one inference field
+
+##########################################################
+#                    PATHS AND INPUTS                    #
+##########################################################
+recipe_dir: .
+exp_tag:
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+data_dir: ${recipe_dir}/data
+inference_dir: ${exp_dir}/inference
+
+
+# Test split definitions are required for inference.
+# `dataset.test[*].name` becomes the output subdirectory name under
+# `${inference_dir}`.
+#
+# Example:
+# dataset:
+#   _target_: espnet3.components.data.data_organizer.DataOrganizer
+#   test:
+#     - name: test-clean
+#       dataset:
+#         _target_: src.dataset.YourDataset
+#         manifest_path: ${dataset_dir}/manifest/test-clean.tsv
+#     - name: test-other
+#       dataset:
+#         _target_: src.dataset.YourDataset
+#         manifest_path: ${dataset_dir}/manifest/test-other.tsv
+dataset:
+  _target_: espnet3.components.data.data_organizer.DataOrganizer
+  test:
+  preprocessor:
+
+##########################################################
+#                  PARALLELIZATION SETTING               #
+##########################################################
+parallel:
+  env: local
+  n_workers: 1
+
+##########################################################
+#                    MODEL AND OUTPUT                    #
+##########################################################
+model:
+
+# Key name(s) selected from each dataset sample and passed to the model.
+# If `dataset[i]` returns `{"speech": ..., "text": ..., "utt_id": ...}` and
+# `input_key: speech`, inference uses `dataset[i]["speech"]` as model input.
+# If you set `input_key: [speech, text]`, inference builds
+# `{"speech": dataset[i]["speech"], "text": dataset[i]["text"]}` and calls
+# `model(**...)` with that dict.
+input_key: speech
+
+# Optional output key list.
+# These keys must exist in the dict returned by `output_fn`.
+# Only the fields listed here are written as SCP files under
+# `${inference_dir}/<test_name>/`.
+# If omitted, keys are inferred from the first returned sample except for
+# `idx_key`. Set this explicitly when you want stable SCP filenames.
+#
+# output_keys:
+#   - hyp
+
+# Sample identifier field name expected in the final inference output dict.
+# Inference uses `utt_id` by default, and the final output dict must contain it
+# unless you explicitly override `idx_key`.
+# This value becomes the first column in generated SCP files and is used to map
+# each inference result back to the corresponding dataset sample.
+#
+#idx_key: utt_id
+
+# Optional batch size.
+# Set to `null` if your model or `output_fn` only supports single-item decoding.
+# batch_size: 1
+
+# Optional recipe-provided formatter that converts raw model outputs into dicts such as:
+#   {"utt_id": "...", "hyp": "..."}
+# or
+#   {"utt_id": "...", "hyp": ["nbest1", "nbest2"]}
+# List outputs are expanded to `hyp0.scp`, `hyp1.scp`, ...
+# If omitted, the model output itself must already be a dict (or a list of dicts
+# for batched inference) and must contain `utt_id` unless `idx_key` is
+# overridden.
+output_fn: src.inference.build_output
+
+##########################################################
+#               PROVIDER AND RUNNER SETTING              #
+##########################################################
+provider:
+  _target_: espnet3.systems.base.inference_provider.InferenceProvider
+runner:
+  _target_: espnet3.systems.base.inference_runner.InferenceRunner
