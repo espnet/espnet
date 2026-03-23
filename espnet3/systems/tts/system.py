@@ -18,7 +18,7 @@ from espnet3.components.modeling.lightning_module import ESPnetLightningModule
 from espnet3.components.trainers.trainer import ESPnet3LightningTrainer
 from espnet3.parallel.parallel import set_parallel
 from espnet3.systems.base.system import BaseSystem
-from espnet3.systems.tts.models.gan_model import GANTTSLightningModule
+from espnet3.systems.tts.gan_trainer import build_gan_trainer
 from espnet3.utils.task_utils import get_espnet_model, save_espnet_config
 
 logger = logging.getLogger(__name__)
@@ -70,9 +70,9 @@ class TTSSystem(BaseSystem):
         config = self.training_config
         model = _instantiate_model(config)
         if isinstance(model, AbsGANESPnetModel):
-            lit_model = GANTTSLightningModule(model, config)
-        else:
-            lit_model = ESPnetLightningModule(model, config)
+            return build_gan_trainer(config, model)
+
+        lit_model = ESPnetLightningModule(model, config)
         return ESPnet3LightningTrainer(
             model=lit_model,
             exp_dir=config.exp_dir,
