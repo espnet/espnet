@@ -240,3 +240,10 @@ class ESPnetGANTTSModel(AbsGANESPnetModel):
             feats_dict.update(energy=energy, energy_lengths=energy_lengths)
 
         return feats_dict
+
+    def clear_cache(self) -> None:
+        """Clear cached GAN-TTS intermediate outputs."""
+        if hasattr(self.tts, "clear_cache"):
+            self.tts.clear_cache()
+        elif hasattr(self.tts, "_cache"):
+            self.tts._cache = None
