@@ -1,0 +1,11 @@
+exp_tag: ${load_yaml:training_vits.yaml,exp_tag}
+
+model:
+  _target_: espnet2.bin.tts_inference.Text2Speech
+  train_config: ${exp_dir}/config.yaml
+  model_file: ${exp_dir}/last.ckpt
+
+output_artifacts:
+  wav:
+    type: wav
+    sample_rate: 16000

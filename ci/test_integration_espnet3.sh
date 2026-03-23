@@ -52,3 +52,26 @@ run_with_training_config \
     conf/inference_transducer.yaml
 
 cd "${cwd}"
+
+python3 -m pip install -e '.[tts]'
+
+cd ./egs3/mini_an4/tts
+gen_dummy_coverage
+echo "==== [ESPnet3] TTS ===="
+run_with_tts_config() {
+    local training_config=$1
+    local inference_config=$2
+
+    ln -sfn "${training_config}" conf/training.yaml
+    ln -sfn "${inference_config}" conf/inference.yaml
+    ${python} run.py \
+        --stages create_dataset collect_stats train infer \
+        --training_config conf/training.yaml \
+        --inference_config conf/inference.yaml
+    rm -rf exp data
+}
+
+run_with_tts_config training_tacotron2.yaml inference_tacotron2.yaml
+run_with_tts_config training_vits.yaml inference_vits.yaml
+
+cd "${cwd}"

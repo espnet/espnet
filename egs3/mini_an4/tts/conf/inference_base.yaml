@@ -1,0 +1,43 @@
+##########################################################
+#                   Inference SETTING                    #
+##########################################################
+recipe_dir: .
+data_dir: ${recipe_dir}/data
+dataset_dir: ${data_dir}/mini_an4
+exp_tag:
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+inference_dir: ${exp_dir}/inference
+
+dataset:
+  _target_: espnet3.components.data.data_organizer.DataOrganizer
+  test:
+    - name: test
+      dataset:
+        _target_: src.dataset.MiniAN4TTSDataset
+        manifest_path: ${dataset_dir}/manifest/test.tsv
+        include_utt_id: true
+  preprocessor:
+    _target_: espnet2.train.preprocessor.CommonPreprocessor
+    fs: 16000
+    train: false
+    token_type: char
+    token_list: ${dataset_dir}/tokens.txt
+
+parallel:
+  env: local
+  n_workers: 1
+
+model:
+
+input_key: text
+batch_size: null
+output_fn: src.inference.build_output
+output_artifacts:
+  wav:
+    type: wav
+    sample_rate: 16000
+
+provider:
+  _target_: espnet3.systems.base.inference_provider.InferenceProvider
+runner:
+  _target_: espnet3.systems.base.inference_runner.InferenceRunner

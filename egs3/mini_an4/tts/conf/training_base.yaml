@@ -1,0 +1,91 @@
+##########################################################
+#                    TRAINING SETTING                    #
+##########################################################
+num_device: 1
+num_nodes: 1
+task: espnet2.tasks.tts.TTSTask
+stage_log_mode: rank0
+
+recipe_dir: .
+data_dir: ${recipe_dir}/data
+dataset_dir: ${data_dir}/mini_an4
+exp_tag: tts_debug
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+stats_dir: ${exp_dir}/stats
+inference_dir: ${exp_dir}/inference
+
+create_dataset:
+  func: src.creating_dataset.create_dataset
+  dataset_dir: ${dataset_dir}
+  archive_path: ${recipe_dir}/../../../egs2/mini_an4/asr1/downloads.tar.gz
+
+dataset:
+  _target_: espnet3.components.data.data_organizer.DataOrganizer
+  train:
+    - name: train_nodev
+      dataset:
+        _target_: src.dataset.MiniAN4TTSDataset
+        manifest_path: ${dataset_dir}/manifest/train_nodev.tsv
+  valid:
+    - name: train_dev
+      dataset:
+        _target_: src.dataset.MiniAN4TTSDataset
+        manifest_path: ${dataset_dir}/manifest/train_dev.tsv
+  preprocessor:
+    _target_: espnet2.train.preprocessor.CommonPreprocessor
+    fs: 16000
+    train: true
+    token_type: char
+    token_list: ${dataset_dir}/tokens.txt
+
+model:
+  token_list: ${dataset_dir}/tokens.txt
+  token_type: char
+
+optimizer:
+  _target_: torch.optim.AdamW
+  lr: 0.001
+  weight_decay: 0.0
+
+scheduler:
+  _target_: torch.optim.lr_scheduler.ExponentialLR
+  gamma: 0.99
+
+scheduler_interval: epoch
+
+best_model_criterion:
+  - - valid/loss
+    - 1
+    - min
+
+parallel:
+  env: local
+  n_workers: 1
+
+dataloader:
+  collate_fn:
+    _target_: espnet2.train.collate_fn.CommonCollateFn
+    float_pad_value: 0.0
+    int_pad_value: 0
+  train:
+    iter_factory: null
+    batch_size: 2
+    shuffle: true
+    num_workers: 0
+  valid:
+    iter_factory: null
+    batch_size: 1
+    shuffle: false
+    num_workers: 0
+
+trainer:
+  accelerator: auto
+  devices: ${num_device}
+  num_nodes: ${num_nodes}
+  accumulate_grad_batches: 1
+  check_val_every_n_epoch: 1
+  log_every_n_steps: 1
+  max_epochs: 1
+  strategy: auto
+
+fit: {}
