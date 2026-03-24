@@ -191,7 +191,7 @@ class ESPnetLightningModule(lightning.LightningModule):
         """
         invalid = False
         for loss in losses:
-            mask_nan_inf = torch.logical_or(torch.isnan(loss), ~torch.isfinite(loss))
+            mask_nan_inf = torch.logical_or(torch.isnan(loss), torch.isinf(loss))
             if torch.any(mask_nan_inf):
                 invalid = True
                 break

@@ -746,6 +746,28 @@ def test_weight_none_does_not_pass_batch_size_to_logging():
     assert "batch_size" not in kwargs_seen
 
 
+@pytest.mark.parametrize(
+    ("loss", "expected_skip", "initial_countdown", "expected_countdown"),
+    [
+        (torch.tensor(float("nan")), True, 0, 1),
+        (torch.tensor(float("inf")), True, 2, 3),
+        (torch.tensor(float("-inf")), True, 7, 8),
+        (torch.tensor(1.0), False, 9, 1),
+    ],
+)
+def test_check_nan_inf_loss_detects_nan_and_inf(
+    loss, expected_skip, initial_countdown, expected_countdown
+):
+    """Skip the batch only when at least one loss tensor is NaN or Inf."""
+    module = ESPnetLightningModule(DummySingleModel(), make_single_config())
+    module._trainer = type("DummyTrainer", (), {"current_epoch": 0})()
+    module._sync2skip = lambda flag_skip: bool(flag_skip.item())
+    module.nan_countdown = initial_countdown
+
+    assert module._check_nan_inf_loss([loss], batch_id=0) is expected_skip
+    assert module.nan_countdown == expected_countdown
+
+
 def test_checkpoint_restores_runtime_state():
     """Restore custom optimizer runtime counters from checkpoint state."""
     module = ESPnetLightningModule(
