@@ -224,6 +224,17 @@ class DummyTensorLossMultiModel(nn.Module):
         return loss, {"loss": loss.detach()}, None
 
 
+class DummyAmbiguousSelectorModel(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.encoder = nn.Linear(2, 1)
+        self.decoder_encoder = nn.Linear(2, 1)
+
+    def forward(self, x, **kwargs):
+        loss = self.encoder(x).sum() + self.decoder_encoder(x).sum()
+        return loss, {"loss": loss.detach()}, None
+
+
 def make_train_batch(module):
     trainer = getattr(module, "_trainer", None)
     if trainer is None or not hasattr(trainer, "current_epoch"):
@@ -534,6 +545,60 @@ def test_optimizer_params_must_not_overlap():
     )
     with pytest.raises(AssertionError, match="assigned to multiple optimizers"):
         module.configure_optimizers()
+
+
+def test_optimizer_param_selector_matches_dot_delimited_boundaries():
+    """Match `params` on path boundaries instead of raw substring inclusion."""
+    config = make_base_config()
+    config.update(
+        {
+            "optimizers": {
+                "encoder": {
+                    "optimizer": {"_target_": "torch.optim.SGD", "lr": 0.1},
+                    "params": "encoder",
+                },
+                "decoder_encoder": {
+                    "optimizer": {"_target_": "torch.optim.SGD", "lr": 0.1},
+                    "params": "decoder_encoder",
+                },
+            },
+            "schedulers": {
+                "encoder": {
+                    "scheduler": {
+                        "_target_": "torch.optim.lr_scheduler.StepLR",
+                        "step_size": 1,
+                    },
+                    "interval": "step",
+                },
+                "decoder_encoder": {
+                    "scheduler": {
+                        "_target_": "torch.optim.lr_scheduler.StepLR",
+                        "step_size": 1,
+                    },
+                    "interval": "step",
+                },
+            },
+        }
+    )
+    module = ESPnetLightningModule(
+        DummyAmbiguousSelectorModel(), OmegaConf.create(config)
+    )
+
+    optimizers, _ = module.configure_optimizers()
+    selected_names = []
+    for optimizer in optimizers:
+        selected_names.append(
+            sorted(
+                name
+                for name, param in module.named_parameters()
+                if any(param is p for group in optimizer.param_groups for p in group["params"])
+            )
+        )
+
+    assert selected_names == [
+        ["model.encoder.bias", "model.encoder.weight"],
+        ["model.decoder_encoder.bias", "model.decoder_encoder.weight"],
+    ]
 
 
 def test_single_optimizer_rejects_optimization_step():
