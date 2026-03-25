@@ -1,6 +1,6 @@
 # Self-supervised Learning
 
-This is a template of the hubert11 recipe for ESPnet2, designed for HuBERT-style SSL.
+This is a template of the hubert1 recipe for ESPnet2, designed for HuBERT-style SSL.
 
 ## Table of Contents
 - [Recipe flow](#recipe-flow)
