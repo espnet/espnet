@@ -17,8 +17,6 @@ unused_parameters: true
 
 input_size: 1
 
-# Note: The paper specifies a mask span of 10 and 8% selection probability.
-# Ensure your preprocessor or masking module respects these values.
 collate_fn_conf:
     label_downsampling: 1
     pad: False
@@ -26,40 +24,19 @@ collate_fn_conf:
 
 encoder: torchaudio_hubert
 encoder_conf:
-    # Dropout should generally match the original HuBERT setup (0.1) for pre-training,
-    # though the paper uses the same setup as iteration 2[cite: 114].
-    # If strictly following your template's 0.0, keep as is, but standard HuBERT uses 0.1.
     encoder_projection_dropout: 0.1 
     encoder_attention_dropout: 0.1
     encoder_ff_interm_dropout: 0.0
     encoder_dropout: 0.1
-    encoder_layer_drop: 0.05       # Standard HuBERT often uses small layer drop
-    
-    # --- DiceHuBERT "Narrow" Architecture Changes [cite: 90, 93, 108] ---
-    
-    # 1. Feature Dimension (D_base / 2)
-    # The paper reduces the embedding dimension from 768 (Base) to 384.
+    encoder_layer_drop: 0.05 
     encoder_embed_dim: 384
-    
-    # 2. Feed-Forward Dimension (Reduced)
-    # The intermediate dimension is halved from 3072 (Base) to 1536.
     encoder_ff_interm_features: 1536
-    
-    # 3. Number of Layers (Unchanged from Base)
-    # DiceHuBERT-Narrow maintains the original depth of 12 layers.
     encoder_num_layers: 12
-    
-    # 4. Attention Heads
-    # Scaled to maintain head dimension (384 dim / 64 per head = 6 heads).
     encoder_num_heads: 6
-    
-    # 5. Final Output Dimension
-    # Matches the reduced embedding dimension.
     final_dim: 128
     
 model: torchaudio
 
-# The paper uses the exact setup of HuBERT 2nd iteration pre-training [cite: 114]
 optim: adam
 optim_conf:
     lr: 0.0005
