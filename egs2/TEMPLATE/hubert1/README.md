@@ -70,7 +70,7 @@ This stage computes statistics for training. It collects input/output shapes and
 This stage trains the HuBERT model. You can modify training settings using `--train_configs`. Multiple configurations can be provided (one per iteration) using space-separated values, similar to `--features_km`. For default settings, refer to the HuBERT recipe for the LibriSpeech dataset.
 
 ### 8. Model Packing
-This stage packages the trained model files for later use or distribution.
+This stage packs the trained model files for later use or distribution.
 
 ### 9. Upload Model to HuggingFace
 This stage uploads the trained model to Hugging Face.
@@ -88,7 +88,7 @@ Following the original HuBERT setup, the student model is trained using the same
 ```sh
 ./run.sh --stage 5 --stop-stage 5 --train_start_iter 2 --train_stop_iter 2 --download_model simpleoier/simpleoier_librispeech_hubert_iter1_train_ssl_torchaudiohubert_base_960h_pretrain_it1_raw
 ```
-Setting --train_start_iter 2 --train_stop_iter 2 ensures that only iteration 2 is executed.After generating pseudo-labels, continue with the standard training steps:
+Setting --train_start_iter 2 --train_stop_iter 2 ensures that only iteration 2 is executed. After generating pseudo-labels, continue with the standard training steps:
 ```sh
 ./run.sh --stage 6 --stop-stage 7 --train_start_iter 2 --train_stop_iter 2
 ```
