@@ -24,17 +24,17 @@ collate_fn_conf:
 
 encoder: torchaudio_hubert
 encoder_conf:
-    encoder_projection_dropout: 0.1 
+    encoder_projection_dropout: 0.1
     encoder_attention_dropout: 0.1
     encoder_ff_interm_dropout: 0.0
     encoder_dropout: 0.1
-    encoder_layer_drop: 0.05 
+    encoder_layer_drop: 0.05
     encoder_embed_dim: 384
     encoder_ff_interm_features: 1536
     encoder_num_layers: 12
     encoder_num_heads: 6
     final_dim: 128
-    
+
 model: torchaudio
 
 optim: adam

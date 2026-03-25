@@ -31,7 +31,7 @@ This stage handles the data preparation step. It calls `local/data.sh` to downlo
 ### 2. Speed Perturbation
 If `speed_perturb_factors` are defined, the recipe generates time-stretched/compressed versions of the audio. These are stored in a new directory and merged into `data/${train_set}_sp` to increase dataset diversity.
 
-### 3. Format wav 
+### 3. Format wav
 The HuBERT recipe supports only `--feat_type raw`. This stage reformats the audio, such as resampling, segmentation, and format conversion, and saves the processed wav.scp to `dump/raw/`.
 
 ### 4. Remove long/short data
@@ -78,7 +78,7 @@ This stage uploads the trained model to Hugging Face.
 ## Distillation
 
 ### DiceHubert
-[DiceHuBERT](https://arxiv.org/pdf/2507.02911) is a distillation method that transfers knowledge from a teacher model to a smaller student model. Unlike conventional approaches that use regression losses, DiceHuBERT applies the standard HuBERT cross-entropy loss for distillation. This design makes it compatible with the HuBERT recipe with only minor changes. 
+[DiceHuBERT](https://arxiv.org/pdf/2507.02911) is a distillation method that transfers knowledge from a teacher model to a smaller student model. Unlike conventional approaches that use regression losses, DiceHuBERT applies the standard HuBERT cross-entropy loss for distillation. This design makes it compatible with the HuBERT recipe with only minor changes.
 
 We start with the standard data preparation:
 ```sh
@@ -95,7 +95,7 @@ Setting --train_start_iter 2 --train_stop_iter 2 ensures that only iteration 2 i
 The default DiceHuBERT configuration is available at `librispeech/hubert1/conf/tuning/train_ssl_torchaudiohubert_distill_960h_pretrain_it2.yaml`.
 
 ## Evaluation
-This recipe does not include a built-in evaluation stage. However, the trained HuBERT model is compatible with the SUPERB benchmark. 
+This recipe does not include a built-in evaluation stage. However, the trained HuBERT model is compatible with the SUPERB benchmark.
 
 First, clone the [s3prl repository](https://github.com/s3prl/s3prl/tree/main). Since `s3prl` supports HuBERT models, you can set the upstream model to `espnet_hubert_local` as follows:
 ```sh
@@ -105,8 +105,8 @@ First, clone the [s3prl repository](https://github.com/s3prl/s3prl/tree/main). S
     -u espnet_hubert_local \
     -k "$CKPT" \
     -g "$CONFIG"
-```  
-where `$CKPT` and `$CONFIG` refer to the HuBERT checkpoint and configuration files located in the `exp/` directory. Running this script trains a downstream model using features extracted from your HuBERT model for a specific task. You can then evaluate the downstream model using the standard `s3prl` pipeline. For more details, please refer to the [SUPERB document](https://github.com/s3prl/s3prl/blob/main/s3prl/downstream/docs/superb.md#asv-automatic-speaker-verification) 
+```
+where `$CKPT` and `$CONFIG` refer to the HuBERT checkpoint and configuration files located in the `exp/` directory. Running this script trains a downstream model using features extracted from your HuBERT model for a specific task. You can then evaluate the downstream model using the standard `s3prl` pipeline. For more details, please refer to the [SUPERB document](https://github.com/s3prl/s3prl/blob/main/s3prl/downstream/docs/superb.md#asv-automatic-speaker-verification)
 
 
 ## Differences from other recipes
