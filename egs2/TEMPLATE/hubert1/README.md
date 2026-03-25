@@ -99,7 +99,7 @@ This recipe does not include a built-in evaluation stage. However, the trained H
 
 First, clone the [s3prl repository](https://github.com/s3prl/s3prl/tree/main). Since `s3prl` supports HuBERT models, you can set the upstream model to `espnet_hubert_local` as follows:
 ```sh
-/ocean/projects/cis210027p/ttrachu/espnet/tools/anaconda/envs/espnet/bin/python s3prl/run_downstream.py \
+python s3prl/run_downstream.py \
     -m train \
     -d $TASK \
     -u espnet_hubert_local \
