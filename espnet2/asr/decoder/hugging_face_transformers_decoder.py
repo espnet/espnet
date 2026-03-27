@@ -105,6 +105,13 @@ class HuggingFaceTransformersDecoder(AbsDecoder, BatchScorerInterface):
             model = AutoModelForCausalLM.from_pretrained(
                 model_name_or_path, **self.overriding_architecture_config
             )
+            # Resize token embeddings BEFORE extracting the decoder network so
+            # that self.decoder references the correctly-sized embedding layer.
+            # In newer versions of transformers, resize_token_embeddings
+            # recreates the embedding layer rather than modifying it in-place,
+            # so extracting the decoder first would leave it with stale
+            # (original-sized) embeddings.
+            model.resize_token_embeddings(vocab_size)
             self.decoder = get_hugging_face_model_network(model)
 
             if hasattr(self.decoder, "word_embeddings"):
@@ -144,7 +151,7 @@ class HuggingFaceTransformersDecoder(AbsDecoder, BatchScorerInterface):
             else:
                 self.decoder = model.decoder
 
-        model.resize_token_embeddings(vocab_size)
+            model.resize_token_embeddings(vocab_size)
 
         if self.separate_lm_head:
             self.lm_head = copy.deepcopy(get_hugging_face_model_lm_head(model))
@@ -238,11 +245,21 @@ class HuggingFaceTransformersDecoder(AbsDecoder, BatchScorerInterface):
 
     def reload_pretrained_parameters(self):
         if self.load_pretrained_weights:
-            self.decoder.load_state_dict(self.decoder_pretrained_params)
+            if self.overriding_architecture_config:
+                self.decoder.load_state_dict(
+                    self.decoder_pretrained_params, strict=False
+                )
+            else:
+                self.decoder.load_state_dict(self.decoder_pretrained_params)
             logging.info("Loaded pretrained Transformers decoder parameters!")
 
             if self.lm_head_pretrained_params is not None:
-                self.lm_head.load_state_dict(self.lm_head_pretrained_params)
+                if self.overriding_architecture_config:
+                    self.lm_head.load_state_dict(
+                        self.lm_head_pretrained_params, strict=False
+                    )
+                else:
+                    self.lm_head.load_state_dict(self.lm_head_pretrained_params)
                 logging.info("Loaded pretrained Transformers LM head parameters!")
         else:
             logging.info(
