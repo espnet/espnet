@@ -9,11 +9,17 @@ from espnet2.slu.postdecoder.hugging_face_transformers_postdecoder import (
 is_torch_1_8_plus = V(torch.__version__) >= V("1.8.0")
 
 
-@pytest.mark.execution_timeout(50)
+@pytest.mark.execution_timeout(120)
 def test_transformers_forward():
     if not is_torch_1_8_plus:
         return
-    postdecoder = HuggingFaceTransformersPostDecoder("bert-base-cased", 400)
+    try:
+        postdecoder = HuggingFaceTransformersPostDecoder("bert-base-cased", 400)
+    except Exception as e:
+        msg = str(e).lower()
+        if any(k in msg for k in ("timeout", "connection", "timed out", "read operation")):
+            pytest.skip(f"Network unavailable: {e}")
+        raise
     max_length = 128
     transcript_data = ["increase the heating in the bathroom"]
     (

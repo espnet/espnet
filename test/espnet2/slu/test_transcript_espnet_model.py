@@ -72,7 +72,7 @@ def test_slu_testing(encoder_arch):
     "encoder_del", [None, TransformerPostEncoder, ConformerPostEncoder]
 )
 @pytest.mark.parametrize("decoder_post", [None, HuggingFaceTransformersPostDecoder])
-@pytest.mark.execution_timeout(50)
+@pytest.mark.execution_timeout(120)
 def test_slu_training(encoder_arch, encoder_del, decoder_post):
     if not is_torch_1_8_plus:
         return
@@ -100,10 +100,19 @@ def test_slu_training(encoder_arch, encoder_del, decoder_post):
         del_encoder = None
 
     if decoder_post is not None:
-        post_decoder = decoder_post(
-            "bert-base-uncased",
-            output_size=enc_out,
-        )
+        try:
+            post_decoder = decoder_post(
+                "bert-base-uncased",
+                output_size=enc_out,
+            )
+        except Exception as e:
+            msg = str(e).lower()
+            if any(
+                k in msg
+                for k in ("timeout", "connection", "timed out", "read operation")
+            ):
+                pytest.skip(f"Network unavailable: {e}")
+            raise
     else:
         post_decoder = None
     ctc = CTC(odim=vocab_size, encoder_output_size=enc_out)
