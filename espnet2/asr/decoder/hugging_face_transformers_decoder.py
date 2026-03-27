@@ -105,6 +105,36 @@ class HuggingFaceTransformersDecoder(AbsDecoder, BatchScorerInterface):
             model = AutoModelForCausalLM.from_pretrained(
                 model_name_or_path, **self.overriding_architecture_config
             )
+
+            tokenizer = AutoTokenizer.from_pretrained(model_name_or_path)
+            self.tokenizer_padding_side = tokenizer.padding_side
+
+            # Encode prefix/postfix with the original (pre-resize) word embeddings.
+            # The tokenizer produces token IDs valid for the original vocabulary
+            # (e.g. 10944 for "prefix" in LlamaTokenizer), which may exceed
+            # vocab_size after resize_token_embeddings.  Capture the embedding
+            # layer before resizing so the lookup is safe.
+            _pre_resize_network = get_hugging_face_model_network(model)
+            if hasattr(_pre_resize_network, "word_embeddings"):
+                _pre_resize_emb = _pre_resize_network.word_embeddings
+            elif hasattr(_pre_resize_network, "embed_in"):
+                _pre_resize_emb = _pre_resize_network.embed_in
+            elif hasattr(_pre_resize_network, "embed_tokens"):
+                _pre_resize_emb = _pre_resize_network.embed_tokens
+            else:
+                raise Exception(
+                    "Cannot find word embeddings attribute "
+                    "(checked: word_embeddings, embed_in, embed_tokens)"
+                )
+
+            self.prefix = _pre_resize_emb(
+                tokenizer.encode(prefix, return_tensors="pt").long()
+            ).detach()
+
+            self.postfix = _pre_resize_emb(
+                tokenizer.encode(postfix, return_tensors="pt").long()
+            ).detach()
+
             # Resize token embeddings BEFORE extracting the decoder network so
             # that self.decoder references the correctly-sized embedding layer.
             # In newer versions of transformers, resize_token_embeddings
@@ -130,20 +160,19 @@ class HuggingFaceTransformersDecoder(AbsDecoder, BatchScorerInterface):
                 self.decoder_pad_token_id = self.decoder.config.pad_token_id
             else:
                 self.decoder_pad_token_id = 1
-
-            tokenizer = AutoTokenizer.from_pretrained(model_name_or_path)
-            self.tokenizer_padding_side = tokenizer.padding_side
-
-            self.prefix = self.decoder_word_embeddings(
-                tokenizer.encode(prefix, return_tensors="pt").long()
-            ).detach()
-
-            self.postfix = self.decoder_word_embeddings(
-                tokenizer.encode(postfix, return_tensors="pt").long()
-            ).detach()
         else:
+            # When overriding the architecture config (e.g. d_model + ignore_mismatched_sizes),
+            # newer transformers may use accelerate's init_empty_weights internally, leaving
+            # layers with mismatched sizes as Meta tensors.  resize_token_embeddings then
+            # calls torch.equal on those Meta tensors and raises NotImplementedError.
+            # Force low_cpu_mem_usage=False to keep all parameters as real tensors.
+            if self.overriding_architecture_config:
+                _seq2seq_kwargs = dict(self.overriding_architecture_config)
+                _seq2seq_kwargs.setdefault("low_cpu_mem_usage", False)
+            else:
+                _seq2seq_kwargs = self.overriding_architecture_config
             model = AutoModelForSeq2SeqLM.from_pretrained(
-                model_name_or_path, **self.overriding_architecture_config
+                model_name_or_path, **_seq2seq_kwargs
             )
 
             if hasattr(model, "model"):

@@ -260,7 +260,13 @@ class Speech2Text:
                     decoder.model_name_or_path, **decoder.overriding_architecture_config
                 )
 
-                hugging_face_model.resize_token_embeddings(decoder.lm_head.out_features)
+                # Use weight.shape[0] rather than out_features because
+                # for models with tied embeddings (e.g. Bloom) the lm_head
+                # weight is replaced in-place by tie_weights(), leaving
+                # out_features at its original (pre-resize) value.
+                hugging_face_model.resize_token_embeddings(
+                    decoder.lm_head.weight.shape[0]
+                )
 
                 transformer = get_hugging_face_model_network(hugging_face_model)
                 transformer.load_state_dict(decoder.decoder.state_dict())
