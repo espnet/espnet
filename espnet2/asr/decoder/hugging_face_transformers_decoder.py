@@ -161,11 +161,11 @@ class HuggingFaceTransformersDecoder(AbsDecoder, BatchScorerInterface):
             else:
                 self.decoder_pad_token_id = 1
         else:
-            # When overriding the architecture config (e.g. d_model + ignore_mismatched_sizes),
-            # newer transformers may use accelerate's init_empty_weights internally, leaving
-            # layers with mismatched sizes as Meta tensors.  resize_token_embeddings then
-            # calls torch.equal on those Meta tensors and raises NotImplementedError.
-            # Force low_cpu_mem_usage=False to keep all parameters as real tensors.
+            # When overriding architecture config
+            # (e.g. d_model + ignore_mismatched_sizes),
+            # newer transformers+accelerate may init mismatched layers as Meta tensors.
+            # resize_token_embeddings then calls torch.equal on Meta tensors and raises
+            # NotImplementedError.  Force low_cpu_mem_usage=False for real tensors.
             if self.overriding_architecture_config:
                 _seq2seq_kwargs = dict(self.overriding_architecture_config)
                 _seq2seq_kwargs.setdefault("low_cpu_mem_usage", False)
