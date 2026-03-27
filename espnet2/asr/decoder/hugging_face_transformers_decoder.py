@@ -161,19 +161,34 @@ class HuggingFaceTransformersDecoder(AbsDecoder, BatchScorerInterface):
             else:
                 self.decoder_pad_token_id = 1
         else:
-            # When overriding architecture config
-            # (e.g. d_model + ignore_mismatched_sizes),
-            # newer transformers+accelerate may init mismatched layers as Meta tensors.
-            # resize_token_embeddings then calls torch.equal on Meta tensors and raises
-            # NotImplementedError.  Force low_cpu_mem_usage=False for real tensors.
-            if self.overriding_architecture_config:
-                _seq2seq_kwargs = dict(self.overriding_architecture_config)
-                _seq2seq_kwargs.setdefault("low_cpu_mem_usage", False)
-            else:
-                _seq2seq_kwargs = self.overriding_architecture_config
             model = AutoModelForSeq2SeqLM.from_pretrained(
-                model_name_or_path, **_seq2seq_kwargs
+                model_name_or_path, **self.overriding_architecture_config
             )
+
+            # Newer transformers+accelerate may init mismatched layers as Meta
+            # tensors when ignore_mismatched_sizes=True is used.
+            # resize_token_embeddings calls torch.equal on those Meta tensors
+            # and raises NotImplementedError.  Materialize any Meta tensors to
+            # real (uninitialized) CPU tensors before resizing.
+            for module in model.modules():
+                for param_name, param in list(
+                    module.named_parameters(recurse=False)
+                ):
+                    if param.device.type == "meta":
+                        setattr(
+                            module,
+                            param_name,
+                            torch.nn.Parameter(
+                                torch.empty(param.shape, dtype=param.dtype),
+                                requires_grad=param.requires_grad,
+                            ),
+                        )
+                for buf_name, buf in list(module.named_buffers(recurse=False)):
+                    if buf.device.type == "meta":
+                        module.register_buffer(
+                            buf_name,
+                            torch.empty(buf.shape, dtype=buf.dtype),
+                        )
 
             if hasattr(model, "model"):
                 self.decoder = model.model.decoder
