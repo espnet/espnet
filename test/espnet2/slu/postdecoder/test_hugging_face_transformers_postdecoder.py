@@ -17,7 +17,9 @@ def test_transformers_forward():
         postdecoder = HuggingFaceTransformersPostDecoder("bert-base-cased", 400)
     except Exception as e:
         msg = str(e).lower()
-        if any(k in msg for k in ("timeout", "connection", "timed out", "read operation")):
+        if any(
+            k in msg for k in ("timeout", "connection", "timed out", "read operation")
+        ):
             pytest.skip(f"Network unavailable: {e}")
         raise
     max_length = 128

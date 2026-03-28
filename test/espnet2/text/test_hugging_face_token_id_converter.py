@@ -14,7 +14,9 @@ def test_init_pythia():
         id_converter = HuggingFaceTokenIDConverter("EleutherAI/pythia-410m-deduped")
     except Exception as e:
         msg = str(e).lower()
-        if any(k in msg for k in ("timeout", "connection", "timed out", "read operation")):
+        if any(
+            k in msg for k in ("timeout", "connection", "timed out", "read operation")
+        ):
             pytest.skip(f"Network unavailable: {e}")
         raise
     assert id_converter.get_num_vocabulary_size() == 50254

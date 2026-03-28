@@ -9,7 +9,9 @@ def hugging_face_tokenizer(request):
         return HuggingFaceTokenizer(request.param)
     except Exception as e:
         msg = str(e).lower()
-        if any(k in msg for k in ("timeout", "connection", "timed out", "read operation")):
+        if any(
+            k in msg for k in ("timeout", "connection", "timed out", "read operation")
+        ):
             pytest.skip(f"Network unavailable: {e}")
         raise
 

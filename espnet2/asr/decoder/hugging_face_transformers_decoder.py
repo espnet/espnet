@@ -171,9 +171,7 @@ class HuggingFaceTransformersDecoder(AbsDecoder, BatchScorerInterface):
             # and raises NotImplementedError.  Materialize any Meta tensors to
             # real (uninitialized) CPU tensors before resizing.
             for module in model.modules():
-                for param_name, param in list(
-                    module.named_parameters(recurse=False)
-                ):
+                for param_name, param in list(module.named_parameters(recurse=False)):
                     if param.device.type == "meta":
                         setattr(
                             module,
