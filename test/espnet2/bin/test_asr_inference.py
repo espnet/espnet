@@ -247,13 +247,14 @@ def test_EnhS2T_Speech2Text(enh_asr_config_file, lm_config_file):
 
 
 @pytest.fixture()
-def token_list_hugging_face(tmp_path: Path):
+def token_list_hugging_face(tmp_path: Path, request):
+    max_tokens = request.param if hasattr(request, "param") else 250023
     with (tmp_path / "tokens_hugging_face.txt").open("w") as f:
         f.write("<s>\n")
         f.write("<pad>\n")
         f.write("</s>\n")
         f.write("<unk>\n")
-        for c in range(250023):
+        for c in range(max_tokens):
             f.write(f"{c}\n")
     return tmp_path / "tokens_hugging_face.txt"
 
@@ -304,6 +305,7 @@ def token_list_whisper_lang(tmp_path: Path, token_list_whisper_lang_add):
         "hf-internal-testing/tiny-random-MBartModel",
     ],
 )
+@pytest.mark.parametrize("token_list_hugging_face", [250023], indirect=True)
 @pytest.mark.execution_timeout(30)
 def test_Speech2Text_hugging_face(
     asr_config_file, token_list_hugging_face, model_name_or_path
@@ -352,6 +354,7 @@ def test_Speech2Text_hugging_face(
 )
 @pytest.mark.parametrize("prefix", ["prefix", ""])
 @pytest.mark.parametrize("postfix", ["postfix", ""])
+@pytest.mark.parametrize("token_list_hugging_face", [1020], indirect=True)
 @pytest.mark.execution_timeout(60)
 def test_Speech2Text_hugging_face_causal_lm(
     asr_config_file, token_list_hugging_face, model_name_or_path, prefix, postfix
