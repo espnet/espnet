@@ -263,9 +263,12 @@ def write_kaldi_data(entries: list, output_dir: str):
     # Sort by utt_id for Kaldi compatibility
     entries.sort(key=lambda x: x[0])
 
-    with open(wav_scp_path, "w") as f_wav, open(text_path, "w") as f_text, open(
-        utt2spk_path, "w"
-    ) as f_utt2spk, open(spk2utt_path, "w") as f_spk2utt:
+    with (
+        open(wav_scp_path, "w") as f_wav,
+        open(text_path, "w") as f_text,
+        open(utt2spk_path, "w") as f_utt2spk,
+        open(spk2utt_path, "w") as f_spk2utt,
+    ):
         for utt_id, wav_path, text in entries:
             f_wav.write(f"{utt_id} {wav_path}\n")
             f_text.write(f"{utt_id} {text}\n")

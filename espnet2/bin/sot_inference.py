@@ -13,6 +13,9 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 import numpy as np
 import torch
 import torch.nn.functional as F
+from espnet.nets.beam_search import BeamSearch, Hypothesis
+from espnet.nets.scorers.length_bonus import LengthBonus
+from espnet.utils.cli_utils import get_commandline_args
 from typeguard import typechecked
 
 from espnet2.asr.postprocess.sot_postprocess import process_sot_output
@@ -22,9 +25,6 @@ from espnet2.tasks.sot_asr import SOTASRTask
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
 from espnet2.utils.types import str2bool, str2triple_str, str_or_none
-from espnet.nets.beam_search import BeamSearch, Hypothesis
-from espnet.nets.scorers.length_bonus import LengthBonus
-from espnet.utils.cli_utils import get_commandline_args
 
 # Default suppress_tokens from Whisper generation_config.json
 WHISPER_SUPPRESS_TOKENS = [

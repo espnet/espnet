@@ -7,7 +7,6 @@ search sums all scorer outputs, -inf effectively masks forbidden tokens.
 from typing import Any, List, Optional, Set, Tuple
 
 import torch
-
 from espnet.nets.scorer_interface import BatchScorerInterface
 
 
