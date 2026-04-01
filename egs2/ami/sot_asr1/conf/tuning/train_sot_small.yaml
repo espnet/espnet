@@ -1,0 +1,51 @@
+encoder: whisper
+encoder_conf:
+    whisper_model: small
+    dropout_rate: 0.0
+    do_pad_trim: true
+
+decoder: whisper
+decoder_conf:
+    whisper_model: small
+    load_origin_token_embedding: true
+
+model: sot_whisper
+model_conf:
+    ctc_weight: 0.0
+    use_uppercase_loss: true
+    sym_sos: "<|startoftranscript|>"
+    sym_eos: "<|endoftext|>"
+
+frontend: null
+input_size: 1
+specaug: null
+normalize: null
+
+preprocessor: sot_whisper
+preprocessor_conf:
+    whisper_language: en
+    whisper_task: transcribe
+    added_tokens_txt: local/added_tokens.txt
+
+max_epoch: 30
+optim: adamw
+optim_conf:
+    lr: 0.000005
+    weight_decay: 0.01
+
+scheduler: cosineannealingwarmuprestarts
+scheduler_conf:
+    first_cycle_steps: 49680
+    warmup_steps: 2000
+    max_lr: 0.000005
+    min_lr: 0.0
+
+batch_type: unsorted
+batch_size: 32
+accum_grad: 1
+grad_clip: 1.0
+patience: null
+best_model_criterion:
+    - - valid
+      - loss
+      - min

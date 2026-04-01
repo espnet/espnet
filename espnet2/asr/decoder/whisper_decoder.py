@@ -176,9 +176,11 @@ class OpenAIWhisperDecoder(AbsDecoder, BatchScorerInterface):
             cache implementation is ignored for now
             for simplicity & correctness
         """
+        max_pos = self.decoders.positional_embedding.size(0)
+        pos_len = min(tgt.size(1), max_pos)
         x = (
-            self.decoders.token_embedding(tgt)
-            + self.decoders.positional_embedding[: tgt.size(1)]
+            self.decoders.token_embedding(tgt[:, -pos_len:])
+            + self.decoders.positional_embedding[:pos_len]
         )
         x = self.dropout(x)
         x = x.to(memory.dtype)

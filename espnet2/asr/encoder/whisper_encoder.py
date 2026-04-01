@@ -28,7 +28,7 @@ class OpenAIWhisperEncoder(AbsEncoder):
     ):
         try:
             import whisper
-            from whisper.audio import HOP_LENGTH, N_FFT, N_MELS, N_SAMPLES
+            from whisper.audio import HOP_LENGTH, N_FFT, N_SAMPLES
         except Exception as e:
             print("Error: whisper is not properly installed.")
             print(
@@ -42,7 +42,6 @@ class OpenAIWhisperEncoder(AbsEncoder):
         self.n_fft = N_FFT
         self.win_length = N_FFT
         self.hop_length = HOP_LENGTH
-        self.n_mels = N_MELS
 
         self.mel_filters = whisper.audio.mel_filters
 
@@ -55,6 +54,9 @@ class OpenAIWhisperEncoder(AbsEncoder):
         )
         self.encoders = copy.deepcopy(_model.encoder)
         self.encoders.train()
+
+        # Derive n_mels from model (80 for tiny-medium, 128 for v3/turbo)
+        self.n_mels = self.encoders.conv1.in_channels
 
         del _model
 
