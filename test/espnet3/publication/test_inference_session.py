@@ -154,11 +154,11 @@ def test_from_pretrained_can_enable_trusted_user_code(tmp_path, monkeypatch):
     (src_dir / "__init__.py").write_text("", encoding="utf-8")
     (src_dir / "custom_code.py").write_text(
         "\n".join(
-                [
-                    "class CustomModel:",
-                    "    def __init__(self, prefix='', device='cpu'):",
-                    "        self.prefix = prefix",
-                    "        self.device = device",
+            [
+                "class CustomModel:",
+                "    def __init__(self, prefix='', device='cpu'):",
+                "        self.prefix = prefix",
+                "        self.device = device",
                 "",
                 "    def __call__(self, speech):",
                 "        return f'{self.prefix}{speech}'",

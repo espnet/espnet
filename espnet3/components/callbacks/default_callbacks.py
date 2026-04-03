@@ -383,6 +383,7 @@ class MetricsLogger(Callback):
             _format_metrics(metrics, ("valid_time",)),
         )
 
+
 @typechecked
 def get_default_callbacks(
     exp_dir: str = "./exp",

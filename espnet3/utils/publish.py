@@ -307,7 +307,9 @@ def _bundle_runtime_config(config: DictConfig, recipe_root: Path | None) -> Dict
     return bundle_cfg
 
 
-def _write_embedded_configs(system, out_dir: Path, recipe_root: Path | None) -> Dict[str, str]:
+def _write_embedded_configs(
+    system, out_dir: Path, recipe_root: Path | None
+) -> Dict[str, str]:
     """Write in-memory configs into ``conf/`` when recipe files are unavailable."""
     from espnet3.utils.config_utils import (
         load_and_merge_config,
@@ -353,7 +355,9 @@ def _resolve_pack_task(system, pack_cfg: DictConfig) -> str:
     task = getattr(espnet2_cfg, "task", None)
     if task:
         return str(task)
-    training_task = str(getattr(getattr(system, "training_config", None), "task", "") or "")
+    training_task = str(
+        getattr(getattr(system, "training_config", None), "task", "") or ""
+    )
     if ".asr." in training_task or training_task.endswith(".ASRTask"):
         return "asr"
     return ""
@@ -425,9 +429,7 @@ def _copy_recipe_assets(
     return {
         "recipe_root": recipe_root,
         "yaml_files": yaml_files,
-        "extra_fields": {"user_code_paths": user_code_paths}
-        if user_code_paths
-        else {},
+        "extra_fields": {"user_code_paths": user_code_paths} if user_code_paths else {},
     }
 
 
@@ -463,7 +465,9 @@ def _copy_artifact_entries(
         src = Path(raw_path)
         if not src.exists():
             raise RuntimeError(f"pack_model.files entry does not exist: {src}")
-        dst = _artifact_dest(src=src, out_dir=out_dir, recipe_root=recipe_root, key=str(key))
+        dst = _artifact_dest(
+            src=src, out_dir=out_dir, recipe_root=recipe_root, key=str(key)
+        )
         _copy_path(src=src, dst=dst)
         copied_files[str(key)] = dst.relative_to(out_dir).as_posix()
 
@@ -471,7 +475,9 @@ def _copy_artifact_entries(
         src = Path(raw_path)
         if not src.exists():
             raise RuntimeError(f"pack_model.yaml_files entry does not exist: {src}")
-        dst = _artifact_dest(src=src, out_dir=out_dir, recipe_root=recipe_root, key=str(key))
+        dst = _artifact_dest(
+            src=src, out_dir=out_dir, recipe_root=recipe_root, key=str(key)
+        )
         _copy_path(src=src, dst=dst)
         copied_yaml_files[str(key)] = dst.relative_to(out_dir).as_posix()
 
@@ -657,8 +663,7 @@ def pack_model(
         publication_cfg = getattr(system, "publish_config", None)
     if publication_cfg is None:
         raise RuntimeError(
-            "pack_model requires publication_config "
-            "(publication_config.pack_model)."
+            "pack_model requires publication_config " "(publication_config.pack_model)."
         )
     pack_cfg = getattr(publication_cfg, "pack_model", None)
     if pack_cfg is None:
@@ -676,7 +681,9 @@ def pack_model(
         shutil.rmtree(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    default_includes = [] if strategy == "espnet2" else [Path(system.training_config.exp_dir)]
+    default_includes = (
+        [] if strategy == "espnet2" else [Path(system.training_config.exp_dir)]
+    )
     include_paths = list(include) if include is not None else list(default_includes)
     include_cfg = getattr(pack_cfg, "include", None)
     if include_cfg:
@@ -726,7 +733,9 @@ def pack_model(
         )
         shutil.unpack_archive(out_path, out_dir)
         out_path.unlink()
-        recipe_bundle = _copy_recipe_assets(system=system, out_dir=out_dir, ignore=ignore)
+        recipe_bundle = _copy_recipe_assets(
+            system=system, out_dir=out_dir, ignore=ignore
+        )
         recipe_root = recipe_bundle["recipe_root"]
         for path in include_paths:
             if not path.exists():
@@ -760,10 +769,7 @@ def pack_model(
         )
 
         decode_dir = getattr(pack_cfg, "decode_dir", None)
-        if (
-            decode_dir is None
-            and getattr(system, "inference_config", None) is not None
-        ):
+        if decode_dir is None and getattr(system, "inference_config", None) is not None:
             decode_dir = getattr(system.inference_config, "decode_dir", None)
         resolved_scores = None
         if decode_dir:
@@ -950,9 +956,7 @@ def upload_model(system) -> None:
         )
 
     exp_dir = (
-        Path(system.training_config.exp_dir)
-        if system.training_config
-        else Path.cwd()
+        Path(system.training_config.exp_dir) if system.training_config else Path.cwd()
     )
     pack_cfg = getattr(publication_cfg, "pack_model", None) or OmegaConf.create({})
     pack_dir = Path(getattr(pack_cfg, "out_dir", exp_dir / "model_pack"))

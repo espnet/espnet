@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from types import SimpleNamespace
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 from omegaconf import OmegaConf
@@ -158,9 +158,7 @@ def test_pack_model_espnet3_includes_recipe_assets_and_relative_manifest(tmp_pat
     (recipe_dir / "pixi.toml").write_text("[project]\nname='demo'\n", encoding="utf-8")
 
     out_dir = tmp_path / "model_pack"
-    publication_config = OmegaConf.create(
-        {"pack_model": {"out_dir": str(out_dir)}}
-    )
+    publication_config = OmegaConf.create({"pack_model": {"out_dir": str(out_dir)}})
     system = _make_system(
         exp_dir=exp_dir,
         publication_config=publication_config,
@@ -242,7 +240,12 @@ def test_pack_model_espnet2_defaults_include_runtime_artifacts(tmp_path):
         }
     )
     publication_config = OmegaConf.create(
-        {"pack_model": {"out_dir": str(tmp_path / "model_pack"), "espnet2": {"task": "asr"}}}
+        {
+            "pack_model": {
+                "out_dir": str(tmp_path / "model_pack"),
+                "espnet2": {"task": "asr"},
+            }
+        }
     )
     system = SimpleNamespace(
         training_config=training_config,
@@ -316,7 +319,12 @@ def test_pack_model_preserves_symlink_name_in_bundle_config(tmp_path):
         }
     )
     publication_config = OmegaConf.create(
-        {"pack_model": {"out_dir": str(tmp_path / "model_pack"), "espnet2": {"task": "asr"}}}
+        {
+            "pack_model": {
+                "out_dir": str(tmp_path / "model_pack"),
+                "espnet2": {"task": "asr"},
+            }
+        }
     )
     system = SimpleNamespace(
         training_config=training_config,
