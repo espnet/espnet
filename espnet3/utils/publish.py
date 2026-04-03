@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import re
 import shutil
 import subprocess
@@ -11,15 +12,35 @@ import sys
 from datetime import datetime
 from pathlib import Path
 from string import Template
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 import torch
-from omegaconf import DictConfig, OmegaConf
+from omegaconf import DictConfig, ListConfig, OmegaConf
 
 import espnet2
 from espnet2.main_funcs.pack_funcs import pack as espnet2_pack
 
 logger = logging.getLogger(__name__)
+_RECIPE_BUNDLE_ENTRIES = (
+    "conf",
+    "src",
+    "run.py",
+    "pixi.toml",
+    "pixi.lock",
+    ".python-version",
+)
+_PATH_LIKE_KEYS = {
+    "asr_train_config",
+    "bpemodel",
+    "data_dir",
+    "exp_dir",
+    "inference_dir",
+    "lm_train_config",
+    "manifest_path",
+    "save_path",
+    "token_list",
+    "word_lm_train_config",
+}
 
 
 def _run(cmd: List[str], cwd: Optional[Path] = None) -> str:
@@ -118,28 +139,365 @@ def _write_readme(
     (out_dir / "README.md").write_text(readme_text, encoding="utf-8")
 
 
-def _write_meta(pack_cfg: DictConfig, out_dir: Path) -> None:
+def _write_meta(
+    *,
+    out_dir: Path,
+    files: Dict[str, str] | None = None,
+    yaml_files: Dict[str, str] | None = None,
+    extra_fields: Dict[str, Any] | None = None,
+) -> None:
     """Write meta.yaml into output directory."""
-    files_cfg = dict(getattr(pack_cfg, "files", {}) or {})
-    yaml_files_cfg = dict(getattr(pack_cfg, "yaml_files", {}) or {})
     meta = _build_meta(
-        files={str(k): Path(v) for k, v in files_cfg.items()},
-        yaml_files={str(k): Path(v) for k, v in yaml_files_cfg.items()},
+        files=files or {},
+        yaml_files=yaml_files or {},
+        extra_fields=extra_fields or {},
     )
     (out_dir / "meta.yaml").write_text(OmegaConf.to_yaml(meta), encoding="utf-8")
 
 
-def _build_meta(files: Dict[str, Path], yaml_files: Dict[str, Path]) -> dict:
+def _build_meta(
+    files: Dict[str, str],
+    yaml_files: Dict[str, str],
+    extra_fields: Dict[str, Any] | None = None,
+) -> dict:
     """Build espnet2-style meta.yaml contents."""
     meta = {
-        "files": {k: str(Path(v).resolve()) for k, v in files.items()},
-        "yaml_files": {k: str(Path(v).resolve()) for k, v in yaml_files.items()},
+        "files": dict(files),
+        "yaml_files": dict(yaml_files),
         "timestamp": datetime.now().timestamp(),
         "python": sys.version,
         "torch": str(torch.__version__),
         "espnet": str(espnet2.__version__),
     }
+    meta.update(extra_fields or {})
     return meta
+
+
+def _resolve_recipe_root(system) -> Path | None:
+    """Return recipe root when available from the system configs."""
+    for cfg_name in ("training_config", "inference_config", "metrics_config"):
+        cfg = getattr(system, cfg_name, None)
+        recipe_dir = getattr(cfg, "recipe_dir", None) if cfg is not None else None
+        if recipe_dir:
+            path = Path(recipe_dir).resolve()
+            if path.exists():
+                return path
+    return None
+
+
+def _relative_to_root(path: Path, root: Path | None) -> Path | None:
+    """Return ``path`` relative to ``root`` when possible."""
+    if root is None:
+        return None
+    try:
+        return path.absolute().relative_to(root.resolve())
+    except ValueError:
+        return None
+
+
+def _copy_path(
+    *,
+    src: Path,
+    dst: Path,
+    ignore=None,
+) -> None:
+    """Copy a file or directory into the bundle."""
+    if src.is_dir():
+        shutil.copytree(src, dst, ignore=ignore, dirs_exist_ok=True)
+    else:
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(src, dst)
+
+
+def _default_copy_dest(
+    *,
+    src: Path,
+    out_dir: Path,
+    exp_dir: Path,
+    recipe_root: Path | None,
+) -> Path:
+    """Return bundle destination for a copied include/extra path."""
+    relative = _relative_to_root(src, recipe_root)
+    if relative is not None:
+        return out_dir / relative
+    if src.resolve() == exp_dir.resolve():
+        return out_dir / "exp"
+    return out_dir / src.name
+
+
+def _artifact_dest(
+    *,
+    src: Path,
+    out_dir: Path,
+    recipe_root: Path | None,
+    key: str,
+) -> Path:
+    """Return bundle destination for a manifest entry file."""
+    relative = _relative_to_root(src, recipe_root)
+    if relative is not None:
+        return out_dir / relative
+    suffix = "".join(src.suffixes) or src.suffix
+    return out_dir / "artifacts" / f"{key}{suffix}"
+
+
+def _bundle_config_copy(config: DictConfig) -> DictConfig:
+    """Return a config copy rewritten for bundle-relative use."""
+    cfg = OmegaConf.create(OmegaConf.to_container(config, resolve=False))
+    if getattr(cfg, "recipe_dir", None) not in (None, ""):
+        cfg.recipe_dir = "."
+    return cfg
+
+
+def _is_path_like_key(key: str | None) -> bool:
+    """Return whether ``key`` usually stores a filesystem path."""
+    if not key:
+        return False
+    if key == "recipe_dir":
+        return False
+    return key in _PATH_LIKE_KEYS or key.endswith(("_dir", "_path", "_file"))
+
+
+def _to_bundle_relative_path(value: str, recipe_root: Path | None) -> str:
+    """Rewrite a path string so it resolves from ``recipe_dir`` inside a bundle."""
+    if not value or "${" in value or recipe_root is None:
+        return value
+
+    candidate = Path(value)
+    if not candidate.is_absolute():
+        candidate = (recipe_root / candidate).absolute()
+    else:
+        candidate = candidate.absolute()
+
+    relative = _relative_to_root(candidate, recipe_root)
+    if relative is None:
+        return value
+    if relative.as_posix() == ".":
+        return "${recipe_dir}"
+    return f"${{recipe_dir}}/{relative.as_posix()}"
+
+
+def _rewrite_bundle_paths(value: Any, recipe_root: Path | None, key: str | None = None):
+    """Recursively rewrite path-like config values to bundle-relative paths."""
+    if isinstance(value, DictConfig):
+        value = OmegaConf.to_container(value, resolve=False)
+    if isinstance(value, ListConfig):
+        value = OmegaConf.to_container(value, resolve=False)
+    if isinstance(value, dict):
+        return {
+            child_key: _rewrite_bundle_paths(child_value, recipe_root, str(child_key))
+            for child_key, child_value in value.items()
+        }
+    if isinstance(value, list):
+        return [_rewrite_bundle_paths(item, recipe_root, key) for item in value]
+    if isinstance(value, tuple):
+        return tuple(_rewrite_bundle_paths(item, recipe_root, key) for item in value)
+    if isinstance(value, str) and _is_path_like_key(key):
+        return _to_bundle_relative_path(value, recipe_root)
+    return value
+
+
+def _bundle_runtime_config(config: DictConfig, recipe_root: Path | None) -> DictConfig:
+    """Return a bundle-ready config with recipe-root-relative paths."""
+    cfg = _bundle_config_copy(config)
+    plain_cfg = OmegaConf.to_container(cfg, resolve=False)
+    rewritten = _rewrite_bundle_paths(plain_cfg, recipe_root)
+    bundle_cfg = OmegaConf.create(rewritten)
+    if isinstance(bundle_cfg, DictConfig) and "recipe_dir" in bundle_cfg:
+        bundle_cfg.recipe_dir = "."
+    return bundle_cfg
+
+
+def _write_embedded_configs(system, out_dir: Path, recipe_root: Path | None) -> Dict[str, str]:
+    """Write in-memory configs into ``conf/`` when recipe files are unavailable."""
+    from espnet3.utils.config_utils import (
+        load_and_merge_config,
+        load_config_with_defaults,
+    )
+
+    conf_dir = out_dir / "conf"
+    entries = {
+        "training_config": ("training.yaml", getattr(system, "training_config", None)),
+        "inference_config": (
+            "inference.yaml",
+            getattr(system, "inference_config", None),
+        ),
+        "metrics_config": ("metrics.yaml", getattr(system, "metrics_config", None)),
+        "publication_config": (
+            "publication.yaml",
+            getattr(system, "publication_config", None)
+            or getattr(system, "publish_config", None),
+        ),
+    }
+    written: Dict[str, str] = {}
+    for meta_key, (filename, config) in entries.items():
+        if config is None and recipe_root is not None:
+            candidate = recipe_root / "conf" / filename
+            if candidate.is_file():
+                if meta_key == "publication_config":
+                    config = load_config_with_defaults(str(candidate))
+                else:
+                    config = load_and_merge_config(candidate, config_name=filename)
+        if config is None:
+            continue
+        conf_dir.mkdir(parents=True, exist_ok=True)
+        bundle_cfg = _bundle_runtime_config(config, recipe_root)
+        target = conf_dir / filename
+        target.write_text(OmegaConf.to_yaml(bundle_cfg), encoding="utf-8")
+        written[meta_key] = target.relative_to(out_dir).as_posix()
+    return written
+
+
+def _resolve_pack_task(system, pack_cfg: DictConfig) -> str:
+    """Infer the publication task name used for default artifact keys."""
+    espnet2_cfg = getattr(pack_cfg, "espnet2", None)
+    task = getattr(espnet2_cfg, "task", None)
+    if task:
+        return str(task)
+    training_task = str(getattr(getattr(system, "training_config", None), "task", "") or "")
+    if ".asr." in training_task or training_task.endswith(".ASRTask"):
+        return "asr"
+    return ""
+
+
+def _resolve_default_artifacts(system, pack_cfg: DictConfig) -> dict[str, Any]:
+    """Return default bundle artifacts copied for direct inference use."""
+    files: Dict[str, str] = {}
+    yaml_files: Dict[str, str] = {}
+    copy_paths: list[Path] = []
+
+    training_cfg = getattr(system, "training_config", None)
+    if training_cfg is None:
+        return {"files": files, "yaml_files": yaml_files, "copy_paths": copy_paths}
+
+    exp_dir = Path(training_cfg.exp_dir)
+    data_dir = getattr(training_cfg, "data_dir", None)
+    if data_dir:
+        data_path = Path(data_dir)
+        if data_path.exists():
+            copy_paths.append(data_path)
+
+    task = _resolve_pack_task(system, pack_cfg)
+    if task == "asr":
+        train_config = exp_dir / "config.yaml"
+        model_file = exp_dir / "last.ckpt"
+        if train_config.exists():
+            yaml_files.setdefault("asr_train_config", str(train_config))
+        if model_file.exists():
+            files.setdefault("asr_model_file", str(model_file))
+
+    return {"files": files, "yaml_files": yaml_files, "copy_paths": copy_paths}
+
+
+def _copy_recipe_assets(
+    *,
+    system,
+    out_dir: Path,
+    ignore,
+) -> dict[str, Any]:
+    """Copy recipe-local assets needed for config-based inference."""
+    recipe_root = _resolve_recipe_root(system)
+    yaml_files: Dict[str, str] = {}
+    user_code_paths: list[str] = []
+
+    if recipe_root is None:
+        yaml_files.update(_write_embedded_configs(system, out_dir, recipe_root))
+    else:
+        for name in _RECIPE_BUNDLE_ENTRIES:
+            src = recipe_root / name
+            if not src.exists():
+                continue
+            dst = out_dir / name
+            _copy_path(src=src, dst=dst, ignore=ignore)
+        yaml_files.update(_write_embedded_configs(system, out_dir, recipe_root))
+
+        if (out_dir / "conf" / "inference.yaml").is_file():
+            yaml_files["inference_config"] = "conf/inference.yaml"
+        if (out_dir / "conf" / "training.yaml").is_file():
+            yaml_files["training_config"] = "conf/training.yaml"
+        if (out_dir / "conf" / "metrics.yaml").is_file():
+            yaml_files["metrics_config"] = "conf/metrics.yaml"
+        if (out_dir / "conf" / "publication.yaml").is_file():
+            yaml_files["publication_config"] = "conf/publication.yaml"
+
+    if (out_dir / "src").exists():
+        user_code_paths.append("src")
+
+    return {
+        "recipe_root": recipe_root,
+        "yaml_files": yaml_files,
+        "extra_fields": {"user_code_paths": user_code_paths}
+        if user_code_paths
+        else {},
+    }
+
+
+def _copy_manifest_entries(
+    *,
+    pack_cfg: DictConfig,
+    out_dir: Path,
+    recipe_root: Path | None,
+) -> tuple[Dict[str, str], Dict[str, str]]:
+    """Copy declared manifest files into the bundle and return relative paths."""
+    file_entries = dict(getattr(pack_cfg, "files", {}) or {})
+    yaml_entries = dict(getattr(pack_cfg, "yaml_files", {}) or {})
+    return _copy_artifact_entries(
+        file_entries=file_entries,
+        yaml_entries=yaml_entries,
+        out_dir=out_dir,
+        recipe_root=recipe_root,
+    )
+
+
+def _copy_artifact_entries(
+    *,
+    file_entries: Dict[str, str],
+    yaml_entries: Dict[str, str],
+    out_dir: Path,
+    recipe_root: Path | None,
+) -> tuple[Dict[str, str], Dict[str, str]]:
+    """Copy artifact files into the bundle and return relative manifest paths."""
+    copied_files: Dict[str, str] = {}
+    copied_yaml_files: Dict[str, str] = {}
+
+    for key, raw_path in file_entries.items():
+        src = Path(raw_path)
+        if not src.exists():
+            raise RuntimeError(f"pack_model.files entry does not exist: {src}")
+        dst = _artifact_dest(src=src, out_dir=out_dir, recipe_root=recipe_root, key=str(key))
+        _copy_path(src=src, dst=dst)
+        copied_files[str(key)] = dst.relative_to(out_dir).as_posix()
+
+    for key, raw_path in yaml_entries.items():
+        src = Path(raw_path)
+        if not src.exists():
+            raise RuntimeError(f"pack_model.yaml_files entry does not exist: {src}")
+        dst = _artifact_dest(src=src, out_dir=out_dir, recipe_root=recipe_root, key=str(key))
+        _copy_path(src=src, dst=dst)
+        copied_yaml_files[str(key)] = dst.relative_to(out_dir).as_posix()
+
+    return copied_files, copied_yaml_files
+
+
+def _merge_meta_file(
+    *,
+    out_dir: Path,
+    files: Dict[str, str] | None = None,
+    yaml_files: Dict[str, str] | None = None,
+    extra_fields: Dict[str, Any] | None = None,
+) -> None:
+    """Merge new metadata entries into an existing ``meta.yaml`` file."""
+    meta_path = out_dir / "meta.yaml"
+    existing = OmegaConf.to_container(OmegaConf.load(meta_path), resolve=True) or {}
+    if not isinstance(existing, dict):
+        raise RuntimeError(f"Expected mapping metadata in {meta_path}")
+    merged_files = dict(existing.get("files") or {})
+    merged_files.update(files or {})
+    merged_yaml_files = dict(existing.get("yaml_files") or {})
+    merged_yaml_files.update(yaml_files or {})
+    existing["files"] = merged_files
+    existing["yaml_files"] = merged_yaml_files
+    existing.update(extra_fields or {})
+    meta_path.write_text(OmegaConf.to_yaml(existing), encoding="utf-8")
 
 
 def _render_readme(template_text: str, context: Dict[str, str]) -> str:
@@ -318,6 +676,45 @@ def pack_model(
         shutil.rmtree(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
+    default_includes = [] if strategy == "espnet2" else [Path(system.training_config.exp_dir)]
+    include_paths = list(include) if include is not None else list(default_includes)
+    include_cfg = getattr(pack_cfg, "include", None)
+    if include_cfg:
+        if isinstance(include_cfg, (list, tuple)):
+            include_paths += [Path(p) for p in include_cfg]
+        else:
+            include_paths.append(Path(include_cfg))
+
+    extra_paths = list(extra) if extra is not None else []
+    extra_cfg = getattr(pack_cfg, "extra", None)
+    if extra_cfg:
+        if isinstance(extra_cfg, (list, tuple)):
+            extra_paths += [Path(p) for p in extra_cfg]
+        else:
+            extra_paths.append(Path(extra_cfg))
+
+    default_artifacts = _resolve_default_artifacts(system, pack_cfg)
+    extra_paths.extend(default_artifacts["copy_paths"])
+
+    excludes = []
+    exclude_cfg = getattr(pack_cfg, "exclude", None)
+    if exclude_cfg:
+        if isinstance(exclude_cfg, (list, tuple)):
+            excludes += [str(p) for p in exclude_cfg]
+        else:
+            excludes.append(str(exclude_cfg))
+
+    effective = list(excludes)
+    effective.extend(["decode", "decode_*", "decode_dir"])
+    if out_dir.name:
+        effective.append(out_dir.name)
+    effective.append("__pycache__")
+
+    def _normalize(pattern: str) -> str:
+        return pattern.replace("**/", "").replace("/**", "")
+
+    ignore = shutil.ignore_patterns(*[_normalize(str(p)) for p in effective])
+
     if strategy == "espnet2":
         spec = _resolve_espnet2_spec(pack_cfg)
         out_path = out_dir / "model_pack.zip"
@@ -329,6 +726,38 @@ def pack_model(
         )
         shutil.unpack_archive(out_path, out_dir)
         out_path.unlink()
+        recipe_bundle = _copy_recipe_assets(system=system, out_dir=out_dir, ignore=ignore)
+        recipe_root = recipe_bundle["recipe_root"]
+        for path in include_paths:
+            if not path.exists():
+                logger.warning("Pack include path does not exist: %s", path)
+                continue
+            dest = _default_copy_dest(
+                src=path,
+                out_dir=out_dir,
+                exp_dir=exp_dir,
+                recipe_root=recipe_root,
+            )
+            _copy_path(src=path, dst=dest, ignore=ignore)
+
+        for path in extra_paths:
+            if not path.exists():
+                logger.warning("Pack extra path does not exist: %s", path)
+                continue
+            dest = _default_copy_dest(
+                src=path,
+                out_dir=out_dir,
+                exp_dir=exp_dir,
+                recipe_root=recipe_root,
+            )
+            _copy_path(src=path, dst=dest, ignore=ignore)
+
+        copied_default_files, copied_default_yaml_files = _copy_artifact_entries(
+            file_entries=default_artifacts["files"],
+            yaml_entries=default_artifacts["yaml_files"],
+            out_dir=out_dir,
+            recipe_root=recipe_root,
+        )
 
         decode_dir = getattr(pack_cfg, "decode_dir", None)
         if (
@@ -360,68 +789,40 @@ def pack_model(
             system=system,
             scores_path=resolved_scores,
         )
+        _merge_meta_file(
+            out_dir=out_dir,
+            files=copied_default_files,
+            yaml_files={**copied_default_yaml_files, **recipe_bundle["yaml_files"]},
+            extra_fields=recipe_bundle["extra_fields"],
+        )
         logger.info("Packed model (espnet2) to %s", out_dir)
         return out_dir
-
-    include_paths = (
-        list(include)
-        if include is not None
-        else [Path(system.training_config.exp_dir)]
-    )
-    include_cfg = getattr(pack_cfg, "include", None)
-    if include_cfg:
-        if isinstance(include_cfg, (list, tuple)):
-            include_paths += [Path(p) for p in include_cfg]
-        else:
-            include_paths.append(Path(include_cfg))
-
-    extra_paths = list(extra) if extra is not None else []
-    extra_cfg = getattr(pack_cfg, "extra", None)
-    if extra_cfg:
-        if isinstance(extra_cfg, (list, tuple)):
-            extra_paths += [Path(p) for p in extra_cfg]
-        else:
-            extra_paths.append(Path(extra_cfg))
-
-    excludes = []
-    exclude_cfg = getattr(pack_cfg, "exclude", None)
-    if exclude_cfg:
-        if isinstance(exclude_cfg, (list, tuple)):
-            excludes += [str(p) for p in exclude_cfg]
-        else:
-            excludes.append(str(exclude_cfg))
-
-    effective = list(excludes)
-    effective.extend(["decode", "decode_*", "decode_dir"])
-    if out_dir.name:
-        effective.append(out_dir.name)
-
-    def _normalize(pattern: str) -> str:
-        return pattern.replace("**/", "").replace("/**", "")
-
-    ignore = shutil.ignore_patterns(*[_normalize(str(p)) for p in effective])
+    recipe_bundle = _copy_recipe_assets(system=system, out_dir=out_dir, ignore=ignore)
+    recipe_root = recipe_bundle["recipe_root"]
 
     for path in include_paths:
         if not path.exists():
             logger.warning("Pack include path does not exist: %s", path)
             continue
-        dest = out_dir / ("exp" if path.resolve() == exp_dir.resolve() else path.name)
-        if path.is_dir():
-            shutil.copytree(path, dest, ignore=ignore, dirs_exist_ok=True)
-        else:
-            dest.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(path, dest)
+        dest = _default_copy_dest(
+            src=path,
+            out_dir=out_dir,
+            exp_dir=exp_dir,
+            recipe_root=recipe_root,
+        )
+        _copy_path(src=path, dst=dest, ignore=ignore)
 
     for path in extra_paths:
         if not path.exists():
             logger.warning("Pack extra path does not exist: %s", path)
             continue
-        dest = out_dir / ("exp" if path.resolve() == exp_dir.resolve() else path.name)
-        if path.is_dir():
-            shutil.copytree(path, dest, ignore=ignore, dirs_exist_ok=True)
-        else:
-            dest.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(path, dest)
+        dest = _default_copy_dest(
+            src=path,
+            out_dir=out_dir,
+            exp_dir=exp_dir,
+            recipe_root=recipe_root,
+        )
+        _copy_path(src=path, dst=dest, ignore=ignore)
 
     decode_dir = getattr(pack_cfg, "decode_dir", None)
     if decode_dir is None and getattr(system, "inference_config", None) is not None:
@@ -452,7 +853,26 @@ def pack_model(
         system=system,
         scores_path=resolved_scores,
     )
-    _write_meta(pack_cfg, out_dir)
+    copied_files, copied_yaml_files = _copy_manifest_entries(
+        pack_cfg=pack_cfg,
+        out_dir=out_dir,
+        recipe_root=recipe_root,
+    )
+    copied_default_files, copied_default_yaml_files = _copy_artifact_entries(
+        file_entries=default_artifacts["files"],
+        yaml_entries=default_artifacts["yaml_files"],
+        out_dir=out_dir,
+        recipe_root=recipe_root,
+    )
+    copied_files.update(copied_default_files)
+    copied_yaml_files.update(copied_default_yaml_files)
+    copied_yaml_files.update(recipe_bundle["yaml_files"])
+    _write_meta(
+        out_dir=out_dir,
+        files=copied_files,
+        yaml_files=copied_yaml_files,
+        extra_fields=recipe_bundle["extra_fields"],
+    )
 
     logger.info("Packed model to %s", out_dir)
     return out_dir

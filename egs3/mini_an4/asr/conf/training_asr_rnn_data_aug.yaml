@@ -13,6 +13,7 @@
 ##########################################################
 task: espnet3.systems.asr.task.ASRTask
 
+recipe_dir: .
 exp_tag: train_asr_rnn_data_aug
 
 ##########################################################
