@@ -1,13 +1,16 @@
+import argparse
 import logging
 
 import pytest
 
-from espnet3.utils.stages import resolve_stages, run_stages
+from espnet3.systems.base.system import BaseSystem
+from espnet3.utils.stages_utils import resolve_stages, run_stages
 
 
 class DummySystem:
     def __init__(self):
         self.calls = []
+        self.stage_log_dirs = {"default": None}
 
     def stage_a(self):
         self.calls.append("a")
@@ -29,7 +32,11 @@ def test_resolve_stages_subset_preserves_stage_order():
 def test_run_stages_dry_run_skips_execution(caplog):
     system = DummySystem()
     with caplog.at_level(logging.INFO):
-        run_stages(system, ["stage_a", "stage_b"], dry_run=True)
+        run_stages(
+            system,
+            ["stage_a", "stage_b"],
+            args=argparse.Namespace(dry_run=True),
+        )
 
     assert system.calls == []
     assert "[DRY RUN] would run stage: stage_a" in caplog.text
@@ -43,7 +50,7 @@ def test_run_stages_missing_method_raises():
 
 
 def test_run_stages_typeerror_wrapped():
-    class BadSystem:
+    class BadSystem(BaseSystem):
         def stage_a(self, arg):
             return arg
 
@@ -56,7 +63,7 @@ def test_run_stages_typeerror_wrapped():
 
 
 def test_run_stages_reraises_exception():
-    class CrashSystem:
+    class CrashSystem(BaseSystem):
         def stage_a(self):
             raise ValueError("boom")
 
@@ -69,9 +76,7 @@ def test_run_stages_writes_stage_logs(tmp_path):
     class LoggingSystem:
         def __init__(self, log_dir):
             self.log_dir = log_dir
-
-        def get_stage_log_dir(self, stage):
-            return self.log_dir
+            self.stage_log_dirs = {"default": log_dir}
 
         def stage_a(self):
             pass

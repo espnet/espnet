@@ -61,7 +61,7 @@ class MultiConvConformerEncoder(AbsEncoder):
         attention_dropout_rate (float): Dropout rate in attention.
         cgmlp_linear_units (int): The number of units used in CGMLP block.
         multicgmlp_type (str): "sum", "weighted_sum", "concat" or "concat_fusion".
-        multicgmlp_kernel_sizes (str): Comma seperated list of kernel sizes.
+        multicgmlp_kernel_sizes (str): Comma separated list of kernel sizes.
         multicgmlp_merge_conv_kernel (int): The number of kernels used in depthwise
             convolution fusion in MultiCGMLP.
         use_linear_after_conv (bool): Whether to use a linear layer after MultiCGMLP.

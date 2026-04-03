@@ -36,13 +36,13 @@ def test_build_env_local_uses_cached_env_and_params():
     assert provider.build_env_local()["dataset"] != "mutated"
 
 
-def test_make_worker_setup_fn_rebuilds_env_and_captures_params():
+def test_build_worker_setup_fn_rebuilds_env_and_captures_params():
     CountingProvider.dataset_calls = 0
     CountingProvider.model_calls = 0
     cfg = OmegaConf.create({"name": "worker"})
     provider = CountingProvider(cfg, params={"token": "v1"})
 
-    setup = provider.make_worker_setup_fn()
+    setup = provider.build_worker_setup_fn()
     provider.params["token"] = "v2"
 
     env1 = setup()

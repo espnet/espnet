@@ -4,6 +4,7 @@
 
 """SpeechLM job template implementation for multimodal language modeling."""
 
+import random
 import re
 from typing import Any, Callable, Dict
 
@@ -41,13 +42,13 @@ class SpeechLMJobTemplate(AbsJobTemplate):
     configurations for speech language modeling tasks.
     """
 
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: Dict[str, Any], is_train: bool = False):
         """Initialize the SpeechLM job template.
 
         Args:
             config: Dictionary containing job configuration parameters.
         """
-        super().__init__(config)
+        super().__init__(config, is_train)
 
         # (1) keep other configs
         self.config = config
@@ -71,18 +72,18 @@ class SpeechLMJobTemplate(AbsJobTemplate):
         # (1) Initial special token. We keep a fixed number of slots
         vocab_intervals = {"special_token": [(0, num_special_tokens)]}
         vocab = [
-            "<|pad|>",
-            "<|bos|>",
-            "<|eos|>",
-            "<|eot|>",
-            "<|system|>",
-            "<|user|>",
-            "<|assistant|>",
-            "<|text|>",
-            "<|audio|>",
-            "<|image|>",
-            "<|video|>",
-            "<|toolcall|>",
+            "<|pad|>",  # 0: padding
+            "<|bos|>",  # 1: begin of sequence
+            "<|eos|>",  # 2: end of sequence
+            "<|eot|>",  # 3: end of turn
+            "<|system|>",  # 4: system role
+            "<|user|>",  # 5: user role
+            "<|assistant|>",  # 6: assistant role
+            "<|text|>",  # 7: text modality
+            "<|audio|>",  # 8: audio modality
+            "<|image|>",  # 9: image modality
+            "<|video|>",  # 10: video modality
+            "<|toolcall|>",  # 11: tool call modality
         ]
         while len(vocab) < num_special_tokens:
             vocab.append(f"<|unused_{len(vocab)}|>")
@@ -114,6 +115,7 @@ class SpeechLMJobTemplate(AbsJobTemplate):
             io_name: io.copy_for_worker() for io_name, io in self.multimodal_io.items()
         }
         return SpeechLMPreprocessor(
+            is_train=self.is_train,
             multimodal_io=multimodal_io,
             vocab=self.vocab,
             vocab_intervals=self.vocab_intervals,
@@ -121,6 +123,8 @@ class SpeechLMJobTemplate(AbsJobTemplate):
             audio_output=processor_config["audio_output"],
             loss_region=processor_config["loss_region"],
             batchfy_method=self.config["data_loading"].get("batchfy_method", "bucket"),
+            audio_cfg=processor_config.get("audio_cfg", 0.0),
+            batch_length=self.config["data_loading"].get("batch_size", -1),
         )
 
     def build_model(self) -> torch.nn.Module:
@@ -136,6 +140,7 @@ class SpeechLMJobTemplate(AbsJobTemplate):
         model = model_class(
             model_hf_tag=model_config["model_hf_tag"],
             multimodal_io=self.multimodal_io,
+            vocab=self.vocab,
             vocab_intervals=self.vocab_intervals,
             **model_config["model_conf"],
         )
@@ -155,6 +160,7 @@ class SpeechLMPreprocessor:
 
     def __init__(
         self,
+        is_train,
         multimodal_io,
         vocab,
         vocab_intervals,
@@ -162,14 +168,25 @@ class SpeechLMPreprocessor:
         audio_output: str = "discrete_audio",
         loss_region: str = "assistant",
         batchfy_method: str = "bucket",
+        audio_cfg: float = 0.0,
+        batch_length: int = -1,
     ):
+        self.is_train = is_train
 
         # (1) keep all multimodal_io
         self.multimodal_io = multimodal_io
         self.audio_input = audio_input
         self.audio_output = audio_output
         self.loss_region = loss_region
-        self.batchfy_method = batchfy_method
+        # NOTE(Jinchuan): use pack only for training
+        self.batchfy_method = batchfy_method if is_train else "bucket"
+        self.audio_cfg = audio_cfg
+
+        # Use fixed batch length if using sequence pack during training
+        if is_train and batchfy_method == "pack":
+            self.batch_length = batch_length
+        else:
+            self.batch_length = -1
 
         # (2) vocabulary
         self.vocab = vocab
@@ -207,41 +224,79 @@ class SpeechLMPreprocessor:
 
         Processes each sample, pads sequences to same length, and organizes
         continuous features by modality. Returns dict ready for model forward.
+
+        The return dict value should always in the format of either tensor or
+        list of strings. No nested format is allowed.
         """
-        if self.batchfy_method != "bucket":
-            raise NotImplementedError("Only bucket collate function is implemented")
+        if self.batchfy_method not in ["bucket", "pack"]:
+            raise NotImplementedError("Batchfy method only support bucket and pack")
 
+        return_dict = dict()
+
+        # (1) single-example preprocessing
         data_dicts = [self.preprocessing(key, data_dict) for key, data_dict in data_lst]
+        return_dict["keys"] = [key for key, _ in data_lst]
 
-        seqs, conti_feats, loss_masks = [], [], []
-        for bidx, data_dict in enumerate(data_dicts):
-            seqs.append(data_dict["sequence"])
-            loss_masks.append(data_dict["loss_mask"])
+        # (2) Process token sequences and masks
+        seqs, loss_masks, seq_lens, position_ids = [], [], [0], []
+        for data_dict in data_dicts:
+            seq, loss_mask = data_dict["sequence"], data_dict["loss_mask"]
+            seqs.append(torch.from_numpy(seq))
+            loss_masks.append(torch.from_numpy(loss_mask))
+            seq_lens.append(seq_lens[-1] + len(seq))
+            position_ids.append(torch.arange(len(seq)).long())
 
-            for conti_feat in data_dict["conti_feats"]:
-                conti_feats.append((bidx,) + conti_feat)
+        if self.batchfy_method == "bucket":
+            seqs, _ = pad_list(seqs)
+            loss_masks, _ = pad_list(loss_masks)
 
-        seqs, _ = pad_list(seqs)
-        loss_masks, _ = pad_list(loss_masks)
+        else:  # "pack"
+            seqs = torch.cat(seqs, dim=0).unsqueeze(0)
+            loss_masks = torch.cat(loss_masks, dim=0).unsqueeze(0)
+            position_ids = torch.cat(position_ids, dim=0).unsqueeze(0)
 
+            length_inc = 20  # length increment
+            if self.batch_length >= 0:
+                batch_length = self.batch_length
+                while batch_length < seqs.size(1):
+                    batch_length += length_inc
+                pad_size = batch_length - seqs.size(1)
+
+                seqs = torch.nn.functional.pad(seqs, (0, 0, 0, pad_size, 0, 0), value=0)
+                loss_masks = torch.nn.functional.pad(
+                    loss_masks, (0, 0, 0, pad_size, 0, 0), value=0
+                )
+                # position_ids is 2D [batch, seq_len]: (0, pad_size, 0, 0)
+                position_ids = torch.nn.functional.pad(
+                    position_ids, (0, pad_size, 0, 0), value=0
+                )
+
+            return_dict["position_ids"] = position_ids
+
+        return_dict["seqs"] = seqs
+        return_dict["loss_masks"] = loss_masks
+
+        # (3) Process continuous feats
         conti_feats_dict = dict()
-        for bidx, this_io, start, length, feat in conti_feats:
-            if this_io not in conti_feats_dict:
-                conti_feats_dict[this_io] = [[], []]
-            conti_feats_dict[this_io][0].append((bidx, start, length))
-            conti_feats_dict[this_io][1].append(feat)
+        for b_idx, (data_dict, seq_start) in enumerate(zip(data_dicts, seq_lens[:-1])):
+            for this_io, start, length, feat in data_dict["conti_feats"]:
+                if self.batchfy_method == "pack":
+                    b_idx = 0
+                    start = start + seq_start
 
-        for io_dict in conti_feats_dict.values():
-            io_dict[1] = pad_list(io_dict[1])
+                if this_io not in conti_feats_dict:
+                    conti_feats_dict[this_io] = [[], []]  # (b_idx, start, length), feat
 
-        keys = [key for key, _ in data_lst]
+                conti_feats_dict[this_io][0].append((b_idx, start, length))
+                conti_feats_dict[this_io][1].append(feat)
 
-        return {
-            "key": keys,
-            "seqs": seqs,
-            "conti_feats": conti_feats_dict,
-            "loss_masks": loss_masks,
-        }
+        for this_io, (indices, feats) in conti_feats_dict.items():
+            return_dict[f"{this_io}_indices"] = torch.Tensor(indices).long()
+            return_dict[f"{this_io}_feats"], return_dict[f"{this_io}_lengths"] = (
+                pad_list(feats)
+            )
+
+        return return_dict
 
     def preprocessing(self, key, data_dict):
         """Convert single raw data dict into training-ready format.
@@ -318,17 +373,22 @@ class SpeechLMPreprocessor:
             loss_masks.append(special_mask)
             accum_length += 1
 
+        if random.random() < self.audio_cfg and self.is_train:
+            seq, loss_masks, conti_feats = self._apply_cfg(
+                seq, loss_masks, conti_feats, messages
+            )
+
         # (4) concat
         seq = np.concatenate(seq, axis=0)
         loss_mask = np.concatenate(loss_masks, axis=0)
 
-        # TODO(speechlm): Add CFG here
         data = {
             "sequence": seq,
             "conti_feats": conti_feats,
             "loss_mask": loss_mask,
         }
 
+        # self.diagnose(data) # uncomment this for debug
         return data
 
     def diagnose(self, data):
@@ -350,6 +410,8 @@ class SpeechLMPreprocessor:
                 f"Conti feats: modality={this_io}, conti_feat={conti_start}, "
                 f"length={length}, feat={feat.shape}"
             )
+
+        raise ValueError("End of diagnose")
 
     def special_mask(self, value):
         """Create loss mask for special tokens (1 frame, multi-stream).
@@ -383,11 +445,34 @@ class SpeechLMPreprocessor:
                 raise ValueError(
                     "If dialogue exist, there should be no more other entries"
                 )
-            return data_dict["dialogue"]
+            messages = list()
+            for msg in data_dict["dialogue"]:
+                if msg[0] == "assistant" and not self.is_train:
+                    break
+
+                if msg[1] == "text":
+                    this_io = "text"
+                elif msg[1] == "audio":
+                    # User/system use input audio IO, assistant uses output audio IO
+                    if msg[0] == "user" or msg[0] == "system":
+                        this_io = self.audio_input
+                    else:
+                        this_io = self.audio_output
+                else:
+                    raise ValueError(f"Not supported modality in dialogue: {msg[1]}")
+
+                msg = (msg[0], this_io, msg[2])
+
+                messages.append(msg)
+            return messages
         else:
             task_config = SPEECHLM_TASK_CONFIGS[task]
             messages = list()
             for role, entry in task_config:
+                # When inference, only process the input information (user and system)
+                if role == "assistant" and not self.is_train:
+                    break
+
                 # Select IO type based on entry name and role
                 if bool(re.match(r"^audio", entry)):
                     # User/system use input audio IO, assistant uses output audio IO
@@ -403,4 +488,35 @@ class SpeechLMPreprocessor:
                 this_data = data_dict[entry]
                 message = (role, this_io, this_data)
                 messages.append(message)
+
             return messages
+
+    def _apply_cfg(self, seq, loss_masks, conti_feats, messages):
+        audio_idx = [
+            i
+            for i, (role, modality, _) in enumerate(messages)
+            if role == "assistant" and modality == self.audio_output
+        ]
+
+        if len(audio_idx) == 0:  # If no valid audio output segment, keep untouched
+            return seq, loss_masks, conti_feats
+
+        # NOTE(Jinchuan): Only randomly keep one audio output segment, and keep all
+        # other segments as 0
+        # NOTE(Jinchuan): seq and loss_masks: start with an BOS;
+        # Each segment contains 4 items: 3 special tokens + 1 real segment
+        audio_idx = random.choice(audio_idx)
+        for i in range(len(messages)):
+            if i == audio_idx:
+                continue
+
+            for j in range(4):
+                k = i * 4 + j + 1
+                seq[k] *= 0
+                loss_masks[k] *= 0
+
+        seq[0] *= 0
+        loss_masks[0] *= 0
+        conti_feats = [feat for feat in conti_feats if feat[0] == self.audio_output]
+
+        return seq, loss_masks, conti_feats

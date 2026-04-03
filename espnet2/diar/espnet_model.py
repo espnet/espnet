@@ -340,7 +340,7 @@ class ESPnetDiarizationModel(AbsESPnetModel):
     def calc_diarization_error(pred, label, length):
         # Note (jiatong): Credit to https://github.com/hitachi-speech/EEND
 
-        (batch_size, max_len, num_output) = label.size()
+        batch_size, max_len, num_output = label.size()
         # mask the padding part
         mask = np.zeros((batch_size, max_len, num_output))
         for i in range(batch_size):

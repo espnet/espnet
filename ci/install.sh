@@ -4,6 +4,20 @@
 
 set -euo pipefail
 
+# Timer functions for measuring command execution time
+start_timer() {
+    local label="$1"
+    echo "::group::$label"
+    SECONDS=0
+}
+
+end_timer() {
+    local label="$1"
+    echo "::endgroup::"
+    local elapsed=$SECONDS
+    printf "⏱️  %s completed in %02d:%02d:%02d\n" "$label" $((elapsed/3600)) $((elapsed%3600/60)) $((elapsed%60))
+}
+
 ${CXX:-g++} -v
 
 (
@@ -32,26 +46,36 @@ ${CXX:-g++} -v
 . tools/activate_python.sh
 python3 --version
 
+start_timer "install kenlm"
 python3 -m pip install https://github.com/kpu/kenlm/archive/master.zip
+end_timer "install kenlm"
 # NOTE(kamo): tensorboardx is used for chainer mode only
+start_timer "install tensorboardx and matplotlib"
 python3 -m pip install tensorboardx
 # NOTE(kamo): Create matplotlib.cache to reduce runtime for test phase
 python3 -c "import matplotlib.pyplot"
+end_timer "install tensorboardx and matplotlib"
 # NOTE(wangyou): onnxruntime and onnx2torch are used for testing dnsmos functions
 cat >> constraints.txt << EOF
 torch==${TH_VERSION}
 EOF
+start_timer "install onnxruntime onnx2torch"
 python3 -m pip install -c constraints.txt onnxruntime onnx2torch --extra-index-url https://download.pytorch.org/whl/cpu
+end_timer "install onnxruntime onnx2torch"
 
 # NOTE(kan-bayashi): Fix the error in black installation.
 #   See: https://github.com/psf/black/issues/1707
 python3 -m pip uninstall -y typing
 
 # NOTE(kamo): Workaround for pip resolve issue (I think this is a bug of pip)
+start_timer "install hacking flake8"
 python3 -m pip install "hacking>=2.0.0" "flake8>=3.7.8"
+end_timer "install hacking flake8"
 
 # install espnet
+start_timer "install espnet"
 python3 -m pip install -e ".[test,doc,all]"
+end_timer "install espnet"
 
 # log
 python3 -m pip freeze

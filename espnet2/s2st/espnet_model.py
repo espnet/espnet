@@ -891,7 +891,7 @@ class ESPnetS2STModel(AbsESPnetModel):
         )
 
         if return_hs or return_all_hs:
-            (decoder_out, decoder_hidden) = decoder_outs
+            decoder_out, decoder_hidden = decoder_outs
         else:
             decoder_out = decoder_outs
 
@@ -938,7 +938,7 @@ class ESPnetS2STModel(AbsESPnetModel):
         )
 
         if return_hs or return_all_hs:
-            (decoder_out, decoder_hidden) = decoder_outs
+            decoder_out, decoder_hidden = decoder_outs
         else:
             decoder_out = decoder_outs
 

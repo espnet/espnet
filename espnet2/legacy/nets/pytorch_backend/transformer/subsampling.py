@@ -49,6 +49,34 @@ def check_short_utt(ins, size):
     return False, -1
 
 
+def _upgrade_legacy_subsampling_state_dict(state_dict, prefix):
+    """Remap legacy nn.Sequential keys for subsampling modules."""
+    w_new = prefix + "out.weight"
+    b_new = prefix + "out.bias"
+    w_old = prefix + "out.0.weight"
+    b_old = prefix + "out.0.bias"
+
+    if w_new not in state_dict and w_old in state_dict:
+        state_dict[w_new] = state_dict.pop(w_old)
+    elif w_new in state_dict and w_old in state_dict:
+        state_dict.pop(w_old)
+
+    if b_new not in state_dict and b_old in state_dict:
+        state_dict[b_new] = state_dict.pop(b_old)
+    elif b_new in state_dict and b_old in state_dict:
+        state_dict.pop(b_old)
+
+    old_pos_prefix = prefix + "out.1."
+    new_pos_prefix = prefix + "pos_enc."
+    for k in list(state_dict.keys()):
+        if not k.startswith(old_pos_prefix):
+            continue
+        new_k = new_pos_prefix + k[len(old_pos_prefix) :]
+        if new_k not in state_dict:
+            state_dict[new_k] = state_dict[k]
+        state_dict.pop(k, None)
+
+
 class Conv1dSubsampling1(torch.nn.Module):
     """Convolutional 1D subsampling.
 
@@ -69,17 +97,40 @@ class Conv1dSubsampling1(torch.nn.Module):
             torch.nn.Conv1d(odim, odim, 3, 1),
             torch.nn.ReLU(),
         )
-        self.out = torch.nn.Sequential(
-            torch.nn.Linear(odim, odim),
-            pos_enc if pos_enc is not None else PositionalEncoding(odim, dropout_rate),
+        self.out = torch.nn.Linear(odim, odim)
+        self.pos_enc = (
+            pos_enc if pos_enc is not None else PositionalEncoding(odim, dropout_rate)
         )
 
-    def forward(self, x, x_mask):
+    def _load_from_state_dict(
+        self,
+        state_dict,
+        prefix,
+        local_metadata,
+        strict,
+        missing_keys,
+        unexpected_keys,
+        error_msgs,
+    ):
+        _upgrade_legacy_subsampling_state_dict(state_dict, prefix)
+        super()._load_from_state_dict(
+            state_dict,
+            prefix,
+            local_metadata,
+            strict,
+            missing_keys,
+            unexpected_keys,
+            error_msgs,
+        )
+
+    def forward(self, x, x_mask, prefix_embeds=None):
         """Subsample x.
 
         Args:
             x (torch.Tensor): Input tensor (#batch, time, idim).
             x_mask (torch.Tensor): Input mask (#batch, 1, time).
+            prefix_embeds (torch.Tensor or None): Prefix token embeddings
+                (#batch, prefix_len, odim).
 
         Returns:
             torch.Tensor: Subsampled tensor (#batch, time', odim),
@@ -92,9 +143,29 @@ class Conv1dSubsampling1(torch.nn.Module):
         x = self.conv(x)
         b, c, t = x.size()
         x = self.out(x.transpose(1, 2).contiguous())
-        if x_mask is None:
-            return x, None
-        return x, x_mask[:, :, :-2:1][:, :, :-2:1]
+        if x_mask is not None:
+            x_mask = x_mask[:, :, :-2:1][:, :, :-2:1]
+
+        if prefix_embeds is not None:
+            x = torch.cat([prefix_embeds, x], dim=1)
+            if x_mask is not None:
+                x_mask = torch.cat(
+                    [
+                        torch.ones(
+                            x_mask.shape[0],
+                            1,
+                            prefix_embeds.size(1),
+                            dtype=x_mask.dtype,
+                            device=x_mask.device,
+                        ),
+                        x_mask,
+                    ],
+                    dim=-1,
+                )
+
+        x = self.pos_enc(x)
+
+        return x, x_mask
 
     def __getitem__(self, key):
         """Get item.
@@ -105,7 +176,7 @@ class Conv1dSubsampling1(torch.nn.Module):
         """
         if key != -1:
             raise NotImplementedError("Support only `-1` (for `reset_parameters`).")
-        return self.out[key]
+        return self.pos_enc
 
 
 class Conv1dSubsampling2(torch.nn.Module):
@@ -128,17 +199,40 @@ class Conv1dSubsampling2(torch.nn.Module):
             torch.nn.Conv1d(odim, odim, 3, 2),
             torch.nn.ReLU(),
         )
-        self.out = torch.nn.Sequential(
-            torch.nn.Linear(odim, odim),
-            pos_enc if pos_enc is not None else PositionalEncoding(odim, dropout_rate),
+        self.out = torch.nn.Linear(odim, odim)
+        self.pos_enc = (
+            pos_enc if pos_enc is not None else PositionalEncoding(odim, dropout_rate)
         )
 
-    def forward(self, x, x_mask):
+    def _load_from_state_dict(
+        self,
+        state_dict,
+        prefix,
+        local_metadata,
+        strict,
+        missing_keys,
+        unexpected_keys,
+        error_msgs,
+    ):
+        _upgrade_legacy_subsampling_state_dict(state_dict, prefix)
+        super()._load_from_state_dict(
+            state_dict,
+            prefix,
+            local_metadata,
+            strict,
+            missing_keys,
+            unexpected_keys,
+            error_msgs,
+        )
+
+    def forward(self, x, x_mask, prefix_embeds=None):
         """Subsample x.
 
         Args:
             x (torch.Tensor): Input tensor (#batch, time, idim).
             x_mask (torch.Tensor): Input mask (#batch, 1, time).
+            prefix_embeds (torch.Tensor or None): Prefix token embeddings
+                (#batch, prefix_len, odim).
 
         Returns:
             torch.Tensor: Subsampled tensor (#batch, time', odim),
@@ -151,9 +245,29 @@ class Conv1dSubsampling2(torch.nn.Module):
         x = self.conv(x)
         b, c, t = x.size()
         x = self.out(x.transpose(1, 2).contiguous())
-        if x_mask is None:
-            return x, None
-        return x, x_mask[:, :, :-2:1][:, :, :-2:2]
+        if x_mask is not None:
+            x_mask = x_mask[:, :, :-2:1][:, :, :-2:2]
+
+        if prefix_embeds is not None:
+            x = torch.cat([prefix_embeds, x], dim=1)
+            if x_mask is not None:
+                x_mask = torch.cat(
+                    [
+                        torch.ones(
+                            x_mask.shape[0],
+                            1,
+                            prefix_embeds.size(1),
+                            dtype=x_mask.dtype,
+                            device=x_mask.device,
+                        ),
+                        x_mask,
+                    ],
+                    dim=-1,
+                )
+
+        x = self.pos_enc(x)
+
+        return x, x_mask
 
     def __getitem__(self, key):
         """Get item.
@@ -164,7 +278,7 @@ class Conv1dSubsampling2(torch.nn.Module):
         """
         if key != -1:
             raise NotImplementedError("Support only `-1` (for `reset_parameters`).")
-        return self.out[key]
+        return self.pos_enc
 
 
 class Conv1dSubsampling3(torch.nn.Module):
@@ -187,17 +301,40 @@ class Conv1dSubsampling3(torch.nn.Module):
             torch.nn.Conv1d(odim, odim, 5, 3),
             torch.nn.ReLU(),
         )
-        self.out = torch.nn.Sequential(
-            torch.nn.Linear(odim, odim),
-            pos_enc if pos_enc is not None else PositionalEncoding(odim, dropout_rate),
+        self.out = torch.nn.Linear(odim, odim)
+        self.pos_enc = (
+            pos_enc if pos_enc is not None else PositionalEncoding(odim, dropout_rate)
         )
 
-    def forward(self, x, x_mask):
+    def _load_from_state_dict(
+        self,
+        state_dict,
+        prefix,
+        local_metadata,
+        strict,
+        missing_keys,
+        unexpected_keys,
+        error_msgs,
+    ):
+        _upgrade_legacy_subsampling_state_dict(state_dict, prefix)
+        super()._load_from_state_dict(
+            state_dict,
+            prefix,
+            local_metadata,
+            strict,
+            missing_keys,
+            unexpected_keys,
+            error_msgs,
+        )
+
+    def forward(self, x, x_mask, prefix_embeds=None):
         """Subsample x.
 
         Args:
             x (torch.Tensor): Input tensor (#batch, time, idim).
             x_mask (torch.Tensor): Input mask (#batch, 1, time).
+            prefix_embeds (torch.Tensor or None): Prefix token embeddings
+                (#batch, prefix_len, odim).
 
         Returns:
             torch.Tensor: Subsampled tensor (#batch, time', odim),
@@ -210,9 +347,29 @@ class Conv1dSubsampling3(torch.nn.Module):
         x = self.conv(x)
         b, c, t = x.size()
         x = self.out(x.transpose(1, 2).contiguous())
-        if x_mask is None:
-            return x, None
-        return x, x_mask[:, :, :-2:1][:, :, :-4:3]
+        if x_mask is not None:
+            x_mask = x_mask[:, :, :-2:1][:, :, :-4:3]
+
+        if prefix_embeds is not None:
+            x = torch.cat([prefix_embeds, x], dim=1)
+            if x_mask is not None:
+                x_mask = torch.cat(
+                    [
+                        torch.ones(
+                            x_mask.shape[0],
+                            1,
+                            prefix_embeds.size(1),
+                            dtype=x_mask.dtype,
+                            device=x_mask.device,
+                        ),
+                        x_mask,
+                    ],
+                    dim=-1,
+                )
+
+        x = self.pos_enc(x)
+
+        return x, x_mask
 
     def __getitem__(self, key):
         """Get item.
@@ -223,7 +380,7 @@ class Conv1dSubsampling3(torch.nn.Module):
         """
         if key != -1:
             raise NotImplementedError("Support only `-1` (for `reset_parameters`).")
-        return self.out[key]
+        return self.pos_enc
 
 
 class Conv2dSubsampling(torch.nn.Module):
@@ -246,17 +403,40 @@ class Conv2dSubsampling(torch.nn.Module):
             torch.nn.Conv2d(odim, odim, 3, 2),
             torch.nn.ReLU(),
         )
-        self.out = torch.nn.Sequential(
-            torch.nn.Linear(odim * (((idim - 1) // 2 - 1) // 2), odim),
-            pos_enc if pos_enc is not None else PositionalEncoding(odim, dropout_rate),
+        self.out = torch.nn.Linear(odim * (((idim - 1) // 2 - 1) // 2), odim)
+        self.pos_enc = (
+            pos_enc if pos_enc is not None else PositionalEncoding(odim, dropout_rate)
         )
 
-    def forward(self, x, x_mask):
+    def _load_from_state_dict(
+        self,
+        state_dict,
+        prefix,
+        local_metadata,
+        strict,
+        missing_keys,
+        unexpected_keys,
+        error_msgs,
+    ):
+        _upgrade_legacy_subsampling_state_dict(state_dict, prefix)
+        super()._load_from_state_dict(
+            state_dict,
+            prefix,
+            local_metadata,
+            strict,
+            missing_keys,
+            unexpected_keys,
+            error_msgs,
+        )
+
+    def forward(self, x, x_mask, prefix_embeds=None):
         """Subsample x.
 
         Args:
             x (torch.Tensor): Input tensor (#batch, time, idim).
             x_mask (torch.Tensor): Input mask (#batch, 1, time).
+            prefix_embeds (torch.Tensor or None): Prefix token embeddings
+                (#batch, prefix_len, odim).
 
         Returns:
             torch.Tensor: Subsampled tensor (#batch, time', odim),
@@ -269,20 +449,40 @@ class Conv2dSubsampling(torch.nn.Module):
         x = self.conv(x)
         b, c, t, f = x.size()
         x = self.out(x.transpose(1, 2).contiguous().view(b, t, c * f))
-        if x_mask is None:
-            return x, None
-        return x, x_mask[:, :, :-2:2][:, :, :-2:2]
+        if x_mask is not None:
+            x_mask = x_mask[:, :, :-2:2][:, :, :-2:2]
 
-    def __getitem__(self, key):
-        """Get item.
+        if prefix_embeds is not None:
+            x = torch.cat([prefix_embeds, x], dim=1)
+            if x_mask is not None:
+                x_mask = torch.cat(
+                    [
+                        torch.ones(
+                            x_mask.shape[0],
+                            1,
+                            prefix_embeds.size(1),
+                            dtype=x_mask.dtype,
+                            device=x_mask.device,
+                        ),
+                        x_mask,
+                    ],
+                    dim=-1,
+                )
 
-        When reset_parameters() is called, if use_scaled_pos_enc is used,
-            return the positioning encoding.
+        x = self.pos_enc(x)
 
-        """
-        if key != -1:
-            raise NotImplementedError("Support only `-1` (for `reset_parameters`).")
-        return self.out[key]
+        return x, x_mask
+
+    # def __getitem__(self, key):
+    #     """Get item.
+
+    #     When reset_parameters() is called, if use_scaled_pos_enc is used,
+    #         return the positioning encoding.
+
+    #     """
+    #     if key != -1:
+    #         raise NotImplementedError("Support only `-1` (for `reset_parameters`).")
+    #     return self.out[key]
 
 
 class Conv2dSubsampling1(torch.nn.Module):
@@ -305,17 +505,40 @@ class Conv2dSubsampling1(torch.nn.Module):
             torch.nn.Conv2d(odim, odim, 3, 1),
             torch.nn.ReLU(),
         )
-        self.out = torch.nn.Sequential(
-            torch.nn.Linear(odim * (idim - 4), odim),
-            pos_enc if pos_enc is not None else PositionalEncoding(odim, dropout_rate),
+        self.out = torch.nn.Linear(odim * (idim - 4), odim)
+        self.pos_enc = (
+            pos_enc if pos_enc is not None else PositionalEncoding(odim, dropout_rate)
         )
 
-    def forward(self, x, x_mask):
+    def _load_from_state_dict(
+        self,
+        state_dict,
+        prefix,
+        local_metadata,
+        strict,
+        missing_keys,
+        unexpected_keys,
+        error_msgs,
+    ):
+        _upgrade_legacy_subsampling_state_dict(state_dict, prefix)
+        super()._load_from_state_dict(
+            state_dict,
+            prefix,
+            local_metadata,
+            strict,
+            missing_keys,
+            unexpected_keys,
+            error_msgs,
+        )
+
+    def forward(self, x, x_mask, prefix_embeds=None):
         """Pass x through 2 Conv2d layers without subsampling.
 
         Args:
             x (torch.Tensor): Input tensor (#batch, time, idim).
             x_mask (torch.Tensor): Input mask (#batch, 1, time).
+            prefix_embeds (torch.Tensor or None): Prefix token embeddings
+                (#batch, prefix_len, odim).
 
         Returns:
             torch.Tensor: Subsampled tensor (#batch, time', odim).
@@ -328,9 +551,29 @@ class Conv2dSubsampling1(torch.nn.Module):
         x = self.conv(x)
         b, c, t, f = x.size()
         x = self.out(x.transpose(1, 2).contiguous().view(b, t, c * f))
-        if x_mask is None:
-            return x, None
-        return x, x_mask[:, :, :-4]
+        if x_mask is not None:
+            x_mask = x_mask[:, :, :-4]
+
+        if prefix_embeds is not None:
+            x = torch.cat([prefix_embeds, x], dim=1)
+            if x_mask is not None:
+                x_mask = torch.cat(
+                    [
+                        torch.ones(
+                            x_mask.shape[0],
+                            1,
+                            prefix_embeds.size(1),
+                            dtype=x_mask.dtype,
+                            device=x_mask.device,
+                        ),
+                        x_mask,
+                    ],
+                    dim=-1,
+                )
+
+        x = self.pos_enc(x)
+
+        return x, x_mask
 
     def __getitem__(self, key):
         """Get item.
@@ -341,7 +584,7 @@ class Conv2dSubsampling1(torch.nn.Module):
         """
         if key != -1:
             raise NotImplementedError("Support only `-1` (for `reset_parameters`).")
-        return self.out[key]
+        return self.pos_enc
 
 
 class Conv2dSubsampling2(torch.nn.Module):
@@ -364,17 +607,40 @@ class Conv2dSubsampling2(torch.nn.Module):
             torch.nn.Conv2d(odim, odim, 3, 1),
             torch.nn.ReLU(),
         )
-        self.out = torch.nn.Sequential(
-            torch.nn.Linear(odim * (((idim - 1) // 2 - 2)), odim),
-            pos_enc if pos_enc is not None else PositionalEncoding(odim, dropout_rate),
+        self.out = torch.nn.Linear(odim * (((idim - 1) // 2 - 2)), odim)
+        self.pos_enc = (
+            pos_enc if pos_enc is not None else PositionalEncoding(odim, dropout_rate)
         )
 
-    def forward(self, x, x_mask):
+    def _load_from_state_dict(
+        self,
+        state_dict,
+        prefix,
+        local_metadata,
+        strict,
+        missing_keys,
+        unexpected_keys,
+        error_msgs,
+    ):
+        _upgrade_legacy_subsampling_state_dict(state_dict, prefix)
+        super()._load_from_state_dict(
+            state_dict,
+            prefix,
+            local_metadata,
+            strict,
+            missing_keys,
+            unexpected_keys,
+            error_msgs,
+        )
+
+    def forward(self, x, x_mask, prefix_embeds=None):
         """Subsample x.
 
         Args:
             x (torch.Tensor): Input tensor (#batch, time, idim).
             x_mask (torch.Tensor): Input mask (#batch, 1, time).
+            prefix_embeds (torch.Tensor or None): Prefix token embeddings
+                (#batch, prefix_len, odim).
 
         Returns:
             torch.Tensor: Subsampled tensor (#batch, time', odim),
@@ -387,9 +653,29 @@ class Conv2dSubsampling2(torch.nn.Module):
         x = self.conv(x)
         b, c, t, f = x.size()
         x = self.out(x.transpose(1, 2).contiguous().view(b, t, c * f))
-        if x_mask is None:
-            return x, None
-        return x, x_mask[:, :, :-2:2][:, :, :-2:1]
+        if x_mask is not None:
+            x_mask = x_mask[:, :, :-2:2][:, :, :-2:1]
+
+        if prefix_embeds is not None:
+            x = torch.cat([prefix_embeds, x], dim=1)
+            if x_mask is not None:
+                x_mask = torch.cat(
+                    [
+                        torch.ones(
+                            x_mask.shape[0],
+                            1,
+                            prefix_embeds.size(1),
+                            dtype=x_mask.dtype,
+                            device=x_mask.device,
+                        ),
+                        x_mask,
+                    ],
+                    dim=-1,
+                )
+
+        x = self.pos_enc(x)
+
+        return x, x_mask
 
     def __getitem__(self, key):
         """Get item.
@@ -400,7 +686,7 @@ class Conv2dSubsampling2(torch.nn.Module):
         """
         if key != -1:
             raise NotImplementedError("Support only `-1` (for `reset_parameters`).")
-        return self.out[key]
+        return self.pos_enc
 
 
 class Conv2dSubsampling6(torch.nn.Module):
@@ -423,17 +709,40 @@ class Conv2dSubsampling6(torch.nn.Module):
             torch.nn.Conv2d(odim, odim, 5, 3),
             torch.nn.ReLU(),
         )
-        self.out = torch.nn.Sequential(
-            torch.nn.Linear(odim * (((idim - 1) // 2 - 2) // 3), odim),
-            pos_enc if pos_enc is not None else PositionalEncoding(odim, dropout_rate),
+        self.out = torch.nn.Linear(odim * (((idim - 1) // 2 - 2) // 3), odim)
+        self.pos_enc = (
+            pos_enc if pos_enc is not None else PositionalEncoding(odim, dropout_rate)
         )
 
-    def forward(self, x, x_mask):
+    def _load_from_state_dict(
+        self,
+        state_dict,
+        prefix,
+        local_metadata,
+        strict,
+        missing_keys,
+        unexpected_keys,
+        error_msgs,
+    ):
+        _upgrade_legacy_subsampling_state_dict(state_dict, prefix)
+        super()._load_from_state_dict(
+            state_dict,
+            prefix,
+            local_metadata,
+            strict,
+            missing_keys,
+            unexpected_keys,
+            error_msgs,
+        )
+
+    def forward(self, x, x_mask, prefix_embeds=None):
         """Subsample x.
 
         Args:
             x (torch.Tensor): Input tensor (#batch, time, idim).
             x_mask (torch.Tensor): Input mask (#batch, 1, time).
+            prefix_embeds (torch.Tensor or None): Prefix token embeddings
+                (#batch, prefix_len, odim).
 
         Returns:
             torch.Tensor: Subsampled tensor (#batch, time', odim),
@@ -446,9 +755,29 @@ class Conv2dSubsampling6(torch.nn.Module):
         x = self.conv(x)
         b, c, t, f = x.size()
         x = self.out(x.transpose(1, 2).contiguous().view(b, t, c * f))
-        if x_mask is None:
-            return x, None
-        return x, x_mask[:, :, :-2:2][:, :, :-4:3]
+        if x_mask is not None:
+            x_mask = x_mask[:, :, :-2:2][:, :, :-4:3]
+
+        if prefix_embeds is not None:
+            x = torch.cat([prefix_embeds, x], dim=1)
+            if x_mask is not None:
+                x_mask = torch.cat(
+                    [
+                        torch.ones(
+                            x_mask.shape[0],
+                            1,
+                            prefix_embeds.size(1),
+                            dtype=x_mask.dtype,
+                            device=x_mask.device,
+                        ),
+                        x_mask,
+                    ],
+                    dim=-1,
+                )
+
+        x = self.pos_enc(x)
+
+        return x, x_mask
 
 
 class Conv2dSubsampling8(torch.nn.Module):
@@ -476,6 +805,27 @@ class Conv2dSubsampling8(torch.nn.Module):
         self.out = torch.nn.Linear(odim * ((((idim - 1) // 2 - 1) // 2 - 1) // 2), odim)
         self.pos_enc = (
             pos_enc if pos_enc is not None else PositionalEncoding(odim, dropout_rate)
+        )
+
+    def _load_from_state_dict(
+        self,
+        state_dict,
+        prefix,
+        local_metadata,
+        strict,
+        missing_keys,
+        unexpected_keys,
+        error_msgs,
+    ):
+        _upgrade_legacy_subsampling_state_dict(state_dict, prefix)
+        super()._load_from_state_dict(
+            state_dict,
+            prefix,
+            local_metadata,
+            strict,
+            missing_keys,
+            unexpected_keys,
+            error_msgs,
         )
 
     def forward(self, x, x_mask, prefix_embeds=None):

@@ -329,7 +329,7 @@ class ESPnetSDSModelInterface(AbsESPnetModel):
             print("VAD: end of speech detected")
             start_time = time.time()
             if self.client is not None:
-                (text_str, audio_output) = self.client(array, orig_sr)
+                text_str, audio_output = self.client(array, orig_sr)
                 asr_output_str = ""
                 latency_TTS = time.time() - start_time
             else:

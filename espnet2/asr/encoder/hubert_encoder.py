@@ -8,6 +8,7 @@
 
 
 """Encoder definition."""
+
 import contextlib
 import copy
 import logging
@@ -623,11 +624,9 @@ class FairseqHubertPretrainEncoder(AbsEncoder):
         self.encoder.mask_emb = torch.nn.Parameter(
             torch.HalfTensor(self.cfg.encoder_embed_dim).uniform_()
         )
-        logging.info(
-            f"Hubert mask embedding re-initiallized!, \
+        logging.info(f"Hubert mask embedding re-initiallized!, \
             {self.encoder.mask_emb.dtype}, \
-            {self.use_amp}"
-        )
+            {self.use_amp}")
 
 
 def download_hubert(model_url, dir_path):

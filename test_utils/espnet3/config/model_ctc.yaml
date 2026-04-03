@@ -54,7 +54,7 @@ model:
 
   # Please run with `--train_tokenizer` to get tokenizer model.
   # Otherwise set your token list here.
-  token_list: ${load_line:'test_utils/espnet3/sentencepiece_model/tokens.txt'}
+  token_list: ${load_line:../sentencepiece_model/tokens.txt}
 
   input_size:
   encoder: e_branchformer

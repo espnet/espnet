@@ -7,7 +7,7 @@ import torch
 
 from espnet2.text.sentencepiece_tokenizer import SentencepiecesTokenizer
 from espnet2.text.token_id_converter import TokenIDConverter
-from espnet3.systems.asr.tokenizer.sentencepiece import (
+from espnet3.systems.asr.tokenizers.sentencepiece import (
     add_special_tokens,
     prepare_sentences,
     train_sentencepiece,
@@ -81,3 +81,12 @@ def test_train_sentencepiece_and_add_special_tokens(tmp_path, monkeypatch):
         "<intent>",
         "<speaker>",
     ]
+
+    new_tokenizer2, new_converter2, new_embedding2 = add_special_tokens(
+        tokenizer,
+        converter,
+        embedding,
+        ["<domain>"],
+    )
+    assert new_embedding2.num_embeddings == len(tokens) + 1
+    assert new_converter2.token_list[-1] == "<domain>"

@@ -119,8 +119,8 @@ class SConvTranspose2d(nn.Module):
         # would be removed at the very end, when keeping only the right length
         # for the output, as removing it here would require also passing the
         # length at the matching layer in the encoder.
-        (freq_out_pad_left, freq_out_pad_right) = self.out_padding[0]
-        (time_out_pad_left, time_out_pad_right) = self.out_padding[1]
+        freq_out_pad_left, freq_out_pad_right = self.out_padding[0]
+        time_out_pad_left, time_out_pad_right = self.out_padding[1]
         if self.causal:
             # Trim the padding on the right according to the specified ratio
             # if trim_right_ratio = 1.0, trim everything from right

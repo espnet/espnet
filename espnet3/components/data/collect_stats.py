@@ -23,14 +23,12 @@ __all__ = [
     "CollectStatsInferenceProvider",
     "CollectStatsRunner",
     "collect_stats",
-    "collect_stats_multiple_iterator",
-    "batch_collect_stats",
+    "collect_stats_batch",
 ]
 
 
-def batch_collect_stats(
+def collect_stats_batch(
     idxs: List[int],
-    *,
     model=None,
     dataset=None,
     collate_fn=None,
@@ -105,7 +103,6 @@ def batch_collect_stats(
 
 
 def _accumulate_and_persist_batch(
-    *,
     stats: Dict,
     shape_info: Dict,
     feats: Optional[Dict],
@@ -158,12 +155,18 @@ def _accumulate_and_persist_batch(
 
 
 def _build_collate_fn(dataloader_config):
-    cfg = dataloader_config
-    if not isinstance(cfg, DictConfig):
-        cfg = OmegaConf.create(cfg) if cfg is not None else OmegaConf.create({})
+    if not isinstance(dataloader_config, DictConfig):
+        dataloader_config = (
+            OmegaConf.create(dataloader_config)
+            if dataloader_config is not None
+            else OmegaConf.create({})
+        )
 
-    if hasattr(cfg, "collate_fn") and cfg.collate_fn is not None:
-        return instantiate(cfg.collate_fn)
+    if (
+        hasattr(dataloader_config, "collate_fn")
+        and dataloader_config.collate_fn is not None
+    ):
+        return instantiate(dataloader_config.collate_fn)
     else:
         return CommonCollateFn(int_pad_value=-1)
 
@@ -210,18 +213,19 @@ def _chunk_indices(num_items: int, batch_size: int) -> List[List[int]]:
 
 
 def _instantiate_dataset(dataset_config, mode: str):
-    cfg = dataset_config
-    if not isinstance(cfg, DictConfig):
-        cfg = OmegaConf.create(cfg)
+    if not isinstance(dataset_config, DictConfig):
+        dataset_config = OmegaConf.create(dataset_config)
 
-    organizer = instantiate(cfg)
+    organizer = instantiate(dataset_config)
     dataset = getattr(organizer, mode, None)
     if dataset is None:
         raise ValueError(f"Dataset organizer does not provide split '{mode}'")
     return dataset
 
 
-def _dataset_length(dataset_config, mode: str, shard_idx: Optional[int] = None) -> int:
+def _get_dataset_length(
+    dataset_config, mode: str, shard_idx: Optional[int] = None
+) -> int:
     dataset = _instantiate_dataset(dataset_config, mode)
     if shard_idx is not None:
         if not hasattr(dataset, "shard"):
@@ -235,7 +239,6 @@ class CollectStatsInferenceProvider(EnvironmentProvider):
 
     def __init__(
         self,
-        *,
         model_config,
         dataset_config,
         dataloader_config,
@@ -245,15 +248,15 @@ class CollectStatsInferenceProvider(EnvironmentProvider):
         params: Optional[Dict[str, Any]] = dict(),
     ):
         """Initialize CollectStatsInferenceProvider object."""
-        cfg = OmegaConf.create({})
-        cfg.model_config = model_config
-        cfg.dataset_config = dataset_config
-        cfg.dataloader_config = dataloader_config
-        cfg.mode = mode
-        cfg.task = task
-        cfg.shard_idx = shard_idx
-        cfg.update(**params)
-        super().__init__(cfg)
+        config = OmegaConf.create({})
+        config.model_config = model_config
+        config.dataset_config = dataset_config
+        config.dataloader_config = dataloader_config
+        config.mode = mode
+        config.task = task
+        config.shard_idx = shard_idx
+        config.update(**params)
+        super().__init__(config)
 
     def build_env_local(self) -> Dict[str, Any]:
         """Build the environment once on the driver for local inference."""
@@ -276,7 +279,7 @@ class CollectStatsInferenceProvider(EnvironmentProvider):
         env["write_collected_feats"] = self.config.write_collected_feats
         return env
 
-    def make_worker_setup_fn(self):
+    def build_worker_setup_fn(self):
         """Return a Dask worker setup function that builds dataset/model."""
         dataloader_config = self.config.dataloader_config
         config = self.config
@@ -309,7 +312,6 @@ class CollectStatsRunner(BaseRunner):
     @staticmethod
     def forward(
         batch_indices: Iterable[int] | int,
-        *,
         dataset,
         model,
         collate_fn,
@@ -325,7 +327,7 @@ class CollectStatsRunner(BaseRunner):
         else:
             indices = [int(batch_indices)]
 
-        return batch_collect_stats(
+        return collect_stats_batch(
             indices,
             model=model,
             dataset=dataset,
@@ -337,7 +339,6 @@ class CollectStatsRunner(BaseRunner):
 
 
 def _collect_stats_common(
-    *,
     model_config,
     dataset_config,
     dataloader_config,
@@ -353,7 +354,7 @@ def _collect_stats_common(
     count_dict: Optional[Dict] = None,
     writers: Optional[Dict] = None,
 ):
-    num_items = _dataset_length(dataset_config, mode, shard_idx)
+    num_items = _get_dataset_length(dataset_config, mode, shard_idx)
     index_batches = _chunk_indices(num_items, batch_size) if num_items else []
 
     provider = CollectStatsInferenceProvider(
@@ -400,49 +401,6 @@ def _collect_stats_common(
     return sum_dict, sq_dict, count_dict
 
 
-def collect_stats_multiple_iterator(
-    model_config,
-    dataset_config,
-    dataloader_config,
-    mode: str,
-    output_dir: Path,
-    task: Optional[str],
-    batch_size: int,
-    parallel_config: Any,
-    write_collected_feats: bool = False,
-):
-    """Collect stats on sharded datasets using Dask + setup_fn."""
-    set_parallel(parallel_config)
-
-    sum_dict, sq_dict, count_dict = (
-        defaultdict(lambda: 0),
-        defaultdict(lambda: 0),
-        defaultdict(lambda: 0),
-    )
-
-    mode_cfg = getattr(dataloader_config, mode)
-    num_shards = mode_cfg.num_shards
-
-    for shard_idx in range(num_shards):
-        sum_dict, sq_dict, count_dict = _collect_stats_common(
-            model_config=model_config,
-            dataset_config=dataset_config,
-            dataloader_config=dataloader_config,
-            mode=mode,
-            output_dir=output_dir,
-            task=task,
-            write_collected_feats=write_collected_feats,
-            batch_size=batch_size,
-            shard_idx=shard_idx,
-            shape_key_suffix=f".shard.{shard_idx}",
-            sum_dict=sum_dict,
-            sq_dict=sq_dict,
-            count_dict=count_dict,
-        )
-
-    return sum_dict, sq_dict, count_dict
-
-
 def collect_stats(
     model_config,
     dataset_config,
@@ -456,69 +414,48 @@ def collect_stats(
 ):
     """Entry point for collecting dataset statistics used for feature normalization.
 
-    Depending on ``dataloader_config`` this function either:
-
-    - Runs the runner-based collection once, optionally configuring parallel
-      execution via :func:`espnet3.parallel.set_parallel` when ``parallel_config``
-      is provided.
-    - Handles multi-iterator (sharded) datasets by iterating over shards.
+    Runs the runner-based collection once, optionally configuring parallel
+    execution via :func:`espnet3.parallel.set_parallel` when ``parallel_config``
+    is provided.
 
     Args:
         model_config: Configuration object used to instantiate the model that
             extracts features from the input examples.
         dataset_config: Configuration of the dataset organizer providing the
             split specified by ``mode``.
-        dataloader_config: Dataloader configuration. The attribute matching
-            ``mode`` may include the ``multiple_iterator`` flag.
+        dataloader_config: Dataloader configuration.
         mode: Name of the dataset split to process (``train`` or ``valid``).
         output_dir: Directory where aggregated statistics and optionally
             collected features are written.
         task: Name of the ESPnet task. If ``None``, ``model_config`` should be
             directly instantiable.
-        parallel_config: Configuration for parallel execution. Required when
-            ``multiple_iterator`` is enabled.
+        parallel_config: Configuration for parallel execution.
         write_collected_feats: Whether to persist the raw collected features.
-            This option is unsupported in multi-iterator mode.
         batch_size: Number of dataset items processed per batch.
-
-    Raises:
-        RuntimeError: If ``multiple_iterator`` is ``True`` but
-            ``parallel_config`` is not provided.
-        ValueError: If ``write_collected_feats`` is ``True`` when running in
-            multi-iterator mode.
 
     Returns:
         None: Aggregated statistics are saved under ``output_dir / mode``.
     """
-    mode_config = getattr(dataloader_config, mode)
-    if getattr(mode_config, "multiple_iterator", False):
-        if parallel_config is None:
-            raise RuntimeError("You should set parallel config with multiple iterator.")
-        sum_dict, sq_dict, count_dict = collect_stats_multiple_iterator(
-            model_config,
-            dataset_config,
-            dataloader_config,
-            mode,
-            output_dir,
-            task,
-            batch_size,
-            parallel_config,
-            write_collected_feats,
+    mode_config = getattr(dataloader_config, mode, None)
+    if mode_config is not None and hasattr(mode_config, "multiple_iterator"):
+        raise RuntimeError(
+            "ESPnet3 does not support multiple_iterator. "
+            "If you need sharding, select a shard explicitly "
+            "(e.g., point the dataset/shape files to split.*) "
+            "and run collect_stats on that shard."
         )
-
-    else:
-        if parallel_config is not None:
-            set_parallel(parallel_config)
-        sum_dict, sq_dict, count_dict = _collect_stats_common(
-            model_config=model_config,
-            dataset_config=dataset_config,
-            dataloader_config=dataloader_config,
-            mode=mode,
-            output_dir=output_dir,
-            task=task,
-            write_collected_feats=write_collected_feats,
-            batch_size=batch_size,
-        )
+    if parallel_config is not None:
+        set_parallel(parallel_config)
+    sum_dict, sq_dict, count_dict = _collect_stats_common(
+        model_config=model_config,
+        dataset_config=dataset_config,
+        dataloader_config=dataloader_config,
+        mode=mode,
+        output_dir=output_dir,
+        task=task,
+        write_collected_feats=write_collected_feats,
+        batch_size=batch_size,
+    )
 
     for key in sum_dict:
         (output_dir / mode).mkdir(parents=True, exist_ok=True)

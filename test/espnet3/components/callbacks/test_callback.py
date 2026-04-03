@@ -96,11 +96,11 @@ def test_get_default_callbacks_structure():
     Verify the structure and types of callbacks returned.
     """
     callbacks = get_default_callbacks(
-        expdir="test_utils/espnet3_dummy/",
+        exp_dir="test_utils/espnet3_dummy/",
         best_model_criterion=[("valid/loss", 2, "min"), ("valid/wer", 2, "min")],
     )
 
-    assert len(callbacks) == 6
+    assert len(callbacks) == 7
 
     monitor_names = [None, "valid/loss", "valid/wer"]  # None for last checkpoint
     ckpt_callbacks = [cb for cb in callbacks if isinstance(cb, ModelCheckpoint)]
@@ -288,7 +288,7 @@ def test_duplicate_learning_rate_monitor_from_config():
     """
     # First, get the default callbacks (contains exactly one LearningRateMonitor)
     callbacks = get_default_callbacks(
-        expdir="test_utils/espnet3_dummy/",
+        exp_dir="test_utils/espnet3_dummy/",
         best_model_criterion=[("valid/loss", 2, "min")],
     )
     # Ensure only one LearningRateMonitor is included by default

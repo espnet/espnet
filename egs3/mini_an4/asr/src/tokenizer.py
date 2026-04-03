@@ -5,6 +5,7 @@ from typing import List
 
 
 def gather_training_text(manifest_path: Path) -> List[str]:
+    """Collect transcript texts from a TSV manifest file."""
     manifest_path = Path(manifest_path)
     if not manifest_path.is_file():
         raise FileNotFoundError(f"Manifest not found: {manifest_path}")

@@ -37,6 +37,7 @@ class LengthRegulator(torch.nn.Module):
         super().__init__()
         self.pad_value = pad_value
 
+    @torch.compiler.disable
     def forward(self, xs, ds, alpha=1.0):
         """Calculate forward propagation.
 

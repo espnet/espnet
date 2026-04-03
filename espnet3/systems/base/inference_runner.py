@@ -6,6 +6,8 @@ from functools import lru_cache
 from importlib import import_module
 from typing import Any, Dict, Iterable, List, Sequence
 
+from omegaconf import ListConfig
+
 from espnet3.parallel.base_runner import BaseRunner
 from espnet3.parallel.env_provider import EnvironmentProvider
 
@@ -17,11 +19,14 @@ class InferenceRunner(BaseRunner):
     function. The key names are configurable via ``idx_key`` and
     ``hyp_key``/``ref_key``. ``hyp_key`` and ``ref_key`` may be a single
     string or a list of strings to support multiple hypothesis/reference
-    fields.
+    fields. ``idx_key`` is the key used to map each inference result to
+    its source dataset index when writing SCP files.
 
     Output format requirements:
-        - The result is a dict with exactly the configured keys.
-        - ``idx_key`` value is a scalar (list/tuple is not allowed).
+        - The result is a dict with the configured keys plus any extra fields.
+        - A sample identifier key must exist under ``idx_key`` so SCP outputs
+          can map each result back to the corresponding dataset sample.
+        - The sample identifier must be a single value, not a list or tuple.
         - ``hyp_key`` and ``ref_key`` values may be scalars or lists/tuples.
           If lists are returned, each entry is written to its own SCP file
           (e.g., ``hyp0.scp``, ``hyp1.scp``).
@@ -30,17 +35,40 @@ class InferenceRunner(BaseRunner):
     def __init__(
         self,
         provider: EnvironmentProvider,
-        *,
-        idx_key: str = "idx",
+        idx_key: str = "utt_id",
         hyp_key: str | Sequence[str] = "hyp",
         ref_key: str | Sequence[str] = "ref",
         **kwargs,
     ) -> None:
-        """Initialize the inference runner with output key settings."""
+        """Initialize the inference runner with output key settings.
+
+        Args:
+            provider: Environment provider that supplies dataset/model/env.
+            idx_key: Output dict key used as the sample identifier written in
+                the first column of each SCP line. This ties each inference
+                result back to its dataset sample. Defaults to ``"utt_id"``.
+            hyp_key: Hypothesis key or keys expected in the output dict.
+            ref_key: Reference key or keys expected in the output dict.
+            **kwargs: Forwarded to ``BaseRunner``.
+        """
         super().__init__(provider, **kwargs)
         self.idx_key = idx_key
-        self.hyp_key = list(hyp_key) if isinstance(hyp_key, (list, tuple)) else hyp_key
-        self.ref_key = list(ref_key) if isinstance(ref_key, (list, tuple)) else ref_key
+        self.hyp_key = (
+            list(hyp_key) if isinstance(hyp_key, (list, tuple, ListConfig)) else hyp_key
+        )
+        self.ref_key = (
+            list(ref_key) if isinstance(ref_key, (list, tuple, ListConfig)) else ref_key
+        )
+
+    def resolve_idx_key(self, output: Dict[str, Any]) -> str:
+        """Validate that the configured sample-identifier key exists in output."""
+        if self.idx_key not in output:
+            raise ValueError(
+                "Inference output must include the configured sample identifier "
+                "key used to map SCP results back to dataset samples. "
+                f"idx_key={self.idx_key!r}"
+            )
+        return self.idx_key
 
     def _validate_output(self, output: Dict[str, Any]) -> None:
         if not isinstance(output, dict):
@@ -58,7 +86,8 @@ class InferenceRunner(BaseRunner):
             if isinstance(self.ref_key, (list, tuple))
             else [self.ref_key]
         )
-        expected = {self.idx_key, *hyp_keys, *ref_keys}
+        idx_key = self.resolve_idx_key(output)
+        expected = {idx_key, *hyp_keys, *ref_keys}
         actual = set(output.keys())
         missing = expected - actual
         if missing:
@@ -67,107 +96,93 @@ class InferenceRunner(BaseRunner):
                 f"missing={sorted(missing)}"
             )
 
-        idx_value = output[self.idx_key]
+        idx_value = output[idx_key]
         if isinstance(idx_value, (list, tuple)):
             raise TypeError(
-                f"'{self.idx_key}' must be a scalar, got {type(idx_value).__name__}"
+                f"'{idx_key}' must be a single value, not {type(idx_value).__name__}"
             )
 
     @staticmethod
     def forward(idx, dataset=None, model=None, **kwargs):
-        """Run inference for one dataset item and return output dict.
+        """Run inference for one or more dataset items and return output dict(s).
 
         Args:
-            idx: Integer index into the dataset.
+            idx: Integer index or an iterable of integer indices into the dataset.
             dataset: Dataset providing inference entries.
             model: Inference model callable on the configured input.
-            **kwargs: Expects ``input_key`` and ``output_fn_path``.
+            **kwargs: Expects ``input_key`` and optionally ``output_fn_path``.
 
         Returns:
-            Dict containing ``uttid`` and any output fields required for SCPs.
+            Dict containing ``idx`` and output fields for a single item, or a list
+            of dicts for batched inputs (as returned by ``output_fn``).
 
         Raises:
-            RuntimeError: If required I/O settings are missing.
+            RuntimeError: If required input settings are missing.
+            KeyError: If required input keys are missing from the dataset item(s).
+            RuntimeError: If batched inference fails; includes guidance to disable
+                batching when unsupported.
+
+        Notes:
+            - ``input_key`` may be a string or a list/tuple of strings.
+            - Batched inputs are passed to the model as lists per key; padding is
+              the model's responsibility.
+
+        Examples:
+            >>> # Single-item inference
+            >>> out = InferenceRunner.forward(
+            ...     0, dataset=dataset, model=model,
+            ...     input_key="speech", output_fn_path="m.mod.out_fn"
+            ... )
+            >>> # Batched inference
+            >>> out = InferenceRunner.forward(
+            ...     [0, 1], dataset=dataset, model=model,
+            ...     input_key=["speech", "text"], output_fn_path="m.mod.out_fn"
+            ... )
         """
-        data = dataset[idx]
         if "input_key" not in kwargs:
             raise RuntimeError("input_key must be provided for inference.")
         input_key = kwargs["input_key"]
         output_fn_path = kwargs.get("output_fn_path")
-        if not output_fn_path:
-            raise RuntimeError("output_fn_path must be provided for inference.")
-        output_fn = _load_output_fn(output_fn_path)
+        output_fn = _load_output_fn(output_fn_path) if output_fn_path else None
 
-        if isinstance(input_key, (list, tuple)):
-            model_inputs = []
-            for key in input_key:
+        keys = (
+            list(input_key)
+            if isinstance(input_key, (list, tuple, ListConfig))
+            else [input_key]
+        )
+
+        is_batched = isinstance(idx, (list, tuple))
+        if not is_batched:
+            data = dataset[idx]
+            inputs_dict = {}
+            for key in keys:
                 if key not in data:
                     raise KeyError(f"Input key '{key}' not found in dataset item.")
-                model_inputs.append(data[key])
-            model_output = model(*model_inputs)
-        else:
-            if input_key not in data:
-                raise KeyError(f"Input key '{input_key}' not found in dataset item.")
-            model_output = model(data[input_key])
+                inputs_dict[key] = data[key]
+            model_output = model(**inputs_dict)
+            if output_fn is None:
+                return model_output
+            return output_fn(data=data, model_output=model_output, idx=idx)
 
-        return output_fn(data=data, model_output=model_output, idx=idx)
-
-    @classmethod
-    def batch_forward(cls, indices, *, dataset=None, model=None, **kwargs):
-        """Run inference for a batch of dataset items and return output dicts.
-
-        Args:
-            indices: Iterable of integer indices into the dataset.
-            dataset: Dataset providing inference entries.
-            model: Inference model callable on the configured input.
-            **kwargs: Expects ``input_key`` and ``output_fn_path``.
-
-        Returns:
-            List of dicts containing ``uttid`` and any output fields required
-            for SCPs.
-
-        Raises:
-            RuntimeError: If required I/O settings are missing.
-        """
+        indices = list(idx)
         data_batch = [dataset[i] for i in indices]
-        if "input_key" not in kwargs:
-            raise RuntimeError("input_key must be provided for inference.")
-        input_key = kwargs["input_key"]
-        output_fn_path = kwargs.get("output_fn_path")
-        if not output_fn_path:
-            raise RuntimeError("output_fn_path must be provided for inference.")
-        output_fn = _load_output_fn(output_fn_path)
-
-        if isinstance(input_key, (list, tuple)):
-            inputs_dict = {}
-            for key in input_key:
-                for data in data_batch:
-                    if key not in data:
-                        raise KeyError(f"Input key '{key}' not found in dataset item.")
-                inputs_dict[key] = [data[key] for data in data_batch]
-        else:
+        inputs_dict = {}
+        for key in keys:
             for data in data_batch:
-                if input_key not in data:
-                    raise KeyError(
-                        f"Input key '{input_key}' not found in dataset item."
-                    )
-            inputs_dict = {input_key: [data[input_key] for data in data_batch]}
+                if key not in data:
+                    raise KeyError(f"Input key '{key}' not found in dataset item.")
+            inputs_dict[key] = [data[key] for data in data_batch]
 
-        if hasattr(model, "batch_forward") and callable(model.batch_forward):
-            model_output = model.batch_forward(**inputs_dict)
-            return output_fn(
-                data=data_batch, model_output=model_output, idx=list(indices)
-            )
-
-        outputs = []
-        for i, data in zip(indices, data_batch):
-            if isinstance(input_key, (list, tuple)):
-                model_output = model(*[data[key] for key in input_key])
-            else:
-                model_output = model(data[input_key])
-            outputs.append(output_fn(data=data, model_output=model_output, idx=i))
-
-        return outputs
+        try:
+            model_output = model(**inputs_dict)
+            if output_fn is None:
+                return model_output
+            return output_fn(data=data_batch, model_output=model_output, idx=indices)
+        except Exception as exc:  # noqa: BLE001
+            raise RuntimeError(
+                "Batched inference failed. If your model/output_fn does not "
+                "support batched inputs, set batch_size to None. "
+            ) from exc
 
     def __call__(self, indices: Iterable[int]) -> List[Any] | None:
         """Run inference and validate output formats."""
