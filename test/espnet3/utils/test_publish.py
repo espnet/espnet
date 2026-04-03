@@ -7,13 +7,17 @@ from omegaconf import OmegaConf
 from espnet3.utils import publish
 
 
-def _make_system(*, exp_dir, publish_config, task=None, infer_config=None):
-    train_config = OmegaConf.create({"exp_dir": str(exp_dir), "task": task})
-    if infer_config is not None:
-        infer_config = OmegaConf.create(infer_config)
+def _make_system(*, exp_dir, publication_config, task=None, inference_config=None):
+    training_config = OmegaConf.create({"exp_dir": str(exp_dir), "task": task})
+    if inference_config is not None:
+        inference_config = OmegaConf.create(inference_config)
     else:
-        infer_config = None
-    return SimpleNamespace(train_config=train_config, publish_config=publish_config)
+        inference_config = None
+    return SimpleNamespace(
+        training_config=training_config,
+        inference_config=inference_config,
+        publication_config=publication_config,
+    )
 
 
 def test_pack_model_espnet3_manifest(tmp_path):
@@ -23,11 +27,11 @@ def test_pack_model_espnet3_manifest(tmp_path):
     decode_dir = exp_dir / "decode"
     decode_dir.mkdir()
     out_dir = tmp_path / "model_pack"
-    publish_config = OmegaConf.create(
+    publication_config = OmegaConf.create(
         {"pack_model": {"out_dir": str(out_dir), "decode_dir": str(decode_dir)}}
     )
 
-    system = _make_system(exp_dir=exp_dir, publish_config=publish_config)
+    system = _make_system(exp_dir=exp_dir, publication_config=publication_config)
     result = publish.pack_model(system)
 
     assert result == out_dir
@@ -49,11 +53,11 @@ def test_pack_model_excludes_decode_and_copies_scores(tmp_path):
     scores_path = decode_dir / "scores.json"
     scores_path.write_text('{"wer": 0.1}\n', encoding="utf-8")
     out_dir = tmp_path / "model_pack"
-    publish_config = OmegaConf.create(
+    publication_config = OmegaConf.create(
         {"pack_model": {"out_dir": str(out_dir), "decode_dir": str(decode_dir)}}
     )
 
-    system = _make_system(exp_dir=exp_dir, publish_config=publish_config)
+    system = _make_system(exp_dir=exp_dir, publication_config=publication_config)
     result = publish.pack_model(system)
 
     assert result == out_dir
@@ -71,7 +75,7 @@ def test_pack_model_espnet2_branch(tmp_path):
     cfg_path.write_text("dummy: true\n", encoding="utf-8")
     model_path.write_text("weights", encoding="utf-8")
     out_dir = tmp_path / "espnet2_pack"
-    publish_config = OmegaConf.create(
+    publication_config = OmegaConf.create(
         {
             "pack_model": {
                 "out_dir": str(out_dir),
@@ -84,7 +88,9 @@ def test_pack_model_espnet2_branch(tmp_path):
         }
     )
 
-    system = _make_system(exp_dir=exp_dir, publish_config=publish_config, task="asr")
+    system = _make_system(
+        exp_dir=exp_dir, publication_config=publication_config, task="asr"
+    )
     result = publish.pack_model(system)
 
     assert result == out_dir

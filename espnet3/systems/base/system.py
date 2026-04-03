@@ -82,14 +82,42 @@ class BaseSystem:
         training_config: DictConfig | None = None,
         inference_config: DictConfig | None = None,
         metrics_config: DictConfig | None = None,
+        publication_config: DictConfig | None = None,
         publish_config: DictConfig | None = None,
         stage_log_mapping: dict | None = None,
     ) -> None:
-        """Initialize the system with optional stage configs."""
+        """Initialize the system with optional stage configs.
+
+        Args:
+            training_config: Training configuration for data preparation,
+                statistics collection, and model training.
+            inference_config: Inference configuration used by the ``infer``
+                stage.
+            metrics_config: Measurement configuration used by the ``measure``
+                stage.
+            publication_config: Publication configuration for ``pack_model``
+                and ``upload_model`` stages.
+            publish_config: Deprecated alias for ``publication_config``.
+            stage_log_mapping: Optional per-stage log directory overrides.
+
+        Raises:
+            ValueError: If both ``publication_config`` and ``publish_config``
+                are provided.
+        """
+        if publication_config is not None and publish_config is not None:
+            raise ValueError(
+                "Specify only one of publication_config or publish_config."
+            )
+        if publication_config is None:
+            publication_config = publish_config
+
         self.training_config = training_config
+        self.train_config = training_config
         self.inference_config = inference_config
+        self.infer_config = inference_config
         self.metrics_config = metrics_config
-        self.publish_config = publish_config
+        self.publication_config = publication_config
+        self.publish_config = publication_config
 
         if training_config is not None:
             self.exp_dir = Path(training_config.exp_dir)
@@ -124,12 +152,12 @@ class BaseSystem:
 
         logger.info(
             "Initialized %s with training_config=%s inference_config=%s "
-            "metrics_config=%s publish_config=%s exp_dir=%s",
+            "metrics_config=%s publication_config=%s exp_dir=%s",
             self.__class__.__name__,
             training_config is not None,
             inference_config is not None,
             metrics_config is not None,
-            publish_config is not None,
+            publication_config is not None,
             self.exp_dir,
         )
 

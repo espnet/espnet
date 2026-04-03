@@ -82,7 +82,7 @@ def _write_readme(
     *,
     readme_template: str,
     out_dir: Path,
-    publish_cfg: DictConfig,
+    publication_cfg: DictConfig,
     pack_cfg: DictConfig,
     exp_dir: Path,
     strategy: str,
@@ -94,7 +94,9 @@ def _write_readme(
         return
     git_info = _git_info()
     context = {
-        "hf_repo": getattr(getattr(publish_cfg, "upload_model", None), "hf_repo", ""),
+        "hf_repo": getattr(
+            getattr(publication_cfg, "upload_model", None), "hf_repo", ""
+        ),
         "system": system.__class__.__name__,
         "recipe": _resolve_recipe(system),
         "creator": _hf_username(),
@@ -105,8 +107,8 @@ def _write_readme(
         "git_head": git_info.get("head", ""),
         "git_dirty": git_info.get("dirty", ""),
         "train_config": (
-            OmegaConf.to_yaml(system.train_config, resolve=True)
-            if system.train_config is not None
+            OmegaConf.to_yaml(system.training_config, resolve=True)
+            if system.training_config is not None
             else ""
         ),
         "results_section": _resolve_results_section(scores_path),
@@ -229,13 +231,13 @@ def _hf_username() -> str:
 def _resolve_recipe(system) -> str:
     """Return egs3/<dataset>/<system> from run.py location if possible."""
     candidate_paths = []
-    recipe_cfg = getattr(getattr(system, "train_config", None), "recipe", None)
+    recipe_cfg = getattr(getattr(system, "training_config", None), "recipe", None)
     if recipe_cfg:
         return str(recipe_cfg)
     argv0 = Path(sys.argv[0]) if sys.argv and sys.argv[0] else None
     if argv0 is not None:
         candidate_paths.append(argv0)
-    recipe_dir = getattr(getattr(system, "train_config", None), "recipe_dir", None)
+    recipe_dir = getattr(getattr(system, "training_config", None), "recipe_dir", None)
     if recipe_dir:
         candidate_paths.append(Path(recipe_dir) / "run.py")
     for path in candidate_paths:
@@ -258,7 +260,8 @@ def pack_model(
     Attributes:
         system: ESPnet3 system instance providing configs and helper paths.
     Args:
-        system: Object with ``train_config`` and optional ``publish_config``.
+        system: Object with ``training_config`` and optional
+            ``publication_config``.
         include: Optional explicit include paths
             (defaults to exp_dir and config includes).
         extra: Optional explicit extra paths (defaults to config extras).
@@ -267,7 +270,8 @@ def pack_model(
     Yields:
         None.
     Raises:
-        RuntimeError: If ``train_config`` is missing or required files are absent.
+        RuntimeError: If ``training_config`` is missing or required files are
+            absent.
     Examples:
         >>> from espnet3.utils.publish import pack_model
         >>> pack_path = pack_model(system)
@@ -275,29 +279,34 @@ def pack_model(
     Note:
         ``pack_model.strategy`` controls whether espnet2 or espnet3 packing
         logic is used. The output location can be set via
-        ``publish.pack_model.out_dir``.
-        ``publish.pack_model.readme_template`` can override the default
+        ``publication_config.pack_model.out_dir``.
+        ``publication_config.pack_model.readme_template`` can override the
+        default
         README template path.
-        ``publish.pack_model.decode_dir`` can be used to specify which scores.json
-        to include. If not set, it falls back to ``infer_config.decode_dir``.
+        ``publication_config.pack_model.decode_dir`` can be used to specify
+        which scores.json to include. If not set, it falls back to
+        ``inference_config.decode_dir``.
         README generation uses scores.json to render a per-test metrics table.
     Todo:
         Support more configurable exclusions if needed.
     """
-    if system.train_config is None:
-        raise RuntimeError("pack_model requires train_config.")
+    if system.training_config is None:
+        raise RuntimeError("pack_model requires training_config.")
 
-    exp_dir = Path(system.train_config.exp_dir)
-    if system.publish_config is None:
+    exp_dir = Path(system.training_config.exp_dir)
+    publication_cfg = getattr(system, "publication_config", None)
+    if publication_cfg is None:
+        publication_cfg = getattr(system, "publish_config", None)
+    if publication_cfg is None:
         raise RuntimeError(
-            "pack_model requires publish_config (publish_config.pack_model)."
+            "pack_model requires publication_config "
+            "(publication_config.pack_model)."
         )
-    publish_cfg = system.publish_config
-    pack_cfg = getattr(publish_cfg, "pack_model", None)
+    pack_cfg = getattr(publication_cfg, "pack_model", None)
     if pack_cfg is None:
-        raise RuntimeError("pack_model requires publish_config.pack_model.")
+        raise RuntimeError("pack_model requires publication_config.pack_model.")
 
-    if getattr(getattr(system, "train_config", None), "task", None):
+    if getattr(getattr(system, "training_config", None), "task", None):
         strategy = "espnet2"
     else:
         strategy = "espnet3"
@@ -322,15 +331,19 @@ def pack_model(
         out_path.unlink()
 
         decode_dir = getattr(pack_cfg, "decode_dir", None)
-        if decode_dir is None and getattr(system, "infer_config", None) is not None:
-            decode_dir = getattr(system.infer_config, "decode_dir", None)
+        if (
+            decode_dir is None
+            and getattr(system, "inference_config", None) is not None
+        ):
+            decode_dir = getattr(system.inference_config, "decode_dir", None)
         resolved_scores = None
         if decode_dir:
             matches = list(Path(decode_dir).rglob("scores.json"))
             if len(matches) > 1:
                 raise RuntimeError(
-                    "Multiple scores.json found; set publish.pack_model.decode_dir "
-                    "to a single decode directory."
+                    "Multiple scores.json found; set "
+                    "publication_config.pack_model.decode_dir to a single "
+                    "decode directory."
                 )
             if len(matches) == 1:
                 resolved_scores = matches[0]
@@ -340,7 +353,7 @@ def pack_model(
         _write_readme(
             readme_template=readme_template,
             out_dir=out_dir,
-            publish_cfg=publish_cfg,
+            publication_cfg=publication_cfg,
             pack_cfg=pack_cfg,
             exp_dir=exp_dir,
             strategy=strategy,
@@ -351,7 +364,9 @@ def pack_model(
         return out_dir
 
     include_paths = (
-        list(include) if include is not None else [Path(system.train_config.exp_dir)]
+        list(include)
+        if include is not None
+        else [Path(system.training_config.exp_dir)]
     )
     include_cfg = getattr(pack_cfg, "include", None)
     if include_cfg:
@@ -409,15 +424,16 @@ def pack_model(
             shutil.copy2(path, dest)
 
     decode_dir = getattr(pack_cfg, "decode_dir", None)
-    if decode_dir is None and getattr(system, "infer_config", None) is not None:
-        decode_dir = getattr(system.infer_config, "decode_dir", None)
+    if decode_dir is None and getattr(system, "inference_config", None) is not None:
+        decode_dir = getattr(system.inference_config, "decode_dir", None)
     resolved_scores = None
     if decode_dir:
         matches = list(Path(decode_dir).rglob("scores.json"))
         if len(matches) > 1:
             raise RuntimeError(
-                "Multiple scores.json found; set publish.pack_model.decode_dir "
-                "to a single decode directory."
+                "Multiple scores.json found; set "
+                "publication_config.pack_model.decode_dir to a single "
+                "decode directory."
             )
         if len(matches) == 1:
             resolved_scores = matches[0]
@@ -429,7 +445,7 @@ def pack_model(
     _write_readme(
         readme_template=readme_template,
         out_dir=out_dir,
-        publish_cfg=publish_cfg,
+        publication_cfg=publication_cfg,
         pack_cfg=pack_cfg,
         exp_dir=exp_dir,
         strategy=strategy,
@@ -480,7 +496,8 @@ def upload_model(system) -> None:
     Attributes:
         system: ESPnet3 system instance providing configs and helper paths.
     Args:
-        system: Object with ``publish_config`` and optionally ``train_config``.
+        system: Object with ``publication_config`` and optionally
+            ``training_config``.
     Returns:
         None.
     Yields:
@@ -495,20 +512,29 @@ def upload_model(system) -> None:
     Todo:
         Add optional README or metadata generation if needed.
     """
-    if system.publish_config is None:
+    publication_cfg = getattr(system, "publication_config", None)
+    if publication_cfg is None:
+        publication_cfg = getattr(system, "publish_config", None)
+    if publication_cfg is None:
         raise RuntimeError(
-            "upload_model requires publish_config (publish_config.upload_model)."
+            "upload_model requires publication_config "
+            "(publication_config.upload_model)."
         )
-    publish_cfg = system.publish_config
-    upload_cfg = getattr(publish_cfg, "upload_model", None)
+    upload_cfg = getattr(publication_cfg, "upload_model", None)
     if upload_cfg is None:
-        raise RuntimeError("upload_model requires publish_config.upload_model.")
+        raise RuntimeError("upload_model requires publication_config.upload_model.")
     repo = getattr(upload_cfg, "hf_repo", None)
     if not repo:
-        raise RuntimeError("upload_model requires publish.upload_model.hf_repo")
+        raise RuntimeError(
+            "upload_model requires publication_config.upload_model.hf_repo"
+        )
 
-    exp_dir = Path(system.train_config.exp_dir) if system.train_config else Path.cwd()
-    pack_cfg = getattr(publish_cfg, "pack_model", None) or OmegaConf.create({})
+    exp_dir = (
+        Path(system.training_config.exp_dir)
+        if system.training_config
+        else Path.cwd()
+    )
+    pack_cfg = getattr(publication_cfg, "pack_model", None) or OmegaConf.create({})
     pack_dir = Path(getattr(pack_cfg, "out_dir", exp_dir / "model_pack"))
     if not pack_dir.exists():
         raise RuntimeError(f"Model pack not found: {pack_dir}")

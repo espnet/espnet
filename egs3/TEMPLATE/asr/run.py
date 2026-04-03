@@ -8,7 +8,10 @@ import logging
 from pathlib import Path
 from typing import List, Sequence
 
-from espnet3.utils.config_utils import load_and_merge_config
+from espnet3.utils.config_utils import (
+    load_and_merge_config,
+    load_config_with_defaults,
+)
 from espnet3.utils.logging_utils import configure_logging
 from espnet3.utils.stages_utils import (
     parse_cli_and_stage_args,
@@ -67,10 +70,17 @@ def build_parser(
         help="Hydra config for measure stage.",
     )
     parser.add_argument(
-        "--publish_config",
+        "--publication_config",
         default=None,
         type=Path,
         help="Hydra config for pack/upload stages.",
+    )
+    parser.add_argument(
+        "--publish_config",
+        dest="publication_config",
+        default=None,
+        type=Path,
+        help=argparse.SUPPRESS,
     )
     parser.add_argument(
         "--dry_run",
@@ -113,10 +123,10 @@ def main(
         config_name="metrics.yaml",
         default_package=__package__,
     )
-    publish_config = (
+    publication_config = (
         None
-        if args.publish_config is None
-        else load_config_with_defaults(args.publish_config)
+        if args.publication_config is None
+        else load_config_with_defaults(args.publication_config)
     )
     logger = configure_logging()
 
@@ -127,7 +137,7 @@ def main(
         training_config=training_config,
         inference_config=inference_config,
         metrics_config=metrics_config,
-        publish_config=publish_config,
+        publication_config=publication_config,
     )
 
     # -----------------------------------------
@@ -149,20 +159,26 @@ def main(
     required_configs.update({"infer": inference_config, "measure": metrics_config})
     required_configs.update(
         {
-            "pack_model": training_config,
-            "upload_model": publish_config,
+            "pack_model": (training_config, publication_config),
+            "upload_model": publication_config,
         }
     )
     missing = [
         s
         for s in stages_to_run
-        if s in required_configs and required_configs[s] is None
+        if s in required_configs
+        and (
+            any(cfg is None for cfg in required_configs[s])
+            if isinstance(required_configs[s], tuple)
+            else required_configs[s] is None
+        )
     ]
     if missing:
         missing_str = ", ".join(missing)
         raise ValueError(
             f"Config not provided for stage(s): {missing_str}. "
-            "Use --training_config/--inference_config/--metrics_config."
+            "Use --training_config/--inference_config/--metrics_config/"
+            "--publication_config."
         )
     run_stages(
         system=system,

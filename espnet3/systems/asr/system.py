@@ -170,16 +170,16 @@ class ASRSystem(BaseSystem):
         from espnet3.utils.publish import pack_model
 
         extra_paths = []
-        if self.train_config is not None:
-            tokenizer_cfg = getattr(self.train_config, "tokenizer", None)
+        if self.training_config is not None:
+            tokenizer_cfg = getattr(self.training_config, "tokenizer", None)
             if tokenizer_cfg is not None:
                 save_path = getattr(tokenizer_cfg, "save_path", None)
                 if save_path:
                     extra_paths.append(Path(save_path))
-            stats_dir = getattr(self.train_config, "stats_dir", None)
+            stats_dir = getattr(self.training_config, "stats_dir", None)
             if stats_dir:
                 extra_paths.append(Path(stats_dir))
-            data_dir = getattr(self.train_config, "data_dir", None)
+            data_dir = getattr(self.training_config, "data_dir", None)
             if data_dir:
                 data_tokenizer = Path(data_dir) / "tokenizer"
                 if data_tokenizer.exists():
