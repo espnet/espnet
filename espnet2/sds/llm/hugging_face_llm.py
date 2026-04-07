@@ -16,6 +16,7 @@ class HuggingFaceLLM(AbsLLM):
         tag: str = "meta-llama/Llama-3.2-1B-Instruct",
         device: str = "cuda",
         dtype: str = "float16",
+        trust_remote_code: bool = False,
     ):
         """A class for initializing a text response generator
 
@@ -31,6 +32,11 @@ class HuggingFaceLLM(AbsLLM):
                 The device to run the inference on. Defaults to "cuda".
             dtype (str, optional):
                 The data type for model computation. Defaults to "float16".
+            trust_remote_code (bool, optional):
+                Whether to allow execution of custom code from the model repository.
+                This should only be set to True for repositories you fully trust, as
+                it allows arbitrary Python code to run on your machine.
+                Defaults to False.
 
         Raises:
             ImportError:
@@ -48,7 +54,10 @@ class HuggingFaceLLM(AbsLLM):
         super().__init__()
         LM_tokenizer = AutoTokenizer.from_pretrained(tag, token=access_token)
         LM_model = AutoModelForCausalLM.from_pretrained(
-            tag, torch_dtype=dtype, trust_remote_code=True, token=access_token
+            tag,
+            torch_dtype=dtype,
+            trust_remote_code=trust_remote_code,
+            token=access_token,
         ).to(device)
         self.LM_pipe = pipeline(
             "text-generation", model=LM_model, tokenizer=LM_tokenizer, device=device
