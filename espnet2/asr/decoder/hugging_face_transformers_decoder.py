@@ -470,6 +470,8 @@ def get_safe_config(config: dict) -> dict:
     Returns:
         dict: A shallow copy of *config* without blocked keys.
     """
+    if not isinstance(config, dict):
+        return config
     blocked_found = _BLOCKED_CONFIG_KEYS & config.keys()
     if blocked_found:
         for key in blocked_found:
