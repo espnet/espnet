@@ -99,22 +99,9 @@ class HuggingFaceTransformersDecoder(AbsDecoder, BatchScorerInterface):
                 overriding_architecture_config
             )
 
-        # Block dangerous keys that can enable arbitrary remote code execution.
-        # Regardless of the source (inline dict or loaded JSON), these keys must
-        # never be forwarded to from_pretrained().
-        _BLOCKED_KEYS = {"trust_remote_code"}
-        blocked_found = _BLOCKED_KEYS & self.overriding_architecture_config.keys()
-        if blocked_found:
-            for key in blocked_found:
-                logging.warning(
-                    f"The key '{key}' in overriding_architecture_config is not "
-                    "allowed for security reasons and has been removed."
-                )
-            self.overriding_architecture_config = {
-                k: v
-                for k, v in self.overriding_architecture_config.items()
-                if k not in _BLOCKED_KEYS
-            }
+        self.overriding_architecture_config = get_safe_config(
+            self.overriding_architecture_config
+        )
 
         # Prevent meta tensor initialization when ignore_mismatched_sizes is used
         # to avoid aten::equal NotImplementedError during weight tying
@@ -461,3 +448,34 @@ def read_json_config(conf_path):
         confs = json.load(f)
     assert isinstance(confs, dict)
     return confs
+
+
+# Keys that must never be forwarded to HuggingFace from_pretrained() because
+# they can enable arbitrary remote code execution.
+_BLOCKED_CONFIG_KEYS = {"trust_remote_code"}
+
+
+def get_safe_config(config: dict) -> dict:
+    """Return a copy of *config* with dangerous keys removed.
+
+    Any key listed in ``_BLOCKED_CONFIG_KEYS`` is stripped from the
+    supplied configuration dictionary before it is forwarded to HuggingFace
+    ``from_pretrained()`` calls, preventing arbitrary remote-code execution
+    via attacker-controlled configuration files.
+
+    Args:
+        config (dict): The original configuration dictionary
+            (e.g. ``overriding_architecture_config``).
+
+    Returns:
+        dict: A shallow copy of *config* without blocked keys.
+    """
+    blocked_found = _BLOCKED_CONFIG_KEYS & config.keys()
+    if blocked_found:
+        for key in blocked_found:
+            logging.warning(
+                f"The key '{key}' in overriding_architecture_config is not "
+                "allowed for security reasons and has been removed."
+            )
+        config = {k: v for k, v in config.items() if k not in _BLOCKED_CONFIG_KEYS}
+    return config

@@ -15,6 +15,7 @@ from typeguard import typechecked
 from espnet2.asr.decoder.hugging_face_transformers_decoder import (
     get_hugging_face_model_lm_head,
     get_hugging_face_model_network,
+    get_safe_config,
 )
 from espnet2.asr.decoder.s4_decoder import S4Decoder
 from espnet2.asr.partially_AR_model import PartiallyARInference
@@ -247,7 +248,8 @@ class Speech2Text:
 
             if decoder.causal_lm:
                 hugging_face_model = AutoModelForCausalLM.from_pretrained(
-                    decoder.model_name_or_path, **decoder.overriding_architecture_config
+                    decoder.model_name_or_path,
+                    **get_safe_config(decoder.overriding_architecture_config),
                 )
 
                 hugging_face_model.resize_token_embeddings(decoder.lm_head.out_features)
@@ -263,7 +265,8 @@ class Speech2Text:
                 lm_head.load_state_dict(decoder.lm_head.state_dict())
             else:
                 hugging_face_model = AutoModelForSeq2SeqLM.from_pretrained(
-                    decoder.model_name_or_path, **decoder.overriding_architecture_config
+                    decoder.model_name_or_path,
+                    **get_safe_config(decoder.overriding_architecture_config),
                 )
 
                 if decoder.separate_lm_head:
