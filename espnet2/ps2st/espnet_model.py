@@ -41,6 +41,7 @@ class ESPnetQwen2AudioModel(AbsESPnetModel):
         ignore_id: int = -1,
         decode_config_path: Optional[str] = None,
         pytest_mode: Optional[bool] = False,
+        trust_remote_code: bool = False,
     ):
         super().__init__()
         if not is_transformers_available:
@@ -58,6 +59,7 @@ class ESPnetQwen2AudioModel(AbsESPnetModel):
             # Load Qwen2-Audio model and processor using standard transformers approach
             self.qwen2audio_model = Qwen2AudioForConditionalGeneration.from_pretrained(
                 model_name,
+                trust_remote_code=trust_remote_code,
             )
         else:
             config = AutoConfig.from_pretrained(model_name)
@@ -76,7 +78,9 @@ class ESPnetQwen2AudioModel(AbsESPnetModel):
 
         self.qwen2audio_model.to("cpu")
         self.qwen2audio_model.eval()
-        self.processor = AutoProcessor.from_pretrained(model_name)
+        self.processor = AutoProcessor.from_pretrained(
+            model_name, trust_remote_code=trust_remote_code
+        )
 
         # Get actual vocabulary size from the model
         self.vocab_size = self.qwen2audio_model.config.vocab_size

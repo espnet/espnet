@@ -21,6 +21,7 @@ class MERTFrontend(AbsFrontend):
         save_dir: str = None,
         multilayer_feature: bool = False,
         layer: int = -1,
+        trust_remote_code: bool = False,
     ):
         from transformers import AutoModel
 
@@ -37,9 +38,12 @@ class MERTFrontend(AbsFrontend):
             model = AutoModel.from_pretrained(
                 download_path,
                 cache_dir=save_dir,
+                trust_remote_code=trust_remote_code,
             )
         else:
-            model = AutoModel.from_pretrained(download_path)
+            model = AutoModel.from_pretrained(
+                download_path, trust_remote_code=trust_remote_code
+            )
         model.eval()
 
         if layer != -1:

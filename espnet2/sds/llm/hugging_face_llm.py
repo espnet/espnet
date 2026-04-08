@@ -16,6 +16,7 @@ class HuggingFaceLLM(AbsLLM):
         tag: str = "meta-llama/Llama-3.2-1B-Instruct",
         device: str = "cuda",
         dtype: str = "float16",
+        trust_remote_code: bool = False,
     ):
         """A class for initializing a text response generator
 
@@ -31,6 +32,9 @@ class HuggingFaceLLM(AbsLLM):
                 The device to run the inference on. Defaults to "cuda".
             dtype (str, optional):
                 The data type for model computation. Defaults to "float16".
+            trust_remote_code (bool, optional):
+                Whether to trust and execute remote code in the model repository.
+                Only set to True for models you trust. Defaults to False.
 
         Raises:
             ImportError:
@@ -51,6 +55,7 @@ class HuggingFaceLLM(AbsLLM):
             tag,
             torch_dtype=dtype,
             token=access_token,
+            trust_remote_code=trust_remote_code,
         ).to(device)
         self.LM_pipe = pipeline(
             "text-generation", model=LM_model, tokenizer=LM_tokenizer, device=device
