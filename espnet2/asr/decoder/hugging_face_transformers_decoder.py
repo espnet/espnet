@@ -103,13 +103,18 @@ class HuggingFaceTransformersDecoder(AbsDecoder, BatchScorerInterface):
         # Regardless of the source (inline dict or loaded JSON), these keys must
         # never be forwarded to from_pretrained().
         _BLOCKED_KEYS = {"trust_remote_code"}
-        for key in _BLOCKED_KEYS:
-            if key in self.overriding_architecture_config:
+        blocked_found = _BLOCKED_KEYS & self.overriding_architecture_config.keys()
+        if blocked_found:
+            for key in blocked_found:
                 logging.warning(
                     f"The key '{key}' in overriding_architecture_config is not "
                     "allowed for security reasons and has been removed."
                 )
-                del self.overriding_architecture_config[key]
+            self.overriding_architecture_config = {
+                k: v
+                for k, v in self.overriding_architecture_config.items()
+                if k not in _BLOCKED_KEYS
+            }
 
         # Prevent meta tensor initialization when ignore_mismatched_sizes is used
         # to avoid aten::equal NotImplementedError during weight tying
