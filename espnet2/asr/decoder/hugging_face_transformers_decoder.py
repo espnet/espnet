@@ -99,6 +99,18 @@ class HuggingFaceTransformersDecoder(AbsDecoder, BatchScorerInterface):
                 overriding_architecture_config
             )
 
+        # Block dangerous keys that can enable arbitrary remote code execution.
+        # Regardless of the source (inline dict or loaded JSON), these keys must
+        # never be forwarded to from_pretrained().
+        _BLOCKED_KEYS = {"trust_remote_code"}
+        for key in _BLOCKED_KEYS:
+            if key in self.overriding_architecture_config:
+                logging.warning(
+                    f"The key '{key}' in overriding_architecture_config is not "
+                    "allowed for security reasons and has been removed."
+                )
+                del self.overriding_architecture_config[key]
+
         # Prevent meta tensor initialization when ignore_mismatched_sizes is used
         # to avoid aten::equal NotImplementedError during weight tying
         if self.overriding_architecture_config.get("ignore_mismatched_sizes", False):
