@@ -6,7 +6,7 @@ and writes Kaldi-format data directories for ESPnet2 training.
 
 Output files:
     wav.scp   — utt_id /path/to/audio.wav
-    text      — utt_id spk1_text <sc> spk2_text <|endoftext|>
+    text      — utt_id spk1_text ???? spk2_text <|endoftext|>
     utt2spk   — utt_id utt_id
     spk2utt   — utt_id utt_id
 
@@ -77,7 +77,9 @@ def merge_supervisions(supervisions, max_timestamp_pause: float):
     return merged
 
 
-def get_transcript_units(cut, use_timestamps: bool, max_timestamp_pause: float):
+def get_transcript_units(
+    cut, use_timestamps: bool, max_timestamp_pause: float, lowercase: bool = True
+):
     """Extract per-speaker transcript units from a cut.
 
     Returns list of dicts with keys: speaker, text, start.
@@ -98,6 +100,8 @@ def get_transcript_units(cut, use_timestamps: bool, max_timestamp_pause: float):
             text = seg["text"].strip()
             if not text:
                 continue
+            if lowercase:
+                text = text.lower()
 
             if use_timestamps:
                 start_ts = f"<|{round_nearest(seg['start'], 0.02):.2f}|>"
@@ -142,6 +146,7 @@ def build_sot_text(
     cut,
     use_timestamps: bool,
     max_timestamp_pause: float,
+    lowercase: bool = True,
 ):
     """Build the serialized SOT text for a single cut.
 
@@ -149,7 +154,9 @@ def build_sot_text(
 
     Returns the full text string with speaker change tokens.
     """
-    units = get_transcript_units(cut, use_timestamps, max_timestamp_pause)
+    units = get_transcript_units(
+        cut, use_timestamps, max_timestamp_pause, lowercase=lowercase
+    )
     items = merge_speaker_units(units, use_timestamps)
     items = sorted(items, key=lambda x: x["start"])
     return SPEAKER_CHANGE_TOKEN.join(x["text"] for x in items)
@@ -191,6 +198,7 @@ def process_cutset(
     cutset: CutSet,
     use_timestamps: bool,
     max_timestamp_pause: float,
+    lowercase: bool = True,
     segments_dir: Optional[str] = None,
 ) -> tuple:
     """Process a CutSet and return lists of (utt_id, wav_path, text).
@@ -232,6 +240,7 @@ def process_cutset(
             cut,
             use_timestamps=use_timestamps,
             max_timestamp_pause=max_timestamp_pause,
+            lowercase=lowercase,
         )
 
         if not text.strip():
@@ -318,6 +327,12 @@ def main():
         default=None,
         help="Path to added_tokens.txt for token validation (optional)",
     )
+    parser.add_argument(
+        "--lowercase",
+        type=lambda x: x.lower() in ("true", "1", "yes"),
+        default=True,
+        help="Lowercase transcript text (default: true)",
+    )
     args = parser.parse_args()
 
     # Validate tokens against added_tokens_file if provided
@@ -328,9 +343,9 @@ def main():
             logger.info(
                 f"Validating against {args.added_tokens_file}: " f"{registered_tokens}"
             )
-            if "????" not in registered_tokens and "<sc>" not in registered_tokens:
+            if "????" not in registered_tokens:
                 logger.warning(
-                    f"<sc> not found in {args.added_tokens_file} — "
+                    f"???? not found in {args.added_tokens_file} — "
                     "speaker change tokens will be split "
                     "into subwords by the tokenizer"
                 )
@@ -364,6 +379,7 @@ def main():
             cutset,
             use_timestamps=args.use_timestamps,
             max_timestamp_pause=args.max_timestamp_pause,
+            lowercase=args.lowercase,
             segments_dir=segments_dir,
         )
         all_entries.extend(entries)

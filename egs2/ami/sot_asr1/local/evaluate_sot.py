@@ -1,15 +1,18 @@
 #!/usr/bin/env python3
-"""Evaluate SOT multi-talker ASR output using cpWER.
+"""Evaluate SOT multi-talker ASR output using utterance-group cpWER.
 
-Reads hypothesis and reference text files, splits on <sc> to get
-per-speaker texts, and computes cpWER using meeteval.
+Computes cpWER independently per utterance group (not per session).
+Each utterance group is scored separately with its own optimal speaker
+permutation, then error counts are aggregated across all groups.
+This is NOT session-level cpWER where a single permutation is found
+for an entire meeting.
 
 Usage:
     python local/evaluate_sot.py \
         --hyp_text decode_dir/1best_recog/text \
         --ref_text data/dev/text \
         --output_dir results/dev \
-        --speaker_change_token "<sc>"
+        --speaker_change_token "????"
 """
 
 import argparse
@@ -137,7 +140,10 @@ def compute_cpwer(
     refs: Dict[str, List[str]],
     hyps: Dict[str, List[str]],
 ) -> dict:
-    """Compute cpWER using meeteval.
+    """Compute utterance-group cpWER using meeteval.
+
+    Each utterance group is scored independently with its own optimal
+    speaker permutation. Error counts are then aggregated.
 
     Args:
         refs: dict of utt_id -> list of reference speaker texts
@@ -167,7 +173,7 @@ def compute_cpwer(
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Evaluate SOT output using cpWER.",
+        description="Evaluate SOT output using utterance-group cpWER.",
     )
     parser.add_argument(
         "--hyp_text",
@@ -273,8 +279,8 @@ def main():
     # Output
     os.makedirs(args.output_dir, exist_ok=True)
 
-    # Overall cpWER
-    logger.info(f"cpWER: {results['cpwer']:.4f}")
+    # Overall utterance-group cpWER
+    logger.info(f"Utterance-group cpWER: {results['cpwer']:.4f}")
     logger.info(f"  errors={results['errors']}, length={results['length']}")
     logger.info(
         f"  ins={results['insertions']}, del={results['deletions']}, "

@@ -665,6 +665,7 @@ class CommonPreprocessor_multi(CommonPreprocessor):
         text_name: List[str] = ["text"],
         fs: int = 0,
         speaker_change_symbol: Iterable[str] = None,
+        predict_timestamps: bool = False,
         data_aug_effects: List = None,
         data_aug_num: List[int] = [1, 1],
         data_aug_prob: float = 0.0,
@@ -729,6 +730,7 @@ class CommonPreprocessor_multi(CommonPreprocessor):
                     task=whisper_task or "transcribe",
                     sot=True,
                     speaker_change_symbol=speaker_change_symbol,
+                    predict_timestamps=predict_timestamps,
                 )
 
     def _text_process(

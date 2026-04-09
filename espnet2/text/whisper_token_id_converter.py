@@ -27,6 +27,7 @@ class OpenAIWhisperTokenIDConverter:
         added_tokens_txt: Optional[str] = None,
         sot: bool = False,
         speaker_change_symbol: str = "<sc>",
+        predict_timestamps: bool = False,
     ):
 
         try:
@@ -71,6 +72,7 @@ class OpenAIWhisperTokenIDConverter:
             dict(additional_special_tokens=special_tokens)
         )
         self.model_type = model_type
+        self.predict_timestamps = predict_timestamps
 
     def get_num_vocabulary_size(self) -> int:
         if self.model_type == "whisper_en":
@@ -89,6 +91,8 @@ class OpenAIWhisperTokenIDConverter:
         )
 
     def tokens2ids(self, tokens: Iterable[str]) -> List[int]:
-        return list(
-            self.tokenizer.sot_sequence_including_notimestamps[1:]
-        ) + self.tokenizer.tokenizer.convert_tokens_to_ids(tokens)
+        if self.predict_timestamps:
+            prefix = self.tokenizer.sot_sequence[1:]
+        else:
+            prefix = self.tokenizer.sot_sequence_including_notimestamps[1:]
+        return list(prefix) + self.tokenizer.tokenizer.convert_tokens_to_ids(tokens)

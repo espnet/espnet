@@ -71,7 +71,6 @@ from espnet2.asr.postencoder.length_adaptor_postencoder import LengthAdaptorPost
 from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
 from espnet2.asr.preencoder.linear import LinearProjection
 from espnet2.asr.preencoder.sinc import LightweightSincConvs
-from espnet2.asr.sot_espnet_model import SOTWhisperModel
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.asr.specaug.specaug import SpecAug
 from espnet2.asr_transducer.joint_network import JointNetwork
@@ -134,7 +133,6 @@ model_choices = ClassChoices(
         espnet=ESPnetASRModel,
         maskctc=MaskCTCModel,
         pit_espnet=PITESPnetModel,
-        sot_whisper=SOTWhisperModel,
     ),
     type_check=AbsESPnetModel,
     default="espnet",
