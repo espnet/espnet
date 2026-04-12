@@ -1,6 +1,7 @@
 """ESPnet3 PyTorch LightningModule for training and data integration."""
 
 import logging
+import re
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence
 
@@ -190,7 +191,7 @@ class ESPnetLightningModule(lightning.LightningModule):
         """
         invalid = False
         for loss in losses:
-            mask_nan_inf = torch.logical_or(torch.isnan(loss), ~torch.isfinite(loss))
+            mask_nan_inf = torch.logical_or(torch.isnan(loss), torch.isinf(loss))
             if torch.any(mask_nan_inf):
                 invalid = True
                 break
@@ -333,7 +334,8 @@ class ESPnetLightningModule(lightning.LightningModule):
             - no trainable parameter is matched by more than one optimizer spec
             - every trainable parameter is covered by some optimizer spec
 
-        The matching itself is based on the configured `params` substring selector.
+        The matching itself is based on the configured `params` dotted-path
+        selector.
         """
         trainable_params = {
             name: param
@@ -344,7 +346,9 @@ class ESPnetLightningModule(lightning.LightningModule):
 
         for spec in specs:
             selected_names = [
-                name for name in trainable_params.keys() if spec.params in name
+                name
+                for name in trainable_params.keys()
+                if self._param_name_matches_selector(name, spec.params)
             ]
             if len(selected_names) == 0:
                 raise AssertionError(
@@ -364,6 +368,18 @@ class ESPnetLightningModule(lightning.LightningModule):
                 f"{sorted(uncovered)} are not assigned to any optimizer."
             )
 
+    @staticmethod
+    def _param_name_matches_selector(name: str, selector: str) -> bool:
+        """Match a selector on dot-delimited parameter-name boundaries.
+
+        Examples:
+            selector=`encoder` matches `model.encoder.layer.weight`
+            selector=`encoder.layer1` matches `model.encoder.layer1.weight`
+            selector=`encoder` does not match `model.decoder_encoder.weight`
+        """
+        pattern = rf"(^|\.){re.escape(selector)}(\.|$)"
+        return re.search(pattern, name) is not None
+
     def _instantiate_named_optimizers(
         self, specs: List[OptimizerSpec]
     ) -> List[torch.optim.Optimizer]:
@@ -376,7 +392,9 @@ class ESPnetLightningModule(lightning.LightningModule):
         optimizers = []
         for spec in specs:
             selected = [
-                param for name, param in trainable_params.items() if spec.params in name
+                param
+                for name, param in trainable_params.items()
+                if self._param_name_matches_selector(name, spec.params)
             ]
             optimizers.append(
                 instantiate(

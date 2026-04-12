@@ -4,11 +4,10 @@
 
 """VITS/VISinger module for GAN-SVS task."""
 
-from contextlib import contextmanager
-from distutils.version import LooseVersion
 from typing import Any, Dict, Optional
 
 import torch
+from torch.cuda.amp import autocast
 from torch.nn import functional as F
 from typeguard import typechecked
 
@@ -56,14 +55,6 @@ AVAILABLE_DISCRIMINATORS = {
     "visinger2": VISinger2Discriminator,
     "avocodo_plus": AvocodoDiscriminatorPlus,
 }
-
-if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
-    from torch.cuda.amp import autocast
-else:
-    # Nothing to do if torch<1.6.0
-    @contextmanager
-    def autocast(enabled=True):  # NOQA
-        yield
 
 
 class VITS(AbsGANSVS):

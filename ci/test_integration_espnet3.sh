@@ -15,10 +15,10 @@ gen_dummy_coverage(){
 
 python3 -m pip install -e '.[asr]'
 
-cd ./egs3/mini_an4/asr
+cd ./egs3/mini_an4/asr || exit
 gen_dummy_coverage
 echo "==== [ESPnet3] ASR ===="
-source ./path.sh
+source path.sh
 run_with_training_config() {
     local training_config=$1
     local runner=$2
@@ -33,7 +33,7 @@ run_with_training_config() {
     rm -rf exp data
 }
 
-debug_configs=(
+training_configs=(
     training_asr_rnn_data_aug.yaml
     training_asr_rnn.yaml
     training_asr_streaming.yaml
@@ -41,7 +41,7 @@ debug_configs=(
     training_asr_transducer.yaml
 )
 
-for training_config in "${debug_configs[@]}"; do
+for training_config in "${training_configs[@]}"; do
     run_with_training_config "${training_config}" run.py conf/inference.yaml
 done
 
@@ -51,4 +51,4 @@ run_with_training_config \
     run.py \
     conf/inference_transducer.yaml
 
-cd "${cwd}"
+cd "${cwd}" || exit

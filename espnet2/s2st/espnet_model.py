@@ -1,9 +1,8 @@
 import logging
-from contextlib import contextmanager
 from typing import Dict, List, Optional, Tuple, Union
 
 import torch
-from packaging.version import parse as V
+from torch.cuda.amp import autocast
 from typeguard import typechecked
 
 from espnet2.asr.ctc import CTC
@@ -26,14 +25,6 @@ from espnet2.s2st.synthesizer.abs_synthesizer import AbsSynthesizer
 from espnet2.s2st.tgt_feats_extract.abs_tgt_feats_extract import AbsTgtFeatsExtract
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
-
-if V(torch.__version__) >= V("1.6.0"):
-    from torch.cuda.amp import autocast
-else:
-    # Nothing to do if torch<1.6.0
-    @contextmanager
-    def autocast(enabled=True):
-        yield
 
 
 class ESPnetS2STModel(AbsESPnetModel):
@@ -891,7 +882,7 @@ class ESPnetS2STModel(AbsESPnetModel):
         )
 
         if return_hs or return_all_hs:
-            (decoder_out, decoder_hidden) = decoder_outs
+            decoder_out, decoder_hidden = decoder_outs
         else:
             decoder_out = decoder_outs
 
@@ -938,7 +929,7 @@ class ESPnetS2STModel(AbsESPnetModel):
         )
 
         if return_hs or return_all_hs:
-            (decoder_out, decoder_hidden) = decoder_outs
+            decoder_out, decoder_hidden = decoder_outs
         else:
             decoder_out = decoder_outs
 

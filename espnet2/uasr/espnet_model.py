@@ -1,12 +1,11 @@
 import argparse
 import logging
-from contextlib import contextmanager
 from typing import Dict, Optional, Tuple
 
 import editdistance
 import torch
 import torch.nn.functional as F
-from packaging.version import parse as V
+from torch.cuda.amp import autocast
 from typeguard import typechecked
 
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
@@ -19,15 +18,6 @@ from espnet2.uasr.generator.abs_generator import AbsGenerator
 from espnet2.uasr.loss.abs_loss import AbsUASRLoss
 from espnet2.uasr.segmenter.abs_segmenter import AbsSegmenter
 from espnet2.utils.types import str2bool
-
-if V(torch.__version__) >= V("1.6.0"):
-    from torch.cuda.amp import autocast
-else:
-    # Nothing to do if torch<1.6.0
-    @contextmanager
-    def autocast(enabled=True):
-        yield
-
 
 try:
     import kenlm  # for CI import

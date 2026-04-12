@@ -7,12 +7,10 @@ dataset:
   _target_: espnet3.components.data.data_organizer.DataOrganizer
   train:
     - name: train_dummy
-      dataset:
-        _target_: test.espnet3.components.trainers.test_logging_integration.DummyDataset
+      data_src: test_utils_dummy/asr
   valid:
     - name: valid_dummy
-      dataset:
-        _target_: test.espnet3.components.trainers.test_logging_integration.DummyDataset
+      data_src: test_utils_dummy/asr
 
 dataloader:
   train:

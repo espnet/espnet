@@ -115,6 +115,24 @@ def test_inference_writes_scp_outputs(tmp_path, monkeypatch):
         assert _read_scp(base / "ref.scp") == ["0 r0", "1 r1"]
 
 
+def test_inference_rejects_test_entry_without_name(tmp_path, monkeypatch):
+    cfg = OmegaConf.create(
+        {
+            "parallel": {"env": "local"},
+            "inference_dir": str(tmp_path / "infer"),
+            "dataset": {"test": [{"data_src": "mini_an4/asr"}]},
+            "input_key": "speech",
+            "mock_dataset_length": 1,
+            "provider": {"_target_": f"{__name__}.DummyProvider"},
+            "runner": {"_target_": f"{__name__}.DummyRunner"},
+        }
+    )
+    monkeypatch.setattr(inference_mod, "set_parallel", lambda arg: None)
+
+    with pytest.raises(RuntimeError, match="must define non-empty `name`"):
+        inference_mod.infer(cfg)
+
+
 def test_inference_rejects_async_results(tmp_path, monkeypatch):
     cfg = OmegaConf.create(
         {

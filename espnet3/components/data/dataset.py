@@ -10,7 +10,7 @@ from torch.utils.data.dataset import Dataset
 from espnet3.utils.logging_utils import build_callable_name, build_qualified_name
 
 
-def do_nothing_transform(*x):
+def do_nothing(*x):
     """Return input as-is.
 
     Args:
@@ -94,9 +94,9 @@ class CombinedDataset:
 
         for transform, preprocessor in transforms:
             if transform is None:
-                transform = do_nothing_transform
+                transform = do_nothing
             if preprocessor is None:
-                preprocessor = do_nothing_transform
+                preprocessor = do_nothing
             assert callable(transform), "transform must be callable."
             assert callable(preprocessor), "preprocessor must be callable."
             self.transforms.append((transform, preprocessor))
@@ -178,6 +178,7 @@ class CombinedDataset:
         return self.cumulative_lengths[-1] if self.cumulative_lengths else 0
 
     def __getitem__(self, idx):
+        """Return the item at the given index from the appropriate sub-dataset."""
         if self._string_index_mode:
             return self._getitem_string_mode(idx)
 
@@ -491,10 +492,10 @@ class DatasetWithTransform:
     def __init__(self, dataset, transform, preprocessor, use_espnet_preprocessor=False):
         """Initialize DatasetWithTransform."""
         if transform is None:
-            transform = do_nothing_transform
+            transform = do_nothing
         assert callable(transform), "transform must be callable."
         if preprocessor is None:
-            preprocessor = do_nothing_transform
+            preprocessor = do_nothing
         assert callable(preprocessor), "preprocessor must be callable."
         self.dataset = dataset
         self.transform = transform

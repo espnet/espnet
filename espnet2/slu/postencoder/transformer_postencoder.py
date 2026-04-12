@@ -2,6 +2,7 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 """Encoder definition."""
+
 from typing import Optional, Tuple
 
 import torch

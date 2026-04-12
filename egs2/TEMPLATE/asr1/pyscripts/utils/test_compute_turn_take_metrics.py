@@ -19,8 +19,7 @@ labels = [
 
 
 def test_F1_simple():
-    ref_arr_simple = [
-        "moshi_audio_1\
+    ref_arr_simple = ["moshi_audio_1\
         0.13,0.59,0.02,0.02,0.25\
         0.06,0.04,0.04,0.07,0.78\
         0.52,0.25,0.03,0.04,0.16\
@@ -28,8 +27,7 @@ def test_F1_simple():
         0.20,0.62,0.02,0.02,0.14\
         0.84,0.01,0.13,0.02,0.01\
         0.13,0.30,0.04,0.41,0.12\
-        "
-    ]
+        "]
     hyp_arr_simple = [
         "moshi_audio_1,0.2,0.24,NA,NA",
         "moshi_audio_1,0.24,0.28,T,NA",
@@ -79,8 +77,7 @@ def test_F1_simple():
 
 
 def test_confusion_matrix_simple():
-    ref_arr_simple = [
-        "moshi_audio_1\
+    ref_arr_simple = ["moshi_audio_1\
         0.13,0.59,0.02,0.02,0.25\
         0.06,0.04,0.04,0.07,0.78\
         0.52,0.25,0.03,0.04,0.16\
@@ -88,8 +85,7 @@ def test_confusion_matrix_simple():
         0.20,0.62,0.02,0.02,0.14\
         0.84,0.01,0.13,0.02,0.01\
         0.13,0.30,0.04,0.41,0.12\
-        "
-    ]
+        "]
     hyp_arr_simple = [
         "moshi_audio_1,0.2,0.24,NA,NA",
         "moshi_audio_1,0.24,0.28,T,NA",
@@ -117,8 +113,7 @@ def test_confusion_matrix_simple():
 
 
 def test_turn_change_metric_simple():
-    ref_arr_simple = [
-        "moshi_audio_1\
+    ref_arr_simple = ["moshi_audio_1\
         0.13,0.59,0.02,0.02,0.25\
         0.06,0.04,0.04,0.07,0.78\
         0.52,0.25,0.03,0.04,0.16\
@@ -127,8 +122,7 @@ def test_turn_change_metric_simple():
         0.84,0.01,0.13,0.02,0.01\
         0.13,0.30,0.04,0.41,0.12\
         0.13,0.30,0.04,0.12,0.41\
-        "
-    ]
+        "]
     hyp_arr_simple = [
         "moshi_audio_1,0.2,0.24,NA,B",
         "moshi_audio_1,0.24,0.28,NA,B",
@@ -158,8 +152,7 @@ def test_turn_change_metric_simple():
 
 
 def test_make_backchannel_metric_simple():
-    ref_arr_simple = [
-        "moshi_audio_1\
+    ref_arr_simple = ["moshi_audio_1\
         0.13,0.59,0.02,0.02,0.25\
         0.13,0.30,0.04,0.12,0.41\
         0.52,0.25,0.03,0.04,0.16\
@@ -168,8 +161,7 @@ def test_make_backchannel_metric_simple():
         0.84,0.01,0.13,0.02,0.01\
         0.13,0.30,0.04,0.41,0.12\
         0.06,0.04,0.04,0.07,0.78\
-        "
-    ]
+        "]
     hyp_arr_simple = [
         "moshi_audio_1,0.2,0.24,NA,A",
         "moshi_audio_1,0.24,0.28,T,A",
@@ -204,8 +196,7 @@ def test_make_backchannel_metric_simple():
 
 
 def test_make_interruption_metric_simple():
-    ref_arr_simple = [
-        "moshi_audio_1\
+    ref_arr_simple = ["moshi_audio_1\
         0.13,0.59,0.02,0.02,0.25\
         0.13,0.30,0.04,0.12,0.41\
         0.52,0.25,0.03,0.04,0.16\
@@ -214,8 +205,7 @@ def test_make_interruption_metric_simple():
         0.84,0.01,0.13,0.02,0.01\
         0.41,0.13,0.04,0.30,0.12\
         0.06,0.04,0.78,0.07,0.04\
-        "
-    ]
+        "]
     hyp_arr_simple = [
         "moshi_audio_1,0.2,0.24,NA,A",
         "moshi_audio_1,0.24,0.28,T,A",
@@ -250,8 +240,7 @@ def test_make_interruption_metric_simple():
 
 
 def test_turn_willingness_metric_simple():
-    ref_arr_simple = [
-        "moshi_audio_1\
+    ref_arr_simple = ["moshi_audio_1\
         0.13,0.59,0.02,0.02,0.25\
         0.06,0.04,0.04,0.07,0.78\
         0.52,0.25,0.03,0.04,0.16\
@@ -260,8 +249,7 @@ def test_turn_willingness_metric_simple():
         0.84,0.01,0.13,0.02,0.01\
         0.13,0.30,0.04,0.41,0.12\
         0.33,0.30,0.04,0.12,0.21\
-        "
-    ]
+        "]
     hyp_arr_simple = [
         "moshi_audio_1,0.2,0.24,NA,A",
         "moshi_audio_1,0.24,0.28,NA,A",
@@ -291,8 +279,7 @@ def test_turn_willingness_metric_simple():
 
 
 def test_handle_interruption_metric_simple():
-    ref_arr_simple = [
-        "moshi_audio_1\
+    ref_arr_simple = ["moshi_audio_1\
         0.13,0.59,0.02,0.02,0.25\
         0.06,0.04,0.04,0.07,0.78\
         0.52,0.25,0.03,0.04,0.16\
@@ -301,8 +288,7 @@ def test_handle_interruption_metric_simple():
         0.01,0.01,0.13,0.02,0.84\
         0.13,0.30,0.04,0.41,0.12\
         0.33,0.30,0.04,0.12,0.21\
-        "
-    ]
+        "]
     hyp_arr_simple = [
         "moshi_audio_1,0.2,0.24,IN,A",
         "moshi_audio_1,0.24,0.28,IN,AB",

@@ -21,9 +21,17 @@ if [[ ${unames} =~ Linux ]]; then
     if [ "${unamem}" = x86_64 ]; then
         unamem=amd64
     fi
-    url="https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-${unamem}-static.tar.xz"
-    wget --no-check-certificate --trust-server-names "${url}"
-    tar xvf "ffmpeg-release-${unamem}-static.tar.xz"
+    ffmpeg_name="ffmpeg-release-${unamem}-static.tar.xz"
+    PRIMARY_URL="https://johnvansickle.com/ffmpeg/releases/${ffmpeg_name}"
+    BACKUP_URL="https://huggingface.co/espnet/ci_tools/resolve/main/${ffmpeg_name}"
+    if ! wget --no-check-certificate --tries=3 --trust-server-names -O "${ffmpeg_name}" "${PRIMARY_URL}"; then
+        echo "Primary download failed, trying backup URL..."
+        if ! wget --no-check-certificate --tries=3 -O "${ffmpeg_name}" "${BACKUP_URL}"; then
+            echo "Both primary and backup downloads failed"
+            exit 1
+        fi
+    fi
+    tar xvf "${ffmpeg_name}"
     ffmpegdir="$(ls -d ffmpeg-*-static)"
     ln -sf "${ffmpegdir}" "${dirname}"
 elif [[ ${unames} =~ Darwin ]]; then
