@@ -2,7 +2,10 @@ from pathlib import Path
 
 import pytest
 
-from espnet3.utils.scp_utils import get_class_path, load_scp_fields, read_scp
+from espnet3.utils.scp_utils import (
+    get_class_path,
+    load_scp_paths,
+)
 
 
 def test_get_class_path_reports_module_and_class():
@@ -15,49 +18,22 @@ def test_get_class_path_reports_module_and_class():
     assert "Dummy" in path
 
 
-def test_read_scp_skips_blank_lines(tmp_path: Path):
-    scp_path = tmp_path / "test.scp"
-    scp_path.write_text("utt1 value1\n\nutt2 value2\n", encoding="utf-8")
-
-    data = read_scp(scp_path)
-
-    assert data == {"utt1": "value1", "utt2": "value2"}
-
-
-def test_read_scp_accepts_key_without_value(tmp_path: Path):
-    scp_path = tmp_path / "test.scp"
-    scp_path.write_text("utt1\nutt2 value2\n", encoding="utf-8")
-
-    data = read_scp(scp_path)
-
-    assert data == {"utt1": "", "utt2": "value2"}
-
-
-def test_load_scp_fields_reads_and_aligns(tmp_path: Path):
+def test_load_scp_paths_returns_alias_to_path_mapping(tmp_path: Path):
     inference_dir = tmp_path / "exp" / "infer"
-    test_name = "test-clean"
-    task_dir = inference_dir / test_name
+    task_dir = inference_dir / "test-clean"
     task_dir.mkdir(parents=True, exist_ok=True)
+    (task_dir / "ref.scp").write_text("utt1 ref1\n", encoding="utf-8")
 
-    (task_dir / "ref.scp").write_text("utt2 ref2\nutt1 ref1\n", encoding="utf-8")
-    (task_dir / "hyp.scp").write_text("utt1 hyp1\nutt2 hyp2\n", encoding="utf-8")
+    paths = load_scp_paths(inference_dir, "test-clean", {"ref": "ref"})
 
-    data = load_scp_fields(
-        inference_dir=inference_dir,
-        test_name=test_name,
-        inputs={"ref": "ref", "hyp": "hyp"},
-    )
-
-    assert data["utt_id"] == ["utt1", "utt2"]
-    assert data["ref"] == ["ref1", "ref2"]
-    assert data["hyp"] == ["hyp1", "hyp2"]
+    assert paths == {"ref": task_dir / "ref.scp"}
 
 
-def test_load_scp_fields_missing_file_raises(tmp_path: Path):
+def test_load_scp_paths_missing_file_raises(tmp_path: Path):
     inference_dir = tmp_path
     (inference_dir / "test-other").mkdir(parents=True, exist_ok=True)
 
     with pytest.raises(AssertionError):
-        load_scp_fields(
+        load_scp_paths(
             inference_dir=inference_dir, test_name="test-other", inputs=["ref"]
         )

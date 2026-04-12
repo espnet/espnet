@@ -4,93 +4,74 @@ from pathlib import Path
 from typing import Dict, List, Union
 
 
-def read_scp(scp_file):
-    """Read a Kaldi-style SCP file into a key/value dictionary.
-
-    Each non-empty line is parsed as ``<key><space><value>``. If a line contains
-    only a key, the value is set to an empty string.
+def get_class_path(obj) -> str:
+    """Return the fully qualified class path for an object.
 
     Args:
-        scp_file: Path-like object pointing to an SCP text file.
+        obj: Instantiated Python object.
 
     Returns:
-        dict: Mapping from key to the rest of the line (value string).
-
-    Raises:
-        FileNotFoundError: If ``scp_file`` does not exist.
-        OSError: If the file cannot be read.
+        str: Fully qualified ``"<module>.<ClassName>"`` path.
 
     Example:
-        >>> d = read_scp("data/text.scp")  # doctest: +SKIP
-        >>> list(d.items())[:1]  # doctest: +SKIP
+        >>> class Dummy:
+        ...     pass
+        >>> get_class_path(Dummy())
+        '__main__.Dummy'
     """
-    with open(scp_file, "r") as f:
-        lines = [line.strip() for line in f.readlines()]
-    parsed = {}
-    for line in lines:
-        if not line:
-            continue
-        parts = line.split(maxsplit=1)
-        key = parts[0].strip()
-        value = parts[1].strip() if len(parts) > 1 else ""
-        parsed[key] = value
-    return parsed
-
-
-def get_class_path(obj) -> str:
-    """Return the fully qualified class path for an object."""
     return f"{obj.__module__}.{obj.__class__.__name__}"
 
 
-def load_scp_fields(
+def load_scp_paths(
     inference_dir: Path,
     test_name: str,
     inputs: Union[List[str], Dict[str, str]],
     file_suffix: str = ".scp",
-) -> Dict[str, List[str]]:
-    """Load and align SCP files into a field-wise dictionary for evaluation.
+) -> Dict[str, Path]:
+    """Resolve metric input aliases to SCP file paths.
 
-    This function reads all required SCP files from the given test set,
-    validates their consistency, and returns a dictionary with:
-        - "utt_id": list of sorted utterance IDs
-        - <alias>: list of aligned values for each key (e.g., "ref", "hyp")
+    This function does not read SCP contents. It only validates that the
+    expected files exist under ``inference_dir / test_name`` and returns a
+    mapping from metric input aliases to their corresponding paths.
 
     Args:
         inference_dir (Path): Root directory of hypothesis/reference files.
-        test_name (str): Subdirectory name of the test set (e.g., "test-clean").
-        inputs (Union[List[str], Dict[str, str]]): SCP keys to read.
-            - List[str]: alias and filename are the same.
-            - Dict[str, str]: alias → filename.
-
-        file_suffix (str, optional): SCP file extension. Default: ".scp"
+        test_name (str): Subdirectory name of the test set (e.g., ``"test-clean"``).
+        inputs (Union[List[str], Dict[str, str]]): Metric input declarations.
+            - ``List[str]``: alias and filename are the same.
+            - ``Dict[str, str]``: alias -> filename.
+        file_suffix (str, optional): File extension appended to each filename.
+            Default: ``".scp"``.
 
     Returns:
-        Dict[str, List[str]]:
-            {
-                "utt_id": [...],
-                "ref": [...],
-                "hyp": [...],
-                ...
-            }
+        Dict[str, Path]:
+            Mapping from metric aliases to resolved file paths, e.g.
+
+            .. code-block:: python
+
+                {
+                    "ref": Path("infer/test-clean/ref.scp"),
+                    "hyp": Path("infer/test-clean/hyp.scp"),
+                }
 
     Raises:
-        AssertionError: If SCP files are missing or utterance IDs are inconsistent.
+        AssertionError: If the test directory or any required input file is missing.
 
     Example:
-        >>> load_scp_fields(
+        >>> load_scp_paths(
         ...     Path("infer"),
         ...     "test-other",
         ...     inputs={"ref": "text", "hyp": "hypothesis"},
         ... )
         {
-            "utt_id": ["utt1", "utt2"],
-            "ref": ["the cat", "a dog"],
-            "hyp": ["the bat", "a log"]
+            "ref": Path("infer/test-other/text.scp"),
+            "hyp": Path("infer/test-other/hypothesis.scp"),
         }
 
     Notes:
-        - Utterance IDs are sorted to ensure consistent alignment.
-        - Useful as direct input to `AbsMetric.__call__()`.
+        - File contents are intentionally not loaded here.
+        - Consumers such as ``BaseMetric`` may stream the files or pass the
+          returned paths directly to external tools.
     """
     task_dir = inference_dir / test_name
     assert (
@@ -98,24 +79,9 @@ def load_scp_fields(
     ), f"Missing hypothesis/reference files in inference_dir: {task_dir}"
 
     input_map = {k: k for k in inputs} if isinstance(inputs, list) else dict(inputs)
-
-    data_dicts = {}
-    uid_sets = []
-
+    paths = {}
     for alias, fname in input_map.items():
         path = task_dir / f"{fname}{file_suffix}"
         assert path.exists(), f"Missing SCP file: {path}"
-        d = read_scp(path)
-        data_dicts[alias] = d
-        uid_sets.append(set(d.keys()))
-
-    ref_uids = uid_sets[0]
-    for i, uids in enumerate(uid_sets[1:], start=1):
-        assert uids == ref_uids, f"UID mismatch: {uids ^ ref_uids}"
-
-    sorted_uids = sorted(ref_uids)
-    result = {"utt_id": sorted_uids}
-    for alias, d in data_dicts.items():
-        result[alias] = [d[uid] for uid in sorted_uids]
-
-    return result
+        paths[alias] = path
+    return paths

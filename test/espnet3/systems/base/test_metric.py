@@ -4,21 +4,32 @@ from pathlib import Path
 import pytest
 from omegaconf import OmegaConf
 
-from espnet3.components.metrics.abs_metric import AbsMetric
+from espnet3.components.metrics.base_metric import BaseMetric
 from espnet3.systems.base.metric import _resolve_test_sets, measure
 from espnet3.utils.scp_utils import get_class_path
 
 
-class DummyMetric(AbsMetric):
+class DummyMetric(BaseMetric):
     ref_key = "ref"
     hyp_key = "hyp"
 
     def __call__(self, data, test_name, inference_dir):
-        return {"count": len(data["utt_id"])}
+        return {"count": sum(1 for _ in self.iter_inputs(data, "ref"))}
 
 
-class NoKeyMetric(AbsMetric):
+class NoKeyMetric(BaseMetric):
     def __call__(self, data, test_name, inference_dir):
+        return {"ok": True}
+
+
+class PathMetric(BaseMetric):
+    ref_key = "ref"
+    hyp_key = "hyp"
+
+    def __call__(self, data, test_name, inference_dir):
+        task_dir = Path(inference_dir) / test_name
+        assert data["ref"] == task_dir / "ref.scp"
+        assert [row["hyp"] for _, row in self.iter_inputs(data, "hyp")] == ["h1"]
         return {"ok": True}
 
 
@@ -28,6 +39,15 @@ class NotMetric:
 
 def _write_scp(path: Path, entries):
     path.write_text("\n".join(entries), encoding="utf-8")
+
+
+def _build_inputs(tmp_path: Path, **entries: list[str]) -> dict[str, Path]:
+    data = {}
+    for key, lines in entries.items():
+        path = tmp_path / f"{key}.scp"
+        path.write_text("\n".join(lines), encoding="utf-8")
+        data[key] = path
+    return data
 
 
 def test_metric_uses_metric_keys_and_writes_json(tmp_path):
@@ -55,6 +75,59 @@ def test_metric_uses_metric_keys_and_writes_json(tmp_path):
     assert json.loads(metrics_path.read_text(encoding="utf-8")) == results
 
 
+def test_iter_inputs_rejects_length_mismatch(tmp_path):
+    metric = DummyMetric()
+    data = _build_inputs(
+        tmp_path,
+        ref=["utt1 r1", "utt2 r2"],
+        hyp=["utt1 h1"],
+    )
+
+    iterator = metric.iter_inputs(data, "ref", "hyp")
+    assert next(iterator) == ("utt1", {"ref": "r1", "hyp": "h1"})
+    with pytest.raises(AssertionError, match="SCP length mismatch"):
+        next(iterator)
+
+
+def test_iter_inputs_reads_single_line_scp(tmp_path):
+    metric = DummyMetric()
+    data = _build_inputs(
+        tmp_path,
+        ref=["utt1 value1"],
+    )
+
+    assert list(metric.iter_inputs(data, "ref")) == [
+        ("utt1", {"ref": "value1"}),
+    ]
+
+
+def test_iter_inputs_reads_multiple_aligned_lines(tmp_path):
+    metric = DummyMetric()
+    data = _build_inputs(
+        tmp_path,
+        ref=["utt1 r1", "utt2 r2"],
+        hyp=["utt1 h1", "utt2 h2"],
+    )
+
+    assert list(metric.iter_inputs(data, "ref", "hyp")) == [
+        ("utt1", {"ref": "r1", "hyp": "h1"}),
+        ("utt2", {"ref": "r2", "hyp": "h2"}),
+    ]
+
+
+def test_iter_inputs_skips_blank_lines_and_accepts_empty_value(tmp_path):
+    metric = DummyMetric()
+    data = _build_inputs(
+        tmp_path,
+        ref=["utt1 value1", "", "utt2"],
+    )
+
+    assert list(metric.iter_inputs(data, "ref")) == [
+        ("utt1", {"ref": "value1"}),
+        ("utt2", {"ref": ""}),
+    ]
+
+
 def test_metric_uses_config_inputs_mapping(tmp_path):
     inference_dir = tmp_path / "infer"
     test_name = "test_a"
@@ -79,6 +152,28 @@ def test_metric_uses_config_inputs_mapping(tmp_path):
     results = measure(cfg)
 
     expected_key = get_class_path(NoKeyMetric())
+    assert results[expected_key][test_name] == {"ok": True}
+
+
+def test_metric_passes_lazy_scp_inputs(tmp_path):
+    inference_dir = tmp_path / "infer"
+    test_name = "test_a"
+    task_dir = inference_dir / test_name
+    task_dir.mkdir(parents=True)
+    _write_scp(task_dir / "ref.scp", ["utt1 r1"])
+    _write_scp(task_dir / "hyp.scp", ["utt1 h1"])
+
+    cfg = OmegaConf.create(
+        {
+            "inference_dir": str(inference_dir),
+            "dataset": {"test": [{"name": test_name}]},
+            "metrics": [{"metric": {"_target_": f"{__name__}.PathMetric"}}],
+        }
+    )
+
+    results = measure(cfg)
+
+    expected_key = get_class_path(PathMetric())
     assert results[expected_key][test_name] == {"ok": True}
 
 
@@ -146,7 +241,7 @@ def test_metric_rejects_non_metric_instance(tmp_path):
         }
     )
 
-    with pytest.raises(TypeError, match="not a valid AbsMetric instance"):
+    with pytest.raises(TypeError, match="not a valid BaseMetric instance"):
         measure(cfg)
 
 

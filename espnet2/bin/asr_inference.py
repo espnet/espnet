@@ -3,7 +3,6 @@ import argparse
 import copy
 import logging
 import sys
-from distutils.version import LooseVersion
 from itertools import groupby
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
@@ -135,15 +134,6 @@ class Speech2Text:
                 raise RuntimeError("Please install espnet['st']")
         else:
             task = ASRTask
-
-        if quantize_asr_model or quantize_lm:
-            if quantize_dtype == "float16" and torch.__version__ < LooseVersion(
-                "1.5.0"
-            ):
-                raise ValueError(
-                    "float16 dtype for dynamic quantization is not supported with "
-                    "torch version < 1.5.0. Switch to qint8 dtype instead."
-                )
 
         qconfig_spec = set([getattr(torch.nn, q) for q in quantize_modules])
         quantize_dtype: torch.dtype = getattr(torch, quantize_dtype)

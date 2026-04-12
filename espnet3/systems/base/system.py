@@ -1,10 +1,15 @@
 """Base system class and stage entrypoints for ESPnet3."""
 
 import logging
+import time
 from pathlib import Path
 
-from omegaconf import DictConfig
+from omegaconf import DictConfig, OmegaConf
 
+from espnet3.components.data.dataset_module import (
+    load_dataset_module,
+    parse_dataset_reference_config,
+)
 from espnet3.systems.base.inference import infer
 from espnet3.systems.base.metric import measure
 from espnet3.systems.base.training import collect_stats, train
@@ -14,6 +19,13 @@ logger = logging.getLogger(__name__)
 
 class BaseSystem:
     """Base class for all ESPnet3 systems.
+
+    Class Attributes:
+        DATASET_BUILDER_CLASS_NAME: Name of the builder class expected in each
+            dataset module (default ``"DatasetBuilder"``).
+        DATASET_CLASS_NAME: Name of the dataset class expected in each dataset
+            module (default ``"Dataset"``). Used by subclasses that instantiate
+            datasets directly.
 
     Each system should implement the following:
       - create_dataset()
@@ -41,7 +53,7 @@ class BaseSystem:
     Stage log mapping (base defaults):
         | Stage          | Path reference                     |
         |---             |---                                 |
-        | create_dataset | training_config.recipe_dir         |
+        | create_dataset | training_config.data_dir           |
         | collect_stats  | training_config.stats_dir          |
         | train          | training_config.exp_dir            |
         | infer          | inference_config.inference_dir     |
@@ -67,6 +79,9 @@ class BaseSystem:
             )
             ```
     """
+
+    DATASET_BUILDER_CLASS_NAME = "DatasetBuilder"
+    DATASET_CLASS_NAME = "Dataset"
 
     def __init__(
         self,
@@ -96,7 +111,7 @@ class BaseSystem:
             default_dir = Path.cwd() / "logs"
 
         base_mapping = {
-            "create_dataset": "training_config.recipe_dir",
+            "create_dataset": "training_config.data_dir",
             "collect_stats": "training_config.stats_dir",
             "train": "training_config.exp_dir",
             "infer": "inference_config.inference_dir",
@@ -165,9 +180,64 @@ class BaseSystem:
     # Stage stubs (override in subclasses if needed)
     # ---------------------------------------------------------
     def create_dataset(self, *args, **kwargs):
-        """Create datasets using the configured stage."""
+        """Create datasets from dataset references."""
         self._reject_stage_args("create_dataset", args, kwargs)
-        logger.info("Running prepare() (BaseSystem stub). Nothing done.")
+        logger.info(
+            "%s.create_dataset(): starting dataset creation process",
+            self.__class__.__name__,
+        )
+        start = time.perf_counter()
+        dataset_config = getattr(self.training_config, "dataset", None)
+        recipe_dir = getattr(self.training_config, "recipe_dir", None)
+        create_dataset_config = getattr(
+            self.training_config, "create_dataset", OmegaConf.create({})
+        )
+        default_builder_kwargs = dict(create_dataset_config)
+
+        prepared_any = False
+
+        if dataset_config is None:
+            raise RuntimeError(
+                "training_config.dataset must be set for create_dataset stage."
+            )
+
+        prepared_refs: set[str] = set()
+        for split_name in ("train", "valid", "test"):
+            entries = getattr(dataset_config, split_name, None)
+            if entries is None:
+                continue
+            for entry in entries:
+                plain = dict(entry)
+                data_src, _ = parse_dataset_reference_config(plain)
+                if data_src in prepared_refs:
+                    continue
+                prepared_refs.add(data_src)
+
+                builder_kwargs = dict(default_builder_kwargs)
+
+                module = load_dataset_module(data_src=data_src, recipe_dir=recipe_dir)
+                builder = getattr(module, self.DATASET_BUILDER_CLASS_NAME)()
+                logger.info("Ensuring dataset is prepared: %s", data_src or "local")
+
+                # Ensure raw source exists first, then build task-ready artifacts.
+                if not builder.is_source_prepared(**builder_kwargs):
+                    builder.prepare_source(**builder_kwargs)
+
+                if not builder.is_built(**builder_kwargs):
+                    builder.build(**builder_kwargs)
+                prepared_any = True
+
+        if not prepared_any:
+            raise RuntimeError(
+                "training_config.dataset must include at least one entry in "
+                "dataset.train / dataset.valid / dataset.test."
+            )
+
+        logger.info(
+            "Dataset creation completed in %.2fs",
+            time.perf_counter() - start,
+        )
+        return None
 
     def collect_stats(self, *args, **kwargs):
         """Collect statistics needed for training."""

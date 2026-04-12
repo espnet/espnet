@@ -4,9 +4,21 @@ import torch
 import torch.nn as nn
 from omegaconf import OmegaConf
 
+from espnet3.components.data import data_organizer as data_organizer_module
 from espnet3.components.modeling.lightning_module import ESPnetLightningModule
 from espnet3.components.modeling.optimization_spec import OptimizationStep
 from espnet3.components.trainers.trainer import ESPnet3LightningTrainer
+
+DUMMY_DATA_SRC = "dummy/asr"
+
+
+@pytest.fixture(autouse=True)
+def patch_dataset_reference(monkeypatch):
+    monkeypatch.setattr(
+        data_organizer_module,
+        "instantiate_dataset_reference",
+        lambda config, recipe_dir=None: DummyDataset(),
+    )
 
 
 def make_base_config():
@@ -17,13 +29,13 @@ def make_base_config():
             "train": [
                 {
                     "name": "dummy_train",
-                    "dataset": {"_target_": __name__ + ".DummyDataset"},
+                    "data_src": DUMMY_DATA_SRC,
                 }
             ],
             "valid": [
                 {
                     "name": "dummy_valid",
-                    "dataset": {"_target_": __name__ + ".DummyDataset"},
+                    "data_src": DUMMY_DATA_SRC,
                 }
             ],
         },
@@ -591,7 +603,11 @@ def test_optimizer_param_selector_matches_dot_delimited_boundaries():
             sorted(
                 name
                 for name, param in module.named_parameters()
-                if any(param is p for group in optimizer.param_groups for p in group["params"])
+                if any(
+                    param is p
+                    for group in optimizer.param_groups
+                    for p in group["params"]
+                )
             )
         )
 

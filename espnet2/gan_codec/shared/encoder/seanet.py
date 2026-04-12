@@ -8,7 +8,6 @@
 
 """Encodec SEANet-based encoder and decoder implementation."""
 
-
 import logging
 import math
 from typing import Any, Dict, List, Tuple, Union
@@ -16,18 +15,12 @@ from typing import Any, Dict, List, Tuple, Union
 import einops
 import numpy as np
 import torch
-from packaging.version import parse as V
 from torch import nn
 from torch.nn import functional as F
 from torch.nn.utils import spectral_norm
+from torch.nn.utils.parametrizations import weight_norm
 
 from espnet2.gan_codec.shared.encoder.snake_activation import Snake1d
-
-if V(torch.__version__) >= V("2.1.0"):
-    from torch.nn.utils.parametrizations import weight_norm
-else:
-    from torch.nn.utils import weight_norm
-
 
 CONV_NORMALIZATIONS = frozenset(
     [

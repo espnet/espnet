@@ -11,6 +11,7 @@ from lightning.pytorch.strategies import DDPStrategy, SingleDeviceStrategy
 from omegaconf import OmegaConf  # ListConfig,
 from typeguard import TypeCheckError
 
+from espnet3.components.data import data_organizer as data_organizer_module
 from espnet3.components.modeling.lightning_module import ESPnetLightningModule
 from espnet3.components.trainers.trainer import ESPnet3LightningTrainer
 from espnet3.utils.config_utils import load_config_with_defaults
@@ -47,19 +48,30 @@ from espnet3.utils.config_utils import load_config_with_defaults
 # | test_missing_exp_dir_raises  | Raises `TypeCheckError` if `exp_dir` is None                                  | # noqa: E501
 # | test_missing_config_raises  | Raises `TypeCheckError` if `config` is None                                  | # noqa: E501
 
-DUMMY_DATASET_TARGET = "test.espnet3.components.data.test_data_organizer.DummyDataset"
-DUMMY_TRANSFORM = "test.espnet3.components.data.test_data_organizer.DummyTransform"
+DUMMY_DATA_SRC = "dummy/asr"
 
 
 class DummyDataset(torch.utils.data.Dataset):
     def __getitem__(self, idx):
-        return {"x": torch.tensor([idx])}, {"y": torch.tensor([idx])}
+        return {
+            "x": torch.tensor([idx], dtype=torch.float32),
+            "y": torch.tensor([idx], dtype=torch.float32),
+        }
 
     def __len__(self):
         return 4
 
 
 exp_dir = "test_utils/espnet3"
+
+
+@pytest.fixture(autouse=True)
+def patch_dataset_reference(monkeypatch):
+    monkeypatch.setattr(
+        data_organizer_module,
+        "instantiate_dataset_reference",
+        lambda config, recipe_dir=None: DummyDataset(),
+    )
 
 
 @pytest.fixture
@@ -69,20 +81,19 @@ def dummy_dataset_config():
         "train": [
             {
                 "name": "train_dummy",
-                "dataset": {"_target_": DUMMY_DATASET_TARGET},
-                "transform": {"_target_": DUMMY_TRANSFORM},
+                "data_src": DUMMY_DATA_SRC,
             }
         ],
         "valid": [
             {
                 "name": "valid_dummy",
-                "dataset": {"_target_": DUMMY_DATASET_TARGET},
+                "data_src": DUMMY_DATA_SRC,
             }
         ],
         "test": [
             {
                 "name": "test_dummy",
-                "dataset": {"_target_": DUMMY_DATASET_TARGET},
+                "data_src": DUMMY_DATA_SRC,
             }
         ],
     }

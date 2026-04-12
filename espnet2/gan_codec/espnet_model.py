@@ -3,23 +3,13 @@
 
 """GAN-based neural codec ESPnet model."""
 
-from contextlib import contextmanager
 from typing import Any, Dict
 
 import torch
-from packaging.version import parse as V
 from typeguard import typechecked
 
 from espnet2.gan_codec.abs_gan_codec import AbsGANCodec
 from espnet2.train.abs_gan_espnet_model import AbsGANESPnetModel
-
-if V(torch.__version__) >= V("1.6.0"):
-    from torch.cuda.amp import autocast
-else:
-    # Nothing to do if torch < 1.6.0
-    @contextmanager
-    def autocast(enabled=True):  # NOQA
-        yield
 
 
 class ESPnetGANCodecModel(AbsGANESPnetModel):

@@ -4,21 +4,29 @@
 # Quick usage:
 #   python run.py --stages infer --inference_config conf/inference.yaml
 #
-# Mini AN4 ASR inference config for ESPnet3 integration tests.
-
 ##########################################################
 #                    PATHS AND INPUTS                    #
 ##########################################################
-exp_tag: ${load_yaml:training.yaml,exp_tag}
-inference_dir: ${exp_dir}/inference
-dataset_dir: ${data_dir}/mini_an4
 
+##########################################################
+#                    DATASET DEFINITION                  #
+##########################################################
+# Each test entry is a dataset reference consumed by `DataOrganizer`.
+# - `name` becomes `${inference_dir}/<name>/`
+# - `data_src` is omitted, so ESPnet3 loads
+#   `${recipe_dir}/dataset/__init__.py`
+# - `data_src_args` is passed directly to `MiniAn4Dataset(...)`
+#
+# Dataset splits:
+#   test:
+#     - split="test" from `MiniAn4Dataset`
+# Notes:
+#   - actual data sources are defined via `${recipe_dir}`
 dataset:
   test:
     - name: test
-      dataset:
-        _target_: src.dataset.MiniAN4Dataset
-        manifest_path: ${dataset_dir}/manifest/test.tsv
+      data_src_args:
+        split: test
 
 ##########################################################
 #                    MODEL AND OUTPUT                    #

@@ -1,14 +1,13 @@
 # Copyright 2021 Jiatong Shi
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-from contextlib import contextmanager
 from itertools import permutations
 from typing import Dict, Optional, Tuple
 
 import numpy as np
 import torch
 import torch.nn.functional as F
-from packaging.version import parse as V
+from torch.cuda.amp import autocast
 from typeguard import typechecked
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
@@ -20,14 +19,6 @@ from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.legacy.nets.pytorch_backend.nets_utils import to_device
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
-
-if V(torch.__version__) >= V("1.6.0"):
-    from torch.cuda.amp import autocast
-else:
-    # Nothing to do if torch<1.6.0
-    @contextmanager
-    def autocast(enabled=True):
-        yield
 
 
 class ESPnetDiarizationModel(AbsESPnetModel):
@@ -340,7 +331,7 @@ class ESPnetDiarizationModel(AbsESPnetModel):
     def calc_diarization_error(pred, label, length):
         # Note (jiatong): Credit to https://github.com/hitachi-speech/EEND
 
-        (batch_size, max_len, num_output) = label.size()
+        batch_size, max_len, num_output = label.size()
         # mask the padding part
         mask = np.zeros((batch_size, max_len, num_output))
         for i in range(batch_size):

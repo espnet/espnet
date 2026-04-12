@@ -9,27 +9,6 @@ import espnet3.systems.base.system as basesys
 from espnet3.systems.asr.system import ASRSystem
 
 
-def test_asr_system_create_dataset_invokes_helper(tmp_path, monkeypatch):
-    """Ensure create_dataset resolves and calls the configured function."""
-    train_cfg = OmegaConf.create(
-        {
-            "exp_dir": str(tmp_path / "exp"),
-            "create_dataset": {"func": "dummy.dataset", "foo": "bar"},
-        }
-    )
-    system = ASRSystem(training_config=train_cfg)
-    calls = {}
-
-    def fake_fn(**kwargs):
-        calls["kwargs"] = kwargs
-        return "created"
-
-    monkeypatch.setattr(sysmod, "load_function", lambda path: fake_fn)
-
-    assert system.create_dataset() == "created"
-    assert calls["kwargs"] == {"foo": "bar"}
-
-
 def test_asr_system_train_runs_tokenizer_then_train(tmp_path, monkeypatch):
     """Ensure train triggers tokenizer training when needed."""
     train_cfg = OmegaConf.create(
@@ -80,9 +59,13 @@ def test_asr_system_train_tokenizer_trains_sentencepiece(tmp_path, monkeypatch):
         calls["builder"] = foo
         return ["a b", "c d"]
 
-    def fake_load(path):
+    def fake_import_module(path):
         calls["load"] = path
-        return fake_builder
+
+        class DummyModule:
+            builder = staticmethod(fake_builder)
+
+        return DummyModule()
 
     def fake_train_sentencepiece(text_path, output_path, vocab_size, model_type):
         calls["sentencepiece"] = {
@@ -92,7 +75,7 @@ def test_asr_system_train_tokenizer_trains_sentencepiece(tmp_path, monkeypatch):
             "model_type": model_type,
         }
 
-    monkeypatch.setattr(sysmod, "load_function", fake_load)
+    monkeypatch.setattr(sysmod, "import_module", fake_import_module)
     monkeypatch.setattr(sysmod, "train_sentencepiece", fake_train_sentencepiece)
 
     system.train_tokenizer()
@@ -100,6 +83,6 @@ def test_asr_system_train_tokenizer_trains_sentencepiece(tmp_path, monkeypatch):
     train_txt = Path(train_cfg.tokenizer.save_path) / "train.txt"
     assert train_txt.is_file()
     assert train_txt.read_text(encoding="utf-8").splitlines() == ["a b", "c d"]
-    assert calls["load"] == "dummy.builder"
+    assert calls["load"] == "dummy"
     assert calls["builder"] == "bar"
     assert calls["sentencepiece"]["vocab_size"] == 8

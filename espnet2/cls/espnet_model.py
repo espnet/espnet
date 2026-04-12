@@ -2,14 +2,13 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 import logging
-from contextlib import contextmanager
 from functools import partial
 from typing import Dict, List, Optional, Tuple, Union
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from packaging.version import parse as V
+from torch.cuda.amp import autocast
 from typeguard import typechecked
 
 try:
@@ -28,15 +27,6 @@ from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.mixup_augmentation import MixupAugment
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
-
-if V(torch.__version__) >= V("1.6.0"):
-    from torch.cuda.amp import autocast
-else:
-    # Nothing to do if torch<1.6.0
-    @contextmanager
-    def autocast(enabled=True):
-        yield
-
 
 logger = logging.getLogger(__name__)
 

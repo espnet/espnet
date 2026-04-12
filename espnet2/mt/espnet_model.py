@@ -1,9 +1,8 @@
 import logging
-from contextlib import contextmanager
 from typing import Dict, List, Optional, Tuple, Union
 
 import torch
-from packaging.version import parse as V
+from torch.cuda.amp import autocast
 from typeguard import typechecked
 
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
@@ -19,14 +18,6 @@ from espnet2.legacy.nets.pytorch_backend.transformer.label_smoothing_loss import
 )
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
-
-if V(torch.__version__) >= V("1.6.0"):
-    from torch.cuda.amp import autocast
-else:
-    # Nothing to do if torch<1.6.0
-    @contextmanager
-    def autocast(enabled=True):
-        yield
 
 
 class ESPnetMTModel(AbsESPnetModel):

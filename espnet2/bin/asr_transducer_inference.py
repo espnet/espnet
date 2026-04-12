@@ -12,7 +12,6 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import torch
-from packaging.version import parse as V
 from typeguard import typechecked
 
 from espnet2.asr_transducer.beam_search_transducer import (
@@ -99,11 +98,6 @@ class Speech2Text:
             else:
                 q_config = {torch.nn.Linear}
 
-            if quantize_dtype == "float16" and (V(torch.__version__) < V("1.5.0")):
-                raise ValueError(
-                    "float16 dtype for dynamic quantization is not supported with torch"
-                    " version < 1.5.0. Switching to qint8 dtype instead."
-                )
             q_dtype = getattr(torch, quantize_dtype)
 
             asr_model = torch.quantization.quantize_dynamic(

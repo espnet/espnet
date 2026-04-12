@@ -10,6 +10,7 @@
 # LICENSE file in https://github.com/facebookresearch/encodec/tree/main
 
 """Residual vector quantizer implementation."""
+
 import math
 from dataclasses import dataclass, field  # noqa
 from typing import Optional
