@@ -220,7 +220,7 @@ def _write_readme_if_missing(system, demo_dir: Path, infer_cfg) -> None:
     readme_path = demo_dir / "README.md"
     if readme_path.exists():
         return
-    pack_cfg = getattr(getattr(system, "publish_config", None), "pack_model", None)
+    pack_cfg = getattr(getattr(system, "publication_config", None), "pack_model", None)
     pack_cfg = pack_cfg or OmegaConf.create({})
     template = _load_demo_readme_template(system.demo_config, pack_cfg)
     exp_dir = None
@@ -231,7 +231,7 @@ def _write_readme_if_missing(system, demo_dir: Path, infer_cfg) -> None:
     _write_readme(
         readme_template=template,
         out_dir=demo_dir,
-        publish_cfg=OmegaConf.create({}),
+        publication_cfg=OmegaConf.create({}),
         pack_cfg=pack_cfg,
         exp_dir=exp_dir,
         strategy="demo",

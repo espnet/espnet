@@ -1,5 +1,6 @@
 recipe_dir: .
-# Publish assumes the default training entrypoint `conf/training.yaml`, which
+# Publication config assumes the default training entrypoint
+# `conf/training.yaml`, which
 # resolves to `exp/training` via `${self_name:}` from the TEMPLATE config.
 exp_dir: ${recipe_dir}/exp/training
 

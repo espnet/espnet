@@ -29,7 +29,7 @@ def test_pack_demo_writes_assets(tmp_path: Path) -> None:
         demo_config = demo_cfg
         demo_config_path = None
         exp_dir = None
-        publish_config = None
+        publication_config = None
 
     out_dir = pack_demo(DummySystem())
     assert out_dir == demo_dir

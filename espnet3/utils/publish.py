@@ -173,11 +173,6 @@ def _write_readme(
     if not readme_template:
         return
     git_info = _git_info()
-    publish_hf_repo = ""
-    if not minimal:
-        publish_hf_repo = getattr(
-            getattr(publish_cfg, "upload_model", None), "hf_repo", ""
-        )
     context = {
         "hf_repo": getattr(
             getattr(publication_cfg, "upload_model", None), "hf_repo", ""
@@ -389,8 +384,7 @@ def _write_embedded_configs(system, out_dir: Path, recipe_root: Path | None) -> 
         "metrics_config": ("metrics.yaml", getattr(system, "metrics_config", None)),
         "publication_config": (
             "publication.yaml",
-            getattr(system, "publication_config", None)
-            or getattr(system, "publish_config", None),
+            getattr(system, "publication_config", None),
         ),
     }
     written: Dict[str, str] = {}
@@ -719,8 +713,6 @@ def pack_model(
     exp_dir = Path(system.training_config.exp_dir)
     publication_cfg = getattr(system, "publication_config", None)
     if publication_cfg is None:
-        publication_cfg = getattr(system, "publish_config", None)
-    if publication_cfg is None:
         raise RuntimeError(
             "pack_model requires publication_config "
             "(publication_config.pack_model)."
@@ -1000,8 +992,6 @@ def upload_model(system) -> None:
         Add optional README or metadata generation if needed.
     """
     publication_cfg = getattr(system, "publication_config", None)
-    if publication_cfg is None:
-        publication_cfg = getattr(system, "publish_config", None)
     if publication_cfg is None:
         raise RuntimeError(
             "upload_model requires publication_config "

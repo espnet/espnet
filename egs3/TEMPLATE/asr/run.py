@@ -85,13 +85,6 @@ def build_parser(
         help="Hydra config for pack/upload stages.",
     )
     parser.add_argument(
-        "--publish_config",
-        dest="publication_config",
-        default=None,
-        type=Path,
-        help=argparse.SUPPRESS,
-    )
-    parser.add_argument(
         "--dry_run",
         action="store_true",
         help="Print what would be executed without actually running stages.",

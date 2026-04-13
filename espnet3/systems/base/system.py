@@ -86,7 +86,6 @@ class BaseSystem:
         inference_config: DictConfig | None = None,
         metrics_config: DictConfig | None = None,
         publication_config: DictConfig | None = None,
-        publish_config: DictConfig | None = None,
         stage_log_mapping: dict | None = None,
     ) -> None:
         """Initialize the system with optional stage configs.
@@ -100,19 +99,8 @@ class BaseSystem:
                 stage.
             publication_config: Publication configuration for ``pack_model``
                 and ``upload_model`` stages.
-            publish_config: Deprecated alias for ``publication_config``.
             stage_log_mapping: Optional per-stage log directory overrides.
-
-        Raises:
-            ValueError: If both ``publication_config`` and ``publish_config``
-                are provided.
         """
-        if publication_config is not None and publish_config is not None:
-            raise ValueError(
-                "Specify only one of publication_config or publish_config."
-            )
-        if publication_config is None:
-            publication_config = publish_config
 
         self.training_config = training_config
         self.train_config = training_config
@@ -120,7 +108,6 @@ class BaseSystem:
         self.infer_config = inference_config
         self.metrics_config = metrics_config
         self.publication_config = publication_config
-        self.publish_config = publication_config
 
         if training_config is not None:
             self.exp_dir = Path(training_config.exp_dir)
