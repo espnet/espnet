@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging
 import time
-from importlib import import_module
 from pathlib import Path
 from typing import Any, Dict
 
@@ -24,13 +23,6 @@ from espnet3.utils.task_utils import get_espnet_model, save_espnet_config
 logger = logging.getLogger(__name__)
 
 
-def load_function(path: str):
-    """Load a callable from a dotted module path."""
-    module_path, func_name = path.rsplit(".", 1)
-    module = import_module(module_path)
-    return getattr(module, func_name)
-
-
 def _instantiate_model(config: DictConfig) -> Any:
     task = config.get("task")
     if task:
@@ -41,24 +33,6 @@ def _instantiate_model(config: DictConfig) -> Any:
 
 class TTSSystem(BaseSystem):
     """TTS-specific system with local trainer customization."""
-
-    def create_dataset(self, *args, **kwargs):
-        self._reject_stage_args("create_dataset", args, kwargs)
-        start = time.perf_counter()
-        config = getattr(self.training_config, "create_dataset", None)
-        if config is None or not getattr(config, "func", None):
-            raise RuntimeError(
-                "training_config.create_dataset.func must be set to run create_dataset"
-            )
-        fn = load_function(config.func)
-        extra = {k: v for k, v in config.items() if k != "func"}
-        result = fn(**extra)
-        logger.info(
-            "Dataset creation completed in %.2fs using %s",
-            time.perf_counter() - start,
-            config.func,
-        )
-        return result
 
     def _ensure_directories(self) -> None:
         config = self.training_config
