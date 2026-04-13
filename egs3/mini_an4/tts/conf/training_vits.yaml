@@ -4,8 +4,26 @@
 exp_tag: train_vits_debug
 task: espnet2.tasks.gan_tts.GANTTSTask
 
+dataset:
+  recipe_dir: ${recipe_dir}
+  train:
+    - data_src_args:
+        split: train
+  valid:
+    - data_src_args:
+        split: valid
+  preprocessor:
+    _target_: espnet2.train.preprocessor.CommonPreprocessor
+    fs: 16000
+    train: true
+    token_type: char
+    token_list: ${data_dir}/tokens.txt
+
+create_dataset:
+  recipe_dir: ${recipe_dir}
+
 model:
-  token_list: ${dataset_dir}/tokens.txt
+  token_list: ${data_dir}/tokens.txt
   token_type: char
   feats_extract: linear_spectrogram
   feats_extract_conf:
