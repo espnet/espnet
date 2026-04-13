@@ -63,7 +63,6 @@ run_with_tts_config() {
     local inference_config=$2
 
     ln -sfn "${training_config}" conf/training.yaml
-    ln -sfn "${inference_config}" conf/inference.yaml
     ${python} run.py \
         --stages create_dataset collect_stats train infer \
         --training_config conf/training.yaml \
@@ -71,7 +70,7 @@ run_with_tts_config() {
     rm -rf exp data
 }
 
-run_with_tts_config training_tacotron2.yaml inference_tacotron2.yaml
-run_with_tts_config training_vits.yaml inference_vits.yaml
+run_with_tts_config training_tacotron2.yaml inference.yaml
+run_with_tts_config training_vits.yaml inference.yaml
 
 cd "${cwd}"
