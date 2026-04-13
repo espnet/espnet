@@ -67,6 +67,7 @@ class TTSSystem(BaseSystem):
         torch.set_float32_matmul_precision("high")
 
     def collect_stats(self, *args, **kwargs):
+        """Run the collect_stats stage using the configured trainer."""
         self._reject_stage_args("collect_stats", args, kwargs)
         start = time.perf_counter()
         self._prepare_training_runtime()
@@ -82,6 +83,7 @@ class TTSSystem(BaseSystem):
         )
 
     def train(self, *args, **kwargs):
+        """Run the training stage using the configured trainer."""
         self._reject_stage_args("train", args, kwargs)
         start = time.perf_counter()
         self._prepare_training_runtime()

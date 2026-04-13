@@ -1,10 +1,5 @@
-from pathlib import Path
-from types import SimpleNamespace
-
-import lightning as L
-import pytest
 import torch
-from omegaconf import DictConfig, OmegaConf
+from omegaconf import OmegaConf
 
 import espnet3.systems.tts.system as sysmod
 from espnet2.train.abs_gan_espnet_model import AbsGANESPnetModel
@@ -133,7 +128,9 @@ def test_tts_system_build_trainer_uses_standard_trainer(monkeypatch, tmp_path):
     system = TTSSystem(training_config=train_cfg)
     calls = {}
 
-    monkeypatch.setattr(sysmod, "_instantiate_model", lambda _cfg: torch.nn.Linear(1, 1))
+    monkeypatch.setattr(
+        sysmod, "_instantiate_model", lambda _cfg: torch.nn.Linear(1, 1)
+    )
 
     class DummyLit:
         def __init__(self, model, config):
@@ -170,9 +167,13 @@ def test_tts_system_prepare_training_runtime_sets_parallel_seed_and_precision(
     system = TTSSystem(training_config=train_cfg)
     calls = {}
 
-    monkeypatch.setattr(sysmod, "set_parallel", lambda arg: calls.setdefault("parallel", arg))
     monkeypatch.setattr(
-        sysmod.L, "seed_everything", lambda seed, workers=True: calls.setdefault("seed", seed)
+        sysmod, "set_parallel", lambda arg: calls.setdefault("parallel", arg)
+    )
+    monkeypatch.setattr(
+        sysmod.L,
+        "seed_everything",
+        lambda seed, workers=True: calls.setdefault("seed", seed),
     )
     monkeypatch.setattr(
         sysmod.torch,
@@ -233,4 +234,3 @@ def test_tts_system_train_saves_config_and_calls_fit(tmp_path, monkeypatch):
     assert trainer.fit_called is True
     assert trainer.fit_kwargs == {"max_epochs": 1}
     assert calls["save"] == ("tts", str(tmp_path / "exp"))
-

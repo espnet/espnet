@@ -86,7 +86,9 @@ def test_gan_trainer_skips_discriminator_and_clears_cache(tmp_path, monkeypatch)
     optimizer_d = torch.optim.SGD([model.param], lr=0.1)
     iterator = [(["utt"], {"x": torch.tensor([1.0])})]
 
-    monkeypatch.setattr(gan_mod.torch, "rand", lambda *args, **kwargs: torch.tensor([0.0]))
+    monkeypatch.setattr(
+        gan_mod.torch, "rand", lambda *args, **kwargs: torch.tensor([0.0])
+    )
 
     all_invalid = GANTrainer.train_one_epoch(
         model=model,
@@ -115,7 +117,9 @@ def test_gan_trainer_skips_discriminator_and_clears_cache_for_ddp(
     iterator = [(["utt"], {"x": torch.tensor([1.0])})]
 
     monkeypatch.setattr(gan_mod, "DDP", DummyDDP)
-    monkeypatch.setattr(gan_mod.torch, "rand", lambda *args, **kwargs: torch.tensor([0.0]))
+    monkeypatch.setattr(
+        gan_mod.torch, "rand", lambda *args, **kwargs: torch.tensor([0.0])
+    )
 
     GANTrainer.train_one_epoch(
         model=model,

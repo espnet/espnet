@@ -125,7 +125,9 @@ class GANTTSLightningModule(ESPnetLightningModule):
     ) -> None:
         named_optimizers = self._get_named_optimizers()
         spec_by_name = {spec.name: spec for spec in self._optimizer_specs}
-        name_to_idx = {name: idx for idx, name in enumerate(self._multi_optimizer_names)}
+        name_to_idx = {
+            name: idx for idx, name in enumerate(self._multi_optimizer_names)
+        }
 
         if step.name not in spec_by_name:
             raise AssertionError(
@@ -148,9 +150,7 @@ class GANTTSLightningModule(ESPnetLightningModule):
 
         backward_start = time.perf_counter()
         self.manual_backward(step.loss / spec.accum_grad_steps)
-        extra_stats[f"{turn_name}_backward_time"] = (
-            time.perf_counter() - backward_start
-        )
+        extra_stats[f"{turn_name}_backward_time"] = time.perf_counter() - backward_start
         state.accum_counter += 1
 
         meets_accum = state.accum_counter >= spec.accum_grad_steps

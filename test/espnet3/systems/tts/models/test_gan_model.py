@@ -1,5 +1,3 @@
-from types import SimpleNamespace
-
 import lightning as L
 import pytest
 import torch
@@ -131,7 +129,9 @@ def test_clear_model_cache_delegates_to_model():
 
 def test_should_skip_discriminator_honors_mode_and_probability(monkeypatch):
     module = make_module({"trainer": {"gan": {"skip_discriminator_prob": 1.0}}})
-    monkeypatch.setattr(gan_mod.torch, "rand", lambda *args, **kwargs: torch.tensor([0.0]))
+    monkeypatch.setattr(
+        gan_mod.torch, "rand", lambda *args, **kwargs: torch.tensor([0.0])
+    )
     monkeypatch.setattr(gan_mod.dist, "is_available", lambda: False)
 
     assert module._should_skip_discriminator("valid") is False
@@ -162,7 +162,11 @@ def test_run_gan_optimizer_update_steps_optimizer_and_logs(monkeypatch):
         "discriminator": torch.optim.SGD([model.param], lr=0.1),
     }
     monkeypatch.setattr(module, "manual_backward", lambda loss: loss.backward())
-    monkeypatch.setattr(module, "_step_named_scheduler_on_update", lambda name: scheduler_steps.append(name))
+    monkeypatch.setattr(
+        module,
+        "_step_named_scheduler_on_update",
+        lambda name: scheduler_steps.append(name),
+    )
     monkeypatch.setattr(
         module,
         "_log_stats",
@@ -228,7 +232,11 @@ def test_run_gan_optimizer_update_respects_accumulation(monkeypatch):
 def test_step_uses_parent_for_non_gan_model(monkeypatch):
     module = make_module()
     module.model = torch.nn.Linear(1, 1)
-    monkeypatch.setattr(gan_mod.ESPnetLightningModule, "_step", lambda self, batch, batch_idx, mode: "base")
+    monkeypatch.setattr(
+        gan_mod.ESPnetLightningModule,
+        "_step",
+        lambda self, batch, batch_idx, mode: "base",
+    )
 
     assert module._step((["utt"], {"x": torch.tensor([1.0])}), 0, "train") == "base"
 
@@ -236,7 +244,11 @@ def test_step_uses_parent_for_non_gan_model(monkeypatch):
 def test_step_respects_no_forward_run(monkeypatch):
     module = make_module({"trainer": {"gan": {"no_forward_run": True}}})
     calls = {"forward": 0}
-    monkeypatch.setattr(module, "_forward_gan_turn", lambda *args, **kwargs: calls.__setitem__("forward", 1))
+    monkeypatch.setattr(
+        module,
+        "_forward_gan_turn",
+        lambda *args, **kwargs: calls.__setitem__("forward", 1),
+    )
 
     assert module._step((["utt"], {"x": torch.tensor([1.0])}), 0, "train") is None
     assert calls["forward"] == 0
@@ -246,14 +258,24 @@ def test_step_train_skips_discriminator_and_runs_generator(monkeypatch):
     module = make_module()
     calls = {"clear": 0, "updates": []}
 
-    monkeypatch.setattr(module, "_turns_in_order", lambda: [("discriminator", False), ("generator", True)])
+    monkeypatch.setattr(
+        module,
+        "_turns_in_order",
+        lambda: [("discriminator", False), ("generator", True)],
+    )
     monkeypatch.setattr(module, "_should_skip_discriminator", lambda mode: True)
-    monkeypatch.setattr(module, "_clear_model_cache", lambda: calls.__setitem__("clear", calls["clear"] + 1))
+    monkeypatch.setattr(
+        module,
+        "_clear_model_cache",
+        lambda: calls.__setitem__("clear", calls["clear"] + 1),
+    )
     monkeypatch.setattr(
         module,
         "_forward_gan_turn",
         lambda batch, forward_generator: (
-            OptimizationStep(loss=torch.tensor(1.0, requires_grad=True), name="generator"),
+            OptimizationStep(
+                loss=torch.tensor(1.0, requires_grad=True), name="generator"
+            ),
             {"generator_loss": torch.tensor(1.0)},
             torch.tensor(1.0),
         ),
@@ -289,7 +311,9 @@ def test_step_valid_logs_turn_specific_stats(monkeypatch):
     monkeypatch.setattr(
         module,
         "_log_stats",
-        lambda mode, stats, weight, extra_stats=None: logs.append((mode, stats, extra_stats)),
+        lambda mode, stats, weight, extra_stats=None: logs.append(
+            (mode, stats, extra_stats)
+        ),
     )
 
     module._step((["utt"], {"x": torch.tensor([1.0])}), 0, "valid")
@@ -297,4 +321,3 @@ def test_step_valid_logs_turn_specific_stats(monkeypatch):
     assert logs[0][0] == "valid"
     assert "generator/loss" in logs[0][2]
     assert "generator_forward_time" in logs[0][2]
-

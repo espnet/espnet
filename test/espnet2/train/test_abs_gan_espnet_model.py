@@ -20,4 +20,3 @@ def test_abs_gan_espnet_model_clear_cache_is_noop():
     model = DummyGANModel()
 
     assert model.clear_cache() is None
-

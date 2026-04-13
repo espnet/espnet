@@ -20,6 +20,7 @@ class GANTTSLightningTrainer(ESPnet3LightningTrainer):
         config=None,
         best_model_criterion=None,
     ):
+        """Initialize GANTTSLightningTrainer, stripping GAN-specific config keys."""
         trainer_config = copy.deepcopy(config)
         if isinstance(trainer_config, DictConfig) and hasattr(trainer_config, "gan"):
             delattr(trainer_config, "gan")
