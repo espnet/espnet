@@ -55,7 +55,7 @@ def _parse_transcript_line(line: str) -> tuple[str, str, str]:
     return f"{utterance}-{speaker}-{number}", src, words
 
 
-class MiniAN4Builder(DatasetBuilder):
+class MiniAn4Builder(DatasetBuilder):
     """Prepare and build Mini AN4 assets for ESPnet3 recipes."""
 
     def is_source_prepared(self, recipe_dir: str | Path, **_kwargs) -> bool:
@@ -78,7 +78,7 @@ class MiniAN4Builder(DatasetBuilder):
             presence, not completeness of generated manifests.
 
         Examples:
-            >>> builder = MiniAN4Builder()
+            >>> builder = MiniAn4Builder()
             >>> builder.is_source_prepared("egs3/mini_an4/asr")
             True
         """
@@ -108,7 +108,7 @@ class MiniAN4Builder(DatasetBuilder):
             4. Extracts the archive only when source is not already prepared.
 
         Examples:
-            >>> builder = MiniAN4Builder()
+            >>> builder = MiniAn4Builder()
             >>> builder.prepare_source("egs3/mini_an4/asr")
         """
         recipe_root = Path(recipe_dir).resolve()
@@ -145,7 +145,7 @@ class MiniAN4Builder(DatasetBuilder):
             semantic correctness.
 
         Examples:
-            >>> builder = MiniAN4Builder()
+            >>> builder = MiniAn4Builder()
             >>> builder.is_built("egs3/mini_an4/asr")
             True
         """
@@ -179,7 +179,7 @@ class MiniAN4Builder(DatasetBuilder):
             4. Write TSV manifests for ``train``, ``valid``, ``test``.
 
         Examples:
-            >>> builder = MiniAN4Builder()
+            >>> builder = MiniAn4Builder()
             >>> builder.build("egs3/mini_an4/asr")
         """
         recipe_root = Path(recipe_dir).resolve()

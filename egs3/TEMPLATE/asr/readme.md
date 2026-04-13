@@ -5,9 +5,10 @@
 ```bash
 # 0) Edit configs to set paths.
 #    Keep `conf/training.yaml:dataset_dir` as the canonical dataset location.
-#    If inference reads the same manifests, reference that value from
-#    `conf/inference.yaml` via `${load_yaml:training.yaml,dataset_dir}` instead
-#    of redefining another dataset-specific path.
+#    When `--training_config` is also passed to `infer` or `measure`, run.py
+#    propagates experiment path fields from training into inference/metrics.
+#    Standalone inference or metrics configs must define their own `exp_tag`
+#    or `exp_dir`.
 
 # 1) Convert LibriSpeech to Hugging Face format (run once)
 python run.py --stages create_dataset --training_config conf/training.yaml

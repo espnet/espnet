@@ -40,16 +40,6 @@ def convert(markdown_text):
     for match in re.finditer(example_pattern, _result):
         _result = _result.replace(match.group(0), "##### Examples")
 
-    # convert ### to div with specific class
-    h3_pattern = re.compile(r"^###\s+(.+)$", re.MULTILINE)
-    for match in re.finditer(h3_pattern, _result):
-        tag_removed = match.group(0).replace("### ", "")
-        tag_removed = small_bracket(tag_removed)
-        tag_removed = markdown.markdown(tag_removed)
-        _result = _result.replace(
-            match.group(0), f"<div class='custom-h3'>{tag_removed}</div>\n"
-        )
-
     # convert "#### Note" to :::note ::: block
     # We assume that this note block will continue to the next header.
     note_pattern = r"####\sNOTE"

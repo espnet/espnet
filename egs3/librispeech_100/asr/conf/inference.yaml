@@ -1,0 +1,37 @@
+##########################################################
+#                   Inference SETTING                    #
+##########################################################
+# Quick usage:
+#   python run.py --stages infer --inference_config conf/inference.yaml
+#
+
+##########################################################
+#                    PATHS AND INPUTS                    #
+##########################################################
+# `exp_tag`, `exp_dir`, and `inference_dir` come from the TEMPLATE config.
+# `inference_dir` therefore follows `${exp_dir}/${self_name:}`.
+
+##########################################################
+#                    DATASET DEFINITION                  #
+##########################################################
+# Like `mini_an4`, inference reads the recipe-local dataset module and forwards
+# only `data_src_args` to the dataset class.
+dataset:
+  test:
+    - name: test-clean
+      data_src_args:
+        split: test-clean
+    - name: test-other
+      data_src_args:
+        split: test-other
+
+##########################################################
+#                    MODEL AND OUTPUT                    #
+##########################################################
+model:
+  _target_: espnet2.bin.asr_inference.Speech2Text
+  asr_train_config: ${exp_dir}/config.yaml
+  asr_model_file: ${exp_dir}/last.ckpt
+
+input_key: speech
+output_fn: src.inference.build_output

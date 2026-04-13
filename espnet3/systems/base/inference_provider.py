@@ -128,17 +128,17 @@ class InferenceProvider(EnvironmentProvider, ABC):
     def build_dataset(config: DictConfig):
         """Construct and return the dataset instance.
 
-        Implemented by subclasses to build a dataset from ``config``.
-        During parallel or distributed execution, the ``config`` object passed here
-        is the configuration that the user passed when instantiating the class.
+        Build a ``DataOrganizer`` from ``config.dataset`` and return the selected
+        test set. During parallel or distributed execution, the ``config`` object
+        passed here is the configuration that the user passed when instantiating
+        the class.
 
         Args:
-            config (DictConfig): Configuration object for dataset
-                parameters (e.g., data directory, preprocessing pipeline,
-                features, split).
+            config (DictConfig): Configuration object that includes a plain
+                ``dataset`` organizer config and ``test_set``.
 
         Returns:
-            Any: Dataset object (type defined by subclass).
+            Any: Dataset object resolved from ``organizer.test[test_set]``.
 
         Raises:
             NotImplementedError: Always in the base class; implement in subclass.
@@ -146,9 +146,18 @@ class InferenceProvider(EnvironmentProvider, ABC):
         Example:
             >>> # Minimal sketch; actual keys depend on your subclass
             >>> from omegaconf import OmegaConf
-            >>> config = OmegaConf.create({
-            >>>     "dataset": {"path": "data/test", "split": "test"}
-            >>> })
+            >>> config = OmegaConf.create(
+            ...     {
+            ...         "dataset": {
+            ...             "test": [
+            ...                 {
+            ...                     "name": "test",
+            ...                     "data_src_args": {"split": "test"},
+            ...                 }
+            ...             ]
+            ...         },
+            ...     }
+            ... )
             >>> ds = MyInferenceProvider.build_dataset(config)
 
         Notes:

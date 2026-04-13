@@ -47,7 +47,7 @@ EOF
 echo "cuda_version=${cuda_version}"
 
 if "${torch_18_plus}" && "${python_36_plus}"; then
-    python -m pip install s3prl
+    python -m pip install git+https://github.com/espnet/s3prl.git@572af70
 
 else
     echo "[WARNING] s3prl is not prepared for pytorch<1.8.0, python<3.6 now"

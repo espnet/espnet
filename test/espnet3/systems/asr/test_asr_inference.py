@@ -47,17 +47,31 @@ class ParamRunner(InferenceRunner):
 
 
 def test_build_dataset_uses_test_set(monkeypatch):
-    cfg = OmegaConf.create({"dataset": {"_target_": "dummy"}, "test_set": "dev"})
-    organizer = type("Org", (), {"test": {"dev": ["item"]}})()
+    cfg = OmegaConf.create(
+        {
+            "dataset": {
+                "_target_": "espnet3.components.data.data_organizer.DataOrganizer",
+                "test": [
+                    {
+                        "name": "dev",
+                        "data_src": "mini_an4/asr",
+                        "data_src_args": {"split": "dev"},
+                    }
+                ],
+            },
+            "test_set": "dev",
+        }
+    )
     calls = {}
+    organizer = type("Org", (), {"test": {"dev": ["item"]}})()
+
+    import espnet3.systems.base.inference_provider as provider_mod
 
     def fake_instantiate(obj):
         calls["obj"] = obj
         return organizer
 
-    monkeypatch.setattr(
-        "espnet3.systems.base.inference_provider.instantiate", fake_instantiate
-    )
+    monkeypatch.setattr(provider_mod, "instantiate", fake_instantiate)
 
     dataset = InferenceProvider.build_dataset(cfg)
 

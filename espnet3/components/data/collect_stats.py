@@ -36,7 +36,47 @@ def collect_stats_batch(
     write_collected_feats: bool = False,
     collect_stats_kwargs: Optional[Dict[str, Any]] = None,
 ):
-    """Process a batch of dataset indices and compute feature statistics."""
+    """Compute feature statistics for a batch of dataset items.
+
+    This helper:
+      - Materializes a list of dataset items for the given indices.
+      - Collates them into a mini-batch using ``collate_fn``.
+      - Runs ``model.collect_feats(...)`` under ``torch.no_grad()``.
+      - Accumulates per-feature sums, squared sums, and counts, and records
+        per-utterance feature shapes for writing ``*_shape`` files.
+
+    Args:
+        idxs (List[int]): Dataset indices to process as one batch.
+        model: Model instance that provides a callable ``collect_feats`` method.
+        dataset: Dataset providing ``__getitem__``.
+        collate_fn: Collate function returning ``(uids, batch_dict)``.
+        device (torch.device, optional): Device to move batch tensors to.
+        write_collected_feats (bool): If ``True``, also returns raw collected
+            feature arrays for writing (e.g., via ``NpyScpWriter``).
+        collect_stats_kwargs (Dict[str, Any], optional): Extra keyword arguments
+            forwarded to ``model.collect_feats`` (must not collide with batch keys).
+
+    Returns:
+        Tuple[dict, dict] | Tuple[dict, dict, dict]:
+            ``(stats, shape_info)`` when ``write_collected_feats=False``, otherwise
+            ``(stats, shape_info, feats)`` where:
+              - ``stats`` maps feature-key -> ``{"sum": ..., "sq": ..., "count": ...}``
+              - ``shape_info`` maps feature-key -> ``{uid: "shape_csv"}``
+              - ``feats`` maps feature-key -> numpy array batch outputs
+
+    Raises:
+        RuntimeError: If ``collate_fn`` does not return ``(uids, batch_dict)``.
+        ValueError: If ``collect_stats_kwargs`` overlaps with batch tensor keys.
+
+    Example:
+        >>> stats, shapes = batch_collect_stats(
+        ...     [0, 1, 2, 3],
+        ...     model=model,
+        ...     dataset=dataset,
+        ...     collate_fn=collate_fn,
+        ...     device=torch.device("cpu"),
+        ... )
+    """
     structured_items: List[Tuple[str, Any]] = []
     for i in idxs:
         item = dataset[i]
@@ -435,6 +475,18 @@ def collect_stats(
 
     Returns:
         None: Aggregated statistics are saved under ``output_dir / mode``.
+
+    Example:
+        >>> collect_stats(
+        ...     model_config=model_cfg,
+        ...     dataset_config=dataset_cfg,
+        ...     dataloader_config=dataloader_cfg,
+        ...     mode="train",
+        ...     output_dir=Path("exp/stats"),
+        ...     task=None,
+        ...     parallel_config=None,
+        ...     batch_size=4,
+        ... )
     """
     mode_config = getattr(dataloader_config, mode, None)
     if mode_config is not None and hasattr(mode_config, "multiple_iterator"):

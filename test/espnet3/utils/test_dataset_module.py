@@ -74,7 +74,7 @@ def test_resolve_dataset_module_name_supports_task_scoped_dataset_names():
 
 def test_load_dataset_module_accepts_full_module_path():
     # Full dotted module path must bypass tag resolution and import as-is.
-    module = dm.load_dataset_module(ref="egs3.mini_an4.asr.dataset")
+    module = dm.load_dataset_module(data_src="egs3.mini_an4.asr.dataset")
     assert hasattr(module, "Dataset")
     assert hasattr(module, "DatasetBuilder")
 
@@ -97,10 +97,10 @@ def test_instantiate_dataset_reference_keeps_explicit_split(monkeypatch):
     monkeypatch.setattr(
         dm,
         "load_dataset_module",
-        lambda ref=None, recipe_dir=None: DummyModule(),
+        lambda data_src=None, recipe_dir=None: DummyModule(),
     )
     dm.instantiate_dataset_reference(
-        {"ref": "mini_an4/asr", "kwargs": {"split": "valid"}},
+        {"data_src": "mini_an4/asr", "data_src_args": {"split": "valid"}},
         recipe_dir="/tmp/recipe",
     )
 
@@ -111,7 +111,7 @@ def test_instantiate_dataset_reference_keeps_explicit_split(monkeypatch):
 def test_load_dataset_module_without_ref_uses_recipe_dir_dataset(tmp_path):
     _create_local_recipe_dataset(tmp_path)
 
-    module = dm.load_dataset_module(ref=None, recipe_dir=tmp_path)
+    module = dm.load_dataset_module(data_src=None, recipe_dir=tmp_path)
 
     assert hasattr(module, "Dataset")
     assert hasattr(module, "DatasetBuilder")
@@ -121,7 +121,7 @@ def test_instantiate_dataset_reference_without_ref_keeps_kwargs(tmp_path):
     _create_local_recipe_dataset(tmp_path)
 
     dataset = dm.instantiate_dataset_reference(
-        {"kwargs": {"custom_arg": 10}},
+        {"data_src_args": {"custom_arg": 10}},
         recipe_dir=tmp_path,
     )
 
@@ -147,7 +147,10 @@ def test_tag_ref_resolves_and_passes_kwargs(monkeypatch):
     monkeypatch.setattr(dm, "import_module", fake_import_module)
 
     dataset = dm.instantiate_dataset_reference(
-        {"ref": "mini_an4/asr", "kwargs": {"split": "valid", "extra_arg": "ok"}},
+        {
+            "data_src": "mini_an4/asr",
+            "data_src_args": {"split": "valid", "extra_arg": "ok"},
+        },
     )
 
     assert captured["module_name"] == "egs3.mini_an4.asr.dataset"
@@ -160,7 +163,10 @@ def test_module_path_ref_resolves_direct_module(tmp_path, monkeypatch):
     monkeypatch.syspath_prepend(str(tmp_path))
 
     dataset = dm.instantiate_dataset_reference(
-        {"ref": module_ref, "kwargs": {"split": "test", "sample_rate": 16000}},
+        {
+            "data_src": module_ref,
+            "data_src_args": {"split": "test", "sample_rate": 16000},
+        },
         recipe_dir=tmp_path,
     )
 
@@ -181,16 +187,16 @@ def test_instantiate_dataset_reference_passes_only_kwargs_to_dataset(monkeypatch
     monkeypatch.setattr(
         dm,
         "load_dataset_module",
-        lambda ref=None, recipe_dir=None: DummyModule(),
+        lambda data_src=None, recipe_dir=None: DummyModule(),
     )
     dm.instantiate_dataset_reference(
         {
-            "ref": "mini_an4/asr",
+            "data_src": "mini_an4/asr",
             "name": "train_set",
             "transform": {"_target_": "dummy.Transform"},
             "split": "train",
             "dataset_path": "/tmp/data",
-            "kwargs": {"split": "train", "num_workers": 4},
+            "data_src_args": {"split": "train", "num_workers": 4},
         },
         recipe_dir="/tmp/recipe",
     )
@@ -203,19 +209,32 @@ def test_instantiate_dataset_reference_passes_only_kwargs_to_dataset(monkeypatch
 
 def test_load_dataset_module_without_ref_raises_if_local_dataset_missing(tmp_path):
     with pytest.raises(ModuleNotFoundError):
-        dm.load_dataset_module(ref=None, recipe_dir=tmp_path)
+        dm.load_dataset_module(data_src=None, recipe_dir=tmp_path)
 
 
 def test_load_dataset_module_without_ref_and_recipe_dir_raises_assertion():
     with pytest.raises(AssertionError, match="recipe_dir must be set"):
-        dm.load_dataset_module(ref=None, recipe_dir=None)
+        dm.load_dataset_module(data_src=None, recipe_dir=None)
 
 
-def test_instantiate_dataset_reference_blank_ref_uses_local_module(tmp_path):
+def test_parse_dataset_reference_config_keeps_data_src_args():
+    data_src, data_src_args = dm.parse_dataset_reference_config(
+        {
+            "data_src": "mini_an4/asr",
+            "name": "train",
+            "data_src_args": {"split": "train"},
+        }
+    )
+
+    assert data_src == "mini_an4/asr"
+    assert data_src_args == {"split": "train"}
+
+
+def test_instantiate_dataset_reference_blank_data_src_uses_local_module(tmp_path):
     _create_local_recipe_dataset(tmp_path)
 
     dataset = dm.instantiate_dataset_reference(
-        {"ref": "   ", "kwargs": {"custom_arg": 1}},
+        {"data_src": "   ", "data_src_args": {"custom_arg": 1}},
         recipe_dir=tmp_path,
     )
 
@@ -227,6 +246,6 @@ def test_instantiate_dataset_reference_invalid_kwargs_raises_type_error(tmp_path
 
     with pytest.raises(ValueError):
         dm.instantiate_dataset_reference(
-            {"kwargs": "not-a-mapping"},
+            {"data_src_args": "not-a-mapping"},
             recipe_dir=tmp_path,
         )

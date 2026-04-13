@@ -15,38 +15,48 @@ recipe_dir: .
 exp_tag:
 exp_dir: ${recipe_dir}/exp/${exp_tag}
 data_dir: ${recipe_dir}/data
-inference_dir: ${exp_dir}/inference
+inference_dir: ${exp_dir}/${self_name:}
 
 # If inference needs access to manifests under the same dataset root as
 # training, define `dataset_dir` here by reusing the training config instead of
 # hardcoding a dataset name again.
 #
 # Example:
-# dataset_dir: ${load_yaml:training.yaml,dataset_dir}
+# dataset_dir: ${recipe_dir}/data
 
 
 # Test split definitions are required for inference.
-# `dataset.test[*].name` becomes the output subdirectory name under
-# `${inference_dir}`.
+# Each item in `dataset.test` is a dataset reference entry.
+# - `name` becomes the output subdirectory name under `${inference_dir}`
+# - `data_src` can be a `<recipe>/<task>` tag, a dotted module path, or be
+#   omitted to load `${recipe_dir}/dataset/__init__.py`
+# - `data_src_args` is forwarded to `Dataset(...)`
+# - `transform` is optional and runs before `preprocessor`
+#
+# Only `data_src_args` is passed to the recipe `Dataset` constructor.
+# Top-level fields such as `name` and `transform` are consumed by
+# `DataOrganizer`.
 #
 # Example:
 # dataset:
 #   _target_: espnet3.components.data.data_organizer.DataOrganizer
+#   recipe_dir: ${recipe_dir}
 #   test:
-#     - name: test-clean
-#       dataset:
-#         _target_: src.dataset.YourDataset
-#         manifest_path: ${dataset_dir}/manifest/test-clean.tsv
-#     - name: test-other
-#       dataset:
-#         _target_: src.dataset.YourDataset
-#         manifest_path: ${dataset_dir}/manifest/test-other.tsv
+#     - name: librispeech_test_clean
+#       data_src: librispeech/asr
+#       data_src_args:
+#         split: test_clean
+#         data_path: ${dataset_dir}
+#     - name: local_eval
+#       data_src_args:
+#         split: test
 #
 # When training already defines `dataset_dir`, prefer referencing that shared
 # location rather than requiring users to specify a second dataset path just
 # for inference.
 dataset:
   _target_: espnet3.components.data.data_organizer.DataOrganizer
+  recipe_dir: ${recipe_dir}
   test:
   preprocessor:
 

@@ -1,7 +1,12 @@
 #!/usr/bin/env python3
 import glob
 import importlib
+import importlib.metadata
+import os
+import subprocess
 import sys
+import tempfile
+import textwrap
 import traceback
 
 try:
@@ -19,7 +24,7 @@ else:
 
 
 failed_imports = []
-for dirname in ["espnet2", "espnet3"]:
+for dirname in ["espnet2", "espnet3", "egs3"]:
     for f in glob.glob(f"{dirname}/**/*.py"):
         module_name = f.replace("/", ".")[:-3]
 

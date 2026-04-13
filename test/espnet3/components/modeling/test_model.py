@@ -3,6 +3,7 @@ import pytest
 import torch
 from omegaconf import OmegaConf
 
+from espnet3.components.data import data_organizer as data_organizer_module
 from espnet3.components.modeling.lightning_module import ESPnetLightningModule
 
 # ===============================================================
@@ -30,6 +31,7 @@ from espnet3.components.modeling.lightning_module import ESPnetLightningModule
 # ---------------------- Dummy Components ----------------------
 
 COMMON_COLLATE = "test.espnet3.components.modeling.test_model.CustomCollate"
+DUMMY_DATA_SRC = "dummy/asr"
 
 
 class DummyDataset:
@@ -62,6 +64,15 @@ class DummyDataset:
         }
 
 
+@pytest.fixture(autouse=True)
+def patch_dataset_reference(monkeypatch):
+    monkeypatch.setattr(
+        data_organizer_module,
+        "instantiate_dataset_reference",
+        lambda config, recipe_dir=None: DummyDataset(),
+    )
+
+
 @pytest.fixture
 def dummy_model():
     model = torch.nn.Linear(1, 1)
@@ -81,13 +92,13 @@ def dummy_dataset_config():
             "train": [
                 {
                     "name": "dummy_train",
-                    "dataset": {"_target_": __name__ + ".DummyDataset"},
+                    "data_src": DUMMY_DATA_SRC,
                 }
             ],
             "valid": [
                 {
                     "name": "dummy_valid",
-                    "dataset": {"_target_": __name__ + ".DummyDataset"},
+                    "data_src": DUMMY_DATA_SRC,
                 }
             ],
         }

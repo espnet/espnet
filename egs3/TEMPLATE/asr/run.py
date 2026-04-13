@@ -13,6 +13,11 @@ from espnet3.utils.config_utils import (
     load_config_with_defaults,
 )
 from espnet3.utils.logging_utils import configure_logging
+from espnet3.utils.run_utils import (
+    apply_training_experiment_context,
+    resolve_loaded_configs,
+    validate_experiment_context,
+)
 from espnet3.utils.stages_utils import (
     parse_cli_and_stage_args,
     resolve_stages,
@@ -32,8 +37,12 @@ DEFAULT_STAGES: List[str] = [
     "publish",
 ]
 
-logger = logging.getLogger(__name__)
+DEMO_STAGES: List[str] = [
+    "pack_demo",
+    "upload_demo",
+]
 
+ALL_STAGES: List[str] = DEFAULT_STAGES + DEMO_STAGES
 
 def build_parser(
     stages: Sequence[str],
@@ -45,7 +54,7 @@ def build_parser(
         "--stages",
         choices=list(stages) + ["all"],
         nargs="+",
-        default=["all"],
+        default=list(stages),
         help="Which stages to run. Multiple values allowed.",
     )
     parser.add_argument(
@@ -112,16 +121,19 @@ def main(
         args.training_config,
         config_name="training.yaml",
         default_package=__package__,
+        resolve=False,
     )
     inference_config = load_and_merge_config(
         args.inference_config,
         config_name="inference.yaml",
         default_package=__package__,
+        resolve=False,
     )
     metrics_config = load_and_merge_config(
         args.metrics_config,
         config_name="metrics.yaml",
         default_package=__package__,
+        resolve=False,
     )
     publication_config = (
         None
@@ -129,6 +141,19 @@ def main(
         else load_config_with_defaults(args.publication_config)
     )
     logger = configure_logging()
+    apply_training_experiment_context(
+        training_config=training_config,
+        inference_config=inference_config,
+        metrics_config=metrics_config,
+        log=logger,
+    )
+    validate_experiment_context(
+        training_config=training_config,
+        inference_config=inference_config,
+        metrics_config=metrics_config,
+        stages_to_run=stages_to_run,
+    )
+    resolve_loaded_configs(training_config, inference_config, metrics_config)
 
     # -----------------------------------------
     # Instantiate system
@@ -199,5 +224,5 @@ if __name__ == "__main__":
     main(
         args=args,
         system_cls=ASRSystem,
-        stages=DEFAULT_STAGES,
+        stages=ALL_STAGES,
     )

@@ -93,9 +93,9 @@ def test_base_system_create_dataset_prepares_dataset_references(tmp_path, monkey
                 "archive_path": "a.tar.gz",
             },
             "dataset": {
-                "train": [{"ref": "mini_an4/asr"}],
-                # Same ref in valid — dedup means only one prepare run
-                "valid": [{"ref": "mini_an4/asr"}],
+                "train": [{"data_src": "mini_an4/asr"}],
+                # Same source in valid; dedup means only one prepare run.
+                "valid": [{"data_src": "mini_an4/asr"}],
                 "test": None,
             },
         }
@@ -124,7 +124,7 @@ def test_base_system_create_dataset_prepares_dataset_references(tmp_path, monkey
     monkeypatch.setattr(
         sysmod,
         "load_dataset_module",
-        lambda ref=None, recipe_dir=None: DummyModule(),
+        lambda data_src=None, recipe_dir=None: DummyModule(),
     )
 
     assert system.create_dataset() is None
@@ -145,7 +145,7 @@ def test_base_system_create_dataset_logs_progress(tmp_path, monkeypatch, caplog)
             "recipe_dir": str(tmp_path / "recipe"),
             "create_dataset": {"recipe_dir": str(tmp_path / "recipe")},
             "dataset": {
-                "train": [{"ref": "mini_an4/asr"}],
+                "train": [{"data_src": "mini_an4/asr"}],
                 "valid": None,
                 "test": None,
             },
@@ -172,7 +172,7 @@ def test_base_system_create_dataset_logs_progress(tmp_path, monkeypatch, caplog)
     monkeypatch.setattr(
         sysmod,
         "load_dataset_module",
-        lambda ref=None, recipe_dir=None: DummyModule(),
+        lambda data_src=None, recipe_dir=None: DummyModule(),
     )
 
     with caplog.at_level(logging.INFO):
@@ -192,7 +192,7 @@ def test_base_system_create_dataset_runs_prepare_and_build_when_needed(
             "recipe_dir": str(tmp_path / "recipe"),
             "create_dataset": {"recipe_dir": str(tmp_path / "recipe")},
             "dataset": {
-                "train": [{"ref": "mini_an4/asr"}],
+                "train": [{"data_src": "mini_an4/asr"}],
                 "valid": None,
                 "test": None,
             },
@@ -222,7 +222,7 @@ def test_base_system_create_dataset_runs_prepare_and_build_when_needed(
     monkeypatch.setattr(
         sysmod,
         "load_dataset_module",
-        lambda ref=None, recipe_dir=None: DummyModule(),
+        lambda data_src=None, recipe_dir=None: DummyModule(),
     )
 
     assert system.create_dataset() is None
@@ -254,8 +254,8 @@ def test_base_system_create_dataset_local_ref_dedup(tmp_path, monkeypatch):
             "recipe_dir": str(tmp_path / "recipe"),
             "create_dataset": {"recipe_dir": str(tmp_path / "recipe")},
             "dataset": {
-                "train": [{"kwargs": {"split": "train"}}],
-                "valid": [{"kwargs": {"split": "valid"}}],
+                "train": [{"data_src_args": {"split": "train"}}],
+                "valid": [{"data_src_args": {"split": "valid"}}],
                 "test": None,
             },
         }
@@ -284,12 +284,12 @@ def test_base_system_create_dataset_local_ref_dedup(tmp_path, monkeypatch):
     monkeypatch.setattr(
         sysmod,
         "load_dataset_module",
-        lambda ref=None, recipe_dir=None: DummyModule(),
+        lambda data_src=None, recipe_dir=None: DummyModule(),
     )
 
     assert system.create_dataset() is None
     expected_kwargs = {"recipe_dir": str(tmp_path / "recipe")}
-    # ref=None entries should be deduplicated and prepared only once.
+    # Local entries should be deduplicated and prepared only once.
     assert calls == [
         ("is_source_prepared", expected_kwargs),
         ("is_built", expected_kwargs),

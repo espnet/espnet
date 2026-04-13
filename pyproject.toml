@@ -76,7 +76,6 @@ include = ["espnet*", "egs3*"]
 egs3 = ["egs3/TEMPLATE/**/*.yaml"]
 
 
-
 [project.optional-dependencies]
 asr = [
   "ctc-segmentation @ git+https://github.com/espnet/ctc-segmentation.git@9b9ea1d",
@@ -103,10 +102,9 @@ asr2 = [
   "editdistance",
 ]
 
-# We didn't specify s3prl version as it should be installed via github.
 s2st = [
   "editdistance",
-  "s3prl",
+  "s3prl @ git+https://github.com/espnet/s3prl.git@572af70",
 ]
 
 st = [

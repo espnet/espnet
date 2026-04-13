@@ -9,8 +9,8 @@ class DatasetBuilder(ABC):
     """Interface for recipe-local dataset preparation helpers.
 
     This abstract class defines the contract used by the
-    ``create_dataset`` stage when a dataset reference such as
-    ``ref: mini_an4/asr`` appears in a training or inference config.
+    ``create_dataset`` stage when a dataset source such as
+    ``data_src: mini_an4/asr`` appears in a training or inference config.
     Concrete builders separate source acquisition from task-specific artifact
     generation so the system can skip work precisely:
 
@@ -37,8 +37,8 @@ class DatasetBuilder(ABC):
         ```yaml
         dataset:
           train:
-            - ref: mini_an4/asr
-              kwargs:
+            - data_src: mini_an4/asr
+              data_src_args:
                 split: train
         ```
 

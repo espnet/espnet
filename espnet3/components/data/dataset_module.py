@@ -1,21 +1,21 @@
 """Utilities for resolving and instantiating dataset modules.
 
-This module standardizes how ESPnet3 resolves dataset references used in
-configs such as:
+This module standardizes how ESPnet3 resolves dataset sources used in configs
+such as:
 
 .. code-block:: yaml
 
     dataset:
       train:
-        - ref: mini_an4/asr
-          kwargs:
+        - data_src: mini_an4/asr
+          data_src_args:
             split: train
 
 It supports:
 
 1. Tag notation (``mini_an4/asr``) -> ``egs3.mini_an4.asr.dataset``.
 2. Direct dotted module paths.
-3. Local recipe datasets when ``ref`` is omitted.
+3. Local recipe datasets when ``data_src`` is omitted.
 """
 
 from __future__ import annotations
@@ -40,6 +40,8 @@ def _to_plain_dict(config: Any) -> dict[str, Any]:
 # e.g. "mini_an4/asr" -> "egs3.mini_an4.asr.dataset"
 _RECIPE_NAMESPACE = "egs3"
 _DATASET_SUBMODULE = "dataset"
+_DATA_SRC_KEY = "data_src"
+_DATA_SRC_ARGS_KEY = "data_src_args"
 
 
 def _is_tag(ref: str) -> bool:
@@ -55,9 +57,6 @@ def resolve_dataset_module_name(ref: str) -> str:
     Returns:
         Fully qualified module path following
         ``egs3.<recipe>.<task>.dataset``.
-
-    Raises:
-        None.
 
     Notes:
         Hyphens are normalized to underscores to match Python module naming.
@@ -96,8 +95,8 @@ def _load_local_dataset_module(recipe_dir: str | Path | None):
     module_init = recipe_root / "dataset" / "__init__.py"
     if not module_init.is_file():
         raise ModuleNotFoundError(
-            "No dataset ref provided and local dataset module not found at "
-            f"{module_init}. Set `ref` or add recipe_dir/dataset/__init__.py."
+            "No dataset source provided and local dataset module not found at "
+            f"{module_init}. Set `data_src` or add recipe_dir/dataset/__init__.py."
         )
 
     # Use a unique synthetic module name to avoid collisions across recipes.
@@ -117,11 +116,13 @@ def _load_local_dataset_module(recipe_dir: str | Path | None):
     return module
 
 
-def load_dataset_module(ref: str | None = None, recipe_dir: str | Path | None = None):
-    """Load a dataset module from ref or local recipe path.
+def load_dataset_module(
+    data_src: str | None = None, recipe_dir: str | Path | None = None
+):
+    """Load a dataset module from a dataset source or local recipe path.
 
     Args:
-        ref: Dataset reference. Supported forms:
+        data_src: Dataset source reference. Supported forms:
             - ``None``: load local ``recipe_dir/dataset`` module.
             - tag form: ``mini_an4/asr``.
             - module path form: ``egs3.mini_an4.asr.dataset``.
@@ -131,7 +132,7 @@ def load_dataset_module(ref: str | None = None, recipe_dir: str | Path | None = 
         Imported dataset module object.
 
     Raises:
-        AssertionError: If both ``ref`` and ``recipe_dir`` are ``None``.
+        AssertionError: If both ``data_src`` and ``recipe_dir`` are ``None``.
         ModuleNotFoundError: If target module cannot be found.
         ImportError: If import fails for other reasons.
 
@@ -140,29 +141,71 @@ def load_dataset_module(ref: str | None = None, recipe_dir: str | Path | None = 
         It only resolves and imports the module.
 
     Examples:
-        >>> module = load_dataset_module(ref="mini_an4/asr")
+        >>> module = load_dataset_module(data_src="mini_an4/asr")
         >>> hasattr(module, "DatasetBuilder")
         True
-        >>> local = load_dataset_module(ref=None, recipe_dir="egs3/mini_an4/asr")
+        >>> local = load_dataset_module(
+        ...     data_src=None, recipe_dir="egs3/mini_an4/asr"
+        ... )
         >>> hasattr(local, "Dataset")
         True
-        >>> load_dataset_module(ref=None, recipe_dir=None)
+        >>> load_dataset_module(data_src=None, recipe_dir=None)
         Traceback (most recent call last):
         ...
-        AssertionError: recipe_dir must be set when ref is None.
+        AssertionError: recipe_dir must be set when data_src is None.
     """
-    if ref is None:
-        assert recipe_dir is not None, "recipe_dir must be set when ref is None."
+    if data_src is None:
+        assert recipe_dir is not None, "recipe_dir must be set when data_src is None."
 
         # Local recipe mode: load <recipe_dir>/dataset/__init__.py directly.
         return _load_local_dataset_module(recipe_dir)
-    if _is_tag(ref):
+    if _is_tag(data_src):
 
         # Tag mode: "mini_an4/asr" -> "egs3.mini_an4.asr.dataset"
-        return import_module(resolve_dataset_module_name(ref))
+        return import_module(resolve_dataset_module_name(data_src))
 
     # Module path mode: import as-is.
-    return import_module(ref)
+    return import_module(data_src)
+
+
+def parse_dataset_reference_config(
+    config: Mapping[str, Any] | DictConfig,
+):
+    """Extract dataset source fields from one dataset config entry.
+
+    Args:
+        config: Dataset entry mapping. Expected keys are:
+            - ``data_src``: optional dataset source reference.
+            - ``data_src_args``: optional constructor kwargs for ``Dataset``.
+
+    Returns:
+        Tuple of normalized ``(data_src, data_src_args)``.
+
+    Raises:
+        TypeError: If ``data_src`` is neither a string nor ``None``.
+        ValueError: If ``data_src_args`` is incompatible with ``dict(...)``.
+
+    Notes:
+        Only ``data_src_args`` is forwarded to the dataset constructor.
+        Top-level config fields such as ``name`` and ``transform`` are ignored
+        here.
+
+    Examples:
+        >>> parse_dataset_reference_config(
+        ...     {"data_src": "mini_an4/asr", "data_src_args": {"split": "train"}}
+        ... )
+        ('mini_an4/asr', {'split': 'train'})
+        >>> parse_dataset_reference_config({"data_src_args": {"split": "test"}})
+        (None, {'split': 'test'})
+    """
+    plain = _to_plain_dict(config)
+    data_src = plain.get(_DATA_SRC_KEY)
+    if data_src is not None:
+        if not isinstance(data_src, str):
+            raise TypeError("`data_src` must be a string or None.")
+        data_src = data_src.strip() or None
+    data_src_args = dict(plain.get(_DATA_SRC_ARGS_KEY, {}))
+    return data_src, data_src_args
 
 
 def instantiate_dataset_reference(
@@ -173,43 +216,35 @@ def instantiate_dataset_reference(
 
     Args:
         config: Dataset entry mapping. Expected keys are:
-            - ``ref``: optional dataset reference.
-            - ``kwargs``: optional constructor kwargs for ``Dataset``.
+            - ``data_src``: optional dataset source reference.
+            - ``data_src_args``: optional constructor kwargs for ``Dataset``.
         recipe_dir: Recipe root used when resolving local modules.
 
     Returns:
-        Instantiated dataset object from ``module.Dataset(**kwargs)``.
+        Instantiated dataset object from ``module.Dataset(**data_src_args)``.
 
     Raises:
         AttributeError: If the target module does not expose ``Dataset``.
         ModuleNotFoundError: If dataset module resolution fails.
-        TypeError: If ``kwargs`` is incompatible with dataset constructor.
+        TypeError: If ``data_src_args`` is incompatible with dataset
+            constructor.
 
     Notes:
-        Only ``kwargs`` is forwarded to the dataset constructor.
-        Top-level config fields other than ``kwargs`` are not passed through.
+        Only ``data_src_args`` is forwarded to the dataset constructor.
+        Top-level config fields other than ``data_src_args`` are not passed
+        through.
 
     Examples:
-        >>> cfg = {"ref": "mini_an4/asr", "kwargs": {"split": "train"}}
+        >>> cfg = {"data_src": "mini_an4/asr", "data_src_args": {"split": "train"}}
         >>> ds = instantiate_dataset_reference(cfg, recipe_dir="egs3/mini_an4/asr")
         >>> hasattr(ds, "__len__")
         True
 
-        Local dataset module loading (no ref):
-        >>> cfg = {"kwargs": {"split": "test"}}
+        Local dataset module loading (no data_src):
+        >>> cfg = {"data_src_args": {"split": "test"}}
         >>> _ = instantiate_dataset_reference(cfg, recipe_dir="egs3/mini_an4/asr")
     """
-    plain = _to_plain_dict(config)
-    ref_value = plain.get("ref")
-
-    # Empty/whitespace refs are treated as local dataset module usage.
-    ref = (
-        ref_value.strip() if isinstance(ref_value, str) and ref_value.strip() else None
-    )
-    raw_kwargs = plain.get("kwargs", {})
-
-    # Only kwargs are forwarded into Dataset(...).
-    kwargs = dict(raw_kwargs)
-    module = load_dataset_module(ref=ref, recipe_dir=recipe_dir)
+    data_src, data_src_args = parse_dataset_reference_config(config)
+    module = load_dataset_module(data_src=data_src, recipe_dir=recipe_dir)
     dataset_cls = getattr(module, "Dataset")
-    return dataset_cls(**kwargs)
+    return dataset_cls(**data_src_args)

@@ -2,9 +2,10 @@ import numpy as np
 import pytest
 import torch
 from hydra.utils import instantiate
-from omegaconf import OmegaConf
+from omegaconf import DictConfig, OmegaConf
 from torch.utils.data import BatchSampler, Sampler
 
+from espnet3.components.data import data_organizer as data_organizer_module
 from espnet3.components.data.data_organizer import DataOrganizer, do_nothing
 from espnet3.components.data.dataloader import DataLoaderBuilder
 from espnet3.components.data.dataset import ShardedDataset
@@ -46,8 +47,9 @@ from espnet3.utils.config_utils import load_config_with_defaults
 # - DummyDataset and DummyDatasetSameLength are used to simulate real-world data layout
 # - All `DataLoaderBuilder.build(mode)` modes are exercised: standard, iter_factory
 
+DUMMY_DATA_SRC = "dummy/asr"
 DUMMY_DATASET_TARGET = (
-    "test.espnet3.components.data.test_dataloader_builder." "DummyDataset"
+    "test.espnet3.components.data.test_dataloader_builder.DummyDataset"
 )
 DUMMY_SAME_LENGTH_DATASET_TARGET = (
     "test.espnet3.components.data.test_dataloader_builder." "DummyDatasetSameLength"
@@ -59,11 +61,12 @@ DUMMY_BATCH_SAMPLER_TARGET = (
     "test.espnet3.components.data.test_dataloader_builder." "DummyBatchSampler"
 )
 DUMMY_SHARDED_DATASET_TARGET = (
-    "test.espnet3.components.data.test_dataloader_builder." "DummyShardedDataset"
+    "test.espnet3.components.data.test_dataloader_builder.DummyShardedDataset"
 )
 DUMMY_MISSING_SHARD_TARGET = (
     "test.espnet3.components.data.test_dataloader_builder." "DummyMissingShardMethod"
 )
+DUMMY_SHARDED_DATA_SRC = "dummy/sharded"
 
 
 # -------- Dummy components for testing --------
@@ -155,6 +158,30 @@ class DummyMissingShardMethod:
         raise IndexError
 
 
+@pytest.fixture(autouse=True)
+def patch_dataset_reference(monkeypatch):
+    def _instantiate_dataset_reference(config, recipe_dir=None):
+        plain = (
+            OmegaConf.to_container(config, resolve=False)
+            if OmegaConf.is_config(config)
+            else dict(config)
+        )
+        dataset = plain.get("dataset")
+        if dataset is not None:
+            if isinstance(dataset, (dict, DictConfig)):
+                return instantiate(dataset)
+            return dataset
+        if plain.get("data_src") == DUMMY_SHARDED_DATA_SRC:
+            return DummyShardedDataset()
+        return DummyDataset()
+
+    monkeypatch.setattr(
+        data_organizer_module,
+        "instantiate_dataset_reference",
+        _instantiate_dataset_reference,
+    )
+
+
 class DummyIterFactory:
     def __init__(self, dataset, batches, **kwargs):
         self.dataset = dataset
@@ -217,6 +244,19 @@ def build_builder(dataset, config, collate_fn, num_device, epoch):
     )
 
 
+def _collect_shard_ids(loader):
+    shard_ids = set()
+    for batch in loader:
+        if isinstance(batch, dict):
+            text = batch["text"][0]
+        elif isinstance(batch, tuple):
+            text = batch[1]["text"][0]
+        else:
+            text = batch[0]["text"]
+        shard_ids.add(text.split("_")[0])
+    return shard_ids
+
+
 # -------- Standard PyTorch DataLoader mode --------
 
 
@@ -264,14 +304,14 @@ def test_common_collate_fn():
         "train": [
             {
                 "name": "train_dummy",
-                "dataset": {"_target_": DUMMY_DATASET_TARGET},
+                "data_src": DUMMY_DATA_SRC,
             }
         ],
     }
     config = OmegaConf.create(config)
     organizer = DataOrganizer(
-        train=instantiate(config["train"]),
-        valid=instantiate(config["train"]),
+        train=config["train"],
+        valid=config["train"],
         preprocessor=do_nothing,
     )
     config = make_standard_dataloader_config()
@@ -322,14 +362,14 @@ def test_iter_factory_from_default_yaml_with_organizer(tmp_path):
         "train": [
             {
                 "name": "train_dummy",
-                "dataset": {"_target_": DUMMY_DATASET_TARGET},
+                "data_src": DUMMY_DATA_SRC,
             }
         ],
     }
     config = OmegaConf.create(config)
     organizer = DataOrganizer(
-        train=instantiate(config["train"]),
-        valid=instantiate(config["train"]),
+        train=config["train"],
+        valid=config["train"],
         preprocessor=do_nothing,
     )
     yaml_text = """
@@ -374,14 +414,14 @@ def test_iter_factory_with_collate_fn(tmp_path):
         "train": [
             {
                 "name": "train_dummy",
-                "dataset": {"_target_": DUMMY_DATASET_TARGET},
+                "data_src": DUMMY_DATA_SRC,
             }
         ],
     }
     config = OmegaConf.create(config)
     organizer = DataOrganizer(
-        train=instantiate(config["train"]),
-        valid=instantiate(config["train"]),
+        train=config["train"],
+        valid=config["train"],
         preprocessor=do_nothing,
     )
     yaml_text = """
@@ -495,14 +535,24 @@ class DummyShardOnlyDataset(ShardedDataset):
         return DummyShardOnlyDataset(idx)
 
 
-def _collect_shard_ids(loader):
-    shard_ids = set()
-    for batch in loader:
-        text = batch["text"][0] if isinstance(batch, dict) else batch[0]["text"]
-        shard_ids.add(text.split("_")[0])
-        if len(shard_ids) >= 4:
-            break
-    return shard_ids
+@pytest.fixture
+def dummy_multiple_iterator_dataset(tmp_path):
+    # YAML-style instantiation config for 3 shards
+    dataset_config = {
+        "train": [
+            {
+                "name": "shard0",
+                "data_src": DUMMY_SHARDED_DATA_SRC,
+            },
+        ],
+        "valid": [
+            {
+                "name": "valid",
+                "data_src": DUMMY_SHARDED_DATA_SRC,
+            }
+        ],
+    }
+    return OmegaConf.create(dataset_config)
 
 
 def _first_shard_id(loader):
@@ -521,6 +571,23 @@ def test_sharded_dataset_single_gpu_multiple_shards():
     builder = build_builder(
         organizer.train, config, collate_fn=None, num_device=1, epoch=0
     )
+    assert _collect_shard_ids(builder.build("train")) == {"shard0"}
+
+
+def test_multiple_iterator_shard_initialization(dummy_multiple_iterator_dataset):
+    organizer = DataOrganizer(
+        train=dummy_multiple_iterator_dataset.train,
+        valid=dummy_multiple_iterator_dataset.valid,
+    )
+    config = make_standard_dataloader_config()
+    config.dataloader.train.batch_size = 1
+    builder = DataLoaderBuilder(
+        dataset=organizer.train,
+        config=config,
+        collate_fn=None,
+        num_device=1,
+        epoch=0,
+    )
     loader = builder.build("train")
     shard_ids = _collect_shard_ids(loader)
     assert shard_ids == {"shard0"}
@@ -536,23 +603,18 @@ def test_sharded_dataset_single_gpu_multiple_shards():
     ],
 )
 def test_sharded_dataset_multi_gpu_assignment(
-    monkeypatch, world_size, num_shards, rank, expected
+    monkeypatch, dummy_multiple_iterator_dataset, world_size, num_shards, rank, expected
 ):
-    def _get_world_size():
-        return world_size
-
-    def _get_rank():
-        return rank
-
-    monkeypatch.setattr(torch.distributed, "get_world_size", _get_world_size)
-    monkeypatch.setattr(torch.distributed, "get_rank", _get_rank)
-
-    organizer = build_organizer(
-        DUMMY_SHARDED_DATASET_TARGET,
-        dataset_kwargs={"num_shards": num_shards, "world_shard_size": world_size},
+    monkeypatch.setattr(torch.distributed, "get_world_size", lambda: world_size)
+    monkeypatch.setattr(torch.distributed, "get_rank", lambda: rank)
+    organizer = DataOrganizer(
+        train=dummy_multiple_iterator_dataset["train"],
+        valid=dummy_multiple_iterator_dataset["valid"],
     )
     config = make_standard_dataloader_config()
     config.dataloader.train.batch_size = 1
+    organizer.train.datasets[0].num_shards = num_shards
+    organizer.train.datasets[0].world_shard_size = world_size
     builder = DataLoaderBuilder(
         organizer.train, config, collate_fn=None, num_device=world_size, epoch=0
     )

@@ -78,7 +78,22 @@ def _default_chunk(indices: Sequence[int], num_chunks: int) -> List[List[int]]:
 
 
 def convert_paths(obj):
-    """Recursively convert Path objects to strings in the given object."""
+    """Recursively convert :class:`pathlib.Path` objects to strings.
+
+    This is primarily used to make configs and environment objects JSON
+    serializable before sending them to Dask workers.
+
+    Args:
+        obj: Arbitrary nested structure containing dict/list/Path leaves.
+
+    Returns:
+        Any: A new structure where all ``Path`` instances are converted to ``str``.
+
+    Example:
+        >>> from pathlib import Path
+        >>> convert_paths({"p": Path("a/b")})
+        {'p': 'a/b'}
+    """
     if isinstance(obj, dict):
         return {k: convert_paths(v) for k, v in obj.items()}
     elif isinstance(obj, list):
@@ -201,6 +216,23 @@ class BaseRunner(ABC):
             ...         return model(xs)
         """
         raise NotImplementedError
+
+    @classmethod
+    def batch_forward(cls, indices: Iterable[int], *, dataset, model, **env) -> Any:
+        """Compute a batch by delegating to ``forward`` per index as a default.
+
+        This should be overridden by subclasses that can handle batched inputs.
+
+        Args:
+            indices (Iterable[int]): Indices to process as a batch.
+            dataset: Dataset object provided via the environment.
+            model: Model object provided via the environment.
+            **env: Any additional environment entries injected by the provider.
+
+        Returns:
+            Any: Batch result from the runner.
+        """
+        return [cls.forward(i, dataset=dataset, model=model, **env) for i in indices]
 
     def _run_local(self, indices: Sequence[int]) -> List[Any]:
         """Run sequentially on the driver using a locally built environment.

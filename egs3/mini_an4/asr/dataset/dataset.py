@@ -11,7 +11,7 @@ import numpy as np
 import soundfile as sf
 from torch.utils.data import Dataset as TorchDataset
 
-from egs3.mini_an4.asr.dataset.builder import MiniAN4Builder
+from egs3.mini_an4.asr.dataset.builder import MiniAn4Builder
 from espnet3.utils.config_utils import load_config_with_defaults
 
 # ---------------------------------------------------------------------------
@@ -78,7 +78,7 @@ def _read_manifest(manifest_path: Path) -> list[ManifestEntry]:
 # ---------------------------------------------------------------------------
 
 
-class MiniAN4Dataset(TorchDataset):
+class MiniAn4Dataset(TorchDataset):
     """Mini AN4 dataset that returns ``{\"speech\", \"text\"}`` samples."""
 
     def __init__(self, split: str, recipe_dir: str | Path | None = None) -> None:
@@ -90,7 +90,7 @@ class MiniAN4Dataset(TorchDataset):
         )
         self.dataset_dir = recipe_root / _BUILDER_CFG["data_path"]
 
-        builder = MiniAN4Builder()
+        builder = MiniAn4Builder()
         if not builder.is_source_prepared(recipe_dir=recipe_root):
             builder.prepare_source(recipe_dir=recipe_root)
         if not builder.is_built(recipe_dir=recipe_root):
