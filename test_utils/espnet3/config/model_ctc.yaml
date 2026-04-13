@@ -14,27 +14,27 @@ dataset:
   _target_: espnet3.components.data.data_organizer.DataOrganizer
   train:
     - name: train-clean-100
-      data_src: test_utils_dummy/asr
+      data_src: mini_an4/asr
       data_src_args:
-        split: train-clean-100
+        split: train
   valid:
     - name: dev-clean
-      data_src: test_utils_dummy/asr
+      data_src: mini_an4/asr
       data_src_args:
-        split: dev-clean
+        split: valid
     - name: dev-other
-      data_src: test_utils_dummy/asr
+      data_src: mini_an4/asr
       data_src_args:
-        split: dev-other
+        split: valid
   test:
     - name: test-clean
-      data_src: test_utils_dummy/asr
+      data_src: mini_an4/asr
       data_src_args:
-        split: test-clean
+        split: test
     - name: test-other
-      data_src: test_utils_dummy/asr
+      data_src: mini_an4/asr
       data_src_args:
-        split: test-other
+        split: test
 
   preprocessor:
     _target_: espnet2.train.preprocessor.CommonPreprocessor
