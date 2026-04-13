@@ -1,7 +1,7 @@
 """ASR system implementation and tokenizer training helpers.
 
-This module adds ASR-specific stages on top of the base system, including
-tokenizer training and dataset creation hooks.
+This module adds ASR-specific stages on top of the base system, primarily
+tokenizer training support.
 """
 
 import logging
@@ -17,34 +17,11 @@ from espnet3.systems.base.system import BaseSystem
 logger = logging.getLogger(__name__)
 
 
-def load_function(path):
-    """Load a callable from a dotted module path.
-
-    Args:
-        path: Dotted module path (e.g., ``package.module.function``).
-
-    Returns:
-        Callable referenced by the path.
-
-    Raises:
-        (Exception): Propagated import or attribute lookup errors.
-
-    Example:
-        >>> fn = load_function("math.sqrt")
-        >>> fn(9)
-        3.0
-    """
-    module_path, func_name = path.rsplit(".", 1)
-    module = import_module(module_path)
-    return getattr(module, func_name)
-
-
 class ASRSystem(BaseSystem):
     """ASR-specific system.
 
     This system adds:
       - Tokenizer training inside train()
-      - Dataset creation via ``create_dataset``
 
     Additional stage log paths:
         | Stage           | Path reference                  |
@@ -70,34 +47,6 @@ class ASRSystem(BaseSystem):
             **kwargs,
         )
 
-    def create_dataset(self, *args, **kwargs):
-        """Create datasets using the configured helper function.
-
-        The callable is resolved from ``training_config.create_dataset.func`` and
-        invoked with the remaining configuration values.
-
-        Raises:
-            RuntimeError: If the configuration does not specify a function.
-        """
-        self._reject_stage_args("create_dataset", args, kwargs)
-        logger.info("ASRSystem.create_dataset(): starting dataset creation process")
-        start = time.perf_counter()
-        config = getattr(self.training_config, "create_dataset", None)
-        if config is None or not getattr(config, "func", None):
-            raise RuntimeError(
-                "training_config.create_dataset.func must be set to run create_dataset"
-            )
-        fn = load_function(config.func)
-        extra = {k: v for k, v in config.items() if k != "func"}
-        logger.info("Creating dataset with function %s", config.func)
-        result = fn(**extra)
-        logger.info(
-            "Dataset creation completed in %.2fs using %s",
-            time.perf_counter() - start,
-            config.func,
-        )
-        return result
-
     def train(self, *args, **kwargs):
         """Train the model, training the tokenizer first if needed.
 
@@ -105,14 +54,18 @@ class ASRSystem(BaseSystem):
         training before delegating to the base training routine.
 
         Raises:
-            RuntimeError: If ``training_config.dataset_dir`` is not set.
+            RuntimeError: If neither dataset references nor ``dataset_dir`` exist.
         """
         self._reject_stage_args("train", args, kwargs)
         logger.info("ASRSystem.train(): starting training process")
 
         dataset_dir = getattr(self.training_config, "dataset_dir", None)
-        if dataset_dir is None:
-            raise RuntimeError("training_config.dataset_dir must be set for training.")
+        dataset_config = getattr(self.training_config, "dataset", None)
+        if dataset_dir is None and dataset_config is None:
+            raise RuntimeError(
+                "training_config.dataset or training_config.dataset_dir must be set "
+                "for training."
+            )
 
         # Train tokenizer if not trained previously
         if not self._has_tokenizer():
@@ -155,7 +108,8 @@ class ASRSystem(BaseSystem):
                 "training_config.tokenizer.text_builder.func must be set to build "
                 "tokenizer text."
             )
-        builder = load_function(builder_config.func)
+        module_path, func_name = builder_config.func.rsplit(".", 1)
+        builder = getattr(import_module(module_path), func_name)
         builder_kwargs = {k: v for k, v in builder_config.items() if k != "func"}
         logger.info("Building tokenizer training text via %s", builder_config.func)
         built = builder(**builder_kwargs)

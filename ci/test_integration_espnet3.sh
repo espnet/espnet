@@ -15,10 +15,10 @@ gen_dummy_coverage(){
 
 python3 -m pip install -e '.[asr]'
 
-cd ./egs3/mini_an4/asr
+cd ./egs3/mini_an4/asr || exit
 gen_dummy_coverage
 echo "==== [ESPnet3] ASR ===="
-source ./path.sh
+source path.sh
 run_with_training_config() {
     local training_config=$1
     local runner=$2
@@ -33,7 +33,7 @@ run_with_training_config() {
     rm -rf exp data
 }
 
-debug_configs=(
+training_configs=(
     training_asr_rnn_data_aug.yaml
     training_asr_rnn.yaml
     training_asr_streaming.yaml
@@ -41,7 +41,7 @@ debug_configs=(
     training_asr_transducer.yaml
 )
 
-for training_config in "${debug_configs[@]}"; do
+for training_config in "${training_configs[@]}"; do
     run_with_training_config "${training_config}" run.py conf/inference.yaml
 done
 
@@ -63,7 +63,6 @@ run_with_tts_config() {
     local inference_config=$2
 
     ln -sfn "${training_config}" conf/training.yaml
-    ln -sfn "${inference_config}" conf/inference.yaml
     ${python} run.py \
         --stages create_dataset collect_stats train infer \
         --training_config conf/training.yaml \
@@ -71,7 +70,7 @@ run_with_tts_config() {
     rm -rf exp data
 }
 
-run_with_tts_config training_tacotron2.yaml inference_tacotron2.yaml
-run_with_tts_config training_vits.yaml inference_vits.yaml
+run_with_tts_config training_tacotron2.yaml inference.yaml
+run_with_tts_config training_vits.yaml inference.yaml
 
 cd "${cwd}"

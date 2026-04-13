@@ -14,27 +14,27 @@ dataset:
   _target_: espnet3.components.data.data_organizer.DataOrganizer
   train:
     - name: train-clean-100
-      dataset:
-        _target_: egs3.librispeech_100.asr1.dataset.LibriSpeechDataset
-        split: train-clean-100
+      data_src: mini_an4/asr
+      data_src_args:
+        split: train
   valid:
     - name: dev-clean
-      dataset:
-        _target_: egs3.librispeech_100.asr1.dataset.LibriSpeechDataset
-        split: dev-clean
+      data_src: mini_an4/asr
+      data_src_args:
+        split: valid
     - name: dev-other
-      dataset:
-        _target_: egs3.librispeech_100.asr1.dataset.LibriSpeechDataset
-        split: dev-other
+      data_src: mini_an4/asr
+      data_src_args:
+        split: valid
   test:
     - name: test-clean
-      dataset:
-        _target_: egs3.librispeech_100.asr1.dataset.LibriSpeechDataset
-        split: test-clean
+      data_src: mini_an4/asr
+      data_src_args:
+        split: test
     - name: test-other
-      dataset:
-        _target_: egs3.librispeech_100.asr1.dataset.LibriSpeechDataset
-        split: test-other
+      data_src: mini_an4/asr
+      data_src_args:
+        split: test
 
   preprocessor:
     _target_: espnet2.train.preprocessor.CommonPreprocessor

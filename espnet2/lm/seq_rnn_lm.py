@@ -47,10 +47,8 @@ class SequentialRNNLM(AbsLM):
             try:
                 nonlinearity = {"RNN_TANH": "tanh", "RNN_RELU": "relu"}[rnn_type]
             except KeyError:
-                raise ValueError(
-                    """An invalid option for `--model` was supplied,
-                    options are ['LSTM', 'GRU', 'RNN_TANH' or 'RNN_RELU']"""
-                )
+                raise ValueError("""An invalid option for `--model` was supplied,
+                    options are ['LSTM', 'GRU', 'RNN_TANH' or 'RNN_RELU']""")
             self.rnn = nn.RNN(
                 ninp,
                 nhid,

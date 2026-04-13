@@ -4,6 +4,11 @@ from egs3.TEMPLATE.asr.run import build_parser, parse_cli_and_stage_args
 from espnet3.systems.tts.system import TTSSystem
 from espnet3.utils.config_utils import load_and_merge_config
 from espnet3.utils.logging_utils import configure_logging
+from espnet3.utils.run_utils import (
+    apply_training_experiment_context,
+    resolve_loaded_configs,
+    validate_experiment_context,
+)
 from espnet3.utils.stages_utils import resolve_stages, run_stages
 
 DEFAULT_STAGES = [
@@ -25,11 +30,13 @@ def main(args) -> None:
         args.training_config,
         config_name="training.yaml",
         default_package=__package__,
+        resolve=False,
     )
     inference_config = load_and_merge_config(
         args.inference_config,
         config_name="inference.yaml",
         default_package=__package__,
+        resolve=False,
     )
     publish_config = load_and_merge_config(
         args.publish_config,
@@ -42,6 +49,19 @@ def main(args) -> None:
         default_package=__package__,
     )
     logger = configure_logging()
+    apply_training_experiment_context(
+        training_config=training_config,
+        inference_config=inference_config,
+        metrics_config=None,
+        log=logger,
+    )
+    validate_experiment_context(
+        training_config=training_config,
+        inference_config=inference_config,
+        metrics_config=None,
+        stages_to_run=stages_to_run,
+    )
+    resolve_loaded_configs(training_config, inference_config)
 
     system = TTSSystem(
         training_config=training_config,

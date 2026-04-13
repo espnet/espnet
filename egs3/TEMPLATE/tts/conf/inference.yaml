@@ -15,8 +15,7 @@ recipe_dir: .
 exp_tag:
 exp_dir: ${recipe_dir}/exp/${exp_tag}
 data_dir: ${recipe_dir}/data
-dataset_dir: /path/to/your/dataset
-inference_dir: ${exp_dir}/inference
+inference_dir: ${exp_dir}/${self_name:}
 
 # Test split definitions are required for inference.
 # `dataset.test[*].name` becomes the output subdirectory name under

@@ -4,7 +4,6 @@ import logging
 from typing import List, Optional, Tuple, Union
 
 import torch
-from packaging.version import parse as V
 from torch.nn import functional as F
 from torch_complex.tensor import ComplexTensor
 
@@ -12,10 +11,6 @@ import espnet2.enh.layers.beamformer as bf_v1
 import espnet2.enh.layers.beamformer_th as bf_v2
 from espnet2.enh.layers.complex_utils import stack, to_double, to_float
 from espnet2.enh.layers.mask_estimator import MaskEstimator
-
-is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
-is_torch_1_12_1_plus = V(torch.__version__) >= V("1.12.1")
-
 
 BEAMFORMER_TYPES = (
     # Minimum Variance Distortionless Response beamformer
@@ -158,7 +153,7 @@ class DNN_Beamformer(torch.nn.Module):
                 "Now it will always be true in DNN_Beamformer"
             )
 
-        if use_torchaudio_api and is_torch_1_12_1_plus:
+        if use_torchaudio_api:
             self.bf_func = bf_v2
         else:
             self.bf_func = bf_v1

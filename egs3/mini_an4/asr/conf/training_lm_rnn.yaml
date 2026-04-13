@@ -1,40 +1,39 @@
 ##########################################################
 #                    TRAINING SETTING                    #
 ##########################################################
-# This is a debug config for CI.
-# Mini AN4 LM-RNN training config for ESPnet3 integration tests.
-
+# Quick usage:
+#   python run.py --stages create_dataset --training_config conf/training.yaml
+#   python run.py --stages train          --training_config conf/training.yaml
+#
 ##########################################################
 #                  SYSTEM AND PATH SETTING               #
 ##########################################################
 task: espnet3.systems.asr.task.ASRTask
 
-exp_tag: train_lm_rnn_debug
-dataset_dir: ${data_dir}/mini_an4
-
-##########################################################
-#                 DATASET CREATION SETTING               #
-##########################################################
-create_dataset:
-  func: src.creating_dataset.create_dataset
-  dataset_dir: ${dataset_dir}
-  archive_path: ${recipe_dir}/../../egs2/mini_an4/asr1/downloads.tar.gz
-
 ##########################################################
 #                    DATASET DEFINITION                  #
 ##########################################################
-# Reuse the ASR manifests and tokenize the transcript text for LM training.
+# Each entry below is a dataset reference consumed by `DataOrganizer`.
+# - `data_src` is omitted, so ESPnet3 loads `${recipe_dir}/dataset/__init__.py`
+#   and instantiates its exported `Dataset` class (`MiniAn4Dataset` here).
+# - `data_src_args` is passed directly to `Dataset(...)`.
+# - top-level keys such as `transform` stay in organizer space and are not
+#   forwarded to `Dataset(...)`.
+#
+# Dataset splits:
+#   train:
+#     - split="train" from `MiniAn4Dataset`
+#   valid:
+#     - split="valid" from `MiniAn4Dataset`
+# Notes:
+#   - actual data sources are defined via `${recipe_dir}`
 dataset:
   train:
-    - name: train_nodev
-      dataset:
-        _target_: src.dataset.MiniAN4Dataset
-        manifest_path: ${dataset_dir}/manifest/train_nodev.tsv
+    - data_src_args:
+        split: train
   valid:
-    - name: train_dev
-      dataset:
-        _target_: src.dataset.MiniAN4Dataset
-        manifest_path: ${dataset_dir}/manifest/train_dev.tsv
+    - data_src_args:
+        split: valid
   preprocessor:
     _target_: espnet2.train.preprocessor.CommonPreprocessor
     train: true
@@ -42,6 +41,9 @@ dataset:
     token_list: ${tokenizer.save_path}/tokens.txt
     bpemodel: ${tokenizer.save_path}/bpe.model
     text_cleaner:
+
+create_dataset:
+  recipe_dir: ${recipe_dir}
 
 ##########################################################
 #                   TOKENIZER SETTING                    #
@@ -53,7 +55,7 @@ tokenizer:
   save_path: ${data_dir}/${tokenizer.model_type}_${tokenizer.vocab_size}
   text_builder:
     func: src.tokenizer.gather_training_text
-    manifest_path: ${dataset_dir}/manifest/train_nodev.tsv
+    manifest_path: ${data_dir}/manifest/train.tsv
 
 ##########################################################
 #                      MODEL SETTING                     #

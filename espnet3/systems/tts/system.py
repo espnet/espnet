@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging
 import time
-from importlib import import_module
 from pathlib import Path
 from typing import Any, Dict
 
@@ -24,13 +23,6 @@ from espnet3.utils.task_utils import get_espnet_model, save_espnet_config
 logger = logging.getLogger(__name__)
 
 
-def load_function(path: str):
-    """Load a callable from a dotted module path."""
-    module_path, func_name = path.rsplit(".", 1)
-    module = import_module(module_path)
-    return getattr(module, func_name)
-
-
 def _instantiate_model(config: DictConfig) -> Any:
     task = config.get("task")
     if task:
@@ -41,24 +33,6 @@ def _instantiate_model(config: DictConfig) -> Any:
 
 class TTSSystem(BaseSystem):
     """TTS-specific system with local trainer customization."""
-
-    def create_dataset(self, *args, **kwargs):
-        self._reject_stage_args("create_dataset", args, kwargs)
-        start = time.perf_counter()
-        config = getattr(self.training_config, "create_dataset", None)
-        if config is None or not getattr(config, "func", None):
-            raise RuntimeError(
-                "training_config.create_dataset.func must be set to run create_dataset"
-            )
-        fn = load_function(config.func)
-        extra = {k: v for k, v in config.items() if k != "func"}
-        result = fn(**extra)
-        logger.info(
-            "Dataset creation completed in %.2fs using %s",
-            time.perf_counter() - start,
-            config.func,
-        )
-        return result
 
     def _ensure_directories(self) -> None:
         config = self.training_config
@@ -93,6 +67,34 @@ class TTSSystem(BaseSystem):
         torch.set_float32_matmul_precision("high")
 
     def collect_stats(self, *args, **kwargs):
+        """Run the collect_stats stage using the configured trainer.
+
+        Prepares the training runtime (directories, parallelism, seed), then
+        delegates to the trainer's ``collect_stats`` method.  Positional and
+        keyword stage arguments are rejected to avoid silent misconfiguration.
+
+        Args:
+            *args: Must be empty.  Passing any positional argument raises
+                ``ValueError`` via ``_reject_stage_args``.
+            **kwargs: Must be empty.  Passing any keyword argument raises
+                ``ValueError`` via ``_reject_stage_args``.
+
+        Returns:
+            None
+
+        Raises:
+            ValueError: If any positional or keyword arguments are passed.
+
+        Notes:
+            The ``normalize: null`` pattern from recipe configs is intentionally
+            preserved — no normalization is applied during stats collection.
+
+        Examples:
+            >>> from omegaconf import OmegaConf
+            >>> cfg = OmegaConf.create({"exp_dir": "/tmp/exp"})
+            >>> system = TTSSystem(training_config=cfg)
+            >>> system.collect_stats()  # runs stats collection end-to-end
+        """
         self._reject_stage_args("collect_stats", args, kwargs)
         start = time.perf_counter()
         self._prepare_training_runtime()
@@ -108,6 +110,41 @@ class TTSSystem(BaseSystem):
         )
 
     def train(self, *args, **kwargs):
+        """Run the training stage using the configured trainer.
+
+        Prepares the runtime, optionally saves the ESPnet config, then calls
+        ``trainer.fit`` with any keyword arguments drawn from
+        ``training_config.fit``.  For GAN models, a ``GANTTSLightningTrainer``
+        is used automatically; for all other models, ``ESPnet3LightningTrainer``
+        is used.
+
+        Args:
+            *args: Must be empty.  Passing any positional argument raises
+                ``ValueError`` via ``_reject_stage_args``.
+            **kwargs: Must be empty.  Passing any keyword argument raises
+                ``ValueError`` via ``_reject_stage_args``.
+
+        Returns:
+            None
+
+        Raises:
+            ValueError: If any positional or keyword arguments are passed.
+
+        Notes:
+            ``training_config.fit`` is forwarded verbatim to ``trainer.fit``.
+            Common keys include ``max_epochs``, ``ckpt_path``, etc.
+
+        Examples:
+            >>> from omegaconf import OmegaConf
+            >>> cfg = OmegaConf.create({
+            ...     "exp_dir": "/tmp/exp",
+            ...     "task": "tts",
+            ...     "model": {"_target_": "my.Model"},
+            ...     "fit": {"max_epochs": 10},
+            ... })
+            >>> system = TTSSystem(training_config=cfg)
+            >>> system.train()  # trains the model for 10 epochs
+        """
         self._reject_stage_args("train", args, kwargs)
         start = time.perf_counter()
         self._prepare_training_runtime()

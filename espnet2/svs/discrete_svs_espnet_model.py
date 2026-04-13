@@ -5,11 +5,10 @@
 
 """Singing-voice-synthesis ESPnet model."""
 
-from contextlib import contextmanager
-from distutils.version import LooseVersion
 from typing import Dict, Optional, Tuple
 
 import torch
+from torch.cuda.amp import autocast
 
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.inversible_interface import InversibleInterface
@@ -21,14 +20,6 @@ from espnet2.svs.feats_extract.score_feats_extract import (
     expand_to_frame,
 )
 from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
-
-if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
-    from torch.cuda.amp import autocast
-else:
-    # Nothing to do if torch<1.6.0
-    @contextmanager
-    def autocast(enabled=True):  # NOQA
-        yield
 
 
 class ESPnetDiscreteSVSModel(ESPnetSVSModel):

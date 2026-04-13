@@ -36,7 +36,7 @@ dependencies = [
     "soundfile>=0.10.2",
     "torch_optimizer",
     "kaldiio>=2.18.0",
-    "sentencepiece==0.2.0",
+    "sentencepiece==0.2.1",
     "librosa>=0.10.2",
     "lightning",
     "torch_complex",
@@ -102,10 +102,9 @@ asr2 = [
   "editdistance",
 ]
 
-# We didn't specify s3prl version as it should be installed via github.
 s2st = [
   "editdistance",
-  "s3prl",
+  "s3prl @ git+https://github.com/espnet/s3prl.git@572af70",
 ]
 
 st = [

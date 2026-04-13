@@ -7,7 +7,7 @@
 #   python run.py --stages train          --training_config conf/training.yaml
 #
 # Main stages and what this config is used for:
-# - `create_dataset`: uses `create_dataset`
+# - `create_dataset`: uses `dataset` and optional `create_dataset` builder kwargs
 # - `collect_stats`: uses `dataset`, `dataloader`, `model`, and `parallel`
 # - `train`: uses most fields in this file
 
@@ -31,45 +31,43 @@ exp_tag:
 exp_dir: ${recipe_dir}/exp/${exp_tag}
 stats_dir: ${exp_dir}/stats
 inference_dir: ${exp_dir}/inference
-dataset_dir: /path/to/your/dataset
 
 ##########################################################
 #                 DATASET CREATION SETTING               #
 ##########################################################
-# Optional dataset creation hook for the `create_dataset` stage.
-# The function is resolved from `create_dataset.func` and called with the
-# remaining fields in this block as keyword arguments.
-create_dataset:
-  func: src.creating_dataset.create_dataset
-  dataset_dir: ${dataset_dir}
+# Optional keyword arguments forwarded to the recipe-local `DatasetBuilder`.
+# When omitted, `BaseSystem.create_dataset()` still works as long as `dataset`
+# points at a local or external dataset module exposing `DatasetBuilder`.
+#
+# Example:
+# create_dataset:
+#   recipe_dir: ${recipe_dir}
 
 ##########################################################
 #                    DATASET DEFINITION                  #
 ##########################################################
 # Dataset organizer used across collect_stats/train.
-# Fill `train` and `valid` with named dataset entries.
+# Fill `train` and `valid` with dataset reference entries.
 #
 # Example:
 # dataset:
 #   _target_: espnet3.components.data.data_organizer.DataOrganizer
+#   recipe_dir: ${recipe_dir}
 #   train:
-#     - name: train_nodev
-#       dataset:
-#         _target_: src.dataset.YourTTSDataset
-#         manifest_path: ${dataset_dir}/manifest/train_nodev.tsv
+#     - data_src_args:
+#         split: train
 #   valid:
-#     - name: train_dev
-#       dataset:
-#         _target_: src.dataset.YourTTSDataset
-#         manifest_path: ${dataset_dir}/manifest/train_dev.tsv
+#     - data_src_args:
+#         split: valid
 #   preprocessor:
 #     _target_: espnet2.train.preprocessor.CommonPreprocessor
 #     fs: 16000
 #     train: true
 #     token_type: char
-#     token_list: ${dataset_dir}/tokens.txt
+#     token_list: ${data_dir}/tokens.txt
 dataset:
   _target_: espnet3.components.data.data_organizer.DataOrganizer
+  recipe_dir: ${recipe_dir}
   train:
   valid:
   preprocessor:
@@ -86,7 +84,7 @@ dataset:
 # Example:
 # task: espnet2.tasks.tts.TTSTask
 # model:
-#   token_list: ${dataset_dir}/tokens.txt
+#   token_list: ${data_dir}/tokens.txt
 #   token_type: char
 #   feats_extract: fbank
 #   feats_extract_conf:
@@ -102,7 +100,7 @@ dataset:
 # Example GAN-TTS:
 # task: espnet2.tasks.gan_tts.GANTTSTask
 # model:
-#   token_list: ${dataset_dir}/tokens.txt
+#   token_list: ${data_dir}/tokens.txt
 #   token_type: char
 #   feats_extract: fbank
 #   normalize: null
@@ -201,12 +199,11 @@ parallel:
 dataloader:
   collate_fn:
     _target_: espnet2.train.collate_fn.CommonCollateFn
-    int_pad_value: -1
+    int_pad_value: 0
     float_pad_value: 0.0
 
   # Training dataloader / iterator settings.
   train:
-    num_shards: 1
     iter_factory:
       _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
       shuffle: true
@@ -216,12 +213,11 @@ dataloader:
         type: unsorted
         shape_files:
           - ${stats_dir}/train/feats_shape
-        batch_size: 4
+        batch_size: 1
         batch_bins: 4000000
 
   # Validation dataloader / iterator settings.
   valid:
-    num_shards: 1
     iter_factory:
       _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
       shuffle: false

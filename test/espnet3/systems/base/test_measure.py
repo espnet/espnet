@@ -4,20 +4,20 @@ from pathlib import Path
 import pytest
 from omegaconf import OmegaConf
 
-from espnet3.components.metrics.abs_metric import AbsMetric
+from espnet3.components.metrics.base_metric import BaseMetric
 from espnet3.systems.base.metric import measure
 from espnet3.utils.scp_utils import get_class_path
 
 
-class DummyMetric(AbsMetric):
+class DummyMetric(BaseMetric):
     ref_key = "ref"
     hyp_key = "hyp"
 
     def __call__(self, data, test_name, inference_dir):
-        return {"count": len(data["utt_id"])}
+        return {"count": sum(1 for _ in self.iter_inputs(data, "ref"))}
 
 
-class NoKeyMetric(AbsMetric):
+class NoKeyMetric(BaseMetric):
     def __call__(self, data, test_name, inference_dir):
         return {"ok": True}
 
@@ -91,7 +91,7 @@ def test_metric_rejects_non_metric_instance(tmp_path):
         }
     )
 
-    with pytest.raises(TypeError, match="not a valid AbsMetric instance"):
+    with pytest.raises(TypeError, match="not a valid BaseMetric instance"):
         measure(cfg)
 
 

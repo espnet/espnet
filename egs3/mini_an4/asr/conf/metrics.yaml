@@ -4,12 +4,9 @@
 # Quick usage:
 #   python run.py --stages measure --metrics_config conf/metrics.yaml
 #
-# Mini AN4 ASR metrics config for ESPnet3 integration tests.
-
 ##########################################################
 #                    PATHS AND INPUTS                    #
 ##########################################################
-exp_tag: ${load_yaml:training.yaml,exp_tag}
 inference_dir: ${exp_dir}/inference
 
 ##########################################################

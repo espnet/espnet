@@ -1,0 +1,19 @@
+builder:
+  data_path: data
+  token_list_path: data/tokens.txt
+  manifest_paths:
+    train: manifest/train.tsv
+    valid: manifest/valid.tsv
+    test: manifest/test.tsv
+
+dataset:
+  train:
+    split: train
+  valid:
+    split: valid
+  test:
+    split: test
+  split_manifest_paths:
+    train: manifest/train.tsv
+    valid: manifest/valid.tsv
+    test: manifest/test.tsv

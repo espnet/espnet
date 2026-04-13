@@ -1,9 +1,8 @@
 import logging
-from contextlib import contextmanager
 from typing import Dict, List, Optional, Tuple, Union
 
 import torch
-from packaging.version import parse as V
+from torch.cuda.amp import autocast
 from typeguard import typechecked
 
 from espnet2.asr.ctc import CTC
@@ -27,20 +26,8 @@ from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 
 autocast_type = torch.float16
-if V(torch.__version__) >= V("1.6.0"):
-    from torch.cuda.amp import autocast
-
-    if (
-        V(torch.__version__) >= V("1.10.0")
-        and torch.cuda.is_available()
-        and torch.cuda.is_bf16_supported()
-    ):
-        autocast_type = torch.bfloat16
-else:
-    # Nothing to do if torch<1.6.0
-    @contextmanager
-    def autocast(enabled=True):
-        yield
+if torch.cuda.is_available() and torch.cuda.is_bf16_supported():
+    autocast_type = torch.bfloat16
 
 
 class ESPnetASRModel(AbsESPnetModel):

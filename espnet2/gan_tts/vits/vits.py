@@ -3,11 +3,10 @@
 
 """VITS module for GAN-TTS task."""
 
-from contextlib import contextmanager
-from distutils.version import LooseVersion
 from typing import Any, Dict, Optional
 
 import torch
+from torch.cuda.amp import autocast
 from typeguard import typechecked
 
 from espnet2.gan_tts.abs_gan_tts import AbsGANTTS
@@ -39,14 +38,6 @@ AVAILABLE_DISCRIMINATORS = {
     "hifigan_multi_scale_discriminator": HiFiGANMultiScaleDiscriminator,
     "hifigan_multi_scale_multi_period_discriminator": HiFiGANMultiScaleMultiPeriodDiscriminator,  # NOQA
 }
-
-if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
-    from torch.cuda.amp import autocast
-else:
-    # Nothing to do if torch<1.6.0
-    @contextmanager
-    def autocast(enabled=True):  # NOQA
-        yield
 
 
 class VITS(AbsGANTTS):
@@ -274,8 +265,12 @@ class VITS(AbsGANTTS):
         if plot_pred_mos:
             if mos_pred_tool == "utmos":
                 # Load predictor for UTMOS22 (https://arxiv.org/abs/2204.02152)
+                # trust_repo=True suppresses PyTorch >= 2.0's interactive
+                # confirmation prompt; tarepan/SpeechMOS is a trusted source.
                 self.predictor = torch.hub.load(
-                    "tarepan/SpeechMOS:v1.2.0", "utmos22_strong"
+                    "tarepan/SpeechMOS:v1.2.0",
+                    "utmos22_strong",
+                    trust_repo=True,
                 )
             else:
                 raise NotImplementedError(

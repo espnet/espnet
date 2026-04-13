@@ -2,7 +2,6 @@
 
 import copy
 import logging
-from typing import Union
 
 import torch
 from hydra.utils import instantiate

@@ -16,7 +16,7 @@
 recipe_dir: .
 exp_tag:
 exp_dir: ${recipe_dir}/exp/${exp_tag}
-inference_dir: ${exp_dir}/inference
+inference_dir: ${exp_dir}/${self_name:}
 
 
 ##########################################################

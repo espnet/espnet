@@ -68,4 +68,3 @@ def test_build_gan_trainer_uses_gan_module_and_wrapper(monkeypatch):
         training_config.trainer,
         training_config.best_model_criterion,
     )
-
