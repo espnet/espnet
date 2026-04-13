@@ -67,7 +67,34 @@ class TTSSystem(BaseSystem):
         torch.set_float32_matmul_precision("high")
 
     def collect_stats(self, *args, **kwargs):
-        """Run the collect_stats stage using the configured trainer."""
+        """Run the collect_stats stage using the configured trainer.
+
+        Prepares the training runtime (directories, parallelism, seed), then
+        delegates to the trainer's ``collect_stats`` method.  Positional and
+        keyword stage arguments are rejected to avoid silent misconfiguration.
+
+        Args:
+            *args: Must be empty.  Passing any positional argument raises
+                ``ValueError`` via ``_reject_stage_args``.
+            **kwargs: Must be empty.  Passing any keyword argument raises
+                ``ValueError`` via ``_reject_stage_args``.
+
+        Returns:
+            None
+
+        Raises:
+            ValueError: If any positional or keyword arguments are passed.
+
+        Notes:
+            The ``normalize: null`` pattern from recipe configs is intentionally
+            preserved — no normalization is applied during stats collection.
+
+        Examples:
+            >>> from omegaconf import OmegaConf
+            >>> cfg = OmegaConf.create({"exp_dir": "/tmp/exp"})
+            >>> system = TTSSystem(training_config=cfg)
+            >>> system.collect_stats()  # runs stats collection end-to-end
+        """
         self._reject_stage_args("collect_stats", args, kwargs)
         start = time.perf_counter()
         self._prepare_training_runtime()
@@ -83,7 +110,41 @@ class TTSSystem(BaseSystem):
         )
 
     def train(self, *args, **kwargs):
-        """Run the training stage using the configured trainer."""
+        """Run the training stage using the configured trainer.
+
+        Prepares the runtime, optionally saves the ESPnet config, then calls
+        ``trainer.fit`` with any keyword arguments drawn from
+        ``training_config.fit``.  For GAN models, a ``GANTTSLightningTrainer``
+        is used automatically; for all other models, ``ESPnet3LightningTrainer``
+        is used.
+
+        Args:
+            *args: Must be empty.  Passing any positional argument raises
+                ``ValueError`` via ``_reject_stage_args``.
+            **kwargs: Must be empty.  Passing any keyword argument raises
+                ``ValueError`` via ``_reject_stage_args``.
+
+        Returns:
+            None
+
+        Raises:
+            ValueError: If any positional or keyword arguments are passed.
+
+        Notes:
+            ``training_config.fit`` is forwarded verbatim to ``trainer.fit``.
+            Common keys include ``max_epochs``, ``ckpt_path``, etc.
+
+        Examples:
+            >>> from omegaconf import OmegaConf
+            >>> cfg = OmegaConf.create({
+            ...     "exp_dir": "/tmp/exp",
+            ...     "task": "tts",
+            ...     "model": {"_target_": "my.Model"},
+            ...     "fit": {"max_epochs": 10},
+            ... })
+            >>> system = TTSSystem(training_config=cfg)
+            >>> system.train()  # trains the model for 10 epochs
+        """
         self._reject_stage_args("train", args, kwargs)
         start = time.perf_counter()
         self._prepare_training_runtime()
