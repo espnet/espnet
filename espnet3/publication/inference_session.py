@@ -5,8 +5,7 @@ from __future__ import annotations
 import logging
 import os
 import sys
-from importlib import invalidate_caches
-from importlib import import_module
+from importlib import import_module, invalidate_caches
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
@@ -159,6 +158,7 @@ def _enable_user_code_paths(import_paths: Sequence[Path]) -> None:
             sys.path.insert(0, path)
     invalidate_caches()
 
+
 def _uses_user_code(value: Any, import_roots: Sequence[str]) -> bool:
     """Return whether a config value references trusted local user code."""
     if isinstance(value, str):
@@ -198,7 +198,9 @@ def _should_enable_user_code(
     elif isinstance(entries, (list, tuple)):
         import_roots = [Path(str(entry)).name for entry in entries]
     else:
-        import_roots = [Path(entry).name for entry in (user_code_paths or _DEFAULT_USER_CODE_PATHS)]
+        import_roots = [
+            Path(entry).name for entry in (user_code_paths or _DEFAULT_USER_CODE_PATHS)
+        ]
 
     config_requires_user_code = False
     if config is not None:
@@ -207,9 +209,7 @@ def _should_enable_user_code(
 
     if explicit_enable is True:
         if not trust_user_code:
-            raise ValueError(
-                "enable_user_code=True requires trust_user_code=True."
-            )
+            raise ValueError("enable_user_code=True requires trust_user_code=True.")
         return True
 
     if config_requires_user_code:
@@ -467,7 +467,9 @@ class InferenceSession:
         if inference_config is not None and backend_class is None:
             model = InferenceProvider.build_model(inference_config)
             resolved_input_key = (
-                input_key if input_key is not None else getattr(inference_config, "input_key", "speech")
+                input_key
+                if input_key is not None
+                else getattr(inference_config, "input_key", "speech")
             )
             resolved_output_fn_path = (
                 output_fn_path
@@ -620,7 +622,9 @@ class InferenceSession:
     def _build_single_inputs(self, sample: Any) -> tuple[dict[str, Any], Any]:
         """Normalize a single input sample into backend kwargs."""
         if isinstance(sample, Mapping):
-            keys = self.input_key if isinstance(self.input_key, list) else [self.input_key]
+            keys = (
+                self.input_key if isinstance(self.input_key, list) else [self.input_key]
+            )
             inputs = {}
             for key in keys:
                 if key not in sample:
@@ -631,13 +635,17 @@ class InferenceSession:
         key = self.primary_input_key
         return {key: sample}, {key: sample}
 
-    def _build_batch_inputs(self, samples: Sequence[Any]) -> tuple[dict[str, list[Any]], Any]:
+    def _build_batch_inputs(
+        self, samples: Sequence[Any]
+    ) -> tuple[dict[str, list[Any]], Any]:
         """Normalize a batch of samples into backend kwargs."""
         if not samples:
             raise ValueError("forward_batch requires at least one sample.")
 
         if all(isinstance(sample, Mapping) for sample in samples):
-            keys = self.input_key if isinstance(self.input_key, list) else [self.input_key]
+            keys = (
+                self.input_key if isinstance(self.input_key, list) else [self.input_key]
+            )
             inputs = {}
             for key in keys:
                 values = []
@@ -749,9 +757,7 @@ class InferenceSession:
                 return [batch_result]
             except Exception as exc:  # noqa: BLE001
                 if not allow_fallback:
-                    raise RuntimeError(
-                        f"Batched inference failed: {exc}"
-                    ) from exc
+                    raise RuntimeError(f"Batched inference failed: {exc}") from exc
                 logger.info(
                     "Batched inference failed; falling back to per-sample execution."
                 )
