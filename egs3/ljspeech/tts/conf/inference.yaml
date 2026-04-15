@@ -1,0 +1,45 @@
+exp_tag: ${load_yaml:training.yaml,exp_tag}
+
+recipe_dir: .
+data_dir: ${recipe_dir}/data
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+inference_dir: ${exp_dir}/inference
+
+dataset:
+  _target_: espnet3.components.data.data_organizer.DataOrganizer
+  recipe_dir: ${recipe_dir}
+  test:
+    - name: dev
+      data_src_args:
+        split: dev
+        include_utt_id: true
+    - name: eval1
+      data_src_args:
+        split: eval1
+        include_utt_id: true
+  preprocessor:
+    _target_: espnet2.train.preprocessor.CommonPreprocessor
+    fs: 22050
+    train: false
+    token_type: phn
+    token_list: ${data_dir}/tokens.txt
+    text_cleaner:
+      - tacotron
+    g2p_type: g2p_en_no_space
+
+parallel:
+  env: local
+  n_workers: 1
+
+model:
+  _target_: espnet2.bin.tts_inference.Text2Speech
+  train_config: ${exp_dir}/config.yaml
+  model_file: ${exp_dir}/last.ckpt
+
+input_key: text
+batch_size: null
+output_fn: src.inference.build_output
+output_artifacts:
+  wav:
+    type: wav
+    sample_rate: 22050
