@@ -4,6 +4,11 @@ from egs3.TEMPLATE.tts.run import build_parser, parse_cli_and_stage_args
 from espnet3.systems.tts.system import TTSSystem
 from espnet3.utils.config_utils import load_and_merge_config
 from espnet3.utils.logging_utils import configure_logging
+from espnet3.utils.run_utils import (
+    apply_training_experiment_context,
+    resolve_loaded_configs,
+    validate_experiment_context,
+)
 from espnet3.utils.stages_utils import resolve_stages, run_stages
 
 DEFAULT_STAGES = [
@@ -16,6 +21,9 @@ DEFAULT_STAGES = [
 ]
 
 ALL_STAGES = DEFAULT_STAGES
+DEFAULT_PACKAGE = "egs3.TEMPLATE.tts"
+DEFAULT_TRAINING_CONFIG = "training.yaml"
+DEFAULT_INFERENCE_CONFIG = "inference.yaml"
 
 
 def main(args) -> None:
@@ -23,25 +31,40 @@ def main(args) -> None:
 
     training_config = load_and_merge_config(
         args.training_config,
-        config_name="training.yaml",
-        default_package="egs3.TEMPLATE.tts",
+        config_name=DEFAULT_TRAINING_CONFIG,
+        default_package=DEFAULT_PACKAGE,
+        resolve=False,
     )
     inference_config = load_and_merge_config(
         args.inference_config,
-        config_name="inference.yaml",
-        default_package="egs3.TEMPLATE.tts",
+        config_name=DEFAULT_INFERENCE_CONFIG,
+        default_package=DEFAULT_PACKAGE,
+        resolve=False,
     )
     publish_config = load_and_merge_config(
         args.publish_config,
         config_name="publish.yaml",
-        default_package="egs3.TEMPLATE.tts",
+        default_package=DEFAULT_PACKAGE,
     )
     demo_config = load_and_merge_config(
         args.demo_config,
         config_name="demo.yaml",
-        default_package="egs3.TEMPLATE.tts",
+        default_package=DEFAULT_PACKAGE,
     )
     logger = configure_logging()
+    apply_training_experiment_context(
+        training_config=training_config,
+        inference_config=inference_config,
+        metrics_config=None,
+        log=logger,
+    )
+    validate_experiment_context(
+        training_config=training_config,
+        inference_config=inference_config,
+        metrics_config=None,
+        stages_to_run=stages_to_run,
+    )
+    resolve_loaded_configs(training_config, inference_config)
 
     system = TTSSystem(
         training_config=training_config,

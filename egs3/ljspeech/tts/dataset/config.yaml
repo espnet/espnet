@@ -1,0 +1,13 @@
+builder:
+  archive_path: downloads/LJSpeech-1.1.tar.bz2
+  source_path: downloads/LJSpeech-1.1
+  data_path: data
+  token_list_path: data/tokens.txt
+
+dataset:
+  train:
+    split: train
+  dev:
+    split: dev
+  eval1:
+    split: eval1

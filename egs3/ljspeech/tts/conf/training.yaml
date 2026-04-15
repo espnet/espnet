@@ -3,42 +3,36 @@ task: espnet2.tasks.gan_tts.GANTTSTask
 
 recipe_dir: .
 data_dir: ${recipe_dir}/data
-dataset_dir: ${data_dir}/ljspeech
 exp_dir: ${recipe_dir}/exp/${exp_tag}
 stats_dir: ${exp_dir}/stats
 inference_dir: ${exp_dir}/inference
 
 create_dataset:
-  func: src.creating_dataset.create_dataset
-  dataset_dir: ${dataset_dir}
+  recipe_dir: ${recipe_dir}
   token_type: phn
   g2p_type: g2p_en_no_space
-  token_list_path: ${dataset_dir}/tokens.txt
 
 dataset:
   _target_: espnet3.components.data.data_organizer.DataOrganizer
+  recipe_dir: ${recipe_dir}
   train:
-    - name: tr_no_dev
-      dataset:
-        _target_: src.dataset.LJSpeechTTSDataset
-        manifest_path: ${dataset_dir}/manifest/tr_no_dev.tsv
+    - data_src_args:
+        split: train
   valid:
-    - name: dev
-      dataset:
-        _target_: src.dataset.LJSpeechTTSDataset
-        manifest_path: ${dataset_dir}/manifest/dev.tsv
+    - data_src_args:
+        split: dev
   preprocessor:
     _target_: espnet2.train.preprocessor.CommonPreprocessor
     fs: 22050
     train: true
     token_type: phn
-    token_list: ${dataset_dir}/tokens.txt
+    token_list: ${data_dir}/tokens.txt
     text_cleaner:
       - tacotron
     g2p_type: g2p_en_no_space
 
 model:
-  token_list: ${dataset_dir}/tokens.txt
+  token_list: ${data_dir}/tokens.txt
   token_type: phn
   feats_extract: linear_spectrogram
   feats_extract_conf:
