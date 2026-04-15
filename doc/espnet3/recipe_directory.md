@@ -71,10 +71,10 @@ if __name__ == "__main__":
 
 ## Creating a new recipe
 
-1) Copy `egs3/TEMPLATE/<system>` into `egs3/<your_corpus>/<system>`.  
-2) Add configs under `conf/` (model, trainer, parallel, dataloader).  
-3) Point `run.py` to your `System` subclass (such as `ASRSystem` for training/evaluating ASR model).  
-4) Run stages with `python run.py --stages all --train_config conf/train.yaml`.  
+1) Copy `egs3/TEMPLATE/<system>` into `egs3/<your_corpus>/<system>`.
+2) Add configs under `conf/` (model, trainer, parallel, dataloader).
+3) Point `run.py` to your `System` subclass (such as `ASRSystem` for training/evaluating ASR model).
+4) Run stages with `python run.py --stages all --train_config conf/train.yaml`.
 
 With this layout, every recipe shares the same stage driver while keeping data,
 configs, and outputs contained per corpus/task.
