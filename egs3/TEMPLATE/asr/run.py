@@ -44,6 +44,7 @@ DEMO_STAGES: List[str] = [
 
 ALL_STAGES: List[str] = DEFAULT_STAGES + DEMO_STAGES
 
+
 def build_parser(
     stages: Sequence[str],
 ) -> argparse.ArgumentParser:

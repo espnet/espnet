@@ -92,7 +92,9 @@ class ASRSystem(BaseSystem):
         valid_dir = stats_path / "valid"
         train_npz = sorted(path for path in train_dir.glob("*.npz") if path.is_file())
         valid_npz = sorted(path for path in valid_dir.glob("*.npz") if path.is_file())
-        has_shape_files = any(train_dir.glob("*shape*")) and any(valid_dir.glob("*shape*"))
+        has_shape_files = any(train_dir.glob("*shape*")) and any(
+            valid_dir.glob("*shape*")
+        )
         if (
             train_dir.is_dir()
             and valid_dir.is_dir()

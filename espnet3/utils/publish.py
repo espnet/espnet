@@ -429,7 +429,10 @@ def _enqueue_yaml_reference(
         if normalized in keep_paths:
             continue
         keep_paths.add(normalized)
-        if normalized.name != "meta.yaml" and normalized.suffix.lower() in _YAML_SUFFIXES:
+        if (
+            normalized.name != "meta.yaml"
+            and normalized.suffix.lower() in _YAML_SUFFIXES
+        ):
             queue.append(normalized)
 
 
@@ -500,7 +503,9 @@ def _prune_unreferenced_bundle_yaml_files(out_dir: Path) -> None:
     if pruned:
         logger.info("Pruned %d unreferenced YAML files from %s", pruned, bundle_root)
 
-    for path in sorted(out_dir.rglob("*"), key=lambda candidate: len(candidate.parts), reverse=True):
+    for path in sorted(
+        out_dir.rglob("*"), key=lambda candidate: len(candidate.parts), reverse=True
+    ):
         if not path.is_dir():
             continue
         try:

@@ -197,9 +197,7 @@ def test_pack_model_prunes_unreferenced_yaml_files(tmp_path):
     (tuning_dir / "unused.yaml").write_text("foo: bar\n", encoding="utf-8")
 
     out_dir = tmp_path / "model_pack"
-    publication_config = OmegaConf.create(
-        {"pack_model": {"out_dir": str(out_dir)}}
-    )
+    publication_config = OmegaConf.create({"pack_model": {"out_dir": str(out_dir)}})
     system = _make_system(
         exp_dir=exp_dir,
         publication_config=publication_config,
