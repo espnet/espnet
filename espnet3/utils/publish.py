@@ -40,6 +40,8 @@ _PATH_LIKE_KEYS = {
     "token_list",
     "word_lm_train_config",
 }
+_YAML_SUFFIXES = (".yaml", ".yml")
+_LOAD_YAML_PATTERN = re.compile(r"\$\{load_yaml:(?P<path>[^,}]+)")
 
 
 def _run(cmd: List[str], cwd: Optional[Path] = None) -> str:
@@ -58,6 +60,17 @@ def _run(cmd: List[str], cwd: Optional[Path] = None) -> str:
             f"stderr:\n{result.stderr}"
         )
     return result.stdout.strip()
+
+
+def _strip_optional_quotes(raw_value: str) -> str:
+    """Return ``raw_value`` without matching surrounding quotes."""
+    if (
+        len(raw_value) >= 2
+        and raw_value[0] == raw_value[-1]
+        and raw_value[0] in ("'", '"')
+    ):
+        return raw_value[1:-1].strip()
+    return raw_value
 
 
 def _run_allow_repo_exists(cmd: List[str], cwd: Optional[Path] = None) -> str:
@@ -317,6 +330,185 @@ def _is_path_like_key(key: str | None) -> bool:
     return key in _PATH_LIKE_KEYS or key.endswith(("_dir", "_path", "_file"))
 
 
+def _resolve_bundle_yaml_reference(
+    raw_path: str,
+    *,
+    base_dir: Path,
+    out_dir: Path,
+) -> Path | None:
+    """Return a bundle-local YAML path for a config reference when possible."""
+    normalized = _strip_optional_quotes(raw_path.strip())
+    if not normalized:
+        return None
+    if normalized == "${recipe_dir}":
+        candidate = out_dir
+    elif normalized.startswith("${recipe_dir}/"):
+        candidate = out_dir / normalized[len("${recipe_dir}/") :]
+    elif "${" in normalized:
+        return None
+    else:
+        candidate = Path(normalized)
+        if not candidate.is_absolute():
+            candidate = (base_dir / candidate).absolute()
+        else:
+            candidate = candidate.absolute()
+
+    if candidate.suffix.lower() not in _YAML_SUFFIXES:
+        return None
+    return candidate
+
+
+def _iter_yaml_references(
+    value: Any,
+    *,
+    base_dir: Path,
+    out_dir: Path,
+    key: str | None = None,
+):
+    """Yield bundle-local YAML references discovered in a config value tree."""
+    if isinstance(value, dict):
+        for child_key, child_value in value.items():
+            yield from _iter_yaml_references(
+                child_value,
+                base_dir=base_dir,
+                out_dir=out_dir,
+                key=str(child_key),
+            )
+        return
+    if isinstance(value, list):
+        for item in value:
+            yield from _iter_yaml_references(
+                item,
+                base_dir=base_dir,
+                out_dir=out_dir,
+                key=key,
+            )
+        return
+    if not isinstance(value, str):
+        return
+
+    if _is_path_like_key(key):
+        candidate = _resolve_bundle_yaml_reference(
+            value,
+            base_dir=base_dir,
+            out_dir=out_dir,
+        )
+        if candidate is not None:
+            yield candidate
+
+    for match in _LOAD_YAML_PATTERN.finditer(value):
+        candidate = _resolve_bundle_yaml_reference(
+            match.group("path"),
+            base_dir=base_dir,
+            out_dir=out_dir,
+        )
+        if candidate is not None:
+            yield candidate
+
+
+def _enqueue_yaml_reference(
+    candidate: Path,
+    *,
+    out_dir: Path,
+    keep_paths: set[Path],
+    queue: list[Path],
+) -> None:
+    """Register a bundle-local YAML path and queue it for recursive scanning."""
+    bundle_root = out_dir.resolve()
+    normalized_candidates = [candidate.absolute()]
+    if candidate.exists():
+        normalized_candidates.append(candidate.resolve())
+
+    for normalized in normalized_candidates:
+        try:
+            normalized.relative_to(bundle_root)
+        except ValueError:
+            continue
+        if not normalized.exists() or not normalized.is_file():
+            continue
+        if normalized in keep_paths:
+            continue
+        keep_paths.add(normalized)
+        if normalized.name != "meta.yaml" and normalized.suffix.lower() in _YAML_SUFFIXES:
+            queue.append(normalized)
+
+
+def _prune_unreferenced_bundle_yaml_files(out_dir: Path) -> None:
+    """Remove bundle YAML files that are unreachable from ``meta.yaml`` roots."""
+    meta_path = out_dir / "meta.yaml"
+    if not meta_path.is_file():
+        return
+
+    bundle_root = out_dir.resolve()
+    keep_paths: set[Path] = {meta_path.resolve()}
+    queue: list[Path] = []
+
+    meta = OmegaConf.to_container(OmegaConf.load(meta_path), resolve=False) or {}
+    if not isinstance(meta, dict):
+        raise RuntimeError(f"Expected mapping metadata in {meta_path}")
+
+    root_entries = []
+    for section_name in ("yaml_files", "files"):
+        section = meta.get(section_name) or {}
+        if isinstance(section, dict):
+            root_entries.extend(section.values())
+    if (out_dir / "conf" / "inference.yaml").is_file():
+        root_entries.append("conf/inference.yaml")
+
+    for entry in root_entries:
+        if not isinstance(entry, str):
+            continue
+        candidate = _resolve_bundle_yaml_reference(
+            entry,
+            base_dir=out_dir,
+            out_dir=out_dir,
+        )
+        if candidate is None:
+            continue
+        _enqueue_yaml_reference(
+            candidate,
+            out_dir=out_dir,
+            keep_paths=keep_paths,
+            queue=queue,
+        )
+
+    while queue:
+        current = queue.pop()
+        loaded = OmegaConf.to_container(OmegaConf.load(current), resolve=False)
+        for candidate in _iter_yaml_references(
+            loaded,
+            base_dir=current.parent,
+            out_dir=out_dir,
+        ):
+            _enqueue_yaml_reference(
+                candidate,
+                out_dir=out_dir,
+                keep_paths=keep_paths,
+                queue=queue,
+            )
+
+    pruned = 0
+    for path in out_dir.rglob("*"):
+        if path.name == "meta.yaml" or path.suffix.lower() not in _YAML_SUFFIXES:
+            continue
+        normalized = path.resolve()
+        if normalized in keep_paths or path.absolute() in keep_paths:
+            continue
+        path.unlink()
+        pruned += 1
+
+    if pruned:
+        logger.info("Pruned %d unreferenced YAML files from %s", pruned, bundle_root)
+
+    for path in sorted(out_dir.rglob("*"), key=lambda candidate: len(candidate.parts), reverse=True):
+        if not path.is_dir():
+            continue
+        try:
+            path.rmdir()
+        except OSError:
+            continue
+
+
 def _to_bundle_relative_path(value: str, recipe_root: Path | None) -> str:
     """Rewrite a path string so it resolves from ``recipe_dir`` inside a bundle."""
     if not value or "${" in value or recipe_root is None:
@@ -430,7 +622,8 @@ def _resolve_default_artifacts(system, pack_cfg: DictConfig) -> dict[str, Any]:
 
     exp_dir = Path(training_cfg.exp_dir)
     data_dir = getattr(training_cfg, "data_dir", None)
-    if data_dir:
+    include_data_dir = bool(getattr(pack_cfg, "include_data_dir", True))
+    if data_dir and include_data_dir:
         data_path = Path(data_dir)
         if data_path.exists():
             copy_paths.append(data_path)
@@ -737,7 +930,7 @@ def pack_model(
     include_paths = list(include) if include is not None else list(default_includes)
     include_cfg = getattr(pack_cfg, "include", None)
     if include_cfg:
-        if isinstance(include_cfg, (list, tuple)):
+        if isinstance(include_cfg, (list, tuple, ListConfig)):
             include_paths += [Path(p) for p in include_cfg]
         else:
             include_paths.append(Path(include_cfg))
@@ -745,7 +938,7 @@ def pack_model(
     extra_paths = list(extra) if extra is not None else []
     extra_cfg = getattr(pack_cfg, "extra", None)
     if extra_cfg:
-        if isinstance(extra_cfg, (list, tuple)):
+        if isinstance(extra_cfg, (list, tuple, ListConfig)):
             extra_paths += [Path(p) for p in extra_cfg]
         else:
             extra_paths.append(Path(extra_cfg))
@@ -756,7 +949,7 @@ def pack_model(
     excludes = []
     exclude_cfg = getattr(pack_cfg, "exclude", None)
     if exclude_cfg:
-        if isinstance(exclude_cfg, (list, tuple)):
+        if isinstance(exclude_cfg, (list, tuple, ListConfig)):
             excludes += [str(p) for p in exclude_cfg]
         else:
             excludes.append(str(exclude_cfg))
@@ -852,6 +1045,7 @@ def pack_model(
             yaml_files={**copied_default_yaml_files, **recipe_bundle["yaml_files"]},
             extra_fields=recipe_bundle["extra_fields"],
         )
+        _prune_unreferenced_bundle_yaml_files(out_dir)
         logger.info("Packed model (espnet2) to %s", out_dir)
         return out_dir
     recipe_bundle = _copy_recipe_assets(system=system, out_dir=out_dir, ignore=ignore)
@@ -930,6 +1124,7 @@ def pack_model(
         yaml_files=copied_yaml_files,
         extra_fields=recipe_bundle["extra_fields"],
     )
+    _prune_unreferenced_bundle_yaml_files(out_dir)
 
     logger.info("Packed model to %s", out_dir)
     return out_dir

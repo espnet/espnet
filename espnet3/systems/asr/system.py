@@ -81,6 +81,31 @@ class ASRSystem(BaseSystem):
         vocab = output_path / f"{tokenizer_config.model_type}.vocab"
         return model.exists() and vocab.exists()
 
+    def _resolve_stats_pack_paths(self) -> list[Path]:
+        """Return stats artifacts to include in a publication bundle."""
+        stats_dir = getattr(self.training_config, "stats_dir", None)
+        if not stats_dir:
+            return []
+
+        stats_path = Path(stats_dir)
+        train_dir = stats_path / "train"
+        valid_dir = stats_path / "valid"
+        train_npz = sorted(path for path in train_dir.glob("*.npz") if path.is_file())
+        valid_npz = sorted(path for path in valid_dir.glob("*.npz") if path.is_file())
+        has_shape_files = any(train_dir.glob("*shape*")) and any(valid_dir.glob("*shape*"))
+        if (
+            train_dir.is_dir()
+            and valid_dir.is_dir()
+            and train_npz
+            and valid_npz
+            and has_shape_files
+        ):
+            logger.info(
+                "Packing stats artifacts from %s as train/*.npz only", stats_path
+            )
+            return train_npz
+        return [stats_path]
+
     def train_tokenizer(self, *args, **kwargs):
         """Train a SentencePiece tokenizer based on configured text.
 
@@ -137,7 +162,11 @@ class ASRSystem(BaseSystem):
         if train_text_path:
             train_text_path = Path(train_text_path)
         else:
-            train_text_path = output_path / "train.txt"
+            data_dir = getattr(self.training_config, "data_dir", None)
+            if data_dir:
+                train_text_path = Path(data_dir) / "train_tokenizer" / "train.txt"
+            else:
+                train_text_path = output_path / "train.txt"
         if train_text_path.exists():
             raise RuntimeError(
                 f"Tokenizer training text already exists: {train_text_path}"
@@ -176,9 +205,7 @@ class ASRSystem(BaseSystem):
                 save_path = getattr(tokenizer_cfg, "save_path", None)
                 if save_path:
                     extra_paths.append(Path(save_path))
-            stats_dir = getattr(self.training_config, "stats_dir", None)
-            if stats_dir:
-                extra_paths.append(Path(stats_dir))
+            extra_paths.extend(self._resolve_stats_pack_paths())
             data_dir = getattr(self.training_config, "data_dir", None)
             if data_dir:
                 data_tokenizer = Path(data_dir) / "tokenizer"

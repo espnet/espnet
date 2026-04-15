@@ -175,11 +175,55 @@ def test_pack_model_espnet3_includes_recipe_assets_and_relative_manifest(tmp_pat
     assert (out_dir / "src" / "inference.py").exists()
     assert (out_dir / "run.py").exists()
     assert (out_dir / "pixi.toml").exists()
-    assert (out_dir / "exp" / "train_debug" / "config.yaml").exists()
     meta = OmegaConf.to_container(OmegaConf.load(out_dir / "meta.yaml"), resolve=True)
     assert meta["yaml_files"]["inference_config"] == "conf/inference.yaml"
     assert meta["yaml_files"]["training_config"] == "conf/training.yaml"
     assert meta["user_code_paths"] == ["src"]
+
+
+def test_pack_model_prunes_unreferenced_yaml_files(tmp_path):
+    recipe_dir = tmp_path / "recipe"
+    exp_dir = recipe_dir / "exp" / "train_debug"
+    conf_dir = recipe_dir / "conf"
+    tuning_dir = conf_dir / "tuning"
+    exp_dir.mkdir(parents=True)
+    tuning_dir.mkdir(parents=True)
+
+    (exp_dir / "config.yaml").write_text("dummy: true\n", encoding="utf-8")
+    (exp_dir / "unused.yaml").write_text("unused: true\n", encoding="utf-8")
+    (conf_dir / "settings.yaml").write_text("exp_tag: train_debug\n", encoding="utf-8")
+    (conf_dir / "training.yaml").write_text(
+        "recipe_dir: .\nexp_tag: train_debug\nexp_dir: ${recipe_dir}/exp/${exp_tag}\n",
+        encoding="utf-8",
+    )
+    (tuning_dir / "unused.yaml").write_text("foo: bar\n", encoding="utf-8")
+
+    out_dir = tmp_path / "model_pack"
+    publication_config = OmegaConf.create(
+        {"pack_model": {"out_dir": str(out_dir)}}
+    )
+    system = _make_system(
+        exp_dir=exp_dir,
+        publication_config=publication_config,
+        recipe_dir=recipe_dir,
+        inference_config={
+            "exp_tag": "${load_yaml:settings.yaml,exp_tag}",
+            "input_key": "speech",
+            "model": {
+                "_target_": "espnet2.bin.asr_inference.Speech2Text",
+                "asr_train_config": str(exp_dir / "config.yaml"),
+            },
+        },
+    )
+
+    result = publish.pack_model(system)
+
+    assert result == out_dir
+    assert (out_dir / "conf" / "settings.yaml").exists()
+    assert (out_dir / "conf" / "inference.yaml").exists()
+    assert (out_dir / "exp" / "train_debug" / "config.yaml").exists()
+    assert not (out_dir / "conf" / "tuning" / "unused.yaml").exists()
+    assert not (out_dir / "exp" / "train_debug" / "unused.yaml").exists()
 
 
 def test_pack_model_espnet2_defaults_include_runtime_artifacts(tmp_path):
@@ -261,6 +305,55 @@ def test_pack_model_espnet2_defaults_include_runtime_artifacts(tmp_path):
     bundle_inference = (out_dir / "conf" / "inference.yaml").read_text(encoding="utf-8")
     assert "${recipe_dir}/exp/train_debug/config.yaml" in bundle_inference
     assert "${recipe_dir}/exp/train_debug/last.ckpt" in bundle_inference
+
+
+def test_pack_model_can_skip_data_dir_and_keep_tokenizer_files(tmp_path):
+    recipe_dir = tmp_path / "recipe"
+    exp_dir = recipe_dir / "exp" / "train_debug"
+    conf_dir = recipe_dir / "conf"
+    tokenizer_dir = recipe_dir / "data" / "bpe_30"
+    manifest_dir = recipe_dir / "data" / "manifest"
+    exp_dir.mkdir(parents=True)
+    conf_dir.mkdir(parents=True)
+    tokenizer_dir.mkdir(parents=True)
+    manifest_dir.mkdir(parents=True)
+
+    (exp_dir / "dummy.txt").write_text("hello\n", encoding="utf-8")
+    (conf_dir / "training.yaml").write_text("exp_tag: train_debug\n", encoding="utf-8")
+    (tokenizer_dir / "tokens.txt").write_text("<blank>\na\n", encoding="utf-8")
+    (tokenizer_dir / "bpe.model").write_text("model\n", encoding="utf-8")
+    (tokenizer_dir / "train_tokenizer.log").write_text("log\n", encoding="utf-8")
+    (manifest_dir / "train.tsv").write_text("utt\ttext\n", encoding="utf-8")
+
+    training_config = OmegaConf.create(
+        {
+            "exp_dir": str(exp_dir),
+            "data_dir": str(recipe_dir / "data"),
+            "recipe_dir": str(recipe_dir),
+        }
+    )
+    publication_config = OmegaConf.create(
+        {
+            "pack_model": {
+                "out_dir": str(tmp_path / "model_pack"),
+                "include_data_dir": False,
+                "extra": [str(tokenizer_dir)],
+                "exclude": ["**/*.log"],
+            }
+        }
+    )
+    system = SimpleNamespace(
+        training_config=training_config,
+        inference_config=None,
+        publication_config=publication_config,
+    )
+
+    out_dir = publish.pack_model(system)
+
+    assert (out_dir / "data" / "bpe_30" / "tokens.txt").exists()
+    assert (out_dir / "data" / "bpe_30" / "bpe.model").exists()
+    assert not (out_dir / "data" / "bpe_30" / "train_tokenizer.log").exists()
+    assert not (out_dir / "data" / "manifest" / "train.tsv").exists()
 
 
 def test_pack_model_preserves_symlink_name_in_bundle_config(tmp_path):

@@ -3,7 +3,9 @@ pack_model:
   out_dir: exp/model_pack
   decode_dir: ${exp_dir}/decode
   include: []
-  extra: []
+  extra:
+    - ${load_yaml:training.yaml,tokenizer.save_path}
+  include_data_dir: false
   exclude:
     - "**/*.log"
     - "**/tensorboard/**"

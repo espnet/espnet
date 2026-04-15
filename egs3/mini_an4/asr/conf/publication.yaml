@@ -7,7 +7,9 @@ pack_model:
   out_dir: ${exp_dir}/model_pack
   decode_dir: ${inference_dir}
   include: []
-  extra: []
+  extra:
+    - ${load_yaml:training_asr_rnn_data_aug.yaml,tokenizer.save_path}
+  include_data_dir: false
   exclude:
     - "**/*.log"
     - "**/tensorboard/**"
