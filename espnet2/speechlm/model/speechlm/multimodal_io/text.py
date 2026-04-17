@@ -56,7 +56,7 @@ class HuggingFaceTextIO(AbsIO):
 
         return tokens, conti_feat, loss_mask
 
-    def decode_batch(self, tokens: torch.Tensor, lengths: torch.Tensor) -> str:
+    def decode_batch(self, tokens: torch.Tensor, lengths: torch.Tensor) -> List[str]:
         """Decode a 1D tensor of token IDs to text string.
 
         Args:
