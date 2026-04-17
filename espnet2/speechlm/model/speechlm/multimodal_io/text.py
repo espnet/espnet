@@ -5,8 +5,8 @@
 
 from typing import List, Tuple
 
-import numpy as np
 import torch
+import numpy as np
 from transformers import AutoConfig, AutoTokenizer
 
 from .abs_io import AbsIO
@@ -56,7 +56,7 @@ class HuggingFaceTextIO(AbsIO):
 
         return tokens, conti_feat, loss_mask
 
-    def decode_batch(self, tokens: torch.Tensor, lengths: torch.Tensor) -> List[str]:
+    def decode_batch(self, tokens: torch.Tensor, lengths: torch.Tensor) -> str:
         """Decode a 1D tensor of token IDs to text string.
 
         Args:

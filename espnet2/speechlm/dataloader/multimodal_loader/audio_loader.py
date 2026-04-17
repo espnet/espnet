@@ -16,11 +16,9 @@ except ImportError:
     kaldiio = None
 
 try:
-    from arkive import audio_read
+    import arkive
 except ImportError:
-    raise ImportError(
-        "arkive is not installed. Install at https://github.com/wanchichen/arkive"
-    )
+    arkive = None
 
 try:
     import duckdb
@@ -68,10 +66,12 @@ class ArkiveAudioReader:
             conn.register("valid_ids_tbl", valid_ids_table)
 
             # Use semi-join for efficient filtering
-            result = conn.execute(f"""
+            result = conn.execute(
+                f"""
                 SELECT p.* FROM read_parquet('{parquet_path}') p
                 SEMI JOIN valid_ids_tbl v ON p.utt_id = v.utt_id
-                """)
+                """
+            )
         else:
             result = conn.execute(f"SELECT * FROM read_parquet('{parquet_path}')")
 
@@ -93,7 +93,7 @@ class ArkiveAudioReader:
         start_time = row.get("start_time", None)
         end_time = row.get("end_time", None)
 
-        data = audio_read(
+        data = arkive.audio_read(
             row["path"],
             start_offset=row["start_byte_offset"],
             file_size=row["file_size_bytes"],

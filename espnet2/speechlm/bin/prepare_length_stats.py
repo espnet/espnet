@@ -89,16 +89,19 @@ def worker(
 ):
     """Worker function to collect length statistics for a data shard."""
     # Create iterator with appropriate specifier
-    iterator = DataIteratorFactory(
-        unregistered_specifier=unregistered_spec,
-        registered_specifier=registered_spec,
-        rank=rank,
-        world_size=world_size,
-        shuffle=False,
-        sequential_load=True,
-        num_workers=0,
-        collate_fn=lambda x: x[0],
-    ).build_iter()
+    try:
+        iterator = DataIteratorFactory(
+            unregistered_specifier=unregistered_spec,
+            registered_specifier=registered_spec,
+            rank=rank,
+            world_size=world_size,
+            shuffle=False,
+            sequential_load=True,
+            num_workers=0,
+            collate_fn=lambda x: x[0],
+        ).build_iter()
+    except ValueError:
+        return {}
 
     # Collect statistics for this shard
     stats = {}

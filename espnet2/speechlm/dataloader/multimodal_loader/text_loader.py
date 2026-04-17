@@ -12,11 +12,9 @@ from typing import Iterator, Tuple
 import pyarrow as pa
 
 try:
-    from arkive.text.write_utils import _decompress_text_data
+    import arkive
 except ImportError:
-    raise ImportError(
-        "arkive is not installed. Install at https://github.com/wanchichen/arkive"
-    )
+    arkive = None
 
 try:
     import duckdb
@@ -53,10 +51,12 @@ class ArkiveTextReader:
             conn.register("valid_ids_tbl", valid_ids_table)
 
             # Use semi-join for efficient filtering
-            result = conn.execute(f"""
+            result = conn.execute(
+                f"""
                 SELECT p.* FROM read_parquet('{parquet_path}') p
                 SEMI JOIN valid_ids_tbl v ON p.utt_id = v.utt_id
-                """)
+                """
+            )
         else:
             result = conn.execute(f"SELECT * FROM read_parquet('{parquet_path}')")
 
@@ -83,7 +83,7 @@ class ArkiveTextReader:
             f.seek(start_offset)
             data_bytes = f.read(file_size)
 
-        text = _decompress_text_data(data_bytes)
+        text = arkive.text.write_utils._decompress_text_data(data_bytes)
 
         return text
 
