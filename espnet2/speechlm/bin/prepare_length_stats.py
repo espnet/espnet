@@ -100,7 +100,8 @@ def worker(
             num_workers=0,
             collate_fn=lambda x: x[0],
         ).build_iter()
-    except ValueError:
+    except ValueError as e:
+        logging.getLogger(__name__).warning(f"Worker {rank}: Error building iterator, skipping shard: {e}")
         return {}
 
     # Collect statistics for this shard
