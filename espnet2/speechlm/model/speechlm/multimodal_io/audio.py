@@ -638,12 +638,11 @@ class DiscreteAudioIO(AbsIO):
             max_len = int(length.max().item())
             data_trimmed = data[:, :, :max_len]
             with torch.autocast("cuda", dtype=data_trimmed.dtype):
-                with torch.profiler.record_function("xcodec_encode"):
-                    codes = self.codec_model.encode(
-                        data_trimmed,
-                        bandwidth=self.codec_bandwidth,
-                        return_dict=False,
-                    )  # [batch, num_quantizers, time]
+                codes = self.codec_model.encode(
+                    data_trimmed,
+                    bandwidth=self.codec_bandwidth,
+                    return_dict=False,
+                )  # [batch, num_quantizers, time]
             codes = codes.permute(0, 2, 1)[:, :, : self.codec_n_streams]
 
         else:
