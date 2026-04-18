@@ -1,19 +1,10 @@
 """Tests for espnet2/speechlm/bin/prepare_length_stats.py worker function."""
 
-import sys
-import types
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-# Stub espnet2.speechlm.model to avoid transitive transformers import
-# (which fails when pyarrow is stubbed by conftest.py without __version__).
-if "espnet2.speechlm.model" not in sys.modules:
-    _stub = types.ModuleType("espnet2.speechlm.model")
-    _stub._all_job_types = {}
-    sys.modules["espnet2.speechlm.model"] = _stub
-
-from espnet2.speechlm.bin.prepare_length_stats import worker  # noqa: E402
+from espnet2.speechlm.bin.prepare_length_stats import worker
 
 
 class TestWorker:
