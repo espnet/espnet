@@ -90,10 +90,17 @@ def create_lora_adapter(
     dropout_rate: float = 0.0,
     target_modules: List[str] = ["query"],
     bias_type: Optional[str] = "none",
+    adapter_type: str = "lora",
+    **kwargs,
 ):
-    """Create LoRA adapter for the base model.
+    """Create LoRA adapter or its variants for the base model.
 
-    See: https://arxiv.org/pdf/2106.09685.pdf
+    See: LoRA: https://arxiv.org/pdf/2106.09685.pdf
+         SSVD: https://arxiv.org/pdf/2509.02830
+         SSVD-O: https://arxiv.org/pdf/2601.12600
+         DoRA: https://arxiv.org/pdf/2402.09353
+         SVFT: https://arxiv.org/pdf/2405.19597
+         PiSSA: https://arxiv.org/pdf/2404.02948 
 
     Args:
         model (torch.nn.Module): Base model to be adapted.
@@ -108,14 +115,19 @@ def create_lora_adapter(
             "none" means not training any bias vectors;
             "all" means training all bias vectors, include LayerNorm biases;
             "lora_only" means only training bias vectors in LoRA adapted modules.
-
+        adapter_type (str): Backend type for torch.nn.Linear LoRA modules.
+            Defaults to "lora".
+        **kwargs: Additional backend-specific keyword arguments. For example,
+            rotation_ratio: the rotation ratio for SSVD. Only used when adapter_type is "ssvd".
 
     """
 
     if not is_lora_available:
         raise ImportError(
-            "Requiring loralib. Install loralib following: "
-            "https://github.com/microsoft/LoRA"
+            "Requiring loralib. Install the extended loralib backend from "
+        "https://github.com/wangpuup/LoRA (branch: ssvd), "
+        "for example with: "
+        "`pip install git+https://github.com/wangpuup/LoRA@ssvd`"
         )
 
     is_traget_module_exists = False
@@ -134,7 +146,7 @@ def create_lora_adapter(
         parent_module, target_name, target_module = get_submodules(model, key)
         if not isinstance(target_module, lora.LoRALayer):
             new_module = create_new_lora_module(
-                target_module, rank, alpha, dropout_rate
+                target_module, rank, alpha, dropout_rate, adapter_type, **kwargs
             )
             replace_module(parent_module, target_name, target_module, new_module)
         else:
@@ -222,7 +234,12 @@ def create_new_houlsby_module(target_module: torch.nn.Module, bottleneck: int):
 
 @typechecked
 def create_new_lora_module(
-    target_module: torch.nn.Module, rank: int, alpha: int, dropout_rate: float
+    target_module: torch.nn.Module,
+    rank: int,
+    alpha: int,
+    dropout_rate: float,
+    adapter_type: str = "lora",
+    **backend_kwargs,
 ):
     """Create a new lora module for the given target module."""
     bias = hasattr(target_module, "bias") and target_module.bias is not None
@@ -235,13 +252,34 @@ def create_new_lora_module(
             lora_alpha=alpha,
         )
     elif isinstance(target_module, torch.nn.Linear):
-        new_module = lora.Linear(
+        adapter_type_lower = adapter_type.lower()
+        linear_backend_registry = {
+            "lora": getattr(lora, "Linear", None),
+            "ssvd": getattr(lora, "SSVDLinear", None),
+            "dora": getattr(lora, "DoraLinear", None),
+            "pissa": getattr(lora, "PiSSALinear", None),
+            "svft": getattr(lora, "SVFTLinear", None),
+        }
+        available_linear_backends = {
+            name: backend
+            for name, backend in linear_backend_registry.items()
+            if backend is not None
+        }
+        if adapter_type_lower not in available_linear_backends:
+            raise ValueError(
+                f"Unsupported adapter_type '{adapter_type}' for torch.nn.Linear. "
+                f"Available types: {sorted(available_linear_backends.keys())}. "
+                "Ensure the requested backend exists in installed loralib."
+            )
+        backend_cls = available_linear_backends[adapter_type_lower]
+        new_module = backend_cls(
             target_module.in_features,
             target_module.out_features,
             bias=bias,
             r=rank,
             lora_alpha=alpha,
             lora_dropout=dropout_rate,
+            **backend_kwargs,
         )
     else:
         raise ValueError(
