@@ -14,7 +14,10 @@ import torch
 from espnet2.speechlm.model.abs_job import AbsJobTemplate
 
 # Main speechlm model
-from espnet2.speechlm.model.speechlm.lm.parallel import ParallelHFModel
+from espnet2.speechlm.model.speechlm.lm.parallel import (
+    ParallelHFModel,
+    ParallelHFModelWithPrefix,
+)
 
 # Multimodal IOs
 from espnet2.speechlm.model.speechlm.multimodal_io.abs_io import AbsIO
@@ -32,7 +35,7 @@ _multimodal_ios = {
     "continuous_audio": ContinuousAudioIO,
 }
 
-_lms = {"parallel": ParallelHFModel}
+_lms = {"parallel": ParallelHFModel, "parallel_with_prefix": ParallelHFModelWithPrefix}
 
 
 class SpeechLMJobTemplate(AbsJobTemplate):
@@ -520,3 +523,258 @@ class SpeechLMPreprocessor:
         conti_feats = [feat for feat in conti_feats if feat[0] == self.audio_output]
 
         return seq, loss_masks, conti_feats
+
+
+class SpeechLMJobTemplateWithPrefix(SpeechLMJobTemplate):
+    def build_preprocessor(self) -> Callable:
+        """Build the data collation function for SpeechLM.
+
+        Returns:
+            A callable function for collating SpeechLM batch data.
+        """
+
+        processor_config = self.config["preprocessor"]
+        multimodal_io = {
+            io_name: io.copy_for_worker() for io_name, io in self.multimodal_io.items()
+        }
+        return SpeechLMPreprocessorWithPrefix(
+            is_train=self.is_train,
+            multimodal_io=multimodal_io,
+            vocab=self.vocab,
+            vocab_intervals=self.vocab_intervals,
+            audio_input=processor_config["audio_input"],
+            audio_output=processor_config["audio_output"],
+            loss_region=processor_config["loss_region"],
+            batchfy_method=self.config["data_loading"].get("batchfy_method", "bucket"),
+            audio_cfg=processor_config.get("audio_cfg", 0.0),
+            batch_length=self.config["data_loading"].get("batch_size", -1),
+            add_generation_prompt=self.config.get("add_generation_prompt", True),
+            continuation_prefix_ratio=self.config.get("continuation_prefix_ratio", 1.0),
+        )
+
+    def build_model(self) -> torch.nn.Module:
+        """Build the SpeechLM model.
+
+        Returns:
+            A SpeechLM model instance.
+        """
+
+        self.config["model"]["model_choice"] = (
+            self.config["model"]["model_choice"] + "_with_prefix"
+        )
+        return super().build_model()
+
+
+class SpeechLMPreprocessorWithPrefix(SpeechLMPreprocessor):
+    """Preprocessor for SpeechLM data handling.
+
+    Converts raw data into model-ready format with tokenization,
+    padding, and loss mask generation for multimodal sequences.
+    """
+
+    def __init__(
+        self,
+        add_generation_prompt: bool = True,
+        continuation_prefix_ratio: float = 1.0,
+        **kwargs,
+    ):
+        super().__init__(**kwargs)
+        self.add_generation_prompt = add_generation_prompt
+        self.continuation_prefix_ratio = continuation_prefix_ratio
+
+    def preprocessing(self, key, data_dict):
+        """Convert single raw data dict into training-ready format.
+
+        Applies chat template, tokenizes content, adds special tokens,
+        and creates loss masks. Returns dict with sequences and features.
+        """
+        # (1) convert to messages
+        task, _, _ = key
+        messages = self._apply_chat_template(task, data_dict)
+
+        # (2) initialize
+        seq = [self.special_token("<|bos|>")]
+        conti_feats = list()
+        loss_masks = [self.special_mask(0.0)]
+        accum_length = 1
+
+        # (3) loop on each message
+        # Determine where to place EOT tokens (when consecutive msgs have same role)
+        apply_eots = [
+            msg1[0] == msg2[0] for msg1, msg2 in zip(messages[:-1], messages[1:])
+        ] + [False]
+        for msg_idx, (apply_eot, (role, this_io, this_data)) in enumerate(
+            zip(apply_eots, messages)
+        ):
+            apply_loss = float(role == "assistant" or self.loss_region == "all")
+            special_mask = self.special_mask(apply_loss)
+
+            # (3.1) role and modality
+            seq.append(self.special_token(f"<|{role}|>"))
+            loss_masks.append(special_mask)
+
+            modality = self.multimodal_io[this_io].modality
+            seq.append(self.special_token(f"<|{modality}|>"))
+            loss_masks.append(special_mask)
+
+            accum_length += 2
+
+            # (3.2) the exact data processing
+            this_seq, conti_feat, loss_mask = self.multimodal_io[this_io].preprocess(
+                this_data
+            )
+            assert this_seq.shape == loss_mask.shape
+
+            is_last_msg = msg_idx == len(messages) - 1
+            if (
+                not self.add_generation_prompt
+                and not self.is_train
+                and is_last_msg
+                and self.multimodal_io[this_io].is_discrete
+                and hasattr(self.multimodal_io[this_io], "delay_interleave")
+                and self.multimodal_io[this_io].delay_interleave
+            ):
+                n_tail = self.multimodal_io[this_io].num_stream() - 1
+                # total delay-interleaved length = actual_frames + n_tail
+                total_length = this_seq.shape[0]
+                actual_frames = total_length - n_tail
+
+                # Prefix: first prefix_ratio fraction of the actual audio frames.
+                # Use at least n_tail+1 frames so the head padding region is
+                # fully covered and we are guaranteed to be mid-audio.
+                prefix_frames = max(
+                    n_tail + 1,
+                    int(actual_frames * self.continuation_prefix_ratio),
+                )
+                strip = total_length - prefix_frames
+                if strip > 0 and this_seq.shape[0] > strip:
+                    this_seq = this_seq[:-strip]
+                    loss_mask = loss_mask[:-strip]
+                    if conti_feat is not None:
+                        orig_length, feat = conti_feat
+                        conti_feat = (prefix_frames, feat)
+
+            # (3.3) this_seq - adjust token IDs and pad to match stream count
+            if self.multimodal_io[this_io].is_discrete:
+                modality_bias = self.vocab_intervals[this_io][0][0]
+                this_seq = np.where(
+                    this_seq == self.pad_id, self.pad_id, this_seq + modality_bias
+                )
+            # Pad to num_stream if current IO has fewer streams
+            if this_seq.shape[1] < self.num_stream:
+                pad_size = self.num_stream - this_seq.shape[1]
+                this_seq = np.pad(this_seq, ((0, 0), (0, pad_size)))
+            seq.append(this_seq)
+
+            # (3.4) conti_feats
+            if conti_feat is not None:
+                length, feat = conti_feat
+                conti_feats.append((this_io, accum_length, length, feat))
+
+            # (3.5) loss_mask - pad and apply based on role
+            # Pad loss mask to match num_stream dimensions
+            if loss_mask.shape[1] < self.num_stream:
+                pad_size = self.num_stream - loss_mask.shape[1]
+                loss_mask = np.pad(loss_mask, ((0, 0), (0, pad_size)))
+            loss_masks.append(loss_mask * apply_loss)
+
+            accum_length += this_seq.shape[0]
+
+            # (3.6) <eot> or <eos>
+            is_last_msg = msg_idx == len(messages) - 1
+            if apply_eot:
+                seq.append(self.special_token("<|eot|>"))
+                loss_masks.append(special_mask)
+                accum_length += 1
+            elif not self.add_generation_prompt and is_last_msg:
+                # Only skip eos/eot for the LAST message when continuing
+                # from prefix. All other messages must keep their eos.
+                pass
+            else:
+                seq.append(self.special_token("<|eos|>"))
+                loss_masks.append(special_mask)
+                accum_length += 1
+
+        if random.random() < self.audio_cfg and self.is_train:
+            seq, loss_masks, conti_feats = self._apply_cfg(
+                seq, loss_masks, conti_feats, messages
+            )
+
+        # (4) concat
+        seq = np.concatenate(seq, axis=0)
+        loss_mask = np.concatenate(loss_masks, axis=0)
+
+        data = {
+            "sequence": seq,
+            "conti_feats": conti_feats,
+            "loss_mask": loss_mask,
+        }
+
+        # self.diagnose(data) # uncomment this for debug
+        return data
+
+    def _apply_chat_template(self, task, data_dict):
+        """Convert data dict to list of (role, io_type, data) messages.
+
+        Either uses provided dialogue or constructs from task template.
+        Determines appropriate IO type based on role and data entry name.
+        """
+        if "dialogue" in data_dict:
+            if len(data_dict) != 1:
+                raise ValueError(
+                    "If dialogue exist, there should be no more other entries"
+                )
+            messages = list()
+            for idx, msg in enumerate(data_dict["dialogue"], 1):
+                if (
+                    idx == len(data_dict["dialogue"])
+                    and msg[0] == "assistant"
+                    and not self.is_train
+                    and self.add_generation_prompt
+                ):
+                    break
+
+                if msg[1] == "text":
+                    this_io = "text"
+                elif msg[1] == "audio":
+                    # User/system use input audio IO, assistant uses output audio IO
+                    if msg[0] == "user" or msg[0] == "system":
+                        this_io = self.audio_input
+                    else:
+                        this_io = self.audio_output
+                else:
+                    raise ValueError(f"Not supported modality in dialogue: {msg[1]}")
+
+                msg = (msg[0], this_io, msg[2])
+
+                messages.append(msg)
+            return messages
+        else:
+            task_config = SPEECHLM_TASK_CONFIGS[task]
+            messages = list()
+            for role, entry in task_config:
+                # When inference, only process the input information (user and system)
+                if (
+                    role == "assistant"
+                    and not self.is_train
+                    and self.add_generation_prompt
+                ):
+                    break
+
+                # Select IO type based on entry name and role
+                if bool(re.match(r"^audio", entry)):
+                    # User/system use input audio IO, assistant uses output audio IO
+                    if role == "user" or role == "system":
+                        this_io = self.audio_input
+                    else:
+                        this_io = self.audio_output
+                elif bool(re.match(r"^text", entry)):
+                    this_io = "text"
+                else:
+                    raise ValueError(f"Not supported data entry in template: {entry}")
+
+                this_data = data_dict[entry]
+                message = (role, this_io, this_data)
+                messages.append(message)
+
+            return messages

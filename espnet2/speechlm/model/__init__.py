@@ -3,9 +3,15 @@
 
 """Model module for SpeechLM job templates and configurations."""
 
-from espnet2.speechlm.model.speechlm.speechlm_job import SpeechLMJobTemplate
+from espnet2.speechlm.model.speechlm.speechlm_job import (
+    SpeechLMJobTemplate,
+    SpeechLMJobTemplateWithPrefix,
+)
 
-_all_job_types = {"speechlm": SpeechLMJobTemplate}
+_all_job_types = {
+    "speechlm": SpeechLMJobTemplate,
+    "speechlm_with_prefix": SpeechLMJobTemplateWithPrefix,
+}
 
 __all__ = [
     _all_job_types,
