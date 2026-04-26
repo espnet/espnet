@@ -1,10 +1,12 @@
+exp_tag: ${self_name:}
+exp_dir: exp/${exp_tag}
+
 pack_model:
   strategy: auto  # auto|espnet2|espnet3
   out_dir: exp/model_pack
   decode_dir: ${exp_dir}/decode
   include: []
-  extra:
-    - ${load_yaml:training.yaml,tokenizer.save_path}
+  extra: []
   include_data_dir: false
   exclude:
     - "**/*.log"

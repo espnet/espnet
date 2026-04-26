@@ -1,4 +1,4 @@
-exp_tag: train_asr_rnn_data_aug
+exp_tag: ${self_name:}
 exp_dir: exp/${exp_tag}
 inference_dir: ${exp_dir}/inference
 
@@ -7,8 +7,7 @@ pack_model:
   out_dir: ${exp_dir}/model_pack
   decode_dir: ${inference_dir}
   include: []
-  extra:
-    - ${load_yaml:training_asr_rnn_data_aug.yaml,tokenizer.save_path}
+  extra: []
   include_data_dir: false
   exclude:
     - "**/*.log"

@@ -10,7 +10,6 @@ from typing import List, Sequence
 
 from espnet3.utils.config_utils import (
     load_and_merge_config,
-    load_config_with_defaults,
 )
 from espnet3.utils.logging_utils import configure_logging
 from espnet3.utils.run_utils import (
@@ -128,16 +127,18 @@ def main(
         default_package=__package__,
         resolve=False,
     )
-    publication_config = (
-        None
-        if args.publication_config is None
-        else load_config_with_defaults(args.publication_config)
+    publication_config = load_and_merge_config(
+        args.publication_config,
+        config_name="publication.yaml",
+        default_package=__package__,
+        resolve=False,
     )
     logger = configure_logging()
     apply_training_experiment_context(
         training_config=training_config,
         inference_config=inference_config,
         metrics_config=metrics_config,
+        publication_config=publication_config,
         log=logger,
     )
     validate_experiment_context(
@@ -146,7 +147,12 @@ def main(
         metrics_config=metrics_config,
         stages_to_run=stages_to_run,
     )
-    resolve_loaded_configs(training_config, inference_config, metrics_config)
+    resolve_loaded_configs(
+        training_config,
+        inference_config,
+        metrics_config,
+        publication_config,
+    )
 
     # -----------------------------------------
     # Instantiate system
