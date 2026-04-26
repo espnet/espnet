@@ -8,7 +8,7 @@
 from typing import Dict, Optional, Tuple
 
 import torch
-from torch.cuda.amp import autocast
+from torch.amp import autocast
 
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.inversible_interface import InversibleInterface
@@ -130,7 +130,7 @@ class ESPnetDiscreteSVSModel(ESPnetSVSModel):
             Dict[str, float]: Statistics to be monitored.
             Tensor: Weight tensor to summarize losses.
         """
-        with autocast(False):
+        with autocast("cuda", enabled=False):
             # 1. Extract performacne features (actual features) in frame wise
             #    and normalize
             if self.feats_extract is not None and feats is None:

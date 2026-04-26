@@ -10,7 +10,7 @@ import logging
 from typing import Dict, List, Optional, Tuple, Union
 
 import torch
-from torch.cuda.amp import autocast
+from torch.amp import autocast
 from typeguard import typechecked
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
@@ -148,7 +148,7 @@ class TorchAudioHubertPretrainModel(AbsESPnetModel):
             y_pad: (Batch, Length, ...)
             y_pad_length: (Batch, )
         """
-        with autocast(False):
+        with autocast("cuda", enabled=False):
             # 1. Extract feats
             feats, feats_lengths = self._extract_feats(speech, speech_lengths)
 
@@ -385,7 +385,7 @@ class HubertPretrainModel(AbsESPnetModel):
             y_pad: (Batch, Length, ...)
             y_pad_length: (Batch, )
         """
-        with autocast(False):
+        with autocast("cuda", enabled=False):
             # 1. Extract feats
             feats, feats_lengths = self._extract_feats(speech, speech_lengths)
 

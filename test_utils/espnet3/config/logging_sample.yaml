@@ -7,10 +7,10 @@ dataset:
   _target_: espnet3.components.data.data_organizer.DataOrganizer
   train:
     - name: train_dummy
-      data_src: test_utils_dummy/asr
+      data_src: mini_an4/asr
   valid:
     - name: valid_dummy
-      data_src: test_utils_dummy/asr
+      data_src: mini_an4/asr
 
 dataloader:
   train:

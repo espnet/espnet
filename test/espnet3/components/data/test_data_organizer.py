@@ -111,6 +111,19 @@ class ESPnetPreprocessor(AbsPreprocessor):
         }
 
 
+class RecordingESPnetPreprocessor(AbsPreprocessor):
+    def __init__(self):
+        super().__init__(train=False)
+        self.calls = []
+
+    def __call__(self, uid, sample):
+        self.calls.append(uid)
+        return {
+            "audio": sample["audio"],
+            "text": f"[espnet:{uid}] {sample['text']}",
+        }
+
+
 class DummyDataset:
     def __init__(self, path=None):
         self.data = [
@@ -187,6 +200,14 @@ class DummyBrokenShardedDataset(ShardedDataset):
 
     def shard(self, idx):
         return self
+
+
+class DummyOverrideDataset(DummyDataset):
+    def __init__(self, path=None):
+        self.data = [
+            {"audio": np.random.random(16000), "text": "override"},
+            {"audio": np.random.random(16000), "text": "winner"},
+        ]
 
 
 def _entry(name: str, *, transform: bool = False, data_src: str = DUMMY_DATA_SRC):
@@ -432,6 +453,70 @@ def test_data_organizer_test_multiple_sets():
     assert "test_other" in organizer.test
 
 
+@pytest.mark.parametrize(
+    ("test_entries", "expected_name"),
+    [
+        (
+            [
+                {
+                    "name": "shared_eval",
+                    "dataset": {"_target_": DUMMY_DATASET_TARGET},
+                },
+                {
+                    "name": "shared_eval",
+                    "dataset": {
+                        "_target_": (
+                            "test.espnet3.components.data."
+                            "test_data_organizer.DummyOverrideDataset"
+                        )
+                    },
+                },
+            ],
+            "shared_eval",
+        ),
+        (
+            [
+                {
+                    "data_src": "shared/asr",
+                    "dataset": {"_target_": DUMMY_DATASET_TARGET},
+                },
+                {
+                    "data_src": "shared/asr",
+                    "dataset": {
+                        "_target_": (
+                            "test.espnet3.components.data."
+                            "test_data_organizer.DummyOverrideDataset"
+                        )
+                    },
+                },
+            ],
+            "shared/asr",
+        ),
+        (
+            [
+                {"dataset": {"_target_": DUMMY_DATASET_TARGET}},
+                {
+                    "dataset": {
+                        "_target_": (
+                            "test.espnet3.components.data."
+                            "test_data_organizer.DummyOverrideDataset"
+                        )
+                    }
+                },
+            ],
+            "local",
+        ),
+    ],
+)
+def test_data_organizer_test_duplicate_names_last_entry_wins(
+    test_entries, expected_name
+):
+    organizer = DataOrganizer(test=test_entries)
+
+    assert list(organizer.test.keys()) == [expected_name]
+    assert organizer.test[expected_name][0]["text"] == "override"
+
+
 def test_data_organizer_transform_only():
     config = {
         "train": [_entry("train_dummy", transform=True)],
@@ -645,6 +730,19 @@ def test_espnet_preprocessor_with_transform():
 
     sample = organizer.train[0]
     assert sample["text"] == "[espnet] HELLO"
+
+
+def test_data_organizer_test_uses_espnet_preprocessor_uid():
+    preprocessor = RecordingESPnetPreprocessor()
+    organizer = DataOrganizer(
+        test=[_entry("test_dummy", transform=True)],
+        preprocessor=preprocessor,
+    )
+
+    sample = organizer.test["test_dummy"][0]
+
+    assert sample["text"] == "[espnet:0] HELLO"
+    assert preprocessor.calls == ["0"]
 
 
 def test_combined_dataset_sharded_consistency_error():

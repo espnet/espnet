@@ -7,7 +7,7 @@ from typing import Dict, Optional, Tuple
 import numpy as np
 import torch
 import torch.nn.functional as F
-from torch.cuda.amp import autocast
+from torch.amp import autocast
 from typeguard import typechecked
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
@@ -209,7 +209,7 @@ class ESPnetDiarizationModel(AbsESPnetModel):
             speech_lengths: (Batch,)
             bottleneck_feats: (Batch, Length, ...): used for enh + diar
         """
-        with autocast(False):
+        with autocast("cuda", enabled=False):
             # 1. Extract feats
             feats, feats_lengths = self._extract_feats(speech, speech_lengths)
 

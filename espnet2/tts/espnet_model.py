@@ -6,7 +6,7 @@
 from typing import Dict, List, Optional, Tuple
 
 import torch
-from torch.cuda.amp import autocast
+from torch.amp import autocast
 from typeguard import typechecked
 
 from espnet2.layers.abs_normalize import AbsNormalize
@@ -81,7 +81,7 @@ class ESPnetTTSModel(AbsESPnetModel):
             Tensor: Weight tensor to summarize losses.
 
         """
-        with autocast(False):
+        with autocast("cuda", enabled=False):
             # Extract features
             if self.feats_extract is not None:
                 feats, feats_lengths = self.feats_extract(speech, speech_lengths)

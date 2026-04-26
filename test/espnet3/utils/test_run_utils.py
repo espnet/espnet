@@ -2,6 +2,7 @@ import logging
 
 import pytest
 from omegaconf import OmegaConf
+from omegaconf.errors import InterpolationKeyError
 
 from espnet3.utils.run_utils import (
     apply_training_experiment_context,
@@ -181,6 +182,25 @@ def test_validate_experiment_context_accepts_training_backed_inference() -> None
     )
 
 
+def test_validate_experiment_context_accepts_standalone_metrics_by_exp_dir() -> None:
+    validate_experiment_context(
+        training_config=None,
+        inference_config=None,
+        metrics_config=OmegaConf.create({"exp_dir": "./exp/standalone_eval"}),
+        stages_to_run=["measure"],
+    )
+
+
+def test_validate_experiment_context_rejects_non_standalone_metrics() -> None:
+    with pytest.raises(ValueError, match="measure stage requires --training_config"):
+        validate_experiment_context(
+            training_config=None,
+            inference_config=None,
+            metrics_config=OmegaConf.create({"exp_dir": "./exp/None/metrics"}),
+            stages_to_run=["measure"],
+        )
+
+
 def test_resolve_loaded_configs_resolves_interpolations() -> None:
     training = OmegaConf.create(
         {
@@ -225,3 +245,18 @@ def test_validate_experiment_context_accepts_metrics_synced_from_inference() -> 
         metrics_config=metrics,
         stages_to_run=["infer", "measure"],
     )
+
+
+def test_resolve_loaded_configs_ignores_none_entries() -> None:
+    inference = OmegaConf.create({"inference_dir": "./exp/standalone_eval/inference"})
+
+    resolve_loaded_configs(None, inference)
+
+    assert inference.inference_dir == "./exp/standalone_eval/inference"
+
+
+def test_resolve_loaded_configs_raises_on_missing_interpolation() -> None:
+    inference = OmegaConf.create({"inference_dir": "${exp_dir}/inference"})
+
+    with pytest.raises(InterpolationKeyError):
+        resolve_loaded_configs(inference)

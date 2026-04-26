@@ -1,4 +1,6 @@
 import os
+from pathlib import Path
+from unittest.mock import mock_open, patch
 
 import pytest
 from omegaconf import OmegaConf
@@ -7,6 +9,8 @@ from yaml.parser import ParserError
 from espnet3.utils.config_utils import (
     _build_config_path,
     _ensure_target_convert_all,
+    _infer_default_package_from_config_path,
+    _rewrite_relative_resolver_paths,
     load_and_merge_config,
     load_config_with_defaults,
     load_default_config,
@@ -88,6 +92,18 @@ def test_load_line_trailing_newline(tmp_txt_file):
     path = tmp_txt_file("last\n")
     result = load_line(path)
     assert result == ["last"]
+
+
+def test_load_line_missing_file_raises(tmp_path):
+    with pytest.raises(FileNotFoundError):
+        load_line(tmp_path / "missing.txt")
+
+
+def test_load_line_permission_error_raises():
+    with patch("builtins.open", mock_open()) as mocked_open:
+        mocked_open.side_effect = PermissionError("no access")
+        with pytest.raises(PermissionError, match="no access"):
+            load_line("forbidden.txt")
 
 
 @pytest.fixture
@@ -307,6 +323,17 @@ def test_load_and_merge_config_none():
     assert load_and_merge_config(None, "metrics.yaml") is None
 
 
+def test_load_and_merge_config_requires_inferable_default_package(tmp_path):
+    config_path = tmp_path / "training.yaml"
+    config_path.write_text("exp_dir: ./exp/test\n")
+
+    with pytest.raises(
+        ValueError,
+        match="default_package is required when it cannot be inferred",
+    ):
+        load_and_merge_config(config_path, "training.yaml")
+
+
 def test_load_and_merge_config_resolve_false_preserves_interpolations(
     write_yaml, monkeypatch
 ):
@@ -511,3 +538,37 @@ def test_build_config_path_keeps_yaml(tmp_path):
 def test_build_config_path_rejects_suffix(tmp_path):
     with pytest.raises(ValueError):
         _build_config_path(tmp_path, "train.txt")
+
+
+def test_infer_default_package_returns_none_without_egs3():
+    path = Path("/home/user/project/conf/train.yaml")
+    assert _infer_default_package_from_config_path(path) is None
+
+
+def test_infer_default_package_returns_none_when_conf_too_shallow(tmp_path):
+    # egs3/conf/train.yaml — conf is only 1 level deep under egs3
+    path = tmp_path / "egs3" / "conf" / "train.yaml"
+    assert _infer_default_package_from_config_path(path) is None
+
+
+def test_infer_default_package_infers_valid_task(tmp_path):
+    path = tmp_path / "egs3" / "mini_an4" / "asr" / "conf" / "train.yaml"
+    assert _infer_default_package_from_config_path(path) == "egs3.TEMPLATE.asr"
+
+
+def test_rewrite_preserves_absolute_resolver_path(tmp_path):
+    value = "${load_line:/absolute/tokens.txt}"
+    assert _rewrite_relative_resolver_paths(value, tmp_path) == value
+
+
+def test_rewrite_preserves_dynamic_resolver_path(tmp_path):
+    value = "${load_line:${base_dir}/tokens.txt}"
+    assert _rewrite_relative_resolver_paths(value, tmp_path) == value
+
+
+def test_rewrite_handles_quoted_resolver_path(tmp_path):
+    value = "${load_line:'my tokens.txt'}"
+    result = _rewrite_relative_resolver_paths(value, tmp_path)
+    assert result.startswith("${load_line:'")
+    assert result.endswith("'}")
+    assert "my tokens.txt" in result

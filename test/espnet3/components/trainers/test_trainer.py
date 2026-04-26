@@ -1,3 +1,4 @@
+from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 import pytest
@@ -317,6 +318,66 @@ def test_strategy_variants(
     wrapper = ESPnet3LightningTrainer(model=lit, config=trainer_config, exp_dir=exp_dir)
 
     assert isinstance(wrapper.trainer.strategy, expect_type)
+
+
+def test_validate_multi_optimizer_trainer_config_rejects_trainer_clip_val():
+    trainer = ESPnet3LightningTrainer.__new__(ESPnet3LightningTrainer)
+    trainer.model = SimpleNamespace(
+        config=OmegaConf.create({"optimizers": {"main": {"params": "encoder"}}})
+    )
+    trainer.config = OmegaConf.create({"gradient_clip_val": 1.0})
+
+    with pytest.raises(AssertionError, match="gradient_clip_val"):
+        trainer._validate_multi_optimizer_trainer_config()
+
+
+def test_validate_multi_optimizer_trainer_config_rejects_clip_algorithm():
+    trainer = ESPnet3LightningTrainer.__new__(ESPnet3LightningTrainer)
+    trainer.model = SimpleNamespace(
+        config=OmegaConf.create({"optimizers": {"main": {"params": "encoder"}}})
+    )
+    trainer.config = OmegaConf.create({"gradient_clip_algorithm": "value"})
+
+    with pytest.raises(AssertionError, match="gradient_clip_algorithm"):
+        trainer._validate_multi_optimizer_trainer_config()
+
+
+def test_validate_strategy_config_compatibility_rejects_deepspeed_target():
+    trainer = ESPnet3LightningTrainer.__new__(ESPnet3LightningTrainer)
+    trainer.model = SimpleNamespace(
+        config=OmegaConf.create({"optimizers": {"main": {"params": "encoder"}}})
+    )
+    trainer.config = OmegaConf.create(
+        {
+            "strategy": {
+                "_target_": "lightning.pytorch.strategies.DeepSpeedStrategy",
+            }
+        }
+    )
+
+    with pytest.raises(RuntimeError, match="does not support DeepSpeed"):
+        trainer._validate_strategy_config_compatibility()
+
+
+def test_validate_strategy_config_compatibility_rejects_deepspeed_string():
+    trainer = ESPnet3LightningTrainer.__new__(ESPnet3LightningTrainer)
+    trainer.model = SimpleNamespace(
+        config=OmegaConf.create({"optimizers": {"main": {"params": "encoder"}}})
+    )
+    trainer.config = OmegaConf.create({"strategy": "deepspeed_stage_2"})
+
+    with pytest.raises(RuntimeError, match="does not support DeepSpeed"):
+        trainer._validate_strategy_config_compatibility()
+
+
+def test_validate_strategy_compatibility_rejects_deepspeed_strategy():
+    trainer = ESPnet3LightningTrainer.__new__(ESPnet3LightningTrainer)
+    trainer.model = SimpleNamespace(
+        config=OmegaConf.create({"optimizers": {"main": {"params": "encoder"}}})
+    )
+
+    with pytest.raises(RuntimeError, match="does not support DeepSpeed"):
+        trainer._validate_strategy_compatibility("deepspeed_stage_2")
 
 
 @pytest.mark.parametrize(

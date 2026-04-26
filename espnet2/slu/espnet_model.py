@@ -1,7 +1,7 @@
 from typing import Dict, List, Optional, Tuple, Union
 
 import torch
-from torch.cuda.amp import autocast
+from torch.amp import autocast
 from typeguard import typechecked
 
 from espnet2.asr.ctc import CTC
@@ -356,7 +356,7 @@ class ESPnetSLUModel(ESPnetASRModel):
             speech: (Batch, Length, ...)
             speech_lengths: (Batch, )
         """
-        with autocast(False):
+        with autocast("cuda", enabled=False):
             # 1. Extract feats
             feats, feats_lengths = self._extract_feats(speech, speech_lengths)
 

@@ -4,7 +4,7 @@ import logging
 from typing import Dict, List, Optional, Tuple, Union
 
 import torch
-from torch.cuda.amp import autocast
+from torch.amp import autocast
 from typeguard import typechecked
 
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
@@ -326,7 +326,7 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
             encoder_out_lens: Encoder outputs lengths. (B,)
 
         """
-        with autocast(False):
+        with autocast("cuda", enabled=False):
             # 1. Extract feats
             feats, feats_lengths = self._extract_feats(speech, speech_lengths)
 
@@ -414,7 +414,7 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
                 )
                 exit(1)
 
-        with autocast(False):
+        with autocast("cuda", enabled=False):
             loss_transducer = self.criterion_transducer(
                 joint_out.float(),
                 target,
@@ -502,7 +502,7 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
         lm = self.lm_proj(decoder_out)
         am = self.am_proj(encoder_out)
 
-        with autocast(False):
+        with autocast("cuda", enabled=False):
             simple_loss, (px_grad, py_grad) = k2.rnnt_loss_smoothed(
                 lm.float(),
                 am.float(),
@@ -531,7 +531,7 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
 
         joint_out = self.joint_network(am_pruned, lm_pruned, no_projection=True)
 
-        with autocast(False):
+        with autocast("cuda", enabled=False):
             pruned_loss = k2.rnnt_loss_pruned(
                 joint_out.float(),
                 target_padded,

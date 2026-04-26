@@ -4,7 +4,7 @@ from itertools import groupby
 from typing import Dict, List, Optional, Tuple, Union
 
 import torch
-from torch.cuda.amp import autocast
+from torch.amp import autocast
 from torch.nn.utils.rnn import pad_sequence
 from typeguard import typechecked
 
@@ -487,7 +487,7 @@ class ESPnetSTModel(AbsESPnetModel):
             speech: (Batch, Length, ...)
             speech_lengths: (Batch, )
         """
-        with autocast(False):
+        with autocast("cuda", enabled=False):
             # 1. Extract feats
             feats, feats_lengths = self._extract_feats(speech, speech_lengths)
 
