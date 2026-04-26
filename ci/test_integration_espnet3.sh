@@ -34,8 +34,6 @@ run_with_training_config() {
 }
 
 training_configs=(
-    training_asr_rnn_data_aug.yaml
-    training_asr_rnn.yaml
     training_asr_streaming.yaml
     training_asr_transformer.yaml
     training_asr_transducer.yaml

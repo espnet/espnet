@@ -13,6 +13,23 @@ def test_base_system_rejects_args():
         system.create_dataset(1)
 
 
+def test_base_system_resolves_stage_log_ref_fallback_list(tmp_path):
+    train_cfg = OmegaConf.create({"exp_dir": str(tmp_path / "exp")})
+    infer_cfg = OmegaConf.create({"inference_dir": str(tmp_path / "infer")})
+    system = BaseSystem(training_config=train_cfg, inference_config=infer_cfg)
+
+    assert system._resolve_stage_log_ref(
+        ["training_config.missing_dir", "inference_config.inference_dir"]
+    ) == str(tmp_path / "infer")
+
+
+def test_base_system_resolves_stage_log_ref_rejects_non_string(tmp_path):
+    train_cfg = OmegaConf.create({"exp_dir": str(tmp_path / "exp")})
+    system = BaseSystem(training_config=train_cfg)
+
+    assert system._resolve_stage_log_ref(123) is None
+
+
 def test_base_system_invokes_helpers(tmp_path, monkeypatch):
     train_cfg = OmegaConf.create({"exp_dir": str(tmp_path / "exp"), "model": {}})
     infer_cfg = OmegaConf.create({"inference_dir": str(tmp_path / "infer")})

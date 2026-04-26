@@ -7,7 +7,7 @@
 from typing import Any, Dict, Optional
 
 import torch
-from torch.cuda.amp import autocast
+from torch.amp import autocast
 from typeguard import typechecked
 
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
@@ -134,7 +134,7 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
                 - optim_idx (int): Optimizer index (0 for G and 1 for D).
 
         """
-        with autocast(False):
+        with autocast("cuda", enabled=False):
             # Extract features
             if self.feats_extract is not None and feats is None:
                 feats, feats_lengths = self.feats_extract(

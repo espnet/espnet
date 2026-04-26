@@ -12,7 +12,12 @@ import time
 from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
 import torch
-from torch.cuda.amp import GradScaler, autocast
+from torch.amp import autocast
+
+try:
+    from torch.amp import GradScaler
+except ImportError:
+    from torch.cuda.amp import GradScaler
 from typeguard import typechecked
 
 from espnet2.schedulers.abs_scheduler import AbsBatchStepScheduler, AbsScheduler
@@ -146,7 +151,7 @@ class UASRTrainer(Trainer):
             else:
                 turns = ["generator"]
             for turn in turns:
-                with autocast(scaler is not None):
+                with autocast("cuda", enabled=scaler is not None):
                     with reporter.measure_time(f"{turn}_forward_time"):
                         retval = model(**batch)
 

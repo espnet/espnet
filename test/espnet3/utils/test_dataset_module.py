@@ -79,6 +79,11 @@ def test_load_dataset_module_accepts_full_module_path():
     assert hasattr(module, "DatasetBuilder")
 
 
+def test_load_dataset_module_rejects_missing_module():
+    with pytest.raises(ModuleNotFoundError):
+        dm.load_dataset_module(data_src="no.such.dataset.module")
+
+
 def test_is_tag_distinguishes_slash_from_dotted_path():
     assert dm._is_tag("mini_an4/asr") is True
     assert dm._is_tag("egs3.mini_an4.asr.dataset") is False

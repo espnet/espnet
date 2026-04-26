@@ -13,7 +13,12 @@ import numpy as np
 import torch
 import torch.nn
 import torch.optim
-from torch.cuda.amp import GradScaler, autocast
+from torch.amp import autocast
+
+try:
+    from torch.amp import GradScaler
+except ImportError:
+    from torch.cuda.amp import GradScaler
 from typeguard import typechecked
 
 from espnet2.iterators.abs_iter_factory import AbsIterFactory
@@ -618,7 +623,8 @@ class Trainer:
                 del _model
 
             with autocast(
-                scaler is not None,
+                "cuda",
+                enabled=scaler is not None,
                 **autocast_args,
             ):
                 with reporter.measure_time("forward_time"):
@@ -836,7 +842,8 @@ class Trainer:
                 continue
 
             with autocast(
-                options.use_amp,
+                "cuda",
+                enabled=options.use_amp,
                 **autocast_args,
             ):
                 retval = model(**batch)

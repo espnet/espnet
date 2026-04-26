@@ -8,13 +8,9 @@ dataset:
   train:
     - name: train_dummy
       data_src: mini_an4/asr
-      data_src_args:
-        split: train
   valid:
     - name: valid_dummy
       data_src: mini_an4/asr
-      data_src_args:
-        split: valid
 
 dataloader:
   train:

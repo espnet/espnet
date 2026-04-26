@@ -20,7 +20,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchaudio.compliance.kaldi as ta_kaldi
-from torch.cuda.amp import autocast
+from torch.amp import autocast
 from torch.nn import LayerNorm, Parameter
 
 try:
@@ -391,7 +391,7 @@ class BeatsEncoder(AbsEncoder):
                 [source] * (self.min_input_length_at_16khz // source.size(1) + 1), dim=1
             )
 
-        with autocast(False):
+        with autocast("cuda", enabled=False):
             fbank = self.preprocess(source)
 
             if self.specaug is not None and self.training:

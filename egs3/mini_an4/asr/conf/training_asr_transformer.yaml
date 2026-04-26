@@ -2,8 +2,8 @@
 #                    TRAINING SETTING                    #
 ##########################################################
 # Quick usage:
-#   python run.py --stages create_dataset --training_config conf/training.yaml
-#   python run.py --stages train          --training_config conf/training.yaml
+#   python run.py --stages create_dataset --training_config conf/<name>.yaml
+#   python run.py --stages train          --training_config conf/<name>.yaml
 #
 ##########################################################
 #                  SYSTEM AND PATH SETTING               #
@@ -15,16 +15,16 @@ task: espnet3.systems.asr.task.ASRTask
 ##########################################################
 # Each entry below is a dataset reference consumed by `DataOrganizer`.
 # - `data_src` is omitted, so ESPnet3 loads `${recipe_dir}/dataset/__init__.py`
-#   and instantiates its exported `Dataset` class (`MiniAn4Dataset` here).
+#   and instantiates its exported recipe dataset class.
 # - `data_src_args` is passed directly to `Dataset(...)`.
 # - top-level keys such as `transform` stay in organizer space and are not
 #   forwarded to `Dataset(...)`.
 #
 # Dataset splits:
 #   train:
-#     - split="train" from `MiniAn4Dataset`
+#     - split="train" from the recipe dataset
 #   valid:
-#     - split="valid" from `MiniAn4Dataset`
+#     - split="valid" from the recipe dataset
 # Notes:
 #   - actual data sources are defined via `${recipe_dir}`
 dataset:
@@ -36,11 +36,21 @@ dataset:
         split: valid
   preprocessor:
     _target_: espnet2.train.preprocessor.CommonPreprocessor
+    fs: 16000
     train: true
+    data_aug_effects:   # no need to set the "sample_rate" argument for each effect here
+        - [0.1, "contrast", {"enhancement_amount": 75.0}]
+        - [0.1, "highpass", {"cutoff_freq": 5000, "Q": 0.707}]
+        - [0.1, "equalization", {"center_freq": 1000, "gain": 0, "Q": 0.707}]
+        - - 0.1
+          - - [0.3, "speed_perturb", {"factor": 0.9}]
+            - [0.3, "speed_perturb", {"factor": 1.1}]
+            - [0.3, "speed_perturb", {"factor": 1.3}]
+    data_aug_num: [1, 4]
+    data_aug_prob: 1.0
     token_type: bpe
     token_list: ${tokenizer.save_path}/tokens.txt
     bpemodel: ${tokenizer.save_path}/bpe.model
-    text_cleaner:
 
 create_dataset:
   recipe_dir: ${recipe_dir}

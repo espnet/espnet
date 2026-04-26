@@ -10,7 +10,12 @@ import time
 from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
 import torch
-from torch.cuda.amp import GradScaler, autocast
+from torch.amp import autocast
+
+try:
+    from torch.amp import GradScaler
+except ImportError:
+    from torch.cuda.amp import GradScaler
 from torch.nn.parallel import DistributedDataParallel as DDP
 from typeguard import typechecked
 
@@ -156,7 +161,7 @@ class GANTrainer(Trainer):
                             raise RuntimeError("cannot get model for cache cleaning")
                         continue
 
-                with autocast(scaler is not None):
+                with autocast("cuda", enabled=scaler is not None):
                     with reporter.measure_time(f"{turn}_forward_time"):
                         retval = model(forward_generator=turn == "generator", **batch)
 
