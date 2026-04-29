@@ -103,7 +103,9 @@ class BaseSystem:
         """
 
         self.training_config = training_config
+        self.inference_config = inference_config
         self.metrics_config = metrics_config
+        self.publication_config = publication_config
 
         if training_config is not None:
             self.exp_dir = Path(training_config.exp_dir)
