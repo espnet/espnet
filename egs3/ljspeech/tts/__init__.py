@@ -1,1 +1,0 @@
-"""LJSpeech TTS recipe package."""
