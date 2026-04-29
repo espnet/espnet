@@ -26,16 +26,6 @@ def load_line(path):
 
     Returns:
         List[str]: A list of stripped lines from the file.
-
-    Raises:
-        FileNotFoundError: If ``path`` does not exist.
-        PermissionError: If the file cannot be read.
-
-    Example:
-        >>> from omegaconf import OmegaConf
-        >>> cfg = OmegaConf.create(
-        ...     {"vocab": "${load_line:tokens.txt}"}
-        ... )  # doctest: +SKIP
     """
     try:
         with open(path, "r") as f:
