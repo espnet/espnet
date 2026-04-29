@@ -21,6 +21,20 @@ logger = logging.getLogger(__name__)
 _DEFAULT_USER_CODE_PATHS = ("src",)
 _DEFAULT_DOWNLOADER_CLASS = "espnet_model_zoo.downloader.ModelDownloader"
 _DEFAULT_INFERENCE_CONFIG_KEYS = ("inference_config",)
+_DEFAULT_MODEL_UNWRAP_ATTRS = (
+    "asr_model",
+    "s2t_model",
+    "st_model",
+    "mt_model",
+    "enh_model",
+    "classification_model",
+    "diar_model",
+    "spk_model",
+    "uasr_model",
+    "asvspoof_model",
+    "lid_model",
+    "model",
+)
 
 
 def _import_object(path: str) -> Any:
@@ -181,6 +195,36 @@ def _load_inference_config(
         config.recipe_dir = str(bundle_root)
     OmegaConf.resolve(config)
     return config
+
+
+def _unwrap_backend_model(
+    backend: Any,
+    *,
+    attr_names: Sequence[str] = _DEFAULT_MODEL_UNWRAP_ATTRS,
+) -> Any:
+    """Return the most trainable-looking model nested under an inference backend."""
+    current = backend
+    visited: set[int] = set()
+
+    while True:
+        current_id = id(current)
+        if current_id in visited:
+            return current
+        visited.add(current_id)
+
+        next_model = None
+        for attr_name in attr_names:
+            if not hasattr(current, attr_name):
+                continue
+            candidate = getattr(current, attr_name)
+            if candidate is None or candidate is current:
+                continue
+            next_model = candidate
+            break
+
+        if next_model is None:
+            return current
+        current = next_model
 
 
 def _should_enable_user_code(
@@ -687,6 +731,53 @@ class InferenceSession:
     def __call__(self, sample: Any, *, idx: Any = 0) -> Any:
         """Alias for :meth:`forward`."""
         return self.forward(sample, idx=idx)
+
+    def get_model(
+        self,
+        *,
+        unwrap: bool = True,
+        attr_names: Sequence[str] = _DEFAULT_MODEL_UNWRAP_ATTRS,
+    ) -> Any:
+        """Return the inference backend or its underlying trainable model.
+
+        Use this method when you need access to the original model object held
+        by an inference wrapper. This is primarily useful for advanced workflows
+        such as inspection, state-dict export, or initializing a separate
+        fine-tuning pipeline from a published bundle.
+
+        Args:
+            unwrap: Whether to traverse common wrapper attributes such as
+                ``asr_model`` and return the innermost model object. If
+                ``False``, return the backend object stored in ``self.model``.
+            attr_names: Ordered wrapper attribute names checked during unwrapping.
+                The first matching non-``None`` attribute is followed on each
+                step until no more known wrapper attributes remain.
+
+        Returns:
+            Any: The backend object when ``unwrap=False``, otherwise the deepest
+            model object reachable through the configured wrapper attributes.
+
+        Raises:
+            None.
+
+        Notes:
+            This method does not construct optimizers, schedulers, or training
+            state. It only returns model objects that are already loaded in the
+            session.
+
+        Examples:
+            Return the inference wrapper itself:
+
+            >>> backend = session.get_model(unwrap=False)
+
+            Return the underlying ASR model for reuse in another pipeline:
+
+            >>> asr_model = session.get_model()
+            >>> state_dict = asr_model.state_dict()
+        """
+        if not unwrap:
+            return self.model
+        return _unwrap_backend_model(self.model, attr_names=attr_names)
 
     def forward_batch(
         self,

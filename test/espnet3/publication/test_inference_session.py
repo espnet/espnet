@@ -4,6 +4,7 @@ import sys
 from pathlib import Path
 
 import pytest
+import torch
 import yaml
 from omegaconf import OmegaConf
 
@@ -24,6 +25,23 @@ class NoBatchModel:
         if isinstance(speech, list):
             raise TypeError("list input is not supported")
         return f"single:{speech}"
+
+
+class WrappedModel:
+    def __init__(self, inner_model):
+        self.asr_model = inner_model
+
+    def __call__(self, speech):
+        return self.asr_model(speech)
+
+
+class TinyTorchModel(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.linear = torch.nn.Linear(2, 2)
+
+    def forward(self, speech):
+        return self.linear(speech)
 
 
 class ImportingModel:
@@ -144,6 +162,36 @@ def test_forward_batch_rejects_length_mismatch():
 
     with pytest.raises(ValueError, match="same length as samples"):
         session.forward_batch(["a"], indices=["x", "y"])
+
+
+def test_get_model_returns_unwrapped_model_by_default():
+    inner_model = EchoModel(prefix="inner:")
+    session = InferenceSession(WrappedModel(inner_model))
+
+    assert session.get_model() is inner_model
+
+
+def test_get_model_can_return_backend_wrapper():
+    backend = WrappedModel(EchoModel(prefix="inner:"))
+    session = InferenceSession(backend)
+
+    assert session.get_model(unwrap=False) is backend
+
+
+def test_get_model_preserves_model_class_and_weights():
+    inner_model = TinyTorchModel()
+    with torch.no_grad():
+        inner_model.linear.weight.copy_(torch.tensor([[1.0, 2.0], [3.0, 4.0]]))
+        inner_model.linear.bias.copy_(torch.tensor([5.0, 6.0]))
+    backend = WrappedModel(inner_model)
+    session = InferenceSession(backend)
+
+    returned_model = session.get_model()
+
+    assert returned_model is inner_model
+    assert type(returned_model) is TinyTorchModel
+    assert torch.equal(returned_model.linear.weight, inner_model.linear.weight)
+    assert torch.equal(returned_model.linear.bias, inner_model.linear.bias)
 
 
 def test_from_pretrained_can_enable_trusted_user_code(tmp_path, monkeypatch):

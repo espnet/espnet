@@ -82,29 +82,13 @@ class ASRSystem(BaseSystem):
         return model.exists() and vocab.exists()
 
     def _resolve_stats_pack_paths(self) -> list[Path]:
-        """Return stats artifacts to include in a publication bundle."""
+        """Return train stats archives to include in a publication bundle."""
         stats_dir = getattr(self.training_config, "stats_dir", None)
         if not stats_dir:
             return []
 
-        stats_path = Path(stats_dir)
-        train_dir = stats_path / "train"
-        valid_dir = stats_path / "valid"
-        train_npz = sorted(path for path in train_dir.glob("*.npz") if path.is_file())
-        valid_npz = sorted(path for path in valid_dir.glob("*.npz") if path.is_file())
-        has_shape_files = any(train_dir.glob("*shape*")) and any(valid_dir.glob("*shape*"))
-        if (
-            train_dir.is_dir()
-            and valid_dir.is_dir()
-            and train_npz
-            and valid_npz
-            and has_shape_files
-        ):
-            logger.info(
-                "Packing stats artifacts from %s as train/*.npz only", stats_path
-            )
-            return train_npz
-        return [stats_path]
+        train_dir = Path(stats_dir) / "train"
+        return sorted(path for path in train_dir.glob("*.npz") if path.is_file())
 
     def train_tokenizer(self, *args, **kwargs):
         """Train a SentencePiece tokenizer based on configured text.
