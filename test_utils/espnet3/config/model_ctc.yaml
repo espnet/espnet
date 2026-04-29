@@ -16,25 +16,25 @@ dataset:
     - name: train-clean-100
       data_src: mini_an4/asr
       data_src_args:
-        split: train
+        split: train-clean-100
   valid:
     - name: dev-clean
       data_src: mini_an4/asr
       data_src_args:
-        split: valid
+        split: dev-clean
     - name: dev-other
       data_src: mini_an4/asr
       data_src_args:
-        split: valid
+        split: dev-other
   test:
     - name: test-clean
       data_src: mini_an4/asr
       data_src_args:
-        split: test
+        split: test-clean
     - name: test-other
       data_src: mini_an4/asr
       data_src_args:
-        split: test
+        split: test-other
 
   preprocessor:
     _target_: espnet2.train.preprocessor.CommonPreprocessor

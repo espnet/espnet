@@ -33,7 +33,6 @@ DEFAULT_STAGES: List[str] = [
     "measure",
     "pack_model",
     "upload_model",
-    "publish",
 ]
 
 DEMO_STAGES: List[str] = [
