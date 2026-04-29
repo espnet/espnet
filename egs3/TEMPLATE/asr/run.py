@@ -35,13 +35,6 @@ DEFAULT_STAGES: List[str] = [
     "upload_model",
 ]
 
-DEMO_STAGES: List[str] = [
-    "pack_demo",
-    "upload_demo",
-]
-
-ALL_STAGES: List[str] = DEFAULT_STAGES + DEMO_STAGES
-
 
 def build_parser(
     stages: Sequence[str],
@@ -223,5 +216,5 @@ if __name__ == "__main__":
     main(
         args=args,
         system_cls=ASRSystem,
-        stages=ALL_STAGES,
+        stages=DEFAULT_STAGES,
     )

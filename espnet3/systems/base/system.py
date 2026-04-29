@@ -103,11 +103,7 @@ class BaseSystem:
         """
 
         self.training_config = training_config
-        self.train_config = training_config
-        self.inference_config = inference_config
-        self.infer_config = inference_config
         self.metrics_config = metrics_config
-        self.publication_config = publication_config
 
         if training_config is not None:
             self.exp_dir = Path(training_config.exp_dir)
@@ -311,17 +307,3 @@ class BaseSystem:
         from espnet3.utils.publish import upload_model
 
         return upload_model(self)
-
-    def pack_demo(self, *args, **kwargs):
-        """Pack demo artifacts into a runnable demo bundle."""
-        self._reject_stage_args("pack_demo", args, kwargs)
-        from espnet3.demo.pack import pack_demo
-
-        return pack_demo(self)
-
-    def upload_demo(self, *args, **kwargs):
-        """Upload demo bundle to HuggingFace Spaces (stub)."""
-        self._reject_stage_args("upload_demo", args, kwargs)
-        from espnet3.demo.pack import upload_demo
-
-        return upload_demo(self)

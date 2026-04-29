@@ -1,12 +1,7 @@
 #!/usr/bin/env python3
 import glob
 import importlib
-import importlib.metadata
-import os
-import subprocess
 import sys
-import tempfile
-import textwrap
 import traceback
 
 try:

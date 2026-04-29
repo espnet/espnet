@@ -1,1 +1,1 @@
-training_asr_transformer.yaml
+training_transducer_asr_conformer_rnnt.yaml

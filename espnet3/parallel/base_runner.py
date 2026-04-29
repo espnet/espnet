@@ -78,22 +78,7 @@ def _default_chunk(indices: Sequence[int], num_chunks: int) -> List[List[int]]:
 
 
 def convert_paths(obj):
-    """Recursively convert :class:`pathlib.Path` objects to strings.
-
-    This is primarily used to make configs and environment objects JSON
-    serializable before sending them to Dask workers.
-
-    Args:
-        obj: Arbitrary nested structure containing dict/list/Path leaves.
-
-    Returns:
-        Any: A new structure where all ``Path`` instances are converted to ``str``.
-
-    Example:
-        >>> from pathlib import Path
-        >>> convert_paths({"p": Path("a/b")})
-        {'p': 'a/b'}
-    """
+    """Recursively convert Path objects to strings in the given object."""
     if isinstance(obj, dict):
         return {k: convert_paths(v) for k, v in obj.items()}
     elif isinstance(obj, list):
