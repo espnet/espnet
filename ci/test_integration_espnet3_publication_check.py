@@ -43,7 +43,9 @@ def _load_dataset_sample(
     dataset = dataset_lib.Dataset(split=split, recipe_dir=recipe_dir)
     sample = dataset[0]
     if not isinstance(sample, dict):
-        raise TypeError(f"Expected dict sample from {dataset_module}.Dataset, got {type(sample)!r}")
+        raise TypeError(
+            f"Expected dict sample from {dataset_module}.Dataset, got {type(sample)!r}"
+        )
     return sample
 
 

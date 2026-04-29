@@ -307,8 +307,7 @@ def test_apply_training_experiment_context_syncs_publication_from_training_and_i
     assert "Inserted publication_config.exp_tag from training_config" in caplog.text
     assert "Inserted publication_config.exp_dir from training_config" in caplog.text
     assert (
-        "Inserted publication_config.inference_dir from inference_config"
-        in caplog.text
+        "Inserted publication_config.inference_dir from inference_config" in caplog.text
     )
 
 
