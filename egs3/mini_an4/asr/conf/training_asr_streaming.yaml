@@ -124,7 +124,10 @@ best_model_criterion:
 # Unsorted mini-batches keep the streaming example simple.
 dataloader:
   train:
-    num_shards: 1
+    # `total_shards` is the total shard count.
+    # `dist_world_size` must match the runtime distributed world size.
+    total_shards: 1
+    dist_world_size: 1
     iter_factory:
       batches:
         type: unsorted

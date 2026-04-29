@@ -219,7 +219,11 @@ dataloader:
     int_pad_value: -1
   # Training dataloader / iterator settings.
   train:
-    num_shards: 1
+    # `total_shards` is the total number of dataset shards.
+    # `dist_world_size` is the distributed world size used to rotate shards.
+    # Keep `dist_world_size` equal to the runtime world size.
+    total_shards: 1
+    dist_world_size: 1
     iter_factory:
       _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
       shuffle: true
@@ -235,7 +239,9 @@ dataloader:
 
   # Validation dataloader / iterator settings.
   valid:
-    num_shards: 1
+    # Use the same sharding settings as `train`.
+    total_shards: 1
+    dist_world_size: 1
     iter_factory:
       _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
       shuffle: false

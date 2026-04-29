@@ -89,39 +89,55 @@ class DataLoaderBuilder:
         return rank, world_size
 
     def _maybe_shard_dataset(self, dataset):
-        # Since we can assume the dataset is a CombinedDataset,
-        # we should look at dataset.datasets[:] for actual sharded dataset.
-        if not hasattr(dataset.datasets[0], "num_shards"):
+        """Return one epoch/rank-specific shard when shard metadata is present.
+
+        `dataset` is expected to be a `CombinedDataset`, so shard metadata is
+        read from the first wrapped dataset while the actual `shard()` call is
+        dispatched through `CombinedDataset`.
+
+        Sharded datasets must define:
+        - `total_shards`: Total shard count across the full dataset.
+        - `dist_world_size`: Distributed world size used by the shard rotation.
+
+        This helper validates that `dist_world_size` matches the runtime
+        distributed world size before selecting one shard for the current
+        `(epoch, rank)` pair.
+        """
+        # DataOrganizer provides CombinedDataset, so shard metadata lives on the
+        # wrapped datasets, while shard() is exposed by CombinedDataset itself.
+        first_dataset = dataset.datasets[0]
+        total_shards = getattr(first_dataset, "total_shards", None)
+        if total_shards is None:
             return dataset
-        if not hasattr(dataset.datasets[0], "shard"):
-            raise RuntimeError("num_shards is set but shard() is not implemented.")
-        num_shards = getattr(dataset.datasets[0], "num_shards")
-        world_shard_size = getattr(dataset.datasets[0], "world_shard_size", None)
-        if world_shard_size is None:
+
+        if not hasattr(first_dataset, "shard"):
+            raise RuntimeError("total_shards is set but shard() is not implemented.")
+        if not hasattr(dataset, "shard"):
+            raise RuntimeError("Dataset does not expose shard().")
+
+        dist_world_size = getattr(first_dataset, "dist_world_size", None)
+        if dist_world_size is None:
             raise RuntimeError(
-                "ShardedDataset requires world_shard_size to be set when used "
+                "ShardedDataset requires dist_world_size to be set when used "
                 "with DataLoaderBuilder."
             )
-        if not isinstance(world_shard_size, int) or world_shard_size < 1:
-            raise RuntimeError("world_shard_size must be an integer >= 1.")
-        rank, world_size = self._get_world_info()
-        if world_shard_size != world_size:
+        if not isinstance(dist_world_size, int) or dist_world_size < 1:
+            raise RuntimeError("dist_world_size must be an integer >= 1.")
+        rank, runtime_world_size = self._get_world_info()
+        if dist_world_size != runtime_world_size:
             raise RuntimeError(
-                "world_shard_size must match the distributed world_size."
+                "dist_world_size must match the distributed world_size "
+                f"(configured {dist_world_size}, got {runtime_world_size})."
             )
-        if not isinstance(num_shards, int) or num_shards < 1:
-            raise RuntimeError("num_shards must be an integer >= 1.")
-        if num_shards % world_size != 0:
+        if not isinstance(total_shards, int) or total_shards < 1:
+            raise RuntimeError("total_shards must be an integer >= 1.")
+        if total_shards % runtime_world_size != 0:
             raise RuntimeError(
-                "num_shards must be divisible by world_size for sharded training."
+                "total_shards must be divisible by world_size for sharded training."
             )
-        shards_per_rank = num_shards // world_size
-        start = (self.epoch * world_size) % num_shards
-        shard_indices = [
-            (start + rank + world_size * i) % num_shards for i in range(shards_per_rank)
-        ]
-        # Use the first shard for the GPU and for the epoch.
-        return dataset.shard(shard_indices[0])
+
+        shard_idx = ((self.epoch * runtime_world_size) + rank) % total_shards
+        return dataset.shard(shard_idx)
 
     def build(self, mode: str):
         """Build and return a DataLoader for the specified mode ("train" or "valid").

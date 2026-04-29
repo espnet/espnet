@@ -106,6 +106,7 @@ class CTC(torch.nn.Module):
                         "All samples in this mini-batch got nan grad."
                         " Returning nan value instead of CTC loss"
                     )
+                    return loss
                 elif size != th_pred.size(1):
                     logging.warning(
                         f"{th_pred.size(1) - size}/{th_pred.size(1)}"
