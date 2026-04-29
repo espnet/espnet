@@ -156,6 +156,8 @@ def test_asr_system_pack_model_skips_stats_without_train_npz(tmp_path, monkeypat
     assert result == tmp_path / "packed"
     assert captured["system"] is system
     assert captured["extra"] == []
+
+
 def test_asr_system_train_requires_dataset_reference(tmp_path):
     train_cfg = OmegaConf.create({"exp_dir": str(tmp_path / "exp")})
     system = ASRSystem(training_config=train_cfg)

@@ -53,10 +53,7 @@ class MiniAn4TTSBuilder(DatasetBuilder):
             if candidate.is_file():
                 return candidate
         formatted = "\n".join(f"- {path}" for path in candidates)
-        raise FileNotFoundError(
-            "Mini AN4 archive not found. Checked:\n"
-            f"{formatted}"
-        )
+        raise FileNotFoundError("Mini AN4 archive not found. Checked:\n" f"{formatted}")
 
     def is_source_prepared(self, recipe_dir: str | Path, **_kwargs) -> bool:
         """Check whether the shared Mini AN4 source tree is already available."""
@@ -93,7 +90,9 @@ class MiniAn4TTSBuilder(DatasetBuilder):
         recipe_root = Path(recipe_dir).resolve()
         self._asr_builder.build(recipe_dir=recipe_root)
 
-        manifest_path = recipe_root / _CFG["data_path"] / _CFG["manifest_paths"]["train"]
+        manifest_path = (
+            recipe_root / _CFG["data_path"] / _CFG["manifest_paths"]["train"]
+        )
         chars: set[str] = set()
         with manifest_path.open("r", encoding="utf-8") as fh:
             for line in fh:
