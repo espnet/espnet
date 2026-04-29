@@ -154,9 +154,9 @@ class GANTrainer(Trainer):
                         skip_disc = torch.rand(1)
                     if skip_disc.item() < skip_discriminator_prob:
                         if isinstance(model, DDP):
-                            model.module.clear_cache()
+                            model.module.codec._cache = None
                         elif isinstance(model, torch.nn.Module):
-                            model.clear_cache()
+                            model.codec._cache = None
                         else:
                             raise RuntimeError("cannot get model for cache cleaning")
                         continue

@@ -147,10 +147,3 @@ class ESPnetGANCodecModel(AbsGANESPnetModel):
         """
 
         return {}
-
-    def clear_cache(self) -> None:
-        """Clear cached GAN codec intermediate outputs."""
-        if hasattr(self.codec, "clear_cache"):
-            self.codec.clear_cache()
-        elif hasattr(self.codec, "_cache"):
-            self.codec._cache = None

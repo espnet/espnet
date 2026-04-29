@@ -68,12 +68,3 @@ class AbsGANESPnetModel(AbsESPnetModel, torch.nn.Module, ABC):
     @abstractmethod
     def collect_feats(self, **batch: torch.Tensor) -> Dict[str, torch.Tensor]:
         raise NotImplementedError
-
-    def clear_cache(self) -> None:
-        """Clear cached generator outputs kept across GAN turns.
-
-        GAN tasks may reuse generator-side intermediate results between the
-        generator and discriminator turns for the same batch. Override this
-        hook when a concrete task keeps such temporary state and needs an
-        explicit cleanup point when one of the turns is skipped.
-        """

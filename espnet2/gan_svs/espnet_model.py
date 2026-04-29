@@ -333,13 +333,6 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
             batch.update(ssl_feats=None, ssl_feats_lengths=None)
         return self.svs(**batch)
 
-    def clear_cache(self) -> None:
-        """Clear cached GAN-SVS intermediate outputs."""
-        if hasattr(self.svs, "clear_cache"):
-            self.svs.clear_cache()
-        elif hasattr(self.svs, "_cache"):
-            self.svs._cache = None
-
     def collect_feats(
         self,
         text: torch.Tensor,
