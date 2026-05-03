@@ -166,7 +166,7 @@ def apply_training_experiment_context(
     measurement follows the same output location as inference. When both
     `inference_config` and `publication_config` are present,
     `publication_config` inherits `inference_dir` so `pack_model` can reuse
-    the same decode directory as the preceding inference stage.
+    the same inference output directory as the preceding inference stage.
 
     Args:
         training_config (DictConfig | None): Training config selected for the

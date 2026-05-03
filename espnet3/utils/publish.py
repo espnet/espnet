@@ -791,9 +791,13 @@ def _resolve_results_dir(pack_cfg: DictConfig, system) -> Path | None:
         Directory expected to contain ``metrics.json`` or legacy score files.
         Returns ``None`` when no candidate directory is configured.
     """
-    configured_dir = getattr(pack_cfg, "decode_dir", None)
+    configured_dir = getattr(pack_cfg, "inference_dir", None)
     if configured_dir:
         return Path(configured_dir)
+    publication_cfg = getattr(system, "publication_config", None)
+    publication_dir = getattr(publication_cfg, "inference_dir", None)
+    if publication_dir:
+        return Path(publication_dir)
     metrics_cfg = getattr(system, "metrics_config", None)
     metrics_dir = getattr(metrics_cfg, "inference_dir", None)
     if metrics_dir:
@@ -818,7 +822,7 @@ def _resolve_results_artifact(pack_cfg: DictConfig, system) -> Path | None:
         when no matching file is found.
 
     Note:
-        The search is rooted at ``publication_config.pack_model.decode_dir``
+        The search is rooted at ``publication_config.pack_model.inference_dir``
         when configured. Otherwise it falls back to the configured metrics or
         inference directory on the system.
     """
@@ -830,7 +834,7 @@ def _resolve_results_artifact(pack_cfg: DictConfig, system) -> Path | None:
         if len(matches) > 1:
             raise RuntimeError(
                 f"Multiple {artifact_name} files found; set "
-                "publication_config.pack_model.decode_dir to a single result "
+                "publication_config.pack_model.inference_dir to a single result "
                 "directory."
             )
         if len(matches) == 1:
@@ -970,7 +974,7 @@ def pack_model(
         ``publication_config.pack_model.out_dir``.
         ``publication_config.pack_model.readme_template`` can override the
         default Hugging Face model repo README template path.
-        ``publication_config.pack_model.decode_dir`` can be used to specify
+        ``publication_config.pack_model.inference_dir`` can be used to specify
         which result directory to scan. If not set, it falls back to the
         configured metrics or inference directory on the system.
         README generation prefers ``metrics.json`` and falls back to legacy
@@ -1034,7 +1038,7 @@ def pack_model(
             excludes.append(str(exclude_cfg))
 
     effective = list(excludes)
-    effective.extend(["decode", "decode_*", "decode_dir"])
+    effective.extend(["inference", "inference_*", "inference_dir"])
     if out_dir.name:
         effective.append(out_dir.name)
     effective.append("__pycache__")
