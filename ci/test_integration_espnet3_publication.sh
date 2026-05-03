@@ -1,12 +1,11 @@
 #!/usr/bin/env bash
 
-# set -euo pipefail
+set -euo pipefail
 
 . tools/activate_python.sh
 . tools/extra_path.sh
 
-# python="coverage run --append"
-python="python"
+python="coverage run --append"
 cwd=$(pwd)
 
 training_config=${1:-conf/training_asr_streaming.yaml}
@@ -19,7 +18,7 @@ gen_dummy_coverage() {
     ${python} empty.py
 }
 
-# python3 -m pip install -e '.[asr]'
+python3 -m pip install -e '.[asr]'
 
 cd ./egs3/mini_an4/asr || exit
 gen_dummy_coverage
@@ -43,5 +42,5 @@ PACK_DIR="${pack_dir}" python3 "${cwd}/ci/test_integration_espnet3_publication_c
     --split "${dataset_split}" \
     --recipe-dir "$(pwd)"
 
-# rm -rf exp data
+rm -rf exp data
 cd "${cwd}"
