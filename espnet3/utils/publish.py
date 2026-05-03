@@ -343,6 +343,10 @@ def pack_model(
     readme_template_path = getattr(pack_cfg, "readme", None)
     if readme_template_path:
         template_path = Path(readme_template_path)
+        if not template_path.is_absolute() and not template_path.exists():
+            repo_template_path = Path(__file__).resolve().parents[2] / template_path
+            if repo_template_path.exists():
+                template_path = repo_template_path
         if not template_path.exists():
             raise FileNotFoundError(f"README template not found: {template_path}")
         context: dict[str, str] = {

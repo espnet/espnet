@@ -307,6 +307,32 @@ def test_pack_model_creates_output_dir_and_copies_exp_dir(tmp_path):
     assert "torch" in meta
 
 
+def test_pack_model_resolves_repo_root_readme_path_outside_cwd(tmp_path, monkeypatch):
+    recipe_dir = tmp_path
+    exp_dir = recipe_dir / "exp"
+    exp_dir.mkdir()
+    out_dir = tmp_path / "model_pack"
+    publication_config = OmegaConf.create(
+        {
+            "pack_model": {
+                "out_dir": str(out_dir),
+                "readme": "egs3/TEMPLATE/asr/src/hf_model_repo_readme_template.md",
+            }
+        }
+    )
+    system = _make_system(
+        exp_dir=exp_dir, recipe_dir=recipe_dir, publication_config=publication_config
+    )
+    monkeypatch.chdir(tmp_path)
+
+    publish.pack_model(
+        training_config=system.training_config,
+        publication_config=system.publication_config,
+    )
+
+    assert (out_dir / "README.md").exists()
+
+
 def test_pack_model_recreates_existing_out_dir(tmp_path):
     recipe_dir = tmp_path
     exp_dir = recipe_dir / "exp"

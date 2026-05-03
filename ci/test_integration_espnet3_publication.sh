@@ -8,7 +8,7 @@ set -euo pipefail
 python="coverage run --append"
 cwd=$(pwd)
 
-training_config=${1:-conf/training_asr_streaming.yaml}
+training_config=${1:-conf/training_asr_transformer.yaml}
 inference_config=${2:-conf/inference.yaml}
 publication_config=${3:-conf/publication.yaml}
 dataset_split=${4:-test}
