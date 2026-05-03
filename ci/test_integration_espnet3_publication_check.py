@@ -123,7 +123,9 @@ def main() -> None:
         recipe_dir=Path(args.recipe_dir).resolve(),
     )
     input_keys = (
-        session.input_key if isinstance(session.input_key, list) else [session.input_key]
+        session.input_key
+        if isinstance(session.input_key, list)
+        else [session.input_key]
     )
     for key in input_keys:
         if key not in sample:
