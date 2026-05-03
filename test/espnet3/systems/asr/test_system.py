@@ -91,8 +91,8 @@ def test_asr_system_train_tokenizer_trains_sentencepiece(tmp_path, monkeypatch):
     assert calls["sentencepiece"]["vocab_size"] == 8
 
 
-def test_asr_system_pack_model_includes_train_stats_npz_only(tmp_path, monkeypatch):
-    """Ensure pack_model includes only train stats npz artifacts."""
+def test_asr_system_pack_model_includes_train_stats_npz_only(tmp_path):
+    """Ensure ASR pack-model artifacts include only train stats npz files."""
     stats_dir = tmp_path / "stats"
     train_dir = stats_dir / "train"
     valid_dir = stats_dir / "valid"
@@ -112,24 +112,13 @@ def test_asr_system_pack_model_includes_train_stats_npz_only(tmp_path, monkeypat
         }
     )
     system = ASRSystem(training_config=train_cfg)
-    captured = {}
+    artifacts = system._get_pack_model_artifacts()
 
-    def fake_pack_model(system_obj, *, include=None, extra=None):
-        captured["system"] = system_obj
-        captured["extra"] = [Path(path) for path in extra or []]
-        return tmp_path / "packed"
-
-    monkeypatch.setattr("espnet3.utils.publish.pack_model", fake_pack_model)
-
-    result = system.pack_model()
-
-    assert result == tmp_path / "packed"
-    assert captured["system"] is system
-    assert captured["extra"] == [train_npz]
+    assert artifacts["copy_paths"] == [train_npz]
 
 
-def test_asr_system_pack_model_skips_stats_without_train_npz(tmp_path, monkeypatch):
-    """Ensure pack_model does not include stats when train npz is absent."""
+def test_asr_system_pack_model_skips_stats_without_train_npz(tmp_path):
+    """Ensure ASR pack-model artifacts skip stats when train npz is absent."""
     stats_dir = tmp_path / "stats"
     train_dir = stats_dir / "train"
     train_dir.mkdir(parents=True)
@@ -142,20 +131,9 @@ def test_asr_system_pack_model_skips_stats_without_train_npz(tmp_path, monkeypat
         }
     )
     system = ASRSystem(training_config=train_cfg)
-    captured = {}
+    artifacts = system._get_pack_model_artifacts()
 
-    def fake_pack_model(system_obj, *, include=None, extra=None):
-        captured["system"] = system_obj
-        captured["extra"] = [Path(path) for path in extra or []]
-        return tmp_path / "packed"
-
-    monkeypatch.setattr("espnet3.utils.publish.pack_model", fake_pack_model)
-
-    result = system.pack_model()
-
-    assert result == tmp_path / "packed"
-    assert captured["system"] is system
-    assert captured["extra"] == []
+    assert artifacts["copy_paths"] == []
 
 
 def test_asr_system_train_requires_dataset_reference(tmp_path):

@@ -4,11 +4,10 @@ import sys
 from pathlib import Path
 
 import pytest
-import torch
 import yaml
-from omegaconf import OmegaConf
 
-from espnet3.publication import InferenceSession
+from espnet3.publication import InferenceModel
+from espnet3.systems.base.inference_provider import InferenceProvider
 
 
 class EchoModel:
@@ -20,405 +19,400 @@ class EchoModel:
         return f"{self.prefix}{speech}@{self.device}"
 
 
-class NoBatchModel:
-    def __call__(self, speech):
-        if isinstance(speech, list):
-            raise TypeError("list input is not supported")
-        return f"single:{speech}"
+class DualInputModel:
+    def __call__(self, speech, text):
+        return f"{speech}+{text}"
 
 
-class WrappedModel:
-    def __init__(self, inner_model):
-        self.asr_model = inner_model
-
-    def __call__(self, speech):
-        return self.asr_model(speech)
-
-
-class TinyTorchModel(torch.nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.linear = torch.nn.Linear(2, 2)
-
-    def forward(self, speech):
-        return self.linear(speech)
-
-
-class ImportingModel:
-    def __init__(self, asr_train_config, asr_model_file):
-        from custom_code import render_value
-
-        self.render_value = render_value
-        self.asr_train_config = asr_train_config
-        self.asr_model_file = asr_model_file
-
-    def __call__(self, speech):
-        return self.render_value(speech)
-
-
-class DummyDownloader:
-    artifacts = None
-
-    def download_and_unpack(self, _model_tag):
-        return dict(self.artifacts)
-
-
-class BackendWithFromPretrained:
-    calls = []
-
-    def __init__(self, value):
-        self.value = value
-
-    def __call__(self, speech):
-        return f"{self.value}:{speech}"
-
-    @staticmethod
-    def from_pretrained(model_tag=None, **kwargs):
-        BackendWithFromPretrained.calls.append((model_tag, dict(kwargs)))
-        return BackendWithFromPretrained(kwargs["value"])
-
-
-def build_output(*, data, model_output, idx):
-    return {"utt_id": data.get("utt_id", idx), "hyp": model_output}
-
-
-def build_bad_batch_output(*, data, model_output, idx):
-    return {"utt_id": "bad", "hyp": model_output}
-
-
-def _write_bundle_inference_config(
-    bundle_root: Path,
-    model_target: str,
+def _make_pack_dir(
+    tmp_path: Path,
     *,
-    output_fn: str | None = "src.custom_code.build_output",
+    model_target: str = "builtins.object",
+    input_key: str | list = "speech",
+    output_fn: str | None = None,
+    with_src_module: bool = False,
 ) -> Path:
+    bundle_root = tmp_path / "bundle"
+    bundle_root.mkdir()
     conf_dir = bundle_root / "conf"
-    conf_dir.mkdir(exist_ok=True)
-    inference_config = conf_dir / "inference.yaml"
-    lines = [
-        "recipe_dir: .",
-        "input_key: speech",
+    conf_dir.mkdir()
+
+    lines = ["recipe_dir: ."]
+    if isinstance(input_key, list):
+        lines.append("input_key:")
+        for k in input_key:
+            lines.append(f"  - {k}")
+    else:
+        lines.append(f"input_key: {input_key}")
+    lines += [
         "model:",
         f"  _target_: {model_target}",
         "  prefix: 'cfg:'",
     ]
     if output_fn is not None:
         lines.append(f"output_fn: {output_fn}")
-    lines.append("")
-    inference_config.write_text("\n".join(lines), encoding="utf-8")
-    return inference_config
+    (conf_dir / "inference.yaml").write_text("\n".join(lines), encoding="utf-8")
+
+    with (bundle_root / "meta.yaml").open("w", encoding="utf-8") as stream:
+        yaml.safe_dump(
+            {"files": {}, "yaml_files": {"inference_config": "conf/inference.yaml"}},
+            stream,
+        )
+    if with_src_module:
+        src_dir = bundle_root / "src"
+        src_dir.mkdir()
+        (src_dir / "__init__.py").write_text("", encoding="utf-8")
+        (src_dir / "custom_code.py").write_text(
+            "\n".join(
+                [
+                    "class CustomModel:",
+                    "    def __init__(self, prefix='', device='cpu'):",
+                    "        self.prefix = prefix",
+                    "        self.device = device",
+                    "",
+                    "    def __call__(self, speech):",
+                    "        return f'{self.prefix}{speech}'",
+                    "",
+                ]
+            ),
+            encoding="utf-8",
+        )
+    return bundle_root
 
 
-def test_from_config_builds_model_and_forward_works():
-    cfg = OmegaConf.create(
-        {
-            "device": "cpu",
-            "input_key": "speech",
-            "model": {
-                "_target_": f"{__name__}.EchoModel",
-                "prefix": "echo:",
-            },
-        }
+@pytest.fixture
+def mock_build_model(monkeypatch):
+    """Patch InferenceProvider.build_model to return a simple EchoModel."""
+
+    def _fake_build(config):
+        prefix = getattr(getattr(config, "model", None), "prefix", "")
+        return EchoModel(prefix=prefix)
+
+    monkeypatch.setattr(InferenceProvider, "build_model", staticmethod(_fake_build))
+
+
+@pytest.fixture
+def mock_build_dual_model(monkeypatch):
+    """Patch InferenceProvider.build_model to return a DualInputModel."""
+    monkeypatch.setattr(
+        InferenceProvider,
+        "build_model",
+        staticmethod(lambda config: DualInputModel()),
     )
 
-    session = InferenceSession.from_config(cfg)
 
-    assert session("abc") == "echo:abc@cpu"
-    assert session({"speech": "xyz"}) == "echo:xyz@cpu"
+# ---------------------------------------------------------------------------
+# from_packed – error cases
+# ---------------------------------------------------------------------------
 
 
-def test_forward_uses_output_fn_from_config():
-    cfg = OmegaConf.create(
-        {
-            "device": "cpu",
-            "input_key": "speech",
-            "output_fn": f"{__name__}.build_output",
-            "model": {
-                "_target_": f"{__name__}.EchoModel",
-                "prefix": "x:",
-            },
-        }
+def test_from_packed_raises_if_dir_missing(tmp_path):
+    with pytest.raises(FileNotFoundError, match="pack_dir must point"):
+        InferenceModel.from_packed(tmp_path / "nonexistent")
+
+
+def test_from_packed_raises_if_pack_dir_is_file(tmp_path):
+    fake_file = tmp_path / "not_a_dir"
+    fake_file.write_text("x", encoding="utf-8")
+    with pytest.raises(FileNotFoundError, match="pack_dir must point"):
+        InferenceModel.from_packed(fake_file)
+
+
+def test_from_packed_raises_if_meta_missing(tmp_path):
+    bundle_root = tmp_path / "bundle"
+    bundle_root.mkdir()
+    with pytest.raises(FileNotFoundError, match="meta.yaml"):
+        InferenceModel.from_packed(bundle_root)
+
+
+def test_from_packed_raises_if_inference_config_not_in_meta(tmp_path):
+    bundle_root = tmp_path / "bundle"
+    bundle_root.mkdir()
+    with (bundle_root / "meta.yaml").open("w", encoding="utf-8") as stream:
+        yaml.safe_dump({"files": {}, "yaml_files": {}}, stream)
+    with pytest.raises(FileNotFoundError, match="yaml_files.inference_config"):
+        InferenceModel.from_packed(bundle_root)
+
+
+def test_from_packed_raises_if_inference_config_file_missing(tmp_path):
+    bundle_root = tmp_path / "bundle"
+    bundle_root.mkdir()
+    with (bundle_root / "meta.yaml").open("w", encoding="utf-8") as stream:
+        yaml.safe_dump(
+            {"files": {}, "yaml_files": {"inference_config": "conf/inference.yaml"}},
+            stream,
+        )
+    with pytest.raises(FileNotFoundError):
+        InferenceModel.from_packed(bundle_root)
+
+
+def test_from_packed_raises_without_trust_for_bundled_code(tmp_path):
+    bundle_root = _make_pack_dir(
+        tmp_path,
+        model_target="src.custom_code.CustomModel",
+        with_src_module=True,
+    )
+    with pytest.raises(ValueError, match="references bundled user code"):
+        InferenceModel.from_packed(bundle_root, trust_user_code=False)
+
+
+# ---------------------------------------------------------------------------
+# from_packed – success cases
+# ---------------------------------------------------------------------------
+
+
+def test_from_packed_loads_model_without_bundled_code(tmp_path, mock_build_model):
+    bundle_root = _make_pack_dir(tmp_path)
+    session = InferenceModel.from_packed(bundle_root, trust_user_code=False)
+    assert session("hi") == "cfg:hi@cpu"
+
+
+def test_from_packed_with_trust_user_code(tmp_path, monkeypatch):
+    bundle_root = _make_pack_dir(
+        tmp_path,
+        model_target="src.custom_code.CustomModel",
+        with_src_module=True,
+    )
+    monkeypatch.setattr(sys, "path", list(sys.path))
+
+    session = InferenceModel.from_packed(bundle_root, trust_user_code=True)
+
+    assert session({"speech": "hello"}) == "cfg:hello"
+
+
+def test_from_packed_does_not_add_bundle_to_path_without_bundled_code(
+    tmp_path, mock_build_model
+):
+    bundle_root = _make_pack_dir(tmp_path)
+    original_path = list(sys.path)
+
+    InferenceModel.from_packed(bundle_root, trust_user_code=True)
+
+    assert sys.path == original_path
+
+
+# ---------------------------------------------------------------------------
+# from_pretrained
+# ---------------------------------------------------------------------------
+
+
+def test_from_pretrained_raises_if_no_inference_config(monkeypatch):
+    class FakeDownloader:
+        def download_and_unpack(self, _tag):
+            return {"model_file": "/some/file"}
+
+    monkeypatch.setattr(
+        "espnet3.publication.inference_session.ModelDownloader",
+        FakeDownloader,
     )
 
-    session = InferenceSession.from_config(cfg)
-    result = session.forward({"speech": "a", "utt_id": "utt-a"}, idx=7)
-
-    assert result == {"utt_id": "utt-a", "hyp": "x:a@cpu"}
+    with pytest.raises(RuntimeError, match="inference_config"):
+        InferenceModel.from_pretrained("dummy/tag")
 
 
-def test_forward_batch_falls_back_to_single_execution():
-    session = InferenceSession(
-        NoBatchModel(),
-        prefer_model_batch=True,
+def test_from_pretrained_loads_via_from_packed(tmp_path, monkeypatch, mock_build_model):
+    bundle_root = _make_pack_dir(tmp_path)
+    inference_config_path = bundle_root / "conf" / "inference.yaml"
+
+    class FakeDownloader:
+        def download_and_unpack(self, _tag):
+            return {"inference_config": str(inference_config_path)}
+
+    monkeypatch.setattr(
+        "espnet3.publication.inference_session.ModelDownloader",
+        FakeDownloader,
+    )
+    monkeypatch.setattr(sys, "path", list(sys.path))
+
+    session = InferenceModel.from_pretrained("dummy/tag")
+
+    assert session("ok") == "cfg:ok@cpu"
+
+
+# ---------------------------------------------------------------------------
+# primary_input_key
+# ---------------------------------------------------------------------------
+
+
+def test_primary_input_key_returns_string_key(tmp_path, mock_build_model):
+    bundle_root = _make_pack_dir(tmp_path, input_key="speech")
+    session = InferenceModel.from_packed(bundle_root)
+    assert session.primary_input_key == "speech"
+
+
+def test_primary_input_key_returns_key_from_single_element_list(
+    tmp_path, mock_build_model
+):
+    bundle_root = _make_pack_dir(tmp_path, input_key=["speech"])
+    session = InferenceModel.from_packed(bundle_root)
+    assert session.primary_input_key == "speech"
+
+
+def test_primary_input_key_raises_for_multiple_keys(tmp_path, mock_build_dual_model):
+    bundle_root = _make_pack_dir(tmp_path, input_key=["speech", "text"])
+    session = InferenceModel.from_packed(bundle_root)
+    with pytest.raises(RuntimeError, match="exactly one configured input_key"):
+        _ = session.primary_input_key
+
+
+# ---------------------------------------------------------------------------
+# forward – input handling
+# ---------------------------------------------------------------------------
+
+
+def test_forward_with_scalar_input(tmp_path, mock_build_model):
+    session = InferenceModel.from_packed(_make_pack_dir(tmp_path))
+    assert session("hello") == "cfg:hello@cpu"
+
+
+def test_forward_with_mapping_input(tmp_path, mock_build_model):
+    session = InferenceModel.from_packed(_make_pack_dir(tmp_path))
+    assert session({"speech": "world"}) == "cfg:world@cpu"
+
+
+def test_forward_raises_for_missing_key_in_mapping(tmp_path, mock_build_model):
+    session = InferenceModel.from_packed(_make_pack_dir(tmp_path))
+    with pytest.raises(KeyError, match="speech"):
+        session({"text": "no-speech-key"})
+
+
+def test_forward_with_scalar_raises_for_multiple_input_keys(
+    tmp_path, mock_build_dual_model
+):
+    bundle_root = _make_pack_dir(tmp_path, input_key=["speech", "text"])
+    session = InferenceModel.from_packed(bundle_root)
+    with pytest.raises(RuntimeError, match="exactly one configured input_key"):
+        session("scalar-value")
+
+
+def test_forward_with_multiple_input_keys_mapping(tmp_path, mock_build_dual_model):
+    bundle_root = _make_pack_dir(tmp_path, input_key=["speech", "text"])
+    session = InferenceModel.from_packed(bundle_root)
+    result = session({"speech": "hi", "text": "bye"})
+    assert result == "hi+bye"
+
+
+def test_forward_raises_for_missing_key_in_multi_key_mapping(
+    tmp_path, mock_build_dual_model
+):
+    bundle_root = _make_pack_dir(tmp_path, input_key=["speech", "text"])
+    session = InferenceModel.from_packed(bundle_root)
+    with pytest.raises(KeyError, match="text"):
+        session({"speech": "hi"})
+
+
+# ---------------------------------------------------------------------------
+# forward – output_fn
+# ---------------------------------------------------------------------------
+
+
+def test_forward_applies_output_fn(tmp_path, mock_build_model, monkeypatch):
+    bundle_root = _make_pack_dir(tmp_path, output_fn="dummy.module.fn")
+
+    def fake_load(path):
+        def fn(*, data, model_output, idx):
+            return {"hyp": model_output, "idx": idx}
+
+        return fn
+
+    monkeypatch.setattr(
+        "espnet3.publication.inference_session._load_output_fn", fake_load
     )
 
-    result = session.forward_batch(["a", "b"])
+    session = InferenceModel.from_packed(bundle_root)
+    result = session("hello", idx=42)
 
-    assert result == ["single:a", "single:b"]
+    assert result["hyp"] == "cfg:hello@cpu"
+    assert result["idx"] == 42
 
 
-def test_forward_batch_rejects_length_mismatch():
-    session = InferenceSession(EchoModel())
+def test_forward_without_output_fn_returns_raw_model_output(tmp_path, mock_build_model):
+    session = InferenceModel.from_packed(_make_pack_dir(tmp_path, output_fn=None))
+    assert session("abc") == "cfg:abc@cpu"
 
+
+def test_forward_passes_idx_to_output_fn(tmp_path, mock_build_model, monkeypatch):
+    bundle_root = _make_pack_dir(tmp_path, output_fn="dummy.module.fn")
+    captured = []
+
+    def fake_load(path):
+        def fn(*, data, model_output, idx):
+            captured.append(idx)
+            return model_output
+
+        return fn
+
+    monkeypatch.setattr(
+        "espnet3.publication.inference_session._load_output_fn", fake_load
+    )
+
+    session = InferenceModel.from_packed(bundle_root)
+    session("x", idx="utt-99")
+
+    assert captured == ["utt-99"]
+
+
+# ---------------------------------------------------------------------------
+# forward_batch
+# ---------------------------------------------------------------------------
+
+
+def test_forward_batch_returns_one_result_per_sample(tmp_path, mock_build_model):
+    session = InferenceModel.from_packed(_make_pack_dir(tmp_path))
+    results = session.forward_batch(["a", "b", "c"])
+    assert results == ["cfg:a@cpu", "cfg:b@cpu", "cfg:c@cpu"]
+
+
+def test_forward_batch_empty_input_returns_empty_list(tmp_path, mock_build_model):
+    session = InferenceModel.from_packed(_make_pack_dir(tmp_path))
+    assert session.forward_batch([]) == []
+
+
+def test_forward_batch_rejects_length_mismatch(tmp_path, mock_build_model):
+    session = InferenceModel.from_packed(_make_pack_dir(tmp_path))
     with pytest.raises(ValueError, match="same length as samples"):
         session.forward_batch(["a"], indices=["x", "y"])
 
 
-def test_get_model_returns_unwrapped_model_by_default():
-    inner_model = EchoModel(prefix="inner:")
-    session = InferenceSession(WrappedModel(inner_model))
+def test_forward_batch_uses_custom_indices(tmp_path, mock_build_model, monkeypatch):
+    bundle_root = _make_pack_dir(tmp_path, output_fn="dummy.module.fn")
+    captured = []
 
-    assert session.get_model() is inner_model
+    def fake_load(path):
+        def fn(*, data, model_output, idx):
+            captured.append(idx)
+            return model_output
 
+        return fn
 
-def test_get_model_can_return_backend_wrapper():
-    backend = WrappedModel(EchoModel(prefix="inner:"))
-    session = InferenceSession(backend)
-
-    assert session.get_model(unwrap=False) is backend
-
-
-def test_get_model_preserves_model_class_and_weights():
-    inner_model = TinyTorchModel()
-    with torch.no_grad():
-        inner_model.linear.weight.copy_(torch.tensor([[1.0, 2.0], [3.0, 4.0]]))
-        inner_model.linear.bias.copy_(torch.tensor([5.0, 6.0]))
-    backend = WrappedModel(inner_model)
-    session = InferenceSession(backend)
-
-    returned_model = session.get_model()
-
-    assert returned_model is inner_model
-    assert type(returned_model) is TinyTorchModel
-    assert torch.equal(returned_model.linear.weight, inner_model.linear.weight)
-    assert torch.equal(returned_model.linear.bias, inner_model.linear.bias)
-
-
-def test_from_pretrained_can_enable_trusted_user_code(tmp_path, monkeypatch):
-    bundle_root = tmp_path / "bundle"
-    bundle_root.mkdir()
-    src_dir = bundle_root / "src"
-    src_dir.mkdir()
-    (src_dir / "__init__.py").write_text("", encoding="utf-8")
-    (src_dir / "custom_code.py").write_text(
-        "\n".join(
-            [
-                "class CustomModel:",
-                "    def __init__(self, prefix='', device='cpu'):",
-                "        self.prefix = prefix",
-                "        self.device = device",
-                "",
-                "    def __call__(self, speech):",
-                "        return f'{self.prefix}{speech}'",
-                "",
-                "def build_output(*, data, model_output, idx):",
-                "    return {'utt_id': data.get('utt_id', idx), 'hyp': model_output}",
-                "",
-            ]
-        ),
-        encoding="utf-8",
-    )
-    inference_config = _write_bundle_inference_config(
-        bundle_root,
-        "src.custom_code.CustomModel",
-    )
-    with (bundle_root / "meta.yaml").open("w", encoding="utf-8") as stream:
-        yaml.safe_dump(
-            {
-                "files": {},
-                "yaml_files": {"inference_config": "conf/inference.yaml"},
-                "user_code_paths": ["src"],
-            },
-            stream,
-        )
-
-    DummyDownloader.artifacts = {
-        "inference_config": str(inference_config),
-    }
-
-    monkeypatch.syspath_prepend(str(tmp_path))
-    monkeypatch.setattr(sys, "path", list(sys.path))
-
-    session = InferenceSession.from_pretrained(
-        "dummy/tag",
-        downloader_class=f"{__name__}.DummyDownloader",
-        trust_user_code=True,
+    monkeypatch.setattr(
+        "espnet3.publication.inference_session._load_output_fn", fake_load
     )
 
-    assert session({"speech": "ok", "utt_id": "utt-1"}) == {
-        "utt_id": "utt-1",
-        "hyp": "cfg:ok",
-    }
-    assert session.bundle_root == bundle_root.resolve()
+    session = InferenceModel.from_packed(bundle_root)
+    session.forward_batch(["a", "b"], indices=[10, 20])
+
+    assert captured == [10, 20]
 
 
-def test_from_pretrained_requires_trust_for_user_code(tmp_path):
-    bundle_root = tmp_path / "bundle"
-    bundle_root.mkdir()
-    src_dir = bundle_root / "src"
-    src_dir.mkdir()
-    (src_dir / "__init__.py").write_text("", encoding="utf-8")
-    (src_dir / "custom_code.py").write_text(
-        "class CustomModel:\n"
-        "    def __init__(self, prefix='', device='cpu'):\n"
-        "        self.prefix = prefix\n"
-        "        self.device = device\n"
-        "    def __call__(self, speech):\n"
-        "        return f'{self.prefix}{speech}'\n",
-        encoding="utf-8",
-    )
-    inference_config = _write_bundle_inference_config(
-        bundle_root,
-        "src.custom_code.CustomModel",
-    )
-    with (bundle_root / "meta.yaml").open("w", encoding="utf-8") as stream:
-        yaml.safe_dump(
-            {
-                "files": {},
-                "yaml_files": {"inference_config": "conf/inference.yaml"},
-                "user_code_paths": ["src"],
-            },
-            stream,
-        )
-    DummyDownloader.artifacts = {"inference_config": str(inference_config)}
+def test_forward_batch_defaults_indices_to_range(
+    tmp_path, mock_build_model, monkeypatch
+):
+    bundle_root = _make_pack_dir(tmp_path, output_fn="dummy.module.fn")
+    captured = []
 
-    with pytest.raises(ValueError, match="references bundled user code"):
-        InferenceSession.from_pretrained(
-            "dummy/tag",
-            downloader_class=f"{__name__}.DummyDownloader",
-        )
+    def fake_load(path):
+        def fn(*, data, model_output, idx):
+            captured.append(idx)
+            return model_output
 
+        return fn
 
-def test_from_pretrained_prefers_backend_from_pretrained_without_user_code():
-    BackendWithFromPretrained.calls = []
-
-    session = InferenceSession.from_pretrained(
-        "dummy/tag",
-        backend_class=f"{__name__}.BackendWithFromPretrained",
-        enable_user_code=False,
-        value="loaded",
+    monkeypatch.setattr(
+        "espnet3.publication.inference_session._load_output_fn", fake_load
     )
 
-    assert BackendWithFromPretrained.calls == [("dummy/tag", {"value": "loaded"})]
-    assert session("x") == "loaded:x"
+    session = InferenceModel.from_packed(bundle_root)
+    session.forward_batch(["a", "b", "c"])
 
-
-def test_from_artifacts_keeps_snapshot_bundle_root(tmp_path, monkeypatch):
-    model_root = tmp_path / "models--dummy--snapshot-test"
-    blobs_dir = model_root / "blobs"
-    snapshot_root = model_root / "snapshots" / "rev-1"
-    (snapshot_root / "conf").mkdir(parents=True)
-    (snapshot_root / "exp" / "train").mkdir(parents=True)
-    (snapshot_root / "src").mkdir(parents=True)
-    blobs_dir.mkdir(parents=True)
-
-    inference_blob = blobs_dir / "inference-yaml"
-    inference_blob.write_text(
-        "\n".join(
-            [
-                "recipe_dir: .",
-                "input_key: speech",
-                "model:",
-                "  _target_: src.custom_code.CustomModel",
-                "  asr_train_config: ${recipe_dir}/exp/train/config.yaml",
-                "  asr_model_file: ${recipe_dir}/exp/train/last.ckpt",
-                "",
-            ]
-        ),
-        encoding="utf-8",
-    )
-    meta_blob = blobs_dir / "meta-yaml"
-    meta_blob.write_text(
-        yaml.safe_dump(
-            {
-                "files": {"asr_model_file": "exp/train/last.ckpt"},
-                "yaml_files": {
-                    "asr_train_config": "exp/train/config.yaml",
-                    "inference_config": "conf/inference.yaml",
-                },
-                "user_code_paths": ["src"],
-            }
-        ),
-        encoding="utf-8",
-    )
-    train_config_blob = blobs_dir / "train-config"
-    train_config_blob.write_text("dummy: true\n", encoding="utf-8")
-    model_blob = blobs_dir / "last-ckpt"
-    model_blob.write_text("checkpoint", encoding="utf-8")
-    src_init_blob = blobs_dir / "src-init"
-    src_init_blob.write_text("", encoding="utf-8")
-    src_code_blob = blobs_dir / "src-custom"
-    src_code_blob.write_text(
-        "\n".join(
-            [
-                "from pathlib import Path",
-                "",
-                "class CustomModel:",
-                "    def __init__(self, asr_train_config, asr_model_file, device='cpu'):",
-                "        assert Path(asr_train_config).is_file()",
-                "        assert Path(asr_model_file).is_file()",
-                "        self.device = device",
-                "",
-                "    def __call__(self, speech):",
-                "        return f'snapshot:{speech}@{self.device}'",
-                "",
-            ]
-        ),
-        encoding="utf-8",
-    )
-
-    (snapshot_root / "conf" / "inference.yaml").symlink_to(inference_blob)
-    (snapshot_root / "meta.yaml").symlink_to(meta_blob)
-    (snapshot_root / "exp" / "train" / "config.yaml").symlink_to(train_config_blob)
-    (snapshot_root / "exp" / "train" / "last.ckpt").symlink_to(model_blob)
-    (snapshot_root / "src" / "__init__.py").symlink_to(src_init_blob)
-    (snapshot_root / "src" / "custom_code.py").symlink_to(src_code_blob)
-
-    monkeypatch.syspath_prepend(str(tmp_path))
-    monkeypatch.setattr(sys, "path", list(sys.path))
-
-    session = InferenceSession.from_artifacts(
-        {"inference_config": str(snapshot_root / "conf" / "inference.yaml")},
-        trust_user_code=True,
-    )
-
-    assert session("ok") == "snapshot:ok@cpu"
-    assert session.bundle_root == snapshot_root.resolve()
-
-
-def test_from_artifacts_prefers_inference_config_model_definition(tmp_path):
-    bundle_root = tmp_path / "bundle"
-    bundle_root.mkdir()
-    inference_config = _write_bundle_inference_config(
-        bundle_root,
-        f"{__name__}.EchoModel",
-        output_fn=None,
-    )
-    with (bundle_root / "meta.yaml").open("w", encoding="utf-8") as stream:
-        yaml.safe_dump(
-            {
-                "files": {},
-                "yaml_files": {"inference_config": "conf/inference.yaml"},
-            },
-            stream,
-        )
-
-    session = InferenceSession.from_artifacts(
-        {"inference_config": str(inference_config)},
-        output_fn_path=None,
-        trust_user_code=False,
-    )
-
-    assert session("abc") == "cfg:abc@cpu"
-
-
-def test_forward_batch_rejects_wrong_result_count_from_batch_output_fn():
-    session = InferenceSession(
-        EchoModel(prefix="b:"),
-        output_fn=build_bad_batch_output,
-        prefer_model_batch=True,
-        fallback_to_single_on_batch_error=False,
-    )
-
-    with pytest.raises(RuntimeError, match="wrong number of outputs"):
-        session.forward_batch(["a", "b"], use_model_batch=True)
+    assert captured == [0, 1, 2]

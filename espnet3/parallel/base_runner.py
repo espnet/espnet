@@ -203,7 +203,7 @@ class BaseRunner(ABC):
         raise NotImplementedError
 
     @classmethod
-    def batch_forward(cls, indices: Iterable[int], *, dataset, model, **env) -> Any:
+    def batch_forward(cls, indices: Iterable[int], dataset, model, **env) -> Any:
         """Compute a batch by delegating to ``forward`` per index as a default.
 
         This should be overridden by subclasses that can handle batched inputs.

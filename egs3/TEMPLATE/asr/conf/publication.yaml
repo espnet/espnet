@@ -3,23 +3,19 @@ exp_dir: exp/${exp_tag}
 inference_dir: ${exp_dir}/inference
 
 pack_model:
-  strategy: auto  # auto|espnet2|espnet3
   out_dir: ${exp_dir}/model_pack
   inference_dir: ${inference_dir}
-  include: []
-  extra: []
-  include_data_dir: false
+  readme: egs3/TEMPLATE/asr/src/hf_model_repo_readme_template.md
+  include:
+    - src/
   exclude:
+    - "inference"
+    - "inference_*"
     - "**/*.log"
     - "**/tensorboard/**"
     - "**/wandb/**"
   files: {}
   yaml_files: {}
-  espnet2:
-    task: asr
-    yaml_files: {}
-    files: {}
-    option: []
 
 upload_model:
   hf_repo: yourname/your-model-repo

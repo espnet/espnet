@@ -12,7 +12,12 @@ from espnet3.components.data.dataset_module import (
 )
 from espnet3.systems.base.inference import infer
 from espnet3.systems.base.metric import measure
+from espnet3.systems.base.publication import (
+    get_pack_model_artifacts as _get_base_artifacts,
+)
 from espnet3.systems.base.training import collect_stats, train
+from espnet3.utils.publish import pack_model as _pack_model
+from espnet3.utils.publish import upload_model as _upload_model
 
 logger = logging.getLogger(__name__)
 
@@ -101,7 +106,6 @@ class BaseSystem:
                 and ``upload_model`` stages.
             stage_log_mapping: Optional per-stage log directory overrides.
         """
-
         self.training_config = training_config
         self.inference_config = inference_config
         self.metrics_config = metrics_config
@@ -184,6 +188,10 @@ class BaseSystem:
                 f"Stage '{stage}' does not accept arguments. "
                 "Put all settings in the YAML config."
             )
+
+    def _get_pack_model_artifacts(self) -> dict:
+        """Return system-specific pack-model artifacts."""
+        return _get_base_artifacts(self)
 
     # ---------------------------------------------------------
     # Stage stubs (override in subclasses if needed)
@@ -299,13 +307,15 @@ class BaseSystem:
     def pack_model(self, *args, **kwargs):
         """Pack model artifacts into an espnet3 bundle."""
         self._reject_stage_args("pack_model", args, kwargs)
-        from espnet3.utils.publish import pack_model
-
-        return pack_model(self)
+        return _pack_model(
+            training_config=self.training_config,
+            publication_config=self.publication_config,
+            inference_config=self.inference_config,
+            metrics_config=self.metrics_config,
+            artifacts=self._get_pack_model_artifacts(),
+        )
 
     def upload_model(self, *args, **kwargs):
         """Upload model bundle to HuggingFace."""
         self._reject_stage_args("upload_model", args, kwargs)
-        from espnet3.utils.publish import upload_model
-
-        return upload_model(self)
+        return _upload_model(self)

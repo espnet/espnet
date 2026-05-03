@@ -124,12 +124,12 @@ def test_apply_training_experiment_context_metrics_inference_dir_follows_inferen
     )
     inference = OmegaConf.create(
         {
-            "inference_dir": "./exp/train_debug/custom_decode",
+            "inference_dir": "./exp/train_debug/custom_inference",
         }
     )
     metrics = OmegaConf.create(
         {
-            "inference_dir": "./exp/train_debug/old_decode",
+            "inference_dir": "./exp/train_debug/old_inference",
         }
     )
 
@@ -144,7 +144,7 @@ def test_apply_training_experiment_context_metrics_inference_dir_follows_inferen
 
     assert metrics.exp_tag == "train_debug"
     assert metrics.exp_dir == "./exp/train_debug"
-    assert metrics.inference_dir == "./exp/train_debug/custom_decode"
+    assert metrics.inference_dir == "./exp/train_debug/custom_inference"
     assert "Overriding metrics_config.inference_dir" in caplog.text
     assert "inference_config value" in caplog.text
 
@@ -269,7 +269,7 @@ def test_resolve_loaded_configs_raises_on_missing_interpolation() -> None:
         resolve_loaded_configs(inference)
 
 
-def test_apply_training_experiment_context_syncs_publication_from_training_and_inference(
+def test_apply_training_context_syncs_publication_from_training_and_inference(
     caplog,
 ) -> None:
     training = OmegaConf.create(
@@ -287,7 +287,7 @@ def test_apply_training_experiment_context_syncs_publication_from_training_and_i
         {
             "pack_model": {
                 "out_dir": "${exp_dir}/model_pack",
-                "decode_dir": "${inference_dir}",
+                "inference_dir": "${inference_dir}",
             }
         }
     )
@@ -323,7 +323,7 @@ def test_resolve_loaded_configs_resolves_publication_interpolations() -> None:
         {
             "pack_model": {
                 "out_dir": "${exp_dir}/model_pack",
-                "decode_dir": "${inference_dir}",
+                "inference_dir": "${inference_dir}",
             }
         }
     )
@@ -338,4 +338,4 @@ def test_resolve_loaded_configs_resolves_publication_interpolations() -> None:
     resolve_loaded_configs(training, inference, publication)
 
     assert publication.pack_model.out_dir == "./exp/train_debug/model_pack"
-    assert publication.pack_model.decode_dir == "./exp/train_debug/inference"
+    assert publication.pack_model.inference_dir == "./exp/train_debug/inference"

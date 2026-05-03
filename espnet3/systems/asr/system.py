@@ -11,6 +11,9 @@ from importlib import import_module
 from pathlib import Path
 from typing import Iterable
 
+from espnet3.systems.asr.publication import (
+    get_pack_model_artifacts as _get_asr_artifacts,
+)
 from espnet3.systems.asr.tokenizers.sentencepiece import train_sentencepiece
 from espnet3.systems.base.system import BaseSystem
 
@@ -81,14 +84,9 @@ class ASRSystem(BaseSystem):
         vocab = output_path / f"{tokenizer_config.model_type}.vocab"
         return model.exists() and vocab.exists()
 
-    def _resolve_stats_pack_paths(self) -> list[Path]:
-        """Return train stats archives to include in a publication bundle."""
-        stats_dir = getattr(self.training_config, "stats_dir", None)
-        if not stats_dir:
-            return []
-
-        train_dir = Path(stats_dir) / "train"
-        return sorted(path for path in train_dir.glob("*.npz") if path.is_file())
+    def _get_pack_model_artifacts(self) -> dict:
+        """Return ASR-specific pack-model artifacts."""
+        return _get_asr_artifacts(self)
 
     def train_tokenizer(self, *args, **kwargs):
         """Train a SentencePiece tokenizer based on configured text.
@@ -173,27 +171,3 @@ class ASRSystem(BaseSystem):
         logger.info(
             "Tokenizer training completed in %.2fs", time.perf_counter() - start
         )
-
-    # ---------------------------------------------------------
-    # Publication helpers
-    # ---------------------------------------------------------
-    def pack_model(self, *args, **kwargs):
-        """Pack model artifacts into an espnet3 bundle."""
-        self._reject_stage_args("pack_model", args, kwargs)
-        from espnet3.utils.publish import pack_model
-
-        extra_paths = []
-        if self.training_config is not None:
-            tokenizer_cfg = getattr(self.training_config, "tokenizer", None)
-            if tokenizer_cfg is not None:
-                save_path = getattr(tokenizer_cfg, "save_path", None)
-                if save_path:
-                    extra_paths.append(Path(save_path))
-            extra_paths.extend(self._resolve_stats_pack_paths())
-            data_dir = getattr(self.training_config, "data_dir", None)
-            if data_dir:
-                data_tokenizer = Path(data_dir) / "tokenizer"
-                if data_tokenizer.exists():
-                    extra_paths.append(data_tokenizer)
-
-        return pack_model(self, extra=extra_paths)

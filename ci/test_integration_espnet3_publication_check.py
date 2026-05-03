@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-"""Validate a packed ESPnet3 publication bundle with InferenceSession."""
+"""Validate a packed ESPnet3 publication bundle with InferenceModel."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ from typing import Any
 from omegaconf import OmegaConf
 
 from espnet3.components.data.dataset_module import instantiate_dataset_reference
-from espnet3.publication import InferenceSession
+from espnet3.publication import InferenceModel
 
 
 def _parse_args() -> argparse.Namespace:
@@ -115,10 +115,7 @@ def main() -> None:
     if not meta_path.is_file():
         raise FileNotFoundError(f"Packed metadata not found: {meta_path}")
 
-    session = InferenceSession.from_artifacts(
-        {"inference_config": str(inference_config)},
-        trust_user_code=True,
-    )
+    session = InferenceModel.from_packed(pack_dir, trust_user_code=True)
 
     sample = _load_dataset_sample(
         inference_config_path=inference_config,

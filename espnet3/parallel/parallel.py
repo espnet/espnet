@@ -88,17 +88,6 @@ def _ensure_dask():
         )
 
 
-def _normalize_parallel_config(config: DictConfig | None) -> DictConfig:
-    """Return a valid parallel config, defaulting to local single-worker."""
-    if config is None:
-        if parallel_config is not None:
-            config = parallel_config
-        else:
-            config = OmegaConf.create({"env": "local", "n_workers": 1, "options": {}})
-
-    return config
-
-
 def build_local_gpu_cluster(n_workers: int, options: dict) -> Client:
     """Create a Dask LocalCUDACluster using available GPUs.
 
@@ -142,7 +131,11 @@ def set_parallel(config: Optional[DictConfig]) -> None:
         >>> set_parallel(config)
     """
     global parallel_config
-    config = _normalize_parallel_config(config)
+    if config is None:
+        if parallel_config is not None:
+            config = parallel_config
+        else:
+            config = OmegaConf.create({"env": "local", "n_workers": 1, "options": {}})
     options = dict(config.options) if hasattr(config, "options") else {}
     config.options = options
     parallel_config = copy.copy(config)
