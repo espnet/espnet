@@ -5,21 +5,18 @@
 from __future__ import annotations
 
 import argparse
-import importlib
 import os
 from pathlib import Path
-from typing import Any, Sequence
+from typing import Any
 
+from omegaconf import OmegaConf
+
+from espnet3.components.data.dataset_module import instantiate_dataset_reference
 from espnet3.publication import InferenceSession
 
 
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--dataset-module",
-        required=True,
-        help="Dataset module exposing `Dataset`, e.g. egs3.mini_an4.asr.dataset.",
-    )
     parser.add_argument(
         "--split",
         default="test",
@@ -34,25 +31,39 @@ def _parse_args() -> argparse.Namespace:
 
 
 def _load_dataset_sample(
-    *,
-    dataset_module: str,
+    inference_config_path: Path,
     split: str,
     recipe_dir: Path,
 ) -> dict[str, Any]:
-    dataset_lib = importlib.import_module(dataset_module)
-    dataset = dataset_lib.Dataset(split=split, recipe_dir=recipe_dir)
+    inference_config = OmegaConf.load(inference_config_path)
+    dataset_config = getattr(inference_config, "dataset", None)
+    test_entries = getattr(dataset_config, "test", None) if dataset_config else None
+    if not test_entries:
+        raise ValueError(
+            f"No dataset.test entries found in inference config: {inference_config_path}"
+        )
+
+    matched_entry = None
+    for entry in test_entries:
+        entry_name = getattr(entry, "name", None)
+        data_src_args = getattr(entry, "data_src_args", None)
+        entry_split = getattr(data_src_args, "split", None) if data_src_args else None
+        if entry_name == split or entry_split == split:
+            matched_entry = entry
+            break
+
+    if matched_entry is None:
+        raise ValueError(
+            f"No dataset.test entry matched split {split!r} in {inference_config_path}"
+        )
+
+    dataset = instantiate_dataset_reference(matched_entry, recipe_dir=recipe_dir)
     sample = dataset[0]
     if not isinstance(sample, dict):
         raise TypeError(
-            f"Expected dict sample from {dataset_module}.Dataset, got {type(sample)!r}"
+            f"Expected dict sample from dataset entry {split!r}, got {type(sample)!r}"
         )
     return sample
-
-
-def _required_keys(input_key: str | Sequence[str]) -> list[str]:
-    if isinstance(input_key, str):
-        return [input_key]
-    return list(input_key)
 
 
 def _is_nonempty_value(value: Any) -> bool:
@@ -74,7 +85,7 @@ def _is_nonempty_value(value: Any) -> bool:
         return True
 
 
-def _validate_output(result: Any, *, expected_utt_id: str | None = None) -> None:
+def _validate_output(result: Any, expected_utt_id: str | None = None) -> None:
     if isinstance(result, dict):
         if expected_utt_id is not None:
             assert result.get("utt_id") == expected_utt_id
@@ -110,11 +121,14 @@ def main() -> None:
     )
 
     sample = _load_dataset_sample(
-        dataset_module=args.dataset_module,
+        inference_config_path=inference_config,
         split=args.split,
         recipe_dir=Path(args.recipe_dir).resolve(),
     )
-    for key in _required_keys(session.input_key):
+    input_keys = (
+        session.input_key if isinstance(session.input_key, list) else [session.input_key]
+    )
+    for key in input_keys:
         if key not in sample:
             raise KeyError(
                 f"Dataset sample is missing required input key {key!r}: {sorted(sample)}"

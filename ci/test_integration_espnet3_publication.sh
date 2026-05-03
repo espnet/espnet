@@ -12,8 +12,7 @@ cwd=$(pwd)
 training_config=${1:-conf/training_asr_streaming.yaml}
 inference_config=${2:-conf/inference.yaml}
 publication_config=${3:-conf/publication.yaml}
-dataset_module=${4:-egs3.mini_an4.asr.dataset}
-dataset_split=${5:-test}
+dataset_split=${4:-test}
 
 gen_dummy_coverage() {
     touch empty.py
@@ -41,7 +40,6 @@ if [ -z "${pack_dir}" ]; then
 fi
 
 PACK_DIR="${pack_dir}" python3 "${cwd}/ci/test_integration_espnet3_publication_check.py" \
-    --dataset-module "${dataset_module}" \
     --split "${dataset_split}" \
     --recipe-dir "$(pwd)"
 
