@@ -88,7 +88,8 @@ def _make_pack_dir(
         (src_dir / "custom_code.py").write_text(
             "\n".join(
                 [
-                    "from espnet3.systems.base.inference_provider import InferenceProvider",
+                    "from espnet3.systems.base.inference_provider"
+                    " import InferenceProvider",
                     "from espnet3.systems.base.inference_runner import InferenceRunner",
                     "",
                     "class CustomModel:",
@@ -233,9 +234,7 @@ def test_from_packed_with_trust_user_code(tmp_path, monkeypatch):
     assert session({"speech": "hello"}) == "cfg:hello"
 
 
-def test_from_packed_uses_configured_provider_and_runner_targets(
-    tmp_path, monkeypatch
-):
+def test_from_packed_uses_configured_provider_and_runner_targets(tmp_path, monkeypatch):
     bundle_root = _make_pack_dir(
         tmp_path,
         model_target="src.custom_code.CustomModel",
