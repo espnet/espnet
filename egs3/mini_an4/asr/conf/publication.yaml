@@ -1,2 +1,2 @@
 upload_model:
-  hf_repo: ${oc.env:HF_REPO,}
+  hf_repo: yourname/your-model-repo

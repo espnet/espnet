@@ -21,12 +21,34 @@ import espnet2
 logger = logging.getLogger(__name__)
 
 
+def _resolve_artifact_paths(
+    src_path: str,
+    out_dir: Path,
+    recipe_root: Path,
+) -> tuple[Path, Path]:
+    """Validate a named artifact and return its (src, dst) path pair.
+
+    Called by ``pack_model`` before copying each entry in ``pack_cfg.files``
+    and ``pack_cfg.yaml_files``. Raises if the source is missing or lives
+    outside the recipe root.
+    """
+    src = Path(src_path)
+    if not src.exists():
+        raise RuntimeError(f"Artifact does not exist: {src}")
+    try:
+        dst = out_dir / src.absolute().relative_to(recipe_root)
+    except ValueError:
+        raise RuntimeError(
+            f"Artifact must be under training_config.recipe_dir: {src}"
+        ) from None
+    return src, dst
+
+
 def _copy_path(src: Path, dst: Path, ignore=None) -> None:
     """Copy a file or directory into the bundle.
 
-    Used by ``pack_model`` when copying ``pack_paths`` (exp_dir, include
-    paths, artifact copy_paths) and individual artifact files into
-    ``out_dir``. Handles both files and directory trees uniformly.
+    Used by ``pack_model`` when copying ``pack_paths`` and named artifact
+    files into ``out_dir``. Handles both files and directory trees uniformly.
     """
     if src.is_dir():
         shutil.copytree(src, dst, ignore=ignore, dirs_exist_ok=True)
@@ -221,7 +243,6 @@ def pack_model(
     publication_config: DictConfig,
     inference_config: DictConfig | None = None,
     metrics_config: DictConfig | None = None,
-    artifacts: dict | None = None,
 ) -> Path:
     """Pack model artifacts for publishing.
 
@@ -229,29 +250,19 @@ def pack_model(
         training_config: Training configuration with ``recipe_dir`` and
             ``exp_dir``.
         publication_config: Publication configuration with ``pack_model``
-            section.
+            section. ``pack_model.include`` adds extra paths to copy,
+            ``pack_model.files`` registers named artifact files, and
+            ``pack_model.yaml_files`` registers named YAML configs.
         inference_config: Inference configuration to bundle.
         metrics_config: Metrics configuration to bundle.
-        artifacts: Dict with ``files``, ``yaml_files``, and ``copy_paths``
-            from the system's publication module.
 
     Returns:
         Path to the packed output directory.
 
     Raises:
         RuntimeError: If artifact paths are invalid.
-
-    Examples:
-        >>> from espnet3.systems.asr.publication import get_pack_model_artifacts
-        >>> pack_path = pack_model(
-        ...     training_config=system.training_config,
-        ...     publication_config=system.publication_config,
-        ...     inference_config=system.inference_config,
-        ...     artifacts=get_pack_model_artifacts(system),
-        ... )
     """
     pack_cfg = publication_config.pack_model
-    artifacts = artifacts or {}
 
     recipe_root = Path(training_config.recipe_dir).resolve()
 
@@ -277,7 +288,7 @@ def pack_model(
         )
     ignore = shutil.ignore_patterns(*excludes)
 
-    # Copy exp_dir, extra include paths, and system artifact copy_paths into the bundle
+    # Copy exp_dir and any extra include paths into the bundle.
     pack_paths: list[Path] = [exp_dir]
     include_cfg = getattr(pack_cfg, "include", None)
     if include_cfg:
@@ -286,7 +297,6 @@ def pack_model(
             if isinstance(include_cfg, (list, tuple, ListConfig))
             else [Path(include_cfg)]
         )
-    pack_paths.extend(Path(p) for p in (artifacts.get("copy_paths") or []))
 
     for path in pack_paths:
         if not path.exists():
@@ -299,24 +309,20 @@ def pack_model(
         _copy_path(src=path, dst=dest, ignore=ignore)
         copied_sources[path.absolute()] = dest.absolute()
 
-    # Copy named artifact files/yaml_files and register them in meta
-    for entries, target in [
-        ((artifacts.get("files") or {}).items(), files),
-        ((artifacts.get("yaml_files") or {}).items(), yaml_files),
-    ]:
-        for key, src_path in entries:
-            src = Path(src_path)
-            if not src.exists():
-                raise RuntimeError(f"Artifact does not exist: {src}")
-            try:
-                dst = out_dir / src.absolute().relative_to(recipe_root)
-            except ValueError:
-                raise RuntimeError(
-                    f"Artifact must be under training_config.recipe_dir: {src}"
-                ) from None
-            _copy_path(src=src, dst=dst)
-            copied_sources[src.absolute()] = dst.absolute()
-            target[key] = dst.relative_to(out_dir).as_posix()
+    # Copy named artifact files and register them in meta.
+    for key, src_path in dict(getattr(pack_cfg, "files", {}) or {}).items():
+        src, dst = _resolve_artifact_paths(src_path, out_dir, recipe_root)
+        _copy_path(src=src, dst=dst)
+        copied_sources[src.absolute()] = dst.absolute()
+        files[key] = dst.relative_to(out_dir).as_posix()
+
+    # Copy named YAML artifacts, rewrite paths, and register them in meta.
+    for key, src_path in dict(getattr(pack_cfg, "yaml_files", {}) or {}).items():
+        src, dst = _resolve_artifact_paths(src_path, out_dir, recipe_root)
+        yaml_config = OmegaConf.load(src)
+        _write_bundle_config(yaml_config, dst, recipe_root, copied_sources, out_dir)
+        copied_sources[src.absolute()] = dst.absolute()
+        yaml_files[key] = dst.relative_to(out_dir).as_posix()
 
     # Write all configs into conf/ with paths rewritten to bundle-relative form
     conf_dir = out_dir / "conf"

@@ -360,7 +360,13 @@ def test_pack_model_raises_when_artifact_file_does_not_exist(tmp_path):
     exp_dir = recipe_dir / "exp"
     exp_dir.mkdir()
     publication_config = OmegaConf.create(
-        {"pack_model": {"out_dir": str(tmp_path / "pack")}}
+        {
+            "pack_model": {
+                "out_dir": str(tmp_path / "pack"),
+                "files": {"asr_model_file": str(exp_dir / "last.ckpt")},
+                "yaml_files": {"asr_train_config": str(exp_dir / "config.yaml")},
+            }
+        }
     )
     system = _make_system(
         exp_dir=exp_dir, recipe_dir=recipe_dir, publication_config=publication_config
@@ -369,12 +375,14 @@ def test_pack_model_raises_when_artifact_file_does_not_exist(tmp_path):
     with pytest.raises(RuntimeError, match="Artifact does not exist"):
         publish.pack_model(
             training_config=system.training_config,
-            publication_config=system.publication_config,
-            artifacts={
-                "files": {"model": str(recipe_dir / "missing.ckpt")},
-                "yaml_files": {},
-                "copy_paths": [],
-            },
+            publication_config=OmegaConf.create(
+                {
+                    "pack_model": {
+                        "out_dir": str(tmp_path / "pack"),
+                        "files": {"model": str(recipe_dir / "missing.ckpt")},
+                    }
+                }
+            ),
         )
 
 
@@ -386,7 +394,13 @@ def test_pack_model_raises_when_artifact_outside_recipe_dir(tmp_path):
     outside_file = tmp_path / "outside.ckpt"
     outside_file.write_text("weights", encoding="utf-8")
     publication_config = OmegaConf.create(
-        {"pack_model": {"out_dir": str(tmp_path / "pack")}}
+        {
+            "pack_model": {
+                "out_dir": str(tmp_path / "pack"),
+                "files": {"asr_model_file": str(exp_dir / "last.ckpt")},
+                "yaml_files": {"asr_train_config": str(exp_dir / "config.yaml")},
+            }
+        }
     )
     system = _make_system(
         exp_dir=exp_dir, recipe_dir=recipe_dir, publication_config=publication_config
@@ -395,12 +409,14 @@ def test_pack_model_raises_when_artifact_outside_recipe_dir(tmp_path):
     with pytest.raises(RuntimeError, match="recipe_dir"):
         publish.pack_model(
             training_config=system.training_config,
-            publication_config=system.publication_config,
-            artifacts={
-                "files": {"model": str(outside_file)},
-                "yaml_files": {},
-                "copy_paths": [],
-            },
+            publication_config=OmegaConf.create(
+                {
+                    "pack_model": {
+                        "out_dir": str(tmp_path / "pack"),
+                        "files": {"model": str(outside_file)},
+                    }
+                }
+            ),
         )
 
 
@@ -542,7 +558,15 @@ def test_pack_model_with_explicit_artifacts(tmp_path):
     cfg_path.write_text("dummy: true\n", encoding="utf-8")
     model_path.write_text("weights", encoding="utf-8")
     out_dir = tmp_path / "espnet2_pack"
-    publication_config = OmegaConf.create({"pack_model": {"out_dir": str(out_dir)}})
+    publication_config = OmegaConf.create(
+        {
+            "pack_model": {
+                "out_dir": str(out_dir),
+                "files": {"asr_model_file": str(model_path)},
+                "yaml_files": {"asr_train_config": str(cfg_path)},
+            }
+        }
+    )
     system = _make_system(
         exp_dir=exp_dir,
         recipe_dir=recipe_dir,
@@ -553,11 +577,6 @@ def test_pack_model_with_explicit_artifacts(tmp_path):
     result = publish.pack_model(
         training_config=system.training_config,
         publication_config=system.publication_config,
-        artifacts={
-            "files": {"asr_model_file": str(model_path)},
-            "yaml_files": {"asr_train_config": str(cfg_path)},
-            "copy_paths": [],
-        },
     )
 
     meta = OmegaConf.to_container(OmegaConf.load(result / "meta.yaml"), resolve=True)
@@ -685,7 +704,13 @@ def test_pack_model_preserves_symlink_name(tmp_path):
         }
     )
     publication_config = OmegaConf.create(
-        {"pack_model": {"out_dir": str(tmp_path / "pack")}}
+        {
+            "pack_model": {
+                "out_dir": str(tmp_path / "pack"),
+                "files": {"asr_model_file": str(exp_dir / "last.ckpt")},
+                "yaml_files": {"asr_train_config": str(exp_dir / "config.yaml")},
+            }
+        }
     )
     system = ASRSystem(
         training_config=training_config,

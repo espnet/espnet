@@ -11,9 +11,6 @@ from importlib import import_module
 from pathlib import Path
 from typing import Iterable
 
-from espnet3.systems.asr.publication import (
-    get_pack_model_artifacts as _get_asr_artifacts,
-)
 from espnet3.systems.asr.tokenizers.sentencepiece import train_sentencepiece
 from espnet3.systems.base.system import BaseSystem
 
@@ -83,10 +80,6 @@ class ASRSystem(BaseSystem):
         model = output_path / f"{tokenizer_config.model_type}.model"
         vocab = output_path / f"{tokenizer_config.model_type}.vocab"
         return model.exists() and vocab.exists()
-
-    def _get_pack_model_artifacts(self) -> dict:
-        """Return ASR-specific pack-model artifacts."""
-        return _get_asr_artifacts(self)
 
     def train_tokenizer(self, *args, **kwargs):
         """Train a SentencePiece tokenizer based on configured text.

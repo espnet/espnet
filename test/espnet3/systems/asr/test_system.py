@@ -91,51 +91,6 @@ def test_asr_system_train_tokenizer_trains_sentencepiece(tmp_path, monkeypatch):
     assert calls["sentencepiece"]["vocab_size"] == 8
 
 
-def test_asr_system_pack_model_includes_train_stats_npz_only(tmp_path):
-    """Ensure ASR pack-model artifacts include only train stats npz files."""
-    stats_dir = tmp_path / "stats"
-    train_dir = stats_dir / "train"
-    valid_dir = stats_dir / "valid"
-    train_dir.mkdir(parents=True)
-    valid_dir.mkdir(parents=True)
-    (train_dir / "feats_shape").write_text("1,2\n", encoding="utf-8")
-    (valid_dir / "feats_shape").write_text("1,2\n", encoding="utf-8")
-    train_npz = train_dir / "feats_stats.npz"
-    valid_npz = valid_dir / "feats_stats.npz"
-    train_npz.write_text("train", encoding="utf-8")
-    valid_npz.write_text("valid", encoding="utf-8")
-
-    train_cfg = OmegaConf.create(
-        {
-            "exp_dir": str(tmp_path / "exp"),
-            "stats_dir": str(stats_dir),
-        }
-    )
-    system = ASRSystem(training_config=train_cfg)
-    artifacts = system._get_pack_model_artifacts()
-
-    assert artifacts["copy_paths"] == [train_npz]
-
-
-def test_asr_system_pack_model_skips_stats_without_train_npz(tmp_path):
-    """Ensure ASR pack-model artifacts skip stats when train npz is absent."""
-    stats_dir = tmp_path / "stats"
-    train_dir = stats_dir / "train"
-    train_dir.mkdir(parents=True)
-    (train_dir / "feats_shape").write_text("1,2\n", encoding="utf-8")
-
-    train_cfg = OmegaConf.create(
-        {
-            "exp_dir": str(tmp_path / "exp"),
-            "stats_dir": str(stats_dir),
-        }
-    )
-    system = ASRSystem(training_config=train_cfg)
-    artifacts = system._get_pack_model_artifacts()
-
-    assert artifacts["copy_paths"] == []
-
-
 def test_asr_system_train_requires_dataset_reference(tmp_path):
     train_cfg = OmegaConf.create({"exp_dir": str(tmp_path / "exp")})
     system = ASRSystem(training_config=train_cfg)

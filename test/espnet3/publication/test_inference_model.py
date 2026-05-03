@@ -24,6 +24,17 @@ class DualInputModel:
         return f"{speech}+{text}"
 
 
+class BatchEchoModel:
+    def __init__(self):
+        self.calls = []
+
+    def __call__(self, speech):
+        self.calls.append(speech)
+        if isinstance(speech, list):
+            return [f"batched:{item}" for item in speech]
+        return f"single:{speech}"
+
+
 def _make_pack_dir(
     tmp_path: Path,
     *,
@@ -31,6 +42,8 @@ def _make_pack_dir(
     input_key: str | list = "speech",
     output_fn: str | None = None,
     with_src_module: bool = False,
+    provider_target: str | None = None,
+    runner_target: str | None = None,
 ) -> Path:
     bundle_root = tmp_path / "bundle"
     bundle_root.mkdir()
@@ -49,6 +62,16 @@ def _make_pack_dir(
         f"  _target_: {model_target}",
         "  prefix: 'cfg:'",
     ]
+    if provider_target is not None:
+        lines += [
+            "provider:",
+            f"  _target_: {provider_target}",
+        ]
+    if runner_target is not None:
+        lines += [
+            "runner:",
+            f"  _target_: {runner_target}",
+        ]
     if output_fn is not None:
         lines.append(f"output_fn: {output_fn}")
     (conf_dir / "inference.yaml").write_text("\n".join(lines), encoding="utf-8")
@@ -65,6 +88,9 @@ def _make_pack_dir(
         (src_dir / "custom_code.py").write_text(
             "\n".join(
                 [
+                    "from espnet3.systems.base.inference_provider import InferenceProvider",
+                    "from espnet3.systems.base.inference_runner import InferenceRunner",
+                    "",
                     "class CustomModel:",
                     "    def __init__(self, prefix='', device='cpu'):",
                     "        self.prefix = prefix",
@@ -72,6 +98,21 @@ def _make_pack_dir(
                     "",
                     "    def __call__(self, speech):",
                     "        return f'{self.prefix}{speech}'",
+                    "",
+                    "class CustomProvider(InferenceProvider):",
+                    "    @staticmethod",
+                    "    def build_model(config):",
+                    "        return CustomModel(prefix='provider:')",
+                    "",
+                    "class CustomRunner(InferenceRunner):",
+                    "    @staticmethod",
+                    "    def forward(idx, dataset=None, model=None, **kwargs):",
+                    "        out = InferenceRunner.forward(",
+                    "            idx, dataset=dataset, model=model, **kwargs",
+                    "        )",
+                    "        if isinstance(out, list):",
+                    "            return [f'runner:{item}' for item in out]",
+                    "        return f'runner:{out}'",
                     "",
                 ]
             ),
@@ -99,6 +140,18 @@ def mock_build_dual_model(monkeypatch):
         "build_model",
         staticmethod(lambda config: DualInputModel()),
     )
+
+
+@pytest.fixture
+def mock_build_batch_model(monkeypatch):
+    """Patch InferenceProvider.build_model to return a batch-friendly model."""
+    model = BatchEchoModel()
+    monkeypatch.setattr(
+        InferenceProvider,
+        "build_model",
+        staticmethod(lambda config: model),
+    )
+    return model
 
 
 # ---------------------------------------------------------------------------
@@ -180,6 +233,23 @@ def test_from_packed_with_trust_user_code(tmp_path, monkeypatch):
     assert session({"speech": "hello"}) == "cfg:hello"
 
 
+def test_from_packed_uses_configured_provider_and_runner_targets(
+    tmp_path, monkeypatch
+):
+    bundle_root = _make_pack_dir(
+        tmp_path,
+        model_target="src.custom_code.CustomModel",
+        with_src_module=True,
+        provider_target="src.custom_code.CustomProvider",
+        runner_target="src.custom_code.CustomRunner",
+    )
+    monkeypatch.setattr(sys, "path", list(sys.path))
+
+    session = InferenceModel.from_packed(bundle_root, trust_user_code=True)
+
+    assert session("hello") == "runner:provider:hello"
+
+
 def test_from_packed_does_not_add_bundle_to_path_without_bundled_code(
     tmp_path, mock_build_model
 ):
@@ -202,7 +272,7 @@ def test_from_pretrained_raises_if_no_inference_config(monkeypatch):
             return {"model_file": "/some/file"}
 
     monkeypatch.setattr(
-        "espnet3.publication.inference_session.ModelDownloader",
+        "espnet3.publication.inference_model.ModelDownloader",
         FakeDownloader,
     )
 
@@ -219,7 +289,7 @@ def test_from_pretrained_loads_via_from_packed(tmp_path, monkeypatch, mock_build
             return {"inference_config": str(inference_config_path)}
 
     monkeypatch.setattr(
-        "espnet3.publication.inference_session.ModelDownloader",
+        "espnet3.publication.inference_model.ModelDownloader",
         FakeDownloader,
     )
     monkeypatch.setattr(sys, "path", list(sys.path))
@@ -316,7 +386,7 @@ def test_forward_applies_output_fn(tmp_path, mock_build_model, monkeypatch):
         return fn
 
     monkeypatch.setattr(
-        "espnet3.publication.inference_session._load_output_fn", fake_load
+        "espnet3.publication.inference_model._load_output_fn", fake_load
     )
 
     session = InferenceModel.from_packed(bundle_root)
@@ -343,7 +413,7 @@ def test_forward_passes_idx_to_output_fn(tmp_path, mock_build_model, monkeypatch
         return fn
 
     monkeypatch.setattr(
-        "espnet3.publication.inference_session._load_output_fn", fake_load
+        "espnet3.publication.inference_model._load_output_fn", fake_load
     )
 
     session = InferenceModel.from_packed(bundle_root)
@@ -386,7 +456,7 @@ def test_forward_batch_uses_custom_indices(tmp_path, mock_build_model, monkeypat
         return fn
 
     monkeypatch.setattr(
-        "espnet3.publication.inference_session._load_output_fn", fake_load
+        "espnet3.publication.inference_model._load_output_fn", fake_load
     )
 
     session = InferenceModel.from_packed(bundle_root)
@@ -409,10 +479,21 @@ def test_forward_batch_defaults_indices_to_range(
         return fn
 
     monkeypatch.setattr(
-        "espnet3.publication.inference_session._load_output_fn", fake_load
+        "espnet3.publication.inference_model._load_output_fn", fake_load
     )
 
     session = InferenceModel.from_packed(bundle_root)
     session.forward_batch(["a", "b", "c"])
 
     assert captured == [0, 1, 2]
+
+
+def test_forward_batch_uses_runner_batched_path_when_supported(
+    tmp_path, mock_build_batch_model
+):
+    session = InferenceModel.from_packed(_make_pack_dir(tmp_path))
+
+    results = session.forward_batch(["a", "b", "c"])
+
+    assert results == ["batched:a", "batched:b", "batched:c"]
+    assert mock_build_batch_model.calls == [["a", "b", "c"]]

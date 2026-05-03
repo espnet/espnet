@@ -12,9 +12,6 @@ from espnet3.components.data.dataset_module import (
 )
 from espnet3.systems.base.inference import infer
 from espnet3.systems.base.metric import measure
-from espnet3.systems.base.publication import (
-    get_pack_model_artifacts as _get_base_artifacts,
-)
 from espnet3.systems.base.training import collect_stats, train
 from espnet3.utils.publish import pack_model as _pack_model
 from espnet3.utils.publish import upload_model as _upload_model
@@ -189,10 +186,6 @@ class BaseSystem:
                 "Put all settings in the YAML config."
             )
 
-    def _get_pack_model_artifacts(self) -> dict:
-        """Return system-specific pack-model artifacts."""
-        return _get_base_artifacts(self)
-
     # ---------------------------------------------------------
     # Stage stubs (override in subclasses if needed)
     # ---------------------------------------------------------
@@ -312,7 +305,6 @@ class BaseSystem:
             publication_config=self.publication_config,
             inference_config=self.inference_config,
             metrics_config=self.metrics_config,
-            artifacts=self._get_pack_model_artifacts(),
         )
 
     def upload_model(self, *args, **kwargs):
