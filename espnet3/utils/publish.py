@@ -158,16 +158,18 @@ def _resolve_espnet2_spec(pack_cfg: DictConfig) -> dict:
 
 
 def _load_readme_template(pack_cfg: DictConfig) -> str:
-    """Return README template content."""
+    """Return the README template used for packed model publication."""
     template = getattr(pack_cfg, "readme_template", None)
     if template is not None:
         template_path = Path(template)
         if not template_path.is_absolute():
             template_path = Path(__file__).resolve().parents[2] / template_path
         return template_path.read_text(encoding="utf-8")
-    from egs3.TEMPLATE.asr.src.get_readme import get_readme
+    from egs3.TEMPLATE.asr.src.hf_model_repo_readme_template import (
+        get_hf_model_repo_readme_template,
+    )
 
-    return get_readme()
+    return get_hf_model_repo_readme_template()
 
 
 def _write_readme(
@@ -179,7 +181,7 @@ def _write_readme(
     exp_dir: Path | None,
     strategy: str,
     system,
-    scores_path: Optional[Path],
+    results_path: Optional[Path],
     minimal: bool = False,
 ) -> None:
     """Render README template into output directory if present."""
@@ -204,7 +206,7 @@ def _write_readme(
             if system.training_config is not None
             else ""
         ),
-        "results_section": "" if minimal else _resolve_results_section(scores_path),
+        "results_section": "" if minimal else _resolve_results_section(results_path),
     }
     if not minimal:
         context.update(dict(getattr(pack_cfg, "readme_context", {}) or {}))
@@ -778,36 +780,101 @@ def _render_readme(template_text: str, context: Dict[str, str]) -> str:
     return template.safe_substitute(safe_context)
 
 
-def _resolve_results_section(scores_path: Optional[Path]) -> str:
-    """Render a results table from scores.json.
+def _resolve_results_dir(pack_cfg: DictConfig, system) -> Path | None:
+    """Return the directory that may contain publication result artifacts.
 
     Args:
-        scores_path: Optional path to scores.json.
+        pack_cfg: Publication config for the pack stage.
+        system: System instance that may expose metrics or inference configs.
+
     Returns:
-        Markdown table string; empty string when scores are missing or invalid.
-    Note:
-        The table has one row per test set and metric names as columns.
+        Directory expected to contain ``metrics.json`` or legacy score files.
+        Returns ``None`` when no candidate directory is configured.
     """
-    if scores_path is None or not scores_path.exists():
+    configured_dir = getattr(pack_cfg, "decode_dir", None)
+    if configured_dir:
+        return Path(configured_dir)
+    metrics_cfg = getattr(system, "metrics_config", None)
+    metrics_dir = getattr(metrics_cfg, "inference_dir", None)
+    if metrics_dir:
+        return Path(metrics_dir)
+    inference_cfg = getattr(system, "inference_config", None)
+    inference_dir = getattr(inference_cfg, "inference_dir", None)
+    if inference_dir:
+        return Path(inference_dir)
+    return None
+
+
+def _resolve_results_artifact(pack_cfg: DictConfig, system) -> Path | None:
+    """Return the metrics artifact used for publication output.
+
+    Args:
+        pack_cfg: Publication config for the pack stage.
+        system: System instance that may expose metrics or inference configs.
+
+    Returns:
+        Path to the preferred results artifact. ``metrics.json`` is preferred,
+        and ``scores.json`` is used as a legacy fallback. Returns ``None``
+        when no matching file is found.
+
+    Note:
+        The search is rooted at ``publication_config.pack_model.decode_dir``
+        when configured. Otherwise it falls back to the configured metrics or
+        inference directory on the system.
+    """
+    results_dir = _resolve_results_dir(pack_cfg, system)
+    if results_dir is None:
+        return None
+    for artifact_name in ("metrics.json", "scores.json"):
+        matches = list(results_dir.rglob(artifact_name))
+        if len(matches) > 1:
+            raise RuntimeError(
+                f"Multiple {artifact_name} files found; set "
+                "publication_config.pack_model.decode_dir to a single result "
+                "directory."
+            )
+        if len(matches) == 1:
+            return matches[0]
+    return None
+
+
+def _resolve_results_section(results_path: Optional[Path]) -> str:
+    """Render a markdown results table from a publication metrics artifact.
+
+    Args:
+        results_path: Optional path to ``metrics.json`` or ``scores.json``.
+
+    Returns:
+        Markdown table string. Returns an empty string when the results file is
+        missing, unreadable, or does not contain a supported nested mapping.
+
+    Notes:
+        The generated table has one row per test set and one column per metric
+        key such as ``WER`` or ``CER``.
+    """
+    if results_path is None or not results_path.exists():
         return ""
     try:
-        scores = json.loads(scores_path.read_text(encoding="utf-8"))
+        results = json.loads(results_path.read_text(encoding="utf-8"))
     except Exception:
         return ""
     metrics_by_test: dict[str, dict[str, str]] = {}
     metric_keys: set[str] = set()
-    for per_test in scores.values():
+    for metric_name, per_test in results.items():
         if not isinstance(per_test, dict):
             continue
         for test_name, metrics in per_test.items():
-            if not isinstance(metrics, dict):
-                continue
             test_key = str(test_name)
             metrics_by_test.setdefault(test_key, {})
-            for metric_name, value in metrics.items():
-                metric_key = str(metric_name)
-                metric_keys.add(metric_key)
-                metrics_by_test[test_key][metric_key] = str(value)
+            if isinstance(metrics, dict):
+                for inner_metric_name, value in metrics.items():
+                    metric_key = str(inner_metric_name)
+                    metric_keys.add(metric_key)
+                    metrics_by_test[test_key][metric_key] = str(value)
+                continue
+            metric_key = str(metric_name).rsplit(".", maxsplit=1)[-1]
+            metric_keys.add(metric_key)
+            metrics_by_test[test_key][metric_key] = str(metrics)
     if not metrics_by_test or not metric_keys:
         return ""
     ordered_metrics = sorted(metric_keys)
@@ -902,12 +969,12 @@ def pack_model(
         logic is used. The output location can be set via
         ``publication_config.pack_model.out_dir``.
         ``publication_config.pack_model.readme_template`` can override the
-        default
-        README template path.
+        default Hugging Face model repo README template path.
         ``publication_config.pack_model.decode_dir`` can be used to specify
-        which scores.json to include. If not set, it falls back to
-        ``inference_config.decode_dir``.
-        README generation uses scores.json to render a per-test metrics table.
+        which result directory to scan. If not set, it falls back to the
+        configured metrics or inference directory on the system.
+        README generation prefers ``metrics.json`` and falls back to legacy
+        ``scores.json`` to render a per-test metrics table.
     Todo:
         Support more configurable exclusions if needed.
     """
@@ -1023,22 +1090,9 @@ def pack_model(
             recipe_root=recipe_root,
         )
 
-        decode_dir = getattr(pack_cfg, "decode_dir", None)
-        if decode_dir is None and getattr(system, "inference_config", None) is not None:
-            decode_dir = getattr(system.inference_config, "decode_dir", None)
-        resolved_scores = None
-        if decode_dir:
-            matches = list(Path(decode_dir).rglob("scores.json"))
-            if len(matches) > 1:
-                raise RuntimeError(
-                    "Multiple scores.json found; set "
-                    "publication_config.pack_model.decode_dir to a single "
-                    "decode directory."
-                )
-            if len(matches) == 1:
-                resolved_scores = matches[0]
-        if resolved_scores is not None and resolved_scores.exists():
-            shutil.copy2(resolved_scores, out_dir / "scores.json")
+        resolved_results = _resolve_results_artifact(pack_cfg, system)
+        if resolved_results is not None and resolved_results.exists():
+            shutil.copy2(resolved_results, out_dir / resolved_results.name)
 
         _write_readme(
             readme_template=readme_template,
@@ -1048,7 +1102,7 @@ def pack_model(
             exp_dir=exp_dir,
             strategy=strategy,
             system=system,
-            scores_path=resolved_scores,
+            results_path=resolved_results,
         )
         _merge_meta_file(
             out_dir=out_dir,
@@ -1086,24 +1140,11 @@ def pack_model(
         )
         _copy_path(src=path, dst=dest, ignore=ignore)
 
-    decode_dir = getattr(pack_cfg, "decode_dir", None)
-    if decode_dir is None and getattr(system, "inference_config", None) is not None:
-        decode_dir = getattr(system.inference_config, "decode_dir", None)
-    resolved_scores = None
-    if decode_dir:
-        matches = list(Path(decode_dir).rglob("scores.json"))
-        if len(matches) > 1:
-            raise RuntimeError(
-                "Multiple scores.json found; set "
-                "publication_config.pack_model.decode_dir to a single "
-                "decode directory."
-            )
-        if len(matches) == 1:
-            resolved_scores = matches[0]
-    if resolved_scores is not None and resolved_scores.exists():
-        shutil.copy2(resolved_scores, out_dir / "scores.json")
+    resolved_results = _resolve_results_artifact(pack_cfg, system)
+    if resolved_results is not None and resolved_results.exists():
+        shutil.copy2(resolved_results, out_dir / resolved_results.name)
     else:
-        logger.info("No scores.json found; skipping root copy.")
+        logger.info("No metrics.json or scores.json found; skipping root copy.")
 
     _write_readme(
         readme_template=readme_template,
@@ -1113,7 +1154,7 @@ def pack_model(
         exp_dir=exp_dir,
         strategy=strategy,
         system=system,
-        scores_path=resolved_scores,
+        results_path=resolved_results,
     )
     copied_files, copied_yaml_files = _copy_manifest_entries(
         pack_cfg=pack_cfg,

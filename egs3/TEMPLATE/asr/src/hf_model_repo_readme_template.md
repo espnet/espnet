@@ -1,7 +1,7 @@
 ---
 tags:
 - espnet
-- audio
+- ${task}
 language: ${lang}
 license: ${license}
 ---

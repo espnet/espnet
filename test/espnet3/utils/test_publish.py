@@ -66,18 +66,43 @@ def test_pack_model_espnet3_manifest(tmp_path):
     assert "timestamp" in meta
 
 
-def test_pack_model_excludes_decode_and_copies_scores(tmp_path):
+def test_pack_model_excludes_decode_and_copies_metrics_json_and_readme_table(tmp_path):
     exp_dir = tmp_path / "exp"
     exp_dir.mkdir(parents=True)
     (exp_dir / "dummy.txt").write_text("hello", encoding="utf-8")
     decode_dir = exp_dir / "decode"
     decode_dir.mkdir()
     (decode_dir / "hyp.scp").write_text("utt1 foo\n", encoding="utf-8")
-    scores_path = decode_dir / "scores.json"
-    scores_path.write_text('{"wer": 0.1}\n', encoding="utf-8")
+    metrics_path = decode_dir / "metrics.json"
+    metrics_path.write_text(
+        (
+            "{\n"
+            '  "espnet3.systems.asr.metrics.wer.WER": {\n'
+            '    "test_clean": {"WER": 12.3},\n'
+            '    "test_other": {"WER": 23.4}\n'
+            "  },\n"
+            '  "espnet3.systems.asr.metrics.cer.CER": {\n'
+            '    "test_clean": {"CER": 4.5},\n'
+            '    "test_other": {"CER": 8.9}\n'
+            "  }\n"
+            "}\n"
+        ),
+        encoding="utf-8",
+    )
     out_dir = tmp_path / "model_pack"
     publication_config = OmegaConf.create(
-        {"pack_model": {"out_dir": str(out_dir), "decode_dir": str(decode_dir)}}
+        {
+            "pack_model": {
+                "out_dir": str(out_dir),
+                "decode_dir": str(decode_dir),
+                "readme_context": {
+                    "task": "asr",
+                    "lang": "en",
+                    "license": "apache-2.0",
+                    "description": "Example description.",
+                },
+            }
+        }
     )
 
     system = _make_system(exp_dir=exp_dir, publication_config=publication_config)
@@ -86,8 +111,13 @@ def test_pack_model_excludes_decode_and_copies_scores(tmp_path):
     assert result == out_dir
     assert out_dir.exists()
     assert (out_dir / "exp" / "dummy.txt").exists()
-    assert (out_dir / "scores.json").exists()
+    assert (out_dir / "metrics.json").exists()
     assert not (out_dir / "exp" / "decode" / "hyp.scp").exists()
+    readme_text = (out_dir / "README.md").read_text(encoding="utf-8")
+    assert "- asr" in readme_text
+    assert "| Test | CER | WER |" in readme_text
+    assert "| test_clean | 4.5 | 12.3 |" in readme_text
+    assert "| test_other | 8.9 | 23.4 |" in readme_text
 
 
 def test_pack_model_espnet2_branch(tmp_path):
