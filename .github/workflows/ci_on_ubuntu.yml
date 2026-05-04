@@ -325,6 +325,9 @@ jobs:
     needs: process_labels
     if: |
       github.event.pull_request.draft == false
+    env:
+      ESPNET3_PUBLICATION_TEST_UPLOAD: ${{ needs.process_labels.outputs.test_upload }}
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
     steps:
       - uses: actions/checkout@master
       - uses: actions/cache@v5
@@ -340,19 +343,12 @@ jobs:
           use-conda: false
       - name: Validate publication upload test configuration
         if: needs.process_labels.outputs.test_upload == 'true'
-        env:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
-          HUGGING_FACE_HUB_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
           test -n "${HF_TOKEN}" || {
             echo "HF_TOKEN secret is required for test_upload publication CI." >&2
             exit 1
           }
       - name: test publication integration
-        env:
-          ESPNET3_PUBLICATION_TEST_UPLOAD: ${{ needs.process_labels.outputs.test_upload }}
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
-          HUGGING_FACE_HUB_TOKEN: ${{ secrets.HF_TOKEN }}
         run: ./ci/test_integration_espnet3_publication.sh
       - uses: codecov/codecov-action@v5
         with:
