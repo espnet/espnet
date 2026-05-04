@@ -16,7 +16,7 @@ dataset_split=${4:-test}
 upload_enabled=${ESPNET3_PUBLICATION_TEST_UPLOAD:-false}
 publication_config_path="${publication_config}"
 hf_repo=""
-stages="create_dataset train_tokenizer collect_stats train infer measure pack_model"
+stages=(create_dataset train_tokenizer collect_stats train infer measure pack_model)
 
 gen_dummy_coverage() {
     touch empty.py
@@ -50,7 +50,7 @@ source path.sh
 rm -rf exp data
 
 if [ "${upload_enabled}" = "true" ]; then
-    stages="${stages} upload_model"
+    stages+=(upload_model)
     hf_repo=$(resolve_hf_repo "${publication_config_path}")
     if [ -z "${hf_repo}" ]; then
         echo "upload_model.hf_repo is empty in ${publication_config_path}" >&2
@@ -60,7 +60,7 @@ if [ "${upload_enabled}" = "true" ]; then
 fi
 
 ${python} run.py \
-    --stages ${stages} \
+    --stages "${stages[@]}" \
     --training_config "${training_config}" \
     --inference_config "${inference_config}" \
     --metrics_config conf/metrics.yaml \
