@@ -213,7 +213,8 @@ class CategoryChunkIterFactory(AbsIterFactory):
                     cache_chunks = cache_chunks_dict.setdefault(0, {})
                     Z, N, W, S = 0, 1, L, 0
                 else:
-                    W = int(state.choice(chunk_lengths, 1))
+                    # Keep the legacy sampling semantics and avoid ndarray->scalar cast.
+                    W = int(state.choice(chunk_lengths, size=1).item())
                     cache_id_list = cache_id_list_dict.setdefault(W, [])
                     cache_chunks = cache_chunks_dict.setdefault(W, {})
 

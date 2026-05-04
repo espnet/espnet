@@ -32,7 +32,7 @@ def build_file_list(file_list):
 
 def get_video_transform(split="test"):
     crop_size = (88, 88)
-    (mean, std) = (0.421, 0.165)
+    mean, std = (0.421, 0.165)
 
     return Compose(
         [

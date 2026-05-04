@@ -328,20 +328,20 @@ def _patch_parallel_client_no_submit(monkeypatch, n_workers: int = 2):
     def _fake_get_parallel_config():
         return OmegaConf.create({"env": "slurm", "n_workers": n_workers, "options": {}})
 
-    def _fake_make_client(_cfg=None):
+    def _fake_build_client(_cfg=None):
         return _FakeClient()
 
     monkeypatch.setattr(
         par, "get_parallel_config", _fake_get_parallel_config, raising=True
     )
-    monkeypatch.setattr(par, "make_client", _fake_make_client, raising=True)
+    monkeypatch.setattr(par, "build_client", _fake_build_client, raising=True)
 
     monkeypatch.setattr(
         br, "get_parallel_config", _fake_get_parallel_config, raising=True
     )
-    monkeypatch.setattr(br, "make_client", _fake_make_client, raising=True)
+    monkeypatch.setattr(br, "build_client", _fake_build_client, raising=True)
 
-    def _fake_get_job_cls(cluster, spec_path=None):
+    def _fake_get_job_class(cluster, spec_path=None):
         class _Job:
             @classmethod
             async def _submit_job(cls, _tf, *args, **kwargs):
@@ -350,7 +350,7 @@ def _patch_parallel_client_no_submit(monkeypatch, n_workers: int = 2):
 
         return _Job
 
-    monkeypatch.setattr(br, "get_job_cls", _fake_get_job_cls, raising=True)
+    monkeypatch.setattr(br, "get_job_class", _fake_get_job_class, raising=True)
 
     orig_run_async = br.BaseRunner._run_async
 

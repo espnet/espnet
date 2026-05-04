@@ -1,6 +1,9 @@
+import argparse
+
 import configargparse
 import pytest
 import torch
+import yaml
 
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.torch_utils.device_funcs import force_gatherable
@@ -103,6 +106,33 @@ def test_print_config_and_load_it(tmp_path):
         AbsTask.print_config(f)
     parser = AbsTask.get_parser()
     parser.parse_args(["--config", str(config_file)])
+
+
+def test_build_model_from_file_accepts_lightning_checkpoint(tmp_path):
+    config_file = tmp_path / "config.yaml"
+    model_file = tmp_path / "model.pth"
+
+    with config_file.open("w", encoding="utf-8") as f:
+        yaml.safe_dump({}, f)
+
+    expected = DummyModel()
+    with torch.no_grad():
+        expected.layer1.weight.fill_(1.25)
+        expected.layer1.bias.fill_(2.5)
+        expected.layer2.weight.fill_(3.75)
+        expected.layer2.bias.fill_(5.0)
+
+    torch.save({"state_dict": expected.state_dict()}, model_file)
+
+    loaded_model, args = TestTask.build_model_from_file(
+        config_file=config_file,
+        model_file=model_file,
+        device="cpu",
+    )
+
+    assert isinstance(args, argparse.Namespace)
+    for name, parameter in expected.state_dict().items():
+        assert torch.equal(loaded_model.state_dict()[name], parameter)
 
 
 # FIXME(kamo): This is an integration test, so it's hard to reduce time

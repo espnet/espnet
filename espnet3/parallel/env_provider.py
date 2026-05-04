@@ -14,7 +14,7 @@ class EnvironmentProvider(ABC):
     either once on the driver or once per worker process.
 
     Subclasses should implement ``build_env_local`` and
-    ``make_worker_setup_fn`` to define how the environment is built
+    ``build_worker_setup_fn`` to define how the environment is built
     in local (driver) execution and distributed (worker) execution.
 
     Args:
@@ -60,7 +60,7 @@ class EnvironmentProvider(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def make_worker_setup_fn(self) -> Callable[[], Dict[str, Any]]:
+    def build_worker_setup_fn(self) -> Callable[[], Dict[str, Any]]:
         """Create a worker setup function for distributed execution.
 
         The returned callable will be executed **once per worker** to build
@@ -77,11 +77,11 @@ class EnvironmentProvider(ABC):
 
         Example:
             >>> class MyProvider(EnvironmentProvider):
-            ...     def make_worker_setup_fn(self):
-            ...         cfg = self.config
+            ...     def build_worker_setup_fn(self):
+            ...         config = self.config
             ...         def setup():
-            ...             ds = build_dataset(cfg)
-            ...             md = build_model(cfg)
+            ...             ds = build_dataset(config)
+            ...             md = build_model(config)
             ...             return {"dataset": ds, "model": md}
             ...         return setup  # return setup function!
         """

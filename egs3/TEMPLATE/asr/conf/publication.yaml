@@ -1,0 +1,25 @@
+recipe_dir: .
+exp_tag: ${self_name:}
+exp_dir: exp/${exp_tag}
+inference_dir: ${exp_dir}/inference
+data_dir: ${recipe_dir}/data
+
+pack_model:
+  out_dir: ${exp_dir}/model_pack
+  inference_dir: ${inference_dir}
+  readme: egs3/TEMPLATE/asr/src/hf_model_repo_readme_template.md
+  include:
+    - ${recipe_dir}/src
+  exclude:
+    - inference
+    - inference_*
+    - last.ckpt
+    - "**/step*.ckpt"
+    - "**/*.log"
+    - "**/tensorboard/**"
+    - "**/wandb/**"
+  files:
+    asr_model_file: ${exp_dir}/last.ckpt
+
+upload_model:
+  hf_repo: yourname/your-model-repo

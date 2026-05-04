@@ -1,11 +1,16 @@
 """Inference-time provider helpers for dataset/model construction."""
 
+import logging
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional
 
 from omegaconf import DictConfig
 
 from espnet3.parallel.env_provider import EnvironmentProvider
+from espnet3.utils.logging_utils import log_instance_dict
+
+logger = logging.getLogger(__name__)
+_LOGGED_ENV = False
 
 
 class InferenceProvider(EnvironmentProvider, ABC):
@@ -15,7 +20,7 @@ class InferenceProvider(EnvironmentProvider, ABC):
     per-worker setup. Instances cache a local environment for reuse.
     """
 
-    def __init__(self, config: DictConfig, *, params: Optional[Dict[str, Any]] = None):
+    def __init__(self, config: DictConfig, params: Optional[Dict[str, Any]] = None):
         """Initialize the provider and prebuild the local environment.
 
         Args:
@@ -25,15 +30,15 @@ class InferenceProvider(EnvironmentProvider, ABC):
         super().__init__(config)
         self.params = params or {}
         # Build once for local execution to avoid redundant IO
-        self._local_env = self.make_worker_setup_fn()()
+        self._local_env = self.build_worker_setup_fn()()
 
     @staticmethod
     @abstractmethod
-    def build_dataset(cfg: DictConfig):
+    def build_dataset(config: DictConfig):
         """Create a dataset object from config.
 
         Args:
-            cfg: Configuration for dataset construction.
+            config: Configuration for dataset construction.
 
         Returns:
             Dataset-like object used for inference.
@@ -42,11 +47,11 @@ class InferenceProvider(EnvironmentProvider, ABC):
 
     @staticmethod
     @abstractmethod
-    def build_model(cfg: DictConfig):
+    def build_model(config: DictConfig):
         """Create a model object from config.
 
         Args:
-            cfg: Configuration for model construction.
+            config: Configuration for model construction.
 
         Returns:
             Model-like object used for inference.
@@ -59,23 +64,33 @@ class InferenceProvider(EnvironmentProvider, ABC):
         Returns:
             Mapping with dataset/model and any extra params.
         """
-        return dict(self._local_env)
+        env = dict(self._local_env)
+        self._log_env(env)
+        return env
 
-    def make_worker_setup_fn(self):
+    def build_worker_setup_fn(self):
         """Return a setup function that rebuilds the env per worker.
 
         Returns:
             Callable that constructs a fresh environment when invoked.
         """
-        cfg = self.config
+        config = self.config
         params = dict(self.params)
 
         def setup() -> Dict[str, Any]:
             env = {
-                "dataset": self.build_dataset(cfg),
-                "model": self.build_model(cfg),
+                "dataset": self.build_dataset(config),
+                "model": self.build_model(config),
             }
             env.update(params)
+            self._log_env(env)
             return env
 
         return setup
+
+    def _log_env(self, env: Dict[str, Any]) -> None:
+        global _LOGGED_ENV
+        if _LOGGED_ENV:
+            return
+        _LOGGED_ENV = True
+        log_instance_dict(logger, kind="Env", entries=env, max_depth=2)

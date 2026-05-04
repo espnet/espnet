@@ -37,7 +37,7 @@ def indices_to_split_size(indices, total_elements: int = None):
     During decoding, the api torch.tensor_split should be used.
     However, torch.tensor_split is only available with pytorch >= 1.8.0.
     So torch.split is used to pass ci with pytorch < 1.8.0.
-    This fuction is used to prepare input for torch.split.
+    This function is used to prepare input for torch.split.
     """
     if indices[0] != 0:
         indices = [0] + indices

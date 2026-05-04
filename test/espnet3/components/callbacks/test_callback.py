@@ -9,6 +9,7 @@ from omegaconf import OmegaConf
 
 from espnet3.components.callbacks.default_callbacks import (
     AverageCheckpointsCallback,
+    _metric_to_float,
     get_default_callbacks,
 )
 
@@ -96,11 +97,11 @@ def test_get_default_callbacks_structure():
     Verify the structure and types of callbacks returned.
     """
     callbacks = get_default_callbacks(
-        expdir="test_utils/espnet3_dummy/",
+        exp_dir="test_utils/espnet3_dummy/",
         best_model_criterion=[("valid/loss", 2, "min"), ("valid/wer", 2, "min")],
     )
 
-    assert len(callbacks) == 6
+    assert len(callbacks) == 7
 
     monitor_names = [None, "valid/loss", "valid/wer"]  # None for last checkpoint
     ckpt_callbacks = [cb for cb in callbacks if isinstance(cb, ModelCheckpoint)]
@@ -288,7 +289,7 @@ def test_duplicate_learning_rate_monitor_from_config():
     """
     # First, get the default callbacks (contains exactly one LearningRateMonitor)
     callbacks = get_default_callbacks(
-        expdir="test_utils/espnet3_dummy/",
+        exp_dir="test_utils/espnet3_dummy/",
         best_model_criterion=[("valid/loss", 2, "min")],
     )
     # Ensure only one LearningRateMonitor is included by default
@@ -308,3 +309,15 @@ def test_duplicate_learning_rate_monitor_from_config():
 
     # AverageCheckpointsCallback should still be exactly one (unaffected by duplicates)
     assert sum(isinstance(cb, AverageCheckpointsCallback) for cb in callbacks) == 1
+
+
+def test_metric_to_float_rejects_non_scalar_tensor():
+    with pytest.raises(AssertionError, match="supports only scalar metric values"):
+        _metric_to_float(torch.tensor([1.0, 2.0]))
+
+
+def test_metric_to_float_rejects_unsupported_type():
+    with pytest.raises(
+        AssertionError, match="does not support metric values of type dict"
+    ):
+        _metric_to_float({"loss": 1.0})

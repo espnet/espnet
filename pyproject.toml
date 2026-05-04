@@ -36,7 +36,7 @@ dependencies = [
     "soundfile>=0.10.2",
     "torch_optimizer",
     "kaldiio>=2.18.0",
-    "sentencepiece==0.2.0",
+    "sentencepiece==0.2.1",
     "librosa>=0.10.2",
     "lightning",
     "torch_complex",
@@ -56,6 +56,7 @@ dependencies = [
     "torch>=2.3.1",
     "torchaudio>=2.3.1",
     "huggingface_hub",
+    "wandb",
 ]
 
 [project.urls]
@@ -66,12 +67,14 @@ requires = ["setuptools>=38.5.1,<74.0.0", "wheel", "setuptools-scm>=8.0,<9.0"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.dynamic]
-version = {attr = "espnet2.__version__"}
+version = {file = "version.txt"}
 readme = {file = ["README.md"], content-type = "text/markdown"}
 
 [tool.setuptools.packages.find]
-include = ["espnet*"]
+include = ["espnet*", "egs3*"]
 
+[tool.setuptools.package-data]
+egs3 = ["egs3/TEMPLATE/**/*.yaml"]
 
 
 [project.optional-dependencies]
@@ -100,10 +103,9 @@ asr2 = [
   "editdistance",
 ]
 
-# We didn't specify s3prl version as it should be installed via github.
 s2st = [
   "editdistance",
-  "s3prl",
+  "s3prl @ git+https://github.com/espnet/s3prl.git@572af70",
 ]
 
 st = [
@@ -116,6 +118,26 @@ s2t = [
 
 spk = [
   "asteroid_filterbanks==0.4.0"
+]
+
+# Extras needed for SpeechLM training (espnet2/speechlm).
+# Contains only packages not already in the base "dependencies" above.
+# GPU-only runtime deps (torchtitan, liger-kernel) are listed here so that
+# `pip install espnet[speechlm]` pulls them, but they are not imported at
+# module load time in the hot path, so CPU-only installs still succeed.
+speechlm = [
+  "psutil",
+  "transformers==4.57.1",
+  "huggingface-hub",
+  "joblib",
+  "polars",
+  "duckdb",
+  # torchtitan (distributed training) and liger-kernel (CUDA Triton
+  # kernels) are Linux+CUDA only. Leave them off Windows/macOS so
+  # `pip install espnet[all]` doesn't spend minutes backtracking
+  # through incompatible versions and then fail.
+  "torchtitan; sys_platform == 'linux'",
+  "liger-kernel; sys_platform == 'linux'",
 ]
 
 dev = [
@@ -156,6 +178,7 @@ all = [
   "espnet[tts]",
   "espnet[enh]",
   "espnet[spk]",
+  "espnet[speechlm]",
   "fairscale",
   "transformers",
   "evaluate",

@@ -1,13 +1,10 @@
 import torch
 import torch_complex
-from packaging.version import parse as V
 from torch_complex.tensor import ComplexTensor
 
 from espnet2.enh.decoder.abs_decoder import AbsDecoder
 from espnet2.enh.layers.complex_utils import is_torch_complex_tensor
 from espnet2.layers.stft import Stft
-
-is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
 
 
 class STFTDecoder(AbsDecoder):
@@ -66,9 +63,7 @@ class STFTDecoder(AbsDecoder):
                 If not None, reconfigure iSTFT window and hop lengths for a new
                 sampling rate while keeping their duration fixed.
         """
-        if not isinstance(input, ComplexTensor) and (
-            is_torch_1_9_plus and not torch.is_complex(input)
-        ):
+        if not isinstance(input, ComplexTensor) and (not torch.is_complex(input)):
             raise TypeError("Only support complex tensors for stft decoder")
         if fs is not None:
             self._reconfig_for_fs(fs)
@@ -238,7 +233,7 @@ if __name__ == "__main__":
     swavs = [decoder.forward_streaming(s) for s in sframes]
     merged = decoder.streaming_merge(swavs, ilens)
 
-    if not (is_torch_1_9_plus and encoder.use_builtin_complex):
+    if not encoder.use_builtin_complex:
         sframes = torch_complex.cat(sframes, dim=1)
     else:
         sframes = torch.cat(sframes, dim=1)

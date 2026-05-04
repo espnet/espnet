@@ -7,7 +7,7 @@ See also https://espnet.github.io/espnet/installation.html
 
 ## Contents
 ```
-installers/         # Instllation scripts for extra tools
+installers/         # Installation scripts for extra tools
 Makefile            # Makefile to make an environment for experiments in espnet
 check_install.py    # To check the status of installation
 extra_path.sh       # Setup script for environment variables for extra tools
@@ -15,7 +15,7 @@ setup_cuda_env.sh   # Setup script for environment variables for cuda
 setup_anaconda.sh   # To generate activate_python.sh with Anaconda environment
 setup_miniforge.sh  # To generate activate_python.sh with conda-forge environment
 setup_python.sh     # To generate activate_python.sh with the specified python
-setup_venv.sh       # To generate activate_python.sh with venv of your python
+setup_venv.sh       # To generate activate_python.sh with venv of your Python
 ```
 
 ## Install
@@ -23,16 +23,16 @@ setup_venv.sh       # To generate activate_python.sh with venv of your python
 ```sh
 # ./setup_miniforge.sh <conda-root|default="venv"> <env-name|default=root env> <python-version|default=latest python>
 # e.g.
-./setup_miniforge.sh miniconda espnet 3.8
-# If the conda-root already exists at the path, it tries to create in the conda
-# ./setup_miniforge.sh /some/where/miniconda espnet 3.8
+./setup_miniforge.sh miniconda espnet 3.10
+# If the conda-root already exists at the path, it tries to create it in the conda
+# ./setup_miniforge.sh /some/where/miniconda espnet 3.10
 
 # make TH_VERSION=<torch-ver|default=latest torch>
 # e.g.
 make
 ```
 
-For more detail: https://espnet.github.io/espnet/installation.html#step-2-installation-espnet
+For more details: https://espnet.github.io/espnet/installation.html#step-2-installation-espnet
 
 
 
@@ -45,4 +45,4 @@ bash -c ". ./activate_python.sh; . ./extra_path.sh; python3 check_install.py"
 
 ## Caution
 
-ESPnet recommends preparing a new Python environment independent of your pre-existing Python because pre-installed modules in your existing Python sometimes conflict with the dependencies of ESPnet. If you still want to install ESPnet in your original Python, all issues which might happen are under your responsibility.
+ESPnet recommends preparing a new Python environment independent of your pre-existing Python environment because pre-installed modules in your existing Python environment sometimes conflict with the dependencies of ESPnet. If you still want to install ESPnet in your original Python, all issues that might happen are under your responsibility.

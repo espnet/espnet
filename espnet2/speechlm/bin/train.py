@@ -6,18 +6,19 @@
 
 import argparse
 import logging
+import os
+import random
+import shutil
 import sys
 from pathlib import Path
 
-import deepspeed
+import numpy as np
 import torch
 import wandb
 import yaml
 
 from espnet2.speechlm.dataloader.iterator import DataIteratorFactory
 from espnet2.speechlm.model import _all_job_types
-from espnet2.speechlm.trainer.deepspeed_trainer import DeepSpeedTrainer
-from espnet2.speechlm.utils.model_summary import model_summary
 
 
 def get_parser() -> argparse.ArgumentParser:
@@ -51,7 +52,7 @@ def get_parser() -> argparse.ArgumentParser:
         help="Directory to save checkpoints and logs",
     )
     train_group.add_argument(
-        "--resume_path",
+        "--resume-path",
         type=Path,
         default=None,
         help="Path to checkpoint to resume training from",
@@ -101,6 +102,12 @@ def get_parser() -> argparse.ArgumentParser:
         required=True,
         help="The folder of length statistics",
     )
+    data_group.add_argument(
+        "--save-loader-state",
+        action="store_true",
+        default=False,
+        help="Whether to save the loader state for resuming training",
+    )
 
     # Logging configuration
     log_group = parser.add_argument_group("Logging")
@@ -112,9 +119,20 @@ def get_parser() -> argparse.ArgumentParser:
         help="Logging level",
     )
 
-    # Wandb configuration (mandatory local/offline logging)
-    wandb_group = parser.add_argument_group(
-        "Weights & Biases (Mandatory Local Logging)"
+    # Wandb configuration
+    wandb_group = parser.add_argument_group("Weights & Biases Configuration")
+    wandb_group.add_argument(
+        "--wandb-mode",
+        type=str,
+        default="online",
+        choices=["online", "offline", "disabled"],
+        help="Wandb logging mode (online=sync to cloud, offline=local only)",
+    )
+    wandb_group.add_argument(
+        "--wandb-project",
+        type=str,
+        default="speechlm",
+        help="Project name for wandb",
     )
     wandb_group.add_argument(
         "--wandb-name",
@@ -133,19 +151,60 @@ def get_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def set_seed(seed: int):
+    """Set random seed for all RNGs to ensure reproducibility across ranks."""
+    # TODO(Jinchuan): When adding PP or TP support, also seed:
+    #  1. DTensor RNG: torch.distributed.tensor._random.manual_seed(seed, world_mesh)
+    #     — needed for DTensor ops (e.g. dropout) after FSDP2 wrapping.
+    #  2. PP-distinct seeds: offset seed by PP rank so different pipeline stages
+    #     get different weight init. See torchtitan's set_determinism() for reference.
+    #  Both require parallel_dims/world_mesh, only available after init_parallel_dims().
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+
+
 def main():
     parser = get_parser()
     args = parser.parse_args()
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
 
+    # Load config early to determine trainer type
+    with open(args.train_config, "r") as f:
+        train_config = yaml.safe_load(f)
+
+    trainer_type = train_config.get("trainer", {}).get("type", "deepspeed")
+
     # (1) Setup distributed training first to get rank info
+    # Get local_rank from environment variable (set by torchrun) if not provided via CLI
+    if args.local_rank is None:
+        args.local_rank = int(os.environ.get("LOCAL_RANK", 0))
     torch.cuda.set_device(args.local_rank)
-    deepspeed.init_distributed()
+
+    # Initialize distributed - different approach for each trainer type
+    if trainer_type == "deepspeed":
+        import deepspeed
+
+        deepspeed.init_distributed()
+    else:
+        # For TorchTitan, use standard PyTorch distributed init
+        if not torch.distributed.is_initialized():
+            torch.distributed.init_process_group(backend="nccl")
 
     assert torch.distributed.is_initialized()
     rank = torch.distributed.get_rank()
     world_size = torch.distributed.get_world_size()
+
+    # (1.5) Global seed management — must run before model init so all ranks
+    # initialize identical weights (required for FSDP2 HSDP correctness).
+    seed = train_config.get("seed", 42)
+    seed_tensor = torch.tensor([seed], dtype=torch.long, device="cuda")
+    torch.distributed.broadcast(seed_tensor, src=0)
+    seed = int(seed_tensor.item())
+    set_seed(seed)
 
     # (2) Setup logging with rank-aware configuration
     log_format = (
@@ -154,7 +213,7 @@ def main():
         "%(levelname)s: %(message)s"
     )
 
-    if rank == 0:
+    if args.local_rank == 0:
         log_level = args.log_level
     else:
         log_level = "CRITICAL"
@@ -168,15 +227,45 @@ def main():
 
     logger.info("Distributed training initialized")
     logger.info(f"World size: {world_size}")
+    logger.info(f"Global random seed: {seed} (broadcast from rank 0)")
     logger.info(f"Output directory: {args.output_dir}")
 
     # (3) Initialize job template
-    with open(args.train_config, "r") as f:
-        train_config = yaml.safe_load(f)
+    # (config already loaded above for trainer type detection)
     logger.info(f"Loaded training config from: {args.train_config}")
+    logger.info(f"Using trainer type: {trainer_type}")
+
+    # Copy train config to output directory for reproducibility
+    if rank == 0:
+        config_dest = args.output_dir / "train.yaml"
+        shutil.copy(args.train_config, config_dest)
+        logger.info(f"Copied training config to: {config_dest}")
 
     job_template_class = _all_job_types[train_config["job_type"]]
-    job_template = job_template_class(train_config)
+    job_template = job_template_class(train_config, is_train=True)
+
+    # (3.5) For titan trainer, build ParallelDims early to get DP rank/world
+    # for data loading. With PP, all ranks in the same PP group must see the
+    # same data, so we use the DP-only rank (ignoring the PP dimension).
+    # The parallel_dims object is passed to the trainer to avoid double init.
+    parallel_dims = None
+    if trainer_type == "titan":
+        from espnet2.speechlm.model.speechlm.parallel_utils import init_parallel_dims
+
+        titan_config = train_config.get("trainer", {}).get("titan_config", {})
+        parallel_dims, _, _ = init_parallel_dims(titan_config)
+
+        dp_mesh = parallel_dims.get_mesh("batch")
+        data_rank = dp_mesh.get_local_rank()
+        data_world_size = dp_mesh.size()
+        logger.info(
+            f"Titan data loading: data_rank={data_rank}, "
+            f"data_world_size={data_world_size} "
+            f"(global rank={rank}, world_size={world_size})"
+        )
+    else:
+        data_rank = rank
+        data_world_size = world_size
 
     # (4) build data iterator factory
     loading_config = train_config["data_loading"]
@@ -189,26 +278,27 @@ def main():
         args.train_unregistered_specifier,
         args.train_registered_specifier,
         stats_dir=args.stats_dir,
-        loader_state=loader_state_dir / f"train_{rank}_{world_size}.json",
+        loader_state=loader_state_dir / f"train_{data_rank}_{data_world_size}.json",
         collate_fn=preprocessor.collate_fn,
         batchfy_method=loading_config["batchfy_method"],
         batch_size=loading_config["batch_size"],
         num_workers=loading_config["num_workers"],
-        rank=rank,
-        world_size=world_size,
+        rank=data_rank,
+        world_size=data_world_size,
         shuffle=True,
-        seed=loading_config["seed"],
+        save_loader_state=args.save_loader_state,
+        seed=seed,
     )
 
-    valid_iterator_factories = dict()
+    valid_iterator_factories = {}
     valid_iterator_args = dict(
         stats_dir=args.stats_dir,
         collate_fn=preprocessor.collate_fn,
         batchfy_method=loading_config["batchfy_method"],
         batch_size=loading_config["batch_size"],
         num_workers=loading_config["num_workers"],
-        rank=rank,
-        world_size=world_size,
+        rank=data_rank,
+        world_size=data_world_size,
         shuffle=False,
     )
 
@@ -222,32 +312,37 @@ def main():
         valid_iterator_factories[spec] = factory
 
     # (5) build model
-    model = job_template.build_model()
-    message = model_summary(model)
-    logger.info(message)
+    model = job_template.build_model(parallel_dims=parallel_dims)
 
-    # (6) Initialize wandb: on rank 0 GPU; offline mode.
+    # (6) Initialize wandb. With PP, activate on last-stage DP rank 0
+    # (which has loss stats) instead of global rank 0.
     wandb_name = args.wandb_name or f"run_{args.output_dir.name}"
-    if rank == 0:
+    wandb_active = rank == 0
+
+    if wandb_active:
         wandb_argument_record = {
             "train_args": vars(args),
             "train_config": train_config,
         }
         wandb.init(
-            mode="offline",
-            project="local",
+            mode=args.wandb_mode,
+            project=args.wandb_project,
             name=wandb_name,
             config=wandb_argument_record,
             tags=args.wandb_tags,
             dir=str(args.output_dir),
             resume="auto",
+            allow_val_change=True,
         )
     else:
         wandb.init(mode="disabled")
-    logger.info(f"wandb initialization: name={wandb_name}")
+    logger.info(
+        f"wandb initialization: mode={args.wandb_mode}, "
+        f"project={args.wandb_project}, name={wandb_name}"
+    )
 
-    # (7) Initialize DeepSpeed trainer and train
-    trainer = DeepSpeedTrainer(
+    # (7) Initialize trainer and train
+    trainer_kwargs = dict(
         train_data_factory=train_iterator_factory,
         valid_data_factories=valid_iterator_factories,
         model=model,
@@ -255,6 +350,27 @@ def main():
         output_dir=args.output_dir,
         trainer_args=train_config["trainer"],
     )
+
+    if trainer_type == "deepspeed":
+        from espnet2.speechlm.trainer.deepspeed_trainer import DeepSpeedTrainer
+
+        trainer = DeepSpeedTrainer(**trainer_kwargs)
+    elif trainer_type == "titan":
+        trainer_kwargs["parallel_dims"] = parallel_dims
+        if parallel_dims is not None and parallel_dims.pp_enabled:
+            from espnet2.speechlm.trainer.titan_trainer_pp import TitanPPTrainer
+
+            trainer = TitanPPTrainer(**trainer_kwargs)
+        else:
+            from espnet2.speechlm.trainer.titan_trainer import TitanTrainer
+
+            trainer = TitanTrainer(**trainer_kwargs)
+    else:
+        raise ValueError(
+            f"Unknown trainer type: {trainer_type}. "
+            f"Supported types: 'deepspeed', 'titan'"
+        )
+
     trainer.run()
     wandb.finish()
 

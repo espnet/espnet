@@ -4,6 +4,7 @@
 
 Uses the standard-library's wave module to write the wav files
 """
+
 import re
 
 import numpy

@@ -4,11 +4,10 @@
 
 """VITS/VISinger module for GAN-SVS task."""
 
-from contextlib import contextmanager
-from distutils.version import LooseVersion
 from typing import Any, Dict, Optional
 
 import torch
+from torch.amp import autocast
 from torch.nn import functional as F
 from typeguard import typechecked
 
@@ -56,14 +55,6 @@ AVAILABLE_DISCRIMINATORS = {
     "visinger2": VISinger2Discriminator,
     "avocodo_plus": AvocodoDiscriminatorPlus,
 }
-
-if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
-    from torch.cuda.amp import autocast
-else:
-    # Nothing to do if torch<1.6.0
-    @contextmanager
-    def autocast(enabled=True):  # NOQA
-        yield
 
 
 class VITS(AbsGANSVS):
@@ -687,7 +678,7 @@ class VITS(AbsGANSVS):
                 p = self.discriminator(singing_)
 
         # calculate losses
-        with autocast(enabled=False):
+        with autocast("cuda", enabled=False):
             if "pisinger" in self.generator_type:
                 yin_dec_loss = (
                     F.l1_loss(yin_gt_shifted_crop, yin_dec_crop) * self.lambda_c_yin
@@ -914,7 +905,7 @@ class VITS(AbsGANSVS):
             p = self.discriminator(singing_)
 
         # calculate losses
-        with autocast(enabled=False):
+        with autocast("cuda", enabled=False):
             real_loss, fake_loss = self.discriminator_adv_loss(p_hat, p)
             loss = real_loss + fake_loss
 
