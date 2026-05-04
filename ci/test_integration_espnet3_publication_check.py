@@ -45,7 +45,8 @@ def _load_dataset_sample(
     test_entries = getattr(dataset_config, "test", None) if dataset_config else None
     if not test_entries:
         raise ValueError(
-            f"No dataset.test entries found in inference config: {inference_config_path}"
+            "No dataset.test entries found in inference config: "
+            f"{inference_config_path}"
         )
 
     matched_entry = None
@@ -116,7 +117,8 @@ def _run_smoke_check(session: InferenceModel, sample: dict[str, Any]) -> None:
     for key in input_keys:
         if key not in sample:
             raise KeyError(
-                f"Dataset sample is missing required input key {key!r}: {sorted(sample)}"
+                "Dataset sample is missing required input key "
+                f"{key!r}: {sorted(sample)}"
             )
 
     result = session(sample, idx="publication-test")
