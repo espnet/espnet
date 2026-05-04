@@ -461,7 +461,7 @@ def test_forward_batch_uses_custom_indices(tmp_path, mock_build_model, monkeypat
     session = InferenceModel.from_packed(bundle_root)
     session.forward_batch(["a", "b"], indices=[10, 20])
 
-    assert captured == [10, 20]
+    assert captured == [[10, 20], 10, 20]
 
 
 def test_forward_batch_defaults_indices_to_range(
@@ -484,7 +484,7 @@ def test_forward_batch_defaults_indices_to_range(
     session = InferenceModel.from_packed(bundle_root)
     session.forward_batch(["a", "b", "c"])
 
-    assert captured == [0, 1, 2]
+    assert captured == [[0, 1, 2], 0, 1, 2]
 
 
 def test_forward_batch_uses_runner_batched_path_when_supported(

@@ -285,10 +285,12 @@ def test_missing_file_raises(tmp_path):
     raises a FileNotFoundError.
     """
     config_path = tmp_path / "main.yaml"
-    config_path.write_text("""
+    config_path.write_text(
+        """
 defaults:
   - nonexistent_config
-""")
+"""
+    )
 
     with pytest.raises(FileNotFoundError):
         load_config_with_defaults(str(config_path))
@@ -304,10 +306,12 @@ def test_invalid_yaml_raises(tmp_path):
     bad_yaml.write_text("foo: [unclosed_list\n")
 
     main_path = tmp_path / "main.yaml"
-    main_path.write_text("""
+    main_path.write_text(
+        """
 defaults:
   - bad
-""")
+"""
+    )
 
     with pytest.raises(ParserError):
         load_config_with_defaults(str(main_path))
@@ -522,7 +526,12 @@ def test_load_and_merge_publication_config_inherits_template_readme_path() -> No
         cfg.pack_model.readme
         == "egs3/TEMPLATE/asr/src/hf_model_repo_readme_template.md"
     )
-    assert list(cfg.pack_model.include) == ["src/"]
+    assert list(cfg.pack_model.include) == [
+        "./src",
+        "./data/**/bpe.model",
+        "./data/**/bpe.vocab",
+        "./data/**/tokens.txt",
+    ]
     assert list(cfg.pack_model.exclude)[:2] == ["inference", "inference_*"]
 
 
