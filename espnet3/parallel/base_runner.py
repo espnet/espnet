@@ -3,6 +3,7 @@
 import asyncio
 import importlib
 import json
+import logging
 import os
 import sys
 from abc import ABC, abstractmethod
@@ -22,6 +23,8 @@ from espnet3.parallel.parallel import (
     get_parallel_config,
     parallel_for,
 )
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -309,7 +312,7 @@ class BaseRunner(ABC):
                     out = await client.cluster.job_cls._submit_job(
                         client.cluster.job_cls, tf
                     )
-                    print(out)  # Print job submission output.
+                    logger.info("Async job submission output: %s", out)
 
                 job_meta.append(
                     {
@@ -319,8 +322,8 @@ class BaseRunner(ABC):
                     }
                 )
 
-            print(
-                "Detached async submission. Scheduler:",
+            logger.info(
+                "Detached async submission. Scheduler: %s",
                 getattr(client, "scheduler_info", lambda: {})().get("address", "?"),
             )
             return job_meta

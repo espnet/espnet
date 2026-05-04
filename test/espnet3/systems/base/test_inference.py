@@ -22,6 +22,16 @@ def custom_npy_writer(*, value, output_path: Path, scale: float = 1.0) -> Path:
     return target
 
 
+class NoIdxKeyRunner:
+    """A runner that lacks the idx_key attribute, used to test validation."""
+
+    def __init__(self, provider, **_):
+        pass
+
+    def __call__(self, _indices):
+        return []
+
+
 class DummyProvider(InferenceProvider):
     def __init__(self, inference_config, params):
         super().__init__(inference_config)
@@ -113,6 +123,24 @@ def test_inference_writes_scp_outputs(tmp_path, monkeypatch):
         base = tmp_path / "infer" / test_name
         assert _read_scp(base / "hyp.scp") == ["0 h0", "1 h1"]
         assert _read_scp(base / "ref.scp") == ["0 r0", "1 r1"]
+
+
+def test_inference_rejects_test_entry_without_name(tmp_path, monkeypatch):
+    cfg = OmegaConf.create(
+        {
+            "parallel": {"env": "local"},
+            "inference_dir": str(tmp_path / "infer"),
+            "dataset": {"test": [{"data_src": "mini_an4/asr"}]},
+            "input_key": "speech",
+            "mock_dataset_length": 1,
+            "provider": {"_target_": f"{__name__}.DummyProvider"},
+            "runner": {"_target_": f"{__name__}.DummyRunner"},
+        }
+    )
+    monkeypatch.setattr(inference_mod, "set_parallel", lambda arg: None)
+
+    with pytest.raises(RuntimeError, match="must define non-empty `name`"):
+        inference_mod.infer(cfg)
 
 
 def test_inference_rejects_async_results(tmp_path, monkeypatch):
@@ -240,6 +268,36 @@ def test_inference_with_explicit_idx_key_override(tmp_path, monkeypatch):
     inference_mod.infer(cfg)
 
     assert _read_scp(tmp_path / "infer" / "test_a" / "hyp.scp") == ["sample-1 h1"]
+
+
+def test_collect_scp_lines_requires_dict_output():
+    with pytest.raises(TypeError, match="Expected dict output"):
+        inference_mod._collect_scp_lines(["not-a-dict"], "utt_id", ["hyp"], ["ref"])
+
+
+def test_collect_scp_lines_rejects_non_scalar_idx_key():
+    results = [{"utt_id": ["utt1"], "hyp": "hello", "ref": "hello"}]
+
+    with pytest.raises(TypeError, match="'utt_id' must be a scalar"):
+        inference_mod._collect_scp_lines(results, "utt_id", ["hyp"], ["ref"])
+
+
+def test_collect_scp_lines_rejects_top_level_list_field():
+    results = [{"utt_id": "utt1", "hyp": ["hello"], "ref": "hello"}]
+
+    with pytest.raises(TypeError, match="Top-level list outputs are not supported"):
+        inference_mod._collect_scp_lines(results, "utt_id", ["hyp"], ["ref"])
+
+
+def test_materialize_output_value_rejects_top_level_list(tmp_path: Path):
+    with pytest.raises(TypeError, match="Top-level list outputs are not supported"):
+        inference_mod._materialize_output_value(
+            idx_value="utt1",
+            field_key="hyp",
+            value=["hello"],
+            output_dir=tmp_path,
+            artifact_config=None,
+        )
 
 
 def test_inference_with_explicit_output_keys_filters_scp_outputs(tmp_path, monkeypatch):
@@ -426,4 +484,174 @@ def test_inference_without_output_fn_requires_utterance_id(tmp_path, monkeypatch
     monkeypatch.setattr(inference_mod, "set_parallel", lambda arg: None)
 
     with pytest.raises(ValueError, match="sample identifier key"):
+        inference_mod.infer(cfg)
+
+
+def test_infer_rejects_missing_input_key(tmp_path, monkeypatch):
+    cfg = OmegaConf.create(
+        {
+            "parallel": {"env": "local"},
+            "inference_dir": str(tmp_path / "infer"),
+            "dataset": {"test": [{"name": "test_a"}]},
+            "mock_dataset_length": 1,
+            "provider": {"_target_": f"{__name__}.DummyProvider"},
+            "runner": {"_target_": f"{__name__}.DummyRunner"},
+        }
+    )
+    monkeypatch.setattr(inference_mod, "set_parallel", lambda arg: None)
+
+    with pytest.raises(RuntimeError, match="input_key must be set"):
+        inference_mod.infer(cfg)
+
+
+def test_infer_rejects_missing_provider(tmp_path, monkeypatch):
+    cfg = OmegaConf.create(
+        {
+            "parallel": {"env": "local"},
+            "inference_dir": str(tmp_path / "infer"),
+            "dataset": {"test": [{"name": "test_a"}]},
+            "input_key": "speech",
+            "mock_dataset_length": 1,
+            "runner": {"_target_": f"{__name__}.DummyRunner"},
+        }
+    )
+    monkeypatch.setattr(inference_mod, "set_parallel", lambda arg: None)
+
+    with pytest.raises(RuntimeError, match="provider must be set"):
+        inference_mod.infer(cfg)
+
+
+def test_infer_accepts_string_output_key(tmp_path, monkeypatch):
+    cfg = OmegaConf.create(
+        {
+            "parallel": {"env": "local"},
+            "inference_dir": str(tmp_path / "infer"),
+            "dataset": {"test": [{"name": "test_a"}]},
+            "input_key": "speech",
+            "output_keys": "hyp",
+            "mock_dataset_length": 1,
+            "provider": {"_target_": f"{__name__}.DummyProvider"},
+            "runner": {"_target_": f"{__name__}.DummyRunner"},
+        }
+    )
+    DummyRunner.results = [{"utt_id": "utt1", "hyp": "h1", "ref": "r1"}]
+
+    monkeypatch.setattr(inference_mod, "set_parallel", lambda arg: None)
+
+    inference_mod.infer(cfg)
+
+    base = tmp_path / "infer" / "test_a"
+    assert (base / "hyp.scp").exists()
+    assert not (base / "ref.scp").exists()
+
+
+def test_infer_rejects_empty_output_keys(tmp_path, monkeypatch):
+    cfg = OmegaConf.create(
+        {
+            "parallel": {"env": "local"},
+            "inference_dir": str(tmp_path / "infer"),
+            "dataset": {"test": [{"name": "test_a"}]},
+            "input_key": "speech",
+            "output_keys": [],
+            "mock_dataset_length": 1,
+            "provider": {"_target_": f"{__name__}.DummyProvider"},
+            "runner": {"_target_": f"{__name__}.DummyRunner"},
+        }
+    )
+    monkeypatch.setattr(inference_mod, "set_parallel", lambda arg: None)
+
+    with pytest.raises(RuntimeError, match="output_keys must not be empty"):
+        inference_mod.infer(cfg)
+
+
+def test_infer_rejects_missing_runner(tmp_path, monkeypatch):
+    cfg = OmegaConf.create(
+        {
+            "parallel": {"env": "local"},
+            "inference_dir": str(tmp_path / "infer"),
+            "dataset": {"test": [{"name": "test_a"}]},
+            "input_key": "speech",
+            "mock_dataset_length": 1,
+            "provider": {"_target_": f"{__name__}.DummyProvider"},
+        }
+    )
+    monkeypatch.setattr(inference_mod, "set_parallel", lambda arg: None)
+
+    with pytest.raises(RuntimeError, match="runner must be set"):
+        inference_mod.infer(cfg)
+
+
+def test_infer_rejects_runner_without_idx_key_attr(tmp_path, monkeypatch):
+    cfg = OmegaConf.create(
+        {
+            "parallel": {"env": "local"},
+            "inference_dir": str(tmp_path / "infer"),
+            "dataset": {"test": [{"name": "test_a"}]},
+            "input_key": "speech",
+            "mock_dataset_length": 1,
+            "provider": {"_target_": f"{__name__}.DummyProvider"},
+            "runner": {"_target_": f"{__name__}.NoIdxKeyRunner"},
+        }
+    )
+    monkeypatch.setattr(inference_mod, "set_parallel", lambda arg: None)
+
+    with pytest.raises(TypeError, match="must provide inference runner attributes"):
+        inference_mod.infer(cfg)
+
+
+def test_infer_rejects_empty_dataset(tmp_path, monkeypatch):
+    cfg = OmegaConf.create(
+        {
+            "parallel": {"env": "local"},
+            "inference_dir": str(tmp_path / "infer"),
+            "dataset": {"test": [{"name": "test_a"}]},
+            "input_key": "speech",
+            "mock_dataset_length": 0,
+            "provider": {"_target_": f"{__name__}.DummyProvider"},
+            "runner": {"_target_": f"{__name__}.DummyRunner"},
+        }
+    )
+    monkeypatch.setattr(inference_mod, "set_parallel", lambda arg: None)
+
+    with pytest.raises(RuntimeError, match="is empty"):
+        inference_mod.infer(cfg)
+
+
+def test_infer_rejects_empty_results(tmp_path, monkeypatch):
+    cfg = OmegaConf.create(
+        {
+            "parallel": {"env": "local"},
+            "inference_dir": str(tmp_path / "infer"),
+            "dataset": {"test": [{"name": "test_a"}]},
+            "input_key": "speech",
+            "mock_dataset_length": 1,
+            "provider": {"_target_": f"{__name__}.DummyProvider"},
+            "runner": {"_target_": f"{__name__}.DummyRunner"},
+        }
+    )
+    DummyRunner.results = []
+
+    monkeypatch.setattr(inference_mod, "set_parallel", lambda arg: None)
+
+    with pytest.raises(RuntimeError, match="No inference results available"):
+        inference_mod.infer(cfg)
+
+
+def test_infer_rejects_results_with_no_output_keys(tmp_path, monkeypatch):
+    cfg = OmegaConf.create(
+        {
+            "parallel": {"env": "local"},
+            "inference_dir": str(tmp_path / "infer"),
+            "dataset": {"test": [{"name": "test_a"}]},
+            "input_key": "speech",
+            "mock_dataset_length": 1,
+            "provider": {"_target_": f"{__name__}.DummyProvider"},
+            "runner": {"_target_": f"{__name__}.DummyRunner"},
+        }
+    )
+    DummyRunner.results = [{"utt_id": "utt1"}]
+
+    monkeypatch.setattr(inference_mod, "set_parallel", lambda arg: None)
+
+    with pytest.raises(RuntimeError, match="No output keys found in inference results"):
         inference_mod.infer(cfg)

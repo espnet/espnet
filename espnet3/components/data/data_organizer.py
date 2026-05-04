@@ -5,10 +5,15 @@ from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Optional, Union
 
 from hydra.utils import instantiate
-from omegaconf import DictConfig
+from omegaconf import DictConfig, OmegaConf
 
 from espnet2.train.preprocessor import AbsPreprocessor
-from espnet3.components.data.dataset import CombinedDataset, DatasetWithTransform
+from espnet3.components.data.dataset import (
+    CombinedDataset,
+    DatasetWithTransform,
+    do_nothing,
+)
+from espnet3.components.data.dataset_module import instantiate_dataset_reference
 from espnet3.utils.logging_utils import build_callable_name, build_qualified_name
 
 logger = logging.getLogger(__name__)
@@ -24,42 +29,43 @@ class DatasetConfig:
 
     Attributes:
         name (str): Name identifier for the dataset.
-        path (Optional[str]): Optional path or ID required for dataset instantiation.
-        dataset (Dict[str, Any]): A dictionary for Hydra instantiation of the dataset.
+        data_src (Optional[str]): Optional dataset source reference resolved via
+            ``espnet3.components.data.dataset_module``.
+        data_src_args (Optional[Dict[str, Any]]): Keyword arguments passed to the
+            recipe ``Dataset`` class.
         transform (Optional[Dict[str, Any]]): A dictionary for Hydra instantiation of
             a transform applied to each sample after loading.
+        split (Optional[str]): Optional split label kept for compatibility with
+            configs that still carry it as metadata.
 
-    Example:
-        >>> config_dict = {
-        ...     "name": "custom",
-        ...     "dataset": {
-        ...         "_target_": "my_project.datasets.MyDataset",
-        ...     },
-        ...     "transform": {
-        ...         "_target_": "my_project.transforms.uppercase_transform"
-        ...     }
-        ... }
-        >>> config = DatasetConfig(**config_dict)
+    Examples:
+        Recipe-backed dataset entry:
+            >>> config_dict = {
+            ...     "name": "custom",
+            ...     "data_src": "mini_an4/asr",
+            ...     "data_src_args": {"split": "test"},
+            ...     "transform": {
+            ...         "_target_": "my_project.transforms.uppercase_transform",
+            ...     },
+            ... }
+            >>> config = DatasetConfig(**config_dict)
+            >>> config.data_src
+            'mini_an4/asr'
+
+        Local recipe dataset entry:
+            >>> config = DatasetConfig(
+            ...     name="local_eval",
+            ...     data_src_args={"split": "eval"},
+            ... )
+            >>> config.data_src is None
+            True
     """
 
-    name: str
-    dataset: Dict[str, Any] = None
+    name: Optional[str] = None
+    data_src: Optional[str] = None
+    data_src_args: Optional[Dict[str, Any]] = None
     transform: Optional[Dict[str, Any]] = None
-
-
-def do_nothing(*x):
-    """Return input as-is.
-
-    Args:
-        x: Any object.
-
-    Returns:
-        The input object unchanged.
-    """
-    if len(x) == 1:
-        return x[0]
-    else:
-        return x
+    split: Optional[str] = None
 
 
 def _log_dataset(
@@ -106,16 +112,19 @@ class DataOrganizer:
     preprocessor per dataset.
 
     Args:
-        train (Optional[List[Union[DatasetConfig, Dict[str, Any]]]]):
+        train (Optional[List[Union[DatasetConfig, Dict[str, Any], DictConfig]]]):
             A list of training dataset configuration objects.
-        valid (Optional[List[Union[DatasetConfig, Dict[str, Any]]]]):
+        valid (Optional[List[Union[DatasetConfig, Dict[str, Any], DictConfig]]]):
             A list of validation dataset configuration objects.
-        test (Optional[List[Union[DatasetConfig, Dict[str, Any]]]]):
+        test (Optional[List[Union[DatasetConfig, Dict[str, Any], DictConfig]]]):
             A list of test dataset configurations, each with a name and corresponding
-            dataset and optional transform.
+            data source and optional transform.
         preprocessor (Optional[Callable]): A global preprocessor function applied
             after each dataset's transform. If it's an instance of AbsPreprocessor,
             (uid, sample) is passed.
+        recipe_dir (Optional[str]): Recipe root used to resolve local dataset modules
+            when dataset entries omit ``data_src`` and rely on
+            ``recipe_dir/dataset``.
 
     Attributes:
         train (CombinedDataset): Combined dataset built from training configurations,
@@ -160,13 +169,15 @@ class DataOrganizer:
 
     def __init__(
         self,
-        train: Optional[List[Union[DatasetConfig, Dict[str, Any]]]] = None,
-        valid: Optional[List[Union[DatasetConfig, Dict[str, Any]]]] = None,
-        test: Optional[List[Union[DatasetConfig, Dict[str, Any]]]] = None,
+        train: Optional[List[Union[DatasetConfig, Dict[str, Any], DictConfig]]] = None,
+        valid: Optional[List[Union[DatasetConfig, Dict[str, Any], DictConfig]]] = None,
+        test: Optional[List[Union[DatasetConfig, Dict[str, Any], DictConfig]]] = None,
         preprocessor: Optional[Callable[[dict], dict]] = None,
+        recipe_dir: Optional[str] = None,
     ):
         """Initialize DataOrganizer object."""
         self.preprocessor = preprocessor or do_nothing
+        self.recipe_dir = recipe_dir
         if isinstance(self.preprocessor, (dict, DictConfig)):
             self.preprocessor = instantiate(self.preprocessor)
         assert callable(self.preprocessor), "Preprocessor should be callable."
@@ -176,16 +187,16 @@ class DataOrganizer:
             datasets = []
             transforms = []
             for config in config_list:
-                if isinstance(config, dict):
-                    config = DatasetConfig(**config)
-                dataset = config.dataset
-                if isinstance(dataset, (dict, DictConfig)):
-                    dataset = instantiate(dataset)
-
-                if hasattr(config, "transform") and config.transform is not None:
-                    transform = config.transform
+                if isinstance(config, DictConfig):
+                    raw_config = OmegaConf.to_container(config, resolve=True)
                 else:
-                    transform = do_nothing
+                    raw_config = config
+                dataset = instantiate_dataset_reference(
+                    raw_config,
+                    recipe_dir=self.recipe_dir,
+                )
+
+                transform = raw_config.get("transform", do_nothing)
 
                 if isinstance(transform, (dict, DictConfig)):
                     transform = instantiate(transform)
@@ -228,22 +239,24 @@ class DataOrganizer:
         self.test_sets = {}
         if test is not None:
             for config in test:
-                if isinstance(config, dict):
-                    config = DatasetConfig(**config)
-
-                dataset = config.dataset
-                if isinstance(dataset, (dict, DictConfig)):
-                    dataset = instantiate(dataset)
-
-                if hasattr(config, "transform") and config.transform is not None:
-                    transform = config.transform
+                if isinstance(config, DictConfig):
+                    raw_config = OmegaConf.to_container(config, resolve=True)
                 else:
-                    transform = do_nothing
+                    raw_config = config
+                dataset = instantiate_dataset_reference(
+                    raw_config,
+                    recipe_dir=self.recipe_dir,
+                )
+
+                transform = raw_config.get("transform", do_nothing)
 
                 if isinstance(transform, (dict, DictConfig)):
                     transform = instantiate(transform)
 
-                self.test_sets[config.name] = DatasetWithTransform(
+                name = raw_config.get("name") or str(
+                    raw_config.get("data_src") or "local"
+                )
+                self.test_sets[name] = DatasetWithTransform(
                     dataset,
                     transform,
                     self.preprocessor,

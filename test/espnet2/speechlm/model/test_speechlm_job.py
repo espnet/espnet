@@ -2,6 +2,12 @@
 
 Tests SpeechLMJobTemplate and SpeechLMPreprocessor with mock IO classes
 that implement the AbsIO interface without heavy dependencies.
+
+``SpeechLMJobTemplate`` transitively imports ``lm/loss.py`` (via
+``lm/parallel.py``), which pulls in ``liger_kernel`` at module load
+time. Liger is not a declared project dep; the whole file is skipped
+(via the sibling ``conftest.py``'s ``collect_ignore_glob``) when
+``liger_kernel.ops.fused_linear_cross_entropy`` is not importable.
 """
 
 from unittest.mock import MagicMock, patch
@@ -30,6 +36,9 @@ class MockDiscreteIO(AbsIO):
 
     def get_stream_interval(self):
         return [(0, 100)]
+
+    def get_stream_weight(self):
+        return [1.0]
 
     def preprocess(self, data):
         seq = np.array([[0], [1], [2]], dtype=np.int64)
@@ -63,6 +72,9 @@ class MockDiscreteAudioIO(AbsIO):
 
     def get_stream_interval(self):
         return [(0, 100), (100, 200), (200, 300), (300, 400)]
+
+    def get_stream_weight(self):
+        return [1.0, 1.0, 1.0, 1.0]
 
     def preprocess(self, data):
         seq = np.zeros((5, 4), dtype=np.int64)
@@ -198,37 +210,83 @@ class TestSpeechLMJobTemplate:
         for name, io in job_template.multimodal_io.items():
             assert isinstance(io, AbsIO)
 
-    def test_init_builds_vocabulary(self, job_template):
-        assert isinstance(job_template.vocab, list)
-        assert len(job_template.vocab) > 0
-        assert isinstance(job_template.vocab_intervals, dict)
+    def test_init_builds_vocab_meta(self, job_template):
+        vm = job_template.vocab_meta
+        assert isinstance(vm, dict)
+        assert isinstance(vm["vocab"], list)
+        assert len(vm["vocab"]) > 0
+        assert isinstance(vm["vocab_intervals"], dict)
+
+    def test_vocab_meta_keys(self, job_template):
+        """vocab_meta exposes all fields expected by ParallelLLM.from_pretrained."""
+        vm = job_template.vocab_meta
+        for key in (
+            "vocab",
+            "vocab_intervals",
+            "vocab_weight",
+            "vocab_size",
+            "mm_start",
+            "mm_end",
+            "text_start",
+            "text_end",
+            "num_stream",
+        ):
+            assert key in vm, f"vocab_meta missing key {key!r}"
+
+    def test_vocab_meta_vocab_size_matches(self, job_template):
+        vm = job_template.vocab_meta
+        assert vm["vocab_size"] == len(vm["vocab"])
+
+    def test_vocab_weight_shape(self, job_template):
+        vm = job_template.vocab_meta
+        assert vm["vocab_weight"].shape == (vm["vocab_size"],)
+        assert vm["vocab_weight"].dtype == torch.float32
+
+    def test_num_stream_matches_max(self, job_template):
+        """num_stream == max stream count among discrete IOs."""
+        discrete = [io for io in job_template.multimodal_io.values() if io.is_discrete]
+        expected = max(io.num_stream() for io in discrete)
+        assert job_template.vocab_meta["num_stream"] == expected
+
+    def test_text_start_end_match_interval(self, job_template):
+        vm = job_template.vocab_meta
+        iv = vm["vocab_intervals"]["text"]
+        assert vm["text_start"] == iv[0][0]
+        assert vm["text_end"] == iv[-1][1]
+
+    def test_mm_range_covers_discrete_audio(self, job_template):
+        """Default config has text + discrete_audio; mm range spans the audio."""
+        vm = job_template.vocab_meta
+        audio_iv = vm["vocab_intervals"]["discrete_audio"]
+        audio_start = min(s for s, _ in audio_iv)
+        audio_end = max(e for _, e in audio_iv)
+        assert vm["mm_start"] == audio_start
+        assert vm["mm_end"] == audio_end
 
     def test_build_vocabulary_special_tokens(self, job_template):
-        assert job_template.vocab[0] == "<|pad|>"
-        assert job_template.vocab[1] == "<|bos|>"
-        assert job_template.vocab[2] == "<|eos|>"
-        assert job_template.vocab[3] == "<|eot|>"
-        # First 256 are special
+        vocab = job_template.vocab_meta["vocab"]
+        assert vocab[0] == "<|pad|>"
+        assert vocab[1] == "<|bos|>"
+        assert vocab[2] == "<|eos|>"
+        assert vocab[3] == "<|eot|>"
         for i in range(256):
-            assert job_template.vocab[i].startswith("<|")
+            assert vocab[i].startswith("<|")
 
     def test_build_vocabulary_modality_tokens(self, job_template):
-        # Discrete IO tokens should appear after special tokens
-        assert len(job_template.vocab) > 256
-        # text IO has 100 tokens
-        assert "tok_0" in job_template.vocab
+        vocab = job_template.vocab_meta["vocab"]
+        assert len(vocab) > 256
+        assert "tok_0" in vocab
 
     def test_build_vocabulary_intervals(self, job_template):
-        intervals = job_template.vocab_intervals
+        intervals = job_template.vocab_meta["vocab_intervals"]
         assert "special_token" in intervals
         assert intervals["special_token"] == [(0, 256)]
         assert "text" in intervals
-        # text starts at 256
-        text_start = intervals["text"][0][0]
-        assert text_start == 256
+        assert intervals["text"][0][0] == 256
 
     def test_build_vocabulary_no_duplicates(self, job_template):
-        assert len(job_template.vocab) == len(set(job_template.vocab))
+        vocab = job_template.vocab_meta["vocab"]
+        assert len(vocab) == len(set(vocab))
 
     def test_build_preprocessor_returns_preprocessor(self, job_template):
         from espnet2.speechlm.model.speechlm.speechlm_job import SpeechLMPreprocessor
@@ -236,7 +294,8 @@ class TestSpeechLMJobTemplate:
         preprocessor = job_template.build_preprocessor()
         assert isinstance(preprocessor, SpeechLMPreprocessor)
 
-    def test_build_model_dispatches(self, job_template):
+    def test_build_model_dispatches_parallel(self, job_template):
+        """Without parallel_dims, default `parallel` class is selected."""
         mock_model = MagicMock()
         mock_class = MagicMock(return_value=mock_model)
         with patch(
@@ -245,6 +304,45 @@ class TestSpeechLMJobTemplate:
         ):
             job_template.build_model()
             mock_class.assert_called_once()
+
+    def test_preprocessor_no_discrete_raises(self):
+        """SpeechLMPreprocessor requires at least one discrete IO."""
+        from espnet2.speechlm.model.speechlm.speechlm_job import (
+            SpeechLMPreprocessor,
+        )
+
+        with pytest.raises(ValueError, match="at least one discrete multimodal IO"):
+            SpeechLMPreprocessor(
+                is_train=True,
+                multimodal_io={"continuous_audio": MockContinuousAudioIO()},
+                vocab=["<|pad|>"] + [f"v{i}" for i in range(255)],
+                vocab_intervals={"special_token": [(0, 256)]},
+            )
+
+    def test_build_model_dispatches_parallel_pp(self, job_template):
+        """With parallel_dims.pp_enabled, the `_pp` variant is selected."""
+        # build_model wraps PP stages in nn.ModuleList, which rejects
+        # MagicMock — return a real nn.Module from the mocked class.
+        stage_module = torch.nn.Linear(1, 1)
+        mock_parallel = MagicMock(return_value=torch.nn.Linear(1, 1))
+        mock_pp = MagicMock(return_value=stage_module)
+
+        # Fake parallel_dims with pp_enabled + a 1-stage pp mesh.
+        parallel_dims = MagicMock()
+        parallel_dims.pp_enabled = True
+        pp_mesh = MagicMock()
+        pp_mesh.size.return_value = 1
+        parallel_dims.get_mesh.return_value = pp_mesh
+
+        job_template.config["trainer"] = {"titan_config": {"pp_layout": [12]}}
+
+        with patch(
+            "espnet2.speechlm.model.speechlm.speechlm_job._lms",
+            {"parallel": mock_parallel, "parallel_pp": mock_pp},
+        ):
+            job_template.build_model(parallel_dims=parallel_dims)
+            mock_pp.assert_called_once()
+            mock_parallel.assert_not_called()
 
 
 # ---------------------------------------------------------------------------

@@ -9,14 +9,12 @@ _pkg_version_file = os.path.join(_here, "version.txt")
 
 __version__ = "0.0.0"
 
-if os.path.exists(_top_version_file):
-    with open(_top_version_file, "r") as f:
-        __version__ = f.read().strip()
-elif os.path.exists(_pkg_version_file):
-    with open(_pkg_version_file, "r") as f:
-        __version__ = f.read().strip()
-else:
-    try:
-        __version__ = _metadata.version("espnet")
-    except Exception:
-        pass
+try:
+    __version__ = _metadata.version("espnet")
+except Exception:
+    if os.path.exists(_top_version_file):
+        with open(_top_version_file, "r") as f:
+            __version__ = f.read().strip()
+    elif os.path.exists(_pkg_version_file):
+        with open(_pkg_version_file, "r") as f:
+            __version__ = f.read().strip()

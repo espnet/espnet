@@ -1,0 +1,145 @@
+##########################################################
+#                    TRAINING SETTING                    #
+##########################################################
+# Quick usage:
+#   python run.py --stages create_dataset --training_config conf/<name>.yaml
+#   python run.py --stages train          --training_config conf/<name>.yaml
+#
+##########################################################
+#                  SYSTEM AND PATH SETTING               #
+##########################################################
+task: espnet3.systems.asr.task.ASRTask
+
+##########################################################
+#                    DATASET DEFINITION                  #
+##########################################################
+# Each entry below is a dataset reference consumed by `DataOrganizer`.
+# - `data_src` is omitted, so ESPnet3 loads `${recipe_dir}/dataset/__init__.py`
+#   and instantiates its exported recipe dataset class.
+# - `data_src_args` is passed directly to `Dataset(...)`.
+# - top-level keys such as `transform` stay in organizer space and are not
+#   forwarded to `Dataset(...)`.
+#
+# Dataset splits:
+#   train:
+#     - split="train" from the recipe dataset
+#   valid:
+#     - split="valid" from the recipe dataset
+# Notes:
+#   - actual data sources are defined via `${recipe_dir}`
+dataset:
+  train:
+    - data_src_args:
+        split: train
+  valid:
+    - data_src_args:
+        split: valid
+  preprocessor:
+    _target_: espnet2.train.preprocessor.CommonPreprocessor
+    train: true
+    token_type: bpe
+    token_list: ${tokenizer.save_path}/tokens.txt
+    bpemodel: ${tokenizer.save_path}/bpe.model
+    text_cleaner:
+
+create_dataset:
+  recipe_dir: ${recipe_dir}
+
+##########################################################
+#                   TOKENIZER SETTING                    #
+##########################################################
+tokenizer:
+  vocab_size: 30
+  character_coverage: 1.0
+  model_type: bpe
+  save_path: ${data_dir}/${tokenizer.model_type}_${tokenizer.vocab_size}
+  text_builder:
+    func: src.tokenizer.gather_training_text
+    manifest_path: ${data_dir}/manifest/train.tsv
+
+##########################################################
+#                      MODEL SETTING                     #
+##########################################################
+# Contextual block encoder keeps this config focused on streaming behavior.
+model:
+  vocab_size: ${tokenizer.vocab_size}
+  token_list: ${tokenizer.save_path}/tokens.txt
+
+  encoder: contextual_block_transformer
+  encoder_conf:
+    block_size: 40
+    hop_size: 16
+    look_ahead: 16
+    output_size: 2
+    attention_heads: 2
+    linear_units: 2
+    num_blocks: 1
+
+  decoder: transformer
+  decoder_conf:
+    attention_heads: 2
+    linear_units: 2
+    num_blocks: 1
+
+  normalize: utterance_mvn
+  normalize_conf: {}
+
+  model: espnet
+  model_conf:
+    ctc_weight: 0.3
+    lsm_weight: 0.1
+    length_normalized_loss: false
+    # Streaming config disables feature extraction during stats collection.
+    extract_feats_in_collect_stats: false
+
+  frontend: default
+  frontend_conf:
+    n_fft: 512
+    win_length: 400
+    hop_length: 160
+
+##########################################################
+#            OPTIMIZER & SCHEDULER SETTING               #
+##########################################################
+optimizer:
+  lr: 0.005
+
+scheduler:
+  warmup_steps: 100
+
+##########################################################
+#                OTHER TRAINING SETTING                  #
+##########################################################
+# Use Xavier init because the model is transformer-based.
+init: xavier_uniform
+
+best_model_criterion:
+  - - valid/loss
+    - 1
+    - min
+
+##########################################################
+#                   DATALOADER SETTING                   #
+##########################################################
+# Unsorted mini-batches keep the streaming example simple.
+dataloader:
+  train:
+    # `total_shards` is the total shard count.
+    # `dist_world_size` must match the runtime distributed world size.
+    total_shards: 1
+    dist_world_size: 1
+    iter_factory:
+      batches:
+        type: unsorted
+        batch_size: 2
+
+##########################################################
+#                    TRAINER SETTING                     #
+##########################################################
+trainer:
+  log_every_n_steps: 1
+  max_epochs: 1
+  limit_train_batches: 1
+  limit_val_batches: 1
+
+  strategy: auto

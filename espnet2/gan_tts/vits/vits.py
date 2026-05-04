@@ -6,7 +6,7 @@
 from typing import Any, Dict, Optional
 
 import torch
-from torch.cuda.amp import autocast
+from torch.amp import autocast
 from typeguard import typechecked
 
 from espnet2.gan_tts.abs_gan_tts import AbsGANTTS
@@ -421,7 +421,7 @@ class VITS(AbsGANTTS):
             p = self.discriminator(speech_)
 
         # calculate losses
-        with autocast(enabled=False):
+        with autocast("cuda", enabled=False):
             mel_loss = self.mel_loss(speech_hat_, speech_)
             kl_loss = self.kl_loss(z_p, logs_q, m_p, logs_p, z_mask)
             dur_loss = torch.sum(dur_nll.float())
@@ -535,7 +535,7 @@ class VITS(AbsGANTTS):
         p = self.discriminator(speech_)
 
         # calculate losses
-        with autocast(enabled=False):
+        with autocast("cuda", enabled=False):
             real_loss, fake_loss = self.discriminator_adv_loss(p_hat, p)
             loss = real_loss + fake_loss
 

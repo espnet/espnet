@@ -147,7 +147,15 @@ def infer(config: DictConfig):
     start = time.perf_counter()
     set_parallel(config.parallel)
 
-    test_sets = [test_set.name for test_set in config.dataset.test]
+    test_sets = []
+    for index, test_set in enumerate(config.dataset.test):
+        name = getattr(test_set, "name", None)
+        if not isinstance(name, str) or not name:
+            raise RuntimeError(
+                "inference_config.dataset.test entries must define non-empty `name` "
+                f"(failed at index {index})."
+            )
+        test_sets.append(name)
     assert len(test_sets) > 0, "No test set found in dataset"
     assert len(test_sets) == len(set(test_sets)), "Duplicate test key found."
 

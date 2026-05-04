@@ -24,10 +24,20 @@ task:
 # Path scaffold relative to the recipe root.
 recipe_dir: .
 data_dir: ${recipe_dir}/data
-exp_tag:
+exp_tag: ${self_name:}
 exp_dir: ${recipe_dir}/exp/${exp_tag}
 stats_dir: ${recipe_dir}/exp/stats
-inference_dir: ${exp_dir}/inference
+
+# Directory where this recipe stores prepared manifests and any recipe-local
+# dataset artifacts.
+#
+# In simple recipes, prefer a fixed path under the recipe root, such as
+# `${recipe_dir}/dataset`, so users do not need to pass a dataset-specific
+# directory override at inference time.
+#
+# Keep this value as the single source of truth for dataset location. Training,
+# inference, and dataset creation should all reuse the same path instead of
+# redefining dataset names in multiple configs.
 dataset_dir: /path/to/your/dataset
 
 ##########################################################
@@ -36,6 +46,8 @@ dataset_dir: /path/to/your/dataset
 # Optional dataset creation hook for the `create_dataset` stage.
 # The function is resolved from `create_dataset.func` and called with the
 # remaining fields in this block as keyword arguments.
+# If your recipe builds manifests locally, write them under `${dataset_dir}` so
+# later stages can consume the same files without extra path overrides.
 create_dataset:
   func: src.creating_dataset.create_dataset
   dataset_dir: ${dataset_dir}
@@ -44,30 +56,49 @@ create_dataset:
 #                    DATASET DEFINITION                  #
 ##########################################################
 # Dataset organizer used across collect_stats/train/infer/measure.
-# Fill `train`, `valid`, and optionally `test` with named dataset entries.
+# Fill `train`, `valid`, and optionally `test` with dataset reference entries.
+#
+# Each dataset entry supports:
+# - `data_src`: optional dataset source reference.
+#   - `<recipe>/<task>` tag, e.g. `mini_an4/asr`
+#   - dotted module path, e.g. `my_project.datasets.foo`
+#   - omitted: load `${recipe_dir}/dataset/__init__.py`
+# - `data_src_args`: kwargs forwarded to `Dataset(...)`
+# - `transform`: optional Hydra-instantiated per-sample transform applied before
+#   `preprocessor`
+# - `name`: mainly useful for `test`; inference uses it as the output
+#   subdirectory name
+#
+# Only `data_src_args` is passed to the recipe `Dataset` constructor.
+# Top-level fields such as `name` and `transform` stay in organizer space.
 #
 # Example:
 # dataset:
 #   _target_: espnet3.components.data.data_organizer.DataOrganizer
+#   recipe_dir: ${recipe_dir}
 #   train:
-#     - name: train
-#       dataset:
-#         _target_: src.dataset.YourDataset
-#         manifest_path: ${dataset_dir}/manifest/train.tsv
+#     - data_src: librispeech/asr
+#       data_src_args:
+#         split: train_clean_100
+#         data_path: ${dataset_dir}
+#     - data_src_args:
+#         split: train
+#       transform:
+#         _target_: src.transforms.normalize_text
 #   valid:
-#     - name: dev
-#       dataset:
-#         _target_: src.dataset.YourDataset
-#         manifest_path: ${dataset_dir}/manifest/dev.tsv
+#     - data_src: librispeech/asr
+#       data_src_args:
+#         split: dev_clean
+#         data_path: ${dataset_dir}
 #   test:
-#     - name: test
-#       dataset:
-#         _target_: src.dataset.YourDataset
-#         manifest_path: ${dataset_dir}/manifest/test.tsv
+#     - name: eval_local
+#       data_src_args:
+#         split: test
 #   preprocessor:
 #     _target_: src.preprocess.build_preprocessor
 dataset:
   _target_: espnet3.components.data.data_organizer.DataOrganizer
+  recipe_dir: ${recipe_dir}
   train:
   valid:
   test:
@@ -188,8 +219,11 @@ dataloader:
     int_pad_value: -1
   # Training dataloader / iterator settings.
   train:
-    multiple_iterator: false
-    num_shards: 1
+    # `total_shards` is the total number of dataset shards.
+    # `dist_world_size` is the distributed world size used to rotate shards.
+    # Keep `dist_world_size` equal to the runtime world size.
+    total_shards: 1
+    dist_world_size: 1
     iter_factory:
       _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
       shuffle: true
@@ -205,8 +239,9 @@ dataloader:
 
   # Validation dataloader / iterator settings.
   valid:
-    multiple_iterator: false
-    num_shards: 1
+    # Use the same sharding settings as `train`.
+    total_shards: 1
+    dist_world_size: 1
     iter_factory:
       _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
       shuffle: false

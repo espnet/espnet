@@ -55,6 +55,7 @@ dependencies = [
     "dask_jobqueue",
     "torch>=2.3.1",
     "torchaudio>=2.3.1",
+    "wandb",
 ]
 
 [project.urls]
@@ -65,7 +66,7 @@ requires = ["setuptools>=38.5.1,<74.0.0", "wheel", "setuptools-scm>=8.0,<9.0"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.dynamic]
-version = {attr = "espnet2.__version__"}
+version = {file = "version.txt"}
 readme = {file = ["README.md"], content-type = "text/markdown"}
 
 [tool.setuptools.packages.find]
@@ -119,6 +120,26 @@ spk = [
   "asteroid_filterbanks==0.4.0"
 ]
 
+# Extras needed for SpeechLM training (espnet2/speechlm).
+# Contains only packages not already in the base "dependencies" above.
+# GPU-only runtime deps (torchtitan, liger-kernel) are listed here so that
+# `pip install espnet[speechlm]` pulls them, but they are not imported at
+# module load time in the hot path, so CPU-only installs still succeed.
+speechlm = [
+  "psutil",
+  "transformers==4.57.1",
+  "huggingface-hub",
+  "joblib",
+  "polars",
+  "duckdb",
+  # torchtitan (distributed training) and liger-kernel (CUDA Triton
+  # kernels) are Linux+CUDA only. Leave them off Windows/macOS so
+  # `pip install espnet[all]` doesn't spend minutes backtracking
+  # through incompatible versions and then fail.
+  "torchtitan; sys_platform == 'linux'",
+  "liger-kernel; sys_platform == 'linux'",
+]
+
 dev = [
   "black",
   "flake8>=3.7.8",
@@ -157,6 +178,7 @@ all = [
   "espnet[tts]",
   "espnet[enh]",
   "espnet[spk]",
+  "espnet[speechlm]",
   "fairscale",
   "transformers",
   "evaluate",
