@@ -93,7 +93,9 @@ def test_demo_ui_labels(system_name: str, config: dict) -> None:
                 page.goto(url, wait_until="domcontentloaded")
                 page.wait_for_selector("label", timeout=30000)
                 labels = page.locator("label").all_inner_texts()
-                label_text = {label.strip().lower() for label in labels if label.strip()}
+                label_text = {
+                    label.strip().lower() for label in labels if label.strip()
+                }
                 missing = [
                     key for key in expected_keys if key.lower() not in label_text
                 ]

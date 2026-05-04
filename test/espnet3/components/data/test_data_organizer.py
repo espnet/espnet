@@ -70,9 +70,7 @@ from espnet3.components.data.dataset import (
 # | test_data_organizer_invalid_preprocessor_type | AssertionError     |
 # | test_combined_dataset_sharded_consistency_error | RuntimeError       |
 
-DUMMY_DATASET_TARGET = (
-    "test.espnet3.components.data.test_data_organizer.DummyDataset"
-)
+DUMMY_DATASET_TARGET = "test.espnet3.components.data.test_data_organizer.DummyDataset"
 DUMMY_TRANSFORM_TARGET = (
     "test.espnet3.components.data.test_data_organizer.DummyTransform"
 )
