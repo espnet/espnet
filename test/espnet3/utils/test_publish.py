@@ -457,6 +457,7 @@ def test_pack_model_excludes_inference_dir_and_copies_metrics_json(tmp_path):
     publication_config = OmegaConf.create(
         {
             "inference_dir": str(inference_dir),
+            "upload_model": {"hf_repo": "espnet/test-repo"},
             "pack_model": {
                 "out_dir": str(out_dir),
                 "exclude": ["inference"],
@@ -482,9 +483,11 @@ def test_pack_model_excludes_inference_dir_and_copies_metrics_json(tmp_path):
     assert (result / "metrics.json").exists()
     assert not (result / "exp" / "inference" / "hyp.scp").exists()
     readme = (result / "README.md").read_text(encoding="utf-8")
-    assert "- asr" in readme
+    assert "# ESPnet3 asr model" in readme
     assert "| dataset | WER |" in readme
     assert "| test | 5.0 |" in readme
+    assert "Metrics were not bundled." not in readme
+    assert 'from_pretrained("espnet/test-repo", trust_user_code=True)' in readme
 
 
 def test_pack_model_excludes_recursive_log_and_tensorboard_patterns(tmp_path):
@@ -600,13 +603,20 @@ def test_pack_model_writes_readme_with_full_context(tmp_path):
     )
 
     readme = (out_dir / "README.md").read_text(encoding="utf-8")
-    assert "- asr" in readme
+    assert "# ESPnet3 asr model" in readme
+    assert "- Repository:" not in readme
     assert "language: en" in readme
     assert "license: apache-2.0" in readme
     assert "My model." in readme
+    assert (
+        'model = InferenceModel.from_packed("/path/to/packed_model", '
+        'trust_user_code=True)' in readme
+    )
 
 
-def test_pack_model_drops_readme_lines_for_missing_context(tmp_path):
+def test_pack_model_drops_readme_lines_for_missing_context(
+    tmp_path, caplog, monkeypatch
+):
     recipe_dir = tmp_path
     exp_dir = recipe_dir / "exp"
     exp_dir.mkdir()
@@ -620,8 +630,17 @@ def test_pack_model_drops_readme_lines_for_missing_context(tmp_path):
         }
     )
     system = _make_system(
-        exp_dir=exp_dir, recipe_dir=recipe_dir, publication_config=publication_config
+        exp_dir=exp_dir,
+        recipe_dir=recipe_dir,
+        publication_config=publication_config,
+        task="espnet3.systems.asr.task.ASRTask",
     )
+    monkeypatch.setattr(
+        publish,
+        "get_git_metadata",
+        lambda cwd=None: {"short_commit": "abc123", "worktree": "dirty"},
+    )
+    monkeypatch.setenv("USER", "tester")
 
     publish.pack_model(
         training_config=system.training_config,
@@ -629,8 +648,15 @@ def test_pack_model_drops_readme_lines_for_missing_context(tmp_path):
     )
 
     readme = (out_dir / "README.md").read_text(encoding="utf-8")
+    assert "# ESPnet3 asr model" in readme
+    assert "- System: `espnet3.systems.asr.task.ASRTask`" in readme
+    assert "- Creator: `tester`" in readme
+    assert "- Git: `abc123` (dirty)" in readme
     assert "language:" not in readme
     assert "license:" not in readme
+    assert "Metrics were not bundled." in readme
+    assert "Run the `measure` stage before `pack_model`" in readme
+    assert "README will not include a rendered results table" in caplog.text
 
 
 def test_pack_model_with_explicit_artifacts(tmp_path):

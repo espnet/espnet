@@ -8,27 +8,37 @@ license: ${license}
 
 # ESPnet3 ${task} model
 
-Repository: `${hf_repo}`
-
 ${description}
 
-## Training
+## Model
 
-- System: `${system}`
+- Repository: `${hf_repo}`
 - Recipe: `${recipe}`
+- Task: `${task}`
+- System: `${system}`
 - Creator: `${creator}`
 - Created: `${created_at}`
 - Git: `${git_head}` (${git_dirty})
 
-## Pack
+## Usage
 
-- Archive: `${pack_name}`
-- Strategy: `${pack_strategy}`
+```python
+from espnet3.publication import InferenceModel
+
+${usage_load_call}
+result = model(sample)
+```
+
+## Packaging
+
+- Bundle: `${pack_name}`
 - Exp dir: `${exp_dir}`
+- Strategy: `${pack_strategy}`
 
 ${results_section}
+${results_note}
 
-## Train config
+## Training config
 
 <details><summary>expand</summary>
 

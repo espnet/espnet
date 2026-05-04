@@ -16,7 +16,7 @@ dataset_split=${4:-test}
 upload_enabled=${ESPNET3_PUBLICATION_TEST_UPLOAD:-false}
 publication_config_path="${publication_config}"
 hf_repo=""
-stages="create_dataset train_tokenizer collect_stats train infer pack_model"
+stages="create_dataset train_tokenizer collect_stats train infer measure pack_model"
 
 gen_dummy_coverage() {
     touch empty.py
@@ -63,6 +63,7 @@ ${python} run.py \
     --stages ${stages} \
     --training_config "${training_config}" \
     --inference_config "${inference_config}" \
+    --metrics_config conf/metrics.yaml \
     --publication_config "${publication_config_path}"
 
 pack_dir=$(find exp -mindepth 2 -maxdepth 2 -type d -name model_pack | sort | head -n 1)

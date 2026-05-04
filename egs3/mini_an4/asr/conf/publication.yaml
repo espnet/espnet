@@ -7,4 +7,4 @@ pack_model:
     - ${data_dir}/**/tokens.txt
 
 upload_model:
-  hf_repo: espnet/CI_mini_an4_training_asr_transformer
+  hf_repo: ms180/CI_mini_an4_training_asr_transformer

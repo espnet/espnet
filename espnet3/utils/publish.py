@@ -5,6 +5,7 @@ from __future__ import annotations
 import fnmatch
 import json
 import logging
+import os
 import re
 import shutil
 import subprocess
@@ -19,6 +20,7 @@ import torch
 from omegaconf import DictConfig, ListConfig, OmegaConf
 
 import espnet2
+from espnet3.utils.logging_utils import get_git_metadata
 
 logger = logging.getLogger(__name__)
 
@@ -260,6 +262,115 @@ def _build_results_table(results_path: Path | None) -> str:
     return "\n".join(lines)
 
 
+def _infer_task_name(training_config: DictConfig, recipe_root: Path) -> str:
+    """Infer a short task name for README rendering."""
+    task_value = getattr(training_config, "task", None)
+    if isinstance(task_value, str) and task_value:
+        parts = task_value.split(".")
+        if "systems" in parts:
+            systems_index = parts.index("systems")
+            if systems_index + 1 < len(parts):
+                return parts[systems_index + 1]
+        class_name = parts[-1]
+        if class_name.endswith("Task") and len(class_name) > 4:
+            return class_name[:-4].lower()
+        return class_name.lower()
+    return recipe_root.name
+
+
+def _infer_recipe_name(recipe_root: Path) -> str:
+    """Return a stable recipe identifier for README metadata."""
+    repo_root = Path(__file__).resolve().parents[2]
+    try:
+        return recipe_root.relative_to(repo_root).as_posix()
+    except ValueError:
+        return recipe_root.as_posix()
+
+
+def _infer_creator() -> str:
+    """Return a best-effort creator name for README metadata."""
+    return (
+        os.environ.get("GIT_AUTHOR_NAME")
+        or os.environ.get("USER")
+        or os.environ.get("USERNAME")
+        or ""
+    )
+
+
+def _describe_pack_strategy(pack_cfg: DictConfig) -> str:
+    """Summarize how pack_model builds the publication bundle."""
+    parts = ["copy experiment outputs"]
+    if getattr(pack_cfg, "include", None):
+        parts.append("include extra recipe assets")
+    if getattr(pack_cfg, "files", None):
+        parts.append("register named artifact files")
+    if getattr(pack_cfg, "yaml_files", None):
+        parts.append("bundle rewritten YAML configs")
+    if getattr(pack_cfg, "exclude", None):
+        parts.append("apply exclude filters")
+    return "; ".join(parts)
+
+
+def _build_results_note(results_path: Path | None, results_section: str) -> str:
+    """Return a README note when metrics are missing or unreadable."""
+    if results_section:
+        return ""
+    if results_path is None:
+        return (
+            "## Results\n\n"
+            "Metrics were not bundled. Run the `measure` stage before "
+            "`pack_model` to include evaluation results.\n"
+        )
+    return (
+        "## Results\n\n"
+        "A `metrics.json` file was found, but it could not be rendered into "
+        "a results table.\n"
+    )
+
+
+def _build_readme_context(
+    training_config: DictConfig,
+    publication_config: DictConfig,
+    out_dir: Path,
+    results_path: Path | None,
+) -> dict[str, str]:
+    """Build default README template values for a publication bundle."""
+    pack_cfg = publication_config.pack_model
+    recipe_root = Path(training_config.recipe_dir).resolve()
+    git_meta = get_git_metadata(recipe_root)
+    results_section = _build_results_table(results_path)
+    hf_repo = getattr(getattr(publication_config, "upload_model", None), "hf_repo", "")
+    usage_load_call = (
+        f'model = InferenceModel.from_pretrained("{hf_repo}", trust_user_code=True)'
+        if hf_repo
+        else (
+            'model = InferenceModel.from_packed('
+            '"/path/to/packed_model", trust_user_code=True)'
+        )
+    )
+
+    return {
+        "creator": _infer_creator(),
+        "created_at": datetime.now().isoformat(timespec="seconds"),
+        "description": (
+            f"Packed model bundle generated from `{_infer_recipe_name(recipe_root)}`."
+        ),
+        "exp_dir": str(getattr(training_config, "exp_dir", "")),
+        "git_dirty": git_meta.get("worktree") or "",
+        "git_head": git_meta.get("short_commit") or git_meta.get("commit") or "",
+        "hf_repo": hf_repo,
+        "pack_name": out_dir.name,
+        "pack_strategy": _describe_pack_strategy(pack_cfg),
+        "recipe": _infer_recipe_name(recipe_root),
+        "results_note": _build_results_note(results_path, results_section),
+        "results_section": results_section,
+        "system": str(getattr(training_config, "task", "")),
+        "task": _infer_task_name(training_config, recipe_root),
+        "train_config": OmegaConf.to_yaml(training_config, resolve=True),
+        "usage_load_call": usage_load_call,
+    }
+
+
 def _render_readme(template: str, context: dict[str, str]) -> str:
     """Render a README template, dropping lines with empty placeholders.
 
@@ -419,16 +530,18 @@ def pack_model(
                 template_path = repo_template_path
         if not template_path.exists():
             raise FileNotFoundError(f"README template not found: {template_path}")
-        context: dict[str, str] = {
-            "hf_repo": getattr(
-                getattr(publication_config, "upload_model", None), "hf_repo", ""
-            ),
-            "pack_name": out_dir.name,
-            "created_at": datetime.now().isoformat(),
-            "train_config": OmegaConf.to_yaml(training_config, resolve=True),
-            "results_section": _build_results_table(results_path),
-        }
+        context = _build_readme_context(
+            training_config=training_config,
+            publication_config=publication_config,
+            out_dir=out_dir,
+            results_path=results_path,
+        )
         context.update(dict(getattr(pack_cfg, "readme_context", {}) or {}))
+        if not context.get("results_section"):
+            logger.warning(
+                "README will not include a rendered results table. "
+                "Run the measure stage before pack_model to bundle metrics.json."
+            )
         readme_text = _render_readme(template_path.read_text(encoding="utf-8"), context)
         (out_dir / "README.md").write_text(readme_text, encoding="utf-8")
 
