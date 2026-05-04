@@ -327,7 +327,7 @@ class InferenceModel:
                 "downloaded model artifacts must include inference_config so "
                 "InferenceModel can locate the pack_model() output directory."
             )
-        inference_config_path = Path(artifacts["inference_config"]).resolve()
+        inference_config_path = Path(artifacts["inference_config"])
         pack_dir = inference_config_path.parent.parent
         return cls.from_packed(pack_dir, trust_user_code=trust_user_code)
 

@@ -8,7 +8,9 @@ import re
 import shutil
 import subprocess
 import sys
+import fnmatch
 from datetime import datetime
+from glob import glob, has_magic
 from pathlib import Path
 from string import Template
 from typing import Any
@@ -19,6 +21,68 @@ from omegaconf import DictConfig, ListConfig, OmegaConf
 import espnet2
 
 logger = logging.getLogger(__name__)
+
+
+def _expand_pack_paths(raw_paths: list[str], recipe_root: Path) -> list[Path]:
+    """Expand globbed pack paths and keep unmatched literals as warnings."""
+    expanded: list[Path] = []
+    seen: set[Path] = set()
+
+    for raw_path in raw_paths:
+        path = Path(raw_path)
+        if not has_magic(raw_path):
+            candidates = [path]
+        else:
+            pattern = path if path.is_absolute() else recipe_root / path
+            candidates = [
+                Path(match) for match in sorted(glob(str(pattern), recursive=True))
+            ]
+            if not candidates:
+                logger.warning("Pack path pattern did not match: %s", raw_path)
+                continue
+        for candidate in candidates:
+            normalized = candidate.absolute()
+            if normalized in seen:
+                continue
+            seen.add(normalized)
+            expanded.append(candidate)
+    return expanded
+
+
+def _matches_ignore_pattern(relative_path: Path, pattern: str, is_dir: bool) -> bool:
+    """Return whether a relative pack path matches an exclude pattern."""
+    rel_posix = relative_path.as_posix()
+    basename = relative_path.name
+    candidates = {rel_posix, basename, f"**/{rel_posix}"}
+    if is_dir:
+        candidates.update(
+            {
+                f"{rel_posix}/",
+                f"{basename}/",
+                f"**/{rel_posix}/",
+            }
+        )
+    return any(fnmatch.fnmatch(candidate, pattern) for candidate in candidates)
+
+
+def _build_pack_ignore(src_root: Path, excludes: list[str]):
+    """Build a copytree ignore callback that matches relative paths."""
+
+    def _ignore(current_dir: str, names: list[str]) -> list[str]:
+        ignored: list[str] = []
+        current_root = Path(current_dir)
+        for name in names:
+            candidate = current_root / name
+            relative_path = candidate.relative_to(src_root)
+            is_dir = candidate.is_dir()
+            if any(
+                _matches_ignore_pattern(relative_path, pattern, is_dir)
+                for pattern in excludes
+            ):
+                ignored.append(name)
+        return ignored
+
+    return _ignore
 
 
 def _resolve_artifact_paths(
@@ -286,17 +350,16 @@ def pack_model(
             if isinstance(exclude_cfg, (list, tuple, ListConfig))
             else [str(exclude_cfg)]
         )
-    ignore = shutil.ignore_patterns(*excludes)
-
     # Copy exp_dir and any extra include paths into the bundle.
-    pack_paths: list[Path] = [exp_dir]
+    raw_pack_paths: list[str] = [str(exp_dir)]
     include_cfg = getattr(pack_cfg, "include", None)
     if include_cfg:
-        pack_paths += (
+        raw_pack_paths += (
             [Path(p) for p in include_cfg]
             if isinstance(include_cfg, (list, tuple, ListConfig))
             else [Path(include_cfg)]
         )
+    pack_paths = _expand_pack_paths([str(path) for path in raw_pack_paths], recipe_root)
 
     for path in pack_paths:
         if not path.exists():
@@ -306,6 +369,7 @@ def pack_model(
             dest = out_dir / path.absolute().relative_to(recipe_root)
         except ValueError:
             dest = out_dir / path.name
+        ignore = _build_pack_ignore(path, excludes) if path.is_dir() else None
         _copy_path(src=path, dst=dest, ignore=ignore)
         copied_sources[path.absolute()] = dest.absolute()
 

@@ -487,6 +487,92 @@ def test_pack_model_excludes_inference_dir_and_copies_metrics_json(tmp_path):
     assert "| test | 5.0 |" in readme
 
 
+def test_pack_model_excludes_recursive_log_and_tensorboard_patterns(tmp_path):
+    recipe_dir = tmp_path / "recipe"
+    exp_dir = recipe_dir / "exp" / "run"
+    src_dir = recipe_dir / "src"
+    exp_dir.mkdir(parents=True)
+    src_dir.mkdir(parents=True)
+    (exp_dir / "config.yaml").write_text("dummy: true\n", encoding="utf-8")
+    (exp_dir / "keep.txt").write_text("keep\n", encoding="utf-8")
+    (exp_dir / "train.log").write_text("drop\n", encoding="utf-8")
+    (exp_dir / "nested").mkdir()
+    (exp_dir / "nested" / "collect.log").write_text("drop\n", encoding="utf-8")
+    (exp_dir / "tensorboard" / "tb_logger").mkdir(parents=True)
+    (exp_dir / "tensorboard" / "tb_logger" / "events.out").write_text(
+        "drop\n", encoding="utf-8"
+    )
+    (src_dir / "__pycache__").mkdir()
+    (src_dir / "__pycache__" / "mod.pyc").write_text("drop\n", encoding="utf-8")
+    (src_dir / "inference.py").write_text("keep\n", encoding="utf-8")
+
+    publication_config = OmegaConf.create(
+        {
+            "pack_model": {
+                "out_dir": str(tmp_path / "pack"),
+                "include": [str(src_dir)],
+                "exclude": ["**/*.log", "**/tensorboard/**"],
+            }
+        }
+    )
+    system = _make_system(
+        exp_dir=exp_dir, recipe_dir=recipe_dir, publication_config=publication_config
+    )
+
+    out_dir = publish.pack_model(
+        training_config=system.training_config,
+        publication_config=system.publication_config,
+    )
+
+    assert (out_dir / "exp" / "run" / "keep.txt").exists()
+    assert not (out_dir / "exp" / "run" / "train.log").exists()
+    assert not (out_dir / "exp" / "run" / "nested" / "collect.log").exists()
+    assert not (out_dir / "exp" / "run" / "tensorboard").exists()
+    assert not (out_dir / "src" / "__pycache__").exists()
+    assert (out_dir / "src" / "inference.py").exists()
+
+
+def test_pack_model_excludes_inference_dirs_without_dropping_src_module(tmp_path):
+    recipe_dir = tmp_path / "recipe"
+    exp_dir = recipe_dir / "exp" / "run"
+    src_dir = recipe_dir / "src"
+    inference_dir = exp_dir / "inference"
+    inference_transducer_dir = exp_dir / "inference_transducer"
+    exp_dir.mkdir(parents=True)
+    src_dir.mkdir(parents=True)
+    inference_dir.mkdir()
+    inference_transducer_dir.mkdir()
+    (exp_dir / "config.yaml").write_text("dummy: true\n", encoding="utf-8")
+    (src_dir / "__init__.py").write_text("", encoding="utf-8")
+    (src_dir / "inference.py").write_text("keep\n", encoding="utf-8")
+    (inference_dir / "hyp.scp").write_text("utt1 foo\n", encoding="utf-8")
+    (inference_transducer_dir / "hyp.scp").write_text(
+        "utt1 bar\n", encoding="utf-8"
+    )
+
+    publication_config = OmegaConf.create(
+        {
+            "pack_model": {
+                "out_dir": str(tmp_path / "pack"),
+                "include": [str(src_dir)],
+                "exclude": ["inference", "inference_*"],
+            }
+        }
+    )
+    system = _make_system(
+        exp_dir=exp_dir, recipe_dir=recipe_dir, publication_config=publication_config
+    )
+
+    out_dir = publish.pack_model(
+        training_config=system.training_config,
+        publication_config=system.publication_config,
+    )
+
+    assert not (out_dir / "exp" / "run" / "inference").exists()
+    assert not (out_dir / "exp" / "run" / "inference_transducer").exists()
+    assert (out_dir / "src" / "inference.py").exists()
+
+
 def test_pack_model_writes_readme_with_full_context(tmp_path):
     recipe_dir = tmp_path
     exp_dir = recipe_dir / "exp"
@@ -675,6 +761,62 @@ def test_pack_model_includes_extra_data_dir(tmp_path):
     out_dir = system.pack_model()
 
     assert (out_dir / "data" / "bpe_30" / "tokens.txt").exists()
+
+
+def test_pack_model_expands_globbed_include_paths(tmp_path):
+    recipe_dir = tmp_path / "recipe"
+    exp_dir = recipe_dir / "exp" / "run"
+    data_dir = recipe_dir / "data" / "bpe_30"
+    manifest_dir = recipe_dir / "data" / "manifest"
+    exp_dir.mkdir(parents=True)
+    data_dir.mkdir(parents=True)
+    manifest_dir.mkdir(parents=True)
+    (exp_dir / "config.yaml").write_text("dummy: true\n", encoding="utf-8")
+    (exp_dir / "last.ckpt").write_text("weights\n", encoding="utf-8")
+    (data_dir / "bpe.model").write_text("spm\n", encoding="utf-8")
+    (data_dir / "tokens.txt").write_text("<blank>\na\n", encoding="utf-8")
+    (manifest_dir / "train.tsv").write_text("utt\tpath\n", encoding="utf-8")
+
+    training_config = OmegaConf.create(
+        {
+            "exp_dir": str(exp_dir),
+            "recipe_dir": str(recipe_dir),
+            "task": "espnet3.systems.asr.task.ASRTask",
+        }
+    )
+    inference_config = OmegaConf.create(
+        {
+            "recipe_dir": str(recipe_dir),
+            "exp_dir": str(exp_dir),
+            "model": {
+                "_target_": "espnet2.bin.asr_inference.Speech2Text",
+                "asr_train_config": str(exp_dir / "config.yaml"),
+                "asr_model_file": str(exp_dir / "last.ckpt"),
+            },
+        }
+    )
+    publication_config = OmegaConf.create(
+        {
+            "pack_model": {
+                "out_dir": str(tmp_path / "pack"),
+                "include": [
+                    str(recipe_dir / "data" / "**" / "bpe.model"),
+                    str(recipe_dir / "data" / "**" / "tokens.txt"),
+                ],
+            }
+        }
+    )
+    system = ASRSystem(
+        training_config=training_config,
+        inference_config=inference_config,
+        publication_config=publication_config,
+    )
+
+    out_dir = system.pack_model()
+
+    assert (out_dir / "data" / "bpe_30" / "bpe.model").exists()
+    assert (out_dir / "data" / "bpe_30" / "tokens.txt").exists()
+    assert not (out_dir / "data" / "manifest").exists()
 
 
 def test_pack_model_preserves_symlink_name(tmp_path):

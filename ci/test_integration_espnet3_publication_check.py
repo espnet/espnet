@@ -27,6 +27,11 @@ def _parse_args() -> argparse.Namespace:
         default=".",
         help="Recipe root passed to the dataset constructor.",
     )
+    parser.add_argument(
+        "--model-tag",
+        default=None,
+        help="Optional remote model tag checked via InferenceModel.from_pretrained().",
+    )
     return parser.parse_args()
 
 
@@ -102,26 +107,7 @@ def _validate_output(result: Any, expected_utt_id: str | None = None) -> None:
     assert _is_nonempty_value(result)
 
 
-def main() -> None:
-    args = _parse_args()
-    pack_dir = Path(os.environ["PACK_DIR"]).resolve()
-    inference_config = pack_dir / "conf" / "inference.yaml"
-    meta_path = pack_dir / "meta.yaml"
-
-    if not inference_config.is_file():
-        raise FileNotFoundError(
-            f"Packed inference config not found: {inference_config}"
-        )
-    if not meta_path.is_file():
-        raise FileNotFoundError(f"Packed metadata not found: {meta_path}")
-
-    session = InferenceModel.from_packed(pack_dir, trust_user_code=True)
-
-    sample = _load_dataset_sample(
-        inference_config_path=inference_config,
-        split=args.split,
-        recipe_dir=Path(args.recipe_dir).resolve(),
-    )
+def _run_smoke_check(session: InferenceModel, sample: dict[str, Any]) -> None:
     input_keys = (
         session.input_key
         if isinstance(session.input_key, list)
@@ -139,6 +125,33 @@ def main() -> None:
     batch_result = session.forward_batch([sample])
     assert len(batch_result) == 1
     _validate_output(batch_result[0])
+
+
+def main() -> None:
+    args = _parse_args()
+    pack_dir = Path(os.environ["PACK_DIR"]).resolve()
+    inference_config = pack_dir / "conf" / "inference.yaml"
+    meta_path = pack_dir / "meta.yaml"
+
+    if not inference_config.is_file():
+        raise FileNotFoundError(
+            f"Packed inference config not found: {inference_config}"
+        )
+    if not meta_path.is_file():
+        raise FileNotFoundError(f"Packed metadata not found: {meta_path}")
+
+    sample = _load_dataset_sample(
+        inference_config_path=inference_config,
+        split=args.split,
+        recipe_dir=Path(args.recipe_dir).resolve(),
+    )
+    _run_smoke_check(InferenceModel.from_packed(pack_dir, trust_user_code=True), sample)
+
+    if args.model_tag:
+        _run_smoke_check(
+            InferenceModel.from_pretrained(args.model_tag, trust_user_code=True),
+            sample,
+        )
 
 
 if __name__ == "__main__":

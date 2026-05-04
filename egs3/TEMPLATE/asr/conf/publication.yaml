@@ -10,10 +10,11 @@ pack_model:
   readme: egs3/TEMPLATE/asr/src/hf_model_repo_readme_template.md
   include:
     - ${recipe_dir}/src
-    - ${data_dir}
   exclude:
-    - "inference"
-    - "inference_*"
+    - inference
+    - inference_*
+    - last.ckpt
+    - "**/step*.ckpt"
     - "**/*.log"
     - "**/tensorboard/**"
     - "**/wandb/**"
