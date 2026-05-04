@@ -546,9 +546,7 @@ def test_pack_model_excludes_inference_dirs_without_dropping_src_module(tmp_path
     (src_dir / "__init__.py").write_text("", encoding="utf-8")
     (src_dir / "inference.py").write_text("keep\n", encoding="utf-8")
     (inference_dir / "hyp.scp").write_text("utt1 foo\n", encoding="utf-8")
-    (inference_transducer_dir / "hyp.scp").write_text(
-        "utt1 bar\n", encoding="utf-8"
-    )
+    (inference_transducer_dir / "hyp.scp").write_text("utt1 bar\n", encoding="utf-8")
 
     publication_config = OmegaConf.create(
         {

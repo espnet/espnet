@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
+import fnmatch
 import json
 import logging
 import re
 import shutil
 import subprocess
 import sys
-import fnmatch
 from datetime import datetime
 from glob import glob, has_magic
 from pathlib import Path
