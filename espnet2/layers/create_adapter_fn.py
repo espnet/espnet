@@ -100,7 +100,7 @@ def create_lora_adapter(
          SSVD-O: https://arxiv.org/pdf/2601.12600
          DoRA: https://arxiv.org/pdf/2402.09353
          SVFT: https://arxiv.org/pdf/2405.19597
-         PiSSA: https://arxiv.org/pdf/2404.02948 
+         PiSSA: https://arxiv.org/pdf/2404.02948
 
     Args:
         model (torch.nn.Module): Base model to be adapted.
@@ -125,9 +125,9 @@ def create_lora_adapter(
     if not is_lora_available:
         raise ImportError(
             "Requiring loralib. Install the extended loralib backend from "
-        "https://github.com/wangpuup/LoRA (branch: ssvd), "
-        "for example with: "
-        "`pip install git+https://github.com/wangpuup/LoRA@ssvd`"
+            "https://github.com/wangpuup/LoRA (branch: ssvd), "
+            "for example with: "
+            "`pip install git+https://github.com/wangpuup/LoRA@ssvd`"
         )
 
     is_traget_module_exists = False
