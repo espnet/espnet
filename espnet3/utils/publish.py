@@ -344,7 +344,7 @@ def _build_readme_context(
         f'model = InferenceModel.from_pretrained("{hf_repo}", trust_user_code=True)'
         if hf_repo
         else (
-            'model = InferenceModel.from_packed('
+            "model = InferenceModel.from_packed("
             '"/path/to/packed_model", trust_user_code=True)'
         )
     )

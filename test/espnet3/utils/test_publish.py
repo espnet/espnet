@@ -610,7 +610,7 @@ def test_pack_model_writes_readme_with_full_context(tmp_path):
     assert "My model." in readme
     assert (
         'model = InferenceModel.from_packed("/path/to/packed_model", '
-        'trust_user_code=True)' in readme
+        "trust_user_code=True)" in readme
     )
 
 
