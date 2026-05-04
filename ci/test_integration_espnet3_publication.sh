@@ -84,4 +84,4 @@ PACK_DIR="${pack_dir}" python3 "${cwd}/ci/test_integration_espnet3_publication_c
     "${check_args[@]}" \
 
 # rm -rf exp data
-cd "${cwd}"
+cd "${cwd}" || exit 1
