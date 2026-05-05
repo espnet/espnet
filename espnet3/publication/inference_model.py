@@ -27,7 +27,6 @@ from espnet_model_zoo.downloader import ModelDownloader
 from hydra.utils import get_class
 from omegaconf import DictConfig, ListConfig, OmegaConf
 
-from espnet3.publication.demo.config import load_demo_config
 from espnet3.systems.base.inference_provider import InferenceProvider
 from espnet3.systems.base.inference_runner import InferenceRunner, _load_output_fn
 from espnet3.utils.config_utils import load_config_with_defaults
@@ -366,81 +365,6 @@ class InferenceModel:
         )
 
     @classmethod
-    def from_dir_or_tag(
-        cls,
-        dir_or_tag: str | Path,
-        trust_user_code: bool = False,
-        base_dir: str | Path | None = None,
-        config_overrides: dict[str, Any] | None = None,
-    ) -> "InferenceModel":
-        """Build an inference model from a local pack dir or model tag.
-
-        This helper supports configs that want one field for both local
-        development and remote deployment. It first checks whether
-        ``dir_or_tag`` resolves to an existing local directory. If so, it
-        delegates to :meth:`from_packed`. Otherwise, it treats the value as a
-        pretrained model tag and delegates to :meth:`from_pretrained`.
-
-        Args:
-            dir_or_tag: Local packed-model directory or pretrained model tag.
-            trust_user_code: Forwarded to :meth:`from_packed` or
-                :meth:`from_pretrained`.
-            base_dir: Optional base directory used to resolve relative local
-                paths before checking whether they exist.
-            config_overrides: Forwarded to :meth:`from_packed` or
-                :meth:`from_pretrained`.
-
-        Returns:
-            InferenceModel: Inference model loaded from the matching source.
-
-        Raises:
-            FileNotFoundError: If ``dir_or_tag`` resolves to an existing local
-                path that is not a directory.
-
-        Notes:
-            Path detection is existence-based. When no local directory matches,
-            the value is passed through to :meth:`from_pretrained`.
-
-        Examples:
-            >>> model = InferenceModel.from_dir_or_tag("/path/to/model_pack")
-            >>> result = model(audio_array)
-
-            >>> model = InferenceModel.from_dir_or_tag(
-            ...     "espnet/some_model",
-            ...     trust_user_code=True,
-            ... )
-        """
-        raw_ref = str(dir_or_tag)
-        candidate = Path(raw_ref).expanduser()
-        candidates = []
-        if base_dir is not None and not candidate.is_absolute():
-            candidates.append((Path(base_dir).resolve() / candidate).resolve())
-        if candidate.is_absolute():
-            candidates.append(candidate.resolve())
-        else:
-            candidates.append(candidate.resolve())
-
-        for path in candidates:
-            if not path.exists():
-                continue
-            if not path.is_dir():
-                raise FileNotFoundError(
-                    "dir_or_tag resolved to a filesystem path, but it is not "
-                    f"a directory: {path}"
-                )
-            return cls.from_packed(
-                path,
-                trust_user_code=trust_user_code,
-                config_overrides=config_overrides,
-            )
-
-        return cls.from_pretrained(
-            raw_ref,
-            trust_user_code=trust_user_code,
-            config_overrides=config_overrides,
-        )
-
-    @classmethod
     def from_demo(
         cls,
         demo_dir: str | Path,
@@ -450,19 +374,22 @@ class InferenceModel:
     ) -> "InferenceModel":
         """Build an inference model from a demo directory created by pack_demo().
 
-        This entry point loads the packed demo config from ``demo_dir``, reads
-        ``model.dir_or_tag``, and delegates to :meth:`from_dir_or_tag`.
+        This entry point loads the packed demo config from ``demo_dir`` and
+        reads ``model.dir_or_tag``. If the value resolves to a local packed
+        directory under the demo directory, it delegates to :meth:`from_packed`.
+        Otherwise, it delegates to :meth:`from_pretrained`.
 
         Args:
             demo_dir: Path to the directory created by ``pack_demo()``. This
-                directory must contain one packed demo config with
-                ``model.dir_or_tag``.
+                directory must contain ``demo.yaml`` with ``model.dir_or_tag``.
             trust_user_code: Set to ``True`` to allow importing bundled recipe
                 code from the selected model source. This flag is combined with
                 the packed demo config ``model.trust_user_code``.
-            demo_config_path: Optional explicit packed demo config path.
-                Relative paths are resolved from ``demo_dir``.
-            config_overrides: Forwarded to :meth:`from_dir_or_tag`.
+            demo_config_path: Optional explicit packed demo config path. When
+                omitted, ``demo_dir / "demo.yaml"`` is used. Relative paths
+                are resolved from ``demo_dir``.
+            config_overrides: Forwarded to :meth:`from_packed` or
+                :meth:`from_pretrained`.
 
         Returns:
             InferenceModel: Inference model loaded from the demo config.
@@ -483,7 +410,21 @@ class InferenceModel:
             ... )
         """
         demo_root = Path(demo_dir).resolve()
-        _, demo_cfg = load_demo_config(demo_root, demo_config_path)
+        if not demo_root.is_dir():
+            raise FileNotFoundError(
+                f"demo_dir must point to an existing directory: {demo_root}"
+            )
+        config_path = (
+            Path(demo_config_path)
+            if demo_config_path is not None
+            else demo_root / "demo.yaml"
+        )
+        if not config_path.is_absolute():
+            config_path = demo_root / config_path
+        config_path = config_path.resolve()
+        if not config_path.is_file():
+            raise FileNotFoundError(f"demo config path does not exist: {config_path}")
+        demo_cfg = load_config_with_defaults(str(config_path))
         model_cfg = getattr(demo_cfg, "model", None)
         dir_or_tag = getattr(model_cfg, "dir_or_tag", None) if model_cfg else None
         if not dir_or_tag:
@@ -494,10 +435,27 @@ class InferenceModel:
         model_trust_user_code = bool(
             getattr(model_cfg, "trust_user_code", False) if model_cfg else False
         )
-        return cls.from_dir_or_tag(
-            dir_or_tag,
+        raw_ref = str(dir_or_tag)
+        candidate = Path(raw_ref).expanduser()
+        resolved_candidate = (
+            (demo_root / candidate).resolve()
+            if not candidate.is_absolute()
+            else candidate.resolve()
+        )
+        if resolved_candidate.exists():
+            if not resolved_candidate.is_dir():
+                raise FileNotFoundError(
+                    "model.dir_or_tag resolved to a filesystem path, but it is "
+                    f"not a directory: {resolved_candidate}"
+                )
+            return cls.from_packed(
+                resolved_candidate,
+                trust_user_code=trust_user_code or model_trust_user_code,
+                config_overrides=config_overrides,
+            )
+        return cls.from_pretrained(
+            raw_ref,
             trust_user_code=trust_user_code or model_trust_user_code,
-            base_dir=demo_root,
             config_overrides=config_overrides,
         )
 

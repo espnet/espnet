@@ -2,26 +2,6 @@
 
 ${description}
 
-## Try it out
-
-Use the microphone or upload an audio file above to transcribe speech.
-
-## Programmatic usage
-
-```python
-from espnet3.publication import InferenceModel
-
-${usage_load_call}
-result = model({"speech": "/path/to/audio.wav"})
-print(result["hyp"])
-```
-
-## Model info
-
-- System: `${system}`
-- Model: `${model_ref}`
-- Recipe: `${recipe}`
-- Creator: `${creator}`
 
 ## Citation
 

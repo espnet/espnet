@@ -712,13 +712,13 @@ def test_dataset_with_transform_allows_missing_preprocessor():
 
 def test_combined_dataset_allows_missing_preprocessor():
     ds = DummyDataset()
-    combined = CombinedDataset([ds], [(do_nothing_transform, None)])
+    combined = CombinedDataset([ds], [(do_nothing, None)])
     assert combined[0]["text"] == "hello"
 
 
 def test_dataset_with_transform_allows_missing_preprocessor():
     ds = DummyDataset()
-    wrapped = DatasetWithTransform(ds, do_nothing_transform, None)
+    wrapped = DatasetWithTransform(ds, do_nothing, None)
     assert wrapped[0]["text"] == "hello"
 
 

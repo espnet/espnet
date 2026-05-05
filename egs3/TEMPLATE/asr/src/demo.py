@@ -8,18 +8,13 @@ from pathlib import Path
 
 import gradio as gr
 
-from espnet3.publication.demo.assets import (
+from espnet3.publication.demo.session import (
     build_runtime_overrides,
     load_demo_session,
 )
+from espnet3.utils.logging_utils import configure_logging
 
 logger = logging.getLogger(__name__)
-
-
-def _emit_demo_message(message: str, *args) -> None:
-    text = message % args if args else message
-    print(text, flush=True)
-    logger.info(text)
 
 
 def build_demo(
@@ -29,25 +24,29 @@ def build_demo(
     config_overrides: dict[str, object] | None = None,
 ):
     """Build the default Gradio Blocks app for one packed demo."""
-    _emit_demo_message(
+    if demo_config_path is None:
+        demo_config_path = demo_dir / "demo.yaml"
+    logger.info(
         "Building recipe demo UI | demo_dir=%s demo_config_path=%s device=%s overrides=%s",
         demo_dir,
         demo_config_path,
         device,
         config_overrides,
     )
+    base_overrides = dict(config_overrides or {})
+    if device:
+        base_overrides["device"] = device
     model_overrides = build_runtime_overrides(
-        device=device,
-        base_overrides=config_overrides,
+        base_overrides=base_overrides or None,
     )
     session = load_demo_session(
         demo_dir,
         demo_config_path,
         model_overrides=model_overrides,
     )
-    input_specs = session.resolve_input_specs()
-    output_specs = session.resolve_output_specs()
-    _emit_demo_message("Resolved demo specs | inputs=%s outputs=%s", input_specs, output_specs)
+    input_specs = session.input_specs
+    output_specs = session.output_specs
+    logger.info("Resolved demo specs | inputs=%s outputs=%s", input_specs, output_specs)
     inference_fn = session.create_inference_fn(input_specs, output_specs)
 
     with gr.Blocks(title=session.title) as app:
@@ -59,7 +58,7 @@ def build_demo(
         input_components = []
         with gr.Column():
             for spec in input_specs:
-                _emit_demo_message("Building input component | spec=%s", spec)
+                logger.info("Building input component | spec=%s", spec)
                 input_components.append(session.build_input_component(spec))
 
         submit_button = gr.Button("Run")
@@ -67,25 +66,21 @@ def build_demo(
         output_components = []
         with gr.Column():
             for spec in output_specs:
-                _emit_demo_message("Building output component | spec=%s", spec)
+                logger.info("Building output component | spec=%s", spec)
                 output_components.append(session.build_output_component(spec))
 
-        _emit_demo_message("Binding Run button click handler")
+        logger.info("Binding Run button click handler")
         submit_button.click(
             fn=inference_fn,
             inputs=input_components,
             outputs=output_components,
         )
 
-    _emit_demo_message("Recipe demo UI ready")
+    logger.info("Recipe demo UI ready")
     return app
 
 
 def main() -> None:
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
-    )
     parser = argparse.ArgumentParser(description="Launch an ESPnet3 demo.")
     parser.add_argument(
         "--demo-dir",
@@ -112,17 +107,19 @@ def main() -> None:
         help="Optional inference config override, such as model.beam_size=1.",
     )
     args = parser.parse_args()
-    _emit_demo_message("Starting recipe demo CLI | args=%s", args)
+    configure_logging(log_dir=args.demo_dir, filename="demo.log")
+    logger.info("Starting recipe demo CLI | args=%s", args)
     config_overrides = build_runtime_overrides(
         override_args=args.config_override,
     )
+    demo_config_path = args.demo_config or (args.demo_dir / "demo.yaml")
     app = build_demo(
         args.demo_dir,
-        demo_config_path=args.demo_config,
+        demo_config_path=demo_config_path,
         device=args.device,
         config_overrides=config_overrides,
     )
-    _emit_demo_message("Launching Gradio app")
+    logger.info("Launching Gradio app")
     app.launch()
 
 

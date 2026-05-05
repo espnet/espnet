@@ -25,21 +25,6 @@ def do_nothing(*x):
         return x
 
 
-def do_nothing_transform(*x):
-    """Return input as-is.
-
-    Args:
-        x: Any object.
-
-    Returns:
-        The input object unchanged.
-    """
-    if len(x) == 1:
-        return x[0]
-    else:
-        return x
-
-
 class CombinedDataset:
     """Combines multiple datasets into a single unified dataset-like interface.
 

@@ -8,15 +8,10 @@ from pathlib import Path
 
 import gradio as gr
 
-from espnet3.publication.demo.assets import load_demo_session
+from espnet3.publication.demo.session import load_demo_session
+from espnet3.utils.logging_utils import configure_logging
 
 logger = logging.getLogger(__name__)
-
-
-def _emit_demo_message(message: str, *args) -> None:
-    text = message % args if args else message
-    print(text, flush=True)
-    logger.info(text)
 
 
 def build_demo(
@@ -25,7 +20,9 @@ def build_demo(
     device: str | None = None,
 ):
     """Build the default Gradio Blocks app for one packed demo."""
-    _emit_demo_message(
+    if demo_config_path is None:
+        demo_config_path = demo_dir / "demo.yaml"
+    logger.info(
         "Building recipe demo UI | demo_dir=%s demo_config_path=%s device=%s",
         demo_dir,
         demo_config_path,
@@ -37,9 +34,9 @@ def build_demo(
         demo_config_path,
         model_overrides=model_overrides,
     )
-    input_specs = session.resolve_input_specs()
-    output_specs = session.resolve_output_specs()
-    _emit_demo_message("Resolved demo specs | inputs=%s outputs=%s", input_specs, output_specs)
+    input_specs = session.input_specs
+    output_specs = session.output_specs
+    logger.info("Resolved demo specs | inputs=%s outputs=%s", input_specs, output_specs)
     inference_fn = session.create_inference_fn(input_specs, output_specs)
 
     with gr.Blocks(title=session.title) as app:
@@ -51,7 +48,7 @@ def build_demo(
         input_components = []
         with gr.Column():
             for spec in input_specs:
-                _emit_demo_message("Building input component | spec=%s", spec)
+                logger.info("Building input component | spec=%s", spec)
                 input_components.append(session.build_input_component(spec))
 
         submit_button = gr.Button("Run")
@@ -59,25 +56,21 @@ def build_demo(
         output_components = []
         with gr.Column():
             for spec in output_specs:
-                _emit_demo_message("Building output component | spec=%s", spec)
+                logger.info("Building output component | spec=%s", spec)
                 output_components.append(session.build_output_component(spec))
 
-        _emit_demo_message("Binding Run button click handler")
+        logger.info("Binding Run button click handler")
         submit_button.click(
             fn=inference_fn,
             inputs=input_components,
             outputs=output_components,
         )
 
-    _emit_demo_message("Recipe demo UI ready")
+    logger.info("Recipe demo UI ready")
     return app
 
 
 def main() -> None:
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
-    )
     parser = argparse.ArgumentParser(description="Launch an ESPnet3 demo.")
     parser.add_argument(
         "--demo-dir",
@@ -98,13 +91,15 @@ def main() -> None:
         help="Optional inference device override, such as cpu or cuda:0.",
     )
     args = parser.parse_args()
-    _emit_demo_message("Starting recipe demo CLI | args=%s", args)
+    configure_logging(log_dir=args.demo_dir, filename="demo.log")
+    logger.info("Starting recipe demo CLI | args=%s", args)
+    demo_config_path = args.demo_config or (args.demo_dir / "demo.yaml")
     app = build_demo(
         args.demo_dir,
-        demo_config_path=args.demo_config,
+        demo_config_path=demo_config_path,
         device=args.device,
     )
-    _emit_demo_message("Launching Gradio app")
+    logger.info("Launching Gradio app")
     app.launch()
 
 
