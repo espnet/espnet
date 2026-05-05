@@ -905,9 +905,7 @@ def test_upload_common_creates_missing_repo_with_options_and_uploads(
     monkeypatch.setattr(
         publish, "_check_repo_exists", lambda repo, repo_type="model": False
     )
-    monkeypatch.setattr(
-        publish, "_run", lambda cmd, cwd=None: calls.append(cmd) or ""
-    )
+    monkeypatch.setattr(publish, "_run", lambda cmd, cwd=None: calls.append(cmd) or "")
 
     publish._upload_common(
         "espnet/test-demo",
