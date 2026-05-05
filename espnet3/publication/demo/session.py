@@ -10,11 +10,10 @@ from typing import Any
 
 from omegaconf import DictConfig, OmegaConf
 
+import espnet3.publication.demo.assets as _assets_mod
 from espnet3.publication.demo.assets import (
     DEFAULT_UI_ASSETS,
     UIAssetRegistry,
-    _get_active_registry,
-    _set_active_registry,
 )
 from espnet3.publication.inference_model import InferenceModel
 from espnet3.utils.config_utils import load_config_with_defaults
@@ -299,8 +298,8 @@ def _load_recipe_ui_assets(
         return
     logger.info("Loading recipe UI asset registry: %s", ui_module_path)
 
-    previous_registry = _get_active_registry()
-    _set_active_registry(registry)
+    previous_registry = _assets_mod._ACTIVE_REGISTRY
+    _assets_mod._ACTIVE_REGISTRY = registry
 
     module_name = f"_espnet3_demo_ui_{abs(hash(ui_module_path.resolve()))}"
     spec = importlib.util.spec_from_file_location(module_name, ui_module_path)
@@ -319,7 +318,7 @@ def _load_recipe_ui_assets(
             register_fn(registry)
             logger.info("Registered recipe UI assets via register_assets()")
     finally:
-        _set_active_registry(previous_registry)
+        _assets_mod._ACTIVE_REGISTRY = previous_registry
         sys.modules.pop(module_name, None)
         if should_pop_path:
             try:

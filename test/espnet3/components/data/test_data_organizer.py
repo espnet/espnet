@@ -527,7 +527,7 @@ def test_data_organizer_transform_only():
     assert organizer.valid[0]["text"] == "hello"
 
 
-def test_data_organizer_no_preprocessor_config():
+def test_data_organizer_no_preprocessor_instantiated_config():
     config = {
         "train": [
             {
@@ -696,18 +696,6 @@ def test_data_organizer_transform_none():
     ds = DummyDataset()
     with pytest.raises(ValueError):
         CombinedDataset([ds], [(BrokenTransform(), do_nothing)])
-
-
-def test_combined_dataset_allows_missing_preprocessor():
-    ds = DummyDataset()
-    combined = CombinedDataset([ds], [(do_nothing, None)])
-    assert combined[0]["text"] == "hello"
-
-
-def test_dataset_with_transform_allows_missing_preprocessor():
-    ds = DummyDataset()
-    wrapped = DatasetWithTransform(ds, do_nothing, None)
-    assert wrapped[0]["text"] == "hello"
 
 
 def test_combined_dataset_allows_missing_preprocessor():

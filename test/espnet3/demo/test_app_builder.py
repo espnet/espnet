@@ -476,6 +476,7 @@ def test_load_demo_session_logs_resolved_device(
     (demo_dir / "demo.yaml").write_text(
         "model:\n"
         "  dir_or_tag: model_pack\n"
+        "  trust_user_code: false\n"
         "inference_args: {}\n"
         "ui:\n"
         "  asset_registry: null\n"
@@ -489,6 +490,8 @@ def test_load_demo_session_logs_resolved_device(
         "    - key: hyp\n"
         "      type: text\n"
         "      label: Transcription\n",
+        encoding="utf-8",
+    )
     with caplog.at_level("INFO"):
         session = load_demo_session(demo_dir, model_overrides={"device": "cuda:0"})
 
@@ -526,6 +529,7 @@ def test_load_demo_session_applies_nested_model_overrides(tmp_path: Path) -> Non
         "inference_args: {}\n"
         "ui:\n"
         "  asset_registry: null\n"
+        "  title: null\n"
         "  description: null\n"
         "  inputs:\n"
         "    - key: speech\n"
@@ -539,6 +543,9 @@ def test_load_demo_session_applies_nested_model_overrides(tmp_path: Path) -> Non
     )
 
     session = load_demo_session(
+        demo_dir,
+        model_overrides={
+            "device": "cuda:0",
             "model": {"beam_size": 3},
         },
     )

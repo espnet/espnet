@@ -243,14 +243,5 @@ def register_asset(
     registry.register(name, asset, replace=replace)
 
 
-def _set_active_registry(registry: UIAssetRegistry | None) -> None:
-    global _ACTIVE_REGISTRY
-    _ACTIVE_REGISTRY = registry
-
-
-def _get_active_registry() -> UIAssetRegistry | None:
-    return _ACTIVE_REGISTRY
-
-
 register_asset("audio", DefaultAudioUI)
 register_asset("text", DefaultTextUI)
