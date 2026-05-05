@@ -311,7 +311,9 @@ def build_runtime_overrides(
     """Build one runtime override mapping for the packed inference config."""
     override_cfg = OmegaConf.create(base_overrides or {})
     if override_args:
-        override_cfg = OmegaConf.merge(override_cfg, OmegaConf.from_dotlist(override_args))
+        override_cfg = OmegaConf.merge(
+            override_cfg, OmegaConf.from_dotlist(override_args)
+        )
     if device:
         override_cfg = OmegaConf.merge(
             override_cfg,
@@ -408,9 +410,7 @@ def _copy_recipe_ui_module(demo_dir: Path, demo_config) -> None:
     if not src_path.is_absolute():
         src_path = (Path.cwd() / src_path).resolve()
     if not src_path.is_file():
-        raise FileNotFoundError(
-            f"demo_config.ui.asset_registry not found: {src_path}"
-        )
+        raise FileNotFoundError(f"demo_config.ui.asset_registry not found: {src_path}")
     dst_path = demo_dir / _resolve_bundle_path(registry_path)
     dst_path.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(src_path, dst_path)
@@ -458,7 +458,9 @@ def _load_recipe_ui_assets(
         register_fn = getattr(module, "register_assets", None)
         if register_fn is not None:
             register_fn(registry)
-            _emit_demo_message("info", "Registered recipe UI assets via register_assets()")
+            _emit_demo_message(
+                "info", "Registered recipe UI assets via register_assets()"
+            )
     finally:
         _ACTIVE_REGISTRY = previous_registry
         sys.modules.pop(module_name, None)

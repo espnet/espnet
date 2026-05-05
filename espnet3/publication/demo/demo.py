@@ -47,7 +47,9 @@ def build_demo(
     )
     input_specs = session.resolve_input_specs()
     output_specs = session.resolve_output_specs()
-    _emit_demo_message("Resolved demo specs | inputs=%s outputs=%s", input_specs, output_specs)
+    _emit_demo_message(
+        "Resolved demo specs | inputs=%s outputs=%s", input_specs, output_specs
+    )
     inference_fn = session.create_inference_fn(input_specs, output_specs)
 
     with gr.Blocks(title=session.title) as app:

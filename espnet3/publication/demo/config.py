@@ -40,9 +40,7 @@ def resolve_demo_config_path(
             config_path = demo_root / config_path
         config_path = config_path.resolve()
         if not config_path.is_file():
-            raise FileNotFoundError(
-                f"demo config path does not exist: {config_path}"
-            )
+            raise FileNotFoundError(f"demo config path does not exist: {config_path}")
         return config_path
 
     candidates = []

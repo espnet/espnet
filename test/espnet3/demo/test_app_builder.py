@@ -52,14 +52,11 @@ def _write_model_pack(
     model_pack_dir = demo_dir / "model_pack"
     (model_pack_dir / "conf").mkdir(parents=True)
     (model_pack_dir / "conf" / "inference.yaml").write_text(
-        "model: {}\n"
-        "provider:\n"
-        f"  _target_: {provider_target}\n",
+        "model: {}\n" "provider:\n" f"  _target_: {provider_target}\n",
         encoding="utf-8",
     )
     (model_pack_dir / "meta.yaml").write_text(
-        "yaml_files:\n"
-        "  inference_config: conf/inference.yaml\n",
+        "yaml_files:\n" "  inference_config: conf/inference.yaml\n",
         encoding="utf-8",
     )
 
@@ -109,7 +106,7 @@ def test_build_demo_uses_inline_description(tmp_path: Path) -> None:
         "model:\n"
         "  dir_or_tag: model_pack\n"
         "ui:\n"
-        "  description: \"**inline**\"\n"
+        '  description: "**inline**"\n'
         "  inputs:\n"
         "    - key: speech\n"
         "      type: audio\n"
@@ -182,7 +179,7 @@ def test_custom_ui_asset_can_transform_inputs_and_outputs(tmp_path: Path) -> Non
         "\n"
         "    def normalize_input(self, value, spec):\n"
         "        _ = spec\n"
-        '        return f\"normalized:{value}\"\n'
+        '        return f"normalized:{value}"\n'
         "\n"
         "class ResultTextUI(UIAsset):\n"
         "    def build_output(self, spec):\n"
@@ -190,7 +187,7 @@ def test_custom_ui_asset_can_transform_inputs_and_outputs(tmp_path: Path) -> Non
         "\n"
         "    def format_output(self, value, spec):\n"
         "        _ = spec\n"
-        '        return f\"formatted:{value}\"\n'
+        '        return f"formatted:{value}"\n'
         "\n"
         'register_asset("prompt_text", PromptTextUI)\n'
         'register_asset("result_text", ResultTextUI)\n',
@@ -270,8 +267,7 @@ def test_load_demo_session_logs_resolved_device(
         provider_target="test.espnet3.demo.test_app_builder.DeviceEchoProvider",
     )
     (demo_dir / "demo.yaml").write_text(
-        "model:\n"
-        "  dir_or_tag: model_pack\n",
+        "model:\n" "  dir_or_tag: model_pack\n",
         encoding="utf-8",
     )
 
@@ -306,8 +302,7 @@ def test_load_demo_session_applies_nested_model_overrides(tmp_path: Path) -> Non
         provider_target="test.espnet3.demo.test_app_builder.ModelConfigEchoProvider",
     )
     (demo_dir / "demo.yaml").write_text(
-        "model:\n"
-        "  dir_or_tag: model_pack\n",
+        "model:\n" "  dir_or_tag: model_pack\n",
         encoding="utf-8",
     )
 

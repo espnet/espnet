@@ -99,7 +99,9 @@ def _uses_bundled_code(
     return False
 
 
-def _resolve_runtime_device(provider_cls: type, inference_config: DictConfig) -> str | None:
+def _resolve_runtime_device(
+    provider_cls: type, inference_config: DictConfig
+) -> str | None:
     """Resolve the runtime device string for one inference model."""
     resolve_device = getattr(provider_cls, "_resolve_device", None)
     if callable(resolve_device):
