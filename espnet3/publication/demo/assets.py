@@ -121,14 +121,17 @@ class DefaultAudioUI(UIAsset):
     """
 
     def build_input(self, spec: dict[str, Any]) -> Any:
+        """Build a ``gr.Audio`` input component."""
         gradio_module = self.check_gradio()
         return gradio_module.Audio(label=spec["label"], type="numpy")
 
     def build_output(self, spec: dict[str, Any]) -> Any:
+        """Build a ``gr.Audio`` output component."""
         gradio_module = self.check_gradio()
         return gradio_module.Audio(label=spec["label"])
 
     def normalize_input(self, value: Any, spec: dict[str, Any]) -> Any:
+        """Extract and convert the NumPy array from a Gradio audio tuple."""
         _ = spec
         import numpy as np
 
@@ -147,10 +150,12 @@ class DefaultTextUI(UIAsset):
     """
 
     def build_input(self, spec: dict[str, Any]) -> Any:
+        """Build a ``gr.Textbox`` input component."""
         gradio_module = self.check_gradio()
         return gradio_module.Textbox(label=spec["label"])
 
     def build_output(self, spec: dict[str, Any]) -> Any:
+        """Build a ``gr.Textbox`` output component."""
         gradio_module = self.check_gradio()
         return gradio_module.Textbox(label=spec["label"])
 
@@ -164,6 +169,7 @@ class UIAssetRegistry:
     """
 
     def __init__(self, assets: dict[str, UIAsset] | None = None) -> None:
+        """Initialize with an optional pre-populated asset mapping."""
         self._assets = dict(assets or {})
 
     def register(

@@ -46,6 +46,7 @@ class DemoSession:
         registry: UIAssetRegistry,
         model_overrides: dict[str, Any] | None = None,
     ) -> None:
+        """Initialize from already-loaded demo config, model, and registry."""
         self.demo_dir = demo_dir
         self.demo_cfg = demo_cfg
         self.model = model
