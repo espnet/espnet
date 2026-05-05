@@ -1,20 +1,26 @@
-system: base
-infer_config: conf/infer.yaml
+model:
+  dir_or_tag: ../model_pack
+  trust_user_code: false
 
-output_keys:
-  text: hyp
-
-# Inference runner kwargs (input_key/output_fn_path) are derived from infer_config.
-
+ui:
+  app_script: src/demo.py
+  title: null
+  description: README.md
+  inputs:
+    - key: speech
+      type: audio
+      label: "Input Audio"
+  outputs:
+    - key: hyp
+      type: text
+      label: "Transcription"
 pack:
   out_dir: demo
-  files:
-    - exp/your_exp_dir/last.ckpt  # override in recipe
-    - exp/your_exp_dir/config.yaml
+  config_name: demo.yaml
+  launcher_name: app.py
+  readme: egs3/TEMPLATE/asr/src/demo_readme_template.md
+  include: []
 
 upload_demo:
-  hf_username: your-hf-username
-  repo_name: your-demo
-  repo_type: space
-  space_sdk: gradio
+  hf_repo: your-hf-username/your-demo
   # organization: your-org

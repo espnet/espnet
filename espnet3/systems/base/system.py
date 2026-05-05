@@ -10,6 +10,8 @@ from espnet3.components.data.dataset_module import (
     load_dataset_module,
     parse_dataset_reference_config,
 )
+from espnet3.publication.demo.packer import pack_demo as _pack_demo
+from espnet3.publication.demo.packer import upload_demo as _upload_demo
 from espnet3.systems.base.inference import infer
 from espnet3.systems.base.metric import measure
 from espnet3.systems.base.training import collect_stats, train
@@ -37,6 +39,8 @@ class BaseSystem:
       - publish()
       - pack_model()
       - upload_model()
+      - pack_demo()
+      - upload_demo()
 
     All behavior is config-driven.
 
@@ -59,6 +63,8 @@ class BaseSystem:
         | measure        | metrics_config.inference_dir       |
         | pack_model     | training_config.exp_dir            |
         | upload_model   | training_config.exp_dir            |
+        | pack_demo      | demo_config.pack.out_dir           |
+        | upload_demo    | demo_config.pack.out_dir           |
 
     Any stage missing from the mapping (or resolving to ``None``) falls back
     to the default log directory: ``training_config.exp_dir`` when available,
@@ -128,6 +134,8 @@ class BaseSystem:
             "measure": "metrics_config.inference_dir",
             "pack_model": "training_config.exp_dir",
             "upload_model": "training_config.exp_dir",
+            "pack_demo": "demo_config.pack.out_dir",
+            "upload_demo": "demo_config.pack.out_dir",
         }
         mapping = dict(base_mapping)
 
@@ -139,12 +147,13 @@ class BaseSystem:
 
         logger.info(
             "Initialized %s with training_config=%s inference_config=%s "
-            "metrics_config=%s publication_config=%s exp_dir=%s",
+            "metrics_config=%s publication_config=%s demo_config=%s exp_dir=%s",
             self.__class__.__name__,
             training_config is not None,
             inference_config is not None,
             metrics_config is not None,
             publication_config is not None,
+            demo_config is not None,
             self.exp_dir,
         )
 
@@ -309,3 +318,13 @@ class BaseSystem:
         """Upload model bundle to HuggingFace."""
         self._reject_stage_args("upload_model", args, kwargs)
         return _upload_model(self)
+
+    def pack_demo(self, *args, **kwargs):
+        """Pack demo assets into a runnable demo directory."""
+        self._reject_stage_args("pack_demo", args, kwargs)
+        return _pack_demo(self)
+
+    def upload_demo(self, *args, **kwargs):
+        """Upload demo bundle to HuggingFace."""
+        self._reject_stage_args("upload_demo", args, kwargs)
+        return _upload_demo(self)

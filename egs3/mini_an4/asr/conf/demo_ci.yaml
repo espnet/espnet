@@ -1,25 +1,26 @@
-system: asr
-infer_config: conf/infer.yaml
+model:
+  dir_or_tag: exp/training_asr_transformer/model_pack
+  trust_user_code: true
 
-exp_dir: ${load_yaml:conf/train.yaml,exp_dir}
-data_dir: ${load_yaml:conf/train.yaml,data_dir}
-
-output_keys:
-  text: hyp
-
-# input_key/output_fn_path are sourced from infer_config.
-
+ui:
+  app_script: src/app.py
+  title: null
+  description: README.md
+  inputs:
+    - key: speech
+      type: audio
+      label: "Input Audio"
+  outputs:
+    - key: hyp
+      type: text
+      label: "Transcription"
 pack:
   out_dir: demo
-  files:
-    - ${exp_dir}/config.yaml
-    - ${exp_dir}/last.ckpt
-    - ${data_dir}/bpe_30
-
+  config_name: demo.yaml
+  launcher_name: app.py
+  readme: egs3/TEMPLATE/asr/src/demo_readme_template.md
+  include: []
 
 upload_demo:
-  hf_username: ms180
-  repo_name: minian4_asr_integration_test
-  repo_type: space
-  space_sdk: gradio
+  hf_repo: ms180/minian4_asr_integration_test
   # organization: your-org

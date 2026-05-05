@@ -6,6 +6,7 @@ from types import SimpleNamespace
 import pytest
 from omegaconf import OmegaConf
 
+from espnet3.publication.demo import packer as demo_packer
 from espnet3.systems.asr.system import ASRSystem
 from espnet3.utils import publish
 from espnet3.utils.publish import (
@@ -891,3 +892,119 @@ def test_pack_model_preserves_symlink_name(tmp_path):
     bundle = (out_dir / "conf" / "inference.yaml").read_text(encoding="utf-8")
     assert "${recipe_dir}/exp/run/last.ckpt" in bundle
     assert "step1.ckpt" not in bundle
+
+
+def test_upload_common_creates_missing_repo_with_options_and_uploads(
+    tmp_path, monkeypatch
+):
+    src_dir = tmp_path / "demo"
+    src_dir.mkdir()
+    calls = []
+
+    monkeypatch.setattr(publish.shutil, "which", lambda cmd: "/usr/bin/huggingface-cli")
+    monkeypatch.setattr(
+        publish, "_check_repo_exists", lambda repo, repo_type="model": False
+    )
+    monkeypatch.setattr(
+        publish, "_run", lambda cmd, cwd=None: calls.append(cmd) or ""
+    )
+
+    publish._upload_common(
+        "espnet/test-demo",
+        src_dir,
+        repo_type="space",
+        create_options={"organization": "espnet", "space_sdk": "gradio"},
+        create_repo_name="test-demo",
+    )
+
+    assert calls == [
+        [
+            "huggingface-cli",
+            "repo",
+            "create",
+            "test-demo",
+            "--type",
+            "space",
+            "-y",
+            "--organization",
+            "espnet",
+            "--space_sdk",
+            "gradio",
+        ],
+        [
+            "huggingface-cli",
+            "upload",
+            "espnet/test-demo",
+            str(src_dir),
+            "--repo-type",
+            "space",
+        ],
+    ]
+
+
+def test_upload_model_uses_shared_upload_helper(tmp_path, monkeypatch):
+    recipe_dir = tmp_path
+    exp_dir = recipe_dir / "exp"
+    pack_dir = tmp_path / "model_pack"
+    exp_dir.mkdir()
+    pack_dir.mkdir()
+    publication_config = OmegaConf.create(
+        {
+            "upload_model": {"hf_repo": "espnet/test-repo"},
+            "pack_model": {"out_dir": str(pack_dir)},
+        }
+    )
+    system = _make_system(
+        exp_dir=exp_dir, recipe_dir=recipe_dir, publication_config=publication_config
+    )
+    calls = []
+
+    monkeypatch.setattr(
+        publish,
+        "_upload_common",
+        lambda repo, src_dir, **kwargs: calls.append((repo, src_dir, kwargs)),
+    )
+
+    publish.upload_model(system)
+
+    assert calls == [("espnet/test-repo", pack_dir, {"repo_type": "model"})]
+
+
+def test_upload_demo_uses_shared_upload_helper(tmp_path, monkeypatch):
+    demo_dir = tmp_path / "demo"
+    demo_dir.mkdir()
+    demo_config = OmegaConf.create(
+        {
+            "pack": {"out_dir": str(demo_dir)},
+            "upload_demo": {
+                "hf_repo": "espnet/test-demo",
+                "organization": "espnet",
+                "space_sdk": "gradio",
+            },
+        }
+    )
+    system = SimpleNamespace(demo_config=demo_config, exp_dir=None)
+    calls = []
+
+    monkeypatch.setattr(
+        publish,
+        "_upload_common",
+        lambda repo, src_dir, **kwargs: calls.append((repo, src_dir, kwargs)),
+    )
+
+    demo_packer.upload_demo(system)
+
+    assert calls == [
+        (
+            "espnet/test-demo",
+            demo_dir,
+            {
+                "repo_type": "space",
+                "create_options": {
+                    "organization": "espnet",
+                    "space_sdk": "gradio",
+                },
+                "create_repo_name": "test-demo",
+            },
+        )
+    ]

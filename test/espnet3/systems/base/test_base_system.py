@@ -53,10 +53,20 @@ def test_base_system_invokes_helpers(tmp_path, monkeypatch):
         calls["measure"] = cfg
         return {"metric": 1.0}
 
+    def fake_pack_demo(system):
+        calls["pack_demo"] = system
+        return "pack_demo"
+
+    def fake_upload_demo(system):
+        calls["upload_demo"] = system
+        return "upload_demo"
+
     monkeypatch.setattr(sysmod, "collect_stats", fake_collect)
     monkeypatch.setattr(sysmod, "train", fake_train)
     monkeypatch.setattr(sysmod, "infer", fake_infer)
     monkeypatch.setattr(sysmod, "measure", fake_metric)
+    monkeypatch.setattr(sysmod, "_pack_demo", fake_pack_demo)
+    monkeypatch.setattr(sysmod, "_upload_demo", fake_upload_demo)
 
     system = BaseSystem(
         training_config=train_cfg,
@@ -69,10 +79,14 @@ def test_base_system_invokes_helpers(tmp_path, monkeypatch):
     assert system.train() == "train"
     assert system.infer() == "infer"
     assert system.measure() == {"metric": 1.0}
+    assert system.pack_demo() == "pack_demo"
+    assert system.upload_demo() == "upload_demo"
     assert calls["collect"] is train_cfg
     assert calls["train"] is train_cfg
     assert calls["infer"] is infer_cfg
     assert calls["measure"] is measure_cfg
+    assert calls["pack_demo"] is system
+    assert calls["upload_demo"] is system
 
 
 def test_base_system_create_dataset_requires_dataset_config(tmp_path):
