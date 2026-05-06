@@ -1,27 +1,13 @@
-model:
-  dir_or_tag: exp/training_asr_transformer/model_pack
-  trust_user_code: true
+defaults:
+  - ../../../TEMPLATE/asr/conf/demo
+  - _self_
 
-inference_args: {}
+model:
+  dir-or-tag: exp/training_asr_transformer/model_pack
+  trust-user-code: true
 
 ui:
   app_script: src/app.py
-  asset_registry: null
-  title: null
-  description: README.md
-  inputs:
-    - key: speech
-      type: audio
-      label: "Input Audio"
-  outputs:
-    - key: hyp
-      type: text
-      label: "Transcription"
-pack:
-  out_dir: demo
-  launcher_name: app.py
-  readme: egs3/TEMPLATE/asr/src/demo_readme_template.md
-  include: []
 
 upload_demo:
   hf_repo: ms180/minian4_asr_integration_test

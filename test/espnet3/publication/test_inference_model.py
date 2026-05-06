@@ -308,7 +308,9 @@ def test_from_demo_loads_local_pack_via_from_packed(tmp_path, monkeypatch):
     demo_dir.mkdir()
     bundle_root = _make_pack_dir(demo_dir)
     (demo_dir / "demo.yaml").write_text(
-        "model:\n" f"  dir_or_tag: {bundle_root.name}\n" "  trust_user_code: false\n",
+        "model:\n"
+        f"  dir-or-tag: {bundle_root.name}\n"
+        "  trust-user-code: false\n",
         encoding="utf-8",
     )
     captured = {}
@@ -333,7 +335,9 @@ def test_from_demo_loads_pretrained_tag_via_from_pretrained(tmp_path, monkeypatc
     demo_dir = tmp_path / "demo"
     demo_dir.mkdir()
     (demo_dir / "demo.yaml").write_text(
-        "model:\n" "  dir_or_tag: espnet/test-model\n" "  trust_user_code: true\n",
+        "model:\n"
+        "  dir-or-tag: espnet/test-model\n"
+        "  trust-user-code: true\n",
         encoding="utf-8",
     )
     captured = {}

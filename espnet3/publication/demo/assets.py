@@ -1,4 +1,4 @@
-"""Demo UI asset classes, registry, and asset registration."""
+"""Demo UI asset classes, registry, and built-in asset registration."""
 
 from __future__ import annotations
 
@@ -21,8 +21,9 @@ class UIAsset:
     building the corresponding Gradio component and for converting raw UI
     values to or from the model-facing payload.
 
-    Recipe-local demo extensions should subclass :class:`UIAsset` and register
-    the subclass with :func:`register_asset`.
+    ESPnet3 developers can add new built-in assets by subclassing
+    :class:`UIAsset` and registering the subclass with :func:`register_asset`
+    in this module.
     """
 
     def check_gradio(self):
@@ -164,8 +165,8 @@ class UIAssetRegistry:
     """Registry of named UI asset definitions.
 
     The registry maps ``type`` strings from demo configs to concrete
-    :class:`UIAsset` instances. A demo session clones the default registry and
-    then optionally augments it with recipe-local asset registrations.
+    :class:`UIAsset` instances. A demo session clones the default registry so
+    built-in asset definitions stay isolated from per-session state.
     """
 
     def __init__(self, assets: dict[str, UIAsset] | None = None) -> None:
@@ -224,8 +225,6 @@ class UIAssetRegistry:
         """Return a shallow copy for one demo session."""
         return UIAssetRegistry(self._assets)
 
-
-_ACTIVE_REGISTRY: UIAssetRegistry | None = None
 DEFAULT_UI_ASSETS: UIAssetRegistry = UIAssetRegistry()
 
 
@@ -234,19 +233,14 @@ def register_asset(
     asset: AssetRegistration,
     replace: bool = False,
 ) -> None:
-    """Register a UI asset in the active recipe registry or the default one.
-
-    Recipe-local ``ui_assets.py`` modules call this function to add custom
-    asset implementations during demo load. When no recipe registry is active,
-    the registration updates the shared default registry.
+    """Register one built-in UI asset in the shared default registry.
 
     Args:
         name: Config-facing asset name.
         asset: Asset instance or asset subclass.
         replace: Whether an existing registration may be overwritten.
     """
-    registry = _ACTIVE_REGISTRY or DEFAULT_UI_ASSETS
-    registry.register(name, asset, replace=replace)
+    DEFAULT_UI_ASSETS.register(name, asset, replace=replace)
 
 
 register_asset("audio", DefaultAudioUI)

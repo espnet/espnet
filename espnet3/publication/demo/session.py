@@ -2,15 +2,12 @@
 
 from __future__ import annotations
 
-import importlib.util
 import logging
-import sys
 from pathlib import Path
 from typing import Any
 
 from omegaconf import DictConfig, OmegaConf
 
-import espnet3.publication.demo.assets as _assets_mod
 from espnet3.publication.demo.assets import (
     DEFAULT_UI_ASSETS,
     UIAssetRegistry,
@@ -67,13 +64,18 @@ class DemoSession:
                 path.read_text(encoding="utf-8") if path.is_file() else str(description)
             )
 
-        mapping = self.demo_cfg.inference_args
+        model_cfg = getattr(self.demo_cfg, "model", None)
+        mapping = (
+            model_cfg.get("call-args", OmegaConf.create({}))
+            if model_cfg is not None
+            else OmegaConf.create({})
+        )
         if not isinstance(mapping, DictConfig):
-            raise TypeError("demo config inference_args must be a mapping.")
-        inference_args = OmegaConf.to_container(mapping, resolve=True)
-        if not isinstance(inference_args, dict):
-            raise TypeError("demo config inference_args must resolve to a dict.")
-        self.inference_args = inference_args
+            raise TypeError("demo config model.call-args must be a mapping.")
+        call_args = OmegaConf.to_container(mapping, resolve=True)
+        if not isinstance(call_args, dict):
+            raise TypeError("demo config model.call-args must resolve to a dict.")
+        self.call_args = call_args
 
         self.input_specs = [
             _resolve_spec_dict(spec, "ui.inputs") for spec in self.demo_cfg.ui.inputs
@@ -121,11 +123,11 @@ class DemoSession:
                         value, spec
                     )
                 logger.info(
-                    "Calling inference model | inputs=%s inference_args=%s",
+                    "Calling inference model | inputs=%s call_args=%s",
                     {k: _summarize_demo_value(v) for k, v in item.items()},
-                    self.inference_args,
+                    self.call_args,
                 )
-                result = self.model(item, **self.inference_args)
+                result = self.model(item, **self.call_args)
                 logger.info(
                     "Inference model returned | result=%s",
                     _summarize_demo_value(result),
@@ -191,7 +193,6 @@ def load_demo_session(
     logger.info("Loaded demo config | path=%s", config_path)
     model = _build_demo_model(demo_cfg, demo_root, model_overrides=model_overrides)
     registry = DEFAULT_UI_ASSETS.clone()
-    _load_recipe_ui_assets(registry, demo_root, demo_cfg)
     logger.info(
         "Demo session ready | input_key=%s resolved_device=%s title=%s",
         getattr(model, "input_key", None),
@@ -244,10 +245,10 @@ def _build_demo_model(
     model_overrides: dict[str, Any] | None = None,
 ) -> InferenceModel:
     model_cfg = demo_cfg.model
-    dir_or_tag = model_cfg.dir_or_tag
+    dir_or_tag = model_cfg.get("dir-or-tag")
     if not dir_or_tag:
-        raise ValueError("demo config must contain model.dir_or_tag.")
-    model_trust_user_code = bool(model_cfg.trust_user_code)
+        raise ValueError("demo config must contain model.dir-or-tag.")
+    model_trust_user_code = bool(model_cfg.get("trust-user-code", False))
     logger.info(
         "Building demo inference model | dir_or_tag=%s trust_user_code=%s "
         "base_dir=%s overrides=%s",
@@ -266,7 +267,7 @@ def _build_demo_model(
     if resolved_candidate.exists():
         if not resolved_candidate.is_dir():
             raise FileNotFoundError(
-                "model.dir_or_tag resolved to a filesystem path, but it is not "
+                "model.dir-or-tag resolved to a filesystem path, but it is not "
                 f"a directory: {resolved_candidate}"
             )
         return InferenceModel.from_packed(
@@ -279,55 +280,6 @@ def _build_demo_model(
         trust_user_code=model_trust_user_code,
         config_overrides=model_overrides,
     )
-
-
-def _load_recipe_ui_assets(
-    registry: UIAssetRegistry,
-    demo_dir: Path,
-    demo_cfg,
-) -> None:
-    registry_path = demo_cfg.ui.asset_registry
-    if not registry_path:
-        logger.info("No recipe UI asset registry configured")
-        return
-    path = Path(str(registry_path))
-    ui_module_path = demo_dir / (Path(path.name) if path.is_absolute() else path)
-    if not ui_module_path.is_file():
-        logger.warning(
-            "Recipe UI asset registry not found in bundle: %s", ui_module_path
-        )
-        return
-    logger.info("Loading recipe UI asset registry: %s", ui_module_path)
-
-    previous_registry = _assets_mod._ACTIVE_REGISTRY
-    _assets_mod._ACTIVE_REGISTRY = registry
-
-    module_name = f"_espnet3_demo_ui_{abs(hash(ui_module_path.resolve()))}"
-    spec = importlib.util.spec_from_file_location(module_name, ui_module_path)
-    if spec is None or spec.loader is None:
-        raise ImportError(f"Could not load demo UI module: {ui_module_path}")
-    module = importlib.util.module_from_spec(spec)
-    demo_dir_str = str(demo_dir)
-    should_pop_path = demo_dir_str not in sys.path
-    if should_pop_path:
-        sys.path.insert(0, demo_dir_str)
-    try:
-        sys.modules[module_name] = module
-        spec.loader.exec_module(module)
-        register_fn = getattr(module, "register_assets", None)
-        if register_fn is not None:
-            register_fn(registry)
-            logger.info("Registered recipe UI assets via register_assets()")
-    finally:
-        _assets_mod._ACTIVE_REGISTRY = previous_registry
-        sys.modules.pop(module_name, None)
-        if should_pop_path:
-            try:
-                sys.path.remove(demo_dir_str)
-            except ValueError:
-                pass
-
-
 def _resolve_spec_dict(spec: DictConfig, field_name: str) -> dict[str, Any]:
     resolved = OmegaConf.to_container(spec, resolve=True)
     if not isinstance(resolved, dict):

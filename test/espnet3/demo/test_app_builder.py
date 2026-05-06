@@ -50,6 +50,17 @@ class ModelConfigEchoProvider:
         return model
 
 
+class CallArgsEchoProvider:
+    @staticmethod
+    def build_model(config):
+        _ = config
+
+        def model(speech, **kwargs):
+            return {"hyp": f"beam={kwargs.get('beam_size')}:{speech}"}
+
+        return model
+
+
 def _write_model_pack(
     demo_dir: Path,
     provider_target: str = "test.espnet3.demo.test_app_builder.DummyProvider",
@@ -80,11 +91,10 @@ def test_build_demo_with_custom_provider(tmp_path: Path) -> None:
     _write_model_pack(demo_dir)
     (demo_dir / "demo.yaml").write_text(
         "model:\n"
-        "  dir_or_tag: model_pack\n"
-        "  trust_user_code: false\n"
-        "inference_args: {}\n"
+        "  dir-or-tag: model_pack\n"
+        "  trust-user-code: false\n"
+        "  call-args: {}\n"
         "ui:\n"
-        "  asset_registry: null\n"
         "  title: null\n"
         "  description: README.md\n"
         "  inputs:\n"
@@ -113,11 +123,10 @@ def test_build_demo_uses_inline_description(tmp_path: Path) -> None:
     _write_model_pack(demo_dir)
     (demo_dir / "demo.yaml").write_text(
         "model:\n"
-        "  dir_or_tag: model_pack\n"
-        "  trust_user_code: false\n"
-        "inference_args: {}\n"
+        "  dir-or-tag: model_pack\n"
+        "  trust-user-code: false\n"
+        "  call-args: {}\n"
         "ui:\n"
-        "  asset_registry: null\n"
         "  title: null\n"
         '  description: "**inline**"\n'
         "  inputs:\n"
@@ -136,97 +145,31 @@ def test_build_demo_uses_inline_description(tmp_path: Path) -> None:
     assert markdowns[0].value == "**inline**"
 
 
-def test_build_demo_loads_recipe_ui_registration(tmp_path: Path) -> None:
+def test_default_assets_can_transform_inputs_and_outputs(tmp_path: Path) -> None:
     gr = pytest.importorskip("gradio")
     _ = gr
     demo_dir = tmp_path / "demo"
     demo_dir.mkdir()
-    _write_model_pack(demo_dir)
-    (demo_dir / "custom").mkdir()
-    (demo_dir / "custom" / "ui_assets.py").write_text(
-        "from espnet3.publication.demo.assets import UIAsset, register_asset\n"
-        "import gradio as gr\n"
-        "\n"
-        "class PromptTextUI(UIAsset):\n"
-        "    def build_input(self, spec):\n"
-        "        return gr.Textbox(label=spec.get('label', ''))\n"
-        "\n"
-        'register_asset("prompt_text", PromptTextUI)\n',
-        encoding="utf-8",
+    _write_model_pack(
+        demo_dir,
+        provider_target="test.espnet3.demo.test_app_builder.CallArgsEchoProvider",
     )
     (demo_dir / "demo.yaml").write_text(
         "model:\n"
-        "  dir_or_tag: model_pack\n"
-        "  trust_user_code: false\n"
-        "inference_args: {}\n"
+        "  dir-or-tag: model_pack\n"
+        "  trust-user-code: false\n"
+        "  call-args:\n"
+        "    beam_size: 2\n"
         "ui:\n"
-        "  asset_registry: custom/ui_assets.py\n"
         "  title: null\n"
         "  description: null\n"
         "  inputs:\n"
         "    - key: speech\n"
-        "      type: prompt_text\n"
+        "      type: text\n"
         "      label: Prompt\n"
         "  outputs:\n"
         "    - key: hyp\n"
         "      type: text\n"
-        "      label: Transcription\n",
-        encoding="utf-8",
-    )
-    app = build_demo(demo_dir)
-    textboxes = _find_block_components(app, "Textbox")
-    assert len(textboxes) == 2
-    assert textboxes[0].label == "Prompt"
-
-
-def test_custom_ui_asset_can_transform_inputs_and_outputs(tmp_path: Path) -> None:
-    gr = pytest.importorskip("gradio")
-    _ = gr
-    demo_dir = tmp_path / "demo"
-    demo_dir.mkdir()
-    _write_model_pack(demo_dir)
-    (demo_dir / "custom").mkdir()
-    (demo_dir / "custom" / "ui_assets.py").write_text(
-        "from espnet3.publication.demo.assets import UIAsset, register_asset\n"
-        "import gradio as gr\n"
-        "\n"
-        "class PromptTextUI(UIAsset):\n"
-        "    def build_input(self, spec):\n"
-        "        return gr.Textbox(label=spec.get('label', ''), lines=3)\n"
-        "\n"
-        "    def normalize_input(self, value, spec):\n"
-        "        _ = spec\n"
-        '        return f"normalized:{value}"\n'
-        "\n"
-        "class ResultTextUI(UIAsset):\n"
-        "    def build_output(self, spec):\n"
-        "        return gr.Textbox(label=spec.get('label', ''), lines=2)\n"
-        "\n"
-        "    def format_output(self, value, spec):\n"
-        "        _ = spec\n"
-        '        return f"formatted:{value}"\n'
-        "\n"
-        'register_asset("prompt_text", PromptTextUI)\n'
-        'register_asset("result_text", ResultTextUI)\n',
-        encoding="utf-8",
-    )
-    (demo_dir / "demo.yaml").write_text(
-        "model:\n"
-        "  dir_or_tag: model_pack\n"
-        "  trust_user_code: false\n"
-        "inference_args:\n"
-        "  beam_size: 2\n"
-        "ui:\n"
-        "  asset_registry: custom/ui_assets.py\n"
-        "  title: null\n"
-        "  description: null\n"
-        "  inputs:\n"
-        "    - key: speech\n"
-        "      type: prompt_text\n"
-        "      label: Prompt\n"
-        "  outputs:\n"
-        "    - key: hyp\n"
-        "      type: result_text\n"
         "      label: Result\n",
         encoding="utf-8",
     )
@@ -240,8 +183,8 @@ def test_custom_ui_asset_can_transform_inputs_and_outputs(tmp_path: Path) -> Non
 
     assert input_component.__class__.__name__ == "Textbox"
     assert output_component.__class__.__name__ == "Textbox"
-    assert session.inference_args == {"beam_size": 2}
-    assert inference_fn("hello") == "formatted:ok"
+    assert session.call_args == {"beam_size": 2}
+    assert inference_fn("hello") == "beam=2:hello"
 
 
 def test_load_demo_session_applies_device_override(tmp_path: Path) -> None:
@@ -253,11 +196,10 @@ def test_load_demo_session_applies_device_override(tmp_path: Path) -> None:
     )
     (demo_dir / "demo.yaml").write_text(
         "model:\n"
-        "  dir_or_tag: model_pack\n"
-        "  trust_user_code: false\n"
-        "inference_args: {}\n"
+        "  dir-or-tag: model_pack\n"
+        "  trust-user-code: false\n"
+        "  call-args: {}\n"
         "ui:\n"
-        "  asset_registry: null\n"
         "  title: null\n"
         "  description: null\n"
         "  inputs:\n"
@@ -391,11 +333,10 @@ def test_build_input_component_requires_type(tmp_path: Path) -> None:
     _write_model_pack(demo_dir)
     (demo_dir / "demo.yaml").write_text(
         "model:\n"
-        "  dir_or_tag: model_pack\n"
-        "  trust_user_code: false\n"
-        "inference_args: {}\n"
+        "  dir-or-tag: model_pack\n"
+        "  trust-user-code: false\n"
+        "  call-args: {}\n"
         "ui:\n"
-        "  asset_registry: null\n"
         "  title: null\n"
         "  description: null\n"
         "  inputs:\n"
@@ -419,13 +360,12 @@ def test_build_demo_model_loads_pretrained_tag(monkeypatch, tmp_path: Path) -> N
     demo_cfg = OmegaConf.create(
         {
             "model": {
-                "dir_or_tag": "espnet/test-model",
-                "trust_user_code": True,
+                "dir-or-tag": "espnet/test-model",
+                "trust-user-code": True,
+                "call-args": {},
             },
-            "inference_args": {},
             "ui": {
                 "app_script": "src/demo.py",
-                "asset_registry": None,
                 "title": None,
                 "description": None,
                 "inputs": [{"key": "speech", "type": "audio", "label": "Input Audio"}],
@@ -475,11 +415,10 @@ def test_load_demo_session_logs_resolved_device(
     )
     (demo_dir / "demo.yaml").write_text(
         "model:\n"
-        "  dir_or_tag: model_pack\n"
-        "  trust_user_code: false\n"
-        "inference_args: {}\n"
+        "  dir-or-tag: model_pack\n"
+        "  trust-user-code: false\n"
+        "  call-args: {}\n"
         "ui:\n"
-        "  asset_registry: null\n"
         "  title: null\n"
         "  description: null\n"
         "  inputs:\n"
@@ -524,11 +463,10 @@ def test_load_demo_session_applies_nested_model_overrides(tmp_path: Path) -> Non
     )
     (demo_dir / "demo.yaml").write_text(
         "model:\n"
-        "  dir_or_tag: model_pack\n"
-        "  trust_user_code: false\n"
-        "inference_args: {}\n"
+        "  dir-or-tag: model_pack\n"
+        "  trust-user-code: false\n"
+        "  call-args: {}\n"
         "ui:\n"
-        "  asset_registry: null\n"
         "  title: null\n"
         "  description: null\n"
         "  inputs:\n"

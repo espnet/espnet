@@ -1,14 +1,12 @@
 model:
-  dir_or_tag: ../model_pack
-  trust_user_code: false
-
-inference_args: {}
+  dir-or-tag: ../model_pack
+  trust-user-code: false
+  call-args: {}
 
 ui:
   app_script: src/demo.py
-  asset_registry: null
   title: null
-  description: README.md
+  description: readme.md
   inputs:
     - key: speech
       type: audio
@@ -19,9 +17,8 @@ ui:
       label: "Transcription"
 pack:
   out_dir: demo
-  launcher_name: app.py
-  readme: egs3/TEMPLATE/asr/src/demo_readme_template.md
   include: []
+  exclude: []
 
 upload_demo:
   hf_repo: your-hf-username/your-demo

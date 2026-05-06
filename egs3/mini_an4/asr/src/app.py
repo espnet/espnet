@@ -42,8 +42,6 @@ def build_demo(
     with gr.Blocks(title=session.title) as app:
         if session.title:
             gr.Markdown(f"# {session.title}")
-        if session.description:
-            gr.Markdown(session.description)
 
         input_components = []
         with gr.Column():
@@ -59,6 +57,9 @@ def build_demo(
                 logger.info("Building output component | spec=%s", spec)
                 output_components.append(session.build_output_component(spec))
 
+        if session.description:
+            gr.Markdown(session.description)
+            
         logger.info("Binding Run button click handler")
         submit_button.click(
             fn=inference_fn,

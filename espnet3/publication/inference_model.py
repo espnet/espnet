@@ -377,16 +377,16 @@ class InferenceModel:
         """Build an inference model from a demo directory created by pack_demo().
 
         This entry point loads the packed demo config from ``demo_dir`` and
-        reads ``model.dir_or_tag``. If the value resolves to a local packed
+        reads ``model.dir-or-tag``. If the value resolves to a local packed
         directory under the demo directory, it delegates to :meth:`from_packed`.
         Otherwise, it delegates to :meth:`from_pretrained`.
 
         Args:
             demo_dir: Path to the directory created by ``pack_demo()``. This
-                directory must contain ``demo.yaml`` with ``model.dir_or_tag``.
+                directory must contain ``demo.yaml`` with ``model.dir-or-tag``.
             trust_user_code: Set to ``True`` to allow importing bundled recipe
                 code from the selected model source. This flag is combined with
-                the packed demo config ``model.trust_user_code``.
+                the packed demo config ``model.trust-user-code``.
             demo_config_path: Optional explicit packed demo config path. When
                 omitted, ``demo_dir / "demo.yaml"`` is used. Relative paths
                 are resolved from ``demo_dir``.
@@ -400,7 +400,7 @@ class InferenceModel:
             FileNotFoundError: If the demo directory or packed demo config is
                 missing.
             ValueError: If the packed demo config does not define
-                ``model.dir_or_tag``.
+                ``model.dir-or-tag``.
 
         Examples:
             >>> model = InferenceModel.from_demo("egs3/mini_an4/asr/demo")
@@ -428,14 +428,14 @@ class InferenceModel:
             raise FileNotFoundError(f"demo config path does not exist: {config_path}")
         demo_cfg = load_config_with_defaults(str(config_path))
         model_cfg = getattr(demo_cfg, "model", None)
-        dir_or_tag = getattr(model_cfg, "dir_or_tag", None) if model_cfg else None
+        dir_or_tag = model_cfg.get("dir-or-tag") if model_cfg else None
         if not dir_or_tag:
             raise ValueError(
-                "packed demo config must contain model.dir_or_tag, "
+                "packed demo config must contain model.dir-or-tag, "
                 f"but it was missing under: {demo_root}"
             )
         model_trust_user_code = bool(
-            getattr(model_cfg, "trust_user_code", False) if model_cfg else False
+            model_cfg.get("trust-user-code", False) if model_cfg else False
         )
         raw_ref = str(dir_or_tag)
         candidate = Path(raw_ref).expanduser()
@@ -447,7 +447,7 @@ class InferenceModel:
         if resolved_candidate.exists():
             if not resolved_candidate.is_dir():
                 raise FileNotFoundError(
-                    "model.dir_or_tag resolved to a filesystem path, but it is "
+                    "model.dir-or-tag resolved to a filesystem path, but it is "
                     f"not a directory: {resolved_candidate}"
                 )
             return cls.from_packed(
@@ -511,7 +511,8 @@ class InferenceModel:
                 mapping containing the configured input key(s).
             idx: Optional sample identifier forwarded to ``output_fn``.
             **extra_kwargs: Additional keyword arguments forwarded to the
-                runner (e.g. ``beam_size`` for demo overrides).
+                underlying model callable (e.g. ``beam_size`` for demo
+                overrides).
 
         Returns:
             Any: Backend output, or the transformed output from ``output_fn``.
@@ -536,7 +537,7 @@ class InferenceModel:
             model=self.model,
             input_key=self.input_key,
             output_fn=self.output_fn,
-            **extra_kwargs,
+            model_kwargs=extra_kwargs,
         )
 
     def __call__(self, sample: Any, idx: Any = 0, **extra_kwargs: Any) -> Any:
