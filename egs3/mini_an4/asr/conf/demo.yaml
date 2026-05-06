@@ -1,10 +1,6 @@
-defaults:
-  - ../../../TEMPLATE/asr/conf/demo
-  - _self_
-
 model:
-  dir-or-tag: exp/training_asr_transformer/model_pack
-  trust-user-code: true
+  dir_or_tag: exp/training_asr_transformer/model_pack
+  trust_user_code: true
 
 ui:
   app_script: src/app.py

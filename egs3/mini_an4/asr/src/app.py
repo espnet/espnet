@@ -17,27 +17,24 @@ logger = logging.getLogger(__name__)
 def build_demo(
     demo_dir: Path,
     demo_config_path: Path | None = None,
-    device: str | None = None,
 ):
     """Build the default Gradio Blocks app for one packed demo."""
-    if demo_config_path is None:
-        demo_config_path = demo_dir / "demo.yaml"
+    assert demo_config_path is not None
     logger.info(
-        "Building recipe demo UI | demo_dir=%s demo_config_path=%s device=%s",
+        "Building recipe demo UI | demo_dir=%s demo_config_path=%s",
         demo_dir,
         demo_config_path,
-        device,
     )
-    model_overrides = {"device": device} if device else None
-    session = load_demo_session(
-        demo_dir,
-        demo_config_path,
-        model_overrides=model_overrides,
+    session = load_demo_session(demo_dir, demo_config_path)
+    logger.info(
+        "Resolved demo specs | inputs=%s outputs=%s",
+        session.input_specs,
+        session.output_specs,
     )
-    input_specs = session.input_specs
-    output_specs = session.output_specs
-    logger.info("Resolved demo specs | inputs=%s outputs=%s", input_specs, output_specs)
-    inference_fn = session.create_inference_fn(input_specs, output_specs)
+    inference_fn = session.create_inference_fn(
+        session.input_specs,
+        session.output_specs,
+    )
 
     with gr.Blocks(title=session.title) as app:
         if session.title:
@@ -45,21 +42,33 @@ def build_demo(
 
         input_components = []
         with gr.Column():
-            for spec in input_specs:
+            # Gradio click handlers bind positional values, not a dict keyed by
+            # spec name. Keep this list in the same order as
+            # session.input_specs so create_inference_fn(*values) can zip each
+            # incoming value back to the matching spec/key.
+            for spec in session.input_specs:
                 logger.info("Building input component | spec=%s", spec)
+                # build_input_component() returns one Gradio input component
+                # instance (for example gr.Audio or gr.Textbox). That component
+                # object is what Gradio expects in click(..., inputs=[...]).
                 input_components.append(session.build_input_component(spec))
 
         submit_button = gr.Button("Run")
 
         output_components = []
         with gr.Column():
-            for spec in output_specs:
+            # Outputs also stay positional. inference_fn returns one value per
+            # spec in this exact order, and Gradio routes each returned value
+            # to the component at the same list index.
+            for spec in session.output_specs:
                 logger.info("Building output component | spec=%s", spec)
+                # build_output_component() returns one Gradio output component
+                # instance that Gradio can target from click(..., outputs=[...]).
                 output_components.append(session.build_output_component(spec))
 
         if session.description:
             gr.Markdown(session.description)
-            
+
         logger.info("Binding Run button click handler")
         submit_button.click(
             fn=inference_fn,
@@ -85,12 +94,6 @@ def main() -> None:
         default=None,
         help="Optional packed demo config path. Relative paths use --demo-dir.",
     )
-    parser.add_argument(
-        "--device",
-        type=str,
-        default=None,
-        help="Optional inference device override, such as cpu or cuda:0.",
-    )
     args = parser.parse_args()
     configure_logging(log_dir=args.demo_dir, filename="demo.log")
     logger.info("Starting recipe demo CLI | args=%s", args)
@@ -98,7 +101,6 @@ def main() -> None:
     app = build_demo(
         args.demo_dir,
         demo_config_path=demo_config_path,
-        device=args.device,
     )
     logger.info("Launching Gradio app")
     app.launch()

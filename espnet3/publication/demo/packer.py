@@ -10,9 +10,7 @@ from pathlib import Path
 from omegaconf import DictConfig, ListConfig, OmegaConf
 
 from espnet3.utils.publish import (
-    _build_pack_ignore,
-    _copy_path,
-    _expand_pack_paths,
+    _copy_pack_include_paths,
 )
 
 logger = logging.getLogger(__name__)
@@ -120,7 +118,7 @@ def _prepare_demo_config(demo_cfg, demo_dir: Path, system) -> DictConfig:
     if model_cfg is None:
         cfg["model"] = OmegaConf.create({})
         model_cfg = cfg.model
-    if not model_cfg.get("dir-or-tag"):
+    if not model_cfg.get("dir_or_tag"):
         default_ref = None
         publication_cfg = getattr(system, "publication_config", None)
         if publication_cfg is not None:
@@ -140,17 +138,17 @@ def _prepare_demo_config(demo_cfg, demo_dir: Path, system) -> DictConfig:
                 )
                 default_ref = os.path.relpath(target_path, start=demo_dir)
         if default_ref is not None:
-            model_cfg["dir-or-tag"] = default_ref
-    if not model_cfg.get("dir-or-tag"):
+            model_cfg["dir_or_tag"] = default_ref
+    if not model_cfg.get("dir_or_tag"):
         raise ValueError(
-            "demo_config.model.dir-or-tag is required when no local model pack "
+            "demo_config.model.dir_or_tag is required when no local model pack "
             "can be inferred."
         )
-    raw_ref = str(model_cfg["dir-or-tag"])
+    raw_ref = str(model_cfg["dir_or_tag"])
     candidate = Path(raw_ref).expanduser()
     if not candidate.is_absolute():
         candidate = (Path.cwd() / candidate).resolve()
-    model_cfg["dir-or-tag"] = (
+    model_cfg["dir_or_tag"] = (
         os.path.relpath(candidate, start=demo_dir)
         if candidate.exists() and candidate.is_dir()
         else raw_ref
@@ -183,24 +181,14 @@ def _copy_pack_includes(demo_cfg, demo_dir: Path) -> None:
             if isinstance(exclude_cfg, (list, tuple, ListConfig))
             else [str(exclude_cfg)]
         )
+    _copy_pack_include_paths(
+        include_paths=raw_include_paths,
+        out_dir=demo_dir,
+        recipe_root=Path.cwd(),
+        exclude_patterns=exclude_patterns,
+    )
 
-    include_paths = _expand_pack_paths(raw_include_paths, Path.cwd())
-    for src in include_paths:
-        if not src.exists():
-            logger.warning("Pack include path does not exist: %s", src)
-            continue
-        src = src.resolve()
-        try:
-            dst = demo_dir / src.relative_to(Path.cwd())
-        except ValueError:
-            dst = demo_dir / src.name
-        if os.path.lexists(dst):
-            if dst.is_dir() and not dst.is_symlink():
-                shutil.rmtree(dst)
-            else:
-                dst.unlink()
-        ignore = _build_pack_ignore(src, exclude_patterns) if src.is_dir() else None
-        _copy_path(src=src, dst=dst, ignore=ignore)
+
 def _resolve_app_script(demo_config) -> Path:
     ui_cfg = getattr(demo_config, "ui", None)
     explicit = getattr(ui_cfg, "app_script", None) if ui_cfg else None

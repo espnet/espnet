@@ -22,11 +22,15 @@ class UIAsset:
     values to or from the model-facing payload.
 
     ESPnet3 developers can add new built-in assets by subclassing
-    :class:`UIAsset` and registering the subclass with :func:`register_asset`
-    in this module.
+    :class:`UIAsset` and registering the subclass in
+    :data:`DEFAULT_UI_ASSETS` in this module.
     """
 
-    def check_gradio(self):
+    def __init__(self) -> None:
+        """Initialize one UI asset and cache the imported ``gradio`` module."""
+        self.gradio_module = self._load_gradio()
+
+    def _load_gradio(self):
         """Return the imported ``gradio`` module.
 
         Returns:
@@ -123,13 +127,11 @@ class DefaultAudioUI(UIAsset):
 
     def build_input(self, spec: dict[str, Any]) -> Any:
         """Build a ``gr.Audio`` input component."""
-        gradio_module = self.check_gradio()
-        return gradio_module.Audio(label=spec["label"], type="numpy")
+        return self.gradio_module.Audio(label=spec["label"], type="numpy")
 
     def build_output(self, spec: dict[str, Any]) -> Any:
         """Build a ``gr.Audio`` output component."""
-        gradio_module = self.check_gradio()
-        return gradio_module.Audio(label=spec["label"])
+        return self.gradio_module.Audio(label=spec["label"])
 
     def normalize_input(self, value: Any, spec: dict[str, Any]) -> Any:
         """Extract and convert the NumPy array from a Gradio audio tuple."""
@@ -152,13 +154,11 @@ class DefaultTextUI(UIAsset):
 
     def build_input(self, spec: dict[str, Any]) -> Any:
         """Build a ``gr.Textbox`` input component."""
-        gradio_module = self.check_gradio()
-        return gradio_module.Textbox(label=spec["label"])
+        return self.gradio_module.Textbox(label=spec["label"])
 
     def build_output(self, spec: dict[str, Any]) -> Any:
         """Build a ``gr.Textbox`` output component."""
-        gradio_module = self.check_gradio()
-        return gradio_module.Textbox(label=spec["label"])
+        return self.gradio_module.Textbox(label=spec["label"])
 
 
 class UIAssetRegistry:
@@ -226,22 +226,5 @@ class UIAssetRegistry:
         return UIAssetRegistry(self._assets)
 
 DEFAULT_UI_ASSETS: UIAssetRegistry = UIAssetRegistry()
-
-
-def register_asset(
-    name: str,
-    asset: AssetRegistration,
-    replace: bool = False,
-) -> None:
-    """Register one built-in UI asset in the shared default registry.
-
-    Args:
-        name: Config-facing asset name.
-        asset: Asset instance or asset subclass.
-        replace: Whether an existing registration may be overwritten.
-    """
-    DEFAULT_UI_ASSETS.register(name, asset, replace=replace)
-
-
-register_asset("audio", DefaultAudioUI)
-register_asset("text", DefaultTextUI)
+DEFAULT_UI_ASSETS.register("audio", DefaultAudioUI)
+DEFAULT_UI_ASSETS.register("text", DefaultTextUI)

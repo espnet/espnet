@@ -94,6 +94,7 @@ class BaseSystem:
         inference_config: DictConfig | None = None,
         metrics_config: DictConfig | None = None,
         publication_config: DictConfig | None = None,
+        stage_log_mapping: dict | None = None,
         demo_config: DictConfig | None = None,
     ) -> None:
         """Initialize the system with optional stage configs.
@@ -107,6 +108,7 @@ class BaseSystem:
                 stage.
             publication_config: Publication configuration for ``pack_model``
                 and ``upload_model`` stages.
+            stage_log_mapping: Optional per-stage log directory overrides.
             demo_config: Demo configuration for the ``demo`` stage.
         """
         self.training_config = training_config
@@ -138,6 +140,8 @@ class BaseSystem:
             "upload_demo": "demo_config.pack.out_dir",
         }
         mapping = dict(base_mapping)
+        if stage_log_mapping:
+            mapping.update(stage_log_mapping)
 
         self.stage_log_dirs = {"default": default_dir}
         for stage, ref in mapping.items():

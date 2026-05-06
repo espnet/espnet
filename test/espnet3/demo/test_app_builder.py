@@ -6,11 +6,11 @@ from pathlib import Path
 import pytest
 from omegaconf import OmegaConf
 
-import egs3.TEMPLATE.asr.src.demo as demo_module
+import egs3.TEMPLATE.asr.src.app as demo_module
 import espnet3.publication.demo.assets as demo_assets_module
 import espnet3.publication.demo.session as demo_session_module
-from egs3.TEMPLATE.asr.src.demo import build_demo
-from espnet3.publication.demo.session import build_runtime_overrides, load_demo_session
+from egs3.TEMPLATE.asr.src.app import build_demo
+from espnet3.publication.demo.session import load_demo_session
 
 
 class DummyProvider:
@@ -21,31 +21,6 @@ class DummyProvider:
         def model(speech, **kwargs):
             _ = (speech, kwargs)
             return {"hyp": "ok"}
-
-        return model
-
-
-class DeviceEchoProvider:
-    @staticmethod
-    def build_model(config):
-        device = getattr(config, "device", None)
-
-        def model(speech, **kwargs):
-            _ = kwargs
-            return {"hyp": f"{device}:{speech}"}
-
-        return model
-
-
-class ModelConfigEchoProvider:
-    @staticmethod
-    def build_model(config):
-        device = getattr(config, "device", None)
-        beam_size = getattr(config.model, "beam_size", None)
-
-        def model(speech, **kwargs):
-            _ = kwargs
-            return {"hyp": f"{device}:{beam_size}:{speech}"}
 
         return model
 
@@ -91,9 +66,9 @@ def test_build_demo_with_custom_provider(tmp_path: Path) -> None:
     _write_model_pack(demo_dir)
     (demo_dir / "demo.yaml").write_text(
         "model:\n"
-        "  dir-or-tag: model_pack\n"
-        "  trust-user-code: false\n"
-        "  call-args: {}\n"
+        "  dir_or_tag: model_pack\n"
+        "  trust_user_code: false\n"
+        "  call_args: {}\n"
         "ui:\n"
         "  title: null\n"
         "  description: README.md\n"
@@ -123,9 +98,9 @@ def test_build_demo_uses_inline_description(tmp_path: Path) -> None:
     _write_model_pack(demo_dir)
     (demo_dir / "demo.yaml").write_text(
         "model:\n"
-        "  dir-or-tag: model_pack\n"
-        "  trust-user-code: false\n"
-        "  call-args: {}\n"
+        "  dir_or_tag: model_pack\n"
+        "  trust_user_code: false\n"
+        "  call_args: {}\n"
         "ui:\n"
         "  title: null\n"
         '  description: "**inline**"\n'
@@ -156,9 +131,9 @@ def test_default_assets_can_transform_inputs_and_outputs(tmp_path: Path) -> None
     )
     (demo_dir / "demo.yaml").write_text(
         "model:\n"
-        "  dir-or-tag: model_pack\n"
-        "  trust-user-code: false\n"
-        "  call-args:\n"
+        "  dir_or_tag: model_pack\n"
+        "  trust_user_code: false\n"
+        "  call_args:\n"
         "    beam_size: 2\n"
         "ui:\n"
         "  title: null\n"
@@ -174,7 +149,7 @@ def test_default_assets_can_transform_inputs_and_outputs(tmp_path: Path) -> None
         encoding="utf-8",
     )
 
-    session = load_demo_session(demo_dir)
+    session = load_demo_session(demo_dir, demo_dir / "demo.yaml")
     input_specs = session.input_specs
     output_specs = session.output_specs
     input_component = session.build_input_component(input_specs[0])
@@ -185,42 +160,6 @@ def test_default_assets_can_transform_inputs_and_outputs(tmp_path: Path) -> None
     assert output_component.__class__.__name__ == "Textbox"
     assert session.call_args == {"beam_size": 2}
     assert inference_fn("hello") == "beam=2:hello"
-
-
-def test_load_demo_session_applies_device_override(tmp_path: Path) -> None:
-    demo_dir = tmp_path / "demo"
-    demo_dir.mkdir()
-    _write_model_pack(
-        demo_dir,
-        provider_target="test.espnet3.demo.test_app_builder.DeviceEchoProvider",
-    )
-    (demo_dir / "demo.yaml").write_text(
-        "model:\n"
-        "  dir-or-tag: model_pack\n"
-        "  trust-user-code: false\n"
-        "  call-args: {}\n"
-        "ui:\n"
-        "  title: null\n"
-        "  description: null\n"
-        "  inputs:\n"
-        "    - key: speech\n"
-        "      type: text\n"
-        "      label: Input Text\n"
-        "  outputs:\n"
-        "    - key: hyp\n"
-        "      type: text\n"
-        "      label: Output Text\n",
-        encoding="utf-8",
-    )
-
-    session = load_demo_session(demo_dir, model_overrides={"device": "cuda"})
-    inference_fn = session.create_inference_fn(
-        session.input_specs,
-        session.output_specs,
-    )
-
-    assert session.model.resolved_device == "cuda"
-    assert inference_fn("hello") == "cuda:hello"
 
 
 def test_demo_main_writes_demo_log(monkeypatch, tmp_path: Path) -> None:
@@ -238,32 +177,18 @@ def test_demo_main_writes_demo_log(monkeypatch, tmp_path: Path) -> None:
     def fake_build_demo(
         demo_dir: Path,
         demo_config_path: Path | None = None,
-        device: str | None = None,
-        config_overrides: dict[str, object] | None = None,
     ) -> DummyApp:
         calls["demo_dir"] = demo_dir
         calls["demo_config_path"] = demo_config_path
-        calls["device"] = device
-        calls["config_overrides"] = config_overrides
         return DummyApp()
 
     monkeypatch.setattr(demo_module, "configure_logging", fake_configure_logging)
     monkeypatch.setattr(demo_module, "build_demo", fake_build_demo)
     monkeypatch.setattr(
-        demo_module,
-        "build_runtime_overrides",
-        lambda override_args=None, base_overrides=None: {
-            "override_args": override_args,
-            "base_overrides": base_overrides,
-        },
-    )
-    monkeypatch.setattr(
         "argparse.ArgumentParser.parse_args",
         lambda self: Namespace(
             demo_dir=tmp_path,
             demo_config=None,
-            device="cpu",
-            config_override=["model.beam_size=1"],
         ),
     )
 
@@ -273,20 +198,14 @@ def test_demo_main_writes_demo_log(monkeypatch, tmp_path: Path) -> None:
     assert calls["filename"] == "demo.log"
     assert calls["demo_dir"] == tmp_path
     assert calls["demo_config_path"] == tmp_path / "demo.yaml"
-    assert calls["device"] == "cpu"
-    assert calls["config_overrides"] == {
-        "override_args": ["model.beam_size=1"],
-        "base_overrides": None,
-    }
     assert calls["launched"] is True
 
 
 def test_default_text_ui_requires_gradio(monkeypatch) -> None:
-    text_ui = demo_assets_module.DefaultTextUI()
     monkeypatch.setattr(demo_assets_module, "gr", None)
 
     with pytest.raises(ImportError, match="gradio is required"):
-        text_ui.build_input({"label": "Text"})
+        demo_assets_module.DefaultTextUI()
 
 
 def test_default_assets_use_only_label(monkeypatch) -> None:
@@ -333,9 +252,9 @@ def test_build_input_component_requires_type(tmp_path: Path) -> None:
     _write_model_pack(demo_dir)
     (demo_dir / "demo.yaml").write_text(
         "model:\n"
-        "  dir-or-tag: model_pack\n"
-        "  trust-user-code: false\n"
-        "  call-args: {}\n"
+        "  dir_or_tag: model_pack\n"
+        "  trust_user_code: false\n"
+        "  call_args: {}\n"
         "ui:\n"
         "  title: null\n"
         "  description: null\n"
@@ -350,7 +269,7 @@ def test_build_input_component_requires_type(tmp_path: Path) -> None:
         encoding="utf-8",
     )
 
-    session = load_demo_session(demo_dir)
+    session = load_demo_session(demo_dir, demo_dir / "demo.yaml")
 
     with pytest.raises(KeyError, match="type"):
         session.build_input_component({"key": "speech", "label": "Input"})
@@ -360,12 +279,12 @@ def test_build_demo_model_loads_pretrained_tag(monkeypatch, tmp_path: Path) -> N
     demo_cfg = OmegaConf.create(
         {
             "model": {
-                "dir-or-tag": "espnet/test-model",
-                "trust-user-code": True,
-                "call-args": {},
+                "dir_or_tag": "espnet/test-model",
+                "trust_user_code": True,
+                "call_args": {},
             },
             "ui": {
-                "app_script": "src/demo.py",
+                "app_script": "src/app.py",
                 "title": None,
                 "description": None,
                 "inputs": [{"key": "speech", "type": "audio", "label": "Input Audio"}],
@@ -377,12 +296,10 @@ def test_build_demo_model_loads_pretrained_tag(monkeypatch, tmp_path: Path) -> N
 
     class DummyModel:
         model = None
-        resolved_device = "cpu"
 
-    def fake_from_pretrained(model_tag, trust_user_code=False, config_overrides=None):
+    def fake_from_pretrained(model_tag, trust_user_code=False):
         captured["model_tag"] = model_tag
         captured["trust_user_code"] = trust_user_code
-        captured["config_overrides"] = config_overrides
         return DummyModel()
 
     monkeypatch.setattr(
@@ -394,103 +311,8 @@ def test_build_demo_model_loads_pretrained_tag(monkeypatch, tmp_path: Path) -> N
     model = demo_session_module._build_demo_model(
         demo_cfg,
         tmp_path,
-        model_overrides={"device": "cpu"},
     )
 
     assert isinstance(model, DummyModel)
     assert captured["model_tag"] == "espnet/test-model"
     assert captured["trust_user_code"] is True
-    assert captured["config_overrides"] == {"device": "cpu"}
-
-
-def test_load_demo_session_logs_resolved_device(
-    tmp_path: Path,
-    caplog: pytest.LogCaptureFixture,
-) -> None:
-    demo_dir = tmp_path / "demo"
-    demo_dir.mkdir()
-    _write_model_pack(
-        demo_dir,
-        provider_target="test.espnet3.demo.test_app_builder.DeviceEchoProvider",
-    )
-    (demo_dir / "demo.yaml").write_text(
-        "model:\n"
-        "  dir-or-tag: model_pack\n"
-        "  trust-user-code: false\n"
-        "  call-args: {}\n"
-        "ui:\n"
-        "  title: null\n"
-        "  description: null\n"
-        "  inputs:\n"
-        "    - key: speech\n"
-        "      type: audio\n"
-        "      label: Input Audio\n"
-        "  outputs:\n"
-        "    - key: hyp\n"
-        "      type: text\n"
-        "      label: Transcription\n",
-        encoding="utf-8",
-    )
-    with caplog.at_level("INFO"):
-        session = load_demo_session(demo_dir, model_overrides={"device": "cuda:0"})
-
-    assert session.model.resolved_device == "cuda:0"
-    assert "resolved_device=cuda:0" in caplog.text
-
-
-def test_build_runtime_overrides_supports_nested_values() -> None:
-    overrides = build_runtime_overrides(
-        override_args=[
-            "model.beam_size=3",
-            "parallel.n_workers=2",
-        ],
-        base_overrides={"device": "cuda:0"},
-    )
-
-    assert overrides == {
-        "device": "cuda:0",
-        "model": {"beam_size": 3},
-        "parallel": {"n_workers": 2},
-    }
-
-
-def test_load_demo_session_applies_nested_model_overrides(tmp_path: Path) -> None:
-    demo_dir = tmp_path / "demo"
-    demo_dir.mkdir()
-    _write_model_pack(
-        demo_dir,
-        provider_target="test.espnet3.demo.test_app_builder.ModelConfigEchoProvider",
-    )
-    (demo_dir / "demo.yaml").write_text(
-        "model:\n"
-        "  dir-or-tag: model_pack\n"
-        "  trust-user-code: false\n"
-        "  call-args: {}\n"
-        "ui:\n"
-        "  title: null\n"
-        "  description: null\n"
-        "  inputs:\n"
-        "    - key: speech\n"
-        "      type: audio\n"
-        "      label: Input Audio\n"
-        "  outputs:\n"
-        "    - key: hyp\n"
-        "      type: text\n"
-        "      label: Transcription\n",
-        encoding="utf-8",
-    )
-
-    session = load_demo_session(
-        demo_dir,
-        model_overrides={
-            "device": "cuda:0",
-            "model": {"beam_size": 3},
-        },
-    )
-    inference_fn = session.create_inference_fn(
-        [{"key": "speech", "type": "text"}],
-        [{"key": "hyp", "type": "text"}],
-    )
-
-    assert session.model.resolved_device == "cuda:0"
-    assert inference_fn("hello") == "cuda:0:3:hello"

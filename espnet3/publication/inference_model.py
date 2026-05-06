@@ -98,19 +98,6 @@ def _uses_bundled_code(
     return False
 
 
-def _resolve_runtime_device(
-    provider_cls: type, inference_config: DictConfig
-) -> str | None:
-    """Resolve the runtime device string for one inference model."""
-    resolve_device = getattr(provider_cls, "_resolve_device", None)
-    if callable(resolve_device):
-        return resolve_device(inference_config)
-    device = getattr(inference_config, "device", None)
-    if device in (None, ""):
-        return None
-    return str(device)
-
-
 class InferenceModel:
     """User-facing inference wrapper for packaged ESPnet models.
 
@@ -156,11 +143,7 @@ class InferenceModel:
         >>> batch = model.forward_batch([audio_a, audio_b])
     """
 
-    def __init__(
-        self,
-        inference_config: DictConfig,
-        config_overrides: dict[str, Any] | None = None,
-    ) -> None:
+    def __init__(self, inference_config: DictConfig) -> None:
         """Initialize the inference model from a resolved inference config.
 
         Called by :meth:`from_packed` and :meth:`from_pretrained` after bundle
@@ -171,15 +154,7 @@ class InferenceModel:
         Args:
             inference_config: Resolved inference config loaded from the packed
                 bundle.
-            config_overrides: Optional runtime overrides applied before
-                backend construction, such as ``{"device": "cuda:0"}`` or
-                ``{"model": {"beam_size": 1}}``.
         """
-        if config_overrides:
-            inference_config = OmegaConf.merge(
-                inference_config,
-                OmegaConf.create(config_overrides),
-            )
         provider_target = getattr(
             getattr(inference_config, "provider", None), "_target_", None
         )
@@ -190,7 +165,6 @@ class InferenceModel:
             getattr(inference_config, "runner", None), "_target_", None
         )
         self.runner_cls = get_class(runner_target) if runner_target else InferenceRunner
-        self.resolved_device = _resolve_runtime_device(provider_cls, inference_config)
 
         self.model = provider_cls.build_model(inference_config)
         input_key = getattr(inference_config, "input_key", "speech")
@@ -207,7 +181,6 @@ class InferenceModel:
         cls,
         pack_dir: str | Path,
         trust_user_code: bool = False,
-        config_overrides: dict[str, Any] | None = None,
     ) -> "InferenceModel":
         """Build an inference model from a packed model directory.
 
@@ -231,8 +204,6 @@ class InferenceModel:
             trust_user_code: Set to ``True`` to allow importing bundled recipe
                 code from the pack directory. Required when the inference
                 config references modules shipped inside the bundle.
-            config_overrides: Optional top-level runtime overrides applied
-                before backend construction.
 
         Returns:
             InferenceModel: Inference model loaded from ``pack_model`` output.
@@ -307,14 +278,13 @@ class InferenceModel:
                 bundle_root=bundle_root,
             )
 
-        return cls(inference_config, config_overrides=config_overrides)
+        return cls(inference_config)
 
     @classmethod
     def from_pretrained(
         cls,
         model_tag: str,
         trust_user_code: bool = False,
-        config_overrides: dict[str, Any] | None = None,
     ) -> "InferenceModel":
         """Download a packaged model and build an inference model from it.
 
@@ -329,7 +299,6 @@ class InferenceModel:
             model_tag: Pretrained model identifier understood by
                 ``espnet_model_zoo``.
             trust_user_code: Forwarded to :meth:`from_packed`.
-            config_overrides: Forwarded to :meth:`from_packed`.
 
         Returns:
             InferenceModel: Downloaded inference model.
@@ -360,106 +329,7 @@ class InferenceModel:
             )
         inference_config_path = Path(artifacts["inference_config"])
         pack_dir = inference_config_path.parent.parent
-        return cls.from_packed(
-            pack_dir,
-            trust_user_code=trust_user_code,
-            config_overrides=config_overrides,
-        )
-
-    @classmethod
-    def from_demo(
-        cls,
-        demo_dir: str | Path,
-        trust_user_code: bool = False,
-        demo_config_path: str | Path | None = None,
-        config_overrides: dict[str, Any] | None = None,
-    ) -> "InferenceModel":
-        """Build an inference model from a demo directory created by pack_demo().
-
-        This entry point loads the packed demo config from ``demo_dir`` and
-        reads ``model.dir-or-tag``. If the value resolves to a local packed
-        directory under the demo directory, it delegates to :meth:`from_packed`.
-        Otherwise, it delegates to :meth:`from_pretrained`.
-
-        Args:
-            demo_dir: Path to the directory created by ``pack_demo()``. This
-                directory must contain ``demo.yaml`` with ``model.dir-or-tag``.
-            trust_user_code: Set to ``True`` to allow importing bundled recipe
-                code from the selected model source. This flag is combined with
-                the packed demo config ``model.trust-user-code``.
-            demo_config_path: Optional explicit packed demo config path. When
-                omitted, ``demo_dir / "demo.yaml"`` is used. Relative paths
-                are resolved from ``demo_dir``.
-            config_overrides: Forwarded to :meth:`from_packed` or
-                :meth:`from_pretrained`.
-
-        Returns:
-            InferenceModel: Inference model loaded from the demo config.
-
-        Raises:
-            FileNotFoundError: If the demo directory or packed demo config is
-                missing.
-            ValueError: If the packed demo config does not define
-                ``model.dir-or-tag``.
-
-        Examples:
-            >>> model = InferenceModel.from_demo("egs3/mini_an4/asr/demo")
-            >>> result = model(audio_array)
-
-            >>> model = InferenceModel.from_demo(
-            ...     "egs3/mini_an4/asr/demo",
-            ...     trust_user_code=True,
-            ... )
-        """
-        demo_root = Path(demo_dir).resolve()
-        if not demo_root.is_dir():
-            raise FileNotFoundError(
-                f"demo_dir must point to an existing directory: {demo_root}"
-            )
-        config_path = (
-            Path(demo_config_path)
-            if demo_config_path is not None
-            else demo_root / "demo.yaml"
-        )
-        if not config_path.is_absolute():
-            config_path = demo_root / config_path
-        config_path = config_path.resolve()
-        if not config_path.is_file():
-            raise FileNotFoundError(f"demo config path does not exist: {config_path}")
-        demo_cfg = load_config_with_defaults(str(config_path))
-        model_cfg = getattr(demo_cfg, "model", None)
-        dir_or_tag = model_cfg.get("dir-or-tag") if model_cfg else None
-        if not dir_or_tag:
-            raise ValueError(
-                "packed demo config must contain model.dir-or-tag, "
-                f"but it was missing under: {demo_root}"
-            )
-        model_trust_user_code = bool(
-            model_cfg.get("trust-user-code", False) if model_cfg else False
-        )
-        raw_ref = str(dir_or_tag)
-        candidate = Path(raw_ref).expanduser()
-        resolved_candidate = (
-            (demo_root / candidate).resolve()
-            if not candidate.is_absolute()
-            else candidate.resolve()
-        )
-        if resolved_candidate.exists():
-            if not resolved_candidate.is_dir():
-                raise FileNotFoundError(
-                    "model.dir-or-tag resolved to a filesystem path, but it is "
-                    f"not a directory: {resolved_candidate}"
-                )
-            return cls.from_packed(
-                resolved_candidate,
-                trust_user_code=trust_user_code or model_trust_user_code,
-                config_overrides=config_overrides,
-            )
-        return cls.from_pretrained(
-            raw_ref,
-            trust_user_code=trust_user_code or model_trust_user_code,
-            config_overrides=config_overrides,
-        )
+        return cls.from_packed(pack_dir, trust_user_code=trust_user_code)
 
     @property
     def primary_input_key(self) -> str:

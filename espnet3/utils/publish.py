@@ -123,6 +123,49 @@ def _copy_path(src: Path, dst: Path, ignore=None) -> None:
         shutil.copy2(src, dst)
 
 
+def _copy_pack_include_paths(
+    include_paths: list[str],
+    out_dir: Path,
+    recipe_root: Path,
+    exclude_patterns: list[str] | None = None,
+) -> None:
+    """Copy include paths into a bundle output directory.
+
+    Called by both ``pack_model`` and ``pack_demo`` style packers when they
+    need publication-like include/exclude behavior for extra files or
+    directories. Include entries may be literal paths or glob patterns. When a
+    copied source is under ``recipe_root``, its relative path is preserved
+    under ``out_dir``; otherwise the source basename is used.
+
+    Args:
+        include_paths: Literal paths or glob patterns to copy.
+        out_dir: Bundle output directory.
+        recipe_root: Base directory used for glob expansion and relative-path
+            preservation.
+        exclude_patterns: Optional ignore patterns applied when copying
+            included directories.
+    """
+    expanded_paths = _expand_pack_paths(include_paths, recipe_root)
+    excludes = list(exclude_patterns or [])
+
+    for src in expanded_paths:
+        if not src.exists():
+            logger.warning("Pack include path does not exist: %s", src)
+            continue
+        src = src.resolve()
+        try:
+            dst = out_dir / src.relative_to(recipe_root)
+        except ValueError:
+            dst = out_dir / src.name
+        if os.path.lexists(dst):
+            if dst.is_dir() and not dst.is_symlink():
+                shutil.rmtree(dst)
+            else:
+                dst.unlink()
+        ignore = _build_pack_ignore(src, excludes) if src.is_dir() else None
+        _copy_path(src=src, dst=dst, ignore=ignore)
+
+
 def _rewrite_paths_for_bundle(
     value: Any,
     recipe_root: Path,
@@ -595,7 +638,6 @@ def _check_repo_exists(repo: str, repo_type: str = "model") -> bool:
 def _upload_common(
     repo: str,
     src_dir: Path,
-    *,
     repo_type: str,
     create_options: dict[str, Any] | None = None,
     create_repo_name: str | None = None,

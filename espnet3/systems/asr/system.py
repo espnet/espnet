@@ -37,6 +37,7 @@ class ASRSystem(BaseSystem):
         inference_config: DictConfig | None = None,
         metrics_config: DictConfig | None = None,
         publication_config: DictConfig | None = None,
+        stage_log_mapping: dict | None = None,
         demo_config: DictConfig | None = None,
     ) -> None:
         """Initialize the ASR system with optional stage configs.
@@ -47,6 +48,7 @@ class ASRSystem(BaseSystem):
             metrics_config: Measurement configuration.
             publication_config: Publication configuration for model packing
                 and upload stages.
+            stage_log_mapping: Optional per-stage log directory overrides.
             demo_config: Demo configuration for demo packing and upload
                 stages.
         """
@@ -55,6 +57,10 @@ class ASRSystem(BaseSystem):
             inference_config=inference_config,
             metrics_config=metrics_config,
             publication_config=publication_config,
+            stage_log_mapping={
+                "train_tokenizer": "training_config.tokenizer.save_path",
+                **(stage_log_mapping or {}),
+            },
             demo_config=demo_config,
         )
 

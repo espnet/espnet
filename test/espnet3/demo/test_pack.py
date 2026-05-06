@@ -22,10 +22,10 @@ def test_pack_demo_writes_assets(
     demo_cfg = OmegaConf.create(
         {
             "model": {
-                "dir-or-tag": str(model_pack_dir),
+                "dir_or_tag": str(model_pack_dir),
             },
             "ui": {
-                "app_script": "egs3/TEMPLATE/asr/src/demo.py",
+                "app_script": "egs3/TEMPLATE/asr/src/app.py",
                 "description": "README.md",
             },
             "pack": {
@@ -48,7 +48,7 @@ def test_pack_demo_writes_assets(
     assert (demo_dir / "app.py").exists()
     assert (demo_dir / "README.md").read_text(encoding="utf-8") == "# Demo\n"
     demo_yaml = yaml.safe_load((demo_dir / "demo.yaml").read_text(encoding="utf-8"))
-    assert demo_yaml["model"]["dir-or-tag"] == "../model_pack"
+    assert demo_yaml["model"]["dir_or_tag"] == "../model_pack"
 
 
 def test_pack_demo_skips_description_copy_when_ui_description_is_missing(
@@ -62,10 +62,10 @@ def test_pack_demo_skips_description_copy_when_ui_description_is_missing(
     demo_cfg = OmegaConf.create(
         {
             "model": {
-                "dir-or-tag": str(model_pack_dir),
+                "dir_or_tag": str(model_pack_dir),
             },
             "ui": {
-                "app_script": "egs3/TEMPLATE/asr/src/demo.py",
+                "app_script": "egs3/TEMPLATE/asr/src/app.py",
             },
             "pack": {
                 "out_dir": str(demo_dir),
@@ -105,10 +105,10 @@ def test_pack_demo_supports_exclude_patterns_for_included_dirs(
     demo_cfg = OmegaConf.create(
         {
             "model": {
-                "dir-or-tag": str(model_pack_dir),
+                "dir_or_tag": str(model_pack_dir),
             },
             "ui": {
-                "app_script": "egs3/TEMPLATE/asr/src/demo.py",
+                "app_script": "egs3/TEMPLATE/asr/src/app.py",
             },
             "pack": {
                 "out_dir": str(demo_dir),
@@ -146,10 +146,10 @@ def test_pack_demo_expands_globbed_include_paths(
     demo_cfg = OmegaConf.create(
         {
             "model": {
-                "dir-or-tag": str(model_pack_dir),
+                "dir_or_tag": str(model_pack_dir),
             },
             "ui": {
-                "app_script": "egs3/TEMPLATE/asr/src/demo.py",
+                "app_script": "egs3/TEMPLATE/asr/src/app.py",
             },
             "pack": {
                 "out_dir": str(demo_dir),

@@ -8,10 +8,7 @@ from pathlib import Path
 
 import gradio as gr
 
-from espnet3.publication.demo.session import (
-    build_runtime_overrides,
-    load_demo_session,
-)
+from espnet3.publication.demo.session import load_demo_session
 from espnet3.utils.logging_utils import configure_logging
 
 logger = logging.getLogger(__name__)
@@ -20,34 +17,25 @@ logger = logging.getLogger(__name__)
 def build_demo(
     demo_dir: Path,
     demo_config_path: Path | None = None,
-    device: str | None = None,
-    config_overrides: dict[str, object] | None = None,
 ):
     """Build the default Gradio Blocks app for one packed demo."""
     if demo_config_path is None:
         demo_config_path = demo_dir / "demo.yaml"
     logger.info(
-        "Building recipe demo UI | demo_dir=%s demo_config_path=%s device=%s overrides=%s",
+        "Building recipe demo UI | demo_dir=%s demo_config_path=%s",
         demo_dir,
         demo_config_path,
-        device,
-        config_overrides,
     )
-    base_overrides = dict(config_overrides or {})
-    if device:
-        base_overrides["device"] = device
-    model_overrides = build_runtime_overrides(
-        base_overrides=base_overrides or None,
+    session = load_demo_session(demo_dir, demo_config_path)
+    logger.info(
+        "Resolved demo specs | inputs=%s outputs=%s",
+        session.input_specs,
+        session.output_specs,
     )
-    session = load_demo_session(
-        demo_dir,
-        demo_config_path,
-        model_overrides=model_overrides,
+    inference_fn = session.create_inference_fn(
+        session.input_specs,
+        session.output_specs,
     )
-    input_specs = session.input_specs
-    output_specs = session.output_specs
-    logger.info("Resolved demo specs | inputs=%s outputs=%s", input_specs, output_specs)
-    inference_fn = session.create_inference_fn(input_specs, output_specs)
 
     with gr.Blocks(title=session.title) as app:
         if session.title:
@@ -57,16 +45,28 @@ def build_demo(
 
         input_components = []
         with gr.Column():
-            for spec in input_specs:
+            # Gradio click handlers bind positional values, not a dict keyed by
+            # spec name. Keep this list in the same order as
+            # session.input_specs so create_inference_fn(*values) can zip each
+            # incoming value back to the matching spec/key.
+            for spec in session.input_specs:
                 logger.info("Building input component | spec=%s", spec)
+                # build_input_component() returns one Gradio input component
+                # instance (for example gr.Audio or gr.Textbox). That component
+                # object is what Gradio expects in click(..., inputs=[...]).
                 input_components.append(session.build_input_component(spec))
 
         submit_button = gr.Button("Run")
 
         output_components = []
         with gr.Column():
-            for spec in output_specs:
+            # Outputs also stay positional. inference_fn returns one value per
+            # spec in this exact order, and Gradio routes each returned value
+            # to the component at the same list index.
+            for spec in session.output_specs:
                 logger.info("Building output component | spec=%s", spec)
+                # build_output_component() returns one Gradio output component
+                # instance that Gradio can target from click(..., outputs=[...]).
                 output_components.append(session.build_output_component(spec))
 
         logger.info("Binding Run button click handler")
@@ -94,30 +94,13 @@ def main() -> None:
         default=None,
         help="Optional packed demo config path. Relative paths use --demo-dir.",
     )
-    parser.add_argument(
-        "--device",
-        type=str,
-        default=None,
-        help="Optional inference device override, such as cpu or cuda:0.",
-    )
-    parser.add_argument(
-        "--config-override",
-        action="append",
-        default=None,
-        help="Optional inference config override, such as model.beam_size=1.",
-    )
     args = parser.parse_args()
     configure_logging(log_dir=args.demo_dir, filename="demo.log")
     logger.info("Starting recipe demo CLI | args=%s", args)
-    config_overrides = build_runtime_overrides(
-        override_args=args.config_override,
-    )
     demo_config_path = args.demo_config or (args.demo_dir / "demo.yaml")
     app = build_demo(
         args.demo_dir,
         demo_config_path=demo_config_path,
-        device=args.device,
-        config_overrides=config_overrides,
     )
     logger.info("Launching Gradio app")
     app.launch()

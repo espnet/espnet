@@ -114,6 +114,24 @@ def test_base_system_create_dataset_stage_logs_use_data_dir(tmp_path):
     assert system.stage_log_dirs["create_dataset"] == tmp_path / "data"
 
 
+def test_base_system_stage_log_mapping_overrides_base_mapping(tmp_path):
+    train_cfg = OmegaConf.create(
+        {
+            "exp_dir": str(tmp_path / "exp"),
+            "data_dir": str(tmp_path / "data"),
+        }
+    )
+    infer_cfg = OmegaConf.create({"inference_dir": str(tmp_path / "infer")})
+
+    system = BaseSystem(
+        training_config=train_cfg,
+        inference_config=infer_cfg,
+        stage_log_mapping={"create_dataset": "inference_config.inference_dir"},
+    )
+
+    assert system.stage_log_dirs["create_dataset"] == tmp_path / "infer"
+
+
 def test_base_system_create_dataset_prepares_dataset_references(tmp_path, monkeypatch):
     train_cfg = OmegaConf.create(
         {
