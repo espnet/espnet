@@ -165,9 +165,9 @@ def test_pack_demo_expands_globbed_include_paths(
 
     pack_demo(DummySystem())
 
-    assert (
-        demo_dir / "data" / "manifest" / "train.tsv"
-    ).read_text(encoding="utf-8") == "utt\tpath\n"
-    assert (
-        demo_dir / "data" / "manifest" / "dev.tsv"
-    ).read_text(encoding="utf-8") == "utt\tpath\n"
+    assert (demo_dir / "data" / "manifest" / "train.tsv").read_text(
+        encoding="utf-8"
+    ) == "utt\tpath\n"
+    assert (demo_dir / "data" / "manifest" / "dev.tsv").read_text(
+        encoding="utf-8"
+    ) == "utt\tpath\n"

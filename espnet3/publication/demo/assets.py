@@ -225,6 +225,7 @@ class UIAssetRegistry:
         """Return a shallow copy for one demo session."""
         return UIAssetRegistry(self._assets)
 
+
 DEFAULT_UI_ASSETS: UIAssetRegistry = UIAssetRegistry()
 DEFAULT_UI_ASSETS.register("audio", DefaultAudioUI)
 DEFAULT_UI_ASSETS.register("text", DefaultTextUI)
