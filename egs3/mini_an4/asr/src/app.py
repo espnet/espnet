@@ -59,7 +59,7 @@ def build_demo(
 
         if session.description:
             gr.Markdown(session.description)
-            
+
         logger.info("Binding Run button click handler")
         submit_button.click(
             fn=inference_fn,

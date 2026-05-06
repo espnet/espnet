@@ -201,6 +201,8 @@ def _copy_pack_includes(demo_cfg, demo_dir: Path) -> None:
                 dst.unlink()
         ignore = _build_pack_ignore(src, exclude_patterns) if src.is_dir() else None
         _copy_path(src=src, dst=dst, ignore=ignore)
+
+
 def _resolve_app_script(demo_config) -> Path:
     ui_cfg = getattr(demo_config, "ui", None)
     explicit = getattr(ui_cfg, "app_script", None) if ui_cfg else None

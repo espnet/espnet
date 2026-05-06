@@ -280,6 +280,8 @@ def _build_demo_model(
         trust_user_code=model_trust_user_code,
         config_overrides=model_overrides,
     )
+
+
 def _resolve_spec_dict(spec: DictConfig, field_name: str) -> dict[str, Any]:
     resolved = OmegaConf.to_container(spec, resolve=True)
     if not isinstance(resolved, dict):
