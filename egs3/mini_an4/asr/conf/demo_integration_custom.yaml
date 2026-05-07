@@ -1,0 +1,5 @@
+ui:
+  app_script: src/app_image.py
+
+pack:
+  out_dir: exp/demo_ui_custom

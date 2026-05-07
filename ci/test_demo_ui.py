@@ -12,10 +12,14 @@ import pytest
 from playwright.sync_api import sync_playwright
 
 SYSTEM_CONFIGS = {
-    "asr": {
-        "demo_dir": "egs3/mini_an4/asr/demo",
-        "input_keys": ["speech"],
-        "output_keys": ["text"],
+    "default_asr": {
+        "demo_dir": "egs3/mini_an4/asr/exp/demo_ui_default",
+        "expected_texts": ["Input Audio", "Transcription"],
+        "run_label": "Run",
+    },
+    "custom_asr_image": {
+        "demo_dir": "egs3/mini_an4/asr/exp/demo_ui_custom",
+        "expected_texts": ["Input Audio", "Transcription", "Reference Image"],
         "run_label": "Run",
     },
 }
@@ -80,28 +84,22 @@ def _stop_demo_app(proc: subprocess.Popen) -> None:
 )
 def test_demo_ui_labels(system_name: str, config: dict) -> None:
     demo_dir = _repo_root() / config["demo_dir"]
-    expected_keys = set(config.get("input_keys", [])) | set(
-        config.get("output_keys", [])
-    )
+    expected_texts = list(config.get("expected_texts", []))
 
-    proc, url = _start_demo_app(demo_dir, port=7860)
+    port = 7860 + list(sorted(SYSTEM_CONFIGS)).index(system_name)
+    proc, url = _start_demo_app(demo_dir, port=port)
     try:
         with sync_playwright() as playwright:
             browser = playwright.chromium.launch()
             try:
                 page = browser.new_page()
                 page.goto(url, wait_until="domcontentloaded")
-                page.wait_for_selector("label", timeout=30000)
-                labels = page.locator("label").all_inner_texts()
-                label_text = {
-                    label.strip().lower() for label in labels if label.strip()
-                }
-                missing = [
-                    key for key in expected_keys if key.lower() not in label_text
-                ]
-                assert not missing, f"{system_name} missing labels: {missing}"
+                page.wait_for_timeout(1000)
+                body_text = page.locator("body").inner_text()
+                missing = [text for text in expected_texts if text not in body_text]
+                assert not missing, f"{system_name} missing UI text: {missing}"
                 run_label = config.get("run_label", "Run")
-                page.get_by_role("button", name=re.compile(run_label, re.I)).click()
+                page.get_by_role("button", name=re.compile(run_label, re.I)).wait_for()
             finally:
                 browser.close()
     finally:

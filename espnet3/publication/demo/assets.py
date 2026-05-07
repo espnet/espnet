@@ -18,8 +18,7 @@ class UIAsset:
 
     Demo configs refer to UI assets by ``ui.inputs[].type`` and
     ``ui.outputs[].type``. Each asset implementation is responsible for
-    building the corresponding Gradio component and for converting raw UI
-    values to or from the model-facing payload.
+    building the corresponding Gradio component.
 
     ESPnet3 developers can add new built-in assets by subclassing
     :class:`UIAsset` and registering the subclass in
@@ -78,41 +77,6 @@ class UIAsset:
             f"{self.__class__.__name__} does not support output components."
         )
 
-    def normalize_input(self, value: Any, spec: dict[str, Any]) -> Any:
-        """Normalize one raw UI input value before model inference.
-
-        Args:
-            value: Raw value returned by the Gradio input component.
-            spec: Resolved input spec from ``demo_config.ui.inputs``.
-
-        Returns:
-            Any: Value forwarded to the inference model under ``spec["key"]``.
-
-        Examples:
-            >>> asset.normalize_input("hello", {"key": "text", "type": "text"})
-            'hello'
-        """
-        _ = spec
-        return value
-
-    def format_output(self, value: Any, spec: dict[str, Any]) -> Any:
-        """Format one model output value before returning it to the UI.
-
-        Args:
-            value: Model output value selected for one output spec.
-            spec: Resolved output spec from ``demo_config.ui.outputs``.
-
-        Returns:
-            Any: Value returned to the Gradio output component.
-
-        Examples:
-            >>> asset.format_output("ok", {"key": "hyp", "type": "text"})
-            'ok'
-        """
-        _ = spec
-        return value
-
-
 AssetRegistration = UIAsset | type[UIAsset]
 
 
@@ -120,30 +84,16 @@ class DefaultAudioUI(UIAsset):
     """Default Gradio audio asset.
 
     This is the built-in asset used by the standard demo template for speech
-    input and optional audio output. Input values are requested from Gradio as
-    NumPy arrays so they can be passed directly to the inference model after a
-    small normalization step.
+    input and optional audio output.
     """
 
     def build_input(self, spec: dict[str, Any]) -> Any:
         """Build a ``gr.Audio`` input component."""
-        return self.gradio_module.Audio(label=spec["label"], type="numpy")
+        return self.gradio_module.Audio(label=spec["label"])
 
     def build_output(self, spec: dict[str, Any]) -> Any:
         """Build a ``gr.Audio`` output component."""
         return self.gradio_module.Audio(label=spec["label"])
-
-    def normalize_input(self, value: Any, spec: dict[str, Any]) -> Any:
-        """Extract and convert the NumPy array from a Gradio audio tuple."""
-        _ = spec
-        import numpy as np
-
-        if isinstance(value, (list, tuple)) and len(value) == 2:
-            _, audio = value
-            if isinstance(audio, np.ndarray):
-                return audio.astype(np.float32)
-        return value
-
 
 class DefaultTextUI(UIAsset):
     """Default Gradio text asset.

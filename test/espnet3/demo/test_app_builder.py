@@ -120,7 +120,7 @@ def test_build_demo_uses_inline_description(tmp_path: Path) -> None:
     assert markdowns[0].value == "**inline**"
 
 
-def test_default_assets_can_transform_inputs_and_outputs(tmp_path: Path) -> None:
+def test_default_assets_pass_through_inputs_and_outputs(tmp_path: Path) -> None:
     gr = pytest.importorskip("gradio")
     _ = gr
     demo_dir = tmp_path / "demo"
@@ -160,6 +160,36 @@ def test_default_assets_can_transform_inputs_and_outputs(tmp_path: Path) -> None
     assert output_component.__class__.__name__ == "Textbox"
     assert session.call_args == {"beam_size": 2}
     assert inference_fn("hello") == "beam=2:hello"
+
+
+def test_create_inference_fn_accepts_explicit_key_lists(tmp_path: Path) -> None:
+    demo_dir = tmp_path / "demo"
+    demo_dir.mkdir()
+    _write_model_pack(
+        demo_dir,
+        provider_target="test.espnet3.demo.test_app_builder.CallArgsEchoProvider",
+    )
+    (demo_dir / "demo.yaml").write_text(
+        "model:\n"
+        "  dir_or_tag: model_pack\n"
+        "  trust_user_code: false\n"
+        "  call_args:\n"
+        "    beam_size: 3\n"
+        "ui:\n"
+        "  title: null\n"
+        "  description: null\n"
+        "  inputs: []\n"
+        "  outputs: []\n",
+        encoding="utf-8",
+    )
+
+    session = load_demo_session(demo_dir, demo_dir / "demo.yaml")
+    inference_fn = session.create_inference_fn(
+        input_keys=["speech"],
+        output_keys=["hyp"],
+    )
+
+    assert inference_fn("hello") == "beam=3:hello"
 
 
 def test_demo_main_writes_demo_log(monkeypatch, tmp_path: Path) -> None:
@@ -239,7 +269,7 @@ def test_default_assets_use_only_label(monkeypatch) -> None:
     )
 
     assert calls == [
-        ("Audio", {"label": "Input Audio", "type": "numpy"}),
+        ("Audio", {"label": "Input Audio"}),
         ("Audio", {"label": "Output Audio"}),
         ("Textbox", {"label": "Input Text"}),
         ("Textbox", {"label": "Output Text"}),

@@ -81,7 +81,19 @@ if [ -n "${hf_repo}" ]; then
 fi
 
 PACK_DIR="${pack_dir}" python3 "${cwd}/ci/test_integration_espnet3_publication_check.py" \
-    "${check_args[@]}" \
+    "${check_args[@]}"
+
+${python} run.py \
+    --stages pack_demo \
+    --training_config "${training_config}" \
+    --demo_config conf/demo_integration_default.yaml
+
+${python} run.py \
+    --stages pack_demo \
+    --training_config "${training_config}" \
+    --demo_config conf/demo_integration_custom.yaml
+
+${python} -m pytest -q "${cwd}/ci/test_demo_ui.py"
 
 # rm -rf exp data
 cd "${cwd}" || exit 1

@@ -24,7 +24,7 @@ class DemoSession:
     This class keeps the packed demo config, resolved model, and asset
     registry together so recipe-local ``demo.py`` files can build any Gradio
     layout they want while still reusing ESPnet's model loading and
-    input/output normalization.
+    input/output wiring.
 
     Args:
         demo_dir: Packed demo directory.
@@ -90,34 +90,49 @@ class DemoSession:
 
     def create_inference_fn(
         self,
-        input_specs: list[dict[str, Any]],
-        output_specs: list[dict[str, Any]],
+        input_specs: list[dict[str, Any]] | None = None,
+        output_specs: list[dict[str, Any]] | None = None,
+        input_keys: list[str] | None = None,
+        output_keys: list[str] | None = None,
     ):
         """Return a callable that maps Gradio values to model inference.
 
         Args:
-            input_specs: Resolved UI input spec list.
-            output_specs: Resolved UI output spec list.
+            input_specs: Optional resolved UI input spec list.
+            output_specs: Optional resolved UI output spec list.
+            input_keys: Optional model input key list. When omitted, keys are
+                derived from ``input_specs``.
+            output_keys: Optional model output key list. When omitted, keys are
+                derived from ``output_specs``.
 
         Returns:
             Callable: Function suitable for ``gr.Button.click`` that
-            normalizes UI inputs, runs inference, and formats outputs.
+            maps UI values to model input keys and runs inference.
         """
+        resolved_input_specs = input_specs or []
+        resolved_output_specs = output_specs or []
+        resolved_input_keys = (
+            input_keys
+            if input_keys is not None
+            else [spec["key"] for spec in resolved_input_specs]
+        )
+        resolved_output_keys = (
+            output_keys
+            if output_keys is not None
+            else [spec["key"] for spec in resolved_output_specs]
+        )
 
         def run_inference(*values: Any) -> Any:
             logger.info(
                 "Demo inference start | num_inputs=%d input_keys=%s output_keys=%s",
                 len(values),
-                [spec["key"] for spec in input_specs],
-                [spec["key"] for spec in output_specs],
+                resolved_input_keys,
+                resolved_output_keys,
             )
             try:
                 item = {}
-                for spec, value in zip(input_specs, values):
-                    key = spec["key"]
-                    item[key] = self.registry.get(spec["type"]).normalize_input(
-                        value, spec
-                    )
+                for key, value in zip(resolved_input_keys, values):
+                    item[key] = value
                 logger.info(
                     "Calling inference model | input_keys=%s call_args=%s",
                     list(item.keys()),
@@ -129,10 +144,8 @@ class DemoSession:
                     list(result.keys()) if isinstance(result, dict) else None,
                 )
                 outputs = []
-                for spec in output_specs:
-                    key = spec["key"]
+                for key in resolved_output_keys:
                     value = result[key] if isinstance(result, dict) else result
-                    value = self.registry.get(spec["type"]).format_output(value, spec)
                     outputs.append(value)
                 if len(outputs) == 1:
                     outputs = outputs[0]
