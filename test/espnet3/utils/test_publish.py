@@ -6,7 +6,7 @@ from types import SimpleNamespace
 import pytest
 from omegaconf import OmegaConf
 
-from espnet3.publication.demo import packer as demo_packer
+from espnet3.publication.demo import packing as demo_packer
 from espnet3.systems.asr.system import ASRSystem
 from espnet3.utils import publish
 from espnet3.utils.publish import (
@@ -977,7 +977,6 @@ def test_upload_demo_uses_shared_upload_helper(tmp_path, monkeypatch):
             "upload_demo": {
                 "hf_repo": "espnet/test-demo",
                 "organization": "espnet",
-                "space_sdk": "gradio",
             },
         }
     )
@@ -1001,6 +1000,7 @@ def test_upload_demo_uses_shared_upload_helper(tmp_path, monkeypatch):
                 "create_options": {
                     "organization": "espnet",
                     "space_sdk": "gradio",
+                    "yes": True,
                 },
                 "create_repo_name": "test-demo",
             },

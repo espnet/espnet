@@ -10,8 +10,8 @@ from espnet3.components.data.dataset_module import (
     load_dataset_module,
     parse_dataset_reference_config,
 )
-from espnet3.publication.demo.packer import pack_demo as _pack_demo
-from espnet3.publication.demo.packer import upload_demo as _upload_demo
+from espnet3.publication.demo.packing import pack_demo as _pack_demo
+from espnet3.publication.demo.packing import upload_demo as _upload_demo
 from espnet3.systems.base.inference import infer
 from espnet3.systems.base.metric import measure
 from espnet3.systems.base.training import collect_stats, train
