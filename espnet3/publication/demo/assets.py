@@ -77,6 +77,7 @@ class UIAsset:
             f"{self.__class__.__name__} does not support output components."
         )
 
+
 AssetRegistration = UIAsset | type[UIAsset]
 
 
@@ -94,6 +95,7 @@ class DefaultAudioUI(UIAsset):
     def build_output(self, spec: dict[str, Any]) -> Any:
         """Build a ``gr.Audio`` output component."""
         return self.gradio_module.Audio(label=spec["label"])
+
 
 class DefaultTextUI(UIAsset):
     """Default Gradio text asset.
