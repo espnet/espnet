@@ -7,7 +7,6 @@ import logging
 from pathlib import Path
 
 import gradio as gr
-import numpy as np
 
 from espnet3.publication.demo.session import load_demo_session
 from espnet3.utils.logging_utils import configure_logging
@@ -19,39 +18,37 @@ def build_demo(
     demo_dir: Path,
     demo_config_path: Path | None = None,
 ):
-    """Build a demo app with an extra image block."""
+    """Build a demo app with a custom image input block."""
     assert demo_config_path is not None
     session = load_demo_session(demo_dir, demo_config_path)
     inference_fn = session.create_inference_fn(
-        input_keys=["speech"],
-        output_keys=["hyp"],
+        input_keys=[spec["key"] for spec in session.input_specs] + ["image"],
+        output_keys=[spec["key"] for spec in session.output_specs],
     )
 
     with gr.Blocks(title=session.title) as app:
         if session.title:
             gr.Markdown(f"# {session.title}")
 
+        if session.description:
+            gr.Markdown(session.description)
+
         with gr.Row():
             with gr.Column():
-                input_components = [
-                    session.build_input_component(spec) for spec in session.input_specs
-                ]
+                input_components = []
+                for spec in session.input_specs:
+                    input_components.append(session.build_input_component(spec))
+                image_input = gr.Image(
+                    label="Reference Image",
+                    type="numpy",
+                )
+                input_components.append(image_input)
                 submit_button = gr.Button("Run")
             with gr.Column():
-                gr.Image(
-                    value=np.zeros((16, 16, 3), dtype=np.uint8),
-                    label="Reference Image",
-                    interactive=False,
-                    show_download_button=False,
-                    show_share_button=False,
-                )
                 output_components = [
                     session.build_output_component(spec)
                     for spec in session.output_specs
                 ]
-
-        if session.description:
-            gr.Markdown(session.description)
 
         submit_button.click(
             fn=inference_fn,

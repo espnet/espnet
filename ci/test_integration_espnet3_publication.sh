@@ -1,12 +1,11 @@
 #!/usr/bin/env bash
 
-# set -euo pipefail
+set -euo pipefail
 
 . tools/activate_python.sh
 . tools/extra_path.sh
 
-# python="coverage run --append"
-python="python"
+python="coverage run --append"
 cwd=$(pwd)
 
 training_config=${1:-conf/training_asr_transformer.yaml}
@@ -21,6 +20,70 @@ stages=(create_dataset train_tokenizer collect_stats train infer measure pack_mo
 gen_dummy_coverage() {
     touch empty.py
     ${python} empty.py
+}
+
+write_demo_test_model_pack_default() {
+    local pack_root="exp/demo_test_model_pack_default"
+    mkdir -p "${pack_root}/conf"
+    cat > "${pack_root}/meta.yaml" <<'EOF'
+yaml_files:
+  inference_config: conf/inference.yaml
+EOF
+    cat > "${pack_root}/conf/inference.yaml" <<'EOF'
+provider:
+  _target_: demo_test_provider.DemoTestProvider
+input_key:
+  - speech
+EOF
+    cat > "${pack_root}/demo_test_provider.py" <<'EOF'
+from __future__ import annotations
+
+
+class DemoTestProvider:
+    @staticmethod
+    def build_model(config):
+        _ = config
+
+        def model(speech):
+            return {"hyp": f"speech={int(speech is not None)}"}
+
+        return model
+EOF
+}
+
+write_demo_test_model_pack_custom() {
+    local pack_root="exp/demo_test_model_pack"
+    mkdir -p "${pack_root}/conf"
+    cat > "${pack_root}/meta.yaml" <<'EOF'
+yaml_files:
+  inference_config: conf/inference.yaml
+EOF
+    cat > "${pack_root}/conf/inference.yaml" <<'EOF'
+provider:
+  _target_: demo_test_provider.DemoTestProvider
+input_key:
+  - speech
+  - image
+EOF
+    cat > "${pack_root}/demo_test_provider.py" <<'EOF'
+from __future__ import annotations
+
+
+class DemoTestProvider:
+    @staticmethod
+    def build_model(config):
+        _ = config
+
+        def model(speech, image):
+            return {
+                "hyp": (
+                    f"speech={int(speech is not None)} "
+                    f"image={int(image is not None)}"
+                )
+            }
+
+        return model
+EOF
 }
 
 resolve_hf_repo() {
@@ -41,7 +104,7 @@ print(getattr(getattr(config, "upload_model", None), "hf_repo", ""))
 PY
 }
 
-# python3 -m pip install -e '.[asr]'
+python3 -m pip install -e '.[asr]'
 
 cd ./egs3/mini_an4/asr || exit
 gen_dummy_coverage
@@ -88,12 +151,46 @@ ${python} run.py \
     --training_config "${training_config}" \
     --demo_config conf/demo_integration_default.yaml
 
+write_demo_test_model_pack_default
+
+python - "$(pwd)/exp/demo_ui_default" "$(pwd)/exp/demo_test_model_pack_default" <<'PY'
+from pathlib import Path
+import os
+import sys
+from omegaconf import OmegaConf
+
+demo_dir = Path(sys.argv[1]).resolve()
+model_dir = Path(sys.argv[2]).resolve()
+config_path = demo_dir / "demo.yaml"
+cfg = OmegaConf.load(config_path)
+cfg.model.dir_or_tag = os.path.relpath(model_dir, start=demo_dir)
+cfg.model.trust_user_code = True
+config_path.write_text(OmegaConf.to_yaml(cfg, resolve=True), encoding="utf-8")
+PY
+
+write_demo_test_model_pack_custom
+
 ${python} run.py \
     --stages pack_demo \
     --training_config "${training_config}" \
     --demo_config conf/demo_integration_custom.yaml
 
-${python} -m pytest -q "${cwd}/ci/test_demo_ui.py"
+python - "$(pwd)/exp/demo_ui_custom" "$(pwd)/exp/demo_test_model_pack" <<'PY'
+from pathlib import Path
+import os
+import sys
+from omegaconf import OmegaConf
 
-# rm -rf exp data
+demo_dir = Path(sys.argv[1]).resolve()
+model_dir = Path(sys.argv[2]).resolve()
+config_path = demo_dir / "demo.yaml"
+cfg = OmegaConf.load(config_path)
+cfg.model.dir_or_tag = os.path.relpath(model_dir, start=demo_dir)
+cfg.model.trust_user_code = True
+config_path.write_text(OmegaConf.to_yaml(cfg, resolve=True), encoding="utf-8")
+PY
+
+${python} "${cwd}/ci/test_demo_ui.py"
+
+rm -rf exp data
 cd "${cwd}" || exit 1
