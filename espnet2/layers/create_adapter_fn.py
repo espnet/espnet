@@ -118,7 +118,8 @@ def create_lora_adapter(
         adapter_type (str): Backend type for torch.nn.Linear LoRA modules.
             Defaults to "lora".
         **kwargs: Additional backend-specific keyword arguments. For example,
-            rotation_ratio: the rotation ratio for SSVD. Only used when adapter_type is "ssvd".
+            rotation_ratio: the rotation ratio for SSVD. 
+            Only used when adapter_type is "ssvd".
 
     """
 
