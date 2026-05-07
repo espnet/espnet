@@ -107,7 +107,8 @@ def _write_test_audio(path: Path) -> None:
 
 def _write_test_image(path: Path) -> None:
     png_bytes = base64.b64decode(
-        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wn5V1cAAAAASUVORK5CYII="
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8A"
+        "AusB9Wn5V1cAAAAASUVORK5CYII="
     )
     path.write_bytes(png_bytes)
 
@@ -162,7 +163,9 @@ def check_demo_ui_labels(system_name: str, config: dict) -> None:
                     f"but found {image_inputs}"
                 )
                 run_label = config.get("run_label", "Run")
-                run_button = page.get_by_role("button", name=re.compile(run_label, re.I))
+                run_button = page.get_by_role(
+                    "button", name=re.compile(run_label, re.I)
+                )
                 run_button.wait_for()
 
                 with tempfile.TemporaryDirectory() as temp_dir_name:
@@ -180,7 +183,9 @@ def check_demo_ui_labels(system_name: str, config: dict) -> None:
                         ).set_input_files(str(image_path))
                     run_button.click()
 
-                output_box = page.get_by_role("textbox", name=re.compile("transcription", re.I))
+                output_box = page.get_by_role(
+                    "textbox", name=re.compile("transcription", re.I)
+                )
                 output_box.wait_for()
                 page.wait_for_function(
                     """(expected) => {
