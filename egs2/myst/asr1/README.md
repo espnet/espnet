@@ -29,10 +29,10 @@ The PEFT examples fine-tune selected linear layers of the pretrained model using
 Depending on the selected configuration, the recipe may use one of the following LoRA variants:
 
 - **LoRA**: https://arxiv.org/pdf/2106.09685
-- **SSVD**: https://arxiv.org/pdf/2509.02830 
-- **DoRA**: https://arxiv.org/pdf/2402.09353 
-- **PiSSA**: https://arxiv.org/pdf/2404.02948 
-- **SVFT**: https://arxiv.org/pdf/2405.19597 
+- **SSVD**: https://arxiv.org/pdf/2509.02830
+- **DoRA**: https://arxiv.org/pdf/2402.09353
+- **PiSSA**: https://arxiv.org/pdf/2404.02948
+- **SVFT**: https://arxiv.org/pdf/2405.19597
 
 These methods are configured through the YAML files using `adapter_type`, with supported values including `lora`, `ssvd``, ``dora`, `pissa`, and `svft`.
 
@@ -69,7 +69,7 @@ adapter_type: dora
 
 ## exp/s2t_peft_tuning_owsm_ssvd
 
-Model: https://huggingface.co/wangpuupup/myst_peft_tuning_owsm_ssvd 
+Model: https://huggingface.co/wangpuupup/myst_peft_tuning_owsm_ssvd
 
 ## Environments
 - date: `Wed May  6 00:29:18 EDT 2026`
