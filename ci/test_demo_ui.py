@@ -127,8 +127,7 @@ def check_demo_ui_labels(system_name: str, config: dict) -> None:
                 page = browser.new_page()
                 page.goto(url, wait_until="domcontentloaded")
                 page.wait_for_timeout(3000)
-                ui_texts = page.evaluate(
-                    """() => {
+                ui_texts = page.evaluate("""() => {
                         const values = new Set();
                         const push = (value) => {
                             if (typeof value !== "string") {
@@ -146,8 +145,7 @@ def check_demo_ui_labels(system_name: str, config: dict) -> None:
                             push(element.getAttribute("title"));
                         }
                         return Array.from(values);
-                    }"""
-                )
+                    }""")
                 missing = [
                     text
                     for text in expected_texts
@@ -162,7 +160,9 @@ def check_demo_ui_labels(system_name: str, config: dict) -> None:
                     f"but found {image_inputs}"
                 )
                 run_label = config.get("run_label", "Run")
-                run_button = page.get_by_role("button", name=re.compile(run_label, re.I))
+                run_button = page.get_by_role(
+                    "button", name=re.compile(run_label, re.I)
+                )
                 run_button.wait_for()
 
                 with tempfile.TemporaryDirectory() as temp_dir_name:
@@ -180,7 +180,9 @@ def check_demo_ui_labels(system_name: str, config: dict) -> None:
                         ).set_input_files(str(image_path))
                     run_button.click()
 
-                output_box = page.get_by_role("textbox", name=re.compile("transcription", re.I))
+                output_box = page.get_by_role(
+                    "textbox", name=re.compile("transcription", re.I)
+                )
                 output_box.wait_for()
                 page.wait_for_function(
                     """(expected) => {
