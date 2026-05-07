@@ -154,6 +154,7 @@ def apply_training_experiment_context(
     inference_config: DictConfig | None,
     metrics_config: DictConfig | None,
     publication_config: DictConfig | None,
+    demo_config: DictConfig | None = None,
     log: logging.Logger,
 ) -> None:
     """Apply runner context propagation across stage configs.
@@ -177,6 +178,8 @@ def apply_training_experiment_context(
             when present.
         publication_config (DictConfig | None): Publication config to patch in
             place when present.
+        demo_config (DictConfig | None): Demo config to patch in place when
+            present.
         log (logging.Logger): Logger used for insert/overwrite messages.
 
     Returns:
@@ -303,6 +306,15 @@ def apply_training_experiment_context(
                 keys=_TRAINING_CONTEXT_KEYS,
                 source_name="training_config",
                 target_name="publication_config",
+                log=log,
+            )
+        if demo_config is not None:
+            _copy_config_context(
+                source=training_config,
+                target=demo_config,
+                keys=_TRAINING_CONTEXT_KEYS,
+                source_name="training_config",
+                target_name="demo_config",
                 log=log,
             )
 
