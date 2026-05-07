@@ -6,7 +6,7 @@ import pytest
 import yaml
 from omegaconf import OmegaConf
 
-from espnet3.publication.demo.packer import pack_demo
+from espnet3.publication.demo.packing import pack_demo
 
 
 def test_pack_demo_writes_assets(
