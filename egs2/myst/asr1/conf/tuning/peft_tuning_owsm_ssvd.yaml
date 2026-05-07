@@ -1,0 +1,140 @@
+preprocessor: s2t
+preprocessor_conf:
+    text_prev_name: text_prev
+    text_ctc_name: text_ctc
+    fs: 16000
+    na_symbol: "<na>"
+    speech_length: 30
+    speech_resolution: 0.02
+    speech_init_silence: 30
+    text_prev_apply_prob: 0.5
+    time_apply_prob: 0.5
+    notime_symbol: "<notimestamps>"
+    first_time_symbol: "<0.00>"
+    last_time_symbol: "<30.00>"
+
+frontend_conf:
+    n_fft: 512
+    win_length: 400
+    hop_length: 160
+
+specaug: specaug
+specaug_conf:
+    apply_time_warp: false
+    time_warp_window: 5
+    time_warp_mode: bicubic
+    apply_freq_mask: true
+    freq_mask_width_range:
+    - 0
+    - 27
+    num_freq_mask: 2
+    apply_time_mask: true
+    time_mask_width_ratio_range:
+    - 0.
+    - 0.05
+    num_time_mask: 10
+
+normalize: global_mvn
+normalize_conf:
+    stats_file: exp/s2t_stats_raw_bpe50000_medium/train/feats_stats.npz
+
+encoder: e_branchformer
+encoder_conf:
+    output_size: 1024
+    attention_heads: 16
+    attention_layer_type: selfattn
+    pos_enc_layer_type: abs_pos
+    rel_pos_type: latest
+    qk_norm: false    # qk norm
+    use_flash_attn: true    # flash attn
+    cgmlp_linear_units: 4096
+    cgmlp_conv_kernel: 31
+    use_linear_after_conv: false
+    gate_activation: identity
+    num_blocks: 18
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    attention_dropout_rate: 0.1
+    input_layer: conv2d
+    layer_drop_rate: 0.0
+    linear_units: 4096
+    positionwise_layer_type: linear
+    use_ffn: true
+    macaron_ffn: true
+    merge_conv_kernel: 31
+
+decoder: transformer
+decoder_conf:
+    attention_heads: 16
+    linear_units: 4096
+    num_blocks: 18
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    self_attention_dropout_rate: 0.1
+    src_attention_dropout_rate: 0.1
+    qk_norm: false   # qk norm
+    use_flash_attn: true
+
+model_conf:
+    ctc_weight: 0.3
+    lsm_weight: 0.1
+    length_normalized_loss: false
+    sym_na: "<na>"
+
+optim: adamw
+optim_conf:
+    lr: 0.0001 
+    betas:
+    - 0.9
+    - 0.98
+    eps: 1.0e-06
+    weight_decay: 0.0
+scheduler: piecewiselinearwarmuplr
+scheduler_conf:
+    warmup_steps_list: [0, 1500] 
+    warmup_lr_list: [0., 0.0001]
+
+# 4 GPU/node x 16 nodes = 64
+batch_type: unsorted
+batch_size: 8
+accum_grad: 4
+num_iters_per_epoch: 2000
+max_epoch: 15
+patience: 3
+init: none
+best_model_criterion:
+-   - valid
+    - acc
+    - max
+keep_nbest_models: 0
+nbest_averaging_interval: 1    
+use_amp: true
+num_workers: 4
+unused_parameters: false
+seed: 42
+num_att_plot: 0     # set to 0 due to flash_attn
+sharded_ddp: false
+
+init_param:
+- exp/owsm_v3.1_ebf/valid.total_count.ave_5best.till45epoch.pth
+freeze_param:
+  - frontend
+  - specaug
+  - normalize
+  - encoder
+  - decoder
+  - criterion_att
+  - ctc
+ignore_init_mismatch: false
+
+use_adapter: true
+adapter: lora
+save_strategy: all
+adapter_conf:
+    rank: 0
+    alpha: 0
+    dropout_rate: 0.0
+    adapter_type: ssvd
+    rotation_ratio: 0.4
+    target_modules: ["attn.linear_q", "attn.linear_k", "attn.linear_v", "attn.linear_out", "embed.out.0", "cgmlp.channel_proj1.0", "cgmlp.channel_proj2", "feed_forward.w_1", "feed_forward.w_2", "feed_forward_macaron.w_1", "feed_forward_macaron.w_2", "merge_proj", "decoder.embed.0", "output_layer"]
+
