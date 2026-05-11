@@ -18,7 +18,10 @@ ${description}
 - System: `${system}`
 - Creator: `${creator}`
 - Created: `${created_at}`
-- Git: `${git_head}` (${git_dirty})
+- Branch: `${git_branch}`
+- Commit: `${git_commit}` (`${git_head}`)
+- Worktree: ${git_dirty}
+- Origin: ${git_origin}
 
 ## Usage
 

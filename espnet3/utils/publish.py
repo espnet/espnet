@@ -356,8 +356,11 @@ def _build_readme_context(
             f"Packed model bundle generated from `{_infer_recipe_name(recipe_root)}`."
         ),
         "exp_dir": str(getattr(training_config, "exp_dir", "")),
+        "git_branch": git_meta.get("branch") or "",
+        "git_commit": git_meta.get("commit") or "",
         "git_dirty": git_meta.get("worktree") or "",
         "git_head": git_meta.get("short_commit") or git_meta.get("commit") or "",
+        "git_origin": git_meta.get("origin_url") or "",
         "hf_repo": hf_repo,
         "pack_name": out_dir.name,
         "pack_strategy": _describe_pack_strategy(pack_cfg),
