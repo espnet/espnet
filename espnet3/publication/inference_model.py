@@ -495,14 +495,16 @@ class InferenceModel:
                 )
             except (TypeError, NotImplementedError) as e:
                 logger.debug(
-                    "Runner does not support batched inference; falling back to per-sample.",
+                    "Runner does not support batched inference;"
+                    " falling back to per-sample.",
                     exc_info=True,
                 )
                 batch_result = None
             except RuntimeError as e:
                 logger.warning(
-                    "Batched inference raised RuntimeError (%s); falling back to per-sample. "
-                    "This may indicate CUDA OOM or a shape mismatch.",
+                    "Batched inference raised RuntimeError (%s);"
+                    " falling back to per-sample."
+                    " This may indicate CUDA OOM or a shape mismatch.",
                     e,
                 )
                 batch_result = None
