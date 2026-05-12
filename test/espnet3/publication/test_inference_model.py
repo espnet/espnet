@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 import yaml
 
 from espnet3.publication import InferenceModel
 from espnet3.systems.base.inference_provider import InferenceProvider
+from espnet3.systems.base.inference_runner import InferenceRunner
 
 
 class EchoModel:
@@ -156,6 +158,21 @@ def mock_build_batch_model(monkeypatch):
 
 
 # ---------------------------------------------------------------------------
+# schema_version helpers
+# ---------------------------------------------------------------------------
+
+
+def _set_schema_version(bundle_root: Path, version: int | None) -> None:
+    meta_path = bundle_root / "meta.yaml"
+    meta = yaml.safe_load(meta_path.read_text(encoding="utf-8")) or {}
+    if version is None:
+        meta.pop("schema_version", None)
+    else:
+        meta["schema_version"] = version
+    meta_path.write_text(yaml.dump(meta), encoding="utf-8")
+
+
+# ---------------------------------------------------------------------------
 # from_packed – error cases
 # ---------------------------------------------------------------------------
 
@@ -208,6 +225,42 @@ def test_from_packed_raises_without_trust_for_bundled_code(tmp_path):
     )
     with pytest.raises(ValueError, match="references bundled user code"):
         InferenceModel.from_packed(bundle_root, trust_user_code=False)
+
+
+def test_from_packed_raises_for_future_schema_version(tmp_path, mock_build_model):
+    bundle_root = _make_pack_dir(tmp_path)
+    _set_schema_version(bundle_root, 999)
+    with pytest.raises(ValueError, match="schema_version=999"):
+        InferenceModel.from_packed(bundle_root)
+
+
+def test_from_packed_warns_for_legacy_bundle_without_schema_version(
+    tmp_path, mock_build_model
+):
+    bundle_root = _make_pack_dir(tmp_path)
+    _set_schema_version(bundle_root, None)
+
+    with patch("espnet3.publication.inference_model.logger") as mock_logger:
+        InferenceModel.from_packed(bundle_root)
+
+    mock_logger.warning.assert_called()
+    args, _ = mock_logger.warning.call_args
+    assert "legacy" in args[0].lower() or "schema_version" in args[0].lower()
+
+
+def test_from_packed_no_warning_for_current_schema_version(tmp_path, mock_build_model):
+    bundle_root = _make_pack_dir(tmp_path)
+    _set_schema_version(bundle_root, 1)
+
+    with patch("espnet3.publication.inference_model.logger") as mock_logger:
+        InferenceModel.from_packed(bundle_root)
+
+    schema_warnings = [
+        call
+        for call in mock_logger.warning.call_args_list
+        if "schema" in str(call).lower() or "legacy" in str(call).lower()
+    ]
+    assert schema_warnings == []
 
 
 # ---------------------------------------------------------------------------
@@ -496,3 +549,70 @@ def test_forward_batch_uses_runner_batched_path_when_supported(
 
     assert results == ["batched:a", "batched:b", "batched:c"]
     assert mock_build_batch_model.calls == [["a", "b", "c"]]
+
+
+def _make_raising_runner(exc_factory):
+    """Return a patched InferenceRunner.forward that raises on batched calls."""
+    original = InferenceRunner.forward
+
+    def patched(idx, dataset=None, model=None, **kwargs):
+        if isinstance(idx, list):
+            raise exc_factory()
+        return original(idx, dataset=dataset, model=model, **kwargs)
+
+    return staticmethod(patched)
+
+
+def test_forward_batch_falls_back_on_type_error(
+    tmp_path, mock_build_model, monkeypatch
+):
+    monkeypatch.setattr(
+        InferenceRunner, "forward", _make_raising_runner(lambda: TypeError("no batch"))
+    )
+    session = InferenceModel.from_packed(_make_pack_dir(tmp_path))
+
+    with patch("espnet3.publication.inference_model.logger") as mock_logger:
+        results = session.forward_batch(["a", "b"])
+
+    mock_logger.debug.assert_called_once()
+    _, kwargs = mock_logger.debug.call_args
+    assert kwargs.get("exc_info") is True
+    assert results == ["cfg:a@cpu", "cfg:b@cpu"]
+
+
+def test_forward_batch_falls_back_on_not_implemented_error(
+    tmp_path, mock_build_model, monkeypatch
+):
+    monkeypatch.setattr(
+        InferenceRunner,
+        "forward",
+        _make_raising_runner(lambda: NotImplementedError("no batch")),
+    )
+    session = InferenceModel.from_packed(_make_pack_dir(tmp_path))
+
+    with patch("espnet3.publication.inference_model.logger") as mock_logger:
+        results = session.forward_batch(["a", "b"])
+
+    mock_logger.debug.assert_called_once()
+    _, kwargs = mock_logger.debug.call_args
+    assert kwargs.get("exc_info") is True
+    assert results == ["cfg:a@cpu", "cfg:b@cpu"]
+
+
+def test_forward_batch_falls_back_on_runtime_error(
+    tmp_path, mock_build_model, monkeypatch
+):
+    monkeypatch.setattr(
+        InferenceRunner,
+        "forward",
+        _make_raising_runner(lambda: RuntimeError("CUDA OOM")),
+    )
+    session = InferenceModel.from_packed(_make_pack_dir(tmp_path))
+
+    with patch("espnet3.publication.inference_model.logger") as mock_logger:
+        results = session.forward_batch(["a", "b"])
+
+    mock_logger.warning.assert_called_once()
+    args, _ = mock_logger.warning.call_args
+    assert "CUDA OOM" in str(args[1])
+    assert results == ["cfg:a@cpu", "cfg:b@cpu"]

@@ -407,6 +407,7 @@ def _write_meta(
 
     """
     meta = {
+        "schema_version": 1,
         "files": files,
         "yaml_files": yaml_files,
         "torch": str(torch.__version__),

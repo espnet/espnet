@@ -30,6 +30,9 @@ from omegaconf import DictConfig, ListConfig, OmegaConf
 from espnet3.systems.base.inference_provider import InferenceProvider
 from espnet3.systems.base.inference_runner import InferenceRunner, _load_output_fn
 from espnet3.utils.config_utils import load_config_with_defaults
+from espnet3.utils.logging_utils import configure_logging
+
+logger = configure_logging()
 
 
 def _load_inference_config(
@@ -244,6 +247,22 @@ class InferenceModel:
             )
         with meta_path.open("r", encoding="utf-8") as f:
             meta = yaml.safe_load(f) or {}
+
+        schema = int(meta.get("schema_version", 0))
+        if schema == 0:
+            logger.warning(
+                "Bundle at %s has no schema_version (legacy format). "
+                "Some features may not be available.",
+                bundle_root,
+            )
+        elif schema == 1:
+            pass
+        else:
+            raise ValueError(
+                f"Bundle was produced by a newer pack_model "
+                f"(schema_version={schema}) than this installation supports. "
+                f"Upgrade espnet3."
+            )
 
         inference_config_rel = (meta.get("yaml_files") or {}).get("inference_config")
         if not inference_config_rel:
@@ -474,7 +493,18 @@ class InferenceModel:
                     input_key=self.input_key,
                     output_fn=self.output_fn,
                 )
-            except (TypeError, NotImplementedError, RuntimeError):
+            except (TypeError, NotImplementedError) as e:
+                logger.debug(
+                    "Runner does not support batched inference; falling back to per-sample.",
+                    exc_info=True,
+                )
+                batch_result = None
+            except RuntimeError as e:
+                logger.warning(
+                    "Batched inference raised RuntimeError (%s); falling back to per-sample. "
+                    "This may indicate CUDA OOM or a shape mismatch.",
+                    e,
+                )
                 batch_result = None
 
         if isinstance(batch_result, list) and len(batch_result) == len(sample_list):
