@@ -2,6 +2,7 @@
 tags:
 - espnet
 - ${task}
+- ${corpus}
 language: ${lang}
 license: ${license}
 ---
@@ -14,6 +15,7 @@ ${description}
 
 - Repository: `${hf_repo}`
 - Recipe: `${recipe}`
+- Corpus: `${corpus}`
 - Task: `${task}`
 - System: `${system}`
 - Creator: `${creator}`

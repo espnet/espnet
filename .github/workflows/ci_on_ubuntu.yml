@@ -333,7 +333,7 @@ jobs:
       - uses: actions/cache@v5
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-publication-3.10-2.9.1-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
+          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
       - name: Make environment
         uses: ./.github/actions/prepare-environment
         with:

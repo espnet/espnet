@@ -350,6 +350,7 @@ def _build_readme_context(
     )
 
     return {
+        "corpus": recipe_root.parent.name,
         "creator": _infer_creator(),
         "created_at": datetime.now().isoformat(timespec="seconds"),
         "description": (
