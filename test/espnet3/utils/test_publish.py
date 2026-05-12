@@ -7,8 +7,8 @@ import pytest
 from omegaconf import OmegaConf
 
 from espnet3.systems.asr.system import ASRSystem
-from espnet3.utils import publish
-from espnet3.utils.publish import (
+from espnet3.utils import publication_utils as publish
+from espnet3.utils.publication_utils import (
     _build_results_table,
     _render_readme,
     _resolve_results,
@@ -333,7 +333,26 @@ def test_pack_model_resolves_repo_root_readme_path_outside_cwd(tmp_path, monkeyp
     assert (out_dir / "README.md").exists()
 
 
-def test_pack_model_recreates_existing_out_dir(tmp_path):
+def test_pack_model_raises_when_out_dir_exists_without_allow_overwrite(tmp_path):
+    recipe_dir = tmp_path
+    exp_dir = recipe_dir / "exp"
+    exp_dir.mkdir()
+    out_dir = tmp_path / "model_pack"
+    out_dir.mkdir()
+
+    publication_config = OmegaConf.create({"pack_model": {"out_dir": str(out_dir)}})
+    system = _make_system(
+        exp_dir=exp_dir, recipe_dir=recipe_dir, publication_config=publication_config
+    )
+
+    with pytest.raises(RuntimeError, match="allow_overwrite"):
+        publish.pack_model(
+            training_config=system.training_config,
+            publication_config=system.publication_config,
+        )
+
+
+def test_pack_model_allow_overwrite_clears_stale_files(tmp_path):
     recipe_dir = tmp_path
     exp_dir = recipe_dir / "exp"
     exp_dir.mkdir()
@@ -342,7 +361,9 @@ def test_pack_model_recreates_existing_out_dir(tmp_path):
     stale_file = out_dir / "stale.txt"
     stale_file.write_text("old", encoding="utf-8")
 
-    publication_config = OmegaConf.create({"pack_model": {"out_dir": str(out_dir)}})
+    publication_config = OmegaConf.create(
+        {"pack_model": {"out_dir": str(out_dir), "allow_overwrite": True}}
+    )
     system = _make_system(
         exp_dir=exp_dir, recipe_dir=recipe_dir, publication_config=publication_config
     )
@@ -406,7 +427,7 @@ def test_pack_model_raises_when_artifact_outside_recipe_dir(tmp_path):
         exp_dir=exp_dir, recipe_dir=recipe_dir, publication_config=publication_config
     )
 
-    with pytest.raises(RuntimeError, match="recipe_dir"):
+    with pytest.raises(RuntimeError, match="symlink"):
         publish.pack_model(
             training_config=system.training_config,
             publication_config=OmegaConf.create(
@@ -891,3 +912,109 @@ def test_pack_model_preserves_symlink_name(tmp_path):
     bundle = (out_dir / "conf" / "inference.yaml").read_text(encoding="utf-8")
     assert "${recipe_dir}/exp/run/last.ckpt" in bundle
     assert "step1.ckpt" not in bundle
+
+
+# ---------------------------------------------------------------------------
+# allow_overwrite / external path warnings
+# ---------------------------------------------------------------------------
+
+
+def test_pack_model_warns_when_include_path_is_external(tmp_path, caplog):
+    import logging
+
+    recipe_dir = tmp_path / "recipe"
+    exp_dir = recipe_dir / "exp"
+    recipe_dir.mkdir()
+    exp_dir.mkdir()
+    external_dir = tmp_path / "external"
+    external_dir.mkdir()
+    (external_dir / "tokenizer.model").write_text("spm", encoding="utf-8")
+
+    publication_config = OmegaConf.create(
+        {
+            "pack_model": {
+                "out_dir": str(tmp_path / "pack"),
+                "include": [str(external_dir)],
+            }
+        }
+    )
+    system = _make_system(
+        exp_dir=exp_dir, recipe_dir=recipe_dir, publication_config=publication_config
+    )
+
+    with caplog.at_level(logging.WARNING, logger="espnet3.utils.publication_utils"):
+        publish.pack_model(
+            training_config=system.training_config,
+            publication_config=system.publication_config,
+        )
+
+    assert "outside recipe root" in caplog.text
+    assert "symlink" in caplog.text
+
+
+def test_pack_model_external_include_placed_at_bundle_root(tmp_path):
+    recipe_dir = tmp_path / "recipe"
+    exp_dir = recipe_dir / "exp"
+    recipe_dir.mkdir()
+    exp_dir.mkdir()
+    external_dir = tmp_path / "shared_tokenizer"
+    external_dir.mkdir()
+    (external_dir / "tokenizer.model").write_text("spm", encoding="utf-8")
+
+    publication_config = OmegaConf.create(
+        {
+            "pack_model": {
+                "out_dir": str(tmp_path / "pack"),
+                "include": [str(external_dir)],
+            }
+        }
+    )
+    system = _make_system(
+        exp_dir=exp_dir, recipe_dir=recipe_dir, publication_config=publication_config
+    )
+
+    out_dir = publish.pack_model(
+        training_config=system.training_config,
+        publication_config=system.publication_config,
+    )
+
+    assert (out_dir / "shared_tokenizer" / "tokenizer.model").exists()
+
+
+# ---------------------------------------------------------------------------
+# corpus in README
+# ---------------------------------------------------------------------------
+
+
+def test_pack_model_readme_includes_corpus_name(tmp_path):
+    corpus_dir = tmp_path / "mini_an4"
+    recipe_dir = corpus_dir / "asr"
+    exp_dir = recipe_dir / "exp"
+    recipe_dir.mkdir(parents=True)
+    exp_dir.mkdir()
+
+    publication_config = OmegaConf.create(
+        {
+            "pack_model": {
+                "out_dir": str(tmp_path / "pack"),
+                "readme": "egs3/TEMPLATE/asr/src/hf_model_repo_readme_template.md",
+                "readme_context": {
+                    "task": "asr",
+                    "lang": "en",
+                    "license": "apache-2.0",
+                    "description": "Test.",
+                },
+            }
+        }
+    )
+    system = _make_system(
+        exp_dir=exp_dir, recipe_dir=recipe_dir, publication_config=publication_config
+    )
+
+    out_dir = publish.pack_model(
+        training_config=system.training_config,
+        publication_config=system.publication_config,
+    )
+
+    readme = (out_dir / "README.md").read_text(encoding="utf-8")
+    assert "mini_an4" in readme

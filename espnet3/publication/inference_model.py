@@ -105,7 +105,7 @@ class InferenceModel:
     """User-facing inference wrapper for packaged ESPnet models.
 
     This class is the public runtime API for a bundle produced by
-    ``espnet3.utils.publish.pack_model()``. It sits on the publication side of
+    ``espnet3.utils.publication_utils.pack_model()``. It sits on the publication side of
     the pipeline: stage runners produce the packed directory, then external
     callers use :class:`InferenceModel` to reopen that directory and execute
     the bundled inference configuration without going back through
@@ -201,7 +201,7 @@ class InferenceModel:
 
         Args:
             pack_dir: Path to the output directory created by
-                ``espnet3.utils.publish.pack_model()``. This directory must
+                ``espnet3.utils.publication_utils.pack_model()``. This directory must
                 contain ``conf/inference.yaml`` and any files referenced by
                 that config.
             trust_user_code: Set to ``True`` to allow importing bundled recipe
@@ -493,7 +493,7 @@ class InferenceModel:
                     input_key=self.input_key,
                     output_fn=self.output_fn,
                 )
-            except (TypeError, NotImplementedError) as e:
+            except (TypeError, NotImplementedError):
                 logger.debug(
                     "Runner does not support batched inference;"
                     " falling back to per-sample.",

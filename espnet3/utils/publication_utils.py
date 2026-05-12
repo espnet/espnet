@@ -105,7 +105,10 @@ def _resolve_artifact_paths(
         dst = out_dir / src.absolute().relative_to(recipe_root)
     except ValueError:
         raise RuntimeError(
-            f"Artifact must be under training_config.recipe_dir: {src}"
+            f"Artifact is outside the recipe root and cannot be bundled: {src}. "
+            "Consider placing a symlink under the recipe directory instead "
+            "(e.g. src/my_tokenizer -> /path/to/tokenizer), so the directory "
+            "structure is preserved when copied into the bundle."
         ) from None
     return src, dst
 
@@ -450,6 +453,11 @@ def pack_model(
     exp_dir = Path(training_config.exp_dir)
     out_dir = Path(getattr(pack_cfg, "out_dir", exp_dir / "model_pack"))
     if out_dir.exists():
+        if not getattr(pack_cfg, "allow_overwrite", False):
+            raise RuntimeError(
+                f"out_dir already exists: {out_dir}. "
+                "Set pack_model.allow_overwrite: true to overwrite."
+            )
         shutil.rmtree(out_dir)
     out_dir.mkdir(parents=True)
 
@@ -484,6 +492,13 @@ def pack_model(
         try:
             dest = out_dir / path.absolute().relative_to(recipe_root)
         except ValueError:
+            logger.warning(
+                "Include path is outside recipe root and will be placed at the "
+                "bundle root as '%s', losing its original directory structure. "
+                "Consider using a symlink under the recipe directory instead: %s",
+                path.name,
+                path,
+            )
             dest = out_dir / path.name
         ignore = _build_pack_ignore(path, excludes) if path.is_dir() else None
         _copy_path(src=path, dst=dest, ignore=ignore)
@@ -555,27 +570,25 @@ def pack_model(
     return out_dir
 
 
-def _run(cmd: list[str], cwd: Path | None = None) -> str:
-    """Run a subprocess command and return stdout.
+def _run(cmd: list[str], cwd: Path | None = None) -> None:
+    """Run a subprocess command, streaming stdout and stderr to the logger.
 
     Used by ``upload_model`` to invoke ``huggingface-cli`` for repo creation
     and model upload.
 
     """
-    result = subprocess.run(
+    logger.debug("Running: %s", " ".join(cmd))
+    with subprocess.Popen(
         cmd,
         cwd=str(cwd) if cwd else None,
         stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
         text=True,
-        check=False,
-    )
-    if result.returncode != 0:
-        raise RuntimeError(
-            f"Command failed: {' '.join(cmd)}\n"
-            f"stdout:\n{result.stdout}\nstderr:\n{result.stderr}"
-        )
-    return result.stdout.strip()
+    ) as proc:
+        for line in proc.stdout:
+            logger.info("%s", line.rstrip())
+    if proc.returncode != 0:
+        raise RuntimeError(f"Command failed (exit {proc.returncode}): {' '.join(cmd)}")
 
 
 def _check_repo_exists(repo: str) -> bool:
@@ -629,5 +642,8 @@ def upload_model(system) -> None:
         raise RuntimeError("huggingface-cli is required for upload.")
 
     if not _check_repo_exists(repo):
+        logger.info("Creating HuggingFace repo: %s", repo)
         _run(["huggingface-cli", "repo", "create", repo, "--type", "model", "-y"])
+    logger.info("Uploading %s -> %s", pack_dir, repo)
     _run(["huggingface-cli", "upload", repo, str(pack_dir), "--repo-type", "model"])
+    logger.info("Upload complete: https://huggingface.co/%s", repo)

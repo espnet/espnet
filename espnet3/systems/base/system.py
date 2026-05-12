@@ -13,8 +13,8 @@ from espnet3.components.data.dataset_module import (
 from espnet3.systems.base.inference import infer
 from espnet3.systems.base.metric import measure
 from espnet3.systems.base.training import collect_stats, train
-from espnet3.utils.publish import pack_model as _pack_model
-from espnet3.utils.publish import upload_model as _upload_model
+from espnet3.utils.publication_utils import pack_model as _pack_model
+from espnet3.utils.publication_utils import upload_model as _upload_model
 
 logger = logging.getLogger(__name__)
 
