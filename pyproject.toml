@@ -177,6 +177,7 @@ doc = [
 
 all = [
   "espnet[asr]",
+  "espnet[mt]",
   "espnet[tts]",
   "espnet[enh]",
   "espnet[spk]",
