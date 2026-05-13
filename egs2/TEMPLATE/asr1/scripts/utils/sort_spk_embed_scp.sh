@@ -10,7 +10,9 @@ tag=${2:?need spk_embed_tag}
 sort_data_dir() {
   local dir=$1
   for f in text wav.scp utt2spk spk2utt utt2dur spk2gender; do
-    [ ! -f "${dir}/${f}" ] || LC_ALL=C sort -k1,1 "${dir}/${f}" -o "${dir}/${f}"
+    if [[ -f "${dir}/${f}" ]]; then
+      LC_ALL=C sort -k1,1 "${dir}/${f}" -o "${dir}/${f}";
+    fi
   done
 }
 
@@ -26,11 +28,9 @@ for scp in "${dumpdir}/${tag}"/*/"${tag}.scp"; do
   dset=$(basename "$(dirname "$scp")")
 
   # Train/val live under raw/org, tests under raw/
-  if [[ "$dset" == "train" || "$dset" == "val" ]]; then
-    rawdir="${dumpdir}/raw/org/${dset}"
-  else
-    rawdir="${dumpdir}/raw/${dset}"
-  fi
+  # Try raw/org first, fall back to raw/ if it doesn't exist
+  rawdir="${dumpdir}/raw/org/${dset}"
+  [[ -d "$rawdir" ]] || rawdir="${dumpdir}/raw/${dset}"
 
   ids="${rawdir}/text"
   [[ -f "$ids" ]] || { echo "Missing $ids"; exit 1; }
