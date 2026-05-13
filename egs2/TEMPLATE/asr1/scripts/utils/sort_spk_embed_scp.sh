@@ -10,7 +10,7 @@ tag=${2:?need spk_embed_tag}
 sort_data_dir() {
   local dir=$1
   for f in text wav.scp utt2spk spk2utt utt2dur spk2gender; do
-    [ -f "${dir}/${f}" ] && LC_ALL=C sort -k1,1 "${dir}/${f}" -o "${dir}/${f}"
+    [ ! -f "${dir}/${f}" ] || LC_ALL=C sort -k1,1 "${dir}/${f}" -o "${dir}/${f}"
   done
 }
 
