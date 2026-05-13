@@ -24,6 +24,7 @@ This script takes as input lang_dir and generates HLG from
 
 The generated HLG is saved in $lang_dir/HLG.pt
 """
+
 import argparse
 import logging
 from pathlib import Path

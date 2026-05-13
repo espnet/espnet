@@ -297,8 +297,12 @@ class JETS(AbsGANTTS):
         if plot_pred_mos:
             if mos_pred_tool == "utmos":
                 # Load predictor for UTMOS22 (https://arxiv.org/abs/2204.02152)
+                # trust_repo=True suppresses PyTorch >= 2.0's interactive
+                # confirmation prompt; tarepan/SpeechMOS is a trusted source.
                 self.predictor = torch.hub.load(
-                    "tarepan/SpeechMOS:v1.2.0", "utmos22_strong"
+                    "tarepan/SpeechMOS:v1.2.0",
+                    "utmos22_strong",
+                    trust_repo=True,
                 )
             else:
                 raise NotImplementedError(
