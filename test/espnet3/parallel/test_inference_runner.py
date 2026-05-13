@@ -1,7 +1,6 @@
 # tests/test_stft_runner_provider.py
 from __future__ import annotations
 
-import json
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -255,50 +254,13 @@ def test_streaming_chunk_count(test_audio_paths, chunk_sec, expected_min_chunks)
     assert all(isinstance(c, np.ndarray) for c in chunks)
 
 
-def _read_jsonl_file(path: Path):
-    with path.open("r", encoding="utf-8") as f:
-        for line in f:
-            line = line.strip()
-            if not line:
-                continue
-            yield json.loads(line)
-
-
-class _DummyFuture:
-    def __init__(self, result=None):
-        self._result = result
-
-
-def _make_fake_client(num_workers: int = 2):
-    class _FakeClient:
-        def __enter__(self):
-            return self
-
-        def __exit__(self, exc_type, exc, tb):
-            return False
-
-        def scheduler_info(self):
-            return {"workers": {f"w{i}": {} for i in range(num_workers)}}
-
-        def submit(self, fn, *args, **kwargs):
-            result = fn(*args, **kwargs)
-            return _DummyFuture(result=result)
-
-        def gather(self, futures):
-            return [getattr(f, "_result", None) for f in futures]
-
-    return _FakeClient()
-
-
 def _patch_parallel_client_no_submit(monkeypatch, n_workers: int = 2):
-    """Patch client.submit/map to Run Locally and Synchronously
+    """Patch the async submission path to run jobs synchronously in-process.
 
-    - Change client.submit/map to fully local, immediate (synchronous) execution
-    - Make sure to also patch any symbols already imported inside base_runner
-    - For async submission, skip actual job submission and directly call
-        _async_worker_entry_from_spec_path locally
-    - Override _run_async to return None so it matches existing tests expecting
-        ret is None
+    - Replace the Dask client/cluster with fakes so no scheduler is started.
+    - When the runner submits a batch job, invoke the worker entrypoint
+      directly so it runs the reducer pipeline and writes ``_state.pkl``
+      under the configured ``output_dir`` like a real job would.
     """
     from omegaconf import OmegaConf
 
@@ -352,24 +314,6 @@ def _patch_parallel_client_no_submit(monkeypatch, n_workers: int = 2):
 
     monkeypatch.setattr(br, "get_job_class", _fake_get_job_class, raising=True)
 
-    orig_run_async = br.BaseRunner._run_async
-
-    async def _fake_run_async_return_none(self, indices):
-        await orig_run_async(self, indices)
-        return None
-
-    monkeypatch.setattr(
-        br.BaseRunner, "_run_async", _fake_run_async_return_none, raising=True
-    )
-
-
-def _collect_jsonl_rows(result_dir: Path):
-    files = sorted(result_dir.glob("result-*.jsonl"))
-    all_rows = []
-    for fp in files:
-        all_rows.extend(list(_read_jsonl_file(fp)))
-    return files, all_rows
-
 
 def _assert_stft_json(obj: dict):
     assert isinstance(obj, dict)
@@ -380,7 +324,9 @@ def _assert_stft_json(obj: dict):
     assert "[]" not in val
 
 
-def test_async_jsonl_offline_with_base_runner(test_audio_paths, tmp_path, monkeypatch):
+def test_async_state_pkl_offline_with_base_runner(
+    test_audio_paths, tmp_path, monkeypatch
+):
     _patch_parallel_client_no_submit(monkeypatch, n_workers=2)
 
     cfg, params = _make_cfg_from_samples(test_audio_paths, stream=False)
@@ -389,24 +335,28 @@ def test_async_jsonl_offline_with_base_runner(test_audio_paths, tmp_path, monkey
         provider,
         async_mode=True,
         async_specs_dir=tmp_path / "_specs",
-        async_result_dir=tmp_path / "_results_offline",
+        output_dir=tmp_path,
+        shard_subdir="inference",
     )
 
     indices = list(range(min(4, len(test_audio_paths))))
-    ret = runner(indices)
+    job_meta = runner(indices)
 
-    assert ret is None
+    base = tmp_path / "inference"
+    shard_dirs = sorted(base.glob("split.*"))
+    assert len(shard_dirs) >= 1
+    for d in shard_dirs:
+        assert (d / "_state.pkl").exists()
+    assert len(job_meta) == len(shard_dirs)
+    assert {Path(m["shard_dir"]) for m in job_meta} == set(shard_dirs)
 
-    result_dir = tmp_path / "_results_offline"
-    files, rows = _collect_jsonl_rows(result_dir)
-    assert len(files) >= 1
-    assert len(rows) == len(indices)
-
-    for obj in rows:
+    merged = runner.merge_async_results()
+    assert len(merged) == len(indices)
+    for obj in merged:
         _assert_stft_json(obj)
 
 
-def test_async_jsonl_streaming_with_base_runner(
+def test_async_state_pkl_streaming_with_base_runner(
     test_audio_paths, tmp_path, monkeypatch
 ):
     _patch_parallel_client_no_submit(monkeypatch, n_workers=3)
@@ -417,17 +367,35 @@ def test_async_jsonl_streaming_with_base_runner(
         provider,
         async_mode=True,
         async_specs_dir=tmp_path / "_specs",
-        async_result_dir=tmp_path / "_results_stream",
+        output_dir=tmp_path,
+        shard_subdir="inference",
     )
 
     indices = list(range(min(5, len(test_audio_paths))))
-    ret = runner(indices)
-    assert ret is None
+    runner(indices)
 
-    result_dir = tmp_path / "_results_stream"
-    files, rows = _collect_jsonl_rows(result_dir)
-    assert len(files) >= 1
-    assert len(rows) == len(indices)
+    base = tmp_path / "inference"
+    shard_dirs = sorted(base.glob("split.*"))
+    assert len(shard_dirs) >= 1
+    for d in shard_dirs:
+        assert (d / "_state.pkl").exists()
 
-    for obj in rows:
+    merged = runner.merge_async_results()
+    assert len(merged) == len(indices)
+    for obj in merged:
         _assert_stft_json(obj)
+
+
+def test_async_requires_output_dir(test_audio_paths, tmp_path, monkeypatch):
+    _patch_parallel_client_no_submit(monkeypatch, n_workers=2)
+
+    cfg, params = _make_cfg_from_samples(test_audio_paths, stream=False)
+    provider = STFTProvider(cfg, params=params)
+    runner = STFTRunner(
+        provider,
+        async_mode=True,
+        async_specs_dir=tmp_path / "_specs",
+    )
+
+    with pytest.raises(ValueError, match="output_dir"):
+        runner([0])

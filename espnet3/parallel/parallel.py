@@ -88,7 +88,9 @@ def _ensure_dask():
         )
 
 
-def build_local_gpu_cluster(n_workers: int, options: dict) -> Client:
+def build_local_gpu_cluster(
+    n_workers: int, options: dict, direct_to_workers: bool = True
+) -> Client:
     """Create a Dask LocalCUDACluster using available GPUs.
 
     This requires `dask_cuda` package.
@@ -96,6 +98,9 @@ def build_local_gpu_cluster(n_workers: int, options: dict) -> Client:
     Args:
         n_workers (int): Number of Dask workers (must not exceed number of GPUs).
         options (dict): Additional options for the LocalCUDACluster.
+        direct_to_workers (bool): If True (default) the client gathers results
+            directly from workers, bypassing the scheduler. Disable only when
+            workers are unreachable from the client.
 
     Returns:
         Client: Dask client connected to the GPU cluster.
@@ -115,7 +120,7 @@ def build_local_gpu_cluster(n_workers: int, options: dict) -> Client:
         )
 
     cluster = LocalCUDACluster(n_workers=n_workers, **options)
-    return Client(cluster)
+    return Client(cluster, direct_to_workers=direct_to_workers)
 
 
 @typechecked
@@ -124,11 +129,20 @@ def set_parallel(config: DictConfig) -> None:
 
     Args:
         config (DictConfig): Configuration object with 'env' and cluster options.
+            ``direct_to_workers`` (bool, default ``True``) is honored when
+            building the client; set it to ``False`` to route all gathers
+            through the scheduler (will emit a warning).
 
     Example:
         >>> from omegaconf import OmegaConf
         >>> config = OmegaConf.create({'env': 'local', 'n_workers': 2})
         >>> set_parallel(config)
+
+        >>> # Opt out of direct gathers (e.g., workers unreachable from client).
+        >>> cfg = OmegaConf.create(
+        ...     {'env': 'slurm', 'n_workers': 8, 'direct_to_workers': False}
+        ... )
+        >>> set_parallel(cfg)
     """
     global parallel_config
     options = dict(config.options) if hasattr(config, "options") else {}
@@ -141,14 +155,39 @@ def get_parallel_config() -> Optional[DictConfig]:
     return parallel_config
 
 
+def _resolve_direct_to_workers(config: DictConfig) -> bool:
+    """Pick the ``direct_to_workers`` setting and warn when it is disabled.
+
+    Direct gathers route data straight from worker to client and skip the
+    scheduler, which is usually the bottleneck for large payloads. We keep it
+    on by default and warn whenever a config explicitly turns it off so users
+    know what they're trading away.
+    """
+    direct = bool(config.get("direct_to_workers", True))
+    if not direct:
+        warnings.warn(
+            "direct_to_workers=False routes all worker outputs through the "
+            "Dask scheduler, which can become a bottleneck for large payloads. "
+            "Only disable this if the client cannot reach the workers directly.",
+            stacklevel=3,
+        )
+    return direct
+
+
 def _build_client(config: DictConfig = None) -> Client:
     """Create a Dask client tied to the global singleton cluster."""
     _ensure_dask()
+    direct = _resolve_direct_to_workers(config)
     if config.env == "local":
-        return Client(LocalCluster(n_workers=config.n_workers, **config.options))
+        return Client(
+            LocalCluster(n_workers=config.n_workers, **config.options),
+            direct_to_workers=direct,
+        )
 
     elif config.env == "local_gpu":
-        return build_local_gpu_cluster(config.n_workers, config.options)
+        return build_local_gpu_cluster(
+            config.n_workers, config.options, direct_to_workers=direct
+        )
 
     elif config.env == "kube":
         try:
@@ -157,12 +196,12 @@ def _build_client(config: DictConfig = None) -> Client:
             raise RuntimeError("Please install dask_kubernetes.")
         cluster = KubeCluster(**config.options)
         cluster.scale(config.n_workers)
-        return Client(cluster)
+        return Client(cluster, direct_to_workers=direct)
 
     elif config.env in CLUSTER_MAP:
         cluster = CLUSTER_MAP[config.env](**config.options)
         cluster.scale(config.n_workers)
-        return Client(cluster)
+        return Client(cluster, direct_to_workers=direct)
 
     else:
         raise ValueError(f"Unknown env: {config.env}")
@@ -442,7 +481,10 @@ def parallel_map(
         futures,
     ):
         try:
-            return list(tqdm(cli.gather(futures), total=len(futures)))
+            # Skip the scheduler hop when the client can reach workers directly
+            # (default for local clusters); falls back gracefully otherwise.
+            direct = bool(getattr(cli, "_direct_to_workers", False))
+            return list(tqdm(cli.gather(futures, direct=direct), total=len(futures)))
         except Exception as e:
             try:
                 cli.cancel(futures)
