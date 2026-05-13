@@ -7,12 +7,20 @@ import torch
 from omegaconf import OmegaConf
 
 import espnet3.systems.base.inference as inference_mod
-from espnet3.systems.base.inference_provider import InferenceProvider
 from espnet3.systems.base.inference_runner import InferenceRunner
 
 
 def dummy_output_fn(*, data, model_output, idx):
     return {"idx": idx, "hyp": "h", "ref": "r"}
+
+
+def streaming_output_fn(*, data, model_output, idx):
+    del model_output, idx
+    return {
+        "utt_id": data["utt_id"],
+        "hyp": data["hyp"],
+        "audio": np.asarray(data["audio"], dtype=np.float32),
+    }
 
 
 def custom_npy_writer(*, value, output_path: Path, scale: float = 1.0) -> Path:
@@ -32,13 +40,33 @@ class NoIdxKeyRunner:
         return []
 
 
-class DummyProvider(InferenceProvider):
+class DummyProvider:
     def __init__(self, inference_config, params):
-        super().__init__(inference_config)
+        self.config = inference_config
         self.params = params
 
     def build_dataset(self, _config):
         return [None] * _config.mock_dataset_length
+
+    def build_env_local(self):
+        return {
+            "dataset": self.build_dataset(self.config),
+            "model": lambda **kwargs: None,
+            **self.params,
+        }
+
+    def build_worker_setup_fn(self):
+        config = self.config
+        params = dict(self.params)
+
+        def setup():
+            return {
+                "dataset": self.build_dataset(config),
+                "model": lambda **kwargs: None,
+                **params,
+            }
+
+        return setup
 
 
 class DummyRunner(InferenceRunner):
@@ -59,15 +87,67 @@ class DummyRunner(InferenceRunner):
         return self._results
 
 
-class CaptureProvider(InferenceRunner):
+class CaptureProvider:
     last_params = None
 
     def __init__(self, inference_config, *, params):
-        super().__init__(inference_config)
+        self.config = inference_config
         CaptureProvider.last_params = params
 
     def build_dataset(self, _config):
         return [None] * _config.mock_dataset_length
+
+    def build_env_local(self):
+        return {
+            "dataset": self.build_dataset(self.config),
+            "model": lambda **kwargs: None,
+            **(CaptureProvider.last_params or {}),
+        }
+
+    def build_worker_setup_fn(self):
+        config = self.config
+        params = dict(CaptureProvider.last_params or {})
+
+        def setup():
+            return {
+                "dataset": self.build_dataset(config),
+                "model": lambda **kwargs: None,
+                **params,
+            }
+
+        return setup
+
+
+class StreamingProvider:
+    def __init__(self, inference_config, params):
+        self.config = inference_config
+        self.params = params
+
+    def build_dataset(self, _config):
+        return list(_config.mock_dataset)
+
+    def build_env_local(self):
+        return self._build_env(self.config, self.params)
+
+    def build_worker_setup_fn(self):
+        config = self.config
+        params = dict(self.params)
+
+        def setup():
+            return self._build_env(config, params)
+
+        return setup
+
+    @staticmethod
+    def _build_env(config, params):
+        def model(speech):
+            return {"speech": speech}
+
+        return {
+            "dataset": list(config.mock_dataset),
+            "model": model,
+            **params,
+        }
 
 
 class CaptureRunner:
@@ -195,7 +275,10 @@ def test_inference_passes_provider_params(tmp_path, monkeypatch):
         "beam": 5,
         "lang": "en",
         "input_key": "speech",
+        "idx_key": "idx",
+        "output_keys": None,
         "output_fn_path": f"{__name__}.dummy_output_fn",
+        "output_artifacts": {},
     }
 
 
@@ -360,6 +443,53 @@ def test_inference_writes_artifacts_from_config(tmp_path, monkeypatch):
     assert audio_path.suffix == ".wav"
     assert posterior_path.suffix == ".npy"
     assert np.array_equal(np.load(posterior_path), np.array([1.0, 2.0]))
+
+
+def test_inference_runner_streams_split_outputs_and_merges_scp(tmp_path, monkeypatch):
+    cfg = OmegaConf.create(
+        {
+            "parallel": {"env": "local"},
+            "inference_dir": str(tmp_path / "infer"),
+            "dataset": {"test": [{"name": "test_a"}]},
+            "input_key": "speech",
+            "output_fn": f"{__name__}.streaming_output_fn",
+            "mock_dataset": [
+                {
+                    "utt_id": "utt1",
+                    "speech": 1.0,
+                    "hyp": "h1",
+                    "audio": [0.0, 0.1, -0.1],
+                },
+                {
+                    "utt_id": "utt2",
+                    "speech": 2.0,
+                    "hyp": "h2",
+                    "audio": [0.1, 0.0, -0.1],
+                },
+            ],
+            "provider": {"_target_": f"{__name__}.StreamingProvider"},
+            "runner": {"_target_": "espnet3.systems.base.inference_runner.InferenceRunner"},
+            "output_artifacts": {
+                "audio": {"type": "wav", "sample_rate": 16000},
+            },
+        }
+    )
+
+    monkeypatch.setattr(inference_mod, "set_parallel", lambda arg: None)
+
+    inference_mod.infer(cfg)
+
+    base = tmp_path / "infer" / "test_a"
+    split_dir = base / "split.0"
+    assert split_dir.exists()
+    assert _read_scp(base / "hyp.scp") == ["utt1 h1", "utt2 h2"]
+    assert _read_scp(split_dir / "hyp.scp") == ["utt1 h1", "utt2 h2"]
+
+    audio_scp_lines = _read_scp(base / "audio.scp")
+    assert len(audio_scp_lines) == 2
+    audio_path = Path(audio_scp_lines[0].split(maxsplit=1)[1])
+    assert audio_path.exists()
+    assert split_dir in audio_path.parents
 
 
 def test_inference_writes_dict_artifacts_as_json(tmp_path, monkeypatch):
