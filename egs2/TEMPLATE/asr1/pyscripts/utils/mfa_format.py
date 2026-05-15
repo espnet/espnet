@@ -24,10 +24,11 @@ import soundfile as sf
 
 try:
     from pyopenjtalk import run_frontend
-except ImportError as ex:
-    raise ImportError(
-        "pyopenjtalk is not installed. Install it using `make pyopenjtalk.done` at `<root>/tools`."
-    ) from ex
+except ImportError:
+    def run_frontend(*args, **kwargs):
+        raise ImportError(
+            "pyopenjtalk is not installed. Install it using 'make pyopenjtalk.done' at '<root>/tools'."
+        )
 
 from espnet2.text.phoneme_tokenizer import PhonemeTokenizer
 
