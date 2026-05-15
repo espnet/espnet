@@ -294,9 +294,12 @@ def wrap_func_with_worker_env(func: Callable) -> Callable:
                 f"Argument conflict: {conflict} passed via both kwargs and env"
             )
 
-        filtered_env = {
-            k: v for k, v in env.items() if (k in param_names) and (k not in kwargs)
-        }
+        if accepts_var_kw:
+            filtered_env = {k: v for k, v in env.items() if k not in kwargs}
+        else:
+            filtered_env = {
+                k: v for k, v in env.items() if (k in param_names) and (k not in kwargs)
+            }
         return func(*args, **kwargs, **filtered_env)
 
     return wrapped

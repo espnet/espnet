@@ -123,7 +123,7 @@ output_fn: src.inference.build_output
 # Optional artifact writers for non-scalar outputs.
 # Primitive values (str/int/float/bool) are written directly into SCP files.
 # Non-primitive values can be saved under:
-#   `${inference_dir}/<test_name>/<field>/<utt_id>.*`
+#   `${inference_dir}/<test_name>/split.<rank>/<field>/<utt_id>.*`
 # and the generated file path is written to the SCP entry.
 #
 # Supported built-in types:
