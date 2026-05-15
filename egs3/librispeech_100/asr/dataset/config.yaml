@@ -1,0 +1,17 @@
+builder:
+  dataset_path: download
+  source_env_var: LIBRISPEECH
+  required_splits:
+    - train-clean-100
+    - dev-clean
+    - dev-other
+    - test-clean
+    - test-other
+
+dataset:
+  supported_splits:
+    - train-clean-100
+    - dev-clean
+    - dev-other
+    - test-clean
+    - test-other
