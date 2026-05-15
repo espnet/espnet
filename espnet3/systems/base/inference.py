@@ -167,7 +167,6 @@ def infer(config: DictConfig):
 
         runner_kwargs = {
             "provider": provider,
-            "async_mode": False,
             "idx_key": idx_key,
             "hyp_key": hyp_keys,
             "ref_key": [],
@@ -189,7 +188,10 @@ def infer(config: DictConfig):
         logger.info("===> Processing %d samples..", dataset_length)
         result = runner(list(range(dataset_length)))
         if result is None:
-            raise RuntimeError("Async inference is not supported in this entrypoint.")
+            raise RuntimeError(
+                "Inference runner did not produce shard outputs. "
+                "Use a runner that writes outputs via BaseRunner hooks."
+            )
         if isinstance(result, list):
             raise RuntimeError(
                 "In-memory inference results are not supported. "

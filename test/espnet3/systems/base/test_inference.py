@@ -64,8 +64,8 @@ class DummyProvider(InferenceProvider):
 class DummyRunner(InferenceRunner):
     results = None
 
-    def __init__(self, provider, *, async_mode=False, results=None, **kwargs):
-        super().__init__(provider, async_mode=async_mode, **kwargs)
+    def __init__(self, provider, *, results=None, **kwargs):
+        super().__init__(provider, **kwargs)
         if results is not None:
             DummyRunner.results = results
 
@@ -206,7 +206,7 @@ def test_inference_rejects_test_entry_without_name(tmp_path, monkeypatch):
         inference_mod.infer(cfg)
 
 
-def test_inference_rejects_async_results(tmp_path, monkeypatch):
+def test_inference_rejects_runner_without_shard_outputs(tmp_path, monkeypatch):
     cfg = OmegaConf.create(
         {
             "parallel": {"env": "local"},
@@ -223,7 +223,7 @@ def test_inference_rejects_async_results(tmp_path, monkeypatch):
 
     monkeypatch.setattr(inference_mod, "set_parallel", lambda arg: None)
 
-    with pytest.raises(RuntimeError, match="Async inference is not supported"):
+    with pytest.raises(RuntimeError, match="did not produce shard outputs"):
         inference_mod.infer(cfg)
 
 
@@ -443,7 +443,7 @@ def test_inference_runner_streams_split_outputs_and_merges_scp(tmp_path, monkeyp
     inference_mod.infer(cfg)
 
     base = tmp_path / "infer" / "test_a"
-    split_dir = base / "split.0"
+    split_dir = base / "_shards" / "split.0"
     assert split_dir.exists()
     assert _read_scp(base / "hyp.scp") == ["utt1 h1", "utt2 h2"]
     assert _read_scp(split_dir / "hyp.scp") == ["utt1 h1", "utt2 h2"]

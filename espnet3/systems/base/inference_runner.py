@@ -369,8 +369,6 @@ class InferenceRunner(BaseRunner):
     def __call__(self, indices: Iterable[int]) -> Any:
         """Run inference and validate output formats."""
         results = super().__call__(indices)
-        if self.async_mode:
-            return results
         if results is None:
             return None
         if not isinstance(results, list):
