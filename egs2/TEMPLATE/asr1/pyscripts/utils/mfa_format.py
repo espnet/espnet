@@ -28,7 +28,8 @@ except ImportError:
 
     def run_frontend(*args, **kwargs):
         raise ImportError(
-            "pyopenjtalk is not installed. Install it using 'make pyopenjtalk.done' at '<root>/tools'."
+            "pyopenjtalk is not installed. Install it using 'make pyopenjtalk.done' "
+            "at '<root>/tools'."
         )
 
 
