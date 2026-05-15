@@ -157,14 +157,6 @@ dataloader:
           - ${stats_dir}/train/feats_shape
         batch_size: 16
         batch_bins: 12000000
-  valid:
-    iter_factory:
-      batches:
-        type: ${dataloader.train.iter_factory.batches.type}
-        shape_files:
-          - ${stats_dir}/valid/feats_shape
-        batch_size: ${dataloader.train.iter_factory.batches.batch_size}
-        batch_bins: ${dataloader.train.iter_factory.batches.batch_bins}
 
 ##########################################################
 #                    TRAINER SETTING                     #

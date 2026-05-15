@@ -7,4 +7,4 @@ pack_model:
     - ${data_dir}/**/tokens.txt
 
 upload_model:
-  hf_repo: espnet/librispeech_100_asr_demo
+  hf_repo: espnet/librispeech_100_asr_training_e_branchformer

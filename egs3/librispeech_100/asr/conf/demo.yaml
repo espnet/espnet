@@ -18,7 +18,7 @@
 # - a Hugging Face model repo tag usable by `InferenceModel.from_pretrained()`
 # Relative local paths are resolved from the packed demo directory at runtime.
 model:
-  dir_or_tag: exp/training_asr_transformer/model_pack
+  dir_or_tag: exp/training_e_branchformer/model_pack
   trust_user_code: true
 
 ##########################################################
@@ -34,5 +34,5 @@ ui:
 # `upload_demo` uploads the packed demo directory to a Hugging Face Space by
 # default.
 upload_demo:
-  hf_repo: espnet/librispeech_100_asr
+  hf_repo: espnet/librispeech_100_asr_training_e_branchformer_demo
   # organization: your-org
