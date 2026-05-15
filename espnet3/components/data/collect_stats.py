@@ -399,7 +399,7 @@ class CollectStatsRunner(BaseRunner):
             "feat_keys_written": list(feat_writers.keys()),
         }
 
-    def merge_scalar(self, states: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def merge_state(self, states: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Reduce per-shard stats."""
         sum_dict: Dict[str, Any] = defaultdict(lambda: 0)
         sq_dict: Dict[str, Any] = defaultdict(lambda: 0)
