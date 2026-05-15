@@ -47,9 +47,12 @@ dependencies = [
     "matplotlib",
     "nltk>=3.4.5",
 
-    # utils related
+    # utils related. Removed from versa.
     "pysptk",
     "resampy",
+    "mir-eval",
+    "fastdtw",
+    "pystoi",
 
     # ESPnet-3 related
     "hydra-core",

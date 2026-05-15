@@ -1,4 +1,4 @@
-ARG USE_IMAGE=ubuntu:latest
+ARG USE_IMAGE=ubuntu:24.04
 
 FROM ${USE_IMAGE}
 LABEL maintainer="Nelson Yalta <nyalta21@gmail.com>"
