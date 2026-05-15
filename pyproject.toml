@@ -45,6 +45,7 @@ dependencies = [
     "lhotse",
     "espnet_model_zoo",
     "matplotlib",
+    "resampy",
     "nltk>=3.4.5",
 
     # ESPnet-3 related
