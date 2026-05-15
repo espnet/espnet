@@ -420,7 +420,9 @@ def test_inference_runner_streams_split_outputs_and_merges_scp(tmp_path, monkeyp
                 },
             ],
             "provider": {"_target_": f"{__name__}.StreamingProvider"},
-            "runner": {"_target_": "espnet3.systems.base.inference_runner.InferenceRunner"},
+            "runner": {
+                "_target_": "espnet3.systems.base.inference_runner.InferenceRunner"
+            },
             "output_artifacts": {
                 "audio": {"type": "wav", "sample_rate": 16000},
             },
