@@ -402,6 +402,11 @@ def parallel_map(
       - Wrapping `func` with `wrap_func_with_worker_env` so that missing
         keyword arguments can be injected from the worker environment.
 
+    This helper is intentionally limited to **in-memory** result collection.
+    It gathers every task result back to the caller and does not provide shard
+    persistence, resume, or file-backed recovery. For resumable file-writing
+    workflows, use ``BaseRunner`` instead.
+
     Args:
         func (Callable[[Any], Any]):
             The function to execute on each element of `data`. May take
@@ -471,6 +476,11 @@ def parallel_for(
         arguments (pre-submission).
       - Wraps `func` with `wrap_func_with_worker_env` so any missing keyword
         parameters can be injected from the worker environment.
+
+    This helper is also limited to **in-memory** execution. It streams task
+    results back to the caller in completion order and does not persist shard
+    state or support resume. Use ``BaseRunner`` for durable file-writing
+    workflows that need shard-level recovery.
 
     Iteration order:
         Results are yielded in **completion order** (using `as_completed`),

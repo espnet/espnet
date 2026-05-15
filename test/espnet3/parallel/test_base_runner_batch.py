@@ -1,3 +1,5 @@
+import types
+
 import pytest
 
 from espnet3.parallel.base_runner import BaseRunner
@@ -85,6 +87,16 @@ def test_forward_used_when_batch_size_is_none():
     ]
 
 
+def test_in_memory_runner_does_not_create_shard_state():
+    ResumeRunner.calls = {"forward": 0}
+
+    runner = ResumeRunner(TrackingProvider(), batch_size=2)
+    out = runner([0, 1, 2, 3])
+
+    assert out == [[0, 1], [2, 3]]
+    assert ResumeRunner.calls["forward"] == 2
+
+
 def test_resume_skips_completed_shards(tmp_path):
     ResumeRunner.calls = {"forward": 0}
 
@@ -102,3 +114,50 @@ def test_resume_skips_completed_shards(tmp_path):
     assert ResumeRunner.calls["forward"] == 2
     assert (tmp_path / "_shards" / "resume" / "manifest.json").exists()
     assert (tmp_path / "_shards" / "resume" / "split.0" / "done").exists()
+
+
+def test_resume_reruns_only_incomplete_shards(tmp_path):
+    ResumeRunner.calls = {"forward": 0}
+
+    runner = ResumeRunner(
+        TrackingProvider(),
+        batch_size=2,
+        output_dir=tmp_path,
+        shard_subdir="resume_partial",
+    )
+    runner._plan_shards = types.MethodType(
+        lambda self, _items: [
+            {"shard_id": 0, "items": [[0, 1]], "job_id": None},
+            {"shard_id": 1, "items": [[2, 3]], "job_id": None},
+            {"shard_id": 2, "items": [[4]], "job_id": None},
+        ],
+        runner,
+    )
+    first = runner([0, 1, 2, 3, 4])
+    assert first == [[0, 1], [2, 3], [4]]
+    assert ResumeRunner.calls["forward"] == 3
+
+    incomplete_done = tmp_path / "_shards" / "resume_partial" / "split.1" / "done"
+    incomplete_done.unlink()
+
+    second = runner([0, 1, 2, 3, 4])
+    assert second == [[0, 1], [2, 3], [4]]
+    assert ResumeRunner.calls["forward"] == 4
+
+
+def test_resume_false_forces_rerun(tmp_path):
+    ResumeRunner.calls = {"forward": 0}
+
+    runner = ResumeRunner(
+        TrackingProvider(),
+        batch_size=2,
+        output_dir=tmp_path,
+        shard_subdir="resume_force",
+        resume=False,
+    )
+    first = runner([0, 1, 2, 3])
+    second = runner([0, 1, 2, 3])
+
+    assert first == [[0, 1], [2, 3]]
+    assert second == [[0, 1], [2, 3]]
+    assert ResumeRunner.calls["forward"] == 4

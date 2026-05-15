@@ -94,6 +94,12 @@ class BaseRunner(ABC):
         - Optionally reducing per-shard results on the worker before they are
           merged on the driver.
 
+    Unlike ``parallel_map`` and ``parallel_for``, this class is intended for
+    durable shard-oriented workflows that write files under ``output_dir`` and
+    may need resume support. When ``output_dir`` is omitted, it still supports
+    in-memory reduction for lightweight callers, but resumable execution is
+    only enabled for file-backed runs.
+
     Subclass contract:
         - Implement ``@staticmethod forward(idx, dataset, model, **env) -> Any``
           without capturing ``self``. ``idx`` may be a single index or a batch
@@ -226,7 +232,7 @@ class BaseRunner(ABC):
         return root / f"split.{shard_id}"
 
     @classmethod
-    def manifest_path(
+    def _manifest_path(
         cls,
         output_dir: Optional[str | Path],
         shard_subdir: str = "",
@@ -236,30 +242,20 @@ class BaseRunner(ABC):
         return cls._shards_root(Path(output_dir), shard_subdir) / "manifest.json"
 
     @staticmethod
-    def done_path(shard_dir: Path) -> Path:
+    def _done_path(shard_dir: Path) -> Path:
         return Path(shard_dir) / "done"
 
-    @staticmethod
-    def job_id_path(shard_dir: Path) -> Path:
-        return Path(shard_dir) / "job_id"
+    @classmethod
+    def _mark_done(cls, shard_dir: Path) -> None:
+        cls._done_path(shard_dir).write_text("", encoding="utf-8")
 
     @classmethod
-    def mark_done(cls, shard_dir: Path) -> None:
-        cls.done_path(shard_dir).write_text("", encoding="utf-8")
-
-    @classmethod
-    def clear_done(cls, shard_dir: Path) -> None:
-        cls.done_path(shard_dir).unlink(missing_ok=True)
-
-    @classmethod
-    def write_job_id(cls, shard_dir: Path, job_id: str) -> None:
-        cls.job_id_path(shard_dir).write_text(job_id, encoding="utf-8")
+    def _clear_done(cls, shard_dir: Path) -> None:
+        cls._done_path(shard_dir).unlink(missing_ok=True)
 
     @classmethod
     def is_shard_done(cls, shard_dir: Path) -> bool:
-        return cls.done_path(shard_dir).exists() and (
-            Path(shard_dir) / "_state.pkl"
-        ).exists()
+        return cls._done_path(shard_dir).exists()
 
     @staticmethod
     def serialize_state(state: Dict[str, Any], shard_dir: Path) -> Path:
@@ -361,7 +357,7 @@ class BaseRunner(ABC):
         }
 
     def _write_manifest(self, shards: Sequence[Dict[str, Any]]) -> Optional[Path]:
-        manifest_path = self.manifest_path(self.output_dir, self.shard_subdir)
+        manifest_path = self._manifest_path(self.output_dir, self.shard_subdir)
         if manifest_path is None:
             return None
         manifest_path.parent.mkdir(parents=True, exist_ok=True)
@@ -379,7 +375,7 @@ class BaseRunner(ABC):
         if not chunks:
             return []
         return [
-            {"shard_id": shard_id, "items": list(chunk), "job_id": None}
+            {"shard_id": shard_id, "items": list(chunk)}
             for shard_id, chunk in enumerate(chunks)
         ]
 
@@ -409,8 +405,13 @@ class BaseRunner(ABC):
             )
             if shard_dir is None:
                 continue
+            state_path = Path(shard_dir) / "_state.pkl"
             if not self.is_shard_done(shard_dir):
                 raise FileNotFoundError(f"Shard {shard['shard_id']} is not complete: {shard_dir}")
+            if not state_path.exists():
+                raise FileNotFoundError(
+                    f"Shard {shard['shard_id']} is missing state: {state_path}"
+                )
             states.append(self.deserialize_state(shard_dir))
         return states
 
@@ -431,14 +432,14 @@ class BaseRunner(ABC):
         state = cls.init_state(shard_id=shard_id, **env)
         shard_dir = Path(state["shard_dir"]) if state.get("shard_dir") else None
         if shard_dir is not None:
-            cls.clear_done(shard_dir)
+            cls._clear_done(shard_dir)
         for item in items:
             result = cls.forward(item, **env)
             state = cls.reduce_state(state, result, shard_id=shard_id, **env)
         state = cls.finalize_state(state, shard_id=shard_id, **env)
         if shard_dir is not None:
             cls.serialize_state(state, shard_dir)
-            cls.mark_done(shard_dir)
+            cls._mark_done(shard_dir)
         return state
 
     def _run_local(self, shards: Sequence[Dict[str, Any]]) -> List[Dict[str, Any]]:
