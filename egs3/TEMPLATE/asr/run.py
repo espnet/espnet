@@ -38,7 +38,6 @@ DEFAULT_STAGES: List[str] = [
 ]
 
 
-
 def build_parser(
     stages: Sequence[str],
 ) -> argparse.ArgumentParser:
