@@ -8,7 +8,9 @@ import logging
 from pathlib import Path
 from typing import List, Sequence
 
-from espnet3.utils.config_utils import load_and_merge_config
+from espnet3.utils.config_utils import (
+    load_and_merge_config,
+)
 from espnet3.utils.logging_utils import configure_logging
 from espnet3.utils.run_utils import (
     apply_training_experiment_context,
@@ -31,14 +33,10 @@ DEFAULT_STAGES: List[str] = [
     "measure",
     "pack_model",
     "upload_model",
-]
-
-DEMO_STAGES: List[str] = [
     "pack_demo",
     "upload_demo",
 ]
 
-ALL_STAGES: List[str] = DEFAULT_STAGES + DEMO_STAGES
 
 
 def build_parser(
@@ -76,7 +74,7 @@ def build_parser(
         help="Hydra config for measure stage.",
     )
     parser.add_argument(
-        "--publish_config",
+        "--publication_config",
         default=None,
         type=Path,
         help="Hydra config for pack/upload stages.",
@@ -85,7 +83,7 @@ def build_parser(
         "--demo_config",
         default=None,
         type=Path,
-        help="Hydra config for demo pack/upload stages.",
+        help="Hydra config for pack_demo/upload_demo stages.",
     )
     parser.add_argument(
         "--dry_run",
@@ -131,21 +129,25 @@ def main(
         default_package=__package__,
         resolve=False,
     )
-    publish_config = load_and_merge_config(
-        args.publish_config,
-        config_name="publish.yaml",
+    publication_config = load_and_merge_config(
+        args.publication_config,
+        config_name="publication.yaml",
         default_package=__package__,
+        resolve=False,
     )
     demo_config = load_and_merge_config(
         args.demo_config,
         config_name="demo.yaml",
         default_package=__package__,
+        resolve=False,
     )
     logger = configure_logging()
     apply_training_experiment_context(
         training_config=training_config,
         inference_config=inference_config,
         metrics_config=metrics_config,
+        publication_config=publication_config,
+        demo_config=demo_config,
         log=logger,
     )
     validate_experiment_context(
@@ -154,7 +156,13 @@ def main(
         metrics_config=metrics_config,
         stages_to_run=stages_to_run,
     )
-    resolve_loaded_configs(training_config, inference_config, metrics_config)
+    resolve_loaded_configs(
+        training_config,
+        inference_config,
+        metrics_config,
+        publication_config,
+        demo_config,
+    )
 
     # -----------------------------------------
     # Instantiate system
@@ -163,7 +171,7 @@ def main(
         training_config=training_config,
         inference_config=inference_config,
         metrics_config=metrics_config,
-        publish_config=publish_config,
+        publication_config=publication_config,
         demo_config=demo_config,
     )
 
@@ -186,8 +194,8 @@ def main(
     required_configs.update({"infer": inference_config, "measure": metrics_config})
     required_configs.update(
         {
-            "pack_model": training_config,
-            "upload_model": publish_config,
+            "pack_model": (training_config, publication_config),
+            "upload_model": publication_config,
             "pack_demo": demo_config,
             "upload_demo": demo_config,
         }
@@ -195,13 +203,19 @@ def main(
     missing = [
         s
         for s in stages_to_run
-        if s in required_configs and required_configs[s] is None
+        if s in required_configs
+        and (
+            any(cfg is None for cfg in required_configs[s])
+            if isinstance(required_configs[s], tuple)
+            else required_configs[s] is None
+        )
     ]
     if missing:
         missing_str = ", ".join(missing)
         raise ValueError(
             f"Config not provided for stage(s): {missing_str}. "
-            "Use --training_config/--inference_config/--metrics_config."
+            "Use --training_config/--inference_config/--metrics_config/"
+            "--publication_config/--demo_config."
         )
     run_stages(
         system=system,
@@ -222,5 +236,5 @@ if __name__ == "__main__":
     main(
         args=args,
         system_cls=ASRSystem,
-        stages=ALL_STAGES,
+        stages=DEFAULT_STAGES,
     )

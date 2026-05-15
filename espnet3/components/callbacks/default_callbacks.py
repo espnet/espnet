@@ -20,22 +20,39 @@ from espnet3.utils.logging_utils import log_component
 _LOGGED_CALLBACKS = False
 
 
-def _metric_to_float(value) -> float | None:
-    """Convert logged scalars to `float` and ignore unsupported metric values.
+def _metric_to_float(value) -> float:
+    """Convert one logged scalar metric value to ``float``.
 
-    Tensor values are detached first, and non-scalar inputs return `None` so
-    train/valid summary logging can skip them uniformly.
+    Tensor values are detached first. Only scalar values are supported because
+    summary logging expects one numeric value per metric name.
+
+    Args:
+        value: Logged metric value from ``trainer.callback_metrics``.
+
+    Returns:
+        Metric converted to ``float``.
+
+    Raises:
+        AssertionError: If the metric value is not scalar or cannot be
+            converted to ``float``.
     """
+    original_type = type(value).__name__
     if hasattr(value, "detach"):
         value = value.detach()
     if isinstance(value, torch.Tensor):
         if value.numel() != 1:
-            return None
+            raise AssertionError(
+                "MetricsLogger supports only scalar metric values, "
+                f"but got tensor with shape {tuple(value.shape)}."
+            )
         value = value.cpu().item()
     try:
         return float(value)
-    except Exception:
-        return None
+    except Exception as exc:
+        raise AssertionError(
+            "MetricsLogger does not support metric values of type "
+            f"{original_type}: {value!r}"
+        ) from exc
 
 
 def _format_metrics(metrics: dict[str, float], time_keys: tuple[str, ...]) -> str:
@@ -277,8 +294,6 @@ class MetricsLogger(Callback):
             if key.startswith("train/"):
                 key = key[len("train/") :]
             value = _metric_to_float(value)
-            if value is None:
-                continue
             self._sum[key] += value
             self._epoch_sum[key] += value
 
@@ -364,10 +379,7 @@ class MetricsLogger(Callback):
             key = str(key)
             if key in {"epoch", "step"} or not key.startswith("valid/"):
                 continue
-            converted = _metric_to_float(value)
-            if converted is None:
-                continue
-            metrics[key[len("valid/") :]] = converted
+            metrics[key[len("valid/") :]] = _metric_to_float(value)
 
         if self._validation_start_time is not None:
             metrics["valid_time"] = time.perf_counter() - self._validation_start_time

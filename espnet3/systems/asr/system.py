@@ -11,6 +11,8 @@ from importlib import import_module
 from pathlib import Path
 from typing import Iterable
 
+from omegaconf import DictConfig
+
 from espnet3.systems.asr.tokenizers.sentencepiece import train_sentencepiece
 from espnet3.systems.base.system import BaseSystem
 
@@ -31,20 +33,35 @@ class ASRSystem(BaseSystem):
 
     def __init__(
         self,
-        training_config=None,
-        inference_config=None,
-        metrics_config=None,
-        **kwargs,
+        training_config: DictConfig | None = None,
+        inference_config: DictConfig | None = None,
+        metrics_config: DictConfig | None = None,
+        publication_config: DictConfig | None = None,
+        stage_log_mapping: dict | None = None,
+        demo_config: DictConfig | None = None,
     ) -> None:
-        """Initialize the ASR system with ASR-specific stage mappings."""
+        """Initialize the ASR system with optional stage configs.
+
+        Args:
+            training_config: Training configuration.
+            inference_config: Inference configuration.
+            metrics_config: Measurement configuration.
+            publication_config: Publication configuration for model packing
+                and upload stages.
+            stage_log_mapping: Optional per-stage log directory overrides.
+            demo_config: Demo configuration for demo packing and upload
+                stages.
+        """
         super().__init__(
             training_config=training_config,
             inference_config=inference_config,
             metrics_config=metrics_config,
+            publication_config=publication_config,
             stage_log_mapping={
                 "train_tokenizer": "training_config.tokenizer.save_path",
+                **(stage_log_mapping or {}),
             },
-            **kwargs,
+            demo_config=demo_config,
         )
 
     def train(self, *args, **kwargs):
@@ -137,7 +154,11 @@ class ASRSystem(BaseSystem):
         if train_text_path:
             train_text_path = Path(train_text_path)
         else:
-            train_text_path = output_path / "train.txt"
+            data_dir = getattr(self.training_config, "data_dir", None)
+            if data_dir:
+                train_text_path = Path(data_dir) / "train_tokenizer" / "train.txt"
+            else:
+                train_text_path = output_path / "train.txt"
         if train_text_path.exists():
             raise RuntimeError(
                 f"Tokenizer training text already exists: {train_text_path}"
@@ -160,29 +181,3 @@ class ASRSystem(BaseSystem):
         logger.info(
             "Tokenizer training completed in %.2fs", time.perf_counter() - start
         )
-
-    # ---------------------------------------------------------
-    # Publication helpers
-    # ---------------------------------------------------------
-    def pack_model(self, *args, **kwargs):
-        """Pack model artifacts into an espnet3 bundle."""
-        self._reject_stage_args("pack_model", args, kwargs)
-        from espnet3.utils.publish import pack_model
-
-        extra_paths = []
-        if self.train_config is not None:
-            tokenizer_cfg = getattr(self.train_config, "tokenizer", None)
-            if tokenizer_cfg is not None:
-                save_path = getattr(tokenizer_cfg, "save_path", None)
-                if save_path:
-                    extra_paths.append(Path(save_path))
-            stats_dir = getattr(self.train_config, "stats_dir", None)
-            if stats_dir:
-                extra_paths.append(Path(stats_dir))
-            data_dir = getattr(self.train_config, "data_dir", None)
-            if data_dir:
-                data_tokenizer = Path(data_dir) / "tokenizer"
-                if data_tokenizer.exists():
-                    extra_paths.append(data_tokenizer)
-
-        return pack_model(self, extra=extra_paths)

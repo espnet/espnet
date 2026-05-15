@@ -1,20 +1,83 @@
-system: base
-infer_config: conf/infer.yaml
+##########################################################
+#                    DEMO PACK SETTING                   #
+##########################################################
+# Quick usage:
+#   python run.py --stages pack_demo   --demo_config conf/demo.yaml
+#   python run.py --stages upload_demo --demo_config conf/demo.yaml
+#
+# Main stages and what this config is used for:
+# - `pack_demo`: packs `demo.yaml`, `ui.app_script`, and `pack.include`
+# - `upload_demo`: uploads the packed demo directory
 
-output_keys:
-  text: hyp
+##########################################################
+#                    MODEL SOURCE                        #
+##########################################################
+# `model.dir_or_tag` selects the packed model used by the demo.
+# - local packed directory relative to the demo dir, e.g. `../model_pack`
+# - remote model tag understood by `espnet_model_zoo`
+#
+# `model.call_args` is passed at inference call time as:
+#   model(sample, **call_args)
+# Use this only for runtime kwargs consumed by the published model callable.
+# Initialization-time overrides are intentionally not supported here; keep
+# those in the packed `conf/inference.yaml`.
+model:
+  dir_or_tag: ../model_pack
+  trust_user_code: false
+  call_args: {}
 
-# Inference runner kwargs (input_key/output_fn_path) are derived from infer_config.
+##########################################################
+#                     UI DEFINITION                      #
+##########################################################
+# `ui.app_script` is copied into the packed demo as `app.py`.
+#
+# `ui.description` may be:
+# - a markdown/text file path; `pack_demo` copies that file into the bundle
+# - inline text; the app shows it directly
+#
+# `ui.inputs` and `ui.outputs` define the default Gradio wiring used by
+# `src/app.py`.
+# - `key`: model-facing field name
+# - `type`: registered built-in UI asset type such as `audio` or `text`
+# - `label`: UI label shown in Gradio
+#
+# The default app binds input/output components positionally. Keep the order of
+# these entries aligned with the values expected by the app and returned by the
+# inference function.
+ui:
+  app_script: src/app.py
+  title: null
+  description: readme.md
+  inputs:
+    - key: speech
+      type: audio
+      label: "Input Audio"
+  outputs:
+    - key: hyp
+      type: text
+      label: "Transcription"
 
+##########################################################
+#                    PACKING SETTING                     #
+##########################################################
+# `pack.include` copies extra files or directories into the packed demo.
+# Globs are supported, e.g. `assets/**/*.png`.
+#
+# `pack.exclude` removes matches from copied include directories. Patterns use
+# the same style as publication bundle excludes, e.g.:
+# - `**/*.log`
+# - `**/tensorboard/**`
 pack:
   out_dir: demo
-  files:
-    - exp/your_exp_dir/last.ckpt  # override in recipe
-    - exp/your_exp_dir/config.yaml
+  include: []
+  exclude: []
 
+##########################################################
+#                    UPLOAD SETTING                      #
+##########################################################
+# Upload target used by `upload_demo`.
+# The packed demo directory is uploaded as-is, so keep repo-facing metadata in
+# the files referenced above rather than generating a separate demo README here.
 upload_demo:
-  hf_username: your-hf-username
-  repo_name: your-demo
-  repo_type: space
-  space_sdk: gradio
+  hf_repo: your-hf-username/your-demo
   # organization: your-org

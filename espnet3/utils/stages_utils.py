@@ -62,20 +62,6 @@ def resolve_stages(
     The special token ``"all"`` expands to all known stages in order.
     Otherwise, the returned list preserves the order of ``stages`` and
     includes only those present in ``requested``.
-
-    Args:
-        requested (Sequence[str]): Requested stage names (or ``["all"]``).
-        stages (Sequence[str]): Available stages in canonical order.
-
-    Returns:
-        List[str]: Stages to run, in the order of ``stages``.
-
-    Example:
-        >>> resolve_stages(
-        ...     ["train", "infer"],
-        ...     ["collect_stats", "train", "infer"],
-        ... )
-        ['train', 'infer']
     """
     if "all" in requested:
         return list(stages)
@@ -146,15 +132,6 @@ def run_stages(
         AttributeError: If a named stage method is missing on ``system``.
         TypeError: If a stage method rejects CLI-provided arguments.
         Exception: Re-raises any exception from a stage method.
-
-    Returns:
-        None
-
-    Example:
-        >>> class Sys:
-        ...     def train(self):
-        ...         pass
-        >>> run_stages(Sys(), ["train"], dry_run=True)
     """
     log = log or logger
     dry_run = bool(getattr(args, "dry_run", False))

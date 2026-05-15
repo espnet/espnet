@@ -222,12 +222,6 @@ def configure_logging(
 
     Returns:
         logging.Logger: Logger instance named "espnet3".
-
-    Example:
-        >>> from pathlib import Path
-        >>> logger = configure_logging(log_dir=Path("exp/logs"))
-        >>> logger.name
-        'espnet3'
     """
     root = logging.getLogger()
     root.setLevel(level)
@@ -281,17 +275,6 @@ def set_stage_log_handler(
 
     Returns:
         Path | None: Resolved log file path when installed, otherwise None.
-
-    Example:
-        >>> import logging
-        >>> from pathlib import Path
-        >>> p = set_stage_log_handler(
-        ...     logging.getLogger("espnet3"),
-        ...     Path("exp/logs"),
-        ...     filename="train.log",
-        ... )
-        >>> p is None
-        False
     """
     if log_dir is None:
         return None
@@ -351,10 +334,6 @@ def get_git_metadata(cwd: Path | None = None) -> dict[str, str]:
             - "short_commit": Abbreviated commit hash.
             - "branch": Current branch name.
             - "worktree": "clean", "dirty", or "unknown".
-
-    Example:
-        >>> meta = get_git_metadata()  # doctest: +SKIP
-        >>> meta.get("short_commit")  # doctest: +SKIP
     """
     cwd = cwd or Path.cwd()
     status = _run_git_command(["git", "status", "--short"], cwd)
@@ -493,13 +472,6 @@ def log_run_metadata(
         configs (Mapping[str, Path | None] | None): Named config paths to log.
         write_requirements (bool): If True, export pip freeze output to
             requirements.txt alongside the log file.
-
-    Returns:
-        None
-
-    Example:
-        >>> import logging
-        >>> log_run_metadata(logging.getLogger("espnet3"))  # doctest: +SKIP
     """
     logger.info("=== ESPnet3 run started: %s ===", datetime.now().isoformat())
     logger.log(
@@ -649,13 +621,6 @@ def log_env_metadata(
         cluster_prefixes (Iterable[str] | None): Prefixes for cluster variables.
         runtime_prefixes (Iterable[str] | None): Prefixes for runtime variables.
         runtime_keys (Iterable[str] | None): Explicit runtime keys to include.
-
-    Returns:
-        None
-
-    Example:
-        >>> import logging
-        >>> log_env_metadata(logging.getLogger("espnet3"))  # doctest: +SKIP
     """
     cluster_prefixes = cluster_prefixes or (
         "SLURM_",

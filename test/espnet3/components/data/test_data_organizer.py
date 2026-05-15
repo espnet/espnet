@@ -162,12 +162,12 @@ class DummyShardedDataset(ShardedDataset):
         self,
         path=None,
         shard_id: int = 0,
-        num_shards: int = 2,
-        world_shard_size: int = 1,
+        total_shards: int = 2,
+        dist_world_size: int = 1,
     ):
         self.shard_id = shard_id
-        self.num_shards = num_shards
-        self.world_shard_size = world_shard_size
+        self.total_shards = total_shards
+        self.dist_world_size = dist_world_size
         self.data = [
             {"audio": np.random.random(16000), "text": f"shard{shard_id}_hello"},
             {"audio": np.random.random(16000), "text": f"shard{shard_id}_world"},
@@ -182,15 +182,15 @@ class DummyShardedDataset(ShardedDataset):
     def shard(self, idx):
         return DummyShardedDataset(
             shard_id=idx,
-            num_shards=self.num_shards,
-            world_shard_size=self.world_shard_size,
+            total_shards=self.total_shards,
+            dist_world_size=self.dist_world_size,
         )
 
 
 class DummyBrokenShardedDataset(ShardedDataset):
-    def __init__(self, num_shards=None, world_shard_size=None):
-        self.num_shards = num_shards
-        self.world_shard_size = world_shard_size
+    def __init__(self, total_shards=None, dist_world_size=None):
+        self.total_shards = total_shards
+        self.dist_world_size = dist_world_size
 
     def __len__(self):
         return 0
@@ -527,7 +527,7 @@ def test_data_organizer_transform_only():
     assert organizer.valid[0]["text"] == "hello"
 
 
-def test_data_organizer_no_preprocessor_config():
+def test_data_organizer_no_preprocessor_instantiated_config():
     config = {
         "train": [
             {
@@ -545,6 +545,29 @@ def test_data_organizer_no_preprocessor_config():
     organizer = DataOrganizer(
         train=OmegaConf.create(config)["train"],
         valid=OmegaConf.create(config)["valid"],
+    )
+    assert organizer.train[0]["text"] == "hello"
+    assert organizer.valid[0]["text"] == "hello"
+
+
+def test_data_organizer_no_preprocessor_config():
+    config = {
+        "train": [
+            {
+                "name": "train_dummy",
+                "dataset": {"_target_": DUMMY_DATASET_TARGET},
+            }
+        ],
+        "valid": [
+            {
+                "name": "valid_dummy",
+                "dataset": {"_target_": DUMMY_DATASET_TARGET},
+            }
+        ],
+    }
+    organizer = DataOrganizer(
+        train=instantiate(OmegaConf.create(config)["train"]),
+        valid=instantiate(OmegaConf.create(config)["valid"]),
     )
     assert organizer.train[0]["text"] == "hello"
     assert organizer.valid[0]["text"] == "hello"
@@ -777,10 +800,11 @@ def test_combined_dataset_shard_returns_sharded_dataset():
 
 
 def test_combined_dataset_sharded_missing_metadata():
-    ds1 = DummyBrokenShardedDataset(num_shards=None, world_shard_size=1)
-    ds2 = DummyBrokenShardedDataset(num_shards=None, world_shard_size=1)
+    ds1 = DummyBrokenShardedDataset(total_shards=None, dist_world_size=1)
+    ds2 = DummyBrokenShardedDataset(total_shards=None, dist_world_size=1)
     with pytest.raises(
-        RuntimeError, match="ShardedDataset requires num_shards and world_shard_size"
+        RuntimeError,
+        match="ShardedDataset requires total_shards and dist_world_size",
     ):
         CombinedDataset(
             datasets=[ds1, ds2],
@@ -790,10 +814,10 @@ def test_combined_dataset_sharded_missing_metadata():
 
 
 def test_combined_dataset_sharded_metadata_mismatch():
-    ds1 = DummyBrokenShardedDataset(num_shards=2, world_shard_size=1)
-    ds2 = DummyBrokenShardedDataset(num_shards=3, world_shard_size=1)
+    ds1 = DummyBrokenShardedDataset(total_shards=2, dist_world_size=1)
+    ds2 = DummyBrokenShardedDataset(total_shards=3, dist_world_size=1)
     with pytest.raises(
-        RuntimeError, match="must share the same num_shards and world_shard_size"
+        RuntimeError, match="must share the same total_shards and dist_world_size"
     ):
         CombinedDataset(
             datasets=[ds1, ds2],

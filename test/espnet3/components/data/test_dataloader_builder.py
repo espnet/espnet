@@ -122,11 +122,11 @@ def dummy_collate_fn(batch):
 
 class DummyShardedDataset(ShardedDataset):
     def __init__(
-        self, shard_id: int = 0, num_shards: int = 2, world_shard_size: int = 1
+        self, shard_id: int = 0, total_shards: int = 2, dist_world_size: int = 1
     ):
         self.shard_id = shard_id
-        self.num_shards = num_shards
-        self.world_shard_size = world_shard_size
+        self.total_shards = total_shards
+        self.dist_world_size = dist_world_size
         self.data = [
             {"text": f"shard{shard_id}_sample0"},
             {"text": f"shard{shard_id}_sample1"},
@@ -141,15 +141,15 @@ class DummyShardedDataset(ShardedDataset):
     def shard(self, idx: int):
         return DummyShardedDataset(
             shard_id=idx,
-            num_shards=self.num_shards,
-            world_shard_size=self.world_shard_size,
+            total_shards=self.total_shards,
+            dist_world_size=self.dist_world_size,
         )
 
 
 class DummyMissingShardMethod:
-    def __init__(self, num_shards=2, world_shard_size=1):
-        self.num_shards = num_shards
-        self.world_shard_size = world_shard_size
+    def __init__(self, total_shards=2, dist_world_size=1):
+        self.total_shards = total_shards
+        self.dist_world_size = dist_world_size
 
     def __len__(self):
         return 0
@@ -564,7 +564,7 @@ def _first_shard_id(loader):
 def test_sharded_dataset_single_gpu_multiple_shards():
     organizer = build_organizer(
         DUMMY_SHARDED_DATASET_TARGET,
-        dataset_kwargs={"num_shards": 2, "world_shard_size": 1},
+        dataset_kwargs={"total_shards": 2, "dist_world_size": 1},
     )
     config = make_standard_dataloader_config()
     config.dataloader.train.batch_size = 1
@@ -594,7 +594,7 @@ def test_multiple_iterator_shard_initialization(dummy_multiple_iterator_dataset)
 
 
 @pytest.mark.parametrize(
-    "world_size,num_shards,rank,expected",
+    "world_size,total_shards,rank,expected",
     [
         (2, 2, 0, {"shard0"}),
         (2, 2, 1, {"shard1"}),
@@ -603,7 +603,12 @@ def test_multiple_iterator_shard_initialization(dummy_multiple_iterator_dataset)
     ],
 )
 def test_sharded_dataset_multi_gpu_assignment(
-    monkeypatch, dummy_multiple_iterator_dataset, world_size, num_shards, rank, expected
+    monkeypatch,
+    dummy_multiple_iterator_dataset,
+    world_size,
+    total_shards,
+    rank,
+    expected,
 ):
     monkeypatch.setattr(torch.distributed, "get_world_size", lambda: world_size)
     monkeypatch.setattr(torch.distributed, "get_rank", lambda: rank)
@@ -613,8 +618,8 @@ def test_sharded_dataset_multi_gpu_assignment(
     )
     config = make_standard_dataloader_config()
     config.dataloader.train.batch_size = 1
-    organizer.train.datasets[0].num_shards = num_shards
-    organizer.train.datasets[0].world_shard_size = world_size
+    organizer.train.datasets[0].total_shards = total_shards
+    organizer.train.datasets[0].dist_world_size = world_size
     builder = DataLoaderBuilder(
         organizer.train, config, collate_fn=None, num_device=world_size, epoch=0
     )
@@ -635,7 +640,7 @@ def test_sharded_dataset_multi_gpu_rotates_with_epoch(monkeypatch):
 
     organizer = build_organizer(
         DUMMY_SHARDED_DATASET_TARGET,
-        dataset_kwargs={"num_shards": 4, "world_shard_size": 2},
+        dataset_kwargs={"total_shards": 4, "dist_world_size": 2},
     )
     config = make_standard_dataloader_config()
     config.dataloader.train.batch_size = 1
@@ -673,7 +678,7 @@ def test_sharded_dataset_multi_gpu_rotates_epochs_0_to_3(
 
     organizer = build_organizer(
         DUMMY_SHARDED_DATASET_TARGET,
-        dataset_kwargs={"num_shards": 4, "world_shard_size": 2},
+        dataset_kwargs={"total_shards": 4, "dist_world_size": 2},
     )
     config = make_standard_dataloader_config()
     config.dataloader.train.batch_size = 1
@@ -689,8 +694,8 @@ def test_sharded_dataset_multi_gpu_rotates_epochs_0_to_3(
     assert _first_shard_for_rank(1) == expected_rank1
 
 
-@pytest.mark.parametrize("num_shards", [1, 3])
-def test_sharded_dataset_invalid_shard_count(monkeypatch, num_shards):
+@pytest.mark.parametrize("total_shards", [1, 3])
+def test_sharded_dataset_invalid_shard_count(monkeypatch, total_shards):
     def _get_world_size():
         return 2
 
@@ -702,7 +707,7 @@ def test_sharded_dataset_invalid_shard_count(monkeypatch, num_shards):
 
     organizer = build_organizer(
         DUMMY_SHARDED_DATASET_TARGET,
-        dataset_kwargs={"num_shards": num_shards, "world_shard_size": 2},
+        dataset_kwargs={"total_shards": total_shards, "dist_world_size": 2},
     )
     config = make_standard_dataloader_config()
     config.dataloader.train.batch_size = 1
@@ -710,7 +715,7 @@ def test_sharded_dataset_invalid_shard_count(monkeypatch, num_shards):
         organizer.train, config, collate_fn=None, num_device=2, epoch=0
     )
     with pytest.raises(
-        RuntimeError, match="num_shards must be divisible by world_size"
+        RuntimeError, match="total_shards must be divisible by world_size"
     ):
         builder.build("train")
 
@@ -718,7 +723,7 @@ def test_sharded_dataset_invalid_shard_count(monkeypatch, num_shards):
 def test_sharded_dataset_missing_shard_method():
     organizer = build_organizer(
         DUMMY_MISSING_SHARD_TARGET,
-        dataset_kwargs={"num_shards": 2, "world_shard_size": 1},
+        dataset_kwargs={"total_shards": 2, "dist_world_size": 1},
     )
     config = make_standard_dataloader_config()
     builder = build_builder(
@@ -740,11 +745,11 @@ def test_sharded_dataset_world_size_mismatch(monkeypatch):
 
     organizer = build_organizer(
         DUMMY_SHARDED_DATASET_TARGET,
-        dataset_kwargs={"num_shards": 2, "world_shard_size": 1},
+        dataset_kwargs={"total_shards": 2, "dist_world_size": 1},
     )
     config = make_standard_dataloader_config()
     builder = build_builder(
         organizer.train, config, collate_fn=None, num_device=2, epoch=0
     )
-    with pytest.raises(RuntimeError, match="world_shard_size must match"):
+    with pytest.raises(RuntimeError, match="dist_world_size must match"):
         builder.build("train")
