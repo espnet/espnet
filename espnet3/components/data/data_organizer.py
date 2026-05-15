@@ -8,7 +8,11 @@ from hydra.utils import instantiate
 from omegaconf import DictConfig, OmegaConf
 
 from espnet2.train.preprocessor import AbsPreprocessor
-from espnet3.components.data.dataset import CombinedDataset, DatasetWithTransform
+from espnet3.components.data.dataset import (
+    CombinedDataset,
+    DatasetWithTransform,
+    do_nothing,
+)
 from espnet3.components.data.dataset_module import instantiate_dataset_reference
 from espnet3.utils.logging_utils import build_callable_name, build_qualified_name
 
@@ -62,21 +66,6 @@ class DatasetConfig:
     data_src_args: Optional[Dict[str, Any]] = None
     transform: Optional[Dict[str, Any]] = None
     split: Optional[str] = None
-
-
-def do_nothing(*x):
-    """Return input as-is.
-
-    Args:
-        x: Any object.
-
-    Returns:
-        The input object unchanged.
-    """
-    if len(x) == 1:
-        return x[0]
-    else:
-        return x
 
 
 def _log_dataset(

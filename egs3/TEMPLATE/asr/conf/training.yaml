@@ -24,10 +24,9 @@ task:
 # Path scaffold relative to the recipe root.
 recipe_dir: .
 data_dir: ${recipe_dir}/data
-exp_tag:
+exp_tag: ${self_name:}
 exp_dir: ${recipe_dir}/exp/${exp_tag}
 stats_dir: ${recipe_dir}/exp/stats
-inference_dir: ${exp_dir}/inference
 
 # Directory where this recipe stores prepared manifests and any recipe-local
 # dataset artifacts.
@@ -220,8 +219,11 @@ dataloader:
     int_pad_value: -1
   # Training dataloader / iterator settings.
   train:
-    multiple_iterator: false
-    num_shards: 1
+    # `total_shards` is the total number of dataset shards.
+    # `dist_world_size` is the distributed world size used to rotate shards.
+    # Keep `dist_world_size` equal to the runtime world size.
+    total_shards: 1
+    dist_world_size: 1
     iter_factory:
       _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
       shuffle: true
@@ -237,8 +239,9 @@ dataloader:
 
   # Validation dataloader / iterator settings.
   valid:
-    multiple_iterator: false
-    num_shards: 1
+    # Use the same sharding settings as `train`.
+    total_shards: 1
+    dist_world_size: 1
     iter_factory:
       _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
       shuffle: false

@@ -265,6 +265,20 @@ foo: bar
     assert "defaults" not in cfg
 
 
+def test_self_name_resolver(write_yaml):
+    path = write_yaml("main.yaml", "name: ${self_name:}\n")
+    cfg = load_config_with_defaults(str(path))
+    assert cfg.name == "main"
+
+
+def test_self_name_resolver_in_defaults(write_yaml):
+    write_yaml("base.yaml", "base_name: ${self_name:}\n")
+    path = write_yaml("main.yaml", "defaults:\n  - base\nname: ${self_name:}\n")
+    cfg = load_config_with_defaults(str(path))
+    assert cfg.base_name == "base"
+    assert cfg.name == "main"
+
+
 def test_missing_file_raises(tmp_path):
     """Test that loading a config with a missing file in `defaults`
 
@@ -338,8 +352,12 @@ custom_path: ${exp_dir}/artifacts
     )
 
     monkeypatch.setattr(
-        "espnet3.utils.config_utils.load_default_config",
-        lambda _, __: load_config_with_defaults(str(template), resolve=False),
+        "espnet3.utils.config_utils._load_default_config",
+        lambda _, __, bind_self_name=True: (
+            load_config_with_defaults(str(template), resolve=False)
+            if bind_self_name
+            else OmegaConf.load(str(template))
+        ),
     )
 
     cfg = load_and_merge_config(
@@ -372,8 +390,12 @@ custom_dir: ${exp_dir}/custom
     )
 
     monkeypatch.setattr(
-        "espnet3.utils.config_utils.load_default_config",
-        lambda _, __: load_config_with_defaults(str(template), resolve=False),
+        "espnet3.utils.config_utils._load_default_config",
+        lambda _, __, bind_self_name=True: (
+            load_config_with_defaults(str(template), resolve=False)
+            if bind_self_name
+            else OmegaConf.load(str(template))
+        ),
     )
 
     cfg = load_and_merge_config(
@@ -405,8 +427,12 @@ exp_dir: ./exp/from_user
     )
 
     monkeypatch.setattr(
-        "espnet3.utils.config_utils.load_default_config",
-        lambda _, __: load_config_with_defaults(str(template), resolve=False),
+        "espnet3.utils.config_utils._load_default_config",
+        lambda _, __, bind_self_name=True: (
+            load_config_with_defaults(str(template), resolve=False)
+            if bind_self_name
+            else OmegaConf.load(str(template))
+        ),
     )
 
     cfg = load_and_merge_config(
@@ -417,6 +443,71 @@ exp_dir: ./exp/from_user
 
     assert cfg.exp_dir == "./exp/from_user"
     assert cfg.custom_dir == "./exp/from_user/custom"
+
+
+def test_load_and_merge_config_binds_self_name_to_user_config(write_yaml, monkeypatch):
+    template = write_yaml(
+        "template.yaml",
+        """
+exp_name: ${self_name:}
+""",
+    )
+    user = write_yaml("user.yaml", "{}\n")
+
+    monkeypatch.setattr(
+        "espnet3.utils.config_utils._load_default_config",
+        lambda _, __, bind_self_name=True: (
+            load_config_with_defaults(str(template), resolve=False)
+            if bind_self_name
+            else OmegaConf.load(str(template))
+        ),
+    )
+
+    cfg = load_and_merge_config(
+        user,
+        "training.yaml",
+        default_package="dummy.package",
+    )
+
+    assert cfg.exp_name == "user"
+
+
+def test_load_and_merge_config_resolve_false_binds_self_name_to_user_config(
+    write_yaml, monkeypatch
+):
+    template = write_yaml(
+        "template.yaml",
+        """
+exp_name: ${self_name:}
+custom_dir: ${exp_dir}/custom
+""",
+    )
+    user = write_yaml(
+        "user.yaml",
+        """
+exp_dir: ./exp/from_user
+""",
+    )
+
+    monkeypatch.setattr(
+        "espnet3.utils.config_utils._load_default_config",
+        lambda _, __, bind_self_name=True: (
+            load_config_with_defaults(str(template), resolve=False)
+            if bind_self_name
+            else OmegaConf.load(str(template))
+        ),
+    )
+
+    cfg = load_and_merge_config(
+        user,
+        "training.yaml",
+        default_package="dummy.package",
+        resolve=False,
+    )
+
+    unresolved = OmegaConf.to_container(cfg, resolve=False)
+    assert unresolved["exp_name"] == "user"
+    assert unresolved["custom_dir"] == "${exp_dir}/custom"
 
 
 def test_ensure_target_convert_all_nested():

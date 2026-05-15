@@ -44,17 +44,17 @@ def test_download_url_invokes_urlretrieve(monkeypatch, tmp_path: Path):
     assert logger.info.call_count >= 2  # start and completed
 
 
-def test_download_url_accepts_none_logger(monkeypatch, tmp_path: Path, capsys):
+def test_download_url_accepts_none_logger(monkeypatch, tmp_path: Path, caplog):
     def fake_urlretrieve(url, filename, reporthook):
         reporthook(1, 1, 1)
 
     monkeypatch.setattr(download_utils.urllib.request, "urlretrieve", fake_urlretrieve)
-    download_utils.download_url(
-        "http://example.com/file", tmp_path / "file", logger=None
-    )
-    out = capsys.readouterr().out
-    assert "Start download" in out
-    assert "Download completed" in out
+    with caplog.at_level("INFO"):
+        download_utils.download_url(
+            "http://example.com/file", tmp_path / "file", logger=None
+        )
+    assert "Start download" in caplog.text
+    assert "Download completed" in caplog.text
 
 
 def test_extract_targz(monkeypatch, tmp_path: Path):
@@ -87,7 +87,7 @@ def test_extract_targz(monkeypatch, tmp_path: Path):
     assert opened["path"] == tmp_path / "dst"
 
 
-def test_extract_targz_accepts_none_logger(monkeypatch, tmp_path: Path, capsys):
+def test_extract_targz_accepts_none_logger(monkeypatch, tmp_path: Path, caplog):
     archive = tmp_path / "dummy.tar.gz"
 
     class DummyTar:
@@ -103,6 +103,6 @@ def test_extract_targz_accepts_none_logger(monkeypatch, tmp_path: Path, capsys):
     monkeypatch.setattr(
         download_utils.tarfile, "open", lambda *_args, **_kwargs: DummyTar()
     )
-    download_utils.extract_targz(archive, tmp_path, logger=None)
-    out = capsys.readouterr().out
-    assert "Extracting" in out
+    with caplog.at_level("INFO"):
+        download_utils.extract_targz(archive, tmp_path, logger=None)
+    assert "Extracting" in caplog.text

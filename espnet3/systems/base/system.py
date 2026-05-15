@@ -53,7 +53,7 @@ class BaseSystem:
     Stage log mapping (base defaults):
         | Stage          | Path reference                     |
         |---             |---                                 |
-        | create_dataset | training_config.recipe_dir         |
+        | create_dataset | training_config.data_dir           |
         | collect_stats  | training_config.stats_dir          |
         | train          | training_config.exp_dir            |
         | infer          | inference_config.inference_dir     |
@@ -107,7 +107,7 @@ class BaseSystem:
             default_dir = Path.cwd() / "logs"
 
         base_mapping = {
-            "create_dataset": "training_config.recipe_dir",
+            "create_dataset": "training_config.data_dir",
             "collect_stats": "training_config.stats_dir",
             "train": "training_config.exp_dir",
             "infer": "inference_config.inference_dir",

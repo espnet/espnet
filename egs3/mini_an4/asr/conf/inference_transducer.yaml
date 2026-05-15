@@ -1,13 +1,22 @@
 ##########################################################
 #                   Inference SETTING                    #
 ##########################################################
-# Quick usage:
-#   python run.py --stages infer --inference_config conf/inference.yaml
+# Common usage:
+#   python run.py --stages infer \
+#       --training_config conf/training_asr_transducer.yaml \
+#       --inference_config conf/inference_transducer.yaml
 #
 ##########################################################
 #                    PATHS AND INPUTS                    #
 ##########################################################
-inference_dir: ${exp_dir}/inference
+# This recipe omits `exp_tag`, `exp_dir`, and `inference_dir` on purpose.
+# `run.py` copies `training_config.exp_tag` and `training_config.exp_dir` here
+# before resolving `${exp_dir}`.
+#
+# The default output directory uses the stem of the file passed to
+# `--inference_config`.
+# If `inference_dir` is omitted, `conf/<name>.yaml` becomes `${exp_dir}/<name>`.
+# Override `inference_dir` only when you want a different output location.
 
 ##########################################################
 #                    DATASET DEFINITION                  #

@@ -302,7 +302,7 @@ jobs:
           use-conda: ${{ matrix.use-conda }}
       - name: test integration
         run: ./ci/test_integration_espnet3.sh
-      - uses: codecov/codecov-action@v5
+      - uses: codecov/codecov-action@v6
         with:
           flags: test_integration_espnet3
       - name: coverage erase

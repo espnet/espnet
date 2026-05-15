@@ -136,16 +136,29 @@ def test_instantiate_dataset_reference_without_ref_keeps_kwargs(tmp_path):
 
 
 def test_tag_ref_resolves_and_passes_kwargs(monkeypatch):
-    tag_ref = "test_utils_tag/asr"
-    monkeypatch.syspath_prepend(str(Path("test_utils").resolve()))
+    captured = {}
+
+    class DummyDataset:
+        def __init__(self, **kwargs):
+            self.kwargs = kwargs
+
+    class DummyModule:
+        Dataset = DummyDataset
+
+    def fake_import_module(module_name):
+        captured["module_name"] = module_name
+        return DummyModule()
+
+    monkeypatch.setattr(dm, "import_module", fake_import_module)
 
     dataset = dm.instantiate_dataset_reference(
         {
-            "data_src": tag_ref,
+            "data_src": "mini_an4/asr",
             "data_src_args": {"split": "valid", "extra_arg": "ok"},
         },
     )
 
+    assert captured["module_name"] == "egs3.mini_an4.asr.dataset"
     assert dataset.kwargs["split"] == "valid"
     assert dataset.kwargs["extra_arg"] == "ok"
 

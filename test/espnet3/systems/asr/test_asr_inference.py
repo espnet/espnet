@@ -99,8 +99,48 @@ def test_build_model_cpu(monkeypatch):
     assert calls["obj"] == cfg.model
 
 
-def test_build_model_cuda_uses_visible_device(monkeypatch):
+def test_build_model_cuda_defaults_to_logical_device_zero(monkeypatch):
     cfg = OmegaConf.create({"model": {"_target_": "dummy.Model"}})
+    calls = {}
+
+    import espnet3.systems.base.inference_provider as provider_mod
+
+    monkeypatch.setattr(provider_mod.torch.cuda, "is_available", lambda: True)
+    monkeypatch.setattr(provider_mod.torch.cuda, "device_count", lambda: 2)
+
+    def fake_instantiate(obj, device=None):
+        calls["device"] = device
+        return "model"
+
+    monkeypatch.setattr(provider_mod, "instantiate", fake_instantiate)
+    monkeypatch.setenv("CUDA_VISIBLE_DEVICES", "2,3")
+
+    assert InferenceProvider.build_model(cfg) == "model"
+    assert calls["device"] == "cuda:0"
+
+
+def test_build_model_cuda_uses_logical_device_index(monkeypatch):
+    cfg = OmegaConf.create({"model": {"_target_": "dummy.Model"}, "device_index": 1})
+    calls = {}
+
+    import espnet3.systems.base.inference_provider as provider_mod
+
+    monkeypatch.setattr(provider_mod.torch.cuda, "is_available", lambda: True)
+    monkeypatch.setattr(provider_mod.torch.cuda, "device_count", lambda: 2)
+
+    def fake_instantiate(obj, device=None):
+        calls["device"] = device
+        return "model"
+
+    monkeypatch.setattr(provider_mod, "instantiate", fake_instantiate)
+    monkeypatch.setenv("CUDA_VISIBLE_DEVICES", "2,3")
+
+    assert InferenceProvider.build_model(cfg) == "model"
+    assert calls["device"] == "cuda:1"
+
+
+def test_build_model_cuda_respects_explicit_device(monkeypatch):
+    cfg = OmegaConf.create({"model": {"_target_": "dummy.Model"}, "device": "cuda:7"})
     calls = {}
 
     import espnet3.systems.base.inference_provider as provider_mod
@@ -112,10 +152,9 @@ def test_build_model_cuda_uses_visible_device(monkeypatch):
         return "model"
 
     monkeypatch.setattr(provider_mod, "instantiate", fake_instantiate)
-    monkeypatch.setenv("CUDA_VISIBLE_DEVICES", "2,3")
 
     assert InferenceProvider.build_model(cfg) == "model"
-    assert calls["device"] == "cuda:2"
+    assert calls["device"] == "cuda:7"
 
 
 def test_forward_returns_hyp_and_ref():

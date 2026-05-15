@@ -13,9 +13,14 @@ from typing import Sequence
 
 from omegaconf import DictConfig, OmegaConf
 
-_EXPERIMENT_CONTEXT_KEYS = (
+_TRAINING_CONTEXT_KEYS = (
     "exp_tag",
     "exp_dir",
+)
+_INFERENCE_METRICS_CONTEXT_KEYS = (
+    "exp_tag",
+    "exp_dir",
+    "inference_dir",
 )
 
 
@@ -76,23 +81,28 @@ def _has_exp_identity(config: DictConfig) -> bool:
     return "${exp_tag}" not in exp_dir and "None" not in exp_dir
 
 
-def _copy_experiment_context(
+def _copy_config_context(
     *,
     source: DictConfig,
     target: DictConfig,
+    keys: Sequence[str],
+    source_name: str,
     target_name: str,
     log: logging.Logger,
 ) -> None:
-    """Copy experiment path identity from training into another runner config.
+    """Copy selected runner context keys from one config into another.
 
-    The runner uses this helper to keep inference and metrics configs aligned
-    with the selected training config. Missing keys are inserted with an info
-    log, while conflicting existing values are overwritten with a warning so
-    the operator can see that training-config-derived values took precedence.
+    The runner uses this helper to keep runtime configs aligned when one stage
+    determines output locations consumed by a later stage. Missing keys are
+    inserted with an info log, while conflicting existing values are
+    overwritten with a warning so the operator can see which config took
+    precedence.
 
     Args:
-        source (DictConfig): Source config, typically `training_config`.
+        source (DictConfig): Source config that provides authoritative values.
         target (DictConfig): Destination config to mutate in place.
+        keys (Sequence[str]): Config keys to copy from source to target.
+        source_name (str): Human-readable source name for logging.
         target_name (str): Human-readable destination name for logging.
         log (logging.Logger): Logger used for insert/overwrite messages.
 
@@ -103,15 +113,15 @@ def _copy_experiment_context(
         This function does not raise exceptions.
 
     Notes:
-        Only `exp_tag` and `exp_dir` are propagated because these are the
-        minimum shared experiment identity fields needed by the current
-        runner-level inference and metrics flows.
+        This helper intentionally stays generic so the runner can reuse the
+        same logging and overwrite behavior for both training-derived
+        experiment identity and inference-derived output locations.
 
     Examples:
         When `target.exp_tag` is missing, the helper logs an `INFO` insert.
         When `target.exp_tag` differs, the helper logs a `WARNING` overwrite.
     """
-    for key in _EXPERIMENT_CONTEXT_KEYS:
+    for key in keys:
         if key not in source:
             continue
 
@@ -122,14 +132,15 @@ def _copy_experiment_context(
         current_value = target.get(key) if key in target else None
         if key not in target or _is_missing_or_empty(current_value):
             target[key] = source_value
-            log.info("Inserted %s.%s from training_config", target_name, key)
+            log.info("Inserted %s.%s from %s", target_name, key, source_name)
             continue
 
         if current_value != source_value:
             log.warning(
-                "Overriding %s.%s with training_config value: %r -> %r",
+                "Overriding %s.%s with %s value: %r -> %r",
                 target_name,
                 key,
+                source_name,
                 current_value,
                 source_value,
             )
@@ -143,11 +154,14 @@ def apply_training_experiment_context(
     metrics_config: DictConfig | None,
     log: logging.Logger,
 ) -> None:
-    """Apply training-derived experiment identity to runtime configs.
+    """Apply runner context propagation across training, inference, and metrics.
 
     Runner entry points call this after loading configs and before resolving
     interpolations. When `training_config` is available, its `exp_tag` and
     `exp_dir` are treated as the source of truth for inference and metrics.
+    When both `inference_config` and `metrics_config` are present,
+    `metrics_config` also inherits `inference_dir` from `inference_config` so
+    measurement follows the same output location as inference.
 
     Args:
         training_config (DictConfig | None): Training config selected for the
@@ -214,6 +228,33 @@ def apply_training_experiment_context(
         #   training_config value: './exp/manual_tag' -> './exp/train_asr_rnn'
         ```
 
+        Align metrics with a custom inference output directory:
+
+        ```python
+        inference_config = OmegaConf.create(
+            {
+                "exp_tag": "eval_debug",
+                "exp_dir": "./exp/eval_debug",
+                "inference_dir": "./custom/eval_outputs",
+            }
+        )
+        metrics_config = OmegaConf.create({"inference_dir": None})
+        apply_training_experiment_context(
+            training_config=None,
+            inference_config=inference_config,
+            metrics_config=metrics_config,
+            log=logging.getLogger("example"),
+        )
+        # Logs:
+        #   INFO Inserted metrics_config.exp_tag from inference_config
+        #   INFO Inserted metrics_config.exp_dir from inference_config
+        #   INFO Inserted metrics_config.inference_dir from inference_config
+        # Result:
+        #   metrics_config.inference_dir == "./custom/eval_outputs"
+        #   metrics_config.exp_dir == "./exp/eval_debug"
+        #   metrics_config.exp_tag == "eval_debug"
+        ```
+
         Leave standalone inference unchanged when no training config is given:
 
         ```python
@@ -229,19 +270,32 @@ def apply_training_experiment_context(
         # No logs are emitted and inference_config is unchanged.
         ```
     """
-    if training_config is None:
-        return
-    if inference_config is not None:
-        _copy_experiment_context(
-            source=training_config,
-            target=inference_config,
-            target_name="inference_config",
-            log=log,
-        )
-    if metrics_config is not None:
-        _copy_experiment_context(
-            source=training_config,
+    if training_config is not None:
+        if inference_config is not None:
+            _copy_config_context(
+                source=training_config,
+                target=inference_config,
+                keys=_TRAINING_CONTEXT_KEYS,
+                source_name="training_config",
+                target_name="inference_config",
+                log=log,
+            )
+        if metrics_config is not None:
+            _copy_config_context(
+                source=training_config,
+                target=metrics_config,
+                keys=_TRAINING_CONTEXT_KEYS,
+                source_name="training_config",
+                target_name="metrics_config",
+                log=log,
+            )
+
+    if inference_config is not None and metrics_config is not None:
+        _copy_config_context(
+            source=inference_config,
             target=metrics_config,
+            keys=_INFERENCE_METRICS_CONTEXT_KEYS,
+            source_name="inference_config",
             target_name="metrics_config",
             log=log,
         )

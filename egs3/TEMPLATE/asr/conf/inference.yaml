@@ -12,10 +12,17 @@
 #                    PATHS AND INPUTS                    #
 ##########################################################
 recipe_dir: .
+# Common case:
+# - pass both `--training_config` and `--inference_config`
+# - `run.py` copies `training_config.exp_tag` / `training_config.exp_dir` here
+# - `${self_name:}` resolves to the stem of the config file passed to
+#   `--inference_config`
+# - if `inference_dir` is omitted, `conf/<name>.yaml` becomes `${exp_dir}/<name>`
+# Override `inference_dir` only when you want a different output location.
 exp_tag:
 exp_dir: ${recipe_dir}/exp/${exp_tag}
 data_dir: ${recipe_dir}/data
-inference_dir: ${exp_dir}/inference
+inference_dir: ${exp_dir}/${self_name:}
 
 # If inference needs access to manifests under the same dataset root as
 # training, define `dataset_dir` here by reusing the training config instead of
@@ -39,8 +46,6 @@ inference_dir: ${exp_dir}/inference
 #
 # Example:
 # dataset:
-#   _target_: espnet3.components.data.data_organizer.DataOrganizer
-#   recipe_dir: ${recipe_dir}
 #   test:
 #     - name: librispeech_test_clean
 #       data_src: librispeech/asr

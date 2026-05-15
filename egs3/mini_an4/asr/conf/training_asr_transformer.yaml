@@ -2,31 +2,29 @@
 #                    TRAINING SETTING                    #
 ##########################################################
 # Quick usage:
-#   python run.py --stages create_dataset --training_config conf/training.yaml
-#   python run.py --stages train          --training_config conf/training.yaml
+#   python run.py --stages create_dataset --training_config conf/<name>.yaml
+#   python run.py --stages train          --training_config conf/<name>.yaml
 #
 ##########################################################
 #                  SYSTEM AND PATH SETTING               #
 ##########################################################
 task: espnet3.systems.asr.task.ASRTask
 
-exp_tag: train_asr_transformer
-
 ##########################################################
 #                    DATASET DEFINITION                  #
 ##########################################################
 # Each entry below is a dataset reference consumed by `DataOrganizer`.
 # - `data_src` is omitted, so ESPnet3 loads `${recipe_dir}/dataset/__init__.py`
-#   and instantiates its exported `Dataset` class (`MiniAn4Dataset` here).
+#   and instantiates its exported recipe dataset class.
 # - `data_src_args` is passed directly to `Dataset(...)`.
 # - top-level keys such as `transform` stay in organizer space and are not
 #   forwarded to `Dataset(...)`.
 #
 # Dataset splits:
 #   train:
-#     - split="train" from `MiniAn4Dataset`
+#     - split="train" from the recipe dataset
 #   valid:
-#     - split="valid" from `MiniAn4Dataset`
+#     - split="valid" from the recipe dataset
 # Notes:
 #   - actual data sources are defined via `${recipe_dir}`
 dataset:

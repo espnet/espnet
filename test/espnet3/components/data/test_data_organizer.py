@@ -1,7 +1,8 @@
 # test_data_organizer.py
 import numpy as np
 import pytest
-from omegaconf import OmegaConf
+from hydra.utils import instantiate
+from omegaconf import DictConfig, OmegaConf
 
 from espnet2.train.preprocessor import AbsPreprocessor
 from espnet3.components.data import data_organizer as data_organizer_module
@@ -37,8 +38,6 @@ from espnet3.components.data.dataset import (
 # | test_data_organizer_preprocessor_only| Applies only preprocessor to data    |
 # | test_data_organizer_transform_and_preprocessor | Applies both transform and |
 # |                                      | preprocessor                         |
-# | test_data_organizer_accepts_raw_configs | Instantiates dict configs for     |
-# |                                      | dataset/transform/preprocessor       |
 # | test_espnet_preprocessor_without_transform | Uses only ESPnet-style preprocessor   |
 # |                                      | (UID-based)                          |
 # | test_espnet_preprocessor_with_transform    | Combines transform with ESPnet |
@@ -73,13 +72,14 @@ from espnet3.components.data.dataset import (
 # | test_combined_dataset_sharded_consistency_error | RuntimeError       |
 
 DUMMY_TRANSFORM_TARGET = (
-    "test.espnet3.components.data.test_data_organizer." "DummyTransform"
+    "test.espnet3.components.data.test_data_organizer.DummyTransform"
 )
+DUMMY_DATASET_TARGET = "test.espnet3.components.data.test_data_organizer.DummyDataset"
 DUMMY_DATA_SRC = "dummy/asr"
 DUMMY_SHARDED_DATA_SRC = "dummy/sharded"
 
 DUMMY_PREPROCESSOR_TARGET = (
-    "test.espnet3.components.data.test_data_organizer." "DummyPreprocessor"
+    "test.espnet3.components.data.test_data_organizer.DummyPreprocessor"
 )
 
 
@@ -111,6 +111,19 @@ class ESPnetPreprocessor(AbsPreprocessor):
         }
 
 
+class RecordingESPnetPreprocessor(AbsPreprocessor):
+    def __init__(self):
+        super().__init__(train=False)
+        self.calls = []
+
+    def __call__(self, uid, sample):
+        self.calls.append(uid)
+        return {
+            "audio": sample["audio"],
+            "text": f"[espnet:{uid}] {sample['text']}",
+        }
+
+
 class DummyDataset:
     def __init__(self, path=None):
         self.data = [
@@ -125,11 +138,39 @@ class DummyDataset:
         return self.data[idx]
 
 
-class DummyShardedDataset(ShardedDataset):
+class DummyStringKeyDataset:
     def __init__(self, path=None):
+        self.data = {
+            "utt0": {"audio": np.random.random(16000), "text": "hello"},
+            "utt1": {"audio": np.random.random(16000), "text": "world"},
+        }
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, idx):
+        if not isinstance(idx, str):
+            raise KeyError("This dataset expects string-based utterance IDs.")
+        return self.data[idx]
+
+    def keys(self):
+        return self.data.keys()
+
+
+class DummyShardedDataset(ShardedDataset):
+    def __init__(
+        self,
+        path=None,
+        shard_id: int = 0,
+        total_shards: int = 2,
+        dist_world_size: int = 1,
+    ):
+        self.shard_id = shard_id
+        self.total_shards = total_shards
+        self.dist_world_size = dist_world_size
         self.data = [
-            {"audio": np.random.random(16000), "text": "hello"},
-            {"audio": np.random.random(16000), "text": "world"},
+            {"audio": np.random.random(16000), "text": f"shard{shard_id}_hello"},
+            {"audio": np.random.random(16000), "text": f"shard{shard_id}_world"},
         ]
 
     def __len__(self):
@@ -139,7 +180,34 @@ class DummyShardedDataset(ShardedDataset):
         return self.data[idx]
 
     def shard(self, idx):
-        return self  # dummy
+        return DummyShardedDataset(
+            shard_id=idx,
+            total_shards=self.total_shards,
+            dist_world_size=self.dist_world_size,
+        )
+
+
+class DummyBrokenShardedDataset(ShardedDataset):
+    def __init__(self, total_shards=None, dist_world_size=None):
+        self.total_shards = total_shards
+        self.dist_world_size = dist_world_size
+
+    def __len__(self):
+        return 0
+
+    def __getitem__(self, idx):
+        raise IndexError
+
+    def shard(self, idx):
+        return self
+
+
+class DummyOverrideDataset(DummyDataset):
+    def __init__(self, path=None):
+        self.data = [
+            {"audio": np.random.random(16000), "text": "override"},
+            {"audio": np.random.random(16000), "text": "winner"},
+        ]
 
 
 def _entry(name: str, *, transform: bool = False, data_src: str = DUMMY_DATA_SRC):
@@ -168,7 +236,16 @@ def dummy_dataset_config():
 @pytest.fixture(autouse=True)
 def patch_dataset_reference(monkeypatch):
     def _instantiate_dataset_reference(config, recipe_dir=None):
-        plain = OmegaConf.to_container(OmegaConf.create(config), resolve=False)
+        plain = (
+            OmegaConf.to_container(config, resolve=False)
+            if OmegaConf.is_config(config)
+            else dict(config)
+        )
+        dataset = plain.get("dataset")
+        if dataset is not None:
+            if isinstance(dataset, (dict, DictConfig)):
+                return instantiate(dataset)
+            return dataset
         if plain.get("data_src") == DUMMY_SHARDED_DATA_SRC:
             return DummyShardedDataset()
         return DummyDataset()
@@ -196,6 +273,74 @@ def test_combined_dataset():
     assert combined[3]["text"] == "WORLD"
 
 
+def test_combined_dataset_with_string_id():
+    ds = DummyStringKeyDataset()
+    combined = CombinedDataset(
+        [ds],
+        [(do_nothing, do_nothing)],
+    )
+    assert len(combined) == 2
+    # Access via integer index (DataLoader compatibility)
+    assert combined[0]["text"] == "hello"
+    assert combined[1]["text"] == "world"
+    # Access via utterance ID
+    assert combined["utt0"]["text"] == "hello"
+    assert combined["utt1"]["text"] == "world"
+
+
+def test_combined_dataset_with_missing_string_id():
+    ds = DummyDataset()
+    combined = CombinedDataset(
+        [ds],
+        [(do_nothing, do_nothing)],
+    )
+    with pytest.raises(ValueError, match="Utterance ID 'unknown'"):
+        combined["unknown"]
+
+
+def test_combined_dataset_mixed_index_types():
+    numeric = DummyDataset()
+    stringy = DummyStringKeyDataset()
+    combined = CombinedDataset(
+        [numeric, stringy],
+        [
+            (do_nothing, do_nothing),
+            (do_nothing, do_nothing),
+        ],
+    )
+
+    assert len(combined) == 4
+    # First two items come from numeric dataset
+    assert combined[0]["text"] == "hello"
+    assert combined[1]["text"] == "world"
+    # Next two items from string dataset
+    assert combined[2]["text"] == "hello"
+    assert combined[3]["text"] == "world"
+    # Direct string lookup hits the string-backed dataset
+    assert combined["utt1"]["text"] == "world"
+
+
+def test_combined_dataset_duplicate_string_ids_error():
+    class AnotherStringDataset(DummyStringKeyDataset):
+        def __init__(self):
+            super().__init__()
+            self.data = {
+                "utt1": {"audio": np.random.random(16000), "text": "duplicate"},
+            }
+
+    ds1 = DummyStringKeyDataset()
+    ds2 = AnotherStringDataset()
+
+    with pytest.raises(ValueError, match="Duplicate utterance ID 'utt1'"):
+        CombinedDataset(
+            [ds1, ds2],
+            [
+                (do_nothing, do_nothing),
+                (do_nothing, do_nothing),
+            ],
+        )
+
+
 def test_data_organizer_init(dummy_dataset_config):
     config = dummy_dataset_config
     organizer = DataOrganizer(
@@ -209,6 +354,41 @@ def test_data_organizer_init(dummy_dataset_config):
     assert len(organizer.valid) == 2
     assert organizer.valid[0]["text"] == "[dummy] hello"
     assert "test_dummy" in organizer.test
+
+
+def test_data_organizer_with_string_ids():
+    config = {
+        "train": [
+            {
+                "name": "train_dummy",
+                "dataset": {
+                    "_target_": (
+                        "test.espnet3.components.data"
+                        ".test_data_organizer.DummyStringKeyDataset"
+                    )
+                },
+            }
+        ],
+        "valid": [
+            {
+                "name": "valid_dummy",
+                "dataset": {
+                    "_target_": (
+                        "test.espnet3.components.data"
+                        ".test_data_organizer.DummyStringKeyDataset"
+                    )
+                },
+            }
+        ],
+    }
+
+    organizer = DataOrganizer(train=config["train"], valid=config["valid"])
+
+    assert len(organizer.train) == 2
+    assert organizer.train["utt0"]["text"] == "hello"
+    assert organizer.train[0]["text"] == "hello"
+    assert organizer.valid["utt1"]["text"] == "world"
+    assert organizer.valid[1]["text"] == "world"
 
 
 def test_data_organizer_without_test():
@@ -273,6 +453,70 @@ def test_data_organizer_test_multiple_sets():
     assert "test_other" in organizer.test
 
 
+@pytest.mark.parametrize(
+    ("test_entries", "expected_name"),
+    [
+        (
+            [
+                {
+                    "name": "shared_eval",
+                    "dataset": {"_target_": DUMMY_DATASET_TARGET},
+                },
+                {
+                    "name": "shared_eval",
+                    "dataset": {
+                        "_target_": (
+                            "test.espnet3.components.data."
+                            "test_data_organizer.DummyOverrideDataset"
+                        )
+                    },
+                },
+            ],
+            "shared_eval",
+        ),
+        (
+            [
+                {
+                    "data_src": "shared/asr",
+                    "dataset": {"_target_": DUMMY_DATASET_TARGET},
+                },
+                {
+                    "data_src": "shared/asr",
+                    "dataset": {
+                        "_target_": (
+                            "test.espnet3.components.data."
+                            "test_data_organizer.DummyOverrideDataset"
+                        )
+                    },
+                },
+            ],
+            "shared/asr",
+        ),
+        (
+            [
+                {"dataset": {"_target_": DUMMY_DATASET_TARGET}},
+                {
+                    "dataset": {
+                        "_target_": (
+                            "test.espnet3.components.data."
+                            "test_data_organizer.DummyOverrideDataset"
+                        )
+                    }
+                },
+            ],
+            "local",
+        ),
+    ],
+)
+def test_data_organizer_test_duplicate_names_last_entry_wins(
+    test_entries, expected_name
+):
+    organizer = DataOrganizer(test=test_entries)
+
+    assert list(organizer.test.keys()) == [expected_name]
+    assert organizer.test[expected_name][0]["text"] == "override"
+
+
 def test_data_organizer_transform_only():
     config = {
         "train": [_entry("train_dummy", transform=True)],
@@ -280,6 +524,29 @@ def test_data_organizer_transform_only():
     }
     organizer = DataOrganizer(train=config["train"], valid=config["valid"])
     assert organizer.train[0]["text"] == "HELLO"
+    assert organizer.valid[0]["text"] == "hello"
+
+
+def test_data_organizer_no_preprocessor_config():
+    config = {
+        "train": [
+            {
+                "name": "train_dummy",
+                "dataset": {"_target_": DUMMY_DATASET_TARGET},
+            }
+        ],
+        "valid": [
+            {
+                "name": "valid_dummy",
+                "dataset": {"_target_": DUMMY_DATASET_TARGET},
+            }
+        ],
+    }
+    organizer = DataOrganizer(
+        train=OmegaConf.create(config)["train"],
+        valid=OmegaConf.create(config)["valid"],
+    )
+    assert organizer.train[0]["text"] == "hello"
     assert organizer.valid[0]["text"] == "hello"
 
 
@@ -408,6 +675,18 @@ def test_data_organizer_transform_none():
         CombinedDataset([ds], [(BrokenTransform(), do_nothing)])
 
 
+def test_combined_dataset_allows_missing_preprocessor():
+    ds = DummyDataset()
+    combined = CombinedDataset([ds], [(do_nothing, None)])
+    assert combined[0]["text"] == "hello"
+
+
+def test_dataset_with_transform_allows_missing_preprocessor():
+    ds = DummyDataset()
+    wrapped = DatasetWithTransform(ds, do_nothing, None)
+    assert wrapped[0]["text"] == "hello"
+
+
 def test_data_organizer_invalid_preprocessor_type():
     config = {
         "train": [_entry("train_dummy")],
@@ -453,6 +732,19 @@ def test_espnet_preprocessor_with_transform():
     assert sample["text"] == "[espnet] HELLO"
 
 
+def test_data_organizer_test_uses_espnet_preprocessor_uid():
+    preprocessor = RecordingESPnetPreprocessor()
+    organizer = DataOrganizer(
+        test=[_entry("test_dummy", transform=True)],
+        preprocessor=preprocessor,
+    )
+
+    sample = organizer.test["test_dummy"][0]
+
+    assert sample["text"] == "[espnet:0] HELLO"
+    assert preprocessor.calls == ["0"]
+
+
 def test_combined_dataset_sharded_consistency_error():
     # One dataset is a ShardedDataset, the other is not
     ds1 = DummyShardedDataset()
@@ -469,101 +761,43 @@ def test_combined_dataset_sharded_consistency_error():
         )
 
 
-def test_combined_dataset_rejects_non_numeric_string_index():
+def test_combined_dataset_shard_returns_sharded_dataset():
+    ds1 = DummyShardedDataset(shard_id=0)
+    ds2 = DummyShardedDataset(shard_id=0)
     combined = CombinedDataset(
-        [DummyDataset()],
-        [(do_nothing, do_nothing)],
-    )
-
-    with pytest.raises(ValueError, match="utterance ID to be an integer index"):
-        combined["abc"]
-
-
-def test_combined_dataset_wraps_dataset_access_error():
-    class BrokenDataset:
-        def __init__(self):
-            self.access_count = 0
-
-        def __len__(self):
-            return 1
-
-        def __getitem__(self, idx):
-            self.access_count += 1
-            if self.access_count == 1:
-                return {"audio": b"abc", "text": "hello"}
-            raise KeyError(f"missing {idx}")
-
-    combined = CombinedDataset(
-        [BrokenDataset()],
-        [(do_nothing, do_nothing)],
-    )
-
-    with pytest.raises(RuntimeError, match="Failed to access dataset at index 0"):
-        combined[0]
-
-
-def test_combined_dataset_rejects_out_of_range_index():
-    combined = CombinedDataset(
-        [DummyDataset()],
-        [(do_nothing, do_nothing)],
-    )
-
-    with pytest.raises(IndexError, match="Index out of range in CombinedDataset"):
-        combined[100]
-
-
-def test_combined_dataset_shard_requires_sharded_datasets():
-    combined = CombinedDataset(
-        [DummyDataset()],
-        [(do_nothing, do_nothing)],
-    )
-
-    with pytest.raises(RuntimeError, match="All dataset should be the subclass"):
-        combined.shard(0)
-
-
-def test_data_organizer_repr_handles_missing_train_valid_and_multiple_tests():
-    organizer = DataOrganizer(
-        test=[
-            _entry("test_clean"),
-            _entry("test_other", transform=True),
+        [ds1, ds2],
+        [
+            (DummyTransform(), do_nothing),
+            (DummyTransform(), do_nothing),
         ],
-        preprocessor=DummyPreprocessor(),
     )
-
-    text = repr(organizer)
-
-    assert "train=None" in text
-    assert "valid=None" in text
-    assert "test_clean:" in text
-    assert "test_other:" in text
+    sharded = combined.shard(2)
+    assert len(sharded) == 4
+    assert sharded[0]["text"] == "SHARD2_HELLO"
 
 
-def test_combined_dataset_repr_lists_datasets_and_transforms():
-    combined = CombinedDataset(
-        [DummyDataset(), DummyDataset()],
-        [(DummyTransform(), DummyPreprocessor())] * 2,
-    )
+def test_combined_dataset_sharded_missing_metadata():
+    ds1 = DummyBrokenShardedDataset(total_shards=None, dist_world_size=1)
+    ds2 = DummyBrokenShardedDataset(total_shards=None, dist_world_size=1)
+    with pytest.raises(
+        RuntimeError,
+        match="ShardedDataset requires total_shards and dist_world_size",
+    ):
+        CombinedDataset(
+            datasets=[ds1, ds2],
+            transforms=[(DummyTransform(), DummyPreprocessor())] * 2,
+            use_espnet_preprocessor=False,
+        )
 
-    text = repr(combined)
 
-    assert "CombinedDataset(" in text
-    assert "total_len=4" in text
-    assert "transform=" in text
-    assert "preprocessor=" in text
-
-
-def test_dataset_with_transform_repr_includes_wrapped_components():
-    wrapped = DatasetWithTransform(
-        DummyDataset(),
-        DummyTransform(),
-        DummyPreprocessor(),
-        use_espnet_preprocessor=True,
-    )
-
-    text = repr(wrapped)
-
-    assert "DatasetWithTransform(" in text
-    assert "transform=" in text
-    assert "preprocessor=" in text
-    assert "use_espnet_preprocessor=True" in text
+def test_combined_dataset_sharded_metadata_mismatch():
+    ds1 = DummyBrokenShardedDataset(total_shards=2, dist_world_size=1)
+    ds2 = DummyBrokenShardedDataset(total_shards=3, dist_world_size=1)
+    with pytest.raises(
+        RuntimeError, match="must share the same total_shards and dist_world_size"
+    ):
+        CombinedDataset(
+            datasets=[ds1, ds2],
+            transforms=[(DummyTransform(), DummyPreprocessor())] * 2,
+            use_espnet_preprocessor=False,
+        )

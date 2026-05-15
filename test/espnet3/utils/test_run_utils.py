@@ -81,77 +81,67 @@ def test_apply_training_experiment_context_noop_without_training() -> None:
     assert inference.exp_dir == "./exp/standalone_eval"
 
 
-def test_apply_training_experiment_context_updates_metrics_config(caplog) -> None:
+def test_apply_training_experiment_context_syncs_metrics_from_inference(
+    caplog,
+) -> None:
+    inference = OmegaConf.create(
+        {
+            "exp_tag": "standalone_eval",
+            "exp_dir": "./exp/standalone_eval",
+            "inference_dir": "./custom/infer",
+        }
+    )
+    metrics = OmegaConf.create({"inference_dir": None})
+
+    with caplog.at_level(logging.INFO):
+        apply_training_experiment_context(
+            training_config=None,
+            inference_config=inference,
+            metrics_config=metrics,
+            log=logging.getLogger("test.run_utils"),
+        )
+
+    assert metrics.exp_tag == "standalone_eval"
+    assert metrics.exp_dir == "./exp/standalone_eval"
+    assert metrics.inference_dir == "./custom/infer"
+    assert "Inserted metrics_config.exp_tag from inference_config" in caplog.text
+    assert "Inserted metrics_config.exp_dir from inference_config" in caplog.text
+    assert "Inserted metrics_config.inference_dir from inference_config" in caplog.text
+
+
+def test_apply_training_experiment_context_metrics_inference_dir_follows_inference(
+    caplog,
+) -> None:
     training = OmegaConf.create(
         {
             "exp_tag": "train_debug",
             "exp_dir": "./exp/train_debug",
         }
     )
-    metrics = OmegaConf.create({"metrics_dir": "${exp_dir}/metrics"})
+    inference = OmegaConf.create(
+        {
+            "inference_dir": "./exp/train_debug/custom_decode",
+        }
+    )
+    metrics = OmegaConf.create(
+        {
+            "inference_dir": "./exp/train_debug/old_decode",
+        }
+    )
 
-    with caplog.at_level(logging.INFO):
+    with caplog.at_level(logging.WARNING):
         apply_training_experiment_context(
             training_config=training,
-            inference_config=None,
+            inference_config=inference,
             metrics_config=metrics,
             log=logging.getLogger("test.run_utils"),
         )
 
     assert metrics.exp_tag == "train_debug"
     assert metrics.exp_dir == "./exp/train_debug"
-    assert "Inserted metrics_config.exp_tag from training_config" in caplog.text
-    assert "Inserted metrics_config.exp_dir from training_config" in caplog.text
-
-
-def test_apply_training_experiment_context_skips_missing_or_same_values(
-    caplog,
-) -> None:
-    training = OmegaConf.create({"exp_tag": "train_debug"})
-    inference = OmegaConf.create(
-        {
-            "exp_tag": "train_debug",
-            "exp_dir": "./exp/custom_eval",
-        }
-    )
-
-    with caplog.at_level(logging.INFO):
-        apply_training_experiment_context(
-            training_config=training,
-            inference_config=inference,
-            metrics_config=None,
-            log=logging.getLogger("test.run_utils"),
-        )
-
-    assert inference.exp_tag == "train_debug"
-    assert inference.exp_dir == "./exp/custom_eval"
-    assert "Inserted inference_config.exp_tag from training_config" not in caplog.text
-    assert "Inserted inference_config.exp_dir from training_config" not in caplog.text
-    assert "Overriding inference_config.exp_tag" not in caplog.text
-    assert "Overriding inference_config.exp_dir" not in caplog.text
-
-
-def test_apply_training_experiment_context_skips_empty_source_values(caplog) -> None:
-    training = OmegaConf.create(
-        {
-            "exp_tag": "train_debug",
-            "exp_dir": "   ",
-        }
-    )
-    inference = OmegaConf.create({})
-
-    with caplog.at_level(logging.INFO):
-        apply_training_experiment_context(
-            training_config=training,
-            inference_config=inference,
-            metrics_config=None,
-            log=logging.getLogger("test.run_utils"),
-        )
-
-    assert inference.exp_tag == "train_debug"
-    assert "exp_dir" not in inference
-    assert "Inserted inference_config.exp_tag from training_config" in caplog.text
-    assert "Inserted inference_config.exp_dir from training_config" not in caplog.text
+    assert metrics.inference_dir == "./exp/train_debug/custom_decode"
+    assert "Overriding metrics_config.inference_dir" in caplog.text
+    assert "inference_config value" in caplog.text
 
 
 def test_validate_experiment_context_accepts_standalone_inference() -> None:
@@ -230,6 +220,31 @@ def test_resolve_loaded_configs_resolves_interpolations() -> None:
 
     assert training.exp_dir == "./exp/train_debug"
     assert inference.inference_dir == "./exp/train_debug/inference"
+
+
+def test_validate_experiment_context_accepts_metrics_synced_from_inference() -> None:
+    inference = OmegaConf.create(
+        {
+            "exp_tag": "standalone_eval",
+            "exp_dir": "./exp/standalone_eval",
+            "inference_dir": "./exp/standalone_eval/inference",
+        }
+    )
+    metrics = OmegaConf.create({"inference_dir": None})
+
+    apply_training_experiment_context(
+        training_config=None,
+        inference_config=inference,
+        metrics_config=metrics,
+        log=logging.getLogger("test.run_utils"),
+    )
+
+    validate_experiment_context(
+        training_config=None,
+        inference_config=inference,
+        metrics_config=metrics,
+        stages_to_run=["infer", "measure"],
+    )
 
 
 def test_resolve_loaded_configs_ignores_none_entries() -> None:
