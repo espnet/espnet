@@ -30,7 +30,23 @@ logger = logging.getLogger(__name__)
 
 @dataclass(frozen=True)
 class AsyncJobSpec:
-    """Specification of an asynchronous shard."""
+    """Specification of an asynchronous shard submitted to the Dask cluster.
+
+    Attributes:
+        runner_cls (str): Import path to the concrete ``BaseRunner`` subclass.
+        provider_cls (str): Import path to the concrete ``EnvironmentProvider`` subclass
+        config (Dict): A resolved, plain-``dict`` serialization of the Hydra config.
+        params (Dict): Extra parameters forwarded to the provider/environment.
+        items (List[Any]): Pre-chunked items this shard should process.
+        world_size (int): Total number of shards.
+        world_rank (int): The shard rank (0..world_size-1).
+        output_dir (str): Root output directory for shard-local outputs.
+        shard_subdir (str): Optional sub-path under ``output_dir``.
+
+    Notes:
+        - Each shard is independent and reconstructs both provider and runner
+          by import path on the worker before running the reducer pipeline.
+    """
 
     runner_cls: str  # e.g., module.path.to.your.RunnerClass
     provider_cls: str  # e.g., module.path.to.your.ProviderClass
@@ -129,7 +145,44 @@ def cat_shard_files(
 
 
 class BaseRunner(ABC):
-    """Run ``forward`` locally, in parallel, or as async shard jobs."""
+    """A thin orchestration layer to run static ``forward`` over indices.
+
+    This class handles:
+        - Switching among local, parallel, and asynchronous (distributed) modes.
+        - Injecting per-worker environments supplied by an :class:`EnvironmentProvider`.
+        - Keeping ``forward`` as a ``@staticmethod`` for pickle-safety.
+        - Optionally reducing per-shard results on the worker before they are
+          merged on the driver.
+
+    Subclass contract:
+        - Implement ``@staticmethod forward(idx, dataset, model, **env) -> Any``
+          without capturing ``self``. ``idx`` may be a single index or a batch
+          of indices depending on ``batch_size``.
+        - Provide an :class:`EnvironmentProvider` that builds the required env
+          (e.g., dataset/model) for local and worker executions.
+        - Override ``open_writers`` / ``write_record`` / ``close_writers`` /
+          ``merge_scalar`` / ``merge_shard_files`` when reducer-style execution
+          is needed.
+
+    Args:
+        provider (EnvironmentProvider): Provider that builds the runtime env.
+        batch_size (int | None): If set, chunk indices into batches of this size
+            before dispatching to ``forward``.
+        async_mode (bool): If True, use Dask ``submit`` with asynchronous shards.
+        async_specs_dir (str | Path): Output directory for per-shard spec JSON files.
+        async_result_dir (str | Path): Output directory for per-shard async state.
+        output_dir (str | Path | None): Root output directory used by reducer-style
+            runners to write shard-local files and merged outputs.
+        shard_subdir (str): Optional sub-path under ``output_dir`` or
+            ``async_result_dir``.
+
+    Notes:
+        - In parallel sync mode (when a Dask cluster is configured), each worker
+          returns a finalized shard state and the driver merges those states.
+        - In async mode, each shard persists its finalized state on the worker.
+    """
+
+    # TODO(Masao) Add detailed description on Runner/Provider in the document.
 
     def __init__(
         self,
@@ -137,6 +190,7 @@ class BaseRunner(ABC):
         batch_size: int | None = None,
         async_mode: bool = False,
         async_specs_dir: str | Path = "./_async_specs",
+        async_result_dir: str | Path = "./_async_results",
         output_dir: str | Path | None = None,
         shard_subdir: str = "",
     ):
@@ -145,13 +199,30 @@ class BaseRunner(ABC):
         self.batch_size = batch_size
         self.async_mode = async_mode
         self.async_specs_dir = Path(async_specs_dir).resolve()
+        self.async_result_dir = Path(async_result_dir).resolve()
         self.output_dir = Path(output_dir) if output_dir is not None else None
         self.shard_subdir = shard_subdir or ""
 
     @staticmethod
     @abstractmethod
     def forward(idx: int | Iterable[int], dataset, model, **env) -> Any:
-        """Compute the result for a single item (or batch of items)."""
+        """Compute items for the given index or batch (to be implemented by subclasses).
+
+        Keep this as a ``@staticmethod`` so that it is pickle-safe for Dask
+        and does not capture ``self``.
+
+        Args:
+            idx (int | Iterable[int]): The input index or batch of indices to process.
+            dataset: Dataset object provided via the environment.
+            model: Model object provided via the environment.
+            **env: Any additional environment entries injected by the provider.
+
+        Returns:
+            Any: Result for the given index or batch.
+
+        Raises:
+            NotImplementedError: Always in the base class; implement in subclass.
+        """
         raise NotImplementedError
 
     @staticmethod
@@ -290,7 +361,18 @@ class BaseRunner(ABC):
         return env
 
     def _run_local(self, indices: Sequence[Any]) -> Any:
-        """Run sequentially on the driver as a single shard."""
+        """Run sequentially on the driver using a locally built environment.
+
+        Args:
+            indices (Sequence[Any]): Indices or batches to process.
+
+        Returns:
+            Any: Merged result for the single local shard.
+
+        Notes:
+            - Uses ``tqdm`` progress bar over the input sequence.
+            - Reducer hooks run exactly once on the driver-side shard state.
+        """
         env = self._augment_env(self.provider.build_env_local())
         cls = self.__class__
 
@@ -302,7 +384,18 @@ class BaseRunner(ABC):
         return self.merge_states([state])
 
     def _run_parallel(self, indices: Sequence[Any]) -> Any:
-        """Run with Dask, one shard per worker, streaming finalized states."""
+        """Run with Dask, one shard per worker, streaming finalized states.
+
+        Args:
+            indices (Sequence[Any]): Indices or batches to process.
+
+        Returns:
+            Any: Result of merging finalized shard states on the driver.
+
+        Notes:
+            - Wraps the shard task with :func:`wrap_func_with_worker_env` so that
+              missing keyword args are injected from the worker env.
+        """
         from dask.distributed import as_completed
 
         par_config = get_parallel_config()
@@ -354,12 +447,27 @@ class BaseRunner(ABC):
         return self.merge_states(states)
 
     async def _run_async(self, items: Sequence[Any]) -> List[Dict[str, Any]]:
-        """Submit detached shard jobs and return submission metadata."""
-        if self.output_dir is None:
-            raise ValueError(
-                "async_mode requires output_dir on the runner; workers need a "
-                "place to persist per-shard state."
-            )
+        """Submit shards to a Dask cluster and persist shard states.
+
+        Workflow:
+            1) Emit per-shard JSON specs to ``async_specs_dir``.
+            2) Submit worker entrypoints that reconstruct runner/provider and run.
+            3) Write finalized shard states under ``output_dir`` when configured,
+               otherwise under ``async_result_dir``.
+
+        Args:
+            items (Sequence[Any]): Indices or batches to process.
+
+        Returns:
+            List[Dict[str, Any]]: Submission metadata for the detached shard jobs.
+
+        Raises:
+            RuntimeError: If Dask client creation fails.
+            ValueError: If async sharding parameters are invalid.
+        """
+        async_output_dir = (
+            self.output_dir if self.output_dir is not None else self.async_result_dir
+        )
 
         par_config = get_parallel_config()
         client = build_client(par_config)
@@ -383,7 +491,7 @@ class BaseRunner(ABC):
                     items=list(chunk),
                     world_size=len(chunks),
                     world_rank=rank,
-                    output_dir=str(self.output_dir),
+                    output_dir=str(async_output_dir),
                     shard_subdir=self.shard_subdir,
                 )
                 spec_path = self.async_specs_dir / f"spec-{job_id}.json"
@@ -401,7 +509,7 @@ class BaseRunner(ABC):
                     )
                     logger.info("Async job submission output: %s", out)
 
-                shard_dir = self.output_dir / self.shard_subdir / f"split.{rank}"
+                shard_dir = async_output_dir / self.shard_subdir / f"split.{rank}"
                 job_meta.append(
                     {
                         "job_id": job_id,
@@ -421,9 +529,8 @@ class BaseRunner(ABC):
 
     def merge_async_results(self) -> Any:
         """Combine shard states written by an async run."""
-        if self.output_dir is None:
-            raise ValueError("merge_async_results requires output_dir on the runner.")
-        base = self.output_dir / self.shard_subdir
+        base_dir = self.output_dir if self.output_dir is not None else self.async_result_dir
+        base = base_dir / self.shard_subdir
         shard_dirs = sorted(
             (p for p in base.glob("split.*") if (p / "_state.pkl").exists()),
             key=lambda p: int(p.name.split(".", 1)[1]),
@@ -437,7 +544,19 @@ class BaseRunner(ABC):
         return self.merge_states(states)
 
     def __call__(self, indices: Iterable[int]) -> Any:
-        """Dispatch execution according to the configured parallel mode."""
+        """Dispatch execution according to the configured parallel mode.
+
+        Args:
+            indices (Iterable[int]): Indices to process.
+
+        Returns:
+            Any: Results for local/parallel modes, or async submission metadata
+            in async mode.
+
+        Notes:
+            - If no parallel config is set or ``env='local'``, run locally.
+            - Otherwise, run in parallel with environment injection.
+        """
         indices = list(indices)
         if self.batch_size is not None:
             if self.batch_size <= 0:
@@ -461,7 +580,28 @@ def _chunk_indices(indices: Sequence[int], batch_size: int) -> List[List[int]]:
 
 
 def _async_worker_entry_from_spec_path(spec_path: str) -> None:
-    """Worker entrypoint for one async shard."""
+    """Worker entrypoint: reconstruct runner/provider and process one shard.
+
+    This function is executed on a Dask worker. It reads the shard spec JSON,
+    imports the designated Runner/Provider classes, rebuilds the DictConfig and
+    provider, constructs the per-worker environment, and runs the reducer
+    pipeline for every item in the shard.
+
+    Args:
+        spec_path (str): Path to the shard spec JSON file.
+
+    Returns:
+        None: The finalized shard state is serialized under the shard directory.
+
+    Raises:
+        ImportError: If the runner/provider import path is invalid.
+        Exception: Any exception thrown by environment builders or ``forward``.
+
+    Notes:
+        - The finalized shard state is written via
+          ``RunnerCls.serialize_state(...)`` and is later consumed by
+          ``BaseRunner.merge_async_results`` on the driver.
+    """
     from omegaconf import DictConfig
 
     with open(spec_path, "r", encoding="utf-8") as f:
@@ -474,6 +614,7 @@ def _async_worker_entry_from_spec_path(spec_path: str) -> None:
     params = spec.get("params", {}) or {}
     provider = ProviderCls(config, params=params)
 
+    # Add world size and rank
     os.environ["WORLD_SIZE"] = str(spec["world_size"])
     os.environ["WORLD_RANK"] = str(spec["world_rank"])
 

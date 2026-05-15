@@ -384,18 +384,3 @@ def test_async_state_pkl_streaming_with_base_runner(
     assert len(merged) == len(indices)
     for obj in merged:
         _assert_stft_json(obj)
-
-
-def test_async_requires_output_dir(test_audio_paths, tmp_path, monkeypatch):
-    _patch_parallel_client_no_submit(monkeypatch, n_workers=2)
-
-    cfg, params = _make_cfg_from_samples(test_audio_paths, stream=False)
-    provider = STFTProvider(cfg, params=params)
-    runner = STFTRunner(
-        provider,
-        async_mode=True,
-        async_specs_dir=tmp_path / "_specs",
-    )
-
-    with pytest.raises(ValueError, match="output_dir"):
-        runner([0])
