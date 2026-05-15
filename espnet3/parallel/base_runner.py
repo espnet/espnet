@@ -30,26 +30,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass(frozen=True)
 class AsyncJobSpec:
-    """Specification of an asynchronous shard submitted to the Dask cluster.
-
-    Attributes:
-        runner_cls (str): Import path to the concrete ``BaseRunner`` subclass.
-        provider_cls (str): Import path to the concrete ``EnvironmentProvider`` subclass
-        config (Dict): A resolved, plain-``dict`` serialization of the Hydra config.
-        params (Dict): Extra parameters forwarded to the provider/environment.
-        items (List[Any]): Pre-chunked items this shard should process. Each
-            entry is either an integer index or a list of indices when the
-            runner uses ``batch_size``.
-        world_size (int): Total number of shards.
-        world_rank (int): The shard rank (0..world_size-1).
-        output_dir (str): Root output directory. Each shard writes into
-            ``<output_dir>/<shard_subdir>/split.<world_rank>/``.
-        shard_subdir (str): Optional sub-path under ``output_dir``.
-
-    Notes:
-        - Each shard is independent and reconstructs both provider and runner
-          by import path on the worker before running the reducer pipeline.
-    """
+    """Specification of an asynchronous shard."""
 
     runner_cls: str  # e.g., module.path.to.your.RunnerClass
     provider_cls: str  # e.g., module.path.to.your.ProviderClass
@@ -130,20 +111,7 @@ def cat_shard_files(
     relative_name: str,
     out_path: Path,
 ) -> bool:
-    """Concatenate per-shard text files into a single output file.
-
-    Each shard directory is expected to contain a file named ``relative_name``
-    (e.g. ``"hyp0.scp"``). They are concatenated in shard order into
-    ``out_path``. Missing fragments are skipped silently.
-
-    Args:
-        shard_dirs: Per-shard directories produced by the runner.
-        relative_name: Path of the fragment relative to each shard dir.
-        out_path: Destination file. Parent directories are created as needed.
-
-    Returns:
-        ``True`` if at least one fragment was found and written.
-    """
+    """Concatenate per-shard text files into one file."""
     found = False
     out_path = Path(out_path)
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -161,55 +129,7 @@ def cat_shard_files(
 
 
 class BaseRunner(ABC):
-    """A thin orchestration layer to run ``forward`` over indices with reducers.
-
-    Each shard is processed on a single worker (or the driver in local mode).
-    Items are folded through a small set of overridable hooks so that heavy
-    payloads such as features or audio can be persisted directly on the worker
-    side, and only small summaries travel back to the driver.
-
-    Default behaviour preserves the legacy ``List[Any]`` return type so
-    subclasses that only implement ``forward`` keep working unchanged.
-
-    Persistence hooks (override on the subclass):
-        - :py:meth:`open_writers` — open per-shard writers for ``split.<rank>/``.
-        - :py:meth:`write_record` — fold one ``forward`` result into the writers
-          and/or into scalar accumulators on the state.
-        - :py:meth:`close_writers` — close writers and optionally return metadata
-          to attach to the shard state.
-        - :py:meth:`merge_scalar` — combine scalar accumulators across shards.
-        - :py:meth:`merge_shard_files` — concatenate per-shard files into the
-          final output paths.
-
-    Args:
-        provider (EnvironmentProvider): Provider that builds the runtime env.
-        batch_size (int | None): If set, chunk indices into batches of this size
-            before dispatching to ``forward``.
-        async_mode (bool): If True, submit detached batch jobs (e.g., SLURM)
-            instead of awaiting results in the driver. Each job runs the
-            reducer pipeline and persists its finalized state to disk; the
-            driver returns submission metadata immediately. Use
-            :py:meth:`merge_async_results` to combine the shard states after
-            every job has completed.
-        async_specs_dir (str | Path): Output directory for per-shard spec JSON
-            files (only used in async mode).
-        output_dir (str | Path | None): When provided, each shard receives a
-            dedicated ``<output_dir>/<shard_subdir>/split.<rank>/`` directory.
-            If ``None``, the runner falls back to the in-memory list mode.
-            Required in async mode (workers need a place to persist state).
-        shard_subdir (str): Optional sub-path under ``output_dir`` (e.g. the
-            split name or test set name).
-
-    Notes:
-        - In parallel mode, indices are split into ``n_workers`` shards. Each
-          shard task folds its items through ``reduce_state`` on the worker and
-          returns the finalized state; the driver consumes states as they
-          complete (``as_completed``) and calls :py:meth:`merge_states`.
-        - In async mode, the same reducer pipeline runs on the worker side,
-          but the driver detaches after submission. Each worker writes its
-          finalized state via :py:meth:`serialize_state` so a later
-          :py:meth:`merge_async_results` call can combine them.
-    """
+    """Run ``forward`` locally, in parallel, or as async shard jobs."""
 
     def __init__(
         self,
@@ -228,10 +148,6 @@ class BaseRunner(ABC):
         self.output_dir = Path(output_dir) if output_dir is not None else None
         self.shard_subdir = shard_subdir or ""
 
-    # ------------------------------------------------------------------
-    # Abstract / overridable hooks
-    # ------------------------------------------------------------------
-
     @staticmethod
     @abstractmethod
     def forward(idx: int | Iterable[int], dataset, model, **env) -> Any:
@@ -240,16 +156,7 @@ class BaseRunner(ABC):
 
     @staticmethod
     def open_writers(shard_dir: Optional[Path], **env) -> Dict[str, Any]:
-        """Open per-shard writers.
-
-        Called once per shard on the worker. ``shard_dir`` is the unique
-        ``split.<rank>/`` directory if ``output_dir`` was configured on the
-        runner, otherwise ``None``. The returned dict is passed back to
-        :py:meth:`write_record` and :py:meth:`close_writers` and is discarded
-        before the state ships to the driver (writers are not picklable).
-
-        Default: no writers (in-memory list mode).
-        """
+        """Open per-shard writers."""
         return {}
 
     @staticmethod
@@ -259,25 +166,12 @@ class BaseRunner(ABC):
         state: Dict[str, Any],
         **env,
     ) -> None:
-        """Persist one ``forward`` result.
-
-        Subclasses can use ``writers`` to stream the result to disk and/or
-        mutate ``state`` to fold the result into scalar accumulators. The
-        default keeps ``result`` in memory under ``state['records']`` so that
-        subclasses that only implement ``forward`` see the legacy
-        ``List[Any]`` return semantics.
-        """
+        """Persist one ``forward`` result."""
         state.setdefault("records", []).append(result)
 
     @staticmethod
     def close_writers(writers: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-        """Close per-shard writers.
-
-        Default closes every value that exposes a ``.close()`` method.
-        Subclasses can return a dict whose keys are merged into the shard
-        state before it is sent to the driver (useful for passing along
-        bookkeeping such as the keys that were actually written).
-        """
+        """Close per-shard writers."""
         for writer in writers.values():
             close = getattr(writer, "close", None)
             if callable(close):
@@ -285,10 +179,7 @@ class BaseRunner(ABC):
         return None
 
     def merge_scalar(self, states: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
-        """Combine scalar accumulators carried on shard states.
-
-        Default: ``None`` (no scalar reduction performed).
-        """
+        """Combine scalar accumulators on shard states."""
         return None
 
     def merge_shard_files(
@@ -296,23 +187,12 @@ class BaseRunner(ABC):
         shard_dirs: List[Path],
         states: List[Dict[str, Any]],
     ) -> Optional[Dict[str, Any]]:
-        """Concatenate per-shard files into the final output paths.
-
-        Default: ``None`` (no file merging performed). Subclasses can use
-        :func:`cat_shard_files` for typical scp/shape concatenation.
-        """
+        """Concatenate per-shard files into final outputs."""
         return None
 
     @staticmethod
     def serialize_state(state: Dict[str, Any], shard_dir: Path) -> Path:
-        """Persist a finalized shard state for later driver-side merge.
-
-        Used by async mode: each worker writes its state to disk after the
-        reducer pipeline finishes, so a later :py:meth:`merge_async_results`
-        call can read them back without re-running anything. Default uses
-        pickle so numpy/torch payloads survive the round-trip; override to
-        switch formats.
-        """
+        """Persist a finalized shard state."""
         import pickle
 
         path = Path(shard_dir) / "_state.pkl"
@@ -323,15 +203,11 @@ class BaseRunner(ABC):
 
     @staticmethod
     def deserialize_state(shard_dir: Path) -> Dict[str, Any]:
-        """Read a finalized shard state previously written to ``shard_dir``."""
+        """Read a finalized shard state."""
         import pickle
 
         with (Path(shard_dir) / "_state.pkl").open("rb") as f:
             return pickle.load(f)
-
-    # ------------------------------------------------------------------
-    # Default reducer plumbing built on top of the hooks above
-    # ------------------------------------------------------------------
 
     @classmethod
     def init_state(
@@ -341,12 +217,8 @@ class BaseRunner(ABC):
         shard_subdir: str = "",
         **env,
     ) -> Dict[str, Any]:
-        """Build the initial state for one shard.
-
-        Creates the ``split.<rank>/`` directory if ``output_dir`` was supplied
-        and asks the subclass for any per-shard writers.
-        """
-        shard_dir: Optional[Path] = None
+        """Build the initial state for one shard."""
+        shard_dir = None
         if output_dir is not None:
             shard_dir = Path(output_dir) / (shard_subdir or "") / f"split.{shard_id}"
             shard_dir.mkdir(parents=True, exist_ok=True)
@@ -372,7 +244,7 @@ class BaseRunner(ABC):
 
     @classmethod
     def finalize_state(cls, state: Dict[str, Any], **env) -> Dict[str, Any]:
-        """Close writers and strip non-picklable entries before the trip back."""
+        """Close writers and finalize the shard state."""
         meta = cls.close_writers(state.get("_writers", {})) or {}
         if meta:
             state.update(meta)
@@ -380,13 +252,7 @@ class BaseRunner(ABC):
         return state
 
     def merge_states(self, states: List[Any]) -> Any:
-        """Combine per-shard finalized states on the driver.
-
-        - Calls :py:meth:`merge_scalar` and :py:meth:`merge_shard_files`. If
-          either returns a non-``None`` dict the merged dict is returned.
-        - Otherwise falls back to flattening ``state['records']`` from every
-          shard (legacy list semantics).
-        """
+        """Combine finalized shard states on the driver."""
         shard_dirs = [
             Path(state["shard_dir"])
             for state in states
@@ -415,10 +281,6 @@ class BaseRunner(ABC):
             else:
                 out.append(state)
         return out
-
-    # ------------------------------------------------------------------
-    # Execution paths
-    # ------------------------------------------------------------------
 
     def _augment_env(self, env: Dict[str, Any]) -> Dict[str, Any]:
         if self.output_dir is not None:
@@ -474,7 +336,7 @@ class BaseRunner(ABC):
             return runner_cls.finalize_state(state, shard_id=shard_id, **env)
 
         wrapped = wrap_func_with_worker_env(shard_task)
-        states: List[Any] = []
+        states = []
         with get_client(par_config, setup_fn=setup_fn) as client:
             futures = client.map(wrapped, shard_inputs)
             try:
@@ -492,27 +354,7 @@ class BaseRunner(ABC):
         return self.merge_states(states)
 
     async def _run_async(self, items: Sequence[Any]) -> List[Dict[str, Any]]:
-        """Submit detached per-shard batch jobs and return submission metadata.
-
-        Each job runs the reducer pipeline on its shard on the worker side and
-        persists the finalized state into
-        ``<output_dir>/<shard_subdir>/split.<rank>/_state.pkl`` via
-        :py:meth:`serialize_state`. The driver does not gather; once all jobs
-        complete the user calls :py:meth:`merge_async_results` to combine
-        them.
-
-        Args:
-            items: Pre-chunked items to process (one entry per ``forward``
-                invocation; may be ints or lists of ints when ``batch_size``
-                is set).
-
-        Returns:
-            List of submission metadata dicts (``job_id``, ``spec``,
-            ``shard_dir``).
-
-        Raises:
-            ValueError: If ``output_dir`` is not configured on the runner.
-        """
+        """Submit detached shard jobs and return submission metadata."""
         if self.output_dir is None:
             raise ValueError(
                 "async_mode requires output_dir on the runner; workers need a "
@@ -530,7 +372,7 @@ class BaseRunner(ABC):
             provider_cls = get_full_class_path_from_instance(self.provider)
             runner_cls = get_full_class_path_from_instance(self)
 
-            job_meta: List[Dict[str, Any]] = []
+            job_meta = []
             for rank, chunk in enumerate(chunks):
                 job_id = f"{uuid4().hex[:8]}-r{rank}"
                 spec = AsyncJobSpec(
@@ -578,21 +420,7 @@ class BaseRunner(ABC):
             client.close()
 
     def merge_async_results(self) -> Any:
-        """Combine per-shard states written by an async run.
-
-        Reads every ``<output_dir>/<shard_subdir>/split.*/_state.pkl`` (in
-        rank order) via :py:meth:`deserialize_state` and feeds them to
-        :py:meth:`merge_states`.
-
-        Returns:
-            Whatever :py:meth:`merge_states` returns for the runner.
-
-        Raises:
-            ValueError: If ``output_dir`` is not configured on the runner.
-            FileNotFoundError: If no shard states are found at the expected
-                location (typically means the async jobs have not completed
-                yet, or were never submitted).
-        """
+        """Combine shard states written by an async run."""
         if self.output_dir is None:
             raise ValueError("merge_async_results requires output_dir on the runner.")
         base = self.output_dir / self.shard_subdir
@@ -633,16 +461,7 @@ def _chunk_indices(indices: Sequence[int], batch_size: int) -> List[List[int]]:
 
 
 def _async_worker_entry_from_spec_path(spec_path: str) -> None:
-    """Worker entrypoint: rebuild the runner and persist the shard state.
-
-    Executed inside the detached batch job. It rehydrates the runner and
-    provider from the spec, runs the same reducer pipeline used by sync
-    parallel mode on this shard's items, and writes the finalized state to
-    ``<output_dir>/<shard_subdir>/split.<rank>/_state.pkl`` via
-    :py:meth:`BaseRunner.serialize_state`. A subsequent
-    :py:meth:`BaseRunner.merge_async_results` call on the driver reads those
-    files back and produces the final merged result.
-    """
+    """Worker entrypoint for one async shard."""
     from omegaconf import DictConfig
 
     with open(spec_path, "r", encoding="utf-8") as f:

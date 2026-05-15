@@ -7,6 +7,7 @@ import torch
 from omegaconf import OmegaConf
 
 import espnet3.systems.base.inference as inference_mod
+from espnet3.systems.base.inference_provider import InferenceProvider
 from espnet3.systems.base.inference_runner import InferenceRunner
 
 
@@ -40,33 +41,17 @@ class NoIdxKeyRunner:
         return []
 
 
-class DummyProvider:
+class DummyProvider(InferenceProvider):
     def __init__(self, inference_config, params):
-        self.config = inference_config
+        super().__init__(inference_config, params=params)
         self.params = params
 
     def build_dataset(self, _config):
         return [None] * _config.mock_dataset_length
 
-    def build_env_local(self):
-        return {
-            "dataset": self.build_dataset(self.config),
-            "model": lambda **kwargs: None,
-            **self.params,
-        }
-
-    def build_worker_setup_fn(self):
-        config = self.config
-        params = dict(self.params)
-
-        def setup():
-            return {
-                "dataset": self.build_dataset(config),
-                "model": lambda **kwargs: None,
-                **params,
-            }
-
-        return setup
+    @staticmethod
+    def build_model(_config):
+        return lambda **kwargs: None
 
 
 class DummyRunner(InferenceRunner):
@@ -87,67 +72,34 @@ class DummyRunner(InferenceRunner):
         return self._results
 
 
-class CaptureProvider:
+class CaptureProvider(InferenceProvider):
     last_params = None
 
     def __init__(self, inference_config, *, params):
-        self.config = inference_config
+        super().__init__(inference_config, params=params)
         CaptureProvider.last_params = params
 
     def build_dataset(self, _config):
         return [None] * _config.mock_dataset_length
 
-    def build_env_local(self):
-        return {
-            "dataset": self.build_dataset(self.config),
-            "model": lambda **kwargs: None,
-            **(CaptureProvider.last_params or {}),
-        }
-
-    def build_worker_setup_fn(self):
-        config = self.config
-        params = dict(CaptureProvider.last_params or {})
-
-        def setup():
-            return {
-                "dataset": self.build_dataset(config),
-                "model": lambda **kwargs: None,
-                **params,
-            }
-
-        return setup
+    @staticmethod
+    def build_model(_config):
+        return lambda **kwargs: None
 
 
-class StreamingProvider:
+class StreamingProvider(InferenceProvider):
     def __init__(self, inference_config, params):
-        self.config = inference_config
-        self.params = params
+        super().__init__(inference_config, params=params)
 
     def build_dataset(self, _config):
         return list(_config.mock_dataset)
 
-    def build_env_local(self):
-        return self._build_env(self.config, self.params)
-
-    def build_worker_setup_fn(self):
-        config = self.config
-        params = dict(self.params)
-
-        def setup():
-            return self._build_env(config, params)
-
-        return setup
-
     @staticmethod
-    def _build_env(config, params):
+    def build_model(_config):
         def model(speech):
             return {"speech": speech}
 
-        return {
-            "dataset": list(config.mock_dataset),
-            "model": model,
-            **params,
-        }
+        return model
 
 
 class CaptureRunner:

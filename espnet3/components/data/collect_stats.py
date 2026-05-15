@@ -202,14 +202,7 @@ def _persist_feats_for_key(
 
 
 class CollectStatsInferenceProvider(EnvironmentProvider):
-    """EnvironmentProvider tailored for collect-stats jobs.
-
-    Beyond the usual dataset/model/collate_fn/device, the env exposes the
-    ``write_collected_feats`` flag the reducer hooks on
-    :class:`CollectStatsRunner` need. ``output_dir`` and ``shard_subdir`` are
-    injected by the runner itself, so this provider stays focused on the
-    inference environment.
-    """
+    """EnvironmentProvider tailored for collect-stats jobs."""
 
     def __init__(
         self,
@@ -234,7 +227,7 @@ class CollectStatsInferenceProvider(EnvironmentProvider):
 
     def build_env_local(self) -> Dict[str, Any]:
         """Build the environment once on the driver for local inference."""
-        env: Dict[str, Any] = dict()
+        env = dict()
         collate_fn = _build_collate_fn(self.config.dataloader_config)
         env["collate_fn"] = collate_fn
 
@@ -250,17 +243,16 @@ class CollectStatsInferenceProvider(EnvironmentProvider):
         env["device"] = device
 
         env["model"] = _build_model(self.config).to(device).eval()
-        env["write_collected_feats"] = bool(self.config.write_collected_feats)
+        env["write_collected_feats"] = self.config.write_collected_feats
         return env
 
     def build_worker_setup_fn(self):
         """Return a Dask worker setup function that builds dataset/model."""
         dataloader_config = self.config.dataloader_config
         config = self.config
-        write_collected_feats = bool(self.config.write_collected_feats)
 
         def setup():
-            env: Dict[str, Any] = dict()
+            env = dict()
             collate_fn = _build_collate_fn(dataloader_config)
             env["collate_fn"] = collate_fn
 
@@ -275,20 +267,14 @@ class CollectStatsInferenceProvider(EnvironmentProvider):
             env["device"] = device
 
             env["model"] = _build_model(config).to(device).eval()
-            env["write_collected_feats"] = write_collected_feats
+            env["write_collected_feats"] = self.config.write_collected_feats
             return env
 
         return setup
 
 
 class CollectStatsRunner(BaseRunner):
-    """Runner that executes collect-stats over batches of indices.
-
-    Implements only the four persistence hooks of :class:`BaseRunner`. Per-shard
-    accumulators and writers live on the worker; the driver only sees a small
-    summary per shard and a final scalar reduction + scp/shape concatenation
-    runs in :py:meth:`merge_scalar` / :py:meth:`merge_shard_files`.
-    """
+    """Runner that executes collect-stats over batches of indices."""
 
     def __init__(
         self,
@@ -306,7 +292,7 @@ class CollectStatsRunner(BaseRunner):
             **kwargs,
         )
         self.mode = mode
-        self.write_collected_feats = bool(write_collected_feats)
+        self.write_collected_feats = write_collected_feats
 
     @staticmethod
     def forward(
@@ -343,19 +329,14 @@ class CollectStatsRunner(BaseRunner):
         write_collected_feats: bool = False,
         **env,
     ) -> Dict[str, Any]:
-        """Open per-shard shape file handles and (optionally) NpyScpWriters.
-
-        ``shard_dir`` is the unique ``split.<rank>/`` directory; required here
-        because every batch streams shape lines and feature payloads directly
-        to disk.
-        """
+        """Open per-shard shape file handles and optional feature writers."""
         if shard_dir is None:
             raise RuntimeError(
                 "CollectStatsRunner requires output_dir for shard outputs."
             )
         return {
             "_shard_dir": shard_dir,
-            "_write_feats": bool(write_collected_feats),
+            "_write_feats": write_collected_feats,
             "shape_handles": {},
             "feat_writers": {},
         }
@@ -367,7 +348,7 @@ class CollectStatsRunner(BaseRunner):
         state: Dict[str, Any],
         **env,
     ) -> None:
-        """Fold a batch's contribution into the shard state and stream to disk."""
+        """Fold a batch result into the shard state and files."""
         write_feats = writers["_write_feats"]
         shard_dir: Path = writers["_shard_dir"]
 
@@ -406,7 +387,7 @@ class CollectStatsRunner(BaseRunner):
 
     @staticmethod
     def close_writers(writers: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-        """Close handles/writers and report which keys produced output files."""
+        """Close per-shard writers."""
         shape_handles = writers.get("shape_handles", {})
         feat_writers = writers.get("feat_writers", {})
         for handle in shape_handles.values():
@@ -419,7 +400,7 @@ class CollectStatsRunner(BaseRunner):
         }
 
     def merge_scalar(self, states: List[Dict[str, Any]]) -> Dict[str, Any]:
-        """Reduce sum/sq/count per feature key across shards."""
+        """Reduce per-shard stats."""
         sum_dict: Dict[str, Any] = defaultdict(lambda: 0)
         sq_dict: Dict[str, Any] = defaultdict(lambda: 0)
         count_dict: Dict[str, int] = defaultdict(lambda: 0)
@@ -441,7 +422,7 @@ class CollectStatsRunner(BaseRunner):
         shard_dirs: List[Path],
         states: List[Dict[str, Any]],
     ) -> Dict[str, Any]:
-        """Concatenate per-shard ``*_shape`` and ``collect_feats/*.scp`` files."""
+        """Concatenate per-shard outputs."""
         if self.output_dir is None:
             return {}
         shape_keys: set = set()
@@ -563,7 +544,7 @@ def collect_stats(
         batch_size=batch_size,
     )
 
-    mode_dir = Path(output_dir) / mode
+    mode_dir = output_dir / mode
     mode_dir.mkdir(parents=True, exist_ok=True)
     for key in sum_dict:
         np.savez(
