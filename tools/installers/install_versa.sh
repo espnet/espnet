@@ -13,4 +13,5 @@ rm -rf versa
 git clone https://github.com/shinjiwlab/versa.git
 cd versa
 pip install -e ".[audio]"
+pip install pysptk
 cd ..
