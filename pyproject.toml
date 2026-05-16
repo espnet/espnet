@@ -46,6 +46,7 @@ dependencies = [
     "espnet_model_zoo",
     "matplotlib",
     "nltk>=3.4.5",
+    "pysptk",
 
     # ESPnet-3 related
     "hydra-core",
