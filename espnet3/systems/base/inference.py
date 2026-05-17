@@ -8,9 +8,56 @@ from hydra.utils import instantiate
 from omegaconf import DictConfig, OmegaConf
 
 from espnet3.parallel.parallel import set_parallel
-from espnet3.systems.base.inference_runner import _load_output_fn
+from espnet3.systems.base.inference_runner import (
+    _iter_outputs,
+    _load_output_fn,
+    _materialize_output_value,
+)
 
 logger = logging.getLogger(__name__)
+
+
+def _flatten_results(results):
+    """Flatten nested inference outputs into a single list."""
+    return _iter_outputs(results)
+
+
+def _collect_scp_lines(results, *, idx_key: str, hyp_keys, ref_keys):
+    """Convert scalar inference outputs into SCP line buffers."""
+    scp_lines = {}
+    field_keys = []
+    for keys in (hyp_keys, ref_keys):
+        if keys is None:
+            continue
+        if isinstance(keys, (list, tuple)):
+            field_keys.extend(keys)
+        else:
+            field_keys.append(keys)
+
+    for output in _flatten_results(results):
+        if not isinstance(output, dict):
+            raise TypeError(
+                f"Expected dict output, got {type(output).__name__}: {output}"
+            )
+
+        idx_value = output[idx_key]
+        if isinstance(idx_value, (list, tuple)):
+            raise TypeError(
+                f"'{idx_key}' must be a single value, not {type(idx_value).__name__}"
+            )
+
+        for field_key in field_keys:
+            value = _materialize_output_value(
+                idx_value=idx_value,
+                field_key=field_key,
+                value=output[field_key],
+                output_dir=Path("."),
+                artifact_config=None,
+            )
+            scp_lines.setdefault(field_key, []).append(f"{idx_value} {value}")
+
+    return scp_lines
+
 
 def infer(config: DictConfig):
     """Run inference over all configured test sets and write SCP files.

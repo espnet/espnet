@@ -127,13 +127,17 @@ class STFTRunner(BaseRunner):
 
     @staticmethod
     def close_writers(writers):
-        writers["path"].write_text("\n".join(writers["records"]) + "\n", encoding="utf-8")
+        writers["path"].write_text(
+            "\n".join(writers["records"]) + "\n", encoding="utf-8"
+        )
         return None
 
     def merge(self, shard_dirs):
         outputs = []
         for shard_dir in shard_dirs:
-            for line in (shard_dir / "records.txt").read_text(encoding="utf-8").splitlines():
+            for line in (
+                (shard_dir / "records.txt").read_text(encoding="utf-8").splitlines()
+            ):
                 outputs.append(ast.literal_eval(line))
         return outputs
 

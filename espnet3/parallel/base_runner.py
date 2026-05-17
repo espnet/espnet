@@ -7,7 +7,6 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Sequence
 
-from omegaconf import OmegaConf
 from tqdm import tqdm
 
 from espnet3.parallel.env_provider import EnvironmentProvider
@@ -73,7 +72,9 @@ def concatenate_shard_files(
     Example:
         >>> from pathlib import Path
         >>> shard_dirs = [Path("output/split.0"), Path("output/split.1")]
-        >>> found = concatenate_shard_files(shard_dirs, "hyp.scp", Path("output/hyp.scp"))
+        >>> found = concatenate_shard_files(
+        ...     shard_dirs, "hyp.scp", Path("output/hyp.scp")
+        ... )
         >>> print(found)  # True if at least one shard contained hyp.scp
         True
     """
@@ -316,6 +317,7 @@ class BaseRunner(ABC):
 
     @classmethod
     def is_shard_done(cls, shard_dir: Path) -> bool:
+        """Return True if the shard has a completion marker file."""
         return cls._done_path(shard_dir).exists()
 
     @classmethod

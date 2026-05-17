@@ -8,8 +8,8 @@ from omegaconf import OmegaConf
 
 import espnet3.parallel.parallel as parallel_mod
 import espnet3.systems.base.inference as inference_mod
-from espnet3.systems.base.inference_provider import InferenceProvider
 import espnet3.systems.base.inference_runner as inference_runner_mod
+from espnet3.systems.base.inference_provider import InferenceProvider
 from espnet3.systems.base.inference_runner import InferenceRunner
 
 
@@ -431,7 +431,9 @@ def test_inference_runner_streams_split_outputs_and_merges_scp(tmp_path, monkeyp
                 },
             ],
             "provider": {"_target_": f"{__name__}.StreamingProvider"},
-            "runner": {"_target_": "espnet3.systems.base.inference_runner.InferenceRunner"},
+            "runner": {
+                "_target_": "espnet3.systems.base.inference_runner.InferenceRunner"
+            },
             "output_artifacts": {
                 "audio": {"type": "wav", "sample_rate": 16000},
             },
@@ -725,7 +727,9 @@ def test_infer_rejects_in_memory_results(tmp_path, monkeypatch):
 
     monkeypatch.setattr(inference_mod, "set_parallel", lambda arg: None)
 
-    with pytest.raises(RuntimeError, match="In-memory inference results are not supported"):
+    with pytest.raises(
+        RuntimeError, match="In-memory inference results are not supported"
+    ):
         inference_mod.infer(cfg)
 
 

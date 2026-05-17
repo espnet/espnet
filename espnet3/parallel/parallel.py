@@ -272,7 +272,7 @@ def wrap_func_with_worker_env(func: Callable) -> Callable:
                 f"Argument conflict: {conflict} passed via both kwargs and env"
             )
 
-        if accepts_var_kw:
+        if accepts_var_keyword:
             filtered_env = {k: v for k, v in env.items() if k not in kwargs}
         else:
             filtered_env = {
