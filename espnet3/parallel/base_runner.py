@@ -21,16 +21,16 @@ logger = logging.getLogger(__name__)
 
 
 def _default_chunk(indices: Sequence[int], num_chunks: int) -> List[List[int]]:
-    n = max(1, num_chunks)
-    L = len(indices)
-    q, r = divmod(L, n)
+    n_chunks = max(1, num_chunks)
+    n_items = len(indices)
+    quotient, remainder = divmod(n_items, n_chunks)
     out = []
     start = 0
-    for i in range(n):
-        size = q + (1 if i < r else 0)
+    for i in range(n_chunks):
+        size = quotient + (1 if i < remainder else 0)
         out.append(list(indices[start : start + size]))
         start += size
-    return [c for c in out if c]
+    return [chunk for chunk in out if chunk]
 
 
 def _convert_paths(obj):
@@ -45,7 +45,7 @@ def _convert_paths(obj):
         return obj
 
 
-def cat_shard_files(
+def concatenate_shard_files(
     shard_dirs: Sequence[Path],
     relative_name: str,
     out_path: Path,
@@ -64,8 +64,18 @@ def cat_shard_files(
         out_path: Destination path for the concatenated file.
 
     Returns:
-        bool: ``True`` if at least one shard fragment was found and written.
-        Otherwise ``False``.
+        bool: ``True`` if at least one shard fragment was found and written,
+        ``False`` otherwise.
+
+    Raises:
+        OSError: If the output parent directory cannot be created.
+
+    Example:
+        >>> from pathlib import Path
+        >>> shard_dirs = [Path("output/split.0"), Path("output/split.1")]
+        >>> found = concatenate_shard_files(shard_dirs, "hyp.scp", Path("output/hyp.scp"))
+        >>> print(found)  # True if at least one shard contained hyp.scp
+        True
     """
     found = False
     out_path = Path(out_path)
@@ -94,11 +104,9 @@ class BaseRunner(ABC):
         - Optionally reducing per-shard results on the worker before they are
           merged on the driver.
 
-    Unlike ``parallel_map`` and ``parallel_for``, this class is intended for
-    durable shard-oriented workflows that write files under ``output_dir`` and
-    may need resume support. When ``output_dir`` is omitted, it still supports
-    in-memory reduction for lightweight callers, but resumable execution is
-    only enabled for file-backed runs.
+    This class is the durable parallel execution path in ESPnet3. It writes
+    shard-local files under ``output_dir`` and supports resume by reusing shard
+    state when a previous run completed some splits.
 
     Subclass contract:
         - Implement ``@staticmethod forward(idx, dataset, model, **env) -> Any``
@@ -115,16 +123,35 @@ class BaseRunner(ABC):
         batch_size (int | None): If set, chunk indices into batches of this size
             before dispatching to ``forward``.
         output_dir (str | Path | None): Root output directory used by reducer-style
-            runners to write shard-local files and merged outputs.
-        shard_subdir (str): Optional sub-path under ``output_dir`` or
-            the shard-state directory.
+            runners to write shard-local files and merged outputs. This must be
+            provided before calling the runner.
+        shard_subdir (str): Optional sub-path under ``output_dir`` where shard
+            directories and manifest are written.
         resume (bool): Whether to skip shards that already have a ``done`` marker.
 
     Notes:
         - When ``output_dir`` is set, shard state is written under
-          ``output_dir / "_shards" / shard_subdir / "split.N"``.
+          ``output_dir / shard_subdir / "split.N"``.
         - A shard is considered complete when its directory contains a ``done``
-          marker and ``_state.pkl``.
+          marker.
+
+    Example:
+        >>> from espnet3.parallel.env_provider import EnvironmentProvider
+        >>> from omegaconf import OmegaConf
+        >>> class MyProvider(EnvironmentProvider):
+        ...     def build_env_local(self):
+        ...         return {"dataset": ..., "model": ...}
+        ...     def build_worker_setup_fn(self):
+        ...         def setup():
+        ...             return {"dataset": ..., "model": ...}
+        ...         return setup
+        >>> class MyRunner(BaseRunner):
+        ...     @staticmethod
+        ...     def forward(idx, dataset, model, **env):
+        ...         return model(dataset[idx])
+        >>> provider = MyProvider(OmegaConf.create({}))
+        >>> runner = MyRunner(provider, output_dir="/tmp/out")
+        >>> runner(range(100))
     """
 
     # TODO(Masao) Add detailed description on Runner/Provider in the document.
@@ -178,7 +205,20 @@ class BaseRunner(ABC):
 
     @staticmethod
     def open_writers(shard_dir: Optional[Path], **env) -> Dict[str, Any]:
-        """Open per-shard writers."""
+        """Open per-shard file writers before processing begins.
+
+        Called once at the start of each shard. Override to open output
+        file handles or other resources that accumulate results across
+        multiple ``forward`` calls within a shard.
+
+        Args:
+            shard_dir: Directory dedicated to this shard's output files.
+            **env: Full worker environment (dataset, model, etc.).
+
+        Returns:
+            Dict[str, Any]: A writers dict passed to every ``write_record``
+            and ``close_writers`` call for this shard.
+        """
         return {}
 
     @staticmethod
@@ -188,33 +228,58 @@ class BaseRunner(ABC):
         state: Dict[str, Any],
         **env,
     ) -> None:
-        """Persist one ``forward`` result."""
+        """Persist one ``forward`` result into the shard state or files.
+
+        Called after each ``forward`` invocation. Override to stream results
+        into open file handles instead of accumulating them in memory.
+
+        Args:
+            writers: The dict returned by ``open_writers`` for this shard.
+            result: The value returned by ``forward`` for this item.
+            state: Mutable shard state dict (``records``, ``shard_id``, etc.).
+            **env: Full worker environment.
+        """
         state.setdefault("records", []).append(result)
 
     @staticmethod
     def close_writers(writers: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-        """Close per-shard writers."""
+        """Close per-shard writers after all items are processed.
+
+        Called once at the end of each shard. Override to flush and close
+        any file handles opened in ``open_writers``. The optional return
+        value is merged into the shard state before it is persisted.
+
+        Args:
+            writers: The dict returned by ``open_writers`` for this shard.
+
+        Returns:
+            Optional[Dict[str, Any]]: Extra entries to merge into the shard
+            state, or ``None``.
+        """
         for writer in writers.values():
             close = getattr(writer, "close", None)
             if callable(close):
                 close()
         return None
 
-    def merge_state(self, states: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
-        """Combine in-memory results from finalized shard states."""
-        return None
+    def merge(self, shard_dirs: List[Path]) -> Any:
+        """Merge completed shard outputs into the final result.
 
-    def merge_shard_files(
-        self,
-        shard_dirs: List[Path],
-        states: List[Dict[str, Any]],
-    ) -> Optional[Dict[str, Any]]:
-        """Concatenate per-shard files into final outputs."""
+        Called on the driver after all shards finish. Override to aggregate
+        per-shard files (e.g., SCP files, stats arrays) into a single output.
+
+        Args:
+            shard_dirs: Ordered list of completed shard directories.
+
+        Returns:
+            Any: Aggregated result, or ``None`` if outputs are written to
+            disk and no in-memory result is needed.
+        """
         return None
 
     @staticmethod
     def _shards_root(output_dir: Path, shard_subdir: str = "") -> Path:
-        root = Path(output_dir) / "_shards"
+        root = Path(output_dir)
         if shard_subdir:
             root = root / shard_subdir
         return root
@@ -222,23 +287,19 @@ class BaseRunner(ABC):
     @classmethod
     def _resolve_shard_dir(
         cls,
-        output_dir: Optional[str],
+        output_dir: str,
         shard_subdir: str,
         shard_id: int,
-    ) -> Optional[Path]:
-        if output_dir is None:
-            return None
+    ) -> Path:
         root = cls._shards_root(Path(output_dir), shard_subdir)
         return root / f"split.{shard_id}"
 
     @classmethod
     def _manifest_path(
         cls,
-        output_dir: Optional[str | Path],
+        output_dir: str | Path,
         shard_subdir: str = "",
-    ) -> Optional[Path]:
-        if output_dir is None:
-            return None
+    ) -> Path:
         return cls._shards_root(Path(output_dir), shard_subdir) / "manifest.json"
 
     @staticmethod
@@ -257,37 +318,35 @@ class BaseRunner(ABC):
     def is_shard_done(cls, shard_dir: Path) -> bool:
         return cls._done_path(shard_dir).exists()
 
-    @staticmethod
-    def serialize_state(state: Dict[str, Any], shard_dir: Path) -> Path:
-        """Persist a finalized shard state."""
-        import pickle
-
-        path = Path(shard_dir) / "_state.pkl"
-        path.parent.mkdir(parents=True, exist_ok=True)
-        with path.open("wb") as f:
-            pickle.dump(state, f)
-        return path
-
-    @staticmethod
-    def deserialize_state(shard_dir: Path) -> Dict[str, Any]:
-        """Read a finalized shard state."""
-        import pickle
-
-        with (Path(shard_dir) / "_state.pkl").open("rb") as f:
-            return pickle.load(f)
-
     @classmethod
     def init_state(
         cls,
         shard_id: int = 0,
-        output_dir: Optional[str] = None,
+        output_dir: str = "",
         shard_subdir: str = "",
         **env,
     ) -> Dict[str, Any]:
-        """Build the initial state for one shard."""
+        """Build the initial state dict for one shard and open its writers.
+
+        Args:
+            shard_id: Zero-based shard index.
+            output_dir: Root output directory (string form).
+            shard_subdir: Optional sub-path appended to ``output_dir``.
+            **env: Full worker environment forwarded to ``open_writers``.
+
+        Returns:
+            Dict[str, Any]: Initial state with keys ``shard_id``,
+            ``shard_dir``, ``_writers``, and ``records``.
+
+        Example:
+            >>> state = MyRunner.init_state(
+            ...     shard_id=0, output_dir="/tmp/out", dataset=ds, model=md
+            ... )
+            >>> print(state["shard_dir"])
+            /tmp/out/split.0
+        """
         shard_dir = cls._resolve_shard_dir(output_dir, shard_subdir, shard_id)
-        if shard_dir is not None:
-            shard_dir.mkdir(parents=True, exist_ok=True)
+        shard_dir.mkdir(parents=True, exist_ok=True)
         writers = cls.open_writers(
             shard_dir,
             shard_id=shard_id,
@@ -297,72 +356,59 @@ class BaseRunner(ABC):
         )
         return {
             "shard_id": shard_id,
-            "shard_dir": str(shard_dir) if shard_dir is not None else None,
+            "shard_dir": str(shard_dir),
             "_writers": writers,
             "records": [],
         }
 
     @classmethod
     def reduce_state(cls, state: Dict[str, Any], result: Any, **env) -> Dict[str, Any]:
-        """Fold a single ``forward`` result into the shard state."""
+        """Fold a single ``forward`` result into the shard state.
+
+        Args:
+            state: Current shard state (mutated in place via ``write_record``).
+            result: Value returned by ``forward`` for one item or batch.
+            **env: Full worker environment.
+
+        Returns:
+            Dict[str, Any]: Updated shard state.
+        """
         cls.write_record(state["_writers"], result, state, **env)
         return state
 
     @classmethod
     def finalize_state(cls, state: Dict[str, Any], **env) -> Dict[str, Any]:
-        """Close writers and finalize the shard state."""
+        """Close writers and finalize the shard state.
+
+        Args:
+            state: Shard state containing ``_writers`` and accumulated data.
+            **env: Full worker environment.
+
+        Returns:
+            Dict[str, Any]: Finalized state with ``_writers`` removed and any
+            extra metadata from ``close_writers`` merged in.
+        """
         meta = cls.close_writers(state.get("_writers", {})) or {}
         if meta:
             state.update(meta)
         state.pop("_writers", None)
         return state
 
-    def merge_states(self, states: List[Any]) -> Any:
-        """Combine finalized shard states on the driver."""
-        shard_dirs = [
-            Path(state["shard_dir"])
-            for state in states
-            if isinstance(state, dict) and state.get("shard_dir")
-        ]
-
-        state_result = self.merge_state(states)
-        files = self.merge_shard_files(shard_dirs, states) if shard_dirs else None
-
-        if state_result is not None or files is not None:
-            merged: Dict[str, Any] = {}
-            if isinstance(state_result, dict):
-                merged.update(state_result)
-            if isinstance(files, dict):
-                merged.update(files)
-            return merged or (files if files is not None else state_result)
-
-        out: List[Any] = []
-        for state in states:
-            if isinstance(state, dict):
-                records = state.get("records")
-                if records is not None:
-                    out.extend(records)
-            elif isinstance(state, list):
-                out.extend(state)
-            else:
-                out.append(state)
-        return out
-
-    def _manifest_data(self, shards: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
+    def _build_manifest_data(self, shards: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
         return {
             "version": 1,
-            "output_dir": str(self.output_dir) if self.output_dir is not None else None,
+            "output_dir": str(self.output_dir),
             "shard_subdir": self.shard_subdir,
             "shards": list(shards),
         }
 
-    def _write_manifest(self, shards: Sequence[Dict[str, Any]]) -> Optional[Path]:
+    def _write_manifest(self, shards: Sequence[Dict[str, Any]]) -> Path:
         manifest_path = self._manifest_path(self.output_dir, self.shard_subdir)
-        if manifest_path is None:
-            return None
         manifest_path.parent.mkdir(parents=True, exist_ok=True)
         with manifest_path.open("w", encoding="utf-8") as f:
-            json.dump(self._manifest_data(shards), f, ensure_ascii=False, indent=2)
+            json.dump(
+                self._build_manifest_data(shards), f, ensure_ascii=False, indent=2
+            )
         return manifest_path
 
     def _plan_shards(self, items: Sequence[Any]) -> List[Dict[str, Any]]:
@@ -379,8 +425,10 @@ class BaseRunner(ABC):
             for shard_id, chunk in enumerate(chunks)
         ]
 
-    def _pending_shards(self, shards: Sequence[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        if self.output_dir is None or not self.resume:
+    def _filter_pending_shards(
+        self, shards: Sequence[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
+        if not self.resume:
             return list(shards)
 
         pending = []
@@ -388,36 +436,27 @@ class BaseRunner(ABC):
             shard_dir = self._resolve_shard_dir(
                 str(self.output_dir), self.shard_subdir, int(shard["shard_id"])
             )
-            if shard_dir is None or not self.is_shard_done(shard_dir):
+            if not self.is_shard_done(shard_dir):
                 pending.append(shard)
         return pending
 
-    def _completed_states_from_shards(
-        self,
-        shards: Sequence[Dict[str, Any]],
-    ) -> List[Dict[str, Any]]:
-        states = []
+    def _completed_shard_dirs(self, shards: Sequence[Dict[str, Any]]) -> List[Path]:
+        shard_dirs = []
         for shard in shards:
             shard_dir = self._resolve_shard_dir(
-                str(self.output_dir) if self.output_dir is not None else None,
+                str(self.output_dir),
                 self.shard_subdir,
                 int(shard["shard_id"]),
             )
-            if shard_dir is None:
-                continue
-            state_path = Path(shard_dir) / "_state.pkl"
             if not self.is_shard_done(shard_dir):
-                raise FileNotFoundError(f"Shard {shard['shard_id']} is not complete: {shard_dir}")
-            if not state_path.exists():
                 raise FileNotFoundError(
-                    f"Shard {shard['shard_id']} is missing state: {state_path}"
+                    f"Shard {shard['shard_id']} is not complete: {shard_dir}"
                 )
-            states.append(self.deserialize_state(shard_dir))
-        return states
+            shard_dirs.append(shard_dir)
+        return shard_dirs
 
     def _augment_env(self, env: Dict[str, Any]) -> Dict[str, Any]:
-        if self.output_dir is not None:
-            env.setdefault("output_dir", str(self.output_dir))
+        env.setdefault("output_dir", str(self.output_dir))
         if self.shard_subdir:
             env.setdefault("shard_subdir", self.shard_subdir)
         return env
@@ -430,16 +469,13 @@ class BaseRunner(ABC):
         env: Dict[str, Any],
     ) -> Dict[str, Any]:
         state = cls.init_state(shard_id=shard_id, **env)
-        shard_dir = Path(state["shard_dir"]) if state.get("shard_dir") else None
-        if shard_dir is not None:
-            cls._clear_done(shard_dir)
+        shard_dir = Path(state["shard_dir"])
+        cls._clear_done(shard_dir)
         for item in items:
             result = cls.forward(item, **env)
             state = cls.reduce_state(state, result, shard_id=shard_id, **env)
-        state = cls.finalize_state(state, shard_id=shard_id, **env)
-        if shard_dir is not None:
-            cls.serialize_state(state, shard_dir)
-            cls._mark_done(shard_dir)
+        cls.finalize_state(state, shard_id=shard_id, **env)
+        cls._mark_done(shard_dir)
         return state
 
     def _run_local(self, shards: Sequence[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -447,8 +483,7 @@ class BaseRunner(ABC):
 
         Notes:
             - Uses ``tqdm`` progress bar over the pending shard list.
-            - Each completed shard writes ``_state.pkl`` and ``done`` when
-              ``output_dir`` is configured.
+            - Each completed shard writes its shard files and ``done``.
         """
         env = self._augment_env(self.provider.build_env_local())
         cls = self.__class__
@@ -459,7 +494,9 @@ class BaseRunner(ABC):
             )
         return states
 
-    def _run_parallel_dask(self, shards: Sequence[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def _run_parallel_dask(
+        self, shards: Sequence[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
         """Run pending shards with Dask workers and persist shard-local state."""
         from dask.distributed import as_completed
 
@@ -468,13 +505,12 @@ class BaseRunner(ABC):
             return []
 
         provider_setup = self.provider.build_worker_setup_fn()
-        output_dir_str = str(self.output_dir) if self.output_dir is not None else None
+        output_dir_str = str(self.output_dir)
         shard_subdir = self.shard_subdir
 
         def setup_fn():
             env = provider_setup()
-            if output_dir_str is not None:
-                env.setdefault("output_dir", output_dir_str)
+            env.setdefault("output_dir", output_dir_str)
             if shard_subdir:
                 env.setdefault("shard_subdir", shard_subdir)
             return env
@@ -509,13 +545,34 @@ class BaseRunner(ABC):
     def __call__(self, indices: Iterable[int]) -> Any:
         """Dispatch execution according to the configured parallel mode.
 
+        Splits ``indices`` into shards, runs pending shards locally or via
+        Dask, then calls :meth:`merge` on all completed shard directories.
+
         Args:
-            indices (Iterable[int]): Indices to process.
+            indices (Iterable[int]): Indices (or pre-batched index lists) to
+                process. Pass batched lists when ``batch_size`` is ``None``
+                and batching is handled externally.
+
+        Returns:
+            Any: The value returned by :meth:`merge`, which is
+            ``None`` by default and a dict or list in reducer subclasses.
+
+        Raises:
+            RuntimeError: If ``output_dir`` was not set on construction.
+            ValueError: If ``batch_size`` is not a positive integer.
+            FileNotFoundError: If a shard directory is missing its ``done``
+                marker after execution (indicates a failed shard).
 
         Notes:
             - If no parallel config is set or ``env='local'``, run locally.
             - Otherwise, run in parallel with environment injection.
+
+        Example:
+            >>> runner = MyRunner(provider, output_dir="/tmp/out")
+            >>> result = runner(range(200))
         """
+        if self.output_dir is None:
+            raise RuntimeError("BaseRunner requires output_dir for shard execution.")
         indices = list(indices)
         if self.batch_size is not None:
             if self.batch_size <= 0:
@@ -523,19 +580,16 @@ class BaseRunner(ABC):
             indices = _chunk_indices(indices, self.batch_size)
         shards = self._plan_shards(indices)
         self._write_manifest(shards)
-        pending = self._pending_shards(shards)
+        pending = self._filter_pending_shards(shards)
 
         par_config = get_parallel_config()
-        transient_states: List[Dict[str, Any]] = []
         if pending:
             if par_config is None or getattr(par_config, "env", "local") == "local":
-                transient_states = self._run_local(pending)
+                self._run_local(pending)
             else:
-                transient_states = self._run_parallel_dask(pending)
+                self._run_parallel_dask(pending)
 
-        if self.output_dir is not None:
-            return self.merge_states(self._completed_states_from_shards(shards))
-        return self.merge_states(transient_states)
+        return self.merge(self._completed_shard_dirs(shards))
 
 
 def _chunk_indices(indices: Sequence[int], batch_size: int) -> List[List[int]]:

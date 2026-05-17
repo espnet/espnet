@@ -443,7 +443,7 @@ def test_inference_runner_streams_split_outputs_and_merges_scp(tmp_path, monkeyp
     inference_mod.infer(cfg)
 
     base = tmp_path / "infer" / "test_a"
-    split_dir = base / "_shards" / "split.0"
+    split_dir = base / "split.0"
     assert split_dir.exists()
     assert _read_scp(base / "hyp.scp") == ["utt1 h1", "utt2 h2"]
     assert _read_scp(split_dir / "hyp.scp") == ["utt1 h1", "utt2 h2"]

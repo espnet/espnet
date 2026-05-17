@@ -1,6 +1,7 @@
 # tests/test_stft_runner_provider.py
 from __future__ import annotations
 
+import ast
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -116,6 +117,26 @@ class STFTRunner(BaseRunner):
 
         return outputs[-1] if outputs else {"stft": {"type": "text", "value": "[]"}}
 
+    @staticmethod
+    def open_writers(shard_dir, **env):
+        return {"path": shard_dir / "records.txt", "records": []}
+
+    @staticmethod
+    def write_record(writers, result, state, **env):
+        writers["records"].append(repr(result))
+
+    @staticmethod
+    def close_writers(writers):
+        writers["path"].write_text("\n".join(writers["records"]) + "\n", encoding="utf-8")
+        return None
+
+    def merge(self, shard_dirs):
+        outputs = []
+        for shard_dir in shard_dirs:
+            for line in (shard_dir / "records.txt").read_text(encoding="utf-8").splitlines():
+                outputs.append(ast.literal_eval(line))
+        return outputs
+
 
 def write_output(utt_id: str, output: dict, out_dir: Path):
     out_dir = Path(out_dir)
@@ -170,10 +191,10 @@ def _make_cfg_from_samples(
     return cfg, params
 
 
-def test_offline_on_example(test_audio_paths):
+def test_offline_on_example(test_audio_paths, tmp_path):
     cfg, params = _make_cfg_from_samples(test_audio_paths, stream=False)
     provider = STFTProvider(cfg, params=params)
-    runner = STFTRunner(provider)
+    runner = STFTRunner(provider, output_dir=tmp_path)
 
     out = runner([0])[0]
     assert "stft" in out and isinstance(out["stft"]["value"], str)
@@ -204,11 +225,11 @@ def test_audio_output_type(tmp_path):
     assert (tmp_path / "data" / "speech" / "speech_id1.flac").exists()
 
 
-def test_streaming_on_example(test_audio_paths):
+def test_streaming_on_example(test_audio_paths, tmp_path):
     cfg, params = _make_cfg_from_samples(test_audio_paths, stream=True, chunk_sec=0.1)
 
     provider = STFTProvider(cfg, params=params)
-    runner = STFTRunner(provider)
+    runner = STFTRunner(provider, output_dir=tmp_path)
 
     out = runner([0])[0]
     assert "stft" in out and isinstance(out["stft"]["value"], str)
@@ -287,11 +308,10 @@ def test_parallel_shards_offline_with_base_runner(test_audio_paths, tmp_path):
     indices = list(range(min(4, len(test_audio_paths))))
     merged = runner(indices)
 
-    base = tmp_path / "_shards" / "inference"
+    base = tmp_path / "inference"
     shard_dirs = sorted(base.glob("split.*"))
     assert len(shard_dirs) >= 1
     for d in shard_dirs:
-        assert (d / "_state.pkl").exists()
         assert (d / "done").exists()
     assert len(merged) == len(indices)
     for obj in merged:
@@ -322,11 +342,10 @@ def test_parallel_shards_streaming_with_base_runner(test_audio_paths, tmp_path):
     indices = list(range(min(5, len(test_audio_paths))))
     merged = runner(indices)
 
-    base = tmp_path / "_shards" / "inference"
+    base = tmp_path / "inference"
     shard_dirs = sorted(base.glob("split.*"))
     assert len(shard_dirs) >= 1
     for d in shard_dirs:
-        assert (d / "_state.pkl").exists()
         assert (d / "done").exists()
 
     assert len(merged) == len(indices)

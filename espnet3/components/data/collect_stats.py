@@ -13,7 +13,7 @@ from omegaconf import DictConfig, OmegaConf
 
 from espnet2.fileio.npy_scp import NpyScpWriter
 from espnet2.train.collate_fn import CommonCollateFn
-from espnet3.parallel.base_runner import BaseRunner, cat_shard_files
+from espnet3.parallel.base_runner import BaseRunner, concatenate_shard_files
 from espnet3.parallel.env_provider import EnvironmentProvider
 from espnet3.parallel.parallel import set_parallel
 from espnet3.utils.task_utils import get_espnet_model
@@ -82,13 +82,13 @@ def collect_stats_batch(
     stats = defaultdict(lambda: {"sum": 0, "sq": 0, "count": 0})
     shape_info = defaultdict(dict)
 
-    for b_idx, uid in enumerate(list(uids)):
+    for batch_idx, uid in enumerate(list(uids)):
         for feat_key in list(feats.keys()):
             if f"{feat_key}_lengths" in feats:
-                length = int(feats[f"{feat_key}_lengths"][b_idx])
-                seq = feats[feat_key][b_idx][:length]
+                length = int(feats[f"{feat_key}_lengths"][batch_idx])
+                seq = feats[feat_key][batch_idx][:length]
             else:
-                seq = feats[feat_key][b_idx][None]
+                seq = feats[feat_key][batch_idx][None]
 
             stats[feat_key]["sum"] += seq.sum(0)
             stats[feat_key]["sq"] += (seq**2).sum(0)
@@ -189,10 +189,10 @@ def _persist_feats_for_key(
 ) -> None:
     feat_batch = feats[feat_key]
     len_batch = feats.get(f"{feat_key}_lengths", None)
-    for b_idx, uid in enumerate(uids_in_order):
-        seq = feat_batch[b_idx]
+    for batch_idx, uid in enumerate(uids_in_order):
+        seq = feat_batch[batch_idx]
         if len_batch is not None:
-            length = int(len_batch[b_idx])
+            length = int(len_batch[batch_idx])
             seq = seq[:length]
         else:
             seq = seq[None]
@@ -212,7 +212,7 @@ class CollectStatsInferenceProvider(EnvironmentProvider):
         mode: str,
         task: Optional[str] = None,
         shard_idx: Optional[int] = None,
-        params: Optional[Dict[str, Any]] = dict(),
+        params: Optional[Dict[str, Any]] = None,
     ):
         """Initialize CollectStatsInferenceProvider object."""
         config = OmegaConf.create({})
@@ -222,7 +222,7 @@ class CollectStatsInferenceProvider(EnvironmentProvider):
         config.mode = mode
         config.task = task
         config.shard_idx = shard_idx
-        config.update(**params)
+        config.update(**(params or {}))
         super().__init__(config)
 
     def build_env_local(self) -> Dict[str, Any]:
@@ -330,10 +330,6 @@ class CollectStatsRunner(BaseRunner):
         **env,
     ) -> Dict[str, Any]:
         """Open per-shard shape file handles and optional feature writers."""
-        if shard_dir is None:
-            raise RuntimeError(
-                "CollectStatsRunner requires output_dir for shard outputs."
-            )
         return {
             "_shard_dir": shard_dir,
             "_write_feats": write_collected_feats,
@@ -349,6 +345,7 @@ class CollectStatsRunner(BaseRunner):
         **env,
     ) -> None:
         """Fold a batch result into the shard state and files."""
+        writers["_state"] = state
         write_feats = writers["_write_feats"]
         shard_dir: Path = writers["_shard_dir"]
 
@@ -358,13 +355,18 @@ class CollectStatsRunner(BaseRunner):
             stats, shape_info = result
             feats = None
 
-        sum_acc = state.setdefault("sum", defaultdict(lambda: 0))
-        sq_acc = state.setdefault("sq", defaultdict(lambda: 0))
-        count_acc = state.setdefault("count", defaultdict(lambda: 0))
+        sum_acc = state.setdefault("sum", {})
+        sq_acc = state.setdefault("sq", {})
+        count_acc = state.setdefault("count", {})
         for feat_key, agg in stats.items():
-            sum_acc[feat_key] += agg["sum"]
-            sq_acc[feat_key] += agg["sq"]
-            count_acc[feat_key] += agg["count"]
+            if feat_key in sum_acc:
+                sum_acc[feat_key] += agg["sum"]
+                sq_acc[feat_key] += agg["sq"]
+                count_acc[feat_key] += agg["count"]
+            else:
+                sum_acc[feat_key] = agg["sum"]
+                sq_acc[feat_key] = agg["sq"]
+                count_acc[feat_key] = agg["count"]
 
         for feat_key, uid2shape in shape_info.items():
             handle = writers["shape_handles"].get(feat_key)
@@ -388,54 +390,75 @@ class CollectStatsRunner(BaseRunner):
     @staticmethod
     def close_writers(writers: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Close per-shard writers."""
+        shard_dir = writers["_shard_dir"]
         shape_handles = writers.get("shape_handles", {})
         feat_writers = writers.get("feat_writers", {})
         for handle in shape_handles.values():
             handle.close()
         for writer in feat_writers.values():
             writer.close()
-        return {
-            "shape_keys": list(shape_handles.keys()),
-            "feat_keys_written": list(feat_writers.keys()),
-        }
+        shape_keys = sorted(shape_handles.keys())
+        feat_keys_written = sorted(feat_writers.keys())
+        state = writers.get("_state", {})
+        stats_keys = sorted(state.get("sum", {}).keys())
+        (shard_dir / "shape_keys.txt").write_text(
+            "\n".join(shape_keys) + ("\n" if shape_keys else ""),
+            encoding="utf-8",
+        )
+        (shard_dir / "feat_keys_written.txt").write_text(
+            "\n".join(feat_keys_written) + ("\n" if feat_keys_written else ""),
+            encoding="utf-8",
+        )
+        (shard_dir / "stats_keys.txt").write_text(
+            "\n".join(stats_keys) + ("\n" if stats_keys else ""),
+            encoding="utf-8",
+        )
+        for key in stats_keys:
+            np.savez(
+                shard_dir / f"{key}_stats.npz",
+                count=state["count"][key],
+                sum=state["sum"][key],
+                sum_square=state["sq"][key],
+            )
+        return None
 
-    def merge_state(self, states: List[Dict[str, Any]]) -> Dict[str, Any]:
-        """Reduce per-shard stats."""
+    def merge(self, shard_dirs: List[Path]) -> Dict[str, Any]:
+        """Concatenate per-shard outputs and aggregate stats files."""
+        shape_keys: set = set()
+        feat_keys_written: set = set()
+        stats_keys: set = set()
         sum_dict: Dict[str, Any] = defaultdict(lambda: 0)
         sq_dict: Dict[str, Any] = defaultdict(lambda: 0)
         count_dict: Dict[str, int] = defaultdict(lambda: 0)
-        for state in states:
-            for key, value in state.get("sum", {}).items():
-                sum_dict[key] += value
-            for key, value in state.get("sq", {}).items():
-                sq_dict[key] += value
-            for key, value in state.get("count", {}).items():
-                count_dict[key] += value
-        return {
-            "sum": dict(sum_dict),
-            "sq": dict(sq_dict),
-            "count": dict(count_dict),
-        }
-
-    def merge_shard_files(
-        self,
-        shard_dirs: List[Path],
-        states: List[Dict[str, Any]],
-    ) -> Dict[str, Any]:
-        """Concatenate per-shard outputs."""
-        if self.output_dir is None:
-            return {}
-        shape_keys: set = set()
-        feat_keys_written: set = set()
-        for state in states:
-            shape_keys.update(state.get("shape_keys", []))
-            feat_keys_written.update(state.get("feat_keys_written", []))
+        for shard_dir in shard_dirs:
+            shape_keys.update(
+                (shard_dir / "shape_keys.txt").read_text(encoding="utf-8").splitlines()
+                if (shard_dir / "shape_keys.txt").exists()
+                else []
+            )
+            feat_keys_written.update(
+                (shard_dir / "feat_keys_written.txt")
+                .read_text(encoding="utf-8")
+                .splitlines()
+                if (shard_dir / "feat_keys_written.txt").exists()
+                else []
+            )
+            for key in (
+                (shard_dir / "stats_keys.txt").read_text(encoding="utf-8").splitlines()
+                if (shard_dir / "stats_keys.txt").exists()
+                else []
+            ):
+                stats_keys.add(key)
+                data = np.load(shard_dir / f"{key}_stats.npz")
+                sum_dict[key] += data["sum"]
+                sq_dict[key] += data["sum_square"]
+                count_dict[key] += data["count"]
 
         mode_dir = self.output_dir / self.mode
         mode_dir.mkdir(parents=True, exist_ok=True)
 
         for feat_key in shape_keys:
-            cat_shard_files(
+            concatenate_shard_files(
                 shard_dirs, f"{feat_key}_shape", mode_dir / f"{feat_key}_shape"
             )
 
@@ -443,12 +466,16 @@ class CollectStatsRunner(BaseRunner):
             feat_dir = mode_dir / "collect_feats"
             feat_dir.mkdir(parents=True, exist_ok=True)
             for feat_key in feat_keys_written:
-                cat_shard_files(
+                concatenate_shard_files(
                     shard_dirs,
                     f"collect_feats/{feat_key}.scp",
                     feat_dir / f"{feat_key}.scp",
                 )
-        return {}
+        return {
+            "sum": dict(sum_dict),
+            "sq": dict(sq_dict),
+            "count": dict(count_dict),
+        }
 
 
 def _collect_stats_common(
@@ -501,9 +528,9 @@ def collect_stats(
 ):
     """Entry point for collecting dataset statistics used for feature normalization.
 
-    Runs the runner-based collection once, optionally configuring parallel
-    execution via :func:`espnet3.parallel.set_parallel` when ``parallel_config``
-    is provided.
+    Runs the runner-based collection once, optionally configuring shard-based
+    parallel execution via :func:`espnet3.parallel.set_parallel` when
+    ``parallel_config`` is provided.
 
     Args:
         model_config: Configuration object used to instantiate the model that
