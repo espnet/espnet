@@ -1,9 +1,9 @@
 encoder: transformer
 encoder_conf:
-    output_size: 256
+    output_size: 512
     attention_heads: 8
-    linear_units: 1024
-    num_blocks: 2
+    linear_units: 2048
+    num_blocks: 24
     dropout_rate: 0.1
     positional_dropout_rate: 0.1
     attention_dropout_rate: 0.1
@@ -22,14 +22,14 @@ num_att_plot: 0
 frontend: s3prl
 frontend_conf:
     frontend_conf:
-        upstream: hf_wav2vec2_custom  # Note: If the upstream is changed, please change the input_size in the preencoder.
+        upstream: hf_wav2vec2_custom
         path_or_url: facebook/mms-1b
     download_dir: ./hub
     multilayer_feature: True
 
 preencoder: linear
 preencoder_conf:
-    input_size: 1280  # Note: If the upstream is changed, please change this value accordingly.
+    input_size: 1280
     output_size: 80
 
 num_workers: 4
@@ -46,8 +46,11 @@ keep_nbest_models: 2
 
 optim: adam
 optim_conf:
-    lr: 0.0002
+    lr: 0.0001
     weight_decay: 0.000001
+scheduler: warmuplr
+scheduler_conf:
+    warmup_steps: 25000
 
 specaug: specaug
 specaug_conf:
@@ -65,5 +68,5 @@ specaug_conf:
     - 0.05
     num_time_mask: 10
 
-num_iters_per_epoch: 10000 # number of iterations per epoch
+num_iters_per_epoch: 10000
 max_epoch: 20

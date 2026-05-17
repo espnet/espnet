@@ -7,6 +7,19 @@ This is a recipe to reproduce the baseline model for the [Interspeech 2024 ML-SU
 The baseline uses frozen SSL features from [MMS 1B](https://www.jmlr.org/papers/v25/23-1318.html), which are input into a 2-layer Transformer trained using CTC loss. It takes roughly 2 days to train on a single H100 GPU.
 We recommend allocating at least 4 CPUs and at least 32GB of RAM. If GPU OOM occurs (such as when using a 40GB VRAM GPU), you can halve the batch size and double the gradiant accumulation.
 
+## Additional CTC-only Recipes
+
+Additional CTC-only architecture recipes are available under `conf/tuning`. They keep the frozen MMS 1B frontend and baseline data/specaugment settings, while following the reported downstream-model settings: 8 attention heads, 512 hidden states, 2048 projection units, dropout 0.1, batch size 8, gradient accumulation 4, and 25,000 warmup steps. The learning-rate candidates are `1e-3`, `1e-4`, and `1e-5`.
+
+The CTC-only Transformer configs use 24 encoder blocks. The CTC-only Conformer configs use 14 encoder blocks with convolution kernel size 15. The CTC-only E-Branchformer configs use 12 encoder blocks, CGMLP dimension 3072, and CGMLP convolution kernel size 31.
+
+For example:
+```
+./run.sh --asr_config conf/tuning/train_mms_ctc_transformer_lr1e-4.yaml
+./run.sh --asr_config conf/tuning/train_mms_ctc_conformer_lr1e-4.yaml
+./run.sh --asr_config conf/tuning/train_mms_ctc_e_branchformer_lr1e-4.yaml
+```
+
 ## Scoring
 
 The challenge will use a custom scoring script, which considers worst language performance and CER standard deviation in addition to the typical multilingual ASR metrics of language identification accuracy and ASR CER. The exact implementation can be found in `local/score.py`, which also creates a `challenge_results.md` under your experimental directory with scores that correspond to the challenge system.
