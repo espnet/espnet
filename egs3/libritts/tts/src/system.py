@@ -10,6 +10,8 @@ import subprocess
 from pathlib import Path
 
 from omegaconf import DictConfig
+from espnet2.text.cleaner import TextCleaner
+from espnet2.text.build_tokenizer import build_tokenizer
 from espnet3.systems.base.system import BaseSystem
 from xvector_provider import XVectorProvider
 from xvector_runner import XVectorRunner
@@ -262,3 +264,104 @@ class TTSSystem(BaseSystem):
                 f.write("\n".join(filtered_entries))
 
         logger.info(f"Long-short utterance removal completed. Filtered manifests saved to: {save_path}")
+
+    def create_token_list(self, *args, **kwargs):
+        """Create token list from training data.
+        
+        This stage processes the training manifest to extract unique tokens from the text transcriptions and saves them to a token list file. 
+
+        Configuration should include:
+            training_config.token_list.save_path: Path to save the token list file
+            training_config.token_list.manifest_path: Path to the training manifest file (default: data/manifest/train.tsv)
+
+        Raises:
+            RuntimeError: If required configuration is missing or manifest file not found.
+        """
+        self._reject_stage_args("create_token_list", args, kwargs)
+        logger.info("TTSSystem.create_token_list(): starting token list creation")
+
+        tl_cfg = self.training_config.get("token_list", None)
+        save_path = Path(tl_cfg.get("save_path", None)) if tl_cfg else None
+
+        if tl_cfg is None or save_path is None:
+            raise RuntimeError("training_config.token_list and training_config.token_list.save_path must be set for create_token_list stage.")
+
+        manifest_path = Path(tl_cfg.get("manifest_path", "data/manifest/train.tsv")).resolve()
+
+        if not manifest_path.exists():
+            raise RuntimeError(f"Manifest file not found for token list creation: {manifest_path}. Please ensure the manifest file is generated and the path is correct.")
+
+        cleaner = tl_cfg.get("cleaner", None)
+        token_type = tl_cfg.get("token_type", "char")
+        bpemodel = tl_cfg.get("bpemodel", None)
+        delimiter = tl_cfg.get("delimiter", None)
+        space_symbol = tl_cfg.get("space_symbol", "<space>")
+        non_linguistic_symbols = tl_cfg.get("non_linguistic_symbols", None)
+        remove_non_linguistic_symbols = tl_cfg.get("remove_non_linguistic_symbols", False)
+        g2p = tl_cfg.get("g2p", None)
+        add_symbol = tl_cfg.get("add_symbol", [])
+        add_nonsplit_symbol = tl_cfg.get("add_nonsplit_symbol", [])
+        cutoff = tl_cfg.get("cutoff", 0)
+        vocabulary_size = tl_cfg.get("vocabulary_size", 0)
+
+        cleaner: TextCleaner = TextCleaner(cleaner)
+        tokenizer = build_tokenizer(
+            token_type=token_type,
+            bpemodel=bpemodel,
+            delimiter=delimiter,
+            space_symbol=space_symbol,
+            non_linguistic_symbols=non_linguistic_symbols,
+            remove_non_linguistic_symbols=remove_non_linguistic_symbols,
+            g2p_type=g2p,
+            nonsplit_symbol=add_nonsplit_symbol,
+        )
+
+        counter = Counter()
+
+        with open(manifest_path, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.rstrip()
+                parts = line.split("\t")
+                text = parts[2] 
+                cleaned_text = cleaner(text)
+                tokens = tokenizer.text2tokens(cleaned_text)
+                for t in tokens:
+                    counter[t] += 1
+        
+        # Sort by the number of occurrences in descending order
+        # and filter lower frequency words than cutoff value
+        words_and_counts = list(
+            filter(lambda x: x[1] > cutoff, sorted(counter.items(), key=lambda x: -x[1]))
+        )
+
+        # Restrict the vocabulary size
+        if vocabulary_size > 0:
+            if vocabulary_size < len(add_symbol):
+                raise RuntimeError(f"vocabulary_size is too small: {vocabulary_size}")
+            words_and_counts = words_and_counts[: vocabulary_size - len(add_symbol)]
+        
+        # Parse the values of --add_symbol and --add_nonsplit_symbol
+        for symbol_and_id in add_symbol + add_nonsplit_symbol:
+            # e.g symbol="<blank>:0"
+            try:
+                symbol, idx = symbol_and_id.split(":")
+                idx = int(idx)
+            except ValueError:
+                raise RuntimeError(f"Format error: e.g. '<blank>:0': {symbol_and_id}")
+            symbol = symbol.strip()
+
+            # e.g. idx=0  -> append as the first symbol
+            # e.g. idx=-1 -> append as the last symbol
+            if idx < 0:
+                idx = len(words_and_counts) + 1 + idx
+            words_and_counts.insert(idx, (symbol, None))
+        
+        # Write words
+        with open(save_path, "w", encoding="utf-8") as f:
+            for word, count in words_and_counts:
+                f.write(f"{word}\n")
+        
+        # Logging
+        total_count = sum(counter.values())
+        invocab_count = sum(c for w, c in words_and_counts if c is not None)
+        logging.info(f"OOV rate = {(total_count - invocab_count) / total_count * 100:.2f} %")
