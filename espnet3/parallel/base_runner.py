@@ -19,31 +19,6 @@ from espnet3.parallel.parallel import (
 logger = logging.getLogger(__name__)
 
 
-def _default_chunk(indices: Sequence[int], num_chunks: int) -> List[List[int]]:
-    n_chunks = max(1, num_chunks)
-    n_items = len(indices)
-    quotient, remainder = divmod(n_items, n_chunks)
-    out = []
-    start = 0
-    for i in range(n_chunks):
-        size = quotient + (1 if i < remainder else 0)
-        out.append(list(indices[start : start + size]))
-        start += size
-    return [chunk for chunk in out if chunk]
-
-
-def _convert_paths(obj):
-    """Recursively convert Path objects to strings in the given object."""
-    if isinstance(obj, dict):
-        return {k: _convert_paths(v) for k, v in obj.items()}
-    elif isinstance(obj, list):
-        return [_convert_paths(v) for v in obj]
-    elif isinstance(obj, Path):
-        return str(obj)
-    else:
-        return obj
-
-
 def concatenate_shard_files(
     shard_dirs: Sequence[Path],
     relative_name: str,
@@ -279,7 +254,8 @@ class BaseRunner(ABC):
         return None
 
     @staticmethod
-    def _shards_root(output_dir: Path, shard_subdir: str = "") -> Path:
+    def _get_shards_root(output_dir: Path, shard_subdir: str = "") -> Path:
+        """Return the root directory for all shard subdirectories under output_dir."""
         root = Path(output_dir)
         if shard_subdir:
             root = root / shard_subdir
@@ -292,33 +268,19 @@ class BaseRunner(ABC):
         shard_subdir: str,
         shard_id: int,
     ) -> Path:
-        root = cls._shards_root(Path(output_dir), shard_subdir)
+        """Return the working directory for one shard (split.N)."""
+        root = cls._get_shards_root(Path(output_dir), shard_subdir)
         return root / f"split.{shard_id}"
 
-    @classmethod
-    def _manifest_path(
-        cls,
-        output_dir: str | Path,
-        shard_subdir: str = "",
-    ) -> Path:
-        return cls._shards_root(Path(output_dir), shard_subdir) / "manifest.json"
-
     @staticmethod
-    def _done_path(shard_dir: Path) -> Path:
+    def _get_done_path(shard_dir: Path) -> Path:
+        """Return the sentinel file path that marks a shard as complete."""
         return Path(shard_dir) / "done"
-
-    @classmethod
-    def _mark_done(cls, shard_dir: Path) -> None:
-        cls._done_path(shard_dir).write_text("", encoding="utf-8")
-
-    @classmethod
-    def _clear_done(cls, shard_dir: Path) -> None:
-        cls._done_path(shard_dir).unlink(missing_ok=True)
 
     @classmethod
     def is_shard_done(cls, shard_dir: Path) -> bool:
         """Return True if the shard has a completion marker file."""
-        return cls._done_path(shard_dir).exists()
+        return cls._get_done_path(shard_dir).exists()
 
     @classmethod
     def init_state(
@@ -396,40 +358,49 @@ class BaseRunner(ABC):
         state.pop("_writers", None)
         return state
 
-    def _build_manifest_data(self, shards: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
-        return {
+    def _write_manifest(self, shards: Sequence[Dict[str, Any]]) -> Path:
+        """Write shard plan to manifest.json before dispatch in __call__."""
+        manifest_path = (
+            self._get_shards_root(self.output_dir, self.shard_subdir) / "manifest.json"
+        )
+        manifest_path.parent.mkdir(parents=True, exist_ok=True)
+        data = {
             "version": 1,
             "output_dir": str(self.output_dir),
             "shard_subdir": self.shard_subdir,
             "shards": list(shards),
         }
-
-    def _write_manifest(self, shards: Sequence[Dict[str, Any]]) -> Path:
-        manifest_path = self._manifest_path(self.output_dir, self.shard_subdir)
-        manifest_path.parent.mkdir(parents=True, exist_ok=True)
         with manifest_path.open("w", encoding="utf-8") as f:
-            json.dump(
-                self._build_manifest_data(shards), f, ensure_ascii=False, indent=2
-            )
+            json.dump(data, f, ensure_ascii=False, indent=2)
         return manifest_path
 
     def _plan_shards(self, items: Sequence[Any]) -> List[Dict[str, Any]]:
+        """Divide items into per-shard specs per the active parallel config."""
         par_config = get_parallel_config()
         env = getattr(par_config, "env", "local") if par_config is not None else "local"
         num_shards = 1
         if par_config is not None and env not in ("local",):
             num_shards = int(getattr(par_config, "n_workers", 1))
-        chunks = _default_chunk(list(items), num_shards)
-        if not chunks:
-            return []
+        n_chunks = max(1, num_shards)
+        items_list = list(items)
+        quotient, remainder = divmod(len(items_list), n_chunks)
+        chunks = []
+        start = 0
+        for i in range(n_chunks):
+            size = quotient + (1 if i < remainder else 0)
+            chunk = items_list[start : start + size]
+            if chunk:
+                chunks.append(chunk)
+            start += size
         return [
-            {"shard_id": shard_id, "items": list(chunk)}
+            {"shard_id": shard_id, "items": chunk}
             for shard_id, chunk in enumerate(chunks)
         ]
 
     def _filter_pending_shards(
         self, shards: Sequence[Dict[str, Any]]
     ) -> List[Dict[str, Any]]:
+        """Return pending shards; skips done-marked ones when resume=True."""
         if not self.resume:
             return list(shards)
 
@@ -442,7 +413,8 @@ class BaseRunner(ABC):
                 pending.append(shard)
         return pending
 
-    def _completed_shard_dirs(self, shards: Sequence[Dict[str, Any]]) -> List[Path]:
+    def _get_completed_shard_dirs(self, shards: Sequence[Dict[str, Any]]) -> List[Path]:
+        """Return completed shard paths; raises if any done marker is absent."""
         shard_dirs = []
         for shard in shards:
             shard_dir = self._resolve_shard_dir(
@@ -457,12 +429,6 @@ class BaseRunner(ABC):
             shard_dirs.append(shard_dir)
         return shard_dirs
 
-    def _augment_env(self, env: Dict[str, Any]) -> Dict[str, Any]:
-        env.setdefault("output_dir", str(self.output_dir))
-        if self.shard_subdir:
-            env.setdefault("shard_subdir", self.shard_subdir)
-        return env
-
     @classmethod
     def _run_one_shard(
         cls,
@@ -470,14 +436,15 @@ class BaseRunner(ABC):
         items: Sequence[Any],
         env: Dict[str, Any],
     ) -> Dict[str, Any]:
+        """Process one shard end-to-end; used by _run_local and _run_parallel_dask."""
         state = cls.init_state(shard_id=shard_id, **env)
         shard_dir = Path(state["shard_dir"])
-        cls._clear_done(shard_dir)
+        cls._get_done_path(shard_dir).unlink(missing_ok=True)
         for item in items:
             result = cls.forward(item, **env)
             state = cls.reduce_state(state, result, shard_id=shard_id, **env)
         cls.finalize_state(state, shard_id=shard_id, **env)
-        cls._mark_done(shard_dir)
+        cls._get_done_path(shard_dir).write_text("", encoding="utf-8")
         return state
 
     def _run_local(self, shards: Sequence[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -487,7 +454,10 @@ class BaseRunner(ABC):
             - Uses ``tqdm`` progress bar over the pending shard list.
             - Each completed shard writes its shard files and ``done``.
         """
-        env = self._augment_env(self.provider.build_env_local())
+        env = self.provider.build_env_local()
+        env.setdefault("output_dir", str(self.output_dir))
+        if self.shard_subdir:
+            env.setdefault("shard_subdir", self.shard_subdir)
         cls = self.__class__
         states = []
         for shard in tqdm(shards, total=len(shards), desc="shards"):
@@ -579,7 +549,10 @@ class BaseRunner(ABC):
         if self.batch_size is not None:
             if self.batch_size <= 0:
                 raise ValueError("batch_size must be a positive integer.")
-            indices = _chunk_indices(indices, self.batch_size)
+            indices = [
+                list(indices[i : i + self.batch_size])
+                for i in range(0, len(indices), self.batch_size)
+            ]
         shards = self._plan_shards(indices)
         self._write_manifest(shards)
         pending = self._filter_pending_shards(shards)
@@ -591,12 +564,4 @@ class BaseRunner(ABC):
             else:
                 self._run_parallel_dask(pending)
 
-        return self.merge(self._completed_shard_dirs(shards))
-
-
-def _chunk_indices(indices: Sequence[int], batch_size: int) -> List[List[int]]:
-    """Split a sequence of indices into fixed-size chunks."""
-    batches = []
-    for i in range(0, len(indices), batch_size):
-        batches.append(list(indices[i : i + batch_size]))
-    return [b for b in batches if b]
+        return self.merge(self._get_completed_shard_dirs(shards))

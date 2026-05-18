@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from functools import lru_cache
 from importlib import import_module
 from pathlib import Path
@@ -12,6 +13,8 @@ from omegaconf import ListConfig
 from espnet3.parallel.base_runner import BaseRunner, concatenate_shard_files
 from espnet3.parallel.env_provider import EnvironmentProvider
 from espnet3.utils.writer_utils import write_artifact
+
+logger = logging.getLogger(__name__)
 
 
 def _normalize_key_list(keys) -> List[str]:
@@ -31,10 +34,6 @@ def _iter_outputs(result: Any) -> List[Dict[str, Any]]:
     return [result]
 
 
-def _is_scp_scalar(value) -> bool:
-    return isinstance(value, (str, int, float, bool))
-
-
 def _materialize_output_value(
     idx_value,
     field_key: str,
@@ -42,8 +41,42 @@ def _materialize_output_value(
     output_dir: Path,
     artifact_config: dict | None,
 ):
-    if _is_scp_scalar(value):
+    if isinstance(value, (str, int, float, bool)):
         return value
+
+    try:
+        import numpy as np
+
+        if isinstance(value, np.generic):
+            return value
+        if isinstance(value, np.ndarray):
+            if value.ndim == 0:
+                return value.item()
+            artifact_dir = output_dir / field_key
+            artifact_dir.mkdir(parents=True, exist_ok=True)
+            return write_artifact(
+                value,
+                artifact_dir / str(idx_value),
+                field_config=artifact_config,
+            ).as_posix()
+    except ImportError:
+        pass
+
+    try:
+        import torch
+
+        if isinstance(value, torch.Tensor):
+            if value.dim() == 0:
+                return value.item()
+            artifact_dir = output_dir / field_key
+            artifact_dir.mkdir(parents=True, exist_ok=True)
+            return write_artifact(
+                value,
+                artifact_dir / str(idx_value),
+                field_config=artifact_config,
+            ).as_posix()
+    except ImportError:
+        pass
 
     if isinstance(value, (list, tuple)):
         raise TypeError(
@@ -52,11 +85,17 @@ def _materialize_output_value(
             "dict so it can be saved as JSON."
         )
 
-    artifact_dir = output_dir / field_key
-    artifact_dir.mkdir(parents=True, exist_ok=True)
-    target = artifact_dir / str(idx_value)
-    artifact_path = write_artifact(value, target, field_config=artifact_config)
-    return artifact_path.as_posix()
+    logger.warning(
+        "Unsupported output type '%s' for field '%s'. "
+        "Supported: str, int, float, bool, np.ndarray, torch.Tensor.",
+        type(value).__name__,
+        field_key,
+    )
+    raise TypeError(
+        f"Unsupported output type '{type(value).__name__}' for field "
+        f"'{field_key}'. Supported: str, int, float, bool, "
+        "np.ndarray, torch.Tensor."
+    )
 
 
 class InferenceRunner(BaseRunner):
