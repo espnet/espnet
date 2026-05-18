@@ -186,3 +186,79 @@ class TTSSystem(BaseSystem):
                 logger.info(f"Async job submitted for split '{split}'. Check result directory for outputs.")
         
         logger.info("X-vector computation completed for all splits")
+    
+    def remove_long_short(self, *args, **kwargs):
+        """Remove long-short utterances based on duration thresholds.
+        
+        This stage processes manifest files to filter out utterances that are too short or too long based on specified duration thresholds. It uses librosa to check audio durations and saves filtered manifests for downstream stages.
+
+        Configuration should include:
+            training_config.remove_long_short.min_wav_duration: Minimum duration in seconds
+            training_config.remove_long_short.max_wav_duration: Maximum duration in seconds
+            training_config.remove_long_short.sampling_rate: Sampling rate for duration calculation
+            training_config.remove_long_short.save_path: Directory to save filtered manifests
+            training_config.remove_long_short.splits: List of splits to process (train, valid, test)
+            training_config.remove_long_short.manifest_paths: Optional dict of split to manifest path (default: data/manifest/{split}.tsv)
+        
+        Raises:
+            RuntimeError: If required configuration is missing or manifest files not found.
+        """
+        self._reject_stage_args("remove_long_short", args, kwargs)
+        logger.info("TTSSystem.remove_long_short(): starting long-short utterance removal")
+
+        rls_cfg = self.training_config.get("remove_long_short", None)
+        save_path = Path(rls_cfg.get("save_path", None)) if rls_cfg else None
+
+        if rls_cfg is None or save_path is None:
+            raise RuntimeError("training_config.remove_long_short and training_config.remove_long_short.save_path must be set for remove_long_short stage.")
+        
+        min_duration = rls_cfg.get("min_wav_duration", None)
+        max_duration = rls_cfg.get("max_wav_duration", None)
+        sampling_rate = rls_cfg.get("sampling_rate", None)
+
+        if min_duration is None or max_duration is None or sampling_rate is None:
+            raise RuntimeError("training_config.remove_long_short.min_wav_duration, max_wav_duration, and sampling_rate must be set for remove_long_short stage.")
+
+        # Get list of splits to process
+        splits = rls_cfg.get("splits", None)
+
+        if splits is None:
+            raise RuntimeError("training_config.remove_long_short.splits must be set to specify which data splits to process (e.g., ['train', 'valid', 'test'])")
+
+        if isinstance(splits, str):
+            splits = [splits]
+        
+        # Get manifest directory (configurable, default: data/manifest)
+        manifest_paths = rls_cfg.get("manifest_paths", {})
+
+        save_path.mkdir(parents=True, exist_ok=True)
+        logger.info(f"Removing long-short utterances with min_duration={min_duration}s, max_duration={max_duration}s, sampling_rate={sampling_rate}Hz")
+
+        for split in splits:
+            logger.info(f"Processing split: {split}")
+            
+            # Get manifest file path for this split
+            manifest_path = Path(manifest_paths.get(split, None)).resolve() if manifest_paths else Path(f"data/manifest/{split}.tsv")
+            filtered_manifest_path = save_path / manifest_path.name
+            if not manifest_path.exists():
+                raise RuntimeError(f"Manifest file not found for split '{split}': {manifest_path}. Please ensure the manifest file is generated and the path is correct.")
+            
+            # Read manifest file to extract audio paths and speaker information
+            filtered_entries = []
+            
+            with open(manifest_path, "r", encoding="utf-8") as f:
+                for line in f:
+                    parts = line.strip().split("\t")
+                    
+                    wav_path = Path(parts[1])
+                    length = librosa.get_duration(filename=str(wav_path), sr=sampling_rate)
+
+                    if length < min_duration or length > max_duration:
+                        continue
+
+                    filtered_entries.append(line)
+            
+            with open(filtered_manifest_path, "w", encoding="utf-8") as f:
+                f.write("\n".join(filtered_entries))
+
+        logger.info(f"Long-short utterance removal completed. Filtered manifests saved to: {save_path}")
