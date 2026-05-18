@@ -103,10 +103,10 @@ class TTSSystem(BaseSystem):
             splits = [splits]
         
         # Get manifest directory (configurable, default: data/manifest)
-        manifest_dir = Path(xvec_cfg.get("manifest_dir", "data/manifest"))
+        manifest_paths = rls_cfg.get("manifest_paths", {})
         
         logger.info(f"Will process splits: {splits}")
-        logger.info(f"Manifest directory: {manifest_dir}")
+        logger.info(f"Manifest paths: {manifest_paths}")
         
         # Validate toolkit and model
         toolkit = xvec_cfg.get("toolkit", None)
@@ -121,10 +121,9 @@ class TTSSystem(BaseSystem):
             logger.info(f"Processing split: {split}")
             
             # Get manifest file path for this split
-            manifest_path = manifest_dir / f"{split}.tsv"
-            if not manifest_path.exists():
-                logger.warning(f"Manifest file not found for split '{split}': {manifest_path}. Skipping.")
-                continue
+            manifest_path = manifest_paths.get(split)
+            if not manifest_path:
+                raise RuntimeError(f"Manifest path for split '{split}' not found in training_config.xvector.manifest_paths. Please ensure the path is set correctly.")
             
             # Read manifest file to extract audio paths and speaker information
             utterances = []
