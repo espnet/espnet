@@ -6,7 +6,6 @@
 #   python run.py --stages upload_model --training_config conf/training.yaml --publication_config conf/publication.yaml
 #
 # Assumptions:
-# - `train` has already produced the checkpoint listed in `pack_model.files`.
 # - Running `infer` and `measure` before `pack_model` is recommended.
 # - `measure` writes `metrics.json` under `${inference_dir}`.
 # - If `${inference_dir}` contains that `metrics.json`, `pack_model` bundles it
@@ -51,19 +50,13 @@ data_dir: ${recipe_dir}/data
 #
 #   5. `meta.yaml` is written at the bundle root.
 #
-# Note: `last.ckpt` is listed in both `exclude` and `files`. This is
-# intentional — `exclude` prevents it from being copied during the bulk
-# exp_dir copy (step 1), and `files` then copies it explicitly so it is
-# registered as a named artifact in `meta.yaml` (step 2). Without the
-# exclude, `last.ckpt` would be copied twice to the same destination.
-#
 # `inference_dir` inside this block is used only to find the `metrics.json`
 # written by the `measure` stage for the bundled README and result summary.
 pack_model:
   out_dir: ${exp_dir}/model_pack
   allow_overwrite: false
   inference_dir: ${inference_dir}
-  readme: egs3/TEMPLATE/asr/src/hf_model_repo_readme_template.md
+  readme: ${recipe_dir}/src/hf_model_repo_readme_template.md
   include:
     # Include recipe code when the packed model depends on local modules.
     - ${recipe_dir}/src
@@ -71,15 +64,11 @@ pack_model:
     # These patterns are applied only during the bulk copy (step 1 above).
     - inference
     - inference_*
-    - last.ckpt        # excluded from bulk copy; registered via `files` below
+    - last.ckpt
     - "**/step*.ckpt"
     - "**/*.log"
     - "**/tensorboard/**"
     - "**/wandb/**"
-  files:
-    # Named artifacts appear in `meta.yaml` and can be resolved by
-    # `InferenceModel.from_packed(...)`. `exclude` does not apply here.
-    asr_model_file: ${exp_dir}/last.ckpt
 
 ##########################################################
 #                  UPLOAD MODEL SETTING                  #
