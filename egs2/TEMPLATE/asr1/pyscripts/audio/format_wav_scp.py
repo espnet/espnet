@@ -8,7 +8,10 @@ from typing import Optional, Tuple
 import humanfriendly
 import kaldiio
 import numpy as np
-import resampy
+try:
+    import resampy
+except ImportError:
+    resampy = None
 import soundfile
 from tqdm import tqdm
 from typeguard import typechecked
@@ -292,6 +295,11 @@ def main():
             save_asis = True
             if args.fs is not None and args.fs != rate:
                 # FIXME(kamo): To use sox?
+                if resampy is None:
+                    raise RuntimeError(
+                        "resampy is not installed. "
+                        "Please install it: pip install resampy"
+                    )
                 wave = resampy.resample(wave, rate, args.fs, axis=0)
                 rate = args.fs
                 save_asis = False
