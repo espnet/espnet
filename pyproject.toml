@@ -164,6 +164,10 @@ test = [
   "h5py>=2.10.0",
 ]
 
+test_utils = [
+  "pysptk",
+]
+
 doc = [
   "sphinx<9.0.0",
   "sphinx-rtd-theme>=0.2.4",
