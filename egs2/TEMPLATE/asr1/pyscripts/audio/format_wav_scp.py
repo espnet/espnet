@@ -299,7 +299,8 @@ def main():
                 if resampy is None:
                     raise RuntimeError(
                         "resampy is not installed. "
-                        "Please install it: pip install resampy"
+                        "Please install ESPnet recipe deps: "
+                        "pip install 'espnet[recipe]' (or 'espnet[all]')"
                     )
                 wave = resampy.resample(wave, rate, args.fs, axis=0)
                 rate = args.fs
