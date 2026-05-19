@@ -27,6 +27,10 @@ from espnet3.utils.task_utils import get_espnet_model
 
 logger = logging.getLogger(__name__)
 
+_README_TEMPLATE_BASENAME_ALIASES = {
+    "hf_model_repo_readme_template.md": "hf_model_readme.md",
+}
+
 
 def _expand_pack_paths(raw_paths: list[str], recipe_root: Path) -> list[Path]:
     """Expand globbed pack paths and keep unmatched literals as warnings."""
@@ -127,6 +131,27 @@ def _copy_path(src: Path, dst: Path, ignore=None) -> None:
     else:
         dst.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(src, dst)
+
+
+def _resolve_readme_template_path(readme_template_path: str) -> Path:
+    """Resolve a README template path from cwd, repo root, or known aliases."""
+    raw_path = Path(readme_template_path)
+    repo_root = Path(__file__).resolve().parents[2]
+    candidates: list[Path] = [raw_path]
+
+    if not raw_path.is_absolute():
+        candidates.append(repo_root / raw_path)
+
+    for candidate in list(candidates):
+        alias_name = _README_TEMPLATE_BASENAME_ALIASES.get(candidate.name)
+        if alias_name:
+            candidates.append(candidate.with_name(alias_name))
+
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+
+    raise FileNotFoundError(f"README template not found: {readme_template_path}")
 
 
 def _rewrite_paths_for_bundle(
@@ -456,6 +481,8 @@ def _build_readme_context(
         "results_note": _build_results_note(results_path, results_section),
         "results_section": results_section,
         "system": _infer_system_name(training_config, recipe_root),
+        "task": _infer_system_name(training_config, recipe_root),
+        "task_class": str(getattr(training_config, "task", "") or ""),
         "train_config": OmegaConf.to_yaml(training_config, resolve=True),
         "usage_load_call": usage_load_call,
     }
@@ -626,13 +653,7 @@ def pack_model(
     # Render and write README.md from template if configured
     readme_template_path = getattr(pack_cfg, "readme", None)
     if readme_template_path:
-        template_path = Path(readme_template_path)
-        if not template_path.is_absolute() and not template_path.exists():
-            repo_template_path = Path(__file__).resolve().parents[2] / template_path
-            if repo_template_path.exists():
-                template_path = repo_template_path
-        if not template_path.exists():
-            raise FileNotFoundError(f"README template not found: {template_path}")
+        template_path = _resolve_readme_template_path(readme_template_path)
         context = _build_readme_context(
             training_config=training_config,
             publication_config=publication_config,
