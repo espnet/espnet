@@ -55,7 +55,9 @@ def build_model_summary(model) -> Dict[str, object]:
     total_buffers = sum(buf.numel() for buf in buffers)
     buffer_size_bytes = sum(buf.numel() * buf.element_size() for buf in buffers)
     module_count = sum(1 for _ in model.modules())
-    leaf_module_count = sum(1 for module in model.modules() if not any(module.children()))
+    leaf_module_count = sum(
+        1 for module in model.modules() if not any(module.children())
+    )
 
     dtype_counts: Dict[str, int] = {}
     for tensor in [*params, *buffers]:

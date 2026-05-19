@@ -454,9 +454,7 @@ def _build_readme_context(
         model_summary_section = _build_model_summary_section(model_summary)
         model_detail_section = _build_model_detail_section(
             model_summary,
-            include_model_detail=bool(
-                getattr(pack_cfg, "include_model_detail", False)
-            ),
+            include_model_detail=bool(getattr(pack_cfg, "include_model_detail", False)),
         )
 
     return {
