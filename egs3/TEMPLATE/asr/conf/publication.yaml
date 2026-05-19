@@ -56,6 +56,9 @@ pack_model:
   out_dir: ${exp_dir}/model_pack
   allow_overwrite: false
   inference_dir: ${inference_dir}
+  # Always include static model summary metrics in the README.
+  # Set this true to also include `repr(model)`.
+  include_model_detail: false
   readme: ${recipe_dir}/src/hf_model_repo_readme_template.md
   include:
     # Include recipe code when the packed model depends on local modules.

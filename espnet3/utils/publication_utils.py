@@ -17,10 +17,13 @@ from string import Template
 from typing import Any
 
 import torch
+from hydra.utils import instantiate
 from omegaconf import DictConfig, ListConfig, OmegaConf
 
 import espnet2
+from espnet3.components.modeling.lightning_module import build_model_summary
 from espnet3.utils.logging_utils import get_git_metadata
+from espnet3.utils.task_utils import get_espnet_model
 
 logger = logging.getLogger(__name__)
 
@@ -281,6 +284,15 @@ def _infer_system_name(training_config: DictConfig, recipe_root: Path) -> str:
     return recipe_root.name
 
 
+def _instantiate_publication_model(training_config: DictConfig):
+    """Instantiate the training model for README metadata generation."""
+    task = training_config.get("task")
+    if task:
+        model_config = OmegaConf.to_container(training_config.model, resolve=True)
+        return get_espnet_model(task, model_config)
+    return instantiate(training_config.model)
+
+
 def _infer_recipe_name(recipe_root: Path) -> str:
     """Return a stable recipe identifier for README metadata."""
     repo_root = Path(__file__).resolve().parents[2]
@@ -312,6 +324,60 @@ def _describe_pack_strategy(pack_cfg: DictConfig) -> str:
     if getattr(pack_cfg, "exclude", None):
         parts.append("apply exclude filters")
     return "; ".join(parts)
+
+
+def _build_model_summary_section(model_summary: dict[str, object]) -> str:
+    """Render a markdown model summary section for the README."""
+    return "\n".join(
+        [
+            "## Model summary",
+            "",
+            f"- Class: `{model_summary['class_name']}`",
+            f"- Total parameters: `{model_summary['total_params_display']}`",
+            (
+                "- Learnable parameters: "
+                f"`{model_summary['trainable_params_display']}` "
+                f"({model_summary['trainable_ratio']:.1f}%)"
+            ),
+            (
+                "- Non-trainable parameters: "
+                f"`{model_summary['non_trainable_params_display']}`"
+            ),
+            f"- Parameter size: `{model_summary['size_display']}`",
+            (
+                f"- Buffers: `{model_summary['total_buffers_display']}` "
+                f"(`{model_summary['buffer_size_display']}`)"
+            ),
+            (
+                f"- Modules: `{model_summary['module_count_display']}` total, "
+                f"`{model_summary['leaf_module_count_display']}` leaf"
+            ),
+            f"- DType composition: `{model_summary['dtype_desc']}`",
+            "",
+        ]
+    )
+
+
+def _build_model_detail_section(
+    model_summary: dict[str, object], include_model_detail: bool
+) -> str:
+    """Render an optional markdown block with ``repr(model)``."""
+    if not include_model_detail:
+        return ""
+    return "\n".join(
+        [
+            "## Model structure",
+            "",
+            "<details><summary>expand</summary>",
+            "",
+            "```python",
+            str(model_summary["repr"]),
+            "```",
+            "",
+            "</details>",
+            "",
+        ]
+    )
 
 
 def _build_results_note(results_path: Path | None, results_section: str) -> str:
@@ -351,6 +417,22 @@ def _build_readme_context(
             '"/path/to/packed_model", trust_user_code=True)'
         )
     )
+    model_summary_section = ""
+    model_detail_section = ""
+    try:
+        model_summary = build_model_summary(
+            _instantiate_publication_model(training_config)
+        )
+    except Exception as exc:
+        logger.warning("README model summary could not be generated: %s", exc)
+    else:
+        model_summary_section = _build_model_summary_section(model_summary)
+        model_detail_section = _build_model_detail_section(
+            model_summary,
+            include_model_detail=bool(
+                getattr(pack_cfg, "include_model_detail", False)
+            ),
+        )
 
     return {
         "corpus": recipe_root.parent.name,
@@ -366,6 +448,8 @@ def _build_readme_context(
         "git_head": git_meta.get("short_commit") or git_meta.get("commit") or "",
         "git_origin": git_meta.get("origin_url") or "",
         "hf_repo": hf_repo,
+        "model_detail_section": model_detail_section,
+        "model_summary_section": model_summary_section,
         "pack_name": out_dir.name,
         "pack_strategy": _describe_pack_strategy(pack_cfg),
         "recipe": _infer_recipe_name(recipe_root),

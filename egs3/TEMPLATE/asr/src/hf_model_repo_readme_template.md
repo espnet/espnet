@@ -23,6 +23,9 @@ ${description}
 - Git: `${git_head}` (${git_dirty})
 - Origin: ${git_origin}
 
+${model_summary_section}
+${model_detail_section}
+
 ## Usage
 
 ```python
