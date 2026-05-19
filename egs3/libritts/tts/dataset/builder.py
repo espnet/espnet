@@ -98,8 +98,8 @@ class LibriTTSBuilder(DatasetBuilder):
             dataset_root.mkdir(parents=True, exist_ok=True)
             script_path = Path(recipe_dir).resolve() / "local" / "download_libritts.sh"
             
-            required_subsets = _CFG["split_subsets"]["train"] + _CFG["split_subsets"]["valid"]
-            for subset in required_subsets:
+            required_subsets = _CFG["split_subsets"]
+            for subset in required_subsets.values():
                 subset_marker = dataset_root / "LibriTTS" / subset / ".complete"
                 if subset_marker.is_file():
                     logger.info(f"Subset {subset} already downloaded, skipping.")
