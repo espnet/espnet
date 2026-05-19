@@ -265,8 +265,8 @@ def _build_results_table(results_path: Path | None) -> str:
     return "\n".join(lines)
 
 
-def _infer_task_name(training_config: DictConfig, recipe_root: Path) -> str:
-    """Infer a short task name for README rendering."""
+def _infer_system_name(training_config: DictConfig, recipe_root: Path) -> str:
+    """Infer a short system name for README rendering."""
     task_value = getattr(training_config, "task", None)
     if isinstance(task_value, str) and task_value:
         parts = task_value.split(".")
@@ -371,8 +371,7 @@ def _build_readme_context(
         "recipe": _infer_recipe_name(recipe_root),
         "results_note": _build_results_note(results_path, results_section),
         "results_section": results_section,
-        "system": str(getattr(training_config, "task", "")),
-        "task": _infer_task_name(training_config, recipe_root),
+        "system": _infer_system_name(training_config, recipe_root),
         "train_config": OmegaConf.to_yaml(training_config, resolve=True),
         "usage_load_call": usage_load_call,
     }
