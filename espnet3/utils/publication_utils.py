@@ -229,21 +229,21 @@ def _resolve_results(
     metrics_config: DictConfig | None,
     inference_config: DictConfig | None,
 ) -> Path | None:
-    """Return metrics.json found under inference_dir.
+    """Return metrics.json under inference_dir.
 
     Called by ``pack_model`` to locate evaluation results before writing the
-    README. Checks ``inference_dir`` on each provided config in priority order
-    (publication → metrics → inference) and returns the first ``metrics.json``
-    found.
+    README. Checks ``inference_dir / "metrics.json"`` on each provided config
+    in priority order (publication → metrics → inference) and returns the
+    first existing file.
 
     """
     for cfg in (publication_config, metrics_config, inference_config):
         inference_dir = getattr(cfg, "inference_dir", None) if cfg else None
         if not inference_dir:
             continue
-        matches = list(Path(inference_dir).rglob("metrics.json"))
-        if matches:
-            return matches[0]
+        metrics_path = Path(inference_dir) / "metrics.json"
+        if metrics_path.exists():
+            return metrics_path
     return None
 
 
@@ -684,8 +684,8 @@ def pack_model(
 def _run(cmd: list[str], cwd: Path | None = None) -> None:
     """Run a subprocess command, streaming stdout and stderr to the logger.
 
-    Used by ``upload_model`` to invoke ``huggingface-cli`` for repo creation
-    and model upload.
+    Used by ``upload_model`` to invoke ``hf`` for repo creation and model
+    upload.
 
     """
     logger.debug("Running: %s", " ".join(cmd))
@@ -706,7 +706,7 @@ def _check_repo_exists(repo: str) -> bool:
     """Check if a Hugging Face model repo exists.
 
     Used by ``upload_model`` before uploading to decide whether to create
-    the repo first via ``huggingface-cli repo create``.
+    the repo first via ``hf repos create``.
 
     """
     try:
@@ -756,12 +756,12 @@ def upload_model(system) -> None:
         raise RuntimeError(f"Model pack not found: {pack_dir}")
 
     # Create the HF repo if it doesn't exist, then upload
-    if shutil.which("huggingface-cli") is None:
-        raise RuntimeError("huggingface-cli is required for upload.")
+    if shutil.which("hf") is None:
+        raise RuntimeError("hf is required for upload.")
 
     if not _check_repo_exists(repo):
         logger.info("Creating HuggingFace repo: %s", repo)
-        _run(["huggingface-cli", "repo", "create", repo, "--type", "model", "-y"])
+        _run(["hf", "repos", "create", repo, "--repo-type", "model"])
     logger.info("Uploading %s -> %s", pack_dir, repo)
-    _run(["huggingface-cli", "upload", repo, str(pack_dir), "--repo-type", "model"])
+    _run(["hf", "upload", repo, str(pack_dir), ".", "--repo-type", "model"])
     logger.info("Upload complete: https://huggingface.co/%s", repo)
