@@ -1,0 +1,52 @@
+dataset_ratio: 1.0
+hf_cache_dir:
+
+create_dataset:
+  recipe_dir: .
+  cache_dir: ${hf_cache_dir}
+
+dataset:
+  train:
+    - data_src_args:
+        split: train
+        ratio: ${dataset_ratio}
+        cache_dir: ${hf_cache_dir}
+  valid:
+    - data_src_args:
+        split: valid
+        ratio: ${dataset_ratio}
+        cache_dir: ${hf_cache_dir}
+  test:
+    - name: valid
+      data_src_args:
+        split: valid
+        cache_dir: ${hf_cache_dir}
+    - name: test
+      data_src_args:
+        split: test
+        cache_dir: ${hf_cache_dir}
+
+lr: 5e-6
+exp_tag: owsm_full_finetune
+
+optimizer:
+  _target_: torch.optim.AdamW
+  lr: ${lr}
+
+model:
+  _target_: src.peft_model.OWSMFinetune
+  model_tag: espnet/owsm_v4_medium_1B
+
+scheduler:
+  _target_: espnet2.schedulers.warmup_lr.WarmupLR
+  warmup_steps: 4000
+
+
+trainer:
+  max_epochs: 1
+  fast_dev_run: false
+  logger:
+    - _target_: lightning.pytorch.loggers.WandbLogger
+      project: ESPnet3 development
+      save_dir: ./exp/owsm_full_finetune/wandb
+      name: ${exp_tag}_lr${lr}

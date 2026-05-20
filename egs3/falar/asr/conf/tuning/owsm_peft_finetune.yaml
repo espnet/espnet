@@ -1,0 +1,55 @@
+dataset_ratio: 1.0
+hf_cache_dir:
+
+create_dataset:
+  recipe_dir: .
+  cache_dir: ${hf_cache_dir}
+
+dataset:
+  train:
+    - data_src_args:
+        split: train
+        ratio: ${dataset_ratio}
+        cache_dir: ${hf_cache_dir}
+  valid:
+    - data_src_args:
+        split: valid
+        ratio: ${dataset_ratio}
+        cache_dir: ${hf_cache_dir}
+  test:
+    - name: valid
+      data_src_args:
+        split: valid
+        cache_dir: ${hf_cache_dir}
+    - name: test
+      data_src_args:
+        split: test
+        cache_dir: ${hf_cache_dir}
+
+lr: 5e-5
+exp_tag: owsm_peft_finetune
+
+optimizer:
+  _target_: torch.optim.AdamW
+  lr: ${lr}
+
+# override trainer settings
+trainer:
+  max_epochs: 1
+
+# override scheduler (no warmup)
+scheduler:
+  _target_: torch.optim.lr_scheduler.ConstantLR
+  factor: 1.0
+  total_iters: 1  
+
+model:
+  _target_: src.peft_model.OWSMFinetune
+  model_tag: espnet/owsm_v4_medium_1B
+  peft:
+    type: lora
+    r: 32
+    lora_alpha: 32
+    lora_dropout: 0.05
+    task_type: seq_2_seq_lm
+    target_modules: ["linear_q", "linear_k", "linear_v", "linear_out", "w_1", "w_2"]
