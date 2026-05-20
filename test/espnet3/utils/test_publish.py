@@ -1165,9 +1165,7 @@ def test_pack_model_readme_includes_model_detail_when_enabled(tmp_path, monkeypa
 # ---------------------------------------------------------------------------
 
 
-def test_upload_model_uses_hf_cli_and_resolves_relative_pack_dir(
-    tmp_path, monkeypatch
-):
+def test_upload_model_uses_hf_cli_and_resolves_relative_pack_dir(tmp_path, monkeypatch):
     recipe_dir = tmp_path / "recipe"
     pack_dir = recipe_dir / "artifacts" / "pack"
     pack_dir.mkdir(parents=True)
