@@ -559,9 +559,16 @@ def pack_model(
 
     recipe_root = Path(training_config.recipe_dir).resolve()
 
-    # Create (or recreate) the output directory
     exp_dir = Path(training_config.exp_dir)
+    if not exp_dir.is_absolute():
+        exp_dir = recipe_root / exp_dir
+    exp_dir = exp_dir.resolve()
+
+    # Create (or recreate) the output directory
     out_dir = Path(getattr(pack_cfg, "out_dir", exp_dir / "model_pack"))
+    if not out_dir.is_absolute():
+        out_dir = recipe_root / out_dir
+    out_dir = out_dir.resolve()
     if out_dir.exists():
         if not getattr(pack_cfg, "allow_overwrite", False):
             raise RuntimeError(
@@ -736,8 +743,15 @@ def upload_model(system) -> None:
 
     # Resolve the pack directory from config
     pack_cfg = getattr(publication_cfg, "pack_model", None) or OmegaConf.create({})
+    recipe_root = Path(system.training_config.recipe_dir).resolve()
     exp_dir = Path(system.training_config.exp_dir)
+    if not exp_dir.is_absolute():
+        exp_dir = recipe_root / exp_dir
+    exp_dir = exp_dir.resolve()
     pack_dir = Path(getattr(pack_cfg, "out_dir", exp_dir / "model_pack"))
+    if not pack_dir.is_absolute():
+        pack_dir = recipe_root / pack_dir
+    pack_dir = pack_dir.resolve()
     if not pack_dir.exists():
         raise RuntimeError(f"Model pack not found: {pack_dir}")
 
