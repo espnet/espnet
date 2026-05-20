@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from functools import lru_cache
 from importlib import import_module
 from pathlib import Path
@@ -9,9 +10,11 @@ from typing import Any, Dict, Iterable, List, Optional, Sequence
 
 from omegaconf import ListConfig
 
-from espnet3.parallel.base_runner import BaseRunner, cat_shard_files
+from espnet3.parallel.base_runner import BaseRunner, concatenate_shard_files
 from espnet3.parallel.env_provider import EnvironmentProvider
 from espnet3.utils.writer_utils import write_artifact
+
+logger = logging.getLogger(__name__)
 
 
 def _normalize_key_list(keys) -> List[str]:
@@ -31,20 +34,49 @@ def _iter_outputs(result: Any) -> List[Dict[str, Any]]:
     return [result]
 
 
-def _is_scp_scalar(value) -> bool:
-    return isinstance(value, (str, int, float, bool))
-
-
 def _materialize_output_value(
-    *,
     idx_value,
     field_key: str,
     value,
     output_dir: Path,
     artifact_config: dict | None,
 ):
-    if _is_scp_scalar(value):
+    if isinstance(value, (str, int, float, bool)):
         return value
+
+    try:
+        import numpy as np
+
+        if isinstance(value, np.generic):
+            return value
+        if isinstance(value, np.ndarray):
+            if value.ndim == 0:
+                return value.item()
+            artifact_dir = output_dir / field_key
+            artifact_dir.mkdir(parents=True, exist_ok=True)
+            return write_artifact(
+                value,
+                artifact_dir / str(idx_value),
+                field_config=artifact_config,
+            ).as_posix()
+    except ImportError:
+        pass
+
+    try:
+        import torch
+
+        if isinstance(value, torch.Tensor):
+            if value.dim() == 0:
+                return value.item()
+            artifact_dir = output_dir / field_key
+            artifact_dir.mkdir(parents=True, exist_ok=True)
+            return write_artifact(
+                value,
+                artifact_dir / str(idx_value),
+                field_config=artifact_config,
+            ).as_posix()
+    except ImportError:
+        pass
 
     if isinstance(value, (list, tuple)):
         raise TypeError(
@@ -53,11 +85,17 @@ def _materialize_output_value(
             "dict so it can be saved as JSON."
         )
 
-    artifact_dir = output_dir / field_key
-    artifact_dir.mkdir(parents=True, exist_ok=True)
-    target = artifact_dir / str(idx_value)
-    artifact_path = write_artifact(value, target, field_config=artifact_config)
-    return artifact_path.as_posix()
+    logger.warning(
+        "Unsupported output type '%s' for field '%s'. "
+        "Supported: str, int, float, bool, np.ndarray, torch.Tensor.",
+        type(value).__name__,
+        field_key,
+    )
+    raise TypeError(
+        f"Unsupported output type '{type(value).__name__}' for field "
+        f"'{field_key}'. Supported: str, int, float, bool, "
+        "np.ndarray, torch.Tensor."
+    )
 
 
 class InferenceRunner(BaseRunner):
@@ -78,6 +116,31 @@ class InferenceRunner(BaseRunner):
         - ``hyp_key`` and ``ref_key`` values may be scalars or lists/tuples.
           If lists are returned, each entry is written to its own SCP file
           (e.g., ``hyp0.scp``, ``hyp1.scp``).
+
+    Args:
+        provider (EnvironmentProvider): Provider that supplies dataset/model/env.
+        idx_key (str): Output dict key used as the sample identifier in SCP
+            files. Defaults to ``"utt_id"``.
+        hyp_key (str | Sequence[str]): Hypothesis key(s) expected in output.
+        ref_key (str | Sequence[str]): Reference key(s) expected in output.
+        **kwargs: Forwarded to ``BaseRunner`` (e.g., ``output_dir``,
+            ``batch_size``, ``resume``).
+
+    Example:
+        >>> from espnet3.parallel.inference_provider import InferenceProvider
+        >>> class MyProvider(InferenceProvider):
+        ...     @staticmethod
+        ...     def build_dataset(config): return load_dataset(config)
+        ...     @staticmethod
+        ...     def build_model(config): return load_model(config)
+        >>> runner = InferenceRunner(
+        ...     MyProvider(config),
+        ...     output_dir="/exp/decode",
+        ...     idx_key="utt_id",
+        ...     hyp_key="hyp",
+        ...     ref_key="ref",
+        ... )
+        >>> runner(range(len(test_dataset)))
     """
 
     def __init__(
@@ -109,7 +172,17 @@ class InferenceRunner(BaseRunner):
         )
 
     def resolve_idx_key(self, output: Dict[str, Any]) -> str:
-        """Validate that the configured sample-identifier key exists in output."""
+        """Validate that the configured sample-identifier key exists in output.
+
+        Args:
+            output: A single inference result dict.
+
+        Returns:
+            str: The ``idx_key`` attribute when present in ``output``.
+
+        Raises:
+            ValueError: If ``idx_key`` is not found in ``output``.
+        """
         if self.idx_key not in output:
             raise ValueError(
                 "Inference output must include the configured sample identifier "
@@ -302,10 +375,6 @@ class InferenceRunner(BaseRunner):
                 ref_key=ref_key,
             )
 
-            if shard_dir is None:
-                state.setdefault("records", []).append(output)
-                continue
-
             field_keys = InferenceRunner._resolve_output_keys(
                 output,
                 idx_key=idx_key,
@@ -335,21 +404,37 @@ class InferenceRunner(BaseRunner):
         """Close shard-local SCP files and report which output keys were written."""
         for handle in writers.get("scp_handles", {}).values():
             handle.close()
-        return {"field_keys": sorted(writers.get("field_keys", []))}
+        shard_dir = writers["shard_dir"]
+        field_keys = sorted(writers.get("field_keys", []))
+        (shard_dir / "field_keys.txt").write_text(
+            "\n".join(field_keys) + ("\n" if field_keys else ""),
+            encoding="utf-8",
+        )
+        return None
 
-    def merge_shard_files(
-        self,
-        shard_dirs: List[Path],
-        states: List[Dict[str, Any]],
-    ) -> Optional[Dict[str, Any]]:
-        """Merge per-shard SCP files into the test-set output directory."""
-        if self.output_dir is None:
-            return None
+    def merge(self, shard_dirs: List[Path]) -> Optional[Dict[str, Any]]:
+        """Merge per-shard SCP files into the test-set output directory.
 
+        Reads ``field_keys.txt`` from each shard to discover output field
+        names, then concatenates each ``<field>.scp`` across shards in shard
+        order into ``output_dir / shard_subdir``.
+
+        Args:
+            shard_dirs: Completed shard directories in shard-id order.
+
+        Returns:
+            Dict[str, Any]: Empty dict on success (outputs are on disk).
+
+        Raises:
+            RuntimeError: If no output keys are found across all shards.
+        """
         field_keys = []
         seen = set()
-        for state in states:
-            for key in state.get("field_keys", []):
+        for shard_dir in shard_dirs:
+            keys_path = shard_dir / "field_keys.txt"
+            if not keys_path.exists():
+                continue
+            for key in keys_path.read_text(encoding="utf-8").splitlines():
                 if key not in seen:
                     seen.add(key)
                     field_keys.append(key)
@@ -367,7 +452,7 @@ class InferenceRunner(BaseRunner):
         )
         base_dir.mkdir(parents=True, exist_ok=True)
         for field_key in field_keys:
-            cat_shard_files(
+            concatenate_shard_files(
                 ordered_shard_dirs,
                 f"{field_key}.scp",
                 base_dir / f"{field_key}.scp",
@@ -375,10 +460,28 @@ class InferenceRunner(BaseRunner):
         return {}
 
     def __call__(self, indices: Iterable[int]) -> Any:
-        """Run inference and validate output formats."""
+        """Run inference, write SCP outputs, and validate output formats.
+
+        Args:
+            indices (Iterable[int]): Dataset indices to run inference on.
+
+        Returns:
+            Any: ``None`` when all results are written to SCP files on disk
+            (the normal case), or a flat list of validated output dicts if
+            the base ``merge`` returns a list.
+
+        Raises:
+            RuntimeError: If ``output_dir`` was not set on construction.
+            RuntimeError: If no output keys are found after all shards finish.
+
+        Example:
+            >>> runner = InferenceRunner(
+            ...     provider, output_dir="/exp/decode", idx_key="utt_id"
+            ... )
+            >>> runner(range(len(test_dataset)))
+            >>> # hyp.scp and ref.scp are written under /exp/decode
+        """
         results = super().__call__(indices)
-        if self.async_mode:
-            return results
         if results is None:
             return None
         if not isinstance(results, list):

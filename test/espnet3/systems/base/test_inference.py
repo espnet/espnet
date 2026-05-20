@@ -6,7 +6,9 @@ import soundfile as sf
 import torch
 from omegaconf import OmegaConf
 
+import espnet3.parallel.parallel as parallel_mod
 import espnet3.systems.base.inference as inference_mod
+import espnet3.systems.base.inference_runner as inference_runner_mod
 from espnet3.systems.base.inference_provider import InferenceProvider
 from espnet3.systems.base.inference_runner import InferenceRunner
 
@@ -22,6 +24,11 @@ def streaming_output_fn(*, data, model_output, idx):
         "hyp": data["hyp"],
         "audio": np.asarray(data["audio"], dtype=np.float32),
     }
+
+
+def passthrough_output_fn(*, data, model_output, idx):
+    del model_output, idx
+    return data["result"]
 
 
 def custom_npy_writer(*, value, output_path: Path, scale: float = 1.0) -> Path:
@@ -57,19 +64,18 @@ class DummyProvider(InferenceProvider):
 class DummyRunner(InferenceRunner):
     results = None
 
-    def __init__(self, provider, *, async_mode=False, results=None, **kwargs):
-        super().__init__(provider, async_mode=async_mode, **kwargs)
+    def __init__(self, provider, *, results=None, **kwargs):
+        super().__init__(provider, **kwargs)
         if results is not None:
-            self._results = results
-        else:
-            self._results = DummyRunner.results
+            DummyRunner.results = results
 
     @staticmethod
     def forward(idx, *, dataset, model, **env):
-        return {"idx": idx, "hyp": "h", "ref": "r"}
-
-    def __call__(self, indices):
-        return self._results
+        if DummyRunner.results is None:
+            raise RuntimeError("DummyRunner.results must be set for this test.")
+        if isinstance(idx, (list, tuple)):
+            return [DummyRunner.results[i] for i in idx]
+        return DummyRunner.results[idx]
 
 
 class CaptureProvider(InferenceProvider):
@@ -102,19 +108,44 @@ class StreamingProvider(InferenceProvider):
         return model
 
 
-class CaptureRunner:
-    results = None
+class ModelOutputProvider(InferenceProvider):
+    def __init__(self, inference_config, params):
+        super().__init__(inference_config, params=params)
+
+    def build_dataset(self, _config):
+        return OmegaConf.to_container(_config.mock_dataset, resolve=True)
+
+    @staticmethod
+    def build_model(_config):
+        def model(speech):
+            return speech
+
+        return model
+
+
+class AsyncLikeRunner:
+    idx_key = "idx"
 
     def __init__(self, provider, **_kwargs):
         self.provider = provider
 
     def __call__(self, _indices):
-        return CaptureRunner.results
+        return None
 
-    idx_key = "idx"
 
-    def resolve_idx_key(self, _output):
-        return self.idx_key
+class LegacyListRunner:
+    idx_key = "utt_id"
+
+    def __init__(self, provider, **_kwargs):
+        self.provider = provider
+
+    def __call__(self, _indices):
+        return [{"utt_id": "utt1", "hyp": "h1"}]
+
+
+@pytest.fixture(autouse=True)
+def reset_parallel_config(monkeypatch):
+    monkeypatch.setattr(parallel_mod, "parallel_config", None)
 
 
 def _read_scp(path: Path):
@@ -175,7 +206,7 @@ def test_inference_rejects_test_entry_without_name(tmp_path, monkeypatch):
         inference_mod.infer(cfg)
 
 
-def test_inference_rejects_async_results(tmp_path, monkeypatch):
+def test_inference_rejects_runner_without_shard_outputs(tmp_path, monkeypatch):
     cfg = OmegaConf.create(
         {
             "parallel": {"env": "local"},
@@ -186,15 +217,13 @@ def test_inference_rejects_async_results(tmp_path, monkeypatch):
             "idx_key": "idx",
             "mock_dataset_length": 1,
             "provider": {"_target_": f"{__name__}.DummyProvider"},
-            "runner": {"_target_": f"{__name__}.DummyRunner"},
+            "runner": {"_target_": f"{__name__}.AsyncLikeRunner"},
         }
     )
 
-    DummyRunner.results = None
-
     monkeypatch.setattr(inference_mod, "set_parallel", lambda arg: None)
 
-    with pytest.raises(RuntimeError, match="Async inference is not supported"):
+    with pytest.raises(RuntimeError, match="did not produce shard outputs"):
         inference_mod.infer(cfg)
 
 
@@ -212,12 +241,12 @@ def test_inference_passes_provider_params(tmp_path, monkeypatch):
                 "_target_": f"{__name__}.CaptureProvider",
                 "params": {"beam": 5, "lang": "en"},
             },
-            "runner": {"_target_": f"{__name__}.CaptureRunner"},
+            "runner": {"_target_": f"{__name__}.DummyRunner"},
         }
     )
     results = [{"idx": 0, "hyp": "h0", "ref": "r0"}]
     CaptureProvider.last_params = None
-    CaptureRunner.results = results
+    DummyRunner.results = results
 
     monkeypatch.setattr(inference_mod, "set_parallel", lambda arg: None)
 
@@ -241,15 +270,16 @@ def test_inference_without_output_fn_uses_model_output(tmp_path, monkeypatch):
             "inference_dir": str(tmp_path / "infer"),
             "dataset": {"test": [{"name": "test_a"}]},
             "input_key": "speech",
-            "mock_dataset_length": 2,
-            "provider": {"_target_": f"{__name__}.DummyProvider"},
-            "runner": {"_target_": f"{__name__}.DummyRunner"},
+            "mock_dataset": [
+                {"speech": {"utt_id": "utt1", "hyp": "h1"}},
+                {"speech": {"utt_id": "utt2", "hyp": "h2"}},
+            ],
+            "provider": {"_target_": f"{__name__}.ModelOutputProvider"},
+            "runner": {
+                "_target_": "espnet3.systems.base.inference_runner.InferenceRunner"
+            },
         }
     )
-    DummyRunner.results = [
-        {"utt_id": "utt1", "hyp": "h1"},
-        {"utt_id": "utt2", "hyp": "h2"},
-    ]
 
     monkeypatch.setattr(inference_mod, "set_parallel", lambda arg: None)
 
@@ -305,28 +335,9 @@ def test_inference_with_explicit_idx_key_override(tmp_path, monkeypatch):
     assert _read_scp(tmp_path / "infer" / "test_a" / "hyp.scp") == ["sample-1 h1"]
 
 
-def test_collect_scp_lines_requires_dict_output():
-    with pytest.raises(TypeError, match="Expected dict output"):
-        inference_mod._collect_scp_lines(["not-a-dict"], "utt_id", ["hyp"], ["ref"])
-
-
-def test_collect_scp_lines_rejects_non_scalar_idx_key():
-    results = [{"utt_id": ["utt1"], "hyp": "hello", "ref": "hello"}]
-
-    with pytest.raises(TypeError, match="'utt_id' must be a scalar"):
-        inference_mod._collect_scp_lines(results, "utt_id", ["hyp"], ["ref"])
-
-
-def test_collect_scp_lines_rejects_top_level_list_field():
-    results = [{"utt_id": "utt1", "hyp": ["hello"], "ref": "hello"}]
-
-    with pytest.raises(TypeError, match="Top-level list outputs are not supported"):
-        inference_mod._collect_scp_lines(results, "utt_id", ["hyp"], ["ref"])
-
-
 def test_materialize_output_value_rejects_top_level_list(tmp_path: Path):
     with pytest.raises(TypeError, match="Top-level list outputs are not supported"):
-        inference_mod._materialize_output_value(
+        inference_runner_mod._materialize_output_value(
             idx_value="utt1",
             field_key="hyp",
             value=["hello"],
@@ -701,7 +712,7 @@ def test_infer_rejects_empty_dataset(tmp_path, monkeypatch):
         inference_mod.infer(cfg)
 
 
-def test_infer_rejects_empty_results(tmp_path, monkeypatch):
+def test_infer_rejects_in_memory_results(tmp_path, monkeypatch):
     cfg = OmegaConf.create(
         {
             "parallel": {"env": "local"},
@@ -710,14 +721,15 @@ def test_infer_rejects_empty_results(tmp_path, monkeypatch):
             "input_key": "speech",
             "mock_dataset_length": 1,
             "provider": {"_target_": f"{__name__}.DummyProvider"},
-            "runner": {"_target_": f"{__name__}.DummyRunner"},
+            "runner": {"_target_": f"{__name__}.LegacyListRunner"},
         }
     )
-    DummyRunner.results = []
 
     monkeypatch.setattr(inference_mod, "set_parallel", lambda arg: None)
 
-    with pytest.raises(RuntimeError, match="No inference results available"):
+    with pytest.raises(
+        RuntimeError, match="In-memory inference results are not supported"
+    ):
         inference_mod.infer(cfg)
 
 

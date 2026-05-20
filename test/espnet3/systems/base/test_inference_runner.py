@@ -60,14 +60,15 @@ def test_validate_output_rejects_non_dict_and_idx_list():
         runner._validate_output({"utt_id": [1], "hyp": "h", "ref": "r"})
 
 
-def test_call_async_returns_raw(monkeypatch):
+def test_call_rejects_non_dict_result(monkeypatch):
     def fake_base_call(self, indices):
         return ["raw"]
 
     monkeypatch.setattr(BaseRunner, "__call__", fake_base_call)
-    runner = DummyRunner(DummyProvider(), async_mode=True)
+    runner = DummyRunner(DummyProvider())
 
-    assert runner([0]) == ["raw"]
+    with pytest.raises(TypeError, match="Expected dict output"):
+        runner([0])
 
 
 def test_call_flattens_and_validates(monkeypatch):

@@ -8,52 +8,9 @@ from hydra.utils import instantiate
 from omegaconf import DictConfig, OmegaConf
 
 from espnet3.parallel.parallel import set_parallel
-from espnet3.systems.base.inference_runner import (
-    _load_output_fn,
-    _materialize_output_value,
-)
+from espnet3.systems.base.inference_runner import _load_output_fn
 
 logger = logging.getLogger(__name__)
-
-
-def _flatten_results(results):
-    flat = []
-    for item in results:
-        if isinstance(item, list):
-            flat.extend(item)
-        else:
-            flat.append(item)
-    return flat
-
-
-def _collect_scp_lines(results, idx_key: str, hyp_keys, ref_keys):
-    scp_lines = {}
-    hyp_keys = list(hyp_keys) if isinstance(hyp_keys, (list, tuple)) else [hyp_keys]
-    ref_keys = list(ref_keys) if isinstance(ref_keys, (list, tuple)) else [ref_keys]
-
-    for result in results:
-        if not isinstance(result, dict):
-            raise TypeError(
-                f"Expected dict output, got {type(result).__name__}: {result}"
-            )
-
-        idx_value = result[idx_key]
-        if isinstance(idx_value, (list, tuple)):
-            raise TypeError(
-                f"'{idx_key}' must be a scalar, got {type(idx_value).__name__}"
-            )
-
-        for field_key in (*ref_keys, *hyp_keys):
-            value = result[field_key]
-            if isinstance(value, (list, tuple)):
-                raise TypeError(
-                    f"Top-level list outputs are not supported for '{field_key}'. "
-                    "Return a single value per field, or wrap structured content in a "
-                    "dict so it can be saved as JSON."
-                )
-            scp_lines.setdefault(field_key, []).append(f"{idx_value} {value}")
-
-    return scp_lines
 
 
 def infer(config: DictConfig):
@@ -211,7 +168,6 @@ def infer(config: DictConfig):
 
         runner_kwargs = {
             "provider": provider,
-            "async_mode": False,
             "idx_key": idx_key,
             "hyp_key": hyp_keys,
             "ref_key": [],
@@ -231,43 +187,17 @@ def infer(config: DictConfig):
                 "Please check the dataset manifest and preprocessing outputs."
             )
         logger.info("===> Processing %d samples..", dataset_length)
-        out = runner(list(range(dataset_length)))
-        if out is None:
-            raise RuntimeError("Async inference is not supported in this entrypoint.")
-        if isinstance(out, list):
-            # Legacy path for custom runners that still return in-memory results.
-            results = _flatten_results(out)
-            if not results:
-                raise RuntimeError("No inference results available.")
-            first = results[0]
-            resolved_idx_key = runner.resolve_idx_key(first)
-            if output_keys is None:
-                output_keys = [key for key in first.keys() if key != resolved_idx_key]
-                if not output_keys:
-                    raise RuntimeError("No output keys found in inference results.")
-
-            for result in results:
-                idx_value = result[resolved_idx_key]
-                for key, value in list(result.items()):
-                    if key == resolved_idx_key:
-                        continue
-                    result[key] = _materialize_output_value(
-                        idx_value=idx_value,
-                        field_key=key,
-                        value=value,
-                        output_dir=output_dir,
-                        artifact_config=artifact_configs.get(key),
-                    )
-
-            scp_lines = _collect_scp_lines(
-                results,
-                idx_key=resolved_idx_key,
-                hyp_keys=output_keys,
-                ref_keys=[],
+        result = runner(list(range(dataset_length)))
+        if result is None:
+            raise RuntimeError(
+                "Inference runner did not produce shard outputs. "
+                "Use a runner that writes outputs via BaseRunner hooks."
             )
-            for key, lines in scp_lines.items():
-                with open(output_dir / f"{key}.scp", "w", encoding="utf-8") as f:
-                    f.write("\n".join(lines))
+        if isinstance(result, list):
+            raise RuntimeError(
+                "In-memory inference results are not supported. "
+                "Use a runner that writes shard outputs via BaseRunner hooks."
+            )
         logger.info(
             "Finished test set %s | outputs=%s",
             test_name,

@@ -1,6 +1,7 @@
 # tests/test_stft_runner_provider.py
 from __future__ import annotations
 
+import ast
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -116,6 +117,30 @@ class STFTRunner(BaseRunner):
 
         return outputs[-1] if outputs else {"stft": {"type": "text", "value": "[]"}}
 
+    @staticmethod
+    def open_writers(shard_dir, **env):
+        return {"path": shard_dir / "records.txt", "records": []}
+
+    @staticmethod
+    def write_record(writers, result, state, **env):
+        writers["records"].append(repr(result))
+
+    @staticmethod
+    def close_writers(writers):
+        writers["path"].write_text(
+            "\n".join(writers["records"]) + "\n", encoding="utf-8"
+        )
+        return None
+
+    def merge(self, shard_dirs):
+        outputs = []
+        for shard_dir in shard_dirs:
+            for line in (
+                (shard_dir / "records.txt").read_text(encoding="utf-8").splitlines()
+            ):
+                outputs.append(ast.literal_eval(line))
+        return outputs
+
 
 def write_output(utt_id: str, output: dict, out_dir: Path):
     out_dir = Path(out_dir)
@@ -170,10 +195,10 @@ def _make_cfg_from_samples(
     return cfg, params
 
 
-def test_offline_on_example(test_audio_paths):
+def test_offline_on_example(test_audio_paths, tmp_path):
     cfg, params = _make_cfg_from_samples(test_audio_paths, stream=False)
     provider = STFTProvider(cfg, params=params)
-    runner = STFTRunner(provider)
+    runner = STFTRunner(provider, output_dir=tmp_path)
 
     out = runner([0])[0]
     assert "stft" in out and isinstance(out["stft"]["value"], str)
@@ -204,11 +229,11 @@ def test_audio_output_type(tmp_path):
     assert (tmp_path / "data" / "speech" / "speech_id1.flac").exists()
 
 
-def test_streaming_on_example(test_audio_paths):
+def test_streaming_on_example(test_audio_paths, tmp_path):
     cfg, params = _make_cfg_from_samples(test_audio_paths, stream=True, chunk_sec=0.1)
 
     provider = STFTProvider(cfg, params=params)
-    runner = STFTRunner(provider)
+    runner = STFTRunner(provider, output_dir=tmp_path)
 
     out = runner([0])[0]
     assert "stft" in out and isinstance(out["stft"]["value"], str)
@@ -254,67 +279,6 @@ def test_streaming_chunk_count(test_audio_paths, chunk_sec, expected_min_chunks)
     assert all(isinstance(c, np.ndarray) for c in chunks)
 
 
-def _patch_parallel_client_no_submit(monkeypatch, n_workers: int = 2):
-    """Patch the async submission path to run jobs synchronously in-process.
-
-    - Replace the Dask client/cluster with fakes so no scheduler is started.
-    - When the runner submits a batch job, invoke the worker entrypoint
-      directly so it runs the reducer pipeline and writes ``_state.pkl``
-      under the configured ``output_dir`` like a real job would.
-    """
-    from omegaconf import OmegaConf
-
-    import espnet3.parallel.base_runner as br
-    import espnet3.parallel.parallel as par
-
-    class _FakeCluster:
-        def __init__(self):
-            self.job_cls = None
-
-        def job_script(self):
-            return "#!/bin/sh\necho OK\n"
-
-    class _FakeClient:
-        def __init__(self):
-            self.cluster = _FakeCluster()
-
-        def close(self):
-            pass
-
-        def scheduler_info(self):
-            return {
-                "address": "fake://scheduler",
-                "workers": {f"w{i}": {} for i in range(n_workers)},
-            }
-
-    def _fake_get_parallel_config():
-        return OmegaConf.create({"env": "slurm", "n_workers": n_workers, "options": {}})
-
-    def _fake_build_client(_cfg=None):
-        return _FakeClient()
-
-    monkeypatch.setattr(
-        par, "get_parallel_config", _fake_get_parallel_config, raising=True
-    )
-    monkeypatch.setattr(par, "build_client", _fake_build_client, raising=True)
-
-    monkeypatch.setattr(
-        br, "get_parallel_config", _fake_get_parallel_config, raising=True
-    )
-    monkeypatch.setattr(br, "build_client", _fake_build_client, raising=True)
-
-    def _fake_get_job_class(cluster, spec_path=None):
-        class _Job:
-            @classmethod
-            async def _submit_job(cls, _tf, *args, **kwargs):
-                br._async_worker_entry_from_spec_path(spec_path)
-                return "OK"
-
-        return _Job
-
-    monkeypatch.setattr(br, "get_job_class", _fake_get_job_class, raising=True)
-
-
 def _assert_stft_json(obj: dict):
     assert isinstance(obj, dict)
     assert "stft" in obj and isinstance(obj["stft"], dict)
@@ -324,78 +288,70 @@ def _assert_stft_json(obj: dict):
     assert "[]" not in val
 
 
-def test_async_state_pkl_offline_with_base_runner(
-    test_audio_paths, tmp_path, monkeypatch
-):
-    _patch_parallel_client_no_submit(monkeypatch, n_workers=2)
+def test_parallel_shards_offline_with_base_runner(test_audio_paths, tmp_path):
+    from espnet3.parallel.parallel import set_parallel
+
+    set_parallel(
+        OmegaConf.create(
+            {
+                "env": "local",
+                "n_workers": 2,
+                "options": {"threads_per_worker": 1, "processes": True},
+            }
+        )
+    )
 
     cfg, params = _make_cfg_from_samples(test_audio_paths, stream=False)
     provider = STFTProvider(cfg, params=params)
     runner = STFTRunner(
         provider,
-        async_mode=True,
-        async_specs_dir=tmp_path / "_specs",
         output_dir=tmp_path,
         shard_subdir="inference",
     )
 
     indices = list(range(min(4, len(test_audio_paths))))
-    job_meta = runner(indices)
+    merged = runner(indices)
 
     base = tmp_path / "inference"
     shard_dirs = sorted(base.glob("split.*"))
     assert len(shard_dirs) >= 1
     for d in shard_dirs:
-        assert (d / "_state.pkl").exists()
-    assert len(job_meta) == len(shard_dirs)
-    assert {Path(m["shard_dir"]) for m in job_meta} == set(shard_dirs)
-
-    merged = runner.merge_async_results()
+        assert (d / "done").exists()
     assert len(merged) == len(indices)
     for obj in merged:
         _assert_stft_json(obj)
 
 
-def test_async_state_pkl_streaming_with_base_runner(
-    test_audio_paths, tmp_path, monkeypatch
-):
-    _patch_parallel_client_no_submit(monkeypatch, n_workers=3)
+def test_parallel_shards_streaming_with_base_runner(test_audio_paths, tmp_path):
+    from espnet3.parallel.parallel import set_parallel
+
+    set_parallel(
+        OmegaConf.create(
+            {
+                "env": "local",
+                "n_workers": 3,
+                "options": {"threads_per_worker": 1, "processes": True},
+            }
+        )
+    )
 
     cfg, params = _make_cfg_from_samples(test_audio_paths, stream=True, chunk_sec=0.1)
     provider = STFTProvider(cfg, params=params)
     runner = STFTRunner(
         provider,
-        async_mode=True,
-        async_specs_dir=tmp_path / "_specs",
         output_dir=tmp_path,
         shard_subdir="inference",
     )
 
     indices = list(range(min(5, len(test_audio_paths))))
-    runner(indices)
+    merged = runner(indices)
 
     base = tmp_path / "inference"
     shard_dirs = sorted(base.glob("split.*"))
     assert len(shard_dirs) >= 1
     for d in shard_dirs:
-        assert (d / "_state.pkl").exists()
+        assert (d / "done").exists()
 
-    merged = runner.merge_async_results()
     assert len(merged) == len(indices)
     for obj in merged:
         _assert_stft_json(obj)
-
-
-def test_async_requires_output_dir(test_audio_paths, tmp_path, monkeypatch):
-    _patch_parallel_client_no_submit(monkeypatch, n_workers=2)
-
-    cfg, params = _make_cfg_from_samples(test_audio_paths, stream=False)
-    provider = STFTProvider(cfg, params=params)
-    runner = STFTRunner(
-        provider,
-        async_mode=True,
-        async_specs_dir=tmp_path / "_specs",
-    )
-
-    with pytest.raises(ValueError, match="output_dir"):
-        runner([0])
