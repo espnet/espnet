@@ -298,7 +298,8 @@ def main():
                 # FIXME(kamo): To use sox?
                 if resampy is None:
                     raise RuntimeError(
-                        "resampy is not installed. "
+                        "resampy is required to resample audio when --fs differs "
+                        "from the input sample rate. "
                         "Please install ESPnet recipe deps: "
                         "pip install 'espnet[recipe]' (or 'espnet[all]')"
                     )
