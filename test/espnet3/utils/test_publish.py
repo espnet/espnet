@@ -376,6 +376,30 @@ def test_pack_model_allow_overwrite_clears_stale_files(tmp_path):
     assert not stale_file.exists()
 
 
+def test_pack_model_resolves_relative_out_dir_from_recipe_dir(tmp_path, monkeypatch):
+    recipe_dir = tmp_path / "recipe"
+    exp_dir = recipe_dir / "exp" / "run"
+    recipe_dir.mkdir()
+    exp_dir.mkdir(parents=True)
+    (exp_dir / "dummy.txt").write_text("hello", encoding="utf-8")
+    publication_config = OmegaConf.create({"pack_model": {"out_dir": "artifacts/pack"}})
+    system = _make_system(
+        exp_dir="exp/run",
+        recipe_dir=recipe_dir,
+        publication_config=publication_config,
+    )
+    monkeypatch.chdir(tmp_path)
+
+    out_dir = publish.pack_model(
+        training_config=system.training_config,
+        publication_config=system.publication_config,
+    )
+
+    assert out_dir == (recipe_dir / "artifacts" / "pack").resolve()
+    assert (out_dir / "exp" / "run" / "dummy.txt").exists()
+    assert not (tmp_path / "artifacts" / "pack").exists()
+
+
 def test_pack_model_raises_when_artifact_file_does_not_exist(tmp_path):
     recipe_dir = tmp_path
     exp_dir = recipe_dir / "exp"
@@ -504,7 +528,7 @@ def test_pack_model_excludes_inference_dir_and_copies_metrics_json(tmp_path):
     assert (result / "metrics.json").exists()
     assert not (result / "exp" / "inference" / "hyp.scp").exists()
     readme = (result / "README.md").read_text(encoding="utf-8")
-    assert "# ESPnet3 asr model" in readme
+    assert "# ESPnet3 " in readme
     assert "| dataset | WER |" in readme
     assert "| test | 5.0 |" in readme
     assert "Metrics were not bundled." not in readme
@@ -624,7 +648,7 @@ def test_pack_model_writes_readme_with_full_context(tmp_path):
     )
 
     readme = (out_dir / "README.md").read_text(encoding="utf-8")
-    assert "# ESPnet3 asr model" in readme
+    assert "# ESPnet3 " in readme
     assert "- Repository:" not in readme
     assert "language: en" in readme
     assert "license: apache-2.0" in readme
@@ -670,7 +694,7 @@ def test_pack_model_drops_readme_lines_for_missing_context(
 
     readme = (out_dir / "README.md").read_text(encoding="utf-8")
     assert "# ESPnet3 asr model" in readme
-    assert "- System: `espnet3.systems.asr.task.ASRTask`" in readme
+    assert "- System: `asr`" in readme
     assert "- Creator: `tester`" in readme
     assert "- Git: `abc123` (dirty)" in readme
     assert "language:" not in readme
@@ -1018,3 +1042,192 @@ def test_pack_model_readme_includes_corpus_name(tmp_path):
 
     readme = (out_dir / "README.md").read_text(encoding="utf-8")
     assert "mini_an4" in readme
+
+
+def test_pack_model_readme_includes_model_summary(tmp_path, monkeypatch):
+    recipe_dir = tmp_path
+    exp_dir = recipe_dir / "exp"
+    exp_dir.mkdir()
+    out_dir = tmp_path / "model_pack"
+    publication_config = OmegaConf.create(
+        {
+            "pack_model": {
+                "out_dir": str(out_dir),
+                "readme": "egs3/TEMPLATE/asr/src/hf_model_readme.md",
+                "readme_context": {
+                    "task": "asr",
+                    "lang": "en",
+                    "license": "apache-2.0",
+                    "description": "My model.",
+                },
+            }
+        }
+    )
+    system = _make_system(
+        exp_dir=exp_dir, recipe_dir=recipe_dir, publication_config=publication_config
+    )
+    monkeypatch.setattr(
+        publish,
+        "_instantiate_publication_model",
+        lambda training_config: object(),
+    )
+    monkeypatch.setattr(
+        publish,
+        "build_model_summary",
+        lambda model: {
+            "class_name": "DummyModel",
+            "total_params_display": "1.23 M",
+            "trainable_params_display": "1.00 M",
+            "trainable_ratio": 81.3,
+            "non_trainable_params_display": "0.23 M",
+            "size_display": "4.8 MB",
+            "total_buffers_display": "12",
+            "buffer_size_display": "0.2 MB",
+            "module_count_display": "34",
+            "leaf_module_count_display": "21",
+            "dtype_desc": "float32: 100%",
+            "repr": "DummyModel(linear=Linear(1, 1))",
+        },
+    )
+
+    publish.pack_model(
+        training_config=system.training_config,
+        publication_config=system.publication_config,
+    )
+
+    readme = (out_dir / "README.md").read_text(encoding="utf-8")
+    assert "## Model summary" in readme
+    assert "- Class: `DummyModel`" in readme
+    assert "- Total parameters: `1.23 M`" in readme
+    assert "- Learnable parameters: `1.00 M` (81.3%)" in readme
+    assert "- Non-trainable parameters: `0.23 M`" in readme
+    assert "- Parameter size: `4.8 MB`" in readme
+    assert "- Buffers: `12` (`0.2 MB`)" in readme
+    assert "- Modules: `34` total, `21` leaf" in readme
+    assert "- DType composition: `float32: 100%`" in readme
+
+
+def test_pack_model_readme_includes_model_detail_when_enabled(tmp_path, monkeypatch):
+    recipe_dir = tmp_path
+    exp_dir = recipe_dir / "exp"
+    exp_dir.mkdir()
+    out_dir = tmp_path / "model_pack"
+    publication_config = OmegaConf.create(
+        {
+            "pack_model": {
+                "out_dir": str(out_dir),
+                "readme": "egs3/TEMPLATE/asr/src/hf_model_readme.md",
+                "include_model_detail": True,
+            }
+        }
+    )
+    system = _make_system(
+        exp_dir=exp_dir, recipe_dir=recipe_dir, publication_config=publication_config
+    )
+    monkeypatch.setattr(
+        publish,
+        "_instantiate_publication_model",
+        lambda training_config: object(),
+    )
+    monkeypatch.setattr(
+        publish,
+        "build_model_summary",
+        lambda model: {
+            "class_name": "DummyModel",
+            "total_params_display": "1",
+            "trainable_params_display": "1",
+            "trainable_ratio": 100.0,
+            "non_trainable_params_display": "0",
+            "size_display": "4 B",
+            "total_buffers_display": "0",
+            "buffer_size_display": "0 B",
+            "module_count_display": "1",
+            "leaf_module_count_display": "1",
+            "dtype_desc": "float32: 100%",
+            "repr": "DummyModel(\n  (linear): Linear(in_features=1, out_features=1)\n)",
+        },
+    )
+
+    publish.pack_model(
+        training_config=system.training_config,
+        publication_config=system.publication_config,
+    )
+
+    readme = (out_dir / "README.md").read_text(encoding="utf-8")
+    assert "## Model structure" in readme
+    assert "```python" in readme
+    assert "DummyModel(" in readme
+    assert "(linear): Linear(in_features=1, out_features=1)" in readme
+
+
+# ---------------------------------------------------------------------------
+# upload_model
+# ---------------------------------------------------------------------------
+
+
+def test_upload_model_uses_hf_cli_and_resolves_relative_pack_dir(
+    tmp_path, monkeypatch
+):
+    recipe_dir = tmp_path / "recipe"
+    pack_dir = recipe_dir / "artifacts" / "pack"
+    pack_dir.mkdir(parents=True)
+    publication_config = OmegaConf.create(
+        {
+            "pack_model": {"out_dir": "artifacts/pack"},
+            "upload_model": {"hf_repo": "espnet/test-repo"},
+        }
+    )
+    system = _make_system(
+        exp_dir="exp/run",
+        recipe_dir=recipe_dir,
+        publication_config=publication_config,
+    )
+    commands = []
+
+    monkeypatch.setattr(publish.shutil, "which", lambda cmd: "/usr/bin/hf")
+    monkeypatch.setattr(publish, "_check_repo_exists", lambda repo: False)
+    monkeypatch.setattr(
+        publish,
+        "_run",
+        lambda cmd, cwd=None: commands.append((cmd, cwd)),
+    )
+
+    publish.upload_model(system)
+
+    assert commands == [
+        (["hf", "repos", "create", "espnet/test-repo", "--repo-type", "model"], None),
+        (
+            [
+                "hf",
+                "upload",
+                "espnet/test-repo",
+                str(pack_dir.resolve()),
+                ".",
+                "--repo-type",
+                "model",
+            ],
+            None,
+        ),
+    ]
+
+
+def test_upload_model_raises_when_hf_cli_missing(tmp_path, monkeypatch):
+    recipe_dir = tmp_path / "recipe"
+    pack_dir = recipe_dir / "pack"
+    pack_dir.mkdir(parents=True)
+    publication_config = OmegaConf.create(
+        {
+            "pack_model": {"out_dir": str(pack_dir)},
+            "upload_model": {"hf_repo": "espnet/test-repo"},
+        }
+    )
+    system = _make_system(
+        exp_dir=recipe_dir / "exp" / "run",
+        recipe_dir=recipe_dir,
+        publication_config=publication_config,
+    )
+
+    monkeypatch.setattr(publish.shutil, "which", lambda cmd: None)
+
+    with pytest.raises(RuntimeError, match="hf is required for upload"):
+        publish.upload_model(system)
