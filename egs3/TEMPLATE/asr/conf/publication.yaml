@@ -76,7 +76,7 @@ pack_model:
 ##########################################################
 #                  UPLOAD MODEL SETTING                  #
 ##########################################################
-# Upload requires `huggingface-cli` and a valid Hugging Face login.
+# Upload requires `hf` and a valid Hugging Face login.
 # `upload_model` uploads `${pack_model.out_dir}` to this repo, creating it if
 # needed.
 upload_model:
