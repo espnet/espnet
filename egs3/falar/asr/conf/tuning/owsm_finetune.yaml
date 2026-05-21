@@ -5,6 +5,19 @@ create_dataset:
   recipe_dir: .
   cache_dir: ${hf_cache_dir}
 
+parallel:
+  env: slurm
+  n_workers: 8
+  options:
+    queue: cpu
+    cores: 1
+    processes: 1
+    memory: 32GB
+    walltime: 30:00
+    death_timeout: 300
+    job_extra_directives:
+      - "--cpus-per-task=4"
+
 dataset:
   train:
     - data_src_args:
@@ -25,6 +38,32 @@ dataset:
       data_src_args:
         split: test
         cache_dir: ${hf_cache_dir}
+  preprocessor:
+    _target_: espnet2.train.preprocessor.S2TPreprocessor
+    train: train
+    token_type: bpe
+    token_list: ${tokenizer.save_path}/tokens.txt
+    bpemodel: ${tokenizer.save_path}/bpe.model
+    text_prev_name: text_prev
+    text_ctc_name: text_ctc
+    fs: 16000
+    na_symbol: <na>
+    speech_length: 30
+    speech_resolution: 0.02
+    speech_init_silence: 30
+    text_prev_apply_prob: 0.5
+    time_apply_prob: 0.5
+    notime_symbol: <notimestamps>
+    first_time_symbol: <0.00>
+    last_time_symbol: <30.00>
+
+
+tokenizer:
+  vocab_size: 50002
+  character_coverage: 1.0
+  model_type: bpe
+  save_path: data/bpe_50000
+
 
 lr: 5e-6
 exp_tag: owsm_full_finetune
