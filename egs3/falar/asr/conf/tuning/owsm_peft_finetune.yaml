@@ -8,21 +8,25 @@ create_dataset:
 dataset:
   train:
     - data_src_args:
+        artifact_dir: ${recipe_dir}/data/falar_arkive
         split: train
         ratio: ${dataset_ratio}
         cache_dir: ${hf_cache_dir}
   valid:
     - data_src_args:
+        artifact_dir: ${recipe_dir}/data/falar_arkive
         split: valid
         ratio: ${dataset_ratio}
         cache_dir: ${hf_cache_dir}
   test:
     - name: valid
       data_src_args:
+        artifact_dir: ${recipe_dir}/data/falar_arkive
         split: valid
         cache_dir: ${hf_cache_dir}
     - name: test
       data_src_args:
+        artifact_dir: ${recipe_dir}/data/falar_arkive
         split: test
         cache_dir: ${hf_cache_dir}
 

@@ -1,6 +1,12 @@
 builder:
   hf_dataset: inesc-id/FalAR
   prepare_state_path: download/falar_prepare_state.json
+  cache_dir: download/hf_cache
+  artifact_root: data/falar_arkive
+  build_state_path: data/falar_arkive/build_state.json
+  manifest_filename: manifest.jsonl
+  audio_basename: audio
+  target_format: wav
 
 dataset:
   audio_column: wav

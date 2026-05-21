@@ -37,9 +37,11 @@ dataset:
   test:
     - name: valid
       data_src_args:
+        artifact_dir: ${recipe_dir}/data/falar_arkive
         split: valid
     - name: test
       data_src_args:
+        artifact_dir: ${recipe_dir}/data/falar_arkive
         split: test
 
 ##########################################################

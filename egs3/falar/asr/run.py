@@ -4,7 +4,7 @@ from egs3.TEMPLATE.asr.run import (
     main,
     parse_cli_and_stage_args,
 )
-from espnet3.systems.asr.system import ASRSystem
+from egs3.falar.asr.system import FalarASRSystem
 
 if __name__ == "__main__":
     parser = build_parser(
@@ -14,6 +14,6 @@ if __name__ == "__main__":
 
     main(
         args=args,
-        system_cls=ASRSystem,
+        system_cls=FalarASRSystem,
         stages=DEFAULT_STAGES,
     )
