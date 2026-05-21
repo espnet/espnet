@@ -10,6 +10,11 @@ from typing import List, Sequence
 
 from espnet3.utils.config_utils import load_and_merge_config
 from espnet3.utils.logging_utils import configure_logging
+from espnet3.utils.run_utils import (
+    apply_training_experiment_context,
+    resolve_loaded_configs,
+    validate_experiment_context,
+)
 from espnet3.utils.stages_utils import (
     parse_cli_and_stage_args,
     resolve_stages,
@@ -93,19 +98,35 @@ def main(
         args.training_config,
         config_name="training.yaml",
         default_package=__package__,
+        resolve=False,
     )
     inference_config = load_and_merge_config(
         args.inference_config,
         config_name="inference.yaml",
         default_package=__package__,
+        resolve=False,
     )
     metrics_config = load_and_merge_config(
         args.metrics_config,
         config_name="metrics.yaml",
         default_package=__package__,
+        resolve=False,
     )
 
     logger = configure_logging()
+    apply_training_experiment_context(
+        training_config=training_config,
+        inference_config=inference_config,
+        metrics_config=metrics_config,
+        log=logger,
+    )
+    validate_experiment_context(
+        training_config=training_config,
+        inference_config=inference_config,
+        metrics_config=metrics_config,
+        stages_to_run=stages_to_run,
+    )
+    resolve_loaded_configs(training_config, inference_config, metrics_config)
 
     # -----------------------------------------
     # Instantiate system

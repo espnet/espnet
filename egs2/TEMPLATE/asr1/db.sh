@@ -231,6 +231,7 @@ CLOTHO_CHATGPT_MIXUP=
 EDACC=downloads
 IPAPACK_PLUS=downloads
 GALAXY=
+EMILIA=downloads
 
 
 # For only CMU TIR environment
@@ -270,6 +271,7 @@ if [[ "$(hostname)" == tir* ]]; then
     AISHELL=/projects/tir5/data/speech_corpora/Aishell
     LIBRISPEECH=/projects/tir5/data/speech_corpora/LibriSpeech
     SLURP=/projects/tir5/data/speech_corpora/SLURP
+    EMILIA=
 fi
 
 # For only JHU environment
@@ -379,5 +381,6 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     TOTONAC=downloads
     GOOGLEI18N=downloads
     MALAYALAM=
+    EMILIA=
 
 fi

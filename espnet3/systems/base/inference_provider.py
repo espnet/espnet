@@ -128,17 +128,17 @@ class InferenceProvider(EnvironmentProvider, ABC):
     def build_dataset(config: DictConfig):
         """Construct and return the dataset instance.
 
-        Implemented by subclasses to build a dataset from ``config``.
-        During parallel or distributed execution, the ``config`` object passed here
-        is the configuration that the user passed when instantiating the class.
+        Build a ``DataOrganizer`` from ``config.dataset`` and return the selected
+        test set. During parallel or distributed execution, the ``config`` object
+        passed here is the configuration that the user passed when instantiating
+        the class.
 
         Args:
-            config (DictConfig): Configuration object for dataset
-                parameters (e.g., data directory, preprocessing pipeline,
-                features, split).
+            config (DictConfig): Configuration object that includes a plain
+                ``dataset`` organizer config and ``test_set``.
 
         Returns:
-            Any: Dataset object (type defined by subclass).
+            Any: Dataset object resolved from ``organizer.test[test_set]``.
 
         Raises:
             NotImplementedError: Always in the base class; implement in subclass.
@@ -146,9 +146,18 @@ class InferenceProvider(EnvironmentProvider, ABC):
         Example:
             >>> # Minimal sketch; actual keys depend on your subclass
             >>> from omegaconf import OmegaConf
-            >>> config = OmegaConf.create({
-            >>>     "dataset": {"path": "data/test", "split": "test"}
-            >>> })
+            >>> config = OmegaConf.create(
+            ...     {
+            ...         "dataset": {
+            ...             "test": [
+            ...                 {
+            ...                     "name": "test",
+            ...                     "data_src_args": {"split": "test"},
+            ...                 }
+            ...             ]
+            ...         },
+            ...     }
+            ... )
             >>> ds = MyInferenceProvider.build_dataset(config)
 
         Notes:
@@ -202,13 +211,60 @@ class InferenceProvider(EnvironmentProvider, ABC):
         if isinstance(config, dict):
             config = OmegaConf.create(config)
 
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-        if device == "cuda":
-            device_id = os.getenv("CUDA_VISIBLE_DEVICES", "0").split(",")[0].strip()
-            device = f"cuda:{device_id}"
+        device = InferenceProvider._resolve_device(config)
         logger.info(
-            "Instantiating model %s on %s",
+            "Instantiating model %s on %s (CUDA_VISIBLE_DEVICES=%s, visible_gpus=%s)",
             getattr(config.model, "_target_", None),
             device,
+            os.getenv("CUDA_VISIBLE_DEVICES"),
+            torch.cuda.device_count() if torch.cuda.is_available() else 0,
         )
         return instantiate(config.model, device=device)
+
+    @staticmethod
+    def _resolve_device(config: DictConfig) -> str:
+        """Resolve the logical device visible to the current process.
+
+        Resolution order:
+            1. Explicit `config.device`
+            2. Logical index from `config.device_index`
+            3. Logical index from `config.local_rank`
+            4. Logical index from `LOCAL_RANK`
+            5. Default to the current worker-visible CUDA device (`cuda:0`)
+            6. Fall back to CPU when CUDA is unavailable
+
+        Notes:
+            - Do not reinterpret `CUDA_VISIBLE_DEVICES` as a physical device id.
+              Dask/schedulers may remap visible devices per worker process.
+            - `device_index` and `local_rank` are treated as logical indices in the
+              current process namespace.
+        """
+        explicit_device = getattr(config, "device", None)
+        if explicit_device not in (None, ""):
+            return str(explicit_device)
+
+        if not torch.cuda.is_available():
+            return "cpu"
+
+        raw_index = None
+        for key in ("device_index", "local_rank"):
+            value = getattr(config, key, None)
+            if value not in (None, ""):
+                raw_index = value
+                break
+        if raw_index is None:
+            env_local_rank = os.getenv("LOCAL_RANK")
+            if env_local_rank not in (None, ""):
+                raw_index = env_local_rank
+
+        if raw_index is None:
+            return "cuda:0"
+
+        device_index = int(raw_index)
+        visible_gpus = torch.cuda.device_count()
+        if device_index < 0 or device_index >= visible_gpus:
+            raise RuntimeError(
+                f"Invalid CUDA device index {device_index} for the current process; "
+                f"visible GPU count is {visible_gpus}."
+            )
+        return f"cuda:{device_index}"

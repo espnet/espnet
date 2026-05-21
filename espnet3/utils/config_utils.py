@@ -8,10 +8,8 @@ from pathlib import Path
 from omegaconf import DictConfig, ListConfig, OmegaConf
 
 # Used to rewrite relative paths in resolver expressions such as
-# `${load_yaml:conf/train.yaml,...}` during config loading.
-_RELATIVE_RESOLVER_PATTERN = re.compile(
-    r"\$\{(?P<resolver>load_line|load_yaml):(?P<path>[^,}]+)"
-)
+# `${load_line:conf/tokens.txt}` during config loading.
+_RELATIVE_RESOLVER_PATTERN = re.compile(r"\$\{(?P<resolver>load_line):(?P<path>[^,}]+)")
 
 
 def load_line(path):
@@ -40,65 +38,44 @@ def load_line(path):
         raise
 
 
-def load_yaml(path, key=None):
-    """Load a YAML file and optionally return a nested key.
+def self_name(path):
+    """Return the current config stem for `${self_name:}` interpolation.
 
-    This resolver is intended for pulling a single value from another config,
-    e.g., `${load_yaml:conf/train.yaml,exp_tag}`.
-    The path is interpreted relative to the YAML file that contains the
-    resolver expression, not relative to the current working directory.
+    This resolver supports config values such as `exp_tag: ${self_name:}`.
+    During config loading, `load_config_with_defaults()` rewrites that
+    interpolation to the stem of the YAML file currently being processed.
 
-    Example directory structure:
-        conf/
-          training.yaml
-          inference.yaml
-
-    Example values:
-        # conf/training.yaml
-        exp_tag: train_debug
-        output_dir: ./exp/train_debug
-
-        # conf/inference.yaml
-        exp_tag: ${load_yaml:training.yaml,exp_tag}
-        output_dir: ${load_yaml:training.yaml,output_dir}
-
-    In this case, `training.yaml` is resolved relative to `conf/inference.yaml`,
-    so both values can be loaded without using an absolute path.
-
-    Note:
-        Resolver paths are usually written without surrounding quotes, such as
-        `${load_yaml:training.yaml,exp_tag}`. Quoted paths are also supported
-        when the path contains spaces.
+    The resolver itself is intentionally a passthrough because OmegaConf only
+    passes explicit resolver arguments to callbacks. The actual config-name
+    injection happens earlier in `_normalize_relative_resolver_paths()`, which
+    replaces `${self_name:}` with the plain config stem before resolution.
 
     Args:
-        path (str or Path): Path to the YAML file.
-        key (str, optional): Dot-delimited key to select.
+        path (str): Config stem passed explicitly to the resolver, such as
+            `training` or `inference`.
 
     Returns:
-        Any: The selected value or the full config if key is None.
+        str: The injected config stem unchanged.
+
+    Notes:
+        This resolver is intended for ESPnet config composition. It is
+        primarily consumed from YAML rather than called directly from Python.
+
+    Examples:
+        In a config file named `training.yaml`:
+
+            exp_tag: ${self_name:}
+
+        The expression is rewritten during loading to:
+
+            training
     """
-    cfg_path = Path(path)
-    try:
-        cfg = OmegaConf.load(cfg_path)
-    except FileNotFoundError:
-        logging.error(f"File not found: {path}")
-        raise
-    except PermissionError:
-        logging.error(f"Permission denied when accessing file: {path}")
-        raise
-
-    if key is None or str(key).strip() == "":
-        return cfg
-
-    value = OmegaConf.select(cfg, str(key), default=None)
-    if value is None:
-        raise KeyError(f"Key not found in YAML: {key}")
-    return value
+    return path
 
 
 OMEGACONF_ESPNET3_RESOLVER = {
     "load_line": load_line,
-    "load_yaml": load_yaml,
+    "self_name": self_name,
 }
 for name, resolver in OMEGACONF_ESPNET3_RESOLVER.items():
     OmegaConf.register_new_resolver(name, resolver)
@@ -109,6 +86,7 @@ def _process_dict_config_entry(
     entry: DictConfig,
     base_path: Path,
     resolve: bool = True,
+    bind_self_name: bool = True,
 ) -> list:
     results = []
     for key, val in entry.items():
@@ -121,9 +99,83 @@ def _process_dict_config_entry(
         composed = f"{key}/{val}" if "/" not in val else val
         config_path = _build_config_path(base_path, composed)
         results.append(
-            {key: load_config_with_defaults(str(config_path), resolve=resolve)}
+            {
+                key: _load_config_with_defaults(
+                    str(config_path),
+                    resolve=resolve,
+                    bind_self_name=bind_self_name,
+                )
+            }
         )
     return results
+
+
+def _load_config_with_defaults(
+    path: str, resolve: bool = True, bind_self_name: bool = True
+) -> OmegaConf:
+    """Load a config while optionally deferring `${self_name:}` binding."""
+    config_path = Path(path)
+    base_path = config_path.parent
+    main_config = OmegaConf.load(path)
+    # OmegaConf resolvers only receive their explicit arguments, so resolver
+    # callbacks cannot know which parent YAML file referenced them. Rewrite
+    # relative resolver paths here while we still know the path of the file
+    # currently being loaded.
+    _normalize_relative_resolver_paths(
+        main_config,
+        base_path,
+        config_path.stem if bind_self_name else None,
+    )
+    config_self = main_config.copy()
+
+    if "defaults" not in main_config:
+        return config_self
+
+    merged_configs = []
+    self_merged = False
+
+    for entry in main_config.defaults:
+        if isinstance(entry, str):
+            if entry == "_self_":
+                merged_configs.append(config_self)
+                self_merged = True
+            else:
+                config_path = _build_config_path(base_path, entry)
+                merged_configs.append(
+                    _load_config_with_defaults(
+                        str(config_path),
+                        resolve=resolve,
+                        bind_self_name=bind_self_name,
+                    )
+                )
+
+        elif isinstance(entry, DictConfig):
+            merged_configs.extend(
+                _process_dict_config_entry(
+                    entry,
+                    base_path,
+                    resolve=resolve,
+                    bind_self_name=bind_self_name,
+                )
+            )
+
+        elif entry == "_self_":
+            merged_configs.append(config_self)
+            self_merged = True
+
+    if not self_merged:
+        merged_configs.append(config_self)
+
+    final_config = OmegaConf.merge(*merged_configs)
+
+    if resolve:
+        OmegaConf.resolve(final_config)
+
+    if "defaults" in final_config:
+        del final_config["defaults"]
+
+    _ensure_target_convert_all(final_config)
+    return final_config
 
 
 def load_config_with_defaults(path: str, resolve: bool = True) -> OmegaConf:
@@ -158,54 +210,20 @@ def load_config_with_defaults(path: str, resolve: bool = True) -> OmegaConf:
     Returns:
         OmegaConf.DictConfig: Fully resolved and merged configuration object.
     """
-    base_path = Path(path).parent
-    main_config = OmegaConf.load(path)
-    # OmegaConf resolvers only receive their explicit arguments, so load_yaml
-    # itself cannot know which parent YAML file referenced it. Rewrite
-    # relative resolver paths here while we still know the path of the file
-    # currently being loaded.
-    _normalize_relative_resolver_paths(main_config, base_path)
-    config_self = main_config.copy()
+    return _load_config_with_defaults(path, resolve=resolve, bind_self_name=True)
 
-    if "defaults" not in main_config:
-        return config_self
 
-    merged_configs = []
-    self_merged = False
-
-    for entry in main_config.defaults:
-        if isinstance(entry, str):
-            if entry == "_self_":
-                merged_configs.append(config_self)
-                self_merged = True
-            else:
-                config_path = _build_config_path(base_path, entry)
-                merged_configs.append(
-                    load_config_with_defaults(str(config_path), resolve=resolve)
-                )
-
-        elif isinstance(entry, DictConfig):
-            merged_configs.extend(
-                _process_dict_config_entry(entry, base_path, resolve=resolve)
-            )
-
-        elif entry == "_self_":
-            merged_configs.append(config_self)
-            self_merged = True
-
-    if not self_merged:
-        merged_configs.append(config_self)
-
-    final_config = OmegaConf.merge(*merged_configs)
-
-    if resolve:
-        OmegaConf.resolve(final_config)
-
-    if "defaults" in final_config:
-        del final_config["defaults"]
-
-    _ensure_target_convert_all(final_config)
-    return final_config
+def _load_default_config(
+    config_name: str,
+    default_package: str,
+    bind_self_name: bool = True,
+):
+    """Load a packaged default config while optionally deferring self-name binding."""
+    resource = resources.files(default_package).joinpath("conf", config_name)
+    with resources.as_file(resource) as path:
+        return _load_config_with_defaults(
+            str(path), resolve=False, bind_self_name=bind_self_name
+        )
 
 
 def load_default_config(
@@ -246,15 +264,18 @@ def load_default_config(
         resources, with interpolation resolution deferred so it can be merged
         with user overrides first.
     """
-    resource = resources.files(default_package).joinpath("conf", config_name)
-    with resources.as_file(resource) as path:
-        return load_config_with_defaults(str(path), resolve=False)
+    return _load_default_config(
+        config_name,
+        default_package,
+        bind_self_name=True,
+    )
 
 
 def load_and_merge_config(
     config_path: Path | None,
     config_name: str,
     default_package: str | None = None,
+    resolve: bool = True,
 ):
     """Load a user config and merge it with packaged default values.
 
@@ -293,8 +314,9 @@ def load_and_merge_config(
             `egs3.TEMPLATE.asr`.
 
     Returns:
-        OmegaConf.DictConfig | None: The merged config with interpolations
-        resolved after merging, or `None` if `config_path` is `None`.
+        OmegaConf.DictConfig | None: The merged config. Interpolations are
+        resolved after merging when ``resolve`` is ``True``. Returns ``None``
+        if ``config_path`` is ``None``.
     """
     if config_path is None:
         return None
@@ -304,10 +326,20 @@ def load_and_merge_config(
         raise ValueError(
             "default_package is required when it cannot be inferred from config_path"
         )
-    default_cfg = load_default_config(config_name, default_package)
-    user_cfg = load_config_with_defaults(str(config_path), resolve=False)
+    default_cfg = _load_default_config(
+        config_name,
+        default_package,
+        bind_self_name=False,
+    )
+    user_cfg = _load_config_with_defaults(
+        str(config_path),
+        resolve=False,
+        bind_self_name=False,
+    )
     merged_cfg = OmegaConf.merge(default_cfg, user_cfg)
-    OmegaConf.resolve(merged_cfg)
+    _normalize_relative_resolver_paths(merged_cfg, config_path.parent, config_path.stem)
+    if resolve:
+        OmegaConf.resolve(merged_cfg)
     _ensure_target_convert_all(merged_cfg)
     return merged_cfg
 
@@ -323,35 +355,41 @@ def _ensure_target_convert_all(cfg) -> None:
             _ensure_target_convert_all(value)
 
 
-def _normalize_relative_resolver_paths(cfg, base_path: Path) -> None:
+def _normalize_relative_resolver_paths(
+    cfg, base_path: Path, config_name: str | None
+) -> None:
     # This runs during config loading rather than inside load_yaml/load_line
     # because the resolver callback cannot access the path of the parent YAML.
     if isinstance(cfg, DictConfig):
         for key in list(cfg.keys()):
             value = cfg._get_node(key)
             if isinstance(value, (DictConfig, ListConfig)):
-                _normalize_relative_resolver_paths(value, base_path)
+                _normalize_relative_resolver_paths(value, base_path, config_name)
             else:
                 raw_value = value._value()
                 if isinstance(raw_value, str):
+                    if config_name is not None:
+                        raw_value = raw_value.replace("${self_name:}", config_name)
                     cfg[key] = _rewrite_relative_resolver_paths(raw_value, base_path)
     elif isinstance(cfg, ListConfig):
         for idx in range(len(cfg)):
             value = cfg._get_node(idx)
             if isinstance(value, (DictConfig, ListConfig)):
-                _normalize_relative_resolver_paths(value, base_path)
+                _normalize_relative_resolver_paths(value, base_path, config_name)
             else:
                 raw_value = value._value()
                 if isinstance(raw_value, str):
+                    if config_name is not None:
+                        raw_value = raw_value.replace("${self_name:}", config_name)
                     cfg[idx] = _rewrite_relative_resolver_paths(raw_value, base_path)
 
 
 def _rewrite_relative_resolver_paths(value: str, base_path: Path) -> str:
     """Rewrite relative resolver paths to absolute paths for the current config.
 
-    For example, if `value` contains `${load_yaml:training.yaml,exp_tag}` and
-    the current config lives under `conf/`, this rewrites the resolver path to
-    point at `conf/training.yaml` before OmegaConf resolves the expression.
+    For example, if `value` contains `${load_line:tokens.txt}` and the current
+    config lives under `conf/`, this rewrites the resolver path to point at
+    `conf/tokens.txt` before OmegaConf resolves the expression.
     Absolute paths and dynamic paths are left unchanged.
     """
 

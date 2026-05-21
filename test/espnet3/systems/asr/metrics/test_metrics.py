@@ -2,6 +2,8 @@ from pathlib import Path
 
 import pytest
 
+import espnet3.systems.asr.metrics.cer as cer_module
+import espnet3.systems.asr.metrics.wer as wer_module
 from espnet3.systems.asr.metrics.cer import CER
 from espnet3.systems.asr.metrics.wer import WER
 
@@ -61,3 +63,25 @@ def test_wer_rejects_unaligned_utt_ids(tmp_path: Path):
     else:
         with pytest.raises(AssertionError, match="UID mismatch"):
             metric(data, "test-clean", tmp_path)
+
+
+def test_wer_clean_uses_placeholder_for_empty_text():
+    assert WER()._clean("   ") == "."
+
+
+def test_cer_clean_uses_placeholder_for_empty_text():
+    assert CER()._clean("   ") == "."
+
+
+def test_wer_requires_jiwer(monkeypatch):
+    monkeypatch.setattr(wer_module, "jiwer", None)
+
+    with pytest.raises(RuntimeError, match="jiwer is required to compute WER"):
+        WER()._ensure_jiwer()
+
+
+def test_cer_requires_jiwer(monkeypatch):
+    monkeypatch.setattr(cer_module, "jiwer", None)
+
+    with pytest.raises(RuntimeError, match="jiwer is required to compute CER"):
+        CER()._ensure_jiwer()

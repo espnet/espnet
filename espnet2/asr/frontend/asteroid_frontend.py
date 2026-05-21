@@ -90,7 +90,7 @@ class AsteroidFrontend(AbsFrontend):
             len(input.size()) == 2
         ), "The number of dimensions of input tensor must be 2!"
 
-        with torch.cuda.amp.autocast(enabled=False):
+        with torch.amp.autocast("cuda", enabled=False):
             # reflect padding to match lengths of in/out
             x = input.unsqueeze(1)
             x = F.pad(x, (1, 0), "reflect")

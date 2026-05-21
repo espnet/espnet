@@ -12,30 +12,56 @@
 #                    PATHS AND INPUTS                    #
 ##########################################################
 recipe_dir: .
+# Common case:
+# - pass both `--training_config` and `--inference_config`
+# - `run.py` copies `training_config.exp_tag` / `training_config.exp_dir` here
+# - `${self_name:}` resolves to the stem of the config file passed to
+#   `--inference_config`
+# - if `inference_dir` is omitted, `conf/<name>.yaml` becomes `${exp_dir}/<name>`
+# Override `inference_dir` only when you want a different output location.
 exp_tag:
 exp_dir: ${recipe_dir}/exp/${exp_tag}
 data_dir: ${recipe_dir}/data
-inference_dir: ${exp_dir}/inference
+inference_dir: ${exp_dir}/${self_name:}
+
+# If inference needs access to manifests under the same dataset root as
+# training, define `dataset_dir` here by reusing the training config instead of
+# hardcoding a dataset name again.
+#
+# Example:
+# dataset_dir: ${recipe_dir}/data
 
 
 # Test split definitions are required for inference.
-# `dataset.test[*].name` becomes the output subdirectory name under
-# `${inference_dir}`.
+# Each item in `dataset.test` is a dataset reference entry.
+# - `name` becomes the output subdirectory name under `${inference_dir}`
+# - `data_src` can be a `<recipe>/<task>` tag, a dotted module path, or be
+#   omitted to load `${recipe_dir}/dataset/__init__.py`
+# - `data_src_args` is forwarded to `Dataset(...)`
+# - `transform` is optional and runs before `preprocessor`
+#
+# Only `data_src_args` is passed to the recipe `Dataset` constructor.
+# Top-level fields such as `name` and `transform` are consumed by
+# `DataOrganizer`.
 #
 # Example:
 # dataset:
-#   _target_: espnet3.components.data.data_organizer.DataOrganizer
 #   test:
-#     - name: test-clean
-#       dataset:
-#         _target_: src.dataset.YourDataset
-#         manifest_path: ${dataset_dir}/manifest/test-clean.tsv
-#     - name: test-other
-#       dataset:
-#         _target_: src.dataset.YourDataset
-#         manifest_path: ${dataset_dir}/manifest/test-other.tsv
+#     - name: librispeech_test_clean
+#       data_src: librispeech/asr
+#       data_src_args:
+#         split: test_clean
+#         data_path: ${dataset_dir}
+#     - name: local_eval
+#       data_src_args:
+#         split: test
+#
+# When training already defines `dataset_dir`, prefer referencing that shared
+# location rather than requiring users to specify a second dataset path just
+# for inference.
 dataset:
   _target_: espnet3.components.data.data_organizer.DataOrganizer
+  recipe_dir: ${recipe_dir}
   test:
   preprocessor:
 
@@ -83,13 +109,47 @@ input_key: speech
 
 # Optional recipe-provided formatter that converts raw model outputs into dicts such as:
 #   {"utt_id": "...", "hyp": "..."}
-# or
-#   {"utt_id": "...", "hyp": ["nbest1", "nbest2"]}
-# List outputs are expanded to `hyp0.scp`, `hyp1.scp`, ...
 # If omitted, the model output itself must already be a dict (or a list of dicts
 # for batched inference) and must contain `utt_id` unless `idx_key` is
 # overridden.
+#
+# Each output field must be a single value.
+# - Primitive values (`str`, `int`, `float`, `bool`) are written directly to SCP.
+# - `dict` values are serialized as JSON artifacts and the artifact path is
+#   written to SCP.
+# - Bare top-level `list` / `tuple` outputs are not supported.
 output_fn: src.inference.build_output
+
+# Optional artifact writers for non-scalar outputs.
+# Primitive values (str/int/float/bool) are written directly into SCP files.
+# Non-primitive values can be saved under:
+#   `${inference_dir}/<test_name>/<field>/<utt_id>.*`
+# and the generated file path is written to the SCP entry.
+#
+# Supported built-in types:
+#   - wav    : requires `sample_rate`
+#   - npy
+#   - json
+#   - pickle
+#
+# If an output field is a `dict`, it is saved as JSON by default. Any nested
+# lists inside that dict are preserved through JSON serialization.
+#
+# You can either declare a built-in type here, or provide a custom writer via
+# `_target_`. Custom writers must return the written file path.
+#
+# output_artifacts:
+#   audio:
+#     type: wav
+#     sample_rate: 16000
+#   posterior:
+#     type: npy
+#   debug_obj:
+#     type: pickle
+#   custom_field:
+#     writer:
+#       _target_: src.inference.write_custom_artifact
+#       some_option: 123
 
 ##########################################################
 #               PROVIDER AND RUNNER SETTING              #

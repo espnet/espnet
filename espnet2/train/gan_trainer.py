@@ -7,11 +7,15 @@ import argparse
 import dataclasses
 import logging
 import time
-from contextlib import contextmanager
 from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
 import torch
-from packaging.version import parse as V
+from torch.amp import autocast
+
+try:
+    from torch.amp import GradScaler
+except ImportError:
+    from torch.cuda.amp import GradScaler
 from torch.nn.parallel import DistributedDataParallel as DDP
 from typeguard import typechecked
 
@@ -27,15 +31,6 @@ from espnet2.utils.types import str2bool
 if torch.distributed.is_available():
     from torch.distributed import ReduceOp
 
-if V(torch.__version__) >= V("1.6.0"):
-    from torch.cuda.amp import GradScaler, autocast
-else:
-    # Nothing to do if torch<1.6.0
-    @contextmanager
-    def autocast(enabled=True):  # NOQA
-        yield
-
-    GradScaler = None
 
 try:
     import fairscale
@@ -166,7 +161,7 @@ class GANTrainer(Trainer):
                             raise RuntimeError("cannot get model for cache cleaning")
                         continue
 
-                with autocast(scaler is not None):
+                with autocast("cuda", enabled=scaler is not None):
                     with reporter.measure_time(f"{turn}_forward_time"):
                         retval = model(forward_generator=turn == "generator", **batch)
 

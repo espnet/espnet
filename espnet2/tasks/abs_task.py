@@ -96,10 +96,7 @@ try:
 except Exception:
     wandb = None
 
-if V(torch.__version__) >= V("1.5.0"):
     from torch.multiprocessing.spawn import ProcessContext
-else:
-    from torch.multiprocessing.spawn import SpawnContext as ProcessContext
 
 
 optim_classes = dict(
@@ -113,12 +110,8 @@ optim_classes = dict(
     lbfgs=torch.optim.LBFGS,
     rmsprop=torch.optim.RMSprop,
     rprop=torch.optim.Rprop,
+    radam=torch.optim.RAdam,
 )
-if V(torch.__version__) >= V("1.10.0"):
-    # From 1.10.0, RAdam is officially supported
-    optim_classes.update(
-        radam=torch.optim.RAdam,
-    )
 try:
     import torch_optimizer
 
@@ -2512,6 +2505,10 @@ class AbsTask(ABC):
                 # for deepspeed checkpoints
                 if "module" in state_dict:
                     state_dict = state_dict["module"]
+                # for lightning checkpoints
+                if "state_dict" in state_dict:
+                    state_dict = state_dict["state_dict"]
+
                 model.load_state_dict(
                     state_dict,
                     strict=False,

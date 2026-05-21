@@ -214,7 +214,7 @@ class USES2_Comp(nn.Module):
             ret.append(out)
 
         output = torch.cat(ret, dim=-1)[..., :T]
-        with torch.cuda.amp.autocast(enabled=False):
+        with torch.amp.autocast("cuda", enabled=False):
             output = self.output(output.mean(1))  # B, output_size, F, T
         return output
 

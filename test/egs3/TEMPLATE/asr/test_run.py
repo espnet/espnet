@@ -11,12 +11,14 @@ def test_load_default_config_train_contains_expected_targets() -> None:
     assert (
         cfg.dataset._target_ == "espnet3.components.data.data_organizer.DataOrganizer"
     )
+    assert cfg.dataset.recipe_dir == "."
     assert cfg.optimizer._target_ == "torch.optim.Adam"
     assert cfg.scheduler._target_ == "espnet2.schedulers.warmup_lr.WarmupLR"
 
 
 def test_load_default_config_infer_contains_expected_targets() -> None:
     cfg = load_default_config("inference.yaml", "egs3.TEMPLATE.asr")
+    assert cfg.dataset.recipe_dir == "."
     assert (
         cfg.provider._target_
         == "espnet3.systems.base.inference_provider.InferenceProvider"

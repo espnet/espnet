@@ -9,6 +9,7 @@ from omegaconf import DictConfig, OmegaConf
 
 from espnet3.parallel.parallel import set_parallel
 from espnet3.systems.base.inference_runner import _load_output_fn
+from espnet3.utils.writer_utils import write_artifact
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +28,6 @@ def _collect_scp_lines(results, idx_key: str, hyp_keys, ref_keys):
     scp_lines = {}
     hyp_keys = list(hyp_keys) if isinstance(hyp_keys, (list, tuple)) else [hyp_keys]
     ref_keys = list(ref_keys) if isinstance(ref_keys, (list, tuple)) else [ref_keys]
-    list_sizes = {key: None for key in (*hyp_keys, *ref_keys)}
 
     for result in results:
         if not isinstance(result, dict):
@@ -44,38 +44,118 @@ def _collect_scp_lines(results, idx_key: str, hyp_keys, ref_keys):
         for field_key in (*ref_keys, *hyp_keys):
             value = result[field_key]
             if isinstance(value, (list, tuple)):
-                if list_sizes[field_key] is None:
-                    list_sizes[field_key] = len(value)
-                elif list_sizes[field_key] != len(value):
-                    raise ValueError(
-                        f"List length mismatch for '{field_key}': "
-                        f"expected {list_sizes[field_key]}, got {len(value)}"
-                    )
-                for i, entry in enumerate(value):
-                    if isinstance(entry, (list, tuple)):
-                        raise TypeError(f"Nested list is not allowed for '{field_key}'")
-                    scp_key = f"{field_key}{i}"
-                    scp_lines.setdefault(scp_key, []).append(f"{idx_value} {entry}")
-            else:
-                if list_sizes[field_key] is not None:
-                    raise TypeError(
-                        f"'{field_key}' must be a list when list outputs are used"
-                    )
-                scp_lines.setdefault(field_key, []).append(f"{idx_value} {value}")
+                raise TypeError(
+                    f"Top-level list outputs are not supported for '{field_key}'. "
+                    "Return a single value per field, or wrap structured content in a "
+                    "dict so it can be saved as JSON."
+                )
+            scp_lines.setdefault(field_key, []).append(f"{idx_value} {value}")
 
     return scp_lines
+
+
+def _is_scp_scalar(value) -> bool:
+    return isinstance(value, (str, int, float, bool))
+
+
+def _materialize_output_value(
+    *,
+    idx_value,
+    field_key: str,
+    value,
+    output_dir: Path,
+    artifact_config: dict | None,
+):
+    if _is_scp_scalar(value):
+        return value
+
+    if isinstance(value, (list, tuple)):
+        raise TypeError(
+            f"Top-level list outputs are not supported for '{field_key}'. "
+            "Return a single value per field, or wrap structured content in a "
+            "dict so it can be saved as JSON."
+        )
+
+    artifact_dir = output_dir / field_key
+    artifact_dir.mkdir(parents=True, exist_ok=True)
+    target = artifact_dir / str(idx_value)
+    artifact_path = write_artifact(value, target, field_config=artifact_config)
+    return artifact_path.as_posix()
 
 
 def infer(config: DictConfig):
     """Run inference over all configured test sets and write SCP files.
 
+    This entrypoint expects each inference result to be a dict containing a
+    sample identifier under ``utt_id`` (or the configured ``idx_key``), plus
+    one value per output field. The final SCP files are always written under:
+
+    .. code-block:: text
+
+        ${inference_dir}/<test_name>/<field>.scp
+
+    where each line is:
+
+    .. code-block:: text
+
+        <utt_id> <value_or_path>
+
+    Primitive values are written directly into SCP files.
+
+    Example return value from ``output_fn`` or directly from the inference
+    model:
+
+    .. code-block:: python
+
+        {"utt_id": "utt1", "hyp": "hello world"}
+
+    Generated SCP:
+
+    .. code-block:: text
+
+        inference_dir/test-clean/hyp.scp
+          utt1 hello world
+
+    Non-scalar values are serialized through
+    :func:`espnet3.utils.writer_utils.write_artifact`. That function documents
+    the detailed rules for JSON, NPY, pickle, WAV, and custom writer cases.
+
+    Example WAV configuration:
+
+    .. code-block:: yaml
+
+        output_artifacts:
+          audio:
+            type: wav
+            sample_rate: 16000
+
+    Example return value from ``output_fn``:
+
+    .. code-block:: python
+
+        {"utt_id": "utt1", "audio": waveform_numpy}
+
+    Top-level ``list`` / ``tuple`` outputs are not supported. Each output
+    field must be a single value. If you need structured content, return a
+    ``dict`` and let it be serialized as JSON.
+
     Args:
-        config: Hydra/omegaconf configuration with dataset and inference settings.
+        config: Hydra/OmegaConf configuration containing the dataset,
+            inference directory, provider/runner definitions, and optional
+            ``output_artifacts`` writer settings.
     """
     start = time.perf_counter()
     set_parallel(config.parallel)
 
-    test_sets = [test_set.name for test_set in config.dataset.test]
+    test_sets = []
+    for index, test_set in enumerate(config.dataset.test):
+        name = getattr(test_set, "name", None)
+        if not isinstance(name, str) or not name:
+            raise RuntimeError(
+                "inference_config.dataset.test entries must define non-empty `name` "
+                f"(failed at index {index})."
+            )
+        test_sets.append(name)
     assert len(test_sets) > 0, "No test set found in dataset"
     assert len(test_sets) == len(set(test_sets)), "Duplicate test key found."
 
@@ -172,6 +252,25 @@ def infer(config: DictConfig):
             if not output_keys:
                 raise RuntimeError("No output keys found in inference results.")
 
+        output_dir = Path(config.inference_dir) / test_name
+        output_dir.mkdir(parents=True, exist_ok=True)
+        artifact_configs = getattr(config, "output_artifacts", {}) or {}
+        if OmegaConf.is_config(artifact_configs):
+            artifact_configs = OmegaConf.to_container(artifact_configs, resolve=True)
+
+        for result in results:
+            idx_value = result[resolved_idx_key]
+            for key, value in list(result.items()):
+                if key == resolved_idx_key:
+                    continue
+                result[key] = _materialize_output_value(
+                    idx_value=idx_value,
+                    field_key=key,
+                    value=value,
+                    output_dir=output_dir,
+                    artifact_config=artifact_configs.get(key),
+                )
+
         # Convert output dicts into per-key SCP lines (utt_id + value).
         scp_lines = _collect_scp_lines(
             results,
@@ -181,8 +280,6 @@ def infer(config: DictConfig):
         )
 
         # create scp files
-        output_dir = Path(config.inference_dir) / test_name
-        output_dir.mkdir(parents=True, exist_ok=True)
         for key, lines in scp_lines.items():
             with open(output_dir / f"{key}.scp", "w", encoding="utf-8") as f:
                 f.write("\n".join(lines))
