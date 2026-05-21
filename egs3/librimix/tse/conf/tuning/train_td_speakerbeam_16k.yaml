@@ -110,10 +110,18 @@ optimizer:
   weight_decay: 0
 
 
+# scheduler:
+#   _target_: torch.optim.lr_scheduler.StepLR
+#   step_size: 200_000  # steps
+#   gamma: 0.98
 scheduler:
-  _target_: torch.optim.lr_scheduler.StepLR
-  step_size: 1  # epochs
-  gamma: 0.98
+  _target_: transformers.optimization.get_wsd_schedule
+  # The three *_steps below should amount to the total steps in one epoch
+  num_warmup_steps: 0
+  num_stable_steps: 11000
+  num_decay_steps: 1375
+  min_lr_ratio: 0.1
+  num_cycles: 0.5
 
 
 best_model_criterion:
@@ -166,7 +174,7 @@ model:
       causal: False
       norm_type: gLN
       pre_nonlinear: prelu
-      nonlinear: relu
+      nonlinear: linear
       # enrollment related
       i_adapt_layer: 7
       adapt_layer_type: mul

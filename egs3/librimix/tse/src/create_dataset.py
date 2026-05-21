@@ -37,7 +37,6 @@ import shutil
 import subprocess
 import sys
 import zipfile
-from functools import lru_cache
 from pathlib import Path
 from typing import Optional
 
@@ -383,7 +382,6 @@ def prepare_librimix_data(
                                 f.write(line)
 
 
-@lru_cache(maxsize=None)
 def prepare_librimix_transcripts(
     outdir: Path, uids: list[str], splits: list[str], num_spk: int
 ):

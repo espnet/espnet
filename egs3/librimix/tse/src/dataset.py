@@ -87,6 +87,34 @@ from torch.utils.data import Dataset as TorchDataset
 from espnet3.utils.download_utils import download_url
 
 
+import inspect
+import time
+from contextlib import ContextDecorator
+
+
+class Timer(ContextDecorator):
+    """一个通用的计时器，支持上下文管理器和装饰器"""
+    def __init__(self, name=""):
+        if not name:
+            caller_frame = inspect.stack()[1]
+            filename = os.path.basename(caller_frame.filename) # 仅保留文件名
+            lineno = caller_frame.lineno
+            name = f"({filename}) Line {lineno}"
+        self.name = name
+        self.start_time = None
+
+    def __enter__(self):
+        self.start_time = time.perf_counter()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        end_time = time.perf_counter()
+        duration = end_time - self.start_time
+        print(f"[{self.name}] 运行耗时: {duration:.4f} 秒", flush=True)
+        # 返回 False 表示不屏蔽异常
+        return False
+
+
 @dataclass(frozen=True)
 class Libri2MixTSEExample:
     """Internal index entry derived from a Libri2MixTSE transcript line."""
@@ -274,6 +302,7 @@ class LibriMixTSEDataset(TorchDataset):
 
         # Loading the dataset split
         self._examples = self._parse_dataset()
+        print(f"len(LibriMixTSEDataset)={len(self)}", flush=True)
 
     def __len__(self) -> int:
         return len(self._examples)
