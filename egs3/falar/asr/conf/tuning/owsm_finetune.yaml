@@ -44,7 +44,7 @@ dataset:
         cache_dir: ${hf_cache_dir}
   preprocessor:
     _target_: espnet2.train.preprocessor.S2TPreprocessor
-    train: train
+    train: true
     token_type: bpe
     token_list: ${tokenizer.save_path}/tokens.txt
     bpemodel: ${tokenizer.save_path}/bpe.model

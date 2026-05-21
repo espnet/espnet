@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import json
 import logging
+import io
 import re
 import shutil
-import tempfile
 from importlib import resources
 from pathlib import Path
 from typing import Any
@@ -17,6 +17,7 @@ from datasets import load_dataset, load_dataset_builder
 from datasets.download import DownloadConfig, DownloadManager
 from huggingface_hub import HfApi, hf_hub_url
 from omegaconf import DictConfig, OmegaConf
+from tqdm.auto import tqdm
 
 from espnet3.components.data.dataset_builder import DatasetBuilder
 from espnet3.parallel.base_runner import BaseRunner
@@ -44,6 +45,7 @@ _BUILD_STATE_PATH = str(_BUILDER_CFG["build_state_path"])
 _MANIFEST_FILENAME = str(_BUILDER_CFG["manifest_filename"])
 _AUDIO_BASENAME = str(_BUILDER_CFG["audio_basename"])
 _TARGET_FORMAT = str(_BUILDER_CFG.get("target_format", "wav"))
+_ARKIVE_APPEND_BATCH_SIZE = int(_BUILDER_CFG.get("arkive_append_batch_size", 256))
 _AUDIO_COLUMN = str(_DATASET_CFG["audio_column"])
 _TEXT_COLUMN = str(_DATASET_CFG["text_column"])
 _ID_COLUMN = str(_DATASET_CFG["id_column"])
@@ -173,6 +175,13 @@ def _audio_to_frames_and_rate(audio_item: Any) -> tuple[np.ndarray, int]:
         raise ValueError(f"Unsupported audio tensor shape: {array.shape}")
 
     return frames.astype(np.float32), sample_rate
+
+
+def _frames_to_wav_bytes(frames: np.ndarray, sample_rate: int) -> bytes:
+    """Encode float32 frames as in-memory WAV bytes."""
+    with io.BytesIO() as buffer:
+        sf.write(buffer, frames, sample_rate, format="WAV", subtype="PCM_16")
+        return buffer.getvalue()
 
 
 class FalarDownloadProvider(EnvironmentProvider):
@@ -313,6 +322,64 @@ class FalarBuilder(DatasetBuilder):
             download_mode="reuse_dataset_if_exists",
         )
 
+    @staticmethod
+    def _write_manifest_records(
+        archive,
+        pending_rows: list[dict[str, Any]],
+        manifest_file,
+    ) -> int:
+        prev_rows = len(archive) - len(pending_rows)
+        if archive.data is None:
+            raise RuntimeError("Arkive append completed without metadata.")
+
+        appended_rows = archive.data.iloc[prev_rows:]
+        if len(appended_rows) != len(pending_rows):
+            raise RuntimeError(
+                f"Arkive metadata row count mismatch: expected {len(pending_rows)}, "
+                f"got {len(appended_rows)}."
+            )
+
+        metadata_by_path: dict[str, tuple[int, dict[str, Any]]] = {}
+        for archive_index, row in appended_rows.iterrows():
+            metadata = row.to_dict()
+            metadata_key = str(metadata["original_file_path"])
+            metadata_by_path[metadata_key] = (int(archive_index), metadata)
+
+        for pending in pending_rows:
+            metadata_key = pending["metadata_key"]
+            match = metadata_by_path.pop(metadata_key, None)
+            if match is None:
+                raise RuntimeError(
+                    f"Missing Arkive metadata for appended item: {metadata_key}"
+                )
+
+            archive_index, metadata = match
+            sample_rate_hz = int(metadata["sample_rate"])
+            duration_seconds = metadata.get("duration_seconds")
+            if duration_seconds is None:
+                duration_seconds = float(metadata["length"]) / sample_rate_hz
+
+            record = {
+                "utt_id": pending["utt_id"],
+                "text": pending["text"],
+                "text_ctc": pending["text"],
+                "text_prev": "<na>",
+                "split": pending["split"],
+                "arkive_path": _AUDIO_BASENAME,
+                "archive_index": archive_index,
+                "bin_index": int(metadata["bin_index"]),
+                "start_byte_offset": int(metadata["start_byte_offset"]),
+                "file_size_bytes": int(metadata["file_size_bytes"]),
+                "sample_rate": sample_rate_hz,
+                "channels": int(metadata["channels"]),
+                "duration_seconds": float(duration_seconds),
+                "format": str(metadata["format"]),
+                "bit_depth": int(metadata["bit_depth"]),
+            }
+            manifest_file.write(json.dumps(record, ensure_ascii=False) + "\n")
+
+        return len(pending_rows)
+
     def _validate_config(self) -> None:
         if not _HF_DATASET:
             raise ValueError("FalAR builder config must define builder.hf_dataset.")
@@ -408,12 +475,15 @@ class FalarBuilder(DatasetBuilder):
         self,
         recipe_dir: str | Path,
         cache_dir: str | Path | None = None,
+        parallel=None,
         **_kwargs,
     ) -> None:
         """Build arkive + jsonl artifacts and remove recipe-local HF cache."""
         self._validate_config()
         Arkive = _load_arkive_class()
         cache_dir_str = self._resolve_cache_dir(recipe_dir, cache_dir)
+        parallel_config = self._normalize_parallel_config(parallel)
+        arkive_num_workers = self._get_num_workers(parallel_config)
         artifact_root = self._artifact_root(recipe_dir)
         artifact_root.mkdir(parents=True, exist_ok=True)
 
@@ -435,50 +505,69 @@ class FalarBuilder(DatasetBuilder):
             split_dir = self._split_dir(recipe_dir, artifact_split)
             split_dir.mkdir(parents=True, exist_ok=True)
             arkive_prefix = self._arkive_prefix(recipe_dir, artifact_split)
+            arkive_prefix.mkdir(parents=True, exist_ok=True)
             manifest_path = self._manifest_path(recipe_dir, artifact_split)
             archive = Arkive(str(arkive_prefix))
             num_rows = 0
+            next_item_index = 0
 
-            with tempfile.TemporaryDirectory(prefix="falar_", dir=split_dir) as tmp_dir:
-                tmp_root = Path(tmp_dir)
-                with manifest_path.open("w", encoding="utf-8") as manifest_file:
-                    for hf_split in hf_splits:
-                        dataset = self._load_dataset_split(hf_split, cache_dir_str)
-                        for item in dataset:
-                            utt_id = str(item[_ID_COLUMN]).strip()
-                            transcript = str(item[_TEXT_COLUMN]).strip()
-                            frames, sample_rate = _audio_to_frames_and_rate(
-                                item[_AUDIO_COLUMN]
-                            )
-                            tmp_audio_path = tmp_root / f"{num_rows:08d}.wav"
-                            sf.write(tmp_audio_path, frames, sample_rate, subtype="PCM_16")
-
-                            prev_rows = len(archive.data)
-                            archive.append([str(tmp_audio_path)], target_format=_TARGET_FORMAT)
-                            metadata = archive.data.iloc[prev_rows].to_dict()
-                            tmp_audio_path.unlink(missing_ok=True)
-
-                            record = {
+            with manifest_path.open("w", encoding="utf-8") as manifest_file:
+                for hf_split in hf_splits:
+                    dataset = self._load_dataset_split(hf_split, cache_dir_str)
+                    progress = tqdm(
+                        dataset,
+                        total=len(dataset),
+                        desc=f"build {artifact_split}:{hf_split}",
+                        unit="utt",
+                    )
+                    pending_rows: list[dict[str, Any]] = []
+                    for item in progress:
+                        utt_id = str(item[_ID_COLUMN]).strip()
+                        transcript = str(item[_TEXT_COLUMN]).strip()
+                        frames, sample_rate = _audio_to_frames_and_rate(
+                            item[_AUDIO_COLUMN]
+                        )
+                        metadata_key = f"{artifact_split}:{hf_split}:{next_item_index:08d}:{utt_id}"
+                        next_item_index += 1
+                        pending_rows.append(
+                            {
                                 "utt_id": utt_id,
                                 "text": transcript,
-                                "text_ctc": transcript,
-                                "text_prev": "<na>",
                                 "split": artifact_split,
-                                "arkive_path": _AUDIO_BASENAME,
-                                "archive_index": prev_rows,
-                                "bin_index": int(metadata["bin_index"]),
-                                "start_byte_offset": int(metadata["start_byte_offset"]),
-                                "file_size_bytes": int(metadata["file_size_bytes"]),
-                                "sample_rate": int(metadata["sample_rate"]),
-                                "channels": int(metadata["channels"]),
-                                "duration_seconds": float(metadata["duration_seconds"]),
-                                "format": str(metadata["format"]),
-                                "bit_depth": int(metadata["bit_depth"]),
+                                "metadata_key": metadata_key,
+                                "arkive_item": {
+                                    "bytes": _frames_to_wav_bytes(frames, sample_rate),
+                                    "key": metadata_key,
+                                    "format": "wav",
+                                },
                             }
-                            manifest_file.write(
-                                json.dumps(record, ensure_ascii=False) + "\n"
+                        )
+                        if len(pending_rows) >= _ARKIVE_APPEND_BATCH_SIZE:
+                            archive.append(
+                                [row["arkive_item"] for row in pending_rows],
+                                target_format=_TARGET_FORMAT,
+                                flush_interval=0,
+                                num_workers=arkive_num_workers,
                             )
-                            num_rows += 1
+                            num_rows += self._write_manifest_records(
+                                archive,
+                                pending_rows,
+                                manifest_file,
+                            )
+                            pending_rows = []
+
+                    if pending_rows:
+                        archive.append(
+                            [row["arkive_item"] for row in pending_rows],
+                            target_format=_TARGET_FORMAT,
+                            flush_interval=0,
+                            num_workers=arkive_num_workers,
+                        )
+                        num_rows += self._write_manifest_records(
+                            archive,
+                            pending_rows,
+                            manifest_file,
+                        )
 
             if num_rows == 0:
                 raise RuntimeError(f"No rows were built for FalAR split '{artifact_split}'.")
