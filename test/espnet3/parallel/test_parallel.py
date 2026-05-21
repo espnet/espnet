@@ -281,6 +281,23 @@ def test_wrap_env_filters_unknown_keys(local_cfg):
 
 
 @pytest.mark.execution_timeout(30)
+def test_wrap_env_injects_all_keys_for_var_kwargs(local_cfg):
+    def setup_fn():
+        return {"bias": 10, "output_dir": "/tmp/stats", "shard_subdir": "train"}
+
+    def read_env(x, **kwargs):
+        return x + kwargs["bias"], kwargs["output_dir"], kwargs["shard_subdir"]
+
+    with get_client(local_cfg, setup_fn=setup_fn) as client:
+        out = parallel_map(read_env, [1, 2, 3], client=client)
+        assert out == [
+            (11, "/tmp/stats", "train"),
+            (12, "/tmp/stats", "train"),
+            (13, "/tmp/stats", "train"),
+        ]
+
+
+@pytest.mark.execution_timeout(30)
 def test_parallel_map_registers_setup_fn_when_passed_directly(local_cfg):
     def setup_fn():
         return {"bias": 5}
