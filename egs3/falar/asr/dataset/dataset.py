@@ -115,15 +115,12 @@ class FalarDataset(TorchDataset):
                 _HF_DATASET,
                 split=hf_split,
                 cache_dir=str(cache_dir) if cache_dir is not None else None,
+                download_mode="reuse_dataset_if_exists",
             )
             for hf_split in hf_splits
         ]
         self.dataset = (
             datasets[0] if len(datasets) == 1 else concatenate_datasets(datasets)
-        )
-        self.dataset = self.dataset.cast_column(
-            _AUDIO_COLUMN,
-            Audio(sampling_rate=16000),
         )
         self.split = "train" if split is None else str(split)
         self.hf_splits = hf_splits
@@ -143,10 +140,10 @@ class FalarDataset(TorchDataset):
             f"{_LANGUAGE_PREFIX}{_TASK_PREFIX}"
             f"{_NOTIMESTAMPS_SYMBOL} {transcript}"
         )
+        speech = item[_AUDIO_COLUMN].get_all_samples().data
 
         return {
-            "utt_id": utt_id,
-            "speech": np.asarray(item[_AUDIO_COLUMN]["array"], dtype=np.float32),
+            "speech": speech[0].numpy().astype(np.float32),
             "text": text,
             "text_ctc": transcript,
             "text_prev": "<na>",

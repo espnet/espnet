@@ -103,6 +103,8 @@ def _maybe_apply_peft(model, peft):
     return get_peft_model(model, peft)
 
 
+import gc
+
 class OWSMFinetune(nn.Module):
     def __init__(self, model_tag, peft=None):
         super().__init__()
@@ -147,6 +149,10 @@ class OWSMFinetune(nn.Module):
         speech_lengths: torch.Tensor,
         **kwargs,
     ):
+        if self.model is not None:
+            del self.model
+            gc.collect()
+            self.model = None
         return {"feats": speech, "feats_lengths": speech_lengths}
 
 
