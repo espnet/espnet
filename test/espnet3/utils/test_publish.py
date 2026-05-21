@@ -1166,9 +1166,7 @@ def test_pack_model_readme_includes_model_detail_when_enabled(tmp_path, monkeypa
 # ---------------------------------------------------------------------------
 
 
-def test_upload_model_uses_hf_api_and_resolves_relative_pack_dir(
-    tmp_path, monkeypatch
-):
+def test_upload_model_uses_hf_api_and_resolves_relative_pack_dir(tmp_path, monkeypatch):
     recipe_dir = tmp_path / "recipe"
     pack_dir = recipe_dir / "artifacts" / "pack"
     pack_dir.mkdir(parents=True)
@@ -1280,7 +1278,9 @@ def test_upload_model_surfaces_repo_name_hint_on_create_error(tmp_path, monkeypa
 
     monkeypatch.setattr(publish, "HfApi", lambda: DummyApi())
 
-    with pytest.raises(RuntimeError, match="Failed to create Hugging Face repo") as exc_info:
+    with pytest.raises(
+        RuntimeError, match="Failed to create Hugging Face repo"
+    ) as exc_info:
         publish.upload_model(system)
 
     message = str(exc_info.value)
