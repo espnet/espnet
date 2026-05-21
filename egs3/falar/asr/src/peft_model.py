@@ -1,8 +1,9 @@
+from functools import lru_cache
+
 import torch
 import torch.nn as nn
-from functools import lru_cache
-from espnet2.bin.s2t_inference import Speech2Text
 
+from espnet2.bin.s2t_inference import Speech2Text
 from espnet2.legacy.nets.pytorch_backend.nets_utils import th_accuracy
 
 
@@ -29,12 +30,12 @@ def _maybe_apply_peft(model, peft):
             AdaLoraConfig,
             DeloraConfig,
             LoraConfig,
+            PeftModel,
             RandLoraConfig,
             TaskType,
             VBLoRAConfig,
             XLoraConfig,
             get_peft_model,
-            PeftModel,
         )
     except Exception as exc:
         raise ImportError(
@@ -70,7 +71,11 @@ def _maybe_apply_peft(model, peft):
             if isinstance(task_type, str):
                 task_type = getattr(TaskType, task_type.upper())
             if task_type is None:
-                task_type = TaskType.SEQ_2_SEQ_LM if hasattr(model, "generate") else TaskType.FEATURE_EXTRACTION
+                task_type = (
+                    TaskType.SEQ_2_SEQ_LM
+                    if hasattr(model, "generate")
+                    else TaskType.FEATURE_EXTRACTION
+                )
             config = config_cls(task_type=task_type, **peft)
         else:
             # Other PEFT configs do not accept task_type.
@@ -78,7 +83,9 @@ def _maybe_apply_peft(model, peft):
 
         # For non-transformers models (e.g., ESPnet), avoid PeftModel wrappers
         # that expect generation helpers like prepare_inputs_for_generation.
-        if not hasattr(model, "prepare_inputs_for_generation") and not hasattr(model, "generate"):
+        if not hasattr(model, "prepare_inputs_for_generation") and not hasattr(
+            model, "generate"
+        ):
             from peft.tuners import (
                 AdaLoraModel,
                 DeloraModel,
@@ -105,14 +112,17 @@ def _maybe_apply_peft(model, peft):
 
 import gc
 
+
 class OWSMFinetune(nn.Module):
     def __init__(self, model_tag, peft=None):
         super().__init__()
         owsm_model = Speech2Text.from_pretrained(model_tag)
         m = _maybe_apply_peft(owsm_model.s2t_model, peft)
-        
+
         total_params = sum(p.numel() for p in owsm_model.s2t_model.parameters())
-        trainable_params = sum(p.numel() for p in owsm_model.s2t_model.parameters() if p.requires_grad)
+        trainable_params = sum(
+            p.numel() for p in owsm_model.s2t_model.parameters() if p.requires_grad
+        )
         print(f"Total parameters: {total_params}")
         print(f"Trainable parameters: {trainable_params}")
 
@@ -160,20 +170,30 @@ class WhisperFinetune(nn.Module):
     def __init__(self, model_tag, peft=None):
         super().__init__()
         # get whisper model and preprocessor from transformers
-        from transformers import WhisperForConditionalGeneration, AutoProcessor
+        from transformers import AutoProcessor, WhisperForConditionalGeneration
+
         self.processor = AutoProcessor.from_pretrained(model_tag)
         self.model = WhisperForConditionalGeneration.from_pretrained(model_tag)
         self.model = _maybe_apply_peft(self.model, peft)
-        self.model = self.model.to(torch.float32)  # use float32 for stability, can be changed to bf16 later
-        
+        self.model = self.model.to(
+            torch.float32
+        )  # use float32 for stability, can be changed to bf16 later
+
         # init error calculator
         from espnet2.legacy.nets.e2e_asr_common import ErrorCalculator
+
         # get token_list from whisper model
         token_list = self.processor.tokenizer.get_vocab()
         token_list = sorted(token_list, key=token_list.get)
         # we will not use them. init by random
         sym_space, sym_blank = "<space>", "<blank>"
-        self.error_calculator = ErrorCalculator(char_list=token_list, sym_space=sym_space, sym_blank=sym_blank, report_cer=True, report_wer=True)
+        self.error_calculator = ErrorCalculator(
+            char_list=token_list,
+            sym_space=sym_space,
+            sym_blank=sym_blank,
+            report_cer=True,
+            report_wer=True,
+        )
 
     def forward(
         self,
@@ -192,24 +212,43 @@ class WhisperFinetune(nn.Module):
         # transpose back to (B, D, T') for whisper
         speech = speech.transpose(1, 2)  # (B, D, T')
         # pad to 30 seconds (3000 frames after processing)
-        speech = torch.nn.functional.pad(speech, (0, max(0, 3000 - speech.size(2))), value=0.0)[:, :, :3000]  # (B, D, 3000)
-        attention_mask = torch.arange(3000).expand(len(speech_lengths), 3000).to(speech.device) < speech_lengths.unsqueeze(1)  # (B, 3000)
+        speech = torch.nn.functional.pad(
+            speech, (0, max(0, 3000 - speech.size(2))), value=0.0
+        )[
+            :, :, :3000
+        ]  # (B, D, 3000)
+        attention_mask = torch.arange(3000).expand(len(speech_lengths), 3000).to(
+            speech.device
+        ) < speech_lengths.unsqueeze(
+            1
+        )  # (B, 3000)
 
         # make decoder input ids and labels
-        decoder_input_ids = text[:, :-1][:,:self.model.config.max_target_positions]  # (B, L-1)
-        labels = text[:, 1:][:,:self.model.config.max_target_positions]  # (B, L-1)
-        labels = labels.clone() # add dahee
-        labels[labels < 0] = -100 # add dahee
+        decoder_input_ids = text[:, :-1][
+            :, : self.model.config.max_target_positions
+        ]  # (B, L-1)
+        labels = text[:, 1:][:, : self.model.config.max_target_positions]  # (B, L-1)
+        labels = labels.clone()  # add dahee
+        labels[labels < 0] = -100  # add dahee
 
-        output = self.model(input_features=speech, attention_mask=attention_mask, decoder_input_ids=decoder_input_ids, labels=labels)
+        output = self.model(
+            input_features=speech,
+            attention_mask=attention_mask,
+            decoder_input_ids=decoder_input_ids,
+            labels=labels,
+        )
         # breakpoint()
         loss = output.loss
         # acc = th_accuracy(output.logits.reshape(-1, output.logits.size(-1)), labels, ignore_label=50256)        # 50256 is ""
-        acc = th_accuracy(output.logits.reshape(-1, output.logits.size(-1)), labels, ignore_label=-100)        # 50256 is ""
+        acc = th_accuracy(
+            output.logits.reshape(-1, output.logits.size(-1)), labels, ignore_label=-100
+        )  # 50256 is ""
         cer_att, wer_att = None, None
         if not self.training:
             ys_hat = output.logits.argmax(dim=-1)
-            cer_att, wer_att = self.error_calculator(ys_hat.detach().cpu().numpy(), labels.detach().cpu().numpy())
+            cer_att, wer_att = self.error_calculator(
+                ys_hat.detach().cpu().numpy(), labels.detach().cpu().numpy()
+            )
             cer_att, wer_att = torch.tensor(cer_att), torch.tensor(wer_att)
         stats = {
             "loss": loss,
@@ -247,17 +286,26 @@ class OWSMV4BaseInferenceModel(nn.Module):
             state = torch.load(checkpoint_path, map_location="cpu")
             # breakpoint()
             self.s2t.s2t_model.load_state_dict(
-                {k.replace("model.", ""): v for k, v in state.items() if k.startswith("model.")}
+                {
+                    k.replace("model.", ""): v
+                    for k, v in state.items()
+                    if k.startswith("model.")
+                }
             )
 
     def forward(self, speech):
         return {"text": self.s2t(speech)}
 
+
 class WhisperInferenceModel(nn.Module):
     def __init__(self, model_tag, peft=None, checkpoint_path=None, device="cuda"):
         super().__init__()
-        from transformers import WhisperForConditionalGeneration, AutoProcessor
-        from transformers import WhisperConfig, GenerationConfig
+        from transformers import (
+            AutoProcessor,
+            GenerationConfig,
+            WhisperConfig,
+            WhisperForConditionalGeneration,
+        )
 
         self.device = torch.device(device)
 
@@ -278,7 +326,7 @@ class WhisperInferenceModel(nn.Module):
         """
         speech: Tensor of shape (1, T) or (T,)
         """
-        #speech = speech.astype(torch.float32)
+        # speech = speech.astype(torch.float32)
         processed = self.processor(
             speech,
             sampling_rate=16000,
@@ -299,9 +347,6 @@ class WhisperInferenceModel(nn.Module):
                 max_new_tokens=128,
             )
 
-        text = self.processor.batch_decode(
-            generated_ids,
-            skip_special_tokens=True
-        )
+        text = self.processor.batch_decode(generated_ids, skip_special_tokens=True)
 
-        return {'text': text[0]}
+        return {"text": text[0]}

@@ -100,9 +100,7 @@ class FalarDataset(TorchDataset):
 
         artifact_split = _resolve_artifact_split(split)
         artifact_root = (
-            Path(artifact_dir)
-            if artifact_dir is not None
-            else Path(_ARTIFACT_ROOT)
+            Path(artifact_dir) if artifact_dir is not None else Path(_ARTIFACT_ROOT)
         )
         self.split = artifact_split
         self.split_dir = artifact_root / artifact_split
@@ -150,8 +148,7 @@ class FalarDataset(TorchDataset):
         speech = self._to_speech_array(audio.array)
         transcript = str(entry["text_ctc"]).strip()
         text = (
-            f"{_LANGUAGE_PREFIX}{_TASK_PREFIX}"
-            f"{_NOTIMESTAMPS_SYMBOL} {transcript}"
+            f"{_LANGUAGE_PREFIX}{_TASK_PREFIX}" f"{_NOTIMESTAMPS_SYMBOL} {transcript}"
         )
 
         return {

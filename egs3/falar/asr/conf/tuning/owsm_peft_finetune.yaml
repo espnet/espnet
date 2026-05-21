@@ -45,7 +45,7 @@ trainer:
 scheduler:
   _target_: torch.optim.lr_scheduler.ConstantLR
   factor: 1.0
-  total_iters: 1  
+  total_iters: 1
 
 model:
   _target_: src.peft_model.OWSMFinetune

@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
+import io
 import json
 import logging
-import io
 import re
 import shutil
 from importlib import resources
@@ -570,7 +570,9 @@ class FalarBuilder(DatasetBuilder):
                         )
 
             if num_rows == 0:
-                raise RuntimeError(f"No rows were built for FalAR split '{artifact_split}'.")
+                raise RuntimeError(
+                    f"No rows were built for FalAR split '{artifact_split}'."
+                )
 
             build_summary["splits"][artifact_split] = {
                 "hf_splits": hf_splits,
@@ -594,6 +596,10 @@ class FalarBuilder(DatasetBuilder):
 
         if self._is_recipe_local_path(recipe_dir, cache_dir_str):
             shutil.rmtree(Path(cache_dir_str), ignore_errors=True)
-            logger.info("Removed recipe-local HF cache after arkive build: %s", cache_dir_str)
+            logger.info(
+                "Removed recipe-local HF cache after arkive build: %s", cache_dir_str
+            )
         else:
-            logger.info("Preserved HF cache because it is not recipe-local: %s", cache_dir_str)
+            logger.info(
+                "Preserved HF cache because it is not recipe-local: %s", cache_dir_str
+            )

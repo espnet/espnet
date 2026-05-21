@@ -63,7 +63,7 @@ scheduler:
 model:
   _target_: src.peft_model.WhisperFinetune
   model_tag: openai/whisper-large-v3
-  peft: 
+  peft:
 
 trainer:
   max_epochs: 1
