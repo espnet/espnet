@@ -76,8 +76,10 @@ pack_model:
 ##########################################################
 #                  UPLOAD MODEL SETTING                  #
 ##########################################################
-# Upload requires `hf` and a valid Hugging Face login.
+# Upload uses `huggingface_hub` with your local Hugging Face login.
+# Run `hf auth login` first so the Python API can reuse the saved token.
 # `upload_model` uploads `${pack_model.out_dir}` to this repo, creating it if
 # needed.
 upload_model:
   hf_repo: yourname/your-model-repo
+  private: false

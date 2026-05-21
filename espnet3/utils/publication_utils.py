@@ -8,7 +8,6 @@ import logging
 import os
 import re
 import shutil
-import subprocess
 import sys
 from datetime import datetime
 from glob import glob, has_magic
@@ -17,6 +16,8 @@ from string import Template
 from typing import Any
 
 import torch
+from huggingface_hub import HfApi
+from huggingface_hub.errors import HfHubHTTPError
 from hydra.utils import instantiate
 from omegaconf import DictConfig, ListConfig, OmegaConf
 
@@ -679,51 +680,6 @@ def pack_model(
     return out_dir
 
 
-def _run(cmd: list[str], cwd: Path | None = None) -> None:
-    """Run a subprocess command, streaming stdout and stderr to the logger.
-
-    Used by ``upload_model`` to invoke ``hf`` for repo creation and model
-    upload.
-
-    """
-    logger.debug("Running: %s", " ".join(cmd))
-    with subprocess.Popen(
-        cmd,
-        cwd=str(cwd) if cwd else None,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
-    ) as proc:
-        for line in proc.stdout:
-            logger.info("%s", line.rstrip())
-    if proc.returncode != 0:
-        raise RuntimeError(f"Command failed (exit {proc.returncode}): {' '.join(cmd)}")
-
-
-def _check_repo_exists(repo: str) -> bool:
-    """Check if a Hugging Face model repo exists.
-
-    Used by ``upload_model`` before uploading to decide whether to create
-    the repo first via ``hf repos create``.
-
-    """
-    try:
-        from huggingface_hub import HfApi
-        from huggingface_hub.utils import RepositoryNotFoundError
-    except Exception as exc:
-        raise RuntimeError(
-            "huggingface_hub is required to check whether the target repo exists."
-        ) from exc
-    api = HfApi()
-    try:
-        api.repo_info(repo_id=repo, repo_type="model")
-        return True
-    except RepositoryNotFoundError:
-        return False
-    except Exception as exc:
-        raise RuntimeError(f"Failed to check repo existence for {repo}: {exc}") from exc
-
-
 def upload_model(system) -> None:
     """Upload packed model artifacts to a Hugging Face model repo.
 
@@ -737,7 +693,9 @@ def upload_model(system) -> None:
         >>> upload_model(system)
     """
     publication_cfg = system.publication_config
-    repo = publication_cfg.upload_model.hf_repo
+    upload_cfg = publication_cfg.upload_model
+    repo = upload_cfg.hf_repo
+    private = bool(getattr(upload_cfg, "private", False))
 
     # Resolve the pack directory from config
     pack_cfg = getattr(publication_cfg, "pack_model", None) or OmegaConf.create({})
@@ -753,13 +711,32 @@ def upload_model(system) -> None:
     if not pack_dir.exists():
         raise RuntimeError(f"Model pack not found: {pack_dir}")
 
-    # Create the HF repo if it doesn't exist, then upload
-    if shutil.which("hf") is None:
-        raise RuntimeError("hf is required for upload.")
-
-    if not _check_repo_exists(repo):
-        logger.info("Creating HuggingFace repo: %s", repo)
-        _run(["hf", "repos", "create", repo, "--repo-type", "model"])
+    hint = (
+        "Check `publication_config.upload_model.hf_repo`. "
+        "Use the full repo name as `<user-or-org>/<repo>`. "
+        "If you meant your own account, replace any other user's namespace "
+        "with your Hugging Face username. "
+        "If the repo should be private, set `upload_model.private: true`. "
+        "Make sure the logged-in token can create and write to that namespace."
+    )
+    logger.info("Ensuring Hugging Face repo exists: %s", repo)
+    api = HfApi()
+    try:
+        api.create_repo(
+            repo_id=repo,
+            repo_type="model",
+            private=private,
+            exist_ok=True,
+        )
+    except (HfHubHTTPError, ValueError) as exc:
+        raise RuntimeError(
+            f"Failed to create Hugging Face repo '{repo}': {exc}\n{hint}"
+        ) from exc
     logger.info("Uploading %s -> %s", pack_dir, repo)
-    _run(["hf", "upload", repo, str(pack_dir), ".", "--repo-type", "model"])
+    try:
+        api.upload_folder(repo_id=repo, repo_type="model", folder_path=str(pack_dir))
+    except (HfHubHTTPError, ValueError) as exc:
+        raise RuntimeError(
+            f"Failed to upload model pack to '{repo}': {exc}\n{hint}"
+        ) from exc
     logger.info("Upload complete: https://huggingface.co/%s", repo)

@@ -4,6 +4,7 @@ import json
 from types import SimpleNamespace
 
 import pytest
+from huggingface_hub.errors import HfHubHTTPError
 from omegaconf import OmegaConf
 
 from espnet3.systems.asr.system import ASRSystem
@@ -1165,7 +1166,9 @@ def test_pack_model_readme_includes_model_detail_when_enabled(tmp_path, monkeypa
 # ---------------------------------------------------------------------------
 
 
-def test_upload_model_uses_hf_cli_and_resolves_relative_pack_dir(tmp_path, monkeypatch):
+def test_upload_model_uses_hf_api_and_resolves_relative_pack_dir(
+    tmp_path, monkeypatch
+):
     recipe_dir = tmp_path / "recipe"
     pack_dir = recipe_dir / "artifacts" / "pack"
     pack_dir.mkdir(parents=True)
@@ -1180,43 +1183,86 @@ def test_upload_model_uses_hf_cli_and_resolves_relative_pack_dir(tmp_path, monke
         recipe_dir=recipe_dir,
         publication_config=publication_config,
     )
-    commands = []
+    calls = []
 
-    monkeypatch.setattr(publish.shutil, "which", lambda cmd: "/usr/bin/hf")
-    monkeypatch.setattr(publish, "_check_repo_exists", lambda repo: False)
-    monkeypatch.setattr(
-        publish,
-        "_run",
-        lambda cmd, cwd=None: commands.append((cmd, cwd)),
-    )
+    class DummyApi:
+        def create_repo(self, **kwargs):
+            calls.append(("create_repo", kwargs))
+
+        def upload_folder(self, **kwargs):
+            calls.append(("upload_folder", kwargs))
+
+    monkeypatch.setattr(publish, "HfApi", lambda: DummyApi())
 
     publish.upload_model(system)
 
-    assert commands == [
-        (["hf", "repos", "create", "espnet/test-repo", "--repo-type", "model"], None),
+    assert calls == [
         (
-            [
-                "hf",
-                "upload",
-                "espnet/test-repo",
-                str(pack_dir.resolve()),
-                ".",
-                "--repo-type",
-                "model",
-            ],
-            None,
+            "create_repo",
+            {
+                "repo_id": "espnet/test-repo",
+                "repo_type": "model",
+                "private": False,
+                "exist_ok": True,
+            },
+        ),
+        (
+            "upload_folder",
+            {
+                "repo_id": "espnet/test-repo",
+                "repo_type": "model",
+                "folder_path": str(pack_dir.resolve()),
+            },
         ),
     ]
 
 
-def test_upload_model_raises_when_hf_cli_missing(tmp_path, monkeypatch):
+def test_upload_model_passes_private_flag_to_create_repo(tmp_path, monkeypatch):
+    recipe_dir = tmp_path / "recipe"
+    pack_dir = recipe_dir / "artifacts" / "pack"
+    pack_dir.mkdir(parents=True)
+    publication_config = OmegaConf.create(
+        {
+            "pack_model": {"out_dir": "artifacts/pack"},
+            "upload_model": {"hf_repo": "espnet/private-repo", "private": True},
+        }
+    )
+    system = _make_system(
+        exp_dir="exp/run",
+        recipe_dir=recipe_dir,
+        publication_config=publication_config,
+    )
+    create_calls = []
+
+    class DummyApi:
+        def create_repo(self, **kwargs):
+            create_calls.append(kwargs)
+
+        def upload_folder(self, **kwargs):
+            pass
+
+    monkeypatch.setattr(publish, "HfApi", lambda: DummyApi())
+
+    publish.upload_model(system)
+
+    assert create_calls == [
+        {
+            "repo_id": "espnet/private-repo",
+            "repo_type": "model",
+            "private": True,
+            "exist_ok": True,
+        }
+    ]
+
+
+def test_upload_model_surfaces_repo_name_hint_on_create_error(tmp_path, monkeypatch):
     recipe_dir = tmp_path / "recipe"
     pack_dir = recipe_dir / "pack"
     pack_dir.mkdir(parents=True)
     publication_config = OmegaConf.create(
         {
             "pack_model": {"out_dir": str(pack_dir)},
-            "upload_model": {"hf_repo": "espnet/test-repo"},
+            "upload_model": {"hf_repo": "other-user/bad-repo", "private": True},
         }
     )
     system = _make_system(
@@ -1225,7 +1271,20 @@ def test_upload_model_raises_when_hf_cli_missing(tmp_path, monkeypatch):
         publication_config=publication_config,
     )
 
-    monkeypatch.setattr(publish.shutil, "which", lambda cmd: None)
+    class DummyApi:
+        def create_repo(self, **kwargs):
+            raise HfHubHTTPError("403 Client Error")
 
-    with pytest.raises(RuntimeError, match="hf is required for upload"):
+        def upload_folder(self, **kwargs):
+            raise AssertionError("upload_folder should not be called")
+
+    monkeypatch.setattr(publish, "HfApi", lambda: DummyApi())
+
+    with pytest.raises(RuntimeError, match="Failed to create Hugging Face repo") as exc_info:
         publish.upload_model(system)
+
+    message = str(exc_info.value)
+    assert "publication_config.upload_model.hf_repo" in message
+    assert "<user-or-org>/<repo>" in message
+    assert "other user's namespace" in message
+    assert "upload_model.private: true" in message
