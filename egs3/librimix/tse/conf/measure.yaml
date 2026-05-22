@@ -1,16 +1,14 @@
-# Metric/scoring configuration template for ESPnet3 TSE.
-# Consumes enhanced outputs under inference_dir and reports metrics.
+# Metric/scoring configuration for the LibriMix TSE recipe.
+# exp_tag / exp_dir / inference_dir are injected from --training_config
+# (and --inference_config when present) by apply_training_experiment_context.
 
-# Path scaffold relative to the recipe root; keep aligned with infer.yaml.
 recipe_dir: .
 data_dir: ${recipe_dir}/data
-exp_tag: tse_template_eval
+exp_tag: librimix_tse_td_speakerbeam
 exp_dir: ${recipe_dir}/exp/${exp_tag}
-stats_dir: ${recipe_dir}/exp/stats
 inference_dir: ${exp_dir}/infer
-dataset_dir: ${load_yaml:conf/train.yaml,dataset_dir}
+dataset_dir: /path/for/storing/LibriMix
 
-# Dataset definition for test splits only (used to enumerate test names).
 dataset:
   _target_: espnet3.components.data.data_organizer.DataOrganizer
   test:
@@ -20,12 +18,13 @@ dataset:
         data_dir: ${dataset_dir}
         split: 2mix_16k_max_test_mix-both
 
-# Metrics block intentionally empty in template; fill with SISNR/TSOS, etc.
 metrics:
   - metric:
-    _target_: espnet3.systems.tse.metrics.tsos.TSOS
-    batch_size: 1
-    power: 2.0
-    threshold: 0.1
-    ref_channel: 0
-    device: str = "cpu
+      _target_: espnet3.systems.tse.metrics.tsos.TSOS
+      ref_key: ref
+      hyp_key: inf
+      batch_size: 1
+      power: 2.0
+      threshold: 0.1
+      ref_channel: 0
+      device: cpu
