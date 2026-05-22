@@ -6,9 +6,15 @@ dataset creation hooks.
 
 import logging
 import time
+from importlib import import_module
 
-from espnet3.systems.asr.system import load_function
 from espnet3.systems.base.system import BaseSystem
+
+
+def _load_function(dotted_path: str):
+    """Import and return a callable from a dotted module.function path."""
+    module_path, func_name = dotted_path.rsplit(".", 1)
+    return getattr(import_module(module_path), func_name)
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +43,7 @@ class TSESystem(BaseSystem):
             raise RuntimeError(
                 "training_config.create_dataset.func must be set to run create_dataset"
             )
-        fn = load_function(config.func)
+        fn = _load_function(config.func)
         extra = {k: v for k, v in config.items() if k != "func"}
         logger.info("Creating dataset with function %s", config.func)
         result = fn(**extra)

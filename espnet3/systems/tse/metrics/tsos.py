@@ -125,7 +125,7 @@ class TSOS(BaseMetric):
         oversuppression = torch.clamp_min(ref_mag - inf_mag, 0.0) ** 2
         dims = tuple(i for i in range(ref_mag.ndim) if i > 1)
         tsos = oversuppression.sum(dim=dims) > ref_mag.sum(dim=dims)
-        return tsos.mean(-1).cpu().tolist()
+        return tsos.float().mean(-1).cpu().tolist()
 
     def __call__(
         self, data: Dict[str, Path], test_name: str, inference_dir: Path
