@@ -64,13 +64,15 @@ class XVectorProvider(EnvironmentProvider):
 
         model = self._build_model(toolkit, pretrained_model, device)
 
-        utterances = self.params.get("utterances", [])
-        speaker_to_utterances = self.params.get("speaker_to_utterances", {})
-        if not utterances:
+        manifest_path = self.params.get("manifest_path", None)
+        if manifest_path is None:
             raise RuntimeError(
-                "No utterances found in provider params. Ensure the manifest "
-                "was loaded and passed via params on construction."
+                "manifest_path must be supplied via params; workers load the "
+                "manifest themselves to avoid shipping it through Dask."
             )
+        utterances, speaker_to_utterances = self._load_manifest(manifest_path)
+        if not utterances:
+            raise RuntimeError(f"No utterances found in manifest: {manifest_path}")
 
         output_dir = self.params.get("output_dir", None)
         if output_dir is None:
@@ -122,11 +124,17 @@ class XVectorProvider(EnvironmentProvider):
 
             model = XVectorProvider._build_model(toolkit, pretrained_model, device)
 
-            utterances = params.get("utterances", [])
-            speaker_to_utterances = params.get("speaker_to_utterances", {})
+            manifest_path = params.get("manifest_path", None)
+            if manifest_path is None:
+                raise RuntimeError(
+                    "manifest_path must be supplied via params for worker setup."
+                )
+            utterances, speaker_to_utterances = XVectorProvider._load_manifest(
+                manifest_path
+            )
             if not utterances:
                 raise RuntimeError(
-                    "No utterances found in provider params on worker."
+                    f"No utterances found in manifest: {manifest_path}"
                 )
 
             output_dir = params.get("output_dir", None)
@@ -148,6 +156,28 @@ class XVectorProvider(EnvironmentProvider):
             }
 
         return setup
+
+    @staticmethod
+    def _load_manifest(manifest_path):
+        """Parse a TSV manifest into utterances + speaker mapping.
+
+        Each line is expected to be ``utt_id\\twav_path\\ttext\\tspeaker_id``.
+        Blank lines are skipped.
+        """
+        utterances = []
+        speaker_to_utterances: Dict[str, list] = {}
+        with open(manifest_path, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.rstrip("\n")
+                if not line:
+                    continue
+                parts = line.split("\t")
+                utt_id = parts[0]
+                wav_path = parts[1]
+                speaker_id = parts[3]
+                utterances.append((utt_id, wav_path))
+                speaker_to_utterances.setdefault(speaker_id, []).append(utt_id)
+        return utterances, speaker_to_utterances
 
     @staticmethod
     def _has_cuda() -> bool:

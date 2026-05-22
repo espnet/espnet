@@ -17,8 +17,8 @@ from espnet2.text.cleaner import TextCleaner
 from espnet2.text.build_tokenizer import build_tokenizer
 from espnet3.parallel.parallel import set_parallel
 from espnet3.systems.base.system import BaseSystem
-from xvector_provider import XVectorProvider
-from xvector_runner import XVectorRunner
+from src.xvector_provider import XVectorProvider
+from src.xvector_runner import XVectorRunner
 
 logger = logging.getLogger(__name__)
 
@@ -130,50 +130,42 @@ class TTSSystem(BaseSystem):
         # Process each split
         for split in splits:
             logger.info(f"Processing split: {split}")
-            
-            # Get manifest file path for this split
+
             manifest_path = manifest_paths.get(split)
             if not manifest_path:
                 raise RuntimeError(f"Manifest path for split '{split}' not found in training_config.xvector.manifest_paths. Please ensure the path is set correctly.")
-            
-            # Read manifest file to extract audio paths and speaker information
-            utterances = []
-            speaker_to_utterances = {}
-            
+            manifest_path = Path(manifest_path).resolve()
+            if not manifest_path.exists():
+                raise RuntimeError(f"Manifest file not found for split '{split}': {manifest_path}")
+
+            # Count utterances without loading the whole manifest into driver
+            # memory; workers re-parse the TSV themselves so the WorkerPlugin
+            # closure stays small.
+            n_utts = 0
             with open(manifest_path, "r", encoding="utf-8") as f:
                 for line in f:
-                    parts = line.strip().split("\t")
-                    
-                    utt_id = parts[0]
-                    wav_path = Path(parts[1])
-                    speaker_id = parts[3]
-                    
-                    utterances.append((utt_id, wav_path))
-                    
-                    if speaker_id not in speaker_to_utterances:
-                        speaker_to_utterances[speaker_id] = []
-                    speaker_to_utterances[speaker_id].append(utt_id)
-            
-            if not utterances:
+                    if line.strip():
+                        n_utts += 1
+            if n_utts == 0:
                 raise RuntimeError(f"No utterances found in manifest: {manifest_path}.")
-            
-            logger.info(f"Split '{split}': Loaded {len(utterances)} utterances from {len(speaker_to_utterances)} speakers")
+
+            logger.info(f"Split '{split}': {n_utts} utterances in {manifest_path}")
 
             batch_size = xvec_cfg.get("batch_size", None)
             async_mode = xvec_cfg.get("async_mode", False)
             spk_embed_tag = xvec_cfg.get("spk_embed_tag", "spk_embed")
             output_subdir = save_path / f"{spk_embed_tag}_{split}"
 
-            # Provider params are JSON-serialized for async dispatch; pass the
-            # output directory as a string and let workers re-wrap as Path.
+            # Provider params are JSON-serialized for async dispatch and pickled
+            # into the WorkerPlugin closure for sync parallel dispatch — keep
+            # this dict small.
             provider = XVectorProvider(
                 config=self.training_config,
                 params={
                     "toolkit": toolkit,
                     "pretrained_model": pretrained_model,
                     "device": device,
-                    "utterances": utterances,
-                    "speaker_to_utterances": speaker_to_utterances,
+                    "manifest_path": str(manifest_path),
                     "output_dir": str(output_subdir),
                 },
             )
@@ -184,9 +176,9 @@ class TTSSystem(BaseSystem):
                 async_mode=async_mode,
             )
 
-            logger.info(f"Processing {len(utterances)} utterances for x-vector extraction (split: {split})")
+            logger.info(f"Processing {n_utts} utterances for x-vector extraction (split: {split})")
 
-            indices = list(range(len(utterances)))
+            indices = list(range(n_utts))
             results = runner(indices)
 
             if results is None:
