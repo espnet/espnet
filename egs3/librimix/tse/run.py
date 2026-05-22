@@ -7,14 +7,11 @@ from egs3.TEMPLATE.tse.run import (
 from espnet3.systems.tse.system import TSESystem
 
 if __name__ == "__main__":
-    parser = build_parser(
-        stages=DEFAULT_STAGES,
-        add_arguments=None,  # You can create your parser and put here if needed
-    )
-    args, stages_to_run = parse_cli_and_stage_args(parser, stages=DEFAULT_STAGES)
+    parser = build_parser(stages=DEFAULT_STAGES)
+    args, _ = parse_cli_and_stage_args(parser, stages=DEFAULT_STAGES)
 
     main(
         args=args,
         system_cls=TSESystem,
-        stages=stages_to_run,
+        stages=DEFAULT_STAGES,
     )
