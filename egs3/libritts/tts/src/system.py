@@ -15,6 +15,7 @@ import torch
 from omegaconf import DictConfig
 from espnet2.text.cleaner import TextCleaner
 from espnet2.text.build_tokenizer import build_tokenizer
+from espnet3.parallel.parallel import set_parallel
 from espnet3.systems.base.system import BaseSystem
 from xvector_provider import XVectorProvider
 from xvector_runner import XVectorRunner
@@ -87,7 +88,10 @@ class TTSSystem(BaseSystem):
         """
         self._reject_stage_args("compute_xvectors", args, kwargs)
         logger.info("TTSSystem.compute_xvectors(): starting x-vector computation")
-        
+
+        if self.training_config.get("parallel"):
+            set_parallel(self.training_config.parallel)
+
         xvec_cfg = self.training_config.get("xvector", None)
         if xvec_cfg is None:
             raise RuntimeError(
