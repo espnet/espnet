@@ -7,8 +7,11 @@ and supporting VITS training with GAN-based adversarial learning.
 
 import logging
 import subprocess
+from collections import Counter
 from pathlib import Path
 
+import librosa
+import torch
 from omegaconf import DictConfig
 from espnet2.text.cleaner import TextCleaner
 from espnet2.text.build_tokenizer import build_tokenizer
@@ -86,13 +89,18 @@ class TTSSystem(BaseSystem):
         logger.info("TTSSystem.compute_xvectors(): starting x-vector computation")
         
         xvec_cfg = self.training_config.get("xvector", None)
-        save_path = Path(xvec_cfg.get("save_path", None)) if xvec_cfg else None
-
-        if xvec_cfg is None or save_path is None:
-            raise RuntimeError("training_config.xvector and training_config.xvector.save_path must be set for compute_xvectors stage.")
-
+        if xvec_cfg is None:
+            raise RuntimeError(
+                "training_config.xvector must be set for compute_xvectors stage."
+            )
+        save_path_str = xvec_cfg.get("save_path", None)
+        if save_path_str is None:
+            raise RuntimeError(
+                "training_config.xvector.save_path must be set for compute_xvectors stage."
+            )
+        save_path = Path(save_path_str)
         save_path.mkdir(parents=True, exist_ok=True)
-        
+
         # Get list of splits to process
         splits = xvec_cfg.get("splits", None)
 
@@ -101,17 +109,16 @@ class TTSSystem(BaseSystem):
 
         if isinstance(splits, str):
             splits = [splits]
-        
-        # Get manifest directory (configurable, default: data/manifest)
-        manifest_paths = rls_cfg.get("manifest_paths", {})
-        
+
+        manifest_paths = xvec_cfg.get("manifest_paths", {})
+
         logger.info(f"Will process splits: {splits}")
         logger.info(f"Manifest paths: {manifest_paths}")
-        
+
         # Validate toolkit and model
         toolkit = xvec_cfg.get("toolkit", None)
         pretrained_model = xvec_cfg.get("pretrained_model", None)
-        device = xvec_cfg.get("device", "cuda:0" if self._has_cuda() else "cpu")
+        device = xvec_cfg.get("device", "cuda:0" if torch.cuda.is_available() else "cpu")
 
         if toolkit is None or pretrained_model is None:
             raise RuntimeError("training_config.xvector.toolkit and training_config.xvector.pretrained_model must be set for compute_xvectors stage.")
@@ -147,8 +154,14 @@ class TTSSystem(BaseSystem):
                 raise RuntimeError(f"No utterances found in manifest: {manifest_path}.")
             
             logger.info(f"Split '{split}': Loaded {len(utterances)} utterances from {len(speaker_to_utterances)} speakers")
-            
-            # Build provider with manifest data
+
+            batch_size = xvec_cfg.get("batch_size", None)
+            async_mode = xvec_cfg.get("async_mode", False)
+            spk_embed_tag = xvec_cfg.get("spk_embed_tag", "spk_embed")
+            output_subdir = save_path / f"{spk_embed_tag}_{split}"
+
+            # Provider params are JSON-serialized for async dispatch; pass the
+            # output directory as a string and let workers re-wrap as Path.
             provider = XVectorProvider(
                 config=self.training_config,
                 params={
@@ -157,35 +170,38 @@ class TTSSystem(BaseSystem):
                     "device": device,
                     "utterances": utterances,
                     "speaker_to_utterances": speaker_to_utterances,
-                }
+                    "output_dir": str(output_subdir),
+                },
             )
-            
-            # Build runner with split-specific output tag
-            batch_size = xvec_cfg.get("batch_size", None)
-            async_mode = xvec_cfg.get("async_mode", False)
-            spk_embed_tag = xvec_cfg.get("spk_embed_tag", "spk_embed")
-            
+
             runner = XVectorRunner(
                 provider=provider,
-                output_dir=str(save_path),
-                spk_embed_tag=spk_embed_tag,
                 batch_size=batch_size,
                 async_mode=async_mode,
             )
-            
+
             logger.info(f"Processing {len(utterances)} utterances for x-vector extraction (split: {split})")
-            
-            # Run extraction
+
             indices = list(range(len(utterances)))
             results = runner(indices)
-            
-            # Write results with split suffix
-            if results is not None:
-                runner.write_results(results, suffix=f"_{split}")
-                logger.info(f"X-vectors for split '{split}' saved to {save_path}")
-            else:
+
+            if results is None:
                 logger.info(f"Async job submitted for split '{split}'. Check result directory for outputs.")
-        
+                continue
+
+            flat = []
+            for item in results:
+                if isinstance(item, list):
+                    flat.extend(item)
+                else:
+                    flat.append(item)
+            n_ok = sum(1 for r in flat if r.get("status") == "ok")
+            n_skipped = sum(1 for r in flat if r.get("status") == "skipped")
+            logger.info(
+                f"X-vectors for split '{split}' saved to {output_subdir} "
+                f"({n_ok} new, {n_skipped} skipped)"
+            )
+
         logger.info("X-vector computation completed for all splits")
     
     def remove_long_short(self, *args, **kwargs):
@@ -208,10 +224,16 @@ class TTSSystem(BaseSystem):
         logger.info("TTSSystem.remove_long_short(): starting long-short utterance removal")
 
         rls_cfg = self.training_config.get("remove_long_short", None)
-        save_path = Path(rls_cfg.get("save_path", None)) if rls_cfg else None
-
-        if rls_cfg is None or save_path is None:
-            raise RuntimeError("training_config.remove_long_short and training_config.remove_long_short.save_path must be set for remove_long_short stage.")
+        if rls_cfg is None:
+            raise RuntimeError(
+                "training_config.remove_long_short must be set for remove_long_short stage."
+            )
+        save_path_str = rls_cfg.get("save_path", None)
+        if save_path_str is None:
+            raise RuntimeError(
+                "training_config.remove_long_short.save_path must be set for remove_long_short stage."
+            )
+        save_path = Path(save_path_str)
         
         min_duration = rls_cfg.get("min_wav_duration", None)
         max_duration = rls_cfg.get("max_wav_duration", None)
@@ -237,30 +259,32 @@ class TTSSystem(BaseSystem):
 
         for split in splits:
             logger.info(f"Processing split: {split}")
-            
-            # Get manifest file path for this split
-            manifest_path = Path(manifest_paths.get(split, None)).resolve() if manifest_paths else Path(f"data/manifest/{split}.tsv")
+
+            # Resolve manifest path, falling back to the default layout per split.
+            manifest_path_str = manifest_paths.get(split) if manifest_paths else None
+            if manifest_path_str is None:
+                manifest_path_str = f"data/manifest/{split}.tsv"
+            manifest_path = Path(manifest_path_str).resolve()
             filtered_manifest_path = save_path / manifest_path.name
             if not manifest_path.exists():
                 raise RuntimeError(f"Manifest file not found for split '{split}': {manifest_path}. Please ensure the manifest file is generated and the path is correct.")
-            
-            # Read manifest file to extract audio paths and speaker information
+
             filtered_entries = []
-            
+
             with open(manifest_path, "r", encoding="utf-8") as f:
                 for line in f:
-                    parts = line.strip().split("\t")
-                    
+                    parts = line.rstrip("\n").split("\t")
+
                     wav_path = Path(parts[1])
                     length = librosa.get_duration(filename=str(wav_path), sr=sampling_rate)
 
                     if length < min_duration or length > max_duration:
                         continue
 
-                    filtered_entries.append(line)
-            
+                    filtered_entries.append(line if line.endswith("\n") else line + "\n")
+
             with open(filtered_manifest_path, "w", encoding="utf-8") as f:
-                f.write("\n".join(filtered_entries))
+                f.writelines(filtered_entries)
 
         logger.info(f"Long-short utterance removal completed. Filtered manifests saved to: {save_path}")
 
@@ -280,10 +304,16 @@ class TTSSystem(BaseSystem):
         logger.info("TTSSystem.create_token_list(): starting token list creation")
 
         tl_cfg = self.training_config.get("token_list", None)
-        save_path = Path(tl_cfg.get("save_path", None)) if tl_cfg else None
-
-        if tl_cfg is None or save_path is None:
-            raise RuntimeError("training_config.token_list and training_config.token_list.save_path must be set for create_token_list stage.")
+        if tl_cfg is None:
+            raise RuntimeError(
+                "training_config.token_list must be set for create_token_list stage."
+            )
+        save_path_str = tl_cfg.get("save_path", None)
+        if save_path_str is None:
+            raise RuntimeError(
+                "training_config.token_list.save_path must be set for create_token_list stage."
+            )
+        save_path = Path(save_path_str)
 
         manifest_path = Path(tl_cfg.get("manifest_path", "data/manifest/train.tsv")).resolve()
 
