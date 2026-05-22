@@ -192,7 +192,7 @@ def augment_wham_noise(wham_noise_dir: Path, librimix_root: Path, logger):
 
     # Build the command list: [python_executable, script_name, arg1, arg2, ...]
     args_to_pass = ["--wham_dir", str(wham_noise_dir)]
-    command = [sys.executable, "scripts/augment_train_noise.py"] + args_to_pass
+    command = [sys.executable, "scripts/create_librimix.py"] + args_to_pass
     logger.info(f"Running command: {' '.join(command)}")
     result = subprocess.run(command, capture_output=True, text=True, check=True)
 
@@ -254,7 +254,7 @@ def simulate_librimix(
         "mix_both",
         "mix_single",
     ]
-    command = [sys.executable, "scripts/augment_train_noise.py"] + args_to_pass
+    command = [sys.executable, "scripts/create_librimix.py"] + args_to_pass
     logger.info(f"Running command: {' '.join(command)}")
     result = subprocess.run(command, capture_output=True, text=True, check=True)
 
