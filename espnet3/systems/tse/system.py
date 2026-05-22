@@ -32,10 +32,10 @@ class TSESystem(BaseSystem):
         self._reject_stage_args("create_dataset", args, kwargs)
         logger.info("TSESystem.create_dataset(): starting dataset creation process")
         start = time.perf_counter()
-        config = getattr(self.train_config, "create_dataset", None)
+        config = getattr(self.training_config, "create_dataset", None)
         if config is None or not getattr(config, "func", None):
             raise RuntimeError(
-                "train_config.create_dataset.func must be set to run create_dataset"
+                "training_config.create_dataset.func must be set to run create_dataset"
             )
         fn = load_function(config.func)
         extra = {k: v for k, v in config.items() if k != "func"}
@@ -57,8 +57,8 @@ class TSESystem(BaseSystem):
         self._reject_stage_args("train", args, kwargs)
         logger.info("TSESystem.train(): starting training process")
 
-        dataset_dir = getattr(self.train_config, "dataset_dir", None)
+        dataset_dir = getattr(self.training_config, "dataset_dir", None)
         if dataset_dir is None:
-            raise RuntimeError("train_config.dataset_dir must be set for training.")
+            raise RuntimeError("training_config.dataset_dir must be set for training.")
 
         return super().train()
