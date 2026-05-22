@@ -16,6 +16,7 @@ def _load_function(dotted_path: str):
     module_path, func_name = dotted_path.rsplit(".", 1)
     return getattr(import_module(module_path), func_name)
 
+
 logger = logging.getLogger(__name__)
 
 

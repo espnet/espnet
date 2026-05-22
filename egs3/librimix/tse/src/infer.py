@@ -20,7 +20,7 @@ def output_fn(*, data, model_output, idx):
             "ref": numpy float32 waveform (saved as WAV via output_artifacts)
     """
     uttid = data.get("uttid", str(idx))
-    inf_wav = model_output[0][0]       # target speaker extracted audio
+    inf_wav = model_output[0][0]  # target speaker extracted audio
     ref_wav = data.get("speech_ref1")  # reference audio (numpy array)
 
     out = {"uttid": uttid, "inf": inf_wav}
