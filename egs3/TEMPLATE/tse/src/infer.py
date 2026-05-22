@@ -4,6 +4,9 @@
 def output_fn(*, data, model_output, idx):
     """Build a dict of outputs for SCP writing."""
     uttid = data.get("uttid", str(idx))
-    infs = model_output[0]
-    refs = [data.get(f"speech_ref{k+1}", "") for k in range(data.get("num_spk", 1))]
-    return {"uttid": uttid, "inf": infs, "ref": refs}
+    inf_wav = model_output[0][0]       # first (target) speaker extracted waveform
+    ref_wav = data.get("speech_ref1")  # reference waveform (numpy array)
+    out = {"uttid": uttid, "inf": inf_wav}
+    if ref_wav is not None:
+        out["ref"] = ref_wav
+    return out
