@@ -76,7 +76,7 @@ dataloader:
 
 
 # Optimizer and scheduler are intentionally lightweight defaults.
-optim:
+optimizer:
   _target_: torch.optim.Adam
   lr: 0.002
   weight_decay: 0.000001
