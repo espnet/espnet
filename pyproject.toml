@@ -120,7 +120,7 @@ spk = [
   "asteroid_filterbanks==0.4.0"
 ]
 
-recipe = [
+egs2 = [
   "gdown",
   "resampy",
   "pysptk>=0.2.1",
@@ -195,8 +195,8 @@ all = [
   "espnet[tts]",
   "espnet[enh]",
   "espnet[spk]",
-  "espnet[recipe]",
   "espnet[speechlm]",
+  "espnet[egs2]",
   "fairscale",
   "transformers",
   "evaluate",
