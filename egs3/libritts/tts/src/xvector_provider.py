@@ -222,21 +222,7 @@ class XVectorProvider(EnvironmentProvider):
             )
 
         elif toolkit == "speechbrain":
-            # SpeechBrain <1.0 calls hf_hub_download(..., use_auth_token=...),
-            # but huggingface_hub >=0.23 renamed that kwarg to `token`. Patch
-            # the call site so the old code keeps working with new hub.
-            import huggingface_hub
-
-            _orig_hf_hub_download = huggingface_hub.hf_hub_download
-
-            def _patched_hf_hub_download(*args, **kwargs):
-                if "use_auth_token" in kwargs:
-                    kwargs["token"] = kwargs.pop("use_auth_token")
-                return _orig_hf_hub_download(*args, **kwargs)
-
-            huggingface_hub.hf_hub_download = _patched_hf_hub_download
-
-            from speechbrain.pretrained import EncoderClassifier
+            from speechbrain.inference.classifiers import EncoderClassifier
 
             return EncoderClassifier.from_hparams(
                 source=pretrained_model,
