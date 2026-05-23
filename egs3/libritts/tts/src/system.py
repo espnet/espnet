@@ -10,7 +10,6 @@ import subprocess
 from collections import Counter
 from pathlib import Path
 
-import librosa
 import torch
 from omegaconf import DictConfig
 from espnet2.text.cleaner import TextCleaner
@@ -230,57 +229,83 @@ class TTSSystem(BaseSystem):
                 "training_config.remove_long_short.save_path must be set for remove_long_short stage."
             )
         save_path = Path(save_path_str)
-        
+
         min_duration = rls_cfg.get("min_wav_duration", None)
         max_duration = rls_cfg.get("max_wav_duration", None)
-        sampling_rate = rls_cfg.get("sampling_rate", None)
+        if min_duration is None or max_duration is None:
+            raise RuntimeError(
+                "training_config.remove_long_short.min_wav_duration and "
+                "max_wav_duration must be set for remove_long_short stage."
+            )
 
-        if min_duration is None or max_duration is None or sampling_rate is None:
-            raise RuntimeError("training_config.remove_long_short.min_wav_duration, max_wav_duration, and sampling_rate must be set for remove_long_short stage.")
-
-        # Get list of splits to process
         splits = rls_cfg.get("splits", None)
-
         if splits is None:
-            raise RuntimeError("training_config.remove_long_short.splits must be set to specify which data splits to process (e.g., ['train', 'valid', 'test'])")
-
+            raise RuntimeError(
+                "training_config.remove_long_short.splits must be set to specify "
+                "which data splits to process (e.g., ['train', 'valid', 'test'])"
+            )
         if isinstance(splits, str):
             splits = [splits]
-        
-        # Get manifest directory (configurable, default: data/manifest)
+
         manifest_paths = rls_cfg.get("manifest_paths", {})
 
         save_path.mkdir(parents=True, exist_ok=True)
-        logger.info(f"Removing long-short utterances with min_duration={min_duration}s, max_duration={max_duration}s, sampling_rate={sampling_rate}Hz")
+        logger.info(
+            f"Removing long-short utterances with "
+            f"min_duration={min_duration}s, max_duration={max_duration}s"
+        )
+
+        # soundfile.info reads only the audio header, which is dramatically faster
+        # than librosa.get_duration (which can fall back to loading the full file).
+        import soundfile as sf
 
         for split in splits:
             logger.info(f"Processing split: {split}")
 
-            # Resolve manifest path, falling back to the default layout per split.
             manifest_path_str = manifest_paths.get(split) if manifest_paths else None
             if manifest_path_str is None:
                 manifest_path_str = f"data/manifest/{split}.tsv"
             manifest_path = Path(manifest_path_str).resolve()
             filtered_manifest_path = save_path / manifest_path.name
             if not manifest_path.exists():
-                raise RuntimeError(f"Manifest file not found for split '{split}': {manifest_path}. Please ensure the manifest file is generated and the path is correct.")
+                raise RuntimeError(
+                    f"Manifest file not found for split '{split}': {manifest_path}. "
+                    "Please ensure the manifest file is generated and the path is correct."
+                )
 
+            n_kept = 0
+            n_dropped_duration = 0
+            n_dropped_empty = 0
             filtered_entries = []
 
             with open(manifest_path, "r", encoding="utf-8") as f:
                 for line in f:
                     parts = line.rstrip("\n").split("\t")
 
-                    wav_path = Path(parts[1])
-                    length = librosa.get_duration(filename=str(wav_path), sr=sampling_rate)
+                    # Mirror espnet2's `NF != 1` filter: drop rows without text.
+                    if len(parts) < 3 or parts[2].strip() == "":
+                        n_dropped_empty += 1
+                        continue
 
-                    if length < min_duration or length > max_duration:
+                    wav_path = parts[1]
+                    duration = sf.info(wav_path).duration
+
+                    # Strict inequalities to match espnet2 tts.sh awk filter.
+                    if duration <= min_duration or duration >= max_duration:
+                        n_dropped_duration += 1
                         continue
 
                     filtered_entries.append(line if line.endswith("\n") else line + "\n")
+                    n_kept += 1
 
             with open(filtered_manifest_path, "w", encoding="utf-8") as f:
                 f.writelines(filtered_entries)
+
+            logger.info(
+                f"Split '{split}': kept {n_kept}, dropped {n_dropped_duration} "
+                f"by duration, dropped {n_dropped_empty} by empty text → "
+                f"{filtered_manifest_path}"
+            )
 
         logger.info(f"Long-short utterance removal completed. Filtered manifests saved to: {save_path}")
 
@@ -310,6 +335,7 @@ class TTSSystem(BaseSystem):
                 "training_config.token_list.save_path must be set for create_token_list stage."
             )
         save_path = Path(save_path_str)
+        save_path.parent.mkdir(parents=True, exist_ok=True)
 
         manifest_path = Path(tl_cfg.get("manifest_path", "data/manifest/train.tsv")).resolve()
 
@@ -389,4 +415,9 @@ class TTSSystem(BaseSystem):
         # Logging
         total_count = sum(counter.values())
         invocab_count = sum(c for w, c in words_and_counts if c is not None)
-        logging.info(f"OOV rate = {(total_count - invocab_count) / total_count * 100:.2f} %")
+        if total_count > 0:
+            logger.info(
+                f"OOV rate = {(total_count - invocab_count) / total_count * 100:.2f} %"
+            )
+        else:
+            logger.warning("create_token_list: manifest contained no tokens.")
