@@ -1,0 +1,315 @@
+#!/usr/bin/env python3
+"""Decode an ESPnet-format Whisper SOT checkpoint via ``openai-whisper``.
+
+The released ``model.pth`` is in ESPnet state-dict naming
+(``encoder.encoders.*``, ``decoder.decoders.*``). We remap those keys back to
+openai-whisper's naming in memory and delegate inference to whisper's
+``transcribe()`` pipeline (temperature fallback, compression-ratio /
+log-prob thresholds, KV cache, ``ApplyTimestampRules``).
+
+For SOT multi-talker output, the ``????`` separator is the regular BPE pair
+``????`` (token id 25629). It is rewritten to ``<sc>`` in the output to match
+the reference text format used by ``evaluate_sot.py`` / ``compute_der.py``.
+
+Usage::
+
+    python local/decode.py exp/whisper-sot-small-ami \\
+        --wav_scp data/test/wav.scp \\
+        --out_subdir decode_test \\
+        --whisper_model small --fp16
+"""
+
+import argparse
+import logging
+import sys
+import time
+from collections import OrderedDict
+from pathlib import Path
+from typing import Dict
+
+import numpy as np
+import soundfile as sf
+import torch
+import whisper
+
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s %(levelname)s: %(message)s"
+)
+logger = logging.getLogger("decode")
+
+# tiktoken-multilingual encoding of "????" — emitted by the SOT model as the
+# speaker-change marker between speaker blocks.
+SOT_SEPARATOR_STR = "????"
+SOT_SEPARATOR_ID = 25629
+LOG_EVERY = 100
+
+
+# ---------------------------------------------------------------------------
+# SOT-aware replacement for whisper.decoding.ApplyTimestampRules
+# ---------------------------------------------------------------------------
+# Whisper's stock ``ApplyTimestampRules.apply`` enforces global timestamp
+# pairing and forbids any text after a closing timestamp, which prevents the
+# SST/FIFO model from emitting ``????`` between speaker blocks (the trained
+# pattern is ``<|t_end|> ???? <|t_start|>``). The patch below scopes the
+# pairing rules to the *current speaker block* (tokens after the last
+# separator) so the separator becomes a valid choice right after a closing
+# timestamp; this is a simplified port (no spk_count / spk_id auxiliary
+# tokens) of ``WhisperTimeStampLogitsProcessorCustom`` from the TS-ASR-Whisper
+# paper code (``src/models/dicow/utils.py``).
+
+
+def _install_sot_separator_patch() -> None:
+    import whisper.decoding as _wd
+
+    if getattr(_wd.ApplyTimestampRules, "_sot_patched", False):
+        return
+
+    SEP = SOT_SEPARATOR_ID
+
+    def _sot_apply(self, logits, tokens):
+        sep_in_vocab = SEP < logits.shape[-1]
+        sep_orig = logits[:, SEP].detach().clone() if sep_in_vocab else None
+
+        if self.tokenizer.no_timestamps is not None:
+            logits[:, self.tokenizer.no_timestamps] = float("-inf")
+        ts0 = self.tokenizer.timestamp_begin
+        eot = self.tokenizer.eot
+
+        for k in range(tokens.shape[0]):
+            seq = tokens[k, self.sample_begin:].tolist()
+            last_sep_pos = None
+            if sep_in_vocab:
+                for i in range(len(seq) - 1, -1, -1):
+                    if seq[i] == SEP:
+                        last_sep_pos = i
+                        break
+            if last_sep_pos is not None:
+                current_block = seq[last_sep_pos + 1:]
+                just_after_sep = len(current_block) == 0
+            else:
+                current_block = seq
+                just_after_sep = False
+
+            # Right after a separator: force a timestamp; forbid consecutive
+            # separators.
+            if just_after_sep:
+                logits[k, :ts0] = float("-inf")
+                logits[k, eot] = 0.0
+                if sep_in_vocab:
+                    logits[k, SEP] = float("-inf")
+                continue
+
+            # Pairing rules SCOPED to the current speaker block.
+            last_ts = len(current_block) >= 1 and current_block[-1] >= ts0
+            penul_ts = len(current_block) < 2 or current_block[-2] >= ts0
+            if last_ts:
+                if penul_ts:
+                    # Two consecutive timestamps -> text must follow.
+                    logits[k, ts0:] = float("-inf")
+                    if sep_in_vocab:
+                        logits[k, SEP] = float("-inf")
+                else:
+                    # Single closing timestamp -> suppress text below eot,
+                    # restore the separator so a speaker change is available
+                    # alongside EOT / next opening timestamp.
+                    logits[k, :eot] = float("-inf")
+                    if sep_in_vocab:
+                        logits[k, SEP] = sep_orig[k]
+
+            # Non-decreasing timestamps within the current block.
+            blk = [t for t in current_block if t >= ts0]
+            if blk:
+                ts_last = blk[-1] if (last_ts and not penul_ts) else blk[-1] + 1
+                logits[k, ts0:ts_last] = float("-inf")
+
+        # Forced initial timestamp (mirrors stock rule).
+        if tokens.shape[1] == self.sample_begin:
+            logits[:, :ts0] = float("-inf")
+            if self.max_initial_timestamp_index is not None:
+                last_allowed = ts0 + self.max_initial_timestamp_index
+                logits[:, last_allowed + 1:] = float("-inf")
+
+        # Adaptive sampling: if logsumexp of timestamp logits exceeds the max
+        # text logit, force a timestamp. Biases the model to *continue* within
+        # a speaker block when its timestamp confidence is high; without it,
+        # the model emits the separator too eagerly after the first closing
+        # timestamp and DER suffers.
+        import torch.nn.functional as _F
+        logprobs = _F.log_softmax(logits.float(), dim=-1)
+        for k in range(tokens.shape[0]):
+            if logprobs[k, ts0:].logsumexp(dim=-1) > logprobs[k, :ts0].max():
+                logits[k, :ts0] = float("-inf")
+
+    _wd.ApplyTimestampRules.apply = _sot_apply
+    _wd.ApplyTimestampRules._sot_patched = True
+
+
+# ---------------------------------------------------------------------------
+# State-dict remap: ESPnet -> openai-whisper
+# ---------------------------------------------------------------------------
+
+
+def remap_espnet_to_whisper(
+    espnet_state: Dict[str, torch.Tensor]
+) -> "OrderedDict[str, torch.Tensor]":
+    """Strip ESPnet wrapper prefixes (``encoder.encoders.``, ``decoder.decoders.``)
+    and merge ``ExpandedTokenEmbedding`` back into a single flat tensor that
+    ``whisper.model.TextDecoder`` expects. ``????`` was trained as plain BPE
+    (id 25629, already in the base 51865 vocab), so the optional ``add_emb``
+    row is unused and only ``ori_emb`` is kept."""
+    out: "OrderedDict[str, torch.Tensor]" = OrderedDict()
+    for k, v in espnet_state.items():
+        if "token_embedding.ori_emb" in k or "token_embedding.add_emb" in k:
+            continue
+        new_k = k
+        if new_k.startswith("encoder.encoders."):
+            new_k = "encoder." + new_k[len("encoder.encoders."):]
+        elif new_k.startswith("decoder.decoders."):
+            new_k = "decoder." + new_k[len("decoder.decoders."):]
+        out[new_k] = v
+    ori_key = "decoder.decoders.token_embedding.ori_emb.weight"
+    if ori_key in espnet_state:
+        out["decoder.token_embedding.weight"] = espnet_state[ori_key]
+    return out
+
+
+def load_whisper_model_from_espnet(
+    espnet_pth: Path, whisper_model_size: str, device: str
+) -> whisper.model.Whisper:
+    """Initialize the openai-whisper architecture matching ``whisper_model_size``,
+    then overwrite its weights with the converted ESPnet checkpoint."""
+    logger.info(f"Initializing whisper.{whisper_model_size} architecture...")
+    model = whisper.load_model(whisper_model_size, device="cpu")
+    # Do NOT call model.half() here even with fp16=True; whisper's transcribe()
+    # casts inputs/cache internally and pre-halving conflicts with that.
+    logger.info(f"Loading ESPnet weights from {espnet_pth}")
+    espnet_sd = torch.load(espnet_pth, map_location="cpu", weights_only=False)
+    missing, unexpected = model.load_state_dict(
+        remap_espnet_to_whisper(espnet_sd), strict=False
+    )
+    if missing:
+        logger.warning(f"Missing {len(missing)} keys (first 3: {missing[:3]})")
+    if unexpected:
+        logger.warning(
+            f"Unexpected {len(unexpected)} keys (first 3: {unexpected[:3]})"
+        )
+    return model.to(device).eval()
+
+
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
+
+
+def main():
+    p = argparse.ArgumentParser(
+        description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    p.add_argument("model_dir", type=Path,
+                   help="Directory with model.pth")
+    p.add_argument("--whisper_model", required=True,
+                   choices=whisper.available_models(),
+                   help="Architecture name for whisper.load_model")
+    p.add_argument("--wav_scp", type=Path, default=Path("data/test/wav.scp"))
+    p.add_argument("--out_subdir", default="decode_inference")
+    p.add_argument("--device", default="cuda")
+    p.add_argument("--fp16", action="store_true",
+                   help="Run inference in fp16 (Whisper default).")
+    p.add_argument("--language", default="en")
+    p.add_argument("--beam_size", type=int, default=5)
+    args = p.parse_args()
+
+    out_dir = args.model_dir / args.out_subdir / "1best_recog"
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    _install_sot_separator_patch()
+    logger.info(
+        f"Patched whisper.decoding.ApplyTimestampRules for SOT separator "
+        f"(id={SOT_SEPARATOR_ID})"
+    )
+
+    t0 = time.time()
+    model = load_whisper_model_from_espnet(
+        espnet_pth=args.model_dir / "model.pth",
+        whisper_model_size=args.whisper_model,
+        device=args.device,
+    )
+    logger.info(f"Model ready in {time.time() - t0:.1f}s")
+
+    utts = []
+    with open(args.wav_scp) as f:
+        for line in f:
+            parts = line.strip().split(maxsplit=1)
+            if len(parts) == 2:
+                utts.append((parts[0], parts[1]))
+    logger.info(f"Total utterances: {len(utts)}")
+
+    # Tokenizer to re-decode segment token IDs with timestamps preserved
+    # (needed for the text_sot output consumed by the DER evaluator).
+    sot_tokenizer = whisper.tokenizer.get_tokenizer(
+        multilingual=True, task="transcribe", language=args.language,
+    )
+
+    def _build_text_sot(result: dict) -> str:
+        parts = []
+        for seg in result.get("segments", []):
+            toks = list(seg.get("tokens", []))
+            if toks:
+                parts.append(sot_tokenizer.decode_with_timestamps(toks))
+        return "".join(parts).replace(SOT_SEPARATOR_STR, " <sc> ")
+
+    t_start = time.time()
+    fail_count = 0
+    with open(out_dir / "text", "w") as f_text, \
+         open(out_dir / "text_sot", "w") as f_text_sot:
+        for i, (uid, path) in enumerate(utts):
+            try:
+                audio, _ = sf.read(path)
+                if audio.dtype != np.float32:
+                    audio = audio.astype(np.float32)
+                result = model.transcribe(
+                    audio,
+                    language=args.language,
+                    task="transcribe",
+                    beam_size=args.beam_size,
+                    fp16=args.fp16,
+                    word_timestamps=False,
+                    condition_on_previous_text=False,
+                    # Disable max_initial_timestamp so the model can emit a
+                    # later first timestamp (matches paper-side HF generate()
+                    # behaviour). The default 1.0s would force <|0.00|> even
+                    # when speech starts >1s into the segment, inflating
+                    # false-alarm DER on short/silent-prefix utts.
+                    max_initial_timestamp=None,
+                )
+                text = " ".join(
+                    result["text"].strip()
+                    .replace(SOT_SEPARATOR_STR, " <sc> ").split()
+                )
+                f_text.write(f"{uid} {text}\n")
+                f_text_sot.write(f"{uid} {_build_text_sot(result)}\n")
+            except Exception as e:
+                fail_count += 1
+                logger.warning(f"[{uid}] FAILED: {type(e).__name__}: {e}")
+                f_text.write(f"{uid} \n")
+                f_text_sot.write(f"{uid} \n")
+            if (i + 1) % LOG_EVERY == 0:
+                f_text.flush()
+                f_text_sot.flush()
+                elapsed = time.time() - t_start
+                rate = (i + 1) / elapsed
+                logger.info(
+                    f"[{i + 1}/{len(utts)}] {rate:.2f} utt/s "
+                    f"ETA {(len(utts) - i - 1) / rate / 60:.1f} min"
+                )
+
+    total = time.time() - t_start
+    logger.info(
+        f"Done. {len(utts)} utts in {total / 60:.1f} min "
+        f"({len(utts) / total:.2f} utt/s). failures: {fail_count}"
+    )
+
+
+if __name__ == "__main__":
+    sys.exit(main())
