@@ -79,9 +79,7 @@ def get_transcript_units(
                     end_ts = f"<|{round_nearest(seg['end'], 0.02):.2f}|>"
                     text = f"{start_ts} {text}{end_ts}"
 
-            units.append(
-                {"speaker": speaker_id, "text": text, "start": seg["start"]}
-            )
+            units.append({"speaker": speaker_id, "text": text, "start": seg["start"]})
 
     return units
 
@@ -151,8 +149,13 @@ def process_cutset(
     """Process a CutSet. Returns (entries, stats) where entries is a list of
     (utt_id, wav_path, text) tuples and stats is a dict of skip counters."""
     entries = []
-    stats = {"total": 0, "skipped_too_long": 0, "skipped_no_audio": 0,
-             "skipped_no_text": 0, "processed": 0}
+    stats = {
+        "total": 0,
+        "skipped_too_long": 0,
+        "skipped_no_audio": 0,
+        "skipped_no_text": 0,
+        "processed": 0,
+    }
 
     for cut in cutset:
         stats["total"] += 1
@@ -189,8 +192,10 @@ def process_cutset(
 def write_kaldi_data(entries, output_dir: str):
     os.makedirs(output_dir, exist_ok=True)
     entries.sort(key=lambda x: x[0])
-    paths = {k: os.path.join(output_dir, k) for k in
-             ("wav.scp", "text", "utt2spk", "spk2utt")}
+    paths = {
+        k: os.path.join(output_dir, k)
+        for k in ("wav.scp", "text", "utt2spk", "spk2utt")
+    }
     with (
         open(paths["wav.scp"], "w") as f_wav,
         open(paths["text"], "w") as f_text,
@@ -210,31 +215,55 @@ def main():
     parser = argparse.ArgumentParser(
         description="Prepare SOT data from Lhotse CutSets for ESPnet2 training.",
     )
-    parser.add_argument("--cutset_paths", type=str, nargs="+", required=True,
-                        help="Paths to Lhotse CutSet .jsonl.gz files")
-    parser.add_argument("--output_dir", type=str, required=True,
-                        help="Output directory for Kaldi-format data")
-    parser.add_argument("--use_timestamps",
-                        type=lambda x: x.lower() in ("true", "1", "yes"),
-                        default=False,
-                        help="Include timestamps in text output")
-    parser.add_argument("--max_timestamp_pause", type=float, default=2.0,
-                        help="Max pause (seconds) for merging adjacent segments")
-    parser.add_argument("--lowercase",
-                        type=lambda x: x.lower() in ("true", "1", "yes"),
-                        default=True,
-                        help="Lowercase transcript text (default: true)")
+    parser.add_argument(
+        "--cutset_paths",
+        type=str,
+        nargs="+",
+        required=True,
+        help="Paths to Lhotse CutSet .jsonl.gz files",
+    )
+    parser.add_argument(
+        "--output_dir",
+        type=str,
+        required=True,
+        help="Output directory for Kaldi-format data",
+    )
+    parser.add_argument(
+        "--use_timestamps",
+        type=lambda x: x.lower() in ("true", "1", "yes"),
+        default=False,
+        help="Include timestamps in text output",
+    )
+    parser.add_argument(
+        "--max_timestamp_pause",
+        type=float,
+        default=2.0,
+        help="Max pause (seconds) for merging adjacent segments",
+    )
+    parser.add_argument(
+        "--lowercase",
+        type=lambda x: x.lower() in ("true", "1", "yes"),
+        default=True,
+        help="Lowercase transcript text (default: true)",
+    )
     args = parser.parse_args()
 
-    logger.info(f"Use timestamps: {args.use_timestamps}, "
-                f"max_timestamp_pause: {args.max_timestamp_pause}")
+    logger.info(
+        f"Use timestamps: {args.use_timestamps}, "
+        f"max_timestamp_pause: {args.max_timestamp_pause}"
+    )
 
     segments_dir = os.path.join(args.output_dir, "segments_wav")
     os.makedirs(segments_dir, exist_ok=True)
 
     all_entries = []
-    total_stats = {"total": 0, "skipped_too_long": 0, "skipped_no_audio": 0,
-                   "skipped_no_text": 0, "processed": 0}
+    total_stats = {
+        "total": 0,
+        "skipped_too_long": 0,
+        "skipped_no_audio": 0,
+        "skipped_no_text": 0,
+        "processed": 0,
+    }
 
     for cutset_path in args.cutset_paths:
         logger.info(f"Loading cutset: {cutset_path}")
@@ -255,9 +284,7 @@ def main():
     seen = set()
     unique = [e for e in all_entries if not (e[0] in seen or seen.add(e[0]))]
     if len(unique) != len(all_entries):
-        logger.warning(
-            f"Removed {len(all_entries) - len(unique)} duplicate utt_ids"
-        )
+        logger.warning(f"Removed {len(all_entries) - len(unique)} duplicate utt_ids")
 
     write_kaldi_data(unique, args.output_dir)
     logger.info("Done.")

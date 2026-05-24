@@ -32,9 +32,7 @@ import soundfile as sf
 import torch
 import whisper
 
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s %(levelname)s: %(message)s"
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s: %(message)s")
 logger = logging.getLogger("decode")
 
 # tiktoken-multilingual encoding of "????" — emitted by the SOT model as the
@@ -76,7 +74,7 @@ def _install_sot_separator_patch() -> None:
         eot = self.tokenizer.eot
 
         for k in range(tokens.shape[0]):
-            seq = tokens[k, self.sample_begin:].tolist()
+            seq = tokens[k, self.sample_begin :].tolist()
             last_sep_pos = None
             if sep_in_vocab:
                 for i in range(len(seq) - 1, -1, -1):
@@ -84,7 +82,7 @@ def _install_sot_separator_patch() -> None:
                         last_sep_pos = i
                         break
             if last_sep_pos is not None:
-                current_block = seq[last_sep_pos + 1:]
+                current_block = seq[last_sep_pos + 1 :]
                 just_after_sep = len(current_block) == 0
             else:
                 current_block = seq
@@ -127,7 +125,7 @@ def _install_sot_separator_patch() -> None:
             logits[:, :ts0] = float("-inf")
             if self.max_initial_timestamp_index is not None:
                 last_allowed = ts0 + self.max_initial_timestamp_index
-                logits[:, last_allowed + 1:] = float("-inf")
+                logits[:, last_allowed + 1 :] = float("-inf")
 
         # Adaptive sampling: if logsumexp of timestamp logits exceeds the max
         # text logit, force a timestamp. Biases the model to *continue* within
@@ -135,6 +133,7 @@ def _install_sot_separator_patch() -> None:
         # the model emits the separator too eagerly after the first closing
         # timestamp and DER suffers.
         import torch.nn.functional as _F
+
         logprobs = _F.log_softmax(logits.float(), dim=-1)
         for k in range(tokens.shape[0]):
             if logprobs[k, ts0:].logsumexp(dim=-1) > logprobs[k, :ts0].max():
@@ -150,7 +149,7 @@ def _install_sot_separator_patch() -> None:
 
 
 def remap_espnet_to_whisper(
-    espnet_state: Dict[str, torch.Tensor]
+    espnet_state: Dict[str, torch.Tensor],
 ) -> "OrderedDict[str, torch.Tensor]":
     """Strip ESPnet wrapper prefixes (``encoder.encoders.``, ``decoder.decoders.``)
     and merge ``ExpandedTokenEmbedding`` back into a single flat tensor that
@@ -163,9 +162,9 @@ def remap_espnet_to_whisper(
             continue
         new_k = k
         if new_k.startswith("encoder.encoders."):
-            new_k = "encoder." + new_k[len("encoder.encoders."):]
+            new_k = "encoder." + new_k[len("encoder.encoders.") :]
         elif new_k.startswith("decoder.decoders."):
-            new_k = "decoder." + new_k[len("decoder.decoders."):]
+            new_k = "decoder." + new_k[len("decoder.decoders.") :]
         out[new_k] = v
     ori_key = "decoder.decoders.token_embedding.ori_emb.weight"
     if ori_key in espnet_state:
@@ -190,9 +189,7 @@ def load_whisper_model_from_espnet(
     if missing:
         logger.warning(f"Missing {len(missing)} keys (first 3: {missing[:3]})")
     if unexpected:
-        logger.warning(
-            f"Unexpected {len(unexpected)} keys (first 3: {unexpected[:3]})"
-        )
+        logger.warning(f"Unexpected {len(unexpected)} keys (first 3: {unexpected[:3]})")
     return model.to(device).eval()
 
 
@@ -206,16 +203,19 @@ def main():
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    p.add_argument("model_dir", type=Path,
-                   help="Directory with model.pth")
-    p.add_argument("--whisper_model", required=True,
-                   choices=whisper.available_models(),
-                   help="Architecture name for whisper.load_model")
+    p.add_argument("model_dir", type=Path, help="Directory with model.pth")
+    p.add_argument(
+        "--whisper_model",
+        required=True,
+        choices=whisper.available_models(),
+        help="Architecture name for whisper.load_model",
+    )
     p.add_argument("--wav_scp", type=Path, default=Path("data/test/wav.scp"))
     p.add_argument("--out_subdir", default="decode_inference")
     p.add_argument("--device", default="cuda")
-    p.add_argument("--fp16", action="store_true",
-                   help="Run inference in fp16 (Whisper default).")
+    p.add_argument(
+        "--fp16", action="store_true", help="Run inference in fp16 (Whisper default)."
+    )
     p.add_argument("--language", default="en")
     p.add_argument("--beam_size", type=int, default=5)
     args = p.parse_args()
@@ -248,7 +248,9 @@ def main():
     # Tokenizer to re-decode segment token IDs with timestamps preserved
     # (needed for the text_sot output consumed by the DER evaluator).
     sot_tokenizer = whisper.tokenizer.get_tokenizer(
-        multilingual=True, task="transcribe", language=args.language,
+        multilingual=True,
+        task="transcribe",
+        language=args.language,
     )
 
     def _build_text_sot(result: dict) -> str:
@@ -261,8 +263,10 @@ def main():
 
     t_start = time.time()
     fail_count = 0
-    with open(out_dir / "text", "w") as f_text, \
-         open(out_dir / "text_sot", "w") as f_text_sot:
+    with (
+        open(out_dir / "text", "w") as f_text,
+        open(out_dir / "text_sot", "w") as f_text_sot,
+    ):
         for i, (uid, path) in enumerate(utts):
             try:
                 audio, _ = sf.read(path)
@@ -284,8 +288,7 @@ def main():
                     max_initial_timestamp=None,
                 )
                 text = " ".join(
-                    result["text"].strip()
-                    .replace(SOT_SEPARATOR_STR, " <sc> ").split()
+                    result["text"].strip().replace(SOT_SEPARATOR_STR, " <sc> ").split()
                 )
                 f_text.write(f"{uid} {text}\n")
                 f_text_sot.write(f"{uid} {_build_text_sot(result)}\n")
