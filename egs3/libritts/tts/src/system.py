@@ -334,8 +334,15 @@ class TTSSystem(BaseSystem):
             raise RuntimeError(
                 "training_config.token_list.save_path must be set for create_token_list stage."
             )
-        save_path = Path(save_path_str)
-        save_path.parent.mkdir(parents=True, exist_ok=True)
+        filename = tl_cfg.get("filename", None)
+        if filename is None:
+            raise RuntimeError(
+                "training_config.token_list.filename must be set "
+                "(e.g. 'tokens.txt'); save_path is the output directory."
+            )
+        save_dir = Path(save_path_str)
+        save_dir.mkdir(parents=True, exist_ok=True)
+        output_file = save_dir / filename
 
         manifest_path = Path(tl_cfg.get("manifest_path", "data/manifest/train.tsv")).resolve()
 
@@ -408,7 +415,7 @@ class TTSSystem(BaseSystem):
             words_and_counts.insert(idx, (symbol, None))
         
         # Write words
-        with open(save_path, "w", encoding="utf-8") as f:
+        with open(output_file, "w", encoding="utf-8") as f:
             for word, count in words_and_counts:
                 f.write(f"{word}\n")
         
