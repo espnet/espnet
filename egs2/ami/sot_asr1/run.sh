@@ -26,17 +26,18 @@ inference_model=""
 whisper_model="small"
 decode_out="decode_inference"
 decode_test_sets=""           # space-separated; defaults to ${test_sets}
-fp16=true
+fp16_flag="--fp16"            # fp16 on by default; pass --no-fp16 to disable
 
 # Pull our own flags out, forward the rest to asr.sh
 asr_args=()
 while [ $# -gt 0 ]; do
     case "$1" in
-        --inference_model)   inference_model="$2"; shift 2 ;;
-        --whisper_model)    whisper_model="$2";  shift 2 ;;
-        --decode_out)       decode_out="$2";     shift 2 ;;
-        --decode_test_sets) decode_test_sets="$2"; shift 2 ;;
-        --fp16)             fp16="$2";           shift 2 ;;
+        --inference_model)  inference_model="$2";   shift 2 ;;
+        --whisper_model)    whisper_model="$2";     shift 2 ;;
+        --decode_out)       decode_out="$2";        shift 2 ;;
+        --decode_test_sets) decode_test_sets="$2";  shift 2 ;;
+        --fp16)             fp16_flag="--fp16";     shift ;;
+        --no-fp16)          fp16_flag="";           shift ;;
         *) asr_args+=("$1"); shift ;;
     esac
 done
@@ -45,10 +46,6 @@ if [ -n "${inference_model}" ]; then
     # ----- Mode 2: checkpoint-bundle inference -----
     if [ -z "${decode_test_sets}" ]; then
         decode_test_sets="${test_sets}"
-    fi
-    fp16_flag=""
-    if [ "${fp16}" = "true" ]; then
-        fp16_flag="--fp16"
     fi
     for tset in ${decode_test_sets}; do
         outdir="${inference_model}/${decode_out}/${tset}"

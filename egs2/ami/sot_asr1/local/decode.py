@@ -1,15 +1,14 @@
 #!/usr/bin/env python3
 """Decode an ESPnet-format Whisper SOT checkpoint via ``openai-whisper``.
 
-The released ``model.pth`` is in ESPnet state-dict naming
+The released ``model.pth`` uses ESPnet state-dict naming
 (``encoder.encoders.*``, ``decoder.decoders.*``). We remap those keys back to
 openai-whisper's naming in memory and delegate inference to whisper's
 ``transcribe()`` pipeline (temperature fallback, compression-ratio /
 log-prob thresholds, KV cache, ``ApplyTimestampRules``).
 
-For SOT multi-talker output, the ``????`` separator is the regular BPE pair
-``????`` (token id 25629). It is rewritten to ``<sc>`` in the output to match
-the reference text format used by ``evaluate_sot.py`` / ``compute_der.py``.
+The SOT speaker-change separator emitted by the model is rewritten to
+``<sc>`` in the output text so downstream tooling can split on it cleanly.
 
 Usage::
 
@@ -27,17 +26,15 @@ from collections import OrderedDict
 from pathlib import Path
 from typing import Dict
 
-import numpy as np
-import soundfile as sf
 import torch
 import whisper
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s: %(message)s")
 logger = logging.getLogger("decode")
 
-# tiktoken-multilingual encoding of "????" — emitted by the SOT model as the
-# speaker-change marker between speaker blocks.
-SOT_SEPARATOR_STR = "????"
+# SOT speaker-change separator: token id of a regular BPE pair in the
+# tiktoken multilingual vocabulary (already present in the base 51865-token
+# vocab). The string form is resolved at runtime via the tokenizer.
 SOT_SEPARATOR_ID = 25629
 LOG_EVERY = 100
 
@@ -46,14 +43,12 @@ LOG_EVERY = 100
 # SOT-aware replacement for whisper.decoding.ApplyTimestampRules
 # ---------------------------------------------------------------------------
 # Whisper's stock ``ApplyTimestampRules.apply`` enforces global timestamp
-# pairing and forbids any text after a closing timestamp, which prevents the
-# SST/FIFO model from emitting ``????`` between speaker blocks (the trained
-# pattern is ``<|t_end|> ???? <|t_start|>``). The patch below scopes the
-# pairing rules to the *current speaker block* (tokens after the last
-# separator) so the separator becomes a valid choice right after a closing
-# timestamp; this is a simplified port (no spk_count / spk_id auxiliary
-# tokens) of ``WhisperTimeStampLogitsProcessorCustom`` from the TS-ASR-Whisper
-# paper code (``src/models/dicow/utils.py``).
+# pairing and forbids any text token after a closing timestamp. That prevents
+# the SOT/FIFO model from emitting the speaker-change separator between
+# speaker blocks (its trained pattern is ``<|t_end|> <sep> <|t_start|>``).
+# The patch below scopes the pairing rules to the *current speaker block*
+# (tokens after the last separator) so the separator becomes a valid choice
+# right after a closing timestamp.
 
 
 def _install_sot_separator_patch() -> None:
@@ -153,8 +148,8 @@ def remap_espnet_to_whisper(
 ) -> "OrderedDict[str, torch.Tensor]":
     """Strip ESPnet wrapper prefixes (``encoder.encoders.``, ``decoder.decoders.``)
     and merge ``ExpandedTokenEmbedding`` back into a single flat tensor that
-    ``whisper.model.TextDecoder`` expects. ``????`` was trained as plain BPE
-    (id 25629, already in the base 51865 vocab), so the optional ``add_emb``
+    ``whisper.model.TextDecoder`` expects. The SOT separator was trained as a
+    plain BPE pair already in the base vocabulary, so the optional ``add_emb``
     row is unused and only ``ori_emb`` is kept."""
     out: "OrderedDict[str, torch.Tensor]" = OrderedDict()
     for k, v in espnet_state.items():
@@ -182,7 +177,7 @@ def load_whisper_model_from_espnet(
     # Do NOT call model.half() here even with fp16=True; whisper's transcribe()
     # casts inputs/cache internally and pre-halving conflicts with that.
     logger.info(f"Loading ESPnet weights from {espnet_pth}")
-    espnet_sd = torch.load(espnet_pth, map_location="cpu", weights_only=False)
+    espnet_sd = torch.load(espnet_pth, map_location="cpu", weights_only=True)
     missing, unexpected = model.load_state_dict(
         remap_espnet_to_whisper(espnet_sd), strict=False
     )
@@ -245,13 +240,15 @@ def main():
                 utts.append((parts[0], parts[1]))
     logger.info(f"Total utterances: {len(utts)}")
 
-    # Tokenizer to re-decode segment token IDs with timestamps preserved
-    # (needed for the text_sot output consumed by the DER evaluator).
+    # Tokenizer used to (a) re-decode segment token IDs with timestamps
+    # preserved for the text_sot output, and (b) resolve the SOT separator's
+    # string form from its token id (kept out of source for portability).
     sot_tokenizer = whisper.tokenizer.get_tokenizer(
         multilingual=True,
         task="transcribe",
         language=args.language,
     )
+    sep_str = sot_tokenizer.decode([SOT_SEPARATOR_ID])
 
     def _build_text_sot(result: dict) -> str:
         parts = []
@@ -259,7 +256,7 @@ def main():
             toks = list(seg.get("tokens", []))
             if toks:
                 parts.append(sot_tokenizer.decode_with_timestamps(toks))
-        return "".join(parts).replace(SOT_SEPARATOR_STR, " <sc> ")
+        return "".join(parts).replace(sep_str, " <sc> ")
 
     t_start = time.time()
     fail_count = 0
@@ -269,9 +266,7 @@ def main():
     ):
         for i, (uid, path) in enumerate(utts):
             try:
-                audio, _ = sf.read(path)
-                if audio.dtype != np.float32:
-                    audio = audio.astype(np.float32)
+                audio = whisper.load_audio(path)  # 16kHz float32 mono
                 result = model.transcribe(
                     audio,
                     language=args.language,
@@ -280,15 +275,14 @@ def main():
                     fp16=args.fp16,
                     word_timestamps=False,
                     condition_on_previous_text=False,
-                    # Disable max_initial_timestamp so the model can emit a
-                    # later first timestamp (matches paper-side HF generate()
-                    # behaviour). The default 1.0s would force <|0.00|> even
-                    # when speech starts >1s into the segment, inflating
-                    # false-alarm DER on short/silent-prefix utts.
+                    # Allow the first emitted timestamp to be anywhere in the
+                    # segment. The default 1.0s would force <|0.00|> even when
+                    # speech starts >1s into the segment, inflating
+                    # false-alarm DER on short/silent-prefix utterances.
                     max_initial_timestamp=None,
                 )
                 text = " ".join(
-                    result["text"].strip().replace(SOT_SEPARATOR_STR, " <sc> ").split()
+                    result["text"].strip().replace(sep_str, " <sc> ").split()
                 )
                 f_text.write(f"{uid} {text}\n")
                 f_text_sot.write(f"{uid} {_build_text_sot(result)}\n")

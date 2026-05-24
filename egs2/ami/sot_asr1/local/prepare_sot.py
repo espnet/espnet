@@ -159,9 +159,9 @@ def process_cutset(
 
     for cut in cutset:
         stats["total"] += 1
-        # Whisper timestamp tokens only cover 0-30 s; longer cuts would
+        # Whisper timestamp tokens cover 0-30s inclusive; longer cuts would
         # produce OOV timestamp IDs.
-        if cut.duration >= 30.0:
+        if cut.duration > 30.0:
             stats["skipped_too_long"] += 1
             continue
 
