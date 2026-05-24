@@ -6,16 +6,18 @@ and supporting VITS training with GAN-based adversarial learning.
 """
 
 import logging
-import subprocess
+import time
 from collections import Counter
 from pathlib import Path
+from typing import Any, Dict
+
+import lightning as L
+import torch
 from hydra.utils import instantiate
 from omegaconf import DictConfig, OmegaConf
 
-import torch
-from omegaconf import DictConfig
-from espnet2.text.cleaner import TextCleaner
 from espnet2.text.build_tokenizer import build_tokenizer
+from espnet2.text.cleaner import TextCleaner
 from espnet2.train.abs_gan_espnet_model import AbsGANESPnetModel
 from espnet3.components.modeling.lightning_module import ESPnetLightningModule
 from espnet3.components.trainers.trainer import ESPnet3LightningTrainer
