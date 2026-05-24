@@ -34,9 +34,7 @@ import soundfile as sf
 import torch
 import whisper
 
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s %(levelname)s: %(message)s"
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s: %(message)s")
 logger = logging.getLogger("decode")
 
 
@@ -85,7 +83,7 @@ def _install_sot_separator_patch() -> None:
 
         # Step 2: per-sample, block-scoped rules.
         for k in range(tokens.shape[0]):
-            seq = tokens[k, self.sample_begin:].tolist()
+            seq = tokens[k, self.sample_begin :].tolist()
 
             # Find last separator -> isolate the current speaker block.
             last_sep_pos = None
@@ -95,7 +93,7 @@ def _install_sot_separator_patch() -> None:
                         last_sep_pos = i
                         break
             if last_sep_pos is not None:
-                current_block = seq[last_sep_pos + 1:]
+                current_block = seq[last_sep_pos + 1 :]
                 just_after_sep = len(current_block) == 0
             else:
                 current_block = seq
@@ -141,7 +139,7 @@ def _install_sot_separator_patch() -> None:
             logits[:, :ts0] = float("-inf")
             if self.max_initial_timestamp_index is not None:
                 last_allowed = ts0 + self.max_initial_timestamp_index
-                logits[:, last_allowed + 1:] = float("-inf")
+                logits[:, last_allowed + 1 :] = float("-inf")
 
         # Step 4: adaptive sampling — if logsumexp(timestamp logits) exceeds
         # the max text logit, force a timestamp. Matches paper-side
@@ -153,6 +151,7 @@ def _install_sot_separator_patch() -> None:
         # this step, DER suffers because the model emits the separator too
         # eagerly after the first closing timestamp.
         import torch.nn.functional as _F
+
         logprobs = _F.log_softmax(logits.float(), dim=-1)
         for k in range(tokens.shape[0]):
             ts_logprob = logprobs[k, ts0:].logsumexp(dim=-1)
@@ -178,9 +177,7 @@ ESPNET_PREFIX_RULES = [
 ]
 
 
-def remap_espnet_to_whisper(
-    espnet_state: Dict[str, torch.Tensor]
-) -> OrderedDict:
+def remap_espnet_to_whisper(espnet_state: Dict[str, torch.Tensor]) -> OrderedDict:
     """Strip ESPnet wrapper prefixes and merge the token embedding back into
     a single flat tensor that ``whisper.model.TextDecoder`` expects.
 
@@ -198,7 +195,7 @@ def remap_espnet_to_whisper(
         new_k = k
         for old, new in ESPNET_PREFIX_RULES:
             if new_k.startswith(old):
-                new_k = new + new_k[len(old):]
+                new_k = new + new_k[len(old) :]
                 break
         # Skip the ExpandedTokenEmbedding parts (handled separately below).
         if "token_embedding.ori_emb" in new_k:
@@ -241,8 +238,7 @@ def load_whisper_model_from_espnet(
     missing, unexpected = model.load_state_dict(whisper_sd, strict=False)
     if missing:
         logger.warning(
-            f"Whisper model missing {len(missing)} keys "
-            f"(first 3: {missing[:3]})"
+            f"Whisper model missing {len(missing)} keys " f"(first 3: {missing[:3]})"
         )
     if unexpected:
         logger.warning(
@@ -275,22 +271,29 @@ def main():
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    p.add_argument("model_dir", type=Path,
-                   help="Directory with model.pth + (optional) config.yaml")
-    p.add_argument("--whisper_model", required=True,
-                   choices=whisper.available_models(),
-                   help="Architecture name for whisper.load_model "
-                        "(small, medium, large-v2, ...)")
+    p.add_argument(
+        "model_dir", type=Path, help="Directory with model.pth + (optional) config.yaml"
+    )
+    p.add_argument(
+        "--whisper_model",
+        required=True,
+        choices=whisper.available_models(),
+        help="Architecture name for whisper.load_model "
+        "(small, medium, large-v2, ...)",
+    )
     p.add_argument("--wav_scp", type=Path, default=Path("data/test/wav.scp"))
     p.add_argument("--out_subdir", default="decode_test_fallback")
     p.add_argument("--device", default="cuda")
-    p.add_argument("--fp16", action="store_true",
-                   help="Run inference in fp16 (Whisper default).")
-    p.add_argument("--separator", default="????",
-                   help="SOT separator BPE string emitted by the model.")
+    p.add_argument(
+        "--fp16", action="store_true", help="Run inference in fp16 (Whisper default)."
+    )
+    p.add_argument(
+        "--separator",
+        default="????",
+        help="SOT separator BPE string emitted by the model.",
+    )
     p.add_argument("--language", default="en")
-    p.add_argument("--task", default="transcribe",
-                   choices=["transcribe", "translate"])
+    p.add_argument("--task", default="transcribe", choices=["transcribe", "translate"])
     p.add_argument("--beam_size", type=int, default=5)
     p.add_argument(
         "--temperatures",
@@ -303,21 +306,22 @@ def main():
     p.add_argument("--max_utts", type=int, default=None)
     p.add_argument("--log_every", type=int, default=100)
     p.add_argument(
-        "--sot_separator_patch", action="store_true", default=True,
+        "--sot_separator_patch",
+        action="store_true",
+        default=True,
         help="Monkey-patch whisper.decoding.ApplyTimestampRules to allow the "
-             "SOT separator (????) after a closing timestamp. Required for "
-             "the multi-talker SOT model. Default: True.",
+        "SOT separator (????) after a closing timestamp. Required for "
+        "the multi-talker SOT model. Default: True.",
     )
     p.add_argument(
-        "--no_sot_separator_patch", dest="sot_separator_patch",
+        "--no_sot_separator_patch",
+        dest="sot_separator_patch",
         action="store_false",
         help="Disable the SOT separator patch (default is enabled).",
     )
     args = p.parse_args()
 
-    temperatures = tuple(
-        float(x) for x in args.temperatures.split(",") if x.strip()
-    )
+    temperatures = tuple(float(x) for x in args.temperatures.split(",") if x.strip())
 
     out_dir = args.model_dir / args.out_subdir / "1best_recog"
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -351,7 +355,9 @@ def main():
     # Tokenizer used to re-decode segment token IDs WITH timestamps preserved
     # (for the text_sot output, which is needed by the DER evaluator).
     sot_tokenizer = whisper.tokenizer.get_tokenizer(
-        multilingual=True, task=args.task, language=args.language,
+        multilingual=True,
+        task=args.task,
+        language=args.language,
     )
 
     def _build_text_sot(result: dict) -> str:
@@ -416,8 +422,7 @@ def main():
                 rate = (i + 1) / elapsed
                 eta = (len(utts) - i - 1) / rate
                 logger.info(
-                    f"[{i+1}/{len(utts)}] {rate:.2f} utt/s "
-                    f"ETA {eta/60:.1f} min"
+                    f"[{i+1}/{len(utts)}] {rate:.2f} utt/s " f"ETA {eta/60:.1f} min"
                 )
         f_text.flush()
         f_text_sot.flush()

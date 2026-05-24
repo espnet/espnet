@@ -30,9 +30,7 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s %(levelname)s: %(message)s"
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s: %(message)s")
 logger = logging.getLogger("compute_der")
 
 
@@ -69,13 +67,18 @@ def parse_string_to_objects(s: str, duration: Optional[float] = None) -> List[di
         if trailing_idx < len(text_segments):
             trailing = text_segments[trailing_idx].strip()
             if trailing:
-                objects.append({"start": float(times[last_idx]),
-                                "end": duration, "text": trailing})
+                objects.append(
+                    {"start": float(times[last_idx]), "end": duration, "text": trailing}
+                )
     return objects
 
 
-def sot_to_annotation(sot_string: str, session_id: str,
-                      separator: str = "<sc>", duration: Optional[float] = None):
+def sot_to_annotation(
+    sot_string: str,
+    session_id: str,
+    separator: str = "<sc>",
+    duration: Optional[float] = None,
+):
     """Convert an SOT string into a pyannote ``Annotation`` with positional
     speaker labels (``spk_0``, ``spk_1``, ...). pyannote's DER uses optimal
     speaker mapping (Hungarian), so absolute label identity doesn't matter.
@@ -120,9 +123,7 @@ def load_text_file(path: Path) -> Dict[str, str]:
 
 
 def num_ref_speakers(ref_sot: str, separator: str = "<sc>") -> int:
-    return sum(
-        1 for blk in ref_sot.split(separator) if blk.strip()
-    )
+    return sum(1 for blk in ref_sot.split(separator) if blk.strip())
 
 
 def main():
@@ -131,8 +132,12 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     p.add_argument("--hyp_text_sot", required=True, type=Path)
-    p.add_argument("--ref_text_sot", required=True, type=Path,
-                   help="Reference SOT text (e.g. data/test/text).")
+    p.add_argument(
+        "--ref_text_sot",
+        required=True,
+        type=Path,
+        help="Reference SOT text (e.g. data/test/text).",
+    )
     p.add_argument("--output_dir", required=True, type=Path)
     p.add_argument("--separator", default="<sc>")
     p.add_argument("--collar", type=float, default=0.25)
@@ -189,7 +194,10 @@ def main():
             by_nspk_components[n_spk]["conf"] += conf
             by_nspk_components[n_spk]["total"] += total
             per_utt[uid] = {
-                "fa": fa, "md": md, "conf": conf, "total": total,
+                "fa": fa,
+                "md": md,
+                "conf": conf,
+                "total": total,
                 "n_ref_spk": n_spk,
             }
         except Exception as e:
@@ -205,20 +213,35 @@ def main():
         n: {
             "der": (c["fa"] + c["md"] + c["conf"]) / max(c["total"], 1e-9),
             "num_sessions": len(nspk_groups[n]),
-            "fa": c["fa"], "md": c["md"], "conf": c["conf"], "total": c["total"],
+            "fa": c["fa"],
+            "md": c["md"],
+            "conf": c["conf"],
+            "total": c["total"],
         }
         for n, c in sorted(by_nspk_components.items())
     }
 
-    logger.info(f"DER (collar={args.collar}, {len(common)-skipped} utts): "
-                f"{der_value*100:.2f}%")
+    logger.info(
+        f"DER (collar={args.collar}, {len(common)-skipped} utts): "
+        f"{der_value*100:.2f}%"
+    )
     for n in sorted(der_by_n):
-        logger.info(f"  {n} spk(s): DER={der_by_n[n]['der']*100:.2f}%  "
-                    f"(n={der_by_n[n]['num_sessions']})")
+        logger.info(
+            f"  {n} spk(s): DER={der_by_n[n]['der']*100:.2f}%  "
+            f"(n={der_by_n[n]['num_sessions']})"
+        )
 
     with open(args.output_dir / "der.json", "w") as f:
-        json.dump({"der": der_value, "collar": args.collar,
-                   "n_utts": len(common) - skipped, "n_skipped": skipped}, f, indent=2)
+        json.dump(
+            {
+                "der": der_value,
+                "collar": args.collar,
+                "n_utts": len(common) - skipped,
+                "n_skipped": skipped,
+            },
+            f,
+            indent=2,
+        )
     with open(args.output_dir / "der_by_num_speakers.json", "w") as f:
         json.dump(der_by_n, f, indent=2)
     with open(args.output_dir / "per_utt_der.json", "w") as f:
