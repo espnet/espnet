@@ -9,18 +9,7 @@ We recommend allocating at least 4 CPUs and at least 32GB of RAM. If GPU OOM occ
 
 ## Additional CTC-only Recipes
 
-Additional CTC-only architecture recipes are available under `conf/tuning`. They keep the frozen MMS 1B frontend and baseline data/specaugment settings, while following the reported downstream-model settings: 8 attention heads, 512 hidden states, 2048 projection units, dropout 0.1, batch size 8, gradient accumulation 4, and 25,000 warmup steps. The learning-rate candidates are `1e-3`, `1e-4`, and `1e-5`.
-
-The CTC-only Transformer configs use 24 encoder blocks. The CTC-only Conformer configs use 14 encoder blocks with convolution kernel size 15. The CTC-only E-Branchformer configs use 12 encoder blocks, CGMLP dimension 3072, and CGMLP convolution kernel size 31.
-
-For example:
-```
-./run.sh --asr_config conf/tuning/train_mms_ctc_transformer_lr1e-4.yaml
-./run.sh --asr_config conf/tuning/train_mms_ctc_conformer_lr1e-4.yaml
-./run.sh --asr_config conf/tuning/train_mms_ctc_e_branchformer_lr1e-4.yaml
-```
-
-We also provide three 100M-parameter-constrained downstream CTC recipes using frozen MMS 1B features:
+We also provide three example downstream CTC recipes using frozen MMS 1B features while keeping the number of trainable parameters below 100M:
 
 - `conf/tuning/train_mms_ctc_transformer_lr1e-4.yaml`: 24-layer Transformer encoder.
 - `conf/tuning/train_mms_ctc_conformer_12_macaron_lr1e-4.yaml`: 12-layer Conformer encoder with macaron-style feed-forward modules.
@@ -101,9 +90,9 @@ Such that `references[i]`, `lids[i]`, and `hyps[i]` should all correspond to the
 |---|---|---|---|---|---|---|
 decode_asr_asr_model_valid.loss.ave|24.0|74.0|71.0|25.5|32.7|54.0|
 
-### Additional 100M-constrained CTC downstream models (Frozen MMS 1B + CTC)
+### Additional CTC downstream models (Frozen MMS 1B + CTC)
 
-The following models use frozen MMS 1B features with larger CTC downstream encoders while keeping trainable parameters below 100M.
+The following models keep the number of trainable parameters below 100M.
 
 |config|Trainable params|decode_dir|Standard CER|Standard LID|Worst 15 CER|CER StD|Dialect CER|Dialect LID|
 |---|---:|---|---:|---:|---:|---:|---:|---:|
