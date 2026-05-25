@@ -22,12 +22,6 @@ For example:
 ./run.sh --asr_config conf/tuning/train_mms_ctc_e_branchformer_12_nomacaron_lr1e-4.yaml
 ```
 
-Pretrained models are available on Hugging Face:
-
-- Transformer: https://huggingface.co/shun3232/ml-superb2-mms-ctc-transformer-24
-- Conformer: https://huggingface.co/shun3232/ml-superb2-mms-ctc-conformer-12
-- E-Branchformer: https://huggingface.co/shun3232/ml-superb2-mms-ctc-e-branchformer-12
-
 ## Scoring
 
 The challenge will use a custom scoring script, which considers worst language performance and CER standard deviation in addition to the typical multilingual ASR metrics of language identification accuracy and ASR CER. The exact implementation can be found in `local/score.py`, which also creates a `challenge_results.md` under your experimental directory with scores that correspond to the challenge system.
@@ -99,6 +93,19 @@ decode_asr_asr_model_valid.loss.ave|24.0|74.0|71.0|25.5|32.7|54.0|
 ### Additional CTC downstream models (Frozen MMS 1B + CTC)
 
 The following models keep the number of trainable parameters below 100M.
+
+### Environments
+- date: `Mon May 25 14:53:01 JST 2026`
+- python version: `3.10.14 (tags/v3.10.14-25-ge98930d7387-dirty:e98930d7387, May 24 2024, 23:30:09) [GCC 13.2.0]`
+- espnet2 version: `espnet2 202604`
+- pytorch version: `pytorch 2.9.1+cu126`
+- Git hash: `df3a5b47239e75551a817f8c3d1f0a027a6dbcc4`
+  - Commit date: `Mon May 25 14:45:12 2026 +0900`
+
+### Pretrained models
+- Transformer: https://huggingface.co/shun3232/ml-superb2-mms-ctc-transformer-24
+- Conformer: https://huggingface.co/shun3232/ml-superb2-mms-ctc-conformer-12
+- E-Branchformer: https://huggingface.co/shun3232/ml-superb2-mms-ctc-e-branchformer-12
 
 |config|Trainable params|decode_dir|Standard CER|Standard LID|Worst 15 CER|CER StD|Dialect CER|Dialect LID|
 |---|---:|---|---:|---:|---:|---:|---:|---:|
