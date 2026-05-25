@@ -20,6 +20,19 @@ For example:
 ./run.sh --asr_config conf/tuning/train_mms_ctc_e_branchformer_lr1e-4.yaml
 ```
 
+We also provide three 100M-parameter-constrained downstream CTC recipes using frozen MMS 1B features:
+
+- `conf/tuning/train_mms_ctc_transformer_lr1e-4.yaml`: 24-layer Transformer encoder.
+- `conf/tuning/train_mms_ctc_conformer_12_macaron_lr1e-4.yaml`: 12-layer Conformer encoder with macaron-style feed-forward modules.
+- `conf/tuning/train_mms_ctc_e_branchformer_12_nomacaron_lr1e-4.yaml`: 12-layer E-Branchformer encoder with `macaron_ffn: false`.
+
+For example:
+```
+./run.sh --asr_config conf/tuning/train_mms_ctc_transformer_lr1e-4.yaml
+./run.sh --asr_config conf/tuning/train_mms_ctc_conformer_12_macaron_lr1e-4.yaml
+./run.sh --asr_config conf/tuning/train_mms_ctc_e_branchformer_12_nomacaron_lr1e-4.yaml
+```
+
 ## Scoring
 
 The challenge will use a custom scoring script, which considers worst language performance and CER standard deviation in addition to the typical multilingual ASR metrics of language identification accuracy and ASR CER. The exact implementation can be found in `local/score.py`, which also creates a `challenge_results.md` under your experimental directory with scores that correspond to the challenge system.
@@ -87,3 +100,13 @@ Such that `references[i]`, `lids[i]`, and `hyps[i]` should all correspond to the
 |decode_dir|Standard CER|Standard LID|Worst 15 CER|CER StD|Dialect CER|Dialect LID|
 |---|---|---|---|---|---|---|
 decode_asr_asr_model_valid.loss.ave|24.0|74.0|71.0|25.5|32.7|54.0|
+
+### Additional 100M-constrained CTC downstream models (Frozen MMS 1B + CTC)
+
+The following models use frozen MMS 1B features with larger CTC downstream encoders while keeping trainable parameters below 100M.
+
+|config|Trainable params|decode_dir|Standard CER|Standard LID|Worst 15 CER|CER StD|Dialect CER|Dialect LID|
+|---|---:|---|---:|---:|---:|---:|---:|---:|
+|`train_mms_ctc_transformer_lr1e-4.yaml`|91.12M|decode_asr_asr_model_valid.loss.ave|22.3|77.8|69.0|25.6|35.5|53.5|
+|`train_mms_ctc_conformer_12_macaron_lr1e-4.yaml`|91.25M|decode_asr_asr_model_valid.loss.ave|24.0|70.6|74.8|27.1|38.9|58.5|
+|`train_mms_ctc_e_branchformer_12_nomacaron_lr1e-4.yaml`|92.15M|decode_asr_asr_model_valid.loss.ave|22.2|77.3|72.1|26.3|34.8|63.4|
