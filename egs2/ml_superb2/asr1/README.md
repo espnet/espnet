@@ -22,6 +22,12 @@ For example:
 ./run.sh --asr_config conf/tuning/train_mms_ctc_e_branchformer_12_nomacaron_lr1e-4.yaml
 ```
 
+Pretrained models are available on Hugging Face:
+
+- Transformer: https://huggingface.co/shun3232/ml-superb2-mms-ctc-transformer-24
+- Conformer: https://huggingface.co/shun3232/ml-superb2-mms-ctc-conformer-12
+- E-Branchformer: https://huggingface.co/shun3232/ml-superb2-mms-ctc-e-branchformer-12
+
 ## Scoring
 
 The challenge will use a custom scoring script, which considers worst language performance and CER standard deviation in addition to the typical multilingual ASR metrics of language identification accuracy and ASR CER. The exact implementation can be found in `local/score.py`, which also creates a `challenge_results.md` under your experimental directory with scores that correspond to the challenge system.
