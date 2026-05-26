@@ -15,8 +15,8 @@ from espnet2.enh.decoder.conv_decoder import ConvDecoder
 from espnet2.enh.decoder.null_decoder import NullDecoder
 from espnet2.enh.decoder.stft_decoder import STFTDecoder
 from espnet2.enh.diffusion.abs_diffusion import AbsDiffusion
+from espnet2.enh.diffusion.flow_based_diffusion import FlowModel
 from espnet2.enh.diffusion.score_based_diffusion import ScoreModel
-from espnet2.enh.diffusion.flow_based_diffusion import FlowModel  
 from espnet2.enh.diffusion_enh import ESPnetDiffusionModel
 from espnet2.enh.encoder.abs_encoder import AbsEncoder
 from espnet2.enh.encoder.conv_encoder import ConvEncoder
@@ -187,7 +187,7 @@ diffusion_choices = ClassChoices(
     name="diffusion_model",
     classes=dict(
         sgmse=ScoreModel,
-        fgmse=FlowModel,   
+        fgmse=FlowModel,
     ),
     type_check=AbsDiffusion,
     default=None,

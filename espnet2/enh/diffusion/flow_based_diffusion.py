@@ -27,6 +27,7 @@ from espnet2.enh.diffusion.abs_diffusion import AbsDiffusion
 def _build_backbone(score_model: str, score_model_conf: dict):
     if score_model == "ncsnpp":
         from espnet2.enh.layers.ncsnpp import NCSNpp
+
         return NCSNpp(**score_model_conf)
     raise ValueError(f"Unknown score_model '{score_model}'. Supported: 'ncsnpp'.")
 
@@ -76,9 +77,7 @@ class FlowModel(AbsDiffusion):
             losses = err.abs()
         else:
             raise ValueError(f"Unknown loss_type: {self.loss_type}")
-        return torch.mean(
-            0.5 * torch.sum(losses.reshape(losses.shape[0], -1), dim=-1)
-        )
+        return torch.mean(0.5 * torch.sum(losses.reshape(losses.shape[0], -1), dim=-1))
 
     def velocity_fn(self, x_t, t, y):
         """v_theta(x_t, t | y): concatenate x_t and y as ScoreModel.score_fn does."""
@@ -86,25 +85,25 @@ class FlowModel(AbsDiffusion):
 
     def forward(self, feature_ref, feature_mix):
         """OT-FM loss. Inputs are [B, T, F] from STFTEncoder."""
-        # [B,T,F] -> [B,1,F,T] 
+        # [B,T,F] -> [B,1,F,T]
         x = feature_ref.permute(0, 2, 1).unsqueeze(1)
         y = feature_mix.permute(0, 2, 1).unsqueeze(1)
 
-        # t ~ U[t_eps, 1], shape [B]  
+        # t ~ U[t_eps, 1], shape [B]
         t = torch.rand(x.shape[0], device=x.device) * (1.0 - self.t_eps) + self.t_eps
 
         z = torch.randn_like(x)
         t_4d = t[:, None, None, None]
 
         x_t = x * t_4d + (1.0 - (1.0 - self.sigma) * t_4d) * z
-        u   = x - (1.0 - self.sigma) * z
+        u = x - (1.0 - self.sigma) * z
 
         return self._loss(u - self.velocity_fn(x_t, t, y))
 
     def enhance(self, noisy_spectrum, N=None, **kwargs):
         """Euler ODE inference. Input/output: [B, T, F]."""
         N = N if N is not None else self.N
-        # [B,T,F] -> [B,1,F,T]  
+        # [B,T,F] -> [B,1,F,T]
         Y = noisy_spectrum.permute(0, 2, 1).unsqueeze(1)
 
         with torch.no_grad():
@@ -117,12 +116,12 @@ class FlowModel(AbsDiffusion):
 
     def _ode_solver(self, x_t, t_span, Y):
         """First-order Euler integration of dx/dt = v_theta(x_t, t, Y)."""
-        t  = t_span[0]
+        t = t_span[0]
         dt = t_span[1] - t_span[0]
         for step in range(1, len(t_span)):
             t_vec = t.unsqueeze(0).expand(x_t.shape[0])
             x_t = x_t + dt * self.velocity_fn(x_t, t_vec, Y)
-            t   = t + dt
+            t = t + dt
             if step < len(t_span) - 1:
                 dt = t_span[step + 1] - t
         return x_t
