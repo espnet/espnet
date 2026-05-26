@@ -16,6 +16,7 @@ from espnet2.enh.decoder.null_decoder import NullDecoder
 from espnet2.enh.decoder.stft_decoder import STFTDecoder
 from espnet2.enh.diffusion.abs_diffusion import AbsDiffusion
 from espnet2.enh.diffusion.score_based_diffusion import ScoreModel
+from espnet2.enh.diffusion.flow_based_diffusion import FlowModel  
 from espnet2.enh.diffusion_enh import ESPnetDiffusionModel
 from espnet2.enh.encoder.abs_encoder import AbsEncoder
 from espnet2.enh.encoder.conv_encoder import ConvEncoder
@@ -184,7 +185,10 @@ preprocessor_choices = ClassChoices(
 # Deffusion-based model related choices
 diffusion_choices = ClassChoices(
     name="diffusion_model",
-    classes=dict(sgmse=ScoreModel),
+    classes=dict(
+        sgmse=ScoreModel,
+        fgmse=FlowModel,   
+    ),
     type_check=AbsDiffusion,
     default=None,
 )
@@ -217,7 +221,7 @@ class EnhancementTask(AbsTask):
 
     @classmethod
     def add_task_arguments(cls, parser: argparse.ArgumentParser):
-        group = parser.add_argument_group("Task related")
+        group = parser.add_argument_group(description="Task related")
 
         # NOTE(kamo): add_arguments(..., required=True) can't be used
         # to provide --print_config mode. Instead of it, do as
@@ -258,7 +262,7 @@ class EnhancementTask(AbsTask):
             help="The criterions binded with the loss wrappers.",
         )
 
-        group = parser.add_argument_group("Preprocess related")
+        group = parser.add_argument_group(description="Preprocess related")
         group.add_argument(
             "--speech_volume_normalize",
             type=str_or_none,
