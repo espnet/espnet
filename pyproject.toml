@@ -144,7 +144,7 @@ egs2 = [
 # module load time in the hot path, so CPU-only installs still succeed.
 speechlm = [
   "psutil",
-  "transformers==4.57.1",
+  "transformers==5.0.0rc3",
   "huggingface-hub",
   "joblib",
   "polars",
