@@ -28,14 +28,11 @@ from typing import Dict
 
 import torch
 import whisper
+import yaml
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s: %(message)s")
 logger = logging.getLogger("decode")
 
-# SOT speaker-change separator: token id of a regular BPE pair in the
-# tiktoken multilingual vocabulary (already present in the base 51865-token
-# vocab). The string form is resolved at runtime via the tokenizer.
-SOT_SEPARATOR_ID = 25629
 LOG_EVERY = 100
 
 
@@ -51,17 +48,15 @@ LOG_EVERY = 100
 # right after a closing timestamp.
 
 
-def _install_sot_separator_patch() -> None:
+def _install_sot_separator_patch(sep_id: int) -> None:
     import whisper.decoding as _wd
 
     if getattr(_wd.ApplyTimestampRules, "_sot_patched", False):
         return
 
-    SEP = SOT_SEPARATOR_ID
-
     def _sot_apply(self, logits, tokens):
-        sep_in_vocab = SEP < logits.shape[-1]
-        sep_orig = logits[:, SEP].detach().clone() if sep_in_vocab else None
+        sep_in_vocab = sep_id < logits.shape[-1]
+        sep_orig = logits[:, sep_id].detach().clone() if sep_in_vocab else None
 
         if self.tokenizer.no_timestamps is not None:
             logits[:, self.tokenizer.no_timestamps] = float("-inf")
@@ -73,7 +68,7 @@ def _install_sot_separator_patch() -> None:
             last_sep_pos = None
             if sep_in_vocab:
                 for i in range(len(seq) - 1, -1, -1):
-                    if seq[i] == SEP:
+                    if seq[i] == sep_id:
                         last_sep_pos = i
                         break
             if last_sep_pos is not None:
@@ -89,7 +84,7 @@ def _install_sot_separator_patch() -> None:
                 logits[k, :ts0] = float("-inf")
                 logits[k, eot] = 0.0
                 if sep_in_vocab:
-                    logits[k, SEP] = float("-inf")
+                    logits[k, sep_id] = float("-inf")
                 continue
 
             # Pairing rules SCOPED to the current speaker block.
@@ -100,14 +95,14 @@ def _install_sot_separator_patch() -> None:
                     # Two consecutive timestamps -> text must follow.
                     logits[k, ts0:] = float("-inf")
                     if sep_in_vocab:
-                        logits[k, SEP] = float("-inf")
+                        logits[k, sep_id] = float("-inf")
                 else:
                     # Single closing timestamp -> suppress text below eot,
                     # restore the separator so a speaker change is available
                     # alongside EOT / next opening timestamp.
                     logits[k, :eot] = float("-inf")
                     if sep_in_vocab:
-                        logits[k, SEP] = sep_orig[k]
+                        logits[k, sep_id] = sep_orig[k]
 
             # Non-decreasing timestamps within the current block.
             blk = [t for t in current_block if t >= ts0]
@@ -193,6 +188,19 @@ def load_whisper_model_from_espnet(
 # ---------------------------------------------------------------------------
 
 
+def read_speaker_change_symbol(model_dir: Path) -> str:
+    """Read the speaker-change separator string from the checkpoint bundle's
+    ``config.yaml`` (``preprocessor_conf.speaker_change_symbol``)."""
+    cfg = yaml.safe_load(open(model_dir / "config.yaml"))
+    sym = cfg.get("preprocessor_conf", {}).get("speaker_change_symbol")
+    if sym is None:
+        raise SystemExit(
+            f"{model_dir / 'config.yaml'} lacks "
+            "preprocessor_conf.speaker_change_symbol; pass --speaker_change_symbol"
+        )
+    return sym[0] if isinstance(sym, (list, tuple)) else sym
+
+
 def main():
     p = argparse.ArgumentParser(
         description=__doc__,
@@ -213,15 +221,36 @@ def main():
     )
     p.add_argument("--language", default="en")
     p.add_argument("--beam_size", type=int, default=5)
+    p.add_argument(
+        "--speaker_change_symbol",
+        default=None,
+        help="Speaker-change separator string. Defaults to the value in the "
+        "checkpoint bundle's config.yaml (preprocessor_conf.speaker_change_symbol).",
+    )
     args = p.parse_args()
 
     out_dir = args.model_dir / args.out_subdir / "1best_recog"
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    _install_sot_separator_patch()
+    # Resolve the speaker-change separator (from CLI or the bundle's config),
+    # then derive its single-token id from the BPE vocabulary.
+    sep_str = args.speaker_change_symbol or read_speaker_change_symbol(args.model_dir)
+    sot_tokenizer = whisper.tokenizer.get_tokenizer(
+        multilingual=True,
+        task="transcribe",
+        language=args.language,
+    )
+    sep_ids = sot_tokenizer.encode(sep_str)
+    if len(sep_ids) != 1:
+        raise SystemExit(
+            f"Separator {sep_str!r} is not a single BPE token (got {sep_ids})"
+        )
+    sep_id = sep_ids[0]
+
+    _install_sot_separator_patch(sep_id)
     logger.info(
         f"Patched whisper.decoding.ApplyTimestampRules for SOT separator "
-        f"(id={SOT_SEPARATOR_ID})"
+        f"{sep_str!r} (id={sep_id})"
     )
 
     t0 = time.time()
@@ -239,16 +268,6 @@ def main():
             if len(parts) == 2:
                 utts.append((parts[0], parts[1]))
     logger.info(f"Total utterances: {len(utts)}")
-
-    # Tokenizer used to (a) re-decode segment token IDs with timestamps
-    # preserved for the text_sot output, and (b) resolve the SOT separator's
-    # string form from its token id (kept out of source for portability).
-    sot_tokenizer = whisper.tokenizer.get_tokenizer(
-        multilingual=True,
-        task="transcribe",
-        language=args.language,
-    )
-    sep_str = sot_tokenizer.decode([SOT_SEPARATOR_ID])
 
     def _build_text_sot(result: dict) -> str:
         parts = []

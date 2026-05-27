@@ -20,27 +20,33 @@ recipe relies on at decode time.
 
 `local/prepare_sot.py` reads source manifests for the AMI utterance-group
 splits and writes Kaldi-format data directories. Each utterance group must
-expose one or more time-aligned supervisions per speaker.
+expose one or more time-aligned supervisions per speaker. `<sep>` is the
+speaker-change symbol that separates consecutive speakers; it must match the
+`speaker_change_symbol` set in the training config.
 
 ```bash
 python local/prepare_sot.py \
     --cutset_paths /path/to/ami_train_manifest \
     --output_dir data/train \
-    --use_timestamps true
+    --use_timestamps true \
+    --speaker_change_symbol "<sep>"
 
 python local/prepare_sot.py \
     --cutset_paths /path/to/ami_dev_manifest \
     --output_dir data/dev \
-    --use_timestamps true
+    --use_timestamps true \
+    --speaker_change_symbol "<sep>"
 
 python local/prepare_sot.py \
     --cutset_paths /path/to/ami_test_manifest \
     --output_dir data/test \
-    --use_timestamps true
+    --use_timestamps true \
+    --speaker_change_symbol "<sep>"
 ```
 
 The resulting `text` file has one line per utterance group, with consecutive
-speakers separated by `<sc>` and per-speaker timestamps preserved inline.
+speakers separated by the speaker-change symbol and per-speaker timestamps
+preserved inline.
 
 ## Training
 

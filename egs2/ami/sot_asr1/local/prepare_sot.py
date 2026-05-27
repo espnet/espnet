@@ -21,8 +21,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-SPEAKER_CHANGE_TOKEN = " ???? "
-
 
 def round_nearest(value: float, resolution: float) -> float:
     return round(value / resolution) * resolution
@@ -102,15 +100,19 @@ def merge_speaker_units(units, use_timestamps: bool):
 
 
 def build_sot_text(
-    cut, use_timestamps: bool, max_timestamp_pause: float, lowercase: bool = True
+    cut,
+    use_timestamps: bool,
+    max_timestamp_pause: float,
+    speaker_change_symbol: str,
+    lowercase: bool = True,
 ):
     """Build the serialized SOT text for a single cut. Speakers are ordered
-    by their earliest start time."""
+    by their earliest start time and joined by the speaker-change symbol."""
     units = get_transcript_units(
         cut, use_timestamps, max_timestamp_pause, lowercase=lowercase
     )
     items = sorted(merge_speaker_units(units, use_timestamps), key=lambda x: x["start"])
-    return SPEAKER_CHANGE_TOKEN.join(x["text"] for x in items)
+    return f" {speaker_change_symbol} ".join(x["text"] for x in items)
 
 
 def get_audio_entry(cut, segments_dir: Optional[str] = None) -> Optional[str]:
@@ -143,6 +145,7 @@ def process_cutset(
     cutset: CutSet,
     use_timestamps: bool,
     max_timestamp_pause: float,
+    speaker_change_symbol: str,
     lowercase: bool = True,
     segments_dir: Optional[str] = None,
 ):
@@ -174,6 +177,7 @@ def process_cutset(
             cut,
             use_timestamps=use_timestamps,
             max_timestamp_pause=max_timestamp_pause,
+            speaker_change_symbol=speaker_change_symbol,
             lowercase=lowercase,
         )
         if not text.strip():
@@ -241,6 +245,13 @@ def main():
         help="Max pause (seconds) for merging adjacent segments",
     )
     parser.add_argument(
+        "--speaker_change_symbol",
+        type=str,
+        required=True,
+        help="Token inserted between consecutive speakers in the SOT text. "
+        "Must match the speaker_change_symbol in the training config.",
+    )
+    parser.add_argument(
         "--lowercase",
         type=lambda x: x.lower() in ("true", "1", "yes"),
         default=True,
@@ -271,6 +282,7 @@ def main():
             CutSet.from_file(cutset_path),
             use_timestamps=args.use_timestamps,
             max_timestamp_pause=args.max_timestamp_pause,
+            speaker_change_symbol=args.speaker_change_symbol,
             lowercase=args.lowercase,
             segments_dir=segments_dir,
         )
