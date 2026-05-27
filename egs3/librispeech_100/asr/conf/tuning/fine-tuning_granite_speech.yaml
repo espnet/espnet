@@ -26,18 +26,18 @@ dataset:
         split: dev-clean
     - data_src_args:
         split: dev-other
-  preprocessor:
-    _target_: espnet2.train.preprocessor.CommonPreprocessor
-    train: true
-    token_type: bpe
-    token_list: ${tokenizer.save_path}/tokens.txt
-    bpemodel: ${tokenizer.save_path}/bpe.model
-    text_cleaner:
-    fs: 16000
-    data_aug_effects:
-      - - 0.6
-        - - [0.5, "speed_perturb", {"factor": 0.9}]
-          - [0.5, "speed_perturb", {"factor": 1.1}]
+  # preprocessor:
+    # _target_: espnet2.train.preprocessor.CommonPreprocessor
+    # train: true
+    # token_type: bpe
+    # token_list: ${tokenizer.save_path}/tokens.txt
+    # bpemodel: ${tokenizer.save_path}/bpe.model
+    # text_cleaner:
+    # fs: 16000
+    # data_aug_effects:
+    #   - - 0.6
+    #     - - [0.5, "speed_perturb", {"factor": 0.9}]
+    #       - [0.5, "speed_perturb", {"factor": 1.1}]
 
 create_dataset:
   recipe_dir: ${recipe_dir}
@@ -45,15 +45,15 @@ create_dataset:
 ##########################################################
 #                   TOKENIZER SETTING                    #
 ##########################################################
-tokenizer:
-  vocab_size: 5000
-  character_coverage: 1.0
-  model_type: bpe
-  save_path: ${data_dir}/${tokenizer.model_type}_${tokenizer.vocab_size}
-  text_builder:
-    func: src.tokenizer.gather_training_text
-    recipe_dir: ${recipe_dir}
-    split: train-clean-100
+# tokenizer:
+  # vocab_size: 5000
+  # character_coverage: 1.0
+  # model_type: bpe
+  # save_path: ${data_dir}/${tokenizer.model_type}_${tokenizer.vocab_size}
+  # text_builder:
+  #   func: src.tokenizer.gather_training_text
+  #   recipe_dir: ${recipe_dir}
+  #   split: train-clean-100
 
 ##########################################################
 #                      MODEL SETTING                     #
