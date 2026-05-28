@@ -61,7 +61,7 @@ class LibriTTSBuilder(DatasetBuilder):
         recipe_dir: str | Path,
         **_kwargs,
     ) -> bool:
-        """ Check if LibriTTS source data is prepared.
+        """Check if LibriTTS source data is prepared.
         Args:
             recipe_dir: Recipe root directory (not used in this check).
             **_kwargs: Unused extra options for API compatibility.
@@ -81,7 +81,7 @@ class LibriTTSBuilder(DatasetBuilder):
         recipe_dir: str | Path,
         **_kwargs,
     ) -> None:
-        """ Prepare LibriTTS source data by downloading if necessary.
+        """Prepare LibriTTS source data by downloading if necessary.
 
         Args:
             recipe_dir: Recipe root directory.
@@ -95,11 +95,11 @@ class LibriTTSBuilder(DatasetBuilder):
 
         """
         dataset_root = Path(recipe_dir).resolve() / _CFG["dataset_path"]
-        
+
         if not self.is_source_prepared(recipe_dir=recipe_dir):
             dataset_root.mkdir(parents=True, exist_ok=True)
             script_path = Path(recipe_dir).resolve() / "local" / "download_libritts.sh"
-            
+
             required_subsets = []
             for subsets in _CFG["split_subsets"].values():
                 required_subsets.extend(subsets)
@@ -123,7 +123,7 @@ class LibriTTSBuilder(DatasetBuilder):
             logger.info("LibriTTS source data is already prepared, skipping download.")
 
     def is_built(self, recipe_dir: str | Path, **_kwargs) -> bool:
-        """ Check if LibriTTS dataset artifacts (manifests) are built.
+        """Check if LibriTTS dataset artifacts (manifests) are built.
         Args:
             recipe_dir: Recipe root directory.
             **_kwargs: Unused extra options for API compatibility.
@@ -144,7 +144,7 @@ class LibriTTSBuilder(DatasetBuilder):
         recipe_dir: str | Path,
         **_kwargs,
     ) -> None:
-        """ Build LibriTTS dataset artifacts (manifests).
+        """Build LibriTTS dataset artifacts (manifests).
 
         Args:
             recipe_dir: Recipe root directory.
@@ -152,7 +152,7 @@ class LibriTTSBuilder(DatasetBuilder):
 
         Returns:
             None.
-        
+
         Notes:
             Build flow:
 

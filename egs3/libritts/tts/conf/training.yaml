@@ -45,7 +45,7 @@ xvector:
     valid: ${data_dir}/manifest/valid.tsv
     test: ${data_dir}/manifest/test.tsv
   spk_embed_tag: spkrec-ecapa-voxceleb
-  batch_size: null 
+  batch_size: null
   device: cuda:0
   async_mode: false
   splits:
@@ -254,7 +254,7 @@ best_model_criterion:
   - - valid/generator/loss
     - 1
     - min
-  
+
 dataloader:
   collate_fn:
     _target_: espnet2.train.collate_fn.CommonCollateFn

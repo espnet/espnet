@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Sequence
 
 from src.system import TTSSystem
+
 from espnet3.utils.config_utils import load_and_merge_config
 from espnet3.utils.logging_utils import configure_logging
 from espnet3.utils.run_utils import (
@@ -57,6 +58,7 @@ def build_parser(stages: Sequence[str]) -> argparse.ArgumentParser:
         help="Write requirements.txt alongside each stage log.",
     )
     return parser
+
 
 DEFAULT_STAGES = [
     "compute_xvectors",

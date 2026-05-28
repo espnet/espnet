@@ -54,7 +54,9 @@ class XVectorProvider(EnvironmentProvider):
             )
 
         toolkit = xvec_cfg.get("toolkit", "speechbrain")
-        pretrained_model = xvec_cfg.get("pretrained_model", "speechbrain/spkrec-ecapa-voxceleb")
+        pretrained_model = xvec_cfg.get(
+            "pretrained_model", "speechbrain/spkrec-ecapa-voxceleb"
+        )
 
         device = xvec_cfg.get("device", "cuda:0" if self._has_cuda() else "cpu")
 
@@ -107,9 +109,13 @@ class XVectorProvider(EnvironmentProvider):
                 )
 
             toolkit = xvec_cfg.get("toolkit", "speechbrain")
-            pretrained_model = xvec_cfg.get("pretrained_model", "speechbrain/spkrec-ecapa-voxceleb")
+            pretrained_model = xvec_cfg.get(
+                "pretrained_model", "speechbrain/spkrec-ecapa-voxceleb"
+            )
 
-            device = xvec_cfg.get("device", "cuda:0" if XVectorProvider._has_cuda() else "cpu")
+            device = xvec_cfg.get(
+                "device", "cuda:0" if XVectorProvider._has_cuda() else "cpu"
+            )
 
             model = XVectorProvider._build_model(toolkit, pretrained_model, device)
 
@@ -118,7 +124,9 @@ class XVectorProvider(EnvironmentProvider):
                 raise RuntimeError(
                     "Please provide manifest_path obtained from create_dataset stage"
                 )
-            utterances, speaker_to_utterances = XVectorProvider._load_manifest(manifest_path)
+            utterances, speaker_to_utterances = XVectorProvider._load_manifest(
+                manifest_path
+            )
             if not utterances:
                 raise RuntimeError(f"No utterances found in manifest: {manifest_path}")
 
@@ -170,6 +178,7 @@ class XVectorProvider(EnvironmentProvider):
         """Check if CUDA is available."""
         try:
             import torch
+
             return torch.cuda.is_available()
         except ImportError:
             return False

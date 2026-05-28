@@ -17,7 +17,7 @@ class XVectorRunner(BaseRunner):
     """Runner for extracting x-vectors (speaker embeddings) in parallel.
 
     Each utterance is saved as ``output_dir/{utt_id}.pt`` immediately after
-    extraction: if a target ``.pt`` already exists, the utterance is skipped 
+    extraction: if a target ``.pt`` already exists, the utterance is skipped
     without re-loading audio.
     """
 
@@ -76,9 +76,7 @@ class XVectorRunner(BaseRunner):
             return {"utt_id": utt_id, "status": "skipped"}
 
         wav, in_sr = librosa.load(str(wav_path), sr=None)
-        embedding = XVectorRunner._extract_embedding(
-            wav, in_sr, model, toolkit, device
-        )
+        embedding = XVectorRunner._extract_embedding(wav, in_sr, model, toolkit, device)
 
         if isinstance(embedding, np.ndarray):
             tensor = torch.from_numpy(embedding).float()
