@@ -20,6 +20,10 @@ class GANTTSLightningModule(ESPnetLightningModule):
         0: "generator",
         1: "discriminator",
     }
+    
+    def __init__(self, model, config):
+        super().__init__(model, config)
+        self.automatic_optimization = False
 
     def _gan_option(self, name: str, default):
         trainer_cfg = getattr(self.config, "trainer", None)
