@@ -17,12 +17,8 @@ class XVectorRunner(BaseRunner):
     """Runner for extracting x-vectors (speaker embeddings) in parallel.
 
     Each utterance is saved as ``output_dir/{utt_id}.pt`` immediately after
-    extraction so that long jobs on time-limited HPC sessions can resume:
-    if a target ``.pt`` already exists, the utterance is skipped without
-    re-loading audio.
-
-    The output directory is provided through the environment dict built by
-    ``XVectorProvider`` (sourced from provider ``params["output_dir"]``).
+    extraction: if a target ``.pt`` already exists, the utterance is skipped 
+    without re-loading audio.
     """
 
     @staticmethod
