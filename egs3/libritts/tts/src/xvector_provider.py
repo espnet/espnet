@@ -36,6 +36,7 @@ class XVectorProvider(EnvironmentProvider):
 
     def build_env_local(self) -> Dict[str, Any]:
         """Build environment once on driver for local execution.
+        Use speechbrain's pre-trained ECAPA-TDNN model by default
 
         Returns:
             A dictionary containing the loaded model and manifest data
@@ -52,13 +53,8 @@ class XVectorProvider(EnvironmentProvider):
                 "Please ensure training_config.xvector is set."
             )
 
-        toolkit = xvec_cfg.get("toolkit", None)
-        pretrained_model = xvec_cfg.get("pretrained_model", None)
-        if toolkit is None or pretrained_model is None:
-            raise RuntimeError(
-                "training_config.xvector.toolkit and "
-                "training_config.xvector.pretrained_model must be set."
-            )
+        toolkit = xvec_cfg.get("toolkit", "speechbrain")
+        pretrained_model = xvec_cfg.get("pretrained_model", "speechbrain/spkrec-ecapa-voxceleb")
 
         device = xvec_cfg.get("device", "cuda:0" if self._has_cuda() else "cpu")
 
@@ -67,8 +63,7 @@ class XVectorProvider(EnvironmentProvider):
         manifest_path = self.params.get("manifest_path", None)
         if manifest_path is None:
             raise RuntimeError(
-                "manifest_path must be supplied via params; workers load the "
-                "manifest themselves to avoid shipping it through Dask."
+                "Please provide manifest_path obtained from create_dataset stage"
             )
         utterances, speaker_to_utterances = self._load_manifest(manifest_path)
         if not utterances:
@@ -77,7 +72,7 @@ class XVectorProvider(EnvironmentProvider):
         output_dir = self.params.get("output_dir", None)
         if output_dir is None:
             raise RuntimeError(
-                "output_dir must be supplied via params so workers know where "
+                "output_dir must be provided so workers know where "
                 "to write per-utterance .pt files."
             )
         output_dir = Path(output_dir)
@@ -107,40 +102,31 @@ class XVectorProvider(EnvironmentProvider):
             xvec_cfg = config.get("xvector", None)
             if xvec_cfg is None:
                 raise RuntimeError(
-                    "xvector configuration not found in training_config."
+                    "xvector configuration not found in training_config. "
+                    "Please ensure training_config.xvector is set."
                 )
 
-            toolkit = xvec_cfg.get("toolkit", None)
-            pretrained_model = xvec_cfg.get("pretrained_model", None)
-            if toolkit is None or pretrained_model is None:
-                raise RuntimeError(
-                    "training_config.xvector.toolkit and "
-                    "training_config.xvector.pretrained_model must be set."
-                )
+            toolkit = xvec_cfg.get("toolkit", "speechbrain")
+            pretrained_model = xvec_cfg.get("pretrained_model", "speechbrain/spkrec-ecapa-voxceleb")
 
-            device = xvec_cfg.get(
-                "device", "cuda:0" if XVectorProvider._has_cuda() else "cpu"
-            )
+            device = xvec_cfg.get("device", "cuda:0" if XVectorProvider._has_cuda() else "cpu")
 
             model = XVectorProvider._build_model(toolkit, pretrained_model, device)
 
             manifest_path = params.get("manifest_path", None)
             if manifest_path is None:
                 raise RuntimeError(
-                    "manifest_path must be supplied via params for worker setup."
+                    "Please provide manifest_path obtained from create_dataset stage"
                 )
-            utterances, speaker_to_utterances = XVectorProvider._load_manifest(
-                manifest_path
-            )
+            utterances, speaker_to_utterances = XVectorProvider._load_manifest(manifest_path)
             if not utterances:
-                raise RuntimeError(
-                    f"No utterances found in manifest: {manifest_path}"
-                )
+                raise RuntimeError(f"No utterances found in manifest: {manifest_path}")
 
             output_dir = params.get("output_dir", None)
             if output_dir is None:
                 raise RuntimeError(
-                    "output_dir must be supplied via params for worker writes."
+                    "output_dir must be provided so workers know where "
+                    "to write per-utterance .pt files."
                 )
             output_dir = Path(output_dir)
             output_dir.mkdir(parents=True, exist_ok=True)
