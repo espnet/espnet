@@ -13,6 +13,7 @@ from typing import Any, Dict
 
 import lightning as L
 import torch
+import soundfile as sf
 from hydra.utils import instantiate
 from omegaconf import DictConfig, OmegaConf
 
@@ -43,13 +44,6 @@ class TTSSystem(BaseSystem):
       - x-vector computation
       - Removing long-short utterances
       - Creating token lists
-      - VITS training with GAN-based adversarial learning
-
-    The system automatically detects VITS models and applies appropriate
-    training strategies including:
-      - Multi-optimizer training (generator + discriminator)
-      - Generator-only statistics collection
-      - Configurable training strategy (generator_first, skip_discriminator_prob)
 
     Additional stage log paths:
         | Stage                 | Path reference                  |
@@ -94,7 +88,7 @@ class TTSSystem(BaseSystem):
             training_config.xvector.toolkit: 'espnet', 'speechbrain', or 'rawnet'
             training_config.xvector.save_path: Output directory
             training_config.xvector.splits: List of splits to process (train, valid, test)
-            training_config.xvector.batch_size: Batch size for processing (optional)
+            training_config.xvector.batch_size: Batch size for processing 
             training_config.xvector.device: Device to use (default: cuda:0 if available)
 
         Raises:
@@ -103,6 +97,7 @@ class TTSSystem(BaseSystem):
         self._reject_stage_args("compute_xvectors", args, kwargs)
         logger.info("TTSSystem.compute_xvectors(): starting x-vector computation")
 
+        # Parse the parallel configuration early to set up parallelism for the x-vector runner
         if self.training_config.get("parallel"):
             set_parallel(self.training_config.parallel)
 
@@ -119,11 +114,8 @@ class TTSSystem(BaseSystem):
         save_path = Path(save_path_str)
         save_path.mkdir(parents=True, exist_ok=True)
 
-        # Get list of splits to process
-        splits = xvec_cfg.get("splits", None)
-
-        if splits is None:
-            raise RuntimeError("training_config.xvector.splits must be set to specify which data splits to process (e.g., ['train', 'valid', 'test'])")
+        # Get list of splits to process (Default: all splits)
+        splits = xvec_cfg.get("splits", ["train", "valid", "test"])
 
         if isinstance(splits, str):
             splits = [splits]
@@ -134,27 +126,21 @@ class TTSSystem(BaseSystem):
         logger.info(f"Manifest paths: {manifest_paths}")
 
         # Validate toolkit and model
-        toolkit = xvec_cfg.get("toolkit", None)
-        pretrained_model = xvec_cfg.get("pretrained_model", None)
+        toolkit = xvec_cfg.get("toolkit", "speechbrain")
+        pretrained_model = xvec_cfg.get("pretrained_model", "speechbrain/spkrec-ecapa-voxceleb")
         device = xvec_cfg.get("device", "cuda:0" if torch.cuda.is_available() else "cpu")
 
-        if toolkit is None or pretrained_model is None:
-            raise RuntimeError("training_config.xvector.toolkit and training_config.xvector.pretrained_model must be set for compute_xvectors stage.")
-        
         # Process each split
         for split in splits:
             logger.info(f"Processing split: {split}")
 
-            manifest_path = manifest_paths.get(split)
-            if not manifest_path:
-                raise RuntimeError(f"Manifest path for split '{split}' not found in training_config.xvector.manifest_paths. Please ensure the path is set correctly.")
+            manifest_path = manifest_paths.get(split, None)
+            if manifest_path is None:
+                manifest_path = f"data/manifest/{split}.tsv"
             manifest_path = Path(manifest_path).resolve()
             if not manifest_path.exists():
-                raise RuntimeError(f"Manifest file not found for split '{split}': {manifest_path}")
+                raise RuntimeError(f"Manifest file not found for split '{split}': {manifest_path}. Please generate the manifest file using the create_dataset stage and ensure the path is correct.")
 
-            # Count utterances without loading the whole manifest into driver
-            # memory; workers re-parse the TSV themselves so the WorkerPlugin
-            # closure stays small.
             n_utts = 0
             with open(manifest_path, "r", encoding="utf-8") as f:
                 for line in f:
@@ -170,9 +156,6 @@ class TTSSystem(BaseSystem):
             spk_embed_tag = xvec_cfg.get("spk_embed_tag", "spk_embed")
             output_subdir = save_path / f"{spk_embed_tag}_{split}"
 
-            # Provider params are JSON-serialized for async dispatch and pickled
-            # into the WorkerPlugin closure for sync parallel dispatch — keep
-            # this dict small.
             provider = XVectorProvider(
                 config=self.training_config,
                 params={
@@ -222,7 +205,6 @@ class TTSSystem(BaseSystem):
         Configuration should include:
             training_config.remove_long_short.min_wav_duration: Minimum duration in seconds
             training_config.remove_long_short.max_wav_duration: Maximum duration in seconds
-            training_config.remove_long_short.sampling_rate: Sampling rate for duration calculation
             training_config.remove_long_short.save_path: Directory to save filtered manifests
             training_config.remove_long_short.splits: List of splits to process (train, valid, test)
             training_config.remove_long_short.manifest_paths: Optional dict of split to manifest path (default: data/manifest/{split}.tsv)
@@ -253,12 +235,9 @@ class TTSSystem(BaseSystem):
                 "max_wav_duration must be set for remove_long_short stage."
             )
 
-        splits = rls_cfg.get("splits", None)
-        if splits is None:
-            raise RuntimeError(
-                "training_config.remove_long_short.splits must be set to specify "
-                "which data splits to process (e.g., ['train', 'valid', 'test'])"
-            )
+        # Get list of splits to process (Default: all splits)
+        splits = rls_cfg.get("splits", ["train", "valid", "test"])
+
         if isinstance(splits, str):
             splits = [splits]
 
@@ -270,23 +249,17 @@ class TTSSystem(BaseSystem):
             f"min_duration={min_duration}s, max_duration={max_duration}s"
         )
 
-        # soundfile.info reads only the audio header, which is dramatically faster
-        # than librosa.get_duration (which can fall back to loading the full file).
-        import soundfile as sf
 
         for split in splits:
             logger.info(f"Processing split: {split}")
 
-            manifest_path_str = manifest_paths.get(split) if manifest_paths else None
-            if manifest_path_str is None:
-                manifest_path_str = f"data/manifest/{split}.tsv"
-            manifest_path = Path(manifest_path_str).resolve()
+            manifest_path = manifest_paths.get(split) if manifest_paths else None
+            if manifest_path is None:
+                manifest_path = f"data/manifest/{split}.tsv"
+            manifest_path = Path(manifest_path).resolve()
             filtered_manifest_path = save_path / manifest_path.name
             if not manifest_path.exists():
-                raise RuntimeError(
-                    f"Manifest file not found for split '{split}': {manifest_path}. "
-                    "Please ensure the manifest file is generated and the path is correct."
-                )
+                raise RuntimeError(f"Manifest file not found for split '{split}': {manifest_path}. Please generate the manifest file using the create_dataset stage and ensure the path is correct.")
 
             n_kept = 0
             n_dropped_duration = 0
@@ -364,6 +337,7 @@ class TTSSystem(BaseSystem):
         if not manifest_path.exists():
             raise RuntimeError(f"Manifest file not found for token list creation: {manifest_path}. Please ensure the manifest file is generated and the path is correct.")
 
+        # Declare text processing parameters with defaults (matching espnet2 defaults where applicable)
         cleaner = tl_cfg.get("cleaner", None)
         token_type = tl_cfg.get("token_type", "char")
         bpemodel = tl_cfg.get("bpemodel", None)
