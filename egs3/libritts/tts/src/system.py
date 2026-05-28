@@ -150,11 +150,8 @@ class TTSSystem(BaseSystem):
                     f"Manifest file not found for split '{split}': {manifest_path}. Please generate the manifest file using the create_dataset stage and ensure the path is correct."
                 )
 
-            n_utts = 0
-            with open(manifest_path, "r", encoding="utf-8") as f:
-                for line in f:
-                    if line.strip():
-                        n_utts += 1
+            utterances, _ = XVectorProvider._load_manifest(manifest_path)
+            n_utts = len(utterances)
             if n_utts == 0:
                 raise RuntimeError(f"No utterances found in manifest: {manifest_path}.")
 
