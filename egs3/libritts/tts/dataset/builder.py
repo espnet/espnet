@@ -46,9 +46,8 @@ def _scan_subset_entries(subset_dir: Path) -> list[tuple[str, Path, str, str]]:
         if not text:
             continue
         utt_id = text_path.stem.replace(".normalized", "")
-        chapter = text_path.parent.name
         speaker = text_path.parent.parent.name
-        spk_key = f"{speaker}_{chapter}"
+        spk_key = speaker
         entries.append((utt_id, wav_path.resolve(), text, spk_key))
     return entries
 
