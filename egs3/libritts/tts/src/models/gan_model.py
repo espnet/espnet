@@ -20,7 +20,7 @@ class GANTTSLightningModule(ESPnetLightningModule):
         0: "generator",
         1: "discriminator",
     }
-    
+
     def __init__(self, model, config):
         super().__init__(model, config)
         self.automatic_optimization = False
