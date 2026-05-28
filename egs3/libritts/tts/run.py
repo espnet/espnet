@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 
-from egs3.TEMPLATE.asr.run import build_parser, parse_cli_and_stage_args
+import argparse
+from pathlib import Path
+from typing import Sequence
+
 from src.system import TTSSystem
 from espnet3.utils.config_utils import load_and_merge_config
 from espnet3.utils.logging_utils import configure_logging
@@ -9,7 +12,51 @@ from espnet3.utils.run_utils import (
     resolve_loaded_configs,
     validate_experiment_context,
 )
-from espnet3.utils.stages_utils import resolve_stages, run_stages
+from espnet3.utils.stages_utils import (
+    parse_cli_and_stage_args,
+    resolve_stages,
+    run_stages,
+)
+
+
+def build_parser(stages: Sequence[str]) -> argparse.ArgumentParser:
+    """Build the CLI parser for this recipe.
+
+    Inlined from the ASR template so the recipe is self-contained — no
+    dependency on `egs3.TEMPLATE.asr`. Only the arguments this recipe
+    actually consumes are exposed; add new ones here as needed.
+    """
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--stages",
+        choices=list(stages) + ["all"],
+        nargs="+",
+        default=["all"],
+        help="Which stages to run. Multiple values allowed.",
+    )
+    parser.add_argument(
+        "--training_config",
+        default=None,
+        type=Path,
+        help="Hydra config for training-time stages.",
+    )
+    parser.add_argument(
+        "--inference_config",
+        default=None,
+        type=Path,
+        help="Hydra config for the infer stage.",
+    )
+    parser.add_argument(
+        "--dry_run",
+        action="store_true",
+        help="Print what would be executed without actually running stages.",
+    )
+    parser.add_argument(
+        "--write_requirements",
+        action="store_true",
+        help="Write requirements.txt alongside each stage log.",
+    )
+    return parser
 
 DEFAULT_STAGES = [
     "compute_xvectors",
