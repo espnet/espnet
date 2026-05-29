@@ -162,8 +162,7 @@ def process_split(split, raw_dir, out_dir, args, available_wavs):
         # ESPnet's scripts/audio/format_wav_scp.sh consumes this pipe in stage 4
         # and cuts it into per-utterance audio using the segments file.
         wav_scp.append(
-            (reco_id,
-             f"sox {wav_path} -t wav -r 16000 -b 16 -c 1 - remix - |")
+            (reco_id, f"sox {wav_path} -t wav -r 16000 -b 16 -c 1 - remix - |")
         )
 
         kept_in_file = False
@@ -232,21 +231,21 @@ def main():
         type=str,
         default="data/processed",
         help="Directory under which <split>/{wav.scp,segments,text,utt2spk,spk2utt} "
-             "will be written.",
+        "will be written.",
     )
     parser.add_argument(
         "--filter-special-symbols",
         action="store_true",
         help="Strip [+], [*], [LAUGHTER], [SONANT], [MUSIC] markers from text "
-             "while keeping the surrounding transcription. [*] segments are "
-             "always dropped (unintelligible).",
+        "while keeping the surrounding transcription. [*] segments are "
+        "always dropped (unintelligible).",
     )
     parser.add_argument(
         "--drop-special-segments",
         action="store_true",
         help="Drop any segment whose raw text contains [+], [*], [LAUGHTER], "
-             "[SONANT], or [MUSIC]. More aggressive than --filter-special-symbols; "
-             "if both are set, drop wins (stripping is moot).",
+        "[SONANT], or [MUSIC]. More aggressive than --filter-special-symbols; "
+        "if both are set, drop wins (stripping is moot).",
     )
     parser.add_argument(
         "--filter-min-time",
