@@ -25,9 +25,10 @@ data_url=https://www.openslr.org/resources/123/
 tar_name=MagicData-RAMC.tar.gz
 remove_archive=false
 
-# Filtering related (forwarded to local/prepare_data.py)
-filter_special_symbols=true   # strip [+]/[LAUGHTER]/[SONANT]/[MUSIC] tags from kept text
-drop_special_segments=false   # drop any segment whose raw text contains the above tags
+# Filtering related (forwarded to local/prepare_data.py).
+# Special tags ([+]/[LAUGHTER]/[SONANT]/[MUSIC]) are always stripped from the
+# kept text; setting drop_special_segments=true drops the whole segment instead.
+drop_special_segments=false
 min_time=300       # minimum segment duration (ms)
 max_time=30000     # maximum segment duration (ms)
 min_text=1         # minimum cleaned-text character count
@@ -66,7 +67,7 @@ else
   else
     log "Download data to ${MAGICDATA_RAMC}..."
     full_url="${data_url}/${tar_name}"
-    if ! wget --no-check-certificate -O "${MAGICDATA_RAMC}/${tar_name}" "${full_url}"; then
+    if ! wget -O "${MAGICDATA_RAMC}/${tar_name}" "${full_url}"; then
       echo "$0: error executing wget ${full_url}"
       rm -f "${MAGICDATA_RAMC}/${tar_name}"
       exit 1
@@ -88,9 +89,6 @@ output_dir=data
 mkdir -p "${output_dir}"
 
 python_opts=""
-if [ "${filter_special_symbols}" = "true" ]; then
-  python_opts="${python_opts} --filter-special-symbols"
-fi
 if [ "${drop_special_segments}" = "true" ]; then
   python_opts="${python_opts} --drop-special-segments"
 fi

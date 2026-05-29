@@ -34,27 +34,31 @@ KEEP_PATTERN = re.compile(r"[一-鿿㐀-䶿A-Za-z0-9]")
 LINE_RE = re.compile(r"^\[([\d.]+),([\d.]+)\]\s+(\S+)\s+\S+\s+(.*)$")
 
 
-def clean_text(text, strip_markers, drop_special_segments):
+def clean_text(text, drop_special_segments):
     """Clean a raw transcription line.
 
-    Two independent filter modes:
-      * drop_special_segments=True : drop any segment whose raw text contains
-        any of [+], [*], [LAUGHTER], [SONANT], [MUSIC].
-      * strip_markers=True : strip those markers from the kept text (no drop).
-
-    [*] (unintelligible) is unconditionally dropped because it never carries
-    recoverable text. If both flags are False, markers are left literally in
-    the text (except [*]).
+    Two filter steps:
+      * [*] (unintelligible) segments are unconditionally dropped — they never
+        carry recoverable text.
+      * drop_special_segments=True : also drop any segment whose raw text
+        contains [+], [LAUGHTER], [SONANT], or [MUSIC].
 
     Returns the cleaned string, or None if the segment must be dropped.
+
+    Note: SPECIAL_TAGS are always stripped from the kept text before applying
+    KEEP_PATTERN, because KEEP_PATTERN filters out `[`/`]` but keeps ASCII
+    letters — so without an explicit strip pass the cleaned transcription
+    would silently end up containing "LAUGHTER"/"MUSIC"/etc as plain text.
+    A more sophisticated future version could route these tags to ESPnet's
+    non_linguistic_symbols list and keep them as atomic tokens; for now they
+    are dropped.
     """
     if "[*]" in text:
         return None
     if drop_special_segments and any(tag in text for tag in SPECIAL_TAGS):
         return None
-    if strip_markers:
-        for tag in SPECIAL_TAGS:
-            text = text.replace(tag, "")
+    for tag in SPECIAL_TAGS:
+        text = text.replace(tag, "")
     cleaned = "".join(KEEP_PATTERN.findall(text))
     if not cleaned:
         return None
@@ -69,12 +73,15 @@ def parse_split_tsv(tsv_path):
     with ".wav".
     """
     names = []
-    with open(tsv_path, encoding="utf-8") as f:
+    # utf-8-sig strips a leading BOM if present (TSV files saved on Windows
+    # may include one). Backslash → forward slash before basename() so paths
+    # like "MDT2021S003\WAV\foo.wav" resolve correctly on POSIX.
+    with open(tsv_path, encoding="utf-8-sig") as f:
         for line in f:
             line = line.strip()
             if not line:
                 continue
-            first = line.split("\t")[0]
+            first = line.split("\t")[0].replace("\\", "/")
             base = os.path.basename(first)
             if not base.endswith(".wav"):
                 continue
@@ -84,7 +91,10 @@ def parse_split_tsv(tsv_path):
 
 def parse_txt(txt_path):
     """Yield (start_sec, end_sec, spk_id, raw_text) for each annotation line."""
-    with open(txt_path, encoding="utf-8") as f:
+    # utf-8-sig strips a leading BOM (some TXT annotations are saved with one
+    # by Windows editors; without this the BOM stays in the first line and
+    # LINE_RE silently misses it).
+    with open(txt_path, encoding="utf-8-sig") as f:
         for line in f:
             line = line.rstrip("\r\n")
             if not line.strip():
@@ -178,7 +188,6 @@ def process_split(split, raw_dir, out_dir, args, available_wavs):
 
             cleaned = clean_text(
                 raw_text,
-                strip_markers=args.filter_special_symbols,
                 drop_special_segments=args.drop_special_segments,
             )
             if cleaned is None:
@@ -234,18 +243,11 @@ def main():
         "will be written.",
     )
     parser.add_argument(
-        "--filter-special-symbols",
-        action="store_true",
-        help="Strip [+], [*], [LAUGHTER], [SONANT], [MUSIC] markers from text "
-        "while keeping the surrounding transcription. [*] segments are "
-        "always dropped (unintelligible).",
-    )
-    parser.add_argument(
         "--drop-special-segments",
         action="store_true",
-        help="Drop any segment whose raw text contains [+], [*], [LAUGHTER], "
-        "[SONANT], or [MUSIC]. More aggressive than --filter-special-symbols; "
-        "if both are set, drop wins (stripping is moot).",
+        help="Drop any segment whose raw text contains [+], [LAUGHTER], "
+        "[SONANT], or [MUSIC]. (Default: keep the segment, strip the tag.) "
+        "[*] (unintelligible) segments are always dropped regardless.",
     )
     parser.add_argument(
         "--filter-min-time",
