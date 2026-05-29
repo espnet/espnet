@@ -102,32 +102,6 @@ dataloader:
         batch_bins: -1
 
 
-# Optimizer and scheduler follow the template defaults.
-optimizer:
-  _target_: torch.optim.Adam
-  lr: 1.0e-03
-  eps: 1.0e-08
-  weight_decay: 0
-
-
-# scheduler:
-#   _target_: torch.optim.lr_scheduler.StepLR
-#   step_size: 200_000  # steps
-#   gamma: 0.98
-scheduler:
-  _target_: transformers.optimization.get_wsd_schedule
-  # The three *_steps below should amount to the total steps in one epoch
-  num_warmup_steps: 0
-  num_stable_steps: 11000
-  num_decay_steps: 1375
-  min_lr_ratio: 0.1
-  num_cycles: 0.5
-
-
-best_model_criterion:
-  - - valid/loss
-    - 3
-    - min
 
 
 # Lightning Trainer knobs: BF16 mixed precision, long training schedule.
@@ -151,6 +125,56 @@ trainer:
   strategy: ddp_find_unused_parameters_true
 
 
+# If you want to resume training use the following config.
+# fit:
+#   ckpt_path: ${exp_dir}/last.ckpt
+
+
+
+##########################################################
+#                    TRAINING SETTING                    #
+##########################################################
+# Quick usage:
+#   python run.py --stages create_dataset --training_config conf/training.yaml
+#   python run.py --stages train          --training_config conf/training.yaml
+#
+
+##########################################################
+#                  SYSTEM AND PATH SETTING               #
+##########################################################
+# `recipe_dir`, `data_dir`, `exp_tag`, `exp_dir`, and `stats_dir` are inherited
+# from the TEMPLATE config. In particular, `exp_tag` follows `${self_name:}`.
+task: espnet3.systems.tse.task.TSETask
+
+##########################################################
+#                    DATASET DEFINITION                  #
+##########################################################
+# This recipe uses `${recipe_dir}/dataset/__init__.py` in the same way as
+# `mini_an4`, so `data_src` is omitted and only `data_src_args` is forwarded.
+dataset:
+  train:
+    - data_src_args:
+        split: 2mix_16k_max_train_mix-clean
+  valid:
+    - data_src_args:
+        split: 2mix_16k_max_dev_mix-clean
+    - data_src_args:
+        split: 2mix_16k_max_test_mix-clean
+  preprocessor:
+    _target_: espnet2.train.preprocessor.TSEPreprocessor
+    train: true
+    train_spk2enroll: ${data_dir}/2mix_16k_max_train_mix-both/spk2enroll.json
+    enroll_segment: 48000
+    load_spk_embedding: false
+    load_all_speakers: true
+    num_spk: ${model.model_conf.num_spk}
+
+create_dataset:
+  recipe_dir: ${recipe_dir}
+
+##########################################################
+#                      MODEL SETTING                     #
+##########################################################
 model:
   # Model definition for TD-SpeakerBeam based TSE
   encoder: conv
@@ -193,7 +217,90 @@ model:
       wrapper_conf:
         weight: 1.0
 
+##########################################################
+#            OPTIMIZER & SCHEDULER SETTING               #
+##########################################################
+# Optimizer and scheduler follow the template defaults.
+optimizer:
+  _target_: torch.optim.Adam
+  lr: 1.0e-03
+  eps: 1.0e-08
+  weight_decay: 0
 
-# If you want to resume training use the following config.
-# fit:
-#   ckpt_path: ${exp_dir}/last.ckpt
+
+# scheduler:
+#   _target_: torch.optim.lr_scheduler.StepLR
+#   step_size: 200_000  # steps
+#   gamma: 0.98
+scheduler:
+  _target_: transformers.optimization.get_wsd_schedule
+  # The three *_steps below should amount to the total steps in one epoch
+  num_warmup_steps: 0
+  num_stable_steps: 11000
+  num_decay_steps: 1375
+  min_lr_ratio: 0.1
+  num_cycles: 0.5
+
+##########################################################
+#                OTHER TRAINING SETTING                  #
+##########################################################
+best_model_criterion:
+  - - valid/loss
+    - 3
+    - min
+
+##########################################################
+#                   DATALOADER SETTING                   #
+##########################################################
+dataloader:
+  train:
+    iter_factory:
+      _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
+      shuffle: true
+      collate_fn: ${dataloader.collate_fn}
+      batches:
+          _target_: espnet2.samplers.build_batch_sampler.build_batch_sampler
+          type: numel
+          shape_files:
+          batch_bins: 4000000
+          min_batch_size: 2
+
+dataloader:
+  train:
+    iter_factory:
+      _target_: espnet2.iterators.chunk_iter_factory.ChunkIterFactory
+      shuffle: true
+      batch_size: 4
+      chunk_length: 48000
+      chunk_shift_ratio: 0.5
+      # exclude keys "enroll_ref", "enroll_ref1", "enroll_ref2", ...
+      # from the length consistency check in ChunkIterFactory
+      excluded_key_prefixes:
+        - "enroll_ref"
+      num_workers: 4
+      batches:
+        type: unsorted
+        shape_files:
+          - ${stats_dir}/train/feats_shape
+        batch_size: 1
+        batch_bins: -1
+
+##########################################################
+#                    TRAINER SETTING                     #
+##########################################################
+trainer:
+  accumulate_grad_batches: 4
+  check_val_every_n_epoch: 1
+  gradient_clip_val: 1.0
+  log_every_n_steps: 100
+  max_epochs: 200
+  precision: bf16-mixed
+
+  logger:
+    - _target_: lightning.pytorch.loggers.TensorBoardLogger
+      save_dir: ${exp_dir}/tensorboard
+      name: tb_logger
+
+  strategy: auto
+
+fit: {}

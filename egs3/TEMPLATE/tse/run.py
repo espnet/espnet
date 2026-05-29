@@ -20,6 +20,7 @@ from espnet3.utils.stages_utils import (
     run_stages,
 )
 
+# Default stage list (can be extended/overridden by callers)
 DEFAULT_STAGES: List[str] = [
     "create_dataset",
     "collect_stats",
@@ -51,7 +52,7 @@ def build_parser(
         default=None,
         type=Path,
         help=(
-            "Config for training. "
+            "Hydra config for training (passed to load_config_with_defaults). "
             "Required for create_dataset/collect_stats/train stages."
         ),
     )
@@ -59,25 +60,25 @@ def build_parser(
         "--inference_config",
         default=None,
         type=Path,
-        help="Config for infer stage.",
+        help="Hydra config for inference stage.",
     )
     parser.add_argument(
         "--metrics_config",
         default=None,
         type=Path,
-        help="Config for measure stage.",
+        help="Hydra config for metric calculation stage.",
     )
     parser.add_argument(
         "--publication_config",
         default=None,
         type=Path,
-        help="Config for pack_model/upload_model stages.",
+        help="Hydra config for pack/upload stages.",
     )
     parser.add_argument(
         "--demo_config",
         default=None,
         type=Path,
-        help="Config for pack_demo/upload_demo stages.",
+        help="Hydra config for pack_demo/upload_demo stages.",
     )
     parser.add_argument(
         "--dry_run",
@@ -99,27 +100,33 @@ def main(
 ) -> None:
     stages_to_run = resolve_stages(args.stages, stages)
 
+    # -----------------------------------------
+    # Load configs
+    # -----------------------------------------
+    # Keep default_package explicit so the recipe declares which package
+    # provides the default configs, instead of relying on path-based
+    # inference from the user-supplied config location.
     training_config = load_and_merge_config(
         args.training_config,
-        config_name="train.yaml",
+        config_name="training.yaml",
         default_package=__package__,
         resolve=False,
     )
     inference_config = load_and_merge_config(
         args.inference_config,
-        config_name="infer.yaml",
+        config_name="inference.yaml",
         default_package=__package__,
         resolve=False,
     )
     metrics_config = load_and_merge_config(
         args.metrics_config,
-        config_name="measure.yaml",
+        config_name="metrics.yaml",
         default_package=__package__,
         resolve=False,
     )
     publication_config = load_and_merge_config(
         args.publication_config,
-        config_name="publish.yaml",
+        config_name="publication.yaml",
         default_package=__package__,
         resolve=False,
     )
@@ -153,6 +160,9 @@ def main(
         demo_config,
     )
 
+    # -----------------------------------------
+    # Instantiate system
+    # -----------------------------------------
     system = system_cls(
         training_config=training_config,
         inference_config=inference_config,
@@ -161,10 +171,14 @@ def main(
         demo_config=demo_config,
     )
 
+    # -----------------------------------------
+    # Resolve stages and run
+    # -----------------------------------------
     logger.info("System: %s", system_cls.__name__)
     logger.info("Requested stages: %s", args.stages)
     logger.info("Resolved stages: %s", stages_to_run)
 
+    # Guardrail: ensure required configs exist for requested stages
     pretrain_stages = {"create_dataset", "collect_stats", "train"}
     required_configs = {}
     required_configs.update({stage: training_config for stage in pretrain_stages})
@@ -188,8 +202,9 @@ def main(
         )
     ]
     if missing:
+        missing_str = ", ".join(missing)
         raise ValueError(
-            f"Config not provided for stage(s): {', '.join(missing)}. "
+            f"Config not provided for stage(s): {missing_str}. "
             "Use --training_config/--inference_config/--metrics_config/"
             "--publication_config/--demo_config."
         )
