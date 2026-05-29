@@ -131,13 +131,22 @@ def prepare_wham_noise(
             return wham_noise
     elif wham_noise.exists():
         if not os.access(wham_noise, os.W_OK):
-            # copy to dataset_dir / "data/wham_noise"
-            wham_noise_dst = dataset_dir / "data/wham_noise"
+            # copy to dataset_dir / "wham_noise"
+            wham_noise_dst = dataset_dir / "wham_noise"
             wham_noise_dst.parent.mkdir(parents=True, exist_ok=True)
             if wham_noise_dst.exists():
-                logger.info(
-                    f"Wham_noise destination already exists: {wham_noise_dst}. "
-                    "Skipping copy and using existing directory."
+                # Check the file counts to verify if the existing directory is likely a valid copy
+                src_count = sum(1 for _ in wham_noise.rglob("*.wav"))
+                dst_count = sum(1 for _ in wham_noise_dst.rglob("*.wav"))
+                if src_count == dst_count:
+                    logger.info(
+                        f"Wham_noise destination already exists: {wham_noise_dst}. "
+                        "Skipping copy and using existing directory."
+                    )
+                raise RuntimeError(
+                    f"Wham_noise destination already exists but file count does not match: {wham_noise_dst}. "
+                    "Please copy the directory manually:\n"
+                    f"    cp -r '{wham_noise}' '{wham_noise_dst}'"
                 )
             else:
                 logger.info(
@@ -192,11 +201,11 @@ def augment_wham_noise(wham_noise_dir: Path, librimix_root: Path, logger):
 
     # Build the command list: [python_executable, script_name, arg1, arg2, ...]
     args_to_pass = ["--wham_dir", str(wham_noise_dir)]
-    command = [sys.executable, "scripts/create_librimix.py"] + args_to_pass
+    command = [sys.executable, "scripts/augment_train_noise.py"] + args_to_pass
     logger.info(f"Running command: {' '.join(command)}")
     result = subprocess.run(command, capture_output=True, text=True, check=True)
 
-    logger.info("\nOutput from called_script.py:")
+    logger.info("\nOutput from scripts/augment_train_noise.py:")
     logger.info(result.stdout)
     os.chdir(cwd)
 
@@ -254,11 +263,11 @@ def simulate_librimix(
         "mix_both",
         "mix_single",
     ]
-    command = [sys.executable, "scripts/create_librimix.py"] + args_to_pass
+    command = [sys.executable, "scripts/create_librimix_from_metadata.py"] + args_to_pass
     logger.info(f"Running command: {' '.join(command)}")
     result = subprocess.run(command, capture_output=True, text=True, check=True)
 
-    logger.info("\nOutput from called_script.py:")
+    logger.info("\nOutput from scripts/create_librimix_from_metadata.py:")
     logger.info(result.stdout)
     os.chdir(cwd)
 

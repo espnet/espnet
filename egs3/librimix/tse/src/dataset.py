@@ -274,6 +274,7 @@ class LibriMixTSEDataset(TorchDataset):
 
         # Loading the dataset split
         self._examples = self._parse_dataset()
+        print(f"len(LibriMixTSEDataset)={len(self)}", flush=True)
 
     def __len__(self) -> int:
         return len(self._examples)
@@ -319,7 +320,7 @@ class LibriMixTSEDataset(TorchDataset):
             elif k.startswith("text_spk"):
                 ret[k] = getattr(ex, k)
             elif k == "uttid":
-                ret[k] = getattr(ex, k)
+                continue
             elif k == "num_spk":
                 ret[k] = np.array([ex.num_spk])
             else:
