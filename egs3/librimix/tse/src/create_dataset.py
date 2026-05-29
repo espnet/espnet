@@ -263,7 +263,10 @@ def simulate_librimix(
         "mix_both",
         "mix_single",
     ]
-    command = [sys.executable, "scripts/create_librimix_from_metadata.py"] + args_to_pass
+    command = [
+        sys.executable,
+        "scripts/create_librimix_from_metadata.py",
+    ] + args_to_pass
     logger.info(f"Running command: {' '.join(command)}")
     result = subprocess.run(command, capture_output=True, text=True, check=True)
 
