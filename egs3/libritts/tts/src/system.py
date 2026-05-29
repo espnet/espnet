@@ -45,7 +45,7 @@ def _instantiate_model(config: DictConfig) -> Any:
 def _patch_collect_feats(model: Any) -> None:
     """
     espnet3's collect_stats only iterates the dict returned by ``collect_feats``,
-    so input-tensor shape, such as ``speech_shape``, ``text_shape``, are 
+    so input-tensor shape, such as ``speech_shape``, ``text_shape``, are
     missing. This patch passes the raw inputs through, matching what espnet2's
     main_funcs/collect_stats.py writes from the batch dict.
     """
