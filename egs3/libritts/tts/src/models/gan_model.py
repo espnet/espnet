@@ -56,8 +56,8 @@ class GANTTSLightningModule(ESPnetLightningModule):
     def collect_stats(self):
         """Apply the GAN-TTS collect_feats patch.
 
-        This patch make the collect_stats method also return 
-        the input speech/text features, which are needed for dataloader sampling. 
+        This patch make the collect_stats method also return
+        the input speech/text features, which are needed for dataloader sampling.
         """
         _patch_gan_tts_collect_feats()
         return super().collect_stats()
