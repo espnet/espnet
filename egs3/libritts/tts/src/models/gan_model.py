@@ -8,9 +8,37 @@ from typing import Dict, List, Tuple
 import torch
 import torch.distributed as dist
 
+from espnet2.gan_tts.espnet_model import ESPnetGANTTSModel
 from espnet2.train.abs_gan_espnet_model import AbsGANESPnetModel
 from espnet3.components.modeling.lightning_module import ESPnetLightningModule
 from espnet3.components.modeling.optimization_spec import OptimizationStep
+
+
+def _patch_gan_tts_collect_feats() -> None:
+    """
+    espnet3's collect_stats only compute shape for keys returned by
+    ``collect_feats``. By default GAN-TTS only returns ``feats``, so
+    ``speech_shape`` / ``text_shape`` are missing. These shapes are
+    needed for dataloader sampling.
+    """
+    # This prevents double-patching if collect_stats is called multiple times.
+    if getattr(ESPnetGANTTSModel.collect_feats, "_patched_for_input_shapes", False):
+        return
+
+    original = ESPnetGANTTSModel.collect_feats
+
+    def collect_feats_with_inputs(self, **kwargs):
+        out = original(self, **kwargs)
+        if "speech" in kwargs and "speech_lengths" in kwargs:
+            out["speech"] = kwargs["speech"]
+            out["speech_lengths"] = kwargs["speech_lengths"]
+        if "text" in kwargs and "text_lengths" in kwargs:
+            out["text"] = kwargs["text"]
+            out["text_lengths"] = kwargs["text_lengths"]
+        return out
+
+    collect_feats_with_inputs._patched_for_input_shapes = True
+    ESPnetGANTTSModel.collect_feats = collect_feats_with_inputs
 
 
 class GANTTSLightningModule(ESPnetLightningModule):
@@ -24,6 +52,15 @@ class GANTTSLightningModule(ESPnetLightningModule):
     def __init__(self, model, config):
         super().__init__(model, config)
         self.automatic_optimization = False
+
+    def collect_stats(self):
+        """Apply the GAN-TTS collect_feats patch.
+
+        This patch make the collect_stats method also return 
+        the input speech/text features, which are needed for dataloader sampling. 
+        """
+        _patch_gan_tts_collect_feats()
+        return super().collect_stats()
 
     def _gan_option(self, name: str, default):
         trainer_cfg = getattr(self.config, "trainer", None)

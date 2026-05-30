@@ -36,34 +36,8 @@ def _instantiate_model(config: DictConfig) -> Any:
     task = config.get("task")
     if task:
         model_config = OmegaConf.to_container(config.model, resolve=True)
-        model = get_espnet_model(task, model_config)
-        _patch_collect_feats(model)
-        return model
+        return get_espnet_model(task, model_config)
     return instantiate(config.model)
-
-
-def _patch_collect_feats(model: Any) -> None:
-    """
-    espnet3's collect_stats only iterates the dict returned by ``collect_feats``,
-    so input-tensor shape, such as ``speech_shape``, ``text_shape``, are
-    missing. This patch passes the raw inputs through, matching what espnet2's
-    main_funcs/collect_stats.py writes from the batch dict.
-    """
-    if not isinstance(model, AbsGANESPnetModel):
-        return
-    original = model.collect_feats
-
-    def collect_feats_with_inputs(**kwargs):
-        out = original(**kwargs)
-        if "speech" in kwargs and "speech_lengths" in kwargs:
-            out["speech"] = kwargs["speech"]
-            out["speech_lengths"] = kwargs["speech_lengths"]
-        if "text" in kwargs and "text_lengths" in kwargs:
-            out["text"] = kwargs["text"]
-            out["text_lengths"] = kwargs["text_lengths"]
-        return out
-
-    model.collect_feats = collect_feats_with_inputs
 
 
 class TTSSystem(BaseSystem):
