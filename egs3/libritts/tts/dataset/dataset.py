@@ -140,5 +140,5 @@ class LibriTTSDataset(TorchDataset):
             spembs = torch.load(str(pt_path), map_location="cpu")
             if isinstance(spembs, torch.Tensor):
                 spembs = spembs.numpy()
-            sample["spembs"] = np.asarray(spembs, dtype=np.float32)
+            sample["spembs"] = np.asarray(spembs, dtype=np.float32).squeeze()
         return sample
