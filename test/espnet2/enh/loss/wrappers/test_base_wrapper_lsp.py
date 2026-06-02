@@ -4,6 +4,7 @@ This guards the Liskov Substitution fix: previously the base class
 declared `others: Dict` as required, but every subclass defaulted it
 to None. The base signature now reflects the actual contract.
 """
+
 import inspect
 
 import torch
@@ -30,5 +31,7 @@ def test_dpcl_solver_callable_without_others_arg():
     # The subclass's own forward still defaults others to None and
     # treats it as {} internally. The base signature change makes the
     # override consistent with the abstract method's type annotation.
-    loss, stats, others = solver(ref, inf, {"tf_embedding": torch.rand(batch, 10 * 200, 40)})
+    loss, stats, others = solver(
+        ref, inf, {"tf_embedding": torch.rand(batch, 10 * 200, 40)}
+    )
     assert isinstance(loss, torch.Tensor)
