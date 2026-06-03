@@ -83,7 +83,7 @@ For English-to-German speech translation, `lang_sym` is the source speech langua
 ### OWSM v4 small fine-tuning
 
 ```bash
-CUDA_VISIBLE_DEVICES=0 ./run.sh \
+./run.sh \
   --finetune_owsm_v4_small true \
   --stage 10 \
   --stop_stage 11 \
@@ -103,7 +103,7 @@ use_amp: true
 For a longer local training run, override the generated-config knobs from `run.sh`. For example, the following command removes the fixed iteration limit:
 
 ```bash
-CUDA_VISIBLE_DEVICES=0 ./run.sh \
+./run.sh \
   --finetune_owsm_v4_small true \
   --stage 10 \
   --stop_stage 11 \
@@ -115,7 +115,7 @@ CUDA_VISIBLE_DEVICES=0 ./run.sh \
 ### Decoding and scoring
 
 ```bash
-CUDA_VISIBLE_DEVICES=0 ./run.sh \
+./run.sh \
   --finetune_owsm_v4_small true \
   --stage 12 \
   --stop_stage 13 \

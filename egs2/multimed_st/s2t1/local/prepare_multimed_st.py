@@ -181,24 +181,30 @@ def prepare_split(
 
         n_ok += 1
 
-    (data_dir / "wav.scp").write_text("\n".join(wav_scp) + "\n", encoding="utf-8")
-    (data_dir / "utt2spk").write_text("\n".join(utt2spk) + "\n", encoding="utf-8")
-    (data_dir / "text").write_text("\n".join(text_lines) + "\n", encoding="utf-8")
+    (data_dir / "wav.scp").write_text(
+        "\n".join(sorted(wav_scp)) + "\n", encoding="utf-8"
+    )
+    (data_dir / "utt2spk").write_text(
+        "\n".join(sorted(utt2spk)) + "\n", encoding="utf-8"
+    )
+    (data_dir / "text").write_text(
+        "\n".join(sorted(text_lines)) + "\n", encoding="utf-8"
+    )
     (data_dir / "text.prev").write_text(
-        "\n".join(text_prev_lines) + "\n", encoding="utf-8"
+        "\n".join(sorted(text_prev_lines)) + "\n", encoding="utf-8"
     )
     (data_dir / "text.ctc").write_text(
-        "\n".join(text_ctc_lines) + "\n", encoding="utf-8"
+        "\n".join(sorted(text_ctc_lines)) + "\n", encoding="utf-8"
     )
-    write_spk2utt(utt2spk, data_dir / "spk2utt")
+    write_spk2utt(sorted(utt2spk), data_dir / "spk2utt")
 
     if text_asr_lines:
         (data_dir / "text.asr").write_text(
-            "\n".join(text_asr_lines) + "\n", encoding="utf-8"
+            "\n".join(sorted(text_asr_lines)) + "\n", encoding="utf-8"
         )
     if text_st_lines:
         (data_dir / "text.st").write_text(
-            "\n".join(text_st_lines) + "\n", encoding="utf-8"
+            "\n".join(sorted(text_st_lines)) + "\n", encoding="utf-8"
         )
 
     print(

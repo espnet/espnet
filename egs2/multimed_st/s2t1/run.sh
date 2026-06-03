@@ -48,19 +48,21 @@ owsm_accum_grad=8
 . ./utils/parse_options.sh
 
 if "${finetune_owsm_v4_small}"; then
-    python local/prepare_owsm_v4_assets.py \
-        --max_epoch "${owsm_max_epoch}" \
-        --num_iters_per_epoch "${owsm_num_iters_per_epoch}" \
-        --batch_size "${owsm_batch_size}" \
-        --valid_batch_size "${owsm_valid_batch_size}" \
-        --accum_grad "${owsm_accum_grad}"
-
     token_type=bpe
     nbpe=50000
     use_lm=false
     s2t_config=conf/finetune_owsm_v4_small.yaml
     inference_config=conf/decode_owsm_st_de.yaml
     s2t_args="--init_param downloads/owsm_v4_small_370M/model.pth --ignore_init_mismatch true"
+
+    python local/prepare_owsm_v4_assets.py \
+        --token_dir "data/${lang}_token_list/bpe_unigram${nbpe}" \
+        --train_config "${s2t_config}" \
+        --max_epoch "${owsm_max_epoch}" \
+        --num_iters_per_epoch "${owsm_num_iters_per_epoch}" \
+        --batch_size "${owsm_batch_size}" \
+        --valid_batch_size "${owsm_valid_batch_size}" \
+        --accum_grad "${owsm_accum_grad}"
 fi
 
 local_data_opts="--src_lang ${src_lang} --tgt_lang ${tgt_lang} --task ${task} --max_train_samples ${max_train_samples} --max_valid_samples ${max_valid_samples} --max_test_samples ${max_test_samples}"

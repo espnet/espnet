@@ -194,6 +194,7 @@ ST_CMDS=downloads
 MS_INDIC_IS18=
 MARATHI=downloads
 MLS=downloads
+MULTIMED_ST=downloads
 VOXPOPULI=downloads
 HARPERVALLEY=downloads
 TALROMUR=downloads
