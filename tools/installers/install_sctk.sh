@@ -22,9 +22,15 @@ if [ ! -e "${SCTK_ARCHIVE}" ]; then
 fi
 
 if [ ! -e sctk ]; then
-    unzip -o "${SCTK_ARCHIVE}"
+    # Extract into a temporary directory first so that the subsequent
+    # "rm -rf ${SCTK_DIR}" does not accidentally remove the just-extracted
+    # SCTK-master on case-insensitive file systems (e.g. macOS default APFS),
+    # where "sctk-master" and "SCTK-master" resolve to the same path.
+    rm -rf sctk-extract
+    unzip -o "${SCTK_ARCHIVE}" -d sctk-extract
     rm -rf "${SCTK_DIR}" sctk
-    mv SCTK-master "${SCTK_DIR}"
+    mv sctk-extract/SCTK-master "${SCTK_DIR}"
+    rm -rf sctk-extract
     if [[ $(uname -s) =~ MINGW || $(uname -s) =~ MSYS ]]; then
         # FIXME(kamo): For MINGW or MSYS, ln command can't work by default (it can work with CYGWIN)
         mv "${SCTK_DIR}" sctk
