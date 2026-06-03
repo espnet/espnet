@@ -1,21 +1,42 @@
 #!/usr/bin/env bash
-# Train a Transformer LM warm-started from a public Chinese LM checkpoint.
+# Recipe-local helper: train a Transformer LM warm-started from a public
+# Chinese LM checkpoint.
+#
 # asr.sh's stage 7 has no --pretrained_lm passthrough, so we invoke
 # espnet2.bin.launch + espnet2.bin.lm_train directly, mirroring how stage 7
 # would have launched it. The resulting LM exp dir is then picked up by
-# asr.sh during decode (stage 12) via --lm_exp / --lm_tag.
+# asr.sh during decode (stage 12) via --lm_exp.
+#
+# Run from the recipe root. The default PRETRAINED_LM points at the magicdata
+# LM ckpt; download it to that path first, e.g.:
+#   wget -O pretrained/magicdata_lm.pth \
+#     https://huggingface.co/espnet/jiyangtang_magicdata_asr_conformer_lm_transformer/resolve/main/exp/lm_train_lm_transformer_zh_char/valid.loss.ave_10best.pth
+#
+# Then to decode with this LM, run e.g.:
+#   ./run.sh --lm_exp exp/lm_train_lm_transformer_zh_char_warmstart \
+#            --stage 12 --stop-stage 13
 set -e
 set -u
 set -o pipefail
 
-cd "$(dirname "$0")"
 . ./path.sh
 
 PRETRAINED_LM=${PRETRAINED_LM:-pretrained/magicdata_lm.pth}
 LM_CONFIG=conf/train_lm_transformer_warmstart.yaml
 EXP_DIR=exp/lm_train_lm_transformer_zh_char_warmstart
-STATS_DIR=exp/lm_stats_zh_char        # reuse stats from the scratch LM run
+STATS_DIR=exp/lm_stats_zh_char    # reuse stats from a prior scratch-LM stage-6 run
 NGPU=2
+
+if [ ! -f "${PRETRAINED_LM}" ]; then
+    echo "Error: pretrained LM checkpoint not found at ${PRETRAINED_LM}" >&2
+    echo "Download it first or set PRETRAINED_LM=<path> in the environment." >&2
+    exit 1
+fi
+if [ ! -d "${STATS_DIR}" ]; then
+    echo "Error: ${STATS_DIR} not found." >&2
+    echo "Run './run.sh --stage 6 --stop-stage 6' first to produce LM stats." >&2
+    exit 1
+fi
 
 mkdir -p "${EXP_DIR}"
 
@@ -47,12 +68,4 @@ python3 -m espnet2.bin.launch \
         --train_data_path_and_name_and_type dump/raw/lm_train.txt,text,text \
         --train_shape_file "${STATS_DIR}/train/text_shape.char"
 
-echo "=== LM warm-start training done. Now averaging best n checkpoints ==="
-python3 -m espnet2.bin.aggregate_stats_dirs --help >/dev/null 2>&1 || true
-# average the n-best models (mimic the trailing step of stage 7)
-python3 -m espnet2.bin.average_nbest_models \
-    --inputs "${EXP_DIR}"/{1..8}epoch.pth \
-    --output "${EXP_DIR}/valid.loss.ave_5best.pth" \
-    --num 5 \
-    --best valid.loss \
-    2>/dev/null || echo "(skipping manual average; trainer's auto-average should have produced valid.loss.ave_5best.pth)"
+echo "Done. The trainer's auto-averaging will have produced ${EXP_DIR}/valid.loss.ave.pth"

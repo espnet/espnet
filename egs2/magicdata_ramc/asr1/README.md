@@ -29,15 +29,8 @@ cd egs2/magicdata_ramc/asr1
 # 1. point db.sh at a writable location with ~6 GB free; the corpus tarball
 #    will be downloaded there automatically.
 echo 'MAGICDATA_RAMC=/path/to/where/MagicData-RAMC/lives' >> db.sh
-# 2. baseline run (Conformer, no SP, no LM):
+# 2. default recipe = best config (row 3b: E-Branchformer + SP + Transformer LM, all from scratch):
 ./run.sh
-# 3. best-known config (E-Branchformer + speed perturb + Transformer LM):
-./run_e_branchformer.sh
-# 4. variants (LM ablations / warm-start studies):
-WARMSTART=1 ./run_e_branchformer.sh                          # ASR warm-start from AISHELL
-./run_e_branchformer_nolm.sh --stage 12 --stop-stage 13      # decode w/o LM
-bash ./train_lm_warmstart.sh && \                            # LM warm-start from magicdata
-  ./run_decode_warmstart_lm.sh --stage 12 --stop-stage 13
 ```
 
 Stage 1 downloads `MagicData-RAMC.tar.gz` from OpenSLR #123 (~6 GB) into
@@ -45,6 +38,48 @@ Stage 1 downloads `MagicData-RAMC.tar.gz` from OpenSLR #123 (~6 GB) into
 per-utterance Kaldi-style data directories, and validates them. Stages 2-13 are
 the usual ESPnet flow (speed-perturb, dump, token list, LM stats/train, ASR
 stats/train, decode, score).
+
+### Reproducing the other rows of the results table
+
+The variants in the table below are all reached by overriding `run.sh`'s
+defaults on the CLI (the trailing `"$@"` in `run.sh` is forwarded to `asr.sh`).
+No additional driver scripts are needed.
+
+```bash
+# Row 1 — Conformer baseline, no SP, no LM
+./run.sh \
+    --asr_config conf/train_asr_conformer.yaml \
+    --use_lm false \
+    --inference_config conf/decode_asr_branchformer.yaml \
+    --speed_perturb_factors ""
+
+# Row 2 — Branchformer-24, no SP, no LM
+./run.sh \
+    --asr_config conf/train_asr_branchformer.yaml \
+    --use_lm false \
+    --inference_config conf/decode_asr_branchformer.yaml \
+    --speed_perturb_factors ""
+
+# Row 3a — E-Branchformer + SP, no LM (decode-only LM ablation against row 3b)
+./run.sh \
+    --use_lm false \
+    --inference_config conf/decode_asr_branchformer.yaml \
+    --stage 12 --stop-stage 13
+
+# Row 4 — E-Branchformer + SP + LM, ASR encoder warm-started from AISHELL
+# (download the pretrained ckpt to pretrained/aishell_e_branchformer.pth first)
+./run.sh \
+    --asr_config conf/train_asr_e_branchformer_warmstart.yaml \
+    --pretrained_model pretrained/aishell_e_branchformer.pth \
+    --ignore_init_mismatch true
+
+# Row 3c — E-Branchformer + SP + LM, LM warm-started from magicdata
+# (download the pretrained LM to pretrained/magicdata_lm.pth first)
+bash local/train_lm_warmstart.sh                # produces exp/lm_train_lm_transformer_zh_char_warmstart
+./run.sh \
+    --lm_exp exp/lm_train_lm_transformer_zh_char_warmstart \
+    --stage 12 --stop-stage 13
+```
 
 ## Environments
 - python version: `3.10.20 (main, Mar 11 2026, 17:46:40) [GCC 14.3.0]`
