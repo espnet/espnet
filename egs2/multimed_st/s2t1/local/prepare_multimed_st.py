@@ -3,15 +3,14 @@
 from __future__ import annotations
 
 import argparse
+import re
 from collections import defaultdict
 from io import BytesIO
 from pathlib import Path
-import re
 from typing import Dict, List, Tuple
 
 import soundfile as sf
 from datasets import Audio, load_dataset
-
 
 LANG_TOKEN = {
     "English": "<eng>",
@@ -185,16 +184,26 @@ def prepare_split(
     (data_dir / "wav.scp").write_text("\n".join(wav_scp) + "\n", encoding="utf-8")
     (data_dir / "utt2spk").write_text("\n".join(utt2spk) + "\n", encoding="utf-8")
     (data_dir / "text").write_text("\n".join(text_lines) + "\n", encoding="utf-8")
-    (data_dir / "text.prev").write_text("\n".join(text_prev_lines) + "\n", encoding="utf-8")
-    (data_dir / "text.ctc").write_text("\n".join(text_ctc_lines) + "\n", encoding="utf-8")
+    (data_dir / "text.prev").write_text(
+        "\n".join(text_prev_lines) + "\n", encoding="utf-8"
+    )
+    (data_dir / "text.ctc").write_text(
+        "\n".join(text_ctc_lines) + "\n", encoding="utf-8"
+    )
     write_spk2utt(utt2spk, data_dir / "spk2utt")
 
     if text_asr_lines:
-        (data_dir / "text.asr").write_text("\n".join(text_asr_lines) + "\n", encoding="utf-8")
+        (data_dir / "text.asr").write_text(
+            "\n".join(text_asr_lines) + "\n", encoding="utf-8"
+        )
     if text_st_lines:
-        (data_dir / "text.st").write_text("\n".join(text_st_lines) + "\n", encoding="utf-8")
+        (data_dir / "text.st").write_text(
+            "\n".join(text_st_lines) + "\n", encoding="utf-8"
+        )
 
-    print(f"Wrote {data_dir} with {len(text_lines)} examples from {n_ok} original samples")
+    print(
+        f"Wrote {data_dir} with {len(text_lines)} examples from {n_ok} original samples"
+    )
 
 
 def main() -> None:
@@ -202,7 +211,9 @@ def main() -> None:
     parser.add_argument("--hf_dataset", default="leduckhai/MultiMed-ST")
     parser.add_argument("--src_lang", default="English", choices=list(LANG_CODE))
     parser.add_argument("--tgt_lang", default="German", choices=list(LANG_CODE))
-    parser.add_argument("--task", default="st", choices=["asr", "st", "multitask_asr_st"])
+    parser.add_argument(
+        "--task", default="st", choices=["asr", "st", "multitask_asr_st"]
+    )
     parser.add_argument("--out_root", required=True)
     parser.add_argument("--max_train_samples", type=int, default=0)
     parser.add_argument("--max_valid_samples", type=int, default=0)

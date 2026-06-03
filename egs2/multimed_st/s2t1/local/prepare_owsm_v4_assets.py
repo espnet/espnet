@@ -3,8 +3,8 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
-import yaml
 
+import yaml
 from huggingface_hub import snapshot_download
 
 
@@ -17,7 +17,13 @@ def find_one(root: Path, patterns: list[str]) -> Path:
         raise FileNotFoundError(f"Could not find any of: {patterns} under {root}")
     if len(matches) > 1:
         # Prefer averaged/best checkpoint names if available.
-        matches = sorted(matches, key=lambda p: (0 if "valid" in p.name and p.suffix == ".pth" else 1, str(p)))
+        matches = sorted(
+            matches,
+            key=lambda p: (
+                0 if "valid" in p.name and p.suffix == ".pth" else 1,
+                str(p),
+            ),
+        )
     return matches[0]
 
 
@@ -124,7 +130,9 @@ def main() -> None:
     parser.add_argument("--batch_size", type=int, default=1)
     parser.add_argument("--valid_batch_size", type=int, default=1)
     parser.add_argument("--accum_grad", type=int, default=8)
-    parser.add_argument("--use_amp", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument(
+        "--use_amp", action=argparse.BooleanOptionalAction, default=True
+    )
     args = parser.parse_args()
 
     snapshot = Path(snapshot_download(repo_id=args.repo_id))
@@ -156,7 +164,9 @@ def main() -> None:
 
     cfg = yaml.safe_load(config_yaml.read_text())
     token_list = cfg["token_list"]
-    (token_dir / "tokens.txt").write_text("\n".join(token_list) + "\n", encoding="utf-8")
+    (token_dir / "tokens.txt").write_text(
+        "\n".join(token_list) + "\n", encoding="utf-8"
+    )
 
     sanitized = sanitize_train_config(
         cfg,
@@ -168,7 +178,9 @@ def main() -> None:
         accum_grad=args.accum_grad,
         use_amp=args.use_amp,
     )
-    train_config.write_text(yaml.safe_dump(sanitized, sort_keys=False, allow_unicode=True))
+    train_config.write_text(
+        yaml.safe_dump(sanitized, sort_keys=False, allow_unicode=True)
+    )
 
     print("Prepared OWSM assets")
     print("repo_id:", args.repo_id)
