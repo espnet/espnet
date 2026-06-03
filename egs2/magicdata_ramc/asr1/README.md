@@ -8,15 +8,22 @@ covering 15 everyday and semi-professional topics (daily life, food, sports,
 technology, business, healthcare, etc.). The corpus comes with an official
 train/dev/test split with disjoint speakers and topics.
 
-After the recipe's standard filtering (segments outside 0.3–30 s or text outside
-1–200 chars are dropped, paralinguistic tags such as `[LAUGHTER]`/`[MUSIC]` are
-stripped from the text), the prepared Kaldi-style data directories are:
+Per ESPnet recipe convention, only the **train** split is filtered (segments
+outside 0.3–30 s or with cleaned text outside 1–200 chars are dropped, and
+purely-unintelligible `[*]` segments are removed). **Dev and test are kept as
+released** so reported CER/WER reflects the full evaluation distribution.
+Paralinguistic tags (`[+]`, `[*]`, `[LAUGHTER]`, `[SONANT]`, `[MUSIC]`) are
+preserved as atomic tokens — `local/data.sh` writes them into
+`data/nlsyms.txt` and `run.sh` forwards the file via `--nlsyms_txt` so the
+stage-5 token-list builder keeps them as single tokens.
+
+The prepared Kaldi-style data directories are:
 
 | split | sessions | speakers | utterances | hours |
 |-------|---------:|---------:|-----------:|------:|
-| train | 289      | 556      | 152,367    | 115.9 |
-| dev   | 19       | 38       | 9,790      | 7.8   |
-| test  | 43       | 86       | 21,216     | 16.0  |
+| train | 289      | 556      | 165,733    | 125.3 |
+| dev   | 19       | 38       | 10,440     | 8.2   |
+| test  | 43       | 86       | 23,012     | 17.1  |
 
 Note: this is **not** the same as the existing `egs2/magicdata` recipe, which
 covers the MAGICDATA Mandarin Chinese **Read Speech** corpus (OpenSLR #68) — a
@@ -98,12 +105,20 @@ to attribute where each setting wins or loses errors.
 
 | #  | ASR encoder       | ASR init     | SP | LM | LM init        | ep (ASR / LM) | dev CER (Sub / Del / Ins) | test CER (Sub / Del / Ins) |
 |----|-------------------|--------------|:--:|:--:|----------------|:-------------:|---------------------------|----------------------------|
-| 1  | Conformer-12      | scratch      | ×  | ×  | —              | 50 / —        | 16.5  (13.5 / 1.8 / 1.2)  | 20.2  (16.5 / 2.3 / 1.4)   |
-| 2  | Branchformer-24   | scratch      | ×  | ×  | —              | 60 / —        | 16.1  (13.1 / 1.9 / 1.0)  | 19.9  (16.2 / 2.5 / 1.2)   |
-| 3a | E-Branchformer-12 | scratch      | ✓  | ×  | —              | 30 / —        | 14.2  (11.5 / 1.7 / 1.0)  | 18.0  (14.6 / 2.3 / 1.2)   |
-| **3b ★** | **E-Branchformer-12** | **scratch** | **✓** | **✓** | **scratch**         | **30 / 15**   | **13.7  (10.9 / 1.9 / 0.9)** | **17.6  (14.0 / 2.5 / 1.1)** |
-| 3c | E-Branchformer-12 | scratch      | ✓  | ✓  | magicdata-warm | 30 /  8       | 14.0  (11.2 / 1.9 / 0.9)  | 17.9  (14.3 / 2.5 / 1.1)   |
-| 4  | E-Branchformer-12 | AISHELL-warm | ✓  | ✓  | scratch        | 20 / 15       | 17.2  (13.9 / 2.3 / 1.1)  | 21.3  (17.0 / 2.9 / 1.4)   |
+| 1  | Conformer-12      | scratch      | ×  | ×  | —              | 50 / —        | 16.5  (13.5 / 1.8 / 1.2) † | 20.2  (16.5 / 2.3 / 1.4) † |
+| 2  | Branchformer-24   | scratch      | ×  | ×  | —              | 60 / —        | 16.1  (13.1 / 1.9 / 1.0) † | 19.9  (16.2 / 2.5 / 1.2) † |
+| 3a | E-Branchformer-12 | scratch      | ✓  | ×  | —              | 30 / —        | 14.2  (11.5 / 1.7 / 1.0) † | 18.0  (14.6 / 2.3 / 1.2) † |
+| **3b ★** | **E-Branchformer-12** | **scratch** | **✓** | **✓** | **scratch**         | **30 / 15**   | **(rerun in progress)** | **(rerun in progress)** |
+| 3c | E-Branchformer-12 | scratch      | ✓  | ✓  | magicdata-warm | 30 /  8       | 14.0  (11.2 / 1.9 / 0.9) † | 17.9  (14.3 / 2.5 / 1.1) † |
+| 4  | E-Branchformer-12 | AISHELL-warm | ✓  | ✓  | scratch        | 20 / 15       | 17.2  (13.9 / 2.3 / 1.1) † | 21.3  (17.0 / 2.9 / 1.4) † |
+
+† Numbers marked with a dagger were produced under the **previous** data
+pipeline, where the duration / text-length filters were applied to dev/test
+as well and the paralinguistic tags were stripped instead of preserved as
+non-linguistic symbols. They are kept here because the relative ordering and
+qualitative conclusions still hold; absolute values will shift by a few CER
+points under the current pipeline (the recommended config — row 3b — is
+currently being re-run end-to-end to provide a refreshed reference number).
 
 Configs (linked from the table column "ASR encoder + ASR init"):
 - Conformer-12: [conf/train_asr_conformer.yaml](./conf/train_asr_conformer.yaml)
@@ -192,7 +207,7 @@ likely to break the ~13.7 dev / 17.6 test CER plateau set by row 3b.
 
 ## TL;DR
 
-Use **row 3b** (`./run_e_branchformer.sh`). On 2 × A800-80GB this takes
+Use **row 3b** (`./run.sh` with the recipe's default config). On 2 × A800-80GB this takes
 ~3 h for the ASR run plus ~25 min decoding. SP gives the biggest gain, LM
 rescoring gives a small free win, and both warm-start experiments (LM and
 ASR) are kept in the recipe only as documentation of how `--init_param` /

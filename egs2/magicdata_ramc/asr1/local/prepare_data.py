@@ -15,6 +15,15 @@ Output (one such 5-file group per split, expected by ESPnet's asr.sh):
 utt_id format: "<spk_id>-<reco_id>-<start_ms 07d>-<end_ms 07d>".
 This makes spk_id a strict prefix of utt_id and keeps all utterances of a
 speaker contiguous after sorting, satisfying fix_data_dir.sh / validate_data_dir.sh.
+
+Filtering / tokenisation policy:
+  * Duration, text-length, and tag-based drops only apply to the train split.
+    Dev / test are kept as released (per ESPnet recipe convention) so that
+    reported CER/WER reflects the full evaluation distribution.
+  * Paralinguistic tags ([+], [*], [LAUGHTER], [SONANT], [MUSIC]) are
+    preserved as atomic tokens inside the cleaned transcription; local/data.sh
+    writes them into data/nlsyms.txt and run.sh passes the file via
+    --nlsyms_txt so ESPnet's token-list builder keeps them as single tokens.
 """
 
 import argparse
@@ -30,38 +39,57 @@ INVALID_SPK = "G00000000"  # README defines this as the "no speaker" placeholder
 # Everything else (Chinese & ASCII punctuation, whitespace) is dropped.
 KEEP_PATTERN = re.compile(r"[一-鿿㐀-䶿A-Za-z0-9]")
 
+# Tag-aware splitter: capturing group keeps the tag itself in the split output.
+TAG_SPLIT_RE = re.compile("(" + "|".join(re.escape(t) for t in SPECIAL_TAGS) + ")")
+
 # Raw TXT line: "[start,end]\tspk\tgender,lang\ttranscription"
 LINE_RE = re.compile(r"^\[([\d.]+),([\d.]+)\]\s+(\S+)\s+\S+\s+(.*)$")
 
 
-def clean_text(text, drop_special_segments):
+def clean_text(text, mode, drop_special_segments):
     """Clean a raw transcription line.
 
-    Two filter steps:
-      * [*] (unintelligible) segments are unconditionally dropped — they never
-        carry recoverable text.
-      * drop_special_segments=True : also drop any segment whose raw text
-        contains [+], [LAUGHTER], [SONANT], or [MUSIC].
+    Tokenisation: the line is split on SPECIAL_TAGS so each tag is preserved
+    as an atomic token; the surrounding text is filtered by KEEP_PATTERN
+    (CJK + alnum). The kept pieces are concatenated without spaces (char-level
+    Mandarin convention); ESPnet's tokenize_text.py, fed with
+    `--non_linguistic_symbols data/nlsyms.txt`, will recognise the tags as
+    single tokens during token-list construction.
+
+    Filtering policy:
+      * mode='train' :
+          - drop a segment whose cleaned text is literally `[*]` (pure
+            unintelligible: no learnable acoustic-to-symbol mapping),
+          - optionally drop any segment containing any SPECIAL_TAG when
+            drop_special_segments=True (more aggressive cleaning).
+      * mode='eval' (dev / test) :
+          - apply none of the above; the only drop is the technically
+            required one of an empty cleaned string (validate_data_dir.sh
+            rejects it). This preserves the released split as-is for fair
+            evaluation, per ESPnet recipe convention.
 
     Returns the cleaned string, or None if the segment must be dropped.
-
-    Note: SPECIAL_TAGS are always stripped from the kept text before applying
-    KEEP_PATTERN, because KEEP_PATTERN filters out `[`/`]` but keeps ASCII
-    letters — so without an explicit strip pass the cleaned transcription
-    would silently end up containing "LAUGHTER"/"MUSIC"/etc as plain text.
-    A more sophisticated future version could route these tags to ESPnet's
-    non_linguistic_symbols list and keep them as atomic tokens; for now they
-    are dropped.
     """
-    if "[*]" in text:
-        return None
-    if drop_special_segments and any(tag in text for tag in SPECIAL_TAGS):
-        return None
-    for tag in SPECIAL_TAGS:
-        text = text.replace(tag, "")
-    cleaned = "".join(KEEP_PATTERN.findall(text))
+    pieces = []
+    for part in TAG_SPLIT_RE.split(text):
+        if not part:
+            continue
+        if part in SPECIAL_TAGS:
+            pieces.append(part)
+        else:
+            chars = "".join(KEEP_PATTERN.findall(part))
+            if chars:
+                pieces.append(chars)
+    cleaned = "".join(pieces)
+
     if not cleaned:
         return None
+
+    if mode == "train":
+        if cleaned == "[*]":
+            return None
+        if drop_special_segments and any(tag in cleaned for tag in SPECIAL_TAGS):
+            return None
     return cleaned
 
 
@@ -145,6 +173,12 @@ def process_split(split, raw_dir, out_dir, args, available_wavs):
         print(f"[{split}] missing partition file: {tsv_path}", file=sys.stderr)
         return
 
+    # Per ESPnet recipe convention: filter only the training split. The dev /
+    # test splits are kept as released so that reported CER/WER reflects the
+    # full evaluation distribution rather than a hand-picked subset.
+    is_train = split == "train"
+    mode = "train" if is_train else "eval"
+
     reco_ids = parse_split_tsv(tsv_path)
 
     wav_scp, segments, text_lines, utt2spk = [], [], [], []
@@ -181,23 +215,26 @@ def process_split(split, raw_dir, out_dir, args, available_wavs):
                 stats["invalid_spk"] += 1
                 continue
 
-            dur_ms = (end - start) * 1000.0
-            if dur_ms < args.filter_min_time or dur_ms > args.filter_max_time:
-                stats["bad_duration"] += 1
-                continue
+            if is_train:
+                dur_ms = (end - start) * 1000.0
+                if dur_ms < args.filter_min_time or dur_ms > args.filter_max_time:
+                    stats["bad_duration"] += 1
+                    continue
 
             cleaned = clean_text(
                 raw_text,
+                mode=mode,
                 drop_special_segments=args.drop_special_segments,
             )
             if cleaned is None:
                 stats["dropped_special"] += 1
                 continue
 
-            n = len(cleaned)
-            if n < args.filter_min_text or n > args.filter_max_text:
-                stats["bad_text_len"] += 1
-                continue
+            if is_train:
+                n = len(cleaned)
+                if n < args.filter_min_text or n > args.filter_max_text:
+                    stats["bad_text_len"] += 1
+                    continue
 
             start_ms = int(round(start * 1000))
             end_ms = int(round(end * 1000))
@@ -245,33 +282,39 @@ def main():
     parser.add_argument(
         "--drop-special-segments",
         action="store_true",
-        help="Drop any segment whose raw text contains [+], [LAUGHTER], "
-        "[SONANT], or [MUSIC]. (Default: keep the segment, strip the tag.) "
-        "[*] (unintelligible) segments are always dropped regardless.",
+        help="Train-only: drop any segment whose cleaned text contains [+], "
+        "[LAUGHTER], [SONANT], or [MUSIC]. By default these are kept and the "
+        "tags are emitted as non-linguistic symbols (see data/nlsyms.txt). "
+        "Train-only pure-[*] segments are always dropped (no learnable "
+        "audio-to-symbol mapping). Dev/test splits are kept as released.",
     )
     parser.add_argument(
         "--filter-min-time",
         type=int,
         default=0,
-        help="Drop segments shorter than this duration (in ms).",
+        help="Train-only: drop segments shorter than this duration (in ms). "
+             "Dev/test ignore this filter.",
     )
     parser.add_argument(
         "--filter-max-time",
         type=int,
         default=1000 * 60 * 10,
-        help="Drop segments longer than this duration (in ms).",
+        help="Train-only: drop segments longer than this duration (in ms). "
+             "Dev/test ignore this filter.",
     )
     parser.add_argument(
         "--filter-min-text",
         type=int,
         default=0,
-        help="Drop segments with fewer than this many cleaned characters.",
+        help="Train-only: drop segments with fewer than this many cleaned "
+             "characters. Dev/test ignore this filter.",
     )
     parser.add_argument(
         "--filter-max-text",
         type=int,
         default=1000,
-        help="Drop segments with more than this many cleaned characters.",
+        help="Train-only: drop segments with more than this many cleaned "
+             "characters. Dev/test ignore this filter.",
     )
     args = parser.parse_args()
 

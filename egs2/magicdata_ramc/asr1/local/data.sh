@@ -26,8 +26,10 @@ tar_name=MagicData-RAMC.tar.gz
 remove_archive=false
 
 # Filtering related (forwarded to local/prepare_data.py).
-# Special tags ([+]/[LAUGHTER]/[SONANT]/[MUSIC]) are always stripped from the
-# kept text; setting drop_special_segments=true drops the whole segment instead.
+# All min/max filters and drop_special_segments are train-only; dev/test are
+# kept as released so reported metrics reflect the full evaluation distribution.
+# Paralinguistic tags ([+]/[*]/[LAUGHTER]/[SONANT]/[MUSIC]) are preserved as
+# atomic tokens (see data/nlsyms.txt written below).
 drop_special_segments=false
 min_time=300       # minimum segment duration (ms)
 max_time=30000     # maximum segment duration (ms)
@@ -110,5 +112,12 @@ for split in train dev test; do
   utils/fix_data_dir.sh "${output_dir}/${split}"
   utils/validate_data_dir.sh --no-feats --non-print "${output_dir}/${split}"
 done
+
+# Emit the non-linguistic-symbol list. run.sh passes this via --nlsyms_txt so
+# the stage-5 token-list builder keeps these paralinguistic tags as atomic
+# tokens (rather than splitting them into individual characters).
+nlsyms=${output_dir}/nlsyms.txt
+log "Writing non-linguistic symbols to ${nlsyms}"
+printf '%s\n' '[+]' '[*]' '[LAUGHTER]' '[SONANT]' '[MUSIC]' > "${nlsyms}"
 
 log "Successfully finished. [elapsed=${SECONDS}s]"

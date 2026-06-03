@@ -28,6 +28,7 @@ speed_perturb_factors="0.9 1.0 1.1"
     --audio_format "flac.ark" \
     --feats_type raw \
     --token_type char \
+    --nlsyms_txt data/nlsyms.txt                       \
     --use_lm ${use_lm}                                 \
     --use_word_lm ${use_wordlm}                        \
     --lm_config "${lm_config}"                         \
