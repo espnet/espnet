@@ -1,0 +1,9 @@
+/data/
+/dump/
+/exp/
+/downloads/
+/tensorboard/
+/wandb/
+/*.log
+/conf/finetune_owsm_v4_small.yaml
+/local/_scratch_not_for_pr/
