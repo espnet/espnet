@@ -25,9 +25,9 @@ from ssl_feature_utils import (
     format_feature_conf_str,
 )
 
+from espnet2.legacy.utils.cli_readers import file_reader_helper
+from espnet2.legacy.utils.cli_writers import file_writer_helper
 from espnet2.utils.types import str2bool
-from espnet.utils.cli_readers import file_reader_helper
-from espnet.utils.cli_writers import file_writer_helper
 
 logging.basicConfig(
     format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",

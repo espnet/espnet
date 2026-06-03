@@ -1,7 +1,7 @@
-ARG FROM_TAG
+ARG FROM_TAG=cpu-latest
 ARG FROM_STAGE=builder
-FROM espnet/espnet:${FROM_TAG} as builder
-LABEL maintainer "Nelson Yalta <nyalta21@gmail.com>"
+FROM espnet/espnet:${FROM_TAG} AS builder
+LABEL maintainer="Nelson Yalta <nyalta21@gmail.com>"
 
 WORKDIR /
 
@@ -14,8 +14,8 @@ RUN git clone ${ESPNET_LOCATION} && \
     rm -rf .git
 
 #### For local docker
-FROM espnet/espnet:${FROM_TAG} as builder_local
-LABEL maintainer "Nelson Yalta <nyalta21@gmail.com>"
+FROM espnet/espnet:${FROM_TAG} AS builder_local
+LABEL maintainer="Nelson Yalta <nyalta21@gmail.com>"
 
 WORKDIR /
 
@@ -34,15 +34,15 @@ RUN cd espnet && \
 
 
 # For devel docker
-FROM ${FROM_STAGE} as devel
+FROM ${FROM_STAGE} AS devel
 
 ARG CUDA_VER
-ENV CUDA_VER ${CUDA_VER}
+ENV CUDA_VER=${CUDA_VER}
 
 ARG TH_VERSION
-ENV TH_VERSION ${TH_VERSION}
+ENV TH_VERSION=${TH_VERSION}
 
-ENV PATH=/opt/miniconda/bin:${PATH}
+ENV PATH=/opt/miniforge/bin:${PATH}
 
 # Install espnet
 WORKDIR /espnet/tools
@@ -68,7 +68,7 @@ RUN if [ -z "${CUDA_VER}" ]; then \
     echo "Make with options ${MY_OPTS}" && \
     ln -s /opt/kaldi ./ && \
     rm -f activate_python.sh && touch activate_python.sh && \
-    conda install -y conda "python=3.9" && \
+    conda install -y conda "python=3.11" && \
     make KALDI=/opt/kaldi ${MY_OPTS} USE_CONDA=1 && \
     conda clean --all && \
     rm -f *.tar.*  && \

@@ -25,9 +25,11 @@ def main(args):
             utt2spk.append([utt_id, spk])
             wav_list.append([utt_id, utt_dir])
 
-    with open(os.path.join(dst, "spk2utt"), "w") as f_spk2utt, open(
-        os.path.join(dst, "utt2spk"), "w"
-    ) as f_utt2spk, open(os.path.join(dst, "wav.scp"), "w") as f_wav:
+    with (
+        open(os.path.join(dst, "spk2utt"), "w") as f_spk2utt,
+        open(os.path.join(dst, "utt2spk"), "w") as f_utt2spk,
+        open(os.path.join(dst, "wav.scp"), "w") as f_wav,
+    ):
         for spk in spk2utt:
             f_spk2utt.write(f"{spk}")
             for utt in spk2utt[spk]:

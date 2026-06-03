@@ -176,7 +176,7 @@ class TemporalConvNetInformed(TemporalConvNet):
         i_adapt_layer: int = 7,
         adapt_layer_type: str = "mul",
         adapt_enroll_dim: int = 128,
-        **adapt_layer_kwargs
+        **adapt_layer_kwargs,
     ):
         """Basic Module of TasNet with adaptation layers.
 
@@ -222,7 +222,7 @@ class TemporalConvNetInformed(TemporalConvNet):
             indim=B,
             enrolldim=adapt_enroll_dim,
             ninputs=2 if self.skip_connection else 1,
-            **adapt_layer_kwargs
+            **adapt_layer_kwargs,
         )
 
     def forward(self, mixture_w, enroll_emb):

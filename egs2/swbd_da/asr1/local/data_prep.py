@@ -57,11 +57,12 @@ for subset in ["train", "valid", "test"]:
     odir = os.path.join("data", subset_dir)
     os.makedirs(odir, exist_ok=True)
 
-    with open(os.path.join(odir, "text"), "w") as text_f, open(
-        os.path.join(odir, "wav.scp"), "w"
-    ) as wav_scp_f, open(os.path.join(odir, "utt2spk"), "w") as utt2spk_f, open(
-        os.path.join("local", subset + ".lst")
-    ) as dialogues_f:
+    with (
+        open(os.path.join(odir, "text"), "w") as text_f,
+        open(os.path.join(odir, "wav.scp"), "w") as wav_scp_f,
+        open(os.path.join(odir, "utt2spk"), "w") as utt2spk_f,
+        open(os.path.join("local", subset + ".lst")) as dialogues_f,
+    ):
         for line in dialogues_f:
             dialogue_id = line.strip()
 

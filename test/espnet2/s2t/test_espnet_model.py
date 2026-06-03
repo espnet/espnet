@@ -62,3 +62,68 @@ def test_espnet_model(encoder_arch, decoder_arch):
     )
     loss, *_ = model(**inputs)
     loss.backward()
+
+
+@pytest.mark.parametrize("encoder_arch", [TransformerEncoder])
+@pytest.mark.parametrize("decoder_arch", [TransformerDecoder])
+def test_espnet_model_forced_align(encoder_arch, decoder_arch):
+    # Run only if torchaudio is available
+    pytest.importorskip("torchaudio")
+    token_list = [
+        "<blank>",
+        "<unk>",
+        "<na>",
+        "<nospeech>",
+        "<en>",
+        "<asr>",
+        "<st_en>",
+        "<notimestamps>",
+        "<0.00>",
+        "<30.00>",
+        "a",
+        "i",
+        "<sos>",
+        "<eos>",
+        "<sop>",
+    ]
+    vocab_size = len(token_list)
+    enc_out = 4
+    encoder = encoder_arch(
+        20, output_size=enc_out, linear_units=4, num_blocks=2, use_flash_attn=False
+    )
+    decoder = decoder_arch(
+        vocab_size=vocab_size,
+        encoder_output_size=enc_out,
+        linear_units=4,
+        num_blocks=2,
+        use_flash_attn=False,
+    )
+    ctc = CTC(odim=vocab_size, encoder_output_size=enc_out)
+    model = ESPnetS2TModel(
+        vocab_size=vocab_size,
+        token_list=token_list,
+        frontend=None,
+        specaug=None,
+        normalize=None,
+        preencoder=None,
+        encoder=encoder,
+        postencoder=None,
+        decoder=decoder,
+        ctc=ctc,
+    )
+    T = 100
+    speech = torch.randn(1, T, 20, requires_grad=False)
+    speech_lengths = torch.tensor([T], dtype=torch.long)
+    L = 5
+    text = torch.randint(low=1, high=4, size=(1, L), dtype=torch.long)
+    text_lengths = torch.tensor([L], dtype=torch.long)
+
+    aligns, scores = model.forced_align(
+        speech=speech,
+        speech_lengths=speech_lengths,
+        text=text,
+        text_lengths=text_lengths,
+    )
+
+    assert aligns.shape == (1, T // 4 - 1)
+    assert scores.shape == (1, T // 4 - 1)

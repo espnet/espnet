@@ -42,13 +42,11 @@ print(
 dir_dict = split_df
 for x in dir_dict:
     os.makedirs(os.path.join(data_prep_root, "data", x), exist_ok=True)
-    with open(
-        os.path.join(data_prep_root, "data", x, "wav.scp"), "w"
-    ) as wav_scp_f, open(
-        os.path.join(data_prep_root, "data", x, "utt2spk"), "w"
-    ) as utt2spk_f, open(
-        os.path.join(data_prep_root, "data", x, "text"), "w"
-    ) as text_f:
+    with (
+        open(os.path.join(data_prep_root, "data", x, "wav.scp"), "w") as wav_scp_f,
+        open(os.path.join(data_prep_root, "data", x, "utt2spk"), "w") as utt2spk_f,
+        open(os.path.join(data_prep_root, "data", x, "text"), "w") as text_f,
+    ):
         filename = dir_dict[x]["filename"].values.tolist()
         label = dir_dict[x]["target"].values.tolist()
         for line_count in range(len(filename)):

@@ -95,7 +95,7 @@ class DERComputer(IdentificationErrorRate):
         reference: Annotation,
         mapped: Annotation,
         uem: Optional[Timeline] = None,
-        **kwargs
+        **kwargs,
     ):
         components = super(DERComputer, self).compute_components(
             reference, mapped, uem=uem, collar=0.0, skip_overlap=False, **kwargs

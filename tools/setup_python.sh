@@ -42,4 +42,4 @@ export PATH=${PYTHON_DIR}:\${PATH}
 EOF
 
 . ./activate_python.sh
-python3 -m pip install -U pip wheel
+python3 -m pip install -U pip==25.2 wheel

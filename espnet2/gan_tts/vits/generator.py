@@ -20,7 +20,7 @@ from espnet2.gan_tts.vits.duration_predictor import StochasticDurationPredictor
 from espnet2.gan_tts.vits.posterior_encoder import PosteriorEncoder
 from espnet2.gan_tts.vits.residual_coupling import ResidualAffineCouplingBlock
 from espnet2.gan_tts.vits.text_encoder import TextEncoder
-from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
+from espnet2.legacy.nets.pytorch_backend.nets_utils import make_non_pad_mask
 
 
 class VITSGenerator(torch.nn.Module):

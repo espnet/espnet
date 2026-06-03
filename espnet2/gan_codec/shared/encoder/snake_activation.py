@@ -18,9 +18,9 @@ def snake(x, alpha):
 class Snake1d(nn.Module):
     def __init__(self):
         super().__init__()
-        self.alpha = torch.ones(1, 1, 1)
+        self.alpha = nn.Parameter(torch.ones(1, 1, 1))
 
     def forward(self, x):
         channels = x.shape[1]
-        self.alpha_repeat = self.alpha.repeat(1, channels, 1).to(x.device)
-        return snake(x, self.alpha_repeat)
+        alpha_repeat = self.alpha.repeat(1, channels, 1)
+        return snake(x, alpha_repeat)

@@ -44,7 +44,7 @@ scheduler_conf:
     warmup_steps: 25000
 
 # others:
-init: chainer # previous version uses pytorch normalization
+init: normal # previous version uses pytorch normalization
 
 best_model_criterion:
     -   - valid

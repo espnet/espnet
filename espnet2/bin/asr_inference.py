@@ -3,7 +3,6 @@ import argparse
 import copy
 import logging
 import sys
-from distutils.version import LooseVersion
 from itertools import groupby
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
@@ -27,8 +26,16 @@ from espnet2.asr.transducer.beam_search_transducer import (
 )
 from espnet2.asr.transducer.beam_search_transducer import Hypothesis as TransHypothesis
 from espnet2.fileio.datadir_writer import DatadirWriter
+from espnet2.legacy.nets.batch_beam_search import BatchBeamSearch
+from espnet2.legacy.nets.batch_beam_search_online_sim import BatchBeamSearchOnlineSim
+from espnet2.legacy.nets.beam_search import BeamSearch, Hypothesis
+from espnet2.legacy.nets.beam_search_timesync import BeamSearchTimeSync
+from espnet2.legacy.nets.pytorch_backend.transformer.subsampling import TooShortUttError
+from espnet2.legacy.nets.scorer_interface import BatchScorerInterface
+from espnet2.legacy.nets.scorers.ctc import CTCPrefixScorer
+from espnet2.legacy.nets.scorers.length_bonus import LengthBonus
+from espnet2.legacy.utils.cli_utils import get_commandline_args
 from espnet2.tasks.asr import ASRTask
-from espnet2.tasks.enh_s2t import EnhS2TTask
 from espnet2.tasks.lm import LMTask
 from espnet2.text.build_tokenizer import build_tokenizer
 from espnet2.text.hugging_face_token_id_converter import HuggingFaceTokenIDConverter
@@ -39,15 +46,6 @@ from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
 from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import str2bool, str2triple_str, str_or_none
-from espnet.nets.batch_beam_search import BatchBeamSearch
-from espnet.nets.batch_beam_search_online_sim import BatchBeamSearchOnlineSim
-from espnet.nets.beam_search import BeamSearch, Hypothesis
-from espnet.nets.beam_search_timesync import BeamSearchTimeSync
-from espnet.nets.pytorch_backend.transformer.subsampling import TooShortUttError
-from espnet.nets.scorer_interface import BatchScorerInterface
-from espnet.nets.scorers.ctc import CTCPrefixScorer
-from espnet.nets.scorers.length_bonus import LengthBonus
-from espnet.utils.cli_utils import get_commandline_args
 
 try:
     from transformers import AutoModelForCausalLM, AutoModelForSeq2SeqLM
@@ -127,17 +125,15 @@ class Speech2Text:
         max_seq_len: int = 5,
         max_mask_parallel: int = -1,
     ):
+        if enh_s2t_task:
+            try:
+                from espnet2.tasks.enh_s2t import EnhS2TTask
 
-        task = ASRTask if not enh_s2t_task else EnhS2TTask
-
-        if quantize_asr_model or quantize_lm:
-            if quantize_dtype == "float16" and torch.__version__ < LooseVersion(
-                "1.5.0"
-            ):
-                raise ValueError(
-                    "float16 dtype for dynamic quantization is not supported with "
-                    "torch version < 1.5.0. Switch to qint8 dtype instead."
-                )
+                task = EnhS2TTask
+            except ImportError:
+                raise RuntimeError("Please install espnet['st']")
+        else:
+            task = ASRTask
 
         qconfig_spec = set([getattr(torch.nn, q) for q in quantize_modules])
         quantize_dtype: torch.dtype = getattr(torch, quantize_dtype)
@@ -197,11 +193,11 @@ class Speech2Text:
         # 3. Build ngram model
         if ngram_file is not None:
             if ngram_scorer == "full":
-                from espnet.nets.scorers.ngram import NgramFullScorer
+                from espnet2.legacy.nets.scorers.ngram import NgramFullScorer
 
                 ngram = NgramFullScorer(ngram_file, token_list)
             else:
-                from espnet.nets.scorers.ngram import NgramPartScorer
+                from espnet2.legacy.nets.scorers.ngram import NgramPartScorer
 
                 ngram = NgramPartScorer(ngram_file, token_list)
         else:

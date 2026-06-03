@@ -199,7 +199,7 @@ def test_singing_tacotron(
             **inputs,
             maxlenratio=1.0,
             use_att_constraint=use_att_constraint,
-            use_dynamic_filter=use_dynamic_filter
+            use_dynamic_filter=use_dynamic_filter,
         )
 
         # teacher forcing
@@ -273,5 +273,5 @@ def test_singing_tacotron(
             **inputs,
             use_teacher_forcing=True,
             use_att_constraint=use_att_constraint,
-            use_dynamic_filter=use_dynamic_filter
+            use_dynamic_filter=use_dynamic_filter,
         )

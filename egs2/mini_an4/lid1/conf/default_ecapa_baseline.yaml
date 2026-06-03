@@ -1,0 +1,99 @@
+# Frontend
+frontend: default
+
+# Normalizer
+normalize: utterance_mvn
+normalize_conf:
+    norm_vars: false
+
+# Encoder
+encoder: ecapa_tdnn
+encoder_conf:
+  model_scale: 2 # the conv scale for res2net blocks
+  ndim: 16
+  output_size: 24
+
+# Pooling
+pooling: chn_attn_stat
+
+# Projector
+projector: rawnet3
+projector_conf:
+  output_size: 8
+
+# Preprocessor
+preprocessor: lid
+preprocessor_conf:
+  fix_duration: False
+  sample_rate: 16000
+  noise_apply_prob: 0.0
+  noise_info:
+  - [1.0, 'dump/raw/musan_speech.scp', [4, 7], [13, 20]]
+  - [1.0, 'dump/raw/musan_noise.scp', [1, 1], [0, 15]]
+  - [1.0, 'dump/raw/musan_music.scp', [1, 1], [5, 15]]
+  rir_apply_prob: 0.0
+  rir_scp: dump/raw/rirs.scp
+
+# Model conf
+model_conf:
+  extract_feats_in_collect_stats: false
+
+# Loss
+loss: aamsoftmax_sc_topk
+loss_conf:
+  margin: 0.5
+  scale: 30
+  K: 1
+  mp: 0.06
+  k_top: 1
+
+# Training related
+num_att_plot: 0
+num_workers: 0
+cudnn_deterministic: False
+cudnn_benchmark: True
+
+log_interval: 100
+unused_parameters: True
+use_amp: True
+keep_nbest_models: 1
+grad_clip: 9999 # equals to no clip
+best_model_criterion:
+- - valid
+  - accuracy
+  - max
+
+# data iterator
+iterator_type: category
+valid_iterator_type: category
+seed: 3702
+
+max_epoch: 1
+accum_grad: 1
+num_iters_per_epoch: 4
+
+# batch sampler
+batch_type: catpow # CategoryPowerSampler
+batch_bins: 10000
+min_batch_size: 2
+upsampling_factor: 0.5
+dataset_scaling_factor: 1.2
+drop_last_iter: True
+
+# Optimizer
+optim: adam
+optim_conf:
+  lr: 0.000005
+  betas: [0.9, 0.98]
+
+# Scheduler
+scheduler: tristagelr
+scheduler_conf:
+  # Total steps for the LR scheduler,
+  # should match max_epoch*num_iters_per_epoch/accum_grad
+  max_steps: 4
+  warmup_ratio: 0.25 # linear warmup, 1 step
+  hold_ratio: 0.5 # hold 2 steps
+  decay_ratio: 0.25 # linear decay, 1 step
+  init_lr_scale: 0.6 # warmup start from 3e-6
+  final_lr_scale: 0.1 # decay end with 5e-7

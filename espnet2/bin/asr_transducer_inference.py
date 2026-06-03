@@ -12,7 +12,6 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import torch
-from packaging.version import parse as V
 from typeguard import typechecked
 
 from espnet2.asr_transducer.beam_search_transducer import (
@@ -22,6 +21,7 @@ from espnet2.asr_transducer.beam_search_transducer import (
 from espnet2.asr_transducer.frontend.online_audio_processor import OnlineAudioProcessor
 from espnet2.asr_transducer.utils import TooShortUttError
 from espnet2.fileio.datadir_writer import DatadirWriter
+from espnet2.legacy.utils.cli_utils import get_commandline_args
 from espnet2.tasks.asr_transducer import ASRTransducerTask
 from espnet2.tasks.lm import LMTask
 from espnet2.text.build_tokenizer import build_tokenizer
@@ -29,7 +29,6 @@ from espnet2.text.token_id_converter import TokenIDConverter
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
 from espnet2.utils.types import str2bool, str2triple_str, str_or_none
-from espnet.utils.cli_utils import get_commandline_args
 
 
 class Speech2Text:
@@ -99,11 +98,6 @@ class Speech2Text:
             else:
                 q_config = {torch.nn.Linear}
 
-            if quantize_dtype == "float16" and (V(torch.__version__) < V("1.5.0")):
-                raise ValueError(
-                    "float16 dtype for dynamic quantization is not supported with torch"
-                    " version < 1.5.0. Switching to qint8 dtype instead."
-                )
             q_dtype = getattr(torch, quantize_dtype)
 
             asr_model = torch.quantization.quantize_dynamic(

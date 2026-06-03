@@ -17,7 +17,7 @@ from scipy.io import wavfile
 from transforms import *
 
 from espnet2.asr.encoder.avhubert_encoder import FairseqAVHubertEncoder
-from espnet.utils.cli_writers import file_writer_helper
+from espnet2.legacy.utils.cli_writers import file_writer_helper
 
 url = "https://dl.fbaipublicfiles.com/avhubert/model/lrs3_vox/"
 base_url = url + "noise-pretrain/base_vox_iter5.pt"
@@ -32,7 +32,7 @@ def build_file_list(file_list):
 
 def get_video_transform(split="test"):
     crop_size = (88, 88)
-    (mean, std) = (0.421, 0.165)
+    mean, std = (0.421, 0.165)
 
     return Compose(
         [

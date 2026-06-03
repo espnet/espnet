@@ -9,17 +9,23 @@ import torch
 import torch.nn.functional as F
 from typeguard import typechecked
 
+from espnet2.legacy.nets.pytorch_backend.e2e_tts_fastspeech import (
+    FeedForwardTransformerLoss as FastSpeechLoss,
+)
+from espnet2.legacy.nets.pytorch_backend.fastspeech.duration_predictor import (
+    DurationPredictor,
+)
+from espnet2.legacy.nets.pytorch_backend.fastspeech.length_regulator import (
+    LengthRegulator,
+)
+from espnet2.legacy.nets.pytorch_backend.nets_utils import make_pad_mask
+from espnet2.legacy.nets.pytorch_backend.tacotron2.decoder import Postnet
+from espnet2.legacy.nets.pytorch_backend.tacotron2.encoder import (
+    Encoder as EncoderPrenet,
+)
 from espnet2.svs.abs_svs import AbsSVS
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.torch_utils.initialize import initialize
-from espnet.nets.pytorch_backend.e2e_tts_fastspeech import (
-    FeedForwardTransformerLoss as FastSpeechLoss,
-)
-from espnet.nets.pytorch_backend.fastspeech.duration_predictor import DurationPredictor
-from espnet.nets.pytorch_backend.fastspeech.length_regulator import LengthRegulator
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
-from espnet.nets.pytorch_backend.tacotron2.decoder import Postnet
-from espnet.nets.pytorch_backend.tacotron2.encoder import Encoder as EncoderPrenet
 
 
 class NaiveRNNDP(AbsSVS):

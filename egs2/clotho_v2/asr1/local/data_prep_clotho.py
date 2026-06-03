@@ -32,11 +32,14 @@ if __name__ == "__main__":
             dir_write_name = "development_clotho_all"
         else:
             dir_write_name = data_split  # for validation and evaluation
-        with open(
-            os.path.join("data", dir_write_name, "wav.scp"), "w", encoding="utf-8"
-        ) as wav_scp_f, open(
-            os.path.join("data", dir_write_name, "utt2spk"), "w", encoding="utf-8"
-        ) as utt2spk_f:
+        with (
+            open(
+                os.path.join("data", dir_write_name, "wav.scp"), "w", encoding="utf-8"
+            ) as wav_scp_f,
+            open(
+                os.path.join("data", dir_write_name, "utt2spk"), "w", encoding="utf-8"
+            ) as utt2spk_f,
+        ):
             text_f = []
             try:
                 if data_split == "evaluation":

@@ -1,0 +1,45 @@
+##########################################################
+#                 METRIC SCORING SETTING                 #
+##########################################################
+# Quick usage:
+#   python run.py --stages measure --metrics_config conf/metrics.yaml
+#
+# Assumptions:
+# - `infer` has already produced `<test_name>/*.scp` files.
+# - Each metric reads matching SCP keys such as `ref.scp` and `hyp.scp`.
+# - If `dataset.test` is omitted, test sets are discovered from `${inference_dir}`
+#   subdirectories.
+
+##########################################################
+#                    PATHS AND INPUTS                    #
+##########################################################
+recipe_dir: .
+# Common case:
+# - pass `--training_config`, `--inference_config`, and `--metrics_config`
+# - `run.py` copies `training_config.exp_tag` / `training_config.exp_dir` here
+# - `run.py` also copies `inference_config.inference_dir` here, so `measure`
+#   reads the same directory used by `infer`
+#
+# Standalone `measure` is also supported. In that case, set either `exp_tag` or
+# a concrete `exp_dir` below, and add `inference_dir` here unless
+# `--inference_config` provides it. Add `inference_dir` only when you want to
+# score a different inference output directory.
+exp_tag:
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+
+
+##########################################################
+#                    METRIC DEFINITION                   #
+##########################################################
+metrics:
+  - metric:
+      _target_: espnet3.systems.asr.metrics.wer.WER
+      ref_key: ref        # reference text key -> `<test_name>/ref.scp`
+      hyp_key: hyp        # hypothesis text key -> `<test_name>/hyp.scp`
+      clean_types:        # optional TextCleaner pipeline, e.g. [tacotron]
+
+  - metric:
+      _target_: espnet3.systems.asr.metrics.cer.CER
+      ref_key: ref        # reference text key -> `<test_name>/ref.scp`
+      hyp_key: hyp        # hypothesis text key -> `<test_name>/hyp.scp`
+      clean_types:        # optional TextCleaner pipeline, e.g. [jaconv]

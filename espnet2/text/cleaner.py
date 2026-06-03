@@ -1,9 +1,16 @@
 from typing import Collection, Optional
 
-import tacotron_cleaner.cleaners
-from jaconv import jaconv
 from typeguard import typechecked
 
+try:
+    import tacotron_cleaner.cleaners as tacotron_cleaners
+    from jaconv import jaconv
+except ImportError:
+    tacotron_cleaners = None
+    jaconv = None
+
+# We removed underthesea from tts extra requirement because it
+# causes installation issues with pyproject.toml (See #6239 for details).
 try:
     from vietnamese_cleaner import vietnamese_cleaners
 except ImportError:
@@ -48,12 +55,22 @@ class TextCleaner:
     def __call__(self, text: str) -> str:
         for t in self.cleaner_types:
             if t == "tacotron":
-                text = tacotron_cleaner.cleaners.custom_english_cleaners(text)
+                if tacotron_cleaners is None:
+                    raise RuntimeError(
+                        "Please install espnet with `pip install espnet[tts]`"
+                    )
+                text = tacotron_cleaners.custom_english_cleaners(text)
             elif t == "jaconv":
+                if jaconv is None:
+                    raise RuntimeError(
+                        "Please install espnet with `pip install espnet[tts]`"
+                    )
                 text = jaconv.normalize(text)
             elif t == "vietnamese":
                 if vietnamese_cleaners is None:
-                    raise RuntimeError("Please install underthesea")
+                    raise RuntimeError(
+                        "Please install underthesea" "by `pip install underthesea`"
+                    )
                 text = vietnamese_cleaners.vietnamese_cleaner(text)
             elif t == "korean_cleaner":
                 text = KoreanCleaner.normalize_text(text)

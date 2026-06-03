@@ -2,7 +2,6 @@
 import argparse
 import logging
 import sys
-from distutils.version import LooseVersion
 from pathlib import Path
 from typing import Any, List, Optional, Sequence, Tuple, Union
 
@@ -12,6 +11,14 @@ import torch.quantization
 from typeguard import typechecked
 
 from espnet2.fileio.datadir_writer import DatadirWriter
+from espnet2.legacy.nets.batch_beam_search import BatchBeamSearch
+from espnet2.legacy.nets.beam_search import BeamSearch, Hypothesis
+from espnet2.legacy.nets.pytorch_backend.transformer.subsampling import TooShortUttError
+from espnet2.legacy.nets.scorer_interface import BatchScorerInterface
+from espnet2.legacy.nets.scorers.uasr import UASRPrefixScorer
+
+# from espnet2.legacy.nets.scorers.uasr import UASRPrefixScorer
+from espnet2.legacy.utils.cli_utils import get_commandline_args
 from espnet2.tasks.lm import LMTask
 from espnet2.tasks.uasr import UASRTask
 from espnet2.text.build_tokenizer import build_tokenizer
@@ -20,14 +27,6 @@ from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
 from espnet2.utils.types import str2bool, str2triple_str, str_or_none
-from espnet.nets.batch_beam_search import BatchBeamSearch
-from espnet.nets.beam_search import BeamSearch, Hypothesis
-from espnet.nets.pytorch_backend.transformer.subsampling import TooShortUttError
-from espnet.nets.scorer_interface import BatchScorerInterface
-from espnet.nets.scorers.uasr import UASRPrefixScorer
-
-# from espnet.nets.scorers.uasr import UASRPrefixScorer
-from espnet.utils.cli_utils import get_commandline_args
 
 
 class Speech2Text:
@@ -65,15 +64,6 @@ class Speech2Text:
         quantize_modules: List[str] = ["Linear"],
         quantize_dtype: str = "qint8",
     ):
-
-        if quantize_uasr_model or quantize_lm:
-            if quantize_dtype == "float16" and torch.__version__ < LooseVersion(
-                "1.5.0"
-            ):
-                raise ValueError(
-                    "float16 dtype for dynamic quantization is not supported with "
-                    "torch version < 1.5.0. Switch to qint8 dtype instead."
-                )
 
         qconfig_spec = set([getattr(torch.nn, q) for q in quantize_modules])
         quantize_dtype = getattr(torch, quantize_dtype)
@@ -117,11 +107,11 @@ class Speech2Text:
         # 3. Build ngram model
         if ngram_file is not None:
             if ngram_scorer == "full":
-                from espnet.nets.scorers.ngram import NgramFullScorer
+                from espnet2.legacy.nets.scorers.ngram import NgramFullScorer
 
                 ngram = NgramFullScorer(ngram_file, token_list)
             else:
-                from espnet.nets.scorers.ngram import NgramPartScorer
+                from espnet2.legacy.nets.scorers.ngram import NgramPartScorer
 
                 ngram = NgramPartScorer(ngram_file, token_list)
         else:

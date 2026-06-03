@@ -164,7 +164,7 @@ class SpeakerTask(AbsTask):
 
     @classmethod
     def add_task_arguments(cls, parser: argparse.ArgumentParser):
-        group = parser.add_argument_group(description="Task related")
+        group = parser.add_argument_group("Task related")
 
         group.add_argument(
             "--init",
@@ -172,7 +172,6 @@ class SpeakerTask(AbsTask):
             default=None,
             help="The initialization method",
             choices=[
-                "chainer",
                 "xavier_uniform",
                 "xavier_normal",
                 "kaiming_uniform",

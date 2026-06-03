@@ -4,7 +4,7 @@ import sys
 from mmap import mmap
 from pathlib import Path
 
-from espnet.utils.cli_utils import get_commandline_args
+from espnet2.legacy.utils.cli_utils import get_commandline_args
 
 
 def get_parser() -> argparse.ArgumentParser:

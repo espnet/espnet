@@ -15,9 +15,10 @@ def main():
     parser.add_argument("data_dir", type=str)
     args = parser.parse_args()
 
-    with open(f"{args.data_dir}/text", encoding="utf-8") as in_file, open(
-        f"{args.data_dir}/utt2aph", "w", encoding="utf-8"
-    ) as utt_file:
+    with (
+        open(f"{args.data_dir}/text", encoding="utf-8") as in_file,
+        open(f"{args.data_dir}/utt2aph", "w", encoding="utf-8") as utt_file,
+    ):
         for line in in_file:
             line = line.rstrip("\n")
 

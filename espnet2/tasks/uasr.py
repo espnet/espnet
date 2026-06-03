@@ -105,7 +105,7 @@ class UASRTask(AbsTask):
 
     @classmethod
     def add_task_arguments(cls, parser: argparse.ArgumentParser):
-        group = parser.add_argument_group(description="Task related")
+        group = parser.add_argument_group("Task related")
 
         # NOTE(kamo): add_arguments(..., required=True) can't be used
         # to provide --print_config mode. Instead of it, do as
@@ -124,7 +124,6 @@ class UASRTask(AbsTask):
             default=None,
             help="The initialization method",
             choices=[
-                "chainer",
                 "xavier_uniform",
                 "xavier_normal",
                 "kaiming_uniform",
@@ -140,7 +139,7 @@ class UASRTask(AbsTask):
             help="The number of input dimension of the feature",
         )
 
-        group = parser.add_argument_group(description="Preprocess related")
+        group = parser.add_argument_group("Preprocess related")
         group.add_argument(
             "--use_preprocessor",
             type=str2bool,
@@ -193,7 +192,7 @@ class UASRTask(AbsTask):
             #       weight: 0.1
             #       smoothed: false
         )
-        group = parser.add_argument_group(description="Task related")
+        group = parser.add_argument_group("Task related")
         group.add_argument(
             "--kenlm_path",
             type=str,

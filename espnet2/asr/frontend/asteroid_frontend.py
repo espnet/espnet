@@ -9,7 +9,6 @@ from typing import Tuple
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from asteroid_filterbanks import Encoder, ParamSincFB
 from typeguard import typechecked
 
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
@@ -49,6 +48,11 @@ class AsteroidFrontend(AbsFrontend):
             preemph_coef: the coeifficient for preempahsis.
             log_term: the log term to prevent infinity.
         """
+        try:
+            from asteroid_filterbanks import Encoder, ParamSincFB
+        except ImportError:
+            raise RuntimeError("Please install espnet with 'pip install espnet[spk]'")
+
         super().__init__()
 
         # kernel for preemphasis
@@ -86,7 +90,7 @@ class AsteroidFrontend(AbsFrontend):
             len(input.size()) == 2
         ), "The number of dimensions of input tensor must be 2!"
 
-        with torch.cuda.amp.autocast(enabled=False):
+        with torch.amp.autocast("cuda", enabled=False):
             # reflect padding to match lengths of in/out
             x = input.unsqueeze(1)
             x = F.pad(x, (1, 0), "reflect")

@@ -1,9 +1,10 @@
-ARG FROM_TAG
-ARG NUM_BUILD_CORES=8
-ARG DOCKER_VER
+ARG FROM_TAG=22.04
 
 FROM ubuntu:${FROM_TAG} AS main_builder
-LABEL maintainer "Nelson Yalta <nyalta21@gmail.com>"
+LABEL maintainer="Nelson Yalta <nyalta21@gmail.com>"
+
+ARG NUM_BUILD_CORES=8
+ARG DOCKER_VER
 
 ENV DOCKER_BUILT_VER=${DOCKER_VER}
 ENV NUM_BUILD_CORES=${NUM_BUILD_CORES}
@@ -52,10 +53,10 @@ RUN add-apt-repository ppa:git-core/ppa -y && \
 
 RUN git clone --depth 1 https://github.com/kaldi-asr/kaldi /opt/kaldi
 
-RUN wget --tries=3 -nv "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh" -O miniconda.sh && \
-    bash miniconda.sh -b -p /opt/miniconda && \
-    /opt/miniconda/bin/conda config --prepend channels https://software.repos.intel.com/python/conda/ && \
-    rm miniconda.sh
+RUN wget --tries=3 -nv "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh" -O miniforge.sh && \
+    bash miniforge.sh -b -p /opt/miniforge && \
+    /opt/miniforge/bin/conda config --prepend channels https://software.repos.intel.com/python/conda/ && \
+    rm miniforge.sh
 
 WORKDIR /
 

@@ -185,7 +185,7 @@ class MultiScaleSTFTDiscriminator(MultiDiscriminator):
         n_ffts: tp.List[int] = [1024, 2048, 512],
         hop_lengths: tp.List[int] = [256, 512, 128],
         win_lengths: tp.List[int] = [1024, 2048, 512],
-        **kwargs
+        **kwargs,
     ):
         super().__init__()
         assert len(n_ffts) == len(hop_lengths) == len(win_lengths)
@@ -199,7 +199,7 @@ class MultiScaleSTFTDiscriminator(MultiDiscriminator):
                     n_fft=n_ffts[i],
                     win_length=win_lengths[i],
                     hop_length=hop_lengths[i],
-                    **kwargs
+                    **kwargs,
                 )
                 for i in range(len(n_ffts))
             ]

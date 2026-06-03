@@ -1,1 +1,0 @@
-../../vc1_task1/local/recognize.sh

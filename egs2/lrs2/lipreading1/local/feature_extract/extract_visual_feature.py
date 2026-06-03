@@ -12,9 +12,9 @@ import numpy
 import resampy
 from video_processing import *
 
+from espnet2.legacy.utils.cli_utils import get_commandline_args
+from espnet2.legacy.utils.cli_writers import file_writer_helper
 from espnet2.utils.types import int_or_none
-from espnet.utils.cli_utils import get_commandline_args
-from espnet.utils.cli_writers import file_writer_helper
 
 
 def get_parser():
@@ -67,13 +67,16 @@ def main():
         logging.basicConfig(level=logging.WARN, format=logfmt)
     logging.info(get_commandline_args())
 
-    with VideoReader(args.rspecifier) as reader, file_writer_helper(
-        args.wspecifier,
-        filetype=args.filetype,
-        write_num_frames=args.write_num_frames,
-        compress=args.compress,
-        compression_method=args.compression_method,
-    ) as writer:
+    with (
+        VideoReader(args.rspecifier) as reader,
+        file_writer_helper(
+            args.wspecifier,
+            filetype=args.filetype,
+            write_num_frames=args.write_num_frames,
+            compress=args.compress,
+            compression_method=args.compression_method,
+        ) as writer,
+    ):
         for utt_id, v_feature in reader:
             writer[utt_id] = v_feature
 

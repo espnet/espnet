@@ -1,9 +1,9 @@
 import torch
 from typeguard import typechecked
 
+from espnet2.legacy.nets.pytorch_backend.e2e_tts_tacotron2 import Tacotron2Loss
 from espnet2.s2st.losses.abs_loss import AbsS2STLoss
 from espnet2.utils.types import str2bool
-from espnet.nets.pytorch_backend.e2e_tts_tacotron2 import Tacotron2Loss
 
 
 class S2STTacotron2Loss(AbsS2STLoss):

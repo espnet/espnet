@@ -12,9 +12,9 @@ import kaldiio
 import numpy as np
 import torch
 
+from espnet2.legacy.nets.pytorch_backend.nets_utils import pad_list
 from espnet2.speechlm.tokenizer.codec_tokenizer import CodecTokenizer
 from espnet2.utils.types import str2bool
-from espnet.nets.pytorch_backend.nets_utils import pad_list
 
 logging.basicConfig(
     format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",

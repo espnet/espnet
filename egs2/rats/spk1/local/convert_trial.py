@@ -21,9 +21,11 @@ def main(args):
         scp_dict[utt_id] = path
     trial_set = set()
 
-    with open(os.path.join(args.out, "trial.scp"), "w") as f_trial, open(
-        os.path.join(args.out, "trial2.scp"), "w"
-    ) as f_trial2, open(os.path.join(args.out, "trial_label"), "w") as f_label:
+    with (
+        open(os.path.join(args.out, "trial.scp"), "w") as f_trial,
+        open(os.path.join(args.out, "trial2.scp"), "w") as f_trial2,
+        open(os.path.join(args.out, "trial_label"), "w") as f_label,
+    ):
         for tr in lines_trial_org:
             label, utt1, utt2 = tr.strip().split(" ")
             utt1_id = "/".join(utt1.split("/")[-3:])[:-5]

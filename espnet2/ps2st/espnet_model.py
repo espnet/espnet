@@ -4,9 +4,9 @@ import torch
 import yaml
 from typeguard import typechecked
 
+from espnet2.legacy.nets.beam_search import BeamSearch
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
-from espnet.nets.beam_search import BeamSearch
 
 from .qwen2_scorer import Qwen2HFScorer
 
@@ -16,11 +16,17 @@ try:
         AutoProcessor,
         Qwen2AudioForConditionalGeneration,
     )
-    from transformers.modeling_utils import no_init_weights
 
     is_transformers_available = True
 except ImportError:
     is_transformers_available = False
+
+if is_transformers_available:
+    try:
+        # transformers < v5
+        from transformers.modeling_utils import no_init_weights
+    except ImportError:
+        from transformers.initialization import no_init_weights
 
 
 class ESPnetQwen2AudioModel(AbsESPnetModel):
@@ -52,7 +58,6 @@ class ESPnetQwen2AudioModel(AbsESPnetModel):
             # Load Qwen2-Audio model and processor using standard transformers approach
             self.qwen2audio_model = Qwen2AudioForConditionalGeneration.from_pretrained(
                 model_name,
-                trust_remote_code=True,
             )
         else:
             config = AutoConfig.from_pretrained(model_name)
@@ -71,9 +76,7 @@ class ESPnetQwen2AudioModel(AbsESPnetModel):
 
         self.qwen2audio_model.to("cpu")
         self.qwen2audio_model.eval()
-        self.processor = AutoProcessor.from_pretrained(
-            model_name, trust_remote_code=True
-        )
+        self.processor = AutoProcessor.from_pretrained(model_name)
 
         # Get actual vocabulary size from the model
         self.vocab_size = self.qwen2audio_model.config.vocab_size

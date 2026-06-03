@@ -105,9 +105,11 @@ for n in ["train", "dev", "test"]:
     parent_dir = getattr(args, f"{n}_dir")
     sample_list = processed_dict[n]
 
-    with open(os.path.join(parent_dir, "text"), "w") as text_f, open(
-        os.path.join(parent_dir, "wav.scp"), "w"
-    ) as wav_scp_f, open(os.path.join(parent_dir, "utt2spk"), "w") as utt2spk_f:
+    with (
+        open(os.path.join(parent_dir, "text"), "w") as text_f,
+        open(os.path.join(parent_dir, "wav.scp"), "w") as wav_scp_f,
+        open(os.path.join(parent_dir, "utt2spk"), "w") as utt2spk_f,
+    ):
         for sample in sample_list:
             text_f.write(sample["wav_id"] + " " + sample["task_str"] + "\n")
             downsampled_wav = (

@@ -7,7 +7,7 @@ from torch_complex.tensor import ComplexTensor
 from espnet2.enh.extractor.abs_extractor import AbsExtractor
 from espnet2.enh.layers.complex_utils import is_complex
 from espnet2.enh.layers.tcn import TemporalConvNet, TemporalConvNetInformed
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
+from espnet2.legacy.nets.pytorch_backend.nets_utils import make_pad_mask
 
 
 class TDSpeakerBeamExtractor(AbsExtractor):

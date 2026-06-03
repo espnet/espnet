@@ -81,9 +81,11 @@ def main(args):
     print(f"[Info] {len(trial_lines)} trials, {len(used_utts)} unique utts")
 
     # Write trial files
-    with open(os.path.join(args.out_dir, "trial.scp"), "w") as f1, open(
-        os.path.join(args.out_dir, "trial2.scp"), "w"
-    ) as f2, open(os.path.join(args.out_dir, "trial_label"), "w") as flabel:
+    with (
+        open(os.path.join(args.out_dir, "trial.scp"), "w") as f1,
+        open(os.path.join(args.out_dir, "trial2.scp"), "w") as f2,
+        open(os.path.join(args.out_dir, "trial_label"), "w") as flabel,
+    ):
         for joint_key, path1, path2, label in trial_lines:
             f1.write(f"{joint_key} {path1}\n")
             f2.write(f"{joint_key} {path2}\n")
@@ -96,9 +98,10 @@ def main(args):
     for utt, spk in utt2spk_used.items():
         spk2utt_used[spk].append(utt)
 
-    with open(os.path.join(args.out_dir, "wav.scp"), "w") as fwav, open(
-        os.path.join(args.out_dir, "utt2spk"), "w"
-    ) as futt2spk:
+    with (
+        open(os.path.join(args.out_dir, "wav.scp"), "w") as fwav,
+        open(os.path.join(args.out_dir, "utt2spk"), "w") as futt2spk,
+    ):
         for utt in sorted(used_utts):
             scp = enroll_scp.get(utt, test_scp.get(utt))
             fwav.write(f"{utt} {scp}\n")

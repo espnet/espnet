@@ -36,9 +36,11 @@ def generate_output(source_dir, output_dir, input_file):
         utt2spk.append([utt_id, spk])
 
     # Write mappings to output files
-    with open(os.path.join(output_dir, "spk2utt"), "w") as f_spk2utt, open(
-        os.path.join(output_dir, "utt2spk"), "w"
-    ) as f_utt2spk, open(os.path.join(output_dir, "wav.scp"), "w") as f_wav:
+    with (
+        open(os.path.join(output_dir, "spk2utt"), "w") as f_spk2utt,
+        open(os.path.join(output_dir, "utt2spk"), "w") as f_utt2spk,
+        open(os.path.join(output_dir, "wav.scp"), "w") as f_wav,
+    ):
         for spk, utts in spk2utt.items():
             f_spk2utt.write(f'{spk} {" ".join(utts)}\n')
         for utt in utt2spk:

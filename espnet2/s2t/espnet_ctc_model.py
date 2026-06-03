@@ -1,7 +1,7 @@
 from typing import Dict, List, Optional, Tuple, Union
 
 import torch
-from torch.cuda.amp import autocast
+from torch.amp import autocast
 from typeguard import typechecked
 
 from espnet2.asr.ctc import CTC
@@ -9,11 +9,11 @@ from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.layers.abs_normalize import AbsNormalize
+from espnet2.legacy.nets.e2e_asr_common import ErrorCalculator
+from espnet2.legacy.nets.pytorch_backend.nets_utils import make_pad_mask
+from espnet2.legacy.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
-from espnet.nets.e2e_asr_common import ErrorCalculator
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
-from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 
 
 class ESPnetS2TCTCModel(AbsESPnetModel):
@@ -124,7 +124,7 @@ class ESPnetS2TCTCModel(AbsESPnetModel):
         memory_mask = (~make_pad_mask(memory_lengths)[:, None, :]).to(memory.device)
 
         # Extract speech features
-        with autocast(False):
+        with autocast("cuda", enabled=False):
             # 1. Extract feats
             feats, feats_lengths = self._extract_feats(speech, speech_lengths)
 

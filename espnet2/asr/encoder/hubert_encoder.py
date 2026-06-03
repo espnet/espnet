@@ -8,6 +8,7 @@
 
 
 """Encoder definition."""
+
 import contextlib
 import copy
 import logging
@@ -21,8 +22,8 @@ from filelock import FileLock
 from typeguard import typechecked
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
-from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
+from espnet2.legacy.nets.pytorch_backend.nets_utils import make_pad_mask
+from espnet2.legacy.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 
 
 class TorchAudioHuBERTPretrainEncoder(AbsEncoder):
@@ -623,11 +624,9 @@ class FairseqHubertPretrainEncoder(AbsEncoder):
         self.encoder.mask_emb = torch.nn.Parameter(
             torch.HalfTensor(self.cfg.encoder_embed_dim).uniform_()
         )
-        logging.info(
-            f"Hubert mask embedding re-initiallized!, \
+        logging.info(f"Hubert mask embedding re-initiallized!, \
             {self.encoder.mask_emb.dtype}, \
-            {self.use_amp}"
-        )
+            {self.use_amp}")
 
 
 def download_hubert(model_url, dir_path):

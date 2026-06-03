@@ -20,13 +20,11 @@ import sys
 
 
 def get_args():
-    parser = argparse.ArgumentParser(
-        description="""
+    parser = argparse.ArgumentParser(description="""
       This script is used to process raw json dataset of WenetSpeech,
       where the long wav is splitinto segments and
       data of wenet format is generated.
-      """
-    )
+      """)
     parser.add_argument("input_json", help="""Input json file of WenetSpeech""")
     parser.add_argument("output_dir", help="""Output dir for prepared data""")
 
@@ -47,15 +45,14 @@ def meta_analysis(input_json, output_dir):
         sys.exit(f"Failed to load input json file: {input_json}")
     else:
         if json_data["audios"] is not None:
-            with open(f"{output_dir}/text", "w") as utt2text, open(
-                f"{output_dir}/segments", "w"
-            ) as segments, open(f"{output_dir}/utt2dur", "w") as utt2dur, open(
-                f"{output_dir}/wav.scp", "w"
-            ) as wavscp, open(
-                f"{output_dir}/utt2subsets", "w"
-            ) as utt2subsets, open(
-                f"{output_dir}/reco2dur", "w"
-            ) as reco2dur:
+            with (
+                open(f"{output_dir}/text", "w") as utt2text,
+                open(f"{output_dir}/segments", "w") as segments,
+                open(f"{output_dir}/utt2dur", "w") as utt2dur,
+                open(f"{output_dir}/wav.scp", "w") as wavscp,
+                open(f"{output_dir}/utt2subsets", "w") as utt2subsets,
+                open(f"{output_dir}/reco2dur", "w") as reco2dur,
+            ):
                 for long_audio in json_data["audios"]:
                     try:
                         long_audio_path = os.path.realpath(
@@ -66,16 +63,12 @@ def meta_analysis(input_json, output_dir):
                         duration = long_audio["duration"]
                         assert os.path.exists(long_audio_path)
                     except AssertionError:
-                        print(
-                            f"""Warning: {aid} something is wrong,
-                                  maybe AssertionError, skipped"""
-                        )
+                        print(f"""Warning: {aid} something is wrong,
+                                  maybe AssertionError, skipped""")
                         continue
                     except Exception:
-                        print(
-                            f"""Warning: {aid} something is wrong, maybe the
-                                  error path: {long_audio_path}, skipped"""
-                        )
+                        print(f"""Warning: {aid} something is wrong, maybe the
+                                  error path: {long_audio_path}, skipped""")
                         continue
                     else:
                         wavscp.write(f"{aid}\t{long_audio_path}\n")
@@ -89,10 +82,8 @@ def meta_analysis(input_json, output_dir):
                                 text = segment_file["text"]
                                 segment_subsets = segment_file["subsets"]
                             except Exception:
-                                print(
-                                    f"""Warning: {segment_file} something
-                                          is wrong, skipped"""
-                                )
+                                print(f"""Warning: {segment_file} something
+                                          is wrong, skipped""")
                                 continue
                             else:
                                 utt2text.write(f"{sid}\t{text}\n")

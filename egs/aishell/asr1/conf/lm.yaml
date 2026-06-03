@@ -1,8 +1,0 @@
-# rnnlm related
-layer: 2
-unit: 650
-opt: sgd        # or adam
-batchsize: 64   # batch size in LM training
-epoch: 20      # if the data size is large, we can reduce this
-patience: 3
-maxlen: 100     # if sentence length > lm_maxlen, lm_batchsize is automatically reduced

@@ -13,7 +13,6 @@
 import logging
 import math
 import warnings
-from contextlib import contextmanager
 from typing import Dict, Optional, Tuple
 
 import numpy as np
@@ -21,7 +20,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchaudio.compliance.kaldi as ta_kaldi
-from packaging.version import parse as V
+from torch.amp import autocast
 from torch.nn import LayerNorm, Parameter
 
 try:
@@ -38,15 +37,7 @@ except ImportError:
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.specaug.specaug import SpecAug
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask, roll_tensor
-
-if V(torch.__version__) >= V("1.6.0"):
-    from torch.cuda.amp import autocast
-else:
-    # Nothing to do if torch<1.6.0
-    @contextmanager
-    def autocast(enabled=True):
-        yield
+from espnet2.legacy.nets.pytorch_backend.nets_utils import make_pad_mask, roll_tensor
 
 
 class BeatsConfig:
@@ -400,7 +391,7 @@ class BeatsEncoder(AbsEncoder):
                 [source] * (self.min_input_length_at_16khz // source.size(1) + 1), dim=1
             )
 
-        with autocast(False):
+        with autocast("cuda", enabled=False):
             fbank = self.preprocess(source)
 
             if self.specaug is not None and self.training:

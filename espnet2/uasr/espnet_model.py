@@ -1,15 +1,15 @@
 import argparse
 import logging
-from contextlib import contextmanager
 from typing import Dict, Optional, Tuple
 
 import editdistance
 import torch
 import torch.nn.functional as F
-from packaging.version import parse as V
+from torch.amp import autocast
 from typeguard import typechecked
 
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
+from espnet2.legacy.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet2.text.token_id_converter import TokenIDConverter
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
@@ -18,16 +18,6 @@ from espnet2.uasr.generator.abs_generator import AbsGenerator
 from espnet2.uasr.loss.abs_loss import AbsUASRLoss
 from espnet2.uasr.segmenter.abs_segmenter import AbsSegmenter
 from espnet2.utils.types import str2bool
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
-
-if V(torch.__version__) >= V("1.6.0"):
-    from torch.cuda.amp import autocast
-else:
-    # Nothing to do if torch<1.6.0
-    @contextmanager
-    def autocast(enabled=True):
-        yield
-
 
 try:
     import kenlm  # for CI import
@@ -407,7 +397,7 @@ class ESPnetUASRModel(AbsESPnetModel):
     def encode(
         self, speech: torch.Tensor, speech_lengths: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        with autocast(False):
+        with autocast("cuda", enabled=False):
             # 1. Extract feats
             feats, feats_lengths = self._extract_feats(speech, speech_lengths)
         padding_mask = make_pad_mask(feats_lengths).to(feats.device)

@@ -133,7 +133,7 @@ class CLSTask(AbsTask):
 
     @classmethod
     def add_task_arguments(cls, parser: argparse.ArgumentParser):
-        group = parser.add_argument_group(description="Task related")
+        group = parser.add_argument_group("Task related")
 
         # NOTE(kamo): add_arguments(..., required=True) can't be used
         # to provide --print_config mode. Instead of it, do as
@@ -163,7 +163,6 @@ class CLSTask(AbsTask):
             default=None,
             help="The initialization method",
             choices=[
-                "chainer",
                 "xavier_uniform",
                 "xavier_normal",
                 "kaiming_uniform",
@@ -180,7 +179,7 @@ class CLSTask(AbsTask):
             help="The number of input dimension of the feature",
         )
 
-        group = parser.add_argument_group(description="Preprocess related")
+        group = parser.add_argument_group("Preprocess related")
         group.add_argument(
             "--use_preprocessor",
             type=str2bool,

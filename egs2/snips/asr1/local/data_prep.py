@@ -30,15 +30,15 @@ args = parser.parse_args()
 meta = args.wav_path + "/speech_corpus/metadata.json"
 dataset = args.wav_path + "/dataset.json"
 
-with open(meta, "r") as meta_f, open(args.text_f, "w") as text_f, open(
-    dataset, "r"
-) as dataset, open(args.non_linguistic_symbols, "w") as non_linguistic_symbols, open(
-    args.wavscp_f, "w"
-) as wavscp_f, open(
-    args.utt2spk_f, "w"
-) as utt2spk_f, open(
-    args.semantics, "w"
-) as semantics:
+with (
+    open(meta, "r") as meta_f,
+    open(args.text_f, "w") as text_f,
+    open(dataset, "r") as dataset,
+    open(args.non_linguistic_symbols, "w") as non_linguistic_symbols,
+    open(args.wavscp_f, "w") as wavscp_f,
+    open(args.utt2spk_f, "w") as utt2spk_f,
+    open(args.semantics, "w") as semantics,
+):
     meta_info, dataset = json.load(meta_f), json.load(dataset)
     intents = dataset["intents"]
     for intent, utts in intents.items():

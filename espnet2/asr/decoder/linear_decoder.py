@@ -10,7 +10,7 @@ import torch
 from typeguard import typechecked
 
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
+from espnet2.legacy.nets.pytorch_backend.nets_utils import make_pad_mask
 
 
 class LinearDecoder(AbsDecoder):

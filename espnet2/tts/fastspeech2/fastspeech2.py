@@ -4,30 +4,47 @@
 """Fastspeech2 related modules for ESPnet2."""
 
 import logging
-from typing import Dict, Optional, Sequence, Tuple
+import os
+from typing import Dict, List, Optional, Sequence, Tuple
 
 import torch
 import torch.nn.functional as F
 from typeguard import typechecked
 
+from espnet2.legacy.nets.pytorch_backend.conformer.encoder import (
+    Encoder as ConformerEncoder,
+)
+from espnet2.legacy.nets.pytorch_backend.fastspeech.duration_predictor import (
+    DurationPredictor,
+)
+from espnet2.legacy.nets.pytorch_backend.fastspeech.length_regulator import (
+    LengthRegulator,
+)
+from espnet2.legacy.nets.pytorch_backend.nets_utils import (
+    make_non_pad_mask,
+    make_pad_mask,
+    pad_list,
+)
+from espnet2.legacy.nets.pytorch_backend.tacotron2.decoder import Postnet
+from espnet2.legacy.nets.pytorch_backend.transformer.embedding import (
+    PositionalEncoding,
+    ScaledPositionalEncoding,
+)
+from espnet2.legacy.nets.pytorch_backend.transformer.encoder import (
+    Encoder as TransformerEncoder,
+)
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.torch_utils.initialize import initialize
 from espnet2.tts.abs_tts import AbsTTS
 from espnet2.tts.fastspeech2.loss import FastSpeech2Loss
 from espnet2.tts.fastspeech2.variance_predictor import VariancePredictor
 from espnet2.tts.gst.style_encoder import StyleEncoder
-from espnet.nets.pytorch_backend.conformer.encoder import Encoder as ConformerEncoder
-from espnet.nets.pytorch_backend.fastspeech.duration_predictor import DurationPredictor
-from espnet.nets.pytorch_backend.fastspeech.length_regulator import LengthRegulator
-from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask, make_pad_mask
-from espnet.nets.pytorch_backend.tacotron2.decoder import Postnet
-from espnet.nets.pytorch_backend.transformer.embedding import (
-    PositionalEncoding,
-    ScaledPositionalEncoding,
-)
-from espnet.nets.pytorch_backend.transformer.encoder import (
-    Encoder as TransformerEncoder,
-)
+
+# Default bucket boundaries for shape-bucketing during inference.
+# Encoder side (text tokens): typical range 10-150
+DEFAULT_ENC_BUCKETS = [16, 32, 64, 96, 128, 192, 256, 384, 512]
+# Decoder side (mel frames after length regulation): typical range 50-600
+DEFAULT_DEC_BUCKETS = [64, 128, 192, 256, 384, 512, 768, 1024, 1536, 2048]
 
 
 class FastSpeech2(AbsTTS):
@@ -129,6 +146,11 @@ class FastSpeech2(AbsTTS):
         init_dec_alpha: float = 1.0,
         use_masking: bool = False,
         use_weighted_masking: bool = False,
+        apply_ff_mask: bool = False,
+        # shape-bucketing for inference (XPU / oneDNN)
+        bucket_infer: Optional[bool] = None,
+        enc_buckets: Optional[Sequence[int]] = None,
+        dec_buckets: Optional[Sequence[int]] = None,
     ):
         """Initialize FastSpeech2 module.
 
@@ -223,6 +245,17 @@ class FastSpeech2(AbsTTS):
                 calculation.
             use_weighted_masking (bool): Whether to apply weighted masking in loss
                 calculation.
+            apply_ff_mask (bool): Whether to apply mask in feed-forward layer.
+            bucket_infer (Optional[bool]): Enable shape-bucketing during
+                inference so that oneDNN / GEMM primitives are created once
+                and reused.  *None* (default) reads the
+                ``ESPNET_BUCKET_INFER`` env var ("1" = enabled).
+            enc_buckets (Optional[Sequence[int]]): Encoder-side bucket
+                boundaries (text-token lengths).  Defaults to
+                ``[16, 32, 64, 96, 128, 192, 256, 384, 512]``.
+            dec_buckets (Optional[Sequence[int]]): Decoder-side bucket
+                boundaries (mel-frame lengths).  Defaults to
+                ``[64, 128, 192, 256, 384, 512, 768, 1024, 1536, 2048]``.
 
         """
         super().__init__()
@@ -238,6 +271,17 @@ class FastSpeech2(AbsTTS):
         self.stop_gradient_from_energy_predictor = stop_gradient_from_energy_predictor
         self.use_scaled_pos_enc = use_scaled_pos_enc
         self.use_gst = use_gst
+
+        # Shape-bucketing configuration (XPU / oneDNN)
+        if bucket_infer is None:
+            bucket_infer = os.environ.get("ESPNET_BUCKET_INFER", "0") == "1"
+        self._bucket_infer = bucket_infer
+        self._enc_buckets = (
+            list(enc_buckets) if enc_buckets is not None else DEFAULT_ENC_BUCKETS
+        )
+        self._dec_buckets = (
+            list(dec_buckets) if dec_buckets is not None else DEFAULT_DEC_BUCKETS
+        )
 
         # use idx 0 as padding idx
         self.padding_idx = 0
@@ -291,6 +335,7 @@ class FastSpeech2(AbsTTS):
                 concat_after=encoder_concat_after,
                 positionwise_layer_type=positionwise_layer_type,
                 positionwise_conv_kernel_size=positionwise_conv_kernel_size,
+                apply_ff_mask=apply_ff_mask,
             )
         elif encoder_type == "conformer":
             self.encoder = ConformerEncoder(
@@ -423,6 +468,7 @@ class FastSpeech2(AbsTTS):
                 concat_after=decoder_concat_after,
                 positionwise_layer_type=positionwise_layer_type,
                 positionwise_conv_kernel_size=positionwise_conv_kernel_size,
+                apply_ff_mask=apply_ff_mask,
             )
         elif decoder_type == "conformer":
             self.decoder = ConformerEncoder(
@@ -604,6 +650,14 @@ class FastSpeech2(AbsTTS):
         else:
             return loss, stats, after_outs if after_outs is not None else before_outs
 
+    @staticmethod
+    def _bucket_pad_size(cur_len: int, buckets: list) -> int:
+        """Return the smallest bucket size >= cur_len, or cur_len if it exceeds all."""
+        for b in buckets:
+            if b >= cur_len:
+                return b
+        return cur_len
+
     def _forward(
         self,
         xs: torch.Tensor,
@@ -619,9 +673,29 @@ class FastSpeech2(AbsTTS):
         is_inference: bool = False,
         alpha: float = 1.0,
     ) -> Sequence[torch.Tensor]:
+        # --- Bucket-pad encoder input to a fixed size (inference only) ---
+        # Controlled by ESPNET_BUCKET_INFER=1 environment variable.
+        enc_bucketed = False
+        if self._bucket_infer and is_inference:
+            T_text = xs.size(1)
+            T_bucket = self._bucket_pad_size(T_text, self._enc_buckets)
+            if T_bucket > T_text:
+                xs = F.pad(xs, [0, T_bucket - T_text], value=0)
+                enc_bucketed = True
+
         # forward encoder
         x_masks = self._source_mask(ilens)
-        hs, _ = self.encoder(xs, x_masks)  # (B, T_text, adim)
+        # Expand mask to match bucketed xs dimension if needed
+        if enc_bucketed:
+            pad_cols = T_bucket - x_masks.size(-1)
+            # Pad with False (masked) so the extra positions are ignored
+            x_masks = F.pad(x_masks, [0, pad_cols], value=False)
+        hs, _ = self.encoder(xs, x_masks)  # (B, T_text_bucket, adim)
+
+        # NOTE: do NOT trim hs here during inference — keep at T_bucket so that
+        # downstream Conv1d layers (duration/pitch/energy predictors, embeds)
+        # also see a fixed bucketed size and reuse oneDNN primitives.
+        # Trimming is deferred to just before the length regulator.
 
         # integrate with GST
         if self.use_gst:
@@ -642,6 +716,9 @@ class FastSpeech2(AbsTTS):
 
         # forward duration predictor and variance predictors
         d_masks = make_pad_mask(ilens).to(xs.device)
+        # Expand d_masks to match bucketed hs if needed (pad with True = masked)
+        if enc_bucketed:
+            d_masks = F.pad(d_masks, [0, T_bucket - d_masks.size(-1)], value=True)
 
         if self.stop_gradient_from_pitch_predictor:
             p_outs = self.pitch_predictor(hs.detach(), d_masks.unsqueeze(-1))
@@ -653,11 +730,35 @@ class FastSpeech2(AbsTTS):
             e_outs = self.energy_predictor(hs, d_masks.unsqueeze(-1))
 
         if is_inference:
-            d_outs = self.duration_predictor.inference(hs, d_masks)  # (B, T_text)
+            d_outs = self.duration_predictor.inference(hs, d_masks)  # (B, T_bucket)
             # use prediction in inference
-            p_embs = self.pitch_embed(p_outs.transpose(1, 2)).transpose(1, 2)
-            e_embs = self.energy_embed(e_outs.transpose(1, 2)).transpose(1, 2)
+            if p_outs.device.type == "xpu":
+                # Workaround for XPU Conv1d accuracy issue
+                p_embs = self.pitch_embed(p_outs.transpose(1, 2))
+                batch, rows, cols = p_embs.size()
+                p_embs = p_embs.view(batch, cols, rows)
+            else:
+                p_embs = self.pitch_embed(p_outs.transpose(1, 2)).transpose(1, 2)
+            if e_outs.device.type == "xpu":
+                # Workaround for XPU Conv1d accuracy issue
+                e_embs = self.energy_embed(e_outs.transpose(1, 2))
+                batch, rows, cols = e_embs.size()
+                e_embs = e_embs.view(batch, cols, rows)
+            else:
+                e_embs = self.energy_embed(e_outs.transpose(1, 2)).transpose(1, 2)
             hs = hs + e_embs + p_embs
+
+            # --- Trim back to real T_text before length regulator ---
+            # The length regulator uses repeat_interleave per-sample and must
+            # only see real token positions. Also trim d_outs so padded
+            # positions don't contribute spurious frames.
+            if enc_bucketed:
+                hs = hs[:, :T_text, :]
+                d_outs = d_outs[:, :T_text]
+                d_masks = d_masks[:, :T_text]
+
+            if d_masks is not None:
+                d_outs[d_masks] = 0
             hs = self.length_regulator(hs, d_outs, alpha)  # (B, T_feats, adim)
         else:
             d_outs = self.duration_predictor(hs, d_masks)
@@ -679,8 +780,26 @@ class FastSpeech2(AbsTTS):
             else:
                 olens_in = olens
             h_masks = self._source_mask(olens_in)
+        elif is_inference and d_masks is not None:
+            h_masks = self._source_mask(torch.sum(d_outs, dim=-1))
         else:
             h_masks = None
+
+        # --- Bucket-pad decoder input to a fixed size (inference only) ---
+        # Controlled by ESPNET_BUCKET_INFER=1 environment variable.
+        T_feats_original = None
+        dec_bucketed = False
+        if self._bucket_infer and is_inference:
+            T_feats_original = hs.size(1)
+            T_dec_bucket = self._bucket_pad_size(T_feats_original, self._dec_buckets)
+            if T_dec_bucket > T_feats_original:
+                dec_bucketed = True
+                dec_pad = T_dec_bucket - T_feats_original
+                hs = F.pad(hs, [0, 0, 0, dec_pad], value=0.0)
+                # Expand h_masks to match bucketed hs dimension
+                if h_masks is not None:
+                    h_masks = F.pad(h_masks, [0, dec_pad], value=False)
+
         zs, _ = self.decoder(hs, h_masks)  # (B, T_feats, adim)
         before_outs = self.feat_out(zs).view(
             zs.size(0), -1, self.odim
@@ -690,9 +809,21 @@ class FastSpeech2(AbsTTS):
         if self.postnet is None:
             after_outs = before_outs
         else:
+            if h_masks is not None and before_outs.size(1) == h_masks.size(2):
+                postnet_masks = h_masks
+            else:
+                # skip masking if mismatch in length
+                postnet_masks = None
             after_outs = before_outs + self.postnet(
-                before_outs.transpose(1, 2)
+                before_outs.transpose(1, 2), postnet_masks
             ).transpose(1, 2)
+
+        # Trim decoder output back to original length if we bucket-padded.
+        # .contiguous() ensures the returned tensor has compact storage, avoiding
+        # out-of-bounds errors when callers slice per-sample with variable lengths.
+        if dec_bucketed:
+            before_outs = before_outs[:, :T_feats_original, :].contiguous()
+            after_outs = after_outs[:, :T_feats_original, :].contiguous()
 
         return before_outs, after_outs, d_outs, p_outs, e_outs
 
@@ -779,6 +910,120 @@ class FastSpeech2(AbsTTS):
             energy=e_outs[0],
         )
 
+    def batch_inference(
+        self,
+        text: List[torch.Tensor],
+        text_lengths: Optional[torch.Tensor] = None,
+        feats: Optional[torch.Tensor] = None,
+        feats_lengths: Optional[torch.Tensor] = None,
+        durations: Optional[torch.Tensor] = None,
+        durations_lengths: Optional[torch.Tensor] = None,
+        spembs: Optional[torch.Tensor] = None,
+        sids: Optional[torch.Tensor] = None,
+        lids: Optional[torch.Tensor] = None,
+        pitch: Optional[torch.Tensor] = None,
+        pitch_lengths: Optional[torch.Tensor] = None,
+        energy: Optional[torch.Tensor] = None,
+        energy_lengths: Optional[torch.Tensor] = None,
+        alpha: float = 1.0,
+        use_teacher_forcing: bool = False,
+    ) -> Dict[str, torch.Tensor]:
+        """Generate the sequence of features given batched sequences of characters.
+
+        Args:
+            text: List of 1D tensors with variable lengths (List[Tensor]).
+            text_lengths: Not used. Computed automatically from the list.
+            feats (Optional[Tensor]): Batched feature sequences (B, N, idim).
+            feats_lengths (Optional[LongTensor]): Batch of feature lengths (B,).
+            durations (Optional[Tensor]): Batched groundtruth durations (B, T_text + 1).
+            durations_lengths (Optional[LongTensor]): Batch of duration lengths (B,).
+            spembs (Optional[Tensor]): Batched speaker embeddings (B, spk_embed_dim).
+            sids (Optional[Tensor]): Batched speaker IDs (B,).
+            lids (Optional[Tensor]): Batched language IDs (B,).
+            pitch (Optional[Tensor]): Batched groundtruth pitch (B, T_text + 1, 1).
+            pitch_lengths (Optional[LongTensor]): Batch of pitch lengths (B,).
+            energy (Optional[Tensor]): Batched groundtruth energy (B, T_text + 1, 1).
+            energy_lengths (Optional[LongTensor]): Batch of energy lengths (B,).
+            alpha (float): Alpha to control the speed.
+            use_teacher_forcing (bool): Whether to use teacher forcing.
+
+        Returns:
+            Dict[str, Tensor]: Output dict including the following items:
+                * feat_gen (List[Tensor]): List of output feature sequences.
+                * feat_gen_lengths (Tensor): Lengths of output feature sequences (B,).
+                * duration (Tensor): Batched duration sequences (B, T_text + 1).
+                * pitch (Tensor): Batched pitch sequences (B, T_text + 1).
+                * energy (Tensor): Batched energy sequences (B, T_text + 1).
+
+        """
+        # Compute text lengths from the list
+        text_lengths = torch.tensor(
+            [len(t) for t in text], dtype=torch.long, device=text[0].device
+        )
+
+        # Add EOS to each sequence first
+        text_list_with_eos = [F.pad(t, [0, 1], "constant", self.eos) for t in text]
+
+        # Then pad all sequences
+        xs = pad_list(text_list_with_eos, pad_value=0)
+        ilens = text_lengths + 1  # account for eos
+
+        ys = feats  # can be None
+
+        if use_teacher_forcing:
+            # use groundtruth of duration, pitch, and energy
+            _, outs, d_outs, p_outs, e_outs = self._forward(
+                xs,
+                ilens,
+                ys,
+                ds=durations,
+                ps=pitch,
+                es=energy,
+                spembs=spembs,
+                sids=sids,
+                lids=lids,
+            )  # (B, T_feats, odim)
+        else:
+            _, outs, d_outs, p_outs, e_outs = self._forward(
+                xs,
+                ilens,
+                ys,
+                spembs=spembs,
+                sids=sids,
+                lids=lids,
+                is_inference=True,
+                alpha=alpha,
+            )  # (B, T_feats, odim)
+
+        # Calculate output lengths from predicted durations
+        # d_outs: (B, T_text + 1)
+        # IMPORTANT: match the length regulator's behavior exactly:
+        # when alpha != 1.0, round each duration individually then sum,
+        # otherwise floor to int then sum.
+        if use_teacher_forcing and durations is not None:
+            olens = durations.long().clamp(min=0).sum(dim=1)
+        else:
+            if alpha != 1.0:
+                olens = (
+                    torch.round(d_outs.float() * alpha).long().clamp(min=0).sum(dim=1)
+                )
+            else:
+                olens = d_outs.long().clamp(min=0).sum(dim=1)
+
+        # Return unbatched outputs as list for variable length handling
+        T_max = outs.size(1)
+        feat_gen_list = []
+        for i, olen in enumerate(olens):
+            feat_gen_list.append(outs[i, : min(olen.item(), T_max)])
+
+        return dict(
+            feat_gen=feat_gen_list,
+            feat_gen_lengths=olens,
+            duration=d_outs,
+            pitch=p_outs,
+            energy=e_outs,
+        )
+
     def _integrate_with_spk_embed(
         self, hs: torch.Tensor, spembs: torch.Tensor
     ) -> torch.Tensor:
@@ -805,6 +1050,7 @@ class FastSpeech2(AbsTTS):
 
         return hs
 
+    @torch.compiler.disable
     def _source_mask(self, ilens: torch.Tensor) -> torch.Tensor:
         """Make masks for self-attention.
 

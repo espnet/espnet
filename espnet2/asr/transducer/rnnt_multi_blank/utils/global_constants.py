@@ -48,17 +48,14 @@ Getters
 
 
 def threads_per_block():
-    global _THREADS_PER_BLOCK
     return _THREADS_PER_BLOCK
 
 
 def warp_size():
-    global _WARP_SIZE
     return _WARP_SIZE
 
 
 def dtype():
-    global _DTYPE
     return _DTYPE
 
 

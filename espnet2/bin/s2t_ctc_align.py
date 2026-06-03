@@ -14,13 +14,12 @@ import soundfile
 import torch
 from typeguard import typechecked
 
+# imports for inference
+from espnet2.legacy.utils.cli_utils import get_commandline_args
 from espnet2.tasks.s2t_ctc import S2TTask
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.utils import config_argparse
 from espnet2.utils.types import str2bool, str_or_none
-
-# imports for inference
-from espnet.utils.cli_utils import get_commandline_args
 
 try:
     # imports for CTC segmentation

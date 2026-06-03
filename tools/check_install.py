@@ -18,7 +18,6 @@ module_list = [
     ("torchaudio", None, None),
     ("torch_optimizer", None, None),
     ("warprnnt_pytorch", None, "installers/install_warp-transducer.sh"),
-    ("chainer_ctc", None, "installers/install_chainer_ctc.sh"),
     ("pyopenjtalk", None, "installers/install_pyopenjtalk.sh"),
     ("tdmelodic_pyopenjtalk", None, "installers/install_tdmelodic_pyopenjtalk.sh"),
     ("kenlm", None, "installers/install_kenlm.sh"),
@@ -88,29 +87,6 @@ def main():
 
     except ImportError:
         print("[ ] torch")
-
-    try:
-        import chainer
-
-        print(f"[x] chainer={chainer.__version__}")
-        if parse(chainer.__version__) != parse("6.0.0"):
-            print(
-                f"Warning! chainer={chainer.__version__} is not supported. "
-                "Supported version is 6.0.0"
-            )
-
-        if chainer.backends.cuda.available:
-            print("[x] chainer cuda")
-        else:
-            print("[ ] chainer cuda")
-
-        if chainer.backends.cuda.cudnn_enabled:
-            print("[x] chainer cudnn")
-        else:
-            print("[ ] chainer cudnn")
-
-    except ImportError:
-        print("[ ] chainer")
 
     try:
         import cupy

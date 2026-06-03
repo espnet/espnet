@@ -23,9 +23,11 @@ def main(args):
 
     os.makedirs(args.out, exist_ok=True)
 
-    with open(os.path.join(args.out, "trial.scp"), "w") as f1, open(
-        os.path.join(args.out, "trial2.scp"), "w"
-    ) as f2, open(os.path.join(args.out, "trial_label"), "w") as flabel:
+    with (
+        open(os.path.join(args.out, "trial.scp"), "w") as f1,
+        open(os.path.join(args.out, "trial2.scp"), "w") as f2,
+        open(os.path.join(args.out, "trial_label"), "w") as flabel,
+    ):
 
         for enroll_id, test_id, str_label in trials:
             test_id = test_id.split("/")[-1].split(".")[0]
@@ -69,9 +71,11 @@ def main_sep(args):
 
     os.makedirs(args.out, exist_ok=True)
 
-    with open(os.path.join(args.out, "trial.scp"), "w") as f1, open(
-        os.path.join(args.out, "trial2.scp"), "w"
-    ) as f2, open(os.path.join(args.out, "trial_label"), "w") as flabel:
+    with (
+        open(os.path.join(args.out, "trial.scp"), "w") as f1,
+        open(os.path.join(args.out, "trial2.scp"), "w") as f2,
+        open(os.path.join(args.out, "trial_label"), "w") as flabel,
+    ):
 
         for enroll_id, test_id, str_label in trials:
             enrolls = enroll_map[enroll_id.split("-")[0]]

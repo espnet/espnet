@@ -18,6 +18,6 @@
     "vuepress-theme-hope": "2.0.0-rc.51"
   },
   "dependencies": {
-    "js-yaml": "^4.1.0"
+    "js-yaml": "^4.1.1"
   }
 }

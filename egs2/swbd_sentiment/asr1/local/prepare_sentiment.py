@@ -50,9 +50,11 @@ def process_data(
     wavscp_list = []
     reco2file_list = []
 
-    with open(sentiment_file, "r", encoding="utf-8") as sf, open(
-        text_file, "r", encoding="utf-8"
-    ) as tf, open(wavscp_file, "r", encoding="utf-8") as wf:
+    with (
+        open(sentiment_file, "r", encoding="utf-8") as sf,
+        open(text_file, "r", encoding="utf-8") as tf,
+        open(wavscp_file, "r", encoding="utf-8") as wf,
+    ):
         prev_spk_id_tf = 0
         prev_linenum_tf = 0
         prev_linenum_wf = 0
@@ -126,17 +128,15 @@ def process_data(
                                 prev_spk_id_tf = spk_id_tf
                                 prev_linenum_tf = linenum_tf
                                 break
-    with open(
-        os.path.join(target_dir, "utt2spk"), "w", encoding="utf-8"
-    ) as utt2spk, open(
-        os.path.join(target_dir, "segments"), "w", encoding="utf-8"
-    ) as segments, open(
-        os.path.join(target_dir, "text"), "w", encoding="utf-8"
-    ) as text, open(
-        os.path.join(target_dir, "wav.scp"), "w", encoding="utf-8"
-    ) as wavscp, open(
-        os.path.join(target_dir, "reco2file_and_channel"), "w", encoding="utf-8"
-    ) as reco2file:
+    with (
+        open(os.path.join(target_dir, "utt2spk"), "w", encoding="utf-8") as utt2spk,
+        open(os.path.join(target_dir, "segments"), "w", encoding="utf-8") as segments,
+        open(os.path.join(target_dir, "text"), "w", encoding="utf-8") as text,
+        open(os.path.join(target_dir, "wav.scp"), "w", encoding="utf-8") as wavscp,
+        open(
+            os.path.join(target_dir, "reco2file_and_channel"), "w", encoding="utf-8"
+        ) as reco2file,
+    ):
         utt2spk.write("\n".join(utt2spk_list) + "\n")
         segments.write("\n".join(segments_list) + "\n")
         text.write("\n".join(text_list) + "\n")

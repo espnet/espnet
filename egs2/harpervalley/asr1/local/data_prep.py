@@ -24,15 +24,12 @@ def process_data(target_dir, source_dir, audio_dir, filename, min_length):
         wa_length = wa.getnframes() / wa.getframerate()
         wc_length = wc.getnframes() / wc.getframerate()
 
-    with open(
-        os.path.join(target_dir, "wav.scp"), "a", encoding="utf-8"
-    ) as wavscp, open(
-        os.path.join(target_dir, "utt2spk"), "a", encoding="utf-8"
-    ) as utt2spk, open(
-        os.path.join(target_dir, "segments"), "a", encoding="utf-8"
-    ) as segments, open(
-        os.path.join(target_dir, "text"), "a", encoding="utf-8"
-    ) as text:
+    with (
+        open(os.path.join(target_dir, "wav.scp"), "a", encoding="utf-8") as wavscp,
+        open(os.path.join(target_dir, "utt2spk"), "a", encoding="utf-8") as utt2spk,
+        open(os.path.join(target_dir, "segments"), "a", encoding="utf-8") as segments,
+        open(os.path.join(target_dir, "text"), "a", encoding="utf-8") as text,
+    ):
         metadata_f = load_json(os.path.join(source_dir, "metadata", filename + ".json"))
         transcript_f = load_json(
             os.path.join(source_dir, "transcript", filename + ".json")

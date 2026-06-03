@@ -1,0 +1,698 @@
+#!/usr/bin/env python3
+# Copyright 2025 Jinchuan Tian (Carnegie Mellon University)
+#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+
+"""SpeechLM job template implementation for multimodal language modeling."""
+
+import random
+import re
+from typing import Any, Callable, Dict
+
+import numpy as np
+import torch
+
+from espnet2.speechlm.model.abs_job import AbsJobTemplate
+
+# Main speechlm model
+from espnet2.speechlm.model.speechlm.lm.parallel import ParallelHFModel
+from espnet2.speechlm.model.speechlm.lm.parallel_pp import ParallelPPHFModel
+
+# Multimodal IOs
+from espnet2.speechlm.model.speechlm.multimodal_io.abs_io import AbsIO
+from espnet2.speechlm.model.speechlm.multimodal_io.audio import (
+    ContinuousAudioIO,
+    DiscreteAudioIO,
+)
+from espnet2.speechlm.model.speechlm.multimodal_io.text import HuggingFaceTextIO
+from espnet2.speechlm.model.speechlm.task_conf_speechlm import SPEECHLM_TASK_CONFIGS
+from espnet2.speechlm.utils.data import pad_list
+
+_multimodal_ios = {
+    "text": HuggingFaceTextIO,
+    "discrete_audio": DiscreteAudioIO,
+    "continuous_audio": ContinuousAudioIO,
+}
+
+_lms = {"parallel": ParallelHFModel, "parallel_pp": ParallelPPHFModel}
+
+
+class SpeechLMJobTemplate(AbsJobTemplate):
+    """Job template for SpeechLM training tasks.
+
+    This class implements the specific model and data processing
+    configurations for speech language modeling tasks.
+    """
+
+    def __init__(self, config: Dict[str, Any], is_train: bool = False):
+        """Initialize the SpeechLM job template.
+
+        Args:
+            config: Dictionary containing job configuration parameters.
+        """
+        super().__init__(config, is_train)
+
+        # (1) keep other configs
+        self.config = config
+
+        # (2) build tokenizers and vocabulary
+        io_config = config["multimodal_io"]
+        self.multimodal_io = dict()
+        for io_name, io_kwargs in io_config.items():
+            multimodal_io_class = _multimodal_ios[io_name]
+            assert issubclass(multimodal_io_class, AbsIO)
+            self.multimodal_io[io_name] = multimodal_io_class(**io_kwargs)
+
+        self._build_vocabulary()
+
+    def _build_vocabulary(self, num_special_tokens=256):
+        """Build unified vocabulary from special tokens and multimodal IOs.
+
+        Reserves fixed slots for special tokens then adds tokens from discrete IOs.
+        Returns vocabulary list and interval mappings for each modality.
+        """
+        # (1) Init
+        vocab = []
+        vocab_intervals = {}
+        vocab_weight = []
+
+        # (2) Initial special token. We keep a fixed number of slots
+        vocab.extend(
+            [
+                "<|pad|>",  # 0
+                "<|bos|>",  # 1
+                "<|eos|>",  # 2
+                "<|eot|>",  # 3
+                "<|system|>",  # 4
+                "<|user|>",  # 5
+                "<|assistant|>",  # 6
+                "<|text|>",  # 7
+                "<|audio|>",  # 8
+                "<|image|>",  # 9
+                "<|video|>",  # 10
+                "<|toolcall|>",  # 11
+            ]
+        )
+        while len(vocab) < num_special_tokens:
+            vocab.append(f"<|unused_{len(vocab)}|>")
+        vocab_intervals["special_token"] = [(0, num_special_tokens)]
+        vocab_weight.append(torch.ones(len(vocab)))
+
+        # (3) add vocabulary from each discrete multimodal IO.
+        start = num_special_tokens
+        mm_start, mm_end = None, None
+        num_stream = 1
+        for io_name, io in self.multimodal_io.items():
+            if not io.is_discrete:
+                continue
+
+            vocab.extend(io.get_vocabulary())
+
+            if io_name not in ("text", "special_token"):
+                if mm_start is None and mm_end is None:
+                    mm_start = start
+                    mm_end = start + len(io.get_vocabulary())
+                else:
+                    mm_start = min(mm_start, start)
+                    mm_end = max(mm_end, start + len(io.get_vocabulary()))
+
+            vocab_intervals[io_name] = []
+            for (this_start, this_end), this_weight in zip(
+                io.get_stream_interval(), io.get_stream_weight()
+            ):
+                vocab_intervals[io_name].append((start + this_start, start + this_end))
+                vocab_weight.append(torch.ones(this_end - this_start) * this_weight)
+                num_stream = max(num_stream, io.num_stream())
+            start = len(vocab)
+        vocab_weight = torch.cat(vocab_weight, dim=0).float()
+
+        text_start = vocab_intervals["text"][0][0]
+        text_end = vocab_intervals["text"][-1][1]
+
+        if mm_start is not None and mm_end is not None:
+            assert text_end <= mm_start or mm_end <= text_start, (
+                f"Text range [{text_start}, {text_end}) overlaps with "
+                f"multimodal range [{mm_start}, {mm_end})"
+            )
+
+        self.vocab_meta = {
+            "vocab": vocab,
+            "vocab_intervals": vocab_intervals,
+            "vocab_weight": vocab_weight,
+            "vocab_size": len(vocab),
+            "mm_start": mm_start,
+            "mm_end": mm_end,
+            "text_start": text_start,
+            "text_end": text_end,
+            "num_stream": num_stream,
+        }
+
+    def build_preprocessor(self) -> Callable:
+        """Build the data collation function for SpeechLM.
+
+        Returns:
+            A callable function for collating SpeechLM batch data.
+        """
+
+        processor_config = self.config["preprocessor"]
+        multimodal_io = {
+            io_name: io.copy_for_worker() for io_name, io in self.multimodal_io.items()
+        }
+        return SpeechLMPreprocessor(
+            is_train=self.is_train,
+            multimodal_io=multimodal_io,
+            vocab=self.vocab_meta["vocab"],
+            vocab_intervals=self.vocab_meta["vocab_intervals"],
+            audio_input=processor_config["audio_input"],
+            audio_output=processor_config["audio_output"],
+            loss_region=processor_config["loss_region"],
+            batchfy_method=self.config["data_loading"].get("batchfy_method", "bucket"),
+            audio_cfg=processor_config.get("audio_cfg", 0.0),
+            batch_length=self.config["data_loading"].get("batch_size", -1),
+        )
+
+    def build_model(self, parallel_dims=None) -> torch.nn.Module:
+        """Build the SpeechLM model.
+
+        When ``parallel_dims`` is provided and PP is enabled, automatically
+        selects the PP model variant (``model_choice + "_pp"``) and reads
+        ``pp_layout`` from ``self.config["trainer"]["titan_config"]``.
+
+        Args:
+            parallel_dims: TorchTitan ParallelDims. If provided and
+                ``pp_enabled``, the PP model variant is used.
+
+        Returns:
+            A SpeechLM model instance (full or PP-stage).
+        """
+        model_config = self.config["model"]
+        model_choice = model_config["model_choice"]
+
+        pp_enabled = parallel_dims is not None and parallel_dims.pp_enabled
+        if pp_enabled:
+            model_choice = model_choice + "_pp"
+            titan_config = self.config["trainer"]["titan_config"]
+            pp_layout = titan_config.get("pp_layout", None)
+            assert pp_layout is not None, (
+                "pp_layout is required when pipeline parallelism is enabled. "
+                "Set trainer.titan_config.pp_layout in the config."
+            )
+
+        model_class = _lms[model_choice]
+
+        model_kwargs = dict(
+            model_hf_tag=model_config["model_hf_tag"],
+            multimodal_io=self.multimodal_io,
+            vocab_meta=self.vocab_meta,
+            **model_config["model_conf"],
+        )
+        if not pp_enabled:
+            model = model_class(**model_kwargs)
+            return model
+
+        # Return a list of models for pipeline parallelism
+        model_kwargs["parallel_dims"] = parallel_dims
+        model_kwargs["pp_layout"] = pp_layout
+
+        pp_degree = parallel_dims.get_mesh("pp").size()
+        assert len(pp_layout) % pp_degree == 0, (
+            f"pp_layout length ({len(pp_layout)}) must be divisible by "
+            f"pp_degree ({pp_degree})"
+        )
+        vpp_degree = len(pp_layout) // pp_degree
+        models = []
+        for i in range(vpp_degree):
+            model_kwargs["vpp_index"] = i
+            model = model_class(**model_kwargs)
+            models.append(model)
+
+        return torch.nn.ModuleList(models)
+
+
+class SpeechLMPreprocessor:
+    """Preprocessor for SpeechLM data handling.
+
+    Converts raw data into model-ready format with tokenization,
+    padding, and loss mask generation for multimodal sequences.
+    """
+
+    def __init__(
+        self,
+        is_train,
+        multimodal_io,
+        vocab,
+        vocab_intervals,
+        audio_input: str = "continuous_audio",
+        audio_output: str = "discrete_audio",
+        loss_region: str = "assistant",
+        batchfy_method: str = "bucket",
+        audio_cfg: float = 0.0,
+        batch_length: int = -1,
+    ):
+        self.is_train = is_train
+
+        # (1) keep all multimodal_io
+        self.multimodal_io = multimodal_io
+        self.audio_input = audio_input
+        self.audio_output = audio_output
+        self.loss_region = loss_region
+        # NOTE(Jinchuan): use pack only for training
+        self.batchfy_method = batchfy_method if is_train else "bucket"
+        self.audio_cfg = audio_cfg
+
+        # Use fixed batch length if using sequence pack during training
+        if is_train and batchfy_method == "pack":
+            self.batch_length = batch_length
+        else:
+            self.batch_length = -1
+
+        # (2) vocabulary
+        self.vocab = vocab
+        self.vocab_intervals = vocab_intervals
+        self.pad_id = self.vocab.index("<|pad|>")
+
+        possible_num_stream = [
+            io.num_stream() for io in multimodal_io.values() if io.is_discrete
+        ]
+        if len(possible_num_stream) == 0:
+            raise ValueError("You should have at least one discrete multimodal IO")
+        self.num_stream = max(possible_num_stream)
+
+    def find_length(self, key, data_dict):
+        """Quickly compute sequence length without full preprocessing.
+
+        Counts tokens for BOS, role/modality markers, content, and EOS/EOT.
+        Used for efficient batch construction.
+        """
+        task, _, _ = key
+        messages = self._apply_chat_template(task, data_dict)
+
+        # (1) <bos>
+        length = 1
+
+        # (2) each message, consider role, modality and end of <eot>/<eos>
+        for _, this_io, this_data in messages:
+            length += 3
+            length += self.multimodal_io[this_io].find_length(this_data)
+
+        return length
+
+    def _collect_batch_metadata(self, data_dicts):
+        """Collect per-batch metadata: task counts, token counts, and padding ratio.
+
+        Args:
+            data_dicts: list of (key, preprocessed_dict) pairs from step (1).
+                Each key is (task, dataset, sample_id) and each dict has "sequence".
+
+        Returns:
+            dict of scalar tensors with all task stats always present.
+        """
+        valid_tasks = set(SPEECHLM_TASK_CONFIGS.keys()) | {"dialogue"}
+
+        task_examples = {t: 0 for t in valid_tasks}
+        task_tokens = {t: 0 for t in valid_tasks}
+        seq_lens = []
+
+        for key, data_dict in data_dicts:
+            task_name, _, sample_id = key
+            seq_len = len(data_dict["sequence"])
+            seq_lens.append(seq_len)
+
+            # Resolve the effective task
+            if task_name != "dialogue":
+                resolved = task_name
+            else:
+                resolved = "dialogue"
+                for t in SPEECHLM_TASK_CONFIGS:
+                    if sample_id.endswith(t):
+                        resolved = t
+                        break
+
+            if resolved in task_examples:
+                task_examples[resolved] += 1
+                task_tokens[resolved] += seq_len
+
+        total_examples = sum(task_examples.values())
+        total_tokens = sum(task_tokens.values())
+
+        # Padding ratio
+        if self.batch_length >= 0:
+            if self.batchfy_method == "pack":
+                length_inc = 20
+                padded_len = self.batch_length
+                while padded_len < total_tokens:
+                    padded_len += length_inc
+                total_padded = padded_len
+            else:  # bucket
+                max_len = max(seq_lens) if seq_lens else 0
+                total_padded = max_len * len(seq_lens)
+            pad_ratio = 1.0 - total_tokens / total_padded if total_padded > 0 else 0.0
+        else:
+            pad_ratio = 0.0
+
+        stats = {
+            "data/total_examples": torch.tensor(total_examples),
+            "data/total_tokens": torch.tensor(total_tokens),
+            "data/pad_ratio": torch.tensor(pad_ratio),
+        }
+        for t in valid_tasks:
+            stats[f"data/task_{t}_examples"] = torch.tensor(task_examples[t])
+            stats[f"data/task_{t}_tokens"] = torch.tensor(task_tokens[t])
+
+        return stats
+
+    def collate_fn(self, data_lst):
+        """Batch multiple samples for training.
+
+        Processes each sample, pads sequences to same length, and organizes
+        continuous features by modality. Returns dict ready for model forward.
+
+        The return dict value should always in the format of either tensor,
+        list of strings, or a flat dict of tensors/ints (for attn_args).
+
+        attn_args is a dict of pre-computed flash attention kwargs:
+          - pack mode: cu_seq_lens_q/k (int32), max_length_q/k (int)
+            to avoid per-layer CPU-GPU sync in flash attention varlen.
+          - bucket mode: empty dict (flash attention uses is_causal=True).
+        """
+        if self.batchfy_method not in ["bucket", "pack"]:
+            raise NotImplementedError("Batchfy method only support bucket and pack")
+
+        return_dict = dict()
+
+        # (1) single-example preprocessing
+        data_dicts = [self.preprocessing(key, data_dict) for key, data_dict in data_lst]
+        return_dict["keys"] = [key for key, _ in data_lst]
+
+        # (1.5) Collect batch metadata
+        return_dict["data_stats"] = self._collect_batch_metadata(
+            [(key, d) for (key, _), d in zip(data_lst, data_dicts)]
+        )
+
+        # (2) Process token sequences and masks
+        seqs, loss_masks, seq_lens, position_ids = [], [], [0], []
+        for data_dict in data_dicts:
+            seq, loss_mask = data_dict["sequence"], data_dict["loss_mask"]
+            seqs.append(torch.from_numpy(seq))
+            loss_masks.append(torch.from_numpy(loss_mask))
+            seq_lens.append(seq_lens[-1] + len(seq))
+            position_ids.append(torch.arange(len(seq)).long())
+
+        if self.batchfy_method == "bucket":
+            seqs, _ = pad_list(seqs)
+            loss_masks, _ = pad_list(loss_masks)
+
+            # Bucket mode: no attn_args needed. Flash attention uses
+            # is_causal=True by default, which is correct for single-
+            # sequence-per-batch-element. Padding tokens are zero-embedded
+            # and loss-masked, so attending to them is harmless.
+            return_dict["attn_args"] = {}
+
+        else:  # "pack"
+            seqs = torch.cat(seqs, dim=0).unsqueeze(0)
+            loss_masks = torch.cat(loss_masks, dim=0).unsqueeze(0)
+            position_ids = torch.cat(position_ids, dim=0).unsqueeze(0)
+
+            length_inc = 20  # length increment
+            if self.batch_length >= 0:
+                batch_length = self.batch_length
+                while batch_length < seqs.size(1):
+                    batch_length += length_inc
+                pad_size = batch_length - seqs.size(1)
+
+                seqs = torch.nn.functional.pad(seqs, (0, 0, 0, pad_size, 0, 0), value=0)
+                loss_masks = torch.nn.functional.pad(
+                    loss_masks, (0, 0, 0, pad_size, 0, 0), value=0
+                )
+                # Padding position_ids: continue incrementing so padding
+                # looks like one long sequence to FlashAttention varlen,
+                # avoiding hundreds of fake length-1 sequences that launch
+                # too many CUDA thread.
+                pad_positions = torch.arange(pad_size).unsqueeze(0)
+                position_ids = torch.cat([position_ids, pad_positions], dim=1)
+
+            # Pre-compute cu_seqlens from position_ids on CPU to avoid
+            # per-layer CPU-GPU sync in flash attention's varlen path.
+            # HF transformers would otherwise recompute this every layer
+            # via prepare_fa_kwargs_from_position_ids() which calls .item().
+            flat_pos = position_ids.view(-1)
+            indices = (flat_pos == 0).nonzero().view(-1)
+            cu_seqlens = torch.cat([indices, torch.tensor([flat_pos.size(0)])]).to(
+                torch.int32
+            )
+            max_seqlen = cu_seqlens.diff().max().item()
+
+            return_dict["position_ids"] = position_ids
+            return_dict["attn_args"] = {
+                "cu_seq_lens_q": cu_seqlens,
+                "cu_seq_lens_k": cu_seqlens,
+                "max_length_q": max_seqlen,
+                "max_length_k": max_seqlen,
+            }
+
+        return_dict["seqs"] = seqs
+        return_dict["loss_masks"] = loss_masks
+
+        # (3) Process continuous feats
+        conti_feats_dict = dict()
+        for b_idx, (data_dict, seq_start) in enumerate(zip(data_dicts, seq_lens[:-1])):
+            for this_io, start, length, feat in data_dict["conti_feats"]:
+                if self.batchfy_method == "pack":
+                    b_idx = 0
+                    start = start + seq_start
+
+                if this_io not in conti_feats_dict:
+                    conti_feats_dict[this_io] = [[], []]  # (b_idx, start, length), feat
+
+                conti_feats_dict[this_io][0].append((b_idx, start, length))
+                conti_feats_dict[this_io][1].append(feat)
+
+        for this_io, (indices, feats) in conti_feats_dict.items():
+            return_dict[f"{this_io}_indices"] = torch.Tensor(indices).long()
+            return_dict[f"{this_io}_feats"], return_dict[f"{this_io}_lengths"] = (
+                pad_list(feats)
+            )
+
+        return return_dict
+
+    def preprocessing(self, key, data_dict):
+        """Convert single raw data dict into training-ready format.
+
+        Applies chat template, tokenizes content, adds special tokens,
+        and creates loss masks. Returns dict with sequences and features.
+        """
+        # (1) convert to messages
+        task, _, _ = key
+        messages = self._apply_chat_template(task, data_dict)
+
+        # (2) initialize
+        seq = [self.special_token("<|bos|>")]
+        conti_feats = list()
+        loss_masks = [self.special_mask(0.0)]
+        accum_length = 1
+
+        # (3) loop on each message
+        # Determine where to place EOT tokens (when consecutive msgs have same role)
+        apply_eots = [
+            msg1[0] == msg2[0] for msg1, msg2 in zip(messages[:-1], messages[1:])
+        ] + [False]
+        for apply_eot, (role, this_io, this_data) in zip(apply_eots, messages):
+            apply_loss = float(role == "assistant" or self.loss_region == "all")
+            special_mask = self.special_mask(apply_loss)
+
+            # (3.1) role and modality
+            seq.append(self.special_token(f"<|{role}|>"))
+            loss_masks.append(special_mask)
+
+            modality = self.multimodal_io[this_io].modality
+            seq.append(self.special_token(f"<|{modality}|>"))
+            loss_masks.append(special_mask)
+
+            accum_length += 2
+
+            # (3.2) the exact data processing
+            this_seq, conti_feat, loss_mask = self.multimodal_io[this_io].preprocess(
+                this_data
+            )
+            assert this_seq.shape == loss_mask.shape
+
+            # (3.3) this_seq - adjust token IDs and pad to match stream count
+            if self.multimodal_io[this_io].is_discrete:
+                modality_bias = self.vocab_intervals[this_io][0][0]
+                this_seq = np.where(
+                    this_seq == self.pad_id, self.pad_id, this_seq + modality_bias
+                )
+            # Pad to num_stream if current IO has fewer streams
+            if this_seq.shape[1] < self.num_stream:
+                pad_size = self.num_stream - this_seq.shape[1]
+                this_seq = np.pad(this_seq, ((0, 0), (0, pad_size)))
+            seq.append(this_seq)
+
+            # (3.4) conti_feats
+            if conti_feat is not None:
+                length, feat = conti_feat
+                conti_feats.append((this_io, accum_length, length, feat))
+
+            # (3.5) loss_mask - pad and apply based on role
+            # Pad loss mask to match num_stream dimensions
+            if loss_mask.shape[1] < self.num_stream:
+                pad_size = self.num_stream - loss_mask.shape[1]
+                loss_mask = np.pad(loss_mask, ((0, 0), (0, pad_size)))
+            loss_masks.append(loss_mask * apply_loss)
+
+            accum_length += this_seq.shape[0]
+
+            # (3.6) <eot> or <eos>
+            if apply_eot:
+                seq.append(self.special_token("<|eot|>"))
+            else:
+                seq.append(self.special_token("<|eos|>"))
+            loss_masks.append(special_mask)
+            accum_length += 1
+
+        if random.random() < self.audio_cfg and self.is_train:
+            seq, loss_masks, conti_feats = self._apply_cfg(
+                seq, loss_masks, conti_feats, messages
+            )
+
+        # (4) concat
+        seq = np.concatenate(seq, axis=0)
+        loss_mask = np.concatenate(loss_masks, axis=0)
+
+        data = {
+            "sequence": seq,
+            "conti_feats": conti_feats,
+            "loss_mask": loss_mask,
+        }
+
+        # self.diagnose(data) # uncomment this for debug
+        return data
+
+    def diagnose(self, data):
+        """Print human-readable representation of processed data for debugging.
+
+        Shows tokens, loss masks, and continuous feature info frame by frame.
+        """
+        seq = data["sequence"]
+        loss_mask = data["loss_mask"]
+        conti_feats = data["conti_feats"]
+
+        for i, (s, m) in enumerate(zip(seq, loss_mask)):
+            s = [self.vocab[s] for s in s.tolist()]
+            m = m.tolist()
+            print(f"Frame {i} | token: {s} | weight: {m}")
+
+        for this_io, conti_start, length, feat in conti_feats:
+            print(
+                f"Conti feats: modality={this_io}, conti_feat={conti_start}, "
+                f"length={length}, feat={feat.shape}"
+            )
+
+        raise ValueError("End of diagnose")
+
+    def special_mask(self, value):
+        """Create loss mask for special tokens (1 frame, multi-stream).
+
+        Only first stream has the actual value, others are zero.
+        """
+        retval = np.zeros((1, self.num_stream)).astype(np.float32)
+        retval[0, 0] = value
+        return retval
+
+    def special_token(self, token):
+        """Convert special token string to multi-stream token array.
+
+        Places token ID in first stream, padding tokens in other streams.
+        """
+        num_special_token = self.vocab_intervals["special_token"][0][1]
+        special_tokens = self.vocab[:num_special_token]
+        token_id = special_tokens.index(token)
+        retval = np.ones((1, self.num_stream)).astype(np.int64) * self.pad_id
+        retval[0, 0] = token_id
+        return retval
+
+    def _apply_chat_template(self, task, data_dict):
+        """Convert data dict to list of (role, io_type, data) messages.
+
+        Either uses provided dialogue or constructs from task template.
+        Determines appropriate IO type based on role and data entry name.
+        """
+        if "dialogue" in data_dict:
+            if len(data_dict) != 1:
+                raise ValueError(
+                    "If dialogue exist, there should be no more other entries"
+                )
+            messages = list()
+            for msg in data_dict["dialogue"]:
+                if msg[0] == "assistant" and not self.is_train:
+                    break
+
+                if msg[1] == "text":
+                    this_io = "text"
+                elif msg[1] == "audio":
+                    # User/system use input audio IO, assistant uses output audio IO
+                    if msg[0] == "user" or msg[0] == "system":
+                        this_io = self.audio_input
+                    else:
+                        this_io = self.audio_output
+                else:
+                    raise ValueError(f"Not supported modality in dialogue: {msg[1]}")
+
+                msg = (msg[0], this_io, msg[2])
+
+                messages.append(msg)
+            return messages
+        else:
+            task_config = SPEECHLM_TASK_CONFIGS[task]
+            messages = list()
+            for role, entry in task_config:
+                # When inference, only process the input information (user and system)
+                if role == "assistant" and not self.is_train:
+                    break
+
+                # Select IO type based on entry name and role
+                if bool(re.match(r"^audio", entry)):
+                    # User/system use input audio IO, assistant uses output audio IO
+                    if role == "user" or role == "system":
+                        this_io = self.audio_input
+                    else:
+                        this_io = self.audio_output
+                elif bool(re.match(r"^text", entry)):
+                    this_io = "text"
+                else:
+                    raise ValueError(f"Not supported data entry in template: {entry}")
+
+                this_data = data_dict[entry]
+                message = (role, this_io, this_data)
+                messages.append(message)
+
+            return messages
+
+    def _apply_cfg(self, seq, loss_masks, conti_feats, messages):
+        audio_idx = [
+            i
+            for i, (role, modality, _) in enumerate(messages)
+            if role == "assistant" and modality == self.audio_output
+        ]
+
+        if len(audio_idx) == 0:  # If no valid audio output segment, keep untouched
+            return seq, loss_masks, conti_feats
+
+        # NOTE(Jinchuan): Only randomly keep one audio output segment, and keep all
+        # other segments as 0
+        # NOTE(Jinchuan): seq and loss_masks: start with an BOS;
+        # Each segment contains 4 items: 3 special tokens + 1 real segment
+        audio_idx = random.choice(audio_idx)
+        for i in range(len(messages)):
+            if i == audio_idx:
+                continue
+
+            for j in range(4):
+                k = i * 4 + j + 1
+                seq[k] *= 0
+                loss_masks[k] *= 0
+
+        seq[0] *= 0
+        loss_masks[0] *= 0
+        conti_feats = [feat for feat in conti_feats if feat[0] == self.audio_output]
+
+        return seq, loss_masks, conti_feats

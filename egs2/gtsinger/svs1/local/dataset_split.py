@@ -235,8 +235,7 @@ def process_subset(src_data, subset, check_func, fs, wav_dump, score_dump):
                 plist = filepath.strip("/").split("/")
                 index = plist.index("GTSinger")
                 if (
-                    len(plist) != 10
-                    or plist[index + 5] == "Paired_Speech_Group"
+                    plist[index + 5] == "Paired_Speech_Group"
                     or plist[index + 6][5] != "w"
                     or check_func(plist[index + 4])
                 ):

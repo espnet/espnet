@@ -15,7 +15,7 @@ if [ ! -e muskits.done ]; then
                 rm -rf ParallelWaveGAN
                 git clone https://github.com/kan-bayashi/ParallelWaveGAN.git
                 cd ParallelWaveGAN
-                pip install -e .
+                pip install --no-build-isolation -e .
                 cd ../
             )
         else

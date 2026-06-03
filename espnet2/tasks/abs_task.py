@@ -23,7 +23,7 @@ from packaging.version import parse as V
 from torch.utils.data import DataLoader
 from typeguard import typechecked
 
-from espnet import __version__
+from espnet2 import __version__
 from espnet2.iterators.abs_iter_factory import AbsIterFactory
 from espnet2.iterators.category_chunk_iter_factory import CategoryChunkIterFactory
 from espnet2.iterators.category_iter_factory import CategoryIterFactory
@@ -31,6 +31,7 @@ from espnet2.iterators.chunk_iter_factory import ChunkIterFactory
 from espnet2.iterators.multiple_iter_factory import MultipleIterFactory
 from espnet2.iterators.sequence_iter_factory import SequenceIterFactory
 from espnet2.layers.create_adapter import create_adapter
+from espnet2.legacy.utils.cli_utils import get_commandline_args
 from espnet2.main_funcs.collect_stats import collect_stats
 from espnet2.optimizers.optim_groups import configure_optimizer
 from espnet2.optimizers.sgd import SGD
@@ -89,17 +90,13 @@ from espnet2.utils.types import (
     str_or_none,
 )
 from espnet2.utils.yaml_no_alias_safe_dump import yaml_no_alias_safe_dump
-from espnet.utils.cli_utils import get_commandline_args
 
 try:
     import wandb
 except Exception:
     wandb = None
 
-if V(torch.__version__) >= V("1.5.0"):
     from torch.multiprocessing.spawn import ProcessContext
-else:
-    from torch.multiprocessing.spawn import SpawnContext as ProcessContext
 
 
 optim_classes = dict(
@@ -113,12 +110,8 @@ optim_classes = dict(
     lbfgs=torch.optim.LBFGS,
     rmsprop=torch.optim.RMSprop,
     rprop=torch.optim.Rprop,
+    radam=torch.optim.RAdam,
 )
-if V(torch.__version__) >= V("1.10.0"):
-    # From 1.10.0, RAdam is officially supported
-    optim_classes.update(
-        radam=torch.optim.RAdam,
-    )
 try:
     import torch_optimizer
 
@@ -698,6 +691,12 @@ class AbsTask(ABC):
             help="Set the model log period",
         )
         group.add_argument(
+            "--wandb_allow_val_change",
+            type=str2bool,
+            default=True,
+            help="Allow wandb config values to be changed after initialization",
+        )
+        group.add_argument(
             "--detect_anomaly",
             type=str2bool,
             default=False,
@@ -869,14 +868,14 @@ class AbsTask(ABC):
             "--batch_type",
             type=str,
             default="folded",
-            choices=list(BATCH_TYPES),
+            choices=list(BATCH_TYPES) + list(CATEGORY_BATCH_TYPES),
             help=_batch_type_help,
         )
         group.add_argument(
             "--valid_batch_type",
             type=str_or_none,
             default=None,
-            choices=list(BATCH_TYPES) + [None],
+            choices=list(BATCH_TYPES) + list(CATEGORY_BATCH_TYPES) + [None],
             help="If not given, the value of --batch_type is used",
         )
         group.add_argument("--fold_length", type=int, action="append", default=[])
@@ -1608,7 +1607,10 @@ class AbsTask(ABC):
                         id=args.wandb_id,
                         resume=args.resume,
                     )
-                    wandb.config.update(args)
+                    wandb.config.update(
+                        args,
+                        allow_val_change=args.wandb_allow_val_change,
+                    )
                 else:
                     # wandb also supports grouping for distributed training,
                     # but we only log aggregated data,
@@ -1939,7 +1941,7 @@ class AbsTask(ABC):
             dataset, args.allow_variable_data_keys, train=iter_options.train
         )
 
-        parent_dir = Path(iter_options.data_path_and_name_and_type[0][0]).parent
+        parent_dir = str(Path(iter_options.data_path_and_name_and_type[0][0]).parent)
 
         if Path(parent_dir, "category2utt").exists():
             category2utt_file = str(Path(parent_dir, "category2utt"))
@@ -1949,9 +1951,44 @@ class AbsTask(ABC):
                 "category2utt mandatory for category iterator, but not found"
             )
 
-        if iter_options.batch_type in CATEGORY_BATCH_TYPES:
+        if (
+            iter_options.batch_type in CATEGORY_BATCH_TYPES
+            or iter_options.batch_type == "folded"
+        ):
+            # Note(qingzheng): Handle category-based batch sampling for category
+            # iterator type.
+            #
+            # This covers two scenarios:
+            # 1. Explicit category batch types (catbel, catpow, catpow_balance_dataset):
+            #    Use the specified category sampler directly.
+            # 2. Legacy "folded" batch type with category iterator:
+            #    In older configurations, when iterator_type=category was set,
+            #    they typically does not specify the batch_type, which makes the
+            #    batch_type default to "folded". However, the intended behavior
+            #    in the case of setting iterator_type to category, is to use
+            #    category-balanced sampler (catbel). We maintain backward
+            #    compatibility by mapping the batch_type "folded" to "catbel"
+            #    in the case of setting iterator_type to "category".
+
+            if iter_options.batch_type == "folded":
+                logging.warning(
+                    "Detected iterator_type='category' with batch_type='folded'. "
+                    "In older ESPnet versions (< 202509), when iterator_type was "
+                    "set to 'category', the batch_type would default to 'folded' as "
+                    "the older design does not require the batch_type to be specified, "
+                    "but the intended behavior was to use category-balanced sampling "
+                    "(catbel batch sampler). We map 'folded' to 'catbel' to maintain "
+                    "this behavior. If you actually want to use the folded batch "
+                    "sampler, please set iterator_type='sequence' and "
+                    "batch_type='folded' instead."
+                )
+
             batch_sampler, sampler_args = build_category_batch_sampler(
-                type=iter_options.batch_type,
+                type=(
+                    iter_options.batch_type
+                    if iter_options.batch_type != "folded"
+                    else "catbel"
+                ),
                 batch_size=iter_options.batch_size,
                 batch_bins=iter_options.batch_bins,
                 shape_files=iter_options.shape_files,
@@ -1982,6 +2019,21 @@ class AbsTask(ABC):
                 batch_size=iter_options.batch_size,
                 key_file=key_file,
             )
+        elif iter_options.batch_type in BATCH_TYPES.keys():
+            # If the batch_type is set to other than the category batch types,
+            # folded, and unsorted, we fallback to treat it as a sequence iterator.
+            logging.warning(
+                f"The batch type {iter_options.batch_type} is not compatible "
+                f"with iterator_type=category. Please use a category batch type. "
+                f"Available category batch types: {CATEGORY_BATCH_TYPES.keys()} "
+                f"Here we fallback to treat it as a sequence iterator."
+            )
+            sequence_iter_factory = cls.build_sequence_iter_factory(
+                args=args,
+                iter_options=iter_options,
+                mode=mode,
+            )
+            return sequence_iter_factory
         else:
             raise ValueError(
                 f"batch_type={iter_options.batch_type} is not supported"
@@ -2139,7 +2191,7 @@ class AbsTask(ABC):
             dataset, args.allow_variable_data_keys, train=iter_options.train
         )
 
-        parent_dir = Path(iter_options.data_path_and_name_and_type[0][0]).parent
+        parent_dir = str(Path(iter_options.data_path_and_name_and_type[0][0]).parent)
 
         if Path(parent_dir, "category2utt").exists():
             category2utt_file = str(Path(parent_dir, "category2utt"))
@@ -2410,7 +2462,7 @@ class AbsTask(ABC):
         Args:
             config_file: The yaml file saved when training.
             model_file: The model file saved when training.
-            device: Device type, "cpu", "cuda", or "cuda:N".
+            device: Device type, "cpu", "mps", "cuda", or "cuda:N".
 
         """
         if config_file is None:
@@ -2431,7 +2483,8 @@ class AbsTask(ABC):
             raise RuntimeError(
                 f"model must inherit {AbsESPnetModel.__name__}, but got {type(model)}"
             )
-        model.to(device)
+        if device != "mps":
+            model.to(device)
 
         # For finetuned model, create adapter
         use_adapter = getattr(args, "use_adapter", False)
@@ -2445,11 +2498,17 @@ class AbsTask(ABC):
                 device = f"cuda:{torch.cuda.current_device()}"
             try:
                 state_dict = torch.load(
-                    model_file, map_location=device, weights_only=False
+                    model_file,
+                    map_location="cpu" if device == "mps" else device,
+                    weights_only=False,
                 )
                 # for deepspeed checkpoints
                 if "module" in state_dict:
                     state_dict = state_dict["module"]
+                # for lightning checkpoints
+                if "state_dict" in state_dict:
+                    state_dict = state_dict["state_dict"]
+
                 model.load_state_dict(
                     state_dict,
                     strict=False,
@@ -2457,7 +2516,9 @@ class AbsTask(ABC):
             except RuntimeError:
                 # Note(simpleoier): the following part is to be compatible with
                 #   pretrained model using earlier versions before `0a625088`
-                state_dict = torch.load(model_file, map_location=device)
+                state_dict = torch.load(
+                    model_file, map_location="cpu" if device == "mps" else device
+                )
                 if any(["frontend.upstream.model" in k for k in state_dict.keys()]):
                     if any(
                         [
@@ -2489,5 +2550,8 @@ class AbsTask(ABC):
                         )
                     else:
                         raise
+
+        if device == "mps":
+            model.to("mps", dtype=torch.float32)
 
         return model, args

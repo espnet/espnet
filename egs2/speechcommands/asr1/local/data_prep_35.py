@@ -112,9 +112,11 @@ for name in ["train", "dev", "test"]:
         file_list = test_file_list
         out_dir = args.test_dir
 
-    with open(os.path.join(out_dir, "text"), "w") as text_f, open(
-        os.path.join(out_dir, "wav.scp"), "w"
-    ) as wav_scp_f, open(os.path.join(out_dir, "utt2spk"), "w") as utt2spk_f:
+    with (
+        open(os.path.join(out_dir, "text"), "w") as text_f,
+        open(os.path.join(out_dir, "wav.scp"), "w") as wav_scp_f,
+        open(os.path.join(out_dir, "utt2spk"), "w") as utt2spk_f,
+    ):
         for wav_abspath in file_list:  # absolute path
             word, wav = wav_abspath.split("/")[-2:]
             uttid = f"{word}_{wav[:-4]}"
