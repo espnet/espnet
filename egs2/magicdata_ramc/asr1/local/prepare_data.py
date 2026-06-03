@@ -293,28 +293,28 @@ def main():
         type=int,
         default=0,
         help="Train-only: drop segments shorter than this duration (in ms). "
-             "Dev/test ignore this filter.",
+        "Dev/test ignore this filter.",
     )
     parser.add_argument(
         "--filter-max-time",
         type=int,
         default=1000 * 60 * 10,
         help="Train-only: drop segments longer than this duration (in ms). "
-             "Dev/test ignore this filter.",
+        "Dev/test ignore this filter.",
     )
     parser.add_argument(
         "--filter-min-text",
         type=int,
         default=0,
         help="Train-only: drop segments with fewer than this many cleaned "
-             "characters. Dev/test ignore this filter.",
+        "characters. Dev/test ignore this filter.",
     )
     parser.add_argument(
         "--filter-max-text",
         type=int,
         default=1000,
         help="Train-only: drop segments with more than this many cleaned "
-             "characters. Dev/test ignore this filter.",
+        "characters. Dev/test ignore this filter.",
     )
     args = parser.parse_args()
 
