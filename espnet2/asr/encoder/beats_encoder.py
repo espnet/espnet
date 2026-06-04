@@ -170,6 +170,8 @@ class BeatsEncoder(AbsEncoder):
     ) -> None:
         super().__init__()
 
+        # fbank stats: OpenBEATs 7M-sounds corpus (orig BEATs uses iter1 ckpt
+        # stats, see Appendix A of arXiv:2212.09058).
         self.fbank_mean = fbank_mean
         self.fbank_std = fbank_std
         self.max_layer = max_layer
@@ -202,7 +204,7 @@ class BeatsEncoder(AbsEncoder):
             )
         self.loaded_state_dict_ = None
         if beats_ckpt_path is not None:
-            self.loaded_state_dict_ = torch.load(beats_ckpt_path)
+            self.loaded_state_dict_ = torch.load(beats_ckpt_path, weights_only=False)
             logging.info(f"Loaded Beats pretrained config from {beats_ckpt_path}.")
             config = BeatsConfig(self.loaded_state_dict_["cfg"])
         if beats_config is not None:

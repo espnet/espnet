@@ -12,7 +12,6 @@ class RandomProjectionQuantizer(nn.Module):
         super().__init__()
         # Random projection layer
         self.random_projection = nn.Linear(dim, codebook_dim, bias=False)
-        # nn.init.xavier_uniform_(self.random_projection.weight)
         # NOTE(shikhar): xavier_normal has less skew
         nn.init.xavier_normal_(self.random_projection.weight)
 
