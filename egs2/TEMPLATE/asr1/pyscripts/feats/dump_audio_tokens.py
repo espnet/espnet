@@ -104,9 +104,28 @@ def dump_audio_tokens(
     codec_writer = kaldiio.WriteHelper(wspecifier)
     audio_reader = kaldiio.ReadHelper(rspecifier)
 
+    def flush(buffer, length_buffer, key_buffer, sample_rate):
+        wavs = pad_list(buffer, 0.0).to(device).float()
+        if wavs.dim() == 2:
+            wavs = wavs.unsqueeze(-1)
+        if sample_rate:
+            assert sample_rate == codec_fs
+        # b,t,d (d=1 for raw)
+        wav_lens = torch.tensor(length_buffer, dtype=torch.int).to(device)
+        with torch.no_grad():
+            codes, code_lengths = tokenizer(wavs, wav_lens)
+        codes += bias
+
+        codes = codes.detach().cpu().numpy()
+        code_lengths = code_lengths.detach().cpu().numpy()
+        assert codes.shape[0] == len(length_buffer)
+        assert code_lengths.shape[0] == len(length_buffer)
+        for code, length, key in zip(codes, code_lengths, key_buffer):
+            code = code[:length]
+            codec_writer[key] = code
+
     buffer, length_buffer, key_buffer = [], [], []
-    wav_reader_len = len(open(rspecifier.split(":")[1]).readlines())
-    idx = 0
+    sample_rate = None
     for key, data in audio_reader:
         if isinstance(data, tuple):
             assert waveform_input, "Set waveform_input=True for raw wav"
@@ -120,28 +139,13 @@ def dump_audio_tokens(
         length_buffer.append(len(wav))
         key_buffer.append(key)
 
-        if idx == wav_reader_len - 1 or len(buffer) % batch_size == 0:
-            wavs = pad_list(buffer, 0.0).to(device).float()
-            if wavs.dim() == 2:
-                wavs = wavs.unsqueeze(-1)
-            if sample_rate:
-                assert sample_rate == codec_fs
-            # b,t,d (d=1 for raw)
-            wav_lens = torch.tensor(length_buffer, dtype=torch.int).to(device)
-            with torch.no_grad():
-                codes, code_lengths = tokenizer(wavs, wav_lens)
-            codes += bias
-
-            codes = codes.detach().cpu().numpy()
-            code_lengths = code_lengths.detach().cpu().numpy()
-            assert codes.shape[0] == len(length_buffer)
-            assert code_lengths.shape[0] == len(length_buffer)
-            for code, length, key in zip(codes, code_lengths, key_buffer):
-                code = code[:length]
-                codec_writer[key] = code
-
+        if len(buffer) == batch_size:
+            flush(buffer, length_buffer, key_buffer, sample_rate)
             buffer, length_buffer, key_buffer = [], [], []
-        idx += 1
+
+    if buffer:
+        flush(buffer, length_buffer, key_buffer, sample_rate)
+
     # (4) dump vocabulary file
     if rank == 1:
         vocab_writer = open(vocab_file, "w")

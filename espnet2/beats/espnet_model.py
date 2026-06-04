@@ -193,7 +193,8 @@ class BeatsPretrainModel(AbsESPnetModel):
 
         padding_mask = make_pad_mask(speech_lengths).to(loss.device)
         unmasked = ~masked & ~padding_mask  # not masked and not padded
-        masked = masked & ~padding_mask  # masked and not padded, no-op
+        masked = masked & ~padding_mask  # masked and not padded
+        valid = masked | unmasked  # all non-padded positions
 
         weight = masked.sum() + 1e-10
         loss = loss / weight  # normalize by number of masked patches
@@ -206,7 +207,7 @@ class BeatsPretrainModel(AbsESPnetModel):
             count_masked = masked.sum()
             acc_m = corr_masked / (count_masked + 1e-10)
             acc_u = corr_unmask / (count_unmask + 1e-10)
-            n_uniq_pred = torch.unique(preds, return_counts=False).numel()
+            n_uniq_pred = torch.unique(preds[valid], return_counts=False).numel()
             vocab_cov_pred = n_uniq_pred / logits.shape[1]
             n_uniq_pred_masked = torch.unique(
                 preds[masked], return_counts=False
@@ -218,7 +219,7 @@ class BeatsPretrainModel(AbsESPnetModel):
             n_uniq_tgt_masked = torch.unique(
                 target[masked], return_counts=False
             ).numel()
-            n_uniq_tgt = torch.unique(target, return_counts=False).numel()
+            n_uniq_tgt = torch.unique(target[valid], return_counts=False).numel()
             vocab_cov_tgt = n_uniq_tgt / logits.shape[1]
 
         stats_dict = dict(
@@ -294,9 +295,8 @@ class BeatsTokenizerPretrainModel(AbsESPnetModel):
         encoder_dict: dict,
     ):
         cos_sim = F.cosine_similarity(target, output, dim=-1)
-        pad_mask = make_pad_mask(lengths).to(cos_sim.device)  # can optimize
-        cos_sim[pad_mask] = 1.0
-        cos_loss = (1 - cos_sim).sum() / lengths.sum()
+        pad_mask = make_pad_mask(lengths).to(cos_sim.device)
+        cos_loss = ((1 - cos_sim) * (~pad_mask)).sum() / lengths.sum()
         loss = cos_loss + encoder_dict["embed_loss"]
         with torch.no_grad():
             n_uniq_pred_msk = torch.unique(
