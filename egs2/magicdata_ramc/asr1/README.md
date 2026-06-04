@@ -108,7 +108,7 @@ to attribute where each setting wins or loses errors.
 | 1  | Conformer-12      | scratch      | ×  | ×  | —              | 50 / —        | 16.5  (13.5 / 1.8 / 1.2) † | 20.2  (16.5 / 2.3 / 1.4) † |
 | 2  | Branchformer-24   | scratch      | ×  | ×  | —              | 60 / —        | 16.1  (13.1 / 1.9 / 1.0) † | 19.9  (16.2 / 2.5 / 1.2) † |
 | 3a | E-Branchformer-12 | scratch      | ✓  | ×  | —              | 30 / —        | 14.2  (11.5 / 1.7 / 1.0) † | 18.0  (14.6 / 2.3 / 1.2) † |
-| **3b ★** | **E-Branchformer-12** | **scratch** | **✓** | **✓** | **scratch**         | **30 / 15**   | **(rerun in progress)** | **(rerun in progress)** |
+| **3b ★** | **E-Branchformer-12** | **scratch** | **✓** | **✓** | **scratch**         | **30 / 15**   | **14.0  (11.0 / 2.0 / 1.0)** | **17.8  (14.0 / 2.6 / 1.2)** |
 | 3c | E-Branchformer-12 | scratch      | ✓  | ✓  | magicdata-warm | 30 /  8       | 14.0  (11.2 / 1.9 / 0.9) † | 17.9  (14.3 / 2.5 / 1.1) † |
 | 4  | E-Branchformer-12 | AISHELL-warm | ✓  | ✓  | scratch        | 20 / 15       | 17.2  (13.9 / 2.3 / 1.1) † | 21.3  (17.0 / 2.9 / 1.4) † |
 
@@ -116,9 +116,11 @@ to attribute where each setting wins or loses errors.
 pipeline, where the duration / text-length filters were applied to dev/test
 as well and the paralinguistic tags were stripped instead of preserved as
 non-linguistic symbols. They are kept here because the relative ordering and
-qualitative conclusions still hold; absolute values will shift by a few CER
-points under the current pipeline (the recommended config — row 3b — is
-currently being re-run end-to-end to provide a refreshed reference number).
+qualitative conclusions still hold. Row 3b has been re-run end-to-end under
+the **current** pipeline (dev/test unfiltered, tags emitted as nlsyms); the
+shift turned out to be small (dev +0.3 CER, test +0.2 CER), suggesting the
+acoustic model handles the previously-filtered hard segments without much
+degradation.
 
 Configs (linked from the table column "ASR encoder + ASR init"):
 - Conformer-12: [conf/train_asr_conformer.yaml](./conf/train_asr_conformer.yaml)
