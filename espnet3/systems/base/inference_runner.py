@@ -6,7 +6,7 @@ import logging
 from functools import lru_cache
 from importlib import import_module
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Sequence
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Mapping
 
 from omegaconf import ListConfig
 
