@@ -8,8 +8,8 @@ import logging
 from distutils.util import strtobool
 
 import kaldiio
-import numpy
 import librosa
+import numpy
 import torch
 import torchaudio.compliance.kaldi as ta_kaldi
 
@@ -166,9 +166,7 @@ def main():
         for utt_id, (rate, array) in reader:
             array = array.astype(numpy.float32)
             if args.fs is not None and rate != args.fs:
-                array = librosa.resample(
-                    array, orig_sr=rate, target_sr=args.fs, axis=0
-                )
+                array = librosa.resample(array, orig_sr=rate, target_sr=args.fs, axis=0)
             if args.normalize is not None and args.normalize != 1:
                 array = array / (1 << (args.normalize - 1))
 
