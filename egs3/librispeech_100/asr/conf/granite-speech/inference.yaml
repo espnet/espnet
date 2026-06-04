@@ -1,0 +1,61 @@
+##########################################################
+#                   Inference SETTING                    #
+##########################################################
+# Common usage:
+#   python run.py --stages infer \
+#       --training_config conf/training_asr_transformer.yaml \
+#       --inference_config conf/inference.yaml
+#
+##########################################################
+#                    PATHS AND INPUTS                    #
+##########################################################
+# This recipe omits `exp_tag`, `exp_dir`, and `inference_dir` on purpose.
+# `run.py` copies `training_config.exp_tag` and `training_config.exp_dir` here
+# before resolving `${exp_dir}`.
+#
+# The default output directory uses the stem of the file passed to
+# `--inference_config`.
+# If `inference_dir` is omitted, `conf/<name>.yaml` becomes `${exp_dir}/<name>`.
+# Override `inference_dir` only when you want a different output location.
+
+##########################################################
+#                    DATASET DEFINITION                  #
+##########################################################
+# Each test entry is a dataset reference consumed by `DataOrganizer`.
+# - `name` becomes `${inference_dir}/<name>/`
+# - `data_src` is omitted, so ESPnet3 loads
+#   `${recipe_dir}/dataset/__init__.py`
+# - `data_src_args` is passed directly to `MiniAn4Dataset(...)`
+#
+# Dataset splits:
+#   test:
+#     - split="valid" from `MiniAn4Dataset`
+#     - split="test" from `MiniAn4Dataset`
+# Notes:
+#   - actual data sources are defined via `${recipe_dir}`
+dataset:
+  test:
+    - name: dev-clean
+      data_src_args:
+        split: dev-clean
+    - name: dev-other
+      data_src_args:
+        split: dev-other
+    - name: test-clean
+      data_src_args:
+        split: test-clean
+    - name: test-other
+      data_src_args:
+        split: test-other
+
+##########################################################
+#                    MODEL AND OUTPUT                    #
+##########################################################
+model:
+  _target_: egs3.librispeech_100.asr.src.granite_speech.GraniteSpeechInferenceSession
+  checkpoint_path: ${exp_dir}/last.ckpt
+  model_tag: ibm-granite/granite-speech-4.1-2b
+  user_prompt: "<|audio|>transcribe the speech with proper punctuation and capitalization."
+
+input_key: speech
+output_fn: src.inference.build_output
