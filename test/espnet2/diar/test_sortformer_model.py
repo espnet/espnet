@@ -148,11 +148,6 @@ def test_sliding_window_matches_full_attention():
 
 def test_local_attention_encoder_streaming_runs():
     """FastConformer with local attention runs in streaming (cache=global)."""
-    import math
-
-    import numpy as np
-    import torch
-
     pre = MelSpectrogramPreprocessor()
     enc = FastConformerEncoder(
         feat_in=80,
