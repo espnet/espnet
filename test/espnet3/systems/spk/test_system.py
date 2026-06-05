@@ -182,3 +182,78 @@ class TestSpeakerTask:
             ValueError, match="input_size must be specified when frontend is not used."
         ):
             SpeakerTask.build_model(args)
+
+    def test_build_model_propagates_input_size_without_frontend(self, monkeypatch):
+        import argparse
+
+        from espnet3.systems.spk import task as spk_task
+
+        class DummyEncoder:
+            def __init__(self, input_size, **kwargs):
+                self.input_size = input_size
+
+            def output_size(self):
+                return 16
+
+        class DummyPooling:
+            def __init__(self, input_size, **kwargs):
+                self.input_size = input_size
+
+            def output_size(self):
+                return 8
+
+        class DummyProjector:
+            def __init__(self, input_size, **kwargs):
+                self.input_size = input_size
+
+            def output_size(self):
+                return 4
+
+        class DummyLoss:
+            def __init__(self, nout, nclasses, **kwargs):
+                self.nout = nout
+                self.nclasses = nclasses
+
+        class DummyModel:
+            def __init__(
+                self,
+                frontend,
+                specaug,
+                normalize,
+                encoder,
+                pooling,
+                projector,
+                loss,
+                **kwargs,
+            ):
+                self.frontend = frontend
+                self.encoder = encoder
+
+        monkeypatch.setattr(spk_task.encoder_choices, "get_class", lambda _: DummyEncoder)
+        monkeypatch.setattr(spk_task.pooling_choices, "get_class", lambda _: DummyPooling)
+        monkeypatch.setattr(
+            spk_task.projector_choices, "get_class", lambda _: DummyProjector
+        )
+        monkeypatch.setattr(spk_task.loss_choices, "get_class", lambda _: DummyLoss)
+        monkeypatch.setattr(spk_task, "ESPnetSpeakerModel", DummyModel)
+
+        args = argparse.Namespace(
+            frontend=None,
+            input_size=80,
+            specaug=None,
+            normalize=None,
+            encoder="dummy",
+            encoder_conf={},
+            pooling="dummy",
+            pooling_conf={},
+            projector="dummy",
+            projector_conf={},
+            loss="dummy",
+            loss_conf={},
+            spk_num=2,
+            model_conf={},
+            init=None,
+        )
+        model = spk_task.SpeakerTask.build_model(args)
+        assert model.frontend is None
+        assert model.encoder.input_size == 80
