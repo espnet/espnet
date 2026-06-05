@@ -440,12 +440,14 @@ class BeatsRandomTokenizer(nn.Module):
             bias=False,
         )
         seed = config.seed
+        # Seed before constructing the quantizer so its random projection
+        # weights and codebook are reproducible from config.seed.
+        self._initialize(seed)
         self.random_projection_quantizer = RandomProjectionQuantizer(
             config.embed_dim,
             codebook_size=config.quant_n,
             codebook_dim=config.quant_dim,
         )
-        self._initialize(seed)
 
     def _initialize(self, seed):
         logging.info(
