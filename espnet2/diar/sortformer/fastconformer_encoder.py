@@ -335,14 +335,18 @@ class ConformerLayer(nn.Module):
         self.norm_out = nn.LayerNorm(d_model)
         self.dropout = nn.Dropout(dropout)
 
-    def forward(self, x, att_mask, pos_emb, pad_mask):
+    def forward(self, x, att_mask, pos_emb, pad_mask, n_global=0):
         residual = x
         x = self.norm_feed_forward1(x)
         x = self.feed_forward1(x)
         residual = residual + self.dropout(x) * self.fc_factor
 
         x = self.norm_self_att(residual)
-        x = self.self_attn(x, pos_emb=pos_emb, mask=att_mask)
+        if getattr(self.self_attn, "is_local", False):
+            # Efficient O(N*W) sliding-window attention; cache prefix is global.
+            x = self.self_attn(x, pos_emb=pos_emb, pad_mask=pad_mask, n_global=n_global)
+        else:
+            x = self.self_attn(x, pos_emb=pos_emb, mask=att_mask)
         residual = residual + self.dropout(x)
 
         x = self.norm_conv(residual)
@@ -416,6 +420,29 @@ class FastConformerEncoder(AbsEncoder):
             ]
         )
 
+        if att_context_size is not None:
+            # Efficient O(N*W) sliding-window attention (Longformer-style chunked
+            # rel-pos). Same weights as full attention -> checkpoints load as-is.
+            # Lazy import avoids a circular import with sliding_window_attention.
+            from espnet2.diar.sortformer.sliding_window_attention import (
+                LocalAttRelPositionalEncoding,
+                RelPositionLocalAttention,
+            )
+
+            self.pos_enc = LocalAttRelPositionalEncoding(
+                att_context_size,
+                d_model=d_model,
+                dropout_rate=dropout_pre_encoder,
+                max_len=pos_emb_max_len,
+                xscale=xscale,
+            )
+            for layer in self.layers:
+                local = RelPositionLocalAttention(
+                    n_heads, d_model, dropout_att, att_context_size
+                )
+                local.load_state_dict(layer.self_attn.state_dict())
+                layer.self_attn = local
+
     def output_size(self) -> int:
         return self._output_size
 
@@ -429,36 +456,16 @@ class FastConformerEncoder(AbsEncoder):
         """
         return self.subsampling(x, lengths)
 
-    def _create_masks(
-        self, lengths: torch.Tensor, max_len: int, full_prefix_len: int = 0
-    ):
-        """Build (pad_mask, att_mask). ``att_mask[b,i,j]`` is True where query i
-        may NOT attend to key j.
-
-        With ``att_context_size=[left, right]`` a query attends only within that
-        window, EXCEPT keys in ``[0, full_prefix_len)`` (the speaker cache /FIFO
-        prefix) which are always attendable. ``att_context_size=None`` -> full.
-        """
+    @staticmethod
+    def _create_masks(lengths: torch.Tensor, max_len: int):
+        """Full-attention masks. (Local windowing is handled efficiently inside
+        the sliding-window attention, not via an O(N^2) mask.)"""
         device = lengths.device
         valid = torch.arange(max_len, device=device).expand(
             lengths.size(0), max_len
         ) < lengths.unsqueeze(1)
         pad_mask = ~valid  # True = padded
         att_valid = valid.unsqueeze(1) & valid.unsqueeze(2)  # (B, T, T)
-
-        if self.att_context_size is not None:
-            left, right = self.att_context_size
-            idx = torch.arange(max_len, device=device)
-            diff = idx.unsqueeze(0) - idx.unsqueeze(1)  # (Tq, Tk): j - i
-            window_ok = torch.ones(max_len, max_len, dtype=torch.bool, device=device)
-            if right is not None and right >= 0:
-                window_ok &= diff <= right
-            if left is not None and left >= 0:
-                window_ok &= diff >= -left
-            if full_prefix_len > 0:  # cache/FIFO prefix always attendable
-                window_ok = window_ok | (idx.unsqueeze(0) < full_prefix_len)
-            att_valid = att_valid & window_ok.unsqueeze(0)
-
         att_mask = ~att_valid  # True = masked
         return pad_mask, att_mask
 
@@ -486,7 +493,25 @@ class FastConformerEncoder(AbsEncoder):
         x, pos_emb = self.pos_enc(x)
         max_len = x.size(1)
         olens = olens.clamp(max=max_len)
-        pad_mask, att_mask = self._create_masks(olens, max_len, full_prefix_len)
+        local = self.att_context_size is not None
+        if local:
+            # Efficient sliding-window path: only the padding mask is needed; the
+            # band kernel handles windowing, and the prefix is global (n_global).
+            pad_mask = ~(
+                torch.arange(max_len, device=olens.device).expand(
+                    olens.size(0), max_len
+                )
+                < olens.unsqueeze(1)
+            )
+            att_mask = None
+        else:
+            pad_mask, att_mask = self._create_masks(olens, max_len)
         for layer in self.layers:
-            x = layer(x, att_mask=att_mask, pos_emb=pos_emb, pad_mask=pad_mask)
+            x = layer(
+                x,
+                att_mask=att_mask,
+                pos_emb=pos_emb,
+                pad_mask=pad_mask,
+                n_global=full_prefix_len,
+            )
         return x, olens, None

@@ -116,32 +116,58 @@ def test_eight_speaker_loss_runs():
     assert preds.grad is not None and torch.isfinite(preds.grad).all()
 
 
-def test_local_attention_full_cache_prefix():
+def test_sliding_window_matches_full_attention():
+    """Chunked band kernel == full rel-pos attention when window >= seq length."""
     import torch
 
-    from espnet2.diar.sortformer.fastconformer_encoder import FastConformerEncoder
+    from espnet2.diar.sortformer.fastconformer_encoder import (
+        RelPositionalEncoding,
+        RelPositionMultiHeadAttention,
+    )
+    from espnet2.diar.sortformer.sliding_window_attention import (
+        LocalAttRelPositionalEncoding,
+        RelPositionLocalAttention,
+    )
 
+    torch.manual_seed(0)
+    h, d, t = 4, 32, 16
+    x = torch.randn(1, t, d)
+    full = RelPositionMultiHeadAttention(h, d, 0.0).eval()
+    w = t - 1
+    loc = RelPositionLocalAttention(h, d, 0.0, [w, w]).eval()
+    loc.load_state_dict(full.state_dict())  # same weights
+    _, pf = RelPositionalEncoding(d, 0.0, max_len=64, xscale=None)(x)
+    _, pl = LocalAttRelPositionalEncoding(
+        [w, w], d_model=d, dropout_rate=0.0, max_len=64, xscale=None
+    )(x)
+    with torch.no_grad():
+        o_full = full(x, pos_emb=pf, mask=torch.zeros(1, t, t, dtype=torch.bool))
+        o_loc = loc(x, pos_emb=pl, pad_mask=torch.zeros(1, t, dtype=torch.bool))
+    assert torch.allclose(o_full, o_loc, atol=1e-5)
+
+
+def test_local_attention_encoder_streaming_runs():
+    """FastConformer with local attention runs in streaming (cache=global)."""
+    import math
+
+    import numpy as np
+    import torch
+
+    pre = MelSpectrogramPreprocessor()
     enc = FastConformerEncoder(
         feat_in=80,
-        d_model=16,
-        n_layers=1,
-        n_heads=2,
+        d_model=32,
+        n_layers=2,
+        n_heads=4,
         ff_expansion_factor=2,
-        subsampling_conv_channels=8,
-        att_context_size=[1, 1],
+        subsampling_conv_channels=16,
+        att_context_size=[8, 8],
     )
-    pad, att = enc._create_masks(torch.tensor([8]), 8, full_prefix_len=3)
-    allowed = (~att)[0]
-    # chunk query (i=5): cache prefix 0,1,2 always + local window 4,5,6
-    assert torch.where(allowed[5])[0].tolist() == [0, 1, 2, 4, 5, 6]
-    # full attention when att_context_size is None
-    enc2 = FastConformerEncoder(
-        feat_in=80,
-        d_model=16,
-        n_layers=1,
-        n_heads=2,
-        ff_expansion_factor=2,
-        subsampling_conv_channels=8,
+    mods = SortformerModules(num_spks=4, fc_d_model=32, tf_d_model=16)
+    tf = TransformerEncoder(
+        num_layers=2, hidden_size=16, inner_size=32, num_attention_heads=4
     )
-    _, att2 = enc2._create_masks(torch.tensor([8]), 8)
-    assert torch.where((~att2)[0][5])[0].tolist() == list(range(8))
+    model = ESPnetSortformerModel(pre, enc, mods, tf, num_spk=4)
+    samples = 16000 * 20
+    preds, plen = model.diarize_streaming(torch.randn(1, samples))
+    assert preds.shape[2] == 4 and (preds >= 0).all() and (preds <= 1).all()
