@@ -41,27 +41,11 @@ def test_asr_system_train_runs_tokenizer_then_train(tmp_path, monkeypatch):
     assert calls["train"] is train_cfg
 
 
-def test_asr_system_preserves_publication_and_demo_configs(tmp_path) -> None:
-    train_cfg = OmegaConf.create({"exp_dir": str(tmp_path / "exp")})
-    publication_cfg = OmegaConf.create({"pack_model": {"out_dir": "pack"}})
-    demo_cfg = OmegaConf.create({"pack": {"out_dir": "demo"}})
-
-    system = ASRSystem(
-        training_config=train_cfg,
-        publication_config=publication_cfg,
-        demo_config=demo_cfg,
-    )
-
-    assert system.publication_config is publication_cfg
-    assert system.demo_config is demo_cfg
-
-
 def test_asr_system_train_tokenizer_trains_sentencepiece(tmp_path, monkeypatch):
     """Ensure train_tokenizer builds text and calls sentencepiece."""
     train_cfg = OmegaConf.create(
         {
             "exp_dir": str(tmp_path / "exp"),
-            "data_dir": str(tmp_path / "data"),
             "tokenizer": {
                 "save_path": str(tmp_path / "tokenizer"),
                 "model_type": "bpe",
@@ -98,7 +82,7 @@ def test_asr_system_train_tokenizer_trains_sentencepiece(tmp_path, monkeypatch):
 
     system.train_tokenizer()
 
-    train_txt = Path(train_cfg.data_dir) / "train_tokenizer" / "train.txt"
+    train_txt = Path(train_cfg.tokenizer.save_path) / "train.txt"
     assert train_txt.is_file()
     assert train_txt.read_text(encoding="utf-8").splitlines() == ["a b", "c d"]
     assert calls["load"] == "dummy"

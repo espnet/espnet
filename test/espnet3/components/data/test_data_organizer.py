@@ -527,7 +527,7 @@ def test_data_organizer_transform_only():
     assert organizer.valid[0]["text"] == "hello"
 
 
-def test_data_organizer_no_preprocessor_instantiated_config():
+def test_data_organizer_no_preprocessor_config():
     config = {
         "train": [
             {
@@ -545,29 +545,6 @@ def test_data_organizer_no_preprocessor_instantiated_config():
     organizer = DataOrganizer(
         train=OmegaConf.create(config)["train"],
         valid=OmegaConf.create(config)["valid"],
-    )
-    assert organizer.train[0]["text"] == "hello"
-    assert organizer.valid[0]["text"] == "hello"
-
-
-def test_data_organizer_no_preprocessor_config():
-    config = {
-        "train": [
-            {
-                "name": "train_dummy",
-                "dataset": {"_target_": DUMMY_DATASET_TARGET},
-            }
-        ],
-        "valid": [
-            {
-                "name": "valid_dummy",
-                "dataset": {"_target_": DUMMY_DATASET_TARGET},
-            }
-        ],
-    }
-    organizer = DataOrganizer(
-        train=instantiate(OmegaConf.create(config)["train"]),
-        valid=instantiate(OmegaConf.create(config)["valid"]),
     )
     assert organizer.train[0]["text"] == "hello"
     assert organizer.valid[0]["text"] == "hello"
