@@ -229,8 +229,12 @@ class TestSpeakerTask:
                 self.frontend = frontend
                 self.encoder = encoder
 
-        monkeypatch.setattr(spk_task.encoder_choices, "get_class", lambda _: DummyEncoder)
-        monkeypatch.setattr(spk_task.pooling_choices, "get_class", lambda _: DummyPooling)
+        monkeypatch.setattr(
+            spk_task.encoder_choices, "get_class", lambda _: DummyEncoder
+        )
+        monkeypatch.setattr(
+            spk_task.pooling_choices, "get_class", lambda _: DummyPooling
+        )
         monkeypatch.setattr(
             spk_task.projector_choices, "get_class", lambda _: DummyProjector
         )
