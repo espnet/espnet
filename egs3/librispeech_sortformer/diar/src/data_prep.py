@@ -17,11 +17,51 @@ Invoked by ``DiarizationSystem.data_preparation`` via the ``data_prep`` block in
 
 import logging
 import subprocess
+import zipfile
 from pathlib import Path
 
 import lhotse
 
 logger = logging.getLogger(__name__)
+
+# CorentinJ / lhotse LibriSpeech word alignments (.txt format expected by
+# lhotse.recipes.prepare_librispeech; NOT the MFA .TextGrid format).
+LIBRISPEECH_ALIGNMENTS_URL = (
+    "https://drive.google.com/uc?id=1WYfgr31T-PPwMcxuAq09XZfHQO5Mw8fE"
+)
+
+
+def download_librispeech_alignments(target_dir):
+    """Download + extract the lhotse-format LibriSpeech alignments. Returns the
+    ``.../LibriSpeech-Alignments/LibriSpeech`` dir to pass as ``librispeech_align``.
+    """
+    target_dir = Path(target_dir)
+    target_dir.mkdir(parents=True, exist_ok=True)
+    extracted = target_dir / "LibriSpeech-Alignments" / "LibriSpeech"
+    if extracted.is_dir():
+        return str(extracted)
+    import gdown
+
+    zp = target_dir / "LibriSpeech-Alignments.zip"
+    if not zp.is_file():
+        logger.info("Downloading LibriSpeech alignments -> %s", zp)
+        try:
+            gdown.download(
+                LIBRISPEECH_ALIGNMENTS_URL, output=str(zp), quiet=False, fuzzy=True
+            )
+        except Exception as e:
+            raise RuntimeError(
+                "Could not download LibriSpeech alignments from Google Drive "
+                f"({e}). The public link is frequently quota-limited. Either retry "
+                "later, or download 'LibriSpeech-Alignments.zip' manually (lhotse "
+                "LIBRISPEECH_ALIGNMENTS_URL / github.com/CorentinJ/librispeech-"
+                "alignments), unzip it, and set data_prep.fastmss.librispeech_align "
+                "to the extracted '.../LibriSpeech-Alignments/LibriSpeech' dir."
+            ) from e
+    with zipfile.ZipFile(zp) as f:
+        f.extractall(target_dir)
+    assert extracted.is_dir(), f"Unexpected alignments layout under {target_dir}"
+    return str(extracted)
 
 
 def build_ami_cuts(
@@ -124,11 +164,17 @@ def prepare(
     """Top-level data-prep entrypoint (called by DiarizationSystem)."""
     build_ami_cuts(ami_dir, data_dir, cond=ami_cond, window=window, splits=ami_splits)
     if fastmss is not None:
+        # Resolve the LibriSpeech alignments: auto-download the lhotse-format
+        # (.txt) alignments if the configured path is missing or set to "auto".
+        align = fastmss.get("librispeech_align")
+        if align in (None, "auto") or not Path(align).is_dir():
+            logger.info("librispeech_align missing/auto -> downloading alignments.")
+            align = download_librispeech_alignments(Path(data_dir) / "ls_alignments")
         synth = run_fastmss(
             fastmss_dir=fastmss["dir"],
             output_dir=fastmss.get("output_dir", str(Path(data_dir) / "fastmss")),
             librispeech_dir=fastmss["librispeech_dir"],
-            librispeech_align=fastmss["librispeech_align"],
+            librispeech_align=align,
             noise_folders=fastmss.get("noise_folders"),
             n_meetings=fastmss.get("n_meetings", 2000),
             min_max_spk=fastmss.get("min_max_spk", (3, 8)),
