@@ -1,0 +1,127 @@
+##########################################################
+#               SORTFORMER DIARIZATION TRAINING          #
+##########################################################
+# Quick usage:
+#   python run.py --stages data_preparation --training_config conf/training.yaml
+#   python run.py --stages train            --training_config conf/training.yaml
+#
+# Trains the offline Sortformer (4-spk) diarizer on FastMSS-simulated
+# LibriSpeech meeting mixtures; validates on AMI mixed-headset windows.
+
+task: espnet3.systems.diar.task.SortformerDiarizationTask
+
+##########################################################
+#                  DATA PREPARATION STAGE                #
+##########################################################
+# Builds AMI eval cuts (always) and, if `fastmss` is set, simulates the
+# LibriSpeech training mixtures. Point `ami_dir` at your AMI lhotse manifests.
+data_prep:
+  func: src.data_prep.prepare
+  data_dir: ${data_dir}
+  ami_dir: /raid/users/popcornell/AMI
+  window: 30.0
+  ami_splits: [dev, test]
+  # Uncomment and configure to auto-generate the training mixtures:
+  # fastmss:
+  #   dir: /path/to/FastMSS          # checkout of popcornell/FastMSS@librispeech
+  #   config_name: librispeech       # config/librispeech.yaml
+  #   overrides: ["output_dir=${data_dir}/synth", "n_meetings=2000"]
+
+##########################################################
+#                    DATASET DEFINITION                  #
+##########################################################
+dataset:
+  train:
+    - data_src_args:
+        split: train
+  valid:
+    - data_src_args:
+        split: valid
+  # Sortformer extracts log-mel features inside the model; no espnet
+  # text/audio preprocessor is needed.
+  preprocessor:
+
+create_dataset:
+  recipe_dir: ${recipe_dir}
+
+##########################################################
+#                      MODEL SETTING                     #
+##########################################################
+# Architecture reproduces nvidia/diar_sortformer_4spk-v1 so the released
+# weights can be converted/loaded (see src ../../../espnet2/diar/sortformer).
+model:
+  num_spk: 4
+
+  preprocessor_conf:
+    sample_rate: 16000
+    features: 80
+    n_fft: 512
+    window_size: 0.025
+    window_stride: 0.01
+    preemph: 0.97
+    dither: 1.0e-05
+
+  encoder_conf:
+    d_model: 512
+    n_layers: 18
+    n_heads: 8
+    ff_expansion_factor: 4
+    subsampling_factor: 8
+    subsampling_conv_channels: 256
+    conv_kernel_size: 9
+    dropout: 0.1
+    dropout_att: 0.1
+
+  transformer_conf:
+    num_layers: 18
+    hidden_size: 192
+    inner_size: 768
+    num_attention_heads: 8
+    attn_score_dropout: 0.5
+    attn_layer_dropout: 0.5
+    ffn_dropout: 0.5
+
+  sortformer_conf:
+    dropout_rate: 0.5
+    fc_d_model: 512
+    tf_d_model: 192
+
+  model_conf:
+    ats_weight: 0.5
+    pil_weight: 0.5
+
+##########################################################
+#            OPTIMIZER & SCHEDULER SETTING               #
+##########################################################
+optimizer:
+  lr: 0.0001
+  weight_decay: 0.001
+
+scheduler:
+  warmup_steps: 2500
+
+##########################################################
+#                OTHER TRAINING SETTING                  #
+##########################################################
+best_model_criterion:
+  - - valid/loss
+    - 5
+    - min
+
+##########################################################
+#                   DATALOADER SETTING                   #
+##########################################################
+dataloader:
+  train:
+    iter_factory:
+      batches:
+        type: unsorted
+        batch_size: 8
+
+##########################################################
+#                    TRAINER SETTING                     #
+##########################################################
+trainer:
+  max_epochs: 50
+  strategy: auto
+  precision: 32

@@ -1,0 +1,83 @@
+##########################################################
+#               SORTFORMER DIARIZATION INFERENCE         #
+##########################################################
+# Usage (score the converted pretrained model or a trained checkpoint on AMI):
+#   python run.py --stages infer measure \
+#       --training_config conf/training.yaml \
+#       --inference_config conf/inference.yaml \
+#       --metrics_config conf/metrics.yaml
+#
+# `model_file` defaults to the best trained checkpoint. To evaluate NVIDIA's
+# converted pretrained weights instead, point it at the .pth produced by
+#   python -m espnet2.diar.sortformer.convert_hf_sortformer \
+#       --hf_model nvidia/diar_sortformer_4spk-v1 --out exp/sortformer_4spk.pth
+
+dataset:
+  _target_: espnet3.components.data.data_organizer.DataOrganizer
+  recipe_dir: ${recipe_dir}
+  test:
+    - name: ami_dev
+      data_src_args:
+        split: valid
+    - name: ami_test
+      data_src_args:
+        split: test
+  preprocessor:
+
+parallel:
+  env: local
+  n_workers: 1
+
+##########################################################
+#                    MODEL AND OUTPUT                    #
+##########################################################
+model:
+  _target_: espnet2.bin.diar_sortformer_inference.SortformerDiarization
+  train_config: ${exp_dir}/config.yaml
+  model_file: ${exp_dir}/last.ckpt
+
+# Single-item decoding (variable-length audio).
+batch_size: null
+input_key: speech
+idx_key: utt_id
+output_keys:
+  - hyp
+  - ref
+output_fn: src.inference.build_output
+
+# Per-frame speaker probabilities (hyp) and reference activity (ref) are saved
+# as .npy artifacts; the DER metric loads both.
+output_artifacts:
+  hyp:
+    type: npy
+  ref:
+    type: npy
+
+provider:
+  _target_: espnet3.systems.base.inference_provider.InferenceProvider
+runner:
+  _target_: espnet3.systems.base.inference_runner.InferenceRunner
+
+##########################################################
+#         LONG-FORM (FULL-SESSION) INFERENCE             #
+##########################################################
+# Used by the `infer_longform` stage (DiarizationSystem). Full-session
+# diarization with the streaming speaker cache -> one RTTM per session.
+#   python run.py --stages infer_longform measure_longform \
+#       --inference_config conf/inference.yaml --metrics_config conf/metrics.yaml
+#
+# Best long-form results use the streaming-trained v2 model. Dump its weights
+# once in a NeMo env:
+#   python -c "from nemo.collections.asr.models import SortformerEncLabelModel as M; \
+#     import torch; m=M.from_pretrained('nvidia/diar_streaming_sortformer_4spk-v2', map_location='cpu'); \
+#     torch.save(m.state_dict(),'exp/sortformer_v2_full.pt')"
+longform:
+  mode: streaming            # streaming (speaker cache) | stitch
+  ami_dir: /raid/users/popcornell/AMI
+  cond: sdm                  # sdm (=Array1-01) | mdm | ihm-mix
+  splits: [dev]
+  nemo_ckpt: exp/sortformer_v2_full.pt   # or set `ckpt:` / `hf_model:` / `nest:`
+  threshold: 0.5
+  chunk_sec: 90
+  overlap_sec: 30
+  # out_dir defaults to ${inference_dir}/longform
