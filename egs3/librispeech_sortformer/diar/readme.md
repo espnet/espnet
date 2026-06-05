@@ -43,14 +43,16 @@ Edit the `data_prep` block in `conf/training.yaml`:
 
 - `fastmss.dir` — a checkout of [FastMSS](https://github.com/popcornell/FastMSS)
   **`librispeech` branch** (e.g. `downloads/FastMSS`).
-- `fastmss.librispeech_dir` / `fastmss.librispeech_align` — LibriSpeech audio and
-  **forced alignments**. FastMSS uses `lhotse.recipes.prepare_librispeech`, which
-  expects the **LibriSpeech-Alignments `.txt`** format (not MFA `.TextGrid`).
-  Set `librispeech_align: auto` to auto-download them (lhotse
-  `LIBRISPEECH_ALIGNMENTS_URL`, via `gdown`); that Google-Drive link is sometimes
-  quota-limited, so alternatively download `LibriSpeech-Alignments.zip` manually,
-  unzip, and point `librispeech_align` at the
-  `.../LibriSpeech-Alignments/LibriSpeech` dir.
+- `fastmss.aligned_manifests` (**preferred**) — a directory of **word-aligned
+  lhotse LibriSpeech manifests** (`librispeech_{recordings,supervisions}_<split>.jsonl.gz`
+  whose supervisions carry `alignment["word"]`). When set, FastMSS skips its
+  stage-0 alignment download and uses these directly (the recipe pre-builds
+  `all_cuts_orig.jsonl.gz` and starts FastMSS at stage 1).
+- `fastmss.librispeech_align` (fallback, only if `aligned_manifests` is unset) —
+  `auto` downloads the lhotse-format `.txt` alignments via lhotse
+  `download_librispeech` (Google-Drive, sometimes quota-limited), or point it at a
+  `.../LibriSpeech-Alignments/LibriSpeech` dir. The on-disk MFA `.TextGrid`
+  alignments are NOT compatible with `lhotse.prepare_librispeech`.
 - `fastmss.noise_folders` — a noise directory (WHAM/MUSAN, 16 kHz). Set this; if
   omitted, generation runs reverb-only (no additive noise).
 - `min_max_spk: [3, 8]`, `duration: 60` (1-minute meetings).

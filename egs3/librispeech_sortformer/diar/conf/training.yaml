@@ -33,9 +33,10 @@ data_prep:
     dir: ${recipe_dir}/downloads/FastMSS    # popcornell/FastMSS @ librispeech
     output_dir: ${data_dir}/fastmss
     librispeech_dir: /raid/users/popcornell/LibriSpeech
-    # "auto" downloads the lhotse-format (.txt) LibriSpeech alignments; or set a
-    # path to an existing .../LibriSpeech-Alignments/LibriSpeech dir. (The MFA
-    # .TextGrid alignments are NOT compatible with lhotse.prepare_librispeech.)
+    # Preferred: word-aligned lhotse manifests (skips alignment download).
+    aligned_manifests: /raid/users/popcornell/sim_data/librispeech_aligned_manifests
+    # Fallback if `aligned_manifests` is unset: `auto` downloads the lhotse-format
+    # (.txt) alignments, or set a .../LibriSpeech-Alignments/LibriSpeech dir.
     librispeech_align: auto
     noise_folders: [/path/to/wham_or_musan_16k]   # <-- set your noise dir
     n_meetings: 5000

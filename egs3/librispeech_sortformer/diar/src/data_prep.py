@@ -17,6 +17,7 @@ Invoked by ``DiarizationSystem.data_preparation`` via the ``data_prep`` block in
 
 import logging
 import subprocess
+import sys
 from pathlib import Path
 
 import lhotse
@@ -82,6 +83,35 @@ def build_ami_cuts(
     return out
 
 
+def build_source_cuts(aligned_manifests, output_dir, dset_splits, prefix="librispeech"):
+    """Pre-build FastMSS's ``all_cuts_orig.jsonl.gz`` from word-aligned lhotse
+    manifests, letting FastMSS skip stage 0 (alignment download / prep).
+    """
+    from lhotse import CutSet
+    from lhotse.manipulation import combine as combine_manifests
+
+    aligned = Path(aligned_manifests)
+    parts = []
+    for split in dset_splits:
+        rec = lhotse.load_manifest(
+            str(aligned / f"{prefix}_recordings_{split}.jsonl.gz")
+        )
+        sup = lhotse.load_manifest(
+            str(aligned / f"{prefix}_supervisions_{split}.jsonl.gz")
+        )
+        parts.append(CutSet.from_manifests(recordings=rec, supervisions=sup))
+    all_cuts = combine_manifests(parts)
+    mdir = Path(output_dir) / "manifests"
+    mdir.mkdir(parents=True, exist_ok=True)
+    all_cuts.to_file(str(mdir / "all_cuts_orig.jsonl.gz"))
+    logger.info(
+        "Pre-built source cuts (%d) from aligned manifests -> %s",
+        len(all_cuts),
+        mdir / "all_cuts_orig.jsonl.gz",
+    )
+    return all_cuts
+
+
 def run_fastmss(
     fastmss_dir,
     output_dir,
@@ -95,11 +125,14 @@ def run_fastmss(
     samplerate=16000,
     reverberate=True,
     n_jobs=16,
+    aligned_manifests=None,
     extra_overrides=None,
 ):
     """Generate FastMSS LibriSpeech meetings via Hydra overrides on sim_librispeech.
 
-    Returns the path to the generated synthetic CutSet.
+    If ``aligned_manifests`` (a dir of word-aligned lhotse LibriSpeech manifests)
+    is given, pre-build the source cuts and start FastMSS at stage 1 (no alignment
+    download). Returns the path to the generated synthetic CutSet.
     """
     fastmss_dir = Path(fastmss_dir)
     script = fastmss_dir / "sim_librispeech.py"
@@ -111,11 +144,16 @@ def run_fastmss(
         )
     Path(output_dir).mkdir(parents=True, exist_ok=True)
 
+    start_stage = 0
+    if aligned_manifests is not None:
+        build_source_cuts(aligned_manifests, output_dir, dset_splits)
+        start_stage = 1  # skip prepare_librispeech / alignment download
+
     def _list(x):
         return "[" + ",".join(str(v) for v in x) + "]"
 
     overrides = [
-        "stage=0",
+        f"stage={start_stage}",
         f"samplerate={samplerate}",
         f"output_dir={output_dir}",
         f"n_meetings={n_meetings}",
@@ -127,6 +165,10 @@ def run_fastmss(
         f"reverberate={str(reverberate).lower()}",
         f"n_jobs={n_jobs}",
         "save_cutset=true",
+        # Diarization only needs the mixture + supervisions, not the anechoic /
+        # per-speaker source streams (those are for separation).
+        "save_anechoic=false",
+        "save_spk=false",
     ]
     if noise_folders:
         overrides += ["add_noise=true", f"noise_folders={_list(noise_folders)}"]
@@ -134,7 +176,7 @@ def run_fastmss(
         overrides += ["add_noise=false", "noise_folders=null"]
     overrides += list(extra_overrides or [])
 
-    cmd = ["python", str(script), "--config-name", "librispeech"] + overrides
+    cmd = [sys.executable, str(script), "--config-name", "librispeech"] + overrides
     logger.info("Running FastMSS: %s", " ".join(cmd))
     subprocess.run(cmd, cwd=str(fastmss_dir), check=True)
 
@@ -154,23 +196,29 @@ def prepare(
     """Top-level data-prep entrypoint (called by DiarizationSystem)."""
     build_ami_cuts(ami_dir, data_dir, cond=ami_cond, window=window, splits=ami_splits)
     if fastmss is not None:
-        # Resolve the LibriSpeech alignments: auto-download the lhotse-format
-        # (.txt) alignments if the configured path is missing or set to "auto".
+        # Prefer pre-aligned lhotse manifests (skips alignment download). If not
+        # given, resolve librispeech_align, auto-downloading the lhotse-format
+        # (.txt) alignments when missing or set to "auto".
+        aligned_manifests = fastmss.get("aligned_manifests")
         align = fastmss.get("librispeech_align")
-        if align in (None, "auto") or not Path(align).is_dir():
-            logger.info("librispeech_align missing/auto -> downloading alignments.")
-            align = download_librispeech_alignments(Path(data_dir) / "ls_alignments")
+        if aligned_manifests is None:
+            if align in (None, "auto") or not Path(align).is_dir():
+                logger.info("No aligned_manifests; downloading LS alignments.")
+                align = download_librispeech_alignments(
+                    Path(data_dir) / "ls_alignments"
+                )
         synth = run_fastmss(
             fastmss_dir=fastmss["dir"],
             output_dir=fastmss.get("output_dir", str(Path(data_dir) / "fastmss")),
             librispeech_dir=fastmss["librispeech_dir"],
-            librispeech_align=align,
+            librispeech_align=align or "unused",
             noise_folders=fastmss.get("noise_folders"),
             n_meetings=fastmss.get("n_meetings", 2000),
             min_max_spk=fastmss.get("min_max_spk", (3, 8)),
             duration=fastmss.get("duration", int(window)),
             dset_splits=fastmss.get("dset_splits", ("train-clean-100",)),
             n_jobs=fastmss.get("n_jobs", 16),
+            aligned_manifests=aligned_manifests,
             extra_overrides=fastmss.get("overrides"),
         )
         logger.info(
