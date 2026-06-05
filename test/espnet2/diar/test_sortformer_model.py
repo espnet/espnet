@@ -114,3 +114,34 @@ def test_eight_speaker_loss_runs():
     assert loss.numel() == 1 and torch.isfinite(loss)
     loss.backward()
     assert preds.grad is not None and torch.isfinite(preds.grad).all()
+
+
+def test_local_attention_full_cache_prefix():
+    import torch
+
+    from espnet2.diar.sortformer.fastconformer_encoder import FastConformerEncoder
+
+    enc = FastConformerEncoder(
+        feat_in=80,
+        d_model=16,
+        n_layers=1,
+        n_heads=2,
+        ff_expansion_factor=2,
+        subsampling_conv_channels=8,
+        att_context_size=[1, 1],
+    )
+    pad, att = enc._create_masks(torch.tensor([8]), 8, full_prefix_len=3)
+    allowed = (~att)[0]
+    # chunk query (i=5): cache prefix 0,1,2 always + local window 4,5,6
+    assert torch.where(allowed[5])[0].tolist() == [0, 1, 2, 4, 5, 6]
+    # full attention when att_context_size is None
+    enc2 = FastConformerEncoder(
+        feat_in=80,
+        d_model=16,
+        n_layers=1,
+        n_heads=2,
+        ff_expansion_factor=2,
+        subsampling_conv_channels=8,
+    )
+    _, att2 = enc2._create_masks(torch.tensor([8]), 8)
+    assert torch.where((~att2)[0][5])[0].tolist() == list(range(8))

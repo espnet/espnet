@@ -95,6 +95,10 @@ model:
     conv_kernel_size: 9
     dropout: 0.1
     dropout_att: 0.1
+    # Local attention window [left, right] in 80-ms frames (-1 = unlimited side;
+    # null = full attention). Under streaming, the speaker-cache + FIFO prefix is
+    # ALWAYS attendable regardless of this window. null => full within cache+chunk.
+    att_context_size: null
 
   transformer_conf:
     num_layers: 18

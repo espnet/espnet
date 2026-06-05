@@ -76,16 +76,23 @@ class ESPnetSortformerModel(AbsESPnetModel):
         feats = feats[:, :, : feat_lengths.max()]
         return feats, feat_lengths  # (B, n_mels, T_feat)
 
-    def frontend_encoder(self, x, lengths, bypass_pre_encode: bool = False):
+    def frontend_encoder(
+        self, x, lengths, bypass_pre_encode: bool = False, full_prefix_len: int = 0
+    ):
         """Features/embeddings -> projected encoder states ``(B, T, tf_d_model)``.
 
         ``x`` is ``(B, n_mels, T)`` log-mel features when ``bypass_pre_encode=False``,
         or ``(B, T', fc_d_model)`` pre-encoded embeddings when ``True``.
+        ``full_prefix_len`` (streaming) marks the leading speaker-cache + FIFO
+        frames that are always attendable under local attention.
         """
         if not bypass_pre_encode:
             x = x.transpose(1, 2)  # (B, T_feat, n_mels)
         emb, emb_lengths, _ = self.encoder(
-            x, lengths, bypass_pre_encode=bypass_pre_encode
+            x,
+            lengths,
+            bypass_pre_encode=bypass_pre_encode,
+            full_prefix_len=full_prefix_len,
         )
         emb = self.sortformer_modules.encoder_proj(emb)
         return emb, emb_lengths
@@ -129,9 +136,10 @@ class ESPnetSortformerModel(AbsESPnetModel):
             concat = mods.concat_embs(
                 [state.spkcache, state.fifo, chunk_pre], dim=1, device=device
             )
-            concat_len = state.spkcache.shape[1] + state.fifo.shape[1] + chunk_pre_len
+            prefix_len = state.spkcache.shape[1] + state.fifo.shape[1]
+            concat_len = prefix_len + chunk_pre_len
             emb, emb_len = self.frontend_encoder(
-                concat, concat_len, bypass_pre_encode=True
+                concat, concat_len, bypass_pre_encode=True, full_prefix_len=prefix_len
             )
             preds = self.forward_infer(emb, emb_len)
             preds = mods.apply_mask_to_preds(preds, emb_len)

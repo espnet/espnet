@@ -378,10 +378,15 @@ class FastConformerEncoder(AbsEncoder):
         dropout_att: float = 0.1,
         xscaling: bool = True,
         pos_emb_max_len: int = 5000,
+        att_context_size: Optional[Tuple[int, int]] = None,
     ):
         super().__init__()
         self._output_size = d_model
         self.subsampling_factor = subsampling_factor
+        # Local attention window [left, right] (in 80-ms frames); -1 = unlimited
+        # on that side; None = full attention. In streaming, frames in the
+        # speaker-cache prefix are ALWAYS attendable regardless of this window.
+        self.att_context_size = att_context_size
         d_ff = d_model * ff_expansion_factor
 
         self.subsampling = ConvSubsampling(
@@ -424,14 +429,36 @@ class FastConformerEncoder(AbsEncoder):
         """
         return self.subsampling(x, lengths)
 
-    @staticmethod
-    def _create_masks(lengths: torch.Tensor, max_len: int):
+    def _create_masks(
+        self, lengths: torch.Tensor, max_len: int, full_prefix_len: int = 0
+    ):
+        """Build (pad_mask, att_mask). ``att_mask[b,i,j]`` is True where query i
+        may NOT attend to key j.
+
+        With ``att_context_size=[left, right]`` a query attends only within that
+        window, EXCEPT keys in ``[0, full_prefix_len)`` (the speaker cache /FIFO
+        prefix) which are always attendable. ``att_context_size=None`` -> full.
+        """
         device = lengths.device
         valid = torch.arange(max_len, device=device).expand(
             lengths.size(0), max_len
         ) < lengths.unsqueeze(1)
         pad_mask = ~valid  # True = padded
         att_valid = valid.unsqueeze(1) & valid.unsqueeze(2)  # (B, T, T)
+
+        if self.att_context_size is not None:
+            left, right = self.att_context_size
+            idx = torch.arange(max_len, device=device)
+            diff = idx.unsqueeze(0) - idx.unsqueeze(1)  # (Tq, Tk): j - i
+            window_ok = torch.ones(max_len, max_len, dtype=torch.bool, device=device)
+            if right is not None and right >= 0:
+                window_ok &= diff <= right
+            if left is not None and left >= 0:
+                window_ok &= diff >= -left
+            if full_prefix_len > 0:  # cache/FIFO prefix always attendable
+                window_ok = window_ok | (idx.unsqueeze(0) < full_prefix_len)
+            att_valid = att_valid & window_ok.unsqueeze(0)
+
         att_mask = ~att_valid  # True = masked
         return pad_mask, att_mask
 
@@ -441,6 +468,7 @@ class FastConformerEncoder(AbsEncoder):
         ilens: torch.Tensor,
         prev_states: torch.Tensor = None,
         bypass_pre_encode: bool = False,
+        full_prefix_len: int = 0,
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
         """Run the conformer encoder.
 
@@ -448,6 +476,8 @@ class FastConformerEncoder(AbsEncoder):
             xs_pad: ``(B, T, feat_in)`` log-mel features when
                 ``bypass_pre_encode=False``; otherwise ``(B, T', d_model)``
                 pre-encoded embeddings (subsampling already applied).
+            full_prefix_len: number of leading frames (speaker cache + FIFO) that
+                every query may always attend to, bypassing ``att_context_size``.
         """
         if bypass_pre_encode:
             x, olens = xs_pad, ilens
@@ -456,7 +486,7 @@ class FastConformerEncoder(AbsEncoder):
         x, pos_emb = self.pos_enc(x)
         max_len = x.size(1)
         olens = olens.clamp(max=max_len)
-        pad_mask, att_mask = self._create_masks(olens, max_len)
+        pad_mask, att_mask = self._create_masks(olens, max_len, full_prefix_len)
         for layer in self.layers:
             x = layer(x, att_mask=att_mask, pos_emb=pos_emb, pad_mask=pad_mask)
         return x, olens, None
