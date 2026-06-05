@@ -1,0 +1,19 @@
+# Dataset configuration for the 8-speaker streaming Sortformer recipe.
+#
+# `splits` maps each split name to a lhotse CutSet (.jsonl.gz), produced by the
+# `data_preparation` stage (see ../src/data_prep.py):
+#   - train     : FastMSS 1-min, 3-8-speaker simulated LibriSpeech meetings
+#   - ami_train : AMI single-distant-mic (Array1-01) 1-min windows
+#   - valid/test: AMI SDM dev/test 1-min windows (long-form eval uses full
+#                 sessions directly, not these windows)
+#
+# Paths are relative to the recipe directory unless absolute.
+num_spk: 8
+frame_dur: 0.08
+sample_rate: 16000
+
+splits:
+  train: data/fastmss/manifests/synth-librispeech-train-cuts.jsonl.gz
+  ami_train: data/ami_sdm_train_60s_cuts.jsonl.gz
+  valid: data/ami_sdm_dev_60s_cuts.jsonl.gz
+  test: data/ami_sdm_test_60s_cuts.jsonl.gz

@@ -1,99 +1,82 @@
-# Sortformer speaker diarization (offline) — ESPnet3 recipe
+# Sortformer speaker diarization — ESPnet3 (main recipe)
 
-End-to-end **offline Sortformer** diarization (NVIDIA, ported to be NeMo-free),
-trained on **FastMSS-simulated LibriSpeech meeting mixtures** and evaluated on
-**AMI** (mixed-headset) with frame-level **DER**.
+The **main ESPnet3 diarization recipe**: an **8-speaker streaming Sortformer**
+(NVIDIA Sortformer ported NeMo-free), with the **speaker cache** in the loop
+(original-Sortformer style), the FastConformer **initialized from NEST**
+self-supervised weights, trained on **FastMSS** 1-minute, **3–8-speaker**
+simulated LibriSpeech meetings **+ AMI** single-distant-mic, and evaluated with
+**long-form (full-session) DER on AMI**.
 
-Model code lives in `espnet2/diar/sortformer/` and
+Model/library code is under `espnet2/diar/sortformer/` and
 `espnet2/diar/espnet_sortformer_model.py`; the task is
-`espnet3.systems.diar.task.SortformerDiarizationTask`. The architecture
-reproduces `nvidia/diar_sortformer_4spk-v1` (FastConformer-L 18×512 with 8×
-`dw_striding` subsampling → Transformer 18×192 → 4-speaker sigmoid head),
-trained with the hybrid Arrival-Time-Sort + Permutation-Invariant BCE loss.
+`espnet3.systems.diar.task.SortformerDiarizationTask`. The 8-speaker loss uses
+**Hungarian PIL + arrival-time-argsort ATS** (brute-force `S!` is infeasible at
+8 speakers).
 
 ## Stages
 
 ```bash
-# 1) Prepare data: build AMI eval cuts (always) and, if configured, simulate
-#    LibriSpeech training mixtures with FastMSS.
+# 0) (once, in a NeMo env) dump the NEST encoder weights for initialization:
+python -c "from nemo.collections.asr.models import ASRModel; import torch; \
+  m=ASRModel.from_pretrained('nvidia/ssl_en_nest_large_v1.0', map_location='cpu'); \
+  torch.save(m.encoder.state_dict(), 'exp/nest_encoder.pt')"
+
+# 1) data prep: generate FastMSS meetings + build AMI SDM cuts
 python run.py --stages data_preparation --training_config conf/training.yaml
 
-# 2) Train from scratch on the simulated mixtures.
+# 2) train the 8-spk streaming Sortformer (speaker cache in the loop)
 python run.py --stages train --training_config conf/training.yaml
 
-# 3) Decode + score DER on AMI dev/test.
-python run.py --stages infer measure \
+# 3) long-form (full-session) diarization + collar DER on AMI
+python run.py --stages infer_longform measure_longform \
     --training_config conf/training.yaml \
     --inference_config conf/inference.yaml \
     --metrics_config conf/metrics.yaml
 ```
 
-Set the AMI manifest location via `data_prep.ami_dir` in `conf/training.yaml`
-(default `/raid/users/popcornell/AMI`). AMI eval windows are rebuilt from
-`ami-ihm-mix_recordings_*` + `ami-ihm-mix_supervisions_*` because the shipped
-`ami-ihm-mix_cutset_*_30s` manifests carry no supervisions.
+`python run.py` (no `--stages`) runs the full chain
+`data_preparation → train → infer_longform → measure_longform`.
 
-## Training data (FastMSS)
+## Data preparation (stage 1)
 
-Generating the LibriSpeech mixtures needs a checkout of
-[FastMSS](https://github.com/popcornell/FastMSS) (branch `librispeech`) plus
-LibriSpeech audio + alignments + WHAM noise on disk. Configure the optional
-`data_prep.fastmss` block in `conf/training.yaml`, then point
-`dataset/config.yaml` `splits.train` at the generated
-`synth-librispeech-train-cuts.jsonl.gz`.
+Edit the `data_prep` block in `conf/training.yaml`:
 
-## Evaluate NVIDIA's pretrained weights
+- `fastmss.dir` — a checkout of [FastMSS](https://github.com/popcornell/FastMSS)
+  **`librispeech` branch** (e.g. `downloads/FastMSS`).
+- `fastmss.librispeech_dir` / `fastmss.librispeech_align` — LibriSpeech audio and
+  **forced alignments**. ⚠️ FastMSS uses `lhotse.recipes.prepare_librispeech`,
+  which expects the **LibriSpeech-Alignments `.txt`** format (not MFA
+  `.TextGrid`). If your alignments are TextGrids, convert them or point at the
+  `.txt`-format release, otherwise forced-alignment splitting yields 0 cuts.
+- `fastmss.noise_folders` — a noise directory (WHAM/MUSAN, 16 kHz). Set this; if
+  omitted, generation runs reverb-only (no additive noise).
+- `min_max_spk: [3, 8]`, `duration: 60` (1-minute meetings).
 
-You can convert and score the released checkpoint without training:
+AMI cuts are built from `ami-sdm_{recordings,supervisions}_{train,dev,test}` in
+`data_prep.ami_dir` via `cut_into_windows(60)` (SDM = `Array1-01` = array1 mic1).
+Training data = FastMSS meetings **+** AMI SDM train (combined by the
+`DataOrganizer`); validation = AMI SDM dev.
 
-```bash
-python -m espnet2.diar.sortformer.convert_hf_sortformer \
-    --hf_model nvidia/diar_sortformer_4spk-v1 --out exp/sortformer_4spk.pth
-# then set conf/inference.yaml model.model_file: exp/sortformer_4spk.pth
-```
+## Model
 
-The port is numerically faithful: outputs match the original NeMo model to
-< 1e-4 (max abs diff) on AMI audio.
+FastConformer = NEST-L architecture (18×512, 80-mel, dw_striding 8×), initialized
+from NEST; Transformer (18×192) + 8-speaker sigmoid head trained from scratch.
+Streaming speaker cache (`spkcache_len`/`chunk_len` 188, `fifo_len` 0); training
+runs the cache in the loop (`model_conf.train_streaming: true`) so long-form
+inference keeps speaker identity globally consistent.
 
-## Notes
+## Evaluation
 
-- Offline (per-window) **and** streaming (speaker-cache, long-form) inference are
-  supported; see the long-form section below.
-- Fixed 4 speakers (`model.num_spk`).
-- The per-window `measure` stage reports frame-level DER (80 ms, Hungarian
-  mapping, no collar); the `measure_longform` stage reports collar-based
-  session-level DER.
-
-## Long-form (full-session) diarization with the streaming speaker cache
-
-Per-window decoding does not track speaker identity across a meeting. For proper
-**session-level DER**, use the streaming speaker cache (one pass per recording,
-globally-consistent speakers). Best results use the streaming-trained model
-`nvidia/diar_streaming_sortformer_4spk-v2` (dump its weights once in a NeMo env):
-
-```bash
-python -c "from nemo.collections.asr.models import SortformerEncLabelModel as M; \
-  import torch; m=M.from_pretrained('nvidia/diar_streaming_sortformer_4spk-v2', map_location='cpu'); \
-  torch.save(m.state_dict(),'exp/sortformer_v2_full.pt')"
-
-python run.py --stages infer_longform measure_longform \
-    --inference_config conf/inference.yaml --metrics_config conf/metrics.yaml
-```
-
-Configure the `longform:` blocks in `conf/inference.yaml` (model source, AMI dir,
-mic condition `sdm`/`mdm`/`ihm-mix`, split, chunk/overlap) and `conf/metrics.yaml`
-(`collar`, default 0.25). DER uses `pyannote.metrics` if installed, else a
-frame-level Hungarian fallback (no collar). Results are written to
+`infer_longform` runs full-session streaming inference (one pass per recording
+with the speaker cache) → one RTTM/session; `measure_longform` scores collar-
+based DER with `pyannote.metrics` (frame-level fallback if absent) →
 `${inference_dir}/longform/longform_der.json`.
 
-**Reference result** (converted `diar_streaming_sortformer_4spk-v2`, AMI SDM =
-Array1-01 = "array1 mic1", dev, collar 0.25): **DER 19.2%** (miss 11.7 / FA 3.6 /
-confusion 3.9). The speaker cache reduces confusion ~7x vs offline chunk-stitching.
+## Variants / utilities
 
-## Weight conversion utilities
-
-| Source | Converter |
-|---|---|
-| `nvidia/diar_sortformer_4spk-v1` (offline, HF) | `python -m espnet2.diar.sortformer.convert_hf_sortformer --out exp/sf_v1.pth` |
-| `nvidia/diar_streaming_sortformer_4spk-v2` (.nemo) | dump full state-dict, then `convert_nemo_sortformer.convert_nemo(...)` |
-| `nvidia/ssl_en_nest_large_v1.0` (NEST SSL encoder init) | `convert_nest.load_nest_encoder(model, nest_encoder.pt)` |
+- `conf/training_4spk_offline.yaml` — legacy 4-speaker **offline** model
+  (architecture of `nvidia/diar_sortformer_4spk-v1`).
+- Weight conversion: `espnet2/diar/sortformer/convert_hf_sortformer.py`
+  (offline v1 HF), `convert_nemo_sortformer.py` (streaming v2 `.nemo`),
+  `convert_nest.py` (NEST encoder init). The offline port is numerically faithful
+  (parity < 1e-4 vs the original on AMI audio).

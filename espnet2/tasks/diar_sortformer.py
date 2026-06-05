@@ -93,6 +93,13 @@ class SortformerDiarizationTask(AbsTask):
             help="Model kwargs (e.g. ats_weight, pil_weight).",
         )
         group.add_argument(
+            "--init_nest",
+            type=str_or_none,
+            default=None,
+            help="Path to a NEST encoder state-dict (.pt) to initialize the "
+            "FastConformer encoder from (e.g. nvidia/ssl_en_nest_large_v1.0).",
+        )
+        group.add_argument(
             "--use_preprocessor",
             type=str2bool,
             default=False,
@@ -171,4 +178,11 @@ class SortformerDiarizationTask(AbsTask):
 
         if args.init is not None:
             initialize(model, args.init)
+
+        # Initialize the FastConformer from NEST self-supervised weights.
+        init_nest = getattr(args, "init_nest", None)
+        if init_nest is not None:
+            from espnet2.diar.sortformer.convert_nest import load_nest_encoder
+
+            load_nest_encoder(model, init_nest)
         return model

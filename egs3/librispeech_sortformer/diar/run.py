@@ -7,12 +7,11 @@ from egs3.TEMPLATE.asr.run import build_parser, main, parse_cli_and_stage_args
 from espnet3.systems.diar.system import DiarizationSystem
 
 DEFAULT_STAGES: List[str] = [
+    # Stage 1: generate FastMSS meetings + build AMI cuts.
     "data_preparation",
-    "collect_stats",
+    # Stage 2: train the 8-spk streaming Sortformer (cache in the loop).
     "train",
-    "infer",
-    "measure",
-    # Full-session (long-form) diarization with the streaming speaker cache.
+    # Stage 3: long-form (full-session) diarization + collar DER on AMI.
     "infer_longform",
     "measure_longform",
 ]

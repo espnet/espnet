@@ -1,0 +1,90 @@
+##########################################################
+#        SORTFORMER DIARIZATION (4-spk, OFFLINE) — ALT    #
+##########################################################
+# Legacy 4-speaker offline config (architecture of
+# nvidia/diar_sortformer_4spk-v1). The main recipe config (conf/training.yaml)
+# is the 8-speaker streaming model. Use this for offline 4-spk experiments:
+#   python run.py --stages train --training_config conf/training_4spk_offline.yaml
+
+task: espnet3.systems.diar.task.SortformerDiarizationTask
+
+data_prep:
+  func: src.data_prep.prepare
+  data_dir: ${data_dir}
+  ami_dir: /raid/users/popcornell/AMI
+  ami_cond: ihm-mix
+  window: 30.0
+  ami_splits: [dev, test]
+
+dataset:
+  train:
+    - data_src_args:
+        split: train
+  valid:
+    - data_src_args:
+        split: valid
+  preprocessor:
+
+create_dataset:
+  recipe_dir: ${recipe_dir}
+
+model:
+  num_spk: 4
+  preprocessor_conf:
+    sample_rate: 16000
+    features: 80
+    n_fft: 512
+    window_size: 0.025
+    window_stride: 0.01
+    preemph: 0.97
+    dither: 1.0e-05
+  encoder_conf:
+    d_model: 512
+    n_layers: 18
+    n_heads: 8
+    ff_expansion_factor: 4
+    subsampling_factor: 8
+    subsampling_conv_channels: 256
+    conv_kernel_size: 9
+    dropout: 0.1
+    dropout_att: 0.1
+  transformer_conf:
+    num_layers: 18
+    hidden_size: 192
+    inner_size: 768
+    num_attention_heads: 8
+    attn_score_dropout: 0.5
+    attn_layer_dropout: 0.5
+    ffn_dropout: 0.5
+  sortformer_conf:
+    dropout_rate: 0.5
+    fc_d_model: 512
+    tf_d_model: 192
+  model_conf:
+    ats_weight: 0.5
+    pil_weight: 0.5
+    train_streaming: false
+
+optimizer:
+  lr: 0.0001
+  weight_decay: 0.001
+
+scheduler:
+  warmup_steps: 2500
+
+best_model_criterion:
+  - - valid/loss
+    - 5
+    - min
+
+dataloader:
+  train:
+    iter_factory:
+      batches:
+        type: unsorted
+        batch_size: 8
+
+trainer:
+  max_epochs: 50
+  strategy: auto
+  precision: 32

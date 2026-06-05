@@ -48,6 +48,7 @@ class ESPnetSortformerModel(AbsESPnetModel):
         ats_weight: float = 0.5,
         pil_weight: float = 0.5,
         eps: float = 1e-3,
+        train_streaming: bool = False,
     ):
         super().__init__()
         self.preprocessor = preprocessor
@@ -56,6 +57,10 @@ class ESPnetSortformerModel(AbsESPnetModel):
         self.transformer_encoder = transformer_encoder
         self.num_spk = num_spk
         self.eps = eps
+        # When True, training predictions are produced by the streaming speaker
+        # cache (forward_streaming, cache in the loop) -- as in original
+        # Sortformer training -- instead of the offline full-context encode().
+        self.train_streaming = train_streaming
         self.loss = SortformerHybridLoss(
             num_spks=num_spk, ats_weight=ats_weight, pil_weight=pil_weight
         )
@@ -171,7 +176,24 @@ class ESPnetSortformerModel(AbsESPnetModel):
             )
         assert spk_labels is not None, "spk_labels are required for training"
 
-        preds, preds_lengths = self.encode(speech, speech_lengths)
+        if self.train_streaming:
+            # Streaming training: predictions come from the speaker cache (BPTT
+            # through the cache), matching original Sortformer training.
+            feats, feat_lengths = self._process_signal(speech, speech_lengths)
+            preds = self.forward_streaming(feats, feat_lengths)
+            t_pred = preds.size(1)
+            # Per-item valid diar frames from sample lengths (8x subsampling).
+            preds_lengths = (
+                torch.div(
+                    speech_lengths.float(),
+                    self.preprocessor.hop_length * self.encoder.subsampling_factor,
+                    rounding_mode="floor",
+                )
+                .long()
+                .clamp(max=t_pred)
+            )
+        else:
+            preds, preds_lengths = self.encode(speech, speech_lengths)
 
         # Align targets (B, T_lab, S) to predictions (B, T_pred, S).
         targets, target_lens = self._align_targets(

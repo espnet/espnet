@@ -53,18 +53,64 @@ def test_encoder_subsamples_8x():
     assert (preds >= 0).all() and (preds <= 1).all()
 
 
-def test_ats_and_pil_targets_permutation_robustness():
+def _bruteforce_pil(labels, preds):
+    """Reference PIL via full permutation enumeration (small S only)."""
+    import itertools
+
+    b, t, s = labels.shape
+    perms = torch.tensor(list(itertools.permutations(range(s))))
+    permed = labels[:, :, perms]  # (B, T, P, S)
+    preds_rep = preds.unsqueeze(2).repeat(1, 1, perms.shape[0], 1)
+    score = (permed * preds_rep).sum(1).sum(2)  # (B, P)
+    best = score.argmax(1)
+    out = torch.stack([labels[i, :, perms[best[i]]] for i in range(b)])
+    return out
+
+
+def test_pil_targets_permutation_robustness():
     torch.manual_seed(0)
     b, t, s = 2, 20, 4
     labels = (torch.rand(b, t, s) > 0.6).float()
-    # perfect predictions in a permuted speaker order -> targets recover labels
-    perm = [2, 0, 3, 1]
-    preds = labels[:, :, perm].clone()
-    import itertools
-
-    perms = torch.tensor(list(itertools.permutations(range(s))))
-    pil = get_pil_targets(labels.clone(), preds, perms)
-    # PIL target should match preds (the permutation that best matches preds)
+    # perfect predictions in a permuted speaker order -> PIL recovers preds
+    preds = labels[:, :, [2, 0, 3, 1]].clone()
+    pil = get_pil_targets(labels.clone(), preds)
     assert torch.allclose(pil, preds)
-    ats = get_ats_targets(labels.clone(), preds, perms)
-    assert ats.shape == labels.shape
+
+
+def test_pil_hungarian_matches_bruteforce():
+    torch.manual_seed(1)
+    b, t, s = 4, 30, 3
+    labels = (torch.rand(b, t, s) > 0.55).float()
+    preds = torch.rand(b, t, s)
+    hung = get_pil_targets(labels.clone(), preds)
+    brute = _bruteforce_pil(labels.clone(), preds)
+    assert torch.equal(hung, brute)
+
+
+def test_ats_targets_sorted_by_arrival():
+    # speaker 2 speaks first, then 0, then 1 -> ATS order = [2, 0, 1]
+    t = 12
+    labels = torch.zeros(1, t, 3)
+    labels[0, 6:, 0] = 1.0  # spk0 arrives at 6
+    labels[0, 9:, 1] = 1.0  # spk1 arrives at 9
+    labels[0, 0:, 2] = 1.0  # spk2 arrives at 0
+    ats = get_ats_targets(labels)
+    # channel 0 should be the earliest arriver (old spk2)
+    assert torch.equal(ats[0, :, 0], labels[0, :, 2])
+    assert torch.equal(ats[0, :, 1], labels[0, :, 0])
+    assert torch.equal(ats[0, :, 2], labels[0, :, 1])
+
+
+def test_eight_speaker_loss_runs():
+    from espnet2.diar.sortformer.sort_loss import SortformerHybridLoss
+
+    torch.manual_seed(0)
+    b, t, s = 2, 50, 8
+    preds = torch.rand(b, t, s, requires_grad=True)
+    targets = (torch.rand(b, t, s) > 0.7).float()
+    lens = torch.tensor([t, t - 5])
+    loss_fn = SortformerHybridLoss(num_spks=8)
+    loss, ats, pil = loss_fn(preds, targets, lens)
+    assert loss.numel() == 1 and torch.isfinite(loss)
+    loss.backward()
+    assert preds.grad is not None and torch.isfinite(preds.grad).all()

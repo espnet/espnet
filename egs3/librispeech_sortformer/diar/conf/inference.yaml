@@ -66,18 +66,16 @@ runner:
 #   python run.py --stages infer_longform measure_longform \
 #       --inference_config conf/inference.yaml --metrics_config conf/metrics.yaml
 #
-# Best long-form results use the streaming-trained v2 model. Dump its weights
-# once in a NeMo env:
-#   python -c "from nemo.collections.asr.models import SortformerEncLabelModel as M; \
-#     import torch; m=M.from_pretrained('nvidia/diar_streaming_sortformer_4spk-v2', map_location='cpu'); \
-#     torch.save(m.state_dict(),'exp/sortformer_v2_full.pt')"
+# Default: evaluate the recipe's own trained 8-speaker streaming checkpoint with
+# the speaker cache (one pass per session, globally-consistent speakers).
+# To instead score NVIDIA's converted models, set `nemo_ckpt:`/`hf_model:` and
+# the matching `num_spk`.
 longform:
   mode: streaming            # streaming (speaker cache) | stitch
   ami_dir: /raid/users/popcornell/AMI
   cond: sdm                  # sdm (=Array1-01) | mdm | ihm-mix
   splits: [dev]
-  nemo_ckpt: exp/sortformer_v2_full.pt   # or set `ckpt:` / `hf_model:` / `nest:`
+  ckpt: ${exp_dir}/last.ckpt   # trained 8-spk streaming checkpoint
+  num_spk: 8
   threshold: 0.5
-  chunk_sec: 90
-  overlap_sec: 30
   # out_dir defaults to ${inference_dir}/longform

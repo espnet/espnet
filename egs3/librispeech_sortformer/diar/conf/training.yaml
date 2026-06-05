@@ -1,44 +1,61 @@
 ##########################################################
-#               SORTFORMER DIARIZATION TRAINING          #
+#   8-SPEAKER STREAMING SORTFORMER — MAIN ESPnet3 DIAR    #
 ##########################################################
-# Quick usage:
+# The main ESPnet3 diarization recipe: an 8-speaker streaming Sortformer
+# (speaker cache, original-Sortformer style), FastConformer initialized from
+# NEST self-supervised weights, trained with the cache in the loop on FastMSS
+# 1-minute 3-8-speaker simulated meetings + AMI single-distant-mic, and
+# evaluated with long-form DER on AMI.
+#
 #   python run.py --stages data_preparation --training_config conf/training.yaml
 #   python run.py --stages train            --training_config conf/training.yaml
 #
-# Trains the offline Sortformer (4-spk) diarizer on FastMSS-simulated
-# LibriSpeech meeting mixtures; validates on AMI mixed-headset windows.
+# Prerequisite (once, in a NeMo env) — dump the NEST encoder weights:
+#   python -c "from nemo.collections.asr.models import ASRModel; import torch; \
+#     m=ASRModel.from_pretrained('nvidia/ssl_en_nest_large_v1.0', map_location='cpu'); \
+#     torch.save(m.encoder.state_dict(), 'exp/nest_encoder.pt')"
 
 task: espnet3.systems.diar.task.SortformerDiarizationTask
 
 ##########################################################
-#                  DATA PREPARATION STAGE                #
+#               STAGE 1: DATA PREPARATION                #
 ##########################################################
-# Builds AMI eval cuts (always) and, if `fastmss` is set, simulates the
-# LibriSpeech training mixtures. Point `ami_dir` at your AMI lhotse manifests.
+# Generates FastMSS 1-min, 3-8-spk simulated meetings and builds AMI SDM cuts
+# (train + dev + test). Set the noise dir (WHAM/MUSAN) and the FastMSS checkout.
 data_prep:
   func: src.data_prep.prepare
   data_dir: ${data_dir}
   ami_dir: /raid/users/popcornell/AMI
-  window: 30.0
-  ami_splits: [dev, test]
-  # Uncomment and configure to auto-generate the training mixtures:
-  # fastmss:
-  #   dir: /path/to/FastMSS          # checkout of popcornell/FastMSS@librispeech
-  #   config_name: librispeech       # config/librispeech.yaml
-  #   overrides: ["output_dir=${data_dir}/synth", "n_meetings=2000"]
+  ami_cond: sdm
+  window: 60.0
+  ami_splits: [train, dev, test]
+  fastmss:
+    dir: ${recipe_dir}/downloads/FastMSS    # popcornell/FastMSS @ librispeech
+    output_dir: ${data_dir}/fastmss
+    librispeech_dir: /raid/users/popcornell/LibriSpeech
+    librispeech_align: /raid/users/popcornell/LibriSpeech/alignments
+    noise_folders: [/path/to/wham_or_musan_16k]   # <-- set your noise dir
+    n_meetings: 5000
+    min_max_spk: [3, 8]
+    duration: 60
+    dset_splits: [train-clean-100, train-clean-360]
+    n_jobs: 16
 
 ##########################################################
 #                    DATASET DEFINITION                  #
 ##########################################################
+# Training data = FastMSS synth meetings + AMI SDM train (combined by the
+# DataOrganizer). Validation = AMI SDM dev windows. (num_spk/frame_dur come
+# from dataset/config.yaml.)
 dataset:
   train:
     - data_src_args:
-        split: train
+        split: train       # FastMSS synthetic meetings
+    - data_src_args:
+        split: ami_train   # AMI SDM (Array1-01) 1-min windows
   valid:
     - data_src_args:
-        split: valid
-  # Sortformer extracts log-mel features inside the model; no espnet
-  # text/audio preprocessor is needed.
+        split: valid       # AMI SDM dev windows
   preprocessor:
 
 create_dataset:
@@ -47,10 +64,12 @@ create_dataset:
 ##########################################################
 #                      MODEL SETTING                     #
 ##########################################################
-# Architecture reproduces nvidia/diar_sortformer_4spk-v1 so the released
-# weights can be converted/loaded (see src ../../../espnet2/diar/sortformer).
+# FastConformer = NEST-L architecture (18x512, 80-mel), initialized from NEST.
+# Transformer + 8-spk head trained from scratch. Streaming speaker cache with
+# original-Sortformer params; training runs the cache in the loop.
 model:
-  num_spk: 4
+  num_spk: 8
+  init_nest: ${exp_dir}/nest_encoder.pt
 
   preprocessor_conf:
     sample_rate: 16000
@@ -60,6 +79,7 @@ model:
     window_stride: 0.01
     preemph: 0.97
     dither: 1.0e-05
+    normalize: per_feature
 
   encoder_conf:
     d_model: 512
@@ -85,10 +105,15 @@ model:
     dropout_rate: 0.5
     fc_d_model: 512
     tf_d_model: 192
+    spkcache_len: 188          # speaker cache size (~15 s of 80-ms frames)
+    fifo_len: 0
+    chunk_len: 188             # streaming chunk size (~15 s)
+    spkcache_update_period: 188
 
   model_conf:
     ats_weight: 0.5
     pil_weight: 0.5
+    train_streaming: true      # train with the speaker cache in the loop
 
 ##########################################################
 #            OPTIMIZER & SCHEDULER SETTING               #
@@ -100,9 +125,6 @@ optimizer:
 scheduler:
   warmup_steps: 2500
 
-##########################################################
-#                OTHER TRAINING SETTING                  #
-##########################################################
 best_model_criterion:
   - - valid/loss
     - 5
@@ -111,12 +133,13 @@ best_model_criterion:
 ##########################################################
 #                   DATALOADER SETTING                   #
 ##########################################################
+# 1-minute sessions; small batch (streaming BPTT over ~4 chunks/min).
 dataloader:
   train:
     iter_factory:
       batches:
         type: unsorted
-        batch_size: 8
+        batch_size: 4
 
 ##########################################################
 #                    TRAINER SETTING                     #

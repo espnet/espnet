@@ -1,18 +1,15 @@
-"""Data preparation for the Sortformer diarization recipe.
+"""Data preparation for the 8-speaker streaming Sortformer recipe.
 
-Two responsibilities:
+Stage 1 of the recipe. Two parts:
 
-1. **AMI evaluation cuts** (always): build fixed-length (default 30 s) windows of
-   the AMI *mixed-headset* recordings, each carrying its overlapping speaker
-   supervisions, from the lhotse manifests in ``ami_dir``. The pre-built
-   ``ami-ihm-mix_cutset_*_30s`` manifests ship *without* supervisions, so we
-   reconstruct them here from ``ami-ihm-mix_recordings_*`` +
-   ``ami-ihm-mix_supervisions_*``.
+1. **FastMSS simulated meetings** (the main training data): generate 1-minute,
+   3-8-speaker simulated LibriSpeech conversations (reverberant, with additive
+   noise) by shelling out to FastMSS ``sim_librispeech.py`` with Hydra overrides.
+   Produces a lhotse CutSet with multi-speaker supervisions.
 
-2. **FastMSS training mixtures** (optional): if ``fastmss`` is configured, shell
-   out to FastMSS ``sim_librispeech.py`` to generate simulated LibriSpeech
-   meeting mixtures and expose them as the ``train`` CutSet. Requires a FastMSS
-   checkout plus LibriSpeech/alignments/noise on disk (see FastMSS README).
+2. **AMI single-distant-mic (Array1-01) cuts**: 1-minute windows of AMI SDM for
+   additional training data, plus dev/test for long-form evaluation, built from
+   the AMI lhotse recordings + supervisions.
 
 Invoked by ``DiarizationSystem.data_preparation`` via the ``data_prep`` block in
 ``conf/training.yaml``.
@@ -27,76 +24,121 @@ import lhotse
 logger = logging.getLogger(__name__)
 
 
-def build_ami_eval_cuts(
-    ami_dir,
-    data_dir,
-    window=30.0,
-    splits=("dev", "test"),
-    manifest_prefix="ami-ihm-mix",
+def build_ami_cuts(
+    ami_dir, data_dir, cond="sdm", window=60.0, splits=("train", "dev", "test")
 ):
-    """Build AMI mixed-headset windowed cuts with supervisions."""
+    """Build windowed AMI cuts (with supervisions) for a mic condition."""
     ami_dir = Path(ami_dir)
     data_dir = Path(data_dir)
     data_dir.mkdir(parents=True, exist_ok=True)
     out = {}
     for split in splits:
-        rec_p = ami_dir / f"{manifest_prefix}_recordings_{split}.jsonl.gz"
-        sup_p = ami_dir / f"{manifest_prefix}_supervisions_{split}.jsonl.gz"
+        rec_p = ami_dir / f"ami-{cond}_recordings_{split}.jsonl.gz"
+        sup_p = ami_dir / f"ami-{cond}_supervisions_{split}.jsonl.gz"
         if not rec_p.is_file() or not sup_p.is_file():
-            logger.warning(
-                "Missing AMI manifests for split %s (%s / %s); skipping.",
-                split,
-                rec_p,
-                sup_p,
-            )
+            logger.warning("Missing AMI %s %s manifests; skipping.", cond, split)
             continue
         recs = lhotse.load_manifest(str(rec_p))
         sups = lhotse.load_manifest(str(sup_p))
         cuts = lhotse.CutSet.from_manifests(recordings=recs, supervisions=sups)
         cuts = cuts.cut_into_windows(duration=window)
-        # Keep windows that contain at least one supervision.
         cuts = cuts.filter(lambda c: len(c.supervisions) > 0).to_eager()
-        name = {"dev": "valid", "test": "test"}.get(split, split)
-        out_path = data_dir / f"ami_{split}_{int(window)}s_cuts.jsonl.gz"
+        out_path = data_dir / f"ami_{cond}_{split}_{int(window)}s_cuts.jsonl.gz"
         cuts.to_file(str(out_path))
-        logger.info("Wrote %d AMI %s windows -> %s", len(cuts), split, out_path)
-        out[name] = str(out_path)
+        logger.info(
+            "Wrote %d AMI %s %s windows -> %s", len(cuts), cond, split, out_path
+        )
+        out[split] = str(out_path)
     return out
 
 
-def run_fastmss(fastmss_dir, config_name, overrides=None):
-    """Run FastMSS sim_librispeech.py to simulate training mixtures."""
+def run_fastmss(
+    fastmss_dir,
+    output_dir,
+    librispeech_dir,
+    librispeech_align,
+    noise_folders=None,
+    n_meetings=2000,
+    min_max_spk=(3, 8),
+    duration=60,
+    dset_splits=("train-clean-100",),
+    samplerate=16000,
+    reverberate=True,
+    n_jobs=16,
+    extra_overrides=None,
+):
+    """Generate FastMSS LibriSpeech meetings via Hydra overrides on sim_librispeech.
+
+    Returns the path to the generated synthetic CutSet.
+    """
     fastmss_dir = Path(fastmss_dir)
     script = fastmss_dir / "sim_librispeech.py"
     if not script.is_file():
         raise FileNotFoundError(
             f"FastMSS script not found: {script}. Clone "
-            "https://github.com/popcornell/FastMSS (branch `librispeech`) and "
-            "set data_prep.fastmss.dir."
+            "https://github.com/popcornell/FastMSS (branch `librispeech`) and set "
+            "data_prep.fastmss.dir to that checkout."
         )
-    cmd = ["python", str(script), "--config-name", config_name]
-    cmd += list(overrides or [])
+    Path(output_dir).mkdir(parents=True, exist_ok=True)
+
+    def _list(x):
+        return "[" + ",".join(str(v) for v in x) + "]"
+
+    overrides = [
+        "stage=0",
+        f"samplerate={samplerate}",
+        f"output_dir={output_dir}",
+        f"n_meetings={n_meetings}",
+        f"min_max_spk={_list(min_max_spk)}",
+        f"duration={duration}",
+        f"librispeech_dir={librispeech_dir}",
+        f"librispeech_align={librispeech_align}",
+        f"dset_splits={_list(dset_splits)}",
+        f"reverberate={str(reverberate).lower()}",
+        f"n_jobs={n_jobs}",
+        "save_cutset=true",
+    ]
+    if noise_folders:
+        overrides += ["add_noise=true", f"noise_folders={_list(noise_folders)}"]
+    else:
+        overrides += ["add_noise=false", "noise_folders=null"]
+    overrides += list(extra_overrides or [])
+
+    cmd = ["python", str(script), "--config-name", "librispeech"] + overrides
     logger.info("Running FastMSS: %s", " ".join(cmd))
     subprocess.run(cmd, cwd=str(fastmss_dir), check=True)
+
+    synth = Path(output_dir) / "manifests" / "synth-librispeech-train-cuts.jsonl.gz"
+    logger.info("FastMSS synthetic cuts: %s", synth)
+    return str(synth)
 
 
 def prepare(
     data_dir,
     ami_dir,
-    window=30.0,
-    ami_splits=("dev", "test"),
+    ami_cond="sdm",
+    window=60.0,
+    ami_splits=("train", "dev", "test"),
     fastmss=None,
 ):
     """Top-level data-prep entrypoint (called by DiarizationSystem)."""
-    build_ami_eval_cuts(ami_dir, data_dir, window=window, splits=ami_splits)
+    build_ami_cuts(ami_dir, data_dir, cond=ami_cond, window=window, splits=ami_splits)
     if fastmss is not None:
-        run_fastmss(
+        synth = run_fastmss(
             fastmss_dir=fastmss["dir"],
-            config_name=fastmss.get("config_name", "librispeech"),
-            overrides=fastmss.get("overrides"),
+            output_dir=fastmss.get("output_dir", str(Path(data_dir) / "fastmss")),
+            librispeech_dir=fastmss["librispeech_dir"],
+            librispeech_align=fastmss["librispeech_align"],
+            noise_folders=fastmss.get("noise_folders"),
+            n_meetings=fastmss.get("n_meetings", 2000),
+            min_max_spk=fastmss.get("min_max_spk", (3, 8)),
+            duration=fastmss.get("duration", int(window)),
+            dset_splits=fastmss.get("dset_splits", ("train-clean-100",)),
+            n_jobs=fastmss.get("n_jobs", 16),
+            extra_overrides=fastmss.get("overrides"),
         )
         logger.info(
-            "FastMSS finished. Point dataset/config.yaml `splits.train` at the "
-            "generated synth cuts (e.g. <output_dir>/manifests/"
-            "synth-librispeech-train-cuts.jsonl.gz)."
+            "Point dataset/config.yaml splits.train at the FastMSS cuts: %s "
+            "(combined with the AMI train cuts via the DataOrganizer train list).",
+            synth,
         )
