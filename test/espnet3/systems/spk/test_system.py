@@ -171,3 +171,14 @@ class TestSpeakerTask:
         names = SpeakerTask.optional_data_names()
         assert "speech2" in names
         assert "trial" in names
+
+    def test_build_model_requires_input_size_without_frontend(self):
+        import argparse
+
+        from espnet3.systems.spk.task import SpeakerTask
+
+        args = argparse.Namespace(frontend=None, input_size=None)
+        with pytest.raises(
+            ValueError, match="input_size must be specified when frontend is not used."
+        ):
+            SpeakerTask.build_model(args)
