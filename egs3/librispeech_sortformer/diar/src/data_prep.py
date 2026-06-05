@@ -2,12 +2,12 @@
 
 Stage 1 of the recipe. Two parts:
 
-1. **FastMSS simulated meetings** (the main training data): generate 1-minute,
+1. **FastMSS simulated meetings** (the main training data): generate 90 s,
    3-8-speaker simulated LibriSpeech conversations (reverberant, with additive
    noise) by shelling out to FastMSS ``sim_librispeech.py`` with Hydra overrides.
    Produces a lhotse CutSet with multi-speaker supervisions.
 
-2. **AMI single-distant-mic (Array1-01) cuts**: 1-minute windows of AMI SDM for
+2. **AMI single-distant-mic (Array1-01) cuts**: 90 s windows of AMI SDM for
    additional training data, plus dev/test for long-form evaluation, built from
    the AMI lhotse recordings + supervisions.
 

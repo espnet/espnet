@@ -1,11 +1,17 @@
 # Sortformer speaker diarization — ESPnet3 (main recipe)
 
 The **main ESPnet3 diarization recipe**: an **8-speaker streaming Sortformer**
-(NVIDIA Sortformer ported NeMo-free), with the **speaker cache** in the loop
-(original-Sortformer style), the FastConformer **initialized from NEST**
-self-supervised weights, trained on **FastMSS** 1-minute, **3–8-speaker**
-simulated LibriSpeech meetings **+ AMI** single-distant-mic, and evaluated with
-**long-form (full-session) DER on AMI**.
+(NVIDIA Sortformer ported NeMo-free), with the **speaker cache** in the loop, the
+FastConformer **initialized from NEST** self-supervised weights, trained on
+**FastMSS** **3–8-speaker** simulated LibriSpeech meetings **+ AMI**
+single-distant-mic, and evaluated with **long-form (full-session) DER on AMI**.
+
+Streaming hyper-parameters follow NeMo's released streaming-v2 config
+(`diar_streaming_sortformer_4spk-v2`): **90 s sessions**, chunk/cache **188**
+(~15 s), `fifo_len` 0, `sil_frames` 3, full attention. The `causal_attn_rate`
+augmentation is intentionally omitted (this recipe does not target causal /
+low-latency streaming). Intended departures from v2 are **8 speakers** (v2 = 4)
+and **NEST initialization** (80-mel / 18-layer; v2 = 128-mel / 17-layer).
 
 Model/library code is under `espnet2/diar/sortformer/` and
 `espnet2/diar/espnet_sortformer_model.py`; the task is
@@ -50,15 +56,15 @@ Edit the `data_prep` block in `conf/training.yaml`:
   `all_cuts_orig.jsonl.gz` and starts FastMSS at stage 1).
 - `fastmss.librispeech_align` (fallback, only if `aligned_manifests` is unset) —
   `auto` downloads the lhotse-format `.txt` alignments via lhotse
-  `download_librispeech` (Google-Drive, sometimes quota-limited), or point it at a
-  `.../LibriSpeech-Alignments/LibriSpeech` dir. The on-disk MFA `.TextGrid`
-  alignments are NOT compatible with `lhotse.prepare_librispeech`.
-- `fastmss.noise_folders` — a noise directory (WHAM/MUSAN, 16 kHz). Set this; if
-  omitted, generation runs reverb-only (no additive noise).
-- `min_max_spk: [3, 8]`, `duration: 60` (1-minute meetings).
+  `download_librispeech`, or point it at a `.../LibriSpeech-Alignments/LibriSpeech`
+  dir. The on-disk MFA `.TextGrid` alignments are NOT compatible with
+  `lhotse.prepare_librispeech`.
+- `fastmss.noise_folders` — a noise directory (WHAM/MUSAN, 16 kHz; short clips are
+  looped). If omitted, generation runs reverb-only.
+- `min_max_spk: [3, 8]`, `duration: 90` (90 s meetings).
 
 AMI cuts are built from `ami-sdm_{recordings,supervisions}_{train,dev,test}` in
-`data_prep.ami_dir` via `cut_into_windows(60)` (SDM = `Array1-01` = array1 mic1).
+`data_prep.ami_dir` via `cut_into_windows(90)` (SDM = `Array1-01` = array1 mic1).
 Training data = FastMSS meetings **+** AMI SDM train (combined by the
 `DataOrganizer`); validation = AMI SDM dev.
 
@@ -66,15 +72,26 @@ Training data = FastMSS meetings **+** AMI SDM train (combined by the
 
 FastConformer = NEST-L architecture (18×512, 80-mel, dw_striding 8×), initialized
 from NEST; Transformer (18×192) + 8-speaker sigmoid head trained from scratch.
-Streaming speaker cache (`spkcache_len`/`chunk_len` 188, `fifo_len` 0); training
-runs the cache in the loop (`model_conf.train_streaming: true`) so long-form
-inference keeps speaker identity globally consistent.
+Streaming speaker cache (`spkcache_len`/`chunk_len` 188, `fifo_len` 0,
+`sil_frames` 3); training runs the cache in the loop (`model_conf.train_streaming:
+true`) over ~6 chunks per 90 s session, so the cache learns to compress/evict and
+keep speaker identity globally consistent for long-form inference. AdamW lr 1e-4,
+betas (0.9, 0.98), wd 1e-3, warmup 500 (NeMo streaming-v2).
+
+### Efficient local attention (optional)
+
+`encoder_conf.att_context_size` / `transformer_conf.att_context_size` enable an
+**O(N·W) chunked sliding-window attention** (Longformer-style band kernel, the
+mechanism Parakeet-v3 uses) with the speaker-cache prefix kept global. Set both to
+`[left, right]` (80-ms frames) to make the whole model O(N·W) for single-pass
+long-form; `null` (default) = full attention (NeMo-faithful). See
+`espnet2/diar/sortformer/sliding_window_attention.py`.
 
 ## Evaluation
 
 `infer_longform` runs full-session streaming inference (one pass per recording
-with the speaker cache) → one RTTM/session; `measure_longform` scores collar-
-based DER with `pyannote.metrics` (frame-level fallback if absent) →
+with the speaker cache) → one RTTM/session; `measure_longform` scores collar-based
+DER with `pyannote.metrics` (frame-level fallback if absent) →
 `${inference_dir}/longform/longform_der.json`.
 
 ## Variants / utilities
@@ -84,4 +101,5 @@ based DER with `pyannote.metrics` (frame-level fallback if absent) →
 - Weight conversion: `espnet2/diar/sortformer/convert_hf_sortformer.py`
   (offline v1 HF), `convert_nemo_sortformer.py` (streaming v2 `.nemo`),
   `convert_nest.py` (NEST encoder init). The offline port is numerically faithful
-  (parity < 1e-4 vs the original on AMI audio).
+  (parity < 1e-4 vs the original on AMI audio); converting the released streaming
+  v2 reaches ~19% long-form DER on AMI SDM.

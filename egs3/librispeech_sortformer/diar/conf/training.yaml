@@ -1,11 +1,15 @@
 ##########################################################
 #   8-SPEAKER STREAMING SORTFORMER — MAIN ESPnet3 DIAR    #
 ##########################################################
-# The main ESPnet3 diarization recipe: an 8-speaker streaming Sortformer
-# (speaker cache, original-Sortformer style), FastConformer initialized from
-# NEST self-supervised weights, trained with the cache in the loop on FastMSS
-# 1-minute 3-8-speaker simulated meetings + AMI single-distant-mic, and
-# evaluated with long-form DER on AMI.
+# Main ESPnet3 diarization recipe: an 8-speaker streaming Sortformer (NeMo-free
+# port, speaker cache in the loop), FastConformer initialized from NEST
+# self-supervised weights, trained on FastMSS 3-8-speaker simulated meetings +
+# AMI single-distant-mic, and evaluated with long-form DER on AMI.
+#
+# Streaming hyper-parameters follow NeMo's released streaming-v2 config
+# (diar_streaming_sortformer_4spk-v2): 90 s sessions, chunk/cache 188 (~15 s),
+# fifo_len 0, sil_frames 3, full attention. The `causal_attn_rate` augmentation
+# is intentionally omitted (we do not target causal / low-latency streaming).
 #
 #   python run.py --stages data_preparation --training_config conf/training.yaml
 #   python run.py --stages train            --training_config conf/training.yaml
@@ -20,14 +24,14 @@ task: espnet3.systems.diar.task.SortformerDiarizationTask
 ##########################################################
 #               STAGE 1: DATA PREPARATION                #
 ##########################################################
-# Generates FastMSS 1-min, 3-8-spk simulated meetings and builds AMI SDM cuts
-# (train + dev + test). Set the noise dir (WHAM/MUSAN) and the FastMSS checkout.
+# Generates FastMSS 90 s, 3-8-spk simulated meetings and builds AMI SDM cuts
+# (train + dev + test). Set the FastMSS checkout and a noise dir (WHAM/MUSAN).
 data_prep:
   func: src.data_prep.prepare
   data_dir: ${data_dir}
   ami_dir: /raid/users/popcornell/AMI
   ami_cond: sdm
-  window: 60.0
+  window: 90.0
   ami_splits: [train, dev, test]
   fastmss:
     dir: ${recipe_dir}/downloads/FastMSS    # popcornell/FastMSS @ librispeech
@@ -38,12 +42,14 @@ data_prep:
     # Fallback if `aligned_manifests` is unset: `auto` downloads the lhotse-format
     # (.txt) alignments, or set a .../LibriSpeech-Alignments/LibriSpeech dir.
     librispeech_align: auto
-    noise_folders: [/path/to/wham_or_musan_16k]   # <-- set your noise dir
+    # WHAM noise (short clips are looped); set your own noise dir if preferred.
+    noise_folders: [/raid/users/popcornell/whamr/wav16k/min/tr/noise]
     n_meetings: 5000
     min_max_spk: [3, 8]
-    duration: 60
+    duration: 90
     dset_splits: [train-clean-100, train-clean-360]
     n_jobs: 16
+    overrides: [filter_noise_len=2]   # keep short WHAM clips (looped to length)
 
 ##########################################################
 #                    DATASET DEFINITION                  #
@@ -56,7 +62,7 @@ dataset:
     - data_src_args:
         split: train       # FastMSS synthetic meetings
     - data_src_args:
-        split: ami_train   # AMI SDM (Array1-01) 1-min windows
+        split: ami_train   # AMI SDM (Array1-01) 90 s windows
   valid:
     - data_src_args:
         split: valid       # AMI SDM dev windows
@@ -70,7 +76,7 @@ create_dataset:
 ##########################################################
 # FastConformer = NEST-L architecture (18x512, 80-mel), initialized from NEST.
 # Transformer + 8-spk head trained from scratch. Streaming speaker cache with
-# original-Sortformer params; training runs the cache in the loop.
+# NeMo streaming-v2 params; training runs the cache in the loop.
 model:
   num_spk: 8
   init_nest: ${exp_dir}/nest_encoder.pt
@@ -95,9 +101,9 @@ model:
     conv_kernel_size: 9
     dropout: 0.1
     dropout_att: 0.1
-    # Local attention window [left, right] in 80-ms frames (-1 = unlimited side;
-    # null = full attention). Under streaming, the speaker-cache + FIFO prefix is
-    # ALWAYS attendable regardless of this window. null => full within cache+chunk.
+    # Optional efficient O(N*W) local attention window [left, right] in 80-ms
+    # frames (-1 = unlimited side). null = full attention (NeMo-faithful default).
+    # When set, the speaker-cache prefix stays global (always attended).
     att_context_size: null
 
   transformer_conf:
@@ -108,34 +114,36 @@ model:
     attn_score_dropout: 0.5
     attn_layer_dropout: 0.5
     ffn_dropout: 0.5
-    # Standard (no-pos) sliding-window attention for single-pass long-form; set
-    # together with encoder_conf.att_context_size to make the WHOLE model O(N*W).
-    # null => full attention. Cache prefix stays global (always attended).
+    # Set together with encoder_conf.att_context_size to make the WHOLE model
+    # O(N*W) for single-pass long-form. null = full attention (default).
     att_context_size: null
 
   sortformer_conf:
     dropout_rate: 0.5
     fc_d_model: 512
     tf_d_model: 192
-    spkcache_len: 188          # speaker cache size (~15 s of 80-ms frames)
+    spkcache_len: 188              # speaker cache size (~15 s of 80-ms frames)
     fifo_len: 0
-    chunk_len: 188             # streaming chunk size (~15 s)
+    chunk_len: 188                 # streaming chunk size (~15 s)
     spkcache_update_period: 188
+    spkcache_sil_frames_per_spk: 3
 
   model_conf:
     ats_weight: 0.5
     pil_weight: 0.5
-    train_streaming: true      # train with the speaker cache in the loop
+    train_streaming: true          # train with the speaker cache in the loop
 
 ##########################################################
 #            OPTIMIZER & SCHEDULER SETTING               #
 ##########################################################
+# NeMo streaming-v2: AdamW lr 1e-4, betas (0.9, 0.98), wd 1e-3, warmup 500.
 optimizer:
   lr: 0.0001
+  betas: [0.9, 0.98]
   weight_decay: 0.001
 
 scheduler:
-  warmup_steps: 2500
+  warmup_steps: 500
 
 best_model_criterion:
   - - valid/loss
@@ -145,7 +153,7 @@ best_model_criterion:
 ##########################################################
 #                   DATALOADER SETTING                   #
 ##########################################################
-# 1-minute sessions; small batch (streaming BPTT over ~4 chunks/min).
+# 90 s sessions; streaming BPTT over ~6 chunks/session (NeMo batch_size 4).
 dataloader:
   train:
     iter_factory:
