@@ -261,3 +261,24 @@ class TestSpeakerTask:
         model = spk_task.SpeakerTask.build_model(args)
         assert model.frontend is None
         assert model.encoder.input_size == 80
+
+class TestSpeakerBaseEntrypoints:
+    def test_base_package_exports(self):
+        from espnet3.systems.spk import base
+
+        assert base.train is not None
+        assert base.infer is not None
+        assert base.extract_embed is not None
+
+    def test_training_parser_accessor(self):
+        from espnet3.systems.spk.base.training import get_train_parser
+
+        parser = get_train_parser()
+        assert parser is not None
+
+    def test_inference_and_embed_parser_accessors(self):
+        from espnet3.systems.spk.base.embed_extract import get_embed_extract_parser
+        from espnet3.systems.spk.base.inference import get_inference_parser
+
+        assert get_inference_parser() is not None
+        assert get_embed_extract_parser() is not None
