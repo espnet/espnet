@@ -17,49 +17,39 @@ Invoked by ``DiarizationSystem.data_preparation`` via the ``data_prep`` block in
 
 import logging
 import subprocess
-import zipfile
 from pathlib import Path
 
 import lhotse
 
 logger = logging.getLogger(__name__)
 
-# CorentinJ / lhotse LibriSpeech word alignments (.txt format expected by
-# lhotse.recipes.prepare_librispeech; NOT the MFA .TextGrid format).
-LIBRISPEECH_ALIGNMENTS_URL = (
-    "https://drive.google.com/uc?id=1WYfgr31T-PPwMcxuAq09XZfHQO5Mw8fE"
-)
-
 
 def download_librispeech_alignments(target_dir):
-    """Download + extract the lhotse-format LibriSpeech alignments. Returns the
-    ``.../LibriSpeech-Alignments/LibriSpeech`` dir to pass as ``librispeech_align``.
+    """Fetch the lhotse-format LibriSpeech word alignments (``.txt``).
+
+    Delegates to ``lhotse.recipes.librispeech.download_librispeech`` with an empty
+    ``dataset_parts`` so it downloads *only* the alignments (not the 12 GB audio).
+    Returns the ``.../LibriSpeech-Alignments/LibriSpeech`` dir to pass as
+    ``librispeech_align``.
     """
     target_dir = Path(target_dir)
     target_dir.mkdir(parents=True, exist_ok=True)
     extracted = target_dir / "LibriSpeech-Alignments" / "LibriSpeech"
     if extracted.is_dir():
         return str(extracted)
-    import gdown
+    from lhotse.recipes.librispeech import download_librispeech
 
-    zp = target_dir / "LibriSpeech-Alignments.zip"
-    if not zp.is_file():
-        logger.info("Downloading LibriSpeech alignments -> %s", zp)
-        try:
-            gdown.download(
-                LIBRISPEECH_ALIGNMENTS_URL, output=str(zp), quiet=False, fuzzy=True
-            )
-        except Exception as e:
-            raise RuntimeError(
-                "Could not download LibriSpeech alignments from Google Drive "
-                f"({e}). The public link is frequently quota-limited. Either retry "
-                "later, or download 'LibriSpeech-Alignments.zip' manually (lhotse "
-                "LIBRISPEECH_ALIGNMENTS_URL / github.com/CorentinJ/librispeech-"
-                "alignments), unzip it, and set data_prep.fastmss.librispeech_align "
-                "to the extracted '.../LibriSpeech-Alignments/LibriSpeech' dir."
-            ) from e
-    with zipfile.ZipFile(zp) as f:
-        f.extractall(target_dir)
+    try:
+        download_librispeech(target_dir=target_dir, dataset_parts=[], alignments=True)
+    except Exception as e:
+        raise RuntimeError(
+            "Could not download LibriSpeech alignments via lhotse "
+            f"(download_librispeech, alignments=True): {e}. The Google-Drive link "
+            "is frequently quota-limited -- retry later, or download "
+            "'LibriSpeech-Alignments.zip' manually, unzip it, and set "
+            "data_prep.fastmss.librispeech_align to the extracted "
+            "'.../LibriSpeech-Alignments/LibriSpeech' dir."
+        ) from e
     assert extracted.is_dir(), f"Unexpected alignments layout under {target_dir}"
     return str(extracted)
 
