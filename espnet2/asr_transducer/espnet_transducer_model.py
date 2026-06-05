@@ -1,11 +1,10 @@
 """ESPnet2 ASR Transducer model."""
 
 import logging
-from contextlib import contextmanager
 from typing import Dict, List, Optional, Tuple, Union
 
 import torch
-from packaging.version import parse as V
+from torch.amp import autocast
 from typeguard import typechecked
 
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
@@ -17,14 +16,6 @@ from espnet2.asr_transducer.utils import get_transducer_task_io
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
-
-if V(torch.__version__) >= V("1.6.0"):
-    from torch.cuda.amp import autocast
-else:
-
-    @contextmanager
-    def autocast(enabled=True):
-        yield
 
 
 class ESPnetASRTransducerModel(AbsESPnetModel):
@@ -335,7 +326,7 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
             encoder_out_lens: Encoder outputs lengths. (B,)
 
         """
-        with autocast(False):
+        with autocast("cuda", enabled=False):
             # 1. Extract feats
             feats, feats_lengths = self._extract_feats(speech, speech_lengths)
 
@@ -423,7 +414,7 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
                 )
                 exit(1)
 
-        with autocast(False):
+        with autocast("cuda", enabled=False):
             loss_transducer = self.criterion_transducer(
                 joint_out.float(),
                 target,
@@ -511,7 +502,7 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
         lm = self.lm_proj(decoder_out)
         am = self.am_proj(encoder_out)
 
-        with autocast(False):
+        with autocast("cuda", enabled=False):
             simple_loss, (px_grad, py_grad) = k2.rnnt_loss_smoothed(
                 lm.float(),
                 am.float(),
@@ -540,7 +531,7 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
 
         joint_out = self.joint_network(am_pruned, lm_pruned, no_projection=True)
 
-        with autocast(False):
+        with autocast("cuda", enabled=False):
             pruned_loss = k2.rnnt_loss_pruned(
                 joint_out.float(),
                 target_padded,

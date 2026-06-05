@@ -9,6 +9,7 @@ from omegaconf import OmegaConf
 
 from espnet3.components.callbacks.default_callbacks import (
     AverageCheckpointsCallback,
+    _metric_to_float,
     get_default_callbacks,
 )
 
@@ -308,3 +309,15 @@ def test_duplicate_learning_rate_monitor_from_config():
 
     # AverageCheckpointsCallback should still be exactly one (unaffected by duplicates)
     assert sum(isinstance(cb, AverageCheckpointsCallback) for cb in callbacks) == 1
+
+
+def test_metric_to_float_rejects_non_scalar_tensor():
+    with pytest.raises(AssertionError, match="supports only scalar metric values"):
+        _metric_to_float(torch.tensor([1.0, 2.0]))
+
+
+def test_metric_to_float_rejects_unsupported_type():
+    with pytest.raises(
+        AssertionError, match="does not support metric values of type dict"
+    ):
+        _metric_to_float({"loss": 1.0})

@@ -2,11 +2,27 @@
 
 import copy
 from abc import ABC
-from typing import Any, Callable, List, Tuple
+from collections.abc import Mapping
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from torch.utils.data.dataset import Dataset
 
 from espnet3.utils.logging_utils import build_callable_name, build_qualified_name
+
+
+def do_nothing(*x):
+    """Return input as-is.
+
+    Args:
+        x: Any object.
+
+    Returns:
+        The input object unchanged.
+    """
+    if len(x) == 1:
+        return x[0]
+    else:
+        return x
 
 
 class CombinedDataset:
@@ -16,6 +32,13 @@ class CombinedDataset:
     Each dataset can be paired with a transform and a global preprocessor, which are
     applied sequentially to each sample. It also supports optional UID handling for
     ESPnet-style preprocessing.
+
+    CombinedDataset supports two indexing modes:
+        * Numeric mode (default): every underlying dataset accepts integer indices
+          and the combined dataset behaves like a contiguous sequence.
+        * String mode: if any dataset requires string-based utterance IDs, the
+          organizer builds a lookup table mapping every UID to its source dataset
+          while preserving DataLoader-friendly integer access.
 
     Args:
         datasets (List[Any]): A list of dataset instances. Each must implement
@@ -30,9 +53,6 @@ class CombinedDataset:
             `preprocessor(uid, sample)`. This is used for ESPnet `AbsPreprocessor`
             compatible pipelines.
 
-    Attributes:
-        multiple_iterator (bool): True if any dataset is a subclass of `ShardedDataset`.
-
     Note:
         At initialization, the first sample from each dataset is passed through
         its associated transform to check that all datasets produce dictionaries
@@ -41,7 +61,8 @@ class CombinedDataset:
 
     Raises:
         IndexError: If a requested index is outside the range of the combined dataset.
-        ValueError: If index is a non-integer string or cannot be cast to int.
+        ValueError: If index is a non-integer string that none of the underlying
+            datasets accept as an utterance ID.
         RuntimeError: If `shard()` is called but not supported.
         AssertionError: If output keys from different datasets are inconsistent.
 
@@ -66,22 +87,40 @@ class CombinedDataset:
     ):
         """Initialize CombinedDataset object."""
         self.datasets = datasets
-        self.transforms = transforms
+        self.transforms = []
         self.lengths = [len(ds) for ds in datasets]
         self.cumulative_lengths = []
         self.use_espnet_preprocessor = use_espnet_preprocessor
+
+        for transform, preprocessor in transforms:
+            if transform is None:
+                transform = do_nothing
+            if preprocessor is None:
+                preprocessor = do_nothing
+            assert callable(transform), "transform must be callable."
+            assert callable(preprocessor), "preprocessor must be callable."
+            self.transforms.append((transform, preprocessor))
 
         total = 0
         for length in self.lengths:
             total += length
             self.cumulative_lengths.append(total)
 
+        self._string_index_mode = False
+        self._uid_to_dataset: Dict[str, Tuple[int, Any]] = {}
+        self._dataset_supports_int: List[bool] = []
+        self._dataset_key_lists: List[Optional[List[str]]] = []
+
+        self._initialize_index_mode()
+
         # Check the first sample from all dataset to ensure they all have the same keys
         sample_keys = None
         for i, (dataset, transform) in enumerate(zip(self.datasets, self.transforms)):
             if len(dataset) == 0:
                 continue  # Skip empty datasets
-            sample = transform[0](copy.deepcopy(dataset[0]))
+
+            reference_key = self._select_reference_key_for_dataset(i)
+            sample = transform[0](copy.deepcopy(dataset[reference_key]))
             keys = set(sample.keys())
             if sample_keys is None:
                 sample_keys = keys
@@ -92,15 +131,35 @@ class CombinedDataset:
                 )
 
         # Check if dataset is a subclass of ShardedDataset.
-        self.multiple_iterator = False
-        for dataset in self.datasets:
-            if isinstance(dataset, ShardedDataset):
-                self.multiple_iterator = True
-            if self.multiple_iterator and not isinstance(dataset, ShardedDataset):
+        has_sharded = any(
+            isinstance(dataset, ShardedDataset) for dataset in self.datasets
+        )
+        if has_sharded and not all(
+            isinstance(dataset, ShardedDataset) for dataset in self.datasets
+        ):
+            raise RuntimeError(
+                "If any dataset is a subclass of ShardedDataset,"
+                " then all dataset should be a subclass of ShardedDataset."
+            )
+        if has_sharded:
+            total_shards_set = {
+                getattr(dataset, "total_shards", None) for dataset in self.datasets
+            }
+            dist_world_size_set = {
+                getattr(dataset, "dist_world_size", None) for dataset in self.datasets
+            }
+            if None in total_shards_set or None in dist_world_size_set:
                 raise RuntimeError(
-                    "If any dataset is a subclass of ShardedDataset,"
-                    " then all dataset should be a subclass of ShardedDataset."
+                    "ShardedDataset requires total_shards and dist_world_size "
+                    "to be set."
                 )
+            if len(total_shards_set) != 1 or len(dist_world_size_set) != 1:
+                raise RuntimeError(
+                    "All sharded datasets must share the same total_shards and "
+                    "dist_world_size."
+                )
+            self.total_shards = total_shards_set.pop()
+            self.dist_world_size = dist_world_size_set.pop()
 
         # This flag will be overrode by ESPnetLightningModule.
         self._use_espnet_collator = False
@@ -120,14 +179,17 @@ class CombinedDataset:
         return self.cumulative_lengths[-1] if self.cumulative_lengths else 0
 
     def __getitem__(self, idx):
-        """Retrieve and process a sample by index."""
+        """Return the item at the given index from the appropriate sub-dataset."""
+        if self._string_index_mode:
+            return self._getitem_string_mode(idx)
+
         if isinstance(idx, str):
             try:
-                idx = int(idx)
+                numerical_idx = int(idx)
             except (ValueError, TypeError):
-                raise ValueError(
-                    "ESPnet-3 expects the utterance ID to be an " "integer index"
-                )
+                return self._getitem_by_utterance_id(idx)
+            else:
+                idx = numerical_idx
 
         for i, cum_len in enumerate(self.cumulative_lengths):
             if idx < cum_len:
@@ -154,6 +216,158 @@ class CombinedDataset:
 
         raise IndexError("Index out of range in CombinedDataset")
 
+    def _getitem_by_utterance_id(self, uid: str):
+        if self._string_index_mode:
+            return self._getitem_string_mode(uid)
+
+        last_error = None
+        for dataset, (transform, preprocessor) in zip(self.datasets, self.transforms):
+            try:
+                sample = dataset[uid]
+            except (KeyError, TypeError, ValueError, IndexError) as err:
+                last_error = err
+                continue
+
+            transformed = transform(sample)
+            if self.use_espnet_preprocessor:
+                transformed = preprocessor(uid, transformed)
+            else:
+                transformed = preprocessor(transformed)
+
+            if self.use_espnet_collator:
+                return uid, transformed
+            return transformed
+
+        raise ValueError(
+            f"Utterance ID '{uid}' is not supported by the underlying datasets."
+        ) from last_error
+
+    # ------------------------------------------------------------------
+    # Internal helpers for string-index mode
+    # ------------------------------------------------------------------
+    def _initialize_index_mode(self):
+        """Determine whether datasets should be accessed via string keys."""
+
+        def supports_integer_index(dataset):
+            try:
+                dataset[0]
+            except Exception:
+                return False
+            else:
+                return True
+
+        self._dataset_supports_int = []
+        for dataset in self.datasets:
+            self._dataset_supports_int.append(supports_integer_index(dataset))
+
+        all_integer_addressable = all(self._dataset_supports_int)
+        self._dataset_key_lists = [None] * len(self.datasets)
+
+        if all_integer_addressable:
+            return
+
+        self._string_index_mode = True
+
+        for dataset_idx, dataset in enumerate(self.datasets):
+            if self._dataset_supports_int[dataset_idx]:
+                continue
+            keys = self._collect_string_keys(dataset)
+            self._dataset_key_lists[dataset_idx] = keys
+            self._register_dataset_keys(dataset_idx, keys)
+
+    def _collect_string_keys(self, dataset):
+        if isinstance(dataset, Mapping):
+            keys_iter = dataset.keys()
+        elif hasattr(dataset, "keys") and callable(getattr(dataset, "keys")):
+            keys_iter = dataset.keys()
+        else:
+            try:
+                keys_iter = iter(dataset)
+            except TypeError as err:
+                raise TypeError(
+                    "Datasets with string indices must be iterable to expose keys."
+                ) from err
+
+        keys = list(keys_iter)
+        for key in keys:
+            if not isinstance(key, str):
+                raise TypeError(
+                    "Datasets operating in string-index mode must provide string keys."
+                )
+        return keys
+
+    def _register_dataset_keys(self, dataset_idx: int, keys: List[str]):
+        for key in keys:
+            if key in self._uid_to_dataset:
+                raise ValueError(
+                    f"Duplicate utterance ID '{key}' detected across datasets."
+                )
+            self._uid_to_dataset[key] = (dataset_idx, key)
+
+    def _select_reference_key_for_dataset(self, dataset_idx: int):
+        if not self._string_index_mode or self._dataset_supports_int[dataset_idx]:
+            return 0
+
+        keys = self._dataset_key_lists[dataset_idx]
+        if not keys:
+            raise RuntimeError("Unable to locate reference key for dataset.")
+        return keys[0]
+
+    def _resolve_string_mode_index(self, idx):
+        if isinstance(idx, int):
+            if idx < 0:
+                raise IndexError("Index out of range in CombinedDataset")
+            dataset_idx = 0
+            for i, cum_len in enumerate(self.cumulative_lengths):
+                if idx < cum_len:
+                    dataset_idx = i
+                    break
+            else:
+                raise IndexError("Index out of range in CombinedDataset")
+
+            ds_idx = (
+                idx
+                if dataset_idx == 0
+                else idx - self.cumulative_lengths[dataset_idx - 1]
+            )
+            if self._dataset_supports_int[dataset_idx]:
+                uid = str(idx)
+                dataset_key = ds_idx
+            else:
+                keys = self._dataset_key_lists[dataset_idx]
+                if keys is None:
+                    raise RuntimeError("String dataset keys are not initialized.")
+                dataset_key = keys[ds_idx]
+                uid = dataset_key
+            return uid, dataset_idx, dataset_key
+
+        if isinstance(idx, str):
+            try:
+                dataset_idx, dataset_key = self._uid_to_dataset[idx]
+            except KeyError as err:
+                raise ValueError(
+                    f"Utterance ID '{idx}' is not supported by the underlying datasets."
+                ) from err
+            return idx, dataset_idx, dataset_key
+
+        raise TypeError("Index must be an integer or string utterance ID.")
+
+    def _getitem_string_mode(self, idx):
+        uid, dataset_idx, dataset_key = self._resolve_string_mode_index(idx)
+        dataset = self.datasets[dataset_idx]
+        transform, preprocessor = self.transforms[dataset_idx]
+
+        sample = dataset[dataset_key]
+        transformed = transform(sample)
+        if self.use_espnet_preprocessor:
+            transformed = preprocessor(uid, transformed)
+        else:
+            transformed = preprocessor(transformed)
+
+        if self.use_espnet_collator:
+            return uid, transformed
+        return transformed
+
     def shard(self, shard_idx: int):
         """Return a sharded version of the combined dataset.
 
@@ -171,7 +385,7 @@ class CombinedDataset:
         Raises:
             RuntimeError: If any dataset does not support sharding.
         """
-        if not self.multiple_iterator:
+        if not all(isinstance(dataset, ShardedDataset) for dataset in self.datasets):
             raise RuntimeError(
                 "All dataset should be the subclass of "
                 "espnet3.components.data.dataset.ShardedDataset."
@@ -249,7 +463,11 @@ class DatasetWithTransform:
 
     def __init__(self, dataset, transform, preprocessor, use_espnet_preprocessor=False):
         """Initialize DatasetWithTransform."""
+        if transform is None:
+            transform = do_nothing
         assert callable(transform), "transform must be callable."
+        if preprocessor is None:
+            preprocessor = do_nothing
         assert callable(preprocessor), "preprocessor must be callable."
         self.dataset = dataset
         self.transform = transform
@@ -290,9 +508,14 @@ class DatasetWithTransform:
 class ShardedDataset(ABC, Dataset):
     """Abstract base class for datasets that support sharding.
 
-    This interface is used in ESPnet's multiple-iterator mode, where datasets are split
-    into shards for parallel or distributed data loading. Any dataset subclassing
-    `ShardedDataset` must implement the `shard()` method.
+    This interface is used when datasets are split into shards for parallel or
+    distributed data loading. Any dataset subclassing `ShardedDataset` must
+    implement the `shard()` method.
+
+    Attributes:
+        total_shards (int): Total number of shards in the dataset.
+        dist_world_size (int): Distributed world size used by this sharding
+            scheme.
 
     Note:
         - This class is intended to be used with `CombinedDataset` in ESPnet.
@@ -300,6 +523,9 @@ class ShardedDataset(ABC, Dataset):
 
     Example:
         >>> class MyDataset(ShardedDataset):
+        ...     def __init__(self):
+        ...         self.total_shards = 8
+        ...         self.dist_world_size = 4
         ...     def shard(self, idx):
         ...         return Subset(self, shard_indices[idx])
 

@@ -21,14 +21,17 @@ class AbsJobTemplate(ABC):
     the preprocessing pipeline and model architecture.
     """
 
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: Dict[str, Any], is_train=True):
         """Initialize the job template with configuration.
 
         Args:
             config: Job configuration containing model architecture, data
                 processing parameters, and training settings.
+            is_train: Whether the job is for training (True) or inference (False).
+                Affects preprocessing and model initialization behavior.
         """
         self.config = config
+        self.is_train = is_train
 
     @abstractmethod
     def build_preprocessor(self) -> Callable:

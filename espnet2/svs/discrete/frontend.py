@@ -35,10 +35,11 @@ class MERTFrontend(AbsFrontend):
             )
         if save_dir is not None:
             model = AutoModel.from_pretrained(
-                download_path, trust_remote_code=True, cache_dir=save_dir
+                download_path,
+                cache_dir=save_dir,
             )
         else:
-            model = AutoModel.from_pretrained(download_path, trust_remote_code=True)
+            model = AutoModel.from_pretrained(download_path)
         model.eval()
 
         if layer != -1:

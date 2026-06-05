@@ -83,3 +83,32 @@ def test_save_espnet_config(tmp_path):
         "espnet2.tasks.asr.ASRTask", load_config_with_defaults(config_path), output_file
     )
     assert output_file.exists()
+
+
+def test_save_espnet_config_accepts_output_directory(tmp_path):
+    config_path = Path("test_utils") / "espnet3" / "config" / "model_ctc.yaml"
+    output_dir = tmp_path / "saved_config"
+    save_espnet_config(
+        "espnet2.tasks.asr.ASRTask", load_config_with_defaults(config_path), output_dir
+    )
+    assert (output_dir / "config.yaml").exists()
+
+
+def test_save_espnet_config_avoids_yaml_aliases(tmp_path):
+    shared_obj = {"a": 1, "b": [1, 2, 3]}
+    config = {
+        "model": {
+            "_target_": "espnet2.asr.ctc.CTC",
+            "shared_1": shared_obj,
+            "shared_2": shared_obj,
+        },
+        "dataset": None,
+        "token_list": ["<blank>", "a", "b", "c"],
+    }
+    output_file = tmp_path / "config.yaml"
+
+    save_espnet_config("espnet2.tasks.asr.ASRTask", config, output_file)
+
+    content = output_file.read_text(encoding="utf-8")
+    assert "&id" not in content
+    assert "*id" not in content
