@@ -523,14 +523,16 @@ class BeatsEncoder(AbsEncoder):
             and source.size(1) < self.min_input_length_at_16khz
         ):
             # Only executed for raw waveform input
+            pad_len = self.min_input_length_at_16khz - source.size(1)
             logging.warning(
-                f"Input shape: {source.shape}. This is less than"
-                f" the minimum size of {self.min_input_length_at_16khz}."
+                f"Input shape: {source.shape} below minimum"
+                f" {self.min_input_length_at_16khz}; silence-padding by {pad_len}."
             )
-            # repeat the input to make it at least min_length
-            repeat_factor = self.min_input_length_at_16khz // source.size(1) + 1
-            source = torch.cat([source] * repeat_factor, dim=1)
-            padding_mask = torch.cat([padding_mask] * repeat_factor, dim=1)
+            source = torch.nn.functional.pad(source, (0, 0, 0, pad_len))
+            if padding_mask is not None:
+                padding_mask = torch.nn.functional.pad(
+                    padding_mask, (0, pad_len), value=True
+                )
 
         with autocast("cuda", enabled=False):
             if skip_fbank_extraction:
