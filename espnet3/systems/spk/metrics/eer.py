@@ -85,6 +85,8 @@ class EER(AbsMetric):
             eer = 1.0
             min_dcf = 1.0
         else:
+            # Upstream espnet2 helper uses this exact function name and returns
+            # EER in percentage units.
             _, eer, _, _ = tuneThresholdfromScore(scores, labels, target_fa=[0.01])
             try:
                 fnrs, fprs, thresholds = ComputeErrorRates(scores, labels)

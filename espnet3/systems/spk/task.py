@@ -1,6 +1,7 @@
 """Speaker Task.
 
-Note: This file is a direct port of the corresponding espnet2 task class.
+Note: This file is ported from ``espnet2/tasks/spk.py`` and adapted for
+espnet3 integration.
 """
 
 import argparse
@@ -198,7 +199,7 @@ class SpeakerTask(AbsTask):
             "--input_size",
             type=int_or_none,
             default=None,
-            help="The number of input dimension of the feature",
+            help="The number of input dimensions of the feature",
         )
 
         group.add_argument(
@@ -212,14 +213,14 @@ class SpeakerTask(AbsTask):
             "--spk2utt",
             type=str,
             default="",
-            help="Directory of spk2utt file to be used in label mapping",
+            help="Path to the spk2utt file used in label mapping",
         )
 
         group.add_argument(
             "--spk_num",
             type=int,
             default=None,
-            help="Specify the number of speakers during training",
+            help="Total number of unique speakers in the training dataset",
         )
 
         group.add_argument(
@@ -241,7 +242,7 @@ class SpeakerTask(AbsTask):
             "--rir_scp",
             type=str,
             default="",
-            help="Directory of the rir data to be augmented",
+            help="Path to the RIR SCP file used for data augmentation",
         )
 
         group.add_argument(
@@ -267,7 +268,7 @@ class SpeakerTask(AbsTask):
     @typechecked
     def build_preprocess_fn(
         cls, args: argparse.Namespace, train: bool
-    ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
+    ) -> Optional[Callable[[str, Dict[str, np.ndarray]], Dict[str, np.ndarray]]]:
         """Build the preprocessing function for speaker inputs."""
         if args.use_preprocessor:
             if train:

@@ -41,7 +41,7 @@ class SPKSystem(BaseSystem):
     Stage log paths follow the base system defaults:
         | Stage          | Path reference             |
         |---             |---                         |
-        | create_dataset | training_config.data_dir   |
+        | create_dataset | training_config.create_dataset.func |
         | collect_stats  | training_config.stats_dir  |
         | train          | training_config.exp_dir    |
         | infer          | inference_config.inference_dir |
