@@ -170,8 +170,9 @@ class BeatsEncoder(AbsEncoder):
     ) -> None:
         super().__init__()
 
-        # Default fbank stats are from OpenBEATs' 7M-sound corpus. See Appendix A
-        # of arXiv:2212.09058 for original BEATs' per-dataset pretraining/finetuning stats.
+        # Default fbank stats are from OpenBEATs' 7M-sound corpus. See Appendix
+        # A of arXiv:2212.09058 for original BEATs' per-dataset
+        # pretraining/finetuning stats.
         self.fbank_mean = fbank_mean
         self.fbank_std = fbank_std
         self.max_layer = max_layer
