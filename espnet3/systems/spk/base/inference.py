@@ -31,7 +31,25 @@ def infer(
     model_file: Optional[str],
     model_tag: Optional[str],
 ):
-    """Run speaker-embedding inference."""
+    """Run speaker-embedding inference.
+
+    Args:
+        output_dir: Output directory for generated embeddings and SCP files.
+        batch_size: Inference batch size.
+        dtype: Floating-point dtype used during inference.
+        ngpu: Number of GPUs to use.
+        seed: Random seed.
+        num_workers: Data loader worker count.
+        log_level: Logging verbosity level.
+        data_path_and_name_and_type: Input data triplets.
+        key_file: Optional key file limiting processed utterances.
+        train_config: Optional training config path.
+        model_file: Optional model parameter path.
+        model_tag: Optional pretrained model tag.
+
+    Returns:
+        Return value from ``espnet2.bin.spk_inference.inference``.
+    """
     return _inference(
         output_dir=output_dir,
         batch_size=batch_size,
