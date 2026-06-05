@@ -400,16 +400,28 @@ train_encoder() {
 
     if [ "${num_splits_ssl}" -gt 1 ]; then
         _split_dir="${ssl_stats_dir}/splits${num_splits_ssl}"
-        if [ ! -f "${_split_dir}/.done" ]; then
-            rm -f "${_split_dir}/.done"
+        _common_done="${_split_dir}/.done_common"
+        _iter_done="${_split_dir}/.done_iter${iteration}"
+
+        # Iteration-invariant files: split once and reuse across iterations.
+        if [ ! -f "${_common_done}" ]; then
             ${python} -m espnet2.bin.split_scps \
                 --scps "${_ssl_train_dir}/${_scp}" \
-                "${_ssl_train_dir}/target_iter${iteration}_${_tokenizer_inference_tag}" \
                 "${ssl_stats_dir}/train/speech_shape" \
                 "${ssl_stats_dir}/train/target_shape.word" \
                 --num_splits "${num_splits_ssl}" \
                 --output_dir "${_split_dir}"
-            touch "${_split_dir}/.done"
+            touch "${_common_done}"
+        fi
+
+        # Tokenized targets change each iteration; split per-iteration.
+        # Same line order as the common files guarantees matching split assignment.
+        if [ ! -f "${_iter_done}" ]; then
+            ${python} -m espnet2.bin.split_scps \
+                --scps "${_ssl_train_dir}/target_iter${iteration}_${_tokenizer_inference_tag}" \
+                --num_splits "${num_splits_ssl}" \
+                --output_dir "${_split_dir}"
+            touch "${_iter_done}"
         fi
 
         _opts+="--train_data_path_and_name_and_type ${_split_dir}/${_scp},speech,${_type} "
