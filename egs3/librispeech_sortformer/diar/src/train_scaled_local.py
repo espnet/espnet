@@ -1,13 +1,17 @@
-"""Scaled training of the 8-spk streaming Sortformer toward low AMI long-form DER.
+"""NeMo-faithful training of the 8-spk streaming Sortformer for AMI long-form DER.
 
-Fixes the smoke's key flaw (1-min chunk -> cache never trained) by training with
-the speaker **cache in the loop**: chunk_len=188 (~15 s) over 60 s sessions =>
-~4 chunks/session, so the model learns to read the compressed cache (original-
-Sortformer regime). Scaled data: ~2000 FastMSS meetings (3-8 spk, reverb + WHAM
-noise) + AMI SDM. Efficient ~20 s local window + cache-as-global. NEST-init.
+Matches NeMo's released streaming-v2 config (`diar_streaming_sortformer_4spk-v2`
+model_config.yaml): session_len 90 s, chunk_len/spkcache_len/update_period 188,
+fifo_len 0, spkcache_sil_frames_per_spk 3, FULL attention (att_context [-1,-1]),
+AdamW lr 1e-4 betas (0.9,0.98) wd 1e-3 + InverseSquareRootAnnealing warmup 500,
+batch 4. `causal_attn_rate` is skipped on purpose (no causal/low-latency
+streaming). The speaker **cache is in the loop** (train_streaming) so it learns
+to read/compress the cache. Intended departures from v2: 8 speakers (v2 = 4) and
+NEST-init (80-mel / 18-layer; v2 = 128-mel / 17-layer). Data: FastMSS (3-8 spk,
+reverb + WHAM noise) + AMI SDM, all windowed to 90 s.
 
-Reports AMI dev long-form DER during training (best-checkpointed) and final
-dev + test DER. Single-GPU, ~2-4 h.
+Reports AMI dev long-form DER during training (best-checkpointed) + final
+dev/test DER. Single-GPU.
 
   CUDA_VISIBLE_DEVICES=2 python -m egs3.librispeech_sortformer.diar.src.train_scaled_local
 """
@@ -41,19 +45,20 @@ FASTMSS_OUT = "/raid/users/popcornell/sortformer_scaled_exp/fastmss"
 EXP = "/raid/users/popcornell/sortformer_scaled_exp"
 
 NUM_SPK = 8
-ATT = [125, 125]  # ~20 s local window (+ cache global)
-CHUNK_LEN = 188  # ~15 s chunk
-SPKCACHE_LEN = 188  # ~15 s speaker cache
-# 2-min sessions: ~8 chunks/session => the 15 s cache FILLS and must
-# compress/evict every chunk (as it will over 30-min AMI), not just fill once.
-WINDOW = 120.0
+# NeMo-faithful: full attention (att_context_size=[-1,-1]); causal_attn_rate=0
+# (we are NOT doing causal/low-latency streaming, so skip that augmentation).
+ATT = None
+CHUNK_LEN = 188  # NeMo v2: chunk_len 188 (~15 s)
+SPKCACHE_LEN = 188  # NeMo v2: spkcache_len 188
+SIL_FRAMES = 3  # NeMo v2: spkcache_sil_frames_per_spk 3
+WINDOW = 90.0  # NeMo v2: session_len_sec 90
 N_FASTMSS = 1500
-BATCH = 2  # 8-chunk BPTT @ 2 min ~= 27.6 GB
-STEPS = 2500
+BATCH = 4  # NeMo v2: batch_size 4 (fits at 90 s: ~24 GB)
+STEPS = 6000
 LR = 1e-4
-WARMUP = 150
+WARMUP = 500  # NeMo v2: InverseSquareRootAnnealing warmup_steps 500
 DROPOUT = 0.1
-EVAL_AT = [800, 1600, 2500]
+EVAL_AT = [1500, 3000, 4500, 6000]
 N_DEV_EVAL = 5  # periodic dev sessions
 N_DEV_FINAL = 8
 N_TEST_FINAL = 8
@@ -87,6 +92,7 @@ def build_model():
         fifo_len=0,
         chunk_len=CHUNK_LEN,
         spkcache_update_period=SPKCACHE_LEN,
+        spkcache_sil_frames_per_spk=SIL_FRAMES,
     )
     tf = TransformerEncoder(
         num_layers=18,
@@ -174,13 +180,16 @@ def main():
         argparse.Namespace(), train=True
     )
     opt = torch.optim.AdamW(
-        [p for p in model.parameters() if p.requires_grad], lr=LR, weight_decay=1e-3
+        [p for p in model.parameters() if p.requires_grad],
+        lr=LR,
+        betas=(0.9, 0.98),
+        weight_decay=1e-3,
     )
 
-    def lr_at(step):
+    def lr_at(step):  # NeMo InverseSquareRootAnnealing
         if step < WARMUP:
             return LR * step / WARMUP
-        return LR * max(0.05, (STEPS - step) / max(1, STEPS - WARMUP))
+        return LR * (WARMUP / step) ** 0.5
 
     best_der, best_path = 1e9, f"{EXP}/best.pt"
     ptr = 0
