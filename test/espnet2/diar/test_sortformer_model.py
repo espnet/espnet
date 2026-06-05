@@ -166,3 +166,55 @@ def test_local_attention_encoder_streaming_runs():
     samples = 16000 * 20
     preds, plen = model.diarize_streaming(torch.randn(1, samples))
     assert preds.shape[2] == 4 and (preds >= 0).all() and (preds <= 1).all()
+
+
+def test_transformer_sliding_window_matches_full():
+    """Standard band kernel == full transformer attention when window >= length."""
+    import torch
+
+    from espnet2.diar.sortformer.sliding_window_attention import (
+        TransformerLocalAttention,
+    )
+    from espnet2.diar.sortformer.transformer_encoder import (
+        TransformerMultiHeadAttention,
+    )
+
+    torch.manual_seed(0)
+    hid, heads, t = 32, 4, 16
+    x = torch.randn(1, t, hid)
+    full = TransformerMultiHeadAttention(hid, heads, 0.0, 0.0).eval()
+    loc = TransformerLocalAttention(hid, heads, 0.0, 0.0, [t - 1, t - 1]).eval()
+    loc.load_state_dict(full.state_dict())
+    with torch.no_grad():
+        o_full = full(x, attention_mask=None)
+        o_loc = loc(x, pad_mask=torch.zeros(1, t, dtype=torch.bool), n_global=0)
+    assert torch.allclose(o_full, o_loc, atol=1e-5)
+
+
+def test_full_model_local_offline_and_streaming():
+    """Both encoders local: offline encode + streaming run end-to-end."""
+    import torch
+
+    pre = MelSpectrogramPreprocessor()
+    enc = FastConformerEncoder(
+        feat_in=80,
+        d_model=32,
+        n_layers=2,
+        n_heads=4,
+        ff_expansion_factor=2,
+        subsampling_conv_channels=16,
+        att_context_size=[8, 8],
+    )
+    mods = SortformerModules(num_spks=4, fc_d_model=32, tf_d_model=16)
+    tf = TransformerEncoder(
+        num_layers=2,
+        hidden_size=16,
+        inner_size=32,
+        num_attention_heads=4,
+        att_context_size=[8, 8],
+    )
+    model = ESPnetSortformerModel(pre, enc, mods, tf, num_spk=4)
+    preds, plen = model.diarize(torch.randn(1, 16000 * 8))  # offline single pass
+    assert preds.shape[2] == 4 and (preds >= 0).all() and (preds <= 1).all()
+    preds2, _ = model.diarize_streaming(torch.randn(1, 16000 * 20))  # streaming
+    assert preds2.shape[2] == 4

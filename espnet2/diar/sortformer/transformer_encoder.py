@@ -24,7 +24,7 @@ Reference (Apache-2.0): NVIDIA/NeMo
 """
 
 import math
-from typing import Optional
+from typing import List, Optional
 
 import torch
 import torch.nn as nn
@@ -108,8 +108,11 @@ class TransformerEncoderLayer(nn.Module):
         self.ffn_dropout = nn.Dropout(ffn_dropout)
         self.final_layer_norm = nn.LayerNorm(hidden_size, eps=1e-5)
 
-    def forward(self, x, attention_mask):
-        attn = self.self_attn(x, attention_mask)
+    def forward(self, x, attention_mask, pad_mask=None, n_global=0):
+        if getattr(self.self_attn, "is_local", False):
+            attn = self.self_attn(x, pad_mask, n_global=n_global)
+        else:
+            attn = self.self_attn(x, attention_mask)
         x = self.self_attn_layer_norm(attn + x)
         ff = self.fc2(torch.relu(self.fc1(x)))
         ff = self.ffn_dropout(ff)
@@ -127,8 +130,10 @@ class TransformerEncoder(nn.Module):
         attn_score_dropout: float = 0.5,
         attn_layer_dropout: float = 0.5,
         ffn_dropout: float = 0.5,
+        att_context_size: Optional[List[int]] = None,
     ):
         super().__init__()
+        self.att_context_size = att_context_size
         self.layers = nn.ModuleList(
             [
                 TransformerEncoderLayer(
@@ -142,16 +147,49 @@ class TransformerEncoder(nn.Module):
                 for _ in range(num_layers)
             ]
         )
+        if att_context_size is not None:
+            # Efficient O(N*W) sliding-window attention (no positional bias; the
+            # transformer is position-free). Same weights -> checkpoints load.
+            from espnet2.diar.sortformer.sliding_window_attention import (
+                TransformerLocalAttention,
+            )
+
+            for layer in self.layers:
+                local = TransformerLocalAttention(
+                    hidden_size,
+                    num_attention_heads,
+                    attn_score_dropout,
+                    attn_layer_dropout,
+                    att_context_size,
+                )
+                local.load_state_dict(layer.self_attn.state_dict())
+                layer.self_attn = local
 
     def forward(
-        self, encoder_states: torch.Tensor, lengths: Optional[torch.Tensor] = None
+        self,
+        encoder_states: torch.Tensor,
+        lengths: Optional[torch.Tensor] = None,
+        n_global: int = 0,
     ) -> torch.Tensor:
         """encoder_states: (B, L, H). lengths: (B,) valid frame counts."""
-        if lengths is not None:
-            attn_mask = form_attention_mask(lengths, encoder_states.size(1))
-        else:
-            attn_mask = None
         x = encoder_states
+        if self.att_context_size is not None:
+            max_len = x.size(1)
+            if lengths is not None:
+                pad_mask = ~(
+                    torch.arange(max_len, device=x.device).expand(
+                        lengths.size(0), max_len
+                    )
+                    < lengths.unsqueeze(1)
+                )
+            else:
+                pad_mask = x.new_zeros(x.size(0), max_len, dtype=torch.bool)
+            for layer in self.layers:
+                x = layer(x, None, pad_mask=pad_mask, n_global=n_global)
+            return x
+        attn_mask = (
+            form_attention_mask(lengths, x.size(1)) if lengths is not None else None
+        )
         for layer in self.layers:
             x = layer(x, attn_mask)
         return x

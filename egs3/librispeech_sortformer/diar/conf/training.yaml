@@ -108,6 +108,10 @@ model:
     attn_score_dropout: 0.5
     attn_layer_dropout: 0.5
     ffn_dropout: 0.5
+    # Standard (no-pos) sliding-window attention for single-pass long-form; set
+    # together with encoder_conf.att_context_size to make the WHOLE model O(N*W).
+    # null => full attention. Cache prefix stays global (always attended).
+    att_context_size: null
 
   sortformer_conf:
     dropout_rate: 0.5

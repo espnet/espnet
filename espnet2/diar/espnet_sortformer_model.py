@@ -97,8 +97,8 @@ class ESPnetSortformerModel(AbsESPnetModel):
         emb = self.sortformer_modules.encoder_proj(emb)
         return emb, emb_lengths
 
-    def forward_infer(self, emb, emb_lengths):
-        trans = self.transformer_encoder(emb, emb_lengths)
+    def forward_infer(self, emb, emb_lengths, n_global: int = 0):
+        trans = self.transformer_encoder(emb, emb_lengths, n_global=n_global)
         preds = self.sortformer_modules.forward_speaker_sigmoids(trans)
         max_len = preds.size(1)
         valid = torch.arange(max_len, device=preds.device).expand(
@@ -141,7 +141,7 @@ class ESPnetSortformerModel(AbsESPnetModel):
             emb, emb_len = self.frontend_encoder(
                 concat, concat_len, bypass_pre_encode=True, full_prefix_len=prefix_len
             )
-            preds = self.forward_infer(emb, emb_len)
+            preds = self.forward_infer(emb, emb_len, n_global=prefix_len)
             preds = mods.apply_mask_to_preds(preds, emb_len)
             state, chunk_preds = mods.streaming_update(
                 state,
