@@ -2,7 +2,7 @@
 
 This module provides :class:`LibriMixTSEDataset`, a Torch-style dataset that
 reads the simulated LibriMix directory structure produced by
-:func:`egs3.librimix.tse.src.create_dataset.create_dataset`.
+:class:`egs3.librimix.tse.dataset.DatasetBuilder`.
 
 The dataset resolves its data directory from ``<recipe_dir>/download/`` by
 default, or from the ``data_dir`` argument when provided.  If the data has
@@ -92,7 +92,15 @@ def get_spk2utt_librimix(paths, audio_format="wav"):
     spk2utt = defaultdict(list)
     for path in paths:
         path_ = Path(path)
-        if path_.stem in ("mix_both", "mix_clean", "mix_single", "noise", "s1", "s2", "s3"):
+        if path_.stem in (
+            "mix_both",
+            "mix_clean",
+            "mix_single",
+            "noise",
+            "s1",
+            "s2",
+            "s3",
+        ):
             path_ = path_.parent
         for audio in chain(
             path_.rglob("s1/*.{}".format(audio_format)),
@@ -191,9 +199,13 @@ class LibriMixTSEDataset(TorchDataset):
 
         # Resolve the LibriMix dataset root
         if data_dir is not None:
-            self.librimix_root = resolve_librimix_root(Path(data_dir).resolve(), self.split)
+            self.librimix_root = resolve_librimix_root(
+                Path(data_dir).resolve(), self.split
+            )
         else:
-            self.librimix_root = resolve_librimix_root(recipe_root, self.split)
+            self.librimix_root = resolve_librimix_root(
+                Path(recipe_root) / _CONFIG["builder"]["dataset_path"], self.split
+            )
 
         # Build if not already done
         builder = LibriMixTSEBuilder()
@@ -204,7 +216,7 @@ class LibriMixTSEDataset(TorchDataset):
         # e.g. "2mix_16k_max_train_mix-both" → num_spk=2, fs=16k, mode=max,
         #       dset=train, mix_type=mix_both
         num_spk_str, fs, mode, dset, mix_type = self.split.split("_", 4)
-        mix_type_us = mix_type.replace("-", "_")   # mix-both → mix_both
+        mix_type_us = mix_type.replace("-", "_")  # mix-both → mix_both
         self.num_spk = int(num_spk_str.split("mix")[0])
         self.partition = f"{dset}/{mix_type_us}"
 
@@ -276,9 +288,7 @@ class LibriMixTSEDataset(TorchDataset):
                     cur_uid, spkid = val[1:].strip().split(maxsplit=1)
                     enroll_uid, enroll_path = random.choice(self.spk2enroll[spkid])
                     while enroll_uid == cur_uid:
-                        enroll_uid, enroll_path = random.choice(
-                            self.spk2enroll[spkid]
-                        )
+                        enroll_uid, enroll_path = random.choice(self.spk2enroll[spkid])
                     audio, _sr = sf.read(str(enroll_path), dtype="float32")
                     srs.append(_sr)
                     ret[k] = audio
@@ -287,19 +297,19 @@ class LibriMixTSEDataset(TorchDataset):
                     srs.append(_sr)
                     ret[k] = audio
             elif k.startswith("text_spk"):
-                ret[k] = getattr(ex, k)
+                continue
+                # ret[k] = getattr(ex, k)
             elif k == "utt_id":
                 continue
-            # elif k == "num_spk":
-            #     ret[k] = np.array([ex.num_spk])
+            elif k == "num_spk":
+                continue
+                # ret[k] = np.array([ex.num_spk])
             else:
                 raise ValueError(f"Unexpected key in example: {k}")
         assert all(sr == srs[0] for sr in srs), (srs, keys)
         return ret
 
-    def _load_enrollment_map(
-        self, enrollment_map_path: Path, split: str
-    ) -> dict:
+    def _load_enrollment_map(self, enrollment_map_path: Path, split: str) -> dict:
         """Load the fixed enrollment map for dev/test splits."""
         if "train" in split:
             return {}
@@ -312,9 +322,7 @@ class LibriMixTSEDataset(TorchDataset):
                     continue
                 mix_id, utt_id, enroll_id = line.split()
                 sid = mix_id.split("_").index(utt_id) + 1
-                enroll_path = (
-                    self.split_dir / f"{partition_dset}/{enroll_id}.wav"
-                )
+                enroll_path = self.split_dir / f"{partition_dset}/{enroll_id}.wav"
                 enrollment_map.setdefault(mix_id, {})[f"s{sid}"] = enroll_path
         return enrollment_map
 
@@ -376,9 +384,9 @@ class LibriMixTSEDataset(TorchDataset):
                 for spk in range(1, self.num_spk + 1):
                     utt_id = utt_ids[spk - 1]
                     spk_id = utt_id.split("-")[0]
-                    info.setdefault(f"enroll_ref{spk}", {})[mix_id] = (
-                        f"*{utt_id} {spk_id}"
-                    )
+                    info.setdefault(f"enroll_ref{spk}", {})[
+                        mix_id
+                    ] = f"*{utt_id} {spk_id}"
         else:
             # Dev/test: use the fixed enrollment map.
             for uid in uids:
