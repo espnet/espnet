@@ -27,7 +27,7 @@ from typing import List, Tuple
 import torch
 import torch.nn.functional as F
 
-from espnet2.diar.sortformer.fastconformer_encoder import (
+from .fastconformer_encoder import (
     RelPositionalEncoding,
     RelPositionMultiHeadAttention,
 )

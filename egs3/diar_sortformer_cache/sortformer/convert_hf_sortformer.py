@@ -13,7 +13,7 @@ Buffers that this port computes deterministically (mel filterbank, STFT window)
 are not present in the checkpoint and are left at their constructed values.
 
 Usage:
-    python -m espnet2.diar.sortformer.convert_hf_sortformer \\
+    python -m sortformer.convert_hf_sortformer \\
         --hf_model nvidia/diar_sortformer_4spk-v1 \\
         --out sortformer_4spk.pth
 """
@@ -23,7 +23,7 @@ from typing import Dict, Tuple
 
 import torch
 
-from espnet2.diar.espnet_sortformer_model import build_sortformer_model
+from .model import build_sortformer_model
 
 
 def remap_key(key: str):

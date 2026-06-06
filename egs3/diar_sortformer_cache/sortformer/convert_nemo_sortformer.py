@@ -29,11 +29,11 @@ NeMo ``key_net.bias`` is dropped.
 
 import torch
 
-from espnet2.diar.espnet_sortformer_model import ESPnetSortformerModel
-from espnet2.diar.sortformer.fastconformer_encoder import FastConformerEncoder
-from espnet2.diar.sortformer.preprocessor import MelSpectrogramPreprocessor
-from espnet2.diar.sortformer.sortformer_modules import SortformerModules
-from espnet2.diar.sortformer.transformer_encoder import TransformerEncoder
+from .fastconformer_encoder import FastConformerEncoder
+from .model import ESPnetSortformerModel
+from .preprocessor import MelSpectrogramPreprocessor
+from .sortformer_modules import SortformerModules
+from .transformer_encoder import TransformerEncoder
 
 # Streaming v2 hyper-parameters (encoder has 17 layers; NeMo SortformerModules
 # defaults except the overrides in the v2 config).

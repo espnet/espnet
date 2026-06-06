@@ -105,7 +105,7 @@ class DiarizationSystem(BaseSystem):
         self._reject_stage_args("infer_longform", args, kwargs)
         import lhotse
 
-        from espnet2.diar.sortformer.longform import (
+        from .longform import (
             build_eval_model,
             run_longform_inference,
         )
@@ -165,7 +165,7 @@ class DiarizationSystem(BaseSystem):
         ``longform`` directory).
         """
         self._reject_stage_args("measure_longform", args, kwargs)
-        from espnet2.diar.sortformer.longform import score_rttm_der
+        from .longform import score_rttm_der
 
         cfg = getattr(self.metrics_config, "longform", None)
         assert cfg is not None, "metrics_config.longform must be set"

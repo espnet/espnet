@@ -163,11 +163,11 @@ def build_eval_model(
     offline weights). ``nest`` optionally overlays NEST encoder weights.
     """
     if nemo_ckpt is not None:
-        from espnet2.diar.sortformer.convert_nemo_sortformer import convert_nemo
+        from .convert_nemo_sortformer import convert_nemo
 
         model, _ = convert_nemo(nemo_ckpt, num_spk=num_spk)
     elif ckpt is not None:
-        from espnet2.diar.espnet_sortformer_model import build_sortformer_model
+        from .model import build_sortformer_model
 
         model = build_sortformer_model(num_spk=num_spk)
         sd = torch.load(ckpt, map_location="cpu")
@@ -178,11 +178,11 @@ def build_eval_model(
         }
         model.load_state_dict(sd, strict=False)
     else:
-        from espnet2.diar.sortformer.convert_hf_sortformer import convert
+        from .convert_hf_sortformer import convert
 
         model, _ = convert(hf_model, num_spk=num_spk)
     if nest is not None:
-        from espnet2.diar.sortformer.convert_nest import load_nest_encoder
+        from .convert_nest import load_nest_encoder
 
         load_nest_encoder(model, nest)
     return model.to(device).eval()

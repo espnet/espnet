@@ -1,11 +1,10 @@
 import torch
-
-from espnet2.diar.espnet_sortformer_model import ESPnetSortformerModel
-from espnet2.diar.sortformer.fastconformer_encoder import FastConformerEncoder
-from espnet2.diar.sortformer.preprocessor import MelSpectrogramPreprocessor
-from espnet2.diar.sortformer.sort_loss import get_ats_targets, get_pil_targets
-from espnet2.diar.sortformer.sortformer_modules import SortformerModules
-from espnet2.diar.sortformer.transformer_encoder import TransformerEncoder
+from sortformer.fastconformer_encoder import FastConformerEncoder
+from sortformer.model import ESPnetSortformerModel
+from sortformer.preprocessor import MelSpectrogramPreprocessor
+from sortformer.sort_loss import get_ats_targets, get_pil_targets
+from sortformer.sortformer_modules import SortformerModules
+from sortformer.transformer_encoder import TransformerEncoder
 
 
 def _tiny_model(num_spk=4):
@@ -102,7 +101,7 @@ def test_ats_targets_sorted_by_arrival():
 
 
 def test_eight_speaker_loss_runs():
-    from espnet2.diar.sortformer.sort_loss import SortformerHybridLoss
+    from sortformer.sort_loss import SortformerHybridLoss
 
     torch.manual_seed(0)
     b, t, s = 2, 50, 8
@@ -119,12 +118,11 @@ def test_eight_speaker_loss_runs():
 def test_sliding_window_matches_full_attention():
     """Chunked band kernel == full rel-pos attention when window >= seq length."""
     import torch
-
-    from espnet2.diar.sortformer.fastconformer_encoder import (
+    from sortformer.fastconformer_encoder import (
         RelPositionalEncoding,
         RelPositionMultiHeadAttention,
     )
-    from espnet2.diar.sortformer.sliding_window_attention import (
+    from sortformer.sliding_window_attention import (
         LocalAttRelPositionalEncoding,
         RelPositionLocalAttention,
     )
@@ -171,11 +169,10 @@ def test_local_attention_encoder_streaming_runs():
 def test_transformer_sliding_window_matches_full():
     """Standard band kernel == full transformer attention when window >= length."""
     import torch
-
-    from espnet2.diar.sortformer.sliding_window_attention import (
+    from sortformer.sliding_window_attention import (
         TransformerLocalAttention,
     )
-    from espnet2.diar.sortformer.transformer_encoder import (
+    from sortformer.transformer_encoder import (
         TransformerMultiHeadAttention,
     )
 

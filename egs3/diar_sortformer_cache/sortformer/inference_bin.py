@@ -15,7 +15,7 @@ import yaml
 
 from espnet3.utils.task_utils import get_espnet_model
 
-_TASK = "espnet2.tasks.diar_sortformer.SortformerDiarizationTask"
+_TASK = "sortformer.task.SortformerDiarizationTask"
 
 
 def _strip_prefix(state_dict, prefix="model."):

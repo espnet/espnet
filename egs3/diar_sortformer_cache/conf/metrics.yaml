@@ -6,7 +6,7 @@
 
 metrics:
   - metric:
-      _target_: espnet3.systems.diar.metrics.der.DER
+      _target_: sortformer.der.DER
       threshold: 0.5
       frame_dur: 0.08
     inputs:

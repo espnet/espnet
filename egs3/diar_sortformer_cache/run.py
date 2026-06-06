@@ -3,8 +3,9 @@
 
 from typing import List
 
+from sortformer.system import DiarizationSystem
+
 from egs3.TEMPLATE.asr.run import build_parser, main, parse_cli_and_stage_args
-from espnet3.systems.diar.system import DiarizationSystem
 
 DEFAULT_STAGES: List[str] = [
     # Stage 1: generate FastMSS meetings + build AMI cuts.

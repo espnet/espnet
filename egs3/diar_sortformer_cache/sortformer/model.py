@@ -10,7 +10,7 @@ an :class:`~espnet2.train.abs_espnet_model.AbsESPnetModel`. The pipeline is::
           -> sigmoid speaker head -> per-frame speaker probabilities (B, T, 4)
 
 Training uses the hybrid Arrival-Time-Sort + Permutation-Invariant BCE loss
-(:class:`~espnet2.diar.sortformer.sort_loss.SortformerHybridLoss`).
+(:class:`~sortformer.sort_loss.SortformerHybridLoss`).
 
 The component sub-modules mirror the released ``nvidia/diar_sortformer_4spk-v1``
 checkpoint so the weights can be converted with a near-identity key remap.
@@ -22,12 +22,13 @@ from typing import Dict, Optional, Tuple
 
 import torch
 
-from espnet2.diar.sortformer.fastconformer_encoder import FastConformerEncoder
-from espnet2.diar.sortformer.preprocessor import MelSpectrogramPreprocessor
-from espnet2.diar.sortformer.sort_loss import SortformerHybridLoss
-from espnet2.diar.sortformer.sortformer_modules import SortformerModules
-from espnet2.diar.sortformer.transformer_encoder import TransformerEncoder
 from espnet2.train.abs_espnet_model import AbsESPnetModel
+
+from .fastconformer_encoder import FastConformerEncoder
+from .preprocessor import MelSpectrogramPreprocessor
+from .sort_loss import SortformerHybridLoss
+from .sortformer_modules import SortformerModules
+from .transformer_encoder import TransformerEncoder
 
 
 @contextmanager

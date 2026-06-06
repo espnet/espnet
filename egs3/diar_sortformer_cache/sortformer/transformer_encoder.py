@@ -150,7 +150,7 @@ class TransformerEncoder(nn.Module):
         if att_context_size is not None:
             # Efficient O(N*W) sliding-window attention (no positional bias; the
             # transformer is position-free). Same weights -> checkpoints load.
-            from espnet2.diar.sortformer.sliding_window_attention import (
+            from .sliding_window_attention import (
                 TransformerLocalAttention,
             )
 

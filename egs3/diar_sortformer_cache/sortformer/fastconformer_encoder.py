@@ -424,7 +424,7 @@ class FastConformerEncoder(AbsEncoder):
             # Efficient O(N*W) sliding-window attention (Longformer-style chunked
             # rel-pos). Same weights as full attention -> checkpoints load as-is.
             # Lazy import avoids a circular import with sliding_window_attention.
-            from espnet2.diar.sortformer.sliding_window_attention import (
+            from .sliding_window_attention import (
                 LocalAttRelPositionalEncoding,
                 RelPositionLocalAttention,
             )
