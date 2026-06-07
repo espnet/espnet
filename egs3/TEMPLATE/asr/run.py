@@ -16,20 +16,21 @@ from espnet3.utils.run_utils import (
     validate_experiment_context,
 )
 from espnet3.utils.stages_utils import (
-    parse_cli_and_stage_args,
     resolve_stages,
     run_stages,
 )
 
-# Default stage list (can be extended/overridden by callers)
-DEFAULT_STAGES: List[str] = [
-    "create_dataset",
-    "train_tokenizer",
-    "collect_stats",
-    "train",
-    "infer",
-    "measure",
-]
+# Default stages and corresponding configuration objects
+# Can be extended/overridden by callers
+STAGE_CONFIGS = {
+    "create_dataset": "training_config",
+    "train_tokenizer": "training_config",
+    "collect_stats": "training_config",
+    "train": "training_config",
+    "infer": "inference_config",
+    "measure": "metrics_config",
+}
+DEFAULT_STAGES: List[str] = list(STAGE_CONFIGS.keys())
 
 logger = logging.getLogger(__name__)
 
@@ -145,26 +146,19 @@ def main(
     logger.info("Resolved stages: %s", stages_to_run)
 
     # Guardrail: ensure required configs exist for requested stages
-    pretrain_stages = {
-        "create_dataset",
-        "train_tokenizer",
-        "collect_stats",
-        "train",
+    config_pool = {
+        "training_config": training_config,
+        "inference_config": inference_config,
+        "metrics_config": metrics_config,
     }
-    required_configs = {}
-    required_configs.update({stage: training_config for stage in pretrain_stages})
-    required_configs.update({"infer": inference_config, "measure": metrics_config})
-    missing = [
-        s
-        for s in stages_to_run
-        if s in required_configs and required_configs[s] is None
-    ]
+    missing = [s for s in stages_to_run if config_pool.get(STAGE_CONFIGS[s]) is None]
     if missing:
         missing_str = ", ".join(missing)
         raise ValueError(
             f"Config not provided for stage(s): {missing_str}. "
             "Use --training_config/--inference_config/--metrics_config."
         )
+
     run_stages(
         system=system,
         stages_to_run=stages_to_run,
@@ -175,7 +169,7 @@ def main(
 
 if __name__ == "__main__":
     parser = build_parser(stages=DEFAULT_STAGES)
-    args, _ = parse_cli_and_stage_args(parser, stages=DEFAULT_STAGES)
+    args = parser.parse_args()
 
     # Here you should replace `YourSystemClass` with the actual system class
     # you want to use for your experiment.
