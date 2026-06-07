@@ -41,13 +41,19 @@ download_archive() {
 }
 
 linux_archive_dir() {
-    tar tf "$1" 2>/dev/null | awk -F/ -v pattern="${linux_archive_pattern}" '$0 ~ pattern {print $1; exit}'
+    local archive_path="$1"
+    local archive_listing
+
+    archive_listing="$(tar tf "${archive_path}")" || return 1
+    printf '%s\n' "${archive_listing}" | awk -F/ -v pattern="${linux_archive_pattern}" '$0 ~ pattern {print $1; exit}'
 }
 
 validate_linux_archive() {
     local archive_path="$1"
+    local archive_dir
 
-    [ -n "$(linux_archive_dir "${archive_path}")" ]
+    archive_dir="$(linux_archive_dir "${archive_path}")" || return 1
+    [ -n "${archive_dir}" ]
 }
 
 download_and_validate_linux_archive() {
