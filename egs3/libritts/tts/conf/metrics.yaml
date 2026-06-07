@@ -6,7 +6,7 @@ dataset:
 metrics:
   - metric:
       _target_: src.metrics.versa.VersaMetric
-      score_config: 
+      score_config:
         - name: pseudo_mos
           predictor_types: [utmos, dnsmos]
           predictor_args:
