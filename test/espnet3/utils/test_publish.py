@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from types import SimpleNamespace
 
+import httpx
 import pytest
 from huggingface_hub.errors import HfHubHTTPError
 from omegaconf import OmegaConf
@@ -1271,7 +1272,13 @@ def test_upload_model_surfaces_repo_name_hint_on_create_error(tmp_path, monkeypa
 
     class DummyApi:
         def create_repo(self, **kwargs):
-            raise HfHubHTTPError("403 Client Error")
+            response = httpx.Response(
+                403,
+                request=httpx.Request(
+                    "POST", "https://huggingface.co/api/repos/create"
+                ),
+            )
+            raise HfHubHTTPError("403 Client Error", response=response)
 
         def upload_folder(self, **kwargs):
             raise AssertionError("upload_folder should not be called")
