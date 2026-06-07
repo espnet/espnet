@@ -25,7 +25,7 @@ download_archive() {
 
     rm -f "${tmp_output}"
     wget --no-check-certificate --tries=5 --waitretry=5 --retry-connrefused \
-        --timeout=30 --read-timeout=30 -O "${tmp_output}" "${url}"
+        --timeout=30 --read-timeout=30 -O "${tmp_output}" "${url}" || return 1
     mv "${tmp_output}" "${output}"
 }
 

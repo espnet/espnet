@@ -36,7 +36,7 @@ download_archive() {
 
     rm -f "${tmp_output}"
     wget --tries=5 --waitretry=5 --retry-connrefused --timeout=30 \
-        --read-timeout=30 -O "${tmp_output}" "${url}"
+        --read-timeout=30 -O "${tmp_output}" "${url}" || return 1
     mv "${tmp_output}" "${output}"
 }
 
