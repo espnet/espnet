@@ -1,0 +1,31 @@
+dataset:
+  test:
+    - name: valid
+    - name: test
+
+metrics:
+  - metric:
+      _target_: src.metrics.versa.VersaMetric
+      score_config: 
+        - name: pseudo_mos
+          predictor_types: [utmos, dnsmos]
+          predictor_args:
+            utmos:
+              fs: 16000
+            dnsmos:
+              fs: 16000
+        - name: pesq
+        - name: stoi
+        - name: whisper_wer
+          model_tag: large-v3
+          beam_size: 1
+          text_cleaner: whisper_en
+
+      hyp_key:  hyp
+      ref_key:  ref
+      text_key: text
+      use_gpu:  true
+    inputs:
+      hyp:  wav     # data["hyp"]  = inference_dir/<test_name>/wav.scp
+      ref:  ref     # data["ref"]  = inference_dir/<test_name>/ref.scp
+      text: text    # data["text"] = inference_dir/<test_name>/text.scp
