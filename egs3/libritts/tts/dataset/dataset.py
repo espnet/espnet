@@ -133,7 +133,7 @@ class LibriTTSDataset(TorchDataset):
         sample: dict[str, Any] = {
             "utt_id": np.asarray(entry.utt_id, dtype=np.str_),
             "wav_path": str(entry.wav_path),
-            "raw_text": entry.text, 
+            "raw_text": entry.text,
             "text": entry.text,
         }
         if self.load_speech:
