@@ -54,7 +54,7 @@ jobs:
         id: detect
         run: |
           if [ -x tools/ffmpeg-release/ffmpeg ]; then
-            ffmpeg_dirname="$(find tools -maxdepth 1 -type d -name 'ffmpeg-*-static' -print | head -n 1 | sed 's|.*/||')"
+            ffmpeg_dirname="$(find tools -maxdepth 1 -type d -name 'ffmpeg-*-static' -print -quit | sed 's|.*/||')"
             echo "has_local_ffmpeg=true" >> "$GITHUB_OUTPUT"
             echo "ffmpeg_dirname=${ffmpeg_dirname}" >> "$GITHUB_OUTPUT"
           else

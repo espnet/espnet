@@ -10,7 +10,7 @@ unames="$(uname -s)"
 unamem="$(uname -m)"
 
 dirname=ffmpeg-release
-linux_archive_pattern='^ffmpeg-.*-static/'
+linux_archive_pattern='^(\./)?ffmpeg-.*-static/'
 
 if [ -x "$(command -v ffmpeg)" ]; then
     echo "ffmpeg is already installed in system"
@@ -45,7 +45,7 @@ linux_archive_dir() {
     local archive_listing
 
     archive_listing="$(tar tf "${archive_path}")" || return 1
-    printf '%s\n' "${archive_listing}" | awk -F/ -v pattern="${linux_archive_pattern}" '$0 ~ pattern {print $1; exit}'
+    printf '%s\n' "${archive_listing}" | awk -F/ -v pattern="${linux_archive_pattern}" '$0 ~ pattern {if ($1 == ".") print $2; else print $1; exit}'
 }
 
 validate_linux_archive() {
