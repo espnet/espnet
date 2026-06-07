@@ -129,10 +129,11 @@ class LibriTTSDataset(TorchDataset):
 
     def __getitem__(self, idx: int) -> dict[str, Any]:
         entry = self._entries[int(idx)]
-        # utt_id and wav_path are included for inference purposes only.
+        # utt_id, wav_path, and raw_text are included for inference purposes only.
         sample: dict[str, Any] = {
             "utt_id": np.asarray(entry.utt_id, dtype=np.str_),
-            "wav_path": np.asarray(str(entry.wav_path), dtype=np.str_),
+            "wav_path": str(entry.wav_path),
+            "raw_text": entry.text, 
             "text": entry.text,
         }
         if self.load_speech:

@@ -7,8 +7,8 @@ import numpy as np
 
 def build_output(data, model_output, idx):
     utt_id = data.get("utt_id", str(idx))
-    text = data.get("text", "")
-    ref = data.get("wav_path", "")  # ground truth wav path
+    text = str(data.get("raw_text", ""))
+    ref = str(data.get("wav_path", "")) # ground truth wav path
     wav = model_output.get("wav")
     if wav is None:
         raise RuntimeError("TTS inference output does not contain 'wav'.")
