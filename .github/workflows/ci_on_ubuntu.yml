@@ -28,6 +28,49 @@ jobs:
             echo "is_docker=false" >> "$GITHUB_OUTPUT"
           fi
 
+  prepare_ffmpeg:
+    runs-on: ubuntu-latest
+    needs: process_labels
+    if: |
+      github.event.pull_request.draft == false
+    outputs:
+      has_local_ffmpeg: ${{ steps.detect.outputs.has_local_ffmpeg }}
+    steps:
+      - uses: actions/checkout@master
+      - uses: actions/cache@v5
+        with:
+          path: |
+            tools/ffmpeg.done
+            tools/ffmpeg-release
+            tools/ffmpeg-*-static
+          key: ${{ runner.os }}-ffmpeg-${{ hashFiles('tools/installers/install_ffmpeg.sh') }}
+      - name: Prepare FFmpeg
+        run: |
+          cd tools
+          ./installers/install_ffmpeg.sh
+          if [ -x ffmpeg-release/ffmpeg ]; then
+            touch ffmpeg.done
+          fi
+      - name: Detect prepared FFmpeg
+        id: detect
+        run: |
+          if [ -x tools/ffmpeg-release/ffmpeg ]; then
+            echo "has_local_ffmpeg=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_local_ffmpeg=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Upload FFmpeg tools
+        if: steps.detect.outputs.has_local_ffmpeg == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ffmpeg-tools
+          path: |
+            tools/ffmpeg.done
+            tools/ffmpeg-release
+            tools/ffmpeg-*-static
+          if-no-files-found: error
+          retention-days: 1
+
   # NOTE (Nelson): The setup_environment job is currently disabled to avoid the cache CI issues. It can be re-enabled when needed.
   # Or be replaced with a more efficient caching strategy for system dependencies. Will consider Docker-based caching or pre-built images if the issue persists.
   # setup_environment:
@@ -66,7 +109,7 @@ jobs:
 
   test_python_espnet2:
     runs-on: ubuntu-latest
-    needs: process_labels
+    needs: [process_labels, prepare_ffmpeg]
     if: |
       github.event.pull_request.draft == false
     strategy:
@@ -78,6 +121,12 @@ jobs:
         chainer-version: [6.0.0]
     steps:
       - uses: actions/checkout@master
+      - name: Restore FFmpeg tools
+        if: needs.prepare_ffmpeg.outputs.has_local_ffmpeg == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: ffmpeg-tools
+          path: .
       - uses: actions/cache@v5
         with:
           path: ~/.cache/pip
@@ -103,7 +152,7 @@ jobs:
 
   test_utils_espnet2:
     runs-on: ubuntu-latest
-    needs: process_labels
+    needs: [process_labels, prepare_ffmpeg]
     if: |
       github.event.pull_request.draft == false
     strategy:
@@ -115,6 +164,12 @@ jobs:
         chainer-version: [6.0.0]
     steps:
       - uses: actions/checkout@master
+      - name: Restore FFmpeg tools
+        if: needs.prepare_ffmpeg.outputs.has_local_ffmpeg == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: ffmpeg-tools
+          path: .
       - uses: actions/cache@v5
         with:
           path: ~/.cache/pip
@@ -140,7 +195,7 @@ jobs:
 
   test_shell_espnet2:
     runs-on: ubuntu-latest
-    needs: process_labels
+    needs: [process_labels, prepare_ffmpeg]
     if: |
       github.event.pull_request.draft == false
     strategy:
@@ -152,6 +207,12 @@ jobs:
         chainer-version: [6.0.0]
     steps:
       - uses: actions/checkout@master
+      - name: Restore FFmpeg tools
+        if: needs.prepare_ffmpeg.outputs.has_local_ffmpeg == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: ffmpeg-tools
+          path: .
       - uses: actions/cache@v5
         with:
           path: ~/.cache/pip
@@ -170,7 +231,7 @@ jobs:
 
   test_integration_espnet2:
     runs-on: ubuntu-latest
-    needs: process_labels
+    needs: [process_labels, prepare_ffmpeg]
     if: |
       github.event.pull_request.draft == false
     strategy:
@@ -183,6 +244,12 @@ jobs:
         config-task: ["asr", "tts", "asr2",  "enh", "ssl", "st", "spk", "lid", "s2t", "s2st", "lm", "codec"]
     steps:
       - uses: actions/checkout@master
+      - name: Restore FFmpeg tools
+        if: needs.prepare_ffmpeg.outputs.has_local_ffmpeg == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: ffmpeg-tools
+          path: .
       - uses: actions/cache@v5
         with:
           path: ~/.cache/pip
@@ -207,7 +274,7 @@ jobs:
 
   test_configuration_espnet2:
     runs-on: ubuntu-latest
-    needs: process_labels
+    needs: [process_labels, prepare_ffmpeg]
     if: |
       github.event.pull_request.draft == false
     strategy:
@@ -220,6 +287,12 @@ jobs:
         chainer-version: [6.0.0]
     steps:
       - uses: actions/checkout@master
+      - name: Restore FFmpeg tools
+        if: needs.prepare_ffmpeg.outputs.has_local_ffmpeg == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: ffmpeg-tools
+          path: .
       - uses: actions/cache@v5
         with:
           path: ~/.cache/pip
@@ -240,7 +313,7 @@ jobs:
 
   test_python_espnet3:
     runs-on: ubuntu-latest
-    needs: process_labels
+    needs: [process_labels, prepare_ffmpeg]
     if: |
       github.event.pull_request.draft == false
     strategy:
@@ -252,6 +325,12 @@ jobs:
         chainer-version: [6.0.0]
     steps:
       - uses: actions/checkout@master
+      - name: Restore FFmpeg tools
+        if: needs.prepare_ffmpeg.outputs.has_local_ffmpeg == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: ffmpeg-tools
+          path: .
       - uses: actions/cache@v5
         with:
           path: ~/.cache/pip
@@ -277,7 +356,7 @@ jobs:
 
   test_integration_espnet3:
     runs-on: ubuntu-latest
-    needs: process_labels
+    needs: [process_labels, prepare_ffmpeg]
     if: |
       github.event.pull_request.draft == false
     strategy:
@@ -288,6 +367,12 @@ jobs:
         use-conda: [false]
     steps:
       - uses: actions/checkout@master
+      - name: Restore FFmpeg tools
+        if: needs.prepare_ffmpeg.outputs.has_local_ffmpeg == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: ffmpeg-tools
+          path: .
       - uses: actions/cache@v5
         with:
           path: ~/.cache/pip
