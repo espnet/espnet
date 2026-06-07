@@ -12,22 +12,12 @@ from typing import Dict, List, Tuple
 import soundfile as sf
 from datasets import Audio, load_dataset
 
-LANG_TOKEN = {
-    "English": "<eng>",
-    "German": "<deu>",
-    "French": "<fra>",
-    "Vietnamese": "<vie>",
-    "Chinese": "<zho>",
-    "traditional_chinese": "<zho>",
-}
-
-LANG_CODE = {
-    "English": "eng",
-    "German": "deu",
-    "French": "fra",
-    "Vietnamese": "vie",
-    "Chinese": "zho",
-    "traditional_chinese": "zho_trad",
+LANG_INFO = {
+    "eng": ("English", "<eng>"),
+    "vie": ("Vietnamese", "<vie>"),
+    "fra": ("French", "<fra>"),
+    "deu": ("German", "<deu>"),
+    "zho": ("Chinese", "<zho>"),
 }
 
 SPLIT_MAP = {
@@ -76,10 +66,10 @@ def write_spk2utt(utt2spk_lines: List[str], out_path: Path) -> None:
     out_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
-def iter_dataset(src_lang: str, hf_dataset: str, split: str):
+def iter_dataset(hf_config: str, hf_dataset: str, split: str):
     ds = load_dataset(
         hf_dataset,
-        src_lang,
+        hf_config,
         split=split,
         streaming=True,
     )
@@ -88,7 +78,6 @@ def iter_dataset(src_lang: str, hf_dataset: str, split: str):
 
 
 def prepare_split(
-    *,
     hf_dataset: str,
     src_lang: str,
     tgt_lang: str,
@@ -104,9 +93,10 @@ def prepare_split(
     data_dir.mkdir(parents=True, exist_ok=True)
     wav_dir.mkdir(parents=True, exist_ok=True)
 
-    src_code = LANG_CODE[src_lang]
-    tgt_code = LANG_CODE[tgt_lang]
-    src_token = LANG_TOKEN[src_lang]
+    hf_src, src_token = LANG_INFO[src_lang]
+    hf_tgt, _ = LANG_INFO[tgt_lang]
+    src_code = src_lang
+    tgt_code = tgt_lang
 
     wav_scp: List[str] = []
     utt2spk: List[str] = []
@@ -118,7 +108,7 @@ def prepare_split(
 
     n_ok = 0
 
-    for idx, ex in enumerate(iter_dataset(src_lang, hf_dataset, split)):
+    for idx, ex in enumerate(iter_dataset(hf_src, hf_dataset, split)):
         if max_samples > 0 and n_ok >= max_samples:
             break
 
@@ -127,7 +117,7 @@ def prepare_split(
             continue
 
         src_text = clean_text(ex.get("text", ""))
-        tgt_text = clean_text(ex.get(tgt_lang, ""))
+        tgt_text = clean_text(ex.get(hf_tgt, ""))
 
         if not src_text:
             continue
@@ -215,8 +205,8 @@ def prepare_split(
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--hf_dataset", default="leduckhai/MultiMed-ST")
-    parser.add_argument("--src_lang", default="English", choices=list(LANG_CODE))
-    parser.add_argument("--tgt_lang", default="German", choices=list(LANG_CODE))
+    parser.add_argument("--src_lang", default="eng", choices=list(LANG_INFO))
+    parser.add_argument("--tgt_lang", default="deu", choices=list(LANG_INFO))
     parser.add_argument(
         "--task", default="st", choices=["asr", "st", "multitask_asr_st"]
     )

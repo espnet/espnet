@@ -44,11 +44,13 @@ conf/finetune_owsm_v4_small.yaml
 
 These files are generated automatically and are not intended to be committed.
 
-## Stage 5
+## Stages 5-9
 
 For OWSM fine-tuning, Stage 5 is intentionally skipped.
 
 Stage 5 normally trains a new BPE tokenizer from the training text. This is not appropriate for OWSM fine-tuning because the model must use the pretrained OWSM BPE model and token list.
+
+Stages 6-9 are also skipped because this recipe does not train or use an external neural LM or n-gram LM (`use_lm=false`). OWSM decoding is performed directly with the fine-tuned S2T model.
 
 Use:
 

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-src_lang=English
-tgt_lang=German
+src_lang=eng
+tgt_lang=deu
 task=st
 
 max_train_samples=0
