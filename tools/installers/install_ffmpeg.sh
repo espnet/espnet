@@ -39,6 +39,16 @@ download_archive() {
     mv "${tmp_output}" "${output}"
 }
 
+linux_archive_dir() {
+    tar tf "$1" 2>/dev/null | awk -F/ 'NF > 1 {print $1; exit}'
+}
+
+validate_linux_archive() {
+    local archive_path="$1"
+
+    [ -n "$(linux_archive_dir "${archive_path}")" ]
+}
+
 if [[ ${unames} =~ Linux ]]; then
     if [ "${unamem}" = x86_64 ]; then
         unamem=amd64
@@ -46,18 +56,24 @@ if [[ ${unames} =~ Linux ]]; then
     ffmpeg_name="ffmpeg-release-${unamem}-static.tar.xz"
     PRIMARY_URL="https://johnvansickle.com/ffmpeg/releases/${ffmpeg_name}"
     BACKUP_URL="https://huggingface.co/espnet/ci_tools/resolve/main/${ffmpeg_name}"
-    if [ -f "${ffmpeg_name}" ]; then
+    if [ -f "${ffmpeg_name}" ] && validate_linux_archive "${ffmpeg_name}"; then
         echo "Using cached archive ${ffmpeg_name}"
     else
-        if ! download_archive "${PRIMARY_URL}" "${ffmpeg_name}"; then
+        rm -f "${ffmpeg_name}"
+        if ! download_archive "${PRIMARY_URL}" "${ffmpeg_name}" || ! validate_linux_archive "${ffmpeg_name}"; then
             echo "Primary download failed, trying backup URL..."
-            if ! download_archive "${BACKUP_URL}" "${ffmpeg_name}"; then
+            rm -f "${ffmpeg_name}"
+            if ! download_archive "${BACKUP_URL}" "${ffmpeg_name}" || ! validate_linux_archive "${ffmpeg_name}"; then
                 echo "Both primary and backup downloads failed"
                 exit 1
             fi
         fi
     fi
-    ffmpegdir="$(tar tf "${ffmpeg_name}" | head -1 | cut -d/ -f1)"
+    ffmpegdir="$(linux_archive_dir "${ffmpeg_name}")"
+    if [ -z "${ffmpegdir}" ]; then
+        echo "Failed to determine the extracted directory for ${ffmpeg_name}"
+        exit 1
+    fi
     rm -rf "${dirname}" "${ffmpegdir}"
     tar xvf "${ffmpeg_name}"
     ln -sfn "${ffmpegdir}" "${dirname}"
