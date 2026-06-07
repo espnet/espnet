@@ -48,6 +48,12 @@ def build_parser(stages: Sequence[str]) -> argparse.ArgumentParser:
         help="Hydra config for the infer stage.",
     )
     parser.add_argument(
+        "--metrics_config",
+        default=None,
+        type=Path,
+        help="Hydra config for the measure stage (metrics).",
+    )
+    parser.add_argument(
         "--dry_run",
         action="store_true",
         help="Print what would be executed without actually running stages.",
@@ -68,12 +74,14 @@ DEFAULT_STAGES = [
     "collect_stats",
     "train",
     "infer",
+    "measure",
 ]
 
 ALL_STAGES = DEFAULT_STAGES
 DEFAULT_PACKAGE = "egs3.libritts.tts"
 DEFAULT_TRAINING_CONFIG = "training.yaml"
 DEFAULT_INFERENCE_CONFIG = "inference.yaml"
+DEFAULT_METRICS_CONFIG = "metrics.yaml"
 
 
 def main(args) -> None:
@@ -91,17 +99,23 @@ def main(args) -> None:
         default_package=DEFAULT_PACKAGE,
         resolve=False,
     )
+    metrics_config = load_and_merge_config(
+        args.metrics_config,
+        config_name=DEFAULT_METRICS_CONFIG,
+        default_package=DEFAULT_PACKAGE,
+        resolve=False,
+    )
     logger = configure_logging()
     apply_training_experiment_context(
         training_config=training_config,
         inference_config=inference_config,
-        metrics_config=None,
+        metrics_config=metrics_config,
         log=logger,
     )
     validate_experiment_context(
         training_config=training_config,
         inference_config=inference_config,
-        metrics_config=None,
+        metrics_config=metrics_config,
         stages_to_run=stages_to_run,
     )
     resolve_loaded_configs(training_config, inference_config)
@@ -109,6 +123,7 @@ def main(args) -> None:
     system = TTSSystem(
         training_config=training_config,
         inference_config=inference_config,
+        metrics_config=metrics_config,
     )
 
     pretrain_stages = {
