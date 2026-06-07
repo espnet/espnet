@@ -1,4 +1,5 @@
 """VERSA-based TTS metric wrapper for the measure stage."""
+
 from __future__ import annotations
 
 import json
@@ -36,7 +37,9 @@ class VersaMetric(BaseMetric):
         # OmegaConf ListConfig → plain Python list (json/yaml safe)
         if OmegaConf.is_list(score_config):
             score_config = OmegaConf.to_container(score_config, resolve=True)
-        self._score_config_input = score_config   # path string or list; materialized in __call__
+        self._score_config_input = (
+            score_config  # path string or list; materialized in __call__
+        )
 
         self.hyp_key = hyp_key
         self.ref_key = ref_key
@@ -65,9 +68,7 @@ class VersaMetric(BaseMetric):
             logger.info("Wrote inline VERSA metric list to %s", out)
             return out
 
-        raise TypeError(
-            f"score_config must be a path or a list, got {type(sc)}"
-        )
+        raise TypeError(f"score_config must be a path or a list, got {type(sc)}")
 
     def __call__(
         self,
@@ -93,13 +94,21 @@ class VersaMetric(BaseMetric):
         result_file = eval_dir / "result.json"
 
         cmd = [
-            "python", "-m", "versa.bin.scorer",
-            "--pred", str(data[self.hyp_key]),
-            "--gt", str(data[self.ref_key]),
-            "--score_config", str(score_config_path),
-            "--cache_folder", str(eval_dir / "cache"),
-            "--output_file", str(result_file),
-            "--io", self.io,
+            "python",
+            "-m",
+            "versa.bin.scorer",
+            "--pred",
+            str(data[self.hyp_key]),
+            "--gt",
+            str(data[self.ref_key]),
+            "--score_config",
+            str(score_config_path),
+            "--cache_folder",
+            str(eval_dir / "cache"),
+            "--output_file",
+            str(result_file),
+            "--io",
+            self.io,
         ]
         if self.text_key in data:
             cmd += ["--text", str(data[self.text_key])]
