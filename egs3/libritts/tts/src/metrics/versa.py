@@ -1,4 +1,5 @@
 """VERSA-based TTS metric wrapper for the measure stage."""
+
 from __future__ import annotations
 
 import json
@@ -70,13 +71,21 @@ class VersaMetric(BaseMetric):
 
         result_file = eval_dir / "result.json"
         cmd = [
-            "python", "-m", "versa.bin.scorer",
-            "--pred", str(data[self.hyp_key]),
-            "--gt", str(data[self.ref_key]),
-            "--text", str(data[self.text_key]),
-            "--score_config", json.dumps(self.score_config),
-            "--cache_folder", str(eval_dir / "cache"),
-            "--output_file", str(result_file),
+            "python",
+            "-m",
+            "versa.bin.scorer",
+            "--pred",
+            str(data[self.hyp_key]),
+            "--gt",
+            str(data[self.ref_key]),
+            "--text",
+            str(data[self.text_key]),
+            "--score_config",
+            json.dumps(self.score_config),
+            "--cache_folder",
+            str(eval_dir / "cache"),
+            "--output_file",
+            str(result_file),
         ]
         if self.use_gpu:
             cmd.append("--use_gpu")
