@@ -10,6 +10,7 @@ unames="$(uname -s)"
 unamem="$(uname -m)"
 
 dirname=ffmpeg-release
+linux_archive_pattern='^ffmpeg-.*-static/'
 
 if [ -x "$(command -v ffmpeg)" ]; then
     echo "ffmpeg is already installed in system"
@@ -40,13 +41,21 @@ download_archive() {
 }
 
 linux_archive_dir() {
-    tar tf "$1" 2>/dev/null | awk -F/ '/^ffmpeg-.*-static\// {print $1; exit}'
+    tar tf "$1" 2>/dev/null | awk -F/ -v pattern="${linux_archive_pattern}" '$0 ~ pattern {print $1; exit}'
 }
 
 validate_linux_archive() {
     local archive_path="$1"
 
     [ -n "$(linux_archive_dir "${archive_path}")" ]
+}
+
+download_and_validate_linux_archive() {
+    local url="$1"
+    local output="$2"
+
+    download_archive "${url}" "${output}" || return 1
+    validate_linux_archive "${output}"
 }
 
 if [[ ${unames} =~ Linux ]]; then
@@ -60,10 +69,10 @@ if [[ ${unames} =~ Linux ]]; then
         echo "Using cached archive ${ffmpeg_name}"
     else
         rm -f "${ffmpeg_name}"
-        if ! download_archive "${PRIMARY_URL}" "${ffmpeg_name}" || ! validate_linux_archive "${ffmpeg_name}"; then
+        if ! download_and_validate_linux_archive "${PRIMARY_URL}" "${ffmpeg_name}"; then
             echo "Primary download failed, trying backup URL..."
             rm -f "${ffmpeg_name}"
-            if ! download_archive "${BACKUP_URL}" "${ffmpeg_name}" || ! validate_linux_archive "${ffmpeg_name}"; then
+            if ! download_and_validate_linux_archive "${BACKUP_URL}" "${ffmpeg_name}"; then
                 echo "Both primary and backup downloads failed"
                 exit 1
             fi

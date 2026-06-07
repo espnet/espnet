@@ -39,7 +39,7 @@ jobs:
       github.event.pull_request.draft == false
     outputs:
       has_local_ffmpeg: ${{ steps.detect.outputs.has_local_ffmpeg }}
-      ffmpeg_dir: ${{ steps.detect.outputs.ffmpeg_dir }}
+      ffmpeg_dirname: ${{ steps.detect.outputs.ffmpeg_dirname }}
     steps:
       - uses: actions/checkout@v6
       - name: Prepare FFmpeg
@@ -54,11 +54,12 @@ jobs:
         id: detect
         run: |
           if [ -x tools/ffmpeg-release/ffmpeg ]; then
+            ffmpeg_dirname="$(find tools -maxdepth 1 -type d -name 'ffmpeg-*-static' -printf '%f\n' | head -n 1)"
             echo "has_local_ffmpeg=true" >> "$GITHUB_OUTPUT"
-            echo "ffmpeg_dir=tools/$(readlink tools/ffmpeg-release)" >> "$GITHUB_OUTPUT"
+            echo "ffmpeg_dirname=${ffmpeg_dirname}" >> "$GITHUB_OUTPUT"
           else
             echo "has_local_ffmpeg=false" >> "$GITHUB_OUTPUT"
-            echo "ffmpeg_dir=" >> "$GITHUB_OUTPUT"
+            echo "ffmpeg_dirname=" >> "$GITHUB_OUTPUT"
           fi
       - name: Upload FFmpeg tools
         if: steps.detect.outputs.has_local_ffmpeg == 'true'
@@ -67,8 +68,7 @@ jobs:
           name: ffmpeg-tools
           path: |
             tools/ffmpeg.done
-            tools/ffmpeg-release
-            ${{ steps.detect.outputs.ffmpeg_dir }}
+            tools/${{ steps.detect.outputs.ffmpeg_dirname }}
           if-no-files-found: error
           retention-days: 1
 
@@ -128,6 +128,9 @@ jobs:
         with:
           name: ffmpeg-tools
           path: .
+      - name: Restore FFmpeg symlink
+        if: needs.prepare_ffmpeg.outputs.has_local_ffmpeg == 'true'
+        run: ln -sfn "${{ needs.prepare_ffmpeg.outputs.ffmpeg_dirname }}" tools/ffmpeg-release
       - uses: actions/cache@v5
         with:
           path: ~/.cache/pip
@@ -171,6 +174,9 @@ jobs:
         with:
           name: ffmpeg-tools
           path: .
+      - name: Restore FFmpeg symlink
+        if: needs.prepare_ffmpeg.outputs.has_local_ffmpeg == 'true'
+        run: ln -sfn "${{ needs.prepare_ffmpeg.outputs.ffmpeg_dirname }}" tools/ffmpeg-release
       - uses: actions/cache@v5
         with:
           path: ~/.cache/pip
@@ -214,6 +220,9 @@ jobs:
         with:
           name: ffmpeg-tools
           path: .
+      - name: Restore FFmpeg symlink
+        if: needs.prepare_ffmpeg.outputs.has_local_ffmpeg == 'true'
+        run: ln -sfn "${{ needs.prepare_ffmpeg.outputs.ffmpeg_dirname }}" tools/ffmpeg-release
       - uses: actions/cache@v5
         with:
           path: ~/.cache/pip
@@ -251,6 +260,9 @@ jobs:
         with:
           name: ffmpeg-tools
           path: .
+      - name: Restore FFmpeg symlink
+        if: needs.prepare_ffmpeg.outputs.has_local_ffmpeg == 'true'
+        run: ln -sfn "${{ needs.prepare_ffmpeg.outputs.ffmpeg_dirname }}" tools/ffmpeg-release
       - uses: actions/cache@v5
         with:
           path: ~/.cache/pip
@@ -294,6 +306,9 @@ jobs:
         with:
           name: ffmpeg-tools
           path: .
+      - name: Restore FFmpeg symlink
+        if: needs.prepare_ffmpeg.outputs.has_local_ffmpeg == 'true'
+        run: ln -sfn "${{ needs.prepare_ffmpeg.outputs.ffmpeg_dirname }}" tools/ffmpeg-release
       - uses: actions/cache@v5
         with:
           path: ~/.cache/pip
@@ -332,6 +347,9 @@ jobs:
         with:
           name: ffmpeg-tools
           path: .
+      - name: Restore FFmpeg symlink
+        if: needs.prepare_ffmpeg.outputs.has_local_ffmpeg == 'true'
+        run: ln -sfn "${{ needs.prepare_ffmpeg.outputs.ffmpeg_dirname }}" tools/ffmpeg-release
       - uses: actions/cache@v5
         with:
           path: ~/.cache/pip
@@ -374,6 +392,9 @@ jobs:
         with:
           name: ffmpeg-tools
           path: .
+      - name: Restore FFmpeg symlink
+        if: needs.prepare_ffmpeg.outputs.has_local_ffmpeg == 'true'
+        run: ln -sfn "${{ needs.prepare_ffmpeg.outputs.ffmpeg_dirname }}" tools/ffmpeg-release
       - uses: actions/cache@v5
         with:
           path: ~/.cache/pip
