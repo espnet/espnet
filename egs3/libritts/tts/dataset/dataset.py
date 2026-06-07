@@ -131,9 +131,9 @@ class LibriTTSDataset(TorchDataset):
         entry = self._entries[int(idx)]
         # utt_id and wav_path are included for inference purposes only.
         sample: dict[str, Any] = {
-            "utt_id": entry.utt_id, 
+            "utt_id": entry.utt_id,
             "wav_path": str(entry.wav_path),
-            "text": entry.text
+            "text": entry.text,
         }
         if self.load_speech:
             speech, _ = sf.read(str(entry.wav_path))
