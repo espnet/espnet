@@ -129,7 +129,12 @@ class LibriTTSDataset(TorchDataset):
 
     def __getitem__(self, idx: int) -> dict[str, Any]:
         entry = self._entries[int(idx)]
-        sample: dict[str, Any] = {"text": entry.text}
+        # utt_id and wav_path are included for inference purposes only.
+        sample: dict[str, Any] = {
+            "utt_id": entry.utt_id, 
+            "wav_path": str(entry.wav_path),
+            "text": entry.text
+        }
         if self.load_speech:
             speech, _ = sf.read(str(entry.wav_path))
             sample["speech"] = np.asarray(speech, dtype=np.float32)
