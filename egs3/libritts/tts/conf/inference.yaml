@@ -1,9 +1,9 @@
-exp_tag: ${load_yaml:training.yaml,exp_tag}
-
 recipe_dir: .
-data_dir: ${recipe_dir}/data
+
+exp_tag:
 exp_dir: ${recipe_dir}/exp/${exp_tag}
-inference_dir: ${exp_dir}/inference
+data_dir: ${recipe_dir}/data
+inference_dir: ${exp_dir}/${self_name:}
 
 dataset:
   _target_: espnet3.components.data.data_organizer.DataOrganizer
@@ -12,13 +12,13 @@ dataset:
     - name: valid
       data_src_args:
         split: valid
-        manifest_path: ${data_dir}/manifest_filtered/valid.tsv
+        manifest_path: ${data_dir}/manifests_filtered/valid.tsv
         xvector_dir: ${xvector.save_path}/${xvector.spk_embed_tag}_valid
         load_speech: true
     - name: test
       data_src_args:
         split: test
-        manifest_path: ${data_dir}/manifest_filtered/test.tsv
+        manifest_path: ${data_dir}/manifests_filtered/test.tsv
         xvector_dir: ${xvector.save_path}/${xvector.spk_embed_tag}_test
         load_speech: true
   preprocessor:
@@ -51,3 +51,8 @@ output_artifacts:
   wav:
     type: wav
     sample_rate: 22050
+
+provider:
+  _target_: espnet3.systems.base.inference_provider.InferenceProvider
+runner:
+  _target_: espnet3.systems.base.inference_runner.InferenceRunner
