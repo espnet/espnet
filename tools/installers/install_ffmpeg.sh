@@ -34,8 +34,8 @@ download_archive() {
     local tmp_output="${output}.tmp"
 
     rm -f "${tmp_output}"
-    wget --no-check-certificate --tries=5 --waitretry=5 --retry-connrefused \
-        --timeout=30 --read-timeout=30 --trust-server-names -O "${tmp_output}" "${url}"
+    wget --tries=5 --waitretry=5 --retry-connrefused --timeout=30 \
+        --read-timeout=30 --trust-server-names -O "${tmp_output}" "${url}"
     mv "${tmp_output}" "${output}"
 }
 
@@ -57,10 +57,10 @@ if [[ ${unames} =~ Linux ]]; then
             fi
         fi
     fi
-    rm -rf "${dirname}" ffmpeg-*-static
+    ffmpegdir="$(tar tf "${ffmpeg_name}" | head -1 | cut -d/ -f1)"
+    rm -rf "${dirname}" "${ffmpegdir}"
     tar xvf "${ffmpeg_name}"
-    ffmpegdir="$(find . -maxdepth 1 -type d -name 'ffmpeg-*-static' -print -quit | sed 's|^\./||')"
-    ln -sf "${ffmpegdir}" "${dirname}"
+    ln -sfn "${ffmpegdir}" "${dirname}"
 elif [[ ${unames} =~ Darwin ]]; then
     # bins="ffmpeg ffprobe ffplay ffserver"
     bins="ffmpeg ffprobe ffplay"

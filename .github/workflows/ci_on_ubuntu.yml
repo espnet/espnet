@@ -10,6 +10,10 @@ on:
       - master
       - espnet3
 
+permissions:
+  contents: read
+  pull-requests: read
+
 jobs:
   process_labels:
     runs-on: ubuntu-latest
