@@ -39,12 +39,14 @@ jobs:
       github.event.pull_request.draft == false
     outputs:
       has_local_ffmpeg: ${{ steps.detect.outputs.has_local_ffmpeg }}
+      ffmpeg_dir: ${{ steps.detect.outputs.ffmpeg_dir }}
     steps:
       - uses: actions/checkout@v6
       - name: Prepare FFmpeg
         run: |
           cd tools
           ./installers/install_ffmpeg.sh
+          # Let tools/Makefile skip the ffmpeg target in downstream jobs.
           if [ -x ffmpeg-release/ffmpeg ]; then
             touch ffmpeg.done
           fi
@@ -53,8 +55,10 @@ jobs:
         run: |
           if [ -x tools/ffmpeg-release/ffmpeg ]; then
             echo "has_local_ffmpeg=true" >> "$GITHUB_OUTPUT"
+            echo "ffmpeg_dir=tools/$(readlink tools/ffmpeg-release)" >> "$GITHUB_OUTPUT"
           else
             echo "has_local_ffmpeg=false" >> "$GITHUB_OUTPUT"
+            echo "ffmpeg_dir=" >> "$GITHUB_OUTPUT"
           fi
       - name: Upload FFmpeg tools
         if: steps.detect.outputs.has_local_ffmpeg == 'true'
@@ -64,7 +68,7 @@ jobs:
           path: |
             tools/ffmpeg.done
             tools/ffmpeg-release
-            tools/ffmpeg-*-static
+            ${{ steps.detect.outputs.ffmpeg_dir }}
           if-no-files-found: error
           retention-days: 1
 

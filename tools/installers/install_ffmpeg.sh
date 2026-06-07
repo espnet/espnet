@@ -40,7 +40,7 @@ download_archive() {
 }
 
 linux_archive_dir() {
-    tar tf "$1" 2>/dev/null | awk -F/ 'NF > 1 {print $1; exit}'
+    tar tf "$1" 2>/dev/null | awk -F/ '/^ffmpeg-.*-static\// {print $1; exit}'
 }
 
 validate_linux_archive() {
