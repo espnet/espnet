@@ -30,7 +30,6 @@ def find_one(root: Path, patterns: list[str]) -> Path:
 def sanitize_train_config(
     cfg: dict,
     feats_stats: str,
-    *,
     max_epoch: int,
     num_iters_per_epoch: int,
     batch_size: int,
