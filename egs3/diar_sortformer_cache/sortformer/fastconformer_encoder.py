@@ -30,7 +30,30 @@ from espnet2.asr.encoder.abs_encoder import AbsEncoder
 
 
 def calc_length(lengths, all_paddings, kernel_size, stride, ceil_mode, repeat_num=1):
-    """Output length of a tensor passed through ``repeat_num`` conv/pool layers."""
+    """Compute the output length after ``repeat_num`` identical conv/pool layers.
+
+    Applies the standard convolution output-length formula
+    ``floor/ceil((L + all_paddings - kernel_size) / stride + 1)`` once per
+    repeated layer. Used by :class:`ConvSubsampling` to track valid (non-padded)
+    frame counts through the subsampling stack so masks stay correct.
+
+    Args:
+        lengths: Tensor of input lengths (any shape; cast to float internally).
+        all_paddings: Total padding added across both sides (left + right).
+        kernel_size: Convolution kernel size.
+        stride: Convolution stride.
+        ceil_mode: If True use ``ceil`` rounding, else ``floor`` (matches the
+            ``ceil_mode`` of the conv/pool layers being modeled).
+        repeat_num: Number of identical layers the input passes through.
+
+    Returns:
+        Tensor of output lengths with dtype ``torch.int``.
+
+    Example:
+        >>> calc_length(torch.tensor([100]), all_paddings=2, kernel_size=3,
+        ...             stride=2, ceil_mode=False, repeat_num=3)
+        tensor([13], dtype=torch.int32)
+    """
     add_pad = all_paddings - kernel_size
     one = 1.0
     for _ in range(repeat_num):
@@ -55,6 +78,28 @@ class ConvSubsampling(nn.Module):
 
     followed by a ``Linear(C * F', d_model)`` projection, where ``F'`` is the
     sub-sampled frequency dimension.
+
+    The forward pass reduces the time axis by ``subsampling_factor`` (8x by
+    default) and projects the (channel, frequency) plane to ``feat_out``
+    (``d_model``). The ``dw_striding`` design (one full conv followed by
+    depthwise+pointwise pairs) mirrors the released Sortformer checkpoint, so
+    converting weights is a near-identity key remap.
+
+    Args:
+        subsampling_factor: Time reduction factor; must be a power of 2.
+        feat_in: Number of input feature (mel) bins.
+        feat_out: Output dimension of the final linear projection (``d_model``).
+        conv_channels: Channel count used inside the conv stack.
+
+    Raises:
+        ValueError: If ``subsampling_factor`` is not a multiple of 2.
+
+    Example:
+        >>> sub = ConvSubsampling(8, feat_in=80, feat_out=512, conv_channels=256)
+        >>> x = torch.randn(2, 200, 80)
+        >>> y, ylens = sub(x, torch.tensor([200, 160]))
+        >>> y.shape  # time reduced ~8x, projected to d_model
+        torch.Size([2, 25, 512])
     """
 
     def __init__(
@@ -118,6 +163,7 @@ class ConvSubsampling(nn.Module):
         self.linear = nn.Linear(conv_channels * int(out_length), feat_out)
 
     def get_out_lengths(self, lengths: torch.Tensor) -> torch.Tensor:
+        """Map input frame lengths to sub-sampled output lengths."""
         return calc_length(
             lengths,
             all_paddings=self._left_padding + self._right_padding,
@@ -130,7 +176,16 @@ class ConvSubsampling(nn.Module):
     def forward(
         self, x: torch.Tensor, lengths: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """x: (B, T, feat_in) -> (B, T', feat_out)."""
+        """Subsample and project features.
+
+        Args:
+            x: Input features ``(B, T, feat_in)``.
+            lengths: Valid frame counts ``(B,)`` before subsampling.
+
+        Returns:
+            Tuple ``(out, out_lengths)`` where ``out`` is ``(B, T', feat_out)``
+            and ``out_lengths`` are the corresponding sub-sampled lengths.
+        """
         out_lengths = self.get_out_lengths(lengths)
         x = x.unsqueeze(1)  # (B, 1, T, F)
         x = self.layers(x)  # (B, C, T', F')
@@ -146,6 +201,21 @@ class RelPositionalEncoding(nn.Module):
     ``(1, 2*T-1, d_model)`` ordered from position ``T-1`` down to ``-(T-1)``.
     The positional table is a non-persistent buffer (regenerated on the fly),
     matching the released checkpoint which does not store it.
+
+    Args:
+        d_model: Model (embedding) dimension.
+        dropout_rate: Dropout applied to the (scaled) input embeddings.
+        max_len: Maximum sequence length pre-computed for the positional table;
+            it is extended automatically if a longer input is seen.
+        xscale: Optional scale applied to the input (typically
+            ``sqrt(d_model)``); ``None`` disables scaling.
+
+    Example:
+        >>> pe = RelPositionalEncoding(512, dropout_rate=0.1, xscale=512 ** 0.5)
+        >>> x = torch.randn(2, 30, 512)
+        >>> x_scaled, pos_emb = pe(x)
+        >>> pos_emb.shape  # (1, 2T-1, d_model)
+        torch.Size([1, 59, 512])
     """
 
     def __init__(
@@ -164,6 +234,7 @@ class RelPositionalEncoding(nn.Module):
         self.extend_pe(max_len, torch.device("cpu"), torch.float32)
 
     def create_pe(self, positions: torch.Tensor, dtype):
+        """Build the sinusoidal table ``self.pe`` for the given positions."""
         pos_length = positions.size(0)
         pe = torch.zeros(pos_length, self.d_model, device=positions.device)
         div_term = torch.exp(
@@ -178,6 +249,12 @@ class RelPositionalEncoding(nn.Module):
         self.pe = pe
 
     def extend_pe(self, length: int, device, dtype):
+        """Grow the positional table to cover ``length`` if it is too short.
+
+        The table needs ``2*length - 1`` entries (positions ``length-1`` down to
+        ``-(length-1)``). If the cached table is already large enough it is only
+        moved to the requested device/dtype; otherwise it is rebuilt.
+        """
         needed = 2 * length - 1
         if self.pe is not None and self.pe.size(1) >= needed:
             self.pe = self.pe.to(device=device, dtype=dtype)
@@ -188,6 +265,15 @@ class RelPositionalEncoding(nn.Module):
         self.create_pe(positions, dtype)
 
     def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Scale the input and slice the relative-position embedding.
+
+        Args:
+            x: Input embeddings ``(B, T, d_model)``.
+
+        Returns:
+            Tuple ``(x_out, pos_emb)`` where ``x_out`` is the (optionally scaled
+            and dropped-out) input and ``pos_emb`` is ``(1, 2*T-1, d_model)``.
+        """
         self.extend_pe(x.size(1), x.device, x.dtype)
         if self.xscale:
             x = x * self.xscale
@@ -202,9 +288,19 @@ class RelPositionalEncoding(nn.Module):
 class RelPositionMultiHeadAttention(nn.Module):
     """Multi-head attention with Transformer-XL relative positional encoding.
 
+    Implements the Transformer-XL decomposition of the attention score into a
+    content term (``matrix_ac``, query+``bias_u`` against keys) and a
+    position term (``matrix_bd``, query+``bias_v`` against the relative-position
+    projection, then :meth:`rel_shift`-ed into alignment).
+
     Parameter names match the HF checkpoint::
 
         q_proj, k_proj, v_proj, o_proj, relative_k_proj, bias_u, bias_v
+
+    Args:
+        n_head: Number of attention heads (must divide ``n_feat``).
+        n_feat: Model dimension.
+        dropout_rate: Dropout on the attention weights.
     """
 
     def __init__(self, n_head: int, n_feat: int, dropout_rate: float):
@@ -223,6 +319,7 @@ class RelPositionMultiHeadAttention(nn.Module):
         self.dropout = nn.Dropout(dropout_rate)
 
     def forward_qkv(self, query, key, value):
+        """Project and reshape inputs into ``(B, h, T, d_k)`` query/key/value."""
         n = query.size(0)
         q = self.q_proj(query).view(n, -1, self.h, self.d_k).transpose(1, 2)
         k = self.k_proj(key).view(n, -1, self.h, self.d_k).transpose(1, 2)
@@ -230,6 +327,11 @@ class RelPositionMultiHeadAttention(nn.Module):
         return q, k, v
 
     def rel_shift(self, x: torch.Tensor) -> torch.Tensor:
+        """Shift the position-score matrix so relative offsets align with keys.
+
+        Pads, reshapes and slices ``matrix_bd`` (the Transformer-XL trick) so
+        that entry ``(i, j)`` holds the score for relative offset ``i - j``.
+        """
         b, h, qlen, pos_len = x.size()
         x = F.pad(x, pad=(1, 0))
         x = x.view(b, h, -1, qlen)
@@ -237,7 +339,18 @@ class RelPositionMultiHeadAttention(nn.Module):
         return x
 
     def forward(self, x, pos_emb, mask):
-        """x: (B, T, d_model); pos_emb: (1, 2T-1, d_model); mask: (B, T, T) bool, True=masked."""
+        """Compute relative-position multi-head self-attention.
+
+        Args:
+            x: Input sequence ``(B, T, d_model)`` (used as query, key, value).
+            pos_emb: Relative-position embedding ``(1, 2*T-1, d_model)`` from
+                :class:`RelPositionalEncoding`.
+            mask: Boolean attention mask ``(B, T, T)`` where True marks
+                disallowed (key, query) pairs; ``None`` for full attention.
+
+        Returns:
+            Attention output ``(B, T, d_model)``.
+        """
         q, k, v = self.forward_qkv(x, x, x)
         q = q.transpose(1, 2)  # (B, T, h, d_k)
 
@@ -257,6 +370,7 @@ class RelPositionMultiHeadAttention(nn.Module):
         return self._forward_attention(v, scores, mask)
 
     def _forward_attention(self, value, scores, mask):
+        """Mask, softmax and apply attention weights, then output-project."""
         n_batch = value.size(0)
         if mask is not None:
             mask = mask.unsqueeze(1)  # (B, 1, T, T)
@@ -271,6 +385,8 @@ class RelPositionMultiHeadAttention(nn.Module):
 
 
 class ConformerFeedForward(nn.Module):
+    """Position-wise feed-forward module (Linear -> SiLU -> dropout -> Linear)."""
+
     def __init__(self, d_model: int, d_ff: int, dropout: float):
         super().__init__()
         self.linear1 = nn.Linear(d_model, d_ff)
@@ -311,7 +427,23 @@ class ConformerConvolution(nn.Module):
 
 
 class ConformerLayer(nn.Module):
-    """A single Conformer block (macaron-FFN, MHSA, conv, macaron-FFN)."""
+    """A single Conformer block (macaron-FFN, MHSA, conv, macaron-FFN).
+
+    Each sub-module uses pre-LayerNorm with residual connections; the two FFNs
+    are scaled by ``fc_factor=0.5`` (macaron style) and a final LayerNorm is
+    applied. The self-attention is :class:`RelPositionMultiHeadAttention`, which
+    :class:`FastConformerEncoder` may swap for an efficient sliding-window
+    variant when ``att_context_size`` is set (detected at runtime via the
+    ``is_local`` attribute in :meth:`forward`).
+
+    Args:
+        d_model: Model dimension.
+        d_ff: Hidden size of the feed-forward modules.
+        n_heads: Number of attention heads.
+        conv_kernel_size: Depthwise conv kernel size (must be odd).
+        dropout: Dropout for FFN/conv and residual paths.
+        dropout_att: Dropout on attention weights.
+    """
 
     def __init__(
         self,
@@ -336,6 +468,22 @@ class ConformerLayer(nn.Module):
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, x, att_mask, pos_emb, pad_mask, n_global=0):
+        """Apply the Conformer block.
+
+        Args:
+            x: Input ``(B, T, d_model)``.
+            att_mask: Full-attention mask ``(B, T, T)`` (True = masked); unused
+                on the sliding-window path.
+            pos_emb: Relative-position embedding for the attention module.
+            pad_mask: Padding mask ``(B, T)`` (True = padded) used to zero
+                padded positions before the depthwise conv and as the key mask
+                on the sliding-window path.
+            n_global: Number of leading frames (speaker-cache prefix) that stay
+                globally attended on the sliding-window path; ignored otherwise.
+
+        Returns:
+            Block output ``(B, T, d_model)``.
+        """
         residual = x
         x = self.norm_feed_forward1(x)
         x = self.feed_forward1(x)
@@ -363,8 +511,59 @@ class ConformerLayer(nn.Module):
 class FastConformerEncoder(AbsEncoder):
     """FastConformer encoder (offline) for Sortformer.
 
+    Stacks :class:`ConvSubsampling` (8x time reduction by default),
+    :class:`RelPositionalEncoding`, and ``n_layers`` :class:`ConformerLayer`
+    blocks. Subclasses :class:`AbsEncoder`, so :meth:`output_size` reports
+    ``d_model``.
+
     Input: log-mel features ``(B, T, feat_in)`` with ``ilens``.
     Output: ``(B, T', d_model)`` with sub-sampled lengths (8x by default).
+
+    Attention modes:
+        * Full attention (default, ``att_context_size=None``): an O(T^2) mask is
+          built per forward and standard relative-position attention is used.
+        * Efficient local attention (``att_context_size=(left, right)``): the
+          attention modules are replaced at construction time by O(T*W)
+          sliding-window variants (Longformer-style chunked rel-pos). The
+          replacement loads the original weights as-is, so checkpoints stay
+          compatible. Each side may be ``-1`` for "unlimited on that side", and
+          window units are sub-sampled (80-ms) frames.
+
+    Streaming / speaker cache:
+        :meth:`pre_encode` exposes the subsampling stage so a streaming caller
+        can cache pre-encoded embeddings. The ``full_prefix_len`` argument of
+        :meth:`forward` (passed through as ``n_global`` to each layer) marks the
+        leading frames (speaker cache + FIFO) that every query may always attend
+        to, bypassing the local window.
+
+    Args:
+        feat_in: Number of input mel bins.
+        d_model: Model dimension (also the output size).
+        n_layers: Number of Conformer blocks.
+        n_heads: Attention heads per block.
+        ff_expansion_factor: ``d_ff = d_model * ff_expansion_factor``.
+        subsampling_factor: Time reduction factor (power of 2).
+        subsampling_conv_channels: Channels inside the subsampling stack.
+        conv_kernel_size: Depthwise conv kernel size in each block (odd).
+        dropout: Dropout for FFN/conv/residual paths.
+        dropout_pre_encoder: Dropout in the positional encoding.
+        dropout_att: Dropout on attention weights.
+        xscaling: If True scale embeddings by ``sqrt(d_model)``.
+        pos_emb_max_len: Pre-computed positional table length.
+        att_context_size: Optional ``(left, right)`` local-attention window in
+            sub-sampled frames; ``None`` keeps full attention.
+
+    Example:
+        >>> enc = FastConformerEncoder(feat_in=80, d_model=512, n_layers=18)
+        >>> x = torch.randn(2, 800, 80)
+        >>> out, olens, _ = enc(x, torch.tensor([800, 640]))
+        >>> out.shape  # time reduced 8x
+        torch.Size([2, 100, 512])
+        >>> # Streaming with a 188-frame global prefix (speaker cache + FIFO)
+        >>> enc_local = FastConformerEncoder(att_context_size=(188, 13))
+        >>> emb, elens = enc_local.pre_encode(x, torch.tensor([800, 640]))
+        >>> out, olens, _ = enc_local(
+        ...     emb, elens, bypass_pre_encode=True, full_prefix_len=188)
     """
 
     def __init__(
@@ -444,22 +643,36 @@ class FastConformerEncoder(AbsEncoder):
                 layer.self_attn = local
 
     def output_size(self) -> int:
+        """Return the encoder output dimension (``d_model``)."""
         return self._output_size
 
     def pre_encode(
         self, x: torch.Tensor, lengths: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Subsampling only: log-mel ``(B, T, feat_in)`` -> ``(B, T', d_model)``.
+        """Run subsampling only: log-mel ``(B, T, feat_in)`` -> ``(B, T', d_model)``.
 
         Used by streaming inference: the speaker cache stores these pre-encode
-        embeddings and re-feeds them through the conformer layers each chunk.
+        embeddings and re-feeds them through the conformer layers each chunk
+        (call :meth:`forward` with ``bypass_pre_encode=True``).
+
+        Args:
+            x: Log-mel features ``(B, T, feat_in)``.
+            lengths: Valid frame counts ``(B,)``.
+
+        Returns:
+            Tuple ``(emb, out_lengths)`` with ``emb`` of shape
+            ``(B, T', d_model)`` and the sub-sampled lengths.
         """
         return self.subsampling(x, lengths)
 
     @staticmethod
     def _create_masks(lengths: torch.Tensor, max_len: int):
-        """Full-attention masks. (Local windowing is handled efficiently inside
-        the sliding-window attention, not via an O(N^2) mask.)"""
+        """Build full-attention masks ``(pad_mask, att_mask)``.
+
+        Returns a padding mask ``(B, T)`` and a square attention mask
+        ``(B, T, T)`` (both True = masked). Local windowing is handled
+        efficiently inside the sliding-window attention, not via an O(T^2) mask.
+        """
         device = lengths.device
         valid = torch.arange(max_len, device=device).expand(
             lengths.size(0), max_len
@@ -483,8 +696,21 @@ class FastConformerEncoder(AbsEncoder):
             xs_pad: ``(B, T, feat_in)`` log-mel features when
                 ``bypass_pre_encode=False``; otherwise ``(B, T', d_model)``
                 pre-encoded embeddings (subsampling already applied).
-            full_prefix_len: number of leading frames (speaker cache + FIFO) that
-                every query may always attend to, bypassing ``att_context_size``.
+            ilens: Valid frame counts ``(B,)``; interpreted as input lengths
+                (pre-subsampling) or as ``T'`` lengths when
+                ``bypass_pre_encode=True``.
+            prev_states: Unused; kept for the :class:`AbsEncoder` interface.
+            bypass_pre_encode: If True, skip subsampling and treat ``xs_pad`` as
+                already pre-encoded embeddings (see :meth:`pre_encode`).
+            full_prefix_len: Number of leading frames (speaker cache + FIFO) that
+                every query may always attend to, bypassing ``att_context_size``
+                (forwarded as ``n_global`` to each layer; only meaningful on the
+                local-attention path).
+
+        Returns:
+            Tuple ``(out, olens, None)`` where ``out`` is ``(B, T', d_model)``,
+            ``olens`` are the (clamped) sub-sampled lengths, and the third item
+            is always ``None`` (no recurrent state).
         """
         if bypass_pre_encode:
             x, olens = xs_pad, ilens

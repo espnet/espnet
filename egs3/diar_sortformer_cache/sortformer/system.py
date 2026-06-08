@@ -10,6 +10,19 @@ On top of the generic :class:`BaseSystem` stages (``collect_stats``, ``train``,
   scoring collar-based DER. These are config-driven via the ``longform`` block of
   the inference / metrics configs and are the reproducible path to the
   session-level numbers.
+
+A recipe's ``run.py`` selects this system with::
+
+    from sortformer.system import DiarizationSystem
+
+Stages are then driven from the command line, e.g.::
+
+    python run.py --stages data_preparation train \\
+        --training_config conf/training.yaml
+    python run.py --stages infer_longform measure_longform \\
+        --training_config conf/training.yaml \\
+        --inference_config conf/inference.yaml \\
+        --metrics_config conf/metrics.yaml
 """
 
 import json
@@ -28,8 +41,27 @@ logger = logging.getLogger(__name__)
 class DiarizationSystem(BaseSystem):
     """Sortformer diarization system.
 
-    No tokenizer is needed. Provides a ``data_preparation`` stage that delegates
-    to a recipe-provided function (see ``src/data_prep.py``).
+    A :class:`BaseSystem` subclass that orchestrates the diarization recipe. No
+    tokenizer is needed. In addition to the inherited stages it provides three
+    custom ones:
+
+    * ``data_preparation``: delegates to the dotted-path callable named in
+      ``training_config.data_prep.func`` (e.g. ``src.data_prep.prepare``).
+    * ``infer_longform``: full-session diarization with the streaming speaker
+      cache, configured by ``inference_config.longform``.
+    * ``measure_longform``: collar-based session-level DER over the long-form
+      RTTMs, configured by ``metrics_config.longform``.
+
+    Used by a recipe's ``run.py`` as::
+
+        from sortformer.system import DiarizationSystem
+
+    Example invocation of the long-form path::
+
+        python run.py --stages infer_longform measure_longform \\
+            --training_config conf/training.yaml \\
+            --inference_config conf/inference.yaml \\
+            --metrics_config conf/metrics.yaml
     """
 
     def __init__(
@@ -39,6 +71,17 @@ class DiarizationSystem(BaseSystem):
         metrics_config=None,
         **kwargs,
     ) -> None:
+        """Initialize the system and register the custom-stage log mapping.
+
+        Args:
+            training_config: Parsed training config (provides ``data_dir`` and
+                the optional ``data_prep`` block).
+            inference_config: Parsed inference config (provides ``inference_dir``
+                and the ``longform`` block).
+            metrics_config: Parsed metrics config (provides the scoring
+                ``longform`` block).
+            **kwargs: Forwarded to :class:`BaseSystem`.
+        """
         super().__init__(
             training_config=training_config,
             inference_config=inference_config,
@@ -54,12 +97,27 @@ class DiarizationSystem(BaseSystem):
     def data_preparation(self, *args, **kwargs):
         """Run the recipe's data-preparation callable, if configured.
 
+        The ``data_preparation`` stage. It imports the dotted-path callable in
+        ``training_config.data_prep.func`` and calls it with every other key in
+        the ``data_prep`` block forwarded as keyword arguments. If no
+        ``data_prep.func`` is configured the stage is a no-op (manifests are
+        assumed to already exist).
+
         Expects ``training_config.data_prep`` with a ``func`` dotted path, e.g.::
 
             data_prep:
               func: src.data_prep.prepare
               output_dir: ${data_dir}/synth
               ...
+
+        Invoke with::
+
+            python run.py --stages data_preparation \\
+                --training_config conf/training.yaml
+
+        Args:
+            *args: Not accepted; passing positional stage args raises.
+            **kwargs: Not accepted; passing keyword stage args raises.
         """
         self._reject_stage_args("data_preparation", args, kwargs)
         cfg = getattr(self.training_config, "data_prep", None)
@@ -81,6 +139,11 @@ class DiarizationSystem(BaseSystem):
     # long-form (full-session) diarization
     # ------------------------------------------------------------------ #
     def _longform_out_dir(self, cfg):
+        """Resolve the long-form output directory.
+
+        Uses ``cfg.out_dir`` if set; otherwise falls back to a ``longform``
+        subdirectory under the inference config's ``inference_dir``.
+        """
         out = getattr(cfg, "out_dir", None)
         if out is None:
             base = getattr(self.inference_config, "inference_dir", None) or "."
@@ -89,6 +152,12 @@ class DiarizationSystem(BaseSystem):
 
     def infer_longform(self, *args, **kwargs):
         """Full-session diarization → one hyp/ref RTTM per session.
+
+        The ``infer_longform`` stage. For every requested condition/split it
+        loads the AMI Lhotse manifests, builds an evaluation model from the
+        configured checkpoint (``nemo_ckpt`` / ``ckpt`` / ``hf_model`` /
+        ``nest``), runs chunked long-form inference, and writes one hypothesis
+        and one reference RTTM per session under the output directory.
 
         Config (``inference_config.longform``)::
 
@@ -101,6 +170,21 @@ class DiarizationSystem(BaseSystem):
               threshold: 0.5
               chunk_sec: 90
               overlap_sec: 30
+              # out_dir: optional; defaults to <inference_dir>/longform
+
+        Invoke (typically together with ``measure_longform``) with::
+
+            python run.py --stages infer_longform measure_longform \\
+                --training_config conf/training.yaml \\
+                --inference_config conf/inference.yaml \\
+                --metrics_config conf/metrics.yaml
+
+        Args:
+            *args: Not accepted; passing positional stage args raises.
+            **kwargs: Not accepted; passing keyword stage args raises.
+
+        Raises:
+            AssertionError: If ``inference_config.longform`` is not set.
         """
         self._reject_stage_args("infer_longform", args, kwargs)
         import lhotse
@@ -160,9 +244,36 @@ class DiarizationSystem(BaseSystem):
     def measure_longform(self, *args, **kwargs):
         """Score collar-based session-level DER over the long-form RTTMs.
 
+        The ``measure_longform`` stage. For every requested condition/split it
+        scores the hypothesis vs. reference RTTMs written by ``infer_longform``
+        with a forgiveness collar, logs the per-split DER, writes the aggregate
+        to ``longform_der.json`` in the output directory, and returns it.
+
         Config (``metrics_config.longform``): ``cond``, ``splits``, ``collar``
         (default 0.25), optional ``out_dir`` (defaults to the inference
-        ``longform`` directory).
+        ``longform`` directory)::
+
+            longform:
+              cond: sdm
+              splits: [dev]
+              collar: 0.25
+
+        Invoke (after ``infer_longform``) with::
+
+            python run.py --stages infer_longform measure_longform \\
+                --training_config conf/training.yaml \\
+                --inference_config conf/inference.yaml \\
+                --metrics_config conf/metrics.yaml
+
+        Args:
+            *args: Not accepted; passing positional stage args raises.
+            **kwargs: Not accepted; passing keyword stage args raises.
+
+        Returns:
+            A mapping of ``"<cond>_<split>"`` to its DER result dict.
+
+        Raises:
+            AssertionError: If ``metrics_config.longform`` is not set.
         """
         self._reject_stage_args("measure_longform", args, kwargs)
         from .longform import score_rttm_der

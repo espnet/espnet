@@ -1,5 +1,17 @@
 #!/usr/bin/env python3
-"""Runner for the Sortformer diarization recipe."""
+"""Runner for the 8-speaker streaming Sortformer diarization recipe.
+
+Thin entrypoint that reuses the shared ESPnet3 stage runner
+(``build_parser`` / ``main`` from ``egs3.TEMPLATE.asr.run``) with this recipe's
+:class:`~sortformer.system.DiarizationSystem` and :data:`DEFAULT_STAGES`.
+
+Run it from the recipe directory, e.g.::
+
+    python run.py --stage data_preparation --stop_stage measure_longform
+
+The default pipeline runs data preparation, training, then long-form inference
+and DER scoring on AMI.
+"""
 
 from typing import List
 

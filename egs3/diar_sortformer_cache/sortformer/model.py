@@ -1,7 +1,7 @@
-"""ESPnet wrapper for the offline Sortformer speaker-diarization model.
+"""ESPnet wrapper for the NeMo-free Sortformer speaker-diarization model.
 
-NeMo-free reimplementation of NVIDIA's ``SortformerEncLabelModel`` (offline) as
-an :class:`~espnet2.train.abs_espnet_model.AbsESPnetModel`. The pipeline is::
+NeMo-free reimplementation of NVIDIA's ``SortformerEncLabelModel`` as an
+:class:`~espnet2.train.abs_espnet_model.AbsESPnetModel`. The pipeline is::
 
     audio -> peak-normalize -> log-mel (MelSpectrogramPreprocessor)
           -> FastConformerEncoder (8x subsampling)
@@ -9,8 +9,15 @@ an :class:`~espnet2.train.abs_espnet_model.AbsESPnetModel`. The pipeline is::
           -> TransformerEncoder (post-LN)
           -> sigmoid speaker head -> per-frame speaker probabilities (B, T, 4)
 
+Both offline (full-context) and streaming long-form inference are supported. The
+streaming path carries the :class:`SortformerModules` speaker cache across chunks
+so output channel ``k`` keeps the same speaker over the whole session; with the
+default chunk size (~15 s) a 90 s recording is processed as ~6 chunks.
+
 Training uses the hybrid Arrival-Time-Sort + Permutation-Invariant BCE loss
-(:class:`~sortformer.sort_loss.SortformerHybridLoss`).
+(:class:`~sortformer.sort_loss.SortformerHybridLoss`); with
+``train_streaming=True`` the predictions come from the streaming cache loop
+(BPTT through the cache).
 
 The component sub-modules mirror the released ``nvidia/diar_sortformer_4spk-v1``
 checkpoint so the weights can be converted with a near-identity key remap.
@@ -37,7 +44,52 @@ def _null_context():
 
 
 class ESPnetSortformerModel(AbsESPnetModel):
-    """Offline Sortformer diarization model (4 speakers by default)."""
+    """NeMo-free Sortformer speaker-diarization model (4 speakers by default).
+
+    Wraps the full Sortformer stack as an
+    :class:`~espnet2.train.abs_espnet_model.AbsESPnetModel`. The forward path is
+    ``preprocessor -> FastConformer encoder -> encoder_proj (fc_d_model ->
+    tf_d_model) -> Transformer encoder -> sigmoid speaker head``, producing
+    per-frame speaker probabilities of shape ``(B, T, num_spk)``.
+
+    Two inference modes are provided:
+
+    * Offline (full context): :meth:`encode` / :meth:`diarize` run the whole
+      utterance through the encoder at once.
+    * Streaming (long-form): :meth:`forward_streaming` /
+      :meth:`diarize_streaming` process the audio chunk by chunk while carrying
+      the :class:`~sortformer.sortformer_modules.SortformerModules` speaker
+      cache across chunks, keeping output channel ``k`` bound to the same
+      speaker over the whole session. With the default streaming
+      hyper-parameters (chunk ~15 s) a 90 s session is processed as ~6 chunks.
+
+    Training (:meth:`forward`) uses the hybrid Arrival-Time-Sort +
+    Permutation-Invariant BCE loss
+    (:class:`~sortformer.sort_loss.SortformerHybridLoss`). When
+    ``train_streaming=True`` the training predictions are produced by the
+    streaming cache loop (BPTT through the cache) instead of the offline
+    full-context :meth:`encode`, matching the original Sortformer training
+    regime.
+
+    Args:
+        preprocessor: Waveform -> log-mel feature extractor.
+        encoder: FastConformer encoder (``subsampling_factor`` of 8 by default).
+        sortformer_modules: Holds ``encoder_proj``, the sigmoid speaker head and
+            the streaming speaker-cache machinery.
+        transformer_encoder: Post-LN Transformer applied on top of the
+            projected encoder states.
+        num_spk: Number of output speaker channels.
+        ats_weight: Weight of the Arrival-Time-Sort term in the hybrid loss.
+        pil_weight: Weight of the Permutation-Invariant term in the hybrid loss.
+        eps: Stabilizer for the peak normalization of the waveform.
+        train_streaming: If True, :meth:`forward` runs the streaming cache loop
+            to produce training predictions instead of the offline encoder.
+
+    Example:
+        >>> model = build_sortformer_model(num_spk=4)
+        >>> preds, lengths = model.diarize(speech, speech_lengths)
+        >>> preds.shape  # (B, T, num_spk) sigmoid speaker activities
+    """
 
     def __init__(
         self,
@@ -70,8 +122,12 @@ class ESPnetSortformerModel(AbsESPnetModel):
     # core forward
     # ------------------------------------------------------------------ #
     def _process_signal(self, speech, speech_lengths):
-        # Peak-normalize the waveform (NeMo does this in process_signal, using
-        # the global max over the batch tensor, eps=1e-3).
+        """Peak-normalize the waveform and extract log-mel features.
+
+        Mirrors NeMo's ``process_signal``: the waveform is scaled by the global
+        max over the batch tensor (with ``eps`` for stability) before feature
+        extraction. Returns ``(B, n_mels, T_feat)`` features and their lengths.
+        """
         speech = (1.0 / (speech.max() + self.eps)) * speech
         feats, feat_lengths = self.preprocessor(speech, speech_lengths)
         feats = feats[:, :, : feat_lengths.max()]
@@ -80,12 +136,24 @@ class ESPnetSortformerModel(AbsESPnetModel):
     def frontend_encoder(
         self, x, lengths, bypass_pre_encode: bool = False, full_prefix_len: int = 0
     ):
-        """Features/embeddings -> projected encoder states ``(B, T, tf_d_model)``.
+        """Run the FastConformer encoder and project to the Transformer width.
 
-        ``x`` is ``(B, n_mels, T)`` log-mel features when ``bypass_pre_encode=False``,
-        or ``(B, T', fc_d_model)`` pre-encoded embeddings when ``True``.
-        ``full_prefix_len`` (streaming) marks the leading speaker-cache + FIFO
-        frames that are always attendable under local attention.
+        Args:
+            x: ``(B, n_mels, T)`` log-mel features when
+                ``bypass_pre_encode=False``, or ``(B, T', fc_d_model)``
+                pre-encoded embeddings when ``bypass_pre_encode=True`` (the
+                streaming path, where the speaker cache and FIFO are already in
+                pre-encode space).
+            lengths: Valid length per item, in the units of ``x``.
+            bypass_pre_encode: Skip the convolutional sub-sampling front end and
+                treat ``x`` as already pre-encoded.
+            full_prefix_len: Streaming only. Number of leading speaker-cache +
+                FIFO frames that must always be attendable under the encoder's
+                local attention.
+
+        Returns:
+            Tuple of projected encoder states ``(B, T, tf_d_model)`` and their
+            lengths.
         """
         if not bypass_pre_encode:
             x = x.transpose(1, 2)  # (B, T_feat, n_mels)
@@ -99,6 +167,20 @@ class ESPnetSortformerModel(AbsESPnetModel):
         return emb, emb_lengths
 
     def forward_infer(self, emb, emb_lengths, n_global: int = 0):
+        """Projected encoder states -> masked speaker probabilities.
+
+        Applies the Transformer encoder and the sigmoid speaker head, then zeros
+        out predictions beyond each item's valid length.
+
+        Args:
+            emb: Projected encoder states ``(B, T, tf_d_model)``.
+            emb_lengths: Valid length per item.
+            n_global: Streaming only. Number of leading global (cache + FIFO)
+                frames forwarded to the Transformer.
+
+        Returns:
+            Speaker probabilities ``(B, T, num_spk)`` with padded frames zeroed.
+        """
         trans = self.transformer_encoder(emb, emb_lengths, n_global=n_global)
         preds = self.sortformer_modules.forward_speaker_sigmoids(trans)
         max_len = preds.size(1)
@@ -110,7 +192,20 @@ class ESPnetSortformerModel(AbsESPnetModel):
     def encode(
         self, speech: torch.Tensor, speech_lengths: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Offline: audio -> per-frame speaker probabilities ``(B, T, num_spk)``."""
+        """Offline full-context encode of an utterance.
+
+        Runs ``preprocessor -> frontend_encoder -> forward_infer`` over the whole
+        input with no speaker cache. Use :meth:`forward_streaming` for long-form
+        audio that needs session-consistent speaker channels.
+
+        Args:
+            speech: Waveform ``(B, n_samples)``.
+            speech_lengths: Valid samples per item.
+
+        Returns:
+            Tuple of speaker probabilities ``(B, T, num_spk)`` and the
+            per-frame output lengths.
+        """
         feats, feat_lengths = self._process_signal(speech, speech_lengths)
         emb, emb_lengths = self.frontend_encoder(
             feats, feat_lengths, bypass_pre_encode=False
@@ -122,7 +217,27 @@ class ESPnetSortformerModel(AbsESPnetModel):
     # streaming (long-form) inference with the speaker cache
     # ------------------------------------------------------------------ #
     def forward_streaming(self, feats, feat_lengths):
-        """feats: (B, n_mels, T_feat). Returns total_preds (B, T_diar, num_spk)."""
+        """Chunk-wise streaming diarization with the speaker cache.
+
+        Iterates over fixed-size chunks (``streaming_feat_loader``) and, for each
+        chunk, pre-encodes it and concatenates it after the running speaker cache
+        and FIFO (``[spkcache, fifo, chunk]``). The whole concatenation is fed
+        through the encoder/Transformer/head, so the cache provides global
+        speaker context and output channel ``k`` keeps the same speaker across
+        chunks. After each chunk the cache and FIFO are advanced by
+        ``streaming_update`` and only the chunk's own predictions are appended to
+        the output. With the default hyper-parameters a 90 s session is ~6
+        chunks. This path is differentiable and is reused for streaming training
+        (``train_streaming=True``).
+
+        Args:
+            feats: Log-mel features ``(B, n_mels, T_feat)``.
+            feat_lengths: Valid feature frames per item.
+
+        Returns:
+            Concatenated per-frame speaker probabilities ``(B, T_diar,
+            num_spk)`` over the whole session.
+        """
         mods = self.sortformer_modules
         b = feats.shape[0]
         device = feats.device
@@ -158,7 +273,21 @@ class ESPnetSortformerModel(AbsESPnetModel):
     def diarize_streaming(
         self, speech: torch.Tensor, speech_lengths: Optional[torch.Tensor] = None
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Long-form streaming inference. Returns (preds (B, T, num_spk), lengths)."""
+        """Long-form streaming inference entry point.
+
+        Sets eval mode, extracts features and runs :meth:`forward_streaming`
+        under ``no_grad``. Prefer this over :meth:`diarize` for sessions longer
+        than a single chunk, since the speaker cache keeps the output speaker
+        channels consistent across the whole recording.
+
+        Args:
+            speech: Waveform ``(B, n_samples)``.
+            speech_lengths: Valid samples per item; defaults to the full length.
+
+        Returns:
+            Tuple of speaker probabilities ``(B, T, num_spk)`` and per-item
+            output lengths.
+        """
         if speech_lengths is None:
             speech_lengths = speech.new_full(
                 (speech.size(0),), speech.size(1), dtype=torch.long
@@ -179,6 +308,33 @@ class ESPnetSortformerModel(AbsESPnetModel):
         spk_labels_lengths: Optional[torch.Tensor] = None,
         **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
+        """Training step: compute the hybrid ATS + PIL loss.
+
+        Produces per-frame speaker predictions, aligns the reference speaker
+        labels to them, and evaluates the hybrid loss plus a frame-level F1.
+        The prediction path depends on ``train_streaming``:
+
+        * ``False`` (default): offline full-context :meth:`encode`.
+        * ``True``: the streaming cache loop (:meth:`forward_streaming`), with
+          gradients flowing through the cache.
+
+        Args:
+            speech: Waveform ``(B, n_samples)``.
+            speech_lengths: Valid samples per item; defaults to the full length.
+            spk_labels: Reference speaker activities ``(B, T_lab, num_spk)``.
+                Required.
+            spk_labels_lengths: Valid label frames per item; defaults to the
+                prediction lengths.
+            **kwargs: Ignored extra batch fields.
+
+        Returns:
+            Tuple of ``(loss, stats, weight)`` as expected by the ESPnet
+            trainer, where ``stats`` holds ``loss``, ``ats_loss``, ``pil_loss``
+            and ``f1_acc``.
+
+        Raises:
+            AssertionError: If ``spk_labels`` is None.
+        """
         if speech_lengths is None:
             speech_lengths = speech.new_full(
                 (speech.size(0),), speech.size(1), dtype=torch.long
@@ -227,6 +383,9 @@ class ESPnetSortformerModel(AbsESPnetModel):
     # helpers
     # ------------------------------------------------------------------ #
     def _align_targets(self, preds, preds_lengths, spk_labels, spk_labels_lengths):
+        # Match the target time axis to the prediction time axis: pad with zeros
+        # when labels are shorter, truncate when longer, and cap the per-item
+        # valid length to the shorter of prediction/label lengths.
         t_pred = preds.size(1)
         t_lab = spk_labels.size(1)
         spk_labels = spk_labels.to(preds.dtype)
@@ -268,6 +427,16 @@ class ESPnetSortformerModel(AbsESPnetModel):
         speech_lengths: torch.Tensor = None,
         **kwargs,
     ) -> Dict[str, torch.Tensor]:
+        """Return log-mel features for the ESPnet feature-collection stage.
+
+        Args:
+            speech: Waveform ``(B, n_samples)``.
+            speech_lengths: Valid samples per item; defaults to the full length.
+            **kwargs: Ignored extra batch fields.
+
+        Returns:
+            Dict with ``feats`` ``(B, T_feat, n_mels)`` and ``feats_lengths``.
+        """
         if speech_lengths is None:
             speech_lengths = speech.new_full(
                 (speech.size(0),), speech.size(1), dtype=torch.long
@@ -279,7 +448,19 @@ class ESPnetSortformerModel(AbsESPnetModel):
     def diarize(
         self, speech: torch.Tensor, speech_lengths: Optional[torch.Tensor] = None
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Inference: returns ``(preds (B, T, num_spk), preds_lengths)``."""
+        """Offline inference entry point.
+
+        Sets eval mode and runs the offline full-context :meth:`encode` under
+        ``no_grad``. For long-form audio use :meth:`diarize_streaming` instead.
+
+        Args:
+            speech: Waveform ``(B, n_samples)``.
+            speech_lengths: Valid samples per item; defaults to the full length.
+
+        Returns:
+            Tuple of speaker probabilities ``(B, T, num_spk)`` and output
+            lengths.
+        """
         if speech_lengths is None:
             speech_lengths = speech.new_full(
                 (speech.size(0),), speech.size(1), dtype=torch.long
@@ -310,10 +491,43 @@ def build_sortformer_model(
     n_mels: int = 80,
     sample_rate: int = 16000,
 ) -> ESPnetSortformerModel:
-    """Construct an offline Sortformer model with NVIDIA's released architecture.
+    """Build an :class:`ESPnetSortformerModel` with the released architecture.
 
-    Defaults reproduce ``nvidia/diar_sortformer_4spk-v1`` exactly so that the
-    converted checkpoint loads cleanly.
+    The default arguments reproduce ``nvidia/diar_sortformer_4spk-v1`` exactly,
+    so the converted checkpoint loads with a near-identity key remap. The same
+    instance supports both offline (:meth:`ESPnetSortformerModel.diarize`) and
+    streaming (:meth:`ESPnetSortformerModel.diarize_streaming`) inference;
+    streaming hyper-parameters live on :class:`SortformerModules`.
+
+    Args:
+        num_spk: Number of output speaker channels.
+        fc_d_model: FastConformer model dimension.
+        fc_n_layers: Number of FastConformer layers.
+        fc_n_heads: FastConformer attention heads.
+        fc_ff_expansion_factor: Feed-forward expansion factor in FastConformer.
+        fc_conv_kernel_size: FastConformer depthwise-conv kernel size.
+        subsampling_factor: Convolutional sub-sampling factor (8 -> ~80 ms
+            frames).
+        subsampling_conv_channels: Channels in the sub-sampling convolutions.
+        fc_dropout: FastConformer dropout.
+        fc_dropout_att: FastConformer attention dropout.
+        tf_d_model: Transformer (and ``encoder_proj`` output) dimension.
+        tf_n_layers: Number of Transformer layers.
+        tf_n_heads: Transformer attention heads.
+        tf_inner_size: Transformer feed-forward inner size.
+        tf_dropout: Transformer dropout (attention and feed-forward).
+        sortformer_dropout: Dropout in the sigmoid speaker head.
+        ats_weight: Weight of the Arrival-Time-Sort loss term.
+        pil_weight: Weight of the Permutation-Invariant loss term.
+        n_mels: Number of log-mel features.
+        sample_rate: Input sample rate in Hz.
+
+    Returns:
+        A configured :class:`ESPnetSortformerModel`.
+
+    Example:
+        >>> model = build_sortformer_model(num_spk=4)
+        >>> preds, lengths = model.diarize_streaming(long_speech)
     """
     preprocessor = MelSpectrogramPreprocessor(sample_rate=sample_rate, features=n_mels)
     encoder = FastConformerEncoder(

@@ -20,7 +20,18 @@ CONSTANT = 1e-5
 
 
 def normalize_batch(x: torch.Tensor, seq_len: torch.Tensor):
-    """Per-feature (per mel-bin) mean/std normalization over valid frames."""
+    """Normalize each mel bin to zero mean / unit variance over valid frames.
+
+    Statistics are computed per sample and per feature (per mel bin), using only
+    the frames within ``seq_len``; padding frames are excluded and then zeroed.
+
+    Args:
+        x: Log-mel features of shape ``(B, features, T)``.
+        seq_len: Valid frame count per sample, shape ``(B,)``.
+
+    Returns:
+        Normalized features of shape ``(B, features, T)``.
+    """
     batch_size, _, max_time = x.shape
     time_steps = (
         torch.arange(max_time, device=x.device)
@@ -46,7 +57,12 @@ def normalize_batch(x: torch.Tensor, seq_len: torch.Tensor):
 
 
 def _mel_filterbank(sample_rate, n_fft, n_mels, fmin, fmax):
-    """Slaney-normalized mel filterbank (matches ``librosa.filters.mel``)."""
+    """Build a Slaney-normalized mel filterbank.
+
+    Prefers ``librosa.filters.mel`` (the NeMo reference); falls back to
+    ``torchaudio`` Slaney filters when librosa is unavailable. Returns a NumPy
+    array of shape ``(n_mels, n_fft // 2 + 1)``.
+    """
     try:
         import librosa
 
@@ -74,6 +90,45 @@ def _mel_filterbank(sample_rate, n_fft, n_mels, fmin, fmax):
 
 
 class MelSpectrogramPreprocessor(nn.Module):
+    """NeMo-faithful log-mel feature extractor for Sortformer.
+
+    Turns a batch of raw waveforms into log-mel spectrogram features that match
+    NVIDIA NeMo's ``AudioToMelSpectrogramPreprocessor`` exactly, which is required
+    for the released encoder weights to behave correctly. The pipeline is:
+    optional dither (train only), pre-emphasis, STFT (Hann window, ``center=True``),
+    power spectrogram, Slaney mel projection, natural-log compression, optional
+    per-feature normalization, padding-frame masking, and padding the time axis up
+    to a multiple of ``pad_to``.
+
+    Defaults follow the Sortformer config: 16 kHz, 25 ms window / 10 ms stride
+    (giving 100 fps features), ``n_fft=512``, 80 mel bins, pre-emphasis 0.97,
+    power spectrogram (``mag_power=2.0``), and ``normalize="per_feature"``.
+
+    Args:
+        sample_rate: Input sample rate in Hz.
+        window_size: STFT window length in seconds.
+        window_stride: STFT hop length in seconds.
+        n_fft: FFT size; if falsy, the next power of two above the window.
+        features: Number of mel bins.
+        lowfreq: Lowest mel filter frequency in Hz.
+        highfreq: Highest mel filter frequency in Hz (defaults to Nyquist).
+        preemph: Pre-emphasis coefficient, or ``None`` to disable.
+        dither: Gaussian noise std added during training only.
+        mag_power: Spectrogram magnitude power (2.0 = power spectrogram).
+        log_zero_guard_value: Constant added before the log.
+        pad_to: Pad the time axis up to a multiple of this many frames.
+        pad_value: Fill value for padded frames.
+        normalize: ``"per_feature"`` to z-normalize each mel bin over valid
+            frames, or any other value to skip normalization.
+
+    Example:
+        >>> prep = MelSpectrogramPreprocessor()
+        >>> wav = torch.randn(2, 16000)          # 2 x 1 s of audio
+        >>> lengths = torch.tensor([16000, 12000])
+        >>> feats, feat_lens = prep(wav, lengths)
+        >>> feats.shape                          # (B, 80, T)
+    """
+
     def __init__(
         self,
         sample_rate: int = 16000,
@@ -115,6 +170,7 @@ class MelSpectrogramPreprocessor(nn.Module):
         self.register_buffer("fb", fb)
 
     def get_seq_len(self, seq_len: torch.Tensor) -> torch.Tensor:
+        """Convert sample counts to output frame counts (matching the STFT)."""
         pad_amount = self.n_fft // 2 * 2
         seq_len = torch.floor_divide(
             (seq_len + pad_amount - self.n_fft), self.hop_length
@@ -122,6 +178,7 @@ class MelSpectrogramPreprocessor(nn.Module):
         return seq_len.to(dtype=torch.long)
 
     def stft(self, x):
+        """Centered STFT with the registered Hann window. Returns complex output."""
         return torch.stft(
             x,
             n_fft=self.n_fft,
@@ -136,7 +193,17 @@ class MelSpectrogramPreprocessor(nn.Module):
     def forward(
         self, input_signal: torch.Tensor, length: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """input_signal: (B, num_samples). Returns (B, features, T), lengths."""
+        """Extract log-mel features from a batch of waveforms.
+
+        Args:
+            input_signal: Raw audio of shape ``(B, num_samples)``.
+            length: Valid sample count per waveform, shape ``(B,)``.
+
+        Returns:
+            Tuple ``(features, feat_lens)`` where ``features`` has shape
+            ``(B, features, T)`` and ``feat_lens`` is the valid frame count per
+            sample, shape ``(B,)``. ``T`` is padded up to a multiple of ``pad_to``.
+        """
         seq_len_time = length
         seq_len = self.get_seq_len(length)
 

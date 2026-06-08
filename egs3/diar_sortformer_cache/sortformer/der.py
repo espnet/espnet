@@ -20,7 +20,37 @@ from espnet3.components.metrics.base_metric import BaseMetric
 
 
 class DER(BaseMetric):
-    """Frame-level Diarization Error Rate."""
+    """Frame-level Diarization Error Rate.
+
+    An ESPnet3 :class:`~espnet3.components.metrics.base_metric.BaseMetric` that
+    compares per-utterance reference and hypothesis frame-activity matrices
+    (``(T, num_spk)`` arrays saved as ``.npy`` artifacts by the inference stage)
+    and reports DER together with the miss (``MS``) and false-alarm (``FA``)
+    sub-rates as percentages. Hypotheses are binarized at ``threshold``; the
+    optimal global speaker permutation is found via Hungarian assignment.
+
+    Selected in a metrics config by Hydra ``_target_``::
+
+        metrics:
+          - _target_: sortformer.der.DER
+            ref_key: ref
+            hyp_key: hyp
+            threshold: 0.5
+            frame_dur: 0.08
+
+    It is then evaluated by the ``measure`` stage, e.g.::
+
+        python run.py --stages measure \\
+            --training_config conf/training.yaml \\
+            --inference_config conf/inference.yaml \\
+            --metrics_config conf/metrics.yaml
+
+    Args:
+        ref_key: Artifact key for the reference matrix.
+        hyp_key: Artifact key for the hypothesis matrix.
+        threshold: Probability threshold used to binarize the hypothesis.
+        frame_dur: Frame duration in seconds (metadata; not used in the ratio).
+    """
 
     def __init__(
         self,
@@ -56,6 +86,25 @@ class DER(BaseMetric):
     def __call__(
         self, data: Dict[str, Path], test_name: str, inference_dir: Path
     ) -> Dict[str, float]:
+        """Compute corpus-level DER over all utterances in ``data``.
+
+        For each utterance the reference and hypothesis matrices are loaded,
+        the hypothesis is binarized at ``self.threshold``, both are truncated to
+        their common length, the hypothesis speakers are optimally permuted to
+        the reference, and the per-frame miss / false-alarm counts are
+        accumulated. The rates are pooled over the whole set (not averaged per
+        utterance).
+
+        Args:
+            data: Mapping of artifact keys to paths, as supplied by the metric
+                runner.
+            test_name: Name of the evaluation set (unused).
+            inference_dir: Directory holding the inference artifacts (unused).
+
+        Returns:
+            A dict with ``DER``, ``MS`` and ``FA`` percentages (rounded to two
+            decimals) and ``n_utt``, the number of scored utterances.
+        """
         tot_ref = 0.0
         tot_miss = 0.0
         tot_fa = 0.0

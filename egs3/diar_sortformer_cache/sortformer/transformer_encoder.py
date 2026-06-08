@@ -33,7 +33,27 @@ NEG_INF = -10000.0
 
 
 def form_attention_mask(lengths: torch.Tensor, max_len: int) -> torch.Tensor:
-    """Additive attention mask of shape (B, 1, L, L), 0 to attend / NEG_INF to mask."""
+    """Build an additive attention mask from per-sequence valid lengths.
+
+    Produces a mask that is added to the attention scores before softmax: ``0``
+    for allowed positions and ``NEG_INF`` for padded key positions. Only padded
+    *key* columns are masked (a padded query row is harmless because its output
+    is discarded downstream), so the returned shape ``(B, 1, 1, L_k)`` broadcasts
+    over heads and queries.
+
+    Args:
+        lengths: Valid frame counts ``(B,)``.
+        max_len: Sequence length ``L`` to build the mask for.
+
+    Returns:
+        Additive mask of shape ``(B, 1, 1, L_k)`` (float), broadcastable to
+        ``(B, num_heads, L_q, L_k)``.
+
+    Example:
+        >>> m = form_attention_mask(torch.tensor([2, 3]), max_len=3)
+        >>> m.shape
+        torch.Size([2, 1, 1, 3])
+    """
     device = lengths.device
     valid = torch.arange(max_len, device=device).expand(
         lengths.size(0), max_len
@@ -48,6 +68,26 @@ def form_attention_mask(lengths: torch.Tensor, max_len: int) -> torch.Tensor:
 
 
 class TransformerMultiHeadAttention(nn.Module):
+    """Scaled dot-product multi-head self-attention (NeMo HF-export layout).
+
+    Matches the released ``tf_encoder.*`` checkpoint:
+
+    * the key projection has **no bias** (a constant key bias cancels in the
+      softmax, so NVIDIA's export dropped it);
+    * scaling is split symmetrically across query and key (each divided by
+      ``head_size ** 0.25``), which is numerically equivalent to the usual
+      ``1 / sqrt(head_size)`` on the scores.
+
+    Parameter names mirror the checkpoint: ``q_proj``, ``k_proj``, ``v_proj``,
+    ``out_proj``.
+
+    Args:
+        hidden_size: Model dimension (must be divisible by ``num_heads``).
+        num_heads: Number of attention heads.
+        attn_score_dropout: Dropout on the attention probabilities.
+        attn_layer_dropout: Dropout on the output projection.
+    """
+
     def __init__(
         self,
         hidden_size: int,
@@ -68,10 +108,21 @@ class TransformerMultiHeadAttention(nn.Module):
         self.layer_dropout = nn.Dropout(attn_layer_dropout)
 
     def _transpose(self, x):
+        """Reshape ``(B, L, H)`` into per-head ``(B, num_heads, L, head_size)``."""
         new_shape = x.size()[:-1] + (self.num_heads, self.head_size)
         return x.view(*new_shape).permute(0, 2, 1, 3)
 
     def forward(self, hidden, attention_mask):
+        """Apply multi-head self-attention over ``hidden``.
+
+        Args:
+            hidden: Input sequence ``(B, L, hidden_size)``.
+            attention_mask: Additive mask broadcastable to the attention scores
+                (see :func:`form_attention_mask`); ``None`` for full attention.
+
+        Returns:
+            Attention output ``(B, L, hidden_size)``.
+        """
         q = self._transpose(self.q_proj(hidden)) / self.attn_scale
         k = self._transpose(self.k_proj(hidden)) / self.attn_scale
         v = self._transpose(self.v_proj(hidden))
@@ -87,7 +138,22 @@ class TransformerMultiHeadAttention(nn.Module):
 
 
 class TransformerEncoderLayer(nn.Module):
-    """Post-LayerNorm Transformer encoder block."""
+    """Post-LayerNorm Transformer encoder block.
+
+    Layout is ``LN(attn(x) + x)`` then ``LN(ffn(x) + x)`` with a ReLU feed-forward
+    (``pre_ln=False``), matching the released checkpoint. The self-attention may
+    be swapped for a sliding-window variant by :class:`TransformerEncoder` when
+    ``att_context_size`` is set (detected at runtime via the ``is_local``
+    attribute in :meth:`forward`).
+
+    Args:
+        hidden_size: Model dimension.
+        inner_size: Feed-forward hidden size.
+        num_heads: Attention heads.
+        attn_score_dropout: Dropout on attention probabilities.
+        attn_layer_dropout: Dropout on the attention output projection.
+        ffn_dropout: Dropout on the feed-forward output.
+    """
 
     def __init__(
         self,
@@ -109,6 +175,20 @@ class TransformerEncoderLayer(nn.Module):
         self.final_layer_norm = nn.LayerNorm(hidden_size, eps=1e-5)
 
     def forward(self, x, attention_mask, pad_mask=None, n_global=0):
+        """Apply the post-LayerNorm Transformer block.
+
+        Args:
+            x: Input ``(B, L, hidden_size)``.
+            attention_mask: Additive attention mask for the full-attention path;
+                ignored on the sliding-window path.
+            pad_mask: Padding mask ``(B, L)`` (True = padded) used as the key
+                mask on the sliding-window path.
+            n_global: Number of leading frames (speaker-cache prefix) kept
+                globally attended on the sliding-window path; ignored otherwise.
+
+        Returns:
+            Block output ``(B, L, hidden_size)``.
+        """
         if getattr(self.self_attn, "is_local", False):
             attn = self.self_attn(x, pad_mask, n_global=n_global)
         else:
@@ -121,6 +201,41 @@ class TransformerEncoderLayer(nn.Module):
 
 
 class TransformerEncoder(nn.Module):
+    """Post-LayerNorm Transformer encoder stacked on top of the FastConformer.
+
+    A stack of ``num_layers`` :class:`TransformerEncoderLayer` blocks with no
+    positional embedding (the FastConformer's relative positions are the only
+    positional signal) and no top-level final LayerNorm, matching the released
+    ``tf_encoder.*`` checkpoint.
+
+    Attention modes:
+        * Full attention (default, ``att_context_size=None``): an additive mask
+          is built from ``lengths`` via :func:`form_attention_mask`.
+        * Efficient local attention (``att_context_size=[left, right]``): each
+          block's attention is replaced at construction time by an O(L*W)
+          sliding-window variant. The replacement loads the original weights, so
+          checkpoints stay compatible; window units are frames and the leading
+          ``n_global`` frames (speaker cache) remain globally attended.
+
+    Args:
+        num_layers: Number of Transformer blocks.
+        hidden_size: Model dimension.
+        inner_size: Feed-forward hidden size.
+        num_attention_heads: Attention heads per block.
+        attn_score_dropout: Dropout on attention probabilities.
+        attn_layer_dropout: Dropout on the attention output projection.
+        ffn_dropout: Dropout on the feed-forward output.
+        att_context_size: Optional ``[left, right]`` local-attention window in
+            frames; ``None`` keeps full attention.
+
+    Example:
+        >>> enc = TransformerEncoder(num_layers=18, hidden_size=192)
+        >>> x = torch.randn(2, 100, 192)
+        >>> out = enc(x, lengths=torch.tensor([100, 80]))
+        >>> out.shape
+        torch.Size([2, 100, 192])
+    """
+
     def __init__(
         self,
         num_layers: int = 18,
@@ -171,7 +286,18 @@ class TransformerEncoder(nn.Module):
         lengths: Optional[torch.Tensor] = None,
         n_global: int = 0,
     ) -> torch.Tensor:
-        """encoder_states: (B, L, H). lengths: (B,) valid frame counts."""
+        """Run the Transformer encoder.
+
+        Args:
+            encoder_states: Input ``(B, L, hidden_size)``.
+            lengths: Valid frame counts ``(B,)``; ``None`` disables masking.
+            n_global: Number of leading frames (speaker-cache prefix) kept
+                globally attended on the local-attention path; ignored on the
+                full-attention path.
+
+        Returns:
+            Encoder output ``(B, L, hidden_size)``.
+        """
         x = encoder_states
         if self.att_context_size is not None:
             max_len = x.size(1)

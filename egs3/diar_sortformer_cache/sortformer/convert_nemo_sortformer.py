@@ -25,6 +25,10 @@ Key remaps (NeMo -> this port):
 
 The transformer key projection has no bias in this port (a softmax no-op), so the
 NeMo ``key_net.bias`` is dropped.
+
+Public entrypoints:
+    * :func:`build_streaming_v2_model` -- construct the v2 streaming architecture.
+    * :func:`convert_nemo` -- build the model and load the exported NeMo weights.
 """
 
 import torch
@@ -53,6 +57,19 @@ V2 = dict(
 
 
 def build_streaming_v2_model(num_spk: int = 4):
+    """Build the streaming-v2 Sortformer architecture matching the NeMo weights.
+
+    Wires up the preprocessor, 17-layer FastConformer encoder, the streaming
+    :class:`SortformerModules` (speaker-cache / FIFO config) and the 18-layer
+    Transformer encoder with the v2 hyper-parameters from :data:`V2`.
+
+    Args:
+        num_spk: Number of speakers the model predicts (4 for the released v2).
+
+    Returns:
+        An :class:`ESPnetSortformerModel` with randomly initialized weights,
+        ready for :func:`convert_nemo` to load the NeMo tensors into.
+    """
     # v2 preprocessor uses normalize="NA" (no per-feature normalization).
     pre = MelSpectrogramPreprocessor(
         sample_rate=16000, features=V2["n_mels"], normalize="NA"
@@ -103,6 +120,13 @@ def build_streaming_v2_model(num_spk: int = 4):
 
 
 def remap_key(k: str):
+    """Translate one NeMo state-dict key into this port's naming.
+
+    Returns the corresponding key for this model, or ``None`` to drop the
+    tensor: preprocessor buffers (recomputed deterministically), the transformer
+    ``key_net.bias`` (this port's k_proj is bias-free, a softmax no-op), and any
+    key outside the encoder / transformer / sortformer namespaces.
+    """
     if k.startswith("preprocessor."):
         return None  # recomputed buffers
     if k.startswith("encoder."):
@@ -137,7 +161,28 @@ def remap_key(k: str):
 
 
 def convert_nemo(nemo_state_path, num_spk: int = 4):
-    """Build the v2 streaming model and load the converted NeMo weights."""
+    """Build the v2 streaming model and load converted NeMo weights into it.
+
+    The NeMo state dict must be exported beforehand in a NeMo environment (see
+    the module docstring). Keys are remapped with :func:`remap_key` and loaded
+    non-strictly; only shape-matching tensors are transferred.
+
+    Args:
+        nemo_state_path: Path to the exported NeMo state dict (a ``.pt`` saved
+            from ``SortformerEncLabelModel.state_dict()``).
+        num_spk: Number of speakers to build the model for.
+
+    Returns:
+        A tuple ``(model, report)``. ``report`` is a dict with ``n_nemo``,
+        ``n_loaded``, ``missing`` (excluding the recomputed mel/STFT buffers),
+        ``unexpected`` and ``dropped_examples`` (up to 10 keys dropped for shape
+        mismatch).
+
+    Example:
+        >>> model, report = convert_nemo("sortformer_v2_full.pt")
+        >>> report["missing"], report["unexpected"]
+        ([], [])
+    """
     model = build_streaming_v2_model(num_spk=num_spk)
     nemo_sd = torch.load(nemo_state_path, map_location="cpu")
     target = model.state_dict()

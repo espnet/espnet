@@ -1,12 +1,23 @@
-"""Long-form (full-session) offline Sortformer diarization.
+"""Long-form (full-session) Sortformer diarization and scoring helpers.
 
 The offline model has a bounded context (trained on <=90 s sessions and O(T^2)
-attention), so a full ~50-min meeting is processed in overlapping chunks whose
-4-speaker outputs are **stitched into globally-consistent speaker identities**
-using the predictions on the overlap region (Hungarian matching). The result is
-a single session-level activity matrix that can be written to one RTTM and
-scored with a collar (the standard long-form DER protocol), unlike the
-per-window chunk DER.
+attention), so a full ~50-min meeting cannot be diarized in a single pass. Two
+strategies are provided to cover the whole session and produce globally
+consistent speaker identities:
+
+* ``"stitch"`` (``diarize_long``): run the offline model on overlapping chunks
+  and stitch the per-chunk speaker channels into global identities using the
+  predictions on the overlap region (Hungarian matching).
+* ``"streaming"``: run the streaming model once over the whole session using its
+  speaker cache, which keeps identities consistent without chunk stitching.
+
+Either way the result is a single session-level activity matrix that is
+binarized into segments and written to one RTTM per session, then scored with a
+collar (the standard long-form DER protocol), unlike the per-window chunk DER.
+
+The recipe's infer/measure stages call ``run_longform_inference`` (writes
+``out_dir/{hyp,ref}/*.rttm``) and ``score_rttm_der`` (returns a DER dict).
+``build_eval_model`` loads a model from one of several checkpoint sources.
 """
 
 import math
@@ -18,6 +29,7 @@ from scipy.optimize import linear_sum_assignment
 
 
 def _median_filter(x: np.ndarray, k: int) -> np.ndarray:
+    """Per-column temporal median filter (edge-padded). No-op when ``k <= 1``."""
     if k <= 1:
         return x
     pad = k // 2
@@ -38,7 +50,25 @@ def diarize_long(
     frame_dur: float = 0.08,
     device: str = "cpu",
 ) -> np.ndarray:
-    """Chunked + stitched session diarization. Returns probs ``(T_frames, num_spk)``."""
+    """Diarize a full session with the offline model via chunking and stitching.
+
+    The waveform is split into overlapping ``chunk_sec`` windows. Each chunk is
+    diarized independently, then its speaker columns are matched to the running
+    global identities using the overlap region (Hungarian assignment on absolute
+    activity difference). Overlapping predictions are averaged.
+
+    Args:
+        model: Sortformer model exposing ``diarize`` and ``num_spk``.
+        wav: Mono waveform of shape ``(num_samples,)``.
+        sample_rate: Sample rate of ``wav`` in Hz.
+        chunk_sec: Chunk length in seconds.
+        overlap_sec: Overlap between consecutive chunks in seconds.
+        frame_dur: Model output frame duration in seconds (0.08 = 12.5 fps).
+        device: Torch device for inference.
+
+    Returns:
+        Session activity probabilities of shape ``(T_frames, num_spk)``.
+    """
     model.eval()
     num_spk = model.num_spk
     n = wav.shape[0]
@@ -95,7 +125,22 @@ def activity_to_segments(
     min_dur: float = 0.1,
     fill_gap: float = 0.2,
 ) -> List[Tuple[int, float, float]]:
-    """Binarize per-speaker activity into (spk, start_s, end_s) segments."""
+    """Convert per-speaker activity probabilities into timed segments.
+
+    Smooths each speaker track with a temporal median filter, thresholds it,
+    closes short gaps, and drops too-short runs.
+
+    Args:
+        preds: Activity probabilities of shape ``(T_frames, num_spk)``.
+        frame_dur: Frame duration in seconds (maps frame indices to time).
+        threshold: Activity threshold for binarization.
+        median_k: Median-filter window in frames.
+        min_dur: Minimum segment duration in seconds; shorter runs are dropped.
+        fill_gap: Gaps up to this many seconds between runs are merged.
+
+    Returns:
+        List of ``(speaker_index, start_s, end_s)`` tuples.
+    """
     sm = _median_filter(preds, median_k)
     biny = sm >= threshold
     segs = []
@@ -129,7 +174,14 @@ def activity_to_segments(
 
 
 def write_rttm(path, session_id, segments, label_prefix="spk"):
-    """Write segments as an RTTM file."""
+    """Write hypothesis segments to an RTTM file.
+
+    Args:
+        path: Output RTTM path.
+        session_id: Recording / session id written in column 2.
+        segments: Iterable of ``(speaker_index, start_s, end_s)`` tuples.
+        label_prefix: Prefix for the speaker label (e.g. ``"spk0"``).
+    """
     with open(path, "w", encoding="utf-8") as f:
         for spk, st, en in sorted(segments, key=lambda x: (x[1], x[0])):
             f.write(
@@ -139,7 +191,14 @@ def write_rttm(path, session_id, segments, label_prefix="spk"):
 
 
 def supervisions_to_rttm(path, session_id, supervisions):
-    """Write reference supervisions (lhotse) as an RTTM file."""
+    """Write lhotse reference supervisions to an RTTM file.
+
+    Args:
+        path: Output RTTM path.
+        session_id: Recording / session id written in column 2.
+        supervisions: Iterable of lhotse supervision segments (each with
+            ``start``, ``duration`` and ``speaker``).
+    """
     with open(path, "w", encoding="utf-8") as f:
         for s in sorted(supervisions, key=lambda s: s.start):
             f.write(
@@ -158,9 +217,23 @@ def build_eval_model(
 ):
     """Build a Sortformer model for long-form eval from one of several sources.
 
-    Priority: ``nemo_ckpt`` (streaming v2 full state-dict) > ``ckpt`` (ESPnet
-    .pth/.ckpt over the offline architecture) > ``hf_model`` (convert NVIDIA HF
-    offline weights). ``nest`` optionally overlays NEST encoder weights.
+    The source is chosen by priority: ``nemo_ckpt`` > ``ckpt`` > ``hf_model``.
+    An optional NEST encoder can be overlaid afterwards. The model is returned on
+    ``device`` in eval mode.
+
+    Args:
+        nemo_ckpt: Path to a NeMo streaming-v2 full state-dict (highest priority).
+        ckpt: Path to an ESPnet ``.pth``/``.ckpt`` for the offline architecture;
+            a leading ``model.`` prefix on keys is stripped and loaded
+            non-strictly.
+        hf_model: HuggingFace id of NVIDIA offline weights to convert (used when
+            neither checkpoint is given).
+        nest: Optional NEST checkpoint whose encoder weights overlay the model.
+        num_spk: Number of speaker channels.
+        device: Torch device to move the model to.
+
+    Returns:
+        The constructed Sortformer model in eval mode on ``device``.
     """
     if nemo_ckpt is not None:
         from .convert_nemo_sortformer import convert_nemo
@@ -201,11 +274,34 @@ def run_longform_inference(
     channel: int = 0,
     log=print,
 ):
-    """Diarize full-session ``cuts`` (lhotse CutSet) and write hyp/ref RTTMs.
+    """Diarize a full-session CutSet and write hypothesis and reference RTTMs.
 
-    ``mode='streaming'`` uses the speaker cache (one pass, globally-consistent
-    speakers); ``mode='stitch'`` uses overlap-Hungarian chunk stitching.
-    Returns the output directory containing ``hyp/`` and ``ref/`` RTTMs.
+    For each cut, the chosen channel is diarized end-to-end, binarized into
+    segments, and written to ``out_dir/hyp/{recording_id}.rttm``; the cut's
+    reference supervisions are written to ``out_dir/ref/{recording_id}.rttm``.
+    The two directories can then be scored by ``score_rttm_der``.
+
+    Args:
+        model: Sortformer model. Used via ``diarize_streaming`` when
+            ``mode="streaming"``, else via ``diarize`` inside ``diarize_long``.
+        cuts: lhotse ``CutSet`` of full-session cuts.
+        out_dir: Output directory; ``hyp/`` and ``ref/`` are created inside it.
+        mode: ``"streaming"`` for a single speaker-cache pass (globally
+            consistent speakers), or ``"stitch"`` for overlap-Hungarian chunk
+            stitching via ``diarize_long``.
+        device: Torch device for inference.
+        chunk_sec: Chunk length in seconds (``"stitch"`` mode only).
+        overlap_sec: Chunk overlap in seconds (``"stitch"`` mode only).
+        threshold: Activity threshold for segment binarization.
+        channel: Audio channel index to load from each cut.
+        log: Callable for progress logging, or falsy to silence it.
+
+    Returns:
+        ``out_dir``, now containing ``hyp/`` and ``ref/`` RTTM files.
+
+    Example:
+        >>> run_longform_inference(model, cuts, "exp/der", mode="streaming")
+        >>> score_rttm_der("exp/der", collar=0.25)["DER"]
     """
     import os
 
@@ -249,7 +345,7 @@ def run_longform_inference(
 
 
 def _load_rttm(path):
-    """Parse an RTTM into a list of (speaker, start, end)."""
+    """Parse an RTTM file into a list of ``(speaker, start, end)`` tuples."""
     segs = []
     with open(path) as f:
         for line in f:
@@ -261,6 +357,7 @@ def _load_rttm(path):
 
 
 def _rttm_to_frames(segs, total, frame_dur):
+    """Rasterize ``(spk, start, end)`` segments into a ``(total, n_spk)`` mask."""
     spks = sorted({s for s, _, _ in segs})
     idx = {s: i for i, s in enumerate(spks)}
     m = np.zeros((total, max(1, len(spks))), dtype=np.float32)
@@ -273,8 +370,28 @@ def _rttm_to_frames(segs, total, frame_dur):
 def score_rttm_der(
     out_dir, collar: float = 0.25, frame_dur: float = 0.01, use_pyannote: bool = True
 ):
-    """Session-level DER over hyp/ref RTTM dirs. Uses pyannote (collar) if
-    available, else a frame-level Hungarian DER (no collar). Returns a dict."""
+    """Score session-level diarization error rate over the hyp/ref RTTM dirs.
+
+    Pairs each ``out_dir/ref/*.rttm`` with the matching ``out_dir/hyp/*.rttm``.
+    When pyannote is available (and ``use_pyannote``), it computes a collar-based
+    DER and its breakdown; otherwise it falls back to a frame-level
+    Hungarian-matched DER with no collar.
+
+    Args:
+        out_dir: Directory containing ``hyp/`` and ``ref/`` RTTM files.
+        collar: Scoring collar in seconds (pyannote path only).
+        frame_dur: Frame duration in seconds for the fallback frame-level DER.
+        use_pyannote: If False, force the frame-level fallback scorer.
+
+    Returns:
+        Dict with the DER and metadata. With pyannote::
+
+            {"DER", "MS", "FA", "SC", "collar", "scorer": "pyannote"}
+
+        all percentages; ``MS``/``FA``/``SC`` are missed-detection, false-alarm
+        and speaker-confusion rates. Fallback path returns
+        ``{"DER", "collar": 0.0, "scorer": "frame-level ..."}``.
+    """
     import glob
     import os
 

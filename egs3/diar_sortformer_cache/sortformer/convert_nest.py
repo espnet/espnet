@@ -20,7 +20,18 @@ import torch
 
 
 def nest_to_encoder_state_dict(nest_sd):
-    """Remap a NeMo ConformerEncoder state-dict to this FastConformerEncoder."""
+    """Remap a NeMo ConformerEncoder state-dict onto this FastConformerEncoder.
+
+    Renames subsampling, conv-module batch-norm and self-attention projection
+    keys from NeMo's naming to this port's. Keys are not filtered here; shape
+    validation happens in :func:`load_nest_encoder`.
+
+    Args:
+        nest_sd: The NEST encoder state dict (from ``m.encoder.state_dict()``).
+
+    Returns:
+        A new state dict keyed with this FastConformerEncoder's names.
+    """
     out = {}
     for k, v in nest_sd.items():
         nk = k
@@ -42,7 +53,31 @@ def nest_to_encoder_state_dict(nest_sd):
 
 
 def load_nest_encoder(model, nest_encoder_path, verbose=True):
-    """Load NEST weights into ``model.encoder`` in place. Returns a report dict."""
+    """Initialize a Sortformer model's encoder from exported NEST weights.
+
+    Loads ONLY the FastConformer encoder weights (for initialization); the
+    Transformer and diarization head are left untouched. The NEST encoder state
+    dict must be exported beforehand in a NeMo environment (see the module
+    docstring). Only shape-matching tensors are loaded, non-strictly and in
+    place, into ``model.encoder``.
+
+    Args:
+        model: A Sortformer model exposing a ``.encoder`` submodule to fill.
+        nest_encoder_path: Path to the exported NEST encoder state dict (a
+            ``.pt`` saved from ``m.encoder.state_dict()``).
+        verbose: If True, print a one-line load summary.
+
+    Returns:
+        A report dict with ``n_nest`` (tensors in the NEST file), ``n_loaded``
+        (tensors transferred), ``missing`` (encoder keys left untouched) and
+        ``unexpected`` (NEST keys with no matching target).
+
+    Example:
+        >>> from sortformer.convert_nest import load_nest_encoder
+        >>> report = load_nest_encoder(model, "nest_encoder.pt")
+        >>> report["n_loaded"] > 0
+        True
+    """
     nest_sd = torch.load(nest_encoder_path, map_location="cpu")
     enc_sd = nest_to_encoder_state_dict(nest_sd)
     target = model.encoder.state_dict()

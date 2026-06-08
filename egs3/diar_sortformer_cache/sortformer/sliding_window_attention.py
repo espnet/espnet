@@ -40,11 +40,13 @@ INF_VAL = 10000.0
 # Ported verbatim from NeMo RelPositionMultiHeadAttentionLongformer.
 # --------------------------------------------------------------------------- #
 def _skew(x, direction: List[int], padding_value: float):
+    """Pad then transpose the last two dims to diagonal-align banded chunks."""
     x = F.pad(x, direction, value=padding_value)
     return x.view(*x.size()[:-2], x.size(-1), x.size(-2))
 
 
 def _skew2(x, padding_value: float):
+    """Shift each row of a banded chunk so band columns line up for the pv matmul."""
     b, c, m, ll = x.size()
     x = F.pad(x, (0, m + 1), value=padding_value)
     x = x.view(b, c, -1)
@@ -55,6 +57,7 @@ def _skew2(x, padding_value: float):
 
 
 def _chunk_overlap(x, w: int):
+    """View the sequence as ``50%``-overlapping windows of length ``2w`` (no copy)."""
     x = x.view(x.size(0), x.size(1) // (w * 2), w * 2, x.size(2))
     size = list(x.size())
     size[1] = size[1] * 2 - 1
@@ -65,6 +68,7 @@ def _chunk_overlap(x, w: int):
 
 @lru_cache()
 def _invalid_locations_mask(w: int, device):
+    """Cached begin/end masks for band columns that fall off the sequence edges."""
     diagonals = []
     for j in range(-w, 1):
         d = torch.zeros(w, device="cpu", dtype=torch.uint8)
@@ -76,6 +80,8 @@ def _invalid_locations_mask(w: int, device):
 
 
 def mask_invalid_locations(x, w: int):
+    """In-place ``-inf`` the band entries at the first/last ``w`` rows that point
+    past the sequence boundary."""
     beg, end = _invalid_locations_mask(w, x.device)
     seq_len = x.size(2)
     bi = x[:, :, :w, : w + 1]
@@ -85,7 +91,22 @@ def mask_invalid_locations(x, w: int):
 
 
 def sliding_chunks_matmul_qk(q, k, w: int, padding_value: float):
-    """Banded q@k^T over a sliding window -> (B, H, T, 2w+1). O(N*W) memory."""
+    """Compute banded ``q @ k^T`` over a sliding window.
+
+    Each query attends only to keys within ``+/- w`` frames, so the result stores
+    the ``2w + 1`` band scores per query instead of the full ``T x T`` matrix,
+    giving O(N*W) memory. ``T`` must be a multiple of ``2w`` (callers pad to it).
+
+    Args:
+        q: Query tensor of shape ``(B, H, T, head_dim)``.
+        k: Key tensor of shape ``(B, H, T, head_dim)``.
+        w: Half-window size (one-sided context width).
+        padding_value: Fill value for band positions that fall off the edges.
+
+    Returns:
+        Banded scores of shape ``(B, H, T, 2w + 1)``; out-of-range band entries
+        are set to ``-inf``.
+    """
     bsz, n_head, seqlen, head_dim = q.size()
     chunks_count = seqlen // w - 1
     q = q.reshape(bsz * n_head, seqlen, head_dim)
@@ -105,7 +126,16 @@ def sliding_chunks_matmul_qk(q, k, w: int, padding_value: float):
 
 
 def sliding_chunks_matmul_pv(prob, v, w: int):
-    """Banded attn@v over a sliding window -> (B, T, H, d_k)."""
+    """Compute banded ``attn @ v`` over a sliding window (inverse of the qk band).
+
+    Args:
+        prob: Banded attention weights of shape ``(B, H, T, 2w + 1)``.
+        v: Value tensor of shape ``(B, H, T, head_dim)``.
+        w: Half-window size (must match the one used to build ``prob``).
+
+    Returns:
+        Context tensor of shape ``(B, T, H, head_dim)``.
+    """
     bsz, n_head, seqlen, head_dim = v.size()
     chunks_count = seqlen // w - 1
     chunk_prob = prob.reshape(bsz * n_head, seqlen // w, w, 2 * w + 1)
@@ -121,10 +151,16 @@ def sliding_chunks_matmul_pv(prob, v, w: int):
 
 
 class LocalAttRelPositionalEncoding(RelPositionalEncoding):
-    """Window-sized Transformer-XL positional table ``(1, left+right+1, d_model)``.
+    """Relative positional encoding sized to one local attention window.
 
-    Positions run from ``+left`` down to ``-right`` (NeMo convention), so the
-    table indexes relative offsets within the local attention window.
+    Builds a Transformer-XL positional table of shape
+    ``(1, left + right + 1, d_model)`` whose rows run from offset ``+left`` down
+    to ``-right`` (NeMo convention), so the table indexes every relative offset
+    reachable inside the local window.
+
+    Args:
+        att_context_size: ``[left, right]`` window sizes in frames.
+        **kwargs: Forwarded to :class:`RelPositionalEncoding`.
     """
 
     def __init__(self, att_context_size, **kwargs):
@@ -132,6 +168,7 @@ class LocalAttRelPositionalEncoding(RelPositionalEncoding):
         super().__init__(**kwargs)
 
     def extend_pe(self, length, device, dtype):
+        """Build the window-sized positional table once, then just move dtype/device."""
         if self.pe is not None:
             self.pe = self.pe.to(device=device, dtype=dtype)
             return
@@ -145,6 +182,7 @@ class LocalAttRelPositionalEncoding(RelPositionalEncoding):
         self.create_pe(positions=positions, dtype=dtype)
 
     def forward(self, x: torch.Tensor):
+        """Return ``(scaled-and-dropped x, positional table)`` for local attention."""
         self.extend_pe(x.size(1), x.device, x.dtype)
         if self.xscale:
             x = x * self.xscale
@@ -154,9 +192,19 @@ class LocalAttRelPositionalEncoding(RelPositionalEncoding):
 class RelPositionLocalAttention(RelPositionMultiHeadAttention):
     """Sliding-window Transformer-XL attention (O(N*W)) with optional global prefix.
 
-    Parameters/weights are identical to :class:`RelPositionMultiHeadAttention`
+    A drop-in replacement for :class:`RelPositionMultiHeadAttention` that restricts
+    each query to a local window of ``[left, right]`` frames, plus an optional set
+    of ``n_global`` leading frames (the streaming speaker cache) that every query
+    can attend to and that themselves attend to the whole sequence. Parameters and
+    weights are identical to the full-attention class
     (``q_proj/k_proj/v_proj/o_proj/relative_k_proj/bias_u/bias_v``), so converted
     or trained checkpoints load unchanged -- only the *compute* differs.
+
+    Args:
+        n_head: Number of attention heads.
+        n_feat: Model dimension.
+        dropout_rate: Attention dropout probability.
+        att_context_size: ``[left, right]`` window sizes in frames.
     """
 
     is_local = True  # marks the local-attention call convention for ConformerLayer
@@ -166,8 +214,19 @@ class RelPositionLocalAttention(RelPositionMultiHeadAttention):
         self.att_context_size = list(att_context_size)
 
     def forward(self, x, pos_emb, pad_mask, n_global: int = 0):
-        """x: (B, T, d_model); pos_emb: (1, left+right+1, d_model);
-        pad_mask: (B, T) True=pad; n_global: leading global-token (cache) count."""
+        """Run local relative-position attention.
+
+        Args:
+            x: Input of shape ``(B, T, d_model)``.
+            pos_emb: Window positional table of shape
+                ``(1, left + right + 1, d_model)``.
+            pad_mask: Padding mask of shape ``(B, T)``, ``True`` for pad frames.
+            n_global: Number of leading frames treated as global tokens (the
+                speaker cache prefix); 0 disables the global path.
+
+        Returns:
+            Output of shape ``(B, T, d_model)``.
+        """
         q, k, v = self.forward_qkv(x, x, x)  # (B, H, T, d_k)
         n_batch, _, T, _ = q.size()
         left, right = self.att_context_size
@@ -230,7 +289,7 @@ class RelPositionLocalAttention(RelPositionMultiHeadAttention):
         return self.o_proj(out)
 
     def _full_attention(self, qu_g, k, v, mask):
-        """Full attention for the (few) global query rows -> (B, g, d_model)."""
+        """Dense attention for the few global query rows -> ``(B, g, d_model)``."""
         scores = torch.matmul(qu_g, k.transpose(-2, -1)) / self.s_d_k  # (B,H,g,Tp)
         scores = scores.masked_fill(mask.unsqueeze(1).unsqueeze(2), -INF_VAL)
         attn = torch.softmax(scores, dim=-1)
@@ -242,9 +301,19 @@ class RelPositionLocalAttention(RelPositionMultiHeadAttention):
 class TransformerLocalAttention(torch.nn.Module):
     """Standard (no positional bias) sliding-window attention, O(N*W).
 
-    Drop-in for the Sortformer ``TransformerMultiHeadAttention`` (same projection
-    names ``q_proj/k_proj/v_proj/out_proj`` and pre-scaling), so weights load
-    unchanged. ``n_global`` leading frames (speaker cache) are global tokens.
+    The plain-attention counterpart of :class:`RelPositionLocalAttention`: same
+    local window plus optional global cache prefix, but without the Transformer-XL
+    positional term. Drop-in for the Sortformer ``TransformerMultiHeadAttention``
+    (same projection names ``q_proj/k_proj/v_proj/out_proj`` and pre-scaling), so
+    weights load unchanged. ``n_global`` leading frames (the speaker cache) are
+    treated as global tokens.
+
+    Args:
+        hidden_size: Model dimension (must be divisible by ``num_heads``).
+        num_heads: Number of attention heads.
+        attn_score_dropout: Dropout on the attention weights.
+        attn_layer_dropout: Dropout on the output projection.
+        att_context_size: ``[left, right]`` window sizes in frames.
     """
 
     is_local = True
@@ -271,11 +340,22 @@ class TransformerLocalAttention(torch.nn.Module):
         self.att_context_size = list(att_context_size)
 
     def _transpose(self, x):
+        """Split the last dim into heads -> ``(B, num_heads, T, head_size)``."""
         new = x.size()[:-1] + (self.num_heads, self.head_size)
         return x.view(*new).permute(0, 2, 1, 3)
 
     def forward(self, hidden, pad_mask, n_global: int = 0):
-        """hidden: (B, T, H); pad_mask: (B, T) True=pad."""
+        """Run local (no positional bias) attention.
+
+        Args:
+            hidden: Input of shape ``(B, T, hidden_size)``.
+            pad_mask: Padding mask of shape ``(B, T)``, ``True`` for pad frames.
+            n_global: Number of leading global (speaker-cache) frames; 0 disables
+                the global path.
+
+        Returns:
+            Output of shape ``(B, T, hidden_size)``.
+        """
         q = self._transpose(self.q_proj(hidden)) / self.attn_scale  # (B,H,T,d)
         k = self._transpose(self.k_proj(hidden)) / self.attn_scale
         v = self._transpose(self.v_proj(hidden))
@@ -325,6 +405,7 @@ class TransformerLocalAttention(torch.nn.Module):
         return self.layer_dropout(self.out_proj(out))
 
     def _full_attention(self, q_g, k, v, mask):
+        """Dense attention for the few global query rows -> ``(B, g, hidden_size)``."""
         scores = torch.matmul(q_g, k.transpose(-2, -1))  # (B,H,g,Tp) already scaled
         scores = scores.masked_fill(mask.unsqueeze(1).unsqueeze(2), -INF_VAL)
         out = torch.matmul(torch.softmax(scores, dim=-1), v)  # (B,H,g,d)

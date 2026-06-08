@@ -29,12 +29,46 @@ from torch.utils.data import Dataset as TorchDataset
 def num_frames_from_samples(
     num_samples: int, hop: int = 160, subsampling_factor: int = 8
 ) -> int:
-    """Model output frame count for a given number of audio samples."""
+    """Compute the model output frame count for a number of audio samples.
+
+    Mirrors the model's front end: STFT framing followed by encoder subsampling,
+    i.e. ``ceil(ceil(num_samples / hop) / subsampling_factor)``.
+
+    Args:
+        num_samples: Number of audio samples in the window.
+        hop: STFT hop length in samples (160 = 10 ms at 16 kHz).
+        subsampling_factor: Encoder subsampling factor (8 for the 80 ms rate).
+
+    Returns:
+        The number of output frames.
+    """
     mel_frames = math.ceil(num_samples / hop)
     return int(math.ceil(mel_frames / subsampling_factor))
 
 
 class LhotseDiarDataset(TorchDataset):
+    """Lhotse-backed diarization dataset (exported to the recipe as ``Dataset``).
+
+    Wraps a lhotse ``CutSet`` and yields, per index, a fixed-length audio window
+    with a frame-level speaker-activity matrix. Speakers in each cut are ranked by
+    total speaking time and the top ``num_spk`` are kept (one column each).
+
+    Each item is a dict::
+
+        {
+          "speech":     float32 (num_samples,),          # mono, one channel
+          "spk_labels": float32 (num_frames, num_spk),   # frame_dur-wide frames
+          "utt_id":     str,                             # the cut id
+        }
+
+    where ``num_frames`` matches the model's output rate (see
+    :func:`num_frames_from_samples`).
+
+    The split's cuts are taken from the ``cuts`` argument when given, otherwise
+    resolved from ``dataset/config.yaml`` via the ``splits`` mapping (which also
+    supplies ``num_spk`` and ``frame_dur`` defaults).
+    """
+
     def __init__(
         self,
         split: str,
@@ -45,6 +79,26 @@ class LhotseDiarDataset(TorchDataset):
         sample_rate: int = 16000,
         channel: int = 0,
     ) -> None:
+        """Load the split's cuts and configure framing.
+
+        Args:
+            split: Split name; looked up in ``dataset/config.yaml`` ``splits``
+                when ``cuts`` is not given.
+            recipe_dir: Recipe root for resolving ``config.yaml`` and relative
+                cut paths; defaults to this file's parent recipe directory.
+            cuts: Optional explicit path to a lhotse cut file, bypassing the
+                config lookup.
+            num_spk: Max speakers kept per cut (overridden by the config when
+                resolving from ``config.yaml``).
+            frame_dur: Label frame duration in seconds (default 80 ms).
+            sample_rate: Audio sample rate in Hz.
+            channel: Channel index to read from multi-channel cuts.
+
+        Raises:
+            ValueError: If ``split`` is unknown in the config.
+            FileNotFoundError: If the resolved cut file does not exist (run the
+                ``data_preparation`` stage first).
+        """
         self.split = split
         self.num_spk = num_spk
         self.frame_dur = frame_dur
@@ -81,6 +135,11 @@ class LhotseDiarDataset(TorchDataset):
         return len(self.ids)
 
     def _build_labels(self, cut, num_frames: int) -> np.ndarray:
+        """Build the ``(num_frames, num_spk)`` activity matrix for a cut.
+
+        Keeps the ``num_spk`` most-talkative speakers and marks each frame
+        overlapping a kept supervision as active for that speaker's column.
+        """
         # Rank speakers by total speaking time; keep the top `num_spk`.
         durs: Dict[str, float] = {}
         for s in cut.supervisions:
@@ -101,6 +160,7 @@ class LhotseDiarDataset(TorchDataset):
         return labels
 
     def __getitem__(self, idx: int) -> Dict[str, Any]:
+        """Return the ``{speech, spk_labels, utt_id}`` item for index ``idx``."""
         cut = self.cuts[self.ids[int(idx)]]
         audio = cut.load_audio()  # (C, N)
         wav = np.asarray(audio[self.channel], dtype=np.float32)

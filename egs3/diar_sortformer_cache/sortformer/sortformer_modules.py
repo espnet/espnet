@@ -22,7 +22,29 @@ import torch.nn.functional as F
 
 @dataclass
 class StreamingSortformerState:
-    """Mutable streaming state: speaker cache + FIFO queue + silence profile."""
+    """Mutable streaming state carried across chunks.
+
+    Bundles the speaker cache, the FIFO queue and the running silence profile
+    that :class:`SortformerModules` updates each chunk. Created by
+    :meth:`SortformerModules.init_streaming_state` and advanced by
+    :meth:`SortformerModules.streaming_update`.
+
+    Attributes:
+        spkcache: Compressed cache of past pre-encode frames
+            ``(B, spkcache_len, fc_d_model)``; the global speaker memory.
+        spkcache_lengths: Valid cache length per item.
+        spkcache_preds: Speaker probabilities for the cached frames
+            ``(B, spkcache_len, n_spk)``.
+        fifo: Pending pre-encode frames not yet committed to the cache
+            ``(B, fifo_len, fc_d_model)``.
+        fifo_lengths: Valid FIFO length per item.
+        fifo_preds: Speaker probabilities for the FIFO frames.
+        spk_perm: Speaker permutation applied during cache compression at
+            training time (used to invert predictions), or None.
+        mean_sil_emb: Running mean silence embedding ``(B, fc_d_model)`` used to
+            fill disabled cache slots.
+        n_sil_frames: Count of silence frames accumulated into ``mean_sil_emb``.
+    """
 
     spkcache: Optional[torch.Tensor] = None  # (B, spkcache_len, fc_d_model)
     spkcache_lengths: Optional[torch.Tensor] = None
@@ -53,6 +75,54 @@ class StreamingSortformerState:
 
 
 class SortformerModules(nn.Module):
+    """Offline sigmoid head plus the streaming speaker-cache machinery.
+
+    Holds the projection from FastConformer width to Transformer width
+    (``encoder_proj``), the sigmoid speaker head
+    (:meth:`forward_speaker_sigmoids`), and the streaming cache used for
+    long-form diarization. The cache keeps a compressed set of the most
+    informative past pre-encode frames (plus an optional FIFO queue) and re-feeds
+    them through the encoder every chunk, so output channel ``k`` stays bound to
+    the same speaker across the whole session. This is what fixes session-level
+    speaker confusion in long recordings.
+
+    The streaming hyper-parameters mirror the released ``modules_config`` of
+    ``nvidia/diar_sortformer_4spk-v1``. With the defaults each chunk and the
+    cache hold ``188`` pre-encode frames (~15 s at 8x sub-sampling), the FIFO is
+    empty (``fifo_len=0``, frames go straight to the cache), the cache is updated
+    every ``188`` frames, and ``3`` silence slots per speaker are reserved.
+
+    Args:
+        num_spks: Number of speaker output channels.
+        dropout_rate: Dropout in the sigmoid speaker head.
+        fc_d_model: FastConformer (pre-encode/cache) feature width.
+        tf_d_model: Transformer feature width (``encoder_proj`` output).
+        subsampling_factor: Encoder sub-sampling factor relating feature frames
+            to diarization frames.
+        spkcache_len: Maximum number of frames kept in the speaker cache.
+        fifo_len: FIFO queue capacity; 0 commits chunk frames to the cache
+            immediately.
+        chunk_len: Number of pre-encode frames per streaming chunk.
+        spkcache_update_period: Frames popped from the FIFO into the cache per
+            update.
+        chunk_left_context: Left-context chunks added when slicing features.
+        chunk_right_context: Right-context chunks added when slicing features.
+        spkcache_sil_frames_per_spk: Silence slots reserved per speaker in the
+            compressed cache.
+        pred_score_threshold: Floor used when taking logs of predictions.
+        sil_threshold: Total-activity threshold below which a frame is silence.
+        strong_boost_rate: Fraction of per-speaker cache slots given a strong
+            score boost.
+        weak_boost_rate: Fraction given a weak score boost.
+        min_pos_scores_rate: Fraction setting the minimum positive scores per
+            speaker before low scores are disabled.
+        scores_boost_latest: Additive boost for the most recent (non-cache)
+            frames during compression.
+        scores_add_rnd: Magnitude of random score noise added during training
+            for cache-selection diversity.
+        max_index: Sentinel index marking disabled (silence-filled) cache slots.
+    """
+
     def __init__(
         self,
         num_spks: int = 4,
@@ -111,7 +181,18 @@ class SortformerModules(nn.Module):
     # offline head
     # ------------------------------------------------------------------ #
     def forward_speaker_sigmoids(self, hidden_out: torch.Tensor) -> torch.Tensor:
-        """(B, T, tf_d_model) -> (B, T, n_spk) speaker probabilities."""
+        """Project Transformer states to per-frame speaker probabilities.
+
+        Applies ReLU + dropout, a hidden linear, another ReLU + dropout, the
+        speaker linear, and a final sigmoid. This is the offline diarization
+        head shared by both the offline and streaming forward paths.
+
+        Args:
+            hidden_out: Transformer output ``(B, T, tf_d_model)``.
+
+        Returns:
+            Speaker probabilities ``(B, T, n_spk)`` in ``[0, 1]``.
+        """
         hidden_out = self.dropout(F.relu(hidden_out))
         hidden_out = self.first_hidden_to_hidden(hidden_out)
         hidden_out = self.dropout(F.relu(hidden_out))
@@ -123,10 +204,23 @@ class SortformerModules(nn.Module):
     # ------------------------------------------------------------------ #
     @staticmethod
     def length_to_mask(lengths, max_length: int):
+        # Build a (B, max_length) boolean validity mask from per-item lengths.
         arange = torch.arange(max_length, device=lengths.device)
         return arange.expand(lengths.shape[0], max_length) < lengths.unsqueeze(1)
 
     def init_streaming_state(self, batch_size: int = 1, device=None):
+        """Create an empty :class:`StreamingSortformerState` for a new session.
+
+        Call once before the chunk loop. The cache and FIFO start empty (zero
+        length) and the silence profile starts at zero.
+
+        Args:
+            batch_size: Number of sessions processed in parallel.
+            device: Device for the allocated tensors.
+
+        Returns:
+            A fresh :class:`StreamingSortformerState`.
+        """
         st = StreamingSortformerState()
         st.spkcache = torch.zeros((batch_size, 0, self.fc_d_model), device=device)
         st.fifo = torch.zeros((batch_size, 0, self.fc_d_model), device=device)
@@ -136,10 +230,27 @@ class SortformerModules(nn.Module):
 
     @staticmethod
     def concat_embs(list_of_tensors, dim: int = 1, device=None):
+        # Concatenate [spkcache, fifo, chunk] (or similar) along the time axis.
         return torch.cat(list_of_tensors, dim=dim).to(device)
 
     def streaming_feat_loader(self, feat_seq, feat_seq_length, feat_seq_offset):
-        """Yield (chunk_idx, chunk_feat (B,T,F), feat_lengths, left_off, right_off)."""
+        """Iterate over fixed-size feature chunks for streaming inference.
+
+        Splits the feature sequence into ``chunk_len``-frame chunks (in
+        pre-encode units, scaled by ``subsampling_factor``), each padded with
+        the configured left/right context. The returned lengths account for the
+        offset and clamp to the valid portion of the chunk.
+
+        Args:
+            feat_seq: Log-mel features ``(B, n_mels, T_feat)``.
+            feat_seq_length: Valid feature frames per item.
+            feat_seq_offset: Per-item starting offset into the feature sequence.
+
+        Yields:
+            Tuple ``(chunk_idx, chunk_feat (B, T_chunk, n_mels), feat_lengths,
+            left_off, right_off)`` where ``left_off``/``right_off`` are the
+            context frame counts included on each side.
+        """
         feat_len = feat_seq.shape[2]
         stt = 0
         chunk_idx = 0
@@ -161,12 +272,19 @@ class SortformerModules(nn.Module):
 
     @staticmethod
     def apply_mask_to_preds(preds, lengths):
+        # Zero out predictions beyond each item's valid length.
         b, n, s = preds.shape
         mask = torch.arange(n, device=preds.device).view(1, -1, 1).expand(b, -1, s)
         mask = mask < lengths.view(-1, 1, 1)
         return torch.where(mask, preds, torch.tensor(0.0, device=preds.device))
 
     def _get_silence_profile(self, mean_sil_emb, n_sil_frames, emb_seq, preds):
+        """Update the running mean silence embedding from popped frames.
+
+        Frames whose total speaker activity is below ``sil_threshold`` count as
+        silence and are folded into the running mean. Returns the inputs
+        unchanged if the batch has no silence frames.
+        """
         is_sil = preds.sum(dim=2) < self.sil_threshold
         sil_count = is_sil.sum(dim=1)
         if not (sil_count > 0).any():
@@ -177,12 +295,20 @@ class SortformerModules(nn.Module):
         return total / torch.clamp(upd_n.unsqueeze(1), min=1), upd_n
 
     def _get_log_pred_scores(self, preds):
+        # Per-frame log-likelihood-ratio scores used to rank cache candidates;
+        # higher means a more confident, informative speaker frame.
         lp = torch.log(torch.clamp(preds, min=self.pred_score_threshold))
         l1 = torch.log(torch.clamp(1.0 - preds, min=self.pred_score_threshold))
         l1sum = l1.sum(dim=2).unsqueeze(-1).expand(-1, -1, self.n_spk)
         return lp - l1 + l1sum - math.log(0.5)
 
     def _disable_low_scores(self, preds, scores, min_pos_scores_per_spk: int):
+        """Mask out weak cache candidates by setting their score to ``-inf``.
+
+        Non-speech frames are always disabled. Non-positive-score speech frames
+        are disabled only when the speaker already has enough positive frames, so
+        a speaker is never starved of cache slots.
+        """
         is_speech = preds > 0.5
         scores = torch.where(
             is_speech, scores, torch.tensor(float("-inf"), device=scores.device)
@@ -199,6 +325,8 @@ class SortformerModules(nn.Module):
         return scores
 
     def _get_max_perm_index(self, scores):
+        # Highest speaker channel index that is still safe to permute per item:
+        # the first channel with no positive scores (or n_spk if all are active).
         batch_size, _, n_spk = scores.shape
         is_pos = scores > 0
         zero_idx = torch.where(is_pos.sum(dim=1) == 0)
@@ -211,6 +339,8 @@ class SortformerModules(nn.Module):
         return max_perm
 
     def _permute_speakers(self, scores, max_perm_index):
+        # Randomly permute the active speaker channels (training augmentation);
+        # also return the permutation so predictions can be inverted later.
         spk_perm_list, scores_list = [], []
         batch_size, _, n_spk = scores.shape
         for b in range(batch_size):
@@ -231,6 +361,8 @@ class SortformerModules(nn.Module):
         scale_factor: float = 1.0,
         offset: float = 0.5,
     ):
+        # Boost the top-k scoring frames per speaker so they survive selection;
+        # keeps the most confident frames of each speaker in the cache.
         batch_size, _, n_spk = scores.shape
         if n_boost_per_spk <= 0:
             return scores
@@ -241,6 +373,13 @@ class SortformerModules(nn.Module):
         return scores
 
     def _get_topk_indices(self, scores):
+        """Pick the ``spkcache_len`` frames to keep, sorted by original time.
+
+        Selects the top scoring frame/speaker entries, marks ``-inf`` (disabled)
+        picks and reserved silence-pad slots, and returns the chosen frame
+        indices in time order plus a boolean ``is_disabled`` mask for slots that
+        must be filled with the silence embedding instead.
+        """
         batch_size, n_frames, _ = scores.shape
         n_frames_no_sil = n_frames - self.spkcache_sil_frames_per_spk
         flat = scores.permute(0, 2, 1).reshape(batch_size, -1)
@@ -261,6 +400,8 @@ class SortformerModules(nn.Module):
     def _gather_spkcache_and_preds(
         self, emb_seq, preds, topk_indices, is_disabled, mean_sil_emb
     ):
+        # Gather the selected embeddings and predictions; disabled slots are
+        # filled with the mean silence embedding and zero predictions.
         emb_dim, n_spk = emb_seq.shape[2], preds.shape[2]
         idx_emb = topk_indices.unsqueeze(-1).expand(-1, -1, emb_dim)
         emb_g = torch.gather(emb_seq, 1, idx_emb)
@@ -276,6 +417,14 @@ class SortformerModules(nn.Module):
     def _compress_spkcache(
         self, emb_seq, preds, mean_sil_emb, permute_spk: bool = False
     ):
+        """Compress an over-long cache back down to ``spkcache_len`` frames.
+
+        Scores every candidate frame, disables weak ones, optionally permutes
+        speakers and adds random noise (training only), boosts each speaker's top
+        frames, reserves silence slots, then selects and gathers the surviving
+        frames. Returns ``(spkcache, spkcache_preds, spk_perm)`` where
+        ``spk_perm`` is the applied speaker permutation (or None).
+        """
         batch_size, n_frames, n_spk = preds.shape
         per_spk = self.spkcache_len // n_spk - self.spkcache_sil_frames_per_spk
         strong = math.floor(per_spk * self.strong_boost_rate)
@@ -313,7 +462,30 @@ class SortformerModules(nn.Module):
         return spkcache, spkcache_preds, spk_perm
 
     def streaming_update(self, streaming_state, chunk, preds, lc: int = 0, rc: int = 0):
-        """Synchronous cache/FIFO update. Returns (state, chunk_preds (B, chunk_len, n_spk))."""
+        """Advance the cache/FIFO with one chunk and return its predictions.
+
+        Called once per chunk after the encoder/head have produced predictions
+        over the concatenated ``[spkcache, fifo, chunk]`` sequence. The steps
+        are: invert any training-time speaker permutation; slice the chunk's own
+        frames (dropping left/right context) and their predictions; push the
+        chunk into the FIFO; once the FIFO overflows, pop frames into the speaker
+        cache (updating the silence profile) and compress the cache back to
+        ``spkcache_len`` if it grew too long.
+
+        Args:
+            streaming_state: The :class:`StreamingSortformerState` to advance
+                (mutated in place and also returned).
+            chunk: Pre-encode embeddings for this chunk including context
+                ``(B, lc + chunk_len + rc, fc_d_model)``.
+            preds: Speaker probabilities over ``[spkcache, fifo, chunk]``
+                ``(B, T_concat, n_spk)``.
+            lc: Left-context frames to drop from the chunk.
+            rc: Right-context frames to drop from the chunk.
+
+        Returns:
+            Tuple of the updated state and the chunk's own predictions
+            ``(B, chunk_len, n_spk)``.
+        """
         batch_size = chunk.shape[0]
         spkcache_len = streaming_state.spkcache.shape[1]
         fifo_len = streaming_state.fifo.shape[1]

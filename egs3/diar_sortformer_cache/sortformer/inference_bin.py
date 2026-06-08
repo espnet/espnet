@@ -5,6 +5,21 @@ Instantiated by the ESPnet3 inference stage (Hydra ``_target_``) and called as
 ``(T, num_spk)`` as a numpy array. Builds the architecture from the saved
 training config and loads weights from a plain ``.pth`` state-dict or a
 PyTorch-Lightning ``.ckpt`` (``model.`` prefix is stripped automatically).
+
+Selected in an inference config by Hydra ``_target_``::
+
+    inference:
+      _target_: sortformer.inference_bin.SortformerDiarization
+      train_config: exp/sortformer/config.yaml
+      model_file: exp/sortformer/valid.acc.best.pth
+      device: cuda
+      threshold: 0.5
+
+and driven by the ``infer`` stage::
+
+    python run.py --stages infer \\
+        --training_config conf/training.yaml \\
+        --inference_config conf/inference.yaml
 """
 
 from typing import Optional, Union
@@ -19,6 +34,10 @@ _TASK = "sortformer.task.SortformerDiarizationTask"
 
 
 def _strip_prefix(state_dict, prefix="model."):
+    """Strip ``prefix`` from state-dict keys when a Lightning ckpt is detected.
+
+    Returns the dict unchanged if no key starts with ``prefix``.
+    """
     if any(k.startswith(prefix) for k in state_dict):
         return {
             k[len(prefix) :]: v for k, v in state_dict.items() if k.startswith(prefix)
@@ -27,7 +46,34 @@ def _strip_prefix(state_dict, prefix="model."):
 
 
 class SortformerDiarization:
-    """Callable Sortformer diarizer for ESPnet3 inference."""
+    """Callable Sortformer diarizer for ESPnet3 inference.
+
+    Builds the Sortformer model from a saved training config (via the
+    ``sortformer.task.SortformerDiarizationTask`` dotted path) and loads its
+    weights, then exposes a simple ``model(speech)`` call returning per-frame
+    speaker activity.
+
+    Instantiated by the inference stage through Hydra ``_target_``::
+
+        inference:
+          _target_: sortformer.inference_bin.SortformerDiarization
+          train_config: exp/sortformer/config.yaml
+          model_file: exp/sortformer/valid.acc.best.pth
+          device: cuda
+          threshold: 0.5
+
+    Args:
+        train_config: Path to the espnet3-saved (flattened) training YAML.
+        model_file: Path to a ``.pth`` state-dict or a Lightning ``.ckpt``.
+        device: Torch device to run on (e.g. ``"cpu"`` or ``"cuda"``).
+        threshold: Optional probability threshold; if set, the returned
+            activity is binarized, otherwise raw probabilities are returned.
+
+    Raises:
+        RuntimeError: If required weights are missing from ``model_file``
+            (the feature-extraction buffers ``preprocessor.fb`` /
+            ``preprocessor.window`` are allowed to be absent).
+    """
 
     def __init__(
         self,
@@ -58,6 +104,20 @@ class SortformerDiarization:
 
     @torch.no_grad()
     def __call__(self, speech: Union[np.ndarray, list, torch.Tensor]) -> np.ndarray:
+        """Diarize a single utterance.
+
+        Args:
+            speech: Mono waveform as a 1-D (or ``(1, T)``) array/list/tensor of
+                samples.
+
+        Returns:
+            A ``(T, num_spk)`` numpy array of per-frame speaker probabilities,
+            or 0/1 activity if ``threshold`` was set at construction time.
+
+        Example:
+            >>> diarizer = SortformerDiarization(train_config, model_file)
+            >>> activity = diarizer(speech=wav)  # (T, num_spk)
+        """
         wav = torch.as_tensor(np.asarray(speech), dtype=torch.float32)
         if wav.dim() == 1:
             wav = wav.unsqueeze(0)
