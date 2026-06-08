@@ -151,7 +151,10 @@ def main(
         "inference_config": inference_config,
         "metrics_config": metrics_config,
     }
-    missing = [s for s in stages_to_run if config_pool.get(STAGE_CONFIGS[s]) is None]
+    missing = [
+        s for s in stages_to_run
+        if config_pool.get(STAGE_CONFIGS.get(s)) is None
+    ]
     if missing:
         missing_str = ", ".join(missing)
         raise ValueError(
