@@ -118,7 +118,7 @@ input_key: speech
 # - `dict` values are serialized as JSON artifacts and the artifact path is
 #   written to SCP.
 # - Bare top-level `list` / `tuple` outputs are not supported.
-output_fn: src.inference.build_output
+output_fn:
 
 # Optional artifact writers for non-scalar outputs.
 # Primitive values (str/int/float/bool) are written directly into SCP files.

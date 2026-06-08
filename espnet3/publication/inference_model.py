@@ -30,6 +30,9 @@ from omegaconf import DictConfig, ListConfig, OmegaConf
 from espnet3.systems.base.inference_provider import InferenceProvider
 from espnet3.systems.base.inference_runner import InferenceRunner, _load_output_fn
 from espnet3.utils.config_utils import load_config_with_defaults
+from espnet3.utils.logging_utils import configure_logging
+
+logger = configure_logging()
 
 
 def _load_inference_config(
@@ -102,7 +105,7 @@ class InferenceModel:
     """User-facing inference wrapper for packaged ESPnet models.
 
     This class is the public runtime API for a bundle produced by
-    ``espnet3.utils.publish.pack_model()``. It sits on the publication side of
+    ``espnet3.utils.publication_utils.pack_model()``. It sits on the publication side of
     the pipeline: stage runners produce the packed directory, then external
     callers use :class:`InferenceModel` to reopen that directory and execute
     the bundled inference configuration without going back through
@@ -198,7 +201,7 @@ class InferenceModel:
 
         Args:
             pack_dir: Path to the output directory created by
-                ``espnet3.utils.publish.pack_model()``. This directory must
+                ``espnet3.utils.publication_utils.pack_model()``. This directory must
                 contain ``conf/inference.yaml`` and any files referenced by
                 that config.
             trust_user_code: Set to ``True`` to allow importing bundled recipe
@@ -244,6 +247,22 @@ class InferenceModel:
             )
         with meta_path.open("r", encoding="utf-8") as f:
             meta = yaml.safe_load(f) or {}
+
+        schema = int(meta.get("schema_version", 0))
+        if schema == 0:
+            logger.warning(
+                "Bundle at %s has no schema_version (legacy format). "
+                "Some features may not be available.",
+                bundle_root,
+            )
+        elif schema == 1:
+            pass
+        else:
+            raise ValueError(
+                f"Bundle was produced by a newer pack_model "
+                f"(schema_version={schema}) than this installation supports. "
+                f"Upgrade espnet3."
+            )
 
         inference_config_rel = (meta.get("yaml_files") or {}).get("inference_config")
         if not inference_config_rel:
@@ -478,7 +497,20 @@ class InferenceModel:
                     input_key=self.input_key,
                     output_fn=self.output_fn,
                 )
-            except (TypeError, NotImplementedError, RuntimeError):
+            except (TypeError, NotImplementedError):
+                logger.debug(
+                    "Runner does not support batched inference;"
+                    " falling back to per-sample.",
+                    exc_info=True,
+                )
+                batch_result = None
+            except RuntimeError as e:
+                logger.warning(
+                    "Batched inference raised RuntimeError (%s);"
+                    " falling back to per-sample."
+                    " This may indicate CUDA OOM or a shape mismatch.",
+                    e,
+                )
                 batch_result = None
 
         if isinstance(batch_result, list) and len(batch_result) == len(sample_list):
