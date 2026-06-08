@@ -119,6 +119,7 @@ def test_eight_speaker_loss_runs():
 def test_sliding_window_matches_full_attention():
     """Chunked band kernel == full rel-pos attention when window >= seq length."""
     import torch
+
     from espnet3.systems.diar.sortformer.fastconformer_encoder import (
         RelPositionalEncoding,
         RelPositionMultiHeadAttention,
@@ -170,6 +171,7 @@ def test_local_attention_encoder_streaming_runs():
 def test_transformer_sliding_window_matches_full():
     """Standard band kernel == full transformer attention when window >= length."""
     import torch
+
     from espnet3.systems.diar.sortformer.sliding_window_attention import (
         TransformerLocalAttention,
     )
