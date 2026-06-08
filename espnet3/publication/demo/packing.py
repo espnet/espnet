@@ -80,6 +80,9 @@ def pack_demo(system) -> Path:
         encoding="utf-8",
     )
 
+    # --- write requirements.txt when pack.requirements is set ---
+    _write_requirements(updated_cfg, demo_dir)
+
     # --- copy extra files declared in pack.include ---
     _copy_pack_includes(updated_cfg, demo_dir)
 
@@ -173,6 +176,45 @@ def upload_demo(system) -> None:
     except (HfHubHTTPError, ValueError) as exc:
         raise RuntimeError(f"Failed to upload demo pack to '{repo}': {exc}") from exc
     logger.info("Demo upload complete: https://huggingface.co/spaces/%s", repo)
+
+
+def _write_requirements(demo_cfg, demo_dir: Path) -> None:
+    """Write ``requirements.txt`` from ``pack.requirements`` into the demo bundle.
+
+    Entries may be any pip-compatible specifier, including ``git+https://``
+    URLs. When ``pack.requirements`` is absent or empty, no file is written.
+
+    Args:
+        demo_cfg: Resolved demo config with an optional ``pack.requirements``
+            list.
+        demo_dir: Packed demo output directory where ``requirements.txt`` is
+            written.
+
+    Examples:
+        Config with a mix of PyPI and git installs:
+
+        .. code-block:: yaml
+
+            pack:
+              requirements:
+                - espnet
+                - gradio
+                - git+https://github.com/espnet/espnet@main
+
+        Produces ``demo_dir/requirements.txt``::
+
+            espnet
+            gradio
+            git+https://github.com/espnet/espnet@main
+    """
+    pack_cfg = getattr(demo_cfg, "pack", None)
+    requirements = getattr(pack_cfg, "requirements", None) if pack_cfg else None
+    if not requirements:
+        return
+    lines = [str(r) for r in requirements]
+    dest = demo_dir / "requirements.txt"
+    dest.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    logger.info("Wrote requirements.txt | %d packages", len(lines))
 
 
 def _link_local_model_into_bundle(demo_cfg, demo_dir: Path) -> None:

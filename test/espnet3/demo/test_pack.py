@@ -54,6 +54,62 @@ def test_pack_demo_writes_assets(
     assert demo_yaml["model"]["dir_or_tag"] == "model_pack"
 
 
+def test_pack_demo_writes_requirements_txt(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    demo_dir = tmp_path / "packed_demo"
+    model_pack_dir = tmp_path / "model_pack"
+    model_pack_dir.mkdir()
+    monkeypatch.chdir(tmp_path)
+    demo_cfg = OmegaConf.create(
+        {
+            "model": {"dir_or_tag": "espnet/some-model"},
+            "ui": {"app_script": "egs3/TEMPLATE/asr/src/app.py"},
+            "pack": {
+                "out_dir": str(demo_dir),
+                "requirements": [
+                    "espnet",
+                    "gradio",
+                    "git+https://github.com/espnet/espnet@main",
+                ],
+            },
+        }
+    )
+
+    class DummySystem:
+        demo_config = demo_cfg
+        exp_dir = None
+
+    pack_demo(DummySystem())
+
+    req = (demo_dir / "requirements.txt").read_text(encoding="utf-8")
+    assert req == "espnet\ngradio\ngit+https://github.com/espnet/espnet@main\n"
+
+
+def test_pack_demo_skips_requirements_txt_when_not_configured(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    demo_dir = tmp_path / "packed_demo"
+    monkeypatch.chdir(tmp_path)
+    demo_cfg = OmegaConf.create(
+        {
+            "model": {"dir_or_tag": "espnet/some-model"},
+            "ui": {"app_script": "egs3/TEMPLATE/asr/src/app.py"},
+            "pack": {"out_dir": str(demo_dir)},
+        }
+    )
+
+    class DummySystem:
+        demo_config = demo_cfg
+        exp_dir = None
+
+    pack_demo(DummySystem())
+
+    assert not (demo_dir / "requirements.txt").exists()
+
+
 def test_pack_demo_skips_description_copy_when_ui_description_is_missing(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

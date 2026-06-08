@@ -75,6 +75,11 @@ pack:
   out_dir: demo
   include: []
   exclude: []
+  # Python packages written to requirements.txt in the packed demo.
+  # Standard pip specifiers and git+https:// entries are both supported.
+  # Example git install: git+https://github.com/espnet/espnet@main
+  requirements:
+    - git+https://github.com/Masao-Someki/espnet.git@espnet3/recipe/ls_asr100_2
   readme: ${recipe_dir}/src/demo_readme_template.md
   readme_context:
     title: ${ui.title}
