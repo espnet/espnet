@@ -74,6 +74,7 @@ def pack_demo(system) -> Path:
 
     # --- write demo.yaml (paths rewritten to relative for portability) ---
     updated_cfg = _prepare_demo_config(demo_cfg, demo_dir, system)
+    _link_local_model_into_bundle(updated_cfg, demo_dir)
     (demo_dir / "demo.yaml").write_text(
         OmegaConf.to_yaml(updated_cfg, resolve=True),
         encoding="utf-8",
@@ -174,6 +175,57 @@ def upload_demo(system) -> None:
     logger.info("Demo upload complete: https://huggingface.co/spaces/%s", repo)
 
 
+def _link_local_model_into_bundle(demo_cfg, demo_dir: Path) -> None:
+    """Symlink a local model directory into the demo bundle as ``model_pack``.
+
+    Called by :func:`pack_demo` after :func:`_prepare_demo_config` has
+    normalised ``model.dir_or_tag`` to a path relative to ``demo_dir``.
+    When that relative path resolves to a directory that lives *outside*
+    ``demo_dir``, a symlink ``demo_dir/model_pack -> <candidate>`` is created
+    so the bundle references the model without copying it. :func:`upload_demo`
+    resolves symlinks before uploading so HF receives the actual files.
+
+    If ``dir_or_tag`` is already inside ``demo_dir`` or points to a Hugging
+    Face tag (non-existent local path), this function is a no-op.
+
+    Args:
+        demo_cfg: Resolved demo config returned by :func:`_prepare_demo_config`.
+            Mutated in place when a symlink is created.
+        demo_dir: Packed demo output directory.
+    """
+    model_cfg = getattr(demo_cfg, "model", None)
+    if model_cfg is None:
+        return
+    dir_or_tag = model_cfg.get("dir_or_tag") if hasattr(model_cfg, "get") else None
+    if not dir_or_tag:
+        return
+
+    candidate = Path(str(dir_or_tag))
+    if not candidate.is_absolute():
+        candidate = (demo_dir / candidate).resolve()
+    else:
+        candidate = candidate.resolve()
+
+    if not candidate.is_dir():
+        return
+
+    # Already inside demo_dir — nothing to do.
+    try:
+        candidate.relative_to(demo_dir.resolve())
+        return
+    except ValueError:
+        pass
+
+    dest = demo_dir / "model_pack"
+    logger.info(
+        "Symlinking local model dir into demo bundle | src=%s dest=%s",
+        candidate,
+        dest,
+    )
+    dest.symlink_to(candidate, target_is_directory=True)
+    model_cfg["dir_or_tag"] = "model_pack"
+
+
 def _setup_demo_assets(demo_dir: Path, demo_config) -> None:
     """Copy the launcher and optional description asset into ``demo_dir``."""
     # --- copy app.py ---
@@ -220,41 +272,16 @@ def _prepare_demo_config(demo_cfg, demo_dir: Path, system) -> DictConfig:
     # --- stamp the resolved output path so the demo app knows where it lives ---
     cfg.demo_dir = str(demo_dir)
 
-    # --- ensure model section exists ---
+    # --- validate model.dir_or_tag ---
+    # Set model.dir_or_tag in demo.yaml, or run pack_demo together with
+    # publication_config so apply_training_experiment_context can propagate
+    # pack_model.out_dir automatically.
     model_cfg = getattr(cfg, "model", None)
-    if model_cfg is None:
-        cfg["model"] = OmegaConf.create({})
-        model_cfg = cfg.model
-
-    # --- infer dir_or_tag if not explicitly set ---
-    if not model_cfg.get("dir_or_tag"):
-        default_ref = None
-        # Priority 1: explicit out_dir in publication_config.pack_model
-        publication_cfg = getattr(system, "publication_config", None)
-        if publication_cfg is not None:
-            pack_cfg = getattr(publication_cfg, "pack_model", None)
-            if pack_cfg is not None and getattr(pack_cfg, "out_dir", None):
-                target = Path(pack_cfg.out_dir)
-                target_path = (
-                    target if target.is_absolute() else (Path.cwd() / target).resolve()
-                )
-                default_ref = os.path.relpath(target_path, start=demo_dir)
-        # Priority 2: conventional location pack_model() uses when out_dir is
-        # not set.
-        if default_ref is None:
-            exp_dir = getattr(system, "exp_dir", None)
-            if exp_dir is not None:
-                target = Path(exp_dir) / "model_pack"
-                target_path = (
-                    target if target.is_absolute() else (Path.cwd() / target).resolve()
-                )
-                default_ref = os.path.relpath(target_path, start=demo_dir)
-        if default_ref is not None:
-            model_cfg["dir_or_tag"] = default_ref
-    if not model_cfg.get("dir_or_tag"):
+    if model_cfg is None or not model_cfg.get("dir_or_tag"):
         raise ValueError(
-            "demo_config.model.dir_or_tag is required when no local model pack "
-            "can be inferred."
+            "demo_config.model.dir_or_tag is required. "
+            "Set it in demo.yaml or run pack_demo with publication_config "
+            "so pack_model.out_dir is propagated automatically."
         )
 
     # --- normalize dir_or_tag to a relative path for portability ---

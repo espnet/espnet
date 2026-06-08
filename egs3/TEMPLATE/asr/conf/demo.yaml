@@ -23,7 +23,7 @@ recipe_dir: .
 # Initialization-time overrides are intentionally not supported here; keep
 # those in the packed `conf/inference.yaml`.
 model:
-  dir_or_tag: ../model_pack
+  dir_or_tag: null
   trust_user_code: false
   call_args: {}
 

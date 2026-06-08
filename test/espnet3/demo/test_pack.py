@@ -48,8 +48,10 @@ def test_pack_demo_writes_assets(
     assert (demo_dir / extra_src.name).read_text(encoding="utf-8") == "hello\n"
     assert (demo_dir / "app.py").exists()
     assert (demo_dir / "README.md").read_text(encoding="utf-8") == "# Demo\n"
+    # Local model dir is symlinked into the bundle as model_pack.
+    assert (demo_dir / "model_pack").is_symlink()
     demo_yaml = yaml.safe_load((demo_dir / "demo.yaml").read_text(encoding="utf-8"))
-    assert demo_yaml["model"]["dir_or_tag"] == "../model_pack"
+    assert demo_yaml["model"]["dir_or_tag"] == "model_pack"
 
 
 def test_pack_demo_skips_description_copy_when_ui_description_is_missing(
