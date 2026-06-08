@@ -8,7 +8,7 @@
 
 task: sortformer.task.SortformerDiarizationTask
 
-data_prep:
+data_preparation:
   func: src.data_prep.prepare
   data_dir: ${data_dir}
   ami_dir: /raid/users/popcornell/AMI

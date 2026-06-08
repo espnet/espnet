@@ -118,7 +118,12 @@ class SortformerDiarization:
             >>> diarizer = SortformerDiarization(train_config, model_file)
             >>> activity = diarizer(speech=wav)  # (T, num_spk)
         """
-        wav = torch.as_tensor(np.asarray(speech), dtype=torch.float32)
+        # Accept either a torch.Tensor (possibly already on GPU) or array-like;
+        # np.asarray() on a CUDA tensor would raise, so branch on the type.
+        if isinstance(speech, torch.Tensor):
+            wav = speech.to(dtype=torch.float32)
+        else:
+            wav = torch.as_tensor(np.asarray(speech), dtype=torch.float32)
         if wav.dim() == 1:
             wav = wav.unsqueeze(0)
         wav = wav.to(self.device)

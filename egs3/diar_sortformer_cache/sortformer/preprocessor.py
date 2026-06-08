@@ -41,13 +41,15 @@ def normalize_batch(x: torch.Tensor, seq_len: torch.Tensor):
     valid_mask = time_steps < seq_len.unsqueeze(1)
     x_mean_num = torch.where(valid_mask.unsqueeze(1), x, 0.0).sum(axis=2)
     x_mean_den = valid_mask.sum(axis=1)
-    x_mean = x_mean_num / x_mean_den.unsqueeze(1)
+    # Clamp the denominators to >= 1 so a sample with 0 or 1 valid frames cannot
+    # divide by zero (the variance term (den - 1.0) is 0 when den == 1).
+    x_mean = x_mean_num / torch.clamp(x_mean_den.unsqueeze(1), min=1.0)
     x_std = torch.sqrt(
         torch.sum(
             torch.where(valid_mask.unsqueeze(1), x - x_mean.unsqueeze(2), 0.0) ** 2,
             axis=2,
         )
-        / (x_mean_den.unsqueeze(1) - 1.0)
+        / torch.clamp(x_mean_den.unsqueeze(1) - 1.0, min=1.0)
     )
     x_std = x_std.masked_fill(x_std.isnan(), 0.0)
     x_std = x_std + CONSTANT

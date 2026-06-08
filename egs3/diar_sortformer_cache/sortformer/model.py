@@ -124,11 +124,13 @@ class ESPnetSortformerModel(AbsESPnetModel):
     def _process_signal(self, speech, speech_lengths):
         """Peak-normalize the waveform and extract log-mel features.
 
-        Mirrors NeMo's ``process_signal``: the waveform is scaled by the global
-        max over the batch tensor (with ``eps`` for stability) before feature
-        extraction. Returns ``(B, n_mels, T_feat)`` features and their lengths.
+        Mirrors NeMo's ``process_signal``: the waveform is peak-normalized by its
+        global absolute max over the batch tensor (with ``eps`` for stability)
+        before feature extraction. ``abs().max()`` is used (not ``max()``) so a
+        dominant negative peak cannot mis-scale and clip the signal. Returns
+        ``(B, n_mels, T_feat)`` features and their lengths.
         """
-        speech = (1.0 / (speech.max() + self.eps)) * speech
+        speech = (1.0 / (speech.abs().max() + self.eps)) * speech
         feats, feat_lengths = self.preprocessor(speech, speech_lengths)
         feats = feats[:, :, : feat_lengths.max()]
         return feats, feat_lengths  # (B, n_mels, T_feat)

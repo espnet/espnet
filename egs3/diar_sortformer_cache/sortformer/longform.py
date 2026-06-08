@@ -32,12 +32,11 @@ def _median_filter(x: np.ndarray, k: int) -> np.ndarray:
     """Per-column temporal median filter (edge-padded). No-op when ``k <= 1``."""
     if k <= 1:
         return x
-    pad = k // 2
-    xp = np.pad(x, ((pad, pad), (0, 0)), mode="edge")
-    out = np.empty_like(x)
-    for i in range(x.shape[0]):
-        out[i] = np.median(xp[i : i + k], axis=0)
-    return out
+    # scipy's C implementation is far faster than a Python loop over the time
+    # axis on long full-session sequences; ``mode="nearest"`` = edge padding.
+    from scipy.ndimage import median_filter
+
+    return median_filter(x, size=(k, 1), mode="nearest")
 
 
 @torch.no_grad()

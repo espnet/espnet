@@ -26,7 +26,7 @@ task: sortformer.task.SortformerDiarizationTask
 ##########################################################
 # Generates FastMSS 90 s, 3-8-spk simulated meetings and builds AMI SDM cuts
 # (train + dev + test). Set the FastMSS checkout and a noise dir (WHAM/MUSAN).
-data_prep:
+data_preparation:
   func: src.data_prep.prepare
   data_dir: ${data_dir}
   ami_dir: /raid/users/popcornell/AMI

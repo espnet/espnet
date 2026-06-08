@@ -13,8 +13,6 @@
 #       --hf_model nvidia/diar_sortformer_4spk-v1 --out exp/sortformer_4spk.pth
 
 dataset:
-  _target_: espnet3.components.data.data_organizer.DataOrganizer
-  recipe_dir: ${recipe_dir}
   test:
     - name: ami_dev
       data_src_args:
@@ -52,11 +50,6 @@ output_artifacts:
     type: npy
   ref:
     type: npy
-
-provider:
-  _target_: espnet3.systems.base.inference_provider.InferenceProvider
-runner:
-  _target_: espnet3.systems.base.inference_runner.InferenceRunner
 
 ##########################################################
 #         LONG-FORM (FULL-SESSION) INFERENCE             #

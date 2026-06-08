@@ -4,7 +4,7 @@ On top of the generic :class:`BaseSystem` stages (``collect_stats``, ``train``,
 ``infer``, ``measure``) this system adds:
 
 * ``data_preparation`` -- config-driven simulated-mixture / AMI-cut preparation
-  (``training_config.data_prep.func``).
+  (``training_config.data_preparation.func``).
 * ``infer_longform`` / ``measure_longform`` -- full-session (long-form)
   diarization with the streaming speaker cache, writing one RTTM per session and
   scoring collar-based DER. These are config-driven via the ``longform`` block of
@@ -46,7 +46,7 @@ class DiarizationSystem(BaseSystem):
     custom ones:
 
     * ``data_preparation``: delegates to the dotted-path callable named in
-      ``training_config.data_prep.func`` (e.g. ``src.data_prep.prepare``).
+      ``training_config.data_preparation.func`` (e.g. ``src.data_prep.prepare``).
     * ``infer_longform``: full-session diarization with the streaming speaker
       cache, configured by ``inference_config.longform``.
     * ``measure_longform``: collar-based session-level DER over the long-form
@@ -75,7 +75,7 @@ class DiarizationSystem(BaseSystem):
 
         Args:
             training_config: Parsed training config (provides ``data_dir`` and
-                the optional ``data_prep`` block).
+                the optional ``data_preparation`` block).
             inference_config: Parsed inference config (provides ``inference_dir``
                 and the ``longform`` block).
             metrics_config: Parsed metrics config (provides the scoring
@@ -98,14 +98,14 @@ class DiarizationSystem(BaseSystem):
         """Run the recipe's data-preparation callable, if configured.
 
         The ``data_preparation`` stage. It imports the dotted-path callable in
-        ``training_config.data_prep.func`` and calls it with every other key in
-        the ``data_prep`` block forwarded as keyword arguments. If no
-        ``data_prep.func`` is configured the stage is a no-op (manifests are
+        ``training_config.data_preparation.func`` and calls it with every other key in
+        the ``data_preparation`` block forwarded as keyword arguments. If no
+        ``data_preparation.func`` is configured the stage is a no-op (manifests are
         assumed to already exist).
 
-        Expects ``training_config.data_prep`` with a ``func`` dotted path, e.g.::
+        Expects ``training_config.data_preparation`` with a ``func`` dotted path, e.g.::
 
-            data_prep:
+            data_preparation:
               func: src.data_prep.prepare
               output_dir: ${data_dir}/synth
               ...
@@ -120,10 +120,10 @@ class DiarizationSystem(BaseSystem):
             **kwargs: Not accepted; passing keyword stage args raises.
         """
         self._reject_stage_args("data_preparation", args, kwargs)
-        cfg = getattr(self.training_config, "data_prep", None)
+        cfg = getattr(self.training_config, "data_preparation", None)
         if cfg is None or not getattr(cfg, "func", None):
             logger.info(
-                "DiarizationSystem.data_preparation(): no `data_prep.func` "
+                "DiarizationSystem.data_preparation(): no `data_preparation.func` "
                 "configured; skipping (assuming manifests already exist)."
             )
             return
