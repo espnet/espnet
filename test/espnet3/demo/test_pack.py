@@ -7,6 +7,7 @@ import yaml
 from omegaconf import OmegaConf
 
 from espnet3.publication.demo.packing import pack_demo
+from espnet3.utils.config_utils import load_and_merge_config
 
 
 def test_pack_demo_writes_assets(
@@ -171,3 +172,87 @@ def test_pack_demo_expands_globbed_include_paths(
     assert (demo_dir / "data" / "manifest" / "dev.tsv").read_text(
         encoding="utf-8"
     ) == "utt\tpath\n"
+
+
+def test_pack_demo_renders_space_readme(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    demo_dir = tmp_path / "packed_demo"
+    model_pack_dir = tmp_path / "model_pack"
+    model_pack_dir.mkdir()
+    readme_context = {
+        "title": "Custom demo",
+        "emoji": "microphone",
+        "color_from": "indigo",
+        "color_to": "purple",
+        "sdk": "gradio",
+        "python_version": "3.12",
+        "app_file": "custom_app.py",
+        "pinned": "true",
+        "license": "mit",
+        "tags": "- custom-tag\n- task-tag",
+        "description": "Custom description.",
+        "hf_repo": "custom/repo",
+        "model_ref": "custom/model",
+        "creator": "custom creator",
+    }
+    demo_config_path = tmp_path / "conf" / "demo.yaml"
+    demo_config_path.parent.mkdir()
+    app_script = tmp_path / "src" / "app.py"
+    app_script.parent.mkdir()
+    app_script.write_text("# test app\n", encoding="utf-8")
+    demo_config = {
+        "model": {
+            "dir_or_tag": str(model_pack_dir),
+        },
+        "ui": {
+            "title": "Ignored by readme_context",
+        },
+        "pack": {
+            "out_dir": str(demo_dir),
+            "readme_context": readme_context,
+        },
+        "upload_demo": {
+            "hf_repo": "ignored/by-context",
+        },
+    }
+    demo_config_path.write_text(
+        OmegaConf.to_yaml(OmegaConf.create(demo_config)),
+        encoding="utf-8",
+    )
+    monkeypatch.chdir(tmp_path)
+    demo_cfg = load_and_merge_config(
+        demo_config_path,
+        config_name="demo.yaml",
+        default_package="egs3.TEMPLATE.asr",
+        resolve=False,
+    )
+
+    class DummySystem:
+        demo_config = demo_cfg
+        exp_dir = None
+        publish_config = None
+
+    pack_demo(DummySystem())
+
+    readme = (demo_dir / "README.md").read_text(encoding="utf-8")
+    expected_lines = [
+        "title: Custom demo",
+        "emoji: microphone",
+        "colorFrom: indigo",
+        "colorTo: purple",
+        "sdk: gradio",
+        'python_version: "3.12"',
+        "app_file: custom_app.py",
+        "pinned: true",
+        "license: mit",
+        "tags:\n- custom-tag\n- task-tag",
+        "# Custom demo",
+        "Custom description.",
+        "- Space: `custom/repo`",
+        "- Model: `custom/model`",
+        "- Creator: `custom creator`",
+    ]
+    for expected_line in expected_lines:
+        assert expected_line in readme

@@ -8,6 +8,7 @@
 # Main stages and what this config is used for:
 # - `pack_demo`: packs `demo.yaml`, `ui.app_script`, and `pack.include`
 # - `upload_demo`: uploads the packed demo directory
+recipe_dir: .
 
 ##########################################################
 #                    MODEL SOURCE                        #
@@ -67,17 +68,36 @@ ui:
 # the same style as publication bundle excludes, e.g.:
 # - `**/*.log`
 # - `**/tensorboard/**`
+#
+# `pack.readme` renders the Hugging Face Space README.md. Values under
+# `readme_context` override the defaults inferred by `pack_demo`.
 pack:
   out_dir: demo
   include: []
   exclude: []
+  readme: ${recipe_dir}/src/demo_readme_template.md
+  readme_context:
+    title: ${ui.title}
+    emoji: "\U0001f399\ufe0f"
+    color_from: blue
+    color_to: green
+    sdk: gradio
+    app_file: app.py
+    pinned: "false"
+    license: apache-2.0
+    tags: |-
+      - espnet
+      - espnet3
+      - gradio
+      - speech-recognition
+      - automatic-speech-recognition
+    hf_repo: ${upload_demo.hf_repo}
+    model_ref: ${model.dir_or_tag}
 
 ##########################################################
 #                    UPLOAD SETTING                      #
 ##########################################################
 # Upload target used by `upload_demo`.
-# The packed demo directory is uploaded as-is, so keep repo-facing metadata in
-# the files referenced above rather than generating a separate demo README here.
 upload_demo:
   hf_repo: your-hf-username/your-demo
   # organization: your-org

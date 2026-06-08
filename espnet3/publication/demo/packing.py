@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import os
 import shutil
+import sys
 from pathlib import Path
 
 from huggingface_hub import HfApi
@@ -15,6 +16,9 @@ from espnet3.utils.publication_utils import (
     _build_pack_ignore,
     _copy_path,
     _expand_pack_paths,
+    _infer_creator,
+    _render_readme,
+    _resolve_readme_template_path,
 )
 
 logger = logging.getLogger(__name__)
@@ -29,6 +33,8 @@ def pack_demo(system) -> Path:
       relative to the output directory so the pack is portable.
     - ``app.py``: the Gradio launcher script specified by
       ``demo_config.ui.app_script``.
+    - ``README.md``: optional Hugging Face Space card rendered from
+      ``demo_config.pack.readme``.
     - Any extra files listed in ``demo_config.pack.include``.
     - Optionally a description file referenced by ``demo_config.ui.description``.
 
@@ -78,6 +84,9 @@ def pack_demo(system) -> Path:
 
     # --- copy app.py and description asset ---
     _setup_demo_assets(demo_dir=demo_dir, demo_config=updated_cfg)
+
+    # --- write README.md for Hugging Face Spaces when configured ---
+    _write_demo_readme(updated_cfg, demo_dir, system)
     return demo_dir
 
 
@@ -317,6 +326,46 @@ def _copy_pack_includes(demo_cfg, demo_dir: Path) -> None:
             dest = demo_dir / path.name
         ignore = _build_pack_ignore(path, exclude_patterns) if path.is_dir() else None
         _copy_path(src=path, dst=dest, ignore=ignore)
+
+
+def _write_demo_readme(demo_cfg, demo_dir: Path, system) -> None:
+    """Render the optional Hugging Face Space README."""
+    pack_cfg = getattr(demo_cfg, "pack", None)
+    readme_template_path = getattr(pack_cfg, "readme", None) if pack_cfg else None
+    if not readme_template_path:
+        return
+    template_path = _resolve_readme_template_path(str(readme_template_path))
+    context = _build_demo_readme_context(demo_cfg)
+    context.update(dict(getattr(pack_cfg, "readme_context", {}) or {}))
+    readme_text = _render_readme(template_path.read_text(encoding="utf-8"), context)
+    (demo_dir / "README.md").write_text(readme_text, encoding="utf-8")
+
+
+def _build_demo_readme_context(demo_cfg) -> dict[str, str]:
+    """Build runtime-only template values for a Hugging Face Space README.
+
+    Returns only values that cannot be expressed in static config: installed
+    package versions, Python version, creator from env, and the description
+    string (which requires resolving whether ``ui.description`` is a file path).
+
+    All other README variables (title, hf_repo, model_ref, emoji, sdk, license,
+    tags, app_file, pinned, …) are defined under ``pack.readme_context`` in
+    ``TEMPLATE/asr/conf/demo.yaml`` and are already merged into ``demo_cfg``
+    by ``load_and_merge_config``. They are applied in ``_write_demo_readme``
+    via ``context.update(pack_cfg.readme_context)``.
+    """
+    ui_cfg = getattr(demo_cfg, "ui", None)
+    description = getattr(ui_cfg, "description", None) if ui_cfg else None
+    if description is not None and _resolve_ui_description_path(demo_cfg) is not None:
+        description_text = f"See `{description}` for demo details."
+    else:
+        description_text = str(description or "")
+
+    return {
+        "python_version": f"{sys.version_info.major}.{sys.version_info.minor}",
+        "description": description_text,
+        "creator": _infer_creator(),
+    }
 
 
 def _resolve_app_script(demo_config) -> Path:

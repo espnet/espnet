@@ -26,7 +26,7 @@ model:
 ##########################################################
 # Recipe-local app script copied to `<demo_dir>/app.py` during `pack_demo`.
 ui:
-  app_script: src/app.py
+  title: mini_an4 ASR demo
 
 ##########################################################
 #                   UPLOAD DEMO SETTING                  #

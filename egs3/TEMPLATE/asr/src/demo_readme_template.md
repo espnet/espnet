@@ -1,6 +1,26 @@
+---
+title: ${title}
+emoji: ${emoji}
+colorFrom: ${color_from}
+colorTo: ${color_to}
+sdk: ${sdk}
+python_version: "${python_version}"
+app_file: ${app_file}
+pinned: ${pinned}
+license: ${license}
+tags:
+${tags}
+---
+
 # ${title}
 
 ${description}
+
+## Demo
+
+- Space: `${hf_repo}`
+- Model: `${model_ref}`
+- Creator: `${creator}`
 
 
 ## Citation
