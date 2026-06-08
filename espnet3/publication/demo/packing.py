@@ -7,10 +7,14 @@ import os
 import shutil
 from pathlib import Path
 
+from huggingface_hub import HfApi
+from huggingface_hub.errors import HfHubHTTPError
 from omegaconf import DictConfig, ListConfig, OmegaConf
 
-from espnet3.utils.publish import (
-    _copy_pack_include_paths,
+from espnet3.utils.publication_utils import (
+    _build_pack_ignore,
+    _copy_path,
+    _expand_pack_paths,
 )
 
 logger = logging.getLogger(__name__)
@@ -90,7 +94,6 @@ def upload_demo(system) -> None:
     Optional config keys:
 
     - ``repo_type``: HF repo type (default: ``"space"``).
-    - ``organization``: HF organization name.
     - ``create``: extra options forwarded to the HF ``create_repo`` call.
 
     Args:
@@ -116,18 +119,14 @@ def upload_demo(system) -> None:
 
     # --- build repo / create options ---
     repo = str(hf_repo_raw)
-    # HF API needs the repo name without the org prefix for create calls.
-    create_repo_name = repo.rsplit("/", maxsplit=1)[-1]
+    organization = getattr(upload_cfg, "organization", None)
+    if organization and "/" not in repo:
+        repo = f"{organization}/{repo}"
     repo_type = getattr(upload_cfg, "repo_type", "space")
     create_cfg = getattr(upload_cfg, "create", None)
     create_opts = OmegaConf.to_container(create_cfg, resolve=True) if create_cfg else {}
-    # Gradio and auto-confirm are safe defaults for a Spaces upload.
+    create_opts.pop("yes", None)
     create_opts.setdefault("space_sdk", "gradio")
-    create_opts.setdefault("yes", True)
-    if "organization" not in create_opts:
-        organization = getattr(upload_cfg, "organization", None)
-        if organization:
-            create_opts["organization"] = organization
 
     # --- locate the packed demo directory ---
     pack_cfg = getattr(demo_cfg, "pack", None)
@@ -139,15 +138,31 @@ def upload_demo(system) -> None:
         raise RuntimeError(f"Demo pack not found: {demo_dir}")
 
     # --- upload ---
-    from espnet3.utils.publish import _upload_common
-
-    _upload_common(
-        repo,
-        demo_dir,
-        repo_type=repo_type,
-        create_options=create_opts,
-        create_repo_name=create_repo_name,
-    )
+    logger.info("Ensuring Hugging Face demo repo exists: %s", repo)
+    api = HfApi()
+    private = bool(getattr(upload_cfg, "private", False))
+    try:
+        api.create_repo(
+            repo_id=repo,
+            repo_type=repo_type,
+            private=private,
+            exist_ok=True,
+            **create_opts,
+        )
+    except (HfHubHTTPError, ValueError) as exc:
+        raise RuntimeError(
+            f"Failed to create Hugging Face demo repo '{repo}': {exc}"
+        ) from exc
+    logger.info("Uploading %s -> %s", demo_dir, repo)
+    try:
+        api.upload_folder(
+            repo_id=repo,
+            repo_type=repo_type,
+            folder_path=str(demo_dir),
+        )
+    except (HfHubHTTPError, ValueError) as exc:
+        raise RuntimeError(f"Failed to upload demo pack to '{repo}': {exc}") from exc
+    logger.info("Demo upload complete: https://huggingface.co/spaces/%s", repo)
 
 
 def _setup_demo_assets(demo_dir: Path, demo_config) -> None:
@@ -216,7 +231,7 @@ def _prepare_demo_config(demo_cfg, demo_dir: Path, system) -> DictConfig:
                 )
                 default_ref = os.path.relpath(target_path, start=demo_dir)
         # Priority 2: conventional location pack_model() uses when out_dir is
-        # not set (see utils/publish.py line ~489).
+        # not set.
         if default_ref is None:
             exp_dir = getattr(system, "exp_dir", None)
             if exp_dir is not None:
@@ -285,12 +300,23 @@ def _copy_pack_includes(demo_cfg, demo_dir: Path) -> None:
         )
 
     # --- copy ---
-    _copy_pack_include_paths(
-        include_paths=raw_include_paths,
-        out_dir=demo_dir,
-        recipe_root=Path.cwd(),
-        exclude_patterns=exclude_patterns,
-    )
+    recipe_root = Path.cwd().resolve()
+    for path in _expand_pack_paths(raw_include_paths, recipe_root):
+        if not path.exists():
+            logger.warning("Demo include path does not exist: %s", path)
+            continue
+        try:
+            dest = demo_dir / path.absolute().relative_to(recipe_root)
+        except ValueError:
+            logger.warning(
+                "Demo include path is outside recipe root and will be placed "
+                "at the bundle root as '%s': %s",
+                path.name,
+                path,
+            )
+            dest = demo_dir / path.name
+        ignore = _build_pack_ignore(path, exclude_patterns) if path.is_dir() else None
+        _copy_path(src=path, dst=dest, ignore=ignore)
 
 
 def _resolve_app_script(demo_config) -> Path:
