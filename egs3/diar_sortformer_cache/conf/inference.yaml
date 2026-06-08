@@ -9,7 +9,7 @@
 #
 # `model_file` defaults to the best trained checkpoint. To evaluate NVIDIA's
 # converted pretrained weights instead, point it at the .pth produced by
-#   python -m sortformer.convert_hf_sortformer \
+#   python -m espnet3.systems.diar.sortformer.convert_hf_sortformer \
 #       --hf_model nvidia/diar_sortformer_4spk-v1 --out exp/sortformer_4spk.pth
 
 dataset:
@@ -30,7 +30,7 @@ parallel:
 #                    MODEL AND OUTPUT                    #
 ##########################################################
 model:
-  _target_: sortformer.inference_bin.SortformerDiarization
+  _target_: espnet3.systems.diar.sortformer.inference_bin.SortformerDiarization
   train_config: ${exp_dir}/config.yaml
   model_file: ${exp_dir}/last.ckpt
 

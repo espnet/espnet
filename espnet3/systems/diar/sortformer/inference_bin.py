@@ -9,7 +9,7 @@ PyTorch-Lightning ``.ckpt`` (``model.`` prefix is stripped automatically).
 Selected in an inference config by Hydra ``_target_``::
 
     inference:
-      _target_: sortformer.inference_bin.SortformerDiarization
+      _target_: espnet3.systems.diar.sortformer.inference_bin.SortformerDiarization
       train_config: exp/sortformer/config.yaml
       model_file: exp/sortformer/valid.acc.best.pth
       device: cuda
@@ -30,7 +30,7 @@ import yaml
 
 from espnet3.utils.task_utils import get_espnet_model
 
-_TASK = "sortformer.task.SortformerDiarizationTask"
+_TASK = "espnet3.systems.diar.task.SortformerDiarizationTask"
 
 
 def _strip_prefix(state_dict, prefix="model."):
@@ -49,14 +49,14 @@ class SortformerDiarization:
     """Callable Sortformer diarizer for ESPnet3 inference.
 
     Builds the Sortformer model from a saved training config (via the
-    ``sortformer.task.SortformerDiarizationTask`` dotted path) and loads its
+    ``espnet3.systems.diar.task.SortformerDiarizationTask`` dotted path) and loads its
     weights, then exposes a simple ``model(speech)`` call returning per-frame
     speaker activity.
 
     Instantiated by the inference stage through Hydra ``_target_``::
 
         inference:
-          _target_: sortformer.inference_bin.SortformerDiarization
+          _target_: espnet3.systems.diar.sortformer.inference_bin.SortformerDiarization
           train_config: exp/sortformer/config.yaml
           model_file: exp/sortformer/valid.acc.best.pth
           device: cuda

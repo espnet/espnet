@@ -32,7 +32,7 @@ class DER(BaseMetric):
     Selected in a metrics config by Hydra ``_target_``::
 
         metrics:
-          - _target_: sortformer.der.DER
+          - _target_: espnet3.systems.diar.metrics.der.DER
             ref_key: ref
             hyp_key: hyp
             threshold: 0.5

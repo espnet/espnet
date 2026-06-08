@@ -6,7 +6,7 @@
 # is the 8-speaker streaming model. Use this for offline 4-spk experiments:
 #   python run.py --stages train --training_config conf/training_4spk_offline.yaml
 
-task: sortformer.task.SortformerDiarizationTask
+task: espnet3.systems.diar.task.SortformerDiarizationTask
 
 data_preparation:
   func: src.data_prep.prepare

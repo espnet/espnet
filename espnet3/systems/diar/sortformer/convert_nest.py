@@ -73,7 +73,7 @@ def load_nest_encoder(model, nest_encoder_path, verbose=True):
         ``unexpected`` (NEST keys with no matching target).
 
     Example:
-        >>> from sortformer.convert_nest import load_nest_encoder
+        >>> from espnet3.systems.diar.sortformer.convert_nest import load_nest_encoder
         >>> report = load_nest_encoder(model, "nest_encoder.pt")
         >>> report["n_loaded"] > 0
         True

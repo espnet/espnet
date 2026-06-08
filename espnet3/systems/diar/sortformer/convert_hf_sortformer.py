@@ -14,7 +14,7 @@ are not present in the checkpoint and are left at their constructed values.
 
 This module is meant to be run as a CLI to write a ready-to-load ``.pth``::
 
-    python -m sortformer.convert_hf_sortformer \\
+    python -m espnet3.systems.diar.sortformer.convert_hf_sortformer \\
         --hf_model nvidia/diar_sortformer_4spk-v1 \\
         --out sortformer_4spk.pth
 

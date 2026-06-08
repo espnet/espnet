@@ -9,7 +9,7 @@ It plugs into ESPnet3 via ``espnet3.utils.task_utils.get_espnet_model``, which
 calls :meth:`get_default_config` and :meth:`build_model`. Wire it into a recipe
 by naming its dotted path in the training config::
 
-    task: sortformer.task.SortformerDiarizationTask
+    task: espnet3.systems.diar.task.SortformerDiarizationTask
 
 The recipe directory must be on ``PYTHONPATH`` so that ``sortformer`` is
 importable; the package is otherwise self-contained (no NeMo dependency).
@@ -29,11 +29,11 @@ from espnet2.train.trainer import Trainer
 from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import int_or_none, str2bool, str_or_none
 
-from .fastconformer_encoder import FastConformerEncoder
-from .model import ESPnetSortformerModel
-from .preprocessor import MelSpectrogramPreprocessor
-from .sortformer_modules import SortformerModules
-from .transformer_encoder import TransformerEncoder
+from .sortformer.fastconformer_encoder import FastConformerEncoder
+from .sortformer.model import ESPnetSortformerModel
+from .sortformer.preprocessor import MelSpectrogramPreprocessor
+from .sortformer.sortformer_modules import SortformerModules
+from .sortformer.transformer_encoder import TransformerEncoder
 
 
 class SortformerDiarizationTask(AbsTask):
@@ -47,7 +47,7 @@ class SortformerDiarizationTask(AbsTask):
 
     The task is selected by dotted path in a recipe's training config::
 
-        task: sortformer.task.SortformerDiarizationTask
+        task: espnet3.systems.diar.task.SortformerDiarizationTask
 
     and consumes the following task arguments (each a flat key or a nested
     ``*_conf`` mapping in that config):
@@ -63,7 +63,7 @@ class SortformerDiarizationTask(AbsTask):
 
     Example config block::
 
-        task: sortformer.task.SortformerDiarizationTask
+        task: espnet3.systems.diar.task.SortformerDiarizationTask
         num_spk: 4
         init_nest: exp/nest_large_encoder.pt
         encoder_conf:
@@ -282,7 +282,7 @@ class SortformerDiarizationTask(AbsTask):
         # Initialize the FastConformer from NEST self-supervised weights.
         init_nest = getattr(args, "init_nest", None)
         if init_nest is not None:
-            from .convert_nest import load_nest_encoder
+            from .sortformer.convert_nest import load_nest_encoder
 
             load_nest_encoder(model, init_nest)
         return model

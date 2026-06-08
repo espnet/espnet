@@ -13,9 +13,9 @@ augmentation is intentionally omitted (this recipe does not target causal /
 low-latency streaming). Intended departures from v2 are **8 speakers** (v2 = 4)
 and **NEST initialization** (80-mel / 18-layer; v2 = 128-mel / 17-layer).
 
-Model/library code is under `sortformer/` and
-`sortformer/model.py`; the task is
-`sortformer.task.SortformerDiarizationTask`. The 8-speaker loss uses
+Model/library code is under `espnet3/systems/diar/sortformer/` and
+`espnet3/systems/diar/sortformer/model.py`; the task is
+`espnet3.systems.diar.task.SortformerDiarizationTask`. The 8-speaker loss uses
 **Hungarian PIL + arrival-time-argsort ATS** (brute-force `S!` is infeasible at
 8 speakers).
 
@@ -85,7 +85,7 @@ betas (0.9, 0.98), wd 1e-3, warmup 500 (NeMo streaming-v2).
 mechanism Parakeet-v3 uses) with the speaker-cache prefix kept global. Set both to
 `[left, right]` (80-ms frames) to make the whole model O(N·W) for single-pass
 long-form; `null` (default) = full attention (NeMo-faithful). See
-`sortformer/sliding_window_attention.py`.
+`espnet3/systems/diar/sortformer/sliding_window_attention.py`.
 
 ## Evaluation
 
@@ -98,7 +98,7 @@ DER with `pyannote.metrics` (frame-level fallback if absent) →
 
 - `conf/training_4spk_offline.yaml` — legacy 4-speaker **offline** model
   (architecture of `nvidia/diar_sortformer_4spk-v1`).
-- Weight conversion: `sortformer/convert_hf_sortformer.py`
+- Weight conversion: `espnet3/systems/diar/sortformer/convert_hf_sortformer.py`
   (offline v1 HF), `convert_nemo_sortformer.py` (streaming v2 `.nemo`),
   `convert_nest.py` (NEST encoder init). The offline port is numerically faithful
   (parity < 1e-4 vs the original on AMI audio); converting the released streaming

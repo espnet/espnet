@@ -3,7 +3,7 @@
 
 Thin entrypoint that reuses the shared ESPnet3 stage runner
 (``build_parser`` / ``main`` from ``egs3.TEMPLATE.asr.run``) with this recipe's
-:class:`~sortformer.system.DiarizationSystem` and :data:`DEFAULT_STAGES`.
+:class:`~espnet3.systems.diar.system.DiarizationSystem` and :data:`DEFAULT_STAGES`.
 
 Run it from the recipe directory, e.g.::
 
@@ -15,9 +15,8 @@ and DER scoring on AMI.
 
 from typing import List
 
-from sortformer.system import DiarizationSystem
-
 from egs3.TEMPLATE.asr.run import build_parser, main, parse_cli_and_stage_args
+from espnet3.systems.diar.system import DiarizationSystem
 
 DEFAULT_STAGES: List[str] = [
     # Stage 1: generate FastMSS meetings + build AMI cuts.

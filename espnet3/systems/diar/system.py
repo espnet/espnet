@@ -13,7 +13,7 @@ On top of the generic :class:`BaseSystem` stages (``collect_stats``, ``train``,
 
 A recipe's ``run.py`` selects this system with::
 
-    from sortformer.system import DiarizationSystem
+    from espnet3.systems.diar.system import DiarizationSystem
 
 Stages are then driven from the command line, e.g.::
 
@@ -54,7 +54,7 @@ class DiarizationSystem(BaseSystem):
 
     Used by a recipe's ``run.py`` as::
 
-        from sortformer.system import DiarizationSystem
+        from espnet3.systems.diar.system import DiarizationSystem
 
     Example invocation of the long-form path::
 
@@ -189,7 +189,7 @@ class DiarizationSystem(BaseSystem):
         self._reject_stage_args("infer_longform", args, kwargs)
         import lhotse
 
-        from .longform import (
+        from .sortformer.longform import (
             build_eval_model,
             run_longform_inference,
         )
@@ -276,7 +276,7 @@ class DiarizationSystem(BaseSystem):
             AssertionError: If ``metrics_config.longform`` is not set.
         """
         self._reject_stage_args("measure_longform", args, kwargs)
-        from .longform import score_rttm_der
+        from .sortformer.longform import score_rttm_der
 
         cfg = getattr(self.metrics_config, "longform", None)
         assert cfg is not None, "metrics_config.longform must be set"

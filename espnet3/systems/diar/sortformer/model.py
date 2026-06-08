@@ -15,7 +15,7 @@ so output channel ``k`` keeps the same speaker over the whole session; with the
 default chunk size (~15 s) a 90 s recording is processed as ~6 chunks.
 
 Training uses the hybrid Arrival-Time-Sort + Permutation-Invariant BCE loss
-(:class:`~sortformer.sort_loss.SortformerHybridLoss`); with
+(:class:`~espnet3.systems.diar.sortformer.sort_loss.SortformerHybridLoss`); with
 ``train_streaming=True`` the predictions come from the streaming cache loop
 (BPTT through the cache).
 
@@ -58,14 +58,14 @@ class ESPnetSortformerModel(AbsESPnetModel):
       utterance through the encoder at once.
     * Streaming (long-form): :meth:`forward_streaming` /
       :meth:`diarize_streaming` process the audio chunk by chunk while carrying
-      the :class:`~sortformer.sortformer_modules.SortformerModules` speaker
+      the :class:`~espnet3.systems.diar.sortformer.sortformer_modules.SortformerModules` speaker
       cache across chunks, keeping output channel ``k`` bound to the same
       speaker over the whole session. With the default streaming
       hyper-parameters (chunk ~15 s) a 90 s session is processed as ~6 chunks.
 
     Training (:meth:`forward`) uses the hybrid Arrival-Time-Sort +
     Permutation-Invariant BCE loss
-    (:class:`~sortformer.sort_loss.SortformerHybridLoss`). When
+    (:class:`~espnet3.systems.diar.sortformer.sort_loss.SortformerHybridLoss`). When
     ``train_streaming=True`` the training predictions are produced by the
     streaming cache loop (BPTT through the cache) instead of the offline
     full-context :meth:`encode`, matching the original Sortformer training

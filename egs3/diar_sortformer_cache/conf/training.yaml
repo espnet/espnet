@@ -19,7 +19,7 @@
 #     m=ASRModel.from_pretrained('nvidia/ssl_en_nest_large_v1.0', map_location='cpu'); \
 #     torch.save(m.encoder.state_dict(), 'exp/nest_encoder.pt')"
 
-task: sortformer.task.SortformerDiarizationTask
+task: espnet3.systems.diar.task.SortformerDiarizationTask
 
 ##########################################################
 #               STAGE 1: DATA PREPARATION                #
