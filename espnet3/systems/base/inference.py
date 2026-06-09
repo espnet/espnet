@@ -9,78 +9,8 @@ from omegaconf import DictConfig, OmegaConf
 
 from espnet3.parallel.parallel import set_parallel
 from espnet3.systems.base.inference_runner import _load_output_fn
-from espnet3.utils.writer_utils import write_artifact
 
 logger = logging.getLogger(__name__)
-
-
-def _flatten_results(results):
-    flat = []
-    for item in results:
-        if isinstance(item, list):
-            flat.extend(item)
-        else:
-            flat.append(item)
-    return flat
-
-
-def _collect_scp_lines(results, idx_key: str, hyp_keys, ref_keys):
-    scp_lines = {}
-    hyp_keys = list(hyp_keys) if isinstance(hyp_keys, (list, tuple)) else [hyp_keys]
-    ref_keys = list(ref_keys) if isinstance(ref_keys, (list, tuple)) else [ref_keys]
-
-    for result in results:
-        if not isinstance(result, dict):
-            raise TypeError(
-                f"Expected dict output, got {type(result).__name__}: {result}"
-            )
-
-        idx_value = result[idx_key]
-        if isinstance(idx_value, (list, tuple)):
-            raise TypeError(
-                f"'{idx_key}' must be a scalar, got {type(idx_value).__name__}"
-            )
-
-        for field_key in (*ref_keys, *hyp_keys):
-            value = result[field_key]
-            if isinstance(value, (list, tuple)):
-                raise TypeError(
-                    f"Top-level list outputs are not supported for '{field_key}'. "
-                    "Return a single value per field, or wrap structured content in a "
-                    "dict so it can be saved as JSON."
-                )
-            scp_lines.setdefault(field_key, []).append(f"{idx_value} {value}")
-
-    return scp_lines
-
-
-def _is_scp_scalar(value) -> bool:
-    return isinstance(value, (str, int, float, bool))
-
-
-def _materialize_output_value(
-    *,
-    idx_value,
-    field_key: str,
-    value,
-    output_dir: Path,
-    artifact_config: dict | None,
-):
-    if _is_scp_scalar(value):
-        return value
-
-    if isinstance(value, (list, tuple)):
-        raise TypeError(
-            f"Top-level list outputs are not supported for '{field_key}'. "
-            "Return a single value per field, or wrap structured content in a "
-            "dict so it can be saved as JSON."
-        )
-
-    artifact_dir = output_dir / field_key
-    artifact_dir.mkdir(parents=True, exist_ok=True)
-    target = artifact_dir / str(idx_value)
-    artifact_path = write_artifact(value, target, field_config=artifact_config)
-    return artifact_path.as_posix()
 
 
 def infer(config: DictConfig):
@@ -100,7 +30,13 @@ def infer(config: DictConfig):
 
         <utt_id> <value_or_path>
 
-    Primitive values are written directly into SCP files.
+    Primitive values are written directly into SCP files. When
+    :class:`espnet3.systems.base.inference_runner.InferenceRunner` is used,
+    workers first write shard-local files under:
+
+    .. code-block:: text
+
+        ${inference_dir}/<test_name>/split.<rank>/
 
     Example return value from ``output_fn`` or directly from the inference
     model:
@@ -116,9 +52,14 @@ def infer(config: DictConfig):
         inference_dir/test-clean/hyp.scp
           utt1 hello world
 
-    Non-scalar values are serialized through
-    :func:`espnet3.utils.writer_utils.write_artifact`. That function documents
-    the detailed rules for JSON, NPY, pickle, WAV, and custom writer cases.
+    Non-scalar values are serialized per shard, for example:
+
+    .. code-block:: text
+
+        ${inference_dir}/<test_name>/split.<rank>/<field>/<utt_id>.*
+
+    and the final merged ``<field>.scp`` written under
+    ``${inference_dir}/<test_name>/`` points at those shard-local paths.
 
     Example WAV configuration:
 
@@ -145,7 +86,7 @@ def infer(config: DictConfig):
             ``output_artifacts`` writer settings.
     """
     start = time.perf_counter()
-    set_parallel(config.parallel)
+    set_parallel(getattr(config, "parallel", None))
 
     test_sets = []
     for index, test_set in enumerate(config.dataset.test):
@@ -190,6 +131,8 @@ def infer(config: DictConfig):
                 raise RuntimeError("inference_config.output_keys must not be empty.")
 
         idx_key = getattr(config, "idx_key", "utt_id")
+        output_dir = Path(config.inference_dir) / test_name
+        output_dir.mkdir(parents=True, exist_ok=True)
 
         batch_size = getattr(config, "batch_size", None)
         provider_config = getattr(config, "provider", None)
@@ -202,8 +145,14 @@ def infer(config: DictConfig):
             provider_params = dict(raw_params)
 
         provider_params["input_key"] = input_key
+        provider_params["idx_key"] = idx_key
+        provider_params["output_keys"] = output_keys
         if output_fn_path:
             provider_params["output_fn_path"] = output_fn_path
+        artifact_configs = getattr(config, "output_artifacts", {}) or {}
+        if OmegaConf.is_config(artifact_configs):
+            artifact_configs = OmegaConf.to_container(artifact_configs, resolve=True)
+        provider_params["output_artifacts"] = artifact_configs
 
         provider = instantiate(
             provider_config,
@@ -219,11 +168,11 @@ def infer(config: DictConfig):
 
         runner_kwargs = {
             "provider": provider,
-            "async_mode": False,
             "idx_key": idx_key,
             "hyp_key": hyp_keys,
             "ref_key": [],
             "batch_size": batch_size,
+            "output_dir": output_dir,
         }
         runner = instantiate(runner_config, **runner_kwargs)
         if not hasattr(runner, "idx_key"):
@@ -238,51 +187,17 @@ def infer(config: DictConfig):
                 "Please check the dataset manifest and preprocessing outputs."
             )
         logger.info("===> Processing %d samples..", dataset_length)
-        out = runner(list(range(dataset_length)))
-        if out is None:
-            raise RuntimeError("Async inference is not supported in this entrypoint.")
-        # Runner can return nested lists. normalize to flat list.
-        results = _flatten_results(out)
-        if not results:
-            raise RuntimeError("No inference results available.")
-        first = results[0]
-        resolved_idx_key = runner.resolve_idx_key(first)
-        if output_keys is None:
-            output_keys = [key for key in first.keys() if key != resolved_idx_key]
-            if not output_keys:
-                raise RuntimeError("No output keys found in inference results.")
-
-        output_dir = Path(config.inference_dir) / test_name
-        output_dir.mkdir(parents=True, exist_ok=True)
-        artifact_configs = getattr(config, "output_artifacts", {}) or {}
-        if OmegaConf.is_config(artifact_configs):
-            artifact_configs = OmegaConf.to_container(artifact_configs, resolve=True)
-
-        for result in results:
-            idx_value = result[resolved_idx_key]
-            for key, value in list(result.items()):
-                if key == resolved_idx_key:
-                    continue
-                result[key] = _materialize_output_value(
-                    idx_value=idx_value,
-                    field_key=key,
-                    value=value,
-                    output_dir=output_dir,
-                    artifact_config=artifact_configs.get(key),
-                )
-
-        # Convert output dicts into per-key SCP lines (utt_id + value).
-        scp_lines = _collect_scp_lines(
-            results,
-            idx_key=resolved_idx_key,
-            hyp_keys=output_keys,
-            ref_keys=[],
-        )
-
-        # create scp files
-        for key, lines in scp_lines.items():
-            with open(output_dir / f"{key}.scp", "w", encoding="utf-8") as f:
-                f.write("\n".join(lines))
+        result = runner(list(range(dataset_length)))
+        if result is None:
+            raise RuntimeError(
+                "Inference runner did not produce shard outputs. "
+                "Use a runner that writes outputs via BaseRunner hooks."
+            )
+        if isinstance(result, list):
+            raise RuntimeError(
+                "In-memory inference results are not supported. "
+                "Use a runner that writes shard outputs via BaseRunner hooks."
+            )
         logger.info(
             "Finished test set %s | outputs=%s",
             test_name,
