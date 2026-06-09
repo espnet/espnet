@@ -50,7 +50,6 @@ class VersaMetric(BaseMetric):
         logger.info("Wrote inline VERSA metric list to %s", out)
         return out
 
-
     def __call__(
         self,
         data: Dict[str, Path],
