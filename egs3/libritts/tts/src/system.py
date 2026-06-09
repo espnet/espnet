@@ -53,7 +53,7 @@ class TTSSystem(BaseSystem):
         |---                   |---                              |
         | compute_xvectors     | training_config.xvector.save_path |
         | remove_long_short    | training_config.remove_long_short.save_path |
-        | create_token_list    | training_config.token_list.save_path |
+        | create_token_list    | training_config.create_token_list.save_path |
     """
 
     def __init__(
@@ -71,7 +71,7 @@ class TTSSystem(BaseSystem):
             stage_log_mapping={
                 "compute_xvectors": "training_config.xvector.save_path",
                 "remove_long_short": "training_config.remove_long_short.save_path",
-                "create_token_list": "training_config.token_list.save_path",
+                "create_token_list": "training_config.create_token_list.save_path",
             },
             **kwargs,
         )
@@ -320,8 +320,8 @@ class TTSSystem(BaseSystem):
         This stage processes the training manifest to extract unique tokens from the text transcriptions and saves them to a token list file.
 
         Configuration should include:
-            training_config.token_list.save_path: Path to save the token list file
-            training_config.token_list.manifest_path: Path to the training manifest file (default: data/manifest/train.tsv)
+            training_config.create_token_list.save_path: Path to save the token list file
+            training_config.create_token_list.manifest_path: Path to the training manifest file (default: data/manifest/train.tsv)
 
         Raises:
             RuntimeError: If required configuration is missing or manifest file not found.
@@ -329,20 +329,20 @@ class TTSSystem(BaseSystem):
         self._reject_stage_args("create_token_list", args, kwargs)
         logger.info("TTSSystem.create_token_list(): starting token list creation")
 
-        tl_cfg = self.training_config.get("token_list", None)
+        tl_cfg = self.training_config.get("create_token_list", None)
         if tl_cfg is None:
             raise RuntimeError(
-                "training_config.token_list must be set for create_token_list stage."
+                "training_config.create_token_list must be set for create_token_list stage."
             )
         save_path_str = tl_cfg.get("save_path", None)
         if save_path_str is None:
             raise RuntimeError(
-                "training_config.token_list.save_path must be set for create_token_list stage."
+                "training_config.create_token_list.save_path must be set for create_token_list stage."
             )
         filename = tl_cfg.get("filename", None)
         if filename is None:
             raise RuntimeError(
-                "training_config.token_list.filename must be set "
+                "training_config.create_token_list.filename must be set "
                 "(e.g. 'tokens.txt'); save_path is the output directory."
             )
         save_dir = Path(save_path_str)
