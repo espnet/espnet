@@ -37,7 +37,7 @@ class MultiLayerPITSolver(AbsLossWrapper):
         self.solver = PITSolver(criterion, weight, independent_perm)
         self.layer_weights = layer_weights
 
-    def forward(self, ref, infs, others={}):
+    def forward(self, ref, infs, others=None):
         """Permutation invariant training solver.
 
         Args:
@@ -50,6 +50,8 @@ class MultiLayerPITSolver(AbsLossWrapper):
             stats: dict, for collecting training status
             others: dict, in this PIT solver, permutation order will be returned
         """
+        if others is None:
+            others = {}
         losses = 0.0
         # In single-layer case, the model only estimates waveforms in the last layer.
         # The shape of infs is List[torch.Tensor]
