@@ -73,10 +73,12 @@ class LibriTTSDataset(TorchDataset):
         load_speech: bool = True,
         load_xvector: bool = True,
         xvector_dir: str | Path | None = None,
+        inference: bool = False,
     ) -> None:
         self.split = split
         self.load_speech = load_speech
         self.load_xvector = load_xvector
+        self.inference = inference
         recipe_root = (
             Path(recipe_dir).resolve()
             if recipe_dir is not None
@@ -131,9 +133,6 @@ class LibriTTSDataset(TorchDataset):
         entry = self._entries[int(idx)]
         # utt_id, wav_path, and raw_text are included for inference purposes only.
         sample: dict[str, Any] = {
-            "utt_id": np.asarray(entry.utt_id, dtype=np.str_),
-            "wav_path": str(entry.wav_path),
-            "raw_text": entry.text,
             "text": entry.text,
         }
         if self.load_speech:
@@ -147,4 +146,12 @@ class LibriTTSDataset(TorchDataset):
             if isinstance(spembs, torch.Tensor):
                 spembs = spembs.numpy()
             sample["spembs"] = np.asarray(spembs, dtype=np.float32).squeeze()
+        if self.inference:
+            # For inference, we additionally return utt_id, raw_text, and wav_path for metrics calculation.
+            metadata = {
+                "utt_id": np.asarray(entry.utt_id),
+                "wav_path": str(entry.wav_path),
+                "raw_text": entry.text,
+            }
+            sample.update(metadata)
         return sample

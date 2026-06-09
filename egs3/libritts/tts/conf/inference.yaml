@@ -15,12 +15,14 @@ dataset:
         manifest_path: ${data_dir}/manifests_filtered/valid.tsv
         xvector_dir: ${xvector.save_path}/${xvector.spk_embed_tag}_valid
         load_speech: true
+        inference: true
     - name: test
       data_src_args:
         split: test
         manifest_path: ${data_dir}/manifests_filtered/test.tsv
         xvector_dir: ${xvector.save_path}/${xvector.spk_embed_tag}_test
         load_speech: true
+        inference: true
 
 xvector:
   save_path: ${data_dir}/x_vectors
