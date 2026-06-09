@@ -1,0 +1,39 @@
+builder:
+  hf_dataset: inesc-id/FalAR
+  prepare_state_path: download/falar_prepare_state.json
+  cache_dir: download/hf_cache
+  artifact_root: data/falar_arkive
+  build_state_path: data/falar_arkive/build_state.json
+  manifest_filename: manifest.jsonl
+  audio_basename: audio
+  target_format: wav
+
+dataset:
+  audio_column: wav
+  text_column: transcription
+  id_column: ID
+  language_prefix: <por>
+  task_prefix: <asr>
+  notimestamps_symbol: <notimestamps>
+  dev_split: dev
+  test_split: test
+  train_shards:
+    - train_0
+    - train_1
+    - train_2
+    - train_3
+    - train_4
+    - train_5
+    - train_6
+    - train_7
+    - train_8
+    - train_9
+    - train_10
+    - train_11
+    - train_12
+    - train_13
+    - train_14
+    - train_15
+  split_aliases:
+    valid: dev
+    validation: dev

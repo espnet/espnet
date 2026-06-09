@@ -1,0 +1,69 @@
+dataset_ratio: 1.0
+hf_cache_dir:
+
+create_dataset:
+  recipe_dir: .
+  cache_dir: ${hf_cache_dir}
+
+dataset:
+  train:
+    - data_src_args:
+        artifact_dir: ${recipe_dir}/data/falar_arkive
+        split: train
+        ratio: ${dataset_ratio}
+        cache_dir: ${hf_cache_dir}
+  valid:
+    - data_src_args:
+        artifact_dir: ${recipe_dir}/data/falar_arkive
+        split: valid
+        ratio: ${dataset_ratio}
+        cache_dir: ${hf_cache_dir}
+  test:
+    - name: valid
+      data_src_args:
+        artifact_dir: ${recipe_dir}/data/falar_arkive
+        split: valid
+        cache_dir: ${hf_cache_dir}
+    - name: test
+      data_src_args:
+        artifact_dir: ${recipe_dir}/data/falar_arkive
+        split: test
+        cache_dir: ${hf_cache_dir}
+
+lr: 5e-6
+exp_tag: whisper_full_finetune
+
+optimizer:
+  _target_: torch.optim.AdamW
+  lr: ${lr}
+
+dataloader:
+  collate_fn:
+    _target_: espnet2.train.collate_fn.CommonCollateFn
+    int_pad_value: 50257
+  train:
+    iter_factory:
+    batch_size: 2
+    num_workers: 2
+    shuffle: true
+    pin_memory: true
+    prefetch_factor: 2
+  valid:
+    iter_factory:
+    batch_size: 2
+    num_workers: 2
+    shuffle: false
+    pin_memory: true
+    prefetch_factor: 2
+
+scheduler:
+  _target_: espnet2.schedulers.warmup_lr.WarmupLR
+  warmup_steps: 4000
+
+model:
+  _target_: src.peft_model.WhisperFinetune
+  model_tag: openai/whisper-large-v3
+  peft:
+
+trainer:
+  max_epochs: 1

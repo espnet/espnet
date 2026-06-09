@@ -60,14 +60,15 @@ def test_validate_output_rejects_non_dict_and_idx_list():
         runner._validate_output({"utt_id": [1], "hyp": "h", "ref": "r"})
 
 
-def test_call_async_returns_raw(monkeypatch):
+def test_call_rejects_non_dict_result(monkeypatch):
     def fake_base_call(self, indices):
         return ["raw"]
 
     monkeypatch.setattr(BaseRunner, "__call__", fake_base_call)
-    runner = DummyRunner(DummyProvider(), async_mode=True)
+    runner = DummyRunner(DummyProvider())
 
-    assert runner([0]) == ["raw"]
+    with pytest.raises(TypeError, match="Expected dict output"):
+        runner([0])
 
 
 def test_call_flattens_and_validates(monkeypatch):
@@ -157,6 +158,38 @@ def test_forward_single_returns_model_output_without_output_fn():
         0, dataset=dataset, model=model, input_key="speech"
     )
     assert result == {"result": 1.0}
+
+
+def test_forward_single_passes_model_kwargs_to_model():
+    dataset = [{"speech": 1.0}]
+
+    def model(speech, beam_size):
+        return {"result": f"{speech}:{beam_size}"}
+
+    result = InferenceRunner.forward(
+        0,
+        dataset=dataset,
+        model=model,
+        input_key="speech",
+        model_kwargs={"beam_size": 2},
+    )
+    assert result == {"result": "1.0:2"}
+
+
+def test_forward_batched_passes_model_kwargs_to_model():
+    dataset = [{"speech": 1.0}, {"speech": 2.0}]
+
+    def model(speech, beam_size):
+        return {"result": f"{speech}:{beam_size}"}
+
+    result = InferenceRunner.forward(
+        [0, 1],
+        dataset=dataset,
+        model=model,
+        input_key="speech",
+        model_kwargs={"beam_size": 4},
+    )
+    assert result == {"result": "[1.0, 2.0]:4"}
 
 
 def test_forward_batched_wraps_model_exception_in_runtime_error():

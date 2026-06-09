@@ -1,0 +1,38 @@
+##########################################################
+#                      DEMO SETTING                      #
+##########################################################
+# Quick usage:
+#   python run.py --stages pack_demo   --demo_config conf/demo.yaml
+#   python run.py --stages upload_demo --demo_config conf/demo.yaml
+#
+# Assumptions:
+# - `pack_model` has already created the model pack referenced by
+#   `model.dir_or_tag`, or that field points to a Hugging Face model repo.
+# - `ui.app_script` points to the Gradio launcher copied into the packed demo.
+
+##########################################################
+#                    MODEL REFERENCE                     #
+##########################################################
+# `dir_or_tag` can point to:
+# - a local packed model directory created by `pack_model`
+# - a Hugging Face model repo tag usable by `InferenceModel.from_pretrained()`
+# Relative local paths are resolved from the packed demo directory at runtime.
+model:
+  dir_or_tag: exp/training_asr_transformer/model_pack
+  trust_user_code: true
+
+##########################################################
+#                        UI SETTING                      #
+##########################################################
+# Recipe-local app script copied to `<demo_dir>/app.py` during `pack_demo`.
+ui:
+  app_script: src/app.py
+
+##########################################################
+#                   UPLOAD DEMO SETTING                  #
+##########################################################
+# `upload_demo` uploads the packed demo directory to a Hugging Face Space by
+# default.
+upload_demo:
+  hf_repo: ms180/minian4_asr_integration_test
+  # organization: your-org

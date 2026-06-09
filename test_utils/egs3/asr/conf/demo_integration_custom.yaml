@@ -1,0 +1,9 @@
+model:
+  dir_or_tag: exp/demo_test_model_pack
+  trust_user_code: true
+
+ui:
+  app_script: test_utils/egs3/asr/src/app_image.py
+
+pack:
+  out_dir: exp/demo_ui_custom
