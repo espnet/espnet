@@ -27,6 +27,23 @@ class EnvironmentProvider(ABC):
           that are safe to share within a worker process.
         - For distributed runs, heavy initialization should be done inside
           the worker setup function so each worker constructs its own copy.
+
+    Example:
+        >>> from omegaconf import OmegaConf
+        >>> class MyProvider(EnvironmentProvider):
+        ...     def build_env_local(self):
+        ...         return {"dataset": build_dataset(self.config),
+        ...                 "model": build_model(self.config)}
+        ...     def build_worker_setup_fn(self):
+        ...         config = self.config
+        ...         def setup():
+        ...             return {"dataset": build_dataset(config),
+        ...                     "model": build_model(config)}
+        ...         return setup
+        >>> provider = MyProvider(OmegaConf.create({"mode": "test"}))
+        >>> env = provider.build_env_local()
+        >>> print(list(env.keys()))
+        ['dataset', 'model']
     """
 
     # TODO(Masao) Add detailed description on Runner/Provider in the document.
