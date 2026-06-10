@@ -66,7 +66,7 @@ class VersaMetric(BaseMetric):
                 f"VersaMetric requires '{self.ref_key}' input. "
                 f"Got: {list(data.keys())}"
             )
-        if self.text_key in data:
+        if self.text_key not in data:
             raise KeyError(
                 f"VersaMetric requires '{self.text_key}' input. "
                 f"Got: {list(data.keys())}"
@@ -113,7 +113,55 @@ class VersaMetric(BaseMetric):
             avg_path,
             len(averages),
         )
+        self.summarize(averages, test_name)
         return averages
+
+    @staticmethod
+    def summarize(scores: Dict[str, float], test_name: str = "") -> None:
+        """Log a formatted summary of VERSA scores."""
+        header = f"VERSA scores — {test_name}" if test_name else "VERSA scores"
+
+        # Detect prefixes for WER/CER component groups (e.g. espnet_wer_, whisper_wer_)
+        def _find_prefix(metric: str) -> str | None:
+            """Return '<prefix>_<metric>_' if all four ops are present, else None."""
+            for k in scores:
+                if k.endswith(f"_{metric}_delete"):
+                    prefix = k[: -(len(metric) + 8)]  # strip '_<metric>_delete'
+                    ops = [f"{prefix}_{metric}_{op}" for op in ("delete", "insert", "replace", "equal")]
+                    if all(op in scores for op in ops):
+                        return f"{prefix}_{metric}_"
+            return None
+
+        wer_prefix = _find_prefix("wer")
+        cer_prefix = _find_prefix("cer")
+        wer_keys = [k for k in scores if wer_prefix and k.startswith(wer_prefix)]
+        cer_keys = [k for k in scores if cer_prefix and k.startswith(cer_prefix)]
+        main_keys = [k for k in scores if k not in wer_keys and k not in cer_keys]
+
+        lines = [header, "-" * 40]
+        for k in main_keys:
+            lines.append(f"  {k:<25s} {scores[k]:.4f}")
+
+        if wer_keys and wer_prefix:
+            lines.append(f"  WER components (%) [{wer_prefix.rstrip('_')}]:")
+            for k in wer_keys:
+                lines.append(f"    {k.removeprefix(wer_prefix):<21s} {scores[k]:.1f}")
+            total = sum(scores[f"{wer_prefix}{op}"] for op in ("delete", "insert", "replace", "equal"))
+            err = total - scores.get(f"{wer_prefix}equal", 0.0)
+            if total > 0:
+                lines.append(f"    {'WER':<21s} {err / total * 100:.2f}%")
+
+        if cer_keys and cer_prefix:
+            lines.append(f"  CER components (%) [{cer_prefix.rstrip('_')}]:")
+            for k in cer_keys:
+                lines.append(f"    {k.removeprefix(cer_prefix):<21s} {scores[k]:.1f}")
+            total = sum(scores[f"{cer_prefix}{op}"] for op in ("delete", "insert", "replace", "equal"))
+            err = total - scores.get(f"{cer_prefix}equal", 0.0)
+            if total > 0:
+                lines.append(f"    {'CER':<21s} {err / total * 100:.2f}%")
+
+        lines.append("-" * 40)
+        logger.info("\n".join(lines))
 
     @staticmethod
     def _aggregate(result_file: Path) -> Dict[str, float]:
