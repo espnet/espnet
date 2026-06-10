@@ -1,0 +1,17 @@
+# SLURM logs
+slurm_*.log
+*.log
+
+# Generated data directories
+data/
+dump/
+exp/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Temporary files
+*.swp
+*.tmp
