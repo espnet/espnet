@@ -75,6 +75,7 @@ SLURP_S= # Output file path
 LIBRITRANS_S= # Output file path
 VOICES=downloads
 MAGICDATA=downloads
+MAGICDATA_RAMC=downloads
 MEDIASPEECH=downloads
 MINI_LIBRISPEECH=downloads
 MISP2021=
