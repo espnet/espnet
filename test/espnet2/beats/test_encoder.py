@@ -2,7 +2,7 @@ import pytest
 import torch
 from packaging.version import parse as V
 
-from espnet2.asr.encoder.beats_encoder import (
+from espnet2.beats.encoder import (
     BeatsEncoder,
     BeatsPretrainingPredictor,
     MultiheadAttention,

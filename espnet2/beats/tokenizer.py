@@ -22,14 +22,14 @@ import torch.nn.functional as F
 from torch.cuda.amp import autocast
 from torch.nn import LayerNorm
 
-from espnet2.asr.encoder.beats_encoder import (
+from espnet2.beats.encoder import (
     BeatsConfig,
     BeatsEncoder,
     TransformerSentenceEncoderLayer,
     init_bert_params,
 )
-from espnet2.legacy.nets.pytorch_backend.nets_utils import make_pad_mask
-from espnet2.speechlm.tokenizer.beats_utils import (
+from espnet2.beats.random_tokenizer import RandomProjectionQuantizer
+from espnet2.beats.utils import (
     beats_frontend,
     ema_inplace,
     forward_padding_mask_conv,
@@ -38,7 +38,7 @@ from espnet2.speechlm.tokenizer.beats_utils import (
     l2norm,
     norm_ema_inplace,
 )
-from espnet2.speechlm.tokenizer.random_tokenizer import RandomProjectionQuantizer
+from espnet2.legacy.nets.pytorch_backend.nets_utils import make_pad_mask
 
 
 class BeatsTokenizerConfig(BeatsConfig):

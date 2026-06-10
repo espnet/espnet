@@ -38,11 +38,12 @@ except ImportError:
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.specaug.specaug import SpecAug
-from espnet2.legacy.nets.pytorch_backend.nets_utils import make_pad_mask, roll_tensor
-from espnet2.speechlm.tokenizer.beats_utils import (
+from espnet2.beats.utils import (
     forward_padding_mask_conv,
     freeze_conv_module,
 )
+from espnet2.legacy.nets.pytorch_backend.nets_utils import make_pad_mask, roll_tensor
+
 
 class BeatsConfig:
     def __init__(self, cfg=None):
