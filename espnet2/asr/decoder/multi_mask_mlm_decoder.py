@@ -2,12 +2,14 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 """Masked LM Decoder definition."""
+
 from typing import Tuple
 
 import torch
 from typeguard import typechecked
 
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
+from espnet2.asr.decoder.mlm_decoder import MLMDecoder
 from espnet2.legacy.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet2.legacy.nets.pytorch_backend.transformer.attention import (
     MultiHeadedAttention,
@@ -19,7 +21,7 @@ from espnet2.legacy.nets.pytorch_backend.transformer.positionwise_feed_forward i
     PositionwiseFeedForward,
 )
 from espnet2.legacy.nets.pytorch_backend.transformer.repeat import repeat
-from espnet2.asr.decoder.mlm_decoder import MLMDecoder
+
 
 class MultiMaskMLMDecoder(AbsDecoder):
     @typechecked
@@ -73,7 +75,8 @@ class MultiMaskMLMDecoder(AbsDecoder):
             lambda lnum: DecoderLayer(
                 attention_dim,
                 MultiHeadedAttention(
-                    attention_heads, attention_dim,
+                    attention_heads,
+                    attention_dim,
                     self_attention_dropout_rate,
                     False,  # qk_norm
                     False,  # use_flash_attn
@@ -81,7 +84,9 @@ class MultiMaskMLMDecoder(AbsDecoder):
                     False,  # cross_attn
                 ),
                 MultiHeadedAttention(
-                    attention_heads, attention_dim, src_attention_dropout_rate,
+                    attention_heads,
+                    attention_dim,
+                    src_attention_dropout_rate,
                     False,  # qk_norm
                     False,  # use_flash_attn
                     False,  # causal
@@ -134,33 +139,43 @@ class MultiMaskMLMDecoder(AbsDecoder):
         x = self.embed(tgt)
         if num_hypotheses > 1:
             b, l, d = x.shape
-            x = x.reshape(-1, num_hypotheses*l, d)
-            #breakpoint()
+            x = x.reshape(-1, num_hypotheses * l, d)
+            # breakpoint()
             if tgt_mask.size(0) == num_hypotheses:
-                tgt_mask = tgt_mask.transpose(0,1).unsqueeze(-2).repeat(
-                    1,  # batch
-                    1,  # num_hypotheses
-                    1,  # tgt_len
-                    num_hypotheses,
-                    1  # src_len
-                    ).reshape(
+                tgt_mask = (
+                    tgt_mask.transpose(0, 1)
+                    .unsqueeze(-2)
+                    .repeat(
+                        1,  # batch
+                        1,  # num_hypotheses
+                        1,  # tgt_len
+                        num_hypotheses,
+                        1,  # src_len
+                    )
+                    .reshape(
                         -1,  # batch
-                        num_hypotheses*l,  # tgt_len
-                        num_hypotheses*l,  # src_len
-                        )
-                
+                        num_hypotheses * l,  # tgt_len
+                        num_hypotheses * l,  # src_len
+                    )
+                )
+
             else:
-                tgt_mask = tgt_mask.unsqueeze(1).unsqueeze(-2).repeat(
-                    1,  # batch
-                    num_hypotheses,
-                    1,  # tgt_len
-                    num_hypotheses,
-                    1  # src_len
-                    ).reshape(
+                tgt_mask = (
+                    tgt_mask.unsqueeze(1)
+                    .unsqueeze(-2)
+                    .repeat(
+                        1,  # batch
+                        num_hypotheses,
+                        1,  # tgt_len
+                        num_hypotheses,
+                        1,  # src_len
+                    )
+                    .reshape(
                         -1,  # batch
-                        num_hypotheses*l,  # tgt_len
-                        num_hypotheses*l,  # src_len
-                        )
+                        num_hypotheses * l,  # tgt_len
+                        num_hypotheses * l,  # src_len
+                    )
+                )
         x, tgt_mask, memory, memory_mask = self.decoders(
             x, tgt_mask, memory, memory_mask
         )

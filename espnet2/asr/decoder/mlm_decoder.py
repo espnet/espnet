@@ -2,6 +2,7 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 """Masked LM Decoder definition."""
+
 from typing import Any, List, Sequence, Tuple
 
 import torch
@@ -19,6 +20,7 @@ from espnet2.legacy.nets.pytorch_backend.transformer.positionwise_feed_forward i
     PositionwiseFeedForward,
 )
 from espnet2.legacy.nets.pytorch_backend.transformer.repeat import repeat
+
 
 class MLMDecoder(AbsDecoder):
     @typechecked
@@ -74,7 +76,8 @@ class MLMDecoder(AbsDecoder):
             lambda lnum: DecoderLayer(
                 attention_dim,
                 MultiHeadedAttention(
-                    attention_heads, attention_dim,
+                    attention_heads,
+                    attention_dim,
                     self_attention_dropout_rate,
                     False,  # qk_norm
                     use_flash_attn,
@@ -82,7 +85,8 @@ class MLMDecoder(AbsDecoder):
                     False,  # cross_attn
                 ),
                 MultiHeadedAttention(
-                    attention_heads, attention_dim,
+                    attention_heads,
+                    attention_dim,
                     src_attention_dropout_rate,
                     False,  # qk_norm
                     use_flash_attn,
@@ -119,12 +123,12 @@ class MLMDecoder(AbsDecoder):
                 if use_output_layer is True,
             olens: (batch, )
         """
-        #breakpoint()
+        # breakpoint()
         tgt = ys_in_pad
         memory = hs_pad
         tgt_mask = None
         # Create masks
-        if  memory is None or memory.size(0) == 1:
+        if memory is None or memory.size(0) == 1:
             memory_mask = None
         else:
             # tgt_mask: (B, 1, L)
@@ -133,18 +137,22 @@ class MLMDecoder(AbsDecoder):
             # # tgt_mask_tmp: (B, L, L)
             # tgt_mask_tmp = tgt_mask.transpose(1, 2).repeat(1, 1, tgt_max_len)
             # tgt_mask = tgt_mask.repeat(1, tgt_max_len, 1) & tgt_mask_tmp
-            memory_mask = (~make_pad_mask(hlens))[:, None, :]#.to(memory.device)
-        #breakpoint()
-        
+            memory_mask = (~make_pad_mask(hlens))[:, None, :]  # .to(memory.device)
+        # breakpoint()
+
         x = self.embed(tgt)
         x, tgt_mask, memory, memory_mask = self.decoders(
             x, tgt_mask, memory, memory_mask
         )
-        
+
         if self.normalize_before:
             x = self.after_norm(x)
         if self.output_layer is not None:
             x = self.output_layer(x)
 
-        olens = tgt_mask.sum(1) if tgt_mask is not None else torch.LongTensor([x.size(1)]).to(x.device)
+        olens = (
+            tgt_mask.sum(1)
+            if tgt_mask is not None
+            else torch.LongTensor([x.size(1)]).to(x.device)
+        )
         return x, olens

@@ -82,10 +82,10 @@ class CTC(torch.nn.Module):
             th_pred = th_pred.transpose(0, 1)
             # (B, L) -> (BxL,)
             th_target = torch.cat([th_target[i, :l] for i, l in enumerate(th_olen)])
-        
+
         if self.ctc_type == "builtin" or self.ctc_type == "brctc":
             th_pred = th_pred.log_softmax(2).float()
-            
+
             loss = self.ctc_loss(th_pred, th_target, th_ilen, th_olen)
             if self.ctc_type == "builtin":
                 size = th_pred.size(1)
@@ -174,7 +174,7 @@ class CTC(torch.nn.Module):
         # hs_pad: (B, L, NProj) -> ys_hat: (B, L, Nvocab)
         ys_hat = self.ctc_lo(F.dropout(hs_pad, p=self.dropout_rate))
         self.intermediate_outs.append({"ctc": ys_hat})
-        
+
         return ys_hat
 
     def softmax(self, hs_pad):
@@ -236,6 +236,6 @@ class CTC(torch.nn.Module):
             log_probs, ys_pad, hlens, ys_lens, blank=blank_idx
         )
         return align_label, align_prob
-    
+
     def reset_intermediate_outs(self):
-        self.intermediate_outs=[]
+        self.intermediate_outs = []

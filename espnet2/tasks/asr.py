@@ -7,18 +7,16 @@ import torch
 from typeguard import typechecked
 
 from espnet2.asr.ctc import CTC
-from espnet2.asr.mask_ctc import MaskCTC
-
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
 from espnet2.asr.decoder.hugging_face_transformers_decoder import (  # noqa: H301
     HuggingFaceTransformersDecoder,
 )
+from espnet2.asr.decoder.identity_decoder import IdentityDecoder
 from espnet2.asr.decoder.linear_decoder import LinearDecoder
 from espnet2.asr.decoder.mlm_decoder import MLMDecoder
 from espnet2.asr.decoder.multi_mask_mlm_decoder import MultiMaskMLMDecoder
 from espnet2.asr.decoder.rnn_decoder import RNNDecoder
 from espnet2.asr.decoder.s4_decoder import S4Decoder
-from espnet2.asr.decoder.identity_decoder import IdentityDecoder
 from espnet2.asr.decoder.transducer_decoder import TransducerDecoder
 from espnet2.asr.decoder.transformer_decoder import (
     DynamicConvolution2DTransformerDecoder,
@@ -65,9 +63,10 @@ from espnet2.asr.frontend.huggingface import HuggingFaceFrontend
 from espnet2.asr.frontend.s3prl import S3prlFrontend
 from espnet2.asr.frontend.whisper import WhisperFrontend
 from espnet2.asr.frontend.windowing import SlidingWindow
+from espnet2.asr.inter_maskctc_model import InterMaskCTCModel
+from espnet2.asr.mask_ctc import MaskCTC
 from espnet2.asr.maskctc_model import MaskCTCModel
 from espnet2.asr.multi_maskctc_model import MultiMaskCTCModel
-from espnet2.asr.inter_maskctc_model import InterMaskCTCModel
 from espnet2.asr.pit_espnet_model import ESPnetASRModel as PITESPnetModel
 from espnet2.asr.postencoder.abs_postencoder import AbsPostEncoder
 from espnet2.asr.postencoder.hugging_face_transformers_postencoder import (
@@ -225,12 +224,10 @@ preprocessor_choices = ClassChoices(
 )
 ctc_choices = ClassChoices(
     "ctc",
-    classes=dict(
-        ctc=CTC,
-        maskctc=MaskCTC
-    ),
+    classes=dict(ctc=CTC, maskctc=MaskCTC),
     default="ctc",
 )
+
 
 class ASRTask(AbsTask):
     # If you need more than one optimizers, change this value
@@ -628,7 +625,7 @@ class ASRTask(AbsTask):
                 )
             else:
                 decoder = decoder_class(
-                    vocab_size=vocab_size +1 if args.decoder == "mlm" else vocab_size,
+                    vocab_size=vocab_size + 1 if args.decoder == "mlm" else vocab_size,
                     encoder_output_size=encoder_output_size,
                     **args.decoder_conf,
                 )
@@ -639,9 +636,9 @@ class ASRTask(AbsTask):
 
         # 6. CTC
         ctc_class = ctc_choices.get_class(args.ctc)
-        ctc = ctc_class(odim=vocab_size, 
-                        encoder_output_size=encoder_output_size,
-                        **args.ctc_conf)
+        ctc = ctc_class(
+            odim=vocab_size, encoder_output_size=encoder_output_size, **args.ctc_conf
+        )
 
         # 7. Build model
         try:

@@ -156,7 +156,11 @@ class MaskCTCModel(ESPnetASRModel):
         # 2a. Intermediate CTC (optional)
         loss_interctc = 0.0
         if self.interctc_weight != 0.0 and intermediate_outs is not None:
-            text_cpu = text.cpu() if (not self.training and self.error_calculator is not None) else None
+            text_cpu = (
+                text.cpu()
+                if (not self.training and self.error_calculator is not None)
+                else None
+            )
             for layer_idx, intermediate_out in intermediate_outs:
                 # we assume intermediate_out has the same length & padding
                 # as those of encoder_out
@@ -293,7 +297,9 @@ class MaskCTCInference(torch.nn.Module):
         # calculate token-level ctc probabilities by taking
         # the maximum probability of consecutive frames with
         # the same ctc symbols
-        probs_hat = torch.empty(y_hat.size(0), dtype=ctc_probs_0.dtype, device=enc_out.device)
+        probs_hat = torch.empty(
+            y_hat.size(0), dtype=ctc_probs_0.dtype, device=enc_out.device
+        )
         cnt = 0
         for i, y in enumerate(y_hat.tolist()):
             max_prob = -1.0

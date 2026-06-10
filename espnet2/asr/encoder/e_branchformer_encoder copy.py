@@ -107,12 +107,7 @@ class EBranchformerEncoderLayer(torch.nn.Module):
         )
         self.merge_proj = torch.nn.Linear(size + size, size)
 
-    def forward(
-            self,
-            x_input,
-            mask,
-            cache=None
-    ):
+    def forward(self, x_input, mask, cache=None):
         """Compute encoded features.
 
         Args:
@@ -354,7 +349,7 @@ class EBranchformerEncoder(AbsEncoder):
             logging.warning("no macaron ffn")
         else:
             raise ValueError("Support only linear.")
-        
+
         if attention_layer_type == "selfattn":
             # Default to flash attention unless overrided by user
             if use_flash_attn:
@@ -442,10 +437,10 @@ class EBranchformerEncoder(AbsEncoder):
 
         if interctc_layer_idx is None:
             interctc_layer_idx = []
-        
+
         if len(interctc_layer_idx) > 0:
             assert 0 < min(interctc_layer_idx) and max(interctc_layer_idx) < num_blocks
-        
+
         self.interctc_layer_idx = set(interctc_layer_idx)
         self.interctc_use_conditioning = interctc_use_conditioning
         self.conditioning_layer = None
@@ -462,7 +457,7 @@ class EBranchformerEncoder(AbsEncoder):
         self,
         xs_pad: torch.Tensor,
         ilens: torch.Tensor,
-        prompt: torch.Tensor=None,
+        prompt: torch.Tensor = None,
         prev_states: torch.Tensor = None,
         masks: torch.Tensor = None,
         ctc: CTC = None,
@@ -522,15 +517,15 @@ class EBranchformerEncoder(AbsEncoder):
             else:
                 xs_pad = self.embed(xs_pad)
         olens = masks.squeeze(1).sum(1)
-        
+
         if prompt is not None:
-            #breakpoint()
-            if isinstance(xs_pad,tuple):
-                xs_pad[0] = torch.cat([prompt, xs_pad[0]],dim=1)
+            # breakpoint()
+            if isinstance(xs_pad, tuple):
+                xs_pad[0] = torch.cat([prompt, xs_pad[0]], dim=1)
             else:
-                xs_pad = torch.cat([prompt, xs_pad],dim=1)
+                xs_pad = torch.cat([prompt, xs_pad], dim=1)
             olens += 1
-        
+
         intermediate_outs = []
         for layer_idx, encoder_layer in enumerate(self.encoders):
             if max_layer is not None and layer_idx >= max_layer:
@@ -560,17 +555,21 @@ class EBranchformerEncoder(AbsEncoder):
                 if isinstance(encoder_out, tuple):
                     encoder_out = encoder_out[0]
 
-                #intermediate_outs.append((layer_idx + 1, encoder_out))
+                # intermediate_outs.append((layer_idx + 1, encoder_out))
                 if ctc is not None:
                     ctc_out = ctc(encoder_out, olens, text, text_lengths)
                 if self.interctc_use_conditioning:
                     if isinstance(xs_pad, tuple):
                         xs_pad = list(xs_pad)
-                        xs_pad[0] = xs_pad[0] + self.conditioning_layer(torch.softmax(ctc_out, dim=-1))
+                        xs_pad[0] = xs_pad[0] + self.conditioning_layer(
+                            torch.softmax(ctc_out, dim=-1)
+                        )
                         xs_pad = tuple(xs_pad)
                     else:
-                        xs_pad = xs_pad + self.conditioning_layer(torch.softmax(ctc_out, dim=-1))
-        
+                        xs_pad = xs_pad + self.conditioning_layer(
+                            torch.softmax(ctc_out, dim=-1)
+                        )
+
         if isinstance(xs_pad, tuple):
             xs_pad = xs_pad[0]
 

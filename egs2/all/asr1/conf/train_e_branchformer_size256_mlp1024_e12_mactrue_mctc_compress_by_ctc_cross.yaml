@@ -23,7 +23,7 @@ encoder_conf:
     merge_conv_kernel: 31
     interctc_use_conditioning: true
     interctc_layer_idx: [4, 6, 8, 10]
-    
+
 
 model: inter_maskctc
 model_conf:

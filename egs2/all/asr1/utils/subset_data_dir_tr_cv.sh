@@ -61,4 +61,3 @@ overlap=$(join <(sort $tmp/speakers_trn) <(sort $tmp/speakers_cv) | wc -l)
 # Create new data dirs,
 utils/data/subset_data_dir.sh --spk-list $tmp/speakers_trn $src_data $trn_data
 utils/data/subset_data_dir.sh --spk-list $tmp/speakers_cv $src_data $cv_data
-

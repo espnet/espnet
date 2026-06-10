@@ -121,7 +121,9 @@ class InterMaskCTCModel(ESPnetASRModel):
 
         if "ctc" in pred:
             ctc_logits = pred["ctc"]
-            loss_ctc = self.ctc.loss_fn(ctc_logits, ys_pad, encoder_out_lens, ys_pad_lens)
+            loss_ctc = self.ctc.loss_fn(
+                ctc_logits, ys_pad, encoder_out_lens, ys_pad_lens
+            )
             if ys_pad_cpu is not None and self.error_calculator is not None:
                 cer_ctc = self.error_calculator(
                     ctc_logits.argmax(-1).cpu(), ys_pad_cpu, is_ctc=True
@@ -129,14 +131,15 @@ class InterMaskCTCModel(ESPnetASRModel):
 
         if "mlm" in pred:
             mlm_logits = pred["mlm"]
-            loss_mlm = self.ctc.loss_fn(mlm_logits, ys_pad, encoder_out_lens, ys_pad_lens)
+            loss_mlm = self.ctc.loss_fn(
+                mlm_logits, ys_pad, encoder_out_lens, ys_pad_lens
+            )
             if ys_pad_cpu is not None and self.error_calculator is not None:
                 cer_mlm = self.error_calculator(
                     mlm_logits.argmax(-1).cpu(), ys_pad_cpu, is_ctc=True
                 )
 
         return loss_ctc, loss_mlm, cer_ctc, cer_mlm
-
 
     def forward(
         self,
@@ -210,17 +213,20 @@ class InterMaskCTCModel(ESPnetASRModel):
                         if aux_data_tensor is not None and aux_data_lengths is not None:
                             ys_pad_cpu = (
                                 aux_data_tensor.cpu()
-                                if (not self.training and self.error_calculator is not None)
+                                if (
+                                    not self.training
+                                    and self.error_calculator is not None
+                                )
                                 else None
                             )
                             loss_ic, loss_im, cer_ic, cer_im = (
                                 self._calc_single_pred_loss_and_cer(
-                                self.ctc.intermediate_outs[idx],
-                                aux_data_tensor,
-                                aux_data_lengths,
-                                encoder_out_lens,
-                                ys_pad_cpu=ys_pad_cpu,
-                            )
+                                    self.ctc.intermediate_outs[idx],
+                                    aux_data_tensor,
+                                    aux_data_lengths,
+                                    encoder_out_lens,
+                                    ys_pad_cpu=ys_pad_cpu,
+                                )
                             )
                         else:
                             raise Exception(
@@ -257,24 +263,26 @@ class InterMaskCTCModel(ESPnetASRModel):
 
         if loss_interctc is not None and final_loss_ctc is not None:
             final_loss_ctc = (
-                (1 - self.interctc_weight) * final_loss_ctc
-                + self.interctc_weight * loss_interctc
-            )
+                1 - self.interctc_weight
+            ) * final_loss_ctc + self.interctc_weight * loss_interctc
         if loss_intermlm is not None and final_loss_mlm is not None:
             final_loss_mlm = (
-                (1 - self.interctc_weight) * final_loss_mlm
-                + self.interctc_weight * loss_intermlm
-            )
+                1 - self.interctc_weight
+            ) * final_loss_mlm + self.interctc_weight * loss_intermlm
 
         loss = self._add_optional_loss(final_loss_ctc, final_loss_mlm)
         if loss is None:
             raise RuntimeError("No CTC/MLM loss was produced from intermediate outputs")
 
         # Collect CTC branch stats
-        stats["loss_ctc"] = final_loss_ctc.detach() if final_loss_ctc is not None else None
+        stats["loss_ctc"] = (
+            final_loss_ctc.detach() if final_loss_ctc is not None else None
+        )
         stats["cer_ctc"] = cer_ctc[-1] if cer_ctc else None
         stats["cer_mlm"] = cer_mlm[-1] if cer_mlm else None
-        stats["loss_mlm"] = final_loss_mlm.detach() if final_loss_mlm is not None else None
+        stats["loss_mlm"] = (
+            final_loss_mlm.detach() if final_loss_mlm is not None else None
+        )
         stats["acc"] = acc_att
         stats["cer"] = cer_att
         stats["wer"] = wer_att
@@ -298,7 +306,9 @@ class InterMaskCTCModel(ESPnetASRModel):
         self.ctc(encoder_out, encoder_out_lens, ys_pad, ys_pad_lens)
 
         ys_pad_cpu = (
-            ys_pad.cpu() if (not self.training and self.error_calculator is not None) else None
+            ys_pad.cpu()
+            if (not self.training and self.error_calculator is not None)
+            else None
         )
         loss_ctc, loss_mlm, cer_ctc, cer_mlm = [], [], [], []
         for pred in self.ctc.intermediate_outs:

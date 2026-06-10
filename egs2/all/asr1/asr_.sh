@@ -1559,7 +1559,7 @@ if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ] && ! [[ " ${skip_stages} " =~
         elif "${use_multi_maskctc}"; then
             inference_bin_tag="_multi_maskctc"
         elif "${use_maskctc}"; then
-            inference_bin_tag="_maskctc"        
+            inference_bin_tag="_maskctc"
         elif "${use_original}"; then
             inference_bin_tag="_original"
         fi

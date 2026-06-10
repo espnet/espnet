@@ -91,7 +91,9 @@ def infer_expdir(config_dir: str, pretrained_model: str | None) -> str:
     if pretrained_model is None:
         return f"exp/{config_dir}"
     pretrained_model_name = Path(pretrained_model).parent.name
-    pretrained_model_name = pretrained_model_name.replace(PREFIX, "").replace(POSTFIX, "")
+    pretrained_model_name = pretrained_model_name.replace(PREFIX, "").replace(
+        POSTFIX, ""
+    )
     return f"exp/{config_dir}/init_by_{pretrained_model_name}"
 
 

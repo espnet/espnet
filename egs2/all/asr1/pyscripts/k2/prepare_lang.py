@@ -26,6 +26,7 @@ consisting of words and tokens (i.e., phones) and does the following:
 
 5. Generate L_disambig.pt, in k2 format.
 """
+
 import argparse
 import math
 from collections import defaultdict

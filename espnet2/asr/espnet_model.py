@@ -121,7 +121,7 @@ class ESPnetASRModel(AbsESPnetModel):
                 self.criterion_transducer = RNNTLoss(
                     blank=self.blank_id,
                     reduction="mean",
-                    fused_log_softmax = False,
+                    fused_log_softmax=False,
                 )
             else:
                 from espnet2.asr.transducer.rnnt_multi_blank.rnnt_multi_blank import (
@@ -266,7 +266,9 @@ class ESPnetASRModel(AbsESPnetModel):
             )
 
             # Collect CTC branch stats
-            stats["loss_ctc"] = loss_ctc[-1].detach() if loss_ctc[-1] is not None else None
+            stats["loss_ctc"] = (
+                loss_ctc[-1].detach() if loss_ctc[-1] is not None else None
+            )
             stats["cer_ctc"] = cer_ctc[-1]
 
         # Intermediate CTC (optional)
@@ -321,9 +323,9 @@ class ESPnetASRModel(AbsESPnetModel):
             loss_interctc = loss_interctc / len(self.intermediate_layer_idx)
 
             # calculate whole encoder loss
-            loss_ctc = (
-                1 - self.interctc_weight
-            ) * loss_ctc[-1] + self.interctc_weight * loss_interctc
+            loss_ctc = (1 - self.interctc_weight) * loss_ctc[
+                -1
+            ] + self.interctc_weight * loss_interctc
         elif loss_ctc is not None:
             loss_ctc = loss_ctc[-1]
         if self.use_transducer_decoder:
@@ -624,19 +626,21 @@ class ESPnetASRModel(AbsESPnetModel):
         ctc_module(encoder_out, encoder_out_lens)
         intermediate_outs = ctc_module.intermediate_outs
         loss_fn = ctc_module.loss_fn
-        
+
         loss_ctc = [
             loss_fn(pred["ctc"], ys_pad, encoder_out_lens, ys_pad_lens)
             for pred in intermediate_outs
         ]
-        
+
         # Calc CER using CTC
         if not self.training and self.error_calculator is not None:
             ys_pad_cpu = ys_pad.cpu()
             cer_ctc = []
             for pred in intermediate_outs:
                 ys_hat = pred["ctc"].argmax(-1)
-                cer_ctc.append(self.error_calculator(ys_hat.cpu(), ys_pad_cpu, is_ctc=True))
+                cer_ctc.append(
+                    self.error_calculator(ys_hat.cpu(), ys_pad_cpu, is_ctc=True)
+                )
         else:
             cer_ctc = [None] * len(loss_ctc)
         return loss_ctc, cer_ctc
@@ -660,7 +664,7 @@ class ESPnetASRModel(AbsESPnetModel):
             wer_transducer: Word Error Rate for Transducer.
 
         """
-        
+
         decoder_in, target, t_len, u_len = get_transducer_task_io(
             labels,
             encoder_out_lens,

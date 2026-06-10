@@ -454,7 +454,7 @@ class EBranchformerEncoder(AbsEncoder):
         self,
         xs_pad: torch.Tensor,
         ilens: torch.Tensor,
-        prompt: torch.Tensor=None,
+        prompt: torch.Tensor = None,
         prev_states: torch.Tensor = None,
         masks: torch.Tensor = None,
         ctc: CTC = None,
@@ -462,7 +462,7 @@ class EBranchformerEncoder(AbsEncoder):
         return_all_hs: bool = False,
         text: Optional[torch.Tensor] = None,
         text_lengths: Optional[torch.Tensor] = None,
-        ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
+    ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
         """Calculate forward propagation.
 
         Args:
@@ -514,15 +514,15 @@ class EBranchformerEncoder(AbsEncoder):
             else:
                 xs_pad = self.embed(xs_pad)
         olens = masks.squeeze(1).sum(1)
-        
+
         if prompt is not None:
-            #breakpoint()
-            if isinstance(xs_pad,tuple):
-                xs_pad[0] = torch.cat([prompt, xs_pad[0]],dim=1)
+            # breakpoint()
+            if isinstance(xs_pad, tuple):
+                xs_pad[0] = torch.cat([prompt, xs_pad[0]], dim=1)
             else:
-                xs_pad = torch.cat([prompt, xs_pad],dim=1)
+                xs_pad = torch.cat([prompt, xs_pad], dim=1)
             olens += 1
-        
+
         intermediate_outs = []
         for layer_idx, encoder_layer in enumerate(self.encoders):
             if max_layer is not None and layer_idx >= max_layer:
@@ -553,16 +553,20 @@ class EBranchformerEncoder(AbsEncoder):
                 if isinstance(encoder_out, tuple):
                     encoder_out = encoder_out[0]
 
-                #intermediate_outs.append((layer_idx + 1, encoder_out))
+                # intermediate_outs.append((layer_idx + 1, encoder_out))
                 if ctc is not None:
                     ctc_out = ctc(encoder_out, olens, text, text_lengths)
                 if self.interctc_use_conditioning:
                     if isinstance(xs_pad, tuple):
                         xs_pad = list(xs_pad)
-                        xs_pad[0] = xs_pad[0] + self.conditioning_layer(torch.softmax(ctc_out, dim=-1))
+                        xs_pad[0] = xs_pad[0] + self.conditioning_layer(
+                            torch.softmax(ctc_out, dim=-1)
+                        )
                         xs_pad = tuple(xs_pad)
                     else:
-                        xs_pad = xs_pad + self.conditioning_layer(torch.softmax(ctc_out, dim=-1))
+                        xs_pad = xs_pad + self.conditioning_layer(
+                            torch.softmax(ctc_out, dim=-1)
+                        )
 
         if isinstance(xs_pad, tuple):
             xs_pad = xs_pad[0]

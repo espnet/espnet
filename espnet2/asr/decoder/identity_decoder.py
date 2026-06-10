@@ -2,6 +2,7 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 """Decoder definition."""
+
 import logging
 from typing import Any, List, Sequence, Tuple
 
@@ -9,7 +10,6 @@ import torch
 from typeguard import typechecked
 
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
-
 
 
 class IdentityDecoder(AbsDecoder):
@@ -40,18 +40,15 @@ class IdentityDecoder(AbsDecoder):
         **kwargs,
     ):
         super().__init__()
-        
 
     def forward(
         self,
         hs_pad=None,
         hlens=None,
-        ys_in_pad= None,
-        ys_in_lens= None,
+        ys_in_pad=None,
+        ys_in_lens=None,
         return_hs=None,
         return_all_hs=None,
     ):
-        
-        return hs_pad, None
 
-    
+        return hs_pad, None
