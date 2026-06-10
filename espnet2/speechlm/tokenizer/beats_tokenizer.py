@@ -13,24 +13,14 @@
 
 import logging
 import math
-from contextlib import contextmanager
 from typing import Dict, Optional
 
 import torch
 import torch.distributed as dist
 import torch.nn as nn
 import torch.nn.functional as F
-from packaging.version import parse as V
+from torch.cuda.amp import autocast
 from torch.nn import LayerNorm
-
-if V(torch.__version__) >= V("1.6.0"):
-    from torch.cuda.amp import autocast
-else:
-    # Nothing to do if torch<1.6.0
-    @contextmanager
-    def autocast(enabled=True):
-        yield
-
 
 from espnet2.asr.encoder.beats_encoder import (
     BeatsConfig,

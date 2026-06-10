@@ -44,11 +44,6 @@ from espnet2.speechlm.tokenizer.beats_utils import (
     freeze_conv_module,
 )
 
-is_torch_v25_to_v26 = V(torch.__version__) >= V("2.5.0") and V(torch.__version__) <= V(
-    "2.6.0"
-)
-
-
 class BeatsConfig:
     def __init__(self, cfg=None):
         self.input_patch_size: int = 16  # patch size of patch embedding
@@ -1389,10 +1384,6 @@ class MultiheadAttention(nn.Module):
             assert (
                 not need_weights
             ), "Flash attention does not support returning attention weights"
-            if is_torch_v25_to_v26:
-                q = q.contiguous().view(bsz, self.num_heads, tgt_len, self.q_head_dim)
-                k = k.contiguous().view(bsz, self.num_heads, src_len, self.k_head_dim)
-                v = v.contiguous().view(bsz, self.num_heads, src_len, self.head_dim)
             if key_padding_mask is not None:
                 assert (
                     attn_mask is None
@@ -1401,15 +1392,10 @@ class MultiheadAttention(nn.Module):
                 attn_mask = attn_mask.unsqueeze(1).expand(-1, tgt_len, -1)
 
             if attn_mask is not None:
-                if is_torch_v25_to_v26:
-                    attn_mask = attn_mask.unsqueeze(1)  # B x 1 x tgtlen x srclen
-                else:
-                    attn_mask = attn_mask.unsqueeze(1).expand(
-                        -1, self.num_heads, -1, -1
-                    )
-                    attn_mask = attn_mask.contiguous().view(
-                        bsz * self.num_heads, tgt_len, src_len
-                    )
+                attn_mask = attn_mask.unsqueeze(1).expand(-1, self.num_heads, -1, -1)
+                attn_mask = attn_mask.contiguous().view(
+                    bsz * self.num_heads, tgt_len, src_len
+                )
 
             if position_bias is not None:
                 attn_mask_rel_pos = position_bias
@@ -1434,11 +1420,6 @@ class MultiheadAttention(nn.Module):
                     .view(bsz * self.num_heads, tgt_len, src_len)
                     .contiguous()
                 )
-                if is_torch_v25_to_v26:
-                    attn_mask_rel_pos = attn_mask_rel_pos.unsqueeze(1)
-                    attn_mask_rel_pos = attn_mask_rel_pos.view(
-                        bsz, self.num_heads, tgt_len, src_len
-                    ).contiguous()
                 if attn_mask is not None:
                     attn_mask_ = torch.zeros_like(attn_mask) + attn_mask_rel_pos
                     attn_mask_ = attn_mask_.masked_fill(
@@ -1456,10 +1437,7 @@ class MultiheadAttention(nn.Module):
                 dropout_p=self.dropout_module.p,
                 is_causal=False,
             )  # B x H x T x D
-            if is_torch_v25_to_v26:
-                attn = attn.permute(2, 0, 1, 3).reshape(tgt_len, bsz, embed_dim)
-            else:
-                attn = attn.transpose(0, 1).contiguous().view(tgt_len, bsz, embed_dim)
+            attn = attn.transpose(0, 1).contiguous().view(tgt_len, bsz, embed_dim)
             attn = self.out_proj(attn)
             return attn, None, None
         # ------------------------------------------------------------------------------
