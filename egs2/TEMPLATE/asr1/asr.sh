@@ -37,12 +37,12 @@ ngpu=1                  # The number of gpus ("0" uses cpu, otherwise use gpu).
 num_nodes=1             # The number of nodes.
 nj=32                   # The number of parallel jobs.
 inference_nj=32         # The number of parallel jobs in decoding.
-gpu_inference=false     # Whether to perform gpu decoding.
+gpu_inference=true     # Whether to perform gpu decoding.
 dumpdir=dump            # Directory to dump features.
 expdir=exp              # Directory to save experiments.
 python=python3          # Specify python to execute espnet commands.
 use_lightning=false     # Whether to use pytorch lightning trainer for training.
-
+resume=true
 # Data preparation related
 local_data_opts= # The options given to local/data.sh.
 post_process_local_data_opts= # The options given to local/data.sh for additional processing in stage 4.
@@ -1440,7 +1440,7 @@ if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ] && ! [[ " ${skip_stages} " =~
                 --g2p "${g2p}" \
                 --valid_data_path_and_name_and_type "${_asr_valid_dir}/${_scp},speech,${_type}" \
                 --valid_shape_file "${asr_stats_dir}/valid/speech_shape" \
-                --resume true \
+                --resume ${resume} \
                 ${pretrained_model:+--init_param $pretrained_model} \
                 --ignore_init_mismatch ${ignore_init_mismatch} \
                 --fold_length "${_fold_length}" \
@@ -1467,7 +1467,7 @@ if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ] && ! [[ " ${skip_stages} " =~
                 --g2p "${g2p}" \
                 --valid_data_path_and_name_and_type "${_asr_valid_dir}/${_scp},speech,${_type}" \
                 --valid_shape_file "${asr_stats_dir}/valid/speech_shape" \
-                --resume true \
+                --resume ${resume} \
                 ${pretrained_model:+--init_param $pretrained_model} \
                 --ignore_init_mismatch ${ignore_init_mismatch} \
                 --fold_length "${_fold_length}" \
@@ -1618,20 +1618,20 @@ if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ] && ! [[ " ${skip_stages} " =~
                 ${_opts} ${inference_args} || { cat $(grep -l -i error "${_logdir}"/asr_inference.*.log) ; exit 1; }
 
         # 3. Calculate and report RTF based on decoding logs
-        if [ ${asr_task} == "asr" ] && [ -z ${inference_bin_tag} ]; then
-            log "Calculating RTF & latency... log: '${_logdir}/calculate_rtf.log'"
-            rm -f "${_logdir}"/calculate_rtf.log
-            _fs=$(python3 -c "import humanfriendly as h;print(h.parse_size('${fs}'))")
-            _sample_shift=$(python3 -c "print(1 / ${_fs} * 1000)") # in ms
-            ${_cmd} JOB=1 "${_logdir}"/calculate_rtf.log \
-                pyscripts/utils/calculate_rtf.py \
-                    --log-dir ${_logdir} \
-                    --log-name "asr_inference" \
-                    --input-shift ${_sample_shift} \
-                    --start-times-marker "speech length" \
-                    --end-times-marker "best hypo" \
-                    --inf-num ${num_inf} || { cat "${_logdir}"/calculate_rtf.log; exit 1; }
-        fi
+        # if [ ${asr_task} == "asr" ] && [ -z ${inference_bin_tag} ]; then
+        #     log "Calculating RTF & latency... log: '${_logdir}/calculate_rtf.log'"
+        #     rm -f "${_logdir}"/calculate_rtf.log
+        #     _fs=$(python3 -c "import humanfriendly as h;print(h.parse_size('${fs}'))")
+        #     _sample_shift=$(python3 -c "print(1 / ${_fs} * 1000)") # in ms
+        #     ${_cmd} JOB=1 "${_logdir}"/calculate_rtf.log \
+        #         pyscripts/utils/calculate_rtf.py \
+        #             --log-dir ${_logdir} \
+        #             --log-name "asr_inference" \
+        #             --input-shift ${_sample_shift} \
+        #             --start-times-marker "speech length" \
+        #             --end-times-marker "best hypo" \
+        #             --inf-num ${num_inf} || { cat "${_logdir}"/calculate_rtf.log; exit 1; }
+        # fi
 
         # 4. Concatenates the output files from each jobs
         # shellcheck disable=SC2068

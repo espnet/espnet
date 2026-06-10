@@ -7,14 +7,18 @@ import torch
 from typeguard import typechecked
 
 from espnet2.asr.ctc import CTC
+from espnet2.asr.mask_ctc import MaskCTC
+
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
 from espnet2.asr.decoder.hugging_face_transformers_decoder import (  # noqa: H301
     HuggingFaceTransformersDecoder,
 )
 from espnet2.asr.decoder.linear_decoder import LinearDecoder
 from espnet2.asr.decoder.mlm_decoder import MLMDecoder
+from espnet2.asr.decoder.multi_mask_mlm_decoder import MultiMaskMLMDecoder
 from espnet2.asr.decoder.rnn_decoder import RNNDecoder
 from espnet2.asr.decoder.s4_decoder import S4Decoder
+from espnet2.asr.decoder.identity_decoder import IdentityDecoder
 from espnet2.asr.decoder.transducer_decoder import TransducerDecoder
 from espnet2.asr.decoder.transformer_decoder import (
     DynamicConvolution2DTransformerDecoder,
@@ -62,6 +66,8 @@ from espnet2.asr.frontend.s3prl import S3prlFrontend
 from espnet2.asr.frontend.whisper import WhisperFrontend
 from espnet2.asr.frontend.windowing import SlidingWindow
 from espnet2.asr.maskctc_model import MaskCTCModel
+from espnet2.asr.multi_maskctc_model import MultiMaskCTCModel
+from espnet2.asr.inter_maskctc_model import InterMaskCTCModel
 from espnet2.asr.pit_espnet_model import ESPnetASRModel as PITESPnetModel
 from espnet2.asr.postencoder.abs_postencoder import AbsPostEncoder
 from espnet2.asr.postencoder.hugging_face_transformers_postencoder import (
@@ -132,6 +138,8 @@ model_choices = ClassChoices(
     classes=dict(
         espnet=ESPnetASRModel,
         maskctc=MaskCTCModel,
+        multi_maskctc=MultiMaskCTCModel,
+        inter_maskctc=InterMaskCTCModel,
         pit_espnet=PITESPnetModel,
     ),
     type_check=AbsESPnetModel,
@@ -193,10 +201,12 @@ decoder_choices = ClassChoices(
         rnn=RNNDecoder,
         transducer=TransducerDecoder,
         mlm=MLMDecoder,
+        multi_mlm=MultiMaskMLMDecoder,
         whisper=OpenAIWhisperDecoder,
         hugging_face_transformers=HuggingFaceTransformersDecoder,
         s4=S4Decoder,
         linear_decoder=LinearDecoder,
+        identity=IdentityDecoder,
         # This decoder is only meant for classification tasks.
         # TODO(shikhar): Move classification to cls1 task completely.
     ),
@@ -213,7 +223,14 @@ preprocessor_choices = ClassChoices(
     type_check=AbsPreprocessor,
     default="default",
 )
-
+ctc_choices = ClassChoices(
+    "ctc",
+    classes=dict(
+        ctc=CTC,
+        maskctc=MaskCTC
+    ),
+    default="ctc",
+)
 
 class ASRTask(AbsTask):
     # If you need more than one optimizers, change this value
@@ -239,6 +256,8 @@ class ASRTask(AbsTask):
         decoder_choices,
         # --preprocessor and --preprocessor_conf
         preprocessor_choices,
+        # --ctc and --ctc_conf
+        ctc_choices,
     ]
 
     # If you need to modify train() or eval() procedures, change Trainer class here
@@ -281,12 +300,12 @@ class ASRTask(AbsTask):
             help="The number of input dimension of the feature",
         )
 
-        group.add_argument(
-            "--ctc_conf",
-            action=NestedDictAction,
-            default=get_default_kwargs(CTC),
-            help="The keyword arguments for CTC class.",
-        )
+        # group.add_argument(
+        #     "--ctc_conf",
+        #     action=NestedDictAction,
+        #     default=get_default_kwargs(CTC),
+        #     help="The keyword arguments for CTC class.",
+        # )
         group.add_argument(
             "--joint_net_conf",
             action=NestedDictAction,
@@ -609,7 +628,7 @@ class ASRTask(AbsTask):
                 )
             else:
                 decoder = decoder_class(
-                    vocab_size=vocab_size,
+                    vocab_size=vocab_size +1 if args.decoder == "mlm" else vocab_size,
                     encoder_output_size=encoder_output_size,
                     **args.decoder_conf,
                 )
@@ -619,9 +638,10 @@ class ASRTask(AbsTask):
             joint_network = None
 
         # 6. CTC
-        ctc = CTC(
-            odim=vocab_size, encoder_output_size=encoder_output_size, **args.ctc_conf
-        )
+        ctc_class = ctc_choices.get_class(args.ctc)
+        ctc = ctc_class(odim=vocab_size, 
+                        encoder_output_size=encoder_output_size,
+                        **args.ctc_conf)
 
         # 7. Build model
         try:

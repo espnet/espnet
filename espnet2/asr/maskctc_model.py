@@ -1,8 +1,6 @@
 import logging
-from itertools import groupby
 from typing import Dict, List, Optional, Tuple, Union
 
-import numpy
 import torch
 from typeguard import typechecked
 
@@ -144,10 +142,12 @@ class MaskCTCModel(ESPnetASRModel):
             encoder_out = encoder_out[0]
 
         # 2. CTC branch
-        if self.ctc_weight != 0.0:
-            loss_ctc, cer_ctc = self._calc_ctc_loss(
+        if self.ctc is not None:
+            loss_ctc_list, cer_ctc_list = self._calc_ctc_loss(
                 encoder_out, encoder_out_lens, text, text_lengths
             )
+            loss_ctc = loss_ctc_list[-1]
+            cer_ctc = cer_ctc_list[-1]
 
             # Collect CTC branch stats
             stats["loss_ctc"] = loss_ctc.detach() if loss_ctc is not None else None
@@ -156,12 +156,18 @@ class MaskCTCModel(ESPnetASRModel):
         # 2a. Intermediate CTC (optional)
         loss_interctc = 0.0
         if self.interctc_weight != 0.0 and intermediate_outs is not None:
+            text_cpu = text.cpu() if (not self.training and self.error_calculator is not None) else None
             for layer_idx, intermediate_out in intermediate_outs:
                 # we assume intermediate_out has the same length & padding
                 # as those of encoder_out
-                loss_ic, cer_ic = self._calc_ctc_loss(
-                    intermediate_out, encoder_out_lens, text, text_lengths
+                loss_ic = self.ctc.loss_fn(
+                    intermediate_out, text, encoder_out_lens, text_lengths
                 )
+                if text_cpu is not None:
+                    ys_hat = intermediate_out.argmax(dim=-1)
+                    cer_ic = self.error_calculator(ys_hat.cpu(), text_cpu, is_ctc=True)
+                else:
+                    cer_ic = None
                 loss_interctc = loss_interctc + loss_ic
 
                 # Collect Intermedaite CTC stats
@@ -197,7 +203,8 @@ class MaskCTCModel(ESPnetASRModel):
 
         # Collect total loss stats
         stats["loss"] = loss.detach()
-
+        if self.ctc is not None:
+            self.ctc.reset_intermediate_outs()
         # force_gatherable: to-device and to-tensor if scalar for DataParallel
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
         return loss, stats, weight
@@ -276,7 +283,9 @@ class MaskCTCInference(torch.nn.Module):
         # greedy ctc outputs
         enc_out = enc_out.unsqueeze(0)
         ctc_probs, ctc_ids = torch.exp(self.ctc.log_softmax(enc_out)).max(dim=-1)
-        y_hat = torch.stack([x[0] for x in groupby(ctc_ids[0])])
+        ctc_probs_0 = ctc_probs[0]
+        ctc_ids_0 = ctc_ids[0]
+        y_hat = torch.unique_consecutive(ctc_ids_0)
         y_idx = torch.nonzero(y_hat != 0).squeeze(-1)
 
         logging.info("ctc:{}".format(self.ids2text(y_hat[y_idx].tolist())))
@@ -284,37 +293,36 @@ class MaskCTCInference(torch.nn.Module):
         # calculate token-level ctc probabilities by taking
         # the maximum probability of consecutive frames with
         # the same ctc symbols
-        probs_hat = []
+        probs_hat = torch.empty(y_hat.size(0), dtype=ctc_probs_0.dtype, device=enc_out.device)
         cnt = 0
         for i, y in enumerate(y_hat.tolist()):
-            probs_hat.append(-1)
-            while cnt < ctc_ids.shape[1] and y == ctc_ids[0][cnt]:
-                if probs_hat[i] < ctc_probs[0][cnt]:
-                    probs_hat[i] = ctc_probs[0][cnt].item()
+            max_prob = -1.0
+            while cnt < ctc_ids_0.size(0) and y == ctc_ids_0[cnt]:
+                max_prob = max(max_prob, ctc_probs_0[cnt].item())
                 cnt += 1
-        probs_hat = torch.from_numpy(numpy.array(probs_hat)).to(enc_out.device)
+            probs_hat[i] = max_prob
 
         # mask ctc outputs based on ctc probabilities
         p_thres = self.threshold_probability
         mask_idx = torch.nonzero(probs_hat[y_idx] < p_thres).squeeze(-1)
         confident_idx = torch.nonzero(probs_hat[y_idx] >= p_thres).squeeze(-1)
-        mask_num = len(mask_idx)
+        mask_num = mask_idx.numel()
 
-        y_in = (
-            torch.zeros(1, len(y_idx), dtype=torch.long).to(enc_out.device)
-            + self.mask_token
+        y_in = torch.full(
+            (1, y_idx.numel()), self.mask_token, dtype=torch.long, device=enc_out.device
         )
         y_in[0][confident_idx] = y_hat[y_idx][confident_idx]
 
         logging.info("msk:{}".format(self.ids2text(y_in[0].tolist())))
 
         # iterative decoding
-        if not mask_num == 0:
+        if mask_num > 0:
             K = self.n_iterations
             num_iter = K if mask_num >= K and K > 0 else mask_num
+            enc_out_lens = [enc_out.size(1)]
 
             for t in range(num_iter - 1):
-                pred, _ = self.mlm(enc_out, [enc_out.size(1)], y_in, [y_in.size(1)])
+                pred, _ = self.mlm(enc_out, enc_out_lens, y_in, [y_in.size(1)])
                 pred_score, pred_id = pred[0][mask_idx].max(dim=-1)
                 cand = torch.topk(pred_score, mask_num // num_iter, -1)[1]
                 y_in[0][mask_idx[cand]] = pred_id[cand]
@@ -323,14 +331,13 @@ class MaskCTCInference(torch.nn.Module):
                 logging.info("msk:{}".format(self.ids2text(y_in[0].tolist())))
 
             # predict leftover masks (|masks| < mask_num // num_iter)
-            pred, _ = self.mlm(enc_out, [enc_out.size(1)], y_in, [y_in.size(1)])
+            pred, _ = self.mlm(enc_out, enc_out_lens, y_in, [y_in.size(1)])
             y_in[0][mask_idx] = pred[0][mask_idx].argmax(dim=-1)
 
             logging.info("msk:{}".format(self.ids2text(y_in[0].tolist())))
 
         # pad with mask tokens to ensure compatibility with sos/eos tokens
-        yseq = torch.tensor(
-            [self.mask_token] + y_in.tolist()[0] + [self.mask_token], device=y_in.device
-        )
+        edge_mask = y_in.new_full((1,), self.mask_token)
+        yseq = torch.cat([edge_mask, y_in[0], edge_mask], dim=0)
 
         return Hypothesis(yseq=yseq)

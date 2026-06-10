@@ -1,0 +1,2 @@
+maskctc_n_iterations: 0
+maskctc_threshold_probability: 0.999

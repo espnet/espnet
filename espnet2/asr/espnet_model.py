@@ -116,11 +116,12 @@ class ESPnetASRModel(AbsESPnetModel):
             self.joint_network = joint_network
 
             if not transducer_multi_blank_durations:
-                from warprnnt_pytorch import RNNTLoss
+                from torchaudio.transforms import RNNTLoss
 
                 self.criterion_transducer = RNNTLoss(
                     blank=self.blank_id,
-                    fastemit_lambda=0.0,
+                    reduction="mean",
+                    fused_log_softmax = False,
                 )
             else:
                 from espnet2.asr.transducer.rnnt_multi_blank.rnnt_multi_blank import (
@@ -208,6 +209,11 @@ class ESPnetASRModel(AbsESPnetModel):
         else:
             self.lang_token_id = None
 
+        if self.encoder is not None and hasattr(self.encoder, "interctc_layer_idx"):
+            self.intermediate_layer_idx = sorted(list(self.encoder.interctc_layer_idx))
+        else:
+            self.intermediate_layer_idx = []
+
     def forward(
         self,
         speech: torch.Tensor,
@@ -254,19 +260,23 @@ class ESPnetASRModel(AbsESPnetModel):
         stats = dict()
 
         # 1. CTC branch
-        if self.ctc_weight != 0.0:
+        if self.ctc is not None:
             loss_ctc, cer_ctc = self._calc_ctc_loss(
                 encoder_out, encoder_out_lens, text, text_lengths
             )
 
             # Collect CTC branch stats
-            stats["loss_ctc"] = loss_ctc.detach() if loss_ctc is not None else None
-            stats["cer_ctc"] = cer_ctc
+            stats["loss_ctc"] = loss_ctc[-1].detach() if loss_ctc[-1] is not None else None
+            stats["cer_ctc"] = cer_ctc[-1]
 
         # Intermediate CTC (optional)
         loss_interctc = 0.0
-        if self.interctc_weight != 0.0 and intermediate_outs is not None:
-            for layer_idx, intermediate_out in intermediate_outs:
+        if (
+            self.interctc_weight != 0.0
+            and self.ctc is not None
+            and len(self.intermediate_layer_idx) > 0
+        ):
+            for idx, layer_idx in enumerate(self.intermediate_layer_idx):
                 # we assume intermediate_out has the same length & padding
                 # as those of encoder_out
 
@@ -280,20 +290,26 @@ class ESPnetASRModel(AbsESPnetModel):
                         aux_data_lengths = kwargs.get(aux_data_key + "_lengths", None)
 
                         if aux_data_tensor is not None and aux_data_lengths is not None:
-                            loss_ic, cer_ic = self._calc_ctc_loss(
-                                intermediate_out,
-                                encoder_out_lens,
+                            intermediate_logits = self.ctc.intermediate_outs[idx]["ctc"]
+                            loss_ic = self.ctc.loss_fn(
+                                intermediate_logits,
                                 aux_data_tensor,
+                                encoder_out_lens,
                                 aux_data_lengths,
                             )
+                            if not self.training and self.error_calculator is not None:
+                                ys_hat = intermediate_logits.argmax(-1)
+                                cer_ic = self.error_calculator(
+                                    ys_hat.cpu(), aux_data_tensor.cpu(), is_ctc=True
+                                )
+                            else:
+                                cer_ic = None
                         else:
                             raise Exception(
                                 "Aux. CTC tasks were specified but no data was found"
                             )
                 if loss_ic is None:
-                    loss_ic, cer_ic = self._calc_ctc_loss(
-                        intermediate_out, encoder_out_lens, text, text_lengths
-                    )
+                    loss_ic, cer_ic = loss_ctc[idx], cer_ctc[idx]
                 loss_interctc = loss_interctc + loss_ic
 
                 # Collect Intermedaite CTC stats
@@ -302,13 +318,14 @@ class ESPnetASRModel(AbsESPnetModel):
                 )
                 stats["cer_interctc_layer{}".format(layer_idx)] = cer_ic
 
-            loss_interctc = loss_interctc / len(intermediate_outs)
+            loss_interctc = loss_interctc / len(self.intermediate_layer_idx)
 
             # calculate whole encoder loss
             loss_ctc = (
                 1 - self.interctc_weight
-            ) * loss_ctc + self.interctc_weight * loss_interctc
-
+            ) * loss_ctc[-1] + self.interctc_weight * loss_interctc
+        elif loss_ctc is not None:
+            loss_ctc = loss_ctc[-1]
         if self.use_transducer_decoder:
             # 2a. Transducer decoder branch
             (
@@ -330,8 +347,8 @@ class ESPnetASRModel(AbsESPnetModel):
             stats["loss_transducer"] = (
                 loss_transducer.detach() if loss_transducer is not None else None
             )
-            stats["cer_transducer"] = cer_transducer
-            stats["wer_transducer"] = wer_transducer
+            stats["cer"] = cer_transducer
+            stats["wer"] = wer_transducer
 
         elif self.use_linear_decoder:
             # 2b. Linear decoder branch for classification tasks
@@ -361,7 +378,8 @@ class ESPnetASRModel(AbsESPnetModel):
 
         # Collect total loss stats
         stats["loss"] = loss.detach()
-
+        if self.ctc is not None:
+            self.ctc.reset_intermediate_outs()
         # force_gatherable: to-device and to-tensor if scalar for DataParallel
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
         return loss, stats, weight
@@ -409,7 +427,7 @@ class ESPnetASRModel(AbsESPnetModel):
             encoder_out, encoder_out_lens = feats, feats_lengths
         else:
 
-            if getattr(self.encoder, "interctc_use_conditioning", False) or getattr(
+            if len(self.intermediate_layer_idx) > 0 or getattr(
                 self.encoder, "ctc_trim", False
             ):
                 encoder_out, encoder_out_lens, _ = self.encoder(
@@ -601,13 +619,26 @@ class ESPnetASRModel(AbsESPnetModel):
         ys_pad_lens: torch.Tensor,
     ):
         # Calc CTC loss
-        loss_ctc = self.ctc(encoder_out, encoder_out_lens, ys_pad, ys_pad_lens)
-
+        # for append ctc result to intermediate_outs
+        ctc_module = self.ctc
+        ctc_module(encoder_out, encoder_out_lens)
+        intermediate_outs = ctc_module.intermediate_outs
+        loss_fn = ctc_module.loss_fn
+        
+        loss_ctc = [
+            loss_fn(pred["ctc"], ys_pad, encoder_out_lens, ys_pad_lens)
+            for pred in intermediate_outs
+        ]
+        
         # Calc CER using CTC
-        cer_ctc = None
         if not self.training and self.error_calculator is not None:
-            ys_hat = self.ctc.argmax(encoder_out).data
-            cer_ctc = self.error_calculator(ys_hat.cpu(), ys_pad.cpu(), is_ctc=True)
+            ys_pad_cpu = ys_pad.cpu()
+            cer_ctc = []
+            for pred in intermediate_outs:
+                ys_hat = pred["ctc"].argmax(-1)
+                cer_ctc.append(self.error_calculator(ys_hat.cpu(), ys_pad_cpu, is_ctc=True))
+        else:
+            cer_ctc = [None] * len(loss_ctc)
         return loss_ctc, cer_ctc
 
     def _calc_transducer_loss(
@@ -629,6 +660,7 @@ class ESPnetASRModel(AbsESPnetModel):
             wer_transducer: Word Error Rate for Transducer.
 
         """
+        
         decoder_in, target, t_len, u_len = get_transducer_task_io(
             labels,
             encoder_out_lens,
@@ -687,7 +719,8 @@ class ESPnetASRModel(AbsESPnetModel):
         # Calc CTC loss
         do_reduce = self.ctc.reduce
         self.ctc.reduce = False
-        loss_ctc = self.ctc(encoder_out, encoder_out_lens, text, text_lengths)
+        _, ctc_out, _, _, _, _ = self.ctc(encoder_out, encoder_out_lens)
+        loss_ctc = self.ctc.loss_fn(ctc_out, text, encoder_out_lens, text_lengths)
         self.ctc.reduce = do_reduce
         return loss_ctc
 

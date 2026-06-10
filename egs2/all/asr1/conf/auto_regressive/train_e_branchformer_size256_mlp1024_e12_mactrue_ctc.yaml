@@ -1,0 +1,75 @@
+accum_grad: 1
+batch_bins: 10000000
+batch_type: numel
+best_model_criterion:
+- - valid
+  - cer
+  - min
+decoder: transformer
+decoder_conf:
+  attention_heads: 4
+  dropout_rate: 0.1
+  linear_units: 2048
+  num_blocks: 6
+  positional_dropout_rate: 0.1
+  self_attention_dropout_rate: 0.1
+  src_attention_dropout_rate: 0.1
+  use_flash_attn: true
+encoder: e_branchformer
+encoder_conf:
+  attention_dropout_rate: 0.1
+  attention_heads: 4
+  attention_layer_type: rel_selfattn
+  cgmlp_conv_kernel: 31
+  cgmlp_linear_units: 1024
+  dropout_rate: 0.1
+  gate_activation: identity
+  input_layer: conv2d
+  layer_drop_rate: 0.0
+  linear_units: 1024
+  macaron_ffn: true
+  merge_conv_kernel: 31
+  num_blocks: 12
+  output_size: 256
+  pos_enc_layer_type: rel_pos
+  positional_dropout_rate: 0.1
+  positionwise_layer_type: linear
+  rel_pos_type: latest
+  use_ffn: true
+  use_linear_after_conv: false
+frontend_conf:
+  hop_length: 160
+  n_fft: 512
+  win_length: 400
+init: none
+keep_nbest_models: 50
+max_epoch: 50
+model_conf:
+  ctc_weight: 0.3
+  length_normalized_loss: false
+  lsm_weight: 0.1
+num_workers: 4
+optim: adam
+optim_conf:
+  lr: 0.002
+  weight_decay: 1.0e-06
+scheduler: warmuplr
+scheduler_conf:
+  warmup_steps: 100000
+seed: 2022
+specaug: specaug
+specaug_conf:
+  apply_freq_mask: true
+  apply_time_mask: true
+  apply_time_warp: true
+  freq_mask_width_range:
+  - 0
+  - 27
+  num_freq_mask: 2
+  num_time_mask: 5
+  time_mask_width_ratio_range:
+  - 0.0
+  - 0.05
+  time_warp_mode: bicubic
+  time_warp_window: 5
+use_amp: true

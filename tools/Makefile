@@ -149,10 +149,10 @@ else
 endif
 	$(call end_timer_and_touch,pytorch.done)
 
-lightning.done: pytorch.done
-	$(call start_timer,lightning.done)
-	. ./activate_python.sh && ./installers/install_lightning.sh
-	$(call end_timer_and_touch,lightning.done)
+# lightning.done: pytorch.done
+# 	$(call start_timer,lightning.done)
+# 	. ./activate_python.sh && ./installers/install_lightning.sh
+# 	$(call end_timer_and_touch,lightning.done)
 
 # NOTE(kamo): conda_packages is not necessary for installation of espnet, but add it the dependencies just in case.
 espnet.done: pytorch.done conda_packages.done lightning.done
@@ -284,10 +284,10 @@ gtn.done: espnet.done
 	. ./activate_python.sh && ./installers/install_gtn.sh
 	$(call end_timer_and_touch,gtn.done)
 
-transformers.done: espnet.done
-	$(call start_timer,transformers.done)
-	. ./activate_python.sh && ./installers/install_transformers.sh
-	$(call end_timer_and_touch,transformers.done)
+# transformers.done: espnet.done
+# 	$(call start_timer,transformers.done)
+# 	. ./activate_python.sh && ./installers/install_transformers.sh
+# 	$(call end_timer_and_touch,transformers.done)
 
 torcheval.done: pytorch.done
 	$(call start_timer,torcheval.done)

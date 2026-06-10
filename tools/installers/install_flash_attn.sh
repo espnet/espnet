@@ -10,7 +10,7 @@ fi
     python3 -m pip install flash-attn --no-build-isolation
 } || {
     echo "Flash Attention failed to install, trying without building CUDA"
-    FLASH_ATTENTION_SKIP_CUDA_BUILD=TRUE python3 -m pip install flash-attn --no-build-isolation
+    MAX_JOBS=16 python3 -m pip install flash-attn --no-build-isolation
 } || {
     echo "Failed to install flash attention. Skipping..."
     echo "Manual install may be required: https://github.com/Dao-AILab/flash-attention"

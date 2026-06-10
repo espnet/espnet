@@ -1,0 +1,1 @@
+../../../../utils/divide_lang.sh

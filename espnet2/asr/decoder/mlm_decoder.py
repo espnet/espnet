@@ -2,8 +2,7 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 """Masked LM Decoder definition."""
-
-from typing import Tuple
+from typing import Any, List, Sequence, Tuple
 
 import torch
 from typeguard import typechecked
@@ -20,7 +19,6 @@ from espnet2.legacy.nets.pytorch_backend.transformer.positionwise_feed_forward i
     PositionwiseFeedForward,
 )
 from espnet2.legacy.nets.pytorch_backend.transformer.repeat import repeat
-
 
 class MLMDecoder(AbsDecoder):
     @typechecked
@@ -40,11 +38,13 @@ class MLMDecoder(AbsDecoder):
         pos_enc_class=PositionalEncoding,
         normalize_before: bool = True,
         concat_after: bool = False,
+        layer_drop_rate: float = 0.0,
+        qk_norm: bool = False,
+        use_flash_attn: bool = True,
+        gradient_checkpoint_layers: List[int] = [],
     ):
         super().__init__()
         attention_dim = encoder_output_size
-        vocab_size += 1  # for mask token
-
         if input_layer == "embed":
             self.embed = torch.nn.Sequential(
                 torch.nn.Embedding(vocab_size, attention_dim),
@@ -68,16 +68,26 @@ class MLMDecoder(AbsDecoder):
             self.output_layer = torch.nn.Linear(attention_dim, vocab_size)
         else:
             self.output_layer = None
-
+        self.use_flash_attn = use_flash_attn
         self.decoders = repeat(
             num_blocks,
             lambda lnum: DecoderLayer(
                 attention_dim,
                 MultiHeadedAttention(
-                    attention_heads, attention_dim, self_attention_dropout_rate
+                    attention_heads, attention_dim,
+                    self_attention_dropout_rate,
+                    False,  # qk_norm
+                    use_flash_attn,
+                    False,  # causal
+                    False,  # cross_attn
                 ),
                 MultiHeadedAttention(
-                    attention_heads, attention_dim, src_attention_dropout_rate
+                    attention_heads, attention_dim,
+                    src_attention_dropout_rate,
+                    False,  # qk_norm
+                    use_flash_attn,
+                    False,  # causal
+                    True,  # cross_attn
                 ),
                 PositionwiseFeedForward(attention_dim, linear_units, dropout_rate),
                 dropout_rate,
@@ -109,25 +119,32 @@ class MLMDecoder(AbsDecoder):
                 if use_output_layer is True,
             olens: (batch, )
         """
+        #breakpoint()
         tgt = ys_in_pad
-        # tgt_mask: (B, 1, L)
-        tgt_mask = (~make_pad_mask(ys_in_lens)[:, None, :]).to(tgt.device)
-        tgt_max_len = tgt_mask.size(-1)
-        # tgt_mask_tmp: (B, L, L)
-        tgt_mask_tmp = tgt_mask.transpose(1, 2).repeat(1, 1, tgt_max_len)
-        tgt_mask = tgt_mask.repeat(1, tgt_max_len, 1) & tgt_mask_tmp
-
         memory = hs_pad
-        memory_mask = (~make_pad_mask(hlens))[:, None, :].to(memory.device)
-
+        tgt_mask = None
+        # Create masks
+        if  memory is None or memory.size(0) == 1:
+            memory_mask = None
+        else:
+            # tgt_mask: (B, 1, L)
+            # tgt_mask = (~make_pad_mask(ys_in_lens)[:, None, :]).to(tgt.device)
+            # tgt_max_len = tgt_mask.size(-1)
+            # # tgt_mask_tmp: (B, L, L)
+            # tgt_mask_tmp = tgt_mask.transpose(1, 2).repeat(1, 1, tgt_max_len)
+            # tgt_mask = tgt_mask.repeat(1, tgt_max_len, 1) & tgt_mask_tmp
+            memory_mask = (~make_pad_mask(hlens))[:, None, :]#.to(memory.device)
+        #breakpoint()
+        
         x = self.embed(tgt)
         x, tgt_mask, memory, memory_mask = self.decoders(
             x, tgt_mask, memory, memory_mask
         )
+        
         if self.normalize_before:
             x = self.after_norm(x)
         if self.output_layer is not None:
             x = self.output_layer(x)
 
-        olens = tgt_mask.sum(1)
+        olens = tgt_mask.sum(1) if tgt_mask is not None else torch.LongTensor([x.size(1)]).to(x.device)
         return x, olens

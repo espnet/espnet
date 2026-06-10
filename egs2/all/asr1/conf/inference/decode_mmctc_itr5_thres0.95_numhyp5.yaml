@@ -1,0 +1,3 @@
+maskctc_n_iterations: 5
+maskctc_threshold_probability: 0.95
+num_hypotheses: 5
