@@ -127,7 +127,10 @@ class VersaMetric(BaseMetric):
             for k in scores:
                 if k.endswith(f"_{metric}_delete"):
                     prefix = k[: -(len(metric) + 8)]  # strip '_<metric>_delete'
-                    ops = [f"{prefix}_{metric}_{op}" for op in ("delete", "insert", "replace", "equal")]
+                    ops = [
+                        f"{prefix}_{metric}_{op}"
+                        for op in ("delete", "insert", "replace", "equal")
+                    ]
                     if all(op in scores for op in ops):
                         return f"{prefix}_{metric}_"
             return None
@@ -146,7 +149,10 @@ class VersaMetric(BaseMetric):
             lines.append(f"  WER components (%) [{wer_prefix.rstrip('_')}]:")
             for k in wer_keys:
                 lines.append(f"    {k.removeprefix(wer_prefix):<21s} {scores[k]:.1f}")
-            total = sum(scores[f"{wer_prefix}{op}"] for op in ("delete", "insert", "replace", "equal"))
+            total = sum(
+                scores[f"{wer_prefix}{op}"]
+                for op in ("delete", "insert", "replace", "equal")
+            )
             err = total - scores.get(f"{wer_prefix}equal", 0.0)
             if total > 0:
                 lines.append(f"    {'WER':<21s} {err / total * 100:.2f}%")
@@ -155,7 +161,10 @@ class VersaMetric(BaseMetric):
             lines.append(f"  CER components (%) [{cer_prefix.rstrip('_')}]:")
             for k in cer_keys:
                 lines.append(f"    {k.removeprefix(cer_prefix):<21s} {scores[k]:.1f}")
-            total = sum(scores[f"{cer_prefix}{op}"] for op in ("delete", "insert", "replace", "equal"))
+            total = sum(
+                scores[f"{cer_prefix}{op}"]
+                for op in ("delete", "insert", "replace", "equal")
+            )
             err = total - scores.get(f"{cer_prefix}equal", 0.0)
             if total > 0:
                 lines.append(f"    {'CER':<21s} {err / total * 100:.2f}%")
