@@ -19,50 +19,50 @@ The training config is adapted from `egs2/librispeech_100/asr1`.
 
 ## Environments
 
-- date: `Sat Jun  6 15:09:08 CDT 2026`
+- date: `Wed Jun 10 07:16:47 CDT 2026`
 - python version: `3.10.20 (main, Mar 11 2026, 17:46:40) [GCC 14.3.0]`
 - espnet2 version: `espnet2 202604`
 - pytorch version: `pytorch 2.9.1+cu128`
-- Git hash: `a07484355a508bf041576a37369f7644e4f38497`
-  - Commit date: `Thu Jun 4 22:44:34 2026 -0400`
-- Pretrained model:
+- Git hash: `e02e6f79766aa12a13327af8b537543966613500`
+  - Commit date: `Sun Jun 7 11:03:05 2026 -0400`
+- Pretrained Model: [https://huggingface.co/espnet/ta_openslr127](https://huggingface.co/espnet/ta_openslr127)
 
-## exp/asr_train_asr_raw_ta_bpe1000
+## exp/asr_train_asr_raw_ta_bpe1000_accum_grad1_sp
 
 ### WER
 
-| dataset                                    | Snt   | Wrd   | Corr | Sub  | Del | Ins | Err  | S.Err |
-| ------------------------------------------ | ----- | ----- | ---- | ---- | --- | --- | ---- | ----- |
-| decode_asr_asr_model_valid.acc.ave/test_ta | 12087 | 88767 | 84.4 | 13.5 | 2.1 | 2.7 | 18.3 | 59.9  |
+| dataset                                                                             | Snt   | Wrd   | Corr | Sub  | Del | Ins | Err  | S.Err |
+| ----------------------------------------------------------------------------------- | ----- | ----- | ---- | ---- | --- | --- | ---- | ----- |
+| decode_asr_lm_lm_train_lm_ta_bpe1000_valid.loss.ave_asr_model_valid.acc.ave/test_ta | 12087 | 88767 | 85.9 | 12.2 | 1.9 | 2.8 | 16.9 | 56.4  |
 
 ### CER
 
-| dataset                                    | Snt   | Wrd    | Corr | Sub | Del | Ins | Err | S.Err |
-| ------------------------------------------ | ----- | ------ | ---- | --- | --- | --- | --- | ----- |
-| decode_asr_asr_model_valid.acc.ave/test_ta | 12087 | 800532 | 97.8 | 1.0 | 1.2 | 0.8 | 3.0 | 59.9  |
+| dataset                                                                             | Snt   | Wrd    | Corr | Sub | Del | Ins | Err | S.Err |
+| ----------------------------------------------------------------------------------- | ----- | ------ | ---- | --- | --- | --- | --- | ----- |
+| decode_asr_lm_lm_train_lm_ta_bpe1000_valid.loss.ave_asr_model_valid.acc.ave/test_ta | 12087 | 800532 | 98.1 | 0.9 | 1.1 | 0.7 | 2.7 | 56.4  |
 
 ### TER
 
-| dataset                                    | Snt   | Wrd    | Corr | Sub | Del | Ins | Err  | S.Err |
-| ------------------------------------------ | ----- | ------ | ---- | --- | --- | --- | ---- | ----- |
-| decode_asr_asr_model_valid.acc.ave/test_ta | 12087 | 236078 | 91.1 | 6.0 | 3.0 | 1.1 | 10.0 | 59.9  |
+| dataset                                                                             | Snt   | Wrd    | Corr | Sub | Del | Ins | Err | S.Err |
+| ----------------------------------------------------------------------------------- | ----- | ------ | ---- | --- | --- | --- | --- | ----- |
+| decode_asr_lm_lm_train_lm_ta_bpe1000_valid.loss.ave_asr_model_valid.acc.ave/test_ta | 12087 | 236078 | 91.9 | 5.3 | 2.8 | 1.0 | 9.1 | 56.4  |
 
-## exp/asr_train_asr_raw_ta_bpe1000/decode_asr_asr_model_valid.acc.ave
+## exp/asr_train_asr_raw_ta_bpe1000_accum_grad1_sp/decode_asr_lm_lm_train_lm_ta_bpe1000_valid.loss.ave_asr_model_valid.acc.ave
 
 ### WER
 
 | dataset    | Snt  | Wrd   | Corr | Sub  | Del | Ins | Err  | S.Err |
 | ---------- | ---- | ----- | ---- | ---- | --- | --- | ---- | ----- |
-| org/dev_ta | 7333 | 63984 | 82.2 | 15.4 | 2.4 | 2.9 | 20.7 | 66.4  |
+| org/dev_ta | 7333 | 63984 | 84.3 | 13.7 | 2.0 | 3.1 | 18.8 | 63.6  |
 
 ### CER
 
 | dataset    | Snt  | Wrd    | Corr | Sub | Del | Ins | Err | S.Err |
 | ---------- | ---- | ------ | ---- | --- | --- | --- | --- | ----- |
-| org/dev_ta | 7333 | 575072 | 97.3 | 1.3 | 1.4 | 0.8 | 3.5 | 66.4  |
+| org/dev_ta | 7333 | 575072 | 97.7 | 1.1 | 1.2 | 0.8 | 3.0 | 63.6  |
 
 ### TER
 
-| dataset    | Snt  | Wrd    | Corr | Sub | Del | Ins | Err  | S.Err |
-| ---------- | ---- | ------ | ---- | --- | --- | --- | ---- | ----- |
-| org/dev_ta | 7333 | 177116 | 90.1 | 6.7 | 3.2 | 1.2 | 11.2 | 66.4  |
+| dataset    | Snt  | Wrd    | Corr | Sub | Del | Ins | Err | S.Err |
+| ---------- | ---- | ------ | ---- | --- | --- | --- | --- | ----- |
+| org/dev_ta | 7333 | 177116 | 91.2 | 5.8 | 3.0 | 1.1 | 9.9 | 63.6  |
