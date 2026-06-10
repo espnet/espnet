@@ -23,6 +23,15 @@ dataset:
         xvector_dir: ${xvector.save_path}/${xvector.spk_embed_tag}_test
         load_speech: true
         inference: true
+  preprocessor:
+    _target_: espnet2.train.preprocessor.CommonPreprocessor
+    fs: 22050
+    train: true
+    token_type: phn
+    token_list: ${data_dir}/tokens/phn_tokens.txt
+    text_cleaner:
+      - tacotron
+    g2p_type: espeak_ng_english_us_vits
 
 xvector:
   save_path: ${data_dir}/x_vectors

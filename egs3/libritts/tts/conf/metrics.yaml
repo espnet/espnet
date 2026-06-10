@@ -21,11 +21,11 @@ metrics:
           beam_size: 1
           text_cleaner: whisper_en
 
-      hyp_key:  hyp
+      wav_key:  wav
       ref_key:  ref
       text_key: text
       use_gpu:  true
     inputs:
-      hyp:  wav     # data["hyp"]  = inference_dir/<test_name>/wav.scp
-      ref:  ref     # data["ref"]  = inference_dir/<test_name>/ref.scp
-      text: text    # data["text"] = inference_dir/<test_name>/text.scp
+      wav:  wav     
+      ref:  ref    
+      text: text  
