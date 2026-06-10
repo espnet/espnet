@@ -557,6 +557,7 @@ class DiscreteAudioIO(AbsIO):
                 audio = audio.unsqueeze(1)
 
             # Calculate audio sample lengths from frame lengths
+            # Is this correct?
             audio_lengths = lengths * self.frame_shift
 
         elif self.codec_choice == "Xcodec":
