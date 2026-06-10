@@ -1,0 +1,9 @@
+beam_size: 5 # 10 produces slightly better results.
+beam_search_config:
+    search_type: maes
+    nstep: 1
+    expansion_gamma: 2.3
+    expansion_beta: 2
+streaming: True
+chunk_size: 64
+left_context: 256
