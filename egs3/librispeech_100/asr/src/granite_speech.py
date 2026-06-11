@@ -20,7 +20,8 @@ class GraniteSpeechModel(lightning.LightningModule):
         stats = {"loss": loss}
         batch_size = batch["input_ids"].shape[0]
 
-        loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
+        loss, stats, weight = force_gatherable(
+            (loss, stats, batch_size), loss.device)
         return loss, stats, weight
 
     def collect_feats(self, **batch):
@@ -32,12 +33,7 @@ class GraniteSpeechModel(lightning.LightningModule):
 class GraniteSpeechInferenceSession(lightning.LightningModule):
     def __init__(self, model_tag: str, user_prompt: str, checkpoint_path: str | None = None, **kwargs):
         super().__init__()
-        if checkpoint_path:
-            self.model = GraniteSpeechModel.load_from_checkpoint(
-                checkpoint_path, model_tag=model_tag, user_prompt=user_prompt)
-        else:
-            self.model = GraniteSpeechModel(model_tag, user_prompt)
-
+        self.model = AutoModelForSpeechSeq2Seq.from_pretrained(checkpoint_path or model_tag)
         self.processor = AutoProcessor.from_pretrained(model_tag)
         self.tokenizer = self.processor.tokenizer
 
@@ -50,7 +46,7 @@ class GraniteSpeechInferenceSession(lightning.LightningModule):
     def forward(self, speech):
         inputs = self.processor(self.prompt, speech,
                                 return_tensors="pt").to(self.model.device)
-        outputs = self.model.model.generate(
+        outputs = self.model.generate(
             **inputs, max_new_tokens=200, do_sample=False, num_beams=1)
 
         num_input_tokens = inputs["input_ids"].shape[-1]
@@ -99,7 +95,8 @@ class GraniteSpeechCollateFn:
 
         labels = targets.input_ids.clone()
         labels[~(targets.attention_mask.bool())] = -100
-        labels = torch.cat([torch.full_like(inputs.input_ids, -100), labels], dim=1)
+        labels = torch.cat(
+            [torch.full_like(inputs.input_ids, -100), labels], dim=1)
 
         batch = {
             "input_ids": input_ids,
