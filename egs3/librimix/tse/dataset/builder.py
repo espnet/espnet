@@ -83,12 +83,12 @@ def resolve_librispeech_root(data_dir: str | Path) -> Path | None:
 
 
 def iter_source_candidates(
-    recipe_root: Path,
+    recipe_root: str | Path,
     source_dir: str | Path | None,
     key: str = "source_env_var",
 ) -> Iterable[Path]:
     """Yield candidate directories that may contain LibriSpeech."""
-    yield recipe_root / _CFG["dataset_path"]
+    yield Path(recipe_root) / _CFG["dataset_path"]
 
     if source_dir is not None:
         yield Path(source_dir)
