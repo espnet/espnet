@@ -206,7 +206,7 @@ def _prepare_wham_noise(
     """Ensure a WHAM! noise directory is available and return its path."""
     logger.info("Preparing WHAM! noise data...")
     if wham_noise is None:
-        wham_noise = dataset_dir / "data/wham_noise"
+        wham_noise = dataset_dir / "wham_noise"
         if wham_noise.exists():
             logger.info(f"Using existing noise data: {wham_noise}.")
             return wham_noise
@@ -283,8 +283,13 @@ def _augment_wham_noise(wham_noise_dir: Path, librimix_root: Path, logger) -> No
         str(wham_noise_dir),
     ]
     logger.info(f"Running: {' '.join(command)}")
-    result = subprocess.run(command, capture_output=True, text=True, check=True)
+    result = subprocess.run(command, capture_output=True, text=True, check=False)
     logger.info(result.stdout)
+    if result.returncode != 0:
+        logger.error(result.stderr)
+        raise RuntimeError(
+            f"Noise augmentation script failed with return code {result.returncode}"
+        )
     os.chdir(cwd)
 
 
@@ -300,6 +305,10 @@ def _simulate_librimix(
     """Run the LibriMix mixture-simulation script."""
     logger.info(f"Simulating Libri{num_spk}Mix ({mode} mode, {fs} Hz)...")
 
+    if librimix_outdir.exists():
+        logger.info(f"Delting existing simulation output directory: {librimix_outdir}")
+        shutil.rmtree(librimix_outdir)
+
     env_var = str(_CFG["source_env_var"])
     librispeech_dir = os.environ.get(env_var, "")
     if not librispeech_dir or resolve_librispeech_root(librispeech_dir) is None:
@@ -308,6 +317,9 @@ def _simulate_librimix(
             "Please point it to the LibriSpeech dataset root."
         )
 
+    librispeech_dir = str(Path(librispeech_dir).absolute())
+    wham_dir = str(wham_noise_dir.absolute())
+    librimix_outdir = str(librimix_outdir.absolute())
     cwd = os.getcwd()
     os.chdir(librimix_root)
     args_to_pass = [
@@ -316,13 +328,13 @@ def _simulate_librimix(
         librispeech_dir,
         # WHAM! noise as noise sources
         "--wham_dir",
-        str(wham_noise_dir),
+        wham_dir,
         # Simulation configs
         "--metadata_dir",
         f"metadata/Libri{num_spk}Mix",
         # Simulation output directory
         "--librimix_outdir",
-        str(librimix_outdir),
+        librimix_outdir,
         # Number of speakers per utterance in the simulated mixtures
         "--n_src",
         str(num_spk),
@@ -347,8 +359,13 @@ def _simulate_librimix(
         "scripts/create_librimix_from_metadata.py",
     ] + args_to_pass
     logger.info(f"Running: {' '.join(command)}")
-    result = subprocess.run(command, capture_output=True, text=True, check=True)
+    result = subprocess.run(command, capture_output=True, text=True, check=False)
     logger.info(result.stdout)
+    if result.returncode != 0:
+        logger.error(result.stderr)
+        raise RuntimeError(
+            f"LibriMix simulation script failed with return code {result.returncode}"
+        )
     os.chdir(cwd)
 
 

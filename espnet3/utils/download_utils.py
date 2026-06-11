@@ -133,7 +133,7 @@ def download_url(
         step_percent=step_percent,
     )
 
-    _log(logger, f"Start download: {dst_path.name}")
+    _log(logger, f"Start download: {dst_path.name} ({url})")
     _log(logger, f"Target directory: {dst_path.parent.resolve()}")
     urllib.request.urlretrieve(url, dst_path, reporthook=progress)
     _log(logger, f"Download completed: {dst_path.name}")
