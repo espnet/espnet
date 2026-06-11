@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import tarfile
 import urllib.request
+import zipfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
@@ -132,7 +133,7 @@ def download_url(
         step_percent=step_percent,
     )
 
-    _log(logger, f"Start download: {dst_path.name}")
+    _log(logger, f"Start download: {dst_path.name} ({url})")
     _log(logger, f"Target directory: {dst_path.parent.resolve()}")
     urllib.request.urlretrieve(url, dst_path, reporthook=progress)
     _log(logger, f"Download completed: {dst_path.name}")
@@ -156,3 +157,14 @@ def extract_targz(
     _log(logger, f"Extracting: {archive_path.name}")
     with tarfile.open(archive_path, "r:gz") as tar:
         tar.extractall(path=dst_dir)
+
+
+def extract_zip(
+    archive_path: Path,
+    dst_dir: Path,
+    logger: logging.Logger | None = None,
+) -> None:
+    """Extract a .zip archive into ``dst_dir``."""
+    _log(logger, f"Extracting: {archive_path.name}")
+    with zipfile.ZipFile(archive_path, "r") as zip_ref:
+        zip_ref.extractall(dst_dir)

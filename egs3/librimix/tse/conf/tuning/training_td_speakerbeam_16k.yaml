@@ -1,0 +1,165 @@
+##########################################################
+#                    TRAINING SETTING                    #
+##########################################################
+# Quick usage:
+#   python run.py --stages create_dataset --training_config conf/training.yaml
+#   python run.py --stages train          --training_config conf/training.yaml
+#
+
+##########################################################
+#                  SYSTEM AND PATH SETTING               #
+##########################################################
+# `recipe_dir`, `data_dir`, `exp_tag`, `exp_dir`, and `stats_dir` are inherited
+# from the TEMPLATE config. In particular, `exp_tag` follows `${self_name:}`.
+task: espnet3.systems.tse.task.TSETask
+
+##########################################################
+#                    DATASET DEFINITION                  #
+##########################################################
+# This recipe uses `${recipe_dir}/dataset/__init__.py` in the same way as
+# `mini_an4`, so `data_src` is omitted and only `data_src_args` is forwarded.
+dataset:
+  train:
+    - data_src_args:
+        split: 2mix_16k_max_train_mix-clean
+        ignore_key_prefix: ["text_spk", "utt_id", "num_spk"]
+        use_espnet2_preprocessor: true
+  valid:
+    - data_src_args:
+        split: 2mix_16k_max_dev_mix-clean
+        ignore_key_prefix: ${dataset.train[0].data_src_args.ignore_key_prefix}
+        use_espnet2_preprocessor: ${dataset.train[0].data_src_args.use_espnet2_preprocessor}
+    - data_src_args:
+        split: 2mix_16k_max_test_mix-clean
+        ignore_key_prefix: ${dataset.train[0].data_src_args.ignore_key_prefix}
+        use_espnet2_preprocessor: ${dataset.train[0].data_src_args.use_espnet2_preprocessor}
+  preprocessor:
+    _target_: espnet2.train.preprocessor.TSEPreprocessor
+    train: true
+    train_spk2enroll: ${data_dir}/2mix_16k_max_train_mix-both/spk2enroll.json
+    enroll_segment: 48000
+    load_spk_embedding: false
+    load_all_speakers: true
+    num_spk: ${model.model_conf.num_spk}
+
+create_dataset:
+  recipe_dir: ${recipe_dir}
+
+##########################################################
+#                      MODEL SETTING                     #
+##########################################################
+model:
+  # Model definition for TD-SpeakerBeam based TSE
+  encoder: conv
+  encoder_conf:
+      channel: 256
+      kernel_size: 32
+      stride: 16
+  decoder: conv
+  decoder_conf:
+      channel: 256
+      kernel_size: 32
+      stride: 16
+  extractor: td_speakerbeam
+  extractor_conf:
+      layer: 8
+      stack: 4
+      bottleneck_dim: 256
+      hidden_dim: 512
+      skip_dim: 256
+      kernel: 3
+      causal: False
+      norm_type: gLN
+      pre_nonlinear: prelu
+      nonlinear: linear
+      # enrollment related
+      i_adapt_layer: 7
+      adapt_layer_type: mul
+      adapt_enroll_dim: 256
+      use_spk_emb: false
+
+  model_conf:
+    num_spk: 2
+    share_encoder: true
+
+  criterions:
+    - name: snr
+      conf:
+        eps: 1.0e-7
+      wrapper: fixed_order
+      wrapper_conf:
+        weight: 1.0
+
+##########################################################
+#            OPTIMIZER & SCHEDULER SETTING               #
+##########################################################
+# Optimizer and scheduler follow the template defaults.
+optimizer:
+  _target_: torch.optim.Adam
+  lr: 1.0e-03
+  eps: 1.0e-08
+  weight_decay: 0
+
+
+scheduler:
+  _target_: torch.optim.lr_scheduler.StepLR
+  step_size: 200_000  # steps
+  gamma: 0.98
+
+##########################################################
+#                OTHER TRAINING SETTING                  #
+##########################################################
+best_model_criterion:
+  - - valid/loss
+    - 3
+    - min
+
+##########################################################
+#                   DATALOADER SETTING                   #
+##########################################################
+dataloader:
+  train:
+    iter_factory:
+      _target_: espnet2.iterators.chunk_iter_factory.ChunkIterFactory
+      shuffle: true
+      batch_size: 4
+      chunk_length: 48000
+      chunk_shift_ratio: 0.5
+      # exclude keys "enroll_ref", "enroll_ref1", "enroll_ref2", ...
+      # from the length consistency check in ChunkIterFactory
+      excluded_key_prefixes:
+        - "enroll_ref"
+      num_workers: 4
+      batches:
+        type: unsorted
+        shape_files:
+          - ${stats_dir}/train/feats_shape
+        batch_size: 1
+        batch_bins: -1
+
+##########################################################
+#                    TRAINER SETTING                     #
+##########################################################
+trainer:
+  devices: 1
+  num_nodes: 1
+  accumulate_grad_batches: 1
+  check_val_every_n_epoch: 1
+  gradient_clip_val: 5.0
+  log_every_n_steps: 100
+  max_epochs: 100
+  precision: 32 # https://lightning.ai/docs/pytorch/stable/common/trainer.html#precision
+  limit_train_batches: 1.0
+
+  logger:
+    - _target_: lightning.pytorch.loggers.TensorBoardLogger
+      save_dir: ${exp_dir}/tensorboard
+      name: tb_logger
+
+  strategy: ddp_find_unused_parameters_true
+
+  # If you want to resume training use the following config.
+  # fit:
+  #   ckpt_path: ${exp_dir}/last.ckpt
+
+fit: {}
