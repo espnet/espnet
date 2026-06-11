@@ -28,14 +28,11 @@ import json
 import os
 import random
 import tempfile
-from collections import defaultdict
 from dataclasses import dataclass, fields
 from importlib import resources
-from itertools import chain
 from pathlib import Path
 from typing import Dict, List
 
-import numpy as np
 import soundfile as sf
 from torch.utils.data import Dataset as TorchDataset
 
@@ -85,36 +82,6 @@ class Libri3MixTSEExample:
     text_spk2: str
     text_spk3: str
     num_spk: int = 3
-
-
-def get_spk2utt_librimix(paths, audio_format="wav"):
-    """Build a speaker-to-utterance mapping from LibriMix audio directories."""
-    spk2utt = defaultdict(list)
-    for path in paths:
-        path_ = Path(path)
-        if path_.stem in (
-            "mix_both",
-            "mix_clean",
-            "mix_single",
-            "noise",
-            "s1",
-            "s2",
-            "s3",
-        ):
-            path_ = path_.parent
-        for audio in chain(
-            path_.rglob("s1/*.{}".format(audio_format)),
-            path_.rglob("s2/*.{}".format(audio_format)),
-            path_.rglob("s3/*.{}".format(audio_format)),
-        ):
-            spk_idx = int(audio.parent.stem[1:]) - 1
-            mix_uid = audio.stem
-            uid = mix_uid.split("_")[spk_idx]
-            sid = uid.split("-")[0]
-            spk2utt[sid].append((uid, str(audio)))
-
-    assert len(spk2utt) > 0, (paths, audio_format)
-    return spk2utt
 
 
 def _check_missing_files(folder: Path, split: str, num_spk: int) -> bool:
@@ -365,19 +332,10 @@ class LibriMixTSEDataset(TorchDataset):
             # Training: pick enrollment samples randomly on the fly.
             # Cache the speaker→utterance map in a JSON file for speed.
             enroll_json = self.librimix_root / self.split / "spk2enroll.json"
-            if enroll_json.exists():
-                with enroll_json.open("r", encoding="utf-8") as f:
-                    self.spk2enroll = json.load(f)
-                assert len(self.spk2enroll) > 0, enroll_json
-            else:
-                self.spk2enroll = get_spk2utt_librimix(
-                    [
-                        self.split_dir / self.partition.replace("train", sset)
-                        for sset in ["train-100", "train-360"]
-                    ]
-                )
-                with enroll_json.open("w", encoding="utf-8") as f:
-                    json.dump(self.spk2enroll, f)
+            assert enroll_json.exists(), enroll_json
+            with enroll_json.open("r", encoding="utf-8") as f:
+                self.spk2enroll = json.load(f)
+            assert len(self.spk2enroll) > 0, enroll_json
             # Store a placeholder; actual file is chosen in __getitem__.
             for mix_id in uids:
                 utt_ids = mix_id.split("_")

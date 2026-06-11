@@ -27,12 +27,15 @@ The on-disk layout after a successful build looks like::
 
 from __future__ import annotations
 
+import json
 import os
 import shutil
 import subprocess
 import sys
 import zipfile
+from collections import defaultdict
 from importlib import resources
+from itertools import chain
 from pathlib import Path
 from typing import Iterable, Optional
 
@@ -402,6 +405,36 @@ def _prepare_librimix_transcripts(
                 f.write(f"{uid} {utt2txt[s_uid]}\n")
 
 
+def get_spk2utt_librimix(paths, audio_format="wav"):
+    """Build a speaker-to-utterance mapping from LibriMix audio directories."""
+    spk2utt = defaultdict(list)
+    for path in paths:
+        path_ = Path(path)
+        if path_.stem in (
+            "mix_both",
+            "mix_clean",
+            "mix_single",
+            "noise",
+            "s1",
+            "s2",
+            "s3",
+        ):
+            path_ = path_.parent
+        for audio in chain(
+            path_.rglob("s1/*.{}".format(audio_format)),
+            path_.rglob("s2/*.{}".format(audio_format)),
+            path_.rglob("s3/*.{}".format(audio_format)),
+        ):
+            spk_idx = int(audio.parent.stem[1:]) - 1
+            mix_uid = audio.stem
+            uid = mix_uid.split("_")[spk_idx]
+            sid = uid.split("-")[0]
+            spk2utt[sid].append((uid, str(audio)))
+
+    assert len(spk2utt) > 0, (paths, audio_format)
+    return spk2utt
+
+
 def _prepare_librimix_data(
     dataset_dir: Path,
     librimix_outdir: Path,
@@ -482,6 +515,17 @@ def _prepare_librimix_data(
             _prepare_librimix_transcripts(outdir, uids, splits, num_spk)
             logger.info(f"    Prepared {outdir} ({len(uids)} utterances).")
 
+            if dset == "train":
+                spk2enroll = get_spk2utt_librimix(
+                    [
+                        data_dir.parent / dset.replace("train", sset) / typ
+                        for sset in ["train-100", "train-360"]
+                    ]
+                )
+                enroll_json = outdir / "spk2enroll.json"
+                with enroll_json.open("w", encoding="utf-8") as f:
+                    json.dump(spk2enroll, f)
+
         if dset != "train" or outdir is None:
             continue
 
@@ -526,6 +570,11 @@ def _prepare_librimix_data(
                         for line in fin:
                             if line.split(maxsplit=1)[0] in sub_uids:
                                 fout.write(line)
+
+            spk2enroll = get_spk2utt_librimix([data_dir.parent / sset / typ])
+            enroll_json = sub_outdir / "spk2enroll.json"
+            with enroll_json.open("w", encoding="utf-8") as f:
+                json.dump(spk2enroll, f)
 
 
 def _build_librimix(
