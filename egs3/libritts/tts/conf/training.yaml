@@ -254,7 +254,7 @@ best_model_criterion:
   - - valid/generator/loss
     - 1
     - min
-  
+
 dataloader:
   collate_fn:
     _target_: espnet2.train.collate_fn.CommonCollateFn
@@ -311,6 +311,6 @@ trainer:
     save_dir: ${exp_dir}
     log_model: false
     id: ${exp_tag}
-    resume: allow 
+    resume: allow
 
 fit: {}
