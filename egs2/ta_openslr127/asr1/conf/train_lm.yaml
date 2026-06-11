@@ -1,14 +1,15 @@
+lm: seq_rnn
 lm_conf:
-    nlayers: 2
-    unit: 650
-optim: sgd        # or adam
+  nlayers: 2
+  unit: 650
+optim: sgd
 batch_type: folded
-batch_size: 64    # batch size in LM training
-max_epoch: 20     # if the data size is large, we can reduce this
+batch_size: 64
+max_epoch: 20
 patience: 3
 
 best_model_criterion:
--   - valid
+  - - valid
     - loss
     - min
 keep_nbest_models: 1

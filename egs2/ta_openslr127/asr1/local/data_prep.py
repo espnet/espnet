@@ -41,8 +41,7 @@ def collect_split(corpus, split):
             continue
 
         spk = get_speaker_id(basename)
-        # Kaldi requires utt_id to sort under its speaker; basename already starts
-        # with spk in the expected naming, otherwise prefix it explicitly.
+
         utt_id = basename if basename.startswith(spk) else f"{spk}-{basename}"
         utt2info[utt_id] = (spk, os.path.abspath(wav_path), text)
 
