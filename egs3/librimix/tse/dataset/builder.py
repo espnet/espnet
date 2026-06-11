@@ -274,6 +274,7 @@ def _prepare_librimix_scripts(
 def _augment_wham_noise(wham_noise_dir: Path, librimix_root: Path, logger) -> None:
     """Run the LibriMix noise-augmentation script."""
     logger.info("Augmenting WHAM! noise for LibriMix simulation...")
+    wham_noise_dir = wham_noise_dir.absolute()
     cwd = os.getcwd()
     os.chdir(librimix_root)
     command = [
