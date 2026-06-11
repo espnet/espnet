@@ -54,7 +54,7 @@ xvector:
     - test
 
 remove_long_short:
-  min_wav_duration: 0.1
+  min_wav_duration: 1.0
   max_wav_duration: 20.0
   splits: [train, valid, test]
   manifest_paths:
@@ -63,7 +63,7 @@ remove_long_short:
     test: ${data_dir}/manifest/test.tsv
   save_path: ${data_dir}/manifests_filtered
 
-token_list:
+create_token_list:
   manifest_path: ${data_dir}/manifests_filtered/train.tsv
   save_path: ${data_dir}/tokens
   filename: phn_tokens.txt
@@ -254,33 +254,39 @@ best_model_criterion:
   - - valid/generator/loss
     - 1
     - min
-
+  
 dataloader:
   collate_fn:
     _target_: espnet2.train.collate_fn.CommonCollateFn
-    int_pad_value: -1
+    int_pad_value: 0
     float_pad_value: 0.0
-    not_sequence: [spembs, sids, lids, utt_id]
+    not_sequence: [spembs, sids, lids]
   train:
     num_shards: 1
+    num_workers: 0
     iter_factory:
       _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
       shuffle: true
       collate_fn: ${dataloader.collate_fn}
       batches:
         type: numel
+        batch_size: 1          # required by signature, unused for "numel"
+        min_batch_size: 4
         shape_files:
           - ${stats_dir}/train/speech_shape
           - ${stats_dir}/train/text_shape
-        batch_bins: 5000000
+        batch_bins: 3000000
   valid:
     num_shards: 1
+    num_workers: 0
     iter_factory:
       _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
       shuffle: false
       collate_fn: ${dataloader.collate_fn}
       batches:
         type: ${dataloader.train.iter_factory.batches.type}
+        batch_size: 1          # required by signature, unused for "numel"
+        min_batch_size: 4
         shape_files:
           - ${stats_dir}/valid/speech_shape
           - ${stats_dir}/valid/text_shape
@@ -295,9 +301,16 @@ trainer:
   log_every_n_steps: 50
   max_epochs: 1000
   strategy: auto
-  gradient_clip_val: null   # disallowed at trainer level for multi-optimizer; set per-optimizer below
   gan:
     generator_first: false
     skip_discriminator_prob: 0.0
+  logger:
+    _target_: lightning.pytorch.loggers.WandbLogger
+    project: espnet3-libritts-vits
+    name: ${exp_tag}
+    save_dir: ${exp_dir}
+    log_model: false
+    id: ${exp_tag}
+    resume: allow 
 
 fit: {}
