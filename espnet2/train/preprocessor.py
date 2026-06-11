@@ -1958,7 +1958,7 @@ class TSEPreprocessor(EnhPreprocessor):
                     data[name] = soundfile.read(aux_audio)[0]
         else:
             for name in aux_names:
-                if data[name].startswith("*"):
+                if isinstance(data[name], str) and data[name].startswith("*"):
                     # in case of collecting stats for training data
                     data[name] = np.zeros(1, dtype=data[self.speech_name].dtype)
                 else:
