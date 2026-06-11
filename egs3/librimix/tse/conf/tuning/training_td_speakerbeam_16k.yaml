@@ -22,11 +22,17 @@ dataset:
   train:
     - data_src_args:
         split: 2mix_16k_max_train_mix-clean
+        ignore_key_prefix: ["text_spk", "utt_id", "num_spk"]
+        use_espnet2_preprocessor: true
   valid:
     - data_src_args:
         split: 2mix_16k_max_dev_mix-clean
+        ignore_key_prefix: ${dataset.train.data_src_args.ignore_key_prefix}
+        use_espnet2_preprocessor: ${dataset.train.data_src_args.use_espnet2_preprocessor}
     - data_src_args:
         split: 2mix_16k_max_test_mix-clean
+        ignore_key_prefix: ${dataset.train.data_src_args.ignore_key_prefix}
+        use_espnet2_preprocessor: ${dataset.train.data_src_args.use_espnet2_preprocessor}
   preprocessor:
     _target_: espnet2.train.preprocessor.TSEPreprocessor
     train: true

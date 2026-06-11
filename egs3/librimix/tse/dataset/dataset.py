@@ -132,6 +132,8 @@ class LibriMixTSEDataset(TorchDataset):
         ignore_key_prefix: List of key prefixes to omit from returned dicts.
             Supported keys: ``speech_mix``, ``enroll_ref{N}``,
             ``speech_ref{N}``, ``text_spk{N}``, ``utt_id``, ``num_spk``.
+        use_espnet2_preprocessor: If True, return raw strings and let the
+            ESPnet2-style preprocessor handle audio loading and feature extraction.
 
     Raises:
         ValueError: If ``split`` is not listed in ``config.yaml``.
@@ -152,7 +154,9 @@ class LibriMixTSEDataset(TorchDataset):
         recipe_dir: str | Path | None = None,
         data_dir: str | Path | None = None,
         ignore_key_prefix: List[str] | None = None,
+        use_espnet2_preprocessor: bool = False,
     ) -> None:
+        self.use_espnet2_preprocessor = use_espnet2_preprocessor
         self.split = str(split)
         if self.split not in _KNOWN_SPLITS:
             known = ", ".join(sorted(_KNOWN_SPLITS))
@@ -231,14 +235,18 @@ class LibriMixTSEDataset(TorchDataset):
         Returns:
             dict with keys (filtered by ``ignore_key_prefix``):
 
-            - ``num_spk``: ``np.ndarray`` shape ``(1,)``
-            - ``speech_mix``: ``np.float32`` waveform
-            - ``enroll_ref{N}``: ``np.float32`` enrollment waveform
-            - ``speech_ref{N}``: ``np.float32`` clean source waveform
-            - ``text_spk{N}``: transcript string
+            - ``speech_mix``: mixture audio path
+            - ``enroll_ref{N}``: audio path for enrollment waveform
+            - ``speech_ref{N}``: audio path for clean source waveform
         """
         ex = self._examples[int(idx)]
         keys = [f.name for f in fields(ex)]
+        if self.use_espnet2_preprocessor:
+            return {
+                k: getattr(ex, k)
+                for k in keys
+                if not k.startswith(self.ignore_key_prefix)
+            }
         ret = {}
         srs = []
         for k in keys:
@@ -250,7 +258,7 @@ class LibriMixTSEDataset(TorchDataset):
                 ret[k] = audio
             elif k.startswith("enroll_ref"):
                 val = getattr(ex, k)
-                if val.startswith("*"):
+                if isinstance(val, str) and val.startswith("*"):
                     # Training-time pattern: "*UID SPEAKER_ID" → random enrollment
                     cur_uid, spkid = val[1:].strip().split(maxsplit=1)
                     enroll_uid, enroll_path = random.choice(self.spk2enroll[spkid])
