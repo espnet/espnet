@@ -4,7 +4,6 @@ import logging
 
 from espnet3.systems.base.system import BaseSystem
 
-
 logger = logging.getLogger(__name__)
 
 
