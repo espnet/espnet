@@ -8,7 +8,7 @@ from contextlib import contextmanager
 from typing import Any, Callable, Generator, Iterable, Optional
 
 import torch
-from omegaconf import DictConfig
+from omegaconf import DictConfig, OmegaConf
 from tqdm import tqdm
 from typeguard import typechecked
 
@@ -119,7 +119,7 @@ def build_local_gpu_cluster(n_workers: int, options: dict) -> Client:
 
 
 @typechecked
-def set_parallel(config: DictConfig) -> None:
+def set_parallel(config: Optional[DictConfig]) -> None:
     """Set the global Dask cluster using the provided configuration.
 
     Args:
@@ -131,6 +131,11 @@ def set_parallel(config: DictConfig) -> None:
         >>> set_parallel(config)
     """
     global parallel_config
+    if config is None:
+        if parallel_config is not None:
+            config = parallel_config
+        else:
+            config = OmegaConf.create({"env": "local", "n_workers": 1, "options": {}})
     options = dict(config.options) if hasattr(config, "options") else {}
     config.options = options
     parallel_config = copy.copy(config)
