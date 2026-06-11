@@ -24,6 +24,6 @@ metrics:
       text_key: text
       use_gpu:  true
     inputs:
-      wav:  wav     
-      ref:  ref    
-      text: text  
+      wav:  wav
+      ref:  ref
+      text: text
