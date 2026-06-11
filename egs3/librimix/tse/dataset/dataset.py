@@ -241,13 +241,16 @@ class LibriMixTSEDataset(TorchDataset):
         """
         ex = self._examples[int(idx)]
         keys = [f.name for f in fields(ex)]
-        if self.use_espnet2_preprocessor:
-            return {
-                k: getattr(ex, k)
-                for k in keys
-                if not k.startswith(self.ignore_key_prefix)
-            }
         ret = {}
+        if self.use_espnet2_preprocessor:
+            for k in keys:
+                if k.startswith(self.ignore_key_prefix):
+                    continue
+                if k.startswith(("speech_mix", "speech_ref")):
+                    ret[k] = sf.read(getattr(ex, k), dtype="float32")[0]
+                else:
+                    ret[k] = getattr(ex, k)
+            return ret
         srs = []
         for k in keys:
             if k.startswith(self.ignore_key_prefix):
