@@ -37,7 +37,7 @@ if [[ ${unames} =~ Linux ]]; then
                 exit 0
             fi
         fi
-        echo "apt-get install failed or ffmpeg not found after install, falling back to download..."
+        echo "apt-based ffmpeg setup failed or ffmpeg was not found after install, falling back to download..."
     fi
 
     if [ "${unamem}" = x86_64 ]; then
