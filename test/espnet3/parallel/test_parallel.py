@@ -376,7 +376,7 @@ def test_get_client_context_auto_shutdown(local_cfg, monkeypatch):
 
     proxy = _ClientProxy(cli)
     monkeypatch.setattr(
-        "espnet3.parallel.parallel.build_client", lambda cfg=None: proxy
+        "espnet3.parallel.parallel.build_client", lambda config=None: proxy
     )
 
     with get_client(local_cfg):
@@ -401,7 +401,9 @@ def test_get_client_registers_setup_fn_via_register_plugin_fallback(
         def close(self):
             return None
 
-    monkeypatch.setattr(parallel_module, "build_client", lambda cfg=None: _ClientProxy())
+    monkeypatch.setattr(
+        parallel_module, "build_client", lambda config=None: _ClientProxy()
+    )
 
     with get_client(local_cfg, setup_fn=lambda: {"bias": 1}):
         pass

@@ -22,8 +22,16 @@ if [[ ${unames} =~ Linux ]]; then
     # (especially important in CI where many jobs may run concurrently)
     if command -v apt-get > /dev/null 2>&1; then
         echo "Trying to install ffmpeg via apt-get..."
-        if { sudo -n apt-get update -qq && sudo -n apt-get install -qq -y ffmpeg; } \
-                || apt-get install -qq -y ffmpeg; then
+        if [ "$(id -u)" = "0" ]; then
+            apt_install_cmd="apt-get install -qq -y ffmpeg"
+        elif command -v sudo > /dev/null 2>&1; then
+            apt_install_cmd="sudo -n apt-get update -qq && sudo -n apt-get install -qq -y ffmpeg"
+        else
+            apt_install_cmd=""
+            echo "Neither root nor sudo is available; falling back to direct download..."
+        fi
+
+        if [ -n "${apt_install_cmd}" ] && eval "${apt_install_cmd}"; then
             if command -v ffmpeg > /dev/null 2>&1; then
                 echo "ffmpeg installed successfully via apt-get"
                 exit 0
@@ -52,7 +60,7 @@ if [[ ${unames} =~ Linux ]]; then
             echo "Attempt ${attempt}/${max_attempts} failed for ${url}"
             if [ "${attempt}" -lt "${max_attempts}" ]; then
                 echo "Waiting ${wait}s before retry..."
-                sleep ${wait}
+                sleep "${wait}"
                 wait=$((wait * 2))
             fi
             attempt=$((attempt + 1))
