@@ -18,7 +18,6 @@ pytest.importorskip("funasr")
 
 from espnet2.asr.encoder.funasr_encoder import FunASREncoder  # noqa: E402
 
-
 # ---------------------------------------------------------------------------
 # Minimal stub that mimics the shape of a real FunASR model with an encoder
 # and an optional normalize sub-module.
@@ -96,8 +95,9 @@ def _mock_funasr(encoder, normalize=None):
         (),
         {"build_model": staticmethod(_make_build_model(encoder, normalize))},
     )
-    with patch("espnet2.asr.encoder.funasr_encoder.AutoModel", mock_cls), patch(
-        "espnet2.asr.encoder.funasr_encoder.is_funasr_available", True
+    with (
+        patch("espnet2.asr.encoder.funasr_encoder.AutoModel", mock_cls),
+        patch("espnet2.asr.encoder.funasr_encoder.is_funasr_available", True),
     ):
         yield
 
@@ -284,12 +284,12 @@ def test_model_without_encoder_raises():
         return _NoEncoderModel(), kwargs
 
     mock_cls = type("_MockAutoModel", (), {"build_model": staticmethod(_bad_build)})
-    with patch("espnet2.asr.encoder.funasr_encoder.AutoModel", mock_cls), patch(
-        "espnet2.asr.encoder.funasr_encoder.is_funasr_available", True
+    with (
+        patch("espnet2.asr.encoder.funasr_encoder.AutoModel", mock_cls),
+        patch("espnet2.asr.encoder.funasr_encoder.is_funasr_available", True),
     ):
         with pytest.raises(RuntimeError, match="encoder"):
             FunASREncoder(
                 input_size=80,
                 model_name_or_path="dummy/model",
             )
-

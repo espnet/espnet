@@ -75,9 +75,7 @@ class FunASREncoder(AbsEncoder):
 
         super().__init__()
 
-        logging.info(
-            "Loading FunASR model '%s' from hub '%s'", model_name_or_path, hub
-        )
+        logging.info("Loading FunASR model '%s' from hub '%s'", model_name_or_path, hub)
 
         build_kwargs = dict(model=model_name_or_path, hub=hub, device="cpu")
         if download_dir is not None:
@@ -99,7 +97,11 @@ class FunASREncoder(AbsEncoder):
 
         # Optionally keep the normalizer from the FunASR model.
         self.funasr_normalize = None
-        if use_normalize and hasattr(model, "normalize") and model.normalize is not None:
+        if (
+            use_normalize
+            and hasattr(model, "normalize")
+            and model.normalize is not None
+        ):
             self.funasr_normalize = copy.deepcopy(model.normalize)
             self.funasr_normalize.train()
 
