@@ -11,6 +11,8 @@ from omegaconf import OmegaConf
 from espnet3.systems.asr.system import ASRSystem
 from espnet3.utils import publication_utils as publish
 from espnet3.utils.publication_utils import (
+    _infer_local_dataset_module_ref,
+    _normalize_bundle_dataset_refs,
     _build_results_table,
     _render_readme,
     _resolve_results,
@@ -108,6 +110,31 @@ def test_resolve_results_prioritises_publication_over_metrics(tmp_path):
     result = _resolve_results(pub_cfg, met_cfg, None)
 
     assert result == pub_metrics
+
+
+def test_infer_local_dataset_module_ref_returns_recipe_tag(tmp_path):
+    recipe_root = tmp_path / "egs3" / "mini_an4" / "asr"
+    recipe_root.mkdir(parents=True)
+
+    assert _infer_local_dataset_module_ref(recipe_root) == "mini_an4/asr"
+
+
+def test_normalize_bundle_dataset_refs_sets_missing_data_src(tmp_path):
+    recipe_root = tmp_path / "egs3" / "mini_an4" / "asr"
+    recipe_root.mkdir(parents=True)
+    config = {
+        "dataset": {
+            "test": [
+                {"name": "test", "data_src_args": {"split": "test"}},
+                {"name": "other", "data_src": "custom.module"},
+            ]
+        }
+    }
+
+    normalized = _normalize_bundle_dataset_refs(config, recipe_root)
+
+    assert normalized["dataset"]["test"][0]["data_src"] == "mini_an4/asr"
+    assert normalized["dataset"]["test"][1]["data_src"] == "custom.module"
 
 
 # ---------------------------------------------------------------------------

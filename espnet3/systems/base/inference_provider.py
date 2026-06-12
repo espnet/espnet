@@ -219,6 +219,11 @@ class InferenceProvider(EnvironmentProvider, ABC):
             os.getenv("CUDA_VISIBLE_DEVICES"),
             torch.cuda.device_count() if torch.cuda.is_available() else 0,
         )
+        # Match ESPnet2 packaged-model loading, where bare relative paths in
+        # copied training configs resolve from the bundle root.
+        recipe_dir = getattr(config, "recipe_dir", None)
+        if recipe_dir:
+            os.chdir(str(recipe_dir))
         return instantiate(config.model, device=device)
 
     @staticmethod
