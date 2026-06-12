@@ -480,9 +480,7 @@ def _normalize_inherited_readme_path(
             "src/demo_readme_template.md",
         ):
             return
-        pack_cfg.readme = (
-            package_root / "src" / "demo_readme_template.md"
-        ).as_posix()
+        pack_cfg.readme = (package_root / "src" / "demo_readme_template.md").as_posix()
 
 
 def _infer_default_package_from_config_path(config_path: Path) -> str | None:
