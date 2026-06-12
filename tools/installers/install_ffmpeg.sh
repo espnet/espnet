@@ -23,7 +23,7 @@ if [[ ${unames} =~ Linux ]]; then
     if command -v apt-get > /dev/null 2>&1; then
         echo "Trying to install ffmpeg via apt-get..."
         if [ "$(id -u)" = "0" ]; then
-            apt_install_cmd="apt-get install -qq -y ffmpeg"
+            apt_install_cmd="apt-get update -qq && apt-get install -qq -y ffmpeg"
         elif command -v sudo > /dev/null 2>&1; then
             apt_install_cmd="sudo -n apt-get update -qq && sudo -n apt-get install -qq -y ffmpeg"
         else
