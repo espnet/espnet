@@ -48,6 +48,7 @@ class BeamSearch(torch.nn.Module):
         return_hs: bool = False,
         hyp_primer: List[int] = None,
         normalize_length: bool = False,
+        inference_lf_trick: bool = False,
     ):
         """Initialize beam search.
 
@@ -119,6 +120,7 @@ class BeamSearch(torch.nn.Module):
         )
         self.return_hs = return_hs
         self.normalize_length = normalize_length
+        self.inference_lf_trick = inference_lf_trick
 
     def set_hyp_primer(self, hyp_primer: List[int] = None) -> None:
         """Set the primer sequence for decoding.
