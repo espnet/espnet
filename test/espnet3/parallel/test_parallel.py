@@ -459,7 +459,7 @@ def test_parallel_map_registers_setup_fn_via_register_plugin_fallback(monkeypatc
         def cancel(self, futures):
             return None
 
-    out = parallel_map.__wrapped__(
+    out = parallel_map(
         lambda x: x + 1,
         [1, 2, 3],
         client=_ClientProxy(),
