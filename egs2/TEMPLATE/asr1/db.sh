@@ -194,6 +194,7 @@ MALAYALAM=downloads
 ST_CMDS=downloads
 MS_INDIC_IS18=
 MARATHI=downloads
+TAMIL=downloads
 MLS=downloads
 VOXPOPULI=downloads
 HARPERVALLEY=downloads
