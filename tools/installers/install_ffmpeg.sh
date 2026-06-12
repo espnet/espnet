@@ -43,12 +43,12 @@ if [[ ${unames} =~ Linux ]]; then
         local max_attempts=3
         local attempt=1
         local wait=5
-        while [ ${attempt} -le ${max_attempts} ]; do
+        while [ "${attempt}" -le "${max_attempts}" ]; do
             if wget --no-check-certificate --trust-server-names -O "${output}" "${url}"; then
                 return 0
             fi
             echo "Attempt ${attempt}/${max_attempts} failed for ${url}"
-            if [ ${attempt} -lt ${max_attempts} ]; then
+            if [ "${attempt}" -lt "${max_attempts}" ]; then
                 echo "Waiting ${wait}s before retry..."
                 sleep ${wait}
                 wait=$((wait * 2))
