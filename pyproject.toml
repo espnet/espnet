@@ -25,32 +25,19 @@ license = { "text" = "Apache Software License" }
 # We didn't specify torch-related packages as it highly depends on environment.
 dependencies = [
     # ESPnet-2 and ESPnet-3 dependencies
-    "setuptools>=38.5.1,<74.0.0",
-    "configargparse>=1.2.1",
-    "packaging",
     "typeguard",
     "humanfriendly",
-    "scipy>=1.4.1",
-    "numpy>=2.0.0",
-    "PyYAML>=5.1.2",
-    "soundfile>=0.10.2",
-    "torch_optimizer",
     "kaldiio>=2.18.0",
-    "sentencepiece==0.2.1",
     "librosa>=0.10.2",
     "lightning",
     "torch_complex",
     "tensorboard>=1.14",
     "einops",
-    "lhotse",
     "espnet_model_zoo",
     "matplotlib",
-    "nltk>=3.4.5",
 
     # ESPnet-3 related
     "hydra-core",
-    "omegaconf",
-    "datasets",
     "dask[distributed]",
     "dask_jobqueue",
     "torch>=2.3.1",
@@ -79,6 +66,7 @@ egs3 = ["egs3/TEMPLATE/**/*.yaml"]
 
 [project.optional-dependencies]
 asr = [
+  "sentencepiece==0.2.1",
   "ctc-segmentation @ git+https://github.com/espnet/ctc-segmentation.git@9b9ea1d",
   "editdistance",
   "opt_einsum",
@@ -86,6 +74,7 @@ asr = [
 ]
 
 tts = [
+  "sentencepiece==0.2.1",
   "pyworld>=0.3.4",
   "pypinyin<=0.44.0",
   "espnet_tts_frontend",
@@ -100,19 +89,30 @@ enh = [
 ]
 
 asr2 = [
+  "sentencepiece==0.2.1",
   "editdistance",
 ]
 
+mt = [
+  "sentencepiece==0.2.1",
+  "nltk>=3.4.5",
+]
+
 s2st = [
+  "sentencepiece==0.2.1",
   "editdistance",
+  "nltk>=3.4.5",
   "s3prl @ git+https://github.com/espnet/s3prl.git@572af70",
 ]
 
 st = [
+  "sentencepiece==0.2.1",
   "editdistance",
+  "nltk>=3.4.5",
 ]
 
 s2t = [
+  "sentencepiece==0.2.1",
   "editdistance",
 ]
 
@@ -143,12 +143,14 @@ egs2 = [
 # `pip install espnet[speechlm]` pulls them, but they are not imported at
 # module load time in the hot path, so CPU-only installs still succeed.
 speechlm = [
+  "sentencepiece==0.2.1",
   "psutil",
   "transformers==5.0.0rc3",
   "huggingface-hub",
   "joblib",
   "polars",
   "duckdb",
+  "lhotse",
   # torchtitan (distributed training) and liger-kernel (CUDA Triton
   # kernels) are Linux+CUDA only. Leave them off Windows/macOS so
   # `pip install espnet[all]` doesn't spend minutes backtracking
@@ -192,6 +194,7 @@ doc = [
 
 all = [
   "espnet[asr]",
+  "espnet[mt]",
   "espnet[tts]",
   "espnet[enh]",
   "espnet[spk]",
