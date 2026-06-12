@@ -142,8 +142,10 @@ class InferenceRunner(BaseRunner):
         if "input_key" not in kwargs:
             raise RuntimeError("input_key must be provided for inference.")
         input_key = kwargs["input_key"]
-        output_fn_path = kwargs.get("output_fn_path")
-        output_fn = _load_output_fn(output_fn_path) if output_fn_path else None
+        output_fn = kwargs.get("output_fn")
+        if output_fn is None:
+            output_fn_path = kwargs.get("output_fn_path")
+            output_fn = _load_output_fn(output_fn_path) if output_fn_path else None
 
         keys = (
             list(input_key)
