@@ -2515,7 +2515,10 @@ class AbsTask(ABC):
                 )
             except RuntimeError:
                 # Note(simpleoier): the following part is to be compatible with
-                #   pretrained model using earlier versions before `0a625088`
+                #   pretrained model using earlier versions before `0a625088`.
+                #   This RuntimeError is raised by model.load_state_dict above
+                #   (due to key mismatches), not by safe_torch_load.  We reload
+                #   the file here to apply legacy key renaming before retrying.
                 state_dict = safe_torch_load(
                     model_file, map_location="cpu" if device == "mps" else device
                 )

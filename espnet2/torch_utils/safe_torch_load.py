@@ -1,6 +1,7 @@
 """Safe wrapper for torch.load that defaults to weights_only=True."""
 
 import logging
+import pickle
 import warnings
 from pathlib import Path
 from typing import Union
@@ -33,13 +34,20 @@ def safe_torch_load(
 
     Returns:
         The deserialized checkpoint object.
+
+    Raises:
+        OSError: If the file cannot be opened (propagated without fallback).
+        Any other exception not related to pickle deserialization is re-raised.
     """
     # Remove any caller-supplied weights_only to enforce our policy.
     kwargs.pop("weights_only", None)
 
     try:
         return torch.load(path, map_location=map_location, weights_only=True, **kwargs)
-    except Exception as e:
+    except (pickle.UnpicklingError, RuntimeError, TypeError, AttributeError) as e:
+        # These exceptions are raised when weights_only=True rejects non-tensor
+        # objects in the checkpoint.  OSError/FileNotFoundError/PermissionError
+        # are intentionally NOT caught here and will propagate to the caller.
         warnings.warn(
             f"torch.load with weights_only=True failed for '{path}' ({type(e).__name__}: {e}). "
             "Falling back to weights_only=False.  This is potentially unsafe if the "
