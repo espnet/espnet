@@ -55,6 +55,7 @@ from espnet2.schedulers.warmup_step_lr import WarmupStepLR
 from espnet2.torch_utils.load_pretrained_model import load_pretrained_model
 from espnet2.torch_utils.model_summary import model_summary
 from espnet2.torch_utils.pytorch_version import pytorch_cudnn_version
+from espnet2.torch_utils.safe_torch_load import safe_torch_load
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.train.class_choices import ClassChoices
@@ -2497,10 +2498,9 @@ class AbsTask(ABC):
                 #   in PyTorch<=1.4
                 device = f"cuda:{torch.cuda.current_device()}"
             try:
-                state_dict = torch.load(
+                state_dict = safe_torch_load(
                     model_file,
                     map_location="cpu" if device == "mps" else device,
-                    weights_only=False,
                 )
                 # for deepspeed checkpoints
                 if "module" in state_dict:
@@ -2516,7 +2516,7 @@ class AbsTask(ABC):
             except RuntimeError:
                 # Note(simpleoier): the following part is to be compatible with
                 #   pretrained model using earlier versions before `0a625088`
-                state_dict = torch.load(
+                state_dict = safe_torch_load(
                     model_file, map_location="cpu" if device == "mps" else device
                 )
                 if any(["frontend.upstream.model" in k for k in state_dict.keys()]):

@@ -15,6 +15,7 @@ from lightning.pytorch.callbacks import (
 )
 from typeguard import typechecked
 
+from espnet2.torch_utils.safe_torch_load import safe_torch_load
 from espnet3.utils.logging_utils import log_component
 
 _LOGGED_CALLBACKS = False
@@ -120,8 +121,8 @@ class AverageCheckpointsCallback(Callback):
                 avg_state_dict = None
                 reference_keys = None
                 for ckpt_path in checkpoints:
-                    state_dict = torch.load(
-                        ckpt_path, map_location="cpu", weights_only=False
+                    state_dict = safe_torch_load(
+                        ckpt_path, map_location="cpu"
                     )
 
                     # for deepspeed checkpoints
