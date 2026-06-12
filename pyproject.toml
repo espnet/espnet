@@ -83,6 +83,7 @@ asr = [
   "editdistance",
   "opt_einsum",
   "jiwer",
+  "funasr",
 ]
 
 tts = [
