@@ -44,7 +44,7 @@ model:
 ##########################################################
 optimizer:
   _target_: torch.optim.Adam
-  lr: 0.002
+  lr: 3e-5
   weight_decay: 0.000001
 
 scheduler:
@@ -81,12 +81,11 @@ dataloader:
 #                    TRAINER SETTING                     #
 ##########################################################
 trainer:
-  fast_dev_run: true
   accumulate_grad_batches: 4
   check_val_every_n_epoch: 1
   gradient_clip_val: 1.0
   log_every_n_steps: 100
-  max_epochs: 1
+  max_epochs: 200
   precision: bf16-mixed
 
   logger:
