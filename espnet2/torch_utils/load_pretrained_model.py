@@ -5,6 +5,8 @@ import torch
 import torch.nn
 import torch.optim
 
+from espnet2.torch_utils.safe_torch_load import safe_torch_load
+
 
 def filter_state_dict(
     dst_state: Dict[str, Union[float, torch.Tensor]],
@@ -96,7 +98,7 @@ def load_pretrained_model(
 
         obj = get_attr(model, dst_key)
 
-    src_state = torch.load(path, map_location=map_location, weights_only=False)
+    src_state = safe_torch_load(path, map_location=map_location)
     if "module" in src_state:
         src_state = src_state["module"]
 
