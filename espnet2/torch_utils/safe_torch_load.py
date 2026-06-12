@@ -49,10 +49,12 @@ def safe_torch_load(
         # objects in the checkpoint.  OSError/FileNotFoundError/PermissionError
         # are intentionally NOT caught here and will propagate to the caller.
         warnings.warn(
-            f"torch.load with weights_only=True failed for '{path}' ({type(e).__name__}: {e}). "
-            "Falling back to weights_only=False.  This is potentially unsafe if the "
-            "checkpoint file comes from an untrusted source.  Consider re-saving the "
-            "checkpoint with a version of ESPnet that writes weights-only-compatible files.",
+            f"torch.load with weights_only=True failed for '{path}' "
+            f"({type(e).__name__}: {e}). "
+            "Falling back to weights_only=False.  This is potentially unsafe "
+            "if the checkpoint file comes from an untrusted source.  "
+            "Consider re-saving the checkpoint with a version of ESPnet that "
+            "writes weights-only-compatible files.",
             UserWarning,
             stacklevel=2,
         )
