@@ -196,6 +196,7 @@ MS_INDIC_IS18=
 MARATHI=downloads
 TAMIL=downloads
 MLS=downloads
+MULTIMED_ST=downloads
 VOXPOPULI=downloads
 HARPERVALLEY=downloads
 TALROMUR=downloads
