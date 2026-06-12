@@ -13,11 +13,13 @@ log() {
 }
 
 nj=4                # number of parallel jobs
+ngpu=1              # number of gpus ("0" uses cpu, otherwise use gpu)
 python=python3      # Specify python to execute espnet commands.
 codec_choice=beats  # Audio Tokenizer Options: beats
+waveform_input=true # If true, input is waveform else features
 codec_fs=16000
 code_writeformat=text # ark or text
-batch_size=1        # BEATs Audio tokenizaiton supports only batch_size=1
+batch_size=4
 bias=0
 dump_audio=false
 file_name=
@@ -73,7 +75,8 @@ if [ ${checkpoint_path} ]; then
     _opts+="--checkpoint_path ${checkpoint_path} "
 fi
 
-wav_wspecifier="ark,scp:${output_dir}/${file_name}_resyn_${codec_choice}.JOB.ark,${output_dir}/${file_name}_resyn_${codec_choice}.JOB.scp"
+_opts+="--waveform_input ${waveform_input} "
+
 if [ ${code_writeformat} == "ark" ]; then
     code_wspecifier="ark,scp:${output_dir}/${file_name}_codec_${codec_choice}.JOB.ark,${output_dir}/${file_name}_codec_${codec_choice}.JOB.scp"
     _combine_filetype=scp
@@ -85,8 +88,8 @@ else
     exit 1
 fi
 
-${cuda_cmd} --gpu 1 JOB=1:${_nj} ${_logdir}/codec_dump_${codec_choice}.JOB.log \
-    ${python} pyscripts/feats/dump_codec.py \
+${cuda_cmd} --gpu ${ngpu} JOB=1:${_nj} ${_logdir}/codec_dump_${codec_choice}.JOB.log \
+    ${python} pyscripts/feats/dump_audio_tokens.py \
         --codec_choice ${codec_choice} \
         --codec_fs ${codec_fs} \
         --batch_size ${batch_size} \
@@ -94,13 +97,12 @@ ${cuda_cmd} --gpu 1 JOB=1:${_nj} ${_logdir}/codec_dump_${codec_choice}.JOB.log \
         --dump_audio ${dump_audio} \
         --rank JOB \
         --vocab_file ${tgt_dir}/token_lists/codec_token_list \
-        --wav_wspecifier ${wav_wspecifier} \
         ${_opts} \
         "scp:${_logdir}/${file_name}.JOB.scp" ${code_wspecifier} || exit 1;
 
-for n in $(seq ${_nj}); do
-    cat ${output_dir}/${file_name}_codec_${codec_choice}.${n}.${_combine_filetype} || exit 1;
-done > ${tgt_dir}/${file_name}_${codec_choice}.${_combine_filetype} || exit 1
+for n in $(seq "${_nj}"); do
+    cat "${output_dir}/${file_name}_codec_${codec_choice}.${n}.${_combine_filetype}" || exit 1;
+done > "${tgt_dir}/${file_name}_${codec_choice}.${_combine_filetype}" || exit 1
 
 if [ ${code_writeformat} == "text" ]; then
     # format text file: [ 2 4 5 6 ] -> 2 4 5 6
@@ -110,9 +112,9 @@ if [ ${code_writeformat} == "text" ]; then
 fi
 
 if ${dump_audio}; then
-    for n in $(seq ${_nj}); do
-        cat ${output_dir}/${file_name}_resyn_${codec_choice}.${n}.scp || exit 1;
-    done > ${tgt_dir}/${file_name}_resyn_${codec_choice}.scp || exit 1
+    for n in $(seq "${_nj}"); do
+        cat "${output_dir}/${file_name}_resyn_${codec_choice}.${n}.scp" || exit 1;
+    done > "${tgt_dir}/${file_name}_resyn_${codec_choice}.scp" || exit 1
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"
