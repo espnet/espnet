@@ -6,6 +6,7 @@ import types
 import pytest
 from omegaconf import OmegaConf
 
+import espnet3.parallel.parallel as parallel_module
 from espnet3.parallel.parallel import (
     DictReturnWorkerPlugin,
     build_client,
@@ -375,13 +376,41 @@ def test_get_client_context_auto_shutdown(local_cfg, monkeypatch):
 
     proxy = _ClientProxy(cli)
     monkeypatch.setattr(
-        "espnet3.parallel.parallel.build_client", lambda cfg=None: proxy
+        "espnet3.parallel.parallel.build_client", lambda config=None: proxy
     )
 
     with get_client(local_cfg):
         pass
 
     assert True
+
+
+def test_get_client_registers_setup_fn_via_register_plugin_fallback(
+    local_cfg, monkeypatch
+):
+    calls = {"register_plugin": 0}
+
+    class _ClientProxy:
+        cluster = None
+
+        def register_plugin(self, plugin, name=None):
+            calls["register_plugin"] += 1
+            calls["plugin"] = plugin
+            calls["name"] = name
+
+        def close(self):
+            return None
+
+    monkeypatch.setattr(
+        parallel_module, "build_client", lambda config=None: _ClientProxy()
+    )
+
+    with get_client(local_cfg, setup_fn=lambda: {"bias": 1}):
+        pass
+
+    assert calls["register_plugin"] == 1
+    assert isinstance(calls["plugin"], DictReturnWorkerPlugin)
+    assert calls["name"] == "env"
 
 
 def test_build_client_unknown_env_raises(local_cfg):
@@ -407,6 +436,40 @@ def test_worker_plugin_setup_must_return_dict():
     dummy_worker = types.SimpleNamespace(plugins={})
     with pytest.raises(ValueError, match="must return a dict"):
         plugin.setup(dummy_worker)
+
+
+def test_parallel_map_registers_setup_fn_via_register_plugin_fallback(monkeypatch):
+    monkeypatch.setattr(parallel_module, "_DASK_AVAILABLE", True)
+    monkeypatch.setattr(parallel_module, "wrap_func_with_worker_env", lambda func: func)
+
+    calls = {"register_plugin": 0}
+
+    class _ClientProxy:
+        def register_plugin(self, plugin, name=None):
+            calls["register_plugin"] += 1
+            calls["plugin"] = plugin
+            calls["name"] = name
+
+        def map(self, func, iterable, **kwargs):
+            return [func(item, **kwargs) for item in iterable]
+
+        def gather(self, futures):
+            return futures
+
+        def cancel(self, futures):
+            return None
+
+    out = parallel_map(
+        lambda x: x + 1,
+        [1, 2, 3],
+        client=_ClientProxy(),
+        setup_fn=lambda: {"bias": 5},
+    )
+
+    assert out == [2, 3, 4]
+    assert calls["register_plugin"] == 1
+    assert isinstance(calls["plugin"], DictReturnWorkerPlugin)
+    assert calls["name"] == "env"
 
 
 @pytest.mark.execution_timeout(30)
