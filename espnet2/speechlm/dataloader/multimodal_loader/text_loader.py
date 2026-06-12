@@ -12,11 +12,9 @@ from typing import Iterator, Tuple
 import pyarrow as pa
 
 try:
-    from arkive.text.write_utils import _decompress_text_data
+    import arkive
 except ImportError:
-    raise ImportError(
-        "arkive is not installed. Install at https://github.com/wanchichen/arkive"
-    )
+    arkive = None
 
 try:
     import duckdb
@@ -83,7 +81,7 @@ class ArkiveTextReader:
             f.seek(start_offset)
             data_bytes = f.read(file_size)
 
-        text = _decompress_text_data(data_bytes)
+        text = arkive.text.write_utils._decompress_text_data(data_bytes)
 
         return text
 
