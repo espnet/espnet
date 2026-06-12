@@ -323,10 +323,14 @@ def get_client(
     client = build_client(config)
     if setup_fn is not None:
         plugin = DictReturnWorkerPlugin(setup_fn)
-        reg = getattr(client, "register_worker_plugin", None)
+        # distributed >= 2023.3 renamed register_worker_plugin → register_plugin
+        reg = getattr(client, "register_plugin", None) or getattr(
+            client, "register_worker_plugin", None
+        )
         if reg is None:
             raise RuntimeError(
-                "This Dask version lacks register_worker_plugin; please upgrade."
+                "This Dask version lacks register_plugin; please upgrade "
+                "dask[distributed]."
             )
         reg(plugin, name="env")
     try:
@@ -372,7 +376,10 @@ def _submit_tasks(
         client = ctx.__enter__()
     elif setup_fn is not None:
         plugin = DictReturnWorkerPlugin(setup_fn)
-        getattr(client, "register_worker_plugin")(plugin, name="env")
+        reg = getattr(client, "register_plugin", None) or getattr(
+            client, "register_worker_plugin", None
+        )
+        reg(plugin, name="env")
 
     try:
         wrapped_func = wrap_func_with_worker_env(func)
