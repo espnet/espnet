@@ -121,9 +121,7 @@ class AverageCheckpointsCallback(Callback):
                 avg_state_dict = None
                 reference_keys = None
                 for ckpt_path in checkpoints:
-                    state_dict = safe_torch_load(
-                        ckpt_path, map_location="cpu"
-                    )
+                    state_dict = safe_torch_load(ckpt_path, map_location="cpu")
 
                     # for deepspeed checkpoints
                     if "module" in state_dict:

@@ -61,6 +61,4 @@ def safe_torch_load(
             "See the UserWarning above for details.",
             path,
         )
-        return torch.load(
-            path, map_location=map_location, weights_only=False, **kwargs
-        )
+        return torch.load(path, map_location=map_location, weights_only=False, **kwargs)
