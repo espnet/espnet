@@ -22,10 +22,12 @@ if [[ ${unames} =~ Linux ]]; then
     # (especially important in CI where many jobs may run concurrently)
     if command -v apt-get > /dev/null 2>&1; then
         echo "Trying to install ffmpeg via apt-get..."
-        if { sudo apt-get install -qq -y ffmpeg 2>/dev/null || apt-get install -qq -y ffmpeg 2>/dev/null; } \
-                && command -v ffmpeg > /dev/null 2>&1; then
-            echo "ffmpeg installed successfully via apt-get"
-            exit 0
+        if { sudo -n apt-get update -qq && sudo -n apt-get install -qq -y ffmpeg; } \
+                || apt-get install -qq -y ffmpeg; then
+            if command -v ffmpeg > /dev/null 2>&1; then
+                echo "ffmpeg installed successfully via apt-get"
+                exit 0
+            fi
         fi
         echo "apt-get install failed or ffmpeg not found after install, falling back to download..."
     fi
