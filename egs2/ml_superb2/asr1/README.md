@@ -7,6 +7,21 @@ This is a recipe to reproduce the baseline model for the [Interspeech 2024 ML-SU
 The baseline uses frozen SSL features from [MMS 1B](https://www.jmlr.org/papers/v25/23-1318.html), which are input into a 2-layer Transformer trained using CTC loss. It takes roughly 2 days to train on a single H100 GPU.
 We recommend allocating at least 4 CPUs and at least 32GB of RAM. If GPU OOM occurs (such as when using a 40GB VRAM GPU), you can halve the batch size and double the gradiant accumulation.
 
+## Additional CTC-only Recipes
+
+We also provide three example downstream CTC recipes using frozen MMS 1B features while keeping the number of trainable parameters below 100M:
+
+- `conf/tuning/train_mms_ctc_transformer_lr1e-4.yaml`: 24-layer Transformer encoder.
+- `conf/tuning/train_mms_ctc_conformer_12_macaron_lr1e-4.yaml`: 12-layer Conformer encoder with macaron-style feed-forward modules.
+- `conf/tuning/train_mms_ctc_e_branchformer_12_nomacaron_lr1e-4.yaml`: 12-layer E-Branchformer encoder with `macaron_ffn: false`.
+
+For example:
+```
+./run.sh --asr_config conf/tuning/train_mms_ctc_transformer_lr1e-4.yaml
+./run.sh --asr_config conf/tuning/train_mms_ctc_conformer_12_macaron_lr1e-4.yaml
+./run.sh --asr_config conf/tuning/train_mms_ctc_e_branchformer_12_nomacaron_lr1e-4.yaml
+```
+
 ## Scoring
 
 The challenge will use a custom scoring script, which considers worst language performance and CER standard deviation in addition to the typical multilingual ASR metrics of language identification accuracy and ASR CER. The exact implementation can be found in `local/score.py`, which also creates a `challenge_results.md` under your experimental directory with scores that correspond to the challenge system.
@@ -74,3 +89,26 @@ Such that `references[i]`, `lids[i]`, and `hyps[i]` should all correspond to the
 |decode_dir|Standard CER|Standard LID|Worst 15 CER|CER StD|Dialect CER|Dialect LID|
 |---|---|---|---|---|---|---|
 decode_asr_asr_model_valid.loss.ave|24.0|74.0|71.0|25.5|32.7|54.0|
+
+### Additional CTC downstream models (Frozen MMS 1B + CTC)
+
+The following models keep the number of trainable parameters below 100M.
+
+### Environments
+- date: `Mon May 25 14:53:01 JST 2026`
+- python version: `3.10.14 (tags/v3.10.14-25-ge98930d7387-dirty:e98930d7387, May 24 2024, 23:30:09) [GCC 13.2.0]`
+- espnet2 version: `espnet2 202604`
+- pytorch version: `pytorch 2.9.1+cu126`
+- Git hash: `df3a5b47239e75551a817f8c3d1f0a027a6dbcc4`
+  - Commit date: `Mon May 25 14:45:12 2026 +0900`
+
+### Pretrained models
+- Transformer: https://huggingface.co/shun3232/ml-superb2-mms-ctc-transformer-24
+- Conformer: https://huggingface.co/shun3232/ml-superb2-mms-ctc-conformer-12
+- E-Branchformer: https://huggingface.co/shun3232/ml-superb2-mms-ctc-e-branchformer-12
+
+|config|Trainable params|decode_dir|Standard CER|Standard LID|Worst 15 CER|CER StD|Dialect CER|Dialect LID|
+|---|---:|---|---:|---:|---:|---:|---:|---:|
+|`train_mms_ctc_transformer_lr1e-4.yaml`|91.12M|decode_asr_asr_model_valid.loss.ave|22.3|77.8|69.0|25.6|35.5|53.5|
+|`train_mms_ctc_conformer_12_macaron_lr1e-4.yaml`|91.25M|decode_asr_asr_model_valid.loss.ave|24.0|70.6|74.8|27.1|38.9|58.5|
+|`train_mms_ctc_e_branchformer_12_nomacaron_lr1e-4.yaml`|92.15M|decode_asr_asr_model_valid.loss.ave|22.2|77.3|72.1|26.3|34.8|63.4|
