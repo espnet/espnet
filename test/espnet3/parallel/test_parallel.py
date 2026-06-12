@@ -451,6 +451,14 @@ def test_parallel_map_registers_setup_fn_via_register_plugin_fallback(monkeypatc
         def map(self, func, iterable, **kwargs):
             return [func(item, **kwargs) for item in iterable]
 
+        def gather(self, futures):
+            return futures
+
+        def cancel(self, futures):
+            return None
+
+    monkeypatch.setattr(parallel_module, "Client", _ClientProxy)
+
     out = parallel_map(
         lambda x: x + 1,
         [1, 2, 3],
