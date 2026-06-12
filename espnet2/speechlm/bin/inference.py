@@ -137,7 +137,7 @@ def load_checkpoint(model, checkpoint_path):
         KeyError: If 'module' key is not found in checkpoint.
         RuntimeError: If checkpoint loading fails or state dict doesn't match.
     """
-    checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=True)
+    checkpoint = torch.load(checkpoint_path, map_location="cpu")
     state_dict = checkpoint["module"]
     model.load_state_dict(state_dict, strict=True)
     return model
