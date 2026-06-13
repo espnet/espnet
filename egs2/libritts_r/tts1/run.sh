@@ -30,7 +30,7 @@ g2p=g2p_en_no_space # or g2p_en
 local_data_opts="--trim_all_silence true" # trim all silence in the audio
 
 ./tts.sh \
-    --ngpu 8 \
+    --ngpu 1 \
     --lang en \
     --feats_type raw \
     --local_data_opts "${local_data_opts}" \
@@ -39,8 +39,8 @@ local_data_opts="--trim_all_silence true" # trim all silence in the audio
     --n_shift "${n_shift}" \
     --win_length "${win_length}" \
     --use_spk_embed true \
-    --spk_embed_tool kaldi \
-    --spk_embed_tag xvector \
+    --spk_embed_tool espnet \
+    --spk_embed_tag rawnet \
     --token_type phn \
     --cleaner "${cleaner}" \
     --g2p "${g2p}" \
