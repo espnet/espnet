@@ -54,7 +54,8 @@ def _download_sample_audio(tmp_dir: Path) -> Path:
         "https://download.pytorch.org/torchaudio/"
         "tutorial-assets/steam-train-whistle-daniel_simon.wav"
     )
-    urllib.request.urlretrieve(sample_url, sample_path)
+    with urllib.request.urlopen(sample_url, timeout=15) as response:
+        sample_path.write_bytes(response.read())
     return sample_path
 
 

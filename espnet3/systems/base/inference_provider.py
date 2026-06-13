@@ -223,8 +223,14 @@ class InferenceProvider(EnvironmentProvider, ABC):
         # copied training configs resolve from the bundle root.
         recipe_dir = getattr(config, "recipe_dir", None)
         if recipe_dir:
+            cwd = os.getcwd()
             os.chdir(str(recipe_dir))
-        return instantiate(config.model, device=device)
+            try:
+                return instantiate(config.model, device=device)
+            finally:
+                os.chdir(cwd)
+        else:
+            return instantiate(config.model, device=device)
 
     @staticmethod
     def _resolve_device(config: DictConfig) -> str:
