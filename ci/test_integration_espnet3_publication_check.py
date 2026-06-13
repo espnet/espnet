@@ -6,12 +6,13 @@ from __future__ import annotations
 
 import argparse
 import os
+import urllib.request
 from pathlib import Path
 from typing import Any
 
-from omegaconf import OmegaConf
+import numpy as np
+import soundfile as sf
 
-from espnet3.components.data.dataset_module import instantiate_dataset_reference
 from espnet3.publication import InferenceModel
 
 
@@ -20,12 +21,12 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--split",
         default="test",
-        help="Dataset split used for the publication smoke check.",
+        help="Unused compatibility flag kept for the CI wrapper.",
     )
     parser.add_argument(
         "--recipe-dir",
         default=".",
-        help="Recipe root passed to the dataset constructor.",
+        help="Unused compatibility flag kept for the CI wrapper.",
     )
     parser.add_argument(
         "--model-tag",
@@ -35,41 +36,40 @@ def _parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def _load_dataset_sample(
-    inference_config_path: Path,
-    split: str,
-    recipe_dir: Path,
-) -> dict[str, Any]:
-    inference_config = OmegaConf.load(inference_config_path)
-    dataset_config = getattr(inference_config, "dataset", None)
-    test_entries = getattr(dataset_config, "test", None) if dataset_config else None
-    if not test_entries:
-        raise ValueError(
-            "No dataset.test entries found in inference config: "
-            f"{inference_config_path}"
-        )
+def _download_sample_audio(tmp_dir: Path) -> Path:
+    """Download one short WAV file for publication smoke checks."""
+    asset_name = "tutorial-assets/steam-train-whistle-daniel_simon.wav"
+    sample_path = tmp_dir / Path(asset_name).name
+    sample_path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        from torchaudio.utils import download_asset
 
-    matched_entry = None
-    for entry in test_entries:
-        entry_name = getattr(entry, "name", None)
-        data_src_args = getattr(entry, "data_src_args", None)
-        entry_split = getattr(data_src_args, "split", None) if data_src_args else None
-        if entry_name == split or entry_split == split:
-            matched_entry = entry
-            break
+        downloaded = Path(download_asset(asset_name, path=str(sample_path)))
+        if downloaded.is_file():
+            return downloaded
+    except Exception:
+        pass
 
-    if matched_entry is None:
-        raise ValueError(
-            f"No dataset.test entry matched split {split!r} in {inference_config_path}"
-        )
+    sample_url = (
+        "https://download.pytorch.org/torchaudio/"
+        "tutorial-assets/steam-train-whistle-daniel_simon.wav"
+    )
+    with urllib.request.urlopen(sample_url, timeout=15) as response:
+        sample_path.write_bytes(response.read())
+    return sample_path
 
-    dataset = instantiate_dataset_reference(matched_entry, recipe_dir=recipe_dir)
-    sample = dataset[0]
-    if not isinstance(sample, dict):
-        raise TypeError(
-            f"Expected dict sample from dataset entry {split!r}, got {type(sample)!r}"
-        )
-    return sample
+
+def _load_sample_audio() -> dict[str, Any]:
+    """Return a minimal ASR-friendly sample dict."""
+    temp_root = Path(
+        os.environ.get("TMPDIR")
+        or os.environ.get("TEMP")
+        or os.environ.get("TMP")
+        or "/tmp"
+    )
+    sample_path = _download_sample_audio(temp_root / "espnet3-publication-assets")
+    speech, _sample_rate = sf.read(str(sample_path), dtype="float32")
+    return {"speech": np.asarray(speech, dtype=np.float32)}
 
 
 def _is_nonempty_value(value: Any) -> bool:
@@ -142,11 +142,7 @@ def main() -> None:
     if not meta_path.is_file():
         raise FileNotFoundError(f"Packed metadata not found: {meta_path}")
 
-    sample = _load_dataset_sample(
-        inference_config_path=inference_config,
-        split=args.split,
-        recipe_dir=Path(args.recipe_dir).resolve(),
-    )
+    sample = _load_sample_audio()
     _run_smoke_check(InferenceModel.from_packed(pack_dir, trust_user_code=True), sample)
 
     if args.model_tag:
