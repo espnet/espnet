@@ -2,8 +2,10 @@ import multiprocessing as mp
 import sys
 import time
 import types
+from unittest.mock import MagicMock
 
 import pytest
+from dask.distributed import Client
 from omegaconf import OmegaConf
 
 import espnet3.parallel.parallel as parallel_module
@@ -442,34 +444,26 @@ def test_parallel_map_registers_setup_fn_via_register_plugin_fallback(monkeypatc
     monkeypatch.setattr(parallel_module, "_DASK_AVAILABLE", True)
     monkeypatch.setattr(parallel_module, "wrap_func_with_worker_env", lambda func: func)
 
-    calls = {"register_plugin": 0}
-
-    class _ClientProxy:
-        def register_plugin(self, plugin, name=None):
-            calls["register_plugin"] += 1
-            calls["plugin"] = plugin
-            calls["name"] = name
-
-        def map(self, func, iterable, **kwargs):
-            return [func(item, **kwargs) for item in iterable]
-
-        def gather(self, futures):
-            return futures
-
-        def cancel(self, futures):
-            return None
+    mock_client = MagicMock()
+    mock_client.__class__ = Client
+    mock_client.register_worker_plugin = None  # not callable → triggers fallback
+    mock_client.map.side_effect = lambda func, iterable, **kw: [
+        func(item, **kw) for item in iterable
+    ]
+    mock_client.gather.side_effect = lambda futures: futures
 
     out = parallel_map(
         lambda x: x + 1,
         [1, 2, 3],
-        client=_ClientProxy(),
+        client=mock_client,
         setup_fn=lambda: {"bias": 5},
     )
 
     assert out == [2, 3, 4]
-    assert calls["register_plugin"] == 1
-    assert isinstance(calls["plugin"], DictReturnWorkerPlugin)
-    assert calls["name"] == "env"
+    mock_client.register_plugin.assert_called_once()
+    args, kwargs = mock_client.register_plugin.call_args
+    assert isinstance(args[0], DictReturnWorkerPlugin)
+    assert kwargs.get("name") == "env"
 
 
 @pytest.mark.execution_timeout(30)
