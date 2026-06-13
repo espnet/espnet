@@ -49,9 +49,7 @@ class VersaMetric(BaseMetric):
         if isinstance(self.score_config, (str, Path)):
             p = Path(self.score_config)
             if not p.is_file():
-                raise FileNotFoundError(
-                    f"VERSA score_config path does not exist: {p}"
-                )
+                raise FileNotFoundError(f"VERSA score_config path does not exist: {p}")
             logger.info("Using VERSA config file %s", p)
             return p
 
