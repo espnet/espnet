@@ -1,0 +1,60 @@
+recipe_dir: .
+
+exp_tag:
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+data_dir: ${recipe_dir}/data
+inference_dir: ${exp_dir}/${self_name:}
+
+dataset:
+  _target_: espnet3.components.data.data_organizer.DataOrganizer
+  recipe_dir: ${recipe_dir}
+  test:
+    - name: valid
+      data_src_args:
+        split: valid
+        manifest_path: ${data_dir}/manifests_filtered/valid.tsv
+        xvector_dir: ${xvector.save_path}/${xvector.spk_embed_tag}_valid
+        load_speech: true
+        inference: true
+    - name: test
+      data_src_args:
+        split: test
+        manifest_path: ${data_dir}/manifests_filtered/test.tsv
+        xvector_dir: ${xvector.save_path}/${xvector.spk_embed_tag}_test
+        load_speech: true
+        inference: true
+  preprocessor:
+    _target_: espnet2.train.preprocessor.CommonPreprocessor
+    fs: 22050
+    train: true
+    token_type: phn
+    token_list: ${data_dir}/tokens/phn_tokens.txt
+    text_cleaner:
+      - tacotron
+    g2p_type: espeak_ng_english_us_vits
+
+xvector:
+  save_path: ${data_dir}/x_vectors
+  spk_embed_tag: spkrec-ecapa-voxceleb
+
+parallel:
+  env: local
+  n_workers: 1
+
+model:
+  _target_: espnet2.bin.tts_inference.Text2Speech
+  train_config: ${exp_dir}/config.yaml
+  model_file: ${exp_dir}/last.ckpt
+
+input_key: [text, spembs]
+batch_size: null
+output_fn: src.inference.build_output
+output_artifacts:
+  wav:
+    type: wav
+    sample_rate: 22050
+
+provider:
+  _target_: espnet3.systems.base.inference_provider.InferenceProvider
+runner:
+  _target_: espnet3.systems.base.inference_runner.InferenceRunner
