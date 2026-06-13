@@ -216,7 +216,7 @@ class DictReturnWorkerPlugin(WorkerPlugin):
         os.environ["DASK_WORKER_ID"] = str(worker.id)
 
 
-def _register_worker_plugin(client: Client, plugin: WorkerPlugin, name: str) -> None:
+def _register_worker_plugin(client: Any, plugin: WorkerPlugin, name: str) -> None:
     """Register a worker plugin across Dask client API versions."""
     register_worker_plugin = getattr(client, "register_worker_plugin", None)
     if callable(register_worker_plugin):
@@ -399,7 +399,7 @@ def _submit_tasks(
 def parallel_map(
     func: Callable[[Any], Any],
     data: Iterable[Any],
-    client: Optional[Client] = None,
+    client: Any = None,
     setup_fn: Optional[Callable[[], dict]] = None,
     **kwargs: Any,
 ) -> list:
