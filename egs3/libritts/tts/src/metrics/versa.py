@@ -42,8 +42,19 @@ class VersaMetric(BaseMetric):
     def _resolve_score_config_path(self, eval_dir: Path) -> Path:
         """Return a YAML file path VERSA can `open()`.
 
-        Read the score_config and dump it to file inside ``eval_dir/versa_config.yaml``
+        If ``score_config`` is a path to an existing file, return it directly.
+        Otherwise treat it as an inline config object and dump it to
+        ``eval_dir/versa_config.yaml``.
         """
+        if isinstance(self.score_config, (str, Path)):
+            p = Path(self.score_config)
+            if not p.is_file():
+                raise FileNotFoundError(
+                    f"VERSA score_config path does not exist: {p}"
+                )
+            logger.info("Using VERSA config file %s", p)
+            return p
+
         out = eval_dir / "versa_config.yaml"
         with out.open("w", encoding="utf-8") as f:
             yaml.safe_dump(self.score_config, f, sort_keys=False)
