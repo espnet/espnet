@@ -147,7 +147,7 @@ class LibriTTSDataset(TorchDataset):
                 spembs = spembs.numpy()
             sample["spembs"] = np.asarray(spembs, dtype=np.float32).squeeze()
         if self.inference:
-            # For inference, we additionally return utt_id, 
+            # For inference, we additionally return utt_id,
             # raw_text, and wav_path for metrics calculation.
             metadata = {
                 "utt_id": np.asarray(entry.utt_id),
