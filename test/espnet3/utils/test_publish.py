@@ -11,9 +11,9 @@ from omegaconf import OmegaConf
 from espnet3.systems.asr.system import ASRSystem
 from espnet3.utils import publication_utils as publish
 from espnet3.utils.publication_utils import (
+    _build_results_table,
     _infer_local_dataset_module_ref,
     _normalize_bundle_dataset_refs,
-    _build_results_table,
     _render_readme,
     _resolve_results,
 )
