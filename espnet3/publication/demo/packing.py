@@ -425,10 +425,10 @@ def _build_demo_readme_context(demo_cfg) -> dict[str, str]:
     """
     ui_cfg = getattr(demo_cfg, "ui", None)
     description = getattr(ui_cfg, "description", None) if ui_cfg else None
-    if description is not None and _resolve_ui_description_path(demo_cfg) is not None:
-        description_text = f"See `{description}` for demo details."
+    if description is not None and _resolve_ui_description_path(demo_cfg) is None:
+        description_text = str(description)
     else:
-        description_text = str(description or "")
+        description_text = ""
 
     return {
         "python_version": f"{sys.version_info.major}.{sys.version_info.minor}",
