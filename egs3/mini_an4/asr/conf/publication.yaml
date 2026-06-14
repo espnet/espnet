@@ -1,0 +1,10 @@
+
+pack_model:
+  include:
+    - ${recipe_dir}/src
+    - ${data_dir}/**/bpe.model
+    - ${data_dir}/**/bpe.vocab
+    - ${data_dir}/**/tokens.txt
+
+upload_model:
+  hf_repo: espnet/CI_mini_an4_training_asr_transformer

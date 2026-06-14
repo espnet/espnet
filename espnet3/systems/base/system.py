@@ -13,6 +13,8 @@ from espnet3.components.data.dataset_module import (
 from espnet3.systems.base.inference import infer
 from espnet3.systems.base.metric import measure
 from espnet3.systems.base.training import collect_stats, train
+from espnet3.utils.publication_utils import pack_model as _pack_model
+from espnet3.utils.publication_utils import upload_model as _upload_model
 
 logger = logging.getLogger(__name__)
 
@@ -33,11 +35,8 @@ class BaseSystem:
       - infer()
       - measure()
       - publish()
-
-    This class intentionally does NOT implement:
-      - DAG
-      - dependency checks
-      - caching
+      - pack_model()
+      - upload_model()
 
     All behavior is config-driven.
 
@@ -88,12 +87,26 @@ class BaseSystem:
         training_config: DictConfig | None = None,
         inference_config: DictConfig | None = None,
         metrics_config: DictConfig | None = None,
+        publication_config: DictConfig | None = None,
         stage_log_mapping: dict | None = None,
     ) -> None:
-        """Initialize the system with optional stage configs."""
+        """Initialize the system with optional stage configs.
+
+        Args:
+            training_config: Training configuration for data preparation,
+                statistics collection, and model training.
+            inference_config: Inference configuration used by the ``infer``
+                stage.
+            metrics_config: Measurement configuration used by the ``measure``
+                stage.
+            publication_config: Publication configuration for ``pack_model``
+                and ``upload_model`` stages.
+            stage_log_mapping: Optional per-stage log directory overrides.
+        """
         self.training_config = training_config
         self.inference_config = inference_config
         self.metrics_config = metrics_config
+        self.publication_config = publication_config
 
         if training_config is not None:
             self.exp_dir = Path(training_config.exp_dir)
@@ -128,11 +141,12 @@ class BaseSystem:
 
         logger.info(
             "Initialized %s with training_config=%s inference_config=%s "
-            "metrics_config=%s exp_dir=%s",
+            "metrics_config=%s publication_config=%s exp_dir=%s",
             self.__class__.__name__,
             training_config is not None,
             inference_config is not None,
             metrics_config is not None,
+            publication_config is not None,
             self.exp_dir,
         )
 
@@ -280,7 +294,20 @@ class BaseSystem:
         logger.info("results: %s", result)
         return result
 
-    def publish(self, *args, **kwargs):
-        """Publish artifacts from the experiment."""
-        self._reject_stage_args("publish", args, kwargs)
-        logger.info("Running publish() (BaseSystem stub). Nothing done.")
+    # ---------------------------------------------------------
+    # Publication stages (optional overrides)
+    # ---------------------------------------------------------
+    def pack_model(self, *args, **kwargs):
+        """Pack model artifacts into an espnet3 bundle."""
+        self._reject_stage_args("pack_model", args, kwargs)
+        return _pack_model(
+            training_config=self.training_config,
+            publication_config=self.publication_config,
+            inference_config=self.inference_config,
+            metrics_config=self.metrics_config,
+        )
+
+    def upload_model(self, *args, **kwargs):
+        """Upload model bundle to HuggingFace."""
+        self._reject_stage_args("upload_model", args, kwargs)
+        return _upload_model(self)

@@ -46,6 +46,7 @@ def test_asr_system_train_tokenizer_trains_sentencepiece(tmp_path, monkeypatch):
     train_cfg = OmegaConf.create(
         {
             "exp_dir": str(tmp_path / "exp"),
+            "data_dir": str(tmp_path / "data"),
             "tokenizer": {
                 "save_path": str(tmp_path / "tokenizer"),
                 "model_type": "bpe",
@@ -82,7 +83,7 @@ def test_asr_system_train_tokenizer_trains_sentencepiece(tmp_path, monkeypatch):
 
     system.train_tokenizer()
 
-    train_txt = Path(train_cfg.tokenizer.save_path) / "train.txt"
+    train_txt = Path(train_cfg.data_dir) / "train_tokenizer" / "train.txt"
     assert train_txt.is_file()
     assert train_txt.read_text(encoding="utf-8").splitlines() == ["a b", "c d"]
     assert calls["load"] == "dummy"
