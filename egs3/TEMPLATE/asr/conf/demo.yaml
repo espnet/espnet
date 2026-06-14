@@ -48,7 +48,7 @@ model:
 ui:
   app_script: src/app.py
   title: null
-  description: readme.md
+  description: README.md
   inputs:
     - key: speech
       type: audio
