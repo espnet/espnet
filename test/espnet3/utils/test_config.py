@@ -524,6 +524,7 @@ def test_load_and_merge_publication_config_inherits_template_readme_path() -> No
     )
     assert list(cfg.pack_model.include) == [
         "./src",
+        "./dataset",
         "./data/**/bpe.model",
         "./data/**/bpe.vocab",
         "./data/**/tokens.txt",
