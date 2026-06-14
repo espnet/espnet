@@ -338,7 +338,7 @@ def load_and_merge_config(
     )
     merged_cfg = OmegaConf.merge(default_cfg, user_cfg)
     _normalize_relative_resolver_paths(merged_cfg, config_path.parent, config_path.stem)
-    _normalize_publication_readme_path(
+    _normalize_inherited_readme_path(
         merged_cfg=merged_cfg,
         user_cfg=user_cfg,
         config_name=config_name,
@@ -437,7 +437,7 @@ def _build_config_path(base_path: Path, entry: str) -> Path:
     return base_path / entry
 
 
-def _normalize_publication_readme_path(
+def _normalize_inherited_readme_path(
     merged_cfg: DictConfig,
     user_cfg: DictConfig,
     config_name: str,
@@ -445,30 +445,42 @@ def _normalize_publication_readme_path(
 ) -> None:
     """Keep the inherited README template bound to the default recipe package.
 
-    Publication configs inherit the README template from the default recipe.
-    When the user config does not override ``pack_model.readme``, keep that
+    Publication and demo configs inherit README templates from the default
+    recipe. When the user config does not override the README path, keep that
     reference pointed at the template recipe instead of rewriting it relative
     to the user recipe.
     """
-    if config_name != "publication.yaml":
-        return
-
-    user_pack_cfg = getattr(user_cfg, "pack_model", None)
-    if user_pack_cfg is not None and getattr(user_pack_cfg, "readme", None):
-        return
-
-    pack_cfg = getattr(merged_cfg, "pack_model", None)
-    if pack_cfg is None:
-        return
-
-    readme_path = getattr(pack_cfg, "readme", None)
-    if readme_path not in ("./src/hf_model_readme.md", "src/hf_model_readme.md"):
-        return
-
     package_root = Path(*default_package.split("."))
-    pack_cfg.readme = (
-        package_root / "src" / "hf_model_repo_readme_template.md"
-    ).as_posix()
+
+    if config_name == "publication.yaml":
+        user_pack_cfg = getattr(user_cfg, "pack_model", None)
+        if user_pack_cfg is not None and getattr(user_pack_cfg, "readme", None):
+            return
+        pack_cfg = getattr(merged_cfg, "pack_model", None)
+        if pack_cfg is None:
+            return
+        readme_path = getattr(pack_cfg, "readme", None)
+        if readme_path not in ("./src/hf_model_readme.md", "src/hf_model_readme.md"):
+            return
+        pack_cfg.readme = (
+            package_root / "src" / "hf_model_repo_readme_template.md"
+        ).as_posix()
+        return
+
+    if config_name == "demo.yaml":
+        user_pack_cfg = getattr(user_cfg, "pack", None)
+        if user_pack_cfg is not None and getattr(user_pack_cfg, "readme", None):
+            return
+        pack_cfg = getattr(merged_cfg, "pack", None)
+        if pack_cfg is None:
+            return
+        readme_path = getattr(pack_cfg, "readme", None)
+        if readme_path not in (
+            "./src/demo_readme_template.md",
+            "src/demo_readme_template.md",
+        ):
+            return
+        pack_cfg.readme = (package_root / "src" / "demo_readme_template.md").as_posix()
 
 
 def _infer_default_package_from_config_path(config_path: Path) -> str | None:

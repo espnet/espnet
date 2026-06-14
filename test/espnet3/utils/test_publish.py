@@ -8,6 +8,7 @@ import pytest
 from huggingface_hub.errors import HfHubHTTPError
 from omegaconf import OmegaConf
 
+from espnet3.publication.demo import packing as demo_packer
 from espnet3.systems.asr.system import ASRSystem
 from espnet3.utils import publication_utils as publish
 from espnet3.utils.publication_utils import (
