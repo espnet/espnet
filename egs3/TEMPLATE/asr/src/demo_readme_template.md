@@ -12,8 +12,6 @@ tags:
 ${tags}
 ---
 
-# ${title}
-
 ${description}
 
 ## Demo
