@@ -68,8 +68,7 @@ pack:
   readme_context:
     color_from: indigo
     color_to: purple
-""".strip()
-        + "\n",
+""".strip() + "\n",
         encoding="utf-8",
     )
 
