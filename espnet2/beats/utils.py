@@ -6,6 +6,12 @@ import torch.nn.functional as F
 import torchaudio.compliance.kaldi as ta_kaldi
 from einops import rearrange, repeat
 
+# OpenBEATs 7M-sound corpus stats. Encoder/tokenizer must match;
+# recipes overlay corpus values via beats.sh stage 4.
+# See Appendix A of arXiv:2212.09058 for original BEATs' stats.
+DEFAULT_FBANK_MEAN = 15.29130
+DEFAULT_FBANK_STD = 5.90532
+
 
 def l2norm(t):
     return F.normalize(t, p=2, dim=-1)
