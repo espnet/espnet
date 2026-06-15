@@ -78,7 +78,6 @@ from espnet2.asr.preencoder.sinc import LightweightSincConvs
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.asr.specaug.specaug import SpecAug
 from espnet2.asr_transducer.joint_network import JointNetwork
-from espnet2.beats.encoder import BeatsEncoder
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.layers.utterance_mvn import UtteranceMVN
@@ -172,7 +171,6 @@ encoder_choices = ClassChoices(
         e_branchformer=EBranchformerEncoder,
         avhubert=FairseqAVHubertEncoder,
         multiconv_conformer=MultiConvConformerEncoder,
-        beats=BeatsEncoder,
     ),
     type_check=AbsEncoder,
     default="rnn",

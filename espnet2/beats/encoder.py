@@ -39,6 +39,8 @@ except ImportError:
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.specaug.specaug import SpecAug
 from espnet2.beats.utils import (
+    DEFAULT_FBANK_MEAN,
+    DEFAULT_FBANK_STD,
     forward_padding_mask_conv,
     freeze_conv_module,
 )
@@ -158,17 +160,14 @@ class BeatsEncoder(AbsEncoder):
         specaug_config: Optional[Dict] = None,
         add_positional_information: bool = False,
         max_positions: Optional[int] = None,
-        fbank_mean: float = 15.29130,
-        fbank_std: float = 5.90532,
+        fbank_mean: float = DEFAULT_FBANK_MEAN,
+        fbank_std: float = DEFAULT_FBANK_STD,
         roll_augment: bool = False,
         roll_interval: int = 1600,
         is_pretraining: Optional[bool] = False,
     ) -> None:
         super().__init__()
 
-        # Default fbank stats are from OpenBEATs' 7M-sound corpus. See Appendix
-        # A of arXiv:2212.09058 for original BEATs' per-dataset
-        # pretraining/finetuning stats.
         self.fbank_mean = fbank_mean
         self.fbank_std = fbank_std
         self.max_layer = max_layer

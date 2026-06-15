@@ -30,6 +30,8 @@ from espnet2.beats.encoder import (
 )
 from espnet2.beats.random_tokenizer import RandomProjectionQuantizer
 from espnet2.beats.utils import (
+    DEFAULT_FBANK_MEAN,
+    DEFAULT_FBANK_STD,
     beats_frontend,
     ema_inplace,
     forward_padding_mask_conv,
@@ -64,8 +66,8 @@ class BeatsTokenizer(BeatsEncoder):
         tokenizer_config: Optional[Dict] = None,
         max_layer: int = None,
         use_weighted_representation: bool = False,
-        fbank_mean: float = 15.29130,
-        fbank_std: float = 5.90532,
+        fbank_mean: float = DEFAULT_FBANK_MEAN,
+        fbank_std: float = DEFAULT_FBANK_STD,
     ) -> None:
         if beats_tokenizer_ckpt_path is None:
             logging.info(
@@ -398,8 +400,8 @@ class BeatsRandomTokenizer(nn.Module):
     def __init__(
         self,
         tokenizer_config: Optional[Dict] = None,
-        fbank_mean: float = 15.29130,
-        fbank_std: float = 5.90532,
+        fbank_mean: float = DEFAULT_FBANK_MEAN,
+        fbank_std: float = DEFAULT_FBANK_STD,
     ) -> None:
         super().__init__()
         self.fbank_mean = fbank_mean
