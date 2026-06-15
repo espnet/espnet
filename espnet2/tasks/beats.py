@@ -9,9 +9,9 @@ import torch
 from typeguard import typechecked
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
-from espnet2.asr.encoder.beats_encoder import BeatsEncoder, BeatsPretrainingPredictor
+from espnet2.beats.encoder import BeatsEncoder, BeatsPretrainingPredictor
 from espnet2.beats.espnet_model import BeatsPretrainModel, BeatsTokenizerPretrainModel
-from espnet2.speechlm.tokenizer.beats_tokenizer import (
+from espnet2.beats.tokenizer import (
     BeatsTokenizer,
     BeatsTokenizerPretrainingPredictor,
 )

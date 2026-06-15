@@ -11,8 +11,8 @@ import sys
 import kaldiio
 import torch
 
+from espnet2.beats.audio_tokenizer import AudioTokenizer
 from espnet2.legacy.nets.pytorch_backend.nets_utils import pad_list
-from espnet2.speechlm.tokenizer.audio_tokenizer import AudioTokenizer
 from espnet2.utils.types import str2bool
 
 logging.basicConfig(

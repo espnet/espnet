@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 import torch
 
-from espnet2.asr.encoder.beats_encoder import BeatsEncoder
+from espnet2.beats.encoder import BeatsEncoder
 from espnet2.tasks.beats import BeatsTask, BeatsTokenizerTask
 
 
