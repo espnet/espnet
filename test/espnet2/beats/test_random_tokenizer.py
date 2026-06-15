@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from espnet2.speechlm.tokenizer.random_tokenizer import RandomProjectionQuantizer
+from espnet2.beats.random_tokenizer import RandomProjectionQuantizer
 
 
 @pytest.mark.parametrize("n_codes", [5, 20, 1024])

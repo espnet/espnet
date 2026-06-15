@@ -9,11 +9,11 @@ from inspect import signature
 import torch
 import yaml
 
-from espnet2.speechlm.tokenizer.abs_tokenizer import AbsTokenizer
-from espnet2.speechlm.tokenizer.beats_tokenizer import (
+from espnet2.beats.tokenizer import (
     BeatsRandomTokenizer,
     BeatsTokenizer,
 )
+from espnet2.speechlm.tokenizer.abs_tokenizer import AbsTokenizer
 
 logger = logging.getLogger(__name__)
 

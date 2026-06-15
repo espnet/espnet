@@ -13,33 +13,23 @@
 
 import logging
 import math
-from contextlib import contextmanager
 from typing import Dict, Optional
 
 import torch
 import torch.distributed as dist
 import torch.nn as nn
 import torch.nn.functional as F
-from packaging.version import parse as V
+from torch.cuda.amp import autocast
 from torch.nn import LayerNorm
 
-if V(torch.__version__) >= V("1.6.0"):
-    from torch.cuda.amp import autocast
-else:
-    # Nothing to do if torch<1.6.0
-    @contextmanager
-    def autocast(enabled=True):
-        yield
-
-
-from espnet2.asr.encoder.beats_encoder import (
+from espnet2.beats.encoder import (
     BeatsConfig,
     BeatsEncoder,
     TransformerSentenceEncoderLayer,
     init_bert_params,
 )
-from espnet2.legacy.nets.pytorch_backend.nets_utils import make_pad_mask
-from espnet2.speechlm.tokenizer.beats_utils import (
+from espnet2.beats.random_tokenizer import RandomProjectionQuantizer
+from espnet2.beats.utils import (
     beats_frontend,
     ema_inplace,
     forward_padding_mask_conv,
@@ -48,7 +38,7 @@ from espnet2.speechlm.tokenizer.beats_utils import (
     l2norm,
     norm_ema_inplace,
 )
-from espnet2.speechlm.tokenizer.random_tokenizer import RandomProjectionQuantizer
+from espnet2.legacy.nets.pytorch_backend.nets_utils import make_pad_mask
 
 
 class BeatsTokenizerConfig(BeatsConfig):
@@ -440,12 +430,14 @@ class BeatsRandomTokenizer(nn.Module):
             bias=False,
         )
         seed = config.seed
+        # Seed before constructing the quantizer so its random projection
+        # weights and codebook are reproducible from config.seed.
+        self._initialize(seed)
         self.random_projection_quantizer = RandomProjectionQuantizer(
             config.embed_dim,
             codebook_size=config.quant_n,
             codebook_dim=config.quant_dim,
         )
-        self._initialize(seed)
 
     def _initialize(self, seed):
         logging.info(
