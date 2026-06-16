@@ -36,7 +36,13 @@ if ! wget --no-check-certificate --tries=3 -O mwerSegmenter.tar.gz "${PRIMARY_UR
     echo "distribution or contact RWTH directly."
     echo "=============================================================================="
     echo ""
-    if ! wget --no-check-certificate --tries=3 -O mwerSegmenter.tar.gz "${BACKUP_URL}"; then
+    extra_args=""
+    if [ -n "${HF_TOKEN}" ]; then
+        extra_args="--header='Authorization: Bearer ${HF_TOKEN}'"
+    else
+        echo "HF_TOKEN is not set, backup download may fail if the file has many downloads"
+    fi
+    if ! wget ${extra_args} --no-check-certificate --tries=3 -O mwerSegmenter.tar.gz "${BACKUP_URL}"; then
         echo "Both primary and backup downloads failed"
         exit 1
     fi
