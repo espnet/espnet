@@ -18,15 +18,59 @@ if [ -x "$(command -v ffmpeg)" ]; then
 fi
 
 if [[ ${unames} =~ Linux ]]; then
+    # Try system package manager first to avoid hitting rate-limited download servers
+    # (especially important in CI where many jobs may run concurrently)
+    if command -v apt-get > /dev/null 2>&1; then
+        echo "Trying to install ffmpeg via apt-get..."
+        if [ "$(id -u)" = "0" ]; then
+            apt_install_cmd="apt-get update -qq && apt-get install -qq -y ffmpeg"
+        elif command -v sudo > /dev/null 2>&1; then
+            apt_install_cmd="sudo -n apt-get update -qq && sudo -n apt-get install -qq -y ffmpeg"
+        else
+            apt_install_cmd=""
+            echo "Neither root nor sudo is available; falling back to direct download..."
+        fi
+
+        if [ -n "${apt_install_cmd}" ] && eval "${apt_install_cmd}"; then
+            if command -v ffmpeg > /dev/null 2>&1; then
+                echo "ffmpeg installed successfully via apt-get"
+                exit 0
+            fi
+        fi
+        echo "apt-based ffmpeg setup failed or ffmpeg was not found after install, falling back to download..."
+    fi
+
     if [ "${unamem}" = x86_64 ]; then
         unamem=amd64
     fi
     ffmpeg_name="ffmpeg-release-${unamem}-static.tar.xz"
     PRIMARY_URL="https://johnvansickle.com/ffmpeg/releases/${ffmpeg_name}"
     BACKUP_URL="https://huggingface.co/espnet/ci_tools/resolve/main/${ffmpeg_name}"
-    if ! wget --no-check-certificate --tries=3 --trust-server-names -O "${ffmpeg_name}" "${PRIMARY_URL}"; then
+
+    download_with_retry() {
+        local url="$1"
+        local output="$2"
+        local max_attempts=3
+        local attempt=1
+        local wait=5
+        while [ "${attempt}" -le "${max_attempts}" ]; do
+            if wget --no-check-certificate --trust-server-names --tries=1 -O "${output}" "${url}"; then
+                return 0
+            fi
+            echo "Attempt ${attempt}/${max_attempts} failed for ${url}"
+            if [ "${attempt}" -lt "${max_attempts}" ]; then
+                echo "Waiting ${wait}s before retry..."
+                sleep "${wait}"
+                wait=$((wait * 2))
+            fi
+            attempt=$((attempt + 1))
+        done
+        return 1
+    }
+
+    if ! download_with_retry "${PRIMARY_URL}" "${ffmpeg_name}"; then
         echo "Primary download failed, trying backup URL..."
-        if ! wget --no-check-certificate --tries=3 -O "${ffmpeg_name}" "${BACKUP_URL}"; then
+        if ! download_with_retry "${BACKUP_URL}" "${ffmpeg_name}"; then
             echo "Both primary and backup downloads failed"
             exit 1
         fi
