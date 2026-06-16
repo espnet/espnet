@@ -117,14 +117,17 @@ class DeepSpeedTrainer(Trainer):
         output_dir = Path(trainer_options.output_dir)
         reporter = Reporter()
 
-        summary_writer = None
+        train_summary_writer = None
+        valid_summary_writer = None
         if dist.get_rank() == 0 and trainer_options.use_tensorboard:
             from torch.utils.tensorboard import SummaryWriter
 
-            # Single writer with phase-prefixed tags ("train/loss", "valid/loss")
-            # so TB groups by phase in the UI instead of overlaying both runs
-            # under a flat metric name.
-            summary_writer = SummaryWriter(str(output_dir / "tensorboard"))
+            train_summary_writer = SummaryWriter(
+                str(output_dir / "tensorboard" / "train")
+            )
+            valid_summary_writer = SummaryWriter(
+                str(output_dir / "tensorboard" / "valid")
+            )
 
         # (4) resume
         if trainer_options.resume:
@@ -175,17 +178,9 @@ class DeepSpeedTrainer(Trainer):
             if dist.get_rank() == 0:
                 logging.info(reporter.log_message())
                 reporter.matplotlib_plot(output_dir / "images")
-                if summary_writer is not None:
-                    ep = reporter.get_epoch()
-                    total_count = reporter.stats[ep]["train"]["total_count"]
-                    summary_writer.add_scalar("iter_epoch", ep, total_count)
-                    for phase in ("train", "valid"):
-                        for k in reporter.get_keys2(phase):
-                            summary_writer.add_scalar(
-                                f"{phase}/{k}",
-                                reporter.stats[ep][phase][k],
-                                total_count,
-                            )
+                if train_summary_writer is not None:
+                    reporter.tensorboard_add_scalar(train_summary_writer, key1="train")
+                    reporter.tensorboard_add_scalar(valid_summary_writer, key1="valid")
                 if trainer_options.use_wandb:
                     reporter.wandb_log()
 
