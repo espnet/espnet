@@ -137,7 +137,11 @@ class ASRSystem(BaseSystem):
         if train_text_path:
             train_text_path = Path(train_text_path)
         else:
-            train_text_path = output_path / "train.txt"
+            data_dir = getattr(self.training_config, "data_dir", None)
+            if data_dir:
+                train_text_path = Path(data_dir) / "train_tokenizer" / "train.txt"
+            else:
+                train_text_path = output_path / "train.txt"
         if train_text_path.exists():
             raise RuntimeError(
                 f"Tokenizer training text already exists: {train_text_path}"
