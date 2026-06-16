@@ -44,6 +44,8 @@ class DeepSpeedTrainerOptions:
     deepspeed_config: Union[Path, str]
     best_model_criterion: Sequence[Sequence[str]]
     keep_nbest_models: Union[int, List[int]]
+    use_tensorboard: bool
+    use_wandb: bool
 
 
 class DeepSpeedTrainer(Trainer):
@@ -115,6 +117,15 @@ class DeepSpeedTrainer(Trainer):
         output_dir = Path(trainer_options.output_dir)
         reporter = Reporter()
 
+        summary_writer = None
+        if dist.get_rank() == 0 and trainer_options.use_tensorboard:
+            from torch.utils.tensorboard import SummaryWriter
+
+            # Single writer with phase-prefixed tags ("train/loss", "valid/loss")
+            # so TB groups by phase in the UI instead of overlaying both runs
+            # under a flat metric name.
+            summary_writer = SummaryWriter(str(output_dir / "tensorboard"))
+
         # (4) resume
         if trainer_options.resume:
             cls.resume(
@@ -164,6 +175,19 @@ class DeepSpeedTrainer(Trainer):
             if dist.get_rank() == 0:
                 logging.info(reporter.log_message())
                 reporter.matplotlib_plot(output_dir / "images")
+                if summary_writer is not None:
+                    ep = reporter.get_epoch()
+                    total_count = reporter.stats[ep]["train"]["total_count"]
+                    summary_writer.add_scalar("iter_epoch", ep, total_count)
+                    for phase in ("train", "valid"):
+                        for k in reporter.get_keys2(phase):
+                            summary_writer.add_scalar(
+                                f"{phase}/{k}",
+                                reporter.stats[ep][phase][k],
+                                total_count,
+                            )
+                if trainer_options.use_wandb:
+                    reporter.wandb_log()
 
         if dist.get_rank() == 0:
             average_nbest_models(
