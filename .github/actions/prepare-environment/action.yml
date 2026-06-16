@@ -17,6 +17,9 @@ inputs:
   use-conda:
     required: true
     type: string
+  hf-token:
+    required: true
+    type: string
 
 
 runs:
@@ -35,5 +38,6 @@ runs:
         TH_VERSION: ${{ inputs.pytorch-version }}
         CHAINER_VERSION: ${{ inputs.chainer-version }}
         USE_CONDA: ${{ inputs.use-conda }}
+        HF_TOKEN: ${{ inputs.hf-token }}
       run: |
         ./ci/install.sh

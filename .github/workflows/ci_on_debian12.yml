@@ -39,6 +39,8 @@ jobs:
         uses: joerick/pr-labels-action@v1.0.9
       - name: install espnet
         run: ./ci/install.sh
+        env:
+          HF_TOKEN: ${{ secrets.HF_CI_TOKEN }}
       - name: test shell
         run: |
           ./ci/test_shell_espnet2.sh
