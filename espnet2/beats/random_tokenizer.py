@@ -4,7 +4,6 @@ https://arxiv.org/abs/2202.01855
 
 import torch
 from torch import nn
-from torch.linalg import vector_norm
 
 
 class RandomProjectionQuantizer(nn.Module):
@@ -36,8 +35,12 @@ class RandomProjectionQuantizer(nn.Module):
         """
         x = self.random_projection(x)  # Ax
         x = self.maybe_norm(x)  # norml2(Ax)
-        distance = vector_norm(
-            x.unsqueeze(-2) - self.codebook, dim=-1
-        )  # B,L,codebook_size
-        codes = torch.argmin(distance, dim=-1)
+        # Squared L2 distance to each codebook entry, computed via
+        # ||x - c||^2 = ||x||^2 + ||c||^2 - 2 x . c  to avoid materializing
+        # the (B, L, K, D) broadcast (OOMs on CI with default K=1024, D=256).
+        # argmin over distance == argmin over distance^2.
+        x_sq = (x * x).sum(dim=-1, keepdim=True)  # (B, L, 1)
+        codebook_sq = (self.codebook * self.codebook).sum(dim=-1)  # (K,)
+        distance_sq = x_sq + codebook_sq - 2 * x @ self.codebook.t()  # (B, L, K)
+        codes = torch.argmin(distance_sq, dim=-1)
         return codes
