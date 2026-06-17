@@ -55,7 +55,7 @@ if [[ ${unames} =~ Linux ]]; then
         local attempt=1
         local wait=5
         while [ "${attempt}" -le "${max_attempts}" ]; do
-            if wget ${extra_args:+"${extra_args}"} --no-check-certificate --trust-server-names --tries=1 -O "${output}" "${url}"; then
+            if wget "${extra_args:+"${extra_args}"}" --no-check-certificate --trust-server-names --tries=1 -O "${output}" "${url}"; then
                 return 0
             fi
             echo "Attempt ${attempt}/${max_attempts} failed for ${url}"

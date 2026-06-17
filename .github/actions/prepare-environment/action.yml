@@ -18,7 +18,8 @@ inputs:
     required: true
     type: string
   hf-token:
-    required: true
+    required: false
+    default: ""
     type: string
 
 
