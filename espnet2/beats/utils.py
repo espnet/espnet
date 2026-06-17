@@ -13,6 +13,19 @@ DEFAULT_FBANK_MEAN = 15.29130
 DEFAULT_FBANK_STD = 5.90532
 
 
+def make_pad_mask(lengths: torch.Tensor, maxlen: int = None) -> torch.Tensor:
+    """Linear-memory pad mask. (B, maxlen) bool, True at padded positions.
+
+    Replaces espnet2.legacy ...nets_utils.make_pad_mask, whose default ONNX
+    traceable path materialises an O(maxlen^2) helper that OOMs on long
+    raw-waveform lengths (10 s @ 16 kHz → ~25 GB).
+    """
+    if maxlen is None:
+        maxlen = int(lengths.max())
+    seq_range = torch.arange(maxlen, device=lengths.device).unsqueeze(0)
+    return seq_range >= lengths.unsqueeze(1)
+
+
 def l2norm(t):
     return F.normalize(t, p=2, dim=-1)
 

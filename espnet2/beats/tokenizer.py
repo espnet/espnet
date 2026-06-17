@@ -38,9 +38,9 @@ from espnet2.beats.utils import (
     freeze_conv_module,
     kmeans,
     l2norm,
+    make_pad_mask,
     norm_ema_inplace,
 )
-from espnet2.legacy.nets.pytorch_backend.nets_utils import make_pad_mask
 
 
 class BeatsTokenizerConfig(BeatsConfig):

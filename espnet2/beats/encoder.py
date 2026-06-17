@@ -43,8 +43,9 @@ from espnet2.beats.utils import (
     DEFAULT_FBANK_STD,
     forward_padding_mask_conv,
     freeze_conv_module,
+    make_pad_mask,
 )
-from espnet2.legacy.nets.pytorch_backend.nets_utils import make_pad_mask, roll_tensor
+from espnet2.legacy.nets.pytorch_backend.nets_utils import roll_tensor
 
 
 class BeatsConfig:
