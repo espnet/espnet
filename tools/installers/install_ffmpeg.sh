@@ -55,7 +55,7 @@ if [[ ${unames} =~ Linux ]]; then
         local attempt=1
         local wait=5
         while [ "${attempt}" -le "${max_attempts}" ]; do
-            if wget ${extra_args} --no-check-certificate --trust-server-names --tries=1 -O "${output}" "${url}"; then
+            if wget ${extra_args:+"${extra_args}"} --no-check-certificate --trust-server-names --tries=1 -O "${output}" "${url}"; then
                 return 0
             fi
             echo "Attempt ${attempt}/${max_attempts} failed for ${url}"
@@ -71,8 +71,8 @@ if [[ ${unames} =~ Linux ]]; then
 
     if ! download_with_retry "${PRIMARY_URL}" "${ffmpeg_name}"; then
         echo "Primary download failed, trying backup URL..."
-        if [ -n "${HF_TOKEN}" ]; then
-            extra_args="--header='Authorization: Bearer ${HF_TOKEN}'"
+        if [ -n "${HF_TOKEN:-}" ]; then
+            extra_args="--header=Authorization: Bearer ${HF_TOKEN}"
         else
             echo "HF_TOKEN is not set, backup download may fail if the file has many downloads"
             extra_args=""
