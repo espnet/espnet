@@ -11,6 +11,7 @@ from espnet2.beats.tokenizer import (
 )
 
 
+@pytest.mark.execution_timeout(60)
 @pytest.mark.parametrize("n_codes", [15, 20, 200])
 def test_beats_tokenizer_encode(n_codes):
     tokenizer_config = BeatsTokenizerConfig()
@@ -51,6 +52,7 @@ def test_norm_ema_quantizer():
     loss.backward()
 
 
+@pytest.mark.execution_timeout(60)
 def test_forward_and_backward_beats_pretraining_predictor():
     tokenizer_config = BeatsTokenizerConfig()
     tokenizer_config.decoder_layers = 3
@@ -66,6 +68,7 @@ def test_forward_and_backward_beats_pretraining_predictor():
     assert x.grad is not None
 
 
+@pytest.mark.execution_timeout(60)
 @pytest.mark.parametrize("n_codes", [5, 1024])
 def test_beats_random_tokenizer_encode(n_codes):
     tokenizer_config = BeatsTokenizerConfig()
@@ -82,6 +85,7 @@ def test_beats_random_tokenizer_encode(n_codes):
     assert tuple(token_id_len) == (496, 368)
 
 
+@pytest.mark.execution_timeout(60)
 def test_beats_random_tokenizer_var_length():
     # Padding of other elements should not affect each other
     arr = torch.randn(3, 176_000)

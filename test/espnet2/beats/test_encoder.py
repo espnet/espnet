@@ -124,6 +124,7 @@ def test_small_inputs():
 # Test for pretraining mode
 
 
+@pytest.mark.execution_timeout(60)
 def test_forward_pass_pretraining_beats_encoder():
     beats_config = {"encoder_layers": 2, "mask_ratio": 0.75}
     beats_model = BeatsEncoder(
@@ -161,6 +162,7 @@ def test_forward_pass_pretraining_beats_encoder():
     ), "Restore ids should be a permutation"
 
 
+@pytest.mark.execution_timeout(60)
 def test_backward_pass_pretraining_beats_encoder():
     beats_config = {"encoder_layers": 2, "mask_ratio": 0.75}
     beats_model = BeatsEncoder(
@@ -174,6 +176,7 @@ def test_backward_pass_pretraining_beats_encoder():
     output_rep.sum().backward()
 
 
+@pytest.mark.execution_timeout(60)
 def test_forward_pass_beats_pretraining_predictor():
     if not is_torch_1_12_1_plus:
         return
@@ -199,6 +202,7 @@ def test_forward_pass_beats_pretraining_predictor():
     assert pred.size(2) == 24, f"Output dim should be 24. It is {pred.size(2)}"
 
 
+@pytest.mark.execution_timeout(60)
 def test_backward_pass_beats_pretraining_predictor():
     if not is_torch_1_12_1_plus:
         return
