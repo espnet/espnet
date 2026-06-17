@@ -350,7 +350,7 @@ jobs:
           }
       - name: test publication integration
         run: ./ci/test_integration_espnet3_publication.sh
-      - uses: codecov/codecov-action@v5
+      - uses: codecov/codecov-action@v7
         with:
           flags: test_integration_espnet3_publication
       - name: coverage erase
