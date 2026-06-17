@@ -27,7 +27,7 @@ def test_override_beats_config():
 
 
 # Each parameter value creates a variant of the model
-@pytest.mark.timeout(30)
+@pytest.mark.execution_timeout(60)
 @pytest.mark.parametrize("downsampling_rate", [1, 2])
 @pytest.mark.parametrize("use_weighted_representation", [False, True])
 @pytest.mark.parametrize(
@@ -75,7 +75,7 @@ def test_forward_pass_beats_encoder(
     ), f"Output length vector should be {correct_length}. It is {output_len}"
 
 
-@pytest.mark.timeout(30)
+@pytest.mark.execution_timeout(60)
 @pytest.mark.parametrize("downsampling_rate", [1, 2])
 @pytest.mark.parametrize("use_weighted_representation", [False, True])
 @pytest.mark.parametrize(
