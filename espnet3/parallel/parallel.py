@@ -8,7 +8,7 @@ from contextlib import contextmanager
 from typing import Any, Callable, Generator, Iterable, Optional
 
 import torch
-from omegaconf import DictConfig
+from omegaconf import DictConfig, OmegaConf
 from tqdm import tqdm
 from typeguard import typechecked
 
@@ -119,7 +119,7 @@ def build_local_gpu_cluster(n_workers: int, options: dict) -> Client:
 
 
 @typechecked
-def set_parallel(config: DictConfig) -> None:
+def set_parallel(config: Optional[DictConfig]) -> None:
     """Set the global Dask cluster using the provided configuration.
 
     Args:
@@ -131,6 +131,11 @@ def set_parallel(config: DictConfig) -> None:
         >>> set_parallel(config)
     """
     global parallel_config
+    if config is None:
+        if parallel_config is not None:
+            config = parallel_config
+        else:
+            config = OmegaConf.create({"env": "local", "n_workers": 1, "options": {}})
     options = dict(config.options) if hasattr(config, "options") else {}
     config.options = options
     parallel_config = copy.copy(config)
@@ -209,6 +214,23 @@ class DictReturnWorkerPlugin(WorkerPlugin):
 
         # Set worker id so that users can use it for identifing workers
         os.environ["DASK_WORKER_ID"] = str(worker.id)
+
+
+def _register_worker_plugin(client: Client, plugin: WorkerPlugin, name: str) -> None:
+    """Register a worker plugin across Dask client API versions."""
+    register_worker_plugin = getattr(client, "register_worker_plugin", None)
+    if callable(register_worker_plugin):
+        register_worker_plugin(plugin, name=name)
+        return
+
+    register_plugin = getattr(client, "register_plugin", None)
+    if callable(register_plugin):
+        register_plugin(plugin, name=name)
+        return
+
+    raise RuntimeError(
+        "This Dask client lacks worker plugin registration APIs; please upgrade."
+    )
 
 
 def wrap_func_with_worker_env(func: Callable) -> Callable:
@@ -318,12 +340,7 @@ def get_client(
     client = build_client(config)
     if setup_fn is not None:
         plugin = DictReturnWorkerPlugin(setup_fn)
-        reg = getattr(client, "register_worker_plugin", None)
-        if reg is None:
-            raise RuntimeError(
-                "This Dask version lacks register_worker_plugin; please upgrade."
-            )
-        reg(plugin, name="env")
+        _register_worker_plugin(client, plugin, name="env")
     try:
         yield client
     finally:
@@ -367,7 +384,7 @@ def _submit_tasks(
         client = ctx.__enter__()
     elif setup_fn is not None:
         plugin = DictReturnWorkerPlugin(setup_fn)
-        getattr(client, "register_worker_plugin")(plugin, name="env")
+        _register_worker_plugin(client, plugin, name="env")
 
     try:
         wrapped_func = wrap_func_with_worker_env(func)
