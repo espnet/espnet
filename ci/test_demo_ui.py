@@ -128,7 +128,8 @@ def check_demo_ui_labels(system_name: str, config: dict) -> None:
                 page = browser.new_page()
                 page.goto(url, wait_until="domcontentloaded")
                 page.wait_for_timeout(3000)
-                ui_texts = page.evaluate("""() => {
+                ui_texts = page.evaluate(
+                    """() => {
                         const values = new Set();
                         const push = (value) => {
                             if (typeof value !== "string") {
@@ -146,7 +147,8 @@ def check_demo_ui_labels(system_name: str, config: dict) -> None:
                             push(element.getAttribute("title"));
                         }
                         return Array.from(values);
-                    }""")
+                    }"""
+                )
                 missing = [
                     text
                     for text in expected_texts
@@ -187,15 +189,27 @@ def check_demo_ui_labels(system_name: str, config: dict) -> None:
                 output_box.wait_for()
                 page.wait_for_function(
                     """(expected) => {
-                        const textboxes = Array.from(
-                            document.querySelectorAll('textarea, input[type="text"]')
+                        const elements = Array.from(
+                            document.querySelectorAll(
+                                'textarea, input[type="text"], [role="textbox"]'
+                            )
                         );
-                        return textboxes.some((node) => node.value.includes(expected));
+                        return elements.some((node) => {
+                            const tag = node.tagName;
+                            const val =
+                                tag === "TEXTAREA" || tag === "INPUT"
+                                    ? node.value
+                                    : node.textContent || "";
+                            return val.includes(expected);
+                        });
                     }""",
                     arg=expected_output,
                     timeout=30000,
                 )
-                output_value = output_box.input_value()
+                output_value = output_box.evaluate(
+                    "el => (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT')"
+                    " ? el.value : (el.textContent || '')"
+                )
                 assert expected_output in output_value, (
                     f"{system_name} expected output '{expected_output}' "
                     f"but got '{output_value}'"
