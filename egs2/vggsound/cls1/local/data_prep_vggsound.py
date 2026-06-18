@@ -145,7 +145,8 @@ def rows_from_metadata(path):
                         "split": row[3],
                     }
                 elif len(row) >= 3:
-                    # VGGSound-like format without split: youtube_id, start_seconds, label
+                    # VGGSound-like format without split:
+                    # youtube_id, start_seconds, label
                     yield {
                         "audio": None,
                         "video_id": row[0],

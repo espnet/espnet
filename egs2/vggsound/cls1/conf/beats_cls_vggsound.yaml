@@ -42,7 +42,7 @@ encoder: beats
 encoder_conf:
     # Download a BEATs checkpoint and update this path before training.
     # Example: BEATs_iter3_plus_AS2M.pt from microsoft/unilm BEATs.
-    beats_ckpt_path: /inspire/hdd/project/embodied-multimodality/chenxie-25019/xiquan/weights/BEATs_iter3_plus_AS2M.pt
+    beats_ckpt_path: PATH/TO/BEATs_iter3_plus_AS2M.pt
     beats_config:
         layer_wise_gradient_decay_ratio: 0.3
         encoder_layerdrop: 0.1
