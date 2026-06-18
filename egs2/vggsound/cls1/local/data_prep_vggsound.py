@@ -113,7 +113,9 @@ def rows_from_metadata(path):
                 )
                 video_id = get_first(row, ("video_id", "youtube_id", "ytid", "id"))
                 label = get_first(row, ("label", "class", "category", "caption"))
-                start = get_first(row, ("start", "start_time", "start_sec", "timestamp"))
+                start = get_first(
+                    row, ("start", "start_time", "start_sec", "timestamp")
+                )
                 split = get_first(row, ("split", "subset", "set"))
 
                 if label is None:
@@ -308,9 +310,7 @@ def write_split(root, output_root, split, items, metadata):
         open(out_dir / "text", "w", encoding="utf-8") as text_f,
         open(out_dir / "utt2spk", "w", encoding="utf-8") as utt2spk_f,
     ):
-        for index, item in enumerate(
-            progress(items, f"Writing {split}", len(items))
-        ):
+        for index, item in enumerate(progress(items, f"Writing {split}", len(items))):
             audio_path = find_audio(root, split, item)
             if audio_path is None:
                 missing += 1
