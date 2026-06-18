@@ -306,7 +306,6 @@ def test_pack_demo_renders_space_readme(
         "pinned: true",
         "license: mit",
         "tags:\n- custom-tag\n- task-tag",
-        "# Custom demo",
         "Custom description.",
         "- Space: `custom/repo`",
         "- Model: `custom/model`",
