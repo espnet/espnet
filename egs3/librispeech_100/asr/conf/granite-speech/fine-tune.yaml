@@ -96,7 +96,7 @@ trainer:
   strategy: auto
 
   callbacks:
-    - _target_: espnet3.utils.hf_utils.HFCheckpointSaveCallback
+    - _target_: espnet3.components.callbacks.hf_callbacks.HFCheckpointSaveCallback
       dirpath: ${exp_dir}/hf
 
 fit: {}

@@ -8,7 +8,7 @@ class HFCheckpointSaveCallback(Callback):
         super().__init__()
         self.dirpath = dirpath
 
-    def on_save_checkpoint(self, trainer, pl_module, checkpoint):
+    def on_validation_end(self, trainer, pl_module):
         hf_model = getattr(pl_module.model, "model", None)
         if hf_model is None:
             raise AttributeError(
