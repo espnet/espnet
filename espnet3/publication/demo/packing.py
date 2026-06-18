@@ -5,12 +5,20 @@ from __future__ import annotations
 import logging
 import os
 import shutil
+import sys
 from pathlib import Path
 
+from huggingface_hub import HfApi
+from huggingface_hub.errors import HfHubHTTPError
 from omegaconf import DictConfig, ListConfig, OmegaConf
 
-from espnet3.utils.publish import (
-    _copy_pack_include_paths,
+from espnet3.utils.publication_utils import (
+    _build_pack_ignore,
+    _copy_path,
+    _expand_pack_paths,
+    _infer_creator,
+    _render_readme,
+    _resolve_readme_template_path,
 )
 
 logger = logging.getLogger(__name__)
@@ -25,6 +33,8 @@ def pack_demo(system) -> Path:
       relative to the output directory so the pack is portable.
     - ``app.py``: the Gradio launcher script specified by
       ``demo_config.ui.app_script``.
+    - ``README.md``: optional Hugging Face Space card rendered from
+      ``demo_config.pack.readme``.
     - Any extra files listed in ``demo_config.pack.include``.
     - Optionally a description file referenced by ``demo_config.ui.description``.
 
@@ -64,16 +74,23 @@ def pack_demo(system) -> Path:
 
     # --- write demo.yaml (paths rewritten to relative for portability) ---
     updated_cfg = _prepare_demo_config(demo_cfg, demo_dir, system)
+    _link_local_model_into_bundle(updated_cfg, demo_dir)
     (demo_dir / "demo.yaml").write_text(
         OmegaConf.to_yaml(updated_cfg, resolve=True),
         encoding="utf-8",
     )
+
+    # --- write requirements.txt when pack.requirements is set ---
+    _write_requirements(updated_cfg, demo_dir)
 
     # --- copy extra files declared in pack.include ---
     _copy_pack_includes(updated_cfg, demo_dir)
 
     # --- copy app.py and description asset ---
     _setup_demo_assets(demo_dir=demo_dir, demo_config=updated_cfg)
+
+    # --- write README.md for Hugging Face Spaces when configured ---
+    _write_demo_readme(updated_cfg, demo_dir, system)
     return demo_dir
 
 
@@ -90,7 +107,6 @@ def upload_demo(system) -> None:
     Optional config keys:
 
     - ``repo_type``: HF repo type (default: ``"space"``).
-    - ``organization``: HF organization name.
     - ``create``: extra options forwarded to the HF ``create_repo`` call.
 
     Args:
@@ -116,18 +132,14 @@ def upload_demo(system) -> None:
 
     # --- build repo / create options ---
     repo = str(hf_repo_raw)
-    # HF API needs the repo name without the org prefix for create calls.
-    create_repo_name = repo.rsplit("/", maxsplit=1)[-1]
+    organization = getattr(upload_cfg, "organization", None)
+    if organization and "/" not in repo:
+        repo = f"{organization}/{repo}"
     repo_type = getattr(upload_cfg, "repo_type", "space")
     create_cfg = getattr(upload_cfg, "create", None)
     create_opts = OmegaConf.to_container(create_cfg, resolve=True) if create_cfg else {}
-    # Gradio and auto-confirm are safe defaults for a Spaces upload.
+    create_opts.pop("yes", None)
     create_opts.setdefault("space_sdk", "gradio")
-    create_opts.setdefault("yes", True)
-    if "organization" not in create_opts:
-        organization = getattr(upload_cfg, "organization", None)
-        if organization:
-            create_opts["organization"] = organization
 
     # --- locate the packed demo directory ---
     pack_cfg = getattr(demo_cfg, "pack", None)
@@ -139,15 +151,121 @@ def upload_demo(system) -> None:
         raise RuntimeError(f"Demo pack not found: {demo_dir}")
 
     # --- upload ---
-    from espnet3.utils.publish import _upload_common
+    logger.info("Ensuring Hugging Face demo repo exists: %s", repo)
+    api = HfApi()
+    private = bool(getattr(upload_cfg, "private", False))
+    try:
+        api.create_repo(
+            repo_id=repo,
+            repo_type=repo_type,
+            private=private,
+            exist_ok=True,
+            **create_opts,
+        )
+    except (HfHubHTTPError, ValueError) as exc:
+        raise RuntimeError(
+            f"Failed to create Hugging Face demo repo '{repo}': {exc}"
+        ) from exc
+    logger.info("Uploading %s -> %s", demo_dir, repo)
+    try:
+        api.upload_folder(
+            repo_id=repo,
+            repo_type=repo_type,
+            folder_path=str(demo_dir),
+        )
+    except (HfHubHTTPError, ValueError) as exc:
+        raise RuntimeError(f"Failed to upload demo pack to '{repo}': {exc}") from exc
+    logger.info("Demo upload complete: https://huggingface.co/spaces/%s", repo)
 
-    _upload_common(
-        repo,
-        demo_dir,
-        repo_type=repo_type,
-        create_options=create_opts,
-        create_repo_name=create_repo_name,
+
+def _write_requirements(demo_cfg, demo_dir: Path) -> None:
+    """Write ``requirements.txt`` from ``pack.requirements`` into the demo bundle.
+
+    Entries may be any pip-compatible specifier, including ``git+https://``
+    URLs. When ``pack.requirements`` is absent or empty, no file is written.
+
+    Args:
+        demo_cfg: Resolved demo config with an optional ``pack.requirements``
+            list.
+        demo_dir: Packed demo output directory where ``requirements.txt`` is
+            written.
+
+    Examples:
+        Config with a mix of PyPI and git installs:
+
+        .. code-block:: yaml
+
+            pack:
+              requirements:
+                - espnet
+                - gradio
+                - git+https://github.com/espnet/espnet@main
+
+        Produces ``demo_dir/requirements.txt``::
+
+            espnet
+            gradio
+            git+https://github.com/espnet/espnet@main
+    """
+    pack_cfg = getattr(demo_cfg, "pack", None)
+    requirements = getattr(pack_cfg, "requirements", None) if pack_cfg else None
+    if not requirements:
+        return
+    lines = [str(r) for r in requirements]
+    dest = demo_dir / "requirements.txt"
+    dest.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    logger.info("Wrote requirements.txt | %d packages", len(lines))
+
+
+def _link_local_model_into_bundle(demo_cfg, demo_dir: Path) -> None:
+    """Symlink a local model directory into the demo bundle as ``model_pack``.
+
+    Called by :func:`pack_demo` after :func:`_prepare_demo_config` has
+    normalised ``model.dir_or_tag`` to a path relative to ``demo_dir``.
+    When that relative path resolves to a directory that lives *outside*
+    ``demo_dir``, a symlink ``demo_dir/model_pack -> <candidate>`` is created
+    so the bundle references the model without copying it. :func:`upload_demo`
+    resolves symlinks before uploading so HF receives the actual files.
+
+    If ``dir_or_tag`` is already inside ``demo_dir`` or points to a Hugging
+    Face tag (non-existent local path), this function is a no-op.
+
+    Args:
+        demo_cfg: Resolved demo config returned by :func:`_prepare_demo_config`.
+            Mutated in place when a symlink is created.
+        demo_dir: Packed demo output directory.
+    """
+    model_cfg = getattr(demo_cfg, "model", None)
+    if model_cfg is None:
+        return
+    dir_or_tag = model_cfg.get("dir_or_tag") if hasattr(model_cfg, "get") else None
+    if not dir_or_tag:
+        return
+
+    candidate = Path(str(dir_or_tag))
+    if not candidate.is_absolute():
+        candidate = (demo_dir / candidate).resolve()
+    else:
+        candidate = candidate.resolve()
+
+    if not candidate.is_dir():
+        return
+
+    # Already inside demo_dir — nothing to do.
+    try:
+        candidate.relative_to(demo_dir.resolve())
+        return
+    except ValueError:
+        pass
+
+    dest = demo_dir / "model_pack"
+    logger.info(
+        "Symlinking local model dir into demo bundle | src=%s dest=%s",
+        candidate,
+        dest,
     )
+    dest.symlink_to(candidate, target_is_directory=True)
+    model_cfg["dir_or_tag"] = "model_pack"
 
 
 def _setup_demo_assets(demo_dir: Path, demo_config) -> None:
@@ -196,41 +314,16 @@ def _prepare_demo_config(demo_cfg, demo_dir: Path, system) -> DictConfig:
     # --- stamp the resolved output path so the demo app knows where it lives ---
     cfg.demo_dir = str(demo_dir)
 
-    # --- ensure model section exists ---
+    # --- validate model.dir_or_tag ---
+    # Set model.dir_or_tag in demo.yaml, or run pack_demo together with
+    # publication_config so apply_training_experiment_context can propagate
+    # pack_model.out_dir automatically.
     model_cfg = getattr(cfg, "model", None)
-    if model_cfg is None:
-        cfg["model"] = OmegaConf.create({})
-        model_cfg = cfg.model
-
-    # --- infer dir_or_tag if not explicitly set ---
-    if not model_cfg.get("dir_or_tag"):
-        default_ref = None
-        # Priority 1: explicit out_dir in publication_config.pack_model
-        publication_cfg = getattr(system, "publication_config", None)
-        if publication_cfg is not None:
-            pack_cfg = getattr(publication_cfg, "pack_model", None)
-            if pack_cfg is not None and getattr(pack_cfg, "out_dir", None):
-                target = Path(pack_cfg.out_dir)
-                target_path = (
-                    target if target.is_absolute() else (Path.cwd() / target).resolve()
-                )
-                default_ref = os.path.relpath(target_path, start=demo_dir)
-        # Priority 2: conventional location pack_model() uses when out_dir is
-        # not set (see utils/publish.py line ~489).
-        if default_ref is None:
-            exp_dir = getattr(system, "exp_dir", None)
-            if exp_dir is not None:
-                target = Path(exp_dir) / "model_pack"
-                target_path = (
-                    target if target.is_absolute() else (Path.cwd() / target).resolve()
-                )
-                default_ref = os.path.relpath(target_path, start=demo_dir)
-        if default_ref is not None:
-            model_cfg["dir_or_tag"] = default_ref
-    if not model_cfg.get("dir_or_tag"):
+    if model_cfg is None or not model_cfg.get("dir_or_tag"):
         raise ValueError(
-            "demo_config.model.dir_or_tag is required when no local model pack "
-            "can be inferred."
+            "demo_config.model.dir_or_tag is required. "
+            "Set it in demo.yaml or run pack_demo with publication_config "
+            "so pack_model.out_dir is propagated automatically."
         )
 
     # --- normalize dir_or_tag to a relative path for portability ---
@@ -285,12 +378,63 @@ def _copy_pack_includes(demo_cfg, demo_dir: Path) -> None:
         )
 
     # --- copy ---
-    _copy_pack_include_paths(
-        include_paths=raw_include_paths,
-        out_dir=demo_dir,
-        recipe_root=Path.cwd(),
-        exclude_patterns=exclude_patterns,
-    )
+    recipe_root = Path.cwd().resolve()
+    for path in _expand_pack_paths(raw_include_paths, recipe_root):
+        if not path.exists():
+            logger.warning("Demo include path does not exist: %s", path)
+            continue
+        try:
+            dest = demo_dir / path.absolute().relative_to(recipe_root)
+        except ValueError:
+            logger.warning(
+                "Demo include path is outside recipe root and will be placed "
+                "at the bundle root as '%s': %s",
+                path.name,
+                path,
+            )
+            dest = demo_dir / path.name
+        ignore = _build_pack_ignore(path, exclude_patterns) if path.is_dir() else None
+        _copy_path(src=path, dst=dest, ignore=ignore)
+
+
+def _write_demo_readme(demo_cfg, demo_dir: Path, system) -> None:
+    """Render the optional Hugging Face Space README."""
+    pack_cfg = getattr(demo_cfg, "pack", None)
+    readme_template_path = getattr(pack_cfg, "readme", None) if pack_cfg else None
+    if not readme_template_path:
+        return
+    template_path = _resolve_readme_template_path(str(readme_template_path))
+    context = _build_demo_readme_context(demo_cfg)
+    context.update(dict(getattr(pack_cfg, "readme_context", {}) or {}))
+    readme_text = _render_readme(template_path.read_text(encoding="utf-8"), context)
+    (demo_dir / "README.md").write_text(readme_text, encoding="utf-8")
+
+
+def _build_demo_readme_context(demo_cfg) -> dict[str, str]:
+    """Build runtime-only template values for a Hugging Face Space README.
+
+    Returns only values that cannot be expressed in static config: installed
+    package versions, Python version, creator from env, and the description
+    string (which requires resolving whether ``ui.description`` is a file path).
+
+    All other README variables (title, hf_repo, model_ref, emoji, sdk, license,
+    tags, app_file, pinned, …) are defined under ``pack.readme_context`` in
+    ``TEMPLATE/asr/conf/demo.yaml`` and are already merged into ``demo_cfg``
+    by ``load_and_merge_config``. They are applied in ``_write_demo_readme``
+    via ``context.update(pack_cfg.readme_context)``.
+    """
+    ui_cfg = getattr(demo_cfg, "ui", None)
+    description = getattr(ui_cfg, "description", None) if ui_cfg else None
+    if description is not None and _resolve_ui_description_path(demo_cfg) is None:
+        description_text = str(description)
+    else:
+        description_text = ""
+
+    return {
+        "python_version": f"{sys.version_info.major}.{sys.version_info.minor}",
+        "description": description_text,
+        "creator": _infer_creator(),
+    }
 
 
 def _resolve_app_script(demo_config) -> Path:

@@ -6,7 +6,6 @@
 #   python run.py --stages upload_model --training_config conf/training.yaml --publication_config conf/publication.yaml
 #
 # Assumptions:
-# - `train` has already produced the checkpoint listed in `pack_model.files`.
 # - Running `infer` and `measure` before `pack_model` is recommended.
 # - `measure` writes `metrics.json` under `${inference_dir}`.
 # - If `${inference_dir}` contains that `metrics.json`, `pack_model` bundles it
@@ -32,27 +31,42 @@ data_dir: ${recipe_dir}/data
 ##########################################################
 #                   PACK MODEL SETTING                   #
 ##########################################################
-# `pack_model` copies `${exp_dir}` first, then copies extra paths from
-# `include`, applies `exclude`, writes rewritten configs under `conf/`, and
-# writes `meta.yaml` at the bundle root.
+# `pack_model` builds the bundle in this order:
+#
+#   1. Bulk copy: copy `${exp_dir}` into the bundle, then copy each path in
+#      `include`. `exclude` patterns are applied during this step — any file
+#      or directory whose name matches a pattern is skipped.
+#
+#   2. Named artifacts (`files`): copy each entry individually and register it
+#      in `meta.yaml` under the given key. `exclude` does NOT apply here, so
+#      files listed under `files` are always copied even if their name appears
+#      in `exclude`.
+#
+#   3. Named YAML artifacts (`yaml_files`): same as `files`, but paths inside
+#      the YAML are rewritten to bundle-relative `${recipe_dir}/...` form.
+#
+#   4. Configs: training / inference / metrics / publication configs are
+#      written into `conf/` with paths rewritten.
+#
+#   5. `meta.yaml` is written at the bundle root.
 #
 # `inference_dir` inside this block is used only to find the `metrics.json`
 # written by the `measure` stage for the bundled README and result summary.
-#
-# `files` registers named artifacts in `meta.yaml`.
-# Optional keys also supported here:
-# - `yaml_files`: copy specific YAML files with path rewriting
-# - `readme_context`: extra template variables for the README
 pack_model:
   out_dir: ${exp_dir}/model_pack
+  allow_overwrite: false
   inference_dir: ${inference_dir}
-  readme: egs3/TEMPLATE/asr/src/hf_model_repo_readme_template.md
+  # Always include static model summary metrics in the README.
+  # Set this true to also include `repr(model)`.
+  include_model_detail: false
+  readme: ${recipe_dir}/src/hf_model_readme.md
   include:
     # Include recipe code when the packed model depends on local modules.
-    - ${recipe_dir}/src
+    - src
+    # Include recipe-local dataset modules for publication smoke checks.
+    - dataset
   exclude:
-    # These patterns are applied while copying `${exp_dir}` and any included
-    # directories.
+    # These patterns are applied only during the bulk copy (step 1 above).
     - inference
     - inference_*
     - last.ckpt
@@ -60,16 +74,14 @@ pack_model:
     - "**/*.log"
     - "**/tensorboard/**"
     - "**/wandb/**"
-  files:
-    # Named artifacts appear in `meta.yaml` and can be resolved by
-    # `InferenceModel.from_packed(...)`.
-    asr_model_file: ${exp_dir}/last.ckpt
 
 ##########################################################
 #                  UPLOAD MODEL SETTING                  #
 ##########################################################
-# Upload requires `huggingface-cli` and a valid Hugging Face login.
+# Upload uses `huggingface_hub` with your local Hugging Face login.
+# Run `hf auth login` first so the Python API can reuse the saved token.
 # `upload_model` uploads `${pack_model.out_dir}` to this repo, creating it if
 # needed.
 upload_model:
   hf_repo: yourname/your-model-repo
+  private: false

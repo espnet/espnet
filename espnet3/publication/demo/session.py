@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from pathlib import Path
 from typing import Any
 
@@ -16,6 +17,13 @@ from espnet3.publication.inference_model import InferenceModel
 from espnet3.utils.config_utils import load_config_with_defaults
 
 logger = logging.getLogger(__name__)
+
+_FRONT_MATTER_RE = re.compile(r"^---\s*\n.*?\n---\s*\n", re.DOTALL)
+
+
+def _strip_front_matter(text: str) -> str:
+    """Remove YAML front matter from a markdown string."""
+    return _FRONT_MATTER_RE.sub("", text, count=1).lstrip("\n")
 
 
 class DemoSession:
@@ -56,9 +64,11 @@ class DemoSession:
             path = Path(str(description))
             if not path.is_absolute():
                 path = self.demo_dir / path
-            self.description = (
-                path.read_text(encoding="utf-8") if path.is_file() else str(description)
-            )
+            if path.is_file():
+                text = path.read_text(encoding="utf-8")
+                self.description = _strip_front_matter(text)
+            else:
+                self.description = str(description)
 
         model_cfg = getattr(self.demo_cfg, "model", None)
         mapping = (

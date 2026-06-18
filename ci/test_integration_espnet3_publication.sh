@@ -7,6 +7,7 @@ set -euo pipefail
 
 python="coverage run --append"
 cwd=$(pwd)
+check_workdir=""
 
 training_config=${1:-conf/training_asr_transformer.yaml}
 inference_config=${2:-conf/inference.yaml}
@@ -85,6 +86,13 @@ class DemoTestProvider:
         return model
 EOF
 }
+cleanup() {
+    if [ -n "${check_workdir}" ] && [ -d "${check_workdir}" ]; then
+        rm -rf "${check_workdir}"
+    fi
+}
+
+trap cleanup EXIT
 
 resolve_hf_repo() {
     local publication_config_path=$1
@@ -135,9 +143,21 @@ if [ -z "${pack_dir}" ]; then
     exit 1
 fi
 
+# Resolve to absolute path before leaving the recipe directory.
+pack_dir_abs="$(pwd)/${pack_dir}"
+
+check_workdir="$(mktemp -d "${TMPDIR:-/tmp}/espnet3-publication-check.XXXXXX")"
+if [ -e "${check_workdir}/data" ]; then
+    echo "Temporary check directory unexpectedly contains data/: ${check_workdir}" >&2
+    exit 1
+fi
+
+# Run the check from a directory outside the recipe tree to catch accidental
+# relative-path dependencies such as ./data.
+cd "${check_workdir}" || exit 1
+
 check_args=(
     --split "${dataset_split}"
-    --recipe-dir "$(pwd)"
 )
 if [ -n "${hf_repo}" ]; then
     check_args+=(--model-tag "${hf_repo}")
@@ -194,3 +214,4 @@ ${python} "${cwd}/ci/test_demo_ui.py"
 
 rm -rf exp data
 cd "${cwd}" || exit 1
+
