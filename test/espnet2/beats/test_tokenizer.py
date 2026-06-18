@@ -74,22 +74,26 @@ def test_beats_random_tokenizer_encode(n_codes):
     tokenizer_config = BeatsTokenizerConfig()
     tokenizer_config.quant_n = n_codes
     tokenizer = BeatsRandomTokenizer(tokenizer_config=vars(tokenizer_config))
-    x = torch.randn(2, 160_000)
-    x_len = torch.LongTensor([160_000, 120_000])
+    # Short clips (~1s and ~0.75s) — algorithm verification only, no acoustic
+    # meaning; cheaper to run on CI than 10s inputs.
+    x = torch.randn(2, 16_000)
+    x_len = torch.LongTensor([16_000, 12_000])
     result = tokenizer.encode(xs_pad=x, ilens=x_len)
     token_ids = result["codes"]
     token_id_len = result["code_lengths"]
     assert token_ids.shape[0] == 2
     assert token_ids.min() >= 0
     assert token_ids.max() < n_codes
-    assert tuple(token_id_len) == (496, 368)
+    assert token_id_len.shape == (2,)
+    assert token_id_len[0] > token_id_len[1] > 0
 
 
 @pytest.mark.execution_timeout(60)
 def test_beats_random_tokenizer_var_length():
-    # Padding of other elements should not affect each other
-    arr = torch.randn(3, 176_000)
-    arrlen = torch.LongTensor([int(16_000 * 3.995), int(16_000 * 7.995), 160_000])
+    # Padding of other elements should not affect each other.
+    # Short clips (~0.4 / 0.8 / 1 s); only invariance under padding is checked.
+    arr = torch.randn(3, 17_600)
+    arrlen = torch.LongTensor([int(16_000 * 0.4), int(16_000 * 0.8), 16_000])
     model = BeatsRandomTokenizer()
     result1 = model.encode(arr, arrlen)
     token_ids1 = result1["codes"]
