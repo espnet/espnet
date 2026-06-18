@@ -36,7 +36,7 @@ create_dataset:
 ##########################################################
 model:
   _target_: egs3.librispeech_100.asr.src.granite_speech.GraniteSpeechModel
-  model_tag: ibm-granite/granite-speech-4.1-2b
+  model_tag_or_path: ibm-granite/granite-speech-4.1-2b
   user_prompt: "<|audio|>transcribe the speech with proper punctuation and capitalization."
 
 ##########################################################
@@ -65,7 +65,7 @@ best_model_criterion:
 dataloader:
   collate_fn:
     _target_: egs3.librispeech_100.asr.src.granite_speech.GraniteSpeechCollateFn
-    model_tag: ${model.model_tag}
+    model_tag_or_path: ${model.model_tag}
     user_prompt: ${model.user_prompt}
   train:
     iter_factory:

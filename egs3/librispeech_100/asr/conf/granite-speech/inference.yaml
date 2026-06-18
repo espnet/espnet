@@ -53,8 +53,7 @@ dataset:
 ##########################################################
 model:
   _target_: egs3.librispeech_100.asr.src.granite_speech.GraniteSpeechInferenceSession
-  checkpoint_path: ${exp_dir}/hf
-  model_tag: ibm-granite/granite-speech-4.1-2b
+  model_tag_or_path: ${exp_dir}/hf
   user_prompt: "<|audio|>transcribe the speech with proper punctuation and capitalization."
 
 input_key: speech

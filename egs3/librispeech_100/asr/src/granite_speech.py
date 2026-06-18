@@ -1,40 +1,27 @@
-from espnet2.torch_utils.device_funcs import force_gatherable
+from espnet3.components.modeling.hf_models import AbsHFTrainingWrapper, AbsHFInferenceWrapper
 
 from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor
 import torch
-import lightning
 from typing import Tuple, Dict, List, Any
 
 
-class GraniteSpeechModel(lightning.LightningModule):
-    def __init__(self, model_tag: str, **kwargs):
-        super().__init__()
-        self.model = AutoModelForSpeechSeq2Seq.from_pretrained(model_tag)
+class GraniteSpeechModel(AbsHFTrainingWrapper):
+    def __init__(self, model_tag_or_path: str, **kwargs):
+        super(AbsHFTrainingWrapper, self).__init__()
+        self.model = AutoModelForSpeechSeq2Seq.from_pretrained(model_tag_or_path)
+        self.processor = AutoProcessor.from_pretrained(model_tag_or_path)
 
-    def forward(
-        self,
-        **batch
-    ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
-        outputs = self.model(**batch)
-        loss = outputs.loss
-        stats = {"loss": loss}
-        batch_size = batch["input_ids"].shape[0]
-
-        loss, stats, weight = force_gatherable(
-            (loss, stats, batch_size), loss.device)
-        return loss, stats, weight
-
-    def collect_feats(self, **batch):
+    def collect_feats(self, **batch) -> Dict[str, torch.Tensor]:
         feats = batch["input_features"]
         feats_lengths = batch["input_features_mask"].sum(dim=-1)
         return {"feats": feats, "feats_lengths": feats_lengths}
 
 
-class GraniteSpeechInferenceSession(lightning.LightningModule):
-    def __init__(self, model_tag: str, user_prompt: str, checkpoint_path: str | None = None, **kwargs):
-        super().__init__()
-        self.model = AutoModelForSpeechSeq2Seq.from_pretrained(checkpoint_path or model_tag)
-        self.processor = AutoProcessor.from_pretrained(model_tag)
+class GraniteSpeechInferenceSession(AbsHFInferenceWrapper):
+    def __init__(self, model_tag_or_path: str, user_prompt: str, **kwargs):
+        super(AbsHFInferenceWrapper, self).__init__()
+        self.model = AutoModelForSpeechSeq2Seq.from_pretrained(model_tag_or_path)
+        self.processor = AutoProcessor.from_pretrained(model_tag_or_path)
         self.tokenizer = self.processor.tokenizer
 
         chat = [
@@ -59,8 +46,8 @@ class GraniteSpeechInferenceSession(lightning.LightningModule):
 
 
 class GraniteSpeechCollateFn:
-    def __init__(self, model_tag: str, user_prompt: str, **kwargs):
-        self.processor = AutoProcessor.from_pretrained(model_tag)
+    def __init__(self, model_tag_or_path: str, user_prompt: str, **kwargs):
+        self.processor = AutoProcessor.from_pretrained(model_tag_or_path)
         self.tokenizer = self.processor.tokenizer
 
         chat = [

@@ -1,4 +1,4 @@
-"""Helpers for working with Hugging Face models."""
+from espnet3.components.modeling.hf_models import AbsHFTrainingWrapper
 
 from lightning.pytorch.callbacks import Callback
 
@@ -9,15 +9,9 @@ class HFCheckpointSaveCallback(Callback):
         self.dirpath = dirpath
 
     def on_validation_end(self, trainer, pl_module):
-        hf_model = getattr(pl_module.model, "model", None)
-        if hf_model is None:
+        if not isinstance(pl_module.model, AbsHFTrainingWrapper):
             raise AttributeError(
-                f"Expected {hf_model}.model to be a Hugging Face model."
+                f"Failed to save Hugging Face model. {pl_module}.model must be an instance of AbsHFTrainingWrapper."
             )
 
-        if not hasattr(hf_model, "save_pretrained"):
-            raise AttributeError(
-                f"Couldn't save Hugging Face model: {hf_model} has no method `save_pretrained()`"
-            )
-
-        hf_model.save_pretrained(self.dirpath)
+        pl_module.model.save_pretrained(self.dirpath)
