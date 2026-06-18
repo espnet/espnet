@@ -510,6 +510,27 @@ exp_dir: ./exp/from_user
     assert unresolved["custom_dir"] == "${exp_dir}/custom"
 
 
+def test_load_and_merge_publication_config_inherits_template_readme_path() -> None:
+    cfg = load_and_merge_config(
+        Path("egs3/mini_an4/asr/conf/publication.yaml"),
+        "publication.yaml",
+        default_package="egs3.TEMPLATE.asr",
+        resolve=False,
+    )
+
+    assert (
+        cfg.pack_model.readme
+        == "egs3/TEMPLATE/asr/src/hf_model_repo_readme_template.md"
+    )
+    assert list(cfg.pack_model.include) == [
+        "./src",
+        "./data/**/bpe.model",
+        "./data/**/bpe.vocab",
+        "./data/**/tokens.txt",
+    ]
+    assert list(cfg.pack_model.exclude)[:2] == ["inference", "inference_*"]
+
+
 def test_ensure_target_convert_all_nested():
     cfg = OmegaConf.create(
         {

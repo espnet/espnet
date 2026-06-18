@@ -202,6 +202,23 @@ class BaseRunner(ABC):
         """
         raise NotImplementedError
 
+    @classmethod
+    def batch_forward(cls, indices: Iterable[int], dataset, model, **env) -> Any:
+        """Compute a batch by delegating to ``forward`` per index as a default.
+
+        This should be overridden by subclasses that can handle batched inputs.
+
+        Args:
+            indices (Iterable[int]): Indices to process as a batch.
+            dataset: Dataset object provided via the environment.
+            model: Model object provided via the environment.
+            **env: Any additional environment entries injected by the provider.
+
+        Returns:
+            Any: Batch result from the runner.
+        """
+        return [cls.forward(i, dataset=dataset, model=model, **env) for i in indices]
+
     def _run_local(self, indices: Sequence[int]) -> List[Any]:
         """Run sequentially on the driver using a locally built environment.
 

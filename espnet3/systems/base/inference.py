@@ -145,7 +145,7 @@ def infer(config: DictConfig):
             ``output_artifacts`` writer settings.
     """
     start = time.perf_counter()
-    set_parallel(config.parallel)
+    set_parallel(getattr(config, "parallel", None))
 
     test_sets = []
     for index, test_set in enumerate(config.dataset.test):

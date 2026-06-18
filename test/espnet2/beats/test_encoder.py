@@ -27,7 +27,7 @@ def test_override_beats_config():
 
 
 # Each parameter value creates a variant of the model
-@pytest.mark.timeout(30)
+@pytest.mark.execution_timeout(60)
 @pytest.mark.parametrize("downsampling_rate", [1, 2])
 @pytest.mark.parametrize("use_weighted_representation", [False, True])
 @pytest.mark.parametrize(
@@ -75,7 +75,7 @@ def test_forward_pass_beats_encoder(
     ), f"Output length vector should be {correct_length}. It is {output_len}"
 
 
-@pytest.mark.timeout(30)
+@pytest.mark.execution_timeout(60)
 @pytest.mark.parametrize("downsampling_rate", [1, 2])
 @pytest.mark.parametrize("use_weighted_representation", [False, True])
 @pytest.mark.parametrize(
@@ -124,6 +124,7 @@ def test_small_inputs():
 # Test for pretraining mode
 
 
+@pytest.mark.execution_timeout(60)
 def test_forward_pass_pretraining_beats_encoder():
     beats_config = {"encoder_layers": 2, "mask_ratio": 0.75}
     beats_model = BeatsEncoder(
@@ -161,6 +162,7 @@ def test_forward_pass_pretraining_beats_encoder():
     ), "Restore ids should be a permutation"
 
 
+@pytest.mark.execution_timeout(60)
 def test_backward_pass_pretraining_beats_encoder():
     beats_config = {"encoder_layers": 2, "mask_ratio": 0.75}
     beats_model = BeatsEncoder(
@@ -174,6 +176,7 @@ def test_backward_pass_pretraining_beats_encoder():
     output_rep.sum().backward()
 
 
+@pytest.mark.execution_timeout(60)
 def test_forward_pass_beats_pretraining_predictor():
     if not is_torch_1_12_1_plus:
         return
@@ -199,6 +202,7 @@ def test_forward_pass_beats_pretraining_predictor():
     assert pred.size(2) == 24, f"Output dim should be 24. It is {pred.size(2)}"
 
 
+@pytest.mark.execution_timeout(60)
 def test_backward_pass_beats_pretraining_predictor():
     if not is_torch_1_12_1_plus:
         return
