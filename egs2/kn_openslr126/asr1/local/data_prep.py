@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-import argparse, glob, os, random
+import argparse
+import glob
+import os
+import random
 
 
 def speaker_of(utt):
@@ -43,7 +46,9 @@ def write_dir(outdir, items):
     dump(os.path.join(outdir, "wav.scp"), wav_scp)
     dump(os.path.join(outdir, "text"), text)
     dump(os.path.join(outdir, "utt2spk"), utt2spk)
-    with open(os.path.join(outdir, "spk2utt"), "w", encoding="utf-8", newline="\n") as f:
+    with open(
+        os.path.join(outdir, "spk2utt"), "w", encoding="utf-8", newline="\n"
+    ) as f:
         for spk in sorted(spk2utt):
             f.write(f"{spk} {' '.join(sorted(spk2utt[spk]))}\n")
 
