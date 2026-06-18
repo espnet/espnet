@@ -74,7 +74,7 @@ def has_header(path, dialect):
 
 def get_first(row, names):
     for name in names:
-        if name in row and row[name].strip():
+        if name in row and row[name] is not None and row[name].strip():
             return row[name].strip()
     return None
 
