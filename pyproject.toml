@@ -179,6 +179,8 @@ test = [
   "black",
   "isort",
   "h5py>=2.10.0",
+  "gradio",
+  "playwright",
 ]
 
 doc = [
