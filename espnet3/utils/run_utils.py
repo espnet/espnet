@@ -22,6 +22,7 @@ _INFERENCE_METRICS_CONTEXT_KEYS = (
     "exp_dir",
     "inference_dir",
 )
+_INFERENCE_PUBLICATION_CONTEXT_KEYS = ("inference_dir",)
 
 
 def _is_missing_or_empty(value) -> bool:
@@ -152,16 +153,20 @@ def apply_training_experiment_context(
     training_config: DictConfig | None,
     inference_config: DictConfig | None,
     metrics_config: DictConfig | None,
+    publication_config: DictConfig | None,
     log: logging.Logger,
 ) -> None:
-    """Apply runner context propagation across training, inference, and metrics.
+    """Apply runner context propagation across stage configs.
 
     Runner entry points call this after loading configs and before resolving
     interpolations. When `training_config` is available, its `exp_tag` and
-    `exp_dir` are treated as the source of truth for inference and metrics.
-    When both `inference_config` and `metrics_config` are present,
+    `exp_dir` are treated as the source of truth for inference, metrics, and
+    publication. When both `inference_config` and `metrics_config` are present,
     `metrics_config` also inherits `inference_dir` from `inference_config` so
-    measurement follows the same output location as inference.
+    measurement follows the same output location as inference. When both
+    `inference_config` and `publication_config` are present,
+    `publication_config` inherits `inference_dir` so `pack_model` can reuse
+    the same inference output directory as the preceding inference stage.
 
     Args:
         training_config (DictConfig | None): Training config selected for the
@@ -170,6 +175,8 @@ def apply_training_experiment_context(
             place when present.
         metrics_config (DictConfig | None): Metrics config to patch in place
             when present.
+        publication_config (DictConfig | None): Publication config to patch in
+            place when present.
         log (logging.Logger): Logger used for insert/overwrite messages.
 
     Returns:
@@ -289,6 +296,15 @@ def apply_training_experiment_context(
                 target_name="metrics_config",
                 log=log,
             )
+        if publication_config is not None:
+            _copy_config_context(
+                source=training_config,
+                target=publication_config,
+                keys=_TRAINING_CONTEXT_KEYS,
+                source_name="training_config",
+                target_name="publication_config",
+                log=log,
+            )
 
     if inference_config is not None and metrics_config is not None:
         _copy_config_context(
@@ -297,6 +313,15 @@ def apply_training_experiment_context(
             keys=_INFERENCE_METRICS_CONTEXT_KEYS,
             source_name="inference_config",
             target_name="metrics_config",
+            log=log,
+        )
+    if inference_config is not None and publication_config is not None:
+        _copy_config_context(
+            source=inference_config,
+            target=publication_config,
+            keys=_INFERENCE_PUBLICATION_CONTEXT_KEYS,
+            source_name="inference_config",
+            target_name="publication_config",
             log=log,
         )
 
