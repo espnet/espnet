@@ -187,15 +187,27 @@ def check_demo_ui_labels(system_name: str, config: dict) -> None:
                 output_box.wait_for()
                 page.wait_for_function(
                     """(expected) => {
-                        const textboxes = Array.from(
-                            document.querySelectorAll('textarea, input[type="text"]')
+                        const elements = Array.from(
+                            document.querySelectorAll(
+                                'textarea, input[type="text"], [role="textbox"]'
+                            )
                         );
-                        return textboxes.some((node) => node.value.includes(expected));
+                        return elements.some((node) => {
+                            const tag = node.tagName;
+                            const val =
+                                tag === "TEXTAREA" || tag === "INPUT"
+                                    ? node.value
+                                    : node.textContent || "";
+                            return val.includes(expected);
+                        });
                     }""",
                     arg=expected_output,
                     timeout=30000,
                 )
-                output_value = output_box.input_value()
+                output_value = output_box.evaluate(
+                    "el => (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT')"
+                    " ? el.value : (el.textContent || '')"
+                )
                 assert expected_output in output_value, (
                     f"{system_name} expected output '{expected_output}' "
                     f"but got '{output_value}'"

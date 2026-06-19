@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# SCTK official repo does not have version tags. Here's the mapping:
-# 2.4.9 = 659bc36; 2.4.10 = d914e1b; 2.4.11 = 20159b5; 2.4.12 = 9688a26;
-SCTK_GITHASH=9688a26
+SCTK_ARCHIVE=sctk-master.zip
+SCTK_URL=https://github.com/usnistgov/SCTK/archive/refs/heads/master.zip
+SCTK_DIR=sctk-master
 
 if [ $# != 0 ]; then
     echo "Usage: $0"
@@ -17,20 +17,25 @@ if [[ ${unames} =~ MINGW || ${unames} =~ MSYS ]]; then
     exit 0
 fi
 
-if [ ! -e sctk-"${SCTK_GITHASH}".tar.gz ]; then
-    wget -nv -T 10 -t 3 -O sctk-"${SCTK_GITHASH}".tar.gz \
-        https://github.com/usnistgov/SCTK/archive/"${SCTK_GITHASH}".tar.gz
+if [ ! -e "${SCTK_ARCHIVE}" ]; then
+    wget -nv -T 10 -t 3 -O "${SCTK_ARCHIVE}" "${SCTK_URL}"
 fi
 
 if [ ! -e sctk ]; then
-    tar zxvf sctk-"${SCTK_GITHASH}".tar.gz
-    rm -rf sctk-"${SCTK_GITHASH}" sctk
-    mv SCTK-"${SCTK_GITHASH}"* sctk-"${SCTK_GITHASH}"
+    # Extract into a temporary directory first so that the subsequent
+    # "rm -rf ${SCTK_DIR}" does not accidentally remove the just-extracted
+    # SCTK-master on case-insensitive file systems (e.g. macOS default APFS),
+    # where "sctk-master" and "SCTK-master" resolve to the same path.
+    rm -rf sctk-extract
+    unzip -o "${SCTK_ARCHIVE}" -d sctk-extract
+    rm -rf "${SCTK_DIR}" sctk
+    mv sctk-extract/SCTK-master "${SCTK_DIR}"
+    rm -rf sctk-extract
     if [[ $(uname -s) =~ MINGW || $(uname -s) =~ MSYS ]]; then
         # FIXME(kamo): For MINGW or MSYS, ln command can't work by default (it can work with CYGWIN)
-        mv sctk-"${SCTK_GITHASH}" sctk
+        mv "${SCTK_DIR}" sctk
     else
-        ln -s sctk-"${SCTK_GITHASH}" sctk
+        ln -s "${SCTK_DIR}" sctk
     fi
 fi
 

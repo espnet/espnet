@@ -226,6 +226,23 @@ class DictReturnWorkerPlugin(WorkerPlugin):
         os.environ["DASK_WORKER_ID"] = str(worker.id)
 
 
+def _register_worker_plugin(client: Client, plugin: WorkerPlugin, name: str) -> None:
+    """Register a worker plugin across Dask client API versions."""
+    register_worker_plugin = getattr(client, "register_worker_plugin", None)
+    if callable(register_worker_plugin):
+        register_worker_plugin(plugin, name=name)
+        return
+
+    register_plugin = getattr(client, "register_plugin", None)
+    if callable(register_plugin):
+        register_plugin(plugin, name=name)
+        return
+
+    raise RuntimeError(
+        "This Dask client lacks worker plugin registration APIs; please upgrade."
+    )
+
+
 def wrap_func_with_worker_env(func: Callable) -> Callable:
     """Wrap a user-defined function for a WorkerPlugin.
 
@@ -318,12 +335,7 @@ def get_client(
     client = build_client(config)
     if setup_fn is not None:
         plugin = DictReturnWorkerPlugin(setup_fn)
-        reg = getattr(client, "register_worker_plugin", None)
-        if reg is None:
-            raise RuntimeError(
-                "This Dask version lacks register_worker_plugin; please upgrade."
-            )
-        reg(plugin, name="env")
+        _register_worker_plugin(client, plugin, name="env")
     try:
         yield client
     finally:

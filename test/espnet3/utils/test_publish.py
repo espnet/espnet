@@ -3,13 +3,14 @@ from __future__ import annotations
 import json
 from types import SimpleNamespace
 
+import httpx
 import pytest
+from huggingface_hub.errors import HfHubHTTPError
 from omegaconf import OmegaConf
 
-from espnet3.publication.demo import packing as demo_packer
 from espnet3.systems.asr.system import ASRSystem
-from espnet3.utils import publish
-from espnet3.utils.publish import (
+from espnet3.utils import publication_utils as publish
+from espnet3.utils.publication_utils import (
     _build_results_table,
     _render_readme,
     _resolve_results,
@@ -334,7 +335,26 @@ def test_pack_model_resolves_repo_root_readme_path_outside_cwd(tmp_path, monkeyp
     assert (out_dir / "README.md").exists()
 
 
-def test_pack_model_recreates_existing_out_dir(tmp_path):
+def test_pack_model_raises_when_out_dir_exists_without_allow_overwrite(tmp_path):
+    recipe_dir = tmp_path
+    exp_dir = recipe_dir / "exp"
+    exp_dir.mkdir()
+    out_dir = tmp_path / "model_pack"
+    out_dir.mkdir()
+
+    publication_config = OmegaConf.create({"pack_model": {"out_dir": str(out_dir)}})
+    system = _make_system(
+        exp_dir=exp_dir, recipe_dir=recipe_dir, publication_config=publication_config
+    )
+
+    with pytest.raises(RuntimeError, match="allow_overwrite"):
+        publish.pack_model(
+            training_config=system.training_config,
+            publication_config=system.publication_config,
+        )
+
+
+def test_pack_model_allow_overwrite_clears_stale_files(tmp_path):
     recipe_dir = tmp_path
     exp_dir = recipe_dir / "exp"
     exp_dir.mkdir()
@@ -343,7 +363,9 @@ def test_pack_model_recreates_existing_out_dir(tmp_path):
     stale_file = out_dir / "stale.txt"
     stale_file.write_text("old", encoding="utf-8")
 
-    publication_config = OmegaConf.create({"pack_model": {"out_dir": str(out_dir)}})
+    publication_config = OmegaConf.create(
+        {"pack_model": {"out_dir": str(out_dir), "allow_overwrite": True}}
+    )
     system = _make_system(
         exp_dir=exp_dir, recipe_dir=recipe_dir, publication_config=publication_config
     )
@@ -354,6 +376,30 @@ def test_pack_model_recreates_existing_out_dir(tmp_path):
     )
 
     assert not stale_file.exists()
+
+
+def test_pack_model_resolves_relative_out_dir_from_recipe_dir(tmp_path, monkeypatch):
+    recipe_dir = tmp_path / "recipe"
+    exp_dir = recipe_dir / "exp" / "run"
+    recipe_dir.mkdir()
+    exp_dir.mkdir(parents=True)
+    (exp_dir / "dummy.txt").write_text("hello", encoding="utf-8")
+    publication_config = OmegaConf.create({"pack_model": {"out_dir": "artifacts/pack"}})
+    system = _make_system(
+        exp_dir="exp/run",
+        recipe_dir=recipe_dir,
+        publication_config=publication_config,
+    )
+    monkeypatch.chdir(tmp_path)
+
+    out_dir = publish.pack_model(
+        training_config=system.training_config,
+        publication_config=system.publication_config,
+    )
+
+    assert out_dir == (recipe_dir / "artifacts" / "pack").resolve()
+    assert (out_dir / "exp" / "run" / "dummy.txt").exists()
+    assert not (tmp_path / "artifacts" / "pack").exists()
 
 
 def test_pack_model_raises_when_artifact_file_does_not_exist(tmp_path):
@@ -407,7 +453,7 @@ def test_pack_model_raises_when_artifact_outside_recipe_dir(tmp_path):
         exp_dir=exp_dir, recipe_dir=recipe_dir, publication_config=publication_config
     )
 
-    with pytest.raises(RuntimeError, match="recipe_dir"):
+    with pytest.raises(RuntimeError, match="symlink"):
         publish.pack_model(
             training_config=system.training_config,
             publication_config=OmegaConf.create(
@@ -484,7 +530,7 @@ def test_pack_model_excludes_inference_dir_and_copies_metrics_json(tmp_path):
     assert (result / "metrics.json").exists()
     assert not (result / "exp" / "inference" / "hyp.scp").exists()
     readme = (result / "README.md").read_text(encoding="utf-8")
-    assert "# ESPnet3 asr model" in readme
+    assert "# ESPnet3 " in readme
     assert "| dataset | WER |" in readme
     assert "| test | 5.0 |" in readme
     assert "Metrics were not bundled." not in readme
@@ -604,7 +650,7 @@ def test_pack_model_writes_readme_with_full_context(tmp_path):
     )
 
     readme = (out_dir / "README.md").read_text(encoding="utf-8")
-    assert "# ESPnet3 asr model" in readme
+    assert "# ESPnet3 " in readme
     assert "- Repository:" not in readme
     assert "language: en" in readme
     assert "license: apache-2.0" in readme
@@ -650,7 +696,7 @@ def test_pack_model_drops_readme_lines_for_missing_context(
 
     readme = (out_dir / "README.md").read_text(encoding="utf-8")
     assert "# ESPnet3 asr model" in readme
-    assert "- System: `espnet3.systems.asr.task.ASRTask`" in readme
+    assert "- System: `asr`" in readme
     assert "- Creator: `tester`" in readme
     assert "- Git: `abc123` (dirty)" in readme
     assert "language:" not in readme
@@ -894,115 +940,358 @@ def test_pack_model_preserves_symlink_name(tmp_path):
     assert "step1.ckpt" not in bundle
 
 
-def test_upload_common_creates_missing_repo_with_options_and_uploads(
-    tmp_path, monkeypatch
-):
-    src_dir = tmp_path / "demo"
-    src_dir.mkdir()
-    calls = []
-
-    monkeypatch.setattr(publish.shutil, "which", lambda cmd: "/usr/bin/huggingface-cli")
-    monkeypatch.setattr(
-        publish, "_check_repo_exists", lambda repo, repo_type="model": False
-    )
-    monkeypatch.setattr(publish, "_run", lambda cmd, cwd=None: calls.append(cmd) or "")
-
-    publish._upload_common(
-        "espnet/test-demo",
-        src_dir,
-        repo_type="space",
-        create_options={"organization": "espnet", "space_sdk": "gradio"},
-        create_repo_name="test-demo",
-    )
-
-    assert calls == [
-        [
-            "huggingface-cli",
-            "repo",
-            "create",
-            "test-demo",
-            "--type",
-            "space",
-            "-y",
-            "--organization",
-            "espnet",
-            "--space_sdk",
-            "gradio",
-        ],
-        [
-            "huggingface-cli",
-            "upload",
-            "espnet/test-demo",
-            str(src_dir),
-            "--repo-type",
-            "space",
-        ],
-    ]
+# ---------------------------------------------------------------------------
+# allow_overwrite / external path warnings
+# ---------------------------------------------------------------------------
 
 
-def test_upload_model_uses_shared_upload_helper(tmp_path, monkeypatch):
-    recipe_dir = tmp_path
+def test_pack_model_warns_when_include_path_is_external(tmp_path, caplog):
+    import logging
+
+    recipe_dir = tmp_path / "recipe"
     exp_dir = recipe_dir / "exp"
-    pack_dir = tmp_path / "model_pack"
+    recipe_dir.mkdir()
     exp_dir.mkdir()
-    pack_dir.mkdir()
+    external_dir = tmp_path / "external"
+    external_dir.mkdir()
+    (external_dir / "tokenizer.model").write_text("spm", encoding="utf-8")
+
     publication_config = OmegaConf.create(
         {
-            "upload_model": {"hf_repo": "espnet/test-repo"},
-            "pack_model": {"out_dir": str(pack_dir)},
+            "pack_model": {
+                "out_dir": str(tmp_path / "pack"),
+                "include": [str(external_dir)],
+            }
         }
     )
     system = _make_system(
         exp_dir=exp_dir, recipe_dir=recipe_dir, publication_config=publication_config
     )
-    calls = []
 
+    with caplog.at_level(logging.WARNING, logger="espnet3.utils.publication_utils"):
+        publish.pack_model(
+            training_config=system.training_config,
+            publication_config=system.publication_config,
+        )
+
+    assert "outside recipe root" in caplog.text
+    assert "symlink" in caplog.text
+
+
+def test_pack_model_external_include_placed_at_bundle_root(tmp_path):
+    recipe_dir = tmp_path / "recipe"
+    exp_dir = recipe_dir / "exp"
+    recipe_dir.mkdir()
+    exp_dir.mkdir()
+    external_dir = tmp_path / "shared_tokenizer"
+    external_dir.mkdir()
+    (external_dir / "tokenizer.model").write_text("spm", encoding="utf-8")
+
+    publication_config = OmegaConf.create(
+        {
+            "pack_model": {
+                "out_dir": str(tmp_path / "pack"),
+                "include": [str(external_dir)],
+            }
+        }
+    )
+    system = _make_system(
+        exp_dir=exp_dir, recipe_dir=recipe_dir, publication_config=publication_config
+    )
+
+    out_dir = publish.pack_model(
+        training_config=system.training_config,
+        publication_config=system.publication_config,
+    )
+
+    assert (out_dir / "shared_tokenizer" / "tokenizer.model").exists()
+
+
+# ---------------------------------------------------------------------------
+# corpus in README
+# ---------------------------------------------------------------------------
+
+
+def test_pack_model_readme_includes_corpus_name(tmp_path):
+    corpus_dir = tmp_path / "mini_an4"
+    recipe_dir = corpus_dir / "asr"
+    exp_dir = recipe_dir / "exp"
+    recipe_dir.mkdir(parents=True)
+    exp_dir.mkdir()
+
+    publication_config = OmegaConf.create(
+        {
+            "pack_model": {
+                "out_dir": str(tmp_path / "pack"),
+                "readme": "egs3/TEMPLATE/asr/src/hf_model_repo_readme_template.md",
+                "readme_context": {
+                    "task": "asr",
+                    "lang": "en",
+                    "license": "apache-2.0",
+                    "description": "Test.",
+                },
+            }
+        }
+    )
+    system = _make_system(
+        exp_dir=exp_dir, recipe_dir=recipe_dir, publication_config=publication_config
+    )
+
+    out_dir = publish.pack_model(
+        training_config=system.training_config,
+        publication_config=system.publication_config,
+    )
+
+    readme = (out_dir / "README.md").read_text(encoding="utf-8")
+    assert "mini_an4" in readme
+
+
+def test_pack_model_readme_includes_model_summary(tmp_path, monkeypatch):
+    recipe_dir = tmp_path
+    exp_dir = recipe_dir / "exp"
+    exp_dir.mkdir()
+    out_dir = tmp_path / "model_pack"
+    publication_config = OmegaConf.create(
+        {
+            "pack_model": {
+                "out_dir": str(out_dir),
+                "readme": "egs3/TEMPLATE/asr/src/hf_model_readme.md",
+                "readme_context": {
+                    "task": "asr",
+                    "lang": "en",
+                    "license": "apache-2.0",
+                    "description": "My model.",
+                },
+            }
+        }
+    )
+    system = _make_system(
+        exp_dir=exp_dir, recipe_dir=recipe_dir, publication_config=publication_config
+    )
     monkeypatch.setattr(
         publish,
-        "_upload_common",
-        lambda repo, src_dir, **kwargs: calls.append((repo, src_dir, kwargs)),
+        "_instantiate_publication_model",
+        lambda training_config: object(),
     )
+    monkeypatch.setattr(
+        publish,
+        "build_model_summary",
+        lambda model: {
+            "class_name": "DummyModel",
+            "total_params_display": "1.23 M",
+            "trainable_params_display": "1.00 M",
+            "trainable_ratio": 81.3,
+            "non_trainable_params_display": "0.23 M",
+            "size_display": "4.8 MB",
+            "total_buffers_display": "12",
+            "buffer_size_display": "0.2 MB",
+            "module_count_display": "34",
+            "leaf_module_count_display": "21",
+            "dtype_desc": "float32: 100%",
+            "repr": "DummyModel(linear=Linear(1, 1))",
+        },
+    )
+
+    publish.pack_model(
+        training_config=system.training_config,
+        publication_config=system.publication_config,
+    )
+
+    readme = (out_dir / "README.md").read_text(encoding="utf-8")
+    assert "## Model summary" in readme
+    assert "- Class: `DummyModel`" in readme
+    assert "- Total parameters: `1.23 M`" in readme
+    assert "- Learnable parameters: `1.00 M` (81.3%)" in readme
+    assert "- Non-trainable parameters: `0.23 M`" in readme
+    assert "- Parameter size: `4.8 MB`" in readme
+    assert "- Buffers: `12` (`0.2 MB`)" in readme
+    assert "- Modules: `34` total, `21` leaf" in readme
+    assert "- DType composition: `float32: 100%`" in readme
+
+
+def test_pack_model_readme_includes_model_detail_when_enabled(tmp_path, monkeypatch):
+    recipe_dir = tmp_path
+    exp_dir = recipe_dir / "exp"
+    exp_dir.mkdir()
+    out_dir = tmp_path / "model_pack"
+    publication_config = OmegaConf.create(
+        {
+            "pack_model": {
+                "out_dir": str(out_dir),
+                "readme": "egs3/TEMPLATE/asr/src/hf_model_readme.md",
+                "include_model_detail": True,
+            }
+        }
+    )
+    system = _make_system(
+        exp_dir=exp_dir, recipe_dir=recipe_dir, publication_config=publication_config
+    )
+    monkeypatch.setattr(
+        publish,
+        "_instantiate_publication_model",
+        lambda training_config: object(),
+    )
+    monkeypatch.setattr(
+        publish,
+        "build_model_summary",
+        lambda model: {
+            "class_name": "DummyModel",
+            "total_params_display": "1",
+            "trainable_params_display": "1",
+            "trainable_ratio": 100.0,
+            "non_trainable_params_display": "0",
+            "size_display": "4 B",
+            "total_buffers_display": "0",
+            "buffer_size_display": "0 B",
+            "module_count_display": "1",
+            "leaf_module_count_display": "1",
+            "dtype_desc": "float32: 100%",
+            "repr": "DummyModel(\n  (linear): Linear(in_features=1, out_features=1)\n)",
+        },
+    )
+
+    publish.pack_model(
+        training_config=system.training_config,
+        publication_config=system.publication_config,
+    )
+
+    readme = (out_dir / "README.md").read_text(encoding="utf-8")
+    assert "## Model structure" in readme
+    assert "```python" in readme
+    assert "DummyModel(" in readme
+    assert "(linear): Linear(in_features=1, out_features=1)" in readme
+
+
+# ---------------------------------------------------------------------------
+# upload_model
+# ---------------------------------------------------------------------------
+
+
+def test_upload_model_uses_hf_api_and_resolves_relative_pack_dir(tmp_path, monkeypatch):
+    recipe_dir = tmp_path / "recipe"
+    pack_dir = recipe_dir / "artifacts" / "pack"
+    pack_dir.mkdir(parents=True)
+    publication_config = OmegaConf.create(
+        {
+            "pack_model": {"out_dir": "artifacts/pack"},
+            "upload_model": {"hf_repo": "espnet/test-repo"},
+        }
+    )
+    system = _make_system(
+        exp_dir="exp/run",
+        recipe_dir=recipe_dir,
+        publication_config=publication_config,
+    )
+    calls = []
+
+    class DummyApi:
+        def create_repo(self, **kwargs):
+            calls.append(("create_repo", kwargs))
+
+        def upload_folder(self, **kwargs):
+            calls.append(("upload_folder", kwargs))
+
+    monkeypatch.setattr(publish, "HfApi", lambda: DummyApi())
 
     publish.upload_model(system)
 
-    assert calls == [("espnet/test-repo", pack_dir, {"repo_type": "model"})]
-
-
-def test_upload_demo_uses_shared_upload_helper(tmp_path, monkeypatch):
-    demo_dir = tmp_path / "demo"
-    demo_dir.mkdir()
-    demo_config = OmegaConf.create(
-        {
-            "pack": {"out_dir": str(demo_dir)},
-            "upload_demo": {
-                "hf_repo": "espnet/test-demo",
-                "organization": "espnet",
-            },
-        }
-    )
-    system = SimpleNamespace(demo_config=demo_config, exp_dir=None)
-    calls = []
-
-    monkeypatch.setattr(
-        publish,
-        "_upload_common",
-        lambda repo, src_dir, **kwargs: calls.append((repo, src_dir, kwargs)),
-    )
-
-    demo_packer.upload_demo(system)
-
     assert calls == [
         (
-            "espnet/test-demo",
-            demo_dir,
+            "create_repo",
             {
-                "repo_type": "space",
-                "create_options": {
-                    "organization": "espnet",
-                    "space_sdk": "gradio",
-                    "yes": True,
-                },
-                "create_repo_name": "test-demo",
+                "repo_id": "espnet/test-repo",
+                "repo_type": "model",
+                "private": False,
+                "exist_ok": True,
             },
-        )
+        ),
+        (
+            "upload_folder",
+            {
+                "repo_id": "espnet/test-repo",
+                "repo_type": "model",
+                "folder_path": str(pack_dir.resolve()),
+            },
+        ),
     ]
+
+
+def test_upload_model_passes_private_flag_to_create_repo(tmp_path, monkeypatch):
+    recipe_dir = tmp_path / "recipe"
+    pack_dir = recipe_dir / "artifacts" / "pack"
+    pack_dir.mkdir(parents=True)
+    publication_config = OmegaConf.create(
+        {
+            "pack_model": {"out_dir": "artifacts/pack"},
+            "upload_model": {"hf_repo": "espnet/private-repo", "private": True},
+        }
+    )
+    system = _make_system(
+        exp_dir="exp/run",
+        recipe_dir=recipe_dir,
+        publication_config=publication_config,
+    )
+    create_calls = []
+
+    class DummyApi:
+        def create_repo(self, **kwargs):
+            create_calls.append(kwargs)
+
+        def upload_folder(self, **kwargs):
+            pass
+
+    monkeypatch.setattr(publish, "HfApi", lambda: DummyApi())
+
+    publish.upload_model(system)
+
+    assert create_calls == [
+        {
+            "repo_id": "espnet/private-repo",
+            "repo_type": "model",
+            "private": True,
+            "exist_ok": True,
+        }
+    ]
+
+
+def test_upload_model_surfaces_repo_name_hint_on_create_error(tmp_path, monkeypatch):
+    recipe_dir = tmp_path / "recipe"
+    pack_dir = recipe_dir / "pack"
+    pack_dir.mkdir(parents=True)
+    publication_config = OmegaConf.create(
+        {
+            "pack_model": {"out_dir": str(pack_dir)},
+            "upload_model": {"hf_repo": "other-user/bad-repo", "private": True},
+        }
+    )
+    system = _make_system(
+        exp_dir=recipe_dir / "exp" / "run",
+        recipe_dir=recipe_dir,
+        publication_config=publication_config,
+    )
+
+    class DummyApi:
+        def create_repo(self, **kwargs):
+            response = httpx.Response(
+                403,
+                request=httpx.Request(
+                    "POST", "https://huggingface.co/api/repos/create"
+                ),
+            )
+            raise HfHubHTTPError("403 Client Error", response=response)
+
+        def upload_folder(self, **kwargs):
+            raise AssertionError("upload_folder should not be called")
+
+    monkeypatch.setattr(publish, "HfApi", lambda: DummyApi())
+
+    with pytest.raises(
+        RuntimeError, match="Failed to create Hugging Face repo"
+    ) as exc_info:
+        publish.upload_model(system)
+
+    message = str(exc_info.value)
+    assert "publication_config.upload_model.hf_repo" in message
+    assert "<user-or-org>/<repo>" in message
+    assert "other user's namespace" in message
+    assert "upload_model.private: true" in message

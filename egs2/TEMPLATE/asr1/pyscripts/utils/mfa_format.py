@@ -21,7 +21,17 @@ from typing import Dict
 
 import kaldiio
 import soundfile as sf
-from pyopenjtalk import run_frontend
+
+try:
+    from pyopenjtalk import run_frontend
+except ImportError:
+
+    def run_frontend(*args, **kwargs):
+        raise ImportError(
+            "pyopenjtalk is not installed. Install it using 'make pyopenjtalk.done' "
+            "at '<root>/tools'."
+        )
+
 
 from espnet2.text.phoneme_tokenizer import PhonemeTokenizer
 
