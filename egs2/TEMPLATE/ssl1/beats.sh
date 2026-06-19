@@ -327,66 +327,77 @@ setup_common_vars() {
 }
 
 
-# Resolve the trainer's best-model symlink to an epoch number. Tries the
-# usual best/ave_1best symlinks the ESPnet trainer creates, in priority
-# order (loss-first since SSL pretraining acc is noisy and tokenizer
-# training only reports loss).
-_best_epoch_from_run_dir() {
+# Pick the best-model artifact saved by the ESPnet trainer. Tries the
+# epoch-resolved symlinks first (best.pth, ave_1best.pth) and falls back
+# to the multi-checkpoint average (ave_<N>best.pth) that the trainer emits
+# when keep_nbest_models > 1 — loss first since SSL acc is noisy and
+# tokenizer training only reports loss.
+_best_ckpt_from_run_dir() {
     local run_dir_=$1
-    local cand_ best_link_ target_
+    local cand_
     for cand_ in valid.loss.best.pth valid.acc.best.pth \
-                 valid.loss.ave_1best.pth valid.acc.ave_1best.pth; do
+                 valid.loss.ave_1best.pth valid.acc.ave_1best.pth \
+                 valid.loss.ave.pth valid.acc.ave.pth; do
         if [[ -L "${run_dir_}/${cand_}" || -f "${run_dir_}/${cand_}" ]]; then
-            best_link_="${run_dir_}/${cand_}"
-            break
+            echo "${run_dir_}/${cand_}"
+            return 0
         fi
     done
-    [[ -z "${best_link_}" ]] && return 1
-    # readlink works even when the target file is missing (DS + n=1 case).
-    target_=$(readlink "${best_link_}" 2>/dev/null) || target_=$(basename "${best_link_}")
-    target_=$(basename "${target_}")
-    [[ "${target_}" =~ ^([0-9]+)epoch\.pth$ ]] || return 1
-    echo "${BASH_REMATCH[1]}"
+    return 1
 }
 
 # Convert a trainer-saved checkpoint into the portable BEATs format used as
-# teacher / tokenizer between iterations. Always picks the best-valid epoch
-# (per best_model_criterion); auto-detects DeepSpeed vs regular trainer
-# layout based on which artifact exists for that epoch.
+# teacher / tokenizer between iterations. Picks the best-valid artifact
+# (per best_model_criterion). Auto-detects DeepSpeed vs regular trainer
+# layout based on which artifact exists; falls back to the n-best average
+# when the trainer didn't emit a per-epoch best symlink.
 generate_checkpoint() {
     run_dir_=$1
     output_path_=$2
 
-    best_epoch_=$(_best_epoch_from_run_dir "${run_dir_}")
-    if [[ -z "${best_epoch_}" ]]; then
-        log "Error: Could not determine best-valid epoch from ${run_dir_}"
+    best_ckpt_=$(_best_ckpt_from_run_dir "${run_dir_}")
+    if [[ -z "${best_ckpt_}" ]]; then
+        log "Error: Could not find best checkpoint in ${run_dir_}"
         return 1
     fi
 
-    # DeepSpeed's save_checkpoint(dir, tag) writes under dir/tag/, so the
-    # actual layout is checkpoint_<e>/<e>/mp_rank_00_model_states.pt.
-    ds_ckpt_="${run_dir_}/checkpoint_${best_epoch_}/${best_epoch_}/mp_rank_00_model_states.pt"
-    plain_ckpt_="${run_dir_}/${best_epoch_}epoch.pth"
-
-    if [[ -f "${ds_ckpt_}" ]]; then
-        log "Converting DeepSpeed checkpoint at epoch ${best_epoch_}: ${ds_ckpt_}"
+    # If the artifact points to <N>epoch.pth, look up the matching DS or
+    # plain checkpoint for that epoch. Otherwise (e.g. ave_<N>best.pth)
+    # treat the file itself as the ESPnet state_dict.
+    target_=$(readlink "${best_ckpt_}" 2>/dev/null) || target_=$(basename "${best_ckpt_}")
+    target_=$(basename "${target_}")
+    if [[ "${target_}" =~ ^([0-9]+)epoch\.pth$ ]]; then
+        best_epoch_="${BASH_REMATCH[1]}"
+        # DeepSpeed's save_checkpoint(dir, tag) writes under dir/tag/, so the
+        # actual layout is checkpoint_<e>/<e>/mp_rank_00_model_states.pt.
+        ds_ckpt_="${run_dir_}/checkpoint_${best_epoch_}/${best_epoch_}/mp_rank_00_model_states.pt"
+        plain_ckpt_="${run_dir_}/${best_epoch_}epoch.pth"
+        if [[ -f "${ds_ckpt_}" ]]; then
+            log "Converting DeepSpeed checkpoint at epoch ${best_epoch_}: ${ds_ckpt_}"
+            ${python} ../../../../espnet/espnet2/beats/generate_beats_checkpoint.py \
+                --espnet_model_checkpoint_paths "${ds_ckpt_}" \
+                --output_path "${output_path_}" \
+                --espnet_model_config_path "${run_dir_}/config.yaml" \
+                --deepspeed_checkpoint
+        elif [[ -f "${plain_ckpt_}" ]]; then
+            log "Converting ESPnet checkpoint at epoch ${best_epoch_}: ${plain_ckpt_}"
+            ${python} ../../../../espnet/espnet2/beats/generate_beats_checkpoint.py \
+                --espnet_model_checkpoint_paths "${plain_ckpt_}" \
+                --output_path "${output_path_}" \
+                --espnet_model_config_path "${run_dir_}/config.yaml"
+        else
+            log "Error: epoch ${best_epoch_} but no checkpoint at ${ds_ckpt_} or ${plain_ckpt_}"
+            return 1
+        fi
+    else
+        log "Converting averaged ESPnet checkpoint: ${best_ckpt_}"
         ${python} ../../../../espnet/espnet2/beats/generate_beats_checkpoint.py \
-            --espnet_model_checkpoint_path "${ds_ckpt_}" \
-            --output_path "${output_path_}" \
-            --espnet_model_config_path "${run_dir_}/config.yaml" \
-            --deepspeed_checkpoint
-    elif [[ -f "${plain_ckpt_}" ]]; then
-        log "Converting ESPnet checkpoint at epoch ${best_epoch_}: ${plain_ckpt_}"
-        ${python} ../../../../espnet/espnet2/beats/generate_beats_checkpoint.py \
-            --espnet_model_checkpoint_path "${plain_ckpt_}" \
+            --espnet_model_checkpoint_paths "${best_ckpt_}" \
             --output_path "${output_path_}" \
             --espnet_model_config_path "${run_dir_}/config.yaml"
-    else
-        log "Error: best epoch is ${best_epoch_} but no checkpoint at ${ds_ckpt_} or ${plain_ckpt_}"
-        return 1
     fi
 
-    log "Checkpoint converted (best epoch ${best_epoch_}) and stored at ${output_path_}"
+    log "Checkpoint converted (source: ${best_ckpt_}) and stored at ${output_path_}"
 }
 
 train_encoder() {
