@@ -214,4 +214,3 @@ ${python} "${cwd}/ci/test_demo_ui.py"
 
 rm -rf exp data
 cd "${cwd}" || exit 1
-
