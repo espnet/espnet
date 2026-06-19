@@ -6,10 +6,7 @@ from typing import Tuple, Dict, List, Any
 
 
 class GraniteSpeechModel(AbsHFTrainingWrapper):
-    def __init__(self, model_tag_or_path: str, **kwargs):
-        super(AbsHFTrainingWrapper, self).__init__()
-        self.model = AutoModelForSpeechSeq2Seq.from_pretrained(model_tag_or_path)
-        self.processor = AutoProcessor.from_pretrained(model_tag_or_path)
+    model_class = AutoModelForSpeechSeq2Seq
 
     def collect_feats(self, **batch) -> Dict[str, torch.Tensor]:
         feats = batch["input_features"]
@@ -18,10 +15,10 @@ class GraniteSpeechModel(AbsHFTrainingWrapper):
 
 
 class GraniteSpeechInferenceSession(AbsHFInferenceWrapper):
+    model_class = AutoModelForSpeechSeq2Seq
+
     def __init__(self, model_tag_or_path: str, user_prompt: str, **kwargs):
-        super(AbsHFInferenceWrapper, self).__init__()
-        self.model = AutoModelForSpeechSeq2Seq.from_pretrained(model_tag_or_path)
-        self.processor = AutoProcessor.from_pretrained(model_tag_or_path)
+        super().__init__(model_tag_or_path, **kwargs)
         self.tokenizer = self.processor.tokenizer
 
         chat = [
@@ -31,7 +28,7 @@ class GraniteSpeechInferenceSession(AbsHFInferenceWrapper):
             chat, tokenize=False, add_generation_prompt=True)
 
     def forward(self, speech):
-        inputs = self.processor(self.prompt, speech,
+        inputs = self.processor(text=self.prompt, audio=speech,
                                 return_tensors="pt").to(self.model.device)
         outputs = self.model.generate(
             **inputs, max_new_tokens=200, do_sample=False, num_beams=1)

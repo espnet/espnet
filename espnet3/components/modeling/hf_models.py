@@ -16,18 +16,21 @@ class AbsHFTrainingWrapper(lightning.LightningModule, ABC):
     As such, this class provides default implementations that can be overwritten when
     inheriting from it if necessary.
     """
+    model_class = AutoModel
+    processor_class = AutoProcessor
+
     def __init__(self, model_tag_or_path: str, **kwargs):
         """
         Loads the model and processor and performs any additional setup.
-        The model and processor should be saved as self.model and self.processor respectively
-        to ensure compatibility.
+        The model and processor class are defined using the model_class and processor_class attributes.
+        This means that subclasses only need to define __init__() if additional setup is necessary.
 
         Args:
             model_tag_or_path (str): Hugging Face model tag or path to a local model.
         """
         super().__init__()
-        self.model = AutoModel.from_pretrained(model_tag_or_path)
-        self.processor = AutoProcessor.from_pretrained(model_tag_or_path)
+        self.model = self.model_class.from_pretrained(model_tag_or_path)
+        self.processor = self.processor_class.from_pretrained(model_tag_or_path)
 
     def forward(
         self,
@@ -88,18 +91,21 @@ class AbsHFInferenceWrapper(lightning.LightningModule, ABC):
     For more information on how to load and perform inference, refer to the model's page
     on Hugging Face.
     """
+    model_class = AutoModel
+    processor_class = AutoProcessor
+    
     def __init__(self, model_tag_or_path: str, **kwargs):
         """
         Loads the model and processor and performs any additional setup.
-        The model and processor should be saved as self.model and self.processor respectively
-        to ensure compatibility.
+        The model and processor class are defined using the model_class and processor_class attributes.
+        This means that subclasses only need to define __init__() if additional setup is necessary.
 
         Args:
             model_tag_or_path (str): Hugging Face model tag or path to a local model.
         """
         super().__init__()
-        self.model = AutoModel.from_pretrained(model_tag_or_path)
-        self.processor = AutoProcessor.from_pretrained(model_tag_or_path)
+        self.model = self.model_class.from_pretrained(model_tag_or_path)
+        self.processor = self.processor_class.from_pretrained(model_tag_or_path)
 
     @abstractmethod
     def forward(self, inputs: Any) -> Any:
