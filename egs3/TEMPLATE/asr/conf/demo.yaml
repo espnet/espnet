@@ -106,3 +106,12 @@ pack:
 upload_demo:
   hf_repo: your-hf-username/your-demo
   # organization: your-org
+  # update: false (default) raises an error if the Space already exists,
+  # preventing accidental overwrites of a published demo.
+  # Set to true to upload over an existing Space.
+  update: false
+  # Glob patterns of existing Space files to delete before uploading.
+  # Only used when update: true. Default ["*"] fully replaces the Space
+  # contents. Set to [] for an additive upload.
+  delete_patterns:
+    - "*"

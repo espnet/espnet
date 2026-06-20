@@ -1174,7 +1174,11 @@ def test_upload_model_uses_hf_api_and_resolves_relative_pack_dir(tmp_path, monke
     publication_config = OmegaConf.create(
         {
             "pack_model": {"out_dir": "artifacts/pack"},
-            "upload_model": {"hf_repo": "espnet/test-repo"},
+            "upload_model": {
+                "hf_repo": "espnet/test-repo",
+                "update": True,
+                "delete_patterns": ["*"],
+            },
         }
     )
     system = _make_system(
@@ -1211,6 +1215,7 @@ def test_upload_model_uses_hf_api_and_resolves_relative_pack_dir(tmp_path, monke
                 "repo_id": "espnet/test-repo",
                 "repo_type": "model",
                 "folder_path": str(pack_dir.resolve()),
+                "delete_patterns": ["*"],
             },
         ),
     ]
@@ -1223,7 +1228,11 @@ def test_upload_model_passes_private_flag_to_create_repo(tmp_path, monkeypatch):
     publication_config = OmegaConf.create(
         {
             "pack_model": {"out_dir": "artifacts/pack"},
-            "upload_model": {"hf_repo": "espnet/private-repo", "private": True},
+            "upload_model": {
+                "hf_repo": "espnet/private-repo",
+                "private": True,
+                "update": True,
+            },
         }
     )
     system = _make_system(
@@ -1295,3 +1304,75 @@ def test_upload_model_surfaces_repo_name_hint_on_create_error(tmp_path, monkeypa
     assert "<user-or-org>/<repo>" in message
     assert "other user's namespace" in message
     assert "upload_model.private: true" in message
+
+
+def test_upload_model_raises_on_existing_repo_without_update(tmp_path, monkeypatch):
+    recipe_dir = tmp_path / "recipe"
+    pack_dir = recipe_dir / "pack"
+    pack_dir.mkdir(parents=True)
+    publication_config = OmegaConf.create(
+        {
+            "pack_model": {"out_dir": str(pack_dir)},
+            "upload_model": {"hf_repo": "espnet/existing-repo", "update": False},
+        }
+    )
+    system = _make_system(
+        exp_dir=recipe_dir / "exp" / "run",
+        recipe_dir=recipe_dir,
+        publication_config=publication_config,
+    )
+
+    class DummyApi:
+        def create_repo(self, **kwargs):
+            response = httpx.Response(
+                409,
+                request=httpx.Request(
+                    "POST", "https://huggingface.co/api/repos/create"
+                ),
+            )
+            raise HfHubHTTPError("409 Conflict", response=response)
+
+        def upload_folder(self, **kwargs):
+            raise AssertionError("upload_folder should not be called")
+
+    monkeypatch.setattr(publish, "HfApi", lambda: DummyApi())
+
+    with pytest.raises(RuntimeError, match="already exists") as exc_info:
+        publish.upload_model(system)
+
+    assert "upload_model.update: true" in str(exc_info.value)
+
+
+def test_upload_model_empty_delete_patterns_passes_none(tmp_path, monkeypatch):
+    recipe_dir = tmp_path / "recipe"
+    pack_dir = recipe_dir / "pack"
+    pack_dir.mkdir(parents=True)
+    publication_config = OmegaConf.create(
+        {
+            "pack_model": {"out_dir": str(pack_dir)},
+            "upload_model": {
+                "hf_repo": "espnet/additive-repo",
+                "update": True,
+                "delete_patterns": [],
+            },
+        }
+    )
+    system = _make_system(
+        exp_dir=recipe_dir / "exp" / "run",
+        recipe_dir=recipe_dir,
+        publication_config=publication_config,
+    )
+    upload_calls = []
+
+    class DummyApi:
+        def create_repo(self, **kwargs):
+            pass
+
+        def upload_folder(self, **kwargs):
+            upload_calls.append(kwargs)
+
+    monkeypatch.setattr(publish, "HfApi", lambda: DummyApi())
+
+    publish.upload_model(system)
+
+    assert upload_calls[0]["delete_patterns"] is None

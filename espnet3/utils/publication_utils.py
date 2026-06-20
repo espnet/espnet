@@ -710,6 +710,7 @@ def upload_model(system) -> None:
         "If the repo should be private, set `upload_model.private: true`. "
         "Make sure the logged-in token can create and write to that namespace."
     )
+    update = bool(upload_cfg.get("update", False))
     logger.info("Ensuring Hugging Face repo exists: %s", repo)
     api = HfApi()
     try:
@@ -717,15 +718,30 @@ def upload_model(system) -> None:
             repo_id=repo,
             repo_type="model",
             private=private,
-            exist_ok=True,
+            exist_ok=update,
         )
     except (HfHubHTTPError, ValueError) as exc:
+        status = getattr(getattr(exc, "response", None), "status_code", None)
+        if not update and status == 409:
+            raise RuntimeError(
+                f"Model repo '{repo}' already exists. "
+                "Set `upload_model.update: true` to upload over it."
+            ) from exc
         raise RuntimeError(
             f"Failed to create Hugging Face repo '{repo}': {exc}\n{hint}"
         ) from exc
+
+    raw_patterns = getattr(upload_cfg, "delete_patterns", ["*"])
+    delete_patterns = list(raw_patterns) if (update and raw_patterns) else None
+
     logger.info("Uploading %s -> %s", pack_dir, repo)
     try:
-        api.upload_folder(repo_id=repo, repo_type="model", folder_path=str(pack_dir))
+        api.upload_folder(
+            repo_id=repo,
+            repo_type="model",
+            folder_path=str(pack_dir),
+            delete_patterns=delete_patterns,
+        )
     except (HfHubHTTPError, ValueError) as exc:
         raise RuntimeError(
             f"Failed to upload model pack to '{repo}': {exc}\n{hint}"

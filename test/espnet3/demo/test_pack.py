@@ -2,11 +2,14 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import httpx
 import pytest
 import yaml
+from huggingface_hub.errors import HfHubHTTPError
 from omegaconf import OmegaConf
 
-from espnet3.publication.demo.packing import pack_demo
+from espnet3.publication.demo import packing as demo_packing
+from espnet3.publication.demo.packing import pack_demo, upload_demo
 from espnet3.utils.config_utils import load_and_merge_config
 
 
@@ -313,3 +316,130 @@ def test_pack_demo_renders_space_readme(
     ]
     for expected_line in expected_lines:
         assert expected_line in readme
+
+
+# ---------------------------------------------------------------------------
+# upload_demo — TEMPLATE demo.yaml integration
+# ---------------------------------------------------------------------------
+
+
+def _make_demo_system(tmp_path: Path, upload_overrides: dict) -> object:
+    """Return a minimal system with demo_config loaded from TEMPLATE defaults."""
+    demo_dir = tmp_path / "packed_demo"
+    demo_dir.mkdir()
+    user_cfg_path = tmp_path / "demo.yaml"
+    user_cfg_path.write_text(
+        OmegaConf.to_yaml(
+            OmegaConf.create(
+                {
+                    "exp_tag": "test_run",
+                    "upload_demo": {
+                        "hf_repo": "testuser/test-space",
+                        **upload_overrides,
+                    },
+                    "pack": {"out_dir": str(demo_dir)},
+                }
+            )
+        ),
+        encoding="utf-8",
+    )
+    demo_cfg = load_and_merge_config(
+        user_cfg_path,
+        config_name="demo.yaml",
+        default_package="egs3.TEMPLATE.asr",
+        resolve=False,
+    )
+
+    class DummySystem:
+        pass
+
+    system = DummySystem()
+    system.demo_config = demo_cfg
+    system.exp_dir = str(tmp_path / "exp" / "test_run")
+    return system
+
+
+def test_template_demo_yaml_defaults_update_false_and_delete_patterns(
+    tmp_path: Path,
+) -> None:
+    """TEMPLATE demo.yaml ships update: false and delete_patterns: [*] by default."""
+    system = _make_demo_system(tmp_path, {})
+    assert system.demo_config.upload_demo["update"] is False
+    assert list(system.demo_config.upload_demo.delete_patterns) == ["*"]
+
+
+def test_upload_demo_update_true_passes_exist_ok_and_delete_patterns(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """upload: true → exist_ok=True and delete_patterns forwarded to upload_folder."""
+    system = _make_demo_system(tmp_path, {"update": True, "delete_patterns": ["*"]})
+    calls = []
+
+    class DummyApi:
+        def create_repo(self, **kwargs):
+            calls.append(("create_repo", kwargs))
+
+        def upload_folder(self, **kwargs):
+            calls.append(("upload_folder", kwargs))
+
+    monkeypatch.setattr(demo_packing, "HfApi", lambda: DummyApi())
+
+    upload_demo(system)
+
+    create_kwargs = calls[0][1]
+    assert create_kwargs["exist_ok"] is True
+    assert create_kwargs["repo_id"] == "testuser/test-space"
+
+    upload_kwargs = calls[1][1]
+    assert upload_kwargs["delete_patterns"] == ["*"]
+
+
+def test_upload_demo_raises_on_existing_space_without_update(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """update: false (TEMPLATE default) raises a clear error when Space already exists."""
+    system = _make_demo_system(tmp_path, {"update": False})
+
+    class DummyApi:
+        def create_repo(self, **kwargs):
+            response = httpx.Response(
+                409,
+                request=httpx.Request(
+                    "POST", "https://huggingface.co/api/repos/create"
+                ),
+            )
+            raise HfHubHTTPError("409 Conflict", response=response)
+
+        def upload_folder(self, **kwargs):
+            raise AssertionError("upload_folder should not be called")
+
+    monkeypatch.setattr(demo_packing, "HfApi", lambda: DummyApi())
+
+    with pytest.raises(RuntimeError, match="already exists") as exc_info:
+        upload_demo(system)
+
+    assert "upload_demo.update: true" in str(exc_info.value)
+
+
+def test_upload_demo_empty_delete_patterns_passes_none_to_upload_folder(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """delete_patterns: [] → None passed to upload_folder (additive upload)."""
+    system = _make_demo_system(tmp_path, {"update": True, "delete_patterns": []})
+    upload_calls = []
+
+    class DummyApi:
+        def create_repo(self, **kwargs):
+            pass
+
+        def upload_folder(self, **kwargs):
+            upload_calls.append(kwargs)
+
+    monkeypatch.setattr(demo_packing, "HfApi", lambda: DummyApi())
+
+    upload_demo(system)
+
+    assert upload_calls[0]["delete_patterns"] is None
