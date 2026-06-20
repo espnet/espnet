@@ -83,7 +83,7 @@ pack_model:
 # `upload_model` uploads `${pack_model.out_dir}` to this repo, creating it if
 # needed.
 upload_model:
-  hf_repo: yourname/your-model-repo
+  hf_repo: espnet/${set_corpus_and_system:}_${exp_tag}
   private: false
   # update: false (default) raises an error if the repo already exists,
   # preventing accidental overwrites of a published model.

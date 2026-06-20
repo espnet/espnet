@@ -9,7 +9,7 @@ from yaml.parser import ParserError
 from espnet3.utils.config_utils import (
     _build_config_path,
     _ensure_target_convert_all,
-    _infer_default_package_from_config_path,
+    _resolve_egs3_path,
     _rewrite_relative_resolver_paths,
 )
 from espnet3.utils.config_utils import config_path as config_path_resolver
@@ -566,18 +566,18 @@ def test_build_config_path_rejects_suffix(tmp_path):
 
 def test_infer_default_package_returns_none_without_egs3():
     path = Path("/home/user/project/conf/train.yaml")
-    assert _infer_default_package_from_config_path(path) is None
+    assert _resolve_egs3_path(path) is None
 
 
 def test_infer_default_package_returns_none_when_conf_too_shallow(tmp_path):
     # egs3/conf/train.yaml — conf is only 1 level deep under egs3
     path = tmp_path / "egs3" / "conf" / "train.yaml"
-    assert _infer_default_package_from_config_path(path) is None
+    assert _resolve_egs3_path(path) is None
 
 
 def test_infer_default_package_infers_valid_task(tmp_path):
     path = tmp_path / "egs3" / "mini_an4" / "asr" / "conf" / "train.yaml"
-    assert _infer_default_package_from_config_path(path) == "egs3.TEMPLATE.asr"
+    assert _resolve_egs3_path(path, as_package=True) == "egs3.TEMPLATE.asr"
 
 
 def test_rewrite_preserves_absolute_resolver_path(tmp_path):
