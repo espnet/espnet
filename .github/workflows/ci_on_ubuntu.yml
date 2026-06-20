@@ -99,6 +99,7 @@ jobs:
           pytorch-version: ${{ matrix.pytorch-version }}
           chainer-version: ${{ matrix.chainer-version }}
           use-conda: ${{ matrix.use-conda }}
+          hf-token: ${{ secrets.HF_CI_TOKEN }}
       - name: test python
         run: ./ci/test_python_espnet2.sh
       - uses: codecov/codecov-action@v7
@@ -136,6 +137,7 @@ jobs:
           pytorch-version: ${{ matrix.pytorch-version }}
           chainer-version: ${{ matrix.chainer-version }}
           use-conda: ${{ matrix.use-conda }}
+          hf-token: ${{ secrets.HF_CI_TOKEN }}
       - name: test utils
         run: ./ci/test_utils.sh
       - uses: codecov/codecov-action@v7
@@ -173,6 +175,7 @@ jobs:
           pytorch-version: ${{ matrix.pytorch-version }}
           chainer-version: ${{ matrix.chainer-version }}
           use-conda: ${{ matrix.use-conda }}
+          hf-token: ${{ secrets.HF_CI_TOKEN }}
       - name: test shell
         run: |
           ./ci/test_shell_espnet2.sh
@@ -206,6 +209,7 @@ jobs:
           pytorch-version: ${{ matrix.pytorch-version }}
           chainer-version: ${{ matrix.chainer-version }}
           use-conda: ${{ matrix.use-conda }}
+          hf-token: ${{ secrets.HF_CI_TOKEN }}
       - name: Install Kaldi
         run: ./ci/install_kaldi.sh
       - name: test espnet2 integration
@@ -241,6 +245,7 @@ jobs:
           pytorch-version: ${{ matrix.pytorch-version }}
           chainer-version: ${{ matrix.chainer-version }}
           use-conda: ${{ matrix.use-conda }}
+          hf-token: ${{ secrets.HF_CI_TOKEN }}
       - name: test configuration
         run: ./ci/test_configuration_espnet2.sh ${{ matrix.config-task }}
       - uses: codecov/codecov-action@v7
@@ -273,6 +278,7 @@ jobs:
           pytorch-version: ${{ matrix.pytorch-version }}
           chainer-version: ${{ matrix.chainer-version }}
           use-conda: ${{ matrix.use-conda }}
+          hf-token: ${{ secrets.HF_CI_TOKEN }}
       - name: test python
         run: ./ci/test_python_espnet3.sh
       - uses: codecov/codecov-action@v7
@@ -309,6 +315,7 @@ jobs:
           pytorch-version: ${{ matrix.pytorch-version }}
           chainer-version: ${{ matrix.chainer-version }}
           use-conda: ${{ matrix.use-conda }}
+          hf-token: ${{ secrets.HF_CI_TOKEN }}
       - name: test integration
         run: ./ci/test_integration_espnet3.sh
       - uses: codecov/codecov-action@v7
@@ -341,6 +348,7 @@ jobs:
           python-version: "3.10"
           pytorch-version: "2.9.1"
           use-conda: false
+          hf-token: ${{ secrets.HF_CI_TOKEN }}
       - name: Validate publication upload test configuration
         if: needs.process_labels.outputs.test_upload == 'true'
         run: |
@@ -350,7 +358,7 @@ jobs:
           }
       - name: test publication integration
         run: ./ci/test_integration_espnet3_publication.sh
-      - uses: codecov/codecov-action@v5
+      - uses: codecov/codecov-action@v7
         with:
           flags: test_integration_espnet3_publication
       - name: coverage erase

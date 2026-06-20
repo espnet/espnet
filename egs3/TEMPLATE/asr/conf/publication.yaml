@@ -62,7 +62,9 @@ pack_model:
   readme: ${recipe_dir}/src/hf_model_readme.md
   include:
     # Include recipe code when the packed model depends on local modules.
-    - ${recipe_dir}/src
+    - src
+    # Include recipe-local dataset modules for publication smoke checks.
+    - dataset
   exclude:
     # These patterns are applied only during the bulk copy (step 1 above).
     - inference

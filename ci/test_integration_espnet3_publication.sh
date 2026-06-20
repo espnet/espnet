@@ -8,6 +8,7 @@
 # python="coverage run --append"
 python="python"
 cwd=$(pwd)
+check_workdir=""
 
 training_config=${1:-conf/training_asr_transformer.yaml}
 inference_config=${2:-conf/inference.yaml}
@@ -22,6 +23,14 @@ gen_dummy_coverage() {
     touch empty.py
     ${python} empty.py
 }
+
+cleanup() {
+    if [ -n "${check_workdir}" ] && [ -d "${check_workdir}" ]; then
+        rm -rf "${check_workdir}"
+    fi
+}
+
+trap cleanup EXIT
 
 resolve_hf_repo() {
     local publication_config_path=$1
@@ -72,16 +81,26 @@ if [ -z "${pack_dir}" ]; then
     exit 1
 fi
 
+# Resolve to absolute path before leaving the recipe directory.
+pack_dir_abs="$(pwd)/${pack_dir}"
+
+check_workdir="$(mktemp -d "${TMPDIR:-/tmp}/espnet3-publication-check.XXXXXX")"
+if [ -e "${check_workdir}/data" ]; then
+    echo "Temporary check directory unexpectedly contains data/: ${check_workdir}" >&2
+    exit 1
+fi
+
+# Run the check from a directory outside the recipe tree to catch accidental
+# relative-path dependencies such as ./data.
+cd "${check_workdir}" || exit 1
+
 check_args=(
     --split "${dataset_split}"
-    --recipe-dir "$(pwd)"
 )
 if [ -n "${hf_repo}" ]; then
     check_args+=(--model-tag "${hf_repo}")
 fi
 
-PACK_DIR="${pack_dir}" python3 "${cwd}/ci/test_integration_espnet3_publication_check.py" \
-    "${check_args[@]}" \
-
-# rm -rf exp data
-cd "${cwd}" || exit 1
+PACK_DIR="${pack_dir_abs}" python3 "${cwd}/ci/test_integration_espnet3_publication_check.py" \
+    --recipe-dir "${pack_dir_abs}" \
+    "${check_args[@]}"
