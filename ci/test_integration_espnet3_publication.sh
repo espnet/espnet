@@ -143,9 +143,6 @@ if [ -z "${pack_dir}" ]; then
     exit 1
 fi
 
-# Resolve to absolute path before leaving the recipe directory.
-pack_dir_abs="$(pwd)/${pack_dir}"
-
 check_workdir="$(mktemp -d "${TMPDIR:-/tmp}/espnet3-publication-check.XXXXXX")"
 if [ -e "${check_workdir}/data" ]; then
     echo "Temporary check directory unexpectedly contains data/: ${check_workdir}" >&2
@@ -163,6 +160,7 @@ fi
 # relative-path dependencies such as ./data.  Use a subshell so the recipe
 # directory remains the working directory for all subsequent commands.
 (
+    pack_dir_abs="$(pwd)/${pack_dir}"
     cd "${check_workdir}" || exit 1
     PACK_DIR="${pack_dir_abs}" python3 "${cwd}/ci/test_integration_espnet3_publication_check.py" \
         "${check_args[@]}"
