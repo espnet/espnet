@@ -28,10 +28,6 @@ from espnet3.utils.task_utils import get_espnet_model
 
 logger = logging.getLogger(__name__)
 
-_README_TEMPLATE_BASENAME_ALIASES = {
-    "hf_model_repo_readme_template.md": "hf_model_readme.md",
-}
-
 
 def _expand_pack_paths(raw_paths: list[str], recipe_root: Path) -> list[Path]:
     """Expand globbed pack paths and keep unmatched literals as warnings."""
@@ -135,18 +131,13 @@ def _copy_path(src: Path, dst: Path, ignore=None) -> None:
 
 
 def _resolve_readme_template_path(readme_template_path: str) -> Path:
-    """Resolve a README template path from cwd, repo root, or known aliases."""
+    """Resolve a README template path from cwd or repo root."""
     raw_path = Path(readme_template_path)
     repo_root = Path(__file__).resolve().parents[2]
     candidates: list[Path] = [raw_path]
 
     if not raw_path.is_absolute():
         candidates.append(repo_root / raw_path)
-
-    for candidate in list(candidates):
-        alias_name = _README_TEMPLATE_BASENAME_ALIASES.get(candidate.name)
-        if alias_name:
-            candidates.append(candidate.with_name(alias_name))
 
     for candidate in candidates:
         if candidate.exists():

@@ -59,7 +59,7 @@ pack_model:
   # Always include static model summary metrics in the README.
   # Set this true to also include `repr(model)`.
   include_model_detail: false
-  readme: ${recipe_dir}/src/hf_model_readme.md
+  readme: ${config_path:../src/hf_model_readme.md}
   include:
     # Include recipe code when the packed model depends on local modules.
     - src

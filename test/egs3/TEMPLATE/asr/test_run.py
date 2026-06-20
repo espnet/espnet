@@ -36,7 +36,8 @@ exp_tag: user_train
 optimizer:
   _target_: torch.optim.SGD
   lr: 0.1
-""".strip() + "\n",
+""".strip()
+        + "\n",
         encoding="utf-8",
     )
 
@@ -68,7 +69,8 @@ pack:
   readme_context:
     color_from: indigo
     color_to: purple
-""".strip() + "\n",
+""".strip()
+        + "\n",
         encoding="utf-8",
     )
 
@@ -82,7 +84,7 @@ pack:
     assert cfg is not None
     assert cfg.ui.title == "Custom demo"
     assert cfg.ui.app_script == "src/app.py"
-    assert cfg.pack.readme == "egs3/TEMPLATE/asr/src/demo_readme_template.md"
+    assert cfg.pack.readme.endswith("egs3/TEMPLATE/asr/src/hf_demo_readme.md")
     assert cfg.pack.readme_context.color_from == "indigo"
     assert cfg.pack.readme_context.color_to == "purple"
     assert "automatic-speech-recognition" in cfg.pack.readme_context.tags

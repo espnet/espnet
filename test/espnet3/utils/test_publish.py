@@ -287,7 +287,7 @@ def test_pack_model_creates_output_dir_and_copies_exp_dir(tmp_path):
         {
             "pack_model": {
                 "out_dir": str(out_dir),
-                "readme": "egs3/TEMPLATE/asr/src/hf_model_repo_readme_template.md",
+                "readme": "egs3/TEMPLATE/asr/src/hf_model_readme.md",
             }
         }
     )
@@ -318,7 +318,7 @@ def test_pack_model_resolves_repo_root_readme_path_outside_cwd(tmp_path, monkeyp
         {
             "pack_model": {
                 "out_dir": str(out_dir),
-                "readme": "egs3/TEMPLATE/asr/src/hf_model_repo_readme_template.md",
+                "readme": "egs3/TEMPLATE/asr/src/hf_model_readme.md",
             }
         }
     )
@@ -508,7 +508,7 @@ def test_pack_model_excludes_inference_dir_and_copies_metrics_json(tmp_path):
             "pack_model": {
                 "out_dir": str(out_dir),
                 "exclude": ["inference"],
-                "readme": "egs3/TEMPLATE/asr/src/hf_model_repo_readme_template.md",
+                "readme": "egs3/TEMPLATE/asr/src/hf_model_readme.md",
                 "readme_context": {
                     "task": "asr",
                     "lang": "en",
@@ -630,7 +630,7 @@ def test_pack_model_writes_readme_with_full_context(tmp_path):
         {
             "pack_model": {
                 "out_dir": str(out_dir),
-                "readme": "egs3/TEMPLATE/asr/src/hf_model_repo_readme_template.md",
+                "readme": "egs3/TEMPLATE/asr/src/hf_model_readme.md",
                 "readme_context": {
                     "task": "asr",
                     "lang": "en",
@@ -672,7 +672,7 @@ def test_pack_model_drops_readme_lines_for_missing_context(
         {
             "pack_model": {
                 "out_dir": str(out_dir),
-                "readme": "egs3/TEMPLATE/asr/src/hf_model_repo_readme_template.md",
+                "readme": "egs3/TEMPLATE/asr/src/hf_model_readme.md",
             }
         }
     )
@@ -1023,7 +1023,7 @@ def test_pack_model_readme_includes_corpus_name(tmp_path):
         {
             "pack_model": {
                 "out_dir": str(tmp_path / "pack"),
-                "readme": "egs3/TEMPLATE/asr/src/hf_model_repo_readme_template.md",
+                "readme": "egs3/TEMPLATE/asr/src/hf_model_readme.md",
                 "readme_context": {
                     "task": "asr",
                     "lang": "en",
