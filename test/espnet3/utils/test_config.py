@@ -11,6 +11,9 @@ from espnet3.utils.config_utils import (
     _ensure_target_convert_all,
     _infer_default_package_from_config_path,
     _rewrite_relative_resolver_paths,
+)
+from espnet3.utils.config_utils import config_path as config_path_resolver
+from espnet3.utils.config_utils import (
     load_and_merge_config,
     load_config_with_defaults,
     load_default_config,
@@ -518,10 +521,9 @@ def test_load_and_merge_publication_config_inherits_template_readme_path() -> No
         resolve=False,
     )
 
-    assert (
-        cfg.pack_model.readme
-        == "egs3/TEMPLATE/asr/src/hf_model_repo_readme_template.md"
-    )
+    readme = cfg.pack_model.readme
+    assert Path(readme).is_absolute()
+    assert readme.endswith("egs3/TEMPLATE/asr/src/hf_model_readme.md")
     assert list(cfg.pack_model.include) == [
         "./src",
         "./dataset",
@@ -594,3 +596,213 @@ def test_rewrite_handles_quoted_resolver_path(tmp_path):
     assert result.startswith("${load_line:'")
     assert result.endswith("'}")
     assert "my tokens.txt" in result
+
+
+# ===============================================================
+# Tests for `config_path` resolver
+# ===============================================================
+#
+# | Test Name                                              | Description                                                         |  # noqa: E501
+# |-------------------------------------------------------|---------------------------------------------------------------------|  # noqa: E501
+# | test_config_path_resolver_is_passthrough              | resolver returns its argument unchanged                             |  # noqa: E501
+# | test_config_path_rewrites_relative_to_absolute        | ${config_path:../src/f} → absolute path relative to conf/           |  # noqa: E501
+# | test_config_path_preserves_absolute_path              | absolute path in ${config_path:} is left unchanged                  |  # noqa: E501
+# | test_config_path_preserves_dynamic_path               | ${...} inside ${config_path:} is left unchanged                     |  # noqa: E501
+# | test_config_path_survives_merge_without_user_override | default's absolute path survives merge when user does not set field |  # noqa: E501
+# | test_config_path_overridden_by_user_config            | user config's value wins over default's config_path value           |  # noqa: E501
+# | test_config_path_independent_of_recipe_dir            | changing recipe_dir in user config does not affect inherited path   |  # noqa: E501
+# | test_rewrite_config_path_relative                     | _rewrite_relative_resolver_paths rewrites config_path like load_line|  # noqa: E501
+# | test_rewrite_config_path_absolute_unchanged           | absolute config_path path is not rewritten                          |  # noqa: E501
+
+
+def test_config_path_resolver_is_passthrough():
+    assert config_path_resolver("/some/absolute/path.md") == "/some/absolute/path.md"
+    assert config_path_resolver("relative/path.md") == "relative/path.md"
+
+
+def test_config_path_rewrites_relative_to_absolute(tmp_path):
+    # Layout: tmp_path/conf/demo.yaml  →  tmp_path/src/readme.md
+    conf_dir = tmp_path / "conf"
+    conf_dir.mkdir()
+    src_dir = tmp_path / "src"
+    src_dir.mkdir()
+    (src_dir / "readme.md").write_text("# README")
+
+    cfg_file = conf_dir / "demo.yaml"
+    cfg_file.write_text("readme: ${config_path:../src/readme.md}\n")
+
+    cfg = load_config_with_defaults(str(cfg_file))
+
+    expected = (tmp_path / "src" / "readme.md").resolve().as_posix()
+    assert cfg.readme == expected
+
+
+def test_config_path_preserves_absolute_path(tmp_path):
+    abs_path = (tmp_path / "readme.md").resolve().as_posix()
+    conf_dir = tmp_path / "conf"
+    conf_dir.mkdir()
+    cfg_file = conf_dir / "demo.yaml"
+    cfg_file.write_text(f"readme: ${{config_path:{abs_path}}}\n")
+
+    cfg = load_config_with_defaults(str(cfg_file))
+    assert cfg.readme == abs_path
+
+
+def test_config_path_preserves_dynamic_path(tmp_path):
+    conf_dir = tmp_path / "conf"
+    conf_dir.mkdir()
+    cfg_file = conf_dir / "demo.yaml"
+    cfg_file.write_text("readme: ${config_path:${base_dir}/readme.md}\n")
+
+    raw = OmegaConf.to_container(
+        load_config_with_defaults(str(cfg_file), resolve=False), resolve=False
+    )
+    assert "${base_dir}" in raw["readme"]
+
+
+def test_config_path_survives_merge_without_user_override(tmp_path, monkeypatch):
+    # Simulate a TEMPLATE config at template_dir/conf/demo.yaml
+    template_dir = tmp_path / "template"
+    conf_dir = template_dir / "conf"
+    conf_dir.mkdir(parents=True)
+    src_dir = template_dir / "src"
+    src_dir.mkdir()
+    (src_dir / "readme.md").write_text("# TEMPLATE README")
+
+    template_cfg = conf_dir / "demo.yaml"
+    template_cfg.write_text("readme: ${config_path:../src/readme.md}\n")
+
+    # User config lives elsewhere and does NOT set readme
+    user_dir = tmp_path / "user_recipe" / "conf"
+    user_dir.mkdir(parents=True)
+    user_cfg = user_dir / "demo.yaml"
+    user_cfg.write_text("recipe_dir: .\n")
+
+    monkeypatch.setattr(
+        "espnet3.utils.config_utils._load_default_config",
+        lambda _name, _pkg, bind_self_name=True: load_config_with_defaults(
+            str(template_cfg), resolve=False
+        ),
+    )
+
+    cfg = load_and_merge_config(user_cfg, "demo.yaml", default_package="dummy.pkg")
+
+    expected = (src_dir / "readme.md").resolve().as_posix()
+    assert cfg.readme == expected
+
+
+def test_config_path_overridden_by_user_config(tmp_path, monkeypatch):
+    template_dir = tmp_path / "template"
+    conf_dir = template_dir / "conf"
+    conf_dir.mkdir(parents=True)
+    src_dir = template_dir / "src"
+    src_dir.mkdir()
+    (src_dir / "readme.md").write_text("# TEMPLATE README")
+
+    template_cfg = conf_dir / "demo.yaml"
+    template_cfg.write_text("readme: ${config_path:../src/readme.md}\n")
+
+    user_dir = tmp_path / "user_recipe"
+    user_conf_dir = user_dir / "conf"
+    user_conf_dir.mkdir(parents=True)
+    user_src_dir = user_dir / "src"
+    user_src_dir.mkdir()
+    (user_src_dir / "custom.md").write_text("# CUSTOM README")
+
+    user_cfg = user_conf_dir / "demo.yaml"
+    user_cfg.write_text("readme: ${config_path:../src/custom.md}\n")
+
+    monkeypatch.setattr(
+        "espnet3.utils.config_utils._load_default_config",
+        lambda _name, _pkg, bind_self_name=True: load_config_with_defaults(
+            str(template_cfg), resolve=False
+        ),
+    )
+
+    cfg = load_and_merge_config(user_cfg, "demo.yaml", default_package="dummy.pkg")
+
+    expected = (user_src_dir / "custom.md").resolve().as_posix()
+    assert cfg.readme == expected
+
+
+def test_config_path_independent_of_recipe_dir(tmp_path, monkeypatch):
+    # Verify that changing recipe_dir in user config does NOT change the
+    # inherited config_path value (this was the original motivation for
+    # replacing ${recipe_dir}/src/... with ${config_path:../src/...}).
+    template_dir = tmp_path / "template"
+    conf_dir = template_dir / "conf"
+    conf_dir.mkdir(parents=True)
+    src_dir = template_dir / "src"
+    src_dir.mkdir()
+    (src_dir / "readme.md").write_text("# TEMPLATE README")
+
+    template_cfg = conf_dir / "demo.yaml"
+    template_cfg.write_text("readme: ${config_path:../src/readme.md}\n")
+
+    user_dir = tmp_path / "user_recipe" / "conf"
+    user_dir.mkdir(parents=True)
+    user_cfg = user_dir / "demo.yaml"
+    # User sets recipe_dir to something completely different
+    user_cfg.write_text("recipe_dir: /some/other/path\n")
+
+    monkeypatch.setattr(
+        "espnet3.utils.config_utils._load_default_config",
+        lambda _name, _pkg, bind_self_name=True: load_config_with_defaults(
+            str(template_cfg), resolve=False
+        ),
+    )
+
+    cfg = load_and_merge_config(user_cfg, "demo.yaml", default_package="dummy.pkg")
+
+    expected = (src_dir / "readme.md").resolve().as_posix()
+    assert cfg.readme == expected
+
+
+def test_rewrite_config_path_relative(tmp_path):
+    value = "${config_path:../src/readme.md}"
+    result = _rewrite_relative_resolver_paths(value, tmp_path / "conf")
+    assert result.startswith("${config_path:")
+    assert result.endswith("}")
+    assert Path(result[len("${config_path:") : -1]).is_absolute()
+
+
+def test_rewrite_config_path_absolute_unchanged(tmp_path):
+    abs_path = (tmp_path / "readme.md").resolve().as_posix()
+    value = f"${{config_path:{abs_path}}}"
+    assert _rewrite_relative_resolver_paths(value, tmp_path) == value
+
+
+def test_config_path_end_to_end_with_real_template(tmp_path):
+    """Load a real-world demo.yaml against egs3.TEMPLATE.asr.
+
+    Verifies that pack.readme resolves to the TEMPLATE's actual
+    hf_demo_readme.md file. This is the core regression test for the removal
+    of _normalize_inherited_readme_path: the
+    ${config_path:../src/hf_demo_readme.md} in the TEMPLATE default must
+    survive the merge and resolve to an absolute path that exists on disk,
+    regardless of the user's recipe_dir value.
+    """
+    user_demo = tmp_path / "demo.yaml"
+    user_demo.write_text(
+        "exp_tag: test_run\n"
+        "ui:\n"
+        "  title: My ASR Demo\n"
+        "upload_demo:\n"
+        "  hf_repo: myorg/my-demo\n"
+    )
+
+    cfg = load_and_merge_config(
+        user_demo,
+        "demo.yaml",
+        default_package="egs3.TEMPLATE.asr",
+        resolve=False,
+    )
+
+    readme = cfg.pack.readme
+    assert Path(
+        readme
+    ).is_absolute(), f"pack.readme must be an absolute path, got: {readme}"
+    assert readme.endswith(
+        "egs3/TEMPLATE/asr/src/hf_demo_readme.md"
+    ), f"pack.readme must point to the TEMPLATE file, got: {readme}"
+    assert Path(readme).exists(), f"pack.readme path must exist on disk: {readme}"

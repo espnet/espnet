@@ -59,7 +59,7 @@ pack_model:
   # Always include static model summary metrics in the README.
   # Set this true to also include `repr(model)`.
   include_model_detail: false
-  readme: ${recipe_dir}/src/hf_model_readme.md
+  readme: ${config_path:../src/hf_model_readme.md}
   include:
     # Include recipe code when the packed model depends on local modules.
     - src
@@ -85,3 +85,12 @@ pack_model:
 upload_model:
   hf_repo: yourname/your-model-repo
   private: false
+  # update: false (default) raises an error if the repo already exists,
+  # preventing accidental overwrites of a published model.
+  # Set to true to upload over an existing repo.
+  update: false
+  # Glob patterns of existing repo files to delete before uploading.
+  # Only used when update: true. Default ["*"] fully replaces the repo
+  # contents. Set to [] for an additive upload.
+  delete_patterns:
+    - "*"

@@ -23,7 +23,7 @@ recipe_dir: .
 # Initialization-time overrides are intentionally not supported here; keep
 # those in the packed `conf/inference.yaml`.
 model:
-  dir_or_tag: null
+  dir_or_tag: exp/${exp_tag}/model_pack
   trust_user_code: false
   call_args: {}
 
@@ -80,7 +80,7 @@ pack:
   # Example git install: git+https://github.com/espnet/espnet@main
   requirements:
     - git+https://github.com/espnet/espnet.git
-  readme: ${recipe_dir}/src/demo_readme_template.md
+  readme: ${config_path:../src/hf_demo_readme.md}
   readme_context:
     title: ${ui.title}
     emoji: "\U0001f399\ufe0f"
@@ -106,3 +106,12 @@ pack:
 upload_demo:
   hf_repo: your-hf-username/your-demo
   # organization: your-org
+  # update: false (default) raises an error if the Space already exists,
+  # preventing accidental overwrites of a published demo.
+  # Set to true to upload over an existing Space.
+  update: false
+  # Glob patterns of existing Space files to delete before uploading.
+  # Only used when update: true. Default ["*"] fully replaces the Space
+  # contents. Set to [] for an additive upload.
+  delete_patterns:
+    - "*"

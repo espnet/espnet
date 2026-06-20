@@ -8,8 +8,11 @@ from pathlib import Path
 from omegaconf import DictConfig, ListConfig, OmegaConf
 
 # Used to rewrite relative paths in resolver expressions such as
-# `${load_line:conf/tokens.txt}` during config loading.
-_RELATIVE_RESOLVER_PATTERN = re.compile(r"\$\{(?P<resolver>load_line):(?P<path>[^,}]+)")
+# `${load_line:conf/tokens.txt}` or `${config_path:../src/file.md}` during
+# config loading.
+_RELATIVE_RESOLVER_PATTERN = re.compile(
+    r"\$\{(?P<resolver>load_line|config_path):(?P<path>[^,}]+)"
+)
 
 
 def load_line(path):
@@ -73,9 +76,36 @@ def self_name(path):
     return path
 
 
+def config_path(path):
+    """Return an absolute path rewritten by ``_normalize_relative_resolver_paths``.
+
+    Used as ``${config_path:../src/file.md}`` in YAML configs. The relative
+    path is resolved to an absolute path at load time by
+    ``_normalize_relative_resolver_paths``, so this resolver simply returns
+    its argument unchanged.
+
+    Args:
+        path (str): Absolute path injected during config loading.
+
+    Returns:
+        str: The path unchanged.
+
+    Examples:
+        In a config file at ``conf/demo.yaml``:
+
+            pack:
+              readme: ${config_path:../src/hf_demo_readme.md}
+
+        Resolves to the absolute path of ``src/hf_demo_readme.md`` relative
+        to the directory containing ``conf/``.
+    """
+    return path
+
+
 OMEGACONF_ESPNET3_RESOLVER = {
     "load_line": load_line,
     "self_name": self_name,
+    "config_path": config_path,
 }
 for name, resolver in OMEGACONF_ESPNET3_RESOLVER.items():
     OmegaConf.register_new_resolver(name, resolver)
@@ -338,12 +368,6 @@ def load_and_merge_config(
     )
     merged_cfg = OmegaConf.merge(default_cfg, user_cfg)
     _normalize_relative_resolver_paths(merged_cfg, config_path.parent, config_path.stem)
-    _normalize_inherited_readme_path(
-        merged_cfg=merged_cfg,
-        user_cfg=user_cfg,
-        config_name=config_name,
-        default_package=default_package,
-    )
     if resolve:
         OmegaConf.resolve(merged_cfg)
     _ensure_target_convert_all(merged_cfg)
@@ -354,11 +378,15 @@ def _ensure_target_convert_all(cfg) -> None:
     if isinstance(cfg, DictConfig):
         if "_target_" in cfg:
             cfg["_convert_"] = "all"
-        for value in cfg.values():
-            _ensure_target_convert_all(value)
+        for key in list(cfg.keys()):
+            node = cfg._get_node(key)
+            if isinstance(node, (DictConfig, ListConfig)):
+                _ensure_target_convert_all(node)
     elif isinstance(cfg, ListConfig):
-        for value in cfg:
-            _ensure_target_convert_all(value)
+        for idx in range(len(cfg)):
+            node = cfg._get_node(idx)
+            if isinstance(node, (DictConfig, ListConfig)):
+                _ensure_target_convert_all(node)
 
 
 def _normalize_relative_resolver_paths(
@@ -407,7 +435,7 @@ def _rewrite_relative_resolver_paths(value: str, base_path: Path) -> str:
         if "${" in normalized_path or Path(normalized_path).is_absolute():
             return match.group(0)
 
-        resolved_path = (base_path / normalized_path).absolute().as_posix()
+        resolved_path = (base_path / normalized_path).resolve().as_posix()
         # Keep the original quote style because absolute paths may contain
         # spaces on Windows or in user-managed workspaces.
         if quote:
@@ -435,52 +463,6 @@ def _build_config_path(base_path: Path, entry: str) -> Path:
     if not entry_path.suffix:
         entry += ".yaml"
     return base_path / entry
-
-
-def _normalize_inherited_readme_path(
-    merged_cfg: DictConfig,
-    user_cfg: DictConfig,
-    config_name: str,
-    default_package: str,
-) -> None:
-    """Keep the inherited README template bound to the default recipe package.
-
-    Publication and demo configs inherit README templates from the default
-    recipe. When the user config does not override the README path, keep that
-    reference pointed at the template recipe instead of rewriting it relative
-    to the user recipe.
-    """
-    package_root = Path(*default_package.split("."))
-
-    if config_name == "publication.yaml":
-        user_pack_cfg = getattr(user_cfg, "pack_model", None)
-        if user_pack_cfg is not None and getattr(user_pack_cfg, "readme", None):
-            return
-        pack_cfg = getattr(merged_cfg, "pack_model", None)
-        if pack_cfg is None:
-            return
-        readme_path = getattr(pack_cfg, "readme", None)
-        if readme_path not in ("./src/hf_model_readme.md", "src/hf_model_readme.md"):
-            return
-        pack_cfg.readme = (
-            package_root / "src" / "hf_model_repo_readme_template.md"
-        ).as_posix()
-        return
-
-    if config_name == "demo.yaml":
-        user_pack_cfg = getattr(user_cfg, "pack", None)
-        if user_pack_cfg is not None and getattr(user_pack_cfg, "readme", None):
-            return
-        pack_cfg = getattr(merged_cfg, "pack", None)
-        if pack_cfg is None:
-            return
-        readme_path = getattr(pack_cfg, "readme", None)
-        if readme_path not in (
-            "./src/demo_readme_template.md",
-            "src/demo_readme_template.md",
-        ):
-            return
-        pack_cfg.readme = (package_root / "src" / "demo_readme_template.md").as_posix()
 
 
 def _infer_default_package_from_config_path(config_path: Path) -> str | None:
