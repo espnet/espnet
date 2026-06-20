@@ -102,10 +102,54 @@ def config_path(path):
     return path
 
 
+def set_corpus_and_system(value: str) -> str:
+    """Passthrough for ``${set_corpus_and_system:}`` after load-time rewriting.
+
+    This resolver is used as ``${set_corpus_and_system:}`` in YAML configs.
+    ``_normalize_relative_resolver_paths`` rewrites it to
+    ``${set_corpus_and_system:<corpus>_<system>}`` (e.g.
+    ``${set_corpus_and_system:mini_an4_asr}``) by extracting the corpus and
+    system names from the ``egs3/<corpus>/<system>/`` portion of the config
+    file path. The resolver itself simply returns that injected value.
+
+    If OmegaConf ever resolves this expression before the rewrite has run
+    (which should not happen in normal usage), it raises ``RuntimeError`` with
+    a clear message.
+
+    Args:
+        value (str): The ``<corpus>_<system>`` string injected at load time.
+
+    Returns:
+        str: The injected value unchanged.
+
+    Raises:
+        RuntimeError: If called with an empty string, meaning the rewrite did
+            not run before OmegaConf resolution.
+
+    Examples:
+        In ``egs3/mini_an4/asr/conf/publication.yaml``:
+
+            upload_model:
+              hf_repo: espnet/${set_corpus_and_system:}_${exp_tag}
+
+        After loading via ``load_and_merge_config``, resolves to::
+
+            espnet/mini_an4_asr_<exp_tag>
+    """
+    if not value:
+        raise RuntimeError(
+            "${set_corpus_and_system:} was not rewritten at load time. "
+            "Load configs via load_and_merge_config with a recipe path "
+            "under egs3/<corpus>/<system>/..."
+        )
+    return value
+
+
 OMEGACONF_ESPNET3_RESOLVER = {
     "load_line": load_line,
     "self_name": self_name,
     "config_path": config_path,
+    "set_corpus_and_system": set_corpus_and_system,
 }
 for name, resolver in OMEGACONF_ESPNET3_RESOLVER.items():
     OmegaConf.register_new_resolver(name, resolver)
@@ -351,7 +395,7 @@ def load_and_merge_config(
     if config_path is None:
         return None
     if default_package is None:
-        default_package = _infer_default_package_from_config_path(config_path)
+        default_package = _resolve_egs3_path(config_path, as_package=True)
     if default_package is None:
         raise ValueError(
             "default_package is required when it cannot be inferred from config_path"
@@ -389,33 +433,84 @@ def _ensure_target_convert_all(cfg) -> None:
                 _ensure_target_convert_all(node)
 
 
+def _resolve_egs3_path(path: Path, as_package: bool = False) -> str | None:
+    """Derive a string from an ``egs3/<corpus>/<system>/conf`` path.
+
+    Anchors on the first ``conf`` component found after ``egs3/`` so it works
+    for both a config file path (``…/conf/training.yaml``) and the ``conf/``
+    directory itself.
+
+    Args:
+        path (Path): Config file path or the ``conf/`` directory.
+        as_package (bool): When ``False`` (default) returns
+            ``"<corpus>_<system>"`` (e.g. ``"mini_an4_asr"``). When ``True``
+            returns the TEMPLATE package import path
+            (e.g. ``"egs3.TEMPLATE.asr"``).
+
+    Returns:
+        str | None: The derived string, or ``None`` when ``egs3/`` is not in
+        the path or there are not enough components between ``egs3/`` and
+        ``conf/``.
+    """
+    parts = path.resolve().parts
+    try:
+        egs3_idx = parts.index("egs3")
+    except ValueError:
+        return None
+    conf_idx = next(
+        (i for i in range(egs3_idx + 1, len(parts)) if parts[i] == "conf"),
+        None,
+    )
+    if conf_idx is None or conf_idx - egs3_idx < 3:
+        return None
+    corpus, system = parts[egs3_idx + 1], parts[conf_idx - 1]
+    if as_package:
+        return f"egs3.TEMPLATE.{system}"
+    return f"{corpus}_{system}"
+
+
 def _normalize_relative_resolver_paths(
     cfg, base_path: Path, config_name: str | None
 ) -> None:
     # This runs during config loading rather than inside load_yaml/load_line
     # because the resolver callback cannot access the path of the parent YAML.
-    if isinstance(cfg, DictConfig):
-        for key in list(cfg.keys()):
-            value = cfg._get_node(key)
-            if isinstance(value, (DictConfig, ListConfig)):
-                _normalize_relative_resolver_paths(value, base_path, config_name)
-            else:
-                raw_value = value._value()
-                if isinstance(raw_value, str):
-                    if config_name is not None:
-                        raw_value = raw_value.replace("${self_name:}", config_name)
-                    cfg[key] = _rewrite_relative_resolver_paths(raw_value, base_path)
-    elif isinstance(cfg, ListConfig):
-        for idx in range(len(cfg)):
-            value = cfg._get_node(idx)
-            if isinstance(value, (DictConfig, ListConfig)):
-                _normalize_relative_resolver_paths(value, base_path, config_name)
-            else:
-                raw_value = value._value()
-                if isinstance(raw_value, str):
-                    if config_name is not None:
-                        raw_value = raw_value.replace("${self_name:}", config_name)
-                    cfg[idx] = _rewrite_relative_resolver_paths(raw_value, base_path)
+    _corpus_and_system: str | None = None
+
+    def _apply_substitutions(raw: str) -> str:
+        nonlocal _corpus_and_system
+        if config_name is not None:
+            raw = raw.replace("${self_name:}", config_name)
+            if "${set_corpus_and_system:}" in raw:
+                if _corpus_and_system is None:
+                    _corpus_and_system = _resolve_egs3_path(base_path)
+                if _corpus_and_system is not None:
+                    raw = raw.replace(
+                        "${set_corpus_and_system:}",
+                        f"${{set_corpus_and_system:{_corpus_and_system}}}",
+                    )
+        return _rewrite_relative_resolver_paths(raw, base_path)
+
+    def _walk(node) -> None:
+        if isinstance(node, DictConfig):
+            for key in list(node.keys()):
+                child = node._get_node(key)
+                if isinstance(child, (DictConfig, ListConfig)):
+                    _walk(child)
+                else:
+                    raw = child._value()
+                    if isinstance(raw, str):
+                        node[key] = _apply_substitutions(raw)
+        elif isinstance(node, ListConfig):
+            for idx in range(len(node)):
+                child = node._get_node(idx)
+                if isinstance(child, (DictConfig, ListConfig)):
+                    _walk(child)
+                else:
+                    raw = child._value()
+                    if isinstance(raw, str):
+                        node[idx] = _apply_substitutions(raw)
+
+    _walk(cfg)
 
 
 def _rewrite_relative_resolver_paths(value: str, base_path: Path) -> str:
@@ -463,22 +558,3 @@ def _build_config_path(base_path: Path, entry: str) -> Path:
     if not entry_path.suffix:
         entry += ".yaml"
     return base_path / entry
-
-
-def _infer_default_package_from_config_path(config_path: Path) -> str | None:
-    parts = config_path.resolve().parts
-    try:
-        egs3_index = parts.index("egs3")
-    except ValueError:
-        return None
-
-    conf_index = None
-    for index in range(egs3_index + 1, len(parts)):
-        if parts[index] == "conf":
-            conf_index = index
-            break
-    if conf_index is None or conf_index - egs3_index < 3:
-        return None
-
-    task_name = parts[conf_index - 1]
-    return f"egs3.TEMPLATE.{task_name}"
