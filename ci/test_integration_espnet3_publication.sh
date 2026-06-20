@@ -152,10 +152,6 @@ if [ -e "${check_workdir}/data" ]; then
     exit 1
 fi
 
-# Run the check from a directory outside the recipe tree to catch accidental
-# relative-path dependencies such as ./data.
-cd "${check_workdir}" || exit 1
-
 check_args=(
     --split "${dataset_split}"
 )
@@ -163,13 +159,19 @@ if [ -n "${hf_repo}" ]; then
     check_args+=(--model-tag "${hf_repo}")
 fi
 
-PACK_DIR="${pack_dir}" python3 "${cwd}/ci/test_integration_espnet3_publication_check.py" \
-    "${check_args[@]}"
+# Run the check from a directory outside the recipe tree to catch accidental
+# relative-path dependencies such as ./data.  Use a subshell so the recipe
+# directory remains the working directory for all subsequent commands.
+(
+    cd "${check_workdir}" || exit 1
+    PACK_DIR="${pack_dir_abs}" python3 "${cwd}/ci/test_integration_espnet3_publication_check.py" \
+        "${check_args[@]}"
+)
 
 ${python} run.py \
     --stages pack_demo \
     --training_config "${training_config}" \
-    --demo_config conf/demo_integration_default.yaml
+    --demo_config "${cwd}/test_utils/egs3/asr/conf/demo_integration_default.yaml"
 
 write_demo_test_model_pack_default
 
@@ -193,7 +195,7 @@ write_demo_test_model_pack_custom
 ${python} run.py \
     --stages pack_demo \
     --training_config "${training_config}" \
-    --demo_config conf/demo_integration_custom.yaml
+    --demo_config "${cwd}/test_utils/egs3/asr/conf/demo_integration_custom.yaml"
 
 python - "$(pwd)/exp/demo_ui_custom" "$(pwd)/exp/demo_test_model_pack" <<'PY'
 from pathlib import Path
