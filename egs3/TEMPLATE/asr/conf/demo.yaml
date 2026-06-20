@@ -47,7 +47,7 @@ model:
 # inference function.
 ui:
   app_script: src/app.py
-  title: null
+  title: ${set_corpus_and_system:} demo
   description: README.md
   inputs:
     - key: speech

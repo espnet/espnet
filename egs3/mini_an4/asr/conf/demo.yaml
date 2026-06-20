@@ -20,10 +20,3 @@
 model:
   trust_user_code: true
 
-##########################################################
-#                        UI SETTING                      #
-##########################################################
-# Recipe-local app script copied to `<demo_dir>/app.py` during `pack_demo`.
-ui:
-  title: mini_an4 ASR demo
-
