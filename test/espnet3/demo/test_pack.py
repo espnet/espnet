@@ -399,7 +399,7 @@ def test_upload_demo_raises_on_existing_space_without_update(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """update: false (TEMPLATE default) raises a clear error when Space already exists."""
+    """update: false (TEMPLATE default) raises a clear error on existing Space."""
     system = _make_demo_system(tmp_path, {"update": False})
 
     class DummyApi:
