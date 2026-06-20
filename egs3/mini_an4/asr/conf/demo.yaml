@@ -27,11 +27,3 @@ model:
 ui:
   title: mini_an4 ASR demo
 
-##########################################################
-#                   UPLOAD DEMO SETTING                  #
-##########################################################
-# `upload_demo` uploads the packed demo directory to a Hugging Face Space by
-# default.
-upload_demo:
-  hf_repo: espnet/minian4_asr_integration_test
-  # organization: your-org

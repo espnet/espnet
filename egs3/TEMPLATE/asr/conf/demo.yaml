@@ -104,7 +104,7 @@ pack:
 ##########################################################
 # Upload target used by `upload_demo`.
 upload_demo:
-  hf_repo: your-hf-username/your-demo
+  hf_repo: espnet/${set_corpus_and_system:}_${exp_tag}
   # organization: your-org
   # update: false (default) raises an error if the Space already exists,
   # preventing accidental overwrites of a published demo.
