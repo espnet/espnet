@@ -148,12 +148,81 @@ def _copy_config_context(
             target[key] = source_value
 
 
+def _copy_publication_demo_context(
+    publication_config: DictConfig,
+    demo_config: DictConfig,
+    log: logging.Logger,
+) -> None:
+    """Propagate model reference from publication config to demo model.dir_or_tag.
+
+    Called by :func:`apply_training_experiment_context` when both
+    ``publication_config`` and ``demo_config`` are present. Inserts
+    ``demo_config.model.dir_or_tag`` when the demo value is missing.
+
+    The source is selected in priority order:
+
+    1. ``publication_config.upload_model.hf_repo`` — when the model has been
+       uploaded to Hugging Face Hub, the demo should reference the HF tag so
+       the Space downloads the model at runtime rather than bundling it.
+    2. ``publication_config.pack_model.out_dir`` — when no HF upload is
+       configured, the local packed directory is used and :func:`pack_demo`
+       will copy it into the demo bundle automatically.
+
+    Args:
+        publication_config: Publication config that provides ``upload_model``
+            and ``pack_model`` sections.
+        demo_config: Demo config to mutate in place.
+        log: Logger used for insert/overwrite messages.
+    """
+    upload_model_cfg = publication_config.get("upload_model")
+    hf_repo = (
+        upload_model_cfg.get("hf_repo")
+        if upload_model_cfg is not None and hasattr(upload_model_cfg, "get")
+        else None
+    )
+
+    pack_model_cfg = publication_config.get("pack_model")
+    out_dir = (
+        pack_model_cfg.get("out_dir")
+        if pack_model_cfg is not None and hasattr(pack_model_cfg, "get")
+        else None
+    )
+
+    # HF repo tag takes priority; fall back to local pack dir.
+    if not _is_missing_or_empty(hf_repo):
+        source_value = hf_repo
+        source_name = "publication_config.upload_model.hf_repo"
+    elif not _is_missing_or_empty(out_dir):
+        source_value = out_dir
+        source_name = "publication_config.pack_model.out_dir"
+    else:
+        return
+
+    model_cfg = demo_config.get("model")
+    if model_cfg is None:
+        demo_config["model"] = OmegaConf.create({"dir_or_tag": source_value})
+        log.info(
+            "Inserted demo_config.model.dir_or_tag from %s",
+            source_name,
+        )
+        return
+
+    current = model_cfg.get("dir_or_tag") if hasattr(model_cfg, "get") else None
+    if _is_missing_or_empty(current):
+        model_cfg["dir_or_tag"] = source_value
+        log.info(
+            "Inserted demo_config.model.dir_or_tag from %s",
+            source_name,
+        )
+
+
 def apply_training_experiment_context(
     *,
     training_config: DictConfig | None,
     inference_config: DictConfig | None,
     metrics_config: DictConfig | None,
     publication_config: DictConfig | None,
+    demo_config: DictConfig | None = None,
     log: logging.Logger,
 ) -> None:
     """Apply runner context propagation across stage configs.
@@ -177,6 +246,8 @@ def apply_training_experiment_context(
             when present.
         publication_config (DictConfig | None): Publication config to patch in
             place when present.
+        demo_config (DictConfig | None): Demo config to patch in place when
+            present.
         log (logging.Logger): Logger used for insert/overwrite messages.
 
     Returns:
@@ -305,6 +376,15 @@ def apply_training_experiment_context(
                 target_name="publication_config",
                 log=log,
             )
+        if demo_config is not None:
+            _copy_config_context(
+                source=training_config,
+                target=demo_config,
+                keys=_TRAINING_CONTEXT_KEYS,
+                source_name="training_config",
+                target_name="demo_config",
+                log=log,
+            )
 
     if inference_config is not None and metrics_config is not None:
         _copy_config_context(
@@ -322,6 +402,12 @@ def apply_training_experiment_context(
             keys=_INFERENCE_PUBLICATION_CONTEXT_KEYS,
             source_name="inference_config",
             target_name="publication_config",
+            log=log,
+        )
+    if publication_config is not None and demo_config is not None:
+        _copy_publication_demo_context(
+            publication_config=publication_config,
+            demo_config=demo_config,
             log=log,
         )
 
