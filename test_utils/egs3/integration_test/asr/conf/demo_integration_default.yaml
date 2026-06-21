@@ -1,0 +1,6 @@
+model:
+  dir_or_tag: exp/training_asr_transformer/model_pack
+  trust_user_code: true
+
+pack:
+  out_dir: exp/demo_ui_default
