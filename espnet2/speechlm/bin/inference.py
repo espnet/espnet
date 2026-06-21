@@ -21,6 +21,7 @@ import yaml
 from espnet2.speechlm.dataloader.iterator import DataIteratorFactory
 from espnet2.speechlm.model import _all_job_types
 from espnet2.speechlm.utils.data import to_device
+from espnet2.torch_utils.safe_torch_load import safe_torch_load
 
 
 def get_parser() -> argparse.ArgumentParser:
@@ -137,7 +138,7 @@ def load_checkpoint(model, checkpoint_path):
         KeyError: If 'module' key is not found in checkpoint.
         RuntimeError: If checkpoint loading fails or state dict doesn't match.
     """
-    checkpoint = torch.load(checkpoint_path, map_location="cpu")
+    checkpoint = safe_torch_load(checkpoint_path, map_location="cpu")
     state_dict = checkpoint["module"]
     model.load_state_dict(state_dict, strict=True)
     return model

@@ -37,10 +37,18 @@ def safe_torch_load(
 
     Raises:
         OSError: If the file cannot be opened (propagated without fallback).
-        Any other exception not related to pickle deserialization is re-raised.
+        Exception: Exceptions not caught by the weights-only fallback handler are
+            propagated to the caller unchanged.
     """
     # Remove any caller-supplied weights_only to enforce our policy.
     kwargs.pop("weights_only", None)
+
+    # Check PyTorch version
+    if not hasattr(torch.load, "weights_only"):
+        raise RuntimeError(
+            "safe_torch_load requires PyTorch >= 2.6 for weights_only support. "
+            f"Found torch.__version__={torch.__version__}."
+        )
 
     try:
         return torch.load(path, map_location=map_location, weights_only=True, **kwargs)
