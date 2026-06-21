@@ -1,5 +1,6 @@
 """Safe wrapper for torch.load that defaults to weights_only=True."""
 
+import inspect
 import logging
 import pickle
 import warnings
@@ -43,15 +44,18 @@ def safe_torch_load(
     # Remove any caller-supplied weights_only to enforce our policy.
     kwargs.pop("weights_only", None)
 
-    # Check PyTorch version
-    if not hasattr(torch.load, "weights_only"):
+    # Check if weights_only is supported by the installed PyTorch version
+    weights_only_supported = "weights_only" in inspect.signature(torch.load).parameters
+    if not weights_only_supported:
         raise RuntimeError(
             "safe_torch_load requires PyTorch >= 2.6 for weights_only support. "
-            f"Found torch.__version__={torch.__version__}."
+            f"Found torch.__version__={torch.__version__}, "
+            "which is no longer supported by ESPnet."
         )
 
     try:
         return torch.load(path, map_location=map_location, weights_only=True, **kwargs)
+
     except (pickle.UnpicklingError, RuntimeError, TypeError, AttributeError) as e:
         # These exceptions are raised when weights_only=True rejects non-tensor
         # objects in the checkpoint.  OSError/FileNotFoundError/PermissionError
