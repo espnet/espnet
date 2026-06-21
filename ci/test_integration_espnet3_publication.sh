@@ -169,7 +169,7 @@ fi
 ${python} run.py \
     --stages pack_demo \
     --training_config "${training_config}" \
-    --demo_config "${cwd}/test_utils/egs3/asr/conf/demo_integration_default.yaml"
+    --demo_config "${cwd}/test_utils/egs3/integration_test/asr/conf/demo_integration_default.yaml"
 
 write_demo_test_model_pack_default
 
@@ -193,7 +193,7 @@ write_demo_test_model_pack_custom
 ${python} run.py \
     --stages pack_demo \
     --training_config "${training_config}" \
-    --demo_config "${cwd}/test_utils/egs3/asr/conf/demo_integration_custom.yaml"
+    --demo_config "${cwd}/test_utils/egs3/integration_test/asr/conf/demo_integration_custom.yaml"
 
 python - "$(pwd)/exp/demo_ui_custom" "$(pwd)/exp/demo_test_model_pack" <<'PY'
 from pathlib import Path
