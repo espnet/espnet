@@ -252,6 +252,8 @@ class InferenceRunner(BaseRunner):
             dataset: Dataset providing inference entries.
             model: Inference model callable on the configured input.
             **kwargs: Expects ``input_key`` and optionally ``output_fn_path``.
+                ``model_kwargs`` may be used to pass extra keyword arguments
+                through to the underlying model callable.
 
         Returns:
             Dict containing ``idx`` and output fields for a single item, or a list
@@ -283,8 +285,14 @@ class InferenceRunner(BaseRunner):
         if "input_key" not in kwargs:
             raise RuntimeError("input_key must be provided for inference.")
         input_key = kwargs["input_key"]
-        output_fn_path = kwargs.get("output_fn_path")
-        output_fn = _load_output_fn(output_fn_path) if output_fn_path else None
+        output_fn = kwargs.get("output_fn")
+        if output_fn is None:
+            output_fn_path = kwargs.get("output_fn_path")
+            output_fn = _load_output_fn(output_fn_path) if output_fn_path else None
+        model_kwargs = kwargs.get("model_kwargs") or {}
+        if not isinstance(model_kwargs, Mapping):
+            raise TypeError("model_kwargs must be a mapping when provided.")
+        model_kwargs = dict(model_kwargs)
 
         keys = (
             list(input_key)
@@ -300,7 +308,7 @@ class InferenceRunner(BaseRunner):
                 if key not in data:
                     raise KeyError(f"Input key '{key}' not found in dataset item.")
                 inputs_dict[key] = data[key]
-            model_output = model(**inputs_dict)
+            model_output = model(**inputs_dict, **model_kwargs)
             if output_fn is None:
                 return model_output
             return output_fn(data=data, model_output=model_output, idx=idx)
@@ -315,7 +323,7 @@ class InferenceRunner(BaseRunner):
             inputs_dict[key] = [data[key] for data in data_batch]
 
         try:
-            model_output = model(**inputs_dict)
+            model_output = model(**inputs_dict, **model_kwargs)
             if output_fn is None:
                 return model_output
             return output_fn(data=data_batch, model_output=model_output, idx=indices)

@@ -1,8 +1,10 @@
 import multiprocessing as mp
 
 import pytest
+from dask.distributed import Client
 from omegaconf import OmegaConf
 
+import espnet3.parallel.parallel as parallel_module
 from espnet3.parallel.parallel import (
     _DASK_AVAILABLE,
     DictReturnWorkerPlugin,

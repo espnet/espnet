@@ -55,6 +55,7 @@ dependencies = [
     "dask_jobqueue",
     "torch>=2.3.1",
     "torchaudio>=2.3.1",
+    "huggingface_hub",
     "wandb",
 ]
 
@@ -74,7 +75,6 @@ include = ["espnet*", "egs3*"]
 
 [tool.setuptools.package-data]
 egs3 = ["egs3/TEMPLATE/**/*.yaml"]
-
 
 
 [project.optional-dependencies]
@@ -120,6 +120,23 @@ spk = [
   "asteroid_filterbanks==0.4.0"
 ]
 
+egs2 = [
+  "gdown",
+  "resampy",
+  "pysptk>=0.2.1",
+  "morfessor",
+  "youtube_dl",
+  "nnmnkwii",
+  "museval>=0.2.1",
+  "pystoi>=0.2.2",
+  "mir-eval>=0.6",
+  "fastdtw",
+  "nara_wpe>=0.0.5",
+  "sacrebleu>=1.5.1",
+  "praatio>=6,<7",
+  "scikit-learn>=1.0.0",
+]
+
 # Extras needed for SpeechLM training (espnet2/speechlm).
 # Contains only packages not already in the base "dependencies" above.
 # GPU-only runtime deps (torchtitan, liger-kernel) are listed here so that
@@ -127,7 +144,7 @@ spk = [
 # module load time in the hot path, so CPU-only installs still succeed.
 speechlm = [
   "psutil",
-  "transformers==4.57.1",
+  "transformers==5.0.0rc3",
   "huggingface-hub",
   "joblib",
   "polars",
@@ -162,6 +179,8 @@ test = [
   "black",
   "isort",
   "h5py>=2.10.0",
+  "gradio",
+  "playwright",
 ]
 
 doc = [
@@ -179,6 +198,7 @@ all = [
   "espnet[enh]",
   "espnet[spk]",
   "espnet[speechlm]",
+  "espnet[egs2]",
   "fairscale",
   "transformers",
   "evaluate",
