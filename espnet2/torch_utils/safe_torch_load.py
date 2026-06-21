@@ -7,7 +7,6 @@ from pathlib import Path
 from typing import Union
 
 import torch
-
 from packaging.version import parse as V
 
 is_torch_2_6_plus = V(torch.__version__) >= V("2.6.0")
