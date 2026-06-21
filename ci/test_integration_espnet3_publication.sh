@@ -210,6 +210,7 @@ cfg.model.trust_user_code = True
 config_path.write_text(OmegaConf.to_yaml(cfg, resolve=True), encoding="utf-8")
 PY
 
+${python} -m playwright install chromium
 ${python} "${cwd}/ci/test_demo_ui.py"
 
 rm -rf exp data
