@@ -1,6 +1,5 @@
 """Safe wrapper for torch.load that defaults to weights_only=True."""
 
-import inspect
 import logging
 import pickle
 import warnings
@@ -8,6 +7,10 @@ from pathlib import Path
 from typing import Union
 
 import torch
+
+from packaging.version import parse as V
+
+is_torch_2_6_plus = V(torch.__version__) >= V("2.6.0")
 
 
 def safe_torch_load(
@@ -44,9 +47,7 @@ def safe_torch_load(
     # Remove any caller-supplied weights_only to enforce our policy.
     kwargs.pop("weights_only", None)
 
-    # Check if weights_only is supported by the installed PyTorch version
-    weights_only_supported = "weights_only" in inspect.signature(torch.load).parameters
-    if not weights_only_supported:
+    if not is_torch_2_6_plus:
         raise RuntimeError(
             "safe_torch_load requires PyTorch >= 2.6 for weights_only support. "
             f"Found torch.__version__={torch.__version__}, "
