@@ -387,7 +387,7 @@ class InferenceModel:
         _, data = self._build_single_inputs(sample)
         return data
 
-    def forward(self, sample: Any, idx: Any = 0) -> Any:
+    def forward(self, sample: Any, idx: Any = 0, **extra_kwargs: Any) -> Any:
         """Run inference for a single sample.
 
         This is the main execution method used by :meth:`__call__` and by
@@ -399,6 +399,9 @@ class InferenceModel:
             sample: Either a raw input value for single-input models or a
                 mapping containing the configured input key(s).
             idx: Optional sample identifier forwarded to ``output_fn``.
+            **extra_kwargs: Additional keyword arguments forwarded to the
+                underlying model callable (e.g. ``beam_size`` for demo
+                overrides).
 
         Returns:
             Any: Backend output, or the transformed output from ``output_fn``.
@@ -423,15 +426,16 @@ class InferenceModel:
             model=self.model,
             input_key=self.input_key,
             output_fn=self.output_fn,
+            model_kwargs=extra_kwargs,
         )
 
-    def __call__(self, sample: Any, idx: Any = 0) -> Any:
+    def __call__(self, sample: Any, idx: Any = 0, **extra_kwargs: Any) -> Any:
         """Alias for :meth:`forward`.
 
         This keeps the publication API convenient for interactive use, so
         callers can write ``model(sample)`` instead of ``model.forward(sample)``.
         """
-        return self.forward(sample, idx=idx)
+        return self.forward(sample, idx=idx, **extra_kwargs)
 
     def forward_batch(
         self,
