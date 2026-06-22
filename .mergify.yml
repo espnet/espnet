@@ -1,20 +1,7 @@
 queue_rules:
   - name: default
-    conditions:
-      # This is the default queue, which will be used for all PRs that do not match any other queue.
-      # While the PR is in the queue, Mergify will wait for the following CIs to complete successfully before merging it into master.
-      - "check-success~=check_kaldi_symlinks"
-      - "check-success~=check_installable_on_"
-      - "check-success~=unit_test_espnet2_and_integration_test_espnet2"
-      - "check-success~=test_import"
-      - "check-success~=unit_test_espnet2_and_espnet3_on_debian12"
-      - "check-success~=test_configuration_espnet2"
-      - "check-success~=test_integration_espnet2"
-      - "check-success~=test_integration_espnet3"
-      - "check-success~=test_python_espnet2"
-      - "check-success~=test_python_espnet3"
-      - "check-success~=test_shell_espnet2"
-      - "check-success~=test_utils_espnet2"
+    merge_conditions:
+      - "check-success=All Tests Passed Summary"
 
 pull_request_rules:
   - name: automatic merge if label=auto-merge
