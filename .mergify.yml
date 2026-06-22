@@ -1,35 +1,29 @@
+queue_rules:
+  - name: default
+    conditions:
+      # This is the default queue, which will be used for all PRs that do not match any other queue.
+      # While the PR is in the queue, Mergify will wait for the following CIs to complete successfully before merging it into master.
+      - "check-success~=check_kaldi_symlinks"
+      - "check-success~=check_installable_on_"
+      - "check-success~=unit_test_espnet2_and_integration_test_espnet2"
+      - "check-success~=test_import"
+      - "check-success~=unit_test_espnet2_and_espnet3_on_debian12"
+      - "check-success~=test_configuration_espnet2"
+      - "check-success~=test_integration_espnet2"
+      - "check-success~=test_integration_espnet3"
+      - "check-success~=test_python_espnet2"
+      - "check-success~=test_python_espnet3"
+      - "check-success~=test_shell_espnet2"
+      - "check-success~=test_utils_espnet2"
+
 pull_request_rules:
   - name: automatic merge if label=auto-merge
     conditions:
       - "label=auto-merge"
-      - "check-success=unit_test_espnet2_on_centos7"
-      - "check-success=unit_test_espnet2_on_debian11"
-      - "check-success=check_installable_on_windows (3.10, 2.3.0)"
-      - "check-success=check_installable_on_macos (3.10, 2.1.2, true)"
-      - "check-success=check_installable_on_macos (3.10, 2.1.2, false)"
-      - "check-success=unit_test_espnet2_and_integration_test_espnet2 (ubuntu-latest, 3.7, 1.13.1, false, 6.0.0)"
-      - "check-success=unit_test_espnet2_and_integration_test_espnet2 (ubuntu-latest, 3.8, 2.0.1, 6.0.0, false)"
-      - "check-success=unit_test_espnet2_and_integration_test_espnet2 (ubuntu-latest, 3.9, 2.0.1, 6.0.0, false)"
-      - "check-success=unit_test_espnet2_and_integration_test_espnet2 (ubuntu-latest, 3.10, 2.0.1, 6.0.0, false)"
-      - "check-success=unit_test_espnet2_and_integration_test_espnet2 (ubuntu-latest, 3.8, 2.1.2, 6.0.0, false)"
-      - "check-success=unit_test_espnet2_and_integration_test_espnet2 (ubuntu-latest, 3.9, 2.1.2, 6.0.0, false)"
-      - "check-success=unit_test_espnet2_and_integration_test_espnet2 (ubuntu-latest, 3.10, 2.1.2, 6.0.0, false)"
-      - "check-success=unit_test_espnet2_and_integration_test_espnet2 (ubuntu-latest, 3.8, 2.2.2, 6.0.0, false)"
-      - "check-success=unit_test_espnet2_and_integration_test_espnet2 (ubuntu-latest, 3.9, 2.2.2, 6.0.0, false)"
-      - "check-success=unit_test_espnet2_and_integration_test_espnet2 (ubuntu-latest, 3.10, 2.2.2, 6.0.0, false)"
-      - "check-success=unit_test_espnet2_and_integration_test_espnet2 (ubuntu-latest, 3.8, 2.3.1, 6.0.0, false)"
-      - "check-success=unit_test_espnet2_and_integration_test_espnet2 (ubuntu-latest, 3.9, 2.3.1, 6.0.0, false)"
-      - "check-success=unit_test_espnet2_and_integration_test_espnet2 (ubuntu-latest, 3.10, 2.3.1, 6.0.0, false)"
-      - "check-success=unit_test_espnet2_and_integration_test_espnet2 (ubuntu-latest, 3.8, 2.4.0, 6.0.0, false)"
-      - "check-success=unit_test_espnet2_and_integration_test_espnet2 (ubuntu-latest, 3.9, 2.4.0, 6.0.0, false)"
-      - "check-success=unit_test_espnet2_and_integration_test_espnet2 (ubuntu-latest, 3.10, 2.4.0, 6.0.0, false)"
-      - "check-success=test_configuration_espnet2 (ubuntu-latest, 3.7, 1.13.1, 6.0.0, false)"
-      - "check-success=test_configuration_espnet2 (ubuntu-latest, 3.10, 2.4.0, false, 6.0.0)"
-      - "check-success=test_import (ubuntu-latest, 3.10, 2.4.0)"
-      - "check-success=check_kaldi_symlinks"
+      - "#approved-reviews-by>=1"
     actions:
-      merge:
-        method: merge
+      queue:
+        name: default # <--  This is the name of the queue defined above
   - name: "add label=auto-merge for PR by mergify"
     conditions:
       - author=mergify[bot]
