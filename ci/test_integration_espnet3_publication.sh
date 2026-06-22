@@ -86,17 +86,10 @@ class DemoTestProvider:
         return model
 EOF
 }
-clone_workdir=""
-
 cleanup() {
     if [ -n "${check_workdir}" ] && [ -d "${check_workdir}" ]; then
         rm -rf "${check_workdir}"
     fi
-    if [ -n "${clone_workdir}" ] && [ -d "${clone_workdir}" ]; then
-        rm -rf "${clone_workdir}"
-    fi
-    rm -rf "${cwd}/egs3/mini_an4/asr/exp/demo_ui_default" \
-           "${cwd}/egs3/mini_an4/asr/exp/demo_ui_custom"
 }
 
 trap cleanup EXIT
@@ -121,10 +114,7 @@ PY
 
 python3 -m pip install -e '.[asr]'
 
-clone_workdir=$(mktemp -d)
-espnet3 clone mini_an4/asr --project "${clone_workdir}/recipe"
-cp "${cwd}/egs3/mini_an4/asr/downloads.tar.gz" "${clone_workdir}/recipe/downloads.tar.gz"
-cd "${clone_workdir}/recipe" || exit
+cd ./egs3/mini_an4/asr || exit
 gen_dummy_coverage
 echo "==== [ESPnet3] Publication ===="
 source path.sh
@@ -220,11 +210,8 @@ cfg.model.trust_user_code = True
 config_path.write_text(OmegaConf.to_yaml(cfg, resolve=True), encoding="utf-8")
 PY
 
-mkdir -p "${cwd}/egs3/mini_an4/asr/exp"
-cp -r "$(pwd)/exp/demo_ui_default" "${cwd}/egs3/mini_an4/asr/exp/demo_ui_default"
-cp -r "$(pwd)/exp/demo_ui_custom"  "${cwd}/egs3/mini_an4/asr/exp/demo_ui_custom"
-
 ${python} -m playwright install chromium
 ${python} "${cwd}/ci/test_demo_ui.py"
 
+rm -rf exp data
 cd "${cwd}" || exit 1
