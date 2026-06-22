@@ -45,5 +45,6 @@ jobs:
           # However, I couldn't build pysptk with gcc on MacOS
           # CC: /usr/local/bin/gcc-11
           # CXX: /usr/local/bin/g++-11
+          HF_TOKEN: ${{ secrets.HF_CI_TOKEN }}
         run: |
           ./ci/install_macos.sh
