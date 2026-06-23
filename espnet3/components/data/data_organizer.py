@@ -180,50 +180,64 @@ class DataOrganizer:
         self.recipe_dir = recipe_dir
 
         preprocessor_cfg = preprocessor
-        raw_preprocessor = preprocessor_cfg or do_nothing
-        if isinstance(raw_preprocessor, (dict, DictConfig)):
-            raw_preprocessor = instantiate(raw_preprocessor)
-        assert callable(raw_preprocessor), "Preprocessor should be callable."
 
-        is_espnet_preprocessor = isinstance(raw_preprocessor, AbsPreprocessor)
-
-        if is_espnet_preprocessor:
-            # Auto-set train flag per split so the user does not have to
-            # hard-code it in the config.
-            if isinstance(preprocessor_cfg, (dict, DictConfig)) and (
-                "train" in preprocessor_cfg
-            ):
-                logger.warning(
-                    "Preprocessor config contains a 'train' field, but "
-                    "DataOrganizer sets it automatically (True for train split, "
-                    "False for valid/test). The config value will be ignored."
-                )
-            if isinstance(preprocessor_cfg, DictConfig):
-                train_preprocessor = instantiate(
-                    OmegaConf.merge(preprocessor_cfg, {"train": True})
-                )
-                valid_preprocessor = instantiate(
-                    OmegaConf.merge(preprocessor_cfg, {"train": False})
-                )
-            elif isinstance(preprocessor_cfg, dict):
-                train_preprocessor = instantiate({**preprocessor_cfg, "train": True})
-                valid_preprocessor = instantiate({**preprocessor_cfg, "train": False})
-            else:
-                # Already-instantiated AbsPreprocessor passed directly.
-                # Deepcopy for the train split (needs train=True); keep the
-                # original as valid_preprocessor so callers that inspect the instance
-                # (e.g. in test-only setups) still see side-effects on it.
-                if train is not None:
-                    train_preprocessor = copy.deepcopy(raw_preprocessor)
-                    train_preprocessor.train = True
+        if preprocessor_cfg is None:
+            is_espnet_preprocessor = False
+            train_preprocessor = do_nothing
+            valid_preprocessor = do_nothing
+        elif isinstance(preprocessor_cfg, (dict, DictConfig)):
+            # Use _partial_=True to obtain the target class without calling
+            # __init__, so a missing 'train' argument does not raise here.
+            partial_preprocessor = instantiate(preprocessor_cfg, _partial_=True)
+            is_espnet_preprocessor = issubclass(
+                partial_preprocessor.func, AbsPreprocessor
+            )
+            if is_espnet_preprocessor:
+                if "train" in preprocessor_cfg:
+                    logger.warning(
+                        "Preprocessor config contains a 'train' field, but "
+                        "DataOrganizer sets it automatically (True for train "
+                        "split, False for valid/test). The config value will "
+                        "be ignored."
+                    )
+                if isinstance(preprocessor_cfg, DictConfig):
+                    train_preprocessor = instantiate(
+                        OmegaConf.merge(preprocessor_cfg, {"train": True})
+                    )
+                    valid_preprocessor = instantiate(
+                        OmegaConf.merge(preprocessor_cfg, {"train": False})
+                    )
                 else:
-                    train_preprocessor = raw_preprocessor
-                valid_preprocessor = raw_preprocessor
-                valid_preprocessor.train = False
+                    train_preprocessor = instantiate(
+                        {**preprocessor_cfg, "train": True}
+                    )
+                    valid_preprocessor = instantiate(
+                        {**preprocessor_cfg, "train": False}
+                    )
+            else:
+                # Custom preprocessor from config: instantiate normally.
+                train_preprocessor = instantiate(preprocessor_cfg)
+                valid_preprocessor = train_preprocessor
+        elif isinstance(preprocessor_cfg, AbsPreprocessor):
+            is_espnet_preprocessor = True
+            # Already-instantiated AbsPreprocessor: deepcopy for the train
+            # split; keep the original as valid_preprocessor so callers that
+            # inspect the instance (e.g. test-only setups) see side-effects.
+            if train is not None:
+                train_preprocessor = copy.deepcopy(preprocessor_cfg)
+                train_preprocessor.train = True
+            else:
+                train_preprocessor = preprocessor_cfg
+            valid_preprocessor = preprocessor_cfg
+            valid_preprocessor.train = False
         else:
-            train_preprocessor = raw_preprocessor
-            valid_preprocessor = raw_preprocessor
+            # Already-instantiated custom callable (non-AbsPreprocessor).
+            assert callable(preprocessor_cfg), "Preprocessor should be callable."
+            is_espnet_preprocessor = False
+            train_preprocessor = preprocessor_cfg
+            valid_preprocessor = preprocessor_cfg
 
+        assert callable(train_preprocessor), "Preprocessor should be callable."
         self.preprocessor = train_preprocessor
 
         def build_dataset_list(config_list, preprocessor):
