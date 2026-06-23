@@ -1,12 +1,13 @@
 ---
 tags:
 - espnet
-- ${task}
+- ${system}
+- ${corpus}
 language: ${lang}
 license: ${license}
 ---
 
-# ESPnet3 ${task} model
+# ESPnet3 ${system} model
 
 ${description}
 
@@ -14,11 +15,16 @@ ${description}
 
 - Repository: `${hf_repo}`
 - Recipe: `${recipe}`
-- Task: `${task}`
+- Corpus: `${corpus}`
 - System: `${system}`
 - Creator: `${creator}`
 - Created: `${created_at}`
+- Branch: `${git_branch}`
 - Git: `${git_head}` (${git_dirty})
+- Origin: ${git_origin}
+
+${model_summary_section}
+${model_detail_section}
 
 ## Usage
 

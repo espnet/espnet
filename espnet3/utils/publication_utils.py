@@ -8,7 +8,6 @@ import logging
 import os
 import re
 import shutil
-import subprocess
 import sys
 from datetime import datetime
 from glob import glob, has_magic
@@ -17,10 +16,15 @@ from string import Template
 from typing import Any
 
 import torch
+from huggingface_hub import HfApi
+from huggingface_hub.errors import HfHubHTTPError
+from hydra.utils import instantiate
 from omegaconf import DictConfig, ListConfig, OmegaConf
 
 import espnet2
+from espnet3.components.modeling.lightning_module import build_model_summary
 from espnet3.utils.logging_utils import get_git_metadata
+from espnet3.utils.task_utils import get_espnet_model
 
 logger = logging.getLogger(__name__)
 
@@ -105,7 +109,10 @@ def _resolve_artifact_paths(
         dst = out_dir / src.absolute().relative_to(recipe_root)
     except ValueError:
         raise RuntimeError(
-            f"Artifact must be under training_config.recipe_dir: {src}"
+            f"Artifact is outside the recipe root and cannot be bundled: {src}. "
+            "Consider placing a symlink under the recipe directory instead "
+            "(e.g. src/my_tokenizer -> /path/to/tokenizer), so the directory "
+            "structure is preserved when copied into the bundle."
         ) from None
     return src, dst
 
@@ -123,47 +130,20 @@ def _copy_path(src: Path, dst: Path, ignore=None) -> None:
         shutil.copy2(src, dst)
 
 
-def _copy_pack_include_paths(
-    include_paths: list[str],
-    out_dir: Path,
-    recipe_root: Path,
-    exclude_patterns: list[str] | None = None,
-) -> None:
-    """Copy include paths into a bundle output directory.
+def _resolve_readme_template_path(readme_template_path: str) -> Path:
+    """Resolve a README template path from cwd or repo root."""
+    raw_path = Path(readme_template_path)
+    repo_root = Path(__file__).resolve().parents[2]
+    candidates: list[Path] = [raw_path]
 
-    Called by both ``pack_model`` and ``pack_demo`` style packers when they
-    need publication-like include/exclude behavior for extra files or
-    directories. Include entries may be literal paths or glob patterns. When a
-    copied source is under ``recipe_root``, its relative path is preserved
-    under ``out_dir``; otherwise the source basename is used.
+    if not raw_path.is_absolute():
+        candidates.append(repo_root / raw_path)
 
-    Args:
-        include_paths: Literal paths or glob patterns to copy.
-        out_dir: Bundle output directory.
-        recipe_root: Base directory used for glob expansion and relative-path
-            preservation.
-        exclude_patterns: Optional ignore patterns applied when copying
-            included directories.
-    """
-    expanded_paths = _expand_pack_paths(include_paths, recipe_root)
-    excludes = list(exclude_patterns or [])
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
 
-    for src in expanded_paths:
-        if not src.exists():
-            logger.warning("Pack include path does not exist: %s", src)
-            continue
-        src = src.resolve()
-        try:
-            dst = out_dir / src.relative_to(recipe_root)
-        except ValueError:
-            dst = out_dir / src.name
-        if os.path.lexists(dst):
-            if dst.is_dir() and not dst.is_symlink():
-                shutil.rmtree(dst)
-            else:
-                dst.unlink()
-        ignore = _build_pack_ignore(src, excludes) if src.is_dir() else None
-        _copy_path(src=src, dst=dst, ignore=ignore)
+    raise FileNotFoundError(f"README template not found: {readme_template_path}")
 
 
 def _rewrite_paths_for_bundle(
@@ -241,21 +221,21 @@ def _resolve_results(
     metrics_config: DictConfig | None,
     inference_config: DictConfig | None,
 ) -> Path | None:
-    """Return metrics.json found under inference_dir.
+    """Return metrics.json under inference_dir.
 
     Called by ``pack_model`` to locate evaluation results before writing the
-    README. Checks ``inference_dir`` on each provided config in priority order
-    (publication → metrics → inference) and returns the first ``metrics.json``
-    found.
+    README. Checks ``inference_dir / "metrics.json"`` on each provided config
+    in priority order (publication → metrics → inference) and returns the
+    first existing file.
 
     """
     for cfg in (publication_config, metrics_config, inference_config):
         inference_dir = getattr(cfg, "inference_dir", None) if cfg else None
         if not inference_dir:
             continue
-        matches = list(Path(inference_dir).rglob("metrics.json"))
-        if matches:
-            return matches[0]
+        metrics_path = Path(inference_dir) / "metrics.json"
+        if metrics_path.exists():
+            return metrics_path
     return None
 
 
@@ -305,8 +285,8 @@ def _build_results_table(results_path: Path | None) -> str:
     return "\n".join(lines)
 
 
-def _infer_task_name(training_config: DictConfig, recipe_root: Path) -> str:
-    """Infer a short task name for README rendering."""
+def _infer_system_name(training_config: DictConfig, recipe_root: Path) -> str:
+    """Infer a short system name for README rendering."""
     task_value = getattr(training_config, "task", None)
     if isinstance(task_value, str) and task_value:
         parts = task_value.split(".")
@@ -319,6 +299,15 @@ def _infer_task_name(training_config: DictConfig, recipe_root: Path) -> str:
             return class_name[:-4].lower()
         return class_name.lower()
     return recipe_root.name
+
+
+def _instantiate_publication_model(training_config: DictConfig):
+    """Instantiate the training model for README metadata generation."""
+    task = training_config.get("task")
+    if task:
+        model_config = OmegaConf.to_container(training_config.model, resolve=True)
+        return get_espnet_model(task, model_config)
+    return instantiate(training_config.model)
 
 
 def _infer_recipe_name(recipe_root: Path) -> str:
@@ -352,6 +341,60 @@ def _describe_pack_strategy(pack_cfg: DictConfig) -> str:
     if getattr(pack_cfg, "exclude", None):
         parts.append("apply exclude filters")
     return "; ".join(parts)
+
+
+def _build_model_summary_section(model_summary: dict[str, object]) -> str:
+    """Render a markdown model summary section for the README."""
+    return "\n".join(
+        [
+            "## Model summary",
+            "",
+            f"- Class: `{model_summary['class_name']}`",
+            f"- Total parameters: `{model_summary['total_params_display']}`",
+            (
+                "- Learnable parameters: "
+                f"`{model_summary['trainable_params_display']}` "
+                f"({model_summary['trainable_ratio']:.1f}%)"
+            ),
+            (
+                "- Non-trainable parameters: "
+                f"`{model_summary['non_trainable_params_display']}`"
+            ),
+            f"- Parameter size: `{model_summary['size_display']}`",
+            (
+                f"- Buffers: `{model_summary['total_buffers_display']}` "
+                f"(`{model_summary['buffer_size_display']}`)"
+            ),
+            (
+                f"- Modules: `{model_summary['module_count_display']}` total, "
+                f"`{model_summary['leaf_module_count_display']}` leaf"
+            ),
+            f"- DType composition: `{model_summary['dtype_desc']}`",
+            "",
+        ]
+    )
+
+
+def _build_model_detail_section(
+    model_summary: dict[str, object], include_model_detail: bool
+) -> str:
+    """Render an optional markdown block with ``repr(model)``."""
+    if not include_model_detail:
+        return ""
+    return "\n".join(
+        [
+            "## Model structure",
+            "",
+            "<details><summary>expand</summary>",
+            "",
+            "```python",
+            str(model_summary["repr"]),
+            "```",
+            "",
+            "</details>",
+            "",
+        ]
+    )
 
 
 def _build_results_note(results_path: Path | None, results_section: str) -> str:
@@ -391,24 +434,45 @@ def _build_readme_context(
             '"/path/to/packed_model", trust_user_code=True)'
         )
     )
+    model_summary_section = ""
+    model_detail_section = ""
+    try:
+        model_summary = build_model_summary(
+            _instantiate_publication_model(training_config)
+        )
+    except Exception as exc:
+        logger.warning("README model summary could not be generated: %s", exc)
+    else:
+        model_summary_section = _build_model_summary_section(model_summary)
+        model_detail_section = _build_model_detail_section(
+            model_summary,
+            include_model_detail=bool(getattr(pack_cfg, "include_model_detail", False)),
+        )
 
     return {
+        "corpus": recipe_root.parent.name,
         "creator": _infer_creator(),
         "created_at": datetime.now().isoformat(timespec="seconds"),
         "description": (
             f"Packed model bundle generated from `{_infer_recipe_name(recipe_root)}`."
         ),
         "exp_dir": str(getattr(training_config, "exp_dir", "")),
+        "git_branch": git_meta.get("branch") or "",
+        "git_commit": git_meta.get("commit") or "",
         "git_dirty": git_meta.get("worktree") or "",
         "git_head": git_meta.get("short_commit") or git_meta.get("commit") or "",
+        "git_origin": git_meta.get("origin_url") or "",
         "hf_repo": hf_repo,
+        "model_detail_section": model_detail_section,
+        "model_summary_section": model_summary_section,
         "pack_name": out_dir.name,
         "pack_strategy": _describe_pack_strategy(pack_cfg),
         "recipe": _infer_recipe_name(recipe_root),
         "results_note": _build_results_note(results_path, results_section),
         "results_section": results_section,
-        "system": str(getattr(training_config, "task", "")),
-        "task": _infer_task_name(training_config, recipe_root),
+        "system": _infer_system_name(training_config, recipe_root),
+        "task": _infer_system_name(training_config, recipe_root),
+        "task_class": str(getattr(training_config, "task", "") or ""),
         "train_config": OmegaConf.to_yaml(training_config, resolve=True),
         "usage_load_call": usage_load_call,
     }
@@ -447,6 +511,7 @@ def _write_meta(
 
     """
     meta = {
+        "schema_version": 1,
         "files": files,
         "yaml_files": yaml_files,
         "torch": str(torch.__version__),
@@ -484,10 +549,22 @@ def pack_model(
 
     recipe_root = Path(training_config.recipe_dir).resolve()
 
-    # Create (or recreate) the output directory
     exp_dir = Path(training_config.exp_dir)
+    if not exp_dir.is_absolute():
+        exp_dir = recipe_root / exp_dir
+    exp_dir = exp_dir.resolve()
+
+    # Create (or recreate) the output directory
     out_dir = Path(getattr(pack_cfg, "out_dir", exp_dir / "model_pack"))
+    if not out_dir.is_absolute():
+        out_dir = recipe_root / out_dir
+    out_dir = out_dir.resolve()
     if out_dir.exists():
+        if not getattr(pack_cfg, "allow_overwrite", False):
+            raise RuntimeError(
+                f"out_dir already exists: {out_dir}. "
+                "Set pack_model.allow_overwrite: true to overwrite."
+            )
         shutil.rmtree(out_dir)
     out_dir.mkdir(parents=True)
 
@@ -522,6 +599,13 @@ def pack_model(
         try:
             dest = out_dir / path.absolute().relative_to(recipe_root)
         except ValueError:
+            logger.warning(
+                "Include path is outside recipe root and will be placed at the "
+                "bundle root as '%s', losing its original directory structure. "
+                "Consider using a symlink under the recipe directory instead: %s",
+                path.name,
+                path,
+            )
             dest = out_dir / path.name
         ignore = _build_pack_ignore(path, excludes) if path.is_dir() else None
         _copy_path(src=path, dst=dest, ignore=ignore)
@@ -566,13 +650,7 @@ def pack_model(
     # Render and write README.md from template if configured
     readme_template_path = getattr(pack_cfg, "readme", None)
     if readme_template_path:
-        template_path = Path(readme_template_path)
-        if not template_path.is_absolute() and not template_path.exists():
-            repo_template_path = Path(__file__).resolve().parents[2] / template_path
-            if repo_template_path.exists():
-                template_path = repo_template_path
-        if not template_path.exists():
-            raise FileNotFoundError(f"README template not found: {template_path}")
+        template_path = _resolve_readme_template_path(readme_template_path)
         context = _build_readme_context(
             training_config=training_config,
             publication_config=publication_config,
@@ -593,85 +671,6 @@ def pack_model(
     return out_dir
 
 
-def _run(cmd: list[str], cwd: Path | None = None) -> str:
-    """Run a subprocess command and return stdout.
-
-    Used by ``upload_model`` to invoke ``huggingface-cli`` for repo creation
-    and model upload.
-
-    """
-    result = subprocess.run(
-        cmd,
-        cwd=str(cwd) if cwd else None,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-        check=False,
-    )
-    if result.returncode != 0:
-        raise RuntimeError(
-            f"Command failed: {' '.join(cmd)}\n"
-            f"stdout:\n{result.stdout}\nstderr:\n{result.stderr}"
-        )
-    return result.stdout.strip()
-
-
-def _check_repo_exists(repo: str, repo_type: str = "model") -> bool:
-    """Check if a Hugging Face repo exists."""
-    try:
-        from huggingface_hub import HfApi
-        from huggingface_hub.utils import RepositoryNotFoundError
-    except Exception as exc:
-        raise RuntimeError(
-            "huggingface_hub is required to check whether the target repo exists."
-        ) from exc
-    api = HfApi()
-    try:
-        api.repo_info(repo_id=repo, repo_type=repo_type)
-        return True
-    except RepositoryNotFoundError:
-        return False
-    except Exception as exc:
-        raise RuntimeError(f"Failed to check repo existence for {repo}: {exc}") from exc
-
-
-def _upload_common(
-    repo: str,
-    src_dir: Path,
-    repo_type: str,
-    create_options: dict[str, Any] | None = None,
-    create_repo_name: str | None = None,
-) -> None:
-    """Create a Hugging Face repo when needed and upload a directory."""
-    if shutil.which("huggingface-cli") is None:
-        raise RuntimeError("huggingface-cli is required for upload.")
-
-    if not _check_repo_exists(repo, repo_type=repo_type):
-        create_cmd = [
-            "huggingface-cli",
-            "repo",
-            "create",
-            create_repo_name or repo,
-            "--type",
-            repo_type,
-        ]
-        normalized_options = {"yes": True}
-        if create_options:
-            normalized_options.update(create_options)
-        for key, value in normalized_options.items():
-            if value is None or value is False:
-                continue
-            if key == "yes":
-                create_cmd.append("-y")
-                continue
-            create_cmd.append(f"--{key}")
-            if not isinstance(value, bool):
-                create_cmd.append(str(value))
-        _run(create_cmd)
-
-    _run(["huggingface-cli", "upload", repo, str(src_dir), "--repo-type", repo_type])
-
-
 def upload_model(system) -> None:
     """Upload packed model artifacts to a Hugging Face model repo.
 
@@ -685,13 +684,66 @@ def upload_model(system) -> None:
         >>> upload_model(system)
     """
     publication_cfg = system.publication_config
-    repo = publication_cfg.upload_model.hf_repo
+    upload_cfg = publication_cfg.upload_model
+    repo = upload_cfg.hf_repo
+    private = bool(getattr(upload_cfg, "private", False))
 
     # Resolve the pack directory from config
     pack_cfg = getattr(publication_cfg, "pack_model", None) or OmegaConf.create({})
+    recipe_root = Path(system.training_config.recipe_dir).resolve()
     exp_dir = Path(system.training_config.exp_dir)
+    if not exp_dir.is_absolute():
+        exp_dir = recipe_root / exp_dir
+    exp_dir = exp_dir.resolve()
     pack_dir = Path(getattr(pack_cfg, "out_dir", exp_dir / "model_pack"))
+    if not pack_dir.is_absolute():
+        pack_dir = recipe_root / pack_dir
+    pack_dir = pack_dir.resolve()
     if not pack_dir.exists():
         raise RuntimeError(f"Model pack not found: {pack_dir}")
 
-    _upload_common(repo, pack_dir, repo_type="model")
+    hint = (
+        "Check `publication_config.upload_model.hf_repo`. "
+        "Use the full repo name as `<user-or-org>/<repo>`. "
+        "If you meant your own account, replace any other user's namespace "
+        "with your Hugging Face username. "
+        "If the repo should be private, set `upload_model.private: true`. "
+        "Make sure the logged-in token can create and write to that namespace."
+    )
+    update = bool(upload_cfg.get("update", False))
+    logger.info("Ensuring Hugging Face repo exists: %s", repo)
+    api = HfApi()
+    try:
+        api.create_repo(
+            repo_id=repo,
+            repo_type="model",
+            private=private,
+            exist_ok=update,
+        )
+    except (HfHubHTTPError, ValueError) as exc:
+        status = getattr(getattr(exc, "response", None), "status_code", None)
+        if not update and status == 409:
+            raise RuntimeError(
+                f"Model repo '{repo}' already exists. "
+                "Set `upload_model.update: true` to upload over it."
+            ) from exc
+        raise RuntimeError(
+            f"Failed to create Hugging Face repo '{repo}': {exc}\n{hint}"
+        ) from exc
+
+    raw_patterns = getattr(upload_cfg, "delete_patterns", ["*"])
+    delete_patterns = list(raw_patterns) if (update and raw_patterns) else None
+
+    logger.info("Uploading %s -> %s", pack_dir, repo)
+    try:
+        api.upload_folder(
+            repo_id=repo,
+            repo_type="model",
+            folder_path=str(pack_dir),
+            delete_patterns=delete_patterns,
+        )
+    except (HfHubHTTPError, ValueError) as exc:
+        raise RuntimeError(
+            f"Failed to upload model pack to '{repo}': {exc}\n{hint}"
+        ) from exc
+    logger.info("Upload complete: https://huggingface.co/%s", repo)

@@ -8,6 +8,7 @@
 # Main stages and what this config is used for:
 # - `pack_demo`: packs `demo.yaml`, `ui.app_script`, and `pack.include`
 # - `upload_demo`: uploads the packed demo directory
+recipe_dir: .
 
 ##########################################################
 #                    MODEL SOURCE                        #
@@ -22,7 +23,7 @@
 # Initialization-time overrides are intentionally not supported here; keep
 # those in the packed `conf/inference.yaml`.
 model:
-  dir_or_tag: ../model_pack
+  dir_or_tag: exp/${exp_tag}/model_pack
   trust_user_code: false
   call_args: {}
 
@@ -46,8 +47,8 @@ model:
 # inference function.
 ui:
   app_script: src/app.py
-  title: null
-  description: readme.md
+  title: ${set_corpus_and_system:} demo
+  description: README.md
   inputs:
     - key: speech
       type: audio
@@ -67,17 +68,50 @@ ui:
 # the same style as publication bundle excludes, e.g.:
 # - `**/*.log`
 # - `**/tensorboard/**`
+#
+# `pack.readme` renders the Hugging Face Space README.md. Values under
+# `readme_context` override the defaults inferred by `pack_demo`.
 pack:
   out_dir: demo
   include: []
   exclude: []
+  # Python packages written to requirements.txt in the packed demo.
+  # Standard pip specifiers and git+https:// entries are both supported.
+  # Example git install: git+https://github.com/espnet/espnet@main
+  requirements:
+    - git+https://github.com/espnet/espnet.git
+  readme: ${config_path:../src/hf_demo_readme.md}
+  readme_context:
+    title: ${ui.title}
+    emoji: "\U0001f399\ufe0f"
+    color_from: blue
+    color_to: green
+    sdk: gradio
+    app_file: app.py
+    pinned: "false"
+    license: apache-2.0
+    tags: |-
+      - espnet
+      - espnet3
+      - gradio
+      - speech-recognition
+      - automatic-speech-recognition
+    hf_repo: ${upload_demo.hf_repo}
+    model_ref: ${model.dir_or_tag}
 
 ##########################################################
 #                    UPLOAD SETTING                      #
 ##########################################################
 # Upload target used by `upload_demo`.
-# The packed demo directory is uploaded as-is, so keep repo-facing metadata in
-# the files referenced above rather than generating a separate demo README here.
 upload_demo:
-  hf_repo: your-hf-username/your-demo
+  hf_repo: espnet/${set_corpus_and_system:}_${exp_tag}
   # organization: your-org
+  # update: false (default) raises an error if the Space already exists,
+  # preventing accidental overwrites of a published demo.
+  # Set to true to upload over an existing Space.
+  update: false
+  # Glob patterns of existing Space files to delete before uploading.
+  # Only used when update: true. Default ["*"] fully replaces the Space
+  # contents. Set to [] for an additive upload.
+  delete_patterns:
+    - "*"
