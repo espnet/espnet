@@ -8,7 +8,7 @@
   - Commit date: `Mon Jun 1 07:25:42 2026 -0400`
 
 ## Results
-- Model link: (to be uploaded to HuggingFace)
+- Model link: [https://huggingface.co/sankarabharadwaj/kn_openslr126_e_branchformer](https://huggingface.co/sankarabharadwaj/kn_openslr126_e_branchformer)
 - ASR config: [conf/tuning/train_asr_e_branchformer_size256_mlp1024_linear1024_e12_mactrue_edrop0.0_ddrop0.0.yaml](conf/tuning/train_asr_e_branchformer_size256_mlp1024_linear1024_e12_mactrue_edrop0.0_ddrop0.0.yaml)
 - LM config: [conf/train_lm.yaml](conf/train_lm.yaml)
 - Decode config: [conf/decode_asr.yaml](conf/decode_asr.yaml)

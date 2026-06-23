@@ -38,7 +38,8 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
             mkdir -p "${corpus}/${split}"
             tarball="${corpus}/mile_kannada_${split}.tar.gz"
             if [ ! -f "${tarball}" ]; then
-                wget -c -O "${tarball}" "${base_url}/mile_kannada_${split}.tar.gz"
+                wget -c -O "${tarball}.tmp" "${base_url}/mile_kannada_${split}.tar.gz"
+                mv "${tarball}.tmp" "${tarball}"
             fi
             tar -xzf "${tarball}" -C "${corpus}/${split}"
             # flatten if the archive wrapped audio_files/ in an extra top-level dir

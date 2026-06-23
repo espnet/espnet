@@ -21,7 +21,7 @@ def collect(split_dir):
         if not os.path.isfile(txt):
             continue
         with open(txt, encoding="utf-8") as f:
-            transcript = f.read().strip()
+            transcript = " ".join(f.read().split())
         if not transcript:
             continue
         items.append((utt, wav, transcript))
@@ -62,10 +62,18 @@ def main():
 
     # test: provided by the corpus, use as-is
     test_items = collect(os.path.join(args.datadir, "test"))
+    if not test_items:
+        raise FileNotFoundError(
+            f"No WAV/TXT pairs found in {os.path.join(args.datadir, 'test')}"
+        )
     write_dir("data/test", test_items)
 
     # train: carve a speaker-disjoint dev set
     train_items = collect(os.path.join(args.datadir, "train"))
+    if not train_items:
+        raise FileNotFoundError(
+            f"No WAV/TXT pairs found in {os.path.join(args.datadir, 'train')}"
+        )
     spks = sorted({speaker_of(u) for u, _, _ in train_items})
     rng = random.Random(args.seed)
     rng.shuffle(spks)
