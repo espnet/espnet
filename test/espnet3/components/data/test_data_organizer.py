@@ -1,4 +1,6 @@
 # test_data_organizer.py
+import logging
+
 import numpy as np
 import pytest
 from hydra.utils import instantiate
@@ -81,6 +83,9 @@ DUMMY_SHARDED_DATA_SRC = "dummy/sharded"
 DUMMY_PREPROCESSOR_TARGET = (
     "test.espnet3.components.data.test_data_organizer.DummyPreprocessor"
 )
+ESPNET_TRAIN_FLAG_PREPROCESSOR_TARGET = (
+    "test.espnet3.components.data." "test_data_organizer.TrainFlagRecordingPreprocessor"
+)
 
 
 # Dummy classes
@@ -122,6 +127,16 @@ class RecordingESPnetPreprocessor(AbsPreprocessor):
             "audio": sample["audio"],
             "text": f"[espnet:{uid}] {sample['text']}",
         }
+
+
+class TrainFlagRecordingPreprocessor(AbsPreprocessor):
+    """Records the train flag value at call time so tests can assert it."""
+
+    def __init__(self, train: bool = False):
+        super().__init__(train=train)
+
+    def __call__(self, uid, sample):
+        return {**sample, "was_train": self.train}
 
 
 class DummyDataset:
@@ -824,3 +839,119 @@ def test_combined_dataset_sharded_metadata_mismatch():
             transforms=[(DummyTransform(), DummyPreprocessor())] * 2,
             use_espnet_preprocessor=False,
         )
+
+
+# -----------------------------------------------------------------------
+# ESPnet preprocessor train-flag auto-setting
+# -----------------------------------------------------------------------
+
+
+def test_espnet_preprocessor_train_flag_auto_set_from_dictconfig():
+    """Config-based AbsPreprocessor: train split gets train=True, valid gets False."""
+    config = {
+        "train": [_entry("train_dummy")],
+        "valid": [_entry("valid_dummy")],
+    }
+    preprocessor_cfg = OmegaConf.create(
+        {"_target_": ESPNET_TRAIN_FLAG_PREPROCESSOR_TARGET}
+    )
+    organizer = DataOrganizer(
+        train=config["train"],
+        valid=config["valid"],
+        preprocessor=preprocessor_cfg,
+    )
+    assert organizer.train[0]["was_train"] is True
+    assert organizer.valid[0]["was_train"] is False
+
+
+def test_espnet_preprocessor_train_flag_auto_set_from_plain_dict():
+    """Plain-dict config for AbsPreprocessor: same auto-setting as DictConfig."""
+    config = {
+        "train": [_entry("train_dummy")],
+        "valid": [_entry("valid_dummy")],
+    }
+    preprocessor_cfg = {"_target_": ESPNET_TRAIN_FLAG_PREPROCESSOR_TARGET}
+    organizer = DataOrganizer(
+        train=config["train"],
+        valid=config["valid"],
+        preprocessor=preprocessor_cfg,
+    )
+    assert organizer.train[0]["was_train"] is True
+    assert organizer.valid[0]["was_train"] is False
+
+
+def test_espnet_preprocessor_train_flag_auto_set_from_instance():
+    """Already-instantiated AbsPreprocessor: deepcopy for train, original for valid."""
+    config = {
+        "train": [_entry("train_dummy")],
+        "valid": [_entry("valid_dummy")],
+    }
+    pp = TrainFlagRecordingPreprocessor(train=False)
+    organizer = DataOrganizer(
+        train=config["train"],
+        valid=config["valid"],
+        preprocessor=pp,
+    )
+    assert organizer.train[0]["was_train"] is True
+    assert organizer.valid[0]["was_train"] is False
+
+
+def test_espnet_preprocessor_test_split_uses_train_false():
+    """Test-only setup: AbsPreprocessor is called with train=False."""
+    preprocessor_cfg = OmegaConf.create(
+        {"_target_": ESPNET_TRAIN_FLAG_PREPROCESSOR_TARGET}
+    )
+    organizer = DataOrganizer(
+        test=[_entry("test_dummy")],
+        preprocessor=preprocessor_cfg,
+    )
+    assert organizer.test["test_dummy"][0]["was_train"] is False
+
+
+def test_custom_preprocessor_same_instance_for_all_splits():
+    """Non-AbsPreprocessor: the exact same callable is used for train and valid."""
+    config = {
+        "train": [_entry("train_dummy")],
+        "valid": [_entry("valid_dummy")],
+    }
+    pp = DummyPreprocessor()
+    organizer = DataOrganizer(
+        train=config["train"],
+        valid=config["valid"],
+        preprocessor=pp,
+    )
+    _, (_, train_pp) = next(
+        (d, t) for d, t in zip(organizer.train.datasets, organizer.train.transforms)
+    )
+    _, (_, valid_pp) = next(
+        (d, t) for d, t in zip(organizer.valid.datasets, organizer.valid.transforms)
+    )
+    assert train_pp is pp
+    assert valid_pp is pp
+
+
+def test_espnet_preprocessor_explicit_train_in_config_warns(caplog):
+    """Explicit 'train' key in ESPnet preprocessor config emits a warning."""
+    config = {
+        "train": [_entry("train_dummy")],
+        "valid": [_entry("valid_dummy")],
+    }
+    preprocessor_cfg = OmegaConf.create(
+        {
+            "_target_": ESPNET_TRAIN_FLAG_PREPROCESSOR_TARGET,
+            "train": False,
+        }
+    )
+    with caplog.at_level(
+        logging.WARNING,
+        logger="espnet3.components.data.data_organizer",
+    ):
+        organizer = DataOrganizer(
+            train=config["train"],
+            valid=config["valid"],
+            preprocessor=preprocessor_cfg,
+        )
+    assert any("train" in r.message.lower() for r in caplog.records)
+    # Flag is still auto-set correctly despite the explicit config value.
+    assert organizer.train[0]["was_train"] is True
+    assert organizer.valid[0]["was_train"] is False

@@ -1,5 +1,6 @@
 """DataOrganizer class for managing datasets in ESPnet3."""
 
+import copy
 import logging
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Optional, Union
@@ -176,14 +177,56 @@ class DataOrganizer:
         recipe_dir: Optional[str] = None,
     ):
         """Initialize DataOrganizer object."""
-        self.preprocessor = preprocessor or do_nothing
         self.recipe_dir = recipe_dir
-        if isinstance(self.preprocessor, (dict, DictConfig)):
-            self.preprocessor = instantiate(self.preprocessor)
-        assert callable(self.preprocessor), "Preprocessor should be callable."
-        is_espnet_preprocessor = isinstance(self.preprocessor, AbsPreprocessor)
 
-        def build_dataset_list(config_list):
+        preprocessor_cfg = preprocessor
+        raw_preprocessor = preprocessor_cfg or do_nothing
+        if isinstance(raw_preprocessor, (dict, DictConfig)):
+            raw_preprocessor = instantiate(raw_preprocessor)
+        assert callable(raw_preprocessor), "Preprocessor should be callable."
+
+        is_espnet_preprocessor = isinstance(raw_preprocessor, AbsPreprocessor)
+
+        if is_espnet_preprocessor:
+            # Auto-set train flag per split so the user does not have to
+            # hard-code it in the config.
+            if isinstance(preprocessor_cfg, (dict, DictConfig)) and (
+                "train" in preprocessor_cfg
+            ):
+                logger.warning(
+                    "Preprocessor config contains a 'train' field, but "
+                    "DataOrganizer sets it automatically (True for train split, "
+                    "False for valid/test). The config value will be ignored."
+                )
+            if isinstance(preprocessor_cfg, DictConfig):
+                train_preprocessor = instantiate(
+                    OmegaConf.merge(preprocessor_cfg, {"train": True})
+                )
+                valid_preprocessor = instantiate(
+                    OmegaConf.merge(preprocessor_cfg, {"train": False})
+                )
+            elif isinstance(preprocessor_cfg, dict):
+                train_preprocessor = instantiate({**preprocessor_cfg, "train": True})
+                valid_preprocessor = instantiate({**preprocessor_cfg, "train": False})
+            else:
+                # Already-instantiated AbsPreprocessor passed directly.
+                # Deepcopy for the train split (needs train=True); keep the
+                # original as valid_preprocessor so callers that inspect the instance
+                # (e.g. in test-only setups) still see side-effects on it.
+                if train is not None:
+                    train_preprocessor = copy.deepcopy(raw_preprocessor)
+                    train_preprocessor.train = True
+                else:
+                    train_preprocessor = raw_preprocessor
+                valid_preprocessor = raw_preprocessor
+                valid_preprocessor.train = False
+        else:
+            train_preprocessor = raw_preprocessor
+            valid_preprocessor = raw_preprocessor
+
+        self.preprocessor = train_preprocessor
+
+        def build_dataset_list(config_list, preprocessor):
             datasets = []
             transforms = []
             for config in config_list:
@@ -202,7 +245,7 @@ class DataOrganizer:
                     transform = instantiate(transform)
 
                 datasets.append(dataset)
-                transforms.append((transform, self.preprocessor))
+                transforms.append((transform, preprocessor))
             return CombinedDataset(
                 datasets,
                 transforms,
@@ -213,9 +256,9 @@ class DataOrganizer:
         self.valid = None
 
         if train is not None:
-            self.train = build_dataset_list(train)
+            self.train = build_dataset_list(train, train_preprocessor)
         if valid is not None:
-            self.valid = build_dataset_list(valid)
+            self.valid = build_dataset_list(valid, valid_preprocessor)
 
         # Check consistency between train and valid datasets:
         # - It is invalid to provide only one of train or valid.
@@ -259,7 +302,7 @@ class DataOrganizer:
                 self.test_sets[name] = DatasetWithTransform(
                     dataset,
                     transform,
-                    self.preprocessor,
+                    valid_preprocessor,
                     use_espnet_preprocessor=is_espnet_preprocessor,
                 )
 
