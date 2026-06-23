@@ -123,7 +123,7 @@ def add_arguments(subparsers) -> None:
 
 
 def run(args) -> None:
-    """Clone an egs3 recipe into a standalone project directory.
+    r"""Clone an egs3 recipe into a standalone project directory.
 
     Copies the recipe's ``conf/``, ``src/``, ``dataset/``, and top-level
     files (``run.py``, ``readme.md``, ``path.sh``) to a new directory so
