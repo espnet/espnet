@@ -151,27 +151,39 @@ def upload_demo(system) -> None:
         raise RuntimeError(f"Demo pack not found: {demo_dir}")
 
     # --- upload ---
-    logger.info("Ensuring Hugging Face demo repo exists: %s", repo)
-    api = HfApi()
+    update = bool(upload_cfg.get("update", False))
     private = bool(getattr(upload_cfg, "private", False))
+    api = HfApi()
+    logger.info("Ensuring Hugging Face demo repo exists: %s", repo)
     try:
         api.create_repo(
             repo_id=repo,
             repo_type=repo_type,
             private=private,
-            exist_ok=True,
+            exist_ok=update,
             **create_opts,
         )
     except (HfHubHTTPError, ValueError) as exc:
+        status = getattr(getattr(exc, "response", None), "status_code", None)
+        if not update and status == 409:
+            raise RuntimeError(
+                f"Demo Space '{repo}' already exists. "
+                "Set `upload_demo.update: true` to upload over it."
+            ) from exc
         raise RuntimeError(
             f"Failed to create Hugging Face demo repo '{repo}': {exc}"
         ) from exc
+
+    raw_patterns = getattr(upload_cfg, "delete_patterns", ["*"])
+    delete_patterns = list(raw_patterns) if (update and raw_patterns) else None
+
     logger.info("Uploading %s -> %s", demo_dir, repo)
     try:
         api.upload_folder(
             repo_id=repo,
             repo_type=repo_type,
             folder_path=str(demo_dir),
+            delete_patterns=delete_patterns,
         )
     except (HfHubHTTPError, ValueError) as exc:
         raise RuntimeError(f"Failed to upload demo pack to '{repo}': {exc}") from exc

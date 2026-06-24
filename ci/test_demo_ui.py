@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import base64
 import os
 import re
 import select
@@ -106,11 +105,12 @@ def _write_test_audio(path: Path) -> None:
 
 
 def _write_test_image(path: Path) -> None:
-    png_bytes = base64.b64decode(
-        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8A"
-        "AusB9Wn5V1cAAAAASUVORK5CYII="
-    )
-    path.write_bytes(png_bytes)
+    import numpy as np
+    from PIL import Image
+
+    rng = np.random.default_rng(0)
+    pixels = rng.integers(0, 256, (128, 128, 3), dtype=np.uint8)
+    Image.fromarray(pixels, mode="RGB").save(str(path), format="PNG")
 
 
 def check_demo_ui_labels(system_name: str, config: dict) -> None:
