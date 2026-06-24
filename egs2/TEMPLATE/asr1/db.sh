@@ -21,6 +21,7 @@ ASVSpoof_CMD=
 BIBLETTS=downloads
 CORAAL=downloads
 COVOST2=
+DAILYTALK=downloads/dailytalk
 DIRHA_ENGLISH_PHDEV=
 DIRHA_WSJ=
 DIRHA_WSJ_PROCESSED="${PWD}/data/local/dirha_wsj_processed"  # Output file path

@@ -1,0 +1,69 @@
+# TTS Metrics Configuration for VERSA
+
+# mcd f0 related metrics
+#  -- mcd: mel cepstral distortion
+#  -- f0_corr: f0 correlation
+#  -- f0_rmse: f0 root mean square error
+- name: mcd_f0
+  f0min: 40
+  f0max: 800
+  mcep_shift: 5
+  mcep_fftl: 1024
+  mcep_dim: 39
+  mcep_alpha: 0.466
+  seq_mismatch_tolerance: 0.5
+  power_threshold: -20
+  dtw: true
+
+# discrete speech metrics
+# -- speech_bert: speech bert score
+# -- speech_bleu: speech bleu score
+# -- speech_token_distance: speech token distance score
+- name: discrete_speech
+
+# nomad (reference-based) metric
+# -- nomad: nomad reference-based model
+# - name: nomad
+#   model_cache: versa_cache/nomad_pt-models
+
+# An overall model on MOS-bench from Sheet toolkit
+# --sheet_ssqa: the mos prediction from sheet_ssqa
+- name: sheet_ssqa
+
+# pseudo subjective metrics
+# -- utmos: UT-MOS score
+- name: pseudo_mos
+  predictor_types: ["utmos"]
+  predictor_args:
+    utmos:
+      fs: 16000
+
+# Word error rate with OpenAI-Whisper model
+# -- whisper_wer: word error rate of openai-whisper
+- name: whisper_wer
+  model_tag: default
+  beam_size: 1
+  text_cleaner: whisper_basic
+
+# Audiobox Aesthetics (Unified automatic quality assessment for speech, music, and sound.)
+- name: audiobox_aesthetics
+  batch_size: 1
+  cache_dir: versa_cache/audiobox
+
+# ASR-match calculating
+# --asr_match_error_rate: correct matching words/character counts
+- name: asr_match
+  model_tag: default
+  beam_size: 1
+  text_cleaner: whisper_basic
+
+# speaker related metrics
+# -- spk_similarity: speaker cosine similarity
+- name: speaker
+  model_tag: default
+
+# asvspoof related metrics
+# -- asvspoof_score: evaluate how the generated speech is likely to be classifiied by a deepfake classifier
+- name: asvspoof_score
+  model_config: /ocean/projects/cis210027p/mliang4/dailytalk_tts/espnet/tools/versa/tools/checkpoints/aasist/config/AASIST.conf
+  model_path: /ocean/projects/cis210027p/mliang4/dailytalk_tts/espnet/tools/versa/tools/checkpoints/aasist/models/weights/AASIST.pth
