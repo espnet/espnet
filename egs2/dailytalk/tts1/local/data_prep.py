@@ -15,7 +15,11 @@ def main():
     parser.add_argument("output_dir", type=Path)
     args = parser.parse_args()
 
-    dialogues = [line.strip() for line in args.dialogue_list.read_text().splitlines() if line.strip()]
+    dialogues = [
+        line.strip()
+        for line in args.dialogue_list.read_text().splitlines()
+        if line.strip()
+    ]
     entries = []
     for dialogue in dialogues:
         dialogue_dir = args.dailytalk_root / "data" / dialogue
@@ -41,9 +45,11 @@ def main():
 
     entries.sort(key=lambda item: item[0])
     args.output_dir.mkdir(parents=True, exist_ok=True)
-    with (args.output_dir / "wav.scp").open("w", encoding="utf-8") as wav_scp, \
-         (args.output_dir / "text").open("w", encoding="utf-8") as text, \
-         (args.output_dir / "utt2spk").open("w", encoding="utf-8") as utt2spk:
+    with (
+        (args.output_dir / "wav.scp").open("w", encoding="utf-8") as wav_scp,
+        (args.output_dir / "text").open("w", encoding="utf-8") as text,
+        (args.output_dir / "utt2spk").open("w", encoding="utf-8") as utt2spk,
+    ):
         for utt_id, wav, transcript, speaker in entries:
             wav_scp.write(f"{utt_id} {wav}\n")
             text.write(f"{utt_id} {transcript}\n")
