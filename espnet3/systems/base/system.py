@@ -305,40 +305,30 @@ class BaseSystem:
         logger.info("results: %s", result)
         return result
 
-    def publish(self, *args, **kwargs):
-        """Publish artifacts from the experiment."""
-        self._reject_stage_args("publish", args, kwargs)
-        logger.info("Running publish(): pack_model -> upload_model")
-        self.pack_model()
-        return self.upload_model()
-
     # ---------------------------------------------------------
     # Publication stages (optional overrides)
     # ---------------------------------------------------------
     def pack_model(self, *args, **kwargs):
         """Pack model artifacts into an espnet3 bundle."""
         self._reject_stage_args("pack_model", args, kwargs)
-        from espnet3.utils.publish import pack_model
-
-        return pack_model(self)
+        return _pack_model(
+            training_config=self.training_config,
+            publication_config=self.publication_config,
+            inference_config=self.inference_config,
+            metrics_config=self.metrics_config,
+        )
 
     def upload_model(self, *args, **kwargs):
         """Upload model bundle to HuggingFace."""
         self._reject_stage_args("upload_model", args, kwargs)
-        from espnet3.utils.publish import upload_model
-
-        return upload_model(self)
+        return _upload_model(self)
 
     def pack_demo(self, *args, **kwargs):
-        """Pack demo artifacts into a runnable demo bundle."""
+        """Pack demo assets into a runnable demo directory."""
         self._reject_stage_args("pack_demo", args, kwargs)
-        from espnet3.demo.pack import pack_demo
-
-        return pack_demo(self)
+        return _pack_demo(self)
 
     def upload_demo(self, *args, **kwargs):
-        """Upload demo bundle to HuggingFace Spaces (stub)."""
+        """Upload demo bundle to HuggingFace."""
         self._reject_stage_args("upload_demo", args, kwargs)
-        from espnet3.demo.pack import upload_demo
-
-        return upload_demo(self)
+        return _upload_demo(self)
