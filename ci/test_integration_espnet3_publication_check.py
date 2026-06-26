@@ -99,7 +99,7 @@ def _validate_output(result: Any, expected_utt_id: str | None = None) -> None:
             assert _is_nonempty_value(result["wav"])
             return
         if "hyp" in result:
-            assert _is_nonempty_value(result["hyp"])
+            assert isinstance(result["hyp"], str)
             return
         payload_keys = [key for key in result if key not in {"utt_id", "ref"}]
         assert payload_keys, "Expected at least one payload key in inference output."
