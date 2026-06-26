@@ -26,7 +26,20 @@ model:
 ##########################################################
 # Recipe-local app script copied to `<demo_dir>/app.py` during `pack_demo`.
 ui:
-  app_script: src/app.py
+  app_script: ../../TEMPLATE/tse/src/app.py
+  title: Demo page for the TSE model trained on Libri2Mix (16 kHz)
+  description: readme.md
+  inputs:
+    - key: speech_mix
+      type: audio
+      label: "Mixture Audio"
+    - key: enroll_ref1
+      type: audio
+      label: "Enrollment Audio (Target Speaker)"
+  outputs:
+    - key: inf
+      type: audio
+      label: "Extracted Audio"
 
 ##########################################################
 #                   UPLOAD DEMO SETTING                  #
