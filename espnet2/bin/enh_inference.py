@@ -218,7 +218,9 @@ class SeparateSpeech:
         if isinstance(speech_mix, np.ndarray):
             speech_mix = torch.as_tensor(speech_mix)
 
-        assert speech_mix.dim() > 1, speech_mix.size()
+        has_batch_dim = speech_mix.dim() > 1
+        if not has_batch_dim:
+            speech_mix = speech_mix.unsqueeze(0)  # (1, Nsamples)
         batch_size = speech_mix.size(0)
         speech_mix = speech_mix.to(getattr(torch, self.dtype))
         # lengths: (B,)
@@ -398,6 +400,8 @@ class SeparateSpeech:
         else:
             waves = [w.cpu().numpy() for w in waves]
 
+        if not has_batch_dim:
+            waves = [w[0] for w in waves]  # list[(sample,)]
         return waves
 
     @torch.no_grad()
