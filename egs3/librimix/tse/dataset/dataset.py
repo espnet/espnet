@@ -132,7 +132,7 @@ class LibriMixTSEDataset(TorchDataset):
         ignore_key_prefix: List of key prefixes to omit from returned dicts.
             Supported keys: ``speech_mix``, ``enroll_ref{N}``,
             ``speech_ref{N}``, ``text_spk{N}``, ``utt_id``, ``num_spk``.
-        use_espnet2_preprocessor: If True, return raw strings and let the
+        use_espnet_preprocessor: If True, return raw strings and let the
             ESPnet2-style preprocessor handle audio loading and feature extraction.
 
     Raises:
@@ -154,9 +154,9 @@ class LibriMixTSEDataset(TorchDataset):
         recipe_dir: str | Path | None = None,
         data_dir: str | Path | None = None,
         ignore_key_prefix: List[str] | None = None,
-        use_espnet2_preprocessor: bool = False,
+        use_espnet_preprocessor: bool = False,
     ) -> None:
-        self.use_espnet2_preprocessor = use_espnet2_preprocessor
+        self.use_espnet_preprocessor = use_espnet_preprocessor
         self.split = str(split)
         if self.split not in _KNOWN_SPLITS:
             known = ", ".join(sorted(_KNOWN_SPLITS))
@@ -242,7 +242,7 @@ class LibriMixTSEDataset(TorchDataset):
         ex = self._examples[int(idx)]
         keys = [f.name for f in fields(ex)]
         ret = {}
-        if self.use_espnet2_preprocessor:
+        if self.use_espnet_preprocessor:
             for k in keys:
                 if k.startswith(self.ignore_key_prefix):
                     continue
@@ -278,7 +278,9 @@ class LibriMixTSEDataset(TorchDataset):
                 continue
                 # ret[k] = getattr(ex, k)
             elif k == "utt_id":
-                continue
+                if self.use_espnet_preprocessor:
+                    continue
+                ret[k] = getattr(ex, k)
             elif k == "num_spk":
                 continue
                 # ret[k] = np.array([ex.num_spk])

@@ -43,6 +43,23 @@ dataset:
         split: 2mix_16k_max_test_mix-both
 
 ##########################################################
+#                  PARALLELIZATION SETTING               #
+##########################################################
+parallel:
+  env: local
+  n_workers: 1
+
+##########################################################
+#               PROVIDER AND RUNNER SETTING              #
+##########################################################
+provider:
+  _target_: espnet3.systems.base.inference_provider.InferenceProvider
+  # inference_config:
+  #   device: cpu
+runner:
+  _target_: espnet3.systems.base.inference_runner.InferenceRunner
+
+##########################################################
 #                    MODEL AND OUTPUT                    #
 ##########################################################
 model:
@@ -53,4 +70,15 @@ model:
 input_key:
   - speech_mix
   - enroll_ref1
+  - speech_ref1
+output_keys:
+  - inf
+  - ref   # only used for writing ref.scp
 output_fn: src.inference.build_output
+output_artifacts:
+  inf:
+    type: wav
+    sample_rate: 16000
+  ref:
+    type: wav
+    sample_rate: 16000

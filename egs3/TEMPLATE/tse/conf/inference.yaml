@@ -93,9 +93,9 @@ input_key:
 # `${inference_dir}/<test_name>/`.
 # If omitted, keys are inferred from the first returned sample except for
 # `idx_key`. Set this explicitly when you want stable SCP filenames.
-#
-# output_keys:
-#   - inf
+
+output_keys:
+  - inf
 
 # Sample identifier field name expected in the final inference output dict.
 # Inference uses `utt_id` by default, and the final output dict must contain it
@@ -110,7 +110,7 @@ input_key:
 # batch_size: 1
 
 # Optional recipe-provided formatter that converts raw model outputs into dicts such as:
-#   {"utt_id": "...", "hyp": "..."}
+#   {"utt_id": "...", "inf": "..."}
 # If omitted, the model output itself must already be a dict (or a list of dicts
 # for batched inference) and must contain `utt_id` unless `idx_key` is
 # overridden.
@@ -139,19 +139,19 @@ output_fn: src.inference.build_output
 #
 # You can either declare a built-in type here, or provide a custom writer via
 # `_target_`. Custom writers must return the written file path.
-#
-# output_artifacts:
-#   audio:
-#     type: wav
-#     sample_rate: 16000
-#   posterior:
-#     type: npy
-#   debug_obj:
-#     type: pickle
-#   custom_field:
-#     writer:
-#       _target_: src.inference.write_custom_artifact
-#       some_option: 123
+
+output_artifacts:
+  inf:
+    type: wav
+    sample_rate: 16000
+  # posterior:
+  #   type: npy
+  # debug_obj:
+  #   type: pickle
+  # custom_field:
+  #   writer:
+  #     _target_: src.inference.write_custom_artifact
+  #     some_option: 123
 
 ##########################################################
 #               PROVIDER AND RUNNER SETTING              #

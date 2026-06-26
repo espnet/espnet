@@ -183,7 +183,7 @@ class SeparateSpeech:
     @typechecked
     def __call__(
         self, speech_mix: Union[torch.Tensor, np.ndarray], fs: int = 8000, **kwargs
-    ) -> List[Union[torch.Tensor, np.array]]:
+    ) -> List[Union[torch.Tensor, np.ndarray]]:
         """Inference
 
         Args:
@@ -208,7 +208,11 @@ class SeparateSpeech:
         if isinstance(speech_mix, np.ndarray):
             speech_mix = torch.as_tensor(speech_mix)
 
-        assert speech_mix.dim() > 1, speech_mix.size()
+        has_batch_dim = speech_mix.dim() > 1
+        if not has_batch_dim:
+            speech_mix = speech_mix.unsqueeze(0)  # (1, Nsamples)
+        if enroll_ref and enroll_ref[0].dim() == 1:
+            enroll_ref = [e.unsqueeze(0) for e in enroll_ref]
         batch_size = speech_mix.size(0)
         speech_mix = speech_mix.to(getattr(torch, self.dtype))
         # lengths: (B,)
@@ -356,6 +360,8 @@ class SeparateSpeech:
         else:
             waves = [w.cpu().numpy() for w in waves]
 
+        if not has_batch_dim:
+            waves = [w[0] for w in waves]  # list[(sample,)]
         return waves
 
     @torch.no_grad()

@@ -20,7 +20,11 @@ def build_output(data, model_output, idx):
             "ref": numpy float32 waveform (saved as WAV via output_artifacts)
     """
     utt_id = data.get("utt_id", str(idx))
-    inf_wav = model_output[0][0]  # target speaker extracted audio
+    # target speaker extracted audio
+    if model_output[0].ndim > 1:
+        inf_wav = model_output[0][0]
+    else:
+        inf_wav = model_output[0]
     ref_wav = data.get("speech_ref1")  # reference audio (numpy array)
 
     out = {"utt_id": utt_id, "inf": inf_wav}
