@@ -1,5 +1,4 @@
 import torch
-from packaging.version import parse as V
 
 from espnet2.beats.encoder import BeatsEncoder, BeatsPretrainingPredictor
 from espnet2.beats.espnet_model import BeatsPretrainModel, BeatsTokenizerPretrainModel
@@ -8,12 +7,8 @@ from espnet2.beats.tokenizer import (
     BeatsTokenizerPretrainingPredictor,
 )
 
-is_torch_1_12_1_plus = V(torch.__version__) >= V("1.12.1")
-
 
 def test_forward_backward_beats_pretrain_model():
-    if not is_torch_1_12_1_plus:
-        return
     beats_config = {
         "encoder_layers": 2,
         "encoder_embed_dim": 128,
@@ -40,9 +35,6 @@ def test_forward_backward_beats_pretrain_model():
 
 
 def test_forward_backward_beats_tokenizer_pretrain_model():
-    if not is_torch_1_12_1_plus:
-        return
-
     beats_config = {
         "encoder_layers": 2,
         "encoder_embed_dim": 768,
