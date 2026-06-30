@@ -169,8 +169,11 @@ def load_whisper_model_from_espnet(
     then overwrite its weights with the converted ESPnet checkpoint."""
     logger.info(f"Initializing whisper.{whisper_model_size} architecture...")
     model = whisper.load_model(whisper_model_size, device="cpu")
-    # Do NOT call model.half() here even with fp16=True; whisper's transcribe()
-    # casts inputs/cache internally and pre-halving conflicts with that.
+    # Keep fp32 here; do not model.half() (whisper.transcribe casts internally).
+    logger.info(
+        "Model kept in fp32; whisper.transcribe() applies fp16 casting "
+        "internally when --fp16 is set."
+    )
     logger.info(f"Loading ESPnet weights from {espnet_pth}")
     espnet_sd = torch.load(espnet_pth, map_location="cpu", weights_only=True)
     missing, unexpected = model.load_state_dict(

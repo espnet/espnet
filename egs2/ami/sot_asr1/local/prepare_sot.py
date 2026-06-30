@@ -115,11 +115,14 @@ def build_sot_text(
     return f" {speaker_change_symbol} ".join(x["text"] for x in items)
 
 
-def get_audio_entry(cut, segments_dir: Optional[str] = None) -> Optional[str]:
+def get_audio_entry(
+    cut, segments_dir: Optional[str] = None, segment_tol: float = 0.01
+) -> Optional[str]:
     """Get wav.scp entry for a cut's audio. If the cut is a strict sub-segment
     of a longer recording and ``segments_dir`` is provided, extracts the
     audio segment to a WAV file and returns its path; otherwise returns the
-    plain recording file path."""
+    plain recording file path. ``segment_tol`` (seconds) is the tolerance used
+    to decide whether the cut is a strict sub-segment of its recording."""
     if not getattr(cut, "recording", None):
         return None
 
@@ -129,7 +132,10 @@ def get_audio_entry(cut, segments_dir: Optional[str] = None) -> Optional[str]:
     if audio_path is None:
         return None
 
-    is_segment = cut.start > 0.01 or abs(cut.duration - cut.recording.duration) > 0.01
+    is_segment = (
+        cut.start > segment_tol
+        or abs(cut.duration - cut.recording.duration) > segment_tol
+    )
     if is_segment and segments_dir is not None:
         import soundfile as sf
 
@@ -148,6 +154,7 @@ def process_cutset(
     speaker_change_symbol: str,
     lowercase: bool = True,
     segments_dir: Optional[str] = None,
+    segment_tol: float = 0.01,
 ):
     """Process a CutSet. Returns (entries, stats) where entries is a list of
     (utt_id, wav_path, text) tuples and stats is a dict of skip counters."""
@@ -168,7 +175,9 @@ def process_cutset(
             stats["skipped_too_long"] += 1
             continue
 
-        audio_path = get_audio_entry(cut, segments_dir=segments_dir)
+        audio_path = get_audio_entry(
+            cut, segments_dir=segments_dir, segment_tol=segment_tol
+        )
         if audio_path is None:
             stats["skipped_no_audio"] += 1
             continue
@@ -245,6 +254,13 @@ def main():
         help="Max pause (seconds) for merging adjacent segments",
     )
     parser.add_argument(
+        "--segment_tol",
+        type=float,
+        default=0.01,
+        help="Tolerance (seconds) for treating a cut as a strict sub-segment "
+        "of its recording; such sub-segments are extracted to WAV.",
+    )
+    parser.add_argument(
         "--speaker_change_symbol",
         type=str,
         required=True,
@@ -285,6 +301,7 @@ def main():
             speaker_change_symbol=args.speaker_change_symbol,
             lowercase=args.lowercase,
             segments_dir=segments_dir,
+            segment_tol=args.segment_tol,
         )
         all_entries.extend(entries)
         for k, v in stats.items():
