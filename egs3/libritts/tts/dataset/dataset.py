@@ -15,6 +15,10 @@ from torch.utils.data import Dataset as TorchDataset
 from egs3.libritts.tts.dataset.builder import LibriTTSBuilder
 from espnet3.utils.config_utils import load_config_with_defaults
 
+# ---------------------------------------------------------------------------
+# Module-level config loading
+# ---------------------------------------------------------------------------
+
 _CONFIG_RESOURCE = resources.files(__package__).joinpath("config.yaml")
 with resources.as_file(_CONFIG_RESOURCE) as _CONFIG_PATH:
     _CONFIG = load_config_with_defaults(str(_CONFIG_PATH), resolve=False)
@@ -27,15 +31,28 @@ _SPLIT_MANIFEST_PATHS: dict[str, str] = {
 }
 
 
+# ---------------------------------------------------------------------------
+# Internal data structures
+# ---------------------------------------------------------------------------
+
+
 @dataclass(frozen=True)
 class ManifestEntry:
+    """One manifest row: utterance id, wav path, transcript, and speaker id."""
+
     utt_id: str
     wav_path: Path
     text: str
     sid: int
 
 
+# ---------------------------------------------------------------------------
+# Internal helpers
+# ---------------------------------------------------------------------------
+
+
 def _read_manifest(path: Path) -> list[ManifestEntry]:
+    """Read ``utt_id<TAB>wav_path<TAB>text<TAB>sid`` lines as manifest entries."""
     entries: list[ManifestEntry] = []
     with path.open("r", encoding="utf-8") as f:
         for line in f:
@@ -54,6 +71,11 @@ def _read_manifest(path: Path) -> list[ManifestEntry]:
     if not entries:
         raise RuntimeError(f"Manifest is empty: {path}")
     return entries
+
+
+# ---------------------------------------------------------------------------
+# Public dataset class
+# ---------------------------------------------------------------------------
 
 
 class LibriTTSDataset(TorchDataset):

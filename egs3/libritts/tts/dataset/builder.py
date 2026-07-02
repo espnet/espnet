@@ -25,17 +25,19 @@ _CFG = _load_builder_config()
 
 
 def _scan_subset_entries(subset_dir: Path) -> list[tuple[str, Path, str, str]]:
-    """
-    Scan a subset directory and return a list of (utt_id, wav_path, text, spk_key) tuples.
+    """Scan a subset directory and return ``(utt_id, wav_path, text, spk_key)`` tuples.
 
     Args:
-        subset_dir: Path to the subset directory (e.g., "LibriTTS/train-clean-100")
+        subset_dir: Path to the subset directory (e.g.,
+            ``LibriTTS/train-clean-100``).
+
     Returns:
         List of tuples containing:
-            - utt_id: Unique utterance ID (e.g., "123-456-789")
-            - wav_path: Path to the corresponding WAV file
-            - text: Transcription text
-            - spk_key: Speaker key (e.g., "speaker_chapter") for speaker ID mapping
+            - utt_id: Unique utterance ID (e.g., ``123-456-789``).
+            - wav_path: Path to the corresponding WAV file.
+            - text: Transcription text.
+            - spk_key: Speaker key (e.g., ``speaker_chapter``) for speaker
+              ID mapping.
     """
     entries = []
     for text_path in sorted(subset_dir.rglob("*.normalized.txt")):
@@ -61,13 +63,15 @@ class LibriTTSBuilder(DatasetBuilder):
         **_kwargs,
     ) -> bool:
         """Check if LibriTTS source data is prepared.
+
         Args:
             recipe_dir: Recipe root directory (not used in this check).
             **_kwargs: Unused extra options for API compatibility.
-        Returns:
-            True if the required LibriTTS subsets are present; False otherwise.
-        """
 
+        Returns:
+            ``True`` if the required LibriTTS subsets are present;
+            ``False`` otherwise.
+        """
         recipe_root = Path(recipe_dir).resolve()
         libritts_root = recipe_root / _CFG["dataset_path"] / "LibriTTS"
         required = []
@@ -86,14 +90,19 @@ class LibriTTSBuilder(DatasetBuilder):
             recipe_dir: Recipe root directory.
             **_kwargs: Unused extra options for API compatibility.
 
+        Returns:
+            None.
+
+        Raises:
+            RuntimeError: If a subset download fails.
+
         Notes:
             This method:
             1. Checks for the presence of required LibriTTS subsets.
-            2. If not present, it runs the download script for each
-                missing subset.
-            3. Verifies that the required subsets are present after
-                the download attempt.
-
+            2. If not present, runs the download script for each missing
+               subset.
+            3. Verifies that the required subsets are present after the
+               download attempt.
         """
         dataset_root = Path(recipe_dir).resolve() / _CFG["dataset_path"]
 
@@ -125,13 +134,15 @@ class LibriTTSBuilder(DatasetBuilder):
 
     def is_built(self, recipe_dir: str | Path, **_kwargs) -> bool:
         """Check if LibriTTS dataset artifacts (manifests) are built.
+
         Args:
             recipe_dir: Recipe root directory.
             **_kwargs: Unused extra options for API compatibility.
-        Returns:
-            True if all expected manifest files exist; False otherwise.
-        """
 
+        Returns:
+            ``True`` if all expected manifest files exist; ``False``
+            otherwise.
+        """
         recipe_root = Path(recipe_dir).resolve()
         data_dir = recipe_root / _CFG["data_path"]
         manifests_ok = all(
@@ -149,16 +160,20 @@ class LibriTTSBuilder(DatasetBuilder):
 
         Args:
             recipe_dir: Recipe root directory.
-            **_kwargs: Optional keyword arguments for build customization:
+            **_kwargs: Unused extra options for API compatibility.
 
         Returns:
             None.
 
+        Raises:
+            FileNotFoundError: If a configured subset directory is missing.
+
         Notes:
             Build flow:
-
+            1. Scan each split's subset directories for utterance entries.
+            2. Assign incrementing speaker IDs in first-seen order.
+            3. Write TSV manifests for ``train``, ``valid``, ``test``.
         """
-
         recipe_root = Path(recipe_dir).resolve()
         libritts_root = recipe_root / _CFG["dataset_path"] / "LibriTTS"
         data_dir = recipe_root / _CFG["data_path"]
