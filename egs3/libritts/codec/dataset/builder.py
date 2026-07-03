@@ -47,7 +47,16 @@ def _scan_subset_entries(subset_dir: Path) -> list[tuple[str, Path]]:
             continue
         if not text_path.read_text(encoding="utf-8").strip():
             continue
-        utt_id = text_path.stem.replace(".normalized", "")
+        # LibriTTS's native utt_id is underscore-separated digit groups (e.g.
+        # "1089_134691_000004_000001"), which Python's int() silently accepts
+        # via PEP 515 digit-group underscores. That trips up
+        # espnet3.components.data.dataset.CombinedDataset.__getitem__, which
+        # tries int(idx) on string keys from ESPnet's chunk/sequence
+        # iterators to decide int-vs-utterance-id indexing. Using hyphens
+        # (LibriSpeech's own convention) keeps the ID human-readable while
+        # guaranteeing int() raises, so lookups always take the intended
+        # utterance-ID path instead of being misparsed as a huge integer.
+        utt_id = text_path.stem.replace(".normalized", "").replace("_", "-")
         entries.append((utt_id, wav_path.resolve()))
     return entries
 
