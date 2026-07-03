@@ -35,7 +35,13 @@ DEFAULT_STAGES = [
     "measure",
 ]
 DEFAULT_PACKAGE = "egs3.libritts.codec"
-DEFAULT_TRAINING_CONFIG = "training_encodec.yaml"
+# Base/default values for --training_config are merged in from the generic
+# codec template (egs3/TEMPLATE/codec/conf/training.yaml), not from this
+# recipe's own package, so recipe-specific configs (e.g.
+# conf/training_encodec.yaml) only need to specify what differs from that
+# generic GAN-codec scaffold.
+DEFAULT_TRAINING_TEMPLATE_PACKAGE = "egs3.TEMPLATE.codec"
+TRAINING_CONFIG_NAME = "training.yaml"
 DEFAULT_INFERENCE_CONFIG = "inference.yaml"
 DEFAULT_METRICS_CONFIG = "metrics.yaml"
 
@@ -86,8 +92,8 @@ def main(args) -> None:
 
     training_config = load_and_merge_config(
         args.training_config,
-        config_name=DEFAULT_TRAINING_CONFIG,
-        default_package=DEFAULT_PACKAGE,
+        config_name=TRAINING_CONFIG_NAME,
+        default_package=DEFAULT_TRAINING_TEMPLATE_PACKAGE,
         resolve=False,
     )
     inference_config = load_and_merge_config(
