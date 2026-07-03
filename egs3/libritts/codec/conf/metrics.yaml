@@ -1,0 +1,10 @@
+##########################################################
+#                 METRIC SCORING SETTING                  #
+##########################################################
+# TODO: not implemented yet. See conf/inference.yaml for context — codec
+# reconstruction metrics (e.g. PESQ/STOI/mel-cepstral distortion) have no
+# existing ESPnet3 metric class to port yet (unlike ASR's WER/CER under
+# espnet3/systems/asr/metrics/). Placeholder only; do not run
+# `--stages measure` against it yet.
+
+metrics: []
