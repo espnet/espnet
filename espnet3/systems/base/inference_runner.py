@@ -152,17 +152,7 @@ class InferenceRunner(BaseRunner):
         ref_key: str | Sequence[str] = "ref",
         **kwargs,
     ) -> None:
-        """Initialize the inference runner with output key settings.
-
-        Args:
-            provider: Environment provider that supplies dataset/model/env.
-            idx_key: Output dict key used as the sample identifier written in
-                the first column of each SCP line. This ties each inference
-                result back to its dataset sample. Defaults to ``"utt_id"``.
-            hyp_key: Hypothesis key or keys expected in the output dict.
-            ref_key: Reference key or keys expected in the output dict.
-            **kwargs: Forwarded to ``BaseRunner``.
-        """
+        """Validate that the configured sample-identifier key exists in output."""
         super().__init__(provider, **kwargs)
         self.idx_key = idx_key
         self.hyp_key = (

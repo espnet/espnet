@@ -1,4 +1,4 @@
-"""Dask runtime helpers used by ESPnet3 shard runners."""
+"""Dask-based parallel processing utilities for ESPnet3."""
 
 import copy
 import inspect
@@ -91,14 +91,6 @@ def build_local_gpu_cluster(n_workers: int, options: dict) -> Client:
 
     Returns:
         Client: Dask client connected to the GPU cluster.
-
-    Raises:
-        RuntimeError: If ``dask_cuda`` is not installed.
-        ValueError: If ``n_workers`` exceeds the number of available GPUs.
-
-    Example:
-        >>> client = build_local_gpu_cluster(n_workers=2, options={})
-        >>> client.close()
     """
     _ensure_dask()
     if LocalCUDACluster is None:
@@ -147,7 +139,7 @@ def get_parallel_config() -> Optional[DictConfig]:
 
 
 def _build_client(config: DictConfig = None) -> Client:
-    """Create a Dask client tied to the provided cluster config."""
+    """Create a Dask client tied to the global singleton cluster."""
     _ensure_dask()
     if config.env == "local":
         return Client(LocalCluster(n_workers=config.n_workers, **config.options))
@@ -181,16 +173,6 @@ def build_client(config: DictConfig = None) -> Client:
 
     Returns:
         Client: Dask client instance.
-
-    Raises:
-        ValueError: If ``config`` is None and no global config has been set via
-            :func:`set_parallel`.
-
-    Example:
-        >>> from omegaconf import OmegaConf
-        >>> cfg = OmegaConf.create({"env": "local", "n_workers": 2, "options": {}})
-        >>> client = build_client(cfg)
-        >>> client.close()
     """
     if config is not None:
         set_parallel(config)
@@ -207,8 +189,8 @@ def build_client(config: DictConfig = None) -> Client:
 class DictReturnWorkerPlugin(WorkerPlugin):
     """A plugin worker for easily returning a dictionary from a setup function.
 
-    A WorkerPlugin that calls a setup function once per worker and stores the
-    returned mapping in ``worker.plugins["env"]``.
+    A WorkerPlugin that calls a user-defined setup function once per worker,
+    and stores the returned dictionary in `worker.plugins["env"]`.
     """
 
     def __init__(self, setup_fn: Callable[[], dict]):
@@ -263,6 +245,11 @@ def wrap_func_with_worker_env(func: Callable) -> Callable:
         ValueError: Raised when both the worker environment and explicit
             keyword arguments define the same parameter.
 
+    Notes:
+        - Only environment keys that match the function's parameter names
+          (or any keys if the function accepts ``**kwargs``) will be considered
+          for injection.
+
     Example:
         >>> def process(idx, dataset, model):
         ...     return model(dataset[idx])
@@ -309,7 +296,7 @@ def wrap_func_with_worker_env(func: Callable) -> Callable:
 def get_client(
     config: DictConfig = None, setup_fn: Optional[Callable[[], dict]] = None
 ) -> Generator[Client, None, None]:
-    """Yield a Dask client configured for shard-based runner execution.
+    """Context manager to yield a Dask client from the global singleton cluster.
 
     Args:
         config (DictConfig, optional): Cluster config.
@@ -319,18 +306,9 @@ def get_client(
     Yields:
         Client: A Dask client instance tied to the global cluster.
 
-    Notes:
-        - ``setup_fn`` is executed once per worker and should return a dict.
-        - Callers should prefer ``BaseRunner`` instead of interacting with the
-          client directly for ESPnet3 workflows.
-
     Example:
-        >>> from omegaconf import OmegaConf
-        >>> cfg = OmegaConf.create({"env": "local", "n_workers": 2, "options": {}})
-        >>> set_parallel(cfg)
         >>> with get_client() as client:
-        ...     future = client.submit(lambda: 42)
-        ...     result = future.result()
+        ...     results = client.map(lambda x: x**2, range(10))
     """
     client = build_client(config)
     if setup_fn is not None:
