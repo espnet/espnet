@@ -8,7 +8,7 @@ from contextlib import contextmanager
 from typing import Callable, Generator, Optional
 
 import torch
-from omegaconf import DictConfig
+from omegaconf import DictConfig, OmegaConf
 from typeguard import typechecked
 
 try:
