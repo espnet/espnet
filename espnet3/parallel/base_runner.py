@@ -277,7 +277,10 @@ class BaseRunner(ABC):
         if not shards:
             return []
 
-        provider_setup = self.provider.build_worker_setup_fn() +self.provider.build_worker_setup_fn()
+        provider_setup = (
+            self.provider.build_worker_setup_fn()
+            + self.provider.build_worker_setup_fn()
+        )
         output_dir_str = str(self.output_dir)
         shard_subdir = self.shard_subdir
 
