@@ -1,0 +1,49 @@
+##########################################################
+#                 METRIC SCORING SETTING                 #
+##########################################################
+# Quick usage:
+#   python run.py --stages measure --metrics_config conf/metrics.yaml
+#
+# Assumptions:
+# - `infer` has already produced `<test_name>/*.scp` files.
+# - Each metric reads matching SCP keys such as `ref.scp` and `hyp.scp`.
+# - If `dataset.test` is omitted, test sets are discovered from `${inference_dir}`
+#   subdirectories.
+
+##########################################################
+#                    PATHS AND INPUTS                    #
+##########################################################
+recipe_dir: .
+# Common case:
+# - pass `--training_config`, `--inference_config`, and `--metrics_config`
+# - `run.py` copies `training_config.exp_tag` / `training_config.exp_dir` here
+# - `run.py` also copies `inference_config.inference_dir` here, so `measure`
+#   reads the same directory used by `infer`
+#
+# Standalone `measure` is also supported. In that case, set either `exp_tag` or
+# a concrete `exp_dir` below, and add `inference_dir` here unless
+# `--inference_config` provides it. Add `inference_dir` only when you want to
+# score a different inference output directory.
+exp_tag:
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+
+##########################################################
+#                    METRIC DEFINITION                   #
+##########################################################
+# TTS metrics are typically recipe-supplied (e.g. a VERSA-based wrapper), so
+# no default metric is provided here. Leaving this empty is intentional:
+# OmegaConf merges lists by whole replacement, so a populated default here
+# would silently apply to any recipe that omits `metrics:` entirely.
+#
+# Example (VERSA-based, see egs3/libritts/tts/src/metrics/versa.py):
+# metrics:
+#   - metric:
+#       _target_: src.metrics.versa.VersaMetric
+#       score_config:
+#         - name: pseudo_mos
+#           predictor_types: [utmos, dnsmos]
+#       wav_key: wav
+#       ref_key: ref
+#       text_key: text
+#       use_gpu: true
+metrics: []

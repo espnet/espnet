@@ -5,9 +5,9 @@ from __future__ import annotations
 import copy
 
 from omegaconf import DictConfig
-from src.models.gan_model import GANTTSLightningModule
 
 from espnet3.components.trainers.trainer import ESPnet3LightningTrainer
+from espnet3.systems.tts.models.gan_model import GANTTSLightningModule
 
 
 class GANTTSLightningTrainer(ESPnet3LightningTrainer):

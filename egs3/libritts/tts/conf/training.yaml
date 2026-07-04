@@ -305,12 +305,12 @@ trainer:
     generator_first: false
     skip_discriminator_prob: 0.0
   logger:
-    _target_: lightning.pytorch.loggers.WandbLogger
-    project: espnet3-libritts-vits
-    name: ${exp_tag}
-    save_dir: ${exp_dir}
-    log_model: false
-    id: ${exp_tag}
-    resume: allow
+    - _target_: lightning.pytorch.loggers.WandbLogger
+      project: espnet3-libritts-vits
+      name: ${exp_tag}
+      save_dir: ${exp_dir}
+      log_model: false
+      id: ${exp_tag}
+      resume: allow
 
 fit: {}
