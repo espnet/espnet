@@ -228,8 +228,15 @@ def _register_worker_plugin(client: Client, plugin: WorkerPlugin, name: str) -> 
 def wrap_func_with_worker_env(func: Callable) -> Callable:
     """Wrap a user-defined function for a WorkerPlugin.
 
-    This wrapper inspects the function signature and injects values from the
-    worker environment when names match missing keyword parameters.
+    This wrapper inspects the function's signature and automatically
+    supplies keyword arguments from the worker's environment (`worker.plugins["env"]`)
+    when they match parameter names of the function and are not explicitly
+    provided by the caller.
+
+    **Conflict detection**:
+        If both the worker environment and the call's `kwargs` provide the same
+        argument name, the wrapper raises a ``ValueError`` before calling the
+        underlying function.
 
     Args:
         func (Callable):
@@ -238,12 +245,17 @@ def wrap_func_with_worker_env(func: Callable) -> Callable:
             a ``**kwargs`` catch-all.
 
     Returns:
-        Callable: Wrapped callable that pulls matching keyword values from
-            ``worker.plugins["env"]`` before invoking ``func``.
+        Callable:
+            A wrapped function that:
+              1. Runs on the worker.
+              2. Retrieves the environment dict from ``worker.plugins["env"]``.
+              3. Detects and errors on conflicts with explicit keyword arguments.
+              4. Supplies any missing keyword arguments from the environment.
 
     Raises:
-        ValueError: Raised when both the worker environment and explicit
-            keyword arguments define the same parameter.
+        ValueError:
+            If there is at least one parameter name that is present both in the
+            worker environment and in the keyword arguments provided to the call.
 
     Notes:
         - Only environment keys that match the function's parameter names
@@ -251,11 +263,21 @@ def wrap_func_with_worker_env(func: Callable) -> Callable:
           for injection.
 
     Example:
-        >>> def process(idx, dataset, model):
-        ...     return model(dataset[idx])
-        >>> wrapped_fn = wrap_func_with_worker_env(process)
-        >>> # On a Dask worker with env={"dataset": ds, "model": md},
-        >>> # wrapped_fn(0) injects dataset and model from the worker plugin.
+        >>> def setup_fn():
+        ...     return {"bias": 7}
+        ...
+        >>> def add_bias(x, bias):
+        ...     return x + bias
+        ...
+        >>> with get_client(local_config, setup_fn=setup_fn) as client:
+        ...     # 'bias' comes from worker env, no need to pass it explicitly
+        ...     futs = client.map(add_bias, [1, 2])
+        ...     print(client.gather(futs))
+        [8, 9]
+
+        >>> # Passing conflicting 'bias' both in env and kwargs will error:
+        >>> with pytest.raises(ValueError):
+        ...     client.map(add_bias, [1, 2], bias=5)
     """
     sig = inspect.signature(func)
     param_names = set(sig.parameters.keys())

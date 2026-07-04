@@ -202,6 +202,13 @@ def _persist_feats_for_key(
         writer[uid] = seq
 
 
+def _read_lines_if_exists(path: Path) -> List[str]:
+    """Return text lines from path when the file exists."""
+    if not path.exists():
+        return []
+    return path.read_text(encoding="utf-8").splitlines()
+
+
 class CollectStatsInferenceProvider(EnvironmentProvider):
     """EnvironmentProvider tailored for collect-stats jobs."""
 
@@ -216,14 +223,17 @@ class CollectStatsInferenceProvider(EnvironmentProvider):
         params: Optional[Dict[str, Any]] = None,
     ):
         """Initialize CollectStatsInferenceProvider object."""
-        config = OmegaConf.create({})
-        config.model_config = model_config
-        config.dataset_config = dataset_config
-        config.dataloader_config = dataloader_config
-        config.mode = mode
-        config.task = task
-        config.shard_idx = shard_idx
-        config.update(**(params or {}))
+        config = OmegaConf.create(
+            {
+                "model_config": model_config,
+                "dataset_config": dataset_config,
+                "dataloader_config": dataloader_config,
+                "mode": mode,
+                "task": task,
+                "shard_idx": shard_idx,
+                **(params or {}),
+            }
+        )
         super().__init__(config)
 
     def build_env_local(self) -> Dict[str, Any]:
@@ -346,7 +356,6 @@ class CollectStatsRunner(BaseRunner):
         **env,
     ) -> None:
         """Merge per-batch stats and persist shapes/features."""
-        writers["_state"] = state
         write_feats = writers["_write_feats"]
         shard_dir: Path = writers["_shard_dir"]
 
@@ -389,7 +398,11 @@ class CollectStatsRunner(BaseRunner):
                 _persist_feats_for_key(writer, feats, feat_key, list(uid2shape.keys()))
 
     @staticmethod
-    def close_writers(writers: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    def close_writers(
+        writers: Dict[str, Any],
+        state: Dict[str, Any],
+        **env,
+    ) -> Optional[Dict[str, Any]]:
         """Close shard writers and flush shard summary files."""
         shard_dir = writers["_shard_dir"]
         shape_handles = writers.get("shape_handles", {})
@@ -400,7 +413,6 @@ class CollectStatsRunner(BaseRunner):
             writer.close()
         shape_keys = sorted(shape_handles.keys())
         feat_keys_written = sorted(feat_writers.keys())
-        state = writers.get("_state", {})
         stats_keys = sorted(state.get("sum", {}).keys())
         (shard_dir / "shape_keys.txt").write_text(
             "\n".join(shape_keys) + ("\n" if shape_keys else ""),
@@ -421,34 +433,21 @@ class CollectStatsRunner(BaseRunner):
                 sum=state["sum"][key],
                 sum_square=state["sq"][key],
             )
-        return None
 
     def merge(self, shard_dirs: List[Path]) -> Dict[str, Any]:
         """Merge shard outputs into aggregated statistics for one split."""
         shape_keys: set = set()
         feat_keys_written: set = set()
         stats_keys: set = set()
-        sum_dict: Dict[str, Any] = defaultdict(lambda: 0)
-        sq_dict: Dict[str, Any] = defaultdict(lambda: 0)
-        count_dict: Dict[str, int] = defaultdict(lambda: 0)
+        sum_dict: Dict[str, Any] = defaultdict(int)
+        sq_dict: Dict[str, Any] = defaultdict(int)
+        count_dict: Dict[str, int] = defaultdict(int)
         for shard_dir in shard_dirs:
-            shape_keys.update(
-                (shard_dir / "shape_keys.txt").read_text(encoding="utf-8").splitlines()
-                if (shard_dir / "shape_keys.txt").exists()
-                else []
-            )
+            shape_keys.update(_read_lines_if_exists(shard_dir / "shape_keys.txt"))
             feat_keys_written.update(
-                (shard_dir / "feat_keys_written.txt")
-                .read_text(encoding="utf-8")
-                .splitlines()
-                if (shard_dir / "feat_keys_written.txt").exists()
-                else []
+                _read_lines_if_exists(shard_dir / "feat_keys_written.txt")
             )
-            for key in (
-                (shard_dir / "stats_keys.txt").read_text(encoding="utf-8").splitlines()
-                if (shard_dir / "stats_keys.txt").exists()
-                else []
-            ):
+            for key in _read_lines_if_exists(shard_dir / "stats_keys.txt"):
                 stats_keys.add(key)
                 data = np.load(shard_dir / f"{key}_stats.npz")
                 sum_dict[key] += data["sum"]
