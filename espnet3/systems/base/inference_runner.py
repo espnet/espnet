@@ -409,14 +409,14 @@ class InferenceRunner(BaseRunner):
                 base_dir / f"{field_key}.scp",
             )
 
-    def __call__(self, indices: Iterable[int]) -> None:
+    def __call__(self, indices: Iterable[int]) -> bool:
         """Run inference, write SCP outputs, and validate output formats.
 
         Args:
             indices (Iterable[int]): Dataset indices to run inference on.
 
         Returns:
-            None: All results are written to SCP files on disk.
+            bool: True when all results are written to SCP files on disk.
 
         Raises:
             RuntimeError: If ``output_dir`` was not set on construction.
@@ -427,10 +427,11 @@ class InferenceRunner(BaseRunner):
             ...     provider, output_dir="/exp/decode", idx_key="utt_id"
             ... )
             >>> runner(range(len(test_dataset)))
+            True
             >>> # hyp.scp and ref.scp are written under /exp/decode
         """
         super().__call__(indices)
-        return None
+        return True
 
 
 @lru_cache(maxsize=None)
