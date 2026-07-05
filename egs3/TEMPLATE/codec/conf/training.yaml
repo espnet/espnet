@@ -1,0 +1,306 @@
+##########################################################
+#                    TRAINING SETTING                    #
+##########################################################
+# Quick usage:
+#   python run.py --stages create_dataset --training_config conf/training.yaml
+#   python run.py --stages train          --training_config conf/training.yaml
+#
+# Main stages and what this config is used for:
+# - `create_dataset`: uses `create_dataset`
+# - `collect_stats`: uses `dataset`, `dataloader`, `model`, and `parallel`
+# - `train`: uses most fields in this file
+#
+# Unlike egs3/TEMPLATE/asr, there is no `train_tokenizer` stage: GAN-based
+# neural codec tasks (espnet2.tasks.gan_codec.GANCodecTask and similar) train
+# directly on raw audio, with no text/tokenizer pipeline.
+
+##########################################################
+#                  SYSTEM AND PATH SETTING               #
+##########################################################
+num_device: 1
+num_nodes: 1
+
+# Optional ESPnet task class path used by `get_espnet_model(...)`.
+# For neural codec recipes this is typically
+# `espnet2.tasks.gan_codec.GANCodecTask`; `model` below is then shaped like
+# that task's argparse namespace (e.g. `codec: encodec`, `codec_conf: {...}`)
+# rather than a raw Hydra `_target_` block.
+# If unset, `model` is instantiated directly via Hydra.
+task:
+
+# Path scaffold relative to the recipe root.
+recipe_dir: .
+data_dir: ${recipe_dir}/data
+exp_tag: ${self_name:}
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+stats_dir: ${recipe_dir}/exp/stats
+
+# Directory where this recipe stores prepared manifests and any recipe-local
+# dataset artifacts.
+#
+# In simple recipes, prefer a fixed path under the recipe root, such as
+# `${recipe_dir}/dataset`, so users do not need to pass a dataset-specific
+# directory override at inference time.
+#
+# Keep this value as the single source of truth for dataset location. Training,
+# inference, and dataset creation should all reuse the same path instead of
+# redefining dataset names in multiple configs.
+dataset_dir: /path/to/your/dataset
+
+##########################################################
+#                 DATASET CREATION SETTING               #
+##########################################################
+# Optional dataset creation hook for the `create_dataset` stage.
+# The function is resolved from `create_dataset.func` and called with the
+# remaining fields in this block as keyword arguments.
+# If your recipe builds manifests locally, write them under `${dataset_dir}` so
+# later stages can consume the same files without extra path overrides.
+create_dataset:
+  func: src.creating_dataset.create_dataset
+  dataset_dir: ${dataset_dir}
+
+##########################################################
+#                    DATASET DEFINITION                  #
+##########################################################
+# Dataset organizer used across collect_stats/train/infer/measure.
+# Fill `train`, `valid`, and optionally `test` with dataset reference entries.
+#
+# Each dataset entry supports:
+# - `data_src`: optional dataset source reference.
+#   - `<recipe>/<task>` tag, e.g. `libritts/codec`
+#   - dotted module path, e.g. `my_project.datasets.foo`
+#   - omitted: load `${recipe_dir}/dataset/__init__.py`
+# - `data_src_args`: kwargs forwarded to `Dataset(...)`
+# - `transform`: optional Hydra-instantiated per-sample transform applied before
+#   `preprocessor`
+# - `name`: mainly useful for `test`; inference uses it as the output
+#   subdirectory name
+#
+# Only `data_src_args` is passed to the recipe `Dataset` constructor.
+# Top-level fields such as `name` and `transform` stay in organizer space.
+#
+# The recipe `Dataset` should return a dict keyed `"audio"` for GAN-codec
+# tasks, matching `CommonPreprocessor(speech_name="audio")`.
+#
+# Example:
+# dataset:
+#   _target_: espnet3.components.data.data_organizer.DataOrganizer
+#   recipe_dir: ${recipe_dir}
+#   train:
+#     - data_src_args:
+#         split: train
+#   valid:
+#     - data_src_args:
+#         split: valid
+#   test:
+#     - name: eval_local
+#       data_src_args:
+#         split: test
+#   preprocessor:
+#     _target_: espnet2.train.preprocessor.CommonPreprocessor
+#     train: true
+#     token_type: null
+#     speech_name: audio
+#     force_single_channel: true
+#     audio_pad_value: 0.0
+dataset:
+  _target_: espnet3.components.data.data_organizer.DataOrganizer
+  recipe_dir: ${recipe_dir}
+  train:
+  valid:
+  test:
+  preprocessor:
+
+##########################################################
+#                      MODEL SETTING                     #
+##########################################################
+# Training model definition.
+# If `task` is set, this block is passed to `get_espnet_model(task, model_conf)`,
+# shaped like that task's argparse namespace (e.g. for GANCodecTask:
+# `codec: encodec`, `codec_conf: {...}`). This lets you reuse ESPnet2-style
+# model configs here directly (e.g. copy an existing `egs2/*/codec1` recipe's
+# `codec`/`codec_conf` block).
+# If `task` is not set, this block is instantiated directly via Hydra.
+model:
+
+##########################################################
+#            OPTIMIZER & SCHEDULER SETTING               #
+##########################################################
+# GAN-based neural codecs (Encodec, SoundStream, DAC, FunCodec, ...) train a
+# generator and a discriminator with separate optimizers, so the named
+# multiple-optimizer path is the default here (unlike egs3/TEMPLATE/asr,
+# which defaults to the single-optimizer path).
+#
+# `params: generator` / `params: discriminator` match against dotted
+# parameter-name segments (e.g. `model.codec.generator.*` /
+# `model.codec.discriminator.*`), which `ESPnetGANCodecModel.__init__`
+# requires to exist.
+optimizers:
+  generator:
+    optimizer:
+      _target_: torch.optim.Adam
+      lr: 0.0002                 # optimizer config for `generator`
+    params: generator            # substring used to select parameters
+    accum_grad_steps: 1          # number of backward passes before optimizer.step()
+    step_every_n_iters: 1        # only step on every N-th training iteration
+    gradient_clip_val: 1.0       # per-optimizer gradient clipping value
+    gradient_clip_algorithm: norm  # `norm` or `value`
+
+  discriminator:
+    optimizer:
+      _target_: torch.optim.Adam
+      lr: 0.0002                 # optimizer config for `discriminator`
+    params: discriminator        # substring used to select parameters
+    accum_grad_steps: 1          # number of backward passes before optimizer.step()
+    step_every_n_iters: 1        # only step on every N-th training iteration
+    gradient_clip_val: 1.0
+
+schedulers:
+  generator:
+    scheduler:
+      _target_: torch.optim.lr_scheduler.ExponentialLR
+      gamma: 0.999875             # scheduler-specific argument
+    interval: epoch               # `epoch` schedulers run in `on_train_epoch_end()`
+
+  discriminator:
+    scheduler:
+      _target_: torch.optim.lr_scheduler.ExponentialLR
+      gamma: 0.999875
+    interval: epoch
+
+# Note:
+# - In the multiple-optimizer path, do not use trainer-level
+#   `trainer.gradient_clip_val` or `trainer.gradient_clip_algorithm`.
+#   Configure clipping per optimizer as shown above.
+#
+# Single optimizer path (only for a non-GAN codec model; most codec models
+# are GAN-based and should use the `optimizers`/`schedulers` path above):
+# optimizer:
+#   _target_: torch.optim.Adam
+#   lr: 0.0002
+# scheduler:
+#   _target_: espnet2.schedulers.warmup_lr.WarmupLR
+#   warmup_steps: 15000
+# scheduler_interval: step   # `step` or `epoch`
+# scheduler_monitor:         # e.g. `valid/loss` for monitored epoch schedulers
+optimizer:
+scheduler:
+scheduler_interval:
+scheduler_monitor:
+
+##########################################################
+#                OTHER TRAINING SETTING                  #
+##########################################################
+# Checkpoint selection criteria passed to ESPnet3 callbacks.
+# Each item is:
+#   - monitor key
+#   - number of best checkpoints to keep
+#   - direction (`min` or `max`)
+best_model_criterion:
+  - - valid/generator/loss
+    - 3
+    - min
+
+# Optional random seed used by collect_stats/train.
+seed:
+
+# Extra model initialization mode forwarded to ESPnet's initializer.
+# Example: xavier_uniform
+init:
+
+##########################################################
+#                   PARALLELIZATION SETTING              #
+##########################################################
+# Parallel backend used by collect_stats/train.
+parallel:
+  env: local
+  n_workers: 1
+
+##########################################################
+#                   DATALOADER SETTING                   #
+##########################################################
+# Chunk-based iteration, matching every existing espnet2 codec1 recipe
+# (encodec/dac/soundstream/hificodec/funcodec all use
+# `batch_type: unsorted` + `iterator_type: chunk`; none use `numel`/
+# `batch_bins`). `ChunkIterFactory`'s per-sample sampler always uses
+# `UnsortedBatchSampler(batch_size=1, key_file=...)`, so `shape_files` below
+# just needs a key file listing utterance IDs -- the manifest TSV itself
+# works directly, no `collect_stats` shape files required.
+#
+# Utterance IDs used as sampler keys must not be valid Python `int()`
+# literals (Python accepts PEP 515 underscore-grouped digits, e.g.
+# `int("1089_134691_000004_000001")` succeeds), or
+# `espnet3.components.data.dataset.CombinedDataset.__getitem__` will
+# misparse them as huge positional indices. Prefer hyphens over underscores
+# in utt_ids (LibriSpeech's own convention) if your source dataset's native
+# ID format is underscore-separated digit groups.
+dataloader:
+  collate_fn:
+    _target_: espnet2.train.collate_fn.CommonCollateFn
+    float_pad_value: 0.0
+    int_pad_value: 0
+  train:
+    iter_factory:
+      _target_: espnet2.iterators.chunk_iter_factory.ChunkIterFactory
+      batch_size: 4
+      chunk_length: 61440
+      num_cache_chunks: 64
+      shuffle: true
+      num_workers: 4
+      collate_fn: ${dataloader.collate_fn}
+      batches:
+        _target_: espnet2.samplers.build_batch_sampler.build_batch_sampler
+        type: unsorted
+        batch_size: 1        # required by ChunkIterFactory's per-sample sampler
+        batch_bins: 0        # required by signature, unused for "unsorted"
+        shape_files:
+          - ${data_dir}/manifest/train.tsv
+  valid:
+    iter_factory:
+      _target_: espnet2.iterators.chunk_iter_factory.ChunkIterFactory
+      batch_size: 4
+      chunk_length: ${dataloader.train.iter_factory.chunk_length}
+      num_cache_chunks: 64
+      shuffle: false
+      num_workers: 4
+      collate_fn: ${dataloader.collate_fn}
+      batches:
+        _target_: espnet2.samplers.build_batch_sampler.build_batch_sampler
+        type: unsorted
+        batch_size: 1
+        batch_bins: 0
+        shape_files:
+          - ${data_dir}/manifest/valid.tsv
+
+##########################################################
+#                    TRAINER SETTING                     #
+##########################################################
+# These settings map to `lightning.Trainer(...)`, except `gan`, which
+# configures `espnet3.systems.codec.models.gan_lightning_module.GANLightningModule`
+# (used automatically whenever the model is an `AbsGANESPnetModel`).
+trainer:
+  accelerator: auto
+  devices: ${num_device}
+  num_nodes: ${num_nodes}
+  accumulate_grad_batches: 1
+  check_val_every_n_epoch: 1
+  log_every_n_steps: 100
+  max_epochs: 100
+
+  gan:
+    generator_first: false        # whether to update the generator before the discriminator
+    skip_discriminator_prob: 0.0  # if > 0, skip the discriminator turn with this probability
+
+  logger:
+    - _target_: lightning.pytorch.loggers.TensorBoardLogger
+      save_dir: ${exp_dir}/tensorboard
+      name: tb_logger
+
+  strategy: auto
+
+##########################################################
+#                      FIT SETTING                       #
+##########################################################
+# Optional keyword arguments passed directly to `trainer.fit(**fit)`.
+# Leave `{}` for the default flow.
+fit: {}

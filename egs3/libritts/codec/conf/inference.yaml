@@ -1,0 +1,24 @@
+##########################################################
+#                   Inference SETTING                    #
+##########################################################
+# TODO: not implemented yet. Codec evaluation (encode+decode roundtrip,
+# reconstruction metrics such as PESQ/STOI/mel-cepstral distortion) has no
+# existing ESPnet3 port to reuse yet, unlike ASR's Speech2Text. This file is
+# a placeholder so `run.py` can load without error; do not run
+# `--stages infer` against it yet.
+#
+# When implemented, this should port espnet2/bin/gan_codec_inference.py's
+# encode -> decode roundtrip into an ESPnet3 provider/runner (see
+# `egs3/mini_an4/asr/conf/inference.yaml` for the pattern: `model._target_`,
+# `input_key`, `output_fn`).
+
+dataset:
+  test:
+    - name: test
+      data_src_args:
+        split: test
+        inference: true
+
+model: {}
+input_key: audio
+output_fn: null
