@@ -187,6 +187,12 @@ best_model_criterion:
   - - valid/mel_loss
     - 5
     - min
+  - - train/mel_loss
+    - 5
+    - min
+  - - train/total_count
+    - 5
+    - max
 
 ##########################################################
 #                   DATALOADER SETTING                   #
@@ -207,6 +213,14 @@ dataloader:
       batch_size: 4
       chunk_length: 61440
       num_cache_chunks: 64
+      # Matches egs2/libritts/codec1/conf/tuning/train_encodec.yaml's
+      # `num_iters_per_epoch: 10000`. For ChunkIterFactory this constructor
+      # kwarg is named `num_samples_per_epoch` (it caps batches per epoch,
+      # not raw samples - see espnet2/iterators/chunk_iter_factory.py). Only
+      # set on the train iterator: espnet2.tasks.abs_task.py's
+      # build_iter_factory hardcodes num_iters_per_epoch=None for valid, so
+      # validation always runs over the full dev set uncapped.
+      num_samples_per_epoch: 10000
       shuffle: true
       num_workers: 4
       collate_fn: ${dataloader.collate_fn}
