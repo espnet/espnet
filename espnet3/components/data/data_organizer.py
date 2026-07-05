@@ -68,7 +68,6 @@ class DatasetConfig:
     transform: Optional[Dict[str, Any]] = None
     split: Optional[str] = None
 
-
 def _log_dataset(
     log: logging.Logger,
     label: str,
@@ -120,9 +119,23 @@ class DataOrganizer:
         test (Optional[List[Union[DatasetConfig, Dict[str, Any], DictConfig]]]):
             A list of test dataset configurations, each with a name and corresponding
             data source and optional transform.
-        preprocessor (Optional[Callable]): A global preprocessor function applied
-            after each dataset's transform. If it's an instance of AbsPreprocessor,
-            (uid, sample) is passed.
+        preprocessor (Optional[Callable]): A global preprocessor function or Hydra
+            config applied after each dataset's transform. If it is an instance of
+            ``AbsPreprocessor``, each sample is passed as ``(uid, sample)``.
+            Dict-style configs support both shared and split-specific forms:
+
+            - Shared config: the same preprocessor is used for train/valid/test.
+            - Split config: ``train``, ``valid``, and ``test`` can each define their
+              own ``_target_`` block.
+            - Shared keys outside ``train``/``valid``/``test`` are merged into each
+              split-specific config. This is useful for common tokenizer settings
+              such as ``token_type``, ``token_list``, and ``bpemodel``.
+
+            Split config fallback rules are:
+
+            - If ``test`` is missing, test uses the valid preprocessor.
+            - If ``valid`` is missing, valid uses the train preprocessor.
+            - If ``train`` is missing, train uses no preprocessor.
         recipe_dir (Optional[str]): Recipe root used to resolve local dataset modules
             when dataset entries omit ``data_src`` and rely on
             ``recipe_dir/dataset``.
@@ -141,8 +154,9 @@ class DataOrganizer:
             (e.g., one is CombinedDataset, the other is None).
         AssertionError: If `preprocessor` is not callable.
 
-    Note:
-        The `DataOrganizer` is designed to support both training and testing workflows:
+    Notes:
+        The `DataOrganizer` is designed to support both training and testing
+        workflows:
 
         - For training: provide both `train` and `valid`.
         - For testing only: provide `test` and omit `train` / `valid`.
@@ -151,21 +165,72 @@ class DataOrganizer:
         If any of the `train`, `valid`, or `test` are omitted, the corresponding
             attributes will be set to `None` or empty.
 
-    Example (training + validation):
+        Split-specific preprocessor configs are useful when train and valid should
+        not share augmentation behavior.
+
+    Examples:
+        Training and validation with one shared preprocessor:
         >>> organizer = DataOrganizer(
         ...     train=training_configs,
         ...     valid=valid_configs,
         ...     preprocessor=MyPreprocessor()
         ... )
         >>> sample = organizer.train[0]
-        >>> test_sample = organizer.test["test_clean"][0]
 
-    Example (testing only):
+        Testing only:
         >>> organizer = DataOrganizer(
         ...     test=test_configs,
         ...     preprocessor=MyPreprocessor()
         ... )
         >>> test_sample = organizer.test["test_clean"][0]
+
+        Shared Hydra config for all splits:
+            >>> config = {
+            ...     "_target_": "my_project.preprocess.BuildPreprocessor",
+            ...     "token_type": "bpe",
+            ...     "token_list": "tokens.txt",
+            ... }
+            >>> organizer = DataOrganizer(
+            ...     train=training_configs,
+            ...     valid=valid_configs,
+            ...     preprocessor=config,
+            ... )
+
+        Split-specific Hydra config with shared tokenizer settings:
+            >>> config = {
+            ...     "token_type": "bpe",
+            ...     "token_list": "tokens.txt",
+            ...     "bpemodel": "bpe.model",
+            ...     "train": {
+            ...         "_target_": "my_project.preprocess.TrainPreprocessor",
+            ...         "speed_perturb_prob": 0.1,
+            ...     },
+            ...     "valid": {
+            ...         "_target_": "my_project.preprocess.ValidPreprocessor",
+            ...     },
+            ... }
+            >>> organizer = DataOrganizer(
+            ...     train=training_configs,
+            ...     valid=valid_configs,
+            ...     test=test_configs,
+            ...     preprocessor=config,
+            ... )
+
+        Split-specific config with test fallback to valid:
+            >>> config = {
+            ...     "train": {
+            ...         "_target_": "my_project.preprocess.TrainPreprocessor",
+            ...     },
+            ...     "valid": {
+            ...         "_target_": "my_project.preprocess.ValidPreprocessor",
+            ...     },
+            ... }
+            >>> organizer = DataOrganizer(
+            ...     train=training_configs,
+            ...     valid=valid_configs,
+            ...     test=test_configs,
+            ...     preprocessor=config,
+            ... )
     """
 
     def __init__(
@@ -180,51 +245,119 @@ class DataOrganizer:
         self.recipe_dir = recipe_dir
 
         preprocessor_cfg = preprocessor
-
         if preprocessor_cfg is None:
             is_espnet_preprocessor = False
             train_preprocessor = do_nothing
             valid_preprocessor = do_nothing
+            test_preprocessor = do_nothing
+            train_use_espnet_preprocessor = False
+            valid_use_espnet_preprocessor = False
+            test_use_espnet_preprocessor = False
         elif isinstance(preprocessor_cfg, (dict, DictConfig)):
-            # Use _partial_=True to obtain the target class without calling
-            # __init__, so a missing 'train' argument does not raise here.
-            partial_preprocessor = instantiate(preprocessor_cfg, _partial_=True)
-            is_espnet_preprocessor = (
-                hasattr(partial_preprocessor, "func")
-                and isinstance(partial_preprocessor.func, type)
-                and issubclass(partial_preprocessor.func, AbsPreprocessor)
+            plain_cfg = (
+                OmegaConf.to_container(preprocessor_cfg, resolve=True)
+                if isinstance(preprocessor_cfg, DictConfig)
+                else dict(preprocessor_cfg)
             )
-            if is_espnet_preprocessor:
-                if "train" in preprocessor_cfg:
+            has_split_configs = any(
+                isinstance(plain_cfg.get(split), dict)
+                for split in ("train", "valid", "test")
+            )
+            if has_split_configs:
+                shared_cfg = {
+                    key: value
+                    for key, value in plain_cfg.items()
+                    if key not in ("train", "valid", "test")
+                }
+                train_cfg = plain_cfg.get("train")
+                valid_cfg = plain_cfg.get("valid")
+                test_cfg = plain_cfg.get("test")
+                if valid_cfg is None:
                     logger.warning(
-                        "Preprocessor config contains a 'train' field, but "
-                        "DataOrganizer sets it automatically (True for train "
-                        "split, False for valid/test). The config value will "
-                        "be ignored."
+                        "Split preprocessor config is missing 'valid'. "
+                        "The valid split will use the train preprocessor."
                     )
-                if isinstance(preprocessor_cfg, DictConfig):
+                    valid_cfg = train_cfg
+                if train_cfg is None:
+                    logger.warning(
+                        "Split preprocessor config is missing 'train'. "
+                        "The train split will not use a preprocessor."
+                    )
+                if test_cfg is None:
+                    logger.warning(
+                        "Split preprocessor config is missing 'test'. "
+                        "The test split will use the valid preprocessor."
+                    )
+                    test_cfg = valid_cfg
+                if train_cfg is not None and shared_cfg:
+                    train_cfg = OmegaConf.merge(shared_cfg, train_cfg)
+                elif train_cfg is None:
+                    train_cfg = shared_cfg or None
+                if valid_cfg is not None and shared_cfg:
+                    valid_cfg = OmegaConf.merge(shared_cfg, valid_cfg)
+                elif valid_cfg is None:
+                    valid_cfg = shared_cfg or None
+                if test_cfg is not None and shared_cfg and test_cfg is not valid_cfg:
+                    test_cfg = OmegaConf.merge(shared_cfg, test_cfg)
+                train_preprocessor, train_is_espnet = (
+                    self._instantiate_preprocessor_from_config(train_cfg, True)
+                )
+                valid_preprocessor, valid_is_espnet = (
+                    self._instantiate_preprocessor_from_config(valid_cfg, False)
+                )
+                test_preprocessor, test_is_espnet = (
+                    self._instantiate_preprocessor_from_config(test_cfg, False)
+                )
+                train_use_espnet_preprocessor = train_is_espnet is True
+                valid_use_espnet_preprocessor = valid_is_espnet is True
+                test_use_espnet_preprocessor = test_is_espnet is True
+                is_espnet_preprocessor = any(
+                    (
+                        train_use_espnet_preprocessor,
+                        valid_use_espnet_preprocessor,
+                        test_use_espnet_preprocessor,
+                    )
+                )
+                train_preprocessor = train_preprocessor or do_nothing
+                valid_preprocessor = valid_preprocessor or do_nothing
+                test_preprocessor = test_preprocessor or do_nothing
+            else:
+                # Use _partial_=True to obtain the target class without calling
+                # __init__, so a missing 'train' argument does not raise here.
+                partial_preprocessor = instantiate(preprocessor_cfg, _partial_=True)
+                is_espnet_preprocessor = (
+                    hasattr(partial_preprocessor, "func")
+                    and isinstance(partial_preprocessor.func, type)
+                    and issubclass(partial_preprocessor.func, AbsPreprocessor)
+                )
+                if is_espnet_preprocessor:
+                    if "train" in preprocessor_cfg:
+                        logger.warning(
+                            "Preprocessor config contains a 'train' field, but "
+                            "DataOrganizer sets it automatically (True for train "
+                            "split, False for valid/test). The config value will "
+                            "be ignored."
+                        )
                     train_preprocessor = instantiate(
                         OmegaConf.merge(preprocessor_cfg, {"train": True})
                     )
                     valid_preprocessor = instantiate(
                         OmegaConf.merge(preprocessor_cfg, {"train": False})
                     )
+                    train_use_espnet_preprocessor = True
+                    valid_use_espnet_preprocessor = True
                 else:
-                    train_preprocessor = instantiate(
-                        {**preprocessor_cfg, "train": True}
-                    )
-                    valid_preprocessor = instantiate(
-                        {**preprocessor_cfg, "train": False}
-                    )
-            else:
-                # Custom preprocessor from config: instantiate normally.
-                train_preprocessor = instantiate(preprocessor_cfg)
-                valid_preprocessor = train_preprocessor
+                    train_preprocessor = instantiate(preprocessor_cfg)
+                    valid_preprocessor = train_preprocessor
+                    train_use_espnet_preprocessor = False
+                    valid_use_espnet_preprocessor = False
+                test_use_espnet_preprocessor = valid_use_espnet_preprocessor
+                test_preprocessor = valid_preprocessor
         elif isinstance(preprocessor_cfg, AbsPreprocessor):
             is_espnet_preprocessor = True
             # Already-instantiated AbsPreprocessor: deepcopy for the train
-            # split; keep the original as valid_preprocessor so callers that
-            # inspect the instance (e.g. test-only setups) see side-effects.
+            # split; keep the original as valid/test so callers that inspect the
+            # instance (e.g. test-only setups) see side-effects.
             if train is not None:
                 train_preprocessor = copy.deepcopy(preprocessor_cfg)
                 train_preprocessor.train = True
@@ -232,49 +365,39 @@ class DataOrganizer:
                 train_preprocessor = preprocessor_cfg
             valid_preprocessor = preprocessor_cfg
             valid_preprocessor.train = False
+            test_preprocessor = valid_preprocessor
+            train_use_espnet_preprocessor = True
+            valid_use_espnet_preprocessor = True
+            test_use_espnet_preprocessor = True
         else:
             # Already-instantiated custom callable (non-AbsPreprocessor).
             assert callable(preprocessor_cfg), "Preprocessor should be callable."
             is_espnet_preprocessor = False
             train_preprocessor = preprocessor_cfg
             valid_preprocessor = preprocessor_cfg
+            test_preprocessor = preprocessor_cfg
+            train_use_espnet_preprocessor = False
+            valid_use_espnet_preprocessor = False
+            test_use_espnet_preprocessor = False
 
         assert callable(train_preprocessor), "Preprocessor should be callable."
         self.preprocessor = train_preprocessor
-
-        def build_dataset_list(config_list, preprocessor):
-            datasets = []
-            transforms = []
-            for config in config_list:
-                if isinstance(config, DictConfig):
-                    raw_config = OmegaConf.to_container(config, resolve=True)
-                else:
-                    raw_config = config
-                dataset = instantiate_dataset_reference(
-                    raw_config,
-                    recipe_dir=self.recipe_dir,
-                )
-
-                transform = raw_config.get("transform", do_nothing)
-
-                if isinstance(transform, (dict, DictConfig)):
-                    transform = instantiate(transform)
-
-                datasets.append(dataset)
-                transforms.append((transform, preprocessor))
-            return CombinedDataset(
-                datasets,
-                transforms,
-                use_espnet_preprocessor=is_espnet_preprocessor,
-            )
 
         self.train = None
         self.valid = None
 
         if train is not None:
-            self.train = build_dataset_list(train, train_preprocessor)
+            self.train = self._build_dataset_list(
+                train,
+                train_preprocessor,
+                train_use_espnet_preprocessor,
+            )
         if valid is not None:
-            self.valid = build_dataset_list(valid, valid_preprocessor)
+            self.valid = self._build_dataset_list(
+                valid,
+                valid_preprocessor,
+                valid_use_espnet_preprocessor,
+            )
 
         # Check consistency between train and valid datasets:
         # - It is invalid to provide only one of train or valid.
@@ -318,9 +441,68 @@ class DataOrganizer:
                 self.test_sets[name] = DatasetWithTransform(
                     dataset,
                     transform,
-                    valid_preprocessor,
-                    use_espnet_preprocessor=is_espnet_preprocessor,
+                    test_preprocessor,
+                    use_espnet_preprocessor=test_use_espnet_preprocessor,
                 )
+
+    def _instantiate_preprocessor_from_config(
+        self,
+        preprocessor_cfg: Dict[str, Any] | DictConfig | None,
+        train_flag: bool,
+    ):
+        """Instantiate one preprocessor config for the requested split."""
+        if preprocessor_cfg is None:
+            return None, None
+        partial_preprocessor = instantiate(preprocessor_cfg, _partial_=True)
+        is_espnet = (
+            hasattr(partial_preprocessor, "func")
+            and isinstance(partial_preprocessor.func, type)
+            and issubclass(partial_preprocessor.func, AbsPreprocessor)
+        )
+        if is_espnet:
+            if "train" in preprocessor_cfg:
+                logger.warning(
+                    "Preprocessor config contains a 'train' field, but "
+                    "DataOrganizer sets it automatically (True for train "
+                    "split, False for valid/test). The config value will "
+                    "be ignored."
+                )
+            preprocessor_cfg = OmegaConf.merge(
+                preprocessor_cfg, {"train": train_flag}
+            )
+        return instantiate(preprocessor_cfg), is_espnet
+
+    def _build_dataset_list(
+        self,
+        config_list,
+        preprocessor,
+        use_espnet_preprocessor: bool,
+    ):
+        """Build a combined dataset from config entries."""
+        datasets = []
+        transforms = []
+        for config in config_list:
+            if isinstance(config, DictConfig):
+                raw_config = OmegaConf.to_container(config, resolve=True)
+            else:
+                raw_config = config
+            dataset = instantiate_dataset_reference(
+                raw_config,
+                recipe_dir=self.recipe_dir,
+            )
+
+            transform = raw_config.get("transform", do_nothing)
+            if isinstance(transform, (dict, DictConfig)):
+                transform = instantiate(transform)
+
+            datasets.append(dataset)
+            transforms.append((transform, preprocessor))
+
+        return CombinedDataset(
+            datasets,
+            transforms,
+            use_espnet_preprocessor=use_espnet_preprocessor,
+        )
 
     @property
     def test(self):

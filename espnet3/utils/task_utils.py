@@ -5,12 +5,25 @@ from argparse import Namespace
 from pathlib import Path
 from typing import Dict, Union
 
-from hydra.utils import get_class
+from hydra.utils import get_class, instantiate
 from omegaconf import DictConfig, OmegaConf
 from typeguard import typechecked
 
 from espnet2.train.abs_espnet_model import AbsESPnetModel
+from espnet2.train.preprocessor import AbsPreprocessor
 from espnet2.utils.yaml_no_alias_safe_dump import yaml_no_alias_safe_dump
+
+
+def _is_abs_preprocessor_config(preprocess_config) -> bool:
+    """Return True when the config targets an ESPnet AbsPreprocessor."""
+    if not isinstance(preprocess_config, dict) or "_target_" not in preprocess_config:
+        return False
+    partial_preprocessor = instantiate(preprocess_config, _partial_=True)
+    return (
+        hasattr(partial_preprocessor, "func")
+        and isinstance(partial_preprocessor.func, type)
+        and issubclass(partial_preprocessor.func, AbsPreprocessor)
+    )
 
 
 def get_task_class(task_path: str):
@@ -71,10 +84,17 @@ def save_espnet_config(
     # set the preprocessor config at the root level
     dataset_config = resolved_config.get("dataset")
     if dataset_config is not None and "preprocessor" in dataset_config:
-        preprocess_config = dataset_config.pop("preprocessor")
-        if "_target_" in preprocess_config:
-            preprocess_config.pop("_target_")
-        default_config.update(preprocess_config)
+        preprocess_config = dataset_config["preprocessor"]
+        has_split_configs = isinstance(preprocess_config, dict) and any(
+            key in preprocess_config and isinstance(preprocess_config[key], dict)
+            for key in ("train", "valid", "test")
+        )
+        if not has_split_configs and _is_abs_preprocessor_config(preprocess_config):
+            dataset_config.pop("preprocessor")
+            preprocess_config = dict(preprocess_config)
+            if "_target_" in preprocess_config:
+                preprocess_config.pop("_target_")
+            default_config.update(preprocess_config)
 
     default_config.update(resolved_config)
 

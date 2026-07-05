@@ -83,6 +83,9 @@ DUMMY_SHARDED_DATA_SRC = "dummy/sharded"
 DUMMY_PREPROCESSOR_TARGET = (
     "test.espnet3.components.data.test_data_organizer.DummyPreprocessor"
 )
+SPLIT_RECORDING_PREPROCESSOR_TARGET = (
+    "test.espnet3.components.data.test_data_organizer.SplitRecordingPreprocessor"
+)
 ESPNET_TRAIN_FLAG_PREPROCESSOR_TARGET = (
     "test.espnet3.components.data." "test_data_organizer.TrainFlagRecordingPreprocessor"
 )
@@ -102,6 +105,17 @@ class DummyPreprocessor:
         return {
             "audio": sample["audio"],
             "text": f"[dummy] {sample['text']}",
+        }
+
+
+class SplitRecordingPreprocessor:
+    def __init__(self, tag: str):
+        self.tag = tag
+
+    def __call__(self, sample):
+        return {
+            "audio": sample["audio"],
+            "text": f"[{self.tag}] {sample['text']}",
         }
 
 
@@ -619,6 +633,100 @@ def test_data_organizer_accepts_raw_configs():
     assert organizer.valid[0]["text"] == "[dummy] hello"
 
 
+def test_data_organizer_split_preprocessor_uses_shared_fallback(caplog):
+    config = {
+        "train": [_entry("train_dummy")],
+        "valid": [_entry("valid_dummy")],
+        "test": [_entry("test_dummy")],
+    }
+    preprocessor_cfg = OmegaConf.create(
+        {
+            "_target_": SPLIT_RECORDING_PREPROCESSOR_TARGET,
+            "tag": "shared",
+            "train": {"tag": "train"},
+        }
+    )
+    with caplog.at_level(
+        logging.WARNING,
+        logger="espnet3.components.data.data_organizer",
+    ):
+        organizer = DataOrganizer(
+            train=config["train"],
+            valid=config["valid"],
+            test=config["test"],
+            preprocessor=preprocessor_cfg,
+        )
+    assert organizer.train[0]["text"] == "[train] hello"
+    assert organizer.valid[0]["text"] == "[shared] hello"
+    assert organizer.test["test_dummy"][0]["text"] == "[shared] hello"
+    assert any("missing 'test'" in r.message for r in caplog.records)
+
+
+def test_data_organizer_split_preprocessor_uses_valid_for_test_by_default(caplog):
+    config = {
+        "train": [_entry("train_dummy")],
+        "valid": [_entry("valid_dummy")],
+        "test": [_entry("test_dummy")],
+    }
+    preprocessor_cfg = OmegaConf.create(
+        {
+            "train": {
+                "_target_": SPLIT_RECORDING_PREPROCESSOR_TARGET,
+                "tag": "train",
+            },
+            "valid": {
+                "_target_": SPLIT_RECORDING_PREPROCESSOR_TARGET,
+                "tag": "valid",
+            },
+        }
+    )
+    with caplog.at_level(
+        logging.WARNING,
+        logger="espnet3.components.data.data_organizer",
+    ):
+        organizer = DataOrganizer(
+            train=config["train"],
+            valid=config["valid"],
+            test=config["test"],
+            preprocessor=preprocessor_cfg,
+        )
+    assert organizer.train[0]["text"] == "[train] hello"
+    assert organizer.valid[0]["text"] == "[valid] hello"
+    assert organizer.test["test_dummy"][0]["text"] == "[valid] hello"
+    assert any("missing 'test'" in r.message for r in caplog.records)
+
+
+def test_data_organizer_split_preprocessor_allows_test_override():
+    config = {
+        "train": [_entry("train_dummy")],
+        "valid": [_entry("valid_dummy")],
+        "test": [_entry("test_dummy")],
+    }
+    preprocessor_cfg = OmegaConf.create(
+        {
+            "train": {
+                "_target_": SPLIT_RECORDING_PREPROCESSOR_TARGET,
+                "tag": "train",
+            },
+            "valid": {
+                "_target_": SPLIT_RECORDING_PREPROCESSOR_TARGET,
+                "tag": "valid",
+            },
+            "test": {
+                "_target_": SPLIT_RECORDING_PREPROCESSOR_TARGET,
+                "tag": "test",
+            },
+        }
+    )
+    organizer = DataOrganizer(
+        train=config["train"],
+        valid=config["valid"],
+        test=config["test"],
+        preprocessor=preprocessor_cfg,
+    )
+    assert organizer.test["test_dummy"][0]["text"] == "[test] hello"
+
+
 def test_data_organizer_passes_recipe_dir_to_ref_less_entries(monkeypatch):
     captured = []
 
@@ -667,6 +775,25 @@ def test_data_organizer_train_only_assertion():
     }
     with pytest.raises(RuntimeError):
         DataOrganizer(train=config["train"])
+
+
+def test_data_organizer_valid_only_assertion():
+    config = {
+        "valid": [_entry("valid_dummy")]
+        # train is missing
+    }
+    with pytest.raises(RuntimeError):
+        DataOrganizer(valid=config["valid"])
+
+
+def test_data_organizer_train_and_test_without_valid_assertion():
+    config = {
+        "train": [_entry("train_dummy")],
+        "test": [_entry("test_dummy")],
+        # valid is missing
+    }
+    with pytest.raises(RuntimeError):
+        DataOrganizer(train=config["train"], test=config["test"])
 
 
 def test_data_organizer_empty_train_valid_ok():
@@ -906,6 +1033,63 @@ def test_espnet_preprocessor_test_split_uses_train_false():
         preprocessor=preprocessor_cfg,
     )
     assert organizer.test["test_dummy"][0]["was_train"] is False
+
+
+def test_espnet_preprocessor_split_config_allows_missing_valid(caplog):
+    """Missing valid/test configs fall back to no-op with ESPnet call shape."""
+    config = {
+        "train": [_entry("train_dummy")],
+        "valid": [_entry("valid_dummy")],
+        "test": [_entry("test_dummy")],
+    }
+    preprocessor_cfg = OmegaConf.create(
+        {
+            "train": {"_target_": ESPNET_TRAIN_FLAG_PREPROCESSOR_TARGET},
+        }
+    )
+    with caplog.at_level(
+        logging.WARNING,
+        logger="espnet3.components.data.data_organizer",
+    ):
+        organizer = DataOrganizer(
+            train=config["train"],
+            valid=config["valid"],
+            test=config["test"],
+            preprocessor=preprocessor_cfg,
+        )
+    assert organizer.train[0]["was_train"] is True
+    assert organizer.valid[0]["was_train"] is False
+    assert organizer.test["test_dummy"][0]["was_train"] is False
+    assert any("missing 'valid'" in r.message for r in caplog.records)
+    assert any("missing 'test'" in r.message for r in caplog.records)
+
+
+def test_data_organizer_split_preprocessor_missing_train_warns(caplog):
+    config = {
+        "train": [_entry("train_dummy")],
+        "valid": [_entry("valid_dummy")],
+    }
+    preprocessor_cfg = OmegaConf.create(
+        {
+            "valid": {
+                "_target_": SPLIT_RECORDING_PREPROCESSOR_TARGET,
+                "tag": "valid",
+            },
+        }
+    )
+    with caplog.at_level(
+        logging.WARNING,
+        logger="espnet3.components.data.data_organizer",
+    ):
+        organizer = DataOrganizer(
+            train=config["train"],
+            valid=config["valid"],
+            preprocessor=preprocessor_cfg,
+        )
+    assert organizer.train[0]["text"] == "hello"
+    assert organizer.valid[0]["text"] == "[valid] hello"
+    assert any("missing 'train'" in r.message for r in caplog.records)
+    assert any("missing 'test'" in r.message for r in caplog.records)
 
 
 def test_custom_preprocessor_same_instance_for_all_splits():
