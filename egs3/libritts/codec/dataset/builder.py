@@ -1,4 +1,4 @@
-briTTS dataset builder for ESPnet3 TTS recipe."""
+"LibriTTS dataset builder for ESPnet3 TTS recipe."""
 
 from __future__ import annotations
 
