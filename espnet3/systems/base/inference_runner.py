@@ -48,7 +48,7 @@ def _materialize_output_value(
         return value
 
     if isinstance(value, np.generic):
-        return value
+        return value.item()
     if isinstance(value, np.ndarray):
         if value.ndim == 0:
             return value.item()
@@ -78,17 +78,13 @@ def _materialize_output_value(
             "dict so it can be saved as JSON."
         )
 
-    logger.warning(
-        "Unsupported output type '%s' for field '%s'. "
-        "Supported: str, int, float, bool, np.ndarray, torch.Tensor.",
-        type(value).__name__,
-        field_key,
-    )
-    raise TypeError(
-        f"Unsupported output type '{type(value).__name__}' for field "
-        f"'{field_key}'. Supported: str, int, float, bool, "
-        "np.ndarray, torch.Tensor."
-    )
+    artifact_dir = output_dir / field_key
+    artifact_dir.mkdir(parents=True, exist_ok=True)
+    return write_artifact(
+        value,
+        artifact_dir / str(idx_value),
+        field_config=artifact_config,
+    ).as_posix()
 
 
 class InferenceRunner(BaseRunner):

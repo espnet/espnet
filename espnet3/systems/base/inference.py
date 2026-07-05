@@ -195,7 +195,7 @@ def infer(config: DictConfig):
             )
         if result is not True:
             raise RuntimeError(
-                "Inference runner did not report successful shard output writing. "
+                "Inference runner did not produce shard outputs. "
                 "Use a runner that writes outputs via BaseRunner hooks."
             )
         logger.info(
