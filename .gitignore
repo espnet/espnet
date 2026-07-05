@@ -128,6 +128,3 @@ tools/condarc
 tools/lightning_constraints.txt
 tools/versa
 tools/ParallelWaveGAN
-
-# Local agent working notes, never push to shared repo/PRs
-CLAUDE.md

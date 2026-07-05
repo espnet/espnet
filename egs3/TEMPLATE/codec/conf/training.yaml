@@ -276,7 +276,7 @@ dataloader:
 #                    TRAINER SETTING                     #
 ##########################################################
 # These settings map to `lightning.Trainer(...)`, except `gan`, which
-# configures `espnet3.systems.codec.gan_lightning_module.GANLightningModule`
+# configures `espnet3.systems.codec.models.gan_lightning_module.GANLightningModule`
 # (used automatically whenever the model is an `AbsGANESPnetModel`).
 trainer:
   accelerator: auto

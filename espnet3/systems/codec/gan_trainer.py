@@ -1,6 +1,6 @@
 """Shared GAN trainer helpers for ESPnet3.
 
-Pairs with ``espnet3.systems.codec.gan_lightning_module.GANLightningModule``.
+Pairs with ``espnet3.systems.codec.models.gan_lightning_module.GANLightningModule``.
 Kept task-agnostic so both GAN-TTS and GAN-based neural codec systems can
 reuse it without duplication.
 """
@@ -12,7 +12,7 @@ import copy
 from omegaconf import DictConfig
 
 from espnet3.components.trainers.trainer import ESPnet3LightningTrainer
-from espnet3.systems.codec.gan_lightning_module import GANLightningModule
+from espnet3.systems.codec.models.gan_lightning_module import GANLightningModule
 
 
 class GANLightningTrainer(ESPnet3LightningTrainer):
