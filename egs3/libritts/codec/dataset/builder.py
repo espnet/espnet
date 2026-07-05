@@ -52,7 +52,7 @@ def _scan_subset_entries(subset_dir: Path) -> list[tuple[str, Path, str, str]]:
     return entries
 
 
-class LibriCodecBuilder(DatasetBuilder):
+class LibriTTSBuilder(DatasetBuilder):
     """Prepare LibriTTS manifests and token list for ESPnet3 TTS."""
 
     def is_source_prepared(
