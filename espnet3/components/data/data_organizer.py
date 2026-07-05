@@ -189,8 +189,10 @@ class DataOrganizer:
             # Use _partial_=True to obtain the target class without calling
             # __init__, so a missing 'train' argument does not raise here.
             partial_preprocessor = instantiate(preprocessor_cfg, _partial_=True)
-            is_espnet_preprocessor = issubclass(
-                partial_preprocessor.func, AbsPreprocessor
+            is_espnet_preprocessor = (
+                hasattr(partial_preprocessor, "func")
+                and isinstance(partial_preprocessor.func, type)
+                and issubclass(partial_preprocessor.func, AbsPreprocessor)
             )
             if is_espnet_preprocessor:
                 if "train" in preprocessor_cfg:
