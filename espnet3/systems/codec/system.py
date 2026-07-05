@@ -20,10 +20,10 @@ from omegaconf import DictConfig, OmegaConf
 
 from espnet2.train.abs_gan_espnet_model import AbsGANESPnetModel
 from espnet3.components.modeling.lightning_module import ESPnetLightningModule
-from espnet3.components.trainers.gan_trainer import build_gan_trainer
 from espnet3.components.trainers.trainer import ESPnet3LightningTrainer
 from espnet3.parallel.parallel import set_parallel
 from espnet3.systems.base.system import BaseSystem
+from espnet3.systems.codec.gan_trainer import build_gan_trainer
 from espnet3.utils.task_utils import get_espnet_model, save_espnet_config
 
 logger = logging.getLogger(__name__)
@@ -91,7 +91,7 @@ class CodecSystem(BaseSystem):
         """Run the training stage using the configured trainer.
 
         For GAN codec models a ``GANLightningTrainer`` is used automatically
-        (see ``espnet3.components.trainers.gan_trainer.build_gan_trainer``);
+        (see ``espnet3.systems.codec.gan_trainer.build_gan_trainer``);
         otherwise ``ESPnet3LightningTrainer`` is used.
         """
         self._reject_stage_args("train", args, kwargs)

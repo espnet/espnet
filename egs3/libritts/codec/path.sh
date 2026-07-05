@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export PYTHONPATH=../../../:$(pwd):${PYTHONPATH:-}
+export PYTHONPATH=../../../:../../TEMPLATE/codec:$(pwd):${PYTHONPATH:-}
 
 source ../../../tools/activate_python.sh
 source ../../../tools/extra_path.sh
