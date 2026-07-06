@@ -68,6 +68,7 @@ class DatasetConfig:
     transform: Optional[Dict[str, Any]] = None
     split: Optional[str] = None
 
+
 def _log_dataset(
     log: logging.Logger,
     label: str,
@@ -467,9 +468,7 @@ class DataOrganizer:
                     "split, False for valid/test). The config value will "
                     "be ignored."
                 )
-            preprocessor_cfg = OmegaConf.merge(
-                preprocessor_cfg, {"train": train_flag}
-            )
+            preprocessor_cfg = OmegaConf.merge(preprocessor_cfg, {"train": train_flag})
         return instantiate(preprocessor_cfg), is_espnet
 
     def _build_dataset_list(

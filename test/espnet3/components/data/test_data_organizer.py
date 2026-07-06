@@ -657,8 +657,9 @@ def test_data_organizer_split_preprocessor_uses_shared_fallback(caplog):
             preprocessor=preprocessor_cfg,
         )
     assert organizer.train[0]["text"] == "[train] hello"
-    assert organizer.valid[0]["text"] == "[shared] hello"
-    assert organizer.test["test_dummy"][0]["text"] == "[shared] hello"
+    assert organizer.valid[0]["text"] == "[train] hello"
+    assert organizer.test["test_dummy"][0]["text"] == "[train] hello"
+    assert any("missing 'valid'" in r.message for r in caplog.records)
     assert any("missing 'test'" in r.message for r in caplog.records)
 
 

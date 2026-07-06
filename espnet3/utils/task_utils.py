@@ -69,10 +69,9 @@ def save_espnet_config(
     default_config = ez_task.get_default_config()
     sys.argv = original_argv
 
-    resolved_config = (
-        OmegaConf.to_container(config, resolve=True)
-        if OmegaConf.is_config(config)
-        else config
+    resolved_config = OmegaConf.to_container(
+        OmegaConf.create(config) if not OmegaConf.is_config(config) else config,
+        resolve=True,
     )
 
     # set model config at the root level

@@ -3,6 +3,7 @@ from argparse import Namespace
 from pathlib import Path
 
 import pytest
+from omegaconf import OmegaConf
 
 from espnet3.utils.config_utils import load_config_with_defaults
 
@@ -138,10 +139,11 @@ def test_save_espnet_config_keeps_split_preprocessor_configs(tmp_path):
     save_espnet_config("espnet2.tasks.asr.ASRTask", config, output_file)
 
     content = output_file.read_text(encoding="utf-8")
-    assert "preprocessor:" in content
-    assert "train:" in content
+    assert "dataset:" in content
+    assert "  preprocessor:" in content
+    assert "    train:" in content
     assert "text_name: train_text" in content
-    assert "valid:" in content
+    assert "    valid:" in content
     assert "text_name: valid_text" in content
 
 
@@ -178,7 +180,7 @@ def test_save_espnet_config_handles_split_preprocessor_list_values(tmp_path):
     save_espnet_config("espnet2.tasks.asr.ASRTask", config, output_file)
 
     content = output_file.read_text(encoding="utf-8")
-    assert "preprocessor:" in content
+    assert "  preprocessor:" in content
     assert "speed_perturb_factors:" in content
     assert "- 0.95" in content
     assert "- 1.05" in content
@@ -203,5 +205,6 @@ def test_save_espnet_config_flattens_shared_abs_preprocessor(tmp_path):
     save_espnet_config("espnet2.tasks.asr.ASRTask", config, output_file)
 
     content = output_file.read_text(encoding="utf-8")
-    assert "preprocessor:" not in content
+    assert "dataset: {}" in content
+    assert "  preprocessor:" not in content
     assert "text_name: train_text" in content
