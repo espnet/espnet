@@ -1,4 +1,4 @@
-"LibriTTS dataset builder for ESPnet3 TTS recipe."""
+"LibriTTS dataset builder for ESPnet3 TTS recipe." ""
 
 from __future__ import annotations
 
@@ -45,7 +45,15 @@ def _scan_subset_entries(subset_dir: Path) -> list[tuple[str, Path, str, str]]:
         text = text_path.read_text(encoding="utf-8").strip()
         if not text:
             continue
-        utt_id = text_path.stem.replace(".normalized", "")
+        # Replace "_" with "-" in utt_ids because of the ChunkIterFactory
+        # strategy indexing: its UnsortedBatchSampler samples utt_id strings
+        # from the manifest and indexes CombinedDataset with them, and
+        # CombinedDataset uses int(idx) to decide whether a string key is a
+        # positional index. Python's int() accepts underscore-grouped digits
+        # (PEP 515), so LibriTTS's native "1272_128104_000001_000000" parses
+        # as a huge int and raises "Index out of range in CombinedDataset".
+        # Hyphenated IDs always fail int() and take the utt_id lookup path.
+        utt_id = text_path.stem.replace(".normalized", "").replace("_", "-")
         speaker = text_path.parent.parent.name
         spk_key = speaker
         entries.append((utt_id, wav_path.resolve(), text, spk_key))
