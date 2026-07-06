@@ -9,7 +9,7 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
-_INCLUDE = {"conf", "src", "dataset", "run.py", "readme.md", "path.sh"}
+_INCLUDE = {"conf", "src", "dataset", "run.py", "readme.md"}
 
 _DESCRIPTION = """\
 Copy an egs3 recipe to a new directory so you can customise it without
