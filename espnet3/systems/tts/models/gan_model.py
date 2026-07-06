@@ -15,7 +15,8 @@ from espnet3.components.modeling.optimization_spec import OptimizationStep
 
 
 def _patch_gan_tts_collect_feats() -> None:
-    """
+    """Patch GAN-TTS ``collect_feats`` to also return speech/text shapes.
+
     espnet3's collect_stats only compute shape for keys returned by
     ``collect_feats``. By default GAN-TTS only returns ``feats``, so
     ``speech_shape`` / ``text_shape`` are missing. These shapes are
@@ -50,6 +51,7 @@ class GANTTSLightningModule(ESPnetLightningModule):
     }
 
     def __init__(self, model, config):
+        """Initialize the module and disable Lightning's automatic optimization."""
         super().__init__(model, config)
         self.automatic_optimization = False
 
