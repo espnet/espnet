@@ -25,7 +25,6 @@ import os
 import re
 import sys
 
-
 # Characters that are kept verbatim: any unicode letter/number plus whitespace.
 # ``re.sub`` with ``[^\w\s]`` and the UNICODE flag removes punctuation while
 # preserving Spanish accented letters (á é í ó ú ü ñ ...).
@@ -107,7 +106,9 @@ def prepare_answers(data_dir, splits):
 def prepare_recordings(data_dir, splits):
     """Recordings_Spanish: keys are bare utt numbers; scan speaker dirs recursively."""
     transcript = os.path.join(data_dir, "data", "transcripts", "heroico-recordings.txt")
-    audio_root = os.path.join(data_dir, "data", "speech", "heroico", "Recordings_Spanish")
+    audio_root = os.path.join(
+        data_dir, "data", "speech", "heroico", "Recordings_Spanish"
+    )
     text_by_utt = {}
     for key, text in read_transcript(transcript):
         try:
@@ -189,9 +190,11 @@ def write_split(out_dir, entries):
     utt2spk_f = os.path.join(out_dir, "utt2spk")
     spk2utt_f = os.path.join(out_dir, "spk2utt")
 
-    with open(wav_scp, "w", encoding="utf-8") as fw, \
-            open(text_f, "w", encoding="utf-8") as ft, \
-            open(utt2spk_f, "w", encoding="utf-8") as fu:
+    with (
+        open(wav_scp, "w", encoding="utf-8") as fw,
+        open(text_f, "w", encoding="utf-8") as ft,
+        open(utt2spk_f, "w", encoding="utf-8") as fu,
+    ):
         for utt_id, spk_id, wav_path, text in entries:
             fw.write("{} {}\n".format(utt_id, sox_pipe(wav_path)))
             ft.write("{} {}\n".format(utt_id, text))
