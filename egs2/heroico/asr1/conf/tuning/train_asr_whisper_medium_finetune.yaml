@@ -28,7 +28,7 @@ decoder_conf:
 
 preprocessor: default
 preprocessor_conf:
-    whisper_language: "zh"
+    whisper_language: "es"
     whisper_task: "transcribe"
 
 model_conf:
