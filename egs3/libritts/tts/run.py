@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
-from egs3.TEMPLATE.tts.run import build_parser
 from src.system import TTSSystem
 
+from egs3.TEMPLATE.tts.run import build_parser
 from espnet3.utils.config_utils import load_and_merge_config
 from espnet3.utils.logging_utils import configure_logging
 from espnet3.utils.run_utils import (
