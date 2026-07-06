@@ -473,6 +473,48 @@ def test_multiple_iterator_is_rejected(flag):
 
 
 @pytest.mark.parametrize("rank", [0, 1])
+def test_iter_factory_shards_single_utterance_batches_for_ddp(monkeypatch, rank):
+    # ChunkIterFactory's UnsortedBatchSampler emits mandatory single-utterance
+    # batches (batch_size=1). Sharding these across world_size=2 must not
+    # raise, since whole batches are strided across ranks (batches[rank::
+    # world_size]) rather than split element-wise.
+    import espnet3.components.data.dataloader as dl
+
+    def _fake_build_batch_sampler(**kwargs):
+        return [[0], [1], [2], [3]]
+
+    monkeypatch.setattr(dl, "build_batch_sampler", _fake_build_batch_sampler)
+    monkeypatch.setattr(dl.torch.distributed, "get_world_size", lambda: 2)
+    monkeypatch.setattr(dl.torch.distributed, "get_rank", lambda: rank)
+
+    config = OmegaConf.create(
+        {
+            "dataloader": {
+                "train": {
+                    "iter_factory": {
+                        "_target_": (
+                            "test.espnet3.components.data."
+                            "test_dataloader_builder.DummyIterFactory"
+                        ),
+                        "batches": {"dummy": 1},
+                    }
+                }
+            }
+        }
+    )
+
+    organizer = build_organizer(DUMMY_DATASET_TARGET)
+    builder = DataLoaderBuilder(
+        dataset=organizer.train, config=config, collate_fn=None, num_device=2, epoch=0
+    )
+    iterator = builder.build("train")
+
+    assert len(iterator) == 2
+    expected = [[0], [2]] if rank == 0 else [[1], [3]]
+    assert list(iterator) == expected
+
+
+@pytest.mark.parametrize("rank", [0, 1])
 def test_iter_factory_drops_tail_batches_for_ddp(monkeypatch, rank):
     import espnet3.components.data.dataloader as dl
 

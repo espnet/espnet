@@ -294,6 +294,12 @@ trainer:
       save_dir: ${exp_dir}/tensorboard
       name: tb_logger
 
+  # For multi-GPU training (num_device > 1), set this to
+  # ddp_find_unused_parameters_true: GAN steps alternate generator/
+  # discriminator optimization (and skip_discriminator_prob skips the
+  # discriminator entirely on some steps), so each backward leaves one
+  # module's parameters without gradients, which default DDP treats as an
+  # error.
   strategy: auto
 
 ##########################################################

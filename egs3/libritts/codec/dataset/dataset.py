@@ -42,7 +42,7 @@ _SPLIT_MANIFEST_PATHS: dict[str, str] = {
 
 @dataclass(frozen=True)
 class ManifestEntry:
-    """One manifest row: utterance id and wav path."""
+    """One manifest row: utterance id, wav path, transcript, and speaker id."""
 
     utt_id: str
     wav_path: Path
@@ -55,6 +55,7 @@ class ManifestEntry:
 
 
 def _read_manifest(path: Path) -> list[ManifestEntry]:
+    """Read ``utt_id<TAB>wav_path<TAB>text<TAB>sid`` lines as manifest entries."""
     entries: list[ManifestEntry] = []
     with path.open("r", encoding="utf-8") as f:
         for line in f:
