@@ -38,7 +38,7 @@ model_conf:
 
 # minibatch related
 batch_type: numel
-batch_bins: 25000000
+batch_bins: 2000000
 
 # optimization related
 accum_grad: 1
@@ -59,7 +59,12 @@ optim_conf:
    weight_decay: 0.000001
 scheduler: warmuplr
 scheduler_conf:
-   warmup_steps: 35000
+   # HEROICO train has ~10.4k utterances -> ~26 batches/epoch with the
+   # batch_bins below, so 60 epochs is only ~1.5k total optimizer steps.
+   # The common 35000-step warmup (tuned for much larger ASR corpora)
+   # never finishes in that budget, so the LR stays stuck near zero for
+   # the whole run. Scale warmup to this dataset instead.
+   warmup_steps: 2000
 
 num_workers: 4      # num of workers of data loader
 use_amp: true      # automatic mixed precision
