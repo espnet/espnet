@@ -86,6 +86,28 @@ class GANLightningModule(ESPnetLightningModule):
     def _clear_model_cache(self) -> None:
         if hasattr(self.model, "clear_cache"):
             self.model.clear_cache()
+            return
+        # espnet2 GAN models (gan_codec, gan_tts) keep generator outputs in
+        # `_cache` on the module that defines `cache_generator_outputs`,
+        # expecting the discriminator turn to consume and reset it. When
+        # that turn is skipped, the stale cache must be dropped here.
+        # Example of the failure otherwise (cache_generator_outputs: true +
+        # skip_discriminator_prob > 0): batch N's generator turn stores its
+        # outputs in `_cache` and calls backward(), freeing their autograd
+        # graph; the discriminator turn is skipped, so `_cache` is never
+        # reset; batch N+1's generator turn sees a non-None `_cache`,
+        # reuses those outputs instead of running a fresh forward, and its
+        # backward() fails with "Trying to backward through the graph a
+        # second time". espnet2's own GANTrainer clears the cache the same
+        # way on skip, but hardcodes `model.codec._cache = None`; this
+        # version finds the caching module generically so it also works for
+        # GAN-TTS (`model.tts`).
+        for module in self.model.modules():
+            if (
+                getattr(module, "cache_generator_outputs", False)
+                and getattr(module, "_cache", None) is not None
+            ):
+                module._cache = None
 
     def _should_skip_discriminator(self, mode: str) -> bool:
         if mode != "train":

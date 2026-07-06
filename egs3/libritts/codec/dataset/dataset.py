@@ -16,7 +16,7 @@ import numpy as np
 import soundfile as sf
 from torch.utils.data import Dataset as TorchDataset
 
-from egs3.libritts.codec.dataset.builder import LibriTTSCodecBuilder
+from egs3.libritts.codec.dataset.builder import LibriTTSBuilder
 from espnet3.utils.config_utils import load_config_with_defaults
 
 # ---------------------------------------------------------------------------
@@ -46,7 +46,8 @@ class ManifestEntry:
 
     utt_id: str
     wav_path: Path
-
+    text: str
+    sid: int
 
 # ---------------------------------------------------------------------------
 # Internal helpers
@@ -54,19 +55,24 @@ class ManifestEntry:
 
 
 def _read_manifest(path: Path) -> list[ManifestEntry]:
-    """Read ``utt_id<TAB>wav_path`` lines as manifest entries."""
     entries: list[ManifestEntry] = []
     with path.open("r", encoding="utf-8") as f:
         for line in f:
             line = line.strip()
             if not line:
                 continue
-            utt_id, wav_path = line.split("\t", maxsplit=1)
-            entries.append(ManifestEntry(utt_id=utt_id, wav_path=Path(wav_path)))
+            utt_id, wav_path, text, sid = line.split("\t", maxsplit=3)
+            entries.append(
+                ManifestEntry(
+                    utt_id=utt_id,
+                    wav_path=Path(wav_path),
+                    text=text,
+                    sid=int(sid),
+                )
+            )
     if not entries:
         raise RuntimeError(f"Manifest is empty: {path}")
     return entries
-
 
 # ---------------------------------------------------------------------------
 # Public dataset class
@@ -92,7 +98,7 @@ class LibriTTSCodecDataset(TorchDataset):
         )
         self.data_dir = recipe_root / _BUILDER_CFG["data_path"]
 
-        builder = LibriTTSCodecBuilder()
+        builder = LibriTTSBuilder()
         if not builder.is_built(recipe_dir=recipe_root):
             raise RuntimeError(
                 "Dataset is not built yet. Run create_dataset stage first."

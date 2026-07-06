@@ -249,7 +249,6 @@ dataloader:
       num_workers: 4
       collate_fn: ${dataloader.collate_fn}
       batches:
-        _target_: espnet2.samplers.build_batch_sampler.build_batch_sampler
         type: unsorted
         batch_size: 1        # required by ChunkIterFactory's per-sample sampler
         batch_bins: 0        # required by signature, unused for "unsorted"
@@ -265,7 +264,6 @@ dataloader:
       num_workers: 4
       collate_fn: ${dataloader.collate_fn}
       batches:
-        _target_: espnet2.samplers.build_batch_sampler.build_batch_sampler
         type: unsorted
         batch_size: 1
         batch_bins: 0

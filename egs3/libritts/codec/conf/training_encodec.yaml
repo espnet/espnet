@@ -210,6 +210,12 @@ dataloader:
   train:
     iter_factory:
       _target_: espnet2.iterators.chunk_iter_factory.ChunkIterFactory
+      # Chunks per emitted batch, PER GPU (espnet3 shards whole sampler
+      # batches across ranks, so every rank keeps this full batch size).
+      # Note this differs from espnet2's chunk path, which divides the
+      # configured batch_size by world_size (abs_task.py
+      # build_chunk_iter_factory) - so on 4 GPUs the effective batch here
+      # is 16 chunks vs the egs2 encodec recipe's 4.
       batch_size: 4
       chunk_length: 61440
       num_cache_chunks: 64
@@ -225,7 +231,6 @@ dataloader:
       num_workers: 4
       collate_fn: ${dataloader.collate_fn}
       batches:
-        _target_: espnet2.samplers.build_batch_sampler.build_batch_sampler
         type: unsorted
         batch_size: 1        # required by ChunkIterFactory's per-sample sampler
         batch_bins: 0        # required by signature, unused for "unsorted"
@@ -234,14 +239,13 @@ dataloader:
   valid:
     iter_factory:
       _target_: espnet2.iterators.chunk_iter_factory.ChunkIterFactory
-      batch_size: 4
+      batch_size: 4        # per GPU; see the train iter_factory comment
       chunk_length: 61440
       num_cache_chunks: 64
       shuffle: false
       num_workers: 4
       collate_fn: ${dataloader.collate_fn}
       batches:
-        _target_: espnet2.samplers.build_batch_sampler.build_batch_sampler
         type: unsorted
         batch_size: 1
         batch_bins: 0
@@ -258,6 +262,12 @@ trainer:
   max_epochs: 60
   check_val_every_n_epoch: 1
   log_every_n_steps: 500
+  # For multi-GPU training (num_device > 1), set this to
+  # ddp_find_unused_parameters_true: GAN steps alternate generator/
+  # discriminator optimization (and skip_discriminator_prob skips the
+  # discriminator entirely on some steps), so each backward leaves one
+  # module's parameters without gradients, which default DDP treats as an
+  # error.
   strategy: auto
   gan:
     generator_first: true
