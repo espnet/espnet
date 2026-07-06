@@ -49,6 +49,7 @@ class ManifestEntry:
     text: str
     sid: int
 
+
 # ---------------------------------------------------------------------------
 # Internal helpers
 # ---------------------------------------------------------------------------
@@ -74,6 +75,7 @@ def _read_manifest(path: Path) -> list[ManifestEntry]:
     if not entries:
         raise RuntimeError(f"Manifest is empty: {path}")
     return entries
+
 
 # ---------------------------------------------------------------------------
 # Public dataset class
