@@ -80,15 +80,11 @@ batch_bins: 1000000
 valid_batch_bins: null
 category_sample_size: 10
 train_shape_file:
-- exp/s2t_stats_raw_bpe50000/train/speech_shape
-- exp/s2t_stats_raw_bpe50000/train/text_prev_shape.bpe
-- exp/s2t_stats_raw_bpe50000/train/text_ctc_shape.bpe
-- exp/s2t_stats_raw_bpe50000/train/text_shape.bpe
+- exp/s2t_stats/train/speech_shape
+- exp/s2t_stats/train/text_shape
 valid_shape_file:
-- exp/s2t_stats_raw_bpe50000/valid/speech_shape
-- exp/s2t_stats_raw_bpe50000/valid/text_prev_shape.bpe
-- exp/s2t_stats_raw_bpe50000/valid/text_ctc_shape.bpe
-- exp/s2t_stats_raw_bpe50000/valid/text_shape.bpe
+- exp/s2t_stats/valid/speech_shape
+- exp/s2t_stats/valid/text_shape
 batch_type: unsorted
 valid_batch_type: null
 fold_length:
@@ -108,29 +104,17 @@ chunk_default_fs: null
 chunk_max_abs_length: null
 chunk_discard_short_samples: true
 train_data_path_and_name_and_type:
--   - dump/raw/train_3.2_and_yodas0.10/wav.scp
+-   - data/nahuatl_train/wav16k.scp
     - speech
-    - kaldi_ark
--   - dump/raw/train_3.2_and_yodas0.10/text.prev
-    - text_prev
-    - text
--   - dump/raw/train_3.2_and_yodas0.10/text.ctc
-    - text_ctc
-    - text
--   - dump/raw/train_3.2_and_yodas0.10/text
+    - sound
+-   - data/nahuatl_train/text
     - text
     - text
 valid_data_path_and_name_and_type:
--   - dump/raw/dev_10percent/wav.scp
+-   - data/nahuatl_valid/wav16k.scp
     - speech
-    - kaldi_ark
--   - dump/raw/dev_10percent/text.prev
-    - text_prev
-    - text
--   - dump/raw/dev_10percent/text.ctc
-    - text_ctc
-    - text
--   - dump/raw/dev_10percent/text
+    - sound
+-   - data/nahuatl_valid/text
     - text
     - text
 multi_task_dataset: false
@@ -50218,6 +50202,7 @@ model_conf:
     lsm_weight: 0.1
     length_normalized_loss: false
     sym_na: <na>
+    extract_feats_in_collect_stats: false
 preencoder: null
 preencoder_conf: {}
 encoder: e_branchformer
@@ -50287,8 +50272,8 @@ preprocessor_conf:
     notime_symbol: <notimestamps>
     first_time_symbol: <0.00>
     last_time_symbol: <30.00>
-version: '202412'
-distributed: true
+# version: '202412'  # removed - not a valid s2t_train argument
+# distributed: true  # removed - use multiprocessing_distributed instead
 
 # ── Fine-tuning overrides for Nahuatl ──────────────────────────────────────
 # Load patched checkpoint (with 3 new token rows already initialized)
@@ -50316,4 +50301,4 @@ scheduler_conf:
     warmup_steps: 500
 
 # Raw waveform input — no spectrogram extraction
-feats_extractor: null
+# feats_extractor: null  # removed - not a valid s2t_train argument

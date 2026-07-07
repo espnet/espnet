@@ -13,9 +13,16 @@ import torch
 
 
 def _extend_embedding(weight: torch.Tensor, n_new: int) -> torch.Tensor:
+    """Extend a 2D [vocab, hidden] weight matrix by n_new rows (mean initialised)."""
     mean_row = weight.mean(dim=0, keepdim=True)
     new_rows = mean_row.expand(n_new, -1)
     return torch.cat([weight, new_rows], dim=0)
+
+
+def _extend_bias(bias: torch.Tensor, n_new: int) -> torch.Tensor:
+    """Extend a 1D [vocab] bias vector by n_new scalars (mean initialised)."""
+    mean_val = bias.mean().expand(n_new)
+    return torch.cat([bias, mean_val], dim=0)
 
 
 def main() -> None:
@@ -36,10 +43,17 @@ def main() -> None:
         if any(
             k.endswith(suffix)
             for suffix in (
+                # Generic transformer patterns
                 'embed_tokens.weight',
                 'embed.weight',
                 'lm_head.weight',
                 'decoder.embed_tokens.weight',
+                # OWSM v4 / ESPnet S2T patterns
+                'decoder.embed.0.weight',
+                'output_layer.weight',
+                'output_layer.bias',
+                'ctc_lo.weight',
+                'ctc_lo.bias',
             )
         )
     ]
@@ -51,7 +65,10 @@ def main() -> None:
 
     for k in embedding_keys:
         original_shape = sd[k].shape
-        sd[k] = _extend_embedding(sd[k], args.n_new)
+        if sd[k].dim() == 1:
+            sd[k] = _extend_bias(sd[k], args.n_new)
+        else:
+            sd[k] = _extend_embedding(sd[k], args.n_new)
         print(f"  {k}: {original_shape} -> {sd[k].shape}")
 
     torch.save(state, args.out_ckpt)
