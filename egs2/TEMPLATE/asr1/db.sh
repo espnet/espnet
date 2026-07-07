@@ -194,6 +194,7 @@ MALAYALAM=downloads
 ST_CMDS=downloads
 MS_INDIC_IS18=
 MARATHI=downloads
+KANNADA=downloads
 TAMIL=downloads
 MLS=downloads
 MULTIMED_ST=downloads
