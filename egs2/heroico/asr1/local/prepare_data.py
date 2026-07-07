@@ -6,11 +6,14 @@ The corpus ships three Spanish subsets:
 * ``Answers_Spanish``    - transcript keys look like ``speaker/utt`` (e.g. ``100/10``);
                            audio lives at ``Answers_Spanish/{spk}/{utt}.wav``.
 * ``Recordings_Spanish`` - transcript keys are bare utterance numbers (e.g. ``1``);
-                           audio lives at ``Recordings_Spanish/{spk}/{utt}.wav`` and may be
+                           audio lives at ``Recordings_Spanish/{spk}/{utt}.wav``
+                           and may be
                            split across nested sub-directories, so we scan recursively.
-* ``usma``               - transcript keys look like ``s1``; every speaker folder reads the
-                           same prompts, audio lives at ``usma/{speaker_folder}/{s1}.wav`` and
-                           the speaker id is the last ``-`` separated segment of the folder name.
+* ``usma``               - transcript keys look like ``s1``;
+                           every speaker folder reads the same prompts,
+                           audio lives at ``usma/{speaker_folder}/{s1}.wav`` and
+                           the speaker id is the last ``-`` separated segment
+                           of the folder name.
 
 Audio is 22050 Hz mono; ``wav.scp`` pipes through ``sox`` to resample to 16000 Hz.
 
