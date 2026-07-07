@@ -41,8 +41,7 @@ use_wordlm=false
 
 # Speed perturbation is disabled by default. asr.sh applies it in stage 2 and
 # then renames the train set to "${train_set}_sp"; leaving it empty keeps the
-# train set name as "train" so the recipe can also be started directly from
-# stage 3 (see setup_and_train.sh). To enable it, set the factors below AND run
+# train set name as "train". To enable it, set the factors below AND run
 # from stage 1 so stage 2 actually builds data/train_sp.
 speed_perturb_factors=
 
