@@ -25,6 +25,7 @@
 # - `name` becomes `${inference_dir}/<name>/`
 # - `data_src` is omitted, so ESPnet3 loads
 #   `${recipe_dir}/dataset/__init__.py`
+<<<<<<< HEAD
 # - `data_src_args` is passed directly to `LibriSpeech100Dataset(...)`
 #
 # Dataset splits:
@@ -33,6 +34,14 @@
 #     - split="dev-other" from `LibriSpeech100Dataset`
 #     - split="test-clean" from `LibriSpeech100Dataset`
 #     - split="test-other" from `LibriSpeech100Dataset`
+=======
+# - `data_src_args` is passed directly to `MiniAn4Dataset(...)`
+#
+# Dataset splits:
+#   test:
+#     - split="valid" from `MiniAn4Dataset`
+#     - split="test" from `MiniAn4Dataset`
+>>>>>>> ee641f5eb0 (start lbs100h baseline)
 # Notes:
 #   - actual data sources are defined via `${recipe_dir}`
 dataset:
@@ -56,10 +65,15 @@ dataset:
 model:
   _target_: espnet2.bin.asr_inference.Speech2Text
   asr_train_config: ${exp_dir}/config.yaml
+<<<<<<< HEAD
   # Weight average over the top-10 `valid/acc` checkpoints, written by
   # `AverageCheckpointsCallback` (espnet3/components/callbacks/default_callbacks.py).
   asr_model_file: ${exp_dir}/valid.acc.ave_10best.pth
   beam_size: 20
+=======
+  asr_model_file: ${exp_dir}/last.ckpt
+  beam_size: 1
+>>>>>>> ee641f5eb0 (start lbs100h baseline)
   ctc_weight: 0.3
 
 input_key: speech

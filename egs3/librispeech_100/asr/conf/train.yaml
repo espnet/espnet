@@ -5,19 +5,6 @@
 #   python run.py --stages create_dataset --training_config conf/training.yaml
 #   python run.py --stages train          --training_config conf/training.yaml
 #
-# Reference training environment:
-# - Number of GPUs: 2
-# - GPU type: NVIDIA A40 (44 GB)
-# - Training time: approximately 9 h 40 min for 200 epochs
-#
-# Note:
-# This base configuration inherits `num_device: 1` from the TEMPLATE config;
-# it is configured for single-GPU training with gradient accumulation of 4.
-# The reference run used 2 GPUs with gradient accumulation of 2. To reduce
-# gradient accumulation while keeping the effective batch size comparable,
-# increase `batch_bins` by the same factor when GPU memory permits. For example,
-# halve `accumulate_grad_batches` and double `batch_bins`.
-
 
 ##########################################################
 #                  SYSTEM AND PATH SETTING               #
@@ -31,15 +18,36 @@ task: espnet3.systems.asr.task.ASRTask
 ##########################################################
 # This recipe uses `${recipe_dir}/dataset/__init__.py` in the same way as
 # `mini_an4`, so `data_src` is omitted and only `data_src_args` is forwarded.
+#create_dataset:
+#  recipe_dir: ${recipe_dir}
+
+
 dataset:
+  _target_: espnet3.components.data.data_organizer.DataOrganizer
   train:
-    - data_src_args:
+    - name: train-clean-100
+      data_src: librispeech_100/asr
+      data_src_args:
         split: train-clean-100
   valid:
-    - data_src_args:
+    - name: dev-clean
+      data_src: librispeech_100/asr
+      data_src_args:
         split: dev-clean
-    - data_src_args:
+    - name: dev-other
+      data_src: librispeech_100/asr
+      data_src_args:
         split: dev-other
+  test:
+    - name: test-clean
+      data_src: librispeech_100/asr
+      data_src_args:
+        split: test-clean
+    - name: test-other
+      data_src: librispeech_100/asr
+      data_src_args:
+        split: test-other
+
   preprocessor:
     _target_: espnet2.train.preprocessor.CommonPreprocessor
     train: true
@@ -48,13 +56,12 @@ dataset:
     bpemodel: ${tokenizer.save_path}/bpe.model
     text_cleaner:
     fs: 16000
-    data_aug_prob: 0.667
     data_aug_effects:
-      - - [0.5, "speed_perturb", {"factor": 0.9}]
-        - [0.5, "speed_perturb", {"factor": 1.1}]
+      - - 0.6
+        - - [0.5, "speed_perturb", {"factor": 0.9}]
+          - [0.5, "speed_perturb", {"factor": 1.1}]
 
-create_dataset:
-  recipe_dir: ${recipe_dir}
+
 
 ##########################################################
 #                   TOKENIZER SETTING                    #
@@ -153,30 +160,40 @@ scheduler:
 #                OTHER TRAINING SETTING                  #
 ##########################################################
 best_model_criterion:
-  - - valid/acc
-    - 10
-    - max
+  - - valid/loss
+    - 3
+    - min
 
 ##########################################################
 #                   DATALOADER SETTING                   #
 ##########################################################
-parallel:
-  env: local
-  n_workers: 1
+#dataloader:
+#  train:
+#    iter_factory:
+#      num_workers: 4
+#      batches:
+#        type: sorted
+#        shape_files:
+#          - ${stats_dir}/train/feats_shape
+#        batch_size: 16
+#        batch_bins: 12000000
 
 dataloader:
   train:
     iter_factory:
-      num_workers: 4
+      num_workers: 8
       batches:
         type: numel
         shape_files:
           - ${stats_dir}/train/feats_shape
-        batch_size: 16
-        # For reproducibility, 3.8M corresponds to egs2's 16M setting
-        # (about 475 s of audio per minibatch). With gradient accumulation of
-        # 4, this yields about 1,900 s of audio per optimizer update.
-        batch_bins: 3800000
+        batch_bins: 1500000
+  valid:
+    iter_factory:
+      num_workers: 8
+      batches:
+        type: numel
+        shape_files:
+          - ${stats_dir}/valid/feats_shape
 
 ##########################################################
 #                    TRAINER SETTING                     #
@@ -184,7 +201,7 @@ dataloader:
 trainer:
   accumulate_grad_batches: 4
   check_val_every_n_epoch: 1
-  gradient_clip_val: 5.0
+  gradient_clip_val: 1.0
   log_every_n_steps: 100
   max_epochs: 200
   precision: bf16-mixed
@@ -193,3 +210,7 @@ trainer:
     - _target_: lightning.pytorch.loggers.TensorBoardLogger
       save_dir: ${exp_dir}/tensorboard
       name: tb_logger
+
+  strategy: auto
+
+fit: {}
