@@ -365,18 +365,13 @@ class CollectStatsRunner(BaseRunner):
             stats, shape_info = result
             feats = None
 
-        sum_acc = state.setdefault("sum", {})
-        sq_acc = state.setdefault("sq", {})
-        count_acc = state.setdefault("count", {})
+        sum_acc = state.setdefault("sum", defaultdict(float))
+        sq_acc = state.setdefault("sq", defaultdict(float))
+        count_acc = state.setdefault("count", defaultdict(int))
         for feat_key, agg in stats.items():
-            if feat_key in sum_acc:
-                sum_acc[feat_key] += agg["sum"]
-                sq_acc[feat_key] += agg["sq"]
-                count_acc[feat_key] += agg["count"]
-            else:
-                sum_acc[feat_key] = agg["sum"]
-                sq_acc[feat_key] = agg["sq"]
-                count_acc[feat_key] = agg["count"]
+            sum_acc[feat_key] += agg["sum"]
+            sq_acc[feat_key] += agg["sq"]
+            count_acc[feat_key] += agg["count"]
 
         for feat_key, uid2shape in shape_info.items():
             handle = writers["shape_handles"].get(feat_key)
@@ -439,8 +434,8 @@ class CollectStatsRunner(BaseRunner):
         shape_keys: set = set()
         feat_keys_written: set = set()
         stats_keys: set = set()
-        sum_dict: Dict[str, Any] = defaultdict(int)
-        sq_dict: Dict[str, Any] = defaultdict(int)
+        sum_dict: Dict[str, Any] = defaultdict(float)
+        sq_dict: Dict[str, Any] = defaultdict(float)
         count_dict: Dict[str, int] = defaultdict(int)
         for shard_dir in shard_dirs:
             shape_keys.update(_read_lines_if_exists(shard_dir / "shape_keys.txt"))
