@@ -163,6 +163,11 @@ class BaseRunner(ABC):
         return root
 
     @classmethod
+    def _get_manifest_path(cls, output_dir: Path, shard_subdir: str = "") -> Path:
+        """Return the manifest path for the shard plan."""
+        return cls._get_shards_root(output_dir, shard_subdir) / "manifest.json"
+
+    @classmethod
     def _resolve_shard_dir(
         cls,
         output_dir: str,
@@ -249,9 +254,7 @@ class BaseRunner(ABC):
 
     def _write_manifest(self, shards: Sequence[Dict[str, Any]]) -> Path:
         """Write shard plan to manifest.json before dispatch in __call__."""
-        manifest_path = (
-            self._get_shards_root(self.output_dir, self.shard_subdir) / "manifest.json"
-        )
+        manifest_path = self._get_manifest_path(self.output_dir, self.shard_subdir)
         manifest_path.parent.mkdir(parents=True, exist_ok=True)
         data = {
             "version": 1,
@@ -262,6 +265,20 @@ class BaseRunner(ABC):
         with manifest_path.open("w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
         return manifest_path
+
+    def _load_manifest(self) -> Optional[Dict[str, Any]]:
+        """Load the existing shard manifest when resume is enabled."""
+        manifest_path = self._get_manifest_path(self.output_dir, self.shard_subdir)
+        if not manifest_path.exists():
+            return None
+        with manifest_path.open("r", encoding="utf-8") as f:
+            manifest = json.load(f)
+        if not isinstance(manifest, dict):
+            raise RuntimeError(f"Invalid shard manifest format: {manifest_path}")
+        shards = manifest.get("shards")
+        if not isinstance(shards, list):
+            raise RuntimeError(f"Shard manifest is missing 'shards': {manifest_path}")
+        return manifest
 
     def _plan_shards(self, items: Sequence[Any]) -> List[Dict[str, Any]]:
         """Divide items into per-shard specs per the active parallel config."""
@@ -285,6 +302,36 @@ class BaseRunner(ABC):
             {"shard_id": shard_id, "items": chunk}
             for shard_id, chunk in enumerate(chunks)
         ]
+
+    def _resolve_shards(self, items: Sequence[Any]) -> List[Dict[str, Any]]:
+        """Resolve the shard plan for a fresh run or a resumed run."""
+        planned_shards = self._plan_shards(items)
+        if not self.resume:
+            self._write_manifest(planned_shards)
+            return planned_shards
+
+        manifest = self._load_manifest()
+        if manifest is None:
+            self._write_manifest(planned_shards)
+            return planned_shards
+
+        manifest_shards = manifest["shards"]
+        if len(manifest_shards) != len(planned_shards):
+            raise RuntimeError(
+                "Cannot resume with a different number of parallel shards. "
+                f"Existing run has {len(manifest_shards)} shard(s), "
+                f"but this run planned {len(planned_shards)}. "
+                "Re-run with the original parallel setting or remove the "
+                "existing shard outputs before starting over."
+            )
+        if manifest_shards != planned_shards:
+            raise RuntimeError(
+                "Cannot resume because the shard plan changed. "
+                "The existing manifest does not match the current indices or "
+                "batching configuration. Re-run with the original settings or "
+                "remove the existing shard outputs before starting over."
+            )
+        return manifest_shards
 
     def _filter_pending_shards(
         self, shards: Sequence[Dict[str, Any]]
@@ -423,8 +470,7 @@ class BaseRunner(ABC):
                 list(indices[i : i + self.batch_size])
                 for i in range(0, len(indices), self.batch_size)
             ]
-        shards = self._plan_shards(indices)
-        self._write_manifest(shards)
+        shards = self._resolve_shards(indices)
         pending = self._filter_pending_shards(shards)
 
         par_config = get_parallel_config()

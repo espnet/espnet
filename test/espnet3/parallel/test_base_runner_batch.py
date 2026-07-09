@@ -187,6 +187,116 @@ def test_resume_reruns_only_incomplete_shards(tmp_path):
     assert ResumeRunner.calls["forward"] == 4
 
 
+def test_resume_reuses_manifest_shard_plan(tmp_path):
+    ResumeRunner.calls = {"forward": 0}
+
+    runner = ResumeRunner(
+        TrackingProvider(),
+        batch_size=None,
+        output_dir=tmp_path,
+        shard_subdir="resume_manifest",
+    )
+    runner._plan_shards = types.MethodType(
+        lambda self, _items: [
+            {"shard_id": 0, "items": [[0, 1]]},
+            {"shard_id": 1, "items": [[2, 3]]},
+        ],
+        runner,
+    )
+    first = runner([0, 1, 2, 3])
+    assert first == {"records": [[0, 1], [2, 3]]}
+    assert ResumeRunner.calls["forward"] == 2
+
+    (tmp_path / "resume_manifest" / "split.1" / "done").unlink()
+    second_runner = ResumeRunner(
+        TrackingProvider(),
+        batch_size=None,
+        output_dir=tmp_path,
+        shard_subdir="resume_manifest",
+    )
+    second_runner._plan_shards = types.MethodType(
+        lambda self, _items: [
+            {"shard_id": 0, "items": [[0, 1]]},
+            {"shard_id": 1, "items": [[2, 3]]},
+        ],
+        second_runner,
+    )
+    second = second_runner([0, 1, 2, 3])
+
+    assert second == {"records": [[0, 1], [2, 3]]}
+    assert ResumeRunner.calls["forward"] == 3
+
+
+def test_resume_raises_when_shard_count_changes(tmp_path):
+    runner = ResumeRunner(
+        TrackingProvider(),
+        batch_size=None,
+        output_dir=tmp_path,
+        shard_subdir="resume_mismatch",
+    )
+    runner._plan_shards = types.MethodType(
+        lambda self, _items: [
+            {"shard_id": 0, "items": [[0, 1]]},
+            {"shard_id": 1, "items": [[2, 3]]},
+        ],
+        runner,
+    )
+    runner([0, 1, 2, 3])
+
+    resumed = ResumeRunner(
+        TrackingProvider(),
+        batch_size=None,
+        output_dir=tmp_path,
+        shard_subdir="resume_mismatch",
+    )
+    resumed._plan_shards = types.MethodType(
+        lambda self, _items: [
+            {"shard_id": 0, "items": [[0]]},
+            {"shard_id": 1, "items": [[1]]},
+            {"shard_id": 2, "items": [[2]]},
+            {"shard_id": 3, "items": [[3]]},
+        ],
+        resumed,
+    )
+
+    with pytest.raises(RuntimeError, match="different number of parallel shards"):
+        resumed([0, 1, 2, 3])
+
+
+def test_resume_raises_when_shard_plan_changes(tmp_path):
+    runner = ResumeRunner(
+        TrackingProvider(),
+        batch_size=None,
+        output_dir=tmp_path,
+        shard_subdir="resume_plan_change",
+    )
+    runner._plan_shards = types.MethodType(
+        lambda self, _items: [
+            {"shard_id": 0, "items": [[0, 1]]},
+            {"shard_id": 1, "items": [[2, 3]]},
+        ],
+        runner,
+    )
+    runner([0, 1, 2, 3])
+
+    resumed = ResumeRunner(
+        TrackingProvider(),
+        batch_size=None,
+        output_dir=tmp_path,
+        shard_subdir="resume_plan_change",
+    )
+    resumed._plan_shards = types.MethodType(
+        lambda self, _items: [
+            {"shard_id": 0, "items": [[0]]},
+            {"shard_id": 1, "items": [[1, 2, 3]]},
+        ],
+        resumed,
+    )
+
+    with pytest.raises(RuntimeError, match="shard plan changed"):
+        resumed([0, 1, 2, 3])
+
+
 def test_resume_false_forces_rerun(tmp_path):
     ResumeRunner.calls = {"forward": 0}
 
