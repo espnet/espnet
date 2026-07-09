@@ -7,6 +7,46 @@ The corpus consists of three subsets of Latin American Spanish speech:
 - **Heroico Recordings**: read speech of prompted sentences, recorded at the Military Academy of Heroico in Mexico
 - **USMA**: read speech of prompted sentences, recorded at the United States Military Academy (West Point)
 
+## Data split
+
+The split is speaker-disjoint (train: heroico speakers 1-82, dev: 83-92,
+test: 93-102 plus all USMA speakers) and, for the read-speech subsets, also
+text-disjoint:
+
+- The Recordings prompt pool (`heroico-recordings.txt`, 724 sentences) mixes
+  519 sentences from military-history lecture notes with 205 short "language
+  learning" sentences (prompt ids 355-560). Each speaker reads only a slice of
+  the pool, but the 82 train speakers jointly cover all of it, so a purely
+  speaker-based split would leave every dev/test Recordings transcript also
+  present verbatim in train.
+- USMA speakers all recite the same 205 language-learning prompts
+  (`usma-prompts.txt`), i.e. the id 355-560 pool.
+- Therefore prompt ids 355-560 are held out for dev/test Recordings and are
+  excluded from train Recordings, mirroring the Kaldi `egs/heroico` recipe
+  (which routes the same id range to its devtest set). This keeps dev/test
+  Recordings and USMA transcripts unseen in training.
+- Answers is spontaneous speech and is split by speaker only. Roughly 28% of
+  its dev/test utterances coincidentally match a short train phrase (e.g.
+  "no estoy bien"); that residual overlap is inherent to natural language,
+  unlike the structural overlap above.
+
+## Known corpus label noise (Recordings)
+
+Two bands of Recordings prompts (ids ~477-503 and ~528-555) are dialogue-style
+lines such as "gracias" or "a qué hora sale el avión". Some speakers answered
+these prompts conversationally instead of reading them (e.g. audio "no estoy
+segura pero me parece que las cinco cuarenta de la tarde" against reference
+"a qué hora sale el avión"), while `heroico-recordings.txt` always stores the
+prompt text, so audio and reference do not match for those utterances. This is
+a corpus-level issue: any split inherits it, and which utterances are affected
+depends on speaker behavior (in this recipe's test set, speakers 097-100
+answered ~55 of the 184 Recordings utterances). Measured with the released
+model, that band scores 82.7% WER versus 3.0% WER on the clean remainder
+(17.3% combined). These utterances are kept and scored, consistent with the
+Kaldi recipe; treat the Recordings WER with this caveat in mind. Since prompt
+ids 355-560 are excluded from training, this mislabeling does not contaminate
+the training transcripts.
+
 ## How to run
 
 ```sh

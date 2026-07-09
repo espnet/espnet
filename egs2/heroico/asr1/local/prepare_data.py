@@ -21,6 +21,16 @@ Train/dev/test are split by the (heroico) speaker number:
     train: speakers   1-82
     dev:   speakers  83-92
     test:  speakers 93-102 plus all of USMA
+
+For the Recordings subset the split is additionally text-disjoint: prompt ids
+355-560 (the 205 "language learning" sentences, the same pool recited by every
+USMA speaker) are kept only in dev/test, and all other prompt ids (sentences
+from military-history lecture notes) are kept only in train.  Each speaker
+reads just a slice of the shared 724-sentence pool, but the 82 train speakers
+jointly cover all of it, so without this hold-out every dev/test Recordings
+and USMA transcript would also appear verbatim in train.  The id range
+mirrors the Kaldi egs/heroico recipe, which routes the same range to its
+devtest set.
 """
 
 import argparse
@@ -33,6 +43,11 @@ import sys
 # preserving Spanish accented letters (á é í ó ú ü ñ ...).
 _PUNCT_RE = re.compile(r"[^\w\s]", re.UNICODE)
 _WS_RE = re.compile(r"\s+", re.UNICODE)
+
+# Recordings prompt ids reserved for evaluation (see module docstring): the
+# 205 language-learning sentences, which are also the USMA prompt pool.
+_REC_EVAL_ID_LO = 355
+_REC_EVAL_ID_HI = 560
 
 
 def normalize_text(text):
@@ -141,6 +156,12 @@ def prepare_recordings(data_dir, splits):
                 try:
                     utt_num = int(stem)
                 except ValueError:
+                    continue
+                in_eval_range = _REC_EVAL_ID_LO <= utt_num <= _REC_EVAL_ID_HI
+                if split == "train":
+                    if in_eval_range:
+                        continue
+                elif not in_eval_range:
                     continue
                 text = text_by_utt.get(utt_num)
                 if text is None:
