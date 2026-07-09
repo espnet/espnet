@@ -310,19 +310,41 @@ def run(args) -> None:
 
 
 def _copy_recipe(src: Path, dest: Path) -> None:
+    """Copy a recipe tree into ``dest``.
+
+    Directory contents are copied with ``shutil.copytree()``. Nested symlinks
+    must therefore be filtered through the copytree ignore callback rather
+    than only at this top level.
+    """
     dest.mkdir(parents=True)
     for item in _INCLUDE:
         source = src / item
         if not source.exists():
             continue
+        if source.is_symlink():
+            continue
         if source.is_dir():
             shutil.copytree(
                 source,
                 dest / item,
-                ignore=shutil.ignore_patterns("__pycache__", "*.pyc"),
+                ignore=_ignore_copytree_entries,
             )
         else:
             shutil.copy2(source, dest / item)
+
+
+def _ignore_copytree_entries(dirpath: str, names: list[str]) -> set[str]:
+    """Skip nested symlinks when cloning a directory tree.
+
+    ``_copy_recipe()`` only sees top-level entries such as ``conf/``. Files
+    like ``conf/training.yaml`` are encountered later inside
+    ``shutil.copytree()``, so symlinks under cloned directories must be
+    ignored here.
+    """
+    base = Path(dirpath)
+    ignored = set(shutil.ignore_patterns("__pycache__", "*.pyc")(dirpath, names))
+    ignored.update(name for name in names if (base / name).is_symlink())
+    return ignored
 
 
 def _inject_corpus_system(dest: Path, recipe: str) -> None:
