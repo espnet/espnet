@@ -90,25 +90,23 @@ Such that `references[i]`, `lids[i]`, and `hyps[i]` should all correspond to the
 |---|---|---|---|---|---|---|
 decode_asr_asr_model_valid.loss.ave|24.0|74.0|71.0|25.5|32.7|54.0|
 
-### Additional CTC downstream models (Frozen MMS 1B + CTC)
+### Refined LID-label data results
 
-The following models keep the number of trainable parameters below 100M.
+The following results were obtained after regenerating the public ML-SUPERB 2.0
+data with refined LID labels aligned with the expected challenge labels.  The
+experiments use frozen MMS 1B features and CTC training.  Decoding uses
+`valid.loss.ave_2best`.
 
-### Environments
-- date: `Mon May 25 14:53:01 JST 2026`
-- python version: `3.10.14 (tags/v3.10.14-25-ge98930d7387-dirty:e98930d7387, May 24 2024, 23:30:09) [GCC 13.2.0]`
-- espnet2 version: `espnet2 202604`
-- pytorch version: `pytorch 2.9.1+cu126`
-- Git hash: `df3a5b47239e75551a817f8c3d1f0a027a6dbcc4`
-  - Commit date: `Mon May 25 14:45:12 2026 +0900`
+Training settings:
 
-### Pretrained models
-- Transformer: https://huggingface.co/shun3232/ml-superb2-mms-ctc-transformer-24
-- Conformer: https://huggingface.co/shun3232/ml-superb2-mms-ctc-conformer-12
-- E-Branchformer: https://huggingface.co/shun3232/ml-superb2-mms-ctc-e-branchformer-12
+- `batch_size: 8`
+- `accum_grad: 4`
+- `num_iters_per_epoch: 20000`
+- `max_epoch: 20`
 
-|config|Trainable params|decode_dir|Standard CER|Standard LID|Worst 15 CER|CER StD|Dialect CER|Dialect LID|
-|---|---:|---|---:|---:|---:|---:|---:|---:|
-|`train_mms_ctc_transformer_lr1e-4.yaml`|91.12M|decode_asr_asr_model_valid.loss.ave|22.3|77.8|69.0|25.6|35.5|53.5|
-|`train_mms_ctc_conformer_12_macaron_lr1e-4.yaml`|91.25M|decode_asr_asr_model_valid.loss.ave|24.0|70.6|74.8|27.1|38.9|58.5|
-|`train_mms_ctc_e_branchformer_12_nomacaron_lr1e-4.yaml`|92.15M|decode_asr_asr_model_valid.loss.ave|22.2|77.3|72.1|26.3|34.8|63.4|
+|model|config|decode_dir|Standard CER|Standard LID|Worst 15 CER|CER StD|Dialect CER|Dialect LID|
+|---|---|---|---:|---:|---:|---:|---:|---:|
+|Baseline 2-layer Transformer|`train_mms_baseline_b8a4_i20k.yaml`|decode_asr_asr_model_valid.loss.ave_2best|22.6|76.3|55.7|14.6|33.9|59.3|
+|Transformer 24-layer|`train_mms_ctc_transformer_lr1e-4_b8a4_i20k.yaml`|decode_asr_asr_model_valid.loss.ave_2best|19.5|81.3|52.3|14.4|36.2|63.1|
+|Conformer 12-layer macaron|`train_mms_ctc_conformer_12_macaron_lr1e-4_b8a4_i20k.yaml`|decode_asr_asr_model_valid.loss.ave_2best|21.3|72.5|57.9|16.0|39.6|62.0|
+|E-Branchformer 12-layer no-macaron|`train_mms_ctc_e_branchformer_12_nomacaron_lr1e-4_b8a4_i20k.yaml`|decode_asr_asr_model_valid.loss.ave_2best|18.6|81.8|51.1|14.4|33.5|72.3|
