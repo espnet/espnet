@@ -1,7 +1,6 @@
 builder:
-<<<<<<< HEAD
-  dataset_path: download
-  source_env_var: LIBRISPEECH
+  dataset_path: /scratch/elec/t405-puhe/c/librispeech
+  manifest_path: #insert if available /m/teamwork/t40511_asr/p/raissit1/lhotse_manifests
   required_splits:
     - train-clean-100
     - dev-clean
