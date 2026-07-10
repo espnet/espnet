@@ -500,7 +500,8 @@ class CommonPreprocessor(AbsPreprocessor):
                     f"{self.text_length_warning_thres}, "
                     "which may cause OOM on the GPU. "
                     "Please ensure that the data processing is correct and verify it. "
-                    "Adjust the threshold with preprocessor_conf.text_length_warning_thres, or "
+                    "Adjust the threshold with "
+                    "preprocessor_conf.text_length_warning_thres, or "
                     "silence this message alone with "
                     "logging.getLogger('espnet2.train.preprocessor')."
                 )
