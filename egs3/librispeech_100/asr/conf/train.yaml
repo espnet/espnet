@@ -181,19 +181,13 @@ best_model_criterion:
 dataloader:
   train:
     iter_factory:
-      num_workers: 8
+      num_workers: 4
       batches:
         type: numel
         shape_files:
           - ${stats_dir}/train/feats_shape
         batch_bins: 1500000
-  valid:
-    iter_factory:
-      num_workers: 8
-      batches:
-        type: numel
-        shape_files:
-          - ${stats_dir}/valid/feats_shape
+
 
 ##########################################################
 #                    TRAINER SETTING                     #
