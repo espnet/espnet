@@ -10,12 +10,11 @@ import urllib.request
 from importlib import resources
 from pathlib import Path
 
-logger = logging.getLogger(__name__)
-
 from espnet3.components.data.dataset_builder import DatasetBuilder
 from espnet3.utils.config_utils import load_config_with_defaults
 
 TRANSCRIPT_RE = re.compile(r"^(?P<words>.+?)\s+\((?P<src>[^)]+)\)\s*$")
+logger = logging.getLogger(__name__)
 
 
 def _load_builder_config() -> dict:
