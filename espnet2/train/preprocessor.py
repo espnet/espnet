@@ -22,6 +22,8 @@ from espnet2.text.token_id_converter import TokenIDConverter
 from espnet2.text.whisper_token_id_converter import OpenAIWhisperTokenIDConverter
 from espnet2.text.whisper_tokenizer import OpenAIWhisperTokenizer
 
+logger = logging.getLogger(__name__)
+
 
 class AbsPreprocessor(ABC):
     def __init__(self, train: bool):
@@ -172,6 +174,9 @@ class CommonPreprocessor(AbsPreprocessor):
         # only use for whisper
         whisper_language: Optional[str] = None,
         whisper_task: Optional[str] = None,
+        # warn at most once per instance when the tokenized text is longer than
+        # this; set to 0 or a negative value to disable the check
+        text_length_warning_thres: int = 500,
     ):
         super().__init__(train)
         self.train = train
@@ -185,6 +190,8 @@ class CommonPreprocessor(AbsPreprocessor):
         self.aux_task_names = aux_task_names
         self.use_lang_prompt = use_lang_prompt
         self.use_nlp_prompt = use_nlp_prompt
+        self.text_length_warning_thres = text_length_warning_thres
+        self._text_length_warned = False
 
         if token_type is not None:
             if token_list is None:
@@ -482,11 +489,20 @@ class CommonPreprocessor(AbsPreprocessor):
             text = self.text_cleaner(text)
             tokens = self.tokenizer.text2tokens(text)
             text_ints = self.token_id_converter.tokens2ids(tokens)
-            if len(text_ints) > 500:
-                logging.warning(
-                    "The length of the text output exceeds 500, "
-                    "which may cause OOM on the GPU."
-                    "Please ensure that the data processing is correct and verify it."
+            if (
+                self.text_length_warning_thres > 0
+                and len(text_ints) > self.text_length_warning_thres
+                and not self._text_length_warned
+            ):
+                self._text_length_warned = True
+                logger.warning(
+                    "The length of the text output exceeds "
+                    f"{self.text_length_warning_thres}, "
+                    "which may cause OOM on the GPU. "
+                    "Please ensure that the data processing is correct and verify it. "
+                    "Adjust the threshold with preprocessor_conf.text_length_warning_thres, or "
+                    "silence this message alone with "
+                    "logging.getLogger('espnet2.train.preprocessor')."
                 )
             if "prompt" in data:
                 actual_token = (
