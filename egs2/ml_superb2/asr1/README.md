@@ -9,17 +9,33 @@ We recommend allocating at least 4 CPUs and at least 32GB of RAM. If GPU OOM occ
 
 ## Additional CTC-only Recipes
 
-We also provide three example downstream CTC recipes using frozen MMS 1B features while keeping the number of trainable parameters below 100M:
+We also provide example downstream CTC recipes using frozen MMS 1B features.
+The following configs use the refined LID-label data setting reported below:
 
-- `conf/tuning/train_mms_ctc_transformer_lr1e-4.yaml`: 24-layer Transformer encoder.
-- `conf/tuning/train_mms_ctc_conformer_12_macaron_lr1e-4.yaml`: 12-layer Conformer encoder with macaron-style feed-forward modules.
-- `conf/tuning/train_mms_ctc_e_branchformer_12_nomacaron_lr1e-4.yaml`: 12-layer E-Branchformer encoder with `macaron_ffn: false`.
+- `conf/tuning/train_mms_baseline_b8a4_i20k.yaml`: 2-layer Transformer baseline.
+- `conf/tuning/train_mms_ctc_transformer_lr1e-4_b8a4_i20k.yaml`: 24-layer Transformer encoder.
+- `conf/tuning/train_mms_ctc_conformer_12_macaron_lr1e-4_b8a4_i20k.yaml`: 12-layer Conformer encoder with macaron-style feed-forward modules.
+- `conf/tuning/train_mms_ctc_e_branchformer_12_nomacaron_lr1e-4_b8a4_i20k.yaml`: 12-layer E-Branchformer encoder with `macaron_ffn: false`.
+
+To prepare the refined LID-label data, run `local/data_refine.sh` instead of
+the default `local/data.sh`.  The refined preparation keeps the ASR text format
+`[lid] transcript`, but normalizes the leading LID token as follows:
+
+- `org_jpn -> jpn`
+- `lga -> lug`
+- `ory -> ori`
+- `azj -> aze`
+- `arb -> ara`
+- `nno`, `nob`, and `nor` are removed from the standard dev set.
+- `dev_dialect` `ms_speech_*` utterances labeled as `[hin]` are mapped to
+  `[tam]`, `[tel]`, or `[guj]` from the utterance ID.
 
 For example:
 ```
-./run.sh --asr_config conf/tuning/train_mms_ctc_transformer_lr1e-4.yaml
-./run.sh --asr_config conf/tuning/train_mms_ctc_conformer_12_macaron_lr1e-4.yaml
-./run.sh --asr_config conf/tuning/train_mms_ctc_e_branchformer_12_nomacaron_lr1e-4.yaml
+./run.sh --asr_config conf/tuning/train_mms_baseline_b8a4_i20k.yaml
+./run.sh --asr_config conf/tuning/train_mms_ctc_transformer_lr1e-4_b8a4_i20k.yaml
+./run.sh --asr_config conf/tuning/train_mms_ctc_conformer_12_macaron_lr1e-4_b8a4_i20k.yaml
+./run.sh --asr_config conf/tuning/train_mms_ctc_e_branchformer_12_nomacaron_lr1e-4_b8a4_i20k.yaml
 ```
 
 ## Scoring
@@ -92,10 +108,9 @@ decode_asr_asr_model_valid.loss.ave|24.0|74.0|71.0|25.5|32.7|54.0|
 
 ### Refined LID-label data results
 
-The following results were obtained after regenerating the public ML-SUPERB 2.0
-data with refined LID labels aligned with the expected challenge labels.  The
-experiments use frozen MMS 1B features and CTC training.  Decoding uses
-`valid.loss.ave_2best`.
+The following results were obtained after preparing the public ML-SUPERB 2.0
+data with `local/data_refine.sh`.  The experiments use frozen MMS 1B features
+and CTC training.  Decoding uses `valid.loss.ave_2best`.
 
 Training settings:
 
