@@ -79,5 +79,5 @@ specaug_conf:
     - 0.05
     num_time_mask: 10
 
-num_iters_per_epoch: 10000
+num_iters_per_epoch: 20000
 max_epoch: 20

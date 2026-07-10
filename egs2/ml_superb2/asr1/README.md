@@ -7,15 +7,14 @@ This is a recipe to reproduce the baseline model for the [Interspeech 2024 ML-SU
 The baseline uses frozen SSL features from [MMS 1B](https://www.jmlr.org/papers/v25/23-1318.html), which are input into a 2-layer Transformer trained using CTC loss. It takes roughly 2 days to train on a single H100 GPU.
 We recommend allocating at least 4 CPUs and at least 32GB of RAM. If GPU OOM occurs (such as when using a 40GB VRAM GPU), you can halve the batch size and double the gradiant accumulation.
 
-## Additional CTC-only Recipes
+## Refined LID-label Configs
 
-We also provide example downstream CTC recipes using frozen MMS 1B features.
 The following configs use the refined LID-label data setting reported below:
 
-- `conf/tuning/train_mms_baseline_b8a4_i20k.yaml`: 2-layer Transformer baseline.
-- `conf/tuning/train_mms_ctc_transformer_lr1e-4_b8a4_i20k.yaml`: 24-layer Transformer encoder.
-- `conf/tuning/train_mms_ctc_conformer_12_macaron_lr1e-4_b8a4_i20k.yaml`: 12-layer Conformer encoder with macaron-style feed-forward modules.
-- `conf/tuning/train_mms_ctc_e_branchformer_12_nomacaron_lr1e-4_b8a4_i20k.yaml`: 12-layer E-Branchformer encoder with `macaron_ffn: false`.
+- `conf/tuning/train_mms_baseline_refined.yaml`: 2-layer Transformer baseline.
+- `conf/tuning/train_mms_ctc_transformer_lr1e-4.yaml`: 24-layer Transformer encoder.
+- `conf/tuning/train_mms_ctc_conformer_12_macaron_lr1e-4.yaml`: 12-layer Conformer encoder with macaron-style feed-forward modules.
+- `conf/tuning/train_mms_ctc_e_branchformer_12_nomacaron_lr1e-4.yaml`: 12-layer E-Branchformer encoder with `macaron_ffn: false`.
 
 To prepare the refined LID-label data, run `local/data_refine.sh` instead of
 the default `local/data.sh`.  The refined preparation keeps the ASR text format
@@ -32,10 +31,10 @@ the default `local/data.sh`.  The refined preparation keeps the ASR text format
 
 For example:
 ```
-./run.sh --asr_config conf/tuning/train_mms_baseline_b8a4_i20k.yaml
-./run.sh --asr_config conf/tuning/train_mms_ctc_transformer_lr1e-4_b8a4_i20k.yaml
-./run.sh --asr_config conf/tuning/train_mms_ctc_conformer_12_macaron_lr1e-4_b8a4_i20k.yaml
-./run.sh --asr_config conf/tuning/train_mms_ctc_e_branchformer_12_nomacaron_lr1e-4_b8a4_i20k.yaml
+./run.sh --asr_config conf/tuning/train_mms_baseline_refined.yaml
+./run.sh --asr_config conf/tuning/train_mms_ctc_transformer_lr1e-4.yaml
+./run.sh --asr_config conf/tuning/train_mms_ctc_conformer_12_macaron_lr1e-4.yaml
+./run.sh --asr_config conf/tuning/train_mms_ctc_e_branchformer_12_nomacaron_lr1e-4.yaml
 ```
 
 ## Scoring
@@ -119,9 +118,9 @@ Training settings:
 - `num_iters_per_epoch: 20000`
 - `max_epoch: 20`
 
-|model|config|decode_dir|Standard CER|Standard LID|Worst 15 CER|CER StD|Dialect CER|Dialect LID|
-|---|---|---|---:|---:|---:|---:|---:|---:|
-|Baseline 2-layer Transformer|`train_mms_baseline_b8a4_i20k.yaml`|decode_asr_asr_model_valid.loss.ave_2best|22.6|76.3|55.7|14.6|33.9|59.3|
-|Transformer 24-layer|`train_mms_ctc_transformer_lr1e-4_b8a4_i20k.yaml`|decode_asr_asr_model_valid.loss.ave_2best|19.5|81.3|52.3|14.4|36.2|63.1|
-|Conformer 12-layer macaron|`train_mms_ctc_conformer_12_macaron_lr1e-4_b8a4_i20k.yaml`|decode_asr_asr_model_valid.loss.ave_2best|21.3|72.5|57.9|16.0|39.6|62.0|
-|E-Branchformer 12-layer no-macaron|`train_mms_ctc_e_branchformer_12_nomacaron_lr1e-4_b8a4_i20k.yaml`|decode_asr_asr_model_valid.loss.ave_2best|18.6|81.8|51.1|14.4|33.5|72.3|
+|model|decode_dir|Standard CER|Standard LID|Worst 15 CER|CER StD|Dialect CER|Dialect LID|
+|---|---|---:|---:|---:|---:|---:|---:|
+|Baseline 2-layer Transformer|decode_asr_asr_model_valid.loss.ave_2best|22.6|76.3|55.7|14.6|33.9|59.3|
+|Transformer 24-layer|decode_asr_asr_model_valid.loss.ave_2best|19.5|81.3|52.3|14.4|36.2|63.1|
+|Conformer 12-layer macaron|decode_asr_asr_model_valid.loss.ave_2best|21.3|72.5|57.9|16.0|39.6|62.0|
+|E-Branchformer 12-layer no-macaron|decode_asr_asr_model_valid.loss.ave_2best|18.6|81.8|51.1|14.4|33.5|72.3|
