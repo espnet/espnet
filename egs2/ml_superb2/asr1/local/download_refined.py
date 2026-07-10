@@ -20,6 +20,8 @@ LID_MAP = {
     "ory": "ori",
     "azj": "aze",
     "arb": "ara",
+    "tgl": "fil",
+    "swh": "swa",
 }
 PASS_LANGS = {"nno", "nob", "nor"}
 MS_SPEECH_LIDS = {"tam", "tel", "guj"}

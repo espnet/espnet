@@ -22,7 +22,10 @@ behavior, this refined script adds the following LID-label corrections:
 
 - `lga -> lug`
 - `ory -> ori`
+- `azj -> aze`
 - `arb -> ara`
+- `tgl -> fil`
+- `swh -> swa`
 - `nno`, `nob`, and `nor` are removed from the standard dev set.
 
 For example:
