@@ -51,7 +51,7 @@ doc/vuepress/src/.vuepress/.cache
 dist
 
 # recipe related
-egs*/*/*/data*
+egs*/*/*/data
 egs*/*/*/manifest*
 egs*/*/*/db
 egs*/*/*/downloads
