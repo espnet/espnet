@@ -17,17 +17,13 @@ The following configs use the refined LID-label data setting reported below:
 - `conf/tuning/train_mms_ctc_e_branchformer_12_nomacaron_lr1e-4.yaml`: 12-layer E-Branchformer encoder with `macaron_ffn: false`.
 
 To prepare the refined LID-label data, run `local/data_refine.sh` instead of
-the default `local/data.sh`.  The refined preparation keeps the ASR text format
-`[lid] transcript`, but normalizes the leading LID token as follows:
+the default `local/data.sh`.  In addition to the original data preparation
+behavior, this refined script adds the following LID-label corrections:
 
-- `org_jpn -> jpn`
 - `lga -> lug`
 - `ory -> ori`
-- `azj -> aze`
 - `arb -> ara`
 - `nno`, `nob`, and `nor` are removed from the standard dev set.
-- `dev_dialect` `ms_speech_*` utterances labeled as `[hin]` are mapped to
-  `[tam]`, `[tel]`, or `[guj]` from the utterance ID.
 
 For example:
 ```
@@ -118,7 +114,7 @@ Training settings:
 - `num_iters_per_epoch: 20000`
 - `max_epoch: 20`
 
-|model|decode_dir|Standard CER|Standard LID|Worst 15 CER|CER StD|Dialect CER|Dialect LID|
+|model_name|decode_dir|Standard CER|Standard LID|Worst 15 CER|CER StD|Dialect CER|Dialect LID|
 |---|---|---:|---:|---:|---:|---:|---:|
 |Baseline 2-layer Transformer|decode_asr_asr_model_valid.loss.ave_2best|22.6|76.3|55.7|14.6|33.9|59.3|
 |Transformer 24-layer|decode_asr_asr_model_valid.loss.ave_2best|19.5|81.3|52.3|14.4|36.2|63.1|
