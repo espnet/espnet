@@ -1,6 +1,6 @@
 builder:
   dataset_path: /scratch/elec/t405-puhe/c/librispeech
-  manifest_path: #insert if available /m/teamwork/t40511_asr/p/raissit1/lhotse_manifests
+  dataset_dir: /var/tmp/raissit1/cm/m/teamwork/t40511_asr/p/raissit1/lhotse_manifests/librispeech
   required_splits:
     - train-clean-100
     - dev-clean

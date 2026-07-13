@@ -54,7 +54,8 @@ class LibriSpeech100LhotseDataset(TorchDataset):
         self,
         split: str,
         recipe_dir: str | Path | None = None,
-        manifest_dir: str | Path | None = None,
+        source_dir: str | Path | None = None,
+        dataset_dir: str | Path | None = None,
         is_stage_collect_stats: bool = False,
     ) -> None:
         self.split = str(split)
@@ -64,11 +65,28 @@ class LibriSpeech100LhotseDataset(TorchDataset):
             known = ", ".join(sorted(_KNOWN_SPLITS))
             raise ValueError(f"Unknown split '{self.split}'. Expected one of: {known}")
 
-        lhotse_builder = LibriSpeech100LhotseBuilder()
-        lhotse_builder.build()
+        recipe_dir = (
+            Path(recipe_dir).resolve()
+            if recipe_dir is not None
+            else Path(__file__).resolve().parents[1]
+        )
 
-        self._cuts = lhotse_builder.load_cutsets(manifest_dir=manifest_dir, split=split)
-        self._cut_id_dict = {cut.id: cut for cut in self.cuts}
+        recipe_root = Path(recipe_dir).resolve()
+        self.librispeech_root = resolve_source_root(
+            recipe_root,
+            source_dir=source_dir,
+        )
+        split_dir = self.librispeech_root / self.split
+        if not split_dir.is_dir():
+            raise FileNotFoundError(f"Split directory not found: {split_dir}")
+
+        lhotse_builder = LibriSpeech100LhotseBuilder()
+        lhotse_builder.build(recipe_dir=recipe_dir, dataset_dir=dataset_dir)
+
+
+        self._cuts = lhotse_builder.load_cutsets(split=split, dataset_dir=dataset_dir)
+        self._cut_id_dict = {cut.id: cut for cut in self._cuts}
+
 
     def _get_cut(self, idx: [int, str]) -> MonoCut:
         if isinstance(idx, int):
@@ -81,17 +99,15 @@ class LibriSpeech100LhotseDataset(TorchDataset):
             raise ValueError("getitem accepts either an int index or an utterance id")
 
 
-
-
     def __len__(self) -> int:
         return len(self._cuts)
 
     def __getitem__(self, idx: [int, str]) -> dict[str, Any]:
 
-        cut = _get_cut(idx)
+        cut = self._get_cut(idx)
 
         sample = {
-            "speech": np.asarray(cut.load_audio(), dtype=np.float32),
+            "speech": np.asarray(cut.load_audio(), dtype=np.float32).squeeze(),
             "text": cut.supervisions[0].text,
         }
 

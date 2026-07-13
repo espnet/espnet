@@ -153,6 +153,7 @@ class LibriSpeech100Dataset(TorchDataset):
         example = self._get_example(idx)
         array, _sr = sf.read(str(example.audio_path))
 
+
         sample = {
             "speech": np.asarray(array, dtype=np.float32),
             "text": example.text,

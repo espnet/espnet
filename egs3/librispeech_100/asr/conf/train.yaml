@@ -18,8 +18,8 @@ task: espnet3.systems.asr.task.ASRTask
 ##########################################################
 # This recipe uses `${recipe_dir}/dataset/__init__.py` in the same way as
 # `mini_an4`, so `data_src` is omitted and only `data_src_args` is forwarded.
-#create_dataset:
-#  recipe_dir: ${recipe_dir}
+create_dataset:
+  recipe_dir: ${recipe_dir}
 
 
 dataset:
