@@ -13,7 +13,7 @@ train_set=tr_no_dev
 valid_set=dev
 test_sets="eval1"
 
-train_config=conf/train.yaml
+train_config=conf/tuning/train_vits.yaml
 inference_config=conf/decode.yaml
 tts_task=gan_tts
 inference_model=train.total_count.ave.pth
