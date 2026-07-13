@@ -44,6 +44,8 @@ class DeepSpeedTrainerOptions:
     deepspeed_config: Union[Path, str]
     best_model_criterion: Sequence[Sequence[str]]
     keep_nbest_models: Union[int, List[int]]
+    use_tensorboard: bool
+    use_wandb: bool
 
 
 class DeepSpeedTrainer(Trainer):
@@ -115,6 +117,18 @@ class DeepSpeedTrainer(Trainer):
         output_dir = Path(trainer_options.output_dir)
         reporter = Reporter()
 
+        train_summary_writer = None
+        valid_summary_writer = None
+        if dist.get_rank() == 0 and trainer_options.use_tensorboard:
+            from torch.utils.tensorboard import SummaryWriter
+
+            train_summary_writer = SummaryWriter(
+                str(output_dir / "tensorboard" / "train")
+            )
+            valid_summary_writer = SummaryWriter(
+                str(output_dir / "tensorboard" / "valid")
+            )
+
         # (4) resume
         if trainer_options.resume:
             cls.resume(
@@ -164,6 +178,11 @@ class DeepSpeedTrainer(Trainer):
             if dist.get_rank() == 0:
                 logging.info(reporter.log_message())
                 reporter.matplotlib_plot(output_dir / "images")
+                if train_summary_writer is not None:
+                    reporter.tensorboard_add_scalar(train_summary_writer, key1="train")
+                    reporter.tensorboard_add_scalar(valid_summary_writer, key1="valid")
+                if trainer_options.use_wandb:
+                    reporter.wandb_log()
 
         if dist.get_rank() == 0:
             average_nbest_models(
