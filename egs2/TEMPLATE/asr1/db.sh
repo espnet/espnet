@@ -200,6 +200,7 @@ MLS=downloads
 MULTIMED_ST=downloads
 VOXPOPULI=downloads
 HARPERVALLEY=downloads
+HEROICO=downloads
 TALROMUR=downloads
 TALROMUR2=downloads
 TAL_ZH_ADULT_TEACH=downloads
