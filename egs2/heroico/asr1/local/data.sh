@@ -67,10 +67,15 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     python3 local/prepare_data.py --data_dir "${corpus}" --output_dir data
     log "Utterance counts per split:"
     for split in train dev test; do
-        if [ -f "data/${split}/wav.scp" ]; then
-            n=$(wc -l < "data/${split}/wav.scp")
-            log "  ${split}: ${n} utterances"
-        fi
+        for f in wav.scp text utt2spk spk2utt; do
+            fpath="data/${split}/${f}"
+            if [ ! -s "${fpath}" ]; then
+                log "Error: ${fpath} is missing or empty after data preparation"
+                exit 1
+            fi
+        done
+        n=$(wc -l < "data/${split}/wav.scp")
+        log "  ${split}: ${n} utterances"
     done
 fi
 
