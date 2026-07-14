@@ -96,6 +96,10 @@ class LibriSpeech100LhotseBuilder(DatasetBuilder):
     If the path to the manifests are empty, it will first create the manifests.
     """
 
+    def __init__(self, file_format: str = "jsonl.gz"):
+
+        self.file_format = file_format
+
     def is_source_prepared(
             self,
             recipe_dir: str | Path,
@@ -169,8 +173,6 @@ class LibriSpeech100LhotseBuilder(DatasetBuilder):
         dataset_dir = Path(dataset_dir)
         dataset_dir.mkdir(parents=True, exist_ok=True)
 
-        file_format = self.file_format or file_format
-
         manifests = prepare_librispeech(
             corpus_dir= source_root,
             dataset_parts=_REQUIRED_SPLITS,
@@ -203,7 +205,7 @@ class LibriSpeech100LhotseBuilder(DatasetBuilder):
         else:
             dataset_dir = Path(dataset_dir).resolve()
 
-        #Note build function should have initialized the self.file_format
+
         recordings = RecordingSet.from_file(
             dataset_dir / f"{split}_{LhotseElement.RecordingSet.value}.{self.file_format}"
         )
@@ -249,9 +251,5 @@ class LibriSpeech100LhotseBuilder(DatasetBuilder):
         )
         self.prepare_source(recipe_dir=recipe_dir, source_dir=source_dir)
 
-        #this init is important, it is then used in load_cuts.
-        #This choice is done to keep teh file_format always consistent
-        # between manifest build and load_cuts
-        self.file_format = _kwargs.pop("file_format", "jsonl.gz")
         if not self._is_manifest_source_ready(dataset_dir):
-            self._write_manifests(recipe_dir=recipe_dir, dataset_dir=dataset_dir, source_dir=source_dir)
+            self._write_manifests(recipe_dir=recipe_dir, dataset_dir=dataset_dir, source_dir=source_dir, file_format=self.file_format)
