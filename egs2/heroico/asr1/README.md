@@ -30,6 +30,28 @@ text-disjoint:
   "no estoy bien"); that residual overlap is inherent to natural language,
   unlike the structural overlap above.
 
+### Interpreting the test WER
+
+Because of the hold-out above, the test set is dominated by conditions the
+model has never seen: 80% of test utterances are USMA (different recording
+site, mostly non-native speakers, reading the held-out sentences), and the
+Recordings portion is read speech over held-out text. Per-subset WER of the
+released model:
+
+| test subset | utts | WER |
+|---|---|---|
+| answers (spontaneous, novel speakers) | 711 | 18.9% |
+| recordings, clean (held-out text) | 129 | 54.3% |
+| recordings, mislabeled band (see below) | 55 | 98.4% |
+| usma native | 1647 | 57.0% |
+| usma non-native | 2028 | 71.3% |
+
+The aggregate test WER is therefore mostly an out-of-domain read-speech
+measure; the spontaneous in-domain measure is the answers row (and the dev
+set, which is answers-only). CER (test 20.6%, dev 8.1%) is the better
+indicator of acoustic quality for the read subsets, where errors are
+dominated by phonetically-close word substitutions on unseen sentences.
+
 ## Known corpus label noise (Recordings)
 
 Two bands of Recordings prompts (ids ~477-503 and ~528-555) are dialogue-style
@@ -41,11 +63,12 @@ prompt text, so audio and reference do not match for those utterances. This is
 a corpus-level issue: any split inherits it, and which utterances are affected
 depends on speaker behavior (in this recipe's test set, speakers 097-100
 answered ~55 of the 184 Recordings utterances). Measured with the released
-model, that band scores 82.7% WER versus 3.0% WER on the clean remainder
-(17.3% combined). These utterances are kept and scored, consistent with the
-Kaldi recipe; treat the Recordings WER with this caveat in mind. Since prompt
-ids 355-560 are excluded from training, this mislabeling does not contaminate
-the training transcripts.
+model, that band scores 98.4% WER versus 54.3% WER on the clean remainder,
+whose own errors are dominated by the held-out-text condition. These
+utterances are kept and scored, consistent with the Kaldi recipe; treat the
+Recordings WER with this caveat in mind. Since prompt ids 355-560 are
+excluded from training, this mislabeling does not contaminate the training
+transcripts.
 
 ## How to run
 
@@ -66,24 +89,24 @@ bash run.sh
 
 # RESULTS
 ## Environments
-- date: `Mon Jul  6 01:25:47 UTC 2026`
-- python version: `3.12.3 (main, Mar 23 2026, 19:04:32) [GCC 13.3.0]`
+- date: `Mon Jul 13 05:30:31 EDT 2026`
+- python version: `3.10.20 | packaged by conda-forge | (main, Jun 11 2026, 03:31:56) [GCC 14.3.0]`
 - espnet2 version: `espnet2 202604`
-- pytorch version: `pytorch 2.11.0+cu128`
-- Git hash: `ff67a6d20f235f69e0a31446e00eef646a293d1d`
-  - Commit date: `Wed Jun 24 23:09:10 2026 +0000`
+- pytorch version: `pytorch 2.9.1+cu128`
+- Git hash: `c4d0e10a4ab07dec3f3daaaabe3dd840fa23f38f`
+  - Commit date: `Sun Jul 12 14:22:26 2026 -0400`
 
 ## exp/asr_train_asr_conformer_raw_es_char
 ### WER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
-|decode_asr_transformer_asr_model_valid.acc.ave/dev|1510|11447|90.9|6.9|2.2|1.1|10.2|28.9|
-|decode_asr_transformer_asr_model_valid.acc.ave/test|4636|22206|86.2|12.3|1.5|2.0|15.8|37.6|
+|decode_asr_transformer_asr_model_valid.acc.ave/dev|919|5207|77.9|18.3|3.8|2.3|24.4|49.6|
+|decode_asr_transformer_asr_model_valid.acc.ave/test|4570|21651|50.5|44.4|5.1|6.8|56.3|85.6|
 
 ### CER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
-|decode_asr_transformer_asr_model_valid.acc.ave/dev|1510|64085|96.8|1.1|2.1|0.9|4.1|28.9|
-|decode_asr_transformer_asr_model_valid.acc.ave/test|4636|116655|95.4|2.6|1.9|1.4|6.0|37.6|
+|decode_asr_transformer_asr_model_valid.acc.ave/dev|919|26361|93.5|3.5|3.0|1.6|8.1|49.6|
+|decode_asr_transformer_asr_model_valid.acc.ave/test|4570|113280|84.0|10.5|5.5|4.6|20.6|85.6|

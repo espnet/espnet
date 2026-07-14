@@ -55,7 +55,10 @@ keep_nbest_models: 10
 
 optim: adam
 optim_conf:
-   lr: 0.001
+   # 1e-3 destabilizes CTC on the text-disjoint split (the encoder
+   # collapses to an input-independent constant and WER exceeds 100%);
+   # 5e-4 trains stably. See PR #6491 discussion.
+   lr: 0.0005
    weight_decay: 0.000001
 scheduler: warmuplr
 scheduler_conf:
@@ -67,7 +70,7 @@ scheduler_conf:
    warmup_steps: 2000
 
 num_workers: 4      # num of workers of data loader
-use_amp: true      # automatic mixed precision
+use_amp: false      # fp16 grad underflow silently breaks encoder learning here; fp32 is cheap at this scale
 unused_parameters: false    # set as true if some params are unused in DDP
 
 specaug: specaug
