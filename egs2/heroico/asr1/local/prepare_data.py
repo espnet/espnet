@@ -249,6 +249,11 @@ def main():
     miss_usma = prepare_usma(args.data_dir, splits)
 
     for split in ("train", "dev", "test"):
+        if len(splits[split]) == 0:
+            sys.exit(
+                "ERROR: split '{}' has zero utterances after filtering - "
+                "check corpus path and transcript parsing".format(split)
+            )
         out_dir = os.path.join(args.output_dir, split)
         write_split(out_dir, splits[split])
         print("{}: {} utterances".format(split, len(splits[split])))

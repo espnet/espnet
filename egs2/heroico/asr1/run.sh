@@ -26,7 +26,7 @@ test_sets="dev test"
 asr_config=conf/train_asr_conformer.yaml
 inference_config=conf/decode_asr_transformer.yaml
 
-lm_config=conf/train_lm_transformer.yaml
+lm_config=conf/train_lm_transformer.yaml  # kept for future LM experiments; use_lm=false below
 use_lm=false
 use_wordlm=false
 
