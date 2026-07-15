@@ -1,16 +1,21 @@
 ##########################################################
 #                   Inference SETTING                    #
 ##########################################################
-# TODO: not implemented yet. Codec evaluation (encode+decode roundtrip,
-# reconstruction metrics such as PESQ/STOI/mel-cepstral distortion) has no
-# existing ESPnet3 port to reuse yet, unlike ASR's Speech2Text. This file is
-# a placeholder so `run.py` can load without error; do not run
-# `--stages infer` against it yet.
+# Quick usage:
+#   python run.py --stages infer \
+#       --training_config conf/training_encodec.yaml \
+#       --inference_config conf/inference.yaml
 #
-# When implemented, this should port espnet2/bin/gan_codec_inference.py's
-# encode -> decode roundtrip into an ESPnet3 provider/runner (see
-# `egs3/mini_an4/asr/conf/inference.yaml` for the pattern: `model._target_`,
-# `input_key`, `output_fn`).
+# Merged over egs3/TEMPLATE/codec/conf/inference.yaml, which supplies
+# `recipe_dir`, `exp_dir`, `inference_dir`, `parallel`, `input_key: audio`,
+# and the provider/runner classes. `exp_tag`/`exp_dir` are copied in from
+# the training config by run.py, so only recipe-specific keys live here.
+#
+# Runs the encode -> decode roundtrip of
+# espnet2.bin.gan_codec_inference.AudioCoding on each test utterance and
+# writes `${inference_dir}/test/{wav,ref,utt_id}` SCP outputs:
+# - wav: resynthesized waveform (materialized as 24kHz WAV files)
+# - ref: path to the ground-truth wav (consumed by conf/metrics.yaml)
 
 dataset:
   test:
@@ -18,7 +23,22 @@ dataset:
       data_src_args:
         split: test
         inference: true
+  # No preprocessor: AudioCoding takes the raw mono waveform directly.
 
-model: {}
-input_key: audio
-output_fn: null
+model:
+  _target_: espnet2.bin.gan_codec_inference.AudioCoding
+  # Espnet2-style training config dumped by save_espnet_config during the
+  # train stage.
+  train_config: ${exp_dir}/config.yaml
+  # Averaged espnet2-style weights written by AverageCheckpointsCallback
+  # (5-best by valid/mel_loss, "model." prefix already stripped). Do NOT
+  # point this at last.ckpt: GANCodecTask.build_model_from_file loads with
+  # strict=False, so Lightning's "model."-prefixed keys would silently load
+  # nothing and inference would run on random weights.
+  model_file: ${exp_dir}/valid.mel_loss.ave_5best.pth
+
+output_fn: src.inference.build_output
+output_artifacts:
+  wav:
+    type: wav
+    sample_rate: 24000  # matches model.codec_conf.sampling_rate
