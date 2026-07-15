@@ -8,14 +8,10 @@
 # - `${inference_dir}/<test_name>/*.scp`
 # - each SCP stores `utt_id value` pairs for one inference field
 #
-# NOTE: codec reconstruction evaluation (encode -> decode roundtrip, then
-# PESQ/STOI/mel-cepstral distortion or similar) has no existing ESPnet3
-# provider/runner port yet, unlike ASR's Speech2Text. This template is a
-# placeholder scaffold so recipe `conf/inference.yaml` files load without
-# error; fill in `model`/`output_fn` once that port lands (see
-# `espnet2/bin/gan_codec_inference.py` for the encode/decode roundtrip to
-# port, and `egs3/mini_an4/asr/conf/inference.yaml` for the provider/runner
-# pattern to follow).
+# Recipe configs fill in `model` (typically
+# `espnet2.bin.gan_codec_inference.AudioCoding` for the encode -> decode
+# roundtrip) plus `output_fn`/`output_artifacts`; see
+# `egs3/libritts/codec/conf/inference.yaml` for a working example.
 
 ##########################################################
 #                    PATHS AND INPUTS                    #

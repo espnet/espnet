@@ -4,11 +4,10 @@
 # Quick usage:
 #   python run.py --stages measure --metrics_config conf/metrics.yaml
 #
-# NOTE: codec reconstruction metrics (e.g. PESQ/STOI/mel-cepstral
-# distortion) have no existing ESPnet3 metric class to port yet, unlike
-# ASR's WER/CER (`espnet3/systems/asr/metrics/`). This template defaults to
-# an empty metric list so recipe `conf/metrics.yaml` files load without
-# error; do not run `--stages measure` until metric classes exist.
+# Recipe configs fill in the `metrics` list; see
+# `egs3/libritts/codec/conf/metrics.yaml` for a working example (a
+# versa-based reconstruction metric covering PESQ/STOI/mel-cepstral
+# distortion and more).
 #
 # `metrics: []` is deliberate rather than a populated example: OmegaConf
 # merges lists by whole replacement, so a non-empty default here would leak

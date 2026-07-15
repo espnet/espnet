@@ -1,10 +1,65 @@
 ##########################################################
-#                 METRIC SCORING SETTING                  #
+#                 METRIC SCORING SETTING                 #
 ##########################################################
-# TODO: not implemented yet. See conf/inference.yaml for context — codec
-# reconstruction metrics (e.g. PESQ/STOI/mel-cepstral distortion) have no
-# existing ESPnet3 metric class to port yet (unlike ASR's WER/CER under
-# espnet3/systems/asr/metrics/). Placeholder only; do not run
-# `--stages measure` against it yet.
+# Quick usage:
+#   python run.py --stages measure \
+#       --training_config conf/training_encodec.yaml \
+#       --inference_config conf/inference.yaml \
+#       --metrics_config conf/metrics.yaml
+#
+# Scores the `infer` stage outputs (`${inference_dir}/test/{wav,ref}.scp`)
+# with versa (https://github.com/wavlab-speech/versa), which must be
+# installed in the evaluation environment. The score_config list is inlined
+# from egs2/libritts/codec1/conf/scoring/score_24k.yaml, the codec eval set
+# the espnet2 recipe uses for this same dataset/model.
 
-metrics: []
+dataset:
+  test:
+    - name: test
+
+metrics:
+  - metric:
+      _target_: src.metrics.versa.VersaMetric
+      score_config:
+        # mcd f0 related metrics
+        #  -- mcd: mel cepstral distortion
+        #  -- f0_corr: f0 correlation
+        #  -- f0_rmse: f0 root mean square error
+        - name: mcd_f0
+          f0min: 40
+          f0max: 8000
+          mcep_shift: 5
+          mcep_fftl: 1024
+          mcep_dim: 39
+          mcep_alpha: 0.466
+          seq_mismatch_tolerance: 0.1
+          power_threshold: -20
+          dtw: true
+        # signal related metrics: sir, sar, sdr, ci-sdr, si-snri
+        - name: signal_metric
+        # pesq: perceptual evaluation of speech quality
+        - name: pesq
+        # stoi: short-time objective intelligibility
+        - name: stoi
+        # discrete speech metrics: speech_bert, speech_bleu,
+        # speech_token_distance
+        - name: discrete_speech_metric
+        # pseudo subjective metrics: utmos, dnsmos, plcmos
+        - name: pseudo_mos
+          predictor_types: [utmos, dnsmos, plcmos]
+          predictor_args:
+            utmos:
+              fs: 16000
+            dnsmos:
+              fs: 16000
+            plcmos:
+              fs: 16000
+        # spk_similarity: speaker cosine similarity
+        - name: speaker
+          model_tag: default
+      wav_key: wav
+      ref_key: ref
+      use_gpu: true
+    inputs:
+      wav: wav
+      ref: ref
