@@ -57,7 +57,8 @@ class TER(BaseMetric):
         cleaned = self.cleaner(text).strip()
         if not cleaned:
             return "."
-        return " ".join(self.tokenizer.text2tokens(cleaned))
+        tokens = self.tokenizer.text2tokens(cleaned)
+        return " ".join(tokens) if tokens else "."
 
     def _ensure_jiwer(self) -> None:
         """Raise if the optional jiwer dependency is missing."""
