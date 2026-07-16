@@ -23,7 +23,7 @@ behavior, this refined script adds the following LID-label corrections:
 - `lga -> lug`
 - `ory -> ori`
 - `arb -> ara`
-- `nno`, `nob`, and `nor` are removed from the standard dev set.
+- `nno`, `nob`, and `nor` are removed from the train and standard dev sets.
 
 For example:
 ```
