@@ -11,10 +11,10 @@ We recommend allocating at least 4 CPUs and at least 32GB of RAM. If GPU OOM occ
 
 The following configs use the refined LID-label data setting reported below:
 
-- `conf/tuning/train_mms_baseline_refined.yaml`: 2-layer Transformer baseline.
-- `conf/tuning/train_mms_ctc_transformer_lr1e-4.yaml`: 24-layer Transformer encoder.
-- `conf/tuning/train_mms_ctc_conformer_12_macaron_lr1e-4.yaml`: 12-layer Conformer encoder with macaron-style feed-forward modules.
-- `conf/tuning/train_mms_ctc_e_branchformer_12_nomacaron_lr1e-4.yaml`: 12-layer E-Branchformer encoder with `macaron_ffn: false`.
+- `conf/tuning/train_mms_ctc_baseline.yaml`: 2-layer Transformer baseline.
+- `conf/tuning/train_mms_ctc_transformer.yaml`: 24-layer Transformer encoder.
+- `conf/tuning/train_mms_ctc_conformer.yaml`: 12-layer Conformer encoder with macaron-style feed-forward modules.
+- `conf/tuning/train_mms_ctc_e_branchformer.yaml`: 12-layer E-Branchformer encoder with `macaron_ffn: false`.
 
 To prepare the refined LID-label data, run `local/data_refine.sh` instead of
 the default `local/data.sh`.  In addition to the original data preparation
@@ -27,10 +27,10 @@ behavior, this refined script adds the following LID-label corrections:
 
 For example:
 ```
-./run.sh --asr_config conf/tuning/train_mms_baseline_refined.yaml
-./run.sh --asr_config conf/tuning/train_mms_ctc_transformer_lr1e-4.yaml
-./run.sh --asr_config conf/tuning/train_mms_ctc_conformer_12_macaron_lr1e-4.yaml
-./run.sh --asr_config conf/tuning/train_mms_ctc_e_branchformer_12_nomacaron_lr1e-4.yaml
+./run.sh --asr_config conf/tuning/train_mms_ctc_baseline.yaml
+./run.sh --asr_config conf/tuning/train_mms_ctc_transformer.yaml
+./run.sh --asr_config conf/tuning/train_mms_ctc_conformer.yaml
+./run.sh --asr_config conf/tuning/train_mms_ctc_e_branchformer.yaml
 ```
 
 ## Scoring
