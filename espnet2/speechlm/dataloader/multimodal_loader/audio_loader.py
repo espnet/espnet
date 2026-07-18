@@ -16,9 +16,9 @@ except ImportError:
     kaldiio = None
 
 try:
-    import arkive
+    from omniio.interface import audio_read
 except ImportError:
-    arkive = None
+    audio_read = None
 
 try:
     import duckdb
@@ -35,10 +35,10 @@ except ImportError:
     )
 
 
-class ArkiveAudioReader:
-    """Dict-like lazy audio reader using arkive parquets.
+class OmniIOAudioReader:
+    """Dict-like lazy audio reader using omniio parquets.
 
-    Reads audio data from arkive parquet files. Audio is accessed via byte
+    Reads audio data from omniio parquet files. Audio is accessed via byte
     offsets and time boundaries stored in the parquet metadata.
 
     Returns:
@@ -91,7 +91,7 @@ class ArkiveAudioReader:
         start_time = row.get("start_time", None)
         end_time = row.get("end_time", None)
 
-        data = arkive.audio_read(
+        data = audio_read(
             row["path"],
             start_offset=row["start_byte_offset"],
             file_size=row["file_size_bytes"],
