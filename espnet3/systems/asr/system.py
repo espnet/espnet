@@ -11,6 +11,8 @@ from importlib import import_module
 from pathlib import Path
 from typing import Iterable
 
+from omegaconf import DictConfig
+
 from espnet3.systems.asr.tokenizers.sentencepiece import train_sentencepiece
 from espnet3.systems.base.system import BaseSystem
 
@@ -31,20 +33,35 @@ class ASRSystem(BaseSystem):
 
     def __init__(
         self,
-        training_config=None,
-        inference_config=None,
-        metrics_config=None,
-        **kwargs,
+        training_config: DictConfig | None = None,
+        inference_config: DictConfig | None = None,
+        metrics_config: DictConfig | None = None,
+        publication_config: DictConfig | None = None,
+        stage_log_mapping: dict | None = None,
+        demo_config: DictConfig | None = None,
     ) -> None:
-        """Initialize the ASR system with ASR-specific stage mappings."""
+        """Initialize the ASR system with optional stage configs.
+
+        Args:
+            training_config: Training configuration.
+            inference_config: Inference configuration.
+            metrics_config: Measurement configuration.
+            publication_config: Publication configuration for model packing
+                and upload stages.
+            stage_log_mapping: Optional per-stage log directory overrides.
+            demo_config: Demo configuration for demo packing and upload
+                stages.
+        """
         super().__init__(
             training_config=training_config,
             inference_config=inference_config,
             metrics_config=metrics_config,
+            publication_config=publication_config,
             stage_log_mapping={
                 "train_tokenizer": "training_config.tokenizer.save_path",
+                **(stage_log_mapping or {}),
             },
-            **kwargs,
+            demo_config=demo_config,
         )
 
     def train(self, *args, **kwargs):
