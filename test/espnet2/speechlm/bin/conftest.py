@@ -2,7 +2,7 @@
 
 Imports and runs the sibling conftests' stub installation functions so
 `espnet2.speechlm.bin.train` can be imported on CI without any of its
-heavy optional deps (arkive, duckdb, pyarrow, lhotse, soundfile, kaldiio,
+heavy optional deps (omniio, duckdb, pyarrow, lhotse, soundfile, kaldiio,
 deepspeed, wandb, humanfriendly, torchtitan, parallel_utils, transformers
 extras).
 
@@ -32,7 +32,7 @@ def _load_and_configure(sibling_dir: str) -> None:
 
 def pytest_configure():
     os.environ.setdefault("CUDA_VISIBLE_DEVICES", "")
-    # Dataloader stubs: arkive, duckdb, pyarrow, lhotse, soundfile, kaldiio
+    # Dataloader stubs: omniio, duckdb, pyarrow, lhotse, soundfile, kaldiio
     _load_and_configure("dataloader")
     # Model stubs: transformers / joblib / humanfriendly extras
     _load_and_configure("model")
