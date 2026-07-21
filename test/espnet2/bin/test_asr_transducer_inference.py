@@ -174,6 +174,24 @@ def test_Speech2Text(use_lm, token_type, asr_config_file, lm_config_file):
 
 
 @pytest.mark.execution_timeout(10)
+def test_Speech2Text_return_decoded_hyp(asr_config_file):
+    speech2text = Speech2Text(
+        asr_train_config=asr_config_file,
+        beam_size=1,
+        token_type="char",
+        return_decoded_hyp=True,
+    )
+    speech = np.random.randn(10000)
+    results = speech2text(speech)
+
+    for text, token, token_int, hyp in results:
+        assert text is None or isinstance(text, str)
+        assert isinstance(token, List)
+        assert isinstance(token_int, List)
+        assert isinstance(hyp, Hypothesis)
+
+
+@pytest.mark.execution_timeout(10)
 @pytest.mark.parametrize(
     "use_lm, token_type, beam_search_config, decoding_window, left_context",
     [
