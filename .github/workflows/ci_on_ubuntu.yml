@@ -53,12 +53,12 @@ jobs:
   #       use-conda: [false]
   #   steps:
   #     - uses: actions/checkout@master
-  #     - uses: actions/cache@v5
+  #     - uses: actions/cache@v6
   #       with:
   #         path: ~/.cache/pip
   #         key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
   #     # - name: Cache tools
-  #     #   uses: actions/cache@v5
+  #     #   uses: actions/cache@v6
   #     #   with:
   #     #     path: tools
   #     #     key: ${{ runner.os }}-tools-${{ github.run_id }}-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
@@ -87,7 +87,7 @@ jobs:
         chainer-version: [6.0.0]
     steps:
       - uses: actions/checkout@master
-      - uses: actions/cache@v5
+      - uses: actions/cache@v6
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
@@ -125,7 +125,7 @@ jobs:
         chainer-version: [6.0.0]
     steps:
       - uses: actions/checkout@master
-      - uses: actions/cache@v5
+      - uses: actions/cache@v6
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
@@ -163,7 +163,7 @@ jobs:
         chainer-version: [6.0.0]
     steps:
       - uses: actions/checkout@master
-      - uses: actions/cache@v5
+      - uses: actions/cache@v6
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
@@ -195,7 +195,7 @@ jobs:
         config-task: ["asr", "tts", "asr2",  "enh", "ssl", "st", "spk", "lid", "s2t", "s2st", "lm", "codec"]
     steps:
       - uses: actions/checkout@master
-      - uses: actions/cache@v5
+      - uses: actions/cache@v6
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
@@ -233,7 +233,7 @@ jobs:
         chainer-version: [6.0.0]
     steps:
       - uses: actions/checkout@master
-      - uses: actions/cache@v5
+      - uses: actions/cache@v6
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
@@ -266,7 +266,7 @@ jobs:
         chainer-version: [6.0.0]
     steps:
       - uses: actions/checkout@master
-      - uses: actions/cache@v5
+      - uses: actions/cache@v6
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
@@ -303,7 +303,7 @@ jobs:
         use-conda: [false]
     steps:
       - uses: actions/checkout@master
-      - uses: actions/cache@v5
+      - uses: actions/cache@v6
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
@@ -337,7 +337,7 @@ jobs:
       HF_TOKEN: ${{ secrets.HF_TOKEN }}
     steps:
       - uses: actions/checkout@master
-      - uses: actions/cache@v5
+      - uses: actions/cache@v6
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
@@ -380,7 +380,7 @@ jobs:
     steps:
     - uses: actions/checkout@master
     - name: Set up Python
-      uses: actions/setup-python@v6
+      uses: actions/setup-python@v7
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
