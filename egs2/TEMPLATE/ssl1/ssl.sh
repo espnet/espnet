@@ -348,7 +348,7 @@ if ! "${skip_train}"; then
             utils/split_scp.pl "${key_file}" ${split_scps}
 
             # 2. Generate run.sh
-            log "Generate '${ssl_stats_dir}/run.sh'. You can resume the process from stage 5.iter${iter} using this script"
+            # log "Generate '${ssl_stats_dir}/run.sh'. You can resume the process from stage 5.iter${iter} using this script"
             mkdir -p "${ssl_stats_dir}"; echo "${run_args} --stage 6 \"\$@\"; exit \$?" > "${ssl_stats_dir}/run.sh";chmod +x "${ssl_stats_dir}/run.sh"
 
             # 3. Submit jobs

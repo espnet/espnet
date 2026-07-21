@@ -110,12 +110,12 @@ class TorchAudioHubertPretrainModel(AbsESPnetModel):
 
         stats = dict(
             loss=loss.detach(),
-            correct_m=correct_m,
-            count_m=count_m,
-            acc_m=correct_m / count_m,
-            correct_u=correct_u,
-            count_u=count_u,
-            acc_u=correct_u / count_u,
+            correct_m=torch.tensor(correct_m, dtype=torch.float32, device=loss.device),
+            count_m=torch.tensor(count_m, dtype=torch.float32, device=loss.device),
+            acc_m=torch.tensor(correct_m / count_m, dtype=torch.float32, device=loss.device),
+            correct_u=torch.tensor(correct_u, dtype=torch.float32, device=loss.device),
+            count_u=torch.tensor(count_u, dtype=torch.float32, device=loss.device),
+            acc_u=torch.tensor(correct_u / count_u, dtype=torch.float32, device=loss.device),
         )
 
         # force_gatherable: to-device and to-tensor if scalar for DataParallel
@@ -472,5 +472,9 @@ class HubertPretrainModel(AbsESPnetModel):
 
         acc_m = corr_masked / (count_masked + 1e-10)
         acc_u = corr_unmask / (count_unmask + 1e-10)
+
+        # Convert to tensors for proper aggregation during distributed training.
+        acc_m = torch.tensor(acc_m, dtype=torch.float32, device=loss.device)
+        acc_u = torch.tensor(acc_u, dtype=torch.float32, device=loss.device)
 
         return loss, acc_m, acc_u

@@ -1,0 +1,69 @@
+# WavLM base self-supervised pretraining (960h LibriSpeech).
+#
+# Launch with the WavLM task entrypoint (NOT ssl.sh's default ssl_train):
+#   python3 -m espnet2.bin.wavlm_train \
+#       --config conf/tuning/train_ssl_wavlm_base_960h_pretrain.yaml \
+#       --token_list <path>/tokens.txt \
+#       --train_data_path_and_name_and_type dump/raw/train/wav.scp,speech,sound \
+#       --train_data_path_and_name_and_type dump/raw/train/text,text,text \
+#       ...
+#
+# NOTE: WavLMPretrainModel delegates the loss to the encoder, and the encoder
+# (HuggingFaceTransformersEncoder -> WavLMForPreTraining) uses a label-free
+# contrastive objective. The `text` field is still required by the task
+# pipeline but is ignored by the loss, so a dummy/placeholder text file is fine.
+
+# ----- trainer / batching -----
+use_amp: true
+grad_clip: 5.0
+batch_type: numel
+batch_bins: 4500000        # raw-waveform samples per batch; tune to GPU memory
+num_workers: 16
+accum_grad: 4
+max_epoch: 250
+patience: none
+init: none
+best_model_criterion:
+-   - valid
+    - loss
+    - min
+keep_nbest_models: 10
+
+# WavLMForPreTraining adds a quantizer/projection head whose params are unused
+# by some forward paths early in training.
+unused_parameters: true
+
+# Raw waveform is fed straight into the WavLM feature extractor.
+input_size: 1
+
+collate_fn_conf:
+    label_downsampling: 1
+    pad: false
+    rand_crop: true
+
+# ----- model -----
+model: wavlm
+
+# ----- encoder: HF WavLM with the self-supervised pretraining head -----
+encoder: wavlm_pretrain
+encoder_conf:
+    do_pretrain: true
+    model_name_or_path: microsoft/wavlm-base
+    # masking / contrastive hyper-parameters (wav2vec2/WavLM defaults)
+    mask_prob: 0.65
+    mask_length: 10
+    mask_min_masks: 2
+    num_negatives: 100
+
+# ----- no espnet frontend/normalize: WavLM consumes raw audio directly -----
+frontend: null
+normalize: null
+specaug: null
+
+# ----- optimization -----
+optim: adam
+optim_conf:
+    lr: 0.0005
+scheduler: warmuplr
+scheduler_conf:
+    warmup_steps: 32000

@@ -1,0 +1,86 @@
+# WavLM base self-supervised pretraining (960h LibriSpeech).
+#
+# Launch with the WavLM task entrypoint (NOT ssl.sh's default ssl_train):
+#   python3 -m espnet2.bin.wavlm_train \
+#       --config conf/tuning/train_ssl_wavlm_base_960h_pretrain.yaml \
+#       --token_list <path>/tokens.txt \
+#       --train_data_path_and_name_and_type dump/raw/train/wav.scp,speech,sound \
+#       --train_data_path_and_name_and_type dump/raw/train/text,text,text \
+#       ...
+#
+# NOTE: WavLMPretrainModel delegates the loss to the encoder, and the encoder
+# (HuggingFaceTransformersEncoder -> WavLMForPreTraining) performs HuBERT-style
+# masked cluster prediction: it masks time steps and predicts the per-frame
+# k-means cluster id (the `text` field). The number of clusters is supplied by
+# the recipe via `--num_classes`, so do NOT set `num_classes` in encoder_conf
+# (it is passed separately by build_model and would collide).
+
+# ----- trainer / batching -----
+use_amp: true
+grad_clip: 5.0
+batch_type: numel
+batch_bins: 4500000        # raw-waveform samples per batch; tune to GPU memory
+num_workers: 16
+accum_grad: 4
+max_epoch: 250
+patience: none
+init: none
+best_model_criterion:
+-   - valid
+    - loss
+    - min
+keep_nbest_models: 10
+
+# WavLMForPreTraining adds a quantizer/projection head whose params are unused
+# by some forward paths early in training.
+unused_parameters: true
+
+# Raw waveform is fed straight into the WavLM feature extractor.
+input_size: 1
+
+collate_fn_conf:
+    label_downsampling: 1
+    pad: false
+    rand_crop: true
+
+# ----- model -----
+model: wavlm
+model_conf:
+    # WavLM speech denoising: mix each primary utterance with in-batch
+    # secondary speech; targets stay the clean-primary k-means clusters.
+    utterance_mixing: true
+    utterance_mixing_conf:
+        mixing_prob: 0.2
+        max_num_sources: 1
+        snr_low: -5.0
+        snr_high: 20.0
+        max_len_ratio: 0.5
+
+# ----- encoder: HF WavLM with the self-supervised pretraining head -----
+encoder: wavlm_pretrain
+encoder_conf:
+    do_pretrain: true
+    model_name_or_path: microsoft/wavlm-base
+    # span-masking hyper-parameters (wav2vec2/WavLM defaults)
+    mask_prob: 0.65
+    mask_length: 10
+    mask_min_masks: 2
+    # masked cluster-prediction head / loss
+    final_dim: 256
+    logit_temp: 0.1
+    pred_masked_weight: 1.0
+    pred_nomask_weight: 0.0
+    # NOTE: num_classes is NOT set here; it comes from --num_classes.
+
+# ----- no espnet frontend/normalize: WavLM consumes raw audio directly -----
+frontend: null
+normalize: null
+specaug: null
+
+# ----- optimization -----
+optim: adam
+optim_conf:
+    lr: 0.0005
+scheduler: warmuplr
+scheduler_conf:
+    warmup_steps: 32000

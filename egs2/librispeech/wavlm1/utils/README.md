@@ -1,0 +1,1 @@
+The scripts in this directory were copied from Kaldi-ASR, https://github.com/kaldi-asr/kaldi, and their licenses follow the original license, https://github.com/kaldi-asr/kaldi/blob/master/COPYING, of Kaldi.

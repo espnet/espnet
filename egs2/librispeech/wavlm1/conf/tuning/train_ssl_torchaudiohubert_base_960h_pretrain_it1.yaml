@@ -1,0 +1,47 @@
+use_amp: true
+grad_clip: 5.0
+batch_type: numel
+batch_bins: 45000000
+num_workers: 64
+accum_grad: 2
+max_epoch: 250
+patience: none
+# Use self-defined function for initialization
+init: none
+best_model_criterion:
+-   - valid
+    - loss
+    - min
+keep_nbest_models: 10
+
+unused_parameters: true
+
+input_size: 1
+
+collate_fn_conf:
+    label_downsampling: 1
+    pad: False
+    rand_crop: True
+
+encoder: torchaudio_hubert
+encoder_conf:
+    encoder_projection_dropout: 0.1
+    encoder_attention_dropout: 0.1
+    encoder_ff_interm_dropout: 0.0
+    encoder_dropout: 0.1
+    encoder_layer_drop: 0.05
+
+model: torchaudio
+
+optim: adam
+optim_conf:
+    lr: 0.0005
+scheduler: warmuplr
+scheduler_conf:
+    warmup_steps: 32000
+
+frontend: null
+
+normalize: null
+
+specaug: null
