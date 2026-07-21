@@ -3,7 +3,7 @@
 ##########################################################
 # Common usage:
 #   python run.py --stages infer \
-#       --training_config conf/training_asr_transformer.yaml \
+#       --training_config conf/tuning/training_e_branchformer.yaml \
 #       --inference_config conf/inference.yaml
 #
 ##########################################################
@@ -25,12 +25,14 @@
 # - `name` becomes `${inference_dir}/<name>/`
 # - `data_src` is omitted, so ESPnet3 loads
 #   `${recipe_dir}/dataset/__init__.py`
-# - `data_src_args` is passed directly to `MiniAn4Dataset(...)`
+# - `data_src_args` is passed directly to `LibriSpeech100Dataset(...)`
 #
 # Dataset splits:
 #   test:
-#     - split="valid" from `MiniAn4Dataset`
-#     - split="test" from `MiniAn4Dataset`
+#     - split="dev-clean" from `LibriSpeech100Dataset`
+#     - split="dev-other" from `LibriSpeech100Dataset`
+#     - split="test-clean" from `LibriSpeech100Dataset`
+#     - split="test-other" from `LibriSpeech100Dataset`
 # Notes:
 #   - actual data sources are defined via `${recipe_dir}`
 dataset:
