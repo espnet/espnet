@@ -219,14 +219,14 @@ VERSA evaluation results for the released `espnet/dailytalk_VITS` model:
 
 | Metric | Value |
 | --- | ---: |
-| `mcd` | 7.620145909939348 |
-| `f0rmse` | 57.80711761081153 |
-| `f0corr` | 0.446712904011155 |
-| `speech_bert` | 0.8240626294651757 |
-| `speech_bleu` | 0.447112152246398145 |
-| `speech_token_distance` | 0.634837018480022 |
-| `sheet_ssqa` | 4.256689942012662 |
-| `utmos` | 3.7874137016742124 |
+| `mcd` | 7.62 |
+| `f0rmse` | 57.81 |
+| `f0corr` | 0.447 |
+| `speech_bert` | 0.824 |
+| `speech_bleu` | 0.447 |
+| `speech_token_distance` | 0.635 |
+| `sheet_ssqa` | 4.257 |
+| `utmos` | 3.787 |
 | `whisper_wer_delete` | 482 |
 | `whisper_wer_insert` | 259 |
 | `whisper_wer_replace` | 2022 |
@@ -235,14 +235,14 @@ VERSA evaluation results for the released `espnet/dailytalk_VITS` model:
 | `whisper_cer_insert` | 1464 |
 | `whisper_cer_replace` | 3413 |
 | `whisper_cer_equal` | 70882 |
-| `audiobox_aesthetics_CE` | 5.497673775450043 |
-| `audiobox_aesthetics_CU` | 6.4690581834834555 |
-| `audiobox_aesthetics_PC` | 1.4740626125232033 |
-| `audiobox_aesthetics_PQ` | 7.303249792949013 |
-| `spk_similarity` | 0.7099247254266747 |
-| `asvspoof_score` | 0.44570405806448615 |
-| `whisper_wer` | 0.1645818441744103 |
-| `whisper_cer` | 0.10152468225000646 |
+| `audiobox_aesthetics_CE` | 5.498 |
+| `audiobox_aesthetics_CU` | 6.469 |
+| `audiobox_aesthetics_PC` | 1.474 |
+| `audiobox_aesthetics_PQ` | 7.303 |
+| `spk_similarity` | 0.710 |
+| `asvspoof_score` | 0.446 |
+| `whisper_wer` | 16.46% |
+| `whisper_cer` | 10.15% |
 
 ## References
 
