@@ -1,125 +1,45 @@
-"""BaseRunner class for orchestrating local, parallel, and async executions."""
+"""BaseRunner class for orchestrating local and parallel shard executions."""
 
-import asyncio
-import importlib
 import json
 import logging
 import os
-import sys
+import shutil
 from abc import ABC, abstractmethod
-from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Sequence
-from uuid import uuid4
+from typing import Any, Dict, Iterable, List, Optional, Sequence
 
-from dask.utils import tmpfile
-from omegaconf import OmegaConf
 from tqdm import tqdm
 
 from espnet3.parallel.env_provider import EnvironmentProvider
 from espnet3.parallel.parallel import (
-    build_client,
     get_client,
     get_parallel_config,
-    parallel_for,
+    wrap_func_with_worker_env,
 )
 
 logger = logging.getLogger(__name__)
 
 
-@dataclass(frozen=True)
-class AsyncJobSpec:
-    """Specification of an asynchronous shard submitted to the Dask cluster.
-
-    Attributes:
-        runner_cls (str): Import path to the concrete ``BaseRunner`` subclass.
-        provider_cls (str): Import path to the concrete ``EnvironmentProvider`` subclass
-        config (Dict): A resolved, plain-``dict`` serialization of the Hydra config.
-        params (Dict): Extra parameters forwarded to the provider/environment.
-        indices (List[int]): The subset of indices this shard should process.
-        world_size (int): Total number of shards.
-        world_rank (int): The shard rank (0..world_size-1).
-        result_path (str | None): If set, results are written to this JSONL file
-            *on the worker* and not returned to the driver.
-        extras (Dict | None): Reserved for future extensions.
-
-    Notes:
-        - Each shard is independent and reconstructs both provider and runner
-          by import path on the worker before executing :py:meth:`BaseRunner.forward`.
-    """
-
-    runner_cls: str  # e.g., module.path.to.your.RunnerClass
-    provider_cls: str  # e.g., module.path.to.your.ProviderClass
-    config: Dict
-    params: Dict
-    indices: List[int]
-    world_size: int
-    world_rank: int
-    result_path: str | None
-    extras: Dict | None
-
-
-def _import_obj(cls_path: str):
-    mod, _, name = cls_path.rpartition(".")
-    return getattr(importlib.import_module(mod), name)
-
-
-def _default_chunk(indices: Sequence[int], num_chunks: int) -> List[List[int]]:
-    n = max(1, num_chunks)
-    L = len(indices)
-    q, r = divmod(L, n)
-    out = []
-    start = 0
-    for i in range(n):
-        size = q + (1 if i < r else 0)
-        out.append(list(indices[start : start + size]))
-        start += size
-    return [c for c in out if c]
-
-
-def convert_paths(obj):
-    """Recursively convert Path objects to strings in the given object."""
-    if isinstance(obj, dict):
-        return {k: convert_paths(v) for k, v in obj.items()}
-    elif isinstance(obj, list):
-        return [convert_paths(v) for v in obj]
-    elif isinstance(obj, Path):
-        return str(obj)
-    else:
-        return obj
-
-
-def get_full_class_path_from_instance(obj):
-    """Return the full import path of the given object's class."""
-    cls = obj.__class__
-    module = cls.__module__
-
-    # replace top actual file name if __main__
-    if module == "__main__":
-        import __main__
-
-        filename = os.path.splitext(os.path.basename(__main__.__file__))[0]
-        module = filename
-
-    return f"{module}.{cls.__qualname__}"
-
-
-def get_job_class(cluster, spec_path=None):
-    """Dask Job class that submits async runner jobs with the given spec path."""
-    parent_cls = cluster.job_cls
-    assert spec_path is not None
-
-    class ASyncRunnerJob(parent_cls):
-        def __init__(self, *args, worker_extra_args=None, **kwargs):
-            self._user_worker_extra_args = worker_extra_args or []
-            super().__init__(*args, worker_extra_args=worker_extra_args, **kwargs)
-            python = sys.executable
-            current_file_path = Path(__file__).resolve()
-
-            # Update command template to submit async parallel jobs with Dask
-            self._command_template = f"{python} {current_file_path} {spec_path} "
-
-    return ASyncRunnerJob
+def concatenate_shard_files(
+    shard_dirs: Sequence[Path],
+    relative_name: str,
+    out_path: Path,
+) -> bool:
+    """Concatenate shard-local text files into one output file."""
+    found = False
+    out_path = Path(out_path)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    with out_path.open("w", encoding="utf-8") as wf:
+        for shard_dir in shard_dirs:
+            fragment = Path(shard_dir) / relative_name
+            if not fragment.exists():
+                continue
+            found = True
+            with fragment.open("r", encoding="utf-8") as rf:
+                shutil.copyfileobj(rf, wf)
+    if not found:
+        out_path.unlink(missing_ok=True)
+    return found
 
 
 class BaseRunner(ABC):
@@ -159,16 +79,16 @@ class BaseRunner(ABC):
         self,
         provider: EnvironmentProvider,
         batch_size: int | None = None,
-        async_mode: bool = False,
-        async_specs_dir: str | Path = "./_async_specs",
-        async_result_dir: str | Path = "./_async_results",
+        output_dir: str | Path | None = None,
+        shard_subdir: str = "",
+        resume: bool = True,
     ):
         """Initialize BaseRunner object."""
         self.provider = provider
         self.batch_size = batch_size
-        self.async_mode = async_mode
-        self.async_specs_dir = Path(async_specs_dir).resolve()
-        self.async_result_dir = Path(async_result_dir).resolve()
+        self.output_dir = Path(output_dir) if output_dir is not None else None
+        self.shard_subdir = shard_subdir or ""
+        self.resume = resume
 
     @staticmethod
     @abstractmethod
@@ -202,237 +122,359 @@ class BaseRunner(ABC):
         """
         raise NotImplementedError
 
-    def _run_local(self, indices: Sequence[int]) -> List[Any]:
-        """Run sequentially on the driver using a locally built environment.
+    @staticmethod
+    def open_writers(shard_dir: Optional[Path], **env) -> Dict[str, Any]:
+        """Open per-shard writers before processing begins."""
+        return {}
 
-        Args:
-            indices (Sequence[int]): Indices to process.
+    @staticmethod
+    def write_record(
+        writers: Dict[str, Any],
+        result: Any,
+        state: Dict[str, Any],
+        **env,
+    ) -> None:
+        """Persist one ``forward`` result into the shard state or files."""
+        state.setdefault("records", []).append(result)
 
-        Returns:
-            List[Any]: Results in the same order as ``indices``.
+    @staticmethod
+    def close_writers(
+        writers: Dict[str, Any],
+        state: Dict[str, Any],
+        **env,
+    ) -> Optional[Dict[str, Any]]:
+        """Close per-shard writers after all items are processed."""
+        for writer in writers.values():
+            close = getattr(writer, "close", None)
+            if callable(close):
+                close()
+        return None
 
-        Notes:
-            - Uses ``tqdm`` progress bar over the input sequence.
-        """
-        env = self.provider.build_env_local()
+    def merge(self, shard_dirs: List[Path]) -> Any:
+        """Merge completed shard outputs into the final result."""
+        return None
+
+    @staticmethod
+    def _get_shards_root(output_dir: Path, shard_subdir: str = "") -> Path:
+        """Return the root directory for all shard subdirectories under output_dir."""
+        root = Path(output_dir)
+        if shard_subdir:
+            root = root / shard_subdir
+        return root
+
+    @classmethod
+    def _get_manifest_path(cls, output_dir: Path, shard_subdir: str = "") -> Path:
+        """Return the manifest path for the shard plan."""
+        return cls._get_shards_root(output_dir, shard_subdir) / "manifest.json"
+
+    @classmethod
+    def _resolve_shard_dir(
+        cls,
+        output_dir: str,
+        shard_subdir: str,
+        shard_id: int,
+    ) -> Path:
+        """Return the working directory for one shard (split.N)."""
+        root = cls._get_shards_root(Path(output_dir), shard_subdir)
+        return root / f"split.{shard_id}"
+
+    @staticmethod
+    def _get_done_path(shard_dir: Path) -> Path:
+        """Return the sentinel file path that marks a shard as complete."""
+        return Path(shard_dir) / "done"
+
+    @classmethod
+    def _get_lock_path(cls, shard_dir: Path) -> Path:
+        """Return the sentinel file path that marks a shard as locked."""
+        return Path(shard_dir) / "lock"
+
+    @classmethod
+    def is_shard_done(cls, shard_dir: Path) -> bool:
+        """Return True if the shard has a completion marker file."""
+        return cls._get_done_path(shard_dir).exists()
+
+    @classmethod
+    def _try_lock_shard(cls, shard_dir: Path) -> bool:
+        """Create a shard lock file atomically and return True on success."""
+        shard_dir = Path(shard_dir)
+        shard_dir.mkdir(parents=True, exist_ok=True)
+        lock_path = cls._get_lock_path(shard_dir)
+        try:
+            fd = os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+        except FileExistsError:
+            return False
+        with os.fdopen(fd, "w", encoding="utf-8") as lock_file:
+            lock_file.write(f"{os.getpid()}\n")
+        return True
+
+    @classmethod
+    def _unlock_shard(cls, shard_dir: Path) -> None:
+        """Remove the shard lock file after processing finishes."""
+        cls._get_lock_path(shard_dir).unlink(missing_ok=True)
+
+    @classmethod
+    def init_state(
+        cls,
+        shard_id: int = 0,
+        output_dir: str = "",
+        shard_subdir: str = "",
+        **env,
+    ) -> Dict[str, Any]:
+        """Build the initial state dict for one shard and open its writers."""
+        shard_dir = cls._resolve_shard_dir(output_dir, shard_subdir, shard_id)
+        shard_dir.mkdir(parents=True, exist_ok=True)
+        writers = cls.open_writers(
+            shard_dir,
+            shard_id=shard_id,
+            output_dir=output_dir,
+            shard_subdir=shard_subdir,
+            **env,
+        )
+        return {
+            "shard_id": shard_id,
+            "shard_dir": str(shard_dir),
+            "_writers": writers,
+            "records": [],
+        }
+
+    @classmethod
+    def reduce_state(cls, state: Dict[str, Any], result: Any, **env) -> Dict[str, Any]:
+        """Fold a single ``forward`` result into the shard state."""
+        cls.write_record(state["_writers"], result, state, **env)
+        return state
+
+    @classmethod
+    def finalize_state(cls, state: Dict[str, Any], **env) -> Dict[str, Any]:
+        """Close writers and finalize the shard state."""
+        meta = cls.close_writers(state.get("_writers", {}), state, **env) or {}
+        if meta:
+            state.update(meta)
+        state.pop("_writers", None)
+        return state
+
+    def _write_manifest(self, shards: Sequence[Dict[str, Any]]) -> Path:
+        """Write shard plan to manifest.json before dispatch in __call__."""
+        manifest_path = self._get_manifest_path(self.output_dir, self.shard_subdir)
+        manifest_path.parent.mkdir(parents=True, exist_ok=True)
+        data = {
+            "version": 1,
+            "output_dir": str(self.output_dir),
+            "shard_subdir": self.shard_subdir,
+            "shards": list(shards),
+        }
+        with manifest_path.open("w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        return manifest_path
+
+    def _load_manifest(self) -> Optional[Dict[str, Any]]:
+        """Load the existing shard manifest when resume is enabled."""
+        manifest_path = self._get_manifest_path(self.output_dir, self.shard_subdir)
+        if not manifest_path.exists():
+            return None
+        with manifest_path.open("r", encoding="utf-8") as f:
+            manifest = json.load(f)
+        if not isinstance(manifest, dict):
+            raise RuntimeError(f"Invalid shard manifest format: {manifest_path}")
+        shards = manifest.get("shards")
+        if not isinstance(shards, list):
+            raise RuntimeError(f"Shard manifest is missing 'shards': {manifest_path}")
+        return manifest
+
+    def _plan_shards(self, items: Sequence[Any]) -> List[Dict[str, Any]]:
+        """Divide items into per-shard specs per the active parallel config."""
+        par_config = get_parallel_config()
+        env = getattr(par_config, "env", "local") if par_config is not None else "local"
+        num_shards = 1
+        if par_config is not None and env not in ("local",):
+            num_shards = int(getattr(par_config, "n_workers", 1))
+        n_chunks = max(1, num_shards)
+        items_list = list(items)
+        quotient, remainder = divmod(len(items_list), n_chunks)
+        chunks = []
+        start = 0
+        for i in range(n_chunks):
+            size = quotient + (1 if i < remainder else 0)
+            chunk = items_list[start : start + size]
+            if chunk:
+                chunks.append(chunk)
+            start += size
         return [
-            self.__class__.forward(i, **env) for i in tqdm(indices, total=len(indices))
+            {"shard_id": shard_id, "items": chunk}
+            for shard_id, chunk in enumerate(chunks)
         ]
 
-    def _run_parallel(self, indices: Sequence[int]) -> List[Any]:
-        """Run with synchronous Dask mapping using per-worker environments.
+    def _resolve_shards(self, items: Sequence[Any]) -> List[Dict[str, Any]]:
+        """Resolve the shard plan for a fresh run or a resumed run."""
+        planned_shards = self._plan_shards(items)
+        if not self.resume:
+            self._write_manifest(planned_shards)
+            return planned_shards
 
-        Args:
-            indices (Sequence[int]): Indices to process.
+        manifest = self._load_manifest()
+        if manifest is None:
+            self._write_manifest(planned_shards)
+            return planned_shards
 
-        Returns:
-            List[Any]: Results gathered in order.
-
-        Notes:
-            - Wraps ``forward`` with :func:`wrap_func_with_worker_env` so that
-              missing keyword args are injected from the worker env.
-        """
-        setup_fn = self.provider.build_worker_setup_fn()
-        out = []
-        with get_client(get_parallel_config()) as client:
-            for res in tqdm(
-                parallel_for(
-                    self.__class__.forward,
-                    indices,
-                    setup_fn=setup_fn,
-                    client=client,
-                ),
-                total=len(indices),
-            ):
-                out.append(res)
-        return out
-
-    async def _run_async(self, indices: Sequence[int]) -> List[Any] | None:
-        """Submit shards to a Dask cluster and gather or write results.
-
-        Workflow:
-            1) Emit per-shard JSON specs to ``async_specs_dir``.
-            2) Submit worker entrypoints that reconstruct runner/provider and run.
-            3) Write results to ``async_result_dir``.
-        Args:
-            indices (Sequence[int]): Indices to process.
-
-        Returns:
-            List[Any] | None: Flattened results if gathered; otherwise ``None``.
-
-        Raises:
-            RuntimeError: If Dask client creation fails.
-            ValueError: If async sharding parameters are invalid.
-
-        Notes:
-            - When not gathering, each shard writes to
-              ``async_result_dir / f"result-<job_id>.jsonl"`` on its worker.
-        """
-        par_config = get_parallel_config()
-        client = build_client(par_config)
-        n_workers = par_config.get("n_workers", 1)
-        try:
-            chunks = _default_chunk(indices, n_workers)
-            self.async_specs_dir.mkdir(parents=True, exist_ok=True)
-            self.async_result_dir.mkdir(parents=True, exist_ok=True)
-
-            # DictConfig -> dict
-            config_dict = OmegaConf.to_container(self.provider.config, resolve=True)
-            provider_cls = get_full_class_path_from_instance(self.provider)
-            runner_cls = get_full_class_path_from_instance(self)
-
-            job_meta = []
-            for rank, chunk in enumerate(chunks):
-                job_id = f"{uuid4().hex[:8]}-r{rank}"
-                result_path = (
-                    self.async_result_dir / f"result-{job_id}.jsonl"
-                ).as_posix()
-
-                spec = AsyncJobSpec(
-                    runner_cls=runner_cls,
-                    provider_cls=provider_cls,
-                    config=config_dict,
-                    params=getattr(self.provider, "params", {}) or {},
-                    indices=list(chunk),
-                    world_size=len(chunks),
-                    world_rank=rank,
-                    result_path=str(result_path),
-                    extras={"batched": self.batch_size is not None},
-                )
-                spec_path = self.async_specs_dir / f"spec-{job_id}.json"
-                with open(spec_path, "w", encoding="utf-8") as f:
-                    json.dump(convert_paths(asdict(spec)), f, ensure_ascii=False)
-
-                client.cluster.job_cls = get_job_class(client.cluster, spec_path)
-
-                with tmpfile(extension="sh") as tf:
-                    with open(tf, "w", encoding="utf-8") as wtf:
-                        wtf.write(client.cluster.job_script())
-
-                    out = await client.cluster.job_cls._submit_job(
-                        client.cluster.job_cls, tf
-                    )
-                    logger.info("Async job submission output: %s", out)
-
-                job_meta.append(
-                    {
-                        "job_id": job_id,
-                        "spec": spec_path.resolve().as_posix(),
-                        "result": result_path,
-                    }
-                )
-
-            logger.info(
-                "Detached async submission. Scheduler: %s",
-                getattr(client, "scheduler_info", lambda: {})().get("address", "?"),
+        manifest_shards = manifest["shards"]
+        if len(manifest_shards) != len(planned_shards):
+            raise RuntimeError(
+                "Cannot resume with a different number of parallel shards. "
+                f"Existing run has {len(manifest_shards)} shard(s), "
+                f"but this run planned {len(planned_shards)}. "
+                "Re-run with the original parallel setting or remove the "
+                "existing shard outputs before starting over."
             )
-            return job_meta
+        if manifest_shards != planned_shards:
+            raise RuntimeError(
+                "Cannot resume because the shard plan changed. "
+                "The existing manifest does not match the current indices or "
+                "batching configuration. Re-run with the original settings or "
+                "remove the existing shard outputs before starting over."
+            )
+        return manifest_shards
 
+    def _filter_pending_shards(
+        self, shards: Sequence[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
+        """Return locked shards; skips done-marked ones when resume=True."""
+        pending = []
+        for shard in shards:
+            shard_dir = self._resolve_shard_dir(
+                str(self.output_dir), self.shard_subdir, int(shard["shard_id"])
+            )
+            if self.resume and self.is_shard_done(shard_dir):
+                continue
+            if not self._try_lock_shard(shard_dir):
+                if self.resume and self.is_shard_done(shard_dir):
+                    continue
+                raise RuntimeError(
+                    "Shard is already locked by another runner: " f"{shard_dir}"
+                )
+            if self.resume and self.is_shard_done(shard_dir):
+                self._unlock_shard(shard_dir)
+                continue
+            pending.append(shard)
+        return pending
+
+    def _get_completed_shard_dirs(self, shards: Sequence[Dict[str, Any]]) -> List[Path]:
+        """Return completed shard paths; raises if any done marker is absent."""
+        shard_dirs = []
+        for shard in shards:
+            shard_dir = self._resolve_shard_dir(
+                str(self.output_dir),
+                self.shard_subdir,
+                int(shard["shard_id"]),
+            )
+            if not self.is_shard_done(shard_dir):
+                raise FileNotFoundError(
+                    f"Shard {shard['shard_id']} is not complete: {shard_dir}"
+                )
+            shard_dirs.append(shard_dir)
+        return shard_dirs
+
+    @classmethod
+    def _run_one_shard(
+        cls,
+        shard_id: int,
+        items: Sequence[Any],
+        env: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """Process one shard end-to-end; used by _run_local and _run_parallel_dask."""
+        state = cls.init_state(shard_id=shard_id, **env)
+        shard_dir = Path(state["shard_dir"])
+        try:
+            cls._get_done_path(shard_dir).unlink(missing_ok=True)
+            for item in items:
+                result = cls.forward(item, **env)
+                state = cls.reduce_state(state, result, shard_id=shard_id, **env)
+            cls.finalize_state(state, shard_id=shard_id, **env)
+            cls._get_done_path(shard_dir).write_text("", encoding="utf-8")
+            return state
         finally:
-            client.close()
+            cls._unlock_shard(shard_dir)
 
-    def __call__(self, indices: Iterable[int]) -> List[Any] | None:
-        """Dispatch execution according to the configured parallel mode.
+    def _run_local(self, shards: Sequence[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Run pending shards sequentially on the driver."""
+        env = self.provider.build_env_local()
+        env.setdefault("output_dir", str(self.output_dir))
+        if self.shard_subdir:
+            env.setdefault("shard_subdir", self.shard_subdir)
+        cls = self.__class__
+        states = []
+        for shard in tqdm(shards, total=len(shards), desc="shards"):
+            states.append(
+                cls._run_one_shard(int(shard["shard_id"]), shard["items"], env)
+            )
+        return states
 
-        Args:
-            indices (Iterable[int]): Indices to process.
+    def _run_parallel_dask(
+        self, shards: Sequence[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
+        """Run pending shards with Dask workers and persist shard-local state."""
+        from dask.distributed import as_completed
 
-        Returns:
-            List[Any] | None: Results for local/parallel modes, or ``None`` in
-            async mode.
+        par_config = get_parallel_config()
+        if not shards:
+            return []
 
-        Notes:
-            - If no parallel config is set or ``env='local'``, run locally.
-            - Otherwise, run in parallel with environment injection.
-        """
+        provider_setup = self.provider.build_worker_setup_fn()
+        output_dir_str = str(self.output_dir)
+        shard_subdir = self.shard_subdir
+
+        def setup_fn():
+            env = provider_setup()
+            env.setdefault("output_dir", output_dir_str)
+            if shard_subdir:
+                env.setdefault("shard_subdir", shard_subdir)
+            return env
+
+        runner_cls = self.__class__
+
+        def shard_task(shard_spec, **env):
+            return runner_cls._run_one_shard(
+                int(shard_spec["shard_id"]),
+                shard_spec["items"],
+                env,
+            )
+
+        wrapped = wrap_func_with_worker_env(shard_task)
+        states = []
+        with get_client(par_config, setup_fn=setup_fn) as client:
+            futures = client.map(wrapped, list(shards))
+            try:
+                for future in tqdm(
+                    as_completed(futures),
+                    total=len(futures),
+                    desc="shards",
+                ):
+                    states.append(future.result())
+            except Exception:
+                try:
+                    client.cancel(futures)
+                finally:
+                    raise
+        return states
+
+    def __call__(self, indices: Iterable[int]) -> Any:
+        """Dispatch execution according to the configured parallel mode."""
+        if self.output_dir is None:
+            raise RuntimeError("BaseRunner requires output_dir for shard execution.")
         indices = list(indices)
         if self.batch_size is not None:
             if self.batch_size <= 0:
                 raise ValueError("batch_size must be a positive integer.")
-            indices = _chunk_indices(indices, self.batch_size)
-        if self.async_mode:
-            return asyncio.run(self._run_async(indices))
+            indices = [
+                list(indices[i : i + self.batch_size])
+                for i in range(0, len(indices), self.batch_size)
+            ]
+        shards = self._resolve_shards(indices)
+        pending = self._filter_pending_shards(shards)
 
         par_config = get_parallel_config()
-        if par_config is None or getattr(par_config, "env", "local") == "local":
-            return self._run_local(indices)
-        return self._run_parallel(indices)
+        if pending:
+            if par_config is None or getattr(par_config, "env", "local") == "local":
+                self._run_local(pending)
+            else:
+                self._run_parallel_dask(pending)
 
-
-def _chunk_indices(indices: Sequence[int], batch_size: int) -> List[List[int]]:
-    """Split a sequence of indices into fixed-size chunks."""
-    batches = []
-    for i in range(0, len(indices), batch_size):
-        batches.append(list(indices[i : i + batch_size]))
-    return [b for b in batches if b]
-
-
-def _async_worker_entry_from_spec_path(spec_path: str):
-    """Worker entrypoint: reconstruct runner/provider and process indices.
-
-    This function is executed on a Dask worker. It reads the shard spec JSON,
-    imports the designated Runner/Provider classes, rebuilds the DictConfig and
-    provider, constructs the per-worker environment, and applies
-    ``RunnerClass.forward`` to each index in the shard.
-
-    If ``result_path`` is provided, results are streamed to a JSONL file on the
-    worker and ``None`` is returned; otherwise the list of results is returned
-    to the driver.
-
-    Args:
-        spec_path (str): Path to the shard spec JSON file.
-
-    Returns:
-        list | None: List of results, or ``None`` if results were written to file.
-
-    Raises:
-        ImportError: If the runner/provider import path is invalid.
-        Exception: Any exception thrown by environment builders or ``forward``.
-
-    Notes:
-        - Non-JSON-serializable results are ``repr``-serialized when writing JSONL.
-    """
-    from omegaconf import DictConfig
-
-    with open(spec_path, "r", encoding="utf-8") as f:
-        spec = json.load(f)
-
-    RunnerCls = _import_obj(spec["runner_cls"])
-    ProviderCls = _import_obj(spec["provider_cls"])
-
-    config = DictConfig(spec["config"])
-    params = spec.get("params", {}) or {}
-    provider = ProviderCls(config, params=params)
-
-    # Add world size and rank
-    os.environ["WORLD_SIZE"] = str(spec["world_size"])
-    os.environ["WORLD_RANK"] = str(spec["world_rank"])
-
-    setup_fn = provider.build_worker_setup_fn()
-    env = setup_fn()
-
-    results = []
-    for idx in spec["indices"]:
-        results.append(RunnerCls.forward(idx, **env))
-
-    result_path = spec.get("result_path")
-    if result_path:
-        with open(result_path, "w", encoding="utf-8") as w:
-            for r in results:
-                try:
-                    json.dump(r, w, ensure_ascii=False)
-                    w.write("\n")
-                except TypeError:
-                    w.write(repr(r) + "\n")
-        return None
-
-    return results
-
-
-if __name__ == "__main__":
-    import argparse
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument("spec", type=str, help="Path to AsyncJobSpec JSON file")
-    args = parser.parse_args()
-    _async_worker_entry_from_spec_path(args.spec)
+        return self.merge(self._get_completed_shard_dirs(shards))

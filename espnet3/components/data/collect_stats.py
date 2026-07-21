@@ -11,10 +11,9 @@ import torch
 from hydra.utils import instantiate
 from omegaconf import DictConfig, OmegaConf
 
-from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.fileio.npy_scp import NpyScpWriter
 from espnet2.train.collate_fn import CommonCollateFn
-from espnet3.parallel.base_runner import BaseRunner
+from espnet3.parallel.base_runner import BaseRunner, concatenate_shard_files
 from espnet3.parallel.env_provider import EnvironmentProvider
 from espnet3.parallel.parallel import set_parallel
 from espnet3.utils.task_utils import get_espnet_model
@@ -83,13 +82,13 @@ def collect_stats_batch(
     stats = defaultdict(lambda: {"sum": 0, "sq": 0, "count": 0})
     shape_info = defaultdict(dict)
 
-    for b_idx, uid in enumerate(list(uids)):
+    for batch_idx, uid in enumerate(list(uids)):
         for feat_key in list(feats.keys()):
             if f"{feat_key}_lengths" in feats:
-                length = int(feats[f"{feat_key}_lengths"][b_idx])
-                seq = feats[feat_key][b_idx][:length]
+                length = int(feats[f"{feat_key}_lengths"][batch_idx])
+                seq = feats[feat_key][batch_idx][:length]
             else:
-                seq = feats[feat_key][b_idx][None]
+                seq = feats[feat_key][batch_idx][None]
 
             stats[feat_key]["sum"] += seq.sum(0)
             stats[feat_key]["sq"] += (seq**2).sum(0)
@@ -100,58 +99,6 @@ def collect_stats_batch(
         return stats, shape_info, feats
     else:
         return stats, shape_info
-
-
-def _accumulate_and_persist_batch(
-    stats: Dict,
-    shape_info: Dict,
-    feats: Optional[Dict],
-    sum_dict: Dict,
-    sq_dict: Dict,
-    count_dict: Dict,
-    datadir_writer: DatadirWriter,
-    writers: Dict,
-    mode: str,
-    output_dir: Path,
-    write_collected_feats: bool,
-    shape_key_suffix: str = "",
-):
-    """Merge per-batch stats and persist shapes/features."""
-    for feat_key, agg in stats.items():
-        sum_dict[feat_key] += agg["sum"]
-        sq_dict[feat_key] += agg["sq"]
-        count_dict[feat_key] += agg["count"]
-
-    for feat_key, uid2shape in shape_info.items():
-        shape_key = f"{feat_key}_shape{shape_key_suffix}"
-        for uid, shape_str in uid2shape.items():
-            datadir_writer[shape_key][uid] = shape_str
-
-        if write_collected_feats and feats is not None and feat_key in feats:
-            uids_in_order = list(uid2shape.keys())
-            feat_batch = feats[feat_key]
-            len_key = f"{feat_key}_lengths"
-            len_batch = feats.get(len_key, None)
-
-            writer_key = (feat_key, mode)
-            if writer_key not in writers:
-                p = output_dir / mode / "collect_feats"
-                writers[writer_key] = NpyScpWriter(
-                    p / f"data_{feat_key}", p / f"{feat_key}.scp"
-                )
-            w = writers[writer_key]
-
-            for b_idx, uid in enumerate(uids_in_order):
-                seq = feat_batch[b_idx]
-                if len_batch is not None:
-                    L = int(len_batch[b_idx])
-                    seq = seq[:L]
-                else:
-                    seq = seq[None]
-
-                if not isinstance(seq, np.ndarray):
-                    seq = np.asarray(seq)
-                w[uid] = seq
 
 
 def _build_collate_fn(dataloader_config):
@@ -234,6 +181,34 @@ def _get_dataset_length(
     return len(dataset)
 
 
+def _persist_feats_for_key(
+    writer: NpyScpWriter,
+    feats: Dict[str, np.ndarray],
+    feat_key: str,
+    uids_in_order: List[str],
+) -> None:
+    """Write one collected feature key to its SCP-backed numpy store."""
+    feat_batch = feats[feat_key]
+    len_batch = feats.get(f"{feat_key}_lengths", None)
+    for batch_idx, uid in enumerate(uids_in_order):
+        seq = feat_batch[batch_idx]
+        if len_batch is not None:
+            length = int(len_batch[batch_idx])
+            seq = seq[:length]
+        else:
+            seq = seq[None]
+        if not isinstance(seq, np.ndarray):
+            seq = np.asarray(seq)
+        writer[uid] = seq
+
+
+def _read_lines_if_exists(path: Path) -> List[str]:
+    """Return text lines from path when the file exists."""
+    if not path.exists():
+        return []
+    return path.read_text(encoding="utf-8").splitlines()
+
+
 class CollectStatsInferenceProvider(EnvironmentProvider):
     """EnvironmentProvider tailored for collect-stats jobs."""
 
@@ -245,17 +220,20 @@ class CollectStatsInferenceProvider(EnvironmentProvider):
         mode: str,
         task: Optional[str] = None,
         shard_idx: Optional[int] = None,
-        params: Optional[Dict[str, Any]] = dict(),
+        params: Optional[Dict[str, Any]] = None,
     ):
         """Initialize CollectStatsInferenceProvider object."""
-        config = OmegaConf.create({})
-        config.model_config = model_config
-        config.dataset_config = dataset_config
-        config.dataloader_config = dataloader_config
-        config.mode = mode
-        config.task = task
-        config.shard_idx = shard_idx
-        config.update(**params)
+        config = OmegaConf.create(
+            {
+                "model_config": model_config,
+                "dataset_config": dataset_config,
+                "dataloader_config": dataloader_config,
+                "mode": mode,
+                "task": task,
+                "shard_idx": shard_idx,
+                **(params or {}),
+            }
+        )
         super().__init__(config)
 
     def build_env_local(self) -> Dict[str, Any]:
@@ -309,6 +287,24 @@ class CollectStatsInferenceProvider(EnvironmentProvider):
 class CollectStatsRunner(BaseRunner):
     """Runner that executes collect-stats over batches of indices."""
 
+    def __init__(
+        self,
+        provider: EnvironmentProvider,
+        output_dir: str | Path,
+        mode: str,
+        write_collected_feats: bool = False,
+        **kwargs,
+    ):
+        """Initialize CollectStatsRunner object."""
+        super().__init__(
+            provider,
+            output_dir=output_dir,
+            shard_subdir=mode,
+            **kwargs,
+        )
+        self.mode = mode
+        self.write_collected_feats = write_collected_feats
+
     @staticmethod
     def forward(
         batch_indices: Iterable[int] | int,
@@ -318,6 +314,7 @@ class CollectStatsRunner(BaseRunner):
         device,
         write_collected_feats: bool = False,
         collect_stats_kwargs: Optional[Dict[str, Any]] = None,
+        **env,
     ):
         """Process a batch of dataset indices and compute feature statistics."""
         if isinstance(batch_indices, Iterable) and not isinstance(
@@ -337,6 +334,144 @@ class CollectStatsRunner(BaseRunner):
             collect_stats_kwargs=collect_stats_kwargs,
         )
 
+    @staticmethod
+    def open_writers(
+        shard_dir: Optional[Path],
+        write_collected_feats: bool = False,
+        **env,
+    ) -> Dict[str, Any]:
+        """Create per-shard writer state."""
+        return {
+            "_shard_dir": shard_dir,
+            "_write_feats": write_collected_feats,
+            "shape_handles": {},
+            "feat_writers": {},
+        }
+
+    @staticmethod
+    def write_record(
+        writers: Dict[str, Any],
+        result,
+        state: Dict[str, Any],
+        **env,
+    ) -> None:
+        """Merge per-batch stats and persist shapes/features."""
+        write_feats = writers["_write_feats"]
+        shard_dir: Path = writers["_shard_dir"]
+
+        if write_feats:
+            stats, shape_info, feats = result
+        else:
+            stats, shape_info = result
+            feats = None
+
+        sum_acc = state.setdefault("sum", defaultdict(float))
+        sq_acc = state.setdefault("sq", defaultdict(float))
+        count_acc = state.setdefault("count", defaultdict(int))
+        for feat_key, agg in stats.items():
+            sum_acc[feat_key] += agg["sum"]
+            sq_acc[feat_key] += agg["sq"]
+            count_acc[feat_key] += agg["count"]
+
+        for feat_key, uid2shape in shape_info.items():
+            handle = writers["shape_handles"].get(feat_key)
+            if handle is None:
+                handle = (shard_dir / f"{feat_key}_shape").open("w", encoding="utf-8")
+                writers["shape_handles"][feat_key] = handle
+            for uid, shape_str in uid2shape.items():
+                handle.write(f"{uid} {shape_str}\n")
+
+            if write_feats and feats is not None and feat_key in feats:
+                writer = writers["feat_writers"].get(feat_key)
+                if writer is None:
+                    feat_root = shard_dir / "collect_feats"
+                    writer = NpyScpWriter(
+                        feat_root / f"data_{feat_key}",
+                        feat_root / f"{feat_key}.scp",
+                    )
+                    writers["feat_writers"][feat_key] = writer
+                _persist_feats_for_key(writer, feats, feat_key, list(uid2shape.keys()))
+
+    @staticmethod
+    def close_writers(
+        writers: Dict[str, Any],
+        state: Dict[str, Any],
+        **env,
+    ) -> Optional[Dict[str, Any]]:
+        """Close shard writers and flush shard summary files."""
+        shard_dir = writers["_shard_dir"]
+        shape_handles = writers.get("shape_handles", {})
+        feat_writers = writers.get("feat_writers", {})
+        for handle in shape_handles.values():
+            handle.close()
+        for writer in feat_writers.values():
+            writer.close()
+        shape_keys = sorted(shape_handles.keys())
+        feat_keys_written = sorted(feat_writers.keys())
+        stats_keys = sorted(state.get("sum", {}).keys())
+        (shard_dir / "shape_keys.txt").write_text(
+            "\n".join(shape_keys) + ("\n" if shape_keys else ""),
+            encoding="utf-8",
+        )
+        (shard_dir / "feat_keys_written.txt").write_text(
+            "\n".join(feat_keys_written) + ("\n" if feat_keys_written else ""),
+            encoding="utf-8",
+        )
+        (shard_dir / "stats_keys.txt").write_text(
+            "\n".join(stats_keys) + ("\n" if stats_keys else ""),
+            encoding="utf-8",
+        )
+        for key in stats_keys:
+            np.savez(
+                shard_dir / f"{key}_stats.npz",
+                count=state["count"][key],
+                sum=state["sum"][key],
+                sum_square=state["sq"][key],
+            )
+
+    def merge(self, shard_dirs: List[Path]) -> Dict[str, Any]:
+        """Merge shard outputs into aggregated statistics for one split."""
+        shape_keys: set = set()
+        feat_keys_written: set = set()
+        stats_keys: set = set()
+        sum_dict: Dict[str, Any] = defaultdict(float)
+        sq_dict: Dict[str, Any] = defaultdict(float)
+        count_dict: Dict[str, int] = defaultdict(int)
+        for shard_dir in shard_dirs:
+            shape_keys.update(_read_lines_if_exists(shard_dir / "shape_keys.txt"))
+            feat_keys_written.update(
+                _read_lines_if_exists(shard_dir / "feat_keys_written.txt")
+            )
+            for key in _read_lines_if_exists(shard_dir / "stats_keys.txt"):
+                stats_keys.add(key)
+                data = np.load(shard_dir / f"{key}_stats.npz")
+                sum_dict[key] += data["sum"]
+                sq_dict[key] += data["sum_square"]
+                count_dict[key] += data["count"]
+
+        mode_dir = self.output_dir / self.mode
+        mode_dir.mkdir(parents=True, exist_ok=True)
+
+        for feat_key in shape_keys:
+            concatenate_shard_files(
+                shard_dirs, f"{feat_key}_shape", mode_dir / f"{feat_key}_shape"
+            )
+
+        if self.write_collected_feats and feat_keys_written:
+            feat_dir = mode_dir / "collect_feats"
+            feat_dir.mkdir(parents=True, exist_ok=True)
+            for feat_key in feat_keys_written:
+                concatenate_shard_files(
+                    shard_dirs,
+                    f"collect_feats/{feat_key}.scp",
+                    feat_dir / f"{feat_key}.scp",
+                )
+        return {
+            "sum": dict(sum_dict),
+            "sq": dict(sq_dict),
+            "count": dict(count_dict),
+        }
+
 
 def _collect_stats_common(
     model_config,
@@ -348,11 +483,6 @@ def _collect_stats_common(
     write_collected_feats: bool,
     batch_size: int,
     shard_idx: Optional[int] = None,
-    shape_key_suffix: str = "",
-    sum_dict: Optional[Dict] = None,
-    sq_dict: Optional[Dict] = None,
-    count_dict: Optional[Dict] = None,
-    writers: Optional[Dict] = None,
 ):
     num_items = _get_dataset_length(dataset_config, mode, shard_idx)
     index_batches = _chunk_indices(num_items, batch_size) if num_items else []
@@ -366,39 +496,18 @@ def _collect_stats_common(
         shard_idx=shard_idx,
         params={"write_collected_feats": write_collected_feats},
     )
-    runner = CollectStatsRunner(provider)
+    runner = CollectStatsRunner(
+        provider,
+        output_dir=output_dir,
+        mode=mode,
+        write_collected_feats=write_collected_feats,
+    )
 
-    sum_dict = sum_dict or defaultdict(lambda: 0)
-    sq_dict = sq_dict or defaultdict(lambda: 0)
-    count_dict = count_dict or defaultdict(lambda: 0)
-    writers = writers or {}
+    if not index_batches:
+        return {}, {}, {}
 
-    results = runner(index_batches)
-
-    with DatadirWriter(output_dir / mode) as datadir_writer:
-        for result in results:
-            if write_collected_feats:
-                stats, shape_info, feats = result
-            else:
-                stats, shape_info = result
-                feats = None
-
-            _accumulate_and_persist_batch(
-                stats=stats,
-                shape_info=shape_info,
-                feats=feats,
-                sum_dict=sum_dict,
-                sq_dict=sq_dict,
-                count_dict=count_dict,
-                datadir_writer=datadir_writer,
-                writers=writers,
-                mode=mode,
-                output_dir=output_dir,
-                write_collected_feats=write_collected_feats,
-                shape_key_suffix=shape_key_suffix,
-            )
-
-    return sum_dict, sq_dict, count_dict
+    aggregated = runner(index_batches)
+    return aggregated["sum"], aggregated["sq"], aggregated["count"]
 
 
 def collect_stats(
@@ -457,13 +566,14 @@ def collect_stats(
         batch_size=batch_size,
     )
 
+    mode_dir = output_dir / mode
+    mode_dir.mkdir(parents=True, exist_ok=True)
     for key in sum_dict:
-        (output_dir / mode).mkdir(parents=True, exist_ok=True)
         np.savez(
-            output_dir / mode / f"{key}_stats.npz",
+            mode_dir / f"{key}_stats.npz",
             count=count_dict[key],
             sum=sum_dict[key],
             sum_square=sq_dict[key],
         )
-    with open(output_dir / mode / "stats_keys", "w") as f:
+    with open(mode_dir / "stats_keys", "w") as f:
         f.write("\n".join(sum_dict) + "\n")

@@ -23,11 +23,11 @@ jobs:
         shell: bash
     steps:
       - uses: actions/checkout@master
-      - uses: actions/cache@v5
+      - uses: actions/cache@v6
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
           architecture: 'x64'
@@ -43,5 +43,6 @@ jobs:
           TH_VERSION: ${{ matrix.pytorch-version }}
           CHAINER_VERSION: 6.0.0
           USE_CONDA: false
+          HF_TOKEN: ${{ secrets.HF_CI_TOKEN }}
         run: |
           ./ci/install.sh

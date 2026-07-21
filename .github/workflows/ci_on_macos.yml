@@ -23,11 +23,11 @@ jobs:
       - uses: actions/checkout@master
       - name: Install FFmpeg
         uses: ./.github/actions/install-ffmpeg
-      - uses: actions/cache@v5
+      - uses: actions/cache@v6
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
       - name: Get PR labels
@@ -45,5 +45,6 @@ jobs:
           # However, I couldn't build pysptk with gcc on MacOS
           # CC: /usr/local/bin/gcc-11
           # CXX: /usr/local/bin/g++-11
+          HF_TOKEN: ${{ secrets.HF_CI_TOKEN }}
         run: |
           ./ci/install_macos.sh
