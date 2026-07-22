@@ -1,0 +1,75 @@
+##########################################################
+#                  PUBLICATION SETTING                   #
+##########################################################
+# Quick usage:
+#   python run.py --stages pack_model   --training_config conf/training.yaml --publication_config conf/publication.yaml
+#   python run.py --stages upload_model --training_config conf/training.yaml --publication_config conf/publication.yaml
+#
+# Assumptions:
+# - `train` has already produced the checkpoint listed in `pack_model.files`.
+# - Running `infer` and `measure` before `pack_model` is recommended.
+# - `measure` writes `metrics.json` under `${inference_dir}`.
+# - If `${inference_dir}` contains that `metrics.json`, `pack_model` bundles it
+#   and uses it when rendering the README.
+
+##########################################################
+#                    PATHS AND INPUTS                    #
+##########################################################
+recipe_dir: .
+# Common case:
+# - pass both `--training_config` and `--publication_config`
+# - `run.py` copies `training_config.exp_tag` / `training_config.exp_dir` here
+# - `pack_model` also receives `inference_config` and `metrics_config` when
+#   they were provided to `run.py`
+#
+# Override `inference_dir` only when publication should read results from a
+# different inference output directory.
+exp_tag: ${self_name:}
+exp_dir: exp/${exp_tag}
+inference_dir: ${exp_dir}/inference
+data_dir: ${recipe_dir}/data
+
+##########################################################
+#                   PACK MODEL SETTING                   #
+##########################################################
+# `pack_model` copies `${exp_dir}` first, then copies extra paths from
+# `include`, applies `exclude`, writes rewritten configs under `conf/`, and
+# writes `meta.yaml` at the bundle root.
+#
+# `inference_dir` inside this block is used only to find the `metrics.json`
+# written by the `measure` stage for the bundled README and result summary.
+#
+# `files` registers named artifacts in `meta.yaml`.
+# Optional keys also supported here:
+# - `yaml_files`: copy specific YAML files with path rewriting
+# - `readme_context`: extra template variables for the README
+pack_model:
+  out_dir: ${exp_dir}/model_pack
+  inference_dir: ${inference_dir}
+  readme: egs3/TEMPLATE/tse/src/hf_model_repo_readme_template.md
+  include:
+    # Include recipe code when the packed model depends on local modules.
+    - ${recipe_dir}/src
+  exclude:
+    # These patterns are applied while copying `${exp_dir}` and any included
+    # directories.
+    - inference
+    - inference_*
+    - last.ckpt
+    - "**/step*.ckpt"
+    - "**/*.log"
+    - "**/tensorboard/**"
+    - "**/wandb/**"
+  files:
+    # Named artifacts appear in `meta.yaml` and can be resolved by
+    # `InferenceModel.from_packed(...)`.
+    model_file: ${exp_dir}/last.ckpt
+
+##########################################################
+#                  UPLOAD MODEL SETTING                  #
+##########################################################
+# Upload requires `huggingface-cli` and a valid Hugging Face login.
+# `upload_model` uploads `${pack_model.out_dir}` to this repo, creating it if
+# needed.
+upload_model:
+  hf_repo: yourname/your-model-repo

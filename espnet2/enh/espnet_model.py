@@ -320,28 +320,37 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         speech_pre, feature_mix, feature_pre, others = self.forward_enhance(
             speech_mix, speech_lengths, additional, fs=fs
         )
+        # for models like SVoice that output multiple lists of separated signals
+        pre_is_multi_list = isinstance(speech_pre[0], (list, tuple))
 
         ###################################
         # De-normalize the signal variance
         if self.normalize_variance_per_ch and speech_pre is not None:
             if mix_std_.ndim > 2:
                 mix_std_ = mix_std_[:, :, self.ref_channel]
-            speech_pre = [sp * mix_std_ for sp in speech_pre]
+            if pre_is_multi_list:
+                speech_pre = [[sp * mix_std_ for sp in sps] for sps in speech_pre]
+            else:
+                speech_pre = [sp * mix_std_ for sp in speech_pre]
         elif self.normalize_variance and speech_pre is not None:
             if mix_std_.ndim > 2:
                 mix_std_ = mix_std_.squeeze(2)
-            speech_pre = [sp * mix_std_ for sp in speech_pre]
+            if pre_is_multi_list:
+                speech_pre = [[sp * mix_std_ for sp in sps] for sps in speech_pre]
+            else:
+                speech_pre = [sp * mix_std_ for sp in speech_pre]
 
         # resample back to the original input sample rate
         if self.always_forward_in_48k and fs_tuple is not None:
             fs2, fs0 = fs_tuple
             speech_lengths = speech_lengths0
-            speech_pre = [
-                torchaudio.functional.resample(sp, fs2, fs0)[
-                    ..., : speech_lengths0.max()
-                ]
-                for sp in speech_pre
+            func = lambda sp: torchaudio.functional.resample(sp, fs2, fs0)[
+                ..., : speech_lengths0.max()
             ]
+            if pre_is_multi_list:
+                speech_pre = [[func(sp) for sp in sps] for sps in speech_pre]
+            else:
+                speech_pre = [func(sp) for sp in speech_pre]
 
         # loss computation
         loss, stats, weight, perm = self.forward_loss(

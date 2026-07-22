@@ -1,0 +1,87 @@
+builder:
+  dataset_path: data
+  source_env_var: LIBRISPEECH   # Make sure this env variable is properly set (e.g., in path.sh)
+  dataset_env_var: LIBRIMIX   # Make sure this env variable is properly set (e.g., in path.sh)
+  required_splits:
+    # ========== clean 2-speaker mixtures (16 kHz, max mode) ==========
+    - 2mix_16k_max_train-100_mix-clean  # 100-hour subset
+    - 2mix_16k_max_train-360_mix-clean  # 360-hour subset
+    - 2mix_16k_max_train_mix-clean      # 460-hour full training set
+    - 2mix_16k_max_dev_mix-clean
+    - 2mix_16k_max_test_mix-clean
+    # [Note] You can add additional splits below if needed
+
+dataset:
+  supported_splits:
+    # ========== clean 2-speaker mixtures (16 kHz, max mode) ==========
+    - 2mix_16k_max_train-100_mix-clean
+    - 2mix_16k_max_train-360_mix-clean
+    - 2mix_16k_max_train_mix-clean
+    - 2mix_16k_max_dev_mix-clean
+    - 2mix_16k_max_test_mix-clean
+    # ========== noisy 2-speaker mixtures (16 kHz, max mode) ==========
+    - 2mix_16k_max_train-100_mix-both
+    - 2mix_16k_max_train-360_mix-both
+    - 2mix_16k_max_train_mix-both
+    - 2mix_16k_max_dev_mix-both
+    - 2mix_16k_max_test_mix-both
+    # ========== noisy 1-speaker mixtures (16 kHz, max mode) ==========
+    - 2mix_16k_max_train-100_mix-single
+    - 2mix_16k_max_train-360_mix-single
+    - 2mix_16k_max_train_mix-single
+    - 2mix_16k_max_dev_mix-single
+    - 2mix_16k_max_test_mix-single
+    # ========== clean 2-speaker mixtures (16 kHz, min mode) ==========
+    - 2mix_16k_min_train-100_mix-clean
+    - 2mix_16k_min_train-360_mix-clean
+    - 2mix_16k_min_train_mix-clean
+    - 2mix_16k_min_dev_mix-clean
+    - 2mix_16k_min_test_mix-clean
+    # ========== noisy 2-speaker mixtures (16 kHz, min mode) ==========
+    - 2mix_16k_min_train-100_mix-both
+    - 2mix_16k_min_train-360_mix-both
+    - 2mix_16k_min_train_mix-both
+    - 2mix_16k_min_dev_mix-both
+    - 2mix_16k_min_test_mix-both
+    # ========== noisy 1-speaker mixtures (16 kHz, min mode) ==========
+    - 2mix_16k_min_train-100_mix-single
+    - 2mix_16k_min_train-360_mix-single
+    - 2mix_16k_min_train_mix-single
+    - 2mix_16k_min_dev_mix-single
+    - 2mix_16k_min_test_mix-single
+    # ========== clean 2-speaker mixtures (8 kHz, max mode) ==========
+    - 2mix_8k_max_train-100_mix-clean
+    - 2mix_8k_max_train-360_mix-clean
+    - 2mix_8k_max_train_mix-clean
+    - 2mix_8k_max_dev_mix-clean
+    - 2mix_8k_max_test_mix-clean
+    # ========== noisy 2-speaker mixtures (8 kHz, max mode) ==========
+    - 2mix_8k_max_train-100_mix-both
+    - 2mix_8k_max_train-360_mix-both
+    - 2mix_8k_max_train_mix-both
+    - 2mix_8k_max_dev_mix-both
+    - 2mix_8k_max_test_mix-both
+    # ========== noisy 1-speaker mixtures (8 kHz, max mode) ==========
+    - 2mix_8k_max_train-100_mix-single
+    - 2mix_8k_max_train-360_mix-single
+    - 2mix_8k_max_train_mix-single
+    - 2mix_8k_max_dev_mix-single
+    - 2mix_8k_max_test_mix-single
+    # ========== clean 2-speaker mixtures (8 kHz, min mode) ==========
+    - 2mix_8k_min_train-100_mix-clean
+    - 2mix_8k_min_train-360_mix-clean
+    - 2mix_8k_min_train_mix-clean
+    - 2mix_8k_min_dev_mix-clean
+    - 2mix_8k_min_test_mix-clean
+    # ========== noisy 2-speaker mixtures (8 kHz, min mode) ==========
+    - 2mix_8k_min_train-100_mix-both
+    - 2mix_8k_min_train-360_mix-both
+    - 2mix_8k_min_train_mix-both
+    - 2mix_8k_min_dev_mix-both
+    - 2mix_8k_min_test_mix-both
+    # ========== noisy 1-speaker mixtures (8 kHz, min mode) ==========
+    - 2mix_8k_min_train-100_mix-single
+    - 2mix_8k_min_train-360_mix-single
+    - 2mix_8k_min_train_mix-single
+    - 2mix_8k_min_dev_mix-single
+    - 2mix_8k_min_test_mix-single
