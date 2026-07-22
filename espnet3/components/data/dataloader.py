@@ -74,6 +74,8 @@ class DistributedSyncIterator:
                 batch = None
                 has_next = torch.zeros(1, device=device)
             torch.distributed.all_reduce(has_next, op=torch.distributed.ReduceOp.MIN)
+            # After the all-reduce, has_next is 0 on all ranks if any rank's 
+            # iterator is exhausted.
             if has_next.item() == 0:
                 return
             yield batch
@@ -301,10 +303,8 @@ class DataLoaderBuilder:
             total_batches = len(batches)
             remainder = total_batches % world_size
             if remainder != 0:
-                # Drop tail batches so each rank receives the same number of
-                # INPUT sampler batches. Iter factories may still emit uneven
-                # OUTPUT batch counts per rank (e.g. ChunkIterFactory);
-                # DistributedSyncIterator below aligns those at iteration time.
+                # Drop tail batches so each rank sees the same number of batches.
+                # This avoids DDP barrier deadlocks when per-rank batch counts differ.
                 keep = total_batches - remainder
                 logger.warning(
                     "[%s] Dropping %s tail batches to align with world_size=%s "
