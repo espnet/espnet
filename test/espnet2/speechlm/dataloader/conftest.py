@@ -1,6 +1,6 @@
 """Pytest configuration with lightweight stubs for optional heavy dependencies.
 
-Modeled after test/espnet3/conftest.py. Injects stubs for arkive, duckdb,
+Modeled after test/espnet3/conftest.py. Injects stubs for omniio, duckdb,
 pyarrow, lhotse, and soundfile so that TextReader, DialogueReader,
 SingleDataset, etc. can be imported without the real packages.
 """
@@ -20,37 +20,48 @@ def pytest_configure():
     # Force CPU-only tests
     os.environ.setdefault("CUDA_VISIBLE_DEVICES", "")
 
-    # ---- arkive stubs ----
-    if "arkive" not in sys.modules:
-        arkive = types.ModuleType("arkive")
-        arkive.__spec__ = importlib.machinery.ModuleSpec("arkive", loader=None)
-        arkive.__path__ = []
-        _install_stub("arkive", arkive)
+    # ---- omniio stubs ----
+    # Mirror the real omniio layout used by the loaders:
+    #   audio_loader -> ``from omniio.interface import audio_read``
+    #   text_loader  -> ``from omniio.text.read import text_read_local``
+    if "omniio" not in sys.modules:
+        omniio = types.ModuleType("omniio")
+        omniio.__spec__ = importlib.machinery.ModuleSpec("omniio", loader=None)
+        omniio.__path__ = []
+        _install_stub("omniio", omniio)
 
-        arkive_text = types.ModuleType("arkive.text")
-        arkive_text.__spec__ = importlib.machinery.ModuleSpec(
-            "arkive.text", loader=None
-        )
-        arkive_text.__path__ = []
-        _install_stub("arkive.text", arkive_text)
-
-        arkive_text_write_utils = types.ModuleType("arkive.text.write_utils")
-        arkive_text_write_utils.__spec__ = importlib.machinery.ModuleSpec(
-            "arkive.text.write_utils", loader=None
+        # omniio.interface.audio_read used by audio_loader
+        omniio_interface = types.ModuleType("omniio.interface")
+        omniio_interface.__spec__ = importlib.machinery.ModuleSpec(
+            "omniio.interface", loader=None
         )
 
-        def _decompress_text_data(data_bytes):
-            raise NotImplementedError("stub: arkive not installed")
-
-        arkive_text_write_utils._decompress_text_data = _decompress_text_data
-        _install_stub("arkive.text.write_utils", arkive_text_write_utils)
-
-        # arkive.audio_read used by audio_loader
         def _audio_read(*args, **kwargs):
-            raise NotImplementedError("stub: arkive not installed")
+            raise NotImplementedError("stub: omniio not installed")
 
-        arkive.audio_read = _audio_read
-        _install_stub("arkive", arkive)
+        omniio_interface.audio_read = _audio_read
+        omniio.interface = omniio_interface
+        _install_stub("omniio.interface", omniio_interface)
+
+        # omniio.text.read.text_read_local used by text_loader
+        omniio_text = types.ModuleType("omniio.text")
+        omniio_text.__spec__ = importlib.machinery.ModuleSpec(
+            "omniio.text", loader=None
+        )
+        omniio_text.__path__ = []
+        _install_stub("omniio.text", omniio_text)
+
+        omniio_text_read = types.ModuleType("omniio.text.read")
+        omniio_text_read.__spec__ = importlib.machinery.ModuleSpec(
+            "omniio.text.read", loader=None
+        )
+
+        def _text_read_local(*args, **kwargs):
+            raise NotImplementedError("stub: omniio not installed")
+
+        omniio_text_read.text_read_local = _text_read_local
+        omniio_text.read = omniio_text_read
+        _install_stub("omniio.text.read", omniio_text_read)
 
     # ---- duckdb stub ----
     if "duckdb" not in sys.modules:

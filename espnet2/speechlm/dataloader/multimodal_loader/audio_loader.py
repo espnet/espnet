@@ -16,11 +16,9 @@ except ImportError:
     kaldiio = None
 
 try:
-    from arkive import audio_read
+    from omniio.interface import audio_read
 except ImportError:
-    raise ImportError(
-        "arkive is not installed. Install at https://github.com/wanchichen/arkive"
-    )
+    audio_read = None
 
 try:
     import duckdb
@@ -37,10 +35,10 @@ except ImportError:
     )
 
 
-class ArkiveAudioReader:
-    """Dict-like lazy audio reader using arkive parquets.
+class OmniIOAudioReader:
+    """Dict-like lazy audio reader using omniio parquets.
 
-    Reads audio data from arkive parquet files. Audio is accessed via byte
+    Reads audio data from omniio parquet files. Audio is accessed via byte
     offsets and time boundaries stored in the parquet metadata.
 
     Returns:
