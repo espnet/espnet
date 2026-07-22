@@ -1,11 +1,4 @@
-"""VERSA-based codec metric wrapper for the measure stage.
-
-Ported from the reference TTS recipe
-(``NewGamezzz/espnet:libritts_vits/egs3/libritts/tts/src/metrics/versa.py``)
-with two changes: ``text_key`` is optional (codec reconstruction evaluation
-has no transcript), and inline ``score_config`` objects coming from Hydra
-are converted out of OmegaConf containers before being dumped to YAML.
-"""
+"""VERSA-based codec metric wrapper for the measure stage."""
 
 from __future__ import annotations
 
@@ -24,11 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 class VersaMetric(BaseMetric):
-    """Wrap versa.bin.scorer.
-
-    The config of the versa metrics must be provided in YAML files.
-    This will dump the versa config to the experiment directory.
-    """
+    """Wrap versa.bin.scorer."""
 
     def __init__(
         self,
