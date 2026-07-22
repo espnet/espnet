@@ -26,7 +26,8 @@ _CFG = _load_builder_config()
 
 def _scan_subset_entries(subset_dir: Path) -> list[tuple[str, Path, str, str]]:
     """
-    Scan a subset directory and return a list of (utt_id, wav_path, text, spk_key) tuples.
+    Scan a subset directory and return a list of
+    (utt_id, wav_path, text, spk_key) tuples.
 
     Args:
         subset_dir: Path to the subset directory (e.g., "LibriTTS/train-clean-100")
