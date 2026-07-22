@@ -90,7 +90,7 @@ class LibriTTSBuilder(DatasetBuilder):
             This method:
             1. Checks for the presence of required LibriTTS subsets.
             2. If not present, it runs the download script for each missing subset.
-            3. Verifies that the required subsets are present after the download 
+            3. Verifies that the required subsets are present after the download
                attempt.
 
         """
