@@ -128,15 +128,7 @@ class LibriTTSCodecDataset(TorchDataset):
         return len(self._entries)
 
     def keys(self) -> list[str]:
-        """Return utterance IDs in manifest order.
-
-        ESPnet's chunk/sequence iterators sample batches of utterance-ID
-        keys (from `UnsortedBatchSampler` reading the manifest as a key
-        file) and index datasets with those keys directly, so
-        `__getitem__` must accept both a positional int (plain
-        `torch.utils.data.DataLoader` usage) and a utt_id string (ESPnet
-        iterator usage).
-        """
+        """Return utterance IDs in manifest order."""
         return [entry.utt_id for entry in self._entries]
 
     def __getitem__(self, idx: int | str) -> dict[str, Any]:
