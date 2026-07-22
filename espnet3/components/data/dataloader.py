@@ -74,7 +74,7 @@ class DistributedSyncIterator:
                 batch = None
                 has_next = torch.zeros(1, device=device)
             torch.distributed.all_reduce(has_next, op=torch.distributed.ReduceOp.MIN)
-            # After the all-reduce, has_next is 0 on all ranks if any rank's 
+            # After the all-reduce, has_next is 0 on all ranks if any rank's
             # iterator is exhausted.
             if has_next.item() == 0:
                 return

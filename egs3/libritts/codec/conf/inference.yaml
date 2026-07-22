@@ -33,4 +33,4 @@ output_fn: src.inference.build_output
 output_artifacts:
   wav:
     type: wav
-    sample_rate: 24000  
+    sample_rate: 24000
