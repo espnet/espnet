@@ -1,0 +1,6 @@
+tokenizer_config:
+    seed: 45
+# Paper AS-2M values (arXiv:2212.09058 Table 4). Stage 4 will overlay
+# these with corpus-computed stats if use_corpus_fbank_stats=true.
+fbank_mean: 15.66439
+fbank_std: 6.38312
