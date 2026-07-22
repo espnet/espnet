@@ -23,22 +23,14 @@ dataset:
       data_src_args:
         split: test
         inference: true
-  # No preprocessor: AudioCoding takes the raw mono waveform directly.
 
 model:
   _target_: espnet2.bin.gan_codec_inference.AudioCoding
-  # Espnet2-style training config dumped by save_espnet_config during the
-  # train stage.
   train_config: ${exp_dir}/config.yaml
-  # Averaged espnet2-style weights written by AverageCheckpointsCallback
-  # (5-best by valid/mel_loss, "model." prefix already stripped). Do NOT
-  # point this at last.ckpt: GANCodecTask.build_model_from_file loads with
-  # strict=False, so Lightning's "model."-prefixed keys would silently load
-  # nothing and inference would run on random weights.
-  model_file: ${exp_dir}/valid.mel_loss.ave_5best.pth
+  model_file: ${exp_dir}/last.ckpt
 
 output_fn: src.inference.build_output
 output_artifacts:
   wav:
     type: wav
-    sample_rate: 24000  # matches model.codec_conf.sampling_rate
+    sample_rate: 24000  

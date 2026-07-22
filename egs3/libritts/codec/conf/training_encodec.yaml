@@ -8,10 +8,6 @@
 ##########################################################
 #                  SYSTEM AND PATH SETTING               #
 ##########################################################
-# `task` is used by espnet3.utils.task_utils.get_espnet_model to build the
-# model exactly the way espnet2's CLI would (GANCodecTask.build_model), so
-# `model:` below is the argparse-namespace-shaped config for that task
-# (`codec`, `codec_conf`), not a raw Hydra `_target_` block.
 task: espnet2.tasks.gan_codec.GANCodecTask
 
 num_device: 1
@@ -28,8 +24,6 @@ exp_tag: train_encodec_libritts
 ##########################################################
 #                    DATASET DEFINITION                  #
 ##########################################################
-# `data_src` is omitted, so ESPnet3 loads `${recipe_dir}/dataset/__init__.py`
-# and instantiates its exported `LibriTTSCodecDataset`.
 create_dataset:
   recipe_dir: ${recipe_dir}
 
@@ -140,9 +134,6 @@ model:
 ##########################################################
 #            OPTIMIZER & SCHEDULER SETTING               #
 ##########################################################
-# Named multi-optimizer path: `params: generator` / `params: discriminator`
-# match against `model.codec.generator.*` / `model.codec.discriminator.*`,
-# which `ESPnetGANCodecModel.__init__` asserts exist.
 optimizers:
   generator:
     optimizer:
@@ -190,7 +181,7 @@ best_model_criterion:
   - - train/mel_loss
     - 5
     - min
-  - - train/total_count
+  - - step
     - 5
     - max
 
@@ -210,22 +201,10 @@ dataloader:
   train:
     iter_factory:
       _target_: espnet2.iterators.chunk_iter_factory.ChunkIterFactory
-      # Chunks per emitted batch, PER GPU (espnet3 shards whole sampler
-      # batches across ranks, so every rank keeps this full batch size).
-      # Note this differs from espnet2's chunk path, which divides the
-      # configured batch_size by world_size (abs_task.py
-      # build_chunk_iter_factory) - so on 4 GPUs the effective batch here
-      # is 16 chunks vs the egs2 encodec recipe's 4.
+      # Number of chunks / samples per batch per GPU. 
       batch_size: 4
       chunk_length: 61440
       num_cache_chunks: 64
-      # Matches egs2/libritts/codec1/conf/tuning/train_encodec.yaml's
-      # `num_iters_per_epoch: 10000`. For ChunkIterFactory this constructor
-      # kwarg is named `num_samples_per_epoch` (it caps batches per epoch,
-      # not raw samples - see espnet2/iterators/chunk_iter_factory.py). Only
-      # set on the train iterator: espnet2.tasks.abs_task.py's
-      # build_iter_factory hardcodes num_iters_per_epoch=None for valid, so
-      # validation always runs over the full dev set uncapped.
       num_samples_per_epoch: 10000
       shuffle: true
       num_workers: 4
@@ -239,7 +218,7 @@ dataloader:
   valid:
     iter_factory:
       _target_: espnet2.iterators.chunk_iter_factory.ChunkIterFactory
-      batch_size: 4        # per GPU; see the train iter_factory comment
+      batch_size: 4        
       chunk_length: 61440
       num_cache_chunks: 64
       shuffle: false
