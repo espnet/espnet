@@ -1,10 +1,5 @@
 #!/usr/bin/env python3
-"""Generic runner template for System-based codec experiments.
-
-Unlike `egs3/TEMPLATE/asr`, there is no `train_tokenizer` stage: GAN-based
-neural codec tasks (`espnet2.tasks.gan_codec.GANCodecTask` and similar) train
-directly on raw audio, with no text/tokenizer pipeline.
-"""
+"""Generic runner template for System-based codec experiments."""
 
 from __future__ import annotations
 

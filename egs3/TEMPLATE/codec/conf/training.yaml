@@ -9,10 +9,6 @@
 # - `create_dataset`: uses `create_dataset`
 # - `collect_stats`: uses `dataset`, `dataloader`, `model`, and `parallel`
 # - `train`: uses most fields in this file
-#
-# Unlike egs3/TEMPLATE/asr, there is no `train_tokenizer` stage: GAN-based
-# neural codec tasks (espnet2.tasks.gan_codec.GANCodecTask and similar) train
-# directly on raw audio, with no text/tokenizer pipeline.
 
 ##########################################################
 #                  SYSTEM AND PATH SETTING               #
@@ -234,6 +230,12 @@ parallel:
 # misparse them as huge positional indices. Prefer hyphens over underscores
 # in utt_ids (LibriSpeech's own convention) if your source dataset's native
 # ID format is underscore-separated digit groups.
+#
+# Chunking makes the number of EMITTED batches per rank data-dependent
+# (chunks per utterance vary with length; utterances shorter than
+# `chunk_length` are dropped), so under DDP espnet3's
+# DistributedSyncIterator (espnet3/components/data/dataloader.py) ends the
+# epoch on all ranks as soon as the first rank's iterator is exhausted.
 dataloader:
   collate_fn:
     _target_: espnet2.train.collate_fn.CommonCollateFn
