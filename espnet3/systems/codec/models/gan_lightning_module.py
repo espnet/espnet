@@ -31,6 +31,7 @@ class GANLightningModule(ESPnetLightningModule):
     }
 
     def __init__(self, model, config):
+        """Initialize the module and disable Lightning's automatic optimization."""
         super().__init__(model, config)
         self.automatic_optimization = False
 
