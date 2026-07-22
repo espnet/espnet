@@ -96,7 +96,10 @@ bash run.sh
 - Git hash: `c4d0e10a4ab07dec3f3daaaabe3dd840fa23f38f`
   - Commit date: `Sun Jul 12 14:22:26 2026 -0400`
 
-## exp/asr_train_asr_conformer_raw_es_char
+## Results
+- ASR config: [conf/train_asr_conformer.yaml](conf/train_asr_conformer.yaml)
+- Decode config: [conf/decode_asr_transformer.yaml](conf/decode_asr_transformer.yaml)
+
 ### WER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
