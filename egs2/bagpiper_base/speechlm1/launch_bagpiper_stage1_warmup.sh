@@ -9,13 +9,11 @@ stage=1
 stop_stage=100
 
 num_nodes=1
-num_proc_per_node=8
+num_proc_per_node=4
 node_rank=0
 master_addr=localhost
 master_port=8888
 
-train_registered_specifier="dialogue:olmo3_think"
-valid_registered_specifier="dialogue:olmo3_think"
 
 ######## 1. Audio Training Data ########
 datasets="\
@@ -256,31 +254,15 @@ valid_registered_specifier="\
   text_to_audio:mmau_test_music:1.0 \
 "
 
-train_config=conf/train_stage2_qwen3_base.yaml
-resume_path=exp/opuslm_v2_stage1_warmup_base/checkpoints/step_8000/global_step2000/mp_rank_00_model_states.pt
+train_config=conf/train_stage1_qwen3_base.yaml
 
 stats_dir=exp/stats_qwen3
-exp_dir=exp/opuslm_v2_stage2_pretrain_base
+exp_dir=exp/bagpiper_v2_stage1_warmup_base
 mkdir -p ${exp_dir}
 
-# Test Configuration
-# test_registered_specifier=audio_to_text:librispeech_test_clean
-test_registered_specifier="\
-  audio_to_text:mmau_test_mini_music \
-  audio_to_text:mmau_test_mini_sound \
-  audio_to_text:mmau_test_mini_speech \
-  audio_to_text:librispeech_test_clean \
-  audio_to_text:librispeech_test_other \
-  text_to_audio:mmau_test_mini_music \
-  text_to_audio:mmau_test_mini_sound \
-  text_to_audio:mmau_test_mini_speech \
-  text_to_audio:librispeech_test_clean \
-  text_to_audio:librispeech_test_other \
-"
 inference_config=conf/inference.yaml
-inference_step=130000
-inference_nj=4
-inference_workers=3
+inference_step=10000
+inference_nj=1
 
 . utils/parse_options.sh
 
@@ -294,13 +276,11 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     --valid-registered-specifier "${valid_registered_specifier}" \
     --train-config ${train_config} \
     --output-dir ${stats_dir} \
-    --num-workers 188
+    --num-workers 88
 fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
   echo "Node rank: ${node_rank} launch"
-
-  # --save-loader-state \
 
   mkdir -p ${exp_dir}/logs
   timestamp=$(date +"%Y-%m-%d_%H_%M")
@@ -316,7 +296,8 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
       --train-config ${train_config} \
       --stats-dir ${stats_dir} \
       --output-dir ${exp_dir} \
-      --wandb-mode offline \
+      --save-loader-state \
+      --wandb-mode online \
       > ${exp_dir}/logs/train_node${node_rank}_${timestamp}.log 2>&1 
 fi
 
@@ -326,21 +307,16 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
   inference_dir=${exp_dir}/inference/${inference_tag}_step_${inference_step}
   mkdir -p ${inference_dir}
 
-  inference_ckpt=(${exp_dir}/checkpoints/step_${inference_step}/global_step*/mp_rank_00_model_states.pt)
-  inference_ckpt=${inference_ckpt[0]}
+  inference_ckpt=${exp_dir}/checkpoints/step_${inference_step}/global_step${inference_step}/mp_rank_00_model_states.pt
 
   echo "Start model inference. Log at ${inference_dir}/logs/inference.*.log"
-  for specifier in ${test_registered_specifier}; do
-    echo "Test specifier: ${specifier}. Log at: ${inference_dir}/logs/inference_${specifier//:/_}.*.log"
-    ${cuda_cmd} --gpu 1 JOB=1:${inference_nj} ${inference_dir}/logs/inference_${specifier//:/_}.JOB.log \
-      ../../../espnet2/speechlm/bin/inference.py \
-        --rank JOB --world-size ${inference_nj} \
-        --train-config ${exp_dir}/train.yaml \
-        --inference-config ${inference_config} \
-        --model-checkpoint ${inference_ckpt} \
-        --output-dir ${inference_dir} \
-        --test-registered-specifier "${specifier}" \
-        --num-worker ${inference_workers} &
-  done; wait
-  
+  ${cuda_cmd} JOB=1:${inference_nj} ${inference_dir}/logs/inference.JOB.log \
+    ../../../espnet2/speechlm/bin/inference.py \
+      --rank JOB --world-size ${inference_nj} \
+      --train-config ${exp_dir}/train.yaml \
+      --inference-config ${inference_config} \
+      --model-checkpoint ${inference_ckpt} \
+      --output-dir ${inference_dir} \
+      --test-registered-specifier "${test_registered_specifier}" \
+      --num-worker 1
 fi

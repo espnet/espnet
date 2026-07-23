@@ -36,17 +36,17 @@ test_registered_specifier+="dialogue:librispeech_test_clean dialogue:librispeech
 # test_registered_specifier+="dialogue:audiocaps_qa_test dialogue:cn_college_listen_mcq_test dialogue:dream_tts_mcq_test dialogue:public_sg_speech_qa_test dialogue:wavcaps_qa_test "
 
 train_config=conf/train_stage3_qwen3_base.yaml
-resume_path=exp/opuslm_v2_stage2_pretrain_base/checkpoints/step_260000
+resume_path=exp/bagpiper_v2_stage2_pretrain_base/checkpoints/step_260000
 
 stats_dir=exp/stats_qwen3
-# exp_dir=exp/opuslm_v2_stage3_sft_qwen3_geneneration_v2
-# exp_dir=exp/opuslm_v2_stage3_sft_gen_v1
-# exp_dir=exp/opuslm_v2_stage3_sft_qwen3_geneneration_v2_speech_only
-# exp_dir=exp/opuslm_v2_stage3_sft_qwen3_v2
-# exp_dir=exp/opuslm_v2_stage3_sft_all_260ksteps_train_v1
-# exp_dir=exp/opuslm_v2_stage3_sft_qwen3_combine_v1
-# exp_dir=exp/opuslm_v2_stage3_sft_qwen3_combine_v1_2node
-exp_dir=exp/opuslm_v2_stage3_sft_qwen3_combine_v2_3node
+# exp_dir=exp/bagpiper_v2_stage3_sft_qwen3_geneneration_v2
+# exp_dir=exp/bagpiper_v2_stage3_sft_gen_v1
+# exp_dir=exp/bagpiper_v2_stage3_sft_qwen3_geneneration_v2_speech_only
+# exp_dir=exp/bagpiper_v2_stage3_sft_qwen3_v2
+# exp_dir=exp/bagpiper_v2_stage3_sft_all_260ksteps_train_v1
+# exp_dir=exp/bagpiper_v2_stage3_sft_qwen3_combine_v1
+# exp_dir=exp/bagpiper_v2_stage3_sft_qwen3_combine_v1_2node
+exp_dir=exp/bagpiper_v2_stage3_sft_qwen3_combine_v2_3node
 mkdir -p ${exp_dir}
 
 inference_config=conf/inference_sft.yaml
