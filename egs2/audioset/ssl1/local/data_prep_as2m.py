@@ -63,8 +63,9 @@ def cut_one(arg):
         return False
 
 
-def parse_csv(csv_path, src_dir, cut_dir, existing_src, cut_existing,
-              entries_out, cut_jobs_out):
+def parse_csv(
+    csv_path, src_dir, cut_dir, existing_src, cut_existing, entries_out, cut_jobs_out
+):
     n_missing = 0
     with open(csv_path) as f:
         for line in f:
@@ -141,17 +142,24 @@ def main():
             target_list,
             cut_jobs,
         )
-        print(f"  {csv_name}: kept {len(target_list)} cumulative, missing {n_missing}", flush=True)
+        print(
+            f"  {csv_name}: kept {len(target_list)} cumulative, missing {n_missing}",
+            flush=True,
+        )
 
     # 3) Generate cut_wav files (parallel, idempotent).
     if cut_jobs:
-        print(f"[3/4] Generating {len(cut_jobs)} cut_wav files "
-              f"({args.n_proc} workers)...", flush=True)
+        print(
+            f"[3/4] Generating {len(cut_jobs)} cut_wav files "
+            f"({args.n_proc} workers)...",
+            flush=True,
+        )
         os.makedirs(os.path.join(args.data_read, "cut_wav"), exist_ok=True)
         with Pool(processes=args.n_proc) as p:
             ok = 0
-            for r in tqdm(p.imap_unordered(cut_one, cut_jobs, chunksize=64),
-                          total=len(cut_jobs)):
+            for r in tqdm(
+                p.imap_unordered(cut_one, cut_jobs, chunksize=64), total=len(cut_jobs)
+            ):
                 ok += int(r)
             print(f"  generated {ok}/{len(cut_jobs)}", flush=True)
     else:
@@ -162,9 +170,10 @@ def main():
     for entries, name in [(train_entries, "AudioSet"), (eval_entries, "eval")]:
         out_dir = os.path.join(args.data_write, name)
         os.makedirs(out_dir, exist_ok=True)
-        with open(os.path.join(out_dir, "wav.scp"), "w") as wav_f, open(
-            os.path.join(out_dir, "utt2spk"), "w"
-        ) as utt_f:
+        with (
+            open(os.path.join(out_dir, "wav.scp"), "w") as wav_f,
+            open(os.path.join(out_dir, "utt2spk"), "w") as utt_f,
+        ):
             for uttid, item in enumerate(entries):
                 print(f"as2m_20k-{name}-{uttid} {item['wav_path']}", file=wav_f)
                 print(f"as2m_20k-{name}-{uttid} dummy", file=utt_f)
