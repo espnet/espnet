@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import logging
 import re
 import shutil
 import subprocess
+import urllib.request
 from importlib import resources
 from pathlib import Path
 
@@ -12,6 +14,7 @@ from espnet3.components.data.dataset_builder import DatasetBuilder
 from espnet3.utils.config_utils import load_config_with_defaults
 
 TRANSCRIPT_RE = re.compile(r"^(?P<words>.+?)\s+\((?P<src>[^)]+)\)\s*$")
+logger = logging.getLogger(__name__)
 
 
 def _load_builder_config() -> dict:
@@ -115,7 +118,11 @@ class MiniAn4Builder(DatasetBuilder):
         dataset_root = recipe_root / _CFG["dataset_path"]
         archive = (recipe_root / _CFG["archive_path"]).resolve()
         if not archive.exists():
-            raise FileNotFoundError(f"Archive not found: {archive}")
+            url = _CFG.get("archive_url", "")
+            if not url:
+                raise FileNotFoundError(f"Archive not found: {archive}")
+            logger.info("Downloading archive | url=%s -> %s", url, archive)
+            urllib.request.urlretrieve(url, str(archive))
         dataset_root.mkdir(parents=True, exist_ok=True)
         _normalize_downloads_layout(dataset_root)
         if self.is_source_prepared(recipe_dir=recipe_dir):
