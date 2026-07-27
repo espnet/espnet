@@ -317,7 +317,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
       --stats-dir ${stats_dir} \
       --output-dir ${exp_dir} \
       --wandb-mode offline \
-      > ${exp_dir}/logs/train_node${node_rank}_${timestamp}.log 2>&1 
+      > ${exp_dir}/logs/train_node${node_rank}_${timestamp}.log 2>&1
 fi
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
@@ -342,5 +342,5 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         --test-registered-specifier "${specifier}" \
         --num-worker ${inference_workers} &
   done; wait
-  
+
 fi

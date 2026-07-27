@@ -298,7 +298,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
       --output-dir ${exp_dir} \
       --save-loader-state \
       --wandb-mode online \
-      > ${exp_dir}/logs/train_node${node_rank}_${timestamp}.log 2>&1 
+      > ${exp_dir}/logs/train_node${node_rank}_${timestamp}.log 2>&1
 fi
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then

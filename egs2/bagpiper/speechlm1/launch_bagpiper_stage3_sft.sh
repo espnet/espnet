@@ -72,7 +72,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 fi
 
 
-# 
+#
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
   echo "Node rank: ${node_rank} launch"
 
@@ -93,7 +93,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
       --resume-path ${resume_path} \
       --save-loader-state \
       --wandb-mode online \
-      > ${exp_dir}/logs/train_node${node_rank}_${timestamp}.log 2>&1 
+      > ${exp_dir}/logs/train_node${node_rank}_${timestamp}.log 2>&1
 fi
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
@@ -118,5 +118,5 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         --test-registered-specifier "${specifier}" \
         --num-worker ${inference_workers} &
   done; wait
-  
+
 fi
