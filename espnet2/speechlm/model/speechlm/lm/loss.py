@@ -11,6 +11,7 @@ import torch
 from liger_kernel.ops.fused_linear_cross_entropy import (
     LigerFusedLinearCrossEntropyFunction,
 )
+from torch.distributed.tensor import Partial
 
 
 def fused_cross_entropy_loss(
@@ -45,9 +46,18 @@ def fused_cross_entropy_loss(
         ce_sum and stats['z_loss'] are raw sums (not divided by count).
         The caller is responsible for normalization.
     """
-    # Convert DTensor to regular tensor if needed (e.g. FSDP2)
+    # Convert DTensor to regular tensor if needed (e.g. FSDP2). lm_head is
+    # never run through its own module forward — its weight is used directly
+    # here — so FSDP2 never arms its reduce-scatter for the grad. Pass
+    # grad_placements=[Partial("avg")] so full_tensor()'s backward reduces the
+    # gradient across the DP mesh (mean). The default tags the per-rank grad as
+    # Replicate and keeps each rank's local slice, silently dropping the other
+    # ranks' contributions. One Partial("avg") per mesh dim covers both FSDP
+    # (1-D mesh) and HSDP (2-D: Replicate over dp_replicate, Shard over dp_shard).
     if hasattr(lm_head_weight, "full_tensor"):
-        lm_head_weight = lm_head_weight.full_tensor()
+        lm_head_weight = lm_head_weight.full_tensor(
+            grad_placements=[Partial("avg")] * lm_head_weight.device_mesh.ndim
+        )
     # The consolidated weight stays in storage dtype (fp32) after full_tensor(),
     # so cast it back to the compute dtype manually. In Liger, using
     # accum_dtype=torch.float32 would improve grad accumulation precision here,
