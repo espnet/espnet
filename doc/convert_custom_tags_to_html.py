@@ -165,12 +165,21 @@ def replace_custom_tags(content):
             # in base64 format.
             return match.group(0)
 
-        if tag_name.split()[0] not in ALL_HTML_TAGS or (
+        first_part = tag_name.split()[0]
+
+        # Handle closing tags like </a>, </div>, etc.
+        if first_part.startswith("/"):
+            base_tag = first_part[1:]
+            if base_tag in ALL_HTML_TAGS:
+                return match.group(0)
+            return f"&lt;{tag_name}&gt;"
+
+        if first_part not in ALL_HTML_TAGS or (
             len(tag_name.split()) > 1 and "=" not in tag_name
         ):
             return f"&lt;{tag_name}&gt;"
 
-        end_tag_pattern = re.compile(f"</{tag_name.split()[0]}>")
+        end_tag_pattern = re.compile(f"</{first_part}>")
         end_tag_match = end_tag_pattern.search(content, match.end())
         if not end_tag_match:
             return f"&lt;{tag_name}&gt;"

@@ -1,12 +1,12 @@
 """Tests for espnet2/speechlm/dataloader/multimodal_loader/audio_loader.py.
 
 All tests use pytest.importorskip — they skip in CI but run when
-real dependencies (arkive, duckdb, lhotse, kaldiio) are installed.
+real dependencies (omniio, duckdb, lhotse, kaldiio) are installed.
 """
 
 import pytest
 
-arkive = pytest.importorskip("arkive", reason="arkive not installed")
+omniio = pytest.importorskip("omniio", reason="omniio not installed")
 duckdb = pytest.importorskip("duckdb", reason="duckdb not installed")
 pa = pytest.importorskip("pyarrow", reason="pyarrow not installed")
 lhotse = pytest.importorskip("lhotse", reason="lhotse not installed")
@@ -137,15 +137,15 @@ class TestLhotseAudioReader:
         assert audio.shape == (1, 16000)  # mono → [1, N]
 
 
-# ---------- ArkiveAudioReader ----------
+# ---------- OmniIOAudioReader ----------
 
 
-class TestArkiveAudioReader:
-    def test_arkive_audio_smoke(self):
-        """Minimal smoke test — only runs with full arkive/duckdb/pyarrow stack."""
+class TestOmniIOAudioReader:
+    def test_omniio_audio_smoke(self):
+        """Minimal smoke test — only runs with full omniio/duckdb/pyarrow stack."""
         from espnet2.speechlm.dataloader.multimodal_loader.audio_loader import (
-            ArkiveAudioReader,
+            OmniIOAudioReader,
         )
 
         # Just verify the class is importable and callable
-        assert callable(ArkiveAudioReader)
+        assert callable(OmniIOAudioReader)
