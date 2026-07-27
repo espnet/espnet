@@ -260,7 +260,7 @@ stats_dir=exp/stats_qwen3
 exp_dir=exp/bagpiper_v2_stage1_warmup_base
 mkdir -p ${exp_dir}
 
-inference_config=conf/inference.yaml
+inference_config=conf/inference_pt.yaml
 inference_step=10000
 inference_nj=1
 

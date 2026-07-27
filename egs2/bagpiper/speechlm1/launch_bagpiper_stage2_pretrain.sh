@@ -277,7 +277,7 @@ test_registered_specifier="\
   text_to_audio:librispeech_test_clean \
   text_to_audio:librispeech_test_other \
 "
-inference_config=conf/inference.yaml
+inference_config=conf/inference_pt.yaml
 inference_step=130000
 inference_nj=4
 inference_workers=3

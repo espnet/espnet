@@ -1,8 +1,16 @@
 job_type: speechlm
 
+# Reconstructed config that reproduces the model behind the public
+# stage-2 pretrained BASE checkpoint (exp/opuslm_v2_stage2_pretrain_base,
+# step 260000). The original launch script referenced this filename but it
+# was never committed; recreated here as the base-tokenizer analog of
+# conf/train_stage2_qwen3.yaml (Qwen3-8B-Base backbone/tokenizer).
+# Vocab check: 256 special + 151936 (Qwen3-8B-Base) + 8200 (Xcodec 8x1025)
+# = 160392 = embed_tokens rows in the checkpoint.
+
 multimodal_io:
     text:
-        tokenizer_name: Qwen/Qwen3-32B
+        tokenizer_name: Qwen/Qwen3-8B-Base
     discrete_audio:
         codec_choice: Xcodec
         codec_hf_model_tag: hf-audio/xcodec-hubert-general
@@ -18,13 +26,15 @@ multimodal_io:
 
 model:
     model_choice: parallel
-    model_hf_tag: Qwen/Qwen3-32B
+    model_hf_tag: Qwen/Qwen3-8B-Base
     model_conf:
         attn_implementation: flash_attention_3
         dtype: bfloat16
-        compile_transformer_body: false
-        freeze_text_embeddings: false
-    activation_checkpointing: false
+        # NOTE: compile_transformer_body / freeze_text_embeddings appear in the
+        # original stage configs but are dead keys in the current espnet2/speechlm
+        # code (referenced nowhere). transformers 5.x silently drops them; 4.57.x
+        # forwards them into the HF constructor and crashes. Omitted here.
+    activation_checkpointing: true
 
 preprocessor:
     audio_input: continuous_audio
@@ -34,47 +44,14 @@ preprocessor:
 
 data_loading:
     batchfy_method: pack
-    batch_size: 5000
+    batch_size: 15000
     save_loader_state: false
     seed: 43
     num_workers: 6
 
 trainer:
-    type: titan
+    deepspeed_config: conf/deepspeed_stage2.json
     freeze_param: [multimodal_io_dict.discrete_audio, multimodal_io_dict.continuous_audio]
     max_step: 700000
     save_interval: 5000
     log_interval: 1
-
-    optimizer:
-        name: AdamW
-        lr: 0.0001
-        beta1: 0.9
-        beta2: 0.95
-        eps: 1.0e-8
-        weight_decay: 3.0e-7
-
-    lr_scheduler:
-        warmup_steps: 5000
-        decay_type: cosine
-
-    titan_config:
-        parallel_strategy: qwen3
-        # Communication
-        mixed_precision_param: bfloat16
-        mixed_precision_reduce: bfloat16
-
-        # Gradient Clipping
-        gradient_clipping: 1.0
-
-        # Activation Checkpointing
-        activation_checkpoint: false
-
-        # Torch Compile
-        compile: false
-        compile_mode: max-autotune
-
-        # FSDP
-        reshard_after_forward: default # Faster when memory is abundant
-        dp_shard: 8
-        dp_replicate: 1
