@@ -70,6 +70,9 @@ def fused_cross_entropy_loss(
     # Pre-mask: set ignored positions to ignore_index=0 (pad token)
     s0_targets[s0_mask == 0] = 0
 
+    # Slice [:3] for compatibility across Liger versions: older releases return
+    # (loss, z_loss, token_accuracy); newer ones append extra values (e.g.
+    # predicted_tokens). We only need the first three.
     s0_loss, s0_z_loss, s0_acc = LigerFusedLinearCrossEntropyFunction.apply(
         s0_hidden,  # _input: [B*T, H]
         lm_head_weight,  # weight: [V, H]
@@ -85,7 +88,7 @@ def fused_cross_entropy_loss(
         torch.float32,  # accum_dtype
         False,  # use_token_scaling
         True,  # return_token_accuracy
-    )
+    )[:3]
 
     # ---- Streams 1+: multimodal vocab subset (single call) ----
     mm_loss = torch.tensor(0.0, device=hidden_states.device)
@@ -127,7 +130,7 @@ def fused_cross_entropy_loss(
             torch.float32,  # accum_dtype
             False,  # use_token_scaling
             True,  # return_token_accuracy
-        )
+        )[:3]
 
     # ---- Combine ----
     count = (loss_mask[:, :, 0] != 0).float().sum()
