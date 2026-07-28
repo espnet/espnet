@@ -9,7 +9,7 @@ stage=1
 stop_stage=100
 
 num_nodes=1
-num_proc_per_node=4
+num_proc_per_node=8
 node_rank=0
 master_addr=localhost
 master_port=8888
@@ -257,12 +257,8 @@ valid_registered_specifier="\
 train_config=conf/train_stage1_qwen3_base.yaml
 
 stats_dir=exp/stats_qwen3
-exp_dir=exp/bagpiper_v2_stage1_warmup_base
+exp_dir=exp/bagpiper_stage1_warmup
 mkdir -p ${exp_dir}
-
-inference_config=conf/inference_pt.yaml
-inference_step=10000
-inference_nj=1
 
 . utils/parse_options.sh
 
@@ -276,7 +272,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     --valid-registered-specifier "${valid_registered_specifier}" \
     --train-config ${train_config} \
     --output-dir ${stats_dir} \
-    --num-workers 88
+    --num-workers 188
 fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
@@ -299,24 +295,4 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
       --save-loader-state \
       --wandb-mode online \
       > ${exp_dir}/logs/train_node${node_rank}_${timestamp}.log 2>&1
-fi
-
-if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
-  inference_tag=$(basename "${inference_config%.*}")
-
-  inference_dir=${exp_dir}/inference/${inference_tag}_step_${inference_step}
-  mkdir -p ${inference_dir}
-
-  inference_ckpt=${exp_dir}/checkpoints/step_${inference_step}/global_step${inference_step}/mp_rank_00_model_states.pt
-
-  echo "Start model inference. Log at ${inference_dir}/logs/inference.*.log"
-  ${cuda_cmd} JOB=1:${inference_nj} ${inference_dir}/logs/inference.JOB.log \
-    ../../../espnet2/speechlm/bin/inference.py \
-      --rank JOB --world-size ${inference_nj} \
-      --train-config ${exp_dir}/train.yaml \
-      --inference-config ${inference_config} \
-      --model-checkpoint ${inference_ckpt} \
-      --output-dir ${inference_dir} \
-      --test-registered-specifier "${test_registered_specifier}" \
-      --num-worker 1
 fi

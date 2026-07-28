@@ -25,34 +25,24 @@ train_registered_specifier+="dialogue:audiobench_train_v1 "
 
 valid_registered_specifier="text_to_audio:clotho_test"
 
-# test_registered_specifier="dialogue:generation_test_clean"
-# test_registered_specifier="dialogue:generation_test_audiocaps "
-# test_registered_specifier="dialogue:generation_mmau"
-
+test_registered_specifier="dialogue:generation_test_clean "
+test_registered_specifier+="dialogue:generation_test_audiocaps "
+test_registered_specifier+="dialogue:generation_mmau "
 test_registered_specifier+="dialogue:librispeech_test_clean dialogue:librispeech_test_other "
-# test_registered_specifier+="dialogue:mmau_test "
-# test_registered_specifier+="dialogue:mmar_test "
-# test_registered_specifier+="dialogue:airbench_test "
-# test_registered_specifier+="dialogue:audiocaps_qa_test dialogue:cn_college_listen_mcq_test dialogue:dream_tts_mcq_test dialogue:public_sg_speech_qa_test dialogue:wavcaps_qa_test "
+test_registered_specifier+="dialogue:mmau_test "
+test_registered_specifier+="dialogue:mmar_test "
+test_registered_specifier+="dialogue:airbench_test "
+test_registered_specifier+="dialogue:audiocaps_qa_test dialogue:cn_college_listen_mcq_test dialogue:dream_tts_mcq_test dialogue:public_sg_speech_qa_test dialogue:wavcaps_qa_test "
 
 train_config=conf/train_stage3_qwen3_base.yaml
-resume_path=exp/bagpiper_v2_stage2_pretrain_base/checkpoints/step_260000
+resume_path="<path-to-stage2-outcome>"
 
 stats_dir=exp/stats_qwen3
-# exp_dir=exp/bagpiper_v2_stage3_sft_qwen3_geneneration_v2
-# exp_dir=exp/bagpiper_v2_stage3_sft_gen_v1
-# exp_dir=exp/bagpiper_v2_stage3_sft_qwen3_geneneration_v2_speech_only
-# exp_dir=exp/bagpiper_v2_stage3_sft_qwen3_v2
-# exp_dir=exp/bagpiper_v2_stage3_sft_all_260ksteps_train_v1
-# exp_dir=exp/bagpiper_v2_stage3_sft_qwen3_combine_v1
-# exp_dir=exp/bagpiper_v2_stage3_sft_qwen3_combine_v1_2node
-exp_dir=exp/bagpiper_v2_stage3_sft_qwen3_combine_v2_3node
+exp_dir=exp/bagpiper_v2_stage3_sft
 mkdir -p ${exp_dir}
 
 inference_config=conf/inference_sft.yaml
-# inference_step=267570 #275140 #267570
-# inference_step=275000
-inference_step=272500
+inference_step=20000
 inference_nj=16
 inference_workers=3
 

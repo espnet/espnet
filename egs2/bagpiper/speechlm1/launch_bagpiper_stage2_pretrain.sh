@@ -14,8 +14,6 @@ node_rank=0
 master_addr=localhost
 master_port=8888
 
-train_registered_specifier="dialogue:olmo3_think"
-valid_registered_specifier="dialogue:olmo3_think"
 
 ######## 1. Audio Training Data ########
 datasets="\
@@ -257,14 +255,13 @@ valid_registered_specifier="\
 "
 
 train_config=conf/train_stage2_qwen3_base.yaml
-resume_path=exp/bagpiper_v2_stage1_warmup_base/checkpoints/step_8000/global_step2000/mp_rank_00_model_states.pt
+resume_path="<path-to-stage1-outcome>"
 
 stats_dir=exp/stats_qwen3
-exp_dir=exp/bagpiper_v2_stage2_pretrain_base
+exp_dir=exp/bagpiper_stage2_pretrain
 mkdir -p ${exp_dir}
 
 # Test Configuration
-# test_registered_specifier=audio_to_text:librispeech_test_clean
 test_registered_specifier="\
   audio_to_text:mmau_test_mini_music \
   audio_to_text:mmau_test_mini_sound \
@@ -300,8 +297,6 @@ fi
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
   echo "Node rank: ${node_rank} launch"
 
-  # --save-loader-state \
-
   mkdir -p ${exp_dir}/logs
   timestamp=$(date +"%Y-%m-%d_%H_%M")
   torchrun \
@@ -316,7 +311,9 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
       --train-config ${train_config} \
       --stats-dir ${stats_dir} \
       --output-dir ${exp_dir} \
-      --wandb-mode offline \
+      --resume-path "${resume_path}" \
+      --save-loader-state \
+      --wandb-mode online \
       > ${exp_dir}/logs/train_node${node_rank}_${timestamp}.log 2>&1
 fi
 
