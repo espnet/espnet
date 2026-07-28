@@ -2,13 +2,18 @@
 
 from __future__ import annotations
 
+import argparse
 import logging
 import os
 import time
 from pathlib import Path
-from typing import Any, Callable, Iterable, List, Sequence
+from typing import Any, Iterable, List, Sequence, Tuple
 
-from espnet3.utils.logging_utils import log_stage, set_stage_log_handler
+from espnet3.utils.logging_utils import (
+    log_stage,
+    log_stage_metadata,
+    set_stage_log_handler,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -40,11 +45,11 @@ def _get_process_rank() -> int:
 
 
 def _get_stage_log_mode(system: Any) -> str:
-    """Return normalized stage_log_mode from train_config, defaulting to rank0."""
+    """Return normalized stage_log_mode from training_config, defaulting to rank0."""
     mode = "rank0"
-    train_config = getattr(system, "train_config", None)
-    if train_config is not None:
-        mode = getattr(train_config, "stage_log_mode", mode)
+    training_config = getattr(system, "training_config", None)
+    if training_config is not None:
+        mode = getattr(training_config, "stage_log_mode", mode)
     return str(mode).lower()
 
 
@@ -64,23 +69,64 @@ def resolve_stages(
     return [s for s in stages if s in requested_set]
 
 
+def parse_cli_and_stage_args(
+    parser: argparse.ArgumentParser,
+    stages: Sequence[str],
+) -> Tuple[argparse.Namespace, List[str]]:
+    """Parse CLI arguments and expand the requested stage selection.
+
+    This helper is a thin wrapper around ``ArgumentParser.parse_args()`` plus
+    :func:`resolve_stages`. It keeps the runner entrypoints concise and ensures
+    the `"all"` shorthand is expanded consistently across recipes.
+
+    Args:
+        parser (argparse.ArgumentParser): Parser configured by the recipe
+            entrypoint. It is expected to define a ``--stages`` argument whose
+            value is compatible with ``resolve_stages(...)``.
+        stages (Sequence[str]): Ordered list of stage names supported by the
+            current runner, for example ``["create_dataset", "train", "infer"]``.
+
+    Returns:
+        Tuple[argparse.Namespace, List[str]]: A pair containing:
+            - the parsed CLI namespace returned by ``parser.parse_args()``
+            - the resolved list of stages to execute, preserving the canonical
+              order from ``stages``
+
+    Examples:
+        >>> parser = argparse.ArgumentParser()
+        >>> parser.add_argument("--stages", nargs="+", default=["all"])
+        >>> # If argv is: ["--stages", "infer", "train"]
+        >>> args, stages_to_run = parse_cli_and_stage_args(
+        ...     parser,
+        ...     ["create_dataset", "train", "infer"],
+        ... )
+        >>> stages_to_run
+        ['train', 'infer']
+
+    Notes:
+        The returned stage order is not the same as CLI input order when they
+        differ. The canonical order defined by ``stages`` always wins so stage
+        execution remains deterministic.
+    """
+    args = parser.parse_args()
+    stages_to_run = resolve_stages(args.stages, stages)
+    return args, stages_to_run
+
+
 def run_stages(
     system: Any,
     stages_to_run: Iterable[str],
-    dry_run: bool = False,
+    args: argparse.Namespace | None = None,
     log: logging.Logger | None = None,
-    on_stage_start: Callable[[str, logging.Logger], None] | None = None,
 ) -> None:
     """Invoke stage methods on ``system`` in order with logging and timing.
 
     Args:
         system: Object providing stage methods named in ``stages_to_run``.
         stages_to_run: Iterable of stage method names to execute.
-        dry_run: If True, log intended stages without executing them.
+        args: Parsed CLI arguments. ``dry_run`` and ``write_requirements`` are
+            read from here when present.
         log: Optional logger instance; defaults to module logger.
-        on_stage_start: Optional hook invoked after stage logging is configured.
-            This can be used to emit per-stage metadata (configs, environment,
-            requirements snapshots, etc.) into the newly attached log file.
 
     Raises:
         AttributeError: If a named stage method is missing on ``system``.
@@ -88,6 +134,7 @@ def run_stages(
         Exception: Re-raises any exception from a stage method.
     """
     log = log or logger
+    dry_run = bool(getattr(args, "dry_run", False))
     for stage in stages_to_run:
         fn = getattr(system, stage, None)
         if fn is None:
@@ -129,8 +176,7 @@ def run_stages(
                 Path(log_dir) if log_dir else None,
                 filename=filename,
             )
-            if on_stage_start is not None:
-                on_stage_start(stage, log)
+            log_stage_metadata(log, system=system, args=args)
 
             start = time.perf_counter()
             log.info("=== [START] stage: %s ===", stage)

@@ -4,24 +4,22 @@
 
 """Dataset implementation for multimodal data loading in SpeechLM training."""
 
+import ctypes
+import gc
 import json
 import logging
 import os
+import sys
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from typing import Any, Dict, List, Tuple
 
 import yaml
 from torch.utils.data import Dataset
 
-from espnet2.speechlm.dataloader.multimodal_loader.audio_loader import LhotseAudioReader
-from espnet2.speechlm.dataloader.multimodal_loader.text_loader import TextReader
+from espnet2.speechlm.dataloader.multimodal_loader import ALL_DATA_LOADERS
 
 logger = logging.getLogger(__name__)
 
-reader_types = {
-    "lhotse_audio": LhotseAudioReader,
-    "text": TextReader,
-}
 
 # TODO(Jinchuan): revisit the CPU memory usage for large-scale training. Check official
 # information as follow:
@@ -34,6 +32,20 @@ reader_types = {
 # to replace Python objects with non-refcounted representations such as Pandas, Numpy
 #  or PyArrow objects. Check out issue #13246 for more details on why this occurs and
 #  example code for how to workaround these problems.
+
+
+def _malloc_trim():
+    """Force glibc to release freed memory back to OS.
+
+    On Linux, Python's memory allocator keeps freed memory in pools.
+    This calls malloc_trim(0) to return unused heap memory to the OS.
+    """
+    if sys.platform == "linux":
+        try:
+            libc = ctypes.CDLL("libc.so.6")
+            libc.malloc_trim(0)
+        except (OSError, AttributeError):
+            pass  # malloc_trim not available
 
 
 def _load_dataset_worker(args):
@@ -60,6 +72,7 @@ class SingleDataset(Dataset):
     """
 
     def __init__(self, json_file: str, rank: int = 0, world_size: int = 1):
+
         # Load JSON
         with open(json_file, "r", encoding="utf-8") as f:
             data = json.load(f)
@@ -68,8 +81,16 @@ class SingleDataset(Dataset):
         data_entries = data["data_entry"]
         all_samples = data["samples"]
 
-        # Filter samples for this rank
-        self.samples = all_samples[rank::world_size]
+        # Filter samples for this rank.
+        # Use encode/decode to create NEW string objects in fresh contiguous memory.
+        # This allows original strings to be fully freed, avoiding fragmentation.
+        self.samples = [
+            s.encode("utf-8").decode("utf-8") for s in all_samples[rank::world_size]
+        ]
+
+        del data, all_samples
+        gc.collect()
+        _malloc_trim()
 
         # Build readers
         self.readers: Dict[str, Any] = {}
@@ -80,9 +101,10 @@ class SingleDataset(Dataset):
             reader_type = entry["reader"]
 
             # Create appropriate reader with valid_ids for this rank
-            if reader_type not in reader_types:
+            if reader_type not in ALL_DATA_LOADERS:
                 raise ValueError(f"Unknown reader type: {reader_type}")
-            reader_class = reader_types[reader_type]
+
+            reader_class = ALL_DATA_LOADERS[reader_type]
             self.readers[name] = reader_class(path, valid_ids=self.samples)
 
     @property
@@ -172,16 +194,12 @@ class CombinedDataset(Dataset):
         # Use ProcessPoolExecutor for parallel loading
         max_workers = min(num_worker, len(dataset_paths))
         max_workers = max(1, max_workers)
-        with ProcessPoolExecutor(max_workers=max_workers) as executor:
-            # Submit all loading tasks
-            futures = [
-                executor.submit(_load_dataset_worker, args) for args in worker_args
-            ]
 
-            # Collect results as they complete
-            for future in as_completed(futures):
+        if max_workers == 1:
+            # Load sequentially when max_workers is 1 to avoid process pool overhead
+            for args in worker_args:
                 try:
-                    dataset_name, dataset, dataset_len = future.result()
+                    dataset_name, dataset, dataset_len = _load_dataset_worker(args)
                     self.datasets[dataset_name] = dataset
                     logging.info(
                         f"Loaded dataset [{dataset_name}]. "
@@ -189,6 +207,25 @@ class CombinedDataset(Dataset):
                     )
                 except Exception as e:
                     raise RuntimeError(f"Failed to load dataset: {e}") from e
+        else:
+            # Use ProcessPoolExecutor for parallel loading
+            with ProcessPoolExecutor(max_workers=max_workers * 3) as executor:
+                # Submit all loading tasks
+                futures = [
+                    executor.submit(_load_dataset_worker, args) for args in worker_args
+                ]
+
+                # Collect results as they complete
+                for future in as_completed(futures):
+                    try:
+                        dataset_name, dataset, dataset_len = future.result()
+                        self.datasets[dataset_name] = dataset
+                        logging.info(
+                            f"Loaded dataset [{dataset_name}]. "
+                            f"Local dataset size: [{dataset_len}]."
+                        )
+                    except Exception as e:
+                        raise RuntimeError(f"Failed to load dataset: {e}") from e
 
     def _load_registry(self) -> Dict[str, str]:
         """Load and merge registry files from ESPNET_DATASET_REGISTRY env variable.

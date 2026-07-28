@@ -7,13 +7,51 @@ from typing import Any, Callable, Dict
 
 import torch
 from hydra.utils import instantiate
-from omegaconf import DictConfig
+from omegaconf import DictConfig, OmegaConf
 
 from espnet3.parallel.env_provider import EnvironmentProvider
 from espnet3.utils.logging_utils import log_instance_dict
 
 logger = logging.getLogger(__name__)
 _LOGGED_ENV = False
+
+
+def _convert_relative_paths_to_absolute(obj: Any, seen: set | None = None) -> None:
+    """Recursively rewrite relative file-path strings in an object graph to absolute.
+
+    Must be called while ``os.getcwd()`` is the bundle root so that
+    ``os.path.isfile`` correctly identifies bundle assets.  This prevents
+    lazy-initialized components (e.g. ``SentencePieceTokenizer``) from
+    failing once ``os.chdir`` restores the original working directory.
+    Only string attributes that resolve to an existing file are rewritten;
+    all others are left unchanged.
+    """
+    if seen is None:
+        seen = set()
+    oid = id(obj)
+    if oid in seen:
+        return
+    seen.add(oid)
+    obj_vars = getattr(obj, "__dict__", None)
+    if not obj_vars:
+        return
+    for attr, val in list(obj_vars.items()):
+        if isinstance(val, str):
+            if not os.path.isabs(val):
+                candidate = os.path.abspath(val)
+                if os.path.isfile(candidate):
+                    try:
+                        setattr(obj, attr, candidate)
+                    except (AttributeError, TypeError):
+                        pass
+        elif isinstance(val, dict):
+            for v in val.values():
+                _convert_relative_paths_to_absolute(v, seen)
+        elif isinstance(val, (list, tuple)):
+            for v in val:
+                _convert_relative_paths_to_absolute(v, seen)
+        elif not isinstance(val, (int, float, bool, bytes, type(None))):
+            _convert_relative_paths_to_absolute(val, seen)
 
 
 class InferenceProvider(EnvironmentProvider, ABC):
@@ -30,14 +68,14 @@ class InferenceProvider(EnvironmentProvider, ABC):
           pickle-safe for Dask.
 
     Args:
-        infer_config (DictConfig): Hydra configuration used to build dataset/model.
+        inference_config (DictConfig): Hydra configuration used to build dataset/model.
         params (Dict[str, Any] | None): Optional additional key-value pairs
             that will be merged into the returned environment (e.g., device,
             tokenizer, beam size).
 
     Notes:
         - Subclasses must implement ``build_dataset`` and ``build_model``.
-        - ``self.infer_config.update(self.params)`` allows lightweight overrides
+        - ``self.inference_config.update(self.params)`` allows lightweight overrides
           (e.g., runtime overrides) but avoid mutating deep structures unless
           intended.
     """
@@ -45,10 +83,10 @@ class InferenceProvider(EnvironmentProvider, ABC):
     # TODO(Masao) Add detailed description on Runner/Provider in the document.
 
     def __init__(
-        self, infer_config: DictConfig = None, params: Dict[str, Any] | None = None
+        self, inference_config: DictConfig = None, params: Dict[str, Any] | None = None
     ):
         """Initialize InferenceProvider object."""
-        super().__init__(infer_config)
+        super().__init__(inference_config)
         self.params = params or {}
         self.config.update(self.params)
 
@@ -128,17 +166,17 @@ class InferenceProvider(EnvironmentProvider, ABC):
     def build_dataset(config: DictConfig):
         """Construct and return the dataset instance.
 
-        Implemented by subclasses to build a dataset from ``config``.
-        During parallel or distributed execution, the ``config`` object passed here
-        is the configuration that the user passed when instantiating the class.
+        Build a ``DataOrganizer`` from ``config.dataset`` and return the selected
+        test set. During parallel or distributed execution, the ``config`` object
+        passed here is the configuration that the user passed when instantiating
+        the class.
 
         Args:
-            config (DictConfig): Configuration object for dataset
-                parameters (e.g., data directory, preprocessing pipeline,
-                features, split).
+            config (DictConfig): Configuration object that includes a plain
+                ``dataset`` organizer config and ``test_set``.
 
         Returns:
-            Any: Dataset object (type defined by subclass).
+            Any: Dataset object resolved from ``organizer.test[test_set]``.
 
         Raises:
             NotImplementedError: Always in the base class; implement in subclass.
@@ -146,9 +184,18 @@ class InferenceProvider(EnvironmentProvider, ABC):
         Example:
             >>> # Minimal sketch; actual keys depend on your subclass
             >>> from omegaconf import OmegaConf
-            >>> config = OmegaConf.create({
-            >>>     "dataset": {"path": "data/test", "split": "test"}
-            >>> })
+            >>> config = OmegaConf.create(
+            ...     {
+            ...         "dataset": {
+            ...             "test": [
+            ...                 {
+            ...                     "name": "test",
+            ...                     "data_src_args": {"split": "test"},
+            ...                 }
+            ...             ]
+            ...         },
+            ...     }
+            ... )
             >>> ds = MyInferenceProvider.build_dataset(config)
 
         Notes:
@@ -157,7 +204,13 @@ class InferenceProvider(EnvironmentProvider, ABC):
             - Rely on fields already present in ``config`` instead of reading
               global state whenever possible.
         """
-        organizer = instantiate(config.dataset)
+        if isinstance(config, dict):
+            config = OmegaConf.create(config)
+            organizer = instantiate(config.dataset)
+
+        if isinstance(config, DictConfig):
+            organizer = instantiate(config.dataset)
+
         test_set = config.test_set
         logger.info("Building dataset for test set: %s", test_set)
         return organizer.test[test_set]
@@ -193,13 +246,76 @@ class InferenceProvider(EnvironmentProvider, ABC):
             - Do not perform training/optimization here, this is for inference
               setup only.
         """
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-        if device == "cuda":
-            device_id = os.getenv("CUDA_VISIBLE_DEVICES", "0").split(",")[0].strip()
-            device = f"cuda:{device_id}"
+        if isinstance(config, dict):
+            config = OmegaConf.create(config)
+
+        device = InferenceProvider._resolve_device(config)
         logger.info(
-            "Instantiating model %s on %s",
+            "Instantiating model %s on %s (CUDA_VISIBLE_DEVICES=%s, visible_gpus=%s)",
             getattr(config.model, "_target_", None),
             device,
+            os.getenv("CUDA_VISIBLE_DEVICES"),
+            torch.cuda.device_count() if torch.cuda.is_available() else 0,
         )
-        return instantiate(config.model, device=device)
+        # Match ESPnet2 packaged-model loading, where bare relative paths in
+        # copied training configs resolve from the bundle root.
+        recipe_dir = getattr(config, "recipe_dir", None)
+        if recipe_dir:
+            cwd = os.getcwd()
+            os.chdir(str(recipe_dir))
+            try:
+                model = instantiate(config.model, device=device)
+                _convert_relative_paths_to_absolute(model)
+                return model
+            finally:
+                os.chdir(cwd)
+        else:
+            return instantiate(config.model, device=device)
+
+    @staticmethod
+    def _resolve_device(config: DictConfig) -> str:
+        """Resolve the logical device visible to the current process.
+
+        Resolution order:
+            1. Explicit `config.device`
+            2. Logical index from `config.device_index`
+            3. Logical index from `config.local_rank`
+            4. Logical index from `LOCAL_RANK`
+            5. Default to the current worker-visible CUDA device (`cuda:0`)
+            6. Fall back to CPU when CUDA is unavailable
+
+        Notes:
+            - Do not reinterpret `CUDA_VISIBLE_DEVICES` as a physical device id.
+              Dask/schedulers may remap visible devices per worker process.
+            - `device_index` and `local_rank` are treated as logical indices in the
+              current process namespace.
+        """
+        explicit_device = getattr(config, "device", None)
+        if explicit_device not in (None, ""):
+            return str(explicit_device)
+
+        if not torch.cuda.is_available():
+            return "cpu"
+
+        raw_index = None
+        for key in ("device_index", "local_rank"):
+            value = getattr(config, key, None)
+            if value not in (None, ""):
+                raw_index = value
+                break
+        if raw_index is None:
+            env_local_rank = os.getenv("LOCAL_RANK")
+            if env_local_rank not in (None, ""):
+                raw_index = env_local_rank
+
+        if raw_index is None:
+            return "cuda:0"
+
+        device_index = int(raw_index)
+        visible_gpus = torch.cuda.device_count()
+        if device_index < 0 or device_index >= visible_gpus:
+            raise RuntimeError(
+                f"Invalid CUDA device index {device_index} for the current process; "
+                f"visible GPU count is {visible_gpus}."
+            )
+        return f"cuda:{device_index}"

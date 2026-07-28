@@ -7,8 +7,7 @@ import sys
 
 
 def get_parser():
-    parser = argparse.ArgumentParser(
-        description="""
+    parser = argparse.ArgumentParser(description="""
     Replaces spk_embeds in a specified spk_embed directory with the average spk_embed
     for a given speaker.
     The spk_embeds generally reside in
@@ -29,8 +28,7 @@ def get_parser():
 
     To transform the training data, this script should be run after
     spk_embeds are extracted (stage 3), but before training commences (stage 7).
-    """
-    )
+    """)
     parser.add_argument(
         "--utt-embed-path",
         type=str,

@@ -21,6 +21,7 @@ ASVSpoof_CMD=
 BIBLETTS=downloads
 CORAAL=downloads
 COVOST2=
+DAILYTALK=downloads/dailytalk
 DIRHA_ENGLISH_PHDEV=
 DIRHA_WSJ=
 DIRHA_WSJ_PROCESSED="${PWD}/data/local/dirha_wsj_processed"  # Output file path
@@ -75,6 +76,7 @@ SLURP_S= # Output file path
 LIBRITRANS_S= # Output file path
 VOICES=downloads
 MAGICDATA=downloads
+MAGICDATA_RAMC=downloads
 MEDIASPEECH=downloads
 MINI_LIBRISPEECH=downloads
 MISP2021=
@@ -193,9 +195,13 @@ MALAYALAM=downloads
 ST_CMDS=downloads
 MS_INDIC_IS18=
 MARATHI=downloads
+KANNADA=downloads
+TAMIL=downloads
 MLS=downloads
+MULTIMED_ST=downloads
 VOXPOPULI=downloads
 HARPERVALLEY=downloads
+HEROICO=downloads
 TALROMUR=downloads
 TALROMUR2=downloads
 TAL_ZH_ADULT_TEACH=downloads
@@ -231,6 +237,7 @@ CLOTHO_CHATGPT_MIXUP=
 EDACC=downloads
 IPAPACK_PLUS=downloads
 GALAXY=
+EMILIA=downloads
 
 
 # For only CMU TIR environment
@@ -270,6 +277,7 @@ if [[ "$(hostname)" == tir* ]]; then
     AISHELL=/projects/tir5/data/speech_corpora/Aishell
     LIBRISPEECH=/projects/tir5/data/speech_corpora/LibriSpeech
     SLURP=/projects/tir5/data/speech_corpora/SLURP
+    EMILIA=
 fi
 
 # For only JHU environment
@@ -379,5 +387,6 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     TOTONAC=downloads
     GOOGLEI18N=downloads
     MALAYALAM=
+    EMILIA=
 
 fi

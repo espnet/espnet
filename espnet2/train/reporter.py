@@ -13,7 +13,6 @@ from typing import ContextManager, Dict, List, Optional, Sequence, Tuple, Union
 import humanfriendly
 import numpy as np
 import torch
-from packaging.version import parse as V
 from typeguard import typechecked
 
 Num = Union[float, int, complex, torch.Tensor, np.ndarray]
@@ -348,14 +347,8 @@ class Reporter:
             seconds=time.perf_counter() - sub_reporter.start_time
         )
         stats["total_count"] = sub_reporter.total_count
-        if V(torch.__version__) >= V("1.4.0"):
-            if torch.cuda.is_initialized():
-                stats["gpu_max_cached_mem_GB"] = (
-                    torch.cuda.max_memory_reserved() / 2**30
-                )
-        else:
-            if torch.cuda.is_available() and torch.cuda.max_memory_cached() > 0:
-                stats["gpu_cached_mem_GB"] = torch.cuda.max_memory_cached() / 2**30
+        if torch.cuda.is_initialized():
+            stats["gpu_max_cached_mem_GB"] = torch.cuda.max_memory_reserved() / 2**30
 
         self.stats.setdefault(self.epoch, {})[sub_reporter.key] = stats
         sub_reporter.finished()

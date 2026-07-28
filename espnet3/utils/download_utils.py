@@ -61,9 +61,9 @@ def setup_logger(
 
 
 def _log(logger: Optional[logging.Logger], message: str) -> None:
-    """Log a message using the logger if provided; otherwise print."""
+    """Log a message using the logger if provided; otherwise use module logging."""
     if logger is None:
-        print(message)
+        logging.getLogger(__name__).info(message)
     else:
         logger.info(message)
 

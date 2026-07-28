@@ -4,12 +4,9 @@ import logging
 from typing import Any, Dict, List, NamedTuple, Tuple
 
 import torch
-from packaging.version import parse as V
 from torch.nn.utils.rnn import pad_sequence
 
 from espnet2.legacy.nets.beam_search import BeamSearch, Hypothesis
-
-is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
 
 logger = logging.getLogger(__name__)
 
@@ -120,10 +117,7 @@ class BatchBeamSearch(BeamSearch):
         # Because of the flatten above, `top_ids` is organized as:
         # [hyp1 * V + token1, hyp2 * V + token2, ..., hypK * V + tokenK],
         # where V is `self.n_vocab` and K is `self.beam_size`
-        if is_torch_1_9_plus:
-            prev_hyp_ids = torch.div(top_ids, self.n_vocab, rounding_mode="trunc")
-        else:
-            prev_hyp_ids = top_ids // self.n_vocab
+        prev_hyp_ids = torch.div(top_ids, self.n_vocab, rounding_mode="trunc")
         new_token_ids = top_ids % self.n_vocab
         return prev_hyp_ids, new_token_ids, prev_hyp_ids, new_token_ids
 

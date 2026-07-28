@@ -1,17 +1,12 @@
 from typing import Optional, Tuple, Union
 
-import librosa
-import numpy as np
 import torch
-from packaging.version import parse as V
 from torch_complex.tensor import ComplexTensor
 from typeguard import typechecked
 
 from espnet2.enh.layers.complex_utils import to_complex
 from espnet2.layers.inversible_interface import InversibleInterface
 from espnet2.legacy.nets.pytorch_backend.nets_utils import make_pad_mask
-
-is_torch_1_10_plus = V(torch.__version__) >= V("1.10.0")
 
 
 class Stft(torch.nn.Module, InversibleInterface):
@@ -85,70 +80,19 @@ class Stft(torch.nn.Module, InversibleInterface):
         else:
             window = None
 
-        # For the compatibility of ARM devices, which do not support
-        # torch.stft() due to the lack of MKL (on older pytorch versions),
-        # there is an alternative replacement implementation with librosa.
-        # Note: pytorch >= 1.10.0 now has native support for FFT and STFT
-        # on all cpu targets including ARM.
-        if input.is_cuda or torch.backends.mkl.is_available() or is_torch_1_10_plus:
-            stft_kwargs = dict(
-                n_fft=self.n_fft,
-                win_length=self.win_length,
-                hop_length=self.hop_length,
-                center=self.center,
-                window=window,
-                normalized=self.normalized,
-                onesided=self.onesided,
-            )
-            stft_kwargs["return_complex"] = True
-            # NOTE(Jinchuan) CuFFT is not compatible with bfloat16
-            output = torch.stft(input.float(), **stft_kwargs)
-            output = torch.view_as_real(output).type(input.dtype)
-        else:
-            if self.training:
-                raise NotImplementedError(
-                    "stft is implemented with librosa on this device, which does not "
-                    "support the training mode."
-                )
-
-            # use stft_kwargs to flexibly control different PyTorch versions' kwargs
-            # note: librosa does not support a win_length that is < n_ftt
-            # but the window can be manually padded (see below).
-            stft_kwargs = dict(
-                n_fft=self.n_fft,
-                win_length=self.n_fft,
-                hop_length=self.hop_length,
-                center=self.center,
-                window=window,
-                pad_mode="reflect",
-            )
-
-            if window is not None:
-                # pad the given window to n_fft
-                n_pad_left = (self.n_fft - window.shape[0]) // 2
-                n_pad_right = self.n_fft - window.shape[0] - n_pad_left
-                stft_kwargs["window"] = torch.cat(
-                    [torch.zeros(n_pad_left), window, torch.zeros(n_pad_right)], 0
-                ).numpy()
-            else:
-                win_length = (
-                    self.win_length if self.win_length is not None else self.n_fft
-                )
-                stft_kwargs["window"] = torch.ones(win_length)
-
-            output = []
-            # iterate over istances in a batch
-            for i, instance in enumerate(input):
-                stft = librosa.stft(input[i].numpy(), **stft_kwargs)
-                output.append(torch.tensor(np.stack([stft.real, stft.imag], -1)))
-            output = torch.stack(output, 0)
-            if not self.onesided:
-                len_conj = self.n_fft - output.shape[1]
-                conj = output[:, 1 : 1 + len_conj].flip(1)
-                conj[:, :, :, -1].data *= -1
-                output = torch.cat([output, conj], 1)
-            if self.normalized:
-                output = output * (stft_kwargs["window"].shape[0] ** (-0.5))
+        stft_kwargs = dict(
+            n_fft=self.n_fft,
+            win_length=self.win_length,
+            hop_length=self.hop_length,
+            center=self.center,
+            window=window,
+            normalized=self.normalized,
+            onesided=self.onesided,
+        )
+        stft_kwargs["return_complex"] = True
+        # NOTE(Jinchuan) CuFFT is not compatible with bfloat16
+        output = torch.stft(input.float(), **stft_kwargs)
+        output = torch.view_as_real(output).type(input.dtype)
 
         # output: (Batch, Freq, Frames, 2=real_imag)
         # -> (Batch, Frames, Freq, 2=real_imag)

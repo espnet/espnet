@@ -1,10 +1,13 @@
 import logging
 import re
+import time
 
 import torch
 import torch.nn as nn
 
-from espnet3.components.callbacks.default_callbacks import TrainBatchMetricsLogger
+from espnet3.components.callbacks.default_callbacks import (
+    MetricsLogger,
+)
 
 # | Test Name                         | Description                                                    | # noqa: E501
 # |----------------------------------|----------------------------------------------------------------| # noqa: E501
@@ -20,6 +23,7 @@ class DummyTrainer:
         self.current_epoch = 0
         self.callback_metrics = {}
         self.optimizers = [optimizer]
+        self.sanity_checking = False
 
 
 class DummyModule(nn.Module):
@@ -32,7 +36,7 @@ def test_train_batch_metrics_logger_logs_without_training(caplog):
     model = DummyModule()
     optimizer = torch.optim.SGD(model.parameters(), lr=0.02)
     trainer = DummyTrainer(optimizer)
-    callback = TrainBatchMetricsLogger(log_every_n_steps=1)
+    callback = MetricsLogger(log_every_n_steps=1)
 
     trainer.callback_metrics = {
         "train/loss": torch.tensor(2.0),
@@ -57,3 +61,27 @@ def test_train_batch_metrics_logger_logs_without_training(caplog):
     assert re.search(r"acc=0\.25\b", text)
     assert re.search(r"loss=2\b", text)
     assert re.search(r"optim0_lr0=0\.02\b", text)
+
+
+def test_validation_epoch_metrics_logger_logs_epoch_summary(caplog):
+    model = DummyModule()
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.02)
+    trainer = DummyTrainer(optimizer)
+    callback = MetricsLogger(log_every_n_steps=1)
+
+    trainer.callback_metrics = {
+        "valid/loss": torch.tensor(1.5),
+        "valid/acc": torch.tensor(0.75),
+        "train/loss": torch.tensor(2.0),
+    }
+
+    with caplog.at_level(logging.INFO):
+        callback.on_validation_epoch_start(trainer, model)
+        time.sleep(0.001)
+        callback.on_validation_epoch_end(trainer, model)
+
+    text = caplog.text
+    assert "epoch_summary:1epoch:valid:" in text
+    assert re.search(r"acc=0\.75\b", text)
+    assert re.search(r"loss=1\.5\b", text)
+    assert "valid_time=" in text

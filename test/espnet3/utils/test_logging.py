@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import io
 import logging as py_logging
+from argparse import Namespace
 from pathlib import Path
 
 import torch
 import torch.nn as nn
+from omegaconf import OmegaConf
 
 from espnet3.utils import logging_utils as elog
 
@@ -17,6 +19,7 @@ from espnet3.utils import logging_utils as elog
 # | test_set_log_format_updates_globals_and_handlers      | Updates global log/date formats and handler formatter          | # noqa: E501
 # | test_log_run_metadata_logs_command_and_git            | Logs argv, config paths, and git metadata                      | # noqa: E501
 # | test_log_run_metadata_writes_requirements             | Writes pip freeze output to requirements.txt                   | # noqa: E501
+# | test_log_stage_metadata_logs_configs                  | Logs config paths and resolved config contents                 | # noqa: E501
 # | test_log_training_summary_includes_model_and_optimizer| Logs model, optimizer, and scheduler summaries                 | # noqa: E501
 # | test_log_data_organizer_includes_datasets             | Logs train/valid dataset summaries from DataOrganizer          | # noqa: E501
 # | test_log_data_organizer_combined_variants             | Logs CombinedDataset variants with custom transforms           | # noqa: E501
@@ -180,6 +183,49 @@ def test_log_run_metadata_writes_requirements(monkeypatch, tmp_path: Path):
         _reset_logger(logger, old_handlers, old_level, old_propagate)
 
 
+def test_log_stage_metadata_logs_configs(monkeypatch):
+    logger, stream, cleanup = _capture_logger("espnet3.test.stage_metadata")
+    old_handlers, old_level, old_propagate, handler = cleanup
+
+    class DummySystem:
+        training_config = OmegaConf.create({"exp_dir": "./exp/train"})
+        inference_config = OmegaConf.create({"infer_dir": "./exp/infer"})
+        metrics_config = None
+
+    monkeypatch.setattr(
+        elog,
+        "log_run_metadata",
+        lambda logger, **kwargs: logger.info("RUN META %s", kwargs["configs"]),
+    )
+    monkeypatch.setattr(
+        elog,
+        "log_env_metadata",
+        lambda logger: logger.info("ENV META"),
+    )
+
+    args = Namespace(
+        training_config="conf/training.yaml",
+        inference_config="conf/inference.yaml",
+        metrics_config=None,
+        write_requirements=False,
+    )
+
+    try:
+        elog.log_stage_metadata(logger, DummySystem(), args)
+        out = stream.getvalue()
+        assert "RUN META" in out
+        assert "conf/training.yaml" in out
+        assert "conf/inference.yaml" in out
+        assert "ENV META" in out
+        assert "Training config content:" in out
+        assert "exp_dir: ./exp/train" in out
+        assert "Inference config content:" in out
+        assert "infer_dir: ./exp/infer" in out
+    finally:
+        handler.close()
+        _reset_logger(logger, old_handlers, old_level, old_propagate)
+
+
 class DummyDataset(torch.utils.data.Dataset):
     def __getitem__(self, idx):
         return {"x": torch.tensor([idx], dtype=torch.float32)}
@@ -294,6 +340,43 @@ def test_log_data_organizer_combined_variants():
         assert "Data organizer:" in out
         assert "train dataset:" in out
         assert "valid dataset:" in out
+    finally:
+        handler.close()
+        _reset_logger(logger, old_handlers, old_level, old_propagate)
+
+
+def test_log_data_organizer_includes_test_sets():
+    logger, stream, cleanup = _capture_logger("espnet3.test.data_organizer.test_sets")
+    old_handlers, old_level, old_propagate, handler = cleanup
+
+    def custom_transform(sample):
+        return sample
+
+    def custom_preprocessor(sample):
+        return sample
+
+    from espnet3.components.data.data_organizer import DataOrganizer
+    from espnet3.components.data.dataset import DatasetWithTransform
+
+    class DummyOrganizer(DataOrganizer):
+        def __init__(self):
+            self.preprocessor = custom_preprocessor
+            self.train = None
+            self.valid = None
+            self.test_sets = {
+                "test_eval": DatasetWithTransform(
+                    DummyDataset(),
+                    custom_transform,
+                    custom_preprocessor,
+                )
+            }
+
+    try:
+        DummyOrganizer().log_summary(logger)
+        out = stream.getvalue()
+        assert "test datasets: 1" in out
+        assert "test[test_eval] dataset:" in out
+        assert "test[test_eval] dataset detail:" in out
     finally:
         handler.close()
         _reset_logger(logger, old_handlers, old_level, old_propagate)

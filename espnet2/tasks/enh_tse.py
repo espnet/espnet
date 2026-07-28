@@ -65,7 +65,7 @@ class TargetSpeakerExtractionTask(AbsTask):
 
     @classmethod
     def add_task_arguments(cls, parser: argparse.ArgumentParser):
-        group = parser.add_argument_group(description="Task related")
+        group = parser.add_argument_group("Task related")
 
         # NOTE(kamo): add_arguments(..., required=True) can't be used
         # to provide --print_config mode. Instead of it, do as
@@ -106,7 +106,7 @@ class TargetSpeakerExtractionTask(AbsTask):
             help="The criterions binded with the loss wrappers.",
         )
 
-        group = parser.add_argument_group(description="Preprocess related")
+        group = parser.add_argument_group("Preprocess related")
         group.add_argument(
             "--train_spk2enroll",
             type=str_or_none,

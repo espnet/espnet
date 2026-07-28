@@ -288,7 +288,7 @@ def get_local_rank(prior=None, launcher: Optional[str] = None) -> Optional[int]:
     elif "LOCAL_RANK" in os.environ:
         return int(os.environ["LOCAL_RANK"])
 
-    elif "CUDA_VISIBLE_DEVICES" in os.environ:
+    elif os.environ.get("CUDA_VISIBLE_DEVICES", ""):
         # There are two possibility:
         # - "CUDA_VISIBLE_DEVICES" is set to multiple GPU ids. e.g. "0.1,2"
         #   => This intends to specify multiple devices to to be used exactly

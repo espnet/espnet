@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Dict, Iterable, List
+from typing import Dict, Iterable
 
 try:
     import jiwer
@@ -11,10 +11,10 @@ except ImportError:
     jiwer = None
 
 from espnet2.text.cleaner import TextCleaner
-from espnet3.components.metrics.abs_metric import AbsMetric
+from espnet3.components.metrics.base_metric import BaseMetric
 
 
-class WER(AbsMetric):
+class WER(BaseMetric):
     """Compute WER for hypotheses.
 
     This metric expects hypothesis and reference strings and produces a
@@ -64,28 +64,48 @@ class WER(AbsMetric):
 
     def __call__(
         self,
-        data: Dict[str, List[str]],
+        data: Dict[str, Path],
         test_name: str,
         inference_dir: Path,
     ) -> Dict[str, float]:
         """Compute WER, write alignment details, and return the metric.
 
         Args:
-            data: Mapping of field names to lists of strings. This is built
-                from inference-time SCP files, e.g.
-                ``{"ref": [str1, str2, ...], "hyp": [str1, str2, ...]}``.
-            test_name: Test set name used for output directory naming.
-            inference_dir: Base hypothesis/reference directory for alignment outputs.
+            data (Dict[str, Path]): Mapping of metric input aliases to file
+                paths. This metric expects ``data[self.ref_key]`` and
+                ``data[self.hyp_key]`` to be SCP files whose utterance IDs are
+                aligned in the same order.
+            test_name (str): Test set name used for output directory naming.
+            inference_dir (Path): Base hypothesis/reference directory for
+                alignment outputs.
 
         Returns:
-            Dict containing WER in percentage points.
+            Dict[str, float]:
+                ``{"WER": <percentage>}``
 
         Raises:
             RuntimeError: If ``jiwer`` is not installed.
+            AssertionError: If the reference and hypothesis SCP files are not
+                aligned by utterance ID.
+
+        Example:
+            The expected inputs are paths, not preloaded string lists:
+
+            >>> metric(
+            ...     {
+            ...         "ref": Path("test-other/ref.scp"),
+            ...         "hyp": Path("test-other/hyp.scp")
+            ...     },
+            ...     "test-clean",
+            ...     Path("infer"),
+            ... )
         """
         self._ensure_jiwer()
-        refs = [self._clean(x) for x in data[self.ref_key]]
-        hyps = [self._clean(x) for x in data[self.hyp_key]]
+        refs = []
+        hyps = []
+        for _, row in self.iter_inputs(data, self.ref_key, self.hyp_key):
+            refs.append(self._clean(row[self.ref_key]))
+            hyps.append(self._clean(row[self.hyp_key]))
 
         score = jiwer.wer(refs, hyps) * 100
         details = jiwer.process_words(refs, hyps)

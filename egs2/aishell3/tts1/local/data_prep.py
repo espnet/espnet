@@ -25,7 +25,7 @@ if __name__ == "__main__":
         if not utt_info:
             break
 
-        (wav_name, text_info) = utt_info.strip().split("\t")
+        wav_name, text_info = utt_info.strip().split("\t")
         if args.external_g2p:
             text_info = "".join(text_info.split(" ")[::2])
         else:
