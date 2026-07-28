@@ -35,6 +35,15 @@ from the iter-0 encoder and re-trains the encoder against its discrete tokens. T
 config trains the base model (12-layer, 768-dim) on 2×H200 with bf16 DeepSpeed
 (~33 min/epoch, 56 encoder epochs ≈ the paper's 400K-step schedule).
 
+Each config maps to a distinct `beats.sh` stage/argument:
+
+| Config | Used by | Purpose |
+|---|---|---|
+| `conf/beats_base.yaml` | encoder training, stage 7 (`--train_config`) | BEATs encoder |
+| `conf/tok_beats_base.yaml` | tokenizer training, stage 7 (`--tokenizer_train_config`) | VQ acoustic tokenizer |
+| `conf/as2m_inf.yaml` | tokenizer inference, stage 5 (`--tokenizer_inference_config`) | encode AudioSet-2M into discrete tokens |
+| `conf/ds_beats.json`, `conf/ds_beats_tok.json` | DeepSpeed backends | referenced by the encoder / tokenizer training configs |
+
 ## Pretrained models
 
 The extracted `beats_encoder_iter*.pt` loads directly into the downstream classification
