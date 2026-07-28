@@ -1036,6 +1036,16 @@ def test_espnet_preprocessor_test_split_uses_train_false():
     assert organizer.test["test_dummy"][0]["was_train"] is False
 
 
+def test_espnet_preprocessor_instance_test_split_uses_train_false():
+    """Test-only instance setup uses train=False."""
+    pp = TrainFlagRecordingPreprocessor(train=True)
+    organizer = DataOrganizer(
+        test=[_entry("test_dummy")],
+        preprocessor=pp,
+    )
+    assert organizer.test["test_dummy"][0]["was_train"] is False
+
+
 def test_espnet_preprocessor_split_config_allows_missing_valid(caplog):
     """Missing valid/test configs fall back to no-op with ESPnet call shape."""
     config = {
@@ -1072,8 +1082,9 @@ def test_data_organizer_split_preprocessor_missing_train_warns(caplog):
     }
     preprocessor_cfg = OmegaConf.create(
         {
+            "_target_": SPLIT_RECORDING_PREPROCESSOR_TARGET,
+            "tag": "shared",
             "valid": {
-                "_target_": SPLIT_RECORDING_PREPROCESSOR_TARGET,
                 "tag": "valid",
             },
         }

@@ -69,6 +69,13 @@ class DatasetConfig:
     split: Optional[str] = None
 
 
+def _merge_shared_preprocessor_config(shared_cfg, split_cfg):
+    """Merge shared settings into one split config."""
+    if split_cfg is None or not shared_cfg:
+        return split_cfg
+    return OmegaConf.merge(shared_cfg, split_cfg)
+
+
 def _log_dataset(
     log: logging.Logger,
     label: str,
@@ -247,13 +254,9 @@ class DataOrganizer:
 
         preprocessor_cfg = preprocessor
         if preprocessor_cfg is None:
-            is_espnet_preprocessor = False
             train_preprocessor = do_nothing
             valid_preprocessor = do_nothing
             test_preprocessor = do_nothing
-            train_use_espnet_preprocessor = False
-            valid_use_espnet_preprocessor = False
-            test_use_espnet_preprocessor = False
         elif isinstance(preprocessor_cfg, (dict, DictConfig)):
             plain_cfg = (
                 OmegaConf.to_container(preprocessor_cfg, resolve=True)
@@ -273,113 +276,65 @@ class DataOrganizer:
                 train_cfg = plain_cfg.get("train")
                 valid_cfg = plain_cfg.get("valid")
                 test_cfg = plain_cfg.get("test")
+                if train_cfg is None:
+                    logger.warning(
+                        "Split preprocessor config is missing 'train'. "
+                        "The train split will not use a preprocessor."
+                    )
                 if valid_cfg is None:
                     logger.warning(
                         "Split preprocessor config is missing 'valid'. "
                         "The valid split will use the train preprocessor."
                     )
                     valid_cfg = train_cfg
-                if train_cfg is None:
-                    logger.warning(
-                        "Split preprocessor config is missing 'train'. "
-                        "The train split will not use a preprocessor."
-                    )
                 if test_cfg is None:
                     logger.warning(
                         "Split preprocessor config is missing 'test'. "
                         "The test split will use the valid preprocessor."
                     )
                     test_cfg = valid_cfg
-                if train_cfg is not None and shared_cfg:
-                    train_cfg = OmegaConf.merge(shared_cfg, train_cfg)
-                elif train_cfg is None:
-                    train_cfg = shared_cfg or None
-                if valid_cfg is not None and shared_cfg:
-                    valid_cfg = OmegaConf.merge(shared_cfg, valid_cfg)
-                elif valid_cfg is None:
-                    valid_cfg = shared_cfg or None
-                if test_cfg is not None and shared_cfg and test_cfg is not valid_cfg:
-                    test_cfg = OmegaConf.merge(shared_cfg, test_cfg)
-                train_preprocessor, train_is_espnet = (
-                    self._instantiate_preprocessor_from_config(train_cfg, True)
+                train_cfg = _merge_shared_preprocessor_config(shared_cfg, train_cfg)
+                valid_cfg = _merge_shared_preprocessor_config(shared_cfg, valid_cfg)
+                test_cfg = _merge_shared_preprocessor_config(shared_cfg, test_cfg)
+                train_preprocessor = self._instantiate_preprocessor_from_config(
+                    train_cfg, True
                 )
-                valid_preprocessor, valid_is_espnet = (
-                    self._instantiate_preprocessor_from_config(valid_cfg, False)
+                valid_preprocessor = self._instantiate_preprocessor_from_config(
+                    valid_cfg, False
                 )
-                test_preprocessor, test_is_espnet = (
-                    self._instantiate_preprocessor_from_config(test_cfg, False)
+                test_preprocessor = self._instantiate_preprocessor_from_config(
+                    test_cfg, False
                 )
-                train_use_espnet_preprocessor = train_is_espnet is True
-                valid_use_espnet_preprocessor = valid_is_espnet is True
-                test_use_espnet_preprocessor = test_is_espnet is True
-                is_espnet_preprocessor = any(
-                    (
-                        train_use_espnet_preprocessor,
-                        valid_use_espnet_preprocessor,
-                        test_use_espnet_preprocessor,
-                    )
-                )
-                train_preprocessor = train_preprocessor or do_nothing
-                valid_preprocessor = valid_preprocessor or do_nothing
-                test_preprocessor = test_preprocessor or do_nothing
             else:
-                # Use _partial_=True to obtain the target class without calling
-                # __init__, so a missing 'train' argument does not raise here.
-                partial_preprocessor = instantiate(preprocessor_cfg, _partial_=True)
-                is_espnet_preprocessor = (
-                    hasattr(partial_preprocessor, "func")
-                    and isinstance(partial_preprocessor.func, type)
-                    and issubclass(partial_preprocessor.func, AbsPreprocessor)
+                train_preprocessor = self._instantiate_preprocessor_from_config(
+                    preprocessor_cfg, True
                 )
-                if is_espnet_preprocessor:
-                    if "train" in preprocessor_cfg:
-                        logger.warning(
-                            "Preprocessor config contains a 'train' field, but "
-                            "DataOrganizer sets it automatically (True for train "
-                            "split, False for valid/test). The config value will "
-                            "be ignored."
-                        )
-                    train_preprocessor = instantiate(
-                        OmegaConf.merge(preprocessor_cfg, {"train": True})
+                if isinstance(train_preprocessor, AbsPreprocessor):
+                    valid_preprocessor = self._instantiate_preprocessor_from_config(
+                        preprocessor_cfg, False
                     )
-                    valid_preprocessor = instantiate(
-                        OmegaConf.merge(preprocessor_cfg, {"train": False})
-                    )
-                    train_use_espnet_preprocessor = True
-                    valid_use_espnet_preprocessor = True
                 else:
-                    train_preprocessor = instantiate(preprocessor_cfg)
                     valid_preprocessor = train_preprocessor
-                    train_use_espnet_preprocessor = False
-                    valid_use_espnet_preprocessor = False
-                test_use_espnet_preprocessor = valid_use_espnet_preprocessor
                 test_preprocessor = valid_preprocessor
         elif isinstance(preprocessor_cfg, AbsPreprocessor):
-            is_espnet_preprocessor = True
-            # Already-instantiated AbsPreprocessor: deepcopy for the train
-            # split; keep the original as valid/test so callers that inspect the
-            # instance (e.g. test-only setups) see side-effects.
+            # Keep the original instance for non-training splits so callers can
+            # inspect its side effects.
             if train is not None:
                 train_preprocessor = copy.deepcopy(preprocessor_cfg)
                 train_preprocessor.train = True
+                valid_preprocessor = preprocessor_cfg
+                valid_preprocessor.train = False
             else:
-                train_preprocessor = preprocessor_cfg
-            valid_preprocessor = preprocessor_cfg
-            valid_preprocessor.train = False
-            test_preprocessor = valid_preprocessor
-            train_use_espnet_preprocessor = True
-            valid_use_espnet_preprocessor = True
-            test_use_espnet_preprocessor = True
+                train_preprocessor = do_nothing
+                valid_preprocessor = do_nothing
+            test_preprocessor = preprocessor_cfg
+            test_preprocessor.train = False
         else:
             # Already-instantiated custom callable (non-AbsPreprocessor).
             assert callable(preprocessor_cfg), "Preprocessor should be callable."
-            is_espnet_preprocessor = False
             train_preprocessor = preprocessor_cfg
             valid_preprocessor = preprocessor_cfg
             test_preprocessor = preprocessor_cfg
-            train_use_espnet_preprocessor = False
-            valid_use_espnet_preprocessor = False
-            test_use_espnet_preprocessor = False
 
         assert callable(train_preprocessor), "Preprocessor should be callable."
         self.preprocessor = train_preprocessor
@@ -391,13 +346,11 @@ class DataOrganizer:
             self.train = self._build_dataset_list(
                 train,
                 train_preprocessor,
-                train_use_espnet_preprocessor,
             )
         if valid is not None:
             self.valid = self._build_dataset_list(
                 valid,
                 valid_preprocessor,
-                valid_use_espnet_preprocessor,
             )
 
         # Check consistency between train and valid datasets:
@@ -443,7 +396,9 @@ class DataOrganizer:
                     dataset,
                     transform,
                     test_preprocessor,
-                    use_espnet_preprocessor=test_use_espnet_preprocessor,
+                    use_espnet_preprocessor=isinstance(
+                        test_preprocessor, AbsPreprocessor
+                    ),
                 )
 
     def _instantiate_preprocessor_from_config(
@@ -453,7 +408,7 @@ class DataOrganizer:
     ):
         """Instantiate one preprocessor config for the requested split."""
         if preprocessor_cfg is None:
-            return None, None
+            return do_nothing
         partial_preprocessor = instantiate(preprocessor_cfg, _partial_=True)
         is_espnet = (
             hasattr(partial_preprocessor, "func")
@@ -469,13 +424,12 @@ class DataOrganizer:
                     "be ignored."
                 )
             preprocessor_cfg = OmegaConf.merge(preprocessor_cfg, {"train": train_flag})
-        return instantiate(preprocessor_cfg), is_espnet
+        return instantiate(preprocessor_cfg)
 
     def _build_dataset_list(
         self,
         config_list,
         preprocessor,
-        use_espnet_preprocessor: bool,
     ):
         """Build a combined dataset from config entries."""
         datasets = []
@@ -500,7 +454,7 @@ class DataOrganizer:
         return CombinedDataset(
             datasets,
             transforms,
-            use_espnet_preprocessor=use_espnet_preprocessor,
+            use_espnet_preprocessor=isinstance(preprocessor, AbsPreprocessor),
         )
 
     @property
