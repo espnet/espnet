@@ -77,7 +77,10 @@ class AverageCheckpointsCallback(Callback):
     Behavior:
         - Loads the state_dict from each of the top-K checkpoints saved by given
           ModelCheckpoint callbacks.
-        - Averages the model parameters (keys starting with `model.`).
+        - Averages every parameter in the checkpoint's model state_dict. If the
+          keys match the current model's own `state_dict()` keys, they are
+          averaged as-is; otherwise a `model.` prefix is stripped from each
+          key before checking again.
         - Ignores or simply accumulates integer-type parameters
           (e.g., BatchNorm's `num_batches_tracked`).
         - Saves the averaged model as a `.pth` file in `output_dir`.
@@ -90,11 +93,15 @@ class AverageCheckpointsCallback(Callback):
             for averaging. Each callback must have `best_k_models` populated.
 
     Notes:
-        - Only keys that start with `model.` are included in the averaging.
         - The final filename will be:
             `{monitor_name}.ave_{K}best.pth`
         - This callback only runs on the global rank 0 process
             (for distributed training).
+
+    Raises:
+        KeyError: If checkpoint keys are inconsistent across the top-K
+            checkpoints, or if the averaged keys (with or without a `model.`
+            prefix) do not match the current model's `state_dict()` keys.
 
     Example:
         >>> avg_ckpt_cb = AverageCheckpointsCallback(
@@ -112,6 +119,7 @@ class AverageCheckpointsCallback(Callback):
     def on_validation_end(self, trainer, pl_module):
         """At the end of validation, average the top-K checkpoints and save."""
         if trainer.is_global_zero:
+            reference_model_keys = set(pl_module.state_dict().keys())
             for ckpt_callback in self.best_ckpt_callbacks:
                 checkpoints = list(ckpt_callback.best_k_models.keys())
                 if not checkpoints:
@@ -161,12 +169,26 @@ class AverageCheckpointsCallback(Callback):
                     else:
                         avg_state_dict[k] = avg_state_dict[k] / len(checkpoints)
 
-                # remove extra prefix in model keys
-                new_avg_state_dict = {
-                    k.removeprefix("model."): v
-                    for k, v in avg_state_dict.items()
-                    if k.startswith("model.")
-                }
+                # `pl_module.state_dict()` (via `ESPnetLightningModule`'s
+                # override, see `espnet3/components/modeling/
+                # lightning_module.py`) reflects the actual model's own key
+                # naming. Use it as ground truth rather than guessing from a
+                # hardcoded `model.` prefix, so a real submodule that happens
+                # to be named `model` is not stripped by mistake.
+                if set(avg_state_dict.keys()) == reference_model_keys:
+                    new_avg_state_dict = avg_state_dict
+                else:
+                    new_avg_state_dict = {
+                        (k.removeprefix("model.") if k.startswith("model.") else k): v
+                        for k, v in avg_state_dict.items()
+                    }
+                    if set(new_avg_state_dict.keys()) != reference_model_keys:
+                        raise KeyError(
+                            "Averaged checkpoint keys do not match the "
+                            "current model's state_dict keys.\n"
+                            f"Expected: {reference_model_keys}\n"
+                            f"Got: {set(avg_state_dict.keys())}"
+                        )
 
                 avg_ckpt_path = Path(self.output_dir) / (
                     f"{ckpt_callback.monitor.replace('/', '.')}."
