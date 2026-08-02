@@ -77,7 +77,7 @@ for spk in ${spks}; do
 
         echo "${id} ${wav}" >> "${scp}"
         echo "${id} ${spk}" >> "${utt2spk}"
-        echo "${id} $(cat ${txt})" >> "${text}"
+        echo "${id} $(cat ${txt} | tr -d '\r')" >> "${text}"
 
         utils/utt2spk_to_spk2utt.pl "${utt2spk}" > "${spk2utt}"
 
