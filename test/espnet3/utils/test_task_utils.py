@@ -3,7 +3,6 @@ from argparse import Namespace
 from pathlib import Path
 
 import pytest
-from omegaconf import OmegaConf
 
 from espnet3.utils.config_utils import load_config_with_defaults
 
