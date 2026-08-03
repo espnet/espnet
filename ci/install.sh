@@ -4,6 +4,10 @@
 
 set -euo pipefail
 
+# NLTK 3.10's import security check rejects standard-library modules when the
+# virtual environment is created under the current working directory.
+export NLTK_DISABLE_IMPORT_SECURITY=1
+
 # Timer functions for measuring command execution time
 start_timer() {
     local label="$1"
