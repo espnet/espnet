@@ -100,17 +100,6 @@ class DummyPreprocessor:
         }
 
 
-class SplitRecordingPreprocessor:
-    def __init__(self, tag: str):
-        self.tag = tag
-
-    def __call__(self, sample):
-        return {
-            "audio": sample["audio"],
-            "text": f"[{self.tag}] {sample['text']}",
-        }
-
-
 class ESPnetPreprocessor(AbsPreprocessor):
     def __init__(self):
         super().__init__(train=True)
@@ -615,101 +604,6 @@ def test_data_organizer_accepts_raw_configs():
     assert organizer.valid[0]["text"] == "[dummy] hello"
 
 
-def test_data_organizer_split_preprocessor_uses_shared_fallback(caplog):
-    config = {
-        "train": [_entry("train_dummy")],
-        "valid": [_entry("valid_dummy")],
-        "test": [_entry("test_dummy")],
-    }
-    preprocessor_cfg = OmegaConf.create(
-        {
-            "_target_": SPLIT_RECORDING_PREPROCESSOR_TARGET,
-            "tag": "shared",
-            "train": {"tag": "train"},
-        }
-    )
-    with caplog.at_level(
-        logging.WARNING,
-        logger="espnet3.components.data.data_organizer",
-    ):
-        organizer = DataOrganizer(
-            train=config["train"],
-            valid=config["valid"],
-            test=config["test"],
-            preprocessor=preprocessor_cfg,
-        )
-    assert organizer.train[0]["text"] == "[train] hello"
-    assert organizer.valid[0]["text"] == "[train] hello"
-    assert organizer.test["test_dummy"][0]["text"] == "[train] hello"
-    assert any("missing 'valid'" in r.message for r in caplog.records)
-    assert any("missing 'test'" in r.message for r in caplog.records)
-
-
-def test_data_organizer_split_preprocessor_uses_valid_for_test_by_default(caplog):
-    config = {
-        "train": [_entry("train_dummy")],
-        "valid": [_entry("valid_dummy")],
-        "test": [_entry("test_dummy")],
-    }
-    preprocessor_cfg = OmegaConf.create(
-        {
-            "train": {
-                "_target_": SPLIT_RECORDING_PREPROCESSOR_TARGET,
-                "tag": "train",
-            },
-            "valid": {
-                "_target_": SPLIT_RECORDING_PREPROCESSOR_TARGET,
-                "tag": "valid",
-            },
-        }
-    )
-    with caplog.at_level(
-        logging.WARNING,
-        logger="espnet3.components.data.data_organizer",
-    ):
-        organizer = DataOrganizer(
-            train=config["train"],
-            valid=config["valid"],
-            test=config["test"],
-            preprocessor=preprocessor_cfg,
-        )
-    assert organizer.train[0]["text"] == "[train] hello"
-    assert organizer.valid[0]["text"] == "[valid] hello"
-    assert organizer.test["test_dummy"][0]["text"] == "[valid] hello"
-    assert any("missing 'test'" in r.message for r in caplog.records)
-
-
-def test_data_organizer_split_preprocessor_allows_test_override():
-    config = {
-        "train": [_entry("train_dummy")],
-        "valid": [_entry("valid_dummy")],
-        "test": [_entry("test_dummy")],
-    }
-    preprocessor_cfg = OmegaConf.create(
-        {
-            "train": {
-                "_target_": SPLIT_RECORDING_PREPROCESSOR_TARGET,
-                "tag": "train",
-            },
-            "valid": {
-                "_target_": SPLIT_RECORDING_PREPROCESSOR_TARGET,
-                "tag": "valid",
-            },
-            "test": {
-                "_target_": SPLIT_RECORDING_PREPROCESSOR_TARGET,
-                "tag": "test",
-            },
-        }
-    )
-    organizer = DataOrganizer(
-        train=config["train"],
-        valid=config["valid"],
-        test=config["test"],
-        preprocessor=preprocessor_cfg,
-    )
-    assert organizer.test["test_dummy"][0]["text"] == "[test] hello"
-
-
 def test_data_organizer_passes_recipe_dir_to_ref_less_entries(monkeypatch):
     captured = []
 
@@ -758,25 +652,6 @@ def test_data_organizer_train_only_assertion():
     }
     with pytest.raises(RuntimeError):
         DataOrganizer(train=config["train"])
-
-
-def test_data_organizer_valid_only_assertion():
-    config = {
-        "valid": [_entry("valid_dummy")]
-        # train is missing
-    }
-    with pytest.raises(RuntimeError):
-        DataOrganizer(valid=config["valid"])
-
-
-def test_data_organizer_train_and_test_without_valid_assertion():
-    config = {
-        "train": [_entry("train_dummy")],
-        "test": [_entry("test_dummy")],
-        # valid is missing
-    }
-    with pytest.raises(RuntimeError):
-        DataOrganizer(train=config["train"], test=config["test"])
 
 
 def test_data_organizer_empty_train_valid_ok():

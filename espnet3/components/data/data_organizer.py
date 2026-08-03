@@ -209,6 +209,32 @@ class DataOrganizer:
                 use_espnet_preprocessor=is_espnet_preprocessor,
             )
 
+        def build_dataset_list(config_list, preprocessor):
+            datasets = []
+            transforms = []
+            for config in config_list:
+                if isinstance(config, DictConfig):
+                    raw_config = OmegaConf.to_container(config, resolve=True)
+                else:
+                    raw_config = config
+                dataset = instantiate_dataset_reference(
+                    raw_config,
+                    recipe_dir=self.recipe_dir,
+                )
+
+                transform = raw_config.get("transform", do_nothing)
+
+                if isinstance(transform, (dict, DictConfig)):
+                    transform = instantiate(transform)
+
+                datasets.append(dataset)
+                transforms.append((transform, preprocessor))
+            return CombinedDataset(
+                datasets,
+                transforms,
+                use_espnet_preprocessor=is_espnet_preprocessor,
+            )
+
         self.train = None
         self.valid = None
 
