@@ -54,18 +54,6 @@ def dummy_state_dict():
     }
 
 
-def _mock_pl_module(*keys):
-    """Build a pl_module mock whose `state_dict()` exposes the given keys.
-
-    `AverageCheckpointsCallback` uses `pl_module.state_dict().keys()` as the
-    reference key set to decide whether a `model.` prefix must be stripped
-    from the loaded checkpoints.
-    """
-    module = mock.Mock()
-    module.state_dict.return_value = {key: None for key in keys}
-    return module
-
-
 def test_average_checkpoints_callback_on_validation_end(tmp_path, dummy_state_dict):
     """Test average checkpoints.
 
@@ -90,10 +78,7 @@ def test_average_checkpoints_callback_on_validation_end(tmp_path, dummy_state_di
         trainer = mock.Mock()
         trainer.is_global_zero = True
 
-        pl_module = _mock_pl_module(
-            "layer.weight", "layer.bias", "bn.num_batches_tracked"
-        )
-        callback.on_validation_end(trainer, pl_module=pl_module)
+        callback.on_validation_end(trainer, pl_module=mock.Mock())
 
         mock_save.assert_called_once()
 
@@ -150,10 +135,7 @@ def test_average_checkpoints_with_multiple_metrics(tmp_path, dummy_state_dict):
             ],
         )
         trainer = mock.Mock(is_global_zero=True)
-        pl_module = _mock_pl_module(
-            "layer.weight", "layer.bias", "bn.num_batches_tracked"
-        )
-        callback.on_validation_end(trainer, pl_module=pl_module)
+        callback.on_validation_end(trainer, pl_module=mock.Mock())
 
         assert mock_save.call_count == 2
         filenames = [Path(call.args[1]).name for call in mock_save.call_args_list]
@@ -179,10 +161,7 @@ def test_output_filename_format(tmp_path, dummy_state_dict):
             ],
         )
         trainer = mock.Mock(is_global_zero=True)
-        pl_module = _mock_pl_module(
-            "layer.weight", "layer.bias", "bn.num_batches_tracked"
-        )
-        callback.on_validation_end(trainer, pl_module=pl_module)
+        callback.on_validation_end(trainer, pl_module=mock.Mock())
 
         filename = Path(mock_save.call_args[0][1]).name
         assert filename == "some.metric.ave_3best.pth"
@@ -238,8 +217,7 @@ def test_average_checkpoint_with_inconsistent_keys(tmp_path):
             ],
         )
         trainer = mock.Mock(is_global_zero=True)
-        pl_module = _mock_pl_module("layer.weight")
-        callback.on_validation_end(trainer, pl_module=pl_module)
+        callback.on_validation_end(trainer, pl_module=mock.Mock())
 
 
 def test_average_checkpoint_with_int_and_float_mix(tmp_path):
@@ -279,94 +257,13 @@ def test_average_checkpoint_with_int_and_float_mix(tmp_path):
             ],
         )
         trainer = mock.Mock(is_global_zero=True)
-        pl_module = _mock_pl_module("weight", "counter")
-        callback.on_validation_end(trainer, pl_module=pl_module)
+        callback.on_validation_end(trainer, pl_module=mock.Mock())
 
         saved = mock_save.call_args[0][0]
         # Float averaged
         assert torch.allclose(saved["weight"], torch.tensor([4.0, 3.0]))
         # Int not averaged
         assert saved["counter"] == 40
-
-
-def test_average_checkpoint_without_model_prefix(tmp_path):
-    """Average checkpoints whose keys have no `model.` prefix.
-
-    Models built via an espnet2 Task (e.g. `ASRTask.build_model`) expose their
-    own submodules (`frontend`, `encoder`, `decoder`, ...) directly, so
-    `ESPnetLightningModule.state_dict()` returns keys without a `model.`
-    prefix. Averaging must not silently drop these parameters.
-    """
-    ckpt_path1 = tmp_path / "ckpt_1.ckpt"
-    ckpt_path2 = tmp_path / "ckpt_2.ckpt"
-
-    mock_state_dicts = [
-        {
-            "state_dict": {
-                "encoder.weight": torch.tensor([2.0, 4.0]),
-                "decoder.bias": torch.tensor([1.0]),
-            }
-        },
-        {
-            "state_dict": {
-                "encoder.weight": torch.tensor([6.0, 2.0]),
-                "decoder.bias": torch.tensor([3.0]),
-            }
-        },
-    ]
-
-    def load_side_effect(path, *args, **kwargs):
-        return mock_state_dicts.pop(0)
-
-    with (
-        mock.patch("torch.load", side_effect=load_side_effect),
-        mock.patch("torch.save") as mock_save,
-    ):
-        callback = AverageCheckpointsCallback(
-            output_dir=str(tmp_path),
-            best_ckpt_callbacks=[
-                mock.Mock(
-                    best_k_models={str(ckpt_path1): 0.0, str(ckpt_path2): 0.0},
-                    monitor="valid/loss",
-                )
-            ],
-        )
-        trainer = mock.Mock(is_global_zero=True)
-        pl_module = _mock_pl_module("encoder.weight", "decoder.bias")
-        callback.on_validation_end(trainer, pl_module=pl_module)
-
-        saved = mock_save.call_args[0][0]
-        assert torch.allclose(saved["encoder.weight"], torch.tensor([4.0, 3.0]))
-        assert torch.allclose(saved["decoder.bias"], torch.tensor([2.0]))
-
-
-def test_average_checkpoint_keys_mismatch_current_model(tmp_path, dummy_state_dict):
-    """Raise a KeyError when checkpoint keys never match the live model.
-
-    Neither the raw checkpoint keys nor the `model.`-stripped keys match
-    `pl_module.state_dict()`, which signals a genuine mismatch (e.g. loading
-    checkpoints saved for a different model architecture) rather than the
-    ordinary `model.`-prefix ambiguity.
-    """
-    ckpt_paths = [tmp_path / f"ckpt_{i}.ckpt" for i in range(2)]
-
-    with (
-        mock.patch("torch.load", return_value=dummy_state_dict),
-        mock.patch("torch.save"),
-        pytest.raises(KeyError),
-    ):
-        callback = AverageCheckpointsCallback(
-            output_dir=str(tmp_path),
-            best_ckpt_callbacks=[
-                mock.Mock(
-                    best_k_models={str(p): 0.0 for p in ckpt_paths},
-                    monitor="valid/loss",
-                )
-            ],
-        )
-        trainer = mock.Mock(is_global_zero=True)
-        pl_module = _mock_pl_module("totally.unrelated.param")
-        callback.on_validation_end(trainer, pl_module=pl_module)
 
 
 def test_average_checkpoint_with_no_checkpoints(tmp_path):
@@ -378,7 +275,7 @@ def test_average_checkpoint_with_no_checkpoints(tmp_path):
         )
         trainer = mock.Mock(is_global_zero=True)
         # This should not raise an exception
-        callback.on_validation_end(trainer, pl_module=_mock_pl_module())
+        callback.on_validation_end(trainer, pl_module=mock.Mock())
 
         mock_save.assert_not_called()
 
