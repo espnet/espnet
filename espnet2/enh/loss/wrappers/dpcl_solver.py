@@ -8,7 +8,7 @@ class DPCLSolver(AbsLossWrapper):
         self.criterion = criterion
         self.weight = weight
 
-    def forward(self, ref, inf, others=None):
+    def forward(self, ref, inf, others={}):
         """A naive DPCL solver
 
         Args:
@@ -22,8 +22,6 @@ class DPCLSolver(AbsLossWrapper):
             stats: (dict), for collecting training status
             others: reserved
         """
-        if others is None:
-            others = {}
         assert "tf_embedding" in others
 
         loss = self.criterion(ref, others["tf_embedding"]).mean()

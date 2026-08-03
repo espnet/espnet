@@ -37,7 +37,7 @@ class PITSolver(AbsLossWrapper):
         self.independent_perm = independent_perm
         self.flexible_numspk = flexible_numspk
 
-    def forward(self, ref, inf, others=None):
+    def forward(self, ref, inf, others={}):
         """PITSolver forward.
 
         Args:
@@ -49,8 +49,6 @@ class PITSolver(AbsLossWrapper):
             stats: dict, for collecting training status
             others: dict, in this PIT solver, permutation order will be returned
         """
-        if others is None:
-            others = {}
         perm = others["perm"] if "perm" in others else None
 
         if not self.flexible_numspk:
