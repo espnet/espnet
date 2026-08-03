@@ -10,6 +10,9 @@ on:
       - master
       - espnet3
 
+env:
+  NLTK_DISABLE_IMPORT_SECURITY: "1"
+
 jobs:
   process_labels:
     runs-on: ubuntu-latest
