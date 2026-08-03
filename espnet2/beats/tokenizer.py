@@ -274,10 +274,15 @@ class EmbeddingEMA(nn.Module):
         assert kmeans_init, "Only kmeans init is supported for now."
         weight = torch.zeros(num_tokens, codebook_dim)
         self.register_buffer("initted", torch.Tensor([False]))
+        # Codebook tensors are EMA-updated in place (no autograd), so they must
+        # be buffers, not nn.Parameters. Under DeepSpeed bf16 a requires_grad=False
+        # Parameter is given an fp32 master (zero, never in the optimizer) that
+        # overwrites the in-place EMA writes every step, collapsing the codebook
+        # to a single entry. Buffers are left untouched by DeepSpeed.
         # NOTE: Very important that weight is always normalized.
-        self.weight = nn.Parameter(weight, requires_grad=False)
-        self.cluster_size = nn.Parameter(torch.zeros(num_tokens), requires_grad=False)
-        self.embed_avg = nn.Parameter(weight.clone(), requires_grad=False)
+        self.register_buffer("weight", weight)
+        self.register_buffer("cluster_size", torch.zeros(num_tokens))
+        self.register_buffer("embed_avg", weight.clone())
 
     # @torch.jit.ignore
     def init_embed_(self, data):
