@@ -1,5 +1,6 @@
 import pytest
 import torch
+from packaging.version import parse as V
 
 from espnet2.beats.encoder import (
     BeatsEncoder,
@@ -7,8 +8,14 @@ from espnet2.beats.encoder import (
     MultiheadAttention,
 )
 
+is_torch_1_12_1_plus = V(torch.__version__) >= V("1.12.1")
+is_torch_2_plus = V(torch.__version__) >= V("2.0.0")
+
 
 def test_override_beats_config():
+    if not is_torch_1_12_1_plus:
+        return
+
     beats_config = {"encoder_layers": 2}
     beats_model = BeatsEncoder(
         input_size=1,
@@ -32,6 +39,9 @@ def test_forward_pass_beats_encoder(
     add_positional_information,
     max_positions,
 ):
+    if not is_torch_1_12_1_plus:
+        return
+
     beats_config = {"encoder_layers": 2}  # Smaller model
     beats_model = BeatsEncoder(
         input_size=1,
@@ -77,6 +87,9 @@ def test_backward_pass_beats_encoder(
     add_positional_information,
     max_positions,
 ):
+    if not is_torch_1_12_1_plus:
+        return
+
     beats_config = {"encoder_layers": 2}  # Smaller model
     beats_model = BeatsEncoder(
         input_size=1,
@@ -94,6 +107,8 @@ def test_backward_pass_beats_encoder(
 
 
 def test_small_inputs():
+    if not is_torch_1_12_1_plus:
+        return
     beats_config = {"encoder_layers": 2}  # Smaller model
     beats_model = BeatsEncoder(
         input_size=1,
@@ -163,6 +178,8 @@ def test_backward_pass_pretraining_beats_encoder():
 
 @pytest.mark.execution_timeout(60)
 def test_forward_pass_beats_pretraining_predictor():
+    if not is_torch_1_12_1_plus:
+        return
     beats_config = {
         "encoder_layers": 2,
         "encoder_embed_dim": 128,
@@ -187,6 +204,8 @@ def test_forward_pass_beats_pretraining_predictor():
 
 @pytest.mark.execution_timeout(60)
 def test_backward_pass_beats_pretraining_predictor():
+    if not is_torch_1_12_1_plus:
+        return
     beats_config = {
         "decoder_layers": 2,
         "encoder_layers": 2,
@@ -214,7 +233,7 @@ def test_backward_pass_beats_pretraining_predictor():
 def test_flash_attn(
     key_padding_mask, has_relative_attention_bias, gru_rel_pos, variable_length
 ):
-    if not torch.cuda.is_available():
+    if not is_torch_2_plus or not torch.cuda.is_available():
         return
     attn_module = (
         MultiheadAttention(
