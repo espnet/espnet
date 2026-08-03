@@ -4,8 +4,6 @@
 
 set -euo pipefail
 
-export NLTK_DISABLE_IMPORT_SECURITY=1
-
 export KMP_DUPLICATE_LIB_OK=TRUE
 ${CXX:-g++} -v
 
