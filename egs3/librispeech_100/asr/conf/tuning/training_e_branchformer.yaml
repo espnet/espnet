@@ -35,6 +35,7 @@ dataset:
     bpemodel: ${tokenizer.save_path}/bpe.model
     text_cleaner:
     fs: 16000
+    data_aug_prob: 0.667
     data_aug_effects:
       - - 0.6
         - - [0.5, "speed_perturb", {"factor": 0.9}]
@@ -140,19 +141,23 @@ scheduler:
 #                OTHER TRAINING SETTING                  #
 ##########################################################
 best_model_criterion:
-  - - valid/loss
-    - 3
-    - min
+  - - valid/acc
+    - 10
+    - max
 
 ##########################################################
 #                   DATALOADER SETTING                   #
 ##########################################################
+parallel:
+  env: local
+  n_workers: 1
+
 dataloader:
   train:
     iter_factory:
       num_workers: 4
       batches:
-        type: sorted
+        type: numel
         shape_files:
           - ${stats_dir}/train/feats_shape
         batch_size: 16
@@ -164,7 +169,7 @@ dataloader:
 trainer:
   accumulate_grad_batches: 4
   check_val_every_n_epoch: 1
-  gradient_clip_val: 1.0
+  gradient_clip_val: 5.0
   log_every_n_steps: 100
   max_epochs: 200
   precision: bf16-mixed
