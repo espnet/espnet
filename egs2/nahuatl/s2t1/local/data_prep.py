@@ -10,17 +10,18 @@ Usage:
         --region_token "<nah_hid>" \
         [--max_examples 10]
 """
+
 import argparse
 import os
 import re
 
 from datasets import load_from_disk
 
-_SPEAKER_PAT = re.compile(r'[A-Z]{2,4}\d{3,4}')
+_SPEAKER_PAT = re.compile(r"[A-Z]{2,4}\d{3,4}")
 
 
 def _sanitize(s: str) -> str:
-    return re.sub(r'[^A-Za-z0-9_]', '_', s)
+    return re.sub(r"[^A-Za-z0-9_]", "_", s)
 
 
 def _speaker(raw_id: str) -> str:
@@ -30,13 +31,14 @@ def _speaker(raw_id: str) -> str:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument('--hf_data_dir', required=True)
-    parser.add_argument('--split', required=True)
-    parser.add_argument('--output_dir', required=True)
-    parser.add_argument('--wav_dir', required=True)
-    parser.add_argument('--region_token', required=True)
-    parser.add_argument('--max_examples', type=int, default=None,
-                        help='Truncate dataset for testing')
+    parser.add_argument("--hf_data_dir", required=True)
+    parser.add_argument("--split", required=True)
+    parser.add_argument("--output_dir", required=True)
+    parser.add_argument("--wav_dir", required=True)
+    parser.add_argument("--region_token", required=True)
+    parser.add_argument(
+        "--max_examples", type=int, default=None, help="Truncate dataset for testing"
+    )
     args = parser.parse_args()
 
     os.makedirs(args.output_dir, exist_ok=True)
@@ -50,11 +52,11 @@ def main() -> None:
     seen_ids: set[str] = set()
     n_skipped = 0
     for ex in ds:
-        raw_id: str = ex['id']
+        raw_id: str = ex["id"]
         utt_id = _sanitize(raw_id)
         spk_id = _speaker(raw_id)
-        text: str = ex['text']
-        audio_bytes: bytes = ex['audio']['bytes']
+        text: str = ex["text"]
+        audio_bytes: bytes = ex["audio"]["bytes"]
 
         # Skip duplicate IDs (same sanitized ID already seen — ID collision
         # caused by two transcription files for the same recording)
@@ -63,8 +65,8 @@ def main() -> None:
             continue
         seen_ids.add(utt_id)
 
-        wav_path = os.path.abspath(os.path.join(args.wav_dir, f'{utt_id}.wav'))
-        with open(wav_path, 'wb') as f:
+        wav_path = os.path.abspath(os.path.join(args.wav_dir, f"{utt_id}.wav"))
+        with open(wav_path, "wb") as f:
             f.write(audio_bytes)
 
         rows.append((utt_id, spk_id, wav_path, text))
@@ -76,29 +78,25 @@ def main() -> None:
 
     utt2spk: dict[str, str] = {}
     with (
-        open(os.path.join(args.output_dir, 'wav.scp'), 'w') as wav_f,
-        open(os.path.join(args.output_dir, 'text'), 'w') as text_f,
-        open(os.path.join(args.output_dir, 'utt2spk'), 'w') as u2s_f,
+        open(os.path.join(args.output_dir, "wav.scp"), "w") as wav_f,
+        open(os.path.join(args.output_dir, "text"), "w") as text_f,
+        open(os.path.join(args.output_dir, "utt2spk"), "w") as u2s_f,
     ):
         for utt_id, spk_id, wav_path, text in rows:
-            wav_f.write(
-                f"{utt_id} sox {wav_path} -r 16000 -c 1 -t wav - |\n"
-            )
-            text_f.write(
-                f"{utt_id} {args.region_token}<asr><notimestamps> {text}\n"
-            )
+            wav_f.write(f"{utt_id} sox {wav_path} -r 16000 -c 1 -t wav - |\n")
+            text_f.write(f"{utt_id} {args.region_token}<asr><notimestamps> {text}\n")
             u2s_f.write(f"{utt_id} {spk_id}\n")
             utt2spk[utt_id] = spk_id
 
     spk2utt: dict[str, list[str]] = {}
     for utt, spk in utt2spk.items():
         spk2utt.setdefault(spk, []).append(utt)
-    with open(os.path.join(args.output_dir, 'spk2utt'), 'w') as f:
+    with open(os.path.join(args.output_dir, "spk2utt"), "w") as f:
         for spk, utts in sorted(spk2utt.items()):
             f.write(f"{spk} {' '.join(sorted(utts))}\n")
 
     print(f"Wrote {len(rows)} utterances to {args.output_dir}")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

@@ -1,4 +1,9 @@
-import os, subprocess, sys, tempfile, pytest
+import os
+import subprocess
+import sys
+import tempfile
+
+import pytest
 
 # Default to <repo_root>/hf_data (repo_root is 5 levels up from this file:
 # local/ -> s2t1/ -> nahuatl/ -> egs2/ -> espnet/ -> <repo_root>).
@@ -14,15 +19,23 @@ def run_prep(tmpdir, split="hidalgo-train", token="<nah_hid>", max_examples=12):
     wav_dir = os.path.join(tmpdir, "wav")
     result = subprocess.run(
         [
-            sys.executable, SCRIPT,
-            "--hf_data_dir", HF_DATA_DIR,
-            "--split", split,
-            "--output_dir", out_dir,
-            "--wav_dir", wav_dir,
-            "--region_token", token,
-            "--max_examples", str(max_examples),
+            sys.executable,
+            SCRIPT,
+            "--hf_data_dir",
+            HF_DATA_DIR,
+            "--split",
+            split,
+            "--output_dir",
+            out_dir,
+            "--wav_dir",
+            wav_dir,
+            "--region_token",
+            token,
+            "--max_examples",
+            str(max_examples),
         ],
-        capture_output=True, text=True,
+        capture_output=True,
+        text=True,
     )
     return result, out_dir, wav_dir
 
@@ -54,9 +67,9 @@ def test_text_has_region_token_prefix():
         lines = open(os.path.join(out_dir, "text")).readlines()
         for line in lines:
             _, text = line.strip().split(" ", 1)
-            assert text.startswith("<nah_hid><asr><notimestamps> "), (
-                f"Bad text format: {text[:60]}"
-            )
+            assert text.startswith(
+                "<nah_hid><asr><notimestamps> "
+            ), f"Bad text format: {text[:60]}"
 
 
 def test_utt2spk_spk2utt_are_consistent():
@@ -79,10 +92,7 @@ def test_all_files_sorted_by_utt_id():
     with tempfile.TemporaryDirectory() as tmpdir:
         _, out_dir, _ = run_prep(tmpdir)
         for fname in ("wav.scp", "text", "utt2spk"):
-            ids = [
-                line.split()[0]
-                for line in open(os.path.join(out_dir, fname))
-            ]
+            ids = [line.split()[0] for line in open(os.path.join(out_dir, fname))]
             assert ids == sorted(ids), f"{fname} not sorted: {ids[:5]}"
 
 
@@ -102,7 +112,8 @@ def test_utt_ids_contain_no_special_chars():
     with tempfile.TemporaryDirectory() as tmpdir:
         _, out_dir, _ = run_prep(tmpdir)
         import re
-        pat = re.compile(r'^[A-Za-z0-9_]+$')
+
+        pat = re.compile(r"^[A-Za-z0-9_]+$")
         for line in open(os.path.join(out_dir, "wav.scp")):
             utt_id = line.split()[0]
             assert pat.match(utt_id), f"Bad utt_id: {utt_id}"

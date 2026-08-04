@@ -12,8 +12,10 @@ Usage:
         --src_config ../../../../model_cache/owsm_v4_medium_1B/exp/s2t_train_conv2d8_size1024_e18_d18_mel128_raw_bpe50000/config.yaml \
         --out_token_list data/token_list_nahuatl.txt
 """
+
 import argparse
 import os
+
 import torch
 
 
@@ -35,6 +37,7 @@ def extract_token_list(config_yaml: str) -> list[str]:
     Reads line-by-line to avoid loading the full 50k-line file into memory at once.
     """
     import yaml
+
     tokens = []
     in_list = False
     with open(config_yaml, encoding="utf-8") as f:
@@ -58,14 +61,21 @@ def main() -> None:
     parser.add_argument("--src_ckpt", required=True)
     parser.add_argument("--out_ckpt", required=True)
     # New tokens as positional-style repeated flag
-    parser.add_argument("--new_tokens", nargs="+",
-                        default=["<nah_hid>", "<nah_ozg>", "<nah_ztp>"],
-                        help="New tokens to append (default: 3 Nahuatl region tokens)")
+    parser.add_argument(
+        "--new_tokens",
+        nargs="+",
+        default=["<nah_hid>", "<nah_ozg>", "<nah_ztp>"],
+        help="New tokens to append (default: 3 Nahuatl region tokens)",
+    )
     # Token list generation (optional)
-    parser.add_argument("--src_config", default=None,
-                        help="Path to upstream model config.yaml with inline token_list")
-    parser.add_argument("--out_token_list", default=None,
-                        help="Where to write the extended token list")
+    parser.add_argument(
+        "--src_config",
+        default=None,
+        help="Path to upstream model config.yaml with inline token_list",
+    )
+    parser.add_argument(
+        "--out_token_list", default=None, help="Where to write the extended token list"
+    )
     args = parser.parse_args()
 
     n_new = len(args.new_tokens)
@@ -74,10 +84,15 @@ def main() -> None:
     os.makedirs(os.path.dirname(os.path.abspath(args.out_ckpt)), exist_ok=True)
 
     state = torch.load(args.src_ckpt, map_location="cpu")
-    sd = state.get("model", state) if isinstance(state, dict) and "model" in state else state
+    sd = (
+        state.get("model", state)
+        if isinstance(state, dict) and "model" in state
+        else state
+    )
 
     embedding_keys = [
-        k for k in sd
+        k
+        for k in sd
         if any(
             k.endswith(suffix)
             for suffix in (
@@ -117,7 +132,9 @@ def main() -> None:
             raise RuntimeError(f"No inline token_list found in {args.src_config}")
         print(f"  Found {len(tokens)} tokens in upstream config")
         tokens.extend(args.new_tokens)
-        os.makedirs(os.path.dirname(os.path.abspath(args.out_token_list)) or ".", exist_ok=True)
+        os.makedirs(
+            os.path.dirname(os.path.abspath(args.out_token_list)) or ".", exist_ok=True
+        )
         with open(args.out_token_list, "w", encoding="utf-8") as f:
             f.write("\n".join(tokens) + "\n")
         print(f"Wrote {len(tokens)} tokens to {args.out_token_list}")
