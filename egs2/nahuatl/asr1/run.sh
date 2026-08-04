@@ -11,6 +11,11 @@ set -euo pipefail
 stage=${stage:-1}
 stop_stage=${stop_stage:-5}
 
+# Debug overrides: set these env vars to limit training for quick smoke tests
+# e.g.: max_epoch=1 num_iters_per_epoch=50 stage=3 stop_stage=3 bash run.sh
+max_epoch=${max_epoch:-}
+num_iters_per_epoch=${num_iters_per_epoch:-}
+
 . cmd.sh
 . path.sh
 
@@ -44,33 +49,31 @@ if [ "$stage" -le 3 ] && [ "$stop_stage" -ge 3 ]; then
         exit 1
     fi
 
-    echo "=== Stage 3: Collect stats ==="
-    python -m espnet2.bin.s2t_train \
-        --collect_stats true \
-        --train_data_path_and_name_and_type "$DATA_DIR/${train_set}/wav.scp,speech,sound" \
-        --train_data_path_and_name_and_type "$DATA_DIR/${train_set}/text,text,text" \
-        --valid_data_path_and_name_and_type "$DATA_DIR/${valid_set}/wav.scp,speech,sound" \
-        --valid_data_path_and_name_and_type "$DATA_DIR/${valid_set}/text,text,text" \
-        --train_shape_file "$EXP_DIR/s2t_stats/train/speech_shape" \
-        --valid_shape_file "$EXP_DIR/s2t_stats/valid/speech_shape" \
-        --output_dir "$EXP_DIR/s2t_stats" \
-        --config "$train_config" \
-        --init_param "$MODEL_DIR/valid.loss.best.pth" \
-        --token_list "$token_list"
+    # collect_stats: skip if shape files already exist
+    if [ ! -f "$EXP_DIR/s2t_stats/train/speech_shape" ]; then
+        echo "=== Stage 3: Collect stats ==="
+        python -m espnet2.bin.s2t_train \
+            --collect_stats true \
+            --ngpu 0 \
+            --multiprocessing_distributed false \
+            --dist_launcher None \
+            --dist_world_size 1 \
+            --output_dir "$EXP_DIR/s2t_stats" \
+            --config "$train_config" \
+            --token_list "$token_list"
+    else
+        echo "=== Stage 3: Collect stats — skipping (shape files exist) ==="
+    fi
 
     echo "=== Stage 3: Train ==="
     python -m espnet2.bin.s2t_train \
-        --train_data_path_and_name_and_type "$DATA_DIR/${train_set}/wav.scp,speech,sound" \
-        --train_data_path_and_name_and_type "$DATA_DIR/${train_set}/text,text,text" \
-        --valid_data_path_and_name_and_type "$DATA_DIR/${valid_set}/wav.scp,speech,sound" \
-        --valid_data_path_and_name_and_type "$DATA_DIR/${valid_set}/text,text,text" \
-        --train_shape_file "$EXP_DIR/s2t_stats/train/speech_shape" \
-        --valid_shape_file "$EXP_DIR/s2t_stats/valid/speech_shape" \
         --output_dir "$EXP_DIR/s2t_owsm_v4_nahuatl" \
         --config "$train_config" \
         --init_param "$MODEL_DIR/valid.loss.best.pth" \
         --token_list "$token_list" \
-        --ngpu 1
+        --ngpu 1 \
+        ${max_epoch:+--max_epoch "$max_epoch"} \
+        ${num_iters_per_epoch:+--num_iters_per_epoch "$num_iters_per_epoch"}
 fi
 
 if [ "$stage" -le 4 ] && [ "$stop_stage" -ge 4 ]; then
