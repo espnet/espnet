@@ -8,6 +8,10 @@
 #SBATCH --job-name=nahuatl-debug
 #SBATCH --output=%x_%j.log
 
+# pipefail so a failure in run.sh propagates through the `| tee` pipeline and is
+# reflected in the job's exit status (otherwise tee's success would mask it).
+set -o pipefail
+
 # SLURM copies the batch script to a spool dir, so ${BASH_SOURCE[0]} is unreliable
 # under sbatch. Use SLURM_SUBMIT_DIR (the dir sbatch was launched from) when set,
 # and fall back to the script's own location for plain `bash debug_train.sh`.

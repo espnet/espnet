@@ -53,8 +53,12 @@ def main() -> None:
     n_skipped = 0
     for ex in ds:
         raw_id: str = ex["id"]
-        utt_id = _sanitize(raw_id)
         spk_id = _speaker(raw_id)
+        # Kaldi requires the speaker-id to be a prefix of the utterance-id so that
+        # sorting utt2spk by speaker and by utterance agree (validate_data_dir.sh).
+        # The raw id starts with the village/genre, not the speaker code, so we
+        # prefix it explicitly with the consultant code.
+        utt_id = f"{spk_id}_{_sanitize(raw_id)}"
         text: str = ex["text"]
         audio_bytes: bytes = ex["audio"]["bytes"]
 
@@ -83,7 +87,14 @@ def main() -> None:
         open(os.path.join(args.output_dir, "utt2spk"), "w") as u2s_f,
     ):
         for utt_id, spk_id, wav_path, text in rows:
-            wav_f.write(f"{utt_id} sox {wav_path} -r 16000 -c 1 -t wav - |\n")
+            # Resample to 16 kHz mono on the fly. We use ffmpeg (not sox) because
+            # it is the audio tool available in this environment; the segments are
+            # stored at their original 48 kHz stereo. -nostdin keeps ffmpeg from
+            # consuming the Kaldi pipe's stdin; output is a WAV stream on stdout.
+            wav_f.write(
+                f"{utt_id} ffmpeg -nostdin -loglevel quiet -i {wav_path} "
+                f"-ar 16000 -ac 1 -f wav - |\n"
+            )
             text_f.write(f"{utt_id} {args.region_token}<asr><notimestamps> {text}\n")
             u2s_f.write(f"{utt_id} {spk_id}\n")
             utt2spk[utt_id] = spk_id
