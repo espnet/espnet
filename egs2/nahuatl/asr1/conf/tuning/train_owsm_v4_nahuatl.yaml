@@ -1,189 +1,54 @@
-config: conf/train_conv2d8_size1024_e18_d18_mel128.yaml
-print_config: false
-log_level: INFO
-drop_last_iter: true
-dry_run: false
-iterator_type: sequence
-valid_iterator_type: null
-output_dir: exp/s2t_train_conv2d8_size1024_e18_d18_mel128_raw_bpe50000
-ngpu: 1
+# OWSM v4 medium fine-tuning config for Nahuatl ASR
+# Architecture mirrors espnet/owsm_v4_medium_1B; training settings are our overrides.
+# Data paths, shape files, and token_list are managed by s2t.sh / run.sh.
+
 seed: 2025
-num_workers: 1
-num_att_plot: 0
-dist_backend: nccl
-dist_init_method: file:///work/nvme/bbjs/peng6/DeltaAI/espnet-owsm-training/egs2/owsm_v4/s2t1/exp/s2t_train_conv2d8_size1024_e18_d18_mel128_raw_bpe50000/.dist_init_8085dbf4-ab16-4c98-9ba7-74097c9278f4
-dist_world_size: 16
-dist_rank: 0
-local_rank: 0
-dist_master_addr: null
-dist_master_port: null
-dist_launcher: slurm
-multiprocessing_distributed: true
-unused_parameters: false
-sharded_ddp: false
-use_deepspeed: false
-deepspeed_config: null
-gradient_as_bucket_view: true
-ddp_comm_hook: bf16_compress_hook
-cudnn_enabled: true
-cudnn_benchmark: false
-cudnn_deterministic: true
-use_tf32: false
-collect_stats: false
-write_collected_feats: false
-max_epoch: 70
-patience: null
-val_scheduler_criterion:
-- valid
-- loss
-early_stopping_criterion:
-- valid
-- loss
-- min
+use_amp: true
+
+# ── Best-model criterion (OWSM uses total_count, not loss) ─────────────────
 best_model_criterion:
 -   - valid
     - total_count
     - max
 keep_nbest_models: 5
 nbest_averaging_interval: 15
-grad_clip: 5.0
-grad_clip_type: 2.0
-grad_noise: false
-accum_grad: 1
-no_forward_run: false
-resume: true
-train_dtype: float32
-use_amp: true
-log_interval: 200
-use_matplotlib: true
-use_tensorboard: true
-create_graph_in_tensorboard: false
-use_wandb: false
-wandb_project: null
-wandb_id: null
-wandb_entity: null
-wandb_name: null
-wandb_model_log_interval: -1
-detect_anomaly: false
-use_adapter: false
-adapter: lora
-save_strategy: all
-adapter_conf: {}
-pretrain_path: null
-init_param: []
-ignore_init_mismatch: false
-freeze_param: []
-num_iters_per_epoch: 10000
-batch_size: 320
-valid_batch_size: null
-batch_bins: 1000000
-valid_batch_bins: null
-category_sample_size: 10
-train_shape_file:
-- exp/s2t_stats/train/speech_shape
-- exp/s2t_stats/train/text_shape
-- exp/s2t_stats/train/text_prev_shape
-- exp/s2t_stats/train/text_ctc_shape
-valid_shape_file:
-- exp/s2t_stats/valid/speech_shape
-- exp/s2t_stats/valid/text_shape
-- exp/s2t_stats/valid/text_prev_shape
-- exp/s2t_stats/valid/text_ctc_shape
-batch_type: unsorted
-valid_batch_type: null
-fold_length:
-- 80000
-- 150
-- 150
-- 150
-sort_in_batch: descending
-shuffle_within_batch: true
-sort_batch: descending
-multiple_iterator: false
-chunk_length: 500
-chunk_shift_ratio: 0.5
-num_cache_chunks: 1024
-chunk_excluded_key_prefixes: []
-chunk_default_fs: null
-chunk_max_abs_length: null
-chunk_discard_short_samples: true
-train_data_path_and_name_and_type:
--   - data/nahuatl_train/wav.scp
-    - speech
-    - sound
--   - data/nahuatl_train/text
-    - text
-    - text
--   - data/nahuatl_train/text_prev
-    - text_prev
-    - text
--   - data/nahuatl_train/text_ctc
-    - text_ctc
-    - text
-valid_data_path_and_name_and_type:
--   - data/nahuatl_valid/wav.scp
-    - speech
-    - sound
--   - data/nahuatl_valid/text
-    - text
-    - text
--   - data/nahuatl_valid/text_prev
-    - text_prev
-    - text
--   - data/nahuatl_valid/text_ctc
-    - text_ctc
-    - text
-multi_task_dataset: false
-allow_variable_data_keys: false
-max_cache_size: 0.0
-max_cache_fd: 32
-allow_multi_rates: false
-valid_max_cache_size: null
-exclude_weight_decay: false
-exclude_weight_decay_conf: {}
+
+# ── Fine-tuning training settings ──────────────────────────────────────────
+max_epoch: 30
+patience: 5
+accum_grad: 4
+batch_type: numel
+batch_bins: 5000000
+
 optim: adamw
 optim_conf:
-    lr: 0.00025
-    betas:
-    - 0.9
-    - 0.98
-    eps: 1.0e-06
-    weight_decay: 0.0
-    fused: true
-scheduler: piecewiselinearwarmuplr
+    lr: 1.0e-5
+    weight_decay: 0.01
+
+scheduler: warmuplr
 scheduler_conf:
-    warmup_steps_list:
-    - 0
-    - 30000
-    - 60000
-    warmup_lr_list:
-    - 0.0
-    - 5.0e-05
-    - 0.00025
-init: null
-input_size: null
+    warmup_steps: 500
+
+# ── Patched checkpoint (3 new region-token rows added) ─────────────────────
+init_param:
+    - "../../../../model_cache/owsm_v4_medium_1B_nahuatl/valid.loss.best.pth"
+
+# ── CTC ────────────────────────────────────────────────────────────────────
 ctc_conf:
     dropout_rate: 0.0
     ctc_type: builtin
     reduce: true
-    ignore_nan_grad: null
     zero_infinity: true
-    brctc_risk_strategy: exp
-    brctc_group_strategy: end
-    brctc_risk_factor: 0.0
-use_preprocessor: true
-token_type: bpe
-bpemodel: data/token_list/bpe_unigram50000/bpe.model
-non_linguistic_symbols: null
-cleaner: null
-g2p: null
-speech_volume_normalize: null
-rir_scp: null
-rir_apply_prob: 1.0
-noise_scp: null
-noise_apply_prob: 1.0
-noise_db_range: '13_15'
-short_noise_thres: 0.5
+
+model: espnet
+model_conf:
+    ctc_weight: 0.3
+    lsm_weight: 0.1
+    length_normalized_loss: false
+    sym_na: <na>
+    extract_feats_in_collect_stats: false
+
+# ── Frontend / SpecAugment ─────────────────────────────────────────────────
 frontend: default
 frontend_conf:
     n_fft: 512
@@ -191,6 +56,7 @@ frontend_conf:
     hop_length: 160
     n_mels: 128
     fs: 16k
+
 specaug: specaug
 specaug_conf:
     apply_time_warp: false
@@ -206,18 +72,10 @@ specaug_conf:
     - 0.0
     - 0.05
     num_time_mask: 10
+
 normalize: global_mvn
-normalize_conf:
-    stats_file: exp/s2t_stats_raw_bpe50000/train/feats_stats.npz
-model: espnet
-model_conf:
-    ctc_weight: 0.3
-    lsm_weight: 0.1
-    length_normalized_loss: false
-    sym_na: <na>
-    extract_feats_in_collect_stats: false
-preencoder: null
-preencoder_conf: {}
+
+# ── Encoder: E-Branchformer (OWSM v4 medium architecture) ─────────────────
 encoder: e_branchformer
 encoder_conf:
     output_size: 1024
@@ -249,8 +107,8 @@ encoder_conf:
     - 12
     - 15
     - 18
-postencoder: null
-postencoder_conf: {}
+
+# ── Decoder: Transformer (OWSM v4 medium architecture) ────────────────────
 decoder: transformer
 decoder_conf:
     attention_heads: 16
@@ -271,6 +129,8 @@ decoder_conf:
     - 13
     - 15
     - 17
+
+# ── S2T preprocessor ───────────────────────────────────────────────────────
 preprocessor: s2t
 preprocessor_conf:
     text_prev_name: text_prev
@@ -285,33 +145,3 @@ preprocessor_conf:
     notime_symbol: <notimestamps>
     first_time_symbol: <0.00>
     last_time_symbol: <30.00>
-# version: '202412'  # removed - not a valid s2t_train argument
-# distributed: true  # removed - use multiprocessing_distributed instead
-
-# ── Fine-tuning overrides for Nahuatl ──────────────────────────────────────
-# Load patched checkpoint (with 3 new token rows already initialized)
-init_param:
-    - "../../../../model_cache/owsm_v4_medium_1B_nahuatl/valid.loss.best.pth"
-
-# Extended token list including <nah_hid>, <nah_ozg>, <nah_ztp>
-token_list: "data/token_list_nahuatl.txt"
-
-# Single GPU
-batch_type: numel
-batch_bins: 5000000
-accum_grad: 4
-
-max_epoch: 30
-patience: 5
-
-optim: adamw
-optim_conf:
-    lr: 1.0e-5
-    weight_decay: 0.01
-
-scheduler: warmuplr
-scheduler_conf:
-    warmup_steps: 500
-
-# Raw waveform input — no spectrogram extraction
-# feats_extractor: null  # removed - not a valid s2t_train argument

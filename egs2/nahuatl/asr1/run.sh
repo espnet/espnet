@@ -1,174 +1,84 @@
 #!/usr/bin/env bash
-# ESPnet2 Nahuatl OWSM v4 fine-tuning recipe
-# Stages:
-#   1  Data prep (per-region Kaldi dirs)
-#   2  Merge splits into nahuatl_{train,valid,test}
-#   3  Collect stats + train (requires GPU)
-#   4  Decode (requires GPU)
-#   5  Score (CER/WER)
+# Nahuatl ASR — OWSM v4 fine-tuning recipe
+# Thin wrapper around egs2/TEMPLATE/s2t1/s2t.sh.
+#
+# Prerequisites (one-time setup):
+#   1. Download espnet/owsm_v4_medium_1B from HuggingFace into
+#      <repo_root>/model_cache/owsm_v4_medium_1B/
+#   2. Patch the checkpoint and generate the extended token list:
+#        python local/init_new_tokens.py \
+#          --src_ckpt  ../../../../model_cache/owsm_v4_medium_1B/exp/.../valid.loss.best.pth \
+#          --out_ckpt  ../../../../model_cache/owsm_v4_medium_1B_nahuatl/valid.loss.best.pth \
+#          --src_config ../../../../model_cache/owsm_v4_medium_1B/exp/.../config.yaml \
+#          --out_token_list data/token_list/bpe_unigram50000/tokens.txt
+#   3. Prepare the HuggingFace dataset and run local/data.sh (Stage 1).
+#
+# Quick usage:
+#   bash run.sh                        # full pipeline
+#   bash run.sh --stage 11 --stop_stage 11   # train only
+#   max_epoch=1 num_iters_per_epoch=20 log_interval=1 bash run.sh --stage 11 --stop_stage 11  # debug
 set -euo pipefail
-
-stage=${stage:-1}
-stop_stage=${stop_stage:-5}
-
-# Debug overrides: set these env vars to limit training for quick smoke tests
-# e.g.: max_epoch=1 num_iters_per_epoch=50 stage=3 stop_stage=3 bash run.sh
-max_epoch=${max_epoch:-}
-num_iters_per_epoch=${num_iters_per_epoch:-}
-
-. cmd.sh
-. path.sh
 
 RECIPE_DIR=$(realpath "$(dirname "${BASH_SOURCE[0]}")")
 cd "$RECIPE_DIR"
-DATA_DIR="$RECIPE_DIR/data"
-EXP_DIR="$RECIPE_DIR/exp"
-MODEL_DIR=$(realpath "$RECIPE_DIR/../../../../model_cache/owsm_v4_medium_1B_nahuatl")
+. cmd.sh
+. path.sh
 
-train_config="conf/tuning/train_owsm_v4_nahuatl.yaml"
-decode_config="conf/decode_owsm.yaml"
-token_list="$DATA_DIR/token_list_nahuatl.txt"
-
+# ── Recipe configuration ────────────────────────────────────────────────────
 train_set="nahuatl_train"
 valid_set="nahuatl_valid"
 test_sets="nahuatl_test nahuatl_hidalgo_test nahuatl_orizaba_zongolica_test nahuatl_zacatlan_tepetzintla_test"
 
-if [ "$stage" -le 1 ] && [ "$stop_stage" -ge 1 ]; then
-    echo "=== Stages 1–2: Data preparation ==="
-    bash local/data.sh
+s2t_config="conf/tuning/train_owsm_v4_nahuatl.yaml"
+
+MODEL_DIR=$(realpath "../../../../model_cache/owsm_v4_medium_1B_nahuatl")
+UPSTREAM_DIR=$(realpath "../../../../model_cache/owsm_v4_medium_1B")
+UPSTREAM_BPE="$UPSTREAM_DIR/data/token_list/bpe_unigram50000/bpe.model"
+
+# s2t.sh expects BPE model at data/token_list/bpe_unigram50000/bpe.model
+TOKEN_LIST_DIR="data/token_list/bpe_unigram50000"
+if [ ! -f "$TOKEN_LIST_DIR/bpe.model" ]; then
+    mkdir -p "$TOKEN_LIST_DIR"
+    ln -sf "$(realpath "$UPSTREAM_BPE")" "$TOKEN_LIST_DIR/bpe.model"
 fi
 
-if [ "$stage" -le 3 ] && [ "$stop_stage" -ge 3 ]; then
-    # Stage 3 prerequisite: patched checkpoint must exist
-    if [ ! -f "$MODEL_DIR/valid.loss.best.pth" ]; then
-        echo "ERROR: Patched checkpoint not found at $MODEL_DIR/valid.loss.best.pth"
-        echo ""
-        echo "Download the OWSM v4 base model first, then run:"
-        echo "  python local/init_new_tokens.py \\"
-        echo "    --src_ckpt  <owsm_v4_medium_1B_dir>/exp/.../valid.loss.best.pth \\"
-        echo "    --out_ckpt  $MODEL_DIR/valid.loss.best.pth \\"
-        echo "    --src_config <owsm_v4_medium_1B_dir>/exp/.../config.yaml \\"
-        echo "    --out_token_list $token_list"
-        exit 1
-    fi
-
-    if [ ! -f "$token_list" ]; then
-        echo "ERROR: Token list not found at $token_list"
-        echo "Re-run init_new_tokens.py with --src_config and --out_token_list (see above)"
-        exit 1
-    fi
-
-    # collect_stats: skip if shape files already exist
-    if [ ! -f "$EXP_DIR/s2t_stats/train/speech_shape" ]; then
-        echo "=== Stage 3: Collect stats ==="
-        python -m espnet2.bin.s2t_train \
-            --collect_stats true \
-            --ngpu 0 \
-            --multiprocessing_distributed false \
-            --dist_launcher None \
-            --dist_world_size 1 \
-            --output_dir "$EXP_DIR/s2t_stats" \
-            --config "$train_config" \
-            --token_list "$token_list"
-    else
-        echo "=== Stage 3: Collect stats — skipping (shape files exist) ==="
-    fi
-
-    echo "=== Stage 3: Train ==="
-    python -m espnet2.bin.s2t_train \
-        --output_dir "$EXP_DIR/s2t_owsm_v4_nahuatl" \
-        --config "$train_config" \
-        --init_param "$MODEL_DIR/valid.loss.best.pth" \
-        --token_list "$token_list" \
-        --ngpu 1 \
-        --dist_launcher None \
-        --multiprocessing_distributed false \
-        --dist_world_size 1 \
-        ${max_epoch:+--max_epoch "$max_epoch"} \
-        ${num_iters_per_epoch:+--num_iters_per_epoch "$num_iters_per_epoch"} \
-        ${log_interval:+--log_interval "$log_interval"}
+# Verify the extended token list exists (generated by init_new_tokens.py)
+if [ ! -f "$TOKEN_LIST_DIR/tokens.txt" ]; then
+    echo "ERROR: $TOKEN_LIST_DIR/tokens.txt not found."
+    echo "Run init_new_tokens.py with --src_config and --out_token_list (see header)."
+    exit 1
 fi
 
-if [ "$stage" -le 4 ] && [ "$stop_stage" -ge 4 ]; then
-    echo "=== Stage 4: Decode ==="
-    for dset in $test_sets; do
-        python -m espnet2.bin.s2t_inference \
-            --output_dir "$EXP_DIR/s2t_owsm_v4_nahuatl/decode_${dset}" \
-            --data_path_and_name_and_type "$DATA_DIR/${dset}/wav.scp,speech,sound" \
-            --key_file "$DATA_DIR/${dset}/wav.scp" \
-            --s2t_train_config "$EXP_DIR/s2t_owsm_v4_nahuatl/config.yaml" \
-            --s2t_model_file "$EXP_DIR/s2t_owsm_v4_nahuatl/valid.loss.best.pth" \
-            --config "$decode_config" \
-            --ngpu 1
-    done
+# Verify the patched checkpoint exists
+if [ ! -f "$MODEL_DIR/valid.loss.best.pth" ]; then
+    echo "ERROR: Patched checkpoint not found at $MODEL_DIR/valid.loss.best.pth"
+    echo "Run init_new_tokens.py (see header)."
+    exit 1
 fi
 
-if [ "$stage" -le 5 ] && [ "$stop_stage" -ge 5 ]; then
-    echo "=== Stage 5: Score ==="
-    for dset in $test_sets; do
-        decode_dir="$EXP_DIR/s2t_owsm_v4_nahuatl/decode_${dset}"
-        python3 - "$DATA_DIR/$dset/text" "$decode_dir/1best_recog/text" \
-                   "$decode_dir/ref_clean.txt" "$decode_dir/hyp_clean.txt" <<'PYEOF'
-import sys, re
+# Debug overrides: set these env vars to limit training
+# e.g.: max_epoch=1 num_iters_per_epoch=20 log_interval=1 bash run.sh --stage 11 --stop_stage 11
+_s2t_args="--init_param ${MODEL_DIR}/valid.loss.best.pth"
+[ -n "${max_epoch:-}" ]            && _s2t_args+=" --max_epoch $max_epoch"
+[ -n "${num_iters_per_epoch:-}" ]  && _s2t_args+=" --num_iters_per_epoch $num_iters_per_epoch"
+[ -n "${log_interval:-}" ]         && _s2t_args+=" --log_interval $log_interval"
 
-ref_path, hyp_path, ref_out, hyp_out = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
-
-tok_pat = re.compile(r'(<nah_hid>|<nah_ozg>|<nah_ztp>|<asr>|<notimestamps>)\s*')
-
-def strip_tokens(line):
-    parts = line.split(None, 1)
-    if len(parts) < 2:
-        return parts[0], ""
-    utt_id, text = parts
-    text = tok_pat.sub('', text).strip()
-    return utt_id, text
-
-ref_lines = open(ref_path).read().splitlines()
-hyp_lines = open(hyp_path).read().splitlines()
-
-ref_clean = {}
-for line in ref_lines:
-    uid, text = strip_tokens(line)
-    ref_clean[uid] = text
-
-hyp_clean = {}
-for line in hyp_lines:
-    uid, text = strip_tokens(line)
-    hyp_clean[uid] = text
-
-with open(ref_out, "w") as f:
-    for uid in sorted(ref_clean):
-        f.write(f"{uid} {ref_clean[uid]}\n")
-
-with open(hyp_out, "w") as f:
-    for uid in sorted(hyp_clean):
-        f.write(f"{uid} {hyp_clean[uid]}\n")
-
-# Compute CER using jiwer if available
-common_ids = sorted(set(ref_clean) & set(hyp_clean))
-refs = [ref_clean[uid] for uid in common_ids]
-hyps = [hyp_clean[uid] for uid in common_ids]
-
-try:
-    import jiwer
-    transform = jiwer.transforms.Compose([
-        jiwer.transforms.RemoveMultipleSpaces(),
-        jiwer.transforms.Strip(),
-        jiwer.transforms.ReduceToSingleSentence(),
-        jiwer.transforms.ReduceToListOfListOfChars(),
-    ])
-    cer = jiwer.wer(refs, hyps,
-                    reference_transform=transform,
-                    hypothesis_transform=transform)
-    print(f"CER: {cer * 100:.2f}%  ({len(common_ids)} utterances)")
-except ImportError:
-    print("jiwer not available — skipping CER computation.")
-    print("To score manually: pip install jiwer, then re-run Stage 5.")
-    print(f"Cleaned ref: {ref_out}")
-    print(f"Cleaned hyp: {hyp_out}")
-PYEOF
-        echo "  Scoring $dset done (results in $decode_dir/)"
-    done
-fi
-
-echo "Recipe complete."
+# ── Delegate to TEMPLATE s2t.sh ─────────────────────────────────────────────
+./s2t.sh \
+    --use_lm false \
+    --ngpu 1 \
+    --feats_type raw \
+    --audio_format wav \
+    --fs 16k \
+    --min_wav_duration 0.1 \
+    --max_wav_duration 30.5 \
+    --token_type bpe \
+    --nbpe 50000 \
+    --utt_extra_files "text_prev text_ctc" \
+    --s2t_config "${s2t_config}" \
+    --s2t_args "${_s2t_args}" \
+    --train_set "${train_set}" \
+    --valid_set "${valid_set}" \
+    --test_sets "${test_sets}" \
+    --skip_stages "5 6" \
+    "$@"

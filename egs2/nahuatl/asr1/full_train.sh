@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Full 30-epoch training run via SLURM.
+# Full training run (stages 10-11: collect_stats + train) via SLURM.
 # Adjust --account and partition as needed for your cluster.
 #SBATCH -N 1 -n 1 -p gpuA40x4,gpuA100x4
 #SBATCH --gres=gpu:1 -c 16 --mem 60000M
@@ -12,4 +12,5 @@ RECIPE_DIR=$(realpath "$(dirname "${BASH_SOURCE[0]}")")
 cd "$RECIPE_DIR"
 source path.sh
 
-stage=3 stop_stage=3 bash run.sh 2>&1 | tee full_train_live.log
+bash run.sh --stage 10 --stop_stage 11 \
+    2>&1 | tee full_train_live.log

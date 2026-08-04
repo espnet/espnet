@@ -12,5 +12,7 @@ RECIPE_DIR=$(realpath "$(dirname "${BASH_SOURCE[0]}")")
 cd "$RECIPE_DIR"
 source path.sh
 
-max_epoch=1 num_iters_per_epoch=20 log_interval=1 stage=3 stop_stage=3 bash run.sh \
-  2>&1 | tee debug_train_live.log
+# s2t.sh stage 11 = S2T training (stages 1-10 are data prep / collect_stats)
+max_epoch=1 num_iters_per_epoch=20 log_interval=1 \
+    bash run.sh --stage 11 --stop_stage 11 \
+    2>&1 | tee debug_train_live.log
