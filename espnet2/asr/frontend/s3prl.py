@@ -43,6 +43,22 @@ class S3prlFrontend(AbsFrontend):
         if download_dir is not None:
             s3prl.util.download.set_dir(download_dir)
 
+        # Monkey-patch torch.load in s3prl's wav2vec2 convert module to use
+        # weights_only=False, required for PyTorch >= 2.6 compatibility with
+        # legacy checkpoint files that contain non-tensor objects.
+        try:
+            import s3prl.upstream.wav2vec2.convert as _s3prl_convert
+
+            _orig_torch_load = torch.load
+
+            def _patched_torch_load(*args, **kwargs):
+                kwargs.setdefault("weights_only", False)
+                return _orig_torch_load(*args, **kwargs)
+
+            _s3prl_convert.torch.load = _patched_torch_load
+        except Exception:
+            pass
+
         assert frontend_conf.get("upstream", None) in S3PRLUpstream.available_names()
         upstream = S3PRLUpstream(
             frontend_conf.get("upstream"),
