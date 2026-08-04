@@ -8,7 +8,7 @@
 #SBATCH --job-name=nahuatl-debug
 #SBATCH --output=%x_%j.log
 
-RECIPE_DIR=$(realpath "$(dirname "${BASH_SOURCE[0]}")")
+RECIPE_DIR=/work/nvme/bbjs/clin10/nahuatl_asr/espnet/egs2/nahuatl/s2t1
 cd "$RECIPE_DIR"
 source path.sh
 

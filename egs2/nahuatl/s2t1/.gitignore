@@ -2,3 +2,4 @@ debug_train_*.log
 debug_train_live.log
 full_train_live.log
 nahuatl-train_*.log
+nahuatl-debug_*.log

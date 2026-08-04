@@ -53,13 +53,15 @@ for setname in train valid test; do
     sort -k1 -o "$out/text"    "$out/text"
     sort -k1 -o "$out/utt2spk" "$out/utt2spk"
 
-    # Generate text_prev (<na> for all) and text_ctc (clean transcript)
+    # Generate text.prev (<na> for all) and text.ctc (clean transcript)
+    # NOTE: dotted filenames are the ESPnet s2t.sh convention for utt_extra_files;
+    # the data names become text_prev / text_ctc (s2t.sh maps '.' -> '_').
     python3 -c "
 import re, sys
 tok = re.compile(r'<(nah_hid|nah_ozg|nah_ztp|asr|notimestamps)>\s*')
 with open('$out/text') as f, \
-     open('$out/text_prev', 'w') as fp, \
-     open('$out/text_ctc', 'w') as fc:
+     open('$out/text.prev', 'w') as fp, \
+     open('$out/text.ctc', 'w') as fc:
     for line in f:
         uid, *rest = line.strip().split(None, 1)
         clean = tok.sub('', rest[0] if rest else '').strip()

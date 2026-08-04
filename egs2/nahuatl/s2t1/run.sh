@@ -74,7 +74,6 @@ _s2t_args="--init_param ${MODEL_DIR}/valid.loss.best.pth"
     --max_wav_duration 30.5 \
     --token_type bpe \
     --nbpe 50000 \
-    --utt_extra_files "text_prev text_ctc" \
     --s2t_config "${s2t_config}" \
     --s2t_args "${_s2t_args}" \
     --train_set "${train_set}" \
