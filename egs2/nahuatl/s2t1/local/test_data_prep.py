@@ -1,8 +1,11 @@
 import os, subprocess, sys, tempfile, pytest
 
-HF_DATA_DIR = os.environ.get(
-    "HF_DATA_DIR", "/work/nvme/bbjs/clin10/nahuatl_asr/hf_data"
+# Default to <repo_root>/hf_data (repo_root is 5 levels up from this file:
+# local/ -> s2t1/ -> nahuatl/ -> egs2/ -> espnet/ -> <repo_root>).
+_DEFAULT_HF_DATA_DIR = os.path.normpath(
+    os.path.join(os.path.dirname(__file__), "../../../../../hf_data")
 )
+HF_DATA_DIR = os.environ.get("HF_DATA_DIR", _DEFAULT_HF_DATA_DIR)
 SCRIPT = os.path.join(os.path.dirname(__file__), "data_prep.py")
 
 

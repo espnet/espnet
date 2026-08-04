@@ -8,7 +8,10 @@
 #SBATCH --job-name=nahuatl-train
 #SBATCH --output=%x_%j.log
 
-RECIPE_DIR=/work/nvme/bbjs/clin10/nahuatl_asr/espnet/egs2/nahuatl/s2t1
+# SLURM copies the batch script to a spool dir, so ${BASH_SOURCE[0]} is unreliable
+# under sbatch. Use SLURM_SUBMIT_DIR (the dir sbatch was launched from) when set,
+# and fall back to the script's own location for plain `bash full_train.sh`.
+RECIPE_DIR="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}"
 cd "$RECIPE_DIR"
 source path.sh
 
