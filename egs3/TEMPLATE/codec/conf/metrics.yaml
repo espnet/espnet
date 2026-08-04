@@ -1,0 +1,26 @@
+##########################################################
+#                 METRIC SCORING SETTING                 #
+##########################################################
+# Quick usage:
+#   python run.py --stages measure --metrics_config conf/metrics.yaml
+#
+# Recipe configs fill in the `metrics` list; see
+# `egs3/libritts/codec/conf/metrics.yaml` for a working example (a
+# versa-based reconstruction metric covering PESQ/STOI/mel-cepstral
+# distortion and more).
+#
+# `metrics: []` is deliberate rather than a populated example: OmegaConf
+# merges lists by whole replacement, so a non-empty default here would leak
+# into every downstream codec recipe that omits `metrics:`.
+
+##########################################################
+#                    PATHS AND INPUTS                    #
+##########################################################
+recipe_dir: .
+exp_tag:
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+
+##########################################################
+#                    METRIC DEFINITION                   #
+##########################################################
+metrics: []

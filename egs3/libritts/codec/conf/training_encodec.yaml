@@ -1,0 +1,255 @@
+##########################################################
+#                    TRAINING SETTING                    #
+##########################################################
+# Quick usage:
+#   python run.py --stages create_dataset --training_config conf/training_encodec.yaml
+#   python run.py --stages train           --training_config conf/training_encodec.yaml
+#
+##########################################################
+#                  SYSTEM AND PATH SETTING               #
+##########################################################
+task: espnet2.tasks.gan_codec.GANCodecTask
+
+num_device: 1
+num_nodes: 1
+
+recipe_dir: .
+data_dir: ${recipe_dir}/data
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+stats_dir: ${exp_dir}/stats
+inference_dir: ${exp_dir}/inference
+
+exp_tag: train_encodec_libritts
+
+##########################################################
+#                    DATASET DEFINITION                  #
+##########################################################
+create_dataset:
+  recipe_dir: ${recipe_dir}
+
+dataset:
+  _target_: espnet3.components.data.data_organizer.DataOrganizer
+  recipe_dir: ${recipe_dir}
+  train:
+    - data_src_args:
+        split: train
+  valid:
+    - data_src_args:
+        split: valid
+  preprocessor:
+    _target_: espnet2.train.preprocessor.CommonPreprocessor
+    train: true
+    token_type: null
+    speech_name: audio
+    force_single_channel: true
+    audio_pad_value: 0.0
+
+##########################################################
+#                    CODEC MODEL SETTING                 #
+##########################################################
+# Ported from egs2/libritts/codec1/conf/tuning/train_encodec.yaml
+# (GANCodecTask argparse args: --codec, --codec_conf).
+model:
+  codec: encodec
+  codec_conf:
+    sampling_rate: 24000
+
+    # generator related
+    generator_params:
+      hidden_dim: 512
+      encdec_channels: 1
+      encdec_n_filters: 32
+      encdec_n_residual_layers: 3
+      encdec_ratios: [8, 5, 4, 2]
+      encdec_activation: ELU
+      encdec_activation_params:
+        alpha: 1.0
+      encdec_norm: weight_norm
+      encdec_kernel_size: 7
+      encdec_residual_kernel_size: 7
+      encdec_last_kernel_size: 7
+      encdec_dilation_base: 2
+      encdec_causal: false
+      encdec_pad_mode: reflect
+      encdec_true_skip: false
+      encdec_compress: 2
+      encdec_lstm: 2
+      decoder_trim_right_ratio: 1.0
+      decoder_final_activation: null
+      decoder_final_activation_params: null
+      quantizer_n_q: 32
+      quantizer_bins: 1024
+      quantizer_decay: 0.99
+      quantizer_kmeans_init: true
+      quantizer_kmeans_iters: 50
+      quantizer_threshold_ema_dead_code: 2
+      quantizer_target_bandwidth: [2, 4, 8, 16, 32]
+
+    # discriminator related
+    discriminator_params:
+      msstft_discriminator_params:
+        filters: 32
+        in_channels: 1
+        out_channels: 1
+        norm: weight_norm
+        n_ffts: [1024, 2048, 512, 256, 128]
+        hop_lengths: [256, 512, 128, 64, 32]
+        win_lengths: [1024, 2048, 512, 256, 128]
+        activation: LeakyReLU
+        activation_params:
+          negative_slope: 0.3
+
+    # loss function related
+    generator_adv_loss_params:
+      average_by_discriminators: false
+      loss_type: mse
+    discriminator_adv_loss_params:
+      average_by_discriminators: false
+      loss_type: mse
+    use_feat_match_loss: true
+    feat_match_loss_params:
+      average_by_discriminators: false
+      average_by_layers: false
+      include_final_outputs: true
+    use_mel_loss: true
+    mel_loss_params:
+      range_start: 6
+      range_end: 11
+      window: hann
+      n_mels: 80
+      fmin: 0
+      fmax: null
+      log_base: null
+    lambda_quantization: 0.0
+    lambda_commit: 1.0
+    lambda_reconstruct: 1.0
+    lambda_adv: 1.0
+    lambda_mel: 45.0
+    lambda_feat_match: 2.0
+
+    # others
+    cache_generator_outputs: true
+    use_loss_balancer: false
+
+##########################################################
+#            OPTIMIZER & SCHEDULER SETTING               #
+##########################################################
+optimizers:
+  generator:
+    optimizer:
+      _target_: torch.optim.AdamW
+      lr: 3.0e-4
+      betas: [0.5, 0.9]
+      eps: 1.0e-9
+      weight_decay: 0.0
+    params: generator
+    accum_grad_steps: 1
+    step_every_n_iters: 1
+    gradient_clip_val: null
+  discriminator:
+    optimizer:
+      _target_: torch.optim.AdamW
+      lr: 3.0e-4
+      betas: [0.5, 0.9]
+      eps: 1.0e-9
+      weight_decay: 0.0
+    params: discriminator
+    accum_grad_steps: 1
+    step_every_n_iters: 1
+    gradient_clip_val: null
+
+schedulers:
+  generator:
+    scheduler:
+      _target_: torch.optim.lr_scheduler.ExponentialLR
+      gamma: 0.999875
+    interval: epoch
+  discriminator:
+    scheduler:
+      _target_: torch.optim.lr_scheduler.ExponentialLR
+      gamma: 0.999875
+    interval: epoch
+
+optimizer: null
+scheduler: null
+scheduler_interval: null
+
+best_model_criterion:
+  - - valid/mel_loss
+    - 5
+    - min
+  - - train/mel_loss
+    - 5
+    - min
+  - - step
+    - 5
+    - max
+
+##########################################################
+#                   DATALOADER SETTING                   #
+##########################################################
+# Chunk-based iteration, matching every existing espnet2 codec1 recipe
+# (encodec/dac/soundstream/hificodec/funcodec all use
+# batch_type: unsorted + iterator_type: chunk — none use numel). This avoids
+# needing collect_stats shape files at all: `UnsortedBatchSampler` only
+# needs a key file listing utt-ids, which the manifest TSV already is.
+dataloader:
+  collate_fn:
+    _target_: espnet2.train.collate_fn.CommonCollateFn
+    float_pad_value: 0.0
+    int_pad_value: 0
+  train:
+    iter_factory:
+      _target_: espnet2.iterators.chunk_iter_factory.ChunkIterFactory
+      # Number of chunks / samples per batch per GPU.
+      batch_size: 4
+      chunk_length: 61440
+      num_cache_chunks: 64
+      num_samples_per_epoch: 10000
+      shuffle: true
+      num_workers: 4
+      collate_fn: ${dataloader.collate_fn}
+      batches:
+        type: unsorted
+        batch_size: 1        # required by ChunkIterFactory's per-sample sampler
+        batch_bins: 0        # required by signature, unused for "unsorted"
+        shape_files:
+          - ${data_dir}/manifest/train.tsv
+  valid:
+    iter_factory:
+      _target_: espnet2.iterators.chunk_iter_factory.ChunkIterFactory
+      batch_size: 4
+      chunk_length: 61440
+      num_cache_chunks: 64
+      shuffle: false
+      num_workers: 4
+      collate_fn: ${dataloader.collate_fn}
+      batches:
+        type: unsorted
+        batch_size: 1
+        batch_bins: 0
+        shape_files:
+          - ${data_dir}/manifest/valid.tsv
+
+##########################################################
+#                    TRAINER SETTING                     #
+##########################################################
+trainer:
+  accelerator: auto
+  devices: ${num_device}
+  num_nodes: ${num_nodes}
+  max_epochs: 60
+  check_val_every_n_epoch: 1
+  log_every_n_steps: 500
+  # For multi-GPU training (num_device > 1), set this to
+  # ddp_find_unused_parameters_true: GAN steps alternate generator/
+  # discriminator optimization (and skip_discriminator_prob skips the
+  # discriminator entirely on some steps), so each backward leaves one
+  # module's parameters without gradients, which default DDP treats as an
+  # error.
+  strategy: auto
+  gan:
+    generator_first: true
+    skip_discriminator_prob: 0.3
+
+fit: {}

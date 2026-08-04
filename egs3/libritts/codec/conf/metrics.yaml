@@ -1,0 +1,39 @@
+##########################################################
+#                 METRIC SCORING SETTING                 #
+##########################################################
+# Quick usage:
+#   python run.py --stages measure \
+#       --training_config conf/training_encodec.yaml \
+#       --inference_config conf/inference.yaml \
+#       --metrics_config conf/metrics.yaml
+#
+# Scores the `infer` stage outputs (`${inference_dir}/test/{wav,ref}.scp`)
+# with versa (https://github.com/wavlab-speech/versa), which must be
+# installed in the evaluation environment.
+
+dataset:
+  test:
+    - name: test
+
+metrics:
+  - metric:
+      _target_: src.metrics.versa.VersaMetric
+      score_config:
+        # signal related metrics: sir, sar, sdr, ci-sdr, si-snri
+        - name: signal_metric
+        # pseudo subjective metrics: utmos, dnsmos, plcmos
+        - name: pseudo_mos
+          predictor_types: [utmos, dnsmos, plcmos]
+          predictor_args:
+            utmos:
+              fs: 16000
+            dnsmos:
+              fs: 16000
+            plcmos:
+              fs: 16000
+      wav_key: wav
+      ref_key: ref
+      use_gpu: true
+    inputs:
+      wav: wav
+      ref: ref

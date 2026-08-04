@@ -1,0 +1,116 @@
+"""Codec system implementation.
+
+This system follows the default ESPnet3 stage set unmodified
+(create_dataset, collect_stats, train, infer, measure) — no codec-specific
+stage is added. The only customization is inside train()/collect_stats():
+GAN-based codec models (Encodec, SoundStream, DAC, FunCodec, all
+``AbsGANESPnetModel`` subclasses) need the shared GAN Lightning adapter
+instead of the plain single-optimizer trainer.
+"""
+
+import logging
+import time
+from pathlib import Path
+from typing import Any, Dict
+
+import lightning as L
+import torch
+from hydra.utils import instantiate
+from omegaconf import DictConfig, OmegaConf
+
+from espnet2.train.abs_gan_espnet_model import AbsGANESPnetModel
+from espnet3.components.modeling.lightning_module import ESPnetLightningModule
+from espnet3.components.trainers.trainer import ESPnet3LightningTrainer
+from espnet3.parallel.parallel import set_parallel
+from espnet3.systems.base.system import BaseSystem
+from espnet3.systems.codec.gan_trainer import build_gan_trainer
+from espnet3.utils.task_utils import get_espnet_model, save_espnet_config
+
+logger = logging.getLogger(__name__)
+
+
+def _instantiate_model(config: DictConfig) -> Any:
+    task = config.get("task")
+    if task:
+        model_config = OmegaConf.to_container(config.model, resolve=True)
+        return get_espnet_model(task, model_config)
+    return instantiate(config.model)
+
+
+class CodecSystem(BaseSystem):
+    """Neural codec system. Uses only the default ESPnet3 stages."""
+
+    def _ensure_directories(self) -> None:
+        config = self.training_config
+        Path(config.exp_dir).mkdir(parents=True, exist_ok=True)
+        if hasattr(config, "stats_dir"):
+            Path(config.stats_dir).mkdir(parents=True, exist_ok=True)
+
+    def _build_trainer(self) -> ESPnet3LightningTrainer:
+        config = self.training_config
+        model = _instantiate_model(config)
+        if isinstance(model, AbsGANESPnetModel):
+            return build_gan_trainer(config, model)
+
+        lit_model = ESPnetLightningModule(model, config)
+        return ESPnet3LightningTrainer(
+            model=lit_model,
+            exp_dir=config.exp_dir,
+            config=config.trainer,
+            best_model_criterion=config.best_model_criterion,
+        )
+
+    def _prepare_training_runtime(self) -> None:
+        config = self.training_config
+        self._ensure_directories()
+
+        if config.get("parallel"):
+            set_parallel(config.parallel)
+
+        if config.get("seed") is not None:
+            L.seed_everything(int(config.seed), workers=True)
+
+        torch.set_float32_matmul_precision("high")
+
+    def collect_stats(self, *args, **kwargs):
+        """Run the collect_stats stage using the configured trainer."""
+        self._reject_stage_args("collect_stats", args, kwargs)
+        start = time.perf_counter()
+        self._prepare_training_runtime()
+
+        trainer = self._build_trainer()
+        trainer.collect_stats()
+        logger.info(
+            "Collect stats finished in %.2fs | exp_dir=%s stats_dir=%s",
+            time.perf_counter() - start,
+            self.training_config.exp_dir,
+            getattr(self.training_config, "stats_dir", None),
+        )
+
+    def train(self, *args, **kwargs):
+        """Run the training stage using the configured trainer.
+
+        For GAN codec models a ``GANLightningTrainer`` is used automatically
+        (see ``espnet3.systems.codec.gan_trainer.build_gan_trainer``);
+        otherwise ``ESPnet3LightningTrainer`` is used.
+        """
+        self._reject_stage_args("train", args, kwargs)
+        start = time.perf_counter()
+        self._prepare_training_runtime()
+
+        task = self.training_config.get("task")
+        if task:
+            save_espnet_config(task, self.training_config, self.training_config.exp_dir)
+
+        trainer = self._build_trainer()
+
+        fit_kwargs: Dict[str, Any] = {}
+        if hasattr(self.training_config, "fit") and self.training_config.fit:
+            fit_kwargs = OmegaConf.to_container(self.training_config.fit, resolve=True)
+
+        trainer.fit(**fit_kwargs)
+        logger.info(
+            "Training finished in %.2fs | exp_dir=%s",
+            time.perf_counter() - start,
+            self.training_config.exp_dir,
+        )

@@ -753,3 +753,123 @@ def test_sharded_dataset_world_size_mismatch(monkeypatch):
     )
     with pytest.raises(RuntimeError, match="dist_world_size must match"):
         builder.build("train")
+
+
+# --- DistributedSyncIterator ---
+
+
+def _patch_dist_gloo(monkeypatch, all_reduce):
+    import espnet3.components.data.dataloader as dl
+
+    monkeypatch.setattr(dl.torch.distributed, "get_backend", lambda: "gloo")
+    monkeypatch.setattr(dl.torch.distributed, "all_reduce", all_reduce)
+    return dl
+
+
+def test_sync_iterator_yields_all_batches_when_ranks_aligned(monkeypatch):
+    seen = []
+
+    def fake_all_reduce(tensor, op=None):
+        seen.append(tensor.item())
+
+    dl = _patch_dist_gloo(monkeypatch, fake_all_reduce)
+    iterator = dl.DistributedSyncIterator(["a", "b", "c"])
+    assert list(iterator) == ["a", "b", "c"]
+    # 3 has-next=1 flags plus the final has-next=0 on local exhaustion
+    assert seen == [1.0, 1.0, 1.0, 0.0]
+
+
+def test_sync_iterator_stops_when_another_rank_is_exhausted(monkeypatch):
+    calls = {"n": 0}
+
+    def fake_all_reduce(tensor, op=None):
+        calls["n"] += 1
+        if calls["n"] >= 3:  # simulated other rank runs out at 3rd batch
+            tensor.zero_()
+
+    dl = _patch_dist_gloo(monkeypatch, fake_all_reduce)
+    iterator = dl.DistributedSyncIterator(["a", "b", "c"])
+    assert list(iterator) == ["a", "b"]
+
+
+def test_sync_iterator_is_reiterable(monkeypatch):
+    def fake_all_reduce(tensor, op=None):
+        pass
+
+    dl = _patch_dist_gloo(monkeypatch, fake_all_reduce)
+    iterator = dl.DistributedSyncIterator([1, 2])
+    assert list(iterator) == [1, 2]
+    assert list(iterator) == [1, 2]
+
+
+# --- DDP sharding of iter-factory batches ---
+
+
+def _make_iter_factory_config():
+    return OmegaConf.create(
+        {
+            "dataloader": {
+                "train": {
+                    "iter_factory": {
+                        "_target_": (
+                            "test.espnet3.components.data."
+                            "test_dataloader_builder.DummyIterFactory"
+                        ),
+                        "batches": {"dummy": 1},
+                    }
+                }
+            }
+        }
+    )
+
+
+@pytest.mark.parametrize("rank, expected", [(0, [[0], [2]]), (1, [[1], [3]])])
+def test_iter_factory_allows_batches_smaller_than_world_size(
+    monkeypatch, rank, expected
+):
+    import espnet3.components.data.dataloader as dl
+
+    # 4 single-utterance batches (as ChunkIterFactory emits); previously this
+    # raised "batch-size must be equal or more than world_size"
+    monkeypatch.setattr(dl, "build_batch_sampler", lambda **kw: [[0], [1], [2], [3]])
+    monkeypatch.setattr(dl.torch.distributed, "get_world_size", lambda: 2)
+    monkeypatch.setattr(dl.torch.distributed, "get_rank", lambda: rank)
+
+    organizer = build_organizer(DUMMY_DATASET_TARGET)
+    builder = DataLoaderBuilder(
+        dataset=organizer.train,
+        config=_make_iter_factory_config(),
+        collate_fn=None,
+        num_device=2,
+        epoch=0,
+    )
+    iterator = builder.build("train")
+    assert list(iterator) == expected
+
+
+def test_iter_factory_wraps_iterator_when_distributed_initialized(monkeypatch):
+    import espnet3.components.data.dataloader as dl
+
+    monkeypatch.setattr(
+        dl, "build_batch_sampler", lambda **kw: [[0, 1], [2, 3], [4, 5], [6, 7]]
+    )
+    monkeypatch.setattr(dl.torch.distributed, "get_world_size", lambda: 2)
+    monkeypatch.setattr(dl.torch.distributed, "get_rank", lambda: 0)
+    monkeypatch.setattr(dl.torch.distributed, "is_available", lambda: True)
+    monkeypatch.setattr(dl.torch.distributed, "is_initialized", lambda: True)
+    monkeypatch.setattr(dl.torch.distributed, "get_backend", lambda: "gloo")
+    monkeypatch.setattr(
+        dl.torch.distributed, "all_reduce", lambda tensor, op=None: None
+    )
+
+    organizer = build_organizer(DUMMY_DATASET_TARGET)
+    builder = DataLoaderBuilder(
+        dataset=organizer.train,
+        config=_make_iter_factory_config(),
+        collate_fn=None,
+        num_device=2,
+        epoch=0,
+    )
+    iterator = builder.build("train")
+    assert isinstance(iterator, dl.DistributedSyncIterator)
+    assert list(iterator) == [[0, 1], [4, 5]]
