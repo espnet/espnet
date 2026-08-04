@@ -42,10 +42,19 @@ if [ "$stage" -le 3 ] && [ "$stop_stage" -ge 3 ]; then
     # Stage 3 prerequisite: patched checkpoint must exist
     if [ ! -f "$MODEL_DIR/valid.loss.best.pth" ]; then
         echo "ERROR: Patched checkpoint not found at $MODEL_DIR/valid.loss.best.pth"
-        echo "Run: python local/init_new_tokens.py \\"
-        echo "  --src_ckpt <path/to/owsm_v4_medium_1B/valid.loss.best.pth> \\"
-        echo "  --out_ckpt $MODEL_DIR/valid.loss.best.pth \\"
-        echo "  --n_new 3"
+        echo ""
+        echo "Download the OWSM v4 base model first, then run:"
+        echo "  python local/init_new_tokens.py \\"
+        echo "    --src_ckpt  <owsm_v4_medium_1B_dir>/exp/.../valid.loss.best.pth \\"
+        echo "    --out_ckpt  $MODEL_DIR/valid.loss.best.pth \\"
+        echo "    --src_config <owsm_v4_medium_1B_dir>/exp/.../config.yaml \\"
+        echo "    --out_token_list $token_list"
+        exit 1
+    fi
+
+    if [ ! -f "$token_list" ]; then
+        echo "ERROR: Token list not found at $token_list"
+        echo "Re-run init_new_tokens.py with --src_config and --out_token_list (see above)"
         exit 1
     fi
 
