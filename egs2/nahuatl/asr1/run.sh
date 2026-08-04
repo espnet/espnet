@@ -72,6 +72,9 @@ if [ "$stage" -le 3 ] && [ "$stop_stage" -ge 3 ]; then
         --init_param "$MODEL_DIR/valid.loss.best.pth" \
         --token_list "$token_list" \
         --ngpu 1 \
+        --dist_launcher None \
+        --multiprocessing_distributed false \
+        --dist_world_size 1 \
         ${max_epoch:+--max_epoch "$max_epoch"} \
         ${num_iters_per_epoch:+--num_iters_per_epoch "$num_iters_per_epoch"} \
         ${log_interval:+--log_interval "$log_interval"}
