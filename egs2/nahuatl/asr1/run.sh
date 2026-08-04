@@ -73,7 +73,8 @@ if [ "$stage" -le 3 ] && [ "$stop_stage" -ge 3 ]; then
         --token_list "$token_list" \
         --ngpu 1 \
         ${max_epoch:+--max_epoch "$max_epoch"} \
-        ${num_iters_per_epoch:+--num_iters_per_epoch "$num_iters_per_epoch"}
+        ${num_iters_per_epoch:+--num_iters_per_epoch "$num_iters_per_epoch"} \
+        ${log_interval:+--log_interval "$log_interval"}
 fi
 
 if [ "$stage" -le 4 ] && [ "$stop_stage" -ge 4 ]; then
