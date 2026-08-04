@@ -53,6 +53,20 @@ for setname in train valid test; do
     sort -k1 -o "$out/text"    "$out/text"
     sort -k1 -o "$out/utt2spk" "$out/utt2spk"
 
+    # Generate text_prev (<na> for all) and text_ctc (clean transcript)
+    python3 -c "
+import re, sys
+tok = re.compile(r'<(nah_hid|nah_ozg|nah_ztp|asr|notimestamps)>\s*')
+with open('$out/text') as f, \
+     open('$out/text_prev', 'w') as fp, \
+     open('$out/text_ctc', 'w') as fc:
+    for line in f:
+        uid, *rest = line.strip().split(None, 1)
+        clean = tok.sub('', rest[0] if rest else '').strip()
+        fp.write(f'{uid} <na>\n')
+        fc.write(f'{uid} {clean}\n')
+"
+
     # Rebuild spk2utt from merged utt2spk
     python3 -c "
 import collections

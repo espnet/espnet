@@ -82,9 +82,13 @@ category_sample_size: 10
 train_shape_file:
 - exp/s2t_stats/train/speech_shape
 - exp/s2t_stats/train/text_shape
+- exp/s2t_stats/train/text_prev_shape
+- exp/s2t_stats/train/text_ctc_shape
 valid_shape_file:
 - exp/s2t_stats/valid/speech_shape
 - exp/s2t_stats/valid/text_shape
+- exp/s2t_stats/valid/text_prev_shape
+- exp/s2t_stats/valid/text_ctc_shape
 batch_type: unsorted
 valid_batch_type: null
 fold_length:
@@ -104,18 +108,30 @@ chunk_default_fs: null
 chunk_max_abs_length: null
 chunk_discard_short_samples: true
 train_data_path_and_name_and_type:
--   - data/nahuatl_train/wav16k.scp
+-   - data/nahuatl_train/wav.scp
     - speech
     - sound
 -   - data/nahuatl_train/text
     - text
     - text
+-   - data/nahuatl_train/text_prev
+    - text_prev
+    - text
+-   - data/nahuatl_train/text_ctc
+    - text_ctc
+    - text
 valid_data_path_and_name_and_type:
--   - data/nahuatl_valid/wav16k.scp
+-   - data/nahuatl_valid/wav.scp
     - speech
     - sound
 -   - data/nahuatl_valid/text
     - text
+    - text
+-   - data/nahuatl_valid/text_prev
+    - text_prev
+    - text
+-   - data/nahuatl_valid/text_ctc
+    - text_ctc
     - text
 multi_task_dataset: false
 allow_variable_data_keys: false
