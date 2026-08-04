@@ -47,6 +47,8 @@ def main() -> None:
         ds = ds.select(range(min(args.max_examples, len(ds))))
 
     rows: list[tuple[str, str, str, str]] = []
+    seen_ids: set[str] = set()
+    n_skipped = 0
     for ex in ds:
         raw_id: str = ex['id']
         utt_id = _sanitize(raw_id)
@@ -54,11 +56,21 @@ def main() -> None:
         text: str = ex['text']
         audio_bytes: bytes = ex['audio']['bytes']
 
+        # Skip duplicate IDs (same sanitized ID already seen — ID collision
+        # caused by two transcription files for the same recording)
+        if utt_id in seen_ids:
+            n_skipped += 1
+            continue
+        seen_ids.add(utt_id)
+
         wav_path = os.path.abspath(os.path.join(args.wav_dir, f'{utt_id}.wav'))
         with open(wav_path, 'wb') as f:
             f.write(audio_bytes)
 
         rows.append((utt_id, spk_id, wav_path, text))
+
+    if n_skipped:
+        print(f"WARNING: skipped {n_skipped} duplicate utterance IDs")
 
     rows.sort(key=lambda r: r[0])
 
