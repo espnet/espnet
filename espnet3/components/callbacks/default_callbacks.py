@@ -187,7 +187,7 @@ class AverageCheckpointsCallback(Callback):
                             "Averaged checkpoint keys do not match the "
                             "current model's state_dict keys.\n"
                             f"Expected: {reference_model_keys}\n"
-                            f"Got: {set(avg_state_dict.keys())}"
+                            f"Got: {set(new_avg_state_dict.keys())}"
                         )
 
                 avg_ckpt_path = Path(self.output_dir) / (
