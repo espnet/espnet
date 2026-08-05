@@ -9,7 +9,7 @@
 # - Number of GPUs: 2
 # - GPU type: NVIDIA A40 (44 GB)
 # - Training time: approximately 9 h 40 min for 200 epochs
-# 
+#
 # Note:
 # This base configuration inherits `num_device: 1` from the TEMPLATE config;
 # it is configured for single-GPU training with gradient accumulation of 4.
