@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """Patch OWSM v4 checkpoint: add N new token embedding rows initialized to mean.
 
-Optionally also generates an extended token list by reading the inline
-token_list from the upstream model's config.yaml and appending new tokens.
+Optionally also (a) generates an extended token list by reading the inline
+token_list from the upstream model's config.yaml and appending the new tokens,
+and (b) patches the SentencePiece BPE model so the new tokens are user-defined
+symbols (tokenized as single pieces rather than split into subwords).
 
 Usage:
     python local/init_new_tokens.py \
@@ -10,7 +12,9 @@ Usage:
         --out_ckpt   ../../../../model_cache/owsm_v4_medium_1B_nahuatl/valid.loss.best.pth \
         --new_tokens "<nah_hid>" "<nah_ozg>" "<nah_ztp>" \
         --src_config ../../../../model_cache/owsm_v4_medium_1B/exp/s2t_train_conv2d8_size1024_e18_d18_mel128_raw_bpe50000/config.yaml \
-        --out_token_list data/token_list_nahuatl.txt
+        --out_token_list data/token_list_nahuatl.txt \
+        --src_bpe    ../../../../model_cache/owsm_v4_medium_1B/data/token_list/bpe_unigram50000/bpe.model \
+        --out_bpe    ../../../../model_cache/owsm_v4_medium_1B_nahuatl/data/token_list/bpe_unigram50000/bpe.model
 """
 
 import argparse
@@ -76,6 +80,14 @@ def main() -> None:
     parser.add_argument(
         "--out_token_list", default=None, help="Where to write the extended token list"
     )
+    parser.add_argument(
+        "--src_bpe", default=None, help="Path to upstream SentencePiece bpe.model"
+    )
+    parser.add_argument(
+        "--out_bpe",
+        default=None,
+        help="Where to write the patched bpe.model (new tokens as user-defined symbols)",
+    )
     args = parser.parse_args()
 
     n_new = len(args.new_tokens)
@@ -138,6 +150,33 @@ def main() -> None:
         with open(args.out_token_list, "w", encoding="utf-8") as f:
             f.write("\n".join(tokens) + "\n")
         print(f"Wrote {len(tokens)} tokens to {args.out_token_list}")
+
+    # ── Patch the BPE model ─────────────────────────────────────────────────
+    # Add the new tokens as SentencePiece user-defined symbols so they tokenize
+    # as single pieces. Without this the tokenizer splits e.g. "<nah_hid>" into
+    # subwords and the new embeddings above are never used.
+    if args.src_bpe and args.out_bpe:
+        from sentencepiece import sentencepiece_model_pb2 as pb2
+
+        print(f"Patching BPE model from {args.src_bpe} ...")
+        proto = pb2.ModelProto()
+        with open(args.src_bpe, "rb") as f:
+            proto.ParseFromString(f.read())
+        existing = {p.piece for p in proto.pieces}
+        n_before = len(proto.pieces)
+        for sym in args.new_tokens:
+            if sym in existing:
+                continue
+            piece = proto.SentencePiece()
+            piece.piece = sym
+            piece.score = 0.0
+            piece.type = pb2.ModelProto.SentencePiece.USER_DEFINED
+            proto.pieces.append(piece)
+        os.makedirs(os.path.dirname(os.path.abspath(args.out_bpe)) or ".", exist_ok=True)
+        with open(args.out_bpe, "wb") as f:
+            f.write(proto.SerializeToString())
+        print(f"  SentencePiece pieces {n_before} -> {len(proto.pieces)}")
+        print(f"Wrote patched BPE model to {args.out_bpe}")
 
 
 if __name__ == "__main__":

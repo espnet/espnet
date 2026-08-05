@@ -33,15 +33,21 @@ s2t_config="conf/tuning/train_owsm_v4_nahuatl.yaml"
 
 MODEL_DIR=$(realpath "../../../../model_cache/owsm_v4_medium_1B_nahuatl")
 UPSTREAM_DIR=$(realpath "../../../../model_cache/owsm_v4_medium_1B")
-UPSTREAM_BPE="$UPSTREAM_DIR/data/token_list/bpe_unigram50000/bpe.model"
 UPSTREAM_FEATS_STATS="$UPSTREAM_DIR/exp/s2t_stats_raw_bpe50000/train/feats_stats.npz"
+# Use the PATCHED BPE model, which adds the three region tokens as SentencePiece
+# user-defined symbols so they tokenize as single pieces (id 50002-50004) instead
+# of being split into subwords. init_new_tokens.py builds it from the upstream one.
+NAHUATL_BPE="$MODEL_DIR/data/token_list/bpe_unigram50000/bpe.model"
 
 # s2t.sh expects BPE model at data/token_list/bpe_unigram50000/bpe.model
 TOKEN_LIST_DIR="data/token_list/bpe_unigram50000"
-if [ ! -f "$TOKEN_LIST_DIR/bpe.model" ]; then
-    mkdir -p "$TOKEN_LIST_DIR"
-    ln -sf "$(realpath "$UPSTREAM_BPE")" "$TOKEN_LIST_DIR/bpe.model"
+if [ ! -f "$NAHUATL_BPE" ]; then
+    echo "ERROR: patched BPE model not found at $NAHUATL_BPE"
+    echo "Run init_new_tokens.py (see header) to build it from the upstream model."
+    exit 1
 fi
+mkdir -p "$TOKEN_LIST_DIR"
+ln -sf "$(realpath "$NAHUATL_BPE")" "$TOKEN_LIST_DIR/bpe.model"
 
 # Fine-tuning must reuse OWSM's global-mvn feature statistics: the model was
 # pretrained with these, and collect_stats (stage 10) does not regenerate them
