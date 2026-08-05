@@ -54,13 +54,13 @@ def check_nonempty(path):
 def cut_one(arg):
     src_path, dst_path, audio_len = arg
     if os.path.exists(dst_path) and os.path.getsize(dst_path) > 0:
-        return True
+        return None
     try:
         s, r = sf.read(src_path)
         sf.write(dst_path, s[: int(r * audio_len)], r)
-        return True
+        return None
     except Exception:
-        return False
+        return dst_path  # signal failure
 
 
 def parse_csv(
@@ -155,19 +155,26 @@ def main():
             flush=True,
         )
         os.makedirs(os.path.join(args.data_read, "cut_wav"), exist_ok=True)
+        failed = set()
         with Pool(processes=args.n_proc) as p:
-            ok = 0
             for r in tqdm(
                 p.imap_unordered(cut_one, cut_jobs, chunksize=64), total=len(cut_jobs)
             ):
-                ok += int(r)
-            print(f"  generated {ok}/{len(cut_jobs)}", flush=True)
+                if r is not None:
+                    failed.add(r)
+            print(
+                f"  generated {len(cut_jobs) - len(failed)}/{len(cut_jobs)}, "
+                f"pruning {len(failed)} failed entries from wav.scp",
+                flush=True,
+            )
     else:
+        failed = set()
         print("[3/4] No cut_wav generation needed (all present).", flush=True)
 
     # 4) Write wav.scp + utt2spk.
     print("[4/4] Writing wav.scp + utt2spk...", flush=True)
     for entries, name in [(train_entries, "AudioSet"), (eval_entries, "eval")]:
+        entries = [e for e in entries if e["wav_path"] not in failed]
         out_dir = os.path.join(args.data_write, name)
         os.makedirs(out_dir, exist_ok=True)
         with (
