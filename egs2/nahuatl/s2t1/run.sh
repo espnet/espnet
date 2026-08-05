@@ -27,7 +27,11 @@ cd "$RECIPE_DIR"
 # ── Recipe configuration ────────────────────────────────────────────────────
 train_set="nahuatl_train"
 valid_set="nahuatl_valid"
-test_sets="nahuatl_test nahuatl_hidalgo_test nahuatl_orizaba_zongolica_test nahuatl_zacatlan_tepetzintla_test"
+# Only the three single-region test sets: espnet2 decoding applies one --lang_sym
+# to the whole run, so a mixed-region set cannot be decoded correctly. decode.sh
+# decodes each region with its own lang_sym and combines them for the aggregate
+# score (which is what a mixed test set would measure).
+test_sets="nahuatl_hidalgo_test nahuatl_orizaba_zongolica_test nahuatl_zacatlan_tepetzintla_test"
 
 s2t_config="conf/tuning/train_owsm_v4_nahuatl.yaml"
 
