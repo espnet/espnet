@@ -10,6 +10,9 @@ on:
       - master
       - espnet3
 
+env:
+  NLTK_DISABLE_IMPORT_SECURITY: "1"
+
 jobs:
   unit_test_espnet2_and_espnet3_on_debian12:
     runs-on: ubuntu-latest

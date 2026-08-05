@@ -8,6 +8,9 @@ on:
     branches:
       - master
 
+env:
+  NLTK_DISABLE_IMPORT_SECURITY: "1"
+
 jobs:
   get_labels:
     runs-on: ubuntu-latest
