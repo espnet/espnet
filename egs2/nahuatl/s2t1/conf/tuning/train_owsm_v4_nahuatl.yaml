@@ -8,7 +8,7 @@ use_amp: true
 # ── Best-model criterion (OWSM uses total_count, not loss) ─────────────────
 best_model_criterion:
 -   - valid
-    - total_count
+    - acc
     - max
 keep_nbest_models: 5
 nbest_averaging_interval: 15
