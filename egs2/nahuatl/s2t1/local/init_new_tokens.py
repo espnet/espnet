@@ -172,7 +172,9 @@ def main() -> None:
             piece.score = 0.0
             piece.type = pb2.ModelProto.SentencePiece.USER_DEFINED
             proto.pieces.append(piece)
-        os.makedirs(os.path.dirname(os.path.abspath(args.out_bpe)) or ".", exist_ok=True)
+        os.makedirs(
+            os.path.dirname(os.path.abspath(args.out_bpe)) or ".", exist_ok=True
+        )
         with open(args.out_bpe, "wb") as f:
             f.write(proto.SerializeToString())
         print(f"  SentencePiece pieces {n_before} -> {len(proto.pieces)}")
