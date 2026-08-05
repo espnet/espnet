@@ -10,6 +10,9 @@ on:
       - master
       - espnet3
 
+env:
+  NLTK_DISABLE_IMPORT_SECURITY: "1"
+
 jobs:
   check_installable_on_windows:
     runs-on: Windows-latest
