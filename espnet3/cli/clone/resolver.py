@@ -44,8 +44,14 @@ def resolve_recipe(recipe: str) -> Path:
             f"Recipe must be in '<dataset>/<task>' format, got: {recipe!r}"
         )
     dataset, task = parts
-    egs3 = _get_egs3_root()
-    recipe_path = egs3 / dataset / task
+    egs3 = _get_egs3_root().resolve()
+    recipe_path = (egs3 / dataset / task).resolve()
+    try:
+        recipe_path.relative_to(egs3)
+    except ValueError:
+        raise ValueError(
+            f"Recipe must resolve inside the egs3 directory, got: {recipe!r}"
+        ) from None
     if not recipe_path.exists():
         available = _list_available(egs3)
         hint = "\n  ".join(available) if available else "(none found)"

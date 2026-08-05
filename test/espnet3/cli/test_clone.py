@@ -105,6 +105,14 @@ def test_resolve_recipe_raises_file_not_found_for_unknown_recipe(fake_egs3):
         resolve_recipe("unknown/asr")
 
 
+def test_resolve_recipe_rejects_path_outside_egs3(fake_egs3):
+    outside = fake_egs3.parent / "espnet3"
+    outside.mkdir()
+
+    with pytest.raises(ValueError, match="inside the egs3 directory"):
+        resolve_recipe("../espnet3")
+
+
 def test_resolve_recipe_error_message_lists_available_recipes(fake_egs3):
     with pytest.raises(FileNotFoundError) as exc_info:
         resolve_recipe("unknown/asr")
