@@ -4,11 +4,11 @@
 """Spiralformer encoder definition."""
 
 import logging
+import math
 from typing import List, Optional, Tuple, Union
 
 import torch
 from torch import nn
-import math
 
 from espnet2.asr.ctc import CTC
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
@@ -64,7 +64,17 @@ class SpiralRelPositionMultiHeadedAttention(MultiHeadedAttention):
 
     """
 
-    def __init__(self, n_head, n_feat, dropout_rate, zero_triu=False, block_size=20, hop_size=1, look_ahead=8, spiral_pitch=4):
+    def __init__(
+        self,
+        n_head,
+        n_feat,
+        dropout_rate,
+        zero_triu=False,
+        block_size=20,
+        hop_size=1,
+        look_ahead=8,
+        spiral_pitch=4,
+    ):
         """Construct an RelPositionMultiHeadedAttention object."""
         super().__init__(n_head, n_feat, dropout_rate)
         self.zero_triu = zero_triu
@@ -101,7 +111,7 @@ class SpiralRelPositionMultiHeadedAttention(MultiHeadedAttention):
             x = x * torch.tril(ones, x.size(3) - x.size(2))[None, None, :, :]
 
         return x
-    
+
     def forward_attention(self, value, scores, mask):
         """Compute attention context vector.
 
@@ -178,6 +188,7 @@ class SpiralRelPositionMultiHeadedAttention(MultiHeadedAttention):
         )  # (batch, head, time1, time2)
 
         return self.forward_attention(v, scores, mask)
+
 
 class SpiralEncoderLayer(nn.Module):
     """Spiral Encoder layer module.
@@ -294,41 +305,43 @@ class SpiralEncoderLayer(nn.Module):
                 x = self.norm_ff_macaron(x)
 
         if not skip:
-             # multi-headed self-attention module
-             residual = x
-             if self.normalize_before:
-                 x = self.norm1(x)
+            # multi-headed self-attention module
+            residual = x
+            if self.normalize_before:
+                x = self.norm1(x)
 
-             if cache is None:
-                 x_q = x
-             else:
-                 assert cache.shape == (x.shape[0], x.shape[1] - 1, self.size)
-                 x_q = x[:, -1:, :]
-                 residual = residual[:, -1:, :]
-                 mask = None if mask is None else mask[:, -1:, :]
+            if cache is None:
+                x_q = x
+            else:
+                assert cache.shape == (x.shape[0], x.shape[1] - 1, self.size)
+                x_q = x[:, -1:, :]
+                residual = residual[:, -1:, :]
+                mask = None if mask is None else mask[:, -1:, :]
 
-             if pos_emb is not None:
-                 x_att = self.self_attn(x_q, x, x, pos_emb, mask)
-             else:
-                 x_att = self.self_attn(x_q, x, x, mask)
+            if pos_emb is not None:
+                x_att = self.self_attn(x_q, x, x, pos_emb, mask)
+            else:
+                x_att = self.self_attn(x_q, x, x, mask)
 
-             if self.concat_after:
-                 x_concat = torch.cat((x, x_att), dim=-1)
-                 x = residual + stoch_layer_coeff * self.concat_linear(x_concat)
-             else:
-                 x = residual + stoch_layer_coeff * self.dropout(x_att)
-             if not self.normalize_before:
-                 x = self.norm1(x)
+            if self.concat_after:
+                x_concat = torch.cat((x, x_att), dim=-1)
+                x = residual + stoch_layer_coeff * self.concat_linear(x_concat)
+            else:
+                x = residual + stoch_layer_coeff * self.dropout(x_att)
+            if not self.normalize_before:
+                x = self.norm1(x)
 
-             # convolution module
-             if self.conv_module is not None:
-                 residual = x
-                 if self.normalize_before:
-                     x = self.norm_conv(x)
-                 x = x.masked_fill(mask.sum(-1,keepdim=True)<1,0)
-                 x = residual + stoch_layer_coeff * self.dropout(self.conv_module(x).masked_fill(mask.sum(-1,keepdim=True)<1,0))
-                 if not self.normalize_before:
-                     x = self.norm_conv(x)
+            # convolution module
+            if self.conv_module is not None:
+                residual = x
+                if self.normalize_before:
+                    x = self.norm_conv(x)
+                x = x.masked_fill(mask.sum(-1, keepdim=True) < 1, 0)
+                x = residual + stoch_layer_coeff * self.dropout(
+                    self.conv_module(x).masked_fill(mask.sum(-1, keepdim=True) < 1, 0)
+                )
+                if not self.normalize_before:
+                    x = self.norm_conv(x)
 
         # feed forward module
         residual = x
@@ -460,52 +473,68 @@ class SpiralformerEncoder(AbsEncoder):
                 torch.nn.LayerNorm(output_size),
                 torch.nn.Dropout(dropout_rate),
             )
-            self.pos_enc = pos_enc_class(output_size, positional_dropout_rate, max_pos_emb_len)
+            self.pos_enc = pos_enc_class(
+                output_size, positional_dropout_rate, max_pos_emb_len
+            )
         elif input_layer == "conv2d":
             self.embed = Conv2dSubsampling(
                 input_size,
                 output_size,
                 dropout_rate,
             )
-            self.pos_enc = pos_enc_class(output_size, positional_dropout_rate, max_pos_emb_len)
+            self.pos_enc = pos_enc_class(
+                output_size, positional_dropout_rate, max_pos_emb_len
+            )
         elif input_layer == "conv2d1":
             self.embed = Conv2dSubsampling1(
                 input_size,
                 output_size,
                 dropout_rate,
             )
-            self.pos_enc = pos_enc_class(output_size, positional_dropout_rate, max_pos_emb_len)
+            self.pos_enc = pos_enc_class(
+                output_size, positional_dropout_rate, max_pos_emb_len
+            )
         elif input_layer == "conv2d2":
             self.embed = Conv2dSubsampling2(
                 input_size,
                 output_size,
                 dropout_rate,
             )
-            self.pos_enc = pos_enc_class(output_size, positional_dropout_rate, max_pos_emb_len)
+            self.pos_enc = pos_enc_class(
+                output_size, positional_dropout_rate, max_pos_emb_len
+            )
         elif input_layer == "conv2d6":
             self.embed = Conv2dSubsampling6(
                 input_size,
                 output_size,
                 dropout_rate,
             )
-            self.pos_enc = pos_enc_class(output_size, positional_dropout_rate, max_pos_emb_len)
+            self.pos_enc = pos_enc_class(
+                output_size, positional_dropout_rate, max_pos_emb_len
+            )
         elif input_layer == "conv2d8":
             self.embed = Conv2dSubsampling8(
                 input_size,
                 output_size,
                 dropout_rate,
             )
-            self.pos_enc = pos_enc_class(output_size, positional_dropout_rate, max_pos_emb_len)
+            self.pos_enc = pos_enc_class(
+                output_size, positional_dropout_rate, max_pos_emb_len
+            )
         elif input_layer == "embed":
             self.embed = torch.nn.Sequential(
                 torch.nn.Embedding(input_size, output_size, padding_idx=padding_idx),
             )
-            self.pos_enc = pos_enc_class(output_size, positional_dropout_rate, max_pos_emb_len)
+            self.pos_enc = pos_enc_class(
+                output_size, positional_dropout_rate, max_pos_emb_len
+            )
         elif isinstance(input_layer, torch.nn.Module):
             self.embed = torch.nn.Sequential(
                 input_layer,
             )
-            self.pos_enc = pos_enc_class(output_size, positional_dropout_rate, max_pos_emb_len)
+            self.pos_enc = pos_enc_class(
+                output_size, positional_dropout_rate, max_pos_emb_len
+            )
         elif input_layer is None:
             self.embed = torch.nn.Sequential(
                 pos_enc_class(output_size, positional_dropout_rate, max_pos_emb_len)
@@ -663,55 +692,154 @@ class SpiralformerEncoder(AbsEncoder):
             xs_pad = self.embed(xs_pad)
 
         olens = masks.squeeze(1).sum(1)
-        (b,t,d) = xs_pad.size()
+        b, t, d = xs_pad.size()
         if t < self.look_ahead + self.hop_size:
             intermediate_outs = []
             if len(self.interctc_layer_idx) == 0:
                 for layer_idx, encoder_layer in enumerate(self.encoders):
-                     xs_pad, _ = encoder_layer(xs_pad, masks)
-                     if return_all_hs:
-                         if isinstance(xs_pad, tuple):
-                             intermediate_outs.append(xs_pad[0].clone())
-                         else:
-                             intermediate_outs.append(xs_pad.clone())
+                    xs_pad, _ = encoder_layer(xs_pad, masks)
+                    if return_all_hs:
+                        if isinstance(xs_pad, tuple):
+                            intermediate_outs.append(xs_pad[0].clone())
+                        else:
+                            intermediate_outs.append(xs_pad.clone())
             if not self.training:
                 return xs_pad, olens, None
             else:
-                return (xs_pad, [(-s-1,intermediate_outs[-s-1]) for s in range(self.spiral_pitch-1,0,-1)]), olens, None
-        rep_times = len(self.encoders)//self.spiral_pitch
-        pre_pad_len = (len(self.encoders)-1)*self.hop_size+self.block_size-self.hop_size*self.spiral_pitch-self.look_ahead
-        post_pad_len = (self.spiral_pitch*self.hop_size-t+self.look_ahead)%(self.hop_size*self.spiral_pitch)+(rep_times-1)*self.hop_size*self.spiral_pitch
-        xs_pad = torch.cat((xs_pad.new_zeros(b,pre_pad_len,d),xs_pad),dim=1)
+                return (
+                    (
+                        xs_pad,
+                        [
+                            (-s - 1, intermediate_outs[-s - 1])
+                            for s in range(self.spiral_pitch - 1, 0, -1)
+                        ],
+                    ),
+                    olens,
+                    None,
+                )
+        rep_times = len(self.encoders) // self.spiral_pitch
+        pre_pad_len = (
+            (len(self.encoders) - 1) * self.hop_size
+            + self.block_size
+            - self.hop_size * self.spiral_pitch
+            - self.look_ahead
+        )
+        post_pad_len = (self.spiral_pitch * self.hop_size - t + self.look_ahead) % (
+            self.hop_size * self.spiral_pitch
+        ) + (rep_times - 1) * self.hop_size * self.spiral_pitch
+        xs_pad = torch.cat((xs_pad.new_zeros(b, pre_pad_len, d), xs_pad), dim=1)
         if post_pad_len > 0:
-            xs_pad = torch.cat((xs_pad,xs_pad.new_zeros(b,post_pad_len,d)),dim=1)
-        xs_pad = xs_pad.unfold(1,self.block_size+(len(self.encoders)-1)*self.hop_size,self.hop_size*self.spiral_pitch)
-        xs_pad = torch.transpose(xs_pad,2,3).contiguous()
+            xs_pad = torch.cat((xs_pad, xs_pad.new_zeros(b, post_pad_len, d)), dim=1)
+        xs_pad = xs_pad.unfold(
+            1,
+            self.block_size + (len(self.encoders) - 1) * self.hop_size,
+            self.hop_size * self.spiral_pitch,
+        )
+        xs_pad = torch.transpose(xs_pad, 2, 3).contiguous()
         nfold = xs_pad.shape[1]
-        xs_pad = xs_pad.view(-1,self.block_size+(len(self.encoders)-1)*self.hop_size,d)
-        masks = xs_pad.new_zeros(1,xs_pad.shape[1],xs_pad.shape[1])
-        masks[:,:self.block_size,:self.block_size] = 1
+        xs_pad = xs_pad.view(
+            -1, self.block_size + (len(self.encoders) - 1) * self.hop_size, d
+        )
+        masks = xs_pad.new_zeros(1, xs_pad.shape[1], xs_pad.shape[1])
+        masks[:, : self.block_size, : self.block_size] = 1
         xs_pad_input = xs_pad
 
         intermediate_outs = []
         if len(self.interctc_layer_idx) == 0:
             for layer_idx, encoder_layer in enumerate(self.encoders):
                 if layer_idx < self.spiral_pitch:
-                    if isinstance(xs_pad,tuple):
-                        xs_pad[0][:,self.block_size-self.hop_size+layer_idx*self.hop_size:self.block_size+layer_idx*self.hop_size,:] = xs_pad_input[:,self.block_size-self.hop_size+layer_idx*self.hop_size:self.block_size+layer_idx*self.hop_size,:]
+                    if isinstance(xs_pad, tuple):
+                        xs_pad[0][
+                            :,
+                            self.block_size
+                            - self.hop_size
+                            + layer_idx * self.hop_size : self.block_size
+                            + layer_idx * self.hop_size,
+                            :,
+                        ] = xs_pad_input[
+                            :,
+                            self.block_size
+                            - self.hop_size
+                            + layer_idx * self.hop_size : self.block_size
+                            + layer_idx * self.hop_size,
+                            :,
+                        ]
                     else:
-                        xs_pad[:,self.block_size-self.hop_size+layer_idx*self.hop_size:self.block_size+layer_idx*self.hop_size,:] = xs_pad_input[:,self.block_size-self.hop_size+layer_idx*self.hop_size:self.block_size+layer_idx*self.hop_size,:]
+                        xs_pad[
+                            :,
+                            self.block_size
+                            - self.hop_size
+                            + layer_idx * self.hop_size : self.block_size
+                            + layer_idx * self.hop_size,
+                            :,
+                        ] = xs_pad_input[
+                            :,
+                            self.block_size
+                            - self.hop_size
+                            + layer_idx * self.hop_size : self.block_size
+                            + layer_idx * self.hop_size,
+                            :,
+                        ]
 
                 if layer_idx >= self.spiral_pitch:
-                    if isinstance(xs_pad,tuple):
-                        xs_pad[0][:-1,layer_idx*self.hop_size:self.block_size+layer_idx*self.hop_size] += intermediate_outs[layer_idx-self.spiral_pitch][1:,layer_idx*self.hop_size-self.spiral_pitch*self.hop_size:self.block_size+layer_idx*self.hop_size-self.spiral_pitch*self.hop_size]
-                        xs_pad[0][:-1,self.block_size-self.hop_size+layer_idx*self.hop_size:self.block_size+layer_idx*self.hop_size] = intermediate_outs[layer_idx-self.spiral_pitch][1:,self.block_size-self.hop_size+layer_idx*self.hop_size-self.spiral_pitch*self.hop_size:self.block_size+layer_idx*self.hop_size-self.spiral_pitch*self.hop_size]
+                    if isinstance(xs_pad, tuple):
+                        xs_pad[0][
+                            :-1,
+                            layer_idx * self.hop_size : self.block_size
+                            + layer_idx * self.hop_size,
+                        ] += intermediate_outs[layer_idx - self.spiral_pitch][
+                            1:,
+                            layer_idx * self.hop_size
+                            - self.spiral_pitch * self.hop_size : self.block_size
+                            + layer_idx * self.hop_size
+                            - self.spiral_pitch * self.hop_size,
+                        ]
+                        xs_pad[0][
+                            :-1,
+                            self.block_size
+                            - self.hop_size
+                            + layer_idx * self.hop_size : self.block_size
+                            + layer_idx * self.hop_size,
+                        ] = intermediate_outs[layer_idx - self.spiral_pitch][
+                            1:,
+                            self.block_size
+                            - self.hop_size
+                            + layer_idx * self.hop_size
+                            - self.spiral_pitch * self.hop_size : self.block_size
+                            + layer_idx * self.hop_size
+                            - self.spiral_pitch * self.hop_size,
+                        ]
                     else:
-                        xs_pad[:-1,layer_idx*self.hop_size:self.block_size+layer_idx*self.hop_size] += intermediate_outs[layer_idx-self.spiral_pitch][1:,layer_idx*self.hop_size-self.spiral_pitch*self.hop_size:self.block_size+layer_idx*self.hop_size-self.spiral_pitch*self.hop_size]
-                        xs_pad[:-1,self.block_size-self.hop_size+layer_idx*self.hop_size:self.block_size+layer_idx*self.hop_size] = intermediate_outs[layer_idx-self.spiral_pitch][1:,self.block_size-self.hop_size+layer_idx*self.hop_size-self.spiral_pitch*self.hop_size:self.block_size+layer_idx*self.hop_size-self.spiral_pitch*self.hop_size]
+                        xs_pad[
+                            :-1,
+                            layer_idx * self.hop_size : self.block_size
+                            + layer_idx * self.hop_size,
+                        ] += intermediate_outs[layer_idx - self.spiral_pitch][
+                            1:,
+                            layer_idx * self.hop_size
+                            - self.spiral_pitch * self.hop_size : self.block_size
+                            + layer_idx * self.hop_size
+                            - self.spiral_pitch * self.hop_size,
+                        ]
+                        xs_pad[
+                            :-1,
+                            self.block_size
+                            - self.hop_size
+                            + layer_idx * self.hop_size : self.block_size
+                            + layer_idx * self.hop_size,
+                        ] = intermediate_outs[layer_idx - self.spiral_pitch][
+                            1:,
+                            self.block_size
+                            - self.hop_size
+                            + layer_idx * self.hop_size
+                            - self.spiral_pitch * self.hop_size : self.block_size
+                            + layer_idx * self.hop_size
+                            - self.spiral_pitch * self.hop_size,
+                        ]
 
                 xs_pad, _ = encoder_layer(xs_pad, masks)
-                masks = torch.roll(masks,self.hop_size,dims=1)
-                masks = torch.roll(masks,self.hop_size,dims=2)
+                masks = torch.roll(masks, self.hop_size, dims=1)
+                masks = torch.roll(masks, self.hop_size, dims=2)
                 if return_all_hs:
                     if isinstance(xs_pad, tuple):
                         intermediate_outs.append(xs_pad[0].clone())
@@ -755,44 +883,118 @@ class SpiralformerEncoder(AbsEncoder):
                             x, masks, _ = trim_by_ctc_posterior(x, ctc_out, masks)
 
         if isinstance(xs_pad, tuple):
-            xs_pad = xs_pad[0].view(b,nfold,-1,d)
+            xs_pad = xs_pad[0].view(b, nfold, -1, d)
         else:
-            xs_pad = xs_pad.view(b,nfold,-1,d)
-        for s in range(self.spiral_pitch-1,0,-1):
-            xs_trim = intermediate_outs[-s-1].view(b,nfold,-1,d)[:,:,-self.look_ahead-self.hop_size*(s+1):-self.look_ahead-self.hop_size*s,:].view(-1,self.hop_size,d)
+            xs_pad = xs_pad.view(b, nfold, -1, d)
+        for s in range(self.spiral_pitch - 1, 0, -1):
+            xs_trim = (
+                intermediate_outs[-s - 1]
+                .view(b, nfold, -1, d)[
+                    :,
+                    :,
+                    -self.look_ahead
+                    - self.hop_size * (s + 1) : -self.look_ahead
+                    - self.hop_size * s,
+                    :,
+                ]
+                .view(-1, self.hop_size, d)
+            )
             if s > 0 and False:
-                for l in range(len(self.encoders)-s,len(self.encoders)):
-                    xs_trim,_ = self.encoders[l](xs_trim,masks.new_zeros((1,self.hop_size,self.hop_size)))
-            xs_pad[:,:,-self.look_ahead-self.hop_size*(s+1):-self.look_ahead-self.hop_size*s,:] = xs_trim.view(b,nfold,-1,d)
+                for l in range(len(self.encoders) - s, len(self.encoders)):
+                    xs_trim, _ = self.encoders[l](
+                        xs_trim, masks.new_zeros((1, self.hop_size, self.hop_size))
+                    )
+            xs_pad[
+                :,
+                :,
+                -self.look_ahead
+                - self.hop_size * (s + 1) : -self.look_ahead
+                - self.hop_size * s,
+                :,
+            ] = xs_trim.view(b, nfold, -1, d)
 
         if self.look_ahead > 0:
-            look_ahead = xs_pad[:,-rep_times,-self.look_ahead:] # TODO: still have issue; sample from intermediate_outs if necessary
+            look_ahead = xs_pad[
+                :, -rep_times, -self.look_ahead :
+            ]  # TODO: still have issue; sample from intermediate_outs if necessary
         else:
             look_ahead = None
         if rep_times > 1:
-            xs_pad = xs_pad[:,:-rep_times+1,-self.look_ahead-self.hop_size*self.spiral_pitch:-self.look_ahead,:].contiguous().view(b,-1,d)
-            for s in range(self.spiral_pitch-1,0,-1):
-                intermediate_outs[-s-1] = intermediate_outs[-s-1].view(b,nfold,-1,d)
-                intermediate_outs[-s-1] = intermediate_outs[-s-1][:,:-rep_times+1,-self.look_ahead-self.hop_size*self.spiral_pitch:-self.look_ahead,:].contiguous().view(b,-1,d)
+            xs_pad = (
+                xs_pad[
+                    :,
+                    : -rep_times + 1,
+                    -self.look_ahead
+                    - self.hop_size * self.spiral_pitch : -self.look_ahead,
+                    :,
+                ]
+                .contiguous()
+                .view(b, -1, d)
+            )
+            for s in range(self.spiral_pitch - 1, 0, -1):
+                intermediate_outs[-s - 1] = intermediate_outs[-s - 1].view(
+                    b, nfold, -1, d
+                )
+                intermediate_outs[-s - 1] = (
+                    intermediate_outs[-s - 1][
+                        :,
+                        : -rep_times + 1,
+                        -self.look_ahead
+                        - self.hop_size * self.spiral_pitch : -self.look_ahead,
+                        :,
+                    ]
+                    .contiguous()
+                    .view(b, -1, d)
+                )
                 if look_ahead is not None:
-                    intermediate_outs[-s-1] = torch.cat((intermediate_outs[-s-1],look_ahead),dim=1)
-                intermediate_outs[-s-1] = intermediate_outs[-s-1][:,:t]
+                    intermediate_outs[-s - 1] = torch.cat(
+                        (intermediate_outs[-s - 1], look_ahead), dim=1
+                    )
+                intermediate_outs[-s - 1] = intermediate_outs[-s - 1][:, :t]
                 if self.normalize_before:
-                    intermediate_outs[-s-1] = self.after_norm(intermediate_outs[-s-1])
+                    intermediate_outs[-s - 1] = self.after_norm(
+                        intermediate_outs[-s - 1]
+                    )
         else:
-            xs_pad = xs_pad[:,:,-self.look_ahead-self.hop_size*self.spiral_pitch:-self.look_ahead,:].contiguous().view(b,-1,d)
-            for s in range(self.spiral_pitch-1,0,-1):
-                intermediate_outs[-s-1] = intermediate_outs[-s-1].view(b,nfold,-1,d)
-                intermediate_outs[-s-1] = intermediate_outs[-s-1][:,:,-self.look_ahead-self.hop_size*self.spiral_pitch:-self.look_ahead,:].contiguous().view(b,-1,d)
+            xs_pad = (
+                xs_pad[
+                    :,
+                    :,
+                    -self.look_ahead
+                    - self.hop_size * self.spiral_pitch : -self.look_ahead,
+                    :,
+                ]
+                .contiguous()
+                .view(b, -1, d)
+            )
+            for s in range(self.spiral_pitch - 1, 0, -1):
+                intermediate_outs[-s - 1] = intermediate_outs[-s - 1].view(
+                    b, nfold, -1, d
+                )
+                intermediate_outs[-s - 1] = (
+                    intermediate_outs[-s - 1][
+                        :,
+                        :,
+                        -self.look_ahead
+                        - self.hop_size * self.spiral_pitch : -self.look_ahead,
+                        :,
+                    ]
+                    .contiguous()
+                    .view(b, -1, d)
+                )
                 if look_ahead is not None:
-                    intermediate_outs[-s-1] = torch.cat((intermediate_outs[-s-1],look_ahead),dim=1)
-                intermediate_outs[-s-1] = intermediate_outs[-s-1][:,:t]
+                    intermediate_outs[-s - 1] = torch.cat(
+                        (intermediate_outs[-s - 1], look_ahead), dim=1
+                    )
+                intermediate_outs[-s - 1] = intermediate_outs[-s - 1][:, :t]
                 if self.normalize_before:
-                    intermediate_outs[-s-1] = self.after_norm(intermediate_outs[-s-1])
+                    intermediate_outs[-s - 1] = self.after_norm(
+                        intermediate_outs[-s - 1]
+                    )
 
         if self.look_ahead > 0 and look_ahead is not None:
-            xs_pad = torch.cat((xs_pad,look_ahead),dim=1)
-        xs_pad = xs_pad[:,:t]
+            xs_pad = torch.cat((xs_pad, look_ahead), dim=1)
+        xs_pad = xs_pad[:, :t]
 
         if self.normalize_before:
             xs_pad = self.after_norm(xs_pad)
@@ -800,4 +1002,14 @@ class SpiralformerEncoder(AbsEncoder):
         if not self.training:
             return xs_pad, olens, None
         else:
-            return (xs_pad, [(-s-1,intermediate_outs[-s-1]) for s in range(self.spiral_pitch-1,0,-1)]), olens, None
+            return (
+                (
+                    xs_pad,
+                    [
+                        (-s - 1, intermediate_outs[-s - 1])
+                        for s in range(self.spiral_pitch - 1, 0, -1)
+                    ],
+                ),
+                olens,
+                None,
+            )
