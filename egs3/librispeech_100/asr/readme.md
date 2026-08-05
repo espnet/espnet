@@ -21,3 +21,7 @@ python run.py --stages measure \
     --training_config conf/tuning/training_e_branchformer.yaml \
     --metrics_config conf/metrics.yaml
 ```
+
+## Pretrained Models
+
+- [`conf/tuning/training_e_branchformer.yaml`](https://huggingface.co/ms180/librispeech_100h_e_branchformer)
