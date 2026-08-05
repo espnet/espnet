@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import logging
+import os
 import shutil
 from pathlib import Path
 
@@ -133,6 +134,11 @@ def run(args) -> None:
     no ``__init__.py``.  Build artefacts and hidden entries are always
     excluded (see *Notes* for the full list).
 
+    Symlinks to files or directories within the cloned recipe are preserved,
+    but their targets are rewritten as relative paths. Symlinks that point
+    outside the recipe are dereferenced and copied, so the cloned project
+    does not depend on the original filesystem layout.
+
     Once cloned, the project only needs ``espnet3`` to be installed; it
     does not need to live inside the ESPnet repository.
 
@@ -177,6 +183,9 @@ def run(args) -> None:
         ``__init__.py``, ``__pycache__/``, ``downloads/``,
         ``downloads.tar.gz``, ``demo/``, ``empty.py``, and any entry
         whose name begins with ``"."`` (e.g. ``.git``, ``.agents``).
+
+        Symlink targets outside the recipe are not preserved as symlinks;
+        their contents are copied into the corresponding clone path.
 
     Examples:
         **Basic clone and first run**
@@ -312,39 +321,76 @@ def run(args) -> None:
 def _copy_recipe(src: Path, dest: Path) -> None:
     """Copy a recipe tree into ``dest``.
 
-    Directory contents are copied with ``shutil.copytree()``. Nested symlinks
-    must therefore be filtered through the copytree ignore callback rather
-    than only at this top level.
+    Symlinks whose targets are part of the cloned recipe are recreated with
+    relative targets. Symlinks to paths outside the recipe are dereferenced
+    so that the clone does not depend on the original filesystem layout.
     """
     dest.mkdir(parents=True)
+    source_root = src.resolve()
     for item in _INCLUDE:
         source = src / item
-        if not source.exists():
+        if not source.exists() and not source.is_symlink():
             continue
-        if source.is_symlink():
-            continue
-        if source.is_dir():
-            shutil.copytree(
-                source,
-                dest / item,
-                ignore=_ignore_copytree_entries,
+        _copy_recipe_entry(source, dest / item, source_root, dest)
+
+
+def _copy_recipe_entry(
+    source: Path,
+    destination: Path,
+    source_root: Path,
+    destination_root: Path,
+    preserve_internal_symlinks: bool = True,
+) -> None:
+    """Copy one recipe entry, normalizing symlink targets when possible."""
+    if source.is_symlink():
+        resolved = source.resolve(strict=True)
+        if preserve_internal_symlinks:
+            try:
+                relative_target = resolved.relative_to(source_root)
+            except ValueError:
+                pass
+            else:
+                if _is_copyable_recipe_path(relative_target):
+                    target = destination_root / relative_target
+                    destination.parent.mkdir(parents=True, exist_ok=True)
+                    destination.symlink_to(
+                        os.path.relpath(target, destination.parent),
+                        target_is_directory=resolved.is_dir(),
+                    )
+                    return
+
+        _copy_recipe_entry(
+            resolved,
+            destination,
+            source_root,
+            destination_root,
+            preserve_internal_symlinks=False,
+        )
+        return
+
+    if source.is_dir():
+        destination.mkdir(parents=True, exist_ok=True)
+        for child in source.iterdir():
+            if child.name == "__pycache__" or child.suffix == ".pyc":
+                continue
+            _copy_recipe_entry(
+                child,
+                destination / child.name,
+                source_root,
+                destination_root,
+                preserve_internal_symlinks=preserve_internal_symlinks,
             )
-        else:
-            shutil.copy2(source, dest / item)
+        return
+
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(source, destination)
 
 
-def _ignore_copytree_entries(dirpath: str, names: list[str]) -> set[str]:
-    """Skip nested symlinks when cloning a directory tree.
-
-    ``_copy_recipe()`` only sees top-level entries such as ``conf/``. Files
-    like ``conf/training.yaml`` are encountered later inside
-    ``shutil.copytree()``, so symlinks under cloned directories must be
-    ignored here.
-    """
-    base = Path(dirpath)
-    ignored = set(shutil.ignore_patterns("__pycache__", "*.pyc")(dirpath, names))
-    ignored.update(name for name in names if (base / name).is_symlink())
-    return ignored
+def _is_copyable_recipe_path(path: Path) -> bool:
+    """Return whether a recipe-relative path is included in the clone."""
+    if not path.parts or path.parts[0] not in _INCLUDE:
+        return False
+    return "__pycache__" not in path.parts and path.suffix != ".pyc"
 
 
 def _inject_corpus_system(dest: Path, recipe: str) -> None:

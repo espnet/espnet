@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 
 import pytest
 
@@ -184,6 +185,43 @@ def test_copy_recipe_skips_missing_include_item(tmp_path):
 
     assert (dest / "run.py").exists()
     assert not (dest / "conf").exists()
+
+
+def test_copy_recipe_normalizes_internal_symlink_targets(tmp_path):
+    """Internal relative and absolute symlinks become relative in the clone."""
+    src = tmp_path / "recipe"
+    conf = src / "conf"
+    conf.mkdir(parents=True)
+    target = conf / "training_actual.yaml"
+    target.write_text("config: true")
+    (conf / "relative.yaml").symlink_to(target.name)
+    (conf / "absolute.yaml").symlink_to(target)
+
+    dest = tmp_path / "clone"
+    _copy_recipe(src, dest)
+
+    for name in ("relative.yaml", "absolute.yaml"):
+        link = dest / "conf" / name
+        assert link.is_symlink()
+        assert not os.path.isabs(os.readlink(link))
+        assert link.read_text() == "config: true"
+
+
+def test_copy_recipe_dereferences_external_symlink(tmp_path):
+    """A symlink outside the recipe is copied as a regular file."""
+    external = tmp_path / "external.yaml"
+    external.write_text("external: true")
+    src = tmp_path / "recipe"
+    (src / "conf").mkdir(parents=True)
+    (src / "conf" / "external.yaml").symlink_to(external)
+
+    dest = tmp_path / "clone"
+    _copy_recipe(src, dest)
+
+    copied = dest / "conf" / "external.yaml"
+    assert copied.is_file()
+    assert not copied.is_symlink()
+    assert copied.read_text() == "external: true"
 
 
 # ---------------------------------------------------------------------------
