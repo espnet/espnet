@@ -5,12 +5,11 @@ from __future__ import annotations
 
 import argparse
 import collections
-from pathlib import Path
 import re
 import shutil
 import sys
 import wave
-
+from pathlib import Path
 
 SPEAKER_RE = re.compile(r"^([fm][0-9]{4})_")
 
@@ -116,13 +115,12 @@ def write_split(name: str, entries, data_dir: Path) -> None:
         shutil.rmtree(split_dir)
     split_dir.mkdir(parents=True)
 
-    with (split_dir / "text").open("w", encoding="utf-8") as text_f, (
-        split_dir / "wav.scp"
-    ).open("w", encoding="utf-8") as wav_f, (split_dir / "utt2spk").open(
-        "w", encoding="utf-8"
-    ) as utt2spk_f, (split_dir / "utt2num_samples").open(
-        "w", encoding="utf-8"
-    ) as samples_f:
+    with (
+        (split_dir / "text").open("w", encoding="utf-8") as text_f,
+        (split_dir / "wav.scp").open("w", encoding="utf-8") as wav_f,
+        (split_dir / "utt2spk").open("w", encoding="utf-8") as utt2spk_f,
+        (split_dir / "utt2num_samples").open("w", encoding="utf-8") as samples_f,
+    ):
         for spk_id, utt_id, wav_path, transcript in sorted(
             entries, key=lambda item: item[1]
         ):
