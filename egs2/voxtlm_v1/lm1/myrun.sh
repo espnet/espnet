@@ -18,6 +18,8 @@ cd /ocean/projects/cis210027p/mliang4/dailytalk_tts/espnet/egs2/voxtlm_v1/lm1
 . ./path.sh
 . ./cmd.sh
 
+#--partition=GPU-shared
+#--gres=gpu:v100-32:1
 # ./local/data_librilight.sh data/librilight
 # ./run.sh --stage 1 --stop_stage 1
 
@@ -51,5 +53,8 @@ cd /ocean/projects/cis210027p/mliang4/dailytalk_tts/espnet/egs2/voxtlm_v1/lm1
 
 # sed -i 's/\r$//' data/vctk/tts/train/text
 # ./run.sh --stage 1 --stop_stage 1 --local_data_opts "--stage 2"
-./run.sh --stage 2 --stop_stage 2
+# ./run.sh --stage 2 --stop_stage 2
+# ./run.sh --stage 3 --stop_stage 3 --kmeans_opts "--num_threads 64"
+./run.sh --stage 3 --stop_stage 3
+
 # ./run.sh --stage 3 --stop_stage 3 --nj 1
