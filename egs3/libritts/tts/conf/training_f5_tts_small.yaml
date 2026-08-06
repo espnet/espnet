@@ -1,0 +1,205 @@
+# F5-TTS-Small trained on LibriTTS, reproducing arXiv:2410.06885 Table 9 /
+# Appendix B.7 ("F5-TTS small models evaluation results ... model trained on
+# LibriTTS 585 hours").
+#
+# Numbers below are taken from the paper (Table 3 arch config, Table 9 /
+# Sec. B.7 batch size, Sec. 4 optimizer/schedule) and cross-checked against
+# upstream's own src/f5_tts/configs/F5TTS_Small.yaml (github.com/SWivid/F5-TTS),
+# which matches exactly.
+#
+# The model was trained on 4x V100 GPUs with 8 gradient accumulation steps, 
+# for a total of 307,200 mel-frames per optimizer update, matching the upstream
+# F5-TTS configuration.
+task: espnet2.tasks.tts.TTSTask
+
+num_device: 4
+num_nodes: 1
+
+recipe_dir: .
+data_dir: ${recipe_dir}/data
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+stats_dir: ${exp_dir}/stats
+inference_dir: ${exp_dir}/inference
+
+exp_tag: train_f5_tts_small_libritts
+
+# Mel / audio front-end settings shared by feats_extract and the model.
+sample_rate: 24000
+n_mel_channels: 100
+hop_length: 256
+win_length: 1024
+n_fft: 1024
+mel_spec_type: vocos
+
+create_dataset:
+  recipe_dir: ${recipe_dir}
+
+dataset:
+  _target_: espnet3.components.data.data_organizer.DataOrganizer
+  recipe_dir: ${recipe_dir}
+  train:
+    - data_src_args:
+        split: train
+        manifest_path: ${remove_long_short.save_path}/train.tsv
+        fs: ${sample_rate}    # ensure consistent sampling rate via resampling in the dataset
+  valid:
+    - data_src_args:
+        split: valid
+        manifest_path: ${remove_long_short.save_path}/valid.tsv
+        fs: ${sample_rate}    # ensure consistent sampling rate via resampling in the dataset
+  # espnet2 CommonPreprocessor: char tokenization (F5 native vocab) + raw speech.
+  # The mel is produced inside the model by feats_extract: vocoder_mel.
+  preprocessor:
+    _target_: espnet2.train.preprocessor.CommonPreprocessor
+    train: true
+    token_type: char
+    token_list: ${data_dir}/tokens/char_tokens.txt
+    text_cleaner: tacotron
+    g2p_type: null
+
+remove_long_short:
+  min_wav_duration: 1.0
+  max_wav_duration: 20.0
+  splits: [train, valid, test]
+  manifest_paths:
+    train: ${data_dir}/manifest/train.tsv
+    valid: ${data_dir}/manifest/valid.tsv
+    test: ${data_dir}/manifest/test.tsv
+  save_path: ${data_dir}/manifests_filtered
+
+create_token_list:
+  manifest_path: ${data_dir}/manifests_filtered/train.tsv
+  save_path: ${data_dir}/tokens
+  filename: char_tokens.txt
+  token_type: char
+  cleaner: tacotron
+  g2p: null
+  non_linguistic_symbols: null
+  bpemodel: null
+  space_symbol: "<space>"
+  add_symbol:
+    - "<blank>:0"
+    - "<unk>:1"
+    - "<sos/eos>:-1"
+  vocabulary_size: -1
+  cutoff: 0
+
+parallel:
+  env: local
+  n_workers: 1
+
+# espnet2 task args (consumed by get_espnet_model -> TTSTask.build_model ->
+# ESPnetTTSModel). Same shape as any other espnet2 TTS `model:` block.
+model:
+  token_list: ${data_dir}/tokens/char_tokens.txt
+  token_type: char
+  odim: null                       # derived from feats_extract.output_size()
+  feats_extract: vocoder_mel
+  feats_extract_conf:
+    fs: ${sample_rate}
+    n_fft: ${n_fft}
+    hop_length: ${hop_length}
+    win_length: ${win_length}
+    n_mels: ${n_mel_channels}
+    mel_spec_type: ${mel_spec_type}
+  normalize: null                  # F5 trains on raw vocos log-mel
+  tts: f5tts
+  tts_conf:                        # F5TTS_Small (Table 3 / upstream F5TTS_Small.yaml)
+    dim: 768
+    depth: 18
+    heads: 12
+    dim_head: 64
+    ff_mult: 2
+    text_dim: 512
+    text_mask_padding: false   # match F5TTS_Small.yaml
+    pe_attn_head: 1            # match F5TTS_Small.yaml
+    conv_layers: 4
+    sigma: 0.0
+    audio_drop_prob: 0.3
+    cond_drop_prob: 0.2
+    frac_lengths_mask: [0.7, 1.0]
+    odeint_method: euler
+    mel_spec_kwargs:               # raw-waveform inference fallback inside CFM
+      n_fft: ${n_fft}
+      hop_length: ${hop_length}
+      win_length: ${win_length}
+      n_mel_channels: ${n_mel_channels}
+      target_sample_rate: ${sample_rate}
+      mel_spec_type: ${mel_spec_type}
+  model_conf: {}
+
+optimizer:
+  _target_: torch.optim.AdamW
+  lr: 7.5e-5
+  betas: [0.9, 0.999]      # F5-TTS uses AdamW defaults
+  weight_decay: 0.01
+
+scheduler:
+  _target_: espnet2.schedulers.linear_warmup_decay.LinearWarmupDecayLR
+  warmup_steps: 20000
+  total_steps: 600000
+scheduler_interval: step
+
+best_model_criterion:
+  - - valid/loss
+    - 1
+    - min
+
+dataloader:
+  collate_fn:
+    _target_: espnet2.train.collate_fn.CommonCollateFn
+    int_pad_value: 0
+    float_pad_value: 0.0
+  train:
+    num_shards: 1
+    num_workers: 0
+    iter_factory:
+      _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
+      shuffle: true
+      collate_fn: ${dataloader.collate_fn}
+      batches:
+        type: numel
+        batch_size: 1          # required by signature, unused for "numel"
+        min_batch_size: 4
+        shape_files:
+          - ${stats_dir}/train/feats_shape
+        batch_bins: 960000
+  valid:
+    num_shards: 1
+    num_workers: 0
+    iter_factory:
+      _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
+      shuffle: false
+      collate_fn: ${dataloader.collate_fn}
+      batches:
+        type: ${dataloader.train.iter_factory.batches.type}
+        batch_size: 1          # required by signature, unused for "numel"
+        min_batch_size: 4
+        shape_files:
+          - ${stats_dir}/valid/feats_shape
+        batch_bins: ${dataloader.train.iter_factory.batches.batch_bins}
+
+trainer:
+  accelerator: auto
+  devices: ${num_device}
+  num_nodes: ${num_nodes}
+  accumulate_grad_batches: 8
+  max_steps: 600000
+  check_val_every_n_epoch: 1
+  log_every_n_steps: 50
+  max_epochs: 1000
+  gradient_clip_val: 1.0
+  strategy: auto
+  callbacks:
+    - _target_: espnet3.components.callbacks.ema.EMACallback
+      decay: 0.9999
+  logger:
+    _target_: lightning.pytorch.loggers.WandbLogger
+    project: espnet3-libritts-f5-tts
+    name: ${exp_tag}
+    save_dir: ${exp_dir}
+    log_model: false
+    id: ${exp_tag}
+    resume: allow
+
+fit: {}

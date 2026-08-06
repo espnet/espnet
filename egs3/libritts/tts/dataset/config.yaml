@@ -1,0 +1,38 @@
+builder:
+  dataset_path: downloads
+  data_path: data
+  split_subsets:
+    train:
+      - train-clean-100
+      - train-clean-360
+      - train-other-500
+    valid:
+      - dev-clean
+    test:
+      - test-clean
+  manifest_paths:
+    train: manifest/train.tsv
+    valid: manifest/valid.tsv
+    test: manifest/test.tsv
+  # LibriSpeech-PC test-clean cross-sentence eval set (arXiv 2410.06885).
+  # LibriSpeech is OpenSLR resource 12, a different corpus from LibriTTS
+  # (resource 60): the pair list references 16 kHz flacs under
+  # <root>/<spk>/<chap>/<utt>.flac, a layout only LibriSpeech has.
+  librispeech_pc:
+    # OpenSLR subset passed to local/download_librispeech.sh.
+    subset: test-clean
+    # Pair list from the F5-TTS repo, pinned to a commit rather than a branch:
+    # this is third-party data and a moving ref would silently change the
+    # eval set.
+    lst_url: "https://raw.githubusercontent.com/SWivid/F5-TTS/ff690b7ffb82b92e42b6a2bb4e5b16c5b9046d14/data/librispeech_pc_test_clean_cross_sentence.lst"
+    # Both paths are relative to builder.dataset_path.
+    test_clean_path: LibriSpeech/test-clean
+    lst_path: librispeech_pc_test_clean_cross_sentence.lst
+    # Relative to builder.data_path; consumed by conf/inference_f5.yaml.
+    manifest_path: librispeech_pc/manifest.tsv
+
+dataset:
+  split_manifest_paths:
+    train: manifest/train.tsv
+    valid: manifest/valid.tsv
+    test: manifest/test.tsv
