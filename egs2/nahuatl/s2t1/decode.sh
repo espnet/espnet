@@ -20,22 +20,22 @@ RECIPE_DIR="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}"
 cd "$RECIPE_DIR"
 source path.sh
 
-inference_config=conf/decode_owsm.yaml
-
-# region -> lang_sym
+# region -> decode config (each sets lang_sym in the YAML). lang_sym MUST go in
+# the config, not --inference_args: the value contains '<' and '>', which the
+# shell would interpret as redirections when run.pl assembles the command line.
 regions=(hidalgo orizaba_zongolica zacatlan_tepetzintla)
-declare -A LANG=(
-    [hidalgo]="<nah_hid>"
-    [orizaba_zongolica]="<nah_ozg>"
-    [zacatlan_tepetzintla]="<nah_ztp>"
+declare -A CFG=(
+    [hidalgo]="conf/decode_owsm_hid.yaml"
+    [orizaba_zongolica]="conf/decode_owsm_ozg.yaml"
+    [zacatlan_tepetzintla]="conf/decode_owsm_ztp.yaml"
 )
 
 for region in "${regions[@]}"; do
-    echo "=== Decoding nahuatl_${region}_test with lang_sym=${LANG[$region]} ==="
+    echo "=== Decoding nahuatl_${region}_test with ${CFG[$region]} ==="
     bash run.sh --stage 12 --stop_stage 13 \
+        --gpu_inference true \
         --test_sets "nahuatl_${region}_test" \
-        --inference_config "${inference_config}" \
-        --inference_args "--lang_sym ${LANG[$region]}"
+        --inference_config "${CFG[$region]}"
 done
 
 # ── Combine the three regions into an aggregate CER (== the mixed test set) ───
