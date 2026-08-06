@@ -21,7 +21,7 @@ from typing import (
 import numpy as np
 import soundfile as sf
 
-from espnet2.speechlm.dataloader.multimodal_loader.text_loader import ArkiveTextReader
+from espnet2.speechlm.dataloader.multimodal_loader.text_loader import OmniIOTextReader
 
 VALID_ROLES = {"user", "assistant", "system"}
 VALID_MODALITIES = {"text", "audio", "image", "video", "toolcall"}
@@ -155,10 +155,10 @@ class DialogueReader:
         return self.dialogues.items()
 
 
-class ArkiveDialogueLoader(ArkiveTextReader):
-    """Dict-like lazy dialogue reader using arkive parquets.
+class OmniIODialogueLoader(OmniIOTextReader):
+    """Dict-like lazy dialogue reader using omniio parquets.
 
-    Extends ArkiveTextReader to parse JSON string output into validated
+    Extends OmniIOTextReader to parse JSON string output into validated
     dialogue messages with the same sanity checks as DialogueReader.
 
     Args:
