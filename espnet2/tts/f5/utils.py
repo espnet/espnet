@@ -10,7 +10,6 @@ pipeline (see ``create_token_list`` stage) and feeds integer token ids to the
 model, so those helpers are unused here.
 """
 
-# ruff: noqa: F722 F821
 
 from __future__ import annotations
 
@@ -42,8 +41,8 @@ def is_package_available(package_name: str) -> bool:
 
 
 def lens_to_mask(
-    t: int["b"], length: int | None = None  # noqa: F722,F821
-) -> bool["b n"]:  # noqa: F722,F821
+    t: int["b"], length: int | None = None
+) -> bool["b n"]:
     if not exists(length):
         length = t.amax()
 
@@ -52,7 +51,7 @@ def lens_to_mask(
 
 
 def mask_from_start_end_indices(
-    seq_len: int["b"], start: int["b"], end: int["b"]  # noqa: F722,F821
+    seq_len: int["b"], start: int["b"], end: int["b"]
 ):
     max_seq_len = seq_len.max().item()
     seq = torch.arange(max_seq_len, device=start.device).long()
@@ -62,7 +61,7 @@ def mask_from_start_end_indices(
 
 
 def mask_from_frac_lengths(
-    seq_len: int["b"], frac_lengths: float["b"]  # noqa: F722,F821
+    seq_len: int["b"], frac_lengths: float["b"]
 ):
     lengths = (frac_lengths * seq_len).long()
     max_start = seq_len - lengths
@@ -75,8 +74,8 @@ def mask_from_frac_lengths(
 
 
 def maybe_masked_mean(
-    t: float["b n d"], mask: bool["b n"] = None  # noqa: F722,F821
-) -> float["b d"]:  # noqa: F722,F821
+    t: float["b n d"], mask: bool["b n"] = None
+) -> float["b d"]:
     if not exists(mask):
         return t.mean(dim=1)
 
@@ -90,7 +89,7 @@ def maybe_masked_mean(
 # simple utf-8 tokenizer, since paper went character based
 def list_str_to_tensor(
     text: list[str], padding_value=-1
-) -> int["b nt"]:  # noqa: F722,F821
+) -> int["b nt"]:
     list_tensors = [torch.tensor([*bytes(t, "UTF-8")]) for t in text]  # ByT5 style
     text = pad_sequence(list_tensors, padding_value=padding_value, batch_first=True)
     return text
@@ -101,7 +100,7 @@ def list_str_to_idx(
     text: list[str] | list[list[str]],
     vocab_char_map: dict[str, int],  # {char: idx}
     padding_value=-1,
-) -> int["b nt"]:  # noqa: F722,F821
+) -> int["b nt"]:
     list_idx_tensors = [
         torch.tensor([vocab_char_map.get(c, 0) for c in t]) for t in text
     ]  # pinyin or char style

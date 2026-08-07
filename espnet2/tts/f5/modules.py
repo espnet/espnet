@@ -7,8 +7,6 @@ nw - raw wave length
 d - dimension
 """
 
-# ruff: noqa: F722 F821
-
 from __future__ import annotations
 
 import math
@@ -59,7 +57,7 @@ def get_bigvgan_mel_spectrogram(
         )
         mel_basis_cache[key] = (
             torch.from_numpy(mel).float().to(device)
-        )  # TODO: why they need .float()?
+        )
         hann_window_cache[key] = torch.hann_window(win_length).to(device)
 
     mel_basis = mel_basis_cache[key]
@@ -205,7 +203,7 @@ class ConvPositionEmbedding(nn.Module):
         ]
 
     def forward(
-        self, x: float["b n d"], mask: bool["b n"] | None = None  # noqa: F722,F821
+        self, x: float["b n d"], mask: bool["b n"] | None = None
     ):
         if mask is not None:
             mask = mask.unsqueeze(1)  # [B 1 N]
@@ -472,12 +470,12 @@ class Attention(nn.Module):
 
     def forward(
         self,
-        x: float["b n d"],  # noised input x  # noqa: F722,F821
-        c: float["b n d"] = None,  # context c  # noqa: F722,F821
-        mask: bool["b n"] | None = None,  # noqa: F722,F821
+        x: float["b n d"],  # noised input x
+        c: float["b n d"] = None,  # context c
+        mask: bool["b n"] | None = None,
         rope=None,  # rotary position embedding for x
         c_rope=None,  # rotary position embedding for c
-        c_mask: bool["b nt"] | None = None,  # text mask  # noqa: F722,F821
+        c_mask: bool["b nt"] | None = None,  # text mask
     ) -> torch.Tensor:
         if c is not None:
             return self.processor(
@@ -522,8 +520,8 @@ class AttnProcessor:
     def __call__(
         self,
         attn: Attention,
-        x: float["b n d"],  # noised input x  # noqa: F722,F821
-        mask: bool["b n"] | None = None,  # noqa: F722,F821
+        x: float["b n d"],  # noised input x
+        mask: bool["b n"] | None = None,
         rope=None,  # rotary position embedding
     ) -> torch.FloatTensor:
         batch_size = x.shape[0]
@@ -648,12 +646,12 @@ class JointAttnProcessor:
     def __call__(
         self,
         attn: Attention,
-        x: float["b n d"],  # noised input x  # noqa: F722,F821
-        c: float["b nt d"] = None,  # context c, here text  # noqa: F722,F821
-        mask: bool["b n"] | None = None,  # noqa: F722,F821
+        x: float["b n d"],  # noised input x
+        c: float["b nt d"] = None,  # context c, here text
+        mask: bool["b n"] | None = None,
         rope=None,  # rotary position embedding for x
         c_rope=None,  # rotary position embedding for c
-        c_mask: bool["b nt"] | None = None,  # text mask  # noqa: F722,F821
+        c_mask: bool["b nt"] | None = None,  # text mask
     ) -> torch.FloatTensor:
         residual = x
         audio_mask = mask
@@ -955,7 +953,7 @@ class TimestepEmbedding(nn.Module):
             nn.Linear(freq_embed_dim, dim), nn.SiLU(), nn.Linear(dim, dim)
         )
 
-    def forward(self, timestep: float["b"]):  # noqa: F722,F821
+    def forward(self, timestep: float["b"]):
         time_hidden = self.time_embed(timestep)
         time_hidden = time_hidden.to(timestep.dtype)
         time = self.time_mlp(time_hidden)  # b d

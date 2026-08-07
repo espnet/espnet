@@ -7,8 +7,6 @@ nw - raw wave length
 d - dimension
 """
 
-# ruff: noqa: F722 F821
-
 from __future__ import annotations
 
 import threading
@@ -105,7 +103,7 @@ class TextEmbedding(nn.Module):
 
         return upsampled_text
 
-    def forward(self, text: int["b nt"], seq_len, drop_text=False):  # noqa: F722,F821
+    def forward(self, text: int["b nt"], seq_len, drop_text=False):
         text = (
             text + 1
         )  # use 0 as filler token. preprocess of batch pad -1, see list_str_to_idx()
@@ -186,11 +184,11 @@ class InputEmbedding(nn.Module):
 
     def forward(
         self,
-        x: float["b n d"],  # noqa: F722,F821
-        cond: float["b n d"],  # noqa: F722,F821
-        text_embed: float["b n d"],  # noqa: F722,F821
+        x: float["b n d"],
+        cond: float["b n d"],
+        text_embed: float["b n d"],
         drop_audio_cond=False,
-        audio_mask: bool["b n"] | None = None,  # noqa: F722,F821
+        audio_mask: bool["b n"] | None = None,
     ):
         if drop_audio_cond:  # cfg for cond audio
             cond = torch.zeros_like(cond)
@@ -327,7 +325,7 @@ class DiT(nn.Module):
         drop_audio_cond: bool = False,
         drop_text: bool = False,
         cache: bool = True,
-        audio_mask: bool["b n"] | None = None,  # noqa: F722,F821
+        audio_mask: bool["b n"] | None = None,
     ):
         if self.text_uncond is None or self.text_cond is None or not cache:
             if audio_mask is None:
@@ -358,11 +356,11 @@ class DiT(nn.Module):
 
     def forward(
         self,
-        x: float["b n d"],  # nosied input audio  # noqa: F722,F821
-        cond: float["b n d"],  # masked cond audio  # noqa: F722,F821
-        text: int["b nt"],  # text  # noqa: F722,F821
-        time: float["b"] | float[""],  # time step  # noqa: F722,F821
-        mask: bool["b n"] | None = None,  # noqa: F722,F821
+        x: float["b n d"],  # nosied input audio
+        cond: float["b n d"],  # masked cond audio
+        text: int["b nt"],  # text
+        time: float["b"] | float[""],  # time step
+        mask: bool["b n"] | None = None,
         drop_audio_cond: bool = False,  # cfg for cond audio
         drop_text: bool = False,  # cfg for text
         cfg_infer: bool = False,  # cfg inference, pack cond & uncond forward

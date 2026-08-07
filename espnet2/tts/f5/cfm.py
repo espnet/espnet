@@ -7,8 +7,6 @@ nw - raw wave length
 d - dimension
 """
 
-# ruff: noqa: F722 F821
-
 from __future__ import annotations
 
 from random import random
@@ -84,18 +82,18 @@ class CFM(nn.Module):
     @torch.no_grad()
     def sample(
         self,
-        cond: float["b n d"] | float["b nw"],  # noqa: F722,F821
-        text: int["b nt"] | list[str],  # noqa: F722,F821
-        duration: int | int["b"],  # noqa: F722,F821
+        cond: float["b n d"] | float["b nw"],
+        text: int["b nt"] | list[str],
+        duration: int | int["b"],
         *,
-        lens: int["b"] | None = None,  # noqa: F722,F821
+        lens: int["b"] | None = None,
         steps=32,
         cfg_strength=1.0,
         sway_sampling_coef=None,
         seed: int | None = None,
         max_duration=65536,
         vocoder: (
-            Callable[[float["b d n"]], float["b nw"]] | None  # noqa: F722,F821
+            Callable[[float["b d n"]], float["b nw"]] | None
         ) = None,
         use_epss=True,
         no_ref_audio=False,
@@ -248,10 +246,10 @@ class CFM(nn.Module):
 
     def forward(
         self,
-        inp: float["b n d"] | float["b nw"],  # mel or raw wave  # noqa: F722,F821
-        text: int["b nt"] | list[str],  # noqa: F722,F821
+        inp: float["b n d"] | float["b nw"],  # mel or raw wave
+        text: int["b nt"] | list[str],
         *,
-        lens: int["b"] | None = None,  # noqa: F722,F821
+        lens: int["b"] | None = None,
         noise_scheduler: str | None = None,
     ):
         # handle raw wave
@@ -260,7 +258,7 @@ class CFM(nn.Module):
             inp = inp.permute(0, 2, 1)
             assert inp.shape[-1] == self.num_channels
 
-        batch, seq_len, dtype, device, _σ1 = (  # noqa: F841
+        batch, seq_len, dtype, device, _σ1 = (
             *inp.shape[:2],
             inp.dtype,
             self.device,
