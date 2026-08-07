@@ -62,6 +62,5 @@ class LibriSpeechPCDataset(TorchDataset):
 # Alias consumed by
 # espnet3.components.data.dataset_module.instantiate_dataset_reference, which
 # does `getattr(module, "Dataset")` after `import_module(data_src)` when a
-# test split's `data_src` is set to this module's dotted path (see Step 5
-# verification).
+# test split's `data_src` is set to this module's dotted path
 Dataset = LibriSpeechPCDataset

@@ -15,10 +15,6 @@ from espnet3.components.metrics.base_metric import BaseMetric
 
 logger = logging.getLogger(__name__)
 
-# VERSA reports a metric it could not load, or could not compute, and then
-# carries on with the remaining metrics - exiting 0 either way. These are the
-# markers it uses; _run_scorer watches for them so a partial score set is not
-# mistaken for a complete one.
 _VERSA_FAILURE_MARKERS = ("Failed to load metric", "Error computing metric")
 
 
@@ -94,11 +90,6 @@ class VersaMetric(BaseMetric):
         result_file = eval_dir / "result.json"
 
         cmd = [
-            # sys.executable, not "python": the recipe is launched with an
-            # interpreter that need not be on PATH under that name (a pixi or
-            # conda env invoked by absolute path), and a bare "python" that
-            # does resolve may be a different interpreter without VERSA
-            # installed. This guarantees the scorer runs in our environment.
             sys.executable,
             "-m",
             "versa.bin.scorer",
@@ -153,8 +144,8 @@ class VersaMetric(BaseMetric):
             text=True,
             bufsize=1,
         )
-        with proc.stdout:  # type: ignore[union-attr]
-            for line in proc.stdout:  # type: ignore[union-attr]
+        with proc.stdout:
+            for line in proc.stdout:
                 sys.stdout.write(line)
                 if any(marker in line for marker in _VERSA_FAILURE_MARKERS):
                     failures.append(line.strip())
@@ -240,7 +231,7 @@ class VersaMetric(BaseMetric):
         """
         for key in scores:
             if key.endswith(f"_{metric}_delete"):
-                prefix = key[: -(len(metric) + 8)]  # strip '_<metric>_delete'
+                prefix = key[: -(len(metric) + 8)]
                 ops = [
                     f"{prefix}_{metric}_{op}"
                     for op in ("delete", "insert", "replace", "equal")
@@ -258,10 +249,7 @@ class VersaMetric(BaseMetric):
         cer_prefix = VersaMetric._find_prefix(scores, "cer")
         wer_keys = [k for k in scores if wer_prefix and k.startswith(wer_prefix)]
         cer_keys = [k for k in scores if cer_prefix and k.startswith(cer_prefix)]
-        # _aggregate() may have added a pooled "<prefix>wer"/"<prefix>cer" scalar
-        # (no trailing underscore) alongside the per-op counts above. It is
-        # already reported, labeled with its unit, in the components block
-        # below, so keep it out of the unlabeled main_keys section.
+
         pooled_keys = {
             prefix.rstrip("_") for prefix in (wer_prefix, cer_prefix) if prefix
         }
@@ -279,9 +267,7 @@ class VersaMetric(BaseMetric):
             lines.append(f"  WER components (%) [{wer_prefix.rstrip('_')}]:")
             for k in wer_keys:
                 lines.append(f"    {k.removeprefix(wer_prefix):<21s} {scores[k]:.1f}")
-            # Denominator is the REFERENCE length (delete + replace + equal).
-            # Insertions are errors but are not reference tokens, so they
-            # belong in the numerator only.
+
             ref_len = sum(
                 scores[f"{wer_prefix}{op}"] for op in ("delete", "replace", "equal")
             )
@@ -295,7 +281,7 @@ class VersaMetric(BaseMetric):
             lines.append(f"  CER components (%) [{cer_prefix.rstrip('_')}]:")
             for k in cer_keys:
                 lines.append(f"    {k.removeprefix(cer_prefix):<21s} {scores[k]:.1f}")
-            # Same reference-length denominator as WER above.
+
             ref_len = sum(
                 scores[f"{cer_prefix}{op}"] for op in ("delete", "replace", "equal")
             )

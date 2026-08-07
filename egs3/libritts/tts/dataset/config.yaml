@@ -14,12 +14,7 @@ builder:
     train: manifest/train.tsv
     valid: manifest/valid.tsv
     test: manifest/test.tsv
-  # LibriSpeech-PC test-clean cross-sentence eval set (arXiv 2410.06885).
-  # LibriSpeech is OpenSLR resource 12, a different corpus from LibriTTS
-  # (resource 60): the pair list references 16 kHz flacs under
-  # <root>/<spk>/<chap>/<utt>.flac, a layout only LibriSpeech has.
   librispeech_pc:
-    # OpenSLR subset passed to local/download_librispeech.sh.
     subset: test-clean
     # Pair list from the F5-TTS repo, pinned to a commit rather than a branch:
     # this is third-party data and a moving ref would silently change the

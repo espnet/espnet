@@ -94,8 +94,6 @@ is routed through `espnet2/text/cleaner.py`, which only enables its
 
 Install all four before running `measure`. Each missing package disables only
 its own metric, so a gap costs you a full inference run before it shows up.
-Verify with a real import - `python -c "import versa, faster_whisper, whisper,
-s3prl"` - since a package can be present on disk yet fail to import.
 
 `conf/metrics.yaml` documents how each metric maps onto the official F5-TTS
 scorer, including the one metric that cannot be matched exactly.
