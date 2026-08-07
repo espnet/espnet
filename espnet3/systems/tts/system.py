@@ -17,7 +17,6 @@ from espnet2.text.build_tokenizer import build_tokenizer
 from espnet2.text.cleaner import TextCleaner
 from espnet3.parallel.parallel import set_parallel
 from espnet3.systems.base.system import BaseSystem
-
 from espnet3.systems.base.training import _build_trainer, _ensure_directories
 from espnet3.systems.tts.remove_long_short_provider import RemoveLongShortProvider
 from espnet3.systems.tts.remove_long_short_runner import RemoveLongShortRunner

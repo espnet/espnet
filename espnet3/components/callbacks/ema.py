@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
+import lightning.pytorch as pl
 import torch
 import torch.distributed as dist
-import lightning.pytorch as pl
 
 from espnet3.components.callbacks.vendored_ema import EMA
 
