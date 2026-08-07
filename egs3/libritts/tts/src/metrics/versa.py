@@ -5,14 +5,21 @@ from __future__ import annotations
 import json
 import logging
 import subprocess
+import sys
 from pathlib import Path
-from typing import Dict
+from typing import Dict, List, Set
 
 import yaml
 
 from espnet3.components.metrics.base_metric import BaseMetric
 
 logger = logging.getLogger(__name__)
+
+# VERSA reports a metric it could not load, or could not compute, and then
+# carries on with the remaining metrics - exiting 0 either way. These are the
+# markers it uses; _run_scorer watches for them so a partial score set is not
+# mistaken for a complete one.
+_VERSA_FAILURE_MARKERS = ("Failed to load metric", "Error computing metric")
 
 
 class VersaMetric(BaseMetric):
@@ -87,7 +94,12 @@ class VersaMetric(BaseMetric):
         result_file = eval_dir / "result.json"
 
         cmd = [
-            "python",
+            # sys.executable, not "python": the recipe is launched with an
+            # interpreter that need not be on PATH under that name (a pixi or
+            # conda env invoked by absolute path), and a bare "python" that
+            # does resolve may be a different interpreter without VERSA
+            # installed. This guarantees the scorer runs in our environment.
+            sys.executable,
             "-m",
             "versa.bin.scorer",
             "--pred",
@@ -109,9 +121,10 @@ class VersaMetric(BaseMetric):
             cmd.append("--use_gpu")
 
         logger.info("Running VERSA: %s", " ".join(cmd))
-        subprocess.run(cmd, check=True)
+        failures = self._run_scorer(cmd)
 
         averages = self._aggregate(result_file)
+        self._reject_partial_results(averages, result_file, failures)
         avg_path = eval_dir / "avg_result.json"
         with avg_path.open("w") as f:
             json.dump(averages, f, indent=2)
@@ -123,6 +136,98 @@ class VersaMetric(BaseMetric):
         )
         self.summarize(averages, test_name)
         return averages
+
+    @staticmethod
+    def _run_scorer(cmd: List[str]) -> List[str]:
+        """Run the scorer, echoing its output, and return its failure lines.
+
+        Output is streamed straight through to stdout so the log looks exactly
+        as it would if VERSA had inherited the terminal, while each line is
+        also inspected for the failure markers above.
+        """
+        failures: List[str] = []
+        proc = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=1,
+        )
+        with proc.stdout:  # type: ignore[union-attr]
+            for line in proc.stdout:  # type: ignore[union-attr]
+                sys.stdout.write(line)
+                if any(marker in line for marker in _VERSA_FAILURE_MARKERS):
+                    failures.append(line.strip())
+        sys.stdout.flush()
+        returncode = proc.wait()
+        if returncode != 0:
+            raise subprocess.CalledProcessError(returncode, cmd)
+        return failures
+
+    @staticmethod
+    def _null_only_keys(result_file: Path) -> Set[str]:
+        """Return keys that were null somewhere and never numeric anywhere.
+
+        A metric that loads but throws per utterance leaves its key present and
+        ``null`` in every record. Keys that are always text (``ref_text``,
+        ``fwhisper_hyp_text``) are not implicated, because they are never null.
+        """
+        nulled: Set[str] = set()
+        numeric: Set[str] = set()
+        with result_file.open() as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    record = json.loads(line)
+                except json.JSONDecodeError:
+                    continue  # VERSA writes a non-JSON trailer line
+                if not isinstance(record, dict):
+                    continue
+                for key, value in record.items():
+                    if value is None:
+                        nulled.add(key)
+                    elif isinstance(value, (int, float)) and not isinstance(
+                        value, bool
+                    ):
+                        numeric.add(key)
+        return nulled - numeric
+
+    @staticmethod
+    def _reject_partial_results(
+        averages: Dict[str, float],
+        result_file: Path,
+        failures: List[str],
+    ) -> None:
+        """Raise unless every configured metric actually produced a score.
+
+        VERSA exits 0 when an individual metric fails, so without this the
+        stage would report whichever metrics happened to survive and look
+        entirely successful. A silently truncated score set is worse than a
+        failed run: the numbers reach a table with nothing marking them as
+        incomplete.
+        """
+        problems = list(failures)
+
+        null_only = VersaMetric._null_only_keys(result_file)
+        if null_only:
+            problems.append(
+                "computed no value for any utterance: " + ", ".join(sorted(null_only))
+            )
+        if not averages:
+            problems.append(f"no numeric scores at all in {result_file}")
+
+        if problems:
+            raise RuntimeError(
+                "VERSA did not produce a complete score set.\n  "
+                + "\n  ".join(problems)
+                + f"\nScores that did succeed: {sorted(averages) or 'none'}."
+                "\nThe measure stage needs versa, faster-whisper,"
+                " openai-whisper (for the whisper_basic text cleaner) and"
+                " s3prl (for the speaker model's WavLM front-end); a missing"
+                " one disables its metric without failing the run."
+            )
 
     @staticmethod
     def _find_prefix(scores: Dict[str, float], metric: str) -> str | None:

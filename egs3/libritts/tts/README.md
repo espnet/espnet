@@ -75,10 +75,27 @@ python run.py --stages measure \
 
 Scoring runs through VERSA and reports WER, speaker similarity, and UTMOS.
 
-The WER metric wraps faster-whisper, which espnet's
-`tools/installers/install_versa.sh` does not install: it takes VERSA's
-`[audio]` extra only.
-Run VERSA's own `tools/install_fwhisper.sh` inside `tools/versa` first.
+### Dependencies
+
+`conf/metrics.yaml` needs four packages, and espnet's
+`tools/installers/install_versa.sh` installs only the first: it takes VERSA's
+`[audio]` extra and nothing else.
+
+| Package | Needed by | Install |
+|---|---|---|
+| `versa` | the stage itself | `tools/installers/install_versa.sh` |
+| `faster-whisper` | `fwhisper_wer` (the ASR pass) | `tools/install_fwhisper.sh` inside `tools/versa` |
+| `openai-whisper` | `fwhisper_wer`'s `text_cleaner: whisper_basic` | `pip install openai-whisper` |
+| `s3prl` | `speaker`, for the WavLM front-end of `espnet/voxcelebs12_ecapa_wavlm_joint` | `pip install s3prl` |
+
+`openai-whisper` is a **different package** from `faster-whisper`: the cleaner
+is routed through `espnet2/text/cleaner.py`, which only enables its
+`whisper_*` branches when OpenAI's `whisper` imports.
+
+Install all four before running `measure`. Each missing package disables only
+its own metric, so a gap costs you a full inference run before it shows up.
+Verify with a real import - `python -c "import versa, faster_whisper, whisper,
+s3prl"` - since a package can be present on disk yet fail to import.
 
 `conf/metrics.yaml` documents how each metric maps onto the official F5-TTS
 scorer, including the one metric that cannot be matched exactly.
