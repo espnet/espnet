@@ -126,7 +126,7 @@ class STFTRunner(BaseRunner):
         writers["records"].append(repr(result))
 
     @staticmethod
-    def close_writers(writers):
+    def close_writers(writers, state, **env):
         writers["path"].write_text(
             "\n".join(writers["records"]) + "\n", encoding="utf-8"
         )

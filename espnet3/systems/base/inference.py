@@ -188,15 +188,15 @@ def infer(config: DictConfig):
             )
         logger.info("===> Processing %d samples..", dataset_length)
         result = runner(list(range(dataset_length)))
-        if result is None:
-            raise RuntimeError(
-                "Inference runner did not produce shard outputs. "
-                "Use a runner that writes outputs via BaseRunner hooks."
-            )
         if isinstance(result, list):
             raise RuntimeError(
                 "In-memory inference results are not supported. "
                 "Use a runner that writes shard outputs via BaseRunner hooks."
+            )
+        if result is not True:
+            raise RuntimeError(
+                "Inference runner did not produce shard outputs. "
+                "Use a runner that writes outputs via BaseRunner hooks."
             )
         logger.info(
             "Finished test set %s | outputs=%s",
