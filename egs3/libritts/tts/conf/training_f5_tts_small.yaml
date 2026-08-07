@@ -7,7 +7,7 @@
 # upstream's own src/f5_tts/configs/F5TTS_Small.yaml (github.com/SWivid/F5-TTS),
 # which matches exactly.
 #
-# The model was trained on 4x V100 GPUs with 8 gradient accumulation steps, 
+# The model was trained on 4x V100 GPUs with 8 gradient accumulation steps,
 # for a total of 307,200 mel-frames per optimizer update, matching the upstream
 # F5-TTS configuration.
 task: espnet2.tasks.tts.TTSTask

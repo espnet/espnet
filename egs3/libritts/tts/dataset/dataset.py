@@ -9,10 +9,10 @@ from importlib import resources
 from pathlib import Path
 from typing import Any
 
-import torchaudio
 import numpy as np
 import soundfile as sf
 import torch
+import torchaudio
 from torch.utils.data import Dataset as TorchDataset
 
 from egs3.libritts.tts.dataset.builder import LibriTTSBuilder
