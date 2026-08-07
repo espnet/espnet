@@ -18,7 +18,7 @@ from functools import partial
 from typing import Callable
 
 import torch
-from torch import Tensor, nn  # noqa: F401  (nn kept to match upstream namespace)
+from torch import Tensor, nn
 from torch.nn import Module
 
 
