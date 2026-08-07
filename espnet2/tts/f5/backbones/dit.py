@@ -14,7 +14,6 @@ import threading
 import torch
 import torch.nn.functional as F
 from torch import nn
-from espnet2.tts.f5.rotary import RotaryEmbedding
 
 from espnet2.tts.f5.modules import (
     AdaLayerNorm_Final,
@@ -24,6 +23,7 @@ from espnet2.tts.f5.modules import (
     TimestepEmbedding,
     precompute_freqs_cis,
 )
+from espnet2.tts.f5.rotary import RotaryEmbedding
 
 # Text embedding
 

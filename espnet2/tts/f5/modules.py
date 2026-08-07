@@ -18,8 +18,8 @@ import torch.nn.functional as F
 import torchaudio
 from librosa.filters import mel as librosa_mel_fn
 from torch import nn
-from espnet2.tts.f5.rotary import apply_rotary_pos_emb
 
+from espnet2.tts.f5.rotary import apply_rotary_pos_emb
 from espnet2.tts.f5.utils import is_package_available
 
 # raw wav to mel spec
@@ -55,9 +55,7 @@ def get_bigvgan_mel_spectrogram(
             fmin=fmin,
             fmax=fmax,
         )
-        mel_basis_cache[key] = (
-            torch.from_numpy(mel).float().to(device)
-        )
+        mel_basis_cache[key] = torch.from_numpy(mel).float().to(device)
         hann_window_cache[key] = torch.hann_window(win_length).to(device)
 
     mel_basis = mel_basis_cache[key]
@@ -202,9 +200,7 @@ class ConvPositionEmbedding(nn.Module):
             i for i, layer in enumerate(self.conv1d) if isinstance(layer, nn.Conv1d)
         ]
 
-    def forward(
-        self, x: float["b n d"], mask: bool["b n"] | None = None
-    ):
+    def forward(self, x: float["b n d"], mask: bool["b n"] | None = None):
         if mask is not None:
             mask = mask.unsqueeze(1)  # [B 1 N]
         x = x.permute(0, 2, 1)  # [B D N]

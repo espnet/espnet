@@ -16,9 +16,9 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 from torch.nn.utils.rnn import pad_sequence
-from espnet2.tts.f5.solvers import odeint
 
 from espnet2.tts.f5.modules import MelSpec
+from espnet2.tts.f5.solvers import odeint
 from espnet2.tts.f5.utils import (
     default,
     exists,
@@ -92,9 +92,7 @@ class CFM(nn.Module):
         sway_sampling_coef=None,
         seed: int | None = None,
         max_duration=65536,
-        vocoder: (
-            Callable[[float["b d n"]], float["b nw"]] | None
-        ) = None,
+        vocoder: Callable[[float["b d n"]], float["b nw"]] | None = None,
         use_epss=True,
         no_ref_audio=False,
         duplicate_test=False,

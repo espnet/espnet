@@ -10,7 +10,6 @@ pipeline (see ``create_token_list`` stage) and feeds integer token ids to the
 model, so those helpers are unused here.
 """
 
-
 from __future__ import annotations
 
 import torch
@@ -40,9 +39,7 @@ def is_package_available(package_name: str) -> bool:
 # tensor helpers
 
 
-def lens_to_mask(
-    t: int["b"], length: int | None = None
-) -> bool["b n"]:
+def lens_to_mask(t: int["b"], length: int | None = None) -> bool["b n"]:
     if not exists(length):
         length = t.amax()
 
@@ -50,9 +47,7 @@ def lens_to_mask(
     return seq[None, :] < t[:, None]
 
 
-def mask_from_start_end_indices(
-    seq_len: int["b"], start: int["b"], end: int["b"]
-):
+def mask_from_start_end_indices(seq_len: int["b"], start: int["b"], end: int["b"]):
     max_seq_len = seq_len.max().item()
     seq = torch.arange(max_seq_len, device=start.device).long()
     start_mask = seq[None, :] >= start[:, None]
@@ -60,9 +55,7 @@ def mask_from_start_end_indices(
     return start_mask & end_mask
 
 
-def mask_from_frac_lengths(
-    seq_len: int["b"], frac_lengths: float["b"]
-):
+def mask_from_frac_lengths(seq_len: int["b"], frac_lengths: float["b"]):
     lengths = (frac_lengths * seq_len).long()
     max_start = seq_len - lengths
 
@@ -73,9 +66,7 @@ def mask_from_frac_lengths(
     return mask_from_start_end_indices(seq_len, start, end)
 
 
-def maybe_masked_mean(
-    t: float["b n d"], mask: bool["b n"] = None
-) -> float["b d"]:
+def maybe_masked_mean(t: float["b n d"], mask: bool["b n"] = None) -> float["b d"]:
     if not exists(mask):
         return t.mean(dim=1)
 
@@ -87,9 +78,7 @@ def maybe_masked_mean(
 
 
 # simple utf-8 tokenizer, since paper went character based
-def list_str_to_tensor(
-    text: list[str], padding_value=-1
-) -> int["b nt"]:
+def list_str_to_tensor(text: list[str], padding_value=-1) -> int["b nt"]:
     list_tensors = [torch.tensor([*bytes(t, "UTF-8")]) for t in text]  # ByT5 style
     text = pad_sequence(list_tensors, padding_value=padding_value, batch_first=True)
     return text
