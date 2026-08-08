@@ -8,14 +8,12 @@ class BaseIterator:
 
     Wraps the iterator produced by an espnet2-style iter factory
     (``iter_factory.build_iter(epoch)``) and defines the iterator interface
-    handed to the trainer. Subclasses can override ``generate()`` to customize
-    how batches are produced while keeping the distributed behavior below.
+    handed to the trainer.
 
     When ``torch.distributed`` is initialized, the base class synchronizes the
     end of the epoch across ranks. Iter factories like espnet2's
-    ChunkIterFactory emit a data-dependent number of batches per rank (chunks
-    per utterance vary with length, and utterances shorter than the chunk
-    length are dropped), so under DDP each rank would otherwise end its epoch
+    ChunkIterFactory emit a data-dependent number of batches per rank,
+    so under DDP each rank would otherwise end its epoch
     at a different step. Lightning then moves the exhausted rank into
     validation while the others are still training, and the two sides issue
     mismatched collectives that deadlock until the NCCL watchdog kills the
@@ -38,7 +36,7 @@ class BaseIterator:
         return len(self._iterator)
 
     def generate(self):
-        """Yield this rank's batches; subclasses may override."""
+        """Yield this rank's batches."""
         yield from self._iterator
 
     def __iter__(self):
