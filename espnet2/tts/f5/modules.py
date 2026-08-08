@@ -7,6 +7,10 @@ nw - raw wave length
 d - dimension
 """
 
+# Ported from SWivid/F5-TTS and kept close to upstream, so flake8 is not
+# enforced on this file (einops-style shape annotations trip F722/F821).
+# flake8: noqa
+
 from __future__ import annotations
 
 import math

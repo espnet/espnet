@@ -10,6 +10,10 @@ pipeline (see ``create_token_list`` stage) and feeds integer token ids to the
 model, so those helpers are unused here.
 """
 
+# Ported from SWivid/F5-TTS and kept close to upstream, so flake8 is not
+# enforced on this file (einops-style shape annotations trip F722/F821).
+# flake8: noqa
+
 from __future__ import annotations
 
 import torch
