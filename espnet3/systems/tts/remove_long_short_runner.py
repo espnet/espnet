@@ -1,7 +1,9 @@
 """Runner for parallel long/short utterance duration filtering."""
 
+import json
 import logging
-from typing import Any, Dict, Iterable, List, Tuple, Union
+from pathlib import Path
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
 import soundfile as sf
 
@@ -13,10 +15,10 @@ logger = logging.getLogger(__name__)
 class RemoveLongShortRunner(BaseRunner):
     """Runner for filtering utterances by audio duration in parallel.
 
-    Each result carries its originating ``idx`` since ``BaseRunner``'s
-    parallel dispatch (``parallel_for``) yields results in completion order,
-    not submission order - callers must re-sort by ``idx`` before
-    reconstructing the manifest.
+    Each shard appends its status dicts to a shard-local ``results.jsonl``
+    file, and :meth:`merge` reads every shard file back and re-sorts by
+    ``idx``, so callers receive results in manifest order regardless of
+    shard completion order.
     """
 
     @staticmethod
@@ -63,3 +65,35 @@ class RemoveLongShortRunner(BaseRunner):
         # Strict inequalities to match espnet2 tts.sh awk filter.
         keep = not (duration <= min_duration or duration >= max_duration)
         return {"idx": idx, "utt_id": utt_id, "keep": keep}
+
+    @staticmethod
+    def open_writers(shard_dir: Optional[Path], **env) -> Dict[str, Any]:
+        """Open the shard-local JSONL results file."""
+        results_path = Path(shard_dir) / "results.jsonl"
+        return {"results": results_path.open("w", encoding="utf-8")}
+
+    @staticmethod
+    def write_record(
+        writers: Dict[str, Any],
+        result: Any,
+        state: Dict[str, Any],
+        **env,
+    ) -> None:
+        """Append one ``forward`` result (or batch of results) to the shard file."""
+        records = result if isinstance(result, list) else [result]
+        for record in records:
+            writers["results"].write(json.dumps(record) + "\n")
+
+    def merge(self, shard_dirs: List[Path]) -> List[Dict[str, Any]]:
+        """Concatenate shard results and restore manifest (``idx``) order."""
+        records: List[Dict[str, Any]] = []
+        for shard_dir in shard_dirs:
+            results_path = Path(shard_dir) / "results.jsonl"
+            if not results_path.exists():
+                continue
+            with results_path.open("r", encoding="utf-8") as f:
+                for line in f:
+                    if line.strip():
+                        records.append(json.loads(line))
+        records.sort(key=lambda r: r["idx"])
+        return records

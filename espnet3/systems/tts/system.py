@@ -122,7 +122,6 @@ class TTSSystem(BaseSystem):
 
         manifest_paths = rls_cfg.get("manifest_paths", {})
         batch_size = rls_cfg.get("batch_size", None)
-        async_mode = rls_cfg.get("async_mode", False)
 
         save_path.mkdir(parents=True, exist_ok=True)
         logger.info(
@@ -159,10 +158,15 @@ class TTSSystem(BaseSystem):
                 },
             )
 
+            # resume=False: the keep/drop decisions depend on the duration
+            # bounds, so shard results from an earlier run (possibly with
+            # different bounds) must never be reused.
             runner = RemoveLongShortRunner(
                 provider=provider,
                 batch_size=batch_size,
-                async_mode=async_mode,
+                output_dir=save_path / "shards",
+                shard_subdir=split,
+                resume=False,
             )
 
             logger.info(
@@ -170,26 +174,9 @@ class TTSSystem(BaseSystem):
             )
 
             indices = list(range(n_entries))
+            # merge() returns the shard records flattened and re-sorted by idx.
             results = runner(indices) if n_entries else []
-
-            if results is None:
-                logger.info(
-                    f"Async job submitted for split '{split}'. Check result "
-                    "directory for outputs."
-                )
-                continue
-
-            flat = []
-            for item in results:
-                if isinstance(item, list):
-                    flat.extend(item)
-                else:
-                    flat.append(item)
-
-            # parallel_for yields results in completion order, not submission
-            # order, so re-sort by idx to keep the manifest deterministic.
-            flat.sort(key=lambda r: r["idx"])
-            keep_by_idx = {r["idx"]: r["keep"] for r in flat}
+            keep_by_idx = {r["idx"]: r["keep"] for r in results}
 
             n_kept = 0
             n_dropped_duration = 0
