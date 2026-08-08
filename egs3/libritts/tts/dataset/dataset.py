@@ -81,18 +81,21 @@ class LibriTTSDataset(TorchDataset):
     The dataset consumes the following arguments during initialization:
         - ``split``: A string key for the dataset split
         - ``recipe_dir``: Optional path to the recipe root, used to resolve the default
-        - ``manifest_path``: Optional path to the manifest TSV file. If not supplied, the dataset
-            will look for the default manifest path for the given split in the recipe's data directory.
+        - ``manifest_path``: Optional path to the manifest TSV file. If not
+            supplied, the dataset will look for the default manifest path for
+            the given split in the recipe's data directory.
         - ``load_speech``: Whether to load the speech waveform from disk. If False
             the sample will not include the "speech" key. Default: True.
         - ``fs``: Optional target sampling rate for the speech waveform. If supplied,
-            the waveform will be resampled to this rate after loading. Default: None (no resampling).
+            the waveform will be resampled to this rate after loading.
+            Default: None (no resampling).
         - ``inference``: If True, the dataset will include additional metadata in each
             sample for inference purposes (utt_id, wav_path, raw_text). Default: False.
         - ``ref_mode``: If not None, include a reference utterance in each sample
             for zero-shot voice cloning inference. Must be one of "same_speaker" or
             "cross_speaker". Default: None (no reference).
-        - ``ref_seed``: Random seed for deterministic reference selection when ``ref_mode`` is not None. Default: 0.
+        - ``ref_seed``: Random seed for deterministic reference selection
+            when ``ref_mode`` is not None. Default: 0.
     """
 
     def __init__(
@@ -227,7 +230,8 @@ class LibriTTSDataset(TorchDataset):
             speech, speech_fs = sf.read(str(entry.wav_path))
             sample["speech"] = np.asarray(speech, dtype=np.float32)
             if self.fs is not None and speech_fs != self.fs:
-                # Resample if a target sampling rate is specified and different from the original.
+                # Resample if a target sampling rate is specified and
+                # different from the original.
                 sample["speech"] = (
                     torchaudio.functional.resample(
                         torch.from_numpy(sample["speech"]),
