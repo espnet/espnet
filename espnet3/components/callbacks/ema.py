@@ -10,8 +10,7 @@ from espnet3.components.callbacks.vendored_ema import EMA
 
 
 class EMACallback(pl.Callback):
-    """
-    ESPnet3's EMA callback system.
+    """ESPnet3's EMA callback system.
 
     - Updates once per true optimizer step (not per micro-step).
     - Swaps EMA weights in for validation/test, restores afterward.
