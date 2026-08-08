@@ -197,7 +197,8 @@ def test_merge_restores_index_order(manifest, tmp_path):
     runner = _runner(manifest, tmp_path)
     shard_a = tmp_path / "a"
     shard_b = tmp_path / "b"
-    for shard in (shard_a, shard_b):
+    shard_empty = tmp_path / "c"  # no results.jsonl: skipped by merge
+    for shard in (shard_a, shard_b, shard_empty):
         shard.mkdir()
     (shard_a / "results.jsonl").write_text(
         '{"idx": 2, "utt_id": "c", "keep": true}\n', encoding="utf-8"
@@ -208,5 +209,5 @@ def test_merge_restores_index_order(manifest, tmp_path):
         encoding="utf-8",
     )
 
-    merged = runner.merge([shard_a, shard_b])
+    merged = runner.merge([shard_a, shard_b, shard_empty])
     assert [r["idx"] for r in merged] == [0, 1, 2]

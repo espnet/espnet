@@ -1,5 +1,7 @@
 """Tests for ESPnet3 TTS system stage hooks."""
 
+import logging
+
 import numpy as np
 import pytest
 import soundfile as sf
@@ -305,3 +307,121 @@ def test_collect_stats_preserves_null_normalize(tmp_path, monkeypatch):
     assert model_cfg.normalize is None
     assert "normalize_conf" in model_cfg
     assert model_cfg.normalize_conf is None
+
+
+# ---------------------------------------------------------------
+# Remaining configuration branches
+# ---------------------------------------------------------------
+#
+# | Test Name                                   | Description                  |
+# |---------------------------------------------|------------------------------|
+# | test_remove_long_short_sets_parallel        | A parallel config section is |
+# |                                             | forwarded to set_parallel.   |
+# | test_remove_long_short_default_manifest_location | Without manifest_paths  |
+# |                       | the stage reads data/manifest/{split}.tsv.         |
+# | test_create_token_list_vocab_builder_conf   | DictConfig builder kwargs    |
+# |                                             | are converted and forwarded. |
+# | test_create_token_list_vocabulary_size      | Vocabulary truncation and    |
+# |                                             | the too-small error.         |
+# | test_create_token_list_warns_on_empty_manifest | A manifest yielding no    |
+# |                                             | tokens logs a warning.       |
+# | test_collect_stats_sets_parallel            | collect_stats forwards the   |
+# |                                             | parallel config too.         |
+
+
+def test_remove_long_short_sets_parallel(tmp_path, duration_manifests, monkeypatch):
+    calls = []
+    monkeypatch.setattr(sysmod, "set_parallel", lambda cfg: calls.append(cfg))
+
+    manifests = {"train": duration_manifests["train"]}
+    system = _rls_system(tmp_path, manifests, splits=["train"])
+    system.training_config.parallel = OmegaConf.create({"env": "local"})
+    system.remove_long_short()
+
+    assert calls == [system.training_config.parallel]
+
+
+def test_remove_long_short_default_manifest_location(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    manifest_dir = tmp_path / "data" / "manifest"
+    manifest_dir.mkdir(parents=True)
+    wav_path = tmp_path / "mid.wav"
+    _write_wav(wav_path, 2.0)
+    manifest_dir.joinpath("train.tsv").write_text(
+        f"utt_mid\t{wav_path}\thello\tspk1\n", encoding="utf-8"
+    )
+
+    config = OmegaConf.create(
+        {
+            "exp_dir": str(tmp_path / "exp"),
+            "remove_long_short": {
+                "save_path": str(tmp_path / "filtered"),
+                "min_wav_duration": 1.0,
+                "max_wav_duration": 4.0,
+                "splits": ["train"],
+            },
+        }
+    )
+    TTSSystem(training_config=config).remove_long_short()
+
+    filtered = (tmp_path / "filtered" / "train.tsv").read_text()
+    assert [line.split("\t")[0] for line in filtered.splitlines()] == ["utt_mid"]
+
+
+def test_create_token_list_vocab_builder_conf(tmp_path):
+    manifest = _write_manifest(
+        tmp_path,
+        "train.tsv",
+        ["u1\t/x.wav\tbeta\tspk1\n", "u2\t/y.wav\talpha\tspk1\n"],
+    )
+    system = _token_list_system(
+        tmp_path,
+        manifest,
+        vocab_builder="builtins.sorted",
+        vocab_builder_conf={"reverse": True},
+    )
+    system.create_token_list()
+
+    tokens = (tmp_path / "tokens" / "tokens.txt").read_text().splitlines()
+    assert tokens == ["beta", "alpha"]
+
+
+def test_create_token_list_vocabulary_size(tmp_path):
+    manifest = _write_manifest(
+        tmp_path, "train.tsv", ["u1\t/x.wav\taab\tspk1\n", "u2\t/y.wav\tabc\tspk1\n"]
+    )
+    system = _token_list_system(
+        tmp_path, manifest, add_symbol=["<blank>:0"], vocabulary_size=2
+    )
+    system.create_token_list()
+    tokens = (tmp_path / "tokens" / "tokens.txt").read_text().splitlines()
+    assert tokens == ["<blank>", "a"]  # top-1 token + the added symbol
+
+    system = _token_list_system(
+        tmp_path, manifest, add_symbol=["<blank>:0", "<unk>:1"], vocabulary_size=1
+    )
+    with pytest.raises(RuntimeError, match="vocabulary_size is too small"):
+        system.create_token_list()
+
+
+def test_create_token_list_warns_on_empty_manifest(tmp_path, caplog):
+    manifest = _write_manifest(tmp_path, "train.tsv", ["u1\t/x.wav\t\tspk1\n"])
+    system = _token_list_system(tmp_path, manifest)
+
+    with caplog.at_level(logging.WARNING):
+        system.create_token_list()
+
+    assert "manifest contained no tokens" in caplog.text
+    assert (tmp_path / "tokens" / "tokens.txt").read_text() == ""
+
+
+def test_collect_stats_sets_parallel(tmp_path, monkeypatch):
+    system, trainer, _ = _collect_stats_system(tmp_path, monkeypatch)
+    calls = []
+    monkeypatch.setattr(sysmod, "set_parallel", lambda cfg: calls.append(cfg))
+    system.training_config.parallel = OmegaConf.create({"env": "local"})
+
+    system.collect_stats()
+
+    assert calls == [system.training_config.parallel]
+    assert trainer.collect_stats_calls == 1

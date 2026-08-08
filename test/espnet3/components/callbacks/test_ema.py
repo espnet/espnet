@@ -385,3 +385,365 @@ def test_callback_forwards_ema_kwargs():
     assert callback.ema.update_every == 3
     # include_online_model is pinned to False by the callback.
     assert not callback.ema.include_online_model
+
+
+# ---------------------------------------------------------------
+# Vendored EMA: helpers and remaining branches
+# ---------------------------------------------------------------
+#
+# | Test Name                                   | Description                  |
+# |---------------------------------------------|------------------------------|
+# | test_helper_functions_device_and_dtype      | get_module_device and the    |
+# |                       | move/coerce branches of the inplace helpers.       |
+# | test_ema_accepts_callable_ema_model_factory | A zero-arg factory can       |
+# |                                             | supply the EMA module.       |
+# | test_ema_lazy_init_defers_ema_creation      | lazy_init_ema=True creates   |
+# |                                             | the copy on first update().  |
+# | test_ema_exits_when_model_is_not_copyable   | deepcopy failure exits with  |
+# |                                             | an explanatory message.      |
+# | test_ema_forwards_named_methods             | forward_method_names binds   |
+# |                                             | ema_model methods on EMA.    |
+# | test_ema_optimizer_post_step_hook_updates   | optimizer.step() drives      |
+# |                                             | EMA.update() via the hook.   |
+# | test_ema_eval_and_restore_device            | eval() and                   |
+# |                                             | restore_ema_model_device().  |
+# | test_ema_iterators_skip_non_float_entries   | Int params/buffers are       |
+# |                                             | excluded from EMA tracking.  |
+# | test_ema_copy_params_between_models         | Both copy directions carry   |
+# |                                             | float buffers along.         |
+# | test_ema_update_filters_by_name             | ignore / prefix-ignore /     |
+# |                       | no-ema names route params and buffers correctly.  |
+# | test_ema_update_model_with_ema              | Copy (decay 0) and lerp      |
+# |                                             | paths write back into the    |
+# |                                             | online model.                |
+# | test_ema_update_model_with_ema_every        | Periodic online<-EMA sync    |
+# |                                             | inside update().             |
+# | test_ema_moves_ema_model_to_online_device   | move_ema_to_online_device    |
+# |                                             | relocates the EMA copy.      |
+# | test_ema_foreach_with_device_and_dtype      | foreach path with device and |
+# |                                             | dtype coercion enabled.      |
+
+
+def test_helper_functions_device_and_dtype():
+    from espnet3.components.callbacks.vendored_ema import (
+        get_module_device,
+        inplace_copy,
+        inplace_lerp,
+        maybe_coerce_dtype,
+    )
+
+    assert get_module_device(_make_net()) == torch.device("cpu")
+
+    t_long = torch.zeros(2, dtype=torch.long)
+    assert maybe_coerce_dtype(t_long, torch.long) is t_long
+    assert maybe_coerce_dtype(t_long, torch.float32).dtype == torch.float32
+
+    tgt = torch.zeros(2)
+    src = torch.ones(2, dtype=torch.float64)
+    inplace_copy(tgt, src, auto_move_device=True, coerce_dtype=True)
+    assert torch.equal(tgt, torch.ones(2))
+
+    tgt = torch.zeros(2)
+    inplace_lerp(tgt, src, 0.5, auto_move_device=True, coerce_dtype=True)
+    assert torch.equal(tgt, torch.full((2,), 0.5))
+
+
+def test_ema_accepts_callable_ema_model_factory():
+    created = _make_net(0.0)
+    ema = _fresh_ema(_make_net(1.0), ema_model=lambda: created)
+    assert ema.ema_model is created
+
+
+def test_ema_lazy_init_defers_ema_creation():
+    net = _make_net(2.0)
+    ema = _fresh_ema(net, lazy_init_ema=True)
+    assert ema.ema_model is None
+
+    ema.update()  # first update materializes the EMA copy
+    assert ema.ema_model is not None
+    assert torch.equal(ema.ema_model.weight, net.weight)
+
+
+def test_ema_exits_when_model_is_not_copyable(monkeypatch):
+    import espnet3.components.callbacks.vendored_ema as vmod
+
+    def broken_deepcopy(_):
+        raise RuntimeError("not copyable")
+
+    monkeypatch.setattr(vmod, "deepcopy", broken_deepcopy)
+    with pytest.raises(SystemExit):
+        _fresh_ema(_make_net())
+
+
+def test_ema_forwards_named_methods():
+    ema = _fresh_ema(_make_net(1.0), forward_method_names=("forward",))
+    x = torch.ones(1, 2)
+    assert torch.equal(ema.forward(x), ema.ema_model(x))
+
+
+def test_ema_optimizer_post_step_hook_updates():
+    net = _make_net()
+    ema = _fresh_ema(net)
+    opt = torch.optim.SGD(net.parameters(), lr=0.1)
+    handle = ema.add_to_optimizer_post_step_hook(opt)
+
+    opt.step()
+    assert int(ema.step.item()) == 1
+    handle.remove()
+
+
+def test_ema_eval_and_restore_device():
+    ema = _fresh_ema(_make_net())
+    ema.ema_model.train()
+    ema.eval()
+    assert not ema.ema_model.training
+
+    ema.restore_ema_model_device()  # CPU-to-CPU: must be a harmless no-op
+    assert ema.initted.device == torch.device("cpu")
+
+
+class _IntParamNet(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.lin = nn.Linear(2, 2)
+        self.counter = nn.Parameter(
+            torch.zeros(1, dtype=torch.long), requires_grad=False
+        )
+        self.register_buffer("ticks", torch.zeros(1, dtype=torch.long))
+
+
+def test_ema_iterators_skip_non_float_entries():
+    net = _IntParamNet()
+    ema = _fresh_ema(net)
+
+    param_names = [name for name, _ in ema.get_params_iter(net)]
+    buffer_names = [name for name, _ in ema.get_buffers_iter(net)]
+    assert set(param_names) == {"lin.weight", "lin.bias"}
+    assert "counter" not in param_names
+    assert "ticks" not in buffer_names
+
+
+class _BufferNet(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.weight = nn.Parameter(torch.zeros(2))
+        self.skip_param = nn.Parameter(torch.zeros(2))
+        self.register_buffer("buf_lerp", torch.zeros(2))
+        self.register_buffer("buf_copy", torch.zeros(2))
+        self.register_buffer("buf_ignored", torch.zeros(2))
+        self.register_buffer("skip_buf", torch.zeros(2))
+
+
+def test_ema_copy_params_between_models():
+    net = _BufferNet()
+    ema = _fresh_ema(net)
+    with torch.no_grad():
+        net.weight.fill_(3.0)
+        net.buf_lerp.fill_(3.0)
+    ema.copy_params_from_model_to_ema()
+    assert torch.equal(ema.ema_model.buf_lerp, net.buf_lerp)
+
+    with torch.no_grad():
+        ema.ema_model.weight.fill_(8.0)
+        ema.ema_model.buf_lerp.fill_(8.0)
+    ema.copy_params_from_ema_to_model()
+    assert torch.equal(net.weight, ema.ema_model.weight)
+    assert torch.equal(net.buf_lerp, ema.ema_model.buf_lerp)
+
+
+def test_ema_update_filters_by_name():
+    net = _BufferNet()
+    ema = _fresh_ema(
+        net,
+        ignore_names={"buf_ignored"},
+        ignore_startswith_names={"skip_"},
+        param_or_buffer_names_no_ema={"buf_copy"},
+    )
+    ema.update()  # init copy of zeros
+    ema.update()  # move past warmup
+
+    with torch.no_grad():
+        for tensor in (
+            net.weight,
+            net.skip_param,
+            net.buf_lerp,
+            net.buf_copy,
+            net.buf_ignored,
+            net.skip_buf,
+        ):
+            tensor.fill_(6.0)
+    ema.update()
+
+    assert torch.equal(ema.ema_model.buf_copy, net.buf_copy)  # hard copy
+    assert torch.equal(ema.ema_model.buf_ignored, torch.zeros(2))  # ignored
+    assert torch.equal(ema.ema_model.skip_buf, torch.zeros(2))  # prefix-ignored
+    assert torch.equal(ema.ema_model.skip_param, torch.zeros(2))  # prefix-ignored
+    assert 0.0 < ema.ema_model.weight[0].item() < 6.0  # averaged
+    assert 0.0 < ema.ema_model.buf_lerp[0].item() < 6.0  # averaged
+
+
+def test_ema_update_model_with_ema():
+    net = _make_net(1.0)
+    ema = _fresh_ema(net)
+    ema.update()
+    with torch.no_grad():
+        ema.ema_model.weight.fill_(0.0)
+        ema.ema_model.bias.fill_(0.0)
+
+    ema.update_model_with_ema(decay=0.5)  # lerp path
+    assert torch.allclose(net.weight, torch.full((2, 2), 0.5))
+
+    ema.update_model_with_ema()  # default beta 0.0: hard copy path
+    assert torch.equal(net.weight, ema.ema_model.weight)
+
+
+def test_ema_update_model_with_ema_every():
+    net = _make_net(5.0)
+    ema = _fresh_ema(net, update_model_with_ema_every=2)
+    ema.update()  # init copy, step -> 1
+    ema.update()  # step counter 1: no periodic sync yet
+
+    with torch.no_grad():
+        net.weight.fill_(7.0)
+    ema.update()  # step counter 2: EMA update, then online <- EMA sync
+
+    assert torch.equal(net.weight, ema.ema_model.weight)
+
+
+def test_ema_moves_ema_model_to_online_device(monkeypatch):
+    import espnet3.components.callbacks.vendored_ema as vmod
+
+    net = _make_net(0.0)
+    ema = _fresh_ema(net, move_ema_to_online_device=True)
+    ema.update()
+    ema.update()
+
+    # Simulate the EMA copy sitting on another device; cpu:0 != cpu as
+    # torch.device values, while .to() stays a CPU no-op.
+    devices = iter([torch.device("cpu", 0), torch.device("cpu"), torch.device("cpu")])
+    monkeypatch.setattr(vmod, "get_module_device", lambda module: next(devices))
+
+    with torch.no_grad():
+        net.weight.fill_(1.0)
+    ema.update()
+    assert torch.isfinite(ema.ema_model.weight).all()
+
+
+def test_ema_foreach_with_device_and_dtype():
+    net = _make_net(0.0)
+    ema = _fresh_ema(
+        net,
+        use_foreach=True,
+        allow_different_devices=True,
+        coerce_dtype=True,
+        param_or_buffer_names_no_ema={"bias"},
+    )
+    ema.update()
+    ema.update()
+
+    with torch.no_grad():
+        net.weight.fill_(1.0)
+        net.bias.fill_(1.0)
+    ema.update()
+
+    assert torch.equal(ema.ema_model.bias, net.bias)  # no-ema: hard copy
+    assert 0.0 < ema.ema_model.weight[0, 0].item() < 1.0  # averaged
+
+
+# ---------------------------------------------------------------
+# EMACallback: guards and distributed contract
+# ---------------------------------------------------------------
+#
+# | Test Name                                   | Description                  |
+# |---------------------------------------------|------------------------------|
+# | test_callback_train_batch_end_guards        | No update without EMA or on  |
+# |                                             | a non-main rank.             |
+# | test_callback_distributed_swap_main_rank    | Main rank broadcasts the     |
+# |                       | has-EMA flag and every state tensor from src=0.    |
+# | test_callback_distributed_swap_non_main_rank | Non-main rank backs up,     |
+# |                       | receives broadcasts and restores afterwards.       |
+
+
+def test_callback_train_batch_end_guards():
+    pl_module = _make_pl_module()
+    trainer = _make_trainer(global_step=1)
+
+    no_ema = EMACallback()
+    no_ema.on_train_batch_end(trainer, pl_module, None, None, 0)  # must not raise
+
+    callback = _fit_callback(pl_module)
+    non_main = _make_trainer(is_global_zero=False, global_step=1)
+    callback.on_train_batch_end(non_main, pl_module, None, None, 0)
+    assert int(callback.ema.step.item()) == 0
+
+
+class _FakeDist:
+    """Single-process stand-in recording the broadcast contract.
+
+    A real multi-rank broadcast cannot run in a unit test; this fake
+    verifies the calls the callback must issue (flag agreement + one
+    broadcast per state tensor, all from rank 0).
+    """
+
+    def __init__(self, flag_value=None):
+        self.calls = []
+        self.flag_value = flag_value
+
+    def is_available(self):
+        return True
+
+    def is_initialized(self):
+        return True
+
+    def broadcast(self, tensor, src):
+        self.calls.append((tuple(tensor.shape), src))
+        if self.flag_value is not None and tensor.numel() == 1:
+            tensor.fill_(self.flag_value)
+
+
+def test_callback_distributed_swap_main_rank(monkeypatch):
+    import espnet3.components.callbacks.ema as emamod
+
+    pl_module = _make_pl_module(1.0)
+    callback = _fit_callback(pl_module)
+    trainer = _make_trainer(global_step=0, world_size=2)
+    callback.on_train_start(trainer, pl_module)
+    trainer.global_step = 1
+    callback.on_train_batch_end(trainer, pl_module, None, None, 0)
+
+    with torch.no_grad():
+        pl_module.model.weight.fill_(9.0)
+    online = pl_module.model.weight.detach().clone()
+    ema_weight = callback.ema.ema_model.weight.detach().clone()
+
+    fake = _FakeDist()
+    monkeypatch.setattr(emamod, "dist", fake)
+
+    callback.on_validation_start(trainer, pl_module)
+    n_tensors = len(pl_module.model.state_dict())
+    assert len(fake.calls) == 1 + n_tensors  # has-EMA flag + every tensor
+    assert all(src == 0 for _, src in fake.calls)
+    assert torch.equal(pl_module.model.weight, ema_weight)
+
+    callback.on_validation_end(trainer, pl_module)
+    assert torch.equal(pl_module.model.weight, online)
+
+
+def test_callback_distributed_swap_non_main_rank(monkeypatch):
+    import espnet3.components.callbacks.ema as emamod
+
+    pl_module = _make_pl_module(1.0)
+    callback = EMACallback()  # setup created no EMA on this rank
+    trainer = _make_trainer(is_global_zero=False, global_step=1, world_size=2)
+    online = pl_module.model.weight.detach().clone()
+
+    fake = _FakeDist(flag_value=1)  # the main rank reports EMA exists
+    monkeypatch.setattr(emamod, "dist", fake)
+
+    callback.on_validation_start(trainer, pl_module)
+    assert callback._backup is not None  # backed up despite having no EMA
+    assert len(fake.calls) == 1 + len(pl_module.model.state_dict())
+
+    callback.on_validation_end(trainer, pl_module)
+    assert torch.equal(pl_module.model.weight, online)
+    assert callback._backup is None
