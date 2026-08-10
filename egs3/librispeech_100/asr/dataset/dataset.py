@@ -129,10 +129,7 @@ class LibriSpeech100Dataset(TorchDataset):
             raise FileNotFoundError(f"Split directory not found: {split_dir}")
 
         self._examples = _scan_split(split_dir)
-        self._example_by_utt_id = {
-            ex.utt_id: ex
-            for ex in self._examples
-        }
+        self._example_by_utt_id = {ex.utt_id: ex for ex in self._examples}
 
     def _get_example(self, idx: [int, str]):
         if isinstance(idx, int):
@@ -144,7 +141,6 @@ class LibriSpeech100Dataset(TorchDataset):
         else:
             raise ValueError("getitem accepts either an int index or an utterance id")
 
-
     def __len__(self) -> int:
         return len(self._examples)
 
@@ -153,13 +149,12 @@ class LibriSpeech100Dataset(TorchDataset):
         example = self._get_example(idx)
         array, _sr = sf.read(str(example.audio_path))
 
-
         sample = {
             "speech": np.asarray(array, dtype=np.float32),
             "text": example.text,
         }
 
         if self.is_stage_collect_stats:
-            sample['utt_id'] = example.utt_id
+            sample["utt_id"] = example.utt_id
 
         return sample

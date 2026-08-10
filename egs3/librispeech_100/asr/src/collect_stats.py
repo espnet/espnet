@@ -82,7 +82,6 @@ def collect_stats(
             parallel_config,
         )
 
-
     elif parallel_config is None:
         sum_dict, sq_dict, count_dict = collect_stats_local(
             model_config,

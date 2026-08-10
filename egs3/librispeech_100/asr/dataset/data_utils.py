@@ -2,5 +2,5 @@ from enum import Enum
 
 
 class LhotseElement(Enum):
-    RecordingSet = 'recordings'
-    SupervisionSet = 'supervisions'
+    RecordingSet = "recordings"
+    SupervisionSet = "supervisions"

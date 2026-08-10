@@ -8,9 +8,8 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
-from torch.utils.data import Dataset as TorchDataset
-
 from lhotse import MonoCut
+from torch.utils.data import Dataset as TorchDataset
 
 from egs3.librispeech_100.asr.dataset.lhotse_builder import (
     LibriSpeech100LhotseBuilder,
@@ -24,7 +23,6 @@ with resources.as_file(_CONFIG_RESOURCE) as _CONFIG_PATH:
 _DATASET_CFG = _CONFIG["dataset"]
 
 _KNOWN_SPLITS = {str(split) for split in _DATASET_CFG["supported_splits"]}
-
 
 
 class LibriSpeech100LhotseDataset(TorchDataset):
@@ -83,10 +81,8 @@ class LibriSpeech100LhotseDataset(TorchDataset):
         lhotse_builder = LibriSpeech100LhotseBuilder()
         lhotse_builder.build(recipe_dir=recipe_dir, dataset_dir=dataset_dir)
 
-
         self._cuts = lhotse_builder.load_cutsets(split=split, dataset_dir=dataset_dir)
         self._cut_id_dict = {cut.id: cut for cut in self._cuts}
-
 
     def _get_cut(self, idx: [int, str]) -> MonoCut:
         if isinstance(idx, int):
@@ -97,7 +93,6 @@ class LibriSpeech100LhotseDataset(TorchDataset):
             return self._cut_id_dict[idx]
         else:
             raise ValueError("getitem accepts either an int index or an utterance id")
-
 
     def __len__(self) -> int:
         return len(self._cuts)
@@ -112,6 +107,6 @@ class LibriSpeech100LhotseDataset(TorchDataset):
         }
 
         if self.is_stage_collect_stats:
-            sample['utt_id'] = cut.id
+            sample["utt_id"] = cut.id
 
         return sample

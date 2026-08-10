@@ -1,20 +1,15 @@
 import logging
-
-import lightning as L
-
-from omegaconf import (
-    DictConfig,
-    OmegaConf
-)
 from pathlib import Path
 
+import lightning as L
+from omegaconf import DictConfig, OmegaConf
+
+from egs3.librispeech_100.asr.src.collect_stats import collect_stats
 from espnet3.parallel.parallel import set_parallel
 from espnet3.systems.asr.system import ASRSystem
 
-
-from egs3.librispeech_100.asr.src.collect_stats import collect_stats
-
 logger = logging.getLogger(__name__)
+
 
 class LBSSystem(ASRSystem):
     """ASR-specific system.
@@ -68,7 +63,9 @@ class LBSSystem(ASRSystem):
 
         Path(self.training_config.exp_dir).mkdir(parents=True, exist_ok=True)
 
-        assert hasattr(self.training_config, "stats_dir"), "training_config.stats_dir must be defined"
+        assert hasattr(
+            self.training_config, "stats_dir"
+        ), "training_config.stats_dir must be defined"
         Path(self.training_config.stats_dir).mkdir(parents=True, exist_ok=True)
 
         if self.training_config.get("parallel"):
@@ -81,7 +78,6 @@ class LBSSystem(ASRSystem):
             self.training_config.model.pop("normalize")
         if "normalize_conf" in self.training_config.model:
             self.training_config.model.pop("normalize_conf")
-
 
         # Detach dataset/dataloader configs from the root so interpolations like
         # ${dataset_dir} remain resolved when used standalone during collection.
@@ -100,7 +96,9 @@ class LBSSystem(ASRSystem):
                 dataset_config.preprocessor.train = False
 
             collect_stats(
-                model_config=OmegaConf.to_container(self.training_config.model, resolve=True),
+                model_config=OmegaConf.to_container(
+                    self.training_config.model, resolve=True
+                ),
                 dataset_config=dataset_config,
                 dataloader_config=dataloader_config,
                 mode=mode,

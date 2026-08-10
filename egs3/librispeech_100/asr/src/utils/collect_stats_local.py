@@ -36,7 +36,6 @@ def process_batch_batching(
     items = [dataset[i] for i in idxs]
     uids = [d.pop("utt_id", i) for i, d in enumerate(items)]
 
-
     batch = collate_fn(list(zip(uids, items)))
 
     tensors = {

@@ -9,14 +9,14 @@ import torch
 from hydra.utils import instantiate
 from tqdm import tqdm
 
-from espnet2.fileio.datadir_writer import DatadirWriter
-from espnet3.parallel.parallel import get_client, parallel_for, set_parallel
-from espnet3.utils.task_utils import get_espnet_model
 from egs3.librispeech_100.asr.src.utils.collect_stats_local import (
     _accumulate_and_persist_batch,
     _build_collate_fn,
     process_batch_batching,
 )
+from espnet2.fileio.datadir_writer import DatadirWriter
+from espnet3.parallel.parallel import get_client, parallel_for, set_parallel
+from espnet3.utils.task_utils import get_espnet_model
 
 
 def make_collect_setup_fn(
@@ -46,7 +46,6 @@ def make_collect_setup_fn(
             d.is_stage_collect_stats = True
         if shard_idx is not None:
             ds = ds.shard(shard_idx)
-
 
         collate_fn = _build_collate_fn(dataloader_config)
 

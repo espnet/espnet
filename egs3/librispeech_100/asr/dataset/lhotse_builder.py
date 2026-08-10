@@ -2,20 +2,18 @@
 
 from __future__ import annotations
 
-import os, subprocess
+import os
+import subprocess
 from importlib import resources
 from pathlib import Path
 from typing import Iterable
 
 from lhotse import CutSet, RecordingSet, SupervisionSet
-from lhotse.recipes import (
-    prepare_librispeech
-)
-
-from espnet3.components.data.dataset_builder import DatasetBuilder
-from espnet3.utils.config_utils import load_config_with_defaults
+from lhotse.recipes import prepare_librispeech
 
 from egs3.librispeech_100.asr.dataset.data_utils import LhotseElement
+from espnet3.components.data.dataset_builder import DatasetBuilder
+from espnet3.utils.config_utils import load_config_with_defaults
 
 
 def _load_builder_config() -> dict:
@@ -26,6 +24,7 @@ def _load_builder_config() -> dict:
 
 _CFG = _load_builder_config()
 _REQUIRED_SPLITS = {str(split) for split in _CFG["required_splits"]}
+
 
 def iter_source_candidates(
     recipe_root: Path,
@@ -79,6 +78,7 @@ def resolve_librispeech_root(data_dir: str | Path) -> Path:
         f"  - {candidate} (when it is the LibriSpeech directory itself)"
     )
 
+
 def missing_required_splits(source_root: Path) -> list[str]:
     """Return required split names that are missing from ``source_root``."""
     return [
@@ -86,7 +86,6 @@ def missing_required_splits(source_root: Path) -> list[str]:
         for split in _CFG["required_splits"]
         if not (source_root / str(split)).is_dir()
     ]
-
 
 
 class LibriSpeech100LhotseBuilder(DatasetBuilder):
@@ -101,10 +100,10 @@ class LibriSpeech100LhotseBuilder(DatasetBuilder):
         self.file_format = file_format
 
     def is_source_prepared(
-            self,
-            recipe_dir: str | Path,
-            source_dir: str | Path | None = None,
-            **_kwargs,
+        self,
+        recipe_dir: str | Path,
+        source_dir: str | Path | None = None,
+        **_kwargs,
     ) -> bool:
         """Check whether the required LibriSpeech splits are available."""
         recipe_root = Path(recipe_dir).resolve()
@@ -142,9 +141,7 @@ class LibriSpeech100LhotseBuilder(DatasetBuilder):
             )
 
     def _is_manifest_source_ready(self, dataset_dir: str | Path):
-        assert self.file_format is not None, (
-            "First call the build() function."
-        )
+        assert self.file_format is not None, "First call the build() function."
         dataset_dir = (
             Path(dataset_dir)
             if dataset_dir is not None and Path(dataset_dir).is_dir()
@@ -157,15 +154,13 @@ class LibriSpeech100LhotseBuilder(DatasetBuilder):
             for split in _CFG["required_splits"]
         )
 
-
     @staticmethod
     def _write_manifests(
-            recipe_dir: str | Path,
-            dataset_dir: str | Path,
-            source_dir: str | Path | None = None,
-            num_jobs: int = 8,
-            file_format: str = 'jsonl.gz',
-
+        recipe_dir: str | Path,
+        dataset_dir: str | Path,
+        source_dir: str | Path | None = None,
+        num_jobs: int = 8,
+        file_format: str = "jsonl.gz",
     ) -> None:
         """Write Lhotse recording and supervision manifests."""
         recipe_root = Path(recipe_dir).resolve()
@@ -174,7 +169,7 @@ class LibriSpeech100LhotseBuilder(DatasetBuilder):
         dataset_dir.mkdir(parents=True, exist_ok=True)
 
         manifests = prepare_librispeech(
-            corpus_dir= source_root,
+            corpus_dir=source_root,
             dataset_parts=_REQUIRED_SPLITS,
             num_jobs=num_jobs,
         )
@@ -186,11 +181,9 @@ class LibriSpeech100LhotseBuilder(DatasetBuilder):
                 )
 
     def load_cutsets(
-            self,
-            split: str,
-            dataset_dir: str | Path | None = None,
-
-
+        self,
+        split: str,
+        dataset_dir: str | Path | None = None,
     ) -> CutSet:
         """Load CutSets from recording and supervision manifests for a split."""
 
@@ -205,12 +198,13 @@ class LibriSpeech100LhotseBuilder(DatasetBuilder):
         else:
             dataset_dir = Path(dataset_dir).resolve()
 
-
         recordings = RecordingSet.from_file(
-            dataset_dir / f"{split}_{LhotseElement.RecordingSet.value}.{self.file_format}"
+            dataset_dir
+            / f"{split}_{LhotseElement.RecordingSet.value}.{self.file_format}"
         )
         supervisions = SupervisionSet.from_file(
-            dataset_dir / f"{split}_{LhotseElement.SupervisionSet.value}.{self.file_format}"
+            dataset_dir
+            / f"{split}_{LhotseElement.SupervisionSet.value}.{self.file_format}"
         )
 
         return CutSet.from_manifests(
@@ -228,13 +222,10 @@ class LibriSpeech100LhotseBuilder(DatasetBuilder):
         """Return source readiness because this recipe has no build artifacts."""
         dataset_dir = dataset_dir or _CFG["dataset_dir"]
 
-        return (
-            self.is_source_prepared(
+        return self.is_source_prepared(
             recipe_dir=recipe_dir,
             source_dir=source_dir,
-            ) and
-            self._is_manifest_source_ready(dataset_dir))
-
+        ) and self._is_manifest_source_ready(dataset_dir)
 
     def build(
         self,
@@ -252,4 +243,9 @@ class LibriSpeech100LhotseBuilder(DatasetBuilder):
         self.prepare_source(recipe_dir=recipe_dir, source_dir=source_dir)
 
         if not self._is_manifest_source_ready(dataset_dir):
-            self._write_manifests(recipe_dir=recipe_dir, dataset_dir=dataset_dir, source_dir=source_dir, file_format=self.file_format)
+            self._write_manifests(
+                recipe_dir=recipe_dir,
+                dataset_dir=dataset_dir,
+                source_dir=source_dir,
+                file_format=self.file_format,
+            )
