@@ -91,9 +91,9 @@ def missing_required_splits(source_root: Path) -> list[str]:
 
 class LibriSpeech100LhotseBuilder(DatasetBuilder):
     """
-
-    This recipe relies on lhotse data preparation and provides cutsets to the dataset class
-    If the path to the manifests are empty, it will first create the manifests.
+    This recipe relies on lhotse data preparation and provides cutsets
+    to the dataset class. If the path to the manifests is empty,
+     it will first create the manifests.
     """
 
     def __init__(self, file_format: str = "jsonl.gz"):
