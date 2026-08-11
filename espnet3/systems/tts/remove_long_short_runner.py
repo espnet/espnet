@@ -85,7 +85,14 @@ class RemoveLongShortRunner(BaseRunner):
             writers["results"].write(json.dumps(record) + "\n")
 
     def merge(self, shard_dirs: List[Path]) -> List[Dict[str, Any]]:
-        """Concatenate shard results and restore manifest (``idx``) order."""
+        """Concatenate shard results and restore manifest (``idx``) order.
+
+        Each shard's ``results.jsonl`` holds one JSON object per line, e.g.::
+
+            {"idx": 0, "utt_id": "103_1241_000000_000001", "keep": true}
+            {"idx": 1, "utt_id": "103_1241_000000_000002", "keep": false}
+            {"idx": 2, "utt_id": "103_1241_000001_000000", "keep": true}
+        """
         records: List[Dict[str, Any]] = []
         for shard_dir in shard_dirs:
             results_path = Path(shard_dir) / "results.jsonl"
