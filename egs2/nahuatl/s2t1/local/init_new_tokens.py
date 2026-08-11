@@ -6,15 +6,15 @@ token_list from the upstream model's config.yaml and appending the new tokens,
 and (b) patches the SentencePiece BPE model so the new tokens are user-defined
 symbols (tokenized as single pieces rather than split into subwords).
 
-Usage:
+Usage (paths abbreviated: UP = model_cache/owsm_v4_medium_1B,
+NAH = model_cache/owsm_v4_medium_1B_nahuatl; both relative to the recipe dir):
     python local/init_new_tokens.py \
-        --src_ckpt   ../../../../model_cache/owsm_v4_medium_1B/valid.loss.best.pth \
-        --out_ckpt   ../../../../model_cache/owsm_v4_medium_1B_nahuatl/valid.loss.best.pth \
+        --src_ckpt UP/valid.loss.best.pth --out_ckpt NAH/valid.loss.best.pth \
         --new_tokens "<nah_hid>" "<nah_ozg>" "<nah_ztp>" \
-        --src_config ../../../../model_cache/owsm_v4_medium_1B/exp/s2t_train_conv2d8_size1024_e18_d18_mel128_raw_bpe50000/config.yaml \
+        --src_config UP/exp/<train_dir>/config.yaml \
         --out_token_list data/token_list_nahuatl.txt \
-        --src_bpe    ../../../../model_cache/owsm_v4_medium_1B/data/token_list/bpe_unigram50000/bpe.model \
-        --out_bpe    ../../../../model_cache/owsm_v4_medium_1B_nahuatl/data/token_list/bpe_unigram50000/bpe.model
+        --src_bpe UP/data/token_list/bpe_unigram50000/bpe.model \
+        --out_bpe NAH/data/token_list/bpe_unigram50000/bpe.model
 """
 
 import argparse
@@ -86,7 +86,7 @@ def main() -> None:
     parser.add_argument(
         "--out_bpe",
         default=None,
-        help="Where to write the patched bpe.model (new tokens as user-defined symbols)",
+        help="Where to write the patched bpe.model (new tokens as user-defined)",
     )
     args = parser.parse_args()
 
@@ -122,7 +122,7 @@ def main() -> None:
     ]
     if not embedding_keys:
         raise RuntimeError(
-            f"No embedding keys found. Available keys (first 20): {list(sd.keys())[:20]}"
+            f"No embedding keys found. First 20 keys: {list(sd.keys())[:20]}"
         )
 
     for k in embedding_keys:
