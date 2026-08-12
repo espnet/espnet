@@ -60,6 +60,11 @@ portion=0.1
 nclusters=1000              # The number of clusters for discrete tokens, needed when kmeans is trained
 storage_save_mode=true      # Save storage on SSL feature extraction
                             # If true, feature extraction and kmeans clustering on the fly
+kmeans_balanced_frames=6000000 # Target number of SSL frames (~50Hz) sampled from EACH speech
+                            # task's train set to build one shared, balanced kmeans training
+                            # pool, so all tasks (e.g. asr/tts/speechlm) learn a single common
+                            # kmeans model instead of each task training its own (which would
+                            # give incompatible token vocabularies across tasks).
 
 # Tokenization related
 token_type=bpe      # Tokenization type (char or bpe).
@@ -162,6 +167,7 @@ Options:
     --portion           # The portion of data used to train kmeans (default="${portion}").
     --nclusters         # The number of clusters for discrete tokens (default="${nclusters}").
     --storage_save_mode # # Save storage on SSL feature extraction. If true, feature extraction and kmeans clustering on the fly (default="${storage_save_mode}").
+    --kmeans_balanced_frames # Target SSL frames sampled per speech task to build one shared, balanced kmeans training pool (default="${kmeans_balanced_frames}").
 
     # Language model related
     --lm_tag          # Suffix to the result dir for language model training (default="${lm_tag}").
@@ -410,20 +416,108 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] && ! [[ " ${skip_stages} " =~ [
     if "${use_speech}"; then
         log "Stage 3a: Perform Kmeans using ${kmeans_feature_type} features"
 
-        if ! "${learn_kmeans}"; then
-            kmeans_opts+="--skip_stages 2"
+        if "${learn_kmeans}"; then
+            # Build ONE balanced kmeans-training pool by sampling a fixed frame
+            # budget (~kmeans_balanced_frames) from EACH speech task's train set
+            # (e.g. asr/tts/speechlm), then train a single shared kmeans model on
+            # the pool. Without this, each task would train (and silently
+            # overwrite) its own kmeans model at the same ${km_dir}, giving
+            # mutually incompatible token vocabularies across tasks even though
+            # they end up sharing the same 0..nclusters-1 token ids downstream.
+            log "Stage 3a: Building balanced kmeans training pool (~${kmeans_balanced_frames} frames/task)"
+            _pool_dir="${data_audio}/kmeans_pool"
+            _pool_subsets=""
+            for _dir in "${data_audio}/"*; do
+                _task=$(basename "${_dir}")
+                if [ "${_task}" != "kmeans_pool" ] && [ -f "${_dir}/${train_set}/utt2num_samples" ]; then
+                    # Assumes 16kHz audio and a 50Hz SSL frame rate (true for the
+                    # hubert/wav2vec2 family), matching perform_kmeans.sh's own
+                    # default audio_sample_rate.
+                    _target_samples=$(( kmeans_balanced_frames * 16000 / 50 ))
+                    mkdir -p "${_pool_dir}/logdir"
+                    # Write shuf's full output to a file first (rather than piping
+                    # straight into awk) so awk exiting early once it hits the
+                    # frame budget doesn't SIGPIPE the still-writing shuf process
+                    # and fail the whole pipeline under `set -o pipefail`.
+                    shuf --random-source=<(yes "${_task}") "${_dir}/${train_set}/utt2num_samples" \
+                        > "${_pool_dir}/logdir/shuffled.${_task}"
+                    awk -v budget="${_target_samples}" \
+                        '{s+=$2; print $1; if (s>=budget) exit}' \
+                        "${_pool_dir}/logdir/shuffled.${_task}" \
+                        > "${_pool_dir}/logdir/utts.${_task}"
+                    utils/subset_data_dir.sh --utt-list "${_pool_dir}/logdir/utts.${_task}" \
+                        "${_dir}/${train_set}" "${_pool_dir}/${_task}_train"
+                    # subset_data_dir.sh does not know about utt2num_samples, so
+                    # it never copies/filters it into the subset dir; do it
+                    # ourselves (perform_kmeans.sh's stage 1 requires this file).
+                    utils/filter_scp.pl "${_pool_dir}/${_task}_train/utt2spk" \
+                        "${_dir}/${train_set}/utt2num_samples" \
+                        > "${_pool_dir}/${_task}_train/utt2num_samples"
+                    _pool_subsets+=" ${_pool_dir}/${_task}_train"
+                fi
+            done
+            utils/combine_data.sh "${_pool_dir}/${train_set}" ${_pool_subsets}
+            # combine_data.sh likewise does not merge utt2num_samples; concatenate
+            # it manually (order doesn't matter, it's just a utt-id -> count map).
+            for _subset in ${_pool_subsets}; do
+                cat "${_subset}/utt2num_samples"
+            done > "${_pool_dir}/${train_set}/utt2num_samples"
+
+            # Train the single shared kmeans model (stage 1-2 only: dump features
+            # for the pool and fit kmeans; --portion 1.0 since the pool above is
+            # already the exact sample we want, no further subsampling needed).
+            scripts/feats/perform_kmeans.sh \
+                --stage 1 --stop-stage 2 \
+                --train_set "${train_set}" \
+                --dev_set "${valid_set}" \
+                --other_sets "${test_sets}" \
+                --datadir "${_pool_dir}" \
+                --featdir "${data_extract}/kmeans_pool" \
+                --audio_format "${audio_format}" \
+                --feature_type "${kmeans_feature_type}" \
+                --layer "${layer}" \
+                --feature_conf "${kmeans_feature_conf}" \
+                --km_dir "${km_dir}" \
+                --portion 1.0 \
+                --nclusters "${nclusters}" \
+                --storage_save_mode true \
+                --use_gpu true \
+                --nj ${nj} \
+                --cpu_cmd "${train_cmd}" \
+                --cuda_cmd "${cuda_cmd}" \
+                ${kmeans_opts}
         fi
+
+        _suf=
+        if [ -n "${layer}" ]; then
+            _suf="layer${layer}/"
+        fi
+
         for _dir in "data/${dset}/speech/"*; do
             if [ -d "${_dir}" ]; then
+                _task=$(basename "${_dir}")
+                # Marker written ONLY after perform_kmeans.sh below returns
+                # successfully for this task's train/dev/test. Checking for
+                # this (rather than e.g. the pseudo_labels file's mere
+                # existence) avoids treating a crashed/cancelled/partially
+                # written run as done on the next rerun.
+                _done_marker="${data_extract}/${_task}/.labeled_km${nclusters}"
 
+                if [ -f "${_done_marker}" ]; then
+                    log "Stage 3a: ${_task} already labeled (found ${_done_marker}), skipping"
+                    continue
+                fi
 
+                # stage 3-4 only: label this task's own full train/dev/test data
+                # using the single shared kmeans model trained above (dump/train
+                # stages 1-2 are intentionally skipped here).
                 scripts/feats/perform_kmeans.sh \
-                    --stage 1 --stop-stage 4 \
+                    --stage 3 --stop-stage 4 \
                     --train_set "${train_set}" \
                     --dev_set "${valid_set}" \
                     --other_sets "${test_sets}" \
-                    --datadir "${data_audio}/$(basename ${_dir})" \
-                    --featdir "${data_extract}/$(basename ${_dir})" \
+                    --datadir "${data_audio}/${_task}" \
+                    --featdir "${data_extract}/${_task}" \
                     --audio_format "${audio_format}" \
                     --feature_type "${kmeans_feature_type}" \
                     --layer "${layer}" \
@@ -435,15 +529,14 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] && ! [[ " ${skip_stages} " =~ [
                     --use_gpu true \
                     --nj ${nj} \
                     --cpu_cmd "${train_cmd}" \
-                    --cuda_cmd "${cuda_cmd}" \
-                    ${kmeans_opts}
+                    --cuda_cmd "${cuda_cmd}"
+
+                # Only reached if the call above returned 0 (set -e would
+                # otherwise have aborted the whole script already), so it's
+                # safe to mark this task's labeling as complete here.
+                touch "${_done_marker}"
             fi
         done
-
-        _suf=
-        if [ -n "${layer}" ]; then
-            _suf="layer${layer}/"
-        fi
 
         for dset in "${train_set}" "${valid_set}" ${test_sets}; do
             for _dir in "data/${dset}/speech/"*; do

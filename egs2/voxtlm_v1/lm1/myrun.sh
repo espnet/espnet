@@ -55,6 +55,12 @@ cd /ocean/projects/cis210027p/mliang4/dailytalk_tts/espnet/egs2/voxtlm_v1/lm1
 # ./run.sh --stage 1 --stop_stage 1 --local_data_opts "--stage 2"
 # ./run.sh --stage 2 --stop_stage 2
 # ./run.sh --stage 3 --stop_stage 3 --kmeans_opts "--num_threads 64"
-./run.sh --stage 3 --stop_stage 3
+
+# 烟雾测试：每个task只抽约10000帧(几十条utt)，几分钟内跑完整个"建balanced pool -> 训共享kmeans -> 三个task打标签"流程，
+# 确认新逻辑没有低级错误，再放心去跑下面正式的6000000帧版本
+./run.sh --stage 3 --stop_stage 3 --nj 2
+
+# 正式跑（确认烟雾测试通过后，注释掉上面那行，取消下面这行的注释）
+# ./run.sh --stage 3 --stop_stage 3
 
 # ./run.sh --stage 3 --stop_stage 3 --nj 1
