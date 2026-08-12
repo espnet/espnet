@@ -3,11 +3,8 @@
 ##########################################################
 # Common usage:
 #   python run.py --stages measure \
-<<<<<<< HEAD
+
 #       --training_config conf/tuning/training_e_branchformer.yaml \
-=======
-#       --training_config conf/training_asr_transformer.yaml \
->>>>>>> ee641f5eb0 (start lbs100h baseline)
 #       --metrics_config conf/metrics.yaml
 #
 # Notes:

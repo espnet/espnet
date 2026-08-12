@@ -37,4 +37,3 @@ ui:
 upload_demo:
   hf_repo: espnet/librispeech_100_asr_training_e_branchformer_demo
   # organization: your-org
->>>>>>> ee641f5eb0 (start lbs100h baseline)
