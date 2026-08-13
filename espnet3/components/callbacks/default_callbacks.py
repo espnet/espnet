@@ -182,12 +182,15 @@ class AverageCheckpointsCallback(Callback):
                         (k.removeprefix("model.") if k.startswith("model.") else k): v
                         for k, v in avg_state_dict.items()
                     }
-                    if set(new_avg_state_dict.keys()) != reference_model_keys:
+                    new_keys = set(new_avg_state_dict.keys())
+                    if new_keys != reference_model_keys:
+                        missing_keys = reference_model_keys - new_keys
+                        unexpected_keys = new_keys - reference_model_keys
                         raise KeyError(
                             "Averaged checkpoint keys do not match the "
                             "current model's state_dict keys.\n"
-                            f"Expected: {reference_model_keys}\n"
-                            f"Got: {set(new_avg_state_dict.keys())}"
+                            f"Expected: {missing_keys}\n"
+                            f"Got: {unexpected_keys}"
                         )
 
                 avg_ckpt_path = Path(self.output_dir) / (
