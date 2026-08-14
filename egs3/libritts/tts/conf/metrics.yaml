@@ -1,0 +1,29 @@
+dataset:
+  test:
+    - name: valid
+    - name: test
+
+metrics:
+  - metric:
+      _target_: src.metrics.versa.VersaMetric
+      score_config:
+        - name: pseudo_mos
+          predictor_types: [utmos, dnsmos]
+          predictor_args:
+            utmos:
+              fs: 16000
+            dnsmos:
+              fs: 16000
+        - name: whisper_wer
+          model_tag: default
+          beam_size: 1
+        - name: speaker
+          model_tag: espnet/voxcelebs12_ecapa_wavlm_joint
+      wav_key:  wav
+      ref_key:  ref
+      text_key: text
+      use_gpu:  true
+    inputs:
+      wav:  wav
+      ref:  ref
+      text: text
