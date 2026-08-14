@@ -214,6 +214,9 @@ class BaseSystem:
             self.training_config, "create_dataset", OmegaConf.create({})
         )
         default_builder_kwargs = dict(create_dataset_config)
+        training_parallel = getattr(self.training_config, "parallel", None)
+        if training_parallel is not None and "parallel" not in default_builder_kwargs:
+            default_builder_kwargs["parallel"] = training_parallel
 
         prepared_any = False
 
