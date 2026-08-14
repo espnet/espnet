@@ -34,6 +34,9 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s: %(mes
 logger = logging.getLogger("decode")
 
 LOG_EVERY = 100
+# Recipe default speaker-change separator (a single base-vocab BPE token,
+# id 25629). Released ``sot_whisper`` bundles may omit it from config.yaml.
+DEFAULT_SEPARATOR = "????"
 
 
 # ---------------------------------------------------------------------------
@@ -192,16 +195,22 @@ def load_whisper_model_from_espnet(
 
 
 def read_speaker_change_symbol(model_dir: Path) -> str:
-    """Read the speaker-change separator string from the checkpoint bundle's
-    ``config.yaml`` (``preprocessor_conf.speaker_change_symbol``)."""
-    cfg = yaml.safe_load(open(model_dir / "config.yaml"))
-    sym = cfg.get("preprocessor_conf", {}).get("speaker_change_symbol")
-    if sym is None:
-        raise SystemExit(
-            f"{model_dir / 'config.yaml'} lacks "
-            "preprocessor_conf.speaker_change_symbol; pass --speaker_change_symbol"
-        )
-    return sym[0] if isinstance(sym, (list, tuple)) else sym
+    """Read the speaker-change separator from the checkpoint bundle's
+    ``config.yaml`` (``preprocessor_conf.speaker_change_symbol``). Released
+    ``sot_whisper`` bundles may omit this key, so fall back to the recipe
+    default ``"????"``; override with ``--speaker_change_symbol``."""
+    cfg_path = model_dir / "config.yaml"
+    if cfg_path.exists():
+        cfg = yaml.safe_load(open(cfg_path)) or {}
+        sym = cfg.get("preprocessor_conf", {}).get("speaker_change_symbol")
+        if sym is not None:
+            return sym[0] if isinstance(sym, (list, tuple)) else sym
+    logger.warning(
+        "config.yaml has no preprocessor_conf.speaker_change_symbol; "
+        f"defaulting to {DEFAULT_SEPARATOR!r} (pass --speaker_change_symbol "
+        "to override)."
+    )
+    return DEFAULT_SEPARATOR
 
 
 def main():

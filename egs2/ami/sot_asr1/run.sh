@@ -27,23 +27,31 @@ whisper_model="small"
 decode_out="decode_inference"
 decode_test_sets=""           # space-separated; defaults to ${test_sets}
 fp16_flag="--fp16"            # fp16 on by default; pass --no-fp16 to disable
+speaker_change_symbol=""      # optional; else decode.py reads it from config.yaml
+do_score=true                 # score after decoding; pass --no_score to skip
+score_cleaner="whisper_en"    # espnet TextCleaner used for cpWER
+der_collar="0.25"             # md-eval.pl collar (seconds) for DER
 
 # Pull our own flags out, forward the rest to asr.sh
 asr_args=()
 while [ $# -gt 0 ]; do
     case "$1" in
-        --inference_model)  inference_model="$2";   shift 2 ;;
-        --whisper_model)    whisper_model="$2";     shift 2 ;;
-        --decode_out)       decode_out="$2";        shift 2 ;;
-        --decode_test_sets) decode_test_sets="$2";  shift 2 ;;
-        --fp16)             fp16_flag="--fp16";     shift ;;
-        --no-fp16)          fp16_flag="";           shift ;;
+        --inference_model)       inference_model="$2";        shift 2 ;;
+        --whisper_model)         whisper_model="$2";          shift 2 ;;
+        --decode_out)            decode_out="$2";             shift 2 ;;
+        --decode_test_sets)      decode_test_sets="$2";       shift 2 ;;
+        --speaker_change_symbol) speaker_change_symbol="$2";  shift 2 ;;
+        --score_cleaner)         score_cleaner="$2";          shift 2 ;;
+        --der_collar)            der_collar="$2";             shift 2 ;;
+        --fp16)                  fp16_flag="--fp16";          shift ;;
+        --no-fp16)               fp16_flag="";                shift ;;
+        --no_score)              do_score=false;              shift ;;
         *) asr_args+=("$1"); shift ;;
     esac
 done
 
 if [ -n "${inference_model}" ]; then
-    # ----- Mode 2: checkpoint-bundle inference -----
+    # ----- Mode 2: checkpoint-bundle inference (+ scoring) -----
     if [ -z "${decode_test_sets}" ]; then
         decode_test_sets="${test_sets}"
     fi
@@ -54,7 +62,13 @@ if [ -n "${inference_model}" ]; then
             --whisper_model "${whisper_model}" \
             --wav_scp "data/${tset}/wav.scp" \
             --out_subdir "${decode_out}/${tset}" \
+            ${speaker_change_symbol:+--speaker_change_symbol "${speaker_change_symbol}"} \
             ${fp16_flag}
+        if "${do_score}"; then
+            echo "[run.sh] Scoring ${tset} -> ${outdir}/scoring"
+            local/score_sot.sh "${outdir}" "data/${tset}" \
+                "${outdir}/scoring" "${score_cleaner}" "${der_collar}"
+        fi
     done
     exit 0
 fi

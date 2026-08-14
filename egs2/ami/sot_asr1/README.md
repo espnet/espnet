@@ -6,42 +6,48 @@ backbone.
 
 Each utterance group contains one or more overlapping speakers; the model
 emits a single transcript with all speakers concatenated in FIFO order
-(speaker-start-time) and separated by a `<sc>` token. Results are reported
-as **utterance-group cpWER** (concatenated minimum-permutation WER) and
-**utterance-group DER** (diarization error rate).
+(speaker-start-time), separated by a speaker-change token. Results are reported
+as **utterance-group cpWER** (concatenated minimum-permutation WER),
+**utterance-group DER** (diarization error rate), and **speaker-counting
+accuracy**.
 
 ## Setup
 
-ESPnet `tools/installers/install_whisper.sh` must have been run; this installs
-the [`openai-whisper`](https://github.com/espnet/whisper) dependency that the
-recipe relies on at decode time.
+Run ESPnet `tools/installers/install_whisper.sh` for the
+[`openai-whisper`](https://github.com/espnet/whisper) dependency used at decode
+time and for text normalization. Scoring additionally uses SCTK `md-eval.pl`
+(`tools/installers/install_sctk.sh`, part of a standard tools build) for DER,
+plus `scipy` and `editdistance` (already ESPnet dependencies). No other
+packages are required.
 
 ## Data preparation
 
 `local/prepare_sot.py` reads source manifests for the AMI utterance-group
 splits and writes Kaldi-format data directories. Each utterance group must
-expose one or more time-aligned supervisions per speaker. `<sep>` is the
-speaker-change symbol that separates consecutive speakers; it must match the
-`speaker_change_symbol` set in the training config.
+expose one or more time-aligned supervisions per speaker. The speaker-change
+symbol that separates consecutive speakers must match the
+`speaker_change_symbol` in the training config (default `????`, a single
+base-vocabulary Whisper BPE token). `local/decode.py` rewrites it to `<sc>` in
+its output, and the scorers accept either spelling.
 
 ```bash
 python local/prepare_sot.py \
     --cutset_paths /path/to/ami_train_manifest \
     --output_dir data/train \
     --use_timestamps true \
-    --speaker_change_symbol "<sep>"
+    --speaker_change_symbol "????"
 
 python local/prepare_sot.py \
     --cutset_paths /path/to/ami_dev_manifest \
     --output_dir data/dev \
     --use_timestamps true \
-    --speaker_change_symbol "<sep>"
+    --speaker_change_symbol "????"
 
 python local/prepare_sot.py \
     --cutset_paths /path/to/ami_test_manifest \
     --output_dir data/test \
     --use_timestamps true \
-    --speaker_change_symbol "<sep>"
+    --speaker_change_symbol "????"
 ```
 
 The resulting `text` file has one line per utterance group, with consecutive
@@ -85,23 +91,51 @@ Hypotheses are written to `<dir>/decode_inference/<test_set>/1best_recog/`:
 `text` (per-speaker text with `<sc>` separators, for cpWER) and `text_sot`
 (same content with inline Whisper timestamps, for DER).
 
+Scoring runs automatically after decoding (pass `--no_score` to skip). Per
+test set it writes `<dir>/decode_inference/<test_set>/scoring/`:
+
+- `cpwer.json`, `cpwer_by_num_speakers.json` — utterance-group cpWER
+- `speaker_count.json` — speaker-counting accuracy and a confusion table
+- `der.json`, `der_by_num_speakers.json` — utterance-group DER
+
+To score an existing decode directory on its own:
+
+```bash
+local/score_sot.sh <decode_dir> data/<test_set> <out_dir> whisper_en 0.25
+```
+
 ## Results (AMI SDM test)
 
 Decoding uses default settings (`temperature=0.0`, `beam_size=5`, `fp16`).
-cpWER is computed with [meeteval](https://github.com/fgnt/meeteval)'s
-`cp_word_error_rate_multifile` after normalization via
-`whisper.normalizers.EnglishTextNormalizer`. DER is computed with
-[pyannote.metrics](https://github.com/pyannote/pyannote-metrics)'
-`DiarizationErrorRate(collar=0.25)`.
+All scoring uses dependencies already required by ESPnet, so no extra install
+is needed:
+
+- **cpWER** (`local/evaluate_sot.py`): utterance-group concatenated
+  minimum-permutation WER. Each group is scored with its own optimal speaker
+  permutation (Hungarian assignment via `scipy.optimize.linear_sum_assignment`
+  over per-speaker word errors from `editdistance`). Text is normalized with
+  `espnet2.text.cleaner.TextCleaner` (`whisper_en`, i.e. openai-whisper's
+  `EnglishTextNormalizer`).
+- **DER** (`local/score_der.py`): utterance-group diarization error rate from
+  the model's own inline `<|t|>` timestamps, scored with SCTK `md-eval.pl`
+  (collar 0.25 s), the tool used by ESPnet diarization recipes.
+- **Speaker-counting accuracy** (`local/evaluate_sot.py`): fraction of
+  utterance groups whose predicted speaker-block count matches the reference.
 
 ### cpWER (utterance-group, %)
 
-| Model                | overall | 1-spk | 2-spk | 3-spk | 4-spk |
-|----------------------|--------:|------:|------:|------:|------:|
-| Whisper-small        |   27.95 | 15.36 | 25.54 | 38.94 | 52.44 |
+| Model         | overall | 1-spk | 2-spk | 3-spk | 4-spk |
+|---------------|--------:|------:|------:|------:|------:|
+| Whisper-small |   27.95 | 14.97 | 26.97 | 41.95 | 55.87 |
 
 ### DER (utterance-group, collar = 0.25 s, %)
 
-| Model                | overall | 1-spk | 2-spk | 3-spk | 4-spk |
-|----------------------|--------:|------:|------:|------:|------:|
-| Whisper-small        |    9.84 |  1.47 |  6.99 | 18.65 | 29.43 |
+| Model         | overall | 1-spk | 2-spk | 3-spk | 4-spk |
+|---------------|--------:|------:|------:|------:|------:|
+| Whisper-small |    8.33 |  0.89 |  5.77 | 17.11 | 27.39 |
+
+### Speaker-counting accuracy (%)
+
+| Model         | overall | 1-spk | 2-spk | 3-spk | 4-spk |
+|---------------|--------:|------:|------:|------:|------:|
+| Whisper-small |   84.61 | 95.96 | 71.54 | 44.72 | 18.40 |
