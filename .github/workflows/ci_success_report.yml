@@ -1,0 +1,33 @@
+name: Tests Summary
+
+on:
+  push:
+    branches:
+      - master
+      - espnet3
+  pull_request:
+    branches:
+      - master
+      - espnet3
+
+jobs:
+  all-tests-passed:
+    runs-on: ubuntu-latest
+    name: All Tests Passed Summary
+    needs:
+      - check_installable_on_macos
+      - check_installable_on_windows
+      - unit_test_espnet2_and_espnet3_on_debian12
+      - unit_test_espnet2_and_integration_test_espnet2
+      - test_configuration_espnet2
+      - test_import
+      - test_integration_espnet2
+      - test_integration_espnet3
+      - test_integration_espnet3_publication
+      - test_python_espnet2
+      - test_python_espnet3
+      - test_utils_espnet2
+      - test_shell_espnet2
+    steps:
+      - name: Confirm Success
+        run: echo "All tests passed successfully!"
