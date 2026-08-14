@@ -8,6 +8,7 @@ from hydra.utils import instantiate
 from omegaconf import DictConfig, OmegaConf
 
 from espnet2.samplers.build_batch_sampler import build_batch_sampler
+from espnet3.components.data.iterator import BaseIterator
 from espnet3.utils.logging_utils import _dump_attrs, build_qualified_name
 
 logger = logging.getLogger(__name__)
@@ -275,12 +276,15 @@ class DataLoaderBuilder:
                 )
                 batches = batches[:keep]
                 total_batches = len(batches)
-            for batch in batches:
-                if len(batch) < world_size:
-                    raise RuntimeError(
-                        "The batch-size must be equal or more than world_size:"
-                        f"{len(batch)} < {world_size}"
-                    )
+            # Each rank takes every world_size-th whole batch, so per-rank
+            # batch size equals the configured batch size and batches of any
+            # size shard correctly - including the mandatory single-utterance
+            # batches of espnet2's ChunkIterFactory. A `len(batch) >=
+            # world_size` check would only apply to espnet2's element-wise
+            # split (`[batch[rank::world_size] for batch in batches]`,
+            # espnet2/tasks/abs_task.py build_sequence_iter_factory); its own
+            # chunk path (build_chunk_iter_factory) strides whole batches
+            # like this without any such check.
             batches = batches[rank::world_size]
             if mode not in _LOGGED_DISTRIBUTED_BATCHES:
                 logger.info(
@@ -295,7 +299,7 @@ class DataLoaderBuilder:
                 _LOGGED_DISTRIBUTED_BATCHES.add(mode)
 
         iter_factory = instantiate(factory_config, dataset, batches=batches)
-        iterator = iter_factory.build_iter(self.epoch)
+        iterator = BaseIterator(iter_factory.build_iter(self.epoch))
         log_dataloader(
             logger,
             iterator,
