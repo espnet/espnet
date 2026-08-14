@@ -248,5 +248,5 @@ VERSA evaluation results for the released `espnet/dailytalk_VITS` model:
 
 - [ESPnet2 TTS recipe documentation](../../TEMPLATE/tts1/README.md)
 - [ESPnet2 TTS tutorial](https://espnet.github.io/espnet/espnet2_tutorial.html)
-- [VERSA metric toolkit](https://github.com/shinjiwlab/versa)
+- [VERSA metric toolkit](https://github.com/wavlab-speech/versa)
 - [AASIST](https://github.com/clovaai/aasist)
