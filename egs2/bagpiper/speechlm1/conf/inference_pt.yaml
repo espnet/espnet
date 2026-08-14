@@ -1,0 +1,19 @@
+dtype: bfloat16
+num_hypo: 1
+
+# Only predict text. if text-to-audio, change it to "audio"
+enforce_modality: ["text"]
+
+audio:
+  temperature: 0.8
+  topk: 20
+  cfg: 3
+  max_step: 2048
+  min_step: 50
+
+text:
+  temperature: 0.6
+  topk: 20
+  cfg: 1
+  max_step: 8192
+  min_step: 1
