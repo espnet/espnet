@@ -60,7 +60,7 @@ create_dataset:
 #
 # Each dataset entry supports:
 # - `data_src`: optional dataset source reference.
-#   - `<recipe>/<task>` tag, e.g. `mini_an4/asr`
+#   - `<recipe>/<task>` tag, e.g. `librimix/tse`
 #   - dotted module path, e.g. `my_project.datasets.foo`
 #   - omitted: load `${recipe_dir}/dataset/__init__.py`
 # - `data_src_args`: kwargs forwarded to `Dataset(...)`
@@ -77,18 +77,18 @@ create_dataset:
 #   _target_: espnet3.components.data.data_organizer.DataOrganizer
 #   recipe_dir: ${recipe_dir}
 #   train:
-#     - data_src: librispeech/asr
+#     - data_src: librimix/tse
 #       data_src_args:
-#         split: train_clean_100
+#         split: 2mix_16k_max_train_mix-clean
 #         data_path: ${dataset_dir}
 #     - data_src_args:
 #         split: train
 #       transform:
 #         _target_: src.transforms.normalize_text
 #   valid:
-#     - data_src: librispeech/asr
+#     - data_src: librimix/tse
 #       data_src_args:
-#         split: dev_clean
+#         split: 2mix_16k_max_dev_mix-clean
 #         data_path: ${dataset_dir}
 #   test:
 #     - name: eval_local
@@ -103,15 +103,6 @@ dataset:
   valid:
   test:
   preprocessor:
-
-##########################################################
-#                   TOKENIZER SETTING                    #
-##########################################################
-# Used by the `train_tokenizer` stage in `espnet3.systems.asr.system.ASRSystem`.
-# `text_builder.func` must return either:
-# - a path to a text file, or
-# - an iterable of training strings
-tokenizer:
 
 ##########################################################
 #                      MODEL SETTING                     #
@@ -130,11 +121,9 @@ model:
 optimizer:
   _target_: torch.optim.Adam
   lr: 0.002
-  weight_decay: 0.000001
 
 scheduler:
-  _target_: espnet2.schedulers.warmup_lr.WarmupLR
-  warmup_steps: 15000
+  _target_: torch.optim.lr_scheduler.StepLR
 
 # Used only in the single optimizer path.
 scheduler_interval: step   # `step` or `epoch`
