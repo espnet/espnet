@@ -91,7 +91,7 @@ def iter_source_candidates(
     key: str = "source_env_var",
 ) -> Iterable[Path]:
     """Yield candidate directories that may contain LibriSpeech."""
-    yield Path(recipe_root) / _CFG["dataset_path"]
+    yield Path(recipe_root) / _CFG["dataset_path"] / "LibriSpeech"
 
     if source_dir is not None:
         yield Path(source_dir)
