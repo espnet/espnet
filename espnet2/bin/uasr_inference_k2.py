@@ -132,7 +132,9 @@ class k2Speech2Text:
         self.use_nbest_rescoring = use_nbest_rescoring
 
         # load decoding graph
-        self.decoding_graph = k2.Fsa.from_dict(torch.load(decoding_graph))
+        self.decoding_graph = k2.Fsa.from_dict(
+            torch.load(decoding_graph, map_location="cpu", weights_only=True)
+        )
         self.decoding_graph = self.decoding_graph.to(device)
 
         assert token_type is not None
