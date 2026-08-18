@@ -3,48 +3,44 @@
 
 import numpy as np
 
-
 def build_output(data, model_output, idx):
-    """Build an output dict from SeparateSpeech model output.
+    """Build output dict(s) from SeparateSpeech model output.
 
-    SeparateSpeech.__call__ asserts speech_mix.dim() > 1, so the runner
-    passes speech with shape (T,) which must be expanded to (1, T) before
-    calling the model. The model is called via input_key='speech', so we
-    handle the unsqueeze inside the model wrapper instead.
-
-    SeparateSpeech returns list of length num_spk, each element shape (batch, T).
-    For num_spk=1 and batch=1: model_output[0][0] is the enhanced waveform.
-
-    Args:
-        data: Dataset sample dict containing at least ``utt_id``.
-        model_output: Return value of SeparateSpeech.__call__,
-            list[(batch, T)] of length num_spk.
-        idx: Sample index used as fallback utterance ID.
-
-    Returns:
-        Dict with ``utt_id`` and ``enhanced`` keys.
+    Handles both single (idx: int) and batched (idx: list) inference.
+    model_output: list of length num_spk, each element shape (batch, T).
     """
-    utt_id = data.get("utt_id", str(idx))
-    enhanced = np.asarray(model_output[0][0], dtype=np.float32)
-    max_val = np.max(np.abs(enhanced))
-    if max_val > 1.0:
-        enhanced = enhanced / max_val * 0.9
+    import numpy as np
+
+    is_batched = isinstance(idx, list)
+
+    if not is_batched:
+        utt_id = data.get("utt_id", str(idx))
+        enhanced = np.asarray(model_output[0][0], dtype=np.float32)
+        max_val = np.max(np.abs(enhanced))
+        if max_val > 1.0:
+            enhanced = enhanced / max_val * 0.9
+        return {"utt_id": utt_id, "enhanced": enhanced}
+
+    # Batched: return list of dicts
+    results = []
+    batch_size = len(idx)
+    for i in range(batch_size):
+        utt_id = data[i].get("utt_id", str(idx[i]))
+        enhanced = np.asarray(model_output[0][i], dtype=np.float32)
+        max_val = np.max(np.abs(enhanced))
+        if max_val > 1.0:
+            enhanced = enhanced / max_val * 0.9
+        results.append({"utt_id": utt_id, "enhanced": enhanced})
+    return results
     
-    return {"utt_id": utt_id, "enhanced": enhanced}
-
 class SeparateSpeechWrapper:
-    """Wraps SeparateSpeech to handle 1D input from InferenceRunner.
+    """Wraps SeparateSpeech to handle 1D or list input from InferenceRunner.
 
-    InferenceRunner passes dataset[i]['speech'] directly to the model,
-    which is a 1D numpy array of shape (T,). SeparateSpeech expects
-    (batch, T) and asserts speech_mix.dim() > 1. This wrapper adds the
-    batch dimension before calling the model.
+    InferenceRunner passes either:
+    - single sample: 1D numpy array of shape (T,)
+    - batched:       list of 1D numpy arrays of varying length
 
-    Usage in inference.yaml:
-        model:
-          _target_: src.inference.SeparateSpeechWrapper
-          train_config: ${exp_dir}/config.yaml
-          model_file: ${exp_dir}/last.ckpt
+    SeparateSpeech expects (batch, T) and asserts speech_mix.dim() > 1.
     """
 
     def __init__(self, train_config, model_file, **kwargs):
@@ -57,7 +53,18 @@ class SeparateSpeechWrapper:
 
     def __call__(self, speech_mix):
         import numpy as np
-        # InferenceRunner passes 1D (T,); SeparateSpeech needs (batch, T).
-        if speech_mix.ndim == 1:
-            speech_mix = speech_mix[np.newaxis, :]
+        import torch
+
+        if isinstance(speech_mix, list):
+            # Batched: pad to same length and stack to (batch, T)
+            max_len = max(len(s) for s in speech_mix)
+            padded = np.zeros((len(speech_mix), max_len), dtype=np.float32)
+            for i, s in enumerate(speech_mix):
+                padded[i, :len(s)] = s
+            speech_mix = padded
+        else:
+            # Single sample: (T,) -> (1, T)
+            if speech_mix.ndim == 1:
+                speech_mix = speech_mix[np.newaxis, :]
+
         return self._model(speech_mix)

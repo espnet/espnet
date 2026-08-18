@@ -5,6 +5,7 @@
 # Common usage:
 #   python run.py --stages measure \
 #       --training_config conf/training.yaml \
+#       --inference_config conf/inference.yaml \
 #       --metrics_config conf/metrics.yaml
 #
 # manifest_path is needed to retrieve clean reference wav paths,

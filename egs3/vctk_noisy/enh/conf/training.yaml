@@ -9,7 +9,7 @@
 task: espnet3.systems.enh.task.EnhancementTask
 
 dataset_dir: /DB/VCTK_DEMAND #/path/to/vctk_noisy  # set to your VCTK-Noisy root
-num_device: 4
+num_device: 3
 ##########################################################
 #                    DATASET DEFINITION                  #
 ##########################################################
@@ -77,10 +77,17 @@ optimizer:
   eps: 1.0e-08
   weight_decay: 1.0e-05
 
+# scheduler:
+#   _target_: espnet2.schedulers.warmup_lr.WarmupLR
+#   warmup_steps: 4000
 scheduler:
-  _target_: espnet2.schedulers.warmup_lr.WarmupLR
-  warmup_steps: 4000
+  _target_: espnet3.systems.enh.scheduler.ReduceLROnPlateau
+  mode: min
+  factor: 0.5
+  patience: 3
 
+scheduler_interval: epoch
+scheduler_monitor: valid/loss
 ##########################################################
 #                OTHER TRAINING SETTING                  #
 ##########################################################
