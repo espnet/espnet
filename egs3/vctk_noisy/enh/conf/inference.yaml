@@ -41,3 +41,7 @@ output_artifacts:
   enhanced:
     type: wav
     sample_rate: 16000
+
+runner:
+  _target_: espnet3.systems.base.inference_runner.InferenceRunner
+  batch_size: 4
