@@ -59,6 +59,9 @@ dependencies = [
     "wandb",
 ]
 
+[project.scripts]
+espnet3 = "espnet3.cli.main:main"
+
 [project.urls]
 Homepage = "http://github.com/espnet/espnet"
 
