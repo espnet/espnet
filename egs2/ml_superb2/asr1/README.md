@@ -4,33 +4,23 @@
 This is a recipe to reproduce the baseline model for the [Interspeech 2024 ML-SUPERB 2.0 Challenge](multilingual.superbbenchmark.org). While the challenge is open-ended, the organizers have provided here a minimal training and development set based off of the [ML-SUPERB 2.0 Benchmark](https://www.isca-archive.org/interspeech_2024/shi24g_interspeech.pdf) for participants to use. This data will cover most of the evaluated languages. More information about the challenge and the dataset construction can be found on the [challenge website](https://multilingual.superbbenchmark.org/challenge-interspeech2025/challenge_overview).
 
 
-The baseline uses frozen SSL features from [MMS 1B](https://www.jmlr.org/papers/v25/23-1318.html), which are input into a 2-layer Transformer trained using CTC loss. It takes roughly 2 days to train on a single H100 GPU.
+The default configuration uses frozen SSL features from [MMS 1B](https://www.jmlr.org/papers/v25/23-1318.html), which are input into an E-Branchformer trained using CTC loss. It takes roughly 2 days to train on a single H100 GPU.
 We recommend allocating at least 4 CPUs and at least 32GB of RAM. If GPU OOM occurs (such as when using a 40GB VRAM GPU), you can halve the batch size and double the gradiant accumulation.
 
-## Refined LID-label Configs
+The default `conf/train_asr.yaml` uses `conf/tuning/train_mms_e_branchformer.yaml`.
+The original 2-layer Transformer baseline and other model configs are available under `conf/tuning/`:
 
-The following configs use the refined LID-label data setting reported below:
-
-- `conf/tuning/train_mms_ctc_baseline.yaml`: 2-layer Transformer baseline.
-- `conf/tuning/train_mms_ctc_transformer.yaml`: 24-layer Transformer encoder.
-- `conf/tuning/train_mms_ctc_conformer.yaml`: 12-layer Conformer encoder with macaron-style feed-forward modules.
-- `conf/tuning/train_mms_ctc_e_branchformer.yaml`: 12-layer E-Branchformer encoder with `macaron_ffn: false`.
-
-To prepare the refined LID-label data, run `local/data_refine.sh` instead of
-the default `local/data.sh`.  In addition to the original data preparation
-behavior, this refined script adds the following LID-label corrections:
-
-- `lga -> lug`
-- `ory -> ori`
-- `arb -> ara`
-- `nno`, `nob`, and `nor` are removed from the train and standard dev sets.
+- `conf/tuning/train_mms_baseline.yaml`: 2-layer Transformer baseline.
+- `conf/tuning/train_mms_transformer.yaml`: 24-layer Transformer encoder.
+- `conf/tuning/train_mms_conformer.yaml`: 12-layer Conformer encoder with macaron-style feed-forward modules.
+- `conf/tuning/train_mms_e_branchformer.yaml`: 12-layer E-Branchformer encoder with `macaron_ffn: false`.
 
 For example:
 ```
-./run.sh --asr_config conf/tuning/train_mms_ctc_baseline.yaml
-./run.sh --asr_config conf/tuning/train_mms_ctc_transformer.yaml
-./run.sh --asr_config conf/tuning/train_mms_ctc_conformer.yaml
-./run.sh --asr_config conf/tuning/train_mms_ctc_e_branchformer.yaml
+./run.sh --asr_config conf/tuning/train_mms_baseline.yaml
+./run.sh --asr_config conf/tuning/train_mms_transformer.yaml
+./run.sh --asr_config conf/tuning/train_mms_conformer.yaml
+./run.sh --asr_config conf/tuning/train_mms_e_branchformer.yaml
 ```
 
 ## Scoring
@@ -86,26 +76,7 @@ Such that `references[i]`, `lids[i]`, and `hyps[i]` should all correspond to the
 
 ## RESULTS
 
-### train_asr.yaml (Frozen MMS 1B + Transformer + CTC)
-
-### Environments
-- date: `Sat Dec 28 11:08:07 CST 2024`
-- python version: `3.10.15 (main, Oct  3 2024, 07:21:53) [GCC 11.2.0]`
-- espnet version: `espnet 202409`
-- pytorch version: `pytorch 2.6.0.dev20241008+cu124`
-- model_link: https://huggingface.co/espnet/mms_1b_mlsuperb
-- Git hash: `4fe2783ef85c294af19f36fb519ec62dc6639ce7`
-  - Commit date: `Fri Dec 27 14:11:37 2024 +0000`
-
-|decode_dir|Standard CER|Standard LID|Worst 15 CER|CER StD|Dialect CER|Dialect LID|
-|---|---|---|---|---|---|---|
-decode_asr_asr_model_valid.loss.ave|24.0|74.0|71.0|25.5|32.7|54.0|
-
-### Refined LID-label data results
-
-The following results were obtained after preparing the public ML-SUPERB 2.0
-data with `local/data_refine.sh`.  The experiments use frozen MMS 1B features
-and CTC training.  Decoding uses `valid.loss.ave_2best`.
+### Frozen MMS 1B + CTC
 
 ### Environments
 - date:
@@ -117,23 +88,18 @@ and CTC training.  Decoding uses `valid.loss.ave_2best`.
 - espnet2 version: `espnet2 202604`
 - pytorch version: `pytorch 2.9.1+cu126`
 - model_link:
-  - Baseline: https://huggingface.co/shun3232/ml-superb2-mms-ctc-baseline-refined
+  - Baseline 2-layer Transformer: https://huggingface.co/shun3232/ml-superb2-mms-ctc-baseline-refined
   - Transformer: https://huggingface.co/shun3232/ml-superb2-mms-ctc-transformer-24-refined
   - Conformer: https://huggingface.co/shun3232/ml-superb2-mms-ctc-conformer-12-refined
   - E-Branchformer: https://huggingface.co/shun3232/ml-superb2-mms-ctc-e-branchformer-12-refined
 - Git hash: `e3b628d041733d5155f2d04d1acc76ff1faa8596`
   - Commit date: `Mon Jun 29 01:45:48 2026 +0900`
 
-Training settings:
-
-- `batch_size: 8`
-- `accum_grad: 4`
-- `num_iters_per_epoch: 20000`
-- `max_epoch: 20`
+Decoding uses `valid.loss.ave_2best`.
 
 |model_name|decode_dir|Standard CER|Standard LID|Worst 15 CER|CER StD|Dialect CER|Dialect LID|
 |---|---|---:|---:|---:|---:|---:|---:|
 |Baseline 2-layer Transformer|decode_asr_asr_model_valid.loss.ave_2best|22.6|76.3|55.7|14.6|33.9|59.3|
-|Transformer 24-layer|decode_asr_asr_model_valid.loss.ave_2best|19.5|81.3|52.3|14.4|36.2|63.1|
+|Transformer|decode_asr_asr_model_valid.loss.ave_2best|19.5|81.3|52.3|14.4|36.2|63.1|
 |Conformer|decode_asr_asr_model_valid.loss.ave_2best|21.3|72.5|57.9|16.0|39.6|62.0|
 |E-Branchformer|decode_asr_asr_model_valid.loss.ave_2best|18.6|81.8|51.1|14.4|33.5|72.3|

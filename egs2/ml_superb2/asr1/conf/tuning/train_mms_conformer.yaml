@@ -41,8 +41,8 @@ preencoder_conf:
 
 num_workers: 4
 batch_type: sorted
-batch_size: 8
-accum_grad: 4
+batch_size: 16
+accum_grad: 2
 patience: none
 init: none
 best_model_criterion:
@@ -75,5 +75,5 @@ specaug_conf:
     - 0.05
     num_time_mask: 10
 
-num_iters_per_epoch: 20000
+num_iters_per_epoch: 10000 # number of iterations per epoch
 max_epoch: 20
