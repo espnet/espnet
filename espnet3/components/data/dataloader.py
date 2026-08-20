@@ -295,7 +295,7 @@ class DataLoaderBuilder:
                 _LOGGED_DISTRIBUTED_BATCHES.add(mode)
 
         iter_factory = instantiate(factory_config, dataset, batches=batches)
-        iterator = iter_factory.build_iter(self.epoch, shuffle=False)
+        iterator = iter_factory.build_iter(self.epoch)
         log_dataloader(
             logger,
             iterator,
