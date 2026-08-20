@@ -14,9 +14,17 @@ inference_config=conf/decode_asr.yaml
 
 ./asr.sh \
     --lang en \
+    --ngpu 1 \
+    --nj 8 \
+    --gpu_inference true \
+    --inference_nj 1 \
+    --max_wav_duration 30 \
     --audio_format wav \
     --feats_type raw \
-    --token_type char \
+    --token_type whisper_multilingual \
+    --cleaner whisper_en \
+    --hyp_cleaner whisper_en \
+    --feats_normalize "" \
     --use_lm false \
     --asr_config "${asr_config}" \
     --inference_config "${inference_config}" \

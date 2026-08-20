@@ -1,78 +1,46 @@
 # RESULTS
 
-This is an ESPnet2 ASR recipe for the Free ST American English Corpus
-(ST-AEDS), OpenSLR SLR45.
-
-- Dataset page: https://www.openslr.org/45/
-- Archive: `ST-AEDS-20180100_1-OS.tgz`
-- License: Creative Commons BY-NC-ND 4.0
-
 ## Environments
-
-- date: `Wed Aug  5 17:35:32 EDT 2026`
-- python version: `3.10.20 (main, Mar 11 2026, 17:43:48) [Clang 20.1.8 ]`
+- date: `Wed Aug 19 23:31:06 UTC 2026`
+- python version: `3.12.3 (main, Jun 19 2026, 12:46:00) [GCC 13.3.0]`
 - espnet2 version: `espnet2 202604`
-- pytorch version: `pytorch 2.12.0`
-- Git hash: `427a363b4ea39e854985230efa68a94deb196716`
-  - Commit date: `Wed Jul 1 11:01:30 2026 -0400`
+- pytorch version: `pytorch 2.9.1+cu128`
+- Git hash: `02267faa3af0467bcb804c61c126a5e8584c9546`
+  - Commit date: `Thu Aug 6 07:59:17 2026 -0400`
+- Pretrained Model: https://huggingface.co/JacobPercy/st_aeds_asr_whisper_medium_finetune
 
-## Results
+## exp/asr_asr_train_asr_whisper_medium_finetune_raw_en_whisper_multilingual
 
-- ASR config: [conf/tuning/train_asr_rnn.yaml](conf/tuning/train_asr_rnn.yaml)
-- Decode config: [conf/tuning/decode_rnn.yaml](conf/tuning/decode_rnn.yaml)
-
-The baseline is a small character-level RNN CTC/attention ASR setup based on
-`egs2/timit/asr1/conf/tuning/train_asr_rnn.yaml`.
+- ASR config: [conf/tuning/train_asr_whisper_medium_finetune.yaml](conf/tuning/train_asr_whisper_medium_finetune.yaml)
+- Decode config: [conf/tuning/decode_asr_whisper_noctc_beam10.yaml](conf/tuning/decode_asr_whisper_noctc_beam10.yaml)
+- Model: OpenAI Whisper Medium fine-tuning
+- Decoding: beam10, no CTC, no LM
 
 ### WER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
-|decode_asr_asr_model_valid.acc.ave/org/dev|400|3071|53.2|43.1|3.7|7.6|54.4|98.5|
-|decode_asr_asr_model_valid.acc.ave/test|400|3103|54.7|42.6|2.6|8.9|54.1|98.8|
+|decode_asr_whisper_noctc_beam10_asr_model_valid.acc.ave/org/dev|400|3189|97.6|1.4|1.0|1.5|3.9|13.8|
+|decode_asr_whisper_noctc_beam10_asr_model_valid.acc.ave/test|400|3231|98.0|1.1|0.9|0.1|2.1|11.8|
 
 ### CER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
-|decode_asr_asr_model_valid.acc.ave/org/dev|400|16306|82.7|9.7|7.7|5.1|22.4|98.5|
-|decode_asr_asr_model_valid.acc.ave/test|400|16654|83.2|9.6|7.2|4.8|21.6|98.8|
+|decode_asr_whisper_noctc_beam10_asr_model_valid.acc.ave/org/dev|400|16161|98.9|0.2|0.8|1.6|2.7|13.8|
+|decode_asr_whisper_noctc_beam10_asr_model_valid.acc.ave/test|400|16499|99.2|0.2|0.6|0.1|0.9|11.8|
 
-## ASR config
+## Data
 
-```sh
-./run.sh \
-    --lang en \
-    --audio_format wav \
-    --feats_type raw \
-    --token_type char \
-    --use_lm false \
-    --asr_config conf/train_asr.yaml \
-    --inference_config conf/decode_asr.yaml
-```
+- Dataset: ST-AEDS, OpenSLR SLR45
+- Archive: `ST-AEDS-20180100_1-OS.tgz`
+- License: Creative Commons BY-NC-ND 4.0
+- Split: repeated prompts are kept in train when possible. Dev and test use
+  only corpus-unique transcripts after lowercase and whitespace normalization.
+- Text overlap: none across train, dev, and test after the same normalization.
 
-## Data preparation
-
-Set `ST_AEDS` in `db.sh` or pass it in the environment. The default value from
-`../../TEMPLATE/asr1/db.sh` is `downloads`.
-
-```sh
-cd egs2/st_aeds/asr1
-./local/data.sh
-```
-
-The preparation script creates `data/train`, `data/dev`, and `data/test`.
-For each speaker, sorted utterances are split deterministically with 40
-utterances for dev, 40 utterances for test, and the rest for train.
-
-Current usable split sizes:
-
-|dataset|utterances|
-|---|---:|
-|train|3038|
-|dev|400|
-|test|400|
-
-Transcript rows with missing audio or empty transcript text are skipped.
-
-The dataset license includes non-commercial and no-derivatives terms.
+|dataset|utterances|hours|
+|---|---:|---:|
+|train|3038|3.77|
+|dev|400|0.48|
+|test|400|0.49|

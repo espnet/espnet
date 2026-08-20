@@ -61,6 +61,7 @@ if [ "${stage}" -le 2 ] && [ "${stop_stage}" -ge 2 ]; then
         utils/fix_data_dir.sh "${data_dir}/${dset}"
         utils/validate_data_dir.sh --no-feats "${data_dir}/${dset}"
     done
+    python3 ./local/check_text_overlap.py --data-dir "${data_dir}" train dev test
 fi
 
 log "Successfully finished data preparation. [elapsed=${SECONDS}s]"

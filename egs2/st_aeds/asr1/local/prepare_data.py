@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-"""Prepare ST-AEDS / OpenSLR SLR45 as Kaldi-style ESPnet data directories."""
 
 from __future__ import annotations
 
@@ -16,6 +15,10 @@ SPEAKER_RE = re.compile(r"^([fm][0-9]{4})_")
 
 def normalize_text(text: str) -> str:
     return " ".join(text.strip().split())
+
+
+def text_key(text: str) -> str:
+    return normalize_text(text).lower()
 
 
 def read_transcripts(root: Path):
@@ -86,20 +89,28 @@ def split_entries(entries, dev_per_spk: int, test_per_spk: int):
     for entry in entries:
         by_spk[entry[0]].append(entry)
 
+    text_counts = collections.Counter(text_key(entry[3]) for entry in entries)
     splits = {"train": [], "dev": [], "test": []}
     for spk_id in sorted(by_spk):
         speaker_entries = sorted(by_spk[spk_id], key=lambda item: item[1])
-        required = dev_per_spk + test_per_spk + 1
-        if len(speaker_entries) < required:
+        eval_candidates = [
+            entry for entry in speaker_entries if text_counts[text_key(entry[3])] == 1
+        ]
+        required = dev_per_spk + test_per_spk
+        if len(eval_candidates) < required:
             raise RuntimeError(
-                f"Speaker {spk_id} has {len(speaker_entries)} utterances; "
-                f"need at least {required}"
+                f"Speaker {spk_id} has {len(eval_candidates)} corpus-unique "
+                f"transcripts; need at least {required}"
             )
-        splits["train"].extend(speaker_entries[: -(dev_per_spk + test_per_spk)])
-        splits["dev"].extend(
-            speaker_entries[-(dev_per_spk + test_per_spk) : -test_per_spk]
+        dev_entries = eval_candidates[-required:-test_per_spk]
+        test_entries = eval_candidates[-test_per_spk:]
+        eval_utts = {entry[1] for entry in dev_entries + test_entries}
+
+        splits["train"].extend(
+            entry for entry in speaker_entries if entry[1] not in eval_utts
         )
-        splits["test"].extend(speaker_entries[-test_per_spk:])
+        splits["dev"].extend(dev_entries)
+        splits["test"].extend(test_entries)
 
     return splits
 
@@ -131,9 +142,9 @@ def write_split(name: str, entries, data_dir: Path) -> None:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--root", required=True, help="Extracted ST-AEDS root")
-    parser.add_argument("--data-dir", default="data", help="Output data directory")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--root", required=True)
+    parser.add_argument("--data-dir", default="data")
     parser.add_argument("--dev-per-spk", type=int, default=40)
     parser.add_argument("--test-per-spk", type=int, default=40)
     args = parser.parse_args()
@@ -154,18 +165,16 @@ def main() -> int:
         write_split(name, splits[name], data_dir)
 
     speakers = sorted({entry[0] for entry in entries})
-    print(f"Prepared ST-AEDS data from {root}")
+    print(f"Prepared {root}")
     print(f"Speakers: {len(speakers)} ({', '.join(speakers)})")
     if missing_audio:
         print(
-            "Warning: skipped transcript entries with missing audio: "
-            + ", ".join(missing_audio[:10]),
+            "Missing audio: " + ", ".join(missing_audio[:10]),
             file=sys.stderr,
         )
     if empty_transcripts:
         print(
-            "Warning: skipped audio entries with empty transcripts: "
-            + ", ".join(empty_transcripts[:10]),
+            "Empty text: " + ", ".join(empty_transcripts[:10]),
             file=sys.stderr,
         )
     for name in ("train", "dev", "test"):
