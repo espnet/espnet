@@ -108,6 +108,7 @@ QASR_TTS=downloads
 SNIPS= # smart-light-en-closed-field data path
 SPGISPEECH=
 SPEECH_PROMPT_v2=
+ST_AEDS=${ST_AEDS:-downloads}
 STOP=
 SWBD=
 FISHER_CALLHOME_SPANISH=
