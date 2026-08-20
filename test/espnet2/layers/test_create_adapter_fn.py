@@ -14,7 +14,6 @@ from espnet2.layers.houlsby_adapter_layer import (  # Houlsby_Adapter,
 
 pytest.importorskip("transformers")
 pytest.importorskip("s3prl")
-pytest.importorskip("loralib")
 is_python_3_8_plus = sys.version_info >= (3, 8)
 is_torch_2_6_plus = V(torch.__version__) >= V("2.6.0")
 is_torch_2_9_plus = V(torch.__version__) >= V("2.9.0")
@@ -239,6 +238,8 @@ def test_create_lora_adapter_invalid_type(rank, alpha, target_modules):
         create_lora_adapter(
             model=model, rank=rank, alpha=alpha, target_modules=target_modules
         )
+
+
 
 
 if __name__ == "__main__":
