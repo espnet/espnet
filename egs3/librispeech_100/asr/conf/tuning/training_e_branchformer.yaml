@@ -50,8 +50,8 @@ dataset:
     fs: 16000
     data_aug_prob: 0.667
     data_aug_effects:
-      - - [0.5, "speed_perturb", {"factor": 0.9}]
-        - [0.5, "speed_perturb", {"factor": 1.1}]
+      - [0.5, "speed_perturb", {"factor": 0.9}]
+      - [0.5, "speed_perturb", {"factor": 1.1}]
 
 create_dataset:
   recipe_dir: ${recipe_dir}
