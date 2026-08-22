@@ -3,6 +3,7 @@
 
 import numpy as np
 
+
 def build_output(data, model_output, idx):
     """Build output dict(s) from SeparateSpeech model output.
 
@@ -32,7 +33,8 @@ def build_output(data, model_output, idx):
             enhanced = enhanced / max_val * 0.9
         results.append({"utt_id": utt_id, "enhanced": enhanced})
     return results
-    
+
+
 class SeparateSpeechWrapper:
     """Wraps SeparateSpeech to handle 1D or list input from InferenceRunner.
 
@@ -45,6 +47,7 @@ class SeparateSpeechWrapper:
 
     def __init__(self, train_config, model_file, **kwargs):
         from espnet2.bin.enh_inference import SeparateSpeech
+
         self._model = SeparateSpeech(
             train_config=train_config,
             model_file=model_file,
@@ -60,7 +63,7 @@ class SeparateSpeechWrapper:
             max_len = max(len(s) for s in speech_mix)
             padded = np.zeros((len(speech_mix), max_len), dtype=np.float32)
             for i, s in enumerate(speech_mix):
-                padded[i, :len(s)] = s
+                padded[i, : len(s)] = s
             speech_mix = padded
         else:
             # Single sample: (T,) -> (1, T)
