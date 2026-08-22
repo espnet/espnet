@@ -15,8 +15,8 @@ from pathlib import Path
 from typing import Dict
 
 import numpy as np
-import soundfile as sf
 import resampy
+import soundfile as sf
 
 from espnet3.components.metrics.base_metric import BaseMetric
 
@@ -24,12 +24,14 @@ logger = logging.getLogger(__name__)
 
 try:
     from pesq import pesq as pesq_fn
+
     _PESQ_AVAILABLE = True
 except ImportError:
     _PESQ_AVAILABLE = False
 
 try:
     from pystoi import stoi as stoi_fn
+
     _STOI_AVAILABLE = True
 except ImportError:
     _STOI_AVAILABLE = False
@@ -43,8 +45,12 @@ def _si_snr(ref: np.ndarray, est: np.ndarray) -> float:
     s_target = np.dot(est, ref) / (np.dot(ref, ref) + 1e-8) * ref
     e_noise = est - s_target
     return float(
-        10.0 * np.log10((np.dot(s_target, s_target) + 1e-8) / (np.dot(e_noise, e_noise) + 1e-8))
+        10.0
+        * np.log10(
+            (np.dot(s_target, s_target) + 1e-8) / (np.dot(e_noise, e_noise) + 1e-8)
+        )
     )
+
 
 def _load_clean_map(manifest_dir: Path, test_name: str) -> dict[str, Path]:
     """Load {utt_id: clean_wav_path} from the TSV manifest for test_name."""
@@ -61,7 +67,6 @@ def _load_clean_map(manifest_dir: Path, test_name: str) -> dict[str, Path]:
             utt_id, _noisy, clean = line.split("\t", 2)
             clean_map[utt_id] = Path(clean)
     return clean_map
-
 
 
 class SISNRMetric(BaseMetric):
@@ -94,8 +99,10 @@ class SISNRMetric(BaseMetric):
                 continue
             ref_wav, ref_sr = sf.read(str(clean_map[utt_id]))
             if ref_sr != enh_sr:
-                ref_wav = resampy.resample(ref_wav, ref_sr, enh_sr)    
-            scores.append(_si_snr(ref_wav.astype(np.float32), enh_wav.astype(np.float32)))
+                ref_wav = resampy.resample(ref_wav, ref_sr, enh_sr)
+            scores.append(
+                _si_snr(ref_wav.astype(np.float32), enh_wav.astype(np.float32))
+            )
 
         mean = float(np.mean(scores)) if scores else float("nan")
         logger.info("[%s] SI-SNR: %.2f dB (%d utts)", test_name, mean, len(scores))
@@ -110,7 +117,6 @@ class PESQMetric(BaseMetric):
         manifest_dir: Directory containing train/valid/test.tsv manifests.
         fs: Sampling rate. Must be 8000 or 16000.
     """
-
 
     def __init__(
         self,
@@ -147,6 +153,7 @@ class PESQMetric(BaseMetric):
         mean = float(np.mean(scores)) if scores else float("nan")
         logger.info("[%s] PESQ: %.4f (%d utts)", test_name, mean, len(scores))
         return {"PESQ": round(mean, 4)}
+
 
 class STOIMetric(BaseMetric):
     """STOI metric. Requires: pip install pystoi.
@@ -189,7 +196,14 @@ class STOIMetric(BaseMetric):
             if ref_sr != self.fs:
                 ref_wav = resampy.resample(ref_wav, ref_sr, self.fs)
             min_len = min(len(ref_wav), len(enh_wav))
-            scores.append(stoi_fn(ref_wav[:min_len], enh_wav[:min_len], self.fs, extended=self.extended))
+            scores.append(
+                stoi_fn(
+                    ref_wav[:min_len],
+                    enh_wav[:min_len],
+                    self.fs,
+                    extended=self.extended,
+                )
+            )
 
         mean = float(np.mean(scores)) if scores else float("nan")
         label = "ESTOI" if self.extended else "STOI"

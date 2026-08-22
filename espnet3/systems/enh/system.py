@@ -1,14 +1,14 @@
 """Enhancement system for ESPnet3."""
 
 import logging
+
 from espnet3.systems.base.system import BaseSystem
 
 logger = logging.getLogger(__name__)
 
 
 class EnhancementSystem(BaseSystem):
-    """Speech enhancement system.
-    """
+    """Speech enhancement system."""
 
     def __init__(
         self,
