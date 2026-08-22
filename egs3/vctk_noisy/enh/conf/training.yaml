@@ -1,0 +1,125 @@
+# egs3/vctk_noisy/enh/conf/training.yaml
+##########################################################
+#                    TRAINING SETTING                    #
+##########################################################
+# Quick usage:
+#   python run.py --stages create_dataset --training_config conf/training.yaml
+#   python run.py --stages train          --training_config conf/training.yaml
+
+task: espnet3.systems.enh.task.EnhancementTask
+
+dataset_dir: /DB/VCTK_DEMAND #/path/to/vctk_noisy  # set to your VCTK-Noisy root
+num_device: 3
+##########################################################
+#                    DATASET DEFINITION                  #
+##########################################################
+# data_src is omitted; ESPnet3 loads ${recipe_dir}/dataset/__init__.py.
+# data_src_args are forwarded directly to VCTKNoisyDataset(...).
+dataset:
+  train:
+    - data_src_args:
+        split: train
+        data_path: ${dataset_dir}
+        chunk_length: 32000 #16000
+  valid:
+    - data_src_args:
+        split: valid
+        data_path: ${dataset_dir}
+  preprocessor:
+    _target_: espnet2.train.preprocessor.EnhPreprocessor
+    train: true
+    speech_ref_name_prefix: speech_ref   # matches our 'speech_ref1' key
+    num_spk: 1
+    sample_rate: 16000
+
+create_dataset:
+  recipe_dir: ${recipe_dir}
+  dataset_dir: ${dataset_dir}
+
+##########################################################
+#                      MODEL SETTING                     #
+##########################################################
+# Conv-TasNet config following egs2/vctk_noisy/enh1/conf/tuning/train_enh_conv_tasnet.yaml.
+model:
+  encoder: conv
+  encoder_conf:
+    channel: 256
+    kernel_size: 20
+    stride: 10
+
+  separator: tcn
+  separator_conf:
+    num_spk: 1
+    layer: 8
+    stack: 3
+    bottleneck_dim: 256
+    hidden_dim: 512
+    kernel: 3
+    causal: false
+    norm_type: gLN
+    nonlinear: relu
+
+  decoder: conv
+  decoder_conf:
+    channel: 256
+    kernel_size: 20
+    stride: 10
+
+  model_conf:
+    loss_type: ci_sdr
+
+##########################################################
+#            OPTIMIZER & SCHEDULER SETTING               #
+##########################################################
+optimizer:
+  _target_: torch.optim.Adam
+  lr: 1.0e-03
+  eps: 1.0e-08
+  weight_decay: 1.0e-05
+
+# scheduler:
+#   _target_: espnet2.schedulers.warmup_lr.WarmupLR
+#   warmup_steps: 4000
+scheduler:
+  _target_: espnet3.systems.enh.scheduler.ReduceLROnPlateau
+  mode: min
+  factor: 0.5
+  patience: 3
+
+scheduler_interval: epoch
+scheduler_monitor: valid/loss
+##########################################################
+#                OTHER TRAINING SETTING                  #
+##########################################################
+init: xavier_uniform
+
+best_model_criterion:
+  - - valid/si_snr_loss
+    - 1
+    - min
+  - - valid/loss
+    - 1
+    - min
+
+##########################################################
+#                   DATALOADER SETTING                   #
+##########################################################
+dataloader:
+  train:
+    iter_factory:
+      _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
+      shuffle: true
+      collate_fn: ${dataloader.collate_fn}
+      batches:
+        type: unsorted
+        shape_files:
+          - ${stats_dir}/train/feats_shape
+        batch_size: 8
+
+##########################################################
+#                    TRAINER SETTING                     #
+##########################################################
+trainer:
+  max_epochs: 100
+  gradient_clip_val: 5.0
+  strategy: auto

@@ -1,0 +1,36 @@
+# egs3/vctk_noisy/enh/conf/metrics.yaml
+##########################################################
+#                 METRIC SCORING SETTING                 #
+##########################################################
+# Common usage:
+#   python run.py --stages measure \
+#       --training_config conf/training.yaml \
+#       --inference_config conf/inference.yaml \
+#       --metrics_config conf/metrics.yaml
+#
+# manifest_path is needed to retrieve clean reference wav paths,
+# since the enhanced.scp stores artifact paths, not reference paths.
+
+metrics:
+  - metric:
+      _target_: src.metrics.SISNRMetric
+      hyp_key: enhanced
+      manifest_dir: ${recipe_dir}/data/manifest
+    inputs:
+      enhanced: enhanced
+
+  - metric:
+      _target_: src.metrics.PESQMetric
+      hyp_key: enhanced
+      manifest_dir: ${recipe_dir}/data/manifest
+      fs: 16000
+    inputs:
+      enhanced: enhanced
+
+  - metric:
+      _target_: src.metrics.STOIMetric
+      hyp_key: enhanced
+      manifest_dir: ${recipe_dir}/data/manifest
+      fs: 16000
+    inputs:
+      enhanced: enhanced

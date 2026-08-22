@@ -1,0 +1,47 @@
+# egs3/vctk_noisy/enh/conf/inference.yaml
+##########################################################
+#                   INFERENCE SETTING                    #
+##########################################################
+# Common usage:
+#   python run.py --stages infer \
+#       --training_config conf/training.yaml \
+#       --inference_config conf/inference.yaml
+
+##########################################################
+#                    DATASET DEFINITION                  #
+##########################################################
+# ESPnet3 loads ${recipe_dir}/dataset/__init__.py.
+# Both valid and test splits are evaluated.
+dataset:
+  test:
+    - name: valid
+      data_src_args:
+        split: valid
+        inference: true
+    - name: test
+      data_src_args:
+        split: test
+        inference: true
+
+##########################################################
+#                    MODEL AND OUTPUT                    #
+##########################################################
+model:
+  _target_: src.inference.SeparateSpeechWrapper
+  train_config: ${exp_dir}/config.yaml
+  model_file: ${exp_dir}/last.ckpt
+  normalize_output_wav: true
+
+# SeparateSpeech.__call__ receives speech_mix as a positional argument.
+input_key: speech_mix
+output_fn: src.inference.build_output
+
+# enhanced is a float32 ndarray; save as wav under inference_dir/<test_name>/enhanced/.
+output_artifacts:
+  enhanced:
+    type: wav
+    sample_rate: 16000
+
+runner:
+  _target_: espnet3.systems.base.inference_runner.InferenceRunner
+  batch_size: 4
