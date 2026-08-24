@@ -19,12 +19,12 @@ on:
   # any way (opened, synchronized, reopened, edited).
   pull_request_target:
     types:
-    #   - opened
-    #   - synchronize
-    #   - reopened
-    #   - edited
-    #   - labeled
-    #   - unlabeled
+      - opened
+      - synchronize
+      - reopened
+      - edited
+      - labeled
+      - unlabeled
       - ready_for_review
 
   # Try enabling auto-merge for the specified pull request,
@@ -37,14 +37,24 @@ on:
       review:
         description: Review ID
         required: false
+      dry-run:
+        description: Dry Run
+        required: false
+        default: "false"
 
 jobs:
   automerge:
     runs-on: ubuntu-latest
     steps:
+      # Requires a Personal Access Token (PAT) with 'repo' and 'read:user' scopes
+      # stored as the AUTOMERGE_TOKEN repository secret.
+      # GITHUB_TOKEN cannot be used here because it is an integration token that
+      # is blocked from the /user API endpoint that this action requires.
+      # A repo admin must also enable branch protection rules on 'master' with
+      # at least one required status check for auto-merge to proceed.
       - uses: reitermarkus/automerge@v2
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.AUTOMERGE_TOKEN }}
           merge-method: rebase
           do-not-merge-labels: never-merge
           required-labels: automerge

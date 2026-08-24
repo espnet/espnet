@@ -53,10 +53,20 @@ def test_base_system_invokes_helpers(tmp_path, monkeypatch):
         calls["measure"] = cfg
         return {"metric": 1.0}
 
+    def fake_pack_demo(system):
+        calls["pack_demo"] = system
+        return "pack_demo"
+
+    def fake_upload_demo(system):
+        calls["upload_demo"] = system
+        return "upload_demo"
+
     monkeypatch.setattr(sysmod, "collect_stats", fake_collect)
     monkeypatch.setattr(sysmod, "train", fake_train)
     monkeypatch.setattr(sysmod, "infer", fake_infer)
     monkeypatch.setattr(sysmod, "measure", fake_metric)
+    monkeypatch.setattr(sysmod, "_pack_demo", fake_pack_demo)
+    monkeypatch.setattr(sysmod, "_upload_demo", fake_upload_demo)
 
     system = BaseSystem(
         training_config=train_cfg,
@@ -69,10 +79,14 @@ def test_base_system_invokes_helpers(tmp_path, monkeypatch):
     assert system.train() == "train"
     assert system.infer() == "infer"
     assert system.measure() == {"metric": 1.0}
+    assert system.pack_demo() == "pack_demo"
+    assert system.upload_demo() == "upload_demo"
     assert calls["collect"] is train_cfg
     assert calls["train"] is train_cfg
     assert calls["infer"] is infer_cfg
     assert calls["measure"] is measure_cfg
+    assert calls["pack_demo"] is system
+    assert calls["upload_demo"] is system
 
 
 def test_base_system_create_dataset_requires_dataset_config(tmp_path):
@@ -98,6 +112,24 @@ def test_base_system_create_dataset_stage_logs_use_data_dir(tmp_path):
     system = BaseSystem(training_config=train_cfg)
 
     assert system.stage_log_dirs["create_dataset"] == tmp_path / "data"
+
+
+def test_base_system_stage_log_mapping_overrides_base_mapping(tmp_path):
+    train_cfg = OmegaConf.create(
+        {
+            "exp_dir": str(tmp_path / "exp"),
+            "data_dir": str(tmp_path / "data"),
+        }
+    )
+    infer_cfg = OmegaConf.create({"inference_dir": str(tmp_path / "infer")})
+
+    system = BaseSystem(
+        training_config=train_cfg,
+        inference_config=infer_cfg,
+        stage_log_mapping={"create_dataset": "inference_config.inference_dir"},
+    )
+
+    assert system.stage_log_dirs["create_dataset"] == tmp_path / "infer"
 
 
 def test_base_system_create_dataset_prepares_dataset_references(tmp_path, monkeypatch):

@@ -10,6 +10,9 @@ on:
       - master
       - espnet3
 
+env:
+  NLTK_DISABLE_IMPORT_SECURITY: "1"
+
 jobs:
   unit_test_espnet2_and_espnet3_on_debian12:
     runs-on: ubuntu-latest
@@ -23,7 +26,7 @@ jobs:
         # To avoid UnicodeEncodeError for python<=3.6
         LC_ALL: en_US.UTF-8
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: check OS
         run: cat /etc/os-release
       - name: install dependencies
@@ -39,6 +42,8 @@ jobs:
         uses: joerick/pr-labels-action@v1.0.9
       - name: install espnet
         run: ./ci/install.sh
+        env:
+          HF_TOKEN: ${{ secrets.HF_CI_TOKEN }}
       - name: test shell
         run: |
           ./ci/test_shell_espnet2.sh
