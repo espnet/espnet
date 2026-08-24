@@ -11,9 +11,20 @@ Example:
         --output averaged.pth
 """
 
+import logging
 from argparse import ArgumentParser
+import pickle
 
 import torch
+
+
+def _is_weights_only_compat_error(exc: BaseException) -> bool:
+    message = str(exc).lower()
+    return (
+        "weights only load failed" in message
+        or "weights_only" in message
+        or "unsupported global" in message
+    )
 
 
 def get_parser():
@@ -36,7 +47,19 @@ def get_parser():
 def main(args):
     avg_state_dict = None
     for ckpt_path in args.inputs:
-        state_dict = torch.load(ckpt_path, map_location="cpu", weights_only=True)
+        try:
+            state_dict = torch.load(ckpt_path, map_location="cpu", weights_only=True)
+        except (pickle.UnpicklingError, RuntimeError, TypeError) as e:
+            if not isinstance(e, pickle.UnpicklingError) and not _is_weights_only_compat_error(e):
+                raise
+            logging.warning(
+                "Loading %s with weights_only=False for compatibility: %s",
+                ckpt_path,
+                e,
+            )
+            state_dict = torch.load(
+                ckpt_path, map_location="cpu", weights_only=False
+            )
 
         if avg_state_dict is None:
             avg_state_dict = state_dict

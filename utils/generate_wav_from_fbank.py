@@ -9,6 +9,7 @@
 import argparse
 import logging
 import os
+import pickle
 import time
 
 import h5py
@@ -25,6 +26,15 @@ from espnet2.legacy.nets.pytorch_backend.wavenet import (
 )
 from espnet2.legacy.utils.cli_readers import file_reader_helper
 from espnet2.legacy.utils.cli_utils import get_commandline_args
+
+
+def _is_weights_only_compat_error(exc):
+    message = str(exc).lower()
+    return (
+        "weights only load failed" in message
+        or "weights_only" in message
+        or "unsupported global" in message
+    )
 
 
 class TimeInvariantMLSAFilter(object):
@@ -147,9 +157,18 @@ def main():
         kernel_size=train_args.kernel_size,
         upsampling_factor=train_args.upsampling_factor,
     )
-    model.load_state_dict(
-        torch.load(args.model, map_location="cpu", weights_only=False)["model"]
-    )
+    try:
+        state_dict = torch.load(args.model, map_location="cpu", weights_only=True)
+    except (pickle.UnpicklingError, RuntimeError, TypeError) as e:
+        if not isinstance(e, pickle.UnpicklingError) and not _is_weights_only_compat_error(e):
+            raise
+        logging.warning(
+            "Loading %s with weights_only=False for compatibility: %s",
+            args.model,
+            e,
+        )
+        state_dict = torch.load(args.model, map_location="cpu", weights_only=False)
+    model.load_state_dict(state_dict["model"])
     model.eval()
     model.to(device)
 
