@@ -395,7 +395,7 @@ def custom_torch_load(model_path: str, model: torch.nn.Module, training: bool = 
         model_state_dict = torch.load(
             model_path,
             map_location=lambda storage, loc: storage,
-            weights_only=False,
+            weights_only=True,
         )
 
     if not training:
