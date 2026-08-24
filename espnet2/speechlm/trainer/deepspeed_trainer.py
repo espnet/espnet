@@ -126,7 +126,9 @@ class DeepSpeedTrainer:
         # Load from Pytorch checkpoint (ONLY weights, no optimizer states).
         # TODO(Jinchuan): support partial loading of some specific modules
         elif checkpoint_path and checkpoint_path.is_file():
-            checkpoint_dict = torch.load(checkpoint_path, map_location="cpu")["module"]
+            checkpoint_dict = torch.load(
+                checkpoint_path, map_location="cpu", weights_only=True
+            )["module"]
             self.model_engine.module.load_state_dict(checkpoint_dict)
             logger.info(f"Loaded checkpoint weights from: {checkpoint_path}")
         else:

@@ -12,7 +12,7 @@ def reload_model(model, path=""):
         return model
     else:
         model_dict = model.state_dict()
-        pretrained_dict = torch.load(path, map_location="cpu")
+        pretrained_dict = torch.load(path, map_location="cpu", weights_only=True)
         pretrained_dict = {
             k: v
             for k, v in pretrained_dict.items()

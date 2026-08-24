@@ -151,6 +151,7 @@ class FairseqAVHubertEncoder(AbsEncoder):
             ckpt = torch.load(
                 self.avhubert_model_path,
                 map_location=torch.device("cpu"),
+                weights_only=False,
             )
             state = {
                 k: v
@@ -168,7 +169,7 @@ class FairseqAVHubertEncoder(AbsEncoder):
         self.encoders = model
 
         if noise_augmentation:
-            self.noise = torch.load(noise_path)
+            self.noise = torch.load(noise_path, weights_only=True)
             self.max_noise_weight = max_noise_weight
         else:
             self.noise = None
@@ -1096,7 +1097,11 @@ class ResEncoder(nn.Module):
         self.trunk = ResNet(BasicBlock, [2, 2, 2, 2], relu_type=relu_type)
         if weights is not None:
             logger.info(f"Load {weights} for resnet")
-            std = torch.load(weights, map_location=torch.device("cpu"))[
+            std = torch.load(
+                weights,
+                map_location=torch.device("cpu"),
+                weights_only=False,
+            )[
                 "model_state_dict"
             ]
             frontend_std, trunk_std = OrderedDict(), OrderedDict()

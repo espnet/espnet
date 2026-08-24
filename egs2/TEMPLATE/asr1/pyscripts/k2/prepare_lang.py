@@ -21,7 +21,7 @@ consisting of words and tokens (i.e., phones) and does the following:
 3. Generate words.txt, the word table mapping a word to a unique integer.
 
 4. Generate L.pt, in k2 format. It can be loaded by
-        d = torch.load("L.pt")
+        d = torch.load("L.pt", weights_only=True)
         lexicon = k2.Fsa.from_dict(d)
 
 5. Generate L_disambig.pt, in k2 format.

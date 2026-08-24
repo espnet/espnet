@@ -287,7 +287,7 @@ class UASRTask(AbsTask):
             ckpt = args.fairseq_checkpoint
             logging.info(f"Loading parameters from fairseq: {ckpt}")
 
-            state_dict = torch.load(ckpt)
+            state_dict = torch.load(ckpt, weights_only=False)
             if "cfg" in state_dict and state_dict["cfg"] is not None:
                 model_cfg = state_dict["cfg"]["model"]
                 logging.info(f"Building model from {model_cfg}")

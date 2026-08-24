@@ -2521,7 +2521,9 @@ class AbsTask(ABC):
                 # Note(simpleoier): the following part is to be compatible with
                 #   pretrained model using earlier versions before `0a625088`
                 state_dict = torch.load(
-                    model_file, map_location="cpu" if device == "mps" else device
+                    model_file,
+                    map_location="cpu" if device == "mps" else device,
+                    weights_only=False,
                 )
                 if any(["frontend.upstream.model" in k for k in state_dict.keys()]):
                     if any(

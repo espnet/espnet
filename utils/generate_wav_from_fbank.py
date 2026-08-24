@@ -115,7 +115,9 @@ def main():
 
     # load model config
     model_dir = os.path.dirname(args.model)
-    train_args = torch.load(os.path.join(model_dir, "model.conf"))
+    train_args = torch.load(
+        os.path.join(model_dir, "model.conf"), weights_only=False
+    )
 
     # load statistics
     scaler = StandardScaler()
@@ -145,7 +147,9 @@ def main():
         kernel_size=train_args.kernel_size,
         upsampling_factor=train_args.upsampling_factor,
     )
-    model.load_state_dict(torch.load(args.model, map_location="cpu")["model"])
+    model.load_state_dict(
+        torch.load(args.model, map_location="cpu", weights_only=False)["model"]
+    )
     model.eval()
     model.to(device)
 

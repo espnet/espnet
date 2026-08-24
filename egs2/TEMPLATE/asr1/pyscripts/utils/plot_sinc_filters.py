@@ -292,7 +292,7 @@ def main(argv):
     model_path = args.model_path
     sample_rate = args.sample_rate
 
-    model = torch.load(model_path, map_location="cpu")
+    model = torch.load(model_path, map_location="cpu", weights_only=False)
     if "model" in model:  # snapshots vs. model.acc.best
         model = model["model"]
     if args.filter_key not in model:

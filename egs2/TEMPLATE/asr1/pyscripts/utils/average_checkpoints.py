@@ -36,7 +36,7 @@ def get_parser():
 def main(args):
     avg_state_dict = None
     for ckpt_path in args.inputs:
-        state_dict = torch.load(ckpt_path, map_location="cpu")
+        state_dict = torch.load(ckpt_path, map_location="cpu", weights_only=True)
 
         if avg_state_dict is None:
             avg_state_dict = state_dict

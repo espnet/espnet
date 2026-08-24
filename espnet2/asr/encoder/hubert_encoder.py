@@ -356,6 +356,7 @@ class FairseqHubertEncoder(AbsEncoder):
             s = torch.load(
                 self.hubert_model_path,
                 map_location=torch.device("cpu"),
+                weights_only=False,
             )
 
             if all("encoder.encoder" in k for k in s):

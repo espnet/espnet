@@ -93,7 +93,7 @@ def compile_HLG(lang_dir: str, graph_dir: str, ngram_num: int) -> k2.Fsa:
     max_token_id = max(lexicon.tokens)
     logging.info(f"Building ctc_topo. max_token_id: {max_token_id}")
     H = make_h_no_blank(max_token_id)
-    L = k2.Fsa.from_dict(torch.load(f"{lang_dir}/L_disambig.pt"))
+    L = k2.Fsa.from_dict(torch.load(f"{lang_dir}/L_disambig.pt", weights_only=True))
 
     logging.info(f"Loading G_{ngram_num}_gram.fst.txt")
     with open(f"{graph_dir}/G_{ngram_num}_gram.fst.txt") as f:

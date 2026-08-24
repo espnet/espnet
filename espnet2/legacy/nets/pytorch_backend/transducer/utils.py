@@ -387,11 +387,15 @@ def custom_torch_load(model_path: str, model: torch.nn.Module, training: bool = 
     """
     if "snapshot" in os.path.basename(model_path):
         model_state_dict = torch.load(
-            model_path, map_location=lambda storage, loc: storage
+            model_path,
+            map_location=lambda storage, loc: storage,
+            weights_only=False,
         )["model"]
     else:
         model_state_dict = torch.load(
-            model_path, map_location=lambda storage, loc: storage
+            model_path,
+            map_location=lambda storage, loc: storage,
+            weights_only=False,
         )
 
     if not training:

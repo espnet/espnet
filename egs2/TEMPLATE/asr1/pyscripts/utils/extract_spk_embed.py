@@ -85,6 +85,7 @@ class SpkEmbedExtractor:
                 torch.load(
                     tools_dir / "RawNet/python/RawNet3/models/weights/model.pt",
                     map_location=lambda storage, loc: storage,
+                    weights_only=True,
                 )["model"]
             )
             self.model.to(device).eval()
