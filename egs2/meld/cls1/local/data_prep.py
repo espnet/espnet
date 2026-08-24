@@ -12,7 +12,9 @@ DATA_WRITE_ROOT = sys.argv[2]
 phases = ["train", "valid", "test"]
 
 for phase in phases:
-    phase_df = pd.read_csv(os.path.join(DATA_READ_ROOT, "data", f"{phase}_sent_emo.csv"))
+    phase_df = pd.read_csv(
+        os.path.join(DATA_READ_ROOT, "data", f"{phase}_sent_emo.csv")
+    )
     phase_len = len(phase_df)
     utt2spk = []
     text = []
