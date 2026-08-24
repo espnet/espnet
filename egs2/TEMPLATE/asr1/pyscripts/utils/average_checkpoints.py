@@ -12,8 +12,8 @@ Example:
 """
 
 import logging
-from argparse import ArgumentParser
 import pickle
+from argparse import ArgumentParser
 
 import torch
 
@@ -50,16 +50,16 @@ def main(args):
         try:
             state_dict = torch.load(ckpt_path, map_location="cpu", weights_only=True)
         except (pickle.UnpicklingError, RuntimeError, TypeError) as e:
-            if not isinstance(e, pickle.UnpicklingError) and not _is_weights_only_compat_error(e):
+            if not isinstance(
+                e, pickle.UnpicklingError
+            ) and not _is_weights_only_compat_error(e):
                 raise
             logging.warning(
                 "Loading %s with weights_only=False for compatibility: %s",
                 ckpt_path,
                 e,
             )
-            state_dict = torch.load(
-                ckpt_path, map_location="cpu", weights_only=False
-            )
+            state_dict = torch.load(ckpt_path, map_location="cpu", weights_only=False)
 
         if avg_state_dict is None:
             avg_state_dict = state_dict

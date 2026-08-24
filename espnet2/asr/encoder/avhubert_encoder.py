@@ -1101,9 +1101,7 @@ class ResEncoder(nn.Module):
                 weights,
                 map_location=torch.device("cpu"),
                 weights_only=False,
-            )[
-                "model_state_dict"
-            ]
+            )["model_state_dict"]
             frontend_std, trunk_std = OrderedDict(), OrderedDict()
             for key, val in std.items():
                 new_key = ".".join(key.split(".")[1:])

@@ -125,9 +125,7 @@ def main():
 
     # load model config
     model_dir = os.path.dirname(args.model)
-    train_args = torch.load(
-        os.path.join(model_dir, "model.conf"), weights_only=False
-    )
+    train_args = torch.load(os.path.join(model_dir, "model.conf"), weights_only=False)
 
     # load statistics
     scaler = StandardScaler()
@@ -160,7 +158,9 @@ def main():
     try:
         state_dict = torch.load(args.model, map_location="cpu", weights_only=True)
     except (pickle.UnpicklingError, RuntimeError, TypeError) as e:
-        if not isinstance(e, pickle.UnpicklingError) and not _is_weights_only_compat_error(e):
+        if not isinstance(
+            e, pickle.UnpicklingError
+        ) and not _is_weights_only_compat_error(e):
             raise
         logging.warning(
             "Loading %s with weights_only=False for compatibility: %s",
