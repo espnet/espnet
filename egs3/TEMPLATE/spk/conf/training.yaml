@@ -1,0 +1,177 @@
+##########################################################
+#                    TRAINING SETTING                    #
+##########################################################
+# Quick usage:
+#   python run.py --stages create_dataset --training_config conf/training.yaml
+#   python run.py --stages train          --training_config conf/training.yaml
+#
+# Main stages and what this config is used for:
+# - `create_dataset`: uses `create_dataset`
+# - `train`: uses most fields in this file
+#
+# Speaker verification trains a closed-set classifier over the training
+# speakers and is evaluated open-set on verification trials, so this template
+# has neither a tokenizer nor a `collect_stats` stage. Every training crop has
+# the same length, which also means no bucketing sampler is needed.
+
+##########################################################
+#                  SYSTEM AND PATH SETTING               #
+##########################################################
+num_device: 1
+num_nodes: 1
+
+# ESPnet task class used by `get_espnet_model(...)`. It registers the encoder,
+# pooling, projector, and loss choices consumed by the `model` block below.
+task: espnet3.systems.spk.task.SpeakerTask
+
+# Path scaffold relative to the recipe root.
+recipe_dir: .
+data_dir: ${recipe_dir}/data
+exp_tag: ${self_name:}
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+
+##########################################################
+#                 DATASET CREATION SETTING               #
+##########################################################
+# Forwarded as keyword arguments to the recipe `DatasetBuilder`. The builder is
+# expected to write, under `${data_dir}`, the Kaldi-style `wav.scp` / `utt2spk`
+# / `spk2utt` files of each split plus the trial lists used for scoring.
+create_dataset:
+  recipe_dir: ${recipe_dir}
+
+##########################################################
+#                    DATASET DEFINITION                  #
+##########################################################
+# `train` yields single utterances with a string speaker label, and `valid`
+# yields verification trials: two utterances plus a target/nontarget flag.
+# `SpkPreprocessor` turns both into fixed-length crops, maps training speakers
+# to integer labels through `spk2utt`, and applies noise and reverberation
+# augmentation to the training split only.
+dataset:
+  _target_: espnet3.components.data.data_organizer.DataOrganizer
+  _recursive_: false
+  recipe_dir: ${recipe_dir}
+  train:
+  valid:
+  test:
+  preprocessor:
+    # `DataOrganizer` sets the `train` flag per split. On the training split
+    # the preprocessor takes one random crop and augments it; on validation it
+    # takes `num_eval` evenly spaced crops of both trial utterances instead.
+    _target_: espnet3.systems.spk.preprocessor.SpkPreprocessor
+    target_duration: 3.0
+    sample_rate: 16000
+    num_eval: 5
+    # Path to the `spk2utt` of the training split, used to map speaker names
+    # to the integer labels the classification loss expects.
+    spk2utt:
+    # Augmentation is off by default because it needs external corpora; see
+    # `noise_info` and `rir_scp` in the recipe configs.
+    noise_apply_prob: 0.0
+    rir_apply_prob: 0.0
+
+##########################################################
+#                      MODEL SETTING                     #
+##########################################################
+# Passed to `get_espnet_model(task, model)`, so this block accepts the same
+# fields an ESPnet2 speaker config uses: `frontend`, `encoder`, `pooling`,
+# `projector`, and `loss` with their `*_conf` counterparts.
+#
+# `spk_num` must equal the number of speakers in the training split, that is
+# the number of lines in the `spk2utt` written by `create_dataset`.
+model:
+  spk_num:
+
+##########################################################
+#            OPTIMIZER & SCHEDULER SETTING               #
+##########################################################
+optimizer:
+  _target_: torch.optim.Adam
+  lr: 0.001
+  weight_decay: 0.00005
+  amsgrad: false
+
+scheduler:
+scheduler_interval: step
+scheduler_monitor:
+
+##########################################################
+#                OTHER TRAINING SETTING                  #
+##########################################################
+# `valid/eer` is logged by `SpeakerVerificationScoring` (see `trainer` below).
+best_model_criterion:
+  - - valid/eer
+    - 3
+    - min
+
+seed:
+init:
+
+##########################################################
+#                   PARALLELIZATION SETTING              #
+##########################################################
+parallel:
+  env: local
+  n_workers: 1
+
+##########################################################
+#                   DATALOADER SETTING                   #
+##########################################################
+# Plain PyTorch dataloaders: `SpkPreprocessor` already emits fixed-length
+# crops, so there is nothing for a length-aware batch sampler to do.
+dataloader:
+  collate_fn:
+    _target_: espnet2.train.collate_fn.CommonCollateFn
+    int_pad_value: -1
+  train:
+    iter_factory:
+    batch_size: 256
+    num_workers: 8
+    shuffle: true
+    # Speaker-balanced batches assume a constant batch size, and the AAM
+    # softmax margin is sensitive to very small trailing batches.
+    drop_last: true
+    pin_memory: true
+  valid:
+    iter_factory:
+    # A validation item holds both utterances of a trial, each cut into
+    # `num_eval` crops, so keep this well below the training batch size.
+    batch_size: 16
+    num_workers: 8
+    shuffle: false
+    drop_last: false
+    pin_memory: true
+
+##########################################################
+#                    TRAINER SETTING                     #
+##########################################################
+trainer:
+  accelerator: auto
+  devices: ${num_device}
+  num_nodes: ${num_nodes}
+  accumulate_grad_batches: 1
+  check_val_every_n_epoch: 1
+  gradient_clip_val: 9999
+  log_every_n_steps: 100
+  max_epochs: 40
+  precision: bf16-mixed
+
+  callbacks:
+    # Scores the validation trials collected during the epoch and logs
+    # `valid/eer` and `valid/mindcf` for `best_model_criterion`.
+    - _target_: espnet3.systems.spk.callbacks.SpeakerVerificationScoring
+      p_target: 0.05
+      c_miss: 1.0
+      c_fa: 1.0
+
+  logger:
+    - _target_: lightning.pytorch.loggers.TensorBoardLogger
+      save_dir: ${exp_dir}/tensorboard
+      name: tb_logger
+
+  strategy: auto
+
+##########################################################
+#                      FIT SETTING                       #
+##########################################################
+fit: {}

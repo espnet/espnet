@@ -1,0 +1,46 @@
+builder:
+  # Where the prepared manifests are written, relative to the recipe root.
+  data_path: data
+  # Where the trial protocol is downloaded to, relative to the recipe root.
+  download_path: download
+  source_env_var: VOXCELEB
+  musan_env_var: MUSAN
+  rir_env_var: RIRS_NOISES
+
+  # Audio directories inside the VoxCeleb root, relative to it.
+  sources:
+    voxceleb1_dev: voxceleb1/dev
+    voxceleb1_test: voxceleb1/test
+    voxceleb2_dev: voxceleb2/dev
+
+  # Splits built by concatenating other splits.
+  combined:
+    voxceleb12_dev:
+      - voxceleb1_dev
+      - voxceleb2_dev
+
+  # Trial protocols, keyed by the name recipes pass as `trials`.
+  trials:
+    vox1_o:
+      split: voxceleb1_test
+      file_name: veri_test2.txt
+      url: https://www.robots.ox.ac.uk/~vgg/data/voxceleb/meta/veri_test2.txt
+
+  # RIR rooms used for augmentation. Large rooms are left out, following
+  # Kaldi and voxceleb_trainer.
+  rir_rooms:
+    - simulated_rirs/smallroom
+    - simulated_rirs/mediumroom
+  musan_categories:
+    - speech
+    - noise
+    - music
+
+dataset:
+  data_path: data
+  sample_rate: 16000
+  supported_splits:
+    - voxceleb1_dev
+    - voxceleb1_test
+    - voxceleb2_dev
+    - voxceleb12_dev

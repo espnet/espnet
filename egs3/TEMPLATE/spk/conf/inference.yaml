@@ -1,0 +1,77 @@
+##########################################################
+#                   Inference SETTING                    #
+##########################################################
+# Quick usage:
+#   python run.py --stages infer --inference_config conf/inference.yaml
+#
+# Outputs, one line per trial:
+# - `${inference_dir}/<test_name>/score.scp`
+# - `${inference_dir}/<test_name>/label.scp`
+
+##########################################################
+#                    PATHS AND INPUTS                    #
+##########################################################
+recipe_dir: .
+# Common case:
+# - pass both `--training_config` and `--inference_config`
+# - `run.py` copies `training_config.exp_tag` / `training_config.exp_dir` here
+# - if `inference_dir` is omitted, `conf/<name>.yaml` becomes `${exp_dir}/<name>`
+exp_tag:
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+data_dir: ${recipe_dir}/data
+inference_dir: ${exp_dir}/${self_name:}
+
+# Each entry of `dataset.test` is a trial list. `name` becomes the output
+# subdirectory under `${inference_dir}`, and `data_src_args` is forwarded to
+# the recipe `Dataset` class.
+#
+# Example:
+# dataset:
+#   test:
+#     - name: vox1_o
+#       data_src_args:
+#         split: voxceleb1_test
+#         trials: vox1_o
+dataset:
+  _target_: espnet3.components.data.data_organizer.DataOrganizer
+  _recursive_: false
+  recipe_dir: ${recipe_dir}
+  test:
+  # The scorer expects fixed-length crops, exactly like validation during
+  # training. `num_eval` is usually raised here because scoring runs once.
+  # Only the `test` split is declared, so `DataOrganizer` leaves the training
+  # and validation preprocessors unset.
+  preprocessor:
+    test:
+      _target_: espnet3.systems.spk.preprocessor.SpkPreprocessor
+      target_duration: 3.0
+      sample_rate: 16000
+      num_eval: 10
+      noise_apply_prob: 0.0
+      rir_apply_prob: 0.0
+
+##########################################################
+#                  PARALLELIZATION SETTING               #
+##########################################################
+parallel:
+  env: local
+  n_workers: 1
+
+##########################################################
+#                    MODEL AND OUTPUT                    #
+##########################################################
+model:
+  _target_: espnet3.systems.spk.inference.Speech2Score
+  train_config: ${exp_dir}/config.yaml
+  model_file: ${exp_dir}/valid.eer.ave_3best.pth
+
+# Both utterances of the trial are passed to the scorer.
+input_key:
+  - speech
+  - speech2
+
+# Trials are scored one at a time; the crops of a single trial already fill a
+# forward pass.
+batch_size:
+
+output_fn:
