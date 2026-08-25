@@ -10,8 +10,8 @@ import pytest
 import torch
 
 from espnet2.torch_utils.safe_torch_load import (
-    UnsafeLoadRefusedError,
     _ENV_VAR,
+    UnsafeLoadRefusedError,
     safe_torch_load,
 )
 

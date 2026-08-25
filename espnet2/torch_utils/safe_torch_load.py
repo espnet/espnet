@@ -116,9 +116,7 @@ def safe_torch_load(
         env_opt_in = os.environ.get(_ENV_VAR, "0") == "1"
 
         if not (
-            allow_unsafe_fallback
-            or env_opt_in
-            or _confirm_unsafe_interactively(path)
+            allow_unsafe_fallback or env_opt_in or _confirm_unsafe_interactively(path)
         ):
             raise UnsafeLoadRefusedError(
                 f"torch.load with weights_only=True failed for '{path}' "
