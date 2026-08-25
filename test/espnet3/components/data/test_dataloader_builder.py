@@ -9,7 +9,7 @@ from espnet3.components.data import data_organizer as data_organizer_module
 from espnet3.components.data.data_organizer import DataOrganizer, do_nothing
 from espnet3.components.data.dataloader import DataLoaderBuilder
 from espnet3.components.data.dataset import ShardedDataset
-from espnet3.components.data.iterator import BaseIterator
+from espnet3.components.data.iterator import EpochSyncIterator
 from espnet3.utils.config_utils import load_config_with_defaults
 
 # | Test Name                                         | Description                                                    | # noqa: E501
