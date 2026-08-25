@@ -51,8 +51,8 @@ for phase in phases:
         )
         wav_scp.append(
             f"{spk}-dia{line[5]}-utt{line[6]}-sea{line[7]}-epi{line[8]}-{phase} "
-            f"ffmpeg -i {DATA_READ_ROOT}/wavs/{phase}/dia{line[5]}_utt{line[6]}.mp4 -ac 1 "
-            f"-ar 16000 -f wav -vn -hide_banner -loglevel error - |"
+            f"ffmpeg -i {DATA_READ_ROOT}/wavs/{phase}/dia{line[5]}_utt{line[6]}.mp4 "
+            f"-ac 1 -ar 16000 -f wav -vn -hide_banner -loglevel error - |"
         )
 
     with open(os.path.join(DATA_WRITE_ROOT, phase, "utt2spk"), "w") as f:
