@@ -1,9 +1,7 @@
 """Tests for safe_torch_load."""
 
-import io
 import os
 import pickle
-import tempfile
 from unittest import mock
 
 import pytest
