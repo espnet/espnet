@@ -1,7 +1,6 @@
 """Tests for safe_torch_load."""
 
 import os
-import pickle
 from unittest import mock
 
 import pytest
@@ -21,9 +20,10 @@ def _save_simple_tensor(path):
 
 def _save_incompatible_object(path):
     """Save a checkpoint containing a non-tensor Python object."""
-    # Use pickle directly so weights_only=True will reject it.
-    with open(path, "wb") as f:
-        pickle.dump({"obj": object()}, f)
+    # Use torch.save so the file is a valid torch archive; weights_only=True
+    # will still reject it (non-tensor object), but weights_only=False can
+    # load it successfully.
+    torch.save({"obj": object()}, path)
 
 
 class TestSafeTorchLoad:
