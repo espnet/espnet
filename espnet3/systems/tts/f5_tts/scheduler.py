@@ -10,7 +10,7 @@ from espnet2.schedulers.abs_scheduler import AbsBatchStepScheduler
 
 
 class LinearWarmupDecayLR(_LRScheduler, AbsBatchStepScheduler):
-    """The LinearWarmupDecayLR scheduler
+    """Linear warmup followed by linear decay.
 
     This reproduces F5-TTS's training schedule
     (https://github.com/SWivid/F5-TTS/blob/main/src/f5_tts/model/trainer.py):
@@ -37,6 +37,16 @@ class LinearWarmupDecayLR(_LRScheduler, AbsBatchStepScheduler):
         end_factor: float = 1e-8,
         last_epoch: int = -1,
     ):
+        """Configure the schedule.
+
+        Args:
+            optimizer: Optimizer whose learning rates are scheduled.
+            warmup_steps: Updates spent ramping ``start_factor`` up to 1.0.
+            total_steps: Planned training length in optimizer updates.
+            start_factor: Multiplier applied to the base lr at step 0.
+            end_factor: Multiplier the lr decays to, and is clamped at.
+            last_epoch: Index of the last update, ``-1`` to start fresh.
+        """
         self.warmup_steps = int(warmup_steps)
         self.total_steps = int(total_steps)
         self.start_factor = start_factor
@@ -48,6 +58,7 @@ class LinearWarmupDecayLR(_LRScheduler, AbsBatchStepScheduler):
         super().__init__(optimizer, last_epoch)
 
     def __repr__(self):
+        """Return a readable summary of the schedule's parameters."""
         return (
             f"{self.__class__.__name__}"
             f"(warmup_steps={self.warmup_steps}, "
@@ -57,6 +68,7 @@ class LinearWarmupDecayLR(_LRScheduler, AbsBatchStepScheduler):
         )
 
     def get_lr(self):
+        """Return the learning rate for every parameter group at this step."""
         step_num = self.last_epoch
         param_groups = self.optimizer.param_groups
 

@@ -8,14 +8,14 @@ F5's pretrained checkpoints) we use F5's own ``{token: id}`` mapping with the
 unknown-> 0 fallback.
 
 It only tokenizes ``text`` (-> int64 ids) and passes the waveform through; the mel
-is produced in the model by ``feats_extract: vocoder_mel``, same as the char recipe.
+is produced in the model by ``VocoderMelSpec``, same as the char recipe.
 A plain callable (not an ``AbsPreprocessor``), so ESPnet3 calls
 ``preprocessor(sample)``.
 """
 
 from __future__ import annotations
 
-from espnet2.text.f5_pinyin import load_vocab_char_map, text_to_pinyin_ids
+from espnet3.systems.tts.f5_tts.pinyin import load_vocab_char_map, text_to_pinyin_ids
 
 
 class F5PinyinPreprocessor:
@@ -43,9 +43,11 @@ class F5PinyinPreprocessor:
 
     @property
     def vocab_size(self) -> int:
+        """Return the number of tokens in F5's fixed vocabulary."""
         return len(self.vocab_char_map)
 
     def __call__(self, data: dict) -> dict:
+        """Replace the raw transcript in ``data`` with pinyin token ids."""
         data[self.text_name] = text_to_pinyin_ids(
             data[self.text_name], self.vocab_char_map
         )

@@ -1,3 +1,24 @@
+# MIT License
+#
+# Copyright (c) 2024 Yushen CHEN
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
 """
 ein notation:
 b - batch
@@ -7,8 +28,16 @@ nw - raw wave length
 d - dimension
 """
 
-# Ported from SWivid/F5-TTS and kept close to upstream, so flake8 is not
-# enforced on this file (einops-style shape annotations trip F722/F821).
+# Ported verbatim from SWivid/F5-TTS at tag 1.1.20
+# (https://github.com/SWivid/F5-TTS), file
+# ``src/f5_tts/model/backbones/dit.py``.
+# That project is MIT-licensed and the notice above is its own.
+# Provenance was pinned by comparing every top-level symbol's AST against
+# the upstream tags: this file is identical at 1.1.20 and later, and
+# differs at every earlier tag.
+#
+# Kept close to upstream, so flake8 is not enforced on this file
+# (einops-style shape annotations trip F722/F821).
 # flake8: noqa
 
 from __future__ import annotations
@@ -19,7 +48,7 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
-from espnet2.tts.f5.modules import (
+from espnet3.systems.tts.f5_tts.modules import (
     AdaLayerNorm_Final,
     ConvNeXtV2Block,
     ConvPositionEmbedding,
@@ -27,7 +56,7 @@ from espnet2.tts.f5.modules import (
     TimestepEmbedding,
     precompute_freqs_cis,
 )
-from espnet2.tts.f5.rotary import RotaryEmbedding
+from espnet3.systems.tts.f5_tts.rotary import RotaryEmbedding
 
 # Text embedding
 

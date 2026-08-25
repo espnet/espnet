@@ -46,7 +46,6 @@ from espnet2.schedulers.cosine_anneal_warmup_restart import (
     CosineAnnealingWarmupRestarts,
 )
 from espnet2.schedulers.exponential_decay_warmup import ExponentialDecayWarmup
-from espnet2.schedulers.linear_warmup_decay import LinearWarmupDecayLR
 from espnet2.schedulers.noam_lr import NoamLR
 from espnet2.schedulers.piecewise_linear_warmup_lr import PiecewiseLinearWarmupLR
 from espnet2.schedulers.tristage_lr import TristageLR
@@ -174,7 +173,6 @@ scheduler_classes = dict(
     CosineAnnealingWarmupRestarts=CosineAnnealingWarmupRestarts,
     tristagelr=TristageLR,
     ExponentialDecayWarmup=ExponentialDecayWarmup,
-    LinearWarmupDecayLR=LinearWarmupDecayLR,
 )
 # To lower keys
 optim_classes = {k.lower(): v for k, v in optim_classes.items()}

@@ -1,8 +1,32 @@
+# MIT License
+#
+# Copyright (c) 2020 Phil Wang
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
 """Self-contained rotary positional embedding for F5-TTS.
 
-Faithful copy of the two symbols F5 uses from ``x_transformers`` (lucidrains,
-``x_transformers/x_transformers.py``), so the model no longer depends on that
-package. Only the ``use_xpos=False`` path F5 exercises is reproduced (``scale``
+Adapted from the symbols F5 uses out of ``x_transformers``
+(https://github.com/lucidrains/x-transformers, ``x_transformers/x_transformers.py``),
+which is MIT-licensed; the notice above is that project's own, and it is a
+different project from F5-TTS. Reproducing them here means the model no longer
+depends on that package. Only the ``use_xpos=False`` path F5 exercises is
+reproduced (``scale``
 is always ``1.0``); ``einops`` calls are rewritten with plain torch ops but the
 math/layout is identical.
 """
@@ -14,6 +38,7 @@ from torch import nn
 
 
 def rotate_half(x: torch.Tensor) -> torch.Tensor:
+    """Rotate the last dimension pairwise, mapping ``(x1, x2)`` to ``(-x2, x1)``."""
     # einops: 'b ... (d r) -> b ... d r' (r=2); (-x2, x1); '... d r -> ... (d r)'
     x = x.reshape(*x.shape[:-1], -1, 2)
     x1, x2 = x.unbind(dim=-1)
@@ -22,6 +47,16 @@ def rotate_half(x: torch.Tensor) -> torch.Tensor:
 
 
 def apply_rotary_pos_emb(t: torch.Tensor, freqs: torch.Tensor, scale=1) -> torch.Tensor:
+    """Apply rotary embeddings to ``t``, forced to fp32.
+
+    Args:
+        t: Queries or keys, ``[b, h, n, d]`` or ``[b, n, d]``.
+        freqs: Rotation angles, ``[b, n, rot_dim]``.
+        scale: xpos scale; always ``1`` on the path F5 uses.
+
+    Returns:
+        ``t`` rotated, cast back to its original dtype.
+    """
     # x_transformers runs this under @autocast(enabled=False); keyed to the
     # input's device so MPS/CPU AMP get the same fp32 guarantee as CUDA.
     with torch.autocast(device_type=t.device.type, enabled=False):
@@ -50,6 +85,8 @@ def _apply_rotary_pos_emb(
 
 
 class RotaryEmbedding(nn.Module):
+    """Rotary positional embedding, the ``use_xpos=False`` path only."""
+
     def __init__(
         self,
         dim,
@@ -59,6 +96,17 @@ class RotaryEmbedding(nn.Module):
         base=10000,
         base_rescale_factor=1.0,
     ):
+        """Configure the rotation frequencies.
+
+        Args:
+            dim: Rotary dimension; must be even.
+            use_xpos: Kept for signature compatibility. Only ``False`` is
+                reproduced here, which is the path F5 exercises.
+            scale_base: xpos scale base, unused when ``use_xpos`` is False.
+            interpolation_factor: Divides positions to stretch the context.
+            base: Frequency base before rescaling.
+            base_rescale_factor: NTK-aware rescale; ``1.0`` leaves ``base`` as is.
+        """
         super().__init__()
         # NTK-aware rescale (bloc97); factor 1.0 leaves base unchanged.
         base *= base_rescale_factor ** (dim / (dim - 2))
@@ -78,10 +126,12 @@ class RotaryEmbedding(nn.Module):
         self.register_buffer("scale", scale)
 
     def forward_from_seq_len(self, seq_len):
+        """Return embeddings for positions ``0..seq_len - 1``."""
         t = torch.arange(seq_len, device=self.inv_freq.device)
         return self.forward(t)
 
     def forward(self, t, offset=0):
+        """Return rotation angles for positions ``t``, computed in fp32."""
         # x_transformers runs this under @autocast(enabled=False): autocast
         # lowers einsum to bf16/fp16, which cannot represent positions > 256
         # exactly and silently corrupts phases in long utterances.

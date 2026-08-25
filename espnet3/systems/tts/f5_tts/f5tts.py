@@ -1,15 +1,16 @@
-"""F5-TTS as an espnet2 ``AbsTTS`` model.
+"""F5-TTS as an ``AbsTTS`` model.
 
-Registering this in the TTS task's ``tts_choices`` makes F5-TTS selectable with
-``tts: f5tts`` alongside the native espnet2 models (vits, fastspeech2, ...). The
-heavy lifting (DiT backbone + conditional flow-matching objective) lives in the
+Implements espnet2's ``AbsTTS`` interface so it can sit inside
+``ESPnetTTSModel``, but it is built by ``builder.build_f5_tts_model`` through
+Hydra rather than registered in ``espnet2/tasks/tts.py``. The heavy lifting
+(DiT backbone + conditional flow-matching objective) lives in the
 ported ``cfm`` / ``backbones.dit`` modules; this class only adapts them to the
 ``AbsTTS`` contract:
 
     forward(text, text_lengths, feats, feats_lengths, ...) -> (loss, stats, weight)
 
 ``ESPnetTTSModel`` extracts ``feats`` (mel) via the configured ``feats_extract``
-(use ``vocoder_mel`` to stay vocoder-compatible) and passes them in, so F5TTS works
+(``VocoderMelSpec``, to stay vocoder-compatible) and passes them in, so F5TTS works
 on precomputed mel here. ``CommonCollateFn`` pads text with id 0, whereas F5's
 text embedding expects its filler/padding id to be -1; we remap padded positions
 from ``text_lengths`` before the flow-matching forward.
@@ -22,8 +23,8 @@ from typing import Dict, Optional, Tuple
 import torch
 
 from espnet2.tts.abs_tts import AbsTTS
-from espnet2.tts.f5.backbones.dit import DiT
-from espnet2.tts.f5.cfm import CFM
+from espnet3.systems.tts.f5_tts.backbones.dit import DiT
+from espnet3.systems.tts.f5_tts.cfm import CFM
 
 
 class F5TTS(AbsTTS):
@@ -55,6 +56,19 @@ class F5TTS(AbsTTS):
         odeint_method: str = "euler",
         mel_spec_kwargs: Optional[dict] = None,
     ):
+        """Build the DiT backbone and wrap it in the flow-matching objective.
+
+        Args:
+            idim: Vocabulary size.
+            odim: Mel dimension, supplied by the feature extractor.
+            dim, depth, heads, dim_head, ff_mult, text_dim, conv_layers,
+                dropout, qk_norm, text_mask_padding, pe_attn_head,
+                long_skip_connection, checkpoint_activations: DiT backbone
+                hyper-parameters, defaulting to F5TTS_Base.
+            sigma, audio_drop_prob, cond_drop_prob, frac_lengths_mask,
+                odeint_method, mel_spec_kwargs: Conditional flow-matching
+                hyper-parameters forwarded to ``CFM``.
+        """
         super().__init__()
         self.odim = odim
 
@@ -88,10 +102,12 @@ class F5TTS(AbsTTS):
 
     @property
     def require_raw_speech(self) -> bool:
+        """Return False: F5 trains on mel, extracted by ``feats_extract``."""
         return False
 
     @property
     def require_vocoder(self) -> bool:
+        """Return True: the mel this model produces needs a neural vocoder."""
         return True
 
     @staticmethod
@@ -142,11 +158,12 @@ class F5TTS(AbsTTS):
         sway_sampling_coef: float = -1.0,
         **kwargs,
     ) -> Dict[str, torch.Tensor]:
-        """Minimal AbsTTS inference (generate mel for ``text`` given a reference).
+        """Generate mel for ``text`` given a reference, the minimal AbsTTS path.
 
         F5 is zero-shot: it needs a reference. ``speech`` is the reference mel or
         waveform; ``text`` should be the (ref + target) token ids — for the full
-        cross-speaker recipe protocol use ``espnet2.tts.f5.inference.F5TTSInference``,
+        cross-speaker recipe protocol use
+        ``espnet3.systems.tts.f5_tts.inference.F5TTSInference``,
         which handles reference pairing and vocoding.
 
         Returns ``{"feat_gen": mel[T_gen, odim]}``.

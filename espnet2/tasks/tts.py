@@ -23,7 +23,6 @@ from espnet2.train.preprocessor import CommonPreprocessor
 from espnet2.train.trainer import Trainer
 from espnet2.tts.abs_tts import AbsTTS
 from espnet2.tts.espnet_model import ESPnetTTSModel
-from espnet2.tts.f5.f5tts import F5TTS
 from espnet2.tts.fastspeech import FastSpeech
 from espnet2.tts.fastspeech2 import FastSpeech2
 from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
@@ -32,7 +31,6 @@ from espnet2.tts.feats_extract.energy import Energy
 from espnet2.tts.feats_extract.linear_spectrogram import LinearSpectrogram
 from espnet2.tts.feats_extract.log_mel_fbank import LogMelFbank
 from espnet2.tts.feats_extract.log_spectrogram import LogSpectrogram
-from espnet2.tts.feats_extract.vocoder_mel import VocoderMelSpec
 from espnet2.tts.prodiff import ProDiff
 from espnet2.tts.tacotron2 import Tacotron2
 from espnet2.tts.transformer import Transformer
@@ -48,7 +46,6 @@ feats_extractor_choices = ClassChoices(
         fbank=LogMelFbank,
         spectrogram=LogSpectrogram,
         linear_spectrogram=LinearSpectrogram,
-        vocoder_mel=VocoderMelSpec,
     ),
     type_check=AbsFeatsExtract,
     default="fbank",
@@ -100,7 +97,6 @@ tts_choices = ClassChoices(
         vits=VITS,
         joint_text2wav=JointText2Wav,
         jets=JETS,
-        f5tts=F5TTS,
     ),
     type_check=AbsTTS,
     default="tacotron2",

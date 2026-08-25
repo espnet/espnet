@@ -1,14 +1,15 @@
 """F5-TTS inference engine.
 
 Built by a recipe's ``infer`` stage
-(``model._target_: espnet2.tts.f5.inference.F5TTSInference``).
+(``model._target_: espnet3.systems.tts.f5_tts.inference.F5TTSInference``).
 For each test sample the runner calls ``model(**{key: data[key] for key in input_key})``
 with ``input_key: [text, ref_speech, ref_text]`` (cross/same-speaker protocol) and
 feeds the result to ``src.inference.build_output`` (which needs a ``"wav"`` entry).
 
-The model is rebuilt from the *training* config via the espnet2-compatible TTS
-task (``get_espnet_model``), so it stays in sync with whatever was trained:
-``ESPnetTTSModel(feats_extract=vocoder_mel, tts=F5TTS(...))``. Text is tokenized with
+The model is rebuilt from the *training* config by instantiating that config's
+own ``model`` block, so it stays in sync with whatever was trained:
+``ESPnetTTSModel(feats_extract=VocoderMelSpec, tts=F5TTS(...))``, assembled by
+``espnet3.systems.tts.f5_tts.builder.build_f5_tts_model``. Text is tokenized with
 the exact espnet2 components used in training (TextCleaner + tokenizer +
 TokenIDConverter) read from the training config's preprocessor.
 """
@@ -21,12 +22,12 @@ from typing import List, Optional, Union
 
 import numpy as np
 import torch
+from hydra.utils import instantiate
 from omegaconf import OmegaConf
 
 from espnet2.text.build_tokenizer import build_tokenizer
 from espnet2.text.cleaner import TextCleaner
 from espnet2.text.token_id_converter import TokenIDConverter
-from espnet3.utils.task_utils import get_espnet_model
 
 logger = logging.getLogger(__name__)
 
@@ -115,8 +116,9 @@ class F5TTSInference:
         """Build the model, tokenizer and vocoder for inference.
 
         Args:
-            train_config: Path to the training YAML (provides ``task`` + ``model``
-                + preprocessor tokenization settings — single source of truth).
+            train_config: Path to the training YAML (provides the ``model``
+                block + preprocessor tokenization settings, single source of
+                truth).
             ckpt_path: Lightning checkpoint (``.ckpt``) produced by training.
             device: Torch device string.
             use_ema: Load EMA-averaged weights (``ema_model_state_dict``) when
@@ -160,11 +162,13 @@ class F5TTSInference:
     def _build_model(
         self, cfg: dict, ckpt_path: str, use_ema: bool, native_f5: bool = False
     ):
-        task = cfg.get("task")
-        if not task:
-            raise ValueError("train_config must set `task` (the espnet2 TTS task).")
-        logger.info("Building TTS model via %s", task)
-        model = get_espnet_model(task, cfg["model"])
+        model_cfg = cfg.get("model")
+        if not model_cfg or not model_cfg.get("_target_"):
+            raise ValueError(
+                "train_config must set `model._target_` (the F5-TTS builder)."
+            )
+        logger.info("Building TTS model via %s", model_cfg["_target_"])
+        model = instantiate(model_cfg)
 
         if native_f5:
             # Official SWivid/F5-TTS checkpoint: CFM-level keys (transformer.* /
@@ -242,7 +246,10 @@ class F5TTSInference:
 
         if "F5PinyinPreprocessor" in target or prep.get("vocab_file"):
             # F5 zh+en pinyin: F5's own tokenizer + vocab (unknown token -> 0).
-            from espnet2.text.f5_pinyin import load_vocab_char_map, text_to_pinyin_ids
+            from espnet3.systems.tts.f5_tts.pinyin import (
+                load_vocab_char_map,
+                text_to_pinyin_ids,
+            )
 
             vocab_char_map = load_vocab_char_map(prep["vocab_file"])
             self._tokenize_fn = lambda text: text_to_pinyin_ids(text, vocab_char_map)
@@ -255,7 +262,7 @@ class F5TTSInference:
                 "Could not find dataset.preprocessor.token_list in train_config."
             )
         if prep.get("g2p_type") == "f5_pinyin":
-            from espnet2.text.f5_pinyin import register_f5_pinyin_g2p
+            from espnet3.systems.tts.f5_tts.pinyin import register_f5_pinyin_g2p
 
             register_f5_pinyin_g2p()
         cleaner = TextCleaner(prep.get("text_cleaner"))
@@ -309,7 +316,10 @@ class F5TTSInference:
         return self._tokenize_fn(text)
 
     def _vocode(self, mel: torch.Tensor) -> torch.Tensor:
-        """mel ``[1, d, n]`` -> waveform ``[nw]`` (vocos uses ``decode``)."""
+        """Vocode mel ``[1, d, n]`` to waveform ``[nw]``.
+
+        Vocos exposes ``decode``; bigvgan is a plain ``nn.Module``.
+        """
         if hasattr(self.vocoder, "decode"):
             wav = self.vocoder.decode(mel)
         else:  # bigvgan is a plain nn.Module
