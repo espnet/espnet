@@ -8,6 +8,10 @@ import torch
 from typeguard import typechecked
 
 from espnet2.sds.end_to_end.abs_e2e import AbsE2E
+from espnet2.sds.end_to_end.mini_omni.utils.snac_utils import (
+    generate_audio_data,
+    reconscruct_snac,
+)
 
 try:
     from pydub import AudioSegment
@@ -149,21 +153,30 @@ class MiniOmniE2EModel(AbsE2E):
             audio_generator = self.client.run_AT_batch_stream(
                 f.name, stream_stride, max_tokens
             )
-        ans = [k for k in audio_generator]
+        # Drain the generator. Its last yielded value is the text response and
+        # its return value is the complete 8-layer token stream, which we decode
+        # in one pass below instead of stitching the per-chunk audio it yields.
+        ans = []
+        while True:
+            try:
+                ans.append(next(audio_generator))
+            except StopIteration as e:
+                token_stream = e.value
+                break
         text_str = ans[-1]
-        ans = ans[:-1]
-        output_buffer = b""
-        for chunk in ans:
-            audio_segment = AudioSegment(
-                chunk,
-                frame_rate=self.OUT_RATE,
-                sample_width=self.OUT_SAMPLE_WIDTH,
-                channels=self.OUT_CHANNELS,
-            )
-            mp3_io = io.BytesIO()
-            audio_segment.export(mp3_io, format="mp3", bitrate="320k")
-            mp3_bytes = mp3_io.getvalue()
-            mp3_io.close()
-            output_buffer += mp3_bytes
-        audio_output = output_buffer
+
+        audio_segment = AudioSegment(
+            generate_audio_data(
+                reconscruct_snac(token_stream),
+                self.client.snacmodel,
+                self.client.device,
+            ),
+            frame_rate=self.OUT_RATE,
+            sample_width=self.OUT_SAMPLE_WIDTH,
+            channels=self.OUT_CHANNELS,
+        )
+        mp3_io = io.BytesIO()
+        audio_segment.export(mp3_io, format="mp3", bitrate="320k")
+        audio_output = mp3_io.getvalue()
+        mp3_io.close()
         return (text_str, audio_output)
