@@ -66,17 +66,23 @@ class TTSSystem(BaseSystem):
         parallel, via RemoveLongShortProvider/Runner) and saves filtered
         manifests for downstream stages.
 
-        Configuration should include:
-            training_config.remove_long_short.min_wav_duration: Minimum
-                duration in seconds
-            training_config.remove_long_short.max_wav_duration: Maximum
-                duration in seconds
-            training_config.remove_long_short.save_path: Directory to save
-                filtered manifests
-            training_config.remove_long_short.splits: List of splits to
-                process (train, valid, test)
-            training_config.remove_long_short.manifest_paths: Optional dict
-                of split to manifest path (default: data/manifest/{split}.tsv)
+        Configuration should include (under
+        ``training_config.remove_long_short``):
+            - ``min_wav_duration``: Minimum duration in seconds
+            - ``max_wav_duration``: Maximum duration in seconds
+            - ``save_path``: Directory to save filtered manifests
+            - ``splits``: List of splits to process (train, valid, test)
+            - ``manifest_paths``: Optional dict of split to manifest path
+              (default: data/manifest/{split}.tsv)
+
+        Example:
+            .. code-block:: yaml
+
+                remove_long_short:
+                  min_wav_duration: 2
+                  max_wav_duration: 30
+                  save_path: data/manifest_filtered
+                  splits: [train, valid, test]
 
         Raises:
             RuntimeError: If required configuration is missing or manifest
@@ -87,27 +93,31 @@ class TTSSystem(BaseSystem):
             "TTSSystem.remove_long_short(): starting long-short utterance removal"
         )
 
-        rls_cfg = self.training_config.get("remove_long_short", None)
-        if rls_cfg is None:
-            raise RuntimeError(
-                "training_config.remove_long_short must be set for "
-                "remove_long_short stage."
-            )
-        save_path_str = rls_cfg.get("save_path", None)
-        if save_path_str is None:
-            raise RuntimeError(
+        remove_long_short_config = self._get_required_config(
+            self.training_config,
+            "remove_long_short",
+            "training_config.remove_long_short must be set for "
+            "remove_long_short stage.",
+        )
+        save_path = Path(
+            self._get_required_config(
+                remove_long_short_config,
+                "save_path",
                 "training_config.remove_long_short.save_path must be set "
-                "for remove_long_short stage."
+                "for remove_long_short stage.",
             )
-        save_path = Path(save_path_str)
+        )
 
-        min_duration = rls_cfg.get("min_wav_duration", None)
-        max_duration = rls_cfg.get("max_wav_duration", None)
-        if min_duration is None or max_duration is None:
-            raise RuntimeError(
-                "training_config.remove_long_short.min_wav_duration and "
-                "max_wav_duration must be set for remove_long_short stage."
-            )
+        duration_error = (
+            "training_config.remove_long_short.min_wav_duration and "
+            "max_wav_duration must be set for remove_long_short stage."
+        )
+        min_duration = self._get_required_config(
+            remove_long_short_config, "min_wav_duration", duration_error
+        )
+        max_duration = self._get_required_config(
+            remove_long_short_config, "max_wav_duration", duration_error
+        )
 
         # Parse the parallel configuration early to set up parallelism for
         # the duration-filtering runner.
@@ -115,13 +125,13 @@ class TTSSystem(BaseSystem):
             set_parallel(self.training_config.parallel)
 
         # Get list of splits to process (Default: all splits)
-        splits = rls_cfg.get("splits", ["train", "valid", "test"])
+        splits = remove_long_short_config.get("splits", ["train", "valid", "test"])
 
         if isinstance(splits, str):
             splits = [splits]
 
-        manifest_paths = rls_cfg.get("manifest_paths", {})
-        batch_size = rls_cfg.get("batch_size", None)
+        manifest_paths = remove_long_short_config.get("manifest_paths", {})
+        batch_size = remove_long_short_config.get("batch_size", None)
 
         save_path.mkdir(parents=True, exist_ok=True)
         logger.info(
@@ -209,11 +219,38 @@ class TTSSystem(BaseSystem):
         tokens from the text transcriptions and saves them to a token
         list file.
 
-        Configuration should include:
-            training_config.create_token_list.save_path: Path to save
-                the token list file
-            training_config.create_token_list.manifest_path: Path to the
-                training manifest file (default: data/manifest/train.tsv)
+        Configuration should include (under
+        ``training_config.create_token_list``):
+            - ``save_path``: Directory to save the token list file
+            - ``filename``: Token list file name (e.g. tokens.txt)
+            - ``manifest_path``: Path to the training manifest file
+              (default: data/manifest/train.tsv)
+            - ``token_type``: Tokenization type such as char, word, bpe,
+              or phn (default: char)
+            - ``cleaner``: Optional text cleaner name (e.g. tacotron)
+            - ``g2p``: Optional grapheme-to-phoneme model name
+            - ``add_symbol`` / ``add_nonsplit_symbol``: Special symbols
+              to insert, as "<symbol>:<index>" strings
+            - ``cutoff`` / ``vocabulary_size``: Frequency cutoff and
+              vocabulary size limit (default: 0 = unlimited)
+            - ``vocab_builder`` / ``vocab_builder_conf``: Optional custom
+              vocab builder callable path and its options; when set it
+              replaces the default frequency-count construction
+
+        Example:
+            .. code-block:: yaml
+
+                create_token_list:
+                  save_path: data/token_list
+                  filename: tokens.txt
+                  manifest_path: data/manifest/train.tsv
+                  token_type: phn
+                  cleaner: tacotron
+                  g2p: g2p_en
+                  add_symbol:
+                    - "<blank>:0"
+                    - "<unk>:1"
+                    - "<sos/eos>:-1"
 
         Raises:
             RuntimeError: If required configuration is missing or
@@ -222,30 +259,30 @@ class TTSSystem(BaseSystem):
         self._reject_stage_args("create_token_list", args, kwargs)
         logger.info("TTSSystem.create_token_list(): starting token list creation")
 
-        tl_cfg = self.training_config.get("create_token_list", None)
-        if tl_cfg is None:
-            raise RuntimeError(
-                "training_config.create_token_list must be set for "
-                "create_token_list stage."
-            )
-        save_path_str = tl_cfg.get("save_path", None)
-        if save_path_str is None:
-            raise RuntimeError(
-                "training_config.create_token_list.save_path must be set "
-                "for create_token_list stage."
-            )
-        filename = tl_cfg.get("filename", None)
-        if filename is None:
-            raise RuntimeError(
-                "training_config.create_token_list.filename must be set "
-                "(e.g. 'tokens.txt'); save_path is the output directory."
-            )
+        create_token_list_config = self._get_required_config(
+            self.training_config,
+            "create_token_list",
+            "training_config.create_token_list must be set for "
+            "create_token_list stage.",
+        )
+        save_path_str = self._get_required_config(
+            create_token_list_config,
+            "save_path",
+            "training_config.create_token_list.save_path must be set "
+            "for create_token_list stage.",
+        )
+        filename = self._get_required_config(
+            create_token_list_config,
+            "filename",
+            "training_config.create_token_list.filename must be set "
+            "(e.g. 'tokens.txt'); save_path is the output directory.",
+        )
         save_dir = Path(save_path_str)
         save_dir.mkdir(parents=True, exist_ok=True)
         output_file = save_dir / filename
 
         manifest_path = Path(
-            tl_cfg.get("manifest_path", "data/manifest/train.tsv")
+            create_token_list_config.get("manifest_path", "data/manifest/train.tsv")
         ).resolve()
 
         if not manifest_path.exists():
@@ -260,11 +297,11 @@ class TTSSystem(BaseSystem):
         # full ordered token list. When set it fully replaces the default
         # frequency-count + special-symbol construction below, so any dataset /
         # tokenizer can plug its own vocab construction into this stage.
-        vocab_builder_path = tl_cfg.get("vocab_builder", None)
+        vocab_builder_path = create_token_list_config.get("vocab_builder", None)
         if vocab_builder_path is not None:
             from hydra.utils import get_method
 
-            cleaner_fn = TextCleaner(tl_cfg.get("cleaner", None))
+            cleaner_fn = TextCleaner(create_token_list_config.get("cleaner", None))
             texts = []
             with open(manifest_path, "r", encoding="utf-8") as f:
                 for line in f:
@@ -273,7 +310,7 @@ class TTSSystem(BaseSystem):
                         texts.append(cleaner_fn(parts[2]))
 
             builder = get_method(path=vocab_builder_path)
-            builder_conf = tl_cfg.get("vocab_builder_conf", {}) or {}
+            builder_conf = create_token_list_config.get("vocab_builder_conf", {}) or {}
             if not isinstance(builder_conf, dict):
                 builder_conf = OmegaConf.to_container(builder_conf, resolve=True)
             tokens = builder(texts, **builder_conf)
@@ -292,20 +329,22 @@ class TTSSystem(BaseSystem):
 
         # Declare text processing parameters with defaults (matching
         # espnet2 defaults where applicable)
-        cleaner = tl_cfg.get("cleaner", None)
-        token_type = tl_cfg.get("token_type", "char")
-        bpemodel = tl_cfg.get("bpemodel", None)
-        delimiter = tl_cfg.get("delimiter", None)
-        space_symbol = tl_cfg.get("space_symbol", "<space>")
-        non_linguistic_symbols = tl_cfg.get("non_linguistic_symbols", None)
-        remove_non_linguistic_symbols = tl_cfg.get(
+        cleaner = create_token_list_config.get("cleaner", None)
+        token_type = create_token_list_config.get("token_type", "char")
+        bpemodel = create_token_list_config.get("bpemodel", None)
+        delimiter = create_token_list_config.get("delimiter", None)
+        space_symbol = create_token_list_config.get("space_symbol", "<space>")
+        non_linguistic_symbols = create_token_list_config.get(
+            "non_linguistic_symbols", None
+        )
+        remove_non_linguistic_symbols = create_token_list_config.get(
             "remove_non_linguistic_symbols", False
         )
-        g2p = tl_cfg.get("g2p", None)
-        add_symbol = tl_cfg.get("add_symbol", [])
-        add_nonsplit_symbol = tl_cfg.get("add_nonsplit_symbol", [])
-        cutoff = tl_cfg.get("cutoff", 0)
-        vocabulary_size = tl_cfg.get("vocabulary_size", 0)
+        g2p = create_token_list_config.get("g2p", None)
+        add_symbol = create_token_list_config.get("add_symbol", [])
+        add_nonsplit_symbol = create_token_list_config.get("add_nonsplit_symbol", [])
+        cutoff = create_token_list_config.get("cutoff", 0)
+        vocabulary_size = create_token_list_config.get("vocabulary_size", 0)
 
         cleaner: TextCleaner = TextCleaner(cleaner)
         tokenizer = build_tokenizer(

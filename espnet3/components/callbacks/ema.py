@@ -22,7 +22,27 @@ class EMACallback(pl.Callback):
 
         Args:
             decay: EMA decay rate, forwarded to ``EMA`` as ``beta``.
-            **ema_kwargs: Extra keyword arguments forwarded to ``EMA``.
+            **ema_kwargs: Extra keyword arguments forwarded to ``EMA``
+                (``espnet3.components.callbacks.vendored_ema.EMA``).
+                Note that ``model``, ``beta``, and ``include_online_model``
+                are already set by this callback. The remaining parameters:
+                ``ema_model`` (default: ``None``),
+                ``update_after_step`` (default: ``100``),
+                ``update_every`` (default: ``10``),
+                ``inv_gamma`` (default: ``1.0``),
+                ``power`` (default: ``2 / 3``),
+                ``min_value`` (default: ``0.0``),
+                ``param_or_buffer_names_no_ema`` (default: ``set()``),
+                ``ignore_names`` (default: ``set()``),
+                ``ignore_startswith_names`` (default: ``set()``),
+                ``allow_different_devices`` (default: ``False``),
+                ``use_foreach`` (default: ``False``),
+                ``update_model_with_ema_every`` (default: ``None``),
+                ``update_model_with_ema_beta`` (default: ``0.0``),
+                ``forward_method_names`` (default: ``()``),
+                ``move_ema_to_online_device`` (default: ``False``),
+                ``coerce_dtype`` (default: ``False``),
+                ``lazy_init_ema`` (default: ``False``).
         """
         self.decay = decay
         self.ema_kwargs = ema_kwargs
