@@ -8,7 +8,7 @@ from hydra.utils import instantiate
 from omegaconf import DictConfig, OmegaConf
 
 from espnet2.samplers.build_batch_sampler import build_batch_sampler
-from espnet3.components.data.iterator import BaseIterator
+from espnet3.components.data.iterator import EpochSyncIterator
 from espnet3.utils.logging_utils import _dump_attrs, build_qualified_name
 
 logger = logging.getLogger(__name__)
@@ -299,7 +299,7 @@ class DataLoaderBuilder:
                 _LOGGED_DISTRIBUTED_BATCHES.add(mode)
 
         iter_factory = instantiate(factory_config, dataset, batches=batches)
-        iterator = BaseIterator(iter_factory.build_iter(self.epoch))
+        iterator = EpochSyncIterator(iter_factory.build_iter(self.epoch))
         log_dataloader(
             logger,
             iterator,

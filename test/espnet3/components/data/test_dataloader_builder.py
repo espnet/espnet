@@ -815,7 +815,7 @@ def test_iter_factory_returns_base_iterator_without_distributed(monkeypatch):
         epoch=0,
     )
     iterator = builder.build("train")
-    assert isinstance(iterator, BaseIterator)
+    assert isinstance(iterator, EpochSyncIterator)
     assert len(iterator) == 2
     assert list(iterator) == [[0, 1], [2, 3]]
 
@@ -849,5 +849,5 @@ def test_iter_factory_syncs_iterator_when_distributed_initialized(monkeypatch):
         epoch=0,
     )
     iterator = builder.build("train")
-    assert isinstance(iterator, BaseIterator)
+    assert isinstance(iterator, EpochSyncIterator)
     assert list(iterator) == [[0, 1], [4, 5]]

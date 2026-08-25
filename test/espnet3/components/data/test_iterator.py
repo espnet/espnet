@@ -34,16 +34,16 @@ def test_yields_all_batches_without_distributed(monkeypatch):
     monkeypatch.setattr(
         iterator_module.torch.distributed, "all_reduce", unexpected_all_reduce
     )
-    iterator = BaseIterator(["a", "b", "c"])
+    iterator = EpochSyncIterator(["a", "b", "c"])
     assert list(iterator) == ["a", "b", "c"]
 
 
 def test_len_delegates_to_wrapped_iterator():
-    assert len(BaseIterator([1, 2, 3])) == 3
+    assert len(EpochSyncIterator([1, 2, 3])) == 3
 
 
 def test_len_raises_when_wrapped_iterator_is_unsized():
-    iterator = BaseIterator(iter([1, 2, 3]))
+    iterator = EpochSyncIterator(iter([1, 2, 3]))
     with pytest.raises(TypeError):
         len(iterator)
 
@@ -58,7 +58,7 @@ def test_sync_yields_all_batches_when_ranks_aligned(monkeypatch):
         seen.append(tensor.item())
 
     _patch_dist_gloo(monkeypatch, fake_all_reduce)
-    iterator = BaseIterator(["a", "b", "c"])
+    iterator = EpochSyncIterator(["a", "b", "c"])
     assert list(iterator) == ["a", "b", "c"]
     # 3 has-next=1 flags plus the final has-next=0 on local exhaustion
     assert seen == [1.0, 1.0, 1.0, 0.0]
@@ -73,7 +73,7 @@ def test_sync_stops_when_another_rank_is_exhausted(monkeypatch):
             tensor.zero_()
 
     _patch_dist_gloo(monkeypatch, fake_all_reduce)
-    iterator = BaseIterator(["a", "b", "c"])
+    iterator = EpochSyncIterator(["a", "b", "c"])
     assert list(iterator) == ["a", "b"]
 
 
@@ -82,6 +82,6 @@ def test_sync_iterator_is_reiterable(monkeypatch):
         pass
 
     _patch_dist_gloo(monkeypatch, fake_all_reduce)
-    iterator = BaseIterator([1, 2])
+    iterator = EpochSyncIterator([1, 2])
     assert list(iterator) == [1, 2]
     assert list(iterator) == [1, 2]

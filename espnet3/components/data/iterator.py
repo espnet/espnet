@@ -1,16 +1,16 @@
-"""Base per-epoch batch iterator for ESPnet3."""
+"""Per-epoch batch iterator with DDP epoch-end sync for ESPnet3."""
 
 import torch
 
 
 class EpochSyncIterator:
-    """Base class for the per-epoch iterators returned by DataLoaderBuilder.
+    """Per-epoch iterator returned by DataLoaderBuilder.
 
     Wraps the iterator produced by an espnet2-style iter factory
     (``iter_factory.build_iter(epoch)``) and defines the iterator interface
     handed to the trainer.
 
-    When ``torch.distributed`` is initialized, the base class synchronizes the
+    When ``torch.distributed`` is initialized, this iterator synchronizes the
     end of the epoch across ranks. Iter factories like espnet2's
     ChunkIterFactory emit a data-dependent number of batches per rank,
     so under DDP each rank would otherwise end its epoch
@@ -40,14 +40,14 @@ class EpochSyncIterator:
     Examples:
         Without ``torch.distributed``, the wrapper is a pass-through:
 
-        >>> list(BaseIterator([{"speech": 0}, {"speech": 1}]))
+        >>> list(EpochSyncIterator([{"speech": 0}, {"speech": 1}]))
         [{'speech': 0}, {'speech': 1}]
 
         Under DDP, ``DataLoaderBuilder`` wraps the iter factory's iterator so
         that every rank stops at the shortest rank's batch count::
 
             iter_factory = ChunkIterFactory(dataset, batches=batches, ...)
-            iterator = BaseIterator(iter_factory.build_iter(epoch))
+            iterator = EpochSyncIterator(iter_factory.build_iter(epoch))
             for batch in iterator:  # same number of steps on every rank
                 ...
     """
@@ -69,7 +69,7 @@ class EpochSyncIterator:
             TypeError: If the wrapped iterator does not implement ``__len__``.
 
         Examples:
-            >>> len(BaseIterator([[0], [1], [2]]))
+            >>> len(EpochSyncIterator([[0], [1], [2]]))
             3
         """
         return len(self._iterator)
@@ -86,7 +86,7 @@ class EpochSyncIterator:
             Any: The batches of the wrapped iterator, in order and unchanged.
 
         Examples:
-            >>> class NonEmptyIterator(BaseIterator):
+            >>> class NonEmptyIterator(EpochSyncIterator):
             ...     def generate(self):
             ...         for batch in super().generate():
             ...             if len(batch) > 0:
@@ -115,7 +115,7 @@ class EpochSyncIterator:
 
         Examples:
             >>> # Single process: all batches are yielded.
-            >>> list(BaseIterator([[0], [1], [2]]))
+            >>> list(EpochSyncIterator([[0], [1], [2]]))
             [[0], [1], [2]]
             >>> # Two ranks holding 3 and 2 batches: both yield 2 batches,
             >>> # so neither rank enters validation while the other trains.
