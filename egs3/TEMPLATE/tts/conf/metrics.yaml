@@ -1,0 +1,15 @@
+##########################################################
+#                 METRIC SCORING SETTING                 #
+##########################################################
+# Quick usage:
+#   python run.py --stages measure --metrics_config conf/metrics.yaml
+#
+# Shared default merged under every TTS recipe's metrics config.
+
+recipe_dir: .
+exp_tag:
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+
+dataset:
+
+metrics:
