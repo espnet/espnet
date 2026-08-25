@@ -35,11 +35,18 @@ dataset:
     - data_src_args:
         split: valid
   preprocessor:
-    _target_: espnet2.train.preprocessor.CommonPreprocessor
     token_type: bpe
     token_list: ${tokenizer.save_path}/tokens.txt
     bpemodel: ${tokenizer.save_path}/bpe.model
-    text_cleaner:
+    train:
+      _target_: egs3.mini_an4.asr.src.preprocessor.MiniAn4TokenizeSpeedPerturbPreprocessor
+      fs: 16000
+      speed_perturb_factors: [0.95, 1.05]
+      speed_perturb_prob: 0.1
+    valid:
+      _target_: egs3.mini_an4.asr.src.preprocessor.MiniAn4TokenizeSpeedPerturbPreprocessor
+      fs: 16000
+      speed_perturb_prob: 0.0
 
 create_dataset:
   recipe_dir: ${recipe_dir}
@@ -59,7 +66,7 @@ tokenizer:
 ##########################################################
 #                      MODEL SETTING                     #
 ##########################################################
-# Transformer encoder plus RNNT-style decoder/joint network.
+# Tiny transformer encoder/decoder pair to keep CI fast.
 model:
   vocab_size: ${tokenizer.vocab_size}
   token_list: ${tokenizer.save_path}/tokens.txt
@@ -76,16 +83,15 @@ model:
     input_layer: conv1d2
     normalize_before: true
 
-  decoder: transducer
+  decoder: transformer
   decoder_conf:
-    rnn_type: lstm
-    num_layers: 1  # Decoder layers in the prediction network.
-    hidden_size: 4  # Decoder hidden dimension.
-    dropout: 0.1
-    dropout_embed: 0.2
-
-  joint_net_conf:
-    joint_space_size: 4
+    attention_heads: 2
+    linear_units: 2
+    num_blocks: 2
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    self_attention_dropout_rate: 0.0
+    src_attention_dropout_rate: 0.0
 
   normalize: utterance_mvn
   normalize_conf: {}
@@ -114,12 +120,12 @@ scheduler:
 ##########################################################
 #                OTHER TRAINING SETTING                  #
 ##########################################################
-# Xavier init is the default debug choice for this transformer setup.
+# Xavier init is used to stabilize this transformer baseline.
 init: xavier_uniform
 
 best_model_criterion:
   - - valid/loss
-    - 1
+    - 10
     - min
 
 ##########################################################
@@ -136,7 +142,6 @@ dataloader:
 #                    TRAINER SETTING                     #
 ##########################################################
 trainer:
-  log_every_n_steps: 1
   max_epochs: 1
   limit_train_batches: 1
   limit_val_batches: 1
