@@ -3,6 +3,7 @@ from argparse import Namespace
 from pathlib import Path
 
 import pytest
+from omegaconf import OmegaConf
 
 from espnet3.utils.config_utils import load_config_with_defaults
 
@@ -112,3 +113,98 @@ def test_save_espnet_config_avoids_yaml_aliases(tmp_path):
     content = output_file.read_text(encoding="utf-8")
     assert "&id" not in content
     assert "*id" not in content
+
+
+def test_save_espnet_config_keeps_split_preprocessor_configs(tmp_path):
+    config = {
+        "model": {
+            "_target_": "espnet2.asr.ctc.CTC",
+        },
+        "dataset": {
+            "preprocessor": {
+                "_target_": "espnet2.train.preprocessor.CommonPreprocessor",
+                "token_type": "char",
+                "train": {
+                    "text_name": "train_text",
+                },
+                "valid": {
+                    "text_name": "valid_text",
+                },
+            }
+        },
+        "token_list": ["<blank>", "a", "b", "c"],
+    }
+    output_file = tmp_path / "config.yaml"
+
+    save_espnet_config("espnet2.tasks.asr.ASRTask", config, output_file)
+
+    content = output_file.read_text(encoding="utf-8")
+    assert "dataset:" in content
+    assert "  preprocessor:" in content
+    assert "    train:" in content
+    assert "text_name: train_text" in content
+    assert "    valid:" in content
+    assert "text_name: valid_text" in content
+
+
+def test_save_espnet_config_handles_split_preprocessor_list_values(tmp_path):
+    config = {
+        "model": {
+            "_target_": "espnet2.asr.ctc.CTC",
+        },
+        "dataset": {
+            "preprocessor": OmegaConf.create(
+                {
+                    "token_type": "char",
+                    "train": {
+                        "_target_": (
+                            "egs3.mini_an4.asr.src.preprocessor."
+                            "MiniAn4TokenizeSpeedPerturbPreprocessor"
+                        ),
+                        "speed_perturb_factors": [0.95, 1.05],
+                    },
+                    "valid": {
+                        "_target_": (
+                            "egs3.mini_an4.asr.src.preprocessor."
+                            "MiniAn4TokenizeSpeedPerturbPreprocessor"
+                        ),
+                        "speed_perturb_prob": 0.0,
+                    },
+                }
+            )
+        },
+        "token_list": ["<blank>", "a", "b", "c"],
+    }
+    output_file = tmp_path / "config.yaml"
+
+    save_espnet_config("espnet2.tasks.asr.ASRTask", config, output_file)
+
+    content = output_file.read_text(encoding="utf-8")
+    assert "  preprocessor:" in content
+    assert "speed_perturb_factors:" in content
+    assert "- 0.95" in content
+    assert "- 1.05" in content
+
+
+def test_save_espnet_config_flattens_shared_abs_preprocessor(tmp_path):
+    config = {
+        "model": {
+            "_target_": "espnet2.asr.ctc.CTC",
+        },
+        "dataset": {
+            "preprocessor": {
+                "_target_": "espnet2.train.preprocessor.CommonPreprocessor",
+                "token_type": "char",
+                "text_name": "train_text",
+            }
+        },
+        "token_list": ["<blank>", "a", "b", "c"],
+    }
+    output_file = tmp_path / "config.yaml"
+
+    save_espnet_config("espnet2.tasks.asr.ASRTask", config, output_file)
+
+    content = output_file.read_text(encoding="utf-8")
+    assert "dataset: {}" in content
+    assert "  preprocessor:" not in content
+    assert "text_name: train_text" in content
