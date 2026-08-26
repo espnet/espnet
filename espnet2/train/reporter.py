@@ -602,12 +602,7 @@ class Reporter:
             for key, key_dict in epoch_dict.items():
                 restored_stats[epoch][key] = {}
                 for k, val in key_dict.items():
-                    if (
-                        isinstance(val, dict)
-                        and "__timedelta_seconds__" in val
-                    ):
-                        val = datetime.timedelta(
-                            seconds=val["__timedelta_seconds__"]
-                        )
+                    if isinstance(val, dict) and "__timedelta_seconds__" in val:
+                        val = datetime.timedelta(seconds=val["__timedelta_seconds__"])
                     restored_stats[epoch][key][k] = val
         self.stats = restored_stats
