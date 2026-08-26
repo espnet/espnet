@@ -8,7 +8,6 @@ This module defines the base interface for handling different modalities
 continuous (feature-based) representations.
 """
 
-from abc import ABC
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
@@ -16,7 +15,7 @@ import torch
 from torch.nn import Module
 
 
-class AbsIO(ABC, Module):
+class AbsIO(Module):
     """Abstract base class for multimodal I/O processing.
 
     This class provides the interface for encoding and decoding different
