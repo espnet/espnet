@@ -28,13 +28,9 @@ nw - raw wave length
 d - dimension
 """
 
-# Ported verbatim from SWivid/F5-TTS at tag 1.1.20
-# (https://github.com/SWivid/F5-TTS), file
+# Ported verbatim from SWivid/F5-TTS
 # ``src/f5_tts/model/cfm.py``.
 # That project is MIT-licensed and the notice above is its own.
-# Provenance was pinned by comparing every top-level symbol's AST against
-# the upstream tags: this file is identical at 1.1.20 and later, and
-# differs at every earlier tag.
 #
 # Kept close to upstream, so flake8 is not enforced on this file
 # (einops-style shape annotations trip F722/F821).

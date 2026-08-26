@@ -36,6 +36,18 @@ class F5PinyinPreprocessor:
             text_name: Sample dict key holding the raw transcript.
             train: Accepted for the collect_stats train/valid toggle
                 (no-op here).
+
+        Example:
+            .. code-block:: yaml
+
+                preprocessor:
+                  _target_: espnet3.systems.tts.f5_tts.preprocessor.F5PinyinPreprocessor
+                  vocab_file: /path/to/Emilia_ZH_EN_pinyin/vocab.txt
+
+        Note:
+            The vocabulary is read once at construction, so ``vocab_file`` must
+            be the same one the checkpoint was trained with: it fixes the token
+            ids, and a different file silently remaps them.
         """
         self.vocab_char_map = load_vocab_char_map(vocab_file)
         self.text_name = text_name
@@ -43,11 +55,38 @@ class F5PinyinPreprocessor:
 
     @property
     def vocab_size(self) -> int:
-        """Return the number of tokens in F5's fixed vocabulary."""
+        """Return the number of tokens in F5's fixed vocabulary.
+
+        Returns:
+            Line count of ``vocab_file``.
+
+        Note:
+            This is the value to use as the model's ``idim`` when training
+            against F5's fixed vocabulary instead of an ESPnet token list.
+        """
         return len(self.vocab_char_map)
 
     def __call__(self, data: dict) -> dict:
-        """Replace the raw transcript in ``data`` with pinyin token ids."""
+        """Replace the raw transcript in ``data`` with pinyin token ids.
+
+        Args:
+            data: Sample dict holding the raw transcript under ``text_name``.
+
+        Returns:
+            The same dict, with that entry replaced by an ``int64`` id array.
+            Every other key is left untouched.
+
+        Example:
+            .. code-block:: python
+
+                >>> prep({"text": "abc"})["text"]
+                array([1, 2, 3])
+
+        Note:
+            Mutates and returns the dict it is given rather than copying.
+            Unknown tokens become 0, F5's literal space, so out-of-vocab text
+            degrades quietly instead of raising.
+        """
         data[self.text_name] = text_to_pinyin_ids(
             data[self.text_name], self.vocab_char_map
         )

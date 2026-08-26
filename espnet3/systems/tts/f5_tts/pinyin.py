@@ -22,7 +22,7 @@
 """F5-TTS zh+en pinyin tokenization.
 
 Adapted from F5-TTS's ``convert_char_to_pinyin``
-(https://github.com/SWivid/F5-TTS, ``src/f5_tts/model/utils.py`` at tag 1.1.20),
+(https://github.com/SWivid/F5-TTS, ``src/f5_tts/model/utils.py``),
 which is MIT-licensed; the notice above is that project's own. ``is_chinese`` is
 carried over unchanged, while ``convert_char_to_pinyin`` was reworked for this
 recipe, so this is an adaptation rather than a copy. Behaviour: Chinese
@@ -52,7 +52,32 @@ import numpy as np
 def convert_char_to_pinyin(
     text_list: List[str], polyphone: bool = True
 ) -> List[List[str]]:
-    """F5-TTS tokenizer: hanzi -> pinyin syllables, else char-level."""
+    """F5-TTS tokenizer: hanzi -> pinyin syllables, else char-level.
+
+    Args:
+        text_list: Raw transcripts. Each entry is tokenized independently.
+        polyphone: Enable pypinyin polyphone handling and tone sandhi for pure
+            east-asian segments.
+
+    Returns:
+        One token list per input string, in the same order.
+
+    Example:
+        .. code-block:: python
+
+            >>> convert_char_to_pinyin(["hello"])
+            [['h', 'e', 'l', 'l', 'o']]
+            >>> convert_char_to_pinyin(["\u4e2d\u6587"])
+            [[' ', 'zhong1', ' ', 'wen2']]
+
+    Note:
+        This is F5's "Emilia_ZH_EN_pinyin" scheme, not "pinyin for English":
+        Chinese becomes ``Style.TONE3`` syllables each preceded by a space,
+        while English stays character-level. ``rjieba`` runs on every input,
+        English included, so both optional dependencies are needed even for
+        English-only text. Output depends on the installed ``rjieba`` /
+        ``pypinyin`` versions.
+    """
     import rjieba
     from pypinyin import Style, lazy_pinyin
 
@@ -98,12 +123,49 @@ def convert_char_to_pinyin(
 
 
 def f5_pinyin_g2p(text: str) -> List[str]:
-    """ESPnet-style g2p wrapper: a single string -> list of F5 pinyin tokens."""
+    """ESPnet-style g2p wrapper: a single string -> list of F5 pinyin tokens.
+
+    Args:
+        text: One raw transcript.
+
+    Returns:
+        The token list for ``text``.
+
+    Example:
+        .. code-block:: python
+
+            >>> f5_pinyin_g2p("hi")
+            ['h', 'i']
+
+    Note:
+        Exists because ESPnet's g2p contract is one string in, one token list
+        out, whereas :func:`convert_char_to_pinyin` is batch-shaped. Registered
+        as ``g2p_type="f5_pinyin"`` by :func:`register_f5_pinyin_g2p`.
+    """
     return convert_char_to_pinyin([text])[0]
 
 
 def load_vocab_char_map(vocab_file: str) -> Dict[str, int]:
-    """Load F5's ``vocab.txt`` as ``{token: index}`` (line number = index)."""
+    """Load F5's ``vocab.txt`` as ``{token: index}`` (line number = index).
+
+    Args:
+        vocab_file: Path to F5's ``vocab.txt``, one token per line.
+
+    Returns:
+        Mapping from token to its line number.
+
+    Example:
+        .. code-block:: python
+
+            >>> load_vocab_char_map("vocab.txt")   # first line is a space
+            {' ': 0, 'a': 1, 'b': 2}
+
+    Note:
+        Only the trailing newline is stripped, never surrounding whitespace, so
+        F5's literal space token at index 0 survives. Stripping it would shift
+        every id and silently corrupt the mapping. Unlike an ESPnet token list
+        this vocabulary has no ``<blank>`` / ``<unk>`` / ``<sos/eos>``.
+    """
     vocab_char_map: Dict[str, int] = {}
     with open(vocab_file, "r", encoding="utf-8") as f:
         for i, line in enumerate(f):
@@ -112,7 +174,27 @@ def load_vocab_char_map(vocab_file: str) -> Dict[str, int]:
 
 
 def text_to_pinyin_ids(text: str, vocab_char_map: Dict[str, int]) -> np.ndarray:
-    """F5's exact mapping: tokenize then map each token, unknown -> 0."""
+    """F5's exact mapping: tokenize then map each token, unknown -> 0.
+
+    Args:
+        text: One raw transcript.
+        vocab_char_map: Mapping from :func:`load_vocab_char_map`.
+
+    Returns:
+        Token ids as an ``int64`` array.
+
+    Example:
+        .. code-block:: python
+
+            >>> text_to_pinyin_ids("abz", {" ": 0, "a": 1, "b": 2})
+            array([1, 2, 0])
+
+    Note:
+        F5's vocabulary has no ``<unk>``, so an unknown token maps to index 0,
+        which is the literal space. That is upstream's behaviour and is kept
+        deliberately for checkpoint compatibility, but it means out-of-vocab
+        text degrades silently rather than raising.
+    """
     tokens = convert_char_to_pinyin([text])[0]
     return np.asarray([vocab_char_map.get(t, 0) for t in tokens], dtype=np.int64)
 
@@ -151,6 +233,12 @@ def build_pinyin_vocab(
         be byte-identical to F5's published ``Emilia_ZH_EN_pinyin/vocab.txt``.
         For from-scratch training that is fine; for finetuning a pretrained F5
         model, use F5's shipped ``vocab.txt`` instead.
+
+    Example:
+        .. code-block:: python
+
+            >>> build_pinyin_vocab(["ab"])
+            ['a', 'b']
     """
     vocab_set = set()
     for text in texts:
@@ -172,6 +260,25 @@ def register_f5_pinyin_g2p() -> None:
     Lets ``CommonPreprocessor`` / ``build_tokenizer`` use F5's pinyin tokenizer
     via ``token_type: phn, g2p_type: f5_pinyin`` (for the from-scratch case where
     you build your own vocab including a ``<unk>`` symbol). Idempotent.
+
+    Returns:
+        ``None``. The effect is the global registration.
+
+    Example:
+        .. code-block:: yaml
+
+            preprocessor:
+              _target_: espnet2.train.preprocessor.CommonPreprocessor
+              token_type: phn
+              g2p_type: f5_pinyin
+
+    Note:
+        This monkey-patches ``espnet2.text.phoneme_tokenizer``, appending to
+        ``g2p_choices`` and wrapping ``PhonemeTokenizer.__init__``. Repeat calls
+        are no-ops, so it is safe to call from several entry points. Use this
+        path only when building your own vocab with a ``<unk>``; to match F5's
+        fixed ``vocab.txt`` use ``F5PinyinPreprocessor`` instead, since ESPnet's
+        ``TokenIDConverter`` requires a ``<unk>`` that F5's vocab lacks.
     """
     global _REGISTERED
     if _REGISTERED:

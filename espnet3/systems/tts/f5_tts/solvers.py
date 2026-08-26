@@ -35,7 +35,40 @@ _FIXED_STEP = {"euler", "midpoint"}
 def odeint(
     func: Callable, y0: torch.Tensor, t: torch.Tensor, method: str = "euler", **kwargs
 ):
-    """Fixed-step ODE integration; torchdiffeq fallback for other methods."""
+    """Fixed-step ODE integration; torchdiffeq fallback for other methods.
+
+    Args:
+        func: Derivative ``func(t_scalar, y) -> dy/dt``.
+        y0: Initial state.
+        t: 1-D time grid. Steps use ``dt = t[i + 1] - t[i]``, so non-uniform
+            grids (EPSS, sway sampling) work unchanged.
+        method: ``"euler"`` or ``"midpoint"`` built in; anything else is
+            delegated to ``torchdiffeq``.
+        **kwargs: Forwarded to ``torchdiffeq`` on the fallback path only.
+
+    Returns:
+        Trajectory stacked as ``[len(t), *y0.shape]`` with ``solution[0] == y0``,
+        matching ``torchdiffeq.odeint``, so ``solution[-1]`` is the final state.
+
+    Raises:
+        ImportError: If a non-fixed-step method is requested and ``torchdiffeq``
+            is not installed.
+
+    Example:
+        .. code-block:: python
+
+            >>> sol = odeint(lambda t, y: y, torch.tensor([1.0]),
+            ...              torch.linspace(0, 1, 3))
+            >>> sol.shape
+            torch.Size([3, 1])
+
+    Note:
+        The two built-in methods reproduce ``torchdiffeq``'s fixed-step solvers
+        exactly, so the default F5 configuration needs no extra dependency.
+        Returning the whole trajectory rather than just the endpoint is
+        deliberate: it keeps the ``torchdiffeq`` signature, so the fallback is a
+        drop-in.
+    """
     if method not in _FIXED_STEP:
         # Adaptive / higher-order solvers: defer to torchdiffeq if available.
         try:

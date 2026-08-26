@@ -68,6 +68,23 @@ class F5TTS(AbsTTS):
             sigma, audio_drop_prob, cond_drop_prob, frac_lengths_mask,
                 odeint_method, mel_spec_kwargs: Conditional flow-matching
                 hyper-parameters forwarded to ``CFM``.
+
+        Example:
+            .. code-block:: yaml
+
+                tts_conf:      # F5TTS_Small; omit these keys for F5TTS_Base
+                  dim: 768
+                  depth: 18
+                  heads: 12
+                  frac_lengths_mask: [0.7, 1.0]
+
+        Note:
+            ``idim`` and ``odim`` are supplied by
+            ``builder.build_f5_tts_model``: ``idim`` is the token-list length
+            and ``odim`` comes from ``VocoderMelSpec.output_size()``. Every
+            other argument is a key of the recipe's ``tts_conf`` block. Changing
+            the backbone sizes changes the parameter shapes, so an existing
+            checkpoint will not load into a resized model.
         """
         super().__init__()
         self.odim = odim
@@ -102,12 +119,31 @@ class F5TTS(AbsTTS):
 
     @property
     def require_raw_speech(self) -> bool:
-        """Return False: F5 trains on mel, extracted by ``feats_extract``."""
+        """Return False: F5 trains on mel, extracted by ``feats_extract``.
+
+        Returns:
+            Always ``False``.
+
+        Note:
+            ``ESPnetTTSModel`` reads this to decide whether to hand the model
+            the raw waveform. F5 wants mel, so ``VocoderMelSpec`` runs first and
+            ``forward`` receives ``feats``. ``inference`` still accepts a
+            waveform reference, which ``CFM`` converts internally.
+        """
         return False
 
     @property
     def require_vocoder(self) -> bool:
-        """Return True: the mel this model produces needs a neural vocoder."""
+        """Return True: the mel this model produces needs a neural vocoder.
+
+        Returns:
+            Always ``True``.
+
+        Note:
+            The model emits mel, never a waveform. Which vocoder family that mel
+            targets is set by ``VocoderMelSpec(mel_spec_type=...)``, so the
+            vocoder used at inference must match the one used for training.
+        """
         return True
 
     @staticmethod
@@ -139,6 +175,26 @@ class F5TTS(AbsTTS):
             text_lengths: ``[B]``.
             feats: Mel spectrogram ``[B, T_feats, odim]`` from feats_extract.
             feats_lengths: ``[B]`` valid mel frame counts.
+            **kwargs: Extra batch fields (e.g. ``speech``) that ``ESPnetTTSModel``
+                forwards but this model does not use.
+
+        Returns:
+            Tuple of ``(loss, stats, weight)``, the ``AbsTTS`` training contract:
+            a scalar flow-matching loss, ``{"loss": detached loss}`` for logging,
+            and the batch size as the weight used to average across ranks.
+
+        Example:
+            .. code-block:: python
+
+                >>> loss, stats, weight = model.tts(
+                ...     text=text, text_lengths=text_lengths,
+                ...     feats=feats, feats_lengths=feats_lengths,
+                ... )
+
+        Note:
+            The span masked for prediction is drawn at random each call
+            (``frac_lengths_mask``), so the loss is stochastic: two calls on the
+            same batch differ unless the RNG is reseeded.
         """
         text = self._remap_text_padding(text, text_lengths)
         loss, _cond, _pred = self.cfm(feats, text=text, lens=feats_lengths)
@@ -166,7 +222,40 @@ class F5TTS(AbsTTS):
         ``espnet3.systems.tts.f5_tts.inference.F5TTSInference``,
         which handles reference pairing and vocoding.
 
-        Returns ``{"feat_gen": mel[T_gen, odim]}``.
+        Args:
+            text: Reference + target token ids ``[T_text]``, unbatched.
+            speech: Reference audio, either mel ``[T_ref, odim]`` or raw
+                waveform ``[T_wav]``. Required.
+            ref_text: Accepted for interface compatibility and unused; the
+                reference transcript is expected to be part of ``text``.
+            duration: Total mel length to generate, reference included. Defaults
+                to twice the reference length.
+            steps: Number of ODE solver steps.
+            cfg_strength: Classifier-free guidance scale.
+            sway_sampling_coef: Sway sampling coefficient for the timestep
+                schedule; negative values front-load the steps.
+            **kwargs: Ignored, for ``AbsTTS`` signature compatibility.
+
+        Returns:
+            ``{"feat_gen": mel[T_gen, odim]}``, with the reference prefix
+            stripped so only the generated span is returned.
+
+        Raises:
+            RuntimeError: If ``speech`` is ``None``. F5 is zero-shot and cannot
+                generate without a reference.
+
+        Example:
+            .. code-block:: python
+
+                >>> out = model.tts.inference(text=token_ids, speech=ref_mel)
+                >>> out["feat_gen"].shape
+                torch.Size([T_gen, 100])
+
+        Note:
+            This is the minimal ``AbsTTS`` path and does no vocoding. The
+            default ``duration`` heuristic is a fallback, and output length is
+            driven by the reference length, so use ``F5TTSInference`` for the
+            recipe protocol.
         """
         if speech is None:
             raise RuntimeError("F5TTS.inference requires a reference 'speech'.")

@@ -2,9 +2,7 @@
 
 Replaces the ``espnet2.tasks.tts.TTSTask.build_model`` route: F5-TTS is an
 ESPnet3 model and is no longer registered in ``espnet2/tasks/tts.py``, so the
-training config reaches it through ``_target_`` instead of ``task:``. Only the
-branches this recipe exercises are reproduced, i.e. mel extracted inside the
-model, no normalization layer, and no pitch/energy predictors.
+training config reaches it through ``_target_`` instead of ``task:``.
 
 The returned object is still ``espnet2.tts.espnet_model.ESPnetTTSModel``, which
 keeps the forward maths and the ``collect_feats`` contract identical to the
@@ -30,6 +28,31 @@ def _plain(value: Any) -> Any:
     config opts into ``_convert_``. Those unpack through ``**`` well enough, but
     they leak into ``F5TTS``'s stored attributes and into checkpointed hparams,
     so they are converted once here instead.
+
+    Args:
+        value: Any config value. ``DictConfig`` and ``ListConfig`` are
+            converted recursively with interpolations resolved; anything else
+            is returned unchanged, so plain Python and direct Python calls
+            pass straight through.
+
+    Returns:
+        ``dict`` for a ``DictConfig``, ``list`` for a ``ListConfig``, otherwise
+        ``value`` itself.
+
+    Example:
+        .. code-block:: python
+
+            >>> from omegaconf import OmegaConf
+            >>> _plain(OmegaConf.create({"depth": 18}))
+            {'depth': 18}
+            >>> _plain({"depth": 18})
+            {'depth': 18}
+
+    Note:
+        Conversion happens before the value reaches a component, so a config
+        list such as ``frac_lengths_mask: [0.7, 1.0]`` arrives as a real
+        ``list`` and is coerced by the component's own signature rather than
+        being stored as a ``ListConfig``.
     """
     if isinstance(value, (DictConfig, ListConfig)):
         return OmegaConf.to_container(value, resolve=True)
@@ -47,8 +70,7 @@ def build_f5_tts_model(
 
     Every hyper-parameter reaches its component through one of the three
     ``*_conf`` blocks, whose keys map one-to-one onto that component's
-    ``__init__``. None of them accepts ``**kwargs``, so a misspelled key raises
-    ``TypeError`` at build time rather than silently training a default model:
+    ``__init__``.
 
     - ``tts_conf`` -> :class:`F5TTS` (model size and flow-matching settings)
     - ``feats_extract_conf`` -> :class:`VocoderMelSpec` (mel front-end)

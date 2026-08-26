@@ -46,6 +46,22 @@ class LinearWarmupDecayLR(_LRScheduler, AbsBatchStepScheduler):
             start_factor: Multiplier applied to the base lr at step 0.
             end_factor: Multiplier the lr decays to, and is clamped at.
             last_epoch: Index of the last update, ``-1`` to start fresh.
+
+        Example:
+            .. code-block:: yaml
+
+                scheduler:
+                  _target_: espnet3.systems.tts.f5_tts.scheduler.LinearWarmupDecayLR
+                  warmup_steps: 20000
+                  total_steps: 600000
+                scheduler_interval: step
+
+        Note:
+            ``total_steps`` is the planned horizon, not a stopping condition:
+            training past it holds the floor rather than going negative. Because
+            the schedule is stepped per update, ``scheduler_interval: step`` is
+            required; leaving it at the epoch default stretches the warmup over
+            the whole run.
         """
         self.warmup_steps = int(warmup_steps)
         self.total_steps = int(total_steps)
@@ -58,7 +74,18 @@ class LinearWarmupDecayLR(_LRScheduler, AbsBatchStepScheduler):
         super().__init__(optimizer, last_epoch)
 
     def __repr__(self):
-        """Return a readable summary of the schedule's parameters."""
+        """Return a readable summary of the schedule's parameters.
+
+        Returns:
+            The class name with the configured horizon and factors.
+
+        Example:
+            .. code-block:: python
+
+                >>> repr(scheduler)
+                'LinearWarmupDecayLR(warmup_steps=20, total_steps=100, \
+start_factor=1e-08, end_factor=1e-08)'
+        """
         return (
             f"{self.__class__.__name__}"
             f"(warmup_steps={self.warmup_steps}, "
@@ -68,7 +95,19 @@ class LinearWarmupDecayLR(_LRScheduler, AbsBatchStepScheduler):
         )
 
     def get_lr(self):
-        """Return the learning rate for every parameter group at this step."""
+        """Return the learning rate for every parameter group at this step.
+
+        Returns:
+            One learning rate per parameter group.
+
+        Note:
+            Called by ``step()``; do not call it directly. Except at the warmup
+            handover it derives the next value from each group's CURRENT ``lr``
+            rather than from ``base_lrs``, so an extra manual call compounds the
+            factor and corrupts the schedule. Read ``param_groups[i]["lr"]``
+            instead. This multiplicative form is what reproduces the original
+            ``SequentialLR(LinearLR, LinearLR)`` bit-for-bit.
+        """
         step_num = self.last_epoch
         param_groups = self.optimizer.param_groups
 
@@ -108,6 +147,20 @@ def linear_warmup_decay(
 
     Retained for compatibility with configs that target this factory by its
     dotted path. New configs should target ``LinearWarmupDecayLR`` directly.
+
+    Args:
+        optimizer: Optimizer whose learning rates are scheduled.
+        warmup_steps: Updates spent ramping ``start_factor`` up to 1.0.
+        total_steps: Planned training length in optimizer updates.
+        start_factor: Multiplier applied to the base lr at step 0.
+        end_factor: Multiplier the lr decays to, and is clamped at.
+
+    Returns:
+        The constructed :class:`LinearWarmupDecayLR`.
+
+    Note:
+        A thin factory, kept only so older configs keep resolving. It exposes no
+        ``last_epoch``, so resuming mid-run needs the class directly.
     """
     return LinearWarmupDecayLR(
         optimizer,

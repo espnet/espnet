@@ -24,16 +24,7 @@
 Ported from https://github.com/SWivid/F5-TTS/blob/main/src/f5_tts/model/utils.py
 
 Only the helpers actually used by the model path (cfm.py / backbones /
-modules) are kept here. Two upstream helpers are deliberately absent from this
-file:
-
-- ``get_tokenizer`` is dropped outright. Tokenization happens before the model
-  in ESPnet, so the model is handed integer token ids and never builds a vocab
-  itself.
-- ``convert_char_to_pinyin`` is not dropped, only relocated. It lives next door
-  in :mod:`espnet3.systems.tts.f5_tts.pinyin`, reworked for this recipe, and
-  imports ``rjieba`` / ``pypinyin`` lazily so this module stays cheap to
-  import and those dependencies stay optional.
+modules) are kept here.
 
 Which tokenizer a recipe actually uses is a config choice, not a property of
 this file. The LibriTTS recipe uses char-level ``CommonPreprocessor``; the
@@ -41,14 +32,9 @@ zh+en pinyin scheme is available via ``g2p_type: f5_pinyin`` or
 ``F5PinyinPreprocessor``, both provided by ``pinyin.py``.
 """
 
-# Ported verbatim from SWivid/F5-TTS at tag 1.1.20
-# (https://github.com/SWivid/F5-TTS), file
+# Ported verbatim from SWivid/F5-TTS
 # ``src/f5_tts/model/utils.py``.
 # That project is MIT-licensed and the notice above is its own.
-# Provenance was pinned by comparing every top-level symbol's AST against
-# the upstream tags: this file is identical at 1.1.20 and later, and
-# differs at every earlier tag. Only the ten symbols this recipe's model
-# path needs are kept.
 #
 # Kept close to upstream, so flake8 is not enforced on this file
 # (einops-style shape annotations trip F722/F821).

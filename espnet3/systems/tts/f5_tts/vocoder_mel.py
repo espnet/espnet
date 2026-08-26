@@ -42,6 +42,22 @@ class VocoderMelSpec(AbsFeatsExtract):
             n_mels: Number of mel bins, which becomes the model's ``odim``.
             mel_spec_type: Vocoder family this mel targets, ``"vocos"`` or
                 ``"bigvgan"``.
+
+        Example:
+            .. code-block:: yaml
+
+                feats_extract_conf:
+                  fs: 24000
+                  n_fft: 1024
+                  hop_length: 256
+                  win_length: 1024
+                  n_mels: 100
+                  mel_spec_type: vocos
+
+        Note:
+            The mel must match the vocoder used at inference, so these values
+            are fixed by the vocoder rather than freely tunable. ``n_mels``
+            becomes the model's ``odim`` via :meth:`output_size`.
         """
         super().__init__()
         self.fs = fs
@@ -61,11 +77,34 @@ class VocoderMelSpec(AbsFeatsExtract):
         )
 
     def output_size(self) -> int:
-        """Return the mel dimension, which is this model's ``odim``."""
+        """Return the mel dimension, which is this model's ``odim``.
+
+        Returns:
+            ``n_mels``.
+
+        Note:
+            ``builder.build_f5_tts_model`` calls this to derive ``odim``, which
+            is why the recipe config leaves ``odim`` unset.
+        """
         return self.n_mels
 
     def get_parameters(self) -> Dict[str, Any]:
-        """Parameters a vocoder needs to reconstruct waveforms from these feats."""
+        """Parameters a vocoder needs to reconstruct waveforms from these feats.
+
+        Returns:
+            Dict with ``fs``, ``n_fft``, ``n_shift``, ``win_length``, ``n_mels``
+            and ``mel_spec_type``.
+
+        Example:
+            .. code-block:: python
+
+                >>> sorted(VocoderMelSpec().get_parameters())
+                ['fs', 'mel_spec_type', 'n_fft', 'n_mels', 'n_shift', 'win_length']
+
+        Note:
+            The hop is reported as ``n_shift``, espnet2's name for it, not as
+            ``hop_length``. Downstream espnet2 vocoder tooling expects that key.
+        """
         return dict(
             fs=self.fs,
             n_fft=self.n_fft,
@@ -83,6 +122,26 @@ class VocoderMelSpec(AbsFeatsExtract):
         ``feats_lengths`` uses the standard center=True STFT frame count
         ``T_wav // hop + 1``, the same formula espnet2's ``Stft`` uses
         (``(ilens + 2*(n_fft//2) - n_fft)//hop + 1``).
+
+        Args:
+            input: Waveform batch ``[B, T_wav]``.
+            input_lengths: Valid sample count per utterance, ``[B]``. When
+                omitted every utterance is treated as full length.
+
+        Returns:
+            Tuple of mel ``[B, T, n_mels]`` and frame counts ``[B]``.
+
+        Example:
+            .. code-block:: python
+
+                >>> feats, lengths = VocoderMelSpec()(torch.randn(2, 24000))
+                >>> feats.shape, lengths.tolist()
+                (torch.Size([2, 94, 100]), [94, 94])
+
+        Note:
+            Output is time-first ``[B, T, n_mels]``, which is what
+            ``ESPnetTTSModel`` passes on, not the channel-first layout F5's own
+            ``MelSpec`` returns.
         """
         # MelSpec returns [B, n_mels, T]; F5's MelSpectrogram uses center=True.
         feats = self.mel(input).transpose(1, 2).contiguous()  # [B, T, n_mels]

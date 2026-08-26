@@ -134,6 +134,30 @@ class F5TTSInference:
                 ``train_config`` MUST match the pretrained model (F5TTS_Base +
                 ``Emilia_ZH_EN_pinyin/vocab.txt``). Use this to sanity-check the
                 inference + tokenization path against known-good weights.
+
+        Raises:
+            ValueError: If ``train_config`` has no ``model._target_``, if its
+                ``dataset.preprocessor.token_list`` is missing, or if
+                ``vocoder_name`` is neither ``"vocos"`` nor ``"bigvgan"``.
+            ImportError: If the selected vocoder package is not installed.
+
+        Example:
+            .. code-block:: yaml
+
+                inference:
+                  _target_: espnet3.systems.tts.f5_tts.inference.F5TTSInference
+                  train_config: ${recipe_dir}/conf/training_f5_tts_small.yaml
+                  ckpt_path: ${exp_dir}/last.ckpt
+                  device: cuda
+                  nfe_step: 32
+                  cfg_strength: 2.0
+
+        Note:
+            ``train_config`` is the recipe's own training YAML, not the
+            ``config.yaml`` written into ``exp_dir``: the model is rebuilt from
+            the ``model:`` block via Hydra, so architecture and tokenizer
+            settings always come from one source of truth. Construction is
+            eager, loading the checkpoint and the vocoder up front.
         """
         self.device = torch.device(device)
         self.target_sample_rate = target_sample_rate
@@ -333,7 +357,37 @@ class F5TTSInference:
         ref_audio: np.ndarray,
         ref_text: Optional[str] = None,
     ) -> np.ndarray:
-        """Synthesize ``gen_text`` in the voice of ``ref_audio`` (F5 infer_process)."""
+        """Synthesize ``gen_text`` in the voice of ``ref_audio``.
+
+        Mirrors upstream F5-TTS ``infer_process``: RMS-normalize the reference,
+        split the target text into reference-length-dependent chunks, sample
+        each chunk, vocode, then cross-fade the pieces back together.
+
+        Args:
+            gen_text: Target text to speak.
+            ref_audio: Reference waveform at ``target_sample_rate``. Multi-
+                channel input is averaged down to mono.
+            ref_text: Transcript of ``ref_audio``. Defaults to ``gen_text``,
+                i.e. treating the reference as self-referential.
+
+        Returns:
+            Mono waveform as ``float32`` at ``target_sample_rate``. Returns a
+            single zero sample when the text yields no synthesizable chunk.
+
+        Example:
+            .. code-block:: python
+
+                >>> wav = tts.infer_one("hello world", ref_audio, ref_text="hi")
+                >>> wav.dtype, wav.ndim
+                (dtype('float32'), 1)
+
+        Note:
+            Output length is governed by the reference: the per-chunk duration
+            is extrapolated from the reference audio-to-text ratio, so a
+            mismatched ``ref_text`` skews it. The reference loudness is restored
+            after vocoding, so the result matches the input level rather than
+            ``target_rms``.
+        """
         ref_text = gen_text if ref_text is None else ref_text
         sr = self.target_sample_rate
         hop = self.hop_length
@@ -421,6 +475,36 @@ class F5TTSInference:
         ``speech`` is given it is used as the reference and ``ref_text`` defaults
         to ``text`` (self-reference). Supports a single sample (``batch_size:
         null``) or a list (batched).
+
+        Args:
+            text: Target text, or a list of them for a batched call.
+            ref_speech: Reference waveform(s) for the cross/same-speaker
+                protocol.
+            ref_text: Transcript(s) of ``ref_speech``.
+            speech: Fallback reference used when ``ref_speech`` is absent, which
+                makes the call self-referential.
+
+        Returns:
+            ``{"wav": waveform}`` for a single sample, or ``{"wav": [...]}``
+            with one waveform per input when ``text`` is a list.
+
+        Raises:
+            ValueError: If neither ``ref_speech`` nor ``speech`` is given. F5 is
+                zero-shot and cannot synthesize without a reference.
+
+        Example:
+            .. code-block:: python
+
+                >>> tts(text="hello", speech=ref_wave)["wav"].ndim
+                1
+                >>> len(tts(text=["a", "b"], ref_speech=[w1, w2])["wav"])
+                2
+
+        Note:
+            Batched input is looped over ``infer_one`` rather than batched
+            through the solver, so it costs the same as separate calls. The
+            list branch is chosen from ``text`` alone, so the other arguments
+            must be lists of matching length.
         """
         ref_audio = ref_speech if ref_speech is not None else speech
         if ref_audio is None:
