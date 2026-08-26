@@ -157,6 +157,24 @@ speechlm = [
   "liger-kernel; sys_platform == 'linux'",
 ]
 
+# Extras for the spoken dialogue system demo (espnet2/sds and
+# egs2/TEMPLATE/sds1). None of these were declared anywhere, so there was no
+# supported way to install that module from the repo.
+sds = [
+  "pydub",
+  "snac",
+  # 0.4.3 is the release the vendored mini-omni code was adapted from, and the
+  # last one without an upper bound on huggingface-hub. Newer litgpt pins
+  # huggingface-hub<1.4, which cannot be satisfied together with gradio's
+  # >=1.16, so leaving this unpinned makes pip quietly downgrade gradio.
+  "litgpt==0.4.3",
+  "openai-whisper",
+  # Prebuilt wheels, unlike the original webrtcvad which needs a compiler.
+  "webrtcvad-wheels",
+  "gradio",
+  "transformers",
+]
+
 dev = [
   "black",
   "flake8>=3.7.8",
