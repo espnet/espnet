@@ -3,12 +3,13 @@
 F5's CFM sampler integrates the flow with a FIXED-step method (``euler`` by
 default, optionally ``midpoint``) over a caller-supplied time grid ``t``. Those
 two methods are a few lines each and reproduce ``torchdiffeq.odeint`` exactly, so
-F5 no longer needs ``torchdiffeq`` for its default configuration.
+F5 needs no ODE dependency at all.
 
-Only the fixed-step methods are implemented here. Any other method (adaptive
-solvers such as ``dopri5``/``rk4``) falls back to ``torchdiffeq`` via a lazy
-import, so exotic configs still work if the package is installed, but the
-common path has no dependency.
+Those two are also the only methods supported. Adaptive solvers such as
+``dopri5``/``rk4`` are rejected with ``ValueError`` rather than delegated: they
+would need ``torchdiffeq``, which espnet does not ship, and they reinterpret the
+supplied grid instead of stepping along it, so the EPSS / sway-sampling schedule
+F5 relies on would not survive the round trip.
 
 API mirrors ``torchdiffeq.odeint(func, y0, t, method=...)``:
   * ``func(t_scalar, y) -> dy/dt``
@@ -35,24 +36,23 @@ _FIXED_STEP = {"euler", "midpoint"}
 def odeint(
     func: Callable, y0: torch.Tensor, t: torch.Tensor, method: str = "euler", **kwargs
 ):
-    """Fixed-step ODE integration; torchdiffeq fallback for other methods.
+    """Fixed-step ODE integration over a caller-supplied time grid.
 
     Args:
         func: Derivative ``func(t_scalar, y) -> dy/dt``.
         y0: Initial state.
         t: 1-D time grid. Steps use ``dt = t[i + 1] - t[i]``, so non-uniform
             grids (EPSS, sway sampling) work unchanged.
-        method: ``"euler"`` or ``"midpoint"`` built in; anything else is
-            delegated to ``torchdiffeq``.
-        **kwargs: Forwarded to ``torchdiffeq`` on the fallback path only.
+        method: ``"euler"`` or ``"midpoint"``. No other method is supported.
+        **kwargs: Accepted and ignored, so the ``torchdiffeq.odeint`` call
+            signature stays a drop-in.
 
     Returns:
         Trajectory stacked as ``[len(t), *y0.shape]`` with ``solution[0] == y0``,
         matching ``torchdiffeq.odeint``, so ``solution[-1]`` is the final state.
 
     Raises:
-        ImportError: If a non-fixed-step method is requested and ``torchdiffeq``
-            is not installed.
+        ValueError: If ``method`` is not ``"euler"`` or ``"midpoint"``.
 
     Example:
         .. code-block:: python
@@ -63,23 +63,16 @@ def odeint(
             torch.Size([3, 1])
 
     Note:
-        The two built-in methods reproduce ``torchdiffeq``'s fixed-step solvers
-        exactly, so the default F5 configuration needs no extra dependency.
-        Returning the whole trajectory rather than just the endpoint is
-        deliberate: it keeps the ``torchdiffeq`` signature, so the fallback is a
-        drop-in.
+        Both methods reproduce ``torchdiffeq``'s fixed-step solvers exactly, so
+        dropping that dependency changes no output. Returning the whole
+        trajectory rather than just the endpoint is deliberate: it keeps the
+        ``torchdiffeq`` signature, so this stays a drop-in replacement.
     """
     if method not in _FIXED_STEP:
-        # Adaptive / higher-order solvers: defer to torchdiffeq if available.
-        try:
-            from torchdiffeq import odeint as _tdq_odeint
-        except ImportError as e:
-            raise ImportError(
-                f"ODE method {method!r} needs torchdiffeq (only "
-                f"{sorted(_FIXED_STEP)} are built in). Install torchdiffeq or use "
-                "odeint_method: euler / midpoint."
-            ) from e
-        return _tdq_odeint(func, y0, t, method=method, **kwargs)
+        raise ValueError(
+            f"Unsupported odeint_method {method!r}; F5-TTS supports only "
+            f"{sorted(_FIXED_STEP)}."
+        )
 
     solution = [y0]
     y = y0

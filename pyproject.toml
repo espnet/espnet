@@ -88,6 +88,7 @@ asr = [
 tts = [
   "pyworld>=0.3.4",
   "pypinyin<=0.44.0",
+  "rjieba",
   "espnet_tts_frontend",
   "g2p_en @ git+https://github.com/espnet/g2p.git@master",
   "jamo==0.4.1",
