@@ -1,14 +1,14 @@
-from .audio_loader import ArkiveAudioReader, KaldiAudioReader, LhotseAudioReader
-from .dialogue_loader import ArkiveDialogueLoader, DialogueReader
-from .text_loader import ArkiveTextReader, TextReader
+from .audio_loader import KaldiAudioReader, LhotseAudioReader, OmniIOAudioReader
+from .dialogue_loader import DialogueReader, OmniIODialogueLoader
+from .text_loader import OmniIOTextReader, TextReader
 
 ALL_DATA_LOADERS = {
     "lhotse_audio": LhotseAudioReader,
-    "arkive_audio": ArkiveAudioReader,
+    "omniio_audio": OmniIOAudioReader,
     "text": TextReader,
-    "arkive_text": ArkiveTextReader,
+    "omniio_text": OmniIOTextReader,
     "dialogue": DialogueReader,
-    "arkive_dialogue": ArkiveDialogueLoader,
+    "omniio_dialogue": OmniIODialogueLoader,
     "kaldi_audio": KaldiAudioReader,
 }
 

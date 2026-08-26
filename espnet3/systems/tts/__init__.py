@@ -1,9 +1,4 @@
 """TTS system package for ESPnet3.
 
-Exposes the generic TTS system, GAN-TTS trainer, and Lightning module
-adapter shared across TTS recipes.
+Exposes system and data-filtering components for TTS tasks.
 """
-
-from espnet3.systems.tts.system import TTSSystem
-
-__all__ = ["TTSSystem"]

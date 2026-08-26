@@ -4,7 +4,7 @@
 
 ```bash
 # 0) Edit configs to set paths.
-#    Keep `conf/training.yaml:dataset_dir` as the canonical dataset location.
+#    Keep `conf/training.yaml:data_dir` as the canonical dataset location.
 #    When `--training_config` is also passed to `infer` or `measure`, run.py
 #    propagates experiment path fields from training into inference/metrics.
 #    Standalone inference or metrics configs must define their own `exp_tag`

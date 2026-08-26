@@ -10,6 +10,9 @@ on:
       - master
       - espnet3
 
+env:
+  NLTK_DISABLE_IMPORT_SECURITY: "1"
+
 jobs:
   check_installable_on_macos:
     runs-on: macOS-latest
@@ -27,7 +30,7 @@ jobs:
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
       - name: Get PR labels
