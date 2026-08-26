@@ -576,13 +576,14 @@ class Reporter:
                 # Store as total seconds (float) so torch.save can pickle it
                 # with weights_only=True.  Restored to timedelta on load.
                 return {"__timedelta_seconds__": v.total_seconds()}
-            if isinstance(v, float):
-                return v
-            try:
-                # Catches numpy scalars (np.float64, np.float32, …)
-                return float(v)
-            except (TypeError, ValueError):
-                return v
+            # Convert numpy scalars (np.float64, np.float32, …) to plain
+            # Python float.  In NumPy < 2.0 np.float64 is a subclass of
+            # Python float, so isinstance(v, float) would be True but v is
+            # still a numpy type and torch.load weights_only=True rejects it.
+            # We check for numpy scalars first to handle both NumPy versions.
+            if isinstance(v, np.generic):
+                return v.item()
+            return v
 
         safe_stats = {}
         for epoch, epoch_dict in self.stats.items():
