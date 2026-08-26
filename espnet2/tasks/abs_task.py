@@ -85,6 +85,7 @@ from espnet2.utils.types import (
     humanfriendly_parse_size_or_none,
     int_or_none,
     str2bool,
+    str2bool_or_none,
     str2triple_str,
     str_or_int,
     str_or_none,
@@ -627,6 +628,16 @@ class AbsTask(ABC):
             type=str2bool,
             default=False,
             help="Enable Automatic Mixed Precision. This feature requires pytorch>=1.6",
+        )
+        group.add_argument(
+            "--use_grad_scaler",
+            type=str2bool_or_none,
+            default=None,
+            help="Whether to scale the loss when --use_amp is set. The default "
+            "(none) enables scaling only for float16 autocast, which is the only "
+            "dtype that needs it: bfloat16 has float32's exponent range, so a "
+            "GradScaler there never sees an overflow and grows its scale without "
+            "bound while its skip-on-overflow guard never fires.",
         )
         group.add_argument(
             "--log_interval",

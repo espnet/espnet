@@ -1,27 +1,44 @@
-# WavLM base self-supervised pretraining (960h LibriSpeech).
+# ALTERNATIVE PATH: continue pre-training a Hugging Face WavLM checkpoint
+# instead of training WavLM from scratch.
 #
-# Launch with the WavLM task entrypoint (NOT ssl.sh's default ssl_train):
-#   python3 -m espnet2.bin.wavlm_train \
-#       --config conf/tuning/train_ssl_wavlm_base_960h_pretrain.yaml \
-#       --token_list <path>/tokens.txt \
-#       --train_data_path_and_name_and_type dump/raw/train/wav.scp,speech,sound \
-#       --train_data_path_and_name_and_type dump/raw/train/text,text,text \
-#       ...
+# The default recipe (conf/tuning/train_ssl_torchaudiowavlm_base_960h_pretrain_it*.yaml)
+# trains WavLM from random initialization on the k-means pseudo-labels this
+# recipe produces, mirroring hubert1. This config instead loads
+# `microsoft/wavlm-base` -- weights that are already the result of WavLM
+# pre-training on LibriSpeech 960h -- and keeps optimizing the same
+# masked-cluster-prediction objective on top of them. Use it for continued
+# pre-training or domain adaptation, NOT to reproduce WavLM pre-training.
 #
-# NOTE: WavLMPretrainModel delegates the loss to the encoder, and the encoder
-# (HuggingFaceTransformersEncoder -> WavLMForPreTraining) uses a label-free
-# contrastive objective. The `text` field is still required by the task
-# pipeline but is ignored by the loss, so a dummy/placeholder text file is fine.
+# Requires `transformers`:
+#   cd /path/to/espnet/tools && . ./activate_python.sh && \
+#       ./installers/install_transformers.sh
+#
+# Run with:
+#   ./run.sh --train_configs "conf/tuning/train_ssl_wavlm_base_960h_pretrain.yaml" \
+#            --n_clusters 100 --features_km mfcc --layers_km 0 --train_stop_iter 0
+#
+# wavlm.sh passes `--num_classes <n_clusters>`, which builds the prediction head.
 
 # ----- trainer / batching -----
 use_amp: true
+# bfloat16 autocast needs no loss scaling, and pairing a GradScaler with it
+# makes the scaler grow its scale without bound (1e29 seen after 250 epochs)
+# while its skip-on-overflow guard -- the thing that stops a diverging run --
+# never fires. NOTE: set this back to true if you train on hardware without
+# bfloat16 support, where autocast falls back to float16 and scaling IS needed.
+use_grad_scaler: false
 grad_clip: 5.0
 batch_type: numel
 batch_bins: 4500000        # raw-waveform samples per batch; tune to GPU memory
-num_workers: 16
+num_workers: 8
 accum_grad: 4
 max_epoch: 250
-patience: none
+patience: 25          # stop if valid/loss has not improved for 25 epochs.
+                      # Chosen from the iter-0 run: the longest genuine plateau
+                      # while healthy was 17 epochs, and the valid loss plateaus
+                      # to within its own epoch-to-epoch noise (~1.4%) long
+                      # before max_epoch, so this costs ~0.5% valid loss and
+                      # saves roughly half the run.
 init: none
 best_model_criterion:
 -   - valid
@@ -29,8 +46,7 @@ best_model_criterion:
     - min
 keep_nbest_models: 10
 
-# WavLMForPreTraining adds a quantizer/projection head whose params are unused
-# by some forward paths early in training.
+# The prediction head is unused on some forward paths early in training.
 unused_parameters: true
 
 # Raw waveform is fed straight into the WavLM feature extractor.
@@ -40,20 +56,28 @@ collate_fn_conf:
     label_downsampling: 1
     pad: false
     rand_crop: true
+    # WavLM masked speech denoising, see the torchaudio configs for details.
+    mix_speech: true
+    noise_apply_prob: 0.2
+    dynamic_mixing_prob: 0.0
+    noise_scp: null
+    dynamic_mixing_gain_db: 5.0
 
-# ----- model -----
+# ----- model: delegates the loss to the encoder -----
 model: wavlm
 
-# ----- encoder: HF WavLM with the self-supervised pretraining head -----
+# ----- encoder: HF WavLM plus the masked cluster-prediction head -----
 encoder: wavlm_pretrain
 encoder_conf:
+    # NOTE: layer-norm placement is not configurable here -- it comes from the
+    # Hugging Face checkpoint's own config (`do_stable_layer_norm`).
+    # microsoft/wavlm-base is post-LN, matching the torchaudio configs.
     do_pretrain: true
     model_name_or_path: microsoft/wavlm-base
-    # masking / contrastive hyper-parameters (wav2vec2/WavLM defaults)
+    # span masking (wav2vec2/WavLM defaults)
     mask_prob: 0.65
     mask_length: 10
     mask_min_masks: 2
-    num_negatives: 100
 
 # ----- no espnet frontend/normalize: WavLM consumes raw audio directly -----
 frontend: null

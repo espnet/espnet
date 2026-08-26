@@ -1,6 +1,6 @@
 import math
 import random
-from typing import Collection, Dict, List, Tuple, Union
+from typing import Collection, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import scipy
@@ -59,14 +59,14 @@ class HuBERTCollateFn(CommonCollateFn):
         window_size: float = 25,
         window_shift: float = 20,
         sample_rate: float = 16,
-        noise_scp: str = "data/noise/wav.scp",
+        noise_scp: Optional[str] = "data/noise/wav.scp",
         noise_apply_prob: float = 1.0,
         noise_db_range: str = "-5_20",
         dynamic_mixing_gain_db: float = 5.0,
         dynamic_mixing_prob=0.1,
         mix_speech: bool = False,
         reverb_speech: bool = False,
-        rir_scp: str = "data/rirs/wav.scp",
+        rir_scp: Optional[str] = "data/rirs/wav.scp",
         rir_apply_prob: float = 0.3,
         train: bool = True,
     ):
@@ -175,6 +175,9 @@ class HuBERTCollateFn(CommonCollateFn):
         See https://aclanthology.org/2024.emnlp-main.570/.
         """
 
+        if self.rirs is None:
+            # No RIR corpus configured; nothing to convolve with.
+            return speech
         rir = self._read_rir_audio_()
         # speech.shape: [mics=1, samples]
         # rir.shape: [mics=1, samples2]
@@ -204,9 +207,16 @@ class HuBERTCollateFn(CommonCollateFn):
         See https://arxiv.org/abs/2110.13900 for details
         """
         power = (speech[detect_non_silence(speech)] ** 2).mean()
-        if self.dynamic_mixing_prob >= np.random.random() or len(data) == 1:
+        use_noise_corpus = self.noises is not None and (
+            self.dynamic_mixing_prob >= np.random.random() or len(data) == 1
+        )
+        if use_noise_corpus:
             noise = self._read_noise_audio_().squeeze()
             noise_db = np.random.uniform(self.noise_db_low, self.noise_db_high)
+        elif len(data) == 1:
+            # Separation needs a second utterance and no noise corpus is
+            # configured, so leave this (single-utterance) batch untouched.
+            return speech
         else:
             noise = random.choice(data)
             while noise[0] == speech_id:
@@ -216,7 +226,9 @@ class HuBERTCollateFn(CommonCollateFn):
                 -self.dynamic_mixing_gain_db, self.dynamic_mixing_gain_db
             )
 
-        length = min(np.random.randint(1, len(speech) // 2 + 1), len(noise))
+        length = min(np.random.randint(1, max(len(speech) // 2, 1) + 1), len(noise))
+        if length < 1:
+            return speech
         speech_start = np.random.randint(0, len(speech) - length + 1)
         noise_start = np.random.randint(0, len(noise) - length + 1)
 
@@ -225,6 +237,14 @@ class HuBERTCollateFn(CommonCollateFn):
             10 ** (-noise_db / 20) * np.sqrt(power) / np.sqrt(max(noise_power, 1e-10))
         )
         noise = noise * scale
+        # Mix into a copy, never in place. `speech` belongs to the dataset: when
+        # `max_cache_size` is set, ESPnetDataset hands back the very same array
+        # every epoch, so mixing in place would let the interference accumulate
+        # over epochs instead of being resampled. It would also corrupt `data`,
+        # which is the interferer pool for the rest of this batch -- later
+        # utterances must be mixed with *clean* speech, not with an already
+        # mixed-into neighbour.
+        speech = speech.copy()
         speech[speech_start : speech_start + length] += noise[
             noise_start : noise_start + length
         ]

@@ -1,0 +1,87 @@
+# WavLM Base, iteration 1: masked prediction of the 500 k-means clusters taken
+# from an intermediate layer of the iteration-0 WavLM model.
+#
+# This is conf/tuning/train_ssl_torchaudiohubert_base_960h_pretrain_it1.yaml with
+# the two WavLM ingredients added: the `torchaudio_wavlm` encoder (gated relative
+# position bias) and masked speech denoising via `collate_fn_conf.mix_speech`.
+use_amp: true
+# bfloat16 autocast needs no loss scaling, and pairing a GradScaler with it
+# makes the scaler grow its scale without bound (1e29 seen after 250 epochs)
+# while its skip-on-overflow guard -- the thing that stops a diverging run --
+# never fires. NOTE: set this back to true if you train on hardware without
+# bfloat16 support, where autocast falls back to float16 and scaling IS needed.
+use_grad_scaler: false
+grad_clip: 5.0
+batch_type: numel
+# NOTE: WavLM's gated relative position bias materializes a
+# (batch, heads, frames, frames) tensor in every layer, which HuBERT's attention
+# does not. batch_bins is therefore 2/3 of the HuBERT recipe's 45000000 and
+# accum_grad is raised from 2 to 3 to keep the same effective batch. Lower
+# batch_bins further (and raise accum_grad) if you hit OOM.
+batch_bins: 30000000
+num_workers: 8
+accum_grad: 3
+max_epoch: 250
+patience: 25          # stop if valid/loss has not improved for 25 epochs.
+                      # Chosen from the iter-0 run: the longest genuine plateau
+                      # while healthy was 17 epochs, and the valid loss plateaus
+                      # to within its own epoch-to-epoch noise (~1.4%) long
+                      # before max_epoch, so this costs ~0.5% valid loss and
+                      # saves roughly half the run.
+# Use self-defined function for initialization
+init: none
+best_model_criterion:
+-   - valid
+    - loss
+    - min
+keep_nbest_models: 10
+
+unused_parameters: true
+
+input_size: 1
+
+collate_fn_conf:
+    # The teacher features already run at the transformer frame rate, so the
+    # labels need no downsampling.
+    label_downsampling: 1
+    pad: False
+    rand_crop: True
+    # WavLM masked speech denoising: mix a segment of a second source into the
+    # primary utterance while keeping the primary's clean k-means targets.
+    mix_speech: True
+    # Fraction of utterances that get mixed.
+    noise_apply_prob: 0.2
+    # Probability of drawing the interfering segment from a noise corpus rather
+    # than from another utterance in the batch. Keep at 0 for utterance mixing
+    # only; to add WavLM's denoising half, point noise_scp at a noise wav.scp
+    # and raise this (the paper uses roughly half and half).
+    dynamic_mixing_prob: 0.0
+    noise_scp: null
+    # Interfering utterance gain, sampled from [-x, +x] dB relative to the primary.
+    dynamic_mixing_gain_db: 5.0
+
+encoder: torchaudio_wavlm
+encoder_conf:
+    encoder_projection_dropout: 0.1
+    encoder_attention_dropout: 0.1
+    encoder_ff_interm_dropout: 0.0
+    encoder_dropout: 0.1
+    encoder_layer_drop: 0.05
+    # WavLM Base relative position bias
+    encoder_num_buckets: 320
+    encoder_max_distance: 800
+
+model: torchaudio_wavlm
+
+optim: adam
+optim_conf:
+    lr: 0.0005
+scheduler: warmuplr
+scheduler_conf:
+    warmup_steps: 32000
+
+frontend: null
+
+normalize: null
+
+specaug: null

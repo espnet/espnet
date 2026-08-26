@@ -313,6 +313,69 @@ class ESPnetHubertFeatureReader(BaseFeatureReader):
         return feats, feats_lens
 
 
+class ESPnetWavLMFeatureReader(BaseFeatureReader):
+    """Read features from an ESPnet-trained WavLM pretraining model.
+
+    Used to generate the k-means targets of the next WavLM training iteration,
+    the same way ESPnetHubertFeatureReader is used by the HuBERT recipe.
+    """
+
+    def __init__(
+        self,
+        wavlm_model_path,
+        layer,
+        sample_rate=16000,
+        audio_sample_rate=16000,
+        max_chunk=1600000,
+        use_gpu=True,
+    ):
+        self.sample_rate = int(sample_rate)  # str->int
+        self.audio_sample_rate = audio_sample_rate
+        if self.sample_rate != self.audio_sample_rate:
+            logging.warning("The audio sample rate is different from feat extractor")
+            self.resample = torchaudio.transforms.Resample(
+                orig_freq=audio_sample_rate, new_freq=self.sample_rate
+            )
+        else:
+            self.resample = None
+
+        self.device = "cuda" if use_gpu and torch.cuda.is_available() else "cpu"
+        from espnet2.tasks.wavlm import WavLMTask
+
+        wavlm_model, wavlm_train_args = WavLMTask.build_model_from_file(
+            None,
+            wavlm_model_path,
+            self.device,
+        )
+        self.model = wavlm_model.encoder.wavlm_pretrain_model.to(self.device).eval()
+
+        self.layer = layer
+        self.max_chunk = max_chunk
+        logger.info(f" max_chunk = {self.max_chunk}")
+
+    def get_feats(
+        self,
+        data: torch.Tensor,
+        data_lens: torch.Tensor,
+        ref_len: Optional[int] = None,
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        with torch.inference_mode():
+            x, x_lens = self.preprocess_data(data, data_lens)
+            if self.resample is not None:
+                x = self.resample(x)
+                x_lens = x_lens * self.sample_rate // self.audio_sample_rate
+            x = x.to(self.device)
+            x_lens = x_lens.to(self.device)
+
+            feats, feats_lens = self.model.wav2vec2.extract_features(
+                waveforms=x,
+                lengths=x_lens,
+                num_layers=self.layer,
+            )
+            feats = feats[-1].cpu()  # (batchsize, time, feat_dim)
+        return feats, feats_lens
+
+
 class S3PRLFeatureReader(BaseFeatureReader):
     def __init__(
         self,

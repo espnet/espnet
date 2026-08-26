@@ -14,7 +14,10 @@ import torch
 from typeguard import typechecked
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
-from espnet2.asr.encoder.hugging_face_transformers_encoder import HuggingFaceTransformersEncoder
+from espnet2.asr.encoder.hugging_face_transformers_encoder import (  # noqa: H301
+    HuggingFaceTransformersEncoder,
+)
+from espnet2.asr.encoder.wavlm_encoder import TorchAudioWavLMPretrainEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.frontend.default import DefaultFrontend
 from espnet2.asr.frontend.windowing import SlidingWindow
@@ -22,6 +25,7 @@ from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
 from espnet2.asr.preencoder.sinc import LightweightSincConvs
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.asr.specaug.specaug import SpecAug
+from espnet2.hubert.espnet_model import TorchAudioHubertPretrainModel
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.layers.utterance_mvn import UtteranceMVN
@@ -77,18 +81,27 @@ preencoder_choices = ClassChoices(
 encoder_choices = ClassChoices(
     "encoder",
     classes=dict(
+        # WavLM built on torchaudio, trained from scratch on the k-means
+        # pseudo-labels produced by the recipe (the HuBERT-parallel setup).
+        torchaudio_wavlm=TorchAudioWavLMPretrainEncoder,
+        # Alternative: wrap a Hugging Face WavLM checkpoint and keep pretraining
+        # it. Requires `transformers` and `--model wavlm`.
         wavlm_pretrain=HuggingFaceTransformersEncoder,
     ),
     type_check=AbsEncoder,
-    default="wavlm_pretrain",
+    default="torchaudio_wavlm",
 )
 model_choices = ClassChoices(
     "model",
     classes=dict(
+        # The WavLM objective is HuBERT's masked cluster prediction; utterance
+        # mixing (speech denoising) is applied by HuBERTCollateFn, so the
+        # torchaudio HuBERT pretrain model is reused as-is.
+        torchaudio_wavlm=TorchAudioHubertPretrainModel,
         wavlm=WavLMPretrainModel,
     ),
     type_check=AbsESPnetModel,
-    default="wavlm",
+    default="torchaudio_wavlm",
 )
 
 
@@ -272,16 +285,35 @@ class WavLMTask(AbsTask):
 
         window_size = reception_field / sample_rate
         window_shift = stride_field / sample_rate
+        # NOTE: WavLM's "masked speech denoising and prediction" corrupts the
+        # input waveform by mixing in either another utterance from the same
+        # batch (separation) or a sampled acoustic noise (denoising), while the
+        # k-means targets stay those of the clean primary utterance. That
+        # augmentation lives in HuBERTCollateFn and is enabled with
+        # `collate_fn_conf.mix_speech: true`.
         return HuBERTCollateFn(
             float_pad_value=0.0,
-            int_pad_value=-1,
+            int_pad_value=args.collate_fn_conf.get("int_pad_value", -1),
             label_downsampling=args.collate_fn_conf.get("label_downsampling", 1),
             pad=args.collate_fn_conf.get("pad", False),
             rand_crop=args.collate_fn_conf.get("rand_crop", True),
-            crop_audio=not args.collect_stats,
-            window_size=window_size,
-            window_shift=window_shift,
+            crop_audio=not args.collect_stats
+            and args.collate_fn_conf.get("crop_audio", True),
+            window_size=args.collate_fn_conf.get("window_size", window_size),
+            window_shift=args.collate_fn_conf.get("window_shift", window_shift),
             sample_rate=sample_rate,
+            train=train,
+            mix_speech=args.collate_fn_conf.get("mix_speech", False),
+            reverb_speech=args.collate_fn_conf.get("reverb_speech", False),
+            noise_scp=args.collate_fn_conf.get("noise_scp", None),
+            rir_scp=args.collate_fn_conf.get("rir_scp", None),
+            noise_apply_prob=args.collate_fn_conf.get("noise_apply_prob", 1.0),
+            rir_apply_prob=args.collate_fn_conf.get("rir_apply_prob", 1.0),
+            noise_db_range=args.collate_fn_conf.get("noise_db_range", "-5_20"),
+            dynamic_mixing_gain_db=args.collate_fn_conf.get(
+                "dynamic_mixing_gain_db", 5.0
+            ),
+            dynamic_mixing_prob=args.collate_fn_conf.get("dynamic_mixing_prob", 0.0),
         )
 
     @classmethod
@@ -332,7 +364,9 @@ class WavLMTask(AbsTask):
 
     @classmethod
     @typechecked
-    def build_model(cls, args: argparse.Namespace) -> WavLMPretrainModel:
+    def build_model(
+        cls, args: argparse.Namespace
+    ) -> Union[WavLMPretrainModel, TorchAudioHubertPretrainModel]:
         if isinstance(args.token_list, str):
             with open(args.token_list, encoding="utf-8") as f:
                 token_list = [line.rstrip() for line in f]
@@ -393,7 +427,7 @@ class WavLMTask(AbsTask):
         try:
             model_class = model_choices.get_class(args.model)
         except AttributeError:
-            model_class = model_choices.get_class("wavlm")
+            model_class = model_choices.get_class("torchaudio_wavlm")
         model = model_class(
             vocab_size=vocab_size,
             frontend=frontend,

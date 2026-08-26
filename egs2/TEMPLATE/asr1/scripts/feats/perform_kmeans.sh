@@ -42,17 +42,18 @@ storage_save_mode=false     # Save storage on SSL feature extraction
 RVQ_layers=1
 
 feature_conf=       # feature configuration in json string format
-feature_type=mfcc   # mfcc / fairseq_hubert / espnet_hubert
+feature_type=mfcc   # mfcc / fairseq_hubert / espnet_hubert / espnet_wavlm
 layer=              # The layer index of SSL models to extract features from.
 batch_bins=         # batch size when extracting features and labels.
 
-# Legacy Fairseq HuBERT model and ESPnet-trained HuBERT model related for feature extraction.
+# Legacy Fairseq HuBERT model and ESPnet-trained HuBERT/WavLM model related for
+# feature extraction.
 # Example of legacy Fairseq HuBERT model
 hubert_url="https://dl.fbaipublicfiles.com/hubert/hubert_base_ls960.pt"
 hubert_dir_path="./downloads/hubert_pretrained_models/hubert_base_ls960.pt"
 # Example of espnet-trained model
 # hubert_url="espnet"
-# hubert_dir_path="" # Pretrained Hubert model dir contains 'valid.acc.best.pth' and 'config.yaml'
+# hubert_dir_path="" # Pretrained Hubert/WavLM model dir contains 'valid.acc.best.pth' and 'config.yaml'
 
 log "$0 $*"
 . utils/parse_options.sh
@@ -74,6 +75,11 @@ if [ -z "${feature_conf}" ]; then
     if [ ${feature_type} = "espnet_hubert" ]; then
         feature_conf+=",conf={\
 sample_rate=16000,hubert_model_path=${hubert_dir_path},\
+layer=${layer}\
+}"
+    elif [ ${feature_type} = "espnet_wavlm" ]; then
+        feature_conf+=",conf={\
+sample_rate=16000,wavlm_model_path=${hubert_dir_path},\
 layer=${layer}\
 }"
     elif [ ${feature_type} = "fairseq_hubert" ]; then

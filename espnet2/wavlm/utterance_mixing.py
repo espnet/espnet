@@ -11,6 +11,11 @@
 # cluster targets of the *clean primary* speech -- forcing it to denoise /
 # separate the dominant speaker. Targets are therefore left untouched; only the
 # waveform is modified, and only during training.
+#
+# NOTE: the wavlm1 recipe applies this augmentation on the data-loader side
+# instead, via HuBERTCollateFn's `mix_speech` option, which additionally
+# supports drawing the interfering segment from a noise corpus. This module is
+# the equivalent for models that receive an already-collated batch.
 
 from typing import Tuple
 

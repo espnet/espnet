@@ -1,66 +1,97 @@
 ## INTRODUCTION
 
-This recipe trains a [Hubert](https://arxiv.org/pdf/2106.07447.pdf)pretrain model, using data Librispeech 960hr data, including the k-means-based pseudo label generation and mask-prediction training.
+This recipe pre-trains a [WavLM](https://arxiv.org/abs/2110.13900) model on
+LibriSpeech 960h, including the k-means-based pseudo-label generation and the
+masked-prediction training.
+
+It is the `librispeech/hubert1` recipe with the two changes that define WavLM:
+
+1. **Encoder** — `torchaudio_wavlm`
+   (`espnet2/asr/encoder/wavlm_encoder.py`): the same convolutional feature
+   extractor and Transformer stack as `torchaudio_hubert`, plus WavLM's gated
+   relative position bias in self-attention.
+2. **Masked speech denoising** — each primary utterance is, with probability
+   `noise_apply_prob`, mixed with a random segment of a second source while the
+   k-means targets stay those of the clean primary, forcing the model to
+   denoise/separate the dominant speaker. This runs in `HuBERTCollateFn` and is
+   enabled with `collate_fn_conf.mix_speech: true` in the training config.
+
+The objective itself is unchanged from HuBERT (predict the cluster id of masked
+frames), so `wavlm.sh` is `hubert.sh` with the same options and stage numbering.
+
+================================================
+
+## HOW TO RUN
+
+```sh
+./run.sh                       # all stages, both iterations
+./run.sh --stage 5             # skip data preparation
+./run.sh --stage 5 --stop_stage 5 --train_stop_iter 0   # only iteration-0 k-means
+```
+
+| Stage | Action |
+| ----- | ------ |
+| 1-4   | Data download/preparation, wav formatting, long/short filtering |
+| 5     | K-means on MFCC (iter 0) or on WavLM layer 6 (iter 1), then pseudo-labels + token list |
+| 6     | Collect stats |
+| 7     | WavLM pre-training |
+| 8-9   | Pack model / upload to Hugging Face (skipped by default) |
+
+Stages 5-7 run once per iteration between `--train_start_iter` and
+`--train_stop_iter`.
+
+### Reusing the HuBERT recipe's data preparation
+
+Stages 1-4 and the iteration-0 MFCC k-means are identical to `hubert1`, so if
+that recipe has already been run there is no need to redo them:
+
+```sh
+cp -a ../hubert1/dump/raw dump/
+cp -a ../hubert1/data/en_token_list_kmeans_iter0_mfcc_100clusters data/
+cp -a ../hubert1/exp/kmeans_iter0_mfcc_train_960_portion0.1 exp/
+ln -s ../../hubert1/data/librispeech_phoneme_alignment data/librispeech_phoneme_alignment
+./run.sh --stage 6 --train_stop_iter 0
+```
+
+Note that the pseudo-label file name embeds the k-means tag
+(`text.km.kmeans_iter0_mfcc_train_960_portion0.1`), which does not depend on the
+recipe, so the copied labels are picked up as-is.
+
+### GPU memory
+
+WavLM's gated relative position bias materializes a
+`(batch, heads, frames, frames)` tensor in every layer, which HuBERT's attention
+does not. The configs here therefore use ~2/3 of the `hubert1` `batch_bins` with
+`accum_grad` raised to keep the same effective batch. `batch_bins` is the knob to
+turn if you hit OOM.
 
 ================================================
 
 ## RESULTS
-Detailed information, e.g. kmeans performance, accuracies, training curves, etc, can be found in the [PR page](https://github.com/espnet/espnet/pull/4747) and the following HuggingFace repos.
 
-### iteration 0 pretrained model:
-#### Environments
-- date: `Wed Jan 4 08:48:57 EST 2023`
-- python version: `3.9.15 (main, Nov 24 2022, 14:31:59) [GCC 11.2.0]`
-- espnet version: `202209`
-- pytorch version: `pytorch 1.13.0+cu117`
-- Git hash: `753f40d61813436d4e76660904d02eaed7a6649e`
-  - Commit date: `Wed Jan 4 06:52:27 2023 -0600`
-- SSL config: [conf/tuning/train_ssl_torchaudiohubert_base_960h_pretrain_it0.yaml](conf/tuning/train_ssl_torchaudiohubert_base_960h_pretrain_it0.yaml)
-- Pretrained model: [https://huggingface.co/espnet/simpleoier_librispeech_hubert_iter0_train_ssl_torchaudiohubert_base_960h_pretrain_it0_raw](https://huggingface.co/espnet/simpleoier_librispeech_hubert_iter0_train_ssl_torchaudiohubert_base_960h_pretrain_it0_raw)
-- Finetuning performance on [LibriLight_Limited 10 hr](https://dl.fbaipublicfiles.com/librilight/data/librispeech_finetuning.tgz)
-  |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
-  |---|---|---|---|---|---|---|---|---|
-  |decode_asr_model_valid.loss.ave/dev_clean|2694|53635|85.8|13.6|0.6|1.2|15.5|85.6|
-  |decode_asr_model_valid.loss.ave/dev_other|2864|50948|78.1|20.4|1.5|2.0|23.9|91.5|
-  |decode_asr_model_valid.loss.ave/test_clean|2620|52576|85.4|13.9|0.7|1.3|15.9|84.5|
-  |decode_asr_model_valid.loss.ave/test_other|2939|52343|78.0|20.6|1.5|2.1|24.1|91.6|
-
-### iteration 1 pretrained model:
-#### Environments
-- date: `Wed Jan 10 01:20:10 EST 2023`
-- python version: `3.9.15 (main, Nov 24 2022, 14:31:59) [GCC 11.2.0]`
-- espnet version: `202209`
-- pytorch version: `pytorch 1.13.0+cu117`
-- Git hash: `753f40d61813436d4e76660904d02eaed7a6649e`
-  - Commit date: `Wed Jan 4 06:52:27 2023 -0600`
-- SSL config: [conf/tuning/train_ssl_torchaudiohubert_base_960h_pretrain_it1.yaml](conf/tuning/train_ssl_torchaudiohubert_base_960h_pretrain_it1.yaml)
-- Pretrained model: [https://huggingface.co/espnet/simpleoier_librispeech_hubert_iter1_train_ssl_torchaudiohubert_base_960h_pretrain_it1_raw](https://huggingface.co/espnet/simpleoier_librispeech_hubert_iter1_train_ssl_torchaudiohubert_base_960h_pretrain_it1_raw)
-- Finetuning performance on [LibriLight_Limited 10 hr](https://dl.fbaipublicfiles.com/librilight/data/librispeech_finetuning.tgz)
-  |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
-  |---|---|---|---|---|---|---|---|---|
-  |decode_asr_model_valid.loss.ave/dev_clean|2694|53635|90.3|9.3|0.5|0.7|10.4|74.8|
-  |decode_asr_model_valid.loss.ave/dev_other|2864|50948|83.8|15.1|1.1|1.2|17.4|83.9|
-  |decode_asr_model_valid.loss.ave/test_clean|2620|52576|90.2|9.4|0.4|0.7|10.5|75.2|
-  |decode_asr_model_valid.loss.ave/test_other|2939|52343|83.6|15.2|1.1|1.3|17.6|85.3|
-  - Pretrained model: [https://huggingface.co/espnet/simpleoier_librilight_limited_asr_train_asr_hubert_base_10h_finetuning_raw_en_char](https://huggingface.co/espnet/simpleoier_librilight_limited_asr_train_asr_hubert_base_10h_finetuning_raw_en_char)
+Not yet available in this repository — pre-train the model and record the
+k-means quality, masked-prediction accuracy and downstream WER here.
 
 ================================================
 
-## HUBERT IN FAIRSEQ
+## ALTERNATIVE: continue pre-training a Hugging Face WavLM
 
-The original Hubert paper, code and model can be found in:
-paper: https://arxiv.org/pdf/2106.07447.pdf
-code and model: https://github.com/pytorch/fairseq/tree/master/examples/hubert
-
-## HUBERT IN TORCHAUDIO
-
-code and results: https://github.com/pytorch/audio/tree/main/examples/hubert
+`conf/tuning/train_ssl_wavlm_base_960h_pretrain.yaml` wraps
+`microsoft/wavlm-base` instead of training from scratch, for continued
+pre-training or domain adaptation. It requires `transformers`
+(`tools/installers/install_transformers.sh`) and is *not* a reproduction of WavLM
+pre-training, since the checkpoint it starts from is already the result of it.
 
 ================================================
+
+## REFERENCES
+
+- WavLM paper: https://arxiv.org/abs/2110.13900
+- Original code and models: https://github.com/microsoft/unilm/tree/master/wavlm
+- HuBERT (shared objective and pipeline): https://arxiv.org/abs/2106.07447
 
 ## ACKNOWLEDGEMENT
 
-We would like to thank Wei-Ning Hsu(Facebook) and Abdelrahman Mohamed(Facebook) for their work on Hubert and valuable
-information/kind help of this implementation.
-
-We would also like to thank Zhaoheng Ni @nateanl (Meta) for his substantial support in using Torchaudio HuBERT implementaion and in reproducing the similar results as in Torchaudio.
+This recipe builds directly on the ESPnet HuBERT recipe; see
+`egs2/librispeech/hubert1/README.md` for its acknowledgements. The WavLM
+Transformer comes from torchaudio's `wavlm_model` components.

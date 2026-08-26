@@ -8,6 +8,20 @@ def str2bool(value: str) -> bool:
     return bool(strtobool(value))
 
 
+def str2bool_or_none(value: str) -> Optional[bool]:
+    """str2bool_or_none.
+
+    Examples:
+        >>> str2bool_or_none("true")
+        True
+        >>> str2bool_or_none("none")
+
+    """
+    if value.strip().lower() in ("none", "null", "nil"):
+        return None
+    return str2bool(value)
+
+
 def remove_parenthesis(value: str):
     value = value.strip()
     if value.startswith("(") and value.endswith(")"):

@@ -48,6 +48,25 @@ autocast_args = dict()
 if torch.cuda.is_available() and torch.cuda.is_bf16_supported():
     autocast_args = dict(dtype=torch.bfloat16)
 
+
+def autocast_dtype() -> torch.dtype:
+    """The dtype `autocast` will use on this machine."""
+    return autocast_args.get("dtype", torch.float16)
+
+
+def grad_scaler_is_needed() -> bool:
+    """Whether AMP loss scaling is required for the autocast dtype in use.
+
+    Loss scaling exists to keep float16 gradients inside float16's narrow
+    exponent range. bfloat16 shares float32's exponent range, so scaling buys
+    nothing there -- and it actively does harm: because the scaler never observes
+    an overflow it doubles its scale every `growth_interval` iterations forever
+    (scales above 1e29 have been observed on long runs), and the
+    "gradients overflowed, skip this step" safety net -- which is what catches a
+    diverging run -- can never fire.
+    """
+    return autocast_dtype() == torch.float16
+
 try:
     import fairscale
 except ImportError:
@@ -69,6 +88,7 @@ class TrainerOptions:
     ngpu: int
     resume: bool
     use_amp: bool
+    use_grad_scaler: Optional[bool]
     train_dtype: str
     grad_noise: bool
     accum_grad: int
@@ -196,7 +216,18 @@ class Trainer:
         output_dir = Path(trainer_options.output_dir)
         reporter = Reporter()
         if trainer_options.use_amp:
-            if trainer_options.sharded_ddp:
+            use_grad_scaler = trainer_options.use_grad_scaler
+            if use_grad_scaler is None:
+                # Only float16 autocast needs loss scaling; see
+                # grad_scaler_is_needed().
+                use_grad_scaler = grad_scaler_is_needed()
+            if not use_grad_scaler:
+                logging.info(
+                    f"AMP is enabled with dtype={autocast_dtype()} and loss "
+                    "scaling disabled."
+                )
+                scaler = None
+            elif trainer_options.sharded_ddp:
                 if fairscale is None:
                     raise RuntimeError(
                         "Requiring fairscale. Do 'pip install fairscale'"
@@ -624,7 +655,7 @@ class Trainer:
 
             with autocast(
                 "cuda",
-                enabled=scaler is not None,
+                enabled=options.use_amp,
                 **autocast_args,
             ):
                 with reporter.measure_time("forward_time"):

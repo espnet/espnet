@@ -1,11 +1,22 @@
 use_amp: true
+# bfloat16 autocast needs no loss scaling, and pairing a GradScaler with it
+# makes the scaler grow its scale without bound (1e29 seen after 250 epochs)
+# while its skip-on-overflow guard -- the thing that stops a diverging run --
+# never fires. NOTE: set this back to true if you train on hardware without
+# bfloat16 support, where autocast falls back to float16 and scaling IS needed.
+use_grad_scaler: false
 grad_clip: 5.0
 batch_type: numel
 batch_bins: 45000000
 num_workers: 64
 accum_grad: 2
 max_epoch: 250
-patience: none
+patience: 25          # stop if valid/loss has not improved for 25 epochs.
+                      # Chosen from the iter-0 run: the longest genuine plateau
+                      # while healthy was 17 epochs, and the valid loss plateaus
+                      # to within its own epoch-to-epoch noise (~1.4%) long
+                      # before max_epoch, so this costs ~0.5% valid loss and
+                      # saves roughly half the run.
 # Use self-defined function for initialization
 init: none
 best_model_criterion:

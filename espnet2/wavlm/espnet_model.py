@@ -71,6 +71,9 @@ class WavLMPretrainModel(AbsESPnetModel):
 
         # WavLM speech denoising: mix each primary utterance with in-batch
         # secondary segments while keeping the clean-primary cluster targets.
+        # NOTE: the recipe normally does this earlier, in HuBERTCollateFn
+        # (`collate_fn_conf.mix_speech: true`), which can also draw the
+        # interfering segment from a noise corpus. Enable only one of the two.
         if utterance_mixing:
             self.utterance_mixing = UtteranceMixing(**(utterance_mixing_conf or {}))
         else:
