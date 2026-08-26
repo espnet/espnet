@@ -161,7 +161,7 @@ class F5TTS(AbsTTS):
         """Generate mel for ``text`` given a reference, the minimal AbsTTS path.
 
         F5 is zero-shot: it needs a reference. ``speech`` is the reference mel or
-        waveform; ``text`` should be the (ref + target) token ids — for the full
+        waveform; ``text`` should be the (ref + target) token ids, and for the full
         cross-speaker recipe protocol use
         ``espnet3.systems.tts.f5_tts.inference.F5TTSInference``,
         which handles reference pairing and vocoding.

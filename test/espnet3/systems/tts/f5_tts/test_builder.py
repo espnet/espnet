@@ -92,16 +92,48 @@ def test_rejects_explicit_odim(token_file):
         )
 
 
-def test_ignores_leftover_config_keys(token_file):
-    """The whole `model:` block is passed through, including dead keys."""
+def test_rejects_unknown_top_level_keys(token_file):
+    """Dead espnet2-task keys must fail loudly, not be silently ignored."""
+    with pytest.raises(TypeError):
+        build_f5_tts_model(
+            token_list=token_file,
+            feats_extract_conf=FEATS_CONF,
+            tts_conf=TTS_CONF,
+            token_type="char",
+        )
+
+
+def test_rejects_typo_inside_tts_conf(token_file):
+    """A misspelled hyper-parameter must not silently train a default model."""
+    with pytest.raises(TypeError):
+        build_f5_tts_model(
+            token_list=token_file,
+            feats_extract_conf=FEATS_CONF,
+            tts_conf=dict(TTS_CONF, dpeth=18),
+        )
+
+
+def test_rejects_typo_inside_feats_extract_conf(token_file):
+    with pytest.raises(TypeError):
+        build_f5_tts_model(
+            token_list=token_file,
+            feats_extract_conf=dict(FEATS_CONF, n_mel=100),
+            tts_conf=TTS_CONF,
+        )
+
+
+def test_tts_conf_scales_the_backbone(token_file):
+    """`tts_conf` is the scaling knob: its keys reach F5TTS directly."""
     model = build_f5_tts_model(
         token_list=token_file,
         feats_extract_conf=FEATS_CONF,
-        tts_conf=TTS_CONF,
-        token_type="char",
-        normalize=None,
+        tts_conf=dict(TTS_CONF, dim=64, depth=3),
     )
-    assert isinstance(model, ESPnetTTSModel)
+    backbone = model.tts.cfm.transformer
+    assert backbone.dim == 64
+    assert backbone.depth == 3
+    assert len(backbone.transformer_blocks) == 3
+    assert backbone.transformer_blocks[0].attn.to_q.in_features == 64
 
 
 def test_collect_feats_is_available(token_file):

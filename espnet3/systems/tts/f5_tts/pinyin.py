@@ -28,14 +28,14 @@ carried over unchanged, while ``convert_char_to_pinyin`` was reworked for this
 recipe, so this is an adaptation rather than a copy. Behaviour: Chinese
 characters become pinyin syllables (``Style.TONE3`` + tone sandhi, segmented with
 ``rjieba``), while English / letters / symbols are kept and split into individual
-characters. This is exactly F5's "Emilia_ZH_EN_pinyin" scheme — note it is *not*
+characters. This is exactly F5's "Emilia_ZH_EN_pinyin" scheme. Note it is *not*
 "pinyin for English"; English stays char-level.
 
 Provides three ways to use it:
-  * ``f5_pinyin_g2p`` + ``register_f5_pinyin_g2p`` — expose it as an ESPnet g2p
+  * ``f5_pinyin_g2p`` + ``register_f5_pinyin_g2p``: expose it as an ESPnet g2p
     (``g2p_type="f5_pinyin"``) so it works inside ``CommonPreprocessor`` /
     ``build_tokenizer`` when you build your own vocab (with a ``<unk>``).
-  * ``convert_char_to_pinyin`` / ``text_to_pinyin_ids`` — the raw tokenizer and
+  * ``convert_char_to_pinyin`` / ``text_to_pinyin_ids``: the raw tokenizer and
     F5's exact id mapping (unknown token -> 0), used by ``F5PinyinPreprocessor``
     to match F5's fixed ``vocab.txt`` (which has no ``<unk>``).
 
@@ -131,13 +131,13 @@ def build_pinyin_vocab(
     ``<sos/eos>`` symbols are added, and a literal space lands at index 0 (it is
     the lowest-codepoint token), matching F5's convention (``vocab[" "] == 0``).
 
-    ``texts`` is any iterable of strings, so this is dataset-agnostic — feed it
+    ``texts`` is any iterable of strings, so this is dataset-agnostic. Feed it
     transcripts from any manifest or dataset.
 
     Args:
         texts: Iterable of raw transcripts (zh/en/mixed).
         add_ascii_latin: If True, also seed the vocab with ASCII (32..126) and
-            Latin-1 (192..255) characters — F5's optional line for broadening
+            Latin-1 (192..255) characters, F5's optional line for broadening
             coverage (e.g. finetuning to de/fr). Off by default to match the
             plain Emilia/csv prep.
         polyphone: Passed through to :func:`convert_char_to_pinyin`.

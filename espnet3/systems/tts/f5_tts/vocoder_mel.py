@@ -1,9 +1,9 @@
 """Neural-vocoder mel front-end as an ``AbsFeatsExtract``.
 
 Wraps F5-TTS's ``MelSpec`` so ``ESPnetTTSModel`` can use it as its
-``feats_extract``. Using F5's own mel — rather than
-``LogMelFbank`` — keeps training features bit-compatible with the neural vocoder
-used at inference. ``mel_spec_type`` selects which vocoder family the mel targets:
+``feats_extract``. Using F5's own mel, rather than ``LogMelFbank``, keeps
+training features bit-compatible with the neural vocoder used at inference.
+``mel_spec_type`` selects which vocoder family the mel targets:
 ``"vocos"`` or ``"bigvgan"`` (hence the vocoder-agnostic name).
 
 Output layout is ``[B, T, n_mels]`` (time-first), matching what ``ESPnetTTSModel``
@@ -81,7 +81,7 @@ class VocoderMelSpec(AbsFeatsExtract):
         """Turn waveform ``[B, T_wav]`` into mel ``[B, T, n_mels]`` and lengths.
 
         ``feats_lengths`` uses the standard center=True STFT frame count
-        ``T_wav // hop + 1`` — the same formula espnet2's ``Stft`` uses
+        ``T_wav // hop + 1``, the same formula espnet2's ``Stft`` uses
         (``(ilens + 2*(n_fft//2) - n_fft)//hop + 1``).
         """
         # MelSpec returns [B, n_mels, T]; F5's MelSpectrogram uses center=True.

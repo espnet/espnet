@@ -42,19 +42,30 @@ def build_f5_tts_model(
     tts_conf: Dict[str, Any],
     model_conf: Optional[Dict[str, Any]] = None,
     odim: Optional[int] = None,
-    **unused: Any,
 ) -> ESPnetTTSModel:
     """Assemble ``ESPnetTTSModel(feats_extract=VocoderMelSpec, tts=F5TTS)``.
 
+    Every hyper-parameter reaches its component through one of the three
+    ``*_conf`` blocks, whose keys map one-to-one onto that component's
+    ``__init__``. None of them accepts ``**kwargs``, so a misspelled key raises
+    ``TypeError`` at build time rather than silently training a default model:
+
+    - ``tts_conf`` -> :class:`F5TTS` (model size and flow-matching settings)
+    - ``feats_extract_conf`` -> :class:`VocoderMelSpec` (mel front-end)
+    - ``model_conf`` -> :class:`ESPnetTTSModel` (wrapper-level settings)
+
+    To scale the model, set the :class:`F5TTS` backbone sizes in ``tts_conf``.
+    They default to F5TTS_Base (``dim: 1024``, ``depth: 22``, ``heads: 16``);
+    the example below is F5TTS_Small.
+
     Args:
-        token_list: Path to the token file, or the token list itself.
+        token_list: Path to the token file, or the token list itself. Its
+            length becomes the vocabulary size, i.e. ``F5TTS(idim=...)``.
         feats_extract_conf: Keyword arguments for ``VocoderMelSpec``.
         tts_conf: Keyword arguments for ``F5TTS`` beyond ``idim``/``odim``.
         model_conf: Extra keyword arguments for ``ESPnetTTSModel``.
         odim: Must stay ``None``. F5-TTS extracts mel inside the model, so the
             output dimension comes from the feature extractor.
-        **unused: Ignored, so the recipe's whole ``model:`` block can be passed
-            through without pruning keys that only the espnet2 task needed.
 
     Returns:
         The assembled TTS model.
@@ -62,6 +73,32 @@ def build_f5_tts_model(
     Raises:
         RuntimeError: If ``token_list`` is neither a path nor a sequence, or if
             ``odim`` is given explicitly.
+        TypeError: If an unknown key is present in the ``model:`` block or in
+            any of the ``*_conf`` blocks.
+
+    Example:
+        .. code-block:: yaml
+
+            model:
+              _target_: espnet3.systems.tts.f5_tts.builder.build_f5_tts_model
+              token_list: ${data_dir}/tokens/char_tokens.txt
+              feats_extract_conf:
+                fs: 24000
+                n_fft: 1024
+                hop_length: 256
+                win_length: 1024
+                n_mels: 100
+                mel_spec_type: vocos
+              tts_conf:          # F5TTS_Small; omit these keys for F5TTS_Base
+                dim: 768
+                depth: 18
+                heads: 12
+                dim_head: 64
+                ff_mult: 2
+                text_dim: 512
+                conv_layers: 4
+                odeint_method: euler
+              model_conf: {}
     """
     token_list = _plain(token_list)
     if isinstance(token_list, str):

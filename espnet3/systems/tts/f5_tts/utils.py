@@ -23,12 +23,22 @@
 
 Ported from https://github.com/SWivid/F5-TTS/blob/main/src/f5_tts/model/utils.py
 
-Only the helpers actually used by this recipe (cfm.py / backbones / modules)
-are kept. The upstream Chinese-specific tokenizer helpers (``convert_char_to_pinyin``,
-``get_tokenizer``) and their heavy dependencies (``rjieba``, ``pypinyin``) are
-intentionally dropped: this recipe tokenizes text with ESPnet's phoneme g2p
-pipeline (see ``create_token_list`` stage) and feeds integer token ids to the
-model, so those helpers are unused here.
+Only the helpers actually used by the model path (cfm.py / backbones /
+modules) are kept here. Two upstream helpers are deliberately absent from this
+file:
+
+- ``get_tokenizer`` is dropped outright. Tokenization happens before the model
+  in ESPnet, so the model is handed integer token ids and never builds a vocab
+  itself.
+- ``convert_char_to_pinyin`` is not dropped, only relocated. It lives next door
+  in :mod:`espnet3.systems.tts.f5_tts.pinyin`, reworked for this recipe, and
+  imports ``rjieba`` / ``pypinyin`` lazily so this module stays cheap to
+  import and those dependencies stay optional.
+
+Which tokenizer a recipe actually uses is a config choice, not a property of
+this file. The LibriTTS recipe uses char-level ``CommonPreprocessor``; the
+zh+en pinyin scheme is available via ``g2p_type: f5_pinyin`` or
+``F5PinyinPreprocessor``, both provided by ``pinyin.py``.
 """
 
 # Ported verbatim from SWivid/F5-TTS at tag 1.1.20

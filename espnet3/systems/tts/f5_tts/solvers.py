@@ -7,7 +7,7 @@ F5 no longer needs ``torchdiffeq`` for its default configuration.
 
 Only the fixed-step methods are implemented here. Any other method (adaptive
 solvers such as ``dopri5``/``rk4``) falls back to ``torchdiffeq`` via a lazy
-import — so exotic configs still work if the package is installed, but the
+import, so exotic configs still work if the package is installed, but the
 common path has no dependency.
 
 API mirrors ``torchdiffeq.odeint(func, y0, t, method=...)``:
