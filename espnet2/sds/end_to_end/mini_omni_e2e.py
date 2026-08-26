@@ -60,7 +60,7 @@ class MiniOmniE2EModel(AbsE2E):
         repo_id = "gpt-omni/mini-omni"
         snapshot_download(repo_id, local_dir="./checkpoint", revision="main")
 
-        self.client = OmniInference("./checkpoint", "cuda")
+        self.client = OmniInference("./checkpoint", device)
         self.stream_stride = 4
         self.max_tokens = 2048
         self.OUT_CHANNELS = 1
