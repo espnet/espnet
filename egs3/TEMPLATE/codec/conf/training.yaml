@@ -234,7 +234,7 @@ parallel:
 # Chunking makes the number of EMITTED batches per rank data-dependent
 # (chunks per utterance vary with length; utterances shorter than
 # `chunk_length` are dropped), so under DDP espnet3's
-# DistributedSyncIterator (espnet3/components/data/dataloader.py) ends the
+# EpochSyncIterator (espnet3/components/data/iterator.py) ends the
 # epoch on all ranks as soon as the first rank's iterator is exhausted.
 dataloader:
   collate_fn:
