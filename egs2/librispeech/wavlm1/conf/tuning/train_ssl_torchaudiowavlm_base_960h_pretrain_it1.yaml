@@ -16,8 +16,12 @@ batch_type: numel
 # NOTE: WavLM's gated relative position bias materializes a
 # (batch, heads, frames, frames) tensor in every layer, which HuBERT's attention
 # does not. batch_bins is therefore 2/3 of the HuBERT recipe's 45000000 and
-# accum_grad is raised from 2 to 3 to keep the same effective batch. Lower
-# batch_bins further (and raise accum_grad) if you hit OOM.
+# accum_grad is raised from 2 to 3 to keep the same effective batch.
+# MEASURED (8 x 80GB, LibriSpeech 960h): this peaks at 77.1 GB -- close to the
+# limit, and much tighter than the iteration-0 config despite the smaller
+# batch_bins, because label_downsampling=1 here doubles the effective sequence
+# length and the position-bias tensor grows with its square. If you OOM, drop to
+# ~24000000 and raise accum_grad to 4 to hold the effective batch.
 batch_bins: 30000000
 num_workers: 8
 accum_grad: 3

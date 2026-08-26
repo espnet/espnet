@@ -65,12 +65,63 @@ does not. The configs here therefore use ~2/3 of the `hubert1` `batch_bins` with
 `accum_grad` raised to keep the same effective batch. `batch_bins` is the knob to
 turn if you hit OOM.
 
+Measured on 8 x 80GB: iteration 0 peaks at **58.6 GB** (over-conservative — there
+is room to raise `batch_bins` toward 40-44M) while iteration 1 peaks at
+**77.1 GB**, much tighter despite a smaller `batch_bins`, because
+`label_downsampling: 1` doubles the effective sequence length and the
+position-bias tensor grows with its square. The two iterations have genuinely
+different memory profiles; tune them separately.
+
 ================================================
 
 ## RESULTS
 
-Not yet available in this repository — pre-train the model and record the
-k-means quality, masked-prediction accuracy and downstream WER here.
+Pre-trained on LibriSpeech 960h, 8 x 80GB GPUs, `train_960` / `dev`.
+Total wall clock 4d 19h (of which ~4d 3h was training).
+
+### K-means teacher quality
+
+Measured against the MFA phoneme alignments by stage 5
+(`exp/kmeans_iter*/phoneme_pseudo_label_quality.txt`):
+
+| teacher | phone purity | MI / H(ref) | MI |
+| --- | --- | --- | --- |
+| iter 0 — MFCC, 100 clusters | 0.2875 | 0.2475 | 0.8383 |
+| iter 1 — WavLM layer 6, 500 clusters | **0.5430** | **0.5501** | **1.8630** |
+
+Phone purity and normalized mutual information both roughly double, i.e. the
+iteration-0 model's own layer-6 features are a much better clustering target
+than MFCCs — which is the point of the iterative refinement.
+
+### Pre-training
+
+| | iter 0 | iter 1 |
+| --- | --- | --- |
+| targets | 100 clusters | 500 clusters |
+| stopped at | ep130 (patience) | ep221 (patience) |
+| best epoch | ep104 | ep195 |
+| valid masked acc | 0.457 | 0.414 |
+| per-frame valid loss | 1.864 nats (chance 4.615) | ~1.53 nats (chance 6.217) |
+| epoch wall time | ~13 min | ~19 min |
+| peak GPU memory | 58.6 GB | 77.1 GB |
+
+Masked accuracy is NOT comparable across iterations — the class count differs, so
+chance moves from 1/101 to 1/501. Normalized, iteration 1 reaches ~25% of its
+chance-loss ceiling versus iteration 0's ~40%.
+
+Downstream ASR fine-tuning results are not yet available.
+
+### Notes for reproducing
+
+- `patience: 25` cut iteration 0 from the 250-epoch cap to 130 (~26 h saved).
+  Iteration 1's tail kept producing sub-1% improvements that reset the counter,
+  so it nearly ran to the cap anyway; patience cannot catch that case, only a
+  lower `max_epoch` can.
+- Stage 5's k-means fit took 3h55m, 14x longer than the 17-minute GPU feature
+  dump that feeds it, because it is a single scikit-learn job. Consider
+  `scripts/feats/feats_clustering_cuml.sh` for GPU clustering if this matters.
+- The ~500 GB of dumped layer-6 features in `dump/wavlm_feats` are only needed to
+  fit the k-means; they can be deleted afterwards and regenerated in ~17 min.
 
 ================================================
 

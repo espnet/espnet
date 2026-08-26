@@ -63,6 +63,8 @@ egs*/*/*/mfcc
 egs*/*/*/stft
 egs*/*/*/tensorboard
 egs*/*/*/wav*
+# ...but wavlm.sh is a recipe driver script, not dumped wav data.
+!egs*/*/*/wavlm.sh
 egs*/*/*/score*
 egs*/*/*/nltk*
 egs*/*/*/.cache*
@@ -128,3 +130,5 @@ tools/condarc
 tools/lightning_constraints.txt
 tools/versa
 tools/ParallelWaveGAN
+
+.runlogs
