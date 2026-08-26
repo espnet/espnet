@@ -66,9 +66,7 @@ def resolve_source_root(
     checked: list[str] = []
     for candidate in iter_source_candidates(recipe_root, source_dir):
         checked.append(str(candidate))
-        if all(
-            (candidate / str(rel)).is_dir() for rel in _CFG["sources"].values()
-        ):
+        if all((candidate / str(rel)).is_dir() for rel in _CFG["sources"].values()):
             return candidate
 
     expected = ", ".join(str(rel) for rel in _CFG["sources"].values())
