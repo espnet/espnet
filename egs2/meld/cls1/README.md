@@ -32,3 +32,22 @@ MELD is a multimodal dataset of multi-party conversations from the TV series *Fr
 |---|---|---|---|---|---|
 cls_test|50.81|28.24|70.31|7.00|2608.00
 cls_valid|48.19|30.05|69.63|7.00|1104.00
+
+## Comparison with prior work
+
+### [MELD original paper](https://arxiv.org/pdf/1810.02508)
+| Model | Weighted F1 |
+|---|---|
+| **This recipe (WavLM Base+)** | 48.15 |
+| bcLSTM (audio) | 39.08 |
+| DialogueRNN (audio) | 41.79 |
+
+### [EmoBox](https://emo-box.github.io/leaderboard1.html)
+| Model | WA | UA | Macro F1 |
+|---|---|---|---|
+| **This recipe (WavLM Base+)** | 50.81 | 28.00 | 27.75 |
+| EmoBox WavLM base | 44.71 | 23.44 | 24.25 |
+| EmoBox WavLM large | 49.31 | 28.18 | 29.11 |
+| EmoBox Whisper large v3 | 51.89 | 31.54 | 32.95 |
+
+Note: the metrics above were computed manually from the model predictions to match those used in the prior work, as the scoring stage reports mean_acc / mAP / mean_auc instead.
