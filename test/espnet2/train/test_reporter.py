@@ -322,13 +322,21 @@ def test_state_dict_weights_only_compatible():
     method must serialise these into native Python types so that the
     checkpoint can be loaded with weights_only=True without raising an
     UnpicklingError.
+
+    We register plain float values so that typechecked passes; aggregate()
+    internally produces np.float64 via np.nanmean, which is the problematic
+    type that state_dict() must convert.
     """
     import io
 
     reporter = Reporter()
     reporter.set_epoch(1)
     with reporter.observe("train") as sub:
-        sub.register({"loss": np.float32(0.5), "acc": np.float64(0.9)})
+        # Register two steps so aggregate() calls np.nanmean and returns
+        # np.float64 (not a plain Python float).
+        sub.register({"loss": 0.5, "acc": 0.9})
+        sub.next()
+        sub.register({"loss": 0.3, "acc": 0.8})
         sub.next()
 
     state = reporter.state_dict()
