@@ -15,11 +15,6 @@ fi
 source tools/activate_python.sh
 PYTHONPATH="${PYTHONPATH:-}:$(pwd)/tools/s3prl"
 export PYTHONPATH
-# Allow safe_torch_load to fall back to weights_only=False for integration tests.
-# Training checkpoints saved by torch.save may contain numpy scalars in optimizer
-# or reporter state, which weights_only=True rejects. This opt-in is intentional
-# for the test environment only; production code must not set this variable.
-export ESPNET_ALLOW_UNSAFE_TORCH_LOAD=1
 # Use sysmon core on Python 3.12+ to avoid sys.settrace performance regression
 # (CPython gh-107674: tracing overhead ~7x on 3.12 vs ~3x on 3.10)
 if python3 -c "import sys; exit(0 if sys.version_info >= (3,12) else 1)"; then

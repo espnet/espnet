@@ -567,8 +567,47 @@ class Reporter:
         wandb.log(d)
 
     def state_dict(self):
-        return {"stats": self.stats, "epoch": self.epoch}
+        # Serialise stats into weights_only=True-safe native Python types.
+        # numpy scalars (e.g. np.float64 from np.nanmean) and
+        # datetime.timedelta are not allowed by torch.load weights_only=True,
+        # so we convert them here and restore in load_state_dict.
+        def _to_serialisable(v):
+            if isinstance(v, datetime.timedelta):
+                # Store as total seconds (float) so torch.save can pickle it
+                # with weights_only=True.  Restored to timedelta on load.
+                return {"__timedelta_seconds__": v.total_seconds()}
+            if isinstance(v, float):
+                return v
+            try:
+                # Catches numpy scalars (np.float64, np.float32, …)
+                return float(v)
+            except (TypeError, ValueError):
+                return v
+
+        safe_stats = {}
+        for epoch, epoch_dict in self.stats.items():
+            safe_stats[epoch] = {}
+            for key, key_dict in epoch_dict.items():
+                safe_stats[epoch][key] = {
+                    k: _to_serialisable(val) for k, val in key_dict.items()
+                }
+        return {"stats": safe_stats, "epoch": self.epoch}
 
     def load_state_dict(self, state_dict: dict):
         self.epoch = state_dict["epoch"]
-        self.stats = state_dict["stats"]
+        # Restore datetime.timedelta objects that were serialised as dicts.
+        restored_stats = {}
+        for epoch, epoch_dict in state_dict["stats"].items():
+            restored_stats[epoch] = {}
+            for key, key_dict in epoch_dict.items():
+                restored_stats[epoch][key] = {}
+                for k, val in key_dict.items():
+                    if (
+                        isinstance(val, dict)
+                        and "__timedelta_seconds__" in val
+                    ):
+                        val = datetime.timedelta(
+                            seconds=val["__timedelta_seconds__"]
+                        )
+                    restored_stats[epoch][key][k] = val
+        self.stats = restored_stats
