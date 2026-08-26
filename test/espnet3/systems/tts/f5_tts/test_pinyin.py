@@ -8,6 +8,7 @@ from espnet3.systems.tts.f5_tts.pinyin import (
     convert_char_to_pinyin,
     f5_pinyin_g2p,
     load_vocab_char_map,
+    register_f5_pinyin_g2p,
     text_to_pinyin_ids,
 )
 
@@ -133,3 +134,62 @@ def test_registering_the_g2p_is_idempotent():
 
     tokenizer = pt.PhonemeTokenizer(g2p_type="f5_pinyin")
     assert tokenizer.text2tokens("abc") == ["a", "b", "c"]
+
+
+@pinyin_deps
+def test_multi_letter_words_are_separated_by_a_space():
+    """Adjacent alphabetic segments need a boundary; single letters do not."""
+    tokens = convert_char_to_pinyin(["hello world"])[0]
+
+    assert " " in tokens
+    assert "".join(tokens).replace(" ", "") == "helloworld"
+
+
+@pinyin_deps
+def test_mixed_scripts_in_one_segment_are_split_character_by_character():
+    """A segment that is neither pure ascii nor pure CJK takes the slow path."""
+    tokens = convert_char_to_pinyin(["a中b"])[0]
+
+    joined = "".join(tokens)
+    assert "a" in tokens and "b" in tokens
+    assert any(c.isdigit() for c in joined)  # the CJK char became toned pinyin
+    assert not any("一" <= c <= "鿿" for c in joined)
+
+
+@pinyin_deps
+def test_non_latin_non_chinese_characters_pass_through():
+    """Anything outside ascii and CJK is kept as its own token."""
+    tokens = convert_char_to_pinyin(["aФb"])[0]
+
+    assert "Ф" in tokens
+
+
+@pinyin_deps
+def test_polyphone_disabled_skips_tone_sandhi():
+    with_sandhi = convert_char_to_pinyin(["中文"], polyphone=True)[0]
+    without = convert_char_to_pinyin(["中文"], polyphone=False)[0]
+
+    assert with_sandhi and without
+
+
+def test_registering_the_g2p_twice_reuses_the_first_patch():
+    """The second call must not wrap an already-wrapped __init__."""
+    import espnet2.text.phoneme_tokenizer as pt
+
+    register_f5_pinyin_g2p()
+    first = pt.PhonemeTokenizer.__init__
+    register_f5_pinyin_g2p()
+
+    assert pt.PhonemeTokenizer.__init__ is first
+    assert pt.g2p_choices.count("f5_pinyin") == 1
+
+
+def test_the_patched_tokenizer_still_serves_other_g2p_types():
+    """Patching in f5_pinyin must not break the tokenizers already there."""
+    from espnet2.text.phoneme_tokenizer import PhonemeTokenizer
+
+    register_f5_pinyin_g2p()
+    tokenizer = PhonemeTokenizer(g2p_type=None)
+
+    # g2p_type=None applies no grapheme-to-phoneme step at all.
+    assert tokenizer.text2tokens("ab") == ["ab"]

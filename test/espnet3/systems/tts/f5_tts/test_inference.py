@@ -528,3 +528,86 @@ def test_a_partial_checkpoint_still_loads(
 
     assert "missing keys" in caplog.text
     assert "unexpected keys" in caplog.text
+
+
+# ------------------------------------------------------ remaining load paths
+
+
+def test_a_safetensors_checkpoint_is_read_as_a_flat_ema_dict(tmp_path, reference_model):
+    """The official release ships .safetensors with no nesting."""
+    safetensors_torch = pytest.importorskip("safetensors.torch")
+    cfm_sd = reference_model.tts.cfm.state_dict()
+    flat = {"ema_model." + k: v.contiguous() for k, v in cfm_sd.items()}
+    flat["initted"] = torch.tensor(True)
+    path = tmp_path / "model.safetensors"
+    safetensors_torch.save_file(flat, str(path))
+
+    out = F5TTSInference._load_native_f5_state(str(path), use_ema=True)
+
+    assert set(out) == set(cfm_sd)
+
+
+def test_a_bare_state_dict_checkpoint_is_used_as_is(tmp_path, reference_model):
+    """Neither ema_model_state_dict nor model_state_dict: take the whole file."""
+    cfm_sd = reference_model.tts.cfm.state_dict()
+    path = tmp_path / "bare.pt"
+    torch.save(dict(cfm_sd), path)
+
+    out = F5TTSInference._load_native_f5_state(str(path), use_ema=True)
+
+    assert set(out) == set(cfm_sd)
+
+
+def test_the_f5_pinyin_g2p_is_registered_when_the_config_asks_for_it(
+    tmp_path, train_config, ckpt_path, stub_vocoder
+):
+    """g2p_type: f5_pinyin has to be patched into espnet2 before use."""
+    import espnet2.text.phoneme_tokenizer as pt
+
+    cfg = yaml.safe_load(train_config.read_text(encoding="utf-8"))
+    cfg["dataset"]["preprocessor"]["g2p_type"] = "f5_pinyin"
+    cfg["dataset"]["preprocessor"]["token_type"] = "phn"
+    path = tmp_path / "g2p.yaml"
+    path.write_text(yaml.safe_dump(cfg), encoding="utf-8")
+
+    F5TTSInference(train_config=str(path), ckpt_path=str(ckpt_path))
+
+    assert "f5_pinyin" in pt.g2p_choices
+
+
+def test_a_missing_bigvgan_package_is_reported_clearly(
+    monkeypatch, train_config, ckpt_path
+):
+    monkeypatch.setitem(sys.modules, "bigvgan", None)
+
+    with pytest.raises(ImportError, match="bigvgan is required"):
+        F5TTSInference(
+            train_config=str(train_config),
+            ckpt_path=str(ckpt_path),
+            vocoder_name="bigvgan",
+        )
+
+
+# ----------------------------------------------------- degenerate generation
+
+
+def test_empty_target_text_returns_silence(engine):
+    """Nothing to say, so there are no chunks to synthesize."""
+    wav = engine.infer_one("", np.zeros(24000 // 2, dtype=np.float32), ref_text="ab")
+
+    np.testing.assert_array_equal(wav, np.zeros(1, dtype=np.float32))
+
+
+def test_a_chunk_that_generates_no_frames_is_dropped(engine, monkeypatch):
+    """If the solver returns only the prompt there is nothing left to vocode."""
+
+    def prompt_only(cond, text, duration, **kwargs):
+        # Return exactly the reference length, so the generated span is empty.
+        ref_len = cond.shape[-1] // engine.hop_length
+        return torch.zeros(1, ref_len, 100), None
+
+    monkeypatch.setattr(engine.cfm, "sample", prompt_only)
+
+    wav = engine.infer_one("abc", np.zeros(24000 // 2, dtype=np.float32), ref_text="ab")
+
+    np.testing.assert_array_equal(wav, np.zeros(1, dtype=np.float32))
