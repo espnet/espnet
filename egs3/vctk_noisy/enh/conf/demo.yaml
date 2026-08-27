@@ -1,57 +1,12 @@
-# egs3/vctk_noisy/enh/conf/demo.yaml
 ##########################################################
-#                    DEMO PACK SETTING                   #
+#                VCTK-NOISY DEMO OVERRIDES              #
 ##########################################################
 # Quick usage:
 #   python run.py --stages pack_demo   --demo_config conf/demo.yaml
 #   python run.py --stages upload_demo --demo_config conf/demo.yaml
 
-recipe_dir: .
-
 model:
-  dir_or_tag: exp/${exp_tag}/model_pack
   trust_user_code: true
-  call_args: {}
 
 ui:
-  app_script: src/app.py
   title: "Speech Enhancement Demo (VCTK-Noisy, Conv-TasNet)"
-  description: README.md
-  inputs:
-    - key: speech_mix
-      type: audio
-      label: "Noisy Input Audio"
-  outputs:
-    - key: enhanced
-      type: audio
-      label: "Enhanced Output Audio"
-
-pack:
-  out_dir: demo
-  include: []
-  exclude: []
-  requirements:
-    - git+https://github.com/espnet/espnet.git
-  readme: ${config_path:../src/hf_demo_readme.md}
-  readme_context:
-    title: ${ui.title}
-    emoji: "🎙️"
-    color_from: blue
-    color_to: green
-    sdk: gradio
-    app_file: app.py
-    pinned: "false"
-    license: apache-2.0
-    tags: |-
-      - espnet
-      - espnet3
-      - gradio
-      - speech-enhancement
-    hf_repo: ${upload_demo.hf_repo}
-    model_ref: ${model.dir_or_tag}
-
-upload_demo:
-  hf_repo: espnet/${set_corpus_and_system:}_${exp_tag}
-  update: false
-  delete_patterns:
-    - "*"
