@@ -20,6 +20,23 @@ def build_output(data, model_output, idx):
         Dict with ``utt_id``, the ground-truth wav path under ``ref``, and
         the resynthesized waveform under ``wav`` (1-D float32 numpy array,
         materialized as a WAV file via ``output_artifacts``).
+
+    Raises:
+        RuntimeError: If *model_output* has no ``resyn_audio`` key.
+
+    Examples:
+        Wired up from ``conf/inference.yaml`` as
+        ``output_fn: src.inference.build_output``; the runner calls it once
+        per test utterance:
+        ```python
+        out = build_output(
+            {"utt_id": "1089-134686-000002-000000", "wav_path": "/data/a.wav"},
+            {"resyn_audio": torch.zeros(24000)},
+            0,
+        )
+        sorted(out)          # -> ['ref', 'utt_id', 'wav']
+        out["wav"].shape     # -> (24000,)
+        ```
     """
     utt_id = str(data.get("utt_id", idx))
     ref = str(data.get("wav_path", ""))  # ground truth wav path

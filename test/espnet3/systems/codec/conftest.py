@@ -1,8 +1,8 @@
+from test.espnet3.systems.codec._gan_dummies import DummyDataset
+
 import pytest
 
 from espnet3.components.data import data_organizer as data_organizer_module
-
-from ._gan_dummies import DummyDataset
 
 
 @pytest.fixture(autouse=True)

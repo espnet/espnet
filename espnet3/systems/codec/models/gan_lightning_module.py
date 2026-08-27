@@ -31,7 +31,26 @@ class GANLightningModule(ESPnetLightningModule):
     }
 
     def __init__(self, model, config):
-        """Initialize the module and disable Lightning's automatic optimization."""
+        """Initialize the module and disable Lightning's automatic optimization.
+
+        GAN training alternates a generator turn and a discriminator turn
+        within one batch, so Lightning's automatic optimization is turned off
+        and the two turns are stepped manually.
+
+        Args:
+            model: The GAN model to wrap, an
+                ``espnet2.train.abs_gan_espnet_model.AbsGANESPnetModel``.
+            config: Resolved training config. ``optimizers``/``schedulers``
+                drive the named optimizer path, and the optional
+                ``trainer.gan`` block sets ``generator_first`` (default
+                False) and ``skip_discriminator_prob`` (default 0.0).
+
+        Examples:
+            ```python
+            module = GANLightningModule(model, config)
+            assert module.automatic_optimization is False
+            ```
+        """
         super().__init__(model, config)
         self.automatic_optimization = False
 

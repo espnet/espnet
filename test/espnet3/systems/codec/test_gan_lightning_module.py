@@ -1,19 +1,19 @@
 """Unit tests for espnet3.systems.codec.models.gan_lightning_module."""
 
-import pytest
-import torch
-import torch.nn as nn
-from omegaconf import OmegaConf
-
-from espnet3.systems.codec.models.gan_lightning_module import GANLightningModule
-
-from ._gan_dummies import (
+from test.espnet3.systems.codec._gan_dummies import (
     DummyGANModel,
     make_gan_training_config,
     make_train_batch,
     make_valid_batch,
     prepare_manual_optimization,
 )
+
+import pytest
+import torch
+import torch.nn as nn
+from omegaconf import OmegaConf
+
+from espnet3.systems.codec.models.gan_lightning_module import GANLightningModule
 
 
 def make_module(tmp_path, gan=None, model=None, optimizers=None):

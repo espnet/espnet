@@ -1,4 +1,10 @@
-"""VERSA-based codec metric wrapper for the measure stage."""
+"""VERSA-based metric wrapper for the `measure` stage.
+
+Wraps `versa.bin.scorer` (https://github.com/wavlab-speech/versa) as an
+ESPnet3 `BaseMetric`, so any generation task -- codec resynthesis, TTS,
+speech enhancement -- can score its `infer` outputs from a recipe config
+without a task-specific wrapper.
+"""
 
 from __future__ import annotations
 
@@ -17,7 +23,41 @@ logger = logging.getLogger(__name__)
 
 
 class VersaMetric(BaseMetric):
-    """Wrap versa.bin.scorer."""
+    """Score `infer` outputs by shelling out to `versa.bin.scorer`.
+
+    One instance scores one test set: `__call__` receives the SCP files the
+    `infer` stage wrote, runs the VERSA scorer over them as a subprocess, and
+    returns the per-utterance average of every numeric field VERSA emitted.
+
+    Examples:
+        Declared from a recipe `conf/metrics.yaml`:
+        ```yaml
+        metrics:
+          - metric:
+              _target_: espnet3.components.metrics.versa.VersaMetric
+              score_config:
+                - name: signal_metric
+                - name: pseudo_mos
+                  predictor_types: [utmos]
+              wav_key: wav
+              ref_key: ref
+              use_gpu: true
+            inputs:
+              wav: wav
+              ref: ref
+        ```
+
+        Or directly, pointing at an existing VERSA config file:
+        ```python
+        metric = VersaMetric(score_config="conf/versa.yaml")
+        scores = metric(
+            {"wav": Path("exp/inference/test/wav.scp"),
+             "ref": Path("exp/inference/test/ref.scp")},
+            test_name="test",
+            inference_dir=Path("exp/inference"),
+        )
+        ```
+    """
 
     def __init__(
         self,
@@ -40,6 +80,15 @@ class VersaMetric(BaseMetric):
                 to None and ``--text`` is omitted from the scorer command.
             use_gpu: Pass ``--use_gpu`` to the scorer.
             io: Value for the scorer's ``--io`` option.
+
+        Examples:
+            ```python
+            # Inline metric list; a versa_config.yaml is written at score time.
+            metric = VersaMetric(score_config=[{"name": "signal_metric"}])
+
+            # An existing versa config file, scored on CPU.
+            metric = VersaMetric(score_config="conf/versa.yaml", use_gpu=False)
+            ```
         """
         self.score_config = score_config
         self.wav_key = wav_key
@@ -89,7 +138,28 @@ class VersaMetric(BaseMetric):
             inference_dir: Root inference output directory.
 
         Returns:
-            Dict of metric name to per-utterance average.
+            Dict of metric name to per-utterance average. The same values are
+            written to ``<inference_dir>/<test_name>/scoring/versa_eval/
+            avg_result.json``.
+
+        Raises:
+            KeyError: If ``wav_key``, ``ref_key``, or a configured
+                ``text_key`` is absent from *data*.
+            FileNotFoundError: If ``score_config`` is a path that does not
+                exist.
+            subprocess.CalledProcessError: If the VERSA scorer exits non-zero.
+
+        Examples:
+            ```python
+            metric = VersaMetric(score_config=[{"name": "signal_metric"}])
+            scores = metric(
+                {"wav": inference_dir / "test" / "wav.scp",
+                 "ref": inference_dir / "test" / "ref.scp"},
+                test_name="test",
+                inference_dir=inference_dir,
+            )
+            # -> {"mcd": 3.1416, "sdr": 12.7, ...}
+            ```
         """
         if self.wav_key not in data:
             raise KeyError(
@@ -153,7 +223,36 @@ class VersaMetric(BaseMetric):
 
     @staticmethod
     def summarize(scores: Dict[str, float], test_name: str = "") -> None:
-        """Log a formatted summary of VERSA scores."""
+        """Log a formatted summary table of VERSA scores.
+
+        Metrics are logged one per line. WER/CER edit-operation counts are
+        detected by their ``<prefix>_{wer,cer}_{delete,insert,replace,equal}``
+        naming, grouped into their own section, and reduced to a single
+        percentage. Called automatically at the end of ``__call__``.
+
+        Args:
+            scores: Mapping of metric name to value, as returned by
+                ``__call__``.
+            test_name: Test-set name shown in the header. Omit for a
+                generic header.
+
+        Returns:
+            None. The summary is emitted through this module's logger at
+            INFO level.
+
+        Examples:
+            ```python
+            VersaMetric.summarize({"mcd": 3.14, "sdr": 12.7}, "test")
+            ```
+            logs:
+            ```text
+            VERSA scores - test
+            ----------------------------------------
+              mcd                       3.1400
+              sdr                       12.7000
+            ----------------------------------------
+            ```
+        """
         header = f"VERSA scores - {test_name}" if test_name else "VERSA scores"
 
         # Detect prefixes for WER/CER component groups (e.g. espnet_wer_, whisper_wer_)

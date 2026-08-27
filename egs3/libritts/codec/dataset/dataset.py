@@ -83,7 +83,41 @@ def _read_manifest(path: Path) -> list[ManifestEntry]:
 
 
 class LibriTTSCodecDataset(TorchDataset):
-    """LibriTTS dataset returning audio-only samples for codec training."""
+    """LibriTTS dataset returning audio-only samples for codec training.
+
+    Reads one manifest TSV written by
+    :class:`~egs3.libritts.codec.dataset.builder.LibriTTSBuilder` and returns
+    ``{"audio": np.float32 waveform}`` per utterance, matching
+    ``CommonPreprocessor(speech_name="audio")``. In ``inference`` mode the
+    sample also carries ``utt_id`` and ``wav_path`` so the infer stage can
+    write the ground-truth reference SCP.
+
+    Args:
+        split: Manifest split to load; one of the keys under
+            ``dataset.split_manifest_paths`` in ``dataset/config.yaml``
+            (``train``, ``valid``, ``test``). Ignored when ``manifest_path``
+            is given.
+        recipe_dir: Optional recipe root. When omitted, defaults to the
+            recipe directory inferred from this module.
+        manifest_path: Optional manifest override. Relative paths resolve
+            against ``recipe_dir``.
+        inference: Add ``utt_id`` and ``wav_path`` to each sample.
+
+    Raises:
+        RuntimeError: If the manifests have not been built yet, or the
+            resolved manifest is empty.
+        ValueError: If ``split`` is unknown and no ``manifest_path`` is given.
+        FileNotFoundError: If the resolved manifest file does not exist.
+
+    Examples:
+        ```python
+        dataset = LibriTTSCodecDataset(split="train")
+        sorted(dataset[0].keys())        # -> ['audio']
+
+        test = LibriTTSCodecDataset(split="test", inference=True)
+        sorted(test[0].keys())           # -> ['audio', 'utt_id', 'wav_path']
+        ```
+    """
 
     def __init__(
         self,
@@ -92,6 +126,41 @@ class LibriTTSCodecDataset(TorchDataset):
         manifest_path: str | Path | None = None,
         inference: bool = False,
     ) -> None:
+        """Load one manifest split into memory.
+
+        Only the manifest rows are read here; waveforms are read lazily in
+        :meth:`__getitem__`.
+
+        Args:
+            split: Manifest split to load; one of the keys under
+                ``dataset.split_manifest_paths`` in ``dataset/config.yaml``
+                (``train``, ``valid``, ``test``). Ignored when
+                ``manifest_path`` is given.
+            recipe_dir: Optional recipe root. When omitted, defaults to the
+                recipe directory inferred from this module.
+            manifest_path: Optional manifest override. Relative paths resolve
+                against ``recipe_dir``.
+            inference: Add ``utt_id`` and ``wav_path`` to each sample.
+
+        Raises:
+            RuntimeError: If the manifests have not been built yet, or the
+                resolved manifest is empty.
+            ValueError: If ``split`` is unknown and no ``manifest_path`` is
+                given.
+            FileNotFoundError: If the resolved manifest file does not exist.
+
+        Examples:
+            ```python
+            train = LibriTTSCodecDataset(split="train")
+            test = LibriTTSCodecDataset(split="test", inference=True)
+
+            # A manifest outside the configured splits:
+            other = LibriTTSCodecDataset(
+                split="test",
+                manifest_path="data/manifest/custom.tsv",
+            )
+            ```
+        """
         self.split = split
         self.inference = inference
         recipe_root = (
@@ -125,13 +194,57 @@ class LibriTTSCodecDataset(TorchDataset):
         self._by_utt_id = {entry.utt_id: entry for entry in self._entries}
 
     def __len__(self) -> int:
+        """Return the number of utterances in the loaded manifest.
+
+        Returns:
+            Number of manifest rows.
+
+        Examples:
+            ```python
+            len(LibriTTSCodecDataset(split="test"))   # -> 4837
+            ```
+        """
         return len(self._entries)
 
     def keys(self) -> list[str]:
-        """Return utterance IDs in manifest order."""
+        """Return utterance IDs in manifest order.
+
+        Returns:
+            List of utterance IDs, in the same order as integer indexing,
+            so ``dataset[dataset.keys()[i]] == dataset[i]``.
+
+        Examples:
+            ```python
+            dataset = LibriTTSCodecDataset(split="test")
+            dataset.keys()[:2]   # -> ['1089-134686-000002-000000', ...]
+            ```
+        """
         return [entry.utt_id for entry in self._entries]
 
     def __getitem__(self, idx: int | str) -> dict[str, Any]:
+        """Return one sample, read from disk on access.
+
+        Args:
+            idx: Either a positional index, or an utterance ID as returned
+                by :meth:`keys`.
+
+        Returns:
+            Dict with the waveform under ``audio`` as a 1-D float32 numpy
+            array. In ``inference`` mode it also carries ``utt_id`` (as a
+            0-d numpy array, so the collate function passes it through) and
+            ``wav_path`` (str).
+
+        Raises:
+            KeyError: If a string *idx* is not a known utterance ID.
+            IndexError: If an integer *idx* is out of range.
+
+        Examples:
+            ```python
+            dataset = LibriTTSCodecDataset(split="test")
+            dataset[0]["audio"].dtype            # -> dtype('float32')
+            dataset[dataset.keys()[0]]["audio"]  # same sample, by utt_id
+            ```
+        """
         if isinstance(idx, str):
             entry = self._by_utt_id[idx]
         else:

@@ -17,7 +17,7 @@ dataset:
 
 metrics:
   - metric:
-      _target_: src.metrics.versa.VersaMetric
+      _target_: espnet3.components.metrics.versa.VersaMetric
       score_config:
         # signal related metrics: sir, sar, sdr, ci-sdr, si-snri
         - name: signal_metric

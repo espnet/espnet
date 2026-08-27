@@ -73,7 +73,25 @@ class CodecSystem(BaseSystem):
         torch.set_float32_matmul_precision("high")
 
     def collect_stats(self, *args, **kwargs):
-        """Run the collect_stats stage using the configured trainer."""
+        """Run the collect_stats stage using the configured trainer.
+
+        Args:
+            *args: Not accepted. Stage settings belong in the YAML config.
+            **kwargs: Not accepted, for the same reason.
+
+        Returns:
+            None. Statistics are written under ``training_config.stats_dir``.
+
+        Raises:
+            TypeError: If any positional or keyword argument is passed.
+
+        Examples:
+            Invoked by ``run.py`` for the ``collect_stats`` stage:
+            ```python
+            system = CodecSystem(training_config=cfg)
+            system.collect_stats()
+            ```
+        """
         self._reject_stage_args("collect_stats", args, kwargs)
         start = time.perf_counter()
         self._prepare_training_runtime()
@@ -92,7 +110,34 @@ class CodecSystem(BaseSystem):
 
         For GAN codec models a ``GANLightningTrainer`` is used automatically
         (see ``espnet3.systems.codec.gan_trainer.build_gan_trainer``);
-        otherwise ``ESPnet3LightningTrainer`` is used.
+        otherwise ``ESPnet3LightningTrainer`` is used. When
+        ``training_config.task`` is set, the resolved ESPnet config is saved
+        into ``exp_dir`` before fitting.
+
+        Args:
+            *args: Not accepted. Stage settings belong in the YAML config.
+            **kwargs: Not accepted, for the same reason.
+
+        Returns:
+            None. Checkpoints and logs are written under
+            ``training_config.exp_dir``.
+
+        Raises:
+            TypeError: If any positional or keyword argument is passed.
+
+        Examples:
+            Invoked by ``run.py`` for the ``train`` stage:
+            ```python
+            system = CodecSystem(training_config=cfg)
+            system.train()
+            ```
+
+            Extra keyword arguments for ``trainer.fit`` come from the
+            config's ``fit`` block, not from this call:
+            ```yaml
+            fit:
+              ckpt_path: exp/train_encodec_libritts/last.ckpt
+            ```
         """
         self._reject_stage_args("train", args, kwargs)
         start = time.perf_counter()
