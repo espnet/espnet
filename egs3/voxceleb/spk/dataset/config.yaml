@@ -7,14 +7,38 @@ builder:
   musan_env_var: MUSAN
   rir_env_var: RIRS_NOISES
 
+  # VoxCeleb2 ships as AAC in `.m4a` containers, which soundfile cannot read.
+  # `build()` decodes anything with one of these extensions into WAV under
+  # `convert_path`, and the manifests point at the converted files. VoxCeleb1
+  # is already WAV and is left where it is.
+  convert_path: data/converted
+  convert_suffixes:
+    - .m4a
+    - .aac
+  # Must match `dataset.sample_rate` below; the dataset rejects anything else.
+  sample_rate: 16000
+  channels: 1
+
+  # Dask cluster used to decode in parallel. ffmpeg is the bottleneck, so one
+  # worker per core is the right shape. Override from a training config with
+  # `create_dataset.n_workers`, or point `env` at a job scheduler for a cluster.
+  parallel:
+    env: local
+    n_workers: 8
+
   # Audio directories inside the VoxCeleb root, relative to it.
   sources:
     voxceleb1_dev: voxceleb1/dev
     voxceleb1_test: voxceleb1/test
     voxceleb2_dev: voxceleb2/dev
 
-  # Splits built by concatenating other splits.
-  combined:
+  # Speaker label spaces. Training merges splits through `CombinedDataset`, by
+  # listing them under `dataset.train` in the training config, so there is no
+  # need to concatenate manifests on disk. `SpkPreprocessor` does still need one
+  # `spk2utt` spanning every training split, because that file defines the
+  # speaker -> class index mapping and its line count is `model.spk_num`. Each
+  # union below therefore gets a directory holding only that `spk2utt`.
+  speaker_unions:
     voxceleb12_dev:
       - voxceleb1_dev
       - voxceleb2_dev
@@ -39,8 +63,9 @@ builder:
 dataset:
   data_path: data
   sample_rate: 16000
+  # `voxceleb12_dev` is deliberately absent: it is a label space, not a split.
+  # Train on both development sets by listing them under `dataset.train`.
   supported_splits:
     - voxceleb1_dev
     - voxceleb1_test
     - voxceleb2_dev
-    - voxceleb12_dev

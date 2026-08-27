@@ -4,11 +4,17 @@ from __future__ import annotations
 
 import logging
 import os
+import shutil
+import subprocess
 from importlib import resources
 from pathlib import Path
 from typing import Iterable
 
+from omegaconf import OmegaConf
+from tqdm import tqdm
+
 from espnet3.components.data.dataset_builder import DatasetBuilder
+from espnet3.parallel.parallel import get_client
 from espnet3.utils.config_utils import load_config_with_defaults
 from espnet3.utils.download_utils import download_url
 
@@ -79,12 +85,72 @@ def resolve_source_root(
     )
 
 
+def audio_suffixes() -> tuple[str, ...]:
+    """Return the file extensions the builder indexes, WAV first."""
+    return (AUDIO_SUFFIX, *(str(s) for s in _CFG["convert_suffixes"]))
+
+
+def convert_audio(job: tuple[str, str], sample_rate: int, channels: int) -> str:
+    """Decode one source file into a WAV of the recipe's sample rate.
+
+    This runs on a Dask worker, so it takes and returns plain strings and shells
+    out to ffmpeg instead of importing an audio backend. The output is written
+    to a temporary file and renamed into place, so an interrupted run never
+    leaves a truncated WAV that a later run would mistake for a finished one.
+
+    Args:
+        job: ``(source, target)`` pair of paths.
+        sample_rate: Output sample rate in Hz.
+        channels: Number of output channels.
+
+    Returns:
+        The target path that was written.
+
+    Raises:
+        RuntimeError: If ffmpeg fails on the source file.
+    """
+    source, target = Path(job[0]), Path(job[1])
+    target.parent.mkdir(parents=True, exist_ok=True)
+    partial = target.with_name(target.name + ".partial")
+
+    result = subprocess.run(
+        [
+            "ffmpeg",
+            "-nostdin",
+            "-loglevel",
+            "error",
+            "-y",
+            "-i",
+            str(source),
+            "-ac",
+            str(channels),
+            "-ar",
+            str(sample_rate),
+            "-f",
+            "wav",
+            str(partial),
+        ],
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        partial.unlink(missing_ok=True)
+        raise RuntimeError(
+            f"ffmpeg failed to convert {source}:\n{result.stderr.strip()}"
+        )
+
+    partial.replace(target)
+    return str(target)
+
+
 def scan_split(split_dir: Path) -> list[tuple[str, str, Path]]:
     """Index one VoxCeleb audio tree as ``(utt_id, speaker, path)`` entries.
 
-    VoxCeleb is laid out as ``<speaker>/<video>/<utterance>.wav`` and the
+    VoxCeleb is laid out as ``<speaker>/<video>/<utterance>.<ext>`` and the
     utterance ID is that relative path without its suffix, which is also how
-    the official trial lists refer to utterances.
+    the official trial lists refer to utterances. The WAV of VoxCeleb1 and the
+    AAC of VoxCeleb2 are indexed alike; :func:`plan_conversions` decides which
+    of them still have to be decoded.
 
     Args:
         split_dir: Directory holding one VoxCeleb split.
@@ -93,44 +159,146 @@ def scan_split(split_dir: Path) -> list[tuple[str, str, Path]]:
         Entries sorted by utterance ID.
 
     Raises:
-        RuntimeError: If the directory contains no WAV files.
+        RuntimeError: If the directory contains no audio the builder can read.
     """
     entries = []
-    for path in split_dir.rglob(f"*{AUDIO_SUFFIX}"):
-        speaker, video, utterance = path.parts[-3:]
-        utt_id = f"{speaker}/{video}/{utterance[: -len(AUDIO_SUFFIX)]}"
-        entries.append((utt_id, speaker, path.resolve()))
+    for suffix in audio_suffixes():
+        for path in split_dir.rglob(f"*{suffix}"):
+            speaker, video, utterance = path.parts[-3:]
+            utt_id = f"{speaker}/{video}/{utterance[: -len(suffix)]}"
+            entries.append((utt_id, speaker, path.resolve()))
 
     if not entries:
         raise RuntimeError(
-            f"No {AUDIO_SUFFIX} files found under: {split_dir}. VoxCeleb2 ships "
-            "as AAC, so convert it to 16 kHz WAV before running this recipe."
+            f"No audio found under: {split_dir}. Expected files ending in "
+            f"{', '.join(audio_suffixes())}."
         )
     return sorted(entries)
 
 
-def write_manifests(split_dir: Path, entries: list[tuple[str, str, Path]]) -> None:
-    """Write ``wav.scp``, ``utt2spk``, and ``spk2utt`` for one split."""
+def plan_conversions(
+    convert_root: Path,
+    split: str,
+    entries: list[tuple[str, str, Path]],
+) -> tuple[list[tuple[str, str, Path]], list[tuple[str, str]]]:
+    """Point non-WAV entries at their converted paths and list the work left.
+
+    Targets that already exist are left out of the returned jobs, so a
+    conversion interrupted halfway through resumes instead of restarting.
+
+    Args:
+        convert_root: Directory the converted audio is written under.
+        split: Split name, used as the first level under ``convert_root``.
+        entries: Entries as returned by :func:`scan_split`.
+
+    Returns:
+        ``(entries, jobs)`` where every entry path now ends in ``.wav``, and
+        ``jobs`` holds the ``(source, target)`` pairs still to convert.
+    """
+    resolved: list[tuple[str, str, Path]] = []
+    jobs: list[tuple[str, str]] = []
+    for utt_id, speaker, path in entries:
+        if path.suffix == AUDIO_SUFFIX:
+            resolved.append((utt_id, speaker, path))
+            continue
+        target = convert_root / split / f"{utt_id}{AUDIO_SUFFIX}"
+        resolved.append((utt_id, speaker, target))
+        if not target.is_file():
+            jobs.append((str(path), str(target)))
+    return resolved, jobs
+
+
+def run_conversions(jobs: list[tuple[str, str]], n_workers: int | None = None) -> None:
+    """Decode every planned file to WAV through ``espnet3.parallel``.
+
+    Args:
+        jobs: ``(source, target)`` pairs as returned by :func:`plan_conversions`.
+        n_workers: Overrides ``builder.parallel.n_workers`` from the config.
+
+    Raises:
+        RuntimeError: If ffmpeg is not on ``PATH``, or fails on any file.
+    """
+    if not jobs:
+        return
+
+    if shutil.which("ffmpeg") is None:
+        raise RuntimeError(
+            f"{len(jobs)} VoxCeleb file(s) are not WAV and ffmpeg is not on "
+            "PATH to convert them. Install ffmpeg, or convert the corpus "
+            f"yourself and point {_CFG['source_env_var']} at the result."
+        )
+
+    config = OmegaConf.create(OmegaConf.to_container(_CFG["parallel"], resolve=True))
+    if n_workers is not None:
+        config.n_workers = int(n_workers)
+
+    sample_rate = int(_CFG["sample_rate"])
+    channels = int(_CFG["channels"])
+    logger.info(
+        "Converting %d file(s) to %d Hz %d-channel WAV with %d worker(s)",
+        len(jobs),
+        sample_rate,
+        channels,
+        config.n_workers,
+    )
+
+    with get_client(config) as client:
+        # Imported here, and after `get_client`, so that the module still
+        # imports without Dask and a missing Dask still raises the install
+        # hint from `espnet3.parallel` rather than a bare ImportError.
+        from dask.distributed import as_completed
+
+        futures = client.map(
+            convert_audio, jobs, sample_rate=sample_rate, channels=channels
+        )
+        try:
+            for future in tqdm(
+                as_completed(futures), total=len(futures), desc="ffmpeg"
+            ):
+                future.result()
+        except Exception:
+            client.cancel(futures)
+            raise
+
+
+def write_spk2utt(split_dir: Path, entries: list[tuple[str, str, Path]]) -> int:
+    """Write the ``spk2utt`` of one split or label space.
+
+    Args:
+        split_dir: Directory to write into. Created if it does not exist.
+        entries: Entries as returned by :func:`scan_split`.
+
+    Returns:
+        The number of speakers written, which is the ``model.spk_num`` a
+        training config must declare when it trains on these entries.
+    """
     split_dir.mkdir(parents=True, exist_ok=True)
     spk2utt: dict[str, list[str]] = {}
     for utt_id, speaker, _path in entries:
         spk2utt.setdefault(speaker, []).append(utt_id)
 
+    with (split_dir / "spk2utt").open("w", encoding="utf-8") as f:
+        for speaker in sorted(spk2utt):
+            f.write(f"{speaker} {' '.join(spk2utt[speaker])}\n")
+    return len(spk2utt)
+
+
+def write_manifests(split_dir: Path, entries: list[tuple[str, str, Path]]) -> None:
+    """Write ``wav.scp``, ``utt2spk``, and ``spk2utt`` for one split."""
+    split_dir.mkdir(parents=True, exist_ok=True)
     with (split_dir / "wav.scp").open("w", encoding="utf-8") as f:
         for utt_id, _speaker, path in entries:
             f.write(f"{utt_id} {path}\n")
     with (split_dir / "utt2spk").open("w", encoding="utf-8") as f:
         for utt_id, speaker, _path in entries:
             f.write(f"{utt_id} {speaker}\n")
-    with (split_dir / "spk2utt").open("w", encoding="utf-8") as f:
-        for speaker in sorted(spk2utt):
-            f.write(f"{speaker} {' '.join(spk2utt[speaker])}\n")
+    n_speakers = write_spk2utt(split_dir, entries)
 
     logger.info(
         "Wrote %s: %d utterances from %d speakers",
         split_dir.name,
         len(entries),
-        len(spk2utt),
+        n_speakers,
     )
 
 
@@ -141,11 +309,21 @@ def trial_path(data_root: Path, trial_name: str) -> Path:
 
 
 class VoxCelebBuilder(DatasetBuilder):
-    """Prepare VoxCeleb manifests, trial lists, and augmentation sources.
+    """Prepare Kaldi-style VoxCeleb manifests, trial lists, and augmentation.
 
     The corpus itself is not downloadable, so this builder only validates that
-    the audio is in place and derives the Kaldi-style manifests the recipe
-    reads. The trial protocols are small text files and are fetched on demand.
+    the audio is in place and derives the manifests the recipe reads. Those
+    manifests are Kaldi-style, the convention ESPnet uses throughout: sorted
+    text files of whitespace-separated ``<key> <value...>`` records, namely
+    ``wav.scp``, ``utt2spk``, and ``spk2utt``. :meth:`build` documents the
+    resulting layout. The trial protocols are small text files and are fetched
+    on demand.
+
+    Splits are never concatenated on disk. Training on several of them is a
+    matter of listing them under ``dataset.train``, which ESPnet3 merges through
+    :class:`espnet3.components.data.dataset.CombinedDataset`. The one thing a
+    merge does need is a shared speaker label space, so each union declared
+    under ``builder.speaker_unions`` gets a directory holding only a ``spk2utt``.
 
     MUSAN and RIRS_NOISES are optional: when they are not found, the
     corresponding SCP files are skipped and training must disable augmentation.
@@ -203,52 +381,119 @@ class VoxCelebBuilder(DatasetBuilder):
         source_dir: str | Path | None = None,
         **_kwargs,
     ) -> bool:
-        """Return whether all manifests and trial lists have been written."""
+        """Return whether all manifests, label spaces, and trials are written."""
         data_root = Path(recipe_dir).resolve() / _CFG["data_path"]
-        splits = list(_CFG["sources"]) + list(_CFG["combined"])
         manifests_ready = all(
             (data_root / split / name).is_file()
-            for split in splits
+            for split in _CFG["sources"]
             for name in MANIFESTS
+        )
+        # A label space is only ever a `spk2utt`; see `speaker_unions` in
+        # `config.yaml` for why it holds nothing else.
+        unions_ready = all(
+            (data_root / union / "spk2utt").is_file()
+            for union in _CFG["speaker_unions"]
         )
         trials_ready = all(
             trial_path(data_root, name).is_file() for name in _CFG["trials"]
         )
-        return manifests_ready and trials_ready
+        return manifests_ready and unions_ready and trials_ready
 
     def build(
         self,
         recipe_dir: str | Path,
         source_dir: str | Path | None = None,
+        n_workers: int | None = None,
         **_kwargs,
     ) -> None:
-        """Write the manifests, trial lists, and augmentation SCP files.
+        """Convert the audio, then write the manifests, trials, and SCP files.
+
+        VoxCeleb2 ships as AAC, which soundfile cannot read, so any source file
+        that is not already WAV is decoded with ffmpeg before the manifests are
+        written. The decoding runs through ``espnet3.parallel``, and the
+        manifests are written only once every file they name exists.
 
         Args:
             recipe_dir: Recipe root directory.
             source_dir: Optional override pointing at the VoxCeleb root.
+            n_workers: Overrides ``builder.parallel.n_workers`` for the
+                conversion. Set it from a training config under
+                ``create_dataset``.
             **_kwargs: Unused extra options for API compatibility.
 
         Raises:
             FileNotFoundError: If the VoxCeleb audio or a trial protocol is
                 missing.
-            RuntimeError: If a split contains no WAV files.
+            RuntimeError: If a split contains no readable audio, or if ffmpeg is
+                needed but missing or failing.
+
+        Note:
+            Everything is written under ``<recipe_dir>/data``, one directory
+            per split plus the converted audio and the augmentation lists::
+
+                data/
+                  converted/            # WAVs decoded from the AAC sources
+                    voxceleb2_dev/<speaker>/<video>/<utterance>.wav
+                  voxceleb1_dev/        # VoxCeleb1 dev
+                  voxceleb2_dev/        # VoxCeleb2 dev
+                  voxceleb1_test/       # VoxCeleb1 test: the evaluation split
+                    wav.scp             # <utt_id> <absolute path to the wav>
+                    utt2spk             # <utt_id> <speaker_id>
+                    spk2utt             # <speaker_id> <utt_id> <utt_id> ...
+                    vox1_o.trials       # <label> <utt_id> <utt_id>, 1 == target
+                  voxceleb12_dev/       # a label space, not a split
+                    spk2utt             # speakers of VoxCeleb1 dev + VoxCeleb2 dev
+                  musan_speech.scp      # one absolute MUSAN path per line
+                  musan_noise.scp
+                  musan_music.scp
+                  rirs.scp              # one absolute RIRS_NOISES path per line
+
+            Every real split holds the same three manifests; they are only
+            expanded once above. ``wav.scp`` points an utterance ID at its
+            audio and is what :class:`dataset.VoxCelebDataset` reads to load a
+            waveform. ``utt2spk`` labels each utterance with its speaker, which
+            the dataset attaches to every training sample. ``spk2utt`` is the
+            inverse mapping; ``SpkPreprocessor`` reads it to turn those speaker
+            strings into the integer class indices the AAMSoftmax head expects,
+            so its line count is the ``spk_num`` the training config must
+            declare. All of them are sorted by key.
+
+            ``voxceleb12_dev`` is the odd one out: training on both development
+            sets lists them both under ``dataset.train`` and lets
+            ``CombinedDataset`` merge them, so no combined ``wav.scp`` is
+            written. Only the union ``spk2utt`` is, because the label space has
+            to span every split the AAMSoftmax head is trained on.
         """
         recipe_root = Path(recipe_dir).resolve()
         source_root = resolve_source_root(recipe_root, source_dir=source_dir)
         data_root = recipe_root / _CFG["data_path"]
+        convert_root = recipe_root / _CFG["convert_path"]
 
         entries_by_split = {}
+        conversion_jobs: list[tuple[str, str]] = []
         for split, relative in _CFG["sources"].items():
             entries = scan_split(source_root / str(relative))
+            entries, jobs = plan_conversions(convert_root, split, entries)
             entries_by_split[split] = entries
+            conversion_jobs.extend(jobs)
+
+        run_conversions(conversion_jobs, n_workers=n_workers)
+
+        for split, entries in entries_by_split.items():
             write_manifests(data_root / split, entries)
 
-        for split, parts in _CFG["combined"].items():
-            combined = sorted(
+        for union, parts in _CFG["speaker_unions"].items():
+            merged = sorted(
                 entry for part in parts for entry in entries_by_split[str(part)]
             )
-            write_manifests(data_root / split, combined)
+            n_speakers = write_spk2utt(data_root / union, merged)
+            logger.info(
+                "Wrote %s/spk2utt: %d speakers over %s. Set `model.spk_num` to "
+                "that number when training on these splits.",
+                union,
+                n_speakers,
+                ", ".join(str(part) for part in parts),
+            )
 
         for trial_name in _CFG["trials"]:
             self._build_trials(recipe_root, data_root, trial_name)

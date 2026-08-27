@@ -31,8 +31,14 @@ num_device: 4
 # would noticeably slow training down; the `infer` stage scores all of them.
 dataset:
   train:
+    # Both development sets, merged by `CombinedDataset`. Add a corpus by
+    # adding an entry here; there is no combined split to rebuild. The speaker
+    # label space still has to span all of them, which is what
+    # `preprocessor.spk2utt` below points at.
     - data_src_args:
-        split: voxceleb12_dev
+        split: voxceleb1_dev
+    - data_src_args:
+        split: voxceleb2_dev
   valid:
     - data_src_args:
         split: voxceleb1_test
@@ -58,7 +64,8 @@ create_dataset:
 #                      MODEL SETTING                     #
 ##########################################################
 model:
-  # VoxCeleb 1 dev (1,211) + VoxCeleb 2 dev (5,994) speakers. Must match
+  # VoxCeleb 1 dev (1,211) + VoxCeleb 2 dev (5,994) speakers. Must match the
+  # label space the preprocessor maps through, that is
   # `wc -l < data/voxceleb12_dev/spk2utt`.
   spk_num: 7205
 

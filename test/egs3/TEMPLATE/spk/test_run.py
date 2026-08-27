@@ -43,7 +43,7 @@ def test_default_augmentation_is_off_so_the_template_runs_standalone() -> None:
 
 def test_load_default_config_infer_contains_expected_targets() -> None:
     cfg = load_default_config("inference.yaml", "egs3.TEMPLATE.spk")
-    assert cfg.model._target_ == "espnet3.systems.spk.inference.Speech2Score"
+    assert cfg.model._target_ == "espnet3.systems.spk.inference.ESPnet2Speech2Score"
     assert list(cfg.input_key) == ["speech", "speech2"]
     # Only `test` is declared, so no training preprocessor is instantiated.
     assert set(cfg.dataset.preprocessor) == {"test"}

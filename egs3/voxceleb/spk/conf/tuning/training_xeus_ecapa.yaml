@@ -33,8 +33,14 @@ xeus_checkpoint: ${recipe_dir}/download/xeus_checkpoint.pth
 ##########################################################
 dataset:
   train:
+    # Both development sets, merged by `CombinedDataset`. Add a corpus by
+    # adding an entry here; there is no combined split to rebuild. The speaker
+    # label space still has to span all of them, which is what
+    # `preprocessor.spk2utt` below points at.
     - data_src_args:
-        split: voxceleb12_dev
+        split: voxceleb1_dev
+    - data_src_args:
+        split: voxceleb2_dev
   valid:
     - data_src_args:
         split: voxceleb1_test

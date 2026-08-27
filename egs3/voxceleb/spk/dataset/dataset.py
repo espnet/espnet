@@ -78,7 +78,9 @@ class VoxCelebDataset(TorchDataset):
       a target/nontarget flag, which is what validation and scoring consume.
 
     Args:
-        split: Split name such as ``voxceleb12_dev`` or ``voxceleb1_test``.
+        split: Split name such as ``voxceleb2_dev`` or ``voxceleb1_test``.
+            To train on several splits at once, list them under
+            ``dataset.train`` rather than looking for a combined split.
         trials: Name of a trial list prepared by the builder, such as
             ``vox1_o``. Leave unset for utterance mode.
         num_trials: Optional cap on the number of trials. Trials are strided
@@ -91,7 +93,7 @@ class VoxCelebDataset(TorchDataset):
         FileNotFoundError: If the manifests have not been built yet.
 
     Examples:
-        >>> train = VoxCelebDataset(split="voxceleb12_dev")
+        >>> train = VoxCelebDataset(split="voxceleb2_dev")
         >>> sorted(train[0].keys())
         ['speech', 'spk_labels']
         >>> valid = VoxCelebDataset(split="voxceleb1_test", trials="vox1_o")

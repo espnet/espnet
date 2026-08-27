@@ -12,11 +12,24 @@ holds the three audio trees below, or place them under `download/`:
 $VOXCELEB/
   voxceleb1/dev/<speaker>/<video>/<utterance>.wav
   voxceleb1/test/<speaker>/<video>/<utterance>.wav
-  voxceleb2/dev/<speaker>/<video>/<utterance>.wav
+  voxceleb2/dev/<speaker>/<video>/<utterance>.m4a
 ```
 
-Everything must be 16 kHz mono WAV. VoxCeleb2 ships as AAC, so convert it once,
-for example with `ffmpeg -i in.m4a -ac 1 -ar 16000 out.wav`.
+VoxCeleb1 is already 16 kHz mono WAV. VoxCeleb2 ships as AAC, which soundfile
+cannot read, so `create_dataset` decodes it with ffmpeg into
+`data/converted/voxceleb2_dev/` and points the manifests there; the corpus
+itself is never written to. That needs `ffmpeg` on `PATH`, and it is the slow
+part of the stage, so it runs through `espnet3.parallel`:
+
+```yaml
+# In the training config, to widen or narrow the local cluster:
+create_dataset:
+  n_workers: 32
+```
+
+Files that are already converted are skipped, so an interrupted run resumes.
+Set `builder.parallel.env` in `dataset/config.yaml` to a job-scheduler backend
+(`slurm`, `sge`, ...) to decode on a cluster instead of one machine.
 
 Noise and reverberation augmentation additionally needs MUSAN and RIRS_NOISES:
 
@@ -32,6 +45,28 @@ under `data/`. It downloads the Vox1-O protocol itself. If MUSAN or
 RIRS_NOISES are missing it says so and skips those lists; set
 `noise_apply_prob` and `rir_apply_prob` to `0.0` in the training config to
 train without them.
+
+## Training on several corpora
+
+Splits are never concatenated on disk. List them under `dataset.train` and
+ESPnet3 merges them with `CombinedDataset`, which is how the default configs
+train on both VoxCeleb development sets:
+
+```yaml
+dataset:
+  train:
+    - data_src_args:
+        split: voxceleb1_dev
+    - data_src_args:
+        split: voxceleb2_dev
+```
+
+The one thing a merge cannot infer is the speaker label space: `SpkPreprocessor`
+maps speaker names to class indices through a single `spk2utt`, and `spk_num`
+is its line count. So `dataset/config.yaml` declares the union under
+`builder.speaker_unions`, and `create_dataset` writes
+`data/voxceleb12_dev/spk2utt` holding nothing but that label space. Add a
+corpus by adding it to `builder.sources`, to the union, and to `dataset.train`.
 
 ## Quick start
 
@@ -74,9 +109,9 @@ frozen for the first 5,000 updates and fine-tuned jointly afterwards.
 
 ## Notes
 
-- `spk_num` in the training config must equal the number of training speakers,
-  that is `wc -l < data/voxceleb12_dev/spk2utt`. It is 7,205 for
-  `voxceleb12_dev`.
+- `spk_num` in the training config must equal the number of speakers in the
+  label space, that is `wc -l < data/voxceleb12_dev/spk2utt`. It is 7,205 for
+  VoxCeleb 1 dev + VoxCeleb 2 dev. `create_dataset` logs the number it wrote.
 - Checkpoints are selected on `valid/eer`, computed each epoch over a strided
   10,000-trial subset of Vox1-O. Raise `num_trials` for a tighter estimate, at
   the cost of slower epochs. The `infer` stage always scores the full list.

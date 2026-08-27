@@ -61,7 +61,7 @@ parallel:
 #                    MODEL AND OUTPUT                    #
 ##########################################################
 model:
-  _target_: espnet3.systems.spk.inference.Speech2Score
+  _target_: espnet3.systems.spk.inference.ESPnet2Speech2Score
   train_config: ${exp_dir}/config.yaml
   model_file: ${exp_dir}/valid.eer.ave_3best.pth
 

@@ -63,10 +63,39 @@ class ESPnetSpeakerVerificationModel(ESPnetSpeakerModel):
         Returns:
             The usual ``(loss, stats, weight)`` triple. For trials the loss is a
             constant, because the epoch metric is computed by the scoring
-            callback rather than per batch.
+            callback rather than per batch. ``weight`` is the batch size in
+            both cases: the Lightning module passes it as the ``batch_size`` of
+            the logged stats, so that partial batches do not skew an epoch
+            average. Trial batches log no stats and would tolerate ``None``,
+            but returning the batch size keeps one contract for both branches.
 
         Raises:
             ValueError: If a trial batch does not carry ``spk_labels``.
+
+        Examples:
+            Training. One utterance per sample, labelled with its speaker
+            index, scored by the closed-set classification head:
+
+            >>> loss, stats, weight = model(
+            ...     speech=torch.randn(4, 48000),
+            ...     speech_lengths=torch.full((4,), 48000),
+            ...     spk_labels=torch.randint(0, 7205, (4, 1)),
+            ... )
+            >>> sorted(stats), int(weight)
+            (['accuracy', 'loss'], 4)
+
+            Validation. One trial pair per sample, labelled 1 for target and 0
+            for nontarget. The similarity is buffered for the epoch metric
+            instead of contributing to a loss:
+
+            >>> _ = model.eval()
+            >>> loss, stats, weight = model(
+            ...     speech=torch.randn(4, 10, 48000),  # (Batch, num_eval, Samples)
+            ...     speech2=torch.randn(4, 10, 48000),
+            ...     spk_labels=torch.tensor([[1], [0], [1], [0]]),
+            ... )
+            >>> float(loss), stats, len(model.trial_scores)
+            (0.0, {}, 1)
         """
         if speech2 is None:
             return super().forward(
@@ -103,6 +132,29 @@ class ESPnetSpeakerVerificationModel(ESPnetSpeakerModel):
 
         Returns:
             ``(Batch,)`` tensor of similarity scores.
+
+        Examples:
+            >>> from espnet3.systems.spk.task import SpeakerTask
+            >>> model, _ = SpeakerTask.build_model_from_file(
+            ...     "exp/train/config.yaml", "exp/train/valid.eer.ave_3best.pth"
+            ... )
+            >>> enroll = torch.randn(2, 10, 48000)  # (Batch, num_eval, Samples)
+            >>> test = torch.randn(2, 10, 48000)
+            >>> _ = model.eval()
+            >>> with torch.no_grad():
+            ...     scores = model.score_trials(enroll, test)
+            >>> scores.shape
+            torch.Size([2])
+
+            Scoring an utterance against itself gives 1.0, so this is a quick
+            sanity check on a checkpoint:
+
+            >>> with torch.no_grad():
+            ...     float(model.score_trials(enroll[:1], enroll[:1]))
+            1.0
+
+            :class:`espnet3.systems.spk.inference.ESPnet2Speech2Score` wraps this for
+            one trial at a time, and handles the batching and the device.
         """
         embd = self.extract_crop_embeddings(speech)
         embd2 = self.extract_crop_embeddings(speech2)
@@ -117,6 +169,23 @@ class ESPnetSpeakerVerificationModel(ESPnetSpeakerModel):
 
         Returns:
             ``(Batch, num_eval, Dim)`` tensor of unit-norm speaker embeddings.
+
+        Examples:
+            >>> _ = model.eval()
+            >>> with torch.no_grad():
+            ...     embd = model.extract_crop_embeddings(
+            ...         torch.randn(2, 10, 48000)  # (Batch, num_eval, Samples)
+            ...     )
+            >>> embd.shape  # Dim is the projector output size, 192 for RawNet3
+            torch.Size([2, 10, 192])
+            >>> torch.allclose(embd.norm(dim=-1), torch.ones(2, 10), atol=1e-5)
+            True
+
+            Averaging over the crop axis gives one embedding per utterance,
+            which is what :meth:`ESPnet2Speech2Score.extract_embedding` returns:
+
+            >>> embd.mean(dim=1).shape
+            torch.Size([2, 192])
         """
         if speech.dim() == 2:
             speech = speech.unsqueeze(1)
@@ -130,6 +199,12 @@ class ESPnetSpeakerVerificationModel(ESPnetSpeakerModel):
 
     def pop_trials(self) -> Tuple[torch.Tensor, torch.Tensor]:
         """Return the buffered trial scores and labels, and clear the buffers.
+
+        Public because it is the hand-off point to the scoring callback:
+        :class:`espnet3.systems.spk.callbacks.SpeakerVerificationScoring` calls
+        it once per validation epoch, gathers the returned tensors across ranks
+        and reduces them into EER and minDCF. A recipe that wants a different
+        metric can reduce the same buffers from its own callback.
 
         Returns:
             ``(scores, labels)`` as 1-D tensors. Both are empty when no trial
@@ -145,6 +220,12 @@ class ESPnetSpeakerVerificationModel(ESPnetSpeakerModel):
         return scores, labels
 
     def reset_trials(self) -> None:
-        """Drop every buffered trial score and label."""
+        """Drop every buffered trial score and label.
+
+        Public for the same reason as :meth:`pop_trials`:
+        :class:`espnet3.systems.spk.callbacks.SpeakerVerificationScoring` calls
+        it at the start of every validation epoch, so that trials left behind
+        by an interrupted epoch cannot leak into the next metric.
+        """
         self.trial_scores.clear()
         self.trial_labels.clear()

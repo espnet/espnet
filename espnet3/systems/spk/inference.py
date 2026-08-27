@@ -10,14 +10,21 @@ from typeguard import typechecked
 from espnet3.systems.spk.task import SpeakerTask
 
 
-class Speech2Score:
-    """Score verification trials with a trained ESPnet3 speaker model.
+class ESPnet2Speech2Score:
+    """Score verification trials with a checkpoint of the ESPnet2 speaker task.
 
     The recipe feeds the two utterances of a trial, already cut into ``num_eval``
     crops by :class:`espnet2.train.preprocessor.SpkPreprocessor`, and gets back a
     single similarity score. Scoring averages the cosine similarity over every
     crop pair, matching the validation-time behaviour of
     :class:`espnet3.systems.spk.espnet_model.ESPnetSpeakerVerificationModel`.
+
+    The ``ESPnet2`` in the name is about the checkpoint format, not the trainer:
+    :class:`espnet3.systems.spk.task.SpeakerTask` is a copy of the ESPnet2
+    speaker task, so this loads a ``config.yaml`` written by either the ESPnet2
+    ``spk`` recipes or this ESPnet3 one. It always rebuilds the model as an
+    ``ESPnetSpeakerVerificationModel``, which is what adds the trial scoring the
+    ESPnet2 model class does not have.
 
     Args:
         train_config: Path to the ``config.yaml`` written by the ``train`` stage.
@@ -26,7 +33,7 @@ class Speech2Score:
         dtype: Floating point type used for the model input.
 
     Examples:
-        >>> scorer = Speech2Score("exp/train/config.yaml", "exp/train/model.pth")
+        >>> scorer = ESPnet2Speech2Score("exp/train/config.yaml", "exp/train/model.pth")
         >>> score = scorer(enrollment_crops, test_crops)
     """
 
@@ -74,6 +81,26 @@ class Speech2Score:
 
         Returns:
             Speaker embedding as a 1-D array.
+
+        Examples:
+            Enrol a speaker once and reuse the embedding, instead of paying for
+            the forward pass on every trial:
+
+            >>> scorer = ESPnet2Speech2Score(
+            ...     "exp/train/config.yaml", "exp/train/valid.eer.ave_3best.pth"
+            ... )
+            >>> preprocessor = SpkPreprocessor(train=False, target_duration=3.0)
+            >>> crops = preprocessor("utt1", {"speech": wav})["speech"]
+            >>> enrolled = scorer.extract_embedding(crops)
+            >>> enrolled.shape  # projector output size, 192 for RawNet3
+            (192,)
+
+            The embedding is the mean of the unit-norm crop embeddings, so a
+            plain dot product against a second one reproduces :meth:`__call__`:
+
+            >>> other = scorer.extract_embedding(other_crops)
+            >>> float(enrolled @ other)  # == scorer(crops, other_crops)
+            0.87
         """
         embd = self.model.extract_crop_embeddings(self._to_batch(speech))
         return embd.mean(dim=1).squeeze(0).cpu().numpy()

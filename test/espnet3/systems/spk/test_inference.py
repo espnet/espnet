@@ -5,7 +5,7 @@ import pytest
 import torch
 from omegaconf import OmegaConf
 
-from espnet3.systems.spk.inference import Speech2Score
+from espnet3.systems.spk.inference import ESPnet2Speech2Score
 from espnet3.utils.task_utils import get_espnet_model, save_espnet_config
 
 TASK = "espnet3.systems.spk.task.SpeakerTask"
@@ -24,13 +24,13 @@ MODEL_CONF = dict(
 
 
 @pytest.fixture(scope="module")
-def scorer(tmp_path_factory) -> Speech2Score:
+def scorer(tmp_path_factory) -> ESPnet2Speech2Score:
     """Train-free round trip: save a config, save weights, load a scorer."""
     exp_dir = tmp_path_factory.mktemp("exp")
     save_espnet_config(TASK, OmegaConf.create({"model": MODEL_CONF}), str(exp_dir))
     model = get_espnet_model(TASK, MODEL_CONF)
     torch.save(model.state_dict(), exp_dir / "model.pth")
-    return Speech2Score(
+    return ESPnet2Speech2Score(
         train_config=str(exp_dir / "config.yaml"),
         model_file=str(exp_dir / "model.pth"),
     )
@@ -69,7 +69,7 @@ def test_missing_checkpoint_is_reported(tmp_path: Path):
     save_espnet_config(TASK, OmegaConf.create({"model": MODEL_CONF}), str(tmp_path))
 
     with pytest.raises(Exception):
-        Speech2Score(
+        ESPnet2Speech2Score(
             train_config=str(tmp_path / "config.yaml"),
             model_file=str(tmp_path / "missing.pth"),
         )
