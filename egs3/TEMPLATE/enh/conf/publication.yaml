@@ -1,11 +1,6 @@
-# egs3/vctk_noisy/enh/conf/publication.yaml
 ##########################################################
 #                  PUBLICATION SETTING                   #
 ##########################################################
-# Quick usage:
-#   python run.py --stages pack_model   --training_config conf/training.yaml --publication_config conf/publication.yaml
-#   python run.py --stages upload_model --training_config conf/training.yaml --publication_config conf/publication.yaml
-
 recipe_dir: .
 exp_tag: ${self_name:}
 exp_dir: exp/${exp_tag}
@@ -28,6 +23,7 @@ pack_model:
     - "**/step*.ckpt"
     - "**/*.log"
     - "**/tensorboard/**"
+    - "**/wandb/**"
 
 upload_model:
   hf_repo: espnet/${set_corpus_and_system:}_${exp_tag}

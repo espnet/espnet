@@ -1,12 +1,9 @@
-# egs3/vctk_noisy/enh/conf/training.yaml
 ##########################################################
-#                    TRAINING SETTING                    #
+#               VCTK-NOISY TRAINING OVERRIDES            #
 ##########################################################
 # Quick usage:
 #   python run.py --stages create_dataset --training_config conf/training.yaml
 #   python run.py --stages train          --training_config conf/training.yaml
-
-task: espnet3.systems.enh.task.EnhancementTask
 
 dataset_dir: /DB/VCTK_DEMAND #/path/to/vctk_noisy  # set to your VCTK-Noisy root
 num_device: 3
@@ -31,10 +28,6 @@ dataset:
     speech_ref_name_prefix: speech_ref   # matches our 'speech_ref1' key
     num_spk: 1
     sample_rate: 16000
-
-create_dataset:
-  recipe_dir: ${recipe_dir}
-  dataset_dir: ${dataset_dir}
 
 ##########################################################
 #                      MODEL SETTING                     #
@@ -69,30 +62,8 @@ model:
     loss_type: ci_sdr
 
 ##########################################################
-#            OPTIMIZER & SCHEDULER SETTING               #
-##########################################################
-optimizer:
-  _target_: torch.optim.Adam
-  lr: 1.0e-03
-  eps: 1.0e-08
-  weight_decay: 1.0e-05
-
-# scheduler:
-#   _target_: espnet2.schedulers.warmup_lr.WarmupLR
-#   warmup_steps: 4000
-scheduler:
-  _target_: espnet3.systems.enh.scheduler.ReduceLROnPlateau
-  mode: min
-  factor: 0.5
-  patience: 3
-
-scheduler_interval: epoch
-scheduler_monitor: valid/loss
-##########################################################
 #                OTHER TRAINING SETTING                  #
 ##########################################################
-init: xavier_uniform
-
 best_model_criterion:
   - - valid/si_snr_loss
     - 1
@@ -120,6 +91,4 @@ dataloader:
 #                    TRAINER SETTING                     #
 ##########################################################
 trainer:
-  max_epochs: 100
   gradient_clip_val: 5.0
-  strategy: auto
