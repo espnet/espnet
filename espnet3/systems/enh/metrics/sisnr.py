@@ -19,10 +19,7 @@ def si_snr(reference: np.ndarray, estimate: np.ndarray) -> float:
     ) * reference
     noise = estimate - target
     return float(
-        10.0
-        * np.log10(
-            (np.dot(target, target) + 1e-8) / (np.dot(noise, noise) + 1e-8)
-        )
+        10.0 * np.log10((np.dot(target, target) + 1e-8) / (np.dot(noise, noise) + 1e-8))
     )
 
 

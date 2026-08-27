@@ -38,9 +38,7 @@ def build_output(data, model_output, idx):
         max_val = np.max(np.abs(enhanced))
         if max_val > 1.0:
             enhanced = enhanced / max_val * 0.9
-        results.append(
-            {"utt_id": utt_id, "reference": reference, "enhanced": enhanced}
-        )
+        results.append({"utt_id": utt_id, "reference": reference, "enhanced": enhanced})
     return results
 
 
