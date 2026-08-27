@@ -51,7 +51,8 @@ class LinearWarmupDecayLR(_LRScheduler, AbsBatchStepScheduler):
             .. code-block:: yaml
 
                 scheduler:
-                  _target_: espnet3.systems.tts.f5_tts.scheduler.LinearWarmupDecayLR
+                  _target_: espnet3.components.schedulers.\
+                    linear_warmup_decay.LinearWarmupDecayLR
                   warmup_steps: 20000
                   total_steps: 600000
                 scheduler_interval: step

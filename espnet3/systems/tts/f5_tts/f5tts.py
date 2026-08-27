@@ -81,7 +81,7 @@ class F5TTS(AbsTTS):
         Note:
             ``idim`` and ``odim`` are supplied by
             ``builder.build_f5_tts_model``: ``idim`` is the token-list length
-            and ``odim`` comes from ``VocoderMelSpec.output_size()``. Every
+            and ``odim`` comes from ``VocoderMelSpec.output_size``. Every
             other argument is a key of the recipe's ``tts_conf`` block. Changing
             the backbone sizes changes the parameter shapes, so an existing
             checkpoint will not load into a resized model.
@@ -167,7 +167,7 @@ class F5TTS(AbsTTS):
         feats: torch.Tensor,
         feats_lengths: torch.Tensor,
         **kwargs,
-    ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
+    ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], Optional[torch.Tensor]]:
         """Flow-matching training/validation step.
 
         Args:
@@ -181,7 +181,7 @@ class F5TTS(AbsTTS):
         Returns:
             Tuple of ``(loss, stats, weight)``, the ``AbsTTS`` training contract:
             a scalar flow-matching loss, ``{"loss": detached loss}`` for logging,
-            and the batch size as the weight used to average across ranks.
+            and ``None`` for the weight.
 
         Example:
             .. code-block:: python
@@ -199,8 +199,7 @@ class F5TTS(AbsTTS):
         text = self._remap_text_padding(text, text_lengths)
         loss, _cond, _pred = self.cfm(feats, text=text, lens=feats_lengths)
         stats = dict(loss=loss.detach())
-        weight = feats.new_tensor(feats.size(0))
-        return loss, stats, weight
+        return loss, stats, None
 
     @torch.no_grad()
     def inference(

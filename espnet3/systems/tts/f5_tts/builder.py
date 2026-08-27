@@ -1,8 +1,8 @@
 """Build the F5-TTS model for ESPnet3's Hydra instantiation path.
 
-Replaces the ``espnet2.tasks.tts.TTSTask.build_model`` route: F5-TTS is an
-ESPnet3 model and is no longer registered in ``espnet2/tasks/tts.py``, so the
-training config reaches it through ``_target_`` instead of ``task:``.
+F5-TTS is an ESPnet3 model and is not registered in ``espnet2/tasks/tts.py``,
+so the recipe leaves ``task:`` unset and the training config reaches this
+factory through ``model._target_``.
 
 The returned object is still ``espnet2.tts.espnet_model.ESPnetTTSModel``, which
 keeps the forward maths and the ``collect_feats`` contract identical to the
@@ -14,49 +14,10 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional, Sequence, Union
 
-from omegaconf import DictConfig, ListConfig, OmegaConf
-
 from espnet2.tts.espnet_model import ESPnetTTSModel
 from espnet3.systems.tts.f5_tts.f5tts import F5TTS
 from espnet3.systems.tts.f5_tts.vocoder_mel import VocoderMelSpec
-
-
-def _plain(value: Any) -> Any:
-    """Return ``value`` with any OmegaConf container turned into plain Python.
-
-    Hydra hands nested blocks over as ``DictConfig``/``ListConfig`` unless the
-    config opts into ``_convert_``. Those unpack through ``**`` well enough, but
-    they leak into ``F5TTS``'s stored attributes and into checkpointed hparams,
-    so they are converted once here instead.
-
-    Args:
-        value: Any config value. ``DictConfig`` and ``ListConfig`` are
-            converted recursively with interpolations resolved; anything else
-            is returned unchanged, so plain Python and direct Python calls
-            pass straight through.
-
-    Returns:
-        ``dict`` for a ``DictConfig``, ``list`` for a ``ListConfig``, otherwise
-        ``value`` itself.
-
-    Example:
-        .. code-block:: python
-
-            >>> from omegaconf import OmegaConf
-            >>> _plain(OmegaConf.create({"depth": 18}))
-            {'depth': 18}
-            >>> _plain({"depth": 18})
-            {'depth': 18}
-
-    Note:
-        Conversion happens before the value reaches a component, so a config
-        list such as ``frac_lengths_mask: [0.7, 1.0]`` arrives as a real
-        ``list`` and is coerced by the component's own signature rather than
-        being stored as a ``ListConfig``.
-    """
-    if isinstance(value, (DictConfig, ListConfig)):
-        return OmegaConf.to_container(value, resolve=True)
-    return value
+from espnet3.utils.config_utils import convert_to_dict
 
 
 def build_f5_tts_model(
@@ -122,7 +83,7 @@ def build_f5_tts_model(
                 odeint_method: euler
               model_conf: {}
     """
-    token_list = _plain(token_list)
+    token_list = convert_to_dict(token_list)
     if isinstance(token_list, str):
         with open(token_list, encoding="utf-8") as f:
             tokens: List[str] = [line[0] + line[1:].rstrip() for line in f]
@@ -137,14 +98,14 @@ def build_f5_tts_model(
     if odim is not None:
         raise RuntimeError(
             "F5-TTS extracts mel inside the model, so `odim` must stay null "
-            "and is taken from VocoderMelSpec.output_size()."
+            "and is taken from VocoderMelSpec.output_size."
         )
 
-    feats_extract = VocoderMelSpec(**_plain(feats_extract_conf))
+    feats_extract = VocoderMelSpec(**convert_to_dict(feats_extract_conf))
     tts = F5TTS(
         idim=vocab_size,
-        odim=feats_extract.output_size(),
-        **_plain(tts_conf),
+        odim=feats_extract.output_size,
+        **convert_to_dict(tts_conf),
     )
     # ``ESPnetTTSModel`` declares these without defaults, so they are passed
     # explicitly as None, exactly as ``TTSTask.build_model`` does for a config
@@ -157,5 +118,5 @@ def build_f5_tts_model(
         pitch_normalize=None,
         energy_normalize=None,
         tts=tts,
-        **(_plain(model_conf) or {}),
+        **(convert_to_dict(model_conf) or {}),
     )

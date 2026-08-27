@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from espnet3.systems.tts.f5_tts.scheduler import LinearWarmupDecayLR
+from espnet3.components.schedulers.linear_warmup_decay import LinearWarmupDecayLR
 
 BASE_LR = 1e-4
 WARMUP = 20

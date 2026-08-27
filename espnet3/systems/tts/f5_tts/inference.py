@@ -28,6 +28,11 @@ from omegaconf import OmegaConf
 from espnet2.text.build_tokenizer import build_tokenizer
 from espnet2.text.cleaner import TextCleaner
 from espnet2.text.token_id_converter import TokenIDConverter
+from espnet3.systems.tts.f5_tts import (
+    BIGVGAN_DEFAULT_MODEL,
+    VOCOS_DEFAULT_MODEL,
+)
+from espnet3.utils.config_utils import load_config_with_defaults
 
 logger = logging.getLogger(__name__)
 
@@ -169,7 +174,9 @@ class F5TTSInference:
         self.cross_fade_duration = cross_fade_duration
         self.seed = seed
 
-        cfg = OmegaConf.to_container(OmegaConf.load(train_config), resolve=True)
+        cfg = OmegaConf.to_container(
+            load_config_with_defaults(train_config), resolve=True
+        )
         fe_conf = (cfg.get("model") or {}).get("feats_extract_conf") or {}
         self.hop_length = int(fe_conf.get("hop_length", 256))
         model = self._build_model(cfg, ckpt_path, use_ema, native_f5)
@@ -261,7 +268,7 @@ class F5TTSInference:
     def _build_tokenizer(self, cfg: dict) -> None:
         """Replicate the training-time text tokenization for inference.
 
-        Sets ``self._tokenize_fn(text) -> int64 ids`` matching the training
+        Sets ``self._tokenize(text) -> int64 ids`` matching the training
         preprocessor: F5's zh+en pinyin (``F5PinyinPreprocessor``) or espnet2's
         char/phn tokenizer (``CommonPreprocessor``).
         """
@@ -276,7 +283,7 @@ class F5TTSInference:
             )
 
             vocab_char_map = load_vocab_char_map(prep["vocab_file"])
-            self._tokenize_fn = lambda text: text_to_pinyin_ids(text, vocab_char_map)
+            self._tokenize = lambda text: text_to_pinyin_ids(text, vocab_char_map)
             return
 
         # espnet2 char/phn tokenization (matches CommonPreprocessor).
@@ -297,7 +304,7 @@ class F5TTSInference:
             g2p_type=prep.get("g2p_type"),
         )
         token_id_converter = TokenIDConverter(token_list)
-        self._tokenize_fn = lambda text: np.asarray(
+        self._tokenize = lambda text: np.asarray(
             token_id_converter.tokens2ids(tokenizer.text2tokens(cleaner(text))),
             dtype=np.int64,
         )
@@ -318,7 +325,7 @@ class F5TTSInference:
                 )
                 vocoder.load_state_dict(state)
             else:
-                vocoder = Vocos.from_pretrained("charactr/vocos-mel-24khz")
+                vocoder = Vocos.from_pretrained(VOCOS_DEFAULT_MODEL)
         elif vocoder_name == "bigvgan":
             try:
                 import bigvgan
@@ -327,7 +334,7 @@ class F5TTSInference:
                     "bigvgan is required for vocoder_name='bigvgan'. See "
                     "https://github.com/NVIDIA/BigVGAN."
                 ) from e
-            repo = vocoder_path or "nvidia/bigvgan_v2_24khz_100band_256x"
+            repo = vocoder_path or BIGVGAN_DEFAULT_MODEL
             vocoder = bigvgan.BigVGAN.from_pretrained(repo, use_cuda_kernel=False)
             vocoder.remove_weight_norm()
         else:
@@ -335,9 +342,6 @@ class F5TTSInference:
         return vocoder.to(self.device).eval()
 
     # -------------------------------------------------------------- inference
-
-    def _tokenize(self, text: str) -> np.ndarray:
-        return self._tokenize_fn(text)
 
     def _vocode(self, mel: torch.Tensor) -> torch.Tensor:
         """Vocode mel ``[1, d, n]`` to waveform ``[nw]``.

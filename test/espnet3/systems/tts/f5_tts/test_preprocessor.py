@@ -51,8 +51,3 @@ def test_text_name_is_configurable(vocab_file):
     prep = F5PinyinPreprocessor(vocab_file, text_name="transcript")
     out = prep({"transcript": "a"})
     assert out["transcript"].tolist() == [1]
-
-
-def test_train_flag_is_accepted_for_collect_stats(vocab_file):
-    """collect_stats toggles train/valid; the flag must not be rejected."""
-    assert F5PinyinPreprocessor(vocab_file, train=False).train is False

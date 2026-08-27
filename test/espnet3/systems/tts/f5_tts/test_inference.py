@@ -283,7 +283,7 @@ def test_a_vocab_file_selects_the_pinyin_tokenizer(
     engine = F5TTSInference(train_config=str(path), ckpt_path=str(ckpt_path))
 
     # Built lazily, so this asserts the branch was taken, not pypinyin's output.
-    assert callable(engine._tokenize_fn)
+    assert callable(engine._tokenize)
 
 
 # ------------------------------------------------------------------- vocoder

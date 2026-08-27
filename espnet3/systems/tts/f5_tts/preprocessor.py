@@ -25,7 +25,6 @@ class F5PinyinPreprocessor:
         self,
         vocab_file: str,
         text_name: str = "text",
-        train: bool = True,
     ):
         """Configure the preprocessor.
 
@@ -34,8 +33,6 @@ class F5PinyinPreprocessor:
                 ``Emilia_ZH_EN_pinyin/vocab.txt``); line number = token id,
                 space at index 0.
             text_name: Sample dict key holding the raw transcript.
-            train: Accepted for the collect_stats train/valid toggle
-                (no-op here).
 
         Example:
             .. code-block:: yaml
@@ -51,7 +48,6 @@ class F5PinyinPreprocessor:
         """
         self.vocab_char_map = load_vocab_char_map(vocab_file)
         self.text_name = text_name
-        self.train = train
 
     @property
     def vocab_size(self) -> int:

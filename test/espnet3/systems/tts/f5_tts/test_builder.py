@@ -51,7 +51,7 @@ def test_odim_is_derived_from_feats_extract(token_file):
         feats_extract_conf=FEATS_CONF,
         tts_conf=TTS_CONF,
     )
-    assert model.feats_extract.output_size() == FEATS_CONF["n_mels"]
+    assert model.feats_extract.output_size == FEATS_CONF["n_mels"]
     assert model.tts.odim == FEATS_CONF["n_mels"]
 
 

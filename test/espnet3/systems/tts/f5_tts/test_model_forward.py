@@ -98,4 +98,4 @@ def test_loss_is_seed_reproducible(model):
 
 def test_odim_is_wired_from_the_feature_extractor(model):
     assert model.tts.odim == N_MELS
-    assert model.feats_extract.output_size() == N_MELS
+    assert model.feats_extract.output_size == N_MELS

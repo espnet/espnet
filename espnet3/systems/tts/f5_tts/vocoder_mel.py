@@ -57,7 +57,7 @@ class VocoderMelSpec(AbsFeatsExtract):
         Note:
             The mel must match the vocoder used at inference, so these values
             are fixed by the vocoder rather than freely tunable. ``n_mels``
-            becomes the model's ``odim`` via :meth:`output_size`.
+            becomes the model's ``odim`` via :attr:`output_size`.
         """
         super().__init__()
         self.fs = fs
@@ -76,14 +76,15 @@ class VocoderMelSpec(AbsFeatsExtract):
             mel_spec_type=mel_spec_type,
         )
 
+    @property
     def output_size(self) -> int:
-        """Return the mel dimension, which is this model's ``odim``.
+        """The mel dimension, which is this model's ``odim``.
 
         Returns:
             ``n_mels``.
 
         Note:
-            ``builder.build_f5_tts_model`` calls this to derive ``odim``, which
+            ``builder.build_f5_tts_model`` reads this to derive ``odim``, which
             is why the recipe config leaves ``odim`` unset.
         """
         return self.n_mels
