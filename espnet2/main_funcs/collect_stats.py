@@ -55,6 +55,8 @@ def collect_stats(
                 for name in batch:
                     if name.endswith("_lengths"):
                         continue
+                    if not isinstance(batch[name], torch.Tensor):
+                        continue
                     for i, (key, data) in enumerate(zip(keys, batch[name])):
                         if f"{name}_lengths" in batch:
                             lg = int(batch[f"{name}_lengths"][i])
