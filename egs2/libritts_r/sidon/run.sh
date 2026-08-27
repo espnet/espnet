@@ -92,7 +92,9 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
     for test_set in ${test_sets}; do
         log "Stage 7: scoring (${test_set})"
         text_opt=()
-        [ ! -f data/${test_set}/text ] || text_opt=(--text data/${test_set}/text)
+        if [ -f "data/${test_set}/text" ]; then
+            text_opt=(--text "data/${test_set}/text")
+        fi
         ${python} local/score.py \
             --restored_dir ${expdir}/inference_${test_set}/wav \
             --ref_wav_scp data/${test_set}/wav.scp \

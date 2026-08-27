@@ -19,10 +19,10 @@ log() { echo "[data.sh $(date '+%H:%M:%S')] $*"; }
 # ── Validate required variables ────────────────────────────────────────────
 for _var in DATASET_LIBRITTS_R DATASET_EARS DATASET_VCTK_DEMAND; do
     _val="${!_var:-}"
-    [ -n "${_val}" ] && [ -d "${_val}" ] || {
+    if [ -z "${_val}" ] || [ ! -d "${_val}" ]; then
         log "ERROR: ${_var} not set or not a directory (value: '${_val:-<unset>}')"
         exit 1
-    }
+    fi
 done
 
 # ─────────────────────────────────────────────────────────────────────────
@@ -117,7 +117,8 @@ _collect_vctk_clean() {
 # ─────────────────────────────────────────────────────────────────────────
 # Collect
 # ─────────────────────────────────────────────────────────────────────────
-tmp=$(mktemp -d); trap "rm -rf ${tmp}" EXIT
+tmp=$(mktemp -d)
+trap 'rm -rf "${tmp}"' EXIT
 
 log "--- LibriTTS-R train (train-clean-100/360, train-other-500) ---"
 _collect_libritts_r train-clean-100 train-clean-360 train-other-500 \
@@ -198,7 +199,7 @@ for _var in $(compgen -v | grep '^NOISE_' | sort); do
     _noise_found=1
 done
 [ "${_noise_found}" -eq 0 ] && log "WARNING: No NOISE_* variables set."
-log "  $(ls data/noise_pool | wc -l) noise files"
+log "  $(find data/noise_pool -mindepth 1 -maxdepth 1 | wc -l) noise files"
 
 # ─────────────────────────────────────────────────────────────────────────
 # Summary
@@ -210,4 +211,4 @@ log "  test-clean: $(wc -l < data/test-clean/wav.scp) utts"
 log "  test-other: $(wc -l < data/test-other/wav.scp) utts"
 log "  train_voc: $(wc -l < data/train_voc/wav.scp) utts"
 log "  dev_voc  : $(wc -l < data/dev_voc/wav.scp) utts"
-log "  noise_pool: $(ls data/noise_pool | wc -l) files"
+log "  noise_pool: $(find data/noise_pool -mindepth 1 -maxdepth 1 | wc -l) files"
