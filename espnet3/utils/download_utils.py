@@ -157,6 +157,7 @@ def extract_targz(
     with tarfile.open(archive_path, "r:gz") as tar:
         tar.extractall(path=dst_dir)
 
+
 def extract_zip(
     archive_path: Path,
     dst_dir: Path,
