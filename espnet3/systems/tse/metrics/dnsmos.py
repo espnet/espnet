@@ -34,6 +34,7 @@ class DNSMOS(BaseMetric):
 
     def __init__(
         self,
+        ref_key: str = "ref",  # not used (for compatibility)
         hyp_key: str = "inf",
         batch_size: int = 1,
         ref_channel: int = 0,
@@ -41,6 +42,7 @@ class DNSMOS(BaseMetric):
         use_gpu: bool = False,
         convert_to_torch: bool = False,
     ) -> None:
+        self.ref_key = ref_key
         self.hyp_key = hyp_key
         assert isinstance(batch_size, int) and batch_size > 0, batch_size
         self.batch_size = batch_size

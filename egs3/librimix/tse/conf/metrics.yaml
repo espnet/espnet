@@ -61,6 +61,15 @@ metrics:
       zero_mean: true
 
   - metric:
+      _target_: espnet3.systems.tse.metrics.sdr.SDR
+      ref_key: ref
+      hyp_key: inf
+      batch_size: 1
+      ref_channel: 0
+      device: cuda
+      clamp_db: 50
+
+  - metric:
       _target_: espnet3.systems.tse.metrics.dnsmos.DNSMOS
       hyp_key: inf
       batch_size: 1
