@@ -66,7 +66,7 @@ random_speech = torch.tensor(
 def test_get_rtf(ch, mode):
     if not is_torch_1_9_plus and mode == "evd":
         # torch 1.9.0+ is required for "evd" mode
-        return
+        pytest.skip('"evd" mode requires torch>=1.9')
     if mode == "evd":
         complex_wrapper = torch.complex
         complex_module = torch

@@ -7,6 +7,7 @@ from espnet2.asr.encoder.hubert_encoder import TorchAudioHuBERTPretrainEncoder
 is_torch_1_12_1_plus = V(torch.__version__) >= V("1.12.1")
 
 
+@pytest.mark.skipif(not is_torch_1_12_1_plus, reason="requires torch>=1.12.1")
 @pytest.mark.parametrize(
     "finetuning, eval, freeze_encoder_updates",
     [
@@ -17,8 +18,6 @@ is_torch_1_12_1_plus = V(torch.__version__) >= V("1.12.1")
     ],
 )
 def test_Encoder_forward_backward(finetuning, eval, freeze_encoder_updates):
-    if not is_torch_1_12_1_plus:
-        return
 
     encoder = TorchAudioHuBERTPretrainEncoder(
         20,
@@ -53,9 +52,8 @@ def test_Encoder_forward_backward(finetuning, eval, freeze_encoder_updates):
         y.sum()
 
 
+@pytest.mark.skipif(not is_torch_1_12_1_plus, reason="requires torch>=1.12.1")
 def test_Encoder_output_size():
-    if not is_torch_1_12_1_plus:
-        return
 
     encoder = TorchAudioHuBERTPretrainEncoder(
         20,
@@ -69,9 +67,8 @@ def test_Encoder_output_size():
     assert encoder.output_size() == 16
 
 
+@pytest.mark.skipif(not is_torch_1_12_1_plus, reason="requires torch>=1.12.1")
 def test_Encoder_reload_params():
-    if not is_torch_1_12_1_plus:
-        return
 
     encoder = TorchAudioHuBERTPretrainEncoder(
         20,
@@ -85,9 +82,8 @@ def test_Encoder_reload_params():
     encoder.reload_pretrained_parameters()
 
 
+@pytest.mark.skipif(not is_torch_1_12_1_plus, reason="requires torch>=1.12.1")
 def test_Encoder_invalid_type():
-    if not is_torch_1_12_1_plus:
-        return
 
     with pytest.raises(ValueError):
         TorchAudioHuBERTPretrainEncoder(

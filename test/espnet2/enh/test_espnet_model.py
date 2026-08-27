@@ -352,13 +352,12 @@ def test_svoice_model(encoder, decoder, separator, training, loss_wrappers):
     loss, stats, weight = enh_model(**kwargs)
 
 
+@pytest.mark.skipif(not is_torch_1_9_plus, reason="requires torch>=1.9")
 @pytest.mark.parametrize("training", [True, False])
 @pytest.mark.parametrize("n_mics", [1, 2])
 @pytest.mark.parametrize("loss_wrappers", [[pit_wrapper]])
 @pytest.mark.parametrize("output_from", ["dnn1", "dnn2", "mfmcwf"])
 def test_ineube(n_mics, training, loss_wrappers, output_from):
-    if not is_torch_1_9_plus:
-        return
     inputs = torch.randn(1, 300, n_mics)
     ilens = torch.LongTensor([300])
     speech_refs = [torch.randn(1, 300).float(), torch.randn(1, 300).float()]
@@ -391,12 +390,11 @@ def test_ineube(n_mics, training, loss_wrappers, output_from):
     loss, stats, weight = enh_model(**kwargs)
 
 
+@pytest.mark.skipif(not is_torch_1_9_plus, reason="requires torch>=1.9")
 @pytest.mark.parametrize("training", [True, False])
 @pytest.mark.parametrize("n_mics", [1, 2])
 @pytest.mark.parametrize("loss_wrappers", [[pit_wrapper]])
 def test_tfgridnet(n_mics, training, loss_wrappers):
-    if not is_torch_1_9_plus:
-        return
     if n_mics == 1:
         inputs = torch.randn(1, 300)
     else:
@@ -439,12 +437,11 @@ def test_tfgridnet(n_mics, training, loss_wrappers):
     loss, stats, weight = enh_model(**kwargs)
 
 
+@pytest.mark.skipif(not is_torch_1_9_plus, reason="requires torch>=1.9")
 @pytest.mark.parametrize("training", [True, False])
 @pytest.mark.parametrize("n_mics", [1, 2])
 @pytest.mark.parametrize("loss_wrappers", [[pit_wrapper]])
 def test_tfgridnetv2(n_mics, training, loss_wrappers):
-    if not is_torch_1_9_plus:
-        return
     if n_mics == 1:
         inputs = torch.randn(1, 300)
     else:
@@ -487,12 +484,11 @@ def test_tfgridnetv2(n_mics, training, loss_wrappers):
     loss, stats, weight = enh_model(**kwargs)
 
 
+@pytest.mark.skipif(not is_torch_1_9_plus, reason="requires torch>=1.9")
 @pytest.mark.parametrize("training", [True, False])
 @pytest.mark.parametrize("n_mics", [1])
 @pytest.mark.parametrize("loss_wrappers", [[pit_wrapper]])
 def test_tfgridnetv3(n_mics, training, loss_wrappers):
-    if not is_torch_1_9_plus:
-        return
     if n_mics == 1:
         inputs = torch.randn(1, 320)
     else:
@@ -648,10 +644,10 @@ def test_forward_with_beamformer_net(
         return
     if not is_torch_1_9_plus and use_builtin_complex:
         # builtin complex support is only well supported in PyTorch 1.9+
-        return
+        pytest.skip("builtin complex requires torch>=1.9")
     if is_torch_1_12_1_plus and not use_builtin_complex:
         # non-builtin complex support is deprecated in PyTorch 1.12.1+
-        return
+        pytest.skip("non-builtin complex is deprecated on torch>=1.12.1")
 
     ch = 3
     inputs = random_speech[..., :ch].float()

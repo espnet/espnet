@@ -9,6 +9,7 @@ from espnet2.legacy.nets.batch_beam_search import BatchBeamSearch
 is_torch_1_10_plus = V(torch.__version__) >= V("1.10.0")
 
 
+@pytest.mark.skipif(not is_torch_1_10_plus, reason="requires torch>=1.10")
 @pytest.mark.parametrize("input_layer", ["embed"])
 @pytest.mark.parametrize("prenorm", [True, False])
 @pytest.mark.parametrize("n_layers", [3, 6])
@@ -18,8 +19,6 @@ is_torch_1_10_plus = V(torch.__version__) >= V("1.10.0")
 @pytest.mark.execution_timeout(10)
 def test_S4Decoder_backward(input_layer, prenorm, n_layers, norm, residual, drop_path):
     # Skip test for the lower pytorch versions
-    if not is_torch_1_10_plus:
-        return
     layer = [
         {"_name_": "s4", "keops": True},  # Do not use custom Cauchy kernel (CUDA)
         {"_name_": "mha", "n_head": 4},
@@ -44,6 +43,7 @@ def test_S4Decoder_backward(input_layer, prenorm, n_layers, norm, residual, drop
     z_all.sum().backward()
 
 
+@pytest.mark.skipif(not is_torch_1_10_plus, reason="requires torch>=1.10")
 @pytest.mark.parametrize("input_layer", ["embed"])
 @pytest.mark.parametrize("prenorm", [True, False])
 @pytest.mark.parametrize("n_layers", [3, 6])
@@ -56,8 +56,6 @@ def test_S4Decoder_batch_beam_search(
     input_layer, prenorm, n_layers, norm, residual, drop_path, dtype
 ):
     # Skip test for the lower pytorch versions
-    if not is_torch_1_10_plus:
-        return
     token_list = ["<blank>", "a", "b", "c", "unk", "<eos>"]
     vocab_size = len(token_list)
     encoder_output_size = 4
