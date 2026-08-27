@@ -21,12 +21,11 @@ logger = logging.getLogger(__name__)
 _OPENSLR_URL_BASE = "https://www.openslr.org/resources/60"
 
 # Size in bytes of each published `<subset>.tar.gz`. A local archive whose
-# size does not match is treated as a partial download and re-fetched, which
-# is what `local/download_libritts.sh` used to do with the same table.
+# size does not match is treated as a partial download and re-fetched.
 _ARCHIVE_SIZES: dict[str, int] = {
     "dev-clean": 1291469655,
-    "test-clean": 924804676,
-    "dev-other": 1230670113,
+    "test-clean": 1230670113,
+    "dev-other": 924804676,
     "test-other": 964502297,
     "train-clean-100": 7723686890,
     "train-clean-360": 27504073644,
