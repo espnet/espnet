@@ -296,6 +296,7 @@ def test_integration_demo_yaml_has_upload_hf_repo(cloned_mini_an4):
     assert "hf_repo: espnet/mini_an4_asr_${exp_tag}" in text
 
 
+@pytest.mark.execution_timeout(30)
 def test_integration_run_py_help_exits_cleanly(cloned_mini_an4):
     """python run.py --help must exit 0 and mention --stages."""
     import subprocess
