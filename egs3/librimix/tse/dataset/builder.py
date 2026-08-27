@@ -89,9 +89,10 @@ def iter_source_candidates(
     recipe_root: str | Path,
     source_dir: str | Path | None,
     key: str = "source_env_var",
+    suffix: str = "/LibriSpeech",
 ) -> Iterable[Path]:
-    """Yield candidate directories that may contain LibriSpeech."""
-    yield Path(recipe_root) / _CFG["dataset_path"] / "LibriSpeech"
+    """Yield candidate directories that may contain LibriSpeech/LibriMix."""
+    yield Path(recipe_root) / f"{_CFG['dataset_path']}{suffix}"
 
     if source_dir is not None:
         yield Path(source_dir)
@@ -709,7 +710,7 @@ class LibriMixTSEBuilder(DatasetBuilder):
         **_kwargs,
     ) -> bool:
         for candidate in iter_source_candidates(
-            recipe_dir, source_dir, key="dataset_env_var"
+            recipe_dir, source_dir, key="dataset_env_var", suffix=""
         ):
             path = None
             for split in _CFG["required_splits"]:

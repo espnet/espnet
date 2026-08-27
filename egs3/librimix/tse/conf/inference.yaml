@@ -35,19 +35,19 @@
 #   - actual data sources are defined via `${recipe_dir}`
 dataset:
   test:
-    - name: 2mix_16k_max_dev_mix-both
+    - name: 2mix_16k_max_dev_mix-clean
       data_src_args:
-        split: 2mix_16k_max_dev_mix-both
-    - name: 2mix_16k_max_test_mix-both
+        split: 2mix_16k_max_dev_mix-clean
+    - name: 2mix_16k_max_test_mix-clean
       data_src_args:
-        split: 2mix_16k_max_test_mix-both
+        split: 2mix_16k_max_test_mix-clean
 
 ##########################################################
 #                  PARALLELIZATION SETTING               #
 ##########################################################
 parallel:
   env: local
-  n_workers: 1
+  n_workers: 1  # increase this to do parallel inference (multi-processing)
 
 ##########################################################
 #               PROVIDER AND RUNNER SETTING              #

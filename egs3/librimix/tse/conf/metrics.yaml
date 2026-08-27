@@ -35,3 +35,36 @@ metrics:
       threshold: 0.1
       ref_channel: 0
       device: cpu
+
+  - metric:
+      _target_: espnet3.systems.tse.metrics.pesq.PESQ
+      ref_key: ref
+      hyp_key: inf
+      batch_size: 1
+      ref_channel: 0
+
+  - metric:
+      _target_: espnet3.systems.tse.metrics.stoi.ESTOI
+      ref_key: ref
+      hyp_key: inf
+      batch_size: 1
+      ref_channel: 0
+
+  - metric:
+      _target_: espnet3.systems.tse.metrics.sisnr.SISNR
+      ref_key: ref
+      hyp_key: inf
+      batch_size: 1
+      ref_channel: 0
+      device: cuda
+      clamp_db: 50
+      zero_mean: true
+
+  - metric:
+      _target_: espnet3.systems.tse.metrics.dnsmos.DNSMOS
+      hyp_key: inf
+      batch_size: 1
+      ref_channel: 0
+      dnsmos_dir: "/path/to/dir_containing_DNSMOS_checkpoints"
+      use_gpu: false
+      convert_to_torch: false

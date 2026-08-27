@@ -35,7 +35,7 @@ dataset:
         use_espnet_preprocessor: ${dataset.train[0].data_src_args.use_espnet_preprocessor}
   preprocessor:
     _target_: espnet2.train.preprocessor.TSEPreprocessor
-    train: true
+    train: true  # Note: this will be automatically changed to false for valid/test datasets
     train_spk2enroll: ${data_dir}/2mix_16k_max_train_mix-both/spk2enroll.json
     enroll_segment: 48000
     load_spk_embedding: false

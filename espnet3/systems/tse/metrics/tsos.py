@@ -10,6 +10,7 @@ import soundfile as sf
 import torch
 import torch.nn.functional as F
 from torch import Tensor
+from tqdm import trange
 
 from espnet2.enh.encoder.stft_encoder import STFTEncoder
 from espnet3.components.metrics.base_metric import BaseMetric
@@ -18,8 +19,8 @@ from espnet3.components.metrics.base_metric import BaseMetric
 class TSOS(BaseMetric):
     """Compute the TSOS measure for extracted speech.
 
-    This metric expects extracted speech and reference speech and produces a
-    percentage score.
+    This metric expects extracted speech and reference speech as input,
+    and produces a percentage score as output.
 
     Reference:
         Sefik Emre Eskimez, Takuya Yoshioka, Huaming Wang, Xiaofei Wang, Zhuo Chen,
@@ -148,7 +149,7 @@ class TSOS(BaseMetric):
 
         tsos_all = []
         with (test_dir / "tsos").open("w", encoding="utf-8") as f:
-            for i in range(0, len(pairs), self.batch_size):
+            for i in trange(0, len(pairs), self.batch_size):
                 batch = pairs[i : i + self.batch_size]
                 batch_uids = [b[0] for b in batch]
                 ref_paths = [b[1] for b in batch]
@@ -163,4 +164,6 @@ class TSOS(BaseMetric):
                 for uid, score in zip(batch_uids, tsos_batch):
                     f.write(f"{uid} {score}\n")
 
+        if not tsos_all:
+            raise ValueError("No scores were computed. Please check the input data.")
         return {"TSOS": float(np.mean(tsos_all))}

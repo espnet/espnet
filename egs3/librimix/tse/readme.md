@@ -11,7 +11,7 @@ environment variable to an existing LibriSpeech root, before running
 source path.sh
 
 #-----------------------------------------
-# Option 1: Run all stages in one command
+# Option 1: Run all/multiple stages in one command
 #-----------------------------------------
 python run.py \
     --stages all \
@@ -20,6 +20,7 @@ python run.py \
     --metrics_config conf/metrics.yaml \
     --publication_config conf/publication.yaml \
     --demo_config conf/demo.yaml
+# You can also run specific stages, e.g., `--stages train infer measure`.
 
 #-----------------------------------------
 # Option 2: Run each stage separately
@@ -70,4 +71,8 @@ python run.py --stages upload_model upload_demo \
 
 ## Pretrained Models
 
-- [`conf/tuning/training_td_speakerbeam_16k.yaml`](https://huggingface.co/wyz/librimix_tse_clean_2mix_training_td_speakerbeam_16k)
+### TD-SpeakerBeam 16kHz (trained on Libri2Mix mix-clean data)
+
+ - config: conf/tuning/training_td_speakerbeam_16k.yaml
+ - Pretrained model: https://huggingface.co/wyz/librimix_tse_clean_2mix_training_td_speakerbeam_16k
+
