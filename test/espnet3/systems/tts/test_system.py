@@ -1,6 +1,7 @@
 """Tests for ESPnet3 TTS system stage hooks."""
 
 import logging
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -8,6 +9,7 @@ import soundfile as sf
 from omegaconf import OmegaConf
 
 import espnet3.systems.tts.system as sysmod
+from espnet2.train.abs_gan_espnet_model import AbsGANESPnetModel
 from espnet3.systems.tts.system import TTSSystem
 
 # ===============================================================
@@ -425,3 +427,207 @@ def test_collect_stats_sets_parallel(tmp_path, monkeypatch):
 
     assert calls == [system.training_config.parallel]
     assert trainer.collect_stats_calls == 1
+
+
+# ---------------------------------------------------------------
+# _build_trainer dispatch and the train stage
+# ---------------------------------------------------------------
+#
+# | Test Name                                   | Description                  |
+# |---------------------------------------------|------------------------------|
+# | test_build_trainer_dispatches_gan_models    | AbsGANESPnetModel goes to    |
+# |                                             | build_gan_trainer.           |
+# | test_build_trainer_uses_plain_trainer       | Non-GAN models get the plain |
+# |                                             | ESPnet3LightningTrainer.     |
+# | test_build_trainer_instantiates_model_once  | The model is built exactly   |
+# |                          | once, so the global RNG is not advanced twice.   |
+# | test_train_builds_trainer_and_fits          | train() forwards the fit     |
+# |                                             | kwargs to trainer.fit().     |
+# | test_train_without_fit_section              | A missing/empty fit section  |
+# |                                             | calls fit() with no kwargs.  |
+# | test_train_saves_espnet_config_for_task     | save_espnet_config runs only |
+# |                                             | when training_config.task is set. |
+# | test_train_rejects_stage_args               | Stage arguments raise        |
+# |                                             | TypeError.                   |
+# | test_stage_log_mapping_extends_tts_stages   | A subclass mapping adds to,  |
+# |                                             | not replaces, the TTS stages.|
+
+
+class _FakeGANModel(AbsGANESPnetModel):
+    def forward(self, forward_generator: bool = True, **batch):
+        raise NotImplementedError
+
+    def collect_feats(self, **batch):
+        raise NotImplementedError
+
+
+def _trainer_config(tmp_path):
+    return OmegaConf.create(
+        {
+            "exp_dir": str(tmp_path / "exp"),
+            "best_model_criterion": [["valid/loss", 3, "min"]],
+            "trainer": {"accelerator": "cpu"},
+            "model": {"_target_": "dummy.Model"},
+        }
+    )
+
+
+def test_build_trainer_dispatches_gan_models(tmp_path, monkeypatch):
+    config = _trainer_config(tmp_path)
+    model = _FakeGANModel()
+    monkeypatch.setattr(sysmod, "_instantiate_model", lambda cfg: model)
+
+    seen = []
+    monkeypatch.setattr(
+        sysmod,
+        "build_gan_trainer",
+        lambda cfg, m: seen.append((cfg, m)) or "gan-trainer",
+    )
+    monkeypatch.setattr(
+        sysmod,
+        "ESPnet3LightningTrainer",
+        lambda **kwargs: pytest.fail("plain trainer must not be used for GAN models"),
+    )
+
+    assert sysmod._build_trainer(config) == "gan-trainer"
+    assert seen == [(config, model)]
+
+
+def test_build_trainer_uses_plain_trainer(tmp_path, monkeypatch):
+    config = _trainer_config(tmp_path)
+    model = object()
+    monkeypatch.setattr(sysmod, "_instantiate_model", lambda cfg: model)
+    monkeypatch.setattr(sysmod, "ESPnetLightningModule", lambda m, cfg: ("lit", m, cfg))
+
+    seen = []
+    monkeypatch.setattr(
+        sysmod,
+        "ESPnet3LightningTrainer",
+        lambda **kwargs: seen.append(kwargs) or "plain-trainer",
+    )
+
+    assert sysmod._build_trainer(config) == "plain-trainer"
+    assert seen == [
+        {
+            "model": ("lit", model, config),
+            "exp_dir": config.exp_dir,
+            "config": config.trainer,
+            "best_model_criterion": config.best_model_criterion,
+        }
+    ]
+
+
+def test_build_trainer_instantiates_model_once(tmp_path, monkeypatch):
+    """Instantiating a model twice would advance the RNG and change training.
+
+    The GAN dispatch is deliberately not implemented by delegating to the base
+    builder, precisely so the model is created exactly once.
+    """
+    config = _trainer_config(tmp_path)
+    calls = []
+
+    def fake_instantiate(cfg):
+        calls.append(cfg)
+        return _FakeGANModel()
+
+    monkeypatch.setattr(sysmod, "_instantiate_model", fake_instantiate)
+    monkeypatch.setattr(sysmod, "build_gan_trainer", lambda cfg, m: "gan-trainer")
+
+    sysmod._build_trainer(config)
+
+    assert calls == [config]
+
+
+class _RecordingFitTrainer:
+    def __init__(self):
+        self.fit_calls = []
+
+    def fit(self, **kwargs):
+        self.fit_calls.append(kwargs)
+
+
+def _train_system(tmp_path, monkeypatch, extra=None):
+    config = _trainer_config(tmp_path)
+    config.seed = 0
+    if extra:
+        config.merge_with(OmegaConf.create(extra))
+
+    system = TTSSystem(training_config=config)
+    trainer = _RecordingFitTrainer()
+    seen_configs = []
+
+    def fake_build_trainer(cfg):
+        seen_configs.append(cfg)
+        return trainer
+
+    monkeypatch.setattr(sysmod, "_build_trainer", fake_build_trainer)
+    monkeypatch.setattr(sysmod, "_ensure_directories", lambda cfg: None)
+    return system, trainer, seen_configs
+
+
+def test_train_builds_trainer_and_fits(tmp_path, monkeypatch):
+    system, trainer, seen_configs = _train_system(
+        tmp_path, monkeypatch, extra={"fit": {"ckpt_path": "last"}}
+    )
+
+    system.train()
+
+    assert seen_configs == [system.training_config]
+    assert trainer.fit_calls == [{"ckpt_path": "last"}]
+
+
+def test_train_without_fit_section(tmp_path, monkeypatch):
+    system, trainer, _ = _train_system(tmp_path, monkeypatch)
+    system.train()
+    assert trainer.fit_calls == [{}]
+
+    system, trainer, _ = _train_system(tmp_path, monkeypatch, extra={"fit": {}})
+    system.train()
+    assert trainer.fit_calls == [{}]
+
+
+def test_train_saves_espnet_config_for_task(tmp_path, monkeypatch):
+    saved = []
+    monkeypatch.setattr(
+        sysmod,
+        "save_espnet_config",
+        lambda task, cfg, exp_dir: saved.append((task, exp_dir)),
+    )
+
+    system, _, _ = _train_system(tmp_path, monkeypatch)
+    system.train()
+    assert saved == []
+
+    system, _, _ = _train_system(tmp_path, monkeypatch, extra={"task": "tts"})
+    system.train()
+    assert saved == [("tts", system.training_config.exp_dir)]
+
+
+def test_train_rejects_stage_args(tmp_path, monkeypatch):
+    system, _, _ = _train_system(tmp_path, monkeypatch)
+
+    with pytest.raises(TypeError):
+        system.train("unexpected")
+    with pytest.raises(TypeError):
+        system.train(unexpected=True)
+
+
+def test_stage_log_mapping_extends_tts_stages(tmp_path):
+    """A recipe subclass registers extra stages without restating the TTS ones."""
+    config = OmegaConf.create(
+        {
+            "exp_dir": str(tmp_path / "exp"),
+            "remove_long_short": {"save_path": str(tmp_path / "filtered")},
+            "create_token_list": {"save_path": str(tmp_path / "tokens")},
+            "xvector": {"save_path": str(tmp_path / "xvectors")},
+        }
+    )
+    system = TTSSystem(
+        training_config=config,
+        stage_log_mapping={"compute_xvectors": "training_config.xvector.save_path"},
+    )
+
+    # The subclass stage is registered and neither TTS stage was dropped.
+    assert system.stage_log_dirs["compute_xvectors"] == Path(tmp_path / "xvectors")
+    assert system.stage_log_dirs["remove_long_short"] == Path(tmp_path / "filtered")
+    assert system.stage_log_dirs["create_token_list"] == Path(tmp_path / "tokens")
