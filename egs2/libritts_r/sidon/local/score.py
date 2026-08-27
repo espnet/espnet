@@ -38,6 +38,7 @@ logger = logging.getLogger(__name__)
 # Helpers: load wav.scp
 # ---------------------------------------------------------------------------
 
+
 def load_wav_scp(path: str) -> Dict[str, str]:
     d = {}
     with open(path) as f:
@@ -54,15 +55,15 @@ def read_wav(path: str, target_sr: int = None) -> np.ndarray:
         wav = wav.mean(axis=1)
     if target_sr is not None and sr != target_sr:
         import torchaudio.functional as AF
-        wav = AF.resample(
-            torch.from_numpy(wav), sr, target_sr
-        ).numpy()
+
+        wav = AF.resample(torch.from_numpy(wav), sr, target_sr).numpy()
     return wav
 
 
 # ---------------------------------------------------------------------------
 # DNSMOS
 # ---------------------------------------------------------------------------
+
 
 def compute_dnsmos(wav_paths: List[str], sr: int = 16000) -> Dict[str, float]:
     """Compute DNSMOS P.835 OVRL scores.
@@ -72,11 +73,12 @@ def compute_dnsmos(wav_paths: List[str], sr: int = 16000) -> Dict[str, float]:
     """
     try:
         from torchDNSMOS import DNSMOS as DNSMOSModel
+
         model = DNSMOSModel()
         scores = {}
         for path in wav_paths:
             uttid = os.path.splitext(os.path.basename(path))[0]
-            wav   = read_wav(path, sr)
+            wav = read_wav(path, sr)
             score = model(wav, sr)
             scores[uttid] = float(score["ovrl"])
         return scores
@@ -91,6 +93,7 @@ def compute_dnsmos(wav_paths: List[str], sr: int = 16000) -> Dict[str, float]:
 # ---------------------------------------------------------------------------
 # NISQA
 # ---------------------------------------------------------------------------
+
 
 def compute_nisqa(wav_paths: List[str]) -> Dict[str, float]:
     """Compute NISQA overall quality scores."""
@@ -116,6 +119,7 @@ def compute_nisqa(wav_paths: List[str]) -> Dict[str, float]:
 # Speaker Similarity
 # ---------------------------------------------------------------------------
 
+
 def compute_spk_sim(
     restored_paths: List[str],
     noisy_paths: List[str],
@@ -134,12 +138,11 @@ def compute_spk_sim(
     model_id = "microsoft/wavlm-base-plus-sv"
     logger.info("Loading %s for speaker similarity...", model_id)
     extractor = Wav2Vec2FeatureExtractor.from_pretrained(model_id)
-    model     = WavLMModel.from_pretrained(model_id).eval().to(device)
+    model = WavLMModel.from_pretrained(model_id).eval().to(device)
 
     def embed(path):
         wav = read_wav(path, target_sr=16000)
-        inp = extractor(wav, sampling_rate=16000, return_tensors="pt",
-                        padding=True)
+        inp = extractor(wav, sampling_rate=16000, return_tensors="pt", padding=True)
         with torch.no_grad():
             out = model(inp["input_values"].to(device))
         # Mean-pool last hidden state as speaker embedding
@@ -163,6 +166,7 @@ def compute_spk_sim(
 # WER
 # ---------------------------------------------------------------------------
 
+
 def compute_wer(
     restored_paths: List[str],
     ref_texts: Dict[str, str],
@@ -178,7 +182,7 @@ def compute_wer(
     model_id = "facebook/mms-1b-all"
     logger.info("Loading %s for WER...", model_id)
     processor = AutoProcessor.from_pretrained(model_id)
-    model     = Wav2Vec2ForCTC.from_pretrained(model_id).eval().to(device)
+    model = Wav2Vec2ForCTC.from_pretrained(model_id).eval().to(device)
 
     import editdistance
 
@@ -190,11 +194,10 @@ def compute_wer(
         if uttid not in ref_texts:
             continue
         wav = read_wav(path, target_sr=16000)
-        inp = processor(wav, sampling_rate=16000, return_tensors="pt",
-                        padding=True)
+        inp = processor(wav, sampling_rate=16000, return_tensors="pt", padding=True)
         with torch.no_grad():
             logits = model(inp["input_values"].to(device)).logits
-        pred_ids  = torch.argmax(logits, dim=-1)
+        pred_ids = torch.argmax(logits, dim=-1)
         hyp = processor.batch_decode(pred_ids)[0].lower().split()
         ref = ref_texts[uttid].lower().split()
         err = editdistance.eval(hyp, ref)
@@ -211,15 +214,17 @@ def compute_wer(
 # Main
 # ---------------------------------------------------------------------------
 
+
 def get_parser():
     p = argparse.ArgumentParser(description="Sidon evaluation")
-    p.add_argument("--restored_dir",  required=True)
-    p.add_argument("--ref_wav_scp",   required=True)
+    p.add_argument("--restored_dir", required=True)
+    p.add_argument("--ref_wav_scp", required=True)
     p.add_argument("--noisy_wav_scp", required=True)
-    p.add_argument("--output_dir",    required=True)
-    p.add_argument("--text",          default=None,
-                   help="Optional Kaldi text file for WER computation")
-    p.add_argument("--nj",            type=int, default=8)
+    p.add_argument("--output_dir", required=True)
+    p.add_argument(
+        "--text", default=None, help="Optional Kaldi text file for WER computation"
+    )
+    p.add_argument("--nj", type=int, default=8)
     return p
 
 
@@ -228,11 +233,13 @@ def main():
     os.makedirs(args.output_dir, exist_ok=True)
 
     # Collect restored WAV paths
-    restored_files = sorted([
-        os.path.join(args.restored_dir, f)
-        for f in os.listdir(args.restored_dir)
-        if f.endswith(".wav")
-    ])
+    restored_files = sorted(
+        [
+            os.path.join(args.restored_dir, f)
+            for f in os.listdir(args.restored_dir)
+            if f.endswith(".wav")
+        ]
+    )
     if not restored_files:
         logger.error("No WAV files found in %s", args.restored_dir)
         return

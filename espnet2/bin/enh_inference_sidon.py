@@ -23,8 +23,13 @@ def _load_feature_predictor(config_path, model_path, device):
     with open(config_path, encoding="utf-8") as stream:
         config = yaml.safe_load(stream) or {}
     ssl_conf = dict(config.get("ssl_encoder_conf") or {})
-    for key in ("target_layer", "use_flash_attention", "use_multilayer_loss",
-                "multilayer_mode", "use_bf16"):
+    for key in (
+        "target_layer",
+        "use_flash_attention",
+        "use_multilayer_loss",
+        "multilayer_mode",
+        "use_bf16",
+    ):
         ssl_conf.pop(key, None)
     task_args = Namespace(
         ssl_encoder="w2v_bert2",
@@ -39,7 +44,8 @@ def _load_feature_predictor(config_path, model_path, device):
     state = checkpoint.get("model", checkpoint)
     expected = model.state_dict()
     compatible = {
-        key: value for key, value in state.items()
+        key: value
+        for key, value in state.items()
         if key in expected and expected[key].shape == value.shape
     }
     skipped = sorted(set(state) - set(compatible))
@@ -55,7 +61,8 @@ def _load_feature_predictor(config_path, model_path, device):
     if skipped or missing:
         logger.warning(
             "Loaded compatible legacy tensors; skipped=%d, missing=%d",
-            len(skipped), len(missing),
+            len(skipped),
+            len(missing),
         )
     return model.eval().to(device)
 
@@ -64,8 +71,11 @@ def get_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument("--train_config", required=True)
     parser.add_argument("--model_file", required=True)
-    parser.add_argument("--sidon_vocoder", required=True,
-                        help="Official decoder_cpu.pt or decoder_cuda.pt")
+    parser.add_argument(
+        "--sidon_vocoder",
+        required=True,
+        help="Official decoder_cpu.pt or decoder_cuda.pt",
+    )
     parser.add_argument("--wav_scp", required=True)
     parser.add_argument("--output_dir", required=True)
     parser.add_argument("--device", default="cuda")
@@ -86,6 +96,7 @@ def _read_audio(value: str, sample_rate: int = 16000):
     waveform = waveform.mean(1)
     if source_rate != sample_rate:
         import torchaudio.functional as AF
+
         waveform = AF.resample(
             torch.from_numpy(waveform), source_rate, sample_rate
         ).numpy()
@@ -139,11 +150,10 @@ def main(cmd=None):
     args = get_parser().parse_args(cmd)
     logging.basicConfig(level=logging.INFO)
     device = args.device if torch.cuda.is_available() else "cpu"
-    model = _load_feature_predictor(
-        args.train_config, args.model_file, device
-    )
+    model = _load_feature_predictor(args.train_config, args.model_file, device)
     vocoder = torch.jit.load(args.sidon_vocoder, map_location=device).eval()
     from transformers import SeamlessM4TFeatureExtractor
+
     processor = SeamlessM4TFeatureExtractor.from_pretrained("facebook/w2v-bert-2.0")
 
     output = Path(args.output_dir)
@@ -155,8 +165,13 @@ def main(cmd=None):
             utterance, source = line.rstrip().split(maxsplit=1)
             waveform = _read_audio(source)
             restored = _restore(
-                waveform, model, vocoder, processor, device,
-                args.chunk_sec, args.overlap_sec,
+                waveform,
+                model,
+                vocoder,
+                processor,
+                device,
+                args.chunk_sec,
+                args.overlap_sec,
             )
             path = wav_dir / f"{utterance}.wav"
             sf.write(path, restored, 48000)

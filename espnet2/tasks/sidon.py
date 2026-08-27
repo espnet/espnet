@@ -149,7 +149,10 @@ class SidonCollateFn:
             clean = torch.as_tensor(values["speech_ref1"]).float()
             noisy = (
                 degrade_waveform(
-                    clean, self.input_sr, self.noise_files, self.rir_files,
+                    clean,
+                    self.input_sr,
+                    self.noise_files,
+                    self.rir_files,
                     self.degrade_prob,
                 )
                 if self.online_degradation

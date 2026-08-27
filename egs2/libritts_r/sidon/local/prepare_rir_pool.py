@@ -18,9 +18,7 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 import numpy as np
 import soundfile as sf
 
-logging.basicConfig(
-    format="%(asctime)s %(levelname)s %(message)s", level=logging.INFO
-)
+logging.basicConfig(format="%(asctime)s %(levelname)s %(message)s", level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 SR = 16000  # RIRs always at 16kHz; collate_fn resamples if needed
@@ -36,14 +34,15 @@ def _gen_one(idx: int, out_dir: str) -> str:
     rng = random.Random(idx)
     np.random.seed(idx % (2**31))
 
-    rt60     = rng.uniform(0.1, 2.0)
+    rt60 = rng.uniform(0.1, 2.0)
     room_dim = [rng.uniform(2.0, 20.0) for _ in range(3)]
 
     try:
         e_abs, max_order = pra.inverse_sabine(rt60, room_dim)
         e_abs = float(np.clip(e_abs, 1e-4, 0.9999))
-        room  = pra.ShoeBox(
-            room_dim, fs=SR,
+        room = pra.ShoeBox(
+            room_dim,
+            fs=SR,
             materials=pra.Material(e_abs),
             max_order=max_order,
         )
@@ -75,9 +74,9 @@ def _gen_one(idx: int, out_dir: str) -> str:
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--out_dir", required=True)
-    p.add_argument("--n_rirs",  type=int, default=50000)
-    p.add_argument("--nj",      type=int, default=16)
-    p.add_argument("--seed",    type=int, default=42)
+    p.add_argument("--n_rirs", type=int, default=50000)
+    p.add_argument("--nj", type=int, default=16)
+    p.add_argument("--seed", type=int, default=42)
     args = p.parse_args()
 
     random.seed(args.seed)
@@ -87,19 +86,24 @@ def main():
     existing = {f for f in os.listdir(args.out_dir) if f.endswith(".wav")}
     existing_count = len(existing)
     if existing_count >= args.n_rirs:
-        logger.info("Already have %d RIRs (≥ %d requested). Nothing to do.",
-                    existing_count, args.n_rirs)
+        logger.info(
+            "Already have %d RIRs (≥ %d requested). Nothing to do.",
+            existing_count,
+            args.n_rirs,
+        )
         return
 
-    to_generate = [i for i in range(args.n_rirs)
-                   if f"rir_{i:06d}.wav" not in existing]
-    logger.info("Generating %d RIRs with %d workers → %s",
-                len(to_generate), args.nj, args.out_dir)
+    to_generate = [i for i in range(args.n_rirs) if f"rir_{i:06d}.wav" not in existing]
+    logger.info(
+        "Generating %d RIRs with %d workers → %s",
+        len(to_generate),
+        args.nj,
+        args.out_dir,
+    )
 
     done = 0
     with ProcessPoolExecutor(max_workers=args.nj) as ex:
-        futures = {ex.submit(_gen_one, i, args.out_dir): i
-                   for i in to_generate}
+        futures = {ex.submit(_gen_one, i, args.out_dir): i for i in to_generate}
         for fut in as_completed(futures):
             try:
                 fut.result()

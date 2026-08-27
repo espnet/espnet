@@ -2,14 +2,15 @@
 """Resample wav.scp to target SR, writing actual wav files.
 Handles plain paths and pipe commands (sox ... |).
 """
+
 import argparse
 import os
 import subprocess
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 
-import soundfile as sf
 import numpy as np
+import soundfile as sf
 
 
 def _resample_one(utt, src, wav_dir, target_sr):
@@ -25,12 +26,14 @@ def _resample_one(utt, src, wav_dir, target_sr):
             # replace or add -r target_sr
             result = subprocess.run(
                 cmd + ["-r", str(target_sr), "-c", "1", str(out_path)],
-                capture_output=True, check=True
+                capture_output=True,
+                check=True,
             )
         else:
             subprocess.run(
                 ["sox", src, "-r", str(target_sr), "-c", "1", str(out_path)],
-                capture_output=True, check=True
+                capture_output=True,
+                check=True,
             )
         return utt, str(out_path), None
     except Exception as e:
@@ -39,11 +42,11 @@ def _resample_one(utt, src, wav_dir, target_sr):
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("--input_scp",  required=True)
+    p.add_argument("--input_scp", required=True)
     p.add_argument("--output_scp", required=True)
-    p.add_argument("--wav_dir",    required=True)
-    p.add_argument("--target_sr",  type=int, default=16000)
-    p.add_argument("--nj",         type=int, default=8)
+    p.add_argument("--wav_dir", required=True)
+    p.add_argument("--target_sr", type=int, default=16000)
+    p.add_argument("--nj", type=int, default=8)
     args = p.parse_args()
 
     Path(args.wav_dir).mkdir(parents=True, exist_ok=True)

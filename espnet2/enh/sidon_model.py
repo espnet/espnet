@@ -1,7 +1,7 @@
 """ESPnet implementation of the Sidon w2v-BERT 2.0 feature predictor."""
 
-from collections import OrderedDict
 import logging
+from collections import OrderedDict
 from typing import Dict, Tuple
 
 import torch
