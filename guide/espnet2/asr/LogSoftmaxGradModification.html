@@ -30,7 +30,7 @@
     </script>
     <link rel="icon" href="/espnet/assets/image/espnet.png"><title>espnet2.asr.transducer.rnnt_multi_blank.utils.cpu_utils.cpu_rnnt.LogSoftmaxGradModification</title><meta name="description" content="A documentation for ESPnet">
     <link rel="preload" href="/espnet/assets/style-CiXYLHjk.css" as="style"><link rel="stylesheet" href="/espnet/assets/style-CiXYLHjk.css">
-    <link rel="modulepreload" href="/espnet/assets/app-Df4PNfBX.js">
+    <link rel="modulepreload" href="/espnet/assets/app-xIOW1hbL.js">
     
   </head>
   <body>
@@ -44,6 +44,6 @@
 <span class="line"><span>@staticmethod</span></span>
 <span class="line"><span>def setup_context(ctx: Any, inputs: Tuple[Any, ...], output: Any) -&gt; None:</span></span>
 <span class="line"><span>    pass</span></span></code></pre><div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0;"><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div></div></div><ul><li>The forward no longer accepts a ctx argument.</li><li>Instead, you must also override the <code>torch.autograd.Function.setup_context()</code> staticmethod to handle setting up the <code>ctx</code> object. <code>output</code> is the output of the forward, <code>inputs</code> are a Tuple of inputs to the forward.</li><li>See extending-autograd for more details</li></ul><p>The context can be used to store arbitrary data that can be then retrieved during the backward pass. Tensors should not be stored directly on ctx (though this is not currently enforced for backward compatibility). Instead, tensors should be saved either with <code>ctx.save_for_backward()</code> if they are intended to be used in <code>backward</code> (equivalently, <code>vjp</code>) or <code>ctx.save_for_forward()</code> if they are intended to be used for in <code>jvp</code>.</p></div><!----><footer class="vp-page-meta"><!----><div class="vp-meta-item git-info"><!----><!----></div></footer><nav class="vp-page-nav"><a class="route-link auto-link prev" href="/espnet/guide/espnet2/asr/log_sum_exp.html" aria-label="espnet2.asr.transducer.rnnt_multi_blank.utils.cpu_utils.cpu_rnnt.log_sum_exp"><div class="hint"><span class="arrow start"></span>Prev</div><div class="link"><!---->espnet2.asr.transducer.rnnt_multi_blank.utils.cpu_utils.cpu_rnnt.log_sum_exp</div></a><a class="route-link auto-link next" href="/espnet/guide/espnet2/asr/compute_alphas_kernel.html" aria-label="espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt_kernel.compute_alphas_kernel"><div class="hint">Next<span class="arrow end"></span></div><div class="link">espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt_kernel.compute_alphas_kernel<!----></div></a></nav><!----><!----><!--]--></main><!--]--><footer class="vp-footer-wrapper"><div class="vp-footer">Copyright © 2024 ESPnet Community. All rights reserved.</div><!----></footer></div><!--]--><!--]--><!--[--><!----><!----><!--]--><!--]--></div>
-    <script type="module" src="/espnet/assets/app-Df4PNfBX.js" defer></script>
+    <script type="module" src="/espnet/assets/app-xIOW1hbL.js" defer></script>
   </body>
 </html>
