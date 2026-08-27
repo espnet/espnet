@@ -1,11 +1,29 @@
+##########################################################
+#          LIBRITTS VITS METRIC SCORING SETTING          #
+##########################################################
+# Merged over egs3/TEMPLATE/tts/conf/metrics.yaml, so only the values this
+# recipe changes are listed here.
+#
+# Quick usage:
+#   python run.py --stages measure \
+#       --training_config conf/training.yaml \
+#       --inference_config conf/inference.yaml \
+#       --metrics_config conf/metrics.yaml
+
+##########################################################
+#                   TEST SETS TO SCORE                   #
+##########################################################
 dataset:
   test:
     - name: valid
     - name: test
 
+##########################################################
+#                VERSA METRIC DEFINITION                 #
+##########################################################
 metrics:
   - metric:
-      _target_: src.metrics.versa.VersaMetric
+      _target_: espnet3.components.metrics.versa.VersaMetric
       score_config:
         - name: pseudo_mos
           predictor_types: [utmos, dnsmos]

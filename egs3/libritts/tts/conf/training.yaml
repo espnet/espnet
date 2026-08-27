@@ -1,18 +1,23 @@
+##########################################################
+#             LIBRITTS VITS TRAINING SETTING             #
+##########################################################
+# Merged over egs3/TEMPLATE/tts/conf/training.yaml, so only the values this
+# recipe changes are listed here. See the template for the shared defaults
+# (num_device/num_nodes, recipe_dir, data_dir, exp_dir, stats_dir,
+# inference_dir, parallel, trainer.accelerator/devices/num_nodes/strategy).
+
 exp_tag: train_vits_libritts
 task: espnet2.tasks.gan_tts.GANTTSTask
 
-num_device: 1
-num_nodes: 1
-
-recipe_dir: .
-data_dir: ${recipe_dir}/data
-exp_dir: ${recipe_dir}/exp/${exp_tag}
-stats_dir: ${exp_dir}/stats
-inference_dir: ${exp_dir}/inference
-
+##########################################################
+#                DATA PREPARATION SETTING                #
+##########################################################
 create_dataset:
   recipe_dir: ${recipe_dir}
 
+##########################################################
+#                   DATASET DEFINITION                   #
+##########################################################
 dataset:
   _target_: espnet3.components.data.data_organizer.DataOrganizer
   recipe_dir: ${recipe_dir}
@@ -36,6 +41,9 @@ dataset:
       - tacotron
     g2p_type: espeak_ng_english_us_vits
 
+##########################################################
+#               SPEAKER EMBEDDING SETTING                #
+##########################################################
 xvector:
   pretrained_model: speechbrain/spkrec-ecapa-voxceleb
   toolkit: speechbrain
@@ -53,6 +61,9 @@ xvector:
     - valid
     - test
 
+##########################################################
+#              UTTERANCE FILTERING SETTING               #
+##########################################################
 remove_long_short:
   min_wav_duration: 1.0
   max_wav_duration: 20.0
@@ -63,6 +74,9 @@ remove_long_short:
     test: ${data_dir}/manifest/test.tsv
   save_path: ${data_dir}/manifests_filtered
 
+##########################################################
+#                   TOKEN LIST SETTING                   #
+##########################################################
 create_token_list:
   manifest_path: ${data_dir}/manifests_filtered/train.tsv
   save_path: ${data_dir}/tokens
@@ -80,10 +94,9 @@ create_token_list:
   vocabulary_size: -1
   cutoff: 1
 
-parallel:
-  env: local
-  n_workers: 1
-
+##########################################################
+#                     MODEL SETTING                      #
+##########################################################
 model:
   token_list: ${data_dir}/tokens/phn_tokens.txt
   token_type: phn
@@ -210,6 +223,9 @@ model:
     plot_pred_mos: false
     mos_pred_tool: utmos
 
+##########################################################
+#             OPTIMIZER & SCHEDULER SETTING              #
+##########################################################
 optimizers:
   generator:
     optimizer:
@@ -246,15 +262,17 @@ schedulers:
       gamma: 0.999875
     interval: epoch
 
-optimizer: null
-scheduler: null
-scheduler_interval: null
-
+##########################################################
+#              CHECKPOINT SELECTION SETTING              #
+##########################################################
 best_model_criterion:
   - - valid/generator/loss
     - 1
     - min
 
+##########################################################
+#                   DATALOADER SETTING                   #
+##########################################################
 dataloader:
   collate_fn:
     _target_: espnet2.train.collate_fn.CommonCollateFn
@@ -292,25 +310,20 @@ dataloader:
           - ${stats_dir}/valid/text_shape
         batch_bins: ${dataloader.train.iter_factory.batches.batch_bins}
 
+##########################################################
+#                    TRAINER SETTING                     #
+##########################################################
 trainer:
-  accelerator: auto
-  devices: ${num_device}
-  num_nodes: ${num_nodes}
   accumulate_grad_batches: 1
   check_val_every_n_epoch: 1
   log_every_n_steps: 50
   max_epochs: 1000
-  strategy: auto
   gan:
     generator_first: false
     skip_discriminator_prob: 0.0
   logger:
-    - _target_: lightning.pytorch.loggers.WandbLogger
-      project: espnet3-libritts-vits
-      name: ${exp_tag}
-      save_dir: ${exp_dir}
-      log_model: false
-      id: ${exp_tag}
-      resume: allow
+    - _target_: lightning.pytorch.loggers.TensorBoardLogger
+      save_dir: ${exp_dir}/tensorboard
+      name: tb_logger
 
 fit: {}

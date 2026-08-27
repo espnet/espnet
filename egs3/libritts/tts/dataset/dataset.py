@@ -85,6 +85,29 @@ class LibriTTSDataset(TorchDataset):
       - ``text``  : raw transcript string (tokenized later by ``CommonPreprocessor``)
       - ``speech``: float32 waveform
       - ``spembs``: float32 speaker embedding (x-vector) loaded from a ``.pt`` file
+
+    Examples:
+        Declared from ``conf/training.yaml`` through ``DataOrganizer``:
+        ```yaml
+        dataset:
+          train:
+            - data_src_args:
+                split: train
+                manifest_path: ${data_dir}/manifests_filtered/train.tsv
+                xvector_dir: ${xvector.save_path}/${xvector.spk_embed_tag}_train
+        ```
+
+        Or directly, e.g. to inspect a split without loading audio:
+        ```python
+        ds = LibriTTSDataset(
+            split="valid",
+            recipe_dir="egs3/libritts/tts",
+            load_speech=False,
+            load_xvector=False,
+        )
+        len(ds)         # -> number of manifest rows
+        ds[0]["text"]   # -> 'It is a ...'
+        ```
     """
 
     def __init__(
@@ -97,6 +120,40 @@ class LibriTTSDataset(TorchDataset):
         xvector_dir: str | Path | None = None,
         inference: bool = False,
     ) -> None:
+        """Load one split's manifest and record what each sample should carry.
+
+        Args:
+            split: Split name (``train`` / ``valid`` / ``test``). Selects the
+                default manifest from ``dataset/config.yaml`` when
+                *manifest_path* is not given.
+            recipe_dir: Recipe root. Defaults to this file's recipe directory.
+            manifest_path: Explicit manifest to read, absolute or relative to
+                *recipe_dir*. Takes precedence over *split*; the recipe uses
+                it to point at the ``remove_long_short`` filtered manifests.
+            load_speech: Read the waveform into ``speech``. Turn off for
+                text-only passes such as token-list creation.
+            load_xvector: Load the per-utterance x-vector into ``spembs``.
+            xvector_dir: Directory of ``<utt_id>.pt`` embeddings written by
+                the ``compute_xvectors`` stage. Required when *load_xvector*.
+            inference: Also return ``utt_id``, ``wav_path`` and ``raw_text``,
+                which the infer and measure stages need.
+
+        Raises:
+            ValueError: If *load_xvector* is set without *xvector_dir*, or
+                *split* is unknown and no *manifest_path* was given.
+            FileNotFoundError: If *xvector_dir* or the manifest is missing.
+            RuntimeError: If the dataset has not been built yet.
+
+        Examples:
+            ```python
+            LibriTTSDataset(
+                split="test",
+                recipe_dir="egs3/libritts/tts",
+                load_speech=False,
+                load_xvector=False,
+            )
+            ```
+        """
         self.split = split
         self.load_speech = load_speech
         self.load_xvector = load_xvector

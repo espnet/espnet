@@ -19,6 +19,15 @@ class XVectorRunner(BaseRunner):
     Each utterance is saved as ``output_dir/{utt_id}.pt`` immediately after
     extraction: if a target ``.pt`` already exists, the utterance is skipped
     without re-loading audio.
+
+    Examples:
+        Driven by the ``compute_xvectors`` stage through
+        :class:`~espnet3.systems.tts.xvector_provider.XVectorProvider`:
+        ```python
+        # `env` already carries output_dir, the model and the manifest.
+        env = XVectorProvider(training_config, params=params).build_env_local()
+        XVectorRunner.forward(range(10), **env)
+        ```
     """
 
     @staticmethod
@@ -49,6 +58,16 @@ class XVectorRunner(BaseRunner):
         Returns:
             A status dict for an int index, or a list of status dicts for an
             iterable. Each entry is ``{"utt_id": str, "status": "ok"|"skipped"}``.
+
+        Examples:
+            ```python
+            XVectorRunner.forward(0, **env)
+            # -> {'utt_id': '19_198_000000_000000', 'status': 'ok'}
+
+            # Re-running is a no-op for utterances already written:
+            XVectorRunner.forward(0, **env)
+            # -> {'utt_id': '19_198_000000_000000', 'status': 'skipped'}
+            ```
         """
         if isinstance(idx, int):
             return XVectorRunner._process_one(

@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import argparse
-import logging
 from pathlib import Path
 from typing import List, Sequence
 
@@ -30,13 +29,37 @@ DEFAULT_STAGES: List[str] = [
     "train",
     "infer",
     "measure",
+    "pack_model",
+    "upload_model",
+    "pack_demo",
+    "upload_demo",
 ]
 
 
 def build_parser(
     stages: Sequence[str],
 ) -> argparse.ArgumentParser:
-    """Build base ArgumentParser and let caller extend it."""
+    """Build the base ArgumentParser and let the caller extend it.
+
+    Args:
+        stages: Stage names accepted by ``--stages``. ``"all"`` is added
+            automatically as an extra choice.
+
+    Returns:
+        argparse.ArgumentParser: Parser with ``--stages``, the five
+        per-stage config options (``--training_config``,
+        ``--inference_config``, ``--metrics_config``,
+        ``--publication_config``, ``--demo_config``), ``--dry_run`` and
+        ``--write_requirements``. Recipes may add their own arguments to it
+        before parsing.
+
+    Examples:
+        ```python
+        parser = build_parser(stages=DEFAULT_STAGES)
+        parser.add_argument("--my_recipe_flag", default=None)
+        args, _ = parse_cli_and_stage_args(parser, stages=DEFAULT_STAGES)
+        ```
+    """
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
@@ -68,6 +91,18 @@ def build_parser(
         help="Hydra config for measure stage.",
     )
     parser.add_argument(
+        "--publication_config",
+        default=None,
+        type=Path,
+        help="Hydra config for pack_model/upload_model stages.",
+    )
+    parser.add_argument(
+        "--demo_config",
+        default=None,
+        type=Path,
+        help="Hydra config for pack_demo/upload_demo stages.",
+    )
+    parser.add_argument(
         "--dry_run",
         action="store_true",
         help="Print what would be executed without actually running stages.",
@@ -85,6 +120,35 @@ def main(
     system_cls,
     stages: Sequence[str] = DEFAULT_STAGES,
 ) -> None:
+    """Load the stage configs, build the system, and run the chosen stages.
+
+    Each ``--*_config`` is merged over the matching default in this package's
+    ``conf/`` directory, so a recipe config only needs to carry the values it
+    changes.
+
+    Args:
+        args: Parsed CLI namespace from :func:`build_parser`.
+        system_cls: System class to instantiate, normally
+            ``espnet3.systems.tts.system.TTSSystem`` or a recipe subclass
+            that adds its own stages.
+        stages: Full ordered stage list this runner supports; used to resolve
+            ``--stages all`` and to order the requested stages.
+
+    Returns:
+        None. Each stage writes its own outputs under the experiment
+        directory.
+
+    Raises:
+        ValueError: If a requested stage has no config, e.g. ``--stages
+            train`` without ``--training_config``.
+
+    Examples:
+        ```python
+        parser = build_parser(stages=DEFAULT_STAGES)
+        args, _ = parse_cli_and_stage_args(parser, stages=DEFAULT_STAGES)
+        main(args=args, system_cls=TTSSystem, stages=DEFAULT_STAGES)
+        ```
+    """
     stages_to_run = resolve_stages(args.stages, stages)
 
     # -----------------------------------------
@@ -111,12 +175,26 @@ def main(
         default_package=__package__,
         resolve=False,
     )
+    publication_config = load_and_merge_config(
+        args.publication_config,
+        config_name="publication.yaml",
+        default_package=__package__,
+        resolve=False,
+    )
+    demo_config = load_and_merge_config(
+        args.demo_config,
+        config_name="demo.yaml",
+        default_package=__package__,
+        resolve=False,
+    )
+
     logger = configure_logging()
     apply_training_experiment_context(
         training_config=training_config,
         inference_config=inference_config,
         metrics_config=metrics_config,
-        publication_config=None,
+        publication_config=publication_config,
+        demo_config=demo_config,
         log=logger,
     )
     validate_experiment_context(
@@ -125,7 +203,13 @@ def main(
         metrics_config=metrics_config,
         stages_to_run=stages_to_run,
     )
-    resolve_loaded_configs(training_config, inference_config, metrics_config)
+    resolve_loaded_configs(
+        training_config,
+        inference_config,
+        metrics_config,
+        publication_config,
+        demo_config,
+    )
 
     # -----------------------------------------
     # Instantiate system
@@ -134,6 +218,8 @@ def main(
         training_config=training_config,
         inference_config=inference_config,
         metrics_config=metrics_config,
+        publication_config=publication_config,
+        demo_config=demo_config,
     )
 
     # -----------------------------------------
@@ -152,16 +238,32 @@ def main(
     required_configs = {}
     required_configs.update({stage: training_config for stage in pretrain_stages})
     required_configs.update({"infer": inference_config, "measure": metrics_config})
+    # `pack_model` renders the training config into the bundled README, so it
+    # needs both configs; the remaining publication stages read only their own.
+    required_configs.update(
+        {
+            "pack_model": (training_config, publication_config),
+            "upload_model": publication_config,
+            "pack_demo": demo_config,
+            "upload_demo": demo_config,
+        }
+    )
     missing = [
         s
         for s in stages_to_run
-        if s in required_configs and required_configs[s] is None
+        if s in required_configs
+        and (
+            any(cfg is None for cfg in required_configs[s])
+            if isinstance(required_configs[s], tuple)
+            else required_configs[s] is None
+        )
     ]
     if missing:
         missing_str = ", ".join(missing)
         raise ValueError(
             f"Config not provided for stage(s): {missing_str}. "
-            "Use --training_config/--inference_config/--metrics_config."
+            "Use --training_config/--inference_config/--metrics_config/"
+            "--publication_config/--demo_config."
         )
     run_stages(
         system=system,
@@ -175,9 +277,9 @@ if __name__ == "__main__":
     parser = build_parser(stages=DEFAULT_STAGES)
     args, _ = parse_cli_and_stage_args(parser, stages=DEFAULT_STAGES)
 
-    # Here you should replace `TTSSystem` with a recipe-specific subclass if
-    # your recipe adds extra stages (e.g. x-vector computation, token-list
-    # creation).
+    # `TTSSystem` already provides the shared TTS stages (x-vector
+    # computation, duration filtering, token-list creation). Replace it with a
+    # recipe-specific subclass only if your recipe adds a stage of its own.
     from espnet3.systems.tts.system import TTSSystem
 
     main(

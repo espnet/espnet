@@ -21,6 +21,21 @@ class XVectorProvider(EnvironmentProvider):
         - espnet: Uses espnet2's Speech2Embedding model
         - speechbrain: Uses SpeechBrain's pre-trained models
         - rawnet: Uses RawNet3 model
+
+    Examples:
+        Paired with :class:`~espnet3.systems.tts.xvector_runner.XVectorRunner` by the
+        ``compute_xvectors`` stage:
+        ```python
+        provider = XVectorProvider(
+            training_config,
+            params={
+                "manifest_path": "data/manifest/train.tsv",
+                "output_dir": "data/x_vectors/train",
+            },
+        )
+        env = provider.build_env_local()
+        XVectorRunner.forward(0, **env)
+        ```
     """
 
     def __init__(self, config: DictConfig, params: Dict[str, Any] | None = None):
@@ -30,13 +45,28 @@ class XVectorProvider(EnvironmentProvider):
             config: Configuration with xvector settings.
             params: Extra parameters (e.g. ``utterances``, ``speaker_to_utterances``)
                 forwarded from the driver to workers via the async spec.
+
+        Returns:
+            None
+
+        Examples:
+            ```python
+            XVectorProvider(
+                training_config,
+                params={
+                    "manifest_path": "data/manifest/train.tsv",
+                    "output_dir": "data/x_vectors/train",
+                },
+            )
+            ```
         """
         super().__init__(config)
         self.params = params or {}
 
     def build_env_local(self) -> Dict[str, Any]:
-        """Build environment once on driver for local execution.
-        Use speechbrain's pre-trained ECAPA-TDNN model by default
+        """Build the environment once on the driver, for local execution.
+
+        Uses SpeechBrain's pre-trained ECAPA-TDNN model by default.
 
         Returns:
             A dictionary containing the loaded model and manifest data
@@ -45,6 +75,14 @@ class XVectorProvider(EnvironmentProvider):
         Raises:
             RuntimeError: If required xvector configuration is missing or
                 no utterances are available in params.
+
+        Examples:
+            ```python
+            env = provider.build_env_local()
+            sorted(env)
+            # -> ['config', 'device', 'model', 'output_dir',
+            #     'speaker_to_utterances', 'toolkit', 'utterances']
+            ```
         """
         xvec_cfg = self.config.get("xvector", None)
         if xvec_cfg is None:
@@ -96,6 +134,17 @@ class XVectorProvider(EnvironmentProvider):
         Returns:
             A zero-arg callable executed once per worker that returns the
             environment dictionary consumed by ``XVectorRunner.forward``.
+
+        Notes:
+            Unlike :meth:`build_env_local`, the model is loaded inside the
+            worker, so the (unpicklable) model never crosses a process
+            boundary.
+
+        Examples:
+            ```python
+            setup = provider.build_worker_setup_fn()
+            env = setup()  # runs once per worker
+            ```
         """
         config = self.config
         params = self.params
@@ -153,9 +202,9 @@ class XVectorProvider(EnvironmentProvider):
 
     @staticmethod
     def _load_manifest(manifest_path):
-        """Parse a TSV manifest into utterances + speaker mapping.
+        r"""Parse a TSV manifest into utterances + speaker mapping.
 
-        Each line is expected to be ``utt_id\\twav_path\\ttext\\tspeaker_id``.
+        Each line is expected to be ``utt_id\twav_path\ttext\tspeaker_id``.
         Blank lines are skipped.
         """
         utterances = []

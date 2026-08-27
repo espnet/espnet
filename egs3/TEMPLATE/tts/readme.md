@@ -24,4 +24,25 @@ python run.py --stages infer --inference_config conf/inference.yaml
 
 # 5) Score
 python run.py --stages measure --metrics_config conf/metrics.yaml
+
+# 6) Pack and upload the model
+python run.py --stages pack_model \
+    --training_config conf/training.yaml \
+    --publication_config conf/publication.yaml
+python run.py --stages upload_model \
+    --training_config conf/training.yaml \
+    --publication_config conf/publication.yaml
+
+# 7) Pack and upload the Gradio demo
+python run.py --stages pack_demo   --demo_config conf/demo.yaml
+python run.py --stages upload_demo --demo_config conf/demo.yaml
 ```
+
+## Demo
+
+The default `src/app.py` reads its input/output components from the packed
+`demo.yaml`, so a single-speaker TTS model needs no code: text in, audio out.
+
+A model that needs an input no built-in UI asset can produce - for example the
+speaker embedding of a multi-speaker model - should ship its own `src/app.py`
+and point `ui.app_script` at it. See `egs3/libritts/tts/src/app.py`.

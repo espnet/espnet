@@ -36,4 +36,32 @@ python run.py --stages measure \
     --training_config conf/training.yaml \
     --inference_config conf/inference.yaml \
     --metrics_config conf/metrics.yaml
+
+# 9) Bundle the trained model for release (packs the phoneme token list too)
+python run.py --stages pack_model \
+    --training_config conf/training.yaml \
+    --publication_config conf/publication.yaml
+
+# 10) Upload it to the Hugging Face Hub (run `hf auth login` first)
+python run.py --stages upload_model \
+    --training_config conf/training.yaml \
+    --publication_config conf/publication.yaml
+
+# 11) Pack the Gradio demo, then upload it as a Space
+python run.py --stages pack_demo   --demo_config conf/demo.yaml
+python run.py --stages upload_demo --demo_config conf/demo.yaml
 ```
+
+## Demo
+
+`pack_demo` builds a Gradio app from `src/app.py`. Because this recipe trains a
+multi-speaker VITS, the demo takes **text plus a reference audio clip**: it runs
+the same SpeechBrain ECAPA extractor as the `compute_xvectors` stage to turn
+that clip into the `spembs` the model needs, then synthesizes the text in that
+voice.
+
+`src/app.py` defaults to the same ECAPA model the `compute_xvectors` stage
+uses, so `conf/demo.yaml` carries no x-vector settings. If you retrain against
+a different embedding model, override `xvector.pretrained_model` in
+`conf/demo.yaml` to match, or the embedding the demo builds will not match the
+space the model was trained in.

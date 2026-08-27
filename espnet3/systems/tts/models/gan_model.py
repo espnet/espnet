@@ -43,7 +43,41 @@ def _patch_gan_tts_collect_feats() -> None:
 
 
 class GANTTSLightningModule(ESPnetLightningModule):
-    """Adapt ESPnet2 GAN-TTS model outputs to ESPnet3's named optimizer path."""
+    """Adapt ESPnet2 GAN-TTS model outputs to ESPnet3's named optimizer path.
+
+    A GAN-TTS model (VITS, JETS, ...) returns one ``dict`` per turn carrying
+    ``loss``/``stats``/``weight``/``optim_idx`` instead of the
+    ``(loss, stats, weight)`` tuple the base module expects. This subclass
+    runs both turns per batch, maps ``optim_idx`` 0/1 onto the named
+    ``generator``/``discriminator`` optimizers, and drives the updates by
+    hand, so ``config.optimizers`` must define exactly those two names.
+
+    Turn order and two GAN-only knobs are read from ``config.trainer.gan``:
+
+    | Key                       | Default | Meaning                        |
+    |---------------------------|---------|--------------------------------|
+    | ``generator_first``       | False   | Run G before D within a batch. |
+    | ``skip_discriminator_prob`` | 0.0   | Chance of skipping the D turn. |
+    | ``no_forward_run``        | False   | Skip the batch entirely.       |
+
+    Examples:
+        Built for you by
+        :func:`espnet3.systems.tts.gan_trainer.build_gan_trainer`; the config
+        side looks like:
+        ```yaml
+        optimizers:
+          generator:
+            optimizer: {_target_: torch.optim.AdamW, lr: 2.0e-4}
+            params: generator
+          discriminator:
+            optimizer: {_target_: torch.optim.AdamW, lr: 2.0e-4}
+            params: discriminator
+        trainer:
+          gan:
+            generator_first: false
+            skip_discriminator_prob: 0.0
+        ```
+    """
 
     _GAN_STEP_NAMES = {
         0: "generator",
@@ -51,15 +85,50 @@ class GANTTSLightningModule(ESPnetLightningModule):
     }
 
     def __init__(self, model, config):
-        """Initialize the module and disable Lightning's automatic optimization."""
+        """Initialize the module and disable Lightning's automatic optimization.
+
+        Args:
+            model: The GAN-TTS model. A model that is not an
+                ``AbsGANESPnetModel`` is still accepted and simply falls back
+                to the base single-loss step.
+            config: Training config. ``config.optimizers`` names the two
+                optimizers; ``config.trainer.gan`` holds the GAN-only knobs.
+
+        Returns:
+            None
+
+        Notes:
+            ``automatic_optimization`` is forced off unconditionally: this
+            module calls ``manual_backward``/``optimizer.step()`` itself, and
+            leaving Lightning in charge would step the optimizers twice.
+
+        Examples:
+            ```python
+            module = GANTTSLightningModule(model, training_config)
+            module.automatic_optimization  # -> False
+            ```
+        """
         super().__init__(model, config)
         self.automatic_optimization = False
 
     def collect_stats(self):
-        """Apply the GAN-TTS collect_feats patch.
+        """Apply the GAN-TTS ``collect_feats`` patch, then collect stats.
 
-        This patch make the collect_stats method also return
-        the input speech/text features, which are needed for dataloader sampling.
+        Returns:
+            Whatever :meth:`ESPnetLightningModule.collect_stats` returns.
+
+        Notes:
+            espnet3 only computes shapes for the keys ``collect_feats``
+            returns, and GAN-TTS returns ``feats`` alone. The patch adds the
+            input ``speech``/``text`` back, so ``speech_shape`` and
+            ``text_shape`` exist for the ``numel`` batch sampler to read.
+            It is applied once per process and is idempotent.
+
+        Examples:
+            ```python
+            module.collect_stats()
+            # -> writes <stats_dir>/{train,valid}/{speech,text}_shape
+            ```
         """
         _patch_gan_tts_collect_feats()
         return super().collect_stats()

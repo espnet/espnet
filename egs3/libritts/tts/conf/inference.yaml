@@ -1,10 +1,13 @@
-recipe_dir: .
+##########################################################
+#            LIBRITTS VITS INFERENCE SETTING             #
+##########################################################
+# Merged over egs3/TEMPLATE/tts/conf/inference.yaml, so only the values this
+# recipe changes are listed here. See the template for the shared defaults
+# (recipe_dir, exp_dir, data_dir, inference_dir, parallel, provider, runner).
 
-exp_tag:
-exp_dir: ${recipe_dir}/exp/${exp_tag}
-data_dir: ${recipe_dir}/data
-inference_dir: ${exp_dir}/${self_name:}
-
+##########################################################
+#                   DATASET DEFINITION                   #
+##########################################################
 dataset:
   _target_: espnet3.components.data.data_organizer.DataOrganizer
   recipe_dir: ${recipe_dir}
@@ -33,28 +36,27 @@ dataset:
       - tacotron
     g2p_type: espeak_ng_english_us_vits
 
+##########################################################
+#               SPEAKER EMBEDDING SETTING                #
+##########################################################
 xvector:
   save_path: ${data_dir}/x_vectors
   spk_embed_tag: spkrec-ecapa-voxceleb
 
-parallel:
-  env: local
-  n_workers: 1
-
+##########################################################
+#                     MODEL SETTING                      #
+##########################################################
 model:
   _target_: espnet2.bin.tts_inference.Text2Speech
   train_config: ${exp_dir}/config.yaml
   model_file: ${exp_dir}/last.ckpt
 
+##########################################################
+#                 INPUT / OUTPUT SETTING                 #
+##########################################################
 input_key: [text, spembs]
-batch_size: null
 output_fn: src.inference.build_output
 output_artifacts:
   wav:
     type: wav
     sample_rate: 22050
-
-provider:
-  _target_: espnet3.systems.base.inference_provider.InferenceProvider
-runner:
-  _target_: espnet3.systems.base.inference_runner.InferenceRunner

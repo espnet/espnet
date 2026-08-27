@@ -1,0 +1,50 @@
+##########################################################
+#                      DEMO SETTING                      #
+##########################################################
+# Quick usage:
+#   python run.py --stages pack_demo   --demo_config conf/demo.yaml
+#   python run.py --stages upload_demo --demo_config conf/demo.yaml
+#
+# Assumptions:
+# - `pack_model` has already created the model pack referenced by
+#   `model.dir_or_tag`, or that field points to a Hugging Face model repo.
+# - `ui.app_script` points to the Gradio launcher copied into the packed demo.
+#
+# Merged over egs3/TEMPLATE/tts/conf/demo.yaml, which already wires the
+# text-in / audio-out UI, the `src/app.py` launcher and the default
+# `exp/${exp_tag}/model_pack` model reference.
+
+##########################################################
+#                    MODEL REFERENCE                     #
+##########################################################
+# `trust_user_code` is required here: the packed bundle carries this recipe's
+# `src` package, which conf/inference.yaml imports as `output_fn`.
+model:
+  trust_user_code: true
+
+##########################################################
+#                     UI DEFINITION                      #
+##########################################################
+# This recipe trains a multi-speaker VITS, so the model needs a speaker
+# embedding on top of the text. The recipe's `src/app.py` derives it from a
+# reference clip; the extra input is declared here so its label stays
+# configurable.
+ui:
+  inputs:
+    - key: text
+      type: text
+      label: "Text to synthesize"
+    - key: spembs
+      type: audio
+      label: "Reference audio (voice to clone)"
+
+##########################################################
+#                    PACKING SETTING                     #
+##########################################################
+# The demo extracts a speaker embedding, so the Space needs the x-vector
+# toolchain on top of the template's espnet requirement.
+pack:
+  requirements:
+    - git+https://github.com/espnet/espnet.git
+    - speechbrain
+    - librosa

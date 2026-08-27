@@ -1,0 +1,24 @@
+##########################################################
+#           LIBRITTS VITS PUBLICATION SETTING            #
+##########################################################
+# Merged over egs3/TEMPLATE/tts/conf/publication.yaml, so only the values this
+# recipe changes are listed here.
+#
+# Quick usage:
+#   python run.py --stages pack_model \
+#       --training_config conf/training.yaml \
+#       --publication_config conf/publication.yaml
+#   python run.py --stages upload_model \
+#       --training_config conf/training.yaml \
+#       --publication_config conf/publication.yaml
+
+pack_model:
+  include:
+    # Recipe code: conf/inference.yaml points `output_fn` at src.inference.
+    - ${recipe_dir}/src
+    # Recipe-local dataset modules, for publication smoke checks.
+    - ${recipe_dir}/dataset
+    # The phoneme token list the packed inference config expects. It lives
+    # under `${data_dir}`, outside the `${exp_dir}` bulk copy, so it has to be
+    # named explicitly or the published model cannot be loaded.
+    - ${data_dir}/tokens/phn_tokens.txt

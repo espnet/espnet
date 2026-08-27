@@ -631,3 +631,224 @@ def test_stage_log_mapping_extends_tts_stages(tmp_path):
     assert system.stage_log_dirs["compute_xvectors"] == Path(tmp_path / "xvectors")
     assert system.stage_log_dirs["remove_long_short"] == Path(tmp_path / "filtered")
     assert system.stage_log_dirs["create_token_list"] == Path(tmp_path / "tokens")
+
+
+# ---------------------------------------------------------------
+# compute_xvectors
+# ---------------------------------------------------------------
+#
+# | Test Name                                   | Description                  |
+# |---------------------------------------------|------------------------------|
+# | test_compute_xvectors_runs_each_split       | One provider/runner pair per |
+# |                          | split, wired with the configured model and dirs. |
+# | test_compute_xvectors_accepts_single_split  | splits: "train" is treated   |
+# |                                             | as ["train"].                |
+# | test_compute_xvectors_default_manifest      | Without manifest_paths the   |
+# |                          | stage reads data/manifest/{split}.tsv.           |
+# | test_compute_xvectors_requires_config       | Missing xvector/save_path    |
+# |                                             | raise RuntimeError.          |
+# | test_compute_xvectors_missing_manifest      | A nonexistent manifest       |
+# |                                             | raises RuntimeError.         |
+# | test_compute_xvectors_rejects_empty_manifest | An empty manifest raises.   |
+# | test_compute_xvectors_async_returns_early   | An async run returning None  |
+# |                                             | is reported, not unpacked.   |
+# | test_compute_xvectors_sets_parallel         | A parallel config section is |
+# |                                             | forwarded to set_parallel.   |
+# | test_compute_xvectors_rejects_stage_args    | Stage arguments raise.       |
+
+
+class _RecordingRunner:
+    """Stand-in for XVectorRunner that records how it was driven."""
+
+    calls = []
+    results = None
+
+    def __init__(self, provider=None, batch_size=None, async_mode=False):
+        self.provider = provider
+        self.batch_size = batch_size
+        self.async_mode = async_mode
+
+    def __call__(self, indices):
+        type(self).calls.append(
+            {
+                "indices": list(indices),
+                "batch_size": self.batch_size,
+                "async_mode": self.async_mode,
+                "params": dict(self.provider.params),
+            }
+        )
+        if type(self).results is None:
+            return [{"utt_id": f"u{i}", "status": "ok"} for i in indices]
+        return type(self).results
+
+
+def _xvector_manifest(tmp_path, name, n=2):
+    path = tmp_path / name
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        "".join(f"u{i}\t/x{i}.wav\thello\t0\n" for i in range(n)), encoding="utf-8"
+    )
+    return path
+
+
+def _xvector_system(tmp_path, monkeypatch, xvector=None, manifests=("train",)):
+    _RecordingRunner.calls = []
+    _RecordingRunner.results = None
+    monkeypatch.setattr(sysmod, "XVectorRunner", _RecordingRunner)
+
+    cfg = {
+        "save_path": str(tmp_path / "x_vectors"),
+        "splits": list(manifests),
+        "manifest_paths": {
+            split: str(_xvector_manifest(tmp_path, f"{split}.tsv"))
+            for split in manifests
+        },
+    }
+    if xvector is not None:
+        cfg.update(xvector)
+    config = OmegaConf.create({"exp_dir": str(tmp_path / "exp"), "xvector": cfg})
+    return TTSSystem(training_config=config)
+
+
+def test_compute_xvectors_runs_each_split(tmp_path, monkeypatch):
+    system = _xvector_system(
+        tmp_path,
+        monkeypatch,
+        xvector={
+            "toolkit": "speechbrain",
+            "pretrained_model": "speechbrain/spkrec-ecapa-voxceleb",
+            "device": "cpu",
+            "spk_embed_tag": "ecapa",
+            "batch_size": 8,
+        },
+        manifests=("train", "valid"),
+    )
+
+    system.compute_xvectors()
+
+    assert len(_RecordingRunner.calls) == 2
+    first = _RecordingRunner.calls[0]
+    assert first["indices"] == [0, 1]
+    assert first["batch_size"] == 8
+    assert first["async_mode"] is False
+    assert first["params"]["toolkit"] == "speechbrain"
+    assert first["params"]["device"] == "cpu"
+    # Embeddings land in one directory per split, tagged by the model.
+    assert first["params"]["output_dir"].endswith("ecapa_train")
+    assert _RecordingRunner.calls[1]["params"]["output_dir"].endswith("ecapa_valid")
+
+
+def test_compute_xvectors_accepts_single_split(tmp_path, monkeypatch):
+    system = _xvector_system(tmp_path, monkeypatch)
+    system.training_config.xvector.splits = "train"
+
+    system.compute_xvectors()
+
+    assert len(_RecordingRunner.calls) == 1
+
+
+def test_compute_xvectors_default_manifest(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    _xvector_manifest(tmp_path, "data/manifest/train.tsv")
+    _RecordingRunner.calls = []
+    _RecordingRunner.results = None
+    monkeypatch.setattr(sysmod, "XVectorRunner", _RecordingRunner)
+
+    config = OmegaConf.create(
+        {
+            "exp_dir": str(tmp_path / "exp"),
+            "xvector": {
+                "save_path": str(tmp_path / "x_vectors"),
+                "splits": ["train"],
+            },
+        }
+    )
+    TTSSystem(training_config=config).compute_xvectors()
+
+    manifest_used = _RecordingRunner.calls[0]["params"]["manifest_path"]
+    assert manifest_used.endswith("data/manifest/train.tsv")
+
+
+def test_compute_xvectors_requires_config(tmp_path, monkeypatch):
+    monkeypatch.setattr(sysmod, "XVectorRunner", _RecordingRunner)
+
+    no_xvector = TTSSystem(
+        training_config=OmegaConf.create({"exp_dir": str(tmp_path / "exp")})
+    )
+    with pytest.raises(RuntimeError, match="training_config.xvector must be set"):
+        no_xvector.compute_xvectors()
+
+    no_save_path = TTSSystem(
+        training_config=OmegaConf.create(
+            {"exp_dir": str(tmp_path / "exp"), "xvector": {"splits": ["train"]}}
+        )
+    )
+    with pytest.raises(RuntimeError, match="xvector.save_path must be set"):
+        no_save_path.compute_xvectors()
+
+
+def test_compute_xvectors_missing_manifest(tmp_path, monkeypatch):
+    system = _xvector_system(tmp_path, monkeypatch)
+    system.training_config.xvector.manifest_paths.train = str(tmp_path / "nope.tsv")
+
+    with pytest.raises(RuntimeError, match="Manifest file not found"):
+        system.compute_xvectors()
+
+
+def test_compute_xvectors_rejects_empty_manifest(tmp_path, monkeypatch):
+    system = _xvector_system(tmp_path, monkeypatch)
+    empty = tmp_path / "empty.tsv"
+    empty.write_text("", encoding="utf-8")
+    system.training_config.xvector.manifest_paths.train = str(empty)
+
+    with pytest.raises(RuntimeError, match="No utterances found in manifest"):
+        system.compute_xvectors()
+
+
+def test_compute_xvectors_async_returns_early(tmp_path, monkeypatch, caplog):
+    """An async submission returns None, which must not be unpacked."""
+    system = _xvector_system(tmp_path, monkeypatch)
+    system.training_config.xvector.async_mode = True
+    _RecordingRunner.results = None
+
+    class _AsyncRunner(_RecordingRunner):
+        def __call__(self, indices):
+            super().__call__(indices)
+            return None
+
+    monkeypatch.setattr(sysmod, "XVectorRunner", _AsyncRunner)
+
+    with caplog.at_level(logging.INFO):
+        system.compute_xvectors()
+
+    assert "Async job submitted" in caplog.text
+
+
+def test_compute_xvectors_sets_parallel(tmp_path, monkeypatch):
+    system = _xvector_system(tmp_path, monkeypatch)
+    calls = []
+    monkeypatch.setattr(sysmod, "set_parallel", lambda cfg: calls.append(cfg))
+    system.training_config.parallel = OmegaConf.create({"env": "local"})
+
+    system.compute_xvectors()
+
+    assert calls == [system.training_config.parallel]
+
+
+def test_compute_xvectors_rejects_stage_args(tmp_path, monkeypatch):
+    system = _xvector_system(tmp_path, monkeypatch)
+
+    with pytest.raises(TypeError):
+        system.compute_xvectors("unexpected")
+
+
+def test_compute_xvectors_flattens_batched_results(tmp_path, monkeypatch):
+    """A batched runner returns a list per batch; those must be flattened."""
+    system = _xvector_system(tmp_path, monkeypatch)
+    _RecordingRunner.results = [
+        [{"utt_id": "u0", "status": "ok"}, {"utt_id": "u1", "status": "skipped"}]
+    ]
+
+    system.compute_xvectors()  # must not raise on the nested list
+
+    assert len(_RecordingRunner.calls) == 1
