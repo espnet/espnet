@@ -6,8 +6,6 @@ from egs3.TEMPLATE.asr.run import (
 )
 from espnet3.systems.asr.system import ASRSystem
 
-# from egs3.librispeech_100.asr.src.librispeech_system import LBSSystem
-
 if __name__ == "__main__":
     parser = build_parser(
         stages=DEFAULT_STAGES,

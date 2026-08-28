@@ -18,7 +18,6 @@
 # increase `batch_bins` by the same factor when GPU memory permits. For example,
 # halve `accumulate_grad_batches` and double `batch_bins`.
 
-
 ##########################################################
 #                  SYSTEM AND PATH SETTING               #
 ##########################################################

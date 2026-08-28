@@ -17,7 +17,8 @@
 # - a local packed model directory created by `pack_model`
 # - a Hugging Face model repo tag usable by `InferenceModel.from_pretrained()`
 # Relative local paths are resolved from the packed demo directory at runtime.
-
+# Left unset here: the default `exp/${exp_tag}/model_pack` already matches
+# this recipe's layout.
 model:
   dir_or_tag: exp/training_e_branchformer/model_pack
   trust_user_code: true

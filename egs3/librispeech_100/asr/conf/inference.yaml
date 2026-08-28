@@ -25,6 +25,7 @@
 # - `name` becomes `${inference_dir}/<name>/`
 # - `data_src` is omitted, so ESPnet3 loads
 #   `${recipe_dir}/dataset/__init__.py`
+# - `data_src_args` is passed directly to `LibriSpeech100Dataset(...)`
 # Notes:
 #   - actual data sources are defined via `${recipe_dir}`
 dataset:

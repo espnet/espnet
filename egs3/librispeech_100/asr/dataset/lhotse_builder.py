@@ -8,10 +8,20 @@ from importlib import resources
 from pathlib import Path
 from typing import Iterable
 
-from lhotse import CutSet, RecordingSet, SupervisionSet
+try:
+    from lhotse import CutSet, RecordingSet, SupervisionSet
+except ImportError:
+    CutSet = RecordingSet = SupervisionSet = None
+
 from lhotse.recipes import prepare_librispeech
 
 from egs3.librispeech_100.asr.dataset.data_utils import LhotseElement
+from eg3.librispeech_100.asr.dataset.builder import (
+    iter_source_candidates,
+    resolve_source_root,
+    resolve_librispeech_root,
+
+)
 from espnet3.components.data.dataset_builder import DatasetBuilder
 from espnet3.utils.config_utils import load_config_with_defaults
 
@@ -24,59 +34,6 @@ def _load_builder_config() -> dict:
 
 _CFG = _load_builder_config()
 _REQUIRED_SPLITS = {str(split) for split in _CFG["required_splits"]}
-
-
-def iter_source_candidates(
-    recipe_root: Path,
-    source_dir: str | Path | None,
-) -> Iterable[Path]:
-    """Yield candidate directories that may contain LibriSpeech."""
-    yield recipe_root / _CFG["dataset_path"]
-
-    if source_dir is not None:
-        yield Path(source_dir)
-
-    env_var = str(_CFG["source_env_var"])
-    env_path = os.environ.get(env_var)
-    if env_path:
-        yield Path(env_path)
-
-
-def resolve_source_root(
-    recipe_root: Path,
-    source_dir: str | Path | None = None,
-) -> Path:
-    """Resolve the usable LibriSpeech source root for this recipe."""
-    checked: list[str] = []
-    for candidate in iter_source_candidates(recipe_root, source_dir):
-        checked.append(str(candidate))
-        try:
-            return resolve_librispeech_root(candidate)
-        except FileNotFoundError:
-            continue
-
-    env_var = str(_CFG["source_env_var"])
-    raise FileNotFoundError(
-        "LibriSpeech source not found. Checked these locations:\n"
-        + "\n".join(f"  - {path}" for path in checked)
-        + "\n"
-        + f"Place the corpus under <recipe_dir>/{_CFG['dataset_path']}/LibriSpeech "
-        + f"or set {env_var} to the dataset root."
-    )
-
-
-def resolve_librispeech_root(data_dir: str | Path) -> Path:
-    """Resolve a path to the on-disk ``LibriSpeech`` root."""
-    candidate = Path(data_dir)
-    if (candidate / "LibriSpeech").is_dir():
-        return candidate / "LibriSpeech"
-    if candidate.name == "LibriSpeech" and candidate.is_dir():
-        return candidate
-    raise FileNotFoundError(
-        "Could not find LibriSpeech root. Expected either:\n"
-        f"  - {candidate}/LibriSpeech/\n"
-        f"  - {candidate} (when it is the LibriSpeech directory itself)"
-    )
 
 
 def missing_required_splits(source_root: Path) -> list[str]:
