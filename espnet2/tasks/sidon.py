@@ -130,12 +130,18 @@ class SidonCollateFn:
         rir_dir: str,
         degrade_prob: float,
         online_degradation: bool,
+        collect_stats: bool = False,
     ):
         from transformers import SeamlessM4TFeatureExtractor
 
         self.max_samples = max_samples
         self.input_sr = input_sr
-        self.processor = SeamlessM4TFeatureExtractor.from_pretrained(model_tag)
+        self.collect_stats = collect_stats
+        self.processor = (
+            None
+            if collect_stats
+            else SeamlessM4TFeatureExtractor.from_pretrained(model_tag)
+        )
         self.noise_files = _audio_files(noise_dir)
         self.rir_files = _audio_files(rir_dir)
         self.degrade_prob = degrade_prob
@@ -169,12 +175,13 @@ class SidonCollateFn:
             processed.append((key, values))
 
         keys, batch = self.base(processed)
-        batch["noisy_speech_ssl"] = self._features(
-            batch["noisy_speech"], batch["noisy_speech_lengths"]
-        )
-        batch["speech_ref1_ssl"] = self._features(
-            batch["speech_ref1"], batch["speech_ref1_lengths"]
-        )
+        if not self.collect_stats:
+            batch["noisy_speech_ssl"] = self._features(
+                batch["noisy_speech"], batch["noisy_speech_lengths"]
+            )
+            batch["speech_ref1_ssl"] = self._features(
+                batch["speech_ref1"], batch["speech_ref1_lengths"]
+            )
         return keys, batch
 
     def _features(self, waveforms: torch.Tensor, lengths: torch.Tensor):
@@ -199,6 +206,11 @@ class SidonTask(AbsTask):
     @classmethod
     def add_task_arguments(cls, parser):
         group = parser.add_argument_group("ESPnet-Sidon")
+        group.add_argument(
+            "--model_conf",
+            action=NestedDictAction,
+            default={"extract_feats_in_collect_stats": False},
+        )
         group.add_argument("--ssl_encoder", choices=["w2v_bert2"], default="w2v_bert2")
         group.add_argument("--ssl_encoder_conf", action=NestedDictAction, default={})
         group.add_argument("--lora_rank", type=int, default=64)
@@ -222,6 +234,7 @@ class SidonTask(AbsTask):
             rir_dir=args.rir_dir,
             degrade_prob=args.degrade_prob,
             online_degradation=args.online_degradation,
+            collect_stats=getattr(args, "collect_stats", False),
         )
 
     @classmethod
