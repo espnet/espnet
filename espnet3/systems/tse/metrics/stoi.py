@@ -87,20 +87,12 @@ class STOI(BaseMetric):
         self, ref_audio: Tensor, inf_audio: Tensor, sample_rate: int
     ) -> Dict[str, float]:
         stoi_fn = self._ensure_stoi()
-        if self.extended:
-            score = stoi_fn(
-                ref_audio.cpu().numpy(),
-                inf_audio.cpu().numpy(),
-                fs_sig=sample_rate,
-                extended=True,
-            )
-        else:
-            score = stoi_fn(
-                ref_audio.cpu().numpy(),
-                inf_audio.cpu().numpy(),
-                fs_sig=sample_rate,
-                extended=False,
-            )
+        score = stoi_fn(
+            ref_audio.cpu().numpy(),
+            inf_audio.cpu().numpy(),
+            fs_sig=sample_rate,
+            extended=self.extended,
+        )
         return float(score * 100.0)
 
     def __call__(
@@ -150,9 +142,7 @@ class STOI(BaseMetric):
         if not scores:
             raise ValueError("No scores were computed. Please check the input data.")
 
-        if self.extended:
-            return {"ESTOI": float(np.mean(scores))}
-        return {"STOI": float(np.mean(scores))}
+        return {self.name: float(np.mean(scores))}
 
 
 class ESTOI(STOI):
