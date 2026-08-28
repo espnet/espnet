@@ -57,18 +57,27 @@ preserved inline.
 ## Training
 
 Training is driven by `run.sh`, which wraps the standard ESPnet `asr.sh`
-pipeline. The default config trains Whisper-small with `preprocessor: multi`
-and predicts timestamps:
+pipeline for training only (it passes `--skip_eval`, so the stock decoding and
+scoring stages do not run). The default config trains Whisper-small with
+`preprocessor: multi` and predicts timestamps:
 
 ```bash
 # End-to-end (data prep already done)
 ./run.sh --stage 11 --stop_stage 11   # train
-./run.sh --stage 12 --stop_stage 12   # decode (uses stock asr.sh inference)
 ```
+
+Inference is done separately against a trained checkpoint (see below), decoded
+with openai-whisper via `local/decode.py`. This SOT model is decoded with
+openai-whisper's `transcribe()` pipeline, which provides temperature fallback,
+compression-ratio and average-log-prob quality gating (with retry), no-speech
+gating, and Whisper's timestamp-pairing rules together with a SOT-aware patch.
+The patch scopes the timestamp-pairing rules to the current speaker block, so
+the speaker-change token can appear between blocks, and it biases the decoder
+toward continuing the current speaker when its timestamp confidence is high.
 
 ## Inference and evaluation
 
-A checkpoint bundle is `model.pth` + `config.yaml` + `token_list.txt`,
+A trained checkpoint is `model.pth` + `config.yaml` + `token_list.txt`,
 either produced by training above or downloaded from a public release.
 A Whisper-small checkpoint is available on the Hugging Face Hub at
 [`espnet/multi-talker-whisper-small-ami`](https://huggingface.co/espnet/multi-talker-whisper-small-ami):
@@ -78,7 +87,7 @@ huggingface-cli download espnet/multi-talker-whisper-small-ami \
     --local-dir exp/whisper-sot-small-ami
 ```
 
-To decode the prepared test set against a checkpoint bundle, pass
+To decode the prepared test set against a trained checkpoint, pass
 `--inference_model <dir>` to `run.sh`:
 
 ```bash
@@ -94,9 +103,9 @@ Hypotheses are written to `<dir>/decode_inference/<test_set>/1best_recog/`:
 Scoring runs automatically after decoding (pass `--no_score` to skip). Per
 test set it writes `<dir>/decode_inference/<test_set>/scoring/`:
 
-- `cpwer.json`, `cpwer_by_num_speakers.json` — utterance-group cpWER
-- `speaker_count.json` — speaker-counting accuracy and a confusion table
-- `der.json`, `der_by_num_speakers.json` — utterance-group DER
+- `cpwer.json`, `cpwer_by_num_speakers.json`: utterance-group cpWER
+- `speaker_count.json`: speaker-counting accuracy and a confusion table
+- `der.json`, `der_by_num_speakers.json`: utterance-group DER
 
 To score an existing decode directory on its own:
 

@@ -1,15 +1,18 @@
 #!/usr/bin/env bash
 # SOT multi-talker ASR recipe for AMI dataset using Whisper.
 #
-# Two modes:
-#   1. Training (and stock-pipeline inference) — wraps asr.sh
-#        ./run.sh --stage 11 --stop_stage 11        # train
-#        ./run.sh --stage 1  --stop_stage 13        # full pipeline
+#   1. Training: wraps asr.sh for training only (--skip_eval skips the stock
+#      decoding and scoring stages):
+#        ./run.sh --stage 11 --stop_stage 11
 #
-#   2. Inference + evaluation against a checkpoint bundle
-#      (model.pth + config.yaml + token_list.txt)
+#   2. Inference against a trained checkpoint, decoded with openai-whisper via
+#      local/decode.py:
 #        ./run.sh --inference_model exp/whisper-sot-small-ami \
 #                 --whisper_model small
+#
+# Decoding runs openai-whisper's transcribe() pipeline (temperature fallback,
+# compression-ratio / log-prob quality gating, no-speech gating, and Whisper's
+# timestamp rules plus a SOT-aware patch), which this SOT model relies on.
 set -e
 set -u
 set -o pipefail
@@ -19,9 +22,8 @@ valid_set="dev"
 test_sets="dev test"
 
 asr_config=conf/tuning/train_sot_asr_whisper_small.yaml
-inference_config=conf/tuning/decode_sot.yaml
 
-# Checkpoint-bundle inference defaults
+# Inference defaults (decode a trained checkpoint)
 inference_model=""
 whisper_model="small"
 decode_out="decode_inference"
@@ -51,7 +53,7 @@ while [ $# -gt 0 ]; do
 done
 
 if [ -n "${inference_model}" ]; then
-    # ----- Mode 2: checkpoint-bundle inference (+ scoring) -----
+    # ----- Inference: decode a trained checkpoint (openai-whisper) and score -----
     if [ -z "${decode_test_sets}" ]; then
         decode_test_sets="${test_sets}"
     fi
@@ -73,7 +75,9 @@ if [ -n "${inference_model}" ]; then
     exit 0
 fi
 
-# ----- Mode 1: standard ESPnet training / stock inference via asr.sh -----
+# ----- Training via asr.sh (--skip_eval keeps it to data prep + training) -----
+# --skip_eval skips asr.sh stages 12-13 (stock decoding + scoring); inference is
+# handled above by local/decode.py.
 ./asr.sh \
     --lang en \
     --feats_type raw \
@@ -82,8 +86,8 @@ fi
     --max_wav_duration 30 \
     --feats_normalize null \
     --use_lm false \
+    --skip_eval true \
     --asr_config "${asr_config}" \
-    --inference_config "${inference_config}" \
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" "${asr_args[@]}"
