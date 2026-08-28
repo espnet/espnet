@@ -118,20 +118,34 @@ class SISNR(BaseMetric):
             pairs.append((uid, row[self.ref_key], row[self.hyp_key]))
 
         scores = []
-        with (test_dir / "sisnr").open("w", encoding="utf-8") as f:
-            for i in trange(0, len(pairs), self.batch_size):
-                batch = pairs[i : i + self.batch_size]
-                batch_uids = [sample[0] for sample in batch]
-                ref_paths = [sample[1] for sample in batch]
-                inf_paths = [sample[2] for sample in batch]
+        num_lines = 0
+        if (test_dir / "sisnr").exists() and (test_dir / "sisnr").is_file():
+            with (test_dir / "sisnr").open("rb") as f:
+                num_lines = sum(1 for _ in f)
+        if num_lines == len(pairs):
+            print(
+                f"Found existing SI-SNR scores in '{test_dir / 'sisnr'}', "
+                "skipping computation and loading scores from file."
+            )
+            with (test_dir / "sisnr").open("r", encoding="utf-8") as f:
+                for line in f:
+                    uid, score = line.strip().split()
+                    scores.append(float(score))
+        else:
+            with (test_dir / "sisnr").open("w", encoding="utf-8") as f:
+                for i in trange(0, len(pairs), self.batch_size):
+                    batch = pairs[i : i + self.batch_size]
+                    batch_uids = [sample[0] for sample in batch]
+                    ref_paths = [sample[1] for sample in batch]
+                    inf_paths = [sample[2] for sample in batch]
 
-                ref_audios, inf_audios = self.load_audio_pairs(ref_paths, inf_paths)
-                for uid, ref_audio, inf_audio in zip(
-                    batch_uids, ref_audios, inf_audios
-                ):
-                    score = self.compute_sisnr(ref_audio, inf_audio)
-                    scores.append(score)
-                    f.write(f"{uid} {score}\n")
+                    ref_audios, inf_audios = self.load_audio_pairs(ref_paths, inf_paths)
+                    for uid, ref_audio, inf_audio in zip(
+                        batch_uids, ref_audios, inf_audios
+                    ):
+                        score = self.compute_sisnr(ref_audio, inf_audio)
+                        scores.append(score)
+                        f.write(f"{uid} {score}\n")
 
         if not scores:
             raise ValueError("No scores were computed. Please check the input data.")

@@ -113,22 +113,40 @@ class SDR(BaseMetric):
             pairs.append((uid, row[self.ref_key], row[self.hyp_key]))
 
         sdr_scores, sar_scores, sir_scores = [], [], []
-        with (test_dir / "sdr").open("w", encoding="utf-8") as f:
-            for i in trange(0, len(pairs), self.batch_size):
-                batch = pairs[i : i + self.batch_size]
-                batch_uids = [sample[0] for sample in batch]
-                ref_paths = [sample[1] for sample in batch]
-                inf_paths = [sample[2] for sample in batch]
+        num_lines = 0
+        if (test_dir / "sdr").exists() and (test_dir / "sdr").is_file():
+            with (test_dir / "sdr").open("rb") as f:
+                num_lines = sum(1 for _ in f)
+        if num_lines == len(pairs):
+            print(
+                f"Found existing SDR scores in '{test_dir / 'sdr'}', "
+                "skipping computation and loading scores from file."
+            )
+            with (test_dir / "sdr").open("r", encoding="utf-8") as f:
+                for line in f:
+                    uid, sdr, sar, sir = line.strip().split()
+                    sdr_scores.append(float(sdr))
+                    sar_scores.append(float(sar))
+                    sir_scores.append(float(sir))
+        else:
+            with (test_dir / "sdr").open("w", encoding="utf-8") as f:
+                for i in trange(0, len(pairs), self.batch_size):
+                    batch = pairs[i : i + self.batch_size]
+                    batch_uids = [sample[0] for sample in batch]
+                    ref_paths = [sample[1] for sample in batch]
+                    inf_paths = [sample[2] for sample in batch]
 
-                ref_audios, inf_audios = self.load_audio_pairs(ref_paths, inf_paths)
-                for uid, ref_item, inf_item in zip(batch_uids, ref_audios, inf_audios):
-                    ref_audio = ref_item[1]
-                    inf_audio = inf_item[1]
-                    sdr, sar, sir = self.compute_sdr_sar_sir(ref_audio, inf_audio)
-                    sdr_scores.append(sdr)
-                    sar_scores.append(sar)
-                    sir_scores.append(sir)
-                    f.write(f"{uid} {sdr} {sar} {sir}\n")
+                    ref_audios, inf_audios = self.load_audio_pairs(ref_paths, inf_paths)
+                    for uid, ref_item, inf_item in zip(
+                        batch_uids, ref_audios, inf_audios
+                    ):
+                        ref_audio = ref_item[1]
+                        inf_audio = inf_item[1]
+                        sdr, sar, sir = self.compute_sdr_sar_sir(ref_audio, inf_audio)
+                        sdr_scores.append(sdr)
+                        sar_scores.append(sar)
+                        sir_scores.append(sir)
+                        f.write(f"{uid} {sdr} {sar} {sir}\n")
 
         if not sdr_scores:
             raise ValueError("No scores were computed. Please check the input data.")

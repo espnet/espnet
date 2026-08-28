@@ -148,21 +148,35 @@ class TSOS(BaseMetric):
             pairs.append((uid, row[self.ref_key], row[self.hyp_key]))
 
         tsos_all = []
-        with (test_dir / "tsos").open("w", encoding="utf-8") as f:
-            for i in trange(0, len(pairs), self.batch_size):
-                batch = pairs[i : i + self.batch_size]
-                batch_uids = [b[0] for b in batch]
-                ref_paths = [b[1] for b in batch]
-                inf_paths = [b[2] for b in batch]
-                ref_audios, inf_audios = self.load_audio_pairs(ref_paths, inf_paths)
-                ref_tensor, ref_ilens = self.collate_fn(ref_audios)
-                inf_tensor, _ = self.collate_fn(inf_audios)
-                ref_specs, flens = self.stft(ref_tensor, ilens=ref_ilens)
-                inf_specs, _ = self.stft(inf_tensor, ilens=ref_ilens)
-                tsos_batch = self.compute_tsos(ref_specs, inf_specs, flens)
-                tsos_all.extend(tsos_batch)
-                for uid, score in zip(batch_uids, tsos_batch):
-                    f.write(f"{uid} {score}\n")
+        num_lines = 0
+        if (test_dir / "tsos").exists() and (test_dir / "tsos").is_file():
+            with (test_dir / "tsos").open("rb") as f:
+                num_lines = sum(1 for _ in f)
+        if num_lines == len(pairs):
+            print(
+                f"Found existing TSOS scores in '{test_dir / 'tsos'}', "
+                "skipping computation and loading scores from file."
+            )
+            with (test_dir / "tsos").open("r", encoding="utf-8") as f:
+                for line in f:
+                    uid, score = line.strip().split()
+                    tsos_all.append(float(score))
+        else:
+            with (test_dir / "tsos").open("w", encoding="utf-8") as f:
+                for i in trange(0, len(pairs), self.batch_size):
+                    batch = pairs[i : i + self.batch_size]
+                    batch_uids = [b[0] for b in batch]
+                    ref_paths = [b[1] for b in batch]
+                    inf_paths = [b[2] for b in batch]
+                    ref_audios, inf_audios = self.load_audio_pairs(ref_paths, inf_paths)
+                    ref_tensor, ref_ilens = self.collate_fn(ref_audios)
+                    inf_tensor, _ = self.collate_fn(inf_audios)
+                    ref_specs, flens = self.stft(ref_tensor, ilens=ref_ilens)
+                    inf_specs, _ = self.stft(inf_tensor, ilens=ref_ilens)
+                    tsos_batch = self.compute_tsos(ref_specs, inf_specs, flens)
+                    tsos_all.extend(tsos_batch)
+                    for uid, score in zip(batch_uids, tsos_batch):
+                        f.write(f"{uid} {score}\n")
 
         if not tsos_all:
             raise ValueError("No scores were computed. Please check the input data.")

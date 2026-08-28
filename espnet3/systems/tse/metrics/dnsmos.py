@@ -118,21 +118,43 @@ class DNSMOS(BaseMetric):
             samples.append((uid, row[self.hyp_key]))
 
         scores = []
-        with (test_dir / "dnsmos").open("w", encoding="utf-8") as f:
-            for i in trange(0, len(samples), self.batch_size):
-                batch = samples[i : i + self.batch_size]
-                batch_uids = [sample[0] for sample in batch]
-                inf_paths = [sample[1] for sample in batch]
-
-                inf_audios = self.load_audios(inf_paths)
-                for uid, inf_item in zip(batch_uids, inf_audios):
-                    sample_rate = inf_item[0]
-                    inf_audio = inf_item[1]
-                    score = self.compute_dnsmos(inf_audio, sample_rate)
-                    scores.append(score)
-                    f.write(
-                        f"{uid} {score['OVRL']} {score['SIG']} {score['BAK']} {score['P808_MOS']}\n"
+        num_lines = 0
+        if (test_dir / "dnsmos").exists() and (test_dir / "dnsmos").is_file():
+            with (test_dir / "dnsmos").open("rb") as f:
+                num_lines = sum(1 for _ in f)
+        if num_lines == len(samples):
+            print(
+                f"Found existing DNSMOS scores in '{test_dir / 'dnsmos'}', "
+                "skipping computation and loading scores from file."
+            )
+            with (test_dir / "dnsmos").open("r", encoding="utf-8") as f:
+                for line in f:
+                    uid, ovr, sig, bak, p808_mos = line.strip().split()
+                    scores.append(
+                        {
+                            "OVRL": float(ovr),
+                            "SIG": float(sig),
+                            "BAK": float(bak),
+                            "P808_MOS": float(p808_mos),
+                        }
                     )
+        else:
+            with (test_dir / "dnsmos").open("w", encoding="utf-8") as f:
+                for i in trange(0, len(samples), self.batch_size):
+                    batch = samples[i : i + self.batch_size]
+                    batch_uids = [sample[0] for sample in batch]
+                    inf_paths = [sample[1] for sample in batch]
+
+                    inf_audios = self.load_audios(inf_paths)
+                    for uid, inf_item in zip(batch_uids, inf_audios):
+                        sample_rate = inf_item[0]
+                        inf_audio = inf_item[1]
+                        score = self.compute_dnsmos(inf_audio, sample_rate)
+                        scores.append(score)
+                        f.write(
+                            f"{uid} {score['OVRL']} {score['SIG']} {score['BAK']} "
+                            f"{score['P808_MOS']}\n"
+                        )
 
         if not scores:
             raise ValueError("No scores were computed. Please check the input data.")
