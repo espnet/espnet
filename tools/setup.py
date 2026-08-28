@@ -22,7 +22,6 @@ requirements = {
         "PyYAML>=5.1.2",
         "soundfile>=0.10.2",
         "h5py>=2.10.0",
-        "kaldiio>=2.18.0",
         "torch>=1.11.0",
         "torch_complex",
         "nltk>=3.4.5",
@@ -86,6 +85,12 @@ requirements = {
         "fairscale",
         "transformers",
         "evaluate",
+    ],
+    # kaldi: Kaldi ark/scp I/O. Kept out of "install" because the kaldiio
+    #        license restricts redistribution; see
+    #        https://github.com/espnet/espnet/issues/6529
+    "kaldi": [
+        "kaldiio>=2.18.0",
     ],
     "setup": [
         "pytest-runner",
