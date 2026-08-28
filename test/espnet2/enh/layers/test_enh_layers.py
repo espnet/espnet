@@ -139,7 +139,6 @@ def test_signal_framing():
     assert FC.allclose(X2[..., -1], X)
 
 
-@pytest.mark.skipif(not is_torch_1_9_plus, reason="Require torch 1.9.0+")
 @pytest.mark.parametrize("ch", [2, 4, 6, 8])
 def test_gevd(ch):
     stft = Stft(
@@ -176,7 +175,6 @@ def test_gevd(ch):
     )
 
 
-@pytest.mark.skipif(not is_torch_1_9_plus, reason="Require torch 1.9.0+")
 def test_gev_phase_correction():
     mat = ComplexTensor(torch.rand(2, 3, 4), torch.rand(2, 3, 4))
     mat_th = torch.complex(mat.real, mat.imag)

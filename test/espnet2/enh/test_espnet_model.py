@@ -352,7 +352,6 @@ def test_svoice_model(encoder, decoder, separator, training, loss_wrappers):
     loss, stats, weight = enh_model(**kwargs)
 
 
-@pytest.mark.skipif(not is_torch_1_9_plus, reason="requires torch>=1.9")
 @pytest.mark.parametrize("training", [True, False])
 @pytest.mark.parametrize("n_mics", [1, 2])
 @pytest.mark.parametrize("loss_wrappers", [[pit_wrapper]])
@@ -390,7 +389,6 @@ def test_ineube(n_mics, training, loss_wrappers, output_from):
     loss, stats, weight = enh_model(**kwargs)
 
 
-@pytest.mark.skipif(not is_torch_1_9_plus, reason="requires torch>=1.9")
 @pytest.mark.parametrize("training", [True, False])
 @pytest.mark.parametrize("n_mics", [1, 2])
 @pytest.mark.parametrize("loss_wrappers", [[pit_wrapper]])
@@ -437,7 +435,6 @@ def test_tfgridnet(n_mics, training, loss_wrappers):
     loss, stats, weight = enh_model(**kwargs)
 
 
-@pytest.mark.skipif(not is_torch_1_9_plus, reason="requires torch>=1.9")
 @pytest.mark.parametrize("training", [True, False])
 @pytest.mark.parametrize("n_mics", [1, 2])
 @pytest.mark.parametrize("loss_wrappers", [[pit_wrapper]])
@@ -484,7 +481,6 @@ def test_tfgridnetv2(n_mics, training, loss_wrappers):
     loss, stats, weight = enh_model(**kwargs)
 
 
-@pytest.mark.skipif(not is_torch_1_9_plus, reason="requires torch>=1.9")
 @pytest.mark.parametrize("training", [True, False])
 @pytest.mark.parametrize("n_mics", [1])
 @pytest.mark.parametrize("loss_wrappers", [[pit_wrapper]])

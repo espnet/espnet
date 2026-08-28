@@ -1,14 +1,10 @@
 import pytest
 import torch
-from packaging.version import parse as V
 
 from espnet2.asr.encoder.hubert_encoder import TorchAudioHuBERTPretrainEncoder
 from espnet2.hubert.espnet_model import TorchAudioHubertPretrainModel
 
-is_torch_1_12_1_plus = V(torch.__version__) >= V("1.12.1")
 
-
-@pytest.mark.skipif(not is_torch_1_12_1_plus, reason="requires torch>=1.12.1")
 @pytest.mark.parametrize("finetuning", [False])
 def test_forward_backward_finetuning_false(finetuning):
 

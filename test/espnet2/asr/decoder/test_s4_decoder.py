@@ -1,15 +1,12 @@
 import pytest
 import torch
-from packaging.version import parse as V
 
 from espnet2.asr.decoder.s4_decoder import S4Decoder
 from espnet2.legacy.nets.batch_beam_search import BatchBeamSearch
 
 # Check to have torch.linalg
-is_torch_1_10_plus = V(torch.__version__) >= V("1.10.0")
 
 
-@pytest.mark.skipif(not is_torch_1_10_plus, reason="requires torch>=1.10")
 @pytest.mark.parametrize("input_layer", ["embed"])
 @pytest.mark.parametrize("prenorm", [True, False])
 @pytest.mark.parametrize("n_layers", [3, 6])
@@ -43,7 +40,6 @@ def test_S4Decoder_backward(input_layer, prenorm, n_layers, norm, residual, drop
     z_all.sum().backward()
 
 
-@pytest.mark.skipif(not is_torch_1_10_plus, reason="requires torch>=1.10")
 @pytest.mark.parametrize("input_layer", ["embed"])
 @pytest.mark.parametrize("prenorm", [True, False])
 @pytest.mark.parametrize("n_layers", [3, 6])
