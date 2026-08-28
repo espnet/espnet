@@ -227,7 +227,7 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
         | `st`       | Speech Translation            |
         | `s2t`      | Speech to Text (e.g., OWSM)   |
         | `spk`      | Speaker recognition           |
-        | `kaldi`    | Kaldi ark/scp I/O (`kaldiio`) |
+        | `kaldiio`  | Kaldi ark/scp I/O (`kaldiio`) |
         | `dev`      | Code formatting and linting   |
         | `test`     | Unit test dependencies        |
         | `doc`      | Documentation generation      |
@@ -247,7 +247,7 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
         it explicitly if your recipe or data uses those formats:
 
         ```sh
-        pip install -e ".[kaldi]"
+        pip install -e ".[kaldiio]"
         ```
 
         Without it, the Kaldi code paths (e.g. the `kaldi_ark` data type, kaldi

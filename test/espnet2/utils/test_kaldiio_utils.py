@@ -21,6 +21,6 @@ def test_import_kaldiio_error_message(monkeypatch):
         return real_import(name, *args, **kwargs)
 
     monkeypatch.setattr(builtins, "__import__", _no_kaldiio)
-    with pytest.raises(ImportError, match="espnet\\[kaldi\\]"):
+    with pytest.raises(ImportError, match="espnet\\[kaldiio\\]"):
         import_kaldiio()
     assert "optional dependency" in KALDIIO_INSTALL_MESSAGE

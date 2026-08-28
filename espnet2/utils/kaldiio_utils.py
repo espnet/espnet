@@ -14,7 +14,7 @@ from types import ModuleType
 KALDIIO_INSTALL_MESSAGE = (
     "`kaldiio` is not installed. It is an optional dependency of ESPnet, "
     "used only for Kaldi ark/scp I/O. "
-    'Please install it with `pip install "espnet[kaldi]"` or `pip install kaldiio`.'
+    'Please install it with `pip install "espnet[kaldiio]"` or `pip install kaldiio`.'
 )
 
 

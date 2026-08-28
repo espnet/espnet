@@ -179,7 +179,7 @@ sds = [
 # that is publicly distributed; see
 # https://github.com/espnet/espnet/issues/6529.
 # Install this extra only if you need to read/write Kaldi-format features.
-kaldi = [
+kaldiio = [
   "kaldiio>=2.18.0",
 ]
 
@@ -226,7 +226,7 @@ all = [
   "espnet[spk]",
   "espnet[speechlm]",
   "espnet[egs2]",
-  "espnet[kaldi]",
+  "espnet[kaldiio]",
   "fairscale",
   "transformers",
   "evaluate",

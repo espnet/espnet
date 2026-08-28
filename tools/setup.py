@@ -86,10 +86,10 @@ requirements = {
         "transformers",
         "evaluate",
     ],
-    # kaldi: Kaldi ark/scp I/O. Kept out of "install" because the kaldiio
-    #        license restricts redistribution; see
-    #        https://github.com/espnet/espnet/issues/6529
-    "kaldi": [
+    # kaldiio: Kaldi ark/scp I/O. Kept out of "install" because the kaldiio
+    #          license restricts redistribution; see
+    #          https://github.com/espnet/espnet/issues/6529
+    "kaldiio": [
         "kaldiio>=2.18.0",
     ],
     "setup": [
