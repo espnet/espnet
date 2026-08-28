@@ -9,6 +9,7 @@ import torch
 import yaml
 
 from espnet2.legacy.utils.cli_utils import get_commandline_args
+from espnet2.torch_utils.safe_torch_load import safe_torch_load
 
 logging.basicConfig(
     level=logging.INFO,
@@ -67,7 +68,7 @@ def average_checkpoints(
     expected_keys = None
 
     for checkpoint_path in checkpoint_paths:
-        state_dict = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
+        state_dict = safe_torch_load(checkpoint_path, map_location="cpu")
         encoder_state_dict = generate_beats_encoder_checkpoint(
             state_dict,
             deepspeed_checkpoint,

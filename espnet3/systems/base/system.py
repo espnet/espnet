@@ -197,6 +197,29 @@ class BaseSystem:
                 "Put all settings in the YAML config."
             )
 
+    @staticmethod
+    def _get_required_config(config, key: str, error_message: str):
+        """Return ``config[key]``, raising ``RuntimeError`` when missing.
+
+        Args:
+            config: Dict-like config (e.g. ``DictConfig``) to read from.
+                ``None`` is treated the same as a missing key.
+            key: Field name to extract.
+            error_message: Message for the ``RuntimeError`` raised when the
+                field is absent or ``None``.
+
+        Returns:
+            The value stored under ``key``.
+
+        Raises:
+            RuntimeError: If ``config`` is ``None`` or ``config[key]`` is
+                missing or ``None``.
+        """
+        value = config.get(key, None) if config is not None else None
+        if value is None:
+            raise RuntimeError(error_message)
+        return value
+
     # ---------------------------------------------------------
     # Stage stubs (override in subclasses if needed)
     # ---------------------------------------------------------
