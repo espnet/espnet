@@ -1,4 +1,4 @@
-# egs2/libritts_r/sidon/db.sh
+# egs2/libritts_r/enh1/db.sh
 # Dataset and noise source paths for the ESPnet-Sidon recipe.
 # Set paths to existing directories; leave "" to skip.
 #
