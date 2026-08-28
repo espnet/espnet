@@ -10,15 +10,15 @@
 #    Standalone inference or metrics configs must define their own `exp_tag`
 #    or `exp_dir`.
 
-# 1) Convert LibriSpeech to Hugging Face format (run once)
+# 1) Prepare training and evaluation data
 python run.py --stages create_dataset --training_config conf/training.yaml
 
 # 2) Train with the default Branchformer configuration
 python run.py --stages train --training_config conf/training.yaml
 
-# 3) Decode
+# 3) Infer to generate extracted speech
 python run.py --stages infer --inference_config conf/inference.yaml
 
-# 4) Score
+# 4) Evaluate the extracted speech with metrics
 python run.py --stages measure --metrics_config conf/metrics.yaml
 ```
