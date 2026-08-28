@@ -3,7 +3,7 @@
 ##########################################################
 # Common usage:
 #   python run.py --stages measure \
-#       --training_config conf/training_asr_transformer.yaml \
+#       --training_config conf/tuning/training_e_branchformer.yaml \
 #       --metrics_config conf/metrics.yaml
 #
 # Notes:

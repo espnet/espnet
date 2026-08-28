@@ -17,22 +17,7 @@
 # - a local packed model directory created by `pack_model`
 # - a Hugging Face model repo tag usable by `InferenceModel.from_pretrained()`
 # Relative local paths are resolved from the packed demo directory at runtime.
+# Left unset here: the default `exp/${exp_tag}/model_pack` already matches
+# this recipe's layout.
 model:
-  dir_or_tag: exp/training_e_branchformer/model_pack
   trust_user_code: true
-
-##########################################################
-#                        UI SETTING                      #
-##########################################################
-# Recipe-local app script copied to `<demo_dir>/app.py` during `pack_demo`.
-ui:
-  app_script: src/app.py
-
-##########################################################
-#                   UPLOAD DEMO SETTING                  #
-##########################################################
-# `upload_demo` uploads the packed demo directory to a Hugging Face Space by
-# default.
-upload_demo:
-  hf_repo: espnet/librispeech_100_asr_training_e_branchformer_demo
-  # organization: your-org

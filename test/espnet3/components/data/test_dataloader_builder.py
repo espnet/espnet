@@ -9,6 +9,7 @@ from espnet3.components.data import data_organizer as data_organizer_module
 from espnet3.components.data.data_organizer import DataOrganizer, do_nothing
 from espnet3.components.data.dataloader import DataLoaderBuilder
 from espnet3.components.data.dataset import ShardedDataset
+from espnet3.components.data.iterator import EpochSyncIterator
 from espnet3.utils.config_utils import load_config_with_defaults
 
 # | Test Name                                         | Description                                                    | # noqa: E501
@@ -753,3 +754,100 @@ def test_sharded_dataset_world_size_mismatch(monkeypatch):
     )
     with pytest.raises(RuntimeError, match="dist_world_size must match"):
         builder.build("train")
+
+
+# --- DDP sharding of iter-factory batches ---
+
+
+def _make_iter_factory_config():
+    return OmegaConf.create(
+        {
+            "dataloader": {
+                "train": {
+                    "iter_factory": {
+                        "_target_": (
+                            "test.espnet3.components.data."
+                            "test_dataloader_builder.DummyIterFactory"
+                        ),
+                        "batches": {"dummy": 1},
+                    }
+                }
+            }
+        }
+    )
+
+
+@pytest.mark.parametrize("rank, expected", [(0, [[0], [2]]), (1, [[1], [3]])])
+def test_iter_factory_allows_batches_smaller_than_world_size(
+    monkeypatch, rank, expected
+):
+    import espnet3.components.data.dataloader as dl
+
+    # 4 single-utterance batches (as ChunkIterFactory emits); previously this
+    # raised "batch-size must be equal or more than world_size"
+    monkeypatch.setattr(dl, "build_batch_sampler", lambda **kw: [[0], [1], [2], [3]])
+    monkeypatch.setattr(dl.torch.distributed, "get_world_size", lambda: 2)
+    monkeypatch.setattr(dl.torch.distributed, "get_rank", lambda: rank)
+
+    organizer = build_organizer(DUMMY_DATASET_TARGET)
+    builder = build_builder(
+        organizer.train,
+        _make_iter_factory_config(),
+        collate_fn=None,
+        num_device=2,
+        epoch=0,
+    )
+    iterator = builder.build("train")
+    assert list(iterator) == expected
+
+
+def test_iter_factory_returns_base_iterator_without_distributed(monkeypatch):
+    import espnet3.components.data.dataloader as dl
+
+    monkeypatch.setattr(dl, "build_batch_sampler", lambda **kw: [[0, 1], [2, 3]])
+
+    organizer = build_organizer(DUMMY_DATASET_TARGET)
+    builder = build_builder(
+        organizer.train,
+        _make_iter_factory_config(),
+        collate_fn=None,
+        num_device=1,
+        epoch=0,
+    )
+    iterator = builder.build("train")
+    assert isinstance(iterator, EpochSyncIterator)
+    assert len(iterator) == 2
+    assert list(iterator) == [[0, 1], [2, 3]]
+
+
+def test_iter_factory_syncs_iterator_when_distributed_initialized(monkeypatch):
+    import espnet3.components.data.dataloader as dl
+    import espnet3.components.data.iterator as iterator_module
+
+    monkeypatch.setattr(
+        dl, "build_batch_sampler", lambda **kw: [[0, 1], [2, 3], [4, 5], [6, 7]]
+    )
+    monkeypatch.setattr(dl.torch.distributed, "get_world_size", lambda: 2)
+    monkeypatch.setattr(dl.torch.distributed, "get_rank", lambda: 0)
+    monkeypatch.setattr(iterator_module.torch.distributed, "is_available", lambda: True)
+    monkeypatch.setattr(
+        iterator_module.torch.distributed, "is_initialized", lambda: True
+    )
+    monkeypatch.setattr(
+        iterator_module.torch.distributed, "get_backend", lambda: "gloo"
+    )
+    monkeypatch.setattr(
+        iterator_module.torch.distributed, "all_reduce", lambda tensor, op=None: None
+    )
+
+    organizer = build_organizer(DUMMY_DATASET_TARGET)
+    builder = build_builder(
+        organizer.train,
+        _make_iter_factory_config(),
+        collate_fn=None,
+        num_device=2,
+        epoch=0,
+    )
+    iterator = builder.build("train")
+    assert isinstance(iterator, EpochSyncIterator)
+    assert list(iterator) == [[0, 1], [4, 5]]

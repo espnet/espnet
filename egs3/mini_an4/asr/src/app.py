@@ -19,7 +19,8 @@ def build_demo(
     demo_config_path: Path | None = None,
 ):
     """Build the default Gradio Blocks app for one packed demo."""
-    assert demo_config_path is not None
+    if demo_config_path is None:
+        demo_config_path = demo_dir / "demo.yaml"
     logger.info(
         "Building recipe demo UI | demo_dir=%s demo_config_path=%s",
         demo_dir,
@@ -39,9 +40,6 @@ def build_demo(
     with gr.Blocks(title=session.title) as app:
         if session.title:
             gr.Markdown(f"# {session.title}")
-
-        if session.description:
-            gr.Markdown(session.description)
 
         input_components = []
         with gr.Column():
@@ -68,6 +66,9 @@ def build_demo(
                 # build_output_component() returns one Gradio output component
                 # instance that Gradio can target from click(..., outputs=[...]).
                 output_components.append(session.build_output_component(spec))
+
+        if session.description:
+            gr.Markdown(session.description)
 
         logger.info("Binding Run button click handler")
         submit_button.click(

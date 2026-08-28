@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import base64
 import os
 import re
 import select
@@ -106,11 +105,12 @@ def _write_test_audio(path: Path) -> None:
 
 
 def _write_test_image(path: Path) -> None:
-    png_bytes = base64.b64decode(
-        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8A"
-        "AusB9Wn5V1cAAAAASUVORK5CYII="
-    )
-    path.write_bytes(png_bytes)
+    import numpy as np
+    from PIL import Image
+
+    rng = np.random.default_rng(0)
+    pixels = rng.integers(0, 256, (128, 128, 3), dtype=np.uint8)
+    Image.fromarray(pixels, mode="RGB").save(str(path), format="PNG")
 
 
 def check_demo_ui_labels(system_name: str, config: dict) -> None:
@@ -187,15 +187,27 @@ def check_demo_ui_labels(system_name: str, config: dict) -> None:
                 output_box.wait_for()
                 page.wait_for_function(
                     """(expected) => {
-                        const textboxes = Array.from(
-                            document.querySelectorAll('textarea, input[type="text"]')
+                        const elements = Array.from(
+                            document.querySelectorAll(
+                                'textarea, input[type="text"], [role="textbox"]'
+                            )
                         );
-                        return textboxes.some((node) => node.value.includes(expected));
+                        return elements.some((node) => {
+                            const tag = node.tagName;
+                            const val =
+                                tag === "TEXTAREA" || tag === "INPUT"
+                                    ? node.value
+                                    : node.textContent || "";
+                            return val.includes(expected);
+                        });
                     }""",
                     arg=expected_output,
                     timeout=30000,
                 )
-                output_value = output_box.input_value()
+                output_value = output_box.evaluate(
+                    "el => (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT')"
+                    " ? el.value : (el.textContent || '')"
+                )
                 assert expected_output in output_value, (
                     f"{system_name} expected output '{expected_output}' "
                     f"but got '{output_value}'"

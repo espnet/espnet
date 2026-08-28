@@ -1,0 +1,36 @@
+# Transformer LM, warm-started from
+# espnet/jiyangtang_magicdata_asr_conformer_lm_transformer
+# (magicdata read-speech LM; same Transformer architecture: 16 layers, 512 att,
+# 2048 ffn, 8 heads, 128 embed; vocab differs 4486 vs 4035 so the input
+# embedding and the output projection are skipped via --ignore_init_mismatch).
+#
+# This is fine-tune territory rather than from-scratch: shorter schedule,
+# smaller starting LR, shorter warm-up.
+lm: transformer
+lm_conf:
+    pos_enc: null
+    embed_unit: 128
+    att_unit: 512
+    head: 8
+    unit: 2048
+    layer: 16
+    dropout_rate: 0.1
+
+grad_clip: 5.0
+batch_type: numel
+batch_bins: 2000000
+accum_grad: 1
+max_epoch: 8
+
+optim: adam
+optim_conf:
+   lr: 0.0005
+scheduler: warmuplr
+scheduler_conf:
+   warmup_steps: 5000
+
+best_model_criterion:
+-   - valid
+    - loss
+    - min
+keep_nbest_models: 5

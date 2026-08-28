@@ -18,21 +18,4 @@
 # - a Hugging Face model repo tag usable by `InferenceModel.from_pretrained()`
 # Relative local paths are resolved from the packed demo directory at runtime.
 model:
-  dir_or_tag: exp/training_asr_transformer/model_pack
   trust_user_code: true
-
-##########################################################
-#                        UI SETTING                      #
-##########################################################
-# Recipe-local app script copied to `<demo_dir>/app.py` during `pack_demo`.
-ui:
-  app_script: src/app.py
-
-##########################################################
-#                   UPLOAD DEMO SETTING                  #
-##########################################################
-# `upload_demo` uploads the packed demo directory to a Hugging Face Space by
-# default.
-upload_demo:
-  hf_repo: ms180/minian4_asr_integration_test
-  # organization: your-org

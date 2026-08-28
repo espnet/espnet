@@ -68,7 +68,11 @@ class XMLReader(collections.abc.Mapping):
                 break
         tempo = int(tempo)
 
-        part = score.parts[0].flat
+        part = score.parts[0]
+        if hasattr(part, "flatten"):
+            part = part.flatten()
+        else:
+            part = part.flat
         notes_list = []
         prepitch = -1
         st = 0

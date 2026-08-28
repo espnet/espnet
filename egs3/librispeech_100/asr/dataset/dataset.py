@@ -135,7 +135,6 @@ class LibriSpeech100Dataset(TorchDataset):
         example = self._examples[int(idx)]
         array, _sr = sf.read(str(example.audio_path))
         return {
-            "utt_id": example.utt_id,
             "speech": np.asarray(array, dtype=np.float32),
             "text": example.text,
         }
