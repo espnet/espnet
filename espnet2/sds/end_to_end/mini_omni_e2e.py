@@ -1,7 +1,7 @@
 import base64
 import io
 import tempfile
-from typing import Tuple
+from typing import Optional, Tuple
 
 import numpy as np
 import torch
@@ -29,6 +29,11 @@ class MiniOmniE2EModel(AbsE2E):
         self,
         device: str = "cuda",
         dtype: str = "float16",
+        stream_stride: int = 4,
+        max_tokens: int = 2048,
+        temperature: float = 0.9,
+        top_k: Optional[int] = 1,
+        top_p: float = 1.0,
     ):
         """A class to initialize and manage the OmniInference client
 
@@ -37,6 +42,24 @@ class MiniOmniE2EModel(AbsE2E):
         Args:
             device (Literal["cuda", "cpu"], optional):
                 The device to run the inference on. Defaults to "cuda".
+            dtype (str, optional):
+                The dtype used to build the warmup input. Defaults to
+                "float16".
+            stream_stride (int, optional):
+                Number of SNAC frames decoded per streamed chunk.
+                Defaults to 4.
+            max_tokens (int, optional):
+                Maximum number of tokens to generate. Defaults to 2048.
+            temperature (float, optional):
+                Sampling temperature. Defaults to 0.9.
+            top_k (int, optional):
+                Number of highest probability tokens to keep. Defaults to 1,
+                which makes decoding greedy and therefore deterministic,
+                regardless of `temperature`. Set to None to disable top-k
+                filtering; this is the only place it can be disabled, since
+                `forward` reads None as "keep the value set here".
+            top_p (float, optional):
+                Nucleus sampling threshold. Defaults to 1.0, which disables it.
 
         Raises:
             ImportError:
@@ -65,8 +88,11 @@ class MiniOmniE2EModel(AbsE2E):
         snapshot_download(repo_id, local_dir="./checkpoint", revision="main")
 
         self.client = OmniInference("./checkpoint", device)
-        self.stream_stride = 4
-        self.max_tokens = 2048
+        self.stream_stride = stream_stride
+        self.max_tokens = max_tokens
+        self.temperature = temperature
+        self.top_k = top_k
+        self.top_p = top_p
         self.OUT_CHANNELS = 1
         self.OUT_RATE = 24000
         self.OUT_SAMPLE_WIDTH = 2
@@ -101,13 +127,16 @@ class MiniOmniE2EModel(AbsE2E):
             base64.b64encode(audio_buffer.getvalue()), encoding="utf-8"
         )
         data_buff = base64.b64decode(base64_encoded.encode("utf-8"))
-        stream_stride = 4
-        max_tokens = 2048
 
         with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
             f.write(data_buff)
             audio_generator = self.client.run_AT_batch_stream(
-                f.name, stream_stride, max_tokens
+                f.name,
+                self.stream_stride,
+                self.max_tokens,
+                temperature=self.temperature,
+                top_k=self.top_k,
+                top_p=self.top_p,
             )
         _ = [k for k in audio_generator]
 
@@ -115,6 +144,9 @@ class MiniOmniE2EModel(AbsE2E):
         self,
         array: np.ndarray,
         orig_sr: int,
+        temperature: Optional[float] = None,
+        top_k: Optional[int] = None,
+        top_p: Optional[float] = None,
     ) -> Tuple[str, bytes]:
         """Processes audio input to generate synthesized speech
 
@@ -125,6 +157,19 @@ class MiniOmniE2EModel(AbsE2E):
                 The input audio array to be processed.
             orig_sr (int):
                 The sample rate of the input audio.
+            temperature (float, optional):
+                Overrides the temperature given to the constructor, for this
+                call only. Defaults to None, which keeps the constructor value.
+            top_k (int, optional):
+                Overrides top_k for this call only. Defaults to None, which
+                keeps the constructor value. Pass a value above 1 to draw
+                several different responses for the same input. Note that
+                None cannot disable top-k filtering here, because it means
+                "keep the constructor value"; set top_k=None on the
+                constructor instead.
+            top_p (float, optional):
+                Overrides top_p for this call only. Defaults to None, which
+                keeps the constructor value.
 
         Returns:
             Tuple[str, bytes]:
@@ -145,13 +190,19 @@ class MiniOmniE2EModel(AbsE2E):
             base64.b64encode(audio_buffer.getvalue()), encoding="utf-8"
         )
         data_buff = base64.b64decode(base64_encoded.encode("utf-8"))
-        stream_stride = 4
-        max_tokens = 2048
+        temperature = self.temperature if temperature is None else temperature
+        top_k = self.top_k if top_k is None else top_k
+        top_p = self.top_p if top_p is None else top_p
 
         with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
             f.write(data_buff)
             audio_generator = self.client.run_AT_batch_stream(
-                f.name, stream_stride, max_tokens
+                f.name,
+                self.stream_stride,
+                self.max_tokens,
+                temperature=temperature,
+                top_k=top_k,
+                top_p=top_p,
             )
         # Drain the generator. Its last yielded value is the text response and
         # its return value is the complete 8-layer token stream, which we decode
