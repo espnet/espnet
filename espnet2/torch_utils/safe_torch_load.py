@@ -52,8 +52,6 @@ def _confirm_unsafe_interactively(path: Union[str, Path]) -> bool:
 def safe_torch_load(
     path: Union[str, Path],
     map_location=None,
-    *,
-    allow_unsafe_fallback: bool = False,
     **kwargs,
 ):
     """Load a PyTorch checkpoint safely, defaulting to ``weights_only=True``.
@@ -70,7 +68,6 @@ def safe_torch_load(
     Unsafe fallback (``weights_only=False``) is only performed when *at least
     one* of the following explicit opt-in mechanisms is active:
 
-    * ``allow_unsafe_fallback=True`` is passed to this function, **or**
     * the environment variable ``ESPNET_ALLOW_UNSAFE_TORCH_LOAD=1`` is set, **or**
     * the process is running on an interactive TTY and the user types the
       confirmation phrase ``I_UNDERSTAND_THE_RISK`` when prompted.
@@ -81,9 +78,6 @@ def safe_torch_load(
     Args:
         path: Path to the checkpoint file.
         map_location: Passed directly to ``torch.load``.
-        allow_unsafe_fallback: When ``True``, allow ``weights_only=False`` if
-            ``weights_only=True`` fails.  Only set this for checkpoints you
-            fully trust and control.  Defaults to ``False``.
         **kwargs: Additional keyword arguments forwarded to ``torch.load``
             (excluding ``weights_only``).
 
@@ -115,17 +109,14 @@ def safe_torch_load(
 
         env_opt_in = os.environ.get(_ENV_VAR, "0") == "1"
 
-        if not (
-            allow_unsafe_fallback or env_opt_in or _confirm_unsafe_interactively(path)
-        ):
+        if not (env_opt_in or _confirm_unsafe_interactively(path)):
             raise UnsafeLoadRefusedError(
                 f"torch.load with weights_only=True failed for '{path}' "
                 f"({type(e).__name__}: {e}).\n"
                 "Refusing to fall back to unsafe loading automatically.\n"
                 "To load this checkpoint you must explicitly opt in using one of:\n"
-                f"  1. Pass allow_unsafe_fallback=True to safe_torch_load().\n"
-                f"  2. Set the environment variable {_ENV_VAR}=1.\n"
-                "  3. Run in an interactive terminal and confirm the prompt.\n"
+                f"  1. Set the environment variable {_ENV_VAR}=1.\n"
+                "  2. Run in an interactive terminal and confirm the prompt.\n"
                 "Only do this if you fully trust the source of the checkpoint file."
             ) from e
 
