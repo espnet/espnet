@@ -16,7 +16,7 @@ fi
 
 if [ $# -ne 3 ]; then
   echo "Usage: $0 [--remove-archive] <data-base> <url> <filename>"
-  echo "e.g.: $0 /export/data/ https://us.openslr.org/resources/108/FR.tgz"
+  echo "e.g.: $0 /export/data/ https://us.openslr.org/resources/108/FR.tgz FR.tgz"
   echo "With --remove-archive it will remove the archive after successfully un-tarring it."
   exit 0;
 fi
@@ -25,7 +25,6 @@ data=$1
 url=$2
 filename=$3
 filepath="$data/$filename"
-workspace=$PWD
 
 if [ ! -d "$data" ]; then
   echo "$0: no such directory $data"
@@ -42,43 +41,29 @@ if [ -f $data/$filename.complete ]; then
   exit 0;
 fi
 
-
-if [ -f $filepath ]; then
-  size=$(/bin/ls -l $filepath | awk '{print $5}')
-  size_ok=false
-  if [ "$filesize" -eq "$size" ]; then size_ok=true; fi;
-  if ! $size_ok; then
-    echo "$0: removing existing file $filepath because its size in bytes ($size)"
-    echo "does not equal the size of the archives ($filesize)."
-    rm $filepath
-  else
-    echo "$filepath exists and appears to be complete."
-  fi
-fi
-
-if [ ! -f $filepath ]; then
+if [ -f "$filepath" ]; then
+  echo "$0: $filepath already exists, skipping the download."
+else
   if ! which wget >/dev/null; then
     echo "$0: wget is not installed."
     exit 1;
   fi
   echo "$0: downloading data from $url.  This may take some time, please be patient."
 
-  cd $data
-  if ! wget --no-check-certificate $url; then
+  # NOTE: the CommonVoice download links are signed URLs carrying a query
+  # string, so the output file has to be named explicitly (-O).
+  if ! wget --no-check-certificate -O "$filepath.tmp" "$url"; then
+    rm -f "$filepath.tmp"
     echo "$0: error executing wget $url"
     exit 1;
   fi
-  cd $workspace
+  mv "$filepath.tmp" "$filepath"
 fi
 
-cd $data
-
-if ! tar -xzf $filename; then
+if ! tar -xzf "$filepath" -C "$data"; then
   echo "$0: error un-tarring archive $filepath"
   exit 1;
 fi
-
-cd $workspace
 
 touch $data/$filename.complete
 
