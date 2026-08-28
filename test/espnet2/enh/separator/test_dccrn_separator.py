@@ -1,11 +1,8 @@
 import pytest
 import torch
-from packaging.version import parse as V
 from torch_complex import ComplexTensor
 
 from espnet2.enh.separator.dccrn_separator import DCCRNSeparator
-
-is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
 
 
 @pytest.mark.parametrize("input_dim", [9])
@@ -55,7 +52,7 @@ def test_dccrn_separator_forward_backward_complex(
 
     masked, flens, others = model(x, ilens=x_lens)
 
-    if use_builtin_complex and is_torch_1_9_plus:
+    if use_builtin_complex:
         assert isinstance(masked[0], torch.Tensor)
     else:
         assert isinstance(masked[0], ComplexTensor)
