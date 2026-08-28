@@ -1,11 +1,12 @@
 import h5py
-import kaldiio
 import numpy as np
 import pytest
 
 from espnet2.fileio.npy_scp import NpyScpWriter
 from espnet2.fileio.sound_scp import SoundScpWriter
 from espnet2.train.iterable_dataset import IterableESPnetDataset
+
+kaldiio = pytest.importorskip("kaldiio", reason="kaldiio not installed")
 
 
 def preprocess(id: str, data):

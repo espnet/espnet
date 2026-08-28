@@ -1,9 +1,10 @@
-import kaldiio
 import numpy as np
 import pytest
 
 from espnet2.legacy.transform.spectrogram import logmelspectrogram
 from espnet2.legacy.transform.transformation import Transformation
+
+kaldiio = pytest.importorskip("kaldiio", reason="kaldiio not installed")
 
 
 @pytest.mark.execution_timeout(10)

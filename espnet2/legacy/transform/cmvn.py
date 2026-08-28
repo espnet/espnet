@@ -3,8 +3,9 @@
 import io
 
 import h5py
-import kaldiio
 import numpy as np
+
+from espnet2.utils.optional_kaldiio import require_kaldiio
 
 
 class CMVN(object):
@@ -32,14 +33,14 @@ class CMVN(object):
         else:
             # Use for global CMVN
             if filetype == "mat":
-                stats_dict = {None: kaldiio.load_mat(stats)}
+                stats_dict = {None: require_kaldiio().load_mat(stats)}
             # Use for global CMVN
             elif filetype == "npy":
                 stats_dict = {None: np.load(stats)}
             # Use for speaker CMVN
             elif filetype == "ark":
                 self.accept_uttid = True
-                stats_dict = dict(kaldiio.load_ark(stats))
+                stats_dict = dict(require_kaldiio().load_ark(stats))
             # Use for speaker CMVN
             elif filetype == "hdf5":
                 self.accept_uttid = True

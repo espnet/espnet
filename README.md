@@ -248,7 +248,7 @@ Demonstration
 
 ### DNN Framework
 - Flexible network architecture thanks to Chainer and PyTorch
-- Flexible front-end processing thanks to [kaldiio](https://github.com/nttcslab-sp/kaldiio) and HDF5 support
+- Flexible front-end processing thanks to optional [kaldiio](https://github.com/nttcslab-sp/kaldiio) support and HDF5 support
 - Tensorboard-based monitoring
 - [DeepSpeed](https://github.com/microsoft/DeepSpeed)-based large-scale training
 
@@ -273,6 +273,8 @@ See [ESPnet2](https://espnet.github.io/espnet/espnet2_tutorial.html).
     pip install espnet
     # To install the latest
     # pip install git+https://github.com/espnet/espnet
+    # To add kaldiio support
+    # pip install "espnet[kaldi]"
     # To install additional packages
     # pip install "espnet[all]"
     ```

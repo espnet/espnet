@@ -22,7 +22,6 @@ requirements = {
         "PyYAML>=5.1.2",
         "soundfile>=0.10.2",
         "h5py>=2.10.0",
-        "kaldiio>=2.18.0",
         "torch>=1.11.0",
         "torch_complex",
         "nltk>=3.4.5",
@@ -49,6 +48,9 @@ requirements = {
         # https://github.com/espnet/espnet/actions/runs/3174416926/jobs/5171182884#step:8:8419
         # https://importlib-metadata.readthedocs.io/en/latest/history.html#v5-0-0
         "importlib-metadata<5.0",
+    ],
+    "kaldi": [
+        "kaldiio>=2.18.0",
     ],
     # train: The modules invoked when training only.
     "train": [
@@ -118,7 +120,8 @@ requirements = {
     ],
 }
 requirements["all"].extend(requirements["train"] + requirements["recipe"])
-requirements["test"].extend(requirements["train"])
+requirements["all"].extend(requirements["kaldi"])
+requirements["test"].extend(requirements["train"] + requirements["kaldi"])
 
 install_requires = requirements["install"]
 setup_requires = requirements["setup"]

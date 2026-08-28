@@ -6,7 +6,6 @@ from io import StringIO
 from pathlib import Path
 from typing import Callable, Collection, Dict, Iterator, List, Optional, Tuple, Union
 
-import kaldiio
 import numpy as np
 import soundfile
 import torch
@@ -14,10 +13,11 @@ from torch.utils.data.dataset import IterableDataset
 from typeguard import typechecked
 
 from espnet2.train.dataset import ESPnetDataset
+from espnet2.utils.optional_kaldiio import require_kaldiio
 
 
 def load_kaldi(input):
-    retval = kaldiio.load_mat(input)
+    retval = require_kaldiio().load_mat(input)
     if isinstance(retval, tuple):
         assert len(retval) == 2, len(retval)
         if isinstance(retval[0], int) and isinstance(retval[1], np.ndarray):

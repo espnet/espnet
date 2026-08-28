@@ -200,6 +200,13 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
         $ pip install -e ".[all]"
         ```
 
+    * To add optional Kaldi archive I/O support:
+
+        ```sh
+        $ cd <espnet-root>
+        $ pip install -e ".[kaldi]"
+        ```
+
         You can also install development tools (linters, test runners) or documentation tools:
 
         ```sh
@@ -220,6 +227,7 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
 
         | Group      | Purpose                       |
         | ---------- | ----------------------------- |
+        | `kaldi`    | Optional Kaldi archive I/O    |
         | `asr`      | ASR-specific dependencies     |
         | `asr2`     | ASR2-specific dependencies    |
         | `tts`      | TTS-specific dependencies     |

@@ -7,13 +7,13 @@ import argparse
 import logging
 from distutils.util import strtobool
 
-import kaldiio
 import librosa
 import numpy
 import torch
 import torchaudio.compliance.kaldi as ta_kaldi
 
 from espnet2.legacy.utils.cli_utils import get_commandline_args
+from espnet2.utils.optional_kaldiio import require_kaldiio
 from espnet2.utils.types import int_or_none
 
 
@@ -150,9 +150,10 @@ def main():
         logging.basicConfig(level=logging.WARN, format=logfmt)
     logging.info(get_commandline_args())
 
-    sums = 0
-    sqsums = 0
-    count = 0
+        kaldiio = require_kaldiio()
+        sums = 0
+        sqsums = 0
+        count = 0
     with (
         kaldiio.ReadHelper(args.rspecifier, segments=args.segments) as reader,
         file_writer_helper(

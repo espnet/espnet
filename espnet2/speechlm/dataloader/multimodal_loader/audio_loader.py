@@ -11,11 +11,6 @@ import numpy as np
 import pyarrow as pa
 
 try:
-    import kaldiio
-except ImportError:
-    kaldiio = None
-
-try:
     from omniio.interface import audio_read
 except ImportError:
     audio_read = None
@@ -33,6 +28,8 @@ except ImportError:
     raise ImportError(
         "lhotse is not installed. Please install it with: pip install lhotse"
     )
+
+from espnet2.utils.optional_kaldiio import require_kaldiio
 
 
 class OmniIOAudioReader:
@@ -236,11 +233,7 @@ class KaldiAudioReader:
         index_path: str,
         valid_ids: list = None,
     ):
-        if kaldiio is None:
-            raise ImportError(
-                "kaldiio is not installed. "
-                "Please install it with: pip install kaldiio"
-            )
+        self.kaldiio = require_kaldiio()
 
         self.index = {}
 
@@ -279,7 +272,7 @@ class KaldiAudioReader:
             raise KeyError(f"Key '{key}' not found in index")
 
         ark_index = self.index[key]
-        sample_rate, audio = kaldiio.load_mat(ark_index)
+        sample_rate, audio = self.kaldiio.load_mat(ark_index)
 
         # Ensure consistent shape [num_channels, num_samples]
         if audio.ndim == 1:

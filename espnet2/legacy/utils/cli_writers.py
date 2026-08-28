@@ -4,12 +4,12 @@ from pathlib import Path
 from typing import Dict
 
 import h5py
-import kaldiio
 import numpy
 import soundfile
 
 from espnet2.legacy.utils.cli_utils import assert_scipy_wav_style
 from espnet2.legacy.utils.io_utils import SoundHDF5File
+from espnet2.utils.optional_kaldiio import require_kaldiio
 
 
 def file_writer_helper(
@@ -146,6 +146,7 @@ class KaldiWriter(BaseWriter):
         self, wspecifier, write_num_frames=None, compress=False, compression_method=2
     ):
         """Initialize Kaldi writer."""
+        kaldiio = require_kaldiio()
         if compress:
             self.writer = kaldiio.WriteHelper(
                 wspecifier, compression_method=compression_method

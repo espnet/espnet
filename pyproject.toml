@@ -35,7 +35,6 @@ dependencies = [
     "PyYAML>=5.1.2",
     "soundfile>=0.10.2",
     "torch_optimizer",
-    "kaldiio>=2.18.0",
     "sentencepiece==0.2.1",
     "librosa>=0.10.2",
     "lightning",
@@ -78,6 +77,10 @@ egs3 = ["egs3/TEMPLATE/**/*.yaml"]
 
 
 [project.optional-dependencies]
+kaldi = [
+  "kaldiio>=2.18.0",
+]
+
 asr = [
   "ctc-segmentation @ git+https://github.com/espnet/ctc-segmentation.git@9b9ea1d",
   "editdistance",
@@ -184,6 +187,7 @@ dev = [
 ]
 
 test = [
+  "kaldiio>=2.18.0",
   "pytest>=7.0.0,<8.4.0",
   "pytest-timeouts>=1.2.1",
   "pytest-pythonpath>=0.7.3",
@@ -211,6 +215,7 @@ doc = [
 ]
 
 all = [
+  "espnet[kaldi]",
   "espnet[asr]",
   "espnet[tts]",
   "espnet[enh]",
