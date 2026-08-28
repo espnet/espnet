@@ -10,7 +10,7 @@
 # https://commonvoice.mozilla.org/en/datasets. This script therefore
 #   1. does nothing if the corpus is already unpacked in <data-dir>,
 #   2. downloads <url> if one is given (i.e. the signed link from the website),
-#   3. unpacks an archive that was placed in <data-dir> by hand,
+#   3. unpacks an archive that was placed in or next to <data-dir> by hand,
 #   4. and otherwise explains how to obtain the data.
 #
 # The archives expand into <corpus>/<lang>/, while the data preparation scripts
@@ -40,12 +40,15 @@ if [ -f "${data}/validated.tsv" ] && [ -d "${data}/clips" ]; then
   exit 0
 fi
 
-mkdir -p "${data}"
-
-# an archive that has been downloaded by hand, under its current or its legacy name
+# an archive that has been downloaded by hand, under its current or its legacy
+# name, in the data directory itself or in one of the two directories above it
+# (NOTE: dirname is used instead of ../, which would not resolve if ${data}
+#  does not exist yet)
+parent=$(dirname "${data}")
+grandparent=$(dirname "${parent}")
 local_archive=
-for f in "${data}/${archive}" "${data}/../${archive}" \
-         "${data}/${lang}.tar.gz" "${data}/../${lang}.tar.gz"; do
+for f in "${data}/${archive}" "${parent}/${archive}" "${grandparent}/${archive}" \
+         "${data}/${lang}.tar.gz" "${parent}/${lang}.tar.gz" "${grandparent}/${lang}.tar.gz"; do
   if [ -f "${f}" ]; then
     local_archive=${f}
     break
@@ -58,6 +61,7 @@ if [ -n "${url}" ]; then
     exit 1
   fi
   echo "$0: downloading ${archive} from ${url}. This may take some time, please be patient."
+  mkdir -p "${data}"
   # NOTE: the signed links carry a query string, so the output file has to be
   # named explicitly (-O) instead of being derived from the URL.
   if ! wget --no-check-certificate -O "${data}/${archive}.tmp" "${url}"; then
@@ -83,9 +87,10 @@ corpus has to be obtained manually (its terms have to be accepted once):
   1. open https://commonvoice.mozilla.org/en/datasets
   2. select the release "${corpus}" and the language of "${lang}",
      then accept the terms to get a download link
-  3. either pass that link to the recipe (quote it, it contains '&'):
-       ./local/data.sh --cv_data_url '<link>'
-     or download ${archive} yourself and put it in ${data}/
+  3. download ${archive} from that link and put it in
+       ${data}/
+     (recipes that accept --cv_data_url can also fetch it for you; quote the
+      link, it contains '&': ./local/data.sh --cv_data_url '<link>')
 The same data is also available, after accepting the terms, from
   https://huggingface.co/datasets/mozilla-foundation/common_voice_${hf_version/./_}
 MESSAGE
@@ -93,6 +98,7 @@ MESSAGE
 fi
 
 echo "$0: unpacking ${local_archive}"
+mkdir -p "${data}"
 tar -xzf "${local_archive}" -C "${data}"
 
 # ${data}/${corpus}/${lang}/* (or ${data}/${corpus}/*) -> ${data}/*
