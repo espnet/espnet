@@ -7,7 +7,7 @@ from collections.abc import Mapping
 from functools import lru_cache
 from importlib import import_module
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Sequence, Mapping
+from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence
 
 import numpy as np
 import torch

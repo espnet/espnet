@@ -1,10 +1,11 @@
-from espnet2.torch_utils.device_funcs import force_gatherable
-
-from transformers import AutoModel, AutoProcessor
-import torch
-import lightning
-from typing import Tuple, Dict, Any
 from abc import ABC, abstractmethod
+from typing import Any, Dict, Tuple
+
+import lightning
+import torch
+from transformers import AutoModel, AutoProcessor
+
+from espnet2.torch_utils.device_funcs import force_gatherable
 
 
 class AbsHFTrainingWrapper(lightning.LightningModule, ABC):
@@ -16,6 +17,7 @@ class AbsHFTrainingWrapper(lightning.LightningModule, ABC):
     As such, this class provides default implementations that can be overwritten when
     inheriting from it if necessary.
     """
+
     model_class = AutoModel
     processor_class = AutoProcessor
 
@@ -33,8 +35,7 @@ class AbsHFTrainingWrapper(lightning.LightningModule, ABC):
         self.processor = self.processor_class.from_pretrained(model_tag_or_path)
 
     def forward(
-        self,
-        **batch
+        self, **batch
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """
         Performs a forward pass and returns the loss, stats, and batch weights.
@@ -50,8 +51,7 @@ class AbsHFTrainingWrapper(lightning.LightningModule, ABC):
         stats = {"loss": loss}
         batch_size = outputs.logits.shape[0]
 
-        loss, stats, weight = force_gatherable(
-            (loss, stats, batch_size), loss.device)
+        loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
         return loss, stats, weight
 
     @abstractmethod
@@ -91,9 +91,10 @@ class AbsHFInferenceWrapper(lightning.LightningModule, ABC):
     For more information on how to load and perform inference, refer to the model's page
     on Hugging Face.
     """
+
     model_class = AutoModel
     processor_class = AutoProcessor
-    
+
     def __init__(self, model_tag_or_path: str, **kwargs):
         """
         Loads the model and processor and performs any additional setup.

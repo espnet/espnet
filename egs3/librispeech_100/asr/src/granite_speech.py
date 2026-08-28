@@ -1,8 +1,12 @@
-from espnet3.components.modeling.hf_models import AbsHFTrainingWrapper, AbsHFInferenceWrapper
+from typing import Any, Dict, List, Tuple
 
-from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor
 import torch
-from typing import Tuple, Dict, List, Any
+from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor
+
+from espnet3.components.modeling.hf_models import (
+    AbsHFInferenceWrapper,
+    AbsHFTrainingWrapper,
+)
 
 
 class GraniteSpeechModel(AbsHFTrainingWrapper):
@@ -25,13 +29,16 @@ class GraniteSpeechInferenceSession(AbsHFInferenceWrapper):
             {"role": "user", "content": user_prompt},
         ]
         self.prompt = self.tokenizer.apply_chat_template(
-            chat, tokenize=False, add_generation_prompt=True)
+            chat, tokenize=False, add_generation_prompt=True
+        )
 
     def forward(self, speech):
-        inputs = self.processor(text=self.prompt, audio=speech,
-                                return_tensors="pt").to(self.model.device)
+        inputs = self.processor(text=self.prompt, audio=speech, return_tensors="pt").to(
+            self.model.device
+        )
         outputs = self.model.generate(
-            **inputs, max_new_tokens=200, do_sample=False, num_beams=1)
+            **inputs, max_new_tokens=200, do_sample=False, num_beams=1
+        )
 
         num_input_tokens = inputs["input_ids"].shape[-1]
         new_tokens = outputs[0, num_input_tokens:].unsqueeze(0)
@@ -51,9 +58,12 @@ class GraniteSpeechCollateFn:
             {"role": "user", "content": user_prompt},
         ]
         self.prompt = self.tokenizer.apply_chat_template(
-            chat, tokenize=False, add_generation_prompt=True)
+            chat, tokenize=False, add_generation_prompt=True
+        )
 
-    def __call__(self, data: List[Dict[str, Any]]) -> Tuple[List[str], Dict[str, torch.Tensor]]:
+    def __call__(
+        self, data: List[Dict[str, Any]]
+    ) -> Tuple[List[str], Dict[str, torch.Tensor]]:
         batch_size = len(data)
         uids = [data[i]["utt_id"] for i in range(batch_size)]
         speech = [data[i]["speech"] for i in range(batch_size)]
@@ -69,25 +79,26 @@ class GraniteSpeechCollateFn:
 
         # tokenize text
         targets = [t + self.processor.tokenizer.eos_token for t in texts]
-        targets = self.tokenizer(targets, return_tensors="pt",
-                                 padding=True, padding_side="right")
+        targets = self.tokenizer(
+            targets, return_tensors="pt", padding=True, padding_side="right"
+        )
 
         # concatenate text with input for loss calculation
         input_ids = torch.cat([inputs.input_ids, targets.input_ids], dim=1)
         attention_mask = torch.cat(
-            [inputs.attention_mask, targets.attention_mask], dim=1)
+            [inputs.attention_mask, targets.attention_mask], dim=1
+        )
 
         labels = targets.input_ids.clone()
         labels[~(targets.attention_mask.bool())] = -100
-        labels = torch.cat(
-            [torch.full_like(inputs.input_ids, -100), labels], dim=1)
+        labels = torch.cat([torch.full_like(inputs.input_ids, -100), labels], dim=1)
 
         batch = {
             "input_ids": input_ids,
             "attention_mask": attention_mask,
             "labels": labels,
             "input_features": inputs.input_features,
-            "input_features_mask": inputs.input_features_mask
+            "input_features_mask": inputs.input_features_mask,
         }
 
         return uids, batch
