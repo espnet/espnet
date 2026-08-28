@@ -150,10 +150,10 @@ def main():
         logging.basicConfig(level=logging.WARN, format=logfmt)
     logging.info(get_commandline_args())
 
-        kaldiio = require_kaldiio()
-        sums = 0
-        sqsums = 0
-        count = 0
+    kaldiio = require_kaldiio()
+    sums = 0
+    sqsums = 0
+    count = 0
     with (
         kaldiio.ReadHelper(args.rspecifier, segments=args.segments) as reader,
         file_writer_helper(
