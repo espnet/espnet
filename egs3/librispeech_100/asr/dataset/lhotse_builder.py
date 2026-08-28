@@ -13,15 +13,14 @@ try:
 except ImportError:
     CutSet = RecordingSet = SupervisionSet = None
 
+from eg3.librispeech_100.asr.dataset.builder import (
+    iter_source_candidates,
+    resolve_librispeech_root,
+    resolve_source_root,
+)
 from lhotse.recipes import prepare_librispeech
 
 from egs3.librispeech_100.asr.dataset.data_utils import LhotseElement
-from eg3.librispeech_100.asr.dataset.builder import (
-    iter_source_candidates,
-    resolve_source_root,
-    resolve_librispeech_root,
-
-)
 from espnet3.components.data.dataset_builder import DatasetBuilder
 from espnet3.utils.config_utils import load_config_with_defaults
 
