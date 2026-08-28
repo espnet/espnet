@@ -58,6 +58,11 @@ python run.py --stages pack_model \
     --publication_config conf/publication.yaml
 
 # 7) Create a demo for the model
+# ------------------------------
+# Note: You might want to manually remove 'speech_ref1' from the 'input_key' of
+#       `conf/inference.yaml` in the `model_pack` directory for deploying the demo
+#       without requiring reference speech.
+# ------------------------------
 python run.py --stages pack_demo \
     --training_config conf/tuning/training_td_speakerbeam_16k.yaml \
     --demo_config conf/demo.yaml
@@ -75,3 +80,8 @@ python run.py --stages upload_model upload_demo \
 
  - config: conf/tuning/training_td_speakerbeam_16k.yaml
  - Pretrained model: https://huggingface.co/wyz/librimix_tse_clean_2mix_training_td_speakerbeam_16k
+
+|dataset|[PESQ_WB](https://github.com/espnet/espnet/blob/master/espnet3/systems/tse/metrics/pesq.py) ↑|[ESTOI](https://github.com/espnet/espnet/blob/master/espnet3/systems/tse/metrics/stoi.py) (×100)↑|[SDR](https://github.com/espnet/espnet/blob/master/espnet3/systems/tse/metrics/sdr.py) (dB)↑|[SAR](https://github.com/espnet/espnet/blob/master/espnet3/systems/tse/metrics/sdr.py) (dB)↑|[SIR](https://github.com/espnet/espnet/blob/master/espnet3/systems/tse/metrics/sdr.py) (dB)↑|[SI-SNR](https://github.com/espnet/espnet/blob/master/espnet3/systems/tse/metrics/sisnr.py) (dB)↑|[OVRL](https://github.com/espnet/espnet/blob/master/espnet3/systems/tse/metrics/dnsmos.py)↑|[SIG](https://github.com/espnet/espnet/blob/master/espnet3/systems/tse/metrics/dnsmos.py)↑|[BAK](https://github.com/espnet/espnet/blob/master/espnet3/systems/tse/metrics/dnsmos.py)↑|[P808_MOS](https://github.com/espnet/espnet/blob/master/espnet3/systems/tse/metrics/dnsmos.py)↑|[TSOS](https://github.com/espnet/espnet/blob/master/espnet3/systems/tse/metrics/tsos.py) (%)↓|
+|---|---|---|---|---|---|---|---|---|---|---|---|
+|2mix_16k_max_dev_mix-clean|2.21|82.86|13.29|13.30|49.87|12.66|3.04|3.38|3.92|3.37|7.49|
+|2mix_16k_max_test_mix-clean|2.20|83.06|13.27|13.27|49.99|12.66|3.06|3.40|3.94|3.39|6.26|
