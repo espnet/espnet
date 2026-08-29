@@ -6,6 +6,7 @@ import logging
 import os
 import shutil
 import subprocess
+import time
 from importlib import resources
 from pathlib import Path
 from typing import Iterable
@@ -21,6 +22,8 @@ from espnet3.utils.download_utils import download_url
 logger = logging.getLogger(__name__)
 
 AUDIO_SUFFIX = ".wav"
+# How often `scan_split` reports progress, in files indexed.
+SCAN_LOG_EVERY = 50_000
 MANIFESTS = ("wav.scp", "utt2spk", "spk2utt")
 
 
@@ -161,18 +164,47 @@ def scan_split(split_dir: Path) -> list[tuple[str, str, Path]]:
     Raises:
         RuntimeError: If the directory contains no audio the builder can read.
     """
+    # Resolved once here, never per entry. `Path.resolve()` lstats every
+    # component of a path to test it for a symlink, which on Lustre costs one
+    # metadata RPC per component -- about ten per file, ~13M over a VoxCeleb2
+    # scan. That is what left job 21539732 sitting in `ptlrpc_set_wait` for
+    # 12.5 h without writing a manifest. Everything `rglob` yields below is
+    # already under this resolved root, so the paths are absolute either way.
+    split_dir = split_dir.resolve()
     entries = []
+    # A whole-corpus scan is ~20 min of pure Lustre metadata I/O that writes
+    # nothing, so without this the log is silent long enough to be mistaken for
+    # the hang of job 21539732. Report progress on file count rather than on a
+    # percentage: `rglob` does not know how many files it is about to yield.
+    started = time.perf_counter()
+    # Both VoxCeleb1 and VoxCeleb2 have a `dev` split, so name the parent too.
+    label = "/".join(split_dir.parts[-2:])
     for suffix in audio_suffixes():
         for path in split_dir.rglob(f"*{suffix}"):
             speaker, video, utterance = path.parts[-3:]
             utt_id = f"{speaker}/{video}/{utterance[: -len(suffix)]}"
-            entries.append((utt_id, speaker, path.resolve()))
+            entries.append((utt_id, speaker, path))
+            if len(entries) % SCAN_LOG_EVERY == 0:
+                elapsed = time.perf_counter() - started
+                logger.info(
+                    "Scanning %s: %d files in %.0fs (%.0f files/s)",
+                    label,
+                    len(entries),
+                    elapsed,
+                    len(entries) / elapsed,
+                )
 
     if not entries:
         raise RuntimeError(
             f"No audio found under: {split_dir}. Expected files ending in "
             f"{', '.join(audio_suffixes())}."
         )
+    logger.info(
+        "Scanned %s: %d files in %.0fs",
+        label,
+        len(entries),
+        time.perf_counter() - started,
+    )
     return sorted(entries)
 
 
@@ -541,11 +573,13 @@ class VoxCelebBuilder(DatasetBuilder):
         """List the MUSAN and RIRS_NOISES files used for data augmentation."""
         musan_root = _env_path(_CFG["musan_env_var"])
         if musan_root is not None and musan_root.is_dir():
+            # Resolved once, for the reason given in `scan_split`.
+            musan_root = musan_root.resolve()
             for category in _CFG["musan_categories"]:
                 paths = sorted((musan_root / str(category)).rglob("*.wav"))
                 target = data_root / f"musan_{category}.scp"
                 target.write_text(
-                    "".join(f"{path.resolve()}\n" for path in paths),
+                    "".join(f"{path}\n" for path in paths),
                     encoding="utf-8",
                 )
                 logger.info("Wrote %s: %d files", target.name, len(paths))
@@ -559,6 +593,8 @@ class VoxCelebBuilder(DatasetBuilder):
 
         rir_root = _env_path(_CFG["rir_env_var"])
         if rir_root is not None and rir_root.is_dir():
+            # Resolved once, for the reason given in `scan_split`.
+            rir_root = rir_root.resolve()
             paths = sorted(
                 path
                 for room in _CFG["rir_rooms"]
@@ -566,7 +602,7 @@ class VoxCelebBuilder(DatasetBuilder):
             )
             target = data_root / "rirs.scp"
             target.write_text(
-                "".join(f"{path.resolve()}\n" for path in paths), encoding="utf-8"
+                "".join(f"{path}\n" for path in paths), encoding="utf-8"
             )
             logger.info("Wrote %s: %d files", target.name, len(paths))
         else:

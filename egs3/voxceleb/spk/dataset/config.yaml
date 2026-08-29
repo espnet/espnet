@@ -12,9 +12,13 @@ builder:
   # `convert_path`, and the manifests point at the converted files. VoxCeleb1
   # is already WAV and is left where it is.
   convert_path: data/converted
-  convert_suffixes:
-    - .m4a
-    - .aac
+  # Empty on this cluster: the VoxCeleb2 copy under $VOXCELEB is already 16 kHz
+  # WAV, so there is nothing to decode. This is not cosmetic -- `scan_split`
+  # runs one full `rglob` per suffix, so leaving `.m4a` and `.aac` here walks
+  # all ~178k VoxCeleb2 directories twice more to match nothing, tripling a
+  # scan that is pure Lustre metadata I/O. Restore the two entries for a stock
+  # VoxCeleb2 tree, where the audio really is AAC.
+  convert_suffixes: []
   # Must match `dataset.sample_rate` below; the dataset rejects anything else.
   sample_rate: 16000
   channels: 1
