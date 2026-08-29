@@ -6,9 +6,18 @@ on:
       - master
       - espnet3
   pull_request:
+    # ready_for_review is required: jobs are skipped on draft PRs, so the
+    # gate below must get a fresh run once the PR leaves draft.
+    types: [opened, synchronize, reopened, ready_for_review]
     branches:
       - master
       - espnet3
+
+# Only one run per PR at a time: a new push cancels the superseded run.
+# Runs on master and in the merge queue are never cancelled.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   NLTK_DISABLE_IMPORT_SECURITY: "1"
@@ -94,6 +103,17 @@ jobs:
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
+      # Pretrained checkpoints downloaded by s3prl at test-collection time
+      # (currently only hubert_base_ls960.pt, ~360 MB). Without this every job
+      # re-downloads it from huggingface.co, and under load the download returns
+      # an HTML error page that then fails to unpickle in torch.load.
+      # One stable key shared by all jobs and matrix cells: the upstream
+      # checkpoints are immutable, so bump the suffix to refresh them.
+      - name: Cache s3prl pretrained checkpoints
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/s3prl
+          key: ${{ runner.os }}-s3prl-v1
       - name: Make environment
         uses: ./.github/actions/prepare-environment
         with:
@@ -202,6 +222,17 @@ jobs:
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
+      # Pretrained checkpoints downloaded by s3prl at test-collection time
+      # (currently only hubert_base_ls960.pt, ~360 MB). Without this every job
+      # re-downloads it from huggingface.co, and under load the download returns
+      # an HTML error page that then fails to unpickle in torch.load.
+      # One stable key shared by all jobs and matrix cells: the upstream
+      # checkpoints are immutable, so bump the suffix to refresh them.
+      - name: Cache s3prl pretrained checkpoints
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/s3prl
+          key: ${{ runner.os }}-s3prl-v1
       - name: Install system dependencies
         uses: ./.github/actions/install-system-dependencies
       - name: Make environment
@@ -240,6 +271,17 @@ jobs:
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
+      # Pretrained checkpoints downloaded by s3prl at test-collection time
+      # (currently only hubert_base_ls960.pt, ~360 MB). Without this every job
+      # re-downloads it from huggingface.co, and under load the download returns
+      # an HTML error page that then fails to unpickle in torch.load.
+      # One stable key shared by all jobs and matrix cells: the upstream
+      # checkpoints are immutable, so bump the suffix to refresh them.
+      - name: Cache s3prl pretrained checkpoints
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/s3prl
+          key: ${{ runner.os }}-s3prl-v1
       - name: Make environment
         uses: ./.github/actions/prepare-environment
         with:
@@ -343,7 +385,7 @@ jobs:
       - uses: actions/cache@v6
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
+          key: ${{ runner.os }}-pip-3.10-2.9.1-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
       - name: Make environment
         uses: ./.github/actions/prepare-environment
         with:
@@ -426,3 +468,36 @@ jobs:
     steps:
     - uses: actions/checkout@master
     - run: ci/check_kaldi_symlinks.sh
+
+  # Single stable status check that aggregates every job in this workflow.
+  # Register THIS job as the required status check instead of the individual
+  # matrix jobs, whose names change whenever the matrix changes.
+  ci_gate_ubuntu:
+    if: always()
+    needs:
+      - process_labels
+      - test_python_espnet2
+      - test_utils_espnet2
+      - test_shell_espnet2
+      - test_integration_espnet2
+      - test_configuration_espnet2
+      - test_python_espnet3
+      - test_integration_espnet3
+      - test_integration_espnet3_publication
+      - test_import
+      - check_kaldi_symlinks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail unless every job succeeded
+        if: >-
+          contains(needs.*.result, 'failure')
+          || contains(needs.*.result, 'cancelled')
+          || contains(needs.*.result, 'skipped')
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+        run: |
+          echo "At least one job did not succeed:"
+          echo "$NEEDS_JSON"
+          exit 1
+      - name: All jobs succeeded
+        run: echo "All jobs in this workflow succeeded."

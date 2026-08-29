@@ -68,9 +68,7 @@ def average_checkpoints(
     expected_keys = None
 
     for checkpoint_path in checkpoint_paths:
-        state_dict = safe_torch_load(
-            checkpoint_path, map_location="cpu", allow_unsafe_fallback=True
-        )
+        state_dict = safe_torch_load(checkpoint_path, map_location="cpu")
         encoder_state_dict = generate_beats_encoder_checkpoint(
             state_dict,
             deepspeed_checkpoint,

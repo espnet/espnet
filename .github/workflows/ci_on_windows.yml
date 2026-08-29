@@ -6,9 +6,18 @@ on:
       - master
       - espnet3
   pull_request:
+    # ready_for_review is required: jobs are skipped on draft PRs, so the
+    # gate below must get a fresh run once the PR leaves draft.
+    types: [opened, synchronize, reopened, ready_for_review]
     branches:
       - master
       - espnet3
+
+# Only one run per PR at a time: a new push cancels the superseded run.
+# Runs on master and in the merge queue are never cancelled.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   NLTK_DISABLE_IMPORT_SECURITY: "1"
@@ -49,3 +58,26 @@ jobs:
           HF_TOKEN: ${{ secrets.HF_CI_TOKEN }}
         run: |
           ./ci/install.sh
+
+  # Single stable status check that aggregates every job in this workflow.
+  # Register THIS job as the required status check instead of the individual
+  # matrix jobs, whose names change whenever the matrix changes.
+  ci_gate_windows:
+    if: always()
+    needs:
+      - check_installable_on_windows
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail unless every job succeeded
+        if: >-
+          contains(needs.*.result, 'failure')
+          || contains(needs.*.result, 'cancelled')
+          || contains(needs.*.result, 'skipped')
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+        run: |
+          echo "At least one job did not succeed:"
+          echo "$NEEDS_JSON"
+          exit 1
+      - name: All jobs succeeded
+        run: echo "All jobs in this workflow succeeded."
