@@ -24,10 +24,10 @@ ${CXX:-g++} -v
 
     # FIXME(kamo): Failed to compile pesq
     make TH_VERSION="${TH_VERSION}" WITH_OMP="${WITH_OMP-ON}" all \
-        warp-transducer.done moses.done \
-            pyopenjtalk.done s3prl.done transformers.done \
+        warp-transducer.done nkf.done moses.done \
+            pyopenjtalk.done py3mmseg.done s3prl.done transformers.done \
             phonemizer.done fairseq.done k2.done longformer.done \
-            whisper.done parallel-wavegan.done lora.done
+            whisper.done parallel-wavegan.done muskits.done lora.done
     rm -rf kaldi
 )
 . tools/activate_python.sh

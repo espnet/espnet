@@ -37,10 +37,10 @@ ${CXX:-g++} -v
     # FIXME(kamo): Failed to compile pesq
     # TODO(nelson): Reorder versa and s3prl. Currently, versa is using a forked S3PRL that breaks CI, due to PyTorch versions.
     make TH_VERSION="${TH_VERSION}" WITH_OMP="${WITH_OMP-ON}" all \
-        warp-transducer.done versa.done moses.done \
-        pyopenjtalk.done transformers.done \
+        warp-transducer.done versa.done nkf.done moses.done \
+        pyopenjtalk.done py3mmseg.done transformers.done \
         phonemizer.done fairseq.done k2.done longformer.done \
-        parallel-wavegan.done lora.done sph2pipe \
+        parallel-wavegan.done muskits.done lora.done sph2pipe \
         torcheval.done whisper.done s3prl.done
     rm -rf kaldi
 )
