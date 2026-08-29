@@ -37,10 +37,10 @@ ${CXX:-g++} -v
     # FIXME(kamo): Failed to compile pesq
     # TODO(nelson): Reorder versa and s3prl. Currently, versa is using a forked S3PRL that breaks CI, due to PyTorch versions.
     make TH_VERSION="${TH_VERSION}" WITH_OMP="${WITH_OMP-ON}" all \
-        warp-transducer.done versa.done nkf.done moses.done mwerSegmenter.done \
-        pyopenjtalk.done py3mmseg.done transformers.done \
+        warp-transducer.done versa.done moses.done \
+        pyopenjtalk.done transformers.done \
         phonemizer.done fairseq.done k2.done longformer.done \
-        parallel-wavegan.done muskits.done lora.done sph2pipe \
+        parallel-wavegan.done lora.done sph2pipe \
         torcheval.done whisper.done s3prl.done
     rm -rf kaldi
 )
@@ -50,12 +50,10 @@ python3 --version
 start_timer "install kenlm"
 python3 -m pip install https://github.com/kpu/kenlm/archive/master.zip
 end_timer "install kenlm"
-# NOTE(kamo): tensorboardx is used for chainer mode only
-start_timer "install tensorboardx and matplotlib"
-python3 -m pip install tensorboardx
+start_timer "warm matplotlib cache"
 # NOTE(kamo): Create matplotlib.cache to reduce runtime for test phase
 python3 -c "import matplotlib.pyplot"
-end_timer "install tensorboardx and matplotlib"
+end_timer "warm matplotlib cache"
 # NOTE(wangyou): onnxruntime and onnx2torch are used for testing dnsmos functions
 cat >> constraints.txt << EOF
 torch==${TH_VERSION}
@@ -75,7 +73,7 @@ end_timer "install hacking flake8"
 
 # install espnet
 start_timer "install espnet"
-python3 -m pip install -e ".[test,doc,all]"
+python3 -m pip install -e ".[test,all]"
 end_timer "install espnet"
 
 # log

@@ -49,7 +49,6 @@ jobs:
         env:
           ESPNET_PYTHON_VERSION: ${{ matrix.python-version }}
           TH_VERSION: ${{ matrix.pytorch-version }}
-          CHAINER_VERSION: 6.0.0
           USE_CONDA: ${{ matrix.use-conda }}
           # FIXME(kamo): clang is used by default, but I don't know how to use "-fopenmp" with clang
           WITH_OMP: OFF

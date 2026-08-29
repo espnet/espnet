@@ -47,9 +47,6 @@ else:
 EOF
 }
 
-#### Make sure chainer-independent ####
-python3 -m pip uninstall -y chainer
-
 # First uninstall all espnet-related dependencies including all extras.
 # I use toml and load the pyproject.toml
 python3 -m pip install toml

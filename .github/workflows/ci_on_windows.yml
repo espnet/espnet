@@ -53,7 +53,6 @@ jobs:
         env:
           ESPNET_PYTHON_VERSION: ${{ matrix.python-version }}
           TH_VERSION: ${{ matrix.pytorch-version }}
-          CHAINER_VERSION: 6.0.0
           USE_CONDA: false
           HF_TOKEN: ${{ secrets.HF_CI_TOKEN }}
         run: |

@@ -61,7 +61,6 @@ jobs:
   #     matrix:
   #       python-version: ["3.10", "3.12"]
   #       pytorch-version: [2.9.1, 2.10.0, 2.11.0]
-  #       chainer-version: [6.0.0]
   #       use-conda: [false]
   #   steps:
   #     - uses: actions/checkout@master
@@ -80,7 +79,6 @@ jobs:
   #         os-version: ubuntu
   #         python-version: ${{ matrix.python-version }}
   #         pytorch-version: ${{ matrix.pytorch-version }}
-  #         chainer-version: ${{ matrix.chainer-version }}
   #         use-conda: ${{ matrix.use-conda }}
   #     - name: Install Kaldi
   #       run: ./ci/install_kaldi.sh
@@ -96,7 +94,6 @@ jobs:
         python-version: ["3.10", "3.12"]
         pytorch-version: [2.9.1, 2.10.0, 2.11.0]
         use-conda: [false]
-        chainer-version: [6.0.0]
     steps:
       - uses: actions/checkout@master
       - uses: actions/cache@v6
@@ -120,7 +117,6 @@ jobs:
           os-version: ubuntu
           python-version: ${{ matrix.python-version }}
           pytorch-version: ${{ matrix.pytorch-version }}
-          chainer-version: ${{ matrix.chainer-version }}
           use-conda: ${{ matrix.use-conda }}
           hf-token: ${{ secrets.HF_CI_TOKEN }}
       - name: test python
@@ -145,7 +141,6 @@ jobs:
         python-version: ["3.10", "3.12"]
         pytorch-version: [2.9.1]
         use-conda: [false]
-        chainer-version: [6.0.0]
     steps:
       - uses: actions/checkout@master
       - uses: actions/cache@v6
@@ -158,7 +153,6 @@ jobs:
           os-version: ubuntu
           python-version: ${{ matrix.python-version }}
           pytorch-version: ${{ matrix.pytorch-version }}
-          chainer-version: ${{ matrix.chainer-version }}
           use-conda: ${{ matrix.use-conda }}
           hf-token: ${{ secrets.HF_CI_TOKEN }}
       - name: test utils
@@ -183,7 +177,6 @@ jobs:
         python-version: ["3.10"]
         pytorch-version: [2.9.1]
         use-conda: [false]
-        chainer-version: [6.0.0]
     steps:
       - uses: actions/checkout@master
       - uses: actions/cache@v6
@@ -196,7 +189,6 @@ jobs:
           os-version: ubuntu
           python-version: ${{ matrix.python-version }}
           pytorch-version: ${{ matrix.pytorch-version }}
-          chainer-version: ${{ matrix.chainer-version }}
           use-conda: ${{ matrix.use-conda }}
           hf-token: ${{ secrets.HF_CI_TOKEN }}
       - name: test shell
@@ -214,7 +206,6 @@ jobs:
         python-version: ["3.10", "3.12"]
         pytorch-version: [2.9.1, 2.10.0, 2.11.0]
         use-conda: [false]
-        chainer-version: [6.0.0]
         config-task: ["asr", "tts", "asr2",  "enh", "ssl", "st", "spk", "lid", "s2t", "s2st", "lm", "codec"]
     steps:
       - uses: actions/checkout@master
@@ -241,7 +232,6 @@ jobs:
           os-version: ubuntu
           python-version: ${{ matrix.python-version }}
           pytorch-version: ${{ matrix.pytorch-version }}
-          chainer-version: ${{ matrix.chainer-version }}
           use-conda: ${{ matrix.use-conda }}
           hf-token: ${{ secrets.HF_CI_TOKEN }}
       - name: Install Kaldi
@@ -264,7 +254,6 @@ jobs:
         pytorch-version: ["2.9.1"]
         config-task: ["asr", "asr_transducer", "lm", "ssl", "tts", "enh",  "enh_asr"]
         use-conda: [false]
-        chainer-version: [6.0.0]
     steps:
       - uses: actions/checkout@master
       - uses: actions/cache@v6
@@ -288,7 +277,6 @@ jobs:
           os-version: ubuntu
           python-version: ${{ matrix.python-version }}
           pytorch-version: ${{ matrix.pytorch-version }}
-          chainer-version: ${{ matrix.chainer-version }}
           use-conda: ${{ matrix.use-conda }}
           hf-token: ${{ secrets.HF_CI_TOKEN }}
       - name: test configuration
@@ -308,7 +296,6 @@ jobs:
         python-version: ["3.10", "3.12"]
         pytorch-version: [2.9.1, 2.10.0, 2.11.0]
         use-conda: [false]
-        chainer-version: [6.0.0]
     steps:
       - uses: actions/checkout@master
       - uses: actions/cache@v6
@@ -321,7 +308,6 @@ jobs:
           os-version: ubuntu
           python-version: ${{ matrix.python-version }}
           pytorch-version: ${{ matrix.pytorch-version }}
-          chainer-version: ${{ matrix.chainer-version }}
           use-conda: ${{ matrix.use-conda }}
           hf-token: ${{ secrets.HF_CI_TOKEN }}
       - name: test python
@@ -358,7 +344,6 @@ jobs:
           os-version: ubuntu
           python-version: ${{ matrix.python-version }}
           pytorch-version: ${{ matrix.pytorch-version }}
-          chainer-version: ${{ matrix.chainer-version }}
           use-conda: ${{ matrix.use-conda }}
           hf-token: ${{ secrets.HF_CI_TOKEN }}
       - name: test integration
