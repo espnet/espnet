@@ -100,6 +100,17 @@ jobs:
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
+      # Pretrained checkpoints downloaded by s3prl at test-collection time
+      # (currently only hubert_base_ls960.pt, ~360 MB). Without this every job
+      # re-downloads it from huggingface.co, and under load the download returns
+      # an HTML error page that then fails to unpickle in torch.load.
+      # One stable key shared by all jobs and matrix cells: the upstream
+      # checkpoints are immutable, so bump the suffix to refresh them.
+      - name: Cache s3prl pretrained checkpoints
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/s3prl
+          key: ${{ runner.os }}-s3prl-v1
       - name: Make environment
         uses: ./.github/actions/prepare-environment
         with:
@@ -208,6 +219,17 @@ jobs:
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
+      # Pretrained checkpoints downloaded by s3prl at test-collection time
+      # (currently only hubert_base_ls960.pt, ~360 MB). Without this every job
+      # re-downloads it from huggingface.co, and under load the download returns
+      # an HTML error page that then fails to unpickle in torch.load.
+      # One stable key shared by all jobs and matrix cells: the upstream
+      # checkpoints are immutable, so bump the suffix to refresh them.
+      - name: Cache s3prl pretrained checkpoints
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/s3prl
+          key: ${{ runner.os }}-s3prl-v1
       - name: Install system dependencies
         uses: ./.github/actions/install-system-dependencies
       - name: Make environment
@@ -246,6 +268,17 @@ jobs:
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
+      # Pretrained checkpoints downloaded by s3prl at test-collection time
+      # (currently only hubert_base_ls960.pt, ~360 MB). Without this every job
+      # re-downloads it from huggingface.co, and under load the download returns
+      # an HTML error page that then fails to unpickle in torch.load.
+      # One stable key shared by all jobs and matrix cells: the upstream
+      # checkpoints are immutable, so bump the suffix to refresh them.
+      - name: Cache s3prl pretrained checkpoints
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/s3prl
+          key: ${{ runner.os }}-s3prl-v1
       - name: Make environment
         uses: ./.github/actions/prepare-environment
         with:
@@ -349,7 +382,7 @@ jobs:
       - uses: actions/cache@v6
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
+          key: ${{ runner.os }}-pip-3.10-2.9.1-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
       - name: Make environment
         uses: ./.github/actions/prepare-environment
         with:
