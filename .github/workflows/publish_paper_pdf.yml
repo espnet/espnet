@@ -8,6 +8,12 @@ on:
     branches:
       - master
 
+# Only one run per PR at a time: a new push cancels the superseded run.
+# Runs on master and in the merge queue are never cancelled.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   generate_and_upload_paper_pdf:
     runs-on: ubuntu-latest
