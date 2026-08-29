@@ -8,9 +8,9 @@ import logging
 import os
 import sys
 
-import kaldiio
 import numpy as np
 import torch
+from omniio import kaldi as kaldi_io
 
 from espnet2.legacy.nets.pytorch_backend.nets_utils import pad_list
 from espnet2.speechlm.tokenizer.codec_tokenizer import CodecTokenizer
@@ -101,8 +101,8 @@ def dump_codec(
     )
 
     # (3) Tokenizer loop
-    codec_writer = kaldiio.WriteHelper(wspecifier)
-    wav_reader = kaldiio.ReadHelper(rspecifier)
+    codec_writer = kaldi_io.WriteHelper(wspecifier)
+    wav_reader = kaldi_io.ReadHelper(rspecifier)
     if wav_wspecifier is not None and dump_audio:
         wav_ark_file, wav_scp_file = wav_wspecifier.split(":")[1].split(",")
         wav_scp_writer = open(wav_scp_file, "w")
@@ -139,7 +139,7 @@ def dump_codec(
                 resyn_wavs = resyn_wavs.detach().cpu().numpy()
                 for wav, length, key in zip(resyn_wavs, length_buffer, key_buffer):
                     wav = wav[:length]
-                    kaldiio.save_ark(
+                    kaldi_io.save_ark(
                         wav_ark_writer,
                         {key: (wav, sample_rate)},
                         scp=wav_scp_writer,

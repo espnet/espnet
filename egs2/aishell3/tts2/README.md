@@ -124,7 +124,7 @@ We use [PWG repo](https://github.com/kan-bayashi/ParallelWaveGAN/tree/master/egs
   ```shell
   cat path/to/train_hubert.txt path/to/dev_hubert.txt path/to/test_hubert.txt > path/to/newfile_all.txt
   ```
-* Modify the ``hubert_text`` in ./run.sh. Follow instructions in stage 0 to symlink the data(silence trimmed). ``wav`` format is better supported in kaldiio than ``flac``. Notice that aishell3 has unknown speakers, so we don't use sid.
+* Modify the ``hubert_text`` in ./run.sh. Follow instructions in stage 0 to symlink the data(silence trimmed). ``wav`` format is better supported in the Kaldi ark reader than ``flac``. Notice that aishell3 has unknown speakers, so we don't use sid.
 
 * Modify ``num_embs``(equals to the number of k-means clusters), ``batch_max_steps``(as the comment suggested) and custom parameters in the config file ``conf/hifigan_hubert_24k.v1.yaml``.
 

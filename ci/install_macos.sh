@@ -52,6 +52,9 @@ python3 -m pip install "hacking>=2.0.0" "flake8>=3.7.8"
 # install espnet
 python3 -m pip install -e ".[test]"
 python3 -m pip install -e ".[doc]"
+# omniio is not on PyPI, so it cannot be an extra of espnet; install it here so
+# the Kaldi ark/scp code paths stay covered.
+python3 -m pip install "omniio @ git+https://github.com/wavlab-speech/omniio.git"
 
 # log
 python3 -m pip freeze

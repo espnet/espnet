@@ -23,6 +23,7 @@ def pytest_configure():
     # ---- omniio stubs ----
     # Mirror the real omniio layout used by the loaders:
     #   audio_loader -> ``from omniio.interface import audio_read``
+    #   audio_loader -> ``import_kaldi_io()`` -> ``omniio.kaldi``
     #   text_loader  -> ``from omniio.text.read import text_read_local``
     if "omniio" not in sys.modules:
         omniio = types.ModuleType("omniio")
@@ -62,6 +63,19 @@ def pytest_configure():
         omniio_text_read.text_read_local = _text_read_local
         omniio_text.read = omniio_text_read
         _install_stub("omniio.text.read", omniio_text_read)
+
+        # omniio.kaldi.load_mat used by KaldiAudioReader
+        omniio_kaldi = types.ModuleType("omniio.kaldi")
+        omniio_kaldi.__spec__ = importlib.machinery.ModuleSpec(
+            "omniio.kaldi", loader=None
+        )
+
+        def _load_mat(*args, **kwargs):
+            raise NotImplementedError("stub: omniio not installed")
+
+        omniio_kaldi.load_mat = _load_mat
+        omniio.kaldi = omniio_kaldi
+        _install_stub("omniio.kaldi", omniio_kaldi)
 
     # ---- duckdb stub ----
     if "duckdb" not in sys.modules:
@@ -139,14 +153,3 @@ def pytest_configure():
 
         sf.read = read
         _install_stub("soundfile", sf)
-
-    # ---- kaldiio stub ----
-    if "kaldiio" not in sys.modules:
-        kaldiio = types.ModuleType("kaldiio")
-        kaldiio.__spec__ = importlib.machinery.ModuleSpec("kaldiio", loader=None)
-
-        def load_mat(*args, **kwargs):
-            raise NotImplementedError("stub: kaldiio not installed")
-
-        kaldiio.load_mat = load_mat
-        _install_stub("kaldiio", kaldiio)
