@@ -227,7 +227,6 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
         | `st`       | Speech Translation            |
         | `s2t`      | Speech to Text (e.g., OWSM)   |
         | `spk`      | Speaker recognition           |
-        | `kaldiio`  | Kaldi ark/scp I/O (`kaldiio`) |
         | `dev`      | Code formatting and linting   |
         | `test`     | Unit test dependencies        |
         | `doc`      | Documentation generation      |
@@ -239,21 +238,37 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
         pip install -e ".[asr,tts,test]"
         ```
 
-    4. [Optional] Kaldi-format features (`kaldiio`)
-        `kaldiio` is **not** installed by default, because its license restricts
-        redistribution (see
-        [#6529](https://github.com/espnet/espnet/issues/6529)).
-        ESPnet only needs it to read or write Kaldi `ark`/`scp` files, so install
-        it explicitly if your recipe or data uses those formats:
+    4. [Optional] Kaldi-format features (`omniio`)
+        Kaldi `ark`/`scp` I/O comes from
+        [omniio](https://github.com/wavlab-speech/omniio), which is **not**
+        installed by default. Install it if your recipe or data uses those
+        formats:
 
         ```sh
-        pip install -e ".[kaldiio]"
+        pip install "omniio @ git+https://github.com/wavlab-speech/omniio.git"
         ```
+
+        or, from `<espnet-root>/tools`:
+
+        ```sh
+        make omniio.done
+        ```
+
+        It is installed separately rather than as a `pip install -e ".[...]"`
+        extra because omniio is not published on PyPI, and PyPI does not allow
+        direct URL references in package metadata.
 
         Without it, the Kaldi code paths (e.g. the `kaldi_ark` data type, kaldi
         pipe entries in `wav.scp`, and `--audio_format *.ark`) raise an
         `ImportError` telling you to install it. Everything else, including the
-        default `raw`-feature recipes, works without `kaldiio`.
+        default `raw`-feature recipes, works without it.
+
+        ESPnet used `kaldiio` for this until it was replaced by omniio: the
+        `kaldiio` license restricts redistribution, which is a problem for
+        anyone publicly distributing software that depends on ESPnet (see
+        [#6529](https://github.com/espnet/espnet/issues/6529)). omniio is
+        MIT-licensed and writes byte-identical archives, so existing `ark`/`scp`
+        data and any Kaldi tooling around it keep working unchanged.
 
 
 2. Install ESPnet (Legacy)

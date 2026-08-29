@@ -13,12 +13,12 @@ from torch.utils.data.dataset import IterableDataset
 from typeguard import typechecked
 
 from espnet2.train.dataset import ESPnetDataset
-from espnet2.utils.kaldiio_utils import import_kaldiio
+from espnet2.utils.kaldi_io_utils import import_kaldi_io
 
 
 def load_kaldi(input):
-    kaldiio = import_kaldiio()
-    retval = kaldiio.load_mat(input)
+    kaldi_io = import_kaldi_io()
+    retval = kaldi_io.load_mat(input)
     if isinstance(retval, tuple):
         assert len(retval) == 2, len(retval)
         if isinstance(retval[0], int) and isinstance(retval[1], np.ndarray):

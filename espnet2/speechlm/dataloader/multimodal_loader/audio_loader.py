@@ -10,7 +10,7 @@ from typing import Iterator, Tuple
 import numpy as np
 import pyarrow as pa
 
-from espnet2.utils.kaldiio_utils import import_kaldiio
+from espnet2.utils.kaldi_io_utils import import_kaldi_io
 
 try:
     from omniio.interface import audio_read
@@ -213,7 +213,7 @@ class LhotseAudioReader:
 
 
 class KaldiAudioReader:
-    """Dict-like lazy audio reader using Kaldi ark files via kaldiio.
+    """Dict-like lazy audio reader for Kaldi ark files.
 
     Reads audio data from Kaldi ark files using an index file. The index file
     should contain one entry per line in the format: "example_id ark_path:offset"
@@ -233,7 +233,7 @@ class KaldiAudioReader:
         index_path: str,
         valid_ids: list = None,
     ):
-        self._kaldiio = import_kaldiio()
+        self._kaldi_io = import_kaldi_io()
         self.index = {}
 
         valid_ids_set = set(valid_ids) if valid_ids is not None else None
@@ -271,7 +271,7 @@ class KaldiAudioReader:
             raise KeyError(f"Key '{key}' not found in index")
 
         ark_index = self.index[key]
-        sample_rate, audio = self._kaldiio.load_mat(ark_index)
+        sample_rate, audio = self._kaldi_io.load_mat(ark_index)
 
         # Ensure consistent shape [num_channels, num_samples]
         if audio.ndim == 1:

@@ -4,8 +4,8 @@ import argparse
 import codecs
 import os
 
-import kaldiio
 import numpy as np
+from omniio import kaldi as kaldi_io
 from tqdm import tqdm
 
 
@@ -26,14 +26,14 @@ def scp2array_dic(
     :return: dic of numpy array for read while None for write
     """
     if array_dic is None:
-        array_dic = kaldiio.load_scp(scp_path)
+        array_dic = kaldi_io.load_scp(scp_path)
         return array_dic
     else:
         if ark_path is None:
             ark_path = scp_path.replace(".scp", ".ark")
         else:
             pass
-        kaldiio.save_ark(
+        kaldi_io.save_ark(
             ark=ark_path,
             array_dict=array_dic,
             scp=scp_path,
@@ -90,7 +90,7 @@ def main_concatenate(audio_dir, visual_dir, store_dir, ji=None, nj=None):
             audio_visual_array = np.concatenate(
                 [audio_array, expend_visual_array], axis=-1
             )
-            kaldiio.save_ark(
+            kaldi_io.save_ark(
                 ark=store_ark,
                 array_dict={key: audio_visual_array},
                 scp=store_scp,

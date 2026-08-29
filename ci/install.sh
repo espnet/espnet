@@ -100,6 +100,13 @@ start_timer "install espnet"
 python3 -m pip install -e ".[test,all]"
 end_timer "install espnet"
 
+# NOTE: omniio provides the Kaldi ark/scp I/O used by espnet2.utils.kaldi_io_utils.
+#   It is not on PyPI, so it cannot be an extra of espnet and is installed here to
+#   keep the Kaldi code paths covered by CI.
+start_timer "install omniio"
+python3 -m pip install "omniio @ git+https://github.com/wavlab-speech/omniio.git"
+end_timer "install omniio"
+
 # log
 python3 -m pip freeze
 

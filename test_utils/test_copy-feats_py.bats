@@ -9,12 +9,12 @@ setup() {
     # Create an ark for dummy feature
     python << EOF
 import numpy as np
-import kaldiio
+from omniio import kaldi as kaldi_io
 with open('${tmpdir}/feats.ark','wb') as f:
-    kaldiio.save_ark(f, {'A-utt1': np.random.randn(1, 100).astype(np.float32),
-                         'A-utt2': np.random.randn(20, 100).astype(np.float32),
-                         'B-utt1': np.random.randn(100, 100).astype(np.float32),
-                         'B-utt2': np.random.randn(10, 100).astype(np.float32)})
+    kaldi_io.save_ark(f, {'A-utt1': np.random.randn(1, 100).astype(np.float32),
+                          'A-utt2': np.random.randn(20, 100).astype(np.float32),
+                          'B-utt1': np.random.randn(100, 100).astype(np.float32),
+                          'B-utt2': np.random.randn(10, 100).astype(np.float32)})
 EOF
 
 }
