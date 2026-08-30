@@ -209,23 +209,18 @@ jobs:
           ls -la tools/ | head -20
 
       - name: Which interpreter
-        # The first attempt installed espnet successfully and then could not
-        # import it, which means pip and python did not agree on an
-        # interpreter. Container jobs also default to `sh`, not bash, and
-        # GitHub composes its own PATH for them, so neither can be assumed.
+        # Kept from the debugging round because it is nearly free and answers
+        # the first question anyone will ask if a container job misbehaves.
+        # It has already earned its place: it showed that PATH is fine and
+        # python, python3 and pip all resolve to the venv, which is what ruled
+        # out the interpreter mismatch this was written to look for.
         shell: bash
         run: |
           echo "PATH=$PATH"
           echo "which python  : $(command -v python || echo none)"
-          echo "which python3 : $(command -v python3 || echo none)"
           echo "which pip     : $(command -v pip || echo none)"
-          for exe in python python3 /espnet/tools/venv/bin/python; do
-            command -v "$exe" >/dev/null 2>&1 || continue
-            echo "--- $exe ---"
-            "$exe" -c 'import sys; print(" executable:", sys.executable); print(" prefix:", sys.prefix)'
-          done
-          echo "--- checkout ---"
-          pwd && ls -d espnet espnet2 2>/dev/null
+          python -c 'import sys; print("executable:", sys.executable); print("prefix:", sys.prefix)'
+          echo "checkout: $(pwd)"
 
       - name: Point the editable install at this checkout
         # The image's editable install refers to a source tree that is not in
@@ -246,7 +241,11 @@ jobs:
             echo "ci/no_redistribute.txt not on this branch yet (arrives with #6565)"
           fi
           echo "reinstall took $((SECONDS - start))s"
-          "${VENV}/python" -c 'import espnet, espnet2; print("espnet from", espnet.__file__)'
+          # The distribution is named espnet, but the importable packages are
+          # espnet2 and espnet3; there is no top-level espnet module. Asserting
+          # on the distribution name is what made the previous run look like a
+          # broken install when it was not.
+          "${VENV}/python" -c 'import espnet2, espnet3; print("espnet2 from", espnet2.__file__)'
 
       - name: test python
         run: ./ci/test_python_espnet2.sh
