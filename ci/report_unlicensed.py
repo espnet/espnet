@@ -68,7 +68,9 @@ def main() -> int:
             unlicensed.append(name)
 
     fresh = sorted(set(unlicensed), key=str.lower)
-    print(f"::group::Distributions with no declared licence, not yet checked ({len(fresh)})")
+    print(
+        f"::group::Distributions with no declared licence, not yet checked ({len(fresh)})"
+    )
     for name in fresh:
         print(f"  {name}")
     print("::endgroup::")
