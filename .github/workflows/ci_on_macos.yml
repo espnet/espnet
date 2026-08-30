@@ -38,10 +38,12 @@ jobs:
       - uses: actions/checkout@master
       - name: Install FFmpeg
         uses: ./.github/actions/install-ffmpeg
-      - uses: actions/cache@v6
+      - uses: actions/cache/restore@v6
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-
       - uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
@@ -67,6 +69,16 @@ jobs:
   # Single stable status check that aggregates every job in this workflow.
   # Register THIS job as the required status check instead of the individual
   # matrix jobs, whose names change whenever the matrix changes.
+      # Only pushes write caches. Pull request runs restore and never save, so a
+      # miss on a PR branch cannot add another per-ref copy of the same entry.
+      - name: Save pip cache
+        if: github.event_name == 'push'
+        continue-on-error: true
+        uses: actions/cache/save@v6
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
+
   ci_gate_macos:
     if: always()
     needs:
