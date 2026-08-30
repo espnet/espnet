@@ -155,7 +155,7 @@ Contributions, questions, and feature requests are all welcome — open an
 First time here? Read the [contribution guide](CONTRIBUTING.md).
 
 <a href="https://github.com/espnet/espnet/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=espnet/espnet&max=100&columns=25" width="640" alt="Contributors"/>
+  <img src="https://contrib.rocks/image?repo=espnet/espnet&max=100&columns=25" alt="Contributors"/>
 </a>
 
 ## Details
