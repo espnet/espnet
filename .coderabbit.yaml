@@ -1,0 +1,45 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+# https://docs.coderabbit.ai/reference/yaml-template
+#
+# Trial setup: auto-review is OFF on purpose. Reviews only happen when a
+# maintainer explicitly asks for one on a PR with:
+#
+#     @coderabbitai review
+#
+# Once we have judged the signal-to-noise ratio on real ESPnet PRs, we can
+# flip `auto_review.enabled` to true.
+#
+# Replaces .gemini/config.yaml -- the consumer version of Gemini Code Assist
+# on GitHub was shut down by Google on 2026-07-17.
+language: en-US
+tone_instructions: >-
+  Be concise and technical. No jokes or emoji. Flag only issues that affect
+  correctness, reproducibility of recipes, or public API compatibility.
+  Many contributors are students and first-time contributors: explain the
+  problem, do not pile on style nitpicks.
+reviews:
+  profile: quiet              # only the most important feedback
+  high_level_summary: false   # PR summaries are handled separately
+  review_status: false        # no "review skipped" / status chatter
+  poem: false
+  changed_files_summary: false
+  sequence_diagrams: false
+  auto_review:
+    enabled: false            # <- on-demand only during the trial
+    drafts: false
+    auto_incremental_review: false
+  path_filters:
+    - '!doc/**'
+    - '!**/*.ipynb'
+    - '!ci/**'
+  path_instructions:
+    - path: 'egs2/**'
+      instructions: >-
+        Recipe code. Check run.sh / conf consistency and that paths and stage
+        numbers are valid; do not nitpick shell style shared with other recipes.
+    - path: 'espnet2/**'
+      instructions: >-
+        Library code. Check backward compatibility of public classes and
+        arguments, tensor shape/dtype handling, and device placement.
+chat:
+  art: false
