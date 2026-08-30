@@ -6,9 +6,21 @@ on:
       - master
       - espnet3
   pull_request:
+    # ready_for_review is required: jobs are skipped on draft PRs, so the
+    # gate below must get a fresh run once the PR leaves draft.
+    types: [opened, synchronize, reopened, ready_for_review]
     branches:
       - master
       - espnet3
+
+# Only one run per PR at a time: a new push cancels the superseded run.
+# Non-PR events key the group on github.sha rather than github.ref so that
+# every push to master gets its own group. cancel-in-progress only protects
+# runs that have actually started; a *pending* run is cancelled when a newer
+# run joins its group, and master runs here sit pending for a long time.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   NLTK_DISABLE_IMPORT_SECURITY: "1"
@@ -52,7 +64,6 @@ jobs:
   #     matrix:
   #       python-version: ["3.10", "3.12"]
   #       pytorch-version: [2.9.1, 2.10.0, 2.11.0]
-  #       chainer-version: [6.0.0]
   #       use-conda: [false]
   #   steps:
   #     - uses: actions/checkout@master
@@ -71,7 +82,6 @@ jobs:
   #         os-version: ubuntu
   #         python-version: ${{ matrix.python-version }}
   #         pytorch-version: ${{ matrix.pytorch-version }}
-  #         chainer-version: ${{ matrix.chainer-version }}
   #         use-conda: ${{ matrix.use-conda }}
   #     - name: Install Kaldi
   #       run: ./ci/install_kaldi.sh
@@ -82,25 +92,37 @@ jobs:
     if: |
       github.event.pull_request.draft == false
     strategy:
+      fail-fast: false
       max-parallel: 20
       matrix:
         python-version: ["3.10", "3.12"]
         pytorch-version: [2.9.1, 2.10.0, 2.11.0]
         use-conda: [false]
-        chainer-version: [6.0.0]
     steps:
       - uses: actions/checkout@master
-      - uses: actions/cache@v6
+      - uses: actions/cache/restore@v6
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-
+      # Pretrained checkpoints downloaded by s3prl at test-collection time
+      # (currently only hubert_base_ls960.pt, ~360 MB). Without this every job
+      # re-downloads it from huggingface.co, and under load the download returns
+      # an HTML error page that then fails to unpickle in torch.load.
+      # One stable key shared by all jobs and matrix cells: the upstream
+      # checkpoints are immutable, so bump the suffix to refresh them.
+      - name: Cache s3prl pretrained checkpoints
+        uses: actions/cache/restore@v6
+        with:
+          path: ~/.cache/s3prl
+          key: ${{ runner.os }}-s3prl-v1
       - name: Make environment
         uses: ./.github/actions/prepare-environment
         with:
           os-version: ubuntu
           python-version: ${{ matrix.python-version }}
           pytorch-version: ${{ matrix.pytorch-version }}
-          chainer-version: ${{ matrix.chainer-version }}
           use-conda: ${{ matrix.use-conda }}
           hf-token: ${{ secrets.HF_CI_TOKEN }}
       - name: test python
@@ -113,6 +135,22 @@ jobs:
         run: |
           source tools/activate_python.sh
           coverage erase
+      # Only pushes write caches. Pull request runs restore and never save, so a
+      # miss on a PR branch cannot add another per-ref copy of the same entry.
+      - name: Save pip cache
+        if: github.event_name == 'push'
+        continue-on-error: true
+        uses: actions/cache/save@v6
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
+      - name: Save s3prl checkpoint cache
+        if: github.event_name == 'push'
+        continue-on-error: true
+        uses: actions/cache/save@v6
+        with:
+          path: ~/.cache/s3prl
+          key: ${{ runner.os }}-s3prl-v1
 
   test_utils_espnet2:
     runs-on: ubuntu-latest
@@ -120,25 +158,26 @@ jobs:
     if: |
       github.event.pull_request.draft == false
     strategy:
+      fail-fast: false
       max-parallel: 20
       matrix:
         python-version: ["3.10", "3.12"]
         pytorch-version: [2.9.1]
         use-conda: [false]
-        chainer-version: [6.0.0]
     steps:
       - uses: actions/checkout@master
-      - uses: actions/cache@v6
+      - uses: actions/cache/restore@v6
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-
       - name: Make environment
         uses: ./.github/actions/prepare-environment
         with:
           os-version: ubuntu
           python-version: ${{ matrix.python-version }}
           pytorch-version: ${{ matrix.pytorch-version }}
-          chainer-version: ${{ matrix.chainer-version }}
           use-conda: ${{ matrix.use-conda }}
           hf-token: ${{ secrets.HF_CI_TOKEN }}
       - name: test utils
@@ -151,6 +190,15 @@ jobs:
         run: |
           source tools/activate_python.sh
           coverage erase
+      # Only pushes write caches. Pull request runs restore and never save, so a
+      # miss on a PR branch cannot add another per-ref copy of the same entry.
+      - name: Save pip cache
+        if: github.event_name == 'push'
+        continue-on-error: true
+        uses: actions/cache/save@v6
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
 
   test_shell_espnet2:
     runs-on: ubuntu-latest
@@ -158,30 +206,40 @@ jobs:
     if: |
       github.event.pull_request.draft == false
     strategy:
+      fail-fast: false
       max-parallel: 20
       matrix:
         python-version: ["3.10"]
         pytorch-version: [2.9.1]
         use-conda: [false]
-        chainer-version: [6.0.0]
     steps:
       - uses: actions/checkout@master
-      - uses: actions/cache@v6
+      - uses: actions/cache/restore@v6
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-
       - name: Make environment
         uses: ./.github/actions/prepare-environment
         with:
           os-version: ubuntu
           python-version: ${{ matrix.python-version }}
           pytorch-version: ${{ matrix.pytorch-version }}
-          chainer-version: ${{ matrix.chainer-version }}
           use-conda: ${{ matrix.use-conda }}
           hf-token: ${{ secrets.HF_CI_TOKEN }}
       - name: test shell
         run: |
           ./ci/test_shell_espnet2.sh
+      # Only pushes write caches. Pull request runs restore and never save, so a
+      # miss on a PR branch cannot add another per-ref copy of the same entry.
+      - name: Save pip cache
+        if: github.event_name == 'push'
+        continue-on-error: true
+        uses: actions/cache/save@v6
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
 
   test_integration_espnet2:
     runs-on: ubuntu-latest
@@ -189,19 +247,32 @@ jobs:
     if: |
       github.event.pull_request.draft == false
     strategy:
+      fail-fast: false
       max-parallel: 20
       matrix:
         python-version: ["3.10", "3.12"]
         pytorch-version: [2.9.1, 2.10.0, 2.11.0]
         use-conda: [false]
-        chainer-version: [6.0.0]
         config-task: ["asr", "tts", "asr2",  "enh", "ssl", "st", "spk", "lid", "s2t", "s2st", "lm", "codec"]
     steps:
       - uses: actions/checkout@master
-      - uses: actions/cache@v6
+      - uses: actions/cache/restore@v6
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-
+      # Pretrained checkpoints downloaded by s3prl at test-collection time
+      # (currently only hubert_base_ls960.pt, ~360 MB). Without this every job
+      # re-downloads it from huggingface.co, and under load the download returns
+      # an HTML error page that then fails to unpickle in torch.load.
+      # One stable key shared by all jobs and matrix cells: the upstream
+      # checkpoints are immutable, so bump the suffix to refresh them.
+      - name: Cache s3prl pretrained checkpoints
+        uses: actions/cache/restore@v6
+        with:
+          path: ~/.cache/s3prl
+          key: ${{ runner.os }}-s3prl-v1
       - name: Install system dependencies
         uses: ./.github/actions/install-system-dependencies
       - name: Make environment
@@ -210,7 +281,6 @@ jobs:
           os-version: ubuntu
           python-version: ${{ matrix.python-version }}
           pytorch-version: ${{ matrix.pytorch-version }}
-          chainer-version: ${{ matrix.chainer-version }}
           use-conda: ${{ matrix.use-conda }}
           hf-token: ${{ secrets.HF_CI_TOKEN }}
       - name: Install Kaldi
@@ -220,6 +290,22 @@ jobs:
       - uses: codecov/codecov-action@v7
         with:
           flags: test_integration_espnet2
+      # Only pushes write caches. Pull request runs restore and never save, so a
+      # miss on a PR branch cannot add another per-ref copy of the same entry.
+      - name: Save pip cache
+        if: github.event_name == 'push'
+        continue-on-error: true
+        uses: actions/cache/save@v6
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
+      - name: Save s3prl checkpoint cache
+        if: github.event_name == 'push'
+        continue-on-error: true
+        uses: actions/cache/save@v6
+        with:
+          path: ~/.cache/s3prl
+          key: ${{ runner.os }}-s3prl-v1
 
   test_configuration_espnet2:
     runs-on: ubuntu-latest
@@ -227,26 +313,38 @@ jobs:
     if: |
       github.event.pull_request.draft == false
     strategy:
+      fail-fast: false
       max-parallel: 20
       matrix:
         python-version: ["3.10"]
         pytorch-version: ["2.9.1"]
         config-task: ["asr", "asr_transducer", "lm", "ssl", "tts", "enh",  "enh_asr"]
         use-conda: [false]
-        chainer-version: [6.0.0]
     steps:
       - uses: actions/checkout@master
-      - uses: actions/cache@v6
+      - uses: actions/cache/restore@v6
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-
+      # Pretrained checkpoints downloaded by s3prl at test-collection time
+      # (currently only hubert_base_ls960.pt, ~360 MB). Without this every job
+      # re-downloads it from huggingface.co, and under load the download returns
+      # an HTML error page that then fails to unpickle in torch.load.
+      # One stable key shared by all jobs and matrix cells: the upstream
+      # checkpoints are immutable, so bump the suffix to refresh them.
+      - name: Cache s3prl pretrained checkpoints
+        uses: actions/cache/restore@v6
+        with:
+          path: ~/.cache/s3prl
+          key: ${{ runner.os }}-s3prl-v1
       - name: Make environment
         uses: ./.github/actions/prepare-environment
         with:
           os-version: ubuntu
           python-version: ${{ matrix.python-version }}
           pytorch-version: ${{ matrix.pytorch-version }}
-          chainer-version: ${{ matrix.chainer-version }}
           use-conda: ${{ matrix.use-conda }}
           hf-token: ${{ secrets.HF_CI_TOKEN }}
       - name: test configuration
@@ -254,6 +352,22 @@ jobs:
       - uses: codecov/codecov-action@v7
         with:
           flags: test_configuration_espnet2
+      # Only pushes write caches. Pull request runs restore and never save, so a
+      # miss on a PR branch cannot add another per-ref copy of the same entry.
+      - name: Save pip cache
+        if: github.event_name == 'push'
+        continue-on-error: true
+        uses: actions/cache/save@v6
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
+      - name: Save s3prl checkpoint cache
+        if: github.event_name == 'push'
+        continue-on-error: true
+        uses: actions/cache/save@v6
+        with:
+          path: ~/.cache/s3prl
+          key: ${{ runner.os }}-s3prl-v1
 
   test_python_espnet3:
     runs-on: ubuntu-latest
@@ -261,25 +375,26 @@ jobs:
     if: |
       github.event.pull_request.draft == false
     strategy:
+      fail-fast: false
       max-parallel: 20
       matrix:
         python-version: ["3.10", "3.12"]
         pytorch-version: [2.9.1, 2.10.0, 2.11.0]
         use-conda: [false]
-        chainer-version: [6.0.0]
     steps:
       - uses: actions/checkout@master
-      - uses: actions/cache@v6
+      - uses: actions/cache/restore@v6
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-
       - name: Make environment
         uses: ./.github/actions/prepare-environment
         with:
           os-version: ubuntu
           python-version: ${{ matrix.python-version }}
           pytorch-version: ${{ matrix.pytorch-version }}
-          chainer-version: ${{ matrix.chainer-version }}
           use-conda: ${{ matrix.use-conda }}
           hf-token: ${{ secrets.HF_CI_TOKEN }}
       - name: test python
@@ -292,6 +407,15 @@ jobs:
         run: |
           source tools/activate_python.sh
           coverage erase
+      # Only pushes write caches. Pull request runs restore and never save, so a
+      # miss on a PR branch cannot add another per-ref copy of the same entry.
+      - name: Save pip cache
+        if: github.event_name == 'push'
+        continue-on-error: true
+        uses: actions/cache/save@v6
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
 
   test_integration_espnet3:
     runs-on: ubuntu-latest
@@ -299,6 +423,7 @@ jobs:
     if: |
       github.event.pull_request.draft == false
     strategy:
+      fail-fast: false
       max-parallel: 20
       matrix:
         python-version: ["3.10", "3.12"]
@@ -306,17 +431,18 @@ jobs:
         use-conda: [false]
     steps:
       - uses: actions/checkout@master
-      - uses: actions/cache@v6
+      - uses: actions/cache/restore@v6
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-
       - name: Make environment
         uses: ./.github/actions/prepare-environment
         with:
           os-version: ubuntu
           python-version: ${{ matrix.python-version }}
           pytorch-version: ${{ matrix.pytorch-version }}
-          chainer-version: ${{ matrix.chainer-version }}
           use-conda: ${{ matrix.use-conda }}
           hf-token: ${{ secrets.HF_CI_TOKEN }}
       - name: test integration
@@ -329,6 +455,15 @@ jobs:
         run: |
           source tools/activate_python.sh
           coverage erase
+      # Only pushes write caches. Pull request runs restore and never save, so a
+      # miss on a PR branch cannot add another per-ref copy of the same entry.
+      - name: Save pip cache
+        if: github.event_name == 'push'
+        continue-on-error: true
+        uses: actions/cache/save@v6
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
 
   test_integration_espnet3_publication:
     runs-on: ubuntu-latest
@@ -340,10 +475,12 @@ jobs:
       HF_TOKEN: ${{ secrets.HF_TOKEN }}
     steps:
       - uses: actions/checkout@master
-      - uses: actions/cache@v6
+      - uses: actions/cache/restore@v6
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
+          key: ${{ runner.os }}-pip-3.10-2.9.1-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-3.10-2.9.1-
       - name: Make environment
         uses: ./.github/actions/prepare-environment
         with:
@@ -369,6 +506,15 @@ jobs:
         run: |
           source tools/activate_python.sh
           coverage erase
+      # Only pushes write caches. Pull request runs restore and never save, so a
+      # miss on a PR branch cannot add another per-ref copy of the same entry.
+      - name: Save pip cache
+        if: github.event_name == 'push'
+        continue-on-error: true
+        uses: actions/cache/save@v6
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-3.10-2.9.1-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
 
   test_import:
     runs-on: ubuntu-latest
@@ -376,6 +522,7 @@ jobs:
     if: |
       github.event.pull_request.draft == false
     strategy:
+      fail-fast: false
       max-parallel: 20
       matrix:
         python-version: ["3.10"]
@@ -426,3 +573,36 @@ jobs:
     steps:
     - uses: actions/checkout@master
     - run: ci/check_kaldi_symlinks.sh
+
+  # Single stable status check that aggregates every job in this workflow.
+  # Register THIS job as the required status check instead of the individual
+  # matrix jobs, whose names change whenever the matrix changes.
+  ci_gate_ubuntu:
+    if: always()
+    needs:
+      - process_labels
+      - test_python_espnet2
+      - test_utils_espnet2
+      - test_shell_espnet2
+      - test_integration_espnet2
+      - test_configuration_espnet2
+      - test_python_espnet3
+      - test_integration_espnet3
+      - test_integration_espnet3_publication
+      - test_import
+      - check_kaldi_symlinks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail unless every job succeeded
+        if: >-
+          contains(needs.*.result, 'failure')
+          || contains(needs.*.result, 'cancelled')
+          || contains(needs.*.result, 'skipped')
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+        run: |
+          echo "At least one job did not succeed:"
+          echo "$NEEDS_JSON"
+          exit 1
+      - name: All jobs succeeded
+        run: echo "All jobs in this workflow succeeded."

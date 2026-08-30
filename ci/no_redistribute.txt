@@ -1,0 +1,24 @@
+# Packages that must NOT be baked into the prebuilt CI image, because their
+# licence does not permit redistribution.
+#
+# Shipping a container image that contains one of these would be distributing
+# it to whoever can pull the image. Installing it at run time, which is what
+# every CI job does today, is not distribution by this project - each machine
+# obtains its own copy from the original source under the original terms.
+#
+# docker/ci.dockerfile uninstalls everything listed here after the build and
+# fails if any of it survives. Jobs that run inside the image install them
+# again with:
+#
+#     pip install -r ci/no_redistribute.txt
+#
+# Keep the version specifier in sync with the corresponding extra in
+# pyproject.toml. Remove an entry once the dependency is gone or relicensed.
+
+# NTT "SOFTWARE LICENSE AGREEMENT FOR EVALUATION". Section 1 grants use only
+# for internally evaluating the method in a specific 2017 paper; section 4(b)
+# forbids distributing, transferring or reproducing the software. PyPI carries
+# no licence metadata for it and GitHub reports NOASSERTION.
+# https://github.com/nttcslab-sp/kaldiio/blob/master/LICENSE
+# Slated for replacement; drop this line when that lands.
+kaldiio>=2.18.0
