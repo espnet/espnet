@@ -208,16 +208,45 @@ jobs:
           done
           ls -la tools/ | head -20
 
+      - name: Which interpreter
+        # The first attempt installed espnet successfully and then could not
+        # import it, which means pip and python did not agree on an
+        # interpreter. Container jobs also default to `sh`, not bash, and
+        # GitHub composes its own PATH for them, so neither can be assumed.
+        shell: bash
+        run: |
+          echo "PATH=$PATH"
+          echo "which python  : $(command -v python || echo none)"
+          echo "which python3 : $(command -v python3 || echo none)"
+          echo "which pip     : $(command -v pip || echo none)"
+          for exe in python python3 /espnet/tools/venv/bin/python; do
+            command -v "$exe" >/dev/null 2>&1 || continue
+            echo "--- $exe ---"
+            "$exe" -c 'import sys; print(" executable:", sys.executable); print(" prefix:", sys.prefix)'
+          done
+          echo "--- checkout ---"
+          pwd && ls -d espnet espnet2 2>/dev/null
+
       - name: Point the editable install at this checkout
         # The image's editable install refers to a source tree that is not in
         # the final stage. This is what makes the tested code the code in this
         # pull request. Everything it depends on is already installed.
+        #
+        # Use the venv's interpreter explicitly rather than trusting PATH: the
+        # first attempt showed those are not necessarily the same thing.
+        shell: bash
+        env:
+          VENV: /espnet/tools/venv/bin
         run: |
           start=$SECONDS
-          pip install -e . --no-deps
-          pip install -r ci/no_redistribute.txt || echo "no_redistribute.txt not present on this branch yet"
+          "${VENV}/python" -m pip install -e . --no-deps
+          if [ -f ci/no_redistribute.txt ]; then
+            "${VENV}/python" -m pip install -r ci/no_redistribute.txt
+          else
+            echo "ci/no_redistribute.txt not on this branch yet (arrives with #6565)"
+          fi
           echo "reinstall took $((SECONDS - start))s"
-          python -c "import espnet, espnet2; print('espnet from', espnet.__file__)"
+          "${VENV}/python" -c 'import espnet, espnet2; print("espnet from", espnet.__file__)'
 
       - name: test python
         run: ./ci/test_python_espnet2.sh
