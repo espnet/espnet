@@ -34,9 +34,12 @@ ENV ESPNET_PYTHON_VERSION=${PYTHON_VERSION} \
     USE_CONDA=false \
     WITH_OMP=ON
 
+# Each cleanup tolerates its own failure. Do not collapse these into one
+# `... || true` chain: that swallows a failure of ci/install.sh too, and builds
+# a broken image that reports success.
 RUN ./ci/install.sh \
-    && (pip cache purge || true) \
-    && find /espnet/tools -name '__pycache__' -type d -prune -exec rm -rf {} + 2>/dev/null || true
+    && { pip cache purge || true; } \
+    && { find /espnet/tools -name '__pycache__' -type d -prune -exec rm -rf {} + 2>/dev/null || true; }
 
 # ------------------------------------------------------------------ final ----
 FROM python:${PYTHON_VERSION}-bookworm
@@ -54,6 +57,12 @@ RUN apt-get update -qq \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /espnet/tools /espnet/tools
+
+# The base image puts its own interpreter first on PATH, so `pip` and `python`
+# would resolve to /usr/local/bin and install into the wrong interpreter. Put
+# the venv first: it is the one tools/activate_python.sh selects and the one
+# the tests run under.
+ENV PATH="/espnet/tools/venv/bin:${PATH}"
 
 # The editable install baked in the builder points at a source tree that is not
 # in this stage. Every job re-points it at its own checkout; nothing here
