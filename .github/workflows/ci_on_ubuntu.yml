@@ -152,6 +152,76 @@ jobs:
           path: ~/.cache/s3prl
           key: ${{ runner.os }}-s3prl-v1
 
+  # ---------------------------------------------------------------------------
+  # Experiment. Runs the same tests as the 3.10 / 2.9.1 cell of
+  # test_python_espnet2, but inside the prebuilt image from
+  # docker/ci.dockerfile, so the two can be compared directly.
+  #
+  # What is being measured is the "Initialize containers" step, which is the
+  # image pull, against the 8.0 min "Make environment" it is meant to replace.
+  #
+  # Deliberately NOT in ci_gate_ubuntu's needs, and continue-on-error, so this
+  # cannot block a merge while it is being evaluated. Delete both this job and
+  # resolve_ci_image once the question is answered either way.
+  # ---------------------------------------------------------------------------
+  resolve_ci_image:
+    runs-on: ubuntu-latest
+    if: |
+      github.event.pull_request.draft == false
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v5
+      - id: tag
+        # Same inputs, same order as build_ci_image.yml. Computing it rather
+        # than hardcoding keeps the two from drifting apart.
+        run: |
+          hash=${{ hashFiles('ci/install.sh', 'docker/ci.dockerfile', 'pyproject.toml', 'tools/Makefile', 'tools/installers/**') }}
+          echo "tag=py3.10-th2.9.1-${hash:0:12}" >> "$GITHUB_OUTPUT"
+
+  test_python_espnet2_container:
+    runs-on: ubuntu-latest
+    needs: [process_labels, resolve_ci_image]
+    if: |
+      github.event.pull_request.draft == false
+    continue-on-error: true
+    container:
+      image: ghcr.io/espnet/espnet-ci:${{ needs.resolve_ci_image.outputs.tag }}
+      # The package is private, so a token is needed until it is published
+      # publicly. Whether this is enough for a pull request from a fork is one
+      # of the things this experiment answers.
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Link the prebuilt tools into the checkout
+        # tools/ in a checkout has the tracked files but none of the build
+        # output - no venv, no activate_python.sh, no sctk. Link in whatever
+        # the image has and the checkout does not, which leaves tracked files
+        # alone and needs no list to keep up to date.
+        run: |
+          for path in /espnet/tools/*; do
+            name=$(basename "$path")
+            [ -e "tools/${name}" ] || ln -s "$path" "tools/${name}"
+          done
+          ls -la tools/ | head -20
+
+      - name: Point the editable install at this checkout
+        # The image's editable install refers to a source tree that is not in
+        # the final stage. This is what makes the tested code the code in this
+        # pull request. Everything it depends on is already installed.
+        run: |
+          start=$SECONDS
+          pip install -e . --no-deps
+          pip install -r ci/no_redistribute.txt || echo "no_redistribute.txt not present on this branch yet"
+          echo "reinstall took $((SECONDS - start))s"
+          python -c "import espnet, espnet2; print('espnet from', espnet.__file__)"
+
+      - name: test python
+        run: ./ci/test_python_espnet2.sh
+
   test_utils_espnet2:
     runs-on: ubuntu-latest
     needs: process_labels
