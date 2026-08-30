@@ -64,7 +64,6 @@ jobs:
         env:
           ESPNET_PYTHON_VERSION: 3.10
           TH_VERSION: 2.9.1
-          CHAINER_VERSION: 6.0.0
           USE_CONDA: false
         run: ./ci/install.sh
       - name: generate doc
