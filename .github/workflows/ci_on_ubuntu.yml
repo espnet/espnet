@@ -94,6 +94,7 @@ jobs:
     if: |
       github.event.pull_request.draft == false
     strategy:
+      fail-fast: false
       max-parallel: 20
       matrix:
         python-version: ["3.10", "3.12"]
@@ -161,6 +162,7 @@ jobs:
     if: |
       github.event.pull_request.draft == false
     strategy:
+      fail-fast: false
       max-parallel: 20
       matrix:
         python-version: ["3.10", "3.12"]
@@ -210,6 +212,7 @@ jobs:
     if: |
       github.event.pull_request.draft == false
     strategy:
+      fail-fast: false
       max-parallel: 20
       matrix:
         python-version: ["3.10"]
@@ -252,6 +255,7 @@ jobs:
     if: |
       github.event.pull_request.draft == false
     strategy:
+      fail-fast: false
       max-parallel: 20
       matrix:
         python-version: ["3.10", "3.12"]
@@ -319,6 +323,7 @@ jobs:
     if: |
       github.event.pull_request.draft == false
     strategy:
+      fail-fast: false
       max-parallel: 20
       matrix:
         python-version: ["3.10"]
@@ -382,6 +387,7 @@ jobs:
     if: |
       github.event.pull_request.draft == false
     strategy:
+      fail-fast: false
       max-parallel: 20
       matrix:
         python-version: ["3.10", "3.12"]
@@ -431,6 +437,7 @@ jobs:
     if: |
       github.event.pull_request.draft == false
     strategy:
+      fail-fast: false
       max-parallel: 20
       matrix:
         python-version: ["3.10", "3.12"]
@@ -530,6 +537,7 @@ jobs:
     if: |
       github.event.pull_request.draft == false
     strategy:
+      fail-fast: false
       max-parallel: 20
       matrix:
         python-version: ["3.10"]
