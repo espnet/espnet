@@ -1,9 +1,12 @@
 # yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
 # https://docs.coderabbit.ai/reference/yaml-template
 #
-# Automatic review is on: CodeRabbit reviews every new pull request and
-# re-reviews on each push to an open pull request. To ask for an extra pass
-# by hand, comment `@coderabbitai review` on the pull request.
+# CodeRabbit reviews each pull request once, when it is opened. It does not
+# re-review on every push: the open-source plan is rate limited per repository
+# and per-push reviews would spend that budget on a handful of active PRs.
+# After pushing fixes, ask for a fresh pass by commenting on the pull request:
+#
+#     @coderabbitai review
 #
 # Replaces .gemini/config.yaml -- the consumer version of Gemini Code Assist
 # on GitHub was shut down by Google on 2026-07-17.
@@ -22,7 +25,7 @@ reviews:
   auto_review:
     enabled: true
     drafts: false               # wait until a PR leaves draft
-    auto_incremental_review: true  # re-review on every push
+    auto_incremental_review: false  # not on every push; ask for a re-review
     ignore_usernames:           # nothing to review in automated bumps
       - dependabot[bot]
       - pre-commit-ci[bot]
