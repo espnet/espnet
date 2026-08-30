@@ -41,6 +41,28 @@ RUN ./ci/install.sh \
     && { pip cache purge || true; } \
     && { find /espnet/tools -name '__pycache__' -type d -prune -exec rm -rf {} + 2>/dev/null || true; }
 
+# Strip packages whose licence does not permit redistribution, and prove they
+# are gone. Shipping one of these inside the image would distribute it to
+# whoever can pull the image; installing it at run time, as jobs do, does not.
+#
+# The verification is not decoration. A silent failure here would put a licence
+# violation into every pull of this image, so it fails the build instead.
+RUN names=$(sed -e 's/#.*//' -e 's/[<>=!~;[].*//' -e 's/[[:space:]]//g' -e '/^$/d' ci/no_redistribute.txt) \
+    && if [ -n "$names" ]; then \
+         /espnet/tools/venv/bin/pip uninstall -y $names; \
+         for n in $names; do \
+           if /espnet/tools/venv/bin/python -c "import importlib.metadata as m; m.version('$n')" >/dev/null 2>&1; then \
+             echo "ERROR: $n is still installed and must not be baked into this image" >&2; \
+             exit 1; \
+           fi; \
+         done; \
+         echo "excluded from the image: $names"; \
+       fi
+
+# Non-failing: surfaces dependencies that arrive with no licence metadata, so a
+# future kaldiio is noticed rather than silently shipped.
+RUN /espnet/tools/venv/bin/python ci/report_unlicensed.py
+
 # ------------------------------------------------------------------ final ----
 FROM python:${PYTHON_VERSION}-bookworm
 
@@ -67,4 +89,8 @@ ENV PATH="/espnet/tools/venv/bin:${PATH}"
 # The editable install baked in the builder points at a source tree that is not
 # in this stage. Every job re-points it at its own checkout; nothing here
 # should import espnet.
+#
+# A job running in this image therefore needs both:
+#     pip install -e . --no-deps
+#     pip install -r ci/no_redistribute.txt
 WORKDIR /
