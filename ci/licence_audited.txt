@@ -1,0 +1,32 @@
+# Distributions that ci/report_unlicensed.py flags for carrying no licence
+# metadata, but which have been checked and do permit redistribution.
+#
+# Listing them here keeps that report down to things nobody has looked at yet.
+# Without it the same seven names appear in every image build and the natural
+# response is to stop reading them, which defeats the point of the report.
+#
+# One distribution name per line, followed by the licence and where it was
+# verified. Lines starting with # are comments.
+#
+# Checked 2026-08-30, against the upstream repository for each.
+
+ctc_segmentation  Apache-2.0  github.com/espnet/ctc-segmentation
+sentencepiece     Apache-2.0  github.com/google/sentencepiece
+warprnnt_pytorch  Apache-2.0  github.com/ljn7/warp-transducer, the fork tools/installers/install_warp-transducer.sh builds
+pyworld           MIT         github.com/JeremyCCHsu/Python-Wrapper-for-World-Vocoder
+stempeg           MIT         github.com/faroit/stempeg
+
+# MIT, via github.com/42qu/mmseg, whose README carries the MIT grant text.
+# The chain is pluskid/pymmseg-cpp -> 42qu/mmseg -> espnet/py3mmseg, and the
+# original copyright line was left as "Copyright (c) 2008 FIXME". espnet owns
+# py3mmseg and it has no LICENSE file of its own; adding one there, with
+# attribution, would remove the ambiguity. Not a blocker: MIT permits
+# redistribution.
+mmseg             MIT         github.com/42qu/mmseg
+
+# "Most of the code here is licensed under the LGPL", per its LICENSE file.
+# Redistribution is permitted, unlike kaldiio, but carries obligations around
+# source availability and relinking. That is satisfiable and the image is
+# private, so it is recorded rather than excluded. Worth revisiting if the
+# image is ever published publicly.
+kenlm             LGPL        github.com/kpu/kenlm
