@@ -134,33 +134,7 @@ jobs:
           path: ~/.cache/s3prl
           key: ${{ runner.os }}-s3prl-v1
 
-      - name: Use the prebuilt environment
-        # Three things, none of which the non-container path needs.
-        #
-        # tools/ in a checkout has the tracked files but none of the build
-        # output - no venv, no activate_python.sh, no sctk. Link in whatever the
-        # image has and the checkout does not, which leaves tracked files alone
-        # and needs no list to maintain.
-        #
-        # The image's editable install points at a source tree it does not
-        # contain. Re-pointing it at the checkout is what makes the tested code
-        # this pull request's code.
-        #
-        # kaldiio is deliberately absent from the image, because its licence
-        # forbids redistribution. Installing it here is not distribution by this
-        # project: the runner fetches its own copy from PyPI, exactly as the
-        # non-container path does.
-        shell: bash
-        env:
-          VENV: /espnet/tools/venv/bin
-        run: |
-          for path in /espnet/tools/*; do
-            name=$(basename "$path")
-            [ -e "tools/${name}" ] || ln -s "$path" "tools/${name}"
-          done
-          "${VENV}/python" -m pip install -e . --no-deps
-          "${VENV}/python" -m pip install -r ci/no_redistribute.txt
-          "${VENV}/python" -c 'import espnet2, espnet3, kaldiio; print("espnet2 from", espnet2.__file__)'
+      - uses: ./.github/actions/use-prebuilt-environment
 
       - name: test python
         run: ./ci/test_python_espnet2.sh
@@ -182,7 +156,7 @@ jobs:
 
   test_utils_espnet2:
     runs-on: ubuntu-latest
-    needs: process_labels
+    needs: [process_labels, resolve_ci_image]
     if: |
       github.event.pull_request.draft == false
     strategy:
@@ -191,23 +165,14 @@ jobs:
       matrix:
         python-version: ["3.10", "3.12"]
         pytorch-version: [2.9.1]
-        use-conda: [false]
+    container:
+      image: ghcr.io/${{ github.repository }}-ci:py${{ matrix.python-version }}-th${{ matrix.pytorch-version }}-${{ needs.resolve_ci_image.outputs.hash }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - uses: actions/checkout@master
-      - uses: actions/cache/restore@v6
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-
-      - name: Make environment
-        uses: ./.github/actions/prepare-environment
-        with:
-          os-version: ubuntu
-          python-version: ${{ matrix.python-version }}
-          pytorch-version: ${{ matrix.pytorch-version }}
-          use-conda: ${{ matrix.use-conda }}
-          hf-token: ${{ secrets.HF_CI_TOKEN }}
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/use-prebuilt-environment
       - name: test utils
         run: ./ci/test_utils.sh
       - uses: codecov/codecov-action@v7
@@ -218,19 +183,10 @@ jobs:
         run: |
           source tools/activate_python.sh
           coverage erase
-      # Only pushes write caches. Pull request runs restore and never save, so a
-      # miss on a PR branch cannot add another per-ref copy of the same entry.
-      - name: Save pip cache
-        if: github.event_name == 'push'
-        continue-on-error: true
-        uses: actions/cache/save@v6
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
 
   test_shell_espnet2:
     runs-on: ubuntu-latest
-    needs: process_labels
+    needs: [process_labels, resolve_ci_image]
     if: |
       github.event.pull_request.draft == false
     strategy:
@@ -239,35 +195,16 @@ jobs:
       matrix:
         python-version: ["3.10"]
         pytorch-version: [2.9.1]
-        use-conda: [false]
+    container:
+      image: ghcr.io/${{ github.repository }}-ci:py${{ matrix.python-version }}-th${{ matrix.pytorch-version }}-${{ needs.resolve_ci_image.outputs.hash }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - uses: actions/checkout@master
-      - uses: actions/cache/restore@v6
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-
-      - name: Make environment
-        uses: ./.github/actions/prepare-environment
-        with:
-          os-version: ubuntu
-          python-version: ${{ matrix.python-version }}
-          pytorch-version: ${{ matrix.pytorch-version }}
-          use-conda: ${{ matrix.use-conda }}
-          hf-token: ${{ secrets.HF_CI_TOKEN }}
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/use-prebuilt-environment
       - name: test shell
-        run: |
-          ./ci/test_shell_espnet2.sh
-      # Only pushes write caches. Pull request runs restore and never save, so a
-      # miss on a PR branch cannot add another per-ref copy of the same entry.
-      - name: Save pip cache
-        if: github.event_name == 'push'
-        continue-on-error: true
-        uses: actions/cache/save@v6
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
+        run: ./ci/test_shell_espnet2.sh
 
   test_integration_espnet2:
     runs-on: ubuntu-latest
@@ -399,7 +336,7 @@ jobs:
 
   test_python_espnet3:
     runs-on: ubuntu-latest
-    needs: process_labels
+    needs: [process_labels, resolve_ci_image]
     if: |
       github.event.pull_request.draft == false
     strategy:
@@ -408,23 +345,14 @@ jobs:
       matrix:
         python-version: ["3.10", "3.12"]
         pytorch-version: [2.9.1, 2.10.0, 2.11.0]
-        use-conda: [false]
+    container:
+      image: ghcr.io/${{ github.repository }}-ci:py${{ matrix.python-version }}-th${{ matrix.pytorch-version }}-${{ needs.resolve_ci_image.outputs.hash }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - uses: actions/checkout@master
-      - uses: actions/cache/restore@v6
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-
-      - name: Make environment
-        uses: ./.github/actions/prepare-environment
-        with:
-          os-version: ubuntu
-          python-version: ${{ matrix.python-version }}
-          pytorch-version: ${{ matrix.pytorch-version }}
-          use-conda: ${{ matrix.use-conda }}
-          hf-token: ${{ secrets.HF_CI_TOKEN }}
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/use-prebuilt-environment
       - name: test python
         run: ./ci/test_python_espnet3.sh
       - uses: codecov/codecov-action@v7
@@ -435,15 +363,6 @@ jobs:
         run: |
           source tools/activate_python.sh
           coverage erase
-      # Only pushes write caches. Pull request runs restore and never save, so a
-      # miss on a PR branch cannot add another per-ref copy of the same entry.
-      - name: Save pip cache
-        if: github.event_name == 'push'
-        continue-on-error: true
-        uses: actions/cache/save@v6
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
 
   test_integration_espnet3:
     runs-on: ubuntu-latest
