@@ -19,6 +19,8 @@ on:
       - master
     paths:
       - "ci/install.sh"
+      - "ci/no_redistribute.txt"
+      - "ci/report_unlicensed.py"
       - "docker/ci.dockerfile"
       - "pyproject.toml"
       - "tools/Makefile"
@@ -29,6 +31,8 @@ on:
       - master
     paths:
       - "ci/install.sh"
+      - "ci/no_redistribute.txt"
+      - "ci/report_unlicensed.py"
       - "docker/ci.dockerfile"
       - "pyproject.toml"
       - "tools/Makefile"
@@ -49,11 +53,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          # One cell for now. The full matrix is 2 python x 3 torch; widening it
-          # is only worth doing once the numbers from this one are known.
-          - python-version: "3.10"
-            pytorch-version: "2.9.1"
+        # The same 2 python x 3 torch grid the test jobs use. Builds run in
+        # parallel, so this costs the same wall clock as one cell and about
+        # 66 runner-minutes - paid only when the inputs change or nightly,
+        # against the 13.5 runner-hours a single pull request spends today
+        # rebuilding the same environment 101 times.
+        python-version: ["3.10", "3.12"]
+        pytorch-version: ["2.9.1", "2.10.0", "2.11.0"]
     steps:
       - uses: actions/checkout@v5
 
@@ -73,7 +79,7 @@ jobs:
       - name: Resolve image tag
         id: tag
         run: |
-          hash=${{ hashFiles('ci/install.sh', 'docker/ci.dockerfile', 'pyproject.toml', 'tools/Makefile', 'tools/installers/**') }}
+          hash=${{ hashFiles('ci/install.sh', 'ci/no_redistribute.txt', 'docker/ci.dockerfile', 'pyproject.toml', 'tools/Makefile', 'tools/installers/**') }}
           echo "tag=py${{ matrix.python-version }}-th${{ matrix.pytorch-version }}-${hash:0:12}" >> "$GITHUB_OUTPUT"
 
       - name: Build
@@ -118,3 +124,20 @@ jobs:
       - name: Push
         if: github.event_name != 'pull_request'
         run: docker push "ghcr.io/${{ github.repository }}-ci:${{ steps.tag.outputs.tag }}"
+
+      - name: Delete untagged versions
+        # The nightly build produces the same tag whenever the inputs are
+        # unchanged, but a different digest, because upstream wheels move. The
+        # version it replaces is left untagged and keeps consuming storage, so
+        # without this the package grows by six images a day forever.
+        #
+        # Tagged versions are never touched: a pull request may still resolve
+        # to an older tag if it does not change the inputs.
+        if: github.event_name != 'pull_request'
+        continue-on-error: true
+        uses: actions/delete-package-versions@v5
+        with:
+          owner: ${{ github.repository_owner }}
+          package-name: espnet-ci
+          package-type: container
+          delete-only-untagged-versions: "true"
