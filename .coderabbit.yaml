@@ -6,7 +6,13 @@
 # and per-push reviews would spend that budget on a handful of active PRs.
 # After pushing fixes, ask for a fresh pass by commenting on the pull request:
 #
-#     @coderabbitai review
+#     @coderabbitai full review
+#
+# Use `full review`, not `review`. `@coderabbitai review` is the incremental
+# command: it only looks at commits that have not been reviewed yet, and it
+# reports that there is nothing to do when the automatic review already
+# covered them. `full review` re-reads the whole pull request.
+# `@coderabbitai configuration` prints the settings actually in effect.
 #
 # Replaces .gemini/config.yaml -- the consumer version of Gemini Code Assist
 # on GitHub was shut down by Google on 2026-07-17.
@@ -25,7 +31,7 @@ reviews:
   auto_review:
     enabled: true
     drafts: false               # wait until a PR leaves draft
-    auto_incremental_review: false  # not on every push; ask for a re-review
+    auto_incremental_review: false  # not on every push; see the note above
     ignore_usernames:           # nothing to review in automated bumps
       - dependabot[bot]
       - pre-commit-ci[bot]
