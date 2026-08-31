@@ -96,16 +96,53 @@ jobs:
       github.event.pull_request.draft == false
     outputs:
       hash: ${{ steps.hash.outputs.hash }}
+      available: ${{ steps.probe.outputs.available }}
+      matrix: ${{ steps.variants.outputs.matrix }}
     steps:
       - uses: actions/checkout@v5
       # The list below is duplicated in build_ci_image.yml and the two must
       # match exactly, or the image is published under one tag and requested
       # under another. Checked rather than trusted.
-      - run: python3 ci/check_image_hash_inputs.py
+      - run: python3 ci/check_ci_image_config.py
+      # Hand the grid to the jobs that run all of it, so the versions are
+      # written down once rather than repeated per job.
+      - id: variants
+        run: echo "matrix=$(python3 ci/image_variants.py matrix)" >> "$GITHUB_OUTPUT"
       - id: hash
         run: |
           full=${{ hashFiles('ci/install.sh', 'ci/install_kaldi.sh', 'ci/no_redistribute.txt', 'docker/ci.dockerfile', 'pyproject.toml', 'tools/Makefile', 'tools/installers/**') }}
           echo "hash=${full:0:12}" >> "$GITHUB_OUTPUT"
+
+      # A pull request that changes any of those files resolves to a tag that
+      # is only published once it merges, so it cannot be tested against the
+      # image it produces. Ask the registry rather than assume, and let the
+      # jobs fall back to building the environment when the answer is no.
+      #
+      # All six are checked together: those files decide every variant, so they
+      # appear and disappear as a set. Being conservative here costs a slow run
+      # of a rare pull request; being wrong costs `manifest unknown` on every
+      # containerised job.
+      - id: probe
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" \
+            | docker login ghcr.io -u "${{ github.actor }}" --password-stdin >/dev/null
+          # The grid comes from ci/image_variants.json, the same file
+          # build_ci_image.yml builds from, so adding a pytorch version there
+          # is enough - nothing here needs editing to match.
+          available=true
+          while read -r py th; do
+            tag="ghcr.io/${{ github.repository }}-ci:py${py}-th${th}-${{ steps.hash.outputs.hash }}"
+            if docker manifest inspect "$tag" >/dev/null 2>&1; then
+              echo "found   $tag"
+            else
+              echo "MISSING $tag"
+              available=false
+            fi
+          done < <(python3 ci/image_variants.py pairs)
+          echo "available=${available}" >> "$GITHUB_OUTPUT"
+          if [ "$available" = "false" ]; then
+            echo "::notice::Prebuilt image not published for this hash; jobs will build their environment instead. This is expected on a pull request that changes ci/install.sh, pyproject.toml, tools/, docker/ci.dockerfile or ci/no_redistribute.txt."
+          fi
 
   test_python_espnet2:
     runs-on: ubuntu-latest
@@ -115,15 +152,16 @@ jobs:
     strategy:
       fail-fast: false
       max-parallel: 20
-      matrix:
-        python-version: ["3.10", "3.12"]
-        pytorch-version: [2.9.1, 2.10.0, 2.11.0]
+      matrix: ${{ fromJSON(needs.resolve_ci_image.outputs.matrix) }}
     # Everything Make environment used to build is already here. Measured on
     # #6566: 81s to pull against 510s to build, and the whole job 4.2 min
     # shorter. The package is private; the token is enough, including from a
     # fork, which was verified there too.
+    # Empty when the image for this hash is not published, which makes the job
+    # run on the runner instead. That behaviour is not documented; it was
+    # verified directly before being relied on here.
     container:
-      image: ghcr.io/${{ github.repository }}-ci:py${{ matrix.python-version }}-th${{ matrix.pytorch-version }}-${{ needs.resolve_ci_image.outputs.hash }}
+      image: ${{ needs.resolve_ci_image.outputs.available == 'true' && format('ghcr.io/{0}-ci:py{1}-th{2}-{3}', github.repository, matrix.python-version, matrix.pytorch-version, needs.resolve_ci_image.outputs.hash) || '' }}
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
@@ -138,7 +176,20 @@ jobs:
           path: ~/.cache/s3prl
           key: ${{ runner.os }}-s3prl-v1
 
+      # Fast path: everything is in the image already.
       - uses: ./.github/actions/use-prebuilt-environment
+        if: needs.resolve_ci_image.outputs.available == 'true'
+      # Slow path, for a pull request that changes what goes into the image and
+      # therefore cannot be tested against it. Correct, just not quick.
+      - name: Make environment
+        if: needs.resolve_ci_image.outputs.available != 'true'
+        uses: ./.github/actions/prepare-environment
+        with:
+          os-version: ubuntu
+          python-version: ${{ matrix.python-version }}
+          pytorch-version: ${{ matrix.pytorch-version }}
+          use-conda: false
+          hf-token: ${{ secrets.HF_CI_TOKEN }}
 
       - name: test python
         run: ./ci/test_python_espnet2.sh
@@ -169,14 +220,30 @@ jobs:
       matrix:
         python-version: ["3.10", "3.12"]
         pytorch-version: [2.9.1]
+    # Empty when the image for this hash is not published, which makes the job
+    # run on the runner instead. That behaviour is not documented; it was
+    # verified directly before being relied on here.
     container:
-      image: ghcr.io/${{ github.repository }}-ci:py${{ matrix.python-version }}-th${{ matrix.pytorch-version }}-${{ needs.resolve_ci_image.outputs.hash }}
+      image: ${{ needs.resolve_ci_image.outputs.available == 'true' && format('ghcr.io/{0}-ci:py{1}-th{2}-{3}', github.repository, matrix.python-version, matrix.pytorch-version, needs.resolve_ci_image.outputs.hash) || '' }}
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v5
+      # Fast path: everything is in the image already.
       - uses: ./.github/actions/use-prebuilt-environment
+        if: needs.resolve_ci_image.outputs.available == 'true'
+      # Slow path, for a pull request that changes what goes into the image and
+      # therefore cannot be tested against it. Correct, just not quick.
+      - name: Make environment
+        if: needs.resolve_ci_image.outputs.available != 'true'
+        uses: ./.github/actions/prepare-environment
+        with:
+          os-version: ubuntu
+          python-version: ${{ matrix.python-version }}
+          pytorch-version: ${{ matrix.pytorch-version }}
+          use-conda: false
+          hf-token: ${{ secrets.HF_CI_TOKEN }}
       - name: test utils
         run: ./ci/test_utils.sh
       - uses: codecov/codecov-action@v7
@@ -199,14 +266,30 @@ jobs:
       matrix:
         python-version: ["3.10"]
         pytorch-version: [2.9.1]
+    # Empty when the image for this hash is not published, which makes the job
+    # run on the runner instead. That behaviour is not documented; it was
+    # verified directly before being relied on here.
     container:
-      image: ghcr.io/${{ github.repository }}-ci:py${{ matrix.python-version }}-th${{ matrix.pytorch-version }}-${{ needs.resolve_ci_image.outputs.hash }}
+      image: ${{ needs.resolve_ci_image.outputs.available == 'true' && format('ghcr.io/{0}-ci:py{1}-th{2}-{3}', github.repository, matrix.python-version, matrix.pytorch-version, needs.resolve_ci_image.outputs.hash) || '' }}
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v5
+      # Fast path: everything is in the image already.
       - uses: ./.github/actions/use-prebuilt-environment
+        if: needs.resolve_ci_image.outputs.available == 'true'
+      # Slow path, for a pull request that changes what goes into the image and
+      # therefore cannot be tested against it. Correct, just not quick.
+      - name: Make environment
+        if: needs.resolve_ci_image.outputs.available != 'true'
+        uses: ./.github/actions/prepare-environment
+        with:
+          os-version: ubuntu
+          python-version: ${{ matrix.python-version }}
+          pytorch-version: ${{ matrix.pytorch-version }}
+          use-conda: false
+          hf-token: ${{ secrets.HF_CI_TOKEN }}
       - name: test shell
         run: ./ci/test_shell_espnet2.sh
 
@@ -346,17 +429,31 @@ jobs:
     strategy:
       fail-fast: false
       max-parallel: 20
-      matrix:
-        python-version: ["3.10", "3.12"]
-        pytorch-version: [2.9.1, 2.10.0, 2.11.0]
+      matrix: ${{ fromJSON(needs.resolve_ci_image.outputs.matrix) }}
+    # Empty when the image for this hash is not published, which makes the job
+    # run on the runner instead. That behaviour is not documented; it was
+    # verified directly before being relied on here.
     container:
-      image: ghcr.io/${{ github.repository }}-ci:py${{ matrix.python-version }}-th${{ matrix.pytorch-version }}-${{ needs.resolve_ci_image.outputs.hash }}
+      image: ${{ needs.resolve_ci_image.outputs.available == 'true' && format('ghcr.io/{0}-ci:py{1}-th{2}-{3}', github.repository, matrix.python-version, matrix.pytorch-version, needs.resolve_ci_image.outputs.hash) || '' }}
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v5
+      # Fast path: everything is in the image already.
       - uses: ./.github/actions/use-prebuilt-environment
+        if: needs.resolve_ci_image.outputs.available == 'true'
+      # Slow path, for a pull request that changes what goes into the image and
+      # therefore cannot be tested against it. Correct, just not quick.
+      - name: Make environment
+        if: needs.resolve_ci_image.outputs.available != 'true'
+        uses: ./.github/actions/prepare-environment
+        with:
+          os-version: ubuntu
+          python-version: ${{ matrix.python-version }}
+          pytorch-version: ${{ matrix.pytorch-version }}
+          use-conda: false
+          hf-token: ${{ secrets.HF_CI_TOKEN }}
       - name: test python
         run: ./ci/test_python_espnet3.sh
       - uses: codecov/codecov-action@v7

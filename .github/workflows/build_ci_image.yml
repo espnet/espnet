@@ -50,18 +50,29 @@ permissions:
   packages: write
 
 jobs:
+  # The grid lives in ci/image_variants.json so that this workflow, the probe
+  # in ci_on_ubuntu.yml and the test jobs cannot disagree about which images
+  # exist. Adding a pytorch version there is the whole change.
+  variants:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.v.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v5
+      - run: python3 ci/check_ci_image_config.py
+      - id: v
+        run: echo "matrix=$(python3 ci/image_variants.py matrix)" >> "$GITHUB_OUTPUT"
+
   build:
     runs-on: ubuntu-latest
+    needs: variants
     strategy:
       fail-fast: false
-      matrix:
-        # The same 2 python x 3 torch grid the test jobs use. Builds run in
-        # parallel, so this costs the same wall clock as one cell and about
-        # 66 runner-minutes - paid only when the inputs change or nightly,
-        # against the 13.5 runner-hours a single pull request spends today
-        # rebuilding the same environment 101 times.
-        python-version: ["3.10", "3.12"]
-        pytorch-version: ["2.9.1", "2.10.0", "2.11.0"]
+      # Builds run in parallel, so the full grid costs the same wall clock as
+      # one cell and about 66 runner-minutes - paid only when the inputs change
+      # or nightly, against the 13.5 runner-hours a single pull request spends
+      # rebuilding the same environment in every job.
+      matrix: ${{ fromJSON(needs.variants.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v5
 
