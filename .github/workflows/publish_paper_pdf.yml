@@ -8,6 +8,15 @@ on:
     branches:
       - master
 
+# Only one run per PR at a time: a new push cancels the superseded run.
+# Non-PR events key the group on github.sha rather than github.ref so that
+# every push to master gets its own group. cancel-in-progress only protects
+# runs that have actually started; a *pending* run is cancelled when a newer
+# run joins its group, and master runs here sit pending for a long time.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   generate_and_upload_paper_pdf:
     runs-on: ubuntu-latest

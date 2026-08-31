@@ -28,9 +28,6 @@ gen_dummy_coverage(){
     touch empty.py; ${python} empty.py
 }
 
-#### Make sure chainer-independent ####
-python3 -m pip uninstall -y chainer
-
 # [ESPnet2] Validate configuration files
 echo "<blank>" > dummy_token_list
 echo "==== [ESPnet2] Validation configuration files ==="
