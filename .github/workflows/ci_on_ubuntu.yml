@@ -22,6 +22,26 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
+# Without this the default applies, and on this repository the default is
+# almost entirely write - a job's GITHUB_TOKEN reports Contents: write,
+# Actions: write, Issues: write, PullRequests: write, Packages: write and more.
+# Every job here checks out a pull request's code and runs it, alongside
+# third-party actions, so none of them should hold a token that can write to
+# the repository.
+#
+# What is actually needed:
+#   contents       checkout
+#   packages       pulling the prebuilt CI image from GHCR
+#   pull-requests  joerick/pr-labels-action in process_labels
+#
+# id-token is deliberately absent, because it already is: the permission dump
+# in a current run does not list it and codecov uploads work regardless, so its
+# tokenless path here does not depend on OIDC.
+permissions:
+  contents: read
+  packages: read
+  pull-requests: read
+
 env:
   NLTK_DISABLE_IMPORT_SECURITY: "1"
 
