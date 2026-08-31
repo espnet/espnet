@@ -41,6 +41,15 @@ on:
       - "tools/installers/**"
       - ".github/workflows/build_ci_image.yml"
 
+# Deliberately still keyed per sha for non-PR events, unlike the ci_on_* and
+# publish_* workflows, which now let a newer branch run cancel the older one.
+#
+# Two reasons this one is different. It is a handful of jobs rather than 120, so
+# it is not what congests the runners. And the tag it publishes is a hash of the
+# image inputs, so cancelling the build for an older master commit means that
+# tag never appears - every pull request still based on that commit then finds
+# available=false and takes the slow path. Publishing both is worth more than
+# the runner time it saves.
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
