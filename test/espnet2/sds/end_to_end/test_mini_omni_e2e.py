@@ -8,9 +8,8 @@ pytest.importorskip("espnet2.sds.end_to_end.mini_omni.inference")
 pytest.importorskip("huggingface_hub")
 
 
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="requires a GPU")
 def test_forward():
-    if not torch.cuda.is_available():
-        return  # Only GPU supported
     dialogue_model = MiniOmniE2EModel()
     dialogue_model.warmup()
     x = torch.randn(2000, requires_grad=False).cpu().numpy()
