@@ -56,9 +56,10 @@ python3 test_utils/uninstall_extra.py
 # the matrix by a wide margin, and so the critical path of an entire run. It is
 # now three, sized from measured per-block timings to come out near 19 min each.
 #
-# Each task redoes the stage 1-5 data preparation. That is the cost of splitting
-# and it is small: mini_an4 is tiny, and it buys back roughly 33 min of critical
-# path. It only became worth paying once the prebuilt image dropped environment
+# Each task redoes the stage 1-5 data preparation, and two of them additionally
+# train the LMs that used to fall out of the asr loop (see train_asr_lms). That
+# is the cost of splitting and it is small: mini_an4 is tiny, and it buys back
+# roughly 33 min of critical path. It only became worth paying once the prebuilt image dropped environment
 # setup from 8.5 min to under 90 s - before that the extra jobs cost more in
 # runner-minutes than the split was worth.
 #
@@ -72,8 +73,6 @@ prepare_asr_data() {
     gen_dummy_coverage
     echo "==== [ESPnet2] ASR: prepare data ==="
     ./run.sh --stage 1 --stop-stage 1
-    feats_types="raw fbank_pitch"
-    token_types="bpe char"
     for t in ${feats_types}; do
         ./run.sh --stage 2 --stop-stage 4 --feats-type "${t}" --python "${python}"
     done
@@ -90,6 +89,28 @@ finish_asr() {
     rm -rf exp dump data
     cd "${cwd}"
     uninstall_extra_deps
+}
+
+# Stages 6-9 train the LM that stage 12's decoding loads. When the asr recipe was
+# one job this happened as a side effect: the feats x token loop below starts at
+# stage 6, so by the time anything ran from stage 10 the LMs were already on
+# disk. Split apart, the transducer and misc tasks start at stage 10 and looked
+# for an LM nothing had trained:
+#
+#   FileNotFoundError: exp/lm_train_lm_rnn_debug_en_bpe30/config.yaml
+#
+# so they now train it themselves. Both token types, in both tasks: the
+# standalone transducer loop decodes with bpe and char, and training the pair
+# unconditionally means adding a char-based case to either task later does not
+# reintroduce this. Measured on 3.10/2.9.1, stages 6-9 take about 50 s per token
+# type, so this is ~100 s against the ~19 min each task now targets.
+train_asr_lms() {
+    for t in ${token_types}; do
+        echo "::group::==== [ESPnet2] ASR: LM for token_type=${t} ==="
+        ./run.sh --use_lm true --ngpu 0 --stage 6 --stop-stage 9 \
+            --feats-type "raw" --token-type "${t}" --python "${python}"
+        echo "::endgroup::"
+    done
 }
 
 if [ "${task}" == "asr" ] || [ "${task}" == "all" ]; then
@@ -117,6 +138,7 @@ if [ "${task}" == "asr_transducer" ] || [ "${task}" == "all" ]; then
     # Transducer in the asr task, k2, and the standalone asr_transducer task
     python3 -m pip install -e '.[asr]'
     prepare_asr_data
+    train_asr_lms
     if python3 -c "from warprnnt_pytorch import RNNTLoss" &> /dev/null; then
         echo "::group::==== Transducer, feats_type=raw, token_types=bpe ==="
         ./run.sh --asr-tag "espnet_model_transducer" --ngpu 0 --stage 10 --stop-stage 13 --skip-packing false \
@@ -138,6 +160,12 @@ if [ "${task}" == "asr_transducer" ] || [ "${task}" == "all" ]; then
         fi
     fi
 
+    # k2 is not installed in CI, so neither of these runs today - "use_k2" does
+    # not appear in any current log. Noting it because they are the one place the
+    # split leaves a latent cross-task dependency: they decode at stage 12 only,
+    # and the model they load (feats_normalize=utterance_mvn,
+    # extract_feats_in_collect_stats=false) is trained by the asr_misc task, not
+    # this one. Whoever installs k2 will have to train it here first.
     if python3 -c "import k2" &> /dev/null; then
         echo "::group::==== use_k2, num_paths > nll_batch_size, feats_type=raw, token_types=bpe, model_conf.extract_feats_in_collect_stats=False, normalize=utt_mvn ==="
         ./run.sh --num_paths 4 --nll_batch_size 2 --use_k2 true --ngpu 0 --stage 12 --stop-stage 13 --skip-packing false --feats-type "raw" --token-type "bpe" \
@@ -187,6 +215,7 @@ if [ "${task}" == "asr_misc" ] || [ "${task}" == "all" ]; then
     # and multi-speaker PIT.
     python3 -m pip install -e '.[asr]'
     prepare_asr_data
+    train_asr_lms
     echo "::group::==== feats_type=raw, token_types=bpe, model_conf.extract_feats_in_collect_stats=False, normalize=utt_mvn ==="
     ./run.sh --ngpu 0 --stage 10 --stop-stage 13 --skip-packing false --feats-type "raw" --token-type "bpe" \
         --feats_normalize "utterance_mvn" --python "${python}" \
