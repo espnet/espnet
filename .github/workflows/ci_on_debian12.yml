@@ -72,10 +72,17 @@ jobs:
         run: ./ci/install.sh
         env:
           HF_TOKEN: ${{ secrets.HF_CI_TOKEN }}
+      # See the note in ci_on_ubuntu.yml: huggingface.co rate limits anonymous
+      # callers hard, and this is the job where it actually bit - 72 tests failed
+      # here on 429 while the step env held only NLTK_DISABLE_IMPORT_SECURITY.
       - name: test shell
+        env:
+          HF_TOKEN: ${{ secrets.HF_CI_TOKEN }}
         run: |
           ./ci/test_shell_espnet2.sh
       - name: test python
+        env:
+          HF_TOKEN: ${{ secrets.HF_CI_TOKEN }}
         run: |
           ./ci/test_python_espnet2.sh
           ./ci/test_python_espnet3.sh
