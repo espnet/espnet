@@ -32,7 +32,11 @@ down - it did, with 72 tests failing on 429. For a long time only the install
 steps had the token, which is invisible in review because the tests pass
 whenever the fleet happens to be under the limit.
 
-And fifth, the workflow files must have no duplicate mapping keys. PyYAML
+Fifth, every codecov upload must pass CODECOV_TOKEN. Without it the upload is
+tokenless, which codecov rate limits by IP, and this workflow sends one per job.
+The secret has existed since 2024 and was passed to nothing.
+
+And sixth, the workflow files must have no duplicate mapping keys. PyYAML
 accepts them and lets the last one win, so writing a second env: block into a
 step silently discards the first - which is exactly what nearly dropped
 GITHUB_TOKEN from the two steps that need it for torch.hub.
@@ -245,6 +249,32 @@ def check_hf_token() -> list:
     return problems
 
 
+def check_codecov_token() -> list:
+    """Every codecov-action step must pass the token.
+
+    Tokenless uploads are rate limited by IP, and nothing fails when one is
+    dropped - the coverage just quietly does not arrive.
+    """
+    problems = []
+    for path in _workflows():
+        try:
+            data = yaml.safe_load(path.read_text())
+        except yaml.YAMLError:
+            continue  # check_no_duplicate_keys reports the parse failure
+        for name, job in (data or {}).get("jobs", {}).items():
+            if not isinstance(job, dict):
+                continue
+            for step in job.get("steps") or []:
+                if not isinstance(step, dict):
+                    continue
+                if "codecov/codecov-action" not in str(step.get("uses") or ""):
+                    continue
+                if "token" in (step.get("with") or {}):
+                    continue
+                problems.append(f"{path.name}: {name}: codecov upload without token")
+    return problems
+
+
 def main() -> int:
     bad = (
         check_variants()
@@ -252,6 +282,7 @@ def main() -> int:
         + check_configuration_tasks()
         + check_no_duplicate_keys()
         + check_hf_token()
+        + check_codecov_token()
     )
     for problem in bad:
         print(problem, file=sys.stderr)
@@ -261,7 +292,7 @@ def main() -> int:
             f"hash inputs agree ({len(build)} entries); every job matrix is a "
             "built variant; integration and configuration tasks match their "
             "scripts; every shard set is complete; every test step has "
-            "HF_TOKEN; no duplicate keys"
+            "HF_TOKEN; every codecov upload has a token; no duplicate keys"
         )
         return 0
     if bad:

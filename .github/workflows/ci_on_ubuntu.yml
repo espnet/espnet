@@ -262,9 +262,21 @@ jobs:
           HF_TOKEN: ${{ secrets.HF_CI_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: ./ci/test_python_espnet2.sh
+      # CODECOV_TOKEN has been a repository secret since 2024 and was passed to
+      # nothing. Without it these uploads are tokenless, which codecov rate
+      # limits by IP - and this workflow sends seven of them per job matrix.
+      #
+      # Tokenless is not falling back to OIDC either: a run's own permission dump
+      # does not list id-token at all (see #6583), so there is no identity on
+      # these requests beyond the runner's address.
+      #
+      # Fork pull requests get no secrets, so the token is empty there and the
+      # upload stays tokenless. That is the documented behaviour and the reason
+      # this cannot be enforced by making the step fail on an empty token.
       - uses: codecov/codecov-action@v7
         with:
           flags: test_python_espnet2
+          token: ${{ secrets.CODECOV_TOKEN }}
       - name: coverage erase
         continue-on-error: true
         run: |
@@ -329,6 +341,7 @@ jobs:
       - uses: codecov/codecov-action@v7
         with:
           flags: test_utils
+          token: ${{ secrets.CODECOV_TOKEN }}
       - name: coverage erase
         continue-on-error: true
         run: |
@@ -433,6 +446,7 @@ jobs:
       - uses: codecov/codecov-action@v7
         with:
           flags: test_integration_espnet2
+          token: ${{ secrets.CODECOV_TOKEN }}
       - name: Save s3prl checkpoint cache
         if: github.event_name == 'push'
         continue-on-error: true
@@ -493,6 +507,7 @@ jobs:
       - uses: codecov/codecov-action@v7
         with:
           flags: test_configuration_espnet2
+          token: ${{ secrets.CODECOV_TOKEN }}
       - name: Save s3prl checkpoint cache
         if: github.event_name == 'push'
         continue-on-error: true
@@ -541,6 +556,7 @@ jobs:
       - uses: codecov/codecov-action@v7
         with:
           flags: test_python_espnet3
+          token: ${{ secrets.CODECOV_TOKEN }}
       - name: coverage erase
         continue-on-error: true
         run: |
@@ -585,6 +601,7 @@ jobs:
       - uses: codecov/codecov-action@v7
         with:
           flags: test_integration_espnet3
+          token: ${{ secrets.CODECOV_TOKEN }}
       - name: coverage erase
         continue-on-error: true
         run: |
@@ -627,6 +644,7 @@ jobs:
       - uses: codecov/codecov-action@v7
         with:
           flags: test_integration_espnet3_publication
+          token: ${{ secrets.CODECOV_TOKEN }}
       - name: coverage erase
         continue-on-error: true
         run: |
