@@ -97,12 +97,17 @@ jobs:
     outputs:
       hash: ${{ steps.hash.outputs.hash }}
       available: ${{ steps.probe.outputs.available }}
+      matrix: ${{ steps.variants.outputs.matrix }}
     steps:
       - uses: actions/checkout@v5
       # The list below is duplicated in build_ci_image.yml and the two must
       # match exactly, or the image is published under one tag and requested
       # under another. Checked rather than trusted.
-      - run: python3 ci/check_image_hash_inputs.py
+      - run: python3 ci/check_ci_image_config.py
+      # Hand the grid to the jobs that run all of it, so the versions are
+      # written down once rather than repeated per job.
+      - id: variants
+        run: echo "matrix=$(python3 ci/image_variants.py matrix)" >> "$GITHUB_OUTPUT"
       - id: hash
         run: |
           full=${{ hashFiles('ci/install.sh', 'ci/install_kaldi.sh', 'ci/no_redistribute.txt', 'docker/ci.dockerfile', 'pyproject.toml', 'tools/Makefile', 'tools/installers/**') }}
@@ -121,18 +126,19 @@ jobs:
         run: |
           echo "${{ secrets.GITHUB_TOKEN }}" \
             | docker login ghcr.io -u "${{ github.actor }}" --password-stdin >/dev/null
+          # The grid comes from ci/image_variants.json, the same file
+          # build_ci_image.yml builds from, so adding a pytorch version there
+          # is enough - nothing here needs editing to match.
           available=true
-          for py in 3.10 3.12; do
-            for th in 2.9.1 2.10.0 2.11.0; do
-              tag="ghcr.io/${{ github.repository }}-ci:py${py}-th${th}-${{ steps.hash.outputs.hash }}"
-              if docker manifest inspect "$tag" >/dev/null 2>&1; then
-                echo "found   $tag"
-              else
-                echo "MISSING $tag"
-                available=false
-              fi
-            done
-          done
+          while read -r py th; do
+            tag="ghcr.io/${{ github.repository }}-ci:py${py}-th${th}-${{ steps.hash.outputs.hash }}"
+            if docker manifest inspect "$tag" >/dev/null 2>&1; then
+              echo "found   $tag"
+            else
+              echo "MISSING $tag"
+              available=false
+            fi
+          done < <(python3 ci/image_variants.py pairs)
           echo "available=${available}" >> "$GITHUB_OUTPUT"
           if [ "$available" = "false" ]; then
             echo "::notice::Prebuilt image not published for this hash; jobs will build their environment instead. This is expected on a pull request that changes ci/install.sh, pyproject.toml, tools/, docker/ci.dockerfile or ci/no_redistribute.txt."
@@ -146,9 +152,7 @@ jobs:
     strategy:
       fail-fast: false
       max-parallel: 20
-      matrix:
-        python-version: ["3.10", "3.12"]
-        pytorch-version: [2.9.1, 2.10.0, 2.11.0]
+      matrix: ${{ fromJSON(needs.resolve_ci_image.outputs.matrix) }}
     # Everything Make environment used to build is already here. Measured on
     # #6566: 81s to pull against 510s to build, and the whole job 4.2 min
     # shorter. The package is private; the token is enough, including from a
@@ -425,9 +429,7 @@ jobs:
     strategy:
       fail-fast: false
       max-parallel: 20
-      matrix:
-        python-version: ["3.10", "3.12"]
-        pytorch-version: [2.9.1, 2.10.0, 2.11.0]
+      matrix: ${{ fromJSON(needs.resolve_ci_image.outputs.matrix) }}
     # Empty when the image for this hash is not published, which makes the job
     # run on the runner instead. That behaviour is not documented; it was
     # verified directly before being relied on here.
