@@ -2,11 +2,12 @@
 
 import logging
 from pathlib import Path
-from typing import Any, Dict, Iterable, Union
+from typing import Any, Dict, Iterable, Tuple, Union
 
-import librosa
 import numpy as np
+import soundfile as sf
 import torch
+import torchaudio
 
 from espnet3.parallel.base_runner import BaseRunner
 
@@ -94,7 +95,7 @@ class XVectorRunner(BaseRunner):
         if out_path.exists():
             return {"utt_id": utt_id, "status": "skipped"}
 
-        wav, in_sr = librosa.load(str(wav_path), sr=None)
+        wav, in_sr = XVectorRunner._load_audio(wav_path)
         embedding = XVectorRunner._extract_embedding(wav, in_sr, model, toolkit, device)
 
         if isinstance(embedding, np.ndarray):
@@ -106,6 +107,24 @@ class XVectorRunner(BaseRunner):
 
         torch.save(tensor, str(out_path))
         return {"utt_id": utt_id, "status": "ok"}
+
+    @staticmethod
+    def _load_audio(wav_path: Union[str, Path]) -> Tuple[np.ndarray, int]:
+        """Read an audio file as mono float32 at its native sample rate.
+
+        soundfile returns ``(n_samples, n_channels)`` for multi-channel input,
+        so anything with more than one channel is mixed down to a 1-D signal.
+        """
+        wav, in_sr = sf.read(str(wav_path), dtype="float32", always_2d=False)
+        if wav.ndim > 1:
+            wav = wav.mean(axis=1)
+        return wav, in_sr
+
+    @staticmethod
+    def _resample(wav: np.ndarray, in_sr: int, tgt_sr: int) -> np.ndarray:
+        """Resample along the last (time) axis, preserving the input shape."""
+        tensor = torch.from_numpy(np.ascontiguousarray(wav, dtype=np.float32))
+        return torchaudio.functional.resample(tensor, in_sr, tgt_sr).numpy()
 
     @staticmethod
     def _extract_embedding(
@@ -133,7 +152,7 @@ class XVectorRunner(BaseRunner):
         tgt_sr = 16000  # follow espnet2 default
 
         if in_sr != tgt_sr:
-            wav = librosa.resample(wav, orig_sr=in_sr, target_sr=tgt_sr)
+            wav = XVectorRunner._resample(wav, in_sr, tgt_sr)
 
         if len(wav.shape) == 2:
             wav = np.mean(wav, axis=0)
@@ -169,7 +188,7 @@ class XVectorRunner(BaseRunner):
         n_segments = 10
 
         if in_sr != tgt_sr:
-            wav = librosa.resample(wav, orig_sr=in_sr, target_sr=tgt_sr)
+            wav = XVectorRunner._resample(wav, in_sr, tgt_sr)
 
         # RawNet3 was trained on 3-second utterances; pad shorter clips.
         if len(wav) < n_samples:

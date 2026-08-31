@@ -57,6 +57,10 @@ from espnet3.systems.tts.xvector_runner import XVectorRunner
 # |                                             | list of status dicts.        |
 # | test_forward_converts_embedding_types       | ndarray/tensor/list are all  |
 # |                                             | stored as float32 tensors.   |
+# | test_load_audio_mixes_stereo_to_mono        | Multi-channel input is mixed |
+# |                                             | down to mono float32.        |
+# | test_load_audio_keeps_mono_untouched        | Mono input keeps its shape,  |
+# |                                             | dtype and native rate.       |
 # | test_extract_embedding_dispatches_toolkit   | Each toolkit reaches its own |
 # |                                             | extractor; unknown raises.   |
 # | test_extract_speechbrain_uses_encode_batch  | The speechbrain path calls   |
@@ -340,7 +344,7 @@ def test_forward_skips_existing(manifest, tmp_path, stub_model, monkeypatch):
     def _fail(*args, **kwargs):
         raise AssertionError("audio must not be re-read for an existing .pt")
 
-    monkeypatch.setattr("espnet3.systems.tts.xvector_runner.librosa.load", _fail)
+    monkeypatch.setattr(XVectorRunner, "_load_audio", staticmethod(_fail))
 
     assert XVectorRunner.forward(0, **env) == {"utt_id": "u1", "status": "skipped"}
 
@@ -378,6 +382,31 @@ def test_forward_converts_embedding_types(manifest, tmp_path, monkeypatch, embed
     saved = torch.load(str(env["output_dir"] / "u1.pt"))
     assert saved.dtype == torch.float32
     assert saved.shape == (4,)
+
+
+def test_load_audio_mixes_stereo_to_mono(tmp_path):
+    """_load_audio owns the mono mix-down that librosa.load used to provide."""
+    path = tmp_path / "stereo.wav"
+    stereo = np.stack(
+        [np.full(16, 1.0, dtype=np.float32), np.full(16, -0.5, dtype=np.float32)],
+        axis=-1,
+    )
+    sf.write(path, stereo, 16000)
+
+    wav, in_sr = XVectorRunner._load_audio(path)
+
+    assert in_sr == 16000
+    assert wav.ndim == 1
+    assert wav.shape == (16,)
+    assert wav.dtype == np.float32
+    np.testing.assert_allclose(wav, 0.25, atol=1e-4)
+
+
+def test_load_audio_keeps_mono_untouched(tmp_path):
+    wav, in_sr = XVectorRunner._load_audio(_wav(tmp_path, seconds=0.5, sr=8000))
+
+    assert (wav.ndim, in_sr, wav.shape) == (1, 8000, (4000,))
+    assert wav.dtype == np.float32
 
 
 def test_extract_embedding_dispatches_toolkit(monkeypatch):
