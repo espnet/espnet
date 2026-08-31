@@ -11,9 +11,6 @@ inputs:
   pytorch-version:
     required: true
     type: string
-  chainer-version:
-    required: true
-    type: string
   use-conda:
     required: true
     type: string
@@ -37,7 +34,6 @@ runs:
       env:
         ESPNET_PYTHON_VERSION: ${{ inputs.python-version }}
         TH_VERSION: ${{ inputs.pytorch-version }}
-        CHAINER_VERSION: ${{ inputs.chainer-version }}
         USE_CONDA: ${{ inputs.use-conda }}
         HF_TOKEN: ${{ inputs.hf-token }}
       run: |
