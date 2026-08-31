@@ -19,6 +19,9 @@ on:
       - master
     paths:
       - "ci/install.sh"
+      - "ci/install_kaldi.sh"
+      - "ci/no_redistribute.txt"
+      - "ci/report_unlicensed.py"
       - "docker/ci.dockerfile"
       - "pyproject.toml"
       - "tools/Makefile"
@@ -29,6 +32,9 @@ on:
       - master
     paths:
       - "ci/install.sh"
+      - "ci/install_kaldi.sh"
+      - "ci/no_redistribute.txt"
+      - "ci/report_unlicensed.py"
       - "docker/ci.dockerfile"
       - "pyproject.toml"
       - "tools/Makefile"
@@ -44,16 +50,29 @@ permissions:
   packages: write
 
 jobs:
+  # The grid lives in ci/image_variants.json so that this workflow, the probe
+  # in ci_on_ubuntu.yml and the test jobs cannot disagree about which images
+  # exist. Adding a pytorch version there is the whole change.
+  variants:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.v.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v5
+      - run: python3 ci/check_ci_image_config.py
+      - id: v
+        run: echo "matrix=$(python3 ci/image_variants.py matrix)" >> "$GITHUB_OUTPUT"
+
   build:
     runs-on: ubuntu-latest
+    needs: variants
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          # One cell for now. The full matrix is 2 python x 3 torch; widening it
-          # is only worth doing once the numbers from this one are known.
-          - python-version: "3.10"
-            pytorch-version: "2.9.1"
+      # Builds run in parallel, so the full grid costs the same wall clock as
+      # one cell and about 66 runner-minutes - paid only when the inputs change
+      # or nightly, against the 13.5 runner-hours a single pull request spends
+      # rebuilding the same environment in every job.
+      matrix: ${{ fromJSON(needs.variants.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v5
 
@@ -73,7 +92,7 @@ jobs:
       - name: Resolve image tag
         id: tag
         run: |
-          hash=${{ hashFiles('ci/install.sh', 'docker/ci.dockerfile', 'pyproject.toml', 'tools/Makefile', 'tools/installers/**') }}
+          hash=${{ hashFiles('ci/install.sh', 'ci/install_kaldi.sh', 'ci/no_redistribute.txt', 'docker/ci.dockerfile', 'pyproject.toml', 'tools/Makefile', 'tools/installers/**') }}
           echo "tag=py${{ matrix.python-version }}-th${{ matrix.pytorch-version }}-${hash:0:12}" >> "$GITHUB_OUTPUT"
 
       - name: Build
@@ -118,3 +137,20 @@ jobs:
       - name: Push
         if: github.event_name != 'pull_request'
         run: docker push "ghcr.io/${{ github.repository }}-ci:${{ steps.tag.outputs.tag }}"
+
+      - name: Delete untagged versions
+        # The nightly build produces the same tag whenever the inputs are
+        # unchanged, but a different digest, because upstream wheels move. The
+        # version it replaces is left untagged and keeps consuming storage, so
+        # without this the package grows by six images a day forever.
+        #
+        # Tagged versions are never touched: a pull request may still resolve
+        # to an older tag if it does not change the inputs.
+        if: github.event_name != 'pull_request'
+        continue-on-error: true
+        uses: actions/delete-package-versions@v5
+        with:
+          owner: ${{ github.repository_owner }}
+          package-name: espnet-ci
+          package-type: container
+          delete-only-untagged-versions: "true"

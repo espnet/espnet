@@ -1,0 +1,15 @@
+{
+  "_comment": [
+    "The python x pytorch grid the prebuilt CI images are built for.",
+    "",
+    "Single source of truth. build_ci_image.yml builds this set,",
+    "resolve_ci_image in ci_on_ubuntu.yml probes this set, and the test jobs",
+    "that run the full grid take their matrix from here.",
+    "",
+    "Adding a pytorch version here is what makes an image exist for it.",
+    "ci/check_ci_image_config.py fails if a job asks for a variant this file",
+    "does not list."
+  ],
+  "python-version": ["3.10", "3.12"],
+  "pytorch-version": ["2.9.1", "2.10.0", "2.11.0"]
+}
