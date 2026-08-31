@@ -6,9 +6,21 @@ on:
       - master
       - espnet3
   pull_request:
+    # ready_for_review is required: jobs are skipped on draft PRs, so the
+    # gate below must get a fresh run once the PR leaves draft.
+    types: [opened, synchronize, reopened, ready_for_review]
     branches:
       - master
       - espnet3
+
+# Only one run per PR at a time: a new push cancels the superseded run.
+# Non-PR events key the group on github.sha rather than github.ref so that
+# every push to master gets its own group. cancel-in-progress only protects
+# runs that have actually started; a *pending* run is cancelled when a newer
+# run joins its group, and master runs here sit pending for a long time.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   NLTK_DISABLE_IMPORT_SECURITY: "1"
@@ -18,6 +30,7 @@ jobs:
     runs-on: macOS-latest
     if: github.event.pull_request.draft == false
     strategy:
+      fail-fast: false
       matrix:
         python-version: ["3.10"]
         pytorch-version: [2.9.1]
@@ -26,10 +39,12 @@ jobs:
       - uses: actions/checkout@master
       - name: Install FFmpeg
         uses: ./.github/actions/install-ffmpeg
-      - uses: actions/cache@v6
+      - uses: actions/cache/restore@v6
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-
       - uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
@@ -40,7 +55,6 @@ jobs:
         env:
           ESPNET_PYTHON_VERSION: ${{ matrix.python-version }}
           TH_VERSION: ${{ matrix.pytorch-version }}
-          CHAINER_VERSION: 6.0.0
           USE_CONDA: ${{ matrix.use-conda }}
           # FIXME(kamo): clang is used by default, but I don't know how to use "-fopenmp" with clang
           WITH_OMP: OFF
@@ -51,3 +65,36 @@ jobs:
           HF_TOKEN: ${{ secrets.HF_CI_TOKEN }}
         run: |
           ./ci/install_macos.sh
+
+  # Single stable status check that aggregates every job in this workflow.
+  # Register THIS job as the required status check instead of the individual
+  # matrix jobs, whose names change whenever the matrix changes.
+      # Only pushes write caches. Pull request runs restore and never save, so a
+      # miss on a PR branch cannot add another per-ref copy of the same entry.
+      - name: Save pip cache
+        if: github.event_name == 'push'
+        continue-on-error: true
+        uses: actions/cache/save@v6
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
+
+  ci_gate_macos:
+    if: always()
+    needs:
+      - check_installable_on_macos
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail unless every job succeeded
+        if: >-
+          contains(needs.*.result, 'failure')
+          || contains(needs.*.result, 'cancelled')
+          || contains(needs.*.result, 'skipped')
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+        run: |
+          echo "At least one job did not succeed:"
+          echo "$NEEDS_JSON"
+          exit 1
+      - name: All jobs succeeded
+        run: echo "All jobs in this workflow succeeded."

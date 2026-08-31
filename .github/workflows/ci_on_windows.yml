@@ -6,9 +6,21 @@ on:
       - master
       - espnet3
   pull_request:
+    # ready_for_review is required: jobs are skipped on draft PRs, so the
+    # gate below must get a fresh run once the PR leaves draft.
+    types: [opened, synchronize, reopened, ready_for_review]
     branches:
       - master
       - espnet3
+
+# Only one run per PR at a time: a new push cancels the superseded run.
+# Non-PR events key the group on github.sha rather than github.ref so that
+# every push to master gets its own group. cancel-in-progress only protects
+# runs that have actually started; a *pending* run is cancelled when a newer
+# run joins its group, and master runs here sit pending for a long time.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   NLTK_DISABLE_IMPORT_SECURITY: "1"
@@ -18,6 +30,7 @@ jobs:
     runs-on: Windows-latest
     if: github.event.pull_request.draft == false
     strategy:
+      fail-fast: false
       matrix:
         python-version: ["3.10"]
         pytorch-version: [2.9.1]
@@ -35,8 +48,37 @@ jobs:
           python-version: ${{ matrix.python-version }}
           architecture: 'x64'
       - name: install dependencies
+        shell: bash
+        # This step used to report success while installing nothing. A
+        # chocolatey outage gives:
+        #
+        #   Failed to fetch results from V2 feed at '.../Packages(Id='Wget',...)'
+        #   ... 503 (Service Unavailable).
+        #   Chocolatey installed 0/0 packages.
+        #
+        # and exits 0 - so the exit status is not a usable signal here, and a
+        # plain retry loop keyed on it would not have retried. The job then died
+        # ten minutes later in a place that says nothing about the cause:
+        #
+        #   ./installers/install_ffmpeg.sh: line 112: wget: command not found
+        #   make: *** [Makefile:97: ffmpeg.done] Error 127
+        #
+        # So: retry on the binary being absent rather than on choco's verdict,
+        # and if it is still absent, fail here where the 503 is on screen.
         run: |
-          choco install -y wget
+          for attempt in 1 2 3; do
+            choco install -y wget || true
+            if command -v wget > /dev/null 2>&1; then break; fi
+            if [ "${attempt}" = 3 ]; then break; fi
+            wait=$((attempt * 20))
+            echo "wget still not installed after attempt ${attempt}; retrying in ${wait}s"
+            sleep "${wait}"
+          done
+          if ! command -v wget > /dev/null 2>&1; then
+            echo "::error::choco could not install wget after three attempts; see the chocolatey output above"
+            exit 1
+          fi
+          wget --version | head -1
       - name: Get PR labels
         id: pr-labels
         uses: joerick/pr-labels-action@v1.0.9
@@ -44,8 +86,30 @@ jobs:
         env:
           ESPNET_PYTHON_VERSION: ${{ matrix.python-version }}
           TH_VERSION: ${{ matrix.pytorch-version }}
-          CHAINER_VERSION: 6.0.0
           USE_CONDA: false
           HF_TOKEN: ${{ secrets.HF_CI_TOKEN }}
         run: |
           ./ci/install.sh
+
+  # Single stable status check that aggregates every job in this workflow.
+  # Register THIS job as the required status check instead of the individual
+  # matrix jobs, whose names change whenever the matrix changes.
+  ci_gate_windows:
+    if: always()
+    needs:
+      - check_installable_on_windows
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail unless every job succeeded
+        if: >-
+          contains(needs.*.result, 'failure')
+          || contains(needs.*.result, 'cancelled')
+          || contains(needs.*.result, 'skipped')
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+        run: |
+          echo "At least one job did not succeed:"
+          echo "$NEEDS_JSON"
+          exit 1
+      - name: All jobs succeeded
+        run: echo "All jobs in this workflow succeeded."

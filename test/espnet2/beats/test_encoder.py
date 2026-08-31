@@ -6,6 +6,27 @@ from espnet2.beats.encoder import (
     BeatsPretrainingPredictor,
     MultiheadAttention,
 )
+from espnet2.torch_utils.safe_torch_load import _ENV_VAR, UnsafeLoadRefusedError
+
+
+class UnsafeConfig(dict):
+    pass
+
+
+def _save_unsafe_beats_checkpoint(path):
+    beats_config = {
+        "encoder_layers": 2,
+        "encoder_embed_dim": 128,
+        "decoder_embed_dim": 128,
+        "embed_dim": 64,
+        "encoder_ffn_embed_dim": 256,
+        "encoder_attention_heads": 4,
+    }
+    beats_model = BeatsEncoder(input_size=1, beats_config=beats_config)
+    torch.save(
+        {"model": beats_model.state_dict(), "cfg": UnsafeConfig(beats_config)},
+        path,
+    )
 
 
 def test_override_beats_config():
@@ -17,6 +38,25 @@ def test_override_beats_config():
     assert (
         len(beats_model.encoder.layers) == 2
     ), f"Number of layers should be 2. It is {len(beats_model.encoder.layers)}"
+
+
+def test_beats_checkpoint_requires_explicit_opt_in(tmp_path, monkeypatch):
+    beats_ckpt_path = tmp_path / "beats.ckpt"
+    _save_unsafe_beats_checkpoint(beats_ckpt_path)
+    monkeypatch.delenv(_ENV_VAR, raising=False)
+
+    with pytest.raises(UnsafeLoadRefusedError):
+        BeatsEncoder(input_size=1, beats_ckpt_path=str(beats_ckpt_path))
+
+
+def test_beats_checkpoint_accepts_env_opt_in(tmp_path, monkeypatch):
+    beats_ckpt_path = tmp_path / "beats.ckpt"
+    _save_unsafe_beats_checkpoint(beats_ckpt_path)
+    monkeypatch.setenv(_ENV_VAR, "1")
+
+    beats_model = BeatsEncoder(input_size=1, beats_ckpt_path=str(beats_ckpt_path))
+
+    assert beats_model.loaded_state_dict_ is not None
 
 
 # Each parameter value creates a variant of the model
