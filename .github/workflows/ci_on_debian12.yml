@@ -6,9 +6,52 @@ on:
       - master
       - espnet3
   pull_request:
+    # ready_for_review is required: jobs are skipped on draft PRs, so the
+    # gate below must get a fresh run once the PR leaves draft.
+    types: [opened, synchronize, reopened, ready_for_review]
     branches:
       - master
       - espnet3
+
+# One run per pull request, and one per branch otherwise: a newer run cancels
+# the superseded one.
+#
+# Non-PR events used to key the group on github.sha, so that every push to
+# master got its own group and nothing could cancel a master verification. That
+# was an overcorrection. Merging six PRs in an afternoon left five full master
+# runs alive at once - about 330 queued jobs against a 60-runner cap - which
+# starved the pull request runs that actually gate merges, mine and everyone
+# else's.
+#
+# master is linear, so the newest run verifies a superset of what the older ones
+# were verifying, and cancelling them loses coverage of nothing. What it does
+# lose is per-commit attribution: if a batch of merges goes red together, the
+# surviving run says the batch is broken but not which merge did it. Re-run the
+# workflow at the specific commit to find out - cheaper than paying for five
+# parallel runs on every busy day.
+#
+# Note this is not the stale-merge problem: that was a pull request's own CI
+# having run against an old master, which is about when a PR is merged, not
+# about master verifications cancelling each other.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+# The default on this repository is almost entirely write - a job's GITHUB_TOKEN
+# reports Contents: write, Actions: write, PullRequests: write, Packages: write
+# and more. This job checks out a pull request's code and runs it, next to
+# third-party actions, and writes nothing.
+#
+#   contents       checkout, and actions/cache
+#   pull-requests  joerick/pr-labels-action
+#
+# No packages: read here - unlike ci_on_ubuntu.yml these pull no GHCR image
+# (ci_on_debian12.yml's debian:12 comes from Docker Hub, which does not use
+# GITHUB_TOKEN). No id-token either: it is not granted today and nothing here
+# uploads to codecov. See #6583, which did the same for ci_on_ubuntu.yml.
+permissions:
+  contents: read
+  pull-requests: read
 
 env:
   NLTK_DISABLE_IMPORT_SECURITY: "1"
@@ -44,10 +87,40 @@ jobs:
         run: ./ci/install.sh
         env:
           HF_TOKEN: ${{ secrets.HF_CI_TOKEN }}
+      # See the note in ci_on_ubuntu.yml: huggingface.co rate limits anonymous
+      # callers hard, and this is the job where it actually bit - 72 tests failed
+      # here on 429 while the step env held only NLTK_DISABLE_IMPORT_SECURITY.
       - name: test shell
+        env:
+          HF_TOKEN: ${{ secrets.HF_CI_TOKEN }}
         run: |
           ./ci/test_shell_espnet2.sh
       - name: test python
+        env:
+          HF_TOKEN: ${{ secrets.HF_CI_TOKEN }}
         run: |
           ./ci/test_python_espnet2.sh
           ./ci/test_python_espnet3.sh
+
+  # Single stable status check that aggregates every job in this workflow.
+  # Register THIS job as the required status check instead of the individual
+  # matrix jobs, whose names change whenever the matrix changes.
+  ci_gate_debian12:
+    if: always()
+    needs:
+      - unit_test_espnet2_and_espnet3_on_debian12
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail unless every job succeeded
+        if: >-
+          contains(needs.*.result, 'failure')
+          || contains(needs.*.result, 'cancelled')
+          || contains(needs.*.result, 'skipped')
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+        run: |
+          echo "At least one job did not succeed:"
+          echo "$NEEDS_JSON"
+          exit 1
+      - name: All jobs succeeded
+        run: echo "All jobs in this workflow succeeded."
