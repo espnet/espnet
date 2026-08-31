@@ -4,16 +4,15 @@ import pytest
 import torch
 
 from espnet2.layers.lora import (
+    LINEAR_BACKENDS,
     DoraLinear,
     Embedding,
-    LINEAR_BACKENDS,
     Linear,
     LoRALayer,
     PiSSALinear,
     SSVDLinear,
     SVFTLinear,
 )
-
 
 # Default tiny dimensions for fast tests.
 IN_FEATURES = 16
@@ -56,9 +55,9 @@ def test_backend_is_lora_layer(name, cls):
 @pytest.mark.parametrize("name,cls", sorted(LINEAR_BACKENDS.items()))
 def test_backend_pretrained_weight_frozen(name, cls):
     layer = _make_layer(cls)
-    assert layer.weight.requires_grad is False, (
-        f"{name}: pretrained .weight must be frozen by the adapter"
-    )
+    assert (
+        layer.weight.requires_grad is False
+    ), f"{name}: pretrained .weight must be frozen by the adapter"
 
 
 @pytest.mark.parametrize("name,cls", sorted(LINEAR_BACKENDS.items()))
@@ -67,9 +66,9 @@ def test_backend_has_trainable_adapter_params(name, cls):
     trainable = [n for n, p in layer.named_parameters() if p.requires_grad]
     assert trainable, f"{name}: no trainable parameters found"
     # At least one trainable parameter should be a recognised adapter param.
-    assert any(any(tok in n for tok in _adapter_param_names()) for n in trainable), (
-        f"{name}: no adapter-like trainable parameter found in {trainable}"
-    )
+    assert any(
+        any(tok in n for tok in _adapter_param_names()) for n in trainable
+    ), f"{name}: no adapter-like trainable parameter found in {trainable}"
 
 
 @pytest.mark.parametrize("name,cls", sorted(LINEAR_BACKENDS.items()))
@@ -79,9 +78,9 @@ def test_backend_gradient_flows_to_adapter(name, cls):
     y = layer(x).sum()
     y.backward()
     # The pretrained weight must NOT receive a grad.
-    assert layer.weight.grad is None, (
-        f"{name}: frozen .weight should not receive a gradient"
-    )
+    assert (
+        layer.weight.grad is None
+    ), f"{name}: frozen .weight should not receive a gradient"
     # At least one adapter parameter must have a non-zero gradient.
     has_grad = False
     for n, p in layer.named_parameters():
@@ -99,9 +98,9 @@ def test_lora_linear_zero_init_is_identity():
     x = torch.randn(BATCH, IN_FEATURES)
     y_lora = layer(x)
     y_ref = torch.nn.functional.linear(x, layer.weight, layer.bias)
-    assert torch.allclose(y_lora, y_ref, atol=1e-6), (
-        "LoRA forward at init must equal the base linear because B is zero-initialised."
-    )
+    assert torch.allclose(
+        y_lora, y_ref, atol=1e-6
+    ), "LoRA forward at init must equal the base linear because B is zero-initialised."
 
 
 def test_pissa_init_matches_pretrained():
@@ -111,9 +110,9 @@ def test_pissa_init_matches_pretrained():
     x = torch.randn(BATCH, IN_FEATURES)
     y_pissa = layer(x)
     y_ref = torch.nn.functional.linear(x, layer.weight, layer.bias)
-    assert torch.allclose(y_pissa, y_ref, atol=1e-5), (
-        "PiSSA must be an identity adapter at init (delta = 0)."
-    )
+    assert torch.allclose(
+        y_pissa, y_ref, atol=1e-5
+    ), "PiSSA must be an identity adapter at init (delta = 0)."
 
 
 def test_dora_magnitude_initialised_to_pretrained_norm():
@@ -133,9 +132,9 @@ def test_svft_band_indices_have_expected_count():
     layer = _make_layer(SVFTLinear, off_diag=off_diag)
     n = min(IN_FEATURES, OUT_FEATURES)
     expected = n * (2 * off_diag + 1) - off_diag * (off_diag + 1)
-    assert layer.num_banded_params == expected, (
-        f"SVFT band count mismatch: got {layer.num_banded_params}, expected {expected}"
-    )
+    assert (
+        layer.num_banded_params == expected
+    ), f"SVFT band count mismatch: got {layer.num_banded_params}, expected {expected}"
     assert layer.m_entries.shape == (expected,)
 
 
@@ -151,9 +150,9 @@ def test_ssvd_apply_svd_populates_buffers():
     assert bool(layer.svd_initialized) is True
     # Reconstruct W from U S V and compare to the original weight.
     reconstructed = layer.u @ torch.diag(layer.s_pre) @ layer.v
-    assert torch.allclose(reconstructed, layer.weight, atol=1e-4), (
-        "SSVD's cached u/s_pre/v must reconstruct the pretrained weight."
-    )
+    assert torch.allclose(
+        reconstructed, layer.weight, atol=1e-4
+    ), "SSVD's cached u/s_pre/v must reconstruct the pretrained weight."
 
 
 def test_ssvd_rotation_ratio_sets_k_trainable():

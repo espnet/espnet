@@ -15,11 +15,9 @@ from espnet2.asr.decoder.transformer_decoder import TransformerDecoder
 from espnet2.layers.create_adapter_fn import create_lora_adapter
 from espnet2.layers.lora import (
     DoraLinear,
-    Linear as LoraLinear,
-    PiSSALinear,
-    SSVDLinear,
-    SVFTLinear,
 )
+from espnet2.layers.lora import Linear as LoraLinear
+from espnet2.layers.lora import PiSSALinear, SSVDLinear, SVFTLinear
 
 is_python_3_8_plus = sys.version_info >= (3, 8)
 is_torch_2_6_plus = V(torch.__version__) >= V("2.6.0")
@@ -49,9 +47,7 @@ def init_decoder_model():
         ("ssvd", SSVDLinear, {"rotation_ratio": 0.5}),
     ],
 )
-def test_create_lora_adapter_backend_dispatch(
-    adapter_type, expected_cls, extra_kwargs
-):
+def test_create_lora_adapter_backend_dispatch(adapter_type, expected_cls, extra_kwargs):
     model = init_decoder_model()
     create_lora_adapter(
         model=model,
@@ -62,16 +58,16 @@ def test_create_lora_adapter_backend_dispatch(
         **extra_kwargs,
     )
     linear_q = model.decoders[0].self_attn.linear_q
-    assert isinstance(linear_q, expected_cls), (
-        f"adapter_type={adapter_type!r} did not produce {expected_cls.__name__}"
-    )
+    assert isinstance(
+        linear_q, expected_cls
+    ), f"adapter_type={adapter_type!r} did not produce {expected_cls.__name__}"
     # At least one adapter parameter must be trainable. (Freezing the
     # pretrained .weight is the caller's responsibility -- e.g. via the
     # YAML `freeze_param` field or `mark_only_lora_as_trainable`.)
     trainable = [n for n, p in linear_q.named_parameters() if p.requires_grad]
-    assert any(n != "weight" and n != "bias" for n in trainable), (
-        f"{adapter_type}: no adapter parameter is trainable: {trainable}"
-    )
+    assert any(
+        n != "weight" and n != "bias" for n in trainable
+    ), f"{adapter_type}: no adapter parameter is trainable: {trainable}"
 
 
 @pytest.mark.skipif(

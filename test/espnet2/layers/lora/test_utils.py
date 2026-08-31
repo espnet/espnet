@@ -4,11 +4,8 @@ import pytest
 import torch
 import torch.nn as nn
 
-from espnet2.layers.lora import (
-    Linear as LoraLinear,
-    lora_state_dict,
-    mark_only_lora_as_trainable,
-)
+from espnet2.layers.lora import Linear as LoraLinear
+from espnet2.layers.lora import lora_state_dict, mark_only_lora_as_trainable
 
 
 def _build_model():

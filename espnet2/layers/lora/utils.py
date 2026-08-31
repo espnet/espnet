@@ -30,28 +30,20 @@ def mark_only_lora_as_trainable(model: nn.Module, bias: str = "none") -> None:
         return
     if bias == "lora_only":
         for m in model.modules():
-            if (
-                isinstance(m, LoRALayer)
-                and hasattr(m, "bias")
-                and m.bias is not None
-            ):
+            if isinstance(m, LoRALayer) and hasattr(m, "bias") and m.bias is not None:
                 m.bias.requires_grad = True
         return
     raise NotImplementedError(f"Unknown bias mode: {bias}")
 
 
-def lora_state_dict(
-    model: nn.Module, bias: str = "none"
-) -> Dict[str, torch.Tensor]:
+def lora_state_dict(model: nn.Module, bias: str = "none") -> Dict[str, torch.Tensor]:
     """Return a state dict containing only the adapter (and optionally bias) keys."""
     my_state_dict = model.state_dict()
     if bias == "none":
         return {k: my_state_dict[k] for k in my_state_dict if "lora_" in k}
     if bias == "all":
         return {
-            k: my_state_dict[k]
-            for k in my_state_dict
-            if "lora_" in k or "bias" in k
+            k: my_state_dict[k] for k in my_state_dict if "lora_" in k or "bias" in k
         }
     if bias == "lora_only":
         to_return = {}

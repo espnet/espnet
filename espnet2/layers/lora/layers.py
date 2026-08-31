@@ -91,16 +91,16 @@ class Embedding(nn.Embedding, LoRALayer):
         if mode:
             if self.merge_weights and self.merged:
                 if self.r > 0:
-                    self.weight.data -= (
-                        (self.lora_B @ self.lora_A).transpose(0, 1) * self.scaling
-                    )
+                    self.weight.data -= (self.lora_B @ self.lora_A).transpose(
+                        0, 1
+                    ) * self.scaling
                 self.merged = False
         else:
             if self.merge_weights and not self.merged:
                 if self.r > 0:
-                    self.weight.data += (
-                        (self.lora_B @ self.lora_A).transpose(0, 1) * self.scaling
-                    )
+                    self.weight.data += (self.lora_B @ self.lora_A).transpose(
+                        0, 1
+                    ) * self.scaling
                 self.merged = True
 
     def forward(self, x: torch.Tensor):
@@ -247,17 +247,19 @@ class DoraLinear(nn.Linear, LoRALayer):
         else:
             if self.merge_weights and not self.merged:
                 new_weight_v = self.weight + (self.lora_B @ self.lora_A) * self.scaling
-                norm_scale = self.weight_m_wdecomp.transpose(0, 1).view(-1) / (
-                    torch.linalg.norm(new_weight_v, dim=1)
-                ).detach()
-                self.weight.data = self.weight + (
-                    (norm_scale - 1) * self.weight.T
-                    + norm_scale
-                    * (
-                        self.lora_A.transpose(0, 1) @ self.lora_B.transpose(0, 1)
-                    )
-                    * self.scaling
-                ).T
+                norm_scale = (
+                    self.weight_m_wdecomp.transpose(0, 1).view(-1)
+                    / (torch.linalg.norm(new_weight_v, dim=1)).detach()
+                )
+                self.weight.data = (
+                    self.weight
+                    + (
+                        (norm_scale - 1) * self.weight.T
+                        + norm_scale
+                        * (self.lora_A.transpose(0, 1) @ self.lora_B.transpose(0, 1))
+                        * self.scaling
+                    ).T
+                )
                 self.merged = True
 
     def forward(self, x: torch.Tensor):
@@ -267,9 +269,10 @@ class DoraLinear(nn.Linear, LoRALayer):
         self.apply_m()
         if self.r > 0 and not self.merged:
             new_weight_v = self.weight + (self.lora_B @ self.lora_A) * self.scaling
-            norm_scale = self.weight_m_wdecomp.transpose(0, 1).view(-1) / (
-                torch.linalg.norm(new_weight_v, dim=1)
-            ).detach()
+            norm_scale = (
+                self.weight_m_wdecomp.transpose(0, 1).view(-1)
+                / (torch.linalg.norm(new_weight_v, dim=1)).detach()
+            )
             org_result = F.linear(x, T(self.weight), bias=self.bias)
             dropout_x = self.lora_dropout(x)
             result = org_result + (
@@ -319,9 +322,7 @@ class PiSSALinear(nn.Linear, LoRALayer):
         if r <= 0:
             raise ValueError("PiSSALinear requires r > 0.")
         self.fan_in_fan_out = fan_in_fan_out
-        self.register_buffer(
-            "pissa_initialized", torch.tensor(False, dtype=torch.bool)
-        )
+        self.register_buffer("pissa_initialized", torch.tensor(False, dtype=torch.bool))
 
         self.lora_A = nn.Parameter(
             self.weight.new_zeros((r, in_features)), requires_grad=True
@@ -418,9 +419,7 @@ class SVFTLinear(nn.Linear, LoRALayer):
             merge_weights=merge_weights,
         )
         self.fan_in_fan_out = fan_in_fan_out
-        self.register_buffer(
-            "svd_initialized", torch.tensor(False, dtype=torch.bool)
-        )
+        self.register_buffer("svd_initialized", torch.tensor(False, dtype=torch.bool))
 
         self.r_svft = min(out_features, in_features)
         self.off_diag = r if off_diag is None else off_diag
@@ -523,9 +522,7 @@ class SSVDLinear(nn.Linear, LoRALayer):
             merge_weights=merge_weights,
         )
         self.fan_in_fan_out = fan_in_fan_out
-        self.register_buffer(
-            "svd_initialized", torch.tensor(False, dtype=torch.bool)
-        )
+        self.register_buffer("svd_initialized", torch.tensor(False, dtype=torch.bool))
         self.in_features = in_features
         self.out_features = out_features
 

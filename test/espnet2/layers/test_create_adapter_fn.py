@@ -240,8 +240,6 @@ def test_create_lora_adapter_invalid_type(rank, alpha, target_modules):
         )
 
 
-
-
 if __name__ == "__main__":
     s3prl_model = init_S3prl_model()
     test_create_houlsby_adapter_bottleneck("s3prl", 64, [])

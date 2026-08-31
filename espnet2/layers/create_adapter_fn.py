@@ -12,7 +12,8 @@ from espnet2.layers.houlsby_adapter_layer import (
     Houlsby_Adapter,
     HoulsbyTransformerSentenceEncoderLayer,
 )
-from espnet2.layers.lora import LINEAR_BACKENDS, Embedding as LoraEmbedding
+from espnet2.layers.lora import LINEAR_BACKENDS
+from espnet2.layers.lora import Embedding as LoraEmbedding
 from espnet2.layers.lora import LoRALayer
 
 try:
