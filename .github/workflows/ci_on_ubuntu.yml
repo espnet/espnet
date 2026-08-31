@@ -66,7 +66,7 @@ jobs:
   #       pytorch-version: [2.9.1, 2.10.0, 2.11.0]
   #       use-conda: [false]
   #   steps:
-  #     - uses: actions/checkout@master
+  #     - uses: actions/checkout@v5
   #     - uses: actions/cache@v6
   #       with:
   #         path: ~/.cache/pip
@@ -536,7 +536,7 @@ jobs:
       ESPNET3_PUBLICATION_TEST_UPLOAD: ${{ needs.process_labels.outputs.test_upload }}
       HF_TOKEN: ${{ secrets.HF_TOKEN }}
     steps:
-      - uses: actions/checkout@master
+      - uses: actions/checkout@v5
       - uses: actions/cache/restore@v6
         with:
           path: ~/.cache/pip
@@ -590,7 +590,7 @@ jobs:
         python-version: ["3.10"]
         pytorch-version: [2.9.1]
     steps:
-    - uses: actions/checkout@master
+    - uses: actions/checkout@v5
     - name: Set up Python
       uses: actions/setup-python@v7
       with:
@@ -633,7 +633,7 @@ jobs:
     if: |
       github.event.pull_request.draft == false
     steps:
-    - uses: actions/checkout@master
+    - uses: actions/checkout@v5
     - run: ci/check_kaldi_symlinks.sh
 
   # Single stable status check that aggregates every job in this workflow.
