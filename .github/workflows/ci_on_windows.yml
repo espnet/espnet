@@ -22,6 +22,22 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
+# The default on this repository is almost entirely write - a job's GITHUB_TOKEN
+# reports Contents: write, Actions: write, PullRequests: write, Packages: write
+# and more. This job checks out a pull request's code and runs it, next to
+# third-party actions, and writes nothing.
+#
+#   contents       checkout, and actions/cache
+#   pull-requests  joerick/pr-labels-action
+#
+# No packages: read here - unlike ci_on_ubuntu.yml these pull no GHCR image
+# (ci_on_debian12.yml's debian:12 comes from Docker Hub, which does not use
+# GITHUB_TOKEN). No id-token either: it is not granted today and nothing here
+# uploads to codecov. See #6583, which did the same for ci_on_ubuntu.yml.
+permissions:
+  contents: read
+  pull-requests: read
+
 env:
   NLTK_DISABLE_IMPORT_SECURITY: "1"
 
