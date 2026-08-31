@@ -1,3 +1,4 @@
+"""Hugging Face model wrappers."""
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Tuple
 
@@ -9,8 +10,8 @@ from espnet2.torch_utils.device_funcs import force_gatherable
 
 
 class AbsHFTrainingWrapper(lightning.LightningModule, ABC):
-    """
-    This class provides a common interface for training Hugging Face models in ESPnet.
+    """Common interface for training Hugging Face models in ESPnet.
+
     While many elements of the transformers package are standardized, there are still
     differences between models when it comes to naming conventions, preprocessing, etc.
     This makes it difficult to provide a universal wrapper that works with all
@@ -22,8 +23,8 @@ class AbsHFTrainingWrapper(lightning.LightningModule, ABC):
     processor_class = AutoProcessor
 
     def __init__(self, model_tag_or_path: str, **kwargs):
-        """
-        Loads the model and processor and performs any additional setup.
+        """Load the model and processor and performs any additional setup.
+
         The model and processor class are defined using the model_class and
         processor_class attributes.
         This means that subclasses only need to define __init__() if additional
@@ -39,8 +40,7 @@ class AbsHFTrainingWrapper(lightning.LightningModule, ABC):
     def forward(
         self, **batch
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
-        """
-        Performs a forward pass and returns the loss, stats, and batch weights.
+        """Perform a forward pass and returns the loss, stats, and batch weights.
 
         Args:
             batch: Batched output of the collate function.
@@ -50,7 +50,7 @@ class AbsHFTrainingWrapper(lightning.LightningModule, ABC):
         """
         outputs = self.model(**batch)
         loss = outputs.loss
-        stats = {"loss": loss}
+        stats = {"loss": loss.detach()}
         batch_size = outputs.logits.shape[0]
 
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
@@ -58,9 +58,7 @@ class AbsHFTrainingWrapper(lightning.LightningModule, ABC):
 
     @abstractmethod
     def collect_feats(self, **batch) -> Dict[str, torch.Tensor]:
-        """
-        Returns the input features and (if applicable) corresponding lengths
-        for the input batch.
+        """Return the input features and (if applicable) corresponding lengths.
 
         Args:
             batch: Batched output of the collate function.
@@ -71,8 +69,8 @@ class AbsHFTrainingWrapper(lightning.LightningModule, ABC):
         raise NotImplementedError
 
     def save_pretrained(self, dirpath):
-        """
-        Saves the model and processor together to dirpath.
+        """Save the model and processor together to dirpath.
+
         This method generally shouldn't be overwritten unless custom saving logic
         is needed.
 
@@ -84,9 +82,9 @@ class AbsHFTrainingWrapper(lightning.LightningModule, ABC):
 
 
 class AbsHFInferenceWrapper(lightning.LightningModule, ABC):
-    """
-    This class provides a common interface for performing inference using Hugging Face
-    models in ESPnet. While many elements of the transformers package are standardized,
+    """Common interface for performing inference using Hugging Face models in ESPnet.
+
+    While many elements of the transformers package are standardized,
     there are still differences between models when it comes to naming conventions,
     preprocessing steps, etc. This makes it difficult to provide a universal wrapper
     that works with all Hugging Face models.
@@ -101,8 +99,8 @@ class AbsHFInferenceWrapper(lightning.LightningModule, ABC):
     processor_class = AutoProcessor
 
     def __init__(self, model_tag_or_path: str, **kwargs):
-        """
-        Loads the model and processor and performs any additional setup.
+        """Load the model and processor and performs any additional setup.
+
         The model and processor class are defined using the model_class and
         processor_class attributes. This means that subclasses only need to define
         __init__() if additional setup is necessary.
@@ -116,8 +114,7 @@ class AbsHFInferenceWrapper(lightning.LightningModule, ABC):
 
     @abstractmethod
     def forward(self, inputs: Any) -> Any:
-        """
-        Performs inference and returns the outputs.
+        """Perform inference and returns the outputs.
 
         Args:
             inputs: Inputs to the model.
