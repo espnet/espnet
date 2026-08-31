@@ -22,6 +22,11 @@ def main() -> int:
     what = sys.argv[1] if len(sys.argv) > 1 else "matrix"
     variants = grid()
     if what == "matrix":
+        for extra in sys.argv[2:]:
+            key, _, values = extra.partition("=")
+            if not key or not values:
+                sys.exit(f"expected key=a,b,c, got: {extra}")
+            variants[key] = values.split(",")
         print(json.dumps(variants, separators=(",", ":")))
     elif what == "pairs":
         for python in variants["python-version"]:
