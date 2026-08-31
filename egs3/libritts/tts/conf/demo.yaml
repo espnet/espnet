@@ -47,4 +47,3 @@ pack:
   requirements:
     - git+https://github.com/espnet/espnet.git
     - speechbrain
-    - librosa
