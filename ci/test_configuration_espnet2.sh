@@ -4,13 +4,41 @@ set -euo pipefail
 
 task="asr"
 if [ $# -gt 2 ]; then
-    echo "Usage: $0 [task]"
+    echo "Usage: $0 [task[:shard/shards]]"
     exit 1;
 elif [ $# -eq 1 ]; then
     task="$1"
 elif [ $# -eq 0 ]; then
     task="asr"
 fi
+
+# A task may be given as task:shard/shards - "asr:2/3" is the second third of
+# the asr configs. The asr task validated all 156 egs2/*/asr1/conf/train_asr*
+# files in one job, 64 min of the run's critical path once the prebuilt image
+# removed environment setup, against 24 min for the next longest (lm).
+shard=1
+shards=1
+case "${task}" in
+    *:*)
+        spec="${task#*:}"
+        task="${task%%:*}"
+        shard="${spec%/*}"
+        shards="${spec#*/}"
+        ;;
+esac
+
+# Round-robin rather than contiguous blocks. Measured over the 155 configs a
+# green run actually validates, the times are tight around the median - 22.3 s
+# median, 34.4 s p90, 51.4 s max - so taking every Nth file gives near-equal
+# shards, and it stays balanced as recipes are added or removed instead of
+# drifting until someone re-cuts hardcoded boundaries.
+#
+# The caller increments its counter before any skip, so which files land in
+# which shard does not depend on the optional packages installed.
+in_this_shard() {
+    [ "${shards}" -eq 1 ] && return 0
+    [ $(( ($1 - 1) % shards + 1 )) -eq "${shard}" ]
+}
 
 # Root in the CI container, an unprivileged user on a runner: sudo is needed in
 # one and absent in the other. Resolve it once instead of assuming either.
@@ -63,7 +91,10 @@ if python3 -c 'import torch as t; from packaging.version import parse as L; asse
      ]'
 
     if [ "${task}" == "asr" ] || [ "${task}" == "all" ]; then
+        i=0
         for f in egs2/*/asr1/conf/train_asr*.yaml; do
+            i=$((i + 1))
+            in_this_shard "${i}" || continue
             if [[ ${s3prl_confs} =~ \"${f}\" ]]; then
                 if ! python3 -c "import s3prl" &> /dev/null; then
                     continue

@@ -419,7 +419,10 @@ jobs:
       matrix:
         python-version: ["3.10"]
         pytorch-version: ["2.9.1"]
-        config-task: ["asr", "asr_transducer", "lm", "ssl", "tts", "enh", "enh_asr"]
+        # asr is sharded: see ci/test_configuration_espnet2.sh. Three shards put
+        # it at ~21 min, just under lm's 24 min, so lm becomes the binding
+        # constraint and a fourth shard would buy nothing until lm is split too.
+        config-task: ["asr:1/3", "asr:2/3", "asr:3/3", "asr_transducer", "lm", "ssl", "tts", "enh", "enh_asr"]
     # Empty when the image for this hash is not published, which runs the job on
     # the runner instead and takes the slow steps below.
     container:
