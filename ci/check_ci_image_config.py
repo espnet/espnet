@@ -126,15 +126,24 @@ def check_configuration_tasks() -> list:
     shards = {}
     wanted = set()
     for entry in entries:
-        task, _, spec = entry.partition(":")
+        task, colon, spec = entry.partition(":")
         wanted.add(task)
-        if not spec:
+        # An absent colon is a whole task; a colon with nothing useful after it
+        # is a mistake. Testing `spec` alone conflated the two, so "asr:" passed
+        # here as a bare task and then died in the script instead.
+        if not colon:
             continue
-        index, _, total = spec.partition("/")
-        if not (index.isdigit() and total.isdigit()):
+        index, slash, total = spec.partition("/")
+        if not (slash and index.isdigit() and total.isdigit()):
             problems.append(f"configuration config-task {entry}: malformed shard spec")
             continue
-        shards.setdefault(task, []).append((int(index), int(total)))
+        index, total = int(index), int(total)
+        if not 1 <= index <= total:
+            problems.append(
+                f"configuration config-task {entry}: shard index out of range"
+            )
+            continue
+        shards.setdefault(task, []).append((index, total))
 
     for task, seen in sorted(shards.items()):
         totals = {total for _, total in seen}

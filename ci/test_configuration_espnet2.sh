@@ -16,14 +16,34 @@ fi
 # the asr configs. The asr task validated all 156 egs2/*/asr1/conf/train_asr*
 # files in one job, 64 min of the run's critical path once the prebuilt image
 # removed environment setup, against 24 min for the next longest (lm).
+#
+# Validated rather than parsed loosely, because every way of getting it wrong
+# ends in silently testing less. "asr:2" would otherwise leave shard=2 shards=2
+# through ${spec%/*} and ${spec#*/}, running 78 of the 156 configs and exiting 0.
 shard=1
 shards=1
 case "${task}" in
     *:*)
         spec="${task#*:}"
         task="${task%%:*}"
+        case "${spec}" in
+            *[!0-9/]* | */*/* | */ | /* | "")
+                echo "$0: malformed shard spec '${spec}': expected index/total" >&2
+                exit 1
+                ;;
+            */*) ;;
+            *)
+                echo "$0: malformed shard spec '${spec}': expected index/total" >&2
+                exit 1
+                ;;
+        esac
         shard="${spec%/*}"
         shards="${spec#*/}"
+        if [ "${shard}" -lt 1 ] || [ "${shards}" -lt 1 ] \
+                || [ "${shard}" -gt "${shards}" ]; then
+            echo "$0: shard ${shard}/${shards} is out of range" >&2
+            exit 1
+        fi
         ;;
 esac
 
