@@ -52,7 +52,7 @@ jobs:
         pytorch-version: [2.9.1]
         use-conda: [true, false]
     steps:
-      - uses: actions/checkout@master
+      - uses: actions/checkout@v5
       - name: Install FFmpeg
         uses: ./.github/actions/install-ffmpeg
       - uses: actions/cache/restore@v6

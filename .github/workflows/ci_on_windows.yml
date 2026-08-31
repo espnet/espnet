@@ -54,7 +54,7 @@ jobs:
       run:
         shell: bash
     steps:
-      - uses: actions/checkout@master
+      - uses: actions/checkout@v5
       - uses: actions/cache@v6
         with:
           path: ~/.cache/pip
