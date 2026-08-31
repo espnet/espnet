@@ -5,6 +5,10 @@ import pytest
 
 from espnet3.systems.tts.f5_tts.preprocessor import F5PinyinPreprocessor
 
+# The tokenizer dependencies do real work (rjieba segmentation, pypinyin
+# tables). CI's 10 s default is tight for that on the slower runners.
+pytestmark = pytest.mark.execution_timeout(30)
+
 pinyin_deps = pytest.mark.skipif(
     not all(importlib.util.find_spec(m) for m in ("rjieba", "pypinyin")),
     reason="requires the optional rjieba and pypinyin dependencies",

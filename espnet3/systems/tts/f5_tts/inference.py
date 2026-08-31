@@ -38,6 +38,28 @@ from espnet3.utils.config_utils import load_config_with_defaults
 logger = logging.getLogger(__name__)
 
 
+def _split_on_byte_budget(text: str, max_chars: int) -> List[str]:
+    """Cut ``text`` into pieces of at most ``max_chars`` utf-8 bytes.
+
+    Splits between characters, never inside one, so multi-byte scripts survive
+    intact. A single character wider than the budget is emitted alone, since
+    there is nothing smaller to cut to.
+    """
+    pieces: List[str] = []
+    current = ""
+    size = 0
+    for character in text:
+        width = len(character.encode("utf-8"))
+        if current and size + width > max_chars:
+            pieces.append(current)
+            current, size = "", 0
+        current += character
+        size += width
+    if current:
+        pieces.append(current)
+    return pieces
+
+
 def _chunk_text(text: str, max_chars: int) -> List[str]:
     """Split text into chunks of at most ``max_chars``. Ported from F5-TTS.
 
@@ -45,7 +67,9 @@ def _chunk_text(text: str, max_chars: int) -> List[str]:
         The budget is counted in utf-8 bytes, matching upstream F5-TTS
         ``chunk_text``. For ASCII text that equals the character count, but a
         CJK character costs three, so Chinese chunks hold roughly a third of
-        ``max_chars`` characters.
+        ``max_chars`` characters. Unlike upstream, a single sentence longer
+        than the budget is split rather than kept whole, so the limit always
+        holds.
     """
     chunks = []
     current_chunk = ""
@@ -65,6 +89,13 @@ def _chunk_text(text: str, max_chars: int) -> List[str]:
         else:
             if current_chunk:
                 chunks.append(current_chunk.strip())
+                current_chunk = ""
+            if len(sentence.encode("utf-8")) > max_chars:
+                # A sentence with no internal punctuation can exceed the budget
+                # on its own; upstream keeps it whole, which defeats the point
+                # of chunking. Cut it on character boundaries instead.
+                *head, sentence = _split_on_byte_budget(sentence, max_chars)
+                chunks.extend(piece.strip() for piece in head)
             current_chunk = (
                 sentence + " "
                 if sentence and len(sentence[-1].encode("utf-8")) == 1
@@ -416,7 +447,6 @@ class F5TTSInference:
         """
         reference_text = target_text if reference_text is None else reference_text
         sample_rate = self.target_sample_rate
-        hop_length = self.hop_length
 
         # Reference waveform [1, T]: mono + RMS normalization to target_rms.
         audio = torch.as_tensor(np.asarray(reference_audio), dtype=torch.float32)
@@ -450,7 +480,10 @@ class F5TTSInference:
         if not target_text_chunks:
             return np.zeros(1, dtype=np.float32)
 
-        reference_mel_length = audio.shape[-1] // hop_length
+        # Measure the prompt with the mel CFM will use, not samples // hop:
+        # the vocos front end is centre-padded and yields one frame more, so
+        # the sample-count formula leaves a prompt frame in the output.
+        reference_mel_length = self.cfm.mel_spec(audio).shape[-1]
         reference_text_bytes = max(len(reference_text.encode("utf-8")), 1)
 
         generated_waves: List[np.ndarray] = []

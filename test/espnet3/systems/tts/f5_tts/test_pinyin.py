@@ -12,6 +12,10 @@ from espnet3.systems.tts.f5_tts.pinyin import (
     text_to_pinyin_ids,
 )
 
+# The tokenizer dependencies do real work (rjieba segmentation, pypinyin
+# tables). CI's 10 s default is tight for that on the slower runners.
+pytestmark = pytest.mark.execution_timeout(30)
+
 # `convert_char_to_pinyin` runs rjieba on every input, English included,
 # so anything reaching it needs both optional dependencies.
 pinyin_deps = pytest.mark.skipif(

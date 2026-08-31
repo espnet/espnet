@@ -122,6 +122,34 @@ def test_cross_fade_falls_back_to_concatenation_when_a_wave_is_too_short():
     assert len(_cross_fade([a, b], 0.1, 1)) == 6
 
 
+def test_a_sentence_longer_than_the_budget_is_split():
+    """No internal punctuation must not mean an unbounded chunk."""
+    text = "word " * 200  # 1000 bytes, nothing for the sentence splitter to use
+
+    chunks = _chunk_text(text, max_chars=100)
+
+    assert len(chunks) > 1
+    assert all(len(chunk.encode("utf-8")) <= 100 for chunk in chunks)
+    assert "".join(chunks).replace(" ", "") == text.replace(" ", "")
+
+
+def test_an_over_long_cjk_sentence_splits_on_character_boundaries():
+    """Cutting mid-character would corrupt the text before it is tokenized."""
+    text = "字" * 300  # 900 bytes, 3 bytes per character
+
+    chunks = _chunk_text(text, max_chars=90)
+
+    assert all(len(chunk.encode("utf-8")) <= 90 for chunk in chunks)
+    assert "".join(chunks) == text
+    for chunk in chunks:
+        chunk.encode("utf-8").decode("utf-8")  # would raise on a split character
+
+
+def test_a_single_character_wider_than_the_budget_is_still_emitted():
+    """Degenerate budget: there is nothing smaller to cut to."""
+    assert _chunk_text("字", max_chars=1) == ["字"]
+
+
 # ------------------------------------------------------------------- fixtures
 
 
@@ -621,6 +649,34 @@ def test_a_missing_bigvgan_package_is_reported_clearly(
 
 
 # ----------------------------------------------------- degenerate generation
+
+
+def test_the_prompt_is_measured_with_the_mel_cfm_uses(engine):
+    """samples // hop under-counts the centre-padded vocos front end by one.
+
+    Slicing with the short value leaves the prompt's last frame at the head of
+    the generated audio.
+    """
+    captured = {}
+    real_sample = engine.cfm.sample
+
+    def spy(cond, text, duration, **kwargs):
+        captured["duration"] = duration
+        captured["prompt_frames"] = engine.cfm.mel_spec(cond).shape[-1]
+        return torch.zeros(1, duration, 100), None
+
+    engine.cfm.sample = spy
+    try:
+        wav = engine.infer_one(
+            "abc", np.random.randn(8000).astype(np.float32), reference_text="ab"
+        )
+    finally:
+        engine.cfm.sample = real_sample
+
+    # The stub vocoder upsamples one mel frame to 256 samples.
+    generated_frames = len(wav) // 256
+    assert generated_frames == captured["duration"] - captured["prompt_frames"]
+    assert captured["prompt_frames"] == 8000 // 256 + 1  # not 8000 // 256
 
 
 def test_a_silent_reference_does_not_produce_nan(engine):
