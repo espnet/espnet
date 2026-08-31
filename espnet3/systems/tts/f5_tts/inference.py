@@ -41,22 +41,33 @@ logger = logging.getLogger(__name__)
 def _split_on_byte_budget(text: str, max_chars: int) -> List[str]:
     """Cut ``text`` into pieces of at most ``max_chars`` utf-8 bytes.
 
-    Splits between characters, never inside one, so multi-byte scripts survive
-    intact. A single character wider than the budget is emitted alone, since
-    there is nothing smaller to cut to.
+    Prefers to cut at whitespace so a word is never split across two chunks,
+    since each chunk is synthesized as its own utterance and a fragment would
+    be spoken as one. Falls back to a character boundary when the budget holds
+    no whitespace, which is the normal case for scripts that do not use spaces
+    and for a single word wider than the budget. Never cuts inside a character,
+    so multi-byte scripts survive intact.
     """
     pieces: List[str] = []
-    current = ""
-    size = 0
-    for character in text:
-        width = len(character.encode("utf-8"))
-        if current and size + width > max_chars:
-            pieces.append(current)
-            current, size = "", 0
-        current += character
-        size += width
-    if current:
-        pieces.append(current)
+    remaining = text
+    while len(remaining.encode("utf-8")) > max_chars:
+        # Longest prefix that fits, counted in bytes but cut between characters.
+        cut = 0
+        size = 0
+        for index, character in enumerate(remaining, start=1):
+            size += len(character.encode("utf-8"))
+            if size > max_chars:
+                break
+            cut = index
+        cut = max(cut, 1)  # always make progress, even on an oversized character
+        # Prefer the last word boundary inside that prefix.
+        boundary = remaining.rfind(" ", 0, cut)
+        if boundary > 0:
+            cut = boundary + 1
+        pieces.append(remaining[:cut])
+        remaining = remaining[cut:]
+    if remaining:
+        pieces.append(remaining)
     return pieces
 
 

@@ -145,6 +145,32 @@ def test_an_over_long_cjk_sentence_splits_on_character_boundaries():
         chunk.encode("utf-8").decode("utf-8")  # would raise on a split character
 
 
+def test_an_over_long_sentence_splits_at_word_boundaries():
+    """Each chunk is spoken as its own utterance, so a split word is audible."""
+    text = "the quick brown fox jumps over the lazy dog"
+
+    chunks = _chunk_text(text, max_chars=16)
+
+    # Every chunk must consist of whole words from the input.
+    words = set(text.split())
+    for chunk in chunks:
+        assert set(chunk.split()) <= words, f"{chunk!r} contains a word fragment"
+    assert " ".join(chunks) == text
+
+
+def test_a_split_landing_on_a_space_does_not_strand_a_fragment():
+    """The boundary is consumed as the separator, not left mid-word."""
+    assert _chunk_text("abc de", max_chars=4) == ["abc", "de"]
+
+
+def test_a_word_wider_than_the_budget_falls_back_to_a_character_split():
+    """No whitespace to cut at, so the budget still has to be honoured."""
+    chunks = _chunk_text("supercalifragilistic", max_chars=6)
+
+    assert all(len(chunk.encode("utf-8")) <= 6 for chunk in chunks)
+    assert "".join(chunks) == "supercalifragilistic"
+
+
 def test_a_single_character_wider_than_the_budget_is_still_emitted():
     """Degenerate budget: there is nothing smaller to cut to."""
     assert _chunk_text("字", max_chars=1) == ["字"]
