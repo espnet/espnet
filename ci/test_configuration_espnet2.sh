@@ -12,6 +12,10 @@ elif [ $# -eq 0 ]; then
     task="asr"
 fi
 
+# Root in the CI container, an unprivileged user on a runner: sudo is needed in
+# one and absent in the other. Resolve it once instead of assuming either.
+SUDO=$(command -v sudo || true)
+
 source tools/activate_python.sh
 PYTHONPATH="${PYTHONPATH:-}:$(pwd)/tools/s3prl"
 export PYTHONPATH
@@ -27,9 +31,6 @@ gen_dummy_coverage(){
     # Please put this command after cd ./egs2/foo/bar
     touch empty.py; ${python} empty.py
 }
-
-#### Make sure chainer-independent ####
-python3 -m pip uninstall -y chainer
 
 # [ESPnet2] Validate configuration files
 echo "<blank>" > dummy_token_list
@@ -91,7 +92,7 @@ if python3 -c 'import torch as t; from packaging.version import parse as L; asse
             echo "::group::=== Test ASR configuration: ${f} ==="
             ${python} -m espnet2.bin.asr_train --config "${f}" --iterator_type none --dry_run true --output_dir out --token_list dummy_token_list
             echo "::endgroup::"
-            sudo rm -rf /root/.cache/huggingface*
+            ${SUDO} rm -rf /root/.cache/huggingface*
             rm -rf hf_cache hub
         done
     fi

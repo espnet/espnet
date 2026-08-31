@@ -4,6 +4,10 @@ set -euo pipefail
 
 . tools/activate_python.sh
 
+# ci/install.sh no longer installs the doc extra: only this script needs it,
+# and it was otherwise installed in every one of the ~100 CI jobs.
+python3 -m pip install -e ".[doc]"
+
 clean_outputs() {
     rm -rf dist
     rm -rf espnet2_bin
