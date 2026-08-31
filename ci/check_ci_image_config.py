@@ -15,10 +15,15 @@ ci/image_variants.json says is built. A job asking for a variant nobody builds
 gets `manifest unknown`, and the fallback would quietly hide it behind a slow
 build instead.
 
-Third, the config-task list the integration matrix is built from must match the
-tasks ci/test_integration_espnet2.sh actually implements. A task in the matrix
-and not the script runs the script's default and silently tests the wrong thing;
-a task in the script and not the matrix is never run at all.
+Third, the config-task lists both the integration and the configuration matrix
+are built from must match the tasks their scripts actually implement. A task in
+the matrix and not the script runs the script's default and silently tests the
+wrong thing; a task in the script and not the matrix is never run at all.
+
+The configuration matrix also shards a task across jobs - "asr:2/3" is the
+second third of the asr configs - and a shard set with a gap or a duplicate
+would drop or repeat configs with nothing failing to say so, so the shards of
+each task must cover 1..n exactly.
 """
 
 import json
@@ -76,31 +81,100 @@ def check_variants() -> list:
     return problems
 
 
-def check_integration_tasks() -> list:
-    """The matrix's config-task list against what the script implements."""
-    workflow = re.search(r"tasks=([a-z0-9_,]+)", CONSUMER.read_text())
-    if workflow is None:
-        return ["ci_on_ubuntu.yml: no integration tasks= line found"]
-    wanted = set(workflow.group(1).split(","))
-    script = Path("ci/test_integration_espnet2.sh").read_text()
-    have = set(re.findall(r'\$\{task\}" == "([a-z0-9_]+)"', script)) - {"all"}
+def implemented(script: Path) -> set:
+    """The task names a ci/test_*.sh dispatches on."""
+    text = script.read_text()
+    return set(re.findall(r'\$\{task\}" == "([a-z0-9_]+)"', text)) - {"all"}
+
+
+def compare(label: str, wanted: set, have: set) -> list:
     problems = []
     for task in sorted(wanted - have):
-        problems.append(f"config-task {task} is in the matrix but not in the script")
+        problems.append(f"{label}: {task} is in the matrix but not in the script")
     for task in sorted(have - wanted):
-        problems.append(f"config-task {task} is in the script but never run")
+        problems.append(f"{label}: {task} is in the script but never run")
     return problems
 
 
+def check_integration_tasks() -> list:
+    """The integration matrix's task list against what its script implements."""
+    workflow = re.search(r"tasks=([a-z0-9_,]+)", CONSUMER.read_text())
+    if workflow is None:
+        return ["ci_on_ubuntu.yml: no integration tasks= line found"]
+    return compare(
+        "integration config-task",
+        set(workflow.group(1).split(",")),
+        implemented(Path("ci/test_integration_espnet2.sh")),
+    )
+
+
+def check_configuration_tasks() -> list:
+    """The same for the configuration matrix, which nothing checked before.
+
+    Its list is written inline rather than derived, and a task can carry a
+    shard suffix - "asr:2/3" is the second third of the asr configs - so the
+    suffix is stripped before comparing. A shard count of 1 is pointless but
+    harmless; a task sharded n ways with a gap or a duplicate is not, so the
+    shards of each task have to be exactly 1..n.
+    """
+    match = re.search(r"config-task: \[([^\]]*)\]", CONSUMER.read_text())
+    if match is None:
+        return ["ci_on_ubuntu.yml: no configuration config-task list found"]
+    entries = [item.strip().strip('"') for item in match.group(1).split(",")]
+
+    problems = []
+    shards = {}
+    wanted = set()
+    for entry in entries:
+        task, colon, spec = entry.partition(":")
+        wanted.add(task)
+        # An absent colon is a whole task; a colon with nothing useful after it
+        # is a mistake. Testing `spec` alone conflated the two, so "asr:" passed
+        # here as a bare task and then died in the script instead.
+        if not colon:
+            continue
+        index, slash, total = spec.partition("/")
+        if not (slash and index.isdigit() and total.isdigit()):
+            problems.append(f"configuration config-task {entry}: malformed shard spec")
+            continue
+        index, total = int(index), int(total)
+        if not 1 <= index <= total:
+            problems.append(
+                f"configuration config-task {entry}: shard index out of range"
+            )
+            continue
+        shards.setdefault(task, []).append((index, total))
+
+    for task, seen in sorted(shards.items()):
+        totals = {total for _, total in seen}
+        if len(totals) != 1:
+            problems.append(
+                f"configuration config-task {task}: disagreeing shard "
+                f"counts {sorted(totals)}"
+            )
+            continue
+        total = totals.pop()
+        indexes = sorted(index for index, _ in seen)
+        if indexes != list(range(1, total + 1)):
+            problems.append(
+                f"configuration config-task {task}: shards {indexes} "
+                f"do not cover 1..{total}"
+            )
+
+    script = Path("ci/test_configuration_espnet2.sh")
+    return problems + compare("configuration config-task", wanted, implemented(script))
+
+
 def main() -> int:
-    bad = check_variants() + check_integration_tasks()
+    bad = check_variants() + check_integration_tasks() + check_configuration_tasks()
     for problem in bad:
         print(problem, file=sys.stderr)
     build, consumer = inputs(BUILD), inputs(CONSUMER)
     if build == consumer and not bad:
         print(
             f"hash inputs agree ({len(build)} entries); every job matrix is a "
-            "built variant; integration tasks match the script"
+            "built variant; integration and configuration tasks match their "
+            "scripts, and every shard set is complete"
         )
         return 0
     if bad:
