@@ -13,14 +13,29 @@ on:
       - master
       - espnet3
 
-# Only one run per PR at a time: a new push cancels the superseded run.
-# Non-PR events key the group on github.sha rather than github.ref so that
-# every push to master gets its own group. cancel-in-progress only protects
-# runs that have actually started; a *pending* run is cancelled when a newer
-# run joins its group, and master runs here sit pending for a long time.
+# One run per pull request, and one per branch otherwise: a newer run cancels
+# the superseded one.
+#
+# Non-PR events used to key the group on github.sha, so that every push to
+# master got its own group and nothing could cancel a master verification. That
+# was an overcorrection. Merging six PRs in an afternoon left five full master
+# runs alive at once - about 330 queued jobs against a 60-runner cap - which
+# starved the pull request runs that actually gate merges, mine and everyone
+# else's.
+#
+# master is linear, so the newest run verifies a superset of what the older ones
+# were verifying, and cancelling them loses coverage of nothing. What it does
+# lose is per-commit attribution: if a batch of merges goes red together, the
+# surviving run says the batch is broken but not which merge did it. Re-run the
+# workflow at the specific commit to find out - cheaper than paying for five
+# parallel runs on every busy day.
+#
+# Note this is not the stale-merge problem: that was a pull request's own CI
+# having run against an old master, which is about when a PR is merged, not
+# about master verifications cancelling each other.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 # Without this the default applies, and on this repository the default is
 # almost entirely write - a job's GITHUB_TOKEN reports Contents: write,
