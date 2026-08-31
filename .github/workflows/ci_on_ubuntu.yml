@@ -135,7 +135,7 @@ jobs:
       # from being written out a second time.
       - id: integration
         run: |
-          tasks=asr,tts,asr2,enh,ssl,st,spk,lid,s2t,s2st,lm,codec
+          tasks=asr,asr_transducer,asr_misc,tts,asr2,enh,ssl,st,spk,lid,s2t,s2st,lm,codec
           echo "matrix=$(python3 ci/image_variants.py matrix "config-task=${tasks}")" >> "$GITHUB_OUTPUT"
       - id: hash
         run: |
