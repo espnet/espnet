@@ -570,8 +570,28 @@ def test_a_bare_state_dict_checkpoint_is_used_as_is(tmp_path, reference_model):
     assert set(out) == set(cfm_state_dict)
 
 
+@pytest.fixture
+def restore_g2p_registry():
+    """register_f5_pinyin_g2p mutates espnet2 globals; undo it afterwards.
+
+    It appends to ``g2p_choices``, replaces ``PhonemeTokenizer.__init__`` and
+    flips the module-level ``_REGISTERED`` flag, so without this the tests that
+    run after it see a patched tokenizer.
+    """
+    import espnet2.text.phoneme_tokenizer as pt
+    from espnet3.systems.tts.f5_tts import pinyin
+
+    choices = list(pt.g2p_choices)
+    init = pt.PhonemeTokenizer.__init__
+    registered = pinyin._REGISTERED
+    yield
+    pt.g2p_choices[:] = choices
+    pt.PhonemeTokenizer.__init__ = init
+    pinyin._REGISTERED = registered
+
+
 def test_the_f5_pinyin_g2p_is_registered_when_the_config_asks_for_it(
-    tmp_path, train_config, checkpoint_path, stub_vocoder
+    tmp_path, train_config, checkpoint_path, stub_vocoder, restore_g2p_registry
 ):
     """g2p_type: f5_pinyin has to be patched into espnet2 before use."""
     import espnet2.text.phoneme_tokenizer as pt
@@ -601,6 +621,25 @@ def test_a_missing_bigvgan_package_is_reported_clearly(
 
 
 # ----------------------------------------------------- degenerate generation
+
+
+def test_a_silent_reference_does_not_produce_nan(engine):
+    """rms == 0 would make target_rms / rms divide by zero and NaN everything."""
+    wav = engine.infer_one(
+        "abc", np.zeros(24000 // 2, dtype=np.float32), reference_text="ab"
+    )
+
+    assert not np.isnan(wav).any()
+
+
+def test_mismatched_batch_lengths_are_rejected(engine):
+    """zip would truncate silently and misalign outputs with test samples."""
+    with pytest.raises(ValueError, match="matching lengths"):
+        engine(
+            text=["a", "b", "c"],
+            reference_speech=[np.zeros(1200, dtype=np.float32)] * 2,
+            reference_text=["x", "y"],
+        )
 
 
 def test_empty_target_text_returns_silence(engine):

@@ -54,7 +54,6 @@ class F5TTS(torch.nn.Module):
         condition_drop_probability: float = 0.2,
         mask_fraction_range: Tuple[float, float] = (0.7, 1.0),
         ode_solver_method: str = "euler",
-        mel_spectrogram_kwargs: Optional[dict] = None,
     ):
         """Build the mel front end, the DiT backbone and the flow-matching wrap.
 
@@ -77,8 +76,11 @@ class F5TTS(torch.nn.Module):
         ``cond_drop_prob``               ``condition_drop_probability``
         ``frac_lengths_mask``            ``mask_fraction_range``
         ``odeint_kwargs["method"]``      ``ode_solver_method``
-        ``mel_spec_kwargs``              ``mel_spectrogram_kwargs``
         ===============================  ==============================
+
+        Upstream's ``mel_spec_kwargs`` has no counterpart: the flow-matching
+        wrapper's mel is derived from ``feats_extract_config`` so the training
+        and reference front ends cannot drift apart.
 
         ``depth``, ``dropout``, ``sigma``, ``text_mask_padding``,
         ``long_skip_connection`` and ``checkpoint_activations`` keep their
@@ -115,8 +117,6 @@ class F5TTS(torch.nn.Module):
             mask_fraction_range: ``(min, max)`` fraction of each utterance to
                 mask for prediction, drawn uniformly per sample.
             ode_solver_method: ``"euler"`` or ``"midpoint"``.
-            mel_spectrogram_kwargs: Settings for the mel the flow-matching
-                wrapper extracts when it is conditioned on a raw waveform.
 
         Raises:
             RuntimeError: If ``token_list`` is neither a path nor a sequence.
@@ -170,13 +170,25 @@ class F5TTS(torch.nn.Module):
             checkpoint_activations=checkpoint_activations,
             dropout=dropout,
         )
+        # CFM extracts its own mel when conditioned on a raw waveform. That mel
+        # must be the feature space the model was trained on, so it is derived
+        # from ``feats_extract`` and is deliberately NOT configurable: any
+        # divergence would silently degrade voice cloning with no error.
+        mel_kwargs = dict(
+            n_fft=self.feats_extract.n_fft,
+            hop_length=self.feats_extract.hop_length,
+            win_length=self.feats_extract.win_length,
+            n_mel_channels=self.feats_extract.n_mels,
+            target_sample_rate=self.feats_extract.fs,
+            mel_spec_type=self.feats_extract.mel_spec_type,
+        )
         self.cfm = CFM(
             transformer=backbone,
             sigma=sigma,
             audio_drop_prob=audio_drop_probability,
             cond_drop_prob=condition_drop_probability,
             num_channels=self.mel_dim,
-            mel_spec_kwargs=convert_to_dict(mel_spectrogram_kwargs) or {},
+            mel_spec_kwargs=mel_kwargs,
             frac_lengths_mask=tuple(mask_fraction_range),
             odeint_kwargs=dict(method=ode_solver_method),
         )
@@ -313,7 +325,9 @@ class F5TTS(torch.nn.Module):
         Args:
             text: Reference + target token ids ``[T_text]``, unbatched.
             speech: Reference audio, either mel ``[T_ref, mel_dim]`` or raw
-                waveform ``[T_wav]``. Required.
+                waveform ``[T_wav]``. A waveform is converted with the same mel
+                front end CFM uses, so the reference prefix is stripped from
+                the result either way. Required.
             duration: Total mel length to generate, reference included. Defaults
                 to twice the reference length.
             steps: Number of ODE solver steps.
@@ -347,18 +361,17 @@ class F5TTS(torch.nn.Module):
             raise RuntimeError("F5TTS.inference requires a reference 'speech'.")
 
         cond = speech.unsqueeze(0) if speech.dim() <= 2 else speech
-        if cond.dim() == 2:  # raw waveform [1, T_wav] -> CFM extracts mel
-            reference_length = None
+        if cond.dim() == 2:  # raw waveform [1, T_wav] -> CFM extracts the mel
+            # Measure it with the same MelSpec CFM will use, so the reference
+            # frame count is known before sampling.
+            reference_length = self.cfm.mel_spec(cond).shape[-1]
         else:  # mel [1, n, d]
             reference_length = cond.shape[1]
 
         token_ids = text.unsqueeze(0)
         if duration is None:
             # Fall back to twice the reference length when no estimate is given.
-            base = (
-                reference_length if reference_length is not None else token_ids.shape[1]
-            )
-            duration = int(base * 2)
+            duration = int(reference_length * 2)
 
         out, _ = self.cfm.sample(
             cond=cond,
@@ -368,5 +381,4 @@ class F5TTS(torch.nn.Module):
             cfg_strength=guidance_strength,
             sway_sampling_coef=sway_sampling_coefficient,
         )
-        prefix_length = reference_length if reference_length is not None else 0
-        return {"feat_gen": out[0, prefix_length:, :]}
+        return {"feat_gen": out[0, reference_length:, :]}

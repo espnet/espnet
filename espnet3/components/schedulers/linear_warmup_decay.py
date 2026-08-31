@@ -42,7 +42,9 @@ class LinearWarmupDecayLR(_LRScheduler, AbsBatchStepScheduler):
         Args:
             optimizer: Optimizer whose learning rates are scheduled.
             warmup_steps: Updates spent ramping ``start_factor`` up to 1.0.
-            total_steps: Planned training length in optimizer updates.
+                ``0`` starts at the base lr and decays immediately.
+            total_steps: Planned training length in optimizer updates. Must be
+                greater than ``warmup_steps``.
             start_factor: Multiplier applied to the base lr at step 0.
             end_factor: Multiplier the lr decays to, and is clamped at.
             last_epoch: Index of the last update, ``-1`` to start fresh.
@@ -57,6 +59,10 @@ class LinearWarmupDecayLR(_LRScheduler, AbsBatchStepScheduler):
                   total_steps: 600000
                 scheduler_interval: step
 
+        Raises:
+            ValueError: If ``warmup_steps`` is negative, or if ``total_steps``
+                is not greater than ``warmup_steps``.
+
         Note:
             ``total_steps`` is the planned horizon, not a stopping condition:
             training past it holds the floor rather than going negative. Because
@@ -66,6 +72,15 @@ class LinearWarmupDecayLR(_LRScheduler, AbsBatchStepScheduler):
         """
         self.warmup_steps = int(warmup_steps)
         self.total_steps = int(total_steps)
+        if self.warmup_steps < 0:
+            raise ValueError(f"warmup_steps must be >= 0, got {self.warmup_steps}.")
+        if self.total_steps <= self.warmup_steps:
+            raise ValueError(
+                "total_steps must be greater than warmup_steps, got "
+                f"total_steps={self.total_steps} and "
+                f"warmup_steps={self.warmup_steps}: the warmup peak would fall "
+                "at or after the end of the planned horizon."
+            )
         self.start_factor = start_factor
         self.end_factor = end_factor
         self.decay_steps = max(self.total_steps - self.warmup_steps, 1)
@@ -112,8 +127,10 @@ start_factor=1e-08, end_factor=1e-08)'
         step_num = self.last_epoch
         param_groups = self.optimizer.param_groups
 
-        # Initial step: scale the base lr down to the warmup floor.
-        if step_num == 0:
+        # Initial step: scale the base lr down to the warmup floor. With no
+        # warmup there is no floor to start from, so fall through to the
+        # handover below and begin at the base lr.
+        if step_num == 0 and self.warmup_steps > 0:
             return [group["lr"] * self.start_factor for group in param_groups]
 
         # Warmup phase: start_factor -> 1.0 over warmup_steps updates.

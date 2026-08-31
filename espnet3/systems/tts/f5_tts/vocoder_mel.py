@@ -122,9 +122,10 @@ class VocoderMelSpec(AbsFeatsExtract):
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Turn waveform ``[B, T_wav]`` into mel ``[B, T, n_mels]`` and lengths.
 
-        ``feats_lengths`` uses the standard center=True STFT frame count
-        ``T_wav // hop + 1``, the same formula espnet2's ``Stft`` uses
-        (``(ilens + 2*(n_fft//2) - n_fft)//hop + 1``).
+        ``feats_lengths`` follows the frame count of the selected mel: the
+        centre-padded ``T_wav // hop + 1`` for ``vocos`` (the same formula
+        espnet2's ``Stft`` uses), and ``T_wav // hop`` for ``bigvgan``, which
+        pads by hand and runs ``center=False``.
 
         Args:
             input: Waveform batch ``[B, T_wav]``.
@@ -154,7 +155,10 @@ class VocoderMelSpec(AbsFeatsExtract):
                 (feats.shape[0],), feats.shape[1], dtype=torch.long
             )
         else:
-            feats_lengths = (
-                input_lengths.div(self.hop_length, rounding_mode="floor") + 1
-            ).clamp(max=feats.shape[1])
+            frames = input_lengths.div(self.hop_length, rounding_mode="floor")
+            if self.mel_spec_type != "bigvgan":
+                # vocos uses a centre-padded STFT: T_wav // hop + 1 frames.
+                # bigvgan pads by hand and runs center=False, giving one fewer.
+                frames = frames + 1
+            feats_lengths = frames.clamp(max=feats.shape[1])
         return feats, feats_lengths

@@ -133,3 +133,37 @@ def test_accepts_omegaconf_containers(token_file):
     model = instantiate(config)
     assert isinstance(model, F5TTS)
     assert isinstance(model.cfm.frac_lengths_mask, tuple)
+
+
+def test_cfm_mel_defaults_follow_the_feature_extractor(token_file):
+    """CFM extracts its own mel for raw-waveform conditioning at inference.
+
+    Its defaults must track feats_extract_config, or a non-default front end
+    silently trains on one mel and prompts on another.
+    """
+    feats = dict(
+        fs=16000,
+        n_fft=2048,
+        hop_length=512,
+        win_length=2048,
+        n_mels=100,
+        mel_spec_type="vocos",
+    )
+    model = F5TTS(token_list=token_file, feats_extract_config=feats, **MODEL_CONF)
+
+    mel = model.cfm.mel_spec
+    assert mel.target_sample_rate == 16000
+    assert (mel.n_fft, mel.hop_length, mel.win_length) == (2048, 512, 2048)
+    wave = torch.randn(1, 16000)
+    assert torch.equal(model.feats_extract.mel(wave), mel(wave))
+
+
+def test_the_cfm_mel_cannot_be_configured_independently(token_file):
+    """Divergence must be inexpressible, not merely defaulted away."""
+    with pytest.raises(TypeError):
+        F5TTS(
+            token_list=token_file,
+            feats_extract_config=FEATS_CONF,
+            mel_spectrogram_kwargs=dict(hop_length=128),
+            **MODEL_CONF,
+        )

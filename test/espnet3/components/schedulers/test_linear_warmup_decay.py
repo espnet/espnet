@@ -92,3 +92,29 @@ def test_repr_reports_the_configured_horizon():
     _, scheduler = _make()
     text = repr(scheduler)
     assert "warmup_steps=20" in text and "total_steps=100" in text
+
+
+def test_zero_warmup_starts_at_the_base_lr():
+    """With no warmup there is no floor to ramp from."""
+    optimizer = torch.optim.AdamW([torch.nn.Parameter(torch.zeros(1))], lr=1e-3)
+    scheduler = LinearWarmupDecayLR(optimizer, warmup_steps=0, total_steps=10)
+
+    lrs = []
+    for _ in range(11):
+        lrs.append(optimizer.param_groups[0]["lr"])
+        optimizer.step()
+        scheduler.step()
+
+    assert lrs[0] == pytest.approx(1e-3)
+    assert max(lrs) == pytest.approx(1e-3)
+    assert lrs[-1] < lrs[0]
+
+
+@pytest.mark.parametrize("warmup_steps, total_steps", [(100, 10), (100, 100), (10, 0)])
+def test_a_horizon_shorter_than_the_warmup_is_rejected(warmup_steps, total_steps):
+    """The warmup peak would land at or after the end of training."""
+    optimizer = torch.optim.AdamW([torch.nn.Parameter(torch.zeros(1))], lr=1e-3)
+    with pytest.raises(ValueError, match="total_steps"):
+        LinearWarmupDecayLR(
+            optimizer, warmup_steps=warmup_steps, total_steps=total_steps
+        )

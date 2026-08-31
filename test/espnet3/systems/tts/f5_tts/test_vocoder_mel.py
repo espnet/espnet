@@ -64,3 +64,23 @@ def test_get_parameters_uses_espnet2_key_names(mel):
 def test_bigvgan_is_accepted_as_a_mel_type():
     spec = VocoderMelSpec(mel_spec_type="bigvgan")
     assert spec.output_size == 100
+
+
+@pytest.mark.parametrize("mel_spec_type, extra_frame", [("vocos", 1), ("bigvgan", 0)])
+def test_feats_lengths_match_the_frame_count_of_each_mel(mel_spec_type, extra_frame):
+    """bigvgan runs center=False, so it yields one frame fewer than vocos.
+
+    A padded batch is the case that matters: clamping to the batch width hides
+    the discrepancy for the longest utterance only.
+    """
+    extract = VocoderMelSpec(mel_spec_type=mel_spec_type, hop_length=256)
+    wav = torch.zeros(2, 12000)
+    wav[1, :6000] = torch.randn(6000)
+
+    feats, lengths = extract(wav, torch.tensor([12000, 6000]))
+
+    assert feats.shape[1] == 12000 // 256 + extra_frame
+    assert lengths.tolist() == [
+        12000 // 256 + extra_frame,
+        6000 // 256 + extra_frame,
+    ]

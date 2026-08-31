@@ -1,5 +1,7 @@
 """End-to-end forward coverage: cfm, dit, modules, rotary and utils in one call."""
 
+import random
+
 import pytest
 import torch
 
@@ -88,12 +90,46 @@ def test_collect_feats_shape_matches_the_mel_front_end(model):
     assert torch.isfinite(out["feats"]).all()
 
 
+def _wake(model):
+    """Give the DiT non-trivial output weights.
+
+    initialize_weights zeroes proj_out and norm_out, so a fresh DiT returns
+    exactly zeros and the loss cannot depend on the conditioning. Without this
+    a reproducibility assertion passes vacuously.
+    """
+    backbone = model.cfm.transformer
+    with torch.no_grad():
+        backbone.norm_out.linear.weight.normal_(std=0.02)
+        backbone.norm_out.linear.bias.normal_(std=0.02)
+        backbone.proj_out.weight.normal_(std=0.02)
+        backbone.proj_out.bias.normal_(std=0.02)
+    return model
+
+
 def test_loss_is_seed_reproducible(model):
+    """Both RNGs must be pinned: CFM draws its CFG dropout flags from `random`."""
+    _wake(model)
+
+    random.seed(0)
     torch.manual_seed(1234)
     first, _, _ = model(**_batch())
+    random.seed(0)
     torch.manual_seed(1234)
     second, _, _ = model(**_batch())
+
     assert first.item() == pytest.approx(second.item())
+
+
+def test_the_loss_actually_depends_on_the_cfg_dropout_flags(model):
+    """Guards the test above: seeding `random` alone must not be redundant."""
+    _wake(model)
+    losses = set()
+    for seed in range(8):
+        random.seed(seed)
+        torch.manual_seed(1234)
+        loss, _, _ = model(**_batch())
+        losses.add(round(loss.item(), 6))
+    assert len(losses) > 1, "loss is insensitive to the Python RNG; test is vacuous"
 
 
 def test_mel_dim_is_wired_from_the_feature_extractor(model):

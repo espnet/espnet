@@ -28,6 +28,7 @@ from omegaconf import OmegaConf
 from espnet2.text.build_tokenizer import build_tokenizer
 from espnet2.text.cleaner import TextCleaner
 from espnet2.text.token_id_converter import TokenIDConverter
+from espnet2.torch_utils.safe_torch_load import safe_torch_load
 from espnet3.systems.tts.f5_tts import (
     BIGVGAN_DEFAULT_MODEL,
     VOCOS_DEFAULT_MODEL,
@@ -229,7 +230,7 @@ class F5TTSInference:
             )
             return model.to(self.device).eval()
 
-        checkpoint = torch.load(checkpoint_path, map_location="cpu")
+        checkpoint = safe_torch_load(checkpoint_path, map_location="cpu")
         if use_ema and "ema_model_state_dict" in checkpoint:
             prefix = "ema_model."
             state_dict = {
@@ -261,7 +262,7 @@ class F5TTSInference:
 
             raw = load_file(checkpoint_path)  # flat: ema_model.* (+ initted/step)
         else:
-            checkpoint = torch.load(checkpoint_path, map_location="cpu")
+            checkpoint = safe_torch_load(checkpoint_path, map_location="cpu")
             if use_ema and "ema_model_state_dict" in checkpoint:
                 raw = checkpoint["ema_model_state_dict"]
             elif "model_state_dict" in checkpoint:
@@ -339,7 +340,7 @@ class F5TTSInference:
                 ) from error
             if vocoder_path:
                 vocoder = Vocos.from_hparams(f"{vocoder_path}/config.yaml")
-                state = torch.load(
+                state = safe_torch_load(
                     f"{vocoder_path}/pytorch_model.bin", map_location="cpu"
                 )
                 vocoder.load_state_dict(state)
@@ -424,7 +425,10 @@ class F5TTSInference:
         if audio.shape[0] > 1:
             audio = audio.mean(dim=0, keepdim=True)
         rms = torch.sqrt(torch.mean(torch.square(audio)))
-        if rms < self.target_rms:
+        # A silent reference has rms == 0; scaling by target_rms / 0 would make
+        # the whole waveform NaN and propagate silently through to the output.
+        normalized = 0 < rms < self.target_rms
+        if normalized:
             audio = audio * self.target_rms / rms
         audio = audio.to(self.device)
 
@@ -467,7 +471,8 @@ class F5TTSInference:
                 .to(self.device)
             )
             # Pass the raw reference wave as cond; CFM.sample extracts its mel
-            # internally (same vocos MelSpec as feats_extract), exactly like F5.
+            # internally. F5TTS defaults CFM's MelSpec from feats_extract, so
+            # the two agree unless the config deliberately diverges.
             out, _ = self.cfm.sample(
                 cond=audio,
                 text=token_ids,
@@ -485,7 +490,7 @@ class F5TTSInference:
                 continue
             wave = self._vocode(generated_mel.permute(0, 2, 1))  # [1, d, n_gen]
             wave = np.asarray(wave, dtype=np.float32).reshape(-1)
-            if rms < self.target_rms:  # de-normalize back to the reference loudness
+            if normalized:  # de-normalize back to the reference loudness
                 wave = wave * float(rms / self.target_rms)
             generated_waves.append(wave)
 
@@ -521,8 +526,9 @@ class F5TTSInference:
             with one waveform per input when ``text`` is a list.
 
         Raises:
-            ValueError: If neither ``reference_speech`` nor ``speech`` is given. F5 is
-                zero-shot and cannot synthesize without a reference.
+            ValueError: If neither ``reference_speech`` nor ``speech`` is given
+                (F5 is zero-shot and cannot synthesize without a reference), or
+                if the batched inputs have mismatched lengths.
 
         Example:
             .. code-block:: python
@@ -535,8 +541,8 @@ class F5TTSInference:
         Note:
             Batched input is looped over ``infer_one`` rather than batched
             through the solver, so it costs the same as separate calls. The
-            list branch is chosen from ``text`` alone, so the other arguments
-            must be lists of matching length.
+            list branch is chosen from ``text`` alone; the other arguments
+            must be lists of matching length or a ``ValueError`` is raised.
         """
         reference_audio = reference_speech if reference_speech is not None else speech
         if reference_audio is None:
@@ -549,6 +555,15 @@ class F5TTSInference:
             reference_text = (
                 reference_text if reference_text is not None else [None] * len(text)
             )
+            # zip() would truncate to the shortest input, silently returning
+            # fewer waveforms than requested and misaligning them with the
+            # runner's test samples.
+            if len(reference_audio) != len(text) or len(reference_text) != len(text):
+                raise ValueError(
+                    "Batched inputs must have matching lengths: got "
+                    f"{len(text)} text, {len(reference_audio)} reference audio, "
+                    f"{len(reference_text)} reference text."
+                )
             wavs = [
                 self.infer_one(one_text, one_reference_audio, one_reference_text)
                 for one_text, one_reference_audio, one_reference_text in zip(

@@ -109,6 +109,8 @@ def test_both_rms_norm_implementations_agree():
     torch.manual_seed(0)
     x = torch.randn(2, 3, 8)
 
+    if not hasattr(torch.nn.functional, "rms_norm"):
+        pytest.skip("F.rms_norm needs torch>=2.4; the minimum supported is 2.3.1")
     native = RMSNorm(8, eps=1e-6)
     manual = RMSNorm(8, eps=1e-6)
     native.native_rms_norm = True
@@ -120,6 +122,8 @@ def test_both_rms_norm_implementations_agree():
 @pytest.mark.parametrize("native", [True, False])
 def test_rms_norm_casts_the_input_to_a_half_precision_weight(native):
     """Both paths coerce x to the weight dtype so autocast does not mix them."""
+    if native and not hasattr(torch.nn.functional, "rms_norm"):
+        pytest.skip("F.rms_norm needs torch>=2.4; the minimum supported is 2.3.1")
     norm = RMSNorm(8, eps=1e-6)
     norm.native_rms_norm = native
     norm.weight.data = norm.weight.data.to(torch.bfloat16)

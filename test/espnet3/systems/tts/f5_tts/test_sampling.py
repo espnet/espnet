@@ -183,16 +183,28 @@ def test_inference_defaults_duration_to_twice_the_reference(token_file):
 
 
 def test_inference_accepts_a_raw_reference_waveform(token_file):
-    """A [T_wav] reference is passed through to CFM, which extracts its mel."""
+    """A [T_wav] reference is measured with CFM's own mel, then stripped."""
     model = _build(token_file)
     ref_wave = torch.randn(24000 // 4)
+    n_ref_frames = model.cfm.mel_spec(ref_wave.unsqueeze(0)).shape[-1]
 
     out = model.inference(
         text=torch.tensor([2, 3, 2]), speech=ref_wave, duration=40, steps=2
     )
 
-    # No mel length is known up front, so nothing is stripped as a prefix.
-    assert out["feat_gen"].shape == (40, 100)
+    # Only the generated span comes back, exactly as for a mel reference.
+    assert out["feat_gen"].shape == (40 - n_ref_frames, 100)
+
+
+def test_raw_waveform_duration_defaults_to_twice_the_reference(token_file):
+    """The fallback must count mel frames, not text tokens."""
+    model = _build(token_file)
+    ref_wave = torch.randn(24000 // 4)
+    n_ref_frames = model.cfm.mel_spec(ref_wave.unsqueeze(0)).shape[-1]
+
+    out = model.inference(text=torch.tensor([2, 3, 2]), speech=ref_wave, steps=2)
+
+    assert out["feat_gen"].shape == (n_ref_frames, 100)
 
 
 def test_inference_without_a_reference_is_refused(token_file):
