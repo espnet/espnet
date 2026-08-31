@@ -128,8 +128,7 @@ def check_demo_ui_labels(system_name: str, config: dict) -> None:
                 page = browser.new_page()
                 page.goto(url, wait_until="domcontentloaded")
                 page.wait_for_timeout(3000)
-                ui_texts = page.evaluate(
-                    """() => {
+                ui_texts = page.evaluate("""() => {
                         const values = new Set();
                         const push = (value) => {
                             if (typeof value !== "string") {
@@ -147,8 +146,7 @@ def check_demo_ui_labels(system_name: str, config: dict) -> None:
                             push(element.getAttribute("title"));
                         }
                         return Array.from(values);
-                    }"""
-                )
+                    }""")
                 missing = [
                     text
                     for text in expected_texts
