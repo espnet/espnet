@@ -5,9 +5,7 @@ import time
 import torch
 import torch.nn as nn
 
-from espnet3.components.callbacks.default_callbacks import (
-    MetricsLogger,
-)
+from espnet3.components.callbacks.default_callbacks import MetricsLogger
 
 # | Test Name                         | Description                                                    | # noqa: E501
 # |----------------------------------|----------------------------------------------------------------| # noqa: E501

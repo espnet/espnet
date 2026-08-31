@@ -12,10 +12,10 @@ class AbsHFTrainingWrapper(lightning.LightningModule, ABC):
     """
     This class provides a common interface for training Hugging Face models in ESPnet.
     While many elements of the transformers package are standardized, there are still
-    differences between models when it comes to naming conventions, preprocessing steps, etc.
-    This makes it difficult to provide a universal wrapper that works with all Hugging Face models.
-    As such, this class provides default implementations that can be overwritten when
-    inheriting from it if necessary.
+    differences between models when it comes to naming conventions, preprocessing, etc.
+    This makes it difficult to provide a universal wrapper that works with all
+    Hugging Face models. As such, this class provides default implementations that can
+    be overwritten when inheriting from it if necessary.
     """
 
     model_class = AutoModel
@@ -24,8 +24,10 @@ class AbsHFTrainingWrapper(lightning.LightningModule, ABC):
     def __init__(self, model_tag_or_path: str, **kwargs):
         """
         Loads the model and processor and performs any additional setup.
-        The model and processor class are defined using the model_class and processor_class attributes.
-        This means that subclasses only need to define __init__() if additional setup is necessary.
+        The model and processor class are defined using the model_class and
+        processor_class attributes.
+        This means that subclasses only need to define __init__() if additional
+        setup is necessary.
 
         Args:
             model_tag_or_path (str): Hugging Face model tag or path to a local model.
@@ -57,7 +59,8 @@ class AbsHFTrainingWrapper(lightning.LightningModule, ABC):
     @abstractmethod
     def collect_feats(self, **batch) -> Dict[str, torch.Tensor]:
         """
-        Returns the input features and (if applicable) corresponding lengths for the input batch.
+        Returns the input features and (if applicable) corresponding lengths
+        for the input batch.
 
         Args:
             batch: Batched output of the collate function.
@@ -70,10 +73,11 @@ class AbsHFTrainingWrapper(lightning.LightningModule, ABC):
     def save_pretrained(self, dirpath):
         """
         Saves the model and processor together to dirpath.
-        This method generally shouldn't be overwritten unless custom saving logic is needed.
+        This method generally shouldn't be overwritten unless custom saving logic
+        is needed.
 
         Args:
-            dirpath: Directory or path where the model and processor ared saved.
+            dirpath: Directory or path where the model and processor are saved.
         """
         self.model.save_pretrained(dirpath)
         self.processor.save_pretrained(dirpath)
@@ -81,15 +85,16 @@ class AbsHFTrainingWrapper(lightning.LightningModule, ABC):
 
 class AbsHFInferenceWrapper(lightning.LightningModule, ABC):
     """
-    This class provides a common interface for performing inference using Hugging Face models in ESPnet.
-    While many elements of the transformers package are standardized, there are still
-    differences between models when it comes to naming conventions, preprocessing steps, etc.
-    This makes it difficult to provide a universal wrapper that works with all Hugging Face models.
+    This class provides a common interface for performing inference using Hugging Face
+    models in ESPnet. While many elements of the transformers package are standardized,
+    there are still differences between models when it comes to naming conventions,
+    preprocessing steps, etc. This makes it difficult to provide a universal wrapper
+    that works with all Hugging Face models.
     As such, this class provides default implementations that can be overwritten when
     inheriting from it if necessary.
 
-    For more information on how to load and perform inference, refer to the model's page
-    on Hugging Face.
+    For more information on how to load and perform inference, refer to the model's
+    page on Hugging Face.
     """
 
     model_class = AutoModel
@@ -98,8 +103,9 @@ class AbsHFInferenceWrapper(lightning.LightningModule, ABC):
     def __init__(self, model_tag_or_path: str, **kwargs):
         """
         Loads the model and processor and performs any additional setup.
-        The model and processor class are defined using the model_class and processor_class attributes.
-        This means that subclasses only need to define __init__() if additional setup is necessary.
+        The model and processor class are defined using the model_class and
+        processor_class attributes. This means that subclasses only need to define
+        __init__() if additional setup is necessary.
 
         Args:
             model_tag_or_path (str): Hugging Face model tag or path to a local model.

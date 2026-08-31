@@ -12,6 +12,7 @@ class HFCheckpointSaveCallback(Callback):
         if trainer.global_rank == 0:
             if not isinstance(pl_module.model, AbsHFTrainingWrapper):
                 raise AttributeError(
-                    f"Failed to save Hugging Face model. {pl_module}.model must be an instance of AbsHFTrainingWrapper."
+                    f"""Failed to save Hugging Face model. {pl_module}.model must be an
+                    instance of AbsHFTrainingWrapper."""
                 )
             pl_module.model.save_pretrained(self.dirpath)
