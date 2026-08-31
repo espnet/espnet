@@ -98,9 +98,13 @@ jobs:
       hash: ${{ steps.hash.outputs.hash }}
     steps:
       - uses: actions/checkout@v5
+      # The list below is duplicated in build_ci_image.yml and the two must
+      # match exactly, or the image is published under one tag and requested
+      # under another. Checked rather than trusted.
+      - run: python3 ci/check_image_hash_inputs.py
       - id: hash
         run: |
-          full=${{ hashFiles('ci/install.sh', 'ci/no_redistribute.txt', 'docker/ci.dockerfile', 'pyproject.toml', 'tools/Makefile', 'tools/installers/**') }}
+          full=${{ hashFiles('ci/install.sh', 'ci/install_kaldi.sh', 'ci/no_redistribute.txt', 'docker/ci.dockerfile', 'pyproject.toml', 'tools/Makefile', 'tools/installers/**') }}
           echo "hash=${full:0:12}" >> "$GITHUB_OUTPUT"
 
   test_python_espnet2:
