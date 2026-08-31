@@ -31,21 +31,32 @@ evaluation, and hundreds of pretrained models on Hugging Face.
 
 ## What's new
 
-- **2026-04** — [ESPnet 202604](https://github.com/espnet/espnet/releases/tag/v.202604):
+- **[ESPnet 202604](https://github.com/espnet/espnet/releases/tag/v.202604)** —
   Docker-based CI, PyTorch 2.9.1 support, FastSpeech2 inference ~1.9x faster
   at batch 8, new recipes (Kinyarwanda, Emilia, kosp2e).
-- **2025-11** — [ESPnet 202511](https://github.com/espnet/espnet/releases/tag/v.202511):
-  parallel-processing primitives, refactored inference and evaluation pipeline,
-  expanded SpeechLM support.
-- **2025-09** — [ESPnet 202509](https://github.com/espnet/espnet/releases/tag/v.202509):
-  Python 3.9-3.13, Debian 12 CI, the LID subsystem completed,
-  multi-optimizer training (`HybridOptim` / `HybridLRS`).
 - **In development** — ESPnet3 ([`espnet3/`](espnet3), [`egs3/`](egs3)): recipes are
   Python entry points (`run.py`) configured with OmegaConf / Hydra instead of shell
   stages. `mini_an4` and `librispeech_100` are already in the tree.
 
-Every release ships detailed notes — see [Releases](https://github.com/espnet/espnet/releases)
-for the full history.
+<details>
+<summary>Earlier releases</summary>
+
+- **[ESPnet 202511](https://github.com/espnet/espnet/releases/tag/v.202511)** —
+  parallel-processing primitives, refactored inference and evaluation pipeline,
+  expanded SpeechLM support.
+- **[ESPnet 202509](https://github.com/espnet/espnet/releases/tag/v.202509)** —
+  Python 3.9-3.13, Debian 12 CI, the LID subsystem completed,
+  multi-optimizer training (`HybridOptim` / `HybridLRS`).
+- **[ESPnet 202506](https://github.com/espnet/espnet/releases/tag/v.202506)** —
+  ESPnet3 groundwork (data organizer, trainer, model), LID training and task setup,
+  `codec1` recipes, USES2 speech enhancement, IPAPack++ S2T recipes.
+- **[ESPnet 202503](https://github.com/espnet/espnet/releases/tag/v.202503)** —
+  PyTorch Lightning trainer support, Hugging Face front-end, scaled dot-product
+  attention, ML-SUPERB 2024 recipe.
+
+Full history: [Releases](https://github.com/espnet/espnet/releases).
+
+</details>
 
 ## Install
 
