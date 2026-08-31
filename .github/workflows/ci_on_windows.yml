@@ -48,8 +48,37 @@ jobs:
           python-version: ${{ matrix.python-version }}
           architecture: 'x64'
       - name: install dependencies
+        shell: bash
+        # This step used to report success while installing nothing. A
+        # chocolatey outage gives:
+        #
+        #   Failed to fetch results from V2 feed at '.../Packages(Id='Wget',...)'
+        #   ... 503 (Service Unavailable).
+        #   Chocolatey installed 0/0 packages.
+        #
+        # and exits 0 - so the exit status is not a usable signal here, and a
+        # plain retry loop keyed on it would not have retried. The job then died
+        # ten minutes later in a place that says nothing about the cause:
+        #
+        #   ./installers/install_ffmpeg.sh: line 112: wget: command not found
+        #   make: *** [Makefile:97: ffmpeg.done] Error 127
+        #
+        # So: retry on the binary being absent rather than on choco's verdict,
+        # and if it is still absent, fail here where the 503 is on screen.
         run: |
-          choco install -y wget
+          for attempt in 1 2 3; do
+            choco install -y wget || true
+            if command -v wget > /dev/null 2>&1; then break; fi
+            if [ "${attempt}" = 3 ]; then break; fi
+            wait=$((attempt * 20))
+            echo "wget still not installed after attempt ${attempt}; retrying in ${wait}s"
+            sleep "${wait}"
+          done
+          if ! command -v wget > /dev/null 2>&1; then
+            echo "::error::choco could not install wget after three attempts; see the chocolatey output above"
+            exit 1
+          fi
+          wget --version | head -1
       - name: Get PR labels
         id: pr-labels
         uses: joerick/pr-labels-action@v1.0.9
