@@ -70,15 +70,37 @@ ARG TH_VERSION=2.9.1
 LABEL org.opencontainers.image.source="https://github.com/espnet/espnet"
 LABEL org.opencontainers.image.description="Prebuilt ESPnet CI environment (torch ${TH_VERSION})"
 
-# The runtime half of the list above. The compilers stay because some tests and
-# recipes build extensions on the fly; dropping them is a size optimisation to
-# evaluate once the baseline measurement exists.
+# The runtime half of the list above, plus everything
+# .github/actions/install-system-dependencies installs, so that a job running
+# in this image does not need to call apt at all. That action is currently a
+# failure source in its own right: the runner image ships an apt repository at
+# packages.microsoft.com that espnet installs nothing from, and when it answers
+# 403 the whole job dies in `apt-get update`.
+#
+# The compilers stay because some tests and recipes build extensions on the
+# fly; dropping them is a size optimisation to evaluate separately.
 RUN apt-get update -qq \
     && apt-get install -qq -y --no-install-recommends \
-        bc build-essential cmake ffmpeg git libsndfile1-dev sox unzip wget \
+        bc build-essential cmake ffmpeg git libjpeg-dev libsndfile1-dev sox \
+        unzip wget \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /espnet/tools /espnet/tools
+
+# What ci/install_kaldi.sh sets up, baked in. ci/install.sh removes tools/kaldi
+# at the end of the build, so this is deliberately in the final stage rather
+# than inherited from the builder.
+#
+# Doing it here rather than per job removes a git clone and a GitHub Releases
+# download from every integration job - 72 of them per run, each an opportunity
+# for the kind of network failure that has already cost this work several
+# reruns.
+COPY ci/install_kaldi.sh /tmp/install_kaldi.sh
+RUN mkdir -p /espnet && cd /espnet \
+    && /tmp/install_kaldi.sh \
+    && rm -f /espnet/ubuntu16-featbin.tar.gz \
+    && rm -rf /espnet/featbin /tmp/install_kaldi.sh \
+    && test -n "$(ls -A /espnet/tools/kaldi/src/featbin/)"
 
 # The base image puts its own interpreter first on PATH, so `pip` and `python`
 # would resolve to /usr/local/bin and install into the wrong interpreter. Put

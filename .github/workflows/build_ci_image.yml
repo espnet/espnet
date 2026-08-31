@@ -19,6 +19,7 @@ on:
       - master
     paths:
       - "ci/install.sh"
+      - "ci/install_kaldi.sh"
       - "ci/no_redistribute.txt"
       - "ci/report_unlicensed.py"
       - "docker/ci.dockerfile"
@@ -31,6 +32,7 @@ on:
       - master
     paths:
       - "ci/install.sh"
+      - "ci/install_kaldi.sh"
       - "ci/no_redistribute.txt"
       - "ci/report_unlicensed.py"
       - "docker/ci.dockerfile"
@@ -79,7 +81,7 @@ jobs:
       - name: Resolve image tag
         id: tag
         run: |
-          hash=${{ hashFiles('ci/install.sh', 'ci/no_redistribute.txt', 'docker/ci.dockerfile', 'pyproject.toml', 'tools/Makefile', 'tools/installers/**') }}
+          hash=${{ hashFiles('ci/install.sh', 'ci/install_kaldi.sh', 'ci/no_redistribute.txt', 'docker/ci.dockerfile', 'pyproject.toml', 'tools/Makefile', 'tools/installers/**') }}
           echo "tag=py${{ matrix.python-version }}-th${{ matrix.pytorch-version }}-${hash:0:12}" >> "$GITHUB_OUTPUT"
 
       - name: Build
