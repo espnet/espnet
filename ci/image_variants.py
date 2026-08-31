@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Read ci/image_variants.json for the workflows.
 
-  pairs   one "<python> <pytorch>" per line, for shell loops
-  matrix  the grid as compact JSON, for strategy.matrix via fromJSON
+pairs   one "<python> <pytorch>" per line, for shell loops
+matrix  the grid as compact JSON, for strategy.matrix via fromJSON
 """
 
 import json
