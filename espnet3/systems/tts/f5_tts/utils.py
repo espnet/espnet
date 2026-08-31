@@ -23,7 +23,7 @@
 
 Ported from https://github.com/SWivid/F5-TTS/blob/main/src/f5_tts/model/utils.py
 
-Only the helpers actually used by the model path (cfm.py / backbones /
+Only the helpers actually used by the model path (cfm.py / dit.py /
 modules) are kept here.
 
 Which tokenizer a recipe actually uses is a config choice, not a property of

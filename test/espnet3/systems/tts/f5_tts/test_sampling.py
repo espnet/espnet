@@ -8,18 +8,18 @@ extraction inside ``CFM.sample`` - is covered here instead.
 import pytest
 import torch
 
-from espnet3.systems.tts.f5_tts.builder import build_f5_tts_model
+from espnet3.systems.tts.f5_tts.f5tts import F5TTS
 from espnet3.systems.tts.f5_tts.solvers import odeint
 
-TTS_CONF = dict(
-    dim=32,
+MODEL_CONF = dict(
+    hidden_size=32,
     depth=1,
-    heads=2,
-    dim_head=16,
-    ff_mult=1,
-    text_dim=16,
-    conv_layers=1,
-    odeint_method="euler",
+    attention_heads=2,
+    attention_head_size=16,
+    feed_forward_multiplier=1,
+    text_embedding_size=16,
+    convolution_layers=1,
+    ode_solver_method="euler",
 )
 FEATS_CONF = dict(
     fs=24000,
@@ -38,13 +38,11 @@ def token_file(tmp_path):
     return str(path)
 
 
-def _build(token_file, **tts_overrides):
-    conf = dict(TTS_CONF)
-    conf.update(tts_overrides)
-    return build_f5_tts_model(
+def _build(token_file, **overrides):
+    return F5TTS(
         token_list=token_file,
-        feats_extract_conf=FEATS_CONF,
-        tts_conf=conf,
+        feats_extract_config=FEATS_CONF,
+        **dict(MODEL_CONF, **overrides),
     )
 
 
@@ -121,11 +119,11 @@ def test_the_error_names_the_supported_methods():
 @pytest.mark.parametrize("method", ["euler", "midpoint"])
 def test_sampling_from_a_raw_reference_waveform(token_file, method):
     """cond as [1, T_wav] makes CFM extract the mel itself, as inference does."""
-    model = _build(token_file, odeint_method=method)
+    model = _build(token_file, ode_solver_method=method)
     cond = torch.randn(1, 24000 // 4)
     text = torch.tensor([[2, 3, 2]])
 
-    out, trajectory = model.tts.cfm.sample(
+    out, trajectory = model.cfm.sample(
         cond=cond, text=text, duration=40, steps=2, cfg_strength=2.0
     )
 
@@ -142,7 +140,7 @@ def test_sampling_from_a_precomputed_mel(token_file):
     cond = torch.randn(1, 20, 100)
     text = torch.tensor([[2, 3]])
 
-    out, _ = model.tts.cfm.sample(cond=cond, text=text, duration=30, steps=2)
+    out, _ = model.cfm.sample(cond=cond, text=text, duration=30, steps=2)
 
     assert out.shape == (1, 30, 100)
 
@@ -153,8 +151,8 @@ def test_seed_makes_sampling_reproducible(token_file):
     text = torch.tensor([[2, 3]])
     kwargs = dict(cond=cond, text=text, duration=30, steps=2, seed=1234)
 
-    first, _ = model.tts.cfm.sample(**kwargs)
-    second, _ = model.tts.cfm.sample(**kwargs)
+    first, _ = model.cfm.sample(**kwargs)
+    second, _ = model.cfm.sample(**kwargs)
 
     torch.testing.assert_close(first, second)
 
@@ -167,7 +165,7 @@ def test_inference_strips_the_reference_prefix(token_file):
     model = _build(token_file)
     ref_mel = torch.randn(1, 20, 100)
 
-    out = model.tts.inference(
+    out = model.inference(
         text=torch.tensor([2, 3, 2]), speech=ref_mel, duration=50, steps=2
     )
 
@@ -179,9 +177,22 @@ def test_inference_defaults_duration_to_twice_the_reference(token_file):
     model = _build(token_file)
     ref_mel = torch.randn(1, 16, 100)
 
-    out = model.tts.inference(text=torch.tensor([2, 3]), speech=ref_mel, steps=2)
+    out = model.inference(text=torch.tensor([2, 3]), speech=ref_mel, steps=2)
 
     assert out["feat_gen"].shape == (16, 100)
+
+
+def test_inference_accepts_a_raw_reference_waveform(token_file):
+    """A [T_wav] reference is passed through to CFM, which extracts its mel."""
+    model = _build(token_file)
+    ref_wave = torch.randn(24000 // 4)
+
+    out = model.inference(
+        text=torch.tensor([2, 3, 2]), speech=ref_wave, duration=40, steps=2
+    )
+
+    # No mel length is known up front, so nothing is stripped as a prefix.
+    assert out["feat_gen"].shape == (40, 100)
 
 
 def test_inference_without_a_reference_is_refused(token_file):
@@ -189,4 +200,4 @@ def test_inference_without_a_reference_is_refused(token_file):
     model = _build(token_file)
 
     with pytest.raises(RuntimeError, match="reference"):
-        model.tts.inference(text=torch.tensor([2, 3]), speech=None)
+        model.inference(text=torch.tensor([2, 3]), speech=None)

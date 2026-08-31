@@ -129,11 +129,11 @@ start_factor=1e-08, end_factor=1e-08)'
             return list(self.base_lrs)
 
         # Decay phase: 1.0 -> end_factor over decay_steps updates, then clamp.
-        decay_num = step_num - self.warmup_steps
-        if decay_num > self.decay_steps:
+        decay_step = step_num - self.warmup_steps
+        if decay_step > self.decay_steps:
             return [group["lr"] for group in param_groups]
         delta = self.end_factor - 1.0
-        factor = 1.0 + delta / (self.decay_steps * 1.0 + (decay_num - 1) * delta)
+        factor = 1.0 + delta / (self.decay_steps * 1.0 + (decay_step - 1) * delta)
         return [group["lr"] * factor for group in param_groups]
 
 

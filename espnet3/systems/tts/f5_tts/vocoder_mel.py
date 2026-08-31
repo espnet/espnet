@@ -1,13 +1,13 @@
 """Neural-vocoder mel front-end as an ``AbsFeatsExtract``.
 
-Wraps F5-TTS's ``MelSpec`` so ``ESPnetTTSModel`` can use it as its
-``feats_extract``. Using F5's own mel, rather than ``LogMelFbank``, keeps
-training features bit-compatible with the neural vocoder used at inference.
-``mel_spec_type`` selects which vocoder family the mel targets:
-``"vocos"`` or ``"bigvgan"`` (hence the vocoder-agnostic name).
+Wraps F5-TTS's ``MelSpec`` so :class:`~espnet3.systems.tts.f5_tts.f5tts.F5TTS`
+can use it as its ``feats_extract``. Using F5's own mel, rather than
+``LogMelFbank``, keeps training features bit-compatible with the neural vocoder
+used at inference. ``mel_spec_type`` selects which vocoder family the mel
+targets: ``"vocos"`` or ``"bigvgan"`` (hence the vocoder-agnostic name).
 
-Output layout is ``[B, T, n_mels]`` (time-first), matching what ``ESPnetTTSModel``
-passes to the ``tts`` model.
+Output layout is ``[B, T, n_mels]`` (time-first), the layout the flow-matching
+stack expects.
 """
 
 from __future__ import annotations
@@ -39,7 +39,8 @@ class VocoderMelSpec(AbsFeatsExtract):
             n_fft: FFT size.
             hop_length: STFT hop in samples.
             win_length: STFT window length in samples.
-            n_mels: Number of mel bins, which becomes the model's ``odim``.
+            n_mels: Number of mel bins, which becomes the model's mel
+                dimension.
             mel_spec_type: Vocoder family this mel targets, ``"vocos"`` or
                 ``"bigvgan"``.
 
@@ -57,7 +58,7 @@ class VocoderMelSpec(AbsFeatsExtract):
         Note:
             The mel must match the vocoder used at inference, so these values
             are fixed by the vocoder rather than freely tunable. ``n_mels``
-            becomes the model's ``odim`` via :attr:`output_size`.
+            becomes the model's mel dimension via :attr:`output_size`.
         """
         super().__init__()
         self.fs = fs
@@ -78,14 +79,15 @@ class VocoderMelSpec(AbsFeatsExtract):
 
     @property
     def output_size(self) -> int:
-        """The mel dimension, which is this model's ``odim``.
+        """The mel dimension the model generates.
 
         Returns:
             ``n_mels``.
 
         Note:
-            ``builder.build_f5_tts_model`` reads this to derive ``odim``, which
-            is why the recipe config leaves ``odim`` unset.
+            :class:`~espnet3.systems.tts.f5_tts.f5tts.F5TTS` reads this to size
+            its backbone, which is why the recipe states the mel dimension only
+            once, in ``feats_extract_conf``.
         """
         return self.n_mels
 
@@ -140,9 +142,9 @@ class VocoderMelSpec(AbsFeatsExtract):
                 (torch.Size([2, 94, 100]), [94, 94])
 
         Note:
-            Output is time-first ``[B, T, n_mels]``, which is what
-            ``ESPnetTTSModel`` passes on, not the channel-first layout F5's own
-            ``MelSpec`` returns.
+            Output is time-first ``[B, T, n_mels]``, which is what the model
+            consumes, not the channel-first layout F5's own ``MelSpec``
+            returns.
         """
         # MelSpec returns [B, n_mels, T]; F5's MelSpectrogram uses center=True.
         feats = self.mel(input).transpose(1, 2).contiguous()  # [B, T, n_mels]

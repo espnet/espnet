@@ -10,7 +10,7 @@ import warnings
 import pytest
 import torch
 
-from espnet3.systems.tts.f5_tts.backbones.dit import DiT, TextEmbedding
+from espnet3.systems.tts.f5_tts.dit import DiT, TextEmbedding
 
 DIM = 16
 MEL_DIM = 8

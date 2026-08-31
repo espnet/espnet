@@ -588,7 +588,7 @@ def convert_to_dict(value: Any) -> Any:
 
     Note:
         Conversion happens before the value reaches a component, so a config
-        list such as ``frac_lengths_mask: [0.7, 1.0]`` arrives as a real
+        list such as ``mask_fraction_range: [0.7, 1.0]`` arrives as a real
         ``list`` and is coerced by the component's own signature rather than
         being stored as a ``ListConfig``.
     """

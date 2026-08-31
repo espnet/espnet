@@ -14,7 +14,7 @@ import pytest
 import torch
 import yaml
 
-from espnet3.systems.tts.f5_tts.builder import build_f5_tts_model
+from espnet3.systems.tts.f5_tts.f5tts import F5TTS
 from espnet3.systems.tts.f5_tts.inference import (
     F5TTSInference,
     _chunk_text,
@@ -22,15 +22,15 @@ from espnet3.systems.tts.f5_tts.inference import (
 )
 
 TOKENS = ["<blank>", "<unk>", "a", "b", "c", " ", "<sos/eos>"]
-TTS_CONF = dict(
-    dim=32,
+MODEL_CONF = dict(
+    hidden_size=32,
     depth=1,
-    heads=2,
-    dim_head=16,
-    ff_mult=1,
-    text_dim=16,
-    conv_layers=1,
-    odeint_method="euler",
+    attention_heads=2,
+    attention_head_size=16,
+    feed_forward_multiplier=1,
+    text_embedding_size=16,
+    convolution_layers=1,
+    ode_solver_method="euler",
 )
 FEATS_CONF = dict(
     fs=24000,
@@ -132,10 +132,10 @@ def train_config(tmp_path):
     token_file.write_text("\n".join(TOKENS) + "\n", encoding="utf-8")
     cfg = {
         "model": {
-            "_target_": "espnet3.systems.tts.f5_tts.builder.build_f5_tts_model",
+            "_target_": "espnet3.systems.tts.f5_tts.f5tts.F5TTS",
             "token_list": str(token_file),
-            "feats_extract_conf": dict(FEATS_CONF),
-            "tts_conf": dict(TTS_CONF),
+            "feats_extract_config": dict(FEATS_CONF),
+            **dict(MODEL_CONF),
         },
         "dataset": {
             "preprocessor": {
@@ -154,15 +154,15 @@ def train_config(tmp_path):
 def reference_model(train_config):
     """The same architecture the engine will rebuild from ``train_config``."""
     cfg = yaml.safe_load(train_config.read_text(encoding="utf-8"))["model"]
-    return build_f5_tts_model(
+    return F5TTS(
         token_list=cfg["token_list"],
-        feats_extract_conf=cfg["feats_extract_conf"],
-        tts_conf=cfg["tts_conf"],
+        feats_extract_config=cfg["feats_extract_config"],
+        **MODEL_CONF,
     )
 
 
 @pytest.fixture
-def ckpt_path(tmp_path, reference_model):
+def checkpoint_path(tmp_path, reference_model):
     path = tmp_path / "last.ckpt"
     torch.save({"state_dict": reference_model.state_dict()}, path)
     return path
@@ -176,11 +176,11 @@ def stub_vocoder(monkeypatch):
 
 
 @pytest.fixture
-def engine(train_config, ckpt_path, stub_vocoder):
+def engine(train_config, checkpoint_path, stub_vocoder):
     return F5TTSInference(
         train_config=str(train_config),
-        ckpt_path=str(ckpt_path),
-        nfe_step=2,
+        checkpoint_path=str(checkpoint_path),
+        ode_solver_steps=2,
         cross_fade_duration=0.0,
         seed=0,
     )
@@ -191,7 +191,7 @@ def engine(train_config, ckpt_path, stub_vocoder):
 
 def test_construction_wires_up_the_model_parts(engine):
     """The engine holds the pieces generation needs, not the wrapper alone."""
-    assert engine.cfm is engine.model.tts.cfm
+    assert engine.cfm is engine.model.cfm
     assert engine.feats_extract is engine.model.feats_extract
     # hop_length is read from the config rather than assumed.
     assert engine.hop_length == 256
@@ -217,7 +217,7 @@ def test_ema_weights_are_preferred_when_present(
         {"state_dict": reference_model.state_dict(), "ema_model_state_dict": ema}, path
     )
 
-    engine = F5TTSInference(train_config=str(train_config), ckpt_path=str(path))
+    engine = F5TTSInference(train_config=str(train_config), checkpoint_path=str(path))
 
     # The EMA copy is all zeros, so picking it up is unambiguous.
     for value in engine.model.state_dict().values():
@@ -238,7 +238,7 @@ def test_ema_is_skipped_when_use_ema_is_off(
     )
 
     engine = F5TTSInference(
-        train_config=str(train_config), ckpt_path=str(path), use_ema=False
+        train_config=str(train_config), checkpoint_path=str(path), use_ema=False
     )
 
     loaded = dict(engine.model.state_dict())
@@ -246,16 +246,16 @@ def test_ema_is_skipped_when_use_ema_is_off(
         torch.testing.assert_close(loaded[key], expected)
 
 
-def test_a_config_without_a_model_target_is_rejected(tmp_path, ckpt_path):
+def test_a_config_without_a_model_target_is_rejected(tmp_path, checkpoint_path):
     path = tmp_path / "bad.yaml"
-    path.write_text(yaml.safe_dump({"model": {"tts_conf": {}}}), encoding="utf-8")
+    path.write_text(yaml.safe_dump({"model": {"hidden_size": 32}}), encoding="utf-8")
 
     with pytest.raises(ValueError, match="model._target_"):
-        F5TTSInference(train_config=str(path), ckpt_path=str(ckpt_path))
+        F5TTSInference(train_config=str(path), checkpoint_path=str(checkpoint_path))
 
 
 def test_a_config_without_a_token_list_is_rejected(
-    tmp_path, train_config, ckpt_path, stub_vocoder
+    tmp_path, train_config, checkpoint_path, stub_vocoder
 ):
     cfg = yaml.safe_load(train_config.read_text(encoding="utf-8"))
     del cfg["dataset"]["preprocessor"]["token_list"]
@@ -263,11 +263,11 @@ def test_a_config_without_a_token_list_is_rejected(
     path.write_text(yaml.safe_dump(cfg), encoding="utf-8")
 
     with pytest.raises(ValueError, match="token_list"):
-        F5TTSInference(train_config=str(path), ckpt_path=str(ckpt_path))
+        F5TTSInference(train_config=str(path), checkpoint_path=str(checkpoint_path))
 
 
 def test_a_vocab_file_selects_the_pinyin_tokenizer(
-    tmp_path, train_config, ckpt_path, stub_vocoder
+    tmp_path, train_config, checkpoint_path, stub_vocoder
 ):
     """``vocab_file`` routes to F5's own pinyin vocab instead of espnet2's."""
     vocab = tmp_path / "vocab.txt"
@@ -280,7 +280,9 @@ def test_a_vocab_file_selects_the_pinyin_tokenizer(
     path = tmp_path / "pinyin.yaml"
     path.write_text(yaml.safe_dump(cfg), encoding="utf-8")
 
-    engine = F5TTSInference(train_config=str(path), ckpt_path=str(ckpt_path))
+    engine = F5TTSInference(
+        train_config=str(path), checkpoint_path=str(checkpoint_path)
+    )
 
     # Built lazily, so this asserts the branch was taken, not pypinyin's output.
     assert callable(engine._tokenize)
@@ -289,11 +291,11 @@ def test_a_vocab_file_selects_the_pinyin_tokenizer(
 # ------------------------------------------------------------------- vocoder
 
 
-def test_an_unknown_vocoder_name_is_rejected(train_config, ckpt_path):
+def test_an_unknown_vocoder_name_is_rejected(train_config, checkpoint_path):
     with pytest.raises(ValueError, match="Unsupported vocoder"):
         F5TTSInference(
             train_config=str(train_config),
-            ckpt_path=str(ckpt_path),
+            checkpoint_path=str(checkpoint_path),
             vocoder_name="griffin_lim",
         )
 
@@ -310,8 +312,8 @@ def test_vocoders_without_decode_are_called_directly(engine):
 
 def test_native_f5_state_is_flattened_to_cfm_level(tmp_path, reference_model):
     """The official checkpoint nests EMA weights and adds bookkeeping tensors."""
-    cfm_sd = reference_model.tts.cfm.state_dict()
-    raw = {"ema_model." + k: v for k, v in cfm_sd.items()}
+    cfm_state_dict = reference_model.cfm.state_dict()
+    raw = {"ema_model." + k: v for k, v in cfm_state_dict.items()}
     raw["initted"] = torch.tensor(True)
     raw["step"] = torch.tensor(7)
     path = tmp_path / "model.pt"
@@ -319,25 +321,27 @@ def test_native_f5_state_is_flattened_to_cfm_level(tmp_path, reference_model):
 
     out = F5TTSInference._load_native_f5_state(str(path), use_ema=True)
 
-    assert set(out) == set(cfm_sd)
+    assert set(out) == set(cfm_state_dict)
     assert "initted" not in out and "step" not in out
 
 
 def test_native_f5_falls_back_to_the_non_ema_state(tmp_path, reference_model):
-    cfm_sd = reference_model.tts.cfm.state_dict()
+    cfm_state_dict = reference_model.cfm.state_dict()
     path = tmp_path / "model.pt"
-    torch.save({"model_state_dict": dict(cfm_sd)}, path)
+    torch.save({"model_state_dict": dict(cfm_state_dict)}, path)
 
     out = F5TTSInference._load_native_f5_state(str(path), use_ema=True)
 
-    assert set(out) == set(cfm_sd)
+    assert set(out) == set(cfm_state_dict)
 
 
 # ----------------------------------------------------------------- generation
 
 
 def test_infer_one_returns_a_waveform(engine):
-    wav = engine.infer_one("abc", np.zeros(24000 // 2, dtype=np.float32), ref_text="ab")
+    wav = engine.infer_one(
+        "abc", np.zeros(24000 // 2, dtype=np.float32), reference_text="ab"
+    )
 
     assert wav.ndim == 1 and wav.dtype == np.float32
     assert len(wav) > 1
@@ -352,7 +356,7 @@ def test_ref_text_defaults_to_the_target_text(engine):
 
 def test_a_stereo_reference_is_downmixed(engine):
     wav = engine.infer_one(
-        "abc", np.zeros((2, 24000 // 2), dtype=np.float32), ref_text="ab"
+        "abc", np.zeros((2, 24000 // 2), dtype=np.float32), reference_text="ab"
     )
 
     assert wav.ndim == 1
@@ -368,7 +372,9 @@ def test_call_returns_a_wav_entry_for_a_single_sample(engine):
 def test_call_maps_over_a_batch(engine):
     audio = [np.zeros(24000 // 2, dtype=np.float32)] * 2
 
-    out = engine(text=["abc", "ba"], ref_speech=audio, ref_text=["ab", "ab"])
+    out = engine(
+        text=["abc", "ba"], reference_speech=audio, reference_text=["ab", "ab"]
+    )
 
     assert len(out["wav"]) == 2
 
@@ -418,17 +424,19 @@ def _install_fake_vocos(monkeypatch, created):
     monkeypatch.setitem(sys.modules, "vocos", module)
 
 
-def test_vocos_is_fetched_from_the_default_repo(monkeypatch, train_config, ckpt_path):
+def test_vocos_is_fetched_from_the_default_repo(
+    monkeypatch, train_config, checkpoint_path
+):
     created = {}
     _install_fake_vocos(monkeypatch, created)
 
-    F5TTSInference(train_config=str(train_config), ckpt_path=str(ckpt_path))
+    F5TTSInference(train_config=str(train_config), checkpoint_path=str(checkpoint_path))
 
     assert created["repo"] == "charactr/vocos-mel-24khz"
 
 
 def test_a_local_vocoder_path_is_loaded_from_disk(
-    monkeypatch, tmp_path, train_config, ckpt_path
+    monkeypatch, tmp_path, train_config, checkpoint_path
 ):
     """An offline recipe points at a checkout instead of the hub."""
     created = {}
@@ -440,7 +448,7 @@ def test_a_local_vocoder_path_is_loaded_from_disk(
 
     engine = F5TTSInference(
         train_config=str(train_config),
-        ckpt_path=str(ckpt_path),
+        checkpoint_path=str(checkpoint_path),
         vocoder_path=str(vocoder_dir),
     )
 
@@ -449,7 +457,9 @@ def test_a_local_vocoder_path_is_loaded_from_disk(
     assert engine.vocoder.loaded_state is not None
 
 
-def test_bigvgan_weight_norm_is_removed_at_load(monkeypatch, train_config, ckpt_path):
+def test_bigvgan_weight_norm_is_removed_at_load(
+    monkeypatch, train_config, checkpoint_path
+):
     """BigVGAN must be switched to its inference form before sampling."""
     calls = []
     module = types.ModuleType("bigvgan")
@@ -475,7 +485,7 @@ def test_bigvgan_weight_norm_is_removed_at_load(monkeypatch, train_config, ckpt_
 
     F5TTSInference(
         train_config=str(train_config),
-        ckpt_path=str(ckpt_path),
+        checkpoint_path=str(checkpoint_path),
         vocoder_name="bigvgan",
     )
 
@@ -483,13 +493,15 @@ def test_bigvgan_weight_norm_is_removed_at_load(monkeypatch, train_config, ckpt_
 
 
 def test_a_missing_vocoder_package_is_reported_clearly(
-    monkeypatch, train_config, ckpt_path
+    monkeypatch, train_config, checkpoint_path
 ):
     """vocos is optional, so the failure must name the install."""
     monkeypatch.setitem(sys.modules, "vocos", None)
 
     with pytest.raises(ImportError, match="pip install vocos"):
-        F5TTSInference(train_config=str(train_config), ckpt_path=str(ckpt_path))
+        F5TTSInference(
+            train_config=str(train_config), checkpoint_path=str(checkpoint_path)
+        )
 
 
 # ------------------------------------------------- native F5 checkpoint loading
@@ -498,14 +510,14 @@ def test_a_missing_vocoder_package_is_reported_clearly(
 def test_a_native_f5_checkpoint_loads_into_the_cfm(
     tmp_path, train_config, reference_model, stub_vocoder
 ):
-    """Official SWivid weights sit at CFM level, below the espnet wrapper."""
-    cfm_sd = reference_model.tts.cfm.state_dict()
-    zeros = {"ema_model." + k: torch.zeros_like(v) for k, v in cfm_sd.items()}
+    """Official SWivid weights sit at CFM level, below the espnet model."""
+    cfm_state_dict = reference_model.cfm.state_dict()
+    zeros = {"ema_model." + k: torch.zeros_like(v) for k, v in cfm_state_dict.items()}
     path = tmp_path / "native.pt"
     torch.save({"ema_model_state_dict": zeros}, path)
 
     engine = F5TTSInference(
-        train_config=str(train_config), ckpt_path=str(path), native_f5=True
+        train_config=str(train_config), checkpoint_path=str(path), native_f5=True
     )
 
     for value in engine.cfm.state_dict().values():
@@ -524,7 +536,7 @@ def test_a_partial_checkpoint_still_loads(
     torch.save({"state_dict": state}, path)
 
     with caplog.at_level(logging.WARNING):
-        F5TTSInference(train_config=str(train_config), ckpt_path=str(path))
+        F5TTSInference(train_config=str(train_config), checkpoint_path=str(path))
 
     assert "missing keys" in caplog.text
     assert "unexpected keys" in caplog.text
@@ -536,30 +548,30 @@ def test_a_partial_checkpoint_still_loads(
 def test_a_safetensors_checkpoint_is_read_as_a_flat_ema_dict(tmp_path, reference_model):
     """The official release ships .safetensors with no nesting."""
     safetensors_torch = pytest.importorskip("safetensors.torch")
-    cfm_sd = reference_model.tts.cfm.state_dict()
-    flat = {"ema_model." + k: v.contiguous() for k, v in cfm_sd.items()}
+    cfm_state_dict = reference_model.cfm.state_dict()
+    flat = {"ema_model." + k: v.contiguous() for k, v in cfm_state_dict.items()}
     flat["initted"] = torch.tensor(True)
     path = tmp_path / "model.safetensors"
     safetensors_torch.save_file(flat, str(path))
 
     out = F5TTSInference._load_native_f5_state(str(path), use_ema=True)
 
-    assert set(out) == set(cfm_sd)
+    assert set(out) == set(cfm_state_dict)
 
 
 def test_a_bare_state_dict_checkpoint_is_used_as_is(tmp_path, reference_model):
     """Neither ema_model_state_dict nor model_state_dict: take the whole file."""
-    cfm_sd = reference_model.tts.cfm.state_dict()
+    cfm_state_dict = reference_model.cfm.state_dict()
     path = tmp_path / "bare.pt"
-    torch.save(dict(cfm_sd), path)
+    torch.save(dict(cfm_state_dict), path)
 
     out = F5TTSInference._load_native_f5_state(str(path), use_ema=True)
 
-    assert set(out) == set(cfm_sd)
+    assert set(out) == set(cfm_state_dict)
 
 
 def test_the_f5_pinyin_g2p_is_registered_when_the_config_asks_for_it(
-    tmp_path, train_config, ckpt_path, stub_vocoder
+    tmp_path, train_config, checkpoint_path, stub_vocoder
 ):
     """g2p_type: f5_pinyin has to be patched into espnet2 before use."""
     import espnet2.text.phoneme_tokenizer as pt
@@ -570,20 +582,20 @@ def test_the_f5_pinyin_g2p_is_registered_when_the_config_asks_for_it(
     path = tmp_path / "g2p.yaml"
     path.write_text(yaml.safe_dump(cfg), encoding="utf-8")
 
-    F5TTSInference(train_config=str(path), ckpt_path=str(ckpt_path))
+    F5TTSInference(train_config=str(path), checkpoint_path=str(checkpoint_path))
 
     assert "f5_pinyin" in pt.g2p_choices
 
 
 def test_a_missing_bigvgan_package_is_reported_clearly(
-    monkeypatch, train_config, ckpt_path
+    monkeypatch, train_config, checkpoint_path
 ):
     monkeypatch.setitem(sys.modules, "bigvgan", None)
 
     with pytest.raises(ImportError, match="bigvgan is required"):
         F5TTSInference(
             train_config=str(train_config),
-            ckpt_path=str(ckpt_path),
+            checkpoint_path=str(checkpoint_path),
             vocoder_name="bigvgan",
         )
 
@@ -593,7 +605,9 @@ def test_a_missing_bigvgan_package_is_reported_clearly(
 
 def test_empty_target_text_returns_silence(engine):
     """Nothing to say, so there are no chunks to synthesize."""
-    wav = engine.infer_one("", np.zeros(24000 // 2, dtype=np.float32), ref_text="ab")
+    wav = engine.infer_one(
+        "", np.zeros(24000 // 2, dtype=np.float32), reference_text="ab"
+    )
 
     np.testing.assert_array_equal(wav, np.zeros(1, dtype=np.float32))
 
@@ -608,6 +622,8 @@ def test_a_chunk_that_generates_no_frames_is_dropped(engine, monkeypatch):
 
     monkeypatch.setattr(engine.cfm, "sample", prompt_only)
 
-    wav = engine.infer_one("abc", np.zeros(24000 // 2, dtype=np.float32), ref_text="ab")
+    wav = engine.infer_one(
+        "abc", np.zeros(24000 // 2, dtype=np.float32), reference_text="ab"
+    )
 
     np.testing.assert_array_equal(wav, np.zeros(1, dtype=np.float32))

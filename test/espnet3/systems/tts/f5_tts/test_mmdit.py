@@ -1,7 +1,7 @@
 """MMDiT joint-attention blocks, carried over from upstream F5-TTS.
 
 ``MMDiTBlock`` and ``JointAttnProcessor`` are vendored but not referenced by
-anything in espnet3: ``backbones/`` ships only ``dit.py``. They are pinned here
+anything in espnet3: the package ships only ``dit.py``. They are pinned here
 so the port stays a faithful copy and so the code cannot rot unnoticed while
 nothing imports it.
 """

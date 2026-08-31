@@ -8,17 +8,17 @@ vocoder - which a normal train or infer run leaves untouched.
 import pytest
 import torch
 
-from espnet3.systems.tts.f5_tts.builder import build_f5_tts_model
+from espnet3.systems.tts.f5_tts.f5tts import F5TTS
 
-TTS_CONF = dict(
-    dim=32,
+MODEL_CONF = dict(
+    hidden_size=32,
     depth=1,
-    heads=2,
-    dim_head=16,
-    ff_mult=1,
-    text_dim=16,
-    conv_layers=1,
-    odeint_method="euler",
+    attention_heads=2,
+    attention_head_size=16,
+    feed_forward_multiplier=1,
+    text_embedding_size=16,
+    convolution_layers=1,
+    ode_solver_method="euler",
 )
 FEATS_CONF = dict(
     fs=24000,
@@ -31,12 +31,12 @@ FEATS_CONF = dict(
 
 
 def _cfm(tokens):
-    model = build_f5_tts_model(
+    model = F5TTS(
         token_list=tokens,
-        feats_extract_conf=FEATS_CONF,
-        tts_conf=TTS_CONF,
+        feats_extract_config=FEATS_CONF,
+        **MODEL_CONF,
     )
-    return model.tts.cfm
+    return model.cfm
 
 
 @pytest.fixture

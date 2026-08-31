@@ -1,10 +1,10 @@
 """F5-TTS for ESPnet3 (DiT backbone + conditional flow matching).
 
-Self-contained package: the model (``f5tts``, ``cfm``, ``backbones.dit``,
-``modules``, ``rotary``, ``solvers``, ``utils``), its mel front end
-(``vocoder_mel``), its zh+en tokenizer (``pinyin``, ``preprocessor``), the
-inference engine (``inference``), and ``builder.build_f5_tts_model``, which
-configs reach through ``_target_``.
+Self-contained package: the model (``f5tts``, ``cfm``, ``dit``, ``modules``,
+``rotary``, ``solvers``, ``utils``), its mel front end (``vocoder_mel``), its
+zh+en tokenizer (``pinyin``, ``preprocessor``) and the inference engine
+(``inference``). ``f5tts.F5TTS`` is the ESPnet3 model itself, which training
+configs reach through ``model._target_`` with ``task:`` left unset.
 
 The model is described in:
 

@@ -16,12 +16,12 @@ def mel():
 
 
 def test_output_size_is_the_mel_dimension(mel):
-    """This is what the builder uses to derive the model's odim."""
+    """This is what F5TTS reads to size its backbone."""
     assert mel.output_size == N_MELS
 
 
 def test_forward_returns_time_first_mel(mel):
-    """ESPnetTTSModel expects [B, T, n_mels], not [B, n_mels, T]."""
+    """F5TTS expects [B, T, n_mels], not the [B, n_mels, T] MelSpec returns."""
     feats, lengths = mel(torch.randn(2, FS))
     assert feats.shape[0] == 2
     assert feats.shape[2] == N_MELS

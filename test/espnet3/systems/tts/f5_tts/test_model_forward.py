@@ -3,19 +3,19 @@
 import pytest
 import torch
 
-from espnet3.systems.tts.f5_tts.builder import build_f5_tts_model
+from espnet3.systems.tts.f5_tts.f5tts import F5TTS
 
 FS = 24000
 N_MELS = 100
-TTS_CONF = dict(
-    dim=32,
+MODEL_CONF = dict(
+    hidden_size=32,
     depth=1,
-    heads=2,
-    dim_head=16,
-    ff_mult=1,
-    text_dim=16,
-    conv_layers=1,
-    odeint_method="euler",
+    attention_heads=2,
+    attention_head_size=16,
+    feed_forward_multiplier=1,
+    text_embedding_size=16,
+    convolution_layers=1,
+    ode_solver_method="euler",
 )
 FEATS_CONF = dict(
     fs=FS,
@@ -31,10 +31,10 @@ VOCAB = ["<blank>", "<unk>", "a", "b", "c", "<sos/eos>"]
 @pytest.fixture
 def model():
     torch.manual_seed(0)
-    return build_f5_tts_model(
+    return F5TTS(
         token_list=list(VOCAB),
-        feats_extract_conf=FEATS_CONF,
-        tts_conf=TTS_CONF,
+        feats_extract_config=FEATS_CONF,
+        **MODEL_CONF,
     )
 
 
@@ -59,7 +59,7 @@ def test_loss_backpropagates_to_the_backbone(model):
     loss.backward()
     grads = [
         p.grad
-        for p in model.tts.cfm.transformer.parameters()
+        for p in model.cfm.transformer.parameters()
         if p.requires_grad and p.grad is not None
     ]
     assert grads, "no gradient reached the DiT backbone"
@@ -96,6 +96,6 @@ def test_loss_is_seed_reproducible(model):
     assert first.item() == pytest.approx(second.item())
 
 
-def test_odim_is_wired_from_the_feature_extractor(model):
-    assert model.tts.odim == N_MELS
+def test_mel_dim_is_wired_from_the_feature_extractor(model):
+    assert model.mel_dim == N_MELS
     assert model.feats_extract.output_size == N_MELS
