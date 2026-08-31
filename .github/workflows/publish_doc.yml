@@ -60,7 +60,7 @@ jobs:
       github.event_name != 'pull_request' ||
         (github.event.pull_request.draft == false && needs.get_labels.outputs.is_doc == 'true')
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: actions/cache@v6
         with:
           path: ~/.cache/pip
