@@ -394,24 +394,29 @@ def _is_copyable_recipe_path(path: Path) -> bool:
 
 
 def _inject_corpus_system(dest: Path, recipe: str) -> None:
+    from omegaconf import OmegaConf
+
     corpus_system = recipe.strip("/").replace("/", "_")
 
     pub_yaml = dest / "conf" / "publication.yaml"
     if pub_yaml.exists():
-        with pub_yaml.open("a", encoding="utf-8") as f:
-            f.write(
-                f"\n# Corpus/system identity injected by espnet3 clone.\n"
-                f"upload_model:\n"
-                f"  hf_repo: espnet/{corpus_system}_${{exp_tag}}\n"
-            )
+        conf = OmegaConf.load(pub_yaml)
+        OmegaConf.update(
+            conf,
+            "upload_model.hf_repo",
+            f"espnet/{corpus_system}_${{exp_tag}}",
+            force_add=True,
+        )
+        OmegaConf.save(conf, pub_yaml)
 
     demo_yaml = dest / "conf" / "demo.yaml"
     if demo_yaml.exists():
-        with demo_yaml.open("a", encoding="utf-8") as f:
-            f.write(
-                f"\n# Corpus/system identity injected by espnet3 clone.\n"
-                f"ui:\n"
-                f"  title: {corpus_system} demo\n"
-                f"upload_demo:\n"
-                f"  hf_repo: espnet/{corpus_system}_${{exp_tag}}\n"
-            )
+        conf = OmegaConf.load(demo_yaml)
+        OmegaConf.update(conf, "ui.title", f"{corpus_system} demo", force_add=True)
+        OmegaConf.update(
+            conf,
+            "upload_demo.hf_repo",
+            f"espnet/{corpus_system}_${{exp_tag}}",
+            force_add=True,
+        )
+        OmegaConf.save(conf, demo_yaml)
