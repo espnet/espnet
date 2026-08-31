@@ -14,6 +14,11 @@ Second, every python x pytorch combination a job asks for must be one that
 ci/image_variants.json says is built. A job asking for a variant nobody builds
 gets `manifest unknown`, and the fallback would quietly hide it behind a slow
 build instead.
+
+Third, the config-task list the integration matrix is built from must match the
+tasks ci/test_integration_espnet2.sh actually implements. A task in the matrix
+and not the script runs the script's default and silently tests the wrong thing;
+a task in the script and not the matrix is never run at all.
 """
 
 import json
@@ -71,15 +76,31 @@ def check_variants() -> list:
     return problems
 
 
+def check_integration_tasks() -> list:
+    """The matrix's config-task list against what the script implements."""
+    workflow = re.search(r"tasks=([a-z0-9_,]+)", CONSUMER.read_text())
+    if workflow is None:
+        return ["ci_on_ubuntu.yml: no integration tasks= line found"]
+    wanted = set(workflow.group(1).split(","))
+    script = Path("ci/test_integration_espnet2.sh").read_text()
+    have = set(re.findall(r'\$\{task\}" == "([a-z0-9_]+)"', script)) - {"all"}
+    problems = []
+    for task in sorted(wanted - have):
+        problems.append(f"config-task {task} is in the matrix but not in the script")
+    for task in sorted(have - wanted):
+        problems.append(f"config-task {task} is in the script but never run")
+    return problems
+
+
 def main() -> int:
-    bad = check_variants()
+    bad = check_variants() + check_integration_tasks()
     for problem in bad:
         print(problem, file=sys.stderr)
     build, consumer = inputs(BUILD), inputs(CONSUMER)
     if build == consumer and not bad:
         print(
-            f"hash inputs agree ({len(build)} entries); "
-            "every job matrix is a built variant"
+            f"hash inputs agree ({len(build)} entries); every job matrix is a "
+            "built variant; integration tasks match the script"
         )
         return 0
     if bad:
