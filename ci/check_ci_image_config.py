@@ -149,14 +149,16 @@ def check_configuration_tasks() -> list:
         totals = {total for _, total in seen}
         if len(totals) != 1:
             problems.append(
-                f"configuration config-task {task}: disagreeing shard counts {sorted(totals)}"
+                f"configuration config-task {task}: disagreeing shard "
+                f"counts {sorted(totals)}"
             )
             continue
         total = totals.pop()
         indexes = sorted(index for index, _ in seen)
         if indexes != list(range(1, total + 1)):
             problems.append(
-                f"configuration config-task {task}: shards {indexes} do not cover 1..{total}"
+                f"configuration config-task {task}: shards {indexes} "
+                f"do not cover 1..{total}"
             )
 
     script = Path("ci/test_configuration_espnet2.sh")
