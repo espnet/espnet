@@ -273,7 +273,7 @@ jobs:
       # Fork pull requests get no secrets, so the token is empty there and the
       # upload stays tokenless. That is the documented behaviour and the reason
       # this cannot be enforced by making the step fail on an empty token.
-      - uses: codecov/codecov-action@v7
+      - uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7
         with:
           flags: test_python_espnet2
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -338,7 +338,7 @@ jobs:
           HF_TOKEN: ${{ secrets.HF_CI_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: ./ci/test_utils.sh
-      - uses: codecov/codecov-action@v7
+      - uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7
         with:
           flags: test_utils
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -443,7 +443,7 @@ jobs:
         env:
           HF_TOKEN: ${{ secrets.HF_CI_TOKEN }}
         run: ./ci/test_integration_espnet2.sh ${{ matrix.config-task }}
-      - uses: codecov/codecov-action@v7
+      - uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7
         with:
           flags: test_integration_espnet2
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -504,7 +504,7 @@ jobs:
         env:
           HF_TOKEN: ${{ secrets.HF_CI_TOKEN }}
         run: ./ci/test_configuration_espnet2.sh ${{ matrix.config-task }}
-      - uses: codecov/codecov-action@v7
+      - uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7
         with:
           flags: test_configuration_espnet2
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -553,7 +553,7 @@ jobs:
         env:
           HF_TOKEN: ${{ secrets.HF_CI_TOKEN }}
         run: ./ci/test_python_espnet3.sh
-      - uses: codecov/codecov-action@v7
+      - uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7
         with:
           flags: test_python_espnet3
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -598,7 +598,7 @@ jobs:
         env:
           HF_TOKEN: ${{ secrets.HF_CI_TOKEN }}
         run: ./ci/test_integration_espnet3.sh
-      - uses: codecov/codecov-action@v7
+      - uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7
         with:
           flags: test_integration_espnet3
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -641,7 +641,7 @@ jobs:
           }
       - name: test publication integration
         run: ./ci/test_integration_espnet3_publication.sh
-      - uses: codecov/codecov-action@v7
+      - uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7
         with:
           flags: test_integration_espnet3_publication
           token: ${{ secrets.CODECOV_TOKEN }}
