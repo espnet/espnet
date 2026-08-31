@@ -29,6 +29,24 @@ diarization, spoken language understanding, singing voice synthesis, speech lang
 more — with [Kaldi](http://kaldi-asr.org/)-style reproducible recipes from data preparation to
 evaluation, and hundreds of pretrained models on Hugging Face.
 
+## What's new
+
+- **2026-04** — [ESPnet 202604](https://github.com/espnet/espnet/releases/tag/v.202604):
+  Docker-based CI, PyTorch 2.9.1 support, FastSpeech2 inference ~1.9x faster
+  at batch 8, new recipes (Kinyarwanda, Emilia, kosp2e).
+- **2025-11** — [ESPnet 202511](https://github.com/espnet/espnet/releases/tag/v.202511):
+  parallel-processing primitives, refactored inference and evaluation pipeline,
+  expanded SpeechLM support.
+- **2025-09** — [ESPnet 202509](https://github.com/espnet/espnet/releases/tag/v.202509):
+  Python 3.9-3.13, Debian 12 CI, the LID subsystem completed,
+  multi-optimizer training (`HybridOptim` / `HybridLRS`).
+- **In development** — ESPnet3 ([`espnet3/`](espnet3), [`egs3/`](egs3)): recipes are
+  Python entry points (`run.py`) configured with OmegaConf / Hydra instead of shell
+  stages. `mini_an4` and `librispeech_100` are already in the tree.
+
+Every release ships detailed notes — see [Releases](https://github.com/espnet/espnet/releases)
+for the full history.
+
 ## Install
 
 ```sh
@@ -48,7 +66,7 @@ pip install git+https://github.com/espnet/espnet  # latest master
   [installation guide](https://espnet.github.io/espnet/installation.html).
 - **Docker**: see [`docker/`](docker/) and the [Docker docs](https://espnet.github.io/espnet/docker.html).
 - **Task-specific tools** live in [`tools/installers`](tools/installers).
-- **ESPnet1** additionally needs `pip install chainer==6.0.0 cupy==6.0.0`.
+- **ESPnet1 is no longer supported** — use ESPnet2 (`egs2/`) or ESPnet3 (`egs3/`). See [the ESPnet1 notice](https://espnet.github.io/espnet/espnet1_tutorial.html).
 
 </details>
 
