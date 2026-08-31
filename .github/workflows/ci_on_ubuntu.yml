@@ -244,7 +244,22 @@ jobs:
         #
         # torch reads GITHUB_TOKEN for exactly this call, per its own docs, so
         # handing it one makes the request authenticated and the limit 5000.
+        #
+        # huggingface.co rate limits by identity, and anonymously that limit is low
+        # and shared across the whole runner fleet. It has already taken a run down -
+        # 72 tests failed on
+        #
+        #   429 Too Many Requests for url:
+        #     https://huggingface.co/api/models/espnet/hubert_dummy/revision/main
+        #
+        # wearing three disguises: LocalEntryNotFoundError, "couldn't connect to
+        # huggingface.co", and plain execution timeouts. huggingface_hub reads
+        # HF_TOKEN, so handing it one makes these requests authenticated.
+        #
+        # Before this, only install steps had it - not one of the steps that runs the
+        # tests. ci/check_ci_image_config.py now fails if that comes back.
         env:
+          HF_TOKEN: ${{ secrets.HF_CI_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: ./ci/test_python_espnet2.sh
       - uses: codecov/codecov-action@v7
@@ -308,6 +323,7 @@ jobs:
         # torch reads GITHUB_TOKEN for exactly this call, per its own docs, so
         # handing it one makes the request authenticated and the limit 5000.
         env:
+          HF_TOKEN: ${{ secrets.HF_CI_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: ./ci/test_utils.sh
       - uses: codecov/codecov-action@v7
@@ -355,6 +371,8 @@ jobs:
           use-conda: false
           hf-token: ${{ secrets.HF_CI_TOKEN }}
       - name: test shell
+        env:
+          HF_TOKEN: ${{ secrets.HF_CI_TOKEN }}
         run: ./ci/test_shell_espnet2.sh
 
   test_integration_espnet2:
@@ -409,6 +427,8 @@ jobs:
         run: ./ci/install_kaldi.sh
 
       - name: test espnet2 integration
+        env:
+          HF_TOKEN: ${{ secrets.HF_CI_TOKEN }}
         run: ./ci/test_integration_espnet2.sh ${{ matrix.config-task }}
       - uses: codecov/codecov-action@v7
         with:
@@ -467,6 +487,8 @@ jobs:
           use-conda: false
           hf-token: ${{ secrets.HF_CI_TOKEN }}
       - name: test configuration
+        env:
+          HF_TOKEN: ${{ secrets.HF_CI_TOKEN }}
         run: ./ci/test_configuration_espnet2.sh ${{ matrix.config-task }}
       - uses: codecov/codecov-action@v7
         with:
@@ -513,6 +535,8 @@ jobs:
           use-conda: false
           hf-token: ${{ secrets.HF_CI_TOKEN }}
       - name: test python
+        env:
+          HF_TOKEN: ${{ secrets.HF_CI_TOKEN }}
         run: ./ci/test_python_espnet3.sh
       - uses: codecov/codecov-action@v7
         with:
@@ -555,6 +579,8 @@ jobs:
           hf-token: ${{ secrets.HF_CI_TOKEN }}
       # This one installs the asr extra itself, on top of whatever it inherits.
       - name: test integration
+        env:
+          HF_TOKEN: ${{ secrets.HF_CI_TOKEN }}
         run: ./ci/test_integration_espnet3.sh
       - uses: codecov/codecov-action@v7
         with:

@@ -24,12 +24,26 @@ The configuration matrix also shards a task across jobs - "asr:2/3" is the
 second third of the asr configs - and a shard set with a gap or a duplicate
 would drop or repeat configs with nothing failing to say so, so the shards of
 each task must cover 1..n exactly.
+
+Fourth, every step that runs a ci/test_* script must have HF_TOKEN in scope.
+Without it the Hugging Face downloads those tests do are anonymous, and
+huggingface.co rate limits anonymous callers hard enough to take a whole run
+down - it did, with 72 tests failing on 429. For a long time only the install
+steps had the token, which is invisible in review because the tests pass
+whenever the fleet happens to be under the limit.
+
+And fifth, the workflow files must have no duplicate mapping keys. PyYAML
+accepts them and lets the last one win, so writing a second env: block into a
+step silently discards the first - which is exactly what nearly dropped
+GITHUB_TOKEN from the two steps that need it for torch.hub.
 """
 
 import json
 import re
 import sys
 from pathlib import Path
+
+import yaml
 
 BUILD = Path(".github/workflows/build_ci_image.yml")
 CONSUMER = Path(".github/workflows/ci_on_ubuntu.yml")
@@ -165,8 +179,80 @@ def check_configuration_tasks() -> list:
     return problems + compare("configuration config-task", wanted, implemented(script))
 
 
+class _NoDuplicates(yaml.SafeLoader):
+    """A loader that refuses duplicate mapping keys instead of silently keeping
+    the last one. PyYAML's default made a second env: block in a step look
+    valid while it discarded the first."""
+
+
+def _mapping(loader, node, deep=False):
+    seen = set()
+    for key_node, _ in node.value:
+        key = loader.construct_object(key_node, deep=deep)
+        if key in seen:
+            raise yaml.YAMLError(
+                f"duplicate key {key!r} at line {key_node.start_mark.line + 1}"
+            )
+        seen.add(key)
+    return yaml.SafeLoader.construct_mapping(loader, node, deep)
+
+
+_NoDuplicates.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, _mapping)
+
+
+def _workflows() -> list:
+    return sorted(Path(".github/workflows").glob("*.yml"))
+
+
+def check_no_duplicate_keys() -> list:
+    problems = []
+    for path in _workflows():
+        try:
+            yaml.load(path.read_text(), Loader=_NoDuplicates)
+        except yaml.YAMLError as error:
+            problems.append(f"{path}: {error}")
+    return problems
+
+
+def check_hf_token() -> list:
+    """Every step running a ci/test_* script must see HF_TOKEN."""
+    problems = []
+    for path in _workflows():
+        try:
+            data = yaml.safe_load(path.read_text())
+        except yaml.YAMLError as error:
+            problems.append(f"{path}: {error}")
+            continue
+        for name, job in (data or {}).get("jobs", {}).items():
+            if not isinstance(job, dict):
+                continue
+            job_env = job.get("env") or {}
+            for step in job.get("steps") or []:
+                if not isinstance(step, dict):
+                    continue
+                run = str(step.get("run") or "")
+                # test_import_all.py only imports modules; it reaches no network
+                if "ci/test_" not in run or "test_import_all" in run:
+                    continue
+                step_env = step.get("env") or {}
+                if "HF_TOKEN" in step_env or "HF_TOKEN" in job_env:
+                    continue
+                label = step.get("name") or run.strip().split("\n")[0]
+                problems.append(
+                    f"{path.name}: {name}: step {label!r} runs a test script "
+                    "without HF_TOKEN in scope"
+                )
+    return problems
+
+
 def main() -> int:
-    bad = check_variants() + check_integration_tasks() + check_configuration_tasks()
+    bad = (
+        check_variants()
+        + check_integration_tasks()
+        + check_configuration_tasks()
+        + check_no_duplicate_keys()
+        + check_hf_token()
+    )
     for problem in bad:
         print(problem, file=sys.stderr)
     build, consumer = inputs(BUILD), inputs(CONSUMER)
@@ -174,7 +260,8 @@ def main() -> int:
         print(
             f"hash inputs agree ({len(build)} entries); every job matrix is a "
             "built variant; integration and configuration tasks match their "
-            "scripts, and every shard set is complete"
+            "scripts; every shard set is complete; every test step has "
+            "HF_TOKEN; no duplicate keys"
         )
         return 0
     if bad:
