@@ -22,6 +22,7 @@ except ImportError:
 from typeguard import typechecked
 
 from espnet2.iterators.abs_iter_factory import AbsIterFactory
+from espnet2.layers.lora import lora_state_dict as _lora_state_dict
 from espnet2.main_funcs.average_nbest_models import average_nbest_models
 from espnet2.main_funcs.calculate_all_attentions import calculate_all_attentions
 from espnet2.schedulers.abs_scheduler import (
@@ -53,8 +54,6 @@ try:
     import fairscale
 except ImportError:
     fairscale = None
-
-from espnet2.layers.lora import lora_state_dict as _lora_state_dict
 
 try:
     import s3prl

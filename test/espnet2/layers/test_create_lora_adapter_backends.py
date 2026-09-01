@@ -6,7 +6,6 @@ they do not get skipped when ``transformers`` / ``s3prl`` are unavailable
 """
 
 import pytest
-import torch
 
 from espnet2.asr.decoder.transformer_decoder import TransformerDecoder
 from espnet2.layers.create_adapter_fn import create_lora_adapter
