@@ -5,7 +5,6 @@ import pytest
 import torch
 
 from espnet2.legacy.nets.batch_beam_search import BatchBeamSearch
-from espnet2.legacy.nets.batch_beam_search_utt import UttBatchBeamSearch
 from espnet2.legacy.nets.scorers.ctc import CTCPrefixScorer
 from espnet2.legacy.nets.scorers.length_bonus import LengthBonus
 from espnet2.lm.transformer_lm import TransformerLM
@@ -119,7 +118,7 @@ def test_utt_batch_beam_search_equal(
     with torch.no_grad():
         expected = [ref(x=e, maxlenratio=0.0, minlenratio=0.0) for e in encs]
 
-    batched = UttBatchBeamSearch(beam_size=beam_size, **common)
+    batched = BatchBeamSearch(beam_size=beam_size, **common)
     batched.to(device, dtype=dtype)
     batched.eval()
     padded, lengths = _pad(encs, device, dtype)
@@ -146,7 +145,7 @@ def test_utt_batch_beam_search_equal_uniform_length(ctc_weight):
     with torch.no_grad():
         expected = [ref(x=e, maxlenratio=0.0, minlenratio=0.0) for e in encs]
 
-    batched = UttBatchBeamSearch(beam_size=3, **common)
+    batched = BatchBeamSearch(beam_size=3, **common)
     batched.eval()
     padded, lengths = _pad(encs, device, dtype)
     with torch.no_grad():
@@ -169,7 +168,7 @@ def test_utt_batch_beam_search_equal_maxlenratio(maxlenratio):
     with torch.no_grad():
         expected = [ref(x=e, maxlenratio=maxlenratio, minlenratio=0.0) for e in encs]
 
-    batched = UttBatchBeamSearch(beam_size=3, **common)
+    batched = BatchBeamSearch(beam_size=3, **common)
     batched.eval()
     padded, lengths = _pad(encs, device, dtype)
     with torch.no_grad():
@@ -188,7 +187,7 @@ def test_utt_batch_beam_search_repeated_utterance():
     )
     encs = [encs[0], encs[0], encs[0]]
 
-    batched = UttBatchBeamSearch(beam_size=3, **common)
+    batched = BatchBeamSearch(beam_size=3, **common)
     batched.eval()
     padded, lengths = _pad(encs, device, dtype)
     with torch.no_grad():
@@ -205,7 +204,7 @@ def test_utt_batch_beam_search_hyp_primer():
     )
     sos = common["sos"]
 
-    batched = UttBatchBeamSearch(beam_size=2, **common)
+    batched = BatchBeamSearch(beam_size=2, **common)
     batched.eval()
     padded, lengths = _pad(encs, device, dtype)
 
@@ -222,11 +221,11 @@ def test_utt_batch_beam_search_hyp_primer():
             batched(x=padded, x_lengths=lengths, maxlenratio=-5.0)
 
 
-def test_utt_batch_beam_search_requires_batched_input():
+def test_utt_batch_beam_search_rejects_bad_shape():
     encs, common, dtype, device = _build(
         transformer_args, 0.0, 0.0, 0.1, "cpu", torch.float64
     )
-    batched = UttBatchBeamSearch(beam_size=2, **common)
+    batched = BatchBeamSearch(beam_size=2, **common)
     batched.eval()
     with pytest.raises(ValueError):
-        batched(x=encs[0], maxlenratio=-5.0)
+        batched(x=encs[0][:, 0], maxlenratio=-5.0)

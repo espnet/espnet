@@ -16,7 +16,6 @@ from espnet2.asr.decoder.s4_decoder import S4Decoder
 from espnet2.asr.partially_AR_model import PartiallyARInference
 from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.legacy.nets.batch_beam_search import BatchBeamSearch
-from espnet2.legacy.nets.batch_beam_search_utt import UttBatchBeamSearch
 from espnet2.legacy.nets.beam_search import BeamSearch, Hypothesis
 from espnet2.legacy.nets.pytorch_backend.transformer.subsampling import TooShortUttError
 from espnet2.legacy.nets.scorer_interface import BatchScorerInterface
@@ -325,9 +324,6 @@ class Speech2Text:
                     f"As non-batch scorers {non_batch} are found, "
                     f"fall back to non-batch implementation."
                 )
-            elif batch_size > 1:
-                beam_search.__class__ = UttBatchBeamSearch
-                logging.info("UttBatchBeamSearch implementation is selected.")
             else:
                 beam_search.__class__ = BatchBeamSearch
                 logging.info("BatchBeamSearch implementation is selected.")
@@ -387,7 +383,7 @@ class Speech2Text:
         self.partial_ar = partial_ar
         self.batch_size = batch_size
 
-        if batch_size > 1 and not isinstance(beam_search, UttBatchBeamSearch):
+        if batch_size > 1 and type(beam_search) is not BatchBeamSearch:
             raise NotImplementedError(
                 "Batch decoding is only supported for the attention/CTC beam "
                 "search. Please use --batch_size 1."

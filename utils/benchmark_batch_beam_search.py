@@ -1,17 +1,13 @@
 #!/usr/bin/env python3
-"""Compare per-utterance and utterance-batched beam search.
+"""Measure the speedup of decoding several utterances in one beam search.
 
 This is a synthetic benchmark: it builds a randomly initialized attention
 decoder plus CTC and decodes random encoder outputs, so the hypotheses are
 meaningless but the amount of work per decoding step is representative. It
 reports the wall time of
-
-* :class:`espnet2.legacy.nets.batch_beam_search.BatchBeamSearch`, which
-  vectorizes the beam axis but decodes one utterance at a time, and
-* :class:`espnet2.legacy.nets.batch_beam_search_utt.UttBatchBeamSearch` at
-  several batch sizes,
-
-and checks that the two produce the same best hypothesis for every utterance.
+:class:`espnet2.legacy.nets.batch_beam_search.BatchBeamSearch` given one
+utterance at a time and given batches of increasing size, and checks that
+they produce the same best hypothesis for every utterance.
 
 Example::
 
@@ -26,7 +22,6 @@ import torch
 from espnet2.asr.ctc import CTC
 from espnet2.asr.decoder.transformer_decoder import TransformerDecoder
 from espnet2.legacy.nets.batch_beam_search import BatchBeamSearch
-from espnet2.legacy.nets.batch_beam_search_utt import UttBatchBeamSearch
 from espnet2.legacy.nets.scorers.ctc import CTCPrefixScorer
 from espnet2.legacy.nets.scorers.length_bonus import LengthBonus
 
@@ -114,8 +109,7 @@ def main(cmd=None):
         beam_size=args.beam,
         pre_beam_score_key="full",
     )
-    reference = BatchBeamSearch(**common).to(device).eval()
-    batched = UttBatchBeamSearch(**common).to(device).eval()
+    beam_search = BatchBeamSearch(**common).to(device).eval()
 
     if args.varied:
         step = (args.frames // 2) / max(1, args.nutt - 1)
@@ -136,13 +130,15 @@ def main(cmd=None):
         return out, lens
 
     def run_reference():
-        return [reference(x=e, maxlenratio=maxlenratio, minlenratio=0.0) for e in encs]
+        return [
+            beam_search(x=e, maxlenratio=maxlenratio, minlenratio=0.0) for e in encs
+        ]
 
     def run_batched(batch_size):
         out = []
         for i in range(0, len(encs), batch_size):
             x, x_lengths = pad(encs[i : i + batch_size])
-            out += batched(
+            out += beam_search(
                 x=x, x_lengths=x_lengths, maxlenratio=maxlenratio, minlenratio=0.0
             )
         return out
@@ -163,7 +159,7 @@ def main(cmd=None):
     )
     base, ref_out = timeit(run_reference)
     print(
-        f"  BatchBeamSearch     batch={1:3d} : {base:7.2f} s "
+        f"  one utterance at a time : {base:7.2f} s "
         f"{base / args.nutt * 1000:8.1f} ms/utt  {1.0:5.2f}x"
     )
     batch_size = 1
@@ -173,7 +169,7 @@ def main(cmd=None):
             r[0].yseq.tolist() == n[0].yseq.tolist() for r, n in zip(ref_out, out)
         )
         print(
-            f"  UttBatchBeamSearch  batch={batch_size:3d} : {elapsed:7.2f} s "
+            f"  batched, batch={batch_size:3d}      : {elapsed:7.2f} s "
             f"{elapsed / args.nutt * 1000:8.1f} ms/utt  {base / elapsed:5.2f}x  "
             f"best-hyp match {match}/{args.nutt}"
         )

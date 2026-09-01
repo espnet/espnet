@@ -28,7 +28,6 @@ from espnet2.asr.transducer.beam_search_transducer import Hypothesis as TransHyp
 from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.legacy.nets.batch_beam_search import BatchBeamSearch
 from espnet2.legacy.nets.batch_beam_search_online_sim import BatchBeamSearchOnlineSim
-from espnet2.legacy.nets.batch_beam_search_utt import UttBatchBeamSearch
 from espnet2.legacy.nets.beam_search import BeamSearch, Hypothesis
 from espnet2.legacy.nets.beam_search_timesync import BeamSearchTimeSync
 from espnet2.legacy.nets.pytorch_backend.transformer.subsampling import TooShortUttError
@@ -379,14 +378,11 @@ class Speech2Text:
                         f"As non-batch scorers {non_batch} are found, "
                         f"fall back to non-batch implementation."
                     )
-                elif batch_size > 1:
-                    if streaming:
+                elif streaming:
+                    if batch_size > 1:
                         raise NotImplementedError(
                             "Streaming decoding with batching is not yet supported."
                         )
-                    beam_search.__class__ = UttBatchBeamSearch
-                    logger.info("UttBatchBeamSearch implementation is selected.")
-                elif streaming:
                     beam_search.__class__ = BatchBeamSearchOnlineSim
                     beam_search.set_streaming_config(asr_train_config)
                     logger.info("BatchBeamSearchOnlineSim implementation is selected.")
@@ -503,7 +499,7 @@ class Speech2Text:
                     "Batch decoding of Enh+ASR / multi-speaker ASR is not "
                     "supported. Please use --batch_size 1."
                 )
-            if not isinstance(beam_search, UttBatchBeamSearch):
+            if type(beam_search) is not BatchBeamSearch:
                 raise NotImplementedError(
                     "Batch decoding is only supported for the attention/CTC "
                     "beam search. Please use --batch_size 1."
