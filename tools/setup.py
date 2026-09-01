@@ -32,7 +32,7 @@ requirements = {
         "opt-einsum",
         "lightning",
         # ASR
-        "sentencepiece==0.2.0",
+        "sentencepiece==0.2.1",
         # TTS
         "pyworld>=0.3.4",
         "pypinyin<=0.44.0",
