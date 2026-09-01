@@ -15,16 +15,35 @@ ci/image_variants.json says is built. A job asking for a variant nobody builds
 gets `manifest unknown`, and the fallback would quietly hide it behind a slow
 build instead.
 
-Third, the config-task list the integration matrix is built from must match the
-tasks ci/test_integration_espnet2.sh actually implements. A task in the matrix
-and not the script runs the script's default and silently tests the wrong thing;
-a task in the script and not the matrix is never run at all.
+Third, the config-task lists both the integration and the configuration matrix
+are built from must match the tasks their scripts actually implement. A task in
+the matrix and not the script runs the script's default and silently tests the
+wrong thing; a task in the script and not the matrix is never run at all.
+
+The configuration matrix also shards a task across jobs - "asr:2/3" is the
+second third of the asr configs - and a shard set with a gap or a duplicate
+would drop or repeat configs with nothing failing to say so, so the shards of
+each task must cover 1..n exactly.
+
+Fourth, every step that runs a ci/test_* script must have HF_TOKEN in scope.
+Without it the Hugging Face downloads those tests do are anonymous, and
+huggingface.co rate limits anonymous callers hard enough to take a whole run
+down - it did, with 72 tests failing on 429. For a long time only the install
+steps had the token, which is invisible in review because the tests pass
+whenever the fleet happens to be under the limit.
+
+And fifth, the workflow files must have no duplicate mapping keys. PyYAML
+accepts them and lets the last one win, so writing a second env: block into a
+step silently discards the first - which is exactly what nearly dropped
+GITHUB_TOKEN from the two steps that need it for torch.hub.
 """
 
 import json
 import re
 import sys
 from pathlib import Path
+
+import yaml
 
 BUILD = Path(".github/workflows/build_ci_image.yml")
 CONSUMER = Path(".github/workflows/ci_on_ubuntu.yml")
@@ -76,31 +95,173 @@ def check_variants() -> list:
     return problems
 
 
+def implemented(script: Path) -> set:
+    """The task names a ci/test_*.sh dispatches on."""
+    text = script.read_text()
+    return set(re.findall(r'\$\{task\}" == "([a-z0-9_]+)"', text)) - {"all"}
+
+
+def compare(label: str, wanted: set, have: set) -> list:
+    problems = []
+    for task in sorted(wanted - have):
+        problems.append(f"{label}: {task} is in the matrix but not in the script")
+    for task in sorted(have - wanted):
+        problems.append(f"{label}: {task} is in the script but never run")
+    return problems
+
+
 def check_integration_tasks() -> list:
-    """The matrix's config-task list against what the script implements."""
+    """The integration matrix's task list against what its script implements."""
     workflow = re.search(r"tasks=([a-z0-9_,]+)", CONSUMER.read_text())
     if workflow is None:
         return ["ci_on_ubuntu.yml: no integration tasks= line found"]
-    wanted = set(workflow.group(1).split(","))
-    script = Path("ci/test_integration_espnet2.sh").read_text()
-    have = set(re.findall(r'\$\{task\}" == "([a-z0-9_]+)"', script)) - {"all"}
+    return compare(
+        "integration config-task",
+        set(workflow.group(1).split(",")),
+        implemented(Path("ci/test_integration_espnet2.sh")),
+    )
+
+
+def check_configuration_tasks() -> list:
+    """The same for the configuration matrix, which nothing checked before.
+
+    Its list is written inline rather than derived, and a task can carry a
+    shard suffix - "asr:2/3" is the second third of the asr configs - so the
+    suffix is stripped before comparing. A shard count of 1 is pointless but
+    harmless; a task sharded n ways with a gap or a duplicate is not, so the
+    shards of each task have to be exactly 1..n.
+    """
+    match = re.search(r"config-task: \[([^\]]*)\]", CONSUMER.read_text())
+    if match is None:
+        return ["ci_on_ubuntu.yml: no configuration config-task list found"]
+    entries = [item.strip().strip('"') for item in match.group(1).split(",")]
+
     problems = []
-    for task in sorted(wanted - have):
-        problems.append(f"config-task {task} is in the matrix but not in the script")
-    for task in sorted(have - wanted):
-        problems.append(f"config-task {task} is in the script but never run")
+    shards = {}
+    wanted = set()
+    for entry in entries:
+        task, colon, spec = entry.partition(":")
+        wanted.add(task)
+        # An absent colon is a whole task; a colon with nothing useful after it
+        # is a mistake. Testing `spec` alone conflated the two, so "asr:" passed
+        # here as a bare task and then died in the script instead.
+        if not colon:
+            continue
+        index, slash, total = spec.partition("/")
+        if not (slash and index.isdigit() and total.isdigit()):
+            problems.append(f"configuration config-task {entry}: malformed shard spec")
+            continue
+        index, total = int(index), int(total)
+        if not 1 <= index <= total:
+            problems.append(
+                f"configuration config-task {entry}: shard index out of range"
+            )
+            continue
+        shards.setdefault(task, []).append((index, total))
+
+    for task, seen in sorted(shards.items()):
+        totals = {total for _, total in seen}
+        if len(totals) != 1:
+            problems.append(
+                f"configuration config-task {task}: disagreeing shard "
+                f"counts {sorted(totals)}"
+            )
+            continue
+        total = totals.pop()
+        indexes = sorted(index for index, _ in seen)
+        if indexes != list(range(1, total + 1)):
+            problems.append(
+                f"configuration config-task {task}: shards {indexes} "
+                f"do not cover 1..{total}"
+            )
+
+    script = Path("ci/test_configuration_espnet2.sh")
+    return problems + compare("configuration config-task", wanted, implemented(script))
+
+
+class _NoDuplicates(yaml.SafeLoader):
+    """A loader that refuses duplicate mapping keys instead of silently keeping
+    the last one. PyYAML's default made a second env: block in a step look
+    valid while it discarded the first."""
+
+
+def _mapping(loader, node, deep=False):
+    seen = set()
+    for key_node, _ in node.value:
+        key = loader.construct_object(key_node, deep=deep)
+        if key in seen:
+            raise yaml.YAMLError(
+                f"duplicate key {key!r} at line {key_node.start_mark.line + 1}"
+            )
+        seen.add(key)
+    return yaml.SafeLoader.construct_mapping(loader, node, deep)
+
+
+_NoDuplicates.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, _mapping)
+
+
+def _workflows() -> list:
+    return sorted(Path(".github/workflows").glob("*.yml"))
+
+
+def check_no_duplicate_keys() -> list:
+    problems = []
+    for path in _workflows():
+        try:
+            yaml.load(path.read_text(), Loader=_NoDuplicates)
+        except yaml.YAMLError as error:
+            problems.append(f"{path}: {error}")
+    return problems
+
+
+def check_hf_token() -> list:
+    """Every step running a ci/test_* script must see HF_TOKEN."""
+    problems = []
+    for path in _workflows():
+        try:
+            data = yaml.safe_load(path.read_text())
+        except yaml.YAMLError as error:
+            problems.append(f"{path}: {error}")
+            continue
+        for name, job in (data or {}).get("jobs", {}).items():
+            if not isinstance(job, dict):
+                continue
+            job_env = job.get("env") or {}
+            for step in job.get("steps") or []:
+                if not isinstance(step, dict):
+                    continue
+                run = str(step.get("run") or "")
+                # test_import_all.py only imports modules; it reaches no network
+                if "ci/test_" not in run or "test_import_all" in run:
+                    continue
+                step_env = step.get("env") or {}
+                if "HF_TOKEN" in step_env or "HF_TOKEN" in job_env:
+                    continue
+                label = step.get("name") or run.strip().split("\n")[0]
+                problems.append(
+                    f"{path.name}: {name}: step {label!r} runs a test script "
+                    "without HF_TOKEN in scope"
+                )
     return problems
 
 
 def main() -> int:
-    bad = check_variants() + check_integration_tasks()
+    bad = (
+        check_variants()
+        + check_integration_tasks()
+        + check_configuration_tasks()
+        + check_no_duplicate_keys()
+        + check_hf_token()
+    )
     for problem in bad:
         print(problem, file=sys.stderr)
     build, consumer = inputs(BUILD), inputs(CONSUMER)
     if build == consumer and not bad:
         print(
             f"hash inputs agree ({len(build)} entries); every job matrix is a "
-            "built variant; integration tasks match the script"
+            "built variant; integration and configuration tasks match their "
+            "scripts; every shard set is complete; every test step has "
+            "HF_TOKEN; no duplicate keys"
         )
         return 0
     if bad:

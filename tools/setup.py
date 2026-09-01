@@ -52,7 +52,7 @@ requirements = {
     # train: The modules invoked when training only.
     "train": [
         "matplotlib",
-        "pillow==9.5.0",
+        "pillow==12.3.0",
         "wandb",
         "tensorboard>=1.14",
     ],

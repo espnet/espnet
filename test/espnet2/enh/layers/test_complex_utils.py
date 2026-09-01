@@ -53,7 +53,6 @@ def test_cat(dim):
 
 
 @pytest.mark.parametrize("dim", [None, 0, 1, 2])
-@pytest.mark.skipif(not is_torch_1_9_plus, reason="Require torch 1.9.0+")
 def test_complex_norm(dim):
     mat = ComplexTensor(torch.rand(2, 3, 4), torch.rand(2, 3, 4))
     mat_th = torch.complex(mat.real, mat.imag)
@@ -186,8 +185,6 @@ def test_stack(dim):
 
 
 def test_complex_impl_consistency():
-    if not is_torch_1_9_plus:
-        return
     torch.random.manual_seed(0)
     mat_th = torch.complex(torch.from_numpy(mat_np.real), torch.from_numpy(mat_np.imag))
     mat_ct = ComplexTensor(torch.from_numpy(mat_np.real), torch.from_numpy(mat_np.imag))

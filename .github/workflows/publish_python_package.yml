@@ -12,7 +12,7 @@ jobs:
   publish_python_package_to_pypi:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@master
+    - uses: actions/checkout@v7
     - name: Set up Python
       uses: actions/setup-python@v7
       with:

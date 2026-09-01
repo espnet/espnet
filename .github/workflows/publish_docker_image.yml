@@ -24,7 +24,7 @@ jobs:
             image_tag: espnet/espnet:gpu-latest
             cuda_arg: "--build-arg CUDA_VER=11.1"
     steps:
-      - uses: actions/checkout@master
+      - uses: actions/checkout@v7
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v4

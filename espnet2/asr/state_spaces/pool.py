@@ -64,7 +64,7 @@ class DownSample(SequenceModule):
         self.transposed = transposed
 
     def forward(self, x):
-        return downsample(x, self.stride, self.expand, False, self.transposed)
+        return downsample(x, self.stride, self.expand, self.transposed)
 
     def step(self, x, state, **kwargs):
         if self.stride > 1 or self.expand > 1:

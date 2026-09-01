@@ -41,6 +41,15 @@ on:
       - "tools/installers/**"
       - ".github/workflows/build_ci_image.yml"
 
+# Deliberately still keyed per sha for non-PR events, unlike the ci_on_* and
+# publish_* workflows, which now let a newer branch run cancel the older one.
+#
+# Two reasons this one is different. It is a handful of jobs rather than 120, so
+# it is not what congests the runners. And the tag it publishes is a hash of the
+# image inputs, so cancelling the build for an older master commit means that
+# tag never appears - every pull request still based on that commit then finds
+# available=false and takes the slow path. Publishing both is worth more than
+# the runner time it saves.
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
@@ -58,7 +67,7 @@ jobs:
     outputs:
       matrix: ${{ steps.v.outputs.matrix }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - run: python3 ci/check_ci_image_config.py
       - id: v
         run: echo "matrix=$(python3 ci/image_variants.py matrix)" >> "$GITHUB_OUTPUT"
@@ -74,7 +83,7 @@ jobs:
       # rebuilding the same environment in every job.
       matrix: ${{ fromJSON(needs.variants.outputs.matrix) }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Free disk space
         run: |
@@ -128,7 +137,7 @@ jobs:
 
       - name: Log in to GHCR
         if: github.event_name != 'pull_request'
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
