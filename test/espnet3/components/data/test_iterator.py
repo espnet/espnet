@@ -85,3 +85,67 @@ def test_sync_iterator_is_reiterable(monkeypatch):
     iterator = EpochSyncIterator([1, 2])
     assert list(iterator) == [1, 2]
     assert list(iterator) == [1, 2]
+
+
+# --- Re-iterability: a factory source must survive repeated __iter__ ---
+
+
+def test_factory_source_yields_a_full_pass_on_every_iteration(monkeypatch):
+    """Lightning calls iter() on the train loader more than once per epoch."""
+    _patch_no_distributed(monkeypatch)
+    iterator = EpochSyncIterator(lambda: iter(["a", "b", "c"]))
+
+    assert list(iterator) == ["a", "b", "c"]
+    assert list(iterator) == ["a", "b", "c"]
+
+
+def test_discarded_partial_pass_does_not_close_a_factory_source(monkeypatch):
+    """A prefetch that is abandoned must not empty the next pass.
+
+    `yield from` propagates close() to the sub-generator, so a shared one-shot
+    source is destroyed when a partially consumed wrapper is garbage collected.
+    """
+    _patch_no_distributed(monkeypatch)
+    iterator = EpochSyncIterator(lambda: iter(["a", "b", "c"]))
+
+    first = iter(iterator)
+    next(first)
+    del first
+
+    assert list(iterator) == ["a", "b", "c"]
+
+
+def test_len_does_not_rebuild_a_factory_source_on_every_call():
+    """`__len__` is called several times per epoch; rebuilding each time is waste.
+
+    For a sequence-style factory `build_iter` constructs a DataLoader and shuffles
+    the whole batch list, so this is O(corpus) per call.
+    """
+    calls = []
+
+    def factory():
+        calls.append(1)
+        return [[0], [1], [2]]
+
+    iterator = EpochSyncIterator(factory)
+
+    assert len(iterator) == 3
+    assert len(iterator) == 3
+    assert len(iterator) == 3
+    assert len(calls) == 1
+
+
+def test_len_does_not_rebuild_an_unsized_factory_source_either():
+    """An unsized source must be probed once, not on every `__len__` call."""
+    calls = []
+
+    def factory():
+        calls.append(1)
+        return iter([[0], [1]])          # a one-shot iterator has no __len__
+
+    iterator = EpochSyncIterator(factory)
+
+    for _ in range(3):
+        with pytest.raises(TypeError):
+            len(iterator)
+    assert len(calls) == 1

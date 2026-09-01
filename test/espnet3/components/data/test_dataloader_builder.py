@@ -851,3 +851,61 @@ def test_iter_factory_syncs_iterator_when_distributed_initialized(monkeypatch):
     iterator = builder.build("train")
     assert isinstance(iterator, EpochSyncIterator)
     assert list(iterator) == [[0, 1], [4, 5]]
+
+
+class GeneratorIterFactory:
+    """Iter factory whose ``build_iter`` is a generator function.
+
+    Mirrors espnet2's ``ChunkIterFactory``, which yields batches rather than
+    returning a re-iterable container. ``DummyIterFactory`` returns a list, so
+    it cannot catch single-use iterator bugs.
+    """
+
+    def __init__(self, dataset, batches, **kwargs):
+        self.dataset = dataset
+        self.batches = list(batches)
+
+    def build_iter(self, epoch, shuffle=False):
+        yield from self.batches
+
+
+def _make_generator_iter_factory_config():
+    return OmegaConf.create(
+        {
+            "dataloader": {
+                "train": {
+                    "iter_factory": {
+                        "_target_": (
+                            "test.espnet3.components.data."
+                            "test_dataloader_builder.GeneratorIterFactory"
+                        ),
+                        "batches": {"dummy": 1},
+                    }
+                }
+            }
+        }
+    )
+
+
+def test_generator_iter_factory_loader_yields_a_full_pass_each_iteration(monkeypatch):
+    """Lightning calls iter() on the train loader more than once per epoch.
+
+    With a generator-based iter factory the second pass used to be empty, which
+    silently emptied every epoch after the first.
+    """
+    import espnet3.components.data.dataloader as dl
+
+    monkeypatch.setattr(dl, "build_batch_sampler", lambda **kw: [[0, 1], [2, 3]])
+
+    organizer = build_organizer(DUMMY_DATASET_TARGET)
+    builder = build_builder(
+        organizer.train,
+        _make_generator_iter_factory_config(),
+        collate_fn=None,
+        num_device=1,
+        epoch=0,
+    )
+    iterator = builder.build("train")
+
+    assert list(iterator) == [[0, 1], [2, 3]]
+    assert list(iterator) == [[0, 1], [2, 3]]

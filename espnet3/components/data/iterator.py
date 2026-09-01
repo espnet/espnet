@@ -2,6 +2,10 @@
 
 import torch
 
+# Marker for "this source has no length", so an unsized source is probed once
+# rather than rebuilt on every __len__ call.
+_UNSIZED = object()
+
 
 class EpochSyncIterator:
     """Per-epoch iterator returned by DataLoaderBuilder.
@@ -23,10 +27,15 @@ class EpochSyncIterator:
     Without ``torch.distributed``, batches are yielded unchanged.
 
     Args:
-        iterator (Iterable): This rank's per-epoch batch iterator, typically
-            the return value of ``iter_factory.build_iter(epoch)``. It is
-            iterated once per ``__iter__`` call, and ``__len__`` is delegated
-            to it, so it must be sized for ``len()`` to work.
+        iterator (Union[Callable, Iterable]): This rank's per-epoch batches.
+            Prefer a zero-argument callable returning a fresh iterator, e.g.
+            ``partial(iter_factory.build_iter, epoch)``: it is called once per
+            ``__iter__``, so repeated passes each get their own iterator. A
+            re-iterable container (list, ``DataLoader``) also works. Do not
+            pass a single live generator - ``build_iter`` of espnet2's
+            ``ChunkIterFactory`` returns one, and sharing it across passes
+            empties every pass after the first. ``__len__`` is delegated to
+            the source, so it must be sized for ``len()`` to work.
 
     Note:
         Subclasses should override :meth:`generate` rather than ``__iter__``,
@@ -47,7 +56,9 @@ class EpochSyncIterator:
         that every rank stops at the shortest rank's batch count::
 
             iter_factory = ChunkIterFactory(dataset, batches=batches, ...)
-            iterator = EpochSyncIterator(iter_factory.build_iter(epoch))
+            iterator = EpochSyncIterator(
+                partial(iter_factory.build_iter, epoch)  # the call, not its result
+            )
             for batch in iterator:  # same number of steps on every rank
                 ...
     """
@@ -55,24 +66,43 @@ class EpochSyncIterator:
     def __init__(self, iterator):
         """Wrap one rank's per-epoch batch iterator."""
         self._iterator = iterator
+        self._length = None
 
     def __len__(self):
         """Return the number of batches of the wrapped iterator.
 
         In distributed runs this is an upper bound: the epoch ends earlier on
-        every rank when the first rank runs out of batches.
+        every rank when the first rank runs out of batches. A callable source
+        is called to obtain the object to measure, so a factory returning a
+        sized loader still reports its length. The result is cached: the
+        trainer asks for the length several times per epoch, and building a
+        sequence-style loader costs O(corpus) each time. One instance covers
+        exactly one epoch, so the length cannot change under the cache.
 
         Returns:
             int: The number of batches the wrapped iterator reports.
 
         Raises:
             TypeError: If the wrapped iterator does not implement ``__len__``.
+                espnet2's ``ChunkIterFactory`` yields a data-dependent number
+                of batches, so its loaders are unsized by design.
 
         Examples:
             >>> len(EpochSyncIterator([[0], [1], [2]]))
             3
+            >>> len(EpochSyncIterator(lambda: [[0], [1]]))
+            2
         """
-        return len(self._iterator)
+        if self._length is None:
+            try:
+                self._length = len(self._new_pass())
+            except TypeError:
+                self._length = _UNSIZED
+        if self._length is _UNSIZED:
+            raise TypeError(
+                f"{type(self).__name__} wraps an unsized source, so it has no len()"
+            )
+        return self._length
 
     def generate(self):
         """Yield this rank's batches.
@@ -94,7 +124,17 @@ class EpochSyncIterator:
             >>> list(NonEmptyIterator([[0], [], [1]]))
             [[0], [1]]
         """
-        yield from self._iterator
+        yield from self._new_pass()
+
+    def _new_pass(self):
+        # A callable source is called once per pass, so every __iter__ gets its
+        # own iterator. Sharing one live iterator across passes is unsafe:
+        # `yield from` propagates close() to it, so a partially consumed pass
+        # that is discarded (an abandoned prefetch, for instance) leaves every
+        # later pass empty.
+        if callable(self._iterator):
+            return self._iterator()
+        return self._iterator
 
     def __iter__(self):
         """Yield batches, stopping on all ranks once any rank is exhausted.

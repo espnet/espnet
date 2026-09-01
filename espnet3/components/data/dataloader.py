@@ -2,6 +2,7 @@
 
 import copy
 import logging
+from functools import partial
 
 import torch
 from hydra.utils import instantiate
@@ -299,7 +300,11 @@ class DataLoaderBuilder:
                 _LOGGED_DISTRIBUTED_BATCHES.add(mode)
 
         iter_factory = instantiate(factory_config, dataset, batches=batches)
-        iterator = EpochSyncIterator(iter_factory.build_iter(self.epoch))
+        # Pass the call, not its result: `ChunkIterFactory.build_iter` is a
+        # generator function, and the trainer may call `iter()` on this loader
+        # more than once per epoch. Handing over a single live generator makes
+        # every pass after the first empty.
+        iterator = EpochSyncIterator(partial(iter_factory.build_iter, self.epoch))
         log_dataloader(
             logger,
             iterator,
