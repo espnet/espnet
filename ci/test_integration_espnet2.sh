@@ -131,6 +131,25 @@ if [ "${task}" == "asr" ] || [ "${task}" == "all" ]; then
             --train_set raw/train_nodev --valid_set raw/train_dev --test_sets raw/test --python "${python}" --asr-args "--num_workers 0"
         echo "::endgroup::"
     done
+
+    # Decoding several utterances in one beam search. Needs a decoder whose
+    # scorers are all batch scorers, so the RNN decoder that the other asr1
+    # cases use will not do. inference_nj=1 keeps the test sets in one job, so
+    # that a batch really holds more than one utterance.
+    # NOTE: this only checks that batch decoding runs and writes a result for
+    # every key. The output is deliberately not compared against --batch_size 1:
+    # an utterance's encoder output length depends on the longest utterance
+    # beside it, because Conv1dSubsampling* subsamples the padding mask
+    # relative to the padded width of the batch.
+    echo "::group::==== batch decoding, feats_type=raw, token_types=bpe ==="
+    ./run.sh --ngpu 0 --stage 10 --stop-stage 13 --skip-packing false --feats-type "raw" --token-type "bpe" \
+        --python "${python}" \
+        --asr_config "conf/train_asr_transformer_debug.yaml" \
+        --asr-tag "train_raw_bpe_batch_decode" \
+        --asr-args "--num_workers 0" \
+        --inference_nj 1 \
+        --inference_args "--batch_size 2"
+    echo "::endgroup::"
     finish_asr
 fi
 
