@@ -27,8 +27,9 @@ class EpochSyncIterator:
     Without ``torch.distributed``, batches are yielded unchanged.
 
     Args:
-        iterator (Union[Callable, Iterable]): This rank's per-epoch batches.
-            Prefer a zero-argument callable returning a fresh iterator, e.g.
+        source (Union[Callable, Iterable]): What this rank's per-epoch passes
+            are built from - not necessarily an iterator itself. Prefer a
+            zero-argument callable returning a fresh iterator, e.g.
             ``partial(iter_factory.build_iter, epoch)``: it is called once per
             ``__iter__``, so repeated passes each get their own iterator. A
             re-iterable container (list, ``DataLoader``) also works. Do not
@@ -63,13 +64,13 @@ class EpochSyncIterator:
                 ...
     """
 
-    def __init__(self, iterator):
-        """Wrap one rank's per-epoch batch iterator."""
-        self._iterator = iterator
+    def __init__(self, source):
+        """Wrap the source this rank's per-epoch passes are built from."""
+        self._source = source
         self._length = None
 
     def __len__(self):
-        """Return the number of batches of the wrapped iterator.
+        """Return the number of batches in one pass over the source.
 
         In distributed runs this is an upper bound: the epoch ends earlier on
         every rank when the first rank runs out of batches. A callable source
@@ -80,7 +81,7 @@ class EpochSyncIterator:
         exactly one epoch, so the length cannot change under the cache.
 
         Returns:
-            int: The number of batches the wrapped iterator reports.
+            int: The number of batches one pass over the source reports.
 
         Raises:
             TypeError: If the wrapped iterator does not implement ``__len__``.
@@ -132,9 +133,9 @@ class EpochSyncIterator:
         # `yield from` propagates close() to it, so a partially consumed pass
         # that is discarded (an abandoned prefetch, for instance) leaves every
         # later pass empty.
-        if callable(self._iterator):
-            return self._iterator()
-        return self._iterator
+        if callable(self._source):
+            return self._source()
+        return self._source
 
     def __iter__(self):
         """Yield batches, stopping on all ranks once any rank is exhausted.
