@@ -134,13 +134,13 @@ class BatchHypothesis(NamedTuple):
         """Return the `active` flags, materializing the all-active default."""
         if self.active is not None:
             return self.active
-        return torch.ones(len(self), dtype=torch.bool, device=self.yseq.device)
+        return torch.ones(len(self), dtype=torch.bool)
 
     def done_mask(self) -> torch.Tensor:
         """Return the `done` flags, materializing the none-done default."""
         if self.done is not None:
             return self.done
-        return torch.zeros(self.n_utt, dtype=torch.bool, device=self.yseq.device)
+        return torch.zeros(self.n_utt, dtype=torch.bool)
 
     def replace(self, **kwargs) -> "BatchHypothesis":
         """Return a copy with some fields replaced.
@@ -385,7 +385,7 @@ class BatchBeamSearch(BeamSearch):
         # The beams of an utterance are all identical at this point, so only
         # the first one may be expanded; otherwise the first `topk` would
         # return `beam` copies of the same token.
-        active = torch.zeros(n_bh, dtype=torch.bool, device=x.device)  # (N,)
+        active = torch.zeros(n_bh, dtype=torch.bool)  # (N,), kept on the CPU
         active[::beam] = True  # slot b * K + 0 of each utterance
         yseq = torch.stack(  # (N, L), L = len(primer)
             [p for p in primers for _ in range(beam)]
@@ -644,8 +644,9 @@ class BatchBeamSearch(BeamSearch):
         ).unsqueeze(1)
         if running_hyps.active is not None:
             # never expand a slot whose hypothesis already ended
+            # one transfer per step, rather than a synchronisation per slot
             weighted_scores = weighted_scores.masked_fill(
-                ~running_hyps.active.unsqueeze(1), _log_zero(x.dtype)
+                ~running_hyps.active.to(x.device).unsqueeze(1), _log_zero(x.dtype)
             )
 
         # Beam pruning, independently per utterance. Both branches leave
@@ -783,11 +784,15 @@ class BatchBeamSearch(BeamSearch):
         """
         if batch_select and hasattr(scorer, "batch_select_state"):
             return scorer.batch_select_state(state, top_ids)
+        # NOTE: read the ids across in one go. Iterating the tensor itself
+        # makes `int(j)` a device-to-host synchronisation per hypothesis,
+        # which on an accelerator costs far more than the selection.
+        prev = prev_hyp_ids.tolist()
         if new_token_ids is None:
-            return [scorer.select_state(state, int(j)) for j in prev_hyp_ids]
+            return [scorer.select_state(state, j) for j in prev]
         return [
-            scorer.select_state(state, int(j), int(t))
-            for j, t in zip(prev_hyp_ids, new_token_ids)
+            scorer.select_state(state, j, t)
+            for j, t in zip(prev, new_token_ids.tolist())
         ]
 
     # ------------------------------------------------------------------
@@ -840,8 +845,10 @@ class BatchBeamSearch(BeamSearch):
                 )
             )
 
-        active = running_hyps.active_mask().clone()  # (N,) bool
-        done = running_hyps.done_mask().clone()  # (B,) bool
+        # plain Python lists: these drive control flow every step, and reading
+        # one element of an accelerator tensor costs a synchronisation
+        active = running_hyps.active_mask().tolist()  # list of N bools
+        done = running_hyps.done_mask().tolist()  # list of B bools
         yseq_device = running_hyps.yseq.device
         is_eos = (
             running_hyps.yseq[
@@ -852,16 +859,17 @@ class BatchBeamSearch(BeamSearch):
         ).tolist()  # a list of N bools, not a tensor
 
         for b in range(n_utt):
-            if bool(done[b]):
-                active[b * n_hyp_per_utt : (b + 1) * n_hyp_per_utt] = False
+            lo, hi = b * n_hyp_per_utt, (b + 1) * n_hyp_per_utt
+            if done[b]:
+                active[lo:hi] = [False] * n_hyp_per_utt
                 continue
             # add <eos> in the final loop to avoid that there are no ended hyps
             at_maxlen = i == maxlens[b] - 1
             if at_maxlen:
                 logger.info("adding <eos> in the last position in the loop")
             # the slots utterance b owns on the flat axis
-            for j in range(b * n_hyp_per_utt, (b + 1) * n_hyp_per_utt):
-                if not bool(active[j]):
+            for j in range(lo, hi):
+                if not active[j]:
                     continue
                 if at_maxlen:
                     # NOTE: <eos> is appended to every running hypothesis,
@@ -878,24 +886,25 @@ class BatchBeamSearch(BeamSearch):
                         )
                     active[j] = False
 
-            if at_maxlen or not bool(
-                active[b * n_hyp_per_utt : (b + 1) * n_hyp_per_utt].any()
-            ):
+            if at_maxlen or not any(active[lo:hi]):
                 done[b] = True
-                active[b * n_hyp_per_utt : (b + 1) * n_hyp_per_utt] = False
+                active[lo:hi] = [False] * n_hyp_per_utt
             elif maxlenratio == 0.0 and end_detect(
                 [h.asdict() for h in ended_per_utt[b]], i
             ):
                 logger.info(f"end detected at {i}")
                 done[b] = True
-                active[b * n_hyp_per_utt : (b + 1) * n_hyp_per_utt] = False
+                active[lo:hi] = [False] * n_hyp_per_utt
 
+        done = torch.tensor(done, dtype=torch.bool)
         if n_utt == 1:
             # A single utterance does not need a fixed number of hypotheses,
             # so drop the finished ones instead of carrying them along.
-            remained_ids = torch.nonzero(active, as_tuple=False).view(-1).cpu()
+            remained_ids = [j for j, keep in enumerate(active) if keep]
             return self._batch_select(running_hyps, remained_ids).replace(done=done)
-        return running_hyps.replace(active=active, done=done)
+        return running_hyps.replace(
+            active=torch.tensor(active, dtype=torch.bool), done=done
+        )
 
     # ------------------------------------------------------------------
     # entry point
