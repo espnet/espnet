@@ -25,6 +25,29 @@ def _log_zero(dtype: torch.dtype) -> float:
     return max(LOG_ZERO, torch.finfo(dtype).min / 4)
 
 
+def _compact(obj: Any) -> Any:
+    """Copy tensors out of storages that are larger than the tensor itself.
+
+    Scorer states are sliced out of batch-sized tensors, so a single
+    hypothesis's state is a view that keeps the whole `(n_utt * beam, ...)`
+    storage alive. That is fine while the hypothesis is still running, but a
+    hypothesis that has ended is kept until decoding finishes, so it would pin
+    a storage `n_utt * beam` times larger than what it needs -- once per step
+    at which any hypothesis ended.
+    """
+    if torch.is_tensor(obj):
+        if obj.untyped_storage().nbytes() > obj.numel() * obj.element_size():
+            return obj.clone()
+        return obj
+    if isinstance(obj, tuple):
+        return type(obj)(_compact(o) for o in obj)
+    if isinstance(obj, list):
+        return [_compact(o) for o in obj]
+    if isinstance(obj, dict):
+        return {k: _compact(v) for k, v in obj.items()}
+    return obj
+
+
 class BatchHypothesis(NamedTuple):
     """Batchfied/Vectorized hypothesis data type.
 
@@ -148,6 +171,21 @@ class BatchBeamSearch(BeamSearch):
             hs=hs,
             n_utt=hyps.n_utt,
             done=hyps.done,
+        )
+
+    @staticmethod
+    def _release(hyp: Hypothesis) -> Hypothesis:
+        """Detach a finished hypothesis from the batch-sized state tensors.
+
+        An ended hypothesis is held until the whole batch finishes, so leaving
+        its states as views into the running batch keeps far more memory alive
+        than the hypothesis needs. Nothing scores it again, so copying out is
+        pure gain.
+        """
+        return hyp._replace(
+            yseq=_compact(hyp.yseq),
+            states=_compact(hyp.states),
+            hs=_compact(hyp.hs),
         )
 
     def _select(self, hyps: BatchHypothesis, i: int) -> Hypothesis:
@@ -780,11 +818,13 @@ class BatchBeamSearch(BeamSearch):
                     hyp = self._select(running_hyps, j)
                     hyp = hyp._replace(yseq=self.append_token(hyp.yseq, self.eos))
                     if i >= minlens[b]:
-                        ended_per_utt[b].append(hyp)
+                        ended_per_utt[b].append(self._release(hyp))
                     active[j] = False
                 elif is_eos[j]:
                     if i >= minlens[b]:
-                        ended_per_utt[b].append(self._select(running_hyps, j))
+                        ended_per_utt[b].append(
+                            self._release(self._select(running_hyps, j))
+                        )
                     active[j] = False
 
             if at_maxlen or not bool(active[b * per_utt : (b + 1) * per_utt].any()):
