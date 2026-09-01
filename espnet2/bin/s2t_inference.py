@@ -433,6 +433,15 @@ class Speech2Text:
         speech_length = int(
             self.preprocessor_conf["fs"] * self.preprocessor_conf["speech_length"]
         )
+        if speech.size(-1) > speech_length:
+            # say so rather than dropping audio silently. In a batch this is
+            # driven by the longest utterance, so every utterance is trimmed.
+            logging.warning(
+                f"trimming the input from {speech.size(-1)} to {speech_length} "
+                f"samples, the fixed length this model was trained on. Use "
+                f"decode_long() to transcribe audio longer than "
+                f"{self.preprocessor_conf['speech_length']} s."
+            )
         if speech.size(-1) >= speech_length:
             return speech[..., :speech_length]
         return F.pad(speech, (0, speech_length - speech.size(-1)))
@@ -457,8 +466,12 @@ class Speech2Text:
 
         Args:
             speech: Padded speech of shape `(n_utt, nsamples)`.
-            speech_lengths: Unused; accepted so that a collated batch can be
-                passed straight through.
+            speech_lengths: Unused, and accepted only so that a collated
+                batch can be passed straight through. Every utterance is
+                padded or trimmed to the same fixed length, and the collated
+                padding is zeros, which is exactly what `__call__` pads a
+                short utterance with -- so ignoring the lengths gives the same
+                input the single-utterance path would build.
             text_prev: Optional previous text of each utterance, used as a
                 decoding condition. All the resulting prompts must have the
                 same length, otherwise the hypotheses of the batch cannot be
