@@ -111,7 +111,7 @@ if $(pytorch_plus 2.11.1); then
     exit 1
 
 elif $(pytorch_plus 2.11.0); then
-    check_python_version 3.13  # Error if python>=<number>
+    check_python_version 3.14  # Error if python>=<number>
     if ! check_cuda_version 12.8 13.0; then
         log "[INFO] Fallback: cuda_version=${cuda_version} -> cuda_version=12.8"
         cuda_version=12.8
@@ -124,7 +124,7 @@ elif $(pytorch_plus 2.10.1); then
     exit 1
 
 elif $(pytorch_plus 2.10.0); then
-    check_python_version 3.13  # Error if python>=<number>
+    check_python_version 3.14  # Error if python>=<number>
     if ! check_cuda_version 12.8 13.0; then
         log "[INFO] Fallback: cuda_version=${cuda_version} -> cuda_version=12.8"
         cuda_version=12.8
@@ -137,7 +137,7 @@ elif $(pytorch_plus 2.9.2); then
     exit 1
 
 elif $(pytorch_plus 2.9.1); then
-    check_python_version 3.13  # Error if python>=<number>
+    check_python_version 3.14  # Error if python>=<number>
     if ! check_cuda_version 12.6 12.8 13.0; then
         log "[INFO] Fallback: cuda_version=${cuda_version} -> cuda_version=12.8"
         cuda_version=12.8

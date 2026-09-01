@@ -12,7 +12,7 @@
 # Built by .github/workflows/build_ci_image.yml and tagged with a hash of the
 # files that determine its contents.
 
-ARG PYTHON_VERSION=3.10
+ARG PYTHON_VERSION=3.12
 
 # ---------------------------------------------------------------- builder ----
 FROM python:${PYTHON_VERSION}-bookworm AS builder
