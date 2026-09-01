@@ -16,6 +16,7 @@ from espnet2.asr.decoder.s4_decoder import S4Decoder
 from espnet2.asr.partially_AR_model import PartiallyARInference
 from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.legacy.nets.batch_beam_search import BatchBeamSearch
+from espnet2.legacy.nets.batch_beam_search_utt import UttBatchBeamSearch
 from espnet2.legacy.nets.beam_search import BeamSearch, Hypothesis
 from espnet2.legacy.nets.pytorch_backend.transformer.subsampling import TooShortUttError
 from espnet2.legacy.nets.scorer_interface import BatchScorerInterface
@@ -309,27 +310,34 @@ class Speech2Text:
             )
 
             # TODO(karita): make all scorers batchfied
-            if batch_size == 1:
-                non_batch = [
-                    k
-                    for k, v in beam_search.full_scorers.items()
-                    if not isinstance(v, BatchScorerInterface)
-                ]
-                if len(non_batch) == 0:
-                    beam_search.__class__ = BatchBeamSearch
-                    logging.info("BatchBeamSearch implementation is selected.")
-                else:
-                    logging.warning(
-                        f"As non-batch scorers {non_batch} are found, "
-                        f"fall back to non-batch implementation."
+            non_batch = [
+                k
+                for k, v in beam_search.full_scorers.items()
+                if not isinstance(v, BatchScorerInterface)
+            ]
+            if len(non_batch) > 0:
+                if batch_size > 1:
+                    raise NotImplementedError(
+                        f"Batch decoding needs batch scorers, but {non_batch} "
+                        f"are not. Please use --batch_size 1."
                     )
+                logging.warning(
+                    f"As non-batch scorers {non_batch} are found, "
+                    f"fall back to non-batch implementation."
+                )
+            elif batch_size > 1:
+                beam_search.__class__ = UttBatchBeamSearch
+                logging.info("UttBatchBeamSearch implementation is selected.")
+            else:
+                beam_search.__class__ = BatchBeamSearch
+                logging.info("BatchBeamSearch implementation is selected.")
 
-                beam_search.to(device=device, dtype=getattr(torch, dtype)).eval()
-                for scorer in scorers.values():
-                    if isinstance(scorer, torch.nn.Module):
-                        scorer.to(device=device, dtype=getattr(torch, dtype)).eval()
-                logging.info(f"Beam_search: {beam_search}")
-                logging.info(f"Decoding device={device}, dtype={dtype}")
+            beam_search.to(device=device, dtype=getattr(torch, dtype)).eval()
+            for scorer in scorers.values():
+                if isinstance(scorer, torch.nn.Module):
+                    scorer.to(device=device, dtype=getattr(torch, dtype)).eval()
+            logging.info(f"Beam_search: {beam_search}")
+            logging.info(f"Decoding device={device}, dtype={dtype}")
 
         # 5. [Optional] Build Text converter: e.g. bpe-sym -> Text
         if token_type is None:
@@ -377,6 +385,143 @@ class Speech2Text:
         self.predict_time = predict_time
 
         self.partial_ar = partial_ar
+        self.batch_size = batch_size
+
+        if batch_size > 1 and not isinstance(beam_search, UttBatchBeamSearch):
+            raise NotImplementedError(
+                "Batch decoding is only supported for the attention/CTC beam "
+                "search. Please use --batch_size 1."
+            )
+
+    def _build_hyp_primer(
+        self,
+        lang_sym: Optional[str] = None,
+        task_sym: Optional[str] = None,
+        predict_time: Optional[bool] = None,
+        text_prev: Optional[Union[torch.Tensor, np.ndarray, str, List]] = None,
+    ) -> List[int]:
+        """Build the prompt that every hypothesis of one utterance starts with."""
+        lang_sym = lang_sym if lang_sym is not None else self.lang_sym
+        task_sym = task_sym if task_sym is not None else self.task_sym
+        predict_time = predict_time if predict_time is not None else self.predict_time
+
+        lang_id = self.converter.token2id[lang_sym]
+        task_id = self.converter.token2id[task_sym]
+        notime_id = self.converter.token2id[self.preprocessor_conf["notime_symbol"]]
+
+        hyp_primer = [self.s2t_model.sos, lang_id, task_id]
+        if not predict_time:
+            hyp_primer.append(notime_id)
+
+        if text_prev is not None:
+            if isinstance(text_prev, str):
+                text_prev = self.converter.tokens2ids(
+                    self.tokenizer.text2tokens(text_prev)
+                )
+            else:
+                text_prev = text_prev.tolist()
+
+            # Check if text_prev is valid
+            if self.s2t_model.na in text_prev:
+                text_prev = None
+
+        if text_prev is not None:
+            hyp_primer = [self.s2t_model.sop] + text_prev + hyp_primer
+
+        return hyp_primer
+
+    def _pad_or_trim(self, speech: torch.Tensor) -> torch.Tensor:
+        """Pad or trim the last axis to the fixed length used in training."""
+        speech_length = int(
+            self.preprocessor_conf["fs"] * self.preprocessor_conf["speech_length"]
+        )
+        if speech.size(-1) >= speech_length:
+            return speech[..., :speech_length]
+        return F.pad(speech, (0, speech_length - speech.size(-1)))
+
+    @torch.no_grad()
+    @typechecked
+    def batch_decode(
+        self,
+        speech: torch.Tensor,
+        speech_lengths: Optional[torch.Tensor] = None,
+        text_prev: Optional[torch.Tensor] = None,
+        text_prev_lengths: Optional[torch.Tensor] = None,
+        lang_sym: Optional[str] = None,
+        task_sym: Optional[str] = None,
+        predict_time: Optional[bool] = None,
+    ) -> List[ListOfHypothesis]:
+        """Decode a minibatch of utterances in one beam search.
+
+        Every utterance is padded or trimmed to the fixed length used in
+        training, exactly as in :meth:`__call__`, so the encoder outputs of a
+        batch all have the same length and no padding mask is needed.
+
+        Args:
+            speech: Padded speech of shape `(n_utt, nsamples)`.
+            speech_lengths: Unused; accepted so that a collated batch can be
+                passed straight through.
+            text_prev: Optional previous text of each utterance, used as a
+                decoding condition. All the resulting prompts must have the
+                same length, otherwise the hypotheses of the batch cannot be
+                advanced in lock step.
+            text_prev_lengths: Valid length of each row of `text_prev`.
+
+        Returns:
+            One n-best list of `(text, token, token_int, text_nospecial, hyp)`
+            per utterance, in the order the utterances were given.
+
+        """
+        if speech.dim() == 3 and speech.size(2) == 1:
+            speech = speech.squeeze(2)  # (n_utt, nsamples, 1) -> (n_utt, nsamples)
+        if speech.dim() != 2:
+            raise ValueError(f"speech of size {tuple(speech.shape)} is not supported")
+        n_utt = speech.size(0)
+
+        if text_prev is None:
+            primers = self._build_hyp_primer(lang_sym, task_sym, predict_time)
+        else:
+            if text_prev_lengths is None:
+                text_prev_lengths = torch.full(
+                    (n_utt,), text_prev.size(1), dtype=torch.long
+                )
+            primers = [
+                self._build_hyp_primer(
+                    lang_sym,
+                    task_sym,
+                    predict_time,
+                    text_prev[b, : int(text_prev_lengths[b])],
+                )
+                for b in range(n_utt)
+            ]
+        self.beam_search.set_hyp_primer(primers)
+
+        speech = self._pad_or_trim(speech).to(getattr(torch, self.dtype))
+        lengths = speech.new_full([n_utt], dtype=torch.long, fill_value=speech.size(1))
+        batch = to_device(
+            {"speech": speech, "speech_lengths": lengths}, device=self.device
+        )
+        logging.info("speech length: " + str(speech.size(1)))
+
+        enc, enc_olens = self.s2t_model.encode(**batch)
+        if isinstance(enc, tuple):
+            # intermediate CTC outputs are not reported in batch decoding
+            enc = enc[0]
+
+        if hasattr(self.beam_search.nn_dict, "decoder"):
+            if isinstance(self.beam_search.nn_dict.decoder, S4Decoder):
+                # Setup: required for S4 autoregressive generation
+                for module in self.beam_search.nn_dict.decoder.modules():
+                    if hasattr(module, "setup_step"):
+                        module.setup_step()
+
+        nbest_hyps = self.beam_search(
+            x=enc,
+            x_lengths=enc_olens,
+            maxlenratio=self.maxlenratio,
+            minlenratio=self.minlenratio,
+        )
+        return [self._hyps_to_results(hyps) for hyps in nbest_hyps]
 
     @torch.no_grad()
     @typechecked
@@ -408,35 +553,9 @@ class Speech2Text:
 
         """
 
-        lang_sym = lang_sym if lang_sym is not None else self.lang_sym
-        task_sym = task_sym if task_sym is not None else self.task_sym
-        predict_time = predict_time if predict_time is not None else self.predict_time
-
-        lang_id = self.converter.token2id[lang_sym]
-        task_id = self.converter.token2id[task_sym]
-        notime_id = self.converter.token2id[self.preprocessor_conf["notime_symbol"]]
-
-        # Prepare hyp_primer
-        hyp_primer = [self.s2t_model.sos, lang_id, task_id]
-        if not predict_time:
-            hyp_primer.append(notime_id)
-
-        if text_prev is not None:
-            if isinstance(text_prev, str):
-                text_prev = self.converter.tokens2ids(
-                    self.tokenizer.text2tokens(text_prev)
-                )
-            else:
-                text_prev = text_prev.tolist()
-
-            # Check if text_prev is valid
-            if self.s2t_model.na in text_prev:
-                text_prev = None
-
-        if text_prev is not None:
-            hyp_primer = [self.s2t_model.sop] + text_prev + hyp_primer
-
-        self.beam_search.set_hyp_primer(hyp_primer)
+        self.beam_search.set_hyp_primer(
+            self._build_hyp_primer(lang_sym, task_sym, predict_time, text_prev)
+        )
 
         # Preapre speech
         if isinstance(speech, np.ndarray):
@@ -449,14 +568,8 @@ class Speech2Text:
             ), f"speech of size {speech.size()} is not supported"
             speech = speech.squeeze(1)  # (nsamples, 1) --> (nsamples,)
 
-        speech_length = int(
-            self.preprocessor_conf["fs"] * self.preprocessor_conf["speech_length"]
-        )
         # Pad or trim speech to the fixed length
-        if speech.size(-1) >= speech_length:
-            speech = speech[:speech_length]
-        else:
-            speech = F.pad(speech, (0, speech_length - speech.size(-1)))
+        speech = self._pad_or_trim(speech)
 
         # Batchify input
         # speech: (nsamples,) -> (1, nsamples)
@@ -499,6 +612,10 @@ class Speech2Text:
         nbest_hyps = self.beam_search(
             x=enc, maxlenratio=self.maxlenratio, minlenratio=self.minlenratio
         )
+        return self._hyps_to_results(nbest_hyps)
+
+    def _hyps_to_results(self, nbest_hyps: List[Hypothesis]):
+        """Convert an n-best list of hypotheses into text/token tuples."""
         nbest_hyps = nbest_hyps[: self.nbest]
 
         results = []
@@ -756,8 +873,6 @@ def inference(
     max_seq_len: int,
     max_mask_parallel: int,
 ):
-    if batch_size > 1:
-        raise NotImplementedError("batch decoding is not implemented")
     if word_lm_train_config is not None:
         raise NotImplementedError("Word LM is not implemented")
     if ngpu > 1:
@@ -811,6 +926,7 @@ def inference(
         threshold_probability=threshold_probability,
         max_seq_len=max_seq_len,
         max_mask_parallel=max_mask_parallel,
+        batch_size=batch_size,
     )
     speech2text = Speech2Text.from_pretrained(
         model_tag=model_tag,
@@ -838,46 +954,58 @@ def inference(
             assert all(isinstance(s, str) for s in keys), keys
             _bs = len(next(iter(batch.values())))
             assert len(keys) == _bs, f"{len(keys)} != {_bs}"
-            batch = {k: v[0] for k, v in batch.items() if not k.endswith("_lengths")}
 
-            # N-best list of (text, token, token_int, text_nospecial, hyp_object)
+            # One n-best list of
+            # (text, token, token_int, text_nospecial, hyp_object) per key
             try:
-                results = speech2text(**batch)
+                if batch_size > 1:
+                    batch_results = speech2text.batch_decode(**batch)
+                else:
+                    batch_results = [
+                        speech2text(
+                            **{
+                                k: v[0]
+                                for k, v in batch.items()
+                                if not k.endswith("_lengths")
+                            }
+                        )
+                    ]
             except TooShortUttError as e:
                 logging.warning(f"Utterance {keys} {e}")
                 hyp = Hypothesis(score=0.0, scores={}, states={}, yseq=[])
-                results = [[" ", ["<space>"], [2], " ", hyp]] * nbest
+                batch_results = [
+                    [[" ", ["<space>"], [2], " ", hyp]] * nbest for _ in range(_bs)
+                ]
 
-            # Only supporting batch_size==1
-            key = keys[0]
-            encoder_interctc_res = None
-            if isinstance(results, tuple):
-                results, encoder_interctc_res = results
+            for key, results in zip(keys, batch_results):
+                encoder_interctc_res = None
+                if isinstance(results, tuple):
+                    results, encoder_interctc_res = results
 
-            for n, (text, token, token_int, text_nospecial, hyp) in zip(
-                range(1, nbest + 1), results
-            ):
-                # Create a directory: outdir/{n}best_recog
-                ibest_writer = writer[f"{n}best_recog"]
+                for n, (text, token, token_int, text_nospecial, hyp) in zip(
+                    range(1, nbest + 1), results
+                ):
+                    # Create a directory: outdir/{n}best_recog
+                    ibest_writer = writer[f"{n}best_recog"]
 
-                # Write the result to each file
-                ibest_writer["token"][key] = " ".join(token)
-                ibest_writer["token_int"][key] = " ".join(map(str, token_int))
-                ibest_writer["score"][key] = str(hyp.score)
+                    # Write the result to each file
+                    ibest_writer["token"][key] = " ".join(token)
+                    ibest_writer["token_int"][key] = " ".join(map(str, token_int))
+                    ibest_writer["score"][key] = str(hyp.score)
 
-                if text is not None:
-                    ibest_writer["text"][key] = text
-                if text_nospecial is not None:
-                    ibest_writer["text_nospecial"][key] = text_nospecial
+                    if text is not None:
+                        ibest_writer["text"][key] = text
+                    if text_nospecial is not None:
+                        ibest_writer["text_nospecial"][key] = text_nospecial
 
-            # Write intermediate predictions to
-            # encoder_interctc_layer<layer_idx>.txt
-            ibest_writer = writer["1best_recog"]
-            if encoder_interctc_res is not None:
-                for idx, text in encoder_interctc_res.items():
-                    ibest_writer[f"encoder_interctc_layer{idx}.txt"][key] = " ".join(
-                        text
-                    )
+                # Write intermediate predictions to
+                # encoder_interctc_layer<layer_idx>.txt
+                ibest_writer = writer["1best_recog"]
+                if encoder_interctc_res is not None:
+                    for idx, text in encoder_interctc_res.items():
+                        ibest_writer[f"encoder_interctc_layer{idx}.txt"][key] = (
+                            " ".join(text)
+                        )
 
 
 def get_parser():
@@ -1015,7 +1143,9 @@ def get_parser():
         "--batch_size",
         type=int,
         default=1,
-        help="The batch size for inference",
+        help="The number of utterances decoded in one beam search. "
+        "Values > 1 need a model whose scorers are all batch scorers "
+        "(attention decoder / CTC / neural LM).",
     )
     group.add_argument("--nbest", type=int, default=1, help="Output N-best hypotheses")
     group.add_argument("--beam_size", type=int, default=20, help="Beam size")
