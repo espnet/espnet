@@ -1,3 +1,4 @@
+import logging
 import string
 from argparse import ArgumentParser
 from pathlib import Path
@@ -227,6 +228,45 @@ def test_Speech2Text_batch_decode_rejects_non_batch_scorer(
             beam_size=1,
             batch_size=2,
         )
+
+
+@pytest.mark.execution_timeout(60)
+def test_Speech2Text_batch_decode_rtf_log_contract(asr_config_file_transformer, caplog):
+    """Keep the log lines `calculate_rtf.py` parses one-per-utterance.
+
+    `pyscripts/utils/calculate_rtf.py` reads a decoding start time from every
+    `INFO: speech length: <int>` line and an end time from every
+    `INFO: ... best hypo` line, and asserts the two counts match. Logging one
+    line for the whole batch, or pluralizing the wording, breaks the recipe at
+    stage 12 without breaking any decoding result.
+    """
+    batched = Speech2Text(
+        asr_train_config=asr_config_file_transformer, beam_size=2, batch_size=3
+    )
+    lengths = [16000, 12000, 20000]
+    padded = torch.zeros(len(lengths), max(lengths))
+    for i, n in enumerate(lengths):
+        padded[i, :n] = torch.randn(n)
+
+    with caplog.at_level(logging.INFO):
+        batched.batch_decode(padded, torch.tensor(lengths))
+
+    marker = "speech length"
+    starts = [
+        r.getMessage()
+        for r in caplog.records
+        if r.levelname == "INFO" and marker in r.getMessage()
+    ]
+    ends = [
+        r.getMessage()
+        for r in caplog.records
+        if r.levelname == "INFO" and "best hypo" in r.getMessage()
+    ]
+    assert len(starts) == len(lengths), starts
+    assert len(ends) == len(lengths), ends
+    # each start line must parse the way calculate_rtf.py parses it
+    for line in starts:
+        int(line.split(marker + ": ")[1])
 
 
 @pytest.fixture()

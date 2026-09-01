@@ -735,7 +735,12 @@ class Speech2Text:
             },
             device=self.device,
         )
-        logger.info(f"speech lengths: {batch['speech_lengths'].tolist()}")
+        # NOTE: one line per utterance, in the exact wording that
+        # pyscripts/utils/calculate_rtf.py parses as a decoding start time. It
+        # asserts one such line per "best hypo" line, so this must not become a
+        # single line for the whole batch.
+        for length in batch["speech_lengths"].tolist():
+            logger.info("speech length: " + str(length))
 
         enc, enc_olens = self.asr_model.encode(**batch)
         if isinstance(enc, tuple):
