@@ -35,6 +35,10 @@ download_with_retry() {
             echo "Downloaded ${output} is not a valid archive; the server" \
                  "probably returned an error page"
         fi
+        # Leave nothing behind on a failed attempt. wget -O truncates the target
+        # before it writes, so a failure otherwise leaves a partial or empty file
+        # that a later `[ -e ... ]` guard would happily accept.
+        rm -f "${output}"
         echo "Attempt ${attempt}/${max_attempts} failed for ${url}"
         if [ "${attempt}" -lt "${max_attempts}" ]; then
             echo "Waiting ${wait}s before retry..."
