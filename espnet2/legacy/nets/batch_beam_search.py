@@ -884,30 +884,88 @@ class BatchBeamSearch(BeamSearch):
             `x` is batched.
 
         """
-        batched = x.dim() == 3
-        if batched:
-            n_utt = x.size(0)
-        elif x.dim() == 2:
-            n_utt = 1
-        else:
-            raise ValueError(f"unsupported encoder output shape {tuple(x.shape)}")
+        n_utt, batched = self._n_utt(x)
+        x_lengths, pre_x_lengths = self._fill_lengths(
+            x, x_lengths, pre_x, pre_x_lengths, batched
+        )
+        inp_lengths = (
+            (x_lengths if pre_x is None else pre_x_lengths).tolist()
+            if batched
+            else [(x if pre_x is None else pre_x).shape[0]]
+        )
+        maxlens, minlens = self._length_bounds(inp_lengths, maxlenratio, minlenratio)
+        xs, xs_mask, pre_xs, pre_xs_mask = self._replicate_over_beam(
+            x, x_lengths, pre_x, pre_x_lengths, batched
+        )
 
-        device = x.device
-        if batched and x_lengths is None:
+        ended_hyps = self._search_loop(
+            x if pre_x is None else pre_x,
+            x_lengths if pre_x is None else pre_x_lengths,
+            xs,
+            xs_mask,
+            pre_xs,
+            pre_xs_mask,
+            maxlens,
+            minlens,
+            maxlenratio,
+            n_utt,
+            batched,
+        )
+
+        results = [self._nbest(h) for h in ended_hyps]
+        retried = self._retry_empty(
+            results,
+            x,
+            x_lengths,
+            pre_x,
+            pre_x_lengths,
+            maxlenratio,
+            minlenratio,
+            batched,
+        )
+        if retried is not None:
+            return retried
+
+        for b, nbest in enumerate(results):
+            self._log_best(b if batched else None, nbest, maxlens[b])
+        return results if batched else results[0]
+
+    @staticmethod
+    def _n_utt(x: torch.Tensor) -> Tuple[int, bool]:
+        """Return how many utterances `x` holds, and whether it is batched."""
+        if x.dim() == 3:
+            return x.size(0), True
+        if x.dim() == 2:
+            return 1, False
+        raise ValueError(f"unsupported encoder output shape {tuple(x.shape)}")
+
+    @staticmethod
+    def _fill_lengths(
+        x: torch.Tensor,
+        x_lengths: Optional[torch.Tensor],
+        pre_x: Optional[torch.Tensor],
+        pre_x_lengths: Optional[torch.Tensor],
+        batched: bool,
+    ) -> Tuple[Optional[torch.Tensor], Optional[torch.Tensor]]:
+        """Default omitted lengths to the full width of a batched input."""
+        if not batched:
+            return x_lengths, pre_x_lengths
+        n_utt = x.size(0)
+        if x_lengths is None:
             x_lengths = torch.full(
-                (n_utt,), x.size(1), dtype=torch.int64, device=device
+                (n_utt,), x.size(1), dtype=torch.int64, device=x.device
             )
-        if batched and pre_x is not None and pre_x_lengths is None:
+        if pre_x is not None and pre_x_lengths is None:
             pre_x_lengths = torch.full(
-                (n_utt,), pre_x.size(1), dtype=torch.int64, device=device
+                (n_utt,), pre_x.size(1), dtype=torch.int64, device=x.device
             )
+        return x_lengths, pre_x_lengths
 
-        # set length bounds
-        inp = x if pre_x is None else pre_x
-        if batched:
-            inp_lengths = (x_lengths if pre_x is None else pre_x_lengths).tolist()
-        else:
-            inp_lengths = [inp.shape[0]]
+    @staticmethod
+    def _length_bounds(
+        inp_lengths: List[int], maxlenratio: float, minlenratio: float
+    ) -> Tuple[List[int], List[int]]:
+        """Turn the length ratios into per-utterance output length bounds."""
         maxlens, minlens = [], []
         for n in inp_lengths:
             if maxlenratio == 0:
@@ -923,41 +981,71 @@ class BatchBeamSearch(BeamSearch):
         logger.info(f"decoder input length: {inp_lengths}")
         logger.info(f"max output length: {maxlens}")
         logger.info(f"min output length: {minlens}")
+        return maxlens, minlens
 
-        if batched:
-            # replicate the encoder output over the beam once, outside the loop
-            xs, xs_mask = self._expand_over_beam(x, x_lengths)
-            if pre_x is not None:
-                pre_xs, pre_xs_mask = self._expand_over_beam(pre_x, pre_x_lengths)
-            else:
-                pre_xs, pre_xs_mask = None, None
-            if xs_mask is not None:
-                unmasked = [
-                    k
-                    for k in self.full_scorers
-                    if "decoder" in k and not self._xs_mask_capable(k)
-                ]
-                if unmasked:
-                    logger.warning(
-                        f"{unmasked} do not accept an xs_mask in batch_score, so "
-                        "the padded encoder frames are attended to. Results may "
-                        "differ from decoding one utterance at a time."
-                    )
-        else:
-            xs, xs_mask, pre_xs, pre_xs_mask = x, None, pre_x, None
+    def _replicate_over_beam(
+        self,
+        x: torch.Tensor,
+        x_lengths: Optional[torch.Tensor],
+        pre_x: Optional[torch.Tensor],
+        pre_x_lengths: Optional[torch.Tensor],
+        batched: bool,
+    ) -> Tuple[
+        torch.Tensor,
+        Optional[torch.Tensor],
+        Optional[torch.Tensor],
+        Optional[torch.Tensor],
+    ]:
+        """Build the encoder tensors the scorers see, once for the whole loop.
 
-        # main loop of prefix search
-        # NOTE: `init_hyp` and `post_process` are hooks that subclasses
-        # override. Call them the way they were called before utterance
-        # batching whenever a single utterance is decoded, so that an override
-        # written against the old signature keeps working.
-        if batched:
-            running_hyps = self.init_hyp(
-                x if pre_x is None else pre_x,
-                x_lengths if pre_x is None else pre_x_lengths,
-            )
+        A single utterance is left alone: `search` expands it over the beam
+        with a stride-0 view, which costs nothing. A batch has to be
+        materialized, so it is done here rather than every step.
+        """
+        if not batched:
+            return x, None, pre_x, None
+
+        xs, xs_mask = self._expand_over_beam(x, x_lengths)
+        if pre_x is not None:
+            pre_xs, pre_xs_mask = self._expand_over_beam(pre_x, pre_x_lengths)
         else:
-            running_hyps = self.init_hyp(x if pre_x is None else pre_x)
+            pre_xs, pre_xs_mask = None, None
+        if xs_mask is not None:
+            unmasked = [
+                k
+                for k in self.full_scorers
+                if "decoder" in k and not self._xs_mask_capable(k)
+            ]
+            if unmasked:
+                logger.warning(
+                    f"{unmasked} do not accept an xs_mask in batch_score, so "
+                    "the padded encoder frames are attended to. Results may "
+                    "differ from decoding one utterance at a time."
+                )
+        return xs, xs_mask, pre_xs, pre_xs_mask
+
+    def _search_loop(
+        self,
+        x: torch.Tensor,
+        x_lengths: Optional[torch.Tensor],
+        xs: torch.Tensor,
+        xs_mask: Optional[torch.Tensor],
+        pre_xs: Optional[torch.Tensor],
+        pre_xs_mask: Optional[torch.Tensor],
+        maxlens: List[int],
+        minlens: List[int],
+        maxlenratio: float,
+        n_utt: int,
+        batched: bool,
+    ) -> List[List[Hypothesis]]:
+        """Run the prefix search until every utterance is done.
+
+        NOTE: `init_hyp` and `post_process` are hooks that subclasses override.
+        They are called the way they were called before utterance batching
+        whenever a single utterance is decoded, so that an override written
+        against the old signature keeps working.
+        """
+        running_hyps = self.init_hyp(x, x_lengths) if batched else self.init_hyp(x)
         ended_hyps: List[List[Hypothesis]] = [[] for _ in range(n_utt)]
         for i in range(max(maxlens)):
             logger.debug("position " + str(i))
@@ -979,47 +1067,59 @@ class BatchBeamSearch(BeamSearch):
             if bool(running_hyps.done_mask().all()):
                 logger.info(f"decoding finished at position {i}")
                 break
+        return ended_hyps
 
-        results = [self._nbest(h) for h in ended_hyps]
+    def _retry_empty(
+        self,
+        results: List[List[Hypothesis]],
+        x: torch.Tensor,
+        x_lengths: Optional[torch.Tensor],
+        pre_x: Optional[torch.Tensor],
+        pre_x_lengths: Optional[torch.Tensor],
+        maxlenratio: float,
+        minlenratio: float,
+        batched: bool,
+    ) -> Optional[List[Hypothesis]]:
+        """Decode again, with a smaller minlenratio, whatever produced nothing.
 
-        # retry the utterances that produced nothing, as `BeamSearch` does
-        retry = [b for b in range(n_utt) if len(results[b]) == 0]
-        if retry:
-            logger.warning(
-                f"there is no N-best results for utterances {retry}, "
-                "perform recognition again with smaller minlenratio."
+        `results` is filled in place for a batch. A single utterance is decoded
+        by recursion, whose result is returned for `forward` to pass on, which
+        is what `BeamSearch` does.
+        """
+        retry = [b for b in range(len(results)) if len(results[b]) == 0]
+        if not retry:
+            return None
+        logger.warning(
+            f"there is no N-best results for utterances {retry}, "
+            "perform recognition again with smaller minlenratio."
+        )
+        if minlenratio < 0.1:
+            return None
+
+        sub_minlenratio = max(0.0, minlenratio - 0.1)
+        if not batched:
+            return self.forward(x, maxlenratio, sub_minlenratio, pre_x)
+
+        idx = torch.as_tensor(retry, dtype=torch.int64, device=x.device)
+        # the recursion decodes a subset of the batch, so a per-utterance
+        # primer has to be narrowed down to match
+        primer = self.hyp_primer
+        try:
+            if self._is_per_utt_primer(primer):
+                self.hyp_primer = [primer[b] for b in retry]
+            sub = self.forward(
+                x.index_select(0, idx),
+                maxlenratio,
+                sub_minlenratio,
+                pre_x.index_select(0, idx) if pre_x is not None else None,
+                x_lengths.index_select(0, idx),
+                pre_x_lengths.index_select(0, idx) if pre_x is not None else None,
             )
-            if minlenratio >= 0.1:
-                sub_minlenratio = max(0.0, minlenratio - 0.1)
-                if not batched:
-                    return self.forward(x, maxlenratio, sub_minlenratio, pre_x)
-                idx = torch.as_tensor(retry, dtype=torch.int64, device=device)
-                # the recursion decodes a subset of the batch, so a
-                # per-utterance primer has to be narrowed down to match
-                primer = self.hyp_primer
-                try:
-                    if self._is_per_utt_primer(primer):
-                        self.hyp_primer = [primer[b] for b in retry]
-                    sub = self.forward(
-                        x.index_select(0, idx),
-                        maxlenratio,
-                        sub_minlenratio,
-                        pre_x.index_select(0, idx) if pre_x is not None else None,
-                        x_lengths.index_select(0, idx),
-                        (
-                            pre_x_lengths.index_select(0, idx)
-                            if pre_x is not None
-                            else None
-                        ),
-                    )
-                finally:
-                    self.hyp_primer = primer
-                for n, b in enumerate(retry):
-                    results[b] = sub[n]
-
-        for b, nbest in enumerate(results):
-            self._log_best(b if batched else None, nbest, maxlens[b])
-        return results if batched else results[0]
+        finally:
+            self.hyp_primer = primer
+        for n, b in enumerate(retry):
+            results[b] = sub[n]
+        return None
 
     def _nbest(self, ended: List[Hypothesis]) -> List[Hypothesis]:
         """Sort the finished hypotheses of one utterance."""
