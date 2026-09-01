@@ -909,3 +909,88 @@ def test_generator_iter_factory_loader_yields_a_full_pass_each_iteration(monkeyp
 
     assert list(iterator) == [[0, 1], [2, 3]]
     assert list(iterator) == [[0, 1], [2, 3]]
+
+
+class EpochRecordingIterFactory:
+    """Records the epoch value ``build_iter`` is called with."""
+
+    epochs_seen = []
+
+    def __init__(self, dataset, batches, **kwargs):
+        self.batches = list(batches)
+
+    def build_iter(self, epoch, shuffle=False):
+        type(self).epochs_seen.append(epoch)
+        return list(self.batches)
+
+
+def test_build_iter_receives_espnet2_one_based_epoch(monkeypatch):
+    """espnet2 iter factories assume 1-based epochs (espnet2/train/trainer.py
+    loops from 1), while Lightning's current_epoch is 0-based. The builder must
+    translate, or epoch 0 seeds espnet2 with RandomState(-1)."""
+    import espnet3.components.data.dataloader as dl
+
+    monkeypatch.setattr(dl, "build_batch_sampler", lambda **kw: [[0], [1]])
+    EpochRecordingIterFactory.epochs_seen = []
+
+    organizer = build_organizer(DUMMY_DATASET_TARGET)
+    config = OmegaConf.create(
+        {
+            "dataloader": {
+                "train": {
+                    "iter_factory": {
+                        "_target_": (
+                            "test.espnet3.components.data."
+                            "test_dataloader_builder.EpochRecordingIterFactory"
+                        ),
+                        "batches": {"dummy": 1},
+                    }
+                }
+            }
+        }
+    )
+    builder = build_builder(
+        organizer.train, config, collate_fn=None, num_device=1, epoch=0
+    )
+    iterator = builder.build("train")
+    list(iterator)
+
+    # The builder may build more than one pass (length probe + iteration);
+    # every one of them must carry the 1-based epoch.
+    assert EpochRecordingIterFactory.epochs_seen
+    assert set(EpochRecordingIterFactory.epochs_seen) == {1}
+
+
+def test_epoch0_with_shuffle_and_num_iters_per_epoch_does_not_crash(monkeypatch):
+    """The real SequenceIterFactory with shuffle=True and num_iters_per_epoch
+    set used to raise ``ValueError: Seed must be between 0 and 2**32 - 1`` at
+    Lightning epoch 0, via RandomState(real_epoch - 1 + seed) = RandomState(-1).
+    The shipped codec recipe config has exactly this shape."""
+    import espnet3.components.data.dataloader as dl
+
+    monkeypatch.setattr(dl, "build_batch_sampler", lambda **kw: [[0], [1], [2]])
+
+    organizer = build_organizer(DUMMY_DATASET_TARGET)
+    config = OmegaConf.create(
+        {
+            "dataloader": {
+                "train": {
+                    "iter_factory": {
+                        "_target_": (
+                            "espnet2.iterators.sequence_iter_factory."
+                            "SequenceIterFactory"
+                        ),
+                        "num_iters_per_epoch": 2,
+                        "shuffle": True,
+                        "batches": {"dummy": 1},
+                    }
+                }
+            }
+        }
+    )
+    builder = build_builder(
+        organizer.train, config, collate_fn=None, num_device=1, epoch=0
+    )
+    iterator = builder.build("train")
+
+    assert len(list(iterator)) == 2
