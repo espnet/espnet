@@ -32,11 +32,12 @@ down - it did, with 72 tests failing on 429. For a long time only the install
 steps had the token, which is invisible in review because the tests pass
 whenever the fleet happens to be under the limit.
 
-Fifth, any third-party action handed a secret must be pinned to a commit SHA.
-Not every action - that is a bigger argument - but the ones that receive a
-secret, because a mutable ref there means whoever can move the tag can read the
-secret. This is not hypothetical: anthropics/claude-code-action@v1 moved between
-two resolutions a few hours apart while this check was being written.
+Fifth, every third-party action must be pinned to a commit SHA - in the
+composite actions under .github/actions as well as in the workflows. A tag or a
+branch can be moved by whoever controls the action's repository, and the step
+then runs code nobody here reviewed. This is not hypothetical:
+anthropics/claude-code-action@v1 moved between two resolutions a few hours apart
+while this check was being written.
 
 Sixth, every codecov upload must pass CODECOV_TOKEN. Without it the upload is
 tokenless, which codecov rate limits by IP, and this workflow sends one per job.
@@ -214,6 +215,27 @@ def _workflows() -> list:
     return sorted(Path(".github/workflows").glob("*.yml"))
 
 
+def _action_files() -> list:
+    """Workflows plus the composite actions, which also carry `uses:` steps.
+
+    prepare-environment/action.yml has one, and globbing only .github/workflows
+    would leave it unchecked.
+    """
+    return _workflows() + sorted(Path(".github/actions").glob("*/action.yml"))
+
+
+def _steps(data) -> list:
+    """(container name, step) for a workflow's jobs or a composite's runs."""
+    out = []
+    for name, job in (data or {}).get("jobs", {}).items():
+        if isinstance(job, dict):
+            out += [(name, s) for s in (job.get("steps") or [])]
+    runs = (data or {}).get("runs")
+    if isinstance(runs, dict):
+        out += [("runs", s) for s in (runs.get("steps") or [])]
+    return out
+
+
 def check_no_duplicate_keys() -> list:
     problems = []
     for path in _workflows():
@@ -275,37 +297,31 @@ def secret_ref(value, *names) -> bool:
     return bool(match) and match.group(1) in names
 
 
-def check_secret_actions_pinned() -> list:
-    """Any third-party action receiving a secret must be pinned to a SHA.
+def check_actions_pinned() -> list:
+    """Every third-party action must be pinned to a commit SHA.
 
-    A tag can be moved by whoever controls the action's repository, so a secret
-    passed to a mutable ref is readable by whatever that ref points at next.
+    A tag or a branch can be moved by whoever controls the action's repository.
+    The step then runs code nobody here reviewed, with whatever the job holds -
+    a secret where one is passed, and the workspace either way.
     """
     problems = []
-    for path in _workflows():
+    for path in _action_files():
         try:
             data = yaml.safe_load(path.read_text())
         except yaml.YAMLError:
             continue  # check_no_duplicate_keys reports the parse failure
-        for name, job in (data or {}).get("jobs", {}).items():
-            if not isinstance(job, dict):
+        for name, step in _steps(data):
+            if not isinstance(step, dict):
                 continue
-            for step in job.get("steps") or []:
-                if not isinstance(step, dict):
-                    continue
-                uses = str(step.get("uses") or "")
-                # local composite actions carry no ref and cannot be moved
-                if "/" not in uses or "@" not in uses or uses.startswith("./"):
-                    continue
-                passed = json.dumps({"with": step.get("with"), "env": step.get("env")})
-                if "secrets." not in passed:
-                    continue
-                if SHA.fullmatch(uses.rsplit("@", 1)[1]):
-                    continue
-                problems.append(
-                    f"{path.name}: {name}: {uses} receives a secret but is not "
-                    "pinned to a commit SHA"
-                )
+            uses = str(step.get("uses") or "")
+            # local composite actions carry no ref and cannot be moved
+            if "/" not in uses or "@" not in uses or uses.startswith("./"):
+                continue
+            if SHA.fullmatch(uses.rsplit("@", 1)[1]):
+                continue
+            problems.append(
+                f"{path.name}: {name}: {uses} is not pinned to a commit SHA"
+            )
     return problems
 
 
@@ -346,7 +362,7 @@ def main() -> int:
         + check_configuration_tasks()
         + check_no_duplicate_keys()
         + check_hf_token()
-        + check_secret_actions_pinned()
+        + check_actions_pinned()
         + check_codecov_token()
     )
     for problem in bad:
@@ -357,7 +373,7 @@ def main() -> int:
             f"hash inputs agree ({len(build)} entries); every job matrix is a "
             "built variant; integration and configuration tasks match their "
             "scripts; every shard set is complete; every test step has "
-            "HF_TOKEN; every action given a secret is pinned; every codecov "
+            "HF_TOKEN; every action is pinned to a SHA; every codecov "
             "upload has a token; no duplicate keys"
         )
         return 0

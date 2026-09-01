@@ -67,7 +67,7 @@ jobs:
     outputs:
       matrix: ${{ steps.v.outputs.matrix }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - run: python3 ci/check_ci_image_config.py
       - id: v
         run: echo "matrix=$(python3 ci/image_variants.py matrix)" >> "$GITHUB_OUTPUT"
@@ -83,7 +83,7 @@ jobs:
       # rebuilding the same environment in every job.
       matrix: ${{ fromJSON(needs.variants.outputs.matrix) }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Free disk space
         run: |
@@ -157,7 +157,7 @@ jobs:
         # to an older tag if it does not change the inputs.
         if: github.event_name != 'pull_request'
         continue-on-error: true
-        uses: actions/delete-package-versions@v5
+        uses: actions/delete-package-versions@e5bc658cc4c965c472efe991f8beea3981499c55 # v5
         with:
           owner: ${{ github.repository_owner }}
           package-name: espnet-ci
