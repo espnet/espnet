@@ -67,7 +67,7 @@ jobs:
     outputs:
       matrix: ${{ steps.v.outputs.matrix }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - run: python3 ci/check_ci_image_config.py
       - id: v
         run: echo "matrix=$(python3 ci/image_variants.py matrix)" >> "$GITHUB_OUTPUT"
@@ -83,7 +83,7 @@ jobs:
       # rebuilding the same environment in every job.
       matrix: ${{ fromJSON(needs.variants.outputs.matrix) }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Free disk space
         run: |
