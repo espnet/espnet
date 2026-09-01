@@ -24,7 +24,7 @@ BATCH = 2
 
 def _adapter_param_names():
     """Substrings that identify trainable adapter parameters."""
-    return ("lora_A", "lora_B", "weight_m_wdecomp", "s", "gate", "K_vec", "m_entries")
+    return ("lora_A", "lora_B", "lora_m", "s", "gate", "K_vec", "m_entries")
 
 
 def _make_layer(cls, **extra):
@@ -123,7 +123,7 @@ def test_dora_magnitude_initialised_to_pretrained_norm():
     # apply_m fires on first forward.
     layer(torch.randn(BATCH, IN_FEATURES))
     expected = torch.linalg.norm(layer.weight, dim=1).unsqueeze(1)
-    assert torch.allclose(layer.weight_m_wdecomp.data, expected, atol=1e-6), (
+    assert torch.allclose(layer.lora_m.data, expected, atol=1e-6), (
         "DoRA magnitude must be initialised to the row-wise L2 norm of the "
         "pretrained weight."
     )

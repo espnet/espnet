@@ -1,3 +1,7 @@
+# The helpers in this file are adapted from microsoft/LoRA
+# (https://github.com/microsoft/LoRA):
+#   Copyright (c) Microsoft Corporation. All rights reserved.
+#   Licensed under the MIT License (MIT).
 """Helpers for LoRA-style PEFT layers in ESPnet."""
 
 from typing import Dict

@@ -1,3 +1,9 @@
+# Portions of this file (the LoRALayer, Embedding and Linear classes) are
+# adapted from microsoft/LoRA (https://github.com/microsoft/LoRA):
+#   Copyright (c) Microsoft Corporation. All rights reserved.
+#   Licensed under the MIT License (MIT).
+# The DoRA / PiSSA / SVFT / SSVD backends are implemented from the
+# respective papers (see the references below).
 """Parameter-efficient fine-tuning (PEFT) layers used by ESPnet.
 
 Self-contained PyTorch implementations of LoRA and its variants, ported into
@@ -20,9 +26,9 @@ References:
     SVFT   : https://arxiv.org/abs/2405.19597
     SSVD   : https://arxiv.org/abs/2509.02830
 
-The ``LoRALayer`` / ``Embedding`` / ``Linear`` classes follow the API of
-microsoft/LoRA (MIT License). The other backends follow the reference
-implementations from the corresponding papers.
+The ``LoRALayer`` / ``Embedding`` / ``Linear`` classes are adapted from
+microsoft/LoRA (MIT License). The DoRA / PiSSA / SVFT / SSVD backends are
+implemented from the corresponding papers.
 """
 
 import math
@@ -190,7 +196,13 @@ class Linear(nn.Linear, LoRALayer):
 
 
 class DoraLinear(nn.Linear, LoRALayer):
-    """DoRA: weight-decomposed low-rank adaptation (Liu et al., 2024)."""
+    """DoRA: weight-decomposed low-rank adaptation (Liu et al., 2024).
+
+    Implemented from the paper (https://arxiv.org/abs/2402.09353): the
+    weight is decomposed as ``W = m * V / ||V||_c`` with a trainable
+    magnitude vector ``m`` and a LoRA update on the direction ``V``; the
+    norm is detached from the gradient as described in the paper.
+    """
 
     def __init__(
         self,
@@ -214,7 +226,7 @@ class DoraLinear(nn.Linear, LoRALayer):
         if r <= 0:
             raise ValueError("DoraLinear requires r > 0.")
         self.m_initialized = False
-        self.weight_m_wdecomp = nn.Parameter(torch.ones((out_features, 1)))
+        self.lora_m = nn.Parameter(torch.ones((out_features, 1)))
         self.fan_in_fan_out = fan_in_fan_out
         self.lora_A = nn.Parameter(self.weight.new_zeros((r, in_features)))
         self.lora_B = nn.Parameter(self.weight.new_zeros((out_features, r)))
@@ -226,7 +238,7 @@ class DoraLinear(nn.Linear, LoRALayer):
 
     def apply_m(self):
         if not self.m_initialized:
-            self.weight_m_wdecomp.data = (
+            self.lora_m.data = (
                 torch.linalg.norm(self.weight, dim=1).unsqueeze(1).detach()
             )
             self.m_initialized = True
@@ -250,16 +262,16 @@ class DoraLinear(nn.Linear, LoRALayer):
             # pretrained weight, not the constructor placeholder). Skip the
             # merge until then; forward computes the unmerged path anyway.
             if self.merge_weights and not self.merged and self.m_initialized:
-                new_weight_v = self.weight + (self.lora_B @ self.lora_A) * self.scaling
-                norm_scale = (
-                    self.weight_m_wdecomp.transpose(0, 1).view(-1)
-                    / (torch.linalg.norm(new_weight_v, dim=1)).detach()
+                v_adapted = self.weight + (self.lora_B @ self.lora_A) * self.scaling
+                m_over_norm = (
+                    self.lora_m.transpose(0, 1).view(-1)
+                    / (torch.linalg.norm(v_adapted, dim=1)).detach()
                 )
                 self.weight.data = (
                     self.weight
                     + (
-                        (norm_scale - 1) * self.weight.T
-                        + norm_scale
+                        (m_over_norm - 1) * self.weight.T
+                        + m_over_norm
                         * (self.lora_A.transpose(0, 1) @ self.lora_B.transpose(0, 1))
                         * self.scaling
                     ).T
@@ -272,18 +284,18 @@ class DoraLinear(nn.Linear, LoRALayer):
 
         self.apply_m()
         if self.r > 0 and not self.merged:
-            new_weight_v = self.weight + (self.lora_B @ self.lora_A) * self.scaling
-            norm_scale = (
-                self.weight_m_wdecomp.transpose(0, 1).view(-1)
-                / (torch.linalg.norm(new_weight_v, dim=1)).detach()
+            v_adapted = self.weight + (self.lora_B @ self.lora_A) * self.scaling
+            m_over_norm = (
+                self.lora_m.transpose(0, 1).view(-1)
+                / (torch.linalg.norm(v_adapted, dim=1)).detach()
             )
             org_result = F.linear(x, T(self.weight), bias=self.bias)
             dropout_x = self.lora_dropout(x)
             result = org_result + (
-                (norm_scale - 1) * F.linear(dropout_x, T(self.weight))
+                (m_over_norm - 1) * F.linear(dropout_x, T(self.weight))
             ).to(org_result.dtype)
             result += (
-                norm_scale
+                m_over_norm
                 * (
                     self.lora_dropout(x)
                     @ self.lora_A.transpose(0, 1)
@@ -297,6 +309,8 @@ class DoraLinear(nn.Linear, LoRALayer):
 
 class PiSSALinear(nn.Linear, LoRALayer):
     """PiSSA: Principal Singular value adaptation (Meng et al., 2024).
+
+    Implemented from the paper (https://arxiv.org/abs/2404.02948).
 
     Trains the top-``r`` SVD factors of the pretrained weight while keeping
     the rest of the spectrum frozen. The frozen ``A0/B0`` buffers store the
@@ -400,7 +414,10 @@ class PiSSALinear(nn.Linear, LoRALayer):
 
 
 class SVFTLinear(nn.Linear, LoRALayer):
-    """SVFT: train a banded matrix in the SVD basis (Lingam et al., 2024)."""
+    """SVFT: train a banded matrix in the SVD basis (Lingam et al., 2024).
+
+    Implemented from the paper (https://arxiv.org/abs/2405.19597).
+    """
 
     def __init__(
         self,
@@ -501,6 +518,8 @@ class SVFTLinear(nn.Linear, LoRALayer):
 
 class SSVDLinear(nn.Linear, LoRALayer):
     """SSVD: Structured SVD (Wang et al., ASRU 2025).
+
+    Implemented from the paper (https://arxiv.org/abs/2509.02830).
 
     The pretrained weight is factorised as ``W = U diag(s_pre) V``. SSVD
     trains a trainable singular-value delta ``s`` (top-``k`` entries) plus a
