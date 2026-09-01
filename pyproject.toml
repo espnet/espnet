@@ -16,7 +16,7 @@ classifiers = [
     "License :: OSI Approved :: Apache Software License",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
-requires-python = ">=3.12"
+requires-python = ">=3.12,<3.14"
 license = { "text" = "Apache Software License" }
 
 # We can use newer setuptools after removing chainer support.
