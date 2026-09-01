@@ -244,18 +244,35 @@ def check_hf_token() -> list:
                 # test_import_all.py only imports modules; it reaches no network
                 if "ci/test_" not in run or "test_import_all" in run:
                     continue
+                # Both spellings are in use: HF_CI_TOKEN everywhere except the
+                # publication job, which has its own HF_TOKEN secret.
                 step_env = step.get("env") or {}
-                if "HF_TOKEN" in step_env or "HF_TOKEN" in job_env:
+                value = step_env.get("HF_TOKEN", job_env.get("HF_TOKEN"))
+                if secret_ref(value, "HF_CI_TOKEN", "HF_TOKEN"):
                     continue
                 label = step.get("name") or run.strip().split("\n")[0]
                 problems.append(
                     f"{path.name}: {name}: step {label!r} runs a test script "
-                    "without HF_TOKEN in scope"
+                    "without HF_TOKEN set to a secret"
                 )
     return problems
 
 
 SHA = re.compile(r"[0-9a-f]{40}")
+SECRET = re.compile(r"\$\{\{\s*secrets\.([A-Za-z_][A-Za-z0-9_]*)\s*\}\}")
+
+
+def secret_ref(value, *names) -> bool:
+    """True when value is a ${{ secrets.NAME }} expression for one of names.
+
+    Testing that the key is merely present is not enough. An empty string, a
+    null, or a misspelled secret all leave the job with no token while the key
+    is there, and the run then reports success while the upload is anonymous.
+    """
+    if not isinstance(value, str):
+        return False
+    match = SECRET.fullmatch(value.strip())
+    return bool(match) and match.group(1) in names
 
 
 def check_secret_actions_pinned() -> list:
@@ -312,9 +329,13 @@ def check_codecov_token() -> list:
                     continue
                 if "codecov/codecov-action" not in str(step.get("uses") or ""):
                     continue
-                if "token" in (step.get("with") or {}):
+                token = (step.get("with") or {}).get("token")
+                if secret_ref(token, "CODECOV_TOKEN"):
                     continue
-                problems.append(f"{path.name}: {name}: codecov upload without token")
+                problems.append(
+                    f"{path.name}: {name}: codecov upload without "
+                    "token: ${{ secrets.CODECOV_TOKEN }}"
+                )
     return problems
 
 
