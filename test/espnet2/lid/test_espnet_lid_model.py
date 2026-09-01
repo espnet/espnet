@@ -82,5 +82,9 @@ def test_lid_model(
         lid_model.eval()
 
     kwargs = {"speech": inputs, "speech_lengths": ilens, "lid_labels": lid_labels}
-    loss, *_ = lid_model(**kwargs)
-    loss.backward()
+
+    if training:
+        loss, *_ = lid_model(**kwargs)
+        loss.backward()
+    else:
+        loss, *_ = lid_model(**kwargs)
