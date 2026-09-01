@@ -32,7 +32,18 @@ down - it did, with 72 tests failing on 429. For a long time only the install
 steps had the token, which is invisible in review because the tests pass
 whenever the fleet happens to be under the limit.
 
-And fifth, the workflow files must have no duplicate mapping keys. PyYAML
+Fifth, every third-party action must be pinned to a commit SHA - in the
+composite actions under .github/actions as well as in the workflows. A tag or a
+branch can be moved by whoever controls the action's repository, and the step
+then runs code nobody here reviewed. This is not hypothetical:
+anthropics/claude-code-action@v1 moved between two resolutions a few hours apart
+while this check was being written.
+
+Sixth, every codecov upload must pass CODECOV_TOKEN. Without it the upload is
+tokenless, which codecov rate limits by IP, and this workflow sends one per job.
+The secret has existed since 2024 and was passed to nothing.
+
+And seventh, the workflow files must have no duplicate mapping keys. PyYAML
 accepts them and lets the last one win, so writing a second env: block into a
 step silently discards the first - which is exactly what nearly dropped
 GITHUB_TOKEN from the two steps that need it for torch.hub.
@@ -204,9 +215,33 @@ def _workflows() -> list:
     return sorted(Path(".github/workflows").glob("*.yml"))
 
 
+def _action_files() -> list:
+    """Workflows plus the composite actions, which also carry `uses:` steps.
+
+    prepare-environment/action.yml has one, and globbing only .github/workflows
+    would leave it unchecked.
+    """
+    return _workflows() + sorted(Path(".github/actions").glob("*/action.yml"))
+
+
+def _steps(data) -> list:
+    """(container name, step) for a workflow's jobs or a composite's runs."""
+    out = []
+    for name, job in (data or {}).get("jobs", {}).items():
+        if isinstance(job, dict):
+            out += [(name, s) for s in (job.get("steps") or [])]
+    runs = (data or {}).get("runs")
+    if isinstance(runs, dict):
+        out += [("runs", s) for s in (runs.get("steps") or [])]
+    return out
+
+
 def check_no_duplicate_keys() -> list:
+    # _action_files(), not _workflows(): check_actions_pinned reads the composite
+    # actions too, and its `continue` on a parse failure would swallow the error
+    # unless something else reports it. That something is this.
     problems = []
-    for path in _workflows():
+    for path in _action_files():
         try:
             yaml.load(path.read_text(), Loader=_NoDuplicates)
         except yaml.YAMLError as error:
@@ -234,13 +269,128 @@ def check_hf_token() -> list:
                 # test_import_all.py only imports modules; it reaches no network
                 if "ci/test_" not in run or "test_import_all" in run:
                     continue
+                # Both spellings are in use: HF_CI_TOKEN everywhere except the
+                # publication job, which has its own HF_TOKEN secret.
                 step_env = step.get("env") or {}
-                if "HF_TOKEN" in step_env or "HF_TOKEN" in job_env:
+                value = step_env.get("HF_TOKEN", job_env.get("HF_TOKEN"))
+                if secret_ref(value, "HF_CI_TOKEN", "HF_TOKEN"):
                     continue
                 label = step.get("name") or run.strip().split("\n")[0]
                 problems.append(
                     f"{path.name}: {name}: step {label!r} runs a test script "
-                    "without HF_TOKEN in scope"
+                    "without HF_TOKEN set to a secret"
+                )
+    return problems
+
+
+SHA = re.compile(r"[0-9a-f]{40}")
+SECRET = re.compile(r"\$\{\{\s*secrets\.([A-Za-z_][A-Za-z0-9_]*)\s*\}\}")
+
+
+def secret_ref(value, *names) -> bool:
+    """True when value is a ${{ secrets.NAME }} expression for one of names.
+
+    Testing that the key is merely present is not enough. An empty string, a
+    null, or a misspelled secret all leave the job with no token while the key
+    is there, and the run then reports success while the upload is anonymous.
+    """
+    if not isinstance(value, str):
+        return False
+    match = SECRET.fullmatch(value.strip())
+    return bool(match) and match.group(1) in names
+
+
+def check_actions_pinned() -> list:
+    """Every third-party action must be pinned to a commit SHA.
+
+    A tag or a branch can be moved by whoever controls the action's repository.
+    The step then runs code nobody here reviewed, with whatever the job holds -
+    a secret where one is passed, and the workspace either way.
+    """
+    problems = []
+    for path in _action_files():
+        try:
+            data = yaml.safe_load(path.read_text())
+        except yaml.YAMLError:
+            continue  # check_no_duplicate_keys reports the parse failure
+        for name, step in _steps(data):
+            if not isinstance(step, dict):
+                continue
+            uses = str(step.get("uses") or "")
+            # local composite actions carry no ref and cannot be moved
+            if "/" not in uses or "@" not in uses or uses.startswith("./"):
+                continue
+            if SHA.fullmatch(uses.rsplit("@", 1)[1]):
+                continue
+            problems.append(
+                f"{path.name}: {name}: {uses} is not pinned to a commit SHA"
+            )
+    return problems
+
+
+def check_checkout_credentials() -> list:
+    """actions/checkout must not leave GITHUB_TOKEN in .git/config.
+
+    The default writes it there, and these jobs then run checked-out pull
+    request code. Nothing here needs it: .github/ contains no git push, commit,
+    tag or submodule, and peaceiris/actions-gh-pages takes its github_token as
+    an explicit input.
+
+    Exempt: a job holding contents: write, which is how a job that is meant to
+    push says so. claude.yml is the only one, and its whole purpose is to commit.
+    """
+    problems = []
+    for path in _action_files():
+        try:
+            data = yaml.safe_load(path.read_text())
+        except yaml.YAMLError:
+            continue  # check_no_duplicate_keys reports the parse failure
+        jobs = (data or {}).get("jobs", {})
+        for name, job in jobs.items():
+            if not isinstance(job, dict):
+                continue
+            if (job.get("permissions") or {}).get("contents") == "write":
+                continue
+            for step in job.get("steps") or []:
+                if not isinstance(step, dict):
+                    continue
+                if "actions/checkout@" not in str(step.get("uses") or ""):
+                    continue
+                if (step.get("with") or {}).get("persist-credentials") is False:
+                    continue
+                problems.append(
+                    f"{path.name}: {name}: checkout without "
+                    "persist-credentials: false"
+                )
+    return problems
+
+
+def check_codecov_token() -> list:
+    """Every codecov-action step must pass the token.
+
+    Tokenless uploads are rate limited by IP, and nothing fails when one is
+    dropped - the coverage just quietly does not arrive.
+    """
+    problems = []
+    for path in _workflows():
+        try:
+            data = yaml.safe_load(path.read_text())
+        except yaml.YAMLError:
+            continue  # check_no_duplicate_keys reports the parse failure
+        for name, job in (data or {}).get("jobs", {}).items():
+            if not isinstance(job, dict):
+                continue
+            for step in job.get("steps") or []:
+                if not isinstance(step, dict):
+                    continue
+                if "codecov/codecov-action" not in str(step.get("uses") or ""):
+                    continue
+                token = (step.get("with") or {}).get("token")
+                if secret_ref(token, "CODECOV_TOKEN"):
+                    continue
+                problems.append(
+                    f"{path.name}: {name}: codecov upload without "
+                    "token: ${{ secrets.CODECOV_TOKEN }}"
                 )
     return problems
 
@@ -252,6 +402,9 @@ def main() -> int:
         + check_configuration_tasks()
         + check_no_duplicate_keys()
         + check_hf_token()
+        + check_actions_pinned()
+        + check_checkout_credentials()
+        + check_codecov_token()
     )
     for problem in bad:
         print(problem, file=sys.stderr)
@@ -261,7 +414,9 @@ def main() -> int:
             f"hash inputs agree ({len(build)} entries); every job matrix is a "
             "built variant; integration and configuration tasks match their "
             "scripts; every shard set is complete; every test step has "
-            "HF_TOKEN; no duplicate keys"
+            "HF_TOKEN; every third-party action is pinned to a SHA; "
+            "every checkout drops its credentials; every codecov "
+            "upload has a token; no duplicate keys"
         )
         return 0
     if bad:

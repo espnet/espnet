@@ -69,7 +69,10 @@ jobs:
         # To avoid UnicodeEncodeError for python<=3.6
         LC_ALL: en_US.UTF-8
     steps:
-      - uses: actions/checkout@v7
+      # See ci_on_ubuntu.yml: the default persists GITHUB_TOKEN in .git/config.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
       - name: check OS
         run: cat /etc/os-release
       - name: install dependencies
@@ -82,7 +85,7 @@ jobs:
           localedef -f UTF-8 -i en_US en_US
       - name: Get PR labels
         id: pr-labels
-        uses: joerick/pr-labels-action@v1.0.9
+        uses: joerick/pr-labels-action@0543b277721e852d821c6738d449f2f4dea03d5f # v1.0.9
       - name: install espnet
         run: ./ci/install.sh
         env:
