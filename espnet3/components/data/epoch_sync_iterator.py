@@ -1,4 +1,4 @@
-"""Per-epoch batch iterator with DDP epoch-end sync for ESPnet3."""
+"""EpochSyncIterator: per-epoch batch passes with DDP epoch-end sync."""
 
 import torch
 

@@ -9,7 +9,7 @@ from espnet3.components.data import data_organizer as data_organizer_module
 from espnet3.components.data.data_organizer import DataOrganizer, do_nothing
 from espnet3.components.data.dataloader import DataLoaderBuilder
 from espnet3.components.data.dataset import ShardedDataset
-from espnet3.components.data.iterator import EpochSyncIterator
+from espnet3.components.data.epoch_sync_iterator import EpochSyncIterator
 from espnet3.utils.config_utils import load_config_with_defaults
 
 # | Test Name                                         | Description                                                    | # noqa: E501
@@ -822,7 +822,7 @@ def test_iter_factory_returns_base_iterator_without_distributed(monkeypatch):
 
 def test_iter_factory_syncs_iterator_when_distributed_initialized(monkeypatch):
     import espnet3.components.data.dataloader as dl
-    import espnet3.components.data.iterator as iterator_module
+    import espnet3.components.data.epoch_sync_iterator as iterator_module
 
     monkeypatch.setattr(
         dl, "build_batch_sampler", lambda **kw: [[0, 1], [2, 3], [4, 5], [6, 7]]

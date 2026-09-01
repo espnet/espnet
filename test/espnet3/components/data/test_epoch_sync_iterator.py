@@ -1,7 +1,7 @@
 import pytest
 
-import espnet3.components.data.iterator as iterator_module
-from espnet3.components.data.iterator import EpochSyncIterator
+import espnet3.components.data.epoch_sync_iterator as iterator_module
+from espnet3.components.data.epoch_sync_iterator import EpochSyncIterator
 
 
 def _patch_no_distributed(monkeypatch):
