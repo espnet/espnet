@@ -152,13 +152,33 @@ else
         spec="k2==${pip_k2_version}+cuda${cuda_version}.torch${torch_version}"
         index=https://k2-fsa.github.io/k2/cuda.html
     fi
-    echo pip install "${spec}" -f "${index}"
-    pip install "${spec}" -f "${index}" || {
+    # python3 -m pip, not pip: on python 3.13 `ensurepip --upgrade` leaves no
+    # venv/bin/pip, so a bare `pip` falls through to the system interpreter on
+    # PATH. That is not theoretical - the first version of this change installed
+    # k2 into /usr/local/lib/python3.13/site-packages, which the image's final
+    # stage then discarded, while the log said "Successfully installed k2".
+    #
+    # --no-deps because the wheel declares torch==2.9.1, and resolving that pulls
+    # the default PyPI torch, which is the CUDA build: ~3 GB of nvidia-* wheels
+    # replacing the CPU torch this environment installed on purpose. k2's only
+    # other dependency is graphviz, installed explicitly below.
+    echo python3 -m pip install --no-deps "${spec}" -f "${index}"
+    python3 -m pip install --no-deps "${spec}" -f "${index}" || {
         echo "[ERROR] No k2 wheel for ${spec}" >&2
         echo "[ERROR] Check ${index} - k2 publishes per torch and python version," >&2
         echo "[ERROR] and lags new torch releases. Either pick a k2 version that" >&2
         echo "[ERROR] covers every pair in ci/image_variants.json, or drop k2.done" >&2
         echo "[ERROR] from ci/install.sh rather than let it install nothing." >&2
+        exit 1
+    }
+    python3 -m pip install graphviz
+
+    # Prove it, because the install saying "Successfully installed k2" did not
+    # mean k2 was importable - see above.
+    python3 -c "import k2; print('k2', k2.__version__, 'from', k2.__file__)" || {
+        echo "[ERROR] k2 installed but does not import." >&2
+        echo "[ERROR] Check which interpreter it landed in:" >&2
+        echo "[ERROR]   python3 -c 'import sys; print(sys.executable)'" >&2
         exit 1
     }
 fi
