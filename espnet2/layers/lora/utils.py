@@ -4,7 +4,7 @@
 #   Licensed under the MIT License (MIT).
 """Helpers for LoRA-style PEFT layers in ESPnet."""
 
-from typing import Dict
+from typing import Dict, Set
 
 import torch
 import torch.nn as nn
@@ -12,8 +12,32 @@ import torch.nn as nn
 from espnet2.layers.lora.layers import LoRALayer
 
 
+def adapter_param_names(model: nn.Module) -> Set[str]:
+    """Return the names of every trainable adapter parameter in ``model``.
+
+    Vanilla LoRA names its parameters ``lora_A`` / ``lora_B``, but the other
+    backends do not: SVFT trains ``m_entries``/``gate``, SSVD trains
+    ``s``/``gate``/``K_vec``. Matching on the ``"lora_"`` substring alone would
+    therefore miss them entirely. Anything that lives inside a
+    :class:`LoRALayer` and is not the frozen ``weight``/``bias`` counts.
+    """
+    names = set()
+    for module_name, module in model.named_modules():
+        if not isinstance(module, LoRALayer):
+            continue
+        prefix = f"{module_name}." if module_name else ""
+        for param_name, _ in module.named_parameters(recurse=False):
+            if param_name in ("weight", "bias"):
+                continue
+            names.add(prefix + param_name)
+    # Keep the historical substring rule as a fallback so adapters that are not
+    # LoRALayer subclasses still behave as before.
+    names.update(n for n, _ in model.named_parameters() if "lora_" in n)
+    return names
+
+
 def mark_only_lora_as_trainable(model: nn.Module, bias: str = "none") -> None:
-    """Freeze every parameter that is not a LoRA parameter.
+    """Freeze every parameter that is not an adapter parameter.
 
     Args:
         model: The model to mutate in place.
@@ -22,8 +46,9 @@ def mark_only_lora_as_trainable(model: nn.Module, bias: str = "none") -> None:
             ``"all"`` keeps every bias in the model trainable;
             ``"lora_only"`` keeps only the biases of LoRA-adapted modules.
     """
+    adapter_names = adapter_param_names(model)
     for n, p in model.named_parameters():
-        if "lora_" not in n:
+        if n not in adapter_names:
             p.requires_grad = False
     if bias == "none":
         return
@@ -41,21 +66,23 @@ def mark_only_lora_as_trainable(model: nn.Module, bias: str = "none") -> None:
 
 
 def lora_state_dict(model: nn.Module, bias: str = "none") -> Dict[str, torch.Tensor]:
-    """Return a state dict containing only the adapter (and optionally bias) keys."""
+    """Return a state dict containing only the adapter (and optionally bias) keys.
+
+    Covers every backend in :mod:`espnet2.layers.lora`, not just the ones whose
+    parameters happen to be named ``lora_*`` -- see :func:`adapter_param_names`.
+    """
     my_state_dict = model.state_dict()
-    if bias == "none":
-        return {k: my_state_dict[k] for k in my_state_dict if "lora_" in k}
+    adapter_keys = adapter_param_names(model)
+    if bias not in ("none", "all", "lora_only"):
+        raise NotImplementedError(f"Unknown bias mode: {bias}")
+    to_return = {k: my_state_dict[k] for k in my_state_dict if k in adapter_keys}
     if bias == "all":
-        return {
-            k: my_state_dict[k] for k in my_state_dict if "lora_" in k or "bias" in k
-        }
-    if bias == "lora_only":
-        to_return = {}
-        for k in my_state_dict:
-            if "lora_" in k:
-                to_return[k] = my_state_dict[k]
-                bias_name = k.split("lora_")[0] + "bias"
-                if bias_name in my_state_dict:
-                    to_return[bias_name] = my_state_dict[bias_name]
-        return to_return
-    raise NotImplementedError(f"Unknown bias mode: {bias}")
+        to_return.update(
+            {k: my_state_dict[k] for k in my_state_dict if k.endswith("bias")}
+        )
+    elif bias == "lora_only":
+        for k in adapter_keys:
+            bias_name = k.rsplit(".", 1)[0] + ".bias" if "." in k else "bias"
+            if bias_name in my_state_dict:
+                to_return[bias_name] = my_state_dict[bias_name]
+    return to_return

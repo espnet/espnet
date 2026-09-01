@@ -121,16 +121,16 @@ def load_pretrained_model(
         # key that has NO counterpart in the model (e.g. OWSM v3.1 stores the
         # Conv2d-subsampling projection as `encoder.embed.out.0.*`, current espnet
         # names it `encoder.embed.out.*`): the key is silently dropped and the layer
-        # stays randomly initialised. Fail loudly instead; use the `path:src:dst`
-        # mapping or `path:::excludes` syntax to handle renames.
+        # stays randomly initialised. Warn so the mismatch is visible in the log;
+        # use the `path:src:dst` mapping or `path:::excludes` syntax to fix it.
         unmatched = [k for k in src_state if k not in dst_state]
         if unmatched:
-            raise RuntimeError(
+            logging.warning(
                 f"init_param {init_param}: {len(unmatched)} checkpoint key(s) have "
-                f"no counterpart in the model and would be silently ignored "
-                f"(first 10: {unmatched[:10]}). Map them with 'path:src_key:dst_key', "
-                f"exclude them with 'path:::excludes', or set "
-                f"ignore_init_mismatch=true."
+                f"no counterpart in the model and are ignored "
+                f"(first 10: {unmatched[:10]}). If they were meant to initialise "
+                f"the model, map them with 'path:src_key:dst_key' or drop them "
+                f"with 'path:::excludes'."
             )
     dst_state.update(src_state)
     obj.load_state_dict(dst_state)

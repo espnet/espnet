@@ -225,7 +225,11 @@ class DoraLinear(nn.Linear, LoRALayer):
         )
         if r <= 0:
             raise ValueError("DoraLinear requires r > 0.")
-        self.m_initialized = False
+        # Persistent: at inference the checkpoint already holds the *trained*
+        # magnitude, so apply_m() must not overwrite it with the row norms of
+        # the loaded weight. A plain Python bool would not survive the
+        # checkpoint round trip.
+        self.register_buffer("m_initialized", torch.tensor(False, dtype=torch.bool))
         self.lora_m = nn.Parameter(torch.ones((out_features, 1)))
         self.fan_in_fan_out = fan_in_fan_out
         self.lora_A = nn.Parameter(self.weight.new_zeros((r, in_features)))
@@ -237,11 +241,11 @@ class DoraLinear(nn.Linear, LoRALayer):
             self.weight.data = self.weight.data.transpose(0, 1)
 
     def apply_m(self):
-        if not self.m_initialized:
+        if not bool(self.m_initialized):
             self.lora_m.data = (
                 torch.linalg.norm(self.weight, dim=1).unsqueeze(1).detach()
             )
-            self.m_initialized = True
+            self.m_initialized.fill_(True)
 
     def reset_parameters(self):
         nn.Linear.reset_parameters(self)
@@ -250,33 +254,19 @@ class DoraLinear(nn.Linear, LoRALayer):
             nn.init.zeros_(self.lora_B)
 
     def train(self, mode: bool = True):
+        """Switch train/eval mode. DoRA never merges into ``self.weight``.
+
+        The DoRA update is ``m * (W + BA) / ||W + BA||_row``. Unlike the
+        additive LoRA/PiSSA updates it cannot be inverted from the adapter
+        parameters alone -- ``||W + BA||_row`` is lost once the merged weight
+        overwrites ``W`` -- so a merge here would destroy the pretrained
+        weight on the very first ``model.eval()`` of the training loop (ESPnet
+        validates after every epoch) and corrupt it further on every
+        subsequent epoch. ``forward`` recomputes the decomposition on each
+        call anyway, so the only cost of never merging is one extra rank-``r``
+        matmul at inference.
+        """
         nn.Linear.train(self, mode)
-        if mode:
-            if self.merge_weights and self.merged:
-                # No-op: forward recomputes the decomposition each call, so
-                # leaving self.weight.data unchanged returns to train mode.
-                self.merged = False
-        else:
-            # Merging needs the magnitude vector from apply_m(), which is
-            # initialized lazily on the first forward (so it captures the
-            # pretrained weight, not the constructor placeholder). Skip the
-            # merge until then; forward computes the unmerged path anyway.
-            if self.merge_weights and not self.merged and self.m_initialized:
-                v_adapted = self.weight + (self.lora_B @ self.lora_A) * self.scaling
-                m_over_norm = (
-                    self.lora_m.transpose(0, 1).view(-1)
-                    / (torch.linalg.norm(v_adapted, dim=1)).detach()
-                )
-                self.weight.data = (
-                    self.weight
-                    + (
-                        (m_over_norm - 1) * self.weight.T
-                        + m_over_norm
-                        * (self.lora_A.transpose(0, 1) @ self.lora_B.transpose(0, 1))
-                        * self.scaling
-                    ).T
-                )
-                self.merged = True
 
     def forward(self, x: torch.Tensor):
         def T(w):
@@ -357,7 +347,11 @@ class PiSSALinear(nn.Linear, LoRALayer):
 
         self.register_buffer("A0", torch.empty(r, in_features))
         self.register_buffer("B0", torch.empty(out_features, r))
-        self._pissa_factorize()
+        # NOTE: no eager _pissa_factorize() here. `replace_module` copies the
+        # pretrained weight in *after* construction, and `init_param` is loaded
+        # later still (see `AbsTask.build_model`), so factorizing now would
+        # take the SVD of the random `nn.Linear.reset_parameters` weight and
+        # PiSSA would train a random -- not principal -- subspace.
 
     def _pissa_factorize(self):
         if bool(self.pissa_initialized):
@@ -382,6 +376,17 @@ class PiSSALinear(nn.Linear, LoRALayer):
     def train(self, mode: bool = True):
         def T(w):
             return w.transpose(0, 1) if self.fan_in_fan_out else w
+
+        nn.Linear.train(self, mode)
+
+        if not bool(self.pissa_initialized):
+            # `create_lora_adapter` calls `model.eval()` right after module
+            # replacement, before `init_param` is loaded, so A0/B0 are still
+            # empty here. Track the flag only -- checkpoints are saved from
+            # eval (merged) state, so `merged` must end up True exactly as it
+            # does for vanilla LoRA -- but leave the weight alone.
+            self.merged = not mode
+            return
 
         A = torch.cat([self.lora_A, self.A0], dim=0)
         B = torch.cat([self.lora_B, -self.B0], dim=1)
@@ -490,15 +495,27 @@ class SVFTLinear(nn.Linear, LoRALayer):
             return w.transpose(0, 1) if self.fan_in_fan_out else w
 
         nn.Linear.train(self, mode)
+
+        if not bool(self.svd_initialized):
+            # `create_lora_adapter` calls `model.eval()` right after module
+            # replacement, before `init_param` is loaded, so u/s_pre/v are
+            # still `torch.empty` here. Track the flag only -- checkpoints are
+            # saved from eval (merged) state, so `merged` must end up True
+            # exactly as it does for vanilla LoRA -- but leave the weight
+            # alone.
+            self.merged = not mode
+            return
+
+        if not self.merge_weights:
+            return
         if mode:
-            if self.merge_weights and self.merged:
+            if self.merged:
+                # Restore the pretrained weight: it is exactly the frozen
+                # factorization u @ diag(s_pre) @ v.
+                self.weight.data = T(self.u @ torch.diag(self.s_pre) @ self.v)
                 self.merged = False
         else:
-            # Merging needs u/s_pre/v from apply_svd(), which is initialized
-            # lazily on the first forward (so it factorizes the pretrained
-            # weight, not the constructor placeholder). Skip the merge until
-            # then; forward computes the unmerged path anyway.
-            if self.merge_weights and not self.merged and bool(self.svd_initialized):
+            if not self.merged:
                 M = self.construct_M() * torch.sigmoid(self.gate)
                 self.weight.data = T(self.u @ (torch.diag(self.s_pre) + M) @ self.v)
                 self.merged = True
@@ -610,9 +627,9 @@ class SSVDLinear(nn.Linear, LoRALayer):
         self.u.data = u.detach()
         self.v.data = v.detach()
         self.s_pre.data = s.detach()
-        self.gate.data = torch.tensor([0.0], device=s.device)
-        nn.init.kaiming_uniform_(self.s[None, :])
-        self.s.squeeze()
+        # `s` stays zero-initialized: get_sigma() applies `s * sigmoid(gate)`
+        # and sigmoid(0) == 0.5, so a random `s` would move the layer away
+        # from the pretrained weight before a single training step.
         self.svd_initialized.fill_(True)
 
     def reset_parameters(self):
@@ -641,29 +658,40 @@ class SSVDLinear(nn.Linear, LoRALayer):
         Y_top_new = A @ Y_top
         return torch.cat([Y_top_new, Y_rest], dim=0)
 
-    def train(self, mode: bool = True):
-        def T(w):
-            return w.T if self.fan_in_fan_out else w
+    def _compose(self, sigma: torch.Tensor, rotated_v: torch.Tensor):
+        """Rebuild the (out_features, in_features) weight from the factors."""
+        w = self.u @ torch.diag(sigma) @ rotated_v
+        if self.out_features < self.in_features:
+            # apply_svd() factorized W.T in this orientation.
+            w = w.T
+        return w.T if self.fan_in_fan_out else w
 
+    def train(self, mode: bool = True):
         nn.Linear.train(self, mode)
+
+        if not bool(self.svd_initialized):
+            # `create_lora_adapter` calls `model.eval()` right after module
+            # replacement, before `init_param` is loaded, so u/s_pre/v are
+            # still `torch.empty` here. Track the flag only -- checkpoints are
+            # saved from eval (merged) state, so `merged` must end up True
+            # exactly as it does for vanilla LoRA -- but leave the weight
+            # alone.
+            self.merged = not mode
+            return
+
+        if not self.merge_weights:
+            return
         if mode:
-            if self.merge_weights and self.merged:
+            if self.merged:
+                # Restore the pretrained weight: it is exactly the frozen
+                # factorization u @ diag(s_pre) @ v (no rotation).
+                self.weight.data = self._compose(self.s_pre, self.v)
                 self.merged = False
         else:
-            # Merging needs u/s_pre/v from apply_svd(), which is initialized
-            # lazily on the first forward (so it factorizes the pretrained
-            # weight, not the constructor placeholder). Skip the merge until
-            # then; forward computes the unmerged path anyway.
-            if self.merge_weights and not self.merged and bool(self.svd_initialized):
-                sigma = self.get_sigma()
-                if self.out_features >= self.in_features:
-                    self.weight.data = T(
-                        self.u @ torch.diag(sigma) @ self.apply_rotation()
-                    )
-                else:
-                    self.weight.data = T(
-                        (self.u @ torch.diag(sigma) @ self.apply_rotation()).T
-                    )
+            if not self.merged:
+                self.weight.data = self._compose(
+                    self.get_sigma(), self.apply_rotation()
+                )
                 self.merged = True
 
     def forward(self, x: torch.Tensor):
@@ -671,17 +699,10 @@ class SSVDLinear(nn.Linear, LoRALayer):
             return w.T if self.fan_in_fan_out else w
 
         self.apply_svd()
-        sigma = self.get_sigma()
         if not self.merged:
-            if self.out_features >= self.in_features:
-                return F.linear(
-                    x,
-                    T(self.u @ torch.diag(sigma) @ self.apply_rotation()),
-                    bias=self.bias,
-                )
             return F.linear(
                 x,
-                T((self.u @ torch.diag(sigma) @ self.apply_rotation()).T),
+                self._compose(self.get_sigma(), self.apply_rotation()),
                 bias=self.bias,
             )
         return F.linear(x, T(self.weight), bias=self.bias)

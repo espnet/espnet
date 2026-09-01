@@ -207,24 +207,6 @@ class Speech2Text:
         s2t_model, s2t_train_args = S2TTask.build_model_from_file(
             s2t_train_config, s2t_model_file, device
         )
-        # create_adapter() puts the model in eval mode BEFORE the checkpoint is
-        # loaded, so SVD-based adapter layers (SVFT/SSVD) are flagged `merged`
-        # while their factors were still empty. Reset the flag for those layers
-        # so the eval() below recomputes W from the loaded u/s/v (their merge is
-        # an assignment, not an addition, so this is safe). Plain LoRA/DoRA/PiSSA
-        # merges are additive and their checkpoints are saved already merged,
-        # so they must NOT be reset (it would merge twice).
-        n_remerge = 0
-        for m in s2t_model.modules():
-            if (
-                hasattr(m, "svd_initialized")
-                and getattr(m, "merge_weights", False)
-                and getattr(m, "merged", False)
-            ):
-                m.merged = False
-                n_remerge += 1
-        if n_remerge:
-            logging.info(f"Re-merging SVD-based adapters in {n_remerge} layers")
         s2t_model.to(dtype=getattr(torch, dtype)).eval()
 
         # Set flash_attn

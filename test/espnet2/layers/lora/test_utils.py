@@ -4,6 +4,7 @@ import pytest
 import torch
 import torch.nn as nn
 
+from espnet2.layers.lora import LINEAR_BACKENDS
 from espnet2.layers.lora import Linear as LoraLinear
 from espnet2.layers.lora import lora_state_dict, mark_only_lora_as_trainable
 
@@ -104,3 +105,34 @@ def test_state_dict_roundtrip_lora_only():
     model.load_state_dict(sd, strict=False)
     after = model(x)
     assert torch.allclose(before, after, atol=1e-6)
+
+
+@pytest.mark.parametrize("name,cls", sorted(LINEAR_BACKENDS.items()))
+def test_lora_state_dict_covers_every_backend(name, cls):
+    """`save_strategy: adapter_only` must not silently save an empty dict.
+
+    SVFT trains `m_entries`/`gate` and SSVD trains `s`/`gate`/`K_vec`; none of
+    those contain the substring "lora_", so a name-based filter drops them.
+    """
+    layer = cls(8, 8, r=2, lora_alpha=2, bias=True)
+    model = nn.Sequential(layer, nn.Linear(8, 4, bias=True))
+    sd = lora_state_dict(model, bias="none")
+    assert sd, f"{name}: lora_state_dict() returned nothing to save"
+    trainable = {
+        n for n, p in model.named_parameters() if p.requires_grad and "0." in n
+    }
+    trainable -= {"0.weight", "0.bias"}
+    missing = trainable - set(sd)
+    assert not missing, f"{name}: adapter parameters missing from the dict: {missing}"
+    assert "1.weight" not in sd, f"{name}: a non-adapter parameter leaked in"
+
+
+@pytest.mark.parametrize("name,cls", sorted(LINEAR_BACKENDS.items()))
+def test_mark_only_lora_as_trainable_covers_every_backend(name, cls):
+    layer = cls(8, 8, r=2, lora_alpha=2, bias=True)
+    model = nn.Sequential(layer, nn.Linear(8, 4, bias=True))
+    mark_only_lora_as_trainable(model, bias="none")
+    assert any(
+        p.requires_grad for p in layer.parameters()
+    ), f"{name}: every adapter parameter was frozen"
+    assert not model[1].weight.requires_grad

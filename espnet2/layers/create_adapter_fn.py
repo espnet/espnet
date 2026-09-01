@@ -1,3 +1,4 @@
+import logging
 from typing import List, Optional
 
 import torch
@@ -232,6 +233,21 @@ def create_new_lora_module(
     bias = hasattr(target_module, "bias") and target_module.bias is not None
 
     if isinstance(target_module, torch.nn.Embedding):
+        # Only the vanilla LoRA embedding adapter exists; the SVD-based
+        # backends are defined for Linear layers only. Say so instead of
+        # silently applying a different adapter than the one requested.
+        if adapter_type.lower() != "lora":
+            logging.warning(
+                f"adapter_type='{adapter_type}' has no torch.nn.Embedding "
+                f"implementation; falling back to the vanilla LoRA embedding "
+                f"adapter for this module. Drop the embedding from "
+                f"`target_modules` if that is not what you want."
+            )
+        if backend_kwargs:
+            logging.warning(
+                f"Ignoring backend kwargs {sorted(backend_kwargs)} for the "
+                f"torch.nn.Embedding adapter."
+            )
         return LoraEmbedding(
             target_module.num_embeddings,
             target_module.embedding_dim,

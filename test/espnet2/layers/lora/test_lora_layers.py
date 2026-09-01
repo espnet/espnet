@@ -241,3 +241,114 @@ def test_backend_train_eval_merge_round_trip(name, cls):
     assert torch.allclose(
         y_train2, y_eval, atol=1e-4
     ), f"{name}: unmerge changed the output"
+
+
+def _perturb_adapter_params(layer, scale=0.05):
+    """Pretend a few optimizer steps happened on the adapter parameters."""
+    with torch.no_grad():
+        for name, p in layer.named_parameters():
+            if name in ("weight", "bias"):
+                continue
+            p.add_(torch.randn_like(p) * scale)
+
+
+@pytest.mark.parametrize("name,cls", sorted(LINEAR_BACKENDS.items()))
+def test_backend_survives_repeated_train_eval_cycles(name, cls):
+    """ESPnet validates after every epoch, so train/eval alternates for ever.
+
+    A merge that is not exactly undone corrupts the frozen pretrained weight a
+    little more on each cycle. Perturbing the adapter parameters first is what
+    makes the corruption observable: at init every backend has a zero delta,
+    so an incorrect merge is invisible.
+    """
+    torch.manual_seed(0)
+    layer = _make_layer(cls)
+    x = torch.randn(BATCH, IN_FEATURES)
+    layer(x)  # trigger the lazy factorizations while the weight is pristine
+    w0 = layer.weight.detach().clone()
+    _perturb_adapter_params(layer)
+
+    layer.train()
+    y_ref = layer(x).detach()
+    for cycle in range(3):
+        layer.eval()
+        assert torch.allclose(
+            y_ref, layer(x).detach(), atol=1e-4
+        ), f"{name}: eval output drifted on cycle {cycle}"
+        layer.train()
+        assert torch.allclose(
+            y_ref, layer(x).detach(), atol=1e-4
+        ), f"{name}: train output drifted on cycle {cycle}"
+    assert torch.allclose(
+        layer.weight, w0, atol=1e-5
+    ), f"{name}: the frozen pretrained weight was not restored in train mode"
+
+
+@pytest.mark.parametrize("name,cls", sorted(LINEAR_BACKENDS.items()))
+def test_backend_training_flag_follows_train_eval(name, cls):
+    """`train()` overrides must still update `self.training` and children."""
+    layer = _make_layer(cls, lora_dropout=0.5)
+    layer.eval()
+    assert layer.training is False, f"{name}: eval() did not clear self.training"
+    for sub in layer.modules():
+        assert sub.training is False, f"{name}: a child module stayed in train mode"
+    layer.train()
+    assert layer.training is True, f"{name}: train() did not set self.training"
+
+
+def test_pissa_factorizes_the_pretrained_weight():
+    """PiSSA must take the SVD of the weight assigned by `replace_module`.
+
+    `nn.Linear.__init__` fills `.weight` with random values and the pretrained
+    weight is copied in afterwards, so factorizing eagerly in the constructor
+    would give PiSSA a random -- not principal -- subspace.
+    """
+    torch.manual_seed(0)
+    layer = _make_layer(PiSSALinear)
+    pretrained = torch.nn.Linear(IN_FEATURES, OUT_FEATURES).weight
+    layer.weight = pretrained  # what create_adapter_utils.replace_module does
+    w0 = pretrained.detach().clone()
+
+    layer(torch.randn(BATCH, IN_FEATURES))
+
+    u, s, vh = torch.linalg.svd(w0, full_matrices=False)
+    top_r = (u[:, :RANK] * s[:RANK]) @ vh[:RANK, :]
+    assert torch.allclose(layer.B0 @ layer.A0, top_r, atol=1e-4), (
+        "PiSSA's frozen A0/B0 must span the top-r subspace of the *pretrained* "
+        "weight, not of the random constructor weight."
+    )
+
+
+def test_ssvd_singular_value_delta_is_zero_initialised():
+    """SSVD must equal the pretrained layer before any training step.
+
+    `get_sigma()` returns `s_pre + s * sigmoid(gate)` and `sigmoid(0) == 0.5`,
+    so a randomly initialised `s` would perturb the pretrained weight at init.
+    """
+    torch.manual_seed(0)
+    layer = _make_layer(SSVDLinear)
+    x = torch.randn(BATCH, IN_FEATURES)
+    ref = torch.nn.functional.linear(x, layer.weight, layer.bias)
+    y = layer(x)
+    assert torch.all(layer.s == 0), "SSVD's trainable delta must start at zero"
+    assert torch.allclose(y, ref, atol=1e-4), "SSVD must be an identity adapter at init"
+
+
+def test_dora_magnitude_survives_a_checkpoint_round_trip():
+    """`m_initialized` must be persistent, or inference recomputes `lora_m`."""
+    torch.manual_seed(0)
+    layer = _make_layer(DoraLinear)
+    x = torch.randn(BATCH, IN_FEATURES)
+    layer(x)
+    _perturb_adapter_params(layer)
+    layer.eval()
+    expected = layer(x).detach()
+    sd = {k: v.detach().clone() for k, v in layer.state_dict().items()}
+
+    reloaded = _make_layer(DoraLinear)
+    reloaded.load_state_dict(sd)
+    reloaded.eval()
+    assert torch.allclose(reloaded(x).detach(), expected, atol=1e-5), (
+        "DoRA output changed after a state-dict round trip: the trained "
+        "magnitude was probably overwritten by apply_m()."
+    )

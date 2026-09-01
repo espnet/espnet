@@ -9,7 +9,11 @@ from espnet2.layers.lora.layers import (
     SSVDLinear,
     SVFTLinear,
 )
-from espnet2.layers.lora.utils import lora_state_dict, mark_only_lora_as_trainable
+from espnet2.layers.lora.utils import (
+    adapter_param_names,
+    lora_state_dict,
+    mark_only_lora_as_trainable,
+)
 
 LINEAR_BACKENDS = {
     "lora": Linear,
@@ -28,6 +32,7 @@ __all__ = [
     "PiSSALinear",
     "SSVDLinear",
     "SVFTLinear",
+    "adapter_param_names",
     "lora_state_dict",
     "mark_only_lora_as_trainable",
 ]
