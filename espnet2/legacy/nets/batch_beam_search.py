@@ -47,9 +47,20 @@ class BatchHypothesis(NamedTuple):
     scores: Dict[str, torch.Tensor] = dict()  # values: (batch,)
     states: Dict[str, Dict] = dict()
     hs: List[torch.Tensor] = []  # (batch, maxlen, adim)
-    # Number of utterances sharing this batch.
+    # Number of utterances sharing this batch. This cannot be recovered from
+    # the tensors: `len(self)` is `n_utt * n_hyp_per_utt`, and the second
+    # factor is only a constant (`beam_size`) once several utterances are
+    # batched -- for a single utterance the batch is compacted, so it shrinks
+    # as hypotheses end. A batch of 10 slots is therefore ambiguous between
+    # one utterance with 10 running hypotheses and 10 utterances with one slot
+    # each, and only `search` and `post_process` need the distinction, to fold
+    # the flat batch back into a per-utterance view. `n_utt` is stored rather
+    # than `n_hyp_per_utt` because it stays fixed for a whole decode.
+    # The default is what every construction site that predates utterance
+    # batching means, so those keep working untouched.
     n_utt: int = 1
-    # Which slots still hold a hypothesis to expand. None means all of them.
+    # Which slots still hold a hypothesis to expand. None means all of them,
+    # which is again what pre-existing callers mean.
     active: Optional[torch.Tensor] = None  # (batch,), bool
     # Which utterances have finished decoding. None means none of them.
     done: Optional[torch.Tensor] = None  # (n_utt,), bool
