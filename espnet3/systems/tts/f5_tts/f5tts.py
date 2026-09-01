@@ -149,7 +149,7 @@ class F5TTS(torch.nn.Module):
         self.feats_extract = VocoderMelSpec(
             **(convert_to_dict(feats_extract_config) or {})
         )
-        self.mel_dim = self.feats_extract.output_size
+        self.mel_dim = self.feats_extract.output_size()
 
         # Left of each ``=`` is the upstream F5-TTS name; see the mapping table
         # in the docstring above.

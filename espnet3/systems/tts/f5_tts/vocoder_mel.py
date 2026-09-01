@@ -58,7 +58,7 @@ class VocoderMelSpec(AbsFeatsExtract):
         Note:
             The mel must match the vocoder used at inference, so these values
             are fixed by the vocoder rather than freely tunable. ``n_mels``
-            becomes the model's mel dimension via :attr:`output_size`.
+            becomes the model's mel dimension via :meth:`output_size`.
         """
         super().__init__()
         self.fs = fs
@@ -77,17 +77,24 @@ class VocoderMelSpec(AbsFeatsExtract):
             mel_spec_type=mel_spec_type,
         )
 
-    @property
     def output_size(self) -> int:
-        """The mel dimension the model generates.
+        """Return the mel dimension the model generates.
 
         Returns:
             ``n_mels``.
 
+        Example:
+            .. code-block:: python
+
+                >>> VocoderMelSpec(n_mels=100).output_size()
+                100
+
         Note:
-            :class:`~espnet3.systems.tts.f5_tts.f5tts.F5TTS` reads this to size
-            its backbone, which is why the recipe states the mel dimension only
-            once, in ``feats_extract_conf``.
+            A method, not a property, because ``AbsFeatsExtract`` declares it as
+            one and espnet2 calls it as ``feats_extract.output_size()``.
+            :class:`~espnet3.systems.tts.f5_tts.f5tts.F5TTS` reads it to size its
+            backbone, which is why the recipe states the mel dimension only once,
+            in ``feats_extract_config``.
         """
         return self.n_mels
 

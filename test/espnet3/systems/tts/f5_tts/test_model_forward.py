@@ -134,4 +134,4 @@ def test_the_loss_actually_depends_on_the_cfg_dropout_flags(model):
 
 def test_mel_dim_is_wired_from_the_feature_extractor(model):
     assert model.mel_dim == N_MELS
-    assert model.feats_extract.output_size == N_MELS
+    assert model.feats_extract.output_size() == N_MELS

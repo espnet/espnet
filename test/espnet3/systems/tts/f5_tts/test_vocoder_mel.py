@@ -17,7 +17,7 @@ def mel():
 
 def test_output_size_is_the_mel_dimension(mel):
     """This is what F5TTS reads to size its backbone."""
-    assert mel.output_size == N_MELS
+    assert mel.output_size() == N_MELS
 
 
 def test_forward_returns_time_first_mel(mel):
@@ -63,7 +63,7 @@ def test_get_parameters_uses_espnet2_key_names(mel):
 
 def test_bigvgan_is_accepted_as_a_mel_type():
     spec = VocoderMelSpec(mel_spec_type="bigvgan")
-    assert spec.output_size == 100
+    assert spec.output_size() == 100
 
 
 @pytest.mark.parametrize("mel_spec_type, extra_frame", [("vocos", 1), ("bigvgan", 0)])

@@ -40,7 +40,7 @@ def test_model_is_a_plain_module_owning_its_front_end(token_file):
 
 def test_mel_dim_is_derived_from_feats_extract(token_file):
     model = F5TTS(token_list=token_file, feats_extract_config=FEATS_CONF, **MODEL_CONF)
-    assert model.feats_extract.output_size == FEATS_CONF["n_mels"]
+    assert model.feats_extract.output_size() == FEATS_CONF["n_mels"]
     assert model.mel_dim == FEATS_CONF["n_mels"]
 
 
