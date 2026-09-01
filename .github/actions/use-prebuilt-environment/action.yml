@@ -1,0 +1,37 @@
+name: Use the prebuilt environment
+description: >
+  Wires a checkout to the environment baked into the CI image built by
+  docker/ci.dockerfile. Only makes sense inside a job with a matching
+  `container:`.
+
+runs:
+  using: "composite"
+  steps:
+    - shell: bash
+      env:
+        VENV: /espnet/tools/venv/bin
+      run: |
+        # tools/ in a checkout has the tracked files but none of the build
+        # output - no venv, no activate_python.sh, no sctk. Link in whatever the
+        # image has and the checkout does not: that leaves tracked files alone
+        # and needs no list to keep up to date.
+        for path in /espnet/tools/*; do
+          name=$(basename "$path")
+          [ -e "tools/${name}" ] || ln -s "$path" "tools/${name}"
+        done
+
+        # The image's editable install points at a source tree it does not
+        # contain. Re-pointing it at the checkout is what makes the tested code
+        # the code under review. Every dependency is present, so this is seconds.
+        #
+        # Call the interpreter by absolute path: GitHub composes its own PATH
+        # for container steps rather than inheriting the image's.
+        "${VENV}/python" -m pip install -e . --no-deps
+
+        # kaldiio and anything else in this file is deliberately absent from the
+        # image because its licence forbids redistribution. Installing it here
+        # is not distribution by this project: the runner fetches its own copy
+        # from PyPI, exactly as the non-container path does.
+        "${VENV}/python" -m pip install -r ci/no_redistribute.txt
+
+        "${VENV}/python" -c 'import espnet2, espnet3, kaldiio; print("espnet2 from", espnet2.__file__)'

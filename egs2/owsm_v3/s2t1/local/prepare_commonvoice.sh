@@ -44,10 +44,6 @@ langs="$langs xh"
 langs="$langs yi yo yue"
 langs="$langs zgh zh-CN zh-HK zh-TW zu zza"
 
-# base url for downloads.
-# Note(jinchuan): url updated at Jun 15. 2023
-data_url=https://mozilla-common-voice-datasets.s3.dualstack.us-west-2.amazonaws.com/cv-corpus-13.0-2023-03-09/cv-corpus-13.0-2023-03-09-${lang}.tar.gz
-
 log() {
     local fname=${BASH_SOURCE[1]##*/}
     echo -e "$(date '+%Y-%m-%dT%H:%M:%S') (${fname}:${BASH_LINENO[0]}:${FUNCNAME[1]}) $*"
@@ -68,9 +64,10 @@ set -o pipefail
 log "data preparation started"
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
-    for lang in langs; do
-    local/download_and_untar.sh ${COMMONVOICE} ${data_url} \
-      cv-corpus-13.0-2023-03-09-${lang}.tar.gz || echo "Prepare $lang fails. Continue ..."
+    for lang in ${langs}; do
+        local/download_commonvoice.sh \
+          "${COMMONVOICE}/cv-corpus-13.0-2023-03-09/${lang}" "${lang}" cv-corpus-13.0-2023-03-09 \
+          || echo "Prepare $lang fails. Continue ..."
     done
 fi
 

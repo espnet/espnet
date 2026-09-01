@@ -35,7 +35,6 @@ dependencies = [
     "PyYAML>=5.1.2",
     "soundfile>=0.10.2",
     "torch_optimizer",
-    "kaldiio>=2.18.0",
     "sentencepiece==0.2.1",
     "librosa>=0.10.2",
     "lightning",
@@ -158,6 +157,33 @@ speechlm = [
   "liger-kernel; sys_platform == 'linux'",
 ]
 
+# Extras for the spoken dialogue system demo (espnet2/sds and
+# egs2/TEMPLATE/sds1). None of these were declared anywhere, so there was no
+# supported way to install that module from the repo.
+sds = [
+  "pydub",
+  "snac",
+  # 0.4.3 is the release the vendored mini-omni code was adapted from, and the
+  # last one without an upper bound on huggingface-hub. Newer litgpt pins
+  # huggingface-hub<1.4, which cannot be satisfied together with gradio's
+  # >=1.16, so leaving this unpinned makes pip quietly downgrade gradio.
+  "litgpt==0.4.3",
+  "openai-whisper",
+  # Prebuilt wheels, unlike the original webrtcvad which needs a compiler.
+  "webrtcvad-wheels",
+  "gradio",
+  "transformers",
+]
+
+# Kaldi ark/scp I/O (kaldiio). Kept out of the default dependencies because
+# the kaldiio license restricts redistribution, which is a problem for software
+# that is publicly distributed; see
+# https://github.com/espnet/espnet/issues/6529.
+# Install this extra only if you need to read/write Kaldi-format features.
+kaldiio = [
+  "kaldiio>=2.18.0",
+]
+
 dev = [
   "black",
   "flake8>=3.7.8",
@@ -180,6 +206,7 @@ test = [
   "black",
   "isort",
   "h5py>=2.10.0",
+  "kaldiio>=2.18.0",
   "gradio",
   "playwright",
 ]
@@ -200,6 +227,7 @@ all = [
   "espnet[spk]",
   "espnet[speechlm]",
   "espnet[egs2]",
+  "espnet[kaldiio]",
   "fairscale",
   "transformers",
   "evaluate",
