@@ -104,8 +104,11 @@ def test_lora_linear_zero_init_is_identity():
 
 
 def test_pissa_init_matches_pretrained():
-    """PiSSA: at init, A·B equals the top-r SVD component of W, so the
-    delta (BA − B0A0)·scaling is zero and the layer equals the base linear."""
+    """PiSSA layer must equal the base linear at init.
+
+    At init ``lora_A/lora_B`` equal the frozen ``A0/B0`` factors, so the
+    delta ``(BA - B0A0) * scaling`` is exactly zero.
+    """
     layer = _make_layer(PiSSALinear)
     x = torch.randn(BATCH, IN_FEATURES)
     y_pissa = layer(x)
