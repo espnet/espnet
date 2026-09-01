@@ -1,6 +1,88 @@
-<div align="left"><img src="doc/image/espnet_logo1.png" width="550"/></div>
+<div align="center">
 
-# ESPnet: end-to-end speech processing toolkit
+<img src="doc/image/espnet_logo1.png" width="440" alt="ESPnet"/>
+
+### End-to-end speech processing toolkit
+
+[![PyPI](https://img.shields.io/pypi/v/espnet?color=%233775A9&logo=pypi&logoColor=white)](https://pypi.org/project/espnet/)
+[![Python](https://img.shields.io/pypi/pyversions/espnet.svg)](https://pypi.org/project/espnet/)
+[![Downloads](https://static.pepy.tech/badge/espnet/month)](https://pepy.tech/project/espnet)
+[![License](https://img.shields.io/github/license/espnet/espnet.svg?color=blue)](./LICENSE)
+[![codecov](https://codecov.io/gh/espnet/espnet/branch/master/graph/badge.svg)](https://codecov.io/gh/espnet/espnet)
+[![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-espnet-yellow)](https://huggingface.co/espnet)
+[![Discord](https://img.shields.io/discord/1174538500360650773?color=%235865F2&label=Discord&logo=discord&logoColor=white)](https://discord.gg/hrCs85gFWM)
+
+**[Documentation](https://espnet.github.io/espnet/)** ·
+**[Installation](https://espnet.github.io/espnet/installation.html)** ·
+**[Recipes](egs2/)** ·
+**[Model Zoo](https://huggingface.co/espnet)** ·
+**[Notebooks](https://github.com/espnet/notebook)** ·
+**[Discord](https://discord.gg/hrCs85gFWM)**
+
+</div>
+
+______________________________________________________________________
+
+ESPnet is an end-to-end speech processing toolkit built on [PyTorch](https://pytorch.org/).
+It covers speech recognition, text-to-speech, speech translation, speech enhancement, speaker
+diarization, spoken language understanding, singing voice synthesis, speech language models, and
+more — with [Kaldi](http://kaldi-asr.org/)-style reproducible recipes from data preparation to
+evaluation, and hundreds of pretrained models on Hugging Face.
+
+## What's new
+
+- **[ESPnet 202604](https://github.com/espnet/espnet/releases/tag/v.202604)** —
+  Docker-based CI, PyTorch 2.9.1 support, FastSpeech2 inference ~1.9x faster
+  at batch 8, new recipes (Kinyarwanda, Emilia, kosp2e).
+- **In development** — ESPnet3 ([`espnet3/`](espnet3), [`egs3/`](egs3)): recipes are
+  Python entry points (`run.py`) configured with OmegaConf / Hydra instead of shell
+  stages. `mini_an4` and `librispeech_100` are already in the tree.
+
+<details>
+<summary>Earlier releases</summary>
+
+- **[ESPnet 202511](https://github.com/espnet/espnet/releases/tag/v.202511)** —
+  parallel-processing primitives, refactored inference and evaluation pipeline,
+  expanded SpeechLM support.
+- **[ESPnet 202509](https://github.com/espnet/espnet/releases/tag/v.202509)** —
+  Python 3.9-3.13, Debian 12 CI, the LID subsystem completed,
+  multi-optimizer training (`HybridOptim` / `HybridLRS`).
+- **[ESPnet 202506](https://github.com/espnet/espnet/releases/tag/v.202506)** —
+  ESPnet3 groundwork (data organizer, trainer, model), LID training and task setup,
+  `codec1` recipes, USES2 speech enhancement, IPAPack++ S2T recipes.
+- **[ESPnet 202503](https://github.com/espnet/espnet/releases/tag/v.202503)** —
+  PyTorch Lightning trainer support, Hugging Face front-end, scaled dot-product
+  attention, ML-SUPERB 2024 recipe.
+
+Full history: [Releases](https://github.com/espnet/espnet/releases).
+
+</details>
+
+## Install
+
+```sh
+# Install PyTorch first: https://pytorch.org/get-started/locally/
+pip install espnet
+```
+
+<details>
+<summary>Other installation options</summary>
+
+```sh
+pip install "espnet[all]"                       # optional dependencies
+pip install git+https://github.com/espnet/espnet  # latest master
+```
+
+- **Full setup** (recipes, DNN training, Kaldi-style tooling): see the
+  [installation guide](https://espnet.github.io/espnet/installation.html).
+- **Docker**: see [`docker/`](docker/) and the [Docker docs](https://espnet.github.io/espnet/docker.html).
+- **Task-specific tools** live in [`tools/installers`](tools/installers).
+- **ESPnet1 is no longer supported** — use ESPnet2 (`egs2/`) or ESPnet3 (`egs3/`). See [the ESPnet1 notice](https://espnet.github.io/espnet/espnet1_tutorial.html).
+
+</details>
+
+<details>
+<summary>Tested environments (CI status)</summary>
 
 |system/pytorch ver.|2.9.1|2.10.0|2.11.0|
 | :---- | :---: | :---: | :---: |
@@ -12,52 +94,106 @@
 |macos/python3.10/pip|[![ci on macos](https://github.com/espnet/espnet/actions/workflows/ci_on_macos.yml/badge.svg)](https://github.com/espnet/espnet/actions/workflows/ci_on_macos.yml?query=branch%3Amaster)|||
 |macos/python3.10/conda|[![ci on macos](https://github.com/espnet/espnet/actions/workflows/ci_on_macos.yml/badge.svg)](https://github.com/espnet/espnet/actions/workflows/ci_on_macos.yml?query=branch%3Amaster)|||
 
-<div align="center">
-
-______________________________________________________________________
-[![PyPI version](https://badge.fury.io/py/espnet.svg)](https://badge.fury.io/py/espnet)
-[![Python Versions](https://img.shields.io/pypi/pyversions/espnet.svg)](https://pypi.org/project/espnet/)
-[![Downloads](https://pepy.tech/badge/espnet)](https://pepy.tech/project/espnet)
-[![GitHub license](https://img.shields.io/github/license/espnet/espnet.svg)](https://github.com/espnet/espnet)
-[![codecov](https://codecov.io/gh/espnet/espnet/branch/master/graph/badge.svg)](https://codecov.io/gh/espnet/espnet)
+[![pre-commit.ci](https://results.pre-commit.ci/badge/github/espnet/espnet/master.svg)](https://results.pre-commit.ci/latest/github/espnet/espnet/master)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Imports: isort](https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat&labelColor=ef8336)](https://pycqa.github.io/isort/)
-[![pre-commit.ci status](https://results.pre-commit.ci/badge/github/espnet/espnet/master.svg)](https://results.pre-commit.ci/latest/github/espnet/espnet/master)
-[![Mergify Status](https://img.shields.io/endpoint.svg?url=https://api.mergify.com/v1/badges/espnet/espnet&style=flat)](https://mergify.com)
-[![Discord](https://img.shields.io/discord/1174538500360650773?color=%239B59B6&label=chat%20on%20discord)](https://discord.gg/hrCs85gFWM)
+[![Mergify](https://img.shields.io/endpoint.svg?url=https://api.mergify.com/v1/badges/espnet/espnet&style=flat)](https://mergify.com)
 
-______________________________________________________________________
+</details>
 
-[**Docs**](https://espnet.github.io/espnet/)
-| [**Example (ESPnet2)**](https://github.com/espnet/espnet/tree/master/egs2)
-| [**Docker**](https://github.com/espnet/espnet/tree/master/docker)
-| [**Notebook**](https://github.com/espnet/notebook)
+## Quick start
 
-</div>
+**Run a pretrained model** — any model from the [ESPnet Hugging Face organization](https://huggingface.co/espnet):
 
-______________________________________________________________________
+```python
+import soundfile as sf
+from espnet2.bin.s2t_inference import Speech2Text
 
-ESPnet is an end-to-end speech processing toolkit covering end-to-end speech recognition, text-to-speech, speech translation, speech enhancement, speaker diarization, spoken language understanding, and so on.
-ESPnet uses [pytorch](http://pytorch.org/) as a deep learning engine and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature extraction/format, and recipes to provide a complete setup for various speech processing experiments.
+# OWSM v4: multilingual ASR, translation, and language ID in one model
+s2t = Speech2Text.from_pretrained("espnet/owsm_v4_small_370M", lang_sym="<eng>", task_sym="<asr>")
+speech, rate = sf.read("audio.wav")  # 16 kHz
+text, *_ = s2t(speech)[0]
+print(text)
+```
 
-## Tutorial Series
-- 2019 Tutorial at Interspeech
-  - [Material](https://github.com/espnet/interspeech2019-tutorial)
-- 2021 Tutorial at CMU
-  - [Online video](https://youtu.be/2mRz3wH1vd0)
-  - [Material](https://colab.research.google.com/github/espnet/notebook/blob/master/ESPnet2/Course/CMU_SpeechRecognition_Fall2021/general_tutorial.ipynb)
-- 2022 Tutorial at CMU
-  - Usage of ESPnet (ASR as an example)
-    - [Online video](https://youtu.be/YDN8cVjxSik)
-    - [Material](https://colab.research.google.com/github/espnet/notebook/blob/master/ESPnet2/Course/CMU_SpeechRecognition_Fall2022/recipe_tutorial.ipynb)
-  - Add new models/tasks to ESPnet
-    - [Online video](https://youtu.be/Css3XAes7SU)
-    - [Material](https://colab.research.google.com/github/espnet/notebook/blob/master/ESPnet2/Course/CMU_SpeechRecognition_Fall2022/new_task_tutorial.ipynb)
+Task-specific entry points follow the same pattern — `espnet2.bin.asr_inference`,
+`tts_inference`, `enh_inference`, `st_inference`, `spk_inference`, and so on.
+
+**Train and evaluate a recipe** — every corpus follows the same interface:
+
+```sh
+cd egs2/librispeech/asr1
+./run.sh                      # full pipeline: data → features → training → scoring
+./run.sh --stage 11 --stop_stage 13   # or run selected stages
+```
+
+New to ESPnet? Start with [`egs2/mini_an4/asr1`](egs2/mini_an4/asr1) — it runs end to end in minutes.
+
+## Supported tasks
+
+| | Task | Template | Highlights |
+| :-- | :-- | :-- | :-- |
+| 🗣️ | **ASR** — speech recognition | [`asr1`](egs2/TEMPLATE/asr1), [`asr2`](egs2/TEMPLATE/asr2) | Hybrid CTC/attention, Transducer, streaming, Conformer / [E-Branchformer](https://arxiv.org/abs/2210.00077), Whisper, SSL front-ends |
+| 🌏 | **S2T** — multilingual multitask | [`s2t1`](egs2/TEMPLATE/s2t1) | [OWSM](https://arxiv.org/abs/2309.13876): open Whisper-style models trained on public data |
+| 🔊 | **TTS** — text-to-speech | [`tts1`](egs2/TEMPLATE/tts1), [`tts2`](egs2/TEMPLATE/tts2) | Tacotron 2, FastSpeech 2, VITS, JETS, multi-speaker / multilingual |
+| 🎤 | **SVS** — singing voice synthesis | [`svs1`](egs2/TEMPLATE/svs1), [`svs2`](egs2/TEMPLATE/svs2) | VISinger 1/2, Xiaoice, DiffSinger; merged from [Muskits](https://github.com/SJTMusicTeam/Muskits) |
+| 🎧 | **SE/SS** — enhancement & separation | [`enh1`](egs2/TEMPLATE/enh1), [`enh_asr1`](egs2/TEMPLATE/enh_asr1) | Unified encoder–separator–decoder, TasNet / DPRNN / beamformers, ASR-integrated |
+| 🌐 | **ST / MT / S2ST** — translation | [`st1`](egs2/TEMPLATE/st1), [`mt1`](egs2/TEMPLATE/mt1), [`s2st1`](egs2/TEMPLATE/s2st1) | End-to-end and cascaded speech translation, speech-to-speech translation |
+| 💬 | **SLU** — language understanding | [`slu1`](egs2/TEMPLATE/slu1) | Intent + transcript multitasking, pretrained ASR/NLP encoders |
+| 👤 | **SPK / LID / DIAR** — speaker & language | [`spk1`](egs2/TEMPLATE/spk1), [`lid1`](egs2/TEMPLATE/lid1), [`diar1`](egs2/TEMPLATE/diar1) | Speaker embeddings, verification, language ID, diarization |
+| 🧠 | **SSL** — self-supervised learning | [`ssl1`](egs2/TEMPLATE/ssl1), [`hubert1`](egs2/TEMPLATE/hubert1) | HuBERT pretraining; [S3PRL](https://github.com/s3prl/s3prl) upstreams as front-ends |
+| 🤖 | **SpeechLM** — speech language models | [`speechlm1`](egs2/TEMPLATE/speechlm1) | Unified sequence modeling across speech and text tasks |
+| 📦 | **Codec** — neural audio codecs | [`codec1`](egs2/TEMPLATE/codec1) | Discrete speech tokens for downstream tasks |
+| ➕ | **More** | [`uasr1`](egs2/TEMPLATE/uasr1), [`cls1`](egs2/TEMPLATE/cls1), [`asvspoof1`](egs2/TEMPLATE/asvspoof1), [`lm1`](egs2/TEMPLATE/lm1), [`sds1`](egs2/TEMPLATE/sds1) | Unsupervised ASR ([EURO](https://arxiv.org/abs/2211.17196)), audio classification, anti-spoofing, LM, spoken dialogue |
+
+Each template ships a corpus-agnostic pipeline; see [`egs2/README.md`](egs2/README.md) for the full list
+of 200+ corpora recipes.
+
+## Why ESPnet
+
+- **Reproducible** — one `run.sh` per corpus, from download to scoring, with published results.
+- **Unified** — the same recipe structure, config format, and trainer across every task above.
+- **Scalable** — DDP, multi-node training, [Slurm](https://slurm.schedmd.com/)/MPI,
+  [DeepSpeed](https://github.com/microsoft/DeepSpeed), sharded training, on-the-fly feature extraction.
+- **Open** — hundreds of pretrained models and demos on
+  [Hugging Face](https://huggingface.co/espnet), plus [W&B](https://espnet.github.io/espnet/espnet2_training_option.html#weights-biases-integration)
+  and TensorBoard logging.
+
+## Demos
+
+| Demo | |
+| :-- | :-- |
+| Real-time ASR | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/ESPnet2/Demo/ASR/asr_realtime_demo.ipynb) |
+| Real-time TTS | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/ESPnet2/Demo/TTS/tts_realtime_demo.ipynb) |
+| Speech enhancement | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1fjRJCh96SoYLZPRxsjF9VDv4Q2VoIckI?usp=sharing) |
+| Streaming enhancement | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/17vd1V78eJpp3PHBnbFE5aVY5uMxQFL6o?usp=sharing) |
+| Hugging Face Spaces | [ASR](https://huggingface.co/spaces/akhaliq/espnet2_asr) · [TTS](https://huggingface.co/spaces/akhaliq/ESPnet2-TTS) |
+
+More notebooks: [espnet/notebook](https://github.com/espnet/notebook).
+
+## Learn
+
+- [Documentation](https://espnet.github.io/espnet/) · [ESPnet2 tutorial](https://espnet.github.io/espnet/espnet2_tutorial.html)
+- Course tutorials at CMU: [usage](https://youtu.be/YDN8cVjxSik) · [adding new models/tasks](https://youtu.be/Css3XAes7SU) ([materials](https://github.com/espnet/notebook))
+- [Interspeech 2019 tutorial](https://github.com/espnet/interspeech2019-tutorial)
+
+## Contributing
+
+Contributions, questions, and feature requests are all welcome — open an
+[issue](https://github.com/espnet/espnet/issues) or a pull request.
+First time here? Read the [contribution guide](CONTRIBUTING.md).
+
+<a href="https://github.com/espnet/espnet/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=espnet/espnet&max=100&columns=25" alt="Contributors"/>
+</a>
+
+## Details
+
+<details>
+<summary><b>Full feature list by task</b></summary>
 
 
-## Key Features
-
-### Kaldi-style complete recipe
+#### Kaldi-style complete recipe
 - Support numbers of `ASR` recipes (WSJ, Switchboard, CHiME-4/5, Librispeech, TED, CSJ, AMI, HKUST, Voxforge, REVERB, Gigaspeech, etc.)
 - Support numbers of `TTS` recipes in a similar manner to the ASR recipe (LJSpeech, LibriTTS, M-AILABS, etc.)
 - Support numbers of `ST` recipes (Fisher-CallHome Spanish, Libri-trans, IWSLT'18, How2, Must-C, Mboshi-French, etc.)
@@ -68,7 +204,7 @@ ESPnet uses [pytorch](http://pytorch.org/) as a deep learning engine and also fo
 - Support speaker diarization recipe (mini_librispeech, librimix)
 - Support singing voice synthesis recipe (ofuton_p_utagoe_db, opencpop, m4singer, etc.)
 
-### ASR: Automatic Speech Recognition
+#### ASR: Automatic Speech Recognition
 - **State-of-the-art performance** in several ASR benchmarks (comparable/superior to hybrid DNN/HMM and CTC)
 - **Hybrid CTC/attention** based end-to-end ASR
   - Fast/accurate training with CTC/attention multitask training
@@ -118,7 +254,7 @@ Demonstration
 - [Gradio](https://github.com/gradio-app/gradio) Web Demo on [Hugging Face Spaces](https://huggingface.co/docs/hub/spaces). Check out the [Web Demo](https://huggingface.co/spaces/akhaliq/espnet2_asr)
 - Streaming Transformer ASR [Local Demo](https://github.com/espnet/notebook/blob/master/ESPnet2/Demo/ASR/streaming_asr_demo.ipynb) with ESPnet2.
 
-### TTS: Text-to-speech
+#### TTS: Text-to-speech
 - Architecture
     - Tacotron2
     - Transformer-TTS
@@ -154,7 +290,7 @@ To train the neural vocoder, please check the following repositories:
 - [kan-bayashi/ParallelWaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN)
 - [r9y9/wavenet_vocoder](https://github.com/r9y9/wavenet_vocoder)
 
-### SE: Speech enhancement (and separation)
+#### SE: Speech enhancement (and separation)
 
 - Single-speaker speech enhancement
 - Multi-speaker speech separation
@@ -169,16 +305,16 @@ Demonstration
 - Interactive SE demo with ESPnet2 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1fjRJCh96SoYLZPRxsjF9VDv4Q2VoIckI?usp=sharing)
 - Streaming SE demo with ESPnet2 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/17vd1V78eJpp3PHBnbFE5aVY5uMxQFL6o?usp=sharing)
 
-### ST: Speech Translation & MT: Machine Translation
+#### ST: Speech Translation & MT: Machine Translation
 - **State-of-the-art performance** in several ST benchmarks (comparable/superior to cascaded ASR and MT)
 - Transformer-based end-to-end ST (new!)
 - Transformer-based end-to-end MT (new!)
 
-### VC: Voice conversion
+#### VC: Voice conversion
 - Transformer and Tacotron2-based parallel VC using Mel spectrogram
 - End-to-end VC based on cascaded ASR+TTS (Baseline system for Voice Conversion Challenge 2020!)
 
-### SLU: Spoken Language Understanding
+#### SLU: Spoken Language Understanding
 - Architecture
     - Transformer-based Encoder
     - Conformer-based Encoder
@@ -209,10 +345,10 @@ Demonstration
 - Integrated to [Hugging Face Spaces](https://huggingface.co/spaces) with [Gradio](https://github.com/gradio-app/gradio). See SLU demo on multiple languages: [![Hugging Face Spaces](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-blue)](https://huggingface.co/spaces/Siddhant/ESPnet2-SLU)
 
 
-### SUM: Speech Summarization
+#### SUM: Speech Summarization
 - End to End Speech Summarization Recipe for Instructional Videos using Restricted Self-Attention [[Sharma et al., 2022]](https://arxiv.org/abs/2110.06263)
 
-### SVS: Singing Voice Synthesis
+#### SVS: Singing Voice Synthesis
 - Framework merge from [Muskits](https://github.com/SJTMusicTeam/Muskits)
 - Architecture
   - RNN-based non-autoregressive model
@@ -228,17 +364,17 @@ Demonstration
   - Jp / En / Kr / Zh
 - Tight integration with neural vocoders (the same as TTS)
 
-### SSL: Self-supervised Learning
+#### SSL: Self-supervised Learning
 - Support HuBERT Pre-training:
   * Example recipe: [egs2/LibriSpeech/ssl1](egs2/LibriSpeech/ssl1)
 
-### UASR: Unsupervised ASR (EURO: ESPnet Unsupervised Recognition - Open-source)
+#### UASR: Unsupervised ASR (EURO: ESPnet Unsupervised Recognition - Open-source)
 - Architecture
   - wav2vec-U (with different self-supervised models)
   - wav2vec-U 2.0 (in progress)
 - Support PrefixBeamSearch and K2-based WFST decoding
 
-### S2T: Speech-to-text with Whisper-style multilingual multitask models
+#### S2T: Speech-to-text with Whisper-style multilingual multitask models
 - Reproduces Whisper-style training from scratch using public data: [OWSM](https://arxiv.org/abs/2309.13876)
 - Supports multiple tasks in a single model
   - Multilingual speech recognition
@@ -246,13 +382,13 @@ Demonstration
   - Language identification
   - Utterance-level timestamp prediction (segmentation)
 
-### DNN Framework
+#### DNN Framework
 - Flexible network architecture thanks to Chainer and PyTorch
 - Flexible front-end processing thanks to [kaldiio](https://github.com/nttcslab-sp/kaldiio) and HDF5 support
 - Tensorboard-based monitoring
 - [DeepSpeed](https://github.com/microsoft/DeepSpeed)-based large-scale training
 
-### ESPnet2
+#### ESPnet2
 See [ESPnet2](https://espnet.github.io/espnet/espnet2_tutorial.html).
 
 - Independent from Kaldi/Chainer, unlike ESPnet1
@@ -265,37 +401,12 @@ See [ESPnet2](https://espnet.github.io/espnet/espnet2_tutorial.html).
 - [ESPnet Model Zoo](https://github.com/espnet/espnet_model_zoo)
 - Integrated with [wandb](https://espnet.github.io/espnet/espnet2_training_option.html#weights-biases-integration)
 
-## Installation
-- If you intend to do full experiments, including DNN training, then see [Installation](https://espnet.github.io/espnet/installation.html).
-- If you just need the Python module only:
-    ```sh
-    # We recommend you install PyTorch before installing espnet following https://pytorch.org/get-started/locally/
-    pip install espnet
-    # To install the latest
-    # pip install git+https://github.com/espnet/espnet
-    # To install additional packages
-    # pip install "espnet[all]"
-    ```
+</details>
 
-    If you use ESPnet1, please install chainer and cupy.
+<details>
+<summary><b>Benchmark results and command-line demos</b></summary>
 
-    ```sh
-    pip install chainer==6.0.0 cupy==6.0.0    # [Option]
-    ```
-
-    You might need to install some packages depending on each task. We prepared various installation scripts at [tools/installers](tools/installers).
-
-- (ESPnet2) Once installed, run `wandb login` and set `--use_wandb true` to enable tracking runs using W&B.
-
-## Docker Container
-
-go to [docker/](docker/) and follow [instructions](https://espnet.github.io/espnet/docker.html).
-
-## Contribution
-Thank you for taking the time for ESPnet! Any contributions to ESPnet are welcome, and feel free to ask any questions or requests to [issues](https://github.com/espnet/espnet/issues).
-If it's your first ESPnet contribution,  please follow the [contribution guide](CONTRIBUTING.md).
-
-### ASR results
+#### ASR results
 
 <details><summary>expand</summary><div>
 
@@ -329,7 +440,7 @@ If you want to check the results of the other recipes, please check `egs/<name_o
 </div></details>
 
 
-### ASR demo
+#### ASR demo
 
 <details><summary>expand</summary><div>
 
@@ -359,7 +470,7 @@ Available pre-trained models in the demo script are listed below.
 
 </div></details>
 
-### SE results
+#### SE results
 <details><summary>expand</summary><div>
 
 We list results from three different models on WSJ0-2mix, which is one the most widely used benchmark dataset for speech separation.
@@ -372,7 +483,7 @@ We list results from three different models on WSJ0-2mix, which is one the most 
 
 </div></details>
 
-### SE demos
+#### SE demos
 <details><summary>expand</summary><div>
 You can try the interactive demo with Google Colab. Please click the following button to get access to the demos.
 
@@ -386,10 +497,9 @@ Speech separation streaming demos:
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/17vd1V78eJpp3PHBnbFE5aVY5uMxQFL6o?usp=sharing)
 
 
-
 </div></details>
 
-### ST results
+#### ST results
 
 <details><summary>expand</summary><div>
 
@@ -419,7 +529,7 @@ If you want to check the results of the other recipes, please check `egs/<name_o
 </div></details>
 
 
-### ST demo
+#### ST demo
 
 <details><summary>expand</summary><div>
 
@@ -452,7 +562,7 @@ Available pre-trained models in the demo script are listed as below.
 </div></details>
 
 
-### MT results
+#### MT results
 
 <details><summary>expand</summary><div>
 
@@ -471,7 +581,7 @@ Available pre-trained models in the demo script are listed as below.
 
 </div></details>
 
-### TTS results
+#### TTS results
 
 <details><summary>ESPnet2</summary><div>
 
@@ -545,7 +655,7 @@ If you want to use the above pre-trained vocoders, please exactly match the feat
 
 </div></details>
 
-### TTS demo
+#### TTS demo
 
 <details><summary>ESPnet2</summary><div>
 
@@ -607,7 +717,7 @@ synth_wav.sh --help
 
 </div></details>
 
-### VC results
+#### VC results
 
 <details><summary>expand</summary><div>
 
@@ -623,7 +733,7 @@ You can download converted samples of the cascade ASR+TTS baseline system [here]
 
 </div></details>
 
-### SLU results
+#### SLU results
 
 <details><summary>expand</summary><div>
 
@@ -653,10 +763,9 @@ We list the performance on various SLU tasks and datasets using the metric repor
 If you want to check the results of the other recipes, please check `egs2/<name_of_recipe>/asr1/RESULTS.md`.
 
 
-
 </div></details>
 
-### CTC Segmentation demo
+#### CTC Segmentation demo
 
 <details><summary>ESPnet1</summary><div>
 
@@ -809,9 +918,13 @@ Also, we can use this tool to provide token-level segmentation information if we
 
 </div></details>
 
-## Citations
+</details>
 
-```
+## Citation
+
+If you use ESPnet in your research, please cite the main paper:
+
+```bibtex
 @inproceedings{watanabe2018espnet,
   author={Shinji Watanabe and Takaaki Hori and Shigeki Karita and Tomoki Hayashi and Jiro Nishitoba and Yuya Unno and Nelson {Enrique Yalta Soplin} and Jahn Heymann and Matthew Wiesner and Nanxin Chen and Adithya Renduchintala and Tsubasa Ochiai},
   title={{ESPnet}: End-to-End Speech Processing Toolkit},
@@ -821,6 +934,12 @@ Also, we can use this tool to provide token-level segmentation information if we
   doi={10.21437/Interspeech.2018-1456},
   url={http://dx.doi.org/10.21437/Interspeech.2018-1456}
 }
+```
+
+<details>
+<summary>Task-specific papers (TTS, ST, SE, SLU, SVS, UASR, S2T, SUM, SPK)</summary>
+
+```bibtex
 @inproceedings{hayashi2020espnet,
   title={{Espnet-TTS}: Unified, reproducible, and integratable open source end-to-end text-to-speech toolkit},
   author={Hayashi, Tomoki and Yamamoto, Ryuichi and Inoue, Katsuki and Yoshimura, Takenori and Watanabe, Shinji and Toda, Tomoki and Takeda, Kazuya and Zhang, Yu and Tan, Xu},
@@ -936,5 +1055,12 @@ Also, we can use this tool to provide token-level segmentation information if we
     publisher = "Association for Computational Linguistics",
     pages = "400--411",
 }
-
 ```
+
+</details>
+
+______________________________________________________________________
+
+<div align="center">
+Released under the <a href="./LICENSE">Apache 2.0 License</a>.
+</div>

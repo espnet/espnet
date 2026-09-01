@@ -6,7 +6,6 @@ from pathlib import Path
 from typing import Optional, Tuple
 
 import humanfriendly
-import kaldiio
 import numpy as np
 
 try:
@@ -21,6 +20,7 @@ from espnet2.fileio.read_text import read_2columns_text
 from espnet2.fileio.sound_scp import SoundScpWriter, soundfile_read
 from espnet2.fileio.vad_scp import VADScpReader
 from espnet2.legacy.utils.cli_utils import get_commandline_args
+from espnet2.utils.kaldiio_utils import import_kaldiio
 from espnet2.utils.types import str2bool
 
 
@@ -118,7 +118,7 @@ class SegmentsExtractor:
                             "Not supporting multi_columns wav.scp for inputs by pipe"
                         )
                     # Streaming input e.g. cat a.wav |
-                    with kaldiio.open_like_kaldi(wavpath, "rb") as f:
+                    with import_kaldiio().open_like_kaldi(wavpath, "rb") as f:
                         with BytesIO(f.read()) as g:
                             array, rate = soundfile.read(g)
 
@@ -269,7 +269,7 @@ def main():
                                 " pipe"
                             )
                         # Streaming input e.g. cat a.wav |
-                        with kaldiio.open_like_kaldi(wavpath, "rb") as f:
+                        with import_kaldiio().open_like_kaldi(wavpath, "rb") as f:
                             with BytesIO(f.read()) as g:
                                 wave, rate = soundfile.read(g)
                         subtypes = None
@@ -371,7 +371,7 @@ def main():
 
                 # NOTE(kamo): Using extended ark format style here.
                 # This format is incompatible with Kaldi
-                kaldiio.save_ark(
+                import_kaldiio().save_ark(
                     fark,
                     {uttid: (wave, rate)},
                     scp=fscp_out,

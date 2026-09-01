@@ -6,9 +6,52 @@ on:
       - master
       - espnet3
   pull_request:
+    # ready_for_review is required: jobs are skipped on draft PRs, so the
+    # gate below must get a fresh run once the PR leaves draft.
+    types: [opened, synchronize, reopened, ready_for_review]
     branches:
       - master
       - espnet3
+
+# One run per pull request, and one per branch otherwise: a newer run cancels
+# the superseded one.
+#
+# Non-PR events used to key the group on github.sha, so that every push to
+# master got its own group and nothing could cancel a master verification. That
+# was an overcorrection. Merging six PRs in an afternoon left five full master
+# runs alive at once - about 330 queued jobs against a 60-runner cap - which
+# starved the pull request runs that actually gate merges, mine and everyone
+# else's.
+#
+# master is linear, so the newest run verifies a superset of what the older ones
+# were verifying, and cancelling them loses coverage of nothing. What it does
+# lose is per-commit attribution: if a batch of merges goes red together, the
+# surviving run says the batch is broken but not which merge did it. Re-run the
+# workflow at the specific commit to find out - cheaper than paying for five
+# parallel runs on every busy day.
+#
+# Note this is not the stale-merge problem: that was a pull request's own CI
+# having run against an old master, which is about when a PR is merged, not
+# about master verifications cancelling each other.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+# The default on this repository is almost entirely write - a job's GITHUB_TOKEN
+# reports Contents: write, Actions: write, PullRequests: write, Packages: write
+# and more. This job checks out a pull request's code and runs it, next to
+# third-party actions, and writes nothing.
+#
+#   contents       checkout, and actions/cache
+#   pull-requests  joerick/pr-labels-action
+#
+# No packages: read here - unlike ci_on_ubuntu.yml these pull no GHCR image
+# (ci_on_debian12.yml's debian:12 comes from Docker Hub, which does not use
+# GITHUB_TOKEN). No id-token either: it is not granted today and nothing here
+# uploads to codecov. See #6583, which did the same for ci_on_ubuntu.yml.
+permissions:
+  contents: read
+  pull-requests: read
 
 env:
   NLTK_DISABLE_IMPORT_SECURITY: "1"
@@ -18,29 +61,34 @@ jobs:
     runs-on: macOS-latest
     if: github.event.pull_request.draft == false
     strategy:
+      fail-fast: false
       matrix:
         python-version: ["3.10"]
         pytorch-version: [2.9.1]
         use-conda: [true, false]
     steps:
-      - uses: actions/checkout@master
+      # See ci_on_ubuntu.yml: the default persists GITHUB_TOKEN in .git/config.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
       - name: Install FFmpeg
         uses: ./.github/actions/install-ffmpeg
-      - uses: actions/cache@v6
+      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
-      - uses: actions/setup-python@v7
+          restore-keys: |
+            ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
           python-version: ${{ matrix.python-version }}
       - name: Get PR labels
         id: pr-labels
-        uses: joerick/pr-labels-action@v1.0.9
+        uses: joerick/pr-labels-action@0543b277721e852d821c6738d449f2f4dea03d5f # v1.0.9
       - name: install espnet
         env:
           ESPNET_PYTHON_VERSION: ${{ matrix.python-version }}
           TH_VERSION: ${{ matrix.pytorch-version }}
-          CHAINER_VERSION: 6.0.0
           USE_CONDA: ${{ matrix.use-conda }}
           # FIXME(kamo): clang is used by default, but I don't know how to use "-fopenmp" with clang
           WITH_OMP: OFF
@@ -51,3 +99,36 @@ jobs:
           HF_TOKEN: ${{ secrets.HF_CI_TOKEN }}
         run: |
           ./ci/install_macos.sh
+
+  # Single stable status check that aggregates every job in this workflow.
+  # Register THIS job as the required status check instead of the individual
+  # matrix jobs, whose names change whenever the matrix changes.
+      # Only pushes write caches. Pull request runs restore and never save, so a
+      # miss on a PR branch cannot add another per-ref copy of the same entry.
+      - name: Save pip cache
+        if: github.event_name == 'push'
+        continue-on-error: true
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
+
+  ci_gate_macos:
+    if: always()
+    needs:
+      - check_installable_on_macos
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail unless every job succeeded
+        if: >-
+          contains(needs.*.result, 'failure')
+          || contains(needs.*.result, 'cancelled')
+          || contains(needs.*.result, 'skipped')
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+        run: |
+          echo "At least one job did not succeed:"
+          echo "$NEEDS_JSON"
+          exit 1
+      - name: All jobs succeeded
+        run: echo "All jobs in this workflow succeeded."
