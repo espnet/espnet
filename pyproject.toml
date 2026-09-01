@@ -32,6 +32,10 @@ dependencies = [
     "numpy>=2.0.0",
     "PyYAML>=5.1.2",
     "soundfile>=0.10.2",
+    # Imported directly by espnet2/asr/encoder/{hubert,avhubert,wav2vec2}_encoder.py.
+    # It arrives through torch today, which is why nothing has broken; tools/setup.py
+    # was the only file that declared it, and that file is deleted in this commit.
+    "filelock",
     "torch_optimizer",
     "sentencepiece==0.2.1",
     "librosa>=0.10.2",
