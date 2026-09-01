@@ -251,22 +251,17 @@ def test_Speech2Text_batch_decode_rtf_log_contract(asr_config_file_transformer, 
     with caplog.at_level(logging.INFO):
         batched.batch_decode(padded, torch.tensor(lengths))
 
-    marker = "speech length"
-    starts = [
-        r.getMessage()
-        for r in caplog.records
-        if r.levelname == "INFO" and marker in r.getMessage()
-    ]
-    ends = [
-        r.getMessage()
-        for r in caplog.records
-        if r.levelname == "INFO" and "best hypo" in r.getMessage()
-    ]
+    # calculate_rtf.py matches "INFO: " immediately followed by the marker,
+    # against the formatted line, so reproduce that exactly. A prefix inserted
+    # between the level and the marker is enough to break it.
+    lines = [f"{r.levelname}: {r.getMessage()}" for r in caplog.records]
+    starts = [ln for ln in lines if "INFO: speech length" in ln]
+    ends = [ln for ln in lines if "INFO: best hypo" in ln]
     assert len(starts) == len(lengths), starts
-    assert len(ends) == len(lengths), ends
+    assert len(ends) == len(lengths), [ln for ln in lines if "best hypo" in ln]
     # each start line must parse the way calculate_rtf.py parses it
     for line in starts:
-        int(line.split(marker + ": ")[1])
+        int(line.split("speech length: ")[1])
 
 
 @pytest.fixture()

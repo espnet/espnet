@@ -1049,9 +1049,14 @@ class BatchBeamSearch(BeamSearch):
         )
         logger.info(f"{tag}total number of ended hypotheses: {len(nbest)}")
         if self.token_list is not None:
+            # NOTE: `pyscripts/utils/calculate_rtf.py` looks for "INFO: " with
+            # "best hypo" immediately after it, so the utterance goes at the
+            # end. Anything inserted before the marker silently breaks the RTF
+            # report that asr.sh stage 12 produces.
             logger.info(
-                f"{tag}best hypo: "
+                "best hypo: "
                 + "".join([self.token_list[x] for x in best.yseq[1:-1]])
+                + ("" if b is None else f" ({tag.rstrip(': ')})")
                 + "\n"
             )
         if best.yseq[1:-1].shape[0] == maxlen:
