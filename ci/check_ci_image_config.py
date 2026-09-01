@@ -32,7 +32,17 @@ down - it did, with 72 tests failing on 429. For a long time only the install
 steps had the token, which is invisible in review because the tests pass
 whenever the fleet happens to be under the limit.
 
-And fifth, the workflow files must have no duplicate mapping keys. PyYAML
+Fifth, any third-party action handed a secret must be pinned to a commit SHA.
+Not every action - that is a bigger argument - but the ones that receive a
+secret, because a mutable ref there means whoever can move the tag can read the
+secret. This is not hypothetical: anthropics/claude-code-action@v1 moved between
+two resolutions a few hours apart while this check was being written.
+
+Sixth, every codecov upload must pass CODECOV_TOKEN. Without it the upload is
+tokenless, which codecov rate limits by IP, and this workflow sends one per job.
+The secret has existed since 2024 and was passed to nothing.
+
+And seventh, the workflow files must have no duplicate mapping keys. PyYAML
 accepts them and lets the last one win, so writing a second env: block into a
 step silently discards the first - which is exactly what nearly dropped
 GITHUB_TOKEN from the two steps that need it for torch.hub.
@@ -234,13 +244,97 @@ def check_hf_token() -> list:
                 # test_import_all.py only imports modules; it reaches no network
                 if "ci/test_" not in run or "test_import_all" in run:
                     continue
+                # Both spellings are in use: HF_CI_TOKEN everywhere except the
+                # publication job, which has its own HF_TOKEN secret.
                 step_env = step.get("env") or {}
-                if "HF_TOKEN" in step_env or "HF_TOKEN" in job_env:
+                value = step_env.get("HF_TOKEN", job_env.get("HF_TOKEN"))
+                if secret_ref(value, "HF_CI_TOKEN", "HF_TOKEN"):
                     continue
                 label = step.get("name") or run.strip().split("\n")[0]
                 problems.append(
                     f"{path.name}: {name}: step {label!r} runs a test script "
-                    "without HF_TOKEN in scope"
+                    "without HF_TOKEN set to a secret"
+                )
+    return problems
+
+
+SHA = re.compile(r"[0-9a-f]{40}")
+SECRET = re.compile(r"\$\{\{\s*secrets\.([A-Za-z_][A-Za-z0-9_]*)\s*\}\}")
+
+
+def secret_ref(value, *names) -> bool:
+    """True when value is a ${{ secrets.NAME }} expression for one of names.
+
+    Testing that the key is merely present is not enough. An empty string, a
+    null, or a misspelled secret all leave the job with no token while the key
+    is there, and the run then reports success while the upload is anonymous.
+    """
+    if not isinstance(value, str):
+        return False
+    match = SECRET.fullmatch(value.strip())
+    return bool(match) and match.group(1) in names
+
+
+def check_secret_actions_pinned() -> list:
+    """Any third-party action receiving a secret must be pinned to a SHA.
+
+    A tag can be moved by whoever controls the action's repository, so a secret
+    passed to a mutable ref is readable by whatever that ref points at next.
+    """
+    problems = []
+    for path in _workflows():
+        try:
+            data = yaml.safe_load(path.read_text())
+        except yaml.YAMLError:
+            continue  # check_no_duplicate_keys reports the parse failure
+        for name, job in (data or {}).get("jobs", {}).items():
+            if not isinstance(job, dict):
+                continue
+            for step in job.get("steps") or []:
+                if not isinstance(step, dict):
+                    continue
+                uses = str(step.get("uses") or "")
+                # local composite actions carry no ref and cannot be moved
+                if "/" not in uses or "@" not in uses or uses.startswith("./"):
+                    continue
+                passed = json.dumps({"with": step.get("with"), "env": step.get("env")})
+                if "secrets." not in passed:
+                    continue
+                if SHA.fullmatch(uses.rsplit("@", 1)[1]):
+                    continue
+                problems.append(
+                    f"{path.name}: {name}: {uses} receives a secret but is not "
+                    "pinned to a commit SHA"
+                )
+    return problems
+
+
+def check_codecov_token() -> list:
+    """Every codecov-action step must pass the token.
+
+    Tokenless uploads are rate limited by IP, and nothing fails when one is
+    dropped - the coverage just quietly does not arrive.
+    """
+    problems = []
+    for path in _workflows():
+        try:
+            data = yaml.safe_load(path.read_text())
+        except yaml.YAMLError:
+            continue  # check_no_duplicate_keys reports the parse failure
+        for name, job in (data or {}).get("jobs", {}).items():
+            if not isinstance(job, dict):
+                continue
+            for step in job.get("steps") or []:
+                if not isinstance(step, dict):
+                    continue
+                if "codecov/codecov-action" not in str(step.get("uses") or ""):
+                    continue
+                token = (step.get("with") or {}).get("token")
+                if secret_ref(token, "CODECOV_TOKEN"):
+                    continue
+                problems.append(
+                    f"{path.name}: {name}: codecov upload without "
+                    "token: ${{ secrets.CODECOV_TOKEN }}"
                 )
     return problems
 
@@ -252,6 +346,8 @@ def main() -> int:
         + check_configuration_tasks()
         + check_no_duplicate_keys()
         + check_hf_token()
+        + check_secret_actions_pinned()
+        + check_codecov_token()
     )
     for problem in bad:
         print(problem, file=sys.stderr)
@@ -261,7 +357,8 @@ def main() -> int:
             f"hash inputs agree ({len(build)} entries); every job matrix is a "
             "built variant; integration and configuration tasks match their "
             "scripts; every shard set is complete; every test step has "
-            "HF_TOKEN; no duplicate keys"
+            "HF_TOKEN; every action given a secret is pinned; every codecov "
+            "upload has a token; no duplicate keys"
         )
         return 0
     if bad:
