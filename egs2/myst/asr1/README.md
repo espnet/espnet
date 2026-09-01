@@ -65,8 +65,8 @@ directory (see the comments inside the yamls).
 
 Configuration: `conf/tuning/peft_tuning_owsm_ssvd.yaml`, 15 epochs, 1 GPU.
 
-## Environments
-- date: `Sun Aug 31 22:24:49 CEST 2026`
+## Environments (current espnet master)
+- date: `Mon Aug 31 22:24:49 CEST 2026`
 - python version: `3.10.21 | packaged by conda-forge`
 - espnet version: `espnet 202604`
 - pytorch version: `pytorch 2.7.1`
@@ -93,7 +93,7 @@ Configuration: `conf/tuning/peft_tuning_owsm_ssvd.yaml`, 15 epochs, 1 GPU.
 
 Model: https://huggingface.co/wangpuupup/myst_peft_tuning_owsm_ssvd
 
-## Environments
+## Environments (202503 reference run)
 - date: `Wed May  6 00:29:18 EDT 2026`
 - python version: `3.10.13 | packaged by conda-forge | (main, Dec 23 2023, 15:36:39) [GCC 12.3.0]`
 - espnet version: `espnet 202503`
@@ -152,10 +152,8 @@ Model: https://huggingface.co/espnet/myst_wavlm_aed_transformer
 
 
 # References
-[1] Pradhan, Sameer, Ronald Cole, and Wayne Ward. "My Science Tutor (MyST)–a Large Corpus of Children’s Conversational Speech." Proceedings of the 2024 Joint International Conference on Computational Linguistics, Language Resources and Evaluation (LREC-COLING 2024). 2024.
-# References
 
-[1] Pradhan, Sameer, Ronald Cole, and Wayne Ward. "My Science Tutor (MyST)--a Large Corpus of Children's Conversational Speech." LREC-COLING 2024.
+[1] Pradhan, Sameer, Ronald Cole, and Wayne Ward. "My Science Tutor (MyST)--a Large Corpus of Children's Conversational Speech." Proceedings of the 2024 Joint International Conference on Computational Linguistics, Language Resources and Evaluation (LREC-COLING 2024). 2024.
 
 [2] Wang, Pu, Shinji Watanabe, and Hugo Van Hamme. "SSVD: Structured SVD for Parameter-Efficient Fine-Tuning and Benchmarking under Domain Shift in ASR," ASRU 2025, doi: 10.1109/ASRU65441.2025.11434624.
 

@@ -5,11 +5,8 @@ they do not get skipped when ``transformers`` / ``s3prl`` are unavailable
 (those packages are needed by the Houlsby tests, not by LoRA backends).
 """
 
-import sys
-
 import pytest
 import torch
-from packaging.version import parse as V
 
 from espnet2.asr.decoder.transformer_decoder import TransformerDecoder
 from espnet2.layers.create_adapter_fn import create_lora_adapter
@@ -18,9 +15,6 @@ from espnet2.layers.lora import (
 )
 from espnet2.layers.lora import Linear as LoraLinear
 from espnet2.layers.lora import PiSSALinear, SSVDLinear, SVFTLinear
-
-is_python_3_8_plus = sys.version_info >= (3, 8)
-is_torch_2_6_plus = V(torch.__version__) >= V("2.6.0")
 
 
 def init_decoder_model():
@@ -34,9 +28,6 @@ def init_decoder_model():
     )
 
 
-@pytest.mark.skipif(
-    not is_torch_2_6_plus or not is_python_3_8_plus, reason="Not supported"
-)
 @pytest.mark.parametrize(
     "adapter_type, expected_cls, extra_kwargs",
     [
@@ -70,9 +61,6 @@ def test_create_lora_adapter_backend_dispatch(adapter_type, expected_cls, extra_
     ), f"{adapter_type}: no adapter parameter is trainable: {trainable}"
 
 
-@pytest.mark.skipif(
-    not is_torch_2_6_plus or not is_python_3_8_plus, reason="Not supported"
-)
 def test_create_lora_adapter_unknown_backend_raises():
     model = init_decoder_model()
     with pytest.raises(ValueError, match="Unsupported adapter_type"):
@@ -85,9 +73,6 @@ def test_create_lora_adapter_unknown_backend_raises():
         )
 
 
-@pytest.mark.skipif(
-    not is_torch_2_6_plus or not is_python_3_8_plus, reason="Not supported"
-)
 def test_create_lora_adapter_ssvd_forwards_rotation_ratio():
     model = init_decoder_model()
     create_lora_adapter(

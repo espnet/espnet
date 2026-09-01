@@ -79,20 +79,28 @@ def test_lora_state_dict_unknown_bias_raises():
 
 
 def test_state_dict_roundtrip_lora_only():
-    """Re-applying a saved LoRA state dict should not change the model output."""
+    """Re-applying a saved LoRA state dict should restore the model output."""
     torch.manual_seed(0)
     model = _build_model()
     mark_only_lora_as_trainable(model, bias="none")
-    model.eval()
+    # Stay unmerged (train mode) and give the adapters a nonzero contribution
+    # so a failed restore is observable in the output.
+    with torch.no_grad():
+        for name, p in model.named_parameters():
+            if "lora_B" in name:
+                p.normal_()
     x = torch.randn(2, 8)
     before = model(x)
 
-    sd = lora_state_dict(model, bias="none")
-    # Zero out lora params then reload.
+    # Clone the saved tensors: state_dict() holds references, so zeroing the
+    # parameters below would otherwise also zero the "saved" values.
+    sd = {k: v.detach().clone() for k, v in lora_state_dict(model, bias="none").items()}
     with torch.no_grad():
         for _, p in model.named_parameters():
             if p.requires_grad:
                 p.zero_()
+    zeroed = model(x)
+    assert not torch.allclose(before, zeroed, atol=1e-6), "adapters had no effect"
     model.load_state_dict(sd, strict=False)
     after = model(x)
     assert torch.allclose(before, after, atol=1e-6)

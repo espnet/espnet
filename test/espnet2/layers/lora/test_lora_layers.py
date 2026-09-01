@@ -201,3 +201,40 @@ def test_embedding_forward_shape_and_freeze():
     idx = torch.tensor([[0, 1, 2], [3, 4, 5]])
     out = emb(idx)
     assert out.shape == (2, 3, 8)
+
+
+@pytest.mark.parametrize("name,cls", sorted(LINEAR_BACKENDS.items()))
+def test_backend_eval_before_forward_keeps_weight(name, cls):
+    """eval() before any forward must not disturb the (pretrained) weight.
+
+    create_lora_adapter calls model.eval() right after module replacement,
+    before checkpoints are loaded; backends with lazily initialized factors
+    must not merge from uninitialized state.
+    """
+    layer = _make_layer(cls)
+    w0 = layer.weight.detach().clone()
+    layer.eval()
+    assert torch.allclose(layer.weight, w0), f"{name}: eval() changed the weight"
+    layer.train()
+    assert torch.allclose(layer.weight, w0), f"{name}: train() changed the weight"
+
+
+@pytest.mark.parametrize("name,cls", sorted(LINEAR_BACKENDS.items()))
+def test_backend_train_eval_merge_round_trip(name, cls):
+    """Merged (eval) and unmerged (train) paths must produce the same output."""
+    torch.manual_seed(0)
+    layer = _make_layer(cls)
+    x = torch.randn(BATCH, IN_FEATURES)
+    y_train = layer(x)
+
+    layer.eval()
+    y_eval = layer(x)
+    assert torch.allclose(
+        y_train, y_eval, atol=1e-4
+    ), f"{name}: merge changed the output"
+
+    layer.train()
+    y_train2 = layer(x)
+    assert torch.allclose(
+        y_train2, y_eval, atol=1e-4
+    ), f"{name}: unmerge changed the output"

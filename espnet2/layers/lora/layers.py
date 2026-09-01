@@ -245,7 +245,11 @@ class DoraLinear(nn.Linear, LoRALayer):
                 # leaving self.weight.data unchanged returns to train mode.
                 self.merged = False
         else:
-            if self.merge_weights and not self.merged:
+            # Merging needs the magnitude vector from apply_m(), which is
+            # initialized lazily on the first forward (so it captures the
+            # pretrained weight, not the constructor placeholder). Skip the
+            # merge until then; forward computes the unmerged path anyway.
+            if self.merge_weights and not self.merged and self.m_initialized:
                 new_weight_v = self.weight + (self.lora_B @ self.lora_A) * self.scaling
                 norm_scale = (
                     self.weight_m_wdecomp.transpose(0, 1).view(-1)
@@ -473,7 +477,15 @@ class SVFTLinear(nn.Linear, LoRALayer):
             if self.merge_weights and self.merged:
                 self.merged = False
         else:
-            if self.merge_weights and not self.merged:
+            # Merging needs u/s_pre/v from apply_svd(), which is initialized
+            # lazily on the first forward (so it factorizes the pretrained
+            # weight, not the constructor placeholder). Skip the merge until
+            # then; forward computes the unmerged path anyway.
+            if (
+                self.merge_weights
+                and not self.merged
+                and bool(self.svd_initialized)
+            ):
                 M = self.construct_M() * torch.sigmoid(self.gate)
                 self.weight.data = T(self.u @ (torch.diag(self.s_pre) + M) @ self.v)
                 self.merged = True
@@ -623,7 +635,15 @@ class SSVDLinear(nn.Linear, LoRALayer):
             if self.merge_weights and self.merged:
                 self.merged = False
         else:
-            if self.merge_weights and not self.merged:
+            # Merging needs u/s_pre/v from apply_svd(), which is initialized
+            # lazily on the first forward (so it factorizes the pretrained
+            # weight, not the constructor placeholder). Skip the merge until
+            # then; forward computes the unmerged path anyway.
+            if (
+                self.merge_weights
+                and not self.merged
+                and bool(self.svd_initialized)
+            ):
                 sigma = self.get_sigma()
                 if self.out_features >= self.in_features:
                     self.weight.data = T(
