@@ -38,7 +38,10 @@ jobs:
     if: github.event.pull_request.draft == false
     steps:
       - name: Checkout
+      # See ci_on_ubuntu.yml: the default persists GITHUB_TOKEN in .git/config.
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
       - name: Build draft PDF
         uses: openjournals/openjournals-draft-action@85a18372e48f551d8af9ddb7a747de685fbbb01c # master
         with:

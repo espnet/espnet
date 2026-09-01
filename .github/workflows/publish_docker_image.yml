@@ -24,7 +24,10 @@ jobs:
             image_tag: espnet/espnet:gpu-latest
             cuda_arg: "--build-arg CUDA_VER=11.1"
     steps:
+      # See ci_on_ubuntu.yml: the default persists GITHUB_TOKEN in .git/config.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # v4

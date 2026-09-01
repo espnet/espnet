@@ -69,7 +69,10 @@ jobs:
         # To avoid UnicodeEncodeError for python<=3.6
         LC_ALL: en_US.UTF-8
     steps:
+      # See ci_on_ubuntu.yml: the default persists GITHUB_TOKEN in .git/config.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
       - name: check OS
         run: cat /etc/os-release
       - name: install dependencies

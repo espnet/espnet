@@ -60,7 +60,10 @@ jobs:
       github.event_name != 'pull_request' ||
         (github.event.pull_request.draft == false && needs.get_labels.outputs.is_doc == 'true')
     steps:
+      # See ci_on_ubuntu.yml: the default persists GITHUB_TOKEN in .git/config.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ~/.cache/pip

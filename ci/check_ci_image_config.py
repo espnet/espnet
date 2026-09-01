@@ -237,8 +237,11 @@ def _steps(data) -> list:
 
 
 def check_no_duplicate_keys() -> list:
+    # _action_files(), not _workflows(): check_actions_pinned reads the composite
+    # actions too, and its `continue` on a parse failure would swallow the error
+    # unless something else reports it. That something is this.
     problems = []
-    for path in _workflows():
+    for path in _action_files():
         try:
             yaml.load(path.read_text(), Loader=_NoDuplicates)
         except yaml.YAMLError as error:
@@ -325,6 +328,43 @@ def check_actions_pinned() -> list:
     return problems
 
 
+def check_checkout_credentials() -> list:
+    """actions/checkout must not leave GITHUB_TOKEN in .git/config.
+
+    The default writes it there, and these jobs then run checked-out pull
+    request code. Nothing here needs it: .github/ contains no git push, commit,
+    tag or submodule, and peaceiris/actions-gh-pages takes its github_token as
+    an explicit input.
+
+    Exempt: a job holding contents: write, which is how a job that is meant to
+    push says so. claude.yml is the only one, and its whole purpose is to commit.
+    """
+    problems = []
+    for path in _action_files():
+        try:
+            data = yaml.safe_load(path.read_text())
+        except yaml.YAMLError:
+            continue  # check_no_duplicate_keys reports the parse failure
+        jobs = (data or {}).get("jobs", {})
+        for name, job in jobs.items():
+            if not isinstance(job, dict):
+                continue
+            if (job.get("permissions") or {}).get("contents") == "write":
+                continue
+            for step in job.get("steps") or []:
+                if not isinstance(step, dict):
+                    continue
+                if "actions/checkout@" not in str(step.get("uses") or ""):
+                    continue
+                if (step.get("with") or {}).get("persist-credentials") is False:
+                    continue
+                problems.append(
+                    f"{path.name}: {name}: checkout without "
+                    "persist-credentials: false"
+                )
+    return problems
+
+
 def check_codecov_token() -> list:
     """Every codecov-action step must pass the token.
 
@@ -363,6 +403,7 @@ def main() -> int:
         + check_no_duplicate_keys()
         + check_hf_token()
         + check_actions_pinned()
+        + check_checkout_credentials()
         + check_codecov_token()
     )
     for problem in bad:
@@ -373,7 +414,8 @@ def main() -> int:
             f"hash inputs agree ({len(build)} entries); every job matrix is a "
             "built variant; integration and configuration tasks match their "
             "scripts; every shard set is complete; every test step has "
-            "HF_TOKEN; every action is pinned to a SHA; every codecov "
+            "HF_TOKEN; every third-party action is pinned to a SHA; "
+            "every checkout drops its credentials; every codecov "
             "upload has a token; no duplicate keys"
         )
         return 0

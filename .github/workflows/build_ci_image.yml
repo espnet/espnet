@@ -56,7 +56,6 @@ concurrency:
 
 permissions:
   contents: read
-  packages: write
 
 jobs:
   # The grid lives in ci/image_variants.json so that this workflow, the probe
@@ -67,12 +66,19 @@ jobs:
     outputs:
       matrix: ${{ steps.v.outputs.matrix }}
     steps:
+      # See ci_on_ubuntu.yml: the default persists GITHUB_TOKEN in .git/config.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
       - run: python3 ci/check_ci_image_config.py
       - id: v
         run: echo "matrix=$(python3 ci/image_variants.py matrix)" >> "$GITHUB_OUTPUT"
 
   build:
+    # Only this job touches GHCR; variants just reads ci/image_variants.json.
+    permissions:
+      contents: read
+      packages: write
     runs-on: ubuntu-latest
     needs: variants
     strategy:
@@ -84,6 +90,8 @@ jobs:
       matrix: ${{ fromJSON(needs.variants.outputs.matrix) }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
 
       - name: Free disk space
         run: |

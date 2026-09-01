@@ -135,7 +135,20 @@ jobs:
       matrix: ${{ steps.variants.outputs.matrix }}
       integration_matrix: ${{ steps.integration.outputs.matrix }}
     steps:
+      # actions/checkout defaults persist-credentials to true, which writes
+      # GITHUB_TOKEN into .git/config. Every job here then runs checked-out code,
+      # so that token is readable by whatever a pull request puts in the tree.
+      # Nothing in this repository needs it: there is no git push, commit, tag or
+      # submodule anywhere in .github/, and peaceiris/actions-gh-pages takes its
+      # github_token as an explicit input rather than reading .git/config.
+      #
+      # claude.yml is the one exemption and keeps the default: its job holds
+      # contents: write precisely so the action can commit. That is the rule
+      # ci/check_ci_image_config.py enforces - persist-credentials: false unless
+      # the job is allowed to write contents.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
       # The list below is duplicated in build_ci_image.yml and the two must
       # match exactly, or the image is published under one tag and requested
       # under another. Checked rather than trusted.
@@ -211,6 +224,8 @@ jobs:
         password: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
 
       # Still needed: the image has the s3prl package, but the checkpoint is
       # fetched at test-collection time and is not baked in.
@@ -311,6 +326,8 @@ jobs:
         password: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
       # Fast path: everything is in the image already.
       - uses: ./.github/actions/use-prebuilt-environment
         if: needs.resolve_ci_image.outputs.available == 'true'
@@ -369,6 +386,8 @@ jobs:
         password: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
       # Fast path: everything is in the image already.
       - uses: ./.github/actions/use-prebuilt-environment
         if: needs.resolve_ci_image.outputs.available == 'true'
@@ -406,6 +425,8 @@ jobs:
         password: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
 
       # The image has the s3prl package but not the checkpoint, which is still
       # fetched during test collection.
@@ -481,6 +502,8 @@ jobs:
         password: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
       # The image has the s3prl package but not the checkpoints these configs
       # build frontends from.
       - name: Cache s3prl pretrained checkpoints
@@ -535,6 +558,8 @@ jobs:
         password: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
       # Fast path: everything is in the image already.
       - uses: ./.github/actions/use-prebuilt-environment
         if: needs.resolve_ci_image.outputs.available == 'true'
@@ -581,6 +606,8 @@ jobs:
         password: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
       - uses: ./.github/actions/use-prebuilt-environment
         if: needs.resolve_ci_image.outputs.available == 'true'
       # Slow path, for a pull request that changes what goes into the image.
@@ -618,6 +645,8 @@ jobs:
       HF_TOKEN: ${{ secrets.HF_TOKEN }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
       - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ~/.cache/pip
@@ -673,6 +702,8 @@ jobs:
         pytorch-version: [2.9.1]
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      with:
+        persist-credentials: false
     - name: Set up Python
       uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
       with:
@@ -716,6 +747,8 @@ jobs:
       github.event.pull_request.draft == false
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      with:
+        persist-credentials: false
     - run: ci/check_kaldi_symlinks.sh
 
   # Single stable status check that aggregates every job in this workflow.

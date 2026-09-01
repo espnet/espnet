@@ -67,7 +67,10 @@ jobs:
         pytorch-version: [2.9.1]
         use-conda: [true, false]
     steps:
+      # See ci_on_ubuntu.yml: the default persists GITHUB_TOKEN in .git/config.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
       - name: Install FFmpeg
         uses: ./.github/actions/install-ffmpeg
       - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
