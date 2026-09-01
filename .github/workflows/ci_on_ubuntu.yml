@@ -97,7 +97,7 @@ jobs:
   #   strategy:
   #     max-parallel: 20
   #     matrix:
-  #       python-version: ["3.10", "3.12"]
+  #       python-version: ["3.12", "3.13"]
   #       pytorch-version: [2.9.1, 2.10.0, 2.11.0]
   #       use-conda: [false]
   #   steps:
@@ -314,7 +314,7 @@ jobs:
       fail-fast: false
       max-parallel: 20
       matrix:
-        python-version: ["3.10", "3.12"]
+        python-version: ["3.12", "3.13"]
         pytorch-version: [2.9.1]
     # Empty when the image for this hash is not published, which makes the job
     # run on the runner instead. That behaviour is not documented; it was
@@ -374,7 +374,7 @@ jobs:
       fail-fast: false
       max-parallel: 20
       matrix:
-        python-version: ["3.10"]
+        python-version: ["3.12"]
         pytorch-version: [2.9.1]
     # Empty when the image for this hash is not published, which makes the job
     # run on the runner instead. That behaviour is not documented; it was
@@ -487,7 +487,7 @@ jobs:
       # A deliberate subset - one python, one torch - so this matrix stays
       # explicit. ci/check_ci_image_config.py verifies both are built variants.
       matrix:
-        python-version: ["3.10"]
+        python-version: ["3.12"]
         pytorch-version: ["2.9.1"]
         # asr is sharded: see ci/test_configuration_espnet2.sh. Three shards put
         # it at ~21 min, just under lm's 24 min, so lm becomes the binding
@@ -650,14 +650,14 @@ jobs:
       - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-3.10-2.9.1-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
+          key: ${{ runner.os }}-pip-3.12-2.9.1-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
           restore-keys: |
-            ${{ runner.os }}-pip-3.10-2.9.1-
+            ${{ runner.os }}-pip-3.12-2.9.1-
       - name: Make environment
         uses: ./.github/actions/prepare-environment
         with:
           os-version: ubuntu
-          python-version: "3.10"
+          python-version: "3.12"
           pytorch-version: "2.9.1"
           use-conda: false
           hf-token: ${{ secrets.HF_CI_TOKEN }}
@@ -687,7 +687,7 @@ jobs:
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-3.10-2.9.1-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
+          key: ${{ runner.os }}-pip-3.12-2.9.1-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
 
   test_import:
     runs-on: ubuntu-latest
@@ -698,7 +698,7 @@ jobs:
       fail-fast: false
       max-parallel: 20
       matrix:
-        python-version: ["3.10"]
+        python-version: ["3.12"]
         pytorch-version: [2.9.1]
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7

@@ -8,8 +8,6 @@ description = "ESPnet: end-to-end speech processing toolkit"
 classifiers = [
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Development Status :: 5 - Production/Stable",
@@ -18,7 +16,7 @@ classifiers = [
     "License :: OSI Approved :: Apache Software License",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
-requires-python = ">=3.10"
+requires-python = ">=3.12,<3.14"
 license = { "text" = "Apache Software License" }
 
 # We can use newer setuptools after removing chainer support.
@@ -34,6 +32,10 @@ dependencies = [
     "numpy>=2.0.0",
     "PyYAML>=5.1.2",
     "soundfile>=0.10.2",
+    # Imported directly by espnet2/asr/encoder/{hubert,avhubert,wav2vec2}_encoder.py.
+    # It arrives through torch today, which is why nothing has broken; tools/setup.py
+    # was the only file that declared it, and that file is deleted in this commit.
+    "filelock",
     "torch_optimizer",
     "sentencepiece==0.2.1",
     "librosa>=0.10.2",
