@@ -333,6 +333,15 @@ class BatchBeamSearch(BeamSearch):
             active=active,
         )
 
+    @staticmethod
+    def _is_per_utt_primer(primer: Any) -> bool:
+        """Return whether `hyp_primer` holds one sequence per utterance."""
+        return (
+            primer is not None
+            and len(primer) > 0
+            and isinstance(primer[0], (list, tuple, torch.Tensor))
+        )
+
     def _primers(self, n_utt: int, device: torch.device) -> List[torch.Tensor]:
         """Return one primer token sequence per utterance.
 
@@ -344,7 +353,7 @@ class BatchBeamSearch(BeamSearch):
         """
         primer = [self.sos] if self.hyp_primer is None else self.hyp_primer
 
-        if len(primer) > 0 and isinstance(primer[0], (list, tuple, torch.Tensor)):
+        if self._is_per_utt_primer(primer):
             if len(primer) != n_utt:
                 raise ValueError(
                     f"got {len(primer)} hyp primers for {n_utt} utterances"
@@ -898,10 +907,17 @@ class BatchBeamSearch(BeamSearch):
             xs, xs_mask, pre_xs, pre_xs_mask = x, None, pre_x, None
 
         # main loop of prefix search
-        running_hyps = self.init_hyp(
-            x if pre_x is None else pre_x,
-            (x_lengths if pre_x is None else pre_x_lengths) if batched else None,
-        )
+        # NOTE: `init_hyp` and `post_process` are hooks that subclasses
+        # override. Call them the way they were called before utterance
+        # batching whenever a single utterance is decoded, so that an override
+        # written against the old signature keeps working.
+        if batched:
+            running_hyps = self.init_hyp(
+                x if pre_x is None else pre_x,
+                x_lengths if pre_x is None else pre_x_lengths,
+            )
+        else:
+            running_hyps = self.init_hyp(x if pre_x is None else pre_x)
         ended_hyps: List[List[Hypothesis]] = [[] for _ in range(n_utt)]
         for i in range(max(maxlens)):
             logger.debug("position " + str(i))
@@ -913,7 +929,12 @@ class BatchBeamSearch(BeamSearch):
                 pre_xs_mask=pre_xs_mask,
             )
             running_hyps = self.post_process(
-                i, maxlens, minlens, maxlenratio, best, ended_hyps
+                i,
+                maxlens if batched else maxlens[0],
+                minlens if batched else minlens[0],
+                maxlenratio,
+                best,
+                ended_hyps if batched else ended_hyps[0],
             )
             if bool(running_hyps.done_mask().all()):
                 logger.info(f"decoding finished at position {i}")
@@ -933,14 +954,26 @@ class BatchBeamSearch(BeamSearch):
                 if not batched:
                     return self.forward(x, maxlenratio, sub_minlenratio, pre_x)
                 idx = torch.as_tensor(retry, dtype=torch.int64, device=device)
-                sub = self.forward(
-                    x.index_select(0, idx),
-                    maxlenratio,
-                    sub_minlenratio,
-                    pre_x.index_select(0, idx) if pre_x is not None else None,
-                    x_lengths.index_select(0, idx),
-                    pre_x_lengths.index_select(0, idx) if pre_x is not None else None,
-                )
+                # the recursion decodes a subset of the batch, so a
+                # per-utterance primer has to be narrowed down to match
+                primer = self.hyp_primer
+                try:
+                    if self._is_per_utt_primer(primer):
+                        self.hyp_primer = [primer[b] for b in retry]
+                    sub = self.forward(
+                        x.index_select(0, idx),
+                        maxlenratio,
+                        sub_minlenratio,
+                        pre_x.index_select(0, idx) if pre_x is not None else None,
+                        x_lengths.index_select(0, idx),
+                        (
+                            pre_x_lengths.index_select(0, idx)
+                            if pre_x is not None
+                            else None
+                        ),
+                    )
+                finally:
+                    self.hyp_primer = primer
                 for n, b in enumerate(retry):
                     results[b] = sub[n]
 

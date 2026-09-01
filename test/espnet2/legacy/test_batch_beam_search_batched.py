@@ -73,7 +73,10 @@ def _pad(encs, device, dtype):
 
 
 def _assert_same_nbest(expected, actual, nbest, rtol):
-    assert len(actual) >= min(nbest, len(expected))
+    assert len(actual[:nbest]) == len(expected[:nbest]), (
+        len(actual),
+        len(expected),
+    )
     for exp, act in zip(expected[:nbest], actual[:nbest]):
         assert exp.yseq.tolist() == act.yseq.tolist()
         numpy.testing.assert_allclose(
@@ -219,6 +222,26 @@ def test_utt_batch_beam_search_hyp_primer():
     with pytest.raises(ValueError):
         with torch.no_grad():
             batched(x=padded, x_lengths=lengths, maxlenratio=-5.0)
+
+
+def test_utt_batch_beam_search_retry_with_per_utterance_primer():
+    """The retry decodes a subset, so a per-utterance primer must follow it."""
+    encs, common, dtype, device = _build(
+        transformer_args, 0.0, 0.0, 0.1, "cpu", torch.float64
+    )
+    sos = common["sos"]
+    batched = BatchBeamSearch(beam_size=2, **common)
+    batched.eval()
+    batched.set_hyp_primer([[sos, 1], [sos, 2]])
+    padded, lengths = _pad(encs, device, dtype)
+
+    # minlen > maxlen for the longer utterance, so it ends the first pass with
+    # an empty n-best list and is decoded again on its own
+    with torch.no_grad():
+        results = batched(x=padded, x_lengths=lengths, maxlenratio=-1, minlenratio=0.3)
+    assert len(results) == len(encs)
+    # the primer is restored for the caller
+    assert batched.hyp_primer == [[sos, 1], [sos, 2]]
 
 
 def test_utt_batch_beam_search_rejects_bad_shape():

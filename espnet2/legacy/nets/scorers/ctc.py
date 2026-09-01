@@ -146,7 +146,7 @@ class CTCPrefixScorer(BatchPartialScorerInterface):
 
         This is the vectorized counterpart of calling :meth:`select_state`
         once per hypothesis, used by
-        :class:`espnet2.legacy.nets.batch_beam_search_utt.UttBatchBeamSearch`.
+        :class:`espnet2.legacy.nets.batch_beam_search.BatchBeamSearch`.
 
         Args:
             state: The state returned by :meth:`batch_score_partial`.

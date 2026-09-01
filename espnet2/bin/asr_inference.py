@@ -944,13 +944,28 @@ def inference(
                         )
                     ]
             except TooShortUttError as e:
-                logging.warning(f"Utterance {keys} {e}")
-                hyp = Hypothesis(score=0.0, scores={}, states={}, yseq=[])
-                results = [[" ", ["<space>"], [2], hyp]] * nbest
-                if enh_s2t_task:
-                    num_spk = getattr(speech2text.asr_model.enh_model, "num_spk", 1)
-                    results = [results for _ in range(num_spk)]
-                batch_results = [results] * _bs
+                if _bs == 1:
+                    logging.warning(f"Utterance {keys} {e}")
+                    batch_results = [
+                        _too_short_result(nbest, enh_s2t_task, speech2text)
+                    ]
+                else:
+                    # `encode` raises for the whole minibatch as soon as one
+                    # utterance is too short to subsample, so decode them one
+                    # at a time and only replace the ones that really fail.
+                    logging.warning(
+                        f"Utterances {keys} {e}; retrying them one at a time"
+                    )
+                    batch_results = []
+                    for b, key in enumerate(keys):
+                        one = {k: v[b : b + 1] for k, v in batch.items()}
+                        try:
+                            batch_results.append(speech2text.batch_decode(**one)[0])
+                        except TooShortUttError as one_e:
+                            logging.warning(f"Utterance {key} {one_e}")
+                            batch_results.append(
+                                _too_short_result(nbest, enh_s2t_task, speech2text)
+                            )
 
             for key, results in zip(keys, batch_results):
                 _write_results(
@@ -961,6 +976,16 @@ def inference(
                     enh_s2t_task=enh_s2t_task,
                     multi_asr=multi_asr,
                 )
+
+
+def _too_short_result(nbest, enh_s2t_task, speech2text):
+    """Build the placeholder n-best list written for a too-short utterance."""
+    hyp = Hypothesis(score=0.0, scores={}, states={}, yseq=[])
+    results = [[" ", ["<space>"], [2], hyp]] * nbest
+    if enh_s2t_task:
+        num_spk = getattr(speech2text.asr_model.enh_model, "num_spk", 1)
+        results = [results for _ in range(num_spk)]
+    return results
 
 
 def _write_results(writer, key, results, nbest, enh_s2t_task, multi_asr):

@@ -93,8 +93,10 @@ def main(cmd=None):
         .to(device)
         .eval()
     )
+    # NOTE: `BeamSearch.__init__` drops any scorer whose weight is 0, so the
+    # length bonus needs a non-zero weight to be part of what is measured.
     scorers = {"decoder": decoder, "length_bonus": LengthBonus(args.vocab)}
-    weights = {"decoder": 1.0 - args.ctc, "length_bonus": 0.0}
+    weights = {"decoder": 1.0 - args.ctc, "length_bonus": 0.1}
     if args.ctc > 0:
         ctc = CTC(odim=args.vocab, encoder_output_size=args.dim).to(device).eval()
         scorers["ctc"] = CTCPrefixScorer(ctc=ctc, eos=args.vocab - 1)

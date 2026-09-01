@@ -328,12 +328,14 @@ class Speech2Text:
                 beam_search.__class__ = BatchBeamSearch
                 logging.info("BatchBeamSearch implementation is selected.")
 
-            beam_search.to(device=device, dtype=getattr(torch, dtype)).eval()
-            for scorer in scorers.values():
-                if isinstance(scorer, torch.nn.Module):
-                    scorer.to(device=device, dtype=getattr(torch, dtype)).eval()
-            logging.info(f"Beam_search: {beam_search}")
-            logging.info(f"Decoding device={device}, dtype={dtype}")
+        # NOTE: this used to sit inside the `else` above, so the partial_ar
+        # beam search never got the requested device and dtype.
+        beam_search.to(device=device, dtype=getattr(torch, dtype)).eval()
+        for scorer in scorers.values():
+            if isinstance(scorer, torch.nn.Module):
+                scorer.to(device=device, dtype=getattr(torch, dtype)).eval()
+        logging.info(f"Beam_search: {beam_search}")
+        logging.info(f"Decoding device={device}, dtype={dtype}")
 
         # 5. [Optional] Build Text converter: e.g. bpe-sym -> Text
         if token_type is None:
@@ -967,11 +969,25 @@ def inference(
                         )
                     ]
             except TooShortUttError as e:
-                logging.warning(f"Utterance {keys} {e}")
                 hyp = Hypothesis(score=0.0, scores={}, states={}, yseq=[])
-                batch_results = [
-                    [[" ", ["<space>"], [2], " ", hyp]] * nbest for _ in range(_bs)
-                ]
+                placeholder = [[" ", ["<space>"], [2], " ", hyp]] * nbest
+                if _bs == 1:
+                    logging.warning(f"Utterance {keys} {e}")
+                    batch_results = [placeholder]
+                else:
+                    # one too-short utterance would otherwise discard the
+                    # results of the whole minibatch
+                    logging.warning(
+                        f"Utterances {keys} {e}; retrying them one at a time"
+                    )
+                    batch_results = []
+                    for b, key in enumerate(keys):
+                        one = {k: v[b : b + 1] for k, v in batch.items()}
+                        try:
+                            batch_results.append(speech2text.batch_decode(**one)[0])
+                        except TooShortUttError as one_e:
+                            logging.warning(f"Utterance {key} {one_e}")
+                            batch_results.append(placeholder)
 
             for key, results in zip(keys, batch_results):
                 encoder_interctc_res = None

@@ -207,6 +207,13 @@ def test_Speech2Text_batch_decode_end_to_end(asr_config_file_transformer):
     )
     for j, i in enumerate(perm):
         assert [r[1] for r in shuffled[j]] == [r[1] for r in results[i]]
+        # compare scores too, so that a wrong permutation is still caught when
+        # two utterances happen to decode to the same tokens
+        np.testing.assert_allclose(
+            [float(r[3].score) for r in shuffled[j]],
+            [float(r[3].score) for r in results[i]],
+            rtol=1e-5,
+        )
 
 
 def test_Speech2Text_batch_decode_rejects_non_batch_scorer(
