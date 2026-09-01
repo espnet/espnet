@@ -38,4 +38,4 @@ runs:
         # importable, and once by landing in the system interpreter instead of the
         # venv while the log said it had succeeded. An install log is not
         # evidence; an import is.
-        "${VENV}/python" -c 'import espnet2, espnet3, kaldiio, k2; print("espnet2 from", espnet2.__file__); print("k2", k2.__version__)'
+        "${VENV}/python" -c 'import espnet2, espnet3, kaldiio, k2; print("espnet2 from", espnet2.__file__); print("k2 from", k2.__file__)'

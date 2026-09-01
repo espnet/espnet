@@ -175,9 +175,17 @@ else
 
     # Prove it, because the install saying "Successfully installed k2" did not
     # mean k2 was importable - see above.
-    python3 -c "import k2; print('k2', k2.__version__, 'from', k2.__file__)" || {
-        echo "[ERROR] k2 installed but does not import." >&2
-        echo "[ERROR] Check which interpreter it landed in:" >&2
+    #
+    # The assertion is the import. Reporting the version must not be able to fail
+    # it: k2 exposes __dev_version__, not __version__, and reaching for the wrong
+    # one failed this check on a working install while printing "does not import".
+    python3 -c "
+import k2
+v = getattr(k2, '__version__', None) or getattr(k2, '__dev_version__', 'unknown version')
+print('k2', v, 'from', k2.__file__)
+" || {
+        echo "[ERROR] k2 does not import after a successful install." >&2
+        echo "[ERROR] Most likely it landed in another interpreter. Compare:" >&2
         echo "[ERROR]   python3 -c 'import sys; print(sys.executable)'" >&2
         exit 1
     }
