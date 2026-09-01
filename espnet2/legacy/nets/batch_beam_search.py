@@ -1,4 +1,37 @@
-"""Parallel beam search module."""
+"""Parallel beam search module.
+
+Shapes and names
+----------------
+Four counts are in play at once, and most of the confusion in a batched beam
+search comes from losing track of which one an axis is. This module uses these
+symbols throughout, in shape comments of the form ``# (N, V)``:
+
+===  ==========================================================================
+B    utterances decoded together (``n_utt``)
+K    beam size (``self.beam_size``)
+H    hypotheses currently held per utterance. ``K`` while a batch is running;
+     for a single utterance it shrinks as hypotheses end, and starts at 1
+N    ``B * H``, the flat hypothesis axis every scorer sees. Laid out
+     utterance-major, so hypothesis ``k`` of utterance ``b`` is at ``b * H + k``
+L    tokens generated so far, including the primer
+T    encoder frames, padded to the longest utterance of the batch
+D    encoder output size
+V    vocabulary size (``self.n_vocab``)
+S    pre-beam size (``self.pre_beam_size``)
+i    index of the decoding step
+===  ==========================================================================
+
+Naming follows from that:
+
+* ``n_utt`` / ``n_hyp`` / ``n_hyp_per_utt`` are the counts ``B`` / ``N`` / ``H``.
+* Anything ending in ``_ids`` is a ``LongTensor`` of indices *into the flat
+  hypothesis axis* ``N``, unless a comment says otherwise.
+* Plural Python names -- ``maxlens``, ``minlens``, ``ended_hyps`` -- are lists
+  with one entry per utterance, of length ``B``. Tensors are never named that
+  way.
+* ``scores`` (plural) is a dict keyed by scorer name; ``score`` is the single
+  combined value.
+"""
 
 import inspect
 import logging
@@ -64,13 +97,13 @@ class BatchHypothesis(NamedTuple):
     hypotheses are flagged in `active` instead and stay in the batch.
     """
 
-    yseq: torch.Tensor = torch.tensor([])  # (batch, maxlen)
-    score: torch.Tensor = torch.tensor([])  # (batch,)
-    length: torch.Tensor = torch.tensor([])  # (batch,)
-    scores: Dict[str, torch.Tensor] = dict()  # values: (batch,)
-    states: Dict[str, Dict] = dict()
-    hs: List[torch.Tensor] = []  # (batch, maxlen, adim)
-    # Number of utterances sharing this batch. This cannot be recovered from
+    yseq: torch.Tensor = torch.tensor([])  # (N, L)
+    score: torch.Tensor = torch.tensor([])  # (N,)
+    length: torch.Tensor = torch.tensor([])  # (N,)
+    scores: Dict[str, torch.Tensor] = dict()  # scorer name -> (N,)
+    states: Dict[str, Dict] = dict()  # scorer name -> that scorer's own layout
+    hs: List[torch.Tensor] = []  # list of N, each a list of L tensors (D,)
+    # B. Number of utterances sharing this batch. Cannot be recovered from
     # the tensors: `len(self)` is `n_utt * n_hyp_per_utt`, and the second
     # factor is only a constant (`beam_size`) once several utterances are
     # batched -- for a single utterance the batch is compacted, so it shrinks
@@ -84,9 +117,9 @@ class BatchHypothesis(NamedTuple):
     n_utt: int = 1
     # Which slots still hold a hypothesis to expand. None means all of them,
     # which is again what pre-existing callers mean.
-    active: Optional[torch.Tensor] = None  # (batch,), bool
+    active: Optional[torch.Tensor] = None  # (N,), bool
     # Which utterances have finished decoding. None means none of them.
-    done: Optional[torch.Tensor] = None  # (n_utt,), bool
+    done: Optional[torch.Tensor] = None  # (B,), bool
 
     def __len__(self) -> int:
         """Return a batch size."""
@@ -94,7 +127,7 @@ class BatchHypothesis(NamedTuple):
 
     @property
     def n_hyp_per_utt(self) -> int:
-        """Return the number of slots each utterance owns."""
+        """Return H, the number of slots each utterance owns."""
         return len(self) // self.n_utt
 
     def active_mask(self) -> torch.Tensor:
@@ -280,18 +313,18 @@ class BatchBeamSearch(BeamSearch):
         so a batch of equally long utterances takes exactly the same code path
         as a single utterance.
         """
-        n_utt, max_len = x.size(0), x.size(1)
-        xs = (
+        n_utt, max_len = x.size(0), x.size(1)  # B, T
+        xs = (  # (B, T, D) -> (B, K, T, D) -> (N, T, D), utterance-major
             x.unsqueeze(1)
             .repeat(1, self.beam_size, 1, 1)
             .view(n_utt * self.beam_size, max_len, -1)
         )
         if bool((x_lengths < max_len).any()):
-            mask = ~make_pad_mask(x_lengths, maxlen=max_len)  # (n_utt, T)
+            mask = ~make_pad_mask(x_lengths, maxlen=max_len)  # (B, T)
             xs_mask = (
                 mask.unsqueeze(1)
                 .repeat(1, self.beam_size, 1)
-                .view(n_utt * self.beam_size, 1, max_len)
+                .view(n_utt * self.beam_size, 1, max_len)  # (N, 1, T)
                 .to(x.device)
             )
         else:
@@ -319,7 +352,7 @@ class BatchBeamSearch(BeamSearch):
             utterance is active, which has the same effect.
 
         """
-        n_utt = 1 if x.dim() == 2 else x.size(0)
+        n_utt = 1 if x.dim() == 2 else x.size(0)  # B
 
         init_states = dict()
         init_scores = dict()
@@ -347,14 +380,16 @@ class BatchBeamSearch(BeamSearch):
                 ]
             )
 
-        beam = self.beam_size
-        n_bh = n_utt * beam
+        beam = self.beam_size  # K
+        n_bh = n_utt * beam  # N, full grid: every utterance owns K slots
         # The beams of an utterance are all identical at this point, so only
         # the first one may be expanded; otherwise the first `topk` would
         # return `beam` copies of the same token.
-        active = torch.zeros(n_bh, dtype=torch.bool, device=x.device)
-        active[::beam] = True
-        yseq = torch.stack([p for p in primers for _ in range(beam)])
+        active = torch.zeros(n_bh, dtype=torch.bool, device=x.device)  # (N,)
+        active[::beam] = True  # slot b * K + 0 of each utterance
+        yseq = torch.stack(  # (N, L), L = len(primer)
+            [p for p in primers for _ in range(beam)]
+        )
         return BatchHypothesis(
             yseq=yseq,
             length=torch.full(
@@ -547,7 +582,7 @@ class BatchBeamSearch(BeamSearch):
             running_hyps (BatchHypothesis): Running hypotheses on beam
             x (torch.Tensor): Encoded speech feature. Either `(T, D)` for a
                 single utterance, which is replicated over the hypotheses, or
-                already replicated as `(n_batch, T, D)`.
+                already replicated as `(n_hyp, T, D)`.
             pre_x (torch.Tensor): Encoded speech feature for sequential attention
             xs_mask (torch.Tensor): Non-padding mask of `x`
             pre_xs_mask (torch.Tensor): Non-padding mask of `pre_x`
@@ -556,17 +591,17 @@ class BatchBeamSearch(BeamSearch):
             BatchHypothesis: `beam_size` best hypotheses per utterance
 
         """
-        n_batch = len(running_hyps)
-        n_utt = running_hyps.n_utt
+        n_hyp = len(running_hyps)  # N
+        n_utt = running_hyps.n_utt  # B
         part_ids = None  # no pre-beam
 
         if x.dim() == 2:
-            x = x.expand(n_batch, *x.shape)
+            x = x.expand(n_hyp, *x.shape)
         if pre_x is not None and pre_x.dim() == 2:
-            pre_x = pre_x.expand(n_batch, *pre_x.shape)
+            pre_x = pre_x.expand(n_hyp, *pre_x.shape)
 
-        weighted_scores = torch.zeros(
-            n_batch, self.n_vocab, dtype=x.dtype, device=x.device
+        weighted_scores = torch.zeros(  # (N, V)
+            n_hyp, self.n_vocab, dtype=x.dtype, device=x.device
         )
         # NOTE: the mask arguments are only passed when they are actually
         # needed, so that subclasses overriding `score_full` with the older
@@ -594,7 +629,9 @@ class BatchBeamSearch(BeamSearch):
                 if self.pre_beam_score_key == "full"
                 else scores[self.pre_beam_score_key]
             )
-            part_ids = torch.topk(pre_beam_scores, self.pre_beam_size, dim=-1)[1]
+            part_ids = torch.topk(  # (N, S)
+                pre_beam_scores, self.pre_beam_size, dim=-1
+            )[1]
         # NOTE(takaaki-hori): Unlike BeamSearch, we assume that score_partial returns
         # full-size score matrices, which has non-zero scores for part_ids and zeros
         # for others.
@@ -611,29 +648,37 @@ class BatchBeamSearch(BeamSearch):
                 ~running_hyps.active.unsqueeze(1), _log_zero(x.dtype)
             )
 
-        # beam pruning, independently per utterance
+        # Beam pruning, independently per utterance. Both branches leave
+        # `prev_hyp_ids` and `new_token_ids` as (B * K,) tensors -- the new flat
+        # hypothesis axis -- and `top_ids` as (B, K) holding `h * V + v`, which
+        # is the layout `CTCPrefixScoreTH.index_select_state` wants.
         if n_utt == 1:
+            # kept as a call so that subclasses overriding `batch_beam` still
+            # take effect; identical to the general case for B == 1
             prev_hyp_ids, new_token_ids, _, _ = self.batch_beam(
                 weighted_scores, part_ids
-            )
+            )  # (K,), (K,)
             top_ids = (prev_hyp_ids * self.n_vocab + new_token_ids).unsqueeze(0)
         else:
-            top_ids = weighted_scores.view(n_utt, -1).topk(self.beam_size, dim=-1)[1]
-            # `top_ids` is organized as `hyp_index * n_vocab + token_index`
-            offsets = (
+            top_ids = weighted_scores.view(  # (B, K), values are `h * V + v`
+                n_utt, -1  # (B, H * V)
+            ).topk(self.beam_size, dim=-1)[1]
+            # `top_ids` counts hypotheses within an utterance, so shift them
+            # onto the flat axis before they can index anything
+            offsets = (  # (B, 1)
                 torch.arange(n_utt, device=x.device) * running_hyps.n_hyp_per_utt
             ).unsqueeze(1)
-            prev_hyp_ids = (
+            prev_hyp_ids = (  # (B * K,), indexes the *old* N axis
                 torch.div(top_ids, self.n_vocab, rounding_mode="trunc") + offsets
             ).view(-1)
-            new_token_ids = (top_ids % self.n_vocab).view(-1)
+            new_token_ids = (top_ids % self.n_vocab).view(-1)  # (B * K,)
 
         return self._make_batch(
             # `CTCPrefixScoreTH.index_select_state` can only reorder a state
             # in place, so the fast path needs as many new hypotheses as old
             # ones. That always holds for a batch of utterances; for a single
             # utterance it does not right after some hypotheses ended.
-            batch_select=len(prev_hyp_ids) == n_batch,
+            batch_select=len(prev_hyp_ids) == n_hyp,
             running_hyps=running_hyps,
             weighted_scores=weighted_scores,
             scores=scores,
@@ -660,20 +705,25 @@ class BatchBeamSearch(BeamSearch):
         top_ids: torch.Tensor,
         hs: Optional[torch.Tensor],
     ) -> BatchHypothesis:
-        """Assemble the next batch of hypotheses from the pruned candidates."""
-        n_out = len(prev_hyp_ids)
+        """Assemble the next batch of hypotheses from the pruned candidates.
+
+        Every argument that is not a scorer state is indexed by the *new* flat
+        hypothesis axis of length ``B * K``, except `prev_hyp_ids`, which holds
+        indices into the *old* one, and `top_ids`, which is ``(B, K)``.
+        """
+        n_out = len(prev_hyp_ids)  # B * K, the new N
         # `batchfy` keeps the bookkeeping tensors on the CPU, while the scorer
         # outputs live on the model device; line them up before indexing.
         device = weighted_scores.device
 
-        new_yseq = torch.cat(
+        new_yseq = torch.cat(  # (B * K, L + 1)
             [running_hyps.yseq.to(device)[prev_hyp_ids], new_token_ids.unsqueeze(1)],
             dim=1,
         )
-        new_score = weighted_scores[prev_hyp_ids, new_token_ids]
+        new_score = weighted_scores[prev_hyp_ids, new_token_ids]  # (B * K,)
 
-        new_scores = dict()
-        for k, v in list(scores.items()) + list(part_scores.items()):
+        new_scores = dict()  # scorer name -> (B * K,)
+        for k, v in list(scores.items()) + list(part_scores.items()):  # v is (N, V)
             new_scores[k] = (
                 running_hyps.scores[k].to(device)[prev_hyp_ids]
                 + v[prev_hyp_ids, new_token_ids]
@@ -695,6 +745,7 @@ class BatchBeamSearch(BeamSearch):
             )
 
         if self.return_hs:
+            # a list of B * K, each the previous list of (D,) tensors plus one
             new_hs = [
                 running_hyps.hs[int(j)] + [hs[int(j)].squeeze(0)] for j in prev_hyp_ids
             ]
@@ -727,8 +778,7 @@ class BatchBeamSearch(BeamSearch):
 
         Scorers may provide `batch_select_state` to do this without a Python
         loop over the hypotheses; `CTCPrefixScorer` does. Its argument is
-        `top_ids` of shape `(n_utt, beam)` holding
-        `hyp_index * n_vocab + token_index`, which is the layout
+        `top_ids` of shape `(B, K)` holding `h * V + v`, which is the layout
         :meth:`CTCPrefixScoreTH.index_select_state` expects.
         """
         if batch_select and hasattr(scorer, "batch_select_state"):
@@ -769,8 +819,8 @@ class BatchBeamSearch(BeamSearch):
             BatchHypothesis: The new running hypotheses.
 
         """
-        n_utt = running_hyps.n_utt
-        per_utt = running_hyps.n_hyp_per_utt
+        n_utt = running_hyps.n_utt  # B
+        n_hyp_per_utt = running_hyps.n_hyp_per_utt  # H
         maxlens = [maxlen] * n_utt if isinstance(maxlen, int) else maxlen
         minlens = [minlen] * n_utt if isinstance(minlen, int) else minlen
         if n_utt == 1 and (len(ended_hyps) == 0 or not isinstance(ended_hyps[0], list)):
@@ -790,8 +840,8 @@ class BatchBeamSearch(BeamSearch):
                 )
             )
 
-        active = running_hyps.active_mask().clone()
-        done = running_hyps.done_mask().clone()
+        active = running_hyps.active_mask().clone()  # (N,) bool
+        done = running_hyps.done_mask().clone()  # (B,) bool
         yseq_device = running_hyps.yseq.device
         is_eos = (
             running_hyps.yseq[
@@ -799,17 +849,18 @@ class BatchBeamSearch(BeamSearch):
                 running_hyps.length.to(yseq_device) - 1,
             ]
             == self.eos
-        ).tolist()
+        ).tolist()  # a list of N bools, not a tensor
 
         for b in range(n_utt):
             if bool(done[b]):
-                active[b * per_utt : (b + 1) * per_utt] = False
+                active[b * n_hyp_per_utt : (b + 1) * n_hyp_per_utt] = False
                 continue
             # add <eos> in the final loop to avoid that there are no ended hyps
             at_maxlen = i == maxlens[b] - 1
             if at_maxlen:
                 logger.info("adding <eos> in the last position in the loop")
-            for j in range(b * per_utt, (b + 1) * per_utt):
+            # the slots utterance b owns on the flat axis
+            for j in range(b * n_hyp_per_utt, (b + 1) * n_hyp_per_utt):
                 if not bool(active[j]):
                     continue
                 if at_maxlen:
@@ -827,15 +878,17 @@ class BatchBeamSearch(BeamSearch):
                         )
                     active[j] = False
 
-            if at_maxlen or not bool(active[b * per_utt : (b + 1) * per_utt].any()):
+            if at_maxlen or not bool(
+                active[b * n_hyp_per_utt : (b + 1) * n_hyp_per_utt].any()
+            ):
                 done[b] = True
-                active[b * per_utt : (b + 1) * per_utt] = False
+                active[b * n_hyp_per_utt : (b + 1) * n_hyp_per_utt] = False
             elif maxlenratio == 0.0 and end_detect(
                 [h.asdict() for h in ended_per_utt[b]], i
             ):
                 logger.info(f"end detected at {i}")
                 done[b] = True
-                active[b * per_utt : (b + 1) * per_utt] = False
+                active[b * n_hyp_per_utt : (b + 1) * n_hyp_per_utt] = False
 
         if n_utt == 1:
             # A single utterance does not need a fixed number of hypotheses,
