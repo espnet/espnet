@@ -104,7 +104,7 @@ class Speech2Text:
         dtype: str = "float32",
         beam_size: int = 20,
         ctc_weight: float = 0.5,
-        ctc_window_margin: int = 80,
+        ctc_window_margin: int = 100,
         lm_weight: float = 1.0,
         ngram_weight: float = 0.9,
         penalty: float = 0.0,
@@ -1221,7 +1221,7 @@ def get_parser():
     group.add_argument(
         "--ctc_window_margin",
         type=int,
-        default=80,
+        default=100,
         help="Half-width, in encoder frames, of the window the CTC forward "
         "recursion is restricted to. Without it the recursion walks the whole "
         "utterance at every decoding step, which costs O(duration^2); a window "
@@ -1230,10 +1230,14 @@ def get_parser():
         "default, so an existing config decodes differently than it did in "
         "earlier versions of espnet. Pass 0 for the previous, exact behaviour. "
         "The unit is encoder frames, so the duration it buys depends on the "
-        "model: the default is 3.2 s each side at a 10 ms frame shift with 4x "
-        "subsampling, but only 1.6 s with 2x subsampling. Too small a window "
-        "loses accuracy -- on LibriSpeech test-clean 40 frames and above "
-        "reproduced exact decoding, 30 nearly did, and 20 did not.",
+        "model: the default is 4 s each side at a 10 ms frame shift with 4x "
+        "subsampling, but only 2 s with 2x subsampling. Too small a window "
+        "loses accuracy, and how small is too small depends on the language "
+        "and the token unit, not just on the audio: on LibriSpeech test-clean "
+        "(English, BPE) 40 frames already reproduced exact decoding, but on "
+        "AISHELL-1 test (Mandarin, characters) 40 still differed on 4 of 50 "
+        "utterances and 20 collapsed to 51% CER. The default is set well "
+        "above both, so lower it only with a measurement on your own data.",
     )
     group.add_argument(
         "--ctc_weight",
