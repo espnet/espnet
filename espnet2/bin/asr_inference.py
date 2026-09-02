@@ -104,6 +104,7 @@ class Speech2Text:
         dtype: str = "float32",
         beam_size: int = 20,
         ctc_weight: float = 0.5,
+        ctc_window_margin: int = 80,
         lm_weight: float = 1.0,
         ngram_weight: float = 0.9,
         penalty: float = 0.0,
@@ -170,7 +171,9 @@ class Speech2Text:
 
         decoder = asr_model.decoder
 
-        ctc = CTCPrefixScorer(ctc=asr_model.ctc, eos=asr_model.eos)
+        ctc = CTCPrefixScorer(
+            ctc=asr_model.ctc, eos=asr_model.eos, window_margin=ctc_window_margin
+        )
         token_list = asr_model.token_list
         scorers.update(
             decoder=decoder,
@@ -825,6 +828,7 @@ def inference(
     ngpu: int,
     seed: int,
     ctc_weight: float,
+    ctc_window_margin: int,
     lm_weight: float,
     ngram_weight: float,
     penalty: float,
@@ -898,6 +902,7 @@ def inference(
         dtype=dtype,
         beam_size=beam_size,
         ctc_weight=ctc_weight,
+        ctc_window_margin=ctc_window_margin,
         lm_weight=lm_weight,
         ngram_weight=ngram_weight,
         penalty=penalty,
@@ -1212,6 +1217,21 @@ def get_parser():
         type=float,
         default=0.0,
         help="Input length ratio to obtain min output length",
+    )
+    group.add_argument(
+        "--ctc_window_margin",
+        type=int,
+        default=80,
+        help="Half-width, in encoder frames, of the window the CTC forward "
+        "recursion is restricted to. Without it the recursion walks the whole "
+        "utterance at every decoding step, which costs O(duration^2); a window "
+        "makes it linear, so the longer the audio the more it saves. 0 turns "
+        "it off and computes exactly. Note the unit is encoder frames, so its "
+        "duration depends on the model: with a 10 ms frame shift and 4x "
+        "subsampling the default is 3.2 s on each side. Too small a window "
+        "loses accuracy -- on LibriSpeech test-clean the default and anything "
+        "down to 40 frames reproduced exact decoding, 30 nearly did, and 20 "
+        "did not.",
     )
     group.add_argument(
         "--ctc_weight",
