@@ -79,8 +79,16 @@ egs3 = ["egs3/TEMPLATE/**/*.yaml"]
 
 
 [project.optional-dependencies]
+# Three packages ESPnet needs are maintained as forks under github.com/espnet
+# because upstream stopped: ctc-segmentation, g2p_en and s3prl. They cannot be
+# declared here. PyPI rejects any distribution whose metadata contains a direct
+# reference ("name @ git+https://..."), so declaring them made every upload fail
+# with 400 Can't have direct dependency, silently, from v.202604 until v.202609.
+# tools/Makefile installs all three at pinned commits instead -- espnet.done for
+# the first two, s3prl.done via installers/install_s3prl.sh for the third. Keep
+# it that way; a direct reference here is caught by ci/check_ci_image_config.py.
 asr = [
-  "ctc-segmentation @ git+https://github.com/espnet/ctc-segmentation.git@9b9ea1d",
+  # ctc-segmentation: installed by tools/Makefile; see the note above
   "editdistance",
   "opt_einsum",
   "jiwer",
@@ -90,7 +98,7 @@ tts = [
   "pyworld>=0.3.4",
   "pypinyin<=0.44.0",
   "espnet_tts_frontend",
-  "g2p_en @ git+https://github.com/espnet/g2p.git@master",
+  # g2p_en: installed by tools/Makefile; see the note above
   "jamo==0.4.1",
   "jaconv",
 ]
@@ -106,7 +114,7 @@ asr2 = [
 
 s2st = [
   "editdistance",
-  "s3prl @ git+https://github.com/espnet/s3prl.git@572af70",
+  # s3prl: installed by tools/Makefile; see the note above
 ]
 
 st = [

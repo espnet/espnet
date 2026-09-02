@@ -47,7 +47,16 @@ Every job must also have a permissions block in scope, at the workflow or the
 job level. Inheriting the repository default means inheriting write on almost
 everything, and nothing fails to say so.
 
-And seventh, the workflow files must have no duplicate mapping keys. PyYAML
+Seventh, pyproject.toml must declare no direct references - a dependency
+written "name @ git+https://..." rather than as a version range. PyPI refuses any
+distribution whose metadata contains one, with 400 Can't have direct dependency,
+and nothing else in the repository looks: the build succeeds, every test passes,
+and the failure surfaces only when a release tag is pushed. Three of them arrived
+with the setup.py to pyproject.toml migration and went unnoticed for five months,
+because the release before it had deliberately moved the same three packages out
+to tools/Makefile and nothing recorded why.
+
+And eighth, the workflow files must have no duplicate mapping keys. PyYAML
 accepts them and lets the last one win, so writing a second env: block into a
 step silently discards the first - which is exactly what nearly dropped
 GITHUB_TOKEN from the two steps that need it for torch.hub.
@@ -425,6 +434,45 @@ def check_codecov_token() -> list:
     return problems
 
 
+PYPROJECT = Path("pyproject.toml")
+# PEP 508 calls the "name @ <url>" form a direct reference. Match on the
+# separator rather than on "git+", so a plain https:// archive or a file:// path
+# is caught too - PyPI rejects every direct reference, not only git ones.
+DIRECT_REF = re.compile(r"^[A-Za-z0-9._-]+\s*(\[[^\]]*\])?\s*@\s*\S+")
+
+
+def check_no_direct_references() -> list:
+    """No declared dependency may be a PEP 508 direct reference.
+
+    Read as text rather than through tomllib, so a problem can be reported with
+    a line number and so a comment that mentions one is not mistaken for a
+    declaration.
+    """
+    if not PYPROJECT.exists():
+        return [f"{PYPROJECT}: missing"]
+    interesting = ("project", "project.optional-dependencies")
+    problems = []
+    section = None
+    for number, line in enumerate(PYPROJECT.read_text().splitlines(), start=1):
+        stripped = line.strip()
+        if stripped.startswith("[") and stripped.endswith("]"):
+            section = stripped[1:-1]
+            continue
+        if section not in interesting or not stripped.startswith(('"', "'")):
+            continue
+        if DIRECT_REF.match(stripped.strip("\"',")):
+            problems.append(
+                f"{PYPROJECT}:{number}: direct reference in [{section}]: "
+                f"{stripped}\n"
+                "  PyPI rejects any distribution whose metadata contains one "
+                "(400 Can't have direct dependency), so this makes every "
+                "release upload fail, and nothing before the tag says so.\n"
+                "  Install it from tools/Makefile at a pinned commit instead, "
+                "the way ctc-segmentation, g2p_en and s3prl are."
+            )
+    return problems
+
+
 def main() -> int:
     bad = (
         check_variants()
@@ -436,6 +484,7 @@ def main() -> int:
         + check_checkout_credentials()
         + check_permissions_declared()
         + check_codecov_token()
+        + check_no_direct_references()
     )
     for problem in bad:
         print(problem, file=sys.stderr)
@@ -447,7 +496,8 @@ def main() -> int:
             "scripts; every shard set is complete; every test step has "
             "HF_TOKEN; every third-party action is pinned to a SHA; "
             "every checkout drops its credentials; every job declares "
-            "permissions; every codecov upload has a token; no duplicate keys"
+            "permissions; every codecov upload has a token; pyproject declares "
+            "no direct references; no duplicate keys"
         )
         return 0
     if bad:
