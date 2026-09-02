@@ -119,17 +119,8 @@ Audio-only top-1 accuracy on the VGGSound test set (309 classes):
 |---|---|
 | ResNet18 ([Chen et al., 2020](https://arxiv.org/abs/2004.14368)) | 48.8 |
 | ResNet50 ([Chen et al., 2020](https://arxiv.org/abs/2004.14368)) | 51.0 |
-| MBT audio ([Nagrani et al., 2021](https://arxiv.org/abs/2101.05025)) | 52.3 |
 | **This recipe (BEATs iter3+ AS2M fine-tune)** | **56.1** |
-| MAST ([Chen et al., 2023](https://arxiv.org/abs/2303.10705)) | 57.0 |
-| Audiovisual MAE, audio-only ([Gong et al., 2022](https://arxiv.org/abs/2212.05922)) | 57.2 |
-| CAV-MAE, audio-only ([Gong et al., 2022](https://arxiv.org/abs/2210.03017)) | 59.5 |
-| ONE-PEACE, audio-only ([Wang et al., 2023](https://arxiv.org/abs/2305.11172)) | 59.6 |
-| MAViL, audio-only ([Huang et al., 2023](https://arxiv.org/abs/2212.08071)) | 60.8 |
+| CAV-MAE ([Gong et al., 2023](https://arxiv.org/abs/2210.07839)) | 59.5 |
 
-This recipe sits above the original CNN baselines and MBT/AST-style audio
-models, and in a similar range to AudioMAE/MAST, but below stronger
-audio-only models such as CAV-MAE, ONE-PEACE, and MAViL. Audio-visual
-models on the same test set are higher (CAV-MAE 65.5, MAViL 67.1) and are
-not comparable to this audio-only setup. The config is conservative
-(`batch_size=32`, no mixup, 1 GPU) relative to the AS-20K BEATs recipe.
+This recipe sits above the original CNN baselines, but is below state-of-the-art audio encoder such as CAV-MAE. 
+This recipe is a reproducible BEATs fine-tuning baseline, not a SOTA attempt. valid 77.7% is a random split of train, not an official test set, so it should not be compared with papers. Added this comparison to the README.
