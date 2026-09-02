@@ -5,6 +5,12 @@ on:
     # Runs every Monday at midnight UTC
     - cron: "0 0 * * 1"
 
+# The default on this repository is write on almost everything (see #6583).
+# Pushes to DockerHub with DOCKERHUB_USERNAME/DOCKERHUB_TOKEN, so it needs
+# nothing from GitHub beyond the checkout.
+permissions:
+  contents: read
+
 jobs:
   docker-build:
     runs-on: ubuntu-latest
