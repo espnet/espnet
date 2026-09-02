@@ -929,9 +929,11 @@ class EpochRecordingIterFactory:
 
 
 def test_build_iter_receives_espnet2_one_based_epoch(monkeypatch):
-    """espnet2 iter factories assume 1-based epochs (espnet2/train/trainer.py
-    loops from 1), while Lightning's current_epoch is 0-based. The builder must
-    translate, or epoch 0 seeds espnet2 with RandomState(-1)."""
+    """Give espnet2 factories the 1-based epoch they assume.
+
+    espnet2's trainer loops from epoch 1 while Lightning's current_epoch is
+    0-based; without translation, epoch 0 seeds espnet2 with RandomState(-1).
+    """
     import espnet3.components.data.dataloader as dl
 
     monkeypatch.setattr(dl, "build_batch_sampler", lambda **kw: [[0], [1]])
@@ -966,10 +968,13 @@ def test_build_iter_receives_espnet2_one_based_epoch(monkeypatch):
 
 
 def test_epoch0_with_shuffle_and_num_iters_per_epoch_does_not_crash(monkeypatch):
-    """The real SequenceIterFactory with shuffle=True and num_iters_per_epoch
-    set used to raise ``ValueError: Seed must be between 0 and 2**32 - 1`` at
-    Lightning epoch 0, via RandomState(real_epoch - 1 + seed) = RandomState(-1).
-    The shipped codec recipe config has exactly this shape."""
+    """Epoch 0 must not crash when shuffle and num_iters_per_epoch are set.
+
+    The real SequenceIterFactory used to raise ``ValueError: Seed must be
+    between 0 and 2**32 - 1`` at Lightning epoch 0 via
+    RandomState(real_epoch - 1 + seed) = RandomState(-1); the shipped codec
+    recipe config has exactly this shape.
+    """
     import espnet3.components.data.dataloader as dl
 
     monkeypatch.setattr(dl, "build_batch_sampler", lambda **kw: [[0], [1], [2]])
