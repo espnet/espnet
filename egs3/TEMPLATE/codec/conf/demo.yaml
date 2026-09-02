@@ -2,8 +2,14 @@
 #                    DEMO PACK SETTING                   #
 ##########################################################
 # Quick usage:
-#   python run.py --stages pack_demo   --demo_config conf/demo.yaml
-#   python run.py --stages upload_demo --demo_config conf/demo.yaml
+#   python run.py --stages pack_demo \
+#     --training_config conf/training.yaml --demo_config conf/demo.yaml
+#   python run.py --stages upload_demo \
+#     --training_config conf/training.yaml --demo_config conf/demo.yaml
+#
+# `--training_config` is required for both stages: this config refers to
+# `${exp_tag}`, which is owned by the training config and copied in by the
+# runner. Without it the interpolation is unresolved and the stage fails.
 #
 # Main stages and what this config is used for:
 # - `pack_demo`: packs `demo.yaml`, `ui.app_script`, and `pack.include`

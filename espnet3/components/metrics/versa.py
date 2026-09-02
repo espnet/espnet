@@ -54,7 +54,7 @@ class VersaMetric(BaseMetric):
             {"wav": Path("exp/inference/test/wav.scp"),
              "ref": Path("exp/inference/test/ref.scp")},
             test_name="test",
-            inference_dir=Path("exp/inference"),
+            output_dir=Path("exp/inference"),
         )
         ```
     """
@@ -127,7 +127,7 @@ class VersaMetric(BaseMetric):
         self,
         data: Dict[str, Path],
         test_name: str,
-        inference_dir: Path,
+        output_dir: Path,
     ) -> Dict[str, float]:
         """Score one test set with versa and return averaged metrics.
 
@@ -135,11 +135,11 @@ class VersaMetric(BaseMetric):
             data: Mapping from input alias to the SCP file path written by
                 the infer stage.
             test_name: Name of the test set being scored.
-            inference_dir: Root inference output directory.
+            output_dir: Root inference output directory.
 
         Returns:
             Dict of metric name to per-utterance average. The same values are
-            written to ``<inference_dir>/<test_name>/scoring/versa_eval/
+            written to ``<output_dir>/<test_name>/scoring/versa_eval/
             avg_result.json``.
 
         Raises:
@@ -153,10 +153,10 @@ class VersaMetric(BaseMetric):
             ```python
             metric = VersaMetric(score_config=[{"name": "signal_metric"}])
             scores = metric(
-                {"wav": inference_dir / "test" / "wav.scp",
-                 "ref": inference_dir / "test" / "ref.scp"},
+                {"wav": output_dir / "test" / "wav.scp",
+                 "ref": output_dir / "test" / "ref.scp"},
                 test_name="test",
-                inference_dir=inference_dir,
+                output_dir=output_dir,
             )
             # -> {"mcd": 3.1416, "sdr": 12.7, ...}
             ```
@@ -177,7 +177,7 @@ class VersaMetric(BaseMetric):
                 f"Got: {list(data.keys())}"
             )
 
-        eval_dir = Path(inference_dir) / test_name / "scoring" / "versa_eval"
+        eval_dir = Path(output_dir) / test_name / "scoring" / "versa_eval"
         eval_dir.mkdir(parents=True, exist_ok=True)
 
         score_config_path = self._resolve_score_config_path(eval_dir)

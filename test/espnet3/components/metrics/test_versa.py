@@ -103,9 +103,10 @@ class TestCall:
 
         monkeypatch.setattr("espnet3.components.metrics.versa.subprocess.run", fake_run)
         metric = VersaMetric(score_config=[{"name": "signal_metric"}], use_gpu=False)
-        inference_dir = tmp_path / "inference"
+        output_dir = tmp_path / "inference"
 
-        averages = metric(self._make_data(tmp_path), "test", inference_dir)
+        # Keyword call pins the BaseMetric contract (data, test_name, output_dir).
+        averages = metric(self._make_data(tmp_path), "test", output_dir=output_dir)
 
         assert averages == {"mcd": 3.0}
         assert recorded["check"] is True
@@ -113,7 +114,7 @@ class TestCall:
         assert "--use_gpu" not in recorded["cmd"]
         assert "--text" not in recorded["cmd"]
 
-        eval_dir = inference_dir / "test" / "scoring" / "versa_eval"
+        eval_dir = output_dir / "test" / "scoring" / "versa_eval"
         assert json.loads((eval_dir / "avg_result.json").read_text()) == {"mcd": 3.0}
 
     def test_use_gpu_and_text_are_forwarded(self, tmp_path, monkeypatch):

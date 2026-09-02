@@ -82,6 +82,12 @@ def test_ensure_directories_without_stats_dir(tmp_path):
     assert (tmp_path / "exp").is_dir()
 
 
+def test_ensure_directories_with_null_stats_dir(tmp_path):
+    cfg = OmegaConf.create({"exp_dir": str(tmp_path / "exp"), "stats_dir": None})
+    CodecSystem(training_config=cfg)._ensure_directories()
+    assert (tmp_path / "exp").is_dir()
+
+
 # ---------------- _build_trainer dispatch ----------------
 
 

@@ -1,8 +1,14 @@
 """Unit tests for espnet3.systems.codec.gan_trainer."""
 
+from test.espnet3.systems.codec._gan_dummies import (
+    DummyGANModel,
+    make_gan_training_config,
+)
+
 from omegaconf import OmegaConf
 
 import espnet3.systems.codec.gan_trainer as gt
+from espnet3.systems.codec.models.gan_lightning_module import GANLightningModule
 
 
 def _capture_parent_init(monkeypatch):
@@ -89,3 +95,42 @@ def test_build_gan_trainer_wires_module_and_trainer(monkeypatch):
     assert created["trainer"]["exp_dir"] == "exp"
     assert created["trainer"]["config"] is training_config.trainer
     assert isinstance(out, FakeTrainer)
+
+
+# ---------------- real trainer integration ----------------
+
+
+def test_gan_fit_runs_one_batch_with_real_trainer(tmp_path):
+    from espnet3.systems.codec.gan_trainer import GANLightningTrainer
+
+    model = GANLightningModule(
+        DummyGANModel(), make_gan_training_config(tmp_path / "exp")
+    )
+    trainer_config = OmegaConf.create(
+        {
+            "accelerator": "cpu",
+            "devices": 1,
+            "num_nodes": 1,
+            "max_epochs": 1,
+            "limit_train_batches": 1,
+            "limit_val_batches": 0,
+            "num_sanity_val_steps": 0,
+            "log_every_n_steps": 1,
+            "logger": {
+                "_target_": "lightning.pytorch.loggers.TensorBoardLogger",
+                "save_dir": str(tmp_path / "tb"),
+                "name": "gan_test",
+            },
+            "gradient_clip_val": 0.0,
+            # must be stripped by GANLightningTrainer before reaching Lightning
+            "gan": {"generator_first": True},
+        }
+    )
+    trainer = GANLightningTrainer(
+        model=model,
+        exp_dir=str(tmp_path / "exp"),
+        config=trainer_config,
+    )
+    trainer.fit()
+    assert model._optimizer_states["generator"].update_step == 1
+    assert model._optimizer_states["discriminator"].update_step == 1

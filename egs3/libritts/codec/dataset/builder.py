@@ -145,12 +145,26 @@ class LibriTTSBuilder(DatasetBuilder):
     ) -> bool:
         """Check if LibriTTS source data is prepared.
 
+        A subset counts as prepared only when ``prepare_source`` finished
+        extracting it, which is recorded by the ``LibriTTS/<subset>/.complete``
+        marker. Testing the directory alone would accept the partial tree an
+        interrupted extraction leaves behind, and ``build`` would then write
+        manifests from incomplete source data.
+
         Args:
-            recipe_dir: Recipe root directory (not used in this check).
+            recipe_dir: Recipe root directory.
             **_kwargs: Unused extra options for API compatibility.
 
         Returns:
-            True if the required LibriTTS subsets are present; False otherwise.
+            True if every required LibriTTS subset carries its ``.complete``
+            marker; False otherwise.
+
+        Note:
+            When the corpus was staged by hand instead of by
+            ``prepare_source``, create the markers so this check passes:
+            ``touch <dataset_path>/LibriTTS/<subset>/.complete`` for each
+            configured subset. Without them this returns False and
+            ``prepare_source`` re-downloads the archives.
 
         Examples:
             ```python
@@ -161,7 +175,10 @@ class LibriTTSBuilder(DatasetBuilder):
         """
         recipe_root = Path(recipe_dir).resolve()
         libritts_root = recipe_root / _CFG["dataset_path"] / "LibriTTS"
-        return all((libritts_root / subset).is_dir() for subset in _required_subsets())
+        return all(
+            (libritts_root / subset / ".complete").is_file()
+            for subset in _required_subsets()
+        )
 
     def prepare_source(
         self,

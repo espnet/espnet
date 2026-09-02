@@ -143,8 +143,9 @@ class LibriTTSCodecDataset(TorchDataset):
             inference: Add ``utt_id`` and ``wav_path`` to each sample.
 
         Raises:
-            RuntimeError: If the manifests have not been built yet, or the
-                resolved manifest is empty.
+            RuntimeError: If the manifests have not been built yet (checked
+                only when no ``manifest_path`` is given), or the resolved
+                manifest is empty.
             ValueError: If ``split`` is unknown and no ``manifest_path`` is
                 given.
             FileNotFoundError: If the resolved manifest file does not exist.
@@ -170,17 +171,18 @@ class LibriTTSCodecDataset(TorchDataset):
         )
         self.data_dir = recipe_root / _BUILDER_CFG["data_path"]
 
-        builder = LibriTTSBuilder()
-        if not builder.is_built(recipe_dir=recipe_root):
-            raise RuntimeError(
-                "Dataset is not built yet. Run create_dataset stage first."
-            )
-
         if manifest_path is not None:
+            # An explicit manifest is an override: it may live outside the
+            # configured splits, so the recipe build check does not apply.
             resolved_manifest = Path(manifest_path)
             if not resolved_manifest.is_absolute():
                 resolved_manifest = (recipe_root / resolved_manifest).resolve()
         else:
+            builder = LibriTTSBuilder()
+            if not builder.is_built(recipe_dir=recipe_root):
+                raise RuntimeError(
+                    "Dataset is not built yet. Run create_dataset stage first."
+                )
             if split not in _SPLIT_MANIFEST_PATHS:
                 raise ValueError(
                     f"Unknown split '{split}'. Expected one of "

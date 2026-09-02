@@ -43,8 +43,11 @@ class CodecSystem(BaseSystem):
     def _ensure_directories(self) -> None:
         config = self.training_config
         Path(config.exp_dir).mkdir(parents=True, exist_ok=True)
-        if hasattr(config, "stats_dir"):
-            Path(config.stats_dir).mkdir(parents=True, exist_ok=True)
+        # `stats_dir` may be declared but left null (e.g. a recipe that skips
+        # collect_stats), so check the value rather than key presence.
+        stats_dir = config.get("stats_dir")
+        if stats_dir is not None:
+            Path(stats_dir).mkdir(parents=True, exist_ok=True)
 
     def _build_trainer(self) -> ESPnet3LightningTrainer:
         config = self.training_config
