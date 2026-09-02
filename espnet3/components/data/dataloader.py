@@ -300,17 +300,6 @@ class DataLoaderBuilder:
                 _LOGGED_DISTRIBUTED_BATCHES.add(mode)
 
         iter_factory = instantiate(factory_config, dataset, batches=batches)
-        # Pass the call, not its result: `ChunkIterFactory.build_iter` is a
-        # generator function, and the trainer may call `iter()` on this loader
-        # more than once per epoch. Handing over a single live generator makes
-        # every pass after the first empty.
-        #
-        # `self.epoch + 1`: espnet2 iter factories assume 1-based epochs
-        # (espnet2/train/trainer.py loops from 1), while Lightning's
-        # current_epoch is 0-based. Without the shift, epoch 0 seeds espnet2
-        # with RandomState(real_epoch - 1 + seed) = RandomState(-1), which
-        # raises whenever num_iters_per_epoch is set with shuffling. Shard
-        # selection above keeps the raw 0-based epoch.
         loader = EpochSyncIterator(partial(iter_factory.build_iter, self.epoch + 1))
         log_dataloader(
             logger,
