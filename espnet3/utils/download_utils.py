@@ -156,3 +156,25 @@ def extract_targz(
     _log(logger, f"Extracting: {archive_path.name}")
     with tarfile.open(archive_path, "r:gz") as tar:
         tar.extractall(path=dst_dir)
+
+
+def extract_zip(
+    archive_path: Path,
+    dst_dir: Path,
+    logger: logging.Logger | None = None,
+) -> None:
+    """Extract a `.zip` archive into a destination directory.
+
+    Args:
+        archive_path (Path): Path to the `.zip` archive.
+        dst_dir (Path): Directory to extract files into.
+        logger (logging.Logger | None): Logger to emit progress messages.
+
+    Raises:
+        zipfile.BadZipFile: If the archive is invalid or extraction fails.
+    """
+    import zipfile
+
+    _log(logger, f"Extracting: {archive_path.name}")
+    with zipfile.ZipFile(archive_path, "r") as zip_ref:
+        zip_ref.extractall(dst_dir)
