@@ -95,7 +95,7 @@ jobs:
   #   if: |
   #     github.event.pull_request.draft == false
   #   strategy:
-  #     max-parallel: 20
+  #     max-parallel: 30
   #     matrix:
   #       python-version: ["3.12", "3.13"]
   #       pytorch-version: [2.9.1, 2.10.0, 2.11.0]
@@ -208,7 +208,7 @@ jobs:
       github.event.pull_request.draft == false
     strategy:
       fail-fast: false
-      max-parallel: 20
+      max-parallel: 30
       matrix: ${{ fromJSON(needs.resolve_ci_image.outputs.matrix) }}
     # Everything Make environment used to build is already here. Measured on
     # #6566: 81s to pull against 510s to build, and the whole job 4.2 min
@@ -312,7 +312,7 @@ jobs:
       github.event.pull_request.draft == false
     strategy:
       fail-fast: false
-      max-parallel: 20
+      max-parallel: 30
       matrix:
         python-version: ["3.12", "3.13"]
         pytorch-version: [2.9.1]
@@ -372,7 +372,7 @@ jobs:
       github.event.pull_request.draft == false
     strategy:
       fail-fast: false
-      max-parallel: 20
+      max-parallel: 30
       matrix:
         python-version: ["3.12"]
         pytorch-version: [2.9.1]
@@ -414,7 +414,17 @@ jobs:
       github.event.pull_request.draft == false
     strategy:
       fail-fast: false
-      max-parallel: 20
+      # 30, not 20 and not 60. This is the only matrix the cap actually
+      # binds - 65 jobs, where every other matrix in this workflow is 9 or
+      # fewer - and the phase is throughput-limited: about 1170 minutes of
+      # compute, so roughly 59 minutes at 20 and 39 at 30. Past about 31 it
+      # stops helping, because the longest single job is 38 minutes and
+      # nothing divides that further. Peak demand across the workflow is
+      # then 61 jobs, plus a handful from the macOS, Windows and Debian
+      # runs; over the account's concurrency limit the excess queues, which
+      # costs nothing. Every matrix carries the same number so a matrix that
+      # grows past it is not silently throttled by a stale value.
+      max-parallel: 30
       matrix: ${{ fromJSON(needs.resolve_ci_image.outputs.integration_matrix) }}
     # Empty when the image for this hash is not published, which runs the job on
     # the runner instead and takes the slow steps below.
@@ -483,7 +493,7 @@ jobs:
       github.event.pull_request.draft == false
     strategy:
       fail-fast: false
-      max-parallel: 20
+      max-parallel: 30
       # A deliberate subset - one python, one torch - so this matrix stays
       # explicit. ci/check_ci_image_config.py verifies both are built variants.
       matrix:
@@ -546,7 +556,7 @@ jobs:
       github.event.pull_request.draft == false
     strategy:
       fail-fast: false
-      max-parallel: 20
+      max-parallel: 30
       matrix: ${{ fromJSON(needs.resolve_ci_image.outputs.matrix) }}
     # Empty when the image for this hash is not published, which makes the job
     # run on the runner instead. That behaviour is not documented; it was
@@ -595,7 +605,7 @@ jobs:
       github.event.pull_request.draft == false
     strategy:
       fail-fast: false
-      max-parallel: 20
+      max-parallel: 30
       matrix: ${{ fromJSON(needs.resolve_ci_image.outputs.matrix) }}
     # Empty when the image for this hash is not published, which runs the job on
     # the runner instead and takes the slow steps below.
@@ -696,7 +706,7 @@ jobs:
       github.event.pull_request.draft == false
     strategy:
       fail-fast: false
-      max-parallel: 20
+      max-parallel: 30
       matrix:
         python-version: ["3.12"]
         pytorch-version: [2.9.1]
