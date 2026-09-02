@@ -822,22 +822,26 @@ def test_iter_factory_returns_base_iterator_without_distributed(monkeypatch):
 
 def test_iter_factory_syncs_iterator_when_distributed_initialized(monkeypatch):
     import espnet3.components.data.dataloader as dl
-    import espnet3.components.data.epoch_sync_iterator as iterator_module
+    import espnet3.components.data.epoch_sync_iterator as epoch_sync_iterator_module
 
     monkeypatch.setattr(
         dl, "build_batch_sampler", lambda **kw: [[0, 1], [2, 3], [4, 5], [6, 7]]
     )
     monkeypatch.setattr(dl.torch.distributed, "get_world_size", lambda: 2)
     monkeypatch.setattr(dl.torch.distributed, "get_rank", lambda: 0)
-    monkeypatch.setattr(iterator_module.torch.distributed, "is_available", lambda: True)
     monkeypatch.setattr(
-        iterator_module.torch.distributed, "is_initialized", lambda: True
+        epoch_sync_iterator_module.torch.distributed, "is_available", lambda: True
     )
     monkeypatch.setattr(
-        iterator_module.torch.distributed, "get_backend", lambda: "gloo"
+        epoch_sync_iterator_module.torch.distributed, "is_initialized", lambda: True
     )
     monkeypatch.setattr(
-        iterator_module.torch.distributed, "all_reduce", lambda tensor, op=None: None
+        epoch_sync_iterator_module.torch.distributed, "get_backend", lambda: "gloo"
+    )
+    monkeypatch.setattr(
+        epoch_sync_iterator_module.torch.distributed,
+        "all_reduce",
+        lambda tensor, op=None: None,
     )
 
     organizer = build_organizer(DUMMY_DATASET_TARGET)

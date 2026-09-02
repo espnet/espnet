@@ -311,10 +311,10 @@ class DataLoaderBuilder:
         # with RandomState(real_epoch - 1 + seed) = RandomState(-1), which
         # raises whenever num_iters_per_epoch is set with shuffling. Shard
         # selection above keeps the raw 0-based epoch.
-        iterator = EpochSyncIterator(partial(iter_factory.build_iter, self.epoch + 1))
+        loader = EpochSyncIterator(partial(iter_factory.build_iter, self.epoch + 1))
         log_dataloader(
             logger,
-            iterator,
+            loader,
             label=mode,
         )
-        return iterator
+        return loader

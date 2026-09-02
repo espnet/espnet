@@ -1,25 +1,31 @@
 import pytest
 
-import espnet3.components.data.epoch_sync_iterator as iterator_module
+import espnet3.components.data.epoch_sync_iterator as epoch_sync_iterator_module
 from espnet3.components.data.epoch_sync_iterator import EpochSyncIterator
 
 
 def _patch_no_distributed(monkeypatch):
-    monkeypatch.setattr(iterator_module.torch.distributed, "is_available", lambda: True)
     monkeypatch.setattr(
-        iterator_module.torch.distributed, "is_initialized", lambda: False
+        epoch_sync_iterator_module.torch.distributed, "is_available", lambda: True
+    )
+    monkeypatch.setattr(
+        epoch_sync_iterator_module.torch.distributed, "is_initialized", lambda: False
     )
 
 
 def _patch_dist_gloo(monkeypatch, all_reduce):
-    monkeypatch.setattr(iterator_module.torch.distributed, "is_available", lambda: True)
     monkeypatch.setattr(
-        iterator_module.torch.distributed, "is_initialized", lambda: True
+        epoch_sync_iterator_module.torch.distributed, "is_available", lambda: True
     )
     monkeypatch.setattr(
-        iterator_module.torch.distributed, "get_backend", lambda: "gloo"
+        epoch_sync_iterator_module.torch.distributed, "is_initialized", lambda: True
     )
-    monkeypatch.setattr(iterator_module.torch.distributed, "all_reduce", all_reduce)
+    monkeypatch.setattr(
+        epoch_sync_iterator_module.torch.distributed, "get_backend", lambda: "gloo"
+    )
+    monkeypatch.setattr(
+        epoch_sync_iterator_module.torch.distributed, "all_reduce", all_reduce
+    )
 
 
 # --- Non-distributed passthrough ---
@@ -32,17 +38,19 @@ def test_yields_all_batches_without_distributed(monkeypatch):
         raise AssertionError("all_reduce must not be called without distributed")
 
     monkeypatch.setattr(
-        iterator_module.torch.distributed, "all_reduce", unexpected_all_reduce
+        epoch_sync_iterator_module.torch.distributed,
+        "all_reduce",
+        unexpected_all_reduce,
     )
     iterator = EpochSyncIterator(["a", "b", "c"])
     assert list(iterator) == ["a", "b", "c"]
 
 
-def test_len_delegates_to_wrapped_iterator():
+def test_len_delegates_to_the_source():
     assert len(EpochSyncIterator([1, 2, 3])) == 3
 
 
-def test_len_raises_when_wrapped_iterator_is_unsized():
+def test_len_raises_when_the_source_is_unsized():
     iterator = EpochSyncIterator(iter([1, 2, 3]))
     with pytest.raises(TypeError):
         len(iterator)
@@ -141,7 +149,7 @@ def test_len_does_not_rebuild_an_unsized_factory_source_either():
 
     def factory():
         calls.append(1)
-        return iter([[0], [1]])          # a one-shot iterator has no __len__
+        return iter([[0], [1]])  # a one-shot iterator has no __len__
 
     iterator = EpochSyncIterator(factory)
 

@@ -84,7 +84,7 @@ class EpochSyncIterator:
             int: The number of batches one pass over the source reports.
 
         Raises:
-            TypeError: If the wrapped iterator does not implement ``__len__``.
+            TypeError: If the source's pass does not implement ``__len__``.
                 espnet2's ``ChunkIterFactory`` yields a data-dependent number
                 of batches, so its loaders are unsized by design.
 
@@ -114,7 +114,8 @@ class EpochSyncIterator:
         for free.
 
         Yields:
-            Any: The batches of the wrapped iterator, in order and unchanged.
+            Any: The batches of one fresh pass over the source, in order
+            and unchanged.
 
         Examples:
             >>> class NonEmptyIterator(EpochSyncIterator):
