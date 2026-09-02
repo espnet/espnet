@@ -65,6 +65,7 @@ GITHUB_TOKEN from the two steps that need it for torch.hub.
 import json
 import re
 import sys
+import tomllib
 from pathlib import Path
 
 import yaml
@@ -441,35 +442,48 @@ PYPROJECT = Path("pyproject.toml")
 DIRECT_REF = re.compile(r"^[A-Za-z0-9._-]+\s*(\[[^\]]*\])?\s*@\s*\S+")
 
 
-def check_no_direct_references() -> list:
-    """No declared dependency may be a PEP 508 direct reference.
+def declared_dependencies() -> list:
+    """Every dependency string in pyproject.toml, with the table it came from.
 
-    Read as text rather than through tomllib, so a problem can be reported with
-    a line number and so a comment that mentions one is not mistaken for a
-    declaration.
+    Parsed with tomllib, not scanned line by line. A scan for lines that begin
+    with a quote misses an array written on one line -
+
+        dependencies = ["example @ git+https://example.invalid/x.git"]
+
+    - because that line begins with the key. The first version of this check did
+    exactly that, so it would have passed a pyproject no release could publish:
+    the same defect as check_codecov_token testing for the presence of a token
+    key rather than its value.
     """
+    data = tomllib.loads(PYPROJECT.read_text())
+    project = data.get("project") or {}
+    found = [("project.dependencies", d) for d in project.get("dependencies") or []]
+    for extra, items in (project.get("optional-dependencies") or {}).items():
+        table = f"project.optional-dependencies.{extra}"
+        found += [(table, item) for item in items or []]
+    return found
+
+
+def check_no_direct_references() -> list:
+    """No declared dependency may be a PEP 508 direct reference."""
     if not PYPROJECT.exists():
         return [f"{PYPROJECT}: missing"]
-    interesting = ("project", "project.optional-dependencies")
+    lines = PYPROJECT.read_text().splitlines()
     problems = []
-    section = None
-    for number, line in enumerate(PYPROJECT.read_text().splitlines(), start=1):
-        stripped = line.strip()
-        if stripped.startswith("[") and stripped.endswith("]"):
-            section = stripped[1:-1]
+    for table, entry in declared_dependencies():
+        if not DIRECT_REF.match(entry.strip()):
             continue
-        if section not in interesting or not stripped.startswith(('"', "'")):
-            continue
-        if DIRECT_REF.match(stripped.strip("\"',")):
-            problems.append(
-                f"{PYPROJECT}:{number}: direct reference in [{section}]: "
-                f"{stripped}\n"
-                "  PyPI rejects any distribution whose metadata contains one "
-                "(400 Can't have direct dependency), so this makes every "
-                "release upload fail, and nothing before the tag says so.\n"
-                "  Install it from tools/Makefile at a pinned commit instead, "
-                "the way ctc-segmentation, g2p_en and s3prl are."
-            )
+        # Only to point at the offender; tomllib is what decided it is one.
+        number = next((n for n, ln in enumerate(lines, 1) if entry in ln), None)
+        at = f":{number}" if number else ""
+        problems.append(
+            f"{PYPROJECT}{at}: direct reference in [{table}]: {entry}\n"
+            "  PyPI rejects any distribution whose metadata contains one "
+            "(400 Can't have direct dependency), so this makes every release "
+            "upload fail, and nothing before the tag says so.\n"
+            "  Depend on a published version instead, the way espnet-g2p-en, "
+            "espnet-ctc-segmentation and espnet-s3prl are."
+        )
     return problems
 
 
