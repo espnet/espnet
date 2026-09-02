@@ -555,6 +555,7 @@ class SSVDLinear(nn.Linear, LoRALayer):
         merge_weights: bool = True,
         rotation_ratio: Optional[float] = None,
         off_diag: int = 0,
+        rotation_map: str = "linear",
         **kwargs,
     ):
         nn.Linear.__init__(self, in_features, out_features, **kwargs)
@@ -565,6 +566,11 @@ class SSVDLinear(nn.Linear, LoRALayer):
             lora_dropout=lora_dropout,
             merge_weights=merge_weights,
         )
+        if rotation_map not in ("linear", "cayley"):
+            raise ValueError(
+                f"rotation_map must be 'linear' or 'cayley', got {rotation_map!r}."
+            )
+        self.rotation_map = rotation_map
         self.fan_in_fan_out = fan_in_fan_out
         self.register_buffer("svd_initialized", torch.tensor(False, dtype=torch.bool))
         self.in_features = in_features
@@ -648,10 +654,19 @@ class SSVDLinear(nn.Linear, LoRALayer):
         device = Y.device
         dtype = Y.dtype
 
-        # Build the skew-symmetric step of the Cayley transform.
-        A = torch.eye(k, device=device, dtype=dtype)
-        A[idx[0], idx[1]] -= 2 * self.K_vec
-        A[idx[1], idx[0]] += 2 * self.K_vec
+        # Build the skew-symmetric step S of the Cayley transform.
+        S = torch.zeros(k, k, device=device, dtype=dtype)
+        S[idx[0], idx[1]] = -self.K_vec
+        S[idx[1], idx[0]] = self.K_vec
+        eye = torch.eye(k, device=device, dtype=dtype)
+        if self.rotation_map == "cayley":
+            # Exact Cayley transform (I - S)^{-1}(I + S): strictly orthogonal.
+            A = torch.linalg.solve(eye - S, eye + S)
+        else:
+            # Cayley transform via a truncated Neumann series, keeping only the
+            # first-order term I + 2S (the setting used in the paper): a small
+            # orthogonality error, but much faster than the exact map.
+            A = eye + 2 * S
 
         Y_top = Y[:k, :]
         Y_rest = Y[k:, :]

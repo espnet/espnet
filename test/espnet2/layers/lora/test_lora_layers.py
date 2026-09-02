@@ -352,3 +352,28 @@ def test_dora_magnitude_survives_a_checkpoint_round_trip():
         "DoRA output changed after a state-dict round trip: the trained "
         "magnitude was probably overwritten by apply_m()."
     )
+
+
+def test_ssvd_rotation_map_cayley_is_orthogonal():
+    """rotation_map='cayley' must apply a strictly orthogonal rotation."""
+    torch.manual_seed(0)
+    layer = _make_layer(SSVDLinear, rotation_map="cayley")
+    layer(torch.randn(BATCH, IN_FEATURES))  # initialize factors
+    with torch.no_grad():
+        layer.K_vec.normal_(std=0.1)
+    k = layer.k_trainable
+    idx = layer.K_triu_idx
+    S = torch.zeros(k, k)
+    S[idx[0], idx[1]] = -layer.K_vec
+    S[idx[1], idx[0]] = layer.K_vec
+    eye = torch.eye(k)
+    A = torch.linalg.solve(eye - S, eye + S)
+    assert torch.allclose(A @ A.T, eye, atol=1e-5), "cayley map is not orthogonal"
+    # And both maps agree to first order for small steps.
+    A_lin = eye + 2 * S
+    assert torch.allclose(A, A_lin, atol=0.1)
+
+
+def test_ssvd_rotation_map_validation():
+    with pytest.raises(ValueError, match="rotation_map"):
+        _make_layer(SSVDLinear, rotation_map="expm")

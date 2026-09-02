@@ -144,6 +144,8 @@ adapter_conf:
     dropout_rate: 0.0
     adapter_type: ssvd
     rotation_ratio: 0.4
+    # rotation_map: linear    # default: first-order (truncated Neumann) Cayley, I + 2S
+    # rotation_map: cayley    # exact Cayley (I - S)^{-1}(I + S), strictly orthogonal
     # NOTE: upstream espnet flattened Conv2dSubsampling -- `encoder.embed.out`
     # is now a plain Linear (was Sequential(Linear, PosEnc) on the fork's
     # base), so the old `"embed.out.0"` target matches nothing in current

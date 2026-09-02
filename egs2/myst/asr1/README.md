@@ -52,6 +52,15 @@ adapter_conf:
     target_modules: [attn.linear_q, attn.linear_v]
 ```
 
+**SSVD rotation map.** `rotation_map: cayley` applies the exact Cayley
+transform `(I - S)^{-1}(I + S)`, which is strictly orthogonal.
+`rotation_map: linear` (default, the setting used in the paper) evaluates the
+Cayley transform via a truncated Neumann series, keeping only the first-order
+term `I + 2S`; this introduces a small orthogonality error but is much faster.
+Both share the same parameters, so checkpoints are interchangeable.
+Experiments on MyST / OWSM v3.1 show the gap between the two mappings is
+negligible (see [2], Section V-C, Table VI).
+
 Since OWSM is a speech-to-text (s2t) model, these configurations are trained
 with the s2t recipe (`s2t.sh`, as in `egs2/owsm_v3.1/s2t1`), pointing
 `--s2t_config` at one of the yamls above, with `init_param` /
@@ -155,6 +164,6 @@ Model: https://huggingface.co/espnet/myst_wavlm_aed_transformer
 
 [1] Pradhan, Sameer, Ronald Cole, and Wayne Ward. "My Science Tutor (MyST)--a Large Corpus of Children's Conversational Speech." Proceedings of the 2024 Joint International Conference on Computational Linguistics, Language Resources and Evaluation (LREC-COLING 2024). 2024.
 
-[2] Wang, Pu, Shinji Watanabe, and Hugo Van Hamme. "SSVD: Structured SVD for Parameter-Efficient Fine-Tuning and Benchmarking under Domain Shift in ASR," ASRU 2025, doi: 10.1109/ASRU65441.2025.11434624.
+[2] Wang, Pu, Shinji Watanabe, and Hugo Van Hamme. "SSVD: Structured SVD for Parameter-Efficient Fine-Tuning and Benchmarking under Domain Shift in ASR," ASRU 2025, doi: 10.1109/ASRU65441.2025.11434624. https://arxiv.org/abs/2509.02830
 
 [3] Wang, Pu, Shinji Watanabe, and Hugo Van Hamme. "SSVD-O: Parameter-Efficient Fine-Tuning with Structured SVD for Speech Recognition." ICASSP 2026, doi: 10.1109/ICASSP55912.2026.11462142.
