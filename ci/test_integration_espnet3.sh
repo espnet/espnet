@@ -7,6 +7,7 @@ set -euo pipefail
 
 python="coverage run --append"
 cwd=$(pwd)
+export COVERAGE_FILE="${cwd}/.coverage"
 clone_workdir=""
 
 gen_dummy_coverage(){
