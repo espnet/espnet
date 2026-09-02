@@ -159,8 +159,12 @@ espnet.done: pytorch.done conda_packages.done lightning.done
 	$(call start_timer,espnet.done)
 	@echo NUMPY_VERSION=$(shell . ./activate_python.sh && python3 -c "import numpy; print(numpy.__version__)")
 	# Install additional packages that cannot be included in setup.py due to package build issues.
-	. ./activate_python.sh && python3 -m pip install git+https://github.com/espnet/g2p.git@053dfa9  # https://github.com/espnet/g2p/pull/1
-	. ./activate_python.sh && python3 -m pip install git+https://github.com/espnet/ctc-segmentation.git@9b9ea1d
+	# The same two forks this used to install from git, now published under their
+	# own names because PyPI rejects a distribution whose metadata contains a git
+	# URL. They are also declared in the asr and tts extras; the distributions are
+	# identical, so nothing installs two copies of ctc_segmentation or g2p_en.
+	. ./activate_python.sh && python3 -m pip install espnet-g2p-en
+	. ./activate_python.sh && python3 -m pip install espnet-ctc-segmentation
 	. ./activate_python.sh && python3 -m pip install -e ".."  # Install editable mode by default
 	@echo NUMPY_VERSION=$(shell . ./activate_python.sh && python3 -c "import numpy; print(numpy.__version__)")
 	. ./activate_python.sh && python -m nltk.downloader averaged_perceptron_tagger_eng
