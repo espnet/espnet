@@ -998,3 +998,95 @@ def test_epoch0_with_shuffle_and_num_iters_per_epoch_does_not_crash(monkeypatch)
     iterator = builder.build("train")
 
     assert len(list(iterator)) == 2
+
+
+def test_shard_wrapper_without_shard_method_is_rejected():
+    """A wrapper whose inner dataset is sharded must itself expose shard()."""
+    from types import SimpleNamespace
+
+    inner = SimpleNamespace(total_shards=2, shard=lambda idx: None, dist_world_size=1)
+    wrapper = SimpleNamespace(datasets=[inner])  # no shard() on the wrapper
+    builder = build_builder(wrapper, DictConfig({}), None, num_device=1, epoch=0)
+    with pytest.raises(RuntimeError, match="Dataset does not expose shard"):
+        builder._maybe_shard_dataset(wrapper)
+
+
+def test_missing_dist_world_size_is_rejected():
+    """A sharded dataset without dist_world_size cannot be shard-scheduled."""
+    from types import SimpleNamespace
+
+    inner = SimpleNamespace(total_shards=2, shard=lambda idx: None)
+    wrapper = SimpleNamespace(datasets=[inner], shard=lambda idx: None)
+    builder = build_builder(wrapper, DictConfig({}), None, num_device=1, epoch=0)
+    with pytest.raises(RuntimeError, match="requires dist_world_size"):
+        builder._maybe_shard_dataset(wrapper)
+
+
+def test_non_positive_dist_world_size_is_rejected():
+    """dist_world_size must be a positive integer."""
+    organizer = build_organizer(
+        DUMMY_SHARDED_DATASET_TARGET,
+        dataset_kwargs={"total_shards": 2, "dist_world_size": 0},
+    )
+    config = make_standard_dataloader_config()
+    builder = build_builder(
+        organizer.train, config, collate_fn=None, num_device=1, epoch=0
+    )
+    with pytest.raises(RuntimeError, match="dist_world_size must be an integer"):
+        builder.build("train")
+
+
+def test_non_integer_total_shards_is_rejected():
+    """total_shards must be an integer, not a numeric string."""
+    organizer = build_organizer(
+        DUMMY_SHARDED_DATASET_TARGET,
+        dataset_kwargs={"total_shards": "2", "dist_world_size": 1},
+    )
+    config = make_standard_dataloader_config()
+    builder = build_builder(
+        organizer.train, config, collate_fn=None, num_device=1, epoch=0
+    )
+    with pytest.raises(RuntimeError, match="total_shards must be an integer"):
+        builder.build("train")
+
+
+def test_multiple_iter_factory_in_plain_dict_config_is_rejected():
+    """The MultipleIterFactory guard also reads a plain-dict iter_factory."""
+    from types import SimpleNamespace
+
+    train_cfg = SimpleNamespace(
+        iter_factory={
+            "_target_": "espnet2.iterators.multiple_iter_factory.MultipleIterFactory"
+        }
+    )
+    config = SimpleNamespace(dataloader=SimpleNamespace(train=train_cfg))
+    organizer = build_organizer(DUMMY_DATASET_TARGET)
+    builder = build_builder(
+        organizer.train, config, collate_fn=None, num_device=1, epoch=0
+    )
+    with pytest.raises(RuntimeError, match="MultipleIterFactory is not supported"):
+        builder.build("train")
+
+
+def test_build_iter_factory_defaults_to_the_builder_dataset(monkeypatch):
+    """_build_iter_factory falls back to the builder's own dataset."""
+    import espnet3.components.data.dataloader as dl
+
+    monkeypatch.setattr(dl, "build_batch_sampler", lambda **kw: [[0], [1]])
+    organizer = build_organizer(DUMMY_DATASET_TARGET)
+    builder = build_builder(
+        organizer.train,
+        _make_generator_iter_factory_config(),
+        collate_fn=None,
+        num_device=1,
+        epoch=0,
+    )
+    factory_config = {
+        "_target_": (
+            "test.espnet3.components.data."
+            "test_dataloader_builder.GeneratorIterFactory"
+        ),
+        "batches": {"dummy": 1},
+    }
+    loader = builder._build_iter_factory(factory_config)  # dataset=None path
+    assert list(loader) == [[0], [1]]

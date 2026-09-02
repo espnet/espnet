@@ -157,3 +157,51 @@ def test_len_does_not_rebuild_an_unsized_factory_source_either():
         with pytest.raises(TypeError):
             len(iterator)
     assert len(calls) == 1
+
+
+def test_len_does_not_mask_a_factory_that_raises_type_error():
+    """A TypeError raised inside the factory itself must propagate.
+
+    Only the len() probe of the built pass may be interpreted as "unsized";
+    swallowing factory bugs would misreport a broken source as an unsized one.
+    """
+
+    def broken_factory():
+        raise TypeError("real bug inside the factory")
+
+    with pytest.raises(TypeError, match="real bug inside the factory"):
+        len(EpochSyncIterator(broken_factory))
+
+
+def test_nccl_backend_resolves_a_cuda_device(monkeypatch):
+    """The NCCL branch selects a CUDA device for the has-next flag.
+
+    NCCL only reduces CUDA tensors, so the sync tensor must live on the
+    current CUDA device; run the branch with the CUDA calls stubbed so the
+    test needs no GPU.
+    """
+    dist = epoch_sync_iterator_module.torch.distributed
+    monkeypatch.setattr(dist, "is_available", lambda: True)
+    monkeypatch.setattr(dist, "is_initialized", lambda: True)
+    monkeypatch.setattr(dist, "get_backend", lambda: "nccl")
+    monkeypatch.setattr(dist, "all_reduce", lambda tensor, op=None: None)
+    monkeypatch.setattr(
+        epoch_sync_iterator_module.torch.cuda, "current_device", lambda: 0
+    )
+    seen_devices = []
+    real_ones = epoch_sync_iterator_module.torch.ones
+    real_zeros = epoch_sync_iterator_module.torch.zeros
+    monkeypatch.setattr(
+        epoch_sync_iterator_module.torch,
+        "ones",
+        lambda n, device=None: (seen_devices.append(device), real_ones(n))[1],
+    )
+    monkeypatch.setattr(
+        epoch_sync_iterator_module.torch,
+        "zeros",
+        lambda n, device=None: (seen_devices.append(device), real_zeros(n))[1],
+    )
+
+    assert list(EpochSyncIterator([[0], [1]])) == [[0], [1]]
+    assert seen_devices, "the sync branch never created a has-next flag"
+    assert all(d.type == "cuda" for d in seen_devices)

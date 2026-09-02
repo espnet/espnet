@@ -95,8 +95,12 @@ class EpochSyncIterator:
             2
         """
         if self._length is None:
+            # Build the pass outside the try: only the len() probe may be
+            # read as "unsized" - a TypeError raised inside the factory is a
+            # real bug and must propagate.
+            new_pass = self._new_pass()
             try:
-                self._length = len(self._new_pass())
+                self._length = len(new_pass)
             except TypeError:
                 self._length = _UNSIZED
         if self._length is _UNSIZED:
