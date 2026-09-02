@@ -177,11 +177,14 @@ espnet.done: pytorch.done conda_packages.done lightning.done
 		-d "$$(python -c 'import sys; print(sys.prefix)')/share/nltk_data" \
 		averaged_perceptron_tagger_eng
 	# nltk.downloader exits 0 on some failures, so check the download landed.
-	# Deliberately not nltk.data.find: that searches $$HOME too, so it passes on
-	# a machine that happens to have the tagger there - including the builder
-	# stage whose /root/nltk_data is then discarded, which is the bug this is
-	# guarding. Assert the file is at the path that gets copied.
-	. ./activate_python.sh && python -c "import pathlib, sys; p = pathlib.Path(sys.prefix) / 'share/nltk_data/taggers/averaged_perceptron_tagger_eng.zip'; assert p.is_file(), 'not downloaded into the venv: %s' % p; print('nltk tagger:', p)"
+	# Two things this deliberately does not do. Not nltk.data.find: that
+	# searches $$HOME too, so it passes on a machine that happens to have the
+	# tagger there - including the builder stage whose /root/nltk_data is then
+	# discarded, which is the bug being guarded. And not assert: PYTHONOPTIMIZE
+	# strips those, and execution then falls through to the print, so the step
+	# reports success and names a file that is not there. A guard against a
+	# silent omission must not itself be silenceable.
+	. ./activate_python.sh && python -c "import pathlib, sys; p = pathlib.Path(sys.prefix) / 'share/nltk_data/taggers/averaged_perceptron_tagger_eng.zip'; print('nltk tagger:', p) if p.is_file() else sys.exit('nltk tagger was not downloaded into the venv: %s' % p)"
 	$(call end_timer_and_touch,espnet.done)
 
 sounfile_test: espnet.done
