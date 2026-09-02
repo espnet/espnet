@@ -1163,6 +1163,8 @@ class BatchBeamSearch(BeamSearch):
             return self.forward(x, maxlenratio, sub_minlenratio, pre_x)
 
         idx = torch.as_tensor(retry, dtype=torch.int64, device=x.device)
+        # the lengths may have been handed in on the CPU while x is not
+        len_idx = idx.to(x_lengths.device)
         # the recursion decodes a subset of the batch, so a per-utterance
         # primer has to be narrowed down to match
         primer = self.hyp_primer
@@ -1174,8 +1176,8 @@ class BatchBeamSearch(BeamSearch):
                 maxlenratio,
                 sub_minlenratio,
                 pre_x.index_select(0, idx) if pre_x is not None else None,
-                x_lengths.index_select(0, idx),
-                pre_x_lengths.index_select(0, idx) if pre_x is not None else None,
+                x_lengths.index_select(0, len_idx),
+                (pre_x_lengths.index_select(0, len_idx) if pre_x is not None else None),
             )
         finally:
             self.hyp_primer = primer

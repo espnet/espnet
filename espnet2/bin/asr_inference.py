@@ -31,7 +31,10 @@ from espnet2.legacy.nets.batch_beam_search_online_sim import BatchBeamSearchOnli
 from espnet2.legacy.nets.beam_search import BeamSearch, Hypothesis
 from espnet2.legacy.nets.beam_search_timesync import BeamSearchTimeSync
 from espnet2.legacy.nets.pytorch_backend.transformer.subsampling import TooShortUttError
-from espnet2.legacy.nets.scorer_interface import BatchScorerInterface
+from espnet2.legacy.nets.scorer_interface import (
+    BatchPartialScorerInterface,
+    BatchScorerInterface,
+)
 from espnet2.legacy.nets.scorers.ctc import CTCPrefixScorer
 from espnet2.legacy.nets.scorers.length_bonus import LengthBonus
 from espnet2.legacy.utils.cli_utils import get_commandline_args
@@ -368,6 +371,18 @@ class Speech2Text:
                     for k, v in beam_search.full_scorers.items()
                     if not isinstance(v, BatchScorerInterface)
                 ]
+                # NOTE: partial scorers too. `NgramPartScorer` is a plain
+                # `PartialScorerInterface`, so batch decoding would reach
+                # `batch_score_partial` and fail deep inside the search.
+                non_batch += (
+                    [
+                        k
+                        for k, v in beam_search.part_scorers.items()
+                        if not isinstance(v, BatchPartialScorerInterface)
+                    ]
+                    if batch_size > 1
+                    else []
+                )
                 if len(non_batch) > 0:
                     if batch_size > 1:
                         raise NotImplementedError(

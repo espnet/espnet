@@ -237,8 +237,27 @@ def test_utt_batch_beam_search_retry_with_per_utterance_primer():
 
     # minlen > maxlen for the longer utterance, so it ends the first pass with
     # an empty n-best list and is decoded again on its own
-    with torch.no_grad():
-        results = batched(x=padded, x_lengths=lengths, maxlenratio=-1, minlenratio=0.3)
+    calls = []
+    original = type(batched).forward
+
+    def spy(self, x, *args, **kwargs):
+        calls.append(x.size(0) if x.dim() == 3 else 1)
+        return original(self, x, *args, **kwargs)
+
+    type(batched).forward = spy
+    try:
+        with torch.no_grad():
+            results = batched(
+                x=padded, x_lengths=lengths, maxlenratio=-1, minlenratio=0.3
+            )
+    finally:
+        type(batched).forward = original
+
+    # the retry really ran, on a strict subset of the batch -- without this the
+    # test would pass even if the recursion were never reached
+    assert len(calls) > 1, calls
+    assert calls[0] == len(encs), calls
+    assert 0 < calls[1] < len(encs), calls
     assert len(results) == len(encs)
     # the primer is restored for the caller
     assert batched.hyp_primer == [[sos, 1], [sos, 2]]
