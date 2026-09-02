@@ -34,6 +34,8 @@ for a release that cannot happen.
 """
 
 import argparse
+import contextlib
+import importlib.util
 import json
 import re
 import subprocess
@@ -128,6 +130,29 @@ def trusted_publishing_ready():
     return problems
 
 
+def publishable_metadata():
+    """Reject a direct reference in pyproject.toml before the tag goes out.
+
+    PyPI refuses any distribution whose metadata declares one, and nothing local
+    says so first: the build succeeds and `twine check` reports PASSED on the
+    rejected artifact. This is what silently held espnet off PyPI from v.202604
+    to v.202609. The rule lives in the CI checker so it also fails on the pull
+    request that introduces it; this reuses it rather than restating it.
+    """
+    checker = REPO_ROOT / "ci" / "check_ci_image_config.py"
+    if not checker.is_file():
+        return [f"{checker} is missing, so pyproject.toml cannot be checked"]
+    spec = importlib.util.spec_from_file_location("_ci_checker", checker)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    # The checker addresses its files relative to the repository root, the way
+    # it is invoked in CI, so run it from there rather than from wherever this
+    # script was started - otherwise it reports pyproject.toml missing, which
+    # would read as a problem with the release.
+    with contextlib.chdir(REPO_ROOT):
+        return module.check_no_direct_references()
+
+
 def preflight(repo, milestone, version, open_items, will_apply):
     """Everything that has to be true before a release can go out.
 
@@ -168,6 +193,7 @@ def preflight(repo, milestone, version, open_items, will_apply):
         problems.append("could not reach PyPI to check whether this version exists")
 
     problems += trusted_publishing_ready()
+    problems += publishable_metadata()
 
     branch = sh("git", "rev-parse", "--abbrev-ref", "HEAD")
     if branch != "master":
