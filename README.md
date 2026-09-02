@@ -32,11 +32,9 @@ evaluation, and hundreds of pretrained models on Hugging Face.
 ## What's new
 
 - **[ESPnet 202609](https://github.com/espnet/espnet/releases/tag/v.202609)** —
-  ESPnet3 complete on [`egs3/librispeech_100`](egs3/librispeech_100), matching the
-  ESPnet2 result; CI rebuilt on a prebuilt image (compute per run halved, longest
-  job 75 → 32 min); OpenBEATs pretraining; ten new recipes across ASR, TTS, speech
-  emotion recognition, speech translation and audio SSL. Requires Python 3.12-3.13,
-  PyTorch 2.9.1-2.11.0.
+  ESPnet3 complete on [`egs3/librispeech_100`](egs3/librispeech_100) at ESPnet2
+  parity, CI rebuilt on a prebuilt image (compute per run halved), OpenBEATs
+  pretraining, ten new recipes (ASR, TTS, SER, ST, audio SSL), Python 3.12-3.13.
 
 <details>
 <summary>Earlier releases</summary>
