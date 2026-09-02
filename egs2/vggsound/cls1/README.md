@@ -122,5 +122,5 @@ Audio-only top-1 accuracy on the VGGSound test set (309 classes):
 | **This recipe (BEATs iter3+ AS2M fine-tune)** | **56.1** |
 | CAV-MAE ([Gong et al., 2023](https://arxiv.org/abs/2210.07839)) | 59.5 |
 
-This recipe sits above the original CNN baselines, but is below state-of-the-art audio encoder such as CAV-MAE. 
+This recipe sits above the original CNN baselines, but is below state-of-the-art audio encoder such as CAV-MAE.
 This recipe is a reproducible BEATs fine-tuning baseline, not a SOTA attempt. valid 77.7% is a random split of train, not an official test set, so it should not be compared with papers. Added this comparison to the README.
