@@ -271,3 +271,40 @@ def test_utt_batch_beam_search_rejects_bad_shape():
     batched.eval()
     with pytest.raises(ValueError):
         batched(x=encs[0][:, 0], maxlenratio=-5.0)
+
+
+@pytest.mark.parametrize("pad", [0, 3])
+def test_a_batch_of_one_matches_the_unbatched_call(pad):
+    """`(1, T, D)` must decode exactly like `(T, D)`.
+
+    A batch of one is the awkward case: the hypothesis set is compacted, so its
+    width is not `beam` and shrinks as hypotheses end, while the encoder output
+    for a batch is replicated to a fixed `n_utt * beam`. Those two disagree,
+    and `--batch_size N` produces a batch of one whenever the last chunk of a
+    dataset is odd, so this is reachable in ordinary use.
+
+    With padding it used to raise outright; without it the shapes still
+    disagreed and only happened to give the right answer, because the
+    replicated memory rows are identical and fold into the time axis.
+    """
+    encs, common, dtype, device = _build(
+        transformer_args, 0.5, 0.5, 0.1, "cpu", torch.float64
+    )
+    search = BatchBeamSearch(beam_size=3, **common)
+    search.eval()
+    enc = encs[0]
+    x = enc
+    if pad:
+        x = torch.cat([enc, torch.zeros(pad, enc.size(1), dtype=enc.dtype)])
+
+    with torch.no_grad():
+        expected = search(x=enc, maxlenratio=0.0, minlenratio=0.0)
+        actual = search(
+            x=x.unsqueeze(0),
+            x_lengths=torch.tensor([enc.size(0)]),
+            maxlenratio=0.0,
+            minlenratio=0.0,
+        )
+
+    assert len(actual) == 1
+    _assert_same_nbest(expected, actual[0], nbest=len(expected), rtol=0)

@@ -597,8 +597,13 @@ class BatchBeamSearch(BeamSearch):
 
         if x.dim() == 2:
             x = x.expand(n_hyp, *x.shape)
+            # a mask handed in for one utterance has to follow it
+            if xs_mask is not None and xs_mask.size(0) == 1:
+                xs_mask = xs_mask.expand(n_hyp, *xs_mask.shape[1:])
         if pre_x is not None and pre_x.dim() == 2:
             pre_x = pre_x.expand(n_hyp, *pre_x.shape)
+            if pre_xs_mask is not None and pre_xs_mask.size(0) == 1:
+                pre_xs_mask = pre_xs_mask.expand(n_hyp, *pre_xs_mask.shape[1:])
 
         weighted_scores = torch.zeros(  # (N, V)
             n_hyp, self.n_vocab, dtype=x.dtype, device=x.device
@@ -1066,6 +1071,25 @@ class BatchBeamSearch(BeamSearch):
         """
         if not batched:
             return x, None, pre_x, None
+
+        if x.size(0) == 1:
+            # A single utterance keeps a compacted hypothesis set, so its width
+            # is not `beam` and changes as hypotheses end. Hand the encoder
+            # output over unreplicated and let `search` expand it to whatever
+            # the current width is, exactly as the `(T, D)` path does.
+            xs_mask = None
+            if bool((x_lengths < x.size(1)).any()):
+                xs_mask = (~make_pad_mask(x_lengths, maxlen=x.size(1)))[:, None, :].to(
+                    x.device
+                )
+            if pre_x is None:
+                return x[0], xs_mask, None, None
+            pre_xs_mask = None
+            if bool((pre_x_lengths < pre_x.size(1)).any()):
+                pre_xs_mask = (~make_pad_mask(pre_x_lengths, maxlen=pre_x.size(1)))[
+                    :, None, :
+                ].to(pre_x.device)
+            return x[0], xs_mask, pre_x[0], pre_xs_mask
 
         xs, xs_mask = self._expand_over_beam(x, x_lengths)
         if pre_x is not None:
