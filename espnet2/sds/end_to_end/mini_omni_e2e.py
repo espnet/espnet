@@ -129,10 +129,10 @@ class MiniOmniE2EModel(AbsE2E):
         )
         data_buff = base64.b64decode(base64_encoded.encode("utf-8"))
 
-        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
-            f.write(data_buff)
-            wav_path = f.name
-        try:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            wav_path = os.path.join(tmpdir, "turn.wav")
+            with open(wav_path, "wb") as f:
+                f.write(data_buff)
             audio_generator = self.client.run_AT_batch_stream(
                 wav_path,
                 self.stream_stride,
@@ -142,8 +142,6 @@ class MiniOmniE2EModel(AbsE2E):
                 top_p=self.top_p,
             )
             _ = [k for k in audio_generator]
-        finally:
-            os.unlink(wav_path)
 
     def forward(
         self,
@@ -199,13 +197,13 @@ class MiniOmniE2EModel(AbsE2E):
         top_k = self.top_k if top_k is None else top_k
         top_p = self.top_p if top_p is None else top_p
 
-        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
-            f.write(data_buff)
-            wav_path = f.name
-        # run_AT_batch_stream is a generator, so it does not open wav_path until
-        # it is drained below. The file therefore has to outlive the with block,
-        # and can only be removed once the generator is exhausted.
-        try:
+        # run_AT_batch_stream is a generator, so it does not open the wav until it
+        # is drained. Both therefore have to happen inside this block, which is
+        # what removes the file afterwards, on the error path as well.
+        with tempfile.TemporaryDirectory() as tmpdir:
+            wav_path = os.path.join(tmpdir, "turn.wav")
+            with open(wav_path, "wb") as f:
+                f.write(data_buff)
             audio_generator = self.client.run_AT_batch_stream(
                 wav_path,
                 self.stream_stride,
@@ -225,8 +223,6 @@ class MiniOmniE2EModel(AbsE2E):
                 except StopIteration as e:
                     token_stream = e.value
                     break
-        finally:
-            os.unlink(wav_path)
         text_str = ans[-1]
 
         audio_segment = AudioSegment(

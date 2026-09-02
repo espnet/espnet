@@ -24,7 +24,10 @@ STREAM_STRIDE = 4
 
 
 class _StubSnac:
+    """Stands in for snac_24khz."""
+
     def decode(self, codes):
+        """Return one frame of silence per coarse code."""
         return torch.zeros(1, 1, codes[0].shape[-1] * SNAC_FRAME)
 
 
@@ -32,11 +35,13 @@ class _StubClient:
     """Records every path it is asked to read, and reads it like the real one."""
 
     def __init__(self):
+        """Build the stub with a fake SNAC decoder on CPU."""
         self.snacmodel = _StubSnac()
         self.device = torch.device("cpu")
         self.seen = []
 
     def run_AT_batch_stream(self, audio_path, stream_stride, max_tokens, **kwargs):
+        """Read the wav, then yield chunks and return the token stream."""
         # the real client opens the path here, inside the generator body, which
         # is why the file cannot be removed when the with block closes
         with open(audio_path, "rb") as fh:
@@ -50,15 +55,20 @@ class _StubClient:
 
 
 class _RecordingSegment:
+    """Stands in for pydub.AudioSegment so no encoder is needed."""
+
     def __init__(self, data, frame_rate=None, sample_width=None, channels=None):
+        """Keep the bytes it was handed."""
         self._data = data
 
     def export(self, buf, **kwargs):
+        """Write the kept bytes straight out."""
         buf.write(self._data)
         return buf
 
 
 def _build_model():
+    """Build the model with __new__ so no checkpoint is fetched."""
     model = mod.MiniOmniE2EModel.__new__(mod.MiniOmniE2EModel)
     model.client = _StubClient()
     model.stream_stride = STREAM_STRIDE
@@ -118,3 +128,39 @@ def test_wav_is_removed_even_when_generation_raises(isolated_tmp):
 
     left = list(isolated_tmp.iterdir())
     assert left == [], f"{len(left)} temp file(s) left behind: {[p.name for p in left]}"
+
+
+def test_nothing_is_left_when_writing_the_wav_fails(isolated_tmp, monkeypatch):
+    """A write failure must not leave a partial file either.
+
+    NamedTemporaryFile creates the file before write() is called, so the earlier
+    shape of this code could leave a partial wav behind if the write raised.
+    A TemporaryDirectory covers that, since the directory is what gets removed.
+    """
+    model = _build_model()
+    real_open = open
+
+    def _failing_open(path, mode="r", *a, **k):
+        if str(path).endswith("turn.wav") and "w" in mode:
+            fh = real_open(path, mode, *a, **k)
+            fh.close()
+
+            class _Boom:
+                def __enter__(self):
+                    return self
+
+                def __exit__(self, *exc):
+                    return False
+
+                def write(self, _):
+                    raise OSError("no space left on device")
+
+            return _Boom()
+        return real_open(path, mode, *a, **k)
+
+    monkeypatch.setitem(mod.__builtins__, "open", _failing_open)
+    with pytest.raises(OSError):
+        model.forward(np.zeros(1600, dtype=np.int16), orig_sr=16000)
+
+    left = list(isolated_tmp.iterdir())
+    assert left == [], f"{len(left)} left behind: {[p.name for p in left]}"
