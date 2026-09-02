@@ -1,5 +1,6 @@
 import base64
 import io
+import os
 import tempfile
 from typing import Optional, Tuple
 
@@ -130,15 +131,19 @@ class MiniOmniE2EModel(AbsE2E):
 
         with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
             f.write(data_buff)
+            wav_path = f.name
+        try:
             audio_generator = self.client.run_AT_batch_stream(
-                f.name,
+                wav_path,
                 self.stream_stride,
                 self.max_tokens,
                 temperature=self.temperature,
                 top_k=self.top_k,
                 top_p=self.top_p,
             )
-        _ = [k for k in audio_generator]
+            _ = [k for k in audio_generator]
+        finally:
+            os.unlink(wav_path)
 
     def forward(
         self,
@@ -196,24 +201,32 @@ class MiniOmniE2EModel(AbsE2E):
 
         with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
             f.write(data_buff)
+            wav_path = f.name
+        # run_AT_batch_stream is a generator, so it does not open wav_path until
+        # it is drained below. The file therefore has to outlive the with block,
+        # and can only be removed once the generator is exhausted.
+        try:
             audio_generator = self.client.run_AT_batch_stream(
-                f.name,
+                wav_path,
                 self.stream_stride,
                 self.max_tokens,
                 temperature=temperature,
                 top_k=top_k,
                 top_p=top_p,
             )
-        # Drain the generator. Its last yielded value is the text response and
-        # its return value is the complete 8-layer token stream, which we decode
-        # in one pass below instead of stitching the per-chunk audio it yields.
-        ans = []
-        while True:
-            try:
-                ans.append(next(audio_generator))
-            except StopIteration as e:
-                token_stream = e.value
-                break
+            # Drain the generator. Its last yielded value is the text response
+            # and its return value is the complete 8-layer token stream, which
+            # we decode in one pass below instead of stitching the per-chunk
+            # audio it yields.
+            ans = []
+            while True:
+                try:
+                    ans.append(next(audio_generator))
+                except StopIteration as e:
+                    token_stream = e.value
+                    break
+        finally:
+            os.unlink(wav_path)
         text_str = ans[-1]
 
         audio_segment = AudioSegment(
