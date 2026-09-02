@@ -68,6 +68,24 @@ def sh(*args):
     return result.stdout.strip() if result.returncode == 0 else None
 
 
+def origin_slug():
+    """owner/repo for the checkout's origin remote."""
+    url = sh("git", "remote", "get-url", "origin")
+    if not url:
+        sys.exit("no `origin` remote; run this from an espnet checkout")
+    match = re.search(r"[:/]([^/:]+)/([^/]+?)(?:\.git)?$", url)
+    if not match:
+        sys.exit(f"cannot read owner/repo out of the origin remote: {url}")
+    return f"{match.group(1)}/{match.group(2)}"
+
+
+def package_name():
+    """The distribution name, so the PyPI check follows the project being released."""
+    pyproject = (REPO_ROOT / "pyproject.toml").read_text()
+    match = re.search(r'^name\s*=\s*"([^"]+)"', pyproject, re.M)
+    return match.group(1) if match else "espnet"
+
+
 def version_of(milestone_title):
     """v.202609 -> 202609. version.txt holds the number without the prefix."""
     return milestone_title.removeprefix("v.").removeprefix("v")
@@ -78,7 +96,7 @@ def pypi_has(version):
 
     None matters: a network failure must not read as "the version is free".
     """
-    url = "https://pypi.org/pypi/espnet/json"
+    url = f"https://pypi.org/pypi/{package_name()}/json"
     try:
         with urllib.request.urlopen(url, timeout=30) as response:
             return version in json.load(response)["releases"]
@@ -110,15 +128,22 @@ def trusted_publishing_ready():
     return problems
 
 
-def preflight(repo, milestone, version, open_items):
-    """Everything that has to be true before a release can go out."""
+def preflight(repo, milestone, version, open_items, will_apply):
+    """Everything that has to be true before a release can go out.
+
+    will_apply excuses the one problem --apply exists to fix. Without it the
+    documented `--apply` run was unreachable: the version.txt mismatch is exactly
+    the state you start from, it failed preflight, and preflight exits before
+    apply_changes runs - so the only way through was --force, which also waves
+    past the checks that matter.
+    """
     problems = []
 
     declared = VERSION_FILE.read_text().strip() if VERSION_FILE.is_file() else None
-    if declared != version:
+    if declared != version and not will_apply:
         problems.append(
             f"version.txt says {declared!r}, milestone {milestone.title} implies "
-            f"{version!r} - one of the two is wrong (--apply fixes version.txt)"
+            f"{version!r} - one of the two is wrong (--apply writes version.txt)"
         )
 
     if open_items:
@@ -136,8 +161,8 @@ def preflight(repo, milestone, version, open_items):
     on_pypi = pypi_has(version)
     if on_pypi is True:
         problems.append(
-            f"PyPI already serves espnet {version}; it will refuse the upload, and "
-            "a version cannot be replaced"
+            f"PyPI already serves {package_name()} {version}; it will refuse the "
+            "upload, and a version cannot be replaced"
         )
     elif on_pypi is None:
         problems.append("could not reach PyPI to check whether this version exists")
@@ -250,8 +275,6 @@ def main():
     parser = argparse.ArgumentParser("prepare an ESPnet release")
     parser.add_argument("token", help="GitHub token with repo access")
     parser.add_argument("milestone", help="milestone title, e.g. v.202609")
-    parser.add_argument("--user", default="espnet")
-    parser.add_argument("--repo", default="espnet")
     parser.add_argument(
         "--apply",
         action="store_true",
@@ -265,10 +288,16 @@ def main():
     parser.add_argument("--output", help="write the notes here instead of stdout")
     args = parser.parse_args()
 
-    # The previous version passed --user for both, so --repo did nothing. It
-    # happened to work because espnet's owner and repository are both "espnet".
+    # Derived from the checkout, not from a flag. This script releases the tree
+    # it lives in - it reads version.txt, the publish workflow and git status from
+    # here - so the GitHub repository has to be the one this tree came from. The
+    # old script took --user and --repo and then used --user for both, which was a
+    # bug; taking them and honouring them would have been a worse one, because
+    # --repo other would have checked espnet's local state and drafted a release
+    # somewhere else.
+    slug = origin_slug()
     client = github.Github(auth=github.Auth.Token(args.token))
-    repo = client.get_repo(f"{args.user}/{args.repo}")
+    repo = client.get_repo(slug)
 
     milestone = next(
         (m for m in repo.get_milestones(state="all") if m.title == args.milestone),
@@ -287,7 +316,7 @@ def main():
 
     grouped, contributors, merged, open_items = collect(repo, milestone)
 
-    problems = preflight(repo, milestone, version, open_items)
+    problems = preflight(repo, milestone, version, open_items, args.apply)
     if problems:
         print(
             f"{len(problems)} problem(s) before {milestone.title} can ship:\n",
