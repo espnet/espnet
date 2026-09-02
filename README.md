@@ -31,6 +31,10 @@ evaluation, and hundreds of pretrained models on Hugging Face.
 
 ## What's new
 
+- **[ESPnet 202609](https://github.com/espnet/espnet/releases/tag/v.202609)** —
+  **Python 3.12 or 3.13 required** (`>=3.12,<3.14`); PyTorch 2.9.1–2.11.0.
+  SpeechLM and OpenBEATs land, `safe_torch_load` no longer falls back to unsafe
+  loading, and CI moved to a prebuilt image.
 - **[ESPnet 202604](https://github.com/espnet/espnet/releases/tag/v.202604)** —
   Docker-based CI, PyTorch 2.9.1 support, FastSpeech2 inference ~1.9x faster
   at batch 8, new recipes (Kinyarwanda, Emilia, kosp2e).
