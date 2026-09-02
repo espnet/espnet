@@ -63,7 +63,7 @@ jobs:
     container:
       image: debian:12
       env:
-        ESPNET_PYTHON_VERSION: "3.10"
+        ESPNET_PYTHON_VERSION: "3.12"
         TH_VERSION: 2.9.1
         USE_CONDA: true
         # To avoid UnicodeEncodeError for python<=3.6

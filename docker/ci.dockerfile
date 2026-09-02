@@ -12,7 +12,7 @@
 # Built by .github/workflows/build_ci_image.yml and tagged with a hash of the
 # files that determine its contents.
 
-ARG PYTHON_VERSION=3.10
+ARG PYTHON_VERSION=3.12
 
 # ---------------------------------------------------------------- builder ----
 FROM python:${PYTHON_VERSION}-bookworm AS builder
@@ -47,9 +47,17 @@ RUN ./ci/install.sh \
 #
 # The verification is not decoration. A silent failure here would put a licence
 # violation into every pull of this image, so it fails the build instead.
+#
+# `python -m pip`, not `venv/bin/pip`. On python 3.13 the pip script is not there:
+# setup_venv.sh pins pip==25.2, then tools/Makefile runs `ensurepip --upgrade`,
+# and 3.13 bundles a pip newer than 25.2 - so unlike 3.12, that upgrade actually
+# runs and leaves no bin/pip behind. This was the only place in the repository
+# calling the script rather than the module; the other 36 call sites use
+# `python -m pip`, which is why nothing else noticed.
 RUN names=$(sed -e 's/#.*//' -e 's/[<>=!~;[].*//' -e 's/[[:space:]]//g' -e '/^$/d' ci/no_redistribute.txt) \
     && if [ -n "$names" ]; then \
-         /espnet/tools/venv/bin/pip uninstall -y $names; \
+         /espnet/tools/venv/bin/python -m pip uninstall -y $names \
+           || { echo "ERROR: pip uninstall failed for: $names" >&2; exit 1; }; \
          for n in $names; do \
            if /espnet/tools/venv/bin/python -c "import importlib.metadata as m; m.version('$n')" >/dev/null 2>&1; then \
              echo "ERROR: $n is still installed and must not be baked into this image" >&2; \

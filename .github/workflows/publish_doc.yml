@@ -35,8 +35,18 @@ concurrency:
 env:
   NLTK_DISABLE_IMPORT_SECURITY: "1"
 
+# The default on this repository is write on almost everything (see #6583).
+# Declared per job here rather than once at the top, because only one of them
+# needs to write anything.
+permissions:
+  contents: read
+
 jobs:
   get_labels:
+    # joerick/pr-labels-action reads the pull request's labels.
+    permissions:
+      contents: read
+      pull-requests: read
     runs-on: ubuntu-latest
     outputs:
       is_doc: ${{ steps.check-labels.outputs.is_doc }}
@@ -54,6 +64,23 @@ jobs:
           fi
 
   generate_and_deploy_doc:
+    # contents: write is for the deploy step, which pushes the built docs to the
+    # gh-pages branch through peaceiris/actions-gh-pages.
+    #
+    # That step is gated on `github.ref == 'refs/heads/master'`, but the job runs
+    # on pull requests too - it builds the docs - so on a pull request it holds a
+    # token it does not use. Two things bound that: a fork pull request gets a
+    # read-only token from GitHub regardless of what this block says, so the write
+    # is only reachable by someone who already has push access; and the write is
+    # scoped to this job instead of the whole workflow.
+    #
+    # Tighter still would be splitting build from deploy and passing the output as
+    # an artifact, so the write lives in a job that never runs on a pull request.
+    # That is a restructure of doc publishing which only executes on master pushes,
+    # so it cannot be verified by this PR's CI - left as its own change rather than
+    # smuggled into a permissions cleanup.
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
     needs: get_labels
     if: |
@@ -70,7 +97,7 @@ jobs:
           key: pip-${{ hashFiles('**/pyproject.toml') }}
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
-          python-version: '3.10'
+          python-version: '3.12'
           architecture: "x64"
       - name: check OS
         run: cat /etc/os-release
@@ -80,7 +107,7 @@ jobs:
           sudo apt-get install -qq -y cmake python3-dev git pandoc ffmpeg bc nodejs npm
       - name: install espnet
         env:
-          ESPNET_PYTHON_VERSION: 3.10
+          ESPNET_PYTHON_VERSION: 3.12
           TH_VERSION: 2.9.1
           USE_CONDA: false
         run: ./ci/install.sh
