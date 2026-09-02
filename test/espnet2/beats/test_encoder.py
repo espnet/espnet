@@ -1,21 +1,35 @@
 import pytest
 import torch
-from packaging.version import parse as V
 
 from espnet2.beats.encoder import (
     BeatsEncoder,
     BeatsPretrainingPredictor,
     MultiheadAttention,
 )
+from espnet2.torch_utils.safe_torch_load import _ENV_VAR, UnsafeLoadRefusedError
 
-is_torch_1_12_1_plus = V(torch.__version__) >= V("1.12.1")
-is_torch_2_plus = V(torch.__version__) >= V("2.0.0")
+
+class UnsafeConfig(dict):
+    pass
+
+
+def _save_unsafe_beats_checkpoint(path):
+    beats_config = {
+        "encoder_layers": 2,
+        "encoder_embed_dim": 128,
+        "decoder_embed_dim": 128,
+        "embed_dim": 64,
+        "encoder_ffn_embed_dim": 256,
+        "encoder_attention_heads": 4,
+    }
+    beats_model = BeatsEncoder(input_size=1, beats_config=beats_config)
+    torch.save(
+        {"model": beats_model.state_dict(), "cfg": UnsafeConfig(beats_config)},
+        path,
+    )
 
 
 def test_override_beats_config():
-    if not is_torch_1_12_1_plus:
-        return
-
     beats_config = {"encoder_layers": 2}
     beats_model = BeatsEncoder(
         input_size=1,
@@ -24,6 +38,25 @@ def test_override_beats_config():
     assert (
         len(beats_model.encoder.layers) == 2
     ), f"Number of layers should be 2. It is {len(beats_model.encoder.layers)}"
+
+
+def test_beats_checkpoint_requires_explicit_opt_in(tmp_path, monkeypatch):
+    beats_ckpt_path = tmp_path / "beats.ckpt"
+    _save_unsafe_beats_checkpoint(beats_ckpt_path)
+    monkeypatch.delenv(_ENV_VAR, raising=False)
+
+    with pytest.raises(UnsafeLoadRefusedError):
+        BeatsEncoder(input_size=1, beats_ckpt_path=str(beats_ckpt_path))
+
+
+def test_beats_checkpoint_accepts_env_opt_in(tmp_path, monkeypatch):
+    beats_ckpt_path = tmp_path / "beats.ckpt"
+    _save_unsafe_beats_checkpoint(beats_ckpt_path)
+    monkeypatch.setenv(_ENV_VAR, "1")
+
+    beats_model = BeatsEncoder(input_size=1, beats_ckpt_path=str(beats_ckpt_path))
+
+    assert beats_model.loaded_state_dict_ is not None
 
 
 # Each parameter value creates a variant of the model
@@ -39,9 +72,6 @@ def test_forward_pass_beats_encoder(
     add_positional_information,
     max_positions,
 ):
-    if not is_torch_1_12_1_plus:
-        return
-
     beats_config = {"encoder_layers": 2}  # Smaller model
     beats_model = BeatsEncoder(
         input_size=1,
@@ -87,9 +117,6 @@ def test_backward_pass_beats_encoder(
     add_positional_information,
     max_positions,
 ):
-    if not is_torch_1_12_1_plus:
-        return
-
     beats_config = {"encoder_layers": 2}  # Smaller model
     beats_model = BeatsEncoder(
         input_size=1,
@@ -107,8 +134,6 @@ def test_backward_pass_beats_encoder(
 
 
 def test_small_inputs():
-    if not is_torch_1_12_1_plus:
-        return
     beats_config = {"encoder_layers": 2}  # Smaller model
     beats_model = BeatsEncoder(
         input_size=1,
@@ -178,8 +203,6 @@ def test_backward_pass_pretraining_beats_encoder():
 
 @pytest.mark.execution_timeout(60)
 def test_forward_pass_beats_pretraining_predictor():
-    if not is_torch_1_12_1_plus:
-        return
     beats_config = {
         "encoder_layers": 2,
         "encoder_embed_dim": 128,
@@ -204,8 +227,6 @@ def test_forward_pass_beats_pretraining_predictor():
 
 @pytest.mark.execution_timeout(60)
 def test_backward_pass_beats_pretraining_predictor():
-    if not is_torch_1_12_1_plus:
-        return
     beats_config = {
         "decoder_layers": 2,
         "encoder_layers": 2,
@@ -226,6 +247,7 @@ def test_backward_pass_beats_pretraining_predictor():
     pred.sum().backward()
 
 
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="requires a GPU")
 @pytest.mark.parametrize("key_padding_mask", [True, None])
 @pytest.mark.parametrize("has_relative_attention_bias", [True, False])
 @pytest.mark.parametrize("gru_rel_pos", [True, False])
@@ -233,8 +255,6 @@ def test_backward_pass_beats_pretraining_predictor():
 def test_flash_attn(
     key_padding_mask, has_relative_attention_bias, gru_rel_pos, variable_length
 ):
-    if not is_torch_2_plus or not torch.cuda.is_available():
-        return
     attn_module = (
         MultiheadAttention(
             embed_dim=512,

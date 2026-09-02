@@ -8,8 +8,11 @@ from pathlib import Path
 from omegaconf import DictConfig, ListConfig, OmegaConf
 
 # Used to rewrite relative paths in resolver expressions such as
-# `${load_line:conf/tokens.txt}` during config loading.
-_RELATIVE_RESOLVER_PATTERN = re.compile(r"\$\{(?P<resolver>load_line):(?P<path>[^,}]+)")
+# `${load_line:conf/tokens.txt}` or `${config_path:../src/file.md}` during
+# config loading.
+_RELATIVE_RESOLVER_PATTERN = re.compile(
+    r"\$\{(?P<resolver>load_line|config_path):(?P<path>[^,}]+)"
+)
 
 
 def load_line(path):
@@ -73,9 +76,80 @@ def self_name(path):
     return path
 
 
+def config_path(path):
+    """Return an absolute path rewritten by ``_normalize_relative_resolver_paths``.
+
+    Used as ``${config_path:../src/file.md}`` in YAML configs. The relative
+    path is resolved to an absolute path at load time by
+    ``_normalize_relative_resolver_paths``, so this resolver simply returns
+    its argument unchanged.
+
+    Args:
+        path (str): Absolute path injected during config loading.
+
+    Returns:
+        str: The path unchanged.
+
+    Examples:
+        In a config file at ``conf/demo.yaml``:
+
+            pack:
+              readme: ${config_path:../src/hf_demo_readme.md}
+
+        Resolves to the absolute path of ``src/hf_demo_readme.md`` relative
+        to the directory containing ``conf/``.
+    """
+    return path
+
+
+def set_corpus_and_system(value: str) -> str:
+    """Passthrough for ``${set_corpus_and_system:}`` after load-time rewriting.
+
+    This resolver is used as ``${set_corpus_and_system:}`` in YAML configs.
+    ``_normalize_relative_resolver_paths`` rewrites it to
+    ``${set_corpus_and_system:<corpus>_<system>}`` (e.g.
+    ``${set_corpus_and_system:mini_an4_asr}``) by extracting the corpus and
+    system names from the ``egs3/<corpus>/<system>/`` portion of the config
+    file path. The resolver itself simply returns that injected value.
+
+    If OmegaConf ever resolves this expression before the rewrite has run
+    (which should not happen in normal usage), it raises ``RuntimeError`` with
+    a clear message.
+
+    Args:
+        value (str): The ``<corpus>_<system>`` string injected at load time.
+
+    Returns:
+        str: The injected value unchanged.
+
+    Raises:
+        RuntimeError: If called with an empty string, meaning the rewrite did
+            not run before OmegaConf resolution.
+
+    Examples:
+        In ``egs3/mini_an4/asr/conf/publication.yaml``:
+
+            upload_model:
+              hf_repo: espnet/${set_corpus_and_system:}_${exp_tag}
+
+        After loading via ``load_and_merge_config``, resolves to::
+
+            espnet/mini_an4_asr_<exp_tag>
+    """
+    if not value:
+        raise RuntimeError(
+            "${set_corpus_and_system:} was not rewritten at load time. "
+            "Load configs via load_and_merge_config with a recipe path "
+            "under egs3/<corpus>/<system>/..."
+        )
+    return value
+
+
 OMEGACONF_ESPNET3_RESOLVER = {
     "load_line": load_line,
     "self_name": self_name,
+    "config_path": config_path,
+    "set_corpus_and_system": set_corpus_and_system,
 }
 for name, resolver in OMEGACONF_ESPNET3_RESOLVER.items():
     OmegaConf.register_new_resolver(name, resolver)
@@ -321,7 +395,7 @@ def load_and_merge_config(
     if config_path is None:
         return None
     if default_package is None:
-        default_package = _infer_default_package_from_config_path(config_path)
+        default_package = _resolve_egs3_path(config_path, as_package=True)
     if default_package is None:
         raise ValueError(
             "default_package is required when it cannot be inferred from config_path"
@@ -338,12 +412,6 @@ def load_and_merge_config(
     )
     merged_cfg = OmegaConf.merge(default_cfg, user_cfg)
     _normalize_relative_resolver_paths(merged_cfg, config_path.parent, config_path.stem)
-    _normalize_publication_readme_path(
-        merged_cfg=merged_cfg,
-        user_cfg=user_cfg,
-        config_name=config_name,
-        default_package=default_package,
-    )
     if resolve:
         OmegaConf.resolve(merged_cfg)
     _ensure_target_convert_all(merged_cfg)
@@ -354,11 +422,51 @@ def _ensure_target_convert_all(cfg) -> None:
     if isinstance(cfg, DictConfig):
         if "_target_" in cfg:
             cfg["_convert_"] = "all"
-        for value in cfg.values():
-            _ensure_target_convert_all(value)
+        for key in list(cfg.keys()):
+            node = cfg._get_node(key)
+            if isinstance(node, (DictConfig, ListConfig)):
+                _ensure_target_convert_all(node)
     elif isinstance(cfg, ListConfig):
-        for value in cfg:
-            _ensure_target_convert_all(value)
+        for idx in range(len(cfg)):
+            node = cfg._get_node(idx)
+            if isinstance(node, (DictConfig, ListConfig)):
+                _ensure_target_convert_all(node)
+
+
+def _resolve_egs3_path(path: Path, as_package: bool = False) -> str | None:
+    """Derive a string from an ``egs3/<corpus>/<system>/conf`` path.
+
+    Anchors on the first ``conf`` component found after ``egs3/`` so it works
+    for both a config file path (``…/conf/training.yaml``) and the ``conf/``
+    directory itself.
+
+    Args:
+        path (Path): Config file path or the ``conf/`` directory.
+        as_package (bool): When ``False`` (default) returns
+            ``"<corpus>_<system>"`` (e.g. ``"mini_an4_asr"``). When ``True``
+            returns the TEMPLATE package import path
+            (e.g. ``"egs3.TEMPLATE.asr"``).
+
+    Returns:
+        str | None: The derived string, or ``None`` when ``egs3/`` is not in
+        the path or there are not enough components between ``egs3/`` and
+        ``conf/``.
+    """
+    parts = path.resolve().parts
+    try:
+        egs3_idx = parts.index("egs3")
+    except ValueError:
+        return None
+    conf_idx = next(
+        (i for i in range(egs3_idx + 1, len(parts)) if parts[i] == "conf"),
+        None,
+    )
+    if conf_idx is None or conf_idx - egs3_idx < 3:
+        return None
+    corpus, system = parts[egs3_idx + 1], parts[conf_idx - 1]
+    if as_package:
+        return f"egs3.TEMPLATE.{system}"
+    return f"{corpus}_{system}"
 
 
 def _normalize_relative_resolver_paths(
@@ -366,28 +474,43 @@ def _normalize_relative_resolver_paths(
 ) -> None:
     # This runs during config loading rather than inside load_yaml/load_line
     # because the resolver callback cannot access the path of the parent YAML.
-    if isinstance(cfg, DictConfig):
-        for key in list(cfg.keys()):
-            value = cfg._get_node(key)
-            if isinstance(value, (DictConfig, ListConfig)):
-                _normalize_relative_resolver_paths(value, base_path, config_name)
-            else:
-                raw_value = value._value()
-                if isinstance(raw_value, str):
-                    if config_name is not None:
-                        raw_value = raw_value.replace("${self_name:}", config_name)
-                    cfg[key] = _rewrite_relative_resolver_paths(raw_value, base_path)
-    elif isinstance(cfg, ListConfig):
-        for idx in range(len(cfg)):
-            value = cfg._get_node(idx)
-            if isinstance(value, (DictConfig, ListConfig)):
-                _normalize_relative_resolver_paths(value, base_path, config_name)
-            else:
-                raw_value = value._value()
-                if isinstance(raw_value, str):
-                    if config_name is not None:
-                        raw_value = raw_value.replace("${self_name:}", config_name)
-                    cfg[idx] = _rewrite_relative_resolver_paths(raw_value, base_path)
+    _corpus_and_system: str | None = None
+
+    def _apply_substitutions(raw: str) -> str:
+        nonlocal _corpus_and_system
+        if config_name is not None:
+            raw = raw.replace("${self_name:}", config_name)
+            if "${set_corpus_and_system:}" in raw:
+                if _corpus_and_system is None:
+                    _corpus_and_system = _resolve_egs3_path(base_path)
+                if _corpus_and_system is not None:
+                    raw = raw.replace(
+                        "${set_corpus_and_system:}",
+                        f"${{set_corpus_and_system:{_corpus_and_system}}}",
+                    )
+        return _rewrite_relative_resolver_paths(raw, base_path)
+
+    def _walk(node) -> None:
+        if isinstance(node, DictConfig):
+            for key in list(node.keys()):
+                child = node._get_node(key)
+                if isinstance(child, (DictConfig, ListConfig)):
+                    _walk(child)
+                else:
+                    raw = child._value()
+                    if isinstance(raw, str):
+                        node[key] = _apply_substitutions(raw)
+        elif isinstance(node, ListConfig):
+            for idx in range(len(node)):
+                child = node._get_node(idx)
+                if isinstance(child, (DictConfig, ListConfig)):
+                    _walk(child)
+                else:
+                    raw = child._value()
+                    if isinstance(raw, str):
+                        node[idx] = _apply_substitutions(raw)
+
+    _walk(cfg)
 
 
 def _rewrite_relative_resolver_paths(value: str, base_path: Path) -> str:
@@ -407,7 +530,7 @@ def _rewrite_relative_resolver_paths(value: str, base_path: Path) -> str:
         if "${" in normalized_path or Path(normalized_path).is_absolute():
             return match.group(0)
 
-        resolved_path = (base_path / normalized_path).absolute().as_posix()
+        resolved_path = (base_path / normalized_path).resolve().as_posix()
         # Keep the original quote style because absolute paths may contain
         # spaces on Windows or in user-managed workspaces.
         if quote:
@@ -435,56 +558,3 @@ def _build_config_path(base_path: Path, entry: str) -> Path:
     if not entry_path.suffix:
         entry += ".yaml"
     return base_path / entry
-
-
-def _normalize_publication_readme_path(
-    merged_cfg: DictConfig,
-    user_cfg: DictConfig,
-    config_name: str,
-    default_package: str,
-) -> None:
-    """Keep the inherited README template bound to the default recipe package.
-
-    Publication configs inherit the README template from the default recipe.
-    When the user config does not override ``pack_model.readme``, keep that
-    reference pointed at the template recipe instead of rewriting it relative
-    to the user recipe.
-    """
-    if config_name != "publication.yaml":
-        return
-
-    user_pack_cfg = getattr(user_cfg, "pack_model", None)
-    if user_pack_cfg is not None and getattr(user_pack_cfg, "readme", None):
-        return
-
-    pack_cfg = getattr(merged_cfg, "pack_model", None)
-    if pack_cfg is None:
-        return
-
-    readme_path = getattr(pack_cfg, "readme", None)
-    if readme_path not in ("./src/hf_model_readme.md", "src/hf_model_readme.md"):
-        return
-
-    package_root = Path(*default_package.split("."))
-    pack_cfg.readme = (
-        package_root / "src" / "hf_model_repo_readme_template.md"
-    ).as_posix()
-
-
-def _infer_default_package_from_config_path(config_path: Path) -> str | None:
-    parts = config_path.resolve().parts
-    try:
-        egs3_index = parts.index("egs3")
-    except ValueError:
-        return None
-
-    conf_index = None
-    for index in range(egs3_index + 1, len(parts)):
-        if parts[index] == "conf":
-            conf_index = index
-            break
-    if conf_index is None or conf_index - egs3_index < 3:
-        return None
-
-    task_name = parts[conf_index - 1]
-    return f"egs3.TEMPLATE.{task_name}"

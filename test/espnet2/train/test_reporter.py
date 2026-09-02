@@ -314,6 +314,52 @@ def test_state_dict():
     assert state == state2
 
 
+def test_state_dict_weights_only_compatible():
+    """state_dict() must be torch.save/load(weights_only=True) compatible.
+
+    Reporter stores numpy scalars (np.float64 from np.nanmean) and
+    datetime.timedelta values in its internal stats dict.  The state_dict()
+    method must serialise these into native Python types so that the
+    checkpoint can be loaded with weights_only=True without raising an
+    UnpicklingError.
+
+    We register plain float values so that typechecked passes; aggregate()
+    internally produces np.float64 via np.nanmean, which is the problematic
+    type that state_dict() must convert.
+    """
+    import io
+
+    reporter = Reporter()
+    reporter.set_epoch(1)
+    with reporter.observe("train") as sub:
+        # Register two steps so aggregate() calls np.nanmean and returns
+        # np.float64 (not a plain Python float).
+        sub.register({"loss": 0.5, "acc": 0.9})
+        sub.next()
+        sub.register({"loss": 0.3, "acc": 0.8})
+        sub.next()
+
+    state = reporter.state_dict()
+
+    buf = io.BytesIO()
+    torch.save(state, buf)
+    buf.seek(0)
+    # This must not raise with weights_only=True
+    loaded_state = torch.load(buf, weights_only=True)
+
+    # Round-trip into a new Reporter and verify behavior is preserved
+    reporter2 = Reporter()
+    reporter2.load_state_dict(loaded_state)
+
+    assert reporter2.get_epoch() == reporter.get_epoch()
+    assert reporter2.get_value("train", "loss") == reporter.get_value("train", "loss")
+    assert reporter2.get_value("train", "acc") == reporter.get_value("train", "acc")
+    # log_message must work (requires timedelta to be restored)
+    msg = reporter2.log_message()
+    assert "loss" in msg
+    assert "acc" in msg
+
+
 def test_get_epoch():
     reporter = Reporter(2)
     assert reporter.get_epoch() == 2
