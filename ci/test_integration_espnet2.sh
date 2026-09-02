@@ -52,18 +52,27 @@ EOF
 python3 -m pip install toml
 python3 test_utils/uninstall_extra.py
 
-if [ "${task}" == "asr" ] || [ "${task}" == "all" ]; then
-    # [ESPnet2] test asr recipe
-    # Install ASR dependency
-    python3 -m pip install -e '.[asr]'
+# The asr recipe used to be one config-task taking 53 min - the longest job in
+# the matrix by a wide margin, and so the critical path of an entire run. It is
+# now three, sized from measured per-block timings to come out near 19 min each.
+#
+# Each task redoes the stage 1-5 data preparation, and two of them additionally
+# train the LMs that used to fall out of the asr loop (see train_asr_lms). That
+# is the cost of splitting and it is small: mini_an4 is tiny, and it buys back
+# roughly 33 min of critical path. It only became worth paying once the prebuilt image dropped environment
+# setup from 8.5 min to under 90 s - before that the extra jobs cost more in
+# runner-minutes than the split was worth.
+#
+# feats_types and token_types are set here rather than inside prepare_asr_data
+# because the task blocks below read them too.
+feats_types="raw fbank_pitch"
+token_types="bpe char"
 
-    # Run tests
+prepare_asr_data() {
     cd ./egs2/mini_an4/asr1
     gen_dummy_coverage
-    echo "==== [ESPnet2] ASR ==="
+    echo "==== [ESPnet2] ASR: prepare data ==="
     ./run.sh --stage 1 --stop-stage 1
-    feats_types="raw fbank_pitch"
-    token_types="bpe char"
     for t in ${feats_types}; do
         ./run.sh --stage 2 --stop-stage 4 --feats-type "${t}" --python "${python}"
     done
@@ -73,6 +82,41 @@ if [ "${task}" == "asr" ] || [ "${task}" == "all" ]; then
     for t in ${token_types}; do
         ./run.sh --stage 5 --stop-stage 5 --token-type "${t}" --python "${python}"
     done
+}
+
+finish_asr() {
+    # Remove generated files in order to reduce the disk usage
+    rm -rf exp dump data
+    cd "${cwd}"
+    uninstall_extra_deps
+}
+
+# Stages 6-9 train the LM that stage 12's decoding loads. When the asr recipe was
+# one job this happened as a side effect: the feats x token loop below starts at
+# stage 6, so by the time anything ran from stage 10 the LMs were already on
+# disk. Split apart, the transducer and misc tasks start at stage 10 and looked
+# for an LM nothing had trained:
+#
+#   FileNotFoundError: exp/lm_train_lm_rnn_debug_en_bpe30/config.yaml
+#
+# so they now train it themselves. Both token types, in both tasks: the
+# standalone transducer loop decodes with bpe and char, and training the pair
+# unconditionally means adding a char-based case to either task later does not
+# reintroduce this. Measured on 3.10/2.9.1, stages 6-9 take about 50 s per token
+# type, so this is ~100 s against the ~19 min each task now targets.
+train_asr_lms() {
+    for t in ${token_types}; do
+        echo "::group::==== [ESPnet2] ASR: LM for token_type=${t} ==="
+        ./run.sh --use_lm true --ngpu 0 --stage 6 --stop-stage 9 \
+            --feats-type "raw" --token-type "${t}" --python "${python}"
+        echo "::endgroup::"
+    done
+}
+
+if [ "${task}" == "asr" ] || [ "${task}" == "all" ]; then
+    # [ESPnet2] test asr recipe: the feats_type x token_type matrix
+    python3 -m pip install -e '.[asr]'
+    prepare_asr_data
     use_lm=true
     for t in ${feats_types}; do
         for t2 in ${token_types}; do
@@ -87,29 +131,14 @@ if [ "${task}" == "asr" ] || [ "${task}" == "all" ]; then
             --train_set raw/train_nodev --valid_set raw/train_dev --test_sets raw/test --python "${python}" --asr-args "--num_workers 0"
         echo "::endgroup::"
     done
-    echo "::group::==== feats_type=raw, token_types=bpe, model_conf.extract_feats_in_collect_stats=False, normalize=utt_mvn ==="
-    ./run.sh --ngpu 0 --stage 10 --stop-stage 13 --skip-packing false --feats-type "raw" --token-type "bpe" \
-        --feats_normalize "utterance_mvn" --python "${python}" \
-        --asr-args "--model_conf extract_feats_in_collect_stats=false --num_workers 0"
-    echo "::endgroup::"
+    finish_asr
+fi
 
-    echo "::group::==== feats_type=raw, token_types=bpe, model_conf.extract_feats_in_collect_stats=False, normalize=utt_mvn, with data augmentation ==="
-    ./run.sh --ngpu 0 --stage 10 --stop-stage 13 --skip-packing false --feats-type "raw" --token-type "bpe" \
-        --asr_config "conf/train_asr_rnn_data_aug_debug.yaml" \
-        --feats_normalize "utterance_mvn" --python "${python}" \
-        --asr-args "--model_conf extract_feats_in_collect_stats=false --num_workers 0"
-    echo "::endgroup::"
-
-    echo "::group::==== use_streaming, feats_type=raw, token_types=bpe, model_conf.extract_feats_in_collect_stats=False, normalize=utt_mvn ==="
-    ./run.sh --use_streaming true --ngpu 0 --stage 10 --stop-stage 13 --skip-packing false --feats-type "raw" --token-type "bpe" \
-        --feats_normalize "utterance_mvn"  --python "${python}" \
-        --asr_config "" --asr-tag "train_raw_bpe_streaming" \
-        --asr-args "--model_conf extract_feats_in_collect_stats=false --encoder=contextual_block_transformer
-                    --encoder_conf='{'block_size': 40, 'hop_size': 16, 'look_ahead': 16, 'output_size': 2, 'attention_heads': 2, 'linear_units': 2, 'num_blocks': 1}'
-                    --decoder=transformer --decoder_conf='{'attention_heads': 2, 'linear_units': 2, 'num_blocks': 1}'
-                    --max_epoch 1 --num_iters_per_epoch 1 --batch_size 2 --batch_type folded --num_workers 0"
-    echo "::endgroup::"
-
+if [ "${task}" == "asr_transducer" ] || [ "${task}" == "all" ]; then
+    # Transducer in the asr task, k2, and the standalone asr_transducer task
+    python3 -m pip install -e '.[asr]'
+    prepare_asr_data
+    train_asr_lms
     if python3 -c "from warprnnt_pytorch import RNNTLoss" &> /dev/null; then
         echo "::group::==== Transducer, feats_type=raw, token_types=bpe ==="
         ./run.sh --asr-tag "espnet_model_transducer" --ngpu 0 --stage 10 --stop-stage 13 --skip-packing false \
@@ -131,9 +160,22 @@ if [ "${task}" == "asr" ] || [ "${task}" == "all" ]; then
         fi
     fi
 
+    # These two decode with the utterance_mvn / extract_feats_in_collect_stats=false
+    # model. In the single asr job that model came from a training run earlier in
+    # the same job; after the split that run lives in asr_misc, so the first of
+    # these starts at stage 10 and trains it, and the second decodes at stage 12
+    # against what the first left behind.
+    #
+    # The note that used to sit here said a latent cross-task dependency was
+    # harmless because k2 was never installed, and that whoever installed it would
+    # have to train the model here. That happened, and it failed exactly as
+    # described:
+    #
+    #   FileNotFoundError: exp/asr_train_asr_rnn_debug_raw_en_bpe30_model_conf...
+    #                      /config.yaml
     if python3 -c "import k2" &> /dev/null; then
         echo "::group::==== use_k2, num_paths > nll_batch_size, feats_type=raw, token_types=bpe, model_conf.extract_feats_in_collect_stats=False, normalize=utt_mvn ==="
-        ./run.sh --num_paths 4 --nll_batch_size 2 --use_k2 true --ngpu 0 --stage 12 --stop-stage 13 --skip-packing false --feats-type "raw" --token-type "bpe" \
+        ./run.sh --num_paths 4 --nll_batch_size 2 --use_k2 true --ngpu 0 --stage 10 --stop-stage 13 --skip-packing false --feats-type "raw" --token-type "bpe" \
             --feats_normalize "utterance_mvn" --python "${python}" --asr-args "--model_conf extract_feats_in_collect_stats=false --num_workers 0"
         echo "::endgroup::"
 
@@ -172,6 +214,37 @@ if [ "${task}" == "asr" ] || [ "${task}" == "all" ]; then
             echo "::endgroup::"
         done
     fi
+    finish_asr
+fi
+
+if [ "${task}" == "asr_misc" ] || [ "${task}" == "all" ]; then
+    # Everything else the asr recipe covers: collect-stats variants, streaming,
+    # and multi-speaker PIT.
+    python3 -m pip install -e '.[asr]'
+    prepare_asr_data
+    train_asr_lms
+    echo "::group::==== feats_type=raw, token_types=bpe, model_conf.extract_feats_in_collect_stats=False, normalize=utt_mvn ==="
+    ./run.sh --ngpu 0 --stage 10 --stop-stage 13 --skip-packing false --feats-type "raw" --token-type "bpe" \
+        --feats_normalize "utterance_mvn" --python "${python}" \
+        --asr-args "--model_conf extract_feats_in_collect_stats=false --num_workers 0"
+    echo "::endgroup::"
+
+    echo "::group::==== feats_type=raw, token_types=bpe, model_conf.extract_feats_in_collect_stats=False, normalize=utt_mvn, with data augmentation ==="
+    ./run.sh --ngpu 0 --stage 10 --stop-stage 13 --skip-packing false --feats-type "raw" --token-type "bpe" \
+        --asr_config "conf/train_asr_rnn_data_aug_debug.yaml" \
+        --feats_normalize "utterance_mvn" --python "${python}" \
+        --asr-args "--model_conf extract_feats_in_collect_stats=false --num_workers 0"
+    echo "::endgroup::"
+
+    echo "::group::==== use_streaming, feats_type=raw, token_types=bpe, model_conf.extract_feats_in_collect_stats=False, normalize=utt_mvn ==="
+    ./run.sh --use_streaming true --ngpu 0 --stage 10 --stop-stage 13 --skip-packing false --feats-type "raw" --token-type "bpe" \
+        --feats_normalize "utterance_mvn"  --python "${python}" \
+        --asr_config "" --asr-tag "train_raw_bpe_streaming" \
+        --asr-args "--model_conf extract_feats_in_collect_stats=false --encoder=contextual_block_transformer
+                    --encoder_conf='{'block_size': 40, 'hop_size': 16, 'look_ahead': 16, 'output_size': 2, 'attention_heads': 2, 'linear_units': 2, 'num_blocks': 1}'
+                    --decoder=transformer --decoder_conf='{'attention_heads': 2, 'linear_units': 2, 'num_blocks': 1}'
+                    --max_epoch 1 --num_iters_per_epoch 1 --batch_size 2 --batch_type folded --num_workers 0"
+    echo "::endgroup::"
 
     echo "::group::==== [PIT_ASR] feats_type=raw, token_types=bpe, model_conf.extract_feats_in_collect_stats=False, normalize=utt_mvn ==="
     for i in $(seq 2); do
@@ -195,12 +268,7 @@ if [ "${task}" == "asr" ] || [ "${task}" == "all" ]; then
                     --max_epoch 1 --num_iters_per_epoch 1 --batch_size 2 --batch_type folded --num_workers 0" \
         --inference-args "--multi_asr true"
     echo "::endgroup::"
-
-    # Remove generated files in order to reduce the disk usage
-    rm -rf exp dump data
-    cd "${cwd}"
-
-    uninstall_extra_deps
+    finish_asr
 fi
 
 if [ "${task}" == "tts" ] || [ "${task}" == "all" ]; then

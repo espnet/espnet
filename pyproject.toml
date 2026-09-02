@@ -8,8 +8,6 @@ description = "ESPnet: end-to-end speech processing toolkit"
 classifiers = [
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Development Status :: 5 - Production/Stable",
@@ -18,7 +16,7 @@ classifiers = [
     "License :: OSI Approved :: Apache Software License",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
-requires-python = ">=3.10"
+requires-python = ">=3.12,<3.14"
 license = { "text" = "Apache Software License" }
 
 # We can use newer setuptools after removing chainer support.
@@ -34,6 +32,10 @@ dependencies = [
     "numpy>=2.0.0",
     "PyYAML>=5.1.2",
     "soundfile>=0.10.2",
+    # Imported directly by espnet2/asr/encoder/{hubert,avhubert,wav2vec2}_encoder.py.
+    # It arrives through torch today, which is why nothing has broken; tools/setup.py
+    # was the only file that declared it, and that file is deleted in this commit.
+    "filelock",
     "torch_optimizer",
     "sentencepiece==0.2.1",
     "librosa>=0.10.2",
@@ -80,8 +82,19 @@ egs3 = ["egs3/TEMPLATE/**/*.yaml"]
 
 
 [project.optional-dependencies]
+# Three of the packages below are ESPnet-maintained forks of projects whose
+# upstream releases do not work here, published to PyPI under their own names:
+# espnet-ctc-segmentation, espnet-g2p-en and espnet-s3prl. Their import names
+# are unchanged (ctc_segmentation, g2p_en, s3prl), and each carries a
+# FORK_NOTICE.md saying what differs from upstream and why.
+#
+# They must be declared like this, by name and version. A direct reference -
+# "name @ git+https://..." - makes PyPI reject the whole distribution with
+# 400 Can't have direct dependency, which is what kept ESPnet off PyPI from
+# v.202604 to v.202609 with nothing local reporting it. ci/check_ci_image_config.py
+# now fails on one.
 asr = [
-  "ctc-segmentation @ git+https://github.com/espnet/ctc-segmentation.git@9b9ea1d",
+  "espnet-ctc-segmentation>=1.7.4.post1",  # fork of lumaku/ctc-segmentation
   "editdistance",
   "opt_einsum",
   "jiwer",
@@ -91,7 +104,7 @@ tts = [
   "pyworld>=0.3.4",
   "pypinyin<=0.44.0",
   "espnet_tts_frontend",
-  "g2p_en @ git+https://github.com/espnet/g2p.git@master",
+  "espnet-g2p-en>=2.1.0.post1",  # fork of Kyubyong/g2p
   "jamo==0.4.1",
   "jaconv",
 ]
@@ -107,7 +120,7 @@ asr2 = [
 
 s2st = [
   "editdistance",
-  "s3prl @ git+https://github.com/espnet/s3prl.git@572af70",
+  "espnet-s3prl>=2026.5.14",  # fork of s3prl/s3prl
 ]
 
 st = [

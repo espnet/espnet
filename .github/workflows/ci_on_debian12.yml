@@ -13,14 +13,45 @@ on:
       - master
       - espnet3
 
-# Only one run per PR at a time: a new push cancels the superseded run.
-# Non-PR events key the group on github.sha rather than github.ref so that
-# every push to master gets its own group. cancel-in-progress only protects
-# runs that have actually started; a *pending* run is cancelled when a newer
-# run joins its group, and master runs here sit pending for a long time.
+# One run per pull request, and one per branch otherwise: a newer run cancels
+# the superseded one.
+#
+# Non-PR events used to key the group on github.sha, so that every push to
+# master got its own group and nothing could cancel a master verification. That
+# was an overcorrection. Merging six PRs in an afternoon left five full master
+# runs alive at once - about 330 queued jobs against a 60-runner cap - which
+# starved the pull request runs that actually gate merges, mine and everyone
+# else's.
+#
+# master is linear, so the newest run verifies a superset of what the older ones
+# were verifying, and cancelling them loses coverage of nothing. What it does
+# lose is per-commit attribution: if a batch of merges goes red together, the
+# surviving run says the batch is broken but not which merge did it. Re-run the
+# workflow at the specific commit to find out - cheaper than paying for five
+# parallel runs on every busy day.
+#
+# Note this is not the stale-merge problem: that was a pull request's own CI
+# having run against an old master, which is about when a PR is merged, not
+# about master verifications cancelling each other.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+# The default on this repository is almost entirely write - a job's GITHUB_TOKEN
+# reports Contents: write, Actions: write, PullRequests: write, Packages: write
+# and more. This job checks out a pull request's code and runs it, next to
+# third-party actions, and writes nothing.
+#
+#   contents       checkout, and actions/cache
+#   pull-requests  joerick/pr-labels-action
+#
+# No packages: read here - unlike ci_on_ubuntu.yml these pull no GHCR image
+# (ci_on_debian12.yml's debian:12 comes from Docker Hub, which does not use
+# GITHUB_TOKEN). No id-token either: it is not granted today and nothing here
+# uploads to codecov. See #6583, which did the same for ci_on_ubuntu.yml.
+permissions:
+  contents: read
+  pull-requests: read
 
 env:
   NLTK_DISABLE_IMPORT_SECURITY: "1"
@@ -32,13 +63,16 @@ jobs:
     container:
       image: debian:12
       env:
-        ESPNET_PYTHON_VERSION: "3.10"
+        ESPNET_PYTHON_VERSION: "3.12"
         TH_VERSION: 2.9.1
         USE_CONDA: true
         # To avoid UnicodeEncodeError for python<=3.6
         LC_ALL: en_US.UTF-8
     steps:
-      - uses: actions/checkout@v7
+      # See ci_on_ubuntu.yml: the default persists GITHUB_TOKEN in .git/config.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
       - name: check OS
         run: cat /etc/os-release
       - name: install dependencies
@@ -51,15 +85,22 @@ jobs:
           localedef -f UTF-8 -i en_US en_US
       - name: Get PR labels
         id: pr-labels
-        uses: joerick/pr-labels-action@v1.0.9
+        uses: joerick/pr-labels-action@0543b277721e852d821c6738d449f2f4dea03d5f # v1.0.9
       - name: install espnet
         run: ./ci/install.sh
         env:
           HF_TOKEN: ${{ secrets.HF_CI_TOKEN }}
+      # See the note in ci_on_ubuntu.yml: huggingface.co rate limits anonymous
+      # callers hard, and this is the job where it actually bit - 72 tests failed
+      # here on 429 while the step env held only NLTK_DISABLE_IMPORT_SECURITY.
       - name: test shell
+        env:
+          HF_TOKEN: ${{ secrets.HF_CI_TOKEN }}
         run: |
           ./ci/test_shell_espnet2.sh
       - name: test python
+        env:
+          HF_TOKEN: ${{ secrets.HF_CI_TOKEN }}
         run: |
           ./ci/test_python_espnet2.sh
           ./ci/test_python_espnet3.sh

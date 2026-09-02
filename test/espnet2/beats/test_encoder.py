@@ -247,6 +247,7 @@ def test_backward_pass_beats_pretraining_predictor():
     pred.sum().backward()
 
 
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="requires a GPU")
 @pytest.mark.parametrize("key_padding_mask", [True, None])
 @pytest.mark.parametrize("has_relative_attention_bias", [True, False])
 @pytest.mark.parametrize("gru_rel_pos", [True, False])
@@ -254,8 +255,6 @@ def test_backward_pass_beats_pretraining_predictor():
 def test_flash_attn(
     key_padding_mask, has_relative_attention_bias, gru_rel_pos, variable_length
 ):
-    if not torch.cuda.is_available():
-        return
     attn_module = (
         MultiheadAttention(
             embed_dim=512,
