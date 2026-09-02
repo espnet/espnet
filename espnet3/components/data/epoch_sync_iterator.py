@@ -3,8 +3,9 @@
 import torch
 
 # Marker for "this source has no length", so an unsized source is probed once
-# rather than rebuilt on every __len__ call.
-_UNSIZED = object()
+# rather than rebuilt on every __len__ call. -1 cannot collide with a real
+# length, since len() is never negative.
+_UNSIZED = -1
 
 
 class EpochSyncIterator:
@@ -98,12 +99,12 @@ class EpochSyncIterator:
             # Build the pass outside the try: only the len() probe may be
             # read as "unsized" - a TypeError raised inside the factory is a
             # real bug and must propagate.
-            new_pass = self._new_pass()
+            new_pass = self._get_new_pass()
             try:
                 self._length = len(new_pass)
             except TypeError:
                 self._length = _UNSIZED
-        if self._length is _UNSIZED:
+        if self._length == _UNSIZED:
             raise TypeError(
                 f"{type(self).__name__} wraps an unsized source, so it has no len()"
             )
@@ -130,9 +131,9 @@ class EpochSyncIterator:
             >>> list(NonEmptyIterator([[0], [], [1]]))
             [[0], [1]]
         """
-        yield from self._new_pass()
+        yield from self._get_new_pass()
 
-    def _new_pass(self):
+    def _get_new_pass(self):
         # A callable source is called once per pass, so every __iter__ gets its
         # own iterator. Sharing one live iterator across passes is unsafe:
         # `yield from` propagates close() to it, so a partially consumed pass
