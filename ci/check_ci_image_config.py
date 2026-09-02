@@ -43,6 +43,10 @@ Sixth, every codecov upload must pass CODECOV_TOKEN. Without it the upload is
 tokenless, which codecov rate limits by IP, and this workflow sends one per job.
 The secret has existed since 2024 and was passed to nothing.
 
+Every job must also have a permissions block in scope, at the workflow or the
+job level. Inheriting the repository default means inheriting write on almost
+everything, and nothing fails to say so.
+
 And seventh, the workflow files must have no duplicate mapping keys. PyYAML
 accepts them and lets the last one win, so writing a second env: block into a
 step silently discards the first - which is exactly what nearly dropped
@@ -365,6 +369,32 @@ def check_checkout_credentials() -> list:
     return problems
 
 
+def check_permissions_declared() -> list:
+    """Every job must have permissions in scope, at workflow or job level.
+
+    Silence means the repository default, which is write on almost everything -
+    see #6583, where a run's own dump showed Contents: write, Actions: write and
+    PullRequests: write on jobs that only read.
+    """
+    problems = []
+    for path in _workflows():
+        try:
+            data = yaml.safe_load(path.read_text())
+        except yaml.YAMLError:
+            continue  # check_no_duplicate_keys reports the parse failure
+        workflow_level = (data or {}).get("permissions")
+        for name, job in (data or {}).get("jobs", {}).items():
+            if not isinstance(job, dict):
+                continue
+            if job.get("permissions") is not None or workflow_level is not None:
+                continue
+            problems.append(
+                f"{path.name}: {name}: no permissions in scope, so it inherits "
+                "the repository default"
+            )
+    return problems
+
+
 def check_codecov_token() -> list:
     """Every codecov-action step must pass the token.
 
@@ -404,6 +434,7 @@ def main() -> int:
         + check_hf_token()
         + check_actions_pinned()
         + check_checkout_credentials()
+        + check_permissions_declared()
         + check_codecov_token()
     )
     for problem in bad:
@@ -415,8 +446,8 @@ def main() -> int:
             "built variant; integration and configuration tasks match their "
             "scripts; every shard set is complete; every test step has "
             "HF_TOKEN; every third-party action is pinned to a SHA; "
-            "every checkout drops its credentials; every codecov "
-            "upload has a token; no duplicate keys"
+            "every checkout drops its credentials; every job declares "
+            "permissions; every codecov upload has a token; no duplicate keys"
         )
         return 0
     if bad:

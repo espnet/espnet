@@ -8,6 +8,12 @@ on:
     tags:
       - 'v*'
 
+# The default on this repository is write on almost everything (see #6583).
+# Publishes to PyPI with TWINE_USERNAME/TWINE_PASSWORD, so it needs nothing
+# from GitHub beyond the checkout.
+permissions:
+  contents: read
+
 jobs:
   publish_python_package_to_pypi:
     runs-on: ubuntu-latest
