@@ -32,31 +32,18 @@ evaluation, and hundreds of pretrained models on Hugging Face.
 ## What's new
 
 - **[ESPnet 202609](https://github.com/espnet/espnet/releases/tag/v.202609)** —
-  **ESPnet3 runs a full recipe end to end.** [`egs3/librispeech_100`](egs3/librispeech_100)
-  trains, decodes and scores an E-Branchformer from `run.py` alone, and matches
-  the ESPnet2 result
-  ([pretrained model](https://huggingface.co/ms180/librispeech_100h_e_branchformer)).
-  **CI was rebuilt around a prebuilt container image** — total compute per run
-  halved (2414 → 1226 min) and the longest job dropped from 75 to 32 min, with
-  nine configuration invariants now enforced by `ci/check_ci_image_config.py`.
-  **Ten new recipes across five task types** — ASR (Spanish, Kannada, Tamil,
-  Marathi, conversational Chinese), TTS (German, multi-speaker English), speech
-  emotion recognition (`cls1`), speech translation (`s2t1`), and audio SSL
-  pretraining (OpenBEATs on AudioSet-2M). **Python 3.12 or 3.13 required**
-  (`>=3.12,<3.14`), PyTorch 2.9.1–2.11.0, and `safe_torch_load` no longer falls
-  back to unsafe loading.
-- **[ESPnet 202604](https://github.com/espnet/espnet/releases/tag/v.202604)** —
-  Docker-based CI, PyTorch 2.9.1 support, FastSpeech2 inference ~1.9x faster
-  at batch 8, new recipes (Kinyarwanda, Emilia, kosp2e).
-- **In development** — ESPnet3 ([`espnet3/`](espnet3), [`egs3/`](egs3)): recipes are
-  Python entry points (`run.py`) configured with OmegaConf / Hydra instead of shell
-  stages. `librispeech_100` is complete and reproduces the ESPnet2 result;
-  `mini_an4` covers the smoke test. SpeechLM ([`espnet2/speechlm`](espnet2/speechlm))
-  is landing in pieces and is not yet recipe-complete.
+  ESPnet3 complete on [`egs3/librispeech_100`](egs3/librispeech_100), matching the
+  ESPnet2 result; CI rebuilt on a prebuilt image (compute per run halved, longest
+  job 75 → 32 min); OpenBEATs pretraining; ten new recipes across ASR, TTS, speech
+  emotion recognition, speech translation and audio SSL. Requires Python 3.12-3.13,
+  PyTorch 2.9.1-2.11.0.
 
 <details>
 <summary>Earlier releases</summary>
 
+- **[ESPnet 202604](https://github.com/espnet/espnet/releases/tag/v.202604)** —
+  Docker-based CI, PyTorch 2.9.1 support, FastSpeech2 inference ~1.9x faster
+  at batch 8, new recipes (Kinyarwanda, Emilia, kosp2e).
 - **[ESPnet 202511](https://github.com/espnet/espnet/releases/tag/v.202511)** —
   parallel-processing primitives, refactored inference and evaluation pipeline,
   expanded SpeechLM support.
