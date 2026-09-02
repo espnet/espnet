@@ -312,7 +312,9 @@ def write_split(root, output_root, split, items, metadata):
         open(out_dir / "utt2spk", "w", encoding="utf-8") as utt2spk_f,
     ):
         for index, item in enumerate(progress(items, f"Writing {split}", len(items))):
-            audio_path = find_audio(root, split, item)
+            # Valid items held out from train still live under the train audio dir.
+            source_split = (item.get("split") or split).strip().lower()
+            audio_path = find_audio(root, source_split, item)
             if audio_path is None:
                 missing += 1
                 continue

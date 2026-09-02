@@ -12,8 +12,14 @@ log() {
 SECONDS=0
 
 log "$0 $*"
-DATA_PREP_ROOT=${1:-"."}
-shift $(( $# > 0 ? 1 : 0 ))
+
+# cls.sh calls: local/data.sh ${datadir} ${local_data_opts}
+# Also accept options-first: local/data.sh --valid-ratio 0.05 ${datadir}
+DATA_PREP_ROOT=
+if [ $# -gt 0 ] && [[ "$1" != --* ]]; then
+    DATA_PREP_ROOT=$1
+    shift
+fi
 
 . ./db.sh
 . ./path.sh
@@ -26,6 +32,10 @@ metadata=
 valid_ratio=0.1
 valid_seed=0
 . utils/parse_options.sh
+
+if [ -z "${DATA_PREP_ROOT}" ]; then
+    DATA_PREP_ROOT=${1:-"."}
+fi
 
 if [ -z "${VGGSOUND}" ]; then
     log "Fill the value of 'VGGSOUND' of db.sh"
