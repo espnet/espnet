@@ -203,6 +203,14 @@ jobs:
 
   test_python_espnet2:
     runs-on: ubuntu-latest
+    # Same grants as the workflow default, plus actions: write, which the
+    # cancel step below needs. A job-level block replaces the workflow one
+    # rather than adding to it, so the read grants are repeated here.
+    permissions:
+      contents: read
+      packages: read
+      pull-requests: read
+      actions: write
     needs: [process_labels, resolve_ci_image]
     if: |
       github.event.pull_request.draft == false
@@ -304,9 +312,44 @@ jobs:
         with:
           path: ~/.cache/s3prl
           key: ${{ runner.os }}-s3prl-v1
+      # This job is fast and deterministic, so a failure here means the pull
+      # request is broken rather than unlucky - and the integration matrix
+      # behind it is then roughly 1200 minutes of compute spent on a known
+      # answer. Measured over eight runs that ran to completion, 39% of all
+      # CI compute ran after the first failure was already known; the two
+      # worst were over 90%, and both failed early, in jobs like this one.
+      #
+      # Only from the fast jobs. The integration matrix keeps fail-fast:
+      # false, so a network flake there still leaves every other result
+      # standing and one job to re-run. `gh run rerun --failed` re-runs
+      # cancelled jobs too, so if this was a flake, cancelling costs
+      # latency rather than compute.
+      #
+      # Pull requests only: on master the full picture is worth the compute.
+      #
+      # wget, not curl or gh: the CI image has wget and neither of those.
+      - name: Cancel the rest of this run
+        if: failure() && github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          wget -q -O- --method=POST --body-data='' \
+            --header="Authorization: Bearer ${GH_TOKEN}" \
+            --header='Accept: application/vnd.github+json' \
+            "${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/cancel" \
+            && echo 'cancel requested' \
+            || echo 'cancel request failed; leaving the run alone'
 
   test_utils_espnet2:
     runs-on: ubuntu-latest
+    # Same grants as the workflow default, plus actions: write, which the
+    # cancel step below needs. A job-level block replaces the workflow one
+    # rather than adding to it, so the read grants are repeated here.
+    permissions:
+      contents: read
+      packages: read
+      pull-requests: read
+      actions: write
     needs: [process_labels, resolve_ci_image]
     if: |
       github.event.pull_request.draft == false
@@ -364,9 +407,44 @@ jobs:
         run: |
           source tools/activate_python.sh
           coverage erase
+      # This job is fast and deterministic, so a failure here means the pull
+      # request is broken rather than unlucky - and the integration matrix
+      # behind it is then roughly 1200 minutes of compute spent on a known
+      # answer. Measured over eight runs that ran to completion, 39% of all
+      # CI compute ran after the first failure was already known; the two
+      # worst were over 90%, and both failed early, in jobs like this one.
+      #
+      # Only from the fast jobs. The integration matrix keeps fail-fast:
+      # false, so a network flake there still leaves every other result
+      # standing and one job to re-run. `gh run rerun --failed` re-runs
+      # cancelled jobs too, so if this was a flake, cancelling costs
+      # latency rather than compute.
+      #
+      # Pull requests only: on master the full picture is worth the compute.
+      #
+      # wget, not curl or gh: the CI image has wget and neither of those.
+      - name: Cancel the rest of this run
+        if: failure() && github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          wget -q -O- --method=POST --body-data='' \
+            --header="Authorization: Bearer ${GH_TOKEN}" \
+            --header='Accept: application/vnd.github+json' \
+            "${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/cancel" \
+            && echo 'cancel requested' \
+            || echo 'cancel request failed; leaving the run alone'
 
   test_shell_espnet2:
     runs-on: ubuntu-latest
+    # Same grants as the workflow default, plus actions: write, which the
+    # cancel step below needs. A job-level block replaces the workflow one
+    # rather than adding to it, so the read grants are repeated here.
+    permissions:
+      contents: read
+      packages: read
+      pull-requests: read
+      actions: write
     needs: [process_labels, resolve_ci_image]
     if: |
       github.event.pull_request.draft == false
@@ -406,6 +484,33 @@ jobs:
         env:
           HF_TOKEN: ${{ secrets.HF_CI_TOKEN }}
         run: ./ci/test_shell_espnet2.sh
+      # This job is fast and deterministic, so a failure here means the pull
+      # request is broken rather than unlucky - and the integration matrix
+      # behind it is then roughly 1200 minutes of compute spent on a known
+      # answer. Measured over eight runs that ran to completion, 39% of all
+      # CI compute ran after the first failure was already known; the two
+      # worst were over 90%, and both failed early, in jobs like this one.
+      #
+      # Only from the fast jobs. The integration matrix keeps fail-fast:
+      # false, so a network flake there still leaves every other result
+      # standing and one job to re-run. `gh run rerun --failed` re-runs
+      # cancelled jobs too, so if this was a flake, cancelling costs
+      # latency rather than compute.
+      #
+      # Pull requests only: on master the full picture is worth the compute.
+      #
+      # wget, not curl or gh: the CI image has wget and neither of those.
+      - name: Cancel the rest of this run
+        if: failure() && github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          wget -q -O- --method=POST --body-data='' \
+            --header="Authorization: Bearer ${GH_TOKEN}" \
+            --header='Accept: application/vnd.github+json' \
+            "${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/cancel" \
+            && echo 'cancel requested' \
+            || echo 'cancel request failed; leaving the run alone'
 
   test_integration_espnet2:
     runs-on: ubuntu-latest
@@ -691,6 +796,14 @@ jobs:
 
   test_import:
     runs-on: ubuntu-latest
+    # Same grants as the workflow default, plus actions: write, which the
+    # cancel step below needs. A job-level block replaces the workflow one
+    # rather than adding to it, so the read grants are repeated here.
+    permissions:
+      contents: read
+      packages: read
+      pull-requests: read
+      actions: write
     needs: process_labels
     if: |
       github.event.pull_request.draft == false
@@ -739,6 +852,33 @@ jobs:
     - name: Import all modules (Try2)
       run: |
         python3 -q -X faulthandler ./ci/test_import_all.py
+    # This job is fast and deterministic, so a failure here means the pull
+    # request is broken rather than unlucky - and the integration matrix
+    # behind it is then roughly 1200 minutes of compute spent on a known
+    # answer. Measured over eight runs that ran to completion, 39% of all
+    # CI compute ran after the first failure was already known; the two
+    # worst were over 90%, and both failed early, in jobs like this one.
+    #
+    # Only from the fast jobs. The integration matrix keeps fail-fast:
+    # false, so a network flake there still leaves every other result
+    # standing and one job to re-run. `gh run rerun --failed` re-runs
+    # cancelled jobs too, so if this was a flake, cancelling costs
+    # latency rather than compute.
+    #
+    # Pull requests only: on master the full picture is worth the compute.
+    #
+    # wget, not curl or gh: the CI image has wget and neither of those.
+    - name: Cancel the rest of this run
+      if: failure() && github.event_name == 'pull_request'
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        wget -q -O- --method=POST --body-data='' \
+          --header="Authorization: Bearer ${GH_TOKEN}" \
+          --header='Accept: application/vnd.github+json' \
+          "${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/cancel" \
+          && echo 'cancel requested' \
+          || echo 'cancel request failed; leaving the run alone'
 
   check_kaldi_symlinks:
     runs-on: ubuntu-latest
