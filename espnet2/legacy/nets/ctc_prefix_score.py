@@ -27,7 +27,15 @@ class CTCPrefixScoreTH(object):
         :param torch.Tensor xlens: input lengths (B,)
         :param int blank: blank label id
         :param int eos: end-of-sequence id
-        :param int margin: margin parameter for windowing (0 means no windowing)
+        :param int margin: margin parameter for windowing (0 means no windowing).
+            NOTE: a positive margin now also windows the recursion when no
+            attention weights are given, centred on the frame where the
+            prefix's own forward probability peaks. Previously a positive
+            margin without `att_w` fell through to the exact full-utterance
+            recursion, so a caller that already sets one -- an espnet1-style
+            config with a decoder that supplies no attention weights, for
+            instance -- gets approximate scores where it used to get exact
+            ones. Set margin=0 to keep the exact behaviour.
         """
         # In the comment lines,
         # we assume T: input_length, B: batch size, W: beam width, O: output dim.

@@ -1225,13 +1225,15 @@ def get_parser():
         help="Half-width, in encoder frames, of the window the CTC forward "
         "recursion is restricted to. Without it the recursion walks the whole "
         "utterance at every decoding step, which costs O(duration^2); a window "
-        "makes it linear, so the longer the audio the more it saves. 0 turns "
-        "it off and computes exactly. Note the unit is encoder frames, so its "
-        "duration depends on the model: with a 10 ms frame shift and 4x "
-        "subsampling the default is 3.2 s on each side. Too small a window "
-        "loses accuracy -- on LibriSpeech test-clean the default and anything "
-        "down to 40 frames reproduced exact decoding, 30 nearly did, and 20 "
-        "did not.",
+        "makes it linear, so the longer the audio the more it saves. "
+        "CHANGES DECODING RESULTS: this is an approximation and it is on by "
+        "default, so an existing config decodes differently than it did in "
+        "earlier versions of espnet. Pass 0 for the previous, exact behaviour. "
+        "The unit is encoder frames, so the duration it buys depends on the "
+        "model: the default is 3.2 s each side at a 10 ms frame shift with 4x "
+        "subsampling, but only 1.6 s with 2x subsampling. Too small a window "
+        "loses accuracy -- on LibriSpeech test-clean 40 frames and above "
+        "reproduced exact decoding, 30 nearly did, and 20 did not.",
     )
     group.add_argument(
         "--ctc_weight",
