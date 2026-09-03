@@ -1,5 +1,6 @@
-# This workflows will upload a Python Package using Twine when a release is created
-# For more information see: https://help.github.com/en/actions/language-and-framework-guides/using-python-with-github-actions#publishing-to-package-registries
+# Uploads a Python package to PyPI when a v* tag is pushed, using PyPI's trusted
+# publishing rather than a stored credential.
+# https://docs.pypi.org/trusted-publishers/
 
 name: publish python package
 
@@ -7,6 +8,20 @@ on:
   push:
     tags:
       - 'v*'
+
+# The default on this repository is write on almost everything (see #6583).
+#
+# id-token: write is what PyPI's trusted publishing needs, and it is a deliberate
+# widening of the block #6596 set. It only lets the job ask GitHub for a
+# short-lived OIDC identity token; it grants nothing over this repository. PyPI
+# checks that token against a publisher registered for espnet/espnet and this
+# workflow filename, then issues a short-lived upload credential of its own.
+#
+# Consequence worth knowing: renaming this file breaks publishing until the
+# publisher is updated on PyPI, because PyPI matches on the filename.
+permissions:
+  contents: read
+  id-token: write
 
 jobs:
   publish_python_package_to_pypi:
@@ -23,12 +38,10 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install setuptools wheel twine
         pip install build
-    - name: Build and publish
-      env:
-        TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
-        TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
-      run: |
-        python -m build # This will create both sdist and wheel
-        twine upload dist/*
+    - name: Build
+      run: python -m build  # This will create both sdist and wheel
+    # No username or password here: passing either takes this out of the trusted
+    # publishing flow and back to a stored credential.
+    - name: Publish to PyPI
+      uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
