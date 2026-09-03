@@ -80,8 +80,23 @@ elif [ "${cmd_backend}" = slurm ]; then
     # You can use "--gpu * " by default for slurm and it is interpreted as "--gres gpu:*"
     # The devices are allocated exclusively using "${CUDA_VISIBLE_DEVICES}".
 
-    export train_cmd="slurm.pl"
-    export cuda_cmd="slurm.pl"
+    # NOTE: honour a pre-set train_cmd/cuda_cmd from the environment. wavlm.sh
+    # sources this file AFTER utils/parse_options.sh, so an unconditional export
+    # here silently clobbers any --*_cmd passed on the command line, and
+    # ${kmeans_opts} cannot carry a multi-word value (it is word-split at
+    # wavlm.sh:417). This is the only override point that works, e.g.
+    #   train_cmd="slurm.pl --config conf/slurm_cpu_on_gpu.conf" ./run_large.sh ...
+    # NOTE (2026-09-01): that routing NO LONGER WORKS. The gpu partition now
+    # rejects CPU-only jobs outright:
+    #   "the gpu partition allocates whole GPUs (24 CPUs + 115200 MB each):
+    #    request GPUs (e.g. --gpus=1) or submit CPU-only jobs with -p cpu"
+    # It was accepted earlier the same night, so the policy changed mid-run --
+    # plausibly because a 128-job CPU-only array sat on those nodes for 4 h.
+    # CPU work goes to the 64-core `cpu` partition; size nj accordingly.
+    # to put CPU-only jobs on the 208-core gpu nodes instead of the 64-core
+    # `cpu` partition. Defaults are unchanged when nothing is pre-set.
+    export train_cmd="${train_cmd:-slurm.pl}"
+    export cuda_cmd="${cuda_cmd:-slurm.pl}"
     export decode_cmd="slurm.pl"
 
 elif [ "${cmd_backend}" = ssh ]; then

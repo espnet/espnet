@@ -1,0 +1,11 @@
+# Recipe outputs. espnet writes dump/ and exp/ here by default, and this run
+# also produced sweep/benchmark variants (dump_pb, exp_bench, exp_phaseb,
+# exp_sweep, exp_it0sweep, exp_it0rand) totalling ~28 GB. The real run's dump
+# and exp live outside the repo entirely, under /mnt/weka/data/wavlm_expts,
+# so teammates can write to them.
+#
+# NOTE: local/bench/ is deliberately NOT ignored -- those are the measurement
+# scripts and logs that justify the batch_bins / k-means settings in the configs.
+dump*/
+exp*/
+data/

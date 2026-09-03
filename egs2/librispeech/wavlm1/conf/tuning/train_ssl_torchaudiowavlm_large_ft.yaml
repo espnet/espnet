@@ -1,0 +1,197 @@
+# WavLM LARGE, CONTINUED PRETRAINING from the torchaudio WAVLM_LARGE weights.
+#
+# Not the 3-iteration from-scratch pipeline in run_large.sh. Here the model is
+# INITIALISED from torchaudio's pretrained WavLM-large (94k h) and trained for a
+# single iteration on 149,617 h of new multilingual data, with targets from
+# k-means over that same pretrained model's layer-9 features (500 clusters --
+# the layer and cluster count HuBERT/espnet use for iteration 2).
+#
+# The 391 wav2vec2 tensors are loaded; the 5 heads init fresh, because
+# logit_generator.label_embeddings is (500, 768) and tied to OUR cluster
+# vocabulary. (torchaudio names the backbone container 'wav2vec2' for all of
+# wav2vec2/HuBERT/WavLM; these are genuinely WavLM weights -- 73 gated
+# relative-position-bias tensors are present, which wav2vec2 does not have.)
+#
+# Batch sizing below is MEASURED, not guessed: an 8 x H100 80GB sweep on
+# LibriSpeech 960h (see local/bench/) gave, per GPU on the training plateau:
+#
+#   batch_bins   500 clusters
+#         4 M       310.9 W   (recipe default; batches hit the
+#                              min_batch_size=world_size floor)
+#        12 M       413.6 W
+#        18 M       451.8 W
+#        24 M       469.1 W
+#        30 M       469.1 W
+#        36 M       486.4 W   <-- used here
+#        48 M          OOM   (genuine capacity wall; expandable_segments
+#                              was active and it still failed)
+#
+# Also measured, and deliberately NOT used as levers:
+#   * accum_grad 4 -> 2 changed nothing (418.2 -> 418.7 W): espnet never calls
+#     DDP no_sync(), so the all-reduce runs every micro-batch regardless.
+#   * num_workers: dataloader wait is ~0.2 ms of a 0.3-1.4 s step at every
+#     batch size tested. There is no input starvation to fix.
+#   * unused_parameters false: +2.6%. NOT used -- see the note on
+#     unused_parameters below; it is true for stability reasons.
+#
+# torch.compile: -25.3% wall clock over 10,000 steps (4727 s -> 3531 s), after
+# a ~5 min one-off compile. It does NOT raise power (494.9 vs 501.9 W) -- it
+# finishes the same work sooner. Enable it for throughput, not for watts.
+use_amp: true
+# bfloat16 autocast needs no loss scaling, and pairing a GradScaler with it
+# makes the scaler grow its scale without bound (1e29 seen after 250 epochs)
+# while its skip-on-overflow guard -- the thing that stops a diverging run --
+# never fires. NOTE: set this back to true if you train on hardware without
+# bfloat16 support, where autocast falls back to float16 and scaling IS needed.
+use_grad_scaler: false
+
+# DISABLED. torch.compile measured -25.3% wall clock on LibriSpeech, but on this
+# run it cost more than it saved:
+#   * whole-model compile: DDP(compile(model)) leaves dynamo's DDPOptimizer
+#     unable to split at gradient-bucket boundaries, and the ranks deadlocked
+#     twice in the backward all-reduce at the same batch (100% GPU util at
+#     ~145 W instead of ~490 W, no error, slurm still RUNNING). 6.9 h lost.
+#   * per-submodule compile: fixed THAT deadlock (verified passing the batch),
+#     but the run still deadlocked later at a different batch, AND every
+#     compiled submodule saves its weights with `_orig_mod.` inside the key,
+#     so checkpoints could not be resumed (Trainer.resume loads strict=True
+#     before compiling). 96% of 396 tensors were affected.
+# A ~25% slower step that checkpoints and resumes is worth more than a faster
+# one that deadlocks and writes unloadable checkpoints.
+use_torch_compile: false
+grad_clip: 5.0
+batch_type: numel
+batch_bins: 36000000
+num_workers: 8
+accum_grad: 1
+# ---------------------------------------------------------------- step budget
+# On LibriSpeech 960h an epoch was ~1,540 optimizer steps, so max_epoch alone
+# was a sensible budget. This corpus is 149,617 h / 62.48 M utterances: at
+# 36 M batch_bins (bins ~= raw sample count, since text_shape is 1-D) a full
+# pass is ~239,400 steps ~= 22 h, and max_epoch 400 would run for a year.
+#
+# So the budget is set in STEPS and an "epoch" is redefined as a checkpoint /
+# validation interval. SequenceIterFactory advances a cursor through the full
+# shuffled batch list across epochs (divmod(num_iters_per_epoch * epoch, N)),
+# so this samples the whole corpus rather than replaying the first N batches.
+#
+#   num_iters_per_epoch 40000 -> ~4.0 h per epoch at 0.36 s/step
+#
+# WHY 40000 AND NOT 5000: --num_splits_ssl is required to avoid an OOM, and
+# avoid an OOM, and MultipleIterFactory.build_iter loops the splits INSIDE each
+# epoch, rebuilding the dataset per split. Each rebuild reloads a 9.2 GB label
+# file on all 8 ranks and costs ~247 s, measured. The number of reloads per
+# epoch is fixed at 16 regardless of epoch length, so a longer epoch amortises
+# them: at 5000 iters there were only ~312 batches (~5 min of compute) between
+# 4-minute reloads and 76%% of wall clock was lost (effective 1.04 s/step vs
+# 0.356 while computing). At 40000 it is ~2500 batches per split, ~24%%.
+# The real fix is a lazy, mmap-backed label loader so no reload is needed at
+# all; until that exists, this is the cheap lever.
+#   max_epoch 10 -> 400,000 steps = 1.27 passes over 149,617 h.
+#   The from-scratch budget was 2,480,000 steps (7.9 passes); starting from a
+#   model already trained on 94k h, ~1.3 passes over the NEW data is the
+#   adaptation signal, not the representation learning. At 0.47 s/step
+#   (per-submodule compile + reload overhead) that is ~52 h.
+#   (purely a ceiling: patience 4 is the real stopping rule)
+num_iters_per_epoch: 40000
+max_epoch: 10
+patience: 4           # NOTE the off-by-one: reporter.check_early_stopping
+                      # tests `epoch - best_epoch > patience`, so this stops on
+                      # the 10th consecutive non-improving epoch, not the 9th.
+                      # With num_iters_per_epoch 5000 that is 50,000 steps
+                      # (~4.7 h) of no improvement -- comparable in steps to the
+                      # 25 x ~1,540 the base LibriSpeech run allowed, where the
+                      # longest genuine plateau while healthy was 17 epochs.
+                      # Judged on valid/loss/min, same as best_model_criterion.
+# Use self-defined function for initialization
+init: none
+# Load the pretrained backbone. Heads are excluded implicitly by scoping the
+# src/dst key to wav2vec2, so label_embeddings/final_proj start fresh.
+init_param:
+- /mnt/weka/data/wavlm_expts/exp/wavlm_iter1_train_ssl_torchaudiowavlm_large_960h_pretrain_it2_raw/valid.loss.best.pth:encoder.wavlm_pretrain_model.wav2vec2:encoder.wavlm_pretrain_model.wav2vec2
+# No attention plots. This is masked-prediction pretraining: the reporter logged
+# "[att_plot] time=1 minute and 33.31 seconds, total_count=0" every epoch -- it
+# built the plot iterator, spent 93 s, and produced nothing. 0 makes abs_task
+# set plot_attention_iter_factory=None, so Trainer skips the phase outright.
+num_att_plot: 0
+
+best_model_criterion:
+-   - valid
+    - loss
+    - min
+keep_nbest_models: 10
+
+# Not needed by this model; costs ~2.6% throughput when on.
+# TRUE -- kept EMPIRICALLY, with the root cause still UNIDENTIFIED.
+#
+# What is established:
+#   * The run deadlocked three times at epoch 2 batch 13,100 (100% GPU util at
+#     ~145 W instead of ~490 W, no error, slurm still RUNNING). Flipping this
+#     flag to true is the one change after which it ran through that batch and
+#     kept going.
+#   * It is NOT fixing an unused-parameter bug. DDP itself reports, every run:
+#     "find_unused_parameters=True was specified ... but did not find any
+#     unused parameters in the forward pass". A direct census over uniform,
+#     jagged (0.14-2.0 s) and all-False-mask batches found 0 parameters with
+#     grad=None. So this flag only perturbs DDP's bucketing/traversal; the
+#     underlying race is probably still there, merely not triggering.
+#
+# An EARLIER COMMENT HERE WAS WRONG and is corrected for the record: it claimed
+# _compute_mask_indices uses min_masks=0, so short utterances yield zero masked
+# frames, leaving the masked head ungradiented. Both halves are false. The call
+# site (torchaudio components.py:1040) passes min_masks=2, so num_mask =
+# max(2, ...) >= 2. And a genuinely all-False mask does not deadlock at all --
+# it raises ZeroDivisionError on correct_m / count_m at
+# espnet2/hubert/espnet_model.py:115, which this run never threw (count_m ran
+# steady at ~4,700-5,000 throughout).
+#
+# The real sensitivity in that function is different: components.py:949-953
+# truncates every utterance's mask to the batch-wide MINIMUM span count, so one
+# degenerate row thins the mask for the whole batch. That is worth knowing, but
+# it is not what hung the job.
+#
+# Costs ~2.6% throughput. Do not flip it back without a reproducer for the
+# original hang.
+unused_parameters: true
+
+input_size: 1
+
+collate_fn_conf:
+    label_downsampling: 1
+    pad: False
+    rand_crop: True
+
+encoder: torchaudio_wavlm
+encoder_conf:
+    encoder_projection_dropout: 0.0
+    encoder_attention_dropout: 0.0
+    encoder_ff_interm_dropout: 0.0
+    encoder_dropout: 0.0
+    encoder_layer_drop: 0.0
+    extractor_mode: "layer_norm"
+    encoder_embed_dim: 1024
+    encoder_num_layers: 24
+    encoder_num_heads: 16
+    encoder_ff_interm_features: 4096
+    encoder_layer_norm_first: true
+    final_dim: 768
+    # WavLM large gated relative position bias (torchaudio wavlm_large defaults)
+    encoder_num_buckets: 320
+    encoder_max_distance: 800
+
+model: torchaudio_wavlm
+
+optim: adam
+optim_conf:
+    lr: 0.0001   # 1/5 of the from-scratch 5e-4: starting from converged
+                 # weights, a from-scratch peak LR would damage them.
+scheduler: warmuplr
+scheduler_conf:
+    warmup_steps: 5000   # short: the model is already converged, so the long
+                         # from-scratch warmup is unnecessary.
+
+frontend: null
+
+normalize: null
+
+specaug: null
