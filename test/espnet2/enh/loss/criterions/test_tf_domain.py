@@ -1,6 +1,5 @@
 import pytest
 import torch
-from packaging.version import parse as V
 from torch_complex import ComplexTensor
 
 from espnet2.enh.loss.criterions.tf_domain import (
@@ -10,8 +9,6 @@ from espnet2.enh.loss.criterions.tf_domain import (
     FrequencyDomainL1,
     FrequencyDomainMSE,
 )
-
-is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
 
 
 @pytest.mark.parametrize("criterion_class", [FrequencyDomainL1, FrequencyDomainMSE])
@@ -24,7 +21,7 @@ def test_tf_domain_criterion_forward(
     criterion_class, mask_type, compute_on_mask, input_ch
 ):
     criterion = criterion_class(compute_on_mask=compute_on_mask, mask_type=mask_type)
-    complex_wrapper = torch.complex if is_torch_1_9_plus else ComplexTensor
+    complex_wrapper = torch.complex
 
     batch = 2
     shape = (batch, 10, 200) if input_ch == 1 else (batch, 10, input_ch, 200)
@@ -46,7 +43,7 @@ def test_tf_domain_criterion_forward(
 @pytest.mark.parametrize("input_ch", [1, 2])
 def test_tf_coh_criterion_forward(input_ch):
     criterion = FrequencyDomainAbsCoherence()
-    complex_wrapper = torch.complex if is_torch_1_9_plus else ComplexTensor
+    complex_wrapper = torch.complex
 
     batch = 2
     shape = (batch, 10, 200) if input_ch == 1 else (batch, 10, input_ch, 200)
@@ -60,7 +57,7 @@ def test_tf_coh_criterion_forward(input_ch):
 @pytest.mark.parametrize("input_ch", [1, 2])
 def test_tf_coh_criterion_invalid_forward(input_ch):
     criterion = FrequencyDomainAbsCoherence()
-    complex_wrapper = torch.complex if is_torch_1_9_plus else ComplexTensor
+    complex_wrapper = torch.complex
 
     batch = 2
     shape = (batch, 10, 200) if input_ch == 1 else (batch, 10, input_ch, 200)
