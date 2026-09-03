@@ -167,7 +167,24 @@ espnet.done: pytorch.done conda_packages.done lightning.done
 	. ./activate_python.sh && python3 -m pip install espnet-ctc-segmentation
 	. ./activate_python.sh && python3 -m pip install -e ".."  # Install editable mode by default
 	@echo NUMPY_VERSION=$(shell . ./activate_python.sh && python3 -c "import numpy; print(numpy.__version__)")
-	. ./activate_python.sh && python -m nltk.downloader averaged_perceptron_tagger_eng
+	# Into the venv, not $$HOME. docker/ci.dockerfile builds in a builder stage
+	# and copies only /espnet/tools into the final image, so a download to
+	# /root/nltk_data - nltk's default - is left behind in the discarded stage
+	# and the prebuilt image ships without the tagger. <prefix>/share/nltk_data
+	# is on nltk's default search path and lives inside the venv, so it is
+	# copied, and it is found without depending on who $$HOME belongs to.
+	. ./activate_python.sh && python -m nltk.downloader \
+		-d "$$(python -c 'import sys; print(sys.prefix)')/share/nltk_data" \
+		averaged_perceptron_tagger_eng
+	# nltk.downloader exits 0 on some failures, so check the download landed.
+	# Two things this deliberately does not do. Not nltk.data.find: that
+	# searches $$HOME too, so it passes on a machine that happens to have the
+	# tagger there - including the builder stage whose /root/nltk_data is then
+	# discarded, which is the bug being guarded. And not assert: PYTHONOPTIMIZE
+	# strips those, and execution then falls through to the print, so the step
+	# reports success and names a file that is not there. A guard against a
+	# silent omission must not itself be silenceable.
+	. ./activate_python.sh && python -c "import pathlib, sys; p = pathlib.Path(sys.prefix) / 'share/nltk_data/taggers/averaged_perceptron_tagger_eng.zip'; print('nltk tagger:', p) if p.is_file() else sys.exit('nltk tagger was not downloaded into the venv: %s' % p)"
 	$(call end_timer_and_touch,espnet.done)
 
 sounfile_test: espnet.done
