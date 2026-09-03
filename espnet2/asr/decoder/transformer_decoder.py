@@ -4,7 +4,8 @@
 """Decoder definition."""
 
 import logging
-from typing import Any, List, Sequence, Tuple
+import weakref
+from typing import Any, List, Optional, Sequence, Tuple
 
 import torch
 from typeguard import typechecked
@@ -188,6 +189,65 @@ class BaseTransformerDecoder(
             return (x, intermediate_outs), olens
         return x, olens
 
+    # `batch_score` accepts an encoder output with one row per utterance
+    # rather than one per hypothesis (utterance-major, see
+    # `BatchBeamSearch.score_full`), so the beam search need not replicate it.
+    accepts_shared_memory = True
+
+    def memory_kv(
+        self, memory: torch.Tensor
+    ) -> List[Tuple[torch.Tensor, torch.Tensor]]:
+        """Return the per-layer key/value projections of ``memory``, cached.
+
+        The encoder output does not change while an utterance is decoded, yet
+        :meth:`forward_one_step` used to project it again at every step, in
+        every layer, for every hypothesis. The projections are computed once
+        here and reused for as long as the same tensor is being decoded.
+
+        The cache is keyed on the identity of the tensor that owns the storage
+        (``memory._base`` for a view) together with its version counter, and
+        it is dropped the moment that tensor is garbage collected. A later
+        utterance whose encoder output happens to land at the same address can
+        therefore never see stale projections, and an in-place modification
+        invalidates them too.
+
+        A memory whose rows are stride-0 copies of a single row -- the way the
+        single-utterance beam search expands a ``(T, D)`` encoder output over
+        its hypotheses -- is projected once, and the attention broadcasts the
+        result over the queries.
+
+        Args:
+            memory: Encoder output ``(n_rows, T, D)``.
+
+        Returns:
+            One ``(k, v)`` pair per decoder layer, each
+            ``(n_rows or 1, n_head, T, d_k)``.
+
+        """
+        base = memory._base if memory._base is not None else memory
+        shared_rows = memory.dim() == 3 and memory.size(0) > 1 and memory.stride(0) == 0
+        src = memory[:1] if shared_rows else memory
+        key = (
+            base._version,
+            tuple(src.shape),
+            # the stride of a size-1 leading axis is arbitrary and changes with
+            # the number of hypotheses the memory was expanded over
+            src.stride()[1:] if src.size(0) == 1 else src.stride(),
+            src.storage_offset(),
+            src.dtype,
+            src.device,
+        )
+        cached = getattr(self, "_memory_kv_cache", None)
+        if cached is not None and cached[0] == key and cached[1]() is base:
+            return cached[2]
+
+        kv = [layer.src_attn.project_kv(src, src) for layer in self.decoders]
+        # NOTE: a weakref, not a strong one: the cache must not keep the
+        # encoder output alive, and it dies with it
+        ref = weakref.ref(base, lambda _: setattr(self, "_memory_kv_cache", None))
+        self._memory_kv_cache = (key, ref, kv)
+        return kv
+
     def forward_one_step(
         self,
         tgt: torch.Tensor,
@@ -197,6 +257,7 @@ class BaseTransformerDecoder(
         *,
         cache: List[torch.Tensor] = None,
         return_hs: bool = False,
+        memory_kv: Optional[List[Tuple[torch.Tensor, torch.Tensor]]] = None,
     ) -> Tuple[torch.Tensor, List[torch.Tensor]]:
         """Forward one step.
 
@@ -210,6 +271,9 @@ class BaseTransformerDecoder(
             cache: cached output list of (batch, max_time_out-1, size)
             return_hs: dec hidden state corresponding to ys,
                 used for searchable hidden ints
+            memory_kv: per-layer key/value projections of `memory` from
+                :meth:`memory_kv`. When given, `memory` may hold one row per
+                utterance instead of one per hypothesis.
         Returns:
             y, cache: NN output value and cache per `self.decoders`.
             y.shape` is (batch, maxlen_out, token)
@@ -217,10 +281,12 @@ class BaseTransformerDecoder(
         x = self.embed(tgt)
         if cache is None:
             cache = [None] * len(self.decoders)
+        if memory_kv is None:
+            memory_kv = [None] * len(self.decoders)
         new_cache = []
-        for c, decoder in zip(cache, self.decoders):
+        for c, kv, decoder in zip(cache, memory_kv, self.decoders):
             x, tgt_mask, memory, memory_mask = decoder(
-                x, tgt_mask, memory, memory_mask, cache=c
+                x, tgt_mask, memory, memory_mask, cache=c, memory_kv=kv
             )
             new_cache.append(x)
 
@@ -240,22 +306,28 @@ class BaseTransformerDecoder(
     def score(self, ys, state, x, return_hs=False):
         """Score."""
         ys_mask = subsequent_mask(len(ys), device=x.device).unsqueeze(0)
+        memory = x.unsqueeze(0)
+        # the cache is keyed on `x`, so every hypothesis of an utterance and
+        # every decoding step reuse the same projections
+        memory_kv = self.memory_kv(memory)
         if return_hs:
             (logp, hs), state = self.forward_one_step(
                 ys.unsqueeze(0),
                 ys_mask,
-                x.unsqueeze(0),
+                memory,
                 cache=state,
                 return_hs=return_hs,
+                memory_kv=memory_kv,
             )
             return logp.squeeze(0), hs, state
         else:
             logp, state = self.forward_one_step(
                 ys.unsqueeze(0),
                 ys_mask,
-                x.unsqueeze(0),
+                memory,
                 cache=state,
                 return_hs=return_hs,
+                memory_kv=memory_kv,
             )
             return logp.squeeze(0), state
 
@@ -273,12 +345,18 @@ class BaseTransformerDecoder(
             ys (torch.Tensor): torch.int64 prefix tokens (n_batch, ylen).
             states (List[Any]): Scorer states for prefix tokens.
             xs (torch.Tensor):
-                The encoder feature that generates ys (n_batch, xlen, n_feat).
+                The encoder feature that generates ys (n_batch, xlen, n_feat),
+                or one row per utterance (n_utt, xlen, n_feat) when the
+                hypotheses are laid out utterance-major, i.e. hypothesis
+                `b * (n_batch // n_utt) + i` belongs to utterance `b`. Its
+                key/value projections are cached across calls, see
+                :meth:`memory_kv`.
             return_hs (bool): Whether to return the decoder hidden states.
-            xs_mask (torch.Tensor): Non-padding mask of `xs` (n_batch, 1, xlen).
-                Needed when `xs` holds utterances of different lengths, as in
-                utterance-batched beam search; without it the cross attention
-                also attends to the padded encoder frames.
+            xs_mask (torch.Tensor): Non-padding mask of `xs`, (n_batch, 1, xlen)
+                or (n_utt, 1, xlen). Needed when `xs` holds utterances of
+                different lengths, as in utterance-batched beam search;
+                without it the cross attention also attends to the padded
+                encoder frames.
 
         Returns:
             tuple[torch.Tensor, List[Any]]: Tuple of
@@ -300,6 +378,7 @@ class BaseTransformerDecoder(
 
         # batch decoding
         ys_mask = subsequent_mask(ys.size(-1), device=xs.device).unsqueeze(0)
+        memory_kv = self.memory_kv(xs)
         if return_hs:
             (logp, hs), states = self.forward_one_step(
                 ys,
@@ -308,6 +387,7 @@ class BaseTransformerDecoder(
                 memory_mask=xs_mask,
                 cache=batch_state,
                 return_hs=return_hs,
+                memory_kv=memory_kv,
             )
         else:
             logp, states = self.forward_one_step(
@@ -317,6 +397,7 @@ class BaseTransformerDecoder(
                 memory_mask=xs_mask,
                 cache=batch_state,
                 return_hs=return_hs,
+                memory_kv=memory_kv,
             )
 
         # transpose state of [layer, batch] into [batch, layer]
@@ -732,6 +813,10 @@ class DynamicConvolution2DTransformerDecoder(BaseTransformerDecoder):
 
 
 class TransformerMDDecoder(BaseTransformerDecoder):
+    # its own `forward_one_step` and `batch_score` project the memory per
+    # call and expect one row per hypothesis
+    accepts_shared_memory = False
+
     @typechecked
     def __init__(
         self,

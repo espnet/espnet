@@ -79,6 +79,7 @@ class DecoderLayer(nn.Module):
         cache=None,
         pre_memory=None,
         pre_memory_mask=None,
+        memory_kv=None,
     ):
         """Compute decoded features.
 
@@ -91,6 +92,11 @@ class DecoderLayer(nn.Module):
                 Each tensor shape should be (#batch, maxlen_out - 1, size).
             pre_memory (torch.Tensor): Encoded memory (#batch, maxlen_in, size).
             pre_memory_mask (torch.Tensor): Encoded memory mask (#batch, maxlen_in).
+            memory_kv (tuple[torch.Tensor, torch.Tensor]): Key and value
+                projections of ``memory`` computed earlier by
+                ``self.src_attn.project_kv``. When given, ``memory`` itself is
+                not read by the source attention; see
+                :meth:`MultiHeadedAttention.forward`.
 
         Returns:
             torch.Tensor: Output tensor(#batch, maxlen_out, size).
@@ -154,13 +160,19 @@ class DecoderLayer(nn.Module):
         residual = x
         if self.normalize_before:
             x = self.norm2(x)
+        # only passed on when set, so that a `src_attn` module without the
+        # argument keeps working
+        src_kwargs = {} if memory_kv is None else {"kv": memory_kv}
         if self.concat_after:
             x_concat = torch.cat(
-                (x, self.src_attn(x, memory, memory, memory_mask)), dim=-1
+                (x, self.src_attn(x, memory, memory, memory_mask, **src_kwargs)),
+                dim=-1,
             )
             x = residual + self.concat_linear2(x_concat)
         else:
-            x = residual + self.dropout(self.src_attn(x, memory, memory, memory_mask))
+            x = residual + self.dropout(
+                self.src_attn(x, memory, memory, memory_mask, **src_kwargs)
+            )
         if not self.normalize_before:
             x = self.norm2(x)
 

@@ -482,6 +482,7 @@ class BatchBeamSearch(BeamSearch):
         hs = None
         for k, d in self.full_scorers.items():
             kwargs = dict()
+            xs = x
             if "decoder" in k:
                 if xs_mask is not None and self._xs_mask_capable(k):
                     kwargs["xs_mask"] = xs_mask
@@ -489,22 +490,42 @@ class BatchBeamSearch(BeamSearch):
                         kwargs["pre_xs_mask"] = pre_xs_mask
                 if self.return_hs:
                     kwargs["return_hs"] = True
+                if getattr(d, "accepts_shared_memory", False):
+                    # one encoder row per utterance instead of per hypothesis;
+                    # the decoder projects it once and attends over the beam
+                    xs = self._shared_memory(x, hyp)
             if "decoder" in k and self.return_hs:
                 (scores[k], hs), states[k] = d.batch_score(
-                    hyp.yseq, hyp.states[k], x, **kwargs
+                    hyp.yseq, hyp.states[k], xs, **kwargs
                 )
             elif "decoder" in k and pre_x is not None:
                 scores[k], states[k] = d.batch_score(
-                    hyp.yseq, hyp.states[k], x, pre_x, **kwargs
+                    hyp.yseq, hyp.states[k], xs, pre_x, **kwargs
                 )
             else:
                 scores[k], states[k] = d.batch_score(
-                    hyp.yseq, hyp.states[k], x, **kwargs
+                    hyp.yseq, hyp.states[k], xs, **kwargs
                 )
 
         if self.return_hs:
             return hs, scores, states
         return scores, states
+
+    @staticmethod
+    def _shared_memory(x: torch.Tensor, hyp: BatchHypothesis) -> torch.Tensor:
+        """Return one encoder row per utterance, if the layout allows it.
+
+        `x` is `(N, T, D)` with one row per hypothesis, laid out utterance-major
+        with `H = N // n_utt` rows per utterance that are all copies of the same
+        encoder output. Row `b * H` of it is utterance `b`, so a strided view
+        `(n_utt, T, D)` needs no copy. This is what a scorer with
+        `accepts_shared_memory` wants; see `BaseTransformerDecoder.batch_score`.
+        Anything not in that layout is handed back unchanged.
+        """
+        n_utt, n_hyp = hyp.n_utt, len(hyp)
+        if x.dim() != 3 or x.size(0) != n_hyp or n_hyp % n_utt != 0:
+            return x
+        return x.view(n_utt, n_hyp // n_utt, *x.shape[1:])[:, 0]
 
     def score_partial(
         self,

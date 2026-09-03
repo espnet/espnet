@@ -308,3 +308,42 @@ def test_a_batch_of_one_matches_the_unbatched_call(pad):
 
     assert len(actual) == 1
     _assert_same_nbest(expected, actual[0], nbest=len(expected), rtol=0)
+
+
+def test_decoder_receives_one_encoder_row_per_utterance():
+    """The beam search hands a shared-memory decoder `(n_utt, T, D)`, not
+    `(n_utt * beam, T, D)`, so the encoder output is never replicated for it.
+
+    The other scorers keep the replicated layout, and the transcripts are the
+    same either way (the parity tests above cover that); this pins the layout.
+    """
+    encs, common, dtype, device = _build(
+        transformer_args, 0.5, 0.5, 0.1, "cpu", torch.float64
+    )
+    decoder = common["scorers"]["decoder"]
+    assert decoder.accepts_shared_memory
+    seen_decoder, seen_lm = [], []
+    orig_dec, orig_lm = decoder.batch_score, common["scorers"]["lm"].batch_score
+
+    def spy_decoder(ys, states, xs, *args, **kwargs):
+        seen_decoder.append((ys.size(0), xs.size(0)))
+        return orig_dec(ys, states, xs, *args, **kwargs)
+
+    def spy_lm(ys, states, xs, *args, **kwargs):
+        seen_lm.append((ys.size(0), xs.size(0)))
+        return orig_lm(ys, states, xs, *args, **kwargs)
+
+    decoder.batch_score = spy_decoder
+    common["scorers"]["lm"].batch_score = spy_lm
+    try:
+        search = BatchBeamSearch(beam_size=3, **common)
+        search.eval()
+        x, x_lengths = _pad(encs[:2], device, dtype)
+        with torch.no_grad():
+            search(x=x, x_lengths=x_lengths, maxlenratio=0.0, minlenratio=0.0)
+    finally:
+        decoder.batch_score = orig_dec
+        common["scorers"]["lm"].batch_score = orig_lm
+
+    assert seen_decoder and all(n_hyp == 6 and n_x == 2 for n_hyp, n_x in seen_decoder)
+    assert all(n_hyp == 6 and n_x == 6 for n_hyp, n_x in seen_lm)

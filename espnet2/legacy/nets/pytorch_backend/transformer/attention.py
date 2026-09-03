@@ -118,6 +118,115 @@ class MultiHeadedAttention(nn.Module):
 
         return q, k, v
 
+    def project_kv(self, key, value):
+        """Transform key and value only, for reuse across decoding steps.
+
+        The result is exactly the ``(k, v)`` that :meth:`forward_qkv` would
+        return for the same ``key`` and ``value``, so a caller that attends to
+        a memory that does not change from one step to the next (the encoder
+        output during autoregressive decoding) can compute it once and hand it
+        back through ``forward(..., kv=(k, v))``.
+
+        Args:
+            key (torch.Tensor): Key tensor (#batch, time2, size).
+            value (torch.Tensor): Value tensor (#batch, time2, size).
+
+        Returns:
+            torch.Tensor: Transformed key tensor (#batch, n_head, time2, d_k).
+            torch.Tensor: Transformed value tensor (#batch, n_head, time2, d_k).
+
+        """
+        n_batch = key.size(0)
+        k = self.linear_k(key).view(n_batch, -1, self.h, self.d_k).transpose(1, 2)
+        v = self.linear_v(value).view(n_batch, -1, self.h, self.d_k).transpose(1, 2)
+        return self.k_norm(k), v
+
+    def _forward_with_kv(self, query, kv, mask):
+        """Attend with key/value projections computed earlier by `project_kv`.
+
+        ``kv`` may hold one row per query, or one row per *group* of
+        consecutive queries: query row ``b * n_rep + i`` then attends to kv
+        row ``b``. That is the layout of an utterance-major beam search, where
+        the ``n_rep`` hypotheses of an utterance all attend to the same
+        encoder output. The grouped case folds the ``n_rep`` queries of a group
+        into the query-time axis, so the projections are never replicated.
+
+        Args:
+            query (torch.Tensor): Query tensor (#batch, time1, size).
+            kv (tuple[torch.Tensor, torch.Tensor]): Projected key and value,
+                each (#batch or #batch / n_rep, n_head, time2, d_k).
+            mask (torch.Tensor): Mask tensor (#batch, 1, time2), or
+                (#batch, time1, time2), or None. In the grouped case a
+                per-position mask cannot be folded, so the projections are
+                expanded over the group instead.
+
+        Returns:
+            torch.Tensor: Output tensor (#batch, time1, d_model).
+
+        """
+        k, v = kv
+        n_batch, time1 = query.size(0), query.size(1)
+        n_kv = k.size(0)
+        q = self.linear_q(query).view(n_batch, time1, self.h, self.d_k)
+        q = self.q_norm(q.transpose(1, 2))  # (batch, head, time1, d_k)
+
+        n_rep = 1
+        if n_kv != n_batch:
+            if n_kv == 0 or n_batch % n_kv != 0:
+                raise ValueError(
+                    f"{n_batch} queries cannot share {n_kv} key/value rows"
+                )
+            n_rep = n_batch // n_kv
+            per_position = mask is not None and mask.size(1) != 1
+            if per_position:
+                # fall back to one kv row per query
+                k = (
+                    k.unsqueeze(1)
+                    .expand(n_kv, n_rep, *k.shape[1:])
+                    .reshape(n_batch, *k.shape[1:])
+                )
+                v = (
+                    v.unsqueeze(1)
+                    .expand(n_kv, n_rep, *v.shape[1:])
+                    .reshape(n_batch, *v.shape[1:])
+                )
+                n_rep = 1
+            else:
+                # (batch, head, time1, d_k) -> (group, head, n_rep * time1, d_k)
+                q = (
+                    q.view(n_kv, n_rep, self.h, time1, self.d_k)
+                    .transpose(1, 2)
+                    .reshape(n_kv, self.h, n_rep * time1, self.d_k)
+                )
+                if mask is not None and mask.size(0) == n_batch:
+                    # every query of a group shares the mask of that group
+                    mask = mask.view(n_kv, n_rep, 1, mask.size(-1))[:, 0]
+
+        if getattr(self, "use_sdpa", False):
+            out = torch.nn.functional.scaled_dot_product_attention(
+                q,
+                k,
+                v,
+                mask.unsqueeze(1) if mask is not None else None,
+                dropout_p=self.dropout_rate if self.training else 0.0,
+            )  # (group, head, n_rep * time1, d_k)
+            out = out.transpose(1, 2)
+            out = self.linear_out(out.reshape(out.shape[0], out.shape[1], -1))
+        else:
+            scores = torch.matmul(q, k.transpose(-2, -1)) / math.sqrt(self.d_k)
+            out = self.forward_attention(v, scores, mask)
+            if n_rep > 1:
+                # keep `self.attn` in its usual (batch, head, time1, time2) layout
+                time2 = self.attn.size(-1)
+                self.attn = (
+                    self.attn.view(n_kv, self.h, n_rep, time1, time2)
+                    .transpose(1, 2)
+                    .reshape(n_batch, self.h, time1, time2)
+                )
+        # (group, n_rep * time1, d_model) -> (batch, time1, d_model): row
+        # b * n_rep + i of the batch is group b, repeat i, in this order
+        return out.reshape(n_batch, time1, -1)
+
     def forward_attention(self, value, scores, mask):
         """Compute attention context vector.
 
@@ -150,7 +259,7 @@ class MultiHeadedAttention(nn.Module):
 
         return self.linear_out(x)  # (batch, time1, d_model)
 
-    def forward(self, query, key, value, mask, expand_kv=False):
+    def forward(self, query, key, value, mask, expand_kv=False, kv=None):
         """Compute scaled dot product attention.
 
         Args:
@@ -165,10 +274,20 @@ class MultiHeadedAttention(nn.Module):
                 when the batch size is #beam_size x #mask_count, which can be large.
                 Typically, in single waveform inference of PAR, `Linear` layers
                 should not be computed for all batches for source-attention.
+            kv (tuple[torch.Tensor, torch.Tensor]): Key and value already
+                projected by :meth:`project_kv`. When given, ``key`` and
+                ``value`` are not read at all. The projections may have one row
+                per query or one row per group of consecutive queries; see
+                :meth:`_forward_with_kv`. Used by the transformer decoder to
+                project the encoder output once per utterance instead of once
+                per decoding step and hypothesis.
 
         Returns:
             torch.Tensor: Output tensor (#batch, time1, d_model).
         """
+        if kv is not None:
+            return self._forward_with_kv(query, kv, mask)
+
         # Use PyTorch's Scaled Dot Product Attention implementation
         if getattr(self, "use_sdpa", False):
             q, k, v = self.forward_qkv(query, key, value, expand_kv)

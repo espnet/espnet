@@ -207,7 +207,9 @@ def test_scorers_are_called_once_per_step_over_the_whole_grid():
     grid = n_utt * beam
     assert len(seen["decoder"]) == steps, seen["decoder"]
     assert {t for t, _ in seen["decoder"]} == {grid}, seen["decoder"]
-    assert {m for _, m in seen["decoder"]} == {grid}, seen["decoder"]
+    # the decoder attends over the beam itself, so it is handed one encoder
+    # row per utterance rather than one per hypothesis
+    assert {m for _, m in seen["decoder"]} == {n_utt}, seen["decoder"]
 
     assert len(seen["ctc"]) == steps, seen["ctc"]
     # `CTCPrefixScoreTH` scores the whole grid at once and recovers the
