@@ -1,6 +1,5 @@
 import pytest
 import torch
-from packaging.version import parse as V
 
 from espnet2.enh.decoder.conv_decoder import ConvDecoder
 from espnet2.enh.decoder.null_decoder import NullDecoder
@@ -29,10 +28,6 @@ from espnet2.enh.separator.tfgridnetv2_separator import TFGridNetV2
 from espnet2.enh.separator.tfgridnetv3_separator import TFGridNetV3
 from espnet2.enh.separator.transformer_separator import TransformerSeparator
 from espnet2.enh.separator.uses_separator import USESSeparator
-
-is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
-is_torch_1_12_1_plus = V(torch.__version__) >= V("1.12.1")
-
 
 stft_encoder = STFTEncoder(n_fft=32, hop_length=16)
 
@@ -638,10 +633,7 @@ def test_forward_with_beamformer_net(
     if not loss_type.startswith("mask") and mask_type != "IBM":
         # `mask_type` has no effect when `loss_type` is not "mask..."
         return
-    if not is_torch_1_9_plus and use_builtin_complex:
-        # builtin complex support is only well supported in PyTorch 1.9+
-        pytest.skip("builtin complex requires torch>=1.9")
-    if is_torch_1_12_1_plus and not use_builtin_complex:
+    if not use_builtin_complex:
         # non-builtin complex support is deprecated in PyTorch 1.12.1+
         pytest.skip("non-builtin complex is deprecated on torch>=1.12.1")
 
@@ -674,7 +666,7 @@ def test_forward_with_beamformer_net(
         ref_channel=0,
         use_noise_mask=False,
         beamformer_type="mvdr_souden",
-        use_torchaudio_api=is_torch_1_12_1_plus,
+        use_torchaudio_api=True,
     )
     enh_model = ESPnetEnhancementModel(
         encoder=encoder,
