@@ -6,7 +6,6 @@ from typing import Dict, List, Optional, OrderedDict, Tuple
 import numpy as np
 import torch
 import torchaudio
-from packaging.version import parse as V
 from typeguard import typechecked
 
 from espnet2.diar.layers.abs_mask import AbsMask
@@ -22,8 +21,6 @@ from espnet2.enh.separator.tfgridnetv3_separator import TFGridNetV3
 from espnet2.enh.separator.uses_separator import USESSeparator
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
-
-is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
 
 EPS = torch.finfo(torch.get_default_dtype()).eps
 

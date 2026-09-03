@@ -5,28 +5,53 @@ import inspect
 import os
 import warnings
 from contextlib import contextmanager
-from typing import Any, Callable, Generator, Iterable, Optional
+from typing import Callable, Generator, Optional
 
 import torch
-from dask.distributed import (
-    Client,
-    LocalCluster,
-    SSHCluster,
-    WorkerPlugin,
-    as_completed,
-)
-from dask_jobqueue import (
-    HTCondorCluster,
-    LSFCluster,
-    MoabCluster,
-    OARCluster,
-    PBSCluster,
-    SGECluster,
-    SLURMCluster,
-)
-from omegaconf import DictConfig
-from tqdm import tqdm
+from omegaconf import DictConfig, OmegaConf
 from typeguard import typechecked
+
+try:
+    from dask.distributed import Client, LocalCluster, SSHCluster, WorkerPlugin
+    from dask_jobqueue import (
+        HTCondorCluster,
+        LSFCluster,
+        MoabCluster,
+        OARCluster,
+        PBSCluster,
+        SGECluster,
+        SLURMCluster,
+    )
+
+    _DASK_AVAILABLE = True
+except ImportError:
+    Client = None
+    LocalCluster = None
+    SSHCluster = None
+
+    class WorkerPlugin:
+        """Lightweight placeholder used when Dask is unavailable."""
+
+        def __init__(self, *args, **kwargs):
+            """Create a placeholder WorkerPlugin when Dask is missing."""
+            pass
+
+    class _MissingCluster:
+        def __init__(self, *args, **kwargs):
+            """Raise a helpful error when a Dask cluster type is unavailable."""
+            raise RuntimeError(
+                "Dask is required for espnet3.parallel; please install dask "
+                "and dask_jobqueue to enable parallel features."
+            )
+
+    HTCondorCluster = _MissingCluster
+    LSFCluster = _MissingCluster
+    MoabCluster = _MissingCluster
+    OARCluster = _MissingCluster
+    PBSCluster = _MissingCluster
+    SGECluster = _MissingCluster
+    SLURMCluster = _MissingCluster
+    _DASK_AVAILABLE = False
 
 try:
     from dask_cuda import LocalCUDACluster
@@ -47,7 +72,15 @@ CLUSTER_MAP = {
 }
 
 
-def make_local_gpu_cluster(n_workers: int, options: dict) -> Client:
+def _ensure_dask():
+    if not _DASK_AVAILABLE:
+        raise RuntimeError(
+            "Dask is not available. Install dask[distributed] and "
+            "dask_jobqueue to use espnet3.parallel."
+        )
+
+
+def build_local_gpu_cluster(n_workers: int, options: dict) -> Client:
     """Create a Dask LocalCUDACluster using available GPUs.
 
     This requires `dask_cuda` package.
@@ -59,8 +92,11 @@ def make_local_gpu_cluster(n_workers: int, options: dict) -> Client:
     Returns:
         Client: Dask client connected to the GPU cluster.
     """
+    _ensure_dask()
     if LocalCUDACluster is None:
-        raise RuntimeError("Please install dask_cuda.")
+        raise RuntimeError(
+            "Please install dask_cuda along with cuda-python and cuda-bindings."
+        )
 
     num_gpus = torch.cuda.device_count()
     if n_workers > num_gpus:
@@ -75,7 +111,7 @@ def make_local_gpu_cluster(n_workers: int, options: dict) -> Client:
 
 
 @typechecked
-def set_parallel(config: DictConfig) -> None:
+def set_parallel(config: Optional[DictConfig]) -> None:
     """Set the global Dask cluster using the provided configuration.
 
     Args:
@@ -87,6 +123,11 @@ def set_parallel(config: DictConfig) -> None:
         >>> set_parallel(config)
     """
     global parallel_config
+    if config is None:
+        if parallel_config is not None:
+            config = parallel_config
+        else:
+            config = OmegaConf.create({"env": "local", "n_workers": 1, "options": {}})
     options = dict(config.options) if hasattr(config, "options") else {}
     config.options = options
     parallel_config = copy.copy(config)
@@ -97,13 +138,14 @@ def get_parallel_config() -> Optional[DictConfig]:
     return parallel_config
 
 
-def _make_client(config: DictConfig = None) -> Client:
+def _build_client(config: DictConfig = None) -> Client:
     """Create a Dask client tied to the global singleton cluster."""
+    _ensure_dask()
     if config.env == "local":
         return Client(LocalCluster(n_workers=config.n_workers, **config.options))
 
     elif config.env == "local_gpu":
-        return make_local_gpu_cluster(config.n_workers, config.options)
+        return build_local_gpu_cluster(config.n_workers, config.options)
 
     elif config.env == "kube":
         try:
@@ -123,7 +165,7 @@ def _make_client(config: DictConfig = None) -> Client:
         raise ValueError(f"Unknown env: {config.env}")
 
 
-def make_client(config: DictConfig = None) -> Client:
+def build_client(config: DictConfig = None) -> Client:
     """Create or retrieve a Dask client using the provided or global configuration.
 
     Args:
@@ -134,14 +176,14 @@ def make_client(config: DictConfig = None) -> Client:
     """
     if config is not None:
         set_parallel(config)
-        return _make_client(config)
+        return _build_client(config)
 
     if parallel_config is None:
         raise ValueError(
             "Parallel configuration not set. Use `set_parallel` to set it."
         )
 
-    return _make_client(parallel_config)
+    return _build_client(parallel_config)
 
 
 class DictReturnWorkerPlugin(WorkerPlugin):
@@ -164,6 +206,23 @@ class DictReturnWorkerPlugin(WorkerPlugin):
 
         # Set worker id so that users can use it for identifing workers
         os.environ["DASK_WORKER_ID"] = str(worker.id)
+
+
+def _register_worker_plugin(client: Client, plugin: WorkerPlugin, name: str) -> None:
+    """Register a worker plugin across Dask client API versions."""
+    register_worker_plugin = getattr(client, "register_worker_plugin", None)
+    if callable(register_worker_plugin):
+        register_worker_plugin(plugin, name=name)
+        return
+
+    register_plugin = getattr(client, "register_plugin", None)
+    if callable(register_plugin):
+        register_plugin(plugin, name=name)
+        return
+
+    raise RuntimeError(
+        "This Dask client lacks worker plugin registration APIs; please upgrade."
+    )
 
 
 def wrap_func_with_worker_env(func: Callable) -> Callable:
@@ -210,7 +269,7 @@ def wrap_func_with_worker_env(func: Callable) -> Callable:
         >>> def add_bias(x, bias):
         ...     return x + bias
         ...
-        >>> with get_client(local_cfg, setup_fn=setup_fn) as client:
+        >>> with get_client(local_config, setup_fn=setup_fn) as client:
         ...     # 'bias' comes from worker env, no need to pass it explicitly
         ...     futs = client.map(add_bias, [1, 2])
         ...     print(client.gather(futs))
@@ -222,7 +281,7 @@ def wrap_func_with_worker_env(func: Callable) -> Callable:
     """
     sig = inspect.signature(func)
     param_names = set(sig.parameters.keys())
-    accepts_var_kw = any(
+    accepts_var_keyword = any(
         p.kind is inspect.Parameter.VAR_KEYWORD for p in sig.parameters.values()
     )
 
@@ -236,17 +295,20 @@ def wrap_func_with_worker_env(func: Callable) -> Callable:
             env = env.setup_fn()
             worker.plugins["env"] = env
 
-        kw_keys = set(kwargs.keys())
-        considered = kw_keys if accepts_var_kw else (param_names & kw_keys)
+        kwarg_keys = set(kwargs.keys())
+        considered = kwarg_keys if accepts_var_keyword else (param_names & kwarg_keys)
         conflict = set(env.keys()) & considered
         if conflict:
             raise ValueError(
                 f"Argument conflict: {conflict} passed via both kwargs and env"
             )
 
-        filtered_env = {
-            k: v for k, v in env.items() if (k in param_names) and (k not in kwargs)
-        }
+        if accepts_var_keyword:
+            filtered_env = {k: v for k, v in env.items() if k not in kwargs}
+        else:
+            filtered_env = {
+                k: v for k, v in env.items() if (k in param_names) and (k not in kwargs)
+            }
         return func(*args, **kwargs, **filtered_env)
 
     return wrapped
@@ -270,15 +332,10 @@ def get_client(
         >>> with get_client() as client:
         ...     results = client.map(lambda x: x**2, range(10))
     """
-    client = make_client(config)
+    client = build_client(config)
     if setup_fn is not None:
         plugin = DictReturnWorkerPlugin(setup_fn)
-        reg = getattr(client, "register_worker_plugin", None)
-        if reg is None:
-            raise RuntimeError(
-                "This Dask version lacks register_worker_plugin; please upgrade."
-            )
-        reg(plugin, name="env")
+        _register_worker_plugin(client, plugin, name="env")
     try:
         yield client
     finally:
@@ -296,192 +353,3 @@ def get_client(
                 shutdown = getattr(cluster, "shutdown", None)
                 if callable(shutdown):
                     shutdown()
-
-
-@contextmanager
-def _submit_tasks(
-    func: Callable[[Any], Any],
-    iterable: Iterable[Any],
-    client: Optional[Client] = None,
-    setup_fn: Optional[Callable[[], dict]] = None,
-    **kwargs: Any,
-):
-    """Submit job for parallel_map and parallel_for.
-
-    - Creates/reuses a client (and handles its lifecycle if internal).
-    - Registers the setup plugin (client- and worker-side).
-    - Performs client-side conflict checks.
-    - Wraps the function to inject worker env.
-    - Submits tasks and yields (client, futures).
-    """
-    internal = client is None
-    if internal:
-        ctx = get_client(setup_fn=setup_fn)
-        client_cm = ctx
-        client = ctx.__enter__()
-    elif setup_fn is not None:
-        plugin = DictReturnWorkerPlugin(setup_fn)
-        getattr(client, "register_worker_plugin")(plugin, name="env")
-
-    try:
-        wrapped_func = wrap_func_with_worker_env(func)
-        futures = client.map(wrapped_func, iterable, **kwargs)
-        yield client, futures
-    finally:
-        if internal:
-            client_cm.__exit__(None, None, None)
-
-
-@typechecked
-def parallel_map(
-    func: Callable[[Any], Any],
-    data: Iterable[Any],
-    client: Optional[Client] = None,
-    setup_fn: Optional[Callable[[], dict]] = None,
-    **kwargs: Any,
-) -> list:
-    """Apply a function to an iterable of inputs in parallel using Dask.
-
-    This helper takes care of:
-      - Creating (or reusing) a Dask client according to the global or
-        provided configuration.
-      - Optionally registering a per-worker environment via `setup_fn`,
-        making its returned dictionary available to `func` automatically.
-      - Detecting and preventing conflicts between explicit `kwargs` and
-        environment-provided arguments on the **client side** before
-        submitting tasks.
-      - Wrapping `func` with `wrap_func_with_worker_env` so that missing
-        keyword arguments can be injected from the worker environment.
-
-    Args:
-        func (Callable[[Any], Any]):
-            The function to execute on each element of `data`. May take
-            positional and/or keyword parameters.
-        data (Iterable[Any]):
-            Iterable of input elements to process.
-        client (Optional[Client], default=None):
-            An existing Dask client to use. If `None`, a temporary client
-            will be created using `get_client` and shut down afterwards.
-        setup_fn (Optional[Callable[[], dict]], default=None):
-            A function run once per worker that returns a dictionary of
-            environment variables. These variables are automatically
-            injected into `func` if they match parameter names and are not
-            explicitly provided.
-        **kwargs:
-            Additional keyword arguments to pass directly to `func` for all
-            elements.
-
-    Returns:
-        list:
-            The results of applying `func` to each element of `data`, in
-            order. The list has the same length as `data`.
-
-    Raises:
-        ValueError:
-            If any keyword argument name in `kwargs` is also present in the
-            worker environment keys (conflict detected before submission).
-
-    Example:
-        >>> def setup_fn():
-        ...     return {"bias": 10}
-        >>> def add_bias(x, bias):
-        ...     return x + bias
-        >>> # Automatic injection of 'bias' from worker environment:
-        >>> results = parallel_map(add_bias, [1, 2, 3], setup_fn=setup_fn)
-        >>> results
-        [11, 12, 13]
-    """
-    with _submit_tasks(func, data, client=client, setup_fn=setup_fn, **kwargs) as (
-        cli,
-        futures,
-    ):
-        try:
-            return list(tqdm(cli.gather(futures), total=len(futures)))
-        except Exception as e:
-            try:
-                cli.cancel(futures)
-            finally:
-                raise e
-
-
-def parallel_for(
-    func: Callable,
-    args: Iterable,
-    client: Optional[Client] = None,
-    setup_fn: Optional[Callable[[], dict]] = None,
-    **kwargs: Any,
-) -> Generator:
-    """Dispatch tasks to Dask and iterate over results as they complete.
-
-    This helper:
-      - Creates (or reuses) a Dask client based on the global/explicit config.
-      - Optionally registers a per-worker environment via `setup_fn` and makes
-        its returned dict available to `func` automatically.
-      - Performs a **client-side** conflict check so that keyword arguments
-        explicitly passed via `kwargs` don't collide with environment-provided
-        arguments (pre-submission).
-      - Wraps `func` with `wrap_func_with_worker_env` so any missing keyword
-        parameters can be injected from the worker environment.
-
-    Iteration order:
-        Results are yielded in **completion order** (using `as_completed`),
-        not in the original order of `args`.
-
-    Args:
-        func:
-            The function to run on each element of `args`. It may accept
-            positional and/or keyword parameters.
-        args:
-            Iterable of inputs to `func`.
-        client (optional):
-            Existing Dask `Client`. If `None`, a temporary client is created
-            via `get_client` and shut down automatically when iteration ends.
-        setup_fn (optional):
-            A callable executed once per worker that returns a `dict` of
-            environment variables. Keys that match parameter names of `func`
-            (or any keys if `func` accepts `**kwargs`) are auto-injected
-            unless explicitly provided in `kwargs`.
-        **kwargs:
-            Extra keyword arguments forwarded to every call of `func`.
-
-    Yields:
-        Each task's result as soon as it finishes.
-
-    Raises:
-        ValueError:
-            If at least one key in `kwargs` conflicts with keys provided by
-            the worker environment (pre-submit check).
-        Exception:
-            Any exception raised by `func` is re-raised at iteration time when
-            accessing `future.result()` for the failing task.
-
-    Notes:
-        - This generator will close the internally created client once
-          iteration finishes or the generator is exhausted.
-        - Worker-side injection and an additional conflict check are also
-          enforced by `wrap_func_with_worker_env`.
-
-    Example:
-        >>> def setup_fn():
-        ...     return {"bias": 3}
-        >>> def add_bias(x, bias):
-        ...     return x + bias
-        >>> # Stream results as tasks complete (completion order):
-        >>> for y in parallel_for(add_bias, [1, 2, 3], setup_fn=setup_fn):
-        ...     print(y)
-        4
-        5
-        6
-    """
-    with _submit_tasks(func, args, client=client, setup_fn=setup_fn, **kwargs) as (
-        _,
-        futures,
-    ):
-        try:
-            for future in as_completed(futures):
-                yield future.result()
-        except Exception as e:
-            try:
-                client.cancel(futures)
-            finally:
-                raise e

@@ -49,8 +49,9 @@ class Qwen2HFScorer(ScorerInterface):
             logits = out.logits[:, -1]
             past_kv = out.past_key_values
 
+            # Support both transformers V4 and V5
             past_len = (
-                past_kv[0][0].size(-2)
+                past_kv.layers[0].get_seq_length()
                 if past_kv is not None
                 else self.prefill_input_ids.size(1)
             )

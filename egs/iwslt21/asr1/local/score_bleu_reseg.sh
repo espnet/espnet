@@ -1,1 +1,0 @@
-../../../iwslt18/st1/local/score_bleu_reseg.sh

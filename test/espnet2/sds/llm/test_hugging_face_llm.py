@@ -6,10 +6,9 @@ from espnet2.sds.llm.hugging_face_llm import HuggingFaceLLM
 pytest.importorskip("transformers")
 
 
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="requires a GPU")
 @pytest.mark.parametrize("tag", ["HuggingFaceTB/SmolLM2-1.7B-Instruct"])
 def test_forward(tag):
-    if not torch.cuda.is_available():
-        return  # Only GPU supported
     llm = HuggingFaceLLM(tag=tag, access_token="")
     llm.warmup()
     x = [

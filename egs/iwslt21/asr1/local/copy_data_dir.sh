@@ -1,1 +1,0 @@
-../../../iwslt19/st1/local/copy_data_dir.sh

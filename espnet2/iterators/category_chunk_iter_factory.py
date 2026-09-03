@@ -159,9 +159,11 @@ class CategoryChunkIterFactory(AbsIterFactory):
 
                 # Get keys of sequence data
                 sequence_keys = []
+                actual_lengths = {}
                 for key in curr_batch:
                     if key + "_lengths" in curr_batch:
                         sequence_keys.append(key)
+                        actual_lengths[key] = curr_batch[key + "_lengths"].item()
                 # Remove lengths data and get the first sample
                 curr_batch = {
                     k: v for k, v in curr_batch.items() if not k.endswith("_lengths")
@@ -189,7 +191,8 @@ class CategoryChunkIterFactory(AbsIterFactory):
                 default_fs = fs if self.default_fs is None else self.default_fs
                 assert fs % default_fs == 0 or default_fs % fs == 0
 
-                L = len(curr_batch[sequence_keys[0]])
+                L = actual_lengths[sequence_keys[0]]
+
                 # Select chunk length
                 chunk_lengths = [lg * fs // default_fs for lg in self.chunk_lengths]
                 chunk_lengths = [
@@ -210,7 +213,8 @@ class CategoryChunkIterFactory(AbsIterFactory):
                     cache_chunks = cache_chunks_dict.setdefault(0, {})
                     Z, N, W, S = 0, 1, L, 0
                 else:
-                    W = int(state.choice(chunk_lengths, 1))
+                    # Keep the legacy sampling semantics and avoid ndarray->scalar cast.
+                    W = int(state.choice(chunk_lengths, size=1).item())
                     cache_id_list = cache_id_list_dict.setdefault(W, [])
                     cache_chunks = cache_chunks_dict.setdefault(W, {})
 

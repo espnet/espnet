@@ -838,13 +838,16 @@ class VISingerGenerator(torch.nn.Module):
                 wav = self.decoder((z * y_mask)[:, :, :max_len], g=g)
         else:
             # dur
-            predict_dur = self.duration_predictor(dur_input, x_mask, g=g)
-            predict_dur = (torch.exp(predict_dur) - 1) * x_mask
-            predict_dur = predict_dur * self.sample_rate / self.hop_length
+            if gt_dur is None:
+                predict_dur = self.duration_predictor(dur_input, x_mask, g=g)
+                predict_dur = (torch.exp(predict_dur) - 1) * x_mask
+                predict_dur = predict_dur * self.sample_rate / self.hop_length
 
-            predict_dur = torch.max(predict_dur, torch.ones_like(predict_dur).to(x))
-            predict_dur = torch.ceil(predict_dur).long()
-            predict_dur = predict_dur[:, 0, :]
+                predict_dur = torch.max(predict_dur, torch.ones_like(predict_dur).to(x))
+                predict_dur = torch.ceil(predict_dur).long()
+                predict_dur = predict_dur[:, 0, :]
+            else:
+                predict_dur = gt_dur
             y_lengths = torch.clamp_min(torch.sum(predict_dur, [1]), 1).long()
 
             # LR

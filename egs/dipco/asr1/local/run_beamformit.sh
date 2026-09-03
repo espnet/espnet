@@ -1,1 +1,0 @@
-../../../chime5/asr1/local/run_beamformit.sh

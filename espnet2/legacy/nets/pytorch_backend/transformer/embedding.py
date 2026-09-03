@@ -10,7 +10,6 @@ import logging
 import math
 
 import torch
-from packaging.version import parse as V
 
 from espnet2.asr.frontend.cnn import dim_1_layer_norm
 
@@ -441,17 +440,9 @@ class ConvolutionalPositionalEmbedding(torch.nn.Module):
                 # with copy.deepcopy(). Usually isnt needed,
                 # but its important for models that use EMA
                 if weight_norm == "new":
-                    if V(torch.__version__) >= V("2.2.0"):
-                        conv = torch.nn.utils.parametrizations.weight_norm(
-                            conv, name="weight", dim=2
-                        )
-                    else:
-                        weight_norm = "legacy"
-                        logging.warning(
-                            "torch.nn.utils.parametrizations.weight_norm is only "
-                            + "supported for pytorch versions >= 2.2.0. "
-                            + "Defaulting to torch.nn.utils.weight_norm."
-                        )
+                    conv = torch.nn.utils.parametrizations.weight_norm(
+                        conv, name="weight", dim=2
+                    )
                 if weight_norm == "legacy":
                     conv = torch.nn.utils.weight_norm(conv, name="weight", dim=2)
             convs.append(conv)

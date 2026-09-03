@@ -77,12 +77,12 @@ See also:
 ### 7. Codec Scoring
 
 Codec model scoring stage.
-The scoring is supported by [VERSA](https://github.com/shinjiwlab/versa).
+The scoring is supported by [VERSA](https://github.com/wavlab-speech/versa).
 You can change the scoring setting via `--scoring_config` and `--scoring_args`.
 
 See also:
 - [Change the configuration for training](https://espnet.github.io/espnet/espnet2_training_option.html)
-- [VERSA documents](https://github.com/shinjiwlab/versa)
+- [VERSA documents](https://github.com/wavlab-speech/versa)
 
 ### 8. (Optional) Pack results for upload
 

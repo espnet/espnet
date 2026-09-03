@@ -1,1 +1,0 @@
-../../asr1/local/find_transcripts_singledot.pl

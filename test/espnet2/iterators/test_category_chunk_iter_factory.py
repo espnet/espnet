@@ -76,3 +76,32 @@ def test_CategoryChunkIterFactory_partial_chunking():
                 assert v.shape in ((2, 2), (2, 4))
             else:
                 assert v.shape == (2, 3)
+
+
+class LongShortDataset:
+    def __init__(self):
+        self.data = {
+            "long": np.ones(10, dtype=np.float32),
+            "short": np.ones(3, dtype=np.float32),
+        }
+
+    def __getitem__(self, item):
+        return item, {"speech": self.data[item]}
+
+
+def test_CategoryChunkIterFactory_uses_actual_lengths():
+    dataset = LongShortDataset()
+    collatefn = CommonCollateFn()
+    batches = [["long", "short"]]
+    iter_factory = CategoryChunkIterFactory(
+        dataset=dataset,
+        batches=batches,
+        batch_size=2,
+        chunk_length=2,
+        collate_fn=collatefn,
+    )
+
+    for _, batch in iter_factory.build_iter(0):
+        speech = batch["speech"]
+        assert speech.ndim == 2
+        assert not (speech == 0).all(dim=1).any()

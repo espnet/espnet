@@ -69,7 +69,7 @@ class MelSpectrogramTorch(AbsFrontend):
         ), "The number of dimensions of input tensor must be 2!"
 
         with torch.no_grad():
-            with torch.cuda.amp.autocast(enabled=False):
+            with torch.amp.autocast("cuda", enabled=False):
                 if self.preemp:
                     # reflect padding to match lengths of in/out
                     x = input.unsqueeze(1)

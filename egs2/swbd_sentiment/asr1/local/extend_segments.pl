@@ -1,1 +1,1 @@
-../../../../egs/swbd/asr1/local/extend_segments.pl
+../../../swbd/asr1/local/extend_segments.pl

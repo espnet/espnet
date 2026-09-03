@@ -1,6 +1,7 @@
 # Copyright Lightning AI. Licensed under the Apache License 2.0, see LICENSE file.
 
 """Utility functions for training and inference."""
+
 import inspect
 import math
 import os
@@ -184,7 +185,7 @@ class SavingProxyForTensor:
         self.reduce_ret_fn, reduce_args = tensor.__reduce_ex__(protocol_version)
         if reduce_args[0] == torch._utils._rebuild_tensor_v2:
             # for Tensors with Python attributes
-            (a0, a1, (storage, *a2_other), *other_reduce_args) = reduce_args
+            a0, a1, (storage, *a2_other), *other_reduce_args = reduce_args
             assert isinstance(
                 storage, torch.storage.TypedStorage
             ), "Please check for updates"
@@ -193,7 +194,7 @@ class SavingProxyForTensor:
             )
             self.reduce_args = (a0, a1, (storage_proxy, *a2_other), *other_reduce_args)
         else:
-            (storage, *other_reduce_args) = reduce_args
+            storage, *other_reduce_args = reduce_args
             assert isinstance(
                 storage, torch.storage.TypedStorage
             ), "Please check for updates"

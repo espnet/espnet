@@ -78,7 +78,14 @@ class CTCPrefixScoreTH(object):
         :return new_state, ctc_local_scores (BW, O)
         """
         output_length = len(y[0]) - 1  # ignore sos
-        last_ids = [yi[-1] for yi in y]  # last output label ids
+        # NOTE: kept as one tensor rather than a list of scalars. Every
+        # element read out of it would be a device-to-host synchronisation,
+        # and there is one per hypothesis per decoding step.
+        last_ids = (
+            y[:, -1]
+            if torch.is_tensor(y)
+            else torch.as_tensor([yi[-1] for yi in y], device=self.device)
+        )  # (n_bh,), last output label ids
         n_bh = len(last_ids)  # batch * hyps
         n_hyps = n_bh // self.batch  # assuming each utterance has the same # of hyps
         self.scoring_num = scoring_ids.size(-1) if scoring_ids is not None else 0
@@ -134,14 +141,16 @@ class CTCPrefixScoreTH(object):
 
         r_sum = torch.logsumexp(r_prev, 1)
         log_phi = r_sum.unsqueeze(2).repeat(1, 1, snum)
+        if self.idx_bh is None or n_bh > len(self.idx_bh):
+            self.idx_bh = torch.arange(n_bh, device=self.device).view(-1, 1)
+        idx_n = self.idx_bh[:n_bh, 0]  # (n_bh,)
         if scoring_ids is not None:
-            for idx in range(n_bh):
-                pos = scoring_idmap[idx, last_ids[idx]]
-                if pos >= 0:
-                    log_phi[:, idx, pos] = r_prev[:, 1, idx]
+            # only the hypotheses whose last label survived the pre-beam
+            pos = scoring_idmap[idx_n, last_ids]  # (n_bh,)
+            keep = pos >= 0
+            log_phi[:, idx_n[keep], pos[keep]] = r_prev[:, 1, idx_n[keep]]
         else:
-            for idx in range(n_bh):
-                log_phi[:, idx, last_ids[idx]] = r_prev[:, 1, idx]
+            log_phi[:, idx_n, last_ids] = r_prev[:, 1, :]
 
         # decide start and end frames based on attention weights
         if att_w is not None and self.margin > 0:
@@ -173,16 +182,15 @@ class CTCPrefixScoreTH(object):
                 torch.cat((log_phi_x[start:end], r[start - 1, 0].unsqueeze(0)), dim=0),
                 dim=0,
             )
-            for si in range(n_bh):
-                log_psi[si, scoring_ids[si]] = log_psi_[si]
+            log_psi.scatter_(1, scoring_ids, log_psi_)
         else:
             log_psi = torch.logsumexp(
                 torch.cat((log_phi_x[start:end], r[start - 1, 0].unsqueeze(0)), dim=0),
                 dim=0,
             )
 
-        for si in range(n_bh):
-            log_psi[si, self.eos] = r_sum[self.end_frames[si // n_hyps], si]
+        # the end frame of the utterance each hypothesis belongs to
+        log_psi[:, self.eos] = r_sum[self.end_frames.repeat_interleave(n_hyps), idx_n]
 
         if self.eos != self.blank:
             # exclude blank probs

@@ -358,7 +358,7 @@ def main():
         # 4. Evaluates
         for evaltype in args.evaltypes:
             if evaltype == "SDR":
-                (sdr, isr, sir, sar, perm) = museval.metrics.bss_eval(
+                sdr, isr, sir, sar, perm = museval.metrics.bss_eval(
                     ref_signals,
                     enh_signals,
                     window=np.inf,

@@ -1,1 +1,0 @@
-../../../iwslt18/st1/local/data_prep_eval.sh

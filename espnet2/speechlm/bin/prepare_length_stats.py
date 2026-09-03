@@ -89,21 +89,33 @@ def worker(
 ):
     """Worker function to collect length statistics for a data shard."""
     # Create iterator with appropriate specifier
-    iterator = DataIteratorFactory(
-        unregistered_specifier=unregistered_spec,
-        registered_specifier=registered_spec,
-        rank=rank,
-        world_size=world_size,
-        shuffle=False,
-        sequential_load=True,
-        num_workers=0,
-        collate_fn=lambda x: x[0],
-    ).get_iterator()
+    try:
+        iterator = DataIteratorFactory(
+            unregistered_specifier=unregistered_spec,
+            registered_specifier=registered_spec,
+            rank=rank,
+            world_size=world_size,
+            shuffle=False,
+            sequential_load=True,
+            num_workers=0,
+            collate_fn=lambda x: x[0],
+        ).build_iter()
+    except ValueError as e:
+        logging.getLogger(__name__).warning(
+            f"Worker {rank}: Error building iterator, skipping shard: {e}"
+        )
+        return {}
 
     # Collect statistics for this shard
     stats = {}
     for key, data_dict in iterator:
+        key = tuple(key)
         stats[key] = preprocessor.find_length(key, data_dict)
+
+        if len(stats) % 1000 == 0:
+            logging.getLogger(__name__).info(
+                f"Worker {rank}: Processed {len(stats)} entries"
+            )
 
     return stats
 
@@ -186,7 +198,7 @@ def main():
     with open(args.train_config) as f:
         config = yaml.safe_load(f)
 
-    job_template = _all_job_types[config["job_type"]](config)
+    job_template = _all_job_types[config["job_type"]](config, is_train=True)
     preprocessor = job_template.build_preprocessor()
 
     # Collect all specifiers to process

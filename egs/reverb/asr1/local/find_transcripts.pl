@@ -1,1 +1,0 @@
-../../../wsj/asr1/local/find_transcripts.pl

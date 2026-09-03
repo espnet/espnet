@@ -1,6 +1,0 @@
-# decoding parameters
-batch: 0
-beam-size: 10
-score-norm-transducer: True
-lm-weight: 0.3
-nbest: 1

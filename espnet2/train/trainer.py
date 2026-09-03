@@ -4,7 +4,6 @@ import argparse
 import dataclasses
 import logging
 import time
-from contextlib import contextmanager
 from dataclasses import is_dataclass
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Sequence, Tuple, Union
@@ -14,7 +13,12 @@ import numpy as np
 import torch
 import torch.nn
 import torch.optim
-from packaging.version import parse as V
+from torch.amp import autocast
+
+try:
+    from torch.amp import GradScaler
+except ImportError:
+    from torch.cuda.amp import GradScaler
 from typeguard import typechecked
 
 from espnet2.iterators.abs_iter_factory import AbsIterFactory
@@ -29,6 +33,7 @@ from espnet2.schedulers.abs_scheduler import (
 from espnet2.torch_utils.add_gradient_noise import add_gradient_noise
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.recursive_op import recursive_average
+from espnet2.torch_utils.safe_torch_load import safe_torch_load
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.train.distributed_utils import DistributedOption
@@ -40,22 +45,9 @@ if torch.distributed.is_available():
     from torch.distributed import ReduceOp
 
 autocast_args = dict()
-if V(torch.__version__) >= V("1.6.0"):
-    from torch.cuda.amp import GradScaler, autocast
 
-    if (
-        V(torch.__version__) >= V("1.10.0")
-        and torch.cuda.is_available()
-        and torch.cuda.is_bf16_supported()
-    ):
-        autocast_args = dict(dtype=torch.bfloat16)
-else:
-    # Nothing to do if torch<1.6.0
-    @contextmanager
-    def autocast(enabled=True):
-        yield
-
-    GradScaler = None
+if torch.cuda.is_available() and torch.cuda.is_bf16_supported():
+    autocast_args = dict(dtype=torch.bfloat16)
 
 try:
     import fairscale
@@ -156,10 +148,9 @@ class Trainer:
         ngpu: int = 0,
         strict: bool = True,
     ):
-        states = torch.load(
+        states = safe_torch_load(
             checkpoint,
             map_location=f"cuda:{torch.cuda.current_device()}" if ngpu > 0 else "cpu",
-            weights_only=False,
         )
         model.load_state_dict(states["model"], strict=strict)
         reporter.load_state_dict(states["reporter"])
@@ -205,10 +196,6 @@ class Trainer:
         output_dir = Path(trainer_options.output_dir)
         reporter = Reporter()
         if trainer_options.use_amp:
-            if V(torch.__version__) < V("1.6.0"):
-                raise RuntimeError(
-                    "Require torch>=1.6.0 for  Automatic Mixed Precision"
-                )
             if trainer_options.sharded_ddp:
                 if fairscale is None:
                     raise RuntimeError(
@@ -636,7 +623,8 @@ class Trainer:
                 del _model
 
             with autocast(
-                scaler is not None,
+                "cuda",
+                enabled=scaler is not None,
                 **autocast_args,
             ):
                 with reporter.measure_time("forward_time"):
@@ -854,7 +842,8 @@ class Trainer:
                 continue
 
             with autocast(
-                options.use_amp,
+                "cuda",
+                enabled=options.use_amp,
                 **autocast_args,
             ):
                 retval = model(**batch)

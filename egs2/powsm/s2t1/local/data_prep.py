@@ -26,20 +26,13 @@ def get_parser():
     parser = argparse.ArgumentParser(
         description="Convert downloaded data to Kaldi format"
     )
-    parser.add_argument(
-        "--source_dir", type=Path, default=Path("downloads"), required=True
-    )
-    parser.add_argument("--target_dir", type=Path, default=Path("data"), required=True)
-    parser.add_argument(
-        "--min_wav_length",
-        type=float,
-        default=0.5,
-    )
+    parser.add_argument("--source_dir", type=Path, default=Path("downloads"))
+    parser.add_argument("--target_dir", type=Path, default=Path("data"))
     return parser
 
 
-def get_split(source_dir, dataset, orig_split):
-    # use the splits Jian already created
+def get_split(dataset, orig_split):
+    # use the splits from IPAPack++
     if dataset == "doreco":
         # all of DoReCo is a test set
         return "test_doreco"
@@ -53,15 +46,15 @@ def get_split(source_dir, dataset, orig_split):
         return "train"
 
 
-def generate_train_dev_test_splits(source_dir, dataset_shards):
-    # the subdirectories of shard_name are the original splits from Jian
+def generate_train_dev_test_splits(dataset_shards):
+    # the subdirectories of shard_name are the original splits from IPAPack++
     splits = defaultdict(list)  # split -> dataset name
     for shard in dataset_shards:
         shard_name = shard.stem
         dataset = shard_name.replace("_shar", "")
         for orig_split in shard.iterdir():
             orig_split_name = orig_split.stem
-            split = get_split(source_dir, dataset, orig_split_name)
+            split = get_split(dataset, orig_split_name)
             splits[split].append((dataset, orig_split_name))
 
     return splits
@@ -71,7 +64,7 @@ def get_utt_id(dataset, split, count):
     return f"aaaaa_{dataset}_{split}_{count:025d}"
 
 
-def generate_df(source_dir, data_dir):
+def generate_df(source_dir, target_dir):
     # get list of datasets in IPAPack++
     dataset_shards = list(source_dir.glob("*_shar"))
     # ex: downloads/aishell_shar -> aishell_shar
@@ -84,8 +77,8 @@ def generate_df(source_dir, data_dir):
     rows, utt_count = [], 1
 
     logging.info("Starting to process dataset")
-    data_dir.mkdir(parents=True, exist_ok=True)
-    splits = generate_train_dev_test_splits(source_dir, dataset_shards)
+    target_dir.mkdir(parents=True, exist_ok=True)
+    splits = generate_train_dev_test_splits(dataset_shards)
 
     for split, split_datasets in splits.items():
         for i, (dataset, orig_split_name) in tqdm(enumerate(split_datasets)):
@@ -306,7 +299,7 @@ def clean_english(tokenised):
         prevp = tokenised[i - 1] if i > 0 else None
         nextp = tokenised[i + 1] if i < len(tokenised) - 1 else None
         # 1. word-initial voiceless plosives (p, t, k) are aspirated
-        if phone in {"p", "t", "k"} and prevp == " ":
+        if phone in {"p", "t", "k"} and prevp == " " and nextp not in {"s", "ʃ"}:
             tokenised[i] = phone + "ʰ"
         # 2. word-initial voiced plosives (b, d, ɡ) are voiceless
         elif phone in target_vplosives_map and prevp == " ":
@@ -339,24 +332,26 @@ def panphon_normalize(seq, lang, with_supraseg=True):
 
 
 def text_normalization(orthography):
-    # most of the text normalization seems to have done
-    #   in the creation of IPAPack++
-    # we just need to remove punctuation and symbols
-    return re.sub(r"\p{P}|\p{S}", "", str(orthography))
+    # lowercasing and removing punctuation/symbols
+    # but keep apostrophes and hyphens after normalization
+    orthography = unicodedata.normalize("NFKC", str(orthography))
+    orthography = orthography.lower().replace("’", "'")
+    pattern = rf"[^\w\s\-']"
+    return re.sub(pattern, "", orthography)
 
 
-def df_to_kaldi(df, source_dir, data_dir):
+def df_to_kaldi(df, target_dir):
     # kaldi format
     for split, split_df in tqdm(df.groupby("split")):
         logging.info(f"processing {split}")
-        split_dir = data_dir / split
+        split_dir = target_dir / split
         split_dir.mkdir(parents=True, exist_ok=True)
-        write_dir(source_dir, split_dir, split_df)
+        write_dir(split_dir, split_df)
 
 
 # adapted from https://github.com/juice500ml/espnet/blob/wav2gloss/egs2/
 #       wav2gloss/asr1/local/data_prep.py
-def write_dir(source_dir, target_dir, transcripts):
+def write_dir(target_dir, transcripts):
     # note: The "text" file is used to store phonemes,
     #       while the orthography is stored in "orthography."
     #       What might be confusing is that the "text" column in the df
@@ -365,55 +360,43 @@ def write_dir(source_dir, target_dir, transcripts):
         not_train_val = True
     else:
         not_train_val = False
-    wavscp = open(target_dir / "wav.scp", "w", encoding="utf-8")
-    if not_train_val:
-        # use unnormalized IPA for test sets; doesn't need to be in OWSM format
-        text_original = open(target_dir / "text.raw", "w", encoding="utf-8")
-    else:
-        text = open(target_dir / "text", "w", encoding="utf-8")
-        text_ctc = open(target_dir / "text.ctc", "w", encoding="utf-8")
-    utt2spk = open(target_dir / "utt2spk", "w", encoding="utf-8")
-    utt_id_mapping = open(target_dir / "uttid_map", "w", encoding="utf-8")
-    prompt = open(target_dir / "orthography", "w", encoding="utf-8")
 
-    for _, row in transcripts.iterrows():
-        utt_id, old_utt_id, path, ipa_original, ipa, ipa_nosup, orthography = (
-            row["utt_id"],
-            row["old_utt_id"],
-            row["path"],
-            row["ipa_original"],
-            row["ipa_panphon"],
-            row["ipa_panphon_nosup"],
-            row["text"],
-        )
+    with (
+        open(
+            target_dir / "text.raw", "w", encoding="utf-8"
+        ) as text_original,  # use unnormalized IPA for test sets
+        open(target_dir / "text", "w", encoding="utf-8") as text,
+        open(target_dir / "text.ctc", "w", encoding="utf-8") as text_ctc,
+        open(target_dir / "wav.scp", "w", encoding="utf-8") as wavscp,
+        open(target_dir / "utt2spk", "w", encoding="utf-8") as utt2spk,
+        open(target_dir / "spk2utt", "w", encoding="utf-8") as spk2utt,
+        open(target_dir / "text.asr", "w", encoding="utf-8") as prompt,
+    ):
+        for _, row in transcripts.iterrows():
+            utt_id, old_utt_id, path, ipa_original, ipa, ipa_nosup, orthography = (
+                row["utt_id"],
+                row["old_utt_id"],
+                row["path"],
+                row["ipa_original"],
+                row["ipa_panphon"],
+                row["ipa_panphon_nosup"],
+                row["text"],
+            )
 
-        # map original utt_id to new utt_id (note: not required by kaldi)
-        utt_id_mapping.write(f"{old_utt_id} {utt_id}\n")
+            # {source_dir}/{dataset}/{split}/{old_utt_id}.flac
+            wavscp.write(f"{utt_id} {path}\n")
 
-        # {source_dir}/{dataset}/{split}/{old_utt_id}.flac
-        wavscp.write(f"{utt_id} {path}\n")
+            if not_train_val:
+                text_original.write(f"{utt_id} {ipa_original}\n")
+            else:
+                text.write(f"{utt_id} {ipa}\n")
+                text_ctc.write(f"{utt_id} {ipa_nosup}\n")
+                utt2spk.write(f"{utt_id} {utt_id}\n")
+                spk2utt.write(f"{utt_id} {utt_id}\n")
 
-        if not_train_val:
-            text_original.write(f"{utt_id} {ipa_original}\n")
-        else:
-            text.write(f"{utt_id} {ipa}\n")
-            text_ctc.write(f"{utt_id} {ipa_nosup}\n")
-            # ESPnet does not use speaker info for ASR anymore
-            utt2spk.write(f"{utt_id} aaaaa\n")
-
-        if pd.isna(orthography):
-            orthography = ""
-        prompt.write(f"{utt_id} {orthography}\n")
-
-    wavscp.close()
-    if not_train_val:
-        text_original.close()
-    else:
-        text.close()
-        text_ctc.close()
-    utt2spk.close()
-    utt_id_mapping.close()
-    prompt.close()
+            if pd.isna(orthography):
+                orthography = ""
+            prompt.write(f"{utt_id} {orthography}\n")
 
     logging.info(
         f"{target_dir}: {len(transcripts)} lines" + f"written to {str(target_dir)}."
@@ -435,9 +418,8 @@ if __name__ == "__main__":
 
     parser = get_parser()
     args = parser.parse_args()
-    min_wav_length = args.min_wav_length
     source_dir = args.source_dir
-    data_dir = args.target_dir
+    target_dir = args.target_dir
 
     output = Path(source_dir / "transcript.csv")
     if output.exists():
@@ -445,40 +427,22 @@ if __name__ == "__main__":
         df = pd.read_csv(output)
         logging.info(f"finished loading transcripts and metadata from {str(output)}")
     else:
-        df = generate_df(source_dir, data_dir)
+        df = generate_df(source_dir, target_dir)
 
-    # exclude the following langs
-    # from FLEURS: 'ga_ie', 'sd_in', 'ar_eg', 'ml_in', 'lo_la', 'da_dk',
-    #   'ko_kr', 'ny_mw', 'mn_mn', 'so_so', 'my_mm'
-    # Samir et al 2024 found that the data available for
-    #   these languages unfortunately have low quality transcriptions.
-    FLEURS_EXCLUDE = {
-        "ga_ie",
-        "sd_in",
-        "ar_eg",
-        "ml_in",
-        "lo_la",
-        "da_dk",
-        "ko_kr",
-        "ny_mw",
-        "mn_mn",
-        "so_so",
-        "my_mm",
-    }
-    df = df[~df["split"].isin(FLEURS_EXCLUDE)]
-    REMOVE_LANGS = {"ia"}  # Interlingua
+    # exclude Interlingua
+    REMOVE_LANGS = {"ia"}
     df = df[~df["lang"].isin(REMOVE_LANGS)]
     logging.info("finished removing languages")
     # drop empty rows
-    df = df.dropna(subset=["ipa_clean"])
+    df = df.dropna(subset=["ipa_original"])
 
     # normalize phones, nosup = version without length and break marks for text.ctc
     df["ipa_panphon"] = df.apply(
-        lambda row: panphon_normalize(row["ipa_clean"], row["lang"]), axis=1
+        lambda row: panphon_normalize(row["ipa_original"], row["lang"]), axis=1
     )
     df["ipa_panphon_nosup"] = df.apply(
         lambda row: panphon_normalize(
-            row["ipa_clean"], row["lang"], with_supraseg=False
+            row["ipa_original"], row["lang"], with_supraseg=False
         ),
         axis=1,
     )
@@ -488,5 +452,5 @@ if __name__ == "__main__":
     logging.info("finished text normalization")
     df.to_csv(source_dir / "transcript_normalized.csv", index=False)
 
-    df_to_kaldi(df, source_dir, data_dir)
+    df_to_kaldi(df, target_dir)
     logging.info("finished converting to kaldi format")

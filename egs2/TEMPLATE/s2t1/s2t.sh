@@ -41,6 +41,7 @@ gpu_inference=false     # Whether to perform gpu decoding.
 dumpdir=dump            # Directory to dump features.
 expdir=exp              # Directory to save experiments.
 python=python3          # Specify python to execute espnet commands.
+s2t_ctc=false           # Whether to use s2t (default) or s2t_ctc for S2T Task
 
 # Data preparation related
 local_data_opts= # The options given to local/data.sh.
@@ -170,6 +171,7 @@ Options:
     --dumpdir            # Directory to dump features (default="${dumpdir}").
     --expdir             # Directory to save experiments (default="${expdir}").
     --python             # Specify python to execute espnet commands (default="${python}").
+    --s2t_ctc            # Whether to use s2t or s2t_ctc for S2T Task (default="${s2t_ctc}").
 
     # Data preparation related
     --local_data_opts # The options given to local/data.sh (default="${local_data_opts}").
@@ -1232,9 +1234,14 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ] && ! [[ " ${skip_stages} " =~
         _opts+="--valid_data_path_and_name_and_type ${_s2t_valid_dir}/${ref_text_files[$i]},${ref_text_names[$i]},text "
     done
 
+    train_bin_tag=""
+    if "${s2t_ctc}"; then
+        train_bin_tag="_ctc"
+    fi
+
     # shellcheck disable=SC2046,SC2086
     ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
-        ${python} -m espnet2.bin.s2t_train \
+        ${python} -m espnet2.bin.s2t_train${train_bin_tag} \
             --collect_stats true \
             --use_preprocessor true \
             --bpemodel "${bpemodel}" \
@@ -1398,6 +1405,11 @@ if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ] && ! [[ " ${skip_stages} " =~
         jobname="${s2t_exp}/train.log"
     fi
 
+    train_bin_tag=""
+    if "${s2t_ctc}"; then
+        train_bin_tag="_ctc"
+    fi
+
     # shellcheck disable=SC2086
     ${python} -m espnet2.bin.launch \
         --cmd "${cuda_cmd} --name ${jobname}" \
@@ -1406,7 +1418,7 @@ if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ] && ! [[ " ${skip_stages} " =~
         --num_nodes "${num_nodes}" \
         --init_file_prefix "${s2t_exp}"/.dist_init_ \
         --multiprocessing_distributed true -- \
-        ${python} -m espnet2.bin.s2t_train \
+        ${python} -m espnet2.bin.s2t_train${train_bin_tag} \
             --use_preprocessor true \
             --bpemodel "${bpemodel}" \
             --token_type "${token_type}" \
@@ -1491,6 +1503,8 @@ if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ] && ! [[ " ${skip_stages} " =~
     inference_bin_tag=""
     if "${use_streaming}"; then
         inference_bin_tag="_streaming"
+    elif "${s2t_ctc}"; then
+        inference_bin_tag="_ctc"
     fi
 
     if "${eval_valid_set}"; then

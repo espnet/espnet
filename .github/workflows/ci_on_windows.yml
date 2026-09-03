@@ -6,42 +6,144 @@ on:
       - master
       - espnet3
   pull_request:
+    # ready_for_review is required: jobs are skipped on draft PRs, so the
+    # gate below must get a fresh run once the PR leaves draft.
+    types: [opened, synchronize, reopened, ready_for_review]
     branches:
       - master
       - espnet3
+
+# One run per pull request, and one per branch otherwise: a newer run cancels
+# the superseded one.
+#
+# Non-PR events used to key the group on github.sha, so that every push to
+# master got its own group and nothing could cancel a master verification. That
+# was an overcorrection. Merging six PRs in an afternoon left five full master
+# runs alive at once - about 330 queued jobs against a 60-runner cap - which
+# starved the pull request runs that actually gate merges, mine and everyone
+# else's.
+#
+# master is linear, so the newest run verifies a superset of what the older ones
+# were verifying, and cancelling them loses coverage of nothing. What it does
+# lose is per-commit attribution: if a batch of merges goes red together, the
+# surviving run says the batch is broken but not which merge did it. Re-run the
+# workflow at the specific commit to find out - cheaper than paying for five
+# parallel runs on every busy day.
+#
+# Note this is not the stale-merge problem: that was a pull request's own CI
+# having run against an old master, which is about when a PR is merged, not
+# about master verifications cancelling each other.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+# The default on this repository is almost entirely write - a job's GITHUB_TOKEN
+# reports Contents: write, Actions: write, PullRequests: write, Packages: write
+# and more. This job checks out a pull request's code and runs it, next to
+# third-party actions, and writes nothing.
+#
+#   contents       checkout, and actions/cache
+#   pull-requests  joerick/pr-labels-action
+#
+# No packages: read here - unlike ci_on_ubuntu.yml these pull no GHCR image
+# (ci_on_debian12.yml's debian:12 comes from Docker Hub, which does not use
+# GITHUB_TOKEN). No id-token either: it is not granted today and nothing here
+# uploads to codecov. See #6583, which did the same for ci_on_ubuntu.yml.
+permissions:
+  contents: read
+  pull-requests: read
+
+env:
+  NLTK_DISABLE_IMPORT_SECURITY: "1"
 
 jobs:
   check_installable_on_windows:
     runs-on: Windows-latest
     if: github.event.pull_request.draft == false
     strategy:
+      fail-fast: false
       matrix:
-        python-version: ["3.10"]
-        pytorch-version: [2.7.1]
+        python-version: ["3.12"]
+        pytorch-version: [2.9.1]
     defaults:
       run:
         shell: bash
     steps:
-      - uses: actions/checkout@master
-      - uses: actions/cache@v4
+      # See ci_on_ubuntu.yml: the default persists GITHUB_TOKEN in .git/config.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
           python-version: ${{ matrix.python-version }}
           architecture: 'x64'
       - name: install dependencies
+        shell: bash
+        # This step used to report success while installing nothing. A
+        # chocolatey outage gives:
+        #
+        #   Failed to fetch results from V2 feed at '.../Packages(Id='Wget',...)'
+        #   ... 503 (Service Unavailable).
+        #   Chocolatey installed 0/0 packages.
+        #
+        # and exits 0 - so the exit status is not a usable signal here, and a
+        # plain retry loop keyed on it would not have retried. The job then died
+        # ten minutes later in a place that says nothing about the cause:
+        #
+        #   ./installers/install_ffmpeg.sh: line 112: wget: command not found
+        #   make: *** [Makefile:97: ffmpeg.done] Error 127
+        #
+        # So: retry on the binary being absent rather than on choco's verdict,
+        # and if it is still absent, fail here where the 503 is on screen.
         run: |
-          choco install -y wget
+          for attempt in 1 2 3; do
+            choco install -y wget || true
+            if command -v wget > /dev/null 2>&1; then break; fi
+            if [ "${attempt}" = 3 ]; then break; fi
+            wait=$((attempt * 20))
+            echo "wget still not installed after attempt ${attempt}; retrying in ${wait}s"
+            sleep "${wait}"
+          done
+          if ! command -v wget > /dev/null 2>&1; then
+            echo "::error::choco could not install wget after three attempts; see the chocolatey output above"
+            exit 1
+          fi
+          wget --version | head -1
       - name: Get PR labels
         id: pr-labels
-        uses: joerick/pr-labels-action@v1.0.9
+        uses: joerick/pr-labels-action@0543b277721e852d821c6738d449f2f4dea03d5f # v1.0.9
       - name: install espnet
         env:
           ESPNET_PYTHON_VERSION: ${{ matrix.python-version }}
           TH_VERSION: ${{ matrix.pytorch-version }}
-          CHAINER_VERSION: 6.0.0
           USE_CONDA: false
+          HF_TOKEN: ${{ secrets.HF_CI_TOKEN }}
         run: |
           ./ci/install.sh
+
+  # Single stable status check that aggregates every job in this workflow.
+  # Register THIS job as the required status check instead of the individual
+  # matrix jobs, whose names change whenever the matrix changes.
+  ci_gate_windows:
+    if: always()
+    needs:
+      - check_installable_on_windows
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail unless every job succeeded
+        if: >-
+          contains(needs.*.result, 'failure')
+          || contains(needs.*.result, 'cancelled')
+          || contains(needs.*.result, 'skipped')
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+        run: |
+          echo "At least one job did not succeed:"
+          echo "$NEEDS_JSON"
+          exit 1
+      - name: All jobs succeeded
+        run: echo "All jobs in this workflow succeeded."

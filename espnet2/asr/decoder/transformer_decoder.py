@@ -2,6 +2,7 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 """Decoder definition."""
+
 import logging
 from typing import Any, List, Sequence, Tuple
 
@@ -264,6 +265,7 @@ class BaseTransformerDecoder(
         states: List[Any],
         xs: torch.Tensor,
         return_hs: bool = False,
+        xs_mask: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, List[Any]]:
         """Score new token batch.
 
@@ -272,7 +274,11 @@ class BaseTransformerDecoder(
             states (List[Any]): Scorer states for prefix tokens.
             xs (torch.Tensor):
                 The encoder feature that generates ys (n_batch, xlen, n_feat).
-
+            return_hs (bool): Whether to return the decoder hidden states.
+            xs_mask (torch.Tensor): Non-padding mask of `xs` (n_batch, 1, xlen).
+                Needed when `xs` holds utterances of different lengths, as in
+                utterance-batched beam search; without it the cross attention
+                also attends to the padded encoder frames.
 
         Returns:
             tuple[torch.Tensor, List[Any]]: Tuple of
@@ -296,11 +302,21 @@ class BaseTransformerDecoder(
         ys_mask = subsequent_mask(ys.size(-1), device=xs.device).unsqueeze(0)
         if return_hs:
             (logp, hs), states = self.forward_one_step(
-                ys, ys_mask, xs, cache=batch_state, return_hs=return_hs
+                ys,
+                ys_mask,
+                xs,
+                memory_mask=xs_mask,
+                cache=batch_state,
+                return_hs=return_hs,
             )
         else:
             logp, states = self.forward_one_step(
-                ys, ys_mask, xs, cache=batch_state, return_hs=return_hs
+                ys,
+                ys_mask,
+                xs,
+                memory_mask=xs_mask,
+                cache=batch_state,
+                return_hs=return_hs,
             )
 
         # transpose state of [layer, batch] into [batch, layer]

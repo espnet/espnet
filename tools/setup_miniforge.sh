@@ -76,7 +76,12 @@ if [ -n "${name}" ] && ! conda activate ${name}; then
 fi
 conda activate ${name}
 
-conda config --prepend channels https://software.repos.intel.com/python/conda/
+# Only the mkl=2024.0 install further down needs this channel, and that runs on
+# x86_64 only. Adding it everywhere makes an unreachable software.repos.intel.com
+# fail platforms that never install anything from it - osx-arm64 in particular.
+if [ "${unamem}" = "x86_64" ]; then
+    conda config --prepend channels https://software.repos.intel.com/python/conda/
+fi
 
 if [ -n "${PYTHON_VERSION}" ]; then
     conda install -y conda "python=${PYTHON_VERSION}"

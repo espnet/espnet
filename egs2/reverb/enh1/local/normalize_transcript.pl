@@ -1,1 +1,1 @@
-../../../../egs/reverb/asr1/local/normalize_transcript.pl
+../../asr1/local/normalize_transcript.pl

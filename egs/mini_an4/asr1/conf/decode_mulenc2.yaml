@@ -1,9 +1,0 @@
-# decoding parameter
-num-encs: 2
-beam-size: 2
-penalty: 0.0
-maxlenratio: 0.0
-minlenratio: 0.0
-ctc-weight: 0.5
-weights-ctc-dec: [ 0.5, 0.5 ] # ctc weight for each encoder during decoding
-lm-weight: 1.0

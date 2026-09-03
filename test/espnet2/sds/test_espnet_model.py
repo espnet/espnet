@@ -7,10 +7,9 @@ from espnet2.sds.espnet_model import ESPnetSDSModelInterface
 pytest.importorskip("gradio")
 
 
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="requires a GPU")
 def test_forward():
     pytest.importorskip("webrtcvad")
-    if not torch.cuda.is_available():
-        return  # Only GPU supported
     dialogue_model = ESPnetSDSModelInterface(
         ASR_option="librispeech_asr",
         LLM_option="HuggingFaceTB/SmolLM2-1.7B-Instruct",
@@ -41,12 +40,11 @@ def test_forward():
     )
 
 
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="requires a GPU")
 def test_handle_E2E_selection():
     pytest.importorskip("pydub")
     pytest.importorskip("espnet2.sds.end_to_end.mini_omni.inference")
     pytest.importorskip("huggingface_hub")
-    if not torch.cuda.is_available():
-        return  # Only GPU supported
     dialogue_model = ESPnetSDSModelInterface(
         ASR_option="librispeech_asr",
         LLM_option="HuggingFaceTB/SmolLM2-1.7B-Instruct",

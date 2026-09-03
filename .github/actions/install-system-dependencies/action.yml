@@ -1,0 +1,33 @@
+name: Install System Dependencies
+description: Install required system packages for ESPnet testing
+
+inputs:
+  packages:
+    description: 'Space-separated list of packages to install'
+    required: false
+    default: 'cmake libsndfile1-dev bc sox ffmpeg libjpeg-dev'
+  enable-cache:
+    description: 'Enable apt cache to speed up installation'
+    required: false
+    default: 'true'
+
+runs:
+  using: "composite"
+  steps:
+
+    - name: Install system packages
+      shell: bash
+      run: |
+        # The runner image ships apt repositories espnet installs nothing from,
+        # packages.microsoft.com among them, and a 403 from any one of them
+        # fails `apt-get update` outright:
+        #
+        #   E: Failed to fetch https://packages.microsoft.com/... 403 Forbidden
+        #   ##[error]Process completed with exit code 100
+        #
+        # Refreshing the index is a means, not the goal. Let it report errors
+        # and judge on whether the packages actually asked for arrived - if the
+        # failure did matter, the install below fails and says which package.
+        sudo apt-get update -qq \
+          || echo "::warning::apt-get update reported errors; continuing to install"
+        sudo apt-get install -qq -y ${{ inputs.packages }}
