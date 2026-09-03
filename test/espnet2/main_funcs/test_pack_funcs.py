@@ -5,6 +5,7 @@ import pytest
 import yaml
 
 from espnet2.main_funcs.pack_funcs import (
+    UnsafeArchiveMemberError,
     find_path_and_change_it_recursive,
     pack,
     unpack,
@@ -85,3 +86,73 @@ def test_pack_unpack_recursive(tmp_path: Path, type):
 
     unpack(str(tmp_path / f"out.{type}"), str(tmp_path))
     assert (tmp_path / p / "foo.pth").exists()
+
+
+def _tar_with_members(path: Path, members):
+    """Write a tar whose meta.yaml declares `yaml_files` / `files` as given."""
+    import io
+
+    with tarfile.open(path, "w") as tf:
+        for name, data in members:
+            info = tarfile.TarInfo(name)
+            info.size = len(data)
+            tf.addfile(info, io.BytesIO(data))
+
+
+@pytest.mark.parametrize("member", ["../escaped.pth", "a/../../escaped.pth"])
+def test_unpack_refuses_tar_slip_member(tmp_path: Path, member):
+    """A tar member whose name escapes outpath must not be written."""
+    meta = yaml.safe_dump({"yaml_files": {}, "files": {}}).encode()
+    _tar_with_members(
+        tmp_path / "evil.tar",
+        [("meta.yaml", meta), (member, b"PWNED")],
+    )
+    outpath = tmp_path / "deep" / "out"
+    outpath.mkdir(parents=True)
+
+    with pytest.raises(UnsafeArchiveMemberError):
+        unpack(str(tmp_path / "evil.tar"), str(outpath))
+    assert not (tmp_path / "deep" / "escaped.pth").exists()
+    assert not (tmp_path / "escaped.pth").exists()
+
+
+def test_unpack_refuses_traversal_in_yaml_rewrite_branch(tmp_path: Path):
+    """The yaml-rewrite branch joins paths by hand, bypassing tarfile."""
+    meta = yaml.safe_dump(
+        {"yaml_files": {"cfg": "../escaped.yaml"}, "files": {}}
+    ).encode()
+    _tar_with_members(
+        tmp_path / "evil.tar",
+        [
+            ("meta.yaml", meta),
+            ("../escaped.yaml", yaml.safe_dump({"a": 1}).encode()),
+        ],
+    )
+    outpath = tmp_path / "deep" / "out"
+    outpath.mkdir(parents=True)
+
+    with pytest.raises(UnsafeArchiveMemberError):
+        unpack(str(tmp_path / "evil.tar"), str(outpath))
+    assert not (tmp_path / "deep" / "escaped.yaml").exists()
+
+
+def test_unpack_refuses_absolute_member(tmp_path: Path):
+    """An absolute member name replaces outpath under pathlib semantics."""
+    escaped = tmp_path / "absolute_escape.pth"
+    meta = yaml.safe_dump({"yaml_files": {}, "files": {}}).encode()
+    with tarfile.open(tmp_path / "evil.tar", "w") as tf:
+        import io
+
+        info = tarfile.TarInfo("meta.yaml")
+        info.size = len(meta)
+        tf.addfile(info, io.BytesIO(meta))
+        # tarfile.add() strips leading "/", so set the name on TarInfo directly.
+        info2 = tarfile.TarInfo(str(escaped))
+        info2.size = 5
+        tf.addfile(info2, io.BytesIO(b"PWNED"))
+
+    outpath = tmp_path / "out"
+    outpath.mkdir()
+    with pytest.raises(UnsafeArchiveMemberError):
+        unpack(str(tmp_path / "evil.tar"), str(outpath))
+    assert not escaped.exists()
