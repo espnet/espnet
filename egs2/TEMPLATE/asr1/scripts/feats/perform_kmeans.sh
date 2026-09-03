@@ -15,6 +15,86 @@ stop_stage=100
 skip_stages=
 cpu_cmd="run.pl"
 num_threads=20      # number of cpu threads in learn_kmeans
+percent=-1          # fraction of utterances to fit k-means on; -1 for all.
+# MiniBatchKMeans controls, forwarded to learn_kmeans.py. Defaults below match
+# that script's own defaults, so nothing changes unless you set them.
+#
+# WATCH max_iter: it is the number of full passes over every selected frame, and
+# total steps = max_iter * n_frames / batch_size. With tol=0 the tol-based
+# convergence test is disabled, and max_no_improvement=100 will not fire while
+# the ewa inertia is still creeping down, so a run really does take all of them.
+# Measured on 26.9 M 39-dim frames: 267,409 steps at 4.5 steps/s = 16 h, while
+# the inertia was already within 1.7% of its asymptote after 0.8 of one pass.
+# Per-step cost scales with batch_size * dim * nclusters, so at 1024 dims and
+# 500 clusters the same defaults project to ~45 days.
+# Fast paths for finalising a very large label file. All default to the
+# original behaviour. Measured on 62.5 M utterances / a 148 GB label file, where
+# finalising cost 285 min against 227 min of actual labelling compute.
+assume_sorted_splits=false  # sort each per-job label file on its own instead of
+                            # doing one external sort over the concatenation
+                            # (measured 70 min on 149 GB -> ~20 min, and no
+                            # 149 GB of sort temp space).
+                            #
+                            # Do NOT mistake the original `sort -u` for a
+                            # no-op. dump_km_label reads through
+                            # NumElementsBatchSampler, which orders utterances
+                            # by LENGTH to form batches, so each per-job file
+                            # comes out in length order, not utt-id order. The
+                            # sort is what puts it back into id order; the `-u`
+                            # is incidental (the splits are disjoint).
+                            #
+                            # This fast path is valid only because each split is
+                            # a contiguous, increasing id range, so sorting the
+                            # splits individually and concatenating them in job
+                            # order yields a globally sorted file. Each split
+                            # fits in memory, which is why it beats one external
+                            # merge. The check below verifies BOTH properties:
+                            # each split internally sorted, and each split
+                            # ending before the next begins. An earlier version
+                            # checked only the boundaries, which passes
+                            # trivially for contiguous splits and missed the
+                            # length ordering entirely.
+fast_label_finalize=false   # hard-link the label file into the data dir instead
+                            # of copying it, and skip fix_data_dir on it
+                            # (67 min -> ~0, plus 148 GB of disk). fix_data_dir
+                            # copies the file to .backup/ and cmp's it against a
+                            # filtered copy: ~450 GB of I/O to conclude nothing
+                            # needs filtering, which cannot happen because
+                            # dump_km_label emits exactly one line per input
+                            # utterance and the inputs partition wav.scp. The
+                            # two halves are coupled -- the hard link is only
+                            # safe because nothing then rewrites in place.
+token_count_sample_utts=0   # >0 counts tokens from only this many utterances
+                            # per per-job label file, instead of every token in
+                            # the full file (88 min -> ~1 min). The counts only
+                            # order a ~100-line vocabulary. Sampling per job is
+                            # stratified across corpora; sampling the
+                            # concatenated file would not be, because it is
+                            # grouped by language. Must be a LINE count, not a
+                            # byte count: `head -c` truncates the last line, and
+                            # the fragment then fuses with the next file's first
+                            # line, injecting utterance ids into the vocabulary.
+split_by_duration=false   # split label-dumping jobs by total audio rather than
+                         # by utterance count. split_scp.pl gives every job an
+                         # equal NUMBER of utterances, which on a corpus of
+                         # mixed-length material leaves jobs with wildly
+                         # different amounts of audio: on 62.5 M utterances
+                         # across 34 corpus/language groups, sorted utt ids put
+                         # each split inside one corpus, and the heaviest split
+                         # held 3897 h against the lightest 374 h -- 10.4x. The
+                         # stage then runs at the pace of the worst straggler.
+                         # Cutting on cumulative samples instead keeps every
+                         # split contiguous and sorted, just with a variable
+                         # utterance count.
+km_max_iter=100
+km_batch_size=10000
+km_tol=0.0
+km_max_no_improvement=100
+km_n_init=20
+                    # learn_kmeans.py holds every selected frame in RAM at once
+                    # (load_feature_shard concatenates them), so for a
+                    # high-dimensional SSL feature this is the memory knob:
+                    # 1024-dim features over 299 h is 220 GB at -1.
 cuda_cmd="run.pl"
 nj=16               # number of parallel jobs
 python=python3      # Specify python to execute espnet commands.
@@ -217,7 +297,12 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ] && ! [[ " ${skip_stages} " =~ [
             --km_path ${km_dir}/km_${nclusters}.mdl \
             --n_clusters ${nclusters} \
             --RVQ_layers ${RVQ_layers} \
-            --percent -1 \
+            --percent ${percent} \
+            --max_iter ${km_max_iter} \
+            --batch_size ${km_batch_size} \
+            --tol ${km_tol} \
+            --max_no_improvement ${km_max_no_improvement} \
+            --n_init ${km_n_init} \
             --in_filetype mat \
             "scp:${km_dir}/train.scp" || exit 1;
 fi
@@ -266,14 +351,49 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] && ! [[ " ${skip_stages} " =~ [
         for n in $(seq ${_nj}); do
             split_scps+=" ${_dump_dir}/logdir/inference_kmeans.${n}.scp"
         done
+        if ${split_by_duration}; then
+            # One pass writes both the wav.scp splits and their utt2num_samples
+            # companions, cutting whenever cumulative audio crosses the next
+            # 1/_nj boundary. Splits stay contiguous and sorted, so everything
+            # downstream is unchanged -- only the boundaries move.
+            awk -v dir="${_dump_dir}/logdir" -v nj="${_nj}" '
+                NR==FNR { n[$1]=$2; total+=$2; next }
+                FNR==1  { target = total / nj; k = 1
+                          scp = dir "/inference_kmeans." k ".scp"
+                          u2n = dir "/utt2num_samples." k }
+                {
+                  print           > scp
+                  print $1, n[$1] > u2n
+                  acc += n[$1]
+                  if (k < nj && acc >= k * target) {
+                      close(scp); close(u2n); k++
+                      scp = dir "/inference_kmeans." k ".scp"
+                      u2n = dir "/utt2num_samples." k
+                  }
+                }' ${datadir}/${dset}/utt2num_samples "${key_file}"
+        else
         # shellcheck disable=SC2086
         utils/split_scp.pl "${key_file}" ${split_scps}
 
-        for n in $(seq ${_nj}); do
-            awk '(FILENAME==ARGV[1]){utt2num[$1]=$2} (FILENAME==ARGV[2]){print($1, utt2num[$1])}' \
-                ${datadir}/${dset}/utt2num_samples ${_dump_dir}/logdir/inference_kmeans.${n}.scp \
-                > ${_dump_dir}/logdir/utt2num_samples.${n}
-        done
+        # One pass, not one per job. This used to be a `for n in $(seq ${_nj})`
+        # loop whose awk re-read the whole utt2num_samples and rebuilt a
+        # full-corpus hash every iteration: at 62.5 M utterances and nj=128 that
+        # is 128 x 3.7 GB = 478 GB of single-threaded reads, measured at
+        # 1.3 splits/min (~90 min), and it got *worse* as nj went up -- exactly
+        # backwards. Reading the big file once and streaming each split to its
+        # own output is identical in result and ~100x cheaper. Peak memory is
+        # unchanged (the same single hash). Output name is derived from
+        # FILENAME, so it does not depend on argument order, and each output is
+        # closed before the next opens so awk holds only one at a time.
+        # shellcheck disable=SC2086
+        awk 'NR==FNR { utt2num[$1]=$2; next }
+             FNR==1 { if (out != "") close(out)
+                      out = FILENAME
+                      sub(/inference_kmeans\./, "utt2num_samples.", out)
+                      sub(/\.scp$/, "", out) }
+             { print $1, utt2num[$1] > out }' \
+            ${datadir}/${dset}/utt2num_samples ${split_scps}
+        fi
 
         ${_cmd} JOB=1:${_nj} "${_dump_dir}"/logdir/inference_pseudo_labels_km${nclusters}.JOB.log \
             ${python} pyscripts/feats/dump_km_label.py \
@@ -293,9 +413,36 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] && ! [[ " ${skip_stages} " =~ [
             if [ ${RVQ_layers} -gt 1 ]; then
                 tail_="RVQ_$((layer_idx-1))_km${nclusters}"
             fi
-            for n in $(seq ${_nj}); do
-                cat "${_dump_dir}"/logdir/pseudo_labels_${tail_}.${n}.txt || exit 1;
-            done | sed 's/ \[ \| \]//g' | sort -u > "${_dump_dir}"/pseudo_labels_${tail_}.txt || exit 1;
+            if ${assume_sorted_splits}; then
+                # Verify the id ranges do not interleave, then sort each split
+                # on its own. Sorting per split is what makes this cheap; the
+                # ranges being disjoint and increasing is what makes it correct.
+                _prev=
+                for n in $(seq ${_nj}); do
+                    _f="${_dump_dir}/logdir/pseudo_labels_${tail_}.${n}.txt"
+                    # One awk, no pipeline: `... | sort | head -1` makes sort
+                    # take SIGPIPE, which under `set -o pipefail` aborts the
+                    # whole script from inside a command substitution, i.e.
+                    # silently. Also O(n) with no sort at all.
+                    _range=$(awk 'NR==1{lo=hi=$1} {if($1<lo)lo=$1; if($1>hi)hi=$1} END{print lo, hi}' "${_f}")
+                    _lo=${_range%% *}
+                    _hi=${_range##* }
+                    if [ -n "${_prev}" ] && ! [[ "${_prev}" < "${_lo}" ]]; then
+                        log "Error: label split ${n} interleaves with the previous one" \
+                            "(${_prev} !< ${_lo}); rerun without --assume_sorted_splits"
+                        exit 1
+                    fi
+                    _prev="${_hi}"
+                done
+                log "split id ranges verified disjoint across ${_nj} files; sorting per split"
+                for n in $(seq ${_nj}); do
+                    LC_ALL=C sort "${_dump_dir}"/logdir/pseudo_labels_${tail_}.${n}.txt || exit 1;
+                done | sed 's/ \[ \| \]//g' > "${_dump_dir}"/pseudo_labels_${tail_}.txt || exit 1;
+            else
+                for n in $(seq ${_nj}); do
+                    cat "${_dump_dir}"/logdir/pseudo_labels_${tail_}.${n}.txt || exit 1;
+                done | sed 's/ \[ \| \]//g' | sort -u > "${_dump_dir}"/pseudo_labels_${tail_}.txt || exit 1;
+            fi
         done
     done
 fi
@@ -341,9 +488,37 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ] && ! [[ " ${skip_stages} " =~ [
     for dset in "${train_set}" "${dev_set}" ${other_sets}; do
         label_dir="${featdir}/${feature_type}/${suffix}${dset}"
         if [ -f "${label_dir}"/pseudo_labels_km${nclusters}.txt ]; then
-            cp "${label_dir}"/pseudo_labels_km${nclusters}.txt ${datadir}/${dset}/text.km.${km_tag}
+            if ${fast_label_finalize}; then
+                # Hard link, not copy: instant and costs no extra disk. Safe
+                # only because fix_data_dir is skipped below, so nothing
+                # rewrites this file in place.
+                rm -f ${datadir}/${dset}/text.km.${km_tag}
+                ln "${label_dir}"/pseudo_labels_km${nclusters}.txt \
+                   ${datadir}/${dset}/text.km.${km_tag} \
+                  || cp "${label_dir}"/pseudo_labels_km${nclusters}.txt \
+                        ${datadir}/${dset}/text.km.${km_tag}
+            else
+                cp "${label_dir}"/pseudo_labels_km${nclusters}.txt ${datadir}/${dset}/text.km.${km_tag}
+            fi
         fi
-        utils/fix_data_dir.sh --utt_extra_files "text.km.${km_tag}" ${datadir}/${dset}
+        if ${fast_label_finalize}; then
+            # Cheap end-to-end check in place of fix_data_dir: the label file
+            # must start and end on the same utterances as wav.scp. This catches
+            # truncation and misalignment without reading 450 GB.
+            _w_first=$(head -1 ${datadir}/${dset}/wav.scp | cut -d' ' -f1)
+            _w_last=$(tail -1 ${datadir}/${dset}/wav.scp | cut -d' ' -f1)
+            _l_first=$(head -1 ${datadir}/${dset}/text.km.${km_tag} | cut -d' ' -f1)
+            _l_last=$(tail -1 ${datadir}/${dset}/text.km.${km_tag} | cut -d' ' -f1)
+            if [ "${_w_first}" != "${_l_first}" ] || [ "${_w_last}" != "${_l_last}" ]; then
+                log "Error: text.km.${km_tag} does not span wav.scp for ${dset}" \
+                    "(wav ${_w_first}..${_w_last} vs km ${_l_first}..${_l_last});" \
+                    "rerun without --fast_label_finalize"
+                exit 1
+            fi
+            log "${dset}: label file spans wav.scp (${_l_first}..${_l_last}); skipping fix_data_dir"
+        else
+            utils/fix_data_dir.sh --utt_extra_files "text.km.${km_tag}" ${datadir}/${dset}
+        fi
     done
 
     # generate dictionaries
@@ -355,12 +530,30 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ] && ! [[ " ${skip_stages} " =~ [
         pad="<pad>"
         sos_eos="<sos/eos>" # sos and eos symbole
 
+        if [ "${token_count_sample_utts}" -gt 0 ]; then
+            # Stratified sample: the first N MB of each per-job label file. The
+            # counts only decide the ORDER of a ~100-line vocabulary, and every
+            # job covers a different slice of the corpus, so this gives the same
+            # ordering as a full pass over 148 GB. Sampling the concatenated
+            # file with head would be biased -- it is grouped by language.
+            _lab_dir="${featdir}/${feature_type}/${suffix}${train_set}/logdir"
+            log "counting tokens from ${token_count_sample_utts} utts per job file (sampled)"
+            for _f in "${_lab_dir}"/pseudo_labels_km${nclusters}.*.txt; do
+                head -n "${token_count_sample_utts}" "${_f}"
+            done | sed 's/ \[ \| \]//g' | cut -d" " -f2- | \
+                awk '{for (i=1; i<=NF; i++) {count[$i]+=1}} END{for (k in count) {print(k, count[k])}}' | \
+                    sort -n -r -k 2  | \
+                    awk -v oov=${oov} -v blank=${blank} -v sos_eos=${sos_eos} -v pad=${pad} \
+                        '{print($1)} END{print(oov); print(sos_eos)}' \
+                    > ${dictdir}/tokens.txt
+        else
         <${datadir}/${train_set}/text.km.${km_tag} cut -d" " -f2- | \
             awk '{for (i=1; i<=NF; i++) {count[$i]+=1}} END{for (k in count) {print(k, count[k])}}' | \
                 sort -n -r -k 2  | \
                 awk -v oov=${oov} -v blank=${blank} -v sos_eos=${sos_eos} -v pad=${pad} \
                     '{print($1)} END{print(oov); print(sos_eos)}' \
                 > ${dictdir}/tokens.txt
+        fi
 
         log "Successfully generate the ${dictdir}/{dict,tokens}.txt"
     fi

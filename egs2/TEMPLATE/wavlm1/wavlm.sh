@@ -68,6 +68,17 @@ token_type=word      # Tokenization type (char or bpe).
 wavlm_args=         # Arguments for ssl model training, e.g., "--max_epoch 10".
                      # Note that it will overwrite args in ssl config.
 num_splits_ssl=1 # Number of splitting for lm corpus.
+lazy_km_labels=false # Read text.km through an mmapped byte-offset index instead
+                     # of loading it into a dict per rank. ESPnetDataset loads a
+                     # "text" input eagerly (read_2columns_text), so at 62 M
+                     # utterances a 147.9 GB label file becomes a dict in every
+                     # rank and the job is OOM-killed. --num_splits_ssl works
+                     # around that, but then MultipleIterFactory rebuilds the
+                     # dataset once per split INSIDE each epoch: measured ~247 s
+                     # per rebuild, x16 splits, 76% of wall clock lost.
+                     # Measured on one 9.2 GB shard: open 8 ms vs 17 s, resident
+                     # 0.04 GB vs 10.3 GB, lookup 45 us (11 ms per 250-utt
+                     # batch). With this on, --num_splits_ssl can go back to 1.
 
 # Pretrain related
 train_start_iter= # Pretrain starts from the specified iteration (0 mean MFCC iteraion)
@@ -578,14 +589,40 @@ if ! "${skip_train}"; then
                 fi
 
                 _opts+="--train_data_path_and_name_and_type ${_split_dir}/${_scp},speech,${_type} "
-                _opts+="--train_data_path_and_name_and_type ${_split_dir}/text.km.${km_tag},text,text "
+                if "${lazy_km_labels}"; then
+                    # build_multiple_iter_factory appends /split.N to the path and
+                    # keeps the type, and IndexedTextReader defaults its index to
+                    # <text>.idx, so indexing each shard is all that is needed.
+                    # Each shard is a subsequence of a sorted file, hence sorted;
+                    # build_index verifies that and fails loudly if not.
+                    for _sp in "${_split_dir}/text.km.${km_tag}"/split.*; do
+                        [ -e "${_sp}" ] || continue
+                        case "${_sp}" in *.idx) continue;; esac
+                        if [ ! -s "${_sp}.idx" ] || [ "${_sp}" -nt "${_sp}.idx" ]; then
+                            log "Indexing $(basename ${_sp}) of text.km.${km_tag}"
+                            ${python} -m espnet2.fileio.indexed_text "${_sp}" "${_sp}.idx"
+                        fi
+                    done
+                    _opts+="--train_data_path_and_name_and_type ${_split_dir}/text.km.${km_tag},text,text_indexed "
+                else
+                    _opts+="--train_data_path_and_name_and_type ${_split_dir}/text.km.${km_tag},text,text "
+                fi
                 _opts+="--train_shape_file ${_split_dir}/speech_shape "
                 _opts+="--train_shape_file ${_split_dir}/text_shape.${token_type} "
                 _opts+="--multiple_iterator true "
 
             else
                 _opts+="--train_data_path_and_name_and_type ${_ssl_train_dir}/${_scp},speech,${_type} "
-                _opts+="--train_data_path_and_name_and_type ${_ssl_train_dir}/text.km.${km_tag},text,text "
+                if "${lazy_km_labels}"; then
+                    _km_file="${_ssl_train_dir}/text.km.${km_tag}"
+                    if [ ! -s "${_km_file}.idx" ] || [ "${_km_file}" -nt "${_km_file}.idx" ]; then
+                        log "Building byte-offset index for ${_km_file}"
+                        ${python} -m espnet2.fileio.indexed_text "${_km_file}" "${_km_file}.idx"
+                    fi
+                    _opts+="--train_data_path_and_name_and_type ${_km_file}:${_km_file}.idx,text,text_indexed "
+                else
+                    _opts+="--train_data_path_and_name_and_type ${_ssl_train_dir}/text.km.${km_tag},text,text "
+                fi
                 _opts+="--train_shape_file ${ssl_stats_dir}/train/speech_shape "
                 _opts+="--train_shape_file ${ssl_stats_dir}/train/text_shape.${token_type} "
             fi

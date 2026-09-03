@@ -167,8 +167,15 @@ def dump_label(
     ]
     logging.info(writers)
 
-    dist = [np.array([]) for i in range(RVQ_layers)]
-    all_dist = np.array([])
+    # Running sums rather than concatenation. These feed a single mean() at the
+    # end of the online branch below, but growing an array with np.concatenate
+    # once per utterance is O(n^2) in time and holds one float per frame in
+    # memory. Harmless at LibriSpeech scale; over 62 M utterances / 5.4e10
+    # frames per iteration it is not.
+    dist_sum = [0.0 for _ in range(RVQ_layers)]
+    dist_n = [0 for _ in range(RVQ_layers)]
+    all_dist_sum = 0.0
+    all_dist_n = 0
     if not online_feature_extract:
         # dumped ssl feature in kaldi ark format
         for utt, feat in file_reader_helper(rspecifier, in_filetype):
@@ -204,13 +211,16 @@ def dump_label(
                 feat = feats[idx][: feats_lens[idx]].numpy()
                 for i in range(RVQ_layers):
                     lab, dis = apply_kmeans[i](feat)
-                    dist[i] = np.concatenate((dist[i], dis))
+                    dist_sum[i] += float(dis.sum())
+                    dist_n[i] += dis.size
                     writers[i][utt] = lab
                     feat = feat - apply_kmeans[i].C_np.transpose()[lab]
-                all_dist = np.concatenate((all_dist, (feat**2).sum(1)))
+                _resid = (feat**2).sum(1)
+                all_dist_sum += float(_resid.sum())
+                all_dist_n += _resid.size
         for i in range(RVQ_layers):
-            print(i, np.mean(dist[i]))
-        print("All", np.mean(all_dist))
+            print(i, dist_sum[i] / max(dist_n[i], 1))
+        print("All", all_dist_sum / max(all_dist_n, 1))
     logger.info("finished successfully")
 
 

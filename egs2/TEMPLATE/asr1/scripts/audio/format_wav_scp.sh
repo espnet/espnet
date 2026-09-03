@@ -38,6 +38,10 @@ ref_channels=
 utt2ref_channels=
 
 audio_format=wav
+# Take sample counts from the file header when the audio will be referenced
+# as-is (no resampling/segmenting/channel-selection/subtype change/ark). ~4x
+# faster; any file the header cannot clear still goes through the decode path.
+count_only=false
 write_utt2num_samples=true
 vad_based_trim=
 multi_columns_input=false
@@ -110,6 +114,7 @@ if [ -n "${segments}" ]; then
             ${opts} \
             --fs ${fs} \
             --audio-format "${audio_format}" \
+            --count-only "${count_only}" \
             "--segment=${logdir}/segments.JOB" \
             --multi-columns-input "${multi_columns_input}" \
             --multi-columns-output "${multi_columns_output}" \
@@ -131,6 +136,7 @@ else
         ${opts} \
         --fs "${fs}" \
         --audio-format "${audio_format}" \
+        --count-only "${count_only}" \
         --multi-columns-input "${multi_columns_input}" \
         --multi-columns-output "${multi_columns_output}" \
         "${logdir}/wav.JOB.scp" "${outdir}/format${suffix}.JOB" || { cat $(grep -l -i error "${logdir}"/format_wav_scp.*.log) ; exit 1; }
