@@ -1,14 +1,11 @@
 import pytest
 import torch
 import torch.nn.functional as F
-from packaging.version import parse as V
 from torch_complex.tensor import ComplexTensor
 
 from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainL1
 from espnet2.enh.loss.criterions.time_domain import TimeDomainL1
 from espnet2.enh.loss.wrappers.mixit_solver import MixITSolver
-
-is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
 
 
 @pytest.mark.parametrize("inf_num, time_domain", [(4, True), (4, False)])
@@ -64,18 +61,14 @@ def test_MixITSolver_complex_forward(inf_num, torch_complex):
     solver = MixITSolver(FrequencyDomainL1())
 
     if torch_complex:
-        if is_torch_1_9_plus:
-            inf = [
-                torch.rand(batch, 100, 10, 10, dtype=torch.cfloat)
-                for _ in range(inf_num)
-            ]
-            # 2 speaker's reference
-            ref = [
-                torch.zeros(batch, 100, 10, 10, dtype=torch.cfloat),
-                torch.zeros(batch, 100, 10, 10, dtype=torch.cfloat),
-            ]
-        else:
-            return
+        inf = [
+            torch.rand(batch, 100, 10, 10, dtype=torch.cfloat) for _ in range(inf_num)
+        ]
+        # 2 speaker's reference
+        ref = [
+            torch.zeros(batch, 100, 10, 10, dtype=torch.cfloat),
+            torch.zeros(batch, 100, 10, 10, dtype=torch.cfloat),
+        ]
     else:
         inf = [
             ComplexTensor(
