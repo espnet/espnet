@@ -17,6 +17,18 @@ than at import time.
 from functools import lru_cache
 
 
+@lru_cache(maxsize=None)
+def use_gpu() -> bool:
+    """Whether the scoring models should be placed on GPU.
+
+    versa asserts on a CUDA build when told to use the GPU, so hardcoding this
+    to True makes every metric in this package raise on a CPU-only install.
+    """
+    import torch
+
+    return torch.cuda.is_available()
+
+
 def _import_versa_module(module_name):
     """Import one versa submodule, keeping the error message the helpers print.
 
@@ -39,7 +51,7 @@ def espnet_wer_args():
         model_tag="default",
         beam_size=1,
         text_cleaner="whisper_en",
-        use_gpu=True,
+        use_gpu=use_gpu(),
     )
 
 
@@ -50,7 +62,7 @@ def owsm_wer_args():
         model_tag="default",
         beam_size=1,
         text_cleaner="whisper_en",
-        use_gpu=True,
+        use_gpu=use_gpu(),
     )
 
 
@@ -61,7 +73,7 @@ def whisper_wer_args():
         model_tag="default",
         beam_size=1,
         text_cleaner="whisper_en",
-        use_gpu=True,
+        use_gpu=use_gpu(),
     )
 
 
@@ -69,7 +81,7 @@ def whisper_wer_args():
 def pseudo_mos_args():
     """Return the cached (predictor_dict, predictor_fs) for utmos/dnsmos/plcmos."""
     return _import_versa_module("versa.utterance_metrics.pseudo_mos").pseudo_mos_setup(
-        use_gpu=True,
+        use_gpu=use_gpu(),
         predictor_types=["utmos", "dnsmos", "plcmos"],
         predictor_args={
             "utmos": {"fs": 16000},
@@ -86,5 +98,5 @@ def sheet_ssqa_model():
         model_tag="default",
         model_path=None,
         model_config=None,
-        use_gpu=True,
+        use_gpu=use_gpu(),
     )
