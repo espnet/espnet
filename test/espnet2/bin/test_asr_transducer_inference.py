@@ -5,7 +5,6 @@ from typing import List
 
 import numpy as np
 import pytest
-import torch
 
 from espnet2.asr_transducer.beam_search_transducer import Hypothesis
 from espnet2.bin.asr_transducer_inference import Speech2Text, get_parser, main

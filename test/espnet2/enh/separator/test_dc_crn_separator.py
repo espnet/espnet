@@ -1,6 +1,5 @@
 import pytest
 import torch
-from torch_complex import ComplexTensor
 
 from espnet2.enh.layers.complex_utils import is_complex
 from espnet2.enh.separator.dc_crn_separator import DC_CRNSeparator
