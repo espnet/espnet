@@ -765,3 +765,35 @@ def test_Speech2Text_whisper_lid_prompt(
         assert isinstance(token[0], str)
         assert isinstance(token_int[0], int)
         assert isinstance(hyp, Hypothesis)
+
+
+@pytest.mark.parametrize(
+    "choice, model_device, expected",
+    [
+        ("auto", "cpu", None),
+        ("auto", "cuda", None),
+        ("auto", "cuda:1", None),
+        ("auto", "mps", "cpu"),
+        ("auto", "mps:0", "cpu"),
+        ("same", "mps", None),
+        ("cpu", "cuda", "cpu"),
+        ("cuda:1", "cuda:0", "cuda:1"),
+    ],
+)
+def test_resolve_ctc_scoring_device(choice, model_device, expected):
+    from espnet2.bin.asr_inference import resolve_ctc_scoring_device
+
+    assert resolve_ctc_scoring_device(choice, model_device) == expected
+
+
+def test_Speech2Text_ctc_scoring_device(asr_config_file):
+    from espnet2.bin.asr_inference import Speech2Text
+
+    speech2text = Speech2Text(
+        asr_train_config=asr_config_file, beam_size=1, ctc_scoring_device="cpu"
+    )
+    assert speech2text.beam_search.scorers["ctc"].scoring_device == torch.device("cpu")
+    speech = np.random.randn(100000)
+    results = speech2text(speech)
+    for text, token, token_int, hyp in results:
+        assert isinstance(text, str)
