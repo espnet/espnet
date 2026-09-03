@@ -113,6 +113,8 @@ class TrainerOptions:
     best_model_criterion: Sequence[Sequence[str]]
     val_scheduler_criterion: Sequence[str]
     unused_parameters: bool
+    use_torch_compile: bool
+    torch_compile_conf: dict
     wandb_model_log_interval: int
     create_graph_in_tensorboard: bool
     gradient_as_bucket_view: bool
@@ -267,15 +269,27 @@ class Trainer:
                 f"The training has already reached at max_epoch: {start_epoch}"
             )
 
+        # torch.compile is applied to the bare module, BEFORE any parallel
+        # wrapper. Compiling the DDP-wrapped model instead relies on dynamo's
+        # DDPOptimizer and is more fragile; DDP(compile(model)) is the ordering
+        # PyTorch documents as robust.
+        # NOTE: assign to a NEW name. `run()` is @typechecked with
+        # `model: AbsESPnetModel`, and typeguard also validates re-assignments to
+        # a parameter, so rebinding `model` to torch's OptimizedModule raises
+        # TypeCheckError before training starts.
+        train_model = model
+        if getattr(trainer_options, "use_torch_compile", False):
+            train_model = cls._maybe_compile(model, trainer_options)
+
         if distributed_option.distributed:
             if trainer_options.sharded_ddp:
                 dp_model = fairscale.nn.data_parallel.ShardedDataParallel(
-                    module=model,
+                    module=train_model,
                     sharded_optimizer=optimizers,
                 )
             else:
                 dp_model = torch.nn.parallel.DistributedDataParallel(
-                    model,
+                    train_model,
                     device_ids=(
                         # Perform multi-Process with multi-GPUs
                         [torch.cuda.current_device()]
@@ -314,13 +328,13 @@ class Trainer:
 
         elif distributed_option.ngpu > 1:
             dp_model = torch.nn.parallel.DataParallel(
-                model,
+                train_model,
                 device_ids=list(range(distributed_option.ngpu)),
             )
         else:
             # NOTE(kamo): DataParallel also should work with ngpu=1,
             # but for debuggability it's better to keep this block.
-            dp_model = model
+            dp_model = train_model
 
         if trainer_options.use_tensorboard and (
             not distributed_option.distributed or distributed_option.dist_rank == 0
@@ -561,6 +575,48 @@ class Trainer:
                 best_model_criterion=trainer_options.best_model_criterion,
                 nbest=keep_nbest_models,
             )
+
+    @classmethod
+    def _maybe_compile(cls, model, trainer_options):
+        """Apply torch.compile to the WHOLE model.
+
+        IMPORTANT: this recipe's batches vary enormously in both utterance count
+        and sequence length (a numel sampler produced batches of 47 to 596
+        utterances in one run). With static shapes, dynamo recompiles per unique
+        shape, which can cost far more than it saves. `dynamic=True` is therefore
+        the default here so a single shape-polymorphic graph is compiled.
+
+        WHOLE-MODEL, deliberately -- do not switch back to compiling submodules
+        in place. A previous version of this function walked the model and did
+        `mod[i] = torch.compile(mod[i])` for every ModuleList entry. That MUTATES
+        the module tree, so `model.state_dict()` -- which is what
+        `train_one_epoch`'s caller checkpoints, see the `model_state_dict` line
+        below -- came out with `_orig_mod.` embedded in 96% of its 396 keys, and
+        `Trainer.resume` (strict=True, and it runs BEFORE this function) could
+        not load them. Whole-model compile returns a NEW OptimizedModule and
+        leaves `model` untouched, so checkpoints stay clean and resumable.
+
+        Verified on 2x H100 with the real 316.3 M-param WavLM-large: 30 steps
+        over 5 batch shapes under DDP(find_unused_parameters=True), no deadlock,
+        checkpoint keys clean. Note that first step pays a ~60 s compile.
+        """
+        if not hasattr(torch, "compile"):
+            logging.warning(
+                "torch.compile is unavailable in this torch build; running eager."
+            )
+            return model
+
+        conf = dict(getattr(trainer_options, "torch_compile_conf", None) or {})
+        conf.setdefault("dynamic", True)
+        try:
+            compiled = torch.compile(model, **conf)
+        except Exception as e:
+            logging.warning(
+                f"torch.compile failed ({type(e).__name__}: {e}); running eager."
+            )
+            return model
+        logging.info(f"Applied whole-model torch.compile with {conf}")
+        return compiled
 
     @classmethod
     @typechecked

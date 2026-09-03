@@ -97,7 +97,12 @@ try:
 except Exception:
     wandb = None
 
-    from torch.multiprocessing.spawn import ProcessContext
+# NOTE: this import used to sit inside the `except` branch above, so it only ran
+# when wandb was MISSING. With wandb installed, the multiprocessing-distributed
+# path below raised `NameError: name 'ProcessContext' is not defined` in the
+# parent right after it spawned the workers. The children trained on regardless,
+# so runs looked healthy but always exited non-zero.
+from torch.multiprocessing.spawn import ProcessContext
 
 
 optim_classes = dict(
@@ -628,6 +633,23 @@ class AbsTask(ABC):
             type=str2bool,
             default=False,
             help="Enable Automatic Mixed Precision. This feature requires pytorch>=1.6",
+        )
+        group.add_argument(
+            "--use_torch_compile",
+            type=str2bool,
+            default=False,
+            help="Compile the model with torch.compile before wrapping it in "
+            "DDP. Can raise throughput by fusing the many small elementwise "
+            "kernels these models emit, at the cost of a one-off compile.",
+        )
+        group.add_argument(
+            "--torch_compile_conf",
+            action=NestedDictAction,
+            default=dict(),
+            help="Keyword arguments for torch.compile, e.g. "
+            "--torch_compile_conf mode=max-autotune. NOTE: `dynamic` defaults to "
+            "True here because speech batches vary in shape; with static shapes "
+            "dynamo recompiles per shape and can be slower than eager.",
         )
         group.add_argument(
             "--use_grad_scaler",
