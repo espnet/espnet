@@ -1,6 +1,5 @@
 import pytest
 import torch
-from packaging.version import parse as V
 
 from espnet2.enh.decoder.conv_decoder import ConvDecoder
 from espnet2.enh.decoder.stft_decoder import STFTDecoder
@@ -12,10 +11,6 @@ from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainMSE
 from espnet2.enh.loss.criterions.time_domain import SISNRLoss
 from espnet2.enh.loss.wrappers.fixed_order import FixedOrderSolver
 from espnet2.enh.loss.wrappers.pit_solver import PITSolver
-
-is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
-is_torch_1_12_1_plus = V(torch.__version__) >= V("1.12.1")
-
 
 stft_encoder = STFTEncoder(n_fft=32, hop_length=16)
 stft_encoder_bultin_complex = STFTEncoder(

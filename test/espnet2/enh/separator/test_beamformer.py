@@ -1,15 +1,12 @@
 import numpy as np
 import pytest
 import torch
-from packaging.version import parse as V
 
 from espnet2.enh.encoder.stft_encoder import STFTEncoder
 from espnet2.enh.layers.complex_utils import is_torch_complex_tensor
 from espnet2.enh.layers.dnn_beamformer import BEAMFORMER_TYPES
 from espnet2.enh.separator.neural_beamformer import NeuralBeamformer
 
-is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
-is_torch_1_12_1_plus = V(torch.__version__) >= V("1.12.1")
 random_speech = torch.tensor(
     [
         [
@@ -134,7 +131,7 @@ def test_neural_beamformer_forward_backward(
         n_fft=n_fft,
         win_length=win_length,
         hop_length=hop_length,
-        use_builtin_complex=is_torch_1_12_1_plus,
+        use_builtin_complex=True,
     )
     model = NeuralBeamformer(
         stft.output_dim,
@@ -159,7 +156,7 @@ def test_neural_beamformer_forward_backward(
         beamformer_type=beamformer_type,
         rtf_iterations=2,
         shared_power=True,
-        use_torchaudio_api=is_torch_1_12_1_plus,
+        use_torchaudio_api=True,
     )
 
     model.train()
@@ -186,7 +183,7 @@ def test_neural_beamformer_wpe_output(
     inputs = torch.randn(2, 16, ch) if ch > 1 else torch.randn(2, 16)
     inputs = inputs.float()
     ilens = torch.LongTensor([16, 12])
-    stft = STFTEncoder(n_fft=8, hop_length=2, use_builtin_complex=is_torch_1_12_1_plus)
+    stft = STFTEncoder(n_fft=8, hop_length=2, use_builtin_complex=True)
     model = NeuralBeamformer(
         stft.output_dim,
         num_spk=num_spk,
@@ -199,7 +196,7 @@ def test_neural_beamformer_wpe_output(
         taps=5,
         delay=3,
         use_beamformer=False,
-        use_torchaudio_api=is_torch_1_12_1_plus,
+        use_torchaudio_api=True,
     )
     model.eval()
     input_spectrum, flens = stft(inputs, ilens)
@@ -250,7 +247,7 @@ def test_neural_beamformer_bf_output(
     ilens = torch.LongTensor([16, 12])
 
     torch.random.manual_seed(0)
-    stft = STFTEncoder(n_fft=8, hop_length=2, use_builtin_complex=is_torch_1_12_1_plus)
+    stft = STFTEncoder(n_fft=8, hop_length=2, use_builtin_complex=True)
     model = NeuralBeamformer(
         stft.output_dim,
         num_spk=num_spk,
@@ -267,7 +264,7 @@ def test_neural_beamformer_bf_output(
         diagonal_loading=diagonal_loading,
         mask_flooring=mask_flooring,
         use_torch_solver=use_torch_solver,
-        use_torchaudio_api=is_torch_1_12_1_plus,
+        use_torchaudio_api=True,
     )
     model.eval()
     input_spectrum, flens = stft(inputs, ilens)
@@ -292,7 +289,6 @@ def test_neural_beamformer_bf_output(
 @pytest.mark.parametrize("num_spk", [1, 2])
 @pytest.mark.parametrize("use_noise_mask", [True, False])
 @pytest.mark.parametrize("beamformer_type", BEAMFORMER_TYPES)
-@pytest.mark.skipif(not is_torch_1_12_1_plus, reason="Only for torch>=1.12.1")
 def test_beamformer_net_consistency(num_spk, use_noise_mask, beamformer_type):
     if beamformer_type in (
         "lcmv",
