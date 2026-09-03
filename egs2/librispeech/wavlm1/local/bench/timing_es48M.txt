@@ -1,0 +1,1 @@
+mini-batch sizes summary: N-batch=2945, mean=95.5, min=47, max=596

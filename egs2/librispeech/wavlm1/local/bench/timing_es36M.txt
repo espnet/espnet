@@ -1,0 +1,3 @@
+1epoch results: [train] iter_time=1.675e-04, forward_time=0.135, loss=2.040e+04, correct_m=26.461, count_m=2.853e+03, acc_m=0.009, correct_u=23.780, count_u=2.660e+03, acc_u=0.009, backward_time=0.265, grad_norm=2.511e+11, clip=100.000, loss_scale=1.000, optim_step_time=0.004, optim0_lr0=9.398e-06, train_time=0.530, time=10 minutes and 38.47 seconds, total_count=1200, gpu_max_cached_mem_GB=64.207, [valid] loss=1.526e+04, correct_m=4.764, count_m=2.453e+03, acc_m=0.002, correct_u=5.336, count_u=2.742e+03, acc_u=0.002, time=1 minute and 48.78 seconds, total_count=28, gpu_max_cached_mem_GB=64.207
+mini-batch sizes summary: N-batch=3919, mean=71.8, min=34, max=461
+gpu_max_cached_mem_GB=64.207

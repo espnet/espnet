@@ -1,0 +1,5 @@
+point	batch_bins	accum_grad	num_workers	status	power_csv
+bins6M	6000000	4	8	ok	
+bins8M	8000000	4	8	ok	
+bins12M	12000000	4	8	ok	
+bins16M	16000000	4	8	ok	

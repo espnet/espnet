@@ -1,0 +1,758 @@
+2026-08-28T18:47:59 (wavlm.sh:164:main) ./wavlm.sh --ngpu 8 --num_nodes 1 --lang en --train_start_iter 0 --train_stop_iter 1 --nj 32 --max_wav_duration 30 --train_configs conf/tuning/train_ssl_torchaudiowavlm_base_960h_pretrain_it0.yaml conf/tuning/train_ssl_torchaudiowavlm_base_960h_pretrain_it1.yaml --n_clusters 100 500 --features_km mfcc espnet_wavlm --layers_km 0 6 --train_set train_960 --valid_set dev --portion_km 0.1 --gpu_dump_feature true --alignment_phoneme_dir ./data/librispeech_phoneme_alignment --stage 7 --stop_stage 7 --train_start_iter 0 --train_stop_iter 0 --expdir exp_sweep --n_clusters 500 --features_km random --layers_km 0 --portion_km 1.0 --train_configs conf/tuning/train_ssl_torchaudiowavlm_large_960h_pretrain_it0.yaml --python /mnt/weka/mark/espnet/egs2/librispeech/wavlm1/local/bench/python_with_powerlog.sh --wavlm_args --num_iters_per_epoch 1200 --max_epoch 1 --num_att_plot 0                       --keep_nbest_models 1 --patience none                       --batch_bins 64000000 --accum_grad 1 --unused_parameters false
+2026-08-28T18:48:25 (wavlm.sh:527:main) Stage 7 [Iter 0 / 0]: WavLM Training: input_feats=random, train_set=dump/raw/train_960, valid_set=dump/raw/dev
+2026-08-28T18:48:25 (wavlm.sh:593:main) Generate 'exp_sweep/wavlm_iter0_train_ssl_torchaudiowavlm_large_960h_pretrain_it0_raw/run.sh'. You can resume the process from stage 7 using this script
+2026-08-28T18:48:25 (wavlm.sh:597:main) WavLM Training started... log: 'exp_sweep/wavlm_iter0_train_ssl_torchaudiowavlm_large_960h_pretrain_it0_raw/train.log'
+2026-08-28 18:48:28,210 (launch:94) INFO: /mnt/weka/mark/espnet/tools/anaconda/envs/espnet/bin/python3 /mnt/weka/mark/espnet/espnet2/bin/launch.py --cmd 'slurm.pl --name exp_sweep/wavlm_iter0_train_ssl_torchaudiowavlm_large_960h_pretrain_it0_raw/train.log' --log exp_sweep/wavlm_iter0_train_ssl_torchaudiowavlm_large_960h_pretrain_it0_raw/train.log --ngpu 8 --num_nodes 1 --init_file_prefix exp_sweep/wavlm_iter0_train_ssl_torchaudiowavlm_large_960h_pretrain_it0_raw/.dist_init_ --multiprocessing_distributed true -- /mnt/weka/mark/espnet/egs2/librispeech/wavlm1/local/bench/python_with_powerlog.sh -m espnet2.bin.wavlm_train --use_preprocessor true --normalize null --token_type word --token_list data/en_token_list_kmeans_iter0_random_500clusters/word/tokens.txt --num_classes 500 --valid_data_path_and_name_and_type dump/raw/dev/wav.scp,speech,sound --valid_data_path_and_name_and_type dump/raw/dev/text.km.kmeans_iter0_random_train_960_portion1.0,text,text --valid_shape_file exp_sweep/wavlm_iter0_stats_raw/valid/speech_shape --valid_shape_file exp_sweep/wavlm_iter0_stats_raw/valid/text_shape.word --resume true --fold_length 80000 --fold_length 400 --output_dir exp_sweep/wavlm_iter0_train_ssl_torchaudiowavlm_large_960h_pretrain_it0_raw --config conf/tuning/train_ssl_torchaudiowavlm_large_960h_pretrain_it0.yaml --frontend_conf fs=16k --train_data_path_and_name_and_type dump/raw/train_960/wav.scp,speech,sound --train_data_path_and_name_and_type dump/raw/train_960/text.km.kmeans_iter0_random_train_960_portion1.0,text,text --train_shape_file exp_sweep/wavlm_iter0_stats_raw/train/speech_shape --train_shape_file exp_sweep/wavlm_iter0_stats_raw/train/text_shape.word --num_iters_per_epoch 1200 --max_epoch 1 --num_att_plot 0 --keep_nbest_models 1 --patience none --batch_bins 64000000 --accum_grad 1 --unused_parameters false
+2026-08-28 18:48:29,361 (launch:237) INFO: single-node with 8gpu on distributed mode
+2026-08-28 18:48:29,403 (launch:348) INFO: log file: exp_sweep/wavlm_iter0_train_ssl_torchaudiowavlm_large_960h_pretrain_it0_raw/train.log
+Terminated
+ls: cannot access 'exp_sweep/wavlm_iter0_train_ssl_torchaudiowavlm_large_960h_pretrain_it0_raw/q': No such file or directory
+/mnt/weka/mark/espnet/egs2/librispeech/wavlm1/utils/slurm.pl: Error: Job 361957 seems to no longer exists:
+'squeue -j 361957' returned error code 1 and said:
+  slurm_load_jobs error: Invalid job id specified
+
+Syncfile exp_sweep/wavlm_iter0_train_ssl_torchaudiowavlm_large_960h_pretrain_it0_raw/q/done.2041436 does not exist, meaning that the job did not finish.
+Log is in exp_sweep/wavlm_iter0_train_ssl_torchaudiowavlm_large_960h_pretrain_it0_raw/train.log. Last line '[pg12b-14-2-hpc:0/8] 2026-08-28 18:57:34,639 (trainer:830) INFO: 1epoch:train:421-480batch: iter_time=1.082e-04, forward_time=0.133, loss=1.872e+04, correct_m=19.675, count_m=2.890e+03, acc_m=0.007, correct_u=21.532, count_u=2.623e+03, acc_u=0.008, backward_time=0.262, grad_norm=270.217, clip=100.000, loss_scale=1.000, optim_step_time=0.004, optim0_lr0=7.055e-06, train_time=0.436' does not end in 'status 0'.
+Possible reasons:
+  a) Exceeded time limit? -> Use more jobs!
+  b) Shutdown/Frozen machine? -> Run again! squeue:
+slurm_load_jobs error: Invalid job id specified
+Command '['slurm.pl', '--name', 'exp_sweep/wavlm_iter0_train_ssl_torchaudiowavlm_large_960h_pretrain_it0_raw/train.log', '--gpu', '8', 'exp_sweep/wavlm_iter0_train_ssl_torchaudiowavlm_large_960h_pretrain_it0_raw/train.log', '/mnt/weka/mark/espnet/egs2/librispeech/wavlm1/local/bench/python_with_powerlog.sh', '-m', 'espnet2.bin.wavlm_train', '--use_preprocessor', 'true', '--normalize', 'null', '--token_type', 'word', '--token_list', 'data/en_token_list_kmeans_iter0_random_500clusters/word/tokens.txt', '--num_classes', '500', '--valid_data_path_and_name_and_type', 'dump/raw/dev/wav.scp,speech,sound', '--valid_data_path_and_name_and_type', 'dump/raw/dev/text.km.kmeans_iter0_random_train_960_portion1.0,text,text', '--valid_shape_file', 'exp_sweep/wavlm_iter0_stats_raw/valid/speech_shape', '--valid_shape_file', 'exp_sweep/wavlm_iter0_stats_raw/valid/text_shape.word', '--resume', 'true', '--fold_length', '80000', '--fold_length', '400', '--output_dir', 'exp_sweep/wavlm_iter0_train_ssl_torchaudiowavlm_large_960h_pretrain_it0_raw', '--config', 'conf/tuning/train_ssl_torchaudiowavlm_large_960h_pretrain_it0.yaml', '--frontend_conf', 'fs=16k', '--train_data_path_and_name_and_type', 'dump/raw/train_960/wav.scp,speech,sound', '--train_data_path_and_name_and_type', 'dump/raw/train_960/text.km.kmeans_iter0_random_train_960_portion1.0,text,text', '--train_shape_file', 'exp_sweep/wavlm_iter0_stats_raw/train/speech_shape', '--train_shape_file', 'exp_sweep/wavlm_iter0_stats_raw/train/text_shape.word', '--num_iters_per_epoch', '1200', '--max_epoch', '1', '--num_att_plot', '0', '--keep_nbest_models', '1', '--patience', 'none', '--batch_bins', '64000000', '--accum_grad', '1', '--unused_parameters', 'false', '--ngpu', '8', '--multiprocessing_distributed', 'True']' returned non-zero exit status 1.
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/mnt/weka/mark/espnet/espnet2/bin/launch.py", line 384, in <module>
+    main()
+  File "/mnt/weka/mark/espnet/espnet2/bin/launch.py", line 375, in main
+    raise RuntimeError(
+RuntimeError: 
+################### The last 1000 lines of exp_sweep/wavlm_iter0_train_ssl_torchaudiowavlm_large_960h_pretrain_it0_raw/train.log ###################
+# Running on pg12b-14-2-hpc
+# Started at Fri Aug 28 18:51:33 UTC 2026
+# SLURMD_NODENAME=pg12b-14-2-hpc
+# SLURM_CLUSTER_NAME=hume-iren-cluster-debug
+# SLURM_CONF=/etc/slurm/slurm.conf
+# SLURM_CPUS_ON_NODE=192
+# SLURM_EXPORT_ENV=PATH
+# SLURM_GET_USER_ENV=1
+# SLURM_GPUS_ON_NODE=8
+# SLURM_GTIDS=0
+# SLURM_JOBID=361998
+# SLURM_JOB_ACCOUNT=root
+# SLURM_JOB_CPUS_PER_NODE=192
+# SLURM_JOB_END_TIME=1788807084
+# SLURM_JOB_GID=500289
+# SLURM_JOB_GPUS=0,1,2,3,4,5,6,7
+# SLURM_JOB_ID=361998
+# SLURM_JOB_NAME=exp_sweep/wavlm_iter0_train_ssl_torchaudiowavlm_large_960h_pretrain_it0_raw/train.log
+# SLURM_JOB_NODELIST=pg12b-14-2-hpc
+# SLURM_JOB_NUM_NODES=1
+# SLURM_JOB_PARTITION=gpu
+# SLURM_JOB_QOS=normal
+# SLURM_JOB_START_TIME=1787943084
+# SLURM_JOB_UID=500289
+# SLURM_JOB_USER=mark
+# SLURM_LOCALID=0
+# SLURM_MEM_PER_CPU=4800
+# SLURM_NNODES=1
+# SLURM_NODEID=0
+# SLURM_NODELIST=pg12b-14-2-hpc
+# SLURM_OPEN_MODE=a
+# SLURM_PRIO_PROCESS=0
+# SLURM_PROCID=0
+# SLURM_SUBMIT_DIR=/mnt/weka/mark/espnet/egs2/librispeech/wavlm1
+# SLURM_SUBMIT_HOST=pg11b-3-5-hpc6
+# SLURM_TASKS_PER_NODE=192
+# SLURM_TASK_PID=1641905
+# SLURM_TOPOLOGY_ADDR=pg12b-14-2-hpc
+# SLURM_TOPOLOGY_ADDR_PATTERN=node
+# /mnt/weka/mark/espnet/egs2/librispeech/wavlm1/local/bench/python_with_powerlog.sh -m espnet2.bin.wavlm_train --use_preprocessor true --normalize null --token_type word --token_list data/en_token_list_kmeans_iter0_random_500clusters/word/tokens.txt --num_classes 500 --valid_data_path_and_name_and_type dump/raw/dev/wav.scp,speech,sound --valid_data_path_and_name_and_type dump/raw/dev/text.km.kmeans_iter0_random_train_960_portion1.0,text,text --valid_shape_file exp_sweep/wavlm_iter0_stats_raw/valid/speech_shape --valid_shape_file exp_sweep/wavlm_iter0_stats_raw/valid/text_shape.word --resume true --fold_length 80000 --fold_length 400 --output_dir exp_sweep/wavlm_iter0_train_ssl_torchaudiowavlm_large_960h_pretrain_it0_raw --config conf/tuning/train_ssl_torchaudiowavlm_large_960h_pretrain_it0.yaml --frontend_conf fs=16k --train_data_path_and_name_and_type dump/raw/train_960/wav.scp,speech,sound --train_data_path_and_name_and_type dump/raw/train_960/text.km.kmeans_iter0_random_train_960_portion1.0,text,text --train_shape_file exp_sweep/wavlm_iter0_stats_raw/train/speech_shape --train_shape_file exp_sweep/wavlm_iter0_stats_raw/train/text_shape.word --num_iters_per_epoch 1200 --max_epoch 1 --num_att_plot 0 --keep_nbest_models 1 --patience none --batch_bins 36000000 --accum_grad 1 --unused_parameters false --ngpu 8 --multiprocessing_distributed True 
+# nvidia-smi power sampling -> /mnt/weka/mark/espnet/egs2/librispeech/wavlm1/local/bench/power/power_pg12b-14-2-hpc_20260828_185133.csv
+/mnt/weka/mark/espnet/tools/anaconda/envs/espnet/bin/python3 /mnt/weka/mark/espnet/espnet2/bin/wavlm_train.py --use_preprocessor true --normalize null --token_type word --token_list data/en_token_list_kmeans_iter0_random_500clusters/word/tokens.txt --num_classes 500 --valid_data_path_and_name_and_type dump/raw/dev/wav.scp,speech,sound --valid_data_path_and_name_and_type dump/raw/dev/text.km.kmeans_iter0_random_train_960_portion1.0,text,text --valid_shape_file exp_sweep/wavlm_iter0_stats_raw/valid/speech_shape --valid_shape_file exp_sweep/wavlm_iter0_stats_raw/valid/text_shape.word --resume true --fold_length 80000 --fold_length 400 --output_dir exp_sweep/wavlm_iter0_train_ssl_torchaudiowavlm_large_960h_pretrain_it0_raw --config conf/tuning/train_ssl_torchaudiowavlm_large_960h_pretrain_it0.yaml --frontend_conf fs=16k --train_data_path_and_name_and_type dump/raw/train_960/wav.scp,speech,sound --train_data_path_and_name_and_type dump/raw/train_960/text.km.kmeans_iter0_random_train_960_portion1.0,text,text --train_shape_file exp_sweep/wavlm_iter0_stats_raw/train/speech_shape --train_shape_file exp_sweep/wavlm_iter0_stats_raw/train/text_shape.word --num_iters_per_epoch 1200 --max_epoch 1 --num_att_plot 0 --keep_nbest_models 1 --patience none --batch_bins 36000000 --accum_grad 1 --unused_parameters false --ngpu 8 --multiprocessing_distributed True
+[W828 18:52:02.564108948 Utils.hpp:166] Warning: Environment variable NCCL_BLOCKING_WAIT is deprecated; use TORCH_NCCL_BLOCKING_WAIT instead (function operator())
+[W828 18:52:02.568488566 Utils.hpp:166] Warning: Environment variable NCCL_BLOCKING_WAIT is deprecated; use TORCH_NCCL_BLOCKING_WAIT instead (function operator())
+[W828 18:52:02.686685487 Utils.hpp:166] Warning: Environment variable NCCL_BLOCKING_WAIT is deprecated; use TORCH_NCCL_BLOCKING_WAIT instead (function operator())
+[W828 18:52:02.702685933 Utils.hpp:166] Warning: Environment variable NCCL_BLOCKING_WAIT is deprecated; use TORCH_NCCL_BLOCKING_WAIT instead (function operator())
+[W828 18:52:02.889605601 Utils.hpp:166] Warning: Environment variable NCCL_BLOCKING_WAIT is deprecated; use TORCH_NCCL_BLOCKING_WAIT instead (function operator())
+[W828 18:52:02.954634529 Utils.hpp:166] Warning: Environment variable NCCL_BLOCKING_WAIT is deprecated; use TORCH_NCCL_BLOCKING_WAIT instead (function operator())
+[W828 18:52:02.009655609 Utils.hpp:166] Warning: Environment variable NCCL_BLOCKING_WAIT is deprecated; use TORCH_NCCL_BLOCKING_WAIT instead (function operator())
+[W828 18:52:02.016491267 Utils.hpp:166] Warning: Environment variable NCCL_BLOCKING_WAIT is deprecated; use TORCH_NCCL_BLOCKING_WAIT instead (function operator())
+[pg12b-14-2-hpc:0/8] 2026-08-28 18:52:03,126 (wavlm:380) INFO: Vocabulary size: 502
+[pg12b-14-2-hpc:0/8] 2026-08-28 18:52:06,254 (abs_task:1470) INFO: pytorch.version=2.9.1+cu128, cuda.available=True, cudnn.version=91002, cudnn.benchmark=False, cudnn.deterministic=True
+[pg12b-14-2-hpc:0/8] 2026-08-28 18:52:06,258 (abs_task:1471) INFO: Model structure:
+TorchAudioHubertPretrainModel(
+  (encoder): TorchAudioWavLMPretrainEncoder(
+    (wavlm_pretrain_model): HuBERTPretrainModel(
+      (wav2vec2): Wav2Vec2Model(
+        (feature_extractor): FeatureExtractor(
+          (conv_layers): ModuleList(
+            (0): ConvLayerBlock(
+              (layer_norm): LayerNorm((512,), eps=1e-05, elementwise_affine=True)
+              (conv): Conv1d(1, 512, kernel_size=(10,), stride=(5,), bias=False)
+            )
+            (1-4): 4 x ConvLayerBlock(
+              (layer_norm): LayerNorm((512,), eps=1e-05, elementwise_affine=True)
+              (conv): Conv1d(512, 512, kernel_size=(3,), stride=(2,), bias=False)
+            )
+            (5-6): 2 x ConvLayerBlock(
+              (layer_norm): LayerNorm((512,), eps=1e-05, elementwise_affine=True)
+              (conv): Conv1d(512, 512, kernel_size=(2,), stride=(2,), bias=False)
+            )
+          )
+        )
+        (encoder): WavLMEncoder(
+          (feature_projection): FeatureProjection(
+            (layer_norm): LayerNorm((512,), eps=1e-05, elementwise_affine=True)
+            (projection): Linear(in_features=512, out_features=1024, bias=True)
+            (dropout): Dropout(p=0.0, inplace=False)
+          )
+          (transformer): WavLMTransformer(
+            (pos_conv_embed): ConvolutionalPositionalEmbedding(
+              (conv): ParametrizedConv1d(
+                1024, 1024, kernel_size=(128,), stride=(1,), padding=(64,), groups=16
+                (parametrizations): ModuleDict(
+                  (weight): ParametrizationList(
+                    (0): _WeightNorm()
+                  )
+                )
+              )
+            )
+            (layer_norm): LayerNorm((1024,), eps=1e-05, elementwise_affine=True)
+            (dropout): Dropout(p=0.0, inplace=False)
+            (layers): ModuleList(
+              (0): EncoderLayer(
+                (attention): WavLMSelfAttention(
+                  (rel_attn_embed): Embedding(320, 16)
+                  (attention): MultiheadAttention(
+                    (out_proj): NonDynamicallyQuantizableLinear(in_features=1024, out_features=1024, bias=True)
+                  )
+                  (gru_rel_pos_linear): Linear(in_features=64, out_features=8, bias=True)
+                )
+                (dropout): Dropout(p=0.0, inplace=False)
+                (layer_norm): LayerNorm((1024,), eps=1e-05, elementwise_affine=True)
+                (feed_forward): FeedForward(
+                  (intermediate_dense): Linear(in_features=1024, out_features=4096, bias=True)
+                  (intermediate_dropout): Dropout(p=0.0, inplace=False)
+                  (output_dense): Linear(in_features=4096, out_features=1024, bias=True)
+                  (output_dropout): Dropout(p=0.0, inplace=False)
+                )
+                (final_layer_norm): LayerNorm((1024,), eps=1e-05, elementwise_affine=True)
+              )
+              (1-23): 23 x EncoderLayer(
+                (attention): WavLMSelfAttention(
+                  (attention): MultiheadAttention(
+                    (out_proj): NonDynamicallyQuantizableLinear(in_features=1024, out_features=1024, bias=True)
+                  )
+                  (gru_rel_pos_linear): Linear(in_features=64, out_features=8, bias=True)
+                )
+                (dropout): Dropout(p=0.0, inplace=False)
+                (layer_norm): LayerNorm((1024,), eps=1e-05, elementwise_affine=True)
+                (feed_forward): FeedForward(
+                  (intermediate_dense): Linear(in_features=1024, out_features=4096, bias=True)
+                  (intermediate_dropout): Dropout(p=0.0, inplace=False)
+                  (output_dense): Linear(in_features=4096, out_features=1024, bias=True)
+                  (output_dropout): Dropout(p=0.0, inplace=False)
+                )
+                (final_layer_norm): LayerNorm((1024,), eps=1e-05, elementwise_affine=True)
+              )
+            )
+          )
+        )
+      )
+      (mask_generator): MaskGenerator()
+      (logit_generator): LogitGenerator(
+        (final_proj): Linear(in_features=1024, out_features=768, bias=True)
+      )
+    )
+  )
+)
+
+Model summary:
+    Class Name: TorchAudioHubertPretrainModel
+    Total Number of model parameters: 316.62 M
+    Number of trainable parameters: 316.62 M (100.0%)
+    Size: 1.27 GB
+    Type: torch.float32
+[pg12b-14-2-hpc:0/8] 2026-08-28 18:52:06,258 (abs_task:1474) INFO: Optimizer:
+Adam (
+Parameter Group 0
+    amsgrad: False
+    betas: (0.9, 0.999)
+    capturable: False
+    decoupled_weight_decay: False
+    differentiable: False
+    eps: 1e-08
+    foreach: None
+    fused: None
+    initial_lr: 0.0005
+    lr: 1.5625e-08
+    maximize: False
+    weight_decay: 0
+)
+[pg12b-14-2-hpc:0/8] 2026-08-28 18:52:06,258 (abs_task:1475) INFO: Scheduler: WarmupLR(warmup_steps=32000)
+[pg12b-14-2-hpc:0/8] 2026-08-28 18:52:06,260 (abs_task:1484) INFO: Saving the configuration in exp_sweep/wavlm_iter0_train_ssl_torchaudiowavlm_large_960h_pretrain_it0_raw/config.yaml
+[pg12b-14-2-hpc:0/8] 2026-08-28 18:52:08,243 (abs_task:1903) INFO: [train] Batch sampler: NumElementsBatchSampler(N-batch=3919, batch_bins=36000000, sort_in_batch=descending, sort_batch=descending)
+[pg12b-14-2-hpc:0/8] 2026-08-28 18:52:08,243 (abs_task:1904) INFO: [train] mini-batch sizes summary: N-batch=3919, mean=71.8, min=34, max=461
+[pg12b-14-2-hpc:0/8] 2026-08-28 18:52:08,386 (read_text:31) INFO: keys_to_load is not None, only loading 36871 keys from dump/raw/train_960/text.km.kmeans_iter0_random_train_960_portion1.0
+[pg12b-14-2-hpc:0/8] 2026-08-28 18:52:08,972 (abs_task:1928) INFO: [train] dataset:
+ESPnetDataset(
+  speech: {"path": "dump/raw/train_960/wav.scp", "type": "sound"}
+  text: {"path": "dump/raw/train_960/text.km.kmeans_iter0_random_train_960_portion1.0", "type": "text"}
+  preprocess: <espnet2.train.preprocessor.CommonPreprocessor object at 0x7fefc6eb0860>)
+[pg12b-14-2-hpc:0/8] 2026-08-28 18:52:08,993 (abs_task:1903) INFO: [valid] Batch sampler: NumElementsBatchSampler(N-batch=28, batch_bins=36000000, sort_in_batch=descending, sort_batch=descending)
+[pg12b-14-2-hpc:0/8] 2026-08-28 18:52:08,993 (abs_task:1904) INFO: [valid] mini-batch sizes summary: N-batch=28, mean=127.2, min=22, max=345
+[pg12b-14-2-hpc:0/8] 2026-08-28 18:52:08,995 (read_text:31) INFO: keys_to_load is not None, only loading 457 keys from dump/raw/dev/text.km.kmeans_iter0_random_train_960_portion1.0
+[pg12b-14-2-hpc:0/8] 2026-08-28 18:52:09,001 (abs_task:1928) INFO: [valid] dataset:
+ESPnetDataset(
+  speech: {"path": "dump/raw/dev/wav.scp", "type": "sound"}
+  text: {"path": "dump/raw/dev/text.km.kmeans_iter0_random_train_960_portion1.0", "type": "text"}
+  preprocess: <espnet2.train.preprocessor.CommonPreprocessor object at 0x7fefc7245d90>)
+[pg12b-14-2-hpc:0/8] 2026-08-28 18:52:09,001 (trainer:225) INFO: AMP is enabled with dtype=torch.bfloat16 and loss scaling disabled.
+pg12b-14-2-hpc:1642697:1642697 [0] NCCL INFO NCCL_SOCKET_IFNAME set by environment to ^lo,docker,virbr,vmnet,vboxnet
+pg12b-14-2-hpc:1642697:1642697 [0] NCCL INFO Bootstrap: Using enp27s0f0np0:10.166.111.142<0>
+pg12b-14-2-hpc:1642697:1642697 [0] NCCL INFO cudaDriverVersion 12080
+pg12b-14-2-hpc:1642697:1642697 [0] NCCL INFO NCCL version 2.27.5+cuda12.9
+pg12b-14-2-hpc:1642697:1642697 [0] NCCL INFO Comm config Blocking set to 1
+pg12b-14-2-hpc:1642697:1643263 [0] NCCL INFO NET/Plugin: Could not find: libnccl-net.so. 
+pg12b-14-2-hpc:1642697:1643263 [0] NCCL INFO NCCL_SOCKET_IFNAME set by environment to ^lo,docker,virbr,vmnet,vboxnet
+pg12b-14-2-hpc:1642697:1643263 [0] NCCL INFO NET/IB : Using [0]mlx5_0:1/IB [1]mlx5_1:1/RoCE [2]mlx5_3:1/IB [3]mlx5_4:1/IB [4]mlx5_5:1/IB [5]mlx5_6:1/IB [6]mlx5_7:1/RoCE [7]mlx5_9:1/IB [8]mlx5_10:1/IB [9]mlx5_11:1/IB [RO]; OOB enp27s0f0np0:10.166.111.142<0>
+pg12b-14-2-hpc:1642697:1643263 [0] NCCL INFO Initialized NET plugin IB
+pg12b-14-2-hpc:1642697:1643263 [0] NCCL INFO Assigned NET plugin IB to comm
+pg12b-14-2-hpc:1642697:1643263 [0] NCCL INFO Using network IB
+pg12b-14-2-hpc:1642697:1643263 [0] NCCL INFO ncclCommInitRankConfig comm 0x55eeedef18c0 rank 0 nranks 8 cudaDev 0 nvmlDev 0 busId 19000 commId 0x60d242d634553586 - Init START
+pg12b-14-2-hpc:1642697:1643263 [0] NCCL INFO RAS client listening socket at 127.0.0.1<28028>
+pg12b-14-2-hpc:1642697:1643263 [0] NCCL INFO Bootstrap timings total 0.021763 (create 0.000019, send 0.000098, recv 0.020515, ring 0.000880, delay 0.000000)
+pg12b-14-2-hpc:1642697:1643263 [0] NCCL INFO MNNVL busId 0x19000 fabric UUID 0.0 cliqueId 0x0 state 3 healthMask 0x0
+pg12b-14-2-hpc:1642697:1643263 [0] NCCL INFO Setting affinity for GPU 0 to 0,2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40,42,44,46,48,50,52,54,56,58,60,62,64,66,68,70,72,74,76,78,80,82,84,86,88,90,92,94,104,106,108,110,112,114,116,118,120,122,124,126,128,130,132,134,136,138,140,142,144,146,148,150,152,154,156,158,160,
+pg12b-14-2-hpc:1642697:1643263 [0] NCCL INFO NVLS multicast support is available on dev 0 (NVLS_NCHANNELS 16)
+pg12b-14-2-hpc:1642697:1643263 [0] NCCL INFO comm 0x55eeedef18c0 rank 0 nRanks 8 nNodes 1 localRanks 8 localRank 0 MNNVL 0
+pg12b-14-2-hpc:1642697:1643263 [0] NCCL INFO Channel 00/24 : 0 1 2 3 4 5 6 7
+pg12b-14-2-hpc:1642697:1643263 [0] NCCL INFO Channel 01/24 : 0 1 2 3 4 5 6 7
+pg12b-14-2-hpc:1642697:1643263 [0] NCCL INFO Channel 02/24 : 0 1 2 3 4 5 6 7
+pg12b-14-2-hpc:1642697:1643263 [0] NCCL INFO Channel 03/24 : 0 1 2 3 4 5 6 7
+pg12b-14-2-hpc:1642697:1643263 [0] NCCL INFO Channel 04/24 : 0 1 2 3 4 5 6 7
+pg12b-14-2-hpc:1642697:1643263 [0] NCCL INFO Channel 05/24 : 0 1 2 3 4 5 6 7
+pg12b-14-2-hpc:1642697:1643263 [0] NCCL INFO Channel 06/24 : 0 1 2 3 4 5 6 7
+pg12b-14-2-hpc:1642697:1643263 [0] NCCL INFO Channel 07/24 : 0 1 2 3 4 5 6 7
+pg12b-14-2-hpc:1642697:1643263 [0] NCCL INFO Channel 08/24 : 0 1 2 3 4 5 6 7
+pg12b-14-2-hpc:1642697:1643263 [0] NCCL INFO Channel 09/24 : 0 1 2 3 4 5 6 7
+pg12b-14-2-hpc:1642697:1643263 [0] NCCL INFO Channel 10/24 : 0 1 2 3 4 5 6 7
+pg12b-14-2-hpc:1642697:1643263 [0] NCCL INFO Channel 11/24 : 0 1 2 3 4 5 6 7
+pg12b-14-2-hpc:1642697:1643263 [0] NCCL INFO Channel 12/24 : 0 1 2 3 4 5 6 7
+pg12b-14-2-hpc:1642697:1643263 [0] NCCL INFO Channel 13/24 : 0 1 2 3 4 5 6 7
+pg12b-14-2-hpc:1642697:1643263 [0] NCCL INFO Channel 14/24 : 0 1 2 3 4 5 6 7
+pg12b-14-2-hpc:1642697:1643263 [0] NCCL INFO Channel 15/24 : 0 1 2 3 4 5 6 7
+pg12b-14-2-hpc:1642697:1643263 [0] NCCL INFO Channel 16/24 : 0 1 2 3 4 5 6 7
+pg12b-14-2-hpc:1642697:1643263 [0] NCCL INFO Channel 17/24 : 0 1 2 3 4 5 6 7
+pg12b-14-2-hpc:1642697:1643263 [0] NCCL INFO Channel 18/24 : 0 1 2 3 4 5 6 7
+pg12b-14-2-hpc:1642697:1643263 [0] NCCL INFO Channel 19/24 : 0 1 2 3 4 5 6 7
+pg12b-14-2-hpc:1642697:1643263 [0] NCCL INFO Channel 20/24 : 0 1 2 3 4 5 6 7
+pg12b-14-2-hpc:1642697:1643263 [0] NCCL INFO Channel 21/24 : 0 1 2 3 4 5 6 7
+pg12b-14-2-hpc:1642697:1643263 [0] NCCL INFO Channel 22/24 : 0 1 2 3 4 5 6 7
+pg12b-14-2-hpc:1642697:1643263 [0] NCCL INFO Channel 23/24 : 0 1 2 3 4 5 6 7
+pg12b-14-2-hpc:1642697:1643263 [0] NCCL Ipg12b-14-2-hpc:1642701:1642701 [4] NCCL INFO cudaDriverVersion 12080
+pg12b-14-2-hpc:1642701:1642701 [4] NCCL INFO NCCL_SOCKET_IFNAME set by environment to ^lo,docker,virbr,vmnet,vboxnet
+pg12b-14-2-hpc:1642701:1642701 [4] NCCL INFO Bootstrap: Using enp27s0f0np0:10.166.111.142<0>
+pg12b-14-2-hpc:1642701:1642701 [4] NCCL INFO NCCL version 2.27.5+cuda12.9
+pg12b-14-2-hpc:1642701:1642701 [4] NCCL INFO Comm config Blocking set to 1
+pg12b-14-2-hpc:1642701:1643271 [4] NCCL INFO NET/Plugin: Could not find: libnccl-net.so. 
+pg12b-14-2-hpc:1642701:1643271 [4] NCCL INFO NCCL_SOCKET_IFNAME set by environment to ^lo,docker,virbr,vmnet,vboxnet
+pg12b-14-2-hpc:1642701:1643271 [4] NCCL INFO NET/IB : Using [0]mlx5_0:1/IB [1]mlx5_1:1/RoCE [2]mlx5_3:1/IB [3]mlx5_4:1/IB [4]mlx5_5:1/IB [5]mlx5_6:1/IB [6]mlx5_7:1/RoCE [7]mlx5_9:1/IB [8]mlx5_10:1/IB [9]mlx5_11:1/IB [RO]; OOB enp27s0f0np0:10.166.111.142<0>
+pg12b-14-2-hpc:1642701:1643271 [4] NCCL INFO Initialized NET plugin IB
+pg12b-14-2-hpc:1642701:1643271 [4] NCCL INFO Assigned NET plugin IB to comm
+pg12b-14-2-hpc:1642701:1643271 [4] NCCL INFO Using network IB
+pg12b-14-2-hpc:1642701:1643271 [4] NCCL INFO ncclCommInitRankConfig comm 0x5564e8ae6600 rank 4 nranks 8 cudaDev 4 nvmlDev 4 busId 9b000 commId 0x60d242d634553586 - Init START
+pg12b-14-2-hpc:1642701:1643271 [4] NCCL INFO RAS client listening socket at 127.0.0.1<28028>
+pg12b-14-2-hpc:1642701:1643271 [4] NCCL INFO Bootstrap timings total 0.023148 (create 0.000021, send 0.000116, recv 0.000120, ring 0.022615, delay 0.000000)
+pg12b-14-2-hpc:1642701:1643271 [4] NCCL INFO MNNVL busId 0x9b000 fabric UUID 0.0 cliqueId 0x0 state 3 healthMask 0x0
+pg12b-14-2-hpc:1642701:1643271 [4] NCCL INFO Setting affinity for GPU 4 to 1,3,5,7,9,11,13,15,17,19,21,23,25,27,29,31,33,35,37,39,41,43,45,47,49,51,53,55,57,59,61,63,65,67,69,71,73,75,77,79,81,83,85,87,89,91,93,95,105,107,109,111,113,115,117,119,121,123,125,127,129,131,133,135,137,139,141,143,145,147,149,151,153,155,157,159,161,
+pg12b-14-2-hpc:1642701:1643271 [4] NCCL INFO NVLS multicast support is available on dev 4 (NVLS_NCHANNELS 16)
+pg12b-14-2-hpc:1642701:1643271 [4] NCCL INFO comm 0x5564e8ae6600 rank 4 nRanks 8 nNodes 1 localRanks 8 localRank 4 MNNVL 0
+pg12b-14-2-hpc:1642701:1643271 [4] NCCL INFO Trees [0] 5/-1/-1->4->3 [1] 5/-1/-1->4->3 [2] 5/-1/-1->4->3 [3] 5/-1/-1->4->3 [4] 5/-1/-1->4->3 [5] 5/-1/-1->4->3 [6] 5/-1/-1->4->3 [7] 5/-1/-1->4->3 [8] 5/-1/-1->4->3 [9] 5/-1/-1->4->3 [10] 5/-1/-1->4->3 [11] 5/-1/-1->4->3 [12] 5/-1/-1->4->3 [13] 5/-1/-1->4->3 [14] 5/-1/-1->4->3 [15] 5/-1/-1->4->3 [16] 5/-1/-1->4->3 [17] 5/-1/-1->4->3 [18] 5/-1/-1->4->3 [19] 5/-1/-1->4->3 [20] 5/-1/-1->4->3 [21] 5/-1/-1->4->3 [22] 5/-1/-1->4->3 [23] 5/-1/-1->4->3
+pg12b-14-2-hpc:1642701:1643271 [4] NCCL INFO P2P Chunksize set to 524288
+pg12b-14-2-hpc:1642701:1643271 [4] NCCL INFO PROFILER/Plugin: Could not find: libnccl-profiler.so. 
+pg12b-14-2-hpc:1642701:1643385 [4] NCCL INFO [Proxy Service] Device 4 CPU core 75
+pg12b-14-2-hpc:1642701:1643388 [4] NCCL INFO [Proxy Service UDS] Device 4 CPU core 77
+pg12b-14-2-hpc:1642701:1643271 [4] NCCL INFO threadThresholds 8/8/64 | 64/8/64 | 512 | 512
+pg12b-14-2-hpc:1642701:1643271 [4] NCCL INFO 24 coll channels, 24 collnet channels, 16 nvls channels, 32 p2p channels, 32 p2p channels per peer
+pg12b-14-2-hpc:1642701:1643271 [4] NCCL INFO TUNER/Plugin: Could not find: libnccl-tuner.so. Using internal tuner plugin.
+pg12b-14-2-hpc:1642701:1643271 [4] NCCL INFO ncclCommInitRankConfig comm 0x5564e8ae6600 rank 4 nranks 8 cudaDev 4 nvmlDev 4 busId 9b000 commId 0x60d242d634553586 - Init COMPLETE
+pg12b-14-2-hpc:1642701:1643271 [4] NCCL INFO Init timings - ncclCommInitRankConfig: rank 4 nranks 8 total 1.66 (kernels 0.25, alloc 0.99, bootstrap 0.02, allgathers 0.00, topo 0.07, graphs 0.02, connections 0.25, rest 0.05)
+pg12b-14-2-hpc:1642701:1643400 [4] NCCL INFO Channel 00/0 : 4[4] -> 5[5] via P2P/CUMEM
+pg12b-14-2-hpc:1642701:1643400 [4] NCCL INFO Channel 01/0 : 4[4] -> 5[5] via P2P/CUMEM
+pg12b-14-2-hpc:1642701:1643400 [4] NCCL INFO Channel 02/0 : 4[4] -> 5[5] via P2P/CUMEM
+pg12b-14-2-hpc:1642701:1643400 pg12b-14-2-hpc:1642702:1642702 [5] NCCL INFO cudaDriverVersion 12080
+pg12b-14-2-hpc:1642702:1642702 [5] NCCL INFO NCCL_SOCKET_IFNAME set by environment to ^lo,docker,virbr,vmnet,vboxnet
+pg12b-14-2-hpc:1642702:1642702 [5] NCCL INFO Bootstrap: Using enp27s0f0np0:10.166.111.142<0>
+pg12b-14-2-hpc:1642702:1642702 [5] NCCL INFO NCCL version 2.27.5+cuda12.9
+pg12b-14-2-hpc:1642702:1642702 [5] NCCL INFO Comm config Blocking set to 1
+pg12b-14-2-hpc:1642702:1643265 [5] NCCL INFO NET/Plugin: Could not find: libnccl-net.so. 
+pg12b-14-2-hpc:1642702:1643265 [5] NCCL INFO NCCL_SOCKET_IFNAME set by environment to ^lo,docker,virbr,vmnet,vboxnet
+pg12b-14-2-hpc:1642702:1643265 [5] NCCL INFO NET/IB : Using [0]mlx5_0:1/IB [1]mlx5_1:1/RoCE [2]mlx5_3:1/IB [3]mlx5_4:1/IB [4]mlx5_5:1/IB [5]mlx5_6:1/IB [6]mlx5_7:1/RoCE [7]mlx5_9:1/IB [8]mlx5_10:1/IB [9]mlx5_11:1/IB [RO]; OOB enp27s0f0np0:10.166.111.142<0>
+pg12b-14-2-hpc:1642702:1643265 [5] NCCL INFO Initialized NET plugin IB
+pg12b-14-2-hpc:1642702:1643265 [5] NCCL INFO Assigned NET plugin IB to comm
+pg12b-14-2-hpc:1642702:1643265 [5] NCCL INFO Using network IB
+pg12b-14-2-hpc:1642702:1643265 [5] NCCL INFO ncclCommInitRankConfig comm 0x558083284140 rank 5 nranks 8 cudaDev 5 nvmlDev 5 busId bb000 commId 0x60d242d634553586 - Init START
+pg12b-14-2-hpc:1642702:1643265 [5] NCCL INFO RAS client listening socket at 127.0.0.1<28028>
+pg12b-14-2-hpc:1642702:1643265 [5] NCCL INFO Bootstrap timings total 0.119874 (create 0.000022, send 0.000097, recv 0.119283, ring 0.000125, delay 0.000000)
+pg12b-14-2-hpc:1642702:1643265 [5] NCCL INFO MNNVL busId 0xbb000 fabric UUID 0.0 cliqueId 0x0 state 3 healthMask 0x0
+pg12b-14-2-hpc:1642702:1643265 [5] NCCL INFO Setting affinity for GPU 5 to 1,3,5,7,9,11,13,15,17,19,21,23,25,27,29,31,33,35,37,39,41,43,45,47,49,51,53,55,57,59,61,63,65,67,69,71,73,75,77,79,81,83,85,87,89,91,93,95,105,107,109,111,113,115,117,119,121,123,125,127,129,131,133,135,137,139,141,143,145,147,149,151,153,155,157,159,161,
+pg12b-14-2-hpc:1642702:1643265 [5] NCCL INFO NVLS multicast support is available on dev 5 (NVLS_NCHANNELS 16)
+pg12b-14-2-hpc:1642702:1643265 [5] NCCL INFO comm 0x558083284140 rank 5 nRanks 8 nNodes 1 localRanks 8 localRank 5 MNNVL 0
+pg12b-14-2-hpc:1642702:1643265 [5] NCCL INFO Trees [0] 6/-1/-1->5->4 [1] 6/-1/-1->5->4 [2] 6/-1/-1->5->4 [3] 6/-1/-1->5->4 [4] 6/-1/-1->5->4 [5] 6/-1/-1->5->4 [6] 6/-1/-1->5->4 [7] 6/-1/-1->5->4 [8] 6/-1/-1->5->4 [9] 6/-1/-1->5->4 [10] 6/-1/-1->5->4 [11] 6/-1/-1->5->4 [12] 6/-1/-1->5->4 [13] 6/-1/-1->5->4 [14] 6/-1/-1->5->4 [15] 6/-1/-1->5->4 [16] 6/-1/-1->5->4 [17] 6/-1/-1->5->4 [18] 6/-1/-1->5->4 [19] 6/-1/-1->5->4 [20] 6/-1/-1->5->4 [21] 6/-1/-1->5->4 [22] 6/-1/-1->5->4 [23] 6/-1/-1->5->4
+pg12b-14-2-hpc:1642702:1643265 [5] NCCL INFO P2P Chunksize set to 524288
+pg12b-14-2-hpc:1642702:1643265 [5] NCCL INFO PROFILER/Plugin: Could not find: libnccl-profiler.so. 
+pg12b-14-2-hpc:1642702:1643390 [5] NCCL INFO [Proxy Service] Device 5 CPU core 21
+pg12b-14-2-hpc:1642702:1643392 [5] NCCL INFO [Proxy Service UDS] Device 5 CPU core 127
+pg12b-14-2-hpc:1642702:1643265 [5] NCCL INFO threadThresholds 8/8/64 | 64/8/64 | 512 | 512
+pg12b-14-2-hpc:1642702:1643265 [5] NCCL INFO 24 coll channels, 24 collnet channels, 16 nvls channels, 32 p2p channels, 32 p2p channels per peer
+pg12b-14-2-hpc:1642702:1643265 [5] NCCL INFO TUNER/Plugin: Could not find: libnccl-tuner.so. Using internal tuner plugin.
+pg12b-14-2-hpc:1642702:1643265 [5] NCCL INFO ncclCommInitRankConfig comm 0x558083284140 rank 5 nranks 8 cudaDev 5 nvmlDev 5 busId bb000 commId 0x60d242d634553586 - Init COMPLETE
+pg12b-14-2-hpc:1642702:1643265 [5] NCCL INFO Init timings - ncclCommInitRankConfig: rank 5 nranks 8 total 1.77 (kernels 0.27, alloc 0.99, bootstrap 0.12, allgathers 0.01, topo 0.07, graphs 0.01, connections 0.25, rest 0.06)
+pg12b-14-2-hpc:1642702:1643403 [5] NCCL INFO Channel 00/0 : 5[5] -> 6[6] via P2P/CUMEM
+pg12b-14-2-hpc:1642702:1643403 [5] NCCL INFO Channel 01/0 : 5[5] -> 6[6] via P2P/CUMEM
+pg12b-14-2-hpc:1642702:1643403 [5] NCCL INFO Channel 02/0 : 5[5] -> 6[6] via P2P/CUMEM
+pg12b-14-2-hpc:1642702:1643403pg12b-14-2-hpc:1642700:1642700 [3] NCCL INFO cudaDriverVersion 12080
+pg12b-14-2-hpc:1642700:1642700 [3] NCCL INFO NCCL_SOCKET_IFNAME set by environment to ^lo,docker,virbr,vmnet,vboxnet
+pg12b-14-2-hpc:1642700:1642700 [3] NCCL INFO Bootstrap: Using enp27s0f0np0:10.166.111.142<0>
+pg12b-14-2-hpc:1642700:1642700 [3] NCCL INFO NCCL version 2.27.5+cuda12.9
+pg12b-14-2-hpc:1642700:1642700 [3] NCCL INFO Comm config Blocking set to 1
+pg12b-14-2-hpc:1642700:1643264 [3] NCCL INFO NET/Plugin: Could not find: libnccl-net.so. 
+pg12b-14-2-hpc:1642700:1643264 [3] NCCL INFO NCCL_SOCKET_IFNAME set by environment to ^lo,docker,virbr,vmnet,vboxnet
+pg12b-14-2-hpc:1642700:1643264 [3] NCCL INFO NET/IB : Using [0]mlx5_0:1/IB [1]mlx5_1:1/RoCE [2]mlx5_3:1/IB [3]mlx5_4:1/IB [4]mlx5_5:1/IB [5]mlx5_6:1/IB [6]mlx5_7:1/RoCE [7]mlx5_9:1/IB [8]mlx5_10:1/IB [9]mlx5_11:1/IB [RO]; OOB enp27s0f0np0:10.166.111.142<0>
+pg12b-14-2-hpc:1642700:1643264 [3] NCCL INFO Initialized NET plugin IB
+pg12b-14-2-hpc:1642700:1643264 [3] NCCL INFO Assigned NET plugin IB to comm
+pg12b-14-2-hpc:1642700:1643264 [3] NCCL INFO Using network IB
+pg12b-14-2-hpc:1642700:1643264 [3] NCCL INFO ncclCommInitRankConfig comm 0x5632182a99c0 rank 3 nranks 8 cudaDev 3 nvmlDev 3 busId 5d000 commId 0x60d242d634553586 - Init START
+pg12b-14-2-hpc:1642700:1643264 [3] NCCL INFO RAS client listening socket at 127.0.0.1<28028>
+pg12b-14-2-hpc:1642700:1643264 [3] NCCL INFO Bootstrap timings total 0.231705 (create 0.000027, send 0.000121, recv 0.208653, ring 0.004809, delay 0.000000)
+pg12b-14-2-hpc:1642700:1643264 [3] NCCL INFO MNNVL busId 0x5d000 fabric UUID 0.0 cliqueId 0x0 state 3 healthMask 0x0
+pg12b-14-2-hpc:1642700:1643264 [3] NCCL INFO Setting affinity for GPU 3 to 0,2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40,42,44,46,48,50,52,54,56,58,60,62,64,66,68,70,72,74,76,78,80,82,84,86,88,90,92,94,104,106,108,110,112,114,116,118,120,122,124,126,128,130,132,134,136,138,140,142,144,146,148,150,152,154,156,158,160,
+pg12b-14-2-hpc:1642700:1643264 [3] NCCL INFO NVLS multicast support is available on dev 3 (NVLS_NCHANNELS 16)
+pg12b-14-2-hpc:1642700:1643264 [3] NCCL INFO comm 0x5632182a99c0 rank 3 nRanks 8 nNodes 1 localRanks 8 localRank 3 MNNVL 0
+pg12b-14-2-hpc:1642700:1643264 [3] NCCL INFO Trees [0] 4/-1/-1->3->2 [1] 4/-1/-1->3->2 [2] 4/-1/-1->3->2 [3] 4/-1/-1->3->2 [4] 4/-1/-1->3->2 [5] 4/-1/-1->3->2 [6] 4/-1/-1->3->2 [7] 4/-1/-1->3->2 [8] 4/-1/-1->3->2 [9] 4/-1/-1->3->2 [10] 4/-1/-1->3->2 [11] 4/-1/-1->3->2 [12] 4/-1/-1->3->2 [13] 4/-1/-1->3->2 [14] 4/-1/-1->3->2 [15] 4/-1/-1->3->2 [16] 4/-1/-1->3->2 [17] 4/-1/-1->3->2 [18] 4/-1/-1->3->2 [19] 4/-1/-1->3->2 [20] 4/-1/-1->3->2 [21] 4/-1/-1->3->2 [22] 4/-1/-1->3->2 [23] 4/-1/-1->3->2
+pg12b-14-2-hpc:1642700:1643264 [3] NCCL INFO P2P Chunksize set to 524288
+pg12b-14-2-hpc:1642700:1643264 [3] NCCL INFO PROFILER/Plugin: Could not find: libnccl-profiler.so. 
+pg12b-14-2-hpc:1642700:1643395 [3] NCCL INFO [Proxy Service] Device 3 CPU core 86
+pg12b-14-2-hpc:1642700:1643397 [3] NCCL INFO [Proxy Service UDS] Device 3 CPU core 88
+pg12b-14-2-hpc:1642700:1643264 [3] NCCL INFO threadThresholds 8/8/64 | 64/8/64 | 512 | 512
+pg12b-14-2-hpc:1642700:1643264 [3] NCCL INFO 24 coll channels, 24 collnet channels, 16 nvls channels, 32 p2p channels, 32 p2p channels per peer
+pg12b-14-2-hpc:1642700:1643264 [3] NCCL INFO TUNER/Plugin: Could not find: libnccl-tuner.so. Using internal tuner plugin.
+pg12b-14-2-hpc:1642700:1643264 [3] NCCL INFO ncclCommInitRankConfig comm 0x5632182a99c0 rank 3 nranks 8 cudaDev 3 nvmlDev 3 busId 5d000 commId 0x60d242d634553586 - Init COMPLETE
+pg12b-14-2-hpc:1642700:1643264 [3] NCCL INFO Init timings - ncclCommInitRankConfig: rank 3 nranks 8 total 1.77 (kernels 0.26, alloc 0.88, bootstrap 0.23, allgathers 0.01, topo 0.07, graphs 0.01, connections 0.25, rest 0.06)
+pg12b-14-2-hpc:1642700:1643405 [3] NCCL INFO Channel 00/0 : 3[3] -> 4[4] via P2P/CUMEM
+pg12b-14-2-hpc:1642700:1643405 [3] NCCL INFO Channel 01/0 : 3[3] -> 4[4] via P2P/CUMEM
+pg12b-14-2-hpc:1642700:1643405 [3] NCCL INFO Channel 02/0 : 3[3] -> 4[4] via P2P/CUMEM
+pg12b-14-2-hpc:1642700:1643405 pg12b-14-2-hpc:1642703:1642703 [6] NCCL INFO cudaDriverVersion 12080
+pg12b-14-2-hpc:1642703:1642703 [6] NCCL INFO NCCL_SOCKET_IFNAME set by environment to ^lo,docker,virbr,vmnet,vboxnet
+pg12b-14-2-hpc:1642703:1642703 [6] NCCL INFO Bootstrap: Using enp27s0f0np0:10.166.111.142<0>
+pg12b-14-2-hpc:1642703:1642703 [6] NCCL INFO NCCL version 2.27.5+cuda12.9
+pg12b-14-2-hpc:1642703:1642703 [6] NCCL INFO Comm config Blocking set to 1
+pg12b-14-2-hpc:1642703:1643272 [6] NCCL INFO NET/Plugin: Could not find: libnccl-net.so. 
+pg12b-14-2-hpc:1642703:1643272 [6] NCCL INFO NCCL_SOCKET_IFNAME set by environment to ^lo,docker,virbr,vmnet,vboxnet
+pg12b-14-2-hpc:1642703:1643272 [6] NCCL INFO NET/IB : Using [0]mlx5_0:1/IB [1]mlx5_1:1/RoCE [2]mlx5_3:1/IB [3]mlx5_4:1/IB [4]mlx5_5:1/IB [5]mlx5_6:1/IB [6]mlx5_7:1/RoCE [7]mlx5_9:1/IB [8]mlx5_10:1/IB [9]mlx5_11:1/IB [RO]; OOB enp27s0f0np0:10.166.111.142<0>
+pg12b-14-2-hpc:1642703:1643272 [6] NCCL INFO Initialized NET plugin IB
+pg12b-14-2-hpc:1642703:1643272 [6] NCCL INFO Assigned NET plugin IB to comm
+pg12b-14-2-hpc:1642703:1643272 [6] NCCL INFO Using network IB
+pg12b-14-2-hpc:1642703:1643272 [6] NCCL INFO ncclCommInitRankConfig comm 0x5606fce5d640 rank 6 nranks 8 cudaDev 6 nvmlDev 6 busId cb000 commId 0x60d242d634553586 - Init START
+pg12b-14-2-hpc:1642703:1643272 [6] NCCL INFO RAS client listening socket at 127.0.0.1<28028>
+pg12b-14-2-hpc:1642703:1643272 [6] NCCL INFO Bootstrap timings total 0.001299 (create 0.000021, send 0.000092, recv 0.000183, ring 0.000197, delay 0.000000)
+pg12b-14-2-hpc:1642703:1643272 [6] NCCL INFO MNNVL busId 0xcb000 fabric UUID 0.0 cliqueId 0x0 state 3 healthMask 0x0
+pg12b-14-2-hpc:1642703:1643272 [6] NCCL INFO Setting affinity for GPU 6 to 1,3,5,7,9,11,13,15,17,19,21,23,25,27,29,31,33,35,37,39,41,43,45,47,49,51,53,55,57,59,61,63,65,67,69,71,73,75,77,79,81,83,85,87,89,91,93,95,105,107,109,111,113,115,117,119,121,123,125,127,129,131,133,135,137,139,141,143,145,147,149,151,153,155,157,159,161,
+pg12b-14-2-hpc:1642703:1643272 [6] NCCL INFO NVLS multicast support is available on dev 6 (NVLS_NCHANNELS 16)
+pg12b-14-2-hpc:1642703:1643272 [6] NCCL INFO comm 0x5606fce5d640 rank 6 nRanks 8 nNodes 1 localRanks 8 localRank 6 MNNVL 0
+pg12b-14-2-hpc:1642703:1643272 [6] NCCL INFO Trees [0] 7/-1/-1->6->5 [1] 7/-1/-1->6->5 [2] 7/-1/-1->6->5 [3] 7/-1/-1->6->5 [4] 7/-1/-1->6->5 [5] 7/-1/-1->6->5 [6] 7/-1/-1->6->5 [7] 7/-1/-1->6->5 [8] 7/-1/-1->6->5 [9] 7/-1/-1->6->5 [10] 7/-1/-1->6->5 [11] 7/-1/-1->6->5 [12] 7/-1/-1->6->5 [13] 7/-1/-1->6->5 [14] 7/-1/-1->6->5 [15] 7/-1/-1->6->5 [16] 7/-1/-1->6->5 [17] 7/-1/-1->6->5 [18] 7/-1/-1->6->5 [19] 7/-1/-1->6->5 [20] 7/-1/-1->6->5 [21] 7/-1/-1->6->5 [22] 7/-1/-1->6->5 [23] 7/-1/-1->6->5
+pg12b-14-2-hpc:1642703:1643272 [6] NCCL INFO P2P Chunksize set to 524288
+pg12b-14-2-hpc:1642703:1643272 [6] NCCL INFO PROFILER/Plugin: Could not find: libnccl-profiler.so. 
+pg12b-14-2-hpc:1642703:1643382 [6] NCCL INFO [Proxy Service] Device 6 CPU core 141
+pg12b-14-2-hpc:1642703:1643386 [6] NCCL INFO [Proxy Service UDS] Device 6 CPU core 39
+pg12b-14-2-hpc:1642703:1643272 [6] NCCL INFO threadThresholds 8/8/64 | 64/8/64 | 512 | 512
+pg12b-14-2-hpc:1642703:1643272 [6] NCCL INFO 24 coll channels, 24 collnet channels, 16 nvls channels, 32 p2p channels, 32 p2p channels per peer
+pg12b-14-2-hpc:1642703:1643272 [6] NCCL INFO TUNER/Plugin: Could not find: libnccl-tuner.so. Using internal tuner plugin.
+pg12b-14-2-hpc:1642703:1643272 [6] NCCL INFO ncclCommInitRankConfig comm 0x5606fce5d640 rank 6 nranks 8 cudaDev 6 nvmlDev 6 busId cb000 commId 0x60d242d634553586 - Init COMPLETE
+pg12b-14-2-hpc:1642703:1643272 [6] NCCL INFO Init timings - ncclCommInitRankConfig: rank 6 nranks 8 total 1.59 (kernels 0.25, alloc 0.94, bootstrap 0.00, allgathers 0.01, topo 0.07, graphs 0.01, connections 0.25, rest 0.06)
+pg12b-14-2-hpc:1642703:1643402 [6] NCCL INFO Channel 00/0 : 6[6] -> 7[7] via P2P/CUMEM
+pg12b-14-2-hpc:1642703:1643402 [6] NCCL INFO Channel 01/0 : 6[6] -> 7[7] via P2P/CUMEM
+pg12b-14-2-hpc:1642703:1643402 [6] NCCL INFO Channel 02/0 : 6[6] -> 7[7] via P2P/CUMEM
+pg12b-14-2-hpc:1642703:1643402pg12b-14-2-hpc:1642704:1642704 [7] NCCL INFO cudaDriverVersion 12080
+pg12b-14-2-hpc:1642704:1642704 [7] NCCL INFO NCCL_SOCKET_IFNAME set by environment to ^lo,docker,virbr,vmnet,vboxnet
+pg12b-14-2-hpc:1642704:1642704 [7] NCCL INFO Bootstrap: Using enp27s0f0np0:10.166.111.142<0>
+pg12b-14-2-hpc:1642704:1642704 [7] NCCL INFO NCCL version 2.27.5+cuda12.9
+pg12b-14-2-hpc:1642704:1642704 [7] NCCL INFO Comm config Blocking set to 1
+pg12b-14-2-hpc:1642704:1643274 [7] NCCL INFO NET/Plugin: Could not find: libnccl-net.so. 
+pg12b-14-2-hpc:1642704:1643274 [7] NCCL INFO NCCL_SOCKET_IFNAME set by environment to ^lo,docker,virbr,vmnet,vboxnet
+pg12b-14-2-hpc:1642704:1643274 [7] NCCL INFO NET/IB : Using [0]mlx5_0:1/IB [1]mlx5_1:1/RoCE [2]mlx5_3:1/IB [3]mlx5_4:1/IB [4]mlx5_5:1/IB [5]mlx5_6:1/IB [6]mlx5_7:1/RoCE [7]mlx5_9:1/IB [8]mlx5_10:1/IB [9]mlx5_11:1/IB [RO]; OOB enp27s0f0np0:10.166.111.142<0>
+pg12b-14-2-hpc:1642704:1643274 [7] NCCL INFO Initialized NET plugin IB
+pg12b-14-2-hpc:1642704:1643274 [7] NCCL INFO Assigned NET plugin IB to comm
+pg12b-14-2-hpc:1642704:1643274 [7] NCCL INFO Using network IB
+pg12b-14-2-hpc:1642704:1643274 [7] NCCL INFO ncclCommInitRankConfig comm 0x5624490f1680 rank 7 nranks 8 cudaDev 7 nvmlDev 7 busId db000 commId 0x60d242d634553586 - Init START
+pg12b-14-2-hpc:1642704:1643274 [7] NCCL INFO RAS client listening socket at 127.0.0.1<28028>
+pg12b-14-2-hpc:1642704:1643274 [7] NCCL INFO Bootstrap timings total 0.001484 (create 0.000019, send 0.000104, recv 0.000039, ring 0.000775, delay 0.000000)
+pg12b-14-2-hpc:1642704:1643274 [7] NCCL INFO MNNVL busId 0xdb000 fabric UUID 0.0 cliqueId 0x0 state 3 healthMask 0x0
+pg12b-14-2-hpc:1642704:1643274 [7] NCCL INFO Setting affinity for GPU 7 to 1,3,5,7,9,11,13,15,17,19,21,23,25,27,29,31,33,35,37,39,41,43,45,47,49,51,53,55,57,59,61,63,65,67,69,71,73,75,77,79,81,83,85,87,89,91,93,95,105,107,109,111,113,115,117,119,121,123,125,127,129,131,133,135,137,139,141,143,145,147,149,151,153,155,157,159,161,
+pg12b-14-2-hpc:1642704:1643274 [7] NCCL INFO NVLS multicast support is available on dev 7 (NVLS_NCHANNELS 16)
+pg12b-14-2-hpc:1642704:1643274 [7] NCCL INFO comm 0x5624490f1680 rank 7 nRanks 8 nNodes 1 localRanks 8 localRank 7 MNNVL 0
+pg12b-14-2-hpc:1642704:1643274 [7] NCCL INFO Trees [0] -1/-1/-1->7->6 [1] -1/-1/-1->7->6 [2] -1/-1/-1->7->6 [3] -1/-1/-1->7->6 [4] -1/-1/-1->7->6 [5] -1/-1/-1->7->6 [6] -1/-1/-1->7->6 [7] -1/-1/-1->7->6 [8] -1/-1/-1->7->6 [9] -1/-1/-1->7->6 [10] -1/-1/-1->7->6 [11] -1/-1/-1->7->6 [12] -1/-1/-1->7->6 [13] -1/-1/-1->7->6 [14] -1/-1/-1->7->6 [15] -1/-1/-1->7->6 [16] -1/-1/-1->7->6 [17] -1/-1/-1->7->6 [18] -1/-1/-1->7->6 [19] -1/-1/-1->7->6 [20] -1/-1/-1->7->6 [21] -1/-1/-1->7->6 [22] -1/-1/-1->7->6 [23] -1/-1/-1->7->6
+pg12b-14-2-hpc:1642704:1643274 [7] NCCL INFO P2P Chunksize set to 524288
+pg12b-14-2-hpc:1642704:1643274 [7] NCCL INFO PROFILER/Plugin: Could not find: libnccl-profiler.so. 
+pg12b-14-2-hpc:1642704:1643384 [7] NCCL INFO [Proxy Service] Device 7 CPU core 75
+pg12b-14-2-hpc:1642704:1643389 [7] NCCL INFO [Proxy Service UDS] Device 7 CPU core 77
+pg12b-14-2-hpc:1642704:1643274 [7] NCCL INFO threadThresholds 8/8/64 | 64/8/64 | 512 | 512
+pg12b-14-2-hpc:1642704:1643274 [7] NCCL INFO 24 coll channels, 24 collnet channels, 16 nvls channels, 32 p2p channels, 32 p2p channels per peer
+pg12b-14-2-hpc:1642704:1643274 [7] NCCL INFO TUNER/Plugin: Could not find: libnccl-tuner.so. Using internal tuner plugin.
+pg12b-14-2-hpc:1642704:1643274 [7] NCCL INFO ncclCommInitRankConfig comm 0x5624490f1680 rank 7 nranks 8 cudaDev 7 nvmlDev 7 busId db000 commId 0x60d242d634553586 - Init COMPLETE
+pg12b-14-2-hpc:1642704:1643274 [7] NCCL INFO Init timings - ncclCommInitRankConfig: rank 7 nranks 8 total 1.59 (kernels 0.25, alloc 0.94, bootstrap 0.00, allgathers 0.01, topo 0.07, graphs 0.01, connections 0.25, rest 0.05)
+pg12b-14-2-hpc:1642704:1643401 [7] NCCL INFO Channel 00/0 : 7[7] -> 0[0] via P2P/CUMEM
+pg12b-14-2-hpc:1642704:1643401 [7] NCCL INFO Channel 01/0 : 7[7] -> 0[0] via P2P/CUMEM
+pg12b-14-2-hpc:1642704:1643401 [7] NCCL INFO Channel 02/0 : 7[7] -> 0[0] via P2P/CUMEM
+pg12b-1pg12b-14-2-hpc:1642698:1642698 [1] NCCL INFO cudaDriverVersion 12080
+pg12b-14-2-hpc:1642698:1642698 [1] NCCL INFO NCCL_SOCKET_IFNAME set by environment to ^lo,docker,virbr,vmnet,vboxnet
+pg12b-14-2-hpc:1642698:1642698 [1] NCCL INFO Bootstrap: Using enp27s0f0np0:10.166.111.142<0>
+pg12b-14-2-hpc:1642698:1642698 [1] NCCL INFO NCCL version 2.27.5+cuda12.9
+pg12b-14-2-hpc:1642698:1642698 [1] NCCL INFO Comm config Blocking set to 1
+pg12b-14-2-hpc:1642698:1643273 [1] NCCL INFO NET/Plugin: Could not find: libnccl-net.so. 
+pg12b-14-2-hpc:1642698:1643273 [1] NCCL INFO NCCL_SOCKET_IFNAME set by environment to ^lo,docker,virbr,vmnet,vboxnet
+pg12b-14-2-hpc:1642698:1643273 [1] NCCL INFO NET/IB : Using [0]mlx5_0:1/IB [1]mlx5_1:1/RoCE [2]mlx5_3:1/IB [3]mlx5_4:1/IB [4]mlx5_5:1/IB [5]mlx5_6:1/IB [6]mlx5_7:1/RoCE [7]mlx5_9:1/IB [8]mlx5_10:1/IB [9]mlx5_11:1/IB [RO]; OOB enp27s0f0np0:10.166.111.142<0>
+pg12b-14-2-hpc:1642698:1643273 [1] NCCL INFO Initialized NET plugin IB
+pg12b-14-2-hpc:1642698:1643273 [1] NCCL INFO Assigned NET plugin IB to comm
+pg12b-14-2-hpc:1642698:1643273 [1] NCCL INFO Using network IB
+pg12b-14-2-hpc:1642698:1643273 [1] NCCL INFO ncclCommInitRankConfig comm 0x55f5471b5180 rank 1 nranks 8 cudaDev 1 nvmlDev 1 busId 3b000 commId 0x60d242d634553586 - Init START
+pg12b-14-2-hpc:1642698:1643273 [1] NCCL INFO RAS client listening socket at 127.0.0.1<28028>
+pg12b-14-2-hpc:1642698:1643273 [1] NCCL INFO Bootstrap timings total 0.001300 (create 0.000020, send 0.000109, recv 0.000065, ring 0.000877, delay 0.000000)
+pg12b-14-2-hpc:1642698:1643273 [1] NCCL INFO MNNVL busId 0x3b000 fabric UUID 0.0 cliqueId 0x0 state 3 healthMask 0x0
+pg12b-14-2-hpc:1642698:1643273 [1] NCCL INFO Setting affinity for GPU 1 to 0,2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40,42,44,46,48,50,52,54,56,58,60,62,64,66,68,70,72,74,76,78,80,82,84,86,88,90,92,94,104,106,108,110,112,114,116,118,120,122,124,126,128,130,132,134,136,138,140,142,144,146,148,150,152,154,156,158,160,
+pg12b-14-2-hpc:1642698:1643273 [1] NCCL INFO NVLS multicast support is available on dev 1 (NVLS_NCHANNELS 16)
+pg12b-14-2-hpc:1642698:1643273 [1] NCCL INFO comm 0x55f5471b5180 rank 1 nRanks 8 nNodes 1 localRanks 8 localRank 1 MNNVL 0
+pg12b-14-2-hpc:1642698:1643273 [1] NCCL INFO Trees [0] 2/-1/-1->1->0 [1] 2/-1/-1->1->0 [2] 2/-1/-1->1->0 [3] 2/-1/-1->1->0 [4] 2/-1/-1->1->0 [5] 2/-1/-1->1->0 [6] 2/-1/-1->1->0 [7] 2/-1/-1->1->0 [8] 2/-1/-1->1->0 [9] 2/-1/-1->1->0 [10] 2/-1/-1->1->0 [11] 2/-1/-1->1->0 [12] 2/-1/-1->1->0 [13] 2/-1/-1->1->0 [14] 2/-1/-1->1->0 [15] 2/-1/-1->1->0 [16] 2/-1/-1->1->0 [17] 2/-1/-1->1->0 [18] 2/-1/-1->1->0 [19] 2/-1/-1->1->0 [20] 2/-1/-1->1->0 [21] 2/-1/-1->1->0 [22] 2/-1/-1->1->0 [23] 2/-1/-1->1->0
+pg12b-14-2-hpc:1642698:1643273 [1] NCCL INFO P2P Chunksize set to 524288
+pg12b-14-2-hpc:1642698:1643273 [1] NCCL INFO PROFILER/Plugin: Could not find: libnccl-profiler.so. 
+pg12b-14-2-hpc:1642698:1643391 [1] NCCL INFO [Proxy Service] Device 1 CPU core 80
+pg12b-14-2-hpc:1642698:1643393 [1] NCCL INFO [Proxy Service UDS] Device 1 CPU core 186
+pg12b-14-2-hpc:1642698:1643273 [1] NCCL INFO threadThresholds 8/8/64 | 64/8/64 | 512 | 512
+pg12b-14-2-hpc:1642698:1643273 [1] NCCL INFO 24 coll channels, 24 collnet channels, 16 nvls channels, 32 p2p channels, 32 p2p channels per peer
+pg12b-14-2-hpc:1642698:1643273 [1] NCCL INFO TUNER/Plugin: Could not find: libnccl-tuner.so. Using internal tuner plugin.
+pg12b-14-2-hpc:1642698:1643273 [1] NCCL INFO ncclCommInitRankConfig comm 0x55f5471b5180 rank 1 nranks 8 cudaDev 1 nvmlDev 1 busId 3b000 commId 0x60d242d634553586 - Init COMPLETE
+pg12b-14-2-hpc:1642698:1643273 [1] NCCL INFO Init timings - ncclCommInitRankConfig: rank 1 nranks 8 total 1.59 (kernels 0.25, alloc 0.94, bootstrap 0.00, allgathers 0.01, topo 0.07, graphs 0.01, connections 0.25, rest 0.06)
+pg12b-14-2-hpc:1642698:1643404 [1] NCCL INFO Channel 00/0 : 1[1] -> 2[2] via P2P/CUMEM
+pg12b-14-2-hpc:1642698:1643404 [1] NCCL INFO Channel 01/0 : 1[1] -> 2[2] via P2P/CUMEM
+pg12b-14-2-hpc:1642698:1643404 [1] NCCL INFO Channel 02/0 : 1[1] -> 2[2] via P2P/CUMEM
+pg12b-14-2-hpc:1642698:1643404pg12b-14-2-hpc:1642699:1642699 [2] NCCL INFO cudaDriverVersion 12080
+pg12b-14-2-hpc:1642699:1642699 [2] NCCL INFO NCCL_SOCKET_IFNAME set by environment to ^lo,docker,virbr,vmnet,vboxnet
+pg12b-14-2-hpc:1642699:1642699 [2] NCCL INFO Bootstrap: Using enp27s0f0np0:10.166.111.142<0>
+pg12b-14-2-hpc:1642699:1642699 [2] NCCL INFO NCCL version 2.27.5+cuda12.9
+pg12b-14-2-hpc:1642699:1642699 [2] NCCL INFO Comm config Blocking set to 1
+pg12b-14-2-hpc:1642699:1643270 [2] NCCL INFO NET/Plugin: Could not find: libnccl-net.so. 
+pg12b-14-2-hpc:1642699:1643270 [2] NCCL INFO NCCL_SOCKET_IFNAME set by environment to ^lo,docker,virbr,vmnet,vboxnet
+pg12b-14-2-hpc:1642699:1643270 [2] NCCL INFO NET/IB : Using [0]mlx5_0:1/IB [1]mlx5_1:1/RoCE [2]mlx5_3:1/IB [3]mlx5_4:1/IB [4]mlx5_5:1/IB [5]mlx5_6:1/IB [6]mlx5_7:1/RoCE [7]mlx5_9:1/IB [8]mlx5_10:1/IB [9]mlx5_11:1/IB [RO]; OOB enp27s0f0np0:10.166.111.142<0>
+pg12b-14-2-hpc:1642699:1643270 [2] NCCL INFO Initialized NET plugin IB
+pg12b-14-2-hpc:1642699:1643270 [2] NCCL INFO Assigned NET plugin IB to comm
+pg12b-14-2-hpc:1642699:1643270 [2] NCCL INFO Using network IB
+pg12b-14-2-hpc:1642699:1643270 [2] NCCL INFO ncclCommInitRankConfig comm 0x55618f551800 rank 2 nranks 8 cudaDev 2 nvmlDev 2 busId 4c000 commId 0x60d242d634553586 - Init START
+pg12b-14-2-hpc:1642699:1643270 [2] NCCL INFO RAS client listening socket at 127.0.0.1<28028>
+pg12b-14-2-hpc:1642699:1643270 [2] NCCL INFO Bootstrap timings total 0.005244 (create 0.000021, send 0.000100, recv 0.000050, ring 0.000862, delay 0.000000)
+pg12b-14-2-hpc:1642699:1643270 [2] NCCL INFO MNNVL busId 0x4c000 fabric UUID 0.0 cliqueId 0x0 state 3 healthMask 0x0
+pg12b-14-2-hpc:1642699:1643270 [2] NCCL INFO Setting affinity for GPU 2 to 0,2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40,42,44,46,48,50,52,54,56,58,60,62,64,66,68,70,72,74,76,78,80,82,84,86,88,90,92,94,104,106,108,110,112,114,116,118,120,122,124,126,128,130,132,134,136,138,140,142,144,146,148,150,152,154,156,158,160,
+pg12b-14-2-hpc:1642699:1643270 [2] NCCL INFO NVLS multicast support is available on dev 2 (NVLS_NCHANNELS 16)
+pg12b-14-2-hpc:1642699:1643270 [2] NCCL INFO comm 0x55618f551800 rank 2 nRanks 8 nNodes 1 localRanks 8 localRank 2 MNNVL 0
+pg12b-14-2-hpc:1642699:1643270 [2] NCCL INFO Trees [0] 3/-1/-1->2->1 [1] 3/-1/-1->2->1 [2] 3/-1/-1->2->1 [3] 3/-1/-1->2->1 [4] 3/-1/-1->2->1 [5] 3/-1/-1->2->1 [6] 3/-1/-1->2->1 [7] 3/-1/-1->2->1 [8] 3/-1/-1->2->1 [9] 3/-1/-1->2->1 [10] 3/-1/-1->2->1 [11] 3/-1/-1->2->1 [12] 3/-1/-1->2->1 [13] 3/-1/-1->2->1 [14] 3/-1/-1->2->1 [15] 3/-1/-1->2->1 [16] 3/-1/-1->2->1 [17] 3/-1/-1->2->1 [18] 3/-1/-1->2->1 [19] 3/-1/-1->2->1 [20] 3/-1/-1->2->1 [21] 3/-1/-1->2->1 [22] 3/-1/-1->2->1 [23] 3/-1/-1->2->1
+pg12b-14-2-hpc:1642699:1643270 [2] NCCL INFO P2P Chunksize set to 524288
+pg12b-14-2-hpc:1642699:1643270 [2] NCCL INFO PROFILER/Plugin: Could not find: libnccl-profiler.so. 
+pg12b-14-2-hpc:1642699:1643383 [2] NCCL INFO [Proxy Service] Device 2 CPU core 18
+pg12b-14-2-hpc:1642699:1643387 [2] NCCL INFO [Proxy Service UDS] Device 2 CPU core 22
+pg12b-14-2-hpc:1642699:1643270 [2] NCCL INFO threadThresholds 8/8/64 | 64/8/64 | 512 | 512
+pg12b-14-2-hpc:1642699:1643270 [2] NCCL INFO 24 coll channels, 24 collnet channels, 16 nvls channels, 32 p2p channels, 32 p2p channels per peer
+pg12b-14-2-hpc:1642699:1643270 [2] NCCL INFO TUNER/Plugin: Could not find: libnccl-tuner.so. Using internal tuner plugin.
+pg12b-14-2-hpc:1642699:1643270 [2] NCCL INFO ncclCommInitRankConfig comm 0x55618f551800 rank 2 nranks 8 cudaDev 2 nvmlDev 2 busId 4c000 commId 0x60d242d634553586 - Init COMPLETE
+pg12b-14-2-hpc:1642699:1643270 [2] NCCL INFO Init timings - ncclCommInitRankConfig: rank 2 nranks 8 total 1.71 (kernels 0.25, alloc 1.05, bootstrap 0.01, allgathers 0.01, topo 0.07, graphs 0.01, connections 0.25, rest 0.06)
+pg12b-14-2-hpc:1642699:1643399 [2] NCCL INFO Channel 00/0 : 2[2] -> 3[3] via P2P/CUMEM
+pg12b-14-2-hpc:1642699:1643399 [2] NCCL INFO Channel 01/0 : 2[2] -> 3[3] via P2P/CUMEM
+pg12b-14-2-hpc:1642699:1643399 [2] NCCL INFO Channel 02/0 : 2[2] -> 3[3] via P2P/CUMEM
+pg12b-14-2-hpc:1642699:1643399 NFO Trees [0] 1/-1/-1->0->-1 [1] 1/-1/-1->0->-1 [2] 1/-1/-1->0->-1 [3] 1/-1/-1->0->-1 [4] 1/-1/-1->0->-1 [5] 1/-1/-1->0->-1 [6] 1/-1/-1->0->-1 [7] 1/-1/-1->0->-1 [8] 1/-1/-1->0->-1 [9] 1/-1/-1->0->-1 [10] 1/-1/-1->0->-1 [11] 1/-1/-1->0->-1 [12] 1/-1/-1->0->-1 [13] 1/-1/-1->0->-1 [14] 1/-1/-1->0->-1 [15] 1/-1/-1->0->-1 [16] 1/-1/-1->0->-1 [17] 1/-1/-1->0->-1 [18] 1/-1/-1->0->-1 [19] 1/-1/-1->0->-1 [20] 1/-1/-1->0->-1 [21] 1/-1/-1->0->-1 [22] 1/-1/-1->0->-1 [23] 1/-1/-1->0->-1
+pg12b-14-2-hpc:1642697:1643263 [0] NCCL INFO P2P Chunksize set to 524288
+pg12b-14-2-hpc:1642697:1643263 [0] NCCL INFO PROFILER/Plugin: Could not find: libnccl-profiler.so. 
+pg12b-14-2-hpc:1642697:1643263 [0] NCCL INFO Check P2P Type isAllDirectP2p 1 directMode 0
+pg12b-14-2-hpc:1642697:1643394 [0] NCCL INFO [Proxy Service] Device 0 CPU core 62
+pg12b-14-2-hpc:1642697:1643396 [0] NCCL INFO [Proxy Service UDS] Device 0 CPU core 64
+pg12b-14-2-hpc:1642697:1643263 [0] NCCL INFO threadThresholds 8/8/64 | 64/8/64 | 512 | 512
+pg12b-14-2-hpc:1642697:1643263 [0] NCCL INFO 24 coll channels, 24 collnet channels, 16 nvls channels, 32 p2p channels, 32 p2p channels per peer
+pg12b-14-2-hpc:1642697:1643263 [0] NCCL INFO CC Off, workFifoBytes 1048576
+pg12b-14-2-hpc:1642697:1643263 [0] NCCL INFO TUNER/Plugin: Could not find: libnccl-tuner.so. Using internal tuner plugin.
+pg12b-14-2-hpc:1642697:1643263 [0] NCCL INFO ncclCommInitRankConfig comm 0x55eeedef18c0 rank 0 nranks 8 cudaDev 0 nvmlDev 0 busId 19000 commId 0x60d242d634553586 - Init COMPLETE
+pg12b-14-2-hpc:1642697:1643263 [0] NCCL INFO Init timings - ncclCommInitRankConfig: rank 0 nranks 8 total 1.78 (kernels 0.27, alloc 1.09, bootstrap 0.02, allgathers 0.01, topo 0.07, graphs 0.01, connections 0.25, rest 0.06)
+pg12b-14-2-hpc:1642697:1643398 [0] NCCL INFO Channel 00/0 : 0[0] -> 1[1] via P2P/CUMEM
+pg12b-14-2-hpc:1642697:1643398 [0] NCCL INFO Channel 01/0 : 0[0] -> 1[1] via P2P/CUMEM
+pg12b-14-2-hpc:1642697:1643398 [0] NCCL INFO Channel 02/0 : 0[0] -> 1[1] via P2P/CUMEM
+pg12b-14-2-hpc:1642697:1643398 [0] NCCL INFO Channel 03/0 : 0[0] -> 1[1] via P2P/CUMEM
+pg12b-14-2-hpc:1642697:1643398 [0] NCCL INFO Channel 04/0 : 0[0] -> 1[1] via P2P/CUMEM
+pg12b-14-2-hpc:1642697:1643398 [0] NCCL INFO Channel 05/0 : 0[0] -> 1[1] via P2P/CUMEM
+pg12b-14-2-hpc:1642697:1643398 [0] NCCL INFO Channel 06/0 : 0[0] -> 1[1] via P2P/CUMEM
+pg12b-14-2-hpc:1642697:1643398 [0] NCCL INFO Channel 07/0 : 0[0] -> 1[1] via P2P/CUMEM
+pg12b-14-2-hpc:1642697:1643398 [0] NCCL INFO Channel 08/0 : 0[0] -> 1[1] via P2P/CUMEM
+pg12b-14-2-hpc:1642697:1643398 [0] NCCL INFO Channel 09/0 : 0[0] -> 1[1] via P2P/CUMEM
+pg12b-14-2-hpc:1642697:1643398 [0] NCCL INFO Channel 10/0 : 0[0] -> 1[1] via P2P/CUMEM
+pg12b-14-2-hpc:1642697:1643398 [0] NCCL INFO Channel 11/0 : 0[0] -> 1[1] via P2P/CUMEM
+pg12b-14-2-hpc:1642697:1643398 [0] NCCL INFO Channel 12/0 : 0[0] -> 1[1] via P2P/CUMEM
+pg12b-14-2-hpc:1642697:1643398 [0] NCCL INFO Channel 13/0 : 0[0] -> 1[1] via P2P/CUMEM
+pg12b-14-2-hpc:1642697:1643398 [0] NCCL INFO Channel 14/0 : 0[0] -> 1[1] via P2P/CUMEM
+pg12b-14-2-hpc:1642697:1643398 [0] NCCL INFO Channel 15/0 : 0[0] -> 1[1] via P2P/CUMEM
+pg12b-14-2-hpc:1642697:1643398 [0] NCCL INFO Channel 16/0 : 0[0] -> 1[1] via P2P/CUMEM
+pg12b-14-2-hpc:1642697:1643398 [0] NCCL INFO Channel 17/0 : 0[0] -> 1[1] via P2P/CUMEM
+pg12b-14-2-hpc:1642697:1643398 [0] NCCL INFO Channel 18/0 : 0[0] -> 1[1] via P2P/CUMEM
+pg12b-14-2-hpc:1642697:1643398 [0] NCCL INFO Channel 19/0 : 0[0] -> 1[1] via P2P/CUMEM
+pg12b-14-2-hpc:1642697:1643398 [0] NCCL INFO Channel 20/0 : 0[0] -> 1[1] via P2P/CUMEM
+pg12b-14-2-hpc:1642697:1643398 [0] NCCL INFO Channel 21/0 : 0[0] -> 1[1] via P2P/CUMEM
+pg12b-14-2-hpc:1642697:1643398 [0] NCCL INFO Channel 22/0 : 0[0] -> 1[1] via P2P/CUMEM
+pg12b-14-2-hpc:1642697:1643398 [0] NCCL INFO Channel 23/0 : 0[0] -> 1[1] via P2P/CUMEM
+pg12b-14-2-hpc:1642697:1643398 [0] NCCL INFO Connected all rings, use ring PXN 0 GDR 1
+[rank0]:[W828 18:52:11.024890864 Utils.hpp:112] Warning: Environment variable NCCL_BLOCKING_WAIT is deprecated; use TORCH_NCCL_BLOCKING_WAIT instead (function operator())
+[3] NCCL INFO Channel 03/0 : 3[3] -> 4[4] via P2P/CUMEM
+pg12b-14-2-hpc:1642700:1643405 [3] NCCL INFO Channel 04/0 : 3[3] -> 4[4] via P2P/CUMEM
+pg12b-14-2-hpc:1642700:1643405 [3] NCCL INFO Channel 05/0 : 3[3] -> 4[4] via P2P/CUMEM
+pg12b-14-2-hpc:1642700:1643405 [3] NCCL INFO Channel 06/0 : 3[3] -> 4[4] via P2P/CUMEM
+pg12b-14-2-hpc:1642700:1643405 [3] NCCL INFO Channel 07/0 : 3[3] -> 4[4] via P2P/CUMEM
+pg12b-14-2-hpc:1642700:1643405 [3] NCCL INFO Channel 08/0 : 3[3] -> 4[4] via P2P/CUMEM
+pg12b-14-2-hpc:1642700:1643405 [3] NCCL INFO Channel 09/0 : 3[3] -> 4[4] via P2P/CUMEM
+pg12b-14-2-hpc:1642700:1643405 [3] NCCL INFO Channel 10/0 : 3[3] -> 4[4] via P2P/CUMEM
+pg12b-14-2-hpc:1642700:1643405 [3] NCCL INFO Channel 11/0 : 3[3] -> 4[4] via P2P/CUMEM
+pg12b-14-2-hpc:1642700:1643405 [3] NCCL INFO Channel 12/0 : 3[3] -> 4[4] via P2P/CUMEM
+pg12b-14-2-hpc:1642700:1643405 [3] NCCL INFO Channel 13/0 : 3[3] -> 4[4] via P2P/CUMEM
+pg12b-14-2-hpc:1642700:1643405 [3] NCCL INFO Channel 14/0 : 3[3] -> 4[4] via P2P/CUMEM
+pg12b-14-2-hpc:1642700:1643405 [3] NCCL INFO Channel 15/0 : 3[3] -> 4[4] via P2P/CUMEM
+pg12b-14-2-hpc:1642700:1643405 [3] NCCL INFO Channel 16/0 : 3[3] -> 4[4] via P2P/CUMEM
+pg12b-14-2-hpc:1642700:1643405 [3] NCCL INFO Channel 17/0 : 3[3] -> 4[4] via P2P/CUMEM
+pg12b-14-2-hpc:1642700:1643405 [3] NCCL INFO Channel 18/0 : 3[3] -> 4[4] via P2P/CUMEM
+pg12b-14-2-hpc:1642700:1643405 [3] NCCL INFO Channel 19/0 : 3[3] -> 4[4] via P2P/CUMEM
+pg12b-14-2-hpc:1642700:1643405 [3] NCCL INFO Channel 20/0 : 3[3] -> 4[4] via P2P/CUMEM
+pg12b-14-2-hpc:1642700:1643405 [3] NCCL INFO Channel 21/0 : 3[3] -> 4[4] via P2P/CUMEM
+pg12b-14-2-hpc:1642700:1643405 [3] NCCL INFO Channel 22/0 : 3[3] -> 4[4] via P2P/CUMEM
+pg12b-14-2-hpc:1642700:1643405 [3] NCCL INFO Channel 23/0 : 3[3] -> 4[4] via P2P/CUMEM
+pg12b-14-2-hpc:1642700:1643405 [3] NCCL INFO Connected all rings, use ring PXN 0 GDR 1
+[rank3]:[W828 18:52:11.025012421 Utils.hpp:112] Warning: Environment variable NCCL_BLOCKING_WAIT is deprecated; use TORCH_NCCL_BLOCKING_WAIT instead (function operator())
+ [1] NCCL INFO Channel 03/0 : 1[1] -> 2[2] via P2P/CUMEM
+pg12b-14-2-hpc:1642698:1643404 [1] NCCL INFO Channel 04/0 : 1[1] -> 2[2] via P2P/CUMEM
+pg12b-14-2-hpc:1642698:1643404 [1] NCCL INFO Channel 05/0 : 1[1] -> 2[2] via P2P/CUMEM
+pg12b-14-2-hpc:1642698:1643404 [1] NCCL INFO Channel 06/0 : 1[1] -> 2[2] via P2P/CUMEM
+pg12b-14-2-hpc:1642698:1643404 [1] NCCL INFO Channel 07/0 : 1[1] -> 2[2] via P2P/CUMEM
+pg12b-14-2-hpc:1642698:1643404 [1] NCCL INFO Channel 08/0 : 1[1] -> 2[2] via P2P/CUMEM
+pg12b-14-2-hpc:1642698:1643404 [1] NCCL INFO Channel 09/0 : 1[1] -> 2[2] via P2P/CUMEM
+pg12b-14-2-hpc:1642698:1643404 [1] NCCL INFO Channel 10/0 : 1[1] -> 2[2] via P2P/CUMEM
+pg12b-14-2-hpc:1642698:1643404 [1] NCCL INFO Channel 11/0 : 1[1] -> 2[2] via P2P/CUMEM
+pg12b-14-2-hpc:1642698:1643404 [1] NCCL INFO Channel 12/0 : 1[1] -> 2[2] via P2P/CUMEM
+pg12b-14-2-hpc:1642698:1643404 [1] NCCL INFO Channel 13/0 : 1[1] -> 2[2] via P2P/CUMEM
+pg12b-14-2-hpc:1642698:1643404 [1] NCCL INFO Channel 14/0 : 1[1] -> 2[2] via P2P/CUMEM
+pg12b-14-2-hpc:1642698:1643404 [1] NCCL INFO Channel 15/0 : 1[1] -> 2[2] via P2P/CUMEM
+pg12b-14-2-hpc:1642698:1643404 [1] NCCL INFO Channel 16/0 : 1[1] -> 2[2] via P2P/CUMEM
+pg12b-14-2-hpc:1642698:1643404 [1] NCCL INFO Channel 17/0 : 1[1] -> 2[2] via P2P/CUMEM
+pg12b-14-2-hpc:1642698:1643404 [1] NCCL INFO Channel 18/0 : 1[1] -> 2[2] via P2P/CUMEM
+pg12b-14-2-hpc:1642698:1643404 [1] NCCL INFO Channel 19/0 : 1[1] -> 2[2] via P2P/CUMEM
+pg12b-14-2-hpc:1642698:1643404 [1] NCCL INFO Channel 20/0 : 1[1] -> 2[2] via P2P/CUMEM
+pg12b-14-2-hpc:1642698:1643404 [1] NCCL INFO Channel 21/0 : 1[1] -> 2[2] via P2P/CUMEM
+pg12b-14-2-hpc:1642698:1643404 [1] NCCL INFO Channel 22/0 : 1[1] -> 2[2] via P2P/CUMEM
+pg12b-14-2-hpc:1642698:1643404 [1] NCCL INFO Channel 23/0 : 1[1] -> 2[2] via P2P/CUMEM
+pg12b-14-2-hpc:1642698:1643404 [1] NCCL INFO Connected all rings, use ring PXN 0 GDR 1
+[rank1]:[W828 18:52:11.025181153 Utils.hpp:112] Warning: Environment variable NCCL_BLOCKING_WAIT is deprecated; use TORCH_NCCL_BLOCKING_WAIT instead (function operator())
+[2] NCCL INFO Channel 03/0 : 2[2] -> 3[3] via P2P/CUMEM
+pg12b-14-2-hpc:1642699:1643399 [2] NCCL INFO Channel 04/0 : 2[2] -> 3[3] via P2P/CUMEM
+pg12b-14-2-hpc:1642699:1643399 [2] NCCL INFO Channel 05/0 : 2[2] -> 3[3] via P2P/CUMEM
+pg12b-14-2-hpc:1642699:1643399 [2] NCCL INFO Channel 06/0 : 2[2] -> 3[3] via P2P/CUMEM
+pg12b-14-2-hpc:1642699:1643399 [2] NCCL INFO Channel 07/0 : 2[2] -> 3[3] via P2P/CUMEM
+pg12b-14-2-hpc:1642699:1643399 [2] NCCL INFO Channel 08/0 : 2[2] -> 3[3] via P2P/CUMEM
+pg12b-14-2-hpc:1642699:1643399 [2] NCCL INFO Channel 09/0 : 2[2] -> 3[3] via P2P/CUMEM
+pg12b-14-2-hpc:1642699:1643399 [2] NCCL INFO Channel 10/0 : 2[2] -> 3[3] via P2P/CUMEM
+pg12b-14-2-hpc:1642699:1643399 [2] NCCL INFO Channel 11/0 : 2[2] -> 3[3] via P2P/CUMEM
+pg12b-14-2-hpc:1642699:1643399 [2] NCCL INFO Channel 12/0 : 2[2] -> 3[3] via P2P/CUMEM
+pg12b-14-2-hpc:1642699:1643399 [2] NCCL INFO Channel 13/0 : 2[2] -> 3[3] via P2P/CUMEM
+pg12b-14-2-hpc:1642699:1643399 [2] NCCL INFO Channel 14/0 : 2[2] -> 3[3] via P2P/CUMEM
+pg12b-14-2-hpc:1642699:1643399 [2] NCCL INFO Channel 15/0 : 2[2] -> 3[3] via P2P/CUMEM
+pg12b-14-2-hpc:1642699:1643399 [2] NCCL INFO Channel 16/0 : 2[2] -> 3[3] via P2P/CUMEM
+pg12b-14-2-hpc:1642699:1643399 [2] NCCL INFO Channel 17/0 : 2[2] -> 3[3] via P2P/CUMEM
+pg12b-14-2-hpc:1642699:1643399 [2] NCCL INFO Channel 18/0 : 2[2] -> 3[3] via P2P/CUMEM
+pg12b-14-2-hpc:1642699:1643399 [2] NCCL INFO Channel 19/0 : 2[2] -> 3[3] via P2P/CUMEM
+pg12b-14-2-hpc:1642699:1643399 [2] NCCL INFO Channel 20/0 : 2[2] -> 3[3] via P2P/CUMEM
+pg12b-14-2-hpc:1642699:1643399 [2] NCCL INFO Channel 21/0 : 2[2] -> 3[3] via P2P/CUMEM
+pg12b-14-2-hpc:1642699:1643399 [2] NCCL INFO Channel 22/0 : 2[2] -> 3[3] via P2P/CUMEM
+pg12b-14-2-hpc:1642699:1643399 [2] NCCL INFO Channel 23/0 : 2[2] -> 3[3] via P2P/CUMEM
+pg12b-14-2-hpc:1642699:1643399 [2] NCCL INFO Connected all rings, use ring PXN 0 GDR 1
+[rank2]:[W828 18:52:11.026025863 Utils.hpp:112] Warning: Environment variable NCCL_BLOCKING_WAIT is deprecated; use TORCH_NCCL_BLOCKING_WAIT instead (function operator())
+4-2-hpc:1642704:1643401 [7] NCCL INFO Channel 03/0 : 7[7] -> 0[0] via P2P/CUMEM
+pg12b-14-2-hpc:1642704:1643401 [7] NCCL INFO Channel 04/0 : 7[7] -> 0[0] via P2P/CUMEM
+pg12b-14-2-hpc:1642704:1643401 [7] NCCL INFO Channel 05/0 : 7[7] -> 0[0] via P2P/CUMEM
+pg12b-14-2-hpc:1642704:1643401 [7] NCCL INFO Channel 06/0 : 7[7] -> 0[0] via P2P/CUMEM
+pg12b-14-2-hpc:1642704:1643401 [7] NCCL INFO Channel 07/0 : 7[7] -> 0[0] via P2P/CUMEM
+pg12b-14-2-hpc:1642704:1643401 [7] NCCL INFO Channel 08/0 : 7[7] -> 0[0] via P2P/CUMEM
+pg12b-14-2-hpc:1642704:1643401 [7] NCCL INFO Channel 09/0 : 7[7] -> 0[0] via P2P/CUMEM
+pg12b-14-2-hpc:1642704:1643401 [7] NCCL INFO Channel 10/0 : 7[7] -> 0[0] via P2P/CUMEM
+pg12b-14-2-hpc:1642704:1643401 [7] NCCL INFO Channel 11/0 : 7[7] -> 0[0] via P2P/CUMEM
+pg12b-14-2-hpc:1642704:1643401 [7] NCCL INFO Channel 12/0 : 7[7] -> 0[0] via P2P/CUMEM
+pg12b-14-2-hpc:1642704:1643401 [7] NCCL INFO Channel 13/0 : 7[7] -> 0[0] via P2P/CUMEM
+pg12b-14-2-hpc:1642704:1643401 [7] NCCL INFO Channel 14/0 : 7[7] -> 0[0] via P2P/CUMEM
+pg12b-14-2-hpc:1642704:1643401 [7] NCCL INFO Channel 15/0 : 7[7] -> 0[0] via P2P/CUMEM
+pg12b-14-2-hpc:1642704:1643401 [7] NCCL INFO Channel 16/0 : 7[7] -> 0[0] via P2P/CUMEM
+pg12b-14-2-hpc:1642704:1643401 [7] NCCL INFO Channel 17/0 : 7[7] -> 0[0] via P2P/CUMEM
+pg12b-14-2-hpc:1642704:1643401 [7] NCCL INFO Channel 18/0 : 7[7] -> 0[0] via P2P/CUMEM
+pg12b-14-2-hpc:1642704:1643401 [7] NCCL INFO Channel 19/0 : 7[7] -> 0[0] via P2P/CUMEM
+pg12b-14-2-hpc:1642704:1643401 [7] NCCL INFO Channel 20/0 : 7[7] -> 0[0] via P2P/CUMEM
+pg12b-14-2-hpc:1642704:1643401 [7] NCCL INFO Channel 21/0 : 7[7] -> 0[0] via P2P/CUMEM
+pg12b-14-2-hpc:1642704:1643401 [7] NCCL INFO Channel 22/0 : 7[7] -> 0[0] via P2P/CUMEM
+pg12b-14-2-hpc:1642704:1643401 [7] NCCL INFO Channel 23/0 : 7[7] -> 0[0] via P2P/CUMEM
+pg12b-14-2-hpc:1642704:1643401 [7] NCCL INFO Connected all rings, use ring PXN 0 GDR 1
+[rank7]:[W828 18:52:11.026129926 Utils.hpp:112] Warning: Environment variable NCCL_BLOCKING_WAIT is deprecated; use TORCH_NCCL_BLOCKING_WAIT instead (function operator())
+[4] NCCL INFO Channel 03/0 : 4[4] -> 5[5] via P2P/CUMEM
+pg12b-14-2-hpc:1642701:1643400 [4] NCCL INFO Channel 04/0 : 4[4] -> 5[5] via P2P/CUMEM
+pg12b-14-2-hpc:1642701:1643400 [4] NCCL INFO Channel 05/0 : 4[4] -> 5[5] via P2P/CUMEM
+pg12b-14-2-hpc:1642701:1643400 [4] NCCL INFO Channel 06/0 : 4[4] -> 5[5] via P2P/CUMEM
+pg12b-14-2-hpc:1642701:1643400 [4] NCCL INFO Channel 07/0 : 4[4] -> 5[5] via P2P/CUMEM
+pg12b-14-2-hpc:1642701:1643400 [4] NCCL INFO Channel 08/0 : 4[4] -> 5[5] via P2P/CUMEM
+pg12b-14-2-hpc:1642701:1643400 [4] NCCL INFO Channel 09/0 : 4[4] -> 5[5] via P2P/CUMEM
+pg12b-14-2-hpc:1642701:1643400 [4] NCCL INFO Channel 10/0 : 4[4] -> 5[5] via P2P/CUMEM
+pg12b-14-2-hpc:1642701:1643400 [4] NCCL INFO Channel 11/0 : 4[4] -> 5[5] via P2P/CUMEM
+pg12b-14-2-hpc:1642701:1643400 [4] NCCL INFO Channel 12/0 : 4[4] -> 5[5] via P2P/CUMEM
+pg12b-14-2-hpc:1642701:1643400 [4] NCCL INFO Channel 13/0 : 4[4] -> 5[5] via P2P/CUMEM
+pg12b-14-2-hpc:1642701:1643400 [4] NCCL INFO Channel 14/0 : 4[4] -> 5[5] via P2P/CUMEM
+pg12b-14-2-hpc:1642701:1643400 [4] NCCL INFO Channel 15/0 : 4[4] -> 5[5] via P2P/CUMEM
+pg12b-14-2-hpc:1642701:1643400 [4] NCCL INFO Channel 16/0 : 4[4] -> 5[5] via P2P/CUMEM
+pg12b-14-2-hpc:1642701:1643400 [4] NCCL INFO Channel 17/0 : 4[4] -> 5[5] via P2P/CUMEM
+pg12b-14-2-hpc:1642701:1643400 [4] NCCL INFO Channel 18/0 : 4[4] -> 5[5] via P2P/CUMEM
+pg12b-14-2-hpc:1642701:1643400 [4] NCCL INFO Channel 19/0 : 4[4] -> 5[5] via P2P/CUMEM
+pg12b-14-2-hpc:1642701:1643400 [4] NCCL INFO Channel 20/0 : 4[4] -> 5[5] via P2P/CUMEM
+pg12b-14-2-hpc:1642701:1643400 [4] NCCL INFO Channel 21/0 : 4[4] -> 5[5] via P2P/CUMEM
+pg12b-14-2-hpc:1642701:1643400 [4] NCCL INFO Channel 22/0 : 4[4] -> 5[5] via P2P/CUMEM
+pg12b-14-2-hpc:1642701:1643400 [4] NCCL INFO Channel 23/0 : 4[4] -> 5[5] via P2P/CUMEM
+pg12b-14-2-hpc:1642701:1643400 [4] NCCL INFO Connected all rings, use ring PXN 0 GDR 1
+ [6] NCCL INFO Channel 03/0 : 6[6] -> 7[7] via P2P/CUMEM
+pg12b-14-2-hpc:1642703:1643402 [6] NCCL INFO Channel 04/0 : 6[6] -> 7[7] via P2P/CUMEM
+pg12b-14-2-hpc:1642703:1643402 [6] NCCL INFO Channel 05/0 : 6[6] -> 7[7] via P2P/CUMEM
+pg12b-14-2-hpc:1642703:1643402 [6] NCCL INFO Channel 06/0 : 6[6] -> 7[7] via P2P/CUMEM
+pg12b-14-2-hpc:1642703:1643402 [6] NCCL INFO Channel 07/0 : 6[6] -> 7[7] via P2P/CUMEM
+pg12b-14-2-hpc:1642703:1643402 [6] NCCL INFO Channel 08/0 : 6[6] -> 7[7] via P2P/CUMEM
+pg12b-14-2-hpc:1642703:1643402 [6] NCCL INFO Channel 09/0 : 6[6] -> 7[7] via P2P/CUMEM
+pg12b-14-2-hpc:1642703:1643402 [6] NCCL INFO Channel 10/0 : 6[6] -> 7[7] via P2P/CUMEM
+pg12b-14-2-hpc:1642703:1643402 [6] NCCL INFO Channel 11/0 : 6[6] -> 7[7] via P2P/CUMEM
+pg12b-14-2-hpc:1642703:1643402 [6] NCCL INFO Channel 12/0 : 6[6] -> 7[7] via P2P/CUMEM
+pg12b-14-2-hpc:1642703:1643402 [6] NCCL INFO Channel 13/0 : 6[6] -> 7[7] via P2P/CUMEM
+pg12b-14-2-hpc:1642703:1643402 [6] NCCL INFO Channel 14/0 : 6[6] -> 7[7] via P2P/CUMEM
+pg12b-14-2-hpc:1642703:1643402 [6] NCCL INFO Channel 15/0 : 6[6] -> 7[7] via P2P/CUMEM
+pg12b-14-2-hpc:1642703:1643402 [6] NCCL INFO Channel 16/0 : 6[6] -> 7[7] via P2P/CUMEM
+pg12b-14-2-hpc:1642703:1643402 [6] NCCL INFO Channel 17/0 : 6[6] -> 7[7] via P2P/CUMEM
+pg12b-14-2-hpc:1642703:1643402 [6] NCCL INFO Channel 18/0 : 6[6] -> 7[7] via P2P/CUMEM
+pg12b-14-2-hpc:1642703:1643402 [6] NCCL INFO Channel 19/0 : 6[6] -> 7[7] via P2P/CUMEM
+pg12b-14-2-hpc:1642703:1643402 [6] NCCL INFO Channel 20/0 : 6[6] -> 7[7] via P2P/CUMEM
+pg12b-14-2-hpc:1642703:1643402 [6] NCCL INFO Channel 21/0 : 6[6] -> 7[7] via P2P/CUMEM
+pg12b-14-2-hpc:1642703:1643402 [6] NCCL INFO Channel 22/0 : 6[6] -> 7[7] via P2P/CUMEM
+pg12b-14-2-hpc:1642703:1643402 [6] NCCL INFO Channel 23/0 : 6[6] -> 7[7] via P2P/CUMEM
+pg12b-14-2-hpc:1642703:1643402 [6] NCCL INFO Connected all rings, use ring PXN 0 GDR 1
+[rank4]:[W828 18:52:11.027152041 Utils.hpp:112] Warning: Environment variable NCCL_BLOCKING_WAIT is deprecated; use TORCH_NCCL_BLOCKING_WAIT instead (function operator())
+[rank6]:[W828 18:52:11.027155737 Utils.hpp:112] Warning: Environment variable NCCL_BLOCKING_WAIT is deprecated; use TORCH_NCCL_BLOCKING_WAIT instead (function operator())
+ [5] NCCL INFO Channel 03/0 : 5[5] -> 6[6] via P2P/CUMEM
+pg12b-14-2-hpc:1642702:1643403 [5] NCCL INFO Channel 04/0 : 5[5] -> 6[6] via P2P/CUMEM
+pg12b-14-2-hpc:1642702:1643403 [5] NCCL INFO Channel 05/0 : 5[5] -> 6[6] via P2P/CUMEM
+pg12b-14-2-hpc:1642702:1643403 [5] NCCL INFO Channel 06/0 : 5[5] -> 6[6] via P2P/CUMEM
+pg12b-14-2-hpc:1642702:1643403 [5] NCCL INFO Channel 07/0 : 5[5] -> 6[6] via P2P/CUMEM
+pg12b-14-2-hpc:1642702:1643403 [5] NCCL INFO Channel 08/0 : 5[5] -> 6[6] via P2P/CUMEM
+pg12b-14-2-hpc:1642702:1643403 [5] NCCL INFO Channel 09/0 : 5[5] -> 6[6] via P2P/CUMEM
+pg12b-14-2-hpc:1642702:1643403 [5] NCCL INFO Channel 10/0 : 5[5] -> 6[6] via P2P/CUMEM
+pg12b-14-2-hpc:1642702:1643403 [5] NCCL INFO Channel 11/0 : 5[5] -> 6[6] via P2P/CUMEM
+pg12b-14-2-hpc:1642702:1643403 [5] NCCL INFO Channel 12/0 : 5[5] -> 6[6] via P2P/CUMEM
+pg12b-14-2-hpc:1642702:1643403 [5] NCCL INFO Channel 13/0 : 5[5] -> 6[6] via P2P/CUMEM
+pg12b-14-2-hpc:1642702:1643403 [5] NCCL INFO Channel 14/0 : 5[5] -> 6[6] via P2P/CUMEM
+pg12b-14-2-hpc:1642702:1643403 [5] NCCL INFO Channel 15/0 : 5[5] -> 6[6] via P2P/CUMEM
+pg12b-14-2-hpc:1642702:1643403 [5] NCCL INFO Channel 16/0 : 5[5] -> 6[6] via P2P/CUMEM
+pg12b-14-2-hpc:1642702:1643403 [5] NCCL INFO Channel 17/0 : 5[5] -> 6[6] via P2P/CUMEM
+pg12b-14-2-hpc:1642702:1643403 [5] NCCL INFO Channel 18/0 : 5[5] -> 6[6] via P2P/CUMEM
+pg12b-14-2-hpc:1642702:1643403 [5] NCCL INFO Channel 19/0 : 5[5] -> 6[6] via P2P/CUMEM
+pg12b-14-2-hpc:1642702:1643403 [5] NCCL INFO Channel 20/0 : 5[5] -> 6[6] via P2P/CUMEM
+pg12b-14-2-hpc:1642702:1643403 [5] NCCL INFO Channel 21/0 : 5[5] -> 6[6] via P2P/CUMEM
+pg12b-14-2-hpc:1642702:1643403 [5] NCCL INFO Channel 22/0 : 5[5] -> 6[6] via P2P/CUMEM
+pg12b-14-2-hpc:1642702:1643403 [5] NCCL INFO Channel 23/0 : 5[5] -> 6[6] via P2P/CUMEM
+pg12b-14-2-hpc:1642702:1643403 [5] NCCL INFO Connected all rings, use ring PXN 0 GDR 1
+[rank5]:[W828 18:52:11.027191759 Utils.hpp:112] Warning: Environment variable NCCL_BLOCKING_WAIT is deprecated; use TORCH_NCCL_BLOCKING_WAIT instead (function operator())
+[pg12b-14-2-hpc:0/8] 2026-08-28 18:52:11,817 (trainer:354) INFO: 1/1epoch started
+The length of the text output exceeds 500, which may cause OOM on the GPU. Please ensure that the data processing is correct and verify it. Adjust the threshold with preprocessor_conf.text_length_warning_thres, or silence this message alone with logging.getLogger('espnet2.train.preprocessor').
+The length of the text output exceeds 500, which may cause OOM on the GPU. Please ensure that the data processing is correct and verify it. Adjust the threshold with preprocessor_conf.text_length_warning_thres, or silence this message alone with logging.getLogger('espnet2.train.preprocessor').
+The length of the text output exceeds 500, which may cause OOM on the GPU. Please ensure that the data processing is correct and verify it. Adjust the threshold with preprocessor_conf.text_length_warning_thres, or silence this message alone with logging.getLogger('espnet2.train.preprocessor').
+The length of the text output exceeds 500, which may cause OOM on the GPU. Please ensure that the data processing is correct and verify it. Adjust the threshold with preprocessor_conf.text_length_warning_thres, or silence this message alone with logging.getLogger('espnet2.train.preprocessor').
+The length of the text output exceeds 500, which may cause OOM on the GPU. Please ensure that the data processing is correct and verify it. Adjust the threshold with preprocessor_conf.text_length_warning_thres, or silence this message alone with logging.getLogger('espnet2.train.preprocessor').
+The length of the text output exceeds 500, which may cause OOM on the GPU. Please ensure that the data processing is correct and verify it. Adjust the threshold with preprocessor_conf.text_length_warning_thres, or silence this message alone with logging.getLogger('espnet2.train.preprocessor').
+The length of the text output exceeds 500, which may cause OOM on the GPU. Please ensure that the data processing is correct and verify it. Adjust the threshold with preprocessor_conf.text_length_warning_thres, or silence this message alone with logging.getLogger('espnet2.train.preprocessor').
+The length of the text output exceeds 500, which may cause OOM on the GPU. Please ensure that the data processing is correct and verify it. Adjust the threshold with preprocessor_conf.text_length_warning_thres, or silence this message alone with logging.getLogger('espnet2.train.preprocessor').
+The length of the text output exceeds 500, which may cause OOM on the GPU. Please ensure that the data processing is correct and verify it. Adjust the threshold with preprocessor_conf.text_length_warning_thres, or silence this message alone with logging.getLogger('espnet2.train.preprocessor').
+The length of the text output exceeds 500, which may cause OOM on the GPU. Please ensure that the data processing is correct and verify it. Adjust the threshold with preprocessor_conf.text_length_warning_thres, or silence this message alone with logging.getLogger('espnet2.train.preprocessor').
+The length of the text output exceeds 500, which may cause OOM on the GPU. Please ensure that the data processing is correct and verify it. Adjust the threshold with preprocessor_conf.text_length_warning_thres, or silence this message alone with logging.getLogger('espnet2.train.preprocessor').
+The length of the text output exceeds 500, which may cause OOM on the GPU. Please ensure that the data processing is correct and verify it. Adjust the threshold with preprocessor_conf.text_length_warning_thres, or silence this message alone with logging.getLogger('espnet2.train.preprocessor').
+The length of the text output exceeds 500, which may cause OOM on the GPU. Please ensure that the data processing is correct and verify it. Adjust the threshold with preprocessor_conf.text_length_warning_thres, or silence this message alone with logging.getLogger('espnet2.train.preprocessor').
+The length of the text output exceeds 500, which may cause OOM on the GPU. Please ensure that the data processing is correct and verify it. Adjust the threshold with preprocessor_conf.text_length_warning_thres, or silence this message alone with logging.getLogger('espnet2.train.preprocessor').
+The length of the text output exceeds 500, which may cause OOM on the GPU. Please ensure that the data processing is correct and verify it. Adjust the threshold with preprocessor_conf.text_length_warning_thres, or silence this message alone with logging.getLogger('espnet2.train.preprocessor').
+The length of the text output exceeds 500, which may cause OOM on the GPU. Please ensure that the data processing is correct and verify it. Adjust the threshold with preprocessor_conf.text_length_warning_thres, or silence this message alone with logging.getLogger('espnet2.train.preprocessor').
+The length of the text output exceeds 500, which may cause OOM on the GPU. Please ensure that the data processing is correct and verify it. Adjust the threshold with preprocessor_conf.text_length_warning_thres, or silence this message alone with logging.getLogger('espnet2.train.preprocessor').
+The length of the text output exceeds 500, which may cause OOM on the GPU. Please ensure that the data processing is correct and verify it. Adjust the threshold with preprocessor_conf.text_length_warning_thres, or silence this message alone with logging.getLogger('espnet2.train.preprocessor').
+The length of the text output exceeds 500, which may cause OOM on the GPU. Please ensure that the data processing is correct and verify it. Adjust the threshold with preprocessor_conf.text_length_warning_thres, or silence this message alone with logging.getLogger('espnet2.train.preprocessor').
+The length of the text output exceeds 500, which may cause OOM on the GPU. Please ensure that the data processing is correct and verify it. Adjust the threshold with preprocessor_conf.text_length_warning_thres, or silence this message alone with logging.getLogger('espnet2.train.preprocessor').
+The length of the text output exceeds 500, which may cause OOM on the GPU. Please ensure that the data processing is correct and verify it. Adjust the threshold with preprocessor_conf.text_length_warning_thres, or silence this message alone with logging.getLogger('espnet2.train.preprocessor').
+The length of the text output exceeds 500, which may cause OOM on the GPU. Please ensure that the data processing is correct and verify it. Adjust the threshold with preprocessor_conf.text_length_warning_thres, or silence this message alone with logging.getLogger('espnet2.train.preprocessor').
+The length of the text output exceeds 500, which may cause OOM on the GPU. Please ensure that the data processing is correct and verify it. Adjust the threshold with preprocessor_conf.text_length_warning_thres, or silence this message alone with logging.getLogger('espnet2.train.preprocessor').
+The length of the text output exceeds 500, which may cause OOM on the GPU. Please ensure that the data processing is correct and verify it. Adjust the threshold with preprocessor_conf.text_length_warning_thres, or silence this message alone with logging.getLogger('espnet2.train.preprocessor').
+The length of the text output exceeds 500, which may cause OOM on the GPU. Please ensure that the data processing is correct and verify it. Adjust the threshold with preprocessor_conf.text_length_warning_thres, or silence this message alone with logging.getLogger('espnet2.train.preprocessor').
+The length of the text output exceeds 500, which may cause OOM on the GPU. Please ensure that the data processing is correct and verify it. Adjust the threshold with preprocessor_conf.text_length_warning_thres, or silence this message alone with logging.getLogger('espnet2.train.preprocessor').
+The length of the text output exceeds 500, which may cause OOM on the GPU. Please ensure that the data processing is correct and verify it. Adjust the threshold with preprocessor_conf.text_length_warning_thres, or silence this message alone with logging.getLogger('espnet2.train.preprocessor').
+The length of the text output exceeds 500, which may cause OOM on the GPU. Please ensure that the data processing is correct and verify it. Adjust the threshold with preprocessor_conf.text_length_warning_thres, or silence this message alone with logging.getLogger('espnet2.train.preprocessor').
+The length of the text output exceeds 500, which may cause OOM on the GPU. Please ensure that the data processing is correct and verify it. Adjust the threshold with preprocessor_conf.text_length_warning_thres, or silence this message alone with logging.getLogger('espnet2.train.preprocessor').
+The length of the text output exceeds 500, which may cause OOM on the GPU. Please ensure that the data processing is correct and verify it. Adjust the threshold with preprocessor_conf.text_length_warning_thres, or silence this message alone with logging.getLogger('espnet2.train.preprocessor').
+The length of the text output exceeds 500, which may cause OOM on the GPU. Please ensure that the data processing is correct and verify it. Adjust the threshold with preprocessor_conf.text_length_warning_thres, or silence this message alone with logging.getLogger('espnet2.train.preprocessor').
+The length of the text output exceeds 500, which may cause OOM on the GPU. Please ensure that the data processing is correct and verify it. Adjust the threshold with preprocessor_conf.text_length_warning_thres, or silence this message alone with logging.getLogger('espnet2.train.preprocessor').
+The length of the text output exceeds 500, which may cause OOM on the GPU. Please ensure that the data processing is correct and verify it. Adjust the threshold with preprocessor_conf.text_length_warning_thres, or silence this message alone with logging.getLogger('espnet2.train.preprocessor').
+The length of the text output exceeds 500, which may cause OOM on the GPU. Please ensure that the data processing is correct and verify it. Adjust the threshold with preprocessor_conf.text_length_warning_thres, or silence this message alone with logging.getLogger('espnet2.train.preprocessor').
+The length of the text output exceeds 500, which may cause OOM on the GPU. Please ensure that the data processing is correct and verify it. Adjust the threshold with preprocessor_conf.text_length_warning_thres, or silence this message alone with logging.getLogger('espnet2.train.preprocessor').
+The length of the text output exceeds 500, which may cause OOM on the GPU. Please ensure that the data processing is correct and verify it. Adjust the threshold with preprocessor_conf.text_length_warning_thres, or silence this message alone with logging.getLogger('espnet2.train.preprocessor').
+The length of the text output exceeds 500, which may cause OOM on the GPU. Please ensure that the data processing is correct and verify it. Adjust the threshold with preprocessor_conf.text_length_warning_thres, or silence this message alone with logging.getLogger('espnet2.train.preprocessor').
+The length of the text output exceeds 500, which may cause OOM on the GPU. Please ensure that the data processing is correct and verify it. Adjust the threshold with preprocessor_conf.text_length_warning_thres, or silence this message alone with logging.getLogger('espnet2.train.preprocessor').
+The length of the text output exceeds 500, which may cause OOM on the GPU. Please ensure that the data processing is correct and verify it. Adjust the threshold with preprocessor_conf.text_length_warning_thres, or silence this message alone with logging.getLogger('espnet2.train.preprocessor').
+The length of the text output exceeds 500, which may cause OOM on the GPU. Please ensure that the data processing is correct and verify it. Adjust the threshold with preprocessor_conf.text_length_warning_thres, or silence this message alone with logging.getLogger('espnet2.train.preprocessor').
+The length of the text output exceeds 500, which may cause OOM on the GPU. Please ensure that the data processing is correct and verify it. Adjust the threshold with preprocessor_conf.text_length_warning_thres, or silence this message alone with logging.getLogger('espnet2.train.preprocessor').
+The length of the text output exceeds 500, which may cause OOM on the GPU. Please ensure that the data processing is correct and verify it. Adjust the threshold with preprocessor_conf.text_length_warning_thres, or silence this message alone with logging.getLogger('espnet2.train.preprocessor').
+The length of the text output exceeds 500, which may cause OOM on the GPU. Please ensure that the data processing is correct and verify it. Adjust the threshold with preprocessor_conf.text_length_warning_thres, or silence this message alone with logging.getLogger('espnet2.train.preprocessor').
+The length of the text output exceeds 500, which may cause OOM on the GPU. Please ensure that the data processing is correct and verify it. Adjust the threshold with preprocessor_conf.text_length_warning_thres, or silence this message alone with logging.getLogger('espnet2.train.preprocessor').
+The length of the text output exceeds 500, which may cause OOM on the GPU. Please ensure that the data processing is correct and verify it. Adjust the threshold with preprocessor_conf.text_length_warning_thres, or silence this message alone with logging.getLogger('espnet2.train.preprocessor').
+The length of the text output exceeds 500, which may cause OOM on the GPU. Please ensure that the data processing is correct and verify it. Adjust the threshold with preprocessor_conf.text_length_warning_thres, or silence this message alone with logging.getLogger('espnet2.train.preprocessor').
+The length of the text output exceeds 500, which may cause OOM on the GPU. Please ensure that the data processing is correct and verify it. Adjust the threshold with preprocessor_conf.text_length_warning_thres, or silence this message alone with logging.getLogger('espnet2.train.preprocessor').
+The length of the text output exceeds 500, which may cause OOM on the GPU. Please ensure that the data processing is correct and verify it. Adjust the threshold with preprocessor_conf.text_length_warning_thres, or silence this message alone with logging.getLogger('espnet2.train.preprocessor').
+The length of the text output exceeds 500, which may cause OOM on the GPU. Please ensure that the data processing is correct and verify it. Adjust the threshold with preprocessor_conf.text_length_warning_thres, or silence this message alone with logging.getLogger('espnet2.train.preprocessor').
+The length of the text output exceeds 500, which may cause OOM on the GPU. Please ensure that the data processing is correct and verify it. Adjust the threshold with preprocessor_conf.text_length_warning_thres, or silence this message alone with logging.getLogger('espnet2.train.preprocessor').
+The length of the text output exceeds 500, which may cause OOM on the GPU. Please ensure that the data processing is correct and verify it. Adjust the threshold with preprocessor_conf.text_length_warning_thres, or silence this message alone with logging.getLogger('espnet2.train.preprocessor').
+The length of the text output exceeds 500, which may cause OOM on the GPU. Please ensure that the data processing is correct and verify it. Adjust the threshold with preprocessor_conf.text_length_warning_thres, or silence this message alone with logging.getLogger('espnet2.train.preprocessor').
+The length of the text output exceeds 500, which may cause OOM on the GPU. Please ensure that the data processing is correct and verify it. Adjust the threshold with preprocessor_conf.text_length_warning_thres, or silence this message alone with logging.getLogger('espnet2.train.preprocessor').
+The length of the text output exceeds 500, which may cause OOM on the GPU. Please ensure that the data processing is correct and verify it. Adjust the threshold with preprocessor_conf.text_length_warning_thres, or silence this message alone with logging.getLogger('espnet2.train.preprocessor').
+The length of the text output exceeds 500, which may cause OOM on the GPU. Please ensure that the data processing is correct and verify it. Adjust the threshold with preprocessor_conf.text_length_warning_thres, or silence this message alone with logging.getLogger('espnet2.train.preprocessor').
+The length of the text output exceeds 500, which may cause OOM on the GPU. Please ensure that the data processing is correct and verify it. Adjust the threshold with preprocessor_conf.text_length_warning_thres, or silence this message alone with logging.getLogger('espnet2.train.preprocessor').
+The length of the text output exceeds 500, which may cause OOM on the GPU. Please ensure that the data processing is correct and verify it. Adjust the threshold with preprocessor_conf.text_length_warning_thres, or silence this message alone with logging.getLogger('espnet2.train.preprocessor').
+The length of the text output exceeds 500, which may cause OOM on the GPU. Please ensure that the data processing is correct and verify it. Adjust the threshold with preprocessor_conf.text_length_warning_thres, or silence this message alone with logging.getLogger('espnet2.train.preprocessor').
+The length of the text output exceeds 500, which may cause OOM on the GPU. Please ensure that the data processing is correct and verify it. Adjust the threshold with preprocessor_conf.text_length_warning_thres, or silence this message alone with logging.getLogger('espnet2.train.preprocessor').
+The length of the text output exceeds 500, which may cause OOM on the GPU. Please ensure that the data processing is correct and verify it. Adjust the threshold with preprocessor_conf.text_length_warning_thres, or silence this message alone with logging.getLogger('espnet2.train.preprocessor').
+The length of the text output exceeds 500, which may cause OOM on the GPU. Please ensure that the data processing is correct and verify it. Adjust the threshold with preprocessor_conf.text_length_warning_thres, or silence this message alone with logging.getLogger('espnet2.train.preprocessor').
+The length of the text output exceeds 500, which may cause OOM on the GPU. Please ensure that the data processing is correct and verify it. Adjust the threshold with preprocessor_conf.text_length_warning_thres, or silence this message alone with logging.getLogger('espnet2.train.preprocessor').
+The length of the text output exceeds 500, which may cause OOM on the GPU. Please ensure that the data processing is correct and verify it. Adjust the threshold with preprocessor_conf.text_length_warning_thres, or silence this message alone with logging.getLogger('espnet2.train.preprocessor').
+The length of the text output exceeds 500, which may cause OOM on the GPU. Please ensure that the data processing is correct and verify it. Adjust the threshold with preprocessor_conf.text_length_warning_thres, or silence this message alone with logging.getLogger('espnet2.train.preprocessor').
+/mnt/weka/mark/espnet/tools/anaconda/envs/espnet/lib/python3.12/site-packages/torch/nn/functional.py:6044: UserWarning: Support for mismatched key_padding_mask and  is deprecated. Use same type for both instead.
+  warnings.warn(
+/mnt/weka/mark/espnet/tools/anaconda/envs/espnet/lib/python3.12/site-packages/torch/nn/functional.py:6044: UserWarning: Support for mismatched key_padding_mask and  is deprecated. Use same type for both instead.
+  warnings.warn(
+/mnt/weka/mark/espnet/tools/anaconda/envs/espnet/lib/python3.12/site-packages/torch/nn/functional.py:6044: UserWarning: Support for mismatched key_padding_mask and  is deprecated. Use same type for both instead.
+  warnings.warn(
+/mnt/weka/mark/espnet/tools/anaconda/envs/espnet/lib/python3.12/site-packages/torch/nn/functional.py:6044: UserWarning: Support for mismatched key_padding_mask and  is deprecated. Use same type for both instead.
+  warnings.warn(
+/mnt/weka/mark/espnet/tools/anaconda/envs/espnet/lib/python3.12/site-packages/torch/nn/functional.py:6044: UserWarning: Support for mismatched key_padding_mask and  is deprecated. Use same type for both instead.
+  warnings.warn(
+/mnt/weka/mark/espnet/tools/anaconda/envs/espnet/lib/python3.12/site-packages/torch/nn/functional.py:6044: UserWarning: Support for mismatched key_padding_mask and  is deprecated. Use same type for both instead.
+  warnings.warn(
+/mnt/weka/mark/espnet/tools/anaconda/envs/espnet/lib/python3.12/site-packages/torch/nn/functional.py:6044: UserWarning: Support for mismatched key_padding_mask and  is deprecated. Use same type for both instead.
+  warnings.warn(
+/mnt/weka/mark/espnet/tools/anaconda/envs/espnet/lib/python3.12/site-packages/torch/nn/functional.py:6044: UserWarning: Support for mismatched key_padding_mask and  is deprecated. Use same type for both instead.
+  warnings.warn(
+[pg12b-14-2-hpc:0/8] 2026-08-28 18:54:29,633 (trainer:830) INFO: 1epoch:train:1-60batch: iter_time=0.001, forward_time=0.189, loss=2.985e+04, correct_m=6.015, count_m=2.864e+03, acc_m=0.002, correct_u=5.757, count_u=2.653e+03, acc_u=0.002, backward_time=0.297, grad_norm=5.023e+12, clip=100.000, loss_scale=1.000, optim_step_time=0.005, optim0_lr0=4.922e-07, train_time=2.297
+[pg12b-14-2-hpc:0/8] 2026-08-28 18:54:56,838 (trainer:830) INFO: 1epoch:train:61-120batch: iter_time=8.961e-05, forward_time=0.134, loss=2.909e+04, correct_m=6.728, count_m=2.840e+03, acc_m=0.002, correct_u=6.064, count_u=2.668e+03, acc_u=0.002, backward_time=0.280, grad_norm=2.400e+04, clip=100.000, loss_scale=1.000, optim_step_time=0.004, optim0_lr0=1.430e-06, train_time=0.453
+[pg12b-14-2-hpc:0/8] 2026-08-28 18:55:23,110 (trainer:830) INFO: 1epoch:train:121-180batch: iter_time=1.001e-04, forward_time=0.130, loss=2.830e+04, correct_m=7.632, count_m=2.886e+03, acc_m=0.003, correct_u=6.643, count_u=2.634e+03, acc_u=0.003, backward_time=0.269, grad_norm=2.348e+04, clip=100.000, loss_scale=1.000, optim_step_time=0.004, optim0_lr0=2.367e-06, train_time=0.438
+[pg12b-14-2-hpc:0/8] 2026-08-28 18:55:49,548 (trainer:830) INFO: 1epoch:train:181-240batch: iter_time=9.220e-05, forward_time=0.131, loss=2.590e+04, correct_m=8.524, count_m=2.870e+03, acc_m=0.003, correct_u=7.328, count_u=2.646e+03, acc_u=0.003, backward_time=0.271, grad_norm=9.143e+03, clip=100.000, loss_scale=1.000, optim_step_time=0.004, optim0_lr0=3.305e-06, train_time=0.441
+[pg12b-14-2-hpc:0/8] 2026-08-28 18:56:16,130 (trainer:830) INFO: 1epoch:train:241-300batch: iter_time=8.998e-05, forward_time=0.131, loss=2.319e+04, correct_m=11.349, count_m=2.873e+03, acc_m=0.004, correct_u=8.844, count_u=2.646e+03, acc_u=0.003, backward_time=0.271, grad_norm=4.382e+03, clip=100.000, loss_scale=1.000, optim_step_time=0.004, optim0_lr0=4.242e-06, train_time=0.443
+[pg12b-14-2-hpc:0/8] 2026-08-28 18:56:42,326 (trainer:830) INFO: 1epoch:train:301-360batch: iter_time=9.859e-05, forward_time=0.133, loss=2.000e+04, correct_m=17.735, count_m=2.815e+03, acc_m=0.006, correct_u=16.525, count_u=2.694e+03, acc_u=0.006, backward_time=0.264, grad_norm=648.206, clip=100.000, loss_scale=1.000, optim_step_time=0.004, optim0_lr0=5.180e-06, train_time=0.436
+[pg12b-14-2-hpc:0/8] 2026-08-28 18:57:08,443 (trainer:830) INFO: 1epoch:train:361-420batch: iter_time=1.030e-04, forward_time=0.131, loss=1.895e+04, correct_m=31.638, count_m=2.843e+03, acc_m=0.011, correct_u=21.877, count_u=2.672e+03, acc_u=0.008, backward_time=0.264, grad_norm=356.460, clip=100.000, loss_scale=1.000, optim_step_time=0.004, optim0_lr0=6.117e-06, train_time=0.435
+[pg12b-14-2-hpc:0/8] 2026-08-28 18:57:34,639 (trainer:830) INFO: 1epoch:train:421-480batch: iter_time=1.082e-04, forward_time=0.133, loss=1.872e+04, correct_m=19.675, count_m=2.890e+03, acc_m=0.007, correct_u=21.532, count_u=2.623e+03, acc_u=0.008, backward_time=0.262, grad_norm=270.217, clip=100.000, loss_scale=1.000, optim_step_time=0.004, optim0_lr0=7.055e-06, train_time=0.436
+

@@ -1,0 +1,2 @@
+point	batch_bins	iters	compile	status	elapsed_s
+SMOKE_compile	36000000	60	true	ok	491

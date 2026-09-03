@@ -1,0 +1,6 @@
+point	batch_bins	iters	compile	status	elapsed_s
+i0_12M	12000000	1200	false	ok	560
+i0_18M	18000000	1200	false	ok	627
+i0_24M	24000000	1200	false	ok	711
+i0_30M	30000000	1200	false	ok	782
+i0_36M	36000000	1200	false	ok	849

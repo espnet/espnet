@@ -1,0 +1,1019 @@
+2026-08-28T18:44:30 (wavlm.sh:164:main) ./wavlm.sh --ngpu 8 --num_nodes 1 --lang en --train_start_iter 0 --train_stop_iter 1 --nj 32 --max_wav_duration 30 --train_configs conf/tuning/train_ssl_torchaudiowavlm_base_960h_pretrain_it0.yaml conf/tuning/train_ssl_torchaudiowavlm_base_960h_pretrain_it1.yaml --n_clusters 100 500 --features_km mfcc espnet_wavlm --layers_km 0 6 --train_set train_960 --valid_set dev --portion_km 0.1 --gpu_dump_feature true --alignment_phoneme_dir ./data/librispeech_phoneme_alignment --stage 7 --stop_stage 7 --train_start_iter 0 --train_stop_iter 0 --expdir exp_sweep --n_clusters 500 --features_km random --layers_km 0 --portion_km 1.0 --train_configs conf/tuning/train_ssl_torchaudiowavlm_large_960h_pretrain_it0.yaml --python /mnt/weka/mark/espnet/egs2/librispeech/wavlm1/local/bench/python_with_powerlog.sh --wavlm_args --num_iters_per_epoch 1200 --max_epoch 1 --num_att_plot 0                       --keep_nbest_models 1 --patience none                       --batch_bins 48000000 --accum_grad 1 --unused_parameters false
+2026-08-28T18:44:56 (wavlm.sh:527:main) Stage 7 [Iter 0 / 0]: WavLM Training: input_feats=random, train_set=dump/raw/train_960, valid_set=dump/raw/dev
+2026-08-28T18:44:56 (wavlm.sh:593:main) Generate 'exp_sweep/wavlm_iter0_train_ssl_torchaudiowavlm_large_960h_pretrain_it0_raw/run.sh'. You can resume the process from stage 7 using this script
+2026-08-28T18:44:57 (wavlm.sh:597:main) WavLM Training started... log: 'exp_sweep/wavlm_iter0_train_ssl_torchaudiowavlm_large_960h_pretrain_it0_raw/train.log'
+2026-08-28 18:44:59,186 (launch:94) INFO: /mnt/weka/mark/espnet/tools/anaconda/envs/espnet/bin/python3 /mnt/weka/mark/espnet/espnet2/bin/launch.py --cmd 'slurm.pl --name exp_sweep/wavlm_iter0_train_ssl_torchaudiowavlm_large_960h_pretrain_it0_raw/train.log' --log exp_sweep/wavlm_iter0_train_ssl_torchaudiowavlm_large_960h_pretrain_it0_raw/train.log --ngpu 8 --num_nodes 1 --init_file_prefix exp_sweep/wavlm_iter0_train_ssl_torchaudiowavlm_large_960h_pretrain_it0_raw/.dist_init_ --multiprocessing_distributed true -- /mnt/weka/mark/espnet/egs2/librispeech/wavlm1/local/bench/python_with_powerlog.sh -m espnet2.bin.wavlm_train --use_preprocessor true --normalize null --token_type word --token_list data/en_token_list_kmeans_iter0_random_500clusters/word/tokens.txt --num_classes 500 --valid_data_path_and_name_and_type dump/raw/dev/wav.scp,speech,sound --valid_data_path_and_name_and_type dump/raw/dev/text.km.kmeans_iter0_random_train_960_portion1.0,text,text --valid_shape_file exp_sweep/wavlm_iter0_stats_raw/valid/speech_shape --valid_shape_file exp_sweep/wavlm_iter0_stats_raw/valid/text_shape.word --resume true --fold_length 80000 --fold_length 400 --output_dir exp_sweep/wavlm_iter0_train_ssl_torchaudiowavlm_large_960h_pretrain_it0_raw --config conf/tuning/train_ssl_torchaudiowavlm_large_960h_pretrain_it0.yaml --frontend_conf fs=16k --train_data_path_and_name_and_type dump/raw/train_960/wav.scp,speech,sound --train_data_path_and_name_and_type dump/raw/train_960/text.km.kmeans_iter0_random_train_960_portion1.0,text,text --train_shape_file exp_sweep/wavlm_iter0_stats_raw/train/speech_shape --train_shape_file exp_sweep/wavlm_iter0_stats_raw/train/text_shape.word --num_iters_per_epoch 1200 --max_epoch 1 --num_att_plot 0 --keep_nbest_models 1 --patience none --batch_bins 48000000 --accum_grad 1 --unused_parameters false
+2026-08-28 18:45:00,465 (launch:237) INFO: single-node with 8gpu on distributed mode
+2026-08-28 18:45:00,556 (launch:348) INFO: log file: exp_sweep/wavlm_iter0_train_ssl_torchaudiowavlm_large_960h_pretrain_it0_raw/train.log
+/mnt/weka/mark/espnet/egs2/librispeech/wavlm1/utils/slurm.pl: job failed with status 1, log is in exp_sweep/wavlm_iter0_train_ssl_torchaudiowavlm_large_960h_pretrain_it0_raw/train.log
+Command '['slurm.pl', '--name', 'exp_sweep/wavlm_iter0_train_ssl_torchaudiowavlm_large_960h_pretrain_it0_raw/train.log', '--gpu', '8', 'exp_sweep/wavlm_iter0_train_ssl_torchaudiowavlm_large_960h_pretrain_it0_raw/train.log', '/mnt/weka/mark/espnet/egs2/librispeech/wavlm1/local/bench/python_with_powerlog.sh', '-m', 'espnet2.bin.wavlm_train', '--use_preprocessor', 'true', '--normalize', 'null', '--token_type', 'word', '--token_list', 'data/en_token_list_kmeans_iter0_random_500clusters/word/tokens.txt', '--num_classes', '500', '--valid_data_path_and_name_and_type', 'dump/raw/dev/wav.scp,speech,sound', '--valid_data_path_and_name_and_type', 'dump/raw/dev/text.km.kmeans_iter0_random_train_960_portion1.0,text,text', '--valid_shape_file', 'exp_sweep/wavlm_iter0_stats_raw/valid/speech_shape', '--valid_shape_file', 'exp_sweep/wavlm_iter0_stats_raw/valid/text_shape.word', '--resume', 'true', '--fold_length', '80000', '--fold_length', '400', '--output_dir', 'exp_sweep/wavlm_iter0_train_ssl_torchaudiowavlm_large_960h_pretrain_it0_raw', '--config', 'conf/tuning/train_ssl_torchaudiowavlm_large_960h_pretrain_it0.yaml', '--frontend_conf', 'fs=16k', '--train_data_path_and_name_and_type', 'dump/raw/train_960/wav.scp,speech,sound', '--train_data_path_and_name_and_type', 'dump/raw/train_960/text.km.kmeans_iter0_random_train_960_portion1.0,text,text', '--train_shape_file', 'exp_sweep/wavlm_iter0_stats_raw/train/speech_shape', '--train_shape_file', 'exp_sweep/wavlm_iter0_stats_raw/train/text_shape.word', '--num_iters_per_epoch', '1200', '--max_epoch', '1', '--num_att_plot', '0', '--keep_nbest_models', '1', '--patience', 'none', '--batch_bins', '48000000', '--accum_grad', '1', '--unused_parameters', 'false', '--ngpu', '8', '--multiprocessing_distributed', 'True']' returned non-zero exit status 1.
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/mnt/weka/mark/espnet/espnet2/bin/launch.py", line 384, in <module>
+    main()
+  File "/mnt/weka/mark/espnet/espnet2/bin/launch.py", line 375, in main
+    raise RuntimeError(
+RuntimeError: 
+################### The last 1000 lines of exp_sweep/wavlm_iter0_train_ssl_torchaudiowavlm_large_960h_pretrain_it0_raw/train.log ###################
+[W828 18:47:50.546885062 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W828 18:47:50.585640731 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W828 18:47:50.596379583 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W828 18:47:50.597767567 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W828 18:47:50.599879759 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W828 18:47:50.601124589 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W828 18:47:50.601183047 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W828 18:47:50.601552634 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W828 18:47:50.604268567 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W828 18:47:50.606759694 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W828 18:47:50.612550427 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W828 18:47:50.630012161 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W828 18:47:50.633173693 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W828 18:47:50.637645057 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W828 18:47:50.637798379 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W828 18:47:50.646062238 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W828 18:47:50.649500120 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W828 18:47:50.703644765 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W828 18:47:50.777732969 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W828 18:47:50.870289873 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W828 18:47:50.962322506 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W828 18:47:50.962820219 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W828 18:47:50.995629039 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W828 18:47:50.996839958 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W828 18:47:50.001828610 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W828 18:47:50.001828296 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W828 18:47:50.001962796 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W828 18:47:50.002471589 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W828 18:47:50.002694175 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W828 18:47:50.007247481 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W828 18:47:50.008733224 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W828 18:47:50.012821494 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W828 18:47:50.043167365 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W828 18:47:50.056397471 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W828 18:47:50.061864143 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W828 18:47:50.062041753 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W828 18:47:50.082322358 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W828 18:47:50.082715126 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W828 18:47:50.083630278 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W828 18:47:50.087318195 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W828 18:47:50.087743799 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W828 18:47:50.088777101 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W828 18:47:50.088952566 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W828 18:47:50.089085209 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W828 18:47:50.090023100 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W828 18:47:50.090046829 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W828 18:47:50.090383381 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W828 18:47:50.171044184 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+Process SpawnProcess-2:
+Process SpawnProcess-8:
+Traceback (most recent call last):
+  File "/mnt/weka/mark/espnet/tools/anaconda/envs/espnet/lib/python3.12/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+Traceback (most recent call last):
+  File "/mnt/weka/mark/espnet/tools/anaconda/envs/espnet/lib/python3.12/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/mnt/weka/mark/espnet/espnet2/tasks/abs_task.py", line 1656, in main_worker
+    cls.trainer.run(
+  File "/mnt/weka/mark/espnet/espnet2/train/trainer.py", line 361, in run
+    all_steps_are_invalid = cls.train_one_epoch(
+                            ^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/weka/mark/espnet/espnet2/train/trainer.py", line 729, in train_one_epoch
+    loss.backward()
+  File "/mnt/weka/mark/espnet/tools/anaconda/envs/espnet/lib/python3.12/site-packages/torch/_tensor.py", line 625, in backward
+    torch.autograd.backward(
+  File "/mnt/weka/mark/espnet/tools/anaconda/envs/espnet/lib/python3.12/site-packages/torch/autograd/__init__.py", line 354, in backward
+    _engine_run_backward(
+  File "/mnt/weka/mark/espnet/tools/anaconda/envs/espnet/lib/python3.12/site-packages/torch/autograd/graph.py", line 841, in _engine_run_backward
+    return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+torch.AcceleratorError: CUDA error: Invalid access of peer GPU memory over nvlink or a hardware error
+Search for `cudaErrorContained' in https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__TYPES.html for more information.
+CUDA kernel errors might be asynchronously reported at some other API call, so the stacktrace below might be incorrect.
+For debugging consider passing CUDA_LAUNCH_BLOCKING=1
+Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+
+  File "/mnt/weka/mark/espnet/tools/anaconda/envs/espnet/lib/python3.12/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/mnt/weka/mark/espnet/tools/anaconda/envs/espnet/lib/python3.12/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/mnt/weka/mark/espnet/espnet2/tasks/abs_task.py", line 1656, in main_worker
+    cls.trainer.run(
+  File "/mnt/weka/mark/espnet/espnet2/train/trainer.py", line 361, in run
+    all_steps_are_invalid = cls.train_one_epoch(
+                            ^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/weka/mark/espnet/espnet2/train/trainer.py", line 729, in train_one_epoch
+    loss.backward()
+  File "/mnt/weka/mark/espnet/tools/anaconda/envs/espnet/lib/python3.12/site-packages/torch/_tensor.py", line 625, in backward
+    torch.autograd.backward(
+  File "/mnt/weka/mark/espnet/tools/anaconda/envs/espnet/lib/python3.12/site-packages/torch/autograd/__init__.py", line 354, in backward
+    _engine_run_backward(
+  File "/mnt/weka/mark/espnet/tools/anaconda/envs/espnet/lib/python3.12/site-packages/torch/autograd/graph.py", line 841, in _engine_run_backward
+    return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+torch.AcceleratorError: CUDA error: Invalid access of peer GPU memory over nvlink or a hardware error
+Search for `cudaErrorContained' in https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__TYPES.html for more information.
+CUDA kernel errors might be asynchronously reported at some other API call, so the stacktrace below might be incorrect.
+For debugging consider passing CUDA_LAUNCH_BLOCKING=1
+Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+
+pg12b-14-2-hpc:1630055:1635141 [7] NCCL INFO NVLS comm 0x55bcad54d240 headRank 7 nHeads 8 nvlsRanks 8 buffSize 1048576 nvlsPerRankSize 33554432 nvlsTotalSize 268435456
+[rank7]:[W828 18:47:51.627992348 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank7]:[W828 18:47:51.628029986 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank7]:[W828 18:47:51.628044668 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank7]:[W828 18:47:51.628066589 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank7]:[W828 18:47:51.628083997 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank7]:[W828 18:47:51.628101835 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank7]:[W828 18:47:51.628125822 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank7]:[W828 18:47:51.628140596 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank7]:[W828 18:47:51.628156255 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank7]:[W828 18:47:51.628173747 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+pg12b-14-2-hpc:1630049:1635135 [1] NCCL INFO NVLS comm 0x5566daf08100 headRank 1 nHeads 8 nvlsRanks 8 buffSize 1048576 nvlsPerRankSize 33554432 nvlsTotalSize 268435456
+[rank7]:[W828 18:47:51.628188219 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank1]:[W828 18:47:51.628175697 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank1]:[W828 18:47:51.628201875 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank7]:[W828 18:47:51.628203535 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank1]:[W828 18:47:51.628216728 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank7]:[W828 18:47:51.628220664 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank7]:[W828 18:47:51.628233671 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank1]:[W828 18:47:51.628239939 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank7]:[W828 18:47:51.628250360 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank1]:[W828 18:47:51.628256809 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank7]:[W828 18:47:51.628270637 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank1]:[W828 18:47:51.628276443 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank7]:[W828 18:47:51.628285783 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank1]:[W828 18:47:51.628295551 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank7]:[W828 18:47:51.628301568 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank1]:[W828 18:47:51.628308449 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank7]:[W828 18:47:51.628321287 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank1]:[W828 18:47:51.628322680 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank7]:[W828 18:47:51.628336912 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank1]:[W828 18:47:51.628341132 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank1]:[W828 18:47:51.628355275 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank7]:[W828 18:47:51.628356421 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank1]:[W828 18:47:51.628369535 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank7]:[W828 18:47:51.628374248 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank1]:[W828 18:47:51.628386360 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank7]:[W828 18:47:51.628389593 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank1]:[W828 18:47:51.628399863 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank7]:[W828 18:47:51.628403005 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank1]:[W828 18:47:51.628416687 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank7]:[W828 18:47:51.628418595 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank7]:[W828 18:47:51.628432307 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank1]:[W828 18:47:51.628435926 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank1]:[W828 18:47:51.628448789 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank7]:[W828 18:47:51.628448755 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank1]:[W828 18:47:51.628465262 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank7]:[W828 18:47:51.628468910 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank7]:[W828 18:47:51.628480482 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank1]:[W828 18:47:51.628483464 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank7]:[W828 18:47:51.628494862 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank1]:[W828 18:47:51.628496688 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank1]:[W828 18:47:51.628511600 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank7]:[W828 18:47:51.628512091 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank7]:[W828 18:47:51.628526704 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank1]:[W828 18:47:51.628529189 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank7]:[W828 18:47:51.628540914 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank1]:[W828 18:47:51.628547239 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank7]:[W828 18:47:51.628553661 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank1]:[W828 18:47:51.628561153 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank7]:[W828 18:47:51.628563550 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank7]:[W828 18:47:51.628571637 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank1]:[W828 18:47:51.628577710 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank7]:[W828 18:47:51.628582720 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank1]:[W828 18:47:51.628591340 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank7]:[W828 18:47:51.628591793 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank7]:[W828 18:47:51.628603104 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank1]:[W828 18:47:51.628606847 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank1]:[W828 18:47:51.628623806 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank1]:[W828 18:47:51.628637866 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank1]:[W828 18:47:51.628651507 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank1]:[W828 18:47:51.628669858 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank1]:[W828 18:47:51.628683412 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank1]:[W828 18:47:51.628697405 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank1]:[W828 18:47:51.628710161 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank1]:[W828 18:47:51.628721158 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank1]:[W828 18:47:51.628731140 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank1]:[W828 18:47:51.628740854 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank1]:[W828 18:47:51.628749174 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank1]:[W828 18:47:51.628759240 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+Process SpawnProcess-3:
+Traceback (most recent call last):
+  File "/mnt/weka/mark/espnet/tools/anaconda/envs/espnet/lib/python3.12/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/mnt/weka/mark/espnet/tools/anaconda/envs/espnet/lib/python3.12/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/mnt/weka/mark/espnet/espnet2/tasks/abs_task.py", line 1656, in main_worker
+    cls.trainer.run(
+  File "/mnt/weka/mark/espnet/espnet2/train/trainer.py", line 361, in run
+    all_steps_are_invalid = cls.train_one_epoch(
+                            ^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/weka/mark/espnet/espnet2/train/trainer.py", line 729, in train_one_epoch
+    loss.backward()
+  File "/mnt/weka/mark/espnet/tools/anaconda/envs/espnet/lib/python3.12/site-packages/torch/_tensor.py", line 625, in backward
+    torch.autograd.backward(
+  File "/mnt/weka/mark/espnet/tools/anaconda/envs/espnet/lib/python3.12/site-packages/torch/autograd/__init__.py", line 354, in backward
+    _engine_run_backward(
+  File "/mnt/weka/mark/espnet/tools/anaconda/envs/espnet/lib/python3.12/site-packages/torch/autograd/graph.py", line 841, in _engine_run_backward
+    return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+torch.AcceleratorError: CUDA error: Invalid access of peer GPU memory over nvlink or a hardware error
+Search for `cudaErrorContained' in https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__TYPES.html for more information.
+CUDA kernel errors might be asynchronously reported at some other API call, so the stacktrace below might be incorrect.
+For debugging consider passing CUDA_LAUNCH_BLOCKING=1
+Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+
+pg12b-14-2-hpc:1630050:1635139 [2] NCCL INFO NVLS comm 0x55aa86974800 headRank 2 nHeads 8 nvlsRanks 8 buffSize 1048576 nvlsPerRankSize 33554432 nvlsTotalSize 268435456
+[rank2]:[W828 18:47:51.677655738 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank2]:[W828 18:47:51.677683995 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank2]:[W828 18:47:51.677696485 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank2]:[W828 18:47:51.677719422 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank2]:[W828 18:47:51.677735900 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank2]:[W828 18:47:51.677752610 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank2]:[W828 18:47:51.677772252 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank2]:[W828 18:47:51.677787642 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank2]:[W828 18:47:51.677803199 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank2]:[W828 18:47:51.677826929 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank2]:[W828 18:47:51.677841125 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank2]:[W828 18:47:51.677855904 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank2]:[W828 18:47:51.677881165 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank2]:[W828 18:47:51.677896106 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank2]:[W828 18:47:51.677911237 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank2]:[W828 18:47:51.677930497 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank2]:[W828 18:47:51.677945098 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank2]:[W828 18:47:51.677961338 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank2]:[W828 18:47:51.677982810 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank2]:[W828 18:47:51.677999227 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank2]:[W828 18:47:51.678017444 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank2]:[W828 18:47:51.678035708 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank2]:[W828 18:47:51.678048988 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank2]:[W828 18:47:51.678062053 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank2]:[W828 18:47:51.678080279 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank2]:[W828 18:47:51.678095572 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank2]:[W828 18:47:51.678110460 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank2]:[W828 18:47:51.678128699 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank2]:[W828 18:47:51.678142542 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank2]:[W828 18:47:51.678156684 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank2]:[W828 18:47:51.678176398 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank2]:[W828 18:47:51.678190327 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank2]:[W828 18:47:51.678203517 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank2]:[W828 18:47:51.678215976 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank2]:[W828 18:47:51.678229635 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank2]:[W828 18:47:51.678239793 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank2]:[W828 18:47:51.678249906 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank2]:[W828 18:47:51.678260936 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank2]:[W828 18:47:51.678269967 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+Process SpawnProcess-4:
+Traceback (most recent call last):
+  File "/mnt/weka/mark/espnet/tools/anaconda/envs/espnet/lib/python3.12/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/mnt/weka/mark/espnet/tools/anaconda/envs/espnet/lib/python3.12/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/mnt/weka/mark/espnet/espnet2/tasks/abs_task.py", line 1656, in main_worker
+    cls.trainer.run(
+  File "/mnt/weka/mark/espnet/espnet2/train/trainer.py", line 361, in run
+    all_steps_are_invalid = cls.train_one_epoch(
+                            ^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/weka/mark/espnet/espnet2/train/trainer.py", line 729, in train_one_epoch
+    loss.backward()
+  File "/mnt/weka/mark/espnet/tools/anaconda/envs/espnet/lib/python3.12/site-packages/torch/_tensor.py", line 625, in backward
+    torch.autograd.backward(
+  File "/mnt/weka/mark/espnet/tools/anaconda/envs/espnet/lib/python3.12/site-packages/torch/autograd/__init__.py", line 354, in backward
+    _engine_run_backward(
+  File "/mnt/weka/mark/espnet/tools/anaconda/envs/espnet/lib/python3.12/site-packages/torch/autograd/graph.py", line 841, in _engine_run_backward
+    return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+torch.AcceleratorError: CUDA error: Invalid access of peer GPU memory over nvlink or a hardware error
+Search for `cudaErrorContained' in https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__TYPES.html for more information.
+CUDA kernel errors might be asynchronously reported at some other API call, so the stacktrace below might be incorrect.
+For debugging consider passing CUDA_LAUNCH_BLOCKING=1
+Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+
+pg12b-14-2-hpc:1630051:1635138 [3] NCCL INFO NVLS comm 0x55d5802de580 headRank 3 nHeads 8 nvlsRanks 8 buffSize 1048576 nvlsPerRankSize 33554432 nvlsTotalSize 268435456
+[rank3]:[W828 18:47:51.876321918 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank3]:[W828 18:47:51.876347606 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank3]:[W828 18:47:51.876362471 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank3]:[W828 18:47:51.876391014 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank3]:[W828 18:47:51.876410975 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank3]:[W828 18:47:51.876429891 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank3]:[W828 18:47:51.876451398 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank3]:[W828 18:47:51.876468234 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank3]:[W828 18:47:51.876484634 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank3]:[W828 18:47:51.876503165 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank3]:[W828 18:47:51.876528633 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank3]:[W828 18:47:51.876545167 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank3]:[W828 18:47:51.876564032 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank3]:[W828 18:47:51.876581437 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank3]:[W828 18:47:51.876597305 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank3]:[W828 18:47:51.876615899 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank3]:[W828 18:47:51.876631435 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank3]:[W828 18:47:51.876647684 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank3]:[W828 18:47:51.876669581 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank3]:[W828 18:47:51.876685270 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank3]:[W828 18:47:51.876702159 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank3]:[W828 18:47:51.876719744 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank3]:[W828 18:47:51.876733454 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank3]:[W828 18:47:51.876749016 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank3]:[W828 18:47:51.876767445 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank3]:[W828 18:47:51.876783815 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank3]:[W828 18:47:51.876798750 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank3]:[W828 18:47:51.876817922 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank3]:[W828 18:47:51.876833865 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank3]:[W828 18:47:51.876849203 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank3]:[W828 18:47:51.876868791 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank3]:[W828 18:47:51.876883919 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank3]:[W828 18:47:51.876898676 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank3]:[W828 18:47:51.876912899 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank3]:[W828 18:47:51.876925480 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank3]:[W828 18:47:51.876935548 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank3]:[W828 18:47:51.876947900 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank3]:[W828 18:47:51.876957587 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank3]:[W828 18:47:51.876967829 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+Process SpawnProcess-5:
+Traceback (most recent call last):
+  File "/mnt/weka/mark/espnet/tools/anaconda/envs/espnet/lib/python3.12/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+Process SpawnProcess-6:
+  File "/mnt/weka/mark/espnet/tools/anaconda/envs/espnet/lib/python3.12/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/mnt/weka/mark/espnet/espnet2/tasks/abs_task.py", line 1656, in main_worker
+    cls.trainer.run(
+  File "/mnt/weka/mark/espnet/espnet2/train/trainer.py", line 361, in run
+    all_steps_are_invalid = cls.train_one_epoch(
+                            ^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/weka/mark/espnet/espnet2/train/trainer.py", line 729, in train_one_epoch
+    loss.backward()
+  File "/mnt/weka/mark/espnet/tools/anaconda/envs/espnet/lib/python3.12/site-packages/torch/_tensor.py", line 625, in backward
+    torch.autograd.backward(
+  File "/mnt/weka/mark/espnet/tools/anaconda/envs/espnet/lib/python3.12/site-packages/torch/autograd/__init__.py", line 354, in backward
+    _engine_run_backward(
+  File "/mnt/weka/mark/espnet/tools/anaconda/envs/espnet/lib/python3.12/site-packages/torch/autograd/graph.py", line 841, in _engine_run_backward
+    return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+torch.AcceleratorError: CUDA error: Invalid access of peer GPU memory over nvlink or a hardware error
+Search for `cudaErrorContained' in https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__TYPES.html for more information.
+CUDA kernel errors might be asynchronously reported at some other API call, so the stacktrace below might be incorrect.
+For debugging consider passing CUDA_LAUNCH_BLOCKING=1
+Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+
+Traceback (most recent call last):
+  File "/mnt/weka/mark/espnet/tools/anaconda/envs/espnet/lib/python3.12/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/mnt/weka/mark/espnet/tools/anaconda/envs/espnet/lib/python3.12/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/mnt/weka/mark/espnet/espnet2/tasks/abs_task.py", line 1656, in main_worker
+    cls.trainer.run(
+  File "/mnt/weka/mark/espnet/espnet2/train/trainer.py", line 361, in run
+    all_steps_are_invalid = cls.train_one_epoch(
+                            ^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/weka/mark/espnet/espnet2/train/trainer.py", line 729, in train_one_epoch
+    loss.backward()
+  File "/mnt/weka/mark/espnet/tools/anaconda/envs/espnet/lib/python3.12/site-packages/torch/_tensor.py", line 625, in backward
+    torch.autograd.backward(
+  File "/mnt/weka/mark/espnet/tools/anaconda/envs/espnet/lib/python3.12/site-packages/torch/autograd/__init__.py", line 354, in backward
+    _engine_run_backward(
+  File "/mnt/weka/mark/espnet/tools/anaconda/envs/espnet/lib/python3.12/site-packages/torch/autograd/graph.py", line 841, in _engine_run_backward
+    return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+torch.AcceleratorError: CUDA error: Invalid access of peer GPU memory over nvlink or a hardware error
+Search for `cudaErrorContained' in https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__TYPES.html for more information.
+CUDA kernel errors might be asynchronously reported at some other API call, so the stacktrace below might be incorrect.
+For debugging consider passing CUDA_LAUNCH_BLOCKING=1
+Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+
+pg12b-14-2-hpc:1630052:1635137 [4] NCCL INFO NVLS comm 0x55c6f9588ac0 headRank 4 nHeads 8 nvlsRanks 8 buffSize 1048576 nvlsPerRankSize 33554432 nvlsTotalSize 268435456
+[rank4]:[W828 18:47:51.930666110 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank4]:[W828 18:47:51.930701705 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank4]:[W828 18:47:51.930722290 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank4]:[W828 18:47:51.930753916 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank4]:[W828 18:47:51.930777065 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank4]:[W828 18:47:51.930799645 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank4]:[W828 18:47:51.930826812 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank4]:[W828 18:47:51.930846422 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank4]:[W828 18:47:51.930867000 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank4]:[W828 18:47:51.930892725 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank4]:[W828 18:47:51.930912375 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank4]:[W828 18:47:51.930932649 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank4]:[W828 18:47:51.930956483 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank4]:[W828 18:47:51.930975792 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank4]:[W828 18:47:51.930996416 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank4]:[W828 18:47:51.931020765 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank4]:[W828 18:47:51.931039872 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank4]:[W828 18:47:51.931060484 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank4]:[W828 18:47:51.931084992 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank4]:[W828 18:47:51.931103652 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank4]:[W828 18:47:51.931123490 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank4]:[W828 18:47:51.931159666 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank4]:[W828 18:47:51.931179009 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank4]:[W828 18:47:51.931199533 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank4]:[W828 18:47:51.931224636 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank4]:[W828 18:47:51.931242999 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank4]:[W828 18:47:51.931262458 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank4]:[W828 18:47:51.931286765 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank4]:[W828 18:47:51.931305578 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank4]:[W828 18:47:51.931325974 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank4]:[W828 18:47:51.931350279 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank4]:[W828 18:47:51.931369573 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank4]:[W828 18:47:51.931388246 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank4]:[W828 18:47:51.931407681 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank4]:[W828 18:47:51.931423290 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank4]:[W828 18:47:51.931437789 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank4]:[W828 18:47:51.931454861 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank4]:[W828 18:47:51.931469666 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank4]:[W828 18:47:51.931486746 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+pg12b-14-2-hpc:1630053:1635140 [5] NCCL INFO NVLS comm 0x562048efecc0 headRank 5 nHeads 8 nvlsRanks 8 buffSize 1048576 nvlsPerRankSize 33554432 nvlsTotalSize 268435456
+[rank5]:[W828 18:47:51.932105090 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank5]:[W828 18:47:51.932129619 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank5]:[W828 18:47:51.932145277 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank5]:[W828 18:47:51.932169527 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank5]:[W828 18:47:51.932186430 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank5]:[W828 18:47:51.932206072 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank5]:[W828 18:47:51.932223214 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank5]:[W828 18:47:51.932236452 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank5]:[W828 18:47:51.932250821 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank5]:[W828 18:47:51.932266275 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank5]:[W828 18:47:51.932279005 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank5]:[W828 18:47:51.932291438 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank5]:[W828 18:47:51.932306394 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank5]:[W828 18:47:51.932319340 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank5]:[W828 18:47:51.932332479 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank5]:[W828 18:47:51.932347148 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank5]:[W828 18:47:51.932359482 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank5]:[W828 18:47:51.932372151 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank5]:[W828 18:47:51.932387989 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank5]:[W828 18:47:51.932399759 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank5]:[W828 18:47:51.932412065 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank5]:[W828 18:47:51.932427416 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank5]:[W828 18:47:51.932438881 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank5]:[W828 18:47:51.932450620 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank5]:[W828 18:47:51.932465667 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank5]:[W828 18:47:51.932477975 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank5]:[W828 18:47:51.932490397 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank5]:[W828 18:47:51.932504418 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank5]:[W828 18:47:51.932515490 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank5]:[W828 18:47:51.932526916 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank5]:[W828 18:47:51.932543334 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank5]:[W828 18:47:51.932555584 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank5]:[W828 18:47:51.932567513 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank5]:[W828 18:47:51.932579399 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank5]:[W828 18:47:51.932589158 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank5]:[W828 18:47:51.932599275 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank5]:[W828 18:47:51.932611713 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank5]:[W828 18:47:51.932620658 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank5]:[W828 18:47:51.932630815 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+Process SpawnProcess-7:
+Traceback (most recent call last):
+  File "/mnt/weka/mark/espnet/tools/anaconda/envs/espnet/lib/python3.12/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/mnt/weka/mark/espnet/tools/anaconda/envs/espnet/lib/python3.12/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/mnt/weka/mark/espnet/espnet2/tasks/abs_task.py", line 1656, in main_worker
+    cls.trainer.run(
+  File "/mnt/weka/mark/espnet/espnet2/train/trainer.py", line 361, in run
+    all_steps_are_invalid = cls.train_one_epoch(
+                            ^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/weka/mark/espnet/espnet2/train/trainer.py", line 729, in train_one_epoch
+    loss.backward()
+  File "/mnt/weka/mark/espnet/tools/anaconda/envs/espnet/lib/python3.12/site-packages/torch/_tensor.py", line 625, in backward
+    torch.autograd.backward(
+  File "/mnt/weka/mark/espnet/tools/anaconda/envs/espnet/lib/python3.12/site-packages/torch/autograd/__init__.py", line 354, in backward
+    _engine_run_backward(
+  File "/mnt/weka/mark/espnet/tools/anaconda/envs/espnet/lib/python3.12/site-packages/torch/autograd/graph.py", line 841, in _engine_run_backward
+    return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+torch.AcceleratorError: CUDA error: Invalid access of peer GPU memory over nvlink or a hardware error
+Search for `cudaErrorContained' in https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__TYPES.html for more information.
+CUDA kernel errors might be asynchronously reported at some other API call, so the stacktrace below might be incorrect.
+For debugging consider passing CUDA_LAUNCH_BLOCKING=1
+Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+
+pg12b-14-2-hpc:1630054:1635136 [6] NCCL INFO NVLS comm 0x55b1130b5ac0 headRank 6 nHeads 8 nvlsRanks 8 buffSize 1048576 nvlsPerRankSize 33554432 nvlsTotalSize 268435456
+[rank6]:[W828 18:47:51.952449298 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank6]:[W828 18:47:51.952473146 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank6]:[W828 18:47:51.952491461 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank6]:[W828 18:47:51.952522426 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank6]:[W828 18:47:51.952539862 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank6]:[W828 18:47:51.952557370 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank6]:[W828 18:47:51.952577070 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank6]:[W828 18:47:51.952592258 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank6]:[W828 18:47:51.952607321 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank6]:[W828 18:47:51.952623094 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank6]:[W828 18:47:51.952636301 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank6]:[W828 18:47:51.952650597 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank6]:[W828 18:47:51.952665936 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank6]:[W828 18:47:51.952678103 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank6]:[W828 18:47:51.952691583 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank6]:[W828 18:47:51.952709142 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank6]:[W828 18:47:51.952721987 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank6]:[W828 18:47:51.952735854 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank6]:[W828 18:47:51.952752914 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank6]:[W828 18:47:51.952766192 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank6]:[W828 18:47:51.952781694 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank6]:[W828 18:47:51.952797730 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank6]:[W828 18:47:51.952811977 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank6]:[W828 18:47:51.952827199 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank6]:[W828 18:47:51.952843898 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank6]:[W828 18:47:51.952856006 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank6]:[W828 18:47:51.952868498 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank6]:[W828 18:47:51.952884322 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank6]:[W828 18:47:51.952900292 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank6]:[W828 18:47:51.952912998 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank6]:[W828 18:47:51.952928932 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank6]:[W828 18:47:51.952942312 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank6]:[W828 18:47:51.952955492 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank6]:[W828 18:47:51.952970060 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank6]:[W828 18:47:51.952980771 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank6]:[W828 18:47:51.952990453 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank6]:[W828 18:47:51.953000973 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank6]:[W828 18:47:51.953010322 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+[rank6]:[W828 18:47:51.953020661 CUDAGuardImpl.h:122] Warning: CUDA warning: Invalid access of peer GPU memory over nvlink or a hardware error (function destroyEvent)
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630049:1635473 [1] misc/strongstream.cc:403 NCCL WARN Cuda failure 'Invalid access of peer GPU memory over nvlink or a hardware error'
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630049:1635473 [1] init.cc:2024 NCCL WARN commDestroySync: comm 0x5566daf08100 rank 1 sync hostStream error 1
+
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630049:1635473 [1] misc/strongstream.cc:403 NCCL WARN Cuda failure 'Invalid access of peer GPU memory over nvlink or a hardware error'
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630049:1635473 [1] init.cc:2027 NCCL WARN commDestroySync: comm 0x5566daf08100 rank 1 sync deviceStream error 1
+
+pg12b-14-2-hpc:1630049:1635473 [1] NCCL INFO misc/socket.cc:64 -> 3
+pg12b-14-2-hpc:1630049:1635473 [1] NCCL INFO misc/socket.cc:81 -> 3
+pg12b-14-2-hpc:1630049:1635473 [1] NCCL INFO misc/socket.cc:863 -> 3
+pg12b-14-2-hpc:1630049:1635473 [1] NCCL INFO misc/socket.cc:64 -> 3
+pg12b-14-2-hpc:1630049:1635473 [1] NCCL INFO misc/socket.cc:81 -> 3
+pg12b-14-2-hpc:1630049:1635473 [1] NCCL INFO misc/socket.cc:863 -> 3
+pg12b-14-2-hpc:1630049:1635473 [1] NCCL INFO misc/socket.cc:64 -> 3
+pg12b-14-2-hpc:1630049:1635473 [1] NCCL INFO misc/socket.cc:81 -> 3
+pg12b-14-2-hpc:1630049:1635473 [1] NCCL INFO misc/socket.cc:863 -> 3
+pg12b-14-2-hpc:1630049:1630675 [1] NCCL INFO misc/socket.cc:915 -> 3
+pg12b-14-2-hpc:1630049:1630675 [1] NCCL INFO misc/socket.cc:915 -> 3
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630049:1630675 [1] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630049:1630675 [1] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630049:1630675 [1] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630049:1630675 [1] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630049:1630675 [1] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630049:1630675 [1] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630049:1630675 [1] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630049:1630675 [1] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630049:1630675 [1] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630049:1630675 [1] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630049:1630675 [1] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630049:1630675 [1] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630049:1630675 [1] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630049:1630675 [1] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630049:1630675 [1] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630049:1630675 [1] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630049:1630675 [1] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630049:1630675 [1] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630049:1630675 [1] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630049:1630675 [1] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630049:1630675 [1] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630049:1630675 [1] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630049:1630675 [1] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630049:1630675 [1] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630049:1630675 [1] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630049:1630675 [1] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630049:1630675 [1] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630049:1630675 [1] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630049:1630675 [1] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630049:1630675 [1] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630049:1630675 [1] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630049:1630675 [1] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630049:1630675 [1] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630049:1630675 [1] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630049:1630675 [1] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630049:1630675 [1] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630049:1630675 [1] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630049:1630675 [1] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630049:1630675 [1] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630049:1630675 [1] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630049:1630675 [1] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630049:1630675 [1] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630049:1630675 [1] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630049:1630675 [1] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630049:1630675 [1] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630049:1630675 [1] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630049:1630675 [1] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630049:1630675 [1] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630049:1630675 [1] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630049:1630675 [1] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630049:1630675 [1] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630049:1630675 [1] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630049:1630675 [1] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630049:1630675 [1] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630049:1630675 [1] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630049:1630675 [1] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630049:1630675 [1] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630049:1630675 [1] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630049:1630675 [1] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630049:1630675 [1] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630049:1630675 [1] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630049:1630675 [1] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630049:1630675 [1] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630049:1630675 [1] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630049:1630675 [1] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630049:1630675 [1] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630049:1630675 [1] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630049:1630675 [1] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630049:1630675 [1] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630049:1630675 [1] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630049:1630675 [1] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630049:1630675 [1] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630049:1630675 [1] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630049:1630675 [1] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630049:1630675 [1] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630049:1630675 [1] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630049:1630675 [1] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630049:1630675 [1] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630049:1630675 [1] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630049:1630675 [1] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630049:1630675 [1] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630049:1630675 [1] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630049:1630675 [1] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630049:1630675 [1] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630049:1630675 [1] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630049:1630675 [1] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630049:1630675 [1] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630049:1630675 [1] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630049:1630675 [1] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:16300
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630053:1635477 [5] misc/strongstream.cc:403 NCCL WARN Cuda failure 'Invalid access of peer GPU memory over nvlink or a hardware error'
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630053:1635477 [5] init.cc:2024 NCCL WARN commDestroySync: comm 0x562048efecc0 rank 5 sync hostStream error 1
+
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630053:1635477 [5] misc/strongstream.cc:403 NCCL WARN Cuda failure 'Invalid access of peer GPU memory over nvlink or a hardware error'
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630053:1635477 [5] init.cc:2027 NCCL WARN commDestroySync: comm 0x562048efecc0 rank 5 sync deviceStream error 1
+
+pg12b-14-2-hpc:1630053:1635477 [5] NCCL INFO misc/socket.cc:64 -> 3
+pg12b-14-2-hpc:1630053:1635477 [5] NCCL INFO misc/socket.cc:81 -> 3
+pg12b-14-2-hpc:1630053:1635477 [5] NCCL INFO misc/socket.cc:863 -> 3
+pg12b-14-2-hpc:1630053:1635477 [5] NCCL INFO misc/socket.cc:64 -> 3
+pg12b-14-2-hpc:1630053:1635477 [5] NCCL INFO misc/socket.cc:81 -> 3
+pg12b-14-2-hpc:1630053:1635477 [5] NCCL INFO misc/socket.cc:863 -> 3
+pg12b-14-2-hpc:1630053:1635477 [5] NCCL INFO misc/socket.cc:64 -> 3
+pg12b-14-2-hpc:1630053:1635477 [5] NCCL INFO misc/socket.cc:81 -> 3
+pg12b-14-2-hpc:1630053:1635477 [5] NCCL INFO misc/socket.cc:863 -> 3
+pg12b-14-2-hpc:1630053:1635477 [5] NCCL INFO misc/socket.cc:64 -> 3
+pg12b-14-2-hpc:1630053:1635477 [5] NCCL INFO misc/socket.cc:81 -> 3
+pg12b-14-2-hpc:1630053:1635477 [5] NCCL INFO misc/socket.cc:863 -> 3
+pg12b-14-2-hpc:1630053:1630677 [5] NCCL INFO misc/socket.cc:915 -> 3
+pg12b-14-2-hpc:1630053:1630677 [5] NCCL INFO misc/socket.cc:915 -> 3
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630053:1630677 [5] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630053:1630677 [5] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630053:1630677 [5] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630053:1630677 [5] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630053:1630677 [5] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630053:1630677 [5] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630053:1630677 [5] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630053:1630677 [5] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630053:1630677 [5] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630053:1630677 [5] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630053:1630677 [5] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630053:1630677 [5] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630053:1630677 [5] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630053:1630677 [5] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630053:1630677 [5] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630053:1630677 [5] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630053:1630677 [5] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630053:1630677 [5] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630053:1630677 [5] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630053:1630677 [5] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630053:1630677 [5] 
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630055:1635471 [7] misc/strongstream.cc:403 NCCL WARN Cuda failure 'Invalid access of peer GPU memory over nvlink or a hardware error'
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630055:1635471 [7] init.cc:2024 NCCL WARN commDestroySync: comm 0x55bcad54d240 rank 7 sync hostStream error 1
+
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630055:1635471 [7] misc/strongstream.cc:403 NCCL WARN Cuda failure 'Invalid access of peer GPU memory over nvlink or a hardware error'
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630055:1635471 [7] init.cc:2027 NCCL WARN commDestroySync: comm 0x55bcad54d240 rank 7 sync deviceStream error 1
+
+pg12b-14-2-hpc:1630055:1635471 [7] NCCL INFO misc/socket.cc:64 -> 3
+pg12b-14-2-hpc:1630055:1635471 [7] NCCL INFO misc/socket.cc:81 -> 3
+pg12b-14-2-hpc:1630055:1635471 [7] NCCL INFO misc/socket.cc:863 -> 3
+pg12b-14-2-hpc:1630055:1635471 [7] NCCL INFO misc/socket.cc:64 -> 3
+pg12b-14-2-hpc:1630055:1635471 [7] NCCL INFO misc/socket.cc:81 -> 3
+pg12b-14-2-hpc:1630055:1635471 [7] NCCL INFO misc/socket.cc:863 -> 3
+pg12b-14-2-hpc:1630055:1635471 [7] NCCL INFO misc/socket.cc:64 -> 3
+pg12b-14-2-hpc:1630055:1635471 [7] NCCL INFO misc/socket.cc:81 -> 3
+pg12b-14-2-hpc:1630055:1635471 [7] NCCL INFO misc/socket.cc:863 -> 3
+pg12b-14-2-hpc:1630055:1630673 [7] NCCL INFO misc/socket.cc:915 -> 3
+pg12b-14-2-hpc:1630055:1630673 [7] NCCL INFO misc/socket.cc:915 -> 3
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630055:1630673 [7] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630055:1630673 [7] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630055:1630673 [7] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630055:1630673 [7] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630055:1630673 [7] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630055:1630673 [7] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630055:1630673 [7] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630055:1630673 [7] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630055:1630673 [7] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630055:1630673 [7] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630055:1630673 [7] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630055:1630673 [7] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630055:1630673 [7] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630055:1630673 [7] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630055:1630673 [7] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630055:1630673 [7] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630055:1630673 [7] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630055:1630673 [7] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630055:1630673 [7] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630055:1630673 [7] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630055:1630673 [7] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630055:1630673 [7] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:5include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630053:1630677 [5] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630053:1630677 [5] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630053:1630677 [5] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630053:1630677 [5] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630053:1630677 [5] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630053:1630677 [5] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630053:1630677 [5] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630053:1630677 [5] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630053:1630677 [5] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630053:1630677 [5] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630053:1630677 [5] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630053:1630677 [5] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630053:1630677 [5] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630053:1630677 [5] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630053:1630677 [5] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630053:1630677 [5] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630053:1630677 [5] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630053:1630677 [5] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630053:1630677 [5] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630053:1630677 [5] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630053:1630677 [5] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630053:1630677 [5] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630053:1630677 [5] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630053:1630677 [5] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630053:1630677 [5] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630053:1630677 [5] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630053:1630677 [5] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630053:1630677 [5] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630053:1630677 [5] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630053:1630677 [5] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630053:1630677 [5] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630053:1630677 [5] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630053:1630677 [5] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] 1] pg12b-14-2-hpc:1630055:1630673 [7] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630055:1630673 [7] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630055:1630673 [7] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630055:1630673 [7] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630055:1630673 [7] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630055:1630673 [7] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630055:1630673 [7] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630055:1630673 [7] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630055:1630673 [7] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630055:1630673 [7] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630055:1630673 [7] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630055:1630673 [7] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630055:1630673 [7] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630055:1630673 [7] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630055:1630673 [7] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630055:1630673 [7] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630055:1630673 [7] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630055:1630673 [7] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630055:1630673 [7] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630055:1630673 [7] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630055:1630673 [7] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630055:1630673 [7] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630055:1630673 [7] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630055:1630673 [7] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630055:1630673 [7] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630055:1630673 [7] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630055:1630673 [7] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630055:1630673 [7] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630055:1630673 [7] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630055:1630673 [7] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630055:1630673 [7] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630055:1630673 [7] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630055:1630673 [7] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630055:1630673 [7] NCCL INFO include/alpg12b-14-2-hpc:1630053:1630677 [5] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630053:1630677 [5] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630053:1630677 [5] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630053:1630677 [5] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630053:1630677 [5] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630053:1630677 [5] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630053:1630677 [5] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630053:1630677 [5] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630053:1630677 [5] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630053:1630677 [5] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630053:1630677 [5] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630053:1630677 [5] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630053:1630677 [5] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630053:1630677 [5] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630053:1630677 [5] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630053:1630677 [5] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630053:1630677 [5] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630053:1630677 [5] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630053:1630677 [5] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630053:1630677 [5] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630053:1630677 [5] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630053:1630677 [5] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630053:1630677 [5] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630053:1630677 [5] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630053:1630677 [5] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630053:1630677 [5] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630053:1630677 [5] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630053:1630677 [5] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630053:1630677 [5] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630053:1630677 [5] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630053:1630677 [5] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630053:1630677 [5] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630053:1630677 [5] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630053:1630677 [5] NCCL INFO include/allocloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630055:1630673 [7] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630055:1630673 [7] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630055:1630673 [7] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630055:1630673 [7] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630055:1630673 [7] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630055:1630673 [7] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630055:1630673 [7] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630055:1630673 [7] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630055:1630673 [7] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630055:1630673 [7] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630055:1630673 [7] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630055:1630673 [7] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630055:1630673 [7] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630055:1630673 [7] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630055:1630673 [7] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630055:1630673 [7] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630055:1630673 [7] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630055:1630673 [7] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630055:1630673 [7] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630055:1630673 [7] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630055:1630673 [7] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630055:1630673 [7] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630055:1630673 [7] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630055:1630673 [7] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630055:1630673 [7] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630055:1630673 [7] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630055:1630673 [7] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630055:1630673 [7] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630055:1630673 [7] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630055:1630673 [7] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630055:1630673 [7] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:1630055:1630673 [7] NCCL INFO include/alloc.h:386 -> 1
+
+[2026-08-28 18:47:51] pg12b-14-2-hpc:1630055:1630673 [7] include/alloc.h:250 NCCL WARN Cuda failure 226 'Invalid access of peer GPU memory over nvlink or a hardware error'
+pg12b-14-2-hpc:16300W0828 18:47:51.898000 1629745 site-packages/torch/multiprocessing/spawn.py:174] Terminating process 1630049 via signal SIGTERM
+W0828 18:47:51.900000 1629745 site-packages/torch/multiprocessing/spawn.py:174] Terminating process 1630050 via signal SIGTERM
+W0828 18:47:51.901000 1629745 site-packages/torch/multiprocessing/spawn.py:174] Terminating process 1630051 via signal SIGTERM
+W0828 18:47:51.901000 1629745 site-packages/torch/multiprocessing/spawn.py:174] Terminating process 1630052 via signal SIGTERM
+W0828 18:47:51.902000 1629745 site-packages/torch/multiprocessing/spawn.py:174] Terminating process 1630053 via signal SIGTERM
+W0828 18:47:51.902000 1629745 site-packages/torch/multiprocessing/spawn.py:174] Terminating process 1630054 via signal SIGTERM
+W0828 18:47:51.903000 1629745 site-packages/torch/multiprocessing/spawn.py:174] Terminating process 1630055 via signal SIGTERM
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/mnt/weka/mark/espnet/espnet2/bin/wavlm_train.py", line 22, in <module>
+    main()
+  File "/mnt/weka/mark/espnet/espnet2/bin/wavlm_train.py", line 18, in main
+    WavLMTask.main(cmd=cmd)
+  File "/mnt/weka/mark/espnet/espnet2/tasks/abs_task.py", line 1360, in main
+    while not ProcessContext(processes, error_files).join():
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/weka/mark/espnet/tools/anaconda/envs/espnet/lib/python3.12/site-packages/torch/multiprocessing/spawn.py", line 209, in join
+    raise ProcessExitedException(
+torch.multiprocessing.spawn.ProcessExitedException: process 0 terminated with exit code 1
+[W828 18:47:55.995392590 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+# Accounting: begin_time=1787942715
+# Accounting: end_time=1787942875
+# Accounting: time=160 threads=1
+# Finished at Fri Aug 28 18:47:56 UTC 2026 with status 1
+

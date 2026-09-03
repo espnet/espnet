@@ -1,0 +1,4 @@
+point	batch_bins	accum_grad	unused_params	status
+up0_16M	16000000	4	false	ok
+up0_32M	32000000	1	false	ok
+up0_48M	48000000	1	false	OOM

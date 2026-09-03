@@ -1,0 +1,4 @@
+point	batch_bins	iters	compile	status	elapsed_s
+B_nocompile	36000000	10000	false	incomplete	4727
+B_compile	36000000	10000	true	incomplete	41
+B_compile	36000000	10000	true	ok	3531
