@@ -311,8 +311,10 @@ def test_a_batch_of_one_matches_the_unbatched_call(pad):
 
 
 def test_unmasked_decoder_is_reported_once(caplog):
-    """A decoder whose `batch_score` cannot take the padding mask is warned
-    about once per beam search, not once per padded batch."""
+    """Warn about a decoder that cannot take the padding mask only once.
+
+    Once per beam search object, that is, not once per padded batch.
+    """
     import logging
 
     encs, common, dtype, device = _build(
