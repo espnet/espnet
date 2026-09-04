@@ -1,0 +1,13 @@
+##########################################################
+#                 METRIC SCORING SETTING                 #
+##########################################################
+# Common usage:
+#   python run.py --stages measure \
+#       --training_config conf/tuning/training_rawnet3.yaml \
+#       --inference_config conf/inference.yaml \
+#       --metrics_config conf/metrics.yaml
+#
+# The metric definitions come from the TEMPLATE config: EER and minDCF at
+# p_target=0.05, which is how VoxCeleb results are conventionally reported.
+# `run.py` copies the experiment identity and `inference_dir` here, so this
+# file only needs to exist for the `measure` stage to run.

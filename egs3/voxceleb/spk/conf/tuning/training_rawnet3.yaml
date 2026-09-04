@@ -1,0 +1,118 @@
+##########################################################
+#                    TRAINING SETTING                    #
+##########################################################
+# RawNet3 trained on the VoxCeleb 1 and 2 development sets.
+#
+# Quick usage:
+#   python run.py --stages create_dataset train \
+#       --training_config conf/tuning/training_rawnet3.yaml
+#
+# Reference training environment:
+# - Number of GPUs: 4
+# - GPU type: NVIDIA A100 (40 GB)
+#
+# The model consumes raw waveform through a learnable sinc filterbank, so
+# there is no feature normalization and no statistics collection.
+
+##########################################################
+#                  SYSTEM AND PATH SETTING               #
+##########################################################
+# `task`, `recipe_dir`, `data_dir`, `exp_tag`, and `exp_dir` are inherited
+# from the TEMPLATE config. In particular, `exp_tag` follows `${self_name:}`.
+num_device: 4
+
+##########################################################
+#                    DATASET DEFINITION                  #
+##########################################################
+# `data_src` is omitted, so ESPnet3 loads `${recipe_dir}/dataset/__init__.py`.
+#
+# Validation scores a strided subset of the Vox1-O trials each epoch. The full
+# list is 37,611 trials, which is more than checkpoint selection needs and
+# would noticeably slow training down; the `infer` stage scores all of them.
+dataset:
+  train:
+    # Both development sets, merged by `CombinedDataset`. Add a corpus by
+    # adding an entry here; there is no combined split to rebuild. The speaker
+    # label space still has to span all of them, which is what
+    # `preprocessor.spk2utt` below points at.
+    - data_src_args:
+        split: voxceleb1_dev
+    - data_src_args:
+        split: voxceleb2_dev
+  valid:
+    - data_src_args:
+        split: voxceleb1_test
+        trials: vox1_o
+        num_trials: 10000
+  preprocessor:
+    # Augmentation applies to the training split only; `create_dataset` writes
+    # these SCP files from $MUSAN and $RIRS_NOISES. Set both probabilities to
+    # 0.0 to train without them.
+    spk2utt: ${data_dir}/voxceleb12_dev/spk2utt
+    noise_apply_prob: 0.5
+    noise_info:
+      - [1.0, "${data_dir}/musan_speech.scp", [4, 7], [13, 20]]
+      - [1.0, "${data_dir}/musan_noise.scp", [1, 1], [0, 15]]
+      - [1.0, "${data_dir}/musan_music.scp", [1, 1], [5, 15]]
+    rir_apply_prob: 0.5
+    rir_scp: ${data_dir}/rirs.scp
+
+create_dataset:
+  recipe_dir: ${recipe_dir}
+
+##########################################################
+#                      MODEL SETTING                     #
+##########################################################
+model:
+  # VoxCeleb 1 dev (1,211) + VoxCeleb 2 dev (5,994) speakers. Must match the
+  # label space the preprocessor maps through, that is
+  # `wc -l < data/voxceleb12_dev/spk2utt`.
+  spk_num: 7205
+
+  frontend: asteroid_frontend
+  frontend_conf:
+    sinc_stride: 16
+    sinc_kernel_size: 251
+    sinc_filters: 256
+    preemph_coef: 0.97
+    log_term: 0.000001
+
+  encoder: rawnet3
+  encoder_conf:
+    model_scale: 8
+    ndim: 1024
+    output_size: 1536
+
+  pooling: chn_attn_stat
+
+  projector: rawnet3
+  projector_conf:
+    output_size: 192
+
+  loss: aamsoftmax_sc_topk
+  loss_conf:
+    margin: 0.3
+    scale: 30
+    K: 3
+    mp: 0.06
+    k_top: 5
+
+##########################################################
+#            OPTIMIZER & SCHEDULER SETTING               #
+##########################################################
+scheduler:
+  _target_: espnet2.schedulers.cosine_anneal_warmup_restart.CosineAnnealingWarmupRestarts
+  # One cycle is 10 epochs: 1,240,651 utterances / batch_size 256, rounded
+  # down because the loader drops the last partial batch.
+  first_cycle_steps: 48460
+  cycle_mult: 1.0
+  max_lr: 0.001
+  min_lr: 0.000005
+  warmup_steps: 1000
+  gamma: 0.75
+
+##########################################################
+#                    TRAINER SETTING                     #
+##########################################################
+trainer:
+  max_epochs: 40
