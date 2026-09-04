@@ -18,7 +18,10 @@ def get_parser():
 def main():
     args = get_parser().parse_args()
     with open(args.inyaml, "r") as f:
-        indict = yaml.load(f, Loader=yaml.Loader)
+        indict = yaml.safe_load(f)
+
+    if not isinstance(indict, dict):
+        raise TypeError("YAML content must be a mapping.")
 
     if "token_list" not in indict:
         raise AttributeError("token_list is not found in config.")
