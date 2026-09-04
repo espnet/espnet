@@ -68,7 +68,7 @@ RUN if [ -z "${CUDA_VER}" ]; then \
     echo "Make with options ${MY_OPTS}" && \
     ln -s /opt/kaldi ./ && \
     rm -f activate_python.sh && touch activate_python.sh && \
-    conda install -y conda "python=3.11" && \
+    conda install -y conda "python=3.12" && \
     make KALDI=/opt/kaldi ${MY_OPTS} USE_CONDA=1 && \
     conda clean --all && \
     rm -f *.tar.*  && \
