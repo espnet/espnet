@@ -1,0 +1,85 @@
+# Automatic Claude Code review of pull requests.
+#
+# Trigger choice. Nearly every ESPnet PR comes from a fork, and GitHub withholds
+# repository secrets from `pull_request` runs of fork PRs, so a plain
+# `pull_request` trigger would never see ANTHROPIC_API_KEY. `pull_request_target`
+# runs in the context of the base repository: this file and the checkout below
+# come from master, and secrets are available. That is only safe because the
+# PR's code is never checked out or executed here. The code-review skill reads
+# the diff through the GitHub API, and its tools are limited to read-only `gh`
+# commands plus posting review comments. Keep it that way; in particular, never
+# add a `ref:` pointing at the PR head to the checkout step.
+# See https://github.com/anthropics/claude-code-action/blob/main/docs/security.md
+#
+# Who gets reviewed:
+#   - PRs by owners, org members and collaborators: automatically when opened,
+#     reopened, or marked ready for review.
+#   - PRs by anyone else: when a maintainer adds the `claude-review` label.
+#   - Any PR: manually from the Actions tab ("Run workflow" with the PR number).
+# Draft PRs and bot-authored PRs (dependabot, copilot) are skipped. Follow-up
+# questions go through `@claude ...` comments handled by claude.yml.
+name: Claude Code Review
+
+on:
+  pull_request_target:
+    types: [opened, reopened, ready_for_review, labeled]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "Pull request number to review"
+        required: true
+        type: string
+
+# A newer trigger for the same PR cancels a review that is still running.
+concurrency:
+  group: claude-code-review-${{ github.event.pull_request.number || inputs.pr_number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (
+        github.event.pull_request.user.type != 'Bot' &&
+        !github.event.pull_request.draft &&
+        (
+          (
+            github.event.action != 'labeled' &&
+            contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.pull_request.author_association)
+          ) ||
+          (
+            github.event.action == 'labeled' &&
+            github.event.label.name == 'claude-review'
+          )
+        )
+      )
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read        # master only, for CLAUDE.md and repository context
+      pull-requests: write  # post the review
+      issues: read
+      id-token: write
+    steps:
+      - name: Check out master (never the PR head)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 1
+
+      - name: Review the pull request
+        uses: anthropics/claude-code-action@833fb0f8c9f6686b33d963a8bae0a94f4936ab2a # v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          # The job-scoped token makes the GitHub API calls and posts the
+          # comments. Together with allowed_non_write_users it lets the action
+          # run for authors without write access; the `if:` above, not GitHub
+          # write access, decides which PRs get reviewed.
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          allowed_non_write_users: "*"
+          plugin_marketplaces: "https://github.com/anthropics/claude-code.git"
+          plugins: "code-review@claude-code-plugins"
+          prompt: "/code-review:code-review --comment ${{ github.repository }}/pull/${{ github.event.pull_request.number || inputs.pr_number }}"
+          # Keep this line: the action starts the inline-comment MCP server only
+          # when --allowedTools names it. The skill's own tool list adds the
+          # read-only `gh pr view` / `gh pr diff` commands it needs.
+          claude_args: '--allowedTools "mcp__github_inline_comment__create_inline_comment"'
