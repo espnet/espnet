@@ -54,8 +54,16 @@ dependencies = [
     "datasets",
     "dask[distributed]",
     "dask_jobqueue",
-    "torch>=2.3.1",
-    "torchaudio>=2.3.1",
+    # The supported set is exactly {2.9.1, 2.10.0, 2.11.0}, and three places have
+    # to agree on it: ci/image_variants.json, which is what CI builds images for;
+    # tools/installers/install_torch.sh, which exits 1 on anything else; and here.
+    # The upper bound is not arbitrary - torchaudio's newest release is 2.11.0,
+    # ESPnet installs the two as a matched pair, and torchaudio publishes no
+    # dependency metadata at all, so nothing stops pip from pairing torchaudio
+    # 2.11.0 with a much newer torch. It did: `pip install espnet[asr]==202609`
+    # resolved torch 2.12.1 against torchaudio 2.11.0.
+    "torch>=2.9.1,<2.12",
+    "torchaudio>=2.9.1,<2.12",
     "huggingface_hub",
     "wandb",
 ]
@@ -79,8 +87,19 @@ egs3 = ["egs3/TEMPLATE/**/*.yaml"]
 
 
 [project.optional-dependencies]
+# Three of the packages below are ESPnet-maintained forks of projects whose
+# upstream releases do not work here, published to PyPI under their own names:
+# espnet-ctc-segmentation, espnet-g2p-en and espnet-s3prl. Their import names
+# are unchanged (ctc_segmentation, g2p_en, s3prl), and each carries a
+# FORK_NOTICE.md saying what differs from upstream and why.
+#
+# They must be declared like this, by name and version. A direct reference -
+# "name @ git+https://..." - makes PyPI reject the whole distribution with
+# 400 Can't have direct dependency, which is what kept ESPnet off PyPI from
+# v.202604 to v.202609 with nothing local reporting it. ci/check_ci_image_config.py
+# now fails on one.
 asr = [
-  "ctc-segmentation @ git+https://github.com/espnet/ctc-segmentation.git@9b9ea1d",
+  "espnet-ctc-segmentation>=1.7.4.post1",  # fork of lumaku/ctc-segmentation
   "editdistance",
   "opt_einsum",
   "jiwer",
@@ -90,7 +109,7 @@ tts = [
   "pyworld>=0.3.4",
   "pypinyin<=0.44.0",
   "espnet_tts_frontend",
-  "g2p_en @ git+https://github.com/espnet/g2p.git@master",
+  "espnet-g2p-en>=2.1.0.post1",  # fork of Kyubyong/g2p
   "jamo==0.4.1",
   "jaconv",
 ]
@@ -106,7 +125,7 @@ asr2 = [
 
 s2st = [
   "editdistance",
-  "s3prl @ git+https://github.com/espnet/s3prl.git@572af70",
+  "espnet-s3prl>=2026.5.14",  # fork of s3prl/s3prl
 ]
 
 st = [
