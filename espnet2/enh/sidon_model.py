@@ -5,6 +5,8 @@ from collections import OrderedDict
 from typing import Dict, Tuple
 
 import torch
+import torch.nn.functional as F
+import torchaudio.compliance.kaldi as kaldi
 from torch import nn
 
 from espnet2.torch_utils.device_funcs import force_gatherable
@@ -80,6 +82,50 @@ class W2VBert2Encoder(nn.Module):
     ) -> torch.Tensor:
         return self._encode(self.teacher, ssl_inputs)
 
+    def _wav_to_ssl_inputs(
+        self, waveforms: torch.Tensor, lengths: torch.Tensor
+    ) -> Dict[str, torch.Tensor]:
+        """Convert raw waveforms to SSL input features on GPU.
+
+        Replicates SeamlessM4TFeatureExtractor: kaldi fbank + per-bin CMVN
+        + stride-2 frame pairing, but runs entirely on the model device.
+        """
+        features_list = []
+        for i in range(waveforms.size(0)):
+            wav = waveforms[i, : int(lengths[i].item())]
+            wav = F.pad(wav, (40, 40))
+            wav = wav * 32768.0  # int16 scale (SeamlessM4T convention)
+            feat = kaldi.fbank(
+                wav.unsqueeze(0),
+                num_mel_bins=80,
+                sample_frequency=float(self.input_sr),
+            )
+            # Per-bin CMVN matching SeamlessM4TFeatureExtractor
+            mean = feat.mean(dim=0, keepdim=True)
+            var = feat.var(dim=0, unbiased=True, keepdim=True)
+            feat = (feat - mean) / torch.sqrt(var + 1e-7)
+            features_list.append(feat)
+
+        max_len = max(f.size(0) for f in features_list)
+        if max_len % 2 != 0:
+            max_len += 1
+
+        batch_size = len(features_list)
+        device = waveforms.device
+        input_features = torch.zeros(batch_size, max_len, 80, device=device)
+        attention_mask = torch.zeros(
+            batch_size, max_len, device=device, dtype=torch.long
+        )
+        for i, feat in enumerate(features_list):
+            input_features[i, : feat.size(0)] = feat
+            attention_mask[i, : feat.size(0)] = 1
+
+        # Stride-2 frame pairing: (B, T, 80) → (B, T//2, 160)
+        T = input_features.size(1)
+        input_features = input_features.reshape(batch_size, T // 2, 160)
+        attention_mask = attention_mask[:, 1::2]
+        return {"input_features": input_features, "attention_mask": attention_mask}
+
     def train(self, mode: bool = True):
         super().train(mode)
         self.teacher.eval()
@@ -99,19 +145,14 @@ class SidonFeaturePredictor(AbsESPnetModel):
         noisy_speech_lengths: torch.Tensor,
         speech_ref1: torch.Tensor,
         speech_ref1_lengths: torch.Tensor,
-        noisy_speech_ssl=None,
-        speech_ref1_ssl=None,
         **kwargs,
     ):
-        if noisy_speech_ssl is None or speech_ref1_ssl is None:
-            raise ValueError(
-                "Sidon requires collated noisy_speech_ssl and speech_ref1_ssl"
-            )
-        device = noisy_speech.device
-        noisy_inputs = {
-            key: value.to(device) for key, value in noisy_speech_ssl.items()
-        }
-        clean_inputs = {key: value.to(device) for key, value in speech_ref1_ssl.items()}
+        noisy_inputs = self.ssl_encoder._wav_to_ssl_inputs(
+            noisy_speech, noisy_speech_lengths
+        )
+        clean_inputs = self.ssl_encoder._wav_to_ssl_inputs(
+            speech_ref1, speech_ref1_lengths
+        )
         predicted, _ = self.ssl_encoder(noisy_inputs)
         with torch.no_grad():
             target = self.ssl_encoder.extract_clean_features(clean_inputs)

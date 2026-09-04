@@ -107,24 +107,22 @@ def _read_audio(value: str, sample_rate: int = 16000):
 
 
 @torch.inference_mode()
-def _restore_chunk(waveform, model, vocoder, processor, device):
-    inputs = processor(
-        [np.pad(waveform, (40, 40))],
-        sampling_rate=16000,
-        return_tensors="pt",
-        padding=True,
+def _restore_chunk(waveform, model, vocoder, device):
+    wav_tensor = torch.from_numpy(waveform).float().to(device)
+    lengths = torch.tensor([len(waveform)], device=device)
+    ssl_inputs = model.ssl_encoder._wav_to_ssl_inputs(
+        wav_tensor.unsqueeze(0), lengths
     )
-    inputs = {key: value.to(device) for key, value in inputs.items()}
-    features, _ = model.ssl_encoder(inputs)
+    features, _ = model.ssl_encoder(ssl_inputs)
     output = vocoder(features.transpose(1, 2))
     return output.reshape(-1).float().cpu().numpy()
 
 
-def _restore(waveform, model, vocoder, processor, device, chunk_sec, overlap_sec):
+def _restore(waveform, model, vocoder, device, chunk_sec, overlap_sec):
     chunk = int(chunk_sec * 16000)
     overlap = int(overlap_sec * 16000)
     if len(waveform) <= chunk:
-        return _restore_chunk(waveform, model, vocoder, processor, device)
+        return _restore_chunk(waveform, model, vocoder, device)
     hop = chunk - overlap
     output_length = int(len(waveform) * 3)
     output = np.zeros(output_length, np.float32)
@@ -133,7 +131,7 @@ def _restore(waveform, model, vocoder, processor, device, chunk_sec, overlap_sec
         piece = waveform[start : start + chunk]
         if len(piece) < 1600:
             continue
-        restored = _restore_chunk(piece, model, vocoder, processor, device)
+        restored = _restore_chunk(piece, model, vocoder, device)
         destination = start * 3
         restored = restored[: output_length - destination]
         envelope = np.ones(len(restored), np.float32)
@@ -155,9 +153,6 @@ def main(cmd=None):
     device = args.device if torch.cuda.is_available() else "cpu"
     model = _load_feature_predictor(args.train_config, args.model_file, device)
     vocoder = torch.jit.load(args.sidon_vocoder, map_location=device).eval()
-    from transformers import SeamlessM4TFeatureExtractor
-
-    processor = SeamlessM4TFeatureExtractor.from_pretrained("facebook/w2v-bert-2.0")
 
     output = Path(args.output_dir)
     wav_dir = output / "wav"
@@ -171,7 +166,6 @@ def main(cmd=None):
                 waveform,
                 model,
                 vocoder,
-                processor,
                 device,
                 args.chunk_sec,
                 args.overlap_sec,

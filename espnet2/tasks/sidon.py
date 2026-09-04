@@ -6,7 +6,6 @@ import os
 import random
 from typing import List
 
-import numpy as np
 import torch
 import torch.nn.functional as F
 import torchaudio
@@ -121,29 +120,25 @@ def degrade_waveform(
 
 
 class SidonCollateFn:
+    """Collate function for Sidon: online degradation + padding.
+
+    SSL feature extraction is done on GPU in the model forward pass
+    (W2VBert2Encoder._wav_to_ssl_inputs), not here.
+    """
+
     def __init__(
         self,
         max_samples: int,
         input_sr: int,
-        model_tag: str,
         noise_dir: str,
         rir_dir: str,
         degrade_prob: float,
         online_degradation: bool,
         train: bool = True,
-        collect_stats: bool = False,
     ):
-        from transformers import SeamlessM4TFeatureExtractor
-
         self.max_samples = max_samples
         self.input_sr = input_sr
         self.train = train
-        self.collect_stats = collect_stats
-        self.processor = (
-            None
-            if collect_stats
-            else SeamlessM4TFeatureExtractor.from_pretrained(model_tag)
-        )
         self.noise_files = _audio_files(noise_dir)
         self.rir_files = _audio_files(rir_dir)
         self.degrade_prob = degrade_prob
@@ -157,8 +152,6 @@ class SidonCollateFn:
             clean = torch.as_tensor(values["speech_ref1"]).float()
             if self.online_degradation:
                 if not self.train:
-                    # Deterministic degradation for validation: seed per utterance
-                    # so valid loss is comparable across epochs.
                     rng_state = random.getstate()
                     random.seed(hash(key) & 0xFFFFFFFF)
                 noisy = degrade_waveform(
@@ -184,29 +177,7 @@ class SidonCollateFn:
             values["noisy_speech"] = noisy[start : start + length].numpy()
             processed.append((key, values))
 
-        keys, batch = self.base(processed)
-        if not self.collect_stats:
-            batch["noisy_speech_ssl"] = self._features(
-                batch["noisy_speech"], batch["noisy_speech_lengths"]
-            )
-            batch["speech_ref1_ssl"] = self._features(
-                batch["speech_ref1"], batch["speech_ref1_lengths"]
-            )
-        return keys, batch
-
-    def _features(self, waveforms: torch.Tensor, lengths: torch.Tensor):
-        arrays = []
-        for waveform, length in zip(waveforms, lengths):
-            array = waveform[: int(length)].cpu().numpy()
-            arrays.append(np.pad(array, (40, 40)))
-        return dict(
-            self.processor(
-                arrays,
-                sampling_rate=self.input_sr,
-                return_tensors="pt",
-                padding=True,
-            )
-        )
+        return self.base(processed)
 
 
 class SidonTask(AbsTask):
@@ -235,17 +206,14 @@ class SidonTask(AbsTask):
 
     @classmethod
     def build_collate_fn(cls, args, train):
-        conf = dict(args.ssl_encoder_conf or {})
         return SidonCollateFn(
             max_samples=int(args.max_duration * args.input_sr),
             input_sr=args.input_sr,
-            model_tag=conf.get("model_tag", "facebook/w2v-bert-2.0"),
             noise_dir=args.noise_dir,
             rir_dir=args.rir_dir,
             degrade_prob=args.degrade_prob,
             online_degradation=args.online_degradation,
             train=train,
-            collect_stats=getattr(args, "collect_stats", False),
         )
 
     @classmethod
