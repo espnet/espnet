@@ -1,0 +1,81 @@
+job_type: speechlm
+seed: 43
+
+multimodal_io:
+    text:
+        tokenizer_name: Qwen/Qwen3-8B-Base
+    discrete_audio:
+        codec_choice: Xcodec
+        codec_hf_model_tag: hf-audio/xcodec-hubert-general
+        ssl_choice: null
+        ssl_hf_model_tag: null
+        delay_interleave: true
+        stream_weights: [0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125]
+    continuous_audio:
+        encoder_choice: huggingface
+        encoder_hf_model_tag: Qwen/Qwen3-Omni-30B-A3B-Instruct
+        attn_implementation: flash_attention_3
+        dtype: bfloat16
+
+model:
+    model_choice: parallel
+    model_hf_tag: Qwen/Qwen3-8B-Base
+    model_conf:
+        attn_implementation: flash_attention_3
+        dtype: bfloat16
+
+preprocessor:
+    audio_input: continuous_audio
+    audio_output: discrete_audio
+    loss_region: assistant
+    audio_cfg: 0.05
+
+data_loading:
+    batchfy_method: pack
+    batch_size: 15000
+    save_loader_state: false
+    num_workers: 6
+
+trainer:
+    type: titan
+    freeze_param: [multimodal_io_dict.discrete_audio, multimodal_io_dict.continuous_audio]
+    max_step: 600000
+    save_interval: 5000
+    log_interval: 1
+    gradient_accumulation_steps: 1
+
+    optimizer:
+        name: AdamW
+        lr: 0.0001
+        beta1: 0.9
+        beta2: 0.95
+        eps: 1.0e-8
+        weight_decay: 3.0e-7
+
+    lr_scheduler:
+        # Linear warmup, then cosine decay to 0.3*peak (30%) reached at the
+        # final step (decay_end_step == max_step; cos_min_ratio=0.3).
+        warmup_steps: 5000
+        min_lr_ratio: 0.3
+        decay_end_step: 600000
+
+    titan_config:
+        parallel_strategy: qwen3
+
+        # Mixed Precision
+        mixed_precision_param: bfloat16
+        mixed_precision_reduce: float32
+
+        # Gradient Clipping
+        gradient_clipping: 1.0
+
+        # Activation Checkpointing (ratio of transformer layers, 0.0-1.0)
+        activation_checkpoint: 1.0
+
+        # Torch Compile (applied to transformer layers)
+        compile: true
+
+        # HSDP mesh: dp_shard * dp_replicate must == total GPUs (80 = 8 x 10)
+        reshard_after_forward: true
+        dp_shard: 8
+        dp_replicate: 10
