@@ -29,6 +29,7 @@ class PESQMetric(BaseMetric):
         hyp_key: str = "enhanced",
         fs: int = 16000,
     ):
+        """Initialize PESQ scoring for the configured SCP keys and sample rate."""
         if fs not in (8000, 16000):
             raise ValueError(f"PESQ supports only 8000 or 16000 Hz, but got {fs}")
         self.ref_key = ref_key

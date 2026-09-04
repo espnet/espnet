@@ -82,6 +82,7 @@ def build_demo(
 
 
 def main() -> None:
+    """Parse command-line arguments and launch the Gradio demo."""
     parser = argparse.ArgumentParser(description="Launch an ESPnet3 demo.")
     parser.add_argument(
         "--demo-dir",

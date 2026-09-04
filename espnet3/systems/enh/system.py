@@ -17,6 +17,7 @@ class EnhancementSystem(BaseSystem):
         metrics_config=None,
         **kwargs,
     ) -> None:
+        """Initialize the enhancement system with stage-specific configurations."""
         super().__init__(
             training_config=training_config,
             inference_config=inference_config,
