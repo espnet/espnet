@@ -1,0 +1,48 @@
+# ESPnet3 TTS recipe
+
+## Quick start
+
+```bash
+# 0) Edit configs to set paths.
+#    Keep `conf/training.yaml:data_dir` as the canonical dataset location.
+#    When `--training_config` is also passed to `infer` or `measure`, run.py
+#    propagates experiment path fields from training into inference/metrics.
+#    Standalone inference or metrics configs must define their own `exp_tag`
+#    or `exp_dir`.
+
+# 1) Build manifests (run once)
+python run.py --stages create_dataset --training_config conf/training.yaml
+
+# 2) Collect feature stats
+python run.py --stages collect_stats --training_config conf/training.yaml
+
+# 3) Train
+python run.py --stages train --training_config conf/training.yaml
+
+# 4) Synthesize
+python run.py --stages infer --inference_config conf/inference.yaml
+
+# 5) Score
+python run.py --stages measure --metrics_config conf/metrics.yaml
+
+# 6) Pack and upload the model
+python run.py --stages pack_model \
+    --training_config conf/training.yaml \
+    --publication_config conf/publication.yaml
+python run.py --stages upload_model \
+    --training_config conf/training.yaml \
+    --publication_config conf/publication.yaml
+
+# 7) Pack and upload the Gradio demo
+python run.py --stages pack_demo   --demo_config conf/demo.yaml
+python run.py --stages upload_demo --demo_config conf/demo.yaml
+```
+
+## Demo
+
+The default `src/app.py` reads its input/output components from the packed
+`demo.yaml`, so a single-speaker TTS model needs no code: text in, audio out.
+
+A model that needs an input no built-in UI asset can produce - for example the
+speaker embedding of a multi-speaker model - should ship its own `src/app.py`
+and point `ui.app_script` at it. See `egs3/libritts/tts/src/app.py`.

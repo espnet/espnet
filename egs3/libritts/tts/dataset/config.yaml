@@ -1,0 +1,40 @@
+##########################################################
+#                LIBRITTS DATASET SETTING                #
+##########################################################
+# Read by dataset/builder.py and dataset/dataset.py.
+#
+# `builder` drives the create_dataset stage: which OpenSLR subsets to
+# download into `dataset_path`, and where under `data_path` the resulting
+# per-split TSV manifests are written.
+#
+# `dataset` tells LibriTTSDataset which manifest backs each split when no
+# explicit `manifest_path` is passed through `data_src_args`.
+
+##########################################################
+#                   MANIFEST BUILDING                    #
+##########################################################
+builder:
+  dataset_path: downloads
+  data_path: data
+  split_subsets:
+    train:
+      - train-clean-100
+      - train-clean-360
+      - train-other-500
+    valid:
+      - dev-clean
+    test:
+      - test-clean
+  manifest_paths:
+    train: manifest/train.tsv
+    valid: manifest/valid.tsv
+    test: manifest/test.tsv
+
+##########################################################
+#                DATASET SPLIT MANIFESTS                 #
+##########################################################
+dataset:
+  split_manifest_paths:
+    train: manifest/train.tsv
+    valid: manifest/valid.tsv
+    test: manifest/test.tsv

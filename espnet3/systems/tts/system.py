@@ -1,27 +1,72 @@
 """TTS system implementation.
 
 This module adds new stages on top of the base system: removing long-short
-utterances and creating token lists, plus the stats-collection stage.
+utterances and creating token lists, plus the stats-collection and training
+stages. Both training stages dispatch to a GAN-specific Lightning trainer
+when the configured model is a GAN-TTS model (e.g. VITS).
 """
 
 import logging
 import time
 from collections import Counter
 from pathlib import Path
+from typing import Any, Dict
 
 import lightning as L
 import torch
-from omegaconf import OmegaConf
+from omegaconf import DictConfig, OmegaConf
 
 from espnet2.text.build_tokenizer import build_tokenizer
 from espnet2.text.cleaner import TextCleaner
+from espnet2.train.abs_gan_espnet_model import AbsGANESPnetModel
+from espnet3.components.modeling.lightning_module import ESPnetLightningModule
+from espnet3.components.trainers.trainer import ESPnet3LightningTrainer
 from espnet3.parallel.parallel import set_parallel
 from espnet3.systems.base.system import BaseSystem
-from espnet3.systems.base.training import _build_trainer, _ensure_directories
+from espnet3.systems.base.training import _ensure_directories, _instantiate_model
+from espnet3.systems.tts.gan_trainer import build_gan_trainer
 from espnet3.systems.tts.remove_long_short_provider import RemoveLongShortProvider
 from espnet3.systems.tts.remove_long_short_runner import RemoveLongShortRunner
+from espnet3.systems.tts.xvector_provider import XVectorProvider
+from espnet3.systems.tts.xvector_runner import XVectorRunner
+from espnet3.utils.task_utils import save_espnet_config
 
 logger = logging.getLogger(__name__)
+
+
+def _build_trainer(config: DictConfig) -> ESPnet3LightningTrainer:
+    """Build the Lightning trainer for a TTS config.
+
+    Shadows ``espnet3.systems.base.training._build_trainer`` to add GAN-TTS
+    dispatch: GAN-TTS models (VITS, JETS, ...) need a second optimizer and a
+    generator/discriminator step schedule, which the plain
+    ``ESPnetLightningModule``/``ESPnet3LightningTrainer`` pair cannot express.
+    The non-GAN branch is deliberately a copy of the base builder's body rather
+    than a delegation to it, so that the model is instantiated exactly once -
+    instantiating and discarding a model would advance the global RNG and make
+    training depend on whether this dispatch happened.
+
+    Args:
+        config (DictConfig): The training config. ``config.model`` (with
+            ``config.task``, if set) selects the model; ``config.trainer``,
+            ``config.exp_dir`` and ``config.best_model_criterion`` configure
+            the trainer.
+
+    Returns:
+        ESPnet3LightningTrainer: A ``GANTTSLightningTrainer`` if the model is
+        an ``AbsGANESPnetModel``, otherwise a plain ``ESPnet3LightningTrainer``.
+    """
+    model = _instantiate_model(config)
+    if isinstance(model, AbsGANESPnetModel):
+        return build_gan_trainer(config, model)
+
+    lit_model = ESPnetLightningModule(model, config)
+    return ESPnet3LightningTrainer(
+        model=lit_model,
+        exp_dir=config.exp_dir,
+        config=config.trainer,
+        best_model_criterion=config.best_model_criterion,
+    )
 
 
 class TTSSystem(BaseSystem):
@@ -34,6 +79,7 @@ class TTSSystem(BaseSystem):
     Additional stage log paths:
         | Stage                 | Path reference                  |
         |---                   |---                              |
+        | compute_xvectors     | training_config.xvector.save_path |
         | remove_long_short    | training_config.remove_long_short.save_path |
         | create_token_list    | training_config.create_token_list.save_path |
     """
@@ -43,19 +89,199 @@ class TTSSystem(BaseSystem):
         training_config=None,
         inference_config=None,
         metrics_config=None,
+        stage_log_mapping=None,
         **kwargs,
     ) -> None:
-        """Initialize the TTS system with TTS-specific stage mappings."""
+        """Initialize the TTS system with TTS-specific stage mappings.
+
+        Args:
+            training_config: Training configuration.
+            inference_config: Inference configuration.
+            metrics_config: Measurement configuration.
+            stage_log_mapping (dict | None): Extra per-stage log path
+                overrides contributed by a subclass. Merged on top of the two
+                TTS stages registered here rather than replacing them, so a
+                recipe-local subclass can register its own stages (e.g.
+                ``compute_xvectors``) without having to restate these.
+            **kwargs: Forwarded to :class:`BaseSystem`.
+        """
+        mapping = {
+            "compute_xvectors": "training_config.xvector.save_path",
+            "remove_long_short": "training_config.remove_long_short.save_path",
+            "create_token_list": "training_config.create_token_list.save_path",
+        }
+        if stage_log_mapping:
+            mapping.update(stage_log_mapping)
         super().__init__(
             training_config=training_config,
             inference_config=inference_config,
             metrics_config=metrics_config,
-            stage_log_mapping={
-                "remove_long_short": "training_config.remove_long_short.save_path",
-                "create_token_list": "training_config.create_token_list.save_path",
-            },
+            stage_log_mapping=mapping,
             **kwargs,
         )
+
+    def compute_xvectors(self, *args, **kwargs):
+        r"""Compute x-vectors for multiple data splits using parallel execution.
+
+        X-vectors (speaker embeddings) are extracted using a pre-trained
+        model for train, valid, and test splits. They can be used as
+        speaker conditioning in TTS models.
+
+        This method uses espnet3 manifest files generated by the dataset
+        builder. Manifest format: ``utt_id\twav_path\ttext\tspeaker_id``
+        (TSV).
+
+        Args:
+            *args: Must be empty. Passing any positional argument raises
+                ``RuntimeError`` via ``_reject_stage_args``.
+            **kwargs: Must be empty. Passing any keyword argument raises
+                ``RuntimeError`` via ``_reject_stage_args``.
+
+        Returns:
+            None.
+
+        Raises:
+            RuntimeError: If required configuration is missing or
+                manifest files are not found.
+
+        Notes:
+            Configuration should include:
+                training_config.xvector.pretrained_model: Model tag or path.
+                training_config.xvector.toolkit: ``espnet``, ``speechbrain``,
+                    or ``rawnet``.
+                training_config.xvector.save_path: Output directory.
+                training_config.xvector.splits: Splits to process
+                    (train, valid, test).
+                training_config.xvector.batch_size: Batch size for
+                    processing.
+                training_config.xvector.device: Device to use (default:
+                    ``cuda:0`` if available).
+
+        Examples:
+            ```bash
+            python run.py --stages compute_xvectors \
+                --training_config conf/training.yaml
+            ```
+            writes one embedding per utterance:
+            ```text
+            data/x_vectors/spkrec-ecapa-voxceleb_train/19_198_000000_000000.pt
+            ```
+        """
+        self._reject_stage_args("compute_xvectors", args, kwargs)
+        logger.info("TTSSystem.compute_xvectors(): starting x-vector computation")
+
+        # Parse the parallel config early so it applies to the x-vector runner.
+        if self.training_config.get("parallel"):
+            set_parallel(self.training_config.parallel)
+
+        xvec_cfg = self.training_config.get("xvector", None)
+        if xvec_cfg is None:
+            raise RuntimeError(
+                "training_config.xvector must be set for compute_xvectors stage."
+            )
+        save_path_str = xvec_cfg.get("save_path", None)
+        if save_path_str is None:
+            raise RuntimeError(
+                "training_config.xvector.save_path must be set for "
+                "compute_xvectors stage."
+            )
+        save_path = Path(save_path_str)
+        save_path.mkdir(parents=True, exist_ok=True)
+
+        # Get list of splits to process (Default: all splits)
+        splits = xvec_cfg.get("splits", ["train", "valid", "test"])
+
+        if isinstance(splits, str):
+            splits = [splits]
+
+        manifest_paths = xvec_cfg.get("manifest_paths", {})
+
+        logger.info(f"Will process splits: {splits}")
+        logger.info(f"Manifest paths: {manifest_paths}")
+
+        # Validate toolkit and model
+        toolkit = xvec_cfg.get("toolkit", "speechbrain")
+        pretrained_model = xvec_cfg.get(
+            "pretrained_model", "speechbrain/spkrec-ecapa-voxceleb"
+        )
+        device = xvec_cfg.get(
+            "device", "cuda:0" if torch.cuda.is_available() else "cpu"
+        )
+
+        # Process each split
+        for split in splits:
+            logger.info(f"Processing split: {split}")
+
+            manifest_path = manifest_paths.get(split, None)
+            if manifest_path is None:
+                manifest_path = f"data/manifest/{split}.tsv"
+            manifest_path = Path(manifest_path).resolve()
+            if not manifest_path.exists():
+                raise RuntimeError(
+                    f"Manifest file not found for split '{split}': "
+                    f"{manifest_path}. Please generate the manifest file "
+                    "using the create_dataset stage and ensure the path "
+                    "is correct."
+                )
+
+            utterances, _ = XVectorProvider._load_manifest(manifest_path)
+            n_utts = len(utterances)
+            if n_utts == 0:
+                raise RuntimeError(f"No utterances found in manifest: {manifest_path}.")
+
+            logger.info(f"Split '{split}': {n_utts} utterances in {manifest_path}")
+
+            batch_size = xvec_cfg.get("batch_size", None)
+            async_mode = xvec_cfg.get("async_mode", False)
+            spk_embed_tag = xvec_cfg.get("spk_embed_tag", "spk_embed")
+            output_subdir = save_path / f"{spk_embed_tag}_{split}"
+
+            provider = XVectorProvider(
+                config=self.training_config,
+                params={
+                    "toolkit": toolkit,
+                    "pretrained_model": pretrained_model,
+                    "device": device,
+                    "manifest_path": str(manifest_path),
+                    "output_dir": str(output_subdir),
+                },
+            )
+
+            runner = XVectorRunner(
+                provider=provider,
+                batch_size=batch_size,
+                async_mode=async_mode,
+            )
+
+            logger.info(
+                f"Processing {n_utts} utterances for x-vector extraction "
+                f"(split: {split})"
+            )
+
+            indices = list(range(n_utts))
+            results = runner(indices)
+
+            if results is None:
+                logger.info(
+                    f"Async job submitted for split '{split}'. Check "
+                    "result directory for outputs."
+                )
+                continue
+
+            flat = []
+            for item in results:
+                if isinstance(item, list):
+                    flat.extend(item)
+                else:
+                    flat.append(item)
+            n_ok = sum(1 for r in flat if r.get("status") == "ok")
+            n_skipped = sum(1 for r in flat if r.get("status") == "skipped")
+            logger.info(
+                f"X-vectors for split '{split}' saved to {output_subdir} "
+                f"({n_ok} new, {n_skipped} skipped)"
+            )
+
+        logger.info("X-vector computation completed for all splits")
 
     def remove_long_short(self, *args, **kwargs):
         """Remove long-short utterances based on duration thresholds.
@@ -502,4 +728,52 @@ class TTSSystem(BaseSystem):
             time.perf_counter() - start,
             self.training_config.exp_dir,
             getattr(self.training_config, "stats_dir", None),
+        )
+
+    def train(self, *args, **kwargs):
+        """Run the training stage using the configured trainer.
+
+        Mirrors :func:`espnet3.systems.base.training.train` exactly, except
+        that the trainer comes from this module's GAN-aware
+        :func:`_build_trainer`. The override exists only for that dispatch:
+        the base implementation resolves ``_build_trainer`` in its own module
+        namespace, so a GAN-TTS model would otherwise be wrapped in the plain
+        single-optimizer trainer and fail at the first discriminator step.
+
+        Args:
+            *args: Must be empty. Passing any positional argument raises via
+                ``_reject_stage_args``.
+            **kwargs: Must be empty. Passing any keyword argument raises via
+                ``_reject_stage_args``.
+
+        Returns:
+            None
+
+        Notes:
+            ``training_config.fit`` is forwarded verbatim to ``trainer.fit``.
+        """
+        self._reject_stage_args("train", args, kwargs)
+        start = time.perf_counter()
+        self._prepare_training_runtime()
+
+        task = self.training_config.get("task")
+        if task:
+            save_espnet_config(task, self.training_config, self.training_config.exp_dir)
+
+        trainer = _build_trainer(self.training_config)
+
+        fit_kwargs: Dict[str, Any] = {}
+        if hasattr(self.training_config, "fit") and self.training_config.fit:
+            fit_kwargs = OmegaConf.to_container(self.training_config.fit, resolve=True)
+
+        trainer.fit(**fit_kwargs)
+        logger.info(
+            "Training finished in %.2fs | exp_dir=%s model=%s",
+            time.perf_counter() - start,
+            self.training_config.exp_dir,
+            (
+                self.training_config.model.get("_target_", None)
+                if isinstance(self.training_config.model, DictConfig)
+                else None
+            ),
         )
