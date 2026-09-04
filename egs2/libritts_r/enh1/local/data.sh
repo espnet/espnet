@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # local/data.sh — Speech Cleaner data preparation (Samsung PC)
 #
-# Required (export from db.sh):
+# Required (set in db.sh):
 #   DATASET_LIBRITTS_R  /DB/LibriTTS_R    24kHz
 #   LIBRITTS            /DB/LibriTTS      original test input
 #   DATASET_EARS        /DB/ears          48kHz  p001-p107
@@ -16,6 +16,8 @@
 
 set -euo pipefail
 log() { echo "[data.sh $(date '+%H:%M:%S')] $*"; }
+
+. ./db.sh || exit 1
 
 # ── Validate required variables ────────────────────────────────────────────
 for _var in DATASET_LIBRITTS_R DATASET_EARS DATASET_VCTK_DEMAND LIBRITTS; do
@@ -221,6 +223,7 @@ _make_kaldi "${tmp}/voc_dev" data/dev_voc
 # Noise pool
 # ─────────────────────────────────────────────────────────────────────────
 log "Building data/noise_pool ..."
+rm -rf data/noise_pool
 mkdir -p data/noise_pool
 _noise_found=0
 for _var in $(compgen -v | grep '^NOISE_' | sort); do

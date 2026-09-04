@@ -2,6 +2,7 @@
 """Run an ESPnet-Sidon predictor with the official Sidon vocoder."""
 
 import argparse
+import io
 import logging
 import subprocess
 from argparse import Namespace
@@ -40,7 +41,7 @@ def _load_feature_predictor(config_path, model_path, device):
         input_sr=config.get("input_sr", 16000),
     )
     model = SidonTask.build_model(task_args)
-    checkpoint = torch.load(model_path, map_location="cpu", weights_only=False)
+    checkpoint = torch.load(model_path, map_location="cpu", weights_only=True)
     state = checkpoint.get("model", checkpoint)
     expected = model.state_dict()
     compatible = {
@@ -90,9 +91,11 @@ def _read_audio(value: str, sample_rate: int = 16000):
         process = subprocess.run(
             value[:-1], shell=True, check=True, stdout=subprocess.PIPE
         )
-        waveform = np.frombuffer(process.stdout, np.int16).astype(np.float32) / 32768
-        return waveform
-    waveform, source_rate = sf.read(value, dtype="float32", always_2d=True)
+        waveform, source_rate = sf.read(
+            io.BytesIO(process.stdout), dtype="float32", always_2d=True
+        )
+    else:
+        waveform, source_rate = sf.read(value, dtype="float32", always_2d=True)
     waveform = waveform.mean(1)
     if source_rate != sample_rate:
         import torchaudio.functional as AF

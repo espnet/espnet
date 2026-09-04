@@ -130,12 +130,14 @@ class SidonCollateFn:
         rir_dir: str,
         degrade_prob: float,
         online_degradation: bool,
+        train: bool = True,
         collect_stats: bool = False,
     ):
         from transformers import SeamlessM4TFeatureExtractor
 
         self.max_samples = max_samples
         self.input_sr = input_sr
+        self.train = train
         self.collect_stats = collect_stats
         self.processor = (
             None
@@ -153,17 +155,25 @@ class SidonCollateFn:
         for key, values in data:
             values = dict(values)
             clean = torch.as_tensor(values["speech_ref1"]).float()
-            noisy = (
-                degrade_waveform(
+            if self.online_degradation:
+                if not self.train:
+                    # Deterministic degradation for validation: seed per utterance
+                    # so valid loss is comparable across epochs.
+                    rng_state = random.getstate()
+                    random.seed(hash(key) & 0xFFFFFFFF)
+                noisy = degrade_waveform(
                     clean,
                     self.input_sr,
                     self.noise_files,
                     self.rir_files,
                     self.degrade_prob,
                 )
-                if self.online_degradation
-                else torch.as_tensor(values.get("noisy_speech", clean)).float()
-            )
+                if not self.train:
+                    random.setstate(rng_state)
+            else:
+                noisy = torch.as_tensor(
+                    values.get("noisy_speech", clean)
+                ).float()
             length = min(clean.numel(), noisy.numel())
             if length > self.max_samples:
                 start = random.randint(0, length - self.max_samples)
@@ -234,6 +244,7 @@ class SidonTask(AbsTask):
             rir_dir=args.rir_dir,
             degrade_prob=args.degrade_prob,
             online_degradation=args.online_degradation,
+            train=train,
             collect_stats=getattr(args, "collect_stats", False),
         )
 

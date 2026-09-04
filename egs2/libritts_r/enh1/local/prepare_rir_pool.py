@@ -24,15 +24,15 @@ logger = logging.getLogger(__name__)
 SR = 16000  # RIRs always at 16kHz; collate_fn resamples if needed
 
 
-def _gen_one(idx: int, out_dir: str) -> str:
+def _gen_one(idx: int, out_dir: str, seed: int = 0) -> str:
     """Generate one RIR and save to disk. Returns saved path."""
     try:
         import pyroomacoustics as pra
     except ImportError:
         raise ImportError("pyroomacoustics required: pip install pyroomacoustics")
 
-    rng = random.Random(idx)
-    np.random.seed(idx % (2**31))
+    rng = random.Random(seed + idx)
+    np.random.seed((seed + idx) % (2**31))
 
     rt60 = rng.uniform(0.1, 2.0)
     room_dim = [rng.uniform(2.0, 20.0) for _ in range(3)]
@@ -103,7 +103,10 @@ def main():
 
     done = 0
     with ProcessPoolExecutor(max_workers=args.nj) as ex:
-        futures = {ex.submit(_gen_one, i, args.out_dir): i for i in to_generate}
+        futures = {
+            ex.submit(_gen_one, i, args.out_dir, args.seed): i
+            for i in to_generate
+        }
         for fut in as_completed(futures):
             try:
                 fut.result()

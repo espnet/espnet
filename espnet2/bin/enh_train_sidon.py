@@ -4,6 +4,11 @@
 from espnet2.tasks.sidon import SidonTask
 
 
+def get_parser():
+    parser = SidonTask.get_parser()
+    return parser
+
+
 def main(cmd=None):
     SidonTask.main(cmd=cmd)
 

@@ -32,20 +32,14 @@ fi
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "Stage 2: resample feature-predictor data to 16 kHz"
     for split in train dev; do
-        mkdir -p data/${split}_fp_16k/wav
-        ${python} local/resample_wav_scp.py \
-            --input_scp data/${split}_fp/wav.scp \
-            --output_scp data/${split}_fp_16k/wav.scp \
-            --wav_dir data/${split}_fp_16k/wav \
-            --target_sr 16000 --nj ${nj}
+        scripts/audio/format_wav_scp.sh \
+            --nj "${nj}" --cmd "${train_cmd}" --fs 16000 --audio-format wav \
+            "data/${split}_fp/wav.scp" "data/${split}_fp_16k"
     done
     for test_set in ${test_sets}; do
-        mkdir -p data/${test_set}_16k/wav
-        ${python} local/resample_wav_scp.py \
-            --input_scp data/${test_set}/wav.scp \
-            --output_scp data/${test_set}_16k/wav.scp \
-            --wav_dir data/${test_set}_16k/wav \
-            --target_sr 16000 --nj ${nj}
+        scripts/audio/format_wav_scp.sh \
+            --nj "${nj}" --cmd "${decode_cmd}" --fs 16000 --audio-format wav \
+            "data/${test_set}/wav.scp" "data/${test_set}_16k"
     done
 fi
 

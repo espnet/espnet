@@ -129,7 +129,7 @@ def compute_spk_sim(
     Uses wavlm-base-plus-sv from HuggingFace following the Sidon paper.
     """
     try:
-        from transformers import Wav2Vec2FeatureExtractor, WavLMModel
+        from transformers import Wav2Vec2FeatureExtractor, WavLMForXVector
     except ImportError:
         logger.warning("transformers not installed; SpkSim skipped.")
         return {}
@@ -138,15 +138,14 @@ def compute_spk_sim(
     model_id = "microsoft/wavlm-base-plus-sv"
     logger.info("Loading %s for speaker similarity...", model_id)
     extractor = Wav2Vec2FeatureExtractor.from_pretrained(model_id)
-    model = WavLMModel.from_pretrained(model_id).eval().to(device)
+    model = WavLMForXVector.from_pretrained(model_id).eval().to(device)
 
     def embed(path):
         wav = read_wav(path, target_sr=16000)
         inp = extractor(wav, sampling_rate=16000, return_tensors="pt", padding=True)
         with torch.no_grad():
             out = model(inp["input_values"].to(device))
-        # Mean-pool last hidden state as speaker embedding
-        emb = out.last_hidden_state.mean(dim=1)
+        emb = out.embeddings
         return torch.nn.functional.normalize(emb, dim=-1).cpu()
 
     scores = {}
