@@ -300,7 +300,11 @@ class DataLoaderBuilder:
                 _LOGGED_DISTRIBUTED_BATCHES.add(mode)
 
         iter_factory = instantiate(factory_config, dataset, batches=batches)
-        loader = EpochSyncIterator(partial(iter_factory.build_iter, self.epoch + 1))
+        # espnet2 iter factories count epochs from 1 (their RNGs seed with
+        # epoch - 1), while self.epoch is Lightning's 0-based current_epoch;
+        # _maybe_shard_dataset keeps the 0-based convention.
+        espnet2_epoch = self.epoch + 1
+        loader = EpochSyncIterator(partial(iter_factory.build_iter, espnet2_epoch))
         log_dataloader(
             logger,
             loader,

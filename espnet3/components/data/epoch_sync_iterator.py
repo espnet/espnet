@@ -69,6 +69,7 @@ class EpochSyncIterator:
         """Wrap the source this rank's per-epoch passes are built from."""
         self._source = source
         self._length = None
+        self._pending_pass = None
 
     def __len__(self):
         """Return the number of batches in one pass over the source.
@@ -78,8 +79,10 @@ class EpochSyncIterator:
         is called to obtain the object to measure, so a factory returning a
         sized loader still reports its length. The result is cached: the
         trainer asks for the length several times per epoch, and building a
-        sequence-style loader costs O(corpus) each time. One instance covers
-        exactly one epoch, so the length cannot change under the cache.
+        sequence-style loader costs O(corpus) each time. The pass built for
+        the probe is handed to the next ``__iter__``, so probing costs no
+        extra factory call. One instance covers exactly one epoch, so the
+        length cannot change under the cache.
 
         Returns:
             int: The number of batches one pass over the source reports.
@@ -104,6 +107,11 @@ class EpochSyncIterator:
                 self._length = len(new_pass)
             except TypeError:
                 self._length = _UNSIZED
+            if callable(self._source):
+                # Hand the probe pass to the next __iter__: a sequence-style
+                # factory pays O(corpus) per call, so the probe must not cost
+                # an extra one.
+                self._pending_pass = new_pass
         if self._length == _UNSIZED:
             raise TypeError(
                 f"{type(self).__name__} wraps an unsized source, so it has no len()"
@@ -138,10 +146,17 @@ class EpochSyncIterator:
         # own iterator. Sharing one live iterator across passes is unsafe:
         # `yield from` propagates close() to it, so a partially consumed pass
         # that is discarded (an abandoned prefetch, for instance) leaves every
-        # later pass empty.
-        if callable(self._source):
-            return self._source()
-        return self._source
+        # later pass empty. The plain-iterable branch is kept for backward
+        # compatibility; DataLoaderBuilder always passes a callable.
+        if not callable(self._source):
+            return self._source
+        if self._pending_pass is not None:
+            # The pass built by the __len__ probe, not handed out yet. Once
+            # handed out it is never reused, so an abandoned partial pass
+            # still gets a fresh successor.
+            pending, self._pending_pass = self._pending_pass, None
+            return pending
+        return self._source()
 
     def __iter__(self):
         """Yield batches, stopping on all ranks once any rank is exhausted.

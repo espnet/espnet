@@ -173,6 +173,62 @@ def test_len_does_not_mask_a_factory_that_raises_type_error():
         len(EpochSyncIterator(broken_factory))
 
 
+def test_len_probe_pass_is_handed_to_the_first_iteration():
+    """The pass built by the length probe must feed the first `__iter__`.
+
+    Without reuse, one epoch costs three factory calls on the sequence path
+    (length probe, Lightning's setup pass, the epoch-loop re-iter), each
+    O(corpus).
+    """
+    calls = []
+
+    def factory():
+        calls.append(1)
+        return [[0], [1]]
+
+    iterator = EpochSyncIterator(factory)
+
+    assert len(iterator) == 2
+    assert list(iterator) == [[0], [1]]
+    assert len(calls) == 1
+
+    assert list(iterator) == [[0], [1]]
+    assert len(calls) == 2
+
+
+def test_unsized_probe_pass_is_reused_too():
+    """A generator built for the probe is unstarted, so the first pass can use it."""
+    calls = []
+
+    def factory():
+        calls.append(1)
+        return iter([[0], [1]])
+
+    iterator = EpochSyncIterator(factory)
+
+    with pytest.raises(TypeError):
+        len(iterator)
+    assert list(iterator) == [[0], [1]]
+    assert len(calls) == 1
+
+
+def test_abandoned_probe_pass_does_not_starve_the_next_pass():
+    """A handed-out probe pass that is dropped mid-way must not be reused."""
+
+    def factory():
+        return iter([[0], [1], [2]])
+
+    iterator = EpochSyncIterator(factory)
+
+    with pytest.raises(TypeError):
+        len(iterator)
+    prefetch = iter(iterator)
+    assert next(prefetch) == [0]
+    del prefetch  # Lightning discards its setup pass like this.
+
+    assert list(iterator) == [[0], [1], [2]]
+
+
 def test_nccl_backend_resolves_a_cuda_device(monkeypatch):
     """The NCCL branch selects a CUDA device for the has-next flag.
 
