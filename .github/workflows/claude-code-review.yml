@@ -2,7 +2,7 @@
 #
 # Trigger choice. Nearly every ESPnet PR comes from a fork, and GitHub withholds
 # repository secrets from `pull_request` runs of fork PRs, so a plain
-# `pull_request` trigger would never see ANTHROPIC_API_KEY. `pull_request_target`
+# `pull_request` trigger would never see the Claude credential. `pull_request_target`
 # runs in the context of the base repository: this file and the checkout below
 # come from master, and secrets are available. That is only safe because the
 # PR's code is never checked out or executed here. The code-review skill reads
@@ -69,7 +69,10 @@ jobs:
       - name: Review the pull request
         uses: anthropics/claude-code-action@833fb0f8c9f6686b33d963a8bae0a94f4936ab2a # v1
         with:
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Authenticates with a Claude subscription (one-year token from
+          # `claude setup-token`). To switch to API billing instead, replace
+          # this line with: anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           # The job-scoped token makes the GitHub API calls and posts the
           # comments. Together with allowed_non_write_users it lets the action
           # run for authors without write access; the `if:` above, not GitHub
