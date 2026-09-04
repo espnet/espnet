@@ -42,7 +42,7 @@ endef
 all: showenv conda_packages.done python ffmpeg.done sctk check_install
 
 python: activate_python.sh setuptools.done packaging.done espnet.done pytorch.done fairscale.done torch_optimizer.done flash_attn.done lightning.done
-extra: warp-transducer.done nkf.done moses.done mwerSegmenter.done pesq kenlm.done pyopenjtalk.done py3mmseg.done beamformit.done fairseq.done s3prl.done k2.done transformers.done phonemizer.done longformer.done muskits.done whisper.done rvad_fast.done sounfile_test parallel-wavegan.done lora.done omniio.done sph2pipe torcheval.done
+extra: warp-transducer.done nkf.done moses.done mwerSegmenter.done pesq kenlm.done pyopenjtalk.done py3mmseg.done beamformit.done fairseq.done s3prl.done k2.done transformers.done phonemizer.done longformer.done muskits.done whisper.done rvad_fast.done sounfile_test parallel-wavegan.done lora.done sph2pipe torcheval.done
 
 activate_python.sh:
 	test -f activate_python.sh || { echo "Error: Run ./setup_python.sh or ./setup_miniforge.sh"; exit 1; }
@@ -294,12 +294,6 @@ lora.done: espnet.done
 	$(call start_timer,lora.done)
 	. ./activate_python.sh && ./installers/install_lora.sh
 	$(call end_timer_and_touch,lora.done)
-
-# Kaldi ark/scp I/O. Not a pyproject extra because omniio is not on PyPI.
-omniio.done: espnet.done
-	$(call start_timer,omniio.done)
-	. ./activate_python.sh && ./installers/install_omniio.sh
-	$(call end_timer_and_touch,omniio.done)
 
 k2.done: espnet.done
 	$(call start_timer,k2.done)

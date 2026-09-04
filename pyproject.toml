@@ -195,14 +195,13 @@ sds = [
   "transformers",
 ]
 
-# NOTE: Kaldi ark/scp I/O lives in `omniio` (https://github.com/wavlab-speech/omniio)
-# and is not declared here, because omniio is not published on PyPI and PyPI
-# rejects direct URL references in package metadata. It is optional -- only the
-# Kaldi-format feature paths need it -- and is installed either by
-# `tools/installers/install_omniio.sh` or by hand:
-#   pip install "omniio @ git+https://github.com/wavlab-speech/omniio.git"
+# Kaldi ark/scp I/O. Kept out of the default dependencies because only the
+# Kaldi-format feature paths need it; the default `raw` recipes do not.
 # It replaced `kaldiio`, whose license restricts redistribution; see
 # https://github.com/espnet/espnet/issues/6529.
+omniio = [
+  "omniio>=0.1.0",
+]
 
 dev = [
   "black",
@@ -226,6 +225,7 @@ test = [
   "black",
   "isort",
   "h5py>=2.10.0",
+  "omniio>=0.1.0",
   "gradio",
   "playwright",
 ]
@@ -246,6 +246,7 @@ all = [
   "espnet[spk]",
   "espnet[speechlm]",
   "espnet[egs2]",
+  "espnet[omniio]",
   "fairscale",
   "transformers",
   "evaluate",
