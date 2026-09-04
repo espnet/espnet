@@ -49,6 +49,32 @@ def check_short_utt(ins, size):
     return False, -1
 
 
+def _conv_out_length(length, kernel_size, stride, padding=0, dilation=1):
+    """Time-axis output length of a convolution (PyTorch Conv1d/Conv2d formula)."""
+    return (length + 2 * padding - dilation * (kernel_size - 1) - 1) // stride + 1
+
+
+def _subsample_mask(x_mask, out_time, convs):
+    """Rebuild the pad mask from each utterance's own input length.
+
+    ``convs`` is a sequence of ``(kernel_size, stride)`` matching the time-axis
+    convolutions of the module. Slicing the padded batch
+    (``x_mask[:, :, :-k:s]``) trims relative to ``max(ilens)``, so a short
+    utterance reports a different ``olens`` depending on its batch mates
+    (issue 6600).
+
+    """
+    if x_mask is None:
+        return None
+    olens = x_mask.squeeze(1).sum(dim=-1)
+    for kernel_size, stride in convs:
+        olens = _conv_out_length(olens, kernel_size, stride)
+    olens = olens.clamp(min=0, max=out_time)
+    frames = torch.arange(out_time, device=x_mask.device)
+    mask = frames.unsqueeze(0) < olens.unsqueeze(1)
+    return mask.to(dtype=x_mask.dtype).unsqueeze(1)
+
+
 def _upgrade_legacy_subsampling_state_dict(state_dict, prefix):
     """Remap legacy nn.Sequential keys for subsampling modules."""
     w_new = prefix + "out.weight"
@@ -144,7 +170,7 @@ class Conv1dSubsampling1(torch.nn.Module):
         b, c, t = x.size()
         x = self.out(x.transpose(1, 2).contiguous())
         if x_mask is not None:
-            x_mask = x_mask[:, :, :-2:1][:, :, :-2:1]
+            x_mask = _subsample_mask(x_mask, x.size(1), ((3, 1), (3, 1)))
 
         if prefix_embeds is not None:
             x = torch.cat([prefix_embeds, x], dim=1)
@@ -246,7 +272,7 @@ class Conv1dSubsampling2(torch.nn.Module):
         b, c, t = x.size()
         x = self.out(x.transpose(1, 2).contiguous())
         if x_mask is not None:
-            x_mask = x_mask[:, :, :-2:1][:, :, :-2:2]
+            x_mask = _subsample_mask(x_mask, x.size(1), ((3, 1), (3, 2)))
 
         if prefix_embeds is not None:
             x = torch.cat([prefix_embeds, x], dim=1)
@@ -348,7 +374,7 @@ class Conv1dSubsampling3(torch.nn.Module):
         b, c, t = x.size()
         x = self.out(x.transpose(1, 2).contiguous())
         if x_mask is not None:
-            x_mask = x_mask[:, :, :-2:1][:, :, :-4:3]
+            x_mask = _subsample_mask(x_mask, x.size(1), ((3, 1), (5, 3)))
 
         if prefix_embeds is not None:
             x = torch.cat([prefix_embeds, x], dim=1)
@@ -450,7 +476,7 @@ class Conv2dSubsampling(torch.nn.Module):
         b, c, t, f = x.size()
         x = self.out(x.transpose(1, 2).contiguous().view(b, t, c * f))
         if x_mask is not None:
-            x_mask = x_mask[:, :, :-2:2][:, :, :-2:2]
+            x_mask = _subsample_mask(x_mask, x.size(1), ((3, 2), (3, 2)))
 
         if prefix_embeds is not None:
             x = torch.cat([prefix_embeds, x], dim=1)
@@ -552,7 +578,7 @@ class Conv2dSubsampling1(torch.nn.Module):
         b, c, t, f = x.size()
         x = self.out(x.transpose(1, 2).contiguous().view(b, t, c * f))
         if x_mask is not None:
-            x_mask = x_mask[:, :, :-4]
+            x_mask = _subsample_mask(x_mask, x.size(1), ((3, 1), (3, 1)))
 
         if prefix_embeds is not None:
             x = torch.cat([prefix_embeds, x], dim=1)
@@ -654,7 +680,7 @@ class Conv2dSubsampling2(torch.nn.Module):
         b, c, t, f = x.size()
         x = self.out(x.transpose(1, 2).contiguous().view(b, t, c * f))
         if x_mask is not None:
-            x_mask = x_mask[:, :, :-2:2][:, :, :-2:1]
+            x_mask = _subsample_mask(x_mask, x.size(1), ((3, 2), (3, 1)))
 
         if prefix_embeds is not None:
             x = torch.cat([prefix_embeds, x], dim=1)
@@ -756,7 +782,7 @@ class Conv2dSubsampling6(torch.nn.Module):
         b, c, t, f = x.size()
         x = self.out(x.transpose(1, 2).contiguous().view(b, t, c * f))
         if x_mask is not None:
-            x_mask = x_mask[:, :, :-2:2][:, :, :-4:3]
+            x_mask = _subsample_mask(x_mask, x.size(1), ((3, 2), (5, 3)))
 
         if prefix_embeds is not None:
             x = torch.cat([prefix_embeds, x], dim=1)
@@ -849,7 +875,7 @@ class Conv2dSubsampling8(torch.nn.Module):
         b, c, t, f = x.size()
         x = self.out(x.transpose(1, 2).contiguous().view(b, t, c * f))
         if x_mask is not None:
-            x_mask = x_mask[:, :, :-2:2][:, :, :-2:2][:, :, :-2:2]
+            x_mask = _subsample_mask(x_mask, x.size(1), ((3, 2), (3, 2), (3, 2)))
 
         if prefix_embeds is not None:
             x = torch.cat([prefix_embeds, x], dim=1)
