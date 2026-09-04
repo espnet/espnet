@@ -4,8 +4,7 @@ import io
 
 import h5py
 import numpy as np
-
-from espnet2.utils.kaldi_io_utils import import_kaldi_io
+from omniio import kaldi as kaldi_io
 
 
 class CMVN(object):
@@ -33,14 +32,14 @@ class CMVN(object):
         else:
             # Use for global CMVN
             if filetype == "mat":
-                stats_dict = {None: import_kaldi_io().load_mat(stats)}
+                stats_dict = {None: kaldi_io.load_mat(stats)}
             # Use for global CMVN
             elif filetype == "npy":
                 stats_dict = {None: np.load(stats)}
             # Use for speaker CMVN
             elif filetype == "ark":
                 self.accept_uttid = True
-                stats_dict = dict(import_kaldi_io().load_ark(stats))
+                stats_dict = dict(kaldi_io.load_ark(stats))
             # Use for speaker CMVN
             elif filetype == "hdf5":
                 self.accept_uttid = True

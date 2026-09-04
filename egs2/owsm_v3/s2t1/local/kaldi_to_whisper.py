@@ -8,8 +8,8 @@ from pathlib import Path
 
 import librosa
 import soundfile
+from omniio import kaldi as kaldi_io
 
-from espnet2.utils.kaldi_io_utils import import_kaldi_io
 from utils import (
     SYMBOL_NA,
     SYMBOL_NOSPEECH,
@@ -89,7 +89,7 @@ def preprocess_text(text, nlsyms) -> str:
 def find_duration(tup):
     # pipe: copy from format_wav_scp.py
     if tup[1].endswith("|"):
-        with import_kaldi_io().open_like_kaldi(tup[1], "rb") as f:
+        with kaldi_io.open_like_kaldi(tup[1], "rb") as f:
             with BytesIO(f.read()) as g:
                 array, rate = soundfile.read(g)
         return (tup[0], 0.0, len(array) / rate)

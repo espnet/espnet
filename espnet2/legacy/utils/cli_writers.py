@@ -6,10 +6,10 @@ from typing import Dict
 import h5py
 import numpy
 import soundfile
+from omniio import kaldi as kaldi_io
 
 from espnet2.legacy.utils.cli_utils import assert_scipy_wav_style
 from espnet2.legacy.utils.io_utils import SoundHDF5File
-from espnet2.utils.kaldi_io_utils import import_kaldi_io
 
 
 def file_writer_helper(
@@ -146,7 +146,6 @@ class KaldiWriter(BaseWriter):
         self, wspecifier, write_num_frames=None, compress=False, compression_method=2
     ):
         """Initialize Kaldi writer."""
-        kaldi_io = import_kaldi_io()
         if compress:
             self.writer = kaldi_io.WriteHelper(
                 wspecifier, compression_method=compression_method

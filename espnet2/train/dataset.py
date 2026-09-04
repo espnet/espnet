@@ -24,6 +24,7 @@ from typing import (
 import humanfriendly
 import numpy as np
 import torch
+from omniio import kaldi as kaldi_io
 from torch.utils.data.dataset import Dataset
 from typeguard import typechecked
 
@@ -42,7 +43,6 @@ from espnet2.fileio.read_text import (
 from espnet2.fileio.rttm import RttmReader
 from espnet2.fileio.score_scp import SingingScoreReader
 from espnet2.fileio.sound_scp import SoundScpReader
-from espnet2.utils.kaldi_io_utils import import_kaldi_io
 from espnet2.utils.sized_dict import SizedDict
 
 
@@ -234,7 +234,6 @@ def label_loader(path):
 def kaldi_loader(
     path, float_dtype=None, max_cache_fd: int = 0, allow_multi_rates=False
 ):
-    kaldi_io = import_kaldi_io()
     loader = kaldi_io.load_scp(path, max_cache_fd=max_cache_fd)
     return AdapterForSoundScpReader(
         loader, float_dtype, allow_multi_rates=allow_multi_rates
