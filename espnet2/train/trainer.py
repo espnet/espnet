@@ -22,6 +22,7 @@ except ImportError:
 from typeguard import typechecked
 
 from espnet2.iterators.abs_iter_factory import AbsIterFactory
+from espnet2.layers.lora import lora_state_dict as _lora_state_dict
 from espnet2.main_funcs.average_nbest_models import average_nbest_models
 from espnet2.main_funcs.calculate_all_attentions import calculate_all_attentions
 from espnet2.schedulers.abs_scheduler import (
@@ -53,11 +54,6 @@ try:
     import fairscale
 except ImportError:
     fairscale = None
-
-try:
-    import loralib as lora
-except Exception:
-    lora = None
 
 try:
     import s3prl
@@ -211,9 +207,7 @@ class Trainer:
         use_adapter = getattr(trainer_options, "use_adapter", False)
         save_strategy = getattr(trainer_options, "save_strategy", "all")
         if use_adapter:
-            if adapter == "lora" and lora is None:
-                raise RuntimeError("Requiring loralib. Do 'pip install loralib'")
-            elif adapter == "houlsby" and s3prl is None:
+            if adapter == "houlsby" and s3prl is None:
                 print("Error: S3PRL is not properly installed.")
                 print("Please install S3PRL: cd ${MAIN_ROOT}/tools && make s3prl.done")
                 raise RuntimeError("Requiring S3PRL. ")
@@ -394,7 +388,7 @@ class Trainer:
                         model_state_dict = model_state_dict
                     elif save_strategy == "adapter_only":
                         if adapter == "lora":
-                            model_state_dict = lora.lora_state_dict(model)
+                            model_state_dict = _lora_state_dict(model)
                         elif adapter == "houlsby":
                             model_state_dict = {
                                 k: v
