@@ -64,7 +64,7 @@ If phoneme labels are available, this step evaluates the quality of pseudo-label
 This step sorts cluster IDs by frequency and saves the resulting dictionary in the `data/` directory.
 
 ### 6. Collect Hubert Statistic
-This stage computes statistics for training. It collects input/output shapes and calculates normalization statistics (mean and variance) over the training and validation sets.
+This stage computes statistics for training. It collects input/output shapes over the training and validation sets. Mean and variance statistics are summarized only when `--feats_normalize global_mvn` is set; the default path passes `--skip_sum_stats` and does not compute them.
 
 ### 7. Train Hubert
 This stage trains the HuBERT model. You can modify training settings using `--train_configs`. Multiple configurations can be provided (one per iteration) using space-separated values, similar to `--features_km`. For default settings, refer to the HuBERT recipe for the LibriSpeech dataset.
@@ -90,23 +90,29 @@ Following the original HuBERT setup, the student model is trained using the same
 ```
 Setting `--train_start_iter 2 --train_stop_iter 2` ensures that only iteration 2 is executed. After generating pseudo-labels, continue with the standard training steps:
 ```sh
-./run.sh --stage 6 --stop-stage 7 --train_start_iter 2 --train_stop_iter 2
+./run.sh --stage 6 --stop-stage 7 --train_start_iter 2 --train_stop_iter 2 \
+    --train_configs "conf/tuning/train_ssl_torchaudiohubert_base_960h_pretrain_it0.yaml \
+                     conf/tuning/train_ssl_torchaudiohubert_base_960h_pretrain_it1.yaml \
+                     conf/tuning/train_ssl_torchaudiohubert_distill_960h_pretrain_it2.yaml"
 ```
-The default DiceHuBERT configuration is available at `librispeech/hubert1/conf/tuning/train_ssl_torchaudiohubert_distill_960h_pretrain_it2.yaml`.
+`--train_configs` is required here: `run.sh` hard-codes the standard iteration-2 config, so without this override the student would be trained with `train_ssl_torchaudiohubert_large_960h_pretrain_it2.yaml` instead of the DiceHuBERT one. The list needs one entry per iteration up to `--train_stop_iter`, so all three are given even though only the last is used. The default DiceHuBERT configuration is available at `librispeech/hubert1/conf/tuning/train_ssl_torchaudiohubert_distill_960h_pretrain_it2.yaml`.
 
 ## Evaluation
 This recipe does not include a built-in evaluation stage. However, the trained HuBERT model is compatible with the SUPERB benchmark.
 
 First, clone the [s3prl repository](https://github.com/s3prl/s3prl/tree/main). Since `s3prl` supports HuBERT models, you can set the upstream model to `espnet_hubert_local` as follows:
 ```sh
-python s3prl/run_downstream.py \
+cd s3prl/s3prl
+python run_downstream.py \
     -m train \
+    -n "${TASK}_espnet_hubert" \
     -d $TASK \
+    -c "downstream/$TASK/config.yaml" \
     -u espnet_hubert_local \
     -k "$CKPT" \
     -g "$CONFIG"
 ```
-where `$CKPT` and `$CONFIG` refer to the HuBERT checkpoint and configuration files located in the `exp/` directory. Running this script trains a downstream model using features extracted from your HuBERT model for a specific task. You can then evaluate the downstream model using the standard `s3prl` pipeline. For more details, please refer to the [SUPERB document](https://github.com/s3prl/s3prl/blob/main/s3prl/downstream/docs/superb.md#asv-automatic-speaker-verification)
+where `$CKPT` and `$CONFIG` refer to the HuBERT checkpoint and configuration files located in the `exp/` directory. The command is run from the `s3prl/s3prl` package directory because `-c` is resolved relative to the working directory. `-n` names the run and is worth setting explicitly: results are written to `result/downstream/$EXPNAME`, which becomes `result/downstream/None` when it is omitted, so separate tasks would otherwise overwrite each other. Running this script trains a downstream model using features extracted from your HuBERT model for a specific task. You can then evaluate the downstream model using the standard `s3prl` pipeline. For more details, please refer to the [SUPERB document](https://github.com/s3prl/s3prl/blob/main/s3prl/downstream/docs/superb.md#asv-automatic-speaker-verification)
 
 
 ## Differences from other recipes
