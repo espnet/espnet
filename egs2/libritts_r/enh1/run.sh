@@ -6,7 +6,7 @@ set -euo pipefail
 . ./db.sh
 
 stage=1
-stop_stage=7
+stop_stage=8
 ngpu=4
 nj=64
 python=python3
@@ -14,6 +14,11 @@ config=conf/train_sidon.yaml
 expdir=exp/sidon_w2v_bert2_layer8
 sidon_vocoder=
 test_sets="test-clean test-other"
+versa_config=conf/versa_enh.yaml
+versa_ref_config=conf/versa_enh_ref_based.yaml
+# Optional clean reference for synthetically degraded inputs.  The placeholder
+# {test_set} is replaced per evaluation set.
+ref_wav_scp=
 
 . utils/parse_options.sh
 
@@ -101,5 +106,68 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
             --noisy_wav_scp data/${test_set}_16k/wav.scp \
             "${text_opt[@]}" \
             --output_dir ${expdir}/score_${test_set}
+    done
+fi
+
+if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
+    ${python} -c "import versa" || {
+        log "VERSA is required for stage 8; run tools/installers/install_versa.sh"
+        exit 1
+    }
+    for test_set in ${test_sets}; do
+        log "Stage 8: VERSA scoring (${test_set})"
+        inf_dir=${expdir}/inference_${test_set}
+        eval_dir=${inf_dir}/scoring/versa_eval
+        pred_scp=${inf_dir}/wav.scp
+        input_scp=data/${test_set}_16k/wav.scp
+        text=data/${test_set}/text
+
+        for required_file in "${pred_scp}" "${input_scp}" "${text}"; do
+            [ -f "${required_file}" ] || {
+                log "Missing VERSA input: ${required_file}"
+                exit 1
+            }
+        done
+        mkdir -p "${eval_dir}"
+        num_pred=$(wc -l < "${pred_scp}")
+        score_nj=$(( nj < num_pred ? nj : num_pred ))
+        [ "${score_nj}" -gt 0 ] || { log "No inference output to score"; exit 1; }
+
+        split_pred=()
+        for n in $(seq "${score_nj}"); do
+            split_pred+=("${eval_dir}/pred.${n}")
+        done
+        utils/split_scp.pl "${pred_scp}" "${split_pred[@]}"
+
+        ${decode_cmd} JOB=1:"${score_nj}" "${eval_dir}/versa.JOB.log" \
+            ${python} -m versa.bin.scorer \
+                --pred "${eval_dir}/pred.JOB" \
+                --gt "${input_scp}" \
+                --text "${text}" \
+                --score_config "${versa_config}" \
+                --cache_folder "${eval_dir}/cache" \
+                --output_file "${eval_dir}/result.JOB.txt" \
+                --io soundfile
+        ${python} pyscripts/utils/aggregate_eval.py \
+            --logdir "${eval_dir}" --scoredir "${eval_dir}" --nj "${score_nj}"
+
+        if [ -n "${ref_wav_scp}" ]; then
+            ref_scp=${ref_wav_scp//\{test_set\}/${test_set}}
+            [ -f "${ref_scp}" ] || { log "Missing clean reference: ${ref_scp}"; exit 1; }
+            ref_dir=${inf_dir}/scoring/versa_ref
+            mkdir -p "${ref_dir}"
+            ${decode_cmd} JOB=1:"${score_nj}" "${ref_dir}/versa.JOB.log" \
+                ${python} -m versa.bin.scorer \
+                    --pred "${eval_dir}/pred.JOB" \
+                    --gt "${ref_scp}" \
+                    --score_config "${versa_ref_config}" \
+                    --cache_folder "${ref_dir}/cache" \
+                    --output_file "${ref_dir}/result.JOB.txt" \
+                    --io soundfile
+            ${python} pyscripts/utils/aggregate_eval.py \
+                --logdir "${ref_dir}" --scoredir "${ref_dir}" --nj "${score_nj}"
+        else
+            log "Skipping reference-based VERSA metrics"
+        fi
     done
 fi

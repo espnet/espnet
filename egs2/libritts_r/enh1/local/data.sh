@@ -3,6 +3,7 @@
 #
 # Required (export from db.sh):
 #   DATASET_LIBRITTS_R  /DB/LibriTTS_R    24kHz
+#   LIBRITTS            /DB/LibriTTS      original test input
 #   DATASET_EARS        /DB/ears          48kHz  p001-p107
 #   DATASET_VCTK_DEMAND /DB/VCTK_DEMAND   48kHz  clean dirs only
 #
@@ -17,7 +18,7 @@ set -euo pipefail
 log() { echo "[data.sh $(date '+%H:%M:%S')] $*"; }
 
 # ── Validate required variables ────────────────────────────────────────────
-for _var in DATASET_LIBRITTS_R DATASET_EARS DATASET_VCTK_DEMAND; do
+for _var in DATASET_LIBRITTS_R DATASET_EARS DATASET_VCTK_DEMAND LIBRITTS; do
     _val="${!_var:-}"
     if [ -z "${_val}" ] || [ ! -d "${_val}" ]; then
         log "ERROR: ${_var} not set or not a directory (value: '${_val:-<unset>}')"
@@ -61,6 +62,35 @@ _collect_libritts_r() {
         gsub(/[^A-Za-z0-9_-]/, "_", spk)
         print "ltr_"spk"_"fname, $0, spk
     }'
+}
+
+# ─────────────────────────────────────────────────────────────────────────
+# _collect_libritts SUBSET [SUBSET ...]
+#   Collect original LibriTTS audio for restoration evaluation.
+_collect_libritts() {
+    for sub in "$@"; do
+        local d="${LIBRITTS}/${sub}"
+        [ -d "${d}" ] || { log "  SKIP LibriTTS/${sub}"; continue; }
+        find "${d}" \( -name "*.wav" -o -name "*.flac" \) | sort
+    done | awk '{
+        n=split($0,a,"/"); fname=a[n]; spk=a[n-2]
+        sub(/\.(wav|flac)$/, "", fname)
+        gsub(/[^A-Za-z0-9_-]/, "_", fname)
+        gsub(/[^A-Za-z0-9_-]/, "_", spk)
+        print "ltr_"spk"_"fname, $0, spk
+    }'
+}
+
+_collect_libritts_text() {
+    for sub in "$@"; do
+        local d="${LIBRITTS}/${sub}"
+        find "${d}" -name "*.trans.tsv" -type f | sort
+    done | while IFS= read -r transcript; do
+        spk=$(basename "$(dirname "$(dirname "${transcript}")")")
+        awk -F '\t' -v spk="${spk}" 'NF >= 2 {
+            print "ltr_"spk"_"$1, $2
+        }' "${transcript}"
+    done | sort -u
 }
 
 # ─────────────────────────────────────────────────────────────────────────
@@ -129,9 +159,11 @@ log "--- LibriTTS-R dev (dev-clean, dev-other) ---"
 _collect_libritts_r dev-clean dev-other > "${tmp}/ltr_dev"
 log "  $(wc -l < "${tmp}/ltr_dev") utts"
 
-log "--- LibriTTS-R test ---"
-_collect_libritts_r test-clean > "${tmp}/ltr_test_clean"
-_collect_libritts_r test-other > "${tmp}/ltr_test_other"
+log "--- Original LibriTTS test ---"
+_collect_libritts test-clean > "${tmp}/ltr_test_clean"
+_collect_libritts test-other > "${tmp}/ltr_test_other"
+_collect_libritts_text test-clean > "${tmp}/ltr_test_clean_text"
+_collect_libritts_text test-other > "${tmp}/ltr_test_other_text"
 
 log "--- EARS train (p001-p096) ---"
 _collect_ears train > "${tmp}/ears_train"
@@ -151,7 +183,9 @@ _collect_vctk_clean clean_testset_wav > "${tmp}/vctk_dev"
 log "  $(wc -l < "${tmp}/vctk_dev") utts"
 
 # Sanity check: none should be empty
-for _f in ltr_train ltr_dev ears_train ears_dev vctk_train vctk_dev; do
+for _f in ltr_train ltr_dev ltr_test_clean ltr_test_other \
+          ltr_test_clean_text ltr_test_other_text \
+          ears_train ears_dev vctk_train vctk_dev; do
     [ -s "${tmp}/${_f}" ] || { log "ERROR: ${_f} is empty — check paths"; exit 1; }
 done
 
@@ -170,6 +204,8 @@ _make_kaldi "${tmp}/fp_dev" data/dev_fp
 
 _make_kaldi "${tmp}/ltr_test_clean" data/test-clean
 _make_kaldi "${tmp}/ltr_test_other" data/test-other
+cp "${tmp}/ltr_test_clean_text" data/test-clean/text
+cp "${tmp}/ltr_test_other_text" data/test-other/text
 
 log "Building data/train_voc  (EARS train + VCTK clean train, 48kHz only) ..."
 cat "${tmp}/ears_train" "${tmp}/vctk_train" \

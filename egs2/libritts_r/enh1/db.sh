@@ -16,6 +16,7 @@ DATASET_HIFICAPTAIN=""               # 36h,  48kHz, ja+en
 DATASET_JSUT=""                      # 10h,  48kHz, ja
 DATASET_BIBLETTS=""                  # 80h,  48kHz, multilingual
 
+# Required for stage 1 test-set preparation and stages 6--8 evaluation.
 # ── Test data: LibriTTS ORIGINAL (inference input, not restored) ──────────
 LIBRITTS=""
 
