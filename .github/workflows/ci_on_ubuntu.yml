@@ -59,6 +59,14 @@ permissions:
 
 env:
   NLTK_DISABLE_IMPORT_SECURITY: "1"
+  # huggingface_hub revalidates every cached file against the Hub before
+  # serving it, so a cache hit does not take the network off the path - it
+  # only guarantees the fallback. Measured against a socket that accepts and
+  # never answers: a warm cache still waits the full etag timeout per file,
+  # 10s by default, and the pytest timeout that failed this week is 50s.
+  # A healthy Hub answers metadata in 0.3s, so 3 leaves better than 3x
+  # headroom and a cold fetch still succeeds - checked at 1, 3 and 5.
+  HF_HUB_ETAG_TIMEOUT: "3"
 
 jobs:
   process_labels:
@@ -227,13 +235,21 @@ jobs:
         with:
           persist-credentials: false
 
-      # Still needed: the image has the s3prl package, but the checkpoint is
-      # fetched at test-collection time and is not baked in.
-      - name: Cache s3prl pretrained checkpoints
+      # Still needed: the image has the s3prl and transformers packages, but the
+      # checkpoints are fetched at test-collection time and are not baked in.
+      # Both are cached because both have taken jobs down - huggingface.co 429s
+      # during a run (72 tests, fixed by passing HF_TOKEN) and, more recently,
+      #   test_hugging_face_transformers_decoder.py::..._causal_lm
+      #   Failed: Timeout >50.0s
+      # fetching hf-internal-testing/tiny-random-LlamaForCausalLM. A cache hit
+      # removes the network from the path entirely.
+      - name: Cache pretrained model downloads
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
-          path: ~/.cache/s3prl
-          key: ${{ runner.os }}-s3prl-v1
+          path: |
+            ~/.cache/s3prl
+            ~/.cache/huggingface/hub
+          key: ${{ runner.os }}-model-cache-v1
 
       # Fast path: everything is in the image already.
       - uses: ./.github/actions/use-prebuilt-environment
@@ -297,13 +313,15 @@ jobs:
         run: |
           source tools/activate_python.sh
           coverage erase
-      - name: Save s3prl checkpoint cache
+      - name: Save pretrained model cache
         if: github.event_name == 'push'
         continue-on-error: true
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
-          path: ~/.cache/s3prl
-          key: ${{ runner.os }}-s3prl-v1
+          path: |
+            ~/.cache/s3prl
+            ~/.cache/huggingface/hub
+          key: ${{ runner.os }}-model-cache-v1
 
   test_utils_espnet2:
     runs-on: ubuntu-latest
@@ -428,13 +446,16 @@ jobs:
         with:
           persist-credentials: false
 
-      # The image has the s3prl package but not the checkpoint, which is still
-      # fetched during test collection.
-      - name: Cache s3prl pretrained checkpoints
+      # The image has the s3prl and transformers packages but not the
+      # checkpoints, which are still fetched during test collection. See the
+      # note on the first of these steps for why both are cached.
+      - name: Cache pretrained model downloads
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
-          path: ~/.cache/s3prl
-          key: ${{ runner.os }}-s3prl-v1
+          path: |
+            ~/.cache/s3prl
+            ~/.cache/huggingface/hub
+          key: ${{ runner.os }}-model-cache-v1
 
       # Fast path. The apt packages install-system-dependencies used to install
       # and the kaldi featbin binaries ci/install_kaldi.sh used to download are
@@ -468,13 +489,15 @@ jobs:
         with:
           flags: test_integration_espnet2
           token: ${{ secrets.CODECOV_TOKEN }}
-      - name: Save s3prl checkpoint cache
+      - name: Save pretrained model cache
         if: github.event_name == 'push'
         continue-on-error: true
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
-          path: ~/.cache/s3prl
-          key: ${{ runner.os }}-s3prl-v1
+          path: |
+            ~/.cache/s3prl
+            ~/.cache/huggingface/hub
+          key: ${{ runner.os }}-model-cache-v1
 
   test_configuration_espnet2:
     runs-on: ubuntu-latest
@@ -504,13 +527,16 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
-      # The image has the s3prl package but not the checkpoints these configs
-      # build frontends from.
-      - name: Cache s3prl pretrained checkpoints
+      # The image has the s3prl and transformers packages but not the
+      # checkpoints these configs build frontends from. See the note on the
+      # first of these steps for why both are cached.
+      - name: Cache pretrained model downloads
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
-          path: ~/.cache/s3prl
-          key: ${{ runner.os }}-s3prl-v1
+          path: |
+            ~/.cache/s3prl
+            ~/.cache/huggingface/hub
+          key: ${{ runner.os }}-model-cache-v1
       - uses: ./.github/actions/use-prebuilt-environment
         if: needs.resolve_ci_image.outputs.available == 'true'
       # Slow path, for a pull request that changes what goes into the image.
@@ -531,13 +557,15 @@ jobs:
         with:
           flags: test_configuration_espnet2
           token: ${{ secrets.CODECOV_TOKEN }}
-      - name: Save s3prl checkpoint cache
+      - name: Save pretrained model cache
         if: github.event_name == 'push'
         continue-on-error: true
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
-          path: ~/.cache/s3prl
-          key: ${{ runner.os }}-s3prl-v1
+          path: |
+            ~/.cache/s3prl
+            ~/.cache/huggingface/hub
+          key: ${{ runner.os }}-model-cache-v1
 
   test_python_espnet3:
     runs-on: ubuntu-latest
