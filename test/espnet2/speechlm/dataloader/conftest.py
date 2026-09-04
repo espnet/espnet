@@ -23,7 +23,7 @@ def pytest_configure():
     # ---- omniio stubs ----
     # Mirror the real omniio layout used by the loaders:
     #   audio_loader -> ``from omniio.interface import audio_read``
-    #   audio_loader -> ``import_kaldi_io()`` -> ``omniio.kaldi``
+    #   audio_loader -> ``from omniio import kaldi as kaldi_io``
     #   text_loader  -> ``from omniio.text.read import text_read_local``
     if "omniio" not in sys.modules:
         omniio = types.ModuleType("omniio")

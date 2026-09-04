@@ -32,8 +32,9 @@ except ImportError:
         )
 
 
+from omniio import kaldi as kaldi_io
+
 from espnet2.text.phoneme_tokenizer import PhonemeTokenizer
-from espnet2.utils.kaldi_io_utils import import_kaldi_io
 
 # To Generate Phonemes from words:
 # from montreal_forced_aligner.g2p.generator import PyniniValidator
@@ -412,9 +413,7 @@ def make_labs(args):
         if (dset / "segments").exists():
             wscp = (dset / "wav.scp").as_posix()
             segments = (dset / "segments").as_posix()
-            with import_kaldi_io().ReadHelper(
-                f"scp:{wscp}", segments=segments
-            ) as reader:
+            with kaldi_io.ReadHelper(f"scp:{wscp}", segments=segments) as reader:
                 for utt, (rate, array) in reader:
                     try:
                         spk = utt2spk[utt]
@@ -435,7 +434,7 @@ def make_labs(args):
                             dst_file.symlink_to(src_file)
                         else:
                             # Create wav file
-                            rate, array = import_kaldi_io().load_mat(src_file)
+                            rate, array = kaldi_io.load_mat(src_file)
                             sf.write(dst_file.as_posix(), array, rate)
                     except KeyError:
                         logging.warning(f"{utt} is in wav.scp file but not in utt2spk")
