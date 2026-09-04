@@ -1,3 +1,5 @@
+# AMP is intentionally disabled here (the it1 base config enables it):
+# use_amp: true caused training instability in this distillation setup.
 use_amp: false
 grad_clip: 5.0
 batch_type: numel

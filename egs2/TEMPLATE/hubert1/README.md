@@ -97,6 +97,8 @@ Setting `--train_start_iter 2 --train_stop_iter 2` ensures that only iteration 2
 ```
 `--train_configs` is required here: `run.sh` hard-codes the standard iteration-2 config, so without this override the student would be trained with `train_ssl_torchaudiohubert_large_960h_pretrain_it2.yaml` instead of the DiceHuBERT one. The list needs one entry per iteration up to `--train_stop_iter`, so all three are given even though only the last is used. The default DiceHuBERT configuration is available at `librispeech/hubert1/conf/tuning/train_ssl_torchaudiohubert_distill_960h_pretrain_it2.yaml`.
 
+Note that this configuration sets `use_amp: false`, unlike the iteration-1 base configuration, which enables automatic mixed precision. AMP is disabled deliberately because it caused training instability in this distillation setup.
+
 ## Evaluation
 This recipe does not include a built-in evaluation stage. However, the trained HuBERT model is compatible with the SUPERB benchmark.
 
