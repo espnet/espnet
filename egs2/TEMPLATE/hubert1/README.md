@@ -10,8 +10,8 @@ This is a template of the hubert1 recipe for ESPnet2, designed for HuBERT-style 
     - [Remove long/short data](#4-remove-longshort-data)
     - [Create pseudo-label for the next iteration](#5-create-pseudo-label-for-the-next-iteration)
         - [Feature Dumping](#feature-dumping)
-        - [Train K-mean Clustering](#train-k-mean-clustering)
-        - [Generate K-mean pseudo-labels](#generate-k-mean-pseudo-labels)
+        - [Train K-means Clustering](#train-k-means-clustering)
+        - [Generate K-means pseudo-labels](#generate-k-means-pseudo-labels)
         - [Evaluate Qualities of pseudo-label](#evaluate-qualities-of-pseudo-label)
         - [Prepare a dictionary for training](#prepare-a-dictionary-for-training)
     - [Collect Hubert Statistic](#6-collect-hubert-statistic)
@@ -32,7 +32,7 @@ This stage handles the data preparation step. It calls `local/data.sh` to downlo
 If `speed_perturb_factors` are defined, the recipe generates time-stretched/compressed versions of the audio. These are stored in a new directory and merged into `data/${train_set}_sp` to increase dataset diversity.
 
 ### 3. Format wav
-The HuBERT recipe supports only `--feat_type raw`. This stage reformats the audio, such as resampling, segmentation, and format conversion, and saves the processed wav.scp to `dump/raw/`.
+The HuBERT recipe supports only `--feats_type raw`. This stage reformats the audio, such as resampling, segmentation, and format conversion, and saves the processed wav.scp to `dump/raw/`.
 
 ### 4. Remove long/short data
 This stage removes utterances that are too short or too long based on `--min_wav_duration` and `--max_wav_duration`.
@@ -51,14 +51,14 @@ Then, we can set as follows:
 ```
 The extracted features are then saved in `dump/hubert_feats/`.
 
-#### Train K-mean Clustering
-This step trains a k-means model on the extracted features. You can set the number of clusters using `n_clusters_lists`, following the same format as `--features_km`. To reduce computation, you can train on a subset of the data using `--portion_km`. The trained model is saved in the `exp/` directory.
+#### Train K-means Clustering
+This step trains a k-means model on the extracted features. You can set the number of clusters using `--n_clusters`, following the same space-separated format as `--features_km` (e.g. `--n_clusters "100 500 500"`). To reduce computation, you can train on a subset of the data using `--portion_km`. The trained model is saved in the `exp/` directory.
 
-#### Generate K-mean pseudo-labels
+#### Generate K-means pseudo-labels
 The trained k-means model assigns a cluster ID to each feature vector. These cluster IDs serve as pseudo-labels. The format of this pseudo-label is `utt_id 12 15 ...` where each number represents the cluster ID of a frame.
 
-#### Evaluate Qualities of pseudo label
-If phoneme labels are available, this step evaluates the quality of pseudo-labels against the phoneme labels.
+#### Evaluate Qualities of pseudo-label
+If phoneme labels are available, this step evaluates the quality of pseudo-labels against the phoneme labels. Point to the alignments with `--alignment_phoneme_dir`, a directory of tsv files in the format `utt_id a1,a2,a3,...`. This step is skipped when the option is not given and the default directory `data/mfa_phoneme_alignment` does not exist.
 
 #### Prepare a dictionary for training
 This step sorts cluster IDs by frequency and saves the resulting dictionary in the `data/` directory.
@@ -78,7 +78,7 @@ This stage uploads the trained model to Hugging Face.
 ## Distillation
 
 ### DiceHubert
-[DiceHuBERT](https://arxiv.org/pdf/2507.02911) is a distillation method that transfers knowledge from a teacher model to a smaller student model. Unlike conventional approaches that use regression losses, DiceHuBERT applies the standard HuBERT cross-entropy loss for distillation. This design makes it compatible with the HuBERT recipe with only minor changes.
+[DiceHuBERT](https://arxiv.org/abs/2507.02911) is a distillation method that transfers knowledge from a teacher model to a smaller student model. Unlike conventional approaches that use regression losses, DiceHuBERT applies the standard HuBERT cross-entropy loss for distillation. This design makes it compatible with the HuBERT recipe with only minor changes.
 
 We start with the standard data preparation:
 ```sh
@@ -88,7 +88,7 @@ Following the original HuBERT setup, the student model is trained using the same
 ```sh
 ./run.sh --stage 5 --stop-stage 5 --train_start_iter 2 --train_stop_iter 2 --download_model simpleoier/simpleoier_librispeech_hubert_iter1_train_ssl_torchaudiohubert_base_960h_pretrain_it1_raw
 ```
-Setting --train_start_iter 2 --train_stop_iter 2 ensures that only iteration 2 is executed. After generating pseudo-labels, continue with the standard training steps:
+Setting `--train_start_iter 2 --train_stop_iter 2` ensures that only iteration 2 is executed. After generating pseudo-labels, continue with the standard training steps:
 ```sh
 ./run.sh --stage 6 --stop-stage 7 --train_start_iter 2 --train_stop_iter 2
 ```
