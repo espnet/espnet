@@ -128,3 +128,32 @@ def test_build_preprocess_fn_nlp_prompt():
     data["text"] = "a a"
     data["prompt"] = "a a"
     preprocess._text_process(data)
+
+
+def test_build_model_rejects_invalid_token_list_type():
+    args = Namespace(
+        token_list=123,
+        model_conf={},
+        input_size=80,
+        frontend=None,
+        frontend_conf={},
+        specaug=None,
+        specaug_conf={},
+        normalize=None,
+        normalize_conf={},
+        preencoder=None,
+        preencoder_conf={},
+        encoder=None,
+        encoder_conf={},
+        postencoder=None,
+        postencoder_conf={},
+        decoder=None,
+        decoder_conf={},
+        joint_net_conf={},
+        ctc_conf={},
+        init=None,
+        model="espnet",
+    )
+
+    with pytest.raises(RuntimeError, match="token_list must be str or list"):
+        ASRTask.build_model(args)

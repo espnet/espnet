@@ -1,3 +1,4 @@
+from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 import pytest
@@ -11,6 +12,7 @@ from lightning.pytorch.strategies import DDPStrategy, SingleDeviceStrategy
 from omegaconf import OmegaConf  # ListConfig,
 from typeguard import TypeCheckError
 
+from espnet3.components.data import data_organizer as data_organizer_module
 from espnet3.components.modeling.lightning_module import ESPnetLightningModule
 from espnet3.components.trainers.trainer import ESPnet3LightningTrainer
 from espnet3.utils.config_utils import load_config_with_defaults
@@ -47,19 +49,30 @@ from espnet3.utils.config_utils import load_config_with_defaults
 # | test_missing_exp_dir_raises  | Raises `TypeCheckError` if `exp_dir` is None                                  | # noqa: E501
 # | test_missing_config_raises  | Raises `TypeCheckError` if `config` is None                                  | # noqa: E501
 
-DUMMY_DATASET_TARGET = "test.espnet3.components.data.test_data_organizer.DummyDataset"
-DUMMY_TRANSFORM = "test.espnet3.components.data.test_data_organizer.DummyTransform"
+DUMMY_DATA_SRC = "dummy/asr"
 
 
 class DummyDataset(torch.utils.data.Dataset):
     def __getitem__(self, idx):
-        return {"x": torch.tensor([idx])}, {"y": torch.tensor([idx])}
+        return {
+            "x": torch.tensor([idx], dtype=torch.float32),
+            "y": torch.tensor([idx], dtype=torch.float32),
+        }
 
     def __len__(self):
         return 4
 
 
 exp_dir = "test_utils/espnet3"
+
+
+@pytest.fixture(autouse=True)
+def patch_dataset_reference(monkeypatch):
+    monkeypatch.setattr(
+        data_organizer_module,
+        "instantiate_dataset_reference",
+        lambda config, recipe_dir=None: DummyDataset(),
+    )
 
 
 @pytest.fixture
@@ -69,20 +82,19 @@ def dummy_dataset_config():
         "train": [
             {
                 "name": "train_dummy",
-                "dataset": {"_target_": DUMMY_DATASET_TARGET},
-                "transform": {"_target_": DUMMY_TRANSFORM},
+                "data_src": DUMMY_DATA_SRC,
             }
         ],
         "valid": [
             {
                 "name": "valid_dummy",
-                "dataset": {"_target_": DUMMY_DATASET_TARGET},
+                "data_src": DUMMY_DATA_SRC,
             }
         ],
         "test": [
             {
                 "name": "test_dummy",
-                "dataset": {"_target_": DUMMY_DATASET_TARGET},
+                "data_src": DUMMY_DATA_SRC,
             }
         ],
     }
@@ -306,6 +318,66 @@ def test_strategy_variants(
     wrapper = ESPnet3LightningTrainer(model=lit, config=trainer_config, exp_dir=exp_dir)
 
     assert isinstance(wrapper.trainer.strategy, expect_type)
+
+
+def test_validate_multi_optimizer_trainer_config_rejects_trainer_clip_val():
+    trainer = ESPnet3LightningTrainer.__new__(ESPnet3LightningTrainer)
+    trainer.model = SimpleNamespace(
+        config=OmegaConf.create({"optimizers": {"main": {"params": "encoder"}}})
+    )
+    trainer.config = OmegaConf.create({"gradient_clip_val": 1.0})
+
+    with pytest.raises(AssertionError, match="gradient_clip_val"):
+        trainer._validate_multi_optimizer_trainer_config()
+
+
+def test_validate_multi_optimizer_trainer_config_rejects_clip_algorithm():
+    trainer = ESPnet3LightningTrainer.__new__(ESPnet3LightningTrainer)
+    trainer.model = SimpleNamespace(
+        config=OmegaConf.create({"optimizers": {"main": {"params": "encoder"}}})
+    )
+    trainer.config = OmegaConf.create({"gradient_clip_algorithm": "value"})
+
+    with pytest.raises(AssertionError, match="gradient_clip_algorithm"):
+        trainer._validate_multi_optimizer_trainer_config()
+
+
+def test_validate_strategy_config_compatibility_rejects_deepspeed_target():
+    trainer = ESPnet3LightningTrainer.__new__(ESPnet3LightningTrainer)
+    trainer.model = SimpleNamespace(
+        config=OmegaConf.create({"optimizers": {"main": {"params": "encoder"}}})
+    )
+    trainer.config = OmegaConf.create(
+        {
+            "strategy": {
+                "_target_": "lightning.pytorch.strategies.DeepSpeedStrategy",
+            }
+        }
+    )
+
+    with pytest.raises(RuntimeError, match="does not support DeepSpeed"):
+        trainer._validate_strategy_config_compatibility()
+
+
+def test_validate_strategy_config_compatibility_rejects_deepspeed_string():
+    trainer = ESPnet3LightningTrainer.__new__(ESPnet3LightningTrainer)
+    trainer.model = SimpleNamespace(
+        config=OmegaConf.create({"optimizers": {"main": {"params": "encoder"}}})
+    )
+    trainer.config = OmegaConf.create({"strategy": "deepspeed_stage_2"})
+
+    with pytest.raises(RuntimeError, match="does not support DeepSpeed"):
+        trainer._validate_strategy_config_compatibility()
+
+
+def test_validate_strategy_compatibility_rejects_deepspeed_strategy():
+    trainer = ESPnet3LightningTrainer.__new__(ESPnet3LightningTrainer)
+    trainer.model = SimpleNamespace(
+        config=OmegaConf.create({"optimizers": {"main": {"params": "encoder"}}})
+    )
+
+    with pytest.raises(RuntimeError, match="does not support DeepSpeed"):
+        trainer._validate_strategy_compatibility("deepspeed_stage_2")
 
 
 @pytest.mark.parametrize(

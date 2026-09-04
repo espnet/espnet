@@ -1,13 +1,18 @@
 import base64
 import io
+import os
 import tempfile
-from typing import Tuple
+from typing import Optional, Tuple
 
 import numpy as np
 import torch
 from typeguard import typechecked
 
 from espnet2.sds.end_to_end.abs_e2e import AbsE2E
+from espnet2.sds.end_to_end.mini_omni.utils.snac_utils import (
+    generate_audio_data,
+    reconscruct_snac,
+)
 
 try:
     from pydub import AudioSegment
@@ -25,6 +30,11 @@ class MiniOmniE2EModel(AbsE2E):
         self,
         device: str = "cuda",
         dtype: str = "float16",
+        stream_stride: int = 4,
+        max_tokens: int = 2048,
+        temperature: float = 0.9,
+        top_k: Optional[int] = 1,
+        top_p: float = 1.0,
     ):
         """A class to initialize and manage the OmniInference client
 
@@ -33,6 +43,24 @@ class MiniOmniE2EModel(AbsE2E):
         Args:
             device (Literal["cuda", "cpu"], optional):
                 The device to run the inference on. Defaults to "cuda".
+            dtype (str, optional):
+                The dtype used to build the warmup input. Defaults to
+                "float16".
+            stream_stride (int, optional):
+                Number of SNAC frames decoded per streamed chunk.
+                Defaults to 4.
+            max_tokens (int, optional):
+                Maximum number of tokens to generate. Defaults to 2048.
+            temperature (float, optional):
+                Sampling temperature. Defaults to 0.9.
+            top_k (int, optional):
+                Number of highest probability tokens to keep. Defaults to 1,
+                which makes decoding greedy and therefore deterministic,
+                regardless of `temperature`. Set to None to disable top-k
+                filtering; this is the only place it can be disabled, since
+                `forward` reads None as "keep the value set here".
+            top_p (float, optional):
+                Nucleus sampling threshold. Defaults to 1.0, which disables it.
 
         Raises:
             ImportError:
@@ -60,9 +88,12 @@ class MiniOmniE2EModel(AbsE2E):
         repo_id = "gpt-omni/mini-omni"
         snapshot_download(repo_id, local_dir="./checkpoint", revision="main")
 
-        self.client = OmniInference("./checkpoint", "cuda")
-        self.stream_stride = 4
-        self.max_tokens = 2048
+        self.client = OmniInference("./checkpoint", device)
+        self.stream_stride = stream_stride
+        self.max_tokens = max_tokens
+        self.temperature = temperature
+        self.top_k = top_k
+        self.top_p = top_p
         self.OUT_CHANNELS = 1
         self.OUT_RATE = 24000
         self.OUT_SAMPLE_WIDTH = 2
@@ -97,20 +128,28 @@ class MiniOmniE2EModel(AbsE2E):
             base64.b64encode(audio_buffer.getvalue()), encoding="utf-8"
         )
         data_buff = base64.b64decode(base64_encoded.encode("utf-8"))
-        stream_stride = 4
-        max_tokens = 2048
 
-        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
-            f.write(data_buff)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            wav_path = os.path.join(tmpdir, "turn.wav")
+            with open(wav_path, "wb") as f:
+                f.write(data_buff)
             audio_generator = self.client.run_AT_batch_stream(
-                f.name, stream_stride, max_tokens
+                wav_path,
+                self.stream_stride,
+                self.max_tokens,
+                temperature=self.temperature,
+                top_k=self.top_k,
+                top_p=self.top_p,
             )
-        _ = [k for k in audio_generator]
+            _ = [k for k in audio_generator]
 
     def forward(
         self,
         array: np.ndarray,
         orig_sr: int,
+        temperature: Optional[float] = None,
+        top_k: Optional[int] = None,
+        top_p: Optional[float] = None,
     ) -> Tuple[str, bytes]:
         """Processes audio input to generate synthesized speech
 
@@ -121,6 +160,19 @@ class MiniOmniE2EModel(AbsE2E):
                 The input audio array to be processed.
             orig_sr (int):
                 The sample rate of the input audio.
+            temperature (float, optional):
+                Overrides the temperature given to the constructor, for this
+                call only. Defaults to None, which keeps the constructor value.
+            top_k (int, optional):
+                Overrides top_k for this call only. Defaults to None, which
+                keeps the constructor value. Pass a value above 1 to draw
+                several different responses for the same input. Note that
+                None cannot disable top-k filtering here, because it means
+                "keep the constructor value"; set top_k=None on the
+                constructor instead.
+            top_p (float, optional):
+                Overrides top_p for this call only. Defaults to None, which
+                keeps the constructor value.
 
         Returns:
             Tuple[str, bytes]:
@@ -141,29 +193,50 @@ class MiniOmniE2EModel(AbsE2E):
             base64.b64encode(audio_buffer.getvalue()), encoding="utf-8"
         )
         data_buff = base64.b64decode(base64_encoded.encode("utf-8"))
-        stream_stride = 4
-        max_tokens = 2048
+        temperature = self.temperature if temperature is None else temperature
+        top_k = self.top_k if top_k is None else top_k
+        top_p = self.top_p if top_p is None else top_p
 
-        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
-            f.write(data_buff)
+        # run_AT_batch_stream is a generator, so it does not open the wav until it
+        # is drained. Both therefore have to happen inside this block, which is
+        # what removes the file afterwards, on the error path as well.
+        with tempfile.TemporaryDirectory() as tmpdir:
+            wav_path = os.path.join(tmpdir, "turn.wav")
+            with open(wav_path, "wb") as f:
+                f.write(data_buff)
             audio_generator = self.client.run_AT_batch_stream(
-                f.name, stream_stride, max_tokens
+                wav_path,
+                self.stream_stride,
+                self.max_tokens,
+                temperature=temperature,
+                top_k=top_k,
+                top_p=top_p,
             )
-        ans = [k for k in audio_generator]
+            # Drain the generator. Its last yielded value is the text response
+            # and its return value is the complete 8-layer token stream, which
+            # we decode in one pass below instead of stitching the per-chunk
+            # audio it yields.
+            ans = []
+            while True:
+                try:
+                    ans.append(next(audio_generator))
+                except StopIteration as e:
+                    token_stream = e.value
+                    break
         text_str = ans[-1]
-        ans = ans[:-1]
-        output_buffer = b""
-        for chunk in ans:
-            audio_segment = AudioSegment(
-                chunk,
-                frame_rate=self.OUT_RATE,
-                sample_width=self.OUT_SAMPLE_WIDTH,
-                channels=self.OUT_CHANNELS,
-            )
-            mp3_io = io.BytesIO()
-            audio_segment.export(mp3_io, format="mp3", bitrate="320k")
-            mp3_bytes = mp3_io.getvalue()
-            mp3_io.close()
-            output_buffer += mp3_bytes
-        audio_output = output_buffer
+
+        audio_segment = AudioSegment(
+            generate_audio_data(
+                reconscruct_snac(token_stream),
+                self.client.snacmodel,
+                self.client.device,
+            ),
+            frame_rate=self.OUT_RATE,
+            sample_width=self.OUT_SAMPLE_WIDTH,
+            channels=self.OUT_CHANNELS,
+        )
+        mp3_io = io.BytesIO()
+        audio_segment.export(mp3_io, format="mp3", bitrate="320k")
+        audio_output = mp3_io.getvalue()
+        mp3_io.close()
         return (text_str, audio_output)

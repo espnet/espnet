@@ -1,4 +1,11 @@
-"""Tests for espnet2/speechlm/model/__init__.py — Model Registry."""
+"""Tests for espnet2/speechlm/model/__init__.py — Model Registry.
+
+``SpeechLMJobTemplate`` transitively imports ``lm/loss.py`` (via
+``lm/parallel.py``), which pulls in ``liger_kernel`` at module load
+time. Liger is not a declared project dep; the whole file is skipped
+(via the sibling ``conftest.py``'s ``collect_ignore_glob``) when
+``liger_kernel.ops.fused_linear_cross_entropy`` is not importable.
+"""
 
 from espnet2.speechlm.model import _all_job_types
 from espnet2.speechlm.model.abs_job import AbsJobTemplate

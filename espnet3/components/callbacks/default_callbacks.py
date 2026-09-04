@@ -15,9 +15,57 @@ from lightning.pytorch.callbacks import (
 )
 from typeguard import typechecked
 
+from espnet2.torch_utils.safe_torch_load import safe_torch_load
 from espnet3.utils.logging_utils import log_component
 
 _LOGGED_CALLBACKS = False
+
+
+def _metric_to_float(value) -> float:
+    """Convert one logged scalar metric value to ``float``.
+
+    Tensor values are detached first. Only scalar values are supported because
+    summary logging expects one numeric value per metric name.
+
+    Args:
+        value: Logged metric value from ``trainer.callback_metrics``.
+
+    Returns:
+        Metric converted to ``float``.
+
+    Raises:
+        AssertionError: If the metric value is not scalar or cannot be
+            converted to ``float``.
+    """
+    original_type = type(value).__name__
+    if hasattr(value, "detach"):
+        value = value.detach()
+    if isinstance(value, torch.Tensor):
+        if value.numel() != 1:
+            raise AssertionError(
+                "MetricsLogger supports only scalar metric values, "
+                f"but got tensor with shape {tuple(value.shape)}."
+            )
+        value = value.cpu().item()
+    try:
+        return float(value)
+    except Exception as exc:
+        raise AssertionError(
+            "MetricsLogger does not support metric values of type "
+            f"{original_type}: {value!r}"
+        ) from exc
+
+
+def _format_metrics(metrics: dict[str, float], time_keys: tuple[str, ...]) -> str:
+    """Format summary metrics with stable ordering for compact log lines.
+
+    Time keys are emitted first, learning-rate keys last, and the rest are sorted
+    alphabetically so train and validation summaries stay easy to scan.
+    """
+    lr_keys = sorted(k for k in metrics if k.startswith("optim") and "_lr" in k)
+    user_keys = sorted(k for k in metrics if k not in time_keys and k not in lr_keys)
+    keys = [k for k in time_keys if k in metrics] + user_keys + lr_keys
+    return ", ".join(f"{k}={metrics[k]:.6g}" for k in keys)
 
 
 @typechecked
@@ -30,7 +78,10 @@ class AverageCheckpointsCallback(Callback):
     Behavior:
         - Loads the state_dict from each of the top-K checkpoints saved by given
           ModelCheckpoint callbacks.
-        - Averages the model parameters (keys starting with `model.`).
+        - Averages every parameter in the checkpoint's model state_dict. If the
+          keys match the current model's own `state_dict()` keys, they are
+          averaged as-is; otherwise a `model.` prefix is stripped from each
+          key before checking again.
         - Ignores or simply accumulates integer-type parameters
           (e.g., BatchNorm's `num_batches_tracked`).
         - Saves the averaged model as a `.pth` file in `output_dir`.
@@ -43,11 +94,15 @@ class AverageCheckpointsCallback(Callback):
             for averaging. Each callback must have `best_k_models` populated.
 
     Notes:
-        - Only keys that start with `model.` are included in the averaging.
         - The final filename will be:
             `{monitor_name}.ave_{K}best.pth`
         - This callback only runs on the global rank 0 process
             (for distributed training).
+
+    Raises:
+        KeyError: If checkpoint keys are inconsistent across the top-K
+            checkpoints, or if the averaged keys (with or without a `model.`
+            prefix) do not match the current model's `state_dict()` keys.
 
     Example:
         >>> avg_ckpt_cb = AverageCheckpointsCallback(
@@ -65,6 +120,7 @@ class AverageCheckpointsCallback(Callback):
     def on_validation_end(self, trainer, pl_module):
         """At the end of validation, average the top-K checkpoints and save."""
         if trainer.is_global_zero:
+            reference_model_keys = set(pl_module.state_dict().keys())
             for ckpt_callback in self.best_ckpt_callbacks:
                 checkpoints = list(ckpt_callback.best_k_models.keys())
                 if not checkpoints:
@@ -73,9 +129,7 @@ class AverageCheckpointsCallback(Callback):
                 avg_state_dict = None
                 reference_keys = None
                 for ckpt_path in checkpoints:
-                    state_dict = torch.load(
-                        ckpt_path, map_location="cpu", weights_only=False
-                    )
+                    state_dict = safe_torch_load(ckpt_path, map_location="cpu")
 
                     # for deepspeed checkpoints
                     if "module" in state_dict:
@@ -114,12 +168,29 @@ class AverageCheckpointsCallback(Callback):
                     else:
                         avg_state_dict[k] = avg_state_dict[k] / len(checkpoints)
 
-                # remove extra prefix in model keys
-                new_avg_state_dict = {
-                    k.removeprefix("model."): v
-                    for k, v in avg_state_dict.items()
-                    if k.startswith("model.")
-                }
+                # `pl_module.state_dict()` (via `ESPnetLightningModule`'s
+                # override, see `espnet3/components/modeling/
+                # lightning_module.py`) reflects the actual model's own key
+                # naming. Use it as ground truth rather than guessing from a
+                # hardcoded `model.` prefix, so a real submodule that happens
+                # to be named `model` is not stripped by mistake.
+                if set(avg_state_dict.keys()) == reference_model_keys:
+                    new_avg_state_dict = avg_state_dict
+                else:
+                    new_avg_state_dict = {
+                        (k.removeprefix("model.") if k.startswith("model.") else k): v
+                        for k, v in avg_state_dict.items()
+                    }
+                    new_keys = set(new_avg_state_dict.keys())
+                    if new_keys != reference_model_keys:
+                        missing_keys = reference_model_keys - new_keys
+                        unexpected_keys = new_keys - reference_model_keys
+                        raise KeyError(
+                            "Averaged checkpoint keys do not match the "
+                            "current model's state_dict keys.\n"
+                            f"Expected: {missing_keys}\n"
+                            f"Got: {unexpected_keys}"
+                        )
 
                 avg_ckpt_path = Path(self.output_dir) / (
                     f"{ckpt_callback.monitor.replace('/', '.')}."
@@ -129,29 +200,42 @@ class AverageCheckpointsCallback(Callback):
 
 
 @typechecked
-class TrainBatchMetricsLogger(Callback):
-    """Log averaged training metrics every N steps as a single line.
+class MetricsLogger(Callback):
+    """Log compact train and validation metric summaries.
 
-    This callback aggregates numeric metrics reported via Lightning's
-    ``trainer.callback_metrics`` during training and emits a compact, human-friendly
-    log line at a fixed interval (``log_every_n_steps``). Metrics are averaged over
-    the interval and the internal buffer is cleared after logging.
+    This callback owns the human-readable metric logging for the default ESPnet3
+    training loop. It handles three reporting points in one place:
 
-    The log line is ordered as:
-      - Time metrics: ``iter_time``, ``forward_time``, ``backward_time``,
-        ``optim_step_time``, ``train_time`` (when available)
-      - User metrics (stats from the model, ``train/`` prefix removed)
-      - Learning rates (``optim{idx}_lr{group}``)
+    - interval-based training batch summaries
+    - end-of-epoch training summaries
+    - end-of-epoch validation summaries
 
-    Example:
-        >>> cb = TrainBatchMetricsLogger(log_every_n_steps=200)
+    The goal is to keep logging responsibility in a single callback instead of
+    splitting train and validation reporting across separate callback classes.
+
+    Args:
+        log_every_n_steps: Number of training steps between batch-summary log lines.
+
+    Returns:
+        None.
+
+    Raises:
+        None.
+
+    Notes:
+        - Training summaries remove the `train/` prefix from logged metrics.
+        - Validation summaries remove the `valid/` prefix from logged metrics.
+        - Validation sanity-check runs are ignored to avoid noisy startup logs.
+
+    Examples:
+        >>> cb = MetricsLogger(log_every_n_steps=200)
         >>> trainer = Trainer(callbacks=[cb, ...])
 
-    Example log output:
-        20epoch:train:4201-4400batch: iter_time=6.212e-05, forward_time=0.145, \
-            backward_time=0.159, optim_step_time=0.015, train_time=0.562, \
-            loss_ctc=69.86, loss_att=32.128, acc=0.868, loss=46.669, \
-            optim0_lr0=2.458e-06
+        Example train log output:
+        `20epoch:train:4201-4400batch: iter_time=6.212e-05, loss=46.669`
+
+        Example validation log output:
+        `epoch_summary:20epoch:valid: valid_time=1.42, acc=0.91, loss=0.83`
     """
 
     def __init__(self, log_every_n_steps: int = 500):
@@ -167,6 +251,7 @@ class TrainBatchMetricsLogger(Callback):
         self._forward_start_time = None
         self._backward_start_time = None
         self._optim_step_start_time = None
+        self._validation_start_time = None
 
     def _reset(self):
         """Clear buffered metrics for the next logging window."""
@@ -232,12 +317,7 @@ class TrainBatchMetricsLogger(Callback):
             key = str(key)
             if key.startswith("train/"):
                 key = key[len("train/") :]
-            if hasattr(value, "detach"):
-                value = value.detach()
-            try:
-                value = float(value)
-            except Exception:
-                continue
+            value = _metric_to_float(value)
             self._sum[key] += value
             self._epoch_sum[key] += value
 
@@ -268,19 +348,16 @@ class TrainBatchMetricsLogger(Callback):
             return
 
         avg = {k: (v / self._count if self._count else v) for k, v in self._sum.items()}
-        time_keys = [
-            "iter_time",
-            "forward_time",
-            "backward_time",
-            "optim_step_time",
-            "train_time",
-        ]
-        lr_keys = sorted(k for k in avg if k.startswith("optim") and "_lr" in k)
-        user_keys = sorted(
-            k for k in avg.keys() if k not in time_keys and k not in lr_keys
+        metrics_str = _format_metrics(
+            avg,
+            (
+                "iter_time",
+                "forward_time",
+                "backward_time",
+                "optim_step_time",
+                "train_time",
+            ),
         )
-        keys = [k for k in time_keys if k in avg] + user_keys + lr_keys
-        metrics_str = ", ".join(f"{k}={avg[k]:.6g}" for k in keys)
         start = self._start_batch or (batch_idx + 1)
         end = batch_idx + 1
         epoch = trainer.current_epoch + 1
@@ -294,23 +371,53 @@ class TrainBatchMetricsLogger(Callback):
                 k: (v / self._epoch_count if self._epoch_count else v)
                 for k, v in self._epoch_sum.items()
             }
-            time_keys = [
-                "iter_time",
-                "forward_time",
-                "backward_time",
-                "optim_step_time",
-                "train_time",
-            ]
-            lr_keys = sorted(k for k in avg if k.startswith("optim") and "_lr" in k)
-            user_keys = sorted(
-                k for k in avg.keys() if k not in time_keys and k not in lr_keys
+            metrics_str = _format_metrics(
+                avg,
+                (
+                    "iter_time",
+                    "forward_time",
+                    "backward_time",
+                    "optim_step_time",
+                    "train_time",
+                ),
             )
-            keys = [k for k in time_keys if k in avg] + user_keys + lr_keys
-            metrics_str = ", ".join(f"{k}={avg[k]:.6g}" for k in keys)
             epoch = trainer.current_epoch + 1
             logging.info("epoch_summary:%depoch:train: %s", epoch, metrics_str)
         self._reset()
         self._reset_epoch()
+
+    def on_validation_epoch_start(self, trainer, pl_module):
+        """Start wall-clock timing for one validation epoch."""
+        if getattr(trainer, "sanity_checking", False):
+            return
+        self._validation_start_time = time.perf_counter()
+
+    def on_validation_epoch_end(self, trainer, pl_module):
+        """Emit one log line with aggregated validation metrics."""
+        if getattr(trainer, "sanity_checking", False):
+            return
+
+        metrics = {}
+        callback_metrics = trainer.callback_metrics or {}
+        for key, value in callback_metrics.items():
+            key = str(key)
+            if key in {"epoch", "step"} or not key.startswith("valid/"):
+                continue
+            metrics[key[len("valid/") :]] = _metric_to_float(value)
+
+        if self._validation_start_time is not None:
+            metrics["valid_time"] = time.perf_counter() - self._validation_start_time
+        self._validation_start_time = None
+
+        if not metrics:
+            return
+
+        epoch = trainer.current_epoch + 1
+        logging.info(
+            "epoch_summary:%depoch:valid: %s",
+            epoch,
+            _format_metrics(metrics, ("valid_time",)),
+        )
 
 
 @typechecked
@@ -330,6 +437,7 @@ def get_default_callbacks(
         - `AverageCheckpointsCallback` to compute and save the average model from top-K
             checkpoints
         - `LearningRateMonitor` to track and log learning rates during training
+        - `MetricsLogger` to emit train and validation summaries
         - `TQDMProgressBar` to show a rich progress bar during training
 
     Args:
@@ -398,7 +506,7 @@ def get_default_callbacks(
         *best_ckpt_callbacks,  # unpack list to add them to the list of callbacks.
         ave_ckpt_callback,
         lr_callback,
-        TrainBatchMetricsLogger(log_every_n_steps=log_interval),
+        MetricsLogger(log_every_n_steps=log_interval),
         progress_bar_callback,
     ]
     global _LOGGED_CALLBACKS

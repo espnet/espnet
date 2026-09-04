@@ -1,25 +1,14 @@
 import pytest
 
-from espnet3.systems.base.inference import _collect_scp_lines, _flatten_results
+from espnet3.systems.base.inference_runner import _materialize_output_value
 
 
-def test_flatten_results_preserves_order():
-    assert _flatten_results([1, [2, 3], 4]) == [1, 2, 3, 4]
-
-
-def test_collect_scp_lines_rejects_list_outputs():
-    results = [
-        {"idx": 0, "hyp": ["h1", "h2"], "ref": "r0"},
-        {"idx": 1, "hyp": ["h3", "h4"], "ref": "r1"},
-    ]
+def test_materialize_output_value_rejects_top_level_lists(tmp_path):
     with pytest.raises(TypeError, match="Top-level list outputs are not supported"):
-        _collect_scp_lines(results, idx_key="idx", hyp_keys="hyp", ref_keys="ref")
-
-
-def test_collect_scp_lines_rejects_mismatched_lists():
-    results = [
-        {"idx": 0, "hyp": ["h1", "h2"], "ref": "r0"},
-        {"idx": 1, "hyp": ["h3"], "ref": "r1"},
-    ]
-    with pytest.raises(TypeError, match="Top-level list outputs are not supported"):
-        _collect_scp_lines(results, idx_key="idx", hyp_keys="hyp", ref_keys="ref")
+        _materialize_output_value(
+            idx_value="utt1",
+            field_key="hyp",
+            value=["h1", "h2"],
+            output_dir=tmp_path,
+            artifact_config=None,
+        )

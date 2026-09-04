@@ -1,11 +1,10 @@
 import logging
 import random
-from contextlib import contextmanager
 from itertools import groupby
 from typing import Dict, List, Optional, Tuple, Union
 
 import torch
-from packaging.version import parse as V
+from torch.amp import autocast
 from torch.nn.utils.rnn import pad_sequence
 from typeguard import typechecked
 
@@ -27,14 +26,6 @@ from espnet2.legacy.nets.pytorch_backend.transformer.label_smoothing_loss import
 )
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
-
-if V(torch.__version__) >= V("1.6.0"):
-    from torch.cuda.amp import autocast
-else:
-    # Nothing to do if torch<1.6.0
-    @contextmanager
-    def autocast(enabled=True):
-        yield
 
 
 class ESPnetSTModel(AbsESPnetModel):
@@ -496,7 +487,7 @@ class ESPnetSTModel(AbsESPnetModel):
             speech: (Batch, Length, ...)
             speech_lengths: (Batch, )
         """
-        with autocast(False):
+        with autocast("cuda", enabled=False):
             # 1. Extract feats
             feats, feats_lengths = self._extract_feats(speech, speech_lengths)
 

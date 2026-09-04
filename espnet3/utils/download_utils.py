@@ -61,9 +61,9 @@ def setup_logger(
 
 
 def _log(logger: Optional[logging.Logger], message: str) -> None:
-    """Log a message using the logger if provided; otherwise print."""
+    """Log a message using the logger if provided; otherwise use module logging."""
     if logger is None:
-        print(message)
+        logging.getLogger(__name__).info(message)
     else:
         logger.info(message)
 
@@ -155,4 +155,8 @@ def extract_targz(
     """
     _log(logger, f"Extracting: {archive_path.name}")
     with tarfile.open(archive_path, "r:gz") as tar:
-        tar.extractall(path=dst_dir)
+        # filter="data" refuses members whose name escapes dst_dir (absolute
+        # paths, "..", links pointing outside). Without it tarfile defaults to
+        # "fully_trusted" on Python < 3.14, so a downloaded archive could write
+        # anywhere the process can reach.
+        tar.extractall(path=dst_dir, filter="data")

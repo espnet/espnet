@@ -1,3 +1,4 @@
+import logging
 import string
 from argparse import ArgumentParser
 from pathlib import Path
@@ -107,6 +108,160 @@ def test_Speech2Text_quantized(asr_config_file, lm_config_file):
         assert isinstance(token[0], str)
         assert isinstance(token_int[0], int)
         assert isinstance(hyp, Hypothesis)
+
+
+@pytest.fixture()
+def asr_config_file_transformer(tmp_path: Path, token_list):
+    # A decoder whose scorers are batch scorers, as required by batch decoding
+    ASRTask.main(
+        cmd=[
+            "--dry_run",
+            "true",
+            "--output_dir",
+            str(tmp_path / "asr_transformer"),
+            "--token_list",
+            str(token_list),
+            "--token_type",
+            "char",
+            "--decoder",
+            "transformer",
+        ]
+    )
+    return tmp_path / "asr_transformer" / "config.yaml"
+
+
+@pytest.mark.execution_timeout(60)
+@pytest.mark.parametrize("ctc_weight", [0.0, 0.3])
+def test_Speech2Text_batch_decode(
+    asr_config_file_transformer, lm_config_file, ctc_weight
+):
+    """`batch_decode` must reproduce the per-utterance results."""
+    kwargs = dict(
+        asr_train_config=asr_config_file_transformer,
+        lm_train_config=lm_config_file,
+        beam_size=2,
+        ctc_weight=ctc_weight,
+        lm_weight=0.3,
+    )
+    single = Speech2Text(batch_size=1, **kwargs)
+    batched = Speech2Text(batch_size=3, **kwargs)
+    # both are randomly initialized, so make them the same model
+    batched.asr_model.load_state_dict(single.asr_model.state_dict())
+    batched.beam_search.nn_dict.load_state_dict(single.beam_search.nn_dict.state_dict())
+
+    lengths = [16000, 12000, 20000]
+    speeches = [np.random.randn(n) for n in lengths]
+
+    # the encoder sees one utterance at a time in both cases, so that the
+    # comparison isolates the beam search from feature-extraction padding
+    expected = [single(s) for s in speeches]
+    encs = []
+    for n, sp in zip(lengths, speeches):
+        enc, enc_olens = batched.asr_model.encode(
+            speech=torch.tensor(sp).float().unsqueeze(0),
+            speech_lengths=torch.tensor([n]),
+        )
+        encs.append(enc[0, : enc_olens[0]])
+
+    padded = torch.zeros(len(encs), max(e.size(0) for e in encs), encs[0].size(1))
+    for i, e in enumerate(encs):
+        padded[i, : e.size(0)] = e
+    enc_lengths = torch.tensor([e.size(0) for e in encs])
+    nbest_hyps = batched.beam_search(
+        x=padded,
+        x_lengths=enc_lengths,
+        maxlenratio=batched.maxlenratio,
+        minlenratio=batched.minlenratio,
+    )
+    actual = [batched._hyps_to_results(hyps) for hyps in nbest_hyps]
+
+    assert len(actual) == len(speeches)
+    for exp, act in zip(expected, actual):
+        assert [e[1] for e in exp] == [a[1] for a in act]
+        np.testing.assert_allclose(
+            float(exp[0][3].score), float(act[0][3].score), rtol=1e-4
+        )
+
+
+@pytest.mark.execution_timeout(60)
+def test_Speech2Text_batch_decode_end_to_end(asr_config_file_transformer):
+    """`batch_decode` accepts a collated batch and restores the input order."""
+    batched = Speech2Text(
+        asr_train_config=asr_config_file_transformer, beam_size=2, batch_size=3
+    )
+    lengths = [16000, 12000, 20000]
+    padded = torch.zeros(len(lengths), max(lengths))
+    for i, n in enumerate(lengths):
+        padded[i, :n] = torch.randn(n)
+
+    results = batched.batch_decode(padded, torch.tensor(lengths))
+    assert len(results) == len(lengths)
+    for res in results:
+        text, token, token_int, hyp = res[0]
+        assert isinstance(text, str)
+        assert isinstance(hyp, Hypothesis)
+
+    # decoding the same utterances in a different order gives the same results
+    perm = [2, 0, 1]
+    shuffled = batched.batch_decode(
+        padded[perm], torch.tensor([lengths[i] for i in perm])
+    )
+    for j, i in enumerate(perm):
+        assert [r[1] for r in shuffled[j]] == [r[1] for r in results[i]]
+        # compare scores too, so that a wrong permutation is still caught when
+        # two utterances happen to decode to the same tokens
+        np.testing.assert_allclose(
+            [float(r[3].score) for r in shuffled[j]],
+            [float(r[3].score) for r in results[i]],
+            rtol=1e-5,
+        )
+
+
+def test_Speech2Text_batch_decode_rejects_non_batch_scorer(
+    asr_config_file, lm_config_file
+):
+    """The RNN decoder is not a batch scorer, so batching must be refused."""
+    with pytest.raises(NotImplementedError):
+        Speech2Text(
+            asr_train_config=asr_config_file,
+            lm_train_config=lm_config_file,
+            beam_size=1,
+            batch_size=2,
+        )
+
+
+@pytest.mark.execution_timeout(60)
+def test_Speech2Text_batch_decode_rtf_log_contract(asr_config_file_transformer, caplog):
+    """Keep the log lines `calculate_rtf.py` parses one-per-utterance.
+
+    `pyscripts/utils/calculate_rtf.py` reads a decoding start time from every
+    `INFO: speech length: <int>` line and an end time from every
+    `INFO: ... best hypo` line, and asserts the two counts match. Logging one
+    line for the whole batch, or pluralizing the wording, breaks the recipe at
+    stage 12 without breaking any decoding result.
+    """
+    batched = Speech2Text(
+        asr_train_config=asr_config_file_transformer, beam_size=2, batch_size=3
+    )
+    lengths = [16000, 12000, 20000]
+    padded = torch.zeros(len(lengths), max(lengths))
+    for i, n in enumerate(lengths):
+        padded[i, :n] = torch.randn(n)
+
+    with caplog.at_level(logging.INFO):
+        batched.batch_decode(padded, torch.tensor(lengths))
+
+    # calculate_rtf.py matches "INFO: " immediately followed by the marker,
+    # against the formatted line, so reproduce that exactly. A prefix inserted
+    # between the level and the marker is enough to break it.
+    lines = [f"{r.levelname}: {r.getMessage()}" for r in caplog.records]
+    starts = [ln for ln in lines if "INFO: speech length" in ln]
+    ends = [ln for ln in lines if "INFO: best hypo" in ln]
+    assert len(starts) == len(lengths), starts
+    assert len(ends) == len(lengths), [ln for ln in lines if "best hypo" in ln]
+    # each start line must parse the way calculate_rtf.py parses it
+    for line in starts:
+        int(line.split("speech length: ")[1])
 
 
 @pytest.fixture()
@@ -247,13 +402,14 @@ def test_EnhS2T_Speech2Text(enh_asr_config_file, lm_config_file):
 
 
 @pytest.fixture()
-def token_list_hugging_face(tmp_path: Path):
+def token_list_hugging_face(tmp_path: Path, request):
+    max_tokens = request.param if hasattr(request, "param") else 250023
     with (tmp_path / "tokens_hugging_face.txt").open("w") as f:
         f.write("<s>\n")
         f.write("<pad>\n")
         f.write("</s>\n")
         f.write("<unk>\n")
-        for c in range(250023):
+        for c in range(max_tokens):
             f.write(f"{c}\n")
     return tmp_path / "tokens_hugging_face.txt"
 
@@ -304,6 +460,7 @@ def token_list_whisper_lang(tmp_path: Path, token_list_whisper_lang_add):
         "hf-internal-testing/tiny-random-MBartModel",
     ],
 )
+@pytest.mark.parametrize("token_list_hugging_face", [250023], indirect=True)
 @pytest.mark.execution_timeout(30)
 def test_Speech2Text_hugging_face(
     asr_config_file, token_list_hugging_face, model_name_or_path
@@ -352,6 +509,7 @@ def test_Speech2Text_hugging_face(
 )
 @pytest.mark.parametrize("prefix", ["prefix", ""])
 @pytest.mark.parametrize("postfix", ["postfix", ""])
+@pytest.mark.parametrize("token_list_hugging_face", [1020], indirect=True)
 @pytest.mark.execution_timeout(60)
 def test_Speech2Text_hugging_face_causal_lm(
     asr_config_file, token_list_hugging_face, model_name_or_path, prefix, postfix

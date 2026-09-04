@@ -1,6 +1,8 @@
 from pathlib import Path
 from unittest import mock
 
+import pytest
+
 from espnet3.utils import download_utils
 
 
@@ -44,17 +46,17 @@ def test_download_url_invokes_urlretrieve(monkeypatch, tmp_path: Path):
     assert logger.info.call_count >= 2  # start and completed
 
 
-def test_download_url_accepts_none_logger(monkeypatch, tmp_path: Path, capsys):
+def test_download_url_accepts_none_logger(monkeypatch, tmp_path: Path, caplog):
     def fake_urlretrieve(url, filename, reporthook):
         reporthook(1, 1, 1)
 
     monkeypatch.setattr(download_utils.urllib.request, "urlretrieve", fake_urlretrieve)
-    download_utils.download_url(
-        "http://example.com/file", tmp_path / "file", logger=None
-    )
-    out = capsys.readouterr().out
-    assert "Start download" in out
-    assert "Download completed" in out
+    with caplog.at_level("INFO"):
+        download_utils.download_url(
+            "http://example.com/file", tmp_path / "file", logger=None
+        )
+    assert "Start download" in caplog.text
+    assert "Download completed" in caplog.text
 
 
 def test_extract_targz(monkeypatch, tmp_path: Path):
@@ -70,8 +72,9 @@ def test_extract_targz(monkeypatch, tmp_path: Path):
         def __exit__(self, exc_type, exc, tb):
             opened["exit"] = True
 
-        def extractall(self, path):
+        def extractall(self, path, filter=None):
             opened["path"] = path
+            opened["filter"] = filter
 
     def fake_open(path, mode):
         opened["path_arg"] = path
@@ -85,9 +88,11 @@ def test_extract_targz(monkeypatch, tmp_path: Path):
 
     assert opened["mode"] == "r:gz"
     assert opened["path"] == tmp_path / "dst"
+    # Anything but "data" lets a crafted archive write outside dst.
+    assert opened["filter"] == "data"
 
 
-def test_extract_targz_accepts_none_logger(monkeypatch, tmp_path: Path, capsys):
+def test_extract_targz_accepts_none_logger(monkeypatch, tmp_path: Path, caplog):
     archive = tmp_path / "dummy.tar.gz"
 
     class DummyTar:
@@ -97,12 +102,37 @@ def test_extract_targz_accepts_none_logger(monkeypatch, tmp_path: Path, capsys):
         def __exit__(self, exc_type, exc, tb):
             pass
 
-        def extractall(self, path):
+        def extractall(self, path, filter=None):
             pass
 
     monkeypatch.setattr(
         download_utils.tarfile, "open", lambda *_args, **_kwargs: DummyTar()
     )
-    download_utils.extract_targz(archive, tmp_path, logger=None)
-    out = capsys.readouterr().out
-    assert "Extracting" in out
+    with caplog.at_level("INFO"):
+        download_utils.extract_targz(archive, tmp_path, logger=None)
+    assert "Extracting" in caplog.text
+
+
+def test_extract_targz_refuses_traversal(tmp_path: Path):
+    """A member escaping dst_dir must not be written.
+
+    The other extract_targz tests stub tarfile out entirely, so this is the
+    only one that drives real extraction.
+    """
+    import io
+    import tarfile
+
+    archive = tmp_path / "evil.tar.gz"
+    with tarfile.open(archive, "w:gz") as tf:
+        payload = b"PWNED"
+        info = tarfile.TarInfo("../../escaped.txt")
+        info.size = len(payload)
+        tf.addfile(info, io.BytesIO(payload))
+
+    dst = tmp_path / "deep" / "dst"
+    dst.mkdir(parents=True)
+
+    with pytest.raises(tarfile.TarError):
+        download_utils.extract_targz(archive, dst, logger=None)
+    assert not (tmp_path / "escaped.txt").exists()
+    assert not (tmp_path / "deep" / "escaped.txt").exists()

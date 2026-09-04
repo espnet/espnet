@@ -9,6 +9,9 @@ fi
 unames="$(uname -s)"
 unamem="$(uname -m)"
 
+# shellcheck source=tools/installers/download_with_retry.sh
+. "$(dirname "$0")"/download_with_retry.sh
+
 dirname=ffmpeg-release
 rm -rf ${dirname}
 
@@ -18,15 +21,47 @@ if [ -x "$(command -v ffmpeg)" ]; then
 fi
 
 if [[ ${unames} =~ Linux ]]; then
+    # Try system package manager first to avoid hitting rate-limited download servers
+    # (especially important in CI where many jobs may run concurrently)
+    if command -v apt-get > /dev/null 2>&1; then
+        echo "Trying to install ffmpeg via apt-get..."
+        if [ "$(id -u)" = "0" ]; then
+            apt_install_cmd="apt-get update -qq && apt-get install -qq -y ffmpeg"
+        elif command -v sudo > /dev/null 2>&1; then
+            apt_install_cmd="sudo -n apt-get update -qq && sudo -n apt-get install -qq -y ffmpeg"
+        else
+            apt_install_cmd=""
+            echo "Neither root nor sudo is available; falling back to direct download..."
+        fi
+
+        if [ -n "${apt_install_cmd}" ] && eval "${apt_install_cmd}"; then
+            if command -v ffmpeg > /dev/null 2>&1; then
+                echo "ffmpeg installed successfully via apt-get"
+                exit 0
+            fi
+        fi
+        echo "apt-based ffmpeg setup failed or ffmpeg was not found after install, falling back to download..."
+    fi
+
     if [ "${unamem}" = x86_64 ]; then
         unamem=amd64
     fi
     ffmpeg_name="ffmpeg-release-${unamem}-static.tar.xz"
     PRIMARY_URL="https://johnvansickle.com/ffmpeg/releases/${ffmpeg_name}"
     BACKUP_URL="https://huggingface.co/espnet/ci_tools/resolve/main/${ffmpeg_name}"
-    if ! wget --no-check-certificate --tries=3 --trust-server-names -O "${ffmpeg_name}" "${PRIMARY_URL}"; then
+
+
+    if ! download_with_retry "${PRIMARY_URL}" "${ffmpeg_name}" \
+            --no-check-certificate; then
         echo "Primary download failed, trying backup URL..."
-        if ! wget --no-check-certificate --tries=3 -O "${ffmpeg_name}" "${BACKUP_URL}"; then
+        wget_args=()
+        if [ -n "${HF_TOKEN:-}" ]; then
+            wget_args+=("--header=Authorization: Bearer ${HF_TOKEN}")
+        else
+            echo "HF_TOKEN is not set, backup download may fail if the file has many downloads"
+        fi
+        if ! download_with_retry "${BACKUP_URL}" "${ffmpeg_name}" \
+                --no-check-certificate "${wget_args[@]}"; then
             echo "Both primary and backup downloads failed"
             exit 1
         fi

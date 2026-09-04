@@ -6,9 +6,12 @@ from pathlib import Path
 from typing import Optional, Tuple
 
 import humanfriendly
-import kaldiio
 import numpy as np
-import resampy
+
+try:
+    import resampy
+except ImportError:
+    resampy = None
 import soundfile
 from tqdm import tqdm
 from typeguard import typechecked
@@ -17,6 +20,7 @@ from espnet2.fileio.read_text import read_2columns_text
 from espnet2.fileio.sound_scp import SoundScpWriter, soundfile_read
 from espnet2.fileio.vad_scp import VADScpReader
 from espnet2.legacy.utils.cli_utils import get_commandline_args
+from espnet2.utils.kaldiio_utils import import_kaldiio
 from espnet2.utils.types import str2bool
 
 
@@ -114,7 +118,7 @@ class SegmentsExtractor:
                             "Not supporting multi_columns wav.scp for inputs by pipe"
                         )
                     # Streaming input e.g. cat a.wav |
-                    with kaldiio.open_like_kaldi(wavpath, "rb") as f:
+                    with import_kaldiio().open_like_kaldi(wavpath, "rb") as f:
                         with BytesIO(f.read()) as g:
                             array, rate = soundfile.read(g)
 
@@ -265,7 +269,7 @@ def main():
                                 " pipe"
                             )
                         # Streaming input e.g. cat a.wav |
-                        with kaldiio.open_like_kaldi(wavpath, "rb") as f:
+                        with import_kaldiio().open_like_kaldi(wavpath, "rb") as f:
                             with BytesIO(f.read()) as g:
                                 wave, rate = soundfile.read(g)
                         subtypes = None
@@ -292,6 +296,13 @@ def main():
             save_asis = True
             if args.fs is not None and args.fs != rate:
                 # FIXME(kamo): To use sox?
+                if resampy is None:
+                    raise RuntimeError(
+                        "resampy is required to resample audio when --fs differs "
+                        "from the input sample rate. "
+                        "Please install ESPnet recipe deps: "
+                        "pip install 'espnet[recipe]' (or 'espnet[all]')"
+                    )
                 wave = resampy.resample(wave, rate, args.fs, axis=0)
                 rate = args.fs
                 save_asis = False
@@ -360,7 +371,7 @@ def main():
 
                 # NOTE(kamo): Using extended ark format style here.
                 # This format is incompatible with Kaldi
-                kaldiio.save_ark(
+                import_kaldiio().save_ark(
                     fark,
                     {uttid: (wave, rate)},
                     scp=fscp_out,

@@ -55,6 +55,7 @@ from espnet2.schedulers.warmup_step_lr import WarmupStepLR
 from espnet2.torch_utils.load_pretrained_model import load_pretrained_model
 from espnet2.torch_utils.model_summary import model_summary
 from espnet2.torch_utils.pytorch_version import pytorch_cudnn_version
+from espnet2.torch_utils.safe_torch_load import UnsafeLoadRefusedError, safe_torch_load
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.train.class_choices import ClassChoices
@@ -96,11 +97,7 @@ try:
 except Exception:
     wandb = None
 
-if V(torch.__version__) >= V("1.5.0"):
-    from torch.multiprocessing.spawn import ProcessContext
-else:
-    from torch.multiprocessing.spawn import SpawnContext as ProcessContext
-
+from torch.multiprocessing.spawn import ProcessContext
 
 optim_classes = dict(
     adam=torch.optim.Adam,
@@ -113,12 +110,8 @@ optim_classes = dict(
     lbfgs=torch.optim.LBFGS,
     rmsprop=torch.optim.RMSprop,
     rprop=torch.optim.Rprop,
+    radam=torch.optim.RAdam,
 )
-if V(torch.__version__) >= V("1.10.0"):
-    # From 1.10.0, RAdam is officially supported
-    optim_classes.update(
-        radam=torch.optim.RAdam,
-    )
 try:
     import torch_optimizer
 
@@ -2093,7 +2086,11 @@ class AbsTask(ABC):
                 seed=args.seed,
                 num_iters_per_epoch=iter_options.num_iters_per_epoch,
                 sampler_args=sampler_args,
-                batch_type=iter_options.batch_type,
+                batch_type=(
+                    iter_options.batch_type
+                    if iter_options.batch_type != "folded"
+                    else "catbel"
+                ),
                 shuffle=iter_options.train,
                 num_workers=args.num_workers,
                 collate_fn=iter_options.collate_fn,
@@ -2504,22 +2501,30 @@ class AbsTask(ABC):
                 #   in PyTorch<=1.4
                 device = f"cuda:{torch.cuda.current_device()}"
             try:
-                state_dict = torch.load(
+                state_dict = safe_torch_load(
                     model_file,
                     map_location="cpu" if device == "mps" else device,
-                    weights_only=False,
                 )
                 # for deepspeed checkpoints
                 if "module" in state_dict:
                     state_dict = state_dict["module"]
+                # for lightning checkpoints
+                if "state_dict" in state_dict:
+                    state_dict = state_dict["state_dict"]
+
                 model.load_state_dict(
                     state_dict,
                     strict=False,
                 )
+            except UnsafeLoadRefusedError:
+                raise
             except RuntimeError:
                 # Note(simpleoier): the following part is to be compatible with
-                #   pretrained model using earlier versions before `0a625088`
-                state_dict = torch.load(
+                #   pretrained model using earlier versions before `0a625088`.
+                #   This RuntimeError is raised by model.load_state_dict above
+                #   (due to key mismatches), not by safe_torch_load.  We reload
+                #   the file here to apply legacy key renaming before retrying.
+                state_dict = safe_torch_load(
                     model_file, map_location="cpu" if device == "mps" else device
                 )
                 if any(["frontend.upstream.model" in k for k in state_dict.keys()]):

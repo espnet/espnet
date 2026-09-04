@@ -6,19 +6,70 @@ on:
       - master
       - espnet3
   pull_request:
+    # ready_for_review is required: jobs are skipped on draft PRs, so the
+    # gate below must get a fresh run once the PR leaves draft.
+    types: [opened, synchronize, reopened, ready_for_review]
     branches:
       - master
       - espnet3
+
+# One run per pull request, and one per branch otherwise: a newer run cancels
+# the superseded one.
+#
+# Non-PR events used to key the group on github.sha, so that every push to
+# master got its own group and nothing could cancel a master verification. That
+# was an overcorrection. Merging six PRs in an afternoon left five full master
+# runs alive at once - about 330 queued jobs against a 60-runner cap - which
+# starved the pull request runs that actually gate merges, mine and everyone
+# else's.
+#
+# master is linear, so the newest run verifies a superset of what the older ones
+# were verifying, and cancelling them loses coverage of nothing. What it does
+# lose is per-commit attribution: if a batch of merges goes red together, the
+# surviving run says the batch is broken but not which merge did it. Re-run the
+# workflow at the specific commit to find out - cheaper than paying for five
+# parallel runs on every busy day.
+#
+# Note this is not the stale-merge problem: that was a pull request's own CI
+# having run against an old master, which is about when a PR is merged, not
+# about master verifications cancelling each other.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+# Without this the default applies, and on this repository the default is
+# almost entirely write - a job's GITHUB_TOKEN reports Contents: write,
+# Actions: write, Issues: write, PullRequests: write, Packages: write and more.
+# Every job here checks out a pull request's code and runs it, alongside
+# third-party actions, so none of them should hold a token that can write to
+# the repository.
+#
+# What is actually needed:
+#   contents       checkout
+#   packages       pulling the prebuilt CI image from GHCR
+#   pull-requests  joerick/pr-labels-action in process_labels
+#
+# id-token is deliberately absent, because it already is: the permission dump
+# in a current run does not list it and codecov uploads work regardless, so its
+# tokenless path here does not depend on OIDC.
+permissions:
+  contents: read
+  packages: read
+  pull-requests: read
+
+env:
+  NLTK_DISABLE_IMPORT_SECURITY: "1"
 
 jobs:
   process_labels:
     runs-on: ubuntu-latest
     outputs:
       is_docker: ${{ steps.step1.outputs.is_docker }}
+      test_upload: ${{ steps.step2.outputs.test_upload }}
     steps:
       - name: Get PR labels
         id: pr-labels
-        uses: joerick/pr-labels-action@v1.0.9
+        uses: joerick/pr-labels-action@0543b277721e852d821c6738d449f2f4dea03d5f # v1.0.9
       - name: Check whether PR is related to only docker
         id: step1
         run: |
@@ -26,6 +77,14 @@ jobs:
             echo "is_docker=true" >> "$GITHUB_OUTPUT"
           else
             echo "is_docker=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Check whether PR requests publication upload test
+        id: step2
+        run: |
+          if [ -n "$GITHUB_PR_LABEL_TEST_UPLOAD" ]; then
+            echo "test_upload=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "test_upload=false" >> "$GITHUB_OUTPUT"
           fi
 
   # NOTE (Nelson): The setup_environment job is currently disabled to avoid the cache CI issues. It can be re-enabled when needed.
@@ -38,18 +97,17 @@ jobs:
   #   strategy:
   #     max-parallel: 20
   #     matrix:
-  #       python-version: ["3.10", "3.12"]
-  #       pytorch-version: [2.5.1, 2.7.1, 2.8.0, 2.9.1]
-  #       chainer-version: [6.0.0]
+  #       python-version: ["3.12", "3.13"]
+  #       pytorch-version: [2.9.1, 2.10.0, 2.11.0]
   #       use-conda: [false]
   #   steps:
-  #     - uses: actions/checkout@master
-  #     - uses: actions/cache@v5
+  #     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+  #     - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
   #       with:
   #         path: ~/.cache/pip
   #         key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
   #     # - name: Cache tools
-  #     #   uses: actions/cache@v5
+  #     #   uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
   #     #   with:
   #     #     path: tools
   #     #     key: ${{ runner.os }}-tools-${{ github.run_id }}-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
@@ -59,79 +117,248 @@ jobs:
   #         os-version: ubuntu
   #         python-version: ${{ matrix.python-version }}
   #         pytorch-version: ${{ matrix.pytorch-version }}
-  #         chainer-version: ${{ matrix.chainer-version }}
   #         use-conda: ${{ matrix.use-conda }}
   #     - name: Install Kaldi
   #       run: ./ci/install_kaldi.sh
 
-  test_python_espnet2:
+  # Resolves the tag of the prebuilt image once, for every job that uses it.
+  # Same file list, same order as build_ci_image.yml: computing it rather than
+  # hardcoding is what keeps the two from drifting apart.
+  resolve_ci_image:
     runs-on: ubuntu-latest
     needs: process_labels
     if: |
       github.event.pull_request.draft == false
-    strategy:
-      max-parallel: 20
-      matrix:
-        python-version: ["3.10", "3.12"]
-        pytorch-version: [2.5.1, 2.7.1, 2.8.0, 2.9.1]
-        use-conda: [false]
-        chainer-version: [6.0.0]
+    outputs:
+      hash: ${{ steps.hash.outputs.hash }}
+      available: ${{ steps.probe.outputs.available }}
+      matrix: ${{ steps.variants.outputs.matrix }}
+      integration_matrix: ${{ steps.integration.outputs.matrix }}
     steps:
-      - uses: actions/checkout@master
-      - uses: actions/cache@v5
+      # actions/checkout defaults persist-credentials to true, which writes
+      # GITHUB_TOKEN into .git/config. Every job here then runs checked-out code,
+      # so that token is readable by whatever a pull request puts in the tree.
+      # Nothing in this repository needs it: there is no git push, commit, tag or
+      # submodule anywhere in .github/, and peaceiris/actions-gh-pages takes its
+      # github_token as an explicit input rather than reading .git/config.
+      #
+      # claude.yml is the one exemption and keeps the default: its job holds
+      # contents: write precisely so the action can commit. That is the rule
+      # ci/check_ci_image_config.py enforces - persist-credentials: false unless
+      # the job is allowed to write contents.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
+          persist-credentials: false
+      # The list below is duplicated in build_ci_image.yml and the two must
+      # match exactly, or the image is published under one tag and requested
+      # under another. Checked rather than trusted.
+      - run: python3 ci/check_ci_image_config.py
+      # Hand the grid to the jobs that run all of it, so the versions are
+      # written down once rather than repeated per job.
+      - id: variants
+        run: echo "matrix=$(python3 ci/image_variants.py matrix)" >> "$GITHUB_OUTPUT"
+      # The integration grid is the same versions crossed with the recipe tasks.
+      # The task list lives here because a matrix cannot mix an expression with
+      # literal keys, and putting it here is what keeps the versions themselves
+      # from being written out a second time.
+      - id: integration
+        run: |
+          tasks=asr,asr_transducer,asr_misc,tts,asr2,enh,ssl,st,spk,lid,s2t,s2st,lm,codec
+          echo "matrix=$(python3 ci/image_variants.py matrix "config-task=${tasks}")" >> "$GITHUB_OUTPUT"
+      - id: hash
+        run: |
+          full=${{ hashFiles('ci/install.sh', 'ci/install_kaldi.sh', 'ci/no_redistribute.txt', 'docker/ci.dockerfile', 'pyproject.toml', 'tools/Makefile', 'tools/installers/**') }}
+          echo "hash=${full:0:12}" >> "$GITHUB_OUTPUT"
+
+      # A pull request that changes any of those files resolves to a tag that
+      # is only published once it merges, so it cannot be tested against the
+      # image it produces. Ask the registry rather than assume, and let the
+      # jobs fall back to building the environment when the answer is no.
+      #
+      # All six are checked together: those files decide every variant, so they
+      # appear and disappear as a set. Being conservative here costs a slow run
+      # of a rare pull request; being wrong costs `manifest unknown` on every
+      # containerised job.
+      - id: probe
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" \
+            | docker login ghcr.io -u "${{ github.actor }}" --password-stdin >/dev/null
+          # The grid comes from ci/image_variants.json, the same file
+          # build_ci_image.yml builds from, so adding a pytorch version there
+          # is enough - nothing here needs editing to match.
+          available=true
+          while read -r py th; do
+            tag="ghcr.io/${{ github.repository }}-ci:py${py}-th${th}-${{ steps.hash.outputs.hash }}"
+            if docker manifest inspect "$tag" >/dev/null 2>&1; then
+              echo "found   $tag"
+            else
+              echo "MISSING $tag"
+              available=false
+            fi
+          done < <(python3 ci/image_variants.py pairs)
+          echo "available=${available}" >> "$GITHUB_OUTPUT"
+          if [ "$available" = "false" ]; then
+            echo "::notice::Prebuilt image not published for this hash; jobs will build their environment instead. This is expected on a pull request that changes ci/install.sh, pyproject.toml, tools/, docker/ci.dockerfile or ci/no_redistribute.txt."
+          fi
+
+  test_python_espnet2:
+    runs-on: ubuntu-latest
+    needs: [process_labels, resolve_ci_image]
+    if: |
+      github.event.pull_request.draft == false
+    strategy:
+      fail-fast: false
+      max-parallel: 20
+      matrix: ${{ fromJSON(needs.resolve_ci_image.outputs.matrix) }}
+    # Everything Make environment used to build is already here. Measured on
+    # #6566: 81s to pull against 510s to build, and the whole job 4.2 min
+    # shorter. The package is private; the token is enough, including from a
+    # fork, which was verified there too.
+    # Empty when the image for this hash is not published, which makes the job
+    # run on the runner instead. That behaviour is not documented; it was
+    # verified directly before being relied on here.
+    container:
+      image: ${{ needs.resolve_ci_image.outputs.available == 'true' && format('ghcr.io/{0}-ci:py{1}-th{2}-{3}', github.repository, matrix.python-version, matrix.pytorch-version, needs.resolve_ci_image.outputs.hash) || '' }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      # Still needed: the image has the s3prl package, but the checkpoint is
+      # fetched at test-collection time and is not baked in.
+      - name: Cache s3prl pretrained checkpoints
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: ~/.cache/s3prl
+          key: ${{ runner.os }}-s3prl-v1
+
+      # Fast path: everything is in the image already.
+      - uses: ./.github/actions/use-prebuilt-environment
+        if: needs.resolve_ci_image.outputs.available == 'true'
+      # Slow path, for a pull request that changes what goes into the image and
+      # therefore cannot be tested against it. Correct, just not quick.
       - name: Make environment
+        if: needs.resolve_ci_image.outputs.available != 'true'
         uses: ./.github/actions/prepare-environment
         with:
           os-version: ubuntu
           python-version: ${{ matrix.python-version }}
           pytorch-version: ${{ matrix.pytorch-version }}
-          chainer-version: ${{ matrix.chainer-version }}
-          use-conda: ${{ matrix.use-conda }}
+          use-conda: false
+          hf-token: ${{ secrets.HF_CI_TOKEN }}
+
       - name: test python
+        # torch.hub.load validates that the requested ref belongs to the repo
+        # owner, which is a GitHub API call. Anonymous that is 60 requests an
+        # hour shared across the whole runner fleet, and it has already failed:
+        #
+        #   urllib.error.HTTPError: HTTP Error 403: rate limit exceeded
+        #
+        # torch reads GITHUB_TOKEN for exactly this call, per its own docs, so
+        # handing it one makes the request authenticated and the limit 5000.
+        #
+        # huggingface.co rate limits by identity, and anonymously that limit is low
+        # and shared across the whole runner fleet. It has already taken a run down -
+        # 72 tests failed on
+        #
+        #   429 Too Many Requests for url:
+        #     https://huggingface.co/api/models/espnet/hubert_dummy/revision/main
+        #
+        # wearing three disguises: LocalEntryNotFoundError, "couldn't connect to
+        # huggingface.co", and plain execution timeouts. huggingface_hub reads
+        # HF_TOKEN, so handing it one makes these requests authenticated.
+        #
+        # Before this, only install steps had it - not one of the steps that runs the
+        # tests. ci/check_ci_image_config.py now fails if that comes back.
+        env:
+          HF_TOKEN: ${{ secrets.HF_CI_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: ./ci/test_python_espnet2.sh
-      - uses: codecov/codecov-action@v5
+      # CODECOV_TOKEN has been a repository secret since 2024 and was passed to
+      # nothing. Without it these uploads are tokenless, which codecov rate
+      # limits by IP - and this workflow sends seven of them per job matrix.
+      #
+      # Tokenless is not falling back to OIDC either: a run's own permission dump
+      # does not list id-token at all (see #6583), so there is no identity on
+      # these requests beyond the runner's address.
+      #
+      # Fork pull requests get no secrets, so the token is empty there and the
+      # upload stays tokenless. That is the documented behaviour and the reason
+      # this cannot be enforced by making the step fail on an empty token.
+      - uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7
         with:
           flags: test_python_espnet2
+          token: ${{ secrets.CODECOV_TOKEN }}
       - name: coverage erase
         continue-on-error: true
         run: |
           source tools/activate_python.sh
           coverage erase
+      - name: Save s3prl checkpoint cache
+        if: github.event_name == 'push'
+        continue-on-error: true
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: ~/.cache/s3prl
+          key: ${{ runner.os }}-s3prl-v1
 
   test_utils_espnet2:
     runs-on: ubuntu-latest
-    needs: process_labels
+    needs: [process_labels, resolve_ci_image]
     if: |
       github.event.pull_request.draft == false
     strategy:
+      fail-fast: false
       max-parallel: 20
       matrix:
-        python-version: ["3.10", "3.12"]
-        pytorch-version: [2.7.1]
-        use-conda: [false]
-        chainer-version: [6.0.0]
+        python-version: ["3.12", "3.13"]
+        pytorch-version: [2.9.1]
+    # Empty when the image for this hash is not published, which makes the job
+    # run on the runner instead. That behaviour is not documented; it was
+    # verified directly before being relied on here.
+    container:
+      image: ${{ needs.resolve_ci_image.outputs.available == 'true' && format('ghcr.io/{0}-ci:py{1}-th{2}-{3}', github.repository, matrix.python-version, matrix.pytorch-version, needs.resolve_ci_image.outputs.hash) || '' }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - uses: actions/checkout@master
-      - uses: actions/cache@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
+          persist-credentials: false
+      # Fast path: everything is in the image already.
+      - uses: ./.github/actions/use-prebuilt-environment
+        if: needs.resolve_ci_image.outputs.available == 'true'
+      # Slow path, for a pull request that changes what goes into the image and
+      # therefore cannot be tested against it. Correct, just not quick.
       - name: Make environment
+        if: needs.resolve_ci_image.outputs.available != 'true'
         uses: ./.github/actions/prepare-environment
         with:
           os-version: ubuntu
           python-version: ${{ matrix.python-version }}
           pytorch-version: ${{ matrix.pytorch-version }}
-          chainer-version: ${{ matrix.chainer-version }}
-          use-conda: ${{ matrix.use-conda }}
+          use-conda: false
+          hf-token: ${{ secrets.HF_CI_TOKEN }}
       - name: test utils
+        # torch.hub.load validates that the requested ref belongs to the repo
+        # owner, which is a GitHub API call. Anonymous that is 60 requests an
+        # hour shared across the whole runner fleet, and it has already failed:
+        #
+        #   urllib.error.HTTPError: HTTP Error 403: rate limit exceeded
+        #
+        # torch reads GITHUB_TOKEN for exactly this call, per its own docs, so
+        # handing it one makes the request authenticated and the limit 5000.
+        env:
+          HF_TOKEN: ${{ secrets.HF_CI_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: ./ci/test_utils.sh
-      - uses: codecov/codecov-action@v5
+      - uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7
         with:
           flags: test_utils
+          token: ${{ secrets.CODECOV_TOKEN }}
       - name: coverage erase
         continue-on-error: true
         run: |
@@ -140,144 +367,327 @@ jobs:
 
   test_shell_espnet2:
     runs-on: ubuntu-latest
-    needs: process_labels
+    needs: [process_labels, resolve_ci_image]
     if: |
       github.event.pull_request.draft == false
     strategy:
+      fail-fast: false
       max-parallel: 20
       matrix:
-        python-version: ["3.10"]
-        pytorch-version: [2.7.1]
-        use-conda: [false]
-        chainer-version: [6.0.0]
+        python-version: ["3.12"]
+        pytorch-version: [2.9.1]
+    # Empty when the image for this hash is not published, which makes the job
+    # run on the runner instead. That behaviour is not documented; it was
+    # verified directly before being relied on here.
+    container:
+      image: ${{ needs.resolve_ci_image.outputs.available == 'true' && format('ghcr.io/{0}-ci:py{1}-th{2}-{3}', github.repository, matrix.python-version, matrix.pytorch-version, needs.resolve_ci_image.outputs.hash) || '' }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - uses: actions/checkout@master
-      - uses: actions/cache@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
+          persist-credentials: false
+      # Fast path: everything is in the image already.
+      - uses: ./.github/actions/use-prebuilt-environment
+        if: needs.resolve_ci_image.outputs.available == 'true'
+      # Slow path, for a pull request that changes what goes into the image and
+      # therefore cannot be tested against it. Correct, just not quick.
       - name: Make environment
+        if: needs.resolve_ci_image.outputs.available != 'true'
         uses: ./.github/actions/prepare-environment
         with:
           os-version: ubuntu
           python-version: ${{ matrix.python-version }}
           pytorch-version: ${{ matrix.pytorch-version }}
-          chainer-version: ${{ matrix.chainer-version }}
-          use-conda: ${{ matrix.use-conda }}
+          use-conda: false
+          hf-token: ${{ secrets.HF_CI_TOKEN }}
       - name: test shell
-        run: |
-          ./ci/test_shell_espnet2.sh
+        env:
+          HF_TOKEN: ${{ secrets.HF_CI_TOKEN }}
+        run: ./ci/test_shell_espnet2.sh
 
   test_integration_espnet2:
     runs-on: ubuntu-latest
-    needs: process_labels
+    needs: [process_labels, resolve_ci_image]
     if: |
       github.event.pull_request.draft == false
     strategy:
+      fail-fast: false
       max-parallel: 20
-      matrix:
-        python-version: ["3.10", "3.12"]
-        pytorch-version: [2.5.1, 2.9.1]
-        use-conda: [false]
-        chainer-version: [6.0.0]
-        config-task: ["asr", "tts", "asr2",  "enh", "ssl", "st", "spk", "lid", "s2t", "s2st", "lm", "codec"]
-        exclude:
-            - python-version: "3.12"
-              pytorch-version: 2.5.1
-              use-conda: false
+      matrix: ${{ fromJSON(needs.resolve_ci_image.outputs.integration_matrix) }}
+    # Empty when the image for this hash is not published, which runs the job on
+    # the runner instead and takes the slow steps below.
+    container:
+      image: ${{ needs.resolve_ci_image.outputs.available == 'true' && format('ghcr.io/{0}-ci:py{1}-th{2}-{3}', github.repository, matrix.python-version, matrix.pytorch-version, needs.resolve_ci_image.outputs.hash) || '' }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - uses: actions/checkout@master
-      - uses: actions/cache@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
+          persist-credentials: false
+
+      # The image has the s3prl package but not the checkpoint, which is still
+      # fetched during test collection.
+      - name: Cache s3prl pretrained checkpoints
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: ~/.cache/s3prl
+          key: ${{ runner.os }}-s3prl-v1
+
+      # Fast path. The apt packages install-system-dependencies used to install
+      # and the kaldi featbin binaries ci/install_kaldi.sh used to download are
+      # both in the image as of #6574, so neither step runs here.
+      - uses: ./.github/actions/use-prebuilt-environment
+        if: needs.resolve_ci_image.outputs.available == 'true'
+
+      # Slow path, for a pull request that changes what goes into the image.
+      # Everything the fast path gets from the image has to be done by hand.
       - name: Install system dependencies
+        if: needs.resolve_ci_image.outputs.available != 'true'
         uses: ./.github/actions/install-system-dependencies
       - name: Make environment
+        if: needs.resolve_ci_image.outputs.available != 'true'
         uses: ./.github/actions/prepare-environment
         with:
           os-version: ubuntu
           python-version: ${{ matrix.python-version }}
           pytorch-version: ${{ matrix.pytorch-version }}
-          chainer-version: ${{ matrix.chainer-version }}
-          use-conda: ${{ matrix.use-conda }}
+          use-conda: false
+          hf-token: ${{ secrets.HF_CI_TOKEN }}
       - name: Install Kaldi
+        if: needs.resolve_ci_image.outputs.available != 'true'
         run: ./ci/install_kaldi.sh
+
       - name: test espnet2 integration
+        env:
+          HF_TOKEN: ${{ secrets.HF_CI_TOKEN }}
         run: ./ci/test_integration_espnet2.sh ${{ matrix.config-task }}
-      - uses: codecov/codecov-action@v5
+      - uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7
         with:
           flags: test_integration_espnet2
+          token: ${{ secrets.CODECOV_TOKEN }}
+      - name: Save s3prl checkpoint cache
+        if: github.event_name == 'push'
+        continue-on-error: true
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: ~/.cache/s3prl
+          key: ${{ runner.os }}-s3prl-v1
 
   test_configuration_espnet2:
     runs-on: ubuntu-latest
-    needs: process_labels
+    needs: [process_labels, resolve_ci_image]
     if: |
       github.event.pull_request.draft == false
     strategy:
+      fail-fast: false
       max-parallel: 20
+      # A deliberate subset - one python, one torch - so this matrix stays
+      # explicit. ci/check_ci_image_config.py verifies both are built variants.
       matrix:
-        python-version: ["3.10"]
-        pytorch-version: ["2.7.1"]
-        config-task: ["asr", "asr_transducer", "lm", "ssl", "tts", "enh",  "enh_asr"]
-        use-conda: [false]
-        chainer-version: [6.0.0]
+        python-version: ["3.12"]
+        pytorch-version: ["2.9.1"]
+        # asr is sharded: see ci/test_configuration_espnet2.sh. Three shards put
+        # it at ~21 min, just under lm's 24 min, so lm becomes the binding
+        # constraint and a fourth shard would buy nothing until lm is split too.
+        config-task: ["asr:1/3", "asr:2/3", "asr:3/3", "asr_transducer", "lm", "ssl", "tts", "enh", "enh_asr"]
+    # Empty when the image for this hash is not published, which runs the job on
+    # the runner instead and takes the slow steps below.
+    container:
+      image: ${{ needs.resolve_ci_image.outputs.available == 'true' && format('ghcr.io/{0}-ci:py{1}-th{2}-{3}', github.repository, matrix.python-version, matrix.pytorch-version, needs.resolve_ci_image.outputs.hash) || '' }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - uses: actions/checkout@master
-      - uses: actions/cache@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
+          persist-credentials: false
+      # The image has the s3prl package but not the checkpoints these configs
+      # build frontends from.
+      - name: Cache s3prl pretrained checkpoints
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: ~/.cache/s3prl
+          key: ${{ runner.os }}-s3prl-v1
+      - uses: ./.github/actions/use-prebuilt-environment
+        if: needs.resolve_ci_image.outputs.available == 'true'
+      # Slow path, for a pull request that changes what goes into the image.
       - name: Make environment
+        if: needs.resolve_ci_image.outputs.available != 'true'
         uses: ./.github/actions/prepare-environment
         with:
           os-version: ubuntu
           python-version: ${{ matrix.python-version }}
           pytorch-version: ${{ matrix.pytorch-version }}
-          chainer-version: ${{ matrix.chainer-version }}
-          use-conda: ${{ matrix.use-conda }}
+          use-conda: false
+          hf-token: ${{ secrets.HF_CI_TOKEN }}
       - name: test configuration
+        env:
+          HF_TOKEN: ${{ secrets.HF_CI_TOKEN }}
         run: ./ci/test_configuration_espnet2.sh ${{ matrix.config-task }}
-      - uses: codecov/codecov-action@v5
+      - uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7
         with:
           flags: test_configuration_espnet2
+          token: ${{ secrets.CODECOV_TOKEN }}
+      - name: Save s3prl checkpoint cache
+        if: github.event_name == 'push'
+        continue-on-error: true
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: ~/.cache/s3prl
+          key: ${{ runner.os }}-s3prl-v1
 
   test_python_espnet3:
     runs-on: ubuntu-latest
-    needs: process_labels
+    needs: [process_labels, resolve_ci_image]
     if: |
       github.event.pull_request.draft == false
     strategy:
+      fail-fast: false
       max-parallel: 20
-      matrix:
-        python-version: ["3.10", "3.12"]
-        pytorch-version: [2.5.1, 2.7.1, 2.8.0, 2.9.1]
-        chainer-version: [6.0.0]
-        use-conda: [false]
+      matrix: ${{ fromJSON(needs.resolve_ci_image.outputs.matrix) }}
+    # Empty when the image for this hash is not published, which makes the job
+    # run on the runner instead. That behaviour is not documented; it was
+    # verified directly before being relied on here.
+    container:
+      image: ${{ needs.resolve_ci_image.outputs.available == 'true' && format('ghcr.io/{0}-ci:py{1}-th{2}-{3}', github.repository, matrix.python-version, matrix.pytorch-version, needs.resolve_ci_image.outputs.hash) || '' }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - uses: actions/checkout@master
-      - uses: actions/cache@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
+          persist-credentials: false
+      # Fast path: everything is in the image already.
+      - uses: ./.github/actions/use-prebuilt-environment
+        if: needs.resolve_ci_image.outputs.available == 'true'
+      # Slow path, for a pull request that changes what goes into the image and
+      # therefore cannot be tested against it. Correct, just not quick.
       - name: Make environment
+        if: needs.resolve_ci_image.outputs.available != 'true'
         uses: ./.github/actions/prepare-environment
         with:
           os-version: ubuntu
           python-version: ${{ matrix.python-version }}
           pytorch-version: ${{ matrix.pytorch-version }}
-          chainer-version: ${{ matrix.chainer-version }}
-          use-conda: ${{ matrix.use-conda }}
+          use-conda: false
+          hf-token: ${{ secrets.HF_CI_TOKEN }}
       - name: test python
+        env:
+          HF_TOKEN: ${{ secrets.HF_CI_TOKEN }}
         run: ./ci/test_python_espnet3.sh
-      - uses: codecov/codecov-action@v5
+      - uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7
         with:
           flags: test_python_espnet3
+          token: ${{ secrets.CODECOV_TOKEN }}
       - name: coverage erase
         continue-on-error: true
         run: |
           source tools/activate_python.sh
           coverage erase
+
+  test_integration_espnet3:
+    runs-on: ubuntu-latest
+    needs: [process_labels, resolve_ci_image]
+    if: |
+      github.event.pull_request.draft == false
+    strategy:
+      fail-fast: false
+      max-parallel: 20
+      matrix: ${{ fromJSON(needs.resolve_ci_image.outputs.matrix) }}
+    # Empty when the image for this hash is not published, which runs the job on
+    # the runner instead and takes the slow steps below.
+    container:
+      image: ${{ needs.resolve_ci_image.outputs.available == 'true' && format('ghcr.io/{0}-ci:py{1}-th{2}-{3}', github.repository, matrix.python-version, matrix.pytorch-version, needs.resolve_ci_image.outputs.hash) || '' }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/use-prebuilt-environment
+        if: needs.resolve_ci_image.outputs.available == 'true'
+      # Slow path, for a pull request that changes what goes into the image.
+      - name: Make environment
+        if: needs.resolve_ci_image.outputs.available != 'true'
+        uses: ./.github/actions/prepare-environment
+        with:
+          os-version: ubuntu
+          python-version: ${{ matrix.python-version }}
+          pytorch-version: ${{ matrix.pytorch-version }}
+          use-conda: false
+          hf-token: ${{ secrets.HF_CI_TOKEN }}
+      # This one installs the asr extra itself, on top of whatever it inherits.
+      - name: test integration
+        env:
+          HF_TOKEN: ${{ secrets.HF_CI_TOKEN }}
+        run: ./ci/test_integration_espnet3.sh
+      - uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7
+        with:
+          flags: test_integration_espnet3
+          token: ${{ secrets.CODECOV_TOKEN }}
+      - name: coverage erase
+        continue-on-error: true
+        run: |
+          source tools/activate_python.sh
+          coverage erase
+
+  test_integration_espnet3_publication:
+    runs-on: ubuntu-latest
+    needs: process_labels
+    if: |
+      github.event.pull_request.draft == false
+    env:
+      ESPNET3_PUBLICATION_TEST_UPLOAD: ${{ needs.process_labels.outputs.test_upload }}
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-3.12-2.9.1-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-3.12-2.9.1-
+      - name: Make environment
+        uses: ./.github/actions/prepare-environment
+        with:
+          os-version: ubuntu
+          python-version: "3.12"
+          pytorch-version: "2.9.1"
+          use-conda: false
+          hf-token: ${{ secrets.HF_CI_TOKEN }}
+      - name: Validate publication upload test configuration
+        if: needs.process_labels.outputs.test_upload == 'true'
+        run: |
+          test -n "${HF_TOKEN}" || {
+            echo "HF_TOKEN secret is required for test_upload publication CI." >&2
+            exit 1
+          }
+      - name: test publication integration
+        run: ./ci/test_integration_espnet3_publication.sh
+      - uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7
+        with:
+          flags: test_integration_espnet3_publication
+          token: ${{ secrets.CODECOV_TOKEN }}
+      - name: coverage erase
+        continue-on-error: true
+        run: |
+          source tools/activate_python.sh
+          coverage erase
+      # Only pushes write caches. Pull request runs restore and never save, so a
+      # miss on a PR branch cannot add another per-ref copy of the same entry.
+      - name: Save pip cache
+        if: github.event_name == 'push'
+        continue-on-error: true
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-3.12-2.9.1-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
 
   test_import:
     runs-on: ubuntu-latest
@@ -285,14 +695,17 @@ jobs:
     if: |
       github.event.pull_request.draft == false
     strategy:
+      fail-fast: false
       max-parallel: 20
       matrix:
-        python-version: ["3.10"]
-        pytorch-version: [2.7.1]
+        python-version: ["3.12"]
+        pytorch-version: [2.9.1]
     steps:
-    - uses: actions/checkout@master
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      with:
+        persist-credentials: false
     - name: Set up Python
-      uses: actions/setup-python@v6
+      uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
@@ -333,5 +746,41 @@ jobs:
     if: |
       github.event.pull_request.draft == false
     steps:
-    - uses: actions/checkout@master
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      with:
+        persist-credentials: false
     - run: ci/check_kaldi_symlinks.sh
+
+  # Single stable status check that aggregates every job in this workflow.
+  # Register THIS job as the required status check instead of the individual
+  # matrix jobs, whose names change whenever the matrix changes.
+  ci_gate_ubuntu:
+    if: always()
+    needs:
+      - process_labels
+      - resolve_ci_image
+      - test_python_espnet2
+      - test_utils_espnet2
+      - test_shell_espnet2
+      - test_integration_espnet2
+      - test_configuration_espnet2
+      - test_python_espnet3
+      - test_integration_espnet3
+      - test_integration_espnet3_publication
+      - test_import
+      - check_kaldi_symlinks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail unless every job succeeded
+        if: >-
+          contains(needs.*.result, 'failure')
+          || contains(needs.*.result, 'cancelled')
+          || contains(needs.*.result, 'skipped')
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+        run: |
+          echo "At least one job did not succeed:"
+          echo "$NEEDS_JSON"
+          exit 1
+      - name: All jobs succeeded
+        run: echo "All jobs in this workflow succeeded."

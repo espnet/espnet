@@ -14,7 +14,6 @@ from typing import Any, Dict, List, Tuple, Union
 import numpy as np
 import torch
 import torch.nn as nn
-from packaging.version import parse as V
 from torch.nn import functional as F
 
 from espnet2.gan_codec.shared.encoder.seanet import (
@@ -25,11 +24,6 @@ from espnet2.gan_codec.shared.encoder.seanet import (
     get_norm_module,
 )
 from espnet2.gan_codec.shared.encoder.snake_activation import Snake1d
-
-if V(torch.__version__) >= V("2.1.0"):
-    from torch.nn.utils.parametrizations import weight_norm
-else:
-    from torch.nn.utils import weight_norm  # noqa
 
 
 def get_activation(activation: str = None, channels=None, **kwargs):

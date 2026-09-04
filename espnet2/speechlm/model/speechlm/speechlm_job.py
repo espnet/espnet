@@ -15,6 +15,7 @@ from espnet2.speechlm.model.abs_job import AbsJobTemplate
 
 # Main speechlm model
 from espnet2.speechlm.model.speechlm.lm.parallel import ParallelHFModel
+from espnet2.speechlm.model.speechlm.lm.parallel_pp import ParallelPPHFModel
 
 # Multimodal IOs
 from espnet2.speechlm.model.speechlm.multimodal_io.abs_io import AbsIO
@@ -32,7 +33,7 @@ _multimodal_ios = {
     "continuous_audio": ContinuousAudioIO,
 }
 
-_lms = {"parallel": ParallelHFModel}
+_lms = {"parallel": ParallelHFModel, "parallel_pp": ParallelPPHFModel}
 
 
 class SpeechLMJobTemplate(AbsJobTemplate):
@@ -61,7 +62,7 @@ class SpeechLMJobTemplate(AbsJobTemplate):
             assert issubclass(multimodal_io_class, AbsIO)
             self.multimodal_io[io_name] = multimodal_io_class(**io_kwargs)
 
-        self.vocab, self.vocab_intervals = self._build_vocabulary()
+        self._build_vocabulary()
 
     def _build_vocabulary(self, num_special_tokens=256):
         """Build unified vocabulary from special tokens and multimodal IOs.
@@ -69,39 +70,81 @@ class SpeechLMJobTemplate(AbsJobTemplate):
         Reserves fixed slots for special tokens then adds tokens from discrete IOs.
         Returns vocabulary list and interval mappings for each modality.
         """
-        # (1) Initial special token. We keep a fixed number of slots
-        vocab_intervals = {"special_token": [(0, num_special_tokens)]}
-        vocab = [
-            "<|pad|>",  # 0: padding
-            "<|bos|>",  # 1: begin of sequence
-            "<|eos|>",  # 2: end of sequence
-            "<|eot|>",  # 3: end of turn
-            "<|system|>",  # 4: system role
-            "<|user|>",  # 5: user role
-            "<|assistant|>",  # 6: assistant role
-            "<|text|>",  # 7: text modality
-            "<|audio|>",  # 8: audio modality
-            "<|image|>",  # 9: image modality
-            "<|video|>",  # 10: video modality
-            "<|toolcall|>",  # 11: tool call modality
-        ]
+        # (1) Init
+        vocab = []
+        vocab_intervals = {}
+        vocab_weight = []
+
+        # (2) Initial special token. We keep a fixed number of slots
+        vocab.extend(
+            [
+                "<|pad|>",  # 0
+                "<|bos|>",  # 1
+                "<|eos|>",  # 2
+                "<|eot|>",  # 3
+                "<|system|>",  # 4
+                "<|user|>",  # 5
+                "<|assistant|>",  # 6
+                "<|text|>",  # 7
+                "<|audio|>",  # 8
+                "<|image|>",  # 9
+                "<|video|>",  # 10
+                "<|toolcall|>",  # 11
+            ]
+        )
         while len(vocab) < num_special_tokens:
             vocab.append(f"<|unused_{len(vocab)}|>")
+        vocab_intervals["special_token"] = [(0, num_special_tokens)]
+        vocab_weight.append(torch.ones(len(vocab)))
 
-        # (2) add vocabulary from each discrete multimodal IO.
+        # (3) add vocabulary from each discrete multimodal IO.
         start = num_special_tokens
+        mm_start, mm_end = None, None
+        num_stream = 1
         for io_name, io in self.multimodal_io.items():
-            if io.is_discrete:
-                vocab.extend(io.get_vocabulary())
-                vocab_intervals[io_name] = [
-                    (start + this_start, start + this_end)
-                    for this_start, this_end in io.get_stream_interval()
-                ]
-                start = len(vocab)
+            if not io.is_discrete:
+                continue
 
-        assert len(vocab) == len(set(vocab)), "There are duplicated tokens in the vocab"
+            vocab.extend(io.get_vocabulary())
 
-        return vocab, vocab_intervals
+            if io_name not in ("text", "special_token"):
+                if mm_start is None and mm_end is None:
+                    mm_start = start
+                    mm_end = start + len(io.get_vocabulary())
+                else:
+                    mm_start = min(mm_start, start)
+                    mm_end = max(mm_end, start + len(io.get_vocabulary()))
+
+            vocab_intervals[io_name] = []
+            for (this_start, this_end), this_weight in zip(
+                io.get_stream_interval(), io.get_stream_weight()
+            ):
+                vocab_intervals[io_name].append((start + this_start, start + this_end))
+                vocab_weight.append(torch.ones(this_end - this_start) * this_weight)
+                num_stream = max(num_stream, io.num_stream())
+            start = len(vocab)
+        vocab_weight = torch.cat(vocab_weight, dim=0).float()
+
+        text_start = vocab_intervals["text"][0][0]
+        text_end = vocab_intervals["text"][-1][1]
+
+        if mm_start is not None and mm_end is not None:
+            assert text_end <= mm_start or mm_end <= text_start, (
+                f"Text range [{text_start}, {text_end}) overlaps with "
+                f"multimodal range [{mm_start}, {mm_end})"
+            )
+
+        self.vocab_meta = {
+            "vocab": vocab,
+            "vocab_intervals": vocab_intervals,
+            "vocab_weight": vocab_weight,
+            "vocab_size": len(vocab),
+            "mm_start": mm_start,
+            "mm_end": mm_end,
+            "text_start": text_start,
+            "text_end": text_end,
+            "num_stream": num_stream,
+        }
 
     def build_preprocessor(self) -> Callable:
         """Build the data collation function for SpeechLM.
@@ -117,8 +160,8 @@ class SpeechLMJobTemplate(AbsJobTemplate):
         return SpeechLMPreprocessor(
             is_train=self.is_train,
             multimodal_io=multimodal_io,
-            vocab=self.vocab,
-            vocab_intervals=self.vocab_intervals,
+            vocab=self.vocab_meta["vocab"],
+            vocab_intervals=self.vocab_meta["vocab_intervals"],
             audio_input=processor_config["audio_input"],
             audio_output=processor_config["audio_output"],
             loss_region=processor_config["loss_region"],
@@ -127,28 +170,62 @@ class SpeechLMJobTemplate(AbsJobTemplate):
             batch_length=self.config["data_loading"].get("batch_size", -1),
         )
 
-    def build_model(self) -> torch.nn.Module:
+    def build_model(self, parallel_dims=None) -> torch.nn.Module:
         """Build the SpeechLM model.
 
+        When ``parallel_dims`` is provided and PP is enabled, automatically
+        selects the PP model variant (``model_choice + "_pp"``) and reads
+        ``pp_layout`` from ``self.config["trainer"]["titan_config"]``.
+
+        Args:
+            parallel_dims: TorchTitan ParallelDims. If provided and
+                ``pp_enabled``, the PP model variant is used.
+
         Returns:
-            A SpeechLM model instance.
+            A SpeechLM model instance (full or PP-stage).
         """
-
         model_config = self.config["model"]
-        model_class = _lms[model_config["model_choice"]]
+        model_choice = model_config["model_choice"]
 
-        model = model_class(
+        pp_enabled = parallel_dims is not None and parallel_dims.pp_enabled
+        if pp_enabled:
+            model_choice = model_choice + "_pp"
+            titan_config = self.config["trainer"]["titan_config"]
+            pp_layout = titan_config.get("pp_layout", None)
+            assert pp_layout is not None, (
+                "pp_layout is required when pipeline parallelism is enabled. "
+                "Set trainer.titan_config.pp_layout in the config."
+            )
+
+        model_class = _lms[model_choice]
+
+        model_kwargs = dict(
             model_hf_tag=model_config["model_hf_tag"],
             multimodal_io=self.multimodal_io,
-            vocab=self.vocab,
-            vocab_intervals=self.vocab_intervals,
+            vocab_meta=self.vocab_meta,
             **model_config["model_conf"],
         )
+        if not pp_enabled:
+            model = model_class(**model_kwargs)
+            return model
 
-        if model_config.get("activation_checkpointing", False):
-            model.gradient_checkpointing_enable()
+        # Return a list of models for pipeline parallelism
+        model_kwargs["parallel_dims"] = parallel_dims
+        model_kwargs["pp_layout"] = pp_layout
 
-        return model
+        pp_degree = parallel_dims.get_mesh("pp").size()
+        assert len(pp_layout) % pp_degree == 0, (
+            f"pp_layout length ({len(pp_layout)}) must be divisible by "
+            f"pp_degree ({pp_degree})"
+        )
+        vpp_degree = len(pp_layout) // pp_degree
+        models = []
+        for i in range(vpp_degree):
+            model_kwargs["vpp_index"] = i
+            model = model_class(**model_kwargs)
+            models.append(model)
+
+        return torch.nn.ModuleList(models)
 
 
 class SpeechLMPreprocessor:
@@ -219,14 +296,83 @@ class SpeechLMPreprocessor:
 
         return length
 
+    def _collect_batch_metadata(self, data_dicts):
+        """Collect per-batch metadata: task counts, token counts, and padding ratio.
+
+        Args:
+            data_dicts: list of (key, preprocessed_dict) pairs from step (1).
+                Each key is (task, dataset, sample_id) and each dict has "sequence".
+
+        Returns:
+            dict of scalar tensors with all task stats always present.
+        """
+        valid_tasks = set(SPEECHLM_TASK_CONFIGS.keys()) | {"dialogue"}
+
+        task_examples = {t: 0 for t in valid_tasks}
+        task_tokens = {t: 0 for t in valid_tasks}
+        seq_lens = []
+
+        for key, data_dict in data_dicts:
+            task_name, _, sample_id = key
+            seq_len = len(data_dict["sequence"])
+            seq_lens.append(seq_len)
+
+            # Resolve the effective task
+            if task_name != "dialogue":
+                resolved = task_name
+            else:
+                resolved = "dialogue"
+                for t in SPEECHLM_TASK_CONFIGS:
+                    if sample_id.endswith(t):
+                        resolved = t
+                        break
+
+            if resolved in task_examples:
+                task_examples[resolved] += 1
+                task_tokens[resolved] += seq_len
+
+        total_examples = sum(task_examples.values())
+        total_tokens = sum(task_tokens.values())
+
+        # Padding ratio
+        if self.batch_length >= 0:
+            if self.batchfy_method == "pack":
+                length_inc = 20
+                padded_len = self.batch_length
+                while padded_len < total_tokens:
+                    padded_len += length_inc
+                total_padded = padded_len
+            else:  # bucket
+                max_len = max(seq_lens) if seq_lens else 0
+                total_padded = max_len * len(seq_lens)
+            pad_ratio = 1.0 - total_tokens / total_padded if total_padded > 0 else 0.0
+        else:
+            pad_ratio = 0.0
+
+        stats = {
+            "data/total_examples": torch.tensor(total_examples),
+            "data/total_tokens": torch.tensor(total_tokens),
+            "data/pad_ratio": torch.tensor(pad_ratio),
+        }
+        for t in valid_tasks:
+            stats[f"data/task_{t}_examples"] = torch.tensor(task_examples[t])
+            stats[f"data/task_{t}_tokens"] = torch.tensor(task_tokens[t])
+
+        return stats
+
     def collate_fn(self, data_lst):
         """Batch multiple samples for training.
 
         Processes each sample, pads sequences to same length, and organizes
         continuous features by modality. Returns dict ready for model forward.
 
-        The return dict value should always in the format of either tensor or
-        list of strings. No nested format is allowed.
+        The return dict value should always in the format of either tensor,
+        list of strings, or a flat dict of tensors/ints (for attn_args).
+
+        attn_args is a dict of pre-computed flash attention kwargs:
+          - pack mode: cu_seq_lens_q/k (int32), max_length_q/k (int)
+            to avoid per-layer CPU-GPU sync in flash attention varlen.
+          - bucket mode: empty dict (flash attention uses is_causal=True).
         """
         if self.batchfy_method not in ["bucket", "pack"]:
             raise NotImplementedError("Batchfy method only support bucket and pack")
@@ -236,6 +382,11 @@ class SpeechLMPreprocessor:
         # (1) single-example preprocessing
         data_dicts = [self.preprocessing(key, data_dict) for key, data_dict in data_lst]
         return_dict["keys"] = [key for key, _ in data_lst]
+
+        # (1.5) Collect batch metadata
+        return_dict["data_stats"] = self._collect_batch_metadata(
+            [(key, d) for (key, _), d in zip(data_lst, data_dicts)]
+        )
 
         # (2) Process token sequences and masks
         seqs, loss_masks, seq_lens, position_ids = [], [], [0], []
@@ -249,6 +400,12 @@ class SpeechLMPreprocessor:
         if self.batchfy_method == "bucket":
             seqs, _ = pad_list(seqs)
             loss_masks, _ = pad_list(loss_masks)
+
+            # Bucket mode: no attn_args needed. Flash attention uses
+            # is_causal=True by default, which is correct for single-
+            # sequence-per-batch-element. Padding tokens are zero-embedded
+            # and loss-masked, so attending to them is harmless.
+            return_dict["attn_args"] = {}
 
         else:  # "pack"
             seqs = torch.cat(seqs, dim=0).unsqueeze(0)
@@ -266,12 +423,31 @@ class SpeechLMPreprocessor:
                 loss_masks = torch.nn.functional.pad(
                     loss_masks, (0, 0, 0, pad_size, 0, 0), value=0
                 )
-                # position_ids is 2D [batch, seq_len]: (0, pad_size, 0, 0)
-                position_ids = torch.nn.functional.pad(
-                    position_ids, (0, pad_size, 0, 0), value=0
-                )
+                # Padding position_ids: continue incrementing so padding
+                # looks like one long sequence to FlashAttention varlen,
+                # avoiding hundreds of fake length-1 sequences that launch
+                # too many CUDA thread.
+                pad_positions = torch.arange(pad_size).unsqueeze(0)
+                position_ids = torch.cat([position_ids, pad_positions], dim=1)
+
+            # Pre-compute cu_seqlens from position_ids on CPU to avoid
+            # per-layer CPU-GPU sync in flash attention's varlen path.
+            # HF transformers would otherwise recompute this every layer
+            # via prepare_fa_kwargs_from_position_ids() which calls .item().
+            flat_pos = position_ids.view(-1)
+            indices = (flat_pos == 0).nonzero().view(-1)
+            cu_seqlens = torch.cat([indices, torch.tensor([flat_pos.size(0)])]).to(
+                torch.int32
+            )
+            max_seqlen = cu_seqlens.diff().max().item()
 
             return_dict["position_ids"] = position_ids
+            return_dict["attn_args"] = {
+                "cu_seq_lens_q": cu_seqlens,
+                "cu_seq_lens_k": cu_seqlens,
+                "max_length_q": max_seqlen,
+                "max_length_k": max_seqlen,
+            }
 
         return_dict["seqs"] = seqs
         return_dict["loss_masks"] = loss_masks

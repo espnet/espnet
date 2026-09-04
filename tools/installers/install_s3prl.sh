@@ -47,7 +47,11 @@ EOF
 echo "cuda_version=${cuda_version}"
 
 if "${torch_18_plus}" && "${python_36_plus}"; then
-    python -m pip install s3prl
+    # espnet-s3prl is the same fork this used to install from git, published
+    # under its own name so pyproject.toml can declare it - PyPI rejects a
+    # distribution whose metadata contains a git URL. Same distribution, so
+    # this and the s2st extra cannot install two copies of s3prl.
+    python -m pip install espnet-s3prl
 
 else
     echo "[WARNING] s3prl is not prepared for pytorch<1.8.0, python<3.6 now"

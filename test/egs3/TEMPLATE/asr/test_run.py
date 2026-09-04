@@ -11,12 +11,14 @@ def test_load_default_config_train_contains_expected_targets() -> None:
     assert (
         cfg.dataset._target_ == "espnet3.components.data.data_organizer.DataOrganizer"
     )
+    assert cfg.dataset.recipe_dir == "."
     assert cfg.optimizer._target_ == "torch.optim.Adam"
     assert cfg.scheduler._target_ == "espnet2.schedulers.warmup_lr.WarmupLR"
 
 
 def test_load_default_config_infer_contains_expected_targets() -> None:
     cfg = load_default_config("inference.yaml", "egs3.TEMPLATE.asr")
+    assert cfg.dataset.recipe_dir == "."
     assert (
         cfg.provider._target_
         == "espnet3.systems.base.inference_provider.InferenceProvider"
@@ -52,6 +54,38 @@ optimizer:
     assert (
         cfg.dataset._target_ == "espnet3.components.data.data_organizer.DataOrganizer"
     )
+
+
+def test_load_and_merge_demo_config_inherits_template_readme(
+    tmp_path: Path,
+) -> None:
+    user = tmp_path / "demo.yaml"
+    user.write_text(
+        """
+ui:
+  title: Custom demo
+pack:
+  readme_context:
+    color_from: indigo
+    color_to: purple
+""".strip() + "\n",
+        encoding="utf-8",
+    )
+
+    cfg = load_and_merge_config(
+        user,
+        "demo.yaml",
+        default_package="egs3.TEMPLATE.asr",
+        resolve=False,
+    )
+
+    assert cfg is not None
+    assert cfg.ui.title == "Custom demo"
+    assert cfg.ui.app_script == "src/app.py"
+    assert cfg.pack.readme.endswith("egs3/TEMPLATE/asr/src/hf_demo_readme.md")
+    assert cfg.pack.readme_context.color_from == "indigo"
+    assert cfg.pack.readme_context.color_to == "purple"
+    assert "automatic-speech-recognition" in cfg.pack.readme_context.tags
 
 
 def test_load_and_merge_config_none_path_returns_none() -> None:

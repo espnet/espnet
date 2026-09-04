@@ -345,6 +345,43 @@ def test_log_data_organizer_combined_variants():
         _reset_logger(logger, old_handlers, old_level, old_propagate)
 
 
+def test_log_data_organizer_includes_test_sets():
+    logger, stream, cleanup = _capture_logger("espnet3.test.data_organizer.test_sets")
+    old_handlers, old_level, old_propagate, handler = cleanup
+
+    def custom_transform(sample):
+        return sample
+
+    def custom_preprocessor(sample):
+        return sample
+
+    from espnet3.components.data.data_organizer import DataOrganizer
+    from espnet3.components.data.dataset import DatasetWithTransform
+
+    class DummyOrganizer(DataOrganizer):
+        def __init__(self):
+            self.preprocessor = custom_preprocessor
+            self.train = None
+            self.valid = None
+            self.test_sets = {
+                "test_eval": DatasetWithTransform(
+                    DummyDataset(),
+                    custom_transform,
+                    custom_preprocessor,
+                )
+            }
+
+    try:
+        DummyOrganizer().log_summary(logger)
+        out = stream.getvalue()
+        assert "test datasets: 1" in out
+        assert "test[test_eval] dataset:" in out
+        assert "test[test_eval] dataset detail:" in out
+    finally:
+        handler.close()
+        _reset_logger(logger, old_handlers, old_level, old_propagate)
+
+
 def test_log_dataloader_formats_human_readable():
     logger, stream, cleanup = _capture_logger("espnet3.test.dataloader")
     old_handlers, old_level, old_propagate, handler = cleanup
