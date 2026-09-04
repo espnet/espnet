@@ -56,7 +56,10 @@ from espnet2.torch_utils.load_pretrained_model import load_pretrained_model
 from espnet2.torch_utils.model_summary import model_summary
 from espnet2.torch_utils.pytorch_version import pytorch_cudnn_version
 from espnet2.torch_utils.safe_torch_load import UnsafeLoadRefusedError, safe_torch_load
-from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
+from espnet2.torch_utils.set_all_random_seed import (
+    set_all_random_seed,
+    set_deterministic,
+)
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.dataset import (
@@ -502,6 +505,26 @@ class AbsTask(ABC):
             type=str2bool,
             default=False,
             help="Enable TensorFloat32 on CUDA and CUDNN",
+        )
+
+        group = parser.add_argument_group("deterministic mode related")
+        group.add_argument(
+            "--deterministic",
+            type=str2bool,
+            default=False,
+            help="Use only deterministic algorithms "
+            "(torch.use_deterministic_algorithms). This also exports "
+            "CUBLAS_WORKSPACE_CONFIG=:4096:8, turns cudnn-benchmark off, and "
+            "turns cudnn-deterministic on. Note that training gets slower and "
+            "that a RuntimeError is raised if the model uses an operation "
+            "having no deterministic implementation, e.g. CTC loss on CUDA",
+        )
+        group.add_argument(
+            "--deterministic_warn_only",
+            type=str2bool,
+            default=False,
+            help="Warn instead of raising an error when an operation has no "
+            "deterministic implementation. Only used with --deterministic true",
         )
 
         group = parser.add_argument_group("collect stats mode related")
@@ -1388,6 +1411,23 @@ class AbsTask(ABC):
         torch.backends.cudnn.enabled = args.cudnn_enabled
         torch.backends.cudnn.benchmark = args.cudnn_benchmark
         torch.backends.cudnn.deterministic = args.cudnn_deterministic
+        if args.deterministic:
+            if torch.backends.cudnn.benchmark:
+                logging.warning(
+                    "Disabling cudnn-benchmark because --deterministic is given: "
+                    "the algorithm chosen by the benchmark can differ between runs"
+                )
+                torch.backends.cudnn.benchmark = False
+            if not torch.backends.cudnn.deterministic:
+                logging.warning(
+                    "Enabling cudnn-deterministic because --deterministic is given"
+                )
+                torch.backends.cudnn.deterministic = True
+            logging.info(
+                "Invoking torch.use_deterministic_algorithms"
+                f"(True, warn_only={args.deterministic_warn_only})"
+            )
+            set_deterministic(warn_only=args.deterministic_warn_only)
         if args.detect_anomaly:
             logging.info("Invoking torch.autograd.set_detect_anomaly(True)")
             torch.autograd.set_detect_anomaly(args.detect_anomaly)
