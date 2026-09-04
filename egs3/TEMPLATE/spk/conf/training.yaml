@@ -120,6 +120,19 @@ parallel:
 # Plain PyTorch dataloaders: `SpkPreprocessor` already emits fixed-length
 # crops, so there is nothing for a length-aware batch sampler to do.
 dataloader:
+  # `forkserver`, not the default `fork`. Forked workers inherit the CUDA
+  # context of a parent that has already initialized CUDA and NCCL but cannot
+  # use it, so releasing a pinned tensor inside a worker aborts the run with
+  # `CUDA error: initialization error` out of `CachingHostAllocator::free`
+  # (VoxCeleb job 21588635, which died before its first batch under DDP; a
+  # single-GPU run is unaffected). forkserver exec's a fresh interpreter for its
+  # server process, so workers fork from something that never touched CUDA:
+  # measured inheritance is 2 CUDA tensors under fork, 0 under forkserver
+  # (SpeakerVerification/scripts/ddp_repro.py, job 21606878). Verified on the
+  # VoxCeleb recipe in job 21608065.
+  #
+  # This pairs with `pin_memory: true` below -- pinned host memory is what makes
+  # the inherited context fatal rather than merely unused.
   collate_fn:
     _target_: espnet2.train.collate_fn.CommonCollateFn
     int_pad_value: -1
@@ -127,6 +140,7 @@ dataloader:
     iter_factory:
     batch_size: 256
     num_workers: 8
+    multiprocessing_context: forkserver
     shuffle: true
     # Speaker-balanced batches assume a constant batch size, and the AAM
     # softmax margin is sensitive to very small trailing batches.
@@ -138,6 +152,7 @@ dataloader:
     # `num_eval` crops, so keep this well below the training batch size.
     batch_size: 16
     num_workers: 8
+    multiprocessing_context: forkserver
     shuffle: false
     drop_last: false
     pin_memory: true
