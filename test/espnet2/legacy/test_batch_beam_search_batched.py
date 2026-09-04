@@ -308,3 +308,35 @@ def test_a_batch_of_one_matches_the_unbatched_call(pad):
 
     assert len(actual) == 1
     _assert_same_nbest(expected, actual[0], nbest=len(expected), rtol=0)
+
+
+def test_unmasked_decoder_is_reported_once(caplog):
+    """A decoder whose `batch_score` cannot take the padding mask is warned
+    about once per beam search, not once per padded batch."""
+    import logging
+
+    encs, common, dtype, device = _build(
+        transformer_args, 0.5, 0.0, 0.1, "cpu", torch.float64
+    )
+    decoder = common["scorers"]["decoder"]
+    orig = decoder.batch_score
+    # a wrapper without `functools.wraps` hides the signature, which is also
+    # how this happens in practice (timing or logging wrappers)
+    decoder.batch_score = lambda ys, states, xs, **kw: orig(ys, states, xs)
+    try:
+        search = BatchBeamSearch(beam_size=2, **common)
+        search.eval()
+        x, x_lengths = _pad(encs[:2], device, dtype)
+        assert int(x_lengths.min()) < int(x_lengths.max()), "needs padding"
+        with caplog.at_level(
+            logging.WARNING, logger="espnet2.legacy.nets.batch_beam_search"
+        ):
+            with torch.no_grad():
+                for _ in range(3):
+                    search(x=x, x_lengths=x_lengths, maxlenratio=0.0, minlenratio=0.0)
+    finally:
+        decoder.batch_score = orig
+    warnings = [
+        r for r in caplog.records if "do not accept an xs_mask" in r.getMessage()
+    ]
+    assert len(warnings) == 1, [r.getMessage() for r in warnings]

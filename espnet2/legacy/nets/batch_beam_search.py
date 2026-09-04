@@ -1102,11 +1102,18 @@ class BatchBeamSearch(BeamSearch):
                 for k in self.full_scorers
                 if "decoder" in k and not self._xs_mask_capable(k)
             ]
-            if unmasked:
+            # Once per search object, not once per batch: the scorers do not
+            # change between decodes, so repeating it on every padded batch
+            # only buries the log. Looked up rather than set in `__init__` so
+            # that the in-place `__class__` assignment of the inference
+            # scripts, which skips `__init__`, is covered too.
+            if unmasked and not getattr(self, "_warned_unmasked", False):
+                self._warned_unmasked = True
                 logger.warning(
                     f"{unmasked} do not accept an xs_mask in batch_score, so "
                     "the padded encoder frames are attended to. Results may "
-                    "differ from decoding one utterance at a time."
+                    "differ from decoding one utterance at a time. "
+                    "(reported once per beam search)"
                 )
         return xs, xs_mask, pre_xs, pre_xs_mask
 
