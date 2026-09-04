@@ -771,8 +771,8 @@ def test_Speech2Text_whisper_lid_prompt(
     "choice, model_device, expected",
     [
         ("auto", "cpu", None),
-        ("auto", "cuda", None),
-        ("auto", "cuda:1", None),
+        ("auto", "cuda", "cpu"),
+        ("auto", "cuda:1", "cpu"),
         ("auto", "mps", "cpu"),
         ("auto", "mps:0", "cpu"),
         ("same", "mps", None),

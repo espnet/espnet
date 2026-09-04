@@ -76,11 +76,13 @@ logger = logging.getLogger(__name__)
 def resolve_ctc_scoring_device(choice: str, model_device: str) -> Optional[str]:
     """Turn the ``--ctc_scoring_device`` choice into a device for `CTCPrefixScorer`.
 
-    ``same`` keeps the CTC prefix scores on the model's device. ``auto`` does
-    the same on CUDA and on the CPU, but moves them to the CPU when the model
-    runs on Apple's MPS: the frame-by-frame recursion of the prefix score is a
-    long chain of tiny kernels, which is bound by kernel launch cost there and
-    ran ten times faster on the CPU. Any other value is taken as a device name.
+    ``same`` keeps the CTC prefix scores on the model's device. ``auto`` moves
+    them to the CPU whenever the model runs on an accelerator (CUDA or Apple's
+    MPS) and leaves them alone for a CPU model: the frame-by-frame recursion
+    of the prefix score is a long chain of tiny kernels, bound by launch cost
+    on an accelerator, and it ran 12x faster on the CPU next to an MPS GPU and
+    2x faster on the two slow CPU cores of a Colab T4 machine. Any other value
+    is taken as a device name.
 
     Args:
         choice: ``auto``, ``same`` or a torch device string such as ``cpu``.
@@ -93,7 +95,8 @@ def resolve_ctc_scoring_device(choice: str, model_device: str) -> Optional[str]:
     if choice == "same":
         return None
     if choice == "auto":
-        return "cpu" if str(model_device).startswith("mps") else None
+        on_accelerator = str(model_device).startswith(("cuda", "mps"))
+        return "cpu" if on_accelerator else None
     return choice
 
 
@@ -1255,10 +1258,12 @@ def get_parser():
         type=str,
         default="auto",
         help="Where the CTC prefix scores are computed: 'same' as the model, "
-        "'auto' (default; same as the model, except on Apple's MPS where they "
-        "go to the CPU, which was 10x faster for this frame-by-frame "
-        "recursion), or a device name such as 'cpu'. Scores are moved back to "
-        "the model's device, so the result is unchanged up to floating point.",
+        "'auto' (default; the CPU when the model is on a GPU, since this "
+        "frame-by-frame recursion is bound by kernel launch cost there and "
+        "ran 12x faster on the CPU beside an MPS GPU and 2x faster beside a "
+        "T4; the model's device otherwise), or a device name such as 'cpu'. "
+        "Scores are moved back to the model's device, so the result is "
+        "unchanged up to floating point.",
     )
     group.add_argument("--lm_weight", type=float, default=1.0, help="RNNLM weight")
     group.add_argument("--ngram_weight", type=float, default=0.9, help="ngram weight")

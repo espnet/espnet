@@ -28,11 +28,12 @@ class CTCPrefixScorer(BatchPartialScorerInterface):
                 prefix scores are computed and their states are kept. None
                 (default) uses the device of the encoder output. The forward
                 recursion walks the encoder frames one by one, each step a few
-                tiny kernels, so on an accelerator with a high launch cost it
-                can be much slower than on the CPU: on Apple's MPS it took
-                48 ms per decoding step against 4 ms on the CPU for the same
-                work. The scores are returned on the encoder's device, so the
-                beam search sees no difference.
+                tiny kernels, so on an accelerator it is bound by launch cost
+                and can be much slower than on the CPU: per decoding step it
+                took 48 ms on Apple's MPS against 4 ms on the CPU beside it,
+                and 50 ms on a T4 against 27 ms on that machine's two slow
+                CPU cores. The scores are returned on the encoder's device, so
+                the beam search sees no difference.
 
         """
         self.ctc = ctc
