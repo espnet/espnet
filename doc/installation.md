@@ -227,7 +227,6 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
         | `st`       | Speech Translation            |
         | `s2t`      | Speech to Text (e.g., OWSM)   |
         | `spk`      | Speaker recognition           |
-        | `kaldiio`  | Kaldi ark/scp I/O (`kaldiio`) |
         | `dev`      | Code formatting and linting   |
         | `test`     | Unit test dependencies        |
         | `doc`      | Documentation generation      |
@@ -238,23 +237,6 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
         ```sh
         pip install -e ".[asr,tts,test]"
         ```
-
-    4. [Optional] Kaldi-format features (`kaldiio`)
-        `kaldiio` is **not** installed by default, because its license restricts
-        redistribution (see
-        [#6529](https://github.com/espnet/espnet/issues/6529)).
-        ESPnet only needs it to read or write Kaldi `ark`/`scp` files, so install
-        it explicitly if your recipe or data uses those formats:
-
-        ```sh
-        pip install -e ".[kaldiio]"
-        ```
-
-        Without it, the Kaldi code paths (e.g. the `kaldi_ark` data type, kaldi
-        pipe entries in `wav.scp`, and `--audio_format *.ark`) raise an
-        `ImportError` telling you to install it. Everything else, including the
-        default `raw`-feature recipes, works without `kaldiio`.
-
 
 2. Install ESPnet (Legacy)
     ```sh

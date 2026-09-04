@@ -32,6 +32,9 @@ dependencies = [
     "numpy>=2.0.0",
     "PyYAML>=5.1.2",
     "soundfile>=0.10.2",
+    # Kaldi ark/scp I/O. Replaced kaldiio, whose license restricts
+    # redistribution; see https://github.com/espnet/espnet/issues/6529.
+    "omniio>=0.1.1",
     # Imported directly by espnet2/asr/encoder/{hubert,avhubert,wav2vec2}_encoder.py.
     # It arrives through torch today, which is why nothing has broken; tools/setup.py
     # was the only file that declared it, and that file is deleted in this commit.
@@ -195,15 +198,6 @@ sds = [
   "transformers",
 ]
 
-# Kaldi ark/scp I/O (kaldiio). Kept out of the default dependencies because
-# the kaldiio license restricts redistribution, which is a problem for software
-# that is publicly distributed; see
-# https://github.com/espnet/espnet/issues/6529.
-# Install this extra only if you need to read/write Kaldi-format features.
-kaldiio = [
-  "kaldiio>=2.18.0",
-]
-
 dev = [
   "black",
   "flake8>=3.7.8",
@@ -226,7 +220,6 @@ test = [
   "black",
   "isort",
   "h5py>=2.10.0",
-  "kaldiio>=2.18.0",
   "gradio",
   "playwright",
 ]
@@ -247,7 +240,6 @@ all = [
   "espnet[spk]",
   "espnet[speechlm]",
   "espnet[egs2]",
-  "espnet[kaldiio]",
   "fairscale",
   "transformers",
   "evaluate",

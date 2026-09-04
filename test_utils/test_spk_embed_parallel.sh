@@ -143,7 +143,7 @@ echo "[4/4] Comparing embeddings (seq vs par) ..."
 echo "[4/4] Comparing embeddings (seq vs par) ..."
 python3 - "$DATA_DIR" "$OUT_SEQ" "$OUT_PAR" <<'PY'
 import os, glob, sys, numpy as np
-from kaldiio import ReadHelper
+from omniio.kaldi import ReadHelper
 
 DATA, OUT_SEQ, OUT_PAR = sys.argv[1:4]
 utts = [l.split()[0] for l in open(os.path.join(DATA, "wav.scp"))]
