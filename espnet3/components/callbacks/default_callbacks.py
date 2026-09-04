@@ -111,6 +111,24 @@ class AverageCheckpointsCallback(Callback):
 
     def on_validation_end(self, trainer, pl_module):
         """At the end of validation, average the top-K checkpoints and save."""
+        self._write_averages(trainer)
+
+    def on_train_end(self, trainer, pl_module):
+        """Re-average once training is over, so the last checkpoint is included.
+
+        Lightning's `_CallbackConnector._reorder_callbacks` moves every
+        `ModelCheckpoint` to the end of the callback list, so this callback --
+        an ordinary `Callback` -- runs BEFORE them in `on_validation_end` and
+        sees `best_k_models` as it was after the *previous* validation. Left at
+        that, a single-epoch run writes no average at all (the dict is still
+        empty), and a longer run writes one that omits the final checkpoint.
+        Running again here, after the last checkpoint has been written, makes
+        the saved average reflect every checkpoint the run produced.
+        """
+        self._write_averages(trainer)
+
+    def _write_averages(self, trainer):
+        """Average the top-K checkpoints of each monitor and save them."""
         if trainer.is_global_zero:
             for ckpt_callback in self.best_ckpt_callbacks:
                 checkpoints = list(ckpt_callback.best_k_models.keys())
