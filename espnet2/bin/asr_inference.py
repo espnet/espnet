@@ -104,6 +104,7 @@ class Speech2Text:
         dtype: str = "float32",
         beam_size: int = 20,
         ctc_weight: float = 0.5,
+        ctc_window_margin: int = 100,
         lm_weight: float = 1.0,
         ngram_weight: float = 0.9,
         penalty: float = 0.0,
@@ -170,7 +171,9 @@ class Speech2Text:
 
         decoder = asr_model.decoder
 
-        ctc = CTCPrefixScorer(ctc=asr_model.ctc, eos=asr_model.eos)
+        ctc = CTCPrefixScorer(
+            ctc=asr_model.ctc, eos=asr_model.eos, window_margin=ctc_window_margin
+        )
         token_list = asr_model.token_list
         scorers.update(
             decoder=decoder,
@@ -825,6 +828,7 @@ def inference(
     ngpu: int,
     seed: int,
     ctc_weight: float,
+    ctc_window_margin: int,
     lm_weight: float,
     ngram_weight: float,
     penalty: float,
@@ -898,6 +902,7 @@ def inference(
         dtype=dtype,
         beam_size=beam_size,
         ctc_weight=ctc_weight,
+        ctc_window_margin=ctc_window_margin,
         lm_weight=lm_weight,
         ngram_weight=ngram_weight,
         penalty=penalty,
@@ -1212,6 +1217,27 @@ def get_parser():
         type=float,
         default=0.0,
         help="Input length ratio to obtain min output length",
+    )
+    group.add_argument(
+        "--ctc_window_margin",
+        type=int,
+        default=100,
+        help="Half-width, in encoder frames, of the window the CTC forward "
+        "recursion is restricted to. Without it the recursion walks the whole "
+        "utterance at every decoding step, which costs O(duration^2); a window "
+        "makes it linear, so the longer the audio the more it saves. "
+        "CHANGES DECODING RESULTS: this is an approximation and it is on by "
+        "default, so an existing config decodes differently than it did in "
+        "earlier versions of espnet. Pass 0 for the previous, exact behaviour. "
+        "The unit is encoder frames, so the duration it buys depends on the "
+        "model: the default is 4 s each side at a 10 ms frame shift with 4x "
+        "subsampling, but only 2 s with 2x subsampling. Too small a window "
+        "loses accuracy, and how small is too small depends on the language "
+        "and the token unit, not just on the audio: on LibriSpeech test-clean "
+        "(English, BPE) 40 frames already reproduced exact decoding, but on "
+        "AISHELL-1 test (Mandarin, characters) 40 still differed on 4 of 50 "
+        "utterances and 20 collapsed to 51% CER. The default is set well "
+        "above both, so lower it only with a measurement on your own data.",
     )
     group.add_argument(
         "--ctc_weight",

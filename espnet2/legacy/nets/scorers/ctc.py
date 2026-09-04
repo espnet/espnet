@@ -10,17 +10,23 @@ from espnet2.legacy.nets.scorer_interface import BatchPartialScorerInterface
 class CTCPrefixScorer(BatchPartialScorerInterface):
     """Decoder interface wrapper for CTCPrefixScore."""
 
-    def __init__(self, ctc: torch.nn.Module, eos: int):
+    def __init__(self, ctc: torch.nn.Module, eos: int, window_margin: int = 0):
         """Initialize class.
 
         Args:
             ctc (torch.nn.Module): The CTC implementation.
                 For example, :class:`espnet2.legacy.nets.pytorch_backend.ctc.CTC`
             eos (int): The end-of-sequence id.
+            window_margin (int): Half-width, in encoder frames, of the window
+                the CTC forward recursion is restricted to. 0 (default) walks
+                the whole utterance at every decoding step, which is exact but
+                costs O(T) per step. A positive value centres a window on the
+                frame the prefix has reached and is an approximation.
 
         """
         self.ctc = ctc
         self.eos = eos
+        self.window_margin = window_margin
         self.impl = None
 
     def init_state(self, x: torch.Tensor):
@@ -109,7 +115,7 @@ class CTCPrefixScorer(BatchPartialScorerInterface):
             )
         else:
             xlen = xs_lengths.to(dtype=torch.long)
-        self.impl = CTCPrefixScoreTH(logp, xlen, 0, self.eos)
+        self.impl = CTCPrefixScoreTH(logp, xlen, 0, self.eos, margin=self.window_margin)
         return None
 
     def batch_score_partial(self, y, ids, state, x):
