@@ -795,5 +795,6 @@ def test_Speech2Text_ctc_scoring_device(asr_config_file):
     assert speech2text.beam_search.scorers["ctc"].scoring_device == torch.device("cpu")
     speech = np.random.randn(100000)
     results = speech2text(speech)
+    assert len(results) == 1
     for text, token, token_int, hyp in results:
         assert isinstance(text, str)

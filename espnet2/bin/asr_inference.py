@@ -128,7 +128,6 @@ class Speech2Text:
         dtype: str = "float32",
         beam_size: int = 20,
         ctc_weight: float = 0.5,
-        ctc_scoring_device: str = "auto",
         lm_weight: float = 1.0,
         ngram_weight: float = 0.9,
         penalty: float = 0.0,
@@ -152,6 +151,7 @@ class Speech2Text:
         threshold_probability: float = 0.99,
         max_seq_len: int = 5,
         max_mask_parallel: int = -1,
+        ctc_scoring_device: str = "auto",
     ):
         if enh_s2t_task:
             try:
