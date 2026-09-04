@@ -11,12 +11,12 @@ import numpy as np
 import resampy
 import soundfile
 import soundfile as sf
-from omniio import kaldi as kaldi_io
 from scipy.signal import lfilter
 from tqdm import tqdm
 
 from espnet2.fileio.read_text import read_2columns_text
 from espnet2.legacy.utils.cli_utils import get_commandline_args
+from espnet2.utils.kaldi_io_utils import import_kaldi_io
 
 
 # Credits: code from Fairseq
@@ -92,7 +92,7 @@ def main():
 
             if wavpath.endswith("|"):
                 # Streaming input e.g. cat a.wav |
-                with kaldi_io.open_like_kaldi(wavpath, "rb") as f:
+                with import_kaldi_io().open_like_kaldi(wavpath, "rb") as f:
                     with BytesIO(f.read()) as g:
                         wave, rate = soundfile.read(g, dtype=np.int16)
             else:
