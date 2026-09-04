@@ -1,0 +1,36 @@
+##########################################################
+#                   Inference SETTING                    #
+##########################################################
+# Quick usage:
+#   python run.py --stages infer \
+#       --training_config conf/training_encodec.yaml \
+#       --inference_config conf/inference.yaml
+#
+# Merged over egs3/TEMPLATE/codec/conf/inference.yaml, which supplies
+# `recipe_dir`, `exp_dir`, `inference_dir`, `parallel`, `input_key: audio`,
+# and the provider/runner classes. `exp_tag`/`exp_dir` are copied in from
+# the training config by run.py, so only recipe-specific keys live here.
+#
+# Runs the encode -> decode roundtrip of
+# espnet2.bin.gan_codec_inference.AudioCoding on each test utterance and
+# writes `${inference_dir}/test/{wav,ref,utt_id}` SCP outputs:
+# - wav: resynthesized waveform (materialized as 24kHz WAV files)
+# - ref: path to the ground-truth wav (consumed by conf/metrics.yaml)
+
+dataset:
+  test:
+    - name: test
+      data_src_args:
+        split: test
+        inference: true
+
+model:
+  _target_: espnet2.bin.gan_codec_inference.AudioCoding
+  train_config: ${exp_dir}/config.yaml
+  model_file: ${exp_dir}/last.ckpt
+
+output_fn: src.inference.build_output
+output_artifacts:
+  wav:
+    type: wav
+    sample_rate: 24000

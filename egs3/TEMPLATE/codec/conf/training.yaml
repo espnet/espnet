@@ -1,0 +1,215 @@
+##########################################################
+#                    TRAINING SETTING                    #
+##########################################################
+# Quick usage:
+#   python run.py --stages create_dataset --training_config conf/training.yaml
+#   python run.py --stages train          --training_config conf/training.yaml
+#
+# Main stages and what this config is used for:
+# - `create_dataset`: uses `create_dataset`
+# - `collect_stats`: uses `dataset`, `dataloader`, `model`, and `parallel`
+# - `train`: uses most fields in this file
+#
+# This is the shared default merged under every codec recipe's training config
+# (see `load_and_merge_config` in `run.py`). Kept as empty as possible so it
+# never conflicts with a concrete recipe config -- a codec recipe directory may
+# host multiple, mutually incompatible architectures (encodec, dac,
+# soundstream, funcodec and hificodec have unrelated `codec_conf` shapes, and
+# differ in optimizer, chunk length and checkpoint criteria), so only generic,
+# non-conflicting path/system scaffolding lives here. Everything
+# architecture-specific is left null for the recipe config to fill in; see
+# `egs3/libritts/codec/conf/training_encodec.yaml` for a worked example.
+
+##########################################################
+#                  SYSTEM AND PATH SETTING               #
+##########################################################
+num_device: 1
+num_nodes: 1
+
+# Optional ESPnet task class path used by `get_espnet_model(...)`.
+# If unset, `model` is instantiated directly via Hydra.
+task:
+
+# Path scaffold relative to the recipe root.
+recipe_dir: .
+data_dir: ${recipe_dir}/data
+exp_tag: ${self_name:}
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+stats_dir: ${exp_dir}/stats
+inference_dir: ${exp_dir}/inference
+
+##########################################################
+#                 DATASET CREATION SETTING               #
+##########################################################
+# Options for the `create_dataset` stage. Codec recipes are builder-driven:
+# `BaseSystem.create_dataset` forwards every key in this block as a keyword
+# argument to the recipe `DatasetBuilder`'s `is_source_prepared`,
+# `prepare_source` and `build`. Left empty so no stray kwarg reaches them.
+#
+# Example:
+# create_dataset:
+#   recipe_dir: ${recipe_dir}
+create_dataset: {}
+
+##########################################################
+#                    DATASET DEFINITION                  #
+##########################################################
+# Dataset organizer used across collect_stats/train/infer/measure.
+# Fill `train`, `valid`, and optionally `test` with dataset reference entries.
+#
+# Each dataset entry supports:
+# - `data_src`: optional dataset source reference.
+#   - `<recipe>/<task>` tag, e.g. `libritts/codec`
+#   - dotted module path, e.g. `my_project.datasets.foo`
+#   - omitted: load `${recipe_dir}/dataset/__init__.py`
+# - `data_src_args`: kwargs forwarded to `Dataset(...)`
+# - `transform`: optional Hydra-instantiated per-sample transform applied before
+#   `preprocessor`
+# - `name`: mainly useful for `test`; inference uses it as the output
+#   subdirectory name
+#
+# Only `data_src_args` is passed to the recipe `Dataset` constructor.
+# Top-level fields such as `name` and `transform` stay in organizer space.
+#
+# The recipe `Dataset` should return a dict keyed `"audio"` for GAN-codec
+# tasks, matching `CommonPreprocessor(speech_name="audio")`.
+#
+# Example:
+# dataset:
+#   _target_: espnet3.components.data.data_organizer.DataOrganizer
+#   recipe_dir: ${recipe_dir}
+#   train:
+#     - data_src_args:
+#         split: train
+#   valid:
+#     - data_src_args:
+#         split: valid
+#   test:
+#     - name: eval_local
+#       data_src_args:
+#         split: test
+#   preprocessor:
+#     _target_: espnet2.train.preprocessor.CommonPreprocessor
+#     train: true
+#     token_type: null
+#     speech_name: audio
+#     force_single_channel: true
+#     audio_pad_value: 0.0
+dataset:
+
+##########################################################
+#                      MODEL SETTING                     #
+##########################################################
+# Training model definition.
+# If `task` is set, this block is passed to `get_espnet_model(task, model_conf)`,
+# shaped like that task's argparse namespace (e.g. for GANCodecTask:
+# `codec: encodec`, `codec_conf: {...}`).
+# If `task` is not set, this block is instantiated directly via Hydra.
+model:
+
+##########################################################
+#            OPTIMIZER & SCHEDULER SETTING               #
+##########################################################
+# GAN-based neural codecs (Encodec, SoundStream, DAC, FunCodec, ...) train a
+# generator and a discriminator with separate optimizers, so codec recipes
+# normally use the named multiple-optimizer path below rather than the single
+# optimizer one.
+#
+# `params: generator` / `params: discriminator` match against dotted
+# parameter-name segments (e.g. `model.codec.generator.*` /
+# `model.codec.discriminator.*`), which `ESPnetGANCodecModel.__init__`
+# requires to exist.
+#
+# Example:
+# optimizers:
+#   generator:
+#     optimizer:
+#       _target_: torch.optim.Adam
+#       lr: 0.0002                 # optimizer config for `generator`
+#     params: generator            # substring used to select parameters
+#     accum_grad_steps: 1          # number of backward passes before optimizer.step()
+#     step_every_n_iters: 1        # only step on every N-th training iteration
+#     gradient_clip_val: 1.0       # per-optimizer gradient clipping value
+#     gradient_clip_algorithm: norm  # `norm` or `value`
+#   discriminator:
+#     optimizer:
+#       _target_: torch.optim.Adam
+#       lr: 0.0002
+#     params: discriminator
+#
+# schedulers:
+#   generator:
+#     scheduler:
+#       _target_: torch.optim.lr_scheduler.ExponentialLR
+#       gamma: 0.999875            # scheduler-specific argument
+#     interval: epoch              # `epoch` schedulers run in `on_train_epoch_end()`
+#   discriminator:
+#     scheduler:
+#       _target_: torch.optim.lr_scheduler.ExponentialLR
+#       gamma: 0.999875
+#     interval: epoch
+#
+# Note:
+# - In the multiple-optimizer path, do not use trainer-level
+#   `trainer.gradient_clip_val` or `trainer.gradient_clip_algorithm`.
+#   Configure clipping per optimizer as shown above.
+optimizers:
+schedulers:
+
+# Single optimizer path (only for a non-GAN codec model; most codec models
+# are GAN-based and should use the `optimizers`/`schedulers` path above):
+# optimizer:
+#   _target_: torch.optim.Adam
+#   lr: 0.0002
+# scheduler:
+#   _target_: espnet2.schedulers.warmup_lr.WarmupLR
+#   warmup_steps: 15000
+# scheduler_interval: step   # `step` or `epoch`
+# scheduler_monitor:         # e.g. `valid/loss` for monitored epoch schedulers
+optimizer:
+scheduler:
+scheduler_interval:
+scheduler_monitor:
+
+##########################################################
+#                OTHER TRAINING SETTING                  #
+##########################################################
+# Checkpoint selection criteria passed to ESPnet3 callbacks.
+best_model_criterion:
+
+# Optional random seed used by collect_stats/train.
+seed:
+
+# Extra model initialization mode forwarded to ESPnet's initializer.
+# Example: xavier_uniform
+init:
+
+##########################################################
+#                   PARALLELIZATION SETTING              #
+##########################################################
+# Parallel backend used by collect_stats/train.
+parallel:
+  env: local
+  n_workers: 1
+
+##########################################################
+#                   DATALOADER SETTING                   #
+##########################################################
+dataloader:
+
+##########################################################
+#                    TRAINER SETTING                     #
+##########################################################
+# These settings map to `lightning.Trainer(...)`.
+trainer:
+  accelerator: auto
+  devices: ${num_device}
+  num_nodes: ${num_nodes}
+  strategy: auto
+
+##########################################################
+#                      FIT SETTING                       #
+##########################################################
+# Optional keyword arguments passed directly to `trainer.fit(**fit)`.
+# Leave `{}` for the default flow.
+fit: {}
