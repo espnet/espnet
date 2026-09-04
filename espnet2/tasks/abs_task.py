@@ -513,11 +513,13 @@ class AbsTask(ABC):
             type=str2bool,
             default=False,
             help="Use only deterministic algorithms "
-            "(torch.use_deterministic_algorithms). This also exports "
-            "CUBLAS_WORKSPACE_CONFIG=:4096:8, turns cudnn-benchmark off, and "
-            "turns cudnn-deterministic on. Note that training gets slower and "
-            "that a RuntimeError is raised if the model uses an operation "
-            "having no deterministic implementation, e.g. CTC loss on CUDA",
+            "(torch.use_deterministic_algorithms). This also turns "
+            "cudnn-benchmark off, turns cudnn-deterministic on, and exports "
+            "CUBLAS_WORKSPACE_CONFIG=:4096:8 unless it is already set to "
+            "':4096:8' or ':16:8', the two values cuBLAS accepts in "
+            "deterministic mode. Note that training gets slower and that a "
+            "RuntimeError is raised if the model uses an operation having no "
+            "deterministic implementation, e.g. CTC loss on CUDA",
         )
         group.add_argument(
             "--deterministic_warn_only",

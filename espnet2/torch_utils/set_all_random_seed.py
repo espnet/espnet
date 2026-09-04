@@ -5,6 +5,11 @@ import random
 import numpy as np
 import torch
 
+# The only two values of CUBLAS_WORKSPACE_CONFIG that let cuBLAS operations,
+# e.g. torch.mm, run under torch.use_deterministic_algorithms(True). Any other
+# value, including "not set", makes them raise a RuntimeError.
+DETERMINISTIC_CUBLAS_CONFIGS = (":4096:8", ":16:8")
+
 
 def set_all_random_seed(seed: int):
     random.seed(seed)
@@ -23,6 +28,9 @@ def set_deterministic(warn_only: bool = False):
     launches. This turns those kernels off; see
     https://pytorch.org/docs/stable/notes/randomness.html
 
+    CUBLAS_WORKSPACE_CONFIG is set to ":4096:8" unless it already holds one of
+    DETERMINISTIC_CUBLAS_CONFIGS, in which case the existing value is kept.
+
     Note that not every operation has a deterministic implementation.
     ``torch.nn.CTCLoss`` is a notable one: its CUDA backward is
     non-deterministic, and the deterministic cuDNN implementation is used only
@@ -37,12 +45,14 @@ def set_deterministic(warn_only: bool = False):
     # NOTE(kamo): cuBLAS reads CUBLAS_WORKSPACE_CONFIG when it creates its
     # handle, i.e. at the first GEMM call, so this must be set before any
     # computation happens.
-    if "CUBLAS_WORKSPACE_CONFIG" not in os.environ:
-        os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
-    else:
-        logging.info(
-            "CUBLAS_WORKSPACE_CONFIG is already set to "
-            f"'{os.environ['CUBLAS_WORKSPACE_CONFIG']}' and it is kept as is. "
-            "':4096:8' or ':16:8' is required for deterministic cuBLAS operations."
-        )
+    config = os.environ.get("CUBLAS_WORKSPACE_CONFIG")
+    if config not in DETERMINISTIC_CUBLAS_CONFIGS:
+        if config is not None:
+            logging.warning(
+                f"CUBLAS_WORKSPACE_CONFIG='{config}' is not one of "
+                f"{DETERMINISTIC_CUBLAS_CONFIGS}, so cuBLAS operations would "
+                "raise a RuntimeError in deterministic mode. Overwriting it "
+                f"with '{DETERMINISTIC_CUBLAS_CONFIGS[0]}'"
+            )
+        os.environ["CUBLAS_WORKSPACE_CONFIG"] = DETERMINISTIC_CUBLAS_CONFIGS[0]
     torch.use_deterministic_algorithms(True, warn_only=warn_only)

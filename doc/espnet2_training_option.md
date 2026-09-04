@@ -510,9 +510,12 @@ implementation:
 python -m espnet.bin.asr_train --deterministic true
 ```
 
-This calls `torch.use_deterministic_algorithms(True)`, exports
-`CUBLAS_WORKSPACE_CONFIG=:4096:8`, turns cudnn-benchmark off, and turns
-cudnn-deterministic on. Training gets slower in exchange.
+This calls `torch.use_deterministic_algorithms(True)`, turns cudnn-benchmark
+off, and turns cudnn-deterministic on. It also exports
+`CUBLAS_WORKSPACE_CONFIG=:4096:8`, unless the variable is already set to
+`:4096:8` or `:16:8` -- the only two values with which cuBLAS operations run in
+deterministic mode -- in which case the existing value is kept. Training gets
+slower in exchange.
 
 Not every operation has a deterministic implementation, and a `RuntimeError` is
 raised when the model uses one that has not. `torch.nn.CTCLoss` is the one that
