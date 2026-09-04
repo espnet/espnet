@@ -31,6 +31,7 @@ class STOIMetric(BaseMetric):
         fs: int = 16000,
         extended: bool = False,
     ):
+        """Initialize STOI scoring with the configured keys and options."""
         self.ref_key = ref_key
         self.hyp_key = hyp_key
         self.fs = fs

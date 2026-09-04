@@ -32,6 +32,7 @@ class SISNRMetric(BaseMetric):
     """
 
     def __init__(self, ref_key: str = "reference", hyp_key: str = "enhanced"):
+        """Initialize SI-SNR scoring for the configured SCP keys."""
         self.ref_key = ref_key
         self.hyp_key = hyp_key
 

@@ -59,6 +59,7 @@ class SeparateSpeechWrapper:
     """
 
     def __init__(self, train_config, model_file, **kwargs):
+        """Initialize SeparateSpeech from a training config and checkpoint."""
         from espnet2.bin.enh_inference import SeparateSpeech
 
         self._model = SeparateSpeech(
