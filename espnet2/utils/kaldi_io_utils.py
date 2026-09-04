@@ -16,12 +16,10 @@ software that depends on ESPnet (see https://github.com/espnet/espnet/issues/652
 import importlib
 from types import ModuleType
 
-OMNIIO_URL = "git+https://github.com/wavlab-speech/omniio.git"
-
 KALDI_IO_INSTALL_MESSAGE = (
     "`omniio` is not installed. It is an optional dependency of ESPnet, "
-    "used only for Kaldi ark/scp I/O. Please install it with "
-    '`pip install "omniio @ {}"`.'.format(OMNIIO_URL)
+    "used only for Kaldi ark/scp I/O. "
+    'Please install it with `pip install "espnet[omniio]"` or `pip install omniio`.'
 )
 
 

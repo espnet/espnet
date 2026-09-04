@@ -227,6 +227,7 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
         | `st`       | Speech Translation            |
         | `s2t`      | Speech to Text (e.g., OWSM)   |
         | `spk`      | Speaker recognition           |
+        | `omniio`   | Kaldi ark/scp I/O             |
         | `dev`      | Code formatting and linting   |
         | `test`     | Unit test dependencies        |
         | `doc`      | Documentation generation      |
@@ -240,23 +241,12 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
 
     4. [Optional] Kaldi-format features (`omniio`)
         Kaldi `ark`/`scp` I/O comes from
-        [omniio](https://github.com/wavlab-speech/omniio), which is **not**
-        installed by default. Install it if your recipe or data uses those
-        formats:
+        [omniio](https://pypi.org/project/omniio/), which is **not** installed
+        by default. Install it if your recipe or data uses those formats:
 
         ```sh
-        pip install "omniio @ git+https://github.com/wavlab-speech/omniio.git"
+        pip install -e ".[omniio]"
         ```
-
-        or, from `<espnet-root>/tools`:
-
-        ```sh
-        make omniio.done
-        ```
-
-        It is installed separately rather than as a `pip install -e ".[...]"`
-        extra because omniio is not published on PyPI, and PyPI does not allow
-        direct URL references in package metadata.
 
         Without it, the Kaldi code paths (e.g. the `kaldi_ark` data type, kaldi
         pipe entries in `wav.scp`, and `--audio_format *.ark`) raise an

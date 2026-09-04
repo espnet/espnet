@@ -28,5 +28,6 @@ def test_import_kaldi_io_error_message(monkeypatch):
         import_kaldi_io()
 
 
-def test_install_message_mentions_the_repository():
-    assert "github.com/wavlab-speech/omniio" in KALDI_IO_INSTALL_MESSAGE
+def test_install_message_names_an_installable_target():
+    assert "espnet[omniio]" in KALDI_IO_INSTALL_MESSAGE
+    assert "pip install omniio" in KALDI_IO_INSTALL_MESSAGE
