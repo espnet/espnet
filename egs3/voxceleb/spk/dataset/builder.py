@@ -601,9 +601,7 @@ class VoxCelebBuilder(DatasetBuilder):
                 for path in (rir_root / str(room)).rglob("*.wav")
             )
             target = data_root / "rirs.scp"
-            target.write_text(
-                "".join(f"{path}\n" for path in paths), encoding="utf-8"
-            )
+            target.write_text("".join(f"{path}\n" for path in paths), encoding="utf-8")
             logger.info("Wrote %s: %d files", target.name, len(paths))
         else:
             logger.warning(
