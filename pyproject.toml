@@ -34,7 +34,7 @@ dependencies = [
     "soundfile>=0.10.2",
     # Kaldi ark/scp I/O. Replaced kaldiio, whose license restricts
     # redistribution; see https://github.com/espnet/espnet/issues/6529.
-    "omniio>=0.1.0",
+    "omniio>=0.1.1",
     # Imported directly by espnet2/asr/encoder/{hubert,avhubert,wav2vec2}_encoder.py.
     # It arrives through torch today, which is why nothing has broken; tools/setup.py
     # was the only file that declared it, and that file is deleted in this commit.
