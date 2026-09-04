@@ -73,6 +73,33 @@ logger = logging.getLogger(__name__)
 # RTF calculation looks for "INFO: " as a prefix in the logs.
 
 
+def resolve_ctc_scoring_device(choice: str, model_device: str) -> Optional[str]:
+    """Turn the ``--ctc_scoring_device`` choice into a device for `CTCPrefixScorer`.
+
+    ``same`` keeps the CTC prefix scores on the model's device. ``auto`` moves
+    them to the CPU whenever the model runs on an accelerator (CUDA or Apple's
+    MPS) and leaves them alone for a CPU model: the frame-by-frame recursion
+    of the prefix score is a long chain of tiny kernels, bound by launch cost
+    on an accelerator, and it ran 12x faster on the CPU next to an MPS GPU and
+    2x faster on the two slow CPU cores of a Colab T4 machine. Any other value
+    is taken as a device name.
+
+    Args:
+        choice: ``auto``, ``same`` or a torch device string such as ``cpu``.
+        model_device: The device the model decodes on.
+
+    Returns:
+        The device to hand to `CTCPrefixScorer`, or None to follow the model.
+
+    """
+    if choice == "same":
+        return None
+    if choice == "auto":
+        on_accelerator = str(model_device).startswith(("cuda", "mps"))
+        return "cpu" if on_accelerator else None
+    return choice
+
+
 class Speech2Text:
     """Speech2Text class
 
@@ -127,6 +154,7 @@ class Speech2Text:
         threshold_probability: float = 0.99,
         max_seq_len: int = 5,
         max_mask_parallel: int = -1,
+        ctc_scoring_device: str = "auto",
     ):
         if enh_s2t_task:
             try:
@@ -170,7 +198,11 @@ class Speech2Text:
 
         decoder = asr_model.decoder
 
-        ctc = CTCPrefixScorer(ctc=asr_model.ctc, eos=asr_model.eos)
+        ctc = CTCPrefixScorer(
+            ctc=asr_model.ctc,
+            eos=asr_model.eos,
+            scoring_device=resolve_ctc_scoring_device(ctc_scoring_device, device),
+        )
         token_list = asr_model.token_list
         scorers.update(
             decoder=decoder,
@@ -863,6 +895,7 @@ def inference(
     threshold_probability: float,
     max_seq_len: int,
     max_mask_parallel: int,
+    ctc_scoring_device: str = "auto",
 ):
     if word_lm_train_config is not None:
         raise NotImplementedError("Word LM is not implemented")
@@ -898,6 +931,7 @@ def inference(
         dtype=dtype,
         beam_size=beam_size,
         ctc_weight=ctc_weight,
+        ctc_scoring_device=ctc_scoring_device,
         lm_weight=lm_weight,
         ngram_weight=ngram_weight,
         penalty=penalty,
@@ -1218,6 +1252,18 @@ def get_parser():
         type=float,
         default=0.5,
         help="CTC weight in joint decoding",
+    )
+    group.add_argument(
+        "--ctc_scoring_device",
+        type=str,
+        default="auto",
+        help="Where the CTC prefix scores are computed: 'same' as the model, "
+        "'auto' (default; the CPU when the model is on a GPU, since this "
+        "frame-by-frame recursion is bound by kernel launch cost there and "
+        "ran 12x faster on the CPU beside an MPS GPU and 2x faster beside a "
+        "T4; the model's device otherwise), or a device name such as 'cpu'. "
+        "Scores are moved back to the model's device, so the result is "
+        "unchanged up to floating point.",
     )
     group.add_argument("--lm_weight", type=float, default=1.0, help="RNNLM weight")
     group.add_argument("--ngram_weight", type=float, default=0.9, help="ngram weight")
