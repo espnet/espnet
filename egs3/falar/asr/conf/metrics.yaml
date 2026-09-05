@@ -1,0 +1,35 @@
+##########################################################
+#                 METRIC SCORING SETTING                 #
+##########################################################
+# Common usage:
+#   python run.py --stages measure \
+#       --training_config conf/training_asr_transformer.yaml \
+#       --metrics_config conf/metrics.yaml
+#
+# Notes:
+# - Metrics checks all directories under `${inference_dir}`.
+# - Each discovered directory is treated as one evaluation target.
+#
+##########################################################
+#                    PATHS AND INPUTS                    #
+##########################################################
+# This recipe normally reuses the experiment path from training.
+# - `run.py` copies `training_config.exp_tag` / `training_config.exp_dir` here
+# - when `--inference_config` is also given, `run.py` copies its
+#   `inference_dir` here so `measure` follows the same output directory
+#
+# For standalone `measure`, add either `exp_tag` or a concrete `exp_dir` here,
+# and add `inference_dir` unless `--inference_config` provides it.
+# Add `inference_dir` only when you want to score a different directory.
+
+##########################################################
+#                    METRIC DEFINITION                   #
+##########################################################
+metrics:
+  - metric:
+      _target_: espnet3.systems.asr.metrics.wer.WER
+      clean_types:
+
+  - metric:
+      _target_: espnet3.systems.asr.metrics.cer.CER
+      clean_types:
