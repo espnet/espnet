@@ -4,6 +4,7 @@ import logging
 import math
 import os
 import random
+import zlib
 from typing import List
 
 import torch
@@ -38,8 +39,17 @@ def _reverb(wav: torch.Tensor, sr: int, files: List[str]) -> torch.Tensor:
     rir = rir.mean(0)
     if rir_sr != sr:
         rir = AF.resample(rir, rir_sr, sr)
-    rir = rir[: max(1, wav.numel() // 2)]
     rir = rir / rir.abs().max().clamp_min(1e-8)
+    # Discard the propagation delay before the direct path. Convolving with a
+    # RIR that starts with silence shifts the whole signal later, but
+    # speech_ref1 is not shifted, and SidonFeaturePredictor compares features
+    # at matching frame indices -- so the delay would appear as a permanent
+    # misalignment between the degraded input and its own target.
+    peak = int(torch.argmax(rir.abs()).item())
+    rir = rir[peak:]
+    rir = rir[: max(1, wav.numel() // 2)]
+    if rir.numel() == 0:
+        return wav
     return AF.fftconvolve(wav[None], rir[None])[0, : wav.numel()]
 
 
@@ -150,10 +160,16 @@ class SidonCollateFn:
         for key, values in data:
             values = dict(values)
             clean = torch.as_tensor(values["speech_ref1"]).float()
+            # Validation must be reproducible across runs and workers.
+            # CPython randomises str hashing per process unless PYTHONHASHSEED
+            # is set, so the builtin hash of the utterance id is not a stable
+            # seed; crc32 is. The state is restored only after the crop below,
+            # because the crop offset must be deterministic in validation too.
+            rng_state = None
+            if not self.train:
+                rng_state = random.getstate()
+                random.seed(zlib.crc32(key.encode("utf-8")))
             if self.online_degradation:
-                if not self.train:
-                    rng_state = random.getstate()
-                    random.seed(hash(key) & 0xFFFFFFFF)
                 noisy = degrade_waveform(
                     clean,
                     self.input_sr,
@@ -161,8 +177,6 @@ class SidonCollateFn:
                     self.rir_files,
                     self.degrade_prob,
                 )
-                if not self.train:
-                    random.setstate(rng_state)
             else:
                 noisy = torch.as_tensor(values.get("noisy_speech", clean)).float()
             length = min(clean.numel(), noisy.numel())
@@ -171,6 +185,8 @@ class SidonCollateFn:
                 length = self.max_samples
             else:
                 start = 0
+            if rng_state is not None:
+                random.setstate(rng_state)
             values["speech_ref1"] = clean[start : start + length].numpy()
             values["noisy_speech"] = noisy[start : start + length].numpy()
             processed.append((key, values))

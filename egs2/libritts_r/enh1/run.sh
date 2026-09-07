@@ -10,7 +10,8 @@ stop_stage=8
 ngpu=4
 nj=64
 python=python3
-config=conf/train_sidon.yaml
+config=conf/train.yaml
+decode_config=conf/decode.yaml
 expdir=exp/sidon_w2v_bert2_layer8
 sidon_vocoder=
 test_sets="test-clean test-other"
@@ -79,6 +80,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
     for test_set in ${test_sets}; do
         log "Stage 6: inference (${test_set})"
         ${python} -m espnet2.bin.enh_inference_sidon \
+            --config ${decode_config} \
             --train_config ${expdir}/config.yaml \
             --model_file ${expdir}/valid.loss.best.pth \
             --sidon_vocoder ${sidon_vocoder} \

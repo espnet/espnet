@@ -49,7 +49,30 @@ def _load_feature_predictor(config_path, model_path, device):
         for key, value in state.items()
         if key in expected and expected[key].shape == value.shape
     }
-    skipped = sorted(set(state) - set(compatible))
+    # A checkpoint tensor whose name matches the model but whose shape does not
+    # is a different failure from one the model simply does not have. Because
+    # load_state_dict(strict=False) leaves unmatched parameters at their
+    # initialised values, a silent shape mismatch would run inference on random
+    # weights, so it is an error. Names absent from the model stay a warning:
+    # that is how legacy and adapter-only checkpoints are meant to load.
+    mismatched = sorted(
+        key
+        for key in state
+        if key in expected and expected[key].shape != state[key].shape
+    )
+    if mismatched:
+        detail = ", ".join(
+            f"{key}: checkpoint {tuple(state[key].shape)} vs model "
+            f"{tuple(expected[key].shape)}"
+            for key in mismatched[:5]
+        )
+        raise RuntimeError(
+            f"{len(mismatched)} checkpoint tensors have shapes incompatible "
+            f"with the configured model and would be silently replaced by "
+            f"randomly initialised weights: {detail}"
+            + (" ..." if len(mismatched) > 5 else "")
+        )
+    unused = sorted(set(state) - set(compatible))
     missing = sorted(set(expected) - set(compatible))
     model.load_state_dict(compatible, strict=False)
     missing_lora = [key for key in missing if "lora_" in key]
@@ -59,10 +82,11 @@ def _load_feature_predictor(config_path, model_path, device):
             f"missing {len(missing_lora)} LoRA tensors. Use its original "
             "lora_rank and lora_alpha configuration."
         )
-    if skipped or missing:
+    if unused or missing:
         logger.warning(
-            "Loaded compatible legacy tensors; skipped=%d, missing=%d",
-            len(skipped),
+            "Loaded compatible legacy tensors; "
+            "unused_in_checkpoint=%d, left_at_init=%d",
+            len(unused),
             len(missing),
         )
     return model.eval().to(device)
@@ -70,6 +94,12 @@ def _load_feature_predictor(config_path, model_path, device):
 
 def get_parser():
     parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--config",
+        default=None,
+        help="YAML of default option values (conf/decode.yaml). "
+        "Explicit command-line flags take precedence.",
+    )
     parser.add_argument("--train_config", required=True)
     parser.add_argument("--model_file", required=True)
     parser.add_argument(
@@ -146,7 +176,20 @@ def _restore(waveform, model, vocoder, device, chunk_sec, overlap_sec):
 
 
 def main(cmd=None):
-    args = get_parser().parse_args(cmd)
+    import yaml
+
+    parser = get_parser()
+    args = parser.parse_args(cmd)
+    if args.config is not None:
+        with open(args.config, encoding="utf-8") as stream:
+            defaults = yaml.safe_load(stream) or {}
+        unknown = set(defaults) - set(vars(args))
+        if unknown:
+            raise ValueError(f"unknown keys in {args.config}: {sorted(unknown)}")
+        # set_defaults then reparse, so anything given on the command line
+        # still overrides the file.
+        parser.set_defaults(**defaults)
+        args = parser.parse_args(cmd)
     logging.basicConfig(level=logging.INFO)
     device = args.device if torch.cuda.is_available() else "cpu"
     model = _load_feature_predictor(args.train_config, args.model_file, device)

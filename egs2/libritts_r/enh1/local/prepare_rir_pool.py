@@ -79,6 +79,19 @@ def main():
     p.add_argument("--seed", type=int, default=42)
     args = p.parse_args()
 
+    # pyroomacoustics is not an ESPnet dependency and is not installed by
+    # tools/. Check it once here rather than letting every worker raise the
+    # same ImportError, which buries the actionable message in traceback spam.
+    try:
+        import pyroomacoustics  # noqa: F401
+    except ImportError:
+        raise SystemExit(
+            "pyroomacoustics is required to build the RIR pool but is not "
+            "installed. Run: pip install pyroomacoustics\n"
+            "(See egs2/libritts_r/enh1/README.md for the recipe's extra "
+            "dependencies.)"
+        )
+
     random.seed(args.seed)
     os.makedirs(args.out_dir, exist_ok=True)
 

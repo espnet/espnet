@@ -94,15 +94,27 @@ class W2VBert2Encoder(nn.Module):
         for i in range(waveforms.size(0)):
             wav = waveforms[i, : int(lengths[i].item())]
             wav = F.pad(wav, (40, 40))
+            # kaldi.fbank asserts that the waveform holds at least one full
+            # 25 ms analysis window, so anything shorter raises rather than
+            # returning a single frame. Pad up to one window so the function
+            # is total; degradations such as packet loss can leave very short
+            # segments and a hard assert mid-epoch is not an acceptable
+            # failure mode.
+            min_window = int(round(0.025 * self.input_sr))
+            if wav.numel() < min_window:
+                wav = F.pad(wav, (0, min_window - wav.numel()))
             wav = wav * 32768.0  # int16 scale (SeamlessM4T convention)
             feat = kaldi.fbank(
                 wav.unsqueeze(0),
                 num_mel_bins=80,
                 sample_frequency=float(self.input_sr),
             )
-            # Per-bin CMVN matching SeamlessM4TFeatureExtractor
+            # Per-bin CMVN matching SeamlessM4TFeatureExtractor, which uses
+            # ddof=1. A very short waveform can yield a single fbank frame,
+            # where the unbiased variance is NaN and would poison the whole
+            # batch, so fall back to the biased estimate in that case only.
             mean = feat.mean(dim=0, keepdim=True)
-            var = feat.var(dim=0, unbiased=True, keepdim=True)
+            var = feat.var(dim=0, unbiased=feat.size(0) > 1, keepdim=True)
             feat = (feat - mean) / torch.sqrt(var + 1e-7)
             features_list.append(feat)
 
@@ -157,9 +169,17 @@ class SidonFeaturePredictor(AbsESPnetModel):
         with torch.no_grad():
             target = self.ssl_encoder.extract_clean_features(clean_inputs)
         frames = min(predicted.size(1), target.size(1))
-        loss = torch.nn.functional.mse_loss(
-            predicted[:, :frames].float(), target[:, :frames].float()
-        )
+        # Wav2Vec2BertModel returns hidden states for padded positions too, so
+        # an unmasked mse_loss averages over padding and the loss then depends
+        # on batch composition. Restrict the average to frames that are valid
+        # in both the degraded and the clean sequence.
+        mask = (
+            noisy_inputs["attention_mask"][:, :frames]
+            * clean_inputs["attention_mask"][:, :frames]
+        ).unsqueeze(-1)
+        diff = (predicted[:, :frames].float() - target[:, :frames].float()) ** 2
+        denom = mask.sum().clamp_min(1) * diff.size(-1)
+        loss = (diff * mask).sum() / denom
         return force_gatherable(
             (loss, {"loss": loss.detach()}, noisy_speech.size(0)), loss.device
         )
