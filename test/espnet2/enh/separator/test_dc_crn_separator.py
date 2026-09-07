@@ -1,12 +1,8 @@
 import pytest
 import torch
-from packaging.version import parse as V
-from torch_complex import ComplexTensor
 
 from espnet2.enh.layers.complex_utils import is_complex
 from espnet2.enh.separator.dc_crn_separator import DC_CRNSeparator
-
-is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
 
 
 @pytest.mark.parametrize("input_dim", [33, 65])
@@ -55,7 +51,7 @@ def test_dc_crn_separator_forward_backward_complex(
 
     real = torch.rand(2, 10, input_dim)
     imag = torch.rand(2, 10, input_dim)
-    x = torch.complex(real, imag) if is_torch_1_9_plus else ComplexTensor(real, imag)
+    x = torch.complex(real, imag)
     x_lens = torch.tensor([10, 8], dtype=torch.long)
 
     masked, flens, others = model(x, ilens=x_lens)
@@ -112,7 +108,7 @@ def test_dc_crn_separator_multich_input(
 
     real = torch.rand(2, 10, input_channels[0] // 2, 33)
     imag = torch.rand(2, 10, input_channels[0] // 2, 33)
-    x = torch.complex(real, imag) if is_torch_1_9_plus else ComplexTensor(real, imag)
+    x = torch.complex(real, imag)
     x_lens = torch.tensor([10, 8], dtype=torch.long)
 
     masked, flens, others = model(x, ilens=x_lens)
@@ -144,7 +140,7 @@ def test_dc_crn_separator_invalid_type():
 def test_dc_crn_separator_output():
     real = torch.rand(2, 10, 17)
     imag = torch.rand(2, 10, 17)
-    x = torch.complex(real, imag) if is_torch_1_9_plus else ComplexTensor(real, imag)
+    x = torch.complex(real, imag)
     x_lens = torch.tensor([10, 8], dtype=torch.long)
 
     for num_spk in range(1, 3):

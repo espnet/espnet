@@ -7,13 +7,13 @@ import argparse
 import logging
 from distutils.util import strtobool
 
-import kaldiio
 import numpy
 import resampy
 
 from espnet2.legacy.transform.spectrogram import logmelspectrogram
 from espnet2.legacy.utils.cli_utils import get_commandline_args
 from espnet2.legacy.utils.cli_writers import file_writer_helper
+from espnet2.utils.kaldiio_utils import import_kaldiio
 from espnet2.utils.types import int_or_none
 
 
@@ -101,7 +101,7 @@ def main():
     logging.info(get_commandline_args())
 
     with (
-        kaldiio.ReadHelper(args.rspecifier, segments=args.segments) as reader,
+        import_kaldiio().ReadHelper(args.rspecifier, segments=args.segments) as reader,
         file_writer_helper(
             args.wspecifier,
             filetype=args.filetype,

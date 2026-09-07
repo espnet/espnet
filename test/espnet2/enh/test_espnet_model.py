@@ -1,6 +1,5 @@
 import pytest
 import torch
-from packaging.version import parse as V
 
 from espnet2.enh.decoder.conv_decoder import ConvDecoder
 from espnet2.enh.decoder.null_decoder import NullDecoder
@@ -29,10 +28,6 @@ from espnet2.enh.separator.tfgridnetv2_separator import TFGridNetV2
 from espnet2.enh.separator.tfgridnetv3_separator import TFGridNetV3
 from espnet2.enh.separator.transformer_separator import TransformerSeparator
 from espnet2.enh.separator.uses_separator import USESSeparator
-
-is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
-is_torch_1_12_1_plus = V(torch.__version__) >= V("1.12.1")
-
 
 stft_encoder = STFTEncoder(n_fft=32, hop_length=16)
 
@@ -357,8 +352,6 @@ def test_svoice_model(encoder, decoder, separator, training, loss_wrappers):
 @pytest.mark.parametrize("loss_wrappers", [[pit_wrapper]])
 @pytest.mark.parametrize("output_from", ["dnn1", "dnn2", "mfmcwf"])
 def test_ineube(n_mics, training, loss_wrappers, output_from):
-    if not is_torch_1_9_plus:
-        return
     inputs = torch.randn(1, 300, n_mics)
     ilens = torch.LongTensor([300])
     speech_refs = [torch.randn(1, 300).float(), torch.randn(1, 300).float()]
@@ -395,8 +388,6 @@ def test_ineube(n_mics, training, loss_wrappers, output_from):
 @pytest.mark.parametrize("n_mics", [1, 2])
 @pytest.mark.parametrize("loss_wrappers", [[pit_wrapper]])
 def test_tfgridnet(n_mics, training, loss_wrappers):
-    if not is_torch_1_9_plus:
-        return
     if n_mics == 1:
         inputs = torch.randn(1, 300)
     else:
@@ -443,8 +434,6 @@ def test_tfgridnet(n_mics, training, loss_wrappers):
 @pytest.mark.parametrize("n_mics", [1, 2])
 @pytest.mark.parametrize("loss_wrappers", [[pit_wrapper]])
 def test_tfgridnetv2(n_mics, training, loss_wrappers):
-    if not is_torch_1_9_plus:
-        return
     if n_mics == 1:
         inputs = torch.randn(1, 300)
     else:
@@ -491,8 +480,6 @@ def test_tfgridnetv2(n_mics, training, loss_wrappers):
 @pytest.mark.parametrize("n_mics", [1])
 @pytest.mark.parametrize("loss_wrappers", [[pit_wrapper]])
 def test_tfgridnetv3(n_mics, training, loss_wrappers):
-    if not is_torch_1_9_plus:
-        return
     if n_mics == 1:
         inputs = torch.randn(1, 320)
     else:
@@ -646,12 +633,9 @@ def test_forward_with_beamformer_net(
     if not loss_type.startswith("mask") and mask_type != "IBM":
         # `mask_type` has no effect when `loss_type` is not "mask..."
         return
-    if not is_torch_1_9_plus and use_builtin_complex:
-        # builtin complex support is only well supported in PyTorch 1.9+
-        return
-    if is_torch_1_12_1_plus and not use_builtin_complex:
+    if not use_builtin_complex:
         # non-builtin complex support is deprecated in PyTorch 1.12.1+
-        return
+        pytest.skip("non-builtin complex is deprecated on torch>=1.12.1")
 
     ch = 3
     inputs = random_speech[..., :ch].float()
@@ -682,7 +666,7 @@ def test_forward_with_beamformer_net(
         ref_channel=0,
         use_noise_mask=False,
         beamformer_type="mvdr_souden",
-        use_torchaudio_api=is_torch_1_12_1_plus,
+        use_torchaudio_api=True,
     )
     enh_model = ESPnetEnhancementModel(
         encoder=encoder,

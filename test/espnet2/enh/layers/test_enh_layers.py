@@ -2,7 +2,6 @@ import numpy as np
 import pytest
 import torch
 import torch_complex.functional as FC
-from packaging.version import parse as V
 from torch_complex.tensor import ComplexTensor
 
 from espnet2.enh.layers.beamformer import (
@@ -13,10 +12,6 @@ from espnet2.enh.layers.beamformer import (
 )
 from espnet2.enh.layers.complex_utils import solve
 from espnet2.layers.stft import Stft
-
-is_torch_1_1_plus = V(torch.__version__) >= V("1.1.0")
-is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
-
 
 random_speech = torch.tensor(
     [
@@ -64,9 +59,6 @@ random_speech = torch.tensor(
 @pytest.mark.parametrize("ch", [2, 4, 6, 8])
 @pytest.mark.parametrize("mode", ["power", "evd"])
 def test_get_rtf(ch, mode):
-    if not is_torch_1_9_plus and mode == "evd":
-        # torch 1.9.0+ is required for "evd" mode
-        return
     if mode == "evd":
         complex_wrapper = torch.complex
         complex_module = torch
@@ -98,18 +90,10 @@ def test_get_rtf(ch, mode):
 
     # (B, F, C, 1)
     rtf = get_rtf(Phi_X, Phi_N, mode=mode, reference_vector=0, iterations=20)
-    if is_torch_1_1_plus:
-        rtf = rtf / (rtf.abs().max(dim=-2, keepdim=True).values + 1e-15)
-    else:
-        rtf = rtf / (rtf.abs().max(dim=-2, keepdim=True)[0] + 1e-15)
+    rtf = rtf / (rtf.abs().max(dim=-2, keepdim=True).values + 1e-15)
     # rtf \approx Phi_N MaxEigVec(Phi_N^-1 @ Phi_X)
-    if is_torch_1_1_plus:
-        # torch.solve is required, which is only available after pytorch 1.1.0+
-        mat = solve(Phi_X, Phi_N)[0]
-        max_eigenvec = solve(rtf, Phi_N)[0]
-    else:
-        mat = complex_module.matmul(Phi_N.inverse2(), Phi_X)
-        max_eigenvec = complex_module.matmul(Phi_N.inverse2(), rtf)
+    mat = solve(Phi_X, Phi_N)[0]
+    max_eigenvec = solve(rtf, Phi_N)[0]
     factor = complex_module.matmul(mat, max_eigenvec)
     assert complex_module.allclose(
         complex_module.matmul(max_eigenvec, factor.transpose(-1, -2)),
@@ -139,7 +123,6 @@ def test_signal_framing():
     assert FC.allclose(X2[..., -1], X)
 
 
-@pytest.mark.skipif(not is_torch_1_9_plus, reason="Require torch 1.9.0+")
 @pytest.mark.parametrize("ch", [2, 4, 6, 8])
 def test_gevd(ch):
     stft = Stft(
@@ -176,7 +159,6 @@ def test_gevd(ch):
     )
 
 
-@pytest.mark.skipif(not is_torch_1_9_plus, reason="Require torch 1.9.0+")
 def test_gev_phase_correction():
     mat = ComplexTensor(torch.rand(2, 3, 4), torch.rand(2, 3, 4))
     mat_th = torch.complex(mat.real, mat.imag)
