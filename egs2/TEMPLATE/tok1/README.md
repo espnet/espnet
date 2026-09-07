@@ -16,11 +16,8 @@ speech tokenizer with ASR and speaker-conditioned reconstruction objectives.
 9. Train the speech tokenizer and its downstream objectives.
 10. Extract discrete token sequences without loading downstream objectives.
 
-The adversarial task uses two optimizers and
-`SpeechTokenizerGANTrainer`. The non-adversarial task is selected with
-`--tok_task tok` and will use one optimizer and the
-standard trainer once its task and reconstruction objectives are implemented.
-Speaker conditioning is required by both task variants.
+The GAN task uses two optimizers and `SpeechTokenizerGANTrainer`.
+Speaker embeddings are required for reconstruction during training.
 
 ## Creating a corpus recipe
 
@@ -44,9 +41,9 @@ model instead, specify:
 ./tok.sh --centroid_path /path/to/km_2000.mdl ...
 ```
 
-## Task selection
+## Training
 
-GAN-based ASR and reconstruction training is the current implementation:
+Run joint ASR and GAN reconstruction training:
 
 ```bash
 ./tok.sh \
