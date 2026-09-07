@@ -14,7 +14,6 @@ from espnet2.layers.houlsby_adapter_layer import (  # Houlsby_Adapter,
 
 pytest.importorskip("transformers")
 pytest.importorskip("s3prl")
-pytest.importorskip("loralib")
 is_python_3_8_plus = sys.version_info >= (3, 8)
 is_torch_2_6_plus = V(torch.__version__) >= V("2.6.0")
 is_torch_2_9_plus = V(torch.__version__) >= V("2.9.0")
