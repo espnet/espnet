@@ -1,6 +1,11 @@
 # PyTorch version: The latest six versions have been tested.
 # Please check https://github.com/espnet/espnet?tab=readme-ov-file#espnet-end-to-end-speech-processing-toolkit
-TH_VERSION := 2.7.1
+# Only used when TH_VERSION is not passed in. ci/install.sh always passes it,
+# so this default is what a manual `make` and the docker build get - and it is
+# checked against ci/image_variants.json by ci/check_ci_image_config.py,
+# because install_torch.sh exits 1 on anything outside that set and nothing
+# noticed for five months when this said 2.7.1.
+TH_VERSION := 2.11.0
 
 # Use pip for pytorch installation even if you have anaconda
 ifneq ($(shell test -f ./activate_python.sh && grep 'conda activate' ./activate_python.sh),)

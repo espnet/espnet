@@ -27,7 +27,15 @@ class CTCPrefixScoreTH(object):
         :param torch.Tensor xlens: input lengths (B,)
         :param int blank: blank label id
         :param int eos: end-of-sequence id
-        :param int margin: margin parameter for windowing (0 means no windowing)
+        :param int margin: margin parameter for windowing (0 means no windowing).
+            NOTE: a positive margin now also windows the recursion when no
+            attention weights are given, centred on the frame where the
+            prefix's own forward probability peaks. Previously a positive
+            margin without `att_w` fell through to the exact full-utterance
+            recursion, so a caller that already sets one -- an espnet1-style
+            config with a decoder that supplies no attention weights, for
+            instance -- gets approximate scores where it used to get exact
+            ones. Set margin=0 to keep the exact behaviour.
         """
         # In the comment lines,
         # we assume T: input_length, B: batch size, W: beam width, O: output dim.
@@ -59,7 +67,7 @@ class CTCPrefixScoreTH(object):
 
         # Setup CTC windowing
         self.margin = margin
-        if margin > 0:
+        if margin > 0:  # only the attention-based window needs these
             self.frame_ids = torch.arange(
                 self.input_length, dtype=self.dtype, device=self.device
             )
@@ -152,17 +160,29 @@ class CTCPrefixScoreTH(object):
         else:
             log_phi[:, idx_n, last_ids] = r_prev[:, 1, :]
 
-        # decide start and end frames based on attention weights
-        if att_w is not None and self.margin > 0:
+        # decide start and end frames, so that the recursion below only walks
+        # the part of the utterance the prefix can plausibly be in
+        if self.margin <= 0:
+            f_min = f_max = 0
+            start = max(output_length, 1)
+            end = self.input_length
+        elif att_w is not None:
+            # espnet1 behaviour: centre the window on the attention peak
             f_arg = torch.matmul(att_w, self.frame_ids)
             f_min = max(int(f_arg.min().cpu()), f_min_prev)
             f_max = max(int(f_arg.max().cpu()), f_max_prev)
             start = min(f_max_prev, max(f_min - self.margin, output_length, 1))
             end = min(f_max + self.margin, self.input_length)
         else:
-            f_min = f_max = 0
-            start = max(output_length, 1)
-            end = self.input_length
+            # centre it on the frame where the prefix's own forward
+            # probability peaks, i.e. where this hypothesis has got to. That
+            # needs no attention weights, so it works for any decoder, and
+            # `r_sum` is already computed above.
+            peak = r_sum.argmax(dim=0)  # (n_bh,)
+            f_min = max(int(peak.min()), f_min_prev)
+            f_max = max(int(peak.max()), f_max_prev)
+            start = min(f_max_prev, max(f_min - self.margin, output_length, 1))
+            end = min(f_max + self.margin + 1, self.input_length)
 
         # compute forward probabilities log(r_t^n(h)) and log(r_t^b(h))
         for t in range(start, end):
