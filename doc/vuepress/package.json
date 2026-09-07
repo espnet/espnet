@@ -11,11 +11,11 @@
     "docs:update-package": "npx vp-update"
   },
   "devDependencies": {
-    "@vuepress/bundler-vite": "2.0.0-rc.14",
-    "vue": "^3.4.31",
-    "vuepress": "2.0.0-rc.14",
-    "vuepress-plugin-search-pro": "^2.0.0-rc.51",
-    "vuepress-theme-hope": "2.0.0-rc.51"
+    "@vuepress/bundler-vite": "2.0.0-rc.31",
+    "@vuepress/plugin-slimsearch": "2.0.0-rc.134",
+    "vue": "^3.5.40",
+    "vuepress": "2.0.0-rc.31",
+    "vuepress-theme-hope": "2.0.0-rc.109"
   },
   "dependencies": {
     "js-yaml": "^4.3.1"
