@@ -1,6 +1,10 @@
 name: publish docker image
 
 on:
+  # This only ever ran on a schedule, so when it broke - in April 2026 - no pull
+  # request went red and nobody saw it for five months. Dispatch exists so a fix
+  # can be tested without waiting for Monday.
+  workflow_dispatch:
   schedule:
     # Runs every Monday at midnight UTC
     - cron: "0 0 * * 1"
@@ -28,7 +32,7 @@ jobs:
           - variant: gpu
             from_tag: cuda-latest
             image_tag: espnet/espnet:gpu-latest
-            cuda_arg: "--build-arg CUDA_VER=11.1"
+            cuda_arg: "--build-arg CUDA_VER=12.6"
     steps:
       # See ci_on_ubuntu.yml: the default persists GITHUB_TOKEN in .git/config.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -51,6 +55,7 @@ jobs:
         run: |
           cd docker
           docker build --build-arg FROM_TAG=${{ matrix.from_tag }} \
+            --build-arg TH_VERSION=2.9.1 \
             ${{ matrix.cuda_arg }} \
             -f prebuilt/devel.dockerfile \
             --target devel \

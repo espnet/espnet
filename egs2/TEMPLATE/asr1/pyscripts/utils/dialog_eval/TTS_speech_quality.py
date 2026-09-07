@@ -46,10 +46,8 @@ def TTS_psuedomos(TTS_audio_output: Tuple[int, np.ndarray]) -> str:
         sheet_ssqa: 4.03
     """
     try:
-        from versa import (
-            pseudo_mos_metric,
-            sheet_ssqa,
-        )
+        from versa.utterance_metrics.pseudo_mos import pseudo_mos_metric
+        from versa.utterance_metrics.sheet_ssqa import sheet_ssqa
     except Exception as e:
         print("Error: Versa is not properly installed.")
         raise e
