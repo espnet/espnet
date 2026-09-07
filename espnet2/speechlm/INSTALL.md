@@ -24,6 +24,12 @@ pip install torch torchaudio torchvision --index-url https://download.pytorch.or
 pip install -r espnet2/speechlm/requirement.txt
 ```
 
+Alternatively, install ESPnet with its SpeechLM extra:
+
+```bash
+pip install -e ".[speechlm]"
+```
+
 ## 3. Install FlashAttention
 
 Choose the backend for your GPU; see
