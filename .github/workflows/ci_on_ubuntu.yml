@@ -235,8 +235,9 @@ jobs:
         with:
           persist-credentials: false
 
-      # Still needed: the image has the s3prl and transformers packages, but the
-      # checkpoints are fetched at test-collection time and are not baked in.
+      # Still needed: the image has the s3prl, transformers and torch.hub
+      # packages, but their checkpoints are fetched at test-collection time and
+      # are not baked in.
       # Both are cached because both have taken jobs down - huggingface.co 429s
       # during a run (72 tests, fixed by passing HF_TOKEN) and, more recently,
       #   test_hugging_face_transformers_decoder.py::..._causal_lm
@@ -249,6 +250,7 @@ jobs:
           path: |
             ~/.cache/s3prl
             ~/.cache/huggingface/hub
+            ~/.cache/torch/hub
           key: ${{ runner.os }}-model-cache-v1
 
       # Fast path: everything is in the image already.
@@ -321,6 +323,7 @@ jobs:
           path: |
             ~/.cache/s3prl
             ~/.cache/huggingface/hub
+            ~/.cache/torch/hub
           key: ${{ runner.os }}-model-cache-v1
 
   test_utils_espnet2:
@@ -455,6 +458,7 @@ jobs:
           path: |
             ~/.cache/s3prl
             ~/.cache/huggingface/hub
+            ~/.cache/torch/hub
           key: ${{ runner.os }}-model-cache-v1
 
       # Fast path. The apt packages install-system-dependencies used to install
@@ -497,6 +501,7 @@ jobs:
           path: |
             ~/.cache/s3prl
             ~/.cache/huggingface/hub
+            ~/.cache/torch/hub
           key: ${{ runner.os }}-model-cache-v1
 
   test_configuration_espnet2:
@@ -536,6 +541,7 @@ jobs:
           path: |
             ~/.cache/s3prl
             ~/.cache/huggingface/hub
+            ~/.cache/torch/hub
           key: ${{ runner.os }}-model-cache-v1
       - uses: ./.github/actions/use-prebuilt-environment
         if: needs.resolve_ci_image.outputs.available == 'true'
@@ -565,6 +571,7 @@ jobs:
           path: |
             ~/.cache/s3prl
             ~/.cache/huggingface/hub
+            ~/.cache/torch/hub
           key: ${{ runner.os }}-model-cache-v1
 
   test_python_espnet3:
