@@ -110,9 +110,7 @@ def _read_audio(value: str, sample_rate: int = 16000):
 def _restore_chunk(waveform, model, vocoder, device):
     wav_tensor = torch.from_numpy(waveform).float().to(device)
     lengths = torch.tensor([len(waveform)], device=device)
-    ssl_inputs = model.ssl_encoder._wav_to_ssl_inputs(
-        wav_tensor.unsqueeze(0), lengths
-    )
+    ssl_inputs = model.ssl_encoder._wav_to_ssl_inputs(wav_tensor.unsqueeze(0), lengths)
     features, _ = model.ssl_encoder(ssl_inputs)
     output = vocoder(features.transpose(1, 2))
     return output.reshape(-1).float().cpu().numpy()

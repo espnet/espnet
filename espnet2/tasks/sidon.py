@@ -164,9 +164,7 @@ class SidonCollateFn:
                 if not self.train:
                     random.setstate(rng_state)
             else:
-                noisy = torch.as_tensor(
-                    values.get("noisy_speech", clean)
-                ).float()
+                noisy = torch.as_tensor(values.get("noisy_speech", clean)).float()
             length = min(clean.numel(), noisy.numel())
             if length > self.max_samples:
                 start = random.randint(0, length - self.max_samples)

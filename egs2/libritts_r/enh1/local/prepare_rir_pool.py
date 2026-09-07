@@ -104,8 +104,7 @@ def main():
     done = 0
     with ProcessPoolExecutor(max_workers=args.nj) as ex:
         futures = {
-            ex.submit(_gen_one, i, args.out_dir, args.seed): i
-            for i in to_generate
+            ex.submit(_gen_one, i, args.out_dir, args.seed): i for i in to_generate
         }
         for fut in as_completed(futures):
             try:
