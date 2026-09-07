@@ -127,6 +127,18 @@ python create_menu.py --root ./src
 
 npm i
 # npm run docs:dev
+
+# Raise the V8 heap for the build.  Rendering is the expensive phase: this site
+# is ~1856 pages, and on the vuepress rc.31 / vite 8 stack that overran node's
+# default old-space limit (~4 GB) and aborted with exit 134:
+#
+#   - Rendering 1856 pages
+#   FATAL ERROR: Reached heap limit Allocation failed - JavaScript heap out of memory
+#
+# GitHub's ubuntu-latest runners have 16 GB, so 8 GB of heap is well within
+# budget.  Exported rather than prefixed so it also covers the child processes
+# vuepress spawns.
+export NODE_OPTIONS="${NODE_OPTIONS:+$NODE_OPTIONS }--max-old-space-size=8192"
 npm run docs:build
 mv src/.vuepress/dist ../../
 
