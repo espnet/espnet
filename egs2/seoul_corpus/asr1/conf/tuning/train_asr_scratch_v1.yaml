@@ -1,0 +1,101 @@
+# E-Branchformer baseline for the Seoul Corpus (~26 h of spontaneous Korean).
+# Trained with NVIDIA A100 (40GB) x 1; lower batch_bins if you have less memory.
+# Sizing arithmetic -- redo this if you change the corpus or max_epoch.
+# batch_bins counts raw samples, and train/ holds 1.247e9 of them (21.7 h @ 16 kHz):
+#   4e6 bins -> ~312 batches/epoch = 312 optimizer steps/epoch (accum_grad 1)
+#   x 60 epochs = ~18.7k steps, so warmup_steps below stays a fraction of training.
+# The 16e6 bins that comparable recipes use are tuned for 200 h+ corpora; here they
+# would give only ~78 batches/epoch (~2.3k total steps) and the LR warmup would
+# never finish, leaving the model training at a small fraction of its peak rate.
+# Do not raise batch_bins to "fill" the GPU: this peaks around 7 GB of the 40 GB an
+# A100 offers, but GPU compute is only ~30% of epoch wall clock (the rest is data
+# loading and validation), so bigger batches mainly buy fewer optimizer steps.
+# accum_grad stays 1 -- it only exists to fake a large batch when memory is tight,
+# and here it would just double the forward/backward calls per step.
+batch_type: numel
+batch_bins: 4000000
+accum_grad: 1
+max_epoch: 60
+patience: none
+init: none
+best_model_criterion:
+-   - valid
+    - acc
+    - max
+keep_nbest_models: 10
+# Kept low on purpose: stage 10 (collect_stats) runs one asr_train process per
+# parallel job, each with its own dataloader workers, so nj x (1 + num_workers)
+# processes share the node's memory.  At nj 16 on a 64 GB allocation, 4 workers
+# per job pushed the cgroup over the limit and every job was OOM-killed.
+num_workers: 2
+# Attention plots cost ~42 s/epoch (21% of wall clock); a debugging aid, not needed
+# for a baseline run.  Set back to 3 when you want to inspect the alignments.
+num_att_plot: 0
+use_amp: true
+
+frontend_conf:
+    n_fft: 512
+    hop_length: 160
+
+# Spontaneous speech is noisy and the corpus is small, so SpecAugment matters.
+specaug: specaug
+specaug_conf:
+    apply_time_warp: true
+    time_warp_window: 5
+    time_warp_mode: bicubic
+    apply_freq_mask: true
+    freq_mask_width_range:
+    - 0
+    - 27
+    num_freq_mask: 2
+    apply_time_mask: true
+    time_mask_width_ratio_range:
+    - 0.
+    - 0.05
+    num_time_mask: 5
+
+encoder: e_branchformer
+encoder_conf:
+    output_size: 256
+    attention_heads: 4
+    attention_layer_type: rel_selfattn
+    pos_enc_layer_type: rel_pos
+    rel_pos_type: latest
+    cgmlp_linear_units: 1024
+    cgmlp_conv_kernel: 31
+    use_linear_after_conv: false
+    gate_activation: identity
+    num_blocks: 12
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    attention_dropout_rate: 0.1
+    input_layer: conv2d
+    layer_drop_rate: 0.0
+    linear_units: 1024
+    positionwise_layer_type: linear
+    use_ffn: true
+    macaron_ffn: true
+    merge_conv_kernel: 31
+
+decoder: transformer
+decoder_conf:
+    attention_heads: 4
+    linear_units: 2048
+    num_blocks: 6
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    self_attention_dropout_rate: 0.0
+    src_attention_dropout_rate: 0.0
+
+model_conf:
+    ctc_weight: 0.3
+    lsm_weight: 0.1
+    length_normalized_loss: false
+
+optim: adam
+optim_conf:
+    lr: 0.002
+    weight_decay: 0.000001
+scheduler: warmuplr
+scheduler_conf:
+    warmup_steps: 2500

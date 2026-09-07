@@ -105,6 +105,7 @@ KISING=downloads
 KSC=downloads
 KSS=
 QASR_TTS=downloads
+SEOUL_CORPUS= # dir with sound.tgz + label.tgz, or unpacked sound/ + label/
 SNIPS= # smart-light-en-closed-field data path
 SPGISPEECH=
 SPEECH_PROMPT_v2=
@@ -329,6 +330,7 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     JSUT=downloads
     JVS=downloads
     KSS=
+    SEOUL_CORPUS=
     THCHS30=downloads
     TIMIT=
     TSUKUYOMI=downloads
