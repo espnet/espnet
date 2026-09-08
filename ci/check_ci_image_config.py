@@ -56,7 +56,16 @@ with the setup.py to pyproject.toml migration and went unnoticed for five months
 because the release before it had deliberately moved the same three packages out
 to tools/Makefile and nothing recorded why.
 
-And eighth, the workflow files must have no duplicate mapping keys. PyYAML
+Eighth, every pytorch version named outside ci/image_variants.json must be one
+that file lists. tools/Makefile's TH_VERSION default and the docker publish
+workflow's build argument are the two places that name one, and both are only
+reached by paths no pull request exercises - the Makefile default because
+ci/install.sh always passes TH_VERSION, the workflow because it runs on a
+schedule. So when install_torch.sh stopped supporting 2.7.1, the default stayed
+at 2.7.1 and the weekly docker publish failed every Monday for five months
+without a single red pull request.
+
+And ninth, the workflow files must have no duplicate mapping keys. PyYAML
 accepts them and lets the last one win, so writing a second env: block into a
 step silently discards the first - which is exactly what nearly dropped
 GITHUB_TOKEN from the two steps that need it for torch.hub.
@@ -487,6 +496,125 @@ def check_no_direct_references() -> list:
     return problems
 
 
+INSTALL_TORCH = Path("tools/installers/install_torch.sh")
+
+# Everywhere outside ci/image_variants.json that names a python or pytorch
+# version. An explicit list rather than a scan of every file: a scan invents
+# false positives on comments and prose, and this is meant to be readable.
+VARIANT_SITES = (
+    (Path("tools/Makefile"), re.compile(r"^TH_VERSION\s*:?=\s*(\S+)", re.M), "pytorch"),
+    (
+        Path("docker/ci.dockerfile"),
+        re.compile(r"^ARG PYTHON_VERSION=(\S+)", re.M),
+        "python",
+    ),
+    (
+        Path("docker/ci.dockerfile"),
+        re.compile(r"^ARG TH_VERSION=(\S+)", re.M),
+        "pytorch",
+    ),
+    (
+        Path("docker/prebuilt/devel.dockerfile"),
+        re.compile(r"conda install[^\n]*\"python=([0-9.]+)\""),
+        "python",
+    ),
+    (
+        Path(".github/workflows/publish_docker_image.yml"),
+        re.compile(r"--build-arg\s+TH_VERSION=(\S+)"),
+        "pytorch",
+    ),
+)
+
+
+def check_versions_are_built_variants() -> list:
+    """Every version named at those sites must be one image_variants.json lists.
+
+    install_torch.sh exits 1 on a pytorch version outside that set, and the
+    python floor is a hard requirement of pyproject.toml, so a version outside
+    it is not a slow path - it is a build that cannot succeed. Two of these
+    sites were wrong for five months (TH_VERSION 2.7.1 and conda python=3.11)
+    because the only path that reads them is the weekly docker publish, which
+    runs on a schedule and so never turns a pull request red.
+    """
+    pythons, torches = variants()
+    allowed = {"python": pythons, "pytorch": torches}
+    problems = []
+    for path, pattern, axis in VARIANT_SITES:
+        if not path.exists():
+            problems.append(f"{path}: missing, so its version cannot be checked")
+            continue
+        text = path.read_text()
+        for match in pattern.finditer(text):
+            found = match.group(1).strip("\"'")
+            if found in allowed[axis]:
+                continue
+            line = text[: match.start()].count("\n") + 1
+            problems.append(
+                f"{path}:{line}: names {axis} {found}, which "
+                f"ci/image_variants.json does not list "
+                f"({', '.join(allowed[axis])})"
+            )
+    return problems
+
+
+def _order(version: str) -> tuple:
+    """Sort key for a dotted version, so "3.9" does not outrank "3.12"."""
+    return tuple(int(part) for part in version.split("."))
+
+
+def check_declared_support_matches_variants() -> list:
+    """What the package tells the world must be the set CI actually tests."""
+    pythons, torches = variants()
+    problems = []
+
+    text = PYPROJECT.read_text()
+    classifiers = set(
+        re.findall(r'"Programming Language :: Python :: (\d+\.\d+)"', text)
+    )
+    if classifiers != set(pythons):
+        problems.append(
+            f"{PYPROJECT}: python classifiers are {sorted(classifiers)}, but "
+            f"ci/image_variants.json builds {sorted(pythons)}"
+        )
+
+    match = re.search(r'requires-python\s*=\s*"([^"]+)"', text)
+    floor = re.search(r">=\s*(\d+\.\d+)", match.group(1)) if match else None
+    lowest = min(pythons, key=_order)
+    if floor is None or floor.group(1) != lowest:
+        got = floor.group(1) if floor else match.group(1) if match else "nothing"
+        problems.append(
+            f"{PYPROJECT}: requires-python floors python at {got}, but the "
+            f"lowest version CI builds is {lowest}"
+        )
+
+    match = re.search(r'"torch>=([0-9.]+)', text)
+    lowest_torch = min(torches, key=_order)
+    if match is None or match.group(1) != lowest_torch:
+        got = match.group(1) if match else "nothing"
+        problems.append(
+            f"{PYPROJECT}: torch is floored at {got}, but the lowest version "
+            f"CI builds is {lowest_torch}"
+        )
+
+    if not INSTALL_TORCH.exists():
+        problems.append(f"{INSTALL_TORCH}: missing")
+        return problems
+    installable = set(
+        re.findall(
+            r"^\s*install_torch (\d+\.\d+\.\d+)",
+            INSTALL_TORCH.read_text(),
+            re.M,
+        )
+    )
+    if installable != set(torches):
+        problems.append(
+            f"{INSTALL_TORCH}: installs {sorted(installable)}, but "
+            f"ci/image_variants.json builds {sorted(torches)}. It exits 1 on "
+            "anything it does not install"
+        )
+    return problems
+
+
 def main() -> int:
     bad = (
         check_variants()
@@ -499,6 +627,8 @@ def main() -> int:
         + check_permissions_declared()
         + check_codecov_token()
         + check_no_direct_references()
+        + check_versions_are_built_variants()
+        + check_declared_support_matches_variants()
     )
     for problem in bad:
         print(problem, file=sys.stderr)
@@ -511,7 +641,9 @@ def main() -> int:
             "HF_TOKEN; every third-party action is pinned to a SHA; "
             "every checkout drops its credentials; every job declares "
             "permissions; every codecov upload has a token; pyproject declares "
-            "no direct references; no duplicate keys"
+            "no direct references; every python and pytorch version named "
+            "outside image_variants.json is one it lists, and what the "
+            "package declares matches it; no duplicate keys"
         )
         return 0
     if bad:
