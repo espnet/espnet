@@ -1,0 +1,98 @@
+# Reports workflows whose latest run failed on an event nobody watches, into a
+# single issue that it keeps up to date.
+#
+# Three failures here went unnoticed for months, all with the same shape: the
+# only path that runs them is a schedule or a release tag, so their failure
+# never turned a pull request red.
+#
+#   publish_python_package.yml   5 months. Found by trying to cut a release.
+#   publish_docker_image.yml     5 months. Found by opening the deployments page.
+#
+# Known limitation, stated rather than hidden: this runs on a schedule too, so
+# it cannot report its own failure. What it leaves behind is a stale issue - the
+# report stops changing - which is weaker than a red check but not nothing.
+
+name: report broken workflows
+
+on:
+  schedule:
+    # 06:00 UTC daily. Away from the docker publish (Monday 00:00) and the CI
+    # image rebuild (03:00), so a failure of those is already visible here.
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    if: github.repository == 'espnet/espnet'
+    steps:
+      # See ci_on_ubuntu.yml: the default persists GITHUB_TOKEN in .git/config.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Look for workflows failing where no pull request shows it
+        id: scan
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -o pipefail
+          if python3 ci/report_broken_workflows.py | tee report.txt; then
+            echo "broken=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "broken=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      # One issue, edited in place. Editing the body does not notify, so a
+      # problem that persists does not mail everyone once a day; a new problem
+      # arriving does, because the issue is opened then.
+      - name: Open or update the report issue
+        if: steps.scan.outputs.broken == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TITLE: "CI: workflows failing where no pull request shows it"
+        run: |
+          {
+            echo "Maintained by \`.github/workflows/report_broken_workflows.yml\`."
+            echo "Edited in place each day; close it once the runs are green."
+            echo
+            echo '```'
+            cat report.txt
+            echo '```'
+            echo
+            echo "Last checked: $(date -u '+%Y-%m-%d %H:%M UTC')"
+          } > body.md
+          existing=$(gh issue list --state open --search "$TITLE in:title" \
+            --json number,title \
+            --jq ".[] | select(.title == \"$TITLE\") | .number" | head -1)
+          if [ -n "${existing}" ]; then
+            gh issue edit "${existing}" --body-file body.md
+            echo "updated #${existing}"
+          else
+            gh issue create --title "$TITLE" --body-file body.md
+          fi
+
+      - name: Close the report issue once nothing is failing
+        if: steps.scan.outputs.broken == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TITLE: "CI: workflows failing where no pull request shows it"
+        run: |
+          existing=$(gh issue list --state open --search "$TITLE in:title" \
+            --json number,title \
+            --jq ".[] | select(.title == \"$TITLE\") | .number" | head -1)
+          if [ -n "${existing}" ]; then
+            gh issue close "${existing}" \
+              --comment "Every workflow's latest run is green outside pull requests."
+            echo "closed #${existing}"
+          else
+            echo "nothing failing, and no issue open"
+          fi
