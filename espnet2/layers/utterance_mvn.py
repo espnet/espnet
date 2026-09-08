@@ -72,6 +72,12 @@ def utterance_mvn(
 
     if norm_means:
         x -= mean
+        # mean is broadcast over the padded frames too, so restore the zero padding
+        # before it reaches the variance below or the caller.
+        if x.requires_grad:
+            x = x.masked_fill(make_pad_mask(ilens, x, 1), 0.0)
+        else:
+            x.masked_fill_(make_pad_mask(ilens, x, 1), 0.0)
 
         if norm_vars:
             var = x.pow(2).sum(dim=1, keepdim=True) / ilens_

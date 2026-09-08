@@ -2,7 +2,6 @@ import sys
 
 import pytest
 import torch
-from packaging.version import parse as V
 
 try:
     import s3prl  # noqa
@@ -20,11 +19,10 @@ from espnet2.layers.houlsby_adapter_layer import (
 
 pytest.importorskip("transformers")
 is_python_3_8_plus = sys.version_info >= (3, 8)
-is_torch_1_8_plus = V(torch.__version__) >= V("1.8.0")
 
 
 @pytest.mark.skipif(
-    is_s3prl_available and not is_torch_1_8_plus or not is_python_3_8_plus,
+    not is_python_3_8_plus,
     reason="Not supported",
 )
 def test_transformers_availability_false():
@@ -34,9 +32,7 @@ def test_transformers_availability_false():
         ), HoulsbyTransformerSentenceEncoderLayer
 
 
-@pytest.mark.skipif(
-    not is_torch_1_8_plus or not is_python_3_8_plus, reason="Not supported"
-)
+@pytest.mark.skipif(not is_python_3_8_plus, reason="Not supported")
 def test_Houlsby_Adapter_init():
 
     adapter = Houlsby_Adapter(
@@ -48,9 +44,7 @@ def test_Houlsby_Adapter_init():
     assert adapter.houlsby_adapter[2].out_features == 64
 
 
-@pytest.mark.skipif(
-    not is_torch_1_8_plus or not is_python_3_8_plus, reason="Not supported"
-)
+@pytest.mark.skipif(not is_python_3_8_plus, reason="Not supported")
 def test_Houlsby_Adapter_forward():
 
     adapter = Houlsby_Adapter(
@@ -63,7 +57,7 @@ def test_Houlsby_Adapter_forward():
 
 
 @pytest.mark.skipif(
-    is_s3prl_available and not is_torch_1_8_plus or not is_python_3_8_plus,
+    not is_python_3_8_plus,
     reason="Not supported",
 )
 def test_HoulsbyTransformerSentenceEncoderLayer_init():
@@ -100,7 +94,7 @@ def test_HoulsbyTransformerSentenceEncoderLayer_init():
 
 
 @pytest.mark.skipif(
-    is_s3prl_available and (not is_torch_1_8_plus) or not is_python_3_8_plus,
+    not is_python_3_8_plus,
     reason="Not supported",
 )
 def test_HoulsbyTransformerSentenceEncoderLayer_forward():
