@@ -73,6 +73,8 @@ egs2/**/**/asset
 egs2/**/**/checkpoint
 egs2/**/**/flagged_data_points
 egs2/**/**/hub
+egs2/voxtlm_v1/lm1/conf/slurm.conf
+egs2/voxtlm_v1/lm1/myrun.sh
 
 # tools related
 tools/chainer
