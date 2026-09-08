@@ -1,7 +1,7 @@
 # `ci/` -- CI scripts relevant to espnet3
 
-See [`.agent/CLAUDE.md`](../CLAUDE.md) for cross-cutting guidance (dev setup, docstring/naming
-conventions, known structural issues). `ci/` is flat -- no subdirectories.
+See [`.agent/CLAUDE.md`](../CLAUDE.md) for cross-cutting guidance (dev setup and
+docstring/naming conventions). `ci/` is flat -- no subdirectories.
 
 ```
 ci/

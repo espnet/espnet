@@ -27,3 +27,14 @@ registered under `espnet3/cli/<name>/`; today the only subcommand is `clone`.
 See [`.agent/egs3/CLAUDE.md`](../../egs3/CLAUDE.md) for the "clone and keep working in it" workflow
 this subcommand exists to support, and for what a cloned recipe's `dataset/`/`src/` are expected to
 contain.
+
+## Adding a CLI subcommand
+
+Create a directory named after the command under `espnet3/cli/` (for example,
+`espnet3/cli/export/`). Put the command implementation there, then register it in
+`espnet3/cli/main.py` so users can invoke it as `espnet3 export`. Keep argument parsing and execution
+inside the subcommand module rather than growing `main.py` beyond dispatch.
+
+Add tests for the registration and command behavior. At minimum, verify that the command is reachable
+through the top-level CLI and that a representative invocation succeeds or produces its expected
+validation error.

@@ -29,8 +29,6 @@ stage- or system-specific behaviour, it likely belongs in `systems/` or `compone
   `resolve_loaded_configs`: bridges the five independently-loaded per-recipe config files, copying
   identity fields (`exp_tag`, `exp_dir`, `inference_dir`, ...) from `training_config`/
   `inference_config` into the others so `measure`/`publication`/`demo` configs can reference them.
-  This is the design review's known-issues theme A/B territory -- see `.agent/CLAUDE.md` section 2
-  before changing how configs get bridged.
 - **`stages_utils.py`** -- `resolve_stages`, `run_stages`, `parse_cli_and_stage_args`: parses
   `--stages`, resolves `all`/aliases against a recipe's stage list, and runs each requested stage
   method on the `System` in canonical order.

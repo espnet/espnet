@@ -12,7 +12,7 @@ espnet3/systems/
 │   └── metric.py            # measure(): the measure stage
 ├── asr/                      # ASRSystem and everything ASR-specific
 │   ├── system.py             # ASRSystem(BaseSystem): train_tokenizer(), tokenizer wiring
-│   ├── task.py, transducer_task.py   # ASRTask / ASRTransducerTask(AbsTask) -- bridge to espnet2 models
+│   ├── task.py, transducer_task.py   # compatibility copies of espnet2/tasks task implementations
 │   ├── tokenizers/sentencepiece.py   # prepare_sentences / train_sentencepiece / add_special_tokens
 │   └── metrics/{cer,ter,wer}.py      # CER / TER / WER(BaseMetric)
 └── tts/                      # TTSSystem and everything TTS-specific
@@ -44,14 +44,31 @@ upload_model -> pack_demo -> upload_demo`). Every system subclasses `BaseSystem`
   `inference_dir`, instantiates each configured `BaseMetric`, and writes `metrics.json`.
 - **`asr/system.py`** -- `ASRSystem(BaseSystem)`: adds the `train_tokenizer` stage
   (`tokenizers/sentencepiece.py`) and wires the trained token list into the model config.
-- **`asr/task.py`**, **`asr/transducer_task.py`** -- `ASRTask` / `ASRTransducerTask` (both
-  `espnet2.tasks.abs_task.AbsTask` subclasses) used by `utils/task_utils.get_espnet_model` when a
-  recipe sets `task:` instead of instantiating `model:` directly via Hydra.
+- **`asr/metrics/{cer,ter,wer}.py`** -- metric inputs are not model batches or Dataset samples.
+  The `measure` stage reads aligned SCP files from each inference test-set directory and calls a
+  metric as `metric(data, test_name, inference_dir)`, where `data` maps aliases such as `ref` and
+  `hyp` to `Path` objects. The default metrics expect `ref.scp` and `hyp.scp` with matching
+  utterance IDs in the same order; custom metrics should use `BaseMetric.iter_inputs(...)` to enforce
+  that alignment. Configure the aliases explicitly when they differ:
+  ```yaml
+  metrics:
+    - metric:
+        _target_: my_project.metrics.MyMetric
+      inputs:
+        reference: ref
+        prediction: hyp
+  ```
+  If `inputs` is omitted, the metric's `ref_key` and `hyp_key` attributes are used. This input
+  contract is intentionally different from training/inference data, so take care when adding or
+  modifying a metric; its result is written to `${inference_dir}/metrics.json`.
+- **`asr/task.py`**, **`asr/transducer_task.py`** -- compatibility copies of the corresponding
+  `espnet2/tasks` implementations, used by `utils/task_utils.get_espnet_model` when a recipe sets
+  `task:` instead of instantiating `model:` directly via Hydra. These files exist only to preserve
+  ESPnet2 backward compatibility: do not edit these files or add new behavior here. `espnet2/tasks`
+  is the source of truth; compatibility copies are updated only by the established synchronization
+  process when required.
 - **`asr/tokenizers/sentencepiece.py`** -- `prepare_sentences`, `train_sentencepiece`,
   `add_special_tokens`: the SentencePiece training pipeline behind `train_tokenizer`.
-- **`asr/metrics/{cer,ter,wer}.py`** -- `CER` / `TER` / `WER`, each a `components.metrics.BaseMetric`
-  implementation (see [`.agent/espnet3/components/CLAUDE.md`](../components/CLAUDE.md)); wired into
-  `measure` via `metrics.yaml`.
 - **`tts/system.py`** -- `TTSSystem(BaseSystem)`: adds `create_token_list` and the
   `remove_long_short` filtering stage.
 - **`tts/remove_long_short_{provider,runner}.py`** -- `RemoveLongShortProvider` /

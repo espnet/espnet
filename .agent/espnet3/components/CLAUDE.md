@@ -50,16 +50,16 @@ Reusable building blocks the systems in
 - **`dataloader.py`** -- `DataLoaderBuilder`: turns a `dataloader:` config block + a
   `CombinedDataset` into the iterator/DataLoader Lightning actually iterates over (handles the
   `total_shards`/`dist_world_size` shard rotation and the `iter_factory` vs. plain-`DataLoader` split).
+  If a project needs a custom DataLoader or batching behavior that the standard builder cannot
+  express, it is valid to extend this file and wire the new behavior through config. Keep the
+  extension focused on reusable data-loading behavior, document its config contract, and add a
+  mirrored test under `test/espnet3/components/data/` before using it from a recipe.
 - **`iterator.py`** -- `EpochSyncIterator`: keeps the train/valid iterator epoch counters in
   sync with Lightning's `current_epoch`.
 - **`collect_stats.py`** -- `collect_stats_batch` / `collect_stats(config)`: the `collect_stats`
   stage's implementation, plus `CollectStatsRunner`/`CollectStatsInferenceProvider`
   (a `parallel.BaseRunner`/`EnvironmentProvider` pair -- see
   [`.agent/espnet3/parallel/CLAUDE.md`](../parallel/CLAUDE.md)) for the parallel path.
-
-> The dataset layer is where the design review's known-issues theme E lives (composition, mode flags,
-> Hydra mechanics, and sharding all conflated in `data_organizer.py`/`dataset.py`) -- read
-> `.agent/CLAUDE.md` section 2 and `espnet3_fable_review.md` before making non-trivial changes here.
 
 ## `modeling/`
 

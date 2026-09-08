@@ -27,14 +27,41 @@ The execution model shared by every stage that fans work out across items (`infe
   for `parallel.env: local` vs. a real cluster backend), `DictReturnWorkerPlugin`/
   `wrap_func_with_worker_env` (propagates the env context into Dask worker processes).
 
-> This is the design review's known-issues theme F: the Runner/Provider abstraction leaks state (a
-> flat `**env` namespace shared between runner bookkeeping and provider params, `self`-capturing
-> closures that pickle more than intended, per-call Dask cluster lifecycle). Read `.agent/CLAUDE.md`
-> section 2 and `espnet3_fable_review.md` before making non-trivial changes here, and check which of
-> the two `InferenceProvider` classes you're actually touching.
-
 Naming convention when adding a new parallel stage: a `*Runner`/`*Provider` pair, named the same way
 as the existing ones (`InferenceRunner`/`InferenceProvider`,
 `CollectStatsRunner`/`CollectStatsInferenceProvider`,
 `RemoveLongShortRunner`/`RemoveLongShortProvider`) -- see `.agent/CLAUDE.md`'s naming conventions
 section.
+
+## Recommended usage
+
+Use the shared `Runner`/`Provider` abstraction for recipe or system stages that process many
+independent items. It keeps the stage usable across a local single-process run and configured
+parallel backends without making the recipe own scheduler-specific dispatch code.
+
+The usual flow is:
+
+1. A `Runner` partitions the work and manages dispatch and shard output.
+2. A `Provider` constructs the worker-local model/dataset environment and processes one item.
+3. The runner merges shard outputs into the stage's final artifact.
+
+A minimal configuration is:
+
+```yaml
+parallel:
+  env: local
+  n_workers: 1
+```
+
+Keep the stage-specific worker arguments in the Provider, and keep shard planning, dispatch, and
+concatenation in the Runner. For a complete implementation, read
+`espnet3/systems/tts/remove_long_short_runner.py` and
+`espnet3/systems/tts/remove_long_short_provider.py`. For model-backed inference, compare
+`espnet3/systems/base/inference_runner.py` and
+`espnet3/systems/base/inference_provider.py`. Recipe-level configuration and call sites are also
+available under `egs3/mini_an4/asr/` and `egs3/librispeech_100/asr/`.
+
+When adding a new parallel stage, start from one of those pairs, write a focused unit test for the
+Runner and Provider contracts, and add a small integration invocation when the stage is part of a
+recipe workflow. Prefer this abstraction over direct multiprocessing, Dask, or Slurm calls in a
+recipe so the same code remains seamless across development, CI, and cluster environments.

@@ -1,7 +1,7 @@
 # `egs3/` -- recipes
 
-See [`.agent/CLAUDE.md`](../CLAUDE.md) for cross-cutting guidance (dev setup, docstring/naming
-conventions, known structural issues -- referenced below as "root guide").
+See [`.agent/CLAUDE.md`](../CLAUDE.md) for cross-cutting guidance (dev setup and
+docstring/naming conventions).
 
 ```
 egs3/
@@ -26,12 +26,28 @@ egs3/
 │   ├── dataset/{builder.py, dataset.py, config.yaml, __init__.py}
 │   ├── src/{tokenizer.py, inference.py, app.py}
 │   └── path.sh, readme.md
+└── aishell/asr/                # AISHELL-1 (Mandarin) recipe; same shape as librispeech_100 (AishellBuilder /
+    │                           # AishellDataset / AishellExample, stock ASRSystem, raw-passthrough builder)
+    ├── run.py, run.sh, conf/ (incl. conf/tuning/)
+    ├── dataset/{builder.py, dataset.py, config.yaml, __init__.py}
+    ├── src/{tokenizer.py, inference.py, app.py}
+    └── path.sh, readme.md
 ```
 
 Cloning: `espnet3 clone <dataset>/<task> [--project DIR]` (see
 [`espnet3/cli/CLAUDE.md`](../espnet3/cli/CLAUDE.md)) copies `conf/`, `dataset/`, `src/`, `run.py`,
 `readme.md`, `path.sh` out of `egs3/` into a standalone directory that only needs `espnet3` installed
 -- it no longer needs to live inside this checkout.
+
+## TEMPLATE defaults
+
+`egs3/TEMPLATE/` is not a runnable recipe. It is the shared home for default values and baseline
+helpers that real recipes inherit or import. Put task-family defaults there; put corpus-specific
+datasets, model choices, and overrides under the concrete `egs3/<dataset>/<task>/` recipe.
+
+Recipe configs must contain only overrides. Do not repeat a value that already has the desired default
+in `TEMPLATE/`; omitting it keeps the source of truth in one place. Add a field to a recipe config
+only when that recipe intentionally differs from the TEMPLATE default.
 
 ---
 
@@ -81,15 +97,34 @@ corpus's specifics live; get this right before touching anything else.
     archive, `build` parses the raw transcripts and writes recipe-local manifests that `dataset.py`
     then reads. Use this when you need to normalize, filter, or re-key the source data before
     training can consume it.
+  If a recipe needs to download or extract files, use the shared helpers in
+  `espnet3.utils.download_utils` (`download_url`, `extract_targz`, and related utilities) instead of
+  adding ad-hoc HTTP or archive handling. Test the download/extraction path with a small fixture or a
+  local URL, and keep `is_source_prepared`/`is_built` side-effect-free.
   Keep `is_source_prepared`/`is_built` cheap and side-effect-free (they get called on every
-  `create_dataset` run to decide whether to skip work) -- see the root guide's known-issues theme D
-  for what goes wrong when a staleness check is too cheap (existence-only) or a build step is not
-  atomic; do not repeat those mistakes in a new builder.
+  `create_dataset` run to decide whether to skip work). Keep manifest writes atomic when a recipe
+  generates artifacts.
 - **`dataset/dataset.py`** is the actual `torch.utils.data.Dataset`. `__getitem__` must return only
   the fields accepted by its model/preprocessor. Do **not** add `utt_id` to any recipe sample:
   ESPnet's dataset paths pass the full dictionary onward, where unsupported fields can break a stage.
   Recipe inference output must use its item index (or a framework-supported metadata mechanism) as
   its ID.
+- **External dataset libraries** -- Lhotse, Hugging Face Datasets, and similar libraries do not need
+  special framework support. Define a normal `Dataset` class in an importable module (and expose it
+  as `Dataset`), then select that module from the recipe config with `data_src`. For example:
+  ```yaml
+  dataset:
+    train:
+      - data_src: my_project.datasets.lhotse_asr
+        data_src_args:
+          split: train
+    valid:
+      - data_src: my_project.datasets.hf_asr
+        data_src_args:
+          split: validation
+  ```
+  `data_src_args` is forwarded to that custom class. Supply a `DatasetBuilder` in the same module
+  when the recipe also uses `create_dataset`.
 - **`dataset/config.yaml`** holds builder-specific settings that are not part of the training config
   (corpus sub-paths, an environment-variable name to check, the list of required splits). Load it
   once at import time with `espnet3.utils.config_utils.load_config_with_defaults`, exactly as both
@@ -100,8 +135,8 @@ from the reference recipe (or `egs3/TEMPLATE/<task>/conf/` for the fully-comment
 adjust: the `dataset:` block's `data_src`/`data_src_args` entries (or point them at your recipe's own
 `dataset/` via a bare `data_src_args:` entry with no `data_src`, which resolves to the recipe-local
 module -- see `espnet3/components/CLAUDE.md`'s `dataset_module.py` entry), the tokenizer settings, and
-the model config. Keep `_recursive_: false` on the `dataset:` block (root guide, known-issues theme E
-explains why it matters).
+the model config. Keep only values that override the TEMPLATE defaults; do not copy unchanged default
+values into the recipe. Keep `_recursive_: false` on the `dataset:` block when it is not inherited.
 
 **`src/`** -- recipe-specific but framework-facing helpers, wired in by name from `conf/`:
 - an inference-output builder such as librispeech_100's `build_output(data, model_output, idx)`,
@@ -123,6 +158,11 @@ if __name__ == "__main__":
 Only replace `system_cls=<Family>System` with a custom system (below) or extend the stage list when
 you actually need recipe-specific behaviour -- most recipes, including librispeech_100, use
 `ASRSystem`/`TTSSystem` unmodified.
+
+**System selection** -- use `BaseSystem` (or the applicable existing task-family System) when its
+stages and behavior are sufficient. Do not introduce a wrapper class just to wire a recipe. When the
+required behavior or stage is not supplied by the existing System, define a recipe-local System under
+`src/system.py` and make `run.py` import and pass that class as `system_cls`.
 
 **`path.sh`, `readme.md`** -- environment setup (`PYTHONPATH`, `tools/activate_python.sh`) and a
 quick-start section showing the real `--stages ...` invocations for this recipe, in the order they are
@@ -157,8 +197,8 @@ A stage is just a named method, so no separate registration step exists beyond w
 ### Checklist
 
 - [ ] `dataset/__init__.py` exports `Dataset`/`DatasetBuilder` by those exact names
-- [ ] `dataset/builder.py` implements all four `DatasetBuilder` methods; staleness checks are cheap,
-      builds are idempotent (temp-file-then-rename if you write manifests -- known-issues theme D)
+- [ ] `dataset/builder.py` implements all four `DatasetBuilder` methods; staleness checks are cheap
+      and builds are idempotent (use temp-file-then-rename when writing manifests)
 - [ ] `dataset/dataset.py` returns only fields accepted by the task/preprocessor; never add `utt_id`
 - [ ] `conf/*.yaml` copied and adjusted (`data_src`, tokenizer, model, `_recursive_: false` kept)
 - [ ] `run.py` is the thin three-line re-export unless a custom `System` is genuinely needed
