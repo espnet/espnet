@@ -24,9 +24,25 @@ pip install torch torchaudio torchvision --index-url https://download.pytorch.or
 pip install -e ".[speechlm]"
 ```
 
-## 3. Install FlashAttention
+Flash Linear Attention (FLA) and TileLang have prebuilt wheels for supported
+Linux platforms and do not require `nvcc` to install. Their GPU kernels still
+need a supported accelerator at runtime.
 
-Choose the backend for your GPU; see
+## 3. Install CUDA extensions
+
+Install these extensions separately on Linux with a CUDA toolkit (`nvcc`)
+and a C++ compiler compatible with the CUDA build of PyTorch chosen above.
+Use `--no-build-isolation` so each build uses the installed PyTorch instead
+of resolving another version in an isolated build environment.
+
+For models that use `causal-conv1d`, install its build tools and the extension:
+
+```bash
+pip install wheel ninja
+pip install --no-build-isolation "causal-conv1d>=1.6.2"
+```
+
+For FlashAttention, choose the backend for your GPU; see
 [FlashAttention on GitHub](https://github.com/Dao-AILab/flash-attention).
 For example, install **FlashAttention 3 on H100/H800** from `hopper/`:
 

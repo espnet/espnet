@@ -170,7 +170,6 @@ speechlm = [
   "torchtitan; sys_platform == 'linux'",
   "liger-kernel; sys_platform == 'linux'",
   "flash-linear-attention>=0.2.2; sys_platform == 'linux'",
-  "causal-conv1d>=1.6.2; sys_platform == 'linux'",
   "tilelang>=0.1.12; sys_platform == 'linux'",
 ]
 
