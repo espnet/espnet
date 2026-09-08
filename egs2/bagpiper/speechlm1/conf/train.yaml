@@ -14,6 +14,7 @@ multimodal_io:
     continuous_audio:
         encoder_choice: huggingface
         encoder_hf_model_tag: Qwen/Qwen3-Omni-30B-A3B-Instruct
+        # Hopper GPUs (H100/H800); select a supported backend elsewhere.
         attn_implementation: flash_attention_3
         dtype: bfloat16
 
@@ -21,6 +22,7 @@ model:
     model_choice: parallel
     model_hf_tag: Qwen/Qwen3-8B-Base
     model_conf:
+        # Hopper GPUs (H100/H800); select a supported backend elsewhere.
         attn_implementation: flash_attention_3
         dtype: bfloat16
 

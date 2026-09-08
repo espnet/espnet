@@ -16,11 +16,19 @@ The example uses FlashAttention-3 for Hopper GPUs such as H100. Adjust both
 attention backends, the per-GPU token budget, and the training schedule for your
 hardware and data. These are starting settings, not the original run's step schedule.
 
+The default `conf/train.yaml` trains the decoder and multimodal embeddings/adaptor
+for instruction-driven speech synthesis. It uses 50,000 steps, a peak learning
+rate of 1e-4, 2,000 LR warmup steps, cosine decay to zero, and gradient accumulation
+of 1. Its packed-token budget is 8,192 per GPU per step. See the
+[Bagpiper schedule notes](../../bagpiper/speechlm1/README.md#training) for batch and
+runtime estimates, and the [template](../../TEMPLATE/speechlm1/README.md#training-only-recipes)
+for environment activation and direct `torchrun` launch behavior.
+
 Run from `egs2/bagpiper_tts/speechlm1`, using prepared `dialogue` datasets:
 
 ```bash
 ./run.sh --ngpu 8 \
-    --train-config conf/train_sft.yaml --output-dir exp/sft \
+    --train-config conf/train.yaml --output-dir exp/sft \
     --resume-path ../../bagpiper/speechlm1/exp/pretrain/checkpoints/step_600000 \
     --stats-dir /path/to/tts_stats \
     --train-unregistered-specifier "dialogue:tts_train:/path/to/tts_train.json" \
@@ -29,7 +37,9 @@ Run from `egs2/bagpiper_tts/speechlm1`, using prepared `dialogue` datasets:
 
 `--resume-path` must point to a Bagpiper pretraining DCP directory. It initializes
 model weights and starts a fresh optimizer, scheduler, and step counter in the
-new output directory. The current Titan trainer cannot load the Hub's `base.pt`
+new output directory. `step_600000` is the final checkpoint of the default Bagpiper
+pretraining schedule; use your selected checkpoint if the schedule differs.
+The current Titan trainer cannot load the Hub's `base.pt`
 or `model.pt` files for training initialization.
 
 To continue an interrupted SFT run, repeat the command with the same data,

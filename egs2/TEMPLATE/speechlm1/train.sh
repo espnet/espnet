@@ -77,7 +77,7 @@ fi
 repo_root=$(cd "${recipe_dir}/../../.." && pwd)
 export PYTHONPATH="${repo_root}${PYTHONPATH:+:${PYTHONPATH}}"
 # Dataset resampling uses Python hashes; keep them consistent across ranks.
-export PYTHONHASHSEED=${PYTHONHASHSEED:-0}
+export PYTHONHASHSEED=0
 
 launcher=("${python}" -m torch.distributed.run --nproc_per_node "${ngpu}")
 if (( num_nodes == 1 )); then
@@ -92,13 +92,15 @@ train_args=(
     --train-config "${train_config}"
     --output-dir "${output_dir}"
     --stats-dir "${stats_dir}"
-    --train-unregistered-specifier "${train_unregistered_specifier}"
-    --valid-unregistered-specifier "${valid_unregistered_specifier}"
-    --train-registered-specifier "${train_registered_specifier}"
-    --valid-registered-specifier "${valid_registered_specifier}"
     --wandb-mode "${wandb_mode}"
     --wandb-project "${wandb_project}"
 )
+for specifier in train_unregistered_specifier valid_unregistered_specifier \
+    train_registered_specifier valid_registered_specifier; do
+    if [[ -n ${!specifier} ]]; then
+        train_args+=("--${specifier//_/-}" "${!specifier}")
+    fi
+done
 if [[ -n ${resume_path} ]]; then
     train_args+=(--resume-path "${resume_path}")
 fi
