@@ -19,11 +19,7 @@ local_data_opts=""
 
 ./asr.sh \
     --lang ko \
-    --nj 32 \
-    --inference_nj 8 \
     --audio_format flac.ark \
-    --fs 16000 \
-    --token_type bpe \
     --nbpe 2000 \
     --use_lm false \
     --min_wav_duration 1.0 \
