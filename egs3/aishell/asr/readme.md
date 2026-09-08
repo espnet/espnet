@@ -20,7 +20,7 @@ python run.py --stages create_dataset \
 python run.py --stages train \
     --training_config conf/tuning/training_e_branchformer.yaml
 
-# 2) Decode
+# 2) Infer
 python run.py --stages infer \
     --training_config conf/tuning/training_e_branchformer.yaml \
     --inference_config conf/inference.yaml
