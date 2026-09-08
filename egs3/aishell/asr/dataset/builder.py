@@ -132,8 +132,7 @@ class AishellBuilder(DatasetBuilder):
             if not transcript.is_file():
                 missing_items.append("transcript/aishell_transcript_v0.8.txt")
             raise FileNotFoundError(
-                "AISHELL-1 source is incomplete. Missing: "
-                + ", ".join(missing_items)
+                "AISHELL-1 source is incomplete. Missing: " + ", ".join(missing_items)
             )
 
     def is_built(
