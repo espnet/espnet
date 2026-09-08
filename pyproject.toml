@@ -157,7 +157,7 @@ egs2 = [
   "scikit-learn>=1.0.0",
 ]
 
-# Keep SpeechLM dependencies aligned with espnet2/speechlm/requirement.txt.
+# Dependencies for SpeechLM training (espnet2/speechlm).
 # Shared packages are supplied by the base dependencies above.
 speechlm = [
   "psutil",
@@ -166,7 +166,7 @@ speechlm = [
   "joblib",
   "polars",
   "duckdb",
-  # Use the same Linux platform conditions in both installation paths.
+  # Keep Linux training dependencies off Windows/macOS installs.
   "torchtitan; sys_platform == 'linux'",
   "liger-kernel; sys_platform == 'linux'",
   "flash-linear-attention>=0.2.2; sys_platform == 'linux'",

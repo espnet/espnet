@@ -21,12 +21,6 @@ pip install torch torchaudio torchvision --index-url https://download.pytorch.or
 ## 2. Install SpeechLM dependencies
 
 ```bash
-pip install -r espnet2/speechlm/requirement.txt
-```
-
-Alternatively, install ESPnet with its SpeechLM extra:
-
-```bash
 pip install -e ".[speechlm]"
 ```
 
