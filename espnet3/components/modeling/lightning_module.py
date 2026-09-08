@@ -1187,11 +1187,6 @@ class ESPnetLightningModule(lightning.LightningModule):
         )
 
         for mode in ["train", "valid"]:
-            if mode == "train":
-                dataset_config.preprocessor.train = True
-            else:
-                dataset_config.preprocessor.train = False
-
             collect_stats(
                 model_config=OmegaConf.to_container(self.config.model, resolve=True),
                 dataset_config=dataset_config,

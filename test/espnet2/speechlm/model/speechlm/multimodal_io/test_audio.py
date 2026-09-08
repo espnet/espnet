@@ -537,3 +537,37 @@ class TestContinuousAudioIO:
         io = self._make_continuous_io("unknown/model")
         with pytest.raises(NotImplementedError):
             io.find_length(None, before_length=100)
+
+    def test_find_length_from_data_resamples(self):
+        io = self._make_continuous_io("Qwen/Qwen2.5-Omni-7B")
+        # 48k samples at 48kHz -> 16k samples at 16kHz -> 100 frames -> 25 after ds
+        wav = np.zeros((1, 48000))
+        assert io.find_length((wav, 48000)) == 25
+
+    def test_find_length_from_data_matches_before_length_path(self):
+        io = self._make_continuous_io("Qwen/Qwen2.5-Omni-7B")
+        wav = np.zeros((1, 16000))
+        assert io.find_length((wav, 16000)) == io.find_length(None, before_length=100)
+
+    def test_preprocess_transposes_TC_input(self):
+        from unittest.mock import MagicMock
+
+        io = self._make_continuous_io("Qwen/Qwen2.5-Omni-7B")
+        T, feat_dim = 16000, 80
+        before_length = T // io.hop_length  # 100
+        after_length = io.find_length(None, before_length=before_length)  # 25
+
+        # Processor returns a dict-like with input_features [1, feat_dim, T]
+        io.processor = MagicMock(
+            return_value={
+                "input_features": np.zeros((1, feat_dim, T), dtype=np.float32)
+            }
+        )
+
+        wav_tc = np.zeros((T, 1), dtype=np.float32)  # [T, C] with T > C
+        seq, conti_feat, loss_mask = io.preprocess((wav_tc, io.sample_rate))
+
+        assert seq.shape == (after_length, 1)
+        assert conti_feat[0] == after_length
+        assert conti_feat[1].shape == (before_length, feat_dim)
+        assert loss_mask.shape == (after_length, 1)

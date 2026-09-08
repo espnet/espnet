@@ -427,7 +427,7 @@ It guarantees that within each mini-batch, all samples belong to different class
 `--batch_size` is used to determine the mini-batch size.
 This batch type does not go along with the default `sequence` iterator_type.
 It is instead designed to be used with `category` iterator_type.
-Therefore, instead of explicitely giving `--batch_type catbel`, it is more recommended
+Therefore, instead of explicitly giving `--batch_type catbel`, it is more recommended
 to give `--iterator_type category` which will automatically set `batch_type` to `catbel`.
 It is also important to use a preprocessor that adjusts the sample duration to enable
 mini-batch construction. One example would be `espnet2/train/preprocessor/SpkPreprocessor`.

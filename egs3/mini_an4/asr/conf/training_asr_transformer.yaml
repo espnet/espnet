@@ -37,7 +37,6 @@ dataset:
   preprocessor:
     _target_: espnet2.train.preprocessor.CommonPreprocessor
     fs: 16000
-    train: true
     data_aug_effects:   # no need to set the "sample_rate" argument for each effect here
         - [0.1, "contrast", {"enhancement_amount": 75.0}]
         - [0.1, "highpass", {"cutoff_freq": 5000, "Q": 0.707}]

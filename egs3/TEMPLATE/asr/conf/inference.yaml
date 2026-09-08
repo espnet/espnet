@@ -61,6 +61,7 @@ inference_dir: ${exp_dir}/${self_name:}
 # for inference.
 dataset:
   _target_: espnet3.components.data.data_organizer.DataOrganizer
+  _recursive_: false
   recipe_dir: ${recipe_dir}
   test:
   preprocessor:
@@ -123,7 +124,7 @@ output_fn:
 # Optional artifact writers for non-scalar outputs.
 # Primitive values (str/int/float/bool) are written directly into SCP files.
 # Non-primitive values can be saved under:
-#   `${inference_dir}/<test_name>/<field>/<utt_id>.*`
+#   `${inference_dir}/<test_name>/split.<rank>/<field>/<utt_id>.*`
 # and the generated file path is written to the SCP entry.
 #
 # Supported built-in types:

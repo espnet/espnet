@@ -171,7 +171,7 @@ See also:
 
 ### 9. TTS eval using versa
 
-TTS model eval stage using [versa](https://github.com/shinjiwlab/versa).
+TTS model eval stage using [versa](https://github.com/wavlab-speech/versa).
 
 The default metrics is below in conf/versa.yaml:
 
@@ -186,7 +186,7 @@ The default metrics is below in conf/versa.yaml:
 | 9 | Packet Loss Concealment-related MOS Score (PLCMOS) | pseudo_mos | plcmos |
 | 10 | Speaker Embedding Similarity | speaker | spk_similarity |
 
-You can find more detail and more metrics on [VERSA README](https://github.com/shinjiwlab/versa/blob/main/README.md).
+You can find more detail and more metrics on [VERSA README](https://github.com/wavlab-speech/versa/blob/main/README.md).
 
 ### 10. (Optional) Pack results for upload
 

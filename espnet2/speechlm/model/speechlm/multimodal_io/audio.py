@@ -189,6 +189,14 @@ class DiscreteAudioIO(AbsIO):
 
             # checkpoint for general audio is: hf-audio/xcodec-hubert-general
             self.codec_model = XcodecModel.from_pretrained(codec_hf_model_tag)
+            # NOTE(Jinchuan): default SDPA attention may cause slow CuDNN planning.
+            # Use flash_attention_3 if available.
+            from transformers.utils import is_flash_attn_3_available
+
+            if is_flash_attn_3_available():
+                self.codec_model.semantic_model.config._attn_implementation = (
+                    "flash_attention_3"
+                )
             self.codec_n_streams = min(
                 self.codec_model.config.num_quantizers, codec_max_token_per_frame
             )
@@ -629,15 +637,12 @@ class DiscreteAudioIO(AbsIO):
         elif self.codec_choice == "Xcodec":
             max_len = int(length.max().item())
             data_trimmed = data[:, :, :max_len]
-            # Skip feature_extractor to avoid inefficient GPU-CPU-GPU transfers.
-            # We manually trim the data above (which is already on GPU), so using
-            # feature_extractor for padding/trimming would be redundant and cause
-            # unnecessary data movement: GPU tensor -> CPU numpy -> GPU tensor.
-            codes = self.codec_model.encode(
-                data_trimmed,
-                bandwidth=self.codec_bandwidth,
-                return_dict=False,
-            )  # [batch, num_quantizers, time]
+            with torch.autocast("cuda", dtype=data_trimmed.dtype):
+                codes = self.codec_model.encode(
+                    data_trimmed,
+                    bandwidth=self.codec_bandwidth,
+                    return_dict=False,
+                )  # [batch, num_quantizers, time]
             codes = codes.permute(0, 2, 1)[:, :, : self.codec_n_streams]
 
         else:
@@ -925,7 +930,6 @@ class ContinuousAudioIO(AbsIO):
             self.d_model = self.model.audio_tower.config.output_dim
             self.sample_rate = self.processor.sampling_rate
             self.hop_length = self.processor.hop_length
-            self.n_samples = self.processor.n_samples
 
         else:
             raise NotImplementedError(
@@ -956,13 +960,7 @@ class ContinuousAudioIO(AbsIO):
             raise ValueError("Input audio must be 2D array [num_channels, num_samples]")
 
         if wav.shape[0] > wav.shape[1]:
-            raise ValueError(
-                "Audio shape seems incorrect, "
-                "please check num_channels and num_samples"
-            )
-
-        if wav.shape[1] > self.n_samples:
-            wav = wav[:, : self.n_samples]
+            wav = wav.T
 
         # Convert multi-channel to single-channel by taking the first channel
         wav = wav[0]
@@ -1051,8 +1049,9 @@ class ContinuousAudioIO(AbsIO):
         if before_length is not None:
             frame_length = before_length
         else:
-            wav, _ = data
-            frame_length = wav.shape[-1] // self.hop_length
+            wav, sr = data
+            num_samples = wav.shape[-1] * self.sample_rate / sr
+            frame_length = int(num_samples) // self.hop_length
 
         if self.encoder_hf_model_tag == "Qwen/Qwen2.5-Omni-7B":
             # Apply same downsampling as the encoder model

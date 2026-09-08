@@ -13,6 +13,22 @@ def test_base_system_rejects_args():
         system.create_dataset(1)
 
 
+def test_base_system_get_required_config_returns_value():
+    config = OmegaConf.create({"save_path": "data/out"})
+    assert BaseSystem._get_required_config(config, "save_path", "msg") == "data/out"
+
+
+def test_base_system_get_required_config_raises_on_missing_key():
+    config = OmegaConf.create({"other": 1})
+    with pytest.raises(RuntimeError, match="save_path must be set"):
+        BaseSystem._get_required_config(config, "save_path", "save_path must be set")
+
+
+def test_base_system_get_required_config_raises_on_none_config():
+    with pytest.raises(RuntimeError, match="section must be set"):
+        BaseSystem._get_required_config(None, "section", "section must be set")
+
+
 def test_base_system_resolves_stage_log_ref_fallback_list(tmp_path):
     train_cfg = OmegaConf.create({"exp_dir": str(tmp_path / "exp")})
     infer_cfg = OmegaConf.create({"inference_dir": str(tmp_path / "infer")})

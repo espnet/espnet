@@ -1,11 +1,11 @@
+import pytest
 import torch
 
 from espnet2.sds.asr.espnet_asr import ESPnetASRModel
 
 
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="requires a GPU")
 def test_forward():
-    if not torch.cuda.is_available():
-        return  # Only GPU supported
     asr_model = ESPnetASRModel(
         tag=(
             "espnet/"

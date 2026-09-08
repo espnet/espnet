@@ -1,10 +1,7 @@
 import pytest
 import torch
-from packaging.version import parse as V
 
 from espnet2.enh.encoder.stft_encoder import STFTEncoder
-
-is_torch_1_12_1_plus = V(torch.__version__) >= V("1.12.1")
 
 
 @pytest.mark.parametrize("n_fft", [512])
@@ -45,7 +42,6 @@ def test_STFTEncoder_backward(
     y.abs().sum().backward()
 
 
-@pytest.mark.skipif(not is_torch_1_12_1_plus, reason="torch.complex32 is used")
 @pytest.mark.parametrize("n_fft", [512])
 @pytest.mark.parametrize("win_length", [512])
 @pytest.mark.parametrize("hop_length", [128])

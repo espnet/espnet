@@ -36,7 +36,6 @@ dataset:
         split: valid
   preprocessor:
     _target_: espnet2.train.preprocessor.CommonPreprocessor
-    train: true
     token_type: bpe
     token_list: ${tokenizer.save_path}/tokens.txt
     bpemodel: ${tokenizer.save_path}/bpe.model

@@ -151,6 +151,16 @@ def parse_args():
         )
         LLM_name = LLM_options[0]
     upload_to_hub = args.upload_to_hub
+    if access_token is None:
+        raise RuntimeError(
+            "The HF_TOKEN environment variable is not set. Export a Hugging "
+            "Face access token before starting the demo:\n"
+            "    export HF_TOKEN=<your token>\n"
+            "A token is needed for gated models such as "
+            "meta-llama/Llama-3.2-1B-Instruct. If every model you selected is "
+            "ungated, an empty token is accepted:\n"
+            '    export HF_TOKEN=""'
+        )
     dialogue_model = ESPnetSDSModelInterface(
         ASR_name, LLM_name, TTS_name, "Cascaded", access_token
     )

@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import torch
 
@@ -17,6 +17,6 @@ class AbsLossWrapper(torch.nn.Module, ABC):
         self,
         ref: List,
         inf: List,
-        others: Dict,
+        others: Optional[Dict] = None,
     ) -> Tuple[torch.Tensor, Dict, Dict]:
         raise NotImplementedError

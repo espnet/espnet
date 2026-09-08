@@ -30,7 +30,7 @@ mp.set_start_method("fork", force=True)
 # | test_collect_stats_local_basic       |  counts/sums correctly and       　 |
 # |                                      | writes expected feature/statistics files    |
 # | test_collect_stats_parallel_basic    | Verifies that parallel mode         |
-# |                                      | (setup_fn + parallel_for) matches local     |
+# |                                      | (runner + shard outputs) matches local      |
 # |                                      | aggregation logic and writes expected files |
 # | test_collect_stats_entry_point_basic | Verifies top-level collect_stats() function |
 # |                                      | works for different modes and produces      |
