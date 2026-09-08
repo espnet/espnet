@@ -368,9 +368,41 @@ class TitanTrainer:
     def _load_checkpoint(self, resume_path: Optional[Path]) -> None:
         """Load checkpoint from DCP, resuming model, optimizer, and LR state.
 
+        ``--resume-path`` may also point at a single-file ``.pt`` (the same
+        weight-only inference checkpoint), which is loaded weights-only with a
+        freshly-built optimizer, scheduler, and step.
+
         Args:
-            resume_path: Optional path to checkpoint directory
+            resume_path: Optional path to a checkpoint directory or .pt file
         """
+        # A single-file .pt is a weights-only init: rank 0 loads the full,
+        # unsharded state dict and set_model_state_dict broadcasts/reshards it
+        # into the FSDP2 shards (dcp.load fills sharded state per-rank for free;
+        # a single-file dict cannot). Optimizer/scheduler/step stay fresh.
+        if resume_path is not None and resume_path.is_file():
+            if self.global_rank == 0:
+                obj = torch.load(resume_path, map_location="cpu", weights_only=True)
+                full_sd = (
+                    obj["module"] if isinstance(obj, dict) and "module" in obj else obj
+                )
+            else:
+                full_sd = {}
+            set_model_state_dict(
+                self.model,
+                full_sd,
+                options=StateDictOptions(
+                    full_state_dict=True,
+                    broadcast_from_rank0=True,
+                    strict=False,
+                ),
+            )
+            logger.info(
+                f"Loaded weights-only checkpoint from {resume_path} | "
+                f"step={self.global_step} | "
+                f"actual_lr={self.optimizer.param_groups[0]['lr']}"
+            )
+            return
+
         checkpoint_dir = None
         is_resume = False
 
