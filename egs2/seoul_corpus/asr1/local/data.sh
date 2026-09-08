@@ -1,7 +1,4 @@
 #!/usr/bin/env bash
-# Copyright 2026 Carnegie Mellon University (Haerin Kim)
-# Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
-
 # Set bash to 'debug' mode, it will exit on :
 # -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
 set -e
@@ -32,14 +29,15 @@ unpack_dir=downloads
 log "$0 $*"
 . utils/parse_options.sh
 
+. ./db.sh
+. ./path.sh
+. ./cmd.sh
+
+
 if [ $# -ne 0 ]; then
     log "Error: No positional arguments are required."
     exit 2
 fi
-
-. ./db.sh
-. ./path.sh
-. ./cmd.sh
 
 if [ -z "${SEOUL_CORPUS}" ]; then
     log "Error: \$SEOUL_CORPUS is not set. Set it in db.sh to the directory that"
@@ -111,7 +109,6 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         exit 1
     }
 
-    # Already-unpacked layouts are used in place, without copying 2.6 GB around.
     if [ -n "$(find "${SEOUL_CORPUS}/sound" -maxdepth 1 -name '*.flac' -print -quit 2>/dev/null)" ]; then
         sound_dir="${SEOUL_CORPUS}/sound"
     elif [ -n "$(find "${SEOUL_CORPUS}" -maxdepth 1 -name '*.flac' -print -quit 2>/dev/null)" ]; then

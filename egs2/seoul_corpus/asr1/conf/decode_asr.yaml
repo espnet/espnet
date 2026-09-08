@@ -1,6 +1,3 @@
 beam_size: 10
-# The attention decoder is the weak branch on this corpus (it was the part that
-# collapsed to emitting frequent fillers), so decoding leans on CTC as much as
-# training does -- keep this in step with model_conf.ctc_weight.
 ctc_weight: 0.5
 lm_weight: 0.0

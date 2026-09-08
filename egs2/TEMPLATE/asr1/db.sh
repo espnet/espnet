@@ -330,7 +330,6 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     JSUT=downloads
     JVS=downloads
     KSS=
-    SEOUL_CORPUS=
     THCHS30=downloads
     TIMIT=
     TSUKUYOMI=downloads

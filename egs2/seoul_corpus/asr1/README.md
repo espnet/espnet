@@ -1,4 +1,4 @@
-# Seoul Corpus (한국어 자유 발화) ASR recipe
+# Seoul Corpus ASR recipe
 
 The **Seoul Corpus** (*Korean Corpus of Spontaneous Speech*) is one hour of
 interview speech from each of 40 native Seoul-Korean speakers — 10 speakers per
@@ -95,19 +95,6 @@ Note that `test` is deliberately left unfiltered (asr.sh stage 4 applies
 `--min_wav_duration` to train/valid only), so it still contains the very short
 backchannel utterances that the training set drops. Those are easy, which pulls
 the test CER below what the training-time validation numbers suggest.
-
-### Do not undo the small model and the duration floor
-
-An earlier version of this recipe — a 12-block encoder, lr 2e-3, `ctc_weight`
-0.3, no duration floor and no speed perturbation — is kept as
-`conf/tuning/train_asr_scratch_v1.yaml`. It does **not** work: validation peaked
-at epoch 9 and then overfitted for 38 more epochs (train acc 0.582 vs valid acc
-0.277), `cer_ctc` never moved off 0.83, and decoding emitted frequent fillers
-regardless of the audio ("네", "음", "어 좀 좀 좀 ..."). The cause was in the
-data, not the model: 9.4% of the training utterances were a single backchannel
-syllable (네 x1360, 음 x367, ...) and p10 of the token count was 1, so the loss
-could be driven down by learning the label prior instead of the acoustics.
-`conf/train_asr.yaml` carries the full reasoning in comments.
 
 ## Reference
 
