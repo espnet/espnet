@@ -1,11 +1,22 @@
 # ESPnet-Sidon: feature-predictor speech restoration
 
 An ESPnet reproduction of **Sidon** ([arXiv:2509.17052](https://arxiv.org/abs/2509.17052)).
-The model predicts the clean w2v-BERT 2.0 layer-8 hidden state from degraded
-speech (stage 1 of the paper) and vocodes it to 48 kHz with a DAC-style
-decoder that is either trained here (paper stages 2-3: pretrain on
-ground-truth features, finetune on predicted ones) or taken from the official
-release.
+The model predicts the clean SSL hidden state from degraded speech (stage 1
+of the paper) and vocodes it to 48 kHz with a DAC-style decoder that is
+either trained here (paper stages 2-3: pretrain on ground-truth features,
+finetune on predicted ones) or taken from the official release.
+
+Two SSL backbones are supported (`ssl_encoder` in the config), both 1024-d at
+50 Hz so the vocoder stages are identical:
+
+| `ssl_encoder` | backbone | layer | weights | licence |
+|---|---|---|---|---|
+| `w2v_bert2` (default, paper) | w2v-BERT 2.0 | 8 | `facebook/w2v-bert-2.0` | MIT |
+| `xeus` | XEUS (ESPnet E-Branchformer SSL, [Chen et al. 2024](https://arxiv.org/abs/2407.00837)) | block 10 | `espnet/xeus`, loaded with `SSLTask.build_model_from_file` | **CC-BY-NC-SA-4.0** (non-commercial) |
+
+Select XEUS with `--config conf/tuning/train_sidon_xeus.yaml` for stage 5 and
+pass the same `ssl_encoder` / `ssl_encoder_conf` to the vocoder configs (stages
+7-8); inference reads the encoder type from the training config.
 
 ## Extra dependencies
 
@@ -13,7 +24,7 @@ These are **not** installed by `tools/` and are not ESPnet dependencies:
 
 | Package | Needed by | Install |
 |---|---|---|
-| `peft` | LoRA adapters on the w2v-BERT student (stages 4-5) | `pip install peft` |
+| `peft` | LoRA adapters on the SSL student (stages 4-5) | `pip install peft` |
 | `pyroomacoustics` | RIR pool generation (stage 3) | `pip install pyroomacoustics` |
 | `versa` | VERSA scoring (stage 11) | `tools/installers/install_versa.sh` |
 | NISQA *(optional)* | `local/score.py --nisqa_model` | clone [NISQA](https://github.com/gabrielmittag/NISQA), add to `PYTHONPATH` |

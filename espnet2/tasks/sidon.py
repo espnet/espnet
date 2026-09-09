@@ -12,7 +12,11 @@ import torch.nn.functional as F
 import torchaudio
 import torchaudio.functional as AF
 
-from espnet2.enh.sidon_model import SidonFeaturePredictor, W2VBert2Encoder
+from espnet2.enh.sidon_model import (
+    SSL_ENCODERS,
+    SidonFeaturePredictor,
+    build_ssl_encoder,
+)
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.train.collate_fn import CommonCollateFn
 from espnet2.train.trainer import Trainer
@@ -230,8 +234,19 @@ class SidonTask(AbsTask):
             action=NestedDictAction,
             default={"extract_feats_in_collect_stats": False},
         )
-        group.add_argument("--ssl_encoder", choices=["w2v_bert2"], default="w2v_bert2")
-        group.add_argument("--ssl_encoder_conf", action=NestedDictAction, default={})
+        group.add_argument(
+            "--ssl_encoder",
+            choices=sorted(SSL_ENCODERS),
+            default="w2v_bert2",
+            help="w2v_bert2: w2v-BERT 2.0 layer 8 (Sidon paper); "
+            "xeus: XEUS block 10 via ESPnet SSLTask",
+        )
+        group.add_argument(
+            "--ssl_encoder_conf",
+            action=NestedDictAction,
+            default={},
+            help="Encoder keyword arguments, e.g. model_tag, target_layer",
+        )
         group.add_argument("--lora_rank", type=int, default=64)
         group.add_argument("--lora_alpha", type=int, default=16)
         group.add_argument("--lora_dropout", type=float, default=0.1)
@@ -268,13 +283,13 @@ class SidonTask(AbsTask):
 
     @classmethod
     def build_model(cls, args):
-        conf = dict(args.ssl_encoder_conf or {})
-        encoder = W2VBert2Encoder(
+        encoder = build_ssl_encoder(
+            args.ssl_encoder,
+            args.ssl_encoder_conf,
             lora_rank=args.lora_rank,
             lora_alpha=args.lora_alpha,
             lora_dropout=args.lora_dropout,
             input_sr=args.input_sr,
-            **conf,
         )
         return SidonFeaturePredictor(encoder)
 

@@ -21,7 +21,6 @@ import torchaudio.functional as AF
 from torch import nn
 
 from espnet2.enh.decoder.sidon_vocoder import SidonVocoder
-from espnet2.enh.sidon_model import W2VBert2Encoder
 from espnet2.gan_tts.hifigan.loss import (
     DiscriminatorAdversarialLoss,
     FeatureMatchLoss,
@@ -41,9 +40,10 @@ class SidonVocoderGAN(AbsGANESPnetModel):
     """Vocoder generator + discriminator with a frozen feature encoder.
 
     Args:
-        ssl_encoder: stage-1 encoder. Always frozen here; the teacher branch
-            provides ground-truth features (pretrain) and the LoRA student
-            branch provides predicted ones (finetune).
+        ssl_encoder: stage-1 encoder (W2VBert2Encoder or XeusEncoder). Always
+            frozen here; the teacher branch provides ground-truth features
+            (pretrain) and the LoRA student branch provides predicted ones
+            (finetune).
         vocoder: generator mapping (B, T, D) features to (B, T * 960) audio.
         discriminator: returns a list, one entry per sub-discriminator, of
             [feature maps ..., logits].
@@ -63,7 +63,7 @@ class SidonVocoderGAN(AbsGANESPnetModel):
 
     def __init__(
         self,
-        ssl_encoder: W2VBert2Encoder,
+        ssl_encoder: nn.Module,
         vocoder: SidonVocoder,
         discriminator: nn.Module,
         use_predicted_feat: bool = False,
@@ -154,11 +154,10 @@ class SidonVocoderGAN(AbsGANESPnetModel):
             lengths = speech_ref1_lengths * self.input_sr // self.output_sr
         with torch.autocast("cuda", dtype=torch.bfloat16, enabled=wav.is_cuda):
             ssl_inputs = self.ssl_encoder._wav_to_ssl_inputs(wav, lengths)
-            if self.use_predicted_feat:
-                feat, _ = self.ssl_encoder(ssl_inputs)
-            else:
-                feat = self.ssl_encoder.extract_clean_features(ssl_inputs)
-        feat_lengths = ssl_inputs["attention_mask"].sum(dim=1).clamp(max=feat.size(1))
+            feat, mask = self.ssl_encoder.encode(
+                ssl_inputs, teacher=not self.use_predicted_feat
+            )
+        feat_lengths = mask.sum(dim=1).clamp(max=feat.size(1))
         return feat.float(), feat_lengths
 
     def _crop(

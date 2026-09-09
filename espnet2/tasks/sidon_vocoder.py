@@ -6,9 +6,10 @@ import zlib
 
 import torch
 import torchaudio.functional as AF
+from torch import nn
 
 from espnet2.enh.decoder.sidon_vocoder import SidonVocoder
-from espnet2.enh.sidon_model import W2VBert2Encoder
+from espnet2.enh.sidon_model import SSL_ENCODERS, build_ssl_encoder
 from espnet2.enh.sidon_vocoder_model import SSL_FRAME_RATE, SidonVocoderGAN
 from espnet2.gan_codec.shared.discriminator.msmpmb_discriminator import (
     MultiScaleMultiPeriodMultiBandDiscriminator,
@@ -132,7 +133,9 @@ class SidonVocoderTask(AbsTask):
             action=NestedDictAction,
             default={"extract_feats_in_collect_stats": False},
         )
-        group.add_argument("--ssl_encoder", choices=["w2v_bert2"], default="w2v_bert2")
+        group.add_argument(
+            "--ssl_encoder", choices=sorted(SSL_ENCODERS), default="w2v_bert2"
+        )
         group.add_argument("--ssl_encoder_conf", action=NestedDictAction, default={})
         group.add_argument("--lora_rank", type=int, default=64)
         group.add_argument("--lora_alpha", type=int, default=16)
@@ -207,7 +210,7 @@ class SidonVocoderTask(AbsTask):
         return ("noisy_speech",)
 
     @staticmethod
-    def _load_feature_predictor(encoder: W2VBert2Encoder, path: str) -> None:
+    def _load_feature_predictor(encoder: nn.Module, path: str) -> None:
         checkpoint = torch.load(path, map_location="cpu", weights_only=True)
         state = checkpoint.get("model", checkpoint)
         prefix = "ssl_encoder."
@@ -230,13 +233,13 @@ class SidonVocoderTask(AbsTask):
 
     @classmethod
     def build_model(cls, args):
-        conf = dict(args.ssl_encoder_conf or {})
-        encoder = W2VBert2Encoder(
+        encoder = build_ssl_encoder(
+            args.ssl_encoder,
+            args.ssl_encoder_conf,
             lora_rank=args.lora_rank,
             lora_alpha=args.lora_alpha,
             lora_dropout=args.lora_dropout,
             input_sr=args.input_sr,
-            **conf,
         )
         if args.fp_model_path:
             cls._load_feature_predictor(encoder, args.fp_model_path)

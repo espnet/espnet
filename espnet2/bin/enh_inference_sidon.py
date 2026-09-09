@@ -28,8 +28,8 @@ def _load_feature_predictor(config_path, model_path, device):
     with open(config_path, encoding="utf-8") as stream:
         config = yaml.safe_load(stream) or {}
     ssl_conf = dict(config.get("ssl_encoder_conf") or {})
+    # keys of the legacy SpeechCleaner configs that this recipe does not have
     for key in (
-        "target_layer",
         "use_flash_attention",
         "use_multilayer_loss",
         "multilayer_mode",
@@ -37,7 +37,7 @@ def _load_feature_predictor(config_path, model_path, device):
     ):
         ssl_conf.pop(key, None)
     task_args = Namespace(
-        ssl_encoder="w2v_bert2",
+        ssl_encoder=config.get("ssl_encoder", "w2v_bert2"),
         ssl_encoder_conf=ssl_conf,
         lora_rank=config.get("lora_rank", 64),
         lora_alpha=config.get("lora_alpha", 16),
