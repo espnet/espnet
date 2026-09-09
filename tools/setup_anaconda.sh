@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# shellcheck source=tools/installers/download_with_retry.sh
+. "$(dirname "$0")"/installers/download_with_retry.sh
+
 if [ -z "${PS1:-}" ]; then
     PS1=__dummy__
 fi
@@ -51,7 +54,9 @@ fi
 if [ ! -e "${output_dir}/etc/profile.d/conda.sh" ]; then
     if [ ! -e "${script}" ]; then
         # https://docs.conda.io/en/latest/miniconda.html
-        wget --tries=3 --retry-on-http-error=429,500,502,503,504 --no-check-certificate "https://repo.anaconda.com/miniconda/${script}"
+        download_with_retry \
+            "https://repo.anaconda.com/miniconda/${script}" \
+            "${script}" --no-check-certificate
     fi
     if "${is_windows}"; then
         echo "Error: Miniconda installation is not supported for Windows for now."

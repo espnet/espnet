@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
+# shellcheck source=tools/installers/download_with_retry.sh
+. "$(dirname "$0")"/download_with_retry.sh
 
 SPH2PIPE_VERSION=2.5
 
@@ -16,8 +18,9 @@ if [[ ${unames} =~ MINGW || ${unames} =~ MSYS ]]; then
 fi
 
 if [ ! -e sph2pipe-${SPH2PIPE_VERSION}.tar.gz ]; then
-    wget -nv -T 10 -t 3 --retry-on-http-error=429,500,502,503,504 -O sph2pipe-${SPH2PIPE_VERSION}.tar.gz \
-	    https://github.com/burrmill/sph2pipe/archive/${SPH2PIPE_VERSION}.tar.gz
+    download_with_retry \
+        https://github.com/burrmill/sph2pipe/archive/${SPH2PIPE_VERSION}.tar.gz \
+        sph2pipe-${SPH2PIPE_VERSION}.tar.gz -nv -T 10
 fi
 
 if [ ! -e sph2pipe-${SPH2PIPE_VERSION} ]; then

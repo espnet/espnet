@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# shellcheck source=tools/installers/download_with_retry.sh
+. ./tools/installers/download_with_retry.sh
+
 if [ ! -e tools/kaldi ]; then
     git clone https://github.com/kaldi-asr/kaldi --depth 1 tools/kaldi
 fi
@@ -19,7 +22,9 @@ if ! [ -x "$(command -v shellcheck)" ]; then
     # tar -xvf shellcheck-stable.linux.x86_64.tar.xz
 
     # Workaround to avoid issue introduces in v0.11.0
-    wget --tries=3 --retry-on-http-error=429,500,502,503,504 https://github.com/koalaman/shellcheck/releases/download/v0.10.0/shellcheck-v0.10.0.linux.x86_64.tar.xz
+    download_with_retry \
+        https://github.com/koalaman/shellcheck/releases/download/v0.10.0/shellcheck-v0.10.0.linux.x86_64.tar.xz \
+        shellcheck-v0.10.0.linux.x86_64.tar.xz
     tar -xvf shellcheck-v0.10.0.linux.x86_64.tar.xz
 fi
 . tools/activate_python.sh

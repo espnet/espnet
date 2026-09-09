@@ -74,13 +74,13 @@ elif [[ ${unames} =~ Darwin ]]; then
     bins="ffmpeg ffprobe ffplay"
     for bin in ${bins}; do
         url="https://evermeet.cx/ffmpeg/getrelease/${bin}/zip"
-        wget --tries=3 --retry-on-http-error=429,500,502,503,504 --no-check-certificate --trust-server-names "${url}" -O "${bin}-release.zip"
+        download_with_retry "${url}" "${bin}-release.zip" --no-check-certificate
         unzip -o "${bin}-*.zip" -d ${dirname}
     done
 elif [[ ${unames} =~ MINGW || ${unames} =~ CYGWIN || ${unames} =~ MSYS ]]; then
     # Windows
     url=https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip
-    wget --tries=3 --retry-on-http-error=429,500,502,503,504 --no-check-certificate --trust-server-names "${url}" -O "ffmpeg-release-essentials_build.zip"
+    download_with_retry "${url}" "ffmpeg-release-essentials_build.zip" --no-check-certificate
     unzip -o ffmpeg-release-essentials_build.zip
     ffmpegdir="$(ls -d ffmpeg-*-essentials_build)"
     ln -sf "${ffmpegdir}"/bin "${dirname}"

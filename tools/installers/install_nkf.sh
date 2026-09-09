@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
-
+# shellcheck source=tools/installers/download_with_retry.sh
+. "$(dirname "$0")"/download_with_retry.sh
 
 if [ $# != 0 ]; then
     echo "Usage: $0"
@@ -19,7 +20,9 @@ mkdir -p nkf
 (
     set -euo pipefail
     cd nkf
-    wget --tries=3 --retry-on-http-error=429,500,502,503,504 https://github.com/nurse/nkf/archive/refs/tags/v2_1_4.tar.gz
+    download_with_retry \
+        https://github.com/nurse/nkf/archive/refs/tags/v2_1_4.tar.gz \
+        v2_1_4.tar.gz
     tar zxvf v2_1_4.tar.gz
     (
         set -euo pipefail
