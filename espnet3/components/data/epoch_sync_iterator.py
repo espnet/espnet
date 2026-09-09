@@ -1,6 +1,11 @@
-"""Per-epoch batch iterator with DDP epoch-end sync for ESPnet3."""
+"""EpochSyncIterator: per-epoch batch passes with DDP epoch-end sync."""
 
 import torch
+
+# Marker for "this source has no length", so an unsized source is probed once
+# rather than rebuilt on every __len__ call. -1 cannot collide with a real
+# length, since len() is never negative.
+_UNSIZED = -1
 
 
 class EpochSyncIterator:
@@ -23,10 +28,16 @@ class EpochSyncIterator:
     Without ``torch.distributed``, batches are yielded unchanged.
 
     Args:
-        iterator (Iterable): This rank's per-epoch batch iterator, typically
-            the return value of ``iter_factory.build_iter(epoch)``. It is
-            iterated once per ``__iter__`` call, and ``__len__`` is delegated
-            to it, so it must be sized for ``len()`` to work.
+        source (Union[Callable, Iterable]): What this rank's per-epoch passes
+            are built from - not necessarily an iterator itself. Prefer a
+            zero-argument callable returning a fresh iterator, e.g.
+            ``partial(iter_factory.build_iter, epoch)``: it is called once per
+            ``__iter__``, so repeated passes each get their own iterator. A
+            re-iterable container (list, ``DataLoader``) also works. Do not
+            pass a single live generator - ``build_iter`` of espnet2's
+            ``ChunkIterFactory`` returns one, and sharing it across passes
+            empties every pass after the first. ``__len__`` is delegated to
+            the source, so it must be sized for ``len()`` to work.
 
     Note:
         Subclasses should override :meth:`generate` rather than ``__iter__``,
@@ -47,32 +58,65 @@ class EpochSyncIterator:
         that every rank stops at the shortest rank's batch count::
 
             iter_factory = ChunkIterFactory(dataset, batches=batches, ...)
-            iterator = EpochSyncIterator(iter_factory.build_iter(epoch))
+            iterator = EpochSyncIterator(
+                partial(iter_factory.build_iter, epoch)  # the call, not its result
+            )
             for batch in iterator:  # same number of steps on every rank
                 ...
     """
 
-    def __init__(self, iterator):
-        """Wrap one rank's per-epoch batch iterator."""
-        self._iterator = iterator
+    def __init__(self, source):
+        """Wrap the source this rank's per-epoch passes are built from."""
+        self._source = source
+        self._length = None
+        self._pending_pass = None
 
     def __len__(self):
-        """Return the number of batches of the wrapped iterator.
+        """Return the number of batches in one pass over the source.
 
         In distributed runs this is an upper bound: the epoch ends earlier on
-        every rank when the first rank runs out of batches.
+        every rank when the first rank runs out of batches. A callable source
+        is called to obtain the object to measure, so a factory returning a
+        sized loader still reports its length. The result is cached: the
+        trainer asks for the length several times per epoch, and building a
+        sequence-style loader costs O(corpus) each time. The pass built for
+        the probe is handed to the next ``__iter__``, so probing costs no
+        extra factory call. One instance covers exactly one epoch, so the
+        length cannot change under the cache.
 
         Returns:
-            int: The number of batches the wrapped iterator reports.
+            int: The number of batches one pass over the source reports.
 
         Raises:
-            TypeError: If the wrapped iterator does not implement ``__len__``.
+            TypeError: If the source's pass does not implement ``__len__``.
+                espnet2's ``ChunkIterFactory`` yields a data-dependent number
+                of batches, so its loaders are unsized by design.
 
         Examples:
             >>> len(EpochSyncIterator([[0], [1], [2]]))
             3
+            >>> len(EpochSyncIterator(lambda: [[0], [1]]))
+            2
         """
-        return len(self._iterator)
+        if self._length is None:
+            # Build the pass outside the try: only the len() probe may be
+            # read as "unsized" - a TypeError raised inside the factory is a
+            # real bug and must propagate.
+            new_pass = self._get_new_pass()
+            try:
+                self._length = len(new_pass)
+            except TypeError:
+                self._length = _UNSIZED
+            if callable(self._source):
+                # Hand the probe pass to the next __iter__: a sequence-style
+                # factory pays O(corpus) per call, so the probe must not cost
+                # an extra one.
+                self._pending_pass = new_pass
+        if self._length == _UNSIZED:
+            raise TypeError(
+                f"{type(self).__name__} wraps an unsized source, so it has no len()"
+            )
+        return self._length
 
     def generate(self):
         """Yield this rank's batches.
@@ -83,7 +127,8 @@ class EpochSyncIterator:
         for free.
 
         Yields:
-            Any: The batches of the wrapped iterator, in order and unchanged.
+            Any: The batches of one fresh pass over the source, in order
+            and unchanged.
 
         Examples:
             >>> class NonEmptyIterator(EpochSyncIterator):
@@ -94,7 +139,24 @@ class EpochSyncIterator:
             >>> list(NonEmptyIterator([[0], [], [1]]))
             [[0], [1]]
         """
-        yield from self._iterator
+        yield from self._get_new_pass()
+
+    def _get_new_pass(self):
+        # A callable source is called once per pass, so every __iter__ gets its
+        # own iterator. Sharing one live iterator across passes is unsafe:
+        # `yield from` propagates close() to it, so a partially consumed pass
+        # that is discarded (an abandoned prefetch, for instance) leaves every
+        # later pass empty. The plain-iterable branch is kept for backward
+        # compatibility; DataLoaderBuilder always passes a callable.
+        if not callable(self._source):
+            return self._source
+        if self._pending_pass is not None:
+            # The pass built by the __len__ probe, not handed out yet. Once
+            # handed out it is never reused, so an abandoned partial pass
+            # still gets a fresh successor.
+            pending, self._pending_pass = self._pending_pass, None
+            return pending
+        return self._source()
 
     def __iter__(self):
         """Yield batches, stopping on all ranks once any rank is exhausted.
