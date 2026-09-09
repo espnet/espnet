@@ -3,7 +3,7 @@
 batch_type: numel
 batch_bins: 4000000
 accum_grad: 1
-max_epoch: 33
+max_epoch: 40
 patience: none
 init: none
 best_model_criterion:

@@ -18,9 +18,11 @@ stop_stage=100
 #   utt.ortho.  orthographic  (standard spelling, e.g. 제 이름은)
 #   utt.prono.  pronounced    (as actually spoken,  e.g. 제 이르믄)
 tier=utt.ortho.
-# Neighbouring utterances split by at most this much silence are merged back
-# together; 0 keeps the original (very short) TextGrid segmentation.
-merge_gap=0.5
+# Neighbouring utterances separated by at most this much silence can be merged
+# into one.  OFF by default: merging redefines the utterances rather than just
+# tidying them, and it would be applied to the test set too, so the scores would
+# no longer sit on the segmentation the corpus ships.  See README.md.
+merge_gap=0
 min_duration=0.2
 max_duration=20.0
 # Where the corpus is unpacked to when only the distributed archives are found.
@@ -144,6 +146,23 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 
     for part in train dev test; do
         eval "speakers=\${${part}_speakers}"
+
+        # The duration filter is for training data only: the test set has to be
+        # scored on every utterance the corpus annotates, or the reference text is
+        # not the corpus's any more and the score stops being comparable.  This
+        # mirrors asr.sh stage 4, which filters train/valid and leaves test_sets
+        # alone ("Not applying to test_sets to keep original data").
+        # Nothing in test needs clipping anyway: measured over the four test
+        # speakers the fragments run 0.07 s to 10.2 s, so none fall below the
+        # frontend's 512-sample STFT window (32 ms) or past --max_duration.
+        if [ "${part}" = test ]; then
+            _min_duration=0
+            _max_duration=100000
+        else
+            _min_duration="${min_duration}"
+            _max_duration="${max_duration}"
+        fi
+
         python3 local/prepare_data.py \
             --sound_dir "${sound_dir}" \
             --label_dir "${label_dir}" \
@@ -151,8 +170,8 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
             --speakers "${speakers}" \
             --tier "${tier}" \
             --merge_gap "${merge_gap}" \
-            --min_duration "${min_duration}" \
-            --max_duration "${max_duration}"
+            --min_duration "${_min_duration}" \
+            --max_duration "${_max_duration}"
 
         utils/utt2spk_to_spk2utt.pl "data/${part}/utt2spk" > "data/${part}/spk2utt"
         utils/fix_data_dir.sh "data/${part}"

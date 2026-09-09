@@ -20,10 +20,13 @@ Intervals labelled only with a non-speech tag (``<SIL>``, ``<NOISE>``,
 speaker said "word" while laughing, so it is rewritten to plain "word".
 
 The utterance tier is segmented at every pause, which leaves a lot of very short
-(~1.5 s on average) fragments.  Neighbouring fragments separated by nothing but
-silence/noise are therefore glued back together (see ``--merge_gap``); we never
-merge across the interviewer or across a fragment we had to throw away, so no
-merged utterance can hide speech that is missing from its transcript.
+(~1.5 s on average) fragments.  ``--merge_gap`` can glue neighbours separated by
+nothing but silence/noise back together -- never across the interviewer or across
+a fragment we had to throw away, so no merged utterance can hide speech that is
+missing from its transcript -- but it defaults to 0, i.e. off, and the recipe
+keeps the corpus's own utterance boundaries.  Turning it on changes what an
+"utterance" is in every split including test, so scores stop being comparable
+with anything measured on the shipped segmentation.
 """
 
 import argparse
@@ -218,9 +221,9 @@ def get_parser():
     parser.add_argument(
         "--merge_gap",
         type=float,
-        default=0.5,
-        help="merge neighbouring utterances split by at most this much "
-        "silence/noise; 0 keeps the original TextGrid segmentation",
+        default=0.0,
+        help="merge neighbouring utterances separated by at most this much "
+        "silence/noise; 0 (the default) keeps the corpus segmentation",
     )
     return parser
 
