@@ -93,17 +93,32 @@ jobs:
       # See the note in ci_on_ubuntu.yml: huggingface.co rate limits anonymous
       # callers hard, and this is the job where it actually bit - 72 tests failed
       # here on 429 while the step env held only NLTK_DISABLE_IMPORT_SECURITY.
-      - name: test shell
+      # One step per suite, so a failure names which one. They were a single
+      # "test python" step, which hid a 6-to-94 split: measured on run
+      # 34270654471, espnet2 is 17m51s (57197 tests) and espnet3 is 1m11s (705).
+      #
+      # Steps rather than separate jobs, which is why this does not mirror
+      # ci_on_ubuntu.yml's test_shell_espnet2 / test_python_espnet2 /
+      # test_python_espnet3. Those are separate jobs because that workflow pulls
+      # the prebuilt image, so splitting costs nothing. This one deliberately
+      # does not - it exists to check that ci/install.sh works on a bare
+      # debian:12 - so every job here pays that install again. Measured, the
+      # install is 10m6s of a 44m job, so mirroring ubuntu's three jobs would
+      # spend 21 extra minutes of compute and two extra slots against a 60-slot
+      # cap, to save about 12 minutes of wall clock. Splitting the steps buys
+      # the attribution for nothing.
+      - name: test shell (espnet2)
         env:
           HF_TOKEN: ${{ secrets.HF_CI_TOKEN }}
-        run: |
-          ./ci/test_shell_espnet2.sh
-      - name: test python
+        run: ./ci/test_shell_espnet2.sh
+      - name: test python (espnet2)
         env:
           HF_TOKEN: ${{ secrets.HF_CI_TOKEN }}
-        run: |
-          ./ci/test_python_espnet2.sh
-          ./ci/test_python_espnet3.sh
+        run: ./ci/test_python_espnet2.sh
+      - name: test python (espnet3)
+        env:
+          HF_TOKEN: ${{ secrets.HF_CI_TOKEN }}
+        run: ./ci/test_python_espnet3.sh
 
   # Single stable status check that aggregates every job in this workflow.
   # Register THIS job as the required status check instead of the individual
