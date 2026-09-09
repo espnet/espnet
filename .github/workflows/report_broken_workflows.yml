@@ -44,12 +44,19 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          # pipefail, because `python3 ... | tee` otherwise reports tee's
+          # status. And the statuses are read individually rather than as
+          # zero/nonzero: 2 means the scan could not read the API, which must
+          # fail this step rather than be filed as a broken workflow.
           set -o pipefail
-          if python3 ci/report_broken_workflows.py | tee report.txt; then
-            echo "broken=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "broken=true" >> "$GITHUB_OUTPUT"
-          fi
+          status=0
+          python3 ci/report_broken_workflows.py | tee report.txt || status=$?
+          case "${status}" in
+            0) echo "broken=false" >> "$GITHUB_OUTPUT" ;;
+            1) echo "broken=true" >> "$GITHUB_OUTPUT" ;;
+            *) echo "::error::the scan itself failed (status ${status})"
+               exit "${status}" ;;
+          esac
 
       # One issue, edited in place. Editing the body does not notify, so a
       # problem that persists does not mail everyone once a day; a new problem

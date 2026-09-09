@@ -34,6 +34,14 @@ import json
 import subprocess
 import sys
 
+# Exit statuses, distinct on purpose. The first version used 1 for both "found
+# something" and "could not look", so an API failure would have been reported
+# as a broken workflow and the scan's own failure hidden - the shape of defect
+# this script exists to catch.
+ALL_GREEN = 0
+FOUND_BROKEN = 1
+COULD_NOT_LOOK = 2
+
 # Events whose failures are visible to somebody by construction.
 WATCHED_BY_A_HUMAN = {"pull_request", "pull_request_target"}
 
@@ -62,7 +70,8 @@ def latest_runs(repo: str, pages: int):
     for page in range(1, pages + 1):
         got = api(f"repos/{repo}/actions/runs?per_page=100&page={page}")
         if got is None:
-            sys.exit(f"could not read page {page} of {repo}'s runs")
+            print(f"could not read page {page} of {repo}'s runs", file=sys.stderr)
+            sys.exit(COULD_NOT_LOOK)
         batch = got.get("workflow_runs", [])
         runs += batch
         if len(batch) < 100:
@@ -101,15 +110,19 @@ def main() -> int:
             f"{run.get('event'):<19}{run['created_at'][:10]}"
         )
 
+    if not newest:
+        print("no workflow runs found at all, which is not an answer", file=sys.stderr)
+        return COULD_NOT_LOOK
+
     if not broken:
         print(f"\n{len(newest)} workflows, none failing outside pull requests.")
-        return 0
+        return ALL_GREEN
 
     print(f"\n{len(broken)} workflow(s) failing where no pull request shows it:\n")
     for run in broken:
         print(f"  {run['path']}  ({run.get('event')}, {run['created_at'][:10]})")
         print(f"    {run['html_url']}")
-    return 1
+    return FOUND_BROKEN
 
 
 if __name__ == "__main__":
