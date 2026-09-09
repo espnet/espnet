@@ -101,6 +101,11 @@ def _packet_loss(wav: torch.Tensor, sr: int) -> torch.Tensor:
     return output
 
 
+# Degradations that have already failed once, so the warning below is emitted
+# a single time per process rather than on every utterance.
+_DEGRADE_WARNED: set = set()
+
+
 def degrade_waveform(
     wav: torch.Tensor,
     sr: int,
@@ -119,12 +124,31 @@ def degrade_waveform(
         lambda x: _codec(x, sr),
         lambda x: _packet_loss(x, sr),
     )
-    for operation in operations:
+    names = ("reverb", "noise", "band_limit", "clip", "codec", "packet_loss")
+    for name, operation in zip(names, operations):
         if random.random() < probability:
             try:
                 output = operation(output)
             except Exception as error:
-                logger.debug("Sidon degradation skipped: %s", error)
+                # A degradation that raises on every call silently removes
+                # itself from the training distribution, and at debug level
+                # nobody finds out. Two of the six were disabled this way:
+                # codec raises whenever torchaudio's FFmpeg extension is
+                # unavailable, and reverb was a no-op because the RIR pool
+                # had been generated as unit impulses. Warn once per
+                # degradation per process -- loud enough to notice in a log,
+                # quiet enough not to flood it.
+                if name not in _DEGRADE_WARNED:
+                    _DEGRADE_WARNED.add(name)
+                    logger.warning(
+                        "Sidon degradation %r failed and is being SKIPPED for "
+                        "every utterance in this process: %s: %s. The "
+                        "degradation distribution is now missing this "
+                        "component.",
+                        name,
+                        type(error).__name__,
+                        error,
+                    )
     output = torch.nan_to_num(output, nan=0.0, posinf=1.0, neginf=-1.0).clamp(-1, 1)
     return original.clamp(-1, 1) if output.abs().max() < 1e-8 else output
 
