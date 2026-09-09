@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Run an ESPnet-Sidon predictor with the official Sidon vocoder."""
+"""Run an ESPnet-Sidon predictor with a Sidon vocoder.
+
+The vocoder is either the official TorchScript decoder (--sidon_vocoder) or
+one trained by recipe stages 7-8 (--vocoder_train_config, --vocoder_model_file).
+"""
 
 import argparse
 import io
@@ -104,8 +108,19 @@ def get_parser():
     parser.add_argument("--model_file", required=True)
     parser.add_argument(
         "--sidon_vocoder",
-        required=True,
-        help="Official decoder_cpu.pt or decoder_cuda.pt",
+        default=None,
+        help="Official TorchScript decoder_cpu.pt or decoder_cuda.pt",
+    )
+    parser.add_argument(
+        "--vocoder_train_config",
+        default=None,
+        help="config.yaml of a vocoder trained by stages 7-8 "
+        "(alternative to --sidon_vocoder)",
+    )
+    parser.add_argument(
+        "--vocoder_model_file",
+        default=None,
+        help="checkpoint of that vocoder, e.g. valid.loss_mel.best.pth",
     )
     parser.add_argument("--wav_scp", required=True)
     parser.add_argument("--output_dir", required=True)
@@ -113,6 +128,49 @@ def get_parser():
     parser.add_argument("--chunk_sec", type=float, default=20.0)
     parser.add_argument("--overlap_sec", type=float, default=0.5)
     return parser
+
+
+def _load_vocoder(args, input_dim, device):
+    """Either vocoder as a callable (B, D, T) -> (B, 1, T * 960)."""
+    espnet_args = (args.vocoder_train_config, args.vocoder_model_file)
+    if args.sidon_vocoder and any(espnet_args):
+        raise ValueError(
+            "give either --sidon_vocoder or --vocoder_train_config with "
+            "--vocoder_model_file, not both"
+        )
+    if args.sidon_vocoder:
+        return torch.jit.load(args.sidon_vocoder, map_location=device).eval()
+    if not all(espnet_args):
+        raise ValueError(
+            "a vocoder is required: --sidon_vocoder (official TorchScript) or "
+            "--vocoder_train_config and --vocoder_model_file (stages 7-8)"
+        )
+    import yaml
+
+    from espnet2.enh.decoder.sidon_vocoder import SidonVocoder
+
+    with open(args.vocoder_train_config, encoding="utf-8") as stream:
+        config = yaml.safe_load(stream) or {}
+    vocoder = SidonVocoder(
+        input_dim=input_dim, **dict(config.get("vocoder_conf") or {})
+    )
+    checkpoint = torch.load(
+        args.vocoder_model_file, map_location="cpu", weights_only=True
+    )
+    state = checkpoint.get("model", checkpoint)
+    prefix = "vocoder."
+    state = {k[len(prefix) :]: v for k, v in state.items() if k.startswith(prefix)}
+    if not state:
+        raise RuntimeError(f"no 'vocoder.*' tensors in {args.vocoder_model_file}")
+    # Training checkpoints hold weight-normalised convolutions; a checkpoint
+    # saved after folding holds plain weights. Load whichever this is, then
+    # fold for inference.
+    if not any(k.endswith("weight_g") for k in state):
+        vocoder.remove_weight_norm()
+    vocoder.load_state_dict(state, strict=True)
+    vocoder.remove_weight_norm()
+    logger.info("loaded ESPnet-trained vocoder from %s", args.vocoder_model_file)
+    return vocoder.eval().to(device)
 
 
 def _read_audio(value: str, sample_rate: int = 16000):
@@ -193,7 +251,7 @@ def main(cmd=None):
     logging.basicConfig(level=logging.INFO)
     device = args.device if torch.cuda.is_available() else "cpu"
     model = _load_feature_predictor(args.train_config, args.model_file, device)
-    vocoder = torch.jit.load(args.sidon_vocoder, map_location=device).eval()
+    vocoder = _load_vocoder(args, model.ssl_encoder.ssl_dim, device)
 
     output = Path(args.output_dir)
     wav_dir = output / "wav"

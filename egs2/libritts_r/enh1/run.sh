@@ -6,13 +6,29 @@ set -euo pipefail
 . ./db.sh
 
 stage=1
-stop_stage=8
+stop_stage=11
 ngpu=4
 nj=64
 python=python3
 config=conf/train.yaml
 decode_config=conf/decode.yaml
 expdir=exp/sidon_w2v_bert2_layer8
+# Vocoder (stages 6-8). Stage 7 pretrains on ground-truth features, stage 8
+# finetunes on the stage-5 predictor's features.
+voc_pretrain_config=conf/tuning/train_sidon_vocoder_pretrain.yaml
+voc_finetune_config=conf/tuning/train_sidon_vocoder_finetune.yaml
+voc_pretrain_exp=exp/sidon_vocoder_pretrain
+voc_finetune_exp=exp/sidon_vocoder_finetune
+# Warm start for stage 8: default the stage-7 best. To start from the
+# published vocoder instead, run local/convert_official_sidon_vocoder.py and
+# pass --vocoder_init exp/official_sidon_vocoder/vocoder.pth
+# --discriminator_init "" (the release has no discriminator).
+vocoder_init=
+discriminator_init=
+# Vocoder used at inference: an ESPnet-trained one (default the stage-8
+# best) or, if --sidon_vocoder is set, the official TorchScript decoder.
+vocoder_exp=
+vocoder_model_file=
 sidon_vocoder=
 test_sets="test-clean test-other"
 versa_config=conf/versa_enh.yaml
@@ -73,25 +89,79 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
 fi
 
 if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
-    [ -n "${sidon_vocoder}" ] || {
-        log "Set --sidon_vocoder to official decoder_cuda.pt or decoder_cpu.pt"
-        exit 1
-    }
+    log "Stage 6: collect vocoder statistics"
+    ${python} -m espnet2.bin.enh_train_sidon_vocoder \
+        --config ${voc_pretrain_config} \
+        --train_data_path_and_name_and_type data/train_voc/wav.scp,speech_ref1,sound \
+        --valid_data_path_and_name_and_type data/dev_voc/wav.scp,speech_ref1,sound \
+        --output_dir ${voc_pretrain_exp} --collect_stats true --ngpu 0
+fi
+
+if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
+    log "Stage 7: pretrain vocoder on ground-truth SSL features"
+    ${cuda_cmd} --gpu ${ngpu} ${voc_pretrain_exp}/train.log \
+        ${python} -m espnet2.bin.enh_train_sidon_vocoder \
+        --config ${voc_pretrain_config} \
+        --train_data_path_and_name_and_type data/train_voc/wav.scp,speech_ref1,sound \
+        --valid_data_path_and_name_and_type data/dev_voc/wav.scp,speech_ref1,sound \
+        --train_shape_file ${voc_pretrain_exp}/train/speech_ref1_shape \
+        --valid_shape_file ${voc_pretrain_exp}/valid/speech_ref1_shape \
+        --output_dir ${voc_pretrain_exp} --ngpu ${ngpu} \
+        --multiprocessing_distributed true --unused_parameters true --resume true
+fi
+
+if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
+    log "Stage 8: finetune vocoder on predicted SSL features"
+    vocoder_init=${vocoder_init:-${voc_pretrain_exp}/valid.loss_mel.best.pth}
+    discriminator_init=${discriminator_init-${vocoder_init}}
+    init_opts=(--init_param "${vocoder_init}:vocoder:vocoder")
+    if [ -n "${discriminator_init}" ]; then
+        init_opts+=(--init_param "${discriminator_init}:discriminator:discriminator")
+    fi
+    # Same utterances as stage 7, so its shape files are reused.
+    ${cuda_cmd} --gpu ${ngpu} ${voc_finetune_exp}/train.log \
+        ${python} -m espnet2.bin.enh_train_sidon_vocoder \
+        --config ${voc_finetune_config} \
+        --fp_model_path ${expdir}/valid.loss.best.pth \
+        "${init_opts[@]}" \
+        --train_data_path_and_name_and_type data/train_voc/wav.scp,speech_ref1,sound \
+        --valid_data_path_and_name_and_type data/dev_voc/wav.scp,speech_ref1,sound \
+        --train_shape_file ${voc_pretrain_exp}/train/speech_ref1_shape \
+        --valid_shape_file ${voc_pretrain_exp}/valid/speech_ref1_shape \
+        --output_dir ${voc_finetune_exp} --ngpu ${ngpu} \
+        --multiprocessing_distributed true --unused_parameters true --resume true
+fi
+
+if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
+    if [ -n "${sidon_vocoder}" ]; then
+        vocoder_opts=(--sidon_vocoder "${sidon_vocoder}")
+    else
+        vocoder_exp=${vocoder_exp:-${voc_finetune_exp}}
+        vocoder_model_file=${vocoder_model_file:-${vocoder_exp}/valid.loss_mel.best.pth}
+        for required_file in "${vocoder_exp}/config.yaml" "${vocoder_model_file}"; do
+            [ -f "${required_file}" ] || {
+                log "Missing vocoder file ${required_file}: train one (stages 6-8) or set --sidon_vocoder"
+                exit 1
+            }
+        done
+        vocoder_opts=(--vocoder_train_config "${vocoder_exp}/config.yaml"
+                      --vocoder_model_file "${vocoder_model_file}")
+    fi
     for test_set in ${test_sets}; do
-        log "Stage 6: inference (${test_set})"
+        log "Stage 9: inference (${test_set})"
         ${python} -m espnet2.bin.enh_inference_sidon \
             --config ${decode_config} \
             --train_config ${expdir}/config.yaml \
             --model_file ${expdir}/valid.loss.best.pth \
-            --sidon_vocoder ${sidon_vocoder} \
+            "${vocoder_opts[@]}" \
             --wav_scp data/${test_set}_16k/wav.scp \
             --output_dir ${expdir}/inference_${test_set}
     done
 fi
 
-if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
+if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
     for test_set in ${test_sets}; do
-        log "Stage 7: scoring (${test_set})"
+        log "Stage 10: scoring (${test_set})"
         text_opt=()
         if [ -f "data/${test_set}/text" ]; then
             text_opt=(--text "data/${test_set}/text")
@@ -105,13 +175,13 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
     done
 fi
 
-if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
+if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ]; then
     ${python} -c "import versa" || {
-        log "VERSA is required for stage 8; run tools/installers/install_versa.sh"
+        log "VERSA is required for stage 11; run tools/installers/install_versa.sh"
         exit 1
     }
     for test_set in ${test_sets}; do
-        log "Stage 8: VERSA scoring (${test_set})"
+        log "Stage 11: VERSA scoring (${test_set})"
         inf_dir=${expdir}/inference_${test_set}
         eval_dir=${inf_dir}/scoring/versa_eval
         pred_scp=${inf_dir}/wav.scp
