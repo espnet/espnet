@@ -144,12 +144,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 
         # The duration filter is for training data only: the test set has to be
         # scored on every utterance the corpus annotates, or the reference text is
-        # not the corpus's any more and the score stops being comparable.  This
-        # mirrors asr.sh stage 4, which filters train/valid and leaves test_sets
-        # alone ("Not applying to test_sets to keep original data").
-        # Nothing in test needs clipping anyway: measured over the four test
-        # speakers the fragments run 0.07 s to 10.2 s, so none fall below the
-        # frontend's 512-sample STFT window (32 ms) or past --max_duration.
+        # not the corpus's any more and the score stops being comparable.
         if [ "${part}" = test ]; then
             _min_duration=0
             _max_duration=100000

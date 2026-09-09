@@ -1,6 +1,4 @@
 #!/usr/bin/env python3
-# Copyright 2026 Carnegie Mellon University (Haerin Kim)
-# Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 """Convert the Seoul Corpus (flac + Praat TextGrid) into Kaldi-style data dirs.
 
