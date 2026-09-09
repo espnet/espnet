@@ -78,7 +78,7 @@ cover all four age groups with two male and two female speakers.
 - ASR config: `conf/train_asr.yaml`
 - Decoding config: `conf/decode_asr.yaml`
 - Trained on 27165 utterances (17.0 h) for 40 epochs, 432 batches/epoch
-- Scored on the full test set: all 5899 annotated utterances, nothing filtered out
+- Scored on the full test set: 5899 annotated utterances
 
 ### WER
 
