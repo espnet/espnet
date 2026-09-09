@@ -19,14 +19,8 @@ Intervals labelled only with a non-speech tag (``<SIL>``, ``<NOISE>``,
 ``<IVER>`` (the interviewer speaking) are dropped.  ``<LAUGH-word>`` means the
 speaker said "word" while laughing, so it is rewritten to plain "word".
 
-The utterance tier is segmented at every pause, which leaves a lot of very short
-(~1.5 s on average) fragments.  ``--merge_gap`` can glue neighbours separated by
-nothing but silence/noise back together -- never across the interviewer or across
-a fragment we had to throw away, so no merged utterance can hide speech that is
-missing from its transcript -- but it defaults to 0, i.e. off, and the recipe
-keeps the corpus's own utterance boundaries.  Turning it on changes what an
-"utterance" is in every split including test, so scores stop being comparable
-with anything measured on the shipped segmentation.
+The tier breaks at every pause, so the utterances are short (~1.5 s on average);
+they are emitted exactly as the corpus annotates them.
 """
 
 import argparse
@@ -129,52 +123,24 @@ def normalize(label):
     return " ".join(label.split())
 
 
-def build_utterances(intervals, merge_gap, max_duration):
-    """Turn the intervals of one tier into merged utterance candidates.
+def read_speech_intervals(intervals):
+    """Keep the intervals of one tier that carry usable speech.
 
     Args:
         intervals: ``(xmin, xmax, text)`` tuples of the utterance tier.
-        merge_gap: Merge two speech chunks when at most this many seconds of
-            silence/noise separate them.  ``0`` disables merging.
-        max_duration: Never let a merged utterance grow beyond this (sec).
 
     Returns:
         A ``(utterances, n_dropped)`` pair, where ``utterances`` is a list of
-        ``(xmin, xmax, transcript)`` tuples.
+        ``(xmin, xmax, transcript)`` tuples in tier order.
     """
     utterances = []
     n_dropped = 0
-    pending = None  # [xmin, xmax, [words...]] of the utterance being grown
-    gap = 0.0  # silence accumulated since the end of `pending`
     for xmin, xmax, label in intervals:
         transcript = normalize(label)
         if not transcript:
             n_dropped += 1
-            # Silence and noise may be swallowed by a merge, but the
-            # interviewer -- or a fragment whose transcript we could not
-            # recover -- must break the utterance.
-            if label.strip() in NON_SPEECH_TAGS - {"<IVER>", "<IVER-NOISE>"}:
-                gap += xmax - xmin
-            else:
-                if pending is not None:
-                    utterances.append((pending[0], pending[1], " ".join(pending[2])))
-                pending, gap = None, 0.0
             continue
-
-        if (
-            pending is not None
-            and gap <= merge_gap
-            and xmax - pending[0] <= max_duration
-        ):
-            pending[1] = xmax
-            pending[2].append(transcript)
-        else:
-            if pending is not None:
-                utterances.append((pending[0], pending[1], " ".join(pending[2])))
-            pending = [xmin, xmax, [transcript]]
-        gap = 0.0
-    if pending is not None:
-        utterances.append((pending[0], pending[1], " ".join(pending[2])))
+        utterances.append((xmin, xmax, transcript))
     return utterances, n_dropped
 
 
@@ -218,13 +184,6 @@ def get_parser():
     parser.add_argument(
         "--max_duration", type=float, default=20.0, help="drop longer segments (sec)"
     )
-    parser.add_argument(
-        "--merge_gap",
-        type=float,
-        default=0.0,
-        help="merge neighbouring utterances separated by at most this much "
-        "silence/noise; 0 (the default) keeps the corpus segmentation",
-    )
     return parser
 
 
@@ -251,9 +210,7 @@ def main():
         if args.tier not in tiers:
             raise ValueError(f"{tg} has no tier {args.tier!r} (has {list(tiers)})")
 
-        utterances, n_dropped_here = build_utterances(
-            tiers[args.tier], args.merge_gap, args.max_duration
-        )
+        utterances, n_dropped_here = read_speech_intervals(tiers[args.tier])
         n_dropped += n_dropped_here
 
         n_kept_here = 0

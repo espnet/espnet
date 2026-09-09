@@ -18,11 +18,6 @@ stop_stage=100
 #   utt.ortho.  orthographic  (standard spelling, e.g. 제 이름은)
 #   utt.prono.  pronounced    (as actually spoken,  e.g. 제 이르믄)
 tier=utt.ortho.
-# Neighbouring utterances separated by at most this much silence can be merged
-# into one.  OFF by default: merging redefines the utterances rather than just
-# tidying them, and it would be applied to the test set too, so the scores would
-# no longer sit on the segmentation the corpus ships.  See README.md.
-merge_gap=0
 min_duration=0.2
 max_duration=20.0
 # Where the corpus is unpacked to when only the distributed archives are found.
@@ -169,7 +164,6 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
             --out_dir "data/${part}" \
             --speakers "${speakers}" \
             --tier "${tier}" \
-            --merge_gap "${merge_gap}" \
             --min_duration "${_min_duration}" \
             --max_duration "${_max_duration}"
 
