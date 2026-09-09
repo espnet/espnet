@@ -98,14 +98,31 @@ and audio turns for each task:
 ```
 
 An explicit `--resume-path` loads model weights from a PyTorch Distributed
-Checkpoint (DCP) directory and starts a new optimizer, scheduler, and step counter;
-use a new output directory when switching stages. The current Titan trainer cannot
-initialize directly from the Hub's `base.pt` or `model.pt` files.
+Checkpoint (DCP) directory or a native Hub `base.pt` / `model.pt` file and starts
+a new optimizer, scheduler, and step counter; use a new output directory when
+switching stages. Native files require `pp_degree: 1` and an exactly matching
+model configuration; all model weights must be present. They support multi-GPU
+FSDP initialization without downloading the upstream backbone weights again.
 
 To resume an interrupted stage, rerun its command with the same data, configuration,
 and output directory, **omitting `--resume-path`**. The latest checkpoint in
 `output_dir/checkpoints/step_*` restores the model, optimizer, scheduler, and step.
 The launcher saves batch assignments by default (`--save-loader-state true`).
+Keep the gradient accumulation setting unchanged when resuming, since iterator
+progress is measured in micro-batches.
+
+To use a trained DCP checkpoint with native inference, export only its model
+weights on CPU (allow enough RAM for the full model):
+
+```bash
+python -m espnet2.speechlm.bin.export_checkpoint \
+    --checkpoint-dir exp/sft/checkpoints/step_50000 \
+    --output exp/sft/model.pt --dtype bfloat16
+```
+
+The [reproduction guide](../../../espnet2/speechlm/REPRODUCE.md) walks through a
+small LibriSpeech experiment, including caption generation, full-parameter
+eight-GPU FSDP fine-tuning, checkpoint export, and vLLM serving.
 
 For multiple nodes, run the same command on each node with `--num-nodes N`,
 `--node-rank R`, `--master-addr HOST`, and `--master-port PORT`; use the same
