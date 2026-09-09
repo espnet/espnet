@@ -157,7 +157,9 @@ def main():
                     first_error = e
             done += 1
             if done % 5000 == 0:
-                logger.info("  %d / %d done (%d failed)", done, len(to_generate), failed)
+                logger.info(
+                    "  %d / %d done (%d failed)", done, len(to_generate), failed
+                )
 
     total = len([f for f in os.listdir(args.out_dir) if f.endswith(".wav")])
     logger.info("Done. %d RIRs in %s (%d failed)", total, args.out_dir, failed)
@@ -166,8 +168,9 @@ def main():
     # training still runs, reverb augmentation just stops happening. Refuse to
     # exit successfully in that case.
     if failed:
-        logger.warning("%d/%d RIRs failed; first error: %s",
-                       failed, len(to_generate), first_error)
+        logger.warning(
+            "%d/%d RIRs failed; first error: %s", failed, len(to_generate), first_error
+        )
     if total < 0.9 * args.n_rirs:
         raise SystemExit(
             f"only {total}/{args.n_rirs} RIRs were written. Refusing to leave a "
@@ -181,10 +184,15 @@ def main():
     import soundfile as _sf
 
     names = sorted(f for f in os.listdir(args.out_dir) if f.endswith(".wav"))
-    probe = [names[i] for i in np.linspace(0, len(names) - 1, min(200, len(names))).astype(int)]
+    probe = [
+        names[i]
+        for i in np.linspace(0, len(names) - 1, min(200, len(names))).astype(int)
+    ]
     degenerate = 0
     for name in probe:
-        x, _ = _sf.read(os.path.join(args.out_dir, name), dtype="float32", always_2d=True)
+        x, _ = _sf.read(
+            os.path.join(args.out_dir, name), dtype="float32", always_2d=True
+        )
         if int((np.abs(x.mean(1)) > 1e-9).sum()) <= 2:
             degenerate += 1
     if degenerate:
