@@ -14,7 +14,7 @@ fi
 
 
 if [ ! -e PESQ.zip ]; then
-    wget --tries=3 --no-check-certificate \
+    wget --tries=3 --retry-on-http-error=429,500,502,503,504 --no-check-certificate \
         'https://github.com/LiChenda/itu_pesq/raw/main/T-REC-P.862-200511.zip' -O PESQ.zip
 fi
 if [ ! -e PESQ ]; then

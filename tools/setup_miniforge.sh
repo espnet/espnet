@@ -50,7 +50,7 @@ fi
 
 if [ ! -e "${output_dir}/etc/profile.d/conda.sh" ]; then
     if [ ! -e "${script}" ]; then
-        wget --tries=3 --no-check-certificate "https://github.com/conda-forge/miniforge/releases/latest/download/${script}"
+        wget --tries=3 --retry-on-http-error=429,500,502,503,504 --no-check-certificate "https://github.com/conda-forge/miniforge/releases/latest/download/${script}"
     fi
     if "${is_windows}"; then
         echo "Error: miniforge installation is not supported for Windows for now."

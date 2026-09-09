@@ -16,7 +16,7 @@ if [[ ${unames} =~ MINGW || ${unames} =~ MSYS ]]; then
 fi
 
 if [ ! -e sph2pipe-${SPH2PIPE_VERSION}.tar.gz ]; then
-    wget -nv -T 10 -t 3 -O sph2pipe-${SPH2PIPE_VERSION}.tar.gz \
+    wget -nv -T 10 -t 3 --retry-on-http-error=429,500,502,503,504 -O sph2pipe-${SPH2PIPE_VERSION}.tar.gz \
 	    https://github.com/burrmill/sph2pipe/archive/${SPH2PIPE_VERSION}.tar.gz
 fi
 

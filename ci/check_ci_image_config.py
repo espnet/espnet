@@ -65,6 +65,15 @@ schedule. So when install_torch.sh stopped supporting 2.7.1, the default stayed
 at 2.7.1 and the weekly docker publish failed every Monday for five months
 without a single red pull request.
 
+Tenth, every download in the CI and installer scripts must retry when the
+server answers 5xx. Almost all of them already pass --tries=3, and that flag
+does not cover an HTTP error response at all: against a server returning 500,
+wget --tries=3 makes exactly one request and exits 8. Asking for retries and
+getting none is worse than not asking, because the flag is right there in
+review. github.com answered one 500 for the miniforge installer and took the
+macOS install job down with it. --retry-on-http-error is what covers it for
+wget; curl --retry already treats a transient 5xx as retryable.
+
 And ninth, the workflow files must have no duplicate mapping keys. PyYAML
 accepts them and lets the last one win, so writing a second env: block into a
 step silently discards the first - which is exactly what nearly dropped
@@ -615,6 +624,73 @@ def check_declared_support_matches_variants() -> list:
     return problems
 
 
+# Where a failed download takes down a job nobody is watching. Explicit globs
+# rather than a walk: tools/ also holds the built venv and a kaldi checkout,
+# and the egs2 recipes are deliberately out of scope - a corpus download that
+# fails in front of the person who started it gets re-run.
+DOWNLOAD_SITES = (
+    "ci/*.sh",
+    "tools/*.sh",
+    "tools/installers/*.sh",
+    "docker/*.sh",
+    "docker/*.dockerfile",
+    "docker/prebuilt/*.dockerfile",
+    ".devcontainer/*/*.dockerfile",
+    ".devcontainer/*/build_image.sh",
+    ".github/workflows/*.yml",
+    ".github/actions/*/*.yml",
+)
+
+# wget or curl as a command word. The [^-\w/] keeps it off --curl-like flags
+# and off paths that end in the name.
+DOWNLOADER = re.compile(r"(?:^|[^-\w/])(wget|curl)\s")
+RETRIES_5XX = {
+    "wget": (
+        "--retry-on-http-error",
+        "--tries does not cover an HTTP error response: against a server "
+        "returning 500, wget --tries=3 makes one request and exits 8",
+    ),
+    "curl": (
+        "--retry",
+        "curl --retry treats a transient 5xx as retryable, but only when it "
+        "is asked to retry at all",
+    ),
+}
+
+# A trailing comment is still a comment, so cut the line at the first # that
+# starts a word. No URL can contain one - whitespace ends a URL - and ${#var}
+# is not preceded by whitespace.
+COMMENT = re.compile(r"(?:^|\s)#")
+
+
+def check_downloads_retry_on_5xx() -> list:
+    """Every CI download must retry when the server answers 5xx."""
+    problems = []
+    for glob in DOWNLOAD_SITES:
+        for path in sorted(Path().glob(glob)):
+            for number, line in enumerate(path.read_text().splitlines(), 1):
+                comment = COMMENT.search(line)
+                code = line[: comment.start()] if comment else line
+                # Only lines that carry the URL, which is what keeps this off
+                # "apt-get install -y wget curl".
+                if "http://" not in code and "https://" not in code:
+                    continue
+                match = DOWNLOADER.search(code)
+                if match is None:
+                    continue
+                flag, why = RETRIES_5XX[match.group(1)]
+                if flag in code:
+                    continue
+                problems.append(
+                    f"{path}:{number}: {match.group(1)} downloads without "
+                    f"{flag}\n"
+                    f"    {line.strip()}\n"
+                    f"  A 5xx from the server is not retried, so a single bad "
+                    f"response fails the job. {why}."
+                )
+    return problems
+
+
 def main() -> int:
     bad = (
         check_variants()
@@ -629,6 +705,7 @@ def main() -> int:
         + check_no_direct_references()
         + check_versions_are_built_variants()
         + check_declared_support_matches_variants()
+        + check_downloads_retry_on_5xx()
     )
     for problem in bad:
         print(problem, file=sys.stderr)
@@ -643,7 +720,8 @@ def main() -> int:
             "permissions; every codecov upload has a token; pyproject declares "
             "no direct references; every python and pytorch version named "
             "outside image_variants.json is one it lists, and what the "
-            "package declares matches it; no duplicate keys"
+            "package declares matches it; every download retries on 5xx; "
+            "no duplicate keys"
         )
         return 0
     if bad:

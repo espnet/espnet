@@ -18,7 +18,7 @@ if [[ ${unames} =~ MINGW || ${unames} =~ MSYS ]]; then
 fi
 
 if [ ! -e "${SCTK_ARCHIVE}" ]; then
-    wget -nv -T 10 -t 3 -O "${SCTK_ARCHIVE}" "${SCTK_URL}"
+    wget -nv -T 10 -t 3 --retry-on-http-error=429,500,502,503,504 -O "${SCTK_ARCHIVE}" "${SCTK_URL}"
 fi
 
 if [ ! -e sctk ]; then

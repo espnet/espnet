@@ -19,7 +19,7 @@ mkdir -p nkf
 (
     set -euo pipefail
     cd nkf
-    wget --tries=3 https://github.com/nurse/nkf/archive/refs/tags/v2_1_4.tar.gz
+    wget --tries=3 --retry-on-http-error=429,500,502,503,504 https://github.com/nurse/nkf/archive/refs/tags/v2_1_4.tar.gz
     tar zxvf v2_1_4.tar.gz
     (
         set -euo pipefail
