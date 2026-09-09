@@ -74,6 +74,26 @@ def api(path: str, tries: int = 3):
     return None
 
 
+def gh_version() -> str:
+    """Which gh produced this report.
+
+    Not a pin. gh comes from the runner image and moves without anyone here
+    choosing it, so a report that does not say which one made it leaves a
+    behaviour change with nothing to attribute it to. A version pinned in a
+    run: block would be worse: dependabot watches uses: refs, not a downloaded
+    CLI, so it would rot the way tools/Makefile's TH_VERSION sat at 2.7.1 for
+    five months. Recording beats pinning here because every way gh can fail is
+    already reported as COULD_NOT_LOOK rather than as a result.
+    """
+    try:
+        proc = subprocess.run(["gh", "--version"], capture_output=True, text=True)
+    except OSError:
+        return "unavailable"
+    if proc.returncode != 0 or not proc.stdout.strip():
+        return "unavailable"
+    return proc.stdout.splitlines()[0].strip()
+
+
 def latest_runs(repo: str, pages: int):
     """The newest run of each workflow, from one pass over the run list."""
     runs = []
@@ -104,6 +124,7 @@ def main() -> int:
     )
     args = parser.parse_args()
 
+    print(f"scanned with {gh_version()}")
     newest = latest_runs(args.repo, args.pages)
     broken = [
         run
