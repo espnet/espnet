@@ -174,6 +174,24 @@ class TestDiscreteAudioIOInit:
                     codec_choice=None,
                 )
 
+    def test_worker_copy_keeps_original_models_and_preprocessing(self, codec_only_io):
+        io = codec_only_io
+        io.codec_model = torch.nn.Linear(2, 2)
+        original_model = io.codec_model
+        with patch.object(DiscreteAudioIO, "_init_codec", side_effect=AssertionError):
+            worker = io.copy_for_worker()
+        assert io.codec_model is original_model
+        assert list(io.parameters())
+        assert not list(worker.parameters())
+        assert worker.get_vocabulary() == io.get_vocabulary()
+        sample = (np.zeros((1, 1600), dtype=np.float32), 16000)
+        expected = io.preprocess(sample)
+        actual = worker.preprocess(sample)
+        np.testing.assert_array_equal(actual[0], expected[0])
+        np.testing.assert_array_equal(actual[2], expected[2])
+        assert actual[1][0] == expected[1][0]
+        torch.testing.assert_close(actual[1][1], expected[1][1])
+
 
 # ---------------------------------------------------------------------------
 # DiscreteAudioIO — num_stream
@@ -511,6 +529,21 @@ class TestContinuousAudioIO:
         io = self._make_continuous_io()
         assert io.modality == "audio"
         assert io.is_discrete is False
+
+    def test_worker_copy_keeps_original_encoder(self):
+        io = self._make_continuous_io()
+        io.model = torch.nn.Linear(2, 2)
+        original_model = io.model
+        with patch.object(
+            ContinuousAudioIO, "_init_encoder", side_effect=AssertionError
+        ):
+            worker = io.copy_for_worker()
+        assert io.model is original_model
+        assert list(io.parameters())
+        assert not list(worker.parameters())
+        sample = (np.zeros((1, 1600), dtype=np.float32), 16000)
+        assert worker.find_length(sample) == io.find_length(sample)
+        assert worker.feature_dim() == io.feature_dim()
 
     def test_feature_dim(self):
         io = self._make_continuous_io()

@@ -3,6 +3,7 @@
 
 """Audio I/O implementation for discrete and continuous representations"""
 
+import copy
 import math
 from pathlib import Path
 from typing import List, Optional, Tuple, Union
@@ -82,6 +83,7 @@ class DiscreteAudioIO(AbsIO):
         stream_weights: List[float] = None,
         delay_interleave: bool = False,
         device: str = "cpu",
+        load_pretrained: bool = True,
     ):
         """Initialize discrete audio I/O handler with combined tokenizers.
 
@@ -113,6 +115,7 @@ class DiscreteAudioIO(AbsIO):
         self.stream_weights = stream_weights
         self.delay_interleave = delay_interleave
         self.device = device
+        self.load_pretrained = load_pretrained
 
         # Determine which tokenizers to use
         self.use_codec = codec_choice is not None
@@ -188,7 +191,13 @@ class DiscreteAudioIO(AbsIO):
                 raise ImportError(f"Failed to import 'transformers': {e}")
 
             # checkpoint for general audio is: hf-audio/xcodec-hubert-general
-            self.codec_model = XcodecModel.from_pretrained(codec_hf_model_tag)
+            if self.load_pretrained:
+                self.codec_model = XcodecModel.from_pretrained(codec_hf_model_tag)
+            else:
+                from transformers import XcodecConfig
+
+                config = XcodecConfig.from_pretrained(codec_hf_model_tag)
+                self.codec_model = XcodecModel(config)
             # NOTE(Jinchuan): default SDPA attention may cause slow CuDNN planning.
             # Use flash_attention_3 if available.
             from transformers.utils import is_flash_attn_3_available
@@ -800,26 +809,14 @@ class DiscreteAudioIO(AbsIO):
     def copy_for_worker(self) -> "DiscreteAudioIO":
         """Create lightweight copy for multiprocessing workers.
 
-        Creates a new instance with the same parameters (loads models)
-        then removes the heavy model components to reduce memory usage
-        in workers while keeping necessary metadata.
+        Keeps preprocessing metadata without loading or copying model weights.
 
         Returns:
             Lightweight copy suitable for workers
         """
-        # Create new instance with same parameters (loads models)
-        worker_copy = self.__class__(
-            codec_choice=self.codec_choice,
-            codec_hf_model_tag=self.codec_hf_model_tag,
-            codec_max_token_per_frame=self.codec_max_token_per_frame,
-            ssl_choice=self.ssl_choice,
-            ssl_hf_model_tag=self.ssl_hf_model_tag,
-            stream_weights=self.stream_weights,
-            delay_interleave=self.delay_interleave,
-            device="cpu",  # Workers use CPU
-        )
-
-        # Remove heavy model components after initialization
+        worker_copy = copy.copy(self)
+        worker_copy._modules = self._modules.copy()
+        worker_copy.device = "cpu"
         worker_copy.codec_model = None
         worker_copy.ssl_model = None
         worker_copy.km_model = None
@@ -863,6 +860,7 @@ class ContinuousAudioIO(AbsIO):
         attn_implementation: str = None,
         dtype: str = "bfloat16",
         device: str = "cpu",
+        load_pretrained: bool = True,
     ):
         """Initialize continuous audio encoder.
 
@@ -881,6 +879,7 @@ class ContinuousAudioIO(AbsIO):
         self.encoder_hf_model_tag = encoder_hf_model_tag
         self.attn_implementation = attn_implementation
         self.dtype_str = dtype
+        self.load_pretrained = load_pretrained
 
         # Convert string dtype to torch dtype
         self.dtype = getattr(torch, dtype)
@@ -906,25 +905,46 @@ class ContinuousAudioIO(AbsIO):
                     f"Model {self.encoder_hf_model_tag} not implemented"
                 )
 
-            # Load full Qwen multimodal model
-            full_model = model_class.from_pretrained(
-                self.encoder_hf_model_tag,
-                attn_implementation=self.attn_implementation,
-                torch_dtype=self.dtype,
-            )
+            if self.load_pretrained:
+                full_model = model_class.from_pretrained(
+                    self.encoder_hf_model_tag,
+                    attn_implementation=self.attn_implementation,
+                    dtype=self.dtype,
+                )
+                del full_model.thinker.model
+                del full_model.thinker.visual
+                del full_model.thinker.lm_head
+                self.model = full_model.thinker.to(self.device)
+            else:
+                from transformers import AutoConfig
 
-            # Remove unnecessary components, keep only audio tower
-            del full_model.thinker.model  # Remove language model
-            del full_model.thinker.visual  # Remove vision components
-            del full_model.thinker.lm_head  # Remove output head
-            self.model = full_model.thinker.to(self.device)
+                if self.encoder_hf_model_tag == "Qwen/Qwen3-Omni-30B-A3B-Instruct":
+                    from transformers.models.qwen3_omni_moe.modeling_qwen3_omni_moe import (
+                        Qwen3OmniMoeAudioEncoder,
+                    )
+
+                    encoder_class = Qwen3OmniMoeAudioEncoder
+                else:
+                    from transformers.models.qwen2_5_omni.modeling_qwen2_5_omni import (
+                        Qwen2_5OmniAudioEncoder,
+                    )
+
+                    encoder_class = Qwen2_5OmniAudioEncoder
+                config = AutoConfig.from_pretrained(self.encoder_hf_model_tag)
+                audio_config = config.thinker_config.audio_config
+                self.model = torch.nn.Module()
+                self.model.audio_tower = encoder_class._from_config(
+                    audio_config,
+                    attn_implementation=self.attn_implementation,
+                    dtype=self.dtype,
+                ).to(self.device)
 
             # Load processor for audio preprocessing
-            from transformers import AutoProcessor
+            from transformers import AutoFeatureExtractor
 
-            self.processor = AutoProcessor.from_pretrained(
+            self.processor = AutoFeatureExtractor.from_pretrained(
                 self.encoder_hf_model_tag
-            ).feature_extractor
+            )
 
             # Set model attributes
             self.d_model = self.model.audio_tower.config.output_dim
@@ -1014,10 +1034,21 @@ class ContinuousAudioIO(AbsIO):
         mask = (axis.unsqueeze(0) < length.unsqueeze(1)).int()
 
         # Extract audio features using the encoder
-        audio_features = self.model.get_audio_features(
-            batch_data,
-            feature_attention_mask=mask,
-        )
+        if hasattr(self.model, "get_audio_features"):
+            audio_features = self.model.get_audio_features(
+                batch_data, feature_attention_mask=mask, return_dict=True
+            ).last_hidden_state
+        else:
+            features = batch_data.permute(0, 2, 1)[mask.bool()].T
+            tower_kwargs = {"feature_lens": length, "return_dict": True}
+            if self.encoder_hf_model_tag == "Qwen/Qwen2.5-Omni-7B":
+                aftercnn, _ = self.model.audio_tower._get_feat_extract_output_lengths(
+                    length
+                )
+                tower_kwargs["aftercnn_lens"] = aftercnn
+            audio_features = self.model.audio_tower(
+                features, **tower_kwargs
+            ).last_hidden_state
         # Calculate output lengths after model's downsampling
         output_length = self.find_length(None, length)
         audio_features = audio_features.split(output_length.tolist(), dim=0)
@@ -1082,18 +1113,9 @@ class ContinuousAudioIO(AbsIO):
         Returns:
             Lightweight copy suitable for workers
         """
-        # Create new instance with same parameters
-        worker_copy = self.__class__(
-            encoder_choice=self.encoder_choice,
-            encoder_hf_model_tag=self.encoder_hf_model_tag,
-            attn_implementation=self.attn_implementation,
-            dtype=self.dtype_str,
-            device="cpu",  # Workers use CPU
-        )
-
-        # Remove the heavy model components for workers
-        # Keep only the processor which is needed for preprocessing
-        del worker_copy.model
+        worker_copy = copy.copy(self)
+        worker_copy._modules = self._modules.copy()
+        worker_copy.device = "cpu"
         worker_copy.model = None
 
         return worker_copy

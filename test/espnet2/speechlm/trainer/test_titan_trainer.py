@@ -36,6 +36,35 @@ def _make_bare_trainer(**attrs):
     return t
 
 
+class TestNativeInitialization:
+    def test_loads_weights_and_preserves_fresh_optimizer(self, tmp_path):
+        source = _SimpleModel()
+        target = _SimpleModel()
+        checkpoint = tmp_path / "model.pt"
+        torch.save({"module": source.state_dict()}, checkpoint)
+        optimizer = torch.optim.AdamW(target.parameters())
+        trainer = _make_bare_trainer(
+            model=target, output_dir=tmp_path, optimizer=optimizer, global_step=0
+        )
+        trainer._load_checkpoint(checkpoint)
+        for name, value in target.state_dict().items():
+            torch.testing.assert_close(value, source.state_dict()[name])
+        assert trainer.global_step == 0
+        assert not optimizer.state
+
+    def test_missing_explicit_checkpoint_is_an_error(self, tmp_path):
+        trainer = _make_bare_trainer(output_dir=tmp_path)
+        with pytest.raises(FileNotFoundError, match="does not exist"):
+            trainer._load_checkpoint(tmp_path / "missing.pt")
+
+    def test_missing_native_parameters_are_an_error(self, tmp_path):
+        checkpoint = tmp_path / "model.pt"
+        torch.save({"module": {}}, checkpoint)
+        trainer = _make_bare_trainer(model=_SimpleModel(), output_dir=tmp_path)
+        with pytest.raises(ValueError, match="nonempty state dict"):
+            trainer._load_checkpoint(checkpoint)
+
+
 # ---------------------------------------------------------------------------
 # reinit_model
 # ---------------------------------------------------------------------------

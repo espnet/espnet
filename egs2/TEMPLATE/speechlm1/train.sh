@@ -34,7 +34,7 @@ All relative paths are resolved from the recipe directory.
   --valid-unregistered-specifier SPEC 'task:name:dataset.json[:factor] ...'
   --train-registered-specifier SPEC   'task:name[:factor] ...' from the registry
   --valid-registered-specifier SPEC   'task:name[:factor] ...' from the registry
-  --resume-path PATH                  DCP directory for weights-only initialization
+  --resume-path PATH                  Native .pt weights or DCP directory
                                       Omit to resume the latest output checkpoint
   --ngpu N                           GPUs per node (default: 1)
   --num-nodes N                      Number of nodes (default: 1)
@@ -70,8 +70,8 @@ die() {
 (( node_rank < num_nodes )) || die "--node-rank must be less than --num-nodes."
 
 if [[ -n ${resume_path} ]]; then
-    [[ -d ${resume_path} && -f ${resume_path}/.metadata ]] \
-        || die "--resume-path must be a DCP directory containing .metadata: ${resume_path}"
+    [[ -f ${resume_path} || ( -d ${resume_path} && -f ${resume_path}/.metadata ) ]] \
+        || die "--resume-path must be a weight file or DCP directory containing .metadata: ${resume_path}"
 fi
 
 repo_root=$(cd "${recipe_dir}/../../.." && pwd)

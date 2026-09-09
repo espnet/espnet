@@ -5,6 +5,7 @@ pyarrow, lhotse, and soundfile so that TextReader, DialogueReader,
 SingleDataset, etc. can be imported without the real packages.
 """
 
+import importlib
 import importlib.machinery
 import os
 import sys
@@ -13,6 +14,14 @@ import types
 
 def _install_stub(name: str, module: types.ModuleType) -> None:
     sys.modules.setdefault(name, module)
+
+
+def _is_available(name: str) -> bool:
+    try:
+        importlib.import_module(name)
+    except ImportError:
+        return False
+    return True
 
 
 def pytest_configure():
@@ -24,7 +33,7 @@ def pytest_configure():
     # Mirror the real omniio layout used by the loaders:
     #   audio_loader -> ``from omniio.interface import audio_read``
     #   text_loader  -> ``from omniio.text.read import text_read_local``
-    if "omniio" not in sys.modules:
+    if not _is_available("omniio"):
         omniio = types.ModuleType("omniio")
         omniio.__spec__ = importlib.machinery.ModuleSpec("omniio", loader=None)
         omniio.__path__ = []
@@ -64,7 +73,7 @@ def pytest_configure():
         _install_stub("omniio.text.read", omniio_text_read)
 
     # ---- duckdb stub ----
-    if "duckdb" not in sys.modules:
+    if not _is_available("duckdb"):
         duckdb = types.ModuleType("duckdb")
         duckdb.__spec__ = importlib.machinery.ModuleSpec("duckdb", loader=None)
 
@@ -88,7 +97,7 @@ def pytest_configure():
         _install_stub("duckdb", duckdb)
 
     # ---- pyarrow stub ----
-    if "pyarrow" not in sys.modules:
+    if not _is_available("pyarrow"):
         pa = types.ModuleType("pyarrow")
         pa.__spec__ = importlib.machinery.ModuleSpec("pyarrow", loader=None)
 
@@ -103,7 +112,7 @@ def pytest_configure():
         _install_stub("pyarrow", pa)
 
     # ---- lhotse stub ----
-    if "lhotse" not in sys.modules:
+    if not _is_available("lhotse"):
         lhotse = types.ModuleType("lhotse")
         lhotse.__spec__ = importlib.machinery.ModuleSpec("lhotse", loader=None)
 
@@ -130,7 +139,7 @@ def pytest_configure():
         _install_stub("lhotse", lhotse)
 
     # ---- soundfile stub ----
-    if "soundfile" not in sys.modules:
+    if not _is_available("soundfile"):
         sf = types.ModuleType("soundfile")
         sf.__spec__ = importlib.machinery.ModuleSpec("soundfile", loader=None)
 
@@ -141,7 +150,7 @@ def pytest_configure():
         _install_stub("soundfile", sf)
 
     # ---- kaldiio stub ----
-    if "kaldiio" not in sys.modules:
+    if not _is_available("kaldiio"):
         kaldiio = types.ModuleType("kaldiio")
         kaldiio.__spec__ = importlib.machinery.ModuleSpec("kaldiio", loader=None)
 

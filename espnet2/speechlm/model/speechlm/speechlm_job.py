@@ -4,6 +4,7 @@
 
 """SpeechLM job template implementation for multimodal language modeling."""
 
+import logging
 import random
 import re
 from typing import Any, Callable, Dict
@@ -43,7 +44,12 @@ class SpeechLMJobTemplate(AbsJobTemplate):
     configurations for speech language modeling tasks.
     """
 
-    def __init__(self, config: Dict[str, Any], is_train: bool = False):
+    def __init__(
+        self,
+        config: Dict[str, Any],
+        is_train: bool = False,
+        load_pretrained: bool = True,
+    ):
         """Initialize the SpeechLM job template.
 
         Args:
@@ -53,22 +59,28 @@ class SpeechLMJobTemplate(AbsJobTemplate):
 
         # (1) keep other configs
         self.config = config
+        self.load_pretrained = load_pretrained
 
         # (2) build tokenizers and vocabulary
         io_config = config["multimodal_io"]
         self.multimodal_io = dict()
         for io_name, io_kwargs in io_config.items():
+            io_kwargs = dict(io_kwargs)
+            if io_name != "text" and not load_pretrained:
+                io_kwargs["load_pretrained"] = False
             multimodal_io_class = _multimodal_ios[io_name]
             assert issubclass(multimodal_io_class, AbsIO)
             self.multimodal_io[io_name] = multimodal_io_class(**io_kwargs)
 
         self._build_vocabulary()
+        logging.info("Vocabulary intervals: %s", self.vocab_meta["vocab_intervals"])
 
     def _build_vocabulary(self, num_special_tokens=256):
         """Build unified vocabulary from special tokens and multimodal IOs.
 
-        Reserves fixed slots for special tokens then adds tokens from discrete IOs.
-        Returns vocabulary list and interval mappings for each modality.
+        Reserves special tokens, then text, then other discrete IOs by name.
+        This order matches the released checkpoints and is independent of YAML
+        mapping order. Returns vocabulary and interval mappings per modality.
         """
         # (1) Init
         vocab = []
@@ -101,7 +113,11 @@ class SpeechLMJobTemplate(AbsJobTemplate):
         start = num_special_tokens
         mm_start, mm_end = None, None
         num_stream = 1
-        for io_name, io in self.multimodal_io.items():
+        # YAML serializers may reorder mappings. Token IDs are part of the
+        # checkpoint format: a reordered mapping must not move embedding rows.
+        io_names = sorted(self.multimodal_io, key=lambda name: (name != "text", name))
+        for io_name in io_names:
+            io = self.multimodal_io[io_name]
             if not io.is_discrete:
                 continue
 
@@ -146,8 +162,10 @@ class SpeechLMJobTemplate(AbsJobTemplate):
             "num_stream": num_stream,
         }
 
-    def build_preprocessor(self) -> Callable:
+    def build_preprocessor(self, for_validation: bool = False) -> Callable:
         """Build the data collation function for SpeechLM.
+
+        Validation keeps assistant targets but disables random CFG dropout.
 
         Returns:
             A callable function for collating SpeechLM batch data.
@@ -166,7 +184,7 @@ class SpeechLMJobTemplate(AbsJobTemplate):
             audio_output=processor_config["audio_output"],
             loss_region=processor_config["loss_region"],
             batchfy_method=self.config["data_loading"].get("batchfy_method", "bucket"),
-            audio_cfg=processor_config.get("audio_cfg", 0.0),
+            audio_cfg=0.0 if for_validation else processor_config.get("audio_cfg", 0.0),
             batch_length=self.config["data_loading"].get("batch_size", -1),
         )
 
@@ -205,6 +223,12 @@ class SpeechLMJobTemplate(AbsJobTemplate):
             vocab_meta=self.vocab_meta,
             **model_config["model_conf"],
         )
+        if not self.load_pretrained:
+            if pp_enabled:
+                raise ValueError(
+                    "Native checkpoint initialization requires pp_degree=1"
+                )
+            model_kwargs["load_pretrained"] = False
         if not pp_enabled:
             model = model_class(**model_kwargs)
             return model
