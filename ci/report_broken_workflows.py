@@ -53,9 +53,19 @@ def api(path: str, tries: int = 3):
     the Link header from that page to the last one, so a five-page loop fetches
     the whole list five times; the first version of this took over nine minutes
     that way.
+
+    Returns None for every way this can fail - gh missing, gh exiting nonzero,
+    gh printing something that is not JSON - so that all of them reach the
+    caller as COULD_NOT_LOOK rather than as a result.
     """
     for _ in range(tries):
-        proc = subprocess.run(["gh", "api", path], capture_output=True, text=True)
+        try:
+            proc = subprocess.run(["gh", "api", path], capture_output=True, text=True)
+        except OSError:
+            # gh absent or not runnable. Caught rather than raised, because an
+            # uncaught exception here exits 1, which the workflow reads as
+            # "found a broken workflow" and files an issue about it.
+            return None
         if proc.returncode == 0 and proc.stdout.strip():
             try:
                 return json.loads(proc.stdout)
