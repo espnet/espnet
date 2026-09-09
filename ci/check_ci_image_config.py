@@ -710,6 +710,7 @@ def logical_lines(text: str) -> list:
 
 
 def _wget_problem(line: str) -> str:
+    """Why this wget would not survive a transient response, or ""."""
     codes = WGET_RETRY.search(line)
     if codes is None:
         return (
@@ -728,6 +729,7 @@ def _wget_problem(line: str) -> str:
 
 
 def _curl_problem(line: str) -> str:
+    """Why this curl would not survive a transient response, or ""."""
     if FAIL_FLAG.search(line) is None:
         return (
             "no --fail, so curl exits 0 on a 5xx and writes the error body to "
