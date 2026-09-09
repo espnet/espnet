@@ -135,10 +135,12 @@ npm i
 #   - Rendering 1856 pages
 #   FATAL ERROR: Reached heap limit Allocation failed - JavaScript heap out of memory
 #
-# GitHub's ubuntu-latest runners have 16 GB, so 8 GB of heap is well within
-# budget.  Exported rather than prefixed so it also covers the child processes
-# vuepress spawns.
-export NODE_OPTIONS="${NODE_OPTIONS:+$NODE_OPTIONS }--max-old-space-size=8192"
+# 8192 wasn't enough either -- the same GC log pattern recurs, pinned against
+# the new ceiling instead (7942 -> 7960 MB before the same abort). GitHub's
+# ubuntu-latest runners have 16 GB total, so push closer to that limit while
+# leaving headroom for everything else running in the job. Exported rather
+# than prefixed so it also covers the child processes vuepress spawns.
+export NODE_OPTIONS="${NODE_OPTIONS:+$NODE_OPTIONS }--max-old-space-size=14336"
 npm run docs:build
 mv src/.vuepress/dist ../../
 
