@@ -1,0 +1,11 @@
+
+pack_model:
+  include:
+    - ${recipe_dir}/src
+    - ${data_dir}/**/bpe.model
+    - ${data_dir}/**/bpe.vocab
+    - ${data_dir}/**/tokens.txt
+    - conf/inference_owsm.yaml
+
+upload_model:
+  hf_repo: ms180/espnet3_falar_owsm_finetune
