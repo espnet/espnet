@@ -26,6 +26,7 @@ class HFCheckpointSaveCallback(Callback):
                 of AbsHFTrainingWrapper, got {type(model).__name__}""")
 
     def on_train_start(self, trainer, pl_module):
+        """Check that model is valid before training starts."""
         self._check_module(pl_module)
 
     def on_train_end(self, trainer, pl_module):
