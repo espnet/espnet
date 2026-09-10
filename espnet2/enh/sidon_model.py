@@ -25,9 +25,9 @@ from typing import Dict, Optional, Sequence, Tuple
 import torch
 import torch.nn.functional as F
 import torchaudio.compliance.kaldi as kaldi
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from torch import nn
 
+from espnet2.legacy.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 
