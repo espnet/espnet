@@ -142,6 +142,9 @@ class SPGISpeechDataset(TorchDataset):
         source_dir: Optional SPGISpeech root override. When omitted, resolves
             from ``<recipe_dir>/download/spgispeech`` and then the
             ``SPGISPEECH`` environment variable (see ``dataset/config.yaml``).
+        cache: Optional cache config. When enabled, the split is read from the
+            HuggingFace audio index written by ``create_dataset`` instead of
+            the raw csv manifests.
 
     Raises:
         ValueError: If ``split`` is unknown.
@@ -153,7 +156,7 @@ class SPGISpeechDataset(TorchDataset):
         >>> dataset = SPGISpeechDataset(split="val")
         >>> sample = dataset[0]
         >>> sorted(sample.keys())
-        ['speech', 'text', 'utt_id']
+        ['speech', 'text']
     """
 
     def __init__(
@@ -162,7 +165,6 @@ class SPGISpeechDataset(TorchDataset):
         recipe_dir: str | Path | None = None,
         source_dir: str | Path | None = None,
         cache: dict | None = None,
-        max_utts: int | None = None,
     ) -> None:
         """Resolve the split, preferring the cached index over the raw corpus."""
         self.split = str(split)
@@ -170,23 +172,8 @@ class SPGISpeechDataset(TorchDataset):
             known = ", ".join(sorted(_KNOWN_SPLITS))
             raise ValueError(f"Unknown split '{self.split}'. Expected one of: {known}")
 
-        # max_utts keeps only the first N utterances, following the same
-        # convention as egs3/owsm_v4/asr (conf/inference_smoke.yaml). Intended
-        # for decoding a subset inside a short interactive allocation; leave it
-        # unset for real runs.
-        # `if max_utts` would fold 0 into None and return the full split;
-        # 0 is a meaningful limit (an empty dataset), and a negative value would
-        # silently produce a reversed slice, so reject it.
-        self._max_utts = int(max_utts) if max_utts is not None else None
-        if self._max_utts is not None and self._max_utts < 0:
-            raise ValueError(f"max_utts must be non-negative, got {self._max_utts}")
-
         self._hf_cache = _load_hf_cache(cache, recipe_dir, self.split)
         if self._hf_cache is not None:
-            if self._max_utts is not None:
-                self._hf_cache = self._hf_cache.select(
-                    range(min(self._max_utts, len(self._hf_cache)))
-                )
             return
 
         recipe_root = (
@@ -205,8 +192,6 @@ class SPGISpeechDataset(TorchDataset):
         self.source_root = resolve_source_root(recipe_root, source_dir=source_dir)
         self._normalize = not self.split.endswith("_unnorm")
         self._examples = _resolve_split(self.split, self.source_root)
-        if self._max_utts is not None:
-            self._examples = self._examples[: self._max_utts]
 
     def __len__(self) -> int:
         """Return the number of utterances in this split."""

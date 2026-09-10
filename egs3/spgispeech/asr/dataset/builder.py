@@ -330,18 +330,12 @@ def _build_hf_cache(recipe_dir, cache_root, dataset_kwargs):
         shutil.rmtree(temporary, ignore_errors=True)
         failures = cache_root / f"{split}.failures.jsonl"
 
-        # max_utts must not reach the cache builder: it truncates the split,
-        # while is_built() only checks that the directory exists, so a later
-        # full run would silently accept a partial cache.
-        canonical_kwargs = dict(dataset_kwargs)
-        canonical_kwargs.pop("max_utts", None)
-
         dataset = _call_supported(
             dataset_class,
             split=split,
             recipe_dir=recipe_dir,
             cache={"enabled": False},
-            **canonical_kwargs,
+            **dataset_kwargs,
         )
         dataset_impl = importlib.import_module(module.Dataset.__module__)
         normalize = dataset_impl.normalize_text
