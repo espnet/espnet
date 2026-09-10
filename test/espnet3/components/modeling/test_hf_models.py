@@ -100,11 +100,15 @@ def test_training_wrapper_forward(mocked_training_model):
         logits=logits,
     )
 
-    wrapper(
+    returned_loss, stats, weight = wrapper(
         input_ids=torch.tensor([[1, 2], [3, 4], [5, 6], [7, 8]]),
     )
 
     model.assert_called_once()
+
+    assert returned_loss.detach() == pytest.approx(2.5, 1e-5)
+    assert stats["loss"].requires_grad is False
+    assert weight == 4
 
 
 def test_training_wrapper_collect_feats():
