@@ -26,9 +26,9 @@ source path.sh
 # shell would interpret as redirections when run.pl assembles the command line.
 regions=(hidalgo orizaba_zongolica zacatlan_tepetzintla)
 declare -A CFG=(
-    [hidalgo]="conf/decode_owsm_hid.yaml"
-    [orizaba_zongolica]="conf/decode_owsm_ozg.yaml"
-    [zacatlan_tepetzintla]="conf/decode_owsm_ztp.yaml"
+    [hidalgo]="conf/tuning/decode_owsm_hid.yaml"
+    [orizaba_zongolica]="conf/tuning/decode_owsm_ozg.yaml"
+    [zacatlan_tepetzintla]="conf/tuning/decode_owsm_ztp.yaml"
 )
 
 for region in "${regions[@]}"; do
