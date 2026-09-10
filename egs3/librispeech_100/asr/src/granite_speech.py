@@ -42,9 +42,7 @@ class GraniteSpeechInferenceSession(AbsHFInferenceWrapper):
 
         num_input_tokens = inputs["input_ids"].shape[-1]
         new_tokens = outputs[0, num_input_tokens:].unsqueeze(0)
-        output_text = self.tokenizer.batch_decode(
-            new_tokens, skip_special_tokens=True
-        )
+        output_text = self.tokenizer.batch_decode(new_tokens, skip_special_tokens=True)
 
         return [output_text]
 

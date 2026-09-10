@@ -21,11 +21,9 @@ class HFCheckpointSaveCallback(Callback):
     def _check_module(self, pl_module):
         model = getattr(pl_module, "model", None)
         if not isinstance(model, AbsHFTrainingWrapper):
-            raise TypeError(
-                f"""Failed to save Hugging Face model.
+            raise TypeError(f"""Failed to save Hugging Face model.
                 {type(pl_module).__name__}.model must be an instance
-                of AbsHFTrainingWrapper, got {type(model).__name__}"""
-            )
+                of AbsHFTrainingWrapper, got {type(model).__name__}""")
 
     def on_train_start(self, trainer, pl_module):
         self._check_module(pl_module)

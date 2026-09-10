@@ -2,7 +2,6 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 import torch
-
 from lightning.pytorch.callbacks import ModelCheckpoint
 
 from espnet3.components.callbacks.hf_callbacks import HFCheckpointSaveCallback
@@ -39,9 +38,7 @@ def test_hf_checkpoint_save_on_train_end(tmp_path):
         }
     }
 
-    callback = HFCheckpointSaveCallback(
-        dirpath=str(tmp_path / "hf_model")
-    )
+    callback = HFCheckpointSaveCallback(dirpath=str(tmp_path / "hf_model"))
 
     with patch("torch.load", return_value=checkpoint) as mock_load:
         callback.on_train_end(trainer, pl_module)
@@ -51,13 +48,9 @@ def test_hf_checkpoint_save_on_train_end(tmp_path):
         map_location=pl_module.device,
     )
 
-    pl_module.load_state_dict.assert_called_once_with(
-        checkpoint["state_dict"]
-    )
+    pl_module.load_state_dict.assert_called_once_with(checkpoint["state_dict"])
 
-    model.save_pretrained.assert_called_once_with(
-        str(tmp_path / "hf_model")
-    )
+    model.save_pretrained.assert_called_once_with(str(tmp_path / "hf_model"))
 
 
 def test_hf_checkpoint_save_invalid_model_class(tmp_path):
