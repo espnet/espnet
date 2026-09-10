@@ -1,11 +1,14 @@
-import pytest
 from unittest.mock import MagicMock
+
+import pytest
 
 from espnet3.components.callbacks.hf_callbacks import HFCheckpointSaveCallback
 from espnet3.components.modeling.hf_models import AbsHFTrainingWrapper
 
+
 class TestHFWrapper(AbsHFTrainingWrapper):
     """Wrapper for testing functionality without downloading models from HF."""
+
     def collect_feats(self, **batch):
         pass
 
@@ -62,4 +65,3 @@ def test_hf_checkpoint_save_on_non_global_zero(tmp_path):
     callback.on_train_end(trainer, pl_module)
 
     model.save_pretrained.assert_not_called()
-
