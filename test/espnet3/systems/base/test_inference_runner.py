@@ -123,10 +123,11 @@ def test_forward_batched_wraps_model_exception_in_runtime_error():
     def failing_model(speech):
         raise ValueError("model broken")
 
-    with pytest.raises(RuntimeError, match="Batched inference failed"):
+    with pytest.raises(RuntimeError, match="one at a time") as info:
         InferenceRunner.forward(
             [0], dataset=dataset, model=failing_model, input_key="speech"
         )
+    assert isinstance(info.value.__cause__, ValueError)
 
 
 def test_forward_batched_reports_out_of_memory_with_lengths_and_batch_size():

@@ -20,6 +20,10 @@ from espnet3.utils.writer_utils import write_artifact
 
 logger = logging.getLogger(__name__)
 
+# models already reported as not taking a batch, so that a long test set
+# does not repeat the warning once per batch
+_WARNED_UNBATCHED: set = set()
+
 
 def _normalize_key_list(keys) -> List[str]:
     if keys is None:
@@ -297,10 +301,31 @@ class InferenceRunner(BaseRunner):
                     "or sort the test set by length so that long utterances "
                     "are not padded to each other."
                 ) from exc
-            raise RuntimeError(
-                "Batched inference failed. If your model/output_fn does not "
-                "support batched inputs, set batch_size to None. "
-            ) from exc
+            # Not every model or output_fn takes a list. Before giving up, run
+            # the same items one at a time: that keeps `batch_size` safe to set
+            # for every model, and only the speed differs.
+            try:
+                outputs = [
+                    InferenceRunner.forward(i, dataset=dataset, model=model, **kwargs)
+                    for i in indices
+                ]
+            except Exception:  # noqa: BLE001
+                raise RuntimeError(
+                    "Batched inference failed, and so did running the same items "
+                    "one at a time; the second traceback is the one to read."
+                ) from exc
+            name = type(model).__name__
+            if name not in _WARNED_UNBATCHED:
+                _WARNED_UNBATCHED.add(name)
+                logger.warning(
+                    f"{name} or the output_fn did not accept a batch of "
+                    f"{len(indices)} items ({type(exc).__name__}: {str(exc)[:200]}); "
+                    "the items were run one at a time instead. Set `batch_size` "
+                    "to null in the inference config to skip the failed attempt, "
+                    "or make the model and output_fn accept lists to decode in "
+                    "batches."
+                )
+            return outputs
 
     @staticmethod
     def open_writers(
