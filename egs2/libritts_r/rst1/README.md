@@ -61,8 +61,8 @@ Set the paths in `db.sh`. `DATASET_LIBRITTS_R` and `LIBRITTS` are mandatory;
 | 7 | Pretrain the vocoder on ground-truth SSL features of clean speech |
 | 8 | Finetune the vocoder on the stage-5 predictor's features of degraded speech |
 | 9 | Inference with the stage-8 vocoder, or the official one (`--sidon_vocoder`) |
-| 10 | Scoring: DNSMOS, NISQA, SpkSim, WER (`local/score.py`) |
-| 11 | VERSA scoring, reference-free and reference-based |
+| 10 | Paper's four metrics: DNSMOS, NISQA, SpkSim, WER (`local/score.py`, dependency-light) |
+| 11 | VERSA scoring, reference-free and reference-based (recommended: same metrics plus UTMOS, SQUIM, PESQ, STOI, SDR/SI-SNR and more in one pass) |
 
 ```bash
 ./run.sh --stage 1 --stop_stage 8 --ngpu 4 --nj 64     # predictor + vocoder

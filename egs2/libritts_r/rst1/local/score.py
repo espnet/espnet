@@ -1,11 +1,17 @@
 #!/usr/bin/env python3
-"""Sidon evaluation script.
+"""Sidon evaluation script: the four numbers reported in the paper.
 
 Metrics following the paper:
   WER     — word error rate via mms-1b-all ASR model
   DNSMOS  — P.835 overall MOS estimate (microsoft/DNSMOS)
   NISQA   — neural speech quality assessment
   SpkSim  — cosine similarity of speaker embeddings (wavlm-base-plus-sv)
+
+VERSA (recipe stage 11, ``conf/versa_enh.yaml`` reference-free and
+``conf/versa_enh_ref_based.yaml`` reference-based) scores the same
+restorations with these metrics and many more variants (UTMOS, SQUIM, PESQ,
+STOI, SDR/SI-SNR, ...) in one pass and is the recommended scorer. Keep this
+script for a dependency-light reproduction of exactly the paper's table.
 
 Usage
 -----

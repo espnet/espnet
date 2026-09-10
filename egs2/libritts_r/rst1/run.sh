@@ -163,6 +163,8 @@ fi
 
 if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
     for test_set in ${test_sets}; do
+        # The paper's four metrics without VERSA; stage 11 (VERSA) covers them
+        # and more, so this stage can be skipped when VERSA is installed.
         log "Stage 10: scoring (${test_set})"
         text_opt=()
         if [ -f "data/${test_set}/text" ]; then
