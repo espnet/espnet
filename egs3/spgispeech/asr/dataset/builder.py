@@ -205,13 +205,14 @@ class SPGISpeechBuilder(DatasetBuilder):
         _build_hf_cache(recipe_dir, cache_root, kwargs)
 
 
-_HF_CACHE_SPLITS = ["val","dev_4k","train_nodev","train"]
+_HF_CACHE_SPLITS = ["val", "dev_4k", "train_nodev", "train"]
 
 
 def _hf_cache_root(recipe_dir, cache):
     if not cache or not cache.get("enabled", False):
         return None
     from pathlib import Path
+
     root = Path(cache.get("cache_dir", "data/hf"))
     if not root.is_absolute():
         root = Path(recipe_dir) / root
@@ -220,15 +221,13 @@ def _hf_cache_root(recipe_dir, cache):
 
 def _call_supported(function, **kwargs):
     import inspect
+
     parameters = inspect.signature(function).parameters
     variadic = any(
-        parameter.kind == parameter.VAR_KEYWORD
-        for parameter in parameters.values()
+        parameter.kind == parameter.VAR_KEYWORD for parameter in parameters.values()
     )
     clean = {
-        key: value
-        for key, value in kwargs.items()
-        if variadic or key in parameters
+        key: value for key, value in kwargs.items() if variadic or key in parameters
     }
     return function(**clean)
 
@@ -246,14 +245,22 @@ def _raw_record(dataset, index):
 def _audio_path(record):
     from dataclasses import asdict, is_dataclass
     from pathlib import Path
+
     if is_dataclass(record):
         record = asdict(record)
     if not isinstance(record, dict):
         record = getattr(record, "__dict__", {"audio_path": record})
     suffixes = {".wav", ".flac", ".mp3", ".opus", ".sph", ".pcm", ".m4a"}
     preferred = (
-        "segment_path", "audio_path", "wav_path", "sph_path", "mp3_path",
-        "long_path", "recording_path", "path", "speech",
+        "segment_path",
+        "audio_path",
+        "wav_path",
+        "sph_path",
+        "mp3_path",
+        "long_path",
+        "recording_path",
+        "path",
+        "speech",
     )
     values = [record.get(key) for key in preferred if record.get(key) is not None]
     values.extend(record.values())
@@ -262,7 +269,9 @@ def _audio_path(record):
             return str(value)
         if isinstance(value, str):
             stripped = value.rstrip("|").strip()
-            if Path(stripped).suffix.lower() in suffixes or value.rstrip().endswith("|"):
+            if Path(stripped).suffix.lower() in suffixes or value.rstrip().endswith(
+                "|"
+            ):
                 return value
     raise RuntimeError("Could not locate an audio path in the raw index record")
 
@@ -272,7 +281,9 @@ def _build_hf_cache(recipe_dir, cache_root, dataset_kwargs):
     import importlib
     import json
     import shutil
+
     from datasets import Dataset as HFDataset
+
     module = importlib.import_module(__package__)
     dataset_class = module.Dataset
     cache_root.mkdir(parents=True, exist_ok=True)
@@ -284,28 +295,64 @@ def _build_hf_cache(recipe_dir, cache_root, dataset_kwargs):
         shutil.rmtree(temporary, ignore_errors=True)
         failures = cache_root / f"{split}.failures.jsonl"
 
-        dataset = _call_supported(dataset_class, split=split, recipe_dir=recipe_dir, cache={"enabled": False}, **dataset_kwargs)
+        dataset = _call_supported(
+            dataset_class,
+            split=split,
+            recipe_dir=recipe_dir,
+            cache={"enabled": False},
+            **dataset_kwargs,
+        )
         dataset_impl = importlib.import_module(module.Dataset.__module__)
         normalize = dataset_impl.normalize_text
-        records = [(i, str(row.audio_path), row.utt_id, normalize(row.raw_text) if not split.endswith("_unnorm") else row.raw_text) for i, row in enumerate(dataset._examples)]
+        records = [
+            (
+                i,
+                str(row.audio_path),
+                row.utt_id,
+                (
+                    normalize(row.raw_text)
+                    if not split.endswith("_unnorm")
+                    else row.raw_text
+                ),
+            )
+            for i, row in enumerate(dataset._examples)
+        ]
+
         def rows():
             with failures.open("w", encoding="utf-8") as stream:
-                with concurrent.futures.ProcessPoolExecutor(max_workers=min(16, int(os.environ.get("SLURM_CPUS_PER_TASK", "16")))) as pool:
+                with concurrent.futures.ProcessPoolExecutor(
+                    max_workers=min(
+                        16, int(os.environ.get("SLURM_CPUS_PER_TASK", "16"))
+                    )
+                ) as pool:
                     for result in pool.map(_validate_spgi_row, records, chunksize=64):
                         if result["ok"]:
                             i, path, utt_id, text = result["row"]
-                            yield {"raw_index": i, "audio_path": path, "utt_id": utt_id, "text": text, "src_text": "", "tgt_text": "", "lang": "en"}
-                        else: stream.write(json.dumps(result) + "\n")
+                            yield {
+                                "raw_index": i,
+                                "audio_path": path,
+                                "utt_id": utt_id,
+                                "text": text,
+                                "src_text": "",
+                                "tgt_text": "",
+                                "lang": "en",
+                            }
+                        else:
+                            stream.write(json.dumps(result) + "\n")
 
         HFDataset.from_generator(rows).save_to_disk(str(temporary))
         temporary.rename(target)
 
+
 def _validate_spgi_row(record):
     import numpy as np
     import soundfile as sf
+
     i, path, utt_id, text = record
     try:
         audio, _ = sf.read(path, dtype="float32")
-        if not np.asarray(audio).size or not np.isfinite(audio).all() or not text: raise ValueError("invalid audio/text")
+        if not np.asarray(audio).size or not np.isfinite(audio).all() or not text:
+            raise ValueError("invalid audio/text")
         return {"ok": True, "row": record}
-    except Exception as exc: return {"ok": False, "raw_index": i, "error": repr(exc)}
+    except Exception as exc:
+        return {"ok": False, "raw_index": i, "error": repr(exc)}

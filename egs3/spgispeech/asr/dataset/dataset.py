@@ -67,7 +67,9 @@ class SPGISpeechExample:
 
 def _utt_id_from_wav_filename(wav_filename: str) -> str:
     """Reproduce data_prep.sh's utt-id derivation from a csv wav_filename."""
-    stem = wav_filename[: -len(".wav")] if wav_filename.endswith(".wav") else wav_filename
+    stem = (
+        wav_filename[: -len(".wav")] if wav_filename.endswith(".wav") else wav_filename
+    )
     return stem.replace("/", "-", 1)
 
 
@@ -79,7 +81,9 @@ def normalize_text(raw_text: str) -> str:
 
 
 @functools.lru_cache(maxsize=8)
-def _load_base_split(source_root: Path, base_split: str) -> tuple[SPGISpeechExample, ...]:
+def _load_base_split(
+    source_root: Path, base_split: str
+) -> tuple[SPGISpeechExample, ...]:
     """Parse one base csv ('train' or 'val') into a utt-id sorted index."""
     csv_path = source_root / _CSV_FILES[base_split]
     audio_root = source_root / _AUDIO_SUBDIR / base_split
@@ -110,9 +114,7 @@ def _load_base_split(source_root: Path, base_split: str) -> tuple[SPGISpeechExam
     return tuple(sorted(examples, key=lambda example: example.utt_id))
 
 
-def _resolve_split(
-    split: str, source_root: Path
-) -> tuple[SPGISpeechExample, ...]:
+def _resolve_split(split: str, source_root: Path) -> tuple[SPGISpeechExample, ...]:
     """Map a supported split name to its (sliced) sorted example tuple."""
     base_split = split[: -len("_unnorm")] if split.endswith("_unnorm") else split
 
@@ -252,16 +254,21 @@ def gather_training_text(
         return [str(text) for text in cached["text"]]
     recipe_root = Path(recipe_dir).resolve()
     root = resolve_source_root(recipe_root, source_dir=source_dir)
-    return [normalize_text(example.raw_text) for example in _resolve_split("train", root)]
+    return [
+        normalize_text(example.raw_text) for example in _resolve_split("train", root)
+    ]
+
 
 def _load_hf_cache(cache, recipe_dir, split):
     import os
+
     environment_root = os.environ.get("EGS3_HF_CACHE_DIR")
     if cache is None and environment_root:
         cache = {"enabled": True, "backend": "hf", "cache_dir": environment_root}
     if not cache or not cache.get("enabled", False):
         return None
     from datasets import load_from_disk
+
     root = Path(cache.get("cache_dir", "data/hf"))
     if not root.is_absolute():
         root = Path(recipe_dir or Path.cwd()) / root
