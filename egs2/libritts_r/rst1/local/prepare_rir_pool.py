@@ -98,6 +98,11 @@ def _gen_one(idx: int, out_dir: str, seed: int = 0) -> str:
     )
 
 
+def _is_rir(name: str) -> bool:
+    """Only the pool's own files count; anything else in the directory is ignored."""
+    return name.startswith("rir_") and name.endswith(".wav")
+
+
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--out_dir", required=True)
@@ -122,18 +127,13 @@ def main():
     random.seed(args.seed)
     os.makedirs(args.out_dir, exist_ok=True)
 
-    # Check how many already exist
-    existing = {f for f in os.listdir(args.out_dir) if f.endswith(".wav")}
-    existing_count = len(existing)
-    if existing_count >= args.n_rirs:
-        logger.info(
-            "Already have %d RIRs (≥ %d requested). Nothing to do.",
-            existing_count,
-            args.n_rirs,
-        )
-        return
-
+    # Resume by required name, not by counting WAV files: an unrelated file in
+    # the directory must not stand in for a missing rir_XXXXXX.wav.
+    existing = {f for f in os.listdir(args.out_dir) if _is_rir(f)}
     to_generate = [i for i in range(args.n_rirs) if f"rir_{i:06d}.wav" not in existing]
+    if not to_generate:
+        logger.info("All %d requested RIRs already exist. Nothing to do.", args.n_rirs)
+        return
     logger.info(
         "Generating %d RIRs with %d workers → %s",
         len(to_generate),
@@ -161,7 +161,7 @@ def main():
                     "  %d / %d done (%d failed)", done, len(to_generate), failed
                 )
 
-    total = len([f for f in os.listdir(args.out_dir) if f.endswith(".wav")])
+    total = len([f for f in os.listdir(args.out_dir) if _is_rir(f)])
     logger.info("Done. %d RIRs in %s (%d failed)", total, args.out_dir, failed)
 
     # A pool that is mostly missing is a silently broken degradation stage:
@@ -183,7 +183,7 @@ def main():
     # unnoticed through an entire training run.
     import soundfile as _sf
 
-    names = sorted(f for f in os.listdir(args.out_dir) if f.endswith(".wav"))
+    names = sorted(f for f in os.listdir(args.out_dir) if _is_rir(f))
     probe = [
         names[i]
         for i in np.linspace(0, len(names) - 1, min(200, len(names))).astype(int)

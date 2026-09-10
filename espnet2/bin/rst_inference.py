@@ -221,10 +221,12 @@ def _restore(waveform, model, vocoder, device, chunk_sec, overlap_sec):
         destination = start * 3
         restored = restored[: output_length - destination]
         envelope = np.ones(len(restored), np.float32)
+        # fade == 0 (--overlap_sec 0) means plain concatenation: envelope[-0:]
+        # would select the whole array, so the fades are only applied when > 0.
         fade = min(overlap * 3, len(restored))
-        if start:
+        if fade > 0 and start:
             envelope[:fade] = np.linspace(0, 1, fade)
-        if start + chunk < len(waveform):
+        if fade > 0 and start + chunk < len(waveform):
             envelope[-fade:] = np.minimum(envelope[-fade:], np.linspace(1, 0, fade))
         output[destination : destination + len(restored)] += restored * envelope
         weight[destination : destination + len(restored)] += envelope
@@ -256,10 +258,26 @@ def main(cmd=None):
     output = Path(args.output_dir)
     wav_dir = output / "wav"
     wav_dir.mkdir(parents=True, exist_ok=True)
-    scp = []
+    # Progress goes to wav.scp.partial one line per finished utterance, and
+    # wav.scp is only published once every input is done, so an interrupted
+    # run leaves no manifest that a later stage could mistake for complete.
+    # Rerunning into the same output_dir resumes from the partial manifest.
+    partial = output / "wav.scp.partial"
+    done = {}
+    if partial.is_file():
+        with open(partial, encoding="utf-8") as stream:
+            for line in stream:
+                utterance, path = line.rstrip().split(maxsplit=1)
+                if Path(path).is_file():
+                    done[utterance] = path
+        if done:
+            logger.info("Resuming: %d utterances already restored", len(done))
     with open(args.wav_scp, encoding="utf-8") as stream:
-        for line in stream:
-            utterance, source = line.rstrip().split(maxsplit=1)
+        inputs = [line.rstrip().split(maxsplit=1) for line in stream if line.strip()]
+    with open(partial, "a", encoding="utf-8") as manifest:
+        for utterance, source in inputs:
+            if utterance in done:
+                continue
             waveform = _read_audio(source)
             restored = _restore(
                 waveform,
@@ -271,11 +289,12 @@ def main(cmd=None):
             )
             path = wav_dir / f"{utterance}.wav"
             sf.write(path, restored, 48000)
-            scp.append(f"{utterance} {path}\n")
-    output.mkdir(parents=True, exist_ok=True)
+            manifest.write(f"{utterance} {path}\n")
+            manifest.flush()
+            done[utterance] = str(path)
     with open(output / "wav.scp", "w", encoding="utf-8") as stream:
-        stream.writelines(scp)
-    logger.info("Restored %d utterances", len(scp))
+        stream.writelines(f"{utterance} {done[utterance]}\n" for utterance, _ in inputs)
+    logger.info("Restored %d utterances", len(inputs))
 
 
 if __name__ == "__main__":
