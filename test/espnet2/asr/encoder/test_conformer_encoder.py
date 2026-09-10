@@ -147,3 +147,56 @@ def test_encoder_invalid_stochastic_depth_rate():
             num_blocks=2,
             stochastic_depth_rate=[0.1, 0.1, 0.1],
         )
+
+
+@pytest.mark.parametrize(
+    "rel_pos_type, pos_enc_layer_type, selfattention_layer_type",
+    [("latest", "rel_pos", "rel_selfattn"), ("legacy", "abs_pos", "selfattn")],
+)
+def test_conformer_output_does_not_depend_on_batch_neighbours(
+    rel_pos_type, pos_enc_layer_type, selfattention_layer_type
+):
+    """Padded frames are masked before the convolution module's depthwise conv."""
+    from test.espnet2.asr.encoder.padding_invariance import (
+        COMMON,
+        D_IN,
+        assert_alone_equals_batched,
+    )
+
+    torch.manual_seed(0)
+    assert_alone_equals_batched(
+        ConformerEncoder(
+            D_IN,
+            pos_enc_layer_type=pos_enc_layer_type,
+            selfattention_layer_type=selfattention_layer_type,
+            rel_pos_type=rel_pos_type,
+            cnn_module_kernel=7,
+            **COMMON,
+        )
+    )
+
+
+def test_conformer_legacy_rel_pos_is_documented_as_not_invariant():
+    """The legacy relative shift indexes positions by the padded length.
+
+    This is a property of those models, not a bug the masking can fix; the
+    test pins the fact so that nobody mistakes it for a regression.
+    """
+    from test.espnet2.asr.encoder.padding_invariance import (
+        COMMON,
+        D_IN,
+        alone_vs_batched,
+    )
+
+    torch.manual_seed(0)
+    batched, alone, _ = alone_vs_batched(
+        ConformerEncoder(
+            D_IN,
+            pos_enc_layer_type="rel_pos",
+            selfattention_layer_type="rel_selfattn",
+            rel_pos_type="legacy",
+            cnn_module_kernel=7,
+            **COMMON,
+        )
+    )
+    assert (batched - alone).abs().max() > 1e-3
