@@ -73,6 +73,7 @@ GITHUB_TOKEN from the two steps that need it for torch.hub.
 
 import json
 import re
+import subprocess
 import sys
 import tomllib
 from pathlib import Path
@@ -615,6 +616,96 @@ def check_declared_support_matches_variants() -> list:
     return problems
 
 
+LABELER = Path(".github/labeler.yml")
+MERGIFY = Path(".mergify.yml")
+
+
+def _glob_to_regex(glob: str) -> re.Pattern:
+    """The minimatch subset .github/labeler.yml uses, as a regex.
+
+    Only `**`, `*` and `?` - if a rule ever needs more than that, it is
+    probably too clever to be a labelling rule.
+    """
+    out, index = [], 0
+    while index < len(glob):
+        if glob.startswith("**/", index):
+            out.append("(?:.*/)?")
+            index += 3
+        elif glob.startswith("**", index):
+            out.append(".*")
+            index += 2
+        elif glob[index] == "*":
+            out.append("[^/]*")
+            index += 1
+        elif glob[index] == "?":
+            out.append("[^/]")
+            index += 1
+        else:
+            out.append(re.escape(glob[index]))
+            index += 1
+    return re.compile("".join(out) + "$")
+
+
+def check_label_rules() -> list:
+    """One mechanism labels by path, and its globs must match something."""
+    if not LABELER.exists():
+        return [f"{LABELER}: missing"]
+    tracked = subprocess.run(
+        ["git", "ls-files", "-z"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if tracked.returncode != 0:
+        return [f"{LABELER}: could not list tracked files: {tracked.stderr.strip()}"]
+    paths = [path for path in tracked.stdout.split("\0") if path]
+    lines = LABELER.read_text().splitlines()
+    problems = []
+    for label, rules in yaml.safe_load(LABELER.read_text()).items():
+        for rule in rules:
+            for kind in rule.get("changed-files", []):
+                for glob in kind.get("any-glob-to-any-file", []):
+                    pattern = _glob_to_regex(glob)
+                    if any(pattern.match(path) for path in paths):
+                        continue
+                    number = next(
+                        (n for n, ln in enumerate(lines, 1) if glob in ln), None
+                    )
+                    at = f":{number}" if number else ""
+                    problems.append(
+                        f"{LABELER}{at}: [{label}] matches no tracked file: {glob}\n"
+                        "  A rule that matches nothing applies its label to "
+                        "nothing, and nothing else says so. Four rules in "
+                        ".mergify.yml were written as globs where the "
+                        "condition takes a regex, so ASR, TTS, MT and LM "
+                        "matched none of the repository's paths and were "
+                        "never applied."
+                    )
+    problems += _mergify_label_rules()
+    return problems
+
+
+def _mergify_label_rules() -> list:
+    """Path-based label rules that came back to .mergify.yml."""
+    if not MERGIFY.exists():
+        return []
+    problems = []
+    for rule in yaml.safe_load(MERGIFY.read_text()).get("pull_request_rules", []):
+        conditions = [c for c in rule.get("conditions", []) if isinstance(c, str)]
+        if not any(c.startswith("files~=") for c in conditions):
+            continue
+        if "label" not in rule.get("actions", {}):
+            continue
+        problems.append(
+            f"{MERGIFY}: labels by path: {rule.get('name')!r}\n"
+            "  Path-based labelling belongs in .github/labeler.yml, which "
+            "matches globs. `files~=` here takes a regular expression, and "
+            "four rules written as globs meant ASR, TTS, MT and LM were never "
+            "applied to anything."
+        )
+    return problems
+
+
 def main() -> int:
     bad = (
         check_variants()
@@ -629,6 +720,7 @@ def main() -> int:
         + check_no_direct_references()
         + check_versions_are_built_variants()
         + check_declared_support_matches_variants()
+        + check_label_rules()
     )
     for problem in bad:
         print(problem, file=sys.stderr)
@@ -643,7 +735,8 @@ def main() -> int:
             "permissions; every codecov upload has a token; pyproject declares "
             "no direct references; every python and pytorch version named "
             "outside image_variants.json is one it lists, and what the "
-            "package declares matches it; no duplicate keys"
+            "package declares matches it; every labeler glob matches a "
+            "tracked file; no duplicate keys"
         )
         return 0
     if bad:
