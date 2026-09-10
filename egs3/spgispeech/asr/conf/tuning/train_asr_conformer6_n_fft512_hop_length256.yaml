@@ -33,13 +33,9 @@
 # egs2 run.sh sets `norm=""` on line 8 and immediately overrides it with
 # `norm="_unnorm"` on line 9, so the effective egs2 sets are
 # train_nodev_unnorm / dev_4k_unnorm / {dev_4k_unnorm, val_unnorm}.
-# This recipe does not build those by default: dataset/builder.py restricts the
-# cache to _HF_CACHE_SPLITS = ["val", "dev_4k", "train_nodev", "train"], so an
-# `_unnorm` split raises FileNotFoundError from the dataset loader. To use the
-# `_unnorm` variant, add the four `*_unnorm` names to _HF_CACHE_SPLITS, rebuild
-# the cache, then append `_unnorm` to the four split names below. As shipped
-# this config runs egs2's `norm=""` branch: the same recipe over normalized
-# text.
+# All eight splits are built by `create_dataset`, so switching is only a matter
+# of appending `_unnorm` to the four split names below. As shipped this config
+# runs egs2's `norm=""` branch: the same recipe over normalized text.
 
 task: espnet3.systems.asr.task.ASRTask
 
@@ -376,16 +372,3 @@ trainer:
     - _target_: lightning.pytorch.loggers.TensorBoardLogger
       save_dir: ${exp_dir}/tensorboard
       name: tb_logger
-
-##########################################################
-#                      FIT SETTING                       #
-##########################################################
-# Keyword arguments forwarded verbatim to Lightning's Trainer.fit()
-# (espnet3/systems/base/training.py: `trainer.fit(**fit_kwargs)`); the model is
-# supplied by ESPnet3 itself. Empty means a fresh run.
-#
-# The useful key is `ckpt_path`, which resumes instead of starting over:
-#   fit:
-#     ckpt_path: last                  # ${exp_dir}/last.ckpt
-#     ckpt_path: /path/to/some.ckpt    # or an explicit checkpoint
-fit: {}

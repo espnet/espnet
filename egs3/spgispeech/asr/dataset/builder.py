@@ -19,6 +19,7 @@ from espnet3.utils.config_utils import load_config_with_defaults
 
 
 def _load_builder_config() -> dict:
+    """Return the ``builder``/``dataset`` sections of ``dataset/config.yaml``."""
     config_resource = resources.files(__package__).joinpath("config.yaml")
     with resources.as_file(config_resource) as config_path:
         return load_config_with_defaults(str(config_path), resolve=False)["builder"]
@@ -28,6 +29,7 @@ _CFG = _load_builder_config()
 
 
 def _csv_files(source_root: Path) -> dict[str, Path]:
+    """Map each base split to its manifest csv under ``source_root``."""
     return {
         base_split: source_root / str(csv_name)
         for base_split, csv_name in _CFG["csv_files"].items()
@@ -35,6 +37,7 @@ def _csv_files(source_root: Path) -> dict[str, Path]:
 
 
 def _audio_dirs(source_root: Path) -> dict[str, Path]:
+    """Map each base split to its audio directory under ``source_root``."""
     audio_subdir = str(_CFG["audio_subdir"])
     return {
         base_split: source_root / audio_subdir / base_split
@@ -43,6 +46,7 @@ def _audio_dirs(source_root: Path) -> dict[str, Path]:
 
 
 def _is_valid_source_root(candidate: Path) -> bool:
+    """Return whether ``candidate`` holds every required csv and audio directory."""
     if not candidate.is_dir():
         return False
     csvs = _csv_files(candidate)
@@ -56,11 +60,16 @@ def iter_source_candidates(
     recipe_root: Path,
     source_dir: str | Path | None,
 ) -> Iterable[Path]:
-    """Yield candidate directories that may be the SPGISpeech root."""
-    yield recipe_root / _CFG["dataset_path"] / "spgispeech"
+    """Yield candidate directories that may be the SPGISpeech root.
 
+    Ordered by precedence: an explicit ``source_dir`` first, so a caller that
+    names a corpus root is never silently overridden by a recipe-local copy,
+    then ``<recipe_dir>/download/spgispeech``, then the environment variable.
+    """
     if source_dir is not None:
         yield Path(source_dir)
+
+    yield recipe_root / _CFG["dataset_path"] / "spgispeech"
 
     env_var = str(_CFG["source_env_var"])
     env_path = os.environ.get(env_var)
@@ -168,6 +177,7 @@ class SPGISpeechBuilder(DatasetBuilder):
         self.prepare_source(recipe_dir=recipe_dir, source_dir=source_dir)
 
     def is_built(self, recipe_dir, cache=None, **kwargs):
+        """Return whether every split in ``_HF_CACHE_SPLITS`` has been cached."""
         cache_root = _hf_cache_root(recipe_dir, cache)
         if cache_root is not None:
             return all((cache_root / split).is_dir() for split in _HF_CACHE_SPLITS)
@@ -179,6 +189,7 @@ class SPGISpeechBuilder(DatasetBuilder):
         )
 
     def build(self, recipe_dir, cache=None, **kwargs):
+        """Build the audio index, preparing the raw source first if necessary."""
         cache_root = _hf_cache_root(recipe_dir, cache)
         if cache_root is None:
             return _call_supported(
@@ -205,10 +216,25 @@ class SPGISpeechBuilder(DatasetBuilder):
         _build_hf_cache(recipe_dir, cache_root, kwargs)
 
 
-_HF_CACHE_SPLITS = ["val", "dev_4k", "train_nodev", "train"]
+# Every split in dataset/config.yaml:supported_splits, because
+# SPGISpeechDataset loads hf_audio_index/<split> whenever caching is enabled:
+# a name missing here raises FileNotFoundError even after the builder has run.
+# _build_hf_cache stores row.raw_text for the *_unnorm splits instead of
+# applying normalize_text.
+_HF_CACHE_SPLITS = [
+    "val",
+    "dev_4k",
+    "train_nodev",
+    "train",
+    "val_unnorm",
+    "dev_4k_unnorm",
+    "train_nodev_unnorm",
+    "train_unnorm",
+]
 
 
 def _hf_cache_root(recipe_dir, cache):
+    """Return the ``hf_audio_index`` root for this cache config, or None if disabled."""
     if not cache or not cache.get("enabled", False):
         return None
     from pathlib import Path
@@ -220,6 +246,7 @@ def _hf_cache_root(recipe_dir, cache):
 
 
 def _call_supported(function, **kwargs):
+    """Call ``function`` with only the keyword arguments its signature accepts."""
     import inspect
 
     parameters = inspect.signature(function).parameters
@@ -233,6 +260,7 @@ def _call_supported(function, **kwargs):
 
 
 def _raw_record(dataset, index):
+    """Return the raw manifest row backing ``index`` in ``dataset``."""
     for name in ("_examples", "_rows", "_entries", "examples", "entries"):
         rows = getattr(dataset, name, None)
         if rows is not None:
@@ -243,6 +271,7 @@ def _raw_record(dataset, index):
 
 
 def _audio_path(record):
+    """Extract the audio path from a manifest record, trying the known key names."""
     from dataclasses import asdict, is_dataclass
     from pathlib import Path
 
@@ -277,6 +306,12 @@ def _audio_path(record):
 
 
 def _build_hf_cache(recipe_dir, cache_root, dataset_kwargs):
+    """Write one HuggingFace audio index per split under ``cache_root``.
+
+        Splits whose directory already exists are skipped, so the build is
+        incremental. Each split is written to a temporary directory and renamed
+        into place, so an interrupted run leaves no partial index behind.
+        """
     import concurrent.futures
     import importlib
     import json
@@ -295,12 +330,18 @@ def _build_hf_cache(recipe_dir, cache_root, dataset_kwargs):
         shutil.rmtree(temporary, ignore_errors=True)
         failures = cache_root / f"{split}.failures.jsonl"
 
+        # max_utts must not reach the cache builder: it truncates the split,
+        # while is_built() only checks that the directory exists, so a later
+        # full run would silently accept a partial cache.
+        canonical_kwargs = dict(dataset_kwargs)
+        canonical_kwargs.pop("max_utts", None)
+
         dataset = _call_supported(
             dataset_class,
             split=split,
             recipe_dir=recipe_dir,
             cache={"enabled": False},
-            **dataset_kwargs,
+            **canonical_kwargs,
         )
         dataset_impl = importlib.import_module(module.Dataset.__module__)
         normalize = dataset_impl.normalize_text
@@ -319,6 +360,7 @@ def _build_hf_cache(recipe_dir, cache_root, dataset_kwargs):
         ]
 
         def rows():
+            """Yield one validated cache row per readable utterance."""
             with failures.open("w", encoding="utf-8") as stream:
                 with concurrent.futures.ProcessPoolExecutor(
                     max_workers=min(
@@ -345,6 +387,7 @@ def _build_hf_cache(recipe_dir, cache_root, dataset_kwargs):
 
 
 def _validate_spgi_row(record):
+    """Check that one record's audio is readable, for use in a worker pool."""
     import numpy as np
     import soundfile as sf
 

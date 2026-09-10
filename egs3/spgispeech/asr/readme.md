@@ -72,11 +72,9 @@ These are deliberate; each is marked `[DEVIATION]` in the training config.
 - **Normalized transcripts, not `_unnorm`.** `egs2/.../run.sh` sets `norm=""`
   and then overrides it with `norm="_unnorm"`, so the effective egs2 sets are
   `train_nodev_unnorm` / `dev_4k_unnorm` / `{dev_4k_unnorm, val_unnorm}`.
-  `dataset/builder.py` restricts the cache to
-  `["val", "dev_4k", "train_nodev", "train"]`, so this recipe runs egs2's
-  `norm=""` branch. To use the unnormalized variant, add the four `*_unnorm`
-  names to `_HF_CACHE_SPLITS`, rebuild the cache, and append `_unnorm` to the
-  split names in the training config.
+  This recipe runs egs2's `norm=""` branch. `create_dataset` builds all eight
+  splits, so switching only requires appending `_unnorm` to the split names in
+  the training config.
 - **No language model.** ESPnet3 has no LM stage, whereas egs2 trains one and
   shallow-fuses it at `lm_weight: 0.3`. The WER above is therefore LM-free and
   is not directly comparable to egs2's published number.

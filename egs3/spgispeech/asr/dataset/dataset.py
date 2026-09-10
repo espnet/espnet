@@ -164,6 +164,7 @@ class SPGISpeechDataset(TorchDataset):
         cache: dict | None = None,
         max_utts: int | None = None,
     ) -> None:
+        """Resolve the split, preferring the cached index over the raw corpus."""
         self.split = str(split)
         if self.split not in _KNOWN_SPLITS:
             known = ", ".join(sorted(_KNOWN_SPLITS))
@@ -173,7 +174,12 @@ class SPGISpeechDataset(TorchDataset):
         # convention as egs3/owsm_v4/asr (conf/inference_smoke.yaml). Intended
         # for decoding a subset inside a short interactive allocation; leave it
         # unset for real runs.
-        self._max_utts = int(max_utts) if max_utts else None
+        # `if max_utts` would fold 0 into None and return the full split;
+        # 0 is a meaningful limit (an empty dataset), and a negative value would
+        # silently produce a reversed slice, so reject it.
+        self._max_utts = int(max_utts) if max_utts is not None else None
+        if self._max_utts is not None and self._max_utts < 0:
+            raise ValueError(f"max_utts must be non-negative, got {self._max_utts}")
 
         self._hf_cache = _load_hf_cache(cache, recipe_dir, self.split)
         if self._hf_cache is not None:
@@ -203,11 +209,13 @@ class SPGISpeechDataset(TorchDataset):
             self._examples = self._examples[: self._max_utts]
 
     def __len__(self) -> int:
+        """Return the number of utterances in this split."""
         if self._hf_cache is not None:
             return len(self._hf_cache)
         return len(self._examples)
 
     def __getitem__(self, idx: int) -> dict[str, Any]:
+        """Return ``{speech, text}`` for one utterance."""
         if self._hf_cache is not None:
             row = self._hf_cache[int(idx)]
             array, _sr = sf.read(str(row["audio_path"]))
@@ -260,6 +268,7 @@ def gather_training_text(
 
 
 def _load_hf_cache(cache, recipe_dir, split):
+    """Load the cached audio index for ``split``, or None when caching is off."""
     import os
 
     environment_root = os.environ.get("EGS3_HF_CACHE_DIR")
