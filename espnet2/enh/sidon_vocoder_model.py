@@ -36,11 +36,13 @@ SSL_FRAME_RATE = 50
 
 
 class SidonVocoderFeatures:
-    """Frozen-encoder feature extraction and excerpt cropping shared by the
-    vocoder model (kept separate so other vocoder objectives can reuse
-    it). Expects ``ssl_encoder``,
-    ``use_predicted_feat``, ``input_sr``, ``output_sr``, ``hop``,
-    ``segment_frames`` and ``segment_samples`` on the instance."""
+    """Frozen-encoder feature extraction and excerpt cropping for vocoders.
+
+    Kept separate from the GAN model so other vocoder objectives can reuse
+    it. Expects ``ssl_encoder``, ``use_predicted_feat``, ``input_sr``,
+    ``output_sr``, ``hop``, ``segment_frames`` and ``segment_samples`` on
+    the instance.
+    """
 
     @torch.no_grad()
     def _ssl_features(
@@ -81,9 +83,11 @@ class SidonVocoderFeatures:
         speech_ref1_lengths: torch.Tensor,
         crop_start: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Aligned fixed-length excerpts: frames [s, s+F) and samples
-        [s*hop, (s+F)*hop). Utterances shorter than the segment are
-        zero-padded on both sides of the pair."""
+        """Cut aligned fixed-length excerpts of features and waveform.
+
+        Frames [s, s+F) pair with samples [s*hop, (s+F)*hop). Utterances
+        shorter than the segment are zero-padded on both sides of the pair.
+        """
         B, _, D = feat.shape
         feat_out = feat.new_zeros(B, self.segment_frames, D)
         wav_out = speech_ref1.new_zeros(B, self.segment_samples)
