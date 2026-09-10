@@ -9,7 +9,11 @@ class HFCheckpointSaveCallback(Callback):
     """Callback for saving HF model checkpoints."""
 
     def __init__(self, dirpath: str):
-        """Initialize the callback."""
+        """Initialize the callback.
+
+        Args:
+            dirpath (str): Location where checkpoints will be saved.
+        """
         super().__init__()
         self.dirpath = dirpath
 
