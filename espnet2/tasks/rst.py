@@ -5,8 +5,9 @@ import math
 import os
 import random
 import zlib
-from typing import List
+from typing import List, Tuple
 
+import soundfile as sf
 import torch
 import torch.nn.functional as F
 import torchaudio
@@ -36,11 +37,20 @@ def _audio_files(directory: str) -> List[str]:
     )
 
 
+def _load_mono(path: str) -> Tuple[torch.Tensor, int]:
+    """Read a WAV as a mono float tensor with soundfile.
+
+    torchaudio's loader dispatches to TorchCodec from torchaudio 2.9 on, which
+    is not an ESPnet dependency; soundfile is.
+    """
+    audio, sr = sf.read(path, dtype="float32", always_2d=True)
+    return torch.from_numpy(audio.mean(axis=1)), sr
+
+
 def _reverb(wav: torch.Tensor, sr: int, files: List[str]) -> torch.Tensor:
     if not files:
         return wav
-    rir, rir_sr = torchaudio.load(random.choice(files))
-    rir = rir.mean(0)
+    rir, rir_sr = _load_mono(random.choice(files))
     if rir_sr != sr:
         rir = AF.resample(rir, rir_sr, sr)
     rir = rir / rir.abs().max().clamp_min(1e-8)
@@ -60,8 +70,7 @@ def _reverb(wav: torch.Tensor, sr: int, files: List[str]) -> torch.Tensor:
 def _noise(wav: torch.Tensor, sr: int, files: List[str]) -> torch.Tensor:
     if not files:
         return wav
-    noise, noise_sr = torchaudio.load(random.choice(files))
-    noise = noise.mean(0)
+    noise, noise_sr = _load_mono(random.choice(files))
     if noise_sr != sr:
         noise = AF.resample(noise, noise_sr, sr)
     if not noise.numel():
