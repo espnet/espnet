@@ -16,7 +16,7 @@ import numpy as np
 import soundfile as sf
 import torch
 
-from espnet2.tasks.sidon import SidonTask
+from espnet2.tasks.rst import RestorationTask
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +44,7 @@ def _load_feature_predictor(config_path, model_path, device):
         lora_dropout=config.get("lora_dropout", 0.1),
         input_sr=config.get("input_sr", 16000),
     )
-    model = SidonTask.build_model(task_args)
+    model = RestorationTask.build_model(task_args)
     checkpoint = torch.load(model_path, map_location="cpu", weights_only=True)
     state = checkpoint.get("model", checkpoint)
     expected = model.state_dict()

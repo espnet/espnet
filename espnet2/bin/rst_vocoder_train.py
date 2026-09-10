@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
 """Train the ESPnet-Sidon vocoder (GAN; pretrain or finetune)."""
 
-from espnet2.tasks.sidon_vocoder import SidonVocoderTask
+from espnet2.tasks.rst_vocoder import RestorationVocoderTask
 
 
 def get_parser():
-    parser = SidonVocoderTask.get_parser()
+    parser = RestorationVocoderTask.get_parser()
     return parser
 
 
 def main(cmd=None):
-    SidonVocoderTask.main(cmd=cmd)
+    RestorationVocoderTask.main(cmd=cmd)
 
 
 if __name__ == "__main__":

@@ -5,8 +5,10 @@ The official release publishes the feature predictor's adapter as real
 weights (``sarulab-speech/sidon_raw_weight``, MIT), and its key layout turns
 out to be identical to this recipe's model apart from a mechanical prefix:
 
-    official   base_model.model.encoder.layers.N.ffn1.output_dense.lora_A.weight
-    ESPnet     ssl_encoder.student.encoder.layers.N.ffn1.output_dense.lora_A.default.weight
+    official   base_model.model.encoder.layers.N.ffn1.output_dense
+                   .lora_A.weight
+    ESPnet     ssl_encoder.student.encoder.layers.N.ffn1.output_dense
+                   .lora_A.default.weight
 
 Same module path, same 32 tensors (8 layers x {ffn1, ffn2} x {A, B}), same
 shapes -- (64, 4096) and (1024, 64), i.e. rank 64 on the FFN output
@@ -92,7 +94,7 @@ def main():
     total = sum(v.numel() for v in converted.values())
     print(f"wrote {args.out}  ({total / 1e6:.2f}M parameters)")
     print(
-        "Load with enh_inference_sidon.py --model_file <this> and the official "
+        "Load with rst_inference.py --model_file <this> and the official "
         "decoder via --sidon_vocoder. Note the recipe's train.yaml must keep "
         "lora_rank=64 for the shapes to line up."
     )

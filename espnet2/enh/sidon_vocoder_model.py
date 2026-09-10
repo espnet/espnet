@@ -37,7 +37,8 @@ SSL_FRAME_RATE = 50
 
 class SidonVocoderFeatures:
     """Frozen-encoder feature extraction and excerpt cropping shared by the
-    GAN and flow-matching vocoder models. Expects ``ssl_encoder``,
+    vocoder model (kept separate so other vocoder objectives can reuse
+    it). Expects ``ssl_encoder``,
     ``use_predicted_feat``, ``input_sr``, ``output_sr``, ``hop``,
     ``segment_frames`` and ``segment_samples`` on the instance."""
 

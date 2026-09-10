@@ -33,6 +33,13 @@ def _wn_conv_transpose1d(*args, **kwargs) -> nn.Module:
     return weight_norm(nn.ConvTranspose1d(*args, **kwargs))
 
 
+# The three blocks below are the decoder of the official Sidon release (DAC
+# geometry). They are kept as their own modules rather than built from
+# espnet2.gan_codec because local/convert_official_sidon_vocoder.py loads the
+# published TorchScript weights into them bit-exactly: gan_codec's Snake1d
+# shares one alpha across channels (the release has one per channel) and its
+# DAC codec decodes with SEANet blocks, so neither can take those weights.
+# The HiFi-GAN alternative (SidonHiFiGANVocoder) wraps espnet2.gan_tts.
 class Snake1d(nn.Module):
     """Periodic Snake activation, x + sin^2(alpha x) / alpha, per channel."""
 
@@ -286,16 +293,8 @@ class SidonHiFiGANVocoder(nn.Module):
         self.generator.remove_weight_norm()
 
 
-def _flow_vocoder(**kwargs) -> nn.Module:
-    # imported here: sidon_flow_vocoder reuses DecoderBlock from this module
-    from espnet2.enh.decoder.sidon_flow_vocoder import SidonFlowVocoder
-
-    return SidonFlowVocoder(**kwargs)
-
-
-# dac / hifigan train adversarially (SidonVocoderTask); cfm trains with
-# conditional flow matching (SidonFlowVocoderTask). All share the inference path.
-VOCODERS = {"dac": SidonVocoder, "hifigan": SidonHiFiGANVocoder, "cfm": _flow_vocoder}
+# Both train adversarially in RestorationVocoderTask and share the inference path.
+VOCODERS = {"dac": SidonVocoder, "hifigan": SidonHiFiGANVocoder}
 
 
 def build_vocoder(

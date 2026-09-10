@@ -15,7 +15,7 @@ from espnet2.gan_codec.shared.discriminator.msmpmb_discriminator import (
     MultiScaleMultiPeriodMultiBandDiscriminator,
 )
 from espnet2.tasks.abs_task import AbsTask, optim_classes
-from espnet2.tasks.sidon import _audio_files, degrade_waveform
+from espnet2.tasks.rst import _audio_files, degrade_waveform
 from espnet2.train.collate_fn import CommonCollateFn
 from espnet2.train.gan_trainer import GANTrainer
 from espnet2.utils.nested_dict_action import NestedDictAction
@@ -121,7 +121,7 @@ class SidonVocoderCollateFn:
         return keys, batch
 
 
-class SidonVocoderTask(AbsTask):
+class RestorationVocoderTask(AbsTask):
     num_optimizers = 2
     trainer = GANTrainer
 

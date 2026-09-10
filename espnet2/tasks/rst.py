@@ -222,7 +222,7 @@ class SidonCollateFn:
         return self.base(processed)
 
 
-class SidonTask(AbsTask):
+class RestorationTask(AbsTask):
     num_optimizers = 1
     trainer = Trainer
 

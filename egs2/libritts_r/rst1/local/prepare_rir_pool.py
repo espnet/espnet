@@ -115,7 +115,7 @@ def main():
         raise SystemExit(
             "pyroomacoustics is required to build the RIR pool but is not "
             "installed. Run: pip install pyroomacoustics\n"
-            "(See egs2/libritts_r/enh1/README.md for the recipe's extra "
+            "(See egs2/libritts_r/rst1/README.md for the recipe's extra "
             "dependencies.)"
         )
 
