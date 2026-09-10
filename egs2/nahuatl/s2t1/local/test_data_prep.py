@@ -13,6 +13,14 @@ _DEFAULT_HF_DATA_DIR = os.path.normpath(
 HF_DATA_DIR = os.environ.get("HF_DATA_DIR", _DEFAULT_HF_DATA_DIR)
 SCRIPT = os.path.join(os.path.dirname(__file__), "data_prep.py")
 
+# These are integration tests over the prepared Nahuatl dataset, which is not
+# distributed with the recipe. Skip them on a clean checkout where the dataset
+# is absent; set HF_DATA_DIR to a saved DatasetDict to run them.
+pytestmark = pytest.mark.skipif(
+    not os.path.isdir(HF_DATA_DIR),
+    reason=f"HF_DATA_DIR not available ({HF_DATA_DIR}); set it to run these tests",
+)
+
 
 def run_prep(tmpdir, split="hidalgo-train", token="<nah_hid>", max_examples=12):
     out_dir = os.path.join(tmpdir, "kaldi")
@@ -48,17 +56,17 @@ def test_creates_all_four_kaldi_files():
             assert os.path.exists(os.path.join(out_dir, fname)), f"Missing {fname}"
 
 
-def test_wav_scp_is_sox_pipe_with_16k_mono():
+def test_wav_scp_is_ffmpeg_pipe_with_16k_mono():
     with tempfile.TemporaryDirectory() as tmpdir:
         _, out_dir, _ = run_prep(tmpdir)
         lines = open(os.path.join(out_dir, "wav.scp")).readlines()
         assert len(lines) == 12
         utt_id, rest = lines[0].strip().split(" ", 1)
-        assert rest.startswith("sox "), f"Expected sox pipe, got: {rest[:40]}"
-        assert rest.endswith(" |"), f"Sox pipe must end with ' |': {rest[-10:]}"
-        assert "-r 16000" in rest
-        assert "-c 1" in rest
-        assert "-t wav" in rest
+        assert rest.startswith("ffmpeg "), f"Expected ffmpeg pipe, got: {rest[:40]}"
+        assert rest.endswith(" |"), f"ffmpeg pipe must end with ' |': {rest[-10:]}"
+        assert "-ar 16000" in rest
+        assert "-ac 1" in rest
+        assert "-f wav" in rest
 
 
 def test_text_has_region_token_prefix():

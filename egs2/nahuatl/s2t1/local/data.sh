@@ -13,16 +13,25 @@ run_prep() {
     local hf_split=$1 kaldi_name=$2 token=$3
     local out="$DATA_DIR/$kaldi_name"
     local wav="$WAV_BASE/$kaldi_name"
-    if [[ -f "$out/wav.scp" ]]; then
+    # A split is complete only when all four Kaldi files are present and
+    # non-empty; a partial prep (e.g. crash after wav.scp) must not be skipped.
+    if [[ -s "$out/wav.scp" && -s "$out/text" && -s "$out/utt2spk" && -s "$out/spk2utt" ]]; then
         echo "  skip $kaldi_name (exists)"; return
     fi
     echo "  $hf_split -> $kaldi_name"
+    # Prepare into a temp dir and rename into place only after success, so an
+    # interrupted run never leaves a half-written split behind.
+    rm -rf "$out.tmp"
     python "$RECIPE_DIR/local/data_prep.py" \
         --hf_data_dir "$HF_DATA_DIR" \
         --split       "$hf_split" \
-        --output_dir  "$out" \
+        --output_dir  "$out.tmp" \
         --wav_dir     "$wav" \
         --region_token "$token"
+    for f in wav.scp text utt2spk spk2utt; do
+        [[ -s "$out.tmp/$f" ]] || { echo "ERROR: $kaldi_name prep produced no $f" >&2; exit 1; }
+    done
+    rm -rf "$out"; mv "$out.tmp" "$out"
 }
 
 echo "=== Stage 1: Per-region data prep ==="

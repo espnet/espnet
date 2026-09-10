@@ -70,6 +70,19 @@ if [ ! -f "$TOKEN_LIST_DIR/tokens.txt" ]; then
     echo "Run init_new_tokens.py with --src_config and --out_token_list (see header)."
     exit 1
 fi
+# init_new_tokens.py writes the patched checkpoint even when the token list is
+# not regenerated (--src_config/--out_token_list omitted). Since stages 5-6 are
+# skipped, s2t.sh feeds this existing token list straight to the trainer, so a
+# stale list (without the region tokens) would silently mismatch the checkpoint
+# that has the three extra rows. Fail early unless the region tokens are present.
+for _t in "<nah_hid>" "<nah_ozg>" "<nah_ztp>"; do
+    if ! grep -qxF "$_t" "$TOKEN_LIST_DIR/tokens.txt"; then
+        echo "ERROR: region token $_t missing from $TOKEN_LIST_DIR/tokens.txt."
+        echo "The token list is stale for the patched checkpoint; regenerate it"
+        echo "with init_new_tokens.py --src_config --out_token_list (see header)."
+        exit 1
+    fi
+done
 
 # Verify the patched checkpoint exists
 if [ ! -f "$MODEL_DIR/valid.loss.best.pth" ]; then
@@ -86,6 +99,11 @@ _s2t_args="--init_param ${MODEL_DIR}/valid.loss.best.pth"
 [ -n "${log_interval:-}" ]         && _s2t_args+=" --log_interval $log_interval"
 
 # ── Delegate to TEMPLATE s2t.sh ─────────────────────────────────────────────
+# Default to stopping after training (stage 11). s2t.sh's decode (stages 12-13)
+# applies a single --lang_sym to the whole run, which is wrong for our three
+# region test sets; evaluation is done per region by decode.sh instead. A caller
+# can still override --stop_stage (decode.sh passes --stage 12 --stop_stage 13),
+# since the trailing "$@" wins.
 ./s2t.sh \
     --use_lm false \
     --ngpu 1 \
@@ -102,4 +120,5 @@ _s2t_args="--init_param ${MODEL_DIR}/valid.loss.best.pth"
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" \
     --skip_stages "5 6" \
+    --stop_stage 11 \
     "$@"

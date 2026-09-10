@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Submit a 1-epoch / 20-step debug training run via SLURM.
-# Adjust --account and partition as needed for your cluster.
-#SBATCH -N 1 -n 1 -p gpuA40x4,gpuA100x4
+# Submit-time: supply your cluster's scheduler options, e.g.
+#   sbatch --account=<acct> --partition=<part> debug_train.sh
+#SBATCH -N 1 -n 1
 #SBATCH --gres=gpu:1 -c 16 --mem 60000M
-#SBATCH --account=bbjs-delta-gpu
 #SBATCH --time=2:00:00
 #SBATCH --job-name=nahuatl-debug
 #SBATCH --output=%x_%j.log

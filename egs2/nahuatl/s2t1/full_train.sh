@@ -2,10 +2,10 @@
 # Full training run (stages 3-11: format wav.scp -> collect_stats -> train) via SLURM.
 # Stage 1 (local/data.sh, CPU data prep) is expected to have been run beforehand
 # on a login node; this job covers the wav formatting, stats, and GPU training.
-# Adjust --account and partition as needed for your cluster.
-#SBATCH -N 1 -n 1 -p gpuA40x4,gpuA100x4
+# Submit-time: supply your cluster's scheduler options, e.g.
+#   sbatch --account=<acct> --partition=<part> full_train.sh
+#SBATCH -N 1 -n 1
 #SBATCH --gres=gpu:1 -c 16 --mem 60000M
-#SBATCH --account=bbjs-delta-gpu
 #SBATCH --time=48:00:00
 #SBATCH --job-name=nahuatl-train
 #SBATCH --output=%x_%j.log

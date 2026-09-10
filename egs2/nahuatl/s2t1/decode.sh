@@ -8,13 +8,14 @@
 # "nahuatl_test" set cannot be decoded correctly with a single lang_sym; its
 # score is exactly the union of the three regions, which we reconstruct here by
 # concatenating the per-region hyp/ref and re-scoring.
-#SBATCH -N 1 -n 1 -p gpuA40x4,gpuA100x4
+# Submit-time: supply your cluster's scheduler options, e.g.
+#   sbatch --account=<acct> --partition=<part> decode.sh
+#SBATCH -N 1 -n 1
 #SBATCH --gres=gpu:1 -c 16 --mem 60000M
-#SBATCH --account=bbjs-delta-gpu
 #SBATCH --time=4:00:00
 #SBATCH --job-name=nahuatl-decode
 #SBATCH --output=%x_%j.log
-set -o pipefail
+set -euo pipefail
 
 RECIPE_DIR="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}"
 cd "$RECIPE_DIR"
@@ -40,7 +41,16 @@ done
 
 # ── Combine the three regions into an aggregate CER (== the mixed test set) ───
 # Locate the score_cer dirs produced above (one per region) and concatenate.
-s2t_exp=$(ls -d exp/s2t_train_owsm_v4_nahuatl_raw_bpe50000_init_param* 2>/dev/null | head -1)
+# Require exactly one matching experiment dir, so the aggregate never scores an
+# older/unrelated run picked by filename order.
+mapfile -t _exps < <(ls -d exp/s2t_train_owsm_v4_nahuatl_raw_bpe50000_init_param*/ 2>/dev/null)
+if [ "${#_exps[@]}" -ne 1 ]; then
+    echo "ERROR: expected exactly one exp dir matching" \
+         "exp/s2t_train_owsm_v4_nahuatl_raw_bpe50000_init_param*, found" \
+         "${#_exps[@]}: ${_exps[*]:-<none>}" >&2
+    exit 1
+fi
+s2t_exp="${_exps[0]%/}"
 for base in "${s2t_exp}"/*/nahuatl_hidalgo_test/score_cer; do
     [ -d "$base" ] || continue
     inf_dir=$(dirname "$(dirname "$base")")
@@ -55,6 +65,6 @@ for base in "${s2t_exp}"/*/nahuatl_hidalgo_test/score_cer; do
     sclite -r "${out}/ref.trn" trn -h "${out}/hyp.trn" trn -i rm -o all stdout \
         > "${out}/result.txt"
     echo "=== Combined (all 3 regions) CER ==="
-    grep -e Avg -e SPKR -m 2 "${out}/result.txt"
+    grep -e Avg -e SPKR -m 2 "${out}/result.txt" || true
     echo "Full result: ${out}/result.txt"
 done
