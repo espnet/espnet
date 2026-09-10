@@ -67,9 +67,13 @@ def self_name(path):
     Examples:
         In a config file named `training.yaml`:
 
+        .. code-block:: yaml
+
             exp_tag: ${self_name:}
 
         The expression is rewritten during loading to:
+
+        .. code-block:: text
 
             training
     """
@@ -92,6 +96,8 @@ def config_path(path):
 
     Examples:
         In a config file at ``conf/demo.yaml``:
+
+        .. code-block:: yaml
 
             pack:
               readme: ${config_path:../src/hf_demo_readme.md}
@@ -266,16 +272,16 @@ def load_config_with_defaults(path: str, resolve: bool = True) -> OmegaConf:
     - `"_self_"` → appends the current config in-place
 
     Example:
-        # config.yaml
-        defaults:
-          - model: conformer
-          - optim: adam
-          - _self_
+        .. code-block:: yaml
 
-        # This will recursively load:
-        #   model/conformer.yaml
-        #   optim/adam.yaml
-        # and merge them with config.yaml itself at the end.
+            # config.yaml
+            defaults:
+              - model: conformer
+              - optim: adam
+              - _self_
+
+            # This recursively loads model/conformer.yaml and optim/adam.yaml,
+            # then merges them with config.yaml itself at the end.
 
     Args:
         path (str): Path to the main YAML config file.
@@ -317,11 +323,15 @@ def load_default_config(
         If `default_package` is `egs3.TEMPLATE.asr` and
         `config_name` is `training.yaml`, this loads:
 
+        .. code-block:: text
+
             egs3/TEMPLATE/asr/conf/training.yaml
 
         If you want to base a new recipe on an existing one, you can also
         point `default_package` to that recipe package. For example, using
         `egs3.librispeech.asr` with `training.yaml` would load:
+
+        .. code-block:: text
 
             egs3/librispeech/asr/conf/training.yaml
 
@@ -366,14 +376,20 @@ def load_and_merge_config(
     Example:
         If a recipe config lives at:
 
+        .. code-block:: text
+
             egs3/mini_an4/asr/conf/training.yaml
 
         and `config_name` is `training.yaml`, this function can infer
         `default_package="egs3.TEMPLATE.asr"` and merge:
 
+        .. code-block:: text
+
             egs3/TEMPLATE/asr/conf/training.yaml
 
         with:
+
+        .. code-block:: text
 
             egs3/mini_an4/asr/conf/training.yaml
 

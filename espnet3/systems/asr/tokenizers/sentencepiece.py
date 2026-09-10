@@ -178,11 +178,7 @@ def add_special_tokens(
             append new tokens to the end of the list.
 
     Returns:
-        Tuple(
-            tokenizer: new tokenizer,
-            converter: new converter,
-            embedding: new embedding,
-        )
+        tuple: Updated ``(tokenizer, converter, embedding)``.
     """
     token_list = converter.token_list
 
