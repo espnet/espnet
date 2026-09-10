@@ -71,6 +71,7 @@ step silently discards the first - which is exactly what nearly dropped
 GITHUB_TOKEN from the two steps that need it for torch.hub.
 """
 
+import fnmatch
 import json
 import re
 import subprocess
@@ -620,30 +621,57 @@ LABELER = Path(".github/labeler.yml")
 MERGIFY = Path(".mergify.yml")
 
 
-def _glob_to_regex(glob: str) -> re.Pattern:
-    """The minimatch subset .github/labeler.yml uses, as a regex.
+def _segments(glob: str) -> list:
+    """The glob split into path segments, with runs of `*` collapsed.
 
-    Only `**`, `*` and `?` - if a rule ever needs more than that, it is
-    probably too clever to be a labelling rule.
+    Inside a segment `**` means the same as `*` - neither crosses a `/` - so
+    collapsing the run changes no answer, and it is what keeps a segment
+    pattern from holding two adjacent `.*`.
     """
-    out, index = [], 0
-    while index < len(glob):
-        if glob.startswith("**/", index):
-            out.append("(?:.*/)?")
-            index += 3
-        elif glob.startswith("**", index):
-            out.append(".*")
-            index += 2
-        elif glob[index] == "*":
-            out.append("[^/]*")
-            index += 1
-        elif glob[index] == "?":
-            out.append("[^/]")
-            index += 1
-        else:
-            out.append(re.escape(glob[index]))
-            index += 1
-    return re.compile("".join(out) + "$")
+    return [
+        part if part == "**" else re.sub(r"\*+", "*", part) for part in glob.split("/")
+    ]
+
+
+def _after_globstars(states: set, globs: list) -> set:
+    """The states reachable by letting `**` match no segments at all."""
+    reached, pending = set(states), list(states)
+    while pending:
+        index = pending.pop()
+        if index < len(globs) and globs[index] == "**" and index + 1 not in reached:
+            reached.add(index + 1)
+            pending.append(index + 1)
+    return reached
+
+
+def _matches(globs: list, path: str) -> bool:
+    """Does this glob match this path? The subset labeler.yml uses.
+
+    Segment by segment, tracking which prefixes of the glob are still live,
+    rather than as one regular expression. `**` in a regex becomes `.*`, and
+    several of those in one pattern backtrack exponentially: the version this
+    replaces took 9.6s on a glob with eight `**/` against a 40-segment path,
+    and did not finish in 25s with sixteen. This is O(glob segments x path
+    segments) with no backtracking between segments.
+
+    It is an approximation of minimatch in one direction only - a trailing
+    `**` here also matches zero segments - which cannot matter, because the
+    question asked of it is only whether the glob matches any tracked file.
+    """
+    states = _after_globstars({0}, globs)
+    for part in path.split("/"):
+        moved = set()
+        for index in states:
+            if index >= len(globs):
+                continue
+            if globs[index] == "**":
+                moved.add(index)
+            elif fnmatch.fnmatchcase(part, globs[index]):
+                moved.add(index + 1)
+        states = _after_globstars(moved, globs)
+        if not states:
+            return False
+    return len(globs) in states
 
 
 def check_label_rules() -> list:
@@ -665,8 +693,8 @@ def check_label_rules() -> list:
         for rule in rules:
             for kind in rule.get("changed-files", []):
                 for glob in kind.get("any-glob-to-any-file", []):
-                    pattern = _glob_to_regex(glob)
-                    if any(pattern.match(path) for path in paths):
+                    globs = _segments(glob)
+                    if any(_matches(globs, path) for path in paths):
                         continue
                     number = next(
                         (n for n, ln in enumerate(lines, 1) if glob in ln), None
