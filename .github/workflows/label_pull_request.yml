@@ -1,0 +1,28 @@
+name: label_pull_request
+
+# pull_request_target, not pull_request: a pull request from a fork gets a
+# read-only GITHUB_TOKEN whatever the permissions block asks for, and most
+# pull requests here come from forks, so on pull_request this job could not
+# label them. pull_request_target runs the base branch's copy of this
+# workflow with a writable token, which is safe here for one reason only -
+# this job never checks out or runs any code from the pull request. Do not
+# add a checkout step.
+on:
+  pull_request_target:
+    types: [opened, reopened, ready_for_review, synchronize]
+
+permissions: {}
+
+jobs:
+  label:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read # to read .github/labeler.yml
+      pull-requests: write # to apply the labels
+    steps:
+      # v7.0.0
+      - uses: actions/labeler@bf12e9b00b37c5c0ca2b87b79b2daf7891dbda13
+        with:
+          # Add only. A label a maintainer applied by hand is not a claim
+          # about paths, and removing it would be wrong.
+          sync-labels: false
