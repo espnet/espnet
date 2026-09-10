@@ -5,8 +5,11 @@ from espnet2.legacy.nets.pytorch_backend.nets_utils import make_pad_mask
 
 
 def test_csgu_masks_before_the_conv():
-    """The LayerNorm writes its bias into the padded frames; the mask is
-    applied after it, right before the convolution reads them."""
+    """Mask right before the convolution, after the LayerNorm.
+
+    The LayerNorm writes its bias into the padded frames, so the mask has to
+    be applied after it and right before the convolution reads them.
+    """
     torch.manual_seed(0)
     unit = ConvolutionalSpatialGatingUnit(
         size=8,

@@ -20,8 +20,11 @@ def test_mask_padded_frames_zeroes_only_the_padding():
 
 
 def test_convolution_module_masks_before_the_depthwise_conv():
-    """Masking the module input would not do: the pointwise conv and the GLU
-    write their biases into the padded frames first."""
+    """Mask right before the depthwise convolution, not at the module input.
+
+    The pointwise convolution and the GLU write their biases into the padded
+    frames first, so masking the input would leave them non-zero.
+    """
     torch.manual_seed(0)
     module = ConvolutionModule(8, kernel_size=5).eval()
     x = torch.randn(2, 10, 8)
