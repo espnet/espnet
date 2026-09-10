@@ -29,10 +29,13 @@ def pools(tmp_path):
         sf.write(
             noise_dir / f"n{i}.wav", rng.randn(16000).astype(np.float32) * 0.1, 16000
         )
-        rir = rng.randn(3200).astype(np.float32) * np.exp(-np.arange(3200) / 400)
+        # decaying random tail well below the direct-path tap, written as float
+        # so nothing is clipped to the tap's magnitude (a tie would make the
+        # peak-based trimming depend on argmax tie-breaking)
+        rir = rng.randn(3200).astype(np.float32) * 0.1 * np.exp(-np.arange(3200) / 400)
         rir[:200] = 0.0  # leading propagation delay that _reverb must trim
         rir[200] = 1.0
-        sf.write(rir_dir / f"r{i}.wav", rir, 16000)
+        sf.write(rir_dir / f"r{i}.wav", rir, 16000, subtype="FLOAT")
     return str(noise_dir), str(rir_dir)
 
 
