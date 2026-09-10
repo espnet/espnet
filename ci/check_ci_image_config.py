@@ -65,6 +65,20 @@ schedule. So when install_torch.sh stopped supporting 2.7.1, the default stayed
 at 2.7.1 and the weekly docker publish failed every Monday for five months
 without a single red pull request.
 
+Tenth, every download in the CI and installer scripts must survive a transient
+failure. Almost all of them used to pass --tries=3, and that flag does not cover
+an HTTP error response at all: against a server returning 500, wget --tries=3
+makes exactly one request and exits 8. Nor does it start a fresh connection,
+which is what a failed TLS handshake needs. Asking for retries and getting none
+is worse than not asking, because the flag is right there in review.
+github.com answered one 500 for the miniforge installer and took the macOS
+install job down with it. So a shell script downloads through
+download_with_retry, and the two dockerfiles and the two `curl | bash` pipes,
+which cannot source it, carry --retry-on-http-error with the full transient set
+(a partial list retries only what it names) or curl's --fail with --retry N.
+curl needs --fail specifically: without it a 500 is not an error, so curl exits
+0 and writes the error body to the output - which, piped to a shell, runs it.
+
 And ninth, the workflow files must have no duplicate mapping keys. PyYAML
 accepts them and lets the last one win, so writing a second env: block into a
 step silently discards the first - which is exactly what nearly dropped
@@ -617,6 +631,150 @@ def check_declared_support_matches_variants() -> list:
     return problems
 
 
+# Where a failed download takes down a job nobody is watching. Explicit globs
+# rather than a walk: tools/ also holds the built venv and a kaldi checkout,
+# and the egs2 recipes are deliberately out of scope - a corpus download that
+# fails in front of the person who started it gets re-run.
+DOWNLOAD_SITES = (
+    "ci/*.sh",
+    "tools/*.sh",
+    "tools/installers/*.sh",
+    "docker/*.sh",
+    "docker/*.dockerfile",
+    "docker/prebuilt/*.dockerfile",
+    ".devcontainer/*/*.dockerfile",
+    ".devcontainer/*/build_image.sh",
+    ".github/workflows/*.yml",
+    ".github/actions/*/*.yml",
+)
+
+# The one wget that is allowed to stand alone, because it *is* the retry loop.
+RETRY_HELPER = Path("tools/installers/download_with_retry.sh")
+
+# wget or curl as the command being run rather than as an argument, which is
+# what keeps this off "apt-get install -y wget curl bc" and off "choco install
+# -y wget". Anything may come between in the form of an assignment prefix
+# (FOO=bar wget ...).
+COMMAND = re.compile(
+    r"""(?: ^ | [|;&(){}] | ! | \b(?:RUN|if|elif|while|until|then|do|else|
+                                   sudo|time|exec|eval)\b )
+        \s*
+        (?: [A-Za-z_][A-Za-z0-9_]* = \S* \s+ )*
+        (wget|curl) \b
+    """,
+    re.X,
+)
+
+# A trailing comment is still a comment, so cut the line at the first # that
+# starts a word. No URL can contain one - whitespace ends a URL - and ${#var}
+# is not preceded by whitespace.
+COMMENT = re.compile(r"(?:^|\s)#")
+
+# What curl calls a transient error and therefore retries. wget has to be told
+# the same set by hand, so that the two behave alike.
+TRANSIENT = ("429", "500", "502", "503", "504")
+
+# A transfer needs something to fetch, which is either a literal URL or an
+# expansion holding one. Without this, `wget --version` in the windows
+# workflow reads as an unguarded download; with it, a URL kept in a variable
+# is still checked - which is the point, since most of these scripts do that.
+HAS_TARGET = re.compile(r"https?://|\$\{?\w")
+PROBE = re.compile(r"(?:^|\s)(?:--version|--help|-V)(?:\s|$)")
+
+FAIL_FLAG = re.compile(
+    r"(?:^|\s)(?:-[A-Za-z]*f[A-Za-z]*|--fail(?:-with-body)?)(?:\s|$)"
+)
+CURL_RETRY = re.compile(r"--retry[= ](\d+)")
+WGET_RETRY = re.compile(r"--retry-on-http-error=(\S+)")
+
+
+def logical_lines(text: str) -> list:
+    """(line number, code) with comments cut and continuations joined.
+
+    A command split across physical lines is one command, and the URL is
+    routinely on the second half - so a scan of physical lines sees a download
+    with no options and a bare URL with no command, and reports neither.
+    """
+    joined, number, parts = [], None, []
+    for count, line in enumerate(text.splitlines(), 1):
+        comment = COMMENT.search(line)
+        code = line[: comment.start()] if comment else line
+        number = count if number is None else number
+        if code.rstrip().endswith("\\"):
+            parts.append(code.rstrip()[:-1])
+            continue
+        parts.append(code)
+        joined.append((number, " ".join(parts)))
+        number, parts = None, []
+    if parts:
+        joined.append((number, " ".join(parts)))
+    return joined
+
+
+def _wget_problem(line: str) -> str:
+    """Why this wget would not survive a transient response, or ""."""
+    codes = WGET_RETRY.search(line)
+    if codes is None:
+        return (
+            "no --retry-on-http-error, so a 5xx response is fatal on the "
+            "first try. --tries does not cover it: against a server "
+            "answering 500, wget --tries=3 makes one request and exits 8"
+        )
+    missing = [code for code in TRANSIENT if code not in codes.group(1).split(",")]
+    if missing:
+        return (
+            f"--retry-on-http-error={codes.group(1)} leaves "
+            f"{', '.join(missing)} fatal. Only the codes listed are retried, "
+            "so a partial list reads like a retry and is not one"
+        )
+    return ""
+
+
+def _curl_problem(line: str) -> str:
+    """Why this curl would not survive a transient response, or ""."""
+    if FAIL_FLAG.search(line) is None:
+        return (
+            "no --fail, so curl exits 0 on a 5xx and writes the error body to "
+            "the output. Measured: a server answering 500 leaves 'oops' in "
+            "the file and curl reports success - which, piped to a shell, "
+            "runs it"
+        )
+    retry = CURL_RETRY.search(line)
+    if retry is None:
+        return "no --retry, so a transient 5xx is fatal on the first try"
+    if int(retry.group(1)) < 1:
+        return f"--retry {retry.group(1)} performs no retries at all"
+    return ""
+
+
+def check_downloads_retry_on_5xx() -> list:
+    """Every CI download must survive a transient failure."""
+    problems = []
+    for glob in DOWNLOAD_SITES:
+        for path in sorted(Path().glob(glob)):
+            if path == RETRY_HELPER:
+                continue
+            for number, line in logical_lines(path.read_text()):
+                match = COMMAND.search(line)
+                if match is None:
+                    continue
+                if HAS_TARGET.search(line) is None or PROBE.search(line):
+                    continue
+                tool = match.group(1)
+                why = _wget_problem(line) if tool == "wget" else _curl_problem(line)
+                if not why:
+                    continue
+                problems.append(
+                    f"{path}:{number}: {tool} {why}.\n"
+                    f"    {line.strip()[:120]}\n"
+                    f"  In a shell script, call download_with_retry instead - "
+                    f"it retries on a fresh connection, which the wget flags "
+                    f"cannot do for a failed TLS handshake, and checks that "
+                    f"what came back is what was asked for."
+                )
+    return problems
+
+
 LABELER = Path(".github/labeler.yml")
 MERGIFY = Path(".mergify.yml")
 
@@ -748,6 +906,7 @@ def main() -> int:
         + check_no_direct_references()
         + check_versions_are_built_variants()
         + check_declared_support_matches_variants()
+        + check_downloads_retry_on_5xx()
         + check_label_rules()
     )
     for problem in bad:
@@ -763,8 +922,8 @@ def main() -> int:
             "permissions; every codecov upload has a token; pyproject declares "
             "no direct references; every python and pytorch version named "
             "outside image_variants.json is one it lists, and what the "
-            "package declares matches it; every labeler glob matches a "
-            "tracked file; no duplicate keys"
+            "package declares matches it; every download retries on 5xx; "
+            "every labeler glob matches a tracked file; no duplicate keys"
         )
         return 0
     if bad:

@@ -49,7 +49,7 @@ RUN apt-get update && \
         zlib1g-dev \
         pandoc ffmpeg nodejs npm \
         && \
-    curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash && \
+    curl -sf --retry 3 https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash && \
     apt-get -y install --no-install-recommends \
         git-lfs \
         && \
