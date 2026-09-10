@@ -55,7 +55,7 @@ python run.py --stages infer measure \
 | dev_4k | 1.01 | 2.42 |
 
 Decoded with `conf/inference.yaml` (beam 20, `ctc_weight` 0.3) from the
-`valid.acc.ave_10best` average after 25 of 35 epochs on 4 GPUs.
+`valid.acc.ave_10best` average after 24 of the configured 35 epochs on 4 GPUs.
 
 ## Pretrained Models
 

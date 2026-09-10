@@ -85,11 +85,12 @@ dataset:
 model:
   _target_: espnet2.bin.asr_inference.Speech2Text
   asr_train_config: ${exp_dir}/config.yaml
-  # Weight average over the top valid/acc checkpoints, written by
-  # AverageCheckpointsCallback. NOT ave_10best.pth: keep_nbest_models is 10 but
-  # training was stopped after 7 epochs, so the averages on disk run
-  # ave_1best..ave_6best. Raise this to ave_10best.pth once >=10 epochs exist.
-  asr_model_file: ${exp_dir}/valid.acc.ave_6best.pth
+  # Weight average over the top-10 valid/acc checkpoints, written by
+  # AverageCheckpointsCallback (keep_nbest_models: 10). This is the checkpoint
+  # the result in readme.md was decoded from. If training is stopped before 10
+  # epochs have been validated, only ave_1best..ave_Nbest exist -- point this at
+  # one of those instead.
+  asr_model_file: ${exp_dir}/valid.acc.ave_10best.pth
   beam_size: 20
   ctc_weight: 0.3
   penalty: 0.0

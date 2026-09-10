@@ -16,9 +16,10 @@
 #
 # Reference training environment:
 # - Number of GPUs: 4
-# - GPU type: NVIDIA GH200 (96 GB)
-# - Training time: approximately 25 h for 25 epochs
-# - dev_4k result at 25 epochs: WER 2.42 / CER 1.01 (beam 20, no LM)
+# - GPU type: NVIDIA GH200 120GB
+# - Training time: approximately 44 h for 24 of the configured 35 epochs
+# - dev_4k, valid.acc.ave_10best, beam 20, ctc_weight 0.3, no LM:
+#   WER 2.42 / CER 1.01
 #
 # Quick usage:
 #   python run.py --stages train_tokenizer \
