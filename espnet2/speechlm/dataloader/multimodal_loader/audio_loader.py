@@ -10,10 +10,7 @@ from typing import Iterator, Tuple
 import numpy as np
 import pyarrow as pa
 
-try:
-    import kaldiio
-except ImportError:
-    kaldiio = None
+from espnet2.utils.kaldiio_utils import import_kaldiio
 
 try:
     from omniio.interface import audio_read
@@ -236,12 +233,7 @@ class KaldiAudioReader:
         index_path: str,
         valid_ids: list = None,
     ):
-        if kaldiio is None:
-            raise ImportError(
-                "kaldiio is not installed. "
-                "Please install it with: pip install kaldiio"
-            )
-
+        self._kaldiio = import_kaldiio()
         self.index = {}
 
         valid_ids_set = set(valid_ids) if valid_ids is not None else None
@@ -279,7 +271,7 @@ class KaldiAudioReader:
             raise KeyError(f"Key '{key}' not found in index")
 
         ark_index = self.index[key]
-        sample_rate, audio = kaldiio.load_mat(ark_index)
+        sample_rate, audio = self._kaldiio.load_mat(ark_index)
 
         # Ensure consistent shape [num_channels, num_samples]
         if audio.ndim == 1:

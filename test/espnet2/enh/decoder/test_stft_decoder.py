@@ -1,14 +1,10 @@
 import pytest
 import torch
 import torch_complex
-from packaging.version import parse as V
 from torch_complex import ComplexTensor
 
 from espnet2.enh.decoder.stft_decoder import STFTDecoder
 from espnet2.enh.encoder.stft_encoder import STFTEncoder
-
-is_torch_1_12_1_plus = V(torch.__version__) >= V("1.12.1")
-is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
 
 
 @pytest.mark.parametrize("n_fft", [512])
@@ -98,7 +94,7 @@ def test_stft_enc_dec_streaming(n_fft, win_length, hop_length, onesided):
     swavs = [decoder.forward_streaming(s) for s in sframes]
     merged = decoder.streaming_merge(swavs, ilens)
 
-    if not (is_torch_1_9_plus and encoder.use_builtin_complex):
+    if not encoder.use_builtin_complex:
         sframes = torch_complex.cat(sframes, dim=1)
     else:
         sframes = torch.cat(sframes, dim=1)
@@ -109,7 +105,6 @@ def test_stft_enc_dec_streaming(n_fft, win_length, hop_length, onesided):
     torch.testing.assert_close(wav, merged)
 
 
-@pytest.mark.skipif(not is_torch_1_12_1_plus, reason="torch.complex32 is used")
 @pytest.mark.parametrize("n_fft", [512])
 @pytest.mark.parametrize("win_length", [512])
 @pytest.mark.parametrize("hop_length", [128])

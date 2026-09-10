@@ -23,6 +23,8 @@ module_list = [
     ("kenlm", None, "installers/install_kenlm.sh"),
     ("mmseg", None, "installers/install_py3mmseg.sh"),
     ("espnet", None, None),
+    ("espnet2", None, None),
+    ("espnet3", None, None),
     ("numpy", None, None),
     ("fairseq", None, "installers/install_fairseq.sh"),
     ("phonemizer", None, "installers/install_phonemizer.sh"),

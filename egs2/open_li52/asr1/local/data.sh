@@ -52,12 +52,8 @@ for lang in ${langs}; do
     if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
         log "sub-stage 0: Download Data to ${COMMONVOICE}"
 
-        # base url for downloads.
-        # Deprecated url:https://voice-prod-bundler-ee1969a6ce8178826482b88e843c335139bd3fb4.s3.amazonaws.com/cv-corpus-3/$lang.tar.gz
-        data_url=https://voice-prod-bundler-ee1969a6ce8178826482b88e843c335139bd3fb4.s3.amazonaws.com/cv-corpus-5.1-2020-06-22/${lang}.tar.gz
-
-        local/download_and_untar.sh ${COMMONVOICE} ${data_url} ${lang}.tar.gz
-        rm -f ${COMMONVOICE}/${lang}.tar.gz
+        local/download_commonvoice.sh \
+            "${COMMONVOICE}/cv-corpus-5.1-2020-06-22/${lang}" "${lang}" cv-corpus-5.1-2020-06-22
     fi
 
     train_subset=train_"$(echo "${lang}" | tr - _)"_commonvoice

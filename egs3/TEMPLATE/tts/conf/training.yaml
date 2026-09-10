@@ -1,0 +1,91 @@
+##########################################################
+#                    TRAINING SETTING                    #
+##########################################################
+# Quick usage:
+#   python run.py --stages train --training_config conf/training.yaml
+#
+# This is the shared default merged under every TTS recipe's training config
+# (see `load_and_merge_config` in `run.py`). Kept as empty as possible so it
+# never conflicts with a concrete recipe config -- a recipe directory may host
+# multiple, mutually incompatible architectures (e.g. VITS vs. F5-TTS have
+# unrelated `model.tts_conf` shapes), so only generic, non-conflicting
+# path/system scaffolding lives here. Everything architecture-specific is left
+# null for the recipe config to fill in.
+
+##########################################################
+#                  SYSTEM AND PATH SETTING               #
+##########################################################
+num_device: 1
+num_nodes: 1
+
+# Optional ESPnet task class path used by `get_espnet_model(...)`.
+# If unset, `model` is instantiated directly via Hydra.
+task:
+
+recipe_dir: .
+data_dir: ${recipe_dir}/data
+exp_tag: ${self_name:}
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+stats_dir: ${exp_dir}/stats
+inference_dir: ${exp_dir}/inference
+
+##########################################################
+#                    DATASET DEFINITION                  #
+##########################################################
+dataset:
+
+##########################################################
+#                      MODEL SETTING                     #
+##########################################################
+model:
+
+##########################################################
+#            OPTIMIZER & SCHEDULER SETTING               #
+##########################################################
+# Single optimizer path:
+optimizer:
+scheduler:
+scheduler_interval:
+scheduler_monitor:
+
+# Multiple-loss / multiple-optimizer path (e.g. GAN-based TTS):
+optimizers:
+schedulers:
+
+##########################################################
+#                OTHER TRAINING SETTING                  #
+##########################################################
+best_model_criterion:
+
+# Optional random seed used by collect_stats/train.
+seed:
+
+# Extra model initialization mode forwarded to ESPnet's initializer.
+init:
+
+##########################################################
+#                   PARALLELIZATION SETTING              #
+##########################################################
+parallel:
+  env: local
+  n_workers: 1
+
+##########################################################
+#                   DATALOADER SETTING                   #
+##########################################################
+dataloader:
+
+##########################################################
+#                    TRAINER SETTING                     #
+##########################################################
+# These settings map to `lightning.Trainer(...)`.
+trainer:
+  accelerator: auto
+  devices: ${num_device}
+  num_nodes: ${num_nodes}
+  strategy: auto
+
+##########################################################
+#                      FIT SETTING                       #
+##########################################################
+fit: {}

@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
+# shellcheck source=tools/installers/download_with_retry.sh
+. "$(dirname "$0")"/download_with_retry.sh
 
 SCTK_ARCHIVE=sctk-master.zip
 SCTK_URL=https://github.com/usnistgov/SCTK/archive/refs/heads/master.zip
@@ -18,7 +20,7 @@ if [[ ${unames} =~ MINGW || ${unames} =~ MSYS ]]; then
 fi
 
 if [ ! -e "${SCTK_ARCHIVE}" ]; then
-    wget -nv -T 10 -t 3 -O "${SCTK_ARCHIVE}" "${SCTK_URL}"
+    download_with_retry "${SCTK_URL}" "${SCTK_ARCHIVE}" -nv -T 10
 fi
 
 if [ ! -e sctk ]; then

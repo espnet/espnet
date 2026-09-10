@@ -11,6 +11,39 @@ except Exception:
     print("datasets can be installed via espnet/tools/installers/install_datasets")
     exit()
 
+LID_MAP = {
+    "org_jpn": "jpn",
+    "lga": "lug",
+    "ory": "ori",
+    "arb": "ara",
+}
+PASS_LANGS = {"nno", "nob", "nor"}
+MS_SPEECH_LIDS = {"tam", "tel", "guj"}
+
+
+def normalize_lid(split, uttid, lid):
+    lid = lid.strip()
+
+    if split == "dev_dialect" and uttid.startswith("ms_speech_"):
+        parts = uttid.split("_")
+        if len(parts) >= 3 and parts[2] in MS_SPEECH_LIDS:
+            return parts[2]
+
+    lid = LID_MAP.get(lid, lid)
+
+    if split in {"train", "dev"} and lid in PASS_LANGS:
+        return None
+
+    return lid
+
+
+def replace_lid(text, lid):
+    text = text.strip()
+    if text.startswith("[") and "]" in text:
+        text = text.split("]", 1)[1].strip()
+    return f"[{lid}] {text}"
+
+
 ds = datasets.load_dataset("espnet/ml_superb_hf", cache_dir=".")
 
 train_text_out = open("data/train/text", "w")
@@ -33,40 +66,30 @@ def save_audio_to_disk(sample):
     return sample
 
 
-texts = ds["train"]["text"]
-ids = ds["train"]["id"]
+train_lids = set()
 
-for idx, text in zip(ids, texts):
-    train_text_out.write(f"{idx} {text.strip().replace('[org_jpn]', '[jpn]')}\n")
-    train_utt_out.write(f"{idx} {idx}\n")
-    train_wav_out.write(f"{idx} data/raw_audio/{idx}.wav\n")
+for split, text_out, wav_out, utt_out in [
+    ("train", train_text_out, train_wav_out, train_utt_out),
+    ("dev", dev_text_out, dev_wav_out, dev_utt_out),
+    ("dev_dialect", dialect_text_out, dialect_wav_out, dialect_utt_out),
+]:
+    texts = ds[split]["text"]
+    ids = ds[split]["id"]
+    lids = ds[split]["language"]
 
-texts = ds["dev"]["text"]
-ids = ds["dev"]["id"]
+    for idx, text, raw_lid in zip(ids, texts, lids):
+        lid = normalize_lid(split, idx, raw_lid)
+        if lid is None:
+            continue
+        if split == "train":
+            train_lids.add(lid)
 
-for idx, text in zip(ids, texts):
-    dev_text_out.write(f"{idx} {text.strip().replace('[org_jpn]', '[jpn]')}\n")
-    dev_utt_out.write(f"{idx} {idx}\n")
-    dev_wav_out.write(f"{idx} data/raw_audio/{idx}.wav\n")
+        text_out.write(f"{idx} {replace_lid(text, lid)}\n")
+        utt_out.write(f"{idx} {idx}\n")
+        wav_out.write(f"{idx} data/raw_audio/{idx}.wav\n")
 
-texts = ds["dev_dialect"]["text"]
-ids = ds["dev_dialect"]["id"]
-
-for idx, text in zip(ids, texts):
-    # replace with dialect lid for ms_speech
-    if "ms_speech" in idx:
-        lid = idx.split("_")[2]
-        text = text.replace("[hin]", f"[{lid}]")
-    dialect_text_out.write(f"{idx} {text.strip().replace('[org_jpn]', '[jpn]')}\n")
-    dialect_utt_out.write(f"{idx} {idx}\n")
-    dialect_wav_out.write(f"{idx} data/raw_audio/{idx}.wav\n")
-
-lids = ds["train"]["language"]
-lids = list(set(lids))
-
-for lid in lids:
-    if lid != "org_jpn":
-        nlsyms_out.write(f"[{lid.strip()}]\n")
+for lid in sorted(train_lids):
+    nlsyms_out.write(f"[{lid}]\n")
 
 ds["train"].map(save_audio_to_disk)
 ds["dev"].map(save_audio_to_disk)
