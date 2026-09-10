@@ -13,6 +13,7 @@ import numpy as np
 import torch
 from omegaconf import ListConfig
 
+from espnet2.torch_utils.device_funcs import is_out_of_memory_error
 from espnet3.parallel.base_runner import BaseRunner, concatenate_shard_files
 from espnet3.parallel.env_provider import EnvironmentProvider
 from espnet3.utils.writer_utils import write_artifact
@@ -26,6 +27,17 @@ def _normalize_key_list(keys) -> List[str]:
     if isinstance(keys, (list, tuple, ListConfig)):
         return list(keys)
     return [keys]
+
+
+def _input_lengths(inputs_dict: Dict[str, List[Any]]) -> Dict[str, List[Any]]:
+    """Length of every array-like input, per key, for an error message."""
+    lengths = {}
+    for key, values in inputs_dict.items():
+        lengths[key] = [
+            (v.shape[0] if hasattr(v, "shape") and len(v.shape) > 0 else None)
+            for v in values
+        ]
+    return lengths
 
 
 def _iter_outputs(result: Any) -> List[Dict[str, Any]]:
@@ -274,6 +286,17 @@ class InferenceRunner(BaseRunner):
                 return model_output
             return output_fn(data=data_batch, model_output=model_output, idx=indices)
         except Exception as exc:  # noqa: BLE001
+            if is_out_of_memory_error(exc):
+                # the generic advice below would be wrong here: the model does
+                # support batches, the batch was too large
+                raise RuntimeError(
+                    f"Batched inference ran out of memory on {len(indices)} "
+                    f"items (dataset indices {indices}, input lengths "
+                    f"{_input_lengths(inputs_dict)}). Lower `batch_size` in the "
+                    f"inference config (this batch had {len(indices)} items), "
+                    "or sort the test set by length so that long utterances "
+                    "are not padded to each other."
+                ) from exc
             raise RuntimeError(
                 "Batched inference failed. If your model/output_fn does not "
                 "support batched inputs, set batch_size to None. "

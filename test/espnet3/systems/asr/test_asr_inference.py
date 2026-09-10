@@ -304,3 +304,23 @@ def test_inference_params_affect_runner_forward(tmp_path, flip, expected):
     scp_path = tmp_path / "test" / "hyp.scp"
     assert scp_path.exists()
     assert scp_path.read_text().strip() == f"utt1 {expected}"
+
+
+def test_template_build_output_handles_a_batch(tmp_path):
+    """The recipe `build_output` returns one dict per item for a batched call."""
+    import importlib.util
+    from pathlib import Path
+
+    src = Path(__file__).resolve().parents[4] / "egs3/TEMPLATE/asr/src/inference.py"
+    spec = importlib.util.spec_from_file_location("template_inference", src)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    data = [{"utt_id": "a", "text": "ra"}, {"text": "rb"}]
+    model_output = [[("ha", None, None, None)], [("hb", None, None, None)]]
+    out = module.build_output(data, model_output, [0, 1])
+    assert out == [
+        {"utt_id": "a", "hyp": "ha", "ref": "ra"},
+        {"utt_id": "1", "hyp": "hb", "ref": "rb"},
+    ]
+    assert module.build_output(data[0], model_output[0], 0) == out[0]
