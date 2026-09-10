@@ -1,0 +1,60 @@
+# TS-Sidon: cued target-speaker extraction on the Sidon feature predictor.
+#
+# LoRA layout is deliberately identical to the released Sidon adapter
+# (rank 64, alpha 16, bias none, on the FFN output projections), which was
+# verified key-for-key against sarulab-speech/sidon_raw_weight. That makes a
+# warm start from the official predictor a one-line ablation rather than a
+# reimplementation.
+ssl_encoder: w2v_bert2
+ssl_encoder_conf:
+    model_tag: facebook/w2v-bert-2.0
+    freeze_base: true
+lora_rank: 64
+lora_alpha: 16
+lora_dropout: 0.1
+input_sr: 16000
+
+# Enrollment is prepended at the encoder input, fixed length so no padding
+# lands between the cue and the mixture (the Conformer depthwise conv does
+# not respect the attention mask).
+enroll_sec: 10.0
+segment_mode: input          # ablation: hidden
+
+# 12 s target + 10 s cue = 1100 frames at 50 Hz, against 1000 for Sidon at
+# 20 s. Batch is halved from Sidon's 64 because the frontend runs twice and
+# the measured peak there was already 43.9 of 46 GB.
+max_duration: 12.0
+batch_type: unsorted
+batch_size: 32
+valid_batch_size: 32
+accum_grad: 2                # keeps the effective batch at Sidon's 64
+
+noise_dir: data/noise_pool
+rir_dir: data/rir_pool
+degrade_prob: 0.5
+
+# 4.1's three data requirements.
+p_multi_speaker: 0.6         # single-speaker examples retained
+p_target_absent: 0.1         # the model must be allowed to output nothing
+enroll_degraded: false       # ablation: matched vs mismatched cue channel
+
+optim: adamw
+optim_conf:
+    lr: 1.0e-4
+    betas: [0.9, 0.999]
+    weight_decay: 0.01
+    eps: 1.0e-8
+scheduler: null
+
+max_epoch: 30
+grad_clip: 1.0
+num_workers: 16
+seed: 42
+best_model_criterion:
+    -   - valid
+        - loss
+        - min
+keep_nbest_models: 3
+log_interval: 200
+use_amp: true
+num_att_plot: 0

@@ -147,12 +147,12 @@ def _load_vocoder(args, input_dim, device):
         )
     import yaml
 
-    from espnet2.enh.decoder.sidon_vocoder import SidonVocoder
+    from espnet2.enh.decoder.sidon_vocoder import build_vocoder
 
     with open(args.vocoder_train_config, encoding="utf-8") as stream:
         config = yaml.safe_load(stream) or {}
-    vocoder = SidonVocoder(
-        input_dim=input_dim, **dict(config.get("vocoder_conf") or {})
+    vocoder = build_vocoder(
+        config.get("vocoder_type", "dac"), input_dim, config.get("vocoder_conf")
     )
     checkpoint = torch.load(
         args.vocoder_model_file, map_location="cpu", weights_only=True

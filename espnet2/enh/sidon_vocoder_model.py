@@ -20,7 +20,6 @@ import torch
 import torchaudio.functional as AF
 from torch import nn
 
-from espnet2.enh.decoder.sidon_vocoder import SidonVocoder
 from espnet2.gan_tts.hifigan.loss import (
     DiscriminatorAdversarialLoss,
     FeatureMatchLoss,
@@ -36,99 +35,12 @@ logger = logging.getLogger(__name__)
 SSL_FRAME_RATE = 50
 
 
-class SidonVocoderGAN(AbsGANESPnetModel):
-    """Vocoder generator + discriminator with a frozen feature encoder.
+class SidonVocoderFeatures:
+    """Frozen-encoder feature extraction and excerpt cropping shared by the
+    GAN and flow-matching vocoder models. Expects ``ssl_encoder``,
+    ``use_predicted_feat``, ``input_sr``, ``output_sr``, ``hop``,
+    ``segment_frames`` and ``segment_samples`` on the instance."""
 
-    Args:
-        ssl_encoder: stage-1 encoder (W2VBert2Encoder or XeusEncoder). Always
-            frozen here; the teacher branch provides ground-truth features
-            (pretrain) and the LoRA student branch provides predicted ones
-            (finetune).
-        vocoder: generator mapping (B, T, D) features to (B, T * 960) audio.
-        discriminator: returns a list, one entry per sub-discriminator, of
-            [feature maps ..., logits].
-        use_predicted_feat: False for stage 2 (teacher on clean speech),
-            True for stage 3 (student on degraded speech).
-        input_sr: encoder sample rate (16 kHz).
-        output_sr: vocoder sample rate (48 kHz).
-        segment_duration: length in seconds of the aligned feature/waveform
-            excerpt the generator and discriminator actually train on. The
-            encoder runs on the longer context the collate function provides,
-            so the excerpt's features are computed with the surrounding
-            speech in view, as they are at inference.
-        mel_loss_weight, adv_loss_weight, fm_loss_weight: generator loss
-            weights (Sidon: 15 / 2 / 1).
-        mel_loss_conf: overrides for MelSpectrogramLoss.
-    """
-
-    def __init__(
-        self,
-        ssl_encoder: nn.Module,
-        vocoder: SidonVocoder,
-        discriminator: nn.Module,
-        use_predicted_feat: bool = False,
-        input_sr: int = 16000,
-        output_sr: int = 48000,
-        segment_duration: float = 1.0,
-        mel_loss_weight: float = 15.0,
-        adv_loss_weight: float = 2.0,
-        fm_loss_weight: float = 1.0,
-        mel_loss_conf: Optional[Dict] = None,
-    ):
-        super().__init__()
-        if output_sr % SSL_FRAME_RATE != 0:
-            raise ValueError(f"output_sr must be a multiple of {SSL_FRAME_RATE} Hz")
-        self.hop = output_sr // SSL_FRAME_RATE
-        if vocoder.upsample_factor != self.hop:
-            raise ValueError(
-                f"vocoder upsamples {vocoder.upsample_factor}x but {output_sr} Hz "
-                f"output needs {self.hop}x per {SSL_FRAME_RATE} Hz frame"
-            )
-        self.ssl_encoder = ssl_encoder
-        self.ssl_encoder.requires_grad_(False)
-        self.vocoder = vocoder
-        self.discriminator = discriminator
-        self.use_predicted_feat = use_predicted_feat
-        self.input_sr = input_sr
-        self.output_sr = output_sr
-        self.segment_frames = max(1, int(round(segment_duration * SSL_FRAME_RATE)))
-        self.segment_samples = self.segment_frames * self.hop
-        self.mel_loss_weight = mel_loss_weight
-        self.adv_loss_weight = adv_loss_weight
-        self.fm_loss_weight = fm_loss_weight
-
-        mel_conf = dict(
-            fs=output_sr,
-            n_fft=2048,
-            hop_length=480,
-            win_length=2048,
-            n_mels=128,
-            fmin=0,
-            fmax=None,
-            log_base=10.0,
-        )
-        mel_conf.update(mel_loss_conf or {})
-        self.mel_loss = MelSpectrogramLoss(**mel_conf)
-        # Sidon inherits DAC's GAN loss, which sums over sub-discriminators
-        # and feature-map layers rather than averaging; with eight
-        # sub-discriminators the averaged form would make the adversarial and
-        # feature-matching terms eight times weaker relative to the mel term
-        # than the published weights intend.
-        self.generator_adv_loss = GeneratorAdversarialLoss(
-            average_by_discriminators=False, loss_type="mse"
-        )
-        self.discriminator_adv_loss = DiscriminatorAdversarialLoss(
-            average_by_discriminators=False, loss_type="mse"
-        )
-        self.feat_match_loss = FeatureMatchLoss(
-            average_by_layers=False,
-            average_by_discriminators=False,
-            include_final_outputs=False,
-        )
-
-    # ------------------------------------------------------------------
-    # features
-    # ------------------------------------------------------------------
     @torch.no_grad()
     def _ssl_features(
         self,
@@ -199,6 +111,102 @@ class SidonVocoderGAN(AbsGANESPnetModel):
         n = min(a.size(-1), b.size(-1))
         return a[..., :n], b[..., :n]
 
+
+class SidonVocoderGAN(SidonVocoderFeatures, AbsGANESPnetModel):
+    """Vocoder generator + discriminator with a frozen feature encoder.
+
+    Args:
+        ssl_encoder: stage-1 encoder (W2VBert2Encoder or XeusEncoder). Always
+            frozen here; the teacher branch provides ground-truth features
+            (pretrain) and the LoRA student branch provides predicted ones
+            (finetune).
+        vocoder: generator mapping (B, T, D) features to (B, T * 960) audio
+            (SidonVocoder or SidonHiFiGANVocoder; anything with ``generate``
+            and ``upsample_factor``).
+        discriminator: returns a list, one entry per sub-discriminator, of
+            [feature maps ..., logits].
+        use_predicted_feat: False for stage 2 (teacher on clean speech),
+            True for stage 3 (student on degraded speech).
+        input_sr: encoder sample rate (16 kHz).
+        output_sr: vocoder sample rate (48 kHz).
+        segment_duration: length in seconds of the aligned feature/waveform
+            excerpt the generator and discriminator actually train on. The
+            encoder runs on the longer context the collate function provides,
+            so the excerpt's features are computed with the surrounding
+            speech in view, as they are at inference.
+        mel_loss_weight, adv_loss_weight, fm_loss_weight: generator loss
+            weights (Sidon: 15 / 2 / 1).
+        mel_loss_conf: overrides for MelSpectrogramLoss.
+    """
+
+    def __init__(
+        self,
+        ssl_encoder: nn.Module,
+        vocoder: nn.Module,
+        discriminator: nn.Module,
+        use_predicted_feat: bool = False,
+        input_sr: int = 16000,
+        output_sr: int = 48000,
+        segment_duration: float = 1.0,
+        mel_loss_weight: float = 15.0,
+        adv_loss_weight: float = 2.0,
+        fm_loss_weight: float = 1.0,
+        mel_loss_conf: Optional[Dict] = None,
+    ):
+        super().__init__()
+        if output_sr % SSL_FRAME_RATE != 0:
+            raise ValueError(f"output_sr must be a multiple of {SSL_FRAME_RATE} Hz")
+        self.hop = output_sr // SSL_FRAME_RATE
+        if vocoder.upsample_factor != self.hop:
+            raise ValueError(
+                f"vocoder upsamples {vocoder.upsample_factor}x but {output_sr} Hz "
+                f"output needs {self.hop}x per {SSL_FRAME_RATE} Hz frame"
+            )
+        self.ssl_encoder = ssl_encoder
+        self.ssl_encoder.requires_grad_(False)
+        self.vocoder = vocoder
+        self.discriminator = discriminator
+        self.use_predicted_feat = use_predicted_feat
+        self.input_sr = input_sr
+        self.output_sr = output_sr
+        self.segment_frames = max(1, int(round(segment_duration * SSL_FRAME_RATE)))
+        self.segment_samples = self.segment_frames * self.hop
+        self.mel_loss_weight = mel_loss_weight
+        self.adv_loss_weight = adv_loss_weight
+        self.fm_loss_weight = fm_loss_weight
+
+        mel_conf = dict(
+            fs=output_sr,
+            n_fft=2048,
+            hop_length=480,
+            win_length=2048,
+            n_mels=128,
+            fmin=0,
+            fmax=None,
+            log_base=10.0,
+        )
+        mel_conf.update(mel_loss_conf or {})
+        self.mel_loss = MelSpectrogramLoss(**mel_conf)
+        # Sidon inherits DAC's GAN loss, which sums over sub-discriminators
+        # and feature-map layers rather than averaging; with eight
+        # sub-discriminators the averaged form would make the adversarial and
+        # feature-matching terms eight times weaker relative to the mel term
+        # than the published weights intend.
+        self.generator_adv_loss = GeneratorAdversarialLoss(
+            average_by_discriminators=False, loss_type="mse"
+        )
+        self.discriminator_adv_loss = DiscriminatorAdversarialLoss(
+            average_by_discriminators=False, loss_type="mse"
+        )
+        self.feat_match_loss = FeatureMatchLoss(
+            average_by_layers=False,
+            average_by_discriminators=False,
+            include_final_outputs=False,
+        )
+
+    # ------------------------------------------------------------------
+    # features
+    # ------------------------------------------------------------------
     # ------------------------------------------------------------------
     # GAN turns
     # ------------------------------------------------------------------

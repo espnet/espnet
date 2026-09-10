@@ -8,7 +8,7 @@ import torch
 import torchaudio.functional as AF
 from torch import nn
 
-from espnet2.enh.decoder.sidon_vocoder import SidonVocoder
+from espnet2.enh.decoder.sidon_vocoder import VOCODERS, build_vocoder
 from espnet2.enh.sidon_model import SSL_ENCODERS, build_ssl_encoder
 from espnet2.enh.sidon_vocoder_model import SSL_FRAME_RATE, SidonVocoderGAN
 from espnet2.gan_codec.shared.discriminator.msmpmb_discriminator import (
@@ -156,6 +156,13 @@ class SidonVocoderTask(AbsTask):
             default=None,
             help="Stage-1 feature-predictor checkpoint (valid.loss.best.pth)",
         )
+        group.add_argument(
+            "--vocoder_type",
+            choices=sorted(VOCODERS),
+            default="dac",
+            help="dac: DAC decoder as in Sidon (default); "
+            "hifigan: ESPnet HiFi-GAN generator",
+        )
         group.add_argument("--vocoder_conf", action=NestedDictAction, default={})
         group.add_argument("--discriminator_conf", action=NestedDictAction, default={})
         group.add_argument("--mel_loss_conf", action=NestedDictAction, default={})
@@ -246,9 +253,7 @@ class SidonVocoderTask(AbsTask):
         elif args.use_predicted_feat:
             raise ValueError("--use_predicted_feat true requires --fp_model_path")
 
-        vocoder = SidonVocoder(
-            input_dim=encoder.ssl_dim, **dict(args.vocoder_conf or {})
-        )
+        vocoder = build_vocoder(args.vocoder_type, encoder.ssl_dim, args.vocoder_conf)
 
         disc_conf = dict(
             rates=[],

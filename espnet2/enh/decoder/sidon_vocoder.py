@@ -18,7 +18,7 @@ are Copyright (c) 2023-present Descript, MIT licence.
 """
 
 import math
-from typing import List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import torch
 import torch.nn as nn
@@ -230,3 +230,80 @@ class SidonVocoder(nn.Module):
                     f"loaded weights but outputs differ from {path} "
                     f"(max abs error {err:.2e}); parameter order mismatch"
                 )
+
+
+class SidonHiFiGANVocoder(nn.Module):
+    """HiFi-GAN generator (ESPnet's own) driven by SSL features.
+
+    The alternative vocoder of the recipe: ESPnet's ``HiFiGANGenerator`` with
+    the same 8-5-4-3-2 upsampling geometry as the DAC decoder, so it also
+    turns one 50 Hz frame into 960 samples at 48 kHz, but with HiFi-GAN v1
+    residual blocks and LeakyReLU instead of Snake. About 14M parameters at
+    512 channels. Same calling convention as ``SidonVocoder``.
+    """
+
+    def __init__(
+        self,
+        input_dim: int = 1024,
+        channels: int = 512,
+        kernel_size: int = 7,
+        upsample_scales: List[int] = [8, 5, 4, 3, 2],
+        upsample_kernel_sizes: List[int] = [16, 10, 8, 6, 4],
+        resblock_kernel_sizes: List[int] = [3, 7, 11],
+        resblock_dilations: List[List[int]] = [[1, 3, 5], [1, 3, 5], [1, 3, 5]],
+        nonlinear_activation: str = "LeakyReLU",
+        nonlinear_activation_params: Optional[Dict] = None,
+        use_weight_norm: bool = True,
+    ):
+        super().__init__()
+        from espnet2.gan_tts.hifigan import HiFiGANGenerator
+
+        self.input_dim = input_dim
+        self.upsample_factor = int(math.prod(upsample_scales))
+        self.generator = HiFiGANGenerator(
+            in_channels=input_dim,
+            out_channels=1,
+            channels=channels,
+            kernel_size=kernel_size,
+            upsample_scales=upsample_scales,
+            upsample_kernel_sizes=upsample_kernel_sizes,
+            resblock_kernel_sizes=resblock_kernel_sizes,
+            resblock_dilations=resblock_dilations,
+            nonlinear_activation=nonlinear_activation,
+            nonlinear_activation_params=nonlinear_activation_params
+            or {"negative_slope": 0.1},
+            use_weight_norm=use_weight_norm,
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """(B, D, T_frames) -> (B, 1, T_frames * upsample_factor)."""
+        return self.generator(x)
+
+    def generate(self, ssl_feat: torch.Tensor) -> torch.Tensor:
+        return self.forward(ssl_feat.transpose(1, 2)).squeeze(1)
+
+    def remove_weight_norm(self) -> None:
+        self.generator.remove_weight_norm()
+
+
+def _flow_vocoder(**kwargs) -> nn.Module:
+    # imported here: sidon_flow_vocoder reuses DecoderBlock from this module
+    from espnet2.enh.decoder.sidon_flow_vocoder import SidonFlowVocoder
+
+    return SidonFlowVocoder(**kwargs)
+
+
+# dac / hifigan train adversarially (SidonVocoderTask); cfm trains with
+# conditional flow matching (SidonFlowVocoderTask). All share the inference path.
+VOCODERS = {"dac": SidonVocoder, "hifigan": SidonHiFiGANVocoder, "cfm": _flow_vocoder}
+
+
+def build_vocoder(
+    vocoder_type: str, input_dim: int, conf: Optional[Dict] = None
+) -> nn.Module:
+    """Instantiate the vocoder named by ``--vocoder_type`` with ``--vocoder_conf``."""
+    if vocoder_type not in VOCODERS:
+        raise ValueError(
+            f"vocoder_type must be one of {sorted(VOCODERS)}, got {vocoder_type!r}"
+        )
+    return VOCODERS[vocoder_type](input_dim=input_dim, **dict(conf or {}))

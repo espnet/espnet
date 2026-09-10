@@ -1,0 +1,74 @@
+# ESPnet-Sidon flow-matching vocoder, stage 3: finetune the stage-7 model on
+# the stage-5 predictor's features of degraded speech (run.sh stage 8 with
+# --voc_task cfm passes --fp_model_path and --init_param).
+#
+# The stage-5 feature predictor (LoRA, loaded by --fp_model_path) encodes the
+# online-degraded 16 kHz input; the velocity field learns to transport noise
+# to the clean 48 kHz reference from those features.
+# Data must be 48 kHz (data/train_voc, data/dev_voc: EARS + VCTK).
+ssl_encoder: w2v_bert2
+ssl_encoder_conf:
+    model_tag: facebook/w2v-bert-2.0
+    freeze_base: true
+lora_rank: 64
+lora_alpha: 16
+lora_dropout: 0.1
+input_sr: 16000
+output_sr: 48000
+
+use_predicted_feat: true
+noise_dir: data/noise_pool
+rir_dir: data/rir_pool
+degrade_prob: 0.5
+online_degradation: true
+# Encoder context per utterance and the aligned excerpt the network trains on
+# (features computed with 8 s in view, velocity loss on 1 s at 48 kHz).
+context_duration: 8.0
+segment_duration: 1.0
+
+# WaveNet velocity net: 30 gated residual layers in 3 stacks (dilations 1..512,
+# receptive field ~2k samples per stack), 64 residual / 128 gate channels;
+# 64-channel conditioning from a DAC-style 8x5x4x3x2 upsampler. ~5M parameters.
+# num_steps is the midpoint-solver step count used at inference; data_scale
+# multiplies the waveform (RMS ~0.03) up towards the unit-variance noise.
+vocoder_type: cfm
+vocoder_conf:
+    layers: 30
+    stacks: 3
+    residual_channels: 64
+    gate_channels: 128
+    skip_channels: 64
+    cond_channels: 64
+    cond_hidden: 256
+    num_steps: 16
+    data_scale: 10.0
+sigma_min: 1.0e-4
+
+optim: adamw
+optim_conf:
+    lr: 5.0e-5
+    betas: [0.9, 0.98]
+    weight_decay: 0.01
+scheduler: warmuplr
+scheduler_conf:
+    warmup_steps: 1000
+
+max_epoch: 40
+batch_type: unsorted
+# The velocity net keeps 30 layers of 48 kHz activations for backward:
+# 8 x 1 s per GPU with accum_grad 2 matches the GAN configs' 16 per step.
+batch_size: 8
+valid_batch_size: 8
+accum_grad: 2
+grad_clip: 1.0
+num_workers: 8
+seed: 42
+# The flow-matching loss is a proper objective: lower is better throughout.
+best_model_criterion:
+    -   - valid
+        - loss
+        - min
+keep_nbest_models: 3
+log_interval: 50
+use_amp: false
+num_att_plot: 0

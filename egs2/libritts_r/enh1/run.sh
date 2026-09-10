@@ -14,7 +14,12 @@ config=conf/train.yaml
 decode_config=conf/decode.yaml
 expdir=exp/sidon_w2v_bert2_layer8
 # Vocoder (stages 6-8). Stage 7 pretrains on ground-truth features, stage 8
-# finetunes on the stage-5 predictor's features.
+# finetunes on the stage-5 predictor's features. --voc_task gan trains the
+# DAC or HiFi-GAN generator adversarially (vocoder_type in the config);
+# --voc_task cfm trains the flow-matching vocoder, e.g.
+#   --voc_task cfm --voc_pretrain_config conf/tuning/train_sidon_vocoder_pretrain_cfm.yaml
+#                  --voc_finetune_config conf/tuning/train_sidon_vocoder_finetune_cfm.yaml
+voc_task=gan
 voc_pretrain_config=conf/tuning/train_sidon_vocoder_pretrain.yaml
 voc_finetune_config=conf/tuning/train_sidon_vocoder_finetune.yaml
 voc_pretrain_exp=exp/sidon_vocoder_pretrain
@@ -40,6 +45,12 @@ ref_wav_scp=
 . utils/parse_options.sh
 
 log() { echo "[$(date '+%Y-%m-%dT%H:%M:%S')] $*"; }
+
+case "${voc_task}" in
+    gan) voc_train_bin=espnet2.bin.enh_train_sidon_vocoder; voc_best=valid.loss_mel.best.pth ;;
+    cfm) voc_train_bin=espnet2.bin.enh_train_sidon_flow_vocoder; voc_best=valid.loss.best.pth ;;
+    *) log "--voc_task must be gan or cfm, got ${voc_task}"; exit 1 ;;
+esac
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "Stage 1: data preparation"
@@ -90,7 +101,7 @@ fi
 
 if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
     log "Stage 6: collect vocoder statistics"
-    ${python} -m espnet2.bin.enh_train_sidon_vocoder \
+    ${python} -m ${voc_train_bin} \
         --config ${voc_pretrain_config} \
         --train_data_path_and_name_and_type data/train_voc/wav.scp,speech_ref1,sound \
         --valid_data_path_and_name_and_type data/dev_voc/wav.scp,speech_ref1,sound \
@@ -100,7 +111,7 @@ fi
 if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
     log "Stage 7: pretrain vocoder on ground-truth SSL features"
     ${cuda_cmd} --gpu ${ngpu} ${voc_pretrain_exp}/train.log \
-        ${python} -m espnet2.bin.enh_train_sidon_vocoder \
+        ${python} -m ${voc_train_bin} \
         --config ${voc_pretrain_config} \
         --train_data_path_and_name_and_type data/train_voc/wav.scp,speech_ref1,sound \
         --valid_data_path_and_name_and_type data/dev_voc/wav.scp,speech_ref1,sound \
@@ -112,15 +123,17 @@ fi
 
 if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
     log "Stage 8: finetune vocoder on predicted SSL features"
-    vocoder_init=${vocoder_init:-${voc_pretrain_exp}/valid.loss_mel.best.pth}
-    discriminator_init=${discriminator_init-${vocoder_init}}
+    vocoder_init=${vocoder_init:-${voc_pretrain_exp}/${voc_best}}
     init_opts=(--init_param "${vocoder_init}:vocoder:vocoder")
-    if [ -n "${discriminator_init}" ]; then
-        init_opts+=(--init_param "${discriminator_init}:discriminator:discriminator")
+    if [ "${voc_task}" = gan ]; then
+        discriminator_init=${discriminator_init-${vocoder_init}}
+        if [ -n "${discriminator_init}" ]; then
+            init_opts+=(--init_param "${discriminator_init}:discriminator:discriminator")
+        fi
     fi
     # Same utterances as stage 7, so its shape files are reused.
     ${cuda_cmd} --gpu ${ngpu} ${voc_finetune_exp}/train.log \
-        ${python} -m espnet2.bin.enh_train_sidon_vocoder \
+        ${python} -m ${voc_train_bin} \
         --config ${voc_finetune_config} \
         --fp_model_path ${expdir}/valid.loss.best.pth \
         "${init_opts[@]}" \
@@ -137,7 +150,7 @@ if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
         vocoder_opts=(--sidon_vocoder "${sidon_vocoder}")
     else
         vocoder_exp=${vocoder_exp:-${voc_finetune_exp}}
-        vocoder_model_file=${vocoder_model_file:-${vocoder_exp}/valid.loss_mel.best.pth}
+        vocoder_model_file=${vocoder_model_file:-${vocoder_exp}/${voc_best}}
         for required_file in "${vocoder_exp}/config.yaml" "${vocoder_model_file}"; do
             [ -f "${required_file}" ] || {
                 log "Missing vocoder file ${required_file}: train one (stages 6-8) or set --sidon_vocoder"

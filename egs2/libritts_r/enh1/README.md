@@ -74,6 +74,30 @@ sub-discriminators as in DAC). The encoder is frozen in both stages; the
 generator and discriminators run on a 1 s excerpt whose features were computed
 with 8 s of context (`segment_duration`, `context_duration`).
 
+Three vocoders share the stage-7/8 data path and the inference loader; the
+config's `vocoder_type` selects one and `vocoder_conf` configures it.
+
+| `vocoder_type` | Model | Training | Config (stage 7) |
+|---|---|---|---|
+| `dac` (default) | DAC decoder as in the official release, 52.4M | GAN, `enh_train_sidon_vocoder` | `train_sidon_vocoder_pretrain.yaml` |
+| `hifigan` | ESPnet `HiFiGANGenerator`, 512 channels, 17M | GAN, `enh_train_sidon_vocoder` | `train_sidon_vocoder_pretrain_hifigan.yaml` |
+| `cfm` | Conditional flow matching: WaveNet velocity field on the 48 kHz waveform, conditioned on 960x-upsampled features, 5M | Flow-matching loss, one optimizer, `enh_train_sidon_flow_vocoder` (`--voc_task cfm`) | `train_sidon_vocoder_pretrain_cfm.yaml` |
+
+The flow-matching vocoder trains without a discriminator on straight noise-to-
+waveform paths (velocity regression, `sigma_min` 1e-4) and synthesises with a
+midpoint ODE solver (`num_steps` in `vocoder_conf`, default 16, so 32 network
+evaluations per utterance; raise it for quality, lower it for speed). Stage 8
+finetunes it on predicted features exactly like the GAN vocoders, minus the
+discriminator warm start:
+
+```bash
+./run.sh --stage 6 --stop_stage 8 --voc_task cfm \
+    --voc_pretrain_config conf/tuning/train_sidon_vocoder_pretrain_cfm.yaml \
+    --voc_finetune_config conf/tuning/train_sidon_vocoder_finetune_cfm.yaml \
+    --voc_pretrain_exp exp/sidon_vocoder_cfm_pretrain --voc_finetune_exp exp/sidon_vocoder_cfm_finetune
+./run.sh --stage 9 --stop_stage 11 --voc_task cfm --vocoder_exp exp/sidon_vocoder_cfm_finetune
+```
+
 The official vocoder is published only as a frozen TorchScript graph.
 `local/convert_official_sidon_vocoder.py` recovers its weights into the
 recipe's module (verified bit-exact against the graph), which lets stage 8
