@@ -85,3 +85,12 @@ These are deliberate; each is marked `[DEVIATION]` in the training config.
   GPU. The derivation is written out in the training config.
 - **`num_workers: 4`** rather than espnet2's default of 1; a batch holds several
   hundred separate file reads, and one worker starves the GPUs.
+- **`model_conf.sym_space` is set to the SentencePiece word-boundary marker**
+  (U+2581), which egs2 leaves at espnet2's `<space>` default. `ErrorCalculator`
+  rebuilds word boundaries by replacing `sym_space` before splitting on
+  whitespace; with a BPE/unigram vocabulary `<space>` never appears, so the
+  replacement is a no-op and the training-time `valid/wer` degenerates into a
+  sentence error rate (one wrong token scores the same as an entirely wrong
+  hypothesis). This affects only the progress metrics logged during training,
+  not the WER/CER reported by the `measure` stage above, which are scored on
+  detokenized text.

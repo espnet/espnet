@@ -208,6 +208,29 @@ model:
     lsm_weight: 0.1
     length_normalized_loss: false
 
+    # [DEVIATION] SentencePiece word boundary, not espnet2's "<space>" default.
+    # egs2 does not set sym_space, but leaving it at the default makes the
+    # training-time valid/wer meaningless for any BPE vocabulary.
+    #
+    # ErrorCalculator (espnet2/legacy/nets/e2e_asr_common.py) rebuilds word
+    # boundaries by replacing sym_space with a real space before splitting on
+    # whitespace. This recipe's vocabulary is unigram-5000, where boundaries are
+    # marked "\u2581" and "<space>" never appears -- so the replacement is a
+    # no-op, calculate_wer split()s a string containing no spaces, and the edit
+    # distance can only be 0 or 1 per utterance. valid/wer then reports a
+    # SENTENCE error rate rather than a word error rate: a hypothesis with one
+    # wrong token scores the same 1.0 as one that is entirely wrong.
+    #
+    # Written as the escape rather than a literal so it survives copy-paste and
+    # review, where U+2581 is easily mistaken for an underscore.
+    #
+    # NOTE: this also shifts valid/cer and valid/cer_ctc. A bare "\u2581" is a
+    # token in this vocabulary, so idx_space becomes non-None: the marker leaves
+    # the character denominator and calculate_cer_ctc starts skipping it. The
+    # metrics reported by the `measure` stage are unaffected -- those are scored
+    # on detokenized text and are what readme.md quotes.
+    sym_space: "\u2581"
+
   specaug: specaug
   specaug_conf:
     apply_time_warp: true
