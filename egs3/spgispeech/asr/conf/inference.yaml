@@ -1,0 +1,112 @@
+##########################################################
+#                   Inference SETTING                    #
+##########################################################
+# Port of egs2/spgispeech/asr1/conf/decode_asr.yaml + run.sh's test_sets.
+#
+#   python run.py --stages infer \
+#       --training_config conf/tuning/train_asr_conformer6_n_fft512_hop_length256.yaml \
+#       --inference_config conf/inference.yaml
+#   python run.py --stages measure \
+#       --training_config conf/tuning/train_asr_conformer6_n_fft512_hop_length256.yaml \
+#       --inference_config conf/inference.yaml \
+#       --metrics_config conf/metrics.yaml
+#
+# The only base is egs3/TEMPLATE/asr/conf/inference.yaml, which run.py injects
+# automatically via load_and_merge_config(default_package="egs3.TEMPLATE.asr").
+#
+# exp_tag / exp_dir / inference_dir are deliberately omitted: run.py copies
+# exp_tag and exp_dir from the training config, and inference_dir then defaults
+# to ${exp_dir}/<stem of this file> -- i.e. exp/<exp_tag>/inference/.
+
+##########################################################
+#                    PATHS AND INPUTS                    #
+##########################################################
+recipe_dir: .
+data_dir: ${recipe_dir}/data
+
+# Raw SPGISpeech corpus root. Left unset so it resolves the same way the
+# training config and dataset/config.yaml do: <recipe_dir>/download/spgispeech,
+# then the $SPGISPEECH environment variable. The cache block below means the raw
+# tree is only touched if the HF index is missing.
+dataset_dir:
+
+cache:
+  enabled: true
+  backend: hf
+  cache_dir: ${data_dir}/hf
+
+##########################################################
+#                    DATASET DEFINITION                  #
+##########################################################
+# egs2 run.sh: test_sets="dev_4k val" (its `norm=""` branch -- see the
+# [DEVIATION] note in the training config about the `_unnorm` splits).
+#   dev_4k  4,000 utts   val  39,341 utts
+# `data_src` is omitted so ESPnet3 loads ${recipe_dir}/dataset/__init__.py, and
+# data_src_args goes straight to SPGISpeechDataset(...) -- the same four
+# arguments the training config passes, so inference reads the same HF cache.
+#
+# To decode just one of these, use conf/inference_dev4k.yaml or
+# conf/inference_val.yaml; each writes to its own inference_dir.
+dataset:
+  test:
+    - name: dev_4k
+      data_src_args:
+        split: dev_4k
+        recipe_dir: ${recipe_dir}
+        source_dir: ${dataset_dir}
+        cache: ${cache}
+    - name: val
+      data_src_args:
+        split: val
+        recipe_dir: ${recipe_dir}
+        source_dir: ${dataset_dir}
+        cache: ${cache}
+
+##########################################################
+#                    MODEL AND OUTPUT                    #
+##########################################################
+# egs2 conf/decode_asr.yaml is:
+#     lm_weight: 0.3   beam_size: 20   penalty: 0.0
+#     maxlenratio: 0.0 minlenratio: 0.0 ctc_weight: 0.3
+#
+# [DEVIATION] NO LANGUAGE MODEL, so lm_weight is dropped.
+# egs2 run.sh passes --lm_config conf/train_lm.yaml, so asr.sh trains a
+# transformer LM and shallow-fuses it at lm_weight 0.3. This egs3 recipe has no
+# LM stage at all (DEFAULT_STAGES in TEMPLATE/asr/run.py has no train_lm), and
+# nothing in exp/ is an LM. Passing lm_weight without lm_train_config/
+# lm_file would just be ignored by Speech2Text. Expect WER above egs2's
+# published number for this reason ALONE, independent of training length.
+#
+# asr_train_config is espnet3's exp/<tag>/config.yaml, which is written in
+# espnet2 ASRTask layout (token_list / frontend / encoder / decoder /
+# normalize / model_conf at top level) and so is readable by Speech2Text as-is.
+# Its internal paths (token_list, bpemodel, normalize stats_file) are relative,
+# and run.py executes from the recipe dir, so they resolve.
+model:
+  _target_: espnet2.bin.asr_inference.Speech2Text
+  asr_train_config: ${exp_dir}/config.yaml
+  # Weight average over the top valid/acc checkpoints, written by
+  # AverageCheckpointsCallback. NOT ave_10best.pth: keep_nbest_models is 10 but
+  # training was stopped after 7 epochs, so the averages on disk run
+  # ave_1best..ave_6best. Raise this to ave_10best.pth once >=10 epochs exist.
+  asr_model_file: ${exp_dir}/valid.acc.ave_6best.pth
+  beam_size: 20
+  ctc_weight: 0.3
+  penalty: 0.0
+  maxlenratio: 0.0
+  minlenratio: 0.0
+
+input_key: speech
+output_fn: src.inference.build_output
+
+##########################################################
+#                  PARALLELIZATION SETTING               #
+##########################################################
+# `env: local` yields exactly ONE shard regardless of n_workers:
+# BaseRunner._plan_shards only reads n_workers when env is not "local", so
+# inference runs as a single process here. Since shards are also the unit of
+# resume (each writes a `done` sentinel), a large test set is better served by
+# a cluster backend -- set `env: slurm` and supply your scheduler's options.
+parallel:
+  env: local
+  n_workers: 1
