@@ -637,6 +637,7 @@ def check_declared_support_matches_variants() -> list:
 # fails in front of the person who started it gets re-run.
 DOWNLOAD_SITES = (
     "ci/*.sh",
+    "tools/Makefile",
     "tools/*.sh",
     "tools/installers/*.sh",
     "docker/*.sh",
@@ -686,6 +687,9 @@ FAIL_FLAG = re.compile(
 )
 CURL_RETRY = re.compile(r"--retry[= ](\d+)")
 WGET_RETRY = re.compile(r"--retry-on-http-error=(\S+)")
+
+# The nltk CLI, which prompts on failure and never retries.
+NLTK_CLI = re.compile(r"python[0-9.]*\s+-m\s+nltk\.downloader")
 
 
 def logical_lines(text: str) -> list:
@@ -755,6 +759,19 @@ def check_downloads_retry_on_5xx() -> list:
             if path == RETRY_HELPER:
                 continue
             for number, line in logical_lines(path.read_text()):
+                if NLTK_CLI.search(line):
+                    problems.append(
+                        f"{path}:{number}: downloads through the nltk CLI.\n"
+                        f"    {line.strip()[:120]}\n"
+                        "  `python -m nltk.downloader` calls download() with "
+                        "halt_on_error=False, so a failed download prompts "
+                        '"Retry? [n/y/e]" and reads stdin - in CI that is an '
+                        "EOFError traceback from input() with the real cause "
+                        "scrolled off above it, on the first attempt, because "
+                        "nltk has no retry. Call "
+                        "installers/install_nltk_data.sh instead."
+                    )
+                    continue
                 match = COMMAND.search(line)
                 if match is None:
                     continue
