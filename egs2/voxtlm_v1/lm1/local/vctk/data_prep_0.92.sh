@@ -64,7 +64,7 @@ for spk in ${spks}; do
 
         echo "${id} ${wav}" >> "${scp}"
         echo "${id} ${spk}" >> "${utt2spk}"
-        echo "${id} $(cat ${txt} | tr -d '\r')" >> "${text}"
+        echo "${id} $(cat "${txt}" | tr -d '\r')" >> "${text}"
     done
 
     if [ ! -s "${scp}" ]; then
@@ -85,8 +85,8 @@ for spk in ${spks}; do
         num_train=$((num_all - num_deveval))
 
         utils/subset_data_dir.sh --last "${dst}/${spk}_train" "${num_deveval}" "${dst}/${spk}_deveval"
-        utils/subset_data_dir.sh --first "${dst}/${spk}_deveval" "${num_dev}" "${dst}/${spk}_${eval_set}"
-        utils/subset_data_dir.sh --last "${dst}/${spk}_deveval" "${num_eval}" "${dst}/${spk}_${dev_set}"
+        utils/subset_data_dir.sh --first "${dst}/${spk}_deveval" "${num_dev}" "${dst}/${spk}_${dev_set}"
+        utils/subset_data_dir.sh --last "${dst}/${spk}_deveval" "${num_eval}" "${dst}/${spk}_${eval_set}"
         utils/subset_data_dir.sh --first "${dst}/${spk}_train" "${num_train}" "${dst}/${spk}_${train_set}"
 
         # remove tmp directories

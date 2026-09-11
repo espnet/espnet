@@ -42,7 +42,7 @@ mkdir -p ${data_dir}
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "stage 1: Data Download"
-    if [ -e "${db_root}/VCTK-Corpus/wav48_silence_trimmed" ]; then
+    if [ -d "${db_root}/VCTK-Corpus/wav48_silence_trimmed" ] && [ -d "${db_root}/VCTK-Corpus/txt" ]; then
         log "stage 1: ${db_root}/VCTK-Corpus already present. Skip data downloading"
     else
         # Official CSTR VCTK Corpus v0.92 (Edinburgh DataShare, DOI 10.7488/ds/2645).

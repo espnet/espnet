@@ -430,10 +430,28 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] && ! [[ " ${skip_stages} " =~ [
             for _dir in "${data_audio}/"*; do
                 _task=$(basename "${_dir}")
                 if [ "${_task}" != "kmeans_pool" ] && [ -f "${_dir}/${train_set}/utt2num_samples" ]; then
-                    # Assumes 16kHz audio and a 50Hz SSL frame rate (true for the
-                    # hubert/wav2vec2 family), matching perform_kmeans.sh's own
-                    # default audio_sample_rate.
-                    _target_samples=$(( kmeans_balanced_frames * 16000 / 50 ))
+                    # utt2num_samples counts audio samples at ${fs}, but
+                    # kmeans_balanced_frames is a budget in SSL feature frames,
+                    # so convert via the SSL frame rate. This is only known to
+                    # be 50Hz for the conv-based hubert/wav2vec2/wavlm family
+                    # (20ms stride) that perform_kmeans.sh is normally used
+                    # with -- reject anything else here rather than silently
+                    # sampling the wrong-sized pool (e.g. mfcc is 100Hz/10ms).
+                    case "${kmeans_feature_type}" in
+                        hubert*|wav2vec2*|wavlm*) _ssl_frame_rate=50 ;;
+                        *)
+                            log "Stage 3a: Error: don't know the SSL frame rate for" \
+                                "--kmeans_feature ${kmeans_feature} to size the balanced" \
+                                "pool; only the hubert/wav2vec2/wavlm family (50Hz) is" \
+                                "supported here."
+                            exit 1
+                            ;;
+                    esac
+                    case "${fs}" in
+                        *k) _fs_hz=$(( ${fs%k} * 1000 )) ;;
+                        *) _fs_hz=${fs} ;;
+                    esac
+                    _target_samples=$(( kmeans_balanced_frames * _fs_hz / _ssl_frame_rate ))
                     mkdir -p "${_pool_dir}/logdir"
                     # Write shuf's full output to a file first (rather than piping
                     # straight into awk) so awk exiting early once it hits the
