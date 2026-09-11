@@ -297,6 +297,7 @@ class LibriMixTSEDataset(TorchDataset):
                 assert uids == tmp_uids, (len(uids), key, len(tmp_uids))
         for fh in files:
             fh.close()
+        uids = sorted(uids)
 
         # 2. Resolve enrollment paths
         if "train" in data_dir.stem:

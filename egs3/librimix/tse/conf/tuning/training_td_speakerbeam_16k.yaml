@@ -41,7 +41,6 @@ dataset:
         load_enrollment_as_audio: false
   preprocessor:
     _target_: espnet2.train.preprocessor.TSEPreprocessor
-    train: true  # Note: this will be automatically changed to false for valid/test datasets
     train_spk2enroll: ${data_dir}/2mix_16k_max_train_mix-both/spk2enroll.json
     enroll_segment: 48000
     load_spk_embedding: false

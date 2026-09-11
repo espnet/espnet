@@ -321,7 +321,9 @@ class ESPnetEnhancementModel(AbsESPnetModel):
             speech_mix, speech_lengths, additional, fs=fs
         )
         # for models like SVoice that output multiple lists of separated signals
-        pre_is_multi_list = isinstance(speech_pre[0], (list, tuple))
+        pre_is_multi_list = speech_pre is not None and isinstance(
+            speech_pre[0], (list, tuple)
+        )
 
         ###################################
         # De-normalize the signal variance
