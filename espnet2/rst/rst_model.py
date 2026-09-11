@@ -1,4 +1,7 @@
-"""ESPnet implementation of the Sidon feature predictor.
+"""Restoration feature predictor: clean SSL features from degraded speech.
+
+This is stage 1 of Sidon (Nakata et al., arXiv:2509.17052), the reference
+instance of the restoration task; the backbone is selectable.
 
 Two self-supervised backbones are supported, selected with ``--ssl_encoder``:
 
@@ -342,7 +345,7 @@ def build_ssl_encoder(
     )
 
 
-class SidonFeaturePredictor(AbsESPnetModel):
+class ESPnetRestorationModel(AbsESPnetModel):
     """Predict clean SSL features from degraded speech."""
 
     def __init__(self, ssl_encoder: nn.Module):

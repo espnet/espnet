@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Convert the published Sidon vocoder into an ESPnet-Sidon checkpoint.
+"""Convert the published Sidon vocoder into an ESPnet restoration checkpoint.
 
 The release (``sarulab-speech/sidon-v0.1``, MIT) ships the vocoder only as a
 frozen TorchScript graph, ``decoder_{cpu,cuda}.pt``. That is enough to run
 it but not to train from it: a frozen graph has no parameters. This script
-recovers the weights into the recipe's ``SidonVocoder`` -- the same DAC
+recovers the weights into the recipe's ``DACVocoder`` -- the same DAC
 decoder, so the recovery is exact and is verified by running both on the
 same input -- and writes them in the layout of a stage-7/8 checkpoint.
 
@@ -32,7 +32,7 @@ import yaml
 from torch import nn
 from torch.nn.utils import weight_norm
 
-from espnet2.enh.decoder.sidon_vocoder import SidonVocoder
+from espnet2.rst.decoder.dac_vocoder import DACVocoder
 
 VOCODER_CONF = {"channels": 1536, "rates": [8, 5, 4, 3, 2]}
 
@@ -49,7 +49,7 @@ def get_parser():
 
 def main():
     args = get_parser().parse_args()
-    vocoder = SidonVocoder(input_dim=args.input_dim, **VOCODER_CONF)
+    vocoder = DACVocoder(input_dim=args.input_dim, **VOCODER_CONF)
     vocoder.load_official_torchscript(args.torchscript, verify=True)
     # Training checkpoints carry weight-normalised convolutions
     # (weight_g / weight_v); re-parametrise so the file loads into a fresh
@@ -60,7 +60,7 @@ def main():
     state = {f"vocoder.{k}": v for k, v in vocoder.state_dict().items()}
 
     # Round trip through a fresh model, then compare with the graph again.
-    check = SidonVocoder(input_dim=args.input_dim, **VOCODER_CONF)
+    check = DACVocoder(input_dim=args.input_dim, **VOCODER_CONF)
     check.load_state_dict(
         {k[len("vocoder.") :]: v for k, v in state.items()}, strict=True
     )

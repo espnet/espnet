@@ -1,4 +1,4 @@
-"""Sidon vocoder: DAC decoder from 50 Hz SSL features to 48 kHz waveform.
+"""DAC vocoder: DAC decoder from 50 Hz SSL features to 48 kHz waveform.
 
 Sidon (Nakata et al., arXiv:2509.17052) synthesises 48 kHz speech from
 w2v-BERT 2.0 layer-8 features with the decoder half of the Descript Audio
@@ -39,7 +39,7 @@ def _wn_conv_transpose1d(*args, **kwargs) -> nn.Module:
 # published TorchScript weights into them bit-exactly: gan_codec's Snake1d
 # shares one alpha across channels (the release has one per channel) and its
 # DAC codec decodes with SEANet blocks, so neither can take those weights.
-# The HiFi-GAN alternative (SidonHiFiGANVocoder) wraps espnet2.gan_tts.
+# The HiFi-GAN alternative (HiFiGANVocoder) wraps espnet2.gan_tts.
 class Snake1d(nn.Module):
     """Periodic Snake activation, x + sin^2(alpha x) / alpha, per channel."""
 
@@ -94,7 +94,7 @@ class DecoderBlock(nn.Module):
         return self.block(x)
 
 
-class SidonVocoder(nn.Module):
+class DACVocoder(nn.Module):
     """DAC decoder generator.
 
     Args:
@@ -239,14 +239,14 @@ class SidonVocoder(nn.Module):
                 )
 
 
-class SidonHiFiGANVocoder(nn.Module):
+class HiFiGANVocoder(nn.Module):
     """HiFi-GAN generator (ESPnet's own) driven by SSL features.
 
     The alternative vocoder of the recipe: ESPnet's ``HiFiGANGenerator`` with
     the same 8-5-4-3-2 upsampling geometry as the DAC decoder, so it also
     turns one 50 Hz frame into 960 samples at 48 kHz, but with HiFi-GAN v1
     residual blocks and LeakyReLU instead of Snake. About 14M parameters at
-    512 channels. Same calling convention as ``SidonVocoder``.
+    512 channels. Same calling convention as ``DACVocoder``.
     """
 
     def __init__(
@@ -294,7 +294,7 @@ class SidonHiFiGANVocoder(nn.Module):
 
 
 # Both train adversarially in RestorationVocoderTask and share the inference path.
-VOCODERS = {"dac": SidonVocoder, "hifigan": SidonHiFiGANVocoder}
+VOCODERS = {"dac": DACVocoder, "hifigan": HiFiGANVocoder}
 
 
 def build_vocoder(

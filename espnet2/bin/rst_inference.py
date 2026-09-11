@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run an ESPnet-Sidon predictor with a Sidon vocoder.
+"""Run an ESPnet restoration predictor with a Sidon vocoder.
 
 The vocoder is either the official TorchScript decoder (--sidon_vocoder) or
 one trained by recipe stages 7-8 (--vocoder_train_config, --vocoder_model_file).
@@ -147,7 +147,7 @@ def _load_vocoder(args, input_dim, device):
         )
     import yaml
 
-    from espnet2.enh.decoder.sidon_vocoder import build_vocoder
+    from espnet2.rst.decoder.dac_vocoder import build_vocoder
 
     with open(args.vocoder_train_config, encoding="utf-8") as stream:
         config = yaml.safe_load(stream) or {}

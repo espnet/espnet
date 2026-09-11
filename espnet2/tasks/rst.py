@@ -1,4 +1,4 @@
-"""Task definition for the ESPnet-Sidon feature predictor."""
+"""Task definition for the ESPnet restoration feature predictor."""
 
 import logging
 import math
@@ -13,9 +13,9 @@ import torch.nn.functional as F
 import torchaudio
 import torchaudio.functional as AF
 
-from espnet2.enh.sidon_model import (
+from espnet2.rst.rst_model import (
     SSL_ENCODERS,
-    SidonFeaturePredictor,
+    ESPnetRestorationModel,
     build_ssl_encoder,
 )
 from espnet2.tasks.abs_task import AbsTask
@@ -56,7 +56,7 @@ def _reverb(wav: torch.Tensor, sr: int, files: List[str]) -> torch.Tensor:
     rir = rir / rir.abs().max().clamp_min(1e-8)
     # Discard the propagation delay before the direct path. Convolving with a
     # RIR that starts with silence shifts the whole signal later, but
-    # speech_ref1 is not shifted, and SidonFeaturePredictor compares features
+    # speech_ref1 is not shifted, and ESPnetRestorationModel compares features
     # at matching frame indices -- so the delay would appear as a permanent
     # misalignment between the degraded input and its own target.
     peak = int(torch.argmax(rir.abs()).item())
@@ -166,7 +166,7 @@ def degrade_waveform(
     return original.clamp(-1, 1) if output.abs().max() < 1e-8 else output
 
 
-class SidonCollateFn:
+class RestorationCollateFn:
     """Collate function for Sidon: online degradation + padding.
 
     SSL feature extraction is done on GPU in the model forward pass
@@ -237,7 +237,7 @@ class RestorationTask(AbsTask):
 
     @classmethod
     def add_task_arguments(cls, parser):
-        group = parser.add_argument_group("ESPnet-Sidon")
+        group = parser.add_argument_group("ESPnet restoration")
         group.add_argument(
             "--model_conf",
             action=NestedDictAction,
@@ -268,7 +268,7 @@ class RestorationTask(AbsTask):
 
     @classmethod
     def build_collate_fn(cls, args, train):
-        return SidonCollateFn(
+        return RestorationCollateFn(
             max_samples=int(args.max_duration * args.input_sr),
             input_sr=args.input_sr,
             noise_dir=args.noise_dir,
@@ -300,7 +300,7 @@ class RestorationTask(AbsTask):
             lora_dropout=args.lora_dropout,
             input_sr=args.input_sr,
         )
-        return SidonFeaturePredictor(encoder)
+        return ESPnetRestorationModel(encoder)
 
     @classmethod
     def get_trainer(cls):

@@ -1,4 +1,4 @@
-# ESPnet-Sidon feature predictor: XEUS block 10 (ESPnet SSLTask; espnet/xeus, CC-BY-NC-SA-4.0)
+# ESPnet restoration feature predictor: XEUS block 10 (ESPnet SSLTask; espnet/xeus, CC-BY-NC-SA-4.0)
 ssl_encoder: xeus
 ssl_encoder_conf:
     model_tag: espnet/xeus

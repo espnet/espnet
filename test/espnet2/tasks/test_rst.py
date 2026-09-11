@@ -7,8 +7,8 @@ import soundfile as sf
 import torch
 
 from espnet2.tasks.rst import (
+    RestorationCollateFn,
     RestorationTask,
-    SidonCollateFn,
     _band_limit,
     _clip,
     _noise,
@@ -16,7 +16,10 @@ from espnet2.tasks.rst import (
     _reverb,
     degrade_waveform,
 )
-from espnet2.tasks.rst_vocoder import RestorationVocoderTask, SidonVocoderCollateFn
+from espnet2.tasks.rst_vocoder import (
+    RestorationVocoderCollateFn,
+    RestorationVocoderTask,
+)
 
 
 @pytest.fixture
@@ -99,7 +102,7 @@ def test_degrade_waveform_probability(pools):
 
 def test_collate_fn_is_deterministic_in_validation(pools):
     noise_dir, rir_dir = pools
-    collate = SidonCollateFn(
+    collate = RestorationCollateFn(
         max_samples=8000,
         input_sr=16000,
         noise_dir=noise_dir,
@@ -131,7 +134,7 @@ def test_collate_fn_is_deterministic_in_validation(pools):
 
 
 def test_vocoder_collate_fn_crop_start():
-    collate = SidonVocoderCollateFn(
+    collate = RestorationVocoderCollateFn(
         context_samples=48000,
         segment_frames=5,
         hop=960,

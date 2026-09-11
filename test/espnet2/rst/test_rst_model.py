@@ -3,7 +3,7 @@ from types import SimpleNamespace
 import torch
 from torch import nn
 
-from espnet2.enh.sidon_model import SSL_ENCODERS, SidonFeaturePredictor, W2VBert2Encoder
+from espnet2.rst.rst_model import SSL_ENCODERS, ESPnetRestorationModel, W2VBert2Encoder
 
 
 class DummyEncoder(nn.Module):
@@ -53,7 +53,7 @@ def test_wav_to_ssl_inputs_shapes_and_short_input():
 
 
 def test_feature_predictor_masked_loss():
-    model = SidonFeaturePredictor(DummyEncoder())
+    model = ESPnetRestorationModel(DummyEncoder())
     noisy = torch.randn(2, 16000)
     clean = torch.randn(2, 16000)
     lengths = torch.tensor([16000, 8000])

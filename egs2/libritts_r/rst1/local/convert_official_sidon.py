@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Convert the official Sidon LoRA adapter into an ESPnet-Sidon checkpoint.
+"""Convert the official Sidon LoRA adapter into an ESPnet restoration checkpoint.
 
 The official release publishes the feature predictor's adapter as real
 weights (``sarulab-speech/sidon_raw_weight``, MIT), and its key layout turns

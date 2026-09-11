@@ -1,4 +1,4 @@
-"""Task definition for training the Sidon vocoder (recipe stages 2 and 3)."""
+"""Task definition for training the restoration vocoder (Sidon stages 2 and 3)."""
 
 import logging
 import random
@@ -8,12 +8,12 @@ import torch
 import torchaudio.functional as AF
 from torch import nn
 
-from espnet2.enh.decoder.sidon_vocoder import VOCODERS, build_vocoder
-from espnet2.enh.sidon_model import SSL_ENCODERS, build_ssl_encoder
-from espnet2.enh.sidon_vocoder_model import SSL_FRAME_RATE, SidonVocoderGAN
 from espnet2.gan_codec.shared.discriminator.msmpmb_discriminator import (
     MultiScaleMultiPeriodMultiBandDiscriminator,
 )
+from espnet2.rst.decoder.dac_vocoder import VOCODERS, build_vocoder
+from espnet2.rst.rst_model import SSL_ENCODERS, build_ssl_encoder
+from espnet2.rst.rst_vocoder_model import SSL_FRAME_RATE, ESPnetRestorationVocoderModel
 from espnet2.tasks.abs_task import AbsTask, optim_classes
 from espnet2.tasks.rst import _audio_files, degrade_waveform
 from espnet2.train.collate_fn import CommonCollateFn
@@ -24,7 +24,7 @@ from espnet2.utils.types import str2bool, str_or_none
 logger = logging.getLogger(__name__)
 
 
-class SidonVocoderCollateFn:
+class RestorationVocoderCollateFn:
     """Cut a context window from the 48 kHz reference and pick the excerpt.
 
     Emits ``speech_ref1`` (48 kHz context), ``vocoder_crop_start`` (the SSL
@@ -76,7 +76,7 @@ class SidonVocoderCollateFn:
             clean = torch.as_tensor(values["speech_ref1"]).float()
             # Validation excerpts must be the same every epoch and on every
             # worker; crc32 of the utterance id is a stable seed where the
-            # builtin hash is not (see SidonCollateFn).
+            # builtin hash is not (see RestorationCollateFn).
             rng_state = None
             if not self.train:
                 rng_state = random.getstate()
@@ -127,7 +127,7 @@ class RestorationVocoderTask(AbsTask):
 
     @classmethod
     def add_task_arguments(cls, parser):
-        group = parser.add_argument_group("ESPnet-Sidon vocoder")
+        group = parser.add_argument_group("ESPnet restoration vocoder")
         group.add_argument(
             "--model_conf",
             action=NestedDictAction,
@@ -189,7 +189,7 @@ class RestorationVocoderTask(AbsTask):
     @classmethod
     def build_collate_fn(cls, args, train):
         hop = args.output_sr // SSL_FRAME_RATE
-        return SidonVocoderCollateFn(
+        return RestorationVocoderCollateFn(
             context_samples=int(args.context_duration * args.output_sr),
             segment_frames=max(1, int(round(args.segment_duration * SSL_FRAME_RATE))),
             hop=hop,
@@ -276,7 +276,7 @@ class RestorationVocoderTask(AbsTask):
         disc_conf.update(args.discriminator_conf or {})
         discriminator = MultiScaleMultiPeriodMultiBandDiscriminator(**disc_conf)
 
-        return SidonVocoderGAN(
+        return ESPnetRestorationVocoderModel(
             ssl_encoder=encoder,
             vocoder=vocoder,
             discriminator=discriminator,

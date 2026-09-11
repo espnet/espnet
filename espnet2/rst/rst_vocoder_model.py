@@ -1,4 +1,4 @@
-"""GAN training of the Sidon vocoder (recipe stages 2 and 3).
+"""GAN training of the restoration vocoder (Sidon stages 2 and 3).
 
 Stage 2 pretrains the vocoder to invert *ground-truth* w2v-BERT 2.0 layer-8
 features of clean 48 kHz speech; stage 3 finetunes it on features *predicted*
@@ -35,7 +35,7 @@ logger = logging.getLogger(__name__)
 SSL_FRAME_RATE = 50
 
 
-class SidonVocoderFeatures:
+class RestorationVocoderFeatures:
     """Frozen-encoder feature extraction and excerpt cropping for vocoders.
 
     Kept separate from the GAN model so other vocoder objectives can reuse
@@ -117,7 +117,7 @@ class SidonVocoderFeatures:
         return a[..., :n], b[..., :n]
 
 
-class SidonVocoderGAN(SidonVocoderFeatures, AbsGANESPnetModel):
+class ESPnetRestorationVocoderModel(RestorationVocoderFeatures, AbsGANESPnetModel):
     """Vocoder generator + discriminator with a frozen feature encoder.
 
     Args:
@@ -126,7 +126,7 @@ class SidonVocoderGAN(SidonVocoderFeatures, AbsGANESPnetModel):
             (pretrain) and the LoRA student branch provides predicted ones
             (finetune).
         vocoder: generator mapping (B, T, D) features to (B, T * 960) audio
-            (SidonVocoder or SidonHiFiGANVocoder; anything with ``generate``
+            (DACVocoder or HiFiGANVocoder; anything with ``generate``
             and ``upsample_factor``).
         discriminator: returns a list, one entry per sub-discriminator, of
             [feature maps ..., logits].

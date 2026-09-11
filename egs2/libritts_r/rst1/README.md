@@ -1,4 +1,4 @@
-# ESPnet-Sidon: feature-predictor speech restoration
+# ESPnet restoration (rst): Sidon reproduction
 
 An ESPnet reproduction of **Sidon** ([arXiv:2509.17052](https://arxiv.org/abs/2509.17052)).
 The model predicts the clean SSL hidden state from degraded speech (stage 1
@@ -28,12 +28,13 @@ pass the same `ssl_encoder` / `ssl_encoder_conf` to the vocoder configs (stages
 
 ## Extra dependencies
 
-These are **not** installed by `tools/` and are not ESPnet dependencies:
+`peft` and `pyroomacoustics` are the recipe's own extras: `pip install "espnet[rst]"`
+(they are also part of `espnet[all]`). VERSA and NISQA are installed separately:
 
 | Package | Needed by | Install |
 |---|---|---|
-| `peft` | LoRA adapters on the SSL student (stages 4-5) | `pip install peft` |
-| `pyroomacoustics` | RIR pool generation (stage 3) | `pip install pyroomacoustics` |
+| `peft` | LoRA adapters on the SSL student (stages 4-5) | `pip install "espnet[rst]"` |
+| `pyroomacoustics` | RIR pool generation (stage 3) | `pip install "espnet[rst]"` |
 | `versa` | VERSA scoring (stage 11) | `tools/installers/install_versa.sh` |
 | NISQA *(optional)* | `local/score.py --nisqa_model` | clone [NISQA](https://github.com/gabrielmittag/NISQA), add to `PYTHONPATH` |
 

@@ -1,4 +1,4 @@
-# ESPnet-Sidon vocoder, stage 3: finetune on predicted SSL features.
+# ESPnet restoration vocoder, stage 3: finetune on predicted SSL features.
 #
 # The frozen stage-1 predictor (LoRA student, --fp_model_path) encodes
 # degraded 16 kHz speech produced online from the 48 kHz reference; the

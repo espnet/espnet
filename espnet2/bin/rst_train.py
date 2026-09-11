@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Train the ESPnet-Sidon w2v-BERT 2.0 feature predictor."""
+"""Train the ESPnet restoration w2v-BERT 2.0 feature predictor."""
 
 from espnet2.tasks.rst import RestorationTask
 

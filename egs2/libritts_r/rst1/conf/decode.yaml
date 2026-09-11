@@ -1,4 +1,4 @@
-# Default decoding (stage 6) settings for the ESPnet-Sidon feature predictor.
+# Default decoding (stage 6) settings for the ESPnet restoration feature predictor.
 # Variants belong under conf/tuning/.
 #
 # The predictor is fully non-causal, so chunking exists only to bound memory on

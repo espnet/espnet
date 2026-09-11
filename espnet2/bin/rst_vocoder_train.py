@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Train the ESPnet-Sidon vocoder (GAN; pretrain or finetune)."""
+"""Train the ESPnet restoration vocoder (GAN; pretrain or finetune)."""
 
 from espnet2.tasks.rst_vocoder import RestorationVocoderTask
 

@@ -1,4 +1,4 @@
-# ESPnet-Sidon vocoder, stage 2: pretrain on ground-truth SSL features.
+# ESPnet restoration vocoder, stage 2: pretrain on ground-truth SSL features.
 #
 # The frozen w2v-BERT 2.0 teacher encodes clean 48 kHz speech (resampled to
 # 16 kHz on the GPU); the DAC-style decoder learns to invert layer-8 features

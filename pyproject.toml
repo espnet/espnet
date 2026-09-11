@@ -118,6 +118,10 @@ enh = [
   "ci_sdr",
   "fast-bss-eval==0.1.3",
 ]
+rst = [
+  "peft",
+  "pyroomacoustics",
+]
 
 asr2 = [
   "editdistance",
@@ -240,6 +244,7 @@ all = [
   "espnet[asr]",
   "espnet[tts]",
   "espnet[enh]",
+  "espnet[rst]",
   "espnet[spk]",
   "espnet[speechlm]",
   "espnet[egs2]",

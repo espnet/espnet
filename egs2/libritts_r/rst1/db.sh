@@ -1,5 +1,5 @@
 # egs2/libritts_r/enh1/db.sh
-# Dataset and noise source paths for the ESPnet-Sidon recipe.
+# Dataset and noise source paths for the ESPnet restoration recipe.
 # Set paths to existing directories; leave "" to skip.
 #
 # SR information is NOT stored here — it lives in local/data.sh.

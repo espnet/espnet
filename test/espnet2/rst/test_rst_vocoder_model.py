@@ -2,11 +2,11 @@ import pytest
 import torch
 from torch import nn
 
-from espnet2.enh.decoder.sidon_vocoder import SidonVocoder
-from espnet2.enh.sidon_vocoder_model import SidonVocoderGAN
 from espnet2.gan_codec.shared.discriminator.msmpmb_discriminator import (
     MultiScaleMultiPeriodMultiBandDiscriminator,
 )
+from espnet2.rst.decoder.dac_vocoder import DACVocoder
+from espnet2.rst.rst_vocoder_model import ESPnetRestorationVocoderModel
 
 
 class DummyEncoder(nn.Module):
@@ -57,9 +57,9 @@ def make_model(use_predicted_feat=False):
             "channel": 4,
         },
     )
-    return SidonVocoderGAN(
+    return ESPnetRestorationVocoderModel(
         ssl_encoder=DummyEncoder(),
-        vocoder=SidonVocoder(input_dim=8, channels=64, rates=[8, 5, 4, 3, 2]),
+        vocoder=DACVocoder(input_dim=8, channels=64, rates=[8, 5, 4, 3, 2]),
         discriminator=discriminator,
         use_predicted_feat=use_predicted_feat,
         segment_duration=0.1,
@@ -75,9 +75,9 @@ def make_model(use_predicted_feat=False):
 
 def test_upsample_factor_must_match_output_rate():
     with pytest.raises(ValueError):
-        SidonVocoderGAN(
+        ESPnetRestorationVocoderModel(
             ssl_encoder=DummyEncoder(),
-            vocoder=SidonVocoder(input_dim=8, channels=64, rates=[2, 2]),
+            vocoder=DACVocoder(input_dim=8, channels=64, rates=[2, 2]),
             discriminator=nn.Identity(),
         )
 

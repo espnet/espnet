@@ -1,4 +1,4 @@
-# ESPnet-Sidon feature predictor: w2v-BERT 2.0 layer 8
+# ESPnet restoration feature predictor: w2v-BERT 2.0 layer 8
 ssl_encoder: w2v_bert2
 ssl_encoder_conf:
     model_tag: facebook/w2v-bert-2.0
