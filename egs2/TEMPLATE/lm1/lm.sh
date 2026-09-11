@@ -488,6 +488,25 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] && ! [[ " ${skip_stages} " =~ [
                 ${kmeans_opts}
         fi
 
+        _km_model="${km_dir}/km_${nclusters}.mdl"
+        if [ ! -f "${_km_model}" ]; then
+            log "Stage 3a: Error: ${_km_model} not found." \
+                "Run with --learn_kmeans true, or point --km_dir at an existing model."
+            exit 1
+        fi
+        # Fingerprint the actual model content, not just nclusters, so a
+        # per-task "already labeled" marker can never be mistaken for
+        # "labeled with the model currently at ${km_dir}". learn_kmeans.py is
+        # deterministic, so re-running --learn_kmeans true with an unchanged
+        # pool reproduces byte-identical model content (same fingerprint,
+        # already-labeled tasks are still correctly skipped -- e.g. resuming
+        # after a labeling-stage crash doesn't retrain from scratch); if the
+        # pool actually changed (different --data_config, an added corpus,
+        # etc.) the model content -- and thus the fingerprint and the marker
+        # path below -- changes too, so stale markers from the old model are
+        # simply never matched and every task is correctly relabeled.
+        _km_fingerprint=$(md5sum "${_km_model}" | cut -d' ' -f1)
+
         _suf=
         if [ -n "${layer}" ]; then
             _suf="layer${layer}/"
@@ -501,7 +520,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] && ! [[ " ${skip_stages} " =~ [
                 # this (rather than e.g. the pseudo_labels file's mere
                 # existence) avoids treating a crashed/cancelled/partially
                 # written run as done on the next rerun.
-                _done_marker="${data_extract}/${_task}/.labeled_km${nclusters}"
+                _done_marker="${data_extract}/${_task}/.labeled_km${nclusters}_${_km_fingerprint}"
 
                 if [ -f "${_done_marker}" ]; then
                     log "Stage 3a: ${_task} already labeled (found ${_done_marker}), skipping"
