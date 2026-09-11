@@ -63,14 +63,16 @@ class DataLoaderBuilder:
         epoch (int): Current epoch number. Used to reseed samplers deterministically.
 
     Example:
-        builder = DataLoaderBuilder(
-            dataset=train_dataset,
-            config=config,
-            collate_fn=collate_fn,
-            num_device=4,
-            epoch=3
-        )
-        train_loader = builder.build(mode="train")
+        .. code-block:: python
+
+            builder = DataLoaderBuilder(
+                dataset=train_dataset,
+                config=config,
+                collate_fn=collate_fn,
+                num_device=4,
+                epoch=3,
+            )
+            train_loader = builder.build(mode="train")
     """
 
     def __init__(self, dataset, config, collate_fn, num_device: int, epoch: int):
