@@ -108,7 +108,7 @@ If you want to run this stage, you need to register your account in zenodo.
 
 ## Concrete run commands & setup (JHU CLSP cluster, D_Bal / OPT-350M reproduction)
 
-This section lists the command for each stage and what needs to be set up before it will work. `--lm_config conf/tuning/train_transformer_opt350.yaml` reproduces the paper's OPT-350M-initialized main results; drop it (or point it at `conf/train_transformer_size768_e12.yaml`) for the from-scratch ablation instead.
+This section lists the command for each stage and what needs to be set up before it will work. `--lm_config conf/tuning/train_transformer_opt350.yaml` reproduces the paper's OPT-350M-initialized main results; drop it (or point it at `conf/train.yaml`) for the from-scratch ablation instead.
 
 Note that `local/data.sh` (invoked by `lm.sh`'s Stage 1, and overridable via `run.sh --local_data_opts`) has its own internal stage numbering, separate from `run.sh`'s: its stage 1 downloads/prepares each of the 4 corpora individually (`local/data_librispeech.sh` etc.), and its stage 2 combines them into `data/train`/`dev`/`test` (this is also where `--data_config` subsampling happens). `./run.sh --stage 1 --stop_stage 1` runs both by default. If a given corpus is already prepared and you only want to re-run the combine step (e.g. after adding a new corpus, or to redo `--data_config` subsampling), skip straight to it with `--local_data_opts "--stage 2"` — don't use that shortcut on a fresh checkout, since it never runs the per-corpus download/prep at all.
 
