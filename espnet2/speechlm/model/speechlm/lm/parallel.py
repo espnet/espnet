@@ -9,7 +9,22 @@ import transformers
 from transformers import AutoConfig
 from transformers.cache_utils import DynamicCache
 
-from espnet2.speechlm.model.speechlm.lm.loss import fused_cross_entropy_loss
+from espnet2.speechlm.model.speechlm.lm.loss import (
+    fused_cross_entropy_loss,
+    memory_efficient_load_balancing_loss,
+)
+
+
+def configure_moe_model(model):
+    """Use Transformers' grouped MM experts and SpeechLM's router loss.
+
+    Configure both pretrained models and PP replicas before wrapping them.
+    The native experts read this shared config on every forward call.
+    """
+    if getattr(model.config, "num_experts", None):
+        model.config._experts_implementation = "grouped_mm"
+        model.load_balancing_loss_func = memory_efficient_load_balancing_loss
+    return model
 
 
 def ParallelHFModel(model_hf_tag, **kwargs):
@@ -84,6 +99,8 @@ def build_parallel_hf_class(model_hf_tag):
                 f"Set attn_implementation: flash_attention_2 or "
                 f"flash_attention_3 in model_conf."
             )
+
+            model = configure_moe_model(model)
 
             # (2) Rebuild embedding tables for multimodal vocabulary
             with torch.no_grad():
