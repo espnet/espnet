@@ -4,6 +4,7 @@ fail preparation loudly (naming both source IDs), not silently drop one.
 Self-contained: it builds a tiny DatasetDict fixture in a temp dir, so it does
 not need the (undistributed) Nahuatl corpus and always runs.
 """
+
 import os
 import subprocess
 import sys
@@ -44,12 +45,18 @@ def test_sanitization_collision_fails_loudly():
         _build_fixture(hf_dir)
         result = subprocess.run(
             [
-                sys.executable, SCRIPT,
-                "--hf_data_dir", hf_dir,
-                "--split", "hidalgo-train",
-                "--output_dir", os.path.join(tmpdir, "kaldi"),
-                "--wav_dir", os.path.join(tmpdir, "wav"),
-                "--region_token", "<nah_hid>",
+                sys.executable,
+                SCRIPT,
+                "--hf_data_dir",
+                hf_dir,
+                "--split",
+                "hidalgo-train",
+                "--output_dir",
+                os.path.join(tmpdir, "kaldi"),
+                "--wav_dir",
+                os.path.join(tmpdir, "wav"),
+                "--region_token",
+                "<nah_hid>",
             ],
             capture_output=True,
             text=True,
