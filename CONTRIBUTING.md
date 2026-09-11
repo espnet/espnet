@@ -95,9 +95,12 @@ own namespace is loaded by `from_pretrained` exactly like one under `espnet/`.
    Hub alongside the rest of the ecosystem.
 6. Link the model from your recipe's `RESULTS.md`.
 
-If you would like the model to live under the `espnet` organization, ask a maintainer in
-your PR or on [Discord](https://discord.gg/hrCs85gFWM) — a Hub repository can be transferred
-after the fact, so publishing under your own account first costs nothing.
+To move a model under the `espnet` organization, you do not need to go through a maintainer:
+
+1. Open https://huggingface.co/espnet and click **Request to join this org**.
+2. Once you are accepted, open your model's **Settings** on the Hub and use
+   **Rename or transfer this model**, choosing `espnet` as the new owner. New models can
+   also be created under `espnet/` directly from then on.
 
 For ESPnet3, the same applies through `conf/publication.yaml`: set `upload_model.hf_repo` to
 `<your-username>/<model-name>` instead of the default `espnet/...`.
@@ -127,18 +130,28 @@ Models published on Zenodo are legacy. To port one to the Hub, run
 - [ ] cluster settings should be set as **default** (e.g., `cmd.sh`, `conf/slurm.conf`,
       `conf/queue.conf`, `conf/pbs.conf`)
 - [ ] update `egs2/README.md` with the corresponding recipe
-- [ ] add the corresponding entry in `egs2/TEMPLATE/*/db.sh` for a new corpus
+- [ ] add the corresponding entry for a new corpus to `egs2/TEMPLATE/asr1/db.sh` — that is
+      the only real file, every other `db.sh` in the tree is a symbolic link to it
 - [ ] try to **simplify** the model configurations. We recommend having only the best
       configuration for the start of a recipe. Please also follow the default rule defined
       in Section 1.3.4
 - [ ] large meta-information (e.g., the keyword list) for a corpus should be maintained
       elsewhere than in the recipe itself
 - [ ] results and pre-trained models are included with the recipe (recommended)
-- [ ] code style issues are resolved. You can run `utils/apply_code_fixes.py <folder>` to
-      fix almost all of them automatically
+- [ ] the recipe runs from a clean checkout — no absolute paths, no files that only exist on
+      your machine
+- [ ] code style is clean: `pre-commit run --all-files`
 
-We recommend the latest `black` and `isort` formatting. However, these are applied
-automatically by `pre-commit.ci` and are no longer a requirement.
+`black` and `isort` are applied automatically by `pre-commit.ci`, so formatting alone will
+not block your PR. Running `pre-commit` yourself just avoids the extra commit.
+
+> [!WARNING]
+> Do not use `utils/apply_code_fixes.py`. Its `W291` fix strips the newline along with the
+> trailing whitespace, so a file containing `a = 1  ` followed by `b = 2` is rewritten to
+> `a = 1b = 2`. It corrupts any Python file with trailing whitespace.
+
+ESPnet3 recipes (`egs3`) have no `db.sh`, `cmd.sh` or shared shell stages; the equivalent
+settings live in the recipe's `conf/*.yaml`. The rest of the checklist still applies.
 
 ## 2. Pull requests
 
@@ -179,6 +192,11 @@ $ . ./tools/activate_python.sh
 $ pip install -e ".[test]"
 ```
 
+`tools/activate_python.sh` is generated when you set up the tools environment
+(`tools/setup_python.sh`, `setup_venv.sh`, `setup_miniforge.sh`, ... then `make`), so it is
+not in a fresh checkout. If you installed ESPnet into an environment you manage yourself,
+activate that one instead and skip the line.
+
 Testing various units thoroughly requires several modules and tools. We suggest reviewing
 [ci/install.sh](https://github.com/espnet/espnet/blob/master/ci/install.sh), as it includes
 everything required for the CI check.
@@ -189,9 +207,12 @@ You can run the test suite with [pytest](https://docs.pytest.org/en/latest/) and
 [coverage](https://pytest-cov.readthedocs.io/en/latest/reporting.html) by
 
 ``` console
-$ ./ci/test_python_espnet2.sh
-$ ./ci/test_python_espnet3.sh
+$ ./ci/test_python_espnet2.sh   # pycodestyle, pytest test/espnet2, coverage
+$ ./ci/test_python_espnet3.sh   # flake8, pycodestyle, pytest test/espnet3, coverage
 ```
+
+Each script also runs the style checks, so a green run locally means the same checks pass in
+CI. To iterate on a single test, call `pytest` directly on it.
 
 Some useful tips when using `pytest`:
 
@@ -203,10 +224,12 @@ Some useful tips when using `pytest`:
 - To monitor test coverage and avoid overlapping tests, use
   `pytest --cov-report term-missing <test_file|dir>` to highlight covered and missed lines.
   For more details, see [coverage-test](https://pytest-cov.readthedocs.io/en/latest/readme.html).
-- We limit each test to 2.0 seconds (see
+- Each test is limited to 10.0 seconds — the scripts run
+  `pytest --execution-timeout 10.0` (see
   [pytest-timeouts](https://pypi.org/project/pytest-timeouts/)). Use small model parameters
   and avoid dynamic imports, file access, and unnecessary loops. If a unit test genuinely
-  needs more time, annotate it with `@pytest.mark.execution_timeout(sec)`.
+  needs more time, annotate it with `@pytest.mark.execution_timeout(sec)`, which overrides
+  the default for that test.
 - For test initialization (parameters, modules, etc.), use
   [pytest fixtures](https://docs.pytest.org/en/latest/fixture.html#using-fixtures-from-classes-modules-or-projects).
 
@@ -233,8 +256,10 @@ dataset, [egs2/mini_an4](egs2/mini_an4) and [egs3/mini_an4](egs3/mini_an4), to t
 recipe run.
 
 **Don't call `python` directly in integration tests. Use `coverage run --append`** as the
-Python interpreter instead. In particular, `run.sh` should support `--python ${python}` so
-it can call the custom interpreter.
+Python interpreter instead, so that the recipe run counts towards coverage.
+
+In ESPnet2 the interpreter is passed into the shell pipeline, so `run.sh` must support
+`--python ${python}`:
 
 ```bash
 # ci/test_integration_espnet2.sh
@@ -243,6 +268,21 @@ python="coverage run --append"
 
 cd egs2/mini_an4/your_task
 ./run.sh --python "${python}"
+```
+
+In ESPnet3 the recipe *is* a Python entry point, so the interpreter is used directly:
+
+```bash
+# ci/test_integration_espnet3.sh
+
+python="coverage run --append"
+
+cd egs3/mini_an4/asr
+${python} run.py \
+    --stages create_dataset train_tokenizer collect_stats train infer measure \
+    --training_config conf/training.yaml \
+    --inference_config conf/inference.yaml \
+    --metrics_config conf/metrics.yaml
 ```
 
 ### 5.1 Configuration files
@@ -318,12 +358,14 @@ For `utils` scripts, do not forget to add help messages and test scripts under `
 
 ### 6.1 Python tools guideline
 
-Every module in `utils/` and `espnet2/bin/` must define `get_parser() -> ArgumentParser` at
+Every module in `utils/` and `espnet2/bin/` should define `get_parser() -> ArgumentParser` at
 module level. This is not a style preference: [ci/doc.sh](ci/doc.sh) runs
 `doc/argparse2rst.py` over `./utils/*.py` and `./espnet2/bin/*.py`, which imports each file
-and raises `ValueError: <path> does not have get_parser()` when it is missing — the
-documentation build fails. Give the parser a `description`; it becomes the tool's
-documentation page.
+and calls `get_parser()` to render its documentation page. A module without one raises
+`ValueError: <path> does not have get_parser()`, which `argparse2rst.py` catches and logs —
+the build keeps going and your tool silently ends up with no documentation. Give the parser
+a `description` as well; it is the one-line summary in the tool index, and the renderer
+asserts it is not `None`.
 
 ```python
 #!/usr/bin/env python3
