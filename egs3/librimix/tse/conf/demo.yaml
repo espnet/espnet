@@ -28,7 +28,7 @@ model:
 ui:
   app_script: ../../TEMPLATE/tse/src/app.py
   title: Demo page for the TSE model trained on Libri2Mix (16 kHz)
-  description: readme.md
+  description: README.md
   inputs:
     - key: speech_mix
       type: audio

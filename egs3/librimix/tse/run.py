@@ -4,7 +4,7 @@ from egs3.TEMPLATE.tse.run import (
     main,
     parse_cli_and_stage_args,
 )
-from espnet3.systems.tse.system import TSESystem
+from espnet3.systems.base.system import BaseSystem
 
 if __name__ == "__main__":
     parser = build_parser(stages=DEFAULT_STAGES)
@@ -12,6 +12,6 @@ if __name__ == "__main__":
 
     main(
         args=args,
-        system_cls=TSESystem,
+        system_cls=BaseSystem,
         stages=DEFAULT_STAGES,
     )

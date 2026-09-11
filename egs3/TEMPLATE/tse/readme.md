@@ -13,7 +13,7 @@
 # 1) Prepare training and evaluation data
 python run.py --stages create_dataset --training_config conf/training.yaml
 
-# 2) Train with the default Branchformer configuration
+# 2) Train with the default TSE model configuration
 python run.py --stages train --training_config conf/training.yaml
 
 # 3) Infer to generate extracted speech

@@ -4,7 +4,7 @@ This module provides :class:`LibriMixTSEDataset`, a Torch-style dataset that
 reads the simulated LibriMix directory structure produced by
 :class:`egs3.librimix.tse.dataset.DatasetBuilder`.
 
-The dataset resolves its data directory from ``<recipe_dir>/download/`` by
+The dataset resolves its data directory from ``<recipe_dir>/data/`` by
 default, or from the ``data_dir`` argument when provided.  If the data has
 not yet been simulated, :class:`~egs3.librimix.tse.dataset.builder.LibriMixTSEBuilder`
 is invoked automatically to build it first.
@@ -84,7 +84,7 @@ class Libri3MixTSEExample:
     num_spk: int = 3
 
 
-def _check_missing_files(folder: Path, split: str, num_spk: int) -> bool:
+def _has_missing_files(folder: Path, split: str, num_spk: int) -> bool:
     """Check that basic data files exist; return True if enrollment map exists."""
     split_dir = folder / split
     required = ["wav.scp", "spk1.scp", "spk2.scp", "text_spk1", "text_spk2"]
@@ -93,8 +93,8 @@ def _check_missing_files(folder: Path, split: str, num_spk: int) -> bool:
     for fname in required:
         if not (split_dir / fname).exists():
             raise FileNotFoundError(
-                f"Missing file: {split_dir / fname}. "
-                "Please run create_dataset before loading the dataset."
+                f"Missing basic file: {split_dir / fname}. "
+                "Please run the 'create_dataset' stage before loading the dataset."
             )
     if "train" in split:
         return True
@@ -132,8 +132,6 @@ class LibriMixTSEDataset(TorchDataset):
         ignore_key_prefix: List of key prefixes to omit from returned dicts.
             Supported keys: ``speech_mix``, ``enroll_ref{N}``,
             ``speech_ref{N}``, ``text_spk{N}``, ``utt_id``, ``num_spk``.
-        use_espnet_preprocessor: If True, return raw strings and let the
-            ESPnet2-style preprocessor handle audio loading and feature extraction.
 
     Raises:
         ValueError: If ``split`` is not listed in ``config.yaml``.
@@ -154,9 +152,7 @@ class LibriMixTSEDataset(TorchDataset):
         recipe_dir: str | Path | None = None,
         data_dir: str | Path | None = None,
         ignore_key_prefix: List[str] | None = None,
-        use_espnet_preprocessor: bool = False,
     ) -> None:
-        self.use_espnet_preprocessor = use_espnet_preprocessor
         self.split = str(split)
         if self.split not in _KNOWN_SPLITS:
             known = ", ".join(sorted(_KNOWN_SPLITS))
@@ -206,7 +202,7 @@ class LibriMixTSEDataset(TorchDataset):
 
         # Load or download the enrollment map (dev/test only)
         enrollment_map_path = self.librimix_root / f"{self.split}/mixture2enrollment"
-        has_map = _check_missing_files(self.librimix_root, self.split, self.num_spk)
+        has_map = _has_missing_files(self.librimix_root, self.split, self.num_spk)
         if has_map:
             self.enrollment_map = self._load_enrollment_map(
                 enrollment_map_path, self.split
@@ -242,51 +238,13 @@ class LibriMixTSEDataset(TorchDataset):
         ex = self._examples[int(idx)]
         keys = [f.name for f in fields(ex)]
         ret = {}
-        if self.use_espnet_preprocessor:
-            for k in keys:
-                if k.startswith(self.ignore_key_prefix):
-                    continue
-                if k.startswith(("speech_mix", "speech_ref")):
-                    ret[k] = sf.read(getattr(ex, k), dtype="float32")[0]
-                else:
-                    ret[k] = getattr(ex, k)
-            return ret
-        srs = []
         for k in keys:
             if k.startswith(self.ignore_key_prefix):
                 continue
-            if k.startswith(("speech_mix", "speech_ref")):
-                audio, _sr = sf.read(str(getattr(ex, k)), dtype="float32")
-                srs.append(_sr)
-                ret[k] = audio
-            elif k.startswith("enroll_ref"):
-                val = getattr(ex, k)
-                if isinstance(val, str) and val.startswith("*"):
-                    # Training-time pattern: "*UID SPEAKER_ID" → random enrollment
-                    cur_uid, spkid = val[1:].strip().split(maxsplit=1)
-                    enroll_uid, enroll_path = random.choice(self.spk2enroll[spkid])
-                    while enroll_uid == cur_uid:
-                        enroll_uid, enroll_path = random.choice(self.spk2enroll[spkid])
-                    audio, _sr = sf.read(str(enroll_path), dtype="float32")
-                    srs.append(_sr)
-                    ret[k] = audio
-                else:
-                    audio, _sr = sf.read(str(val), dtype="float32")
-                    srs.append(_sr)
-                    ret[k] = audio
-            elif k.startswith("text_spk"):
-                continue
-                # ret[k] = getattr(ex, k)
-            elif k == "utt_id":
-                if self.use_espnet_preprocessor:
-                    continue
+            if k.startswith(("speech_mix", "speech_ref", "enroll_ref")):
                 ret[k] = getattr(ex, k)
-            elif k == "num_spk":
-                continue
-                # ret[k] = np.array([ex.num_spk])
             else:
                 raise ValueError(f"Unexpected key in example: {k}")
-        assert all(sr == srs[0] for sr in srs), (srs, keys)
         return ret
 
     def _load_enrollment_map(self, enrollment_map_path: Path, split: str) -> dict:

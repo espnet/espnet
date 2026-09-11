@@ -42,6 +42,18 @@ class DNSMOS(BaseMetric):
         use_gpu: bool = False,
         convert_to_torch: bool = False,
     ) -> None:
+        """Initialize the DNSMOS measure.
+
+        Args:
+            ref_key: Key name for reference speech.
+            hyp_key: Key name for extracted speech.
+            batch_size: batch size for batched inference.
+            ref_channel: Reference channel index for aligning multi-channel signals.
+            dnsmos_dir: Directory to store the DNSMOS model.
+            use_gpu: Whether to use GPU for inference.
+            convert_to_torch: Whether to convert the model to TorchScript for faster
+                              inference.
+        """
         self.ref_key = ref_key
         self.hyp_key = hyp_key
         assert isinstance(batch_size, int) and batch_size > 0, batch_size
@@ -54,6 +66,7 @@ class DNSMOS(BaseMetric):
         self.convert_to_torch = convert_to_torch
 
     def _ensure_dnsmos(self):
+        """Load the DNSMOS model if it is not already loaded."""
         if self.dnsmos_model is None:
             from espnet2.enh.layers.dnsmos import DNSMOS_local
 
@@ -89,7 +102,8 @@ class DNSMOS(BaseMetric):
             )
         return self.dnsmos_model
 
-    def load_audios(self, inf_batch: List[str]) -> List[Tuple[int, Tensor]]:
+    def _load_audios(self, inf_batch: List[str]) -> List[Tuple[int, Tensor]]:
+        """Load the input audio for inference."""
         inf_audios = []
         for inf_path in inf_batch:
             inf_audio, sr = sf.read(inf_path, dtype="float32")
@@ -97,7 +111,8 @@ class DNSMOS(BaseMetric):
             inf_audios.append((sr, inf_audio))
         return inf_audios
 
-    def compute_dnsmos(self, inf_audio: Tensor, sample_rate: int) -> Dict[str, float]:
+    def _compute_dnsmos(self, inf_audio: Tensor, sample_rate: int) -> Dict[str, float]:
+        """Compute DNSMOS scores for a single inference audio."""
         model = self._ensure_dnsmos()
         score = model(inf_audio, sample_rate)
         return {
@@ -110,6 +125,14 @@ class DNSMOS(BaseMetric):
     def __call__(
         self, data: Dict[str, Path], test_name: str, inference_dir: Path
     ) -> Dict[str, float]:
+        """Compute DNSMOS and return the average metric.
+
+        Args:
+            data: Mapping of field names to SCP file paths.
+                Expected keys: hyp_key (default "inf").
+            test_name: Test set name used for output directory naming.
+            inference_dir: Base directory for storing per-sample metrics.
+        """
         test_dir = Path(inference_dir) / test_name
         test_dir.mkdir(parents=True, exist_ok=True)
 
@@ -145,11 +168,11 @@ class DNSMOS(BaseMetric):
                     batch_uids = [sample[0] for sample in batch]
                     inf_paths = [sample[1] for sample in batch]
 
-                    inf_audios = self.load_audios(inf_paths)
+                    inf_audios = self._load_audios(inf_paths)
                     for uid, inf_item in zip(batch_uids, inf_audios):
                         sample_rate = inf_item[0]
                         inf_audio = inf_item[1]
-                        score = self.compute_dnsmos(inf_audio, sample_rate)
+                        score = self._compute_dnsmos(inf_audio, sample_rate)
                         scores.append(score)
                         f.write(
                             f"{uid} {score['OVRL']} {score['SIG']} {score['BAK']} "

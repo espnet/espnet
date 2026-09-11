@@ -53,11 +53,8 @@ parallel:
 #               PROVIDER AND RUNNER SETTING              #
 ##########################################################
 provider:
-  _target_: espnet3.systems.base.inference_provider.InferenceProvider
-  # inference_config:
-  #   device: cpu
-runner:
-  _target_: espnet3.systems.base.inference_runner.InferenceRunner
+  inference_config:
+    device: cpu
 
 ##########################################################
 #                    MODEL AND OUTPUT                    #

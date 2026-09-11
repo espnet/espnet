@@ -1,11 +1,11 @@
-"""Inference output helpers for the LibriMix TSE recipe."""
+"""Inference output helpers for the TSE recipe."""
 
 
 def build_output(data, model_output, idx):
     """Build a dict of outputs for SCP writing.
 
     Args:
-        data: Dict from LibriMixTSEDataset.__getitem__. Contains:
+        data: Dict from XXXTSEDataset.__getitem__. Contains:
             - "utt_id": utterance ID string (when not in ignore_key_prefix)
             - "speech_ref1": reference waveform numpy array
         model_output: Output from espnet2.bin.enh_tse_inference.SeparateSpeech.

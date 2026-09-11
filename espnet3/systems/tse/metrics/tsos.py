@@ -76,6 +76,7 @@ class TSOS(BaseMetric):
         self.device = device
 
     def _align_shape(self, ref, inf):
+        """Align the shape of reference and inference signals."""
         if ref.shape != inf.shape:
             if ref.ndim > inf.ndim:
                 ref = ref[..., self.ref_channel]
@@ -91,9 +92,10 @@ class TSOS(BaseMetric):
                 )
         return ref, inf
 
-    def load_audio_pairs(
+    def _load_audio_pairs(
         self, ref_batch: List[str], inf_batch: List[str]
     ) -> Tuple[List[Tensor], List[Tensor]]:
+        """Load input audio and clean reference audio as paired data."""
         ref_audios, inf_audios = [], []
         for ref_path, inf_path in zip(ref_batch, inf_batch):
             ref_audio, sr1 = sf.read(ref_path, dtype="float32")
@@ -107,10 +109,12 @@ class TSOS(BaseMetric):
         return ref_audios, inf_audios
 
     def _pad(self, x: Tensor, pad: Tuple[int, int], dim: int = -1, **kwargs) -> Tensor:
+        """Pad a tensor along a specified dimension."""
         dim = x.ndim - dim - 1 if dim >= 0 else -dim - 1
         return F.pad(x, [0] * 2 * dim + list(pad), **kwargs)
 
     def collate_fn(self, audios: List[Tensor]) -> Tuple[Tensor, Tensor]:
+        """Collate a list of audio tensors into a padded batch tensor and lengths."""
         assert len(audios) >= 1
         assert all(x.ndim == audios[0].ndim for x in audios)
         ilens = audios[0].new_tensor([x.size(0) for x in audios], dtype=torch.long)
@@ -118,9 +122,10 @@ class TSOS(BaseMetric):
         audios = [self._pad(x, (0, max_len - x.size(0)), dim=0) for x in audios]
         return torch.stack(audios), ilens
 
-    def compute_tsos(
+    def _compute_tsos(
         self, ref_spec: Tensor, inf_spec: Tensor, flens: Tensor
     ) -> List[float]:
+        """Compute TSOS for a batch of reference and inference spectrograms."""
         # [Batch, Frame, (Channel,) Freq]
         ref_mag, inf_mag = ref_spec.abs() ** self.power, inf_spec.abs() ** self.power
         oversuppression = torch.clamp_min(ref_mag - inf_mag, 0.0) ** 2
@@ -131,7 +136,7 @@ class TSOS(BaseMetric):
     def __call__(
         self, data: Dict[str, Path], test_name: str, inference_dir: Path
     ) -> Dict[str, float]:
-        """Compute TSOS, and return the metric.
+        """Compute TSOS and return the average metric.
 
         Args:
             data: Mapping of field names to SCP file paths.
@@ -168,12 +173,12 @@ class TSOS(BaseMetric):
                     batch_uids = [b[0] for b in batch]
                     ref_paths = [b[1] for b in batch]
                     inf_paths = [b[2] for b in batch]
-                    ref_audios, inf_audios = self.load_audio_pairs(ref_paths, inf_paths)
+                    ref_audios, inf_audios = self._load_audio_pairs(ref_paths, inf_paths)
                     ref_tensor, ref_ilens = self.collate_fn(ref_audios)
                     inf_tensor, _ = self.collate_fn(inf_audios)
                     ref_specs, flens = self.stft(ref_tensor, ilens=ref_ilens)
                     inf_specs, _ = self.stft(inf_tensor, ilens=ref_ilens)
-                    tsos_batch = self.compute_tsos(ref_specs, inf_specs, flens)
+                    tsos_batch = self._compute_tsos(ref_specs, inf_specs, flens)
                     tsos_all.extend(tsos_batch)
                     for uid, score in zip(batch_uids, tsos_batch):
                         f.write(f"{uid} {score}\n")

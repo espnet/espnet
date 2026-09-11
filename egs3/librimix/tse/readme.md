@@ -1,6 +1,6 @@
 # LibriMix TSE recipe
 
-Place the corpus under `data/LibriSpeech`, or set the `LIBRISPEECH`
+Place the downloaded [Librispeech corpus](https://www.openslr.org/12) under `data/LibriSpeech`, or set the `LIBRISPEECH`
 environment variable to an existing LibriSpeech root, before running
 `create_dataset`/`train`.
 

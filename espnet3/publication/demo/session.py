@@ -143,7 +143,7 @@ class DemoSession:
                 resolved_output_keys,
             )
             try:
-                sr = [16000]
+                sr = [16000]  # default sample rate for Gradio Audio
                 item = {}
                 for key, value in zip(resolved_input_keys, values):
                     if resolved_input_types.get(key) == "audio":
@@ -281,7 +281,7 @@ def _normalize_input_audio(value: Any, sr: List[int]) -> Any:
     return value
 
 
-def _normalize_output_audio(audio, sr=16000) -> Any:
+def _normalize_output_audio(audio: np.ndarray, sr=16000) -> Any:
     # Convert to Gradio Audio format (sample_rate, np.ndarray)
     if np.issubdtype(audio.dtype, np.floating):
         if np.abs(audio).max() > 1:

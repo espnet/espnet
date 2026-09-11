@@ -36,6 +36,14 @@ class STOI(BaseMetric):
         batch_size: int = 1,
         ref_channel: int = 0,
     ) -> None:
+        """Initialize the STOI measure.
+
+        Args:
+            ref_key: Key name for reference speech.
+            hyp_key: Key name for extracted speech.
+            batch_size: batch size for batched inference.
+            ref_channel: Reference channel index for aligning multi-channel signals.
+        """
         self.ref_key = ref_key
         self.hyp_key = hyp_key
         assert isinstance(batch_size, int) and batch_size > 0, batch_size
@@ -53,6 +61,7 @@ class STOI(BaseMetric):
         return pystoi_stoi
 
     def _align_shape(self, ref, inf):
+        """Align the shape of reference and inference signals."""
         if ref.shape != inf.shape:
             if ref.ndim > inf.ndim:
                 ref = ref[..., self.ref_channel]
@@ -68,9 +77,10 @@ class STOI(BaseMetric):
                 )
         return ref, inf
 
-    def load_audio_pairs(
+    def _load_audio_pairs(
         self, ref_batch: List[str], inf_batch: List[str]
     ) -> Tuple[List[Tuple[int, Tensor]], List[Tuple[int, Tensor]]]:
+        """Load input audio and clean reference audio as paired data."""
         ref_audios, inf_audios = [], []
         for ref_path, inf_path in zip(ref_batch, inf_batch):
             ref_audio, sr1 = sf.read(ref_path, dtype="float32")
@@ -83,9 +93,10 @@ class STOI(BaseMetric):
             inf_audios.append((sr2, inf_audio))
         return ref_audios, inf_audios
 
-    def compute_stoi(
+    def _compute_stoi(
         self, ref_audio: Tensor, inf_audio: Tensor, sample_rate: int
     ) -> Dict[str, float]:
+        """Compute STOI score for a single reference/extracted audio pair."""
         stoi_fn = self._ensure_stoi()
         score = stoi_fn(
             ref_audio.cpu().numpy(),
@@ -98,6 +109,14 @@ class STOI(BaseMetric):
     def __call__(
         self, data: Dict[str, Path], test_name: str, inference_dir: Path
     ) -> Dict[str, float]:
+        """Compute STOI, and return the average metric.
+
+        Args:
+            data: Mapping of field names to SCP file paths.
+                Expected keys: ref_key (default "ref") and hyp_key (default "inf").
+            test_name: Test set name used for output directory naming.
+            inference_dir: Base directory for storing per-sample metrics.
+        """
         test_dir = Path(inference_dir) / test_name
         test_dir.mkdir(parents=True, exist_ok=True)
 
@@ -128,14 +147,14 @@ class STOI(BaseMetric):
                     ref_paths = [sample[1] for sample in batch]
                     inf_paths = [sample[2] for sample in batch]
 
-                    ref_audios, inf_audios = self.load_audio_pairs(ref_paths, inf_paths)
+                    ref_audios, inf_audios = self._load_audio_pairs(ref_paths, inf_paths)
                     for uid, ref_item, inf_item in zip(
                         batch_uids, ref_audios, inf_audios
                     ):
                         sample_rate = ref_item[0]
                         ref_audio = ref_item[1]
                         inf_audio = inf_item[1]
-                        score = self.compute_stoi(ref_audio, inf_audio, sample_rate)
+                        score = self._compute_stoi(ref_audio, inf_audio, sample_rate)
                         scores.append(score)
                         f.write(f"{uid} {score}\n")
 
@@ -167,6 +186,14 @@ class ESTOI(STOI):
         batch_size: int = 1,
         ref_channel: int = 0,
     ) -> None:
+        """Initialize the ESTOI measure.
+
+        Args:
+            ref_key: Key name for reference speech.
+            hyp_key: Key name for extracted speech.
+            batch_size: batch size for batched inference.
+            ref_channel: Reference channel index for aligning multi-channel signals.
+        """
         super().__init__(
             ref_key=ref_key,
             hyp_key=hyp_key,

@@ -220,10 +220,10 @@ if __name__ == "__main__":
     parser = build_parser(stages=DEFAULT_STAGES)
     args, _ = parse_cli_and_stage_args(parser, stages=DEFAULT_STAGES)
 
-    from espnet3.systems.tse.system import TSESystem
+    from espnet3.systems.base.system import BaseSystem
 
     main(
         args=args,
-        system_cls=TSESystem,
+        system_cls=BaseSystem,
         stages=DEFAULT_STAGES,
     )

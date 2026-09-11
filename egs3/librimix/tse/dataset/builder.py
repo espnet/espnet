@@ -164,7 +164,6 @@ def missing_required_splits(dataset_root: Path) -> list[str]:
 # Simulation helpers
 # ---------------------------------------------------------------------------
 def _download_and_extract_if_needed(
-    *,
     url: str,
     dataset_dir: Path,
     extracted_dir: Path,
@@ -406,7 +405,7 @@ def _prepare_librimix_transcripts(
                 f.write(f"{uid} {utt2txt[s_uid]}\n")
 
 
-def get_spk2utt_librimix(paths, audio_format="wav"):
+def _get_spk2utt_librimix(paths, audio_format="wav"):
     """Build a speaker-to-utterance mapping from LibriMix audio directories."""
     spk2utt = defaultdict(list)
     for path in paths:
@@ -517,7 +516,7 @@ def _prepare_librimix_data(
             logger.info(f"    Prepared {outdir} ({len(uids)} utterances).")
 
             if dset == "train":
-                spk2enroll = get_spk2utt_librimix(
+                spk2enroll = _get_spk2utt_librimix(
                     [
                         data_dir.parent / dset.replace("train", sset) / typ
                         for sset in ["train-100", "train-360"]
@@ -572,7 +571,7 @@ def _prepare_librimix_data(
                             if line.split(maxsplit=1)[0] in sub_uids:
                                 fout.write(line)
 
-            spk2enroll = get_spk2utt_librimix([data_dir.parent / sset / typ])
+            spk2enroll = _get_spk2utt_librimix([data_dir.parent / sset / typ])
             enroll_json = sub_outdir / "spk2enroll.json"
             with enroll_json.open("w", encoding="utf-8") as f:
                 json.dump(spk2enroll, f)
@@ -709,6 +708,7 @@ class LibriMixTSEBuilder(DatasetBuilder):
         source_dir: str | Path | None = None,
         **_kwargs,
     ) -> bool:
+        """Check whether the LibriMix dataset has been built."""
         for candidate in iter_source_candidates(
             recipe_dir, source_dir, key="dataset_env_var", suffix=""
         ):
@@ -738,10 +738,24 @@ class LibriMixTSEBuilder(DatasetBuilder):
         Runs the full build pipeline: download WHAM! noise → download LibriMix
         simulation scripts → augment noise → run simulation → write scp files.
 
+        This method created the following data files for each subset under `recipe_dir`:
+            - wav.scp: each row contains two columns, i.e., <uid> <mixture-audio-path>
+            - spk1.scp: each row contains two columns, i.e., <uid> <target-audio-path>
+            - spk2.scp: same format as spk1.scp (only available for
+                mix-clean and mix-both subsets in Libri2Mix and Libri3Mix)
+            - spk3.scp: same format as spk1.scp (only available for Libri3Mix)
+            - noise1.scp: each row contains two columns, i.e., <uid> <noise-audio-path>
+                (only available for mix-both or mix-single subsets)
+            - utt2spk: a placeholder for this dataset (not used)
+            - spk2utt: a placeholder for this dataset (not used)
+            - spk2enroll.json: a json file containing the mapping from <sid> (speakerID)
+                to all (uid, utterance_path) tuples from the same speaker
+                (only available for training subsets)
+
         Args:
             recipe_dir: Recipe root directory.  Simulated data lands in
                 ``<recipe_dir>/data/``.
-            librispeech_dir: Optional explicit path to the LibriSpeech corpus.
+            source_dir: Optional explicit path to the LibriSpeech corpus.
                 Falls back to the ``LIBRISPEECH`` environment variable.
             wham_noise: Optional path to a pre-existing WHAM! noise directory.
                 Downloaded automatically when omitted.

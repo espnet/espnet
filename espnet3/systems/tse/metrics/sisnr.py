@@ -40,6 +40,18 @@ class SISNR(BaseMetric):
         clamp_db: float = 100.0,
         zero_mean: bool = True,
     ) -> None:
+        """Initialize the SI-SNR measure.
+
+        Args:
+            ref_key: Key name for reference speech.
+            hyp_key: Key name for extracted speech.
+            batch_size: batch size for batched inference.
+            ref_channel: Reference channel index for aligning multi-channel signals.
+            device: device to use for inference.
+            loss: Optional loss function for computing SI-SNR.
+            clamp_db: Optional clamping value for SI-SNR computation.
+            zero_mean: Optional flag to zero-mean the signals before computing SI-SNR.
+        """
         self.ref_key = ref_key
         self.hyp_key = hyp_key
         assert isinstance(batch_size, int) and batch_size > 0, batch_size
@@ -51,6 +63,7 @@ class SISNR(BaseMetric):
         self.zero_mean = zero_mean
 
     def _ensure_loss(self):
+        """Ensure that the SISNR loss function is available for use."""
         if self.loss is None:
             from espnet2.enh.loss.criterions.time_domain import SISNRLoss
 
@@ -58,6 +71,7 @@ class SISNR(BaseMetric):
         return self.loss
 
     def _align_shape(self, ref, inf):
+        """Align the shape of reference and inference signals."""
         if ref.shape != inf.shape:
             if ref.ndim > inf.ndim:
                 ref = ref[..., self.ref_channel]
@@ -73,9 +87,10 @@ class SISNR(BaseMetric):
                 )
         return ref, inf
 
-    def load_audio_pairs(
+    def _load_audio_pairs(
         self, ref_batch: List[str], inf_batch: List[str]
     ) -> Tuple[List[Tensor], List[Tensor]]:
+        """Load input audio and clean reference audio as paired data."""
         ref_audios, inf_audios = [], []
         for ref_path, inf_path in zip(ref_batch, inf_batch):
             ref_audio, sr1 = sf.read(ref_path, dtype="float32")
@@ -89,10 +104,12 @@ class SISNR(BaseMetric):
         return ref_audios, inf_audios
 
     def _pad(self, x: Tensor, pad: Tuple[int, int], dim: int = -1, **kwargs) -> Tensor:
+        """Pad a tensor along a specified dimension."""
         dim = x.ndim - dim - 1 if dim >= 0 else -dim - 1
         return torch.nn.functional.pad(x, [0] * 2 * dim + list(pad), **kwargs)
 
     def collate_fn(self, audios: List[Tensor]) -> Tuple[Tensor, Tensor]:
+        """Collate a list of audio tensors into a batch tensor with padding."""
         assert len(audios) >= 1
         assert all(x.ndim == audios[0].ndim for x in audios)
         ilens = audios[0].new_tensor([x.size(0) for x in audios], dtype=torch.long)
@@ -100,7 +117,8 @@ class SISNR(BaseMetric):
         audios = [self._pad(x, (0, max_len - x.size(0)), dim=0) for x in audios]
         return torch.stack(audios), ilens
 
-    def compute_sisnr(self, ref_audio: Tensor, inf_audio: Tensor) -> float:
+    def _compute_sisnr(self, ref_audio: Tensor, inf_audio: Tensor) -> float:
+        """Compute SI-SNR for a single reference/extracted audio pair."""
         loss_fn = self._ensure_loss()
         with torch.no_grad():
             score = -float(loss_fn(ref_audio[None, ...], inf_audio[None, ...]))
@@ -109,7 +127,14 @@ class SISNR(BaseMetric):
     def __call__(
         self, data: Dict[str, Path], test_name: str, inference_dir: Path
     ) -> Dict[str, float]:
-        """Compute SI-SNR for each utterance and return the mean score."""
+        """Compute SI-SNR and return the average metric.
+
+        Args:
+            data: Mapping of field names to SCP file paths.
+                Expected keys: ref_key (default "ref") and hyp_key (default "inf").
+            test_name: Test set name used for output directory naming.
+            inference_dir: Base directory for storing per-sample metrics.
+        """
         test_dir = Path(inference_dir) / test_name
         test_dir.mkdir(parents=True, exist_ok=True)
 
@@ -139,11 +164,11 @@ class SISNR(BaseMetric):
                     ref_paths = [sample[1] for sample in batch]
                     inf_paths = [sample[2] for sample in batch]
 
-                    ref_audios, inf_audios = self.load_audio_pairs(ref_paths, inf_paths)
+                    ref_audios, inf_audios = self._load_audio_pairs(ref_paths, inf_paths)
                     for uid, ref_audio, inf_audio in zip(
                         batch_uids, ref_audios, inf_audios
                     ):
-                        score = self.compute_sisnr(ref_audio, inf_audio)
+                        score = self._compute_sisnr(ref_audio, inf_audio)
                         scores.append(score)
                         f.write(f"{uid} {score}\n")
 

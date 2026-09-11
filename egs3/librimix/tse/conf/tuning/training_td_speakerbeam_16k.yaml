@@ -23,16 +23,22 @@ dataset:
     - data_src_args:
         split: 2mix_16k_max_train_mix-clean
         ignore_key_prefix: ["text_spk", "utt_id", "num_spk"]
-        use_espnet_preprocessor: true
+      transform:
+        _target_: src.transforms.TSEAudioLoadTransform
+        load_enrollment_as_audio: false
   valid:
     - data_src_args:
         split: 2mix_16k_max_dev_mix-clean
         ignore_key_prefix: ${dataset.train[0].data_src_args.ignore_key_prefix}
-        use_espnet_preprocessor: ${dataset.train[0].data_src_args.use_espnet_preprocessor}
+      transform:
+        _target_: src.transforms.TSEAudioLoadTransform
+        load_enrollment_as_audio: false
     - data_src_args:
         split: 2mix_16k_max_test_mix-clean
         ignore_key_prefix: ${dataset.train[0].data_src_args.ignore_key_prefix}
-        use_espnet_preprocessor: ${dataset.train[0].data_src_args.use_espnet_preprocessor}
+      transform:
+        _target_: src.transforms.TSEAudioLoadTransform
+        load_enrollment_as_audio: false
   preprocessor:
     _target_: espnet2.train.preprocessor.TSEPreprocessor
     train: true  # Note: this will be automatically changed to false for valid/test datasets

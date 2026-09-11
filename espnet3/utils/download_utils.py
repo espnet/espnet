@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import tarfile
 import urllib.request
+import zipfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
@@ -172,9 +173,12 @@ def extract_zip(
 
     Raises:
         zipfile.BadZipFile: If the archive is invalid or extraction fails.
-    """
-    import zipfile
 
+    Examples:
+        >>> from espnet3.utils.download_utils import extract_zip, setup_logger
+        >>> logger = setup_logger(name="xxxx")
+        >>> extract_zip(Path("downloads/data.zip"), Path("data"), logger=logger)
+    """
     _log(logger, f"Extracting: {archive_path.name}")
     with zipfile.ZipFile(archive_path, "r") as zip_ref:
         zip_ref.extractall(dst_dir)
