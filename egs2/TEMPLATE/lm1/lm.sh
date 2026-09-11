@@ -431,18 +431,20 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] && ! [[ " ${skip_stages} " =~ [
                 _task=$(basename "${_dir}")
                 if [ "${_task}" != "kmeans_pool" ] && [ -f "${_dir}/${train_set}/utt2num_samples" ]; then
                     # utt2num_samples counts audio samples at ${fs}, but
-                    # kmeans_balanced_frames is a budget in SSL feature frames,
-                    # so convert via the SSL frame rate. This is only known to
-                    # be 50Hz for the conv-based hubert/wav2vec2/wavlm family
-                    # (20ms stride) that perform_kmeans.sh is normally used
-                    # with -- reject anything else here rather than silently
-                    # sampling the wrong-sized pool (e.g. mfcc is 100Hz/10ms).
+                    # kmeans_balanced_frames is a budget in SSL/acoustic feature
+                    # frames, so convert via the feature's frame rate: 50Hz
+                    # (20ms stride) for the conv-based hubert/wav2vec2/wavlm
+                    # family, 100Hz (10ms shift) for the standard mfcc config
+                    # this template also supports (see --kmeans_feature's own
+                    # help text). Reject anything else rather than silently
+                    # sampling the wrong-sized pool.
                     case "${kmeans_feature_type}" in
                         hubert*|wav2vec2*|wavlm*) _ssl_frame_rate=50 ;;
+                        mfcc) _ssl_frame_rate=100 ;;
                         *)
-                            log "Stage 3a: Error: don't know the SSL frame rate for" \
+                            log "Stage 3a: Error: don't know the feature frame rate for" \
                                 "--kmeans_feature ${kmeans_feature} to size the balanced" \
-                                "pool; only the hubert/wav2vec2/wavlm family (50Hz) is" \
+                                "pool; only mfcc and the hubert/wav2vec2/wavlm family are" \
                                 "supported here."
                             exit 1
                             ;;
