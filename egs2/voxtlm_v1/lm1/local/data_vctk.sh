@@ -49,7 +49,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         # This is the "silence-trimmed" release (wav48_silence_trimmed/), not the
         # older VCTK-Corpus (wav48/) that upstream espnet's data_download.sh fetches
         # from udialogue.org -- that older layout doesn't match what
-        # data_prep_0.92.sh expects, so we pull this version specifically.
+        # data_prep_vctk0.92.sh expects, so we pull this version specifically.
         mkdir -p "${db_root}"
         zip_path="${db_root}/VCTK-Corpus-0.92.zip"
         if [ ! -e "${zip_path}" ]; then
@@ -69,10 +69,10 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
-    log "stage 2: local/vctk/data_prep_0.92.sh"
+    log "stage 2: local/vctk/data_prep_vctk0.92.sh"
     # Initial normalization of the data
     # Doesn't change sampling frequency and it's done after stages
-    ${vctk_dir}/data_prep_0.92.sh \
+    ${vctk_dir}/data_prep_vctk0.92.sh \
         --train_set "${train_set}" --dev_set "${dev_set}" --eval_set "${eval_set}" \
         --num_dev 0 --num_eval 0 \
         "${db_root}"/VCTK-Corpus "${data_dir}"

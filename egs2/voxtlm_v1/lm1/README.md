@@ -53,7 +53,7 @@ ln -s /path/to/existing/LibriLight/medium downloads/medium
 ln -s /path/to/existing/LibriLight/large  downloads/large
 ```
 
-If the marker is missing, `local/data_vctk.sh` will download the official CSTR VCTK Corpus v0.92 (Edinburgh DataShare, `wav48_silence_trimmed` layout — not the older `wav48/` layout that upstream ESPnet's `data_download.sh` fetches, which doesn't match this recipe's `data_prep_0.92.sh`) directly, verify the archive with `unzip -tq`, and extract it under `${VCTK}/VCTK-Corpus/`.
+If the marker is missing, `local/data_vctk.sh` will download the official CSTR VCTK Corpus v0.92 (Edinburgh DataShare, `wav48_silence_trimmed` layout — not the older `wav48/` layout that upstream ESPnet's `data_download.sh` fetches, which doesn't match this recipe's `data_prep_vctk0.92.sh`) directly, verify the archive with `unzip -tq`, and extract it under `${VCTK}/VCTK-Corpus/`.
 
 
 ### 2. Wav dump / Embedding preparation
