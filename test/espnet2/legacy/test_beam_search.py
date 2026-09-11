@@ -3,7 +3,7 @@ from argparse import Namespace
 import pytest
 import torch
 
-from espnet2.legacy.nets.beam_search import BeamSearch
+from espnet2.legacy.nets.beam_search import BeamSearch, Hypothesis
 from espnet2.legacy.nets.scorers.length_bonus import LengthBonus
 from espnet2.lm.transformer_lm import TransformerLM
 from espnet2.tasks.asr import ASRTask
@@ -208,3 +208,51 @@ def test_beam_search_equal(args, mtlalpha, ctc_weight, lm_weight, bonus, device,
     for hyp in nbest_bs:
         assert hasattr(hyp, "yseq")
         assert hasattr(hyp, "score")
+
+
+def test_end_detected_converts_each_ended_hypothesis_once():
+    """Agree with `end_detect` over `asdict`, converting each hypothesis once.
+
+    A hypothesis that has ended never changes, so its summary must not be
+    rebuilt at every step, and one that leaves the list must be forgotten.
+    """
+    from espnet2.legacy.nets.e2e_asr_common import end_detect
+
+    search = BeamSearch(
+        scorers={"length_bonus": LengthBonus(5)},
+        weights={"length_bonus": 1.0},
+        beam_size=2,
+        vocab_size=5,
+        sos=4,
+        eos=4,
+    )
+    ended = []
+    calls = {"n": 0}
+    orig = Hypothesis.asdict
+
+    def counting_asdict(self):
+        calls["n"] += 1
+        return orig(self)
+
+    Hypothesis.asdict = counting_asdict
+    try:
+        for i in range(1, 12):
+            # one or two hypotheses end at every step, with lengths i and i + 1
+            for extra in range(1 + i % 2):
+                ended.append(
+                    Hypothesis(
+                        yseq=torch.arange(i + extra),
+                        score=torch.tensor(-float(i) - 0.5 * extra),
+                    )
+                )
+            expected = end_detect([h.asdict() for h in ended], i)
+            assert search.end_detected(ended, i) == expected
+    finally:
+        Hypothesis.asdict = orig
+    # the summary cache holds exactly the hypotheses still in the list
+    assert len(search._ended_summaries) == len(ended)
+    # and forgets those that leave it
+    assert search.end_detected(ended[:3], 20) == end_detect(
+        [h.asdict() for h in ended[:3]], 20
+    )
+    assert len(search._ended_summaries) == 3

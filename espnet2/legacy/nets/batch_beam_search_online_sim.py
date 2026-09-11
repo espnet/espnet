@@ -9,7 +9,6 @@ import yaml
 
 from espnet2.legacy.nets.batch_beam_search import BatchBeamSearch
 from espnet2.legacy.nets.beam_search import Hypothesis
-from espnet2.legacy.nets.e2e_asr_common import end_detect
 
 
 class BatchBeamSearchOnlineSim(BatchBeamSearch):
@@ -182,8 +181,8 @@ class BatchBeamSearchOnlineSim(BatchBeamSearch):
                     ):
                         move_to_next_block = True
                         prev_repeat = True
-                if maxlenratio == 0.0 and end_detect(
-                    [lh.asdict() for lh in local_ended_hyps], process_idx
+                if maxlenratio == 0.0 and self.end_detected(
+                    local_ended_hyps, process_idx
                 ):
                     logging.info(f"end detected at {process_idx}")
                     continue_decode = False
