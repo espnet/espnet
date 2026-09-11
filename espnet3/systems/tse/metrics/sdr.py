@@ -72,19 +72,19 @@ class SDR(BaseMetric):
 
     def _align_shape(self, ref, inf):
         """Align the shape of reference and inference signals."""
-        if ref.shape != inf.shape:
-            if ref.ndim > inf.ndim:
-                ref = ref[..., self.ref_channel]
-            elif ref.ndim < inf.ndim:
-                inf = inf[..., self.ref_channel]
-            elif ref.ndim == inf.ndim == 2:
-                ref = ref[..., self.ref_channel]
-                inf = inf[..., self.ref_channel]
-            else:
-                raise ValueError(
-                    "Reference and inference must have the same shape, "
-                    f"but got {ref.shape} and {inf.shape}"
-                )
+        if ref.ndim > inf.ndim:
+            ref = ref[..., self.ref_channel]
+        elif ref.ndim < inf.ndim:
+            inf = inf[..., self.ref_channel]
+        elif ref.ndim == inf.ndim == 2:
+            ref = ref[..., self.ref_channel]
+            inf = inf[..., self.ref_channel]
+        else:
+            raise ValueError(
+                "Reference and inference must have the same shape, "
+                f"but got {ref.shape} and {inf.shape}"
+            )
+        assert ref.ndim == inf.ndim == 1, (ref.shape, inf.shape)
         return ref, inf
 
     def _load_audio_pairs(

@@ -85,6 +85,7 @@ class SISNR(BaseMetric):
                     "Reference and inference must have the same shape, "
                     f"but got {ref.shape} and {inf.shape}"
                 )
+        assert ref.ndim == inf.ndim <= 2, (ref.shape, inf.shape)
         return ref, inf
 
     def _load_audio_pairs(
@@ -120,8 +121,14 @@ class SISNR(BaseMetric):
     def _compute_sisnr(self, ref_audio: Tensor, inf_audio: Tensor) -> float:
         """Compute SI-SNR for a single reference/extracted audio pair."""
         loss_fn = self._ensure_loss()
+        if ref_audio.ndim == 1:
+            ref_audio = ref_audio[None, :]
+            inf_audio = inf_audio[None, :]
+        elif ref_audio.ndim == 2:
+            ref_audio = ref_audio.T
+            inf_audio = inf_audio.T
         with torch.no_grad():
-            score = -float(loss_fn(ref_audio[None, ...], inf_audio[None, ...]))
+            score = -float(loss_fn(ref_audio, inf_audio).mean())
         return score
 
     def __call__(

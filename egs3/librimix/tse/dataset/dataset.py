@@ -26,14 +26,12 @@ from __future__ import annotations
 
 import json
 import os
-import random
 import tempfile
 from dataclasses import dataclass, fields
 from importlib import resources
 from pathlib import Path
 from typing import Dict, List
 
-import soundfile as sf
 from torch.utils.data import Dataset as TorchDataset
 
 from egs3.librimix.tse.dataset.builder import (
@@ -151,7 +149,7 @@ class LibriMixTSEDataset(TorchDataset):
         split: str = "2mix_16k_max_train_mix-both",
         recipe_dir: str | Path | None = None,
         data_dir: str | Path | None = None,
-        ignore_key_prefix: List[str] | None = None,
+        ignore_key_prefix: List[str] | None = ["text_spk", "utt_id", "num_spk"],
     ) -> None:
         self.split = str(split)
         if self.split not in _KNOWN_SPLITS:
@@ -164,7 +162,26 @@ class LibriMixTSEDataset(TorchDataset):
             else Path(__file__).resolve().parents[1]
         )
 
-        # Resolve the LibriMix dataset root
+        # Parse split parameters before any build decision: {num_spk}mix_{fs}_{mode}_{dset}_{mix_type}
+        # e.g. "2mix_16k_max_train_mix-both" → num_spk=2, fs=16k, mode=max,
+        #       dset=train, mix_type=mix_both
+        num_spk_str, fs, mode, dset, mix_type = self.split.split("_", 4)
+        mix_type_us = mix_type.replace("-", "_")  # mix-both → mix_both
+        self.num_spk = int(num_spk_str.split("mix")[0])
+        self.partition = f"{dset}/{mix_type_us}"
+
+        # Build if not already done, using the split-specific configuration rather than
+        # the default 2-speaker / 16k / max settings.
+        builder = LibriMixTSEBuilder()
+        if not builder.is_built(recipe_dir=recipe_root):
+            builder.build(
+                recipe_dir=recipe_root,
+                num_spk=self.num_spk,
+                sample_rate=fs,
+                min_or_max=mode,
+            )
+
+        # Resolve the LibriMix dataset root only after the build decision is made.
         if data_dir is not None:
             self.librimix_root = resolve_librimix_root(
                 Path(data_dir).resolve(), self.split
@@ -173,19 +190,6 @@ class LibriMixTSEDataset(TorchDataset):
             self.librimix_root = resolve_librimix_root(
                 Path(recipe_root) / _CONFIG["builder"]["dataset_path"], self.split
             )
-
-        # Build if not already done
-        builder = LibriMixTSEBuilder()
-        if not builder.is_built(recipe_dir=recipe_root):
-            builder.build(recipe_dir=recipe_root)
-
-        # Parse split parameters: {num_spk}mix_{fs}_{mode}_{dset}_{mix_type}
-        # e.g. "2mix_16k_max_train_mix-both" → num_spk=2, fs=16k, mode=max,
-        #       dset=train, mix_type=mix_both
-        num_spk_str, fs, mode, dset, mix_type = self.split.split("_", 4)
-        mix_type_us = mix_type.replace("-", "_")  # mix-both → mix_both
-        self.num_spk = int(num_spk_str.split("mix")[0])
-        self.partition = f"{dset}/{mix_type_us}"
 
         # Directory containing the raw WAV files
         self.split_dir = (
@@ -215,8 +219,9 @@ class LibriMixTSEDataset(TorchDataset):
         else:
             with tempfile.TemporaryDirectory() as tmpdir:
                 _download_missing_files(Path(tmpdir), self.split)
+                enrollment_map_path = Path(tmpdir) / f"{self.split}/mixture2enrollment"
                 self.enrollment_map = self._load_enrollment_map(
-                    Path(tmpdir), self.split
+                    enrollment_map_path, self.split
                 )
 
         self._examples = self._parse_dataset()

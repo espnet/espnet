@@ -97,6 +97,8 @@ class TSEAudioLoadTransform:
         sample_rates: list[int] = []
 
         for key, value in sample.items():
+            # For ESPnet2's TSEPreprocessor, the enrollment fields should be text
+            # (either a placeholder or a path).
             if key.startswith(self.enrollment_key_prefix):
                 if not self.load_enrollment_as_audio or self._is_placeholder(value):
                     decoded[key] = value

@@ -22,6 +22,8 @@ recipe_dir: .
 # Use this only for runtime kwargs consumed by the published model callable.
 # Initialization-time overrides are intentionally not supported here; keep
 # those in the packed `conf/inference.yaml`.
+exp_tag:
+
 model:
   dir_or_tag: exp/${exp_tag}/model_pack
   trust_user_code: false

@@ -125,6 +125,8 @@ optimizer:
 
 scheduler:
   _target_: torch.optim.lr_scheduler.StepLR
+  step_size: 200_000  # steps
+  gamma: 0.98
 
 # Used only in the single optimizer path.
 scheduler_interval: step   # `step` or `epoch`

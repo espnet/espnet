@@ -143,18 +143,22 @@ class DemoSession:
                 resolved_output_keys,
             )
             try:
-                sr = [16000]  # default sample rate for Gradio Audio
+                # make the sample rate a list so that it can be modified in-place
+                # by _normalize_input_audio
+                sr = [16000]
                 item = {}
                 for key, value in zip(resolved_input_keys, values):
                     if resolved_input_types.get(key) == "audio":
                         value = _normalize_input_audio(value, sr)
                     item[key] = value
+                call_args = dict(self.call_args)
+                call_args["fs"] = sr[0]
                 logger.info(
                     "Calling inference model | input_keys=%s call_args=%s",
                     list(item.keys()),
-                    self.call_args,
+                    call_args,
                 )
-                result = self.model(item, **self.call_args)
+                result = self.model(item, **call_args)
                 logger.info(
                     "Inference model returned | output_keys=%s",
                     list(result.keys()) if isinstance(result, dict) else None,

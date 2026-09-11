@@ -62,19 +62,20 @@ class PESQ(BaseMetric):
 
     def _align_shape(self, ref, inf):
         """Align the shape of reference and inference signals."""
-        if ref.shape != inf.shape:
-            if ref.ndim > inf.ndim:
-                ref = ref[..., self.ref_channel]
-            elif ref.ndim < inf.ndim:
-                inf = inf[..., self.ref_channel]
-            elif ref.ndim == inf.ndim == 2:
-                ref = ref[..., self.ref_channel]
-                inf = inf[..., self.ref_channel]
-            else:
-                raise ValueError(
-                    "Reference and inference must have the same shape, "
-                    f"but got {ref.shape} and {inf.shape}"
-                )
+        if ref.ndim > inf.ndim:
+            ref = ref[..., self.ref_channel]
+        elif ref.ndim < inf.ndim:
+            inf = inf[..., self.ref_channel]
+        elif ref.ndim == inf.ndim == 2:
+            ref = ref[..., self.ref_channel]
+            inf = inf[..., self.ref_channel]
+        else:
+            raise ValueError(
+                "Reference and inference must have the same shape, "
+                f"but got {ref.shape} and {inf.shape}"
+            )
+        # Only accepts 1D signals
+        assert ref.ndim == inf.ndim == 1, (ref.shape, inf.shape)
         return ref, inf
 
     def _load_audio_pairs(
@@ -128,6 +129,9 @@ class PESQ(BaseMetric):
             mode=mode,
             on_error=PesqError.RETURN_VALUES,
         )
+        if score < 0:
+            # Errors are returned as negative values
+            return float("nan")
         return float(score)
 
     def __call__(
@@ -183,4 +187,4 @@ class PESQ(BaseMetric):
 
         if not scores:
             raise ValueError("No scores were computed. Please check the input data.")
-        return {"PESQ": float(np.mean(scores))}
+        return {"PESQ": float(np.nanmean(scores))}

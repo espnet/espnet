@@ -38,7 +38,7 @@ class DNSMOS(BaseMetric):
         hyp_key: str = "inf",
         batch_size: int = 1,
         ref_channel: int = 0,
-        dnsmos_dir: str = "",
+        dnsmos_dir: str = ".",
         use_gpu: bool = False,
         convert_to_torch: bool = False,
     ) -> None:

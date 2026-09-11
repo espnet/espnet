@@ -90,6 +90,7 @@ class TSOS(BaseMetric):
                     "Reference and inference must have the same shape, "
                     f"but got {ref.shape} and {inf.shape}"
                 )
+        assert ref.ndim == inf.ndim <= 2, (ref.shape, inf.shape)
         return ref, inf
 
     def _load_audio_pairs(
@@ -130,8 +131,25 @@ class TSOS(BaseMetric):
         ref_mag, inf_mag = ref_spec.abs() ** self.power, inf_spec.abs() ** self.power
         oversuppression = torch.clamp_min(ref_mag - inf_mag, 0.0) ** 2
         dims = tuple(i for i in range(ref_mag.ndim) if i > 1)
-        tsos = oversuppression.sum(dim=dims) > ref_mag.sum(dim=dims)
-        return tsos.float().mean(-1).cpu().tolist()
+
+        # Apply the threshold before comparing oversuppressed energy against the
+        # reference energy. This matches the TSOS definition and avoids counting
+        # near-equal bins as oversuppression.
+        ref_energy = ref_mag.sum(dim=dims)
+        oversuppression_energy = oversuppression.sum(dim=dims)
+        threshold_mask = oversuppression_energy > self.threshold * ref_energy
+
+        # Ignore padded frames for each sample using the STFT lengths produced by
+        # the encoder, otherwise zero-padded frames can depress the per-sample TSOS.
+        valid_mask = torch.arange(ref_spec.size(1), device=ref_spec.device).unsqueeze(0)
+        valid_mask = valid_mask < flens.unsqueeze(1)
+        tsos = torch.where(
+            valid_mask,
+            threshold_mask.to(ref_spec.dtype),
+            torch.zeros_like(threshold_mask, dtype=ref_spec.dtype),
+        )
+        tsos = tsos.sum(-1) / valid_mask.sum(-1).clamp_min(1).to(ref_spec.dtype)
+        return tsos.cpu().tolist()
 
     def __call__(
         self, data: Dict[str, Path], test_name: str, inference_dir: Path
