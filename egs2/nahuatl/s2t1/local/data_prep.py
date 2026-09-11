@@ -49,7 +49,7 @@ def main() -> None:
         ds = ds.select(range(min(args.max_examples, len(ds))))
 
     rows: list[tuple[str, str, str, str]] = []
-    seen_ids: set[str] = set()
+    seen: dict[str, str] = {}  # utt_id -> the raw id that first produced it
     n_skipped = 0
     for ex in ds:
         raw_id: str = ex["id"]
@@ -62,12 +62,20 @@ def main() -> None:
         text: str = ex["text"]
         audio_bytes: bytes = ex["audio"]["bytes"]
 
-        # Skip duplicate IDs (same sanitized ID already seen — ID collision
-        # caused by two transcription files for the same recording)
-        if utt_id in seen_ids:
-            n_skipped += 1
-            continue
-        seen_ids.add(utt_id)
+        # A repeated utt_id from the SAME raw id is a genuine duplicate (the same
+        # recording transcribed twice) and is skipped. A repeated utt_id from a
+        # DIFFERENT raw id means _sanitize collapsed two distinct recordings onto
+        # one id; silently dropping either would lose data, so fail loudly.
+        if utt_id in seen:
+            if seen[utt_id] == raw_id:
+                n_skipped += 1
+                continue
+            raise SystemExit(
+                f"ERROR: distinct dataset IDs collide on utt_id '{utt_id}': "
+                f"'{seen[utt_id]}' and '{raw_id}'. Sanitization is not injective; "
+                f"disambiguate these source IDs."
+            )
+        seen[utt_id] = raw_id
 
         wav_path = os.path.abspath(os.path.join(args.wav_dir, f"{utt_id}.wav"))
         with open(wav_path, "wb") as f:
