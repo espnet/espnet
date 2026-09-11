@@ -77,25 +77,30 @@ $ python run.py --stages upload_model --training_config conf/training.yaml --pub
 
 #### 1.3.3 Publishing models
 
-ESPnet models are maintained at [Hugging Face](https://huggingface.co/espnet). You can also
-refer to the [ESPnet Model Zoo](https://github.com/espnet/espnet_model_zoo).
-
-To upload a model manually:
+ESPnet models are hosted on the [Hugging Face Hub](https://huggingface.co/espnet). You do
+**not** need to be a member of the `espnet` organization to publish one — a model under your
+own namespace is loaded by `from_pretrained` exactly like one under `espnet/`.
 
 1. Create a Hugging Face account — https://huggingface.co/
-2. Request to be added to the espnet organization — https://huggingface.co/espnet
-3. Log in with `hf auth login` (older installations of `huggingface_hub` call this
-   command `huggingface-cli login`). The token is available under
-   Settings > Access Tokens.
-4. Create the model repository under the `espnet` organization, from the Hub web UI or
-   with `hf repo create`.
-5. `git clone https://huggingface.co/espnet/your-model-name` — clone this outside the
-   ESPnet tree, since it is itself a git repository.
-6. `cd your-model-name && git lfs install`
-7. Copy the contents of your recipe's `exp` directory into it. Check other models for
-   similar tasks under the espnet organization to confirm your directory structure.
-8. `git add . && git commit -m "Add model files" && git push`
-9. Check that the inference demo on the Hub runs successfully to verify the upload.
+2. Log in locally with `hf auth login` (older installations of `huggingface_hub` call this
+   command `huggingface-cli login`). The token is under Settings > Access Tokens and needs
+   write access.
+3. Create the repository under your own namespace, from the Hub web UI or with
+   `hf repo create <your-username>/<model-name>`.
+4. Upload the contents of your recipe's `exp` directory. `hf upload` covers most cases; for
+   a large or incremental upload, clone the repository outside the ESPnet tree, run
+   `git lfs install`, and push. Check other models for similar tasks to confirm the
+   directory structure.
+5. Keep `espnet` in the model card's `tags:`, so the model is findable by tag search on the
+   Hub alongside the rest of the ecosystem.
+6. Link the model from your recipe's `RESULTS.md`.
+
+If you would like the model to live under the `espnet` organization, ask a maintainer in
+your PR or on [Discord](https://discord.gg/hrCs85gFWM) — a Hub repository can be transferred
+after the fact, so publishing under your own account first costs nothing.
+
+For ESPnet3, the same applies through `conf/publication.yaml`: set `upload_model.hf_repo` to
+`<your-username>/<model-name>` instead of the default `espnet/...`.
 
 Models published on Zenodo are legacy. To port one to the Hub, run
 `./scripts/utils/upload_models_to_hub.sh "ZENODO_MODEL_NAME"` from `egs2/RECIPE/*`.
@@ -247,44 +252,60 @@ cd egs2/mini_an4/your_task
   integration tests).
 - [codecov.yml](codecov.yml) configures CodeCov (code coverage).
 
-### 5.2 Running GitHub Actions locally
+### 5.2 Reproducing CI locally
 
-You can check whether your PR passes the integration tests before pushing, using
-[act](https://github.com/nektos/act).
+CI jobs run inside a prebuilt container image (`docker/ci.dockerfile`), published to GHCR
+and tagged with a hash of the files that determine its contents. The image is private, and
+the workflow authenticates to GHCR with the job's `GITHUB_TOKEN`, so a local run cannot
+simply pull it.
 
-#### 5.2.1 Installation
+**Run the CI scripts directly.** This is what the jobs themselves execute, and it is enough
+for most changes:
 
-1. Install [Docker](https://docs.docker.com/engine/install/) on your local machine. Do not
-   forget to log in with `docker login`.
-2. Install the GitHub CLI. The [instructions](https://github.com/cli/cli#installation)
-   depend on your OS; for Linux you can use the
-   [official sources](https://github.com/cli/cli/blob/trunk/docs/install_linux.md#official-sources).
-3. Install **act** through a
-   [package manager](https://github.com/nektos/act#installation-through-package-managers) or
-   as a [GitHub CLI extension](https://github.com/nektos/act#installation-as-github-cli-extension).
-   For Linux: `gh extension install https://github.com/nektos/gh-act`
-
-#### 5.2.2 Usage
-
-```bash
-cd <root_dir_espnet_clone>  # go to the root directory of your clone
-gh act
+``` console
+$ ./ci/test_python_espnet2.sh
+$ ./ci/test_integration_espnet2.sh
 ```
 
-This runs all the CI tests that would run on the GitHub Actions server. For specific
-jobs or workflows:
+**Reproduce the CI environment exactly.** Build the same image locally and run the script
+inside it:
 
 ```bash
-# For jobs:
-gh act -j <jobID>  # Where jobID is a string.
+docker build -f docker/ci.dockerfile \
+    --build-arg PYTHON_VERSION=3.12 --build-arg TH_VERSION=2.9.1 \
+    -t espnet-ci:local .
 
-# For workflows:
-gh act -W <workflowID>
-gh act -W .github/workflows/<filename>.yml
+docker run --rm -it -v "$PWD:/work" -w /work espnet-ci:local bash
 ```
 
-List the available job and workflow IDs with `gh act -l`. You can get the list of workflow
-files from `ls .github/workflows`.
+Inside the container, wire your checkout to the baked-in environment the way
+[.github/actions/use-prebuilt-environment](.github/actions/use-prebuilt-environment/action.yml)
+does, then run the script:
+
+```bash
+for path in /espnet/tools/*; do
+    name=$(basename "$path")
+    [ -e "tools/${name}" ] || ln -s "$path" "tools/${name}"
+done
+pip install -e . --no-deps
+pip install -r ci/no_redistribute.txt   # licences forbid baking these into the image
+./ci/test_python_espnet2.sh
+```
+
+Those symlinks point inside the container. With a bind mount they are written into your
+working tree and dangle once the container exits, so mount a throwaway clone rather than the
+checkout you work in, or delete them afterwards.
+
+The python and pytorch combinations that are actually built are listed in
+[ci/image_variants.json](ci/image_variants.json); `python3 ci/image_variants.py pairs` prints
+them.
+
+> [!NOTE]
+> [act](https://github.com/nektos/act) used to be the recommendation here. It cannot
+> reproduce a full run any more: `resolve_ci_image` performs a `docker login ghcr.io` with
+> the workflow's token and probes for published image tags, and the test jobs then run with
+> `container.credentials` pointing at that same token. It remains usable for simple
+> workflows that run directly on the runner.
 
 ## 6. Writing new tools
 
@@ -297,7 +318,12 @@ For `utils` scripts, do not forget to add help messages and test scripts under `
 
 ### 6.1 Python tools guideline
 
-To generate a doc, do not forget `def get_parser(): -> ArgumentParser` in the main file.
+Every module in `utils/` and `espnet2/bin/` must define `get_parser() -> ArgumentParser` at
+module level. This is not a style preference: [ci/doc.sh](ci/doc.sh) runs
+`doc/argparse2rst.py` over `./utils/*.py` and `./espnet2/bin/*.py`, which imports each file
+and raises `ValueError: <path> does not have get_parser()` when it is missing — the
+documentation build fails. Give the parser a `description`; it becomes the tool's
+documentation page.
 
 ```python
 #!/usr/bin/env python3
@@ -305,7 +331,9 @@ To generate a doc, do not forget `def get_parser(): -> ArgumentParser` in the ma
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 import argparse
 
-# NOTE: do not forget this
+
+# NOTE: argparse2rst.py imports this module and calls get_parser() to build
+# the docs, so it must exist at module level and must not need arguments.
 def get_parser():
     parser = argparse.ArgumentParser(
         description="awesome tool",  # DO NOT forget this
@@ -313,15 +341,27 @@ def get_parser():
     ...
     return parser
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     args = get_parser().parse_args()
     ...
 ```
 
+`espnet3/` is not part of that documentation pipeline, so the rule does not apply there.
+Entry points under `espnet3/` are driven by recipe configs through `run.py` rather than by
+command-line parsing.
+
 ### 6.2 Bash tools guideline
 
-To generate a doc, support `--help` to show its usage. If you use Kaldi's
-`utils/parse_option.sh`, define `help_message="Usage: $0 ..."`.
+Scripts in `utils/` must support `--help`: [doc/usage2rst.sh](doc/usage2rst.sh) runs
+`<script> --help` and captures the output as that tool's documentation page. If you use
+Kaldi's `utils/parse_option.sh`, define `help_message="Usage: $0 ..."`.
+
+> [!IMPORTANT]
+> For ESPnet3, avoid adding shell scripts. ESPnet3 recipes are Python entry points
+> (`run.py`) configured with OmegaConf / Hydra, and the stage logic that used to live in
+> shell belongs in Python there. New ESPnet3 tooling should be Python unless there is a
+> concrete reason it cannot be.
 
 ## 7. Writing documentation
 
@@ -331,9 +371,45 @@ See [doc/README.md](doc/README.md).
 
 ### 8.1 GitHub Actions
 
-Read the log from PR checks > details.
+Open the failing check from the pull request's **Checks** tab and read the log of the step
+that failed, or use the CLI:
+
+``` console
+$ gh run list --branch <your-branch>
+$ gh run view <run-id> --log-failed     # only the failing steps
+$ gh run rerun <run-id> --failed        # re-run just those jobs
+```
 
 <img width="725" alt="CI log location in the pull request checks tab" src="https://github.com/espnet/espnet/assets/11741550/e8e45c87-75e4-4489-a816-5c645b30fa0f">
+
+A few behaviours are worth knowing before you conclude that your change broke something:
+
+- **Draft pull requests skip the jobs.** They run once the PR is marked ready for review.
+- **A new push cancels the run in progress** for that pull request. A cancelled job is not
+  a failure.
+- **If your PR touches the environment, the jobs get slower and fail differently.** The
+  image tag is a hash of `ci/install.sh`, `ci/install_kaldi.sh`, `ci/no_redistribute.txt`,
+  `docker/ci.dockerfile`, `pyproject.toml`, `tools/Makefile` and `tools/installers/**`.
+  Changing any of them resolves to a tag that is only published after the PR merges, so the
+  jobs build the environment from scratch instead of pulling it. The run says so with a
+  notice, and a failure at that point may come from the build rather than from your change.
+- **Network failures happen** — Hugging Face rate limits, package mirrors, GitHub Releases.
+  Re-run the failed jobs before investigating.
+- **Labels change what runs.** A PR labelled `Docker` without `ESPnet2` or `ESPnet3` runs
+  only the docker path, and `test_upload` enables the publication upload test.
+
+If you edited anything under `.github/` or `ci/`, run the invariant checker before pushing —
+CI runs it first, and it fails the whole run:
+
+``` console
+$ python3 ci/check_ci_image_config.py
+```
+
+It enforces 14 rules that are invisible in review, among them: the file list that forms the
+image hash is duplicated between `ci_on_ubuntu.yml` and `build_ci_image.yml` and must match
+exactly; every python x pytorch combination a job requests must be one
+`ci/image_variants.json` actually builds; every step running a `ci/test_*` script must have
+`HF_TOKEN` in scope; and every third-party action must be pinned to a commit SHA.
 
 ### 8.2 Codecov
 
