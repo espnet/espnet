@@ -63,4 +63,6 @@ model:
   ctc_weight: 0.3
 
 input_key: speech
+# utterances per beam search; `null` decodes one at a time (see TEMPLATE)
+batch_size: 4
 output_fn: src.inference.build_output

@@ -221,7 +221,16 @@ def test_forward_batch_with_batched_inputs():
     ]
 
 
-def test_forward_batch_requires_batched_model():
+def test_forward_batch_falls_back_to_single_items(caplog):
+    """A model or output_fn that takes no batch is run one item at a time.
+
+    `batch_size` is set by default in the ASR recipes, and not every
+    `Speech2Text` (the transducer one, for instance) accepts a list, so the
+    runner must degrade to single-item calls rather than fail the shard. It
+    says so once.
+    """
+    import logging
+
     dataset = [
         {"utt_id": "utt1", "speech": "audio1", "text": "ref1"},
         {"utt_id": "utt2", "speech": "audio2", "text": "ref2"},
@@ -229,10 +238,19 @@ def test_forward_batch_requires_batched_model():
 
     class DummyModel:
         def __call__(self, speech):
+            if isinstance(speech, list):
+                raise TypeError("speech must be a single utterance")
             return [[f"hyp-{speech}"]]
 
     output_path = f"{__name__}._output_fn"
-    with pytest.raises(RuntimeError, match="Batched inference failed"):
+    with caplog.at_level(logging.WARNING):
+        out = InferenceRunner.forward(
+            [0, 1],
+            dataset=dataset,
+            model=DummyModel(),
+            input_key="speech",
+            output_fn_path=output_path,
+        )
         InferenceRunner.forward(
             [0, 1],
             dataset=dataset,
@@ -240,6 +258,12 @@ def test_forward_batch_requires_batched_model():
             input_key="speech",
             output_fn_path=output_path,
         )
+    assert out == [
+        {"utt_id": "utt1", "hyp": "hyp-audio1", "ref": "ref1"},
+        {"utt_id": "utt2", "hyp": "hyp-audio2", "ref": "ref2"},
+    ]
+    notes = [r for r in caplog.records if "one at a time" in r.getMessage()]
+    assert len(notes) == 1, [r.getMessage() for r in caplog.records]
 
 
 def test_forward_requires_fields():
@@ -304,3 +328,23 @@ def test_inference_params_affect_runner_forward(tmp_path, flip, expected):
     scp_path = tmp_path / "test" / "hyp.scp"
     assert scp_path.exists()
     assert scp_path.read_text().strip() == f"utt1 {expected}"
+
+
+def test_template_build_output_handles_a_batch(tmp_path):
+    """The recipe `build_output` returns one dict per item for a batched call."""
+    import importlib.util
+    from pathlib import Path
+
+    src = Path(__file__).resolve().parents[4] / "egs3/TEMPLATE/asr/src/inference.py"
+    spec = importlib.util.spec_from_file_location("template_inference", src)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    data = [{"utt_id": "a", "text": "ra"}, {"text": "rb"}]
+    model_output = [[("ha", None, None, None)], [("hb", None, None, None)]]
+    out = module.build_output(data, model_output, [0, 1])
+    assert out == [
+        {"utt_id": "a", "hyp": "ha", "ref": "ra"},
+        {"utt_id": "1", "hyp": "hb", "ref": "rb"},
+    ]
+    assert module.build_output(data[0], model_output[0], 0) == out[0]

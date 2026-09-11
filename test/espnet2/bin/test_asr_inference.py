@@ -765,3 +765,121 @@ def test_Speech2Text_whisper_lid_prompt(
         assert isinstance(token[0], str)
         assert isinstance(token_int[0], int)
         assert isinstance(hyp, Hypothesis)
+
+
+def test_Speech2Text_decodes_a_list_of_utterances_as_a_batch(
+    asr_config_file_transformer,
+):
+    """A list input is one batched beam search, one n-best list per utterance.
+
+    Equal lengths keep the encoder free of padding, so the batched results
+    must equal the single-utterance ones exactly.
+    """
+    from espnet2.bin.asr_inference import Speech2Text
+
+    speech2text = Speech2Text(
+        asr_train_config=asr_config_file_transformer, beam_size=2, nbest=2
+    )
+    rng = np.random.RandomState(0)
+    speech = [rng.randn(32000).astype(np.float32) for _ in range(3)]
+
+    single = [speech2text(s) for s in speech]
+    batched = speech2text(speech)
+
+    assert len(batched) == 3
+    for one, many in zip(single, batched):
+        assert [(r[0], r[2]) for r in one] == [(r[0], r[2]) for r in many]
+    # a padded tensor plus lengths is still accepted
+    padded = torch.zeros(3, 40000)
+    for i, s in enumerate(speech):
+        padded[i, : len(s)] = torch.from_numpy(s)
+    again = speech2text.batch_decode(padded, torch.tensor([32000] * 3))
+    assert [r[0][0] for r in again] == [r[0][0] for r in batched]
+
+
+def test_Speech2Text_batch_decode_splits_a_batch_that_does_not_fit(
+    asr_config_file_transformer, monkeypatch, caplog
+):
+    """An out-of-memory batch is retried in halves, not failed."""
+    import logging
+
+    from espnet2.bin.asr_inference import Speech2Text
+
+    speech2text = Speech2Text(asr_train_config=asr_config_file_transformer, beam_size=1)
+    encode = speech2text.asr_model.encode
+    seen = []
+
+    def encode_up_to_two(speech, speech_lengths, **kwargs):
+        seen.append(speech.size(0))
+        if speech.size(0) > 2:
+            raise torch.OutOfMemoryError("CUDA out of memory (simulated)")
+        return encode(speech, speech_lengths, **kwargs)
+
+    monkeypatch.setattr(speech2text.asr_model, "encode", encode_up_to_two)
+    rng = np.random.RandomState(0)
+    speech = [
+        rng.randn(n).astype(np.float32) for n in (16000, 24000, 8000, 20000, 12000)
+    ]
+    with caplog.at_level(logging.WARNING):
+        results = speech2text(speech)
+
+    assert len(results) == 5
+    # 5 fails -> 3 + 2; 3 fails -> 2 + 1; every batch of at most two succeeds
+    assert seen == [5, 3, 2, 1, 2], seen
+    warned = [
+        r.getMessage() for r in caplog.records if "Out of memory" in r.getMessage()
+    ]
+    assert warned and "24000" in warned[0] and "batch size" in warned[0].lower()
+
+
+@pytest.mark.parametrize("config", ["asr_config_file_transformer", "asr_config_file"])
+def test_Speech2Text_reports_an_utterance_that_does_not_fit(
+    config, request, monkeypatch
+):
+    """The message names the utterance, on the batched and the fallback path."""
+    from espnet2.bin.asr_inference import Speech2Text
+
+    speech2text = Speech2Text(
+        asr_train_config=request.getfixturevalue(config), beam_size=1
+    )
+
+    def never(speech, speech_lengths, **kwargs):
+        raise torch.OutOfMemoryError("CUDA out of memory (simulated)")
+
+    monkeypatch.setattr(speech2text.asr_model, "encode", never)
+    with pytest.raises(RuntimeError, match="single utterance of 48000 samples"):
+        speech2text([np.zeros(48000, dtype=np.float32)])
+    # anything that is not an OOM is left alone
+    monkeypatch.setattr(
+        speech2text.asr_model,
+        "encode",
+        lambda *a, **k: (_ for _ in ()).throw(ValueError("not memory")),
+    )
+    with pytest.raises(ValueError, match="not memory"):
+        speech2text([np.zeros(16000, dtype=np.float32)] * 2)
+
+
+def test_Speech2Text_list_input_falls_back_without_batch_beam_search(
+    asr_config_file, caplog
+):
+    """A search that cannot batch still serves a list, one utterance at a time.
+
+    The default test config has an RNN decoder, which is not a batch scorer,
+    so `Speech2Text` falls back to the plain `BeamSearch` on its own.
+    """
+    import logging
+
+    from espnet2.bin.asr_inference import Speech2Text
+    from espnet2.legacy.nets.batch_beam_search import BatchBeamSearch
+
+    speech2text = Speech2Text(asr_train_config=asr_config_file, beam_size=1)
+    assert type(speech2text.beam_search) is not BatchBeamSearch
+    rng = np.random.RandomState(0)
+    speech = [rng.randn(16000).astype(np.float32) for _ in range(2)]
+    with caplog.at_level(logging.WARNING):
+        results = speech2text(speech)
+        speech2text(speech)
+    assert len(results) == 2
+    assert [r[0][0] for r in results] == [speech2text(s)[0][0] for s in speech]
+    notes = [r for r in caplog.records if "one at a time" in r.getMessage()]
+    assert len(notes) == 1, "warned once, not per call"
