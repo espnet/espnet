@@ -214,7 +214,8 @@ def test_end_detected_converts_each_ended_hypothesis_once():
     """Agree with `end_detect` over `asdict`, converting each hypothesis once.
 
     A hypothesis that has ended never changes, so its summary must not be
-    rebuilt at every step, and one that leaves the list must be forgotten.
+    rebuilt at every step, also when several utterances share the cache
+    within a step; one that has left every list must be forgotten.
     """
     from espnet2.legacy.nets.e2e_asr_common import end_detect
 
@@ -226,33 +227,47 @@ def test_end_detected_converts_each_ended_hypothesis_once():
         sos=4,
         eos=4,
     )
-    ended = []
-    calls = {"n": 0}
-    orig = Hypothesis.asdict
-
-    def counting_asdict(self):
-        calls["n"] += 1
-        return orig(self)
-
-    Hypothesis.asdict = counting_asdict
-    try:
-        for i in range(1, 12):
-            # one or two hypotheses end at every step, with lengths i and i + 1
-            for extra in range(1 + i % 2):
+    utts = [[], []]  # two utterances decoded together, as in BatchBeamSearch
+    n_hyps = 0
+    for i in range(1, 12):
+        for b, ended in enumerate(utts):
+            for extra in range(1 + (i + b) % 2):
                 ended.append(
                     Hypothesis(
                         yseq=torch.arange(i + extra),
-                        score=torch.tensor(-float(i) - 0.5 * extra),
+                        score=torch.tensor(-float(i) - 0.5 * extra - b),
                     )
                 )
-            expected = end_detect([h.asdict() for h in ended], i)
-            assert search.end_detected(ended, i) == expected
+                n_hyps += 1
+        for ended in utts:
+            assert search.end_detected(ended, i) == end_detect(
+                [h.asdict() for h in ended], i
+            )
+    cache = search._ended_summaries
+    # every hypothesis of both utterances is cached, none evicted the other
+    assert len(cache) == n_hyps
+    first = utts[0][0]
+    summary = cache[id(first)][1]
+    assert summary == {"yseq": first.yseq.tolist(), "score": float(first.score)}
+
+    # the next step reuses the very same summary objects: nothing is rebuilt
+    calls = {"n": 0}
+    orig_tolist = torch.Tensor.tolist
+
+    def counting_tolist(self):
+        calls["n"] += 1
+        return orig_tolist(self)
+
+    torch.Tensor.tolist = counting_tolist
+    try:
+        search.end_detected(utts[0], 12)
+        search.end_detected(utts[1], 12)
     finally:
-        Hypothesis.asdict = orig
-    # the summary cache holds exactly the hypotheses still in the list
-    assert len(search._ended_summaries) == len(ended)
-    # and forgets those that leave it
-    assert search.end_detected(ended[:3], 20) == end_detect(
-        [h.asdict() for h in ended[:3]], 20
-    )
+        torch.Tensor.tolist = orig_tolist
+    assert calls["n"] == 0
+    assert cache[id(first)][1] is summary
+
+    # a hypothesis that is not passed for a whole step is forgotten
+    search.end_detected(utts[0][:3], 13)
+    search.end_detected(utts[0][:3], 14)
     assert len(search._ended_summaries) == 3

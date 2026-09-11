@@ -130,30 +130,42 @@ class BeamSearch(torch.nn.Module):
         ``float(score)`` and one per scorer), so the cost of a step grew with
         the number of hypotheses that had ended so far: on a 16-utterance
         batch it was 140 ms of a 200 ms step. The summaries are computed once
-        per hypothesis here and kept for as long as the hypothesis is still
-        in ``ended_hyps``; a hypothesis that has left the list is dropped, so
-        nothing outlives the decode. The cache holds the hypothesis itself,
-        so a recycled ``id()`` cannot be mistaken for it.
+        per hypothesis here and cached.
+
+        The cache is shared by every call, because `BatchBeamSearch` calls
+        this once per utterance within a step and the utterances must not
+        evict each other. An entry is dropped once its hypothesis has not been
+        seen for a whole step, which frees the cache at the end of a decode
+        and also when a caller passes a fresh list every step. The entry
+        holds the hypothesis itself, so a recycled ``id()`` cannot alias it.
 
         Args:
             ended_hyps: Iterable of ended :class:`Hypothesis` objects.
-            i: The current decoding step.
+            i: The current decoding step; consecutive calls within one step
+                pass the same value, and it grows between steps.
 
         Returns:
             Whether :func:`end_detect` says the search for these hypotheses
             is over.
 
         """
-        cache = getattr(self, "_ended_summaries", None) or {}
-        kept = {}
+        cache = getattr(self, "_ended_summaries", None)
+        if cache is None:
+            cache = self._ended_summaries = {}
+        if getattr(self, "_ended_summaries_step", None) != i:
+            # a new step: forget whatever the previous step did not use
+            for key in [k for k, v in cache.items() if v[2] != i - 1]:
+                del cache[key]
+            self._ended_summaries_step = i
         summaries = []
         for h in ended_hyps:
             hit = cache.get(id(h))
             if hit is None or hit[0] is not h:
-                hit = (h, {"yseq": h.yseq.tolist(), "score": float(h.score)})
-            kept[id(h)] = hit
+                hit = (h, {"yseq": h.yseq.tolist(), "score": float(h.score)}, i)
+            elif hit[2] != i:
+                hit = (h, hit[1], i)
+            cache[id(h)] = hit
             summaries.append(hit[1])
-        self._ended_summaries = kept
         return end_detect(summaries, i)
 
     def set_hyp_primer(self, hyp_primer: List[int] = None) -> None:
