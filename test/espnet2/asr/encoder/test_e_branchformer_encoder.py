@@ -142,3 +142,23 @@ def test_encoder_invalid_rel_pos_combination():
 def test_encoder_output_size():
     encoder = EBranchformerEncoder(20, output_size=256)
     assert encoder.output_size() == 256
+
+
+def test_e_branchformer_output_does_not_depend_on_batch_neighbours():
+    """Padded frames are masked before the cgMLP and the merge convolutions."""
+    from test.espnet2.asr.encoder.padding_invariance import (
+        COMMON,
+        D_IN,
+        assert_alone_equals_batched,
+    )
+
+    torch.manual_seed(0)
+    assert_alone_equals_batched(
+        EBranchformerEncoder(
+            D_IN,
+            rel_pos_type="latest",
+            cgmlp_linear_units=64,
+            cgmlp_conv_kernel=7,
+            **COMMON,
+        )
+    )
