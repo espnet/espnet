@@ -77,44 +77,35 @@ $ python run.py --stages upload_model --training_config conf/training.yaml --pub
 
 #### 1.3.3 Publishing models
 
-ESPnet models are hosted on the [Hugging Face Hub](https://huggingface.co/espnet). You do
-**not** need to be a member of the `espnet` organization to publish one — a model under your
-own namespace is loaded by `from_pretrained` exactly like one under `espnet/`.
+ESPnet models are hosted on the [Hugging Face Hub](https://huggingface.co/espnet). Publish
+under **your own account** — `from_pretrained("<your-username>/<model-name>")` behaves
+exactly like a model under `espnet/`, and no organization membership is involved.
 
-1. Create a Hugging Face account — https://huggingface.co/
-2. Log in locally with `hf auth login` (older installations of `huggingface_hub` call this
-   command `huggingface-cli login`). The token is under Settings > Access Tokens and needs
-   write access.
-3. Create the repository under your own namespace, from the Hub web UI or with
-   `hf repos create <your-username>/<model-name>`.
-4. Upload the contents of your recipe's `exp` directory. `hf upload` covers most cases; for
-   a large or incremental upload, clone the repository outside the ESPnet tree, run
-   `git lfs install`, and push. Check other models for similar tasks to confirm the
-   directory structure.
-5. Keep `espnet` in the model card's `tags:`, so the model is findable by tag search on the
-   Hub alongside the rest of the ecosystem.
-6. Link the model from your recipe's `RESULTS.md`.
-
-Your own namespace is the normal home for a contributed model, and nothing about it is
-second class — `from_pretrained("<your-username>/<model-name>")` behaves exactly like a
-model under `espnet/`.
-
-If a model should nevertheless live under `espnet/`, that does **not** require organization
-membership. Hub pull requests work the same way GitHub's do, so:
-
-1. Ask a maintainer to create an empty `espnet/<model-name>` repository.
-2. Upload your files to it as a pull request — you need no write access for this:
+1. Create a Hugging Face account, then log in locally with `hf auth login` (older
+   installations of `huggingface_hub` call this `huggingface-cli login`). The token is under
+   Settings > Access Tokens and needs write access.
+2. Create an empty model repository: `hf repos create <your-username>/<model-name>`.
+3. Let the recipe upload it. The pipeline has pack and upload stages at the end — for
+   `asr1` they are 14 and 15, other tasks number them differently, so check
+   `./run.sh --help`:
 
    ``` console
-   $ hf upload espnet/<model-name> <local_dir> --create-pr
+   $ ./run.sh --stage 14 --stop-stage 15 \
+       --skip_upload_hf false --hf_repo <your-username>/<model-name>
    ```
 
-   Without `--create-pr` the upload would try to write to `main` and fail. To add to a PR
-   you already opened, pass `--revision refs/pr/<n>` instead.
-3. A maintainer reviews and merges it, and the files land under `espnet/<model-name>`.
+   Stage 14 packs the model; stage 15 pushes it with git-lfs and generates the model card
+   from `scripts/utils/TEMPLATE_HF_Readme.md`, keeping the `espnet` tag that makes it
+   findable on the Hub. You need `git-lfs` installed.
+4. Link the model from your recipe's `RESULTS.md`. That link, in your recipe pull request,
+   is all the registration a model needs.
 
-For ESPnet3, the same applies through `conf/publication.yaml`: set `upload_model.hf_repo` to
-`<your-username>/<model-name>` instead of the default `espnet/...`.
+For ESPnet3 the equivalent is `python run.py --stages pack_model upload_model`, with
+`upload_model.hf_repo` in `conf/publication.yaml` set to your own namespace.
+
+If a model should end up under `espnet/` rather than your account, say so in your pull
+request and a maintainer will arrange it — you do not need to join the organization for
+that.
 
 Models published on Zenodo are legacy. To port one to the Hub, run
 `./scripts/utils/upload_models_to_hub.sh "ZENODO_MODEL_NAME"` from `egs2/RECIPE/*`.
