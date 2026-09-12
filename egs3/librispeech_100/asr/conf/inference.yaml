@@ -26,29 +26,24 @@
 # - `data_src` is omitted, so ESPnet3 loads
 #   `${recipe_dir}/dataset/__init__.py`
 # - `data_src_args` is passed directly to `LibriSpeech100Dataset(...)`
-#
-# Dataset splits:
-#   test:
-#     - split="dev-clean" from `LibriSpeech100Dataset`
-#     - split="dev-other" from `LibriSpeech100Dataset`
-#     - split="test-clean" from `LibriSpeech100Dataset`
-#     - split="test-other" from `LibriSpeech100Dataset`
 # Notes:
 #   - actual data sources are defined via `${recipe_dir}`
 dataset:
   test:
-    - name: dev-clean
-      data_src_args:
-        split: dev-clean
     - name: dev-other
       data_src_args:
         split: dev-other
-    - name: test-clean
-      data_src_args:
-        split: test-clean
-    - name: test-other
-      data_src_args:
-        split: test-other
+#
+#    - name: dev-clean
+#      data_src_args:
+#        split: dev-clean
+#
+#    - name: test-clean
+#      data_src_args:
+#        split: test-clean
+#    - name: test-other
+#      data_src_args:
+#        split: test-other
 
 ##########################################################
 #                    MODEL AND OUTPUT                    #
