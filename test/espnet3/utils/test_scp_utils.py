@@ -2,10 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from espnet3.utils.scp_utils import (
-    get_class_path,
-    load_scp_paths,
-)
+from espnet3.utils.scp_utils import get_class_path, load_scp_paths
 
 
 def test_get_class_path_reports_module_and_class():

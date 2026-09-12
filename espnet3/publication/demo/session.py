@@ -9,10 +9,7 @@ from typing import Any
 
 from omegaconf import DictConfig, OmegaConf
 
-from espnet3.publication.demo.assets import (
-    DEFAULT_UI_ASSETS,
-    UIAssetRegistry,
-)
+from espnet3.publication.demo.assets import DEFAULT_UI_ASSETS, UIAssetRegistry
 from espnet3.publication.inference_model import InferenceModel
 from espnet3.utils.config_utils import load_config_with_defaults
 

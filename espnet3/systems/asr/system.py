@@ -85,8 +85,9 @@ class ASRSystem(BaseSystem):
             )
 
         # Train tokenizer if not trained previously
-        if not self._has_tokenizer():
-            self.train_tokenizer()
+        if getattr(self.training_config, "tokenizer", None) is not None:
+            if not self._has_tokenizer():
+                self.train_tokenizer()
 
         # Proceed with standard training
         return super().train()
