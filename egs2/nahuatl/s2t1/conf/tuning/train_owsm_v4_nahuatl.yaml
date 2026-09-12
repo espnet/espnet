@@ -1,0 +1,147 @@
+# OWSM v4 medium fine-tuning config for Nahuatl ASR
+# Architecture mirrors espnet/owsm_v4_medium_1B; training settings are our overrides.
+# Data paths, shape files, and token_list are managed by s2t.sh / run.sh.
+
+seed: 2025
+use_amp: true
+
+# ── Best-model criterion (OWSM uses total_count, not loss) ─────────────────
+best_model_criterion:
+-   - valid
+    - acc
+    - max
+keep_nbest_models: 5
+nbest_averaging_interval: 15
+
+# ── Fine-tuning training settings ──────────────────────────────────────────
+max_epoch: 30
+patience: 5
+accum_grad: 4
+batch_type: numel
+batch_bins: 5000000
+
+optim: adamw
+optim_conf:
+    lr: 1.0e-5
+    weight_decay: 0.01
+
+scheduler: warmuplr
+scheduler_conf:
+    warmup_steps: 500
+
+# ── Patched checkpoint (3 new region-token rows added) ─────────────────────
+init_param:
+    - "../../../../model_cache/owsm_v4_medium_1B_nahuatl/valid.loss.best.pth"
+
+# ── CTC ────────────────────────────────────────────────────────────────────
+ctc_conf:
+    dropout_rate: 0.0
+    ctc_type: builtin
+    reduce: true
+    zero_infinity: true
+
+model: espnet
+model_conf:
+    ctc_weight: 0.3
+    lsm_weight: 0.1
+    length_normalized_loss: false
+    sym_na: <na>
+    extract_feats_in_collect_stats: false
+
+# ── Frontend / SpecAugment ─────────────────────────────────────────────────
+frontend: default
+frontend_conf:
+    n_fft: 512
+    win_length: 400
+    hop_length: 160
+    n_mels: 128
+    fs: 16k
+
+specaug: specaug
+specaug_conf:
+    apply_time_warp: false
+    time_warp_window: 5
+    time_warp_mode: bicubic
+    apply_freq_mask: true
+    freq_mask_width_range:
+    - 0
+    - 27
+    num_freq_mask: 2
+    apply_time_mask: true
+    time_mask_width_ratio_range:
+    - 0.0
+    - 0.05
+    num_time_mask: 10
+
+normalize: global_mvn
+
+# ── Encoder: E-Branchformer (OWSM v4 medium architecture) ─────────────────
+encoder: e_branchformer
+encoder_conf:
+    output_size: 1024
+    attention_heads: 16
+    attention_layer_type: selfattn
+    pos_enc_layer_type: abs_pos
+    rel_pos_type: latest
+    cgmlp_linear_units: 4096
+    cgmlp_conv_kernel: 31
+    use_linear_after_conv: false
+    gate_activation: identity
+    num_blocks: 18
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    attention_dropout_rate: 0.0
+    input_layer: conv2d8
+    layer_drop_rate: 0.0
+    linear_units: 4096
+    positionwise_layer_type: linear
+    use_ffn: true
+    macaron_ffn: true
+    merge_conv_kernel: 31
+    use_flash_attn: true
+    gradient_checkpoint_layers:
+    - 0
+    - 3
+    - 6
+    - 9
+    - 12
+    - 15
+    - 18
+
+# ── Decoder: Transformer (OWSM v4 medium architecture) ────────────────────
+decoder: transformer
+decoder_conf:
+    attention_heads: 16
+    linear_units: 4096
+    num_blocks: 18
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    self_attention_dropout_rate: 0.0
+    src_attention_dropout_rate: 0.0
+    use_flash_attn: true
+    gradient_checkpoint_layers:
+    - 1
+    - 3
+    - 5
+    - 7
+    - 9
+    - 11
+    - 13
+    - 15
+    - 17
+
+# ── S2T preprocessor ───────────────────────────────────────────────────────
+preprocessor: s2t
+preprocessor_conf:
+    text_prev_name: text_prev
+    text_ctc_name: text_ctc
+    fs: 16000
+    na_symbol: <na>
+    speech_length: 30
+    speech_resolution: 0.02
+    speech_init_silence: 30
+    text_prev_apply_prob: 0.5
+    time_apply_prob: 0.5
+    notime_symbol: <notimestamps>
+    first_time_symbol: <0.00>
+    last_time_symbol: <30.00>
