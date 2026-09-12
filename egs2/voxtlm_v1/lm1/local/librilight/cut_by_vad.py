@@ -31,9 +31,31 @@ def cut_sequence(path, vad, path_out, target_len_sec, out_extension):
     for start, end in vad:
         start_index = int(start * samplerate)
         end_index = int(end * samplerate)
+
+        # A single VAD segment can itself run far longer than target_len_sec
+        # (e.g. a stretch of narration with no detected pause for 30+
+        # minutes). The original logic isolated such a segment into its own
+        # piece but never split it further, so it was saved whole -- tens of
+        # minutes in one file, which blows up memory for anything that runs
+        # a full-sequence forward pass over it downstream. Chop it into
+        # target_len_sec-sized pieces here instead.
+        if end - start > target_len_sec:
+            if length_accumulated > 0:
+                save(to_stitch, path_out, i, out_extension)
+                to_stitch = []
+                i += 1
+                length_accumulated = 0
+
+            chunk_samples = int(target_len_sec * samplerate)
+            long_slice = data[start_index:end_index]
+            for chunk_start in range(0, len(long_slice), chunk_samples):
+                chunk = long_slice[chunk_start : chunk_start + chunk_samples]
+                save([chunk], path_out, i, out_extension)
+                i += 1
+            continue
+
         slice = data[start_index:end_index]
 
-        # if a slice is longer than target_len_sec, we put it entirely in it's own piece
         if (
             length_accumulated + (end - start) > target_len_sec
             and length_accumulated > 0
