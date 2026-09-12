@@ -1,0 +1,42 @@
+##########################################################
+#                 METRIC SCORING SETTING                 #
+##########################################################
+# Quick usage:
+#   python run.py --stages measure --metrics_config conf/metrics.yaml
+#
+# Assumptions:
+# - `infer` has already written `<test_name>/score.scp` and
+#   `<test_name>/label.scp`.
+# - If `dataset.test` is omitted, test sets are discovered from
+#   `${inference_dir}` subdirectories.
+
+##########################################################
+#                    PATHS AND INPUTS                    #
+##########################################################
+recipe_dir: .
+# Common case:
+# - pass `--training_config`, `--inference_config`, and `--metrics_config`
+# - `run.py` copies the experiment identity and `inference_dir` here
+#
+# For a standalone `measure`, set either `exp_tag` or a concrete `exp_dir`
+# below, and add `inference_dir` unless `--inference_config` provides it.
+exp_tag:
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+
+##########################################################
+#                    METRIC DEFINITION                   #
+##########################################################
+metrics:
+  - metric:
+      _target_: espnet3.systems.spk.metrics.eer.EER
+      ref_key: label      # trial labels -> `<test_name>/label.scp`
+      hyp_key: score      # trial scores -> `<test_name>/score.scp`
+
+  - metric:
+      _target_: espnet3.systems.spk.metrics.min_dcf.MinDCF
+      ref_key: label
+      hyp_key: score
+      # VoxCeleb results are conventionally reported at this operating point.
+      p_target: 0.05
+      c_miss: 1.0
+      c_fa: 1.0
