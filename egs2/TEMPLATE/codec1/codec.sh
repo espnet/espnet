@@ -617,7 +617,7 @@ fi
 if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ] && ! "${skip_upload}"; then
     log "Stage 9: Uploading to hugging face: ${hf_repo}"
     [ -z "${hf_repo}" ] && \
-        log "ERROR: You need to setup the variable hf_repo with the name of the repository located at HuggingFace, follow the following steps described here https://github.com/espnet/espnet/blob/master/CONTRIBUTING.md#132-espnet2-recipes" && \
+        log "ERROR: You need to setup the variable hf_repo with the name of the repository located at HuggingFace, follow the following steps described here https://github.com/espnet/espnet/blob/master/CONTRIBUTING.md#133-publishing-models" && \
     exit 1
 
     # Upload model to hugging face
