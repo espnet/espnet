@@ -1,0 +1,78 @@
+# ESPnet restoration vocoder, stage 3: finetune on predicted SSL features.
+#
+# The frozen stage-1 predictor (LoRA student, --fp_model_path) encodes
+# degraded 16 kHz speech produced online from the 48 kHz reference; the
+# vocoder, warm-started from stage 2 via --init_param, learns to synthesise
+# the clean 48 kHz reference from those imperfect features. Same losses and
+# geometry as stage 2. Data must be 48 kHz (data/train_voc, data/dev_voc).
+ssl_encoder: w2v_bert2
+ssl_encoder_conf:
+    model_tag: facebook/w2v-bert-2.0
+    freeze_base: true
+lora_rank: 64
+lora_alpha: 16
+lora_dropout: 0.1
+input_sr: 16000
+output_sr: 48000
+
+use_predicted_feat: true
+noise_dir: data/noise_pool
+rir_dir: data/rir_pool
+degrade_prob: 0.5
+online_degradation: true
+# Encoder context per utterance and the aligned excerpt the GAN trains on.
+# Features for the excerpt are computed with 8 s of surrounding speech in
+# view, as at inference; the generator and discriminators only run on 1 s,
+# which is what makes 48 kHz GAN training affordable.
+context_duration: 8.0
+segment_duration: 1.0
+
+# Published Sidon vocoder geometry (52.4M parameters).
+vocoder_conf:
+    channels: 1536
+    rates: [8, 5, 4, 3, 2]
+# DAC discriminator: 5 period + 3 multi-band STFT sub-discriminators.
+discriminator_conf:
+    periods: [2, 3, 5, 7, 11]
+    fft_sizes: [2048, 1024, 512]
+mel_loss_weight: 15.0
+adv_loss_weight: 2.0
+fm_loss_weight: 1.0
+
+# Generator / discriminator optimisers (GANTrainer)
+optim: adamw
+optim_conf:
+    lr: 1.0e-4
+    betas: [0.8, 0.99]
+    weight_decay: 0.01
+optim2: adamw
+optim2_conf:
+    lr: 1.0e-4
+    betas: [0.8, 0.99]
+    weight_decay: 0.01
+scheduler: exponentiallr
+scheduler_conf:
+    gamma: 0.999996
+scheduler2: exponentiallr
+scheduler2_conf:
+    gamma: 0.999996
+generator_first: false
+
+max_epoch: 60
+batch_type: unsorted
+batch_size: 16
+valid_batch_size: 16
+accum_grad: 1
+grad_clip: 1.0
+num_workers: 16   # online degradation is CPU-bound
+seed: 42
+# Mel L1 is the one generator term comparable across epochs; the adversarial
+# and feature-matching terms move with the discriminator.
+best_model_criterion:
+    -   - valid
+        - loss_mel
+        - min
+keep_nbest_models: 3
+log_interval: 50
+use_amp: false
+num_att_plot: 0

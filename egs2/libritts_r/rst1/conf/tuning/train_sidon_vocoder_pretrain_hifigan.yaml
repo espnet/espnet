@@ -1,0 +1,75 @@
+# ESPnet restoration vocoder, stage 2 with the HiFi-GAN generator instead of the DAC decoder.
+#
+# The frozen w2v-BERT 2.0 teacher encodes clean 48 kHz speech (resampled to
+# 16 kHz on the GPU); the DAC-style decoder learns to invert layer-8 features
+# back to 48 kHz audio against mel, adversarial and feature-matching losses.
+# Data must be 48 kHz (data/train_voc, data/dev_voc: EARS + VCTK).
+ssl_encoder: w2v_bert2
+ssl_encoder_conf:
+    model_tag: facebook/w2v-bert-2.0
+    freeze_base: true
+lora_rank: 64
+lora_alpha: 16
+lora_dropout: 0.1
+input_sr: 16000
+output_sr: 48000
+
+use_predicted_feat: false
+# Encoder context per utterance and the aligned excerpt the GAN trains on.
+# Features for the excerpt are computed with 8 s of surrounding speech in
+# view, as at inference; the generator and discriminators only run on 1 s,
+# which is what makes 48 kHz GAN training affordable.
+context_duration: 8.0
+segment_duration: 1.0
+
+# ESPnet HiFiGANGenerator, same 960x geometry (about 17M parameters).
+vocoder_type: hifigan
+vocoder_conf:
+    channels: 512
+    upsample_scales: [8, 5, 4, 3, 2]
+    upsample_kernel_sizes: [16, 10, 8, 6, 4]
+# DAC discriminator: 5 period + 3 multi-band STFT sub-discriminators.
+discriminator_conf:
+    periods: [2, 3, 5, 7, 11]
+    fft_sizes: [2048, 1024, 512]
+mel_loss_weight: 15.0
+adv_loss_weight: 2.0
+fm_loss_weight: 1.0
+
+# Generator / discriminator optimisers (GANTrainer)
+optim: adamw
+optim_conf:
+    lr: 1.0e-4
+    betas: [0.8, 0.99]
+    weight_decay: 0.01
+optim2: adamw
+optim2_conf:
+    lr: 1.0e-4
+    betas: [0.8, 0.99]
+    weight_decay: 0.01
+scheduler: exponentiallr
+scheduler_conf:
+    gamma: 0.999996
+scheduler2: exponentiallr
+scheduler2_conf:
+    gamma: 0.999996
+generator_first: false
+
+max_epoch: 100
+batch_type: unsorted
+batch_size: 16
+valid_batch_size: 16
+accum_grad: 1
+grad_clip: 1.0
+num_workers: 8
+seed: 42
+# Mel L1 is the one generator term comparable across epochs; the adversarial
+# and feature-matching terms move with the discriminator.
+best_model_criterion:
+    -   - valid
+        - loss_mel
+        - min
+keep_nbest_models: 3
+log_interval: 50
+use_amp: false
+num_att_plot: 0

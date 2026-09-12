@@ -1,0 +1,4 @@
+# Metrics for synthetically degraded sets with a paired clean reference.
+- name: pesq
+
+- name: stoi
