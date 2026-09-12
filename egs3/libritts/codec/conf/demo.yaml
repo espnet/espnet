@@ -1,0 +1,28 @@
+##########################################################
+#                      DEMO SETTING                      #
+##########################################################
+# Quick usage:
+#   python run.py --stages pack_demo \
+#     --training_config conf/training_encodec.yaml --demo_config conf/demo.yaml
+#   python run.py --stages upload_demo \
+#     --training_config conf/training_encodec.yaml --demo_config conf/demo.yaml
+#
+# Assumptions:
+# - `--training_config` is passed: the inherited `model.dir_or_tag` and
+#   `upload_demo.hf_repo` refer to `${exp_tag}`, which the runner copies from
+#   the training config.
+# - `pack_model` has already created the model pack referenced by
+#   `model.dir_or_tag`, or that field points to a Hugging Face model repo.
+# - `ui.app_script` points to the Gradio launcher copied into the packed demo.
+#
+# Merged over egs3/TEMPLATE/codec/conf/demo.yaml, which already wires the
+# audio-in / audio-out UI for a codec roundtrip and the default
+# `exp/${exp_tag}/model_pack` model reference.
+
+##########################################################
+#                    MODEL REFERENCE                     #
+##########################################################
+# `trust_user_code` is required here: the packed bundle carries this recipe's
+# `src` package, which the demo imports to format the model output.
+model:
+  trust_user_code: true
