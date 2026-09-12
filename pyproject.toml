@@ -108,6 +108,7 @@ asr = [
 tts = [
   "pyworld>=0.3.4",
   "pypinyin<=0.44.0",
+  "rjieba",
   "espnet_tts_frontend",
   "espnet-g2p-en>=2.1.0.post1",  # fork of Kyubyong/g2p
   "jamo==0.4.1",
