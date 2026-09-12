@@ -1,0 +1,103 @@
+##########################################################
+#                    TRAINING SETTING                    #
+##########################################################
+num_device: 1
+num_nodes: 1
+
+task: espnet3.systems.enh.task.EnhancementTask
+
+recipe_dir: .
+data_dir: ${recipe_dir}/data
+exp_tag: ${self_name:}
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+stats_dir: ${recipe_dir}/exp/stats
+dataset_dir: /path/to/your/dataset
+
+create_dataset:
+  recipe_dir: ${recipe_dir}
+  dataset_dir: ${dataset_dir}
+
+dataset:
+  _target_: espnet3.components.data.data_organizer.DataOrganizer
+  _recursive_: false
+  recipe_dir: ${recipe_dir}
+  train:
+  valid:
+  test:
+  preprocessor:
+
+model:
+
+optimizer:
+  _target_: torch.optim.Adam
+  lr: 1.0e-03
+  eps: 1.0e-08
+  weight_decay: 1.0e-05
+
+scheduler:
+  _target_: torch.optim.lr_scheduler.ReduceLROnPlateau
+  mode: min
+  factor: 0.5
+  patience: 3
+
+scheduler_interval: epoch
+scheduler_monitor: valid/loss
+
+init: xavier_uniform
+
+best_model_criterion:
+  - - valid/loss
+    - 1
+    - min
+
+parallel:
+  env: local
+  n_workers: 1
+
+dataloader:
+  collate_fn:
+    _target_: espnet2.train.collate_fn.CommonCollateFn
+    int_pad_value: -1
+  train:
+    total_shards: 1
+    dist_world_size: 1
+    iter_factory:
+      _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
+      shuffle: true
+      collate_fn: ${dataloader.collate_fn}
+      batches:
+        type: unsorted
+        shape_files:
+          - ${stats_dir}/train/feats_shape
+        batch_size: 4
+        batch_bins: 4000000
+  valid:
+    total_shards: 1
+    dist_world_size: 1
+    iter_factory:
+      _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
+      shuffle: false
+      collate_fn: ${dataloader.collate_fn}
+      batches:
+        type: ${dataloader.train.iter_factory.batches.type}
+        shape_files:
+          - ${stats_dir}/valid/feats_shape
+        batch_size: ${dataloader.train.iter_factory.batches.batch_size}
+        batch_bins: ${dataloader.train.iter_factory.batches.batch_bins}
+
+trainer:
+  accelerator: auto
+  devices: ${num_device}
+  num_nodes: ${num_nodes}
+  accumulate_grad_batches: 1
+  check_val_every_n_epoch: 1
+  gradient_clip_val: 1.0
+  log_every_n_steps: 100
+  max_epochs: 100
+  logger:
+    - _target_: lightning.pytorch.loggers.TensorBoardLogger
+      save_dir: ${exp_dir}/tensorboard
+      name: tb_logger
+  strategy: auto
+
+fit: {}
