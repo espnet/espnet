@@ -2,6 +2,7 @@ builder:
   dataset_path: downloads
   data_path: data
   archive_path: ./downloads.tar.gz
+  archive_url: https://github.com/espnet/espnet/raw/refs/heads/master/egs3/mini_an4/asr/downloads.tar.gz
   splits:
     train:
       transcript_name: an4_train.transcription
