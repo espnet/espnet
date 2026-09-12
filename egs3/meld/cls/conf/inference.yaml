@@ -1,0 +1,37 @@
+##########################################################
+#                   INFERENCE SETTING                    #
+##########################################################
+# Common usage:
+#   python run.py --stages infer \
+#       --training_config conf/training.yaml \
+#       --inference_config conf/inference.yaml
+#
+# `run.py` copies `exp_tag` / `exp_dir` from the training config.
+
+##########################################################
+#                    DATASET DEFINITION                  #
+##########################################################
+# The test split keeps the unfiltered manifest; see `dataset/config.yaml`.
+dataset:
+  test:
+    - name: valid
+      data_src_args:
+        split: valid
+    - name: test
+      data_src_args:
+        split: test
+
+##########################################################
+#                    MODEL AND OUTPUT                    #
+##########################################################
+# `valid.acc.ave_1best.pth` is written by ESPnet3's checkpoint-averaging
+# callback as `{best_model_criterion monitor}.ave_{nbest}best.pth`, so the name
+# stays the same across re-training. This mirrors ESPnet2's default
+# `inference_model=valid.acc.best.pth`.
+model:
+  _target_: espnet2.bin.cls_inference.Classification
+  classification_train_config: ${exp_dir}/config.yaml
+  classification_model_file: ${exp_dir}/valid.acc.ave_1best.pth
+
+input_key: speech
+output_fn: src.inference.build_output

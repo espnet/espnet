@@ -1,0 +1,59 @@
+##########################################################
+#                      DEMO SETTING                      #
+##########################################################
+# Common usage:
+#   python run.py --stages pack_demo \
+#       --training_config conf/training.yaml \
+#       --demo_config conf/demo.yaml
+#
+# `pack_model` must have run first: `model.dir_or_tag` points at the bundle it
+# writes.
+
+model:
+  # Point at the published model repo rather than the local `model_pack`: a
+  # local directory is symlinked into the bundle and `upload_demo` resolves it,
+  # which would push the same 366 MB to the Space as well.
+  dir_or_tag: espnet/meld_cls_wavlm_base_plus
+  # The packed bundle carries this recipe's `dataset/` and `src/` modules, and
+  # loading it imports them.
+  trust_user_code: true
+
+ui:
+  title: MELD speech emotion recognition demo
+  outputs:
+    - key: hyp
+      type: text
+      label: "Emotion"
+
+pack:
+  # The TEMPLATE default writes to `demo/` under the recipe, which is not
+  # covered by `.gitignore`'s `egs*/*/*/exp` rule. Keep it beside `model_pack`.
+  out_dir: ${exp_dir}/demo
+  # Neither of these reaches a plain espnet install: s3prl is declared only
+  # under the `s2st` extras, and torcheval -- which
+  # `espnet2.cls.espnet_model.ESPnetClassificationModel` hard-requires -- is not
+  # declared anywhere in `pyproject.toml`.
+  requirements:
+    - git+https://github.com/espnet/espnet.git
+    - espnet-s3prl>=2026.5.14
+    - torcheval
+  readme_context:
+    # `pack_demo` defaults this to the packing interpreter. The dev-setup guide
+    # installs Python 3.11, but `requires-python` is `>=3.12,<3.14`, so a Space
+    # built on 3.11 cannot install espnet at all.
+    python_version: "3.12"
+    emoji: "\U0001f3ad"
+    tags: |-
+      - espnet
+      - espnet3
+      - gradio
+      - audio-classification
+      - speech-emotion-recognition
+
+upload_demo:
+  # Spaces and models are separate namespaces on the Hub, so the Space can
+  # carry the same name as the model it serves.
+  hf_repo: espnet/meld_cls_wavlm_base_plus
+  # The Space already exists from the first upload attempt, which failed to
+  # build. `delete_patterns` defaults to ["*"], so this replaces its contents.
+  update: true

@@ -1,5 +1,6 @@
 """ESPnet-3 Task class."""
 
+import logging
 import sys
 from argparse import Namespace
 from pathlib import Path
@@ -106,6 +107,27 @@ def save_espnet_config(
     for k, v in default_config.items():
         if isinstance(v, tuple):
             default_config[k] = list(v)
+
+    # Inline a path-valued `token_list`. ESPnet2 does this inside
+    # `build_model()` -- "Overwriting token_list to keep it as portable" -- and
+    # dumps the config afterwards, so its saved config carries the tokens
+    # themselves. Here the config is written before the model is built, so
+    # without this the packed bundle keeps a path that only exists on the
+    # machine that trained it.
+    token_list = default_config.get("token_list")
+    if isinstance(token_list, str):
+        token_list_path = Path(token_list)
+        if token_list_path.is_file():
+            default_config["token_list"] = [
+                line.rstrip("\n")
+                for line in token_list_path.read_text(encoding="utf-8").splitlines()
+            ]
+        else:
+            logging.warning(
+                "token_list path does not exist, leaving it unresolved in the "
+                "saved config: %s",
+                token_list,
+            )
 
     # Save the config to the output directory
     output_path = Path(output_dir)

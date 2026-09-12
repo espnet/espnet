@@ -1,0 +1,158 @@
+##########################################################
+#                    TRAINING SETTING                    #
+##########################################################
+# Quick usage:
+#   python run.py --stages create_dataset --training_config conf/training.yaml
+#   python run.py --stages collect_stats train --training_config conf/training.yaml
+#
+##########################################################
+#                  SYSTEM AND PATH SETTING               #
+##########################################################
+# ESPnet3's own classification task. Its `model_choices` resolves to
+# `espnet3.systems.cls.espnet_model.ClassificationModel`, which applies
+# `freeze_param` itself.
+task: espnet3.systems.cls.task.CLSTask
+
+# `dataset/builder.py` writes converted audio and manifests here. Keep the two
+# in sync by reading the same environment variable.
+data_dir: ${oc.env:MELD_OUTPUT,./data}
+exp_tag: train_cls_wavlm_transformer
+
+##########################################################
+#              LONG/SHORT FILTERING SETTING              #
+##########################################################
+# Mirrors stage 3 of the ESPnet2 `cls.sh` recipe, including its note that the
+# test split is deliberately left untouched:
+#
+#     # NOTE(kamo): Not applying to test_sets to keep original data
+#
+# Filtering the test split would change what the reported scores are measured
+# on, so `splits` lists train and valid only.
+remove_long_short:
+  min_wav_duration: 0.1
+  max_wav_duration: 20
+  splits:
+    - train
+    - valid
+  save_path: ${data_dir}/manifest_filtered
+  manifest_paths:
+    train: ${data_dir}/manifest/train.tsv
+    valid: ${data_dir}/manifest/valid.tsv
+
+##########################################################
+#                  LABEL INVENTORY SETTING               #
+##########################################################
+# ESPnet2 builds `token_list` from the filtered training text, so the filtered
+# manifest is used here as well.
+prepare_labels:
+  save_path: ${data_dir}
+  filename: token_list
+  manifest_path: ${data_dir}/manifest_filtered/train.tsv
+  add_symbol:
+    - "<unk>:-1"
+
+##########################################################
+#                    DATASET DEFINITION                  #
+##########################################################
+dataset:
+  train:
+    - data_src_args:
+        split: train
+  valid:
+    - data_src_args:
+        split: valid
+  preprocessor:
+    _target_: espnet2.train.preprocessor.CommonPreprocessor
+    fs: 16000
+    # Classification stores the emotion label in the `label` field.
+    text_name: label
+    token_type: word
+    token_list: ${data_dir}/token_list
+
+##########################################################
+#                      MODEL SETTING                     #
+##########################################################
+model:
+  token_list: ${data_dir}/token_list
+  frontend: s3prl
+  frontend_conf:
+    frontend_conf:
+      upstream: wavlm_base_plus
+    multilayer_feature: true
+  freeze_param:
+    - frontend.upstream
+  normalize: utterance_mvn
+  normalize_conf: {}
+  encoder: transformer
+  encoder_conf:
+    output_size: 128
+    attention_heads: 4
+    linear_units: 1024
+    num_blocks: 4
+    dropout_rate: 0.4
+    input_layer: linear
+  decoder: linear
+  model_conf:
+    classification_type: multi-class
+
+##########################################################
+#                  OPTIMIZATION SETTING                  #
+##########################################################
+optimizer:
+  # `weight_decay` is 1e-6 in the TEMPLATE default; ESPnet2 leaves Adam's
+  # default of 0, so it is switched off explicitly here.
+  lr: 1.0e-3
+  weight_decay: 0
+
+scheduler:
+  warmup_steps: 3180   # 10 epochs at 318 steps/epoch, as in ESPnet2
+
+best_model_criterion:
+  - - valid/acc
+    - 1
+    - max
+
+seed: 0
+
+##########################################################
+#                   DATALOADER SETTING                   #
+##########################################################
+# `fold_lengths` is ESPnet2's `speech_fold_length: 160000` samples expressed in
+# WavLM frames (50 fps): 160000 / 320 = 500. This reproduces its 318 train and
+# 35 valid batches exactly. ESPnet2 needs a second entry for the label shape and
+# sets `label_fold_length: 2` to stop the batch size from halving; ESPnet3 folds
+# on the feature shape alone, so that workaround is unnecessary.
+dataloader:
+  train:
+    iter_factory:
+      batches:
+        type: folded
+        batch_size: 32
+        fold_lengths: [500]
+        sort_in_batch: descending
+        sort_batch: descending
+  valid:
+    iter_factory:
+      batches:
+        fold_lengths: [500]
+        sort_in_batch: descending
+        sort_batch: descending
+
+##########################################################
+#                     TRAINER SETTING                    #
+##########################################################
+trainer:
+  devices: 1
+  num_nodes: 1
+  gradient_clip_val: 5.0
+  max_epochs: 30
+
+  # ESPnet2 stops on `valid/loss`, but this recipe selects checkpoints on
+  # `valid/acc`; watching the same value keeps the best epoch from being cut off.
+  callbacks:
+    - _target_: lightning.pytorch.callbacks.EarlyStopping
+      monitor: valid/acc
+      mode: max
+      patience: 5
+
+fit: {}
