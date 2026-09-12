@@ -3,8 +3,8 @@ import json
 import os
 from io import BytesIO
 
-import kaldiio
 import soundfile as sf
+from omniio import kaldi as kaldi_io
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("convert espnet tokens for bitrate calculation")
@@ -44,7 +44,7 @@ if __name__ == "__main__":
             key, value = line.strip().split(maxsplit=1)
             if value.endswith("|"):
                 # Streaming input e.g. cat a.wav |
-                with kaldiio.open_like_kaldi(value, "rb") as wav_f:
+                with kaldi_io.open_like_kaldi(value, "rb") as wav_f:
                     with BytesIO(wav_f.read()) as g:
                         data, sample_rate = sf.read(g)
             else:

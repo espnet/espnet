@@ -8,8 +8,8 @@ import logging
 import os
 import sys
 
-import kaldiio
 import torch
+from omniio import kaldi as kaldi_io
 
 from espnet2.beats.audio_tokenizer import AudioTokenizer
 from espnet2.legacy.nets.pytorch_backend.nets_utils import pad_list
@@ -101,8 +101,8 @@ def dump_audio_tokens(
     )
 
     # (3) Tokenizer loop
-    codec_writer = kaldiio.WriteHelper(wspecifier)
-    audio_reader = kaldiio.ReadHelper(rspecifier)
+    codec_writer = kaldi_io.WriteHelper(wspecifier)
+    audio_reader = kaldi_io.ReadHelper(rspecifier)
 
     def flush(buffer, length_buffer, key_buffer, sample_rate):
         wavs = pad_list(buffer, 0.0).to(device).float()

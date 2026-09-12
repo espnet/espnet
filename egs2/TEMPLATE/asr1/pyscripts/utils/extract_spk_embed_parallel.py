@@ -10,11 +10,11 @@ import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
-import kaldiio
 import librosa
 import numpy as np
 import torch
 import torchaudio
+from omniio import kaldi as kaldi_io
 from torch.nn.utils.rnn import pad_sequence
 from tqdm import tqdm
 
@@ -288,12 +288,12 @@ def main(argv):
 
         wav_scp = SoundScpReader(os.path.join(args.in_folder, "wav.scp"), np.float32)
         os.makedirs(args.out_folder, exist_ok=True)
-        writer_utt = kaldiio.WriteHelper(
+        writer_utt = kaldi_io.WriteHelper(
             "ark,scp:{0}/{1}.ark,{0}/{1}.scp".format(
                 args.out_folder, args.spk_embed_tag
             )
         )
-        writer_spk = kaldiio.WriteHelper(
+        writer_spk = kaldi_io.WriteHelper(
             "ark,scp:{0}/spk_{1}.ark,{0}/spk_{1}.scp".format(
                 args.out_folder, args.spk_embed_tag
             )

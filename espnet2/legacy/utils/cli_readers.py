@@ -6,9 +6,9 @@ import sys
 
 import h5py
 import soundfile
+from omniio import kaldi as kaldi_io
 
 from espnet2.legacy.utils.io_utils import SoundHDF5File
-from espnet2.utils.kaldiio_utils import import_kaldiio
 
 
 def file_reader_helper(
@@ -65,8 +65,7 @@ class KaldiReader:
 
     def __iter__(self):
         """Iterate self reader."""
-        kaldiio = import_kaldiio()
-        with kaldiio.ReadHelper(self.rspecifier, segments=self.segments) as reader:
+        with kaldi_io.ReadHelper(self.rspecifier, segments=self.segments) as reader:
             for key, array in reader:
                 if self.return_shape:
                     array = array.shape
