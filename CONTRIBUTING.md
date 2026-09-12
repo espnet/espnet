@@ -86,7 +86,7 @@ own namespace is loaded by `from_pretrained` exactly like one under `espnet/`.
    command `huggingface-cli login`). The token is under Settings > Access Tokens and needs
    write access.
 3. Create the repository under your own namespace, from the Hub web UI or with
-   `hf repo create <your-username>/<model-name>`.
+   `hf repos create <your-username>/<model-name>`.
 4. Upload the contents of your recipe's `exp` directory. `hf upload` covers most cases; for
    a large or incremental upload, clone the repository outside the ESPnet tree, run
    `git lfs install`, and push. Check other models for similar tasks to confirm the
@@ -95,12 +95,23 @@ own namespace is loaded by `from_pretrained` exactly like one under `espnet/`.
    Hub alongside the rest of the ecosystem.
 6. Link the model from your recipe's `RESULTS.md`.
 
-To move a model under the `espnet` organization, you do not need to go through a maintainer:
+Your own namespace is the normal home for a contributed model, and nothing about it is
+second class — `from_pretrained("<your-username>/<model-name>")` behaves exactly like a
+model under `espnet/`.
 
-1. Open https://huggingface.co/espnet and click **Request to join this org**.
-2. Once you are accepted, open your model's **Settings** on the Hub and use
-   **Rename or transfer this model**, choosing `espnet` as the new owner. New models can
-   also be created under `espnet/` directly from then on.
+If a model should nevertheless live under `espnet/`, that does **not** require organization
+membership. Hub pull requests work the same way GitHub's do, so:
+
+1. Ask a maintainer to create an empty `espnet/<model-name>` repository.
+2. Upload your files to it as a pull request — you need no write access for this:
+
+   ``` console
+   $ hf upload espnet/<model-name> <local_dir> --create-pr
+   ```
+
+   Without `--create-pr` the upload would try to write to `main` and fail. To add to a PR
+   you already opened, pass `--revision refs/pr/<n>` instead.
+3. A maintainer reviews and merges it, and the files land under `espnet/<model-name>`.
 
 For ESPnet3, the same applies through `conf/publication.yaml`: set `upload_model.hf_repo` to
 `<your-username>/<model-name>` instead of the default `espnet/...`.
@@ -144,11 +155,6 @@ Models published on Zenodo are legacy. To port one to the Hub, run
 
 `black` and `isort` are applied automatically by `pre-commit.ci`, so formatting alone will
 not block your PR. Running `pre-commit` yourself just avoids the extra commit.
-
-> [!WARNING]
-> Do not use `utils/apply_code_fixes.py`. Its `W291` fix strips the newline along with the
-> trailing whitespace, so a file containing `a = 1  ` followed by `b = 2` is rewritten to
-> `a = 1b = 2`. It corrupts any Python file with trailing whitespace.
 
 ESPnet3 recipes (`egs3`) have no `db.sh`, `cmd.sh` or shared shell stages; the equivalent
 settings live in the recipe's `conf/*.yaml`. The rest of the checklist still applies.
