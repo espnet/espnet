@@ -137,6 +137,11 @@ start_stage=1
 stop_stage=11
 _prev=""
 for _a in "$@"; do
+    # Accept both "--stage VALUE" and "--stage=VALUE" forms (s2t.sh takes both).
+    case "$_a" in
+        --stage=*)      start_stage="${_a#--stage=}" ;;
+        --stop_stage=*) stop_stage="${_a#--stop_stage=}" ;;
+    esac
     [ "$_prev" = "--stage" ]      && start_stage="$_a"
     [ "$_prev" = "--stop_stage" ] && stop_stage="$_a"
     _prev="$_a"
