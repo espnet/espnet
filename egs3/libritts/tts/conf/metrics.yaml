@@ -1,0 +1,79 @@
+# F5-TTS scoring config.
+#
+# Scoring aligned with the official F5-TTS eval_librispeech_test_clean.py and
+# eval_utmos.py, as closely as VERSA allows.
+#
+#   WER   official: faster-whisper large-v3, compute_type float16, beam_size 5,
+#                   then lowercase + strip punctuation before scoring.
+#         here:     VERSA fwhisper_wer, which wraps faster-whisper itself, so
+#                   this is engine-identical, not merely model-identical.
+#                   text_cleaner whisper_basic is BasicTextNormalizer
+#                   (lowercase + punctuation removal); it is the closest
+#                   available analogue, but not a line-for-line copy of the
+#                   official normalizer.
+#         REQUIRES faster-whisper, which is NOT installed by default:
+#         espnet's tools/installers/install_versa.sh installs VERSA with the
+#         "[audio]" extra only. Run VERSA's own tools/install_fwhisper.sh
+#         inside the cloned tools/versa checkout before the measure stage.
+#         That installer also clones VERSA from main unpinned, so if
+#         fwhisper_wer is unrecognised, the checkout predates the metric and
+#         needs updating.
+#
+#   UTMOS official: UTMOS22 strong learner via torch.hub.
+#         here:     VERSA pseudo_mos with the utmos predictor, which is the
+#                   same model. dnsmos is deliberately NOT requested: it is not
+#                   part of the official protocol.
+#
+#   SIM   official: ECAPA_TDNN_SMALL(feat_dim=1024, feat_type="wavlm_large")
+#                   with UniSpeech's wavlm_large_finetune.pth, cosine
+#                   similarity at 16 kHz.
+#         here:     KNOWN DEVIATION. VERSA's speaker metric chooses a backend
+#                   from the model tag (resolve_speaker_backend in
+#                   versa/utterance_metrics/speaker.py): an "espnet/" tag
+#                   loads through espnet2.bin.spk_inference.Speech2Embedding,
+#                   and any other tag through HuggingFace
+#                   AutoModelForAudioXVector. The official
+#                   wavlm_large_finetune.pth fits NEITHER backend, because of
+#                   what that file is: a raw ECAPA_TDNN_SMALL state dict, not
+#                   a HuggingFace AutoModelForAudioXVector repo. So VERSA
+#                   still cannot load the official checkpoint, even though it
+#                   is not restricted to ESPnet-SPK models.
+#                   voxcelebs12_ecapa_wavlm_joint is the nearest match,
+#                   sharing the ECAPA architecture and WavLM-large front-end
+#                   but trained differently.
+#                   CONSEQUENCE: SIM here tracks relative quality across
+#                   checkpoints correctly, but its absolute scale is NOT
+#                   comparable to arXiv 2410.06885 Table 9. Paper-comparable
+#                   SIM still requires running the official scorer externally.
+#
+# The SIM comparison is generated-vs-prompt (the SIM-o definition) by
+# construction: src/inference.py's build_output sets `ref` to `ref_wav_path`,
+# which LibriSpeechPCDataset sets to the manifest's pinned prompt wav.
+dataset:
+  test:
+    - name: librispeech_pc
+
+metrics:
+  - metric:
+      _target_: src.metrics.versa.VersaMetric
+      score_config:
+        - name: fwhisper_wer
+          model_tag: large-v3
+          beam_size: 5
+          compute_type: float16
+          text_cleaner: whisper_basic
+        - name: speaker
+          model_tag: espnet/voxcelebs12_ecapa_wavlm_joint
+        - name: pseudo_mos
+          predictor_types: [utmos]
+          predictor_args:
+            utmos:
+              fs: 16000
+      wav_key:  wav
+      ref_key:  ref
+      text_key: text
+      use_gpu:  true
+    inputs:
+      wav:  wav
+      ref:  ref
+      text: text
