@@ -1,0 +1,39 @@
+builder:
+  # Environment variable pointing to the AudioSet root, used when
+  # `create_dataset.source_dir` is not set.
+  source_env_var: AUDIOSET
+  # Segment lists (under the AudioSet root) and the directory holding their
+  # downloaded `<YTID>.wav` clips. Train lists are concatenated in this order,
+  # matching egs2/audioset/ssl1.
+  segment_lists:
+    eval:
+      - csv_path: eval_segments.csv
+        wav_dir: eval_wav
+    train:
+      - csv_path: unbalanced_train_segments.csv
+        wav_dir: unbalanced_wav
+      - csv_path: balanced_train_segments.csv
+        wav_dir: balance_wav
+  # Utterance id prefix per split (egs2: as2m_20k-AudioSet-<n>, as2m_20k-eval-<n>).
+  utt_id_prefixes:
+    train: as2m_20k-AudioSet
+    eval: as2m_20k-eval
+  # Clips whose segment is shorter than this are cut to the segment length.
+  clip_seconds: 10.0
+  # Existing cut clips are reused from `<AudioSet root>/<cut_wav_dir>`; new ones
+  # are written under `<recipe_dir>/<data_path>/<cut_wav_dir>`.
+  cut_wav_dir: cut_wav
+  # Duration filter applied to the actual audio files (exclusive bounds).
+  min_wav_duration: 0.1
+  max_wav_duration: 11.0
+  sample_rate: 16000
+  num_workers: 16
+  data_path: data
+  manifest_paths:
+    train: manifest/train.tsv
+    eval: manifest/eval.tsv
+
+dataset:
+  supported_splits:
+    - train
+    - eval

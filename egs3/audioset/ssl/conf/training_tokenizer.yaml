@@ -1,0 +1,16 @@
+##########################################################
+#               TOKENIZER TRAINING SETTING               #
+##########################################################
+# BEATs base VQ tokenizer on AudioSet-2M (egs2 `conf/tok_beats_base.yaml` +
+# `conf/ds_beats_tok.json`). Iteration, teacher, fbank statistics, and paths
+# come from `--training_config`.
+
+dataset:
+  train:
+    - data_src_args:
+        split: train
+        recipe_dir: ${recipe_dir}
+  valid:
+    - data_src_args:
+        split: eval
+        recipe_dir: ${recipe_dir}
