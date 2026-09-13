@@ -1,0 +1,49 @@
+##########################################################
+#               TOKENIZER TRAINING SETTING               #
+##########################################################
+# Tiny BEATs tokenizer for CI. The architecture must match the teacher in
+# conf/training.yaml.
+
+dataset:
+  train:
+    - data_src_args:
+        split: train
+        recipe_dir: ${recipe_dir}
+  valid:
+    - data_src_args:
+        split: valid
+        recipe_dir: ${recipe_dir}
+
+model:
+  encoder_conf:
+    tokenizer_config:
+      encoder_layers: 1
+      encoder_embed_dim: 32
+      encoder_ffn_embed_dim: 64
+      encoder_attention_heads: 2
+      embed_dim: 32
+      conv_pos: 16
+      conv_pos_groups: 2
+      decoder_embed_dim: 32
+      decoder_attention_heads: 2
+      decoder_layers: 1
+      codebook_vocab_size: 16
+      quant_n: 16
+      quant_dim: 8
+      relative_position_embedding: false
+      gru_rel_pos: false
+
+dataloader:
+  train:
+    iter_factory:
+      num_workers: 0
+      batches:
+        batch_bins: 2000
+
+trainer:
+  accelerator: cpu
+  precision: 32
+  max_epochs: 1
+  limit_train_batches: 2
+  limit_val_batches: 1
+  log_every_n_steps: 1
