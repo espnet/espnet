@@ -1,3 +1,5 @@
+import pytest
+import torch
 from omegaconf import OmegaConf
 
 import espnet3.systems.base.training as train_mod
@@ -142,6 +144,60 @@ def test_instantiate_model_with_task_calls_get_espnet_model(monkeypatch):
     assert result == "espnet_model"
     assert calls["task"] == "asr"
     assert calls["model_config"]["_target_"] == "dummy.Model"
+
+
+def test_freeze_parameters_matches_prefix_boundaries():
+    model = torch.nn.ModuleDict(
+        {
+            "teacher": torch.nn.Linear(2, 2),
+            "teacher_head": torch.nn.Linear(2, 2),
+            "encoder": torch.nn.Linear(2, 2),
+        }
+    )
+
+    train_mod._freeze_parameters(model, ["teacher"])
+
+    frozen = {name for name, p in model.named_parameters() if not p.requires_grad}
+    assert frozen == {"teacher.weight", "teacher.bias"}
+
+
+def test_freeze_parameters_rejects_unknown_prefix():
+    model = torch.nn.ModuleDict({"encoder": torch.nn.Linear(2, 2)})
+
+    with pytest.raises(ValueError, match="does not match"):
+        train_mod._freeze_parameters(model, ["teacher"])
+
+
+def test_build_trainer_applies_freeze_param(tmp_path, monkeypatch):
+    cfg = OmegaConf.create(
+        {
+            "exp_dir": str(tmp_path / "exp"),
+            "trainer": {"max_epochs": 1},
+            "best_model_criterion": [["valid/loss", 1, "min"]],
+            "freeze_param": ["teacher"],
+            "model": {"_target_": "dummy.Model"},
+        }
+    )
+    model = torch.nn.ModuleDict(
+        {"teacher": torch.nn.Linear(2, 2), "encoder": torch.nn.Linear(2, 2)}
+    )
+    seen = {}
+
+    def fake_lit_module(model_arg, config):
+        seen["frozen"] = {
+            name for name, p in model_arg.named_parameters() if not p.requires_grad
+        }
+        return "lit_model"
+
+    monkeypatch.setattr(train_mod, "_instantiate_model", lambda _cfg: model)
+    monkeypatch.setattr(train_mod, "ESPnetLightningModule", fake_lit_module)
+    monkeypatch.setattr(
+        train_mod, "ESPnet3LightningTrainer", lambda **kwargs: DummyTrainer()
+    )
+
+    _build_trainer(cfg)
+
+    assert seen["frozen"] == {"teacher.weight", "teacher.bias"}
 
 
 def test_build_trainer_assembles_components(tmp_path, monkeypatch):

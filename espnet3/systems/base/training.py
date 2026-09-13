@@ -28,8 +28,29 @@ def _instantiate_model(config: DictConfig) -> Any:
     return instantiate(config.model)
 
 
+def _freeze_parameters(model: torch.nn.Module, prefixes) -> None:
+    """Disable gradients for parameters matching ``freeze_param`` prefixes.
+
+    Mirrors ESPnet2's ``--freeze_param``: a prefix ``teacher`` freezes
+    ``teacher`` itself and every parameter under ``teacher.``. Frozen
+    parameters are skipped when the optimizer is built.
+    """
+    for prefix in prefixes or []:
+        matched = False
+        for name, param in model.named_parameters():
+            if name == prefix or name.startswith(prefix + "."):
+                param.requires_grad = False
+                matched = True
+        if not matched:
+            raise ValueError(
+                f"freeze_param entry {prefix!r} does not match any model parameter."
+            )
+        logger.info("Froze parameters under %r", prefix)
+
+
 def _build_trainer(config: DictConfig) -> ESPnet3LightningTrainer:
     model = _instantiate_model(config)
+    _freeze_parameters(model, config.get("freeze_param"))
     lit_model = ESPnetLightningModule(model, config)
     trainer = ESPnet3LightningTrainer(
         model=lit_model,
