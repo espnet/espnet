@@ -14,6 +14,8 @@ from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.train.preprocessor import AbsPreprocessor
 from espnet2.utils.yaml_no_alias_safe_dump import yaml_no_alias_safe_dump
 
+logger = logging.getLogger(__name__)
+
 
 def _is_abs_preprocessor_config(preprocess_config) -> bool:
     """Return True when the config targets an ESPnet AbsPreprocessor."""
@@ -108,22 +110,18 @@ def save_espnet_config(
         if isinstance(v, tuple):
             default_config[k] = list(v)
 
-    # Inline a path-valued `token_list`. ESPnet2 does this inside
-    # `build_model()` -- "Overwriting token_list to keep it as portable" -- and
-    # dumps the config afterwards, so its saved config carries the tokens
-    # themselves. Here the config is written before the model is built, so
-    # without this the packed bundle keeps a path that only exists on the
-    # machine that trained it.
+    # ESPnet2 inlines this inside `build_model()`, which runs after this function.
+    # Without it the saved config keeps a path that only exists on this machine.
     token_list = default_config.get("token_list")
     if isinstance(token_list, str):
         token_list_path = Path(token_list)
         if token_list_path.is_file():
             default_config["token_list"] = [
-                line.rstrip("\n")
+                line.rstrip()
                 for line in token_list_path.read_text(encoding="utf-8").splitlines()
             ]
         else:
-            logging.warning(
+            logger.warning(
                 "token_list path does not exist, leaving it unresolved in the "
                 "saved config: %s",
                 token_list,
