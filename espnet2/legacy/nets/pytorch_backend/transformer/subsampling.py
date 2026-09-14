@@ -75,6 +75,55 @@ def _subsample_mask(x_mask, out_time, convs):
     return mask.to(dtype=x_mask.dtype).unsqueeze(1)
 
 
+def _receptive_field_and_stride(convs):
+    """Time-axis receptive field and total stride of stacked (kernel, stride) convs."""
+    receptive_field, stride = 1, 1
+    for kernel_size, s in convs:
+        receptive_field += (kernel_size - 1) * stride
+        stride *= s
+    return receptive_field, stride
+
+
+def _conv2d_project(module, x, convs):
+    """Apply ``module.conv`` and ``module.out`` to ``x`` (#batch, time, idim).
+
+    At inference a batch is usually padded with one repeated frame: zeros that
+    the normalization turns into a fixed log-mel row, or, for a model such as
+    OWSM that pads every input to 30 s, a long run of them. A convolution over
+    identical frames gives identical outputs, so when every utterance of the
+    batch ends in such a run, the convolutions are computed only up to the
+    first output frame whose receptive field lies inside the run, and that
+    frame is repeated for the rest. Frames whose receptive field touches real
+    content are computed as usual, so the result is that of the full
+    computation. The check is one comparison of every frame with the last one.
+    The full computation is used in training mode, when the tail is not
+    constant, and when ``module.skip_constant_tail`` is set to False.
+
+    ``convs`` lists the time-axis ``(kernel_size, stride)`` of ``module.conv``.
+    """
+    if not module.training and getattr(module, "skip_constant_tail", True):
+        time = x.size(1)
+        same_as_last = (x == x[:, -1:, :]).all(dim=2)  # (#batch, time)
+        trailing = same_as_last.flip(1).to(torch.int64).cumprod(1).sum(1)
+        first_pad = int((time - trailing).max())
+        receptive_field, stride = _receptive_field_and_stride(convs)
+        t_crop = min(time, first_pad + receptive_field + stride)
+        if t_crop < time:
+            out_time = time
+            for kernel_size, s in convs:
+                out_time = _conv_out_length(out_time, kernel_size, s)
+            y = module.conv(x[:, :t_crop].unsqueeze(1))
+            b, c, t, f = y.size()
+            y = module.out(y.transpose(1, 2).contiguous().view(b, t, c * f))
+            if t < out_time:
+                y = torch.cat([y, y[:, -1:, :].expand(b, out_time - t, -1)], dim=1)
+            return y
+    x = x.unsqueeze(1)  # (b, c, t, f)
+    x = module.conv(x)
+    b, c, t, f = x.size()
+    return module.out(x.transpose(1, 2).contiguous().view(b, t, c * f))
+
+
 def _upgrade_legacy_subsampling_state_dict(state_dict, prefix):
     """Remap legacy nn.Sequential keys for subsampling modules."""
     w_new = prefix + "out.weight"
@@ -471,10 +520,7 @@ class Conv2dSubsampling(torch.nn.Module):
                 where time' = time // 4.
 
         """
-        x = x.unsqueeze(1)  # (b, c, t, f)
-        x = self.conv(x)
-        b, c, t, f = x.size()
-        x = self.out(x.transpose(1, 2).contiguous().view(b, t, c * f))
+        x = _conv2d_project(self, x, ((3, 2), (3, 2)))
         if x_mask is not None:
             x_mask = _subsample_mask(x_mask, x.size(1), ((3, 2), (3, 2)))
 
@@ -573,10 +619,7 @@ class Conv2dSubsampling1(torch.nn.Module):
                 where time' = time - 4.
 
         """
-        x = x.unsqueeze(1)  # (b, c, t, f)
-        x = self.conv(x)
-        b, c, t, f = x.size()
-        x = self.out(x.transpose(1, 2).contiguous().view(b, t, c * f))
+        x = _conv2d_project(self, x, ((3, 1), (3, 1)))
         if x_mask is not None:
             x_mask = _subsample_mask(x_mask, x.size(1), ((3, 1), (3, 1)))
 
@@ -675,10 +718,7 @@ class Conv2dSubsampling2(torch.nn.Module):
                 where time' = time // 2.
 
         """
-        x = x.unsqueeze(1)  # (b, c, t, f)
-        x = self.conv(x)
-        b, c, t, f = x.size()
-        x = self.out(x.transpose(1, 2).contiguous().view(b, t, c * f))
+        x = _conv2d_project(self, x, ((3, 2), (3, 1)))
         if x_mask is not None:
             x_mask = _subsample_mask(x_mask, x.size(1), ((3, 2), (3, 1)))
 
@@ -777,10 +817,7 @@ class Conv2dSubsampling6(torch.nn.Module):
                 where time' = time // 6.
 
         """
-        x = x.unsqueeze(1)  # (b, c, t, f)
-        x = self.conv(x)
-        b, c, t, f = x.size()
-        x = self.out(x.transpose(1, 2).contiguous().view(b, t, c * f))
+        x = _conv2d_project(self, x, ((3, 2), (5, 3)))
         if x_mask is not None:
             x_mask = _subsample_mask(x_mask, x.size(1), ((3, 2), (5, 3)))
 
@@ -870,10 +907,7 @@ class Conv2dSubsampling8(torch.nn.Module):
                 where time' = time // 8.
 
         """
-        x = x.unsqueeze(1)  # (b, c, t, f)
-        x = self.conv(x)
-        b, c, t, f = x.size()
-        x = self.out(x.transpose(1, 2).contiguous().view(b, t, c * f))
+        x = _conv2d_project(self, x, ((3, 2), (3, 2), (3, 2)))
         if x_mask is not None:
             x_mask = _subsample_mask(x_mask, x.size(1), ((3, 2), (3, 2), (3, 2)))
 
