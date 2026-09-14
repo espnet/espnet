@@ -7,12 +7,12 @@
 #      <repo_root>/model_cache/owsm_v4_medium_1B/
 #   2. Patch the checkpoint and generate the extended token list:
 #        python local/init_new_tokens.py \
-#          --src_ckpt  ../../../../model_cache/owsm_v4_medium_1B/exp/.../valid.loss.best.pth \
-#          --out_ckpt  ../../../../model_cache/owsm_v4_medium_1B_nahuatl/valid.loss.best.pth \
-#          --src_config ../../../../model_cache/owsm_v4_medium_1B/exp/.../config.yaml \
+#          --src_ckpt  ../../../model_cache/owsm_v4_medium_1B/exp/.../valid.loss.best.pth \
+#          --out_ckpt  ../../../model_cache/owsm_v4_medium_1B_nahuatl/valid.loss.best.pth \
+#          --src_config ../../../model_cache/owsm_v4_medium_1B/exp/.../config.yaml \
 #          --out_token_list data/token_list/bpe_unigram50000/tokens.txt \
-#          --src_bpe   ../../../../model_cache/owsm_v4_medium_1B/data/token_list/bpe_unigram50000/bpe.model \
-#          --out_bpe   ../../../../model_cache/owsm_v4_medium_1B_nahuatl/data/token_list/bpe_unigram50000/bpe.model
+#          --src_bpe   ../../../model_cache/owsm_v4_medium_1B/data/token_list/bpe_unigram50000/bpe.model \
+#          --out_bpe   ../../../model_cache/owsm_v4_medium_1B_nahuatl/data/token_list/bpe_unigram50000/bpe.model
 #   3. Prepare the HuggingFace dataset and run local/data.sh (Stage 1).
 #
 # Quick usage:
@@ -37,8 +37,8 @@ test_sets="nahuatl_hidalgo_test nahuatl_orizaba_zongolica_test nahuatl_zacatlan_
 
 s2t_config="conf/train.yaml"
 
-MODEL_DIR=$(realpath "../../../../model_cache/owsm_v4_medium_1B_nahuatl")
-UPSTREAM_DIR=$(realpath "../../../../model_cache/owsm_v4_medium_1B")
+MODEL_DIR=$(realpath "../../../model_cache/owsm_v4_medium_1B_nahuatl")
+UPSTREAM_DIR=$(realpath "../../../model_cache/owsm_v4_medium_1B")
 UPSTREAM_FEATS_STATS="$UPSTREAM_DIR/exp/s2t_stats_raw_bpe50000/train/feats_stats.npz"
 # Use the PATCHED BPE model, which adds the three region tokens as SentencePiece
 # user-defined symbols so they tokenize as single pieces (id 50002-50004) instead

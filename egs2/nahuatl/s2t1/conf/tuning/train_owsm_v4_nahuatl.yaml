@@ -31,7 +31,7 @@ scheduler_conf:
 
 # ── Patched checkpoint (3 new region-token rows added) ─────────────────────
 init_param:
-    - "../../../../model_cache/owsm_v4_medium_1B_nahuatl/valid.loss.best.pth"
+    - "../../../model_cache/owsm_v4_medium_1B_nahuatl/valid.loss.best.pth"
 
 # ── CTC ────────────────────────────────────────────────────────────────────
 ctc_conf:
