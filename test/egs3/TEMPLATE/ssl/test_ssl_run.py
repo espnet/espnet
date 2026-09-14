@@ -118,3 +118,22 @@ def test_main_requires_tokenizer_config_after_iteration_0(tmp_path):
 def _write(path, text):
     path.write_text(text, encoding="utf-8")
     return path
+
+
+@pytest.mark.parametrize(
+    "config_name, final_lr",
+    [("training.yaml", 1.0e-5), ("training_tokenizer.yaml", 1.0e-6)],
+)
+def test_scheduler_holds_final_lr_after_400k_steps(config_name, final_lr):
+    import torch
+    from hydra.utils import instantiate
+
+    config = load_default_config(config_name, "egs3.TEMPLATE.ssl")
+    optimizer = torch.optim.AdamW(
+        [torch.nn.Parameter(torch.zeros(1))], lr=config.optimizer.lr
+    )
+    scheduler = instantiate(config.scheduler, optimizer=optimizer, _convert_="all")
+
+    for step in (400_000, 400_001, 1_000_000):
+        scheduler.last_epoch = step - 1
+        assert scheduler.get_lr()[0] == pytest.approx(final_lr)

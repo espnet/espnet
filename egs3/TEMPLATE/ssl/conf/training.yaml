@@ -130,7 +130,7 @@ model:
 #            OPTIMIZER & SCHEDULER SETTING               #
 ##########################################################
 # Equivalent of egs2 `conf/ds_beats.json`: AdamW, linear warmup from 1e-5 to
-# 5e-4 over 32k steps, then linear decay back to 1e-5 at 400k steps.
+# 5e-4 over 32k steps, then linear decay back to 1e-5 at 400k steps (held afterwards).
 optimizer:
   _target_: torch.optim.AdamW
   lr: 5.0e-4
@@ -140,8 +140,11 @@ optimizer:
 
 scheduler:
   _target_: espnet2.schedulers.piecewise_linear_warmup_lr.PiecewiseLinearWarmupLR
-  warmup_steps_list: [0, 32000, 400000]
-  warmup_lr_list: [1.0e-5, 5.0e-4, 1.0e-5]
+  # The last point holds the final LR after 400K steps, like DeepSpeed's
+  # WarmupDecayLR. Without it, PiecewiseLinearWarmupLR switches to an
+  # inverse-sqrt decay from the base LR and the LR jumps ~50x.
+  warmup_steps_list: [0, 32000, 400000, 1000000000]
+  warmup_lr_list: [1.0e-5, 5.0e-4, 1.0e-5, 1.0e-5]
 
 scheduler_interval: step
 scheduler_monitor:
