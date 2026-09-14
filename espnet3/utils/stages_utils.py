@@ -17,6 +17,10 @@ from espnet3.utils.logging_utils import (
 
 logger = logging.getLogger(__name__)
 
+# Stages that may run a (multi-process) Lightning fit, where every rank executes
+# the stage and per-rank log handling is needed.
+_TRAINING_STAGES = ("train", "train_tokenizer")
+
 _RANK_ENV_KEYS = (
     "RANK",
     "LOCAL_RANK",
@@ -149,7 +153,7 @@ def run_stages(
             log_dir = stage_log_dirs.get(stage) or stage_log_dirs.get("default")
             filename = f"{stage}.log"
 
-            if stage == "train":
+            if stage in _TRAINING_STAGES:
                 # stage_log_mode controls per-rank logging: "rank0" or "per_rank".
                 # rank0 avoids multi-process rotation races;
                 # per_rank writes per-rank logs.
