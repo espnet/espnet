@@ -1,0 +1,27 @@
+builder:
+  # Hugging Face dataset holding the segmented ACE-Opencpop corpus.
+  hf_repo_id: espnet/ace-opencpop-segments
+  dataset_path: downloads/ace-opencpop-segments
+  data_path: data
+  # Target sampling rate of the written wav files. The Hub audio is 48 kHz;
+  # egs2/acesinger/svs1 trains at 44.1 kHz and so does this recipe.
+  fs: 44100
+  # Songs skipped from the training split, as in egs2/acesinger/svs1
+  # (local/data_prep.py drops every segment of song 2026).
+  skip_songs:
+    - "2026"
+  num_workers: 16
+  splits:
+    train: train
+    valid: validation
+    test: test
+  manifest_paths:
+    train: manifest/train.tsv
+    valid: manifest/valid.tsv
+    test: manifest/test.tsv
+
+dataset:
+  split_manifest_paths:
+    train: manifest/train.tsv
+    valid: manifest/valid.tsv
+    test: manifest/test.tsv
