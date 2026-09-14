@@ -115,6 +115,36 @@ def test_main_requires_tokenizer_config_after_iteration_0(tmp_path):
         main(args=args, system_cls=object)
 
 
+def test_main_accepts_external_tokenizer_without_tokenizer_config(tmp_path):
+    training = _write(tmp_path / "training.yaml", "iteration: 1\n")
+    inference = _write(
+        tmp_path / "inference.yaml",
+        "model:\n  tokenizer_ckpt_path: /external/beats_tokenizer.pt\n",
+    )
+    args = Namespace(
+        stages=["infer"],
+        training_config=training,
+        train_tokenizer_config=None,
+        inference_config=inference,
+        dry_run=True,
+        write_requirements=False,
+    )
+    systems = []
+
+    class RecordingSystem:
+        stage_log_dirs = {"default": tmp_path}
+
+        def __init__(self, **configs):
+            systems.append(configs)
+
+        def infer(self):
+            raise AssertionError("dry_run must not execute stages")
+
+    main(args=args, system_cls=RecordingSystem)
+
+    assert systems and systems[0]["train_tokenizer_config"] is None
+
+
 def _write(path, text):
     path.write_text(text, encoding="utf-8")
     return path

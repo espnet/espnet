@@ -8,7 +8,7 @@ import logging
 from pathlib import Path
 from typing import List, Sequence
 
-from omegaconf import DictConfig
+from omegaconf import DictConfig, OmegaConf
 
 from espnet3.utils.config_utils import load_and_merge_config
 from espnet3.utils.logging_utils import configure_logging
@@ -161,11 +161,15 @@ def main(args, system_cls, stages: Sequence[str] = DEFAULT_STAGES) -> None:
         missing.append("infer (--inference_config)")
     iteration = int(training_config.get("iteration", 0) or 0)
     if iteration > 0 and train_tokenizer_config is None:
-        missing.extend(
-            f"{stage} (--train_tokenizer_config)"
-            for stage in ("train_tokenizer", "infer")
-            if stage in stages_to_run
+        if "train_tokenizer" in stages_to_run:
+            missing.append("train_tokenizer (--train_tokenizer_config)")
+        # infer only needs it to locate the trained tokenizer; an explicit
+        # inference_config.model.tokenizer_ckpt_path (external tokenizer) does not.
+        external_tokenizer = inference_config is not None and OmegaConf.select(
+            inference_config, "model.tokenizer_ckpt_path"
         )
+        if "infer" in stages_to_run and not external_tokenizer:
+            missing.append("infer (--train_tokenizer_config)")
     if missing:
         raise ValueError("Config not provided for stage(s): " + ", ".join(missing))
 
