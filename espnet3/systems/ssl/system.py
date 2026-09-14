@@ -186,8 +186,8 @@ class BeatsSystem(BaseSystem):
             teacher,
             config.exp_dir,
         )
-        run_training(config)
-        return self._export_on_rank_zero(config.exp_dir, output_path)
+        trainer = run_training(config)
+        return self._export_on_rank_zero(config.exp_dir, output_path, trainer)
 
     def infer(self, *args, **kwargs):
         """Tokenize the configured test sets into BEATs training targets.
@@ -236,21 +236,23 @@ class BeatsSystem(BaseSystem):
         """Train the BEATs encoder and export ``beats_encoder_iter<N>.pt``."""
         self._reject_stage_args("train", args, kwargs)
         self._ensure_token_list()
-        super().train()
+        trainer = super().train()
         return self._export_on_rank_zero(
-            self.training_config.exp_dir, self.get_encoder_checkpoint_path()
+            self.training_config.exp_dir,
+            self.get_encoder_checkpoint_path(),
+            trainer,
         )
 
     # ---------------------------------------------------------
     # Helpers
     # ---------------------------------------------------------
     @staticmethod
-    def _export_on_rank_zero(exp_dir, output_path) -> Path | None:
+    def _export_on_rank_zero(exp_dir, output_path, trainer) -> Path | None:
         # Lightning's DDP launcher runs this stage in every rank; only the
         # global rank 0 writes the exported checkpoint.
         if rank_zero_only.rank != 0:
             return None
-        return export_beats_checkpoint(exp_dir, output_path)
+        return export_beats_checkpoint(exp_dir, output_path, trainer=trainer)
 
     def _validate_target_dir(self) -> None:
         if self.training_config is None:

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import List
+from typing import Any, List
 
 from espnet2.beats.generate_beats_checkpoint import convert_checkpoint
 
@@ -12,44 +12,51 @@ logger = logging.getLogger(__name__)
 
 # Monitors tried in order: loss first, because BEATs accuracy is noisy and
 # tokenizer training reports no accuracy.
-_MONITOR_SUFFIXES = ("valid.loss", "valid.acc")
+_MONITORS = ("valid/loss", "valid/acc")
 
 
-def resolve_best_checkpoints(exp_dir: str | Path) -> List[Path]:
-    """Resolve the top-K checkpoints of an ESPnet3 experiment directory.
+def resolve_best_checkpoints(trainer: Any) -> List[Path]:
+    """Resolve the top-K checkpoints kept by a finished training run.
 
-    ESPnet3 keeps the ``best_model_criterion`` top-K models as
-    ``epoch<E>_step<S>_<monitor>.ckpt`` (weights only) and deletes the others,
-    so the files on disk are exactly the current top-K. They are used instead
-    of ``<monitor>.ave_<K>best.pth``, which is written before Lightning updates
-    the top-K and therefore misses the last validation.
+    The checkpoints come from the run's own ``ModelCheckpoint`` callbacks
+    (``best_k_models``), not from a directory listing: a run restarted in the
+    same ``exp_dir`` without resuming leaves the previous run's checkpoints in
+    place, and those must never be averaged into this run's export. They are
+    used instead of ``<monitor>.ave_<K>best.pth``, which is written before
+    Lightning updates the top-K and therefore misses the last validation.
 
     Args:
-        exp_dir: Training ``exp_dir`` of an encoder or tokenizer run.
+        trainer: Trainer returned by :func:`espnet3.systems.base.training.train`,
+            or a ``lightning.Trainer``.
 
     Returns:
-        List[Path]: Checkpoints of the first monitor in
-        ``valid/loss``, ``valid/acc`` that has any, sorted by name.
+        List[Path]: Checkpoints of the first monitor in ``valid/loss``,
+        ``valid/acc`` that kept any, sorted by name.
 
     Raises:
-        FileNotFoundError: If no top-K checkpoint exists, typically because
-            training has not validated yet or ``best_model_criterion`` monitors
-            neither ``valid/loss`` nor ``valid/acc``.
+        FileNotFoundError: If no monitored checkpoint was kept, typically
+            because training has not validated yet or ``best_model_criterion``
+            monitors neither ``valid/loss`` nor ``valid/acc``.
     """
-    exp_root = Path(exp_dir)
-    for suffix in _MONITOR_SUFFIXES:
-        checkpoints = sorted(exp_root.glob(f"epoch*_step*_{suffix}.ckpt"))
-        if checkpoints:
-            return checkpoints
+    lightning_trainer = getattr(trainer, "trainer", trainer)
+    kept = {
+        callback.monitor: callback.best_k_models
+        for callback in getattr(lightning_trainer, "checkpoint_callbacks", [])
+        if getattr(callback, "monitor", None) and callback.best_k_models
+    }
+    for monitor in _MONITORS:
+        if monitor in kept:
+            return sorted(Path(path) for path in kept[monitor])
     raise FileNotFoundError(
-        f"No top-K checkpoint under {exp_root}: expected "
-        "epoch<E>_step<S>_valid.loss.ckpt or epoch<E>_step<S>_valid.acc.ckpt."
+        "This training run kept no checkpoint for "
+        f"{' or '.join(_MONITORS)}; monitored checkpoints: {sorted(kept)}."
     )
 
 
 def export_beats_checkpoint(
     exp_dir: str | Path,
     output_path: str | Path,
+    trainer: Any = None,
     checkpoint_paths: List[str | Path] | None = None,
 ) -> Path:
     """Average top-K checkpoints into a portable BEATs checkpoint.
@@ -64,15 +71,22 @@ def export_beats_checkpoint(
         exp_dir: Training ``exp_dir``. Must contain ``config.yaml`` written by
             the training stage (``save_espnet_config``).
         output_path: Destination ``.pt`` file. Overwritten if it exists.
-        checkpoint_paths: Lightning checkpoints to average. When ``None``,
-            :func:`resolve_best_checkpoints` picks them.
+        trainer: Trainer that just finished this run, used to resolve the
+            checkpoints to average. Required unless ``checkpoint_paths`` is
+            given.
+        checkpoint_paths: Explicit Lightning checkpoints to average, bypassing
+            :func:`resolve_best_checkpoints`.
 
     Returns:
         Path: ``output_path``.
 
     Raises:
-        FileNotFoundError: If ``config.yaml`` or the checkpoints are missing.
+        FileNotFoundError: If ``config.yaml`` is missing or the run kept no
+            monitored checkpoint.
+        ValueError: If neither ``trainer`` nor ``checkpoint_paths`` is given.
     """
+    if trainer is None and checkpoint_paths is None:
+        raise ValueError("export_beats_checkpoint needs trainer or checkpoint_paths.")
     exp_root = Path(exp_dir)
     config_path = exp_root / "config.yaml"
     if not config_path.is_file():
@@ -82,7 +96,7 @@ def export_beats_checkpoint(
         for path in (
             checkpoint_paths
             if checkpoint_paths is not None
-            else resolve_best_checkpoints(exp_root)
+            else resolve_best_checkpoints(trainer)
         )
     ]
     output = Path(output_path)

@@ -104,8 +104,10 @@ def test_train_saves_config_and_calls_fit(tmp_path, monkeypatch):
     )
     monkeypatch.setattr(train_mod, "save_espnet_config", fake_save_config)
 
-    train_mod.train(cfg)
+    returned = train_mod.train(cfg)
 
+    # The caller needs the trainer to inspect what this run produced.
+    assert returned is trainer
     assert trainer.fit_called
     assert trainer.fit_kwargs == {"max_epochs": 1}
     assert calls["parallel"] == {"backend": "dummy"}

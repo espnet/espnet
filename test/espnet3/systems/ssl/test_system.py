@@ -44,6 +44,8 @@ from espnet3.systems.ssl.system import (
 # | Test Name                                   | Description                  |
 # |---------------------------------------------|------------------------------|
 # | test_train_writes_token_list_and_exports    | Token list + encoder export. |
+# | test_train_exports_checkpoints_of_the_run   | This run's trainer reaches   |
+# |                                             | export.                      |
 # | test_train_skips_export_on_nonzero_rank     | Only rank 0 exports.         |
 # | test_collect_stats_writes_token_list        | Token list before stats.     |
 # | test_stage_rejects_arguments                | Stage args raise TypeError.  |
@@ -93,8 +95,8 @@ def _inference_config(tmp_path, iteration=0, tokenizer_ckpt_path=None):
 def exports(monkeypatch):
     calls = []
 
-    def fake_export(exp_dir, output_path):
-        calls.append((str(exp_dir), str(output_path)))
+    def fake_export(exp_dir, output_path, trainer=None):
+        calls.append((str(exp_dir), str(output_path), trainer))
         return output_path
 
     monkeypatch.setattr(sysmod, "export_beats_checkpoint", fake_export)
@@ -140,7 +142,7 @@ def test_train_tokenizer_trains_and_exports(tmp_path, monkeypatch, exports):
     teacher = tmp_path / "beats_encoder_iter0.pt"
     teacher.write_bytes(b"")
     trained = []
-    monkeypatch.setattr(sysmod, "run_training", trained.append)
+    monkeypatch.setattr(sysmod, "run_training", lambda config: trained.append(config))
     tokenizer_config = _tokenizer_config(tmp_path, teacher=str(teacher))
     system = BeatsSystem(
         training_config=_training_config(tmp_path, iteration=1),
@@ -154,6 +156,7 @@ def test_train_tokenizer_trains_and_exports(tmp_path, monkeypatch, exports):
         (
             tokenizer_config.exp_dir,
             f"{tokenizer_config.exp_dir}/beats_tokenizer_iter1.pt",
+            None,
         )
     ]
     assert (
@@ -296,8 +299,25 @@ def test_train_writes_token_list_and_exports(tmp_path, monkeypatch, exports):
     tokens = (tmp_path / "data/token_list/tokens.txt").read_text().splitlines()
     assert tokens == ["<unk>", "0", "1", "2", "3"]
     assert exports == [
-        (config.exp_dir, f"{config.exp_dir}/beats_encoder_iter0.pt"),
+        (config.exp_dir, f"{config.exp_dir}/beats_encoder_iter0.pt", None),
     ]
+
+
+def test_train_exports_checkpoints_of_the_finished_run(tmp_path, monkeypatch):
+    seen = {}
+    trainer = object()
+
+    def fake_export(exp_dir, output_path, trainer=None):
+        seen["trainer"] = trainer
+
+    monkeypatch.setattr(base_sysmod, "train", lambda config: trainer)
+    monkeypatch.setattr(sysmod, "export_beats_checkpoint", fake_export)
+    monkeypatch.setattr(sysmod.rank_zero_only, "rank", 0, raising=False)
+
+    BeatsSystem(training_config=_training_config(tmp_path)).train()
+
+    # Export must select checkpoints from this run, not from exp_dir contents.
+    assert seen["trainer"] is trainer
 
 
 def test_train_skips_export_on_nonzero_rank(tmp_path, monkeypatch, exports):

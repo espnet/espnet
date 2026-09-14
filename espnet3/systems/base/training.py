@@ -95,8 +95,12 @@ def collect_stats(config: DictConfig) -> None:
     )
 
 
-def train(config: DictConfig) -> None:
-    """Run the training loop."""
+def train(config: DictConfig) -> ESPnet3LightningTrainer:
+    """Run the training loop and return the trainer that ran it.
+
+    The returned trainer lets a caller inspect what this fit produced, for
+    example the checkpoints its ``ModelCheckpoint`` callbacks kept.
+    """
     _ensure_directories(config)
     start = time.perf_counter()
 
@@ -129,3 +133,4 @@ def train(config: DictConfig) -> None:
             else None
         ),
     )
+    return trainer
