@@ -822,8 +822,11 @@ def test_convert_to_dict_turns_a_dictconfig_into_a_plain_dict():
 
 
 def test_convert_to_dict_turns_a_listconfig_into_a_plain_list():
-    """A config list such as `mask_fraction_range: [0.7, 1.0]` must arrive as a
-    real list so the component signature can coerce it."""
+    """A ListConfig is converted into a real list.
+
+    A config list such as `mask_fraction_range: [0.7, 1.0]` must arrive as a
+    real list so the component signature can coerce it.
+    """
     result = convert_to_dict(OmegaConf.create([0.7, 1.0]))
 
     assert result == [0.7, 1.0]
@@ -831,8 +834,11 @@ def test_convert_to_dict_turns_a_listconfig_into_a_plain_list():
 
 
 def test_convert_to_dict_converts_nested_containers_too():
-    """The point of the helper is that no OmegaConf node survives into a stored
-    attribute or into checkpointed hparams."""
+    """Nested containers are converted too.
+
+    The point of the helper is that no OmegaConf node survives into a stored
+    attribute or into checkpointed hparams.
+    """
     cfg = OmegaConf.create({"mel": {"n_mels": 100, "range": [0.0, 1.0]}})
 
     result = convert_to_dict(cfg)
