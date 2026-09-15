@@ -6,7 +6,6 @@ from importlib import resources
 from pathlib import Path
 from typing import Any
 
-import kaldiio
 import numpy as np
 import soundfile as sf
 from torch.utils.data import Dataset as TorchDataset
@@ -58,11 +57,14 @@ class AudioSetDataset(TorchDataset):
         target_path: Index-keyed ``target.scp`` written by the ``infer`` stage
             for the same split.
         feats_path: Optional Kaldi ``feats.scp`` keyed by the manifest utterance
-            ids, for example an egs2 ``dump/fbank/<split>/feats.scp``.
+            ids, for example an egs2 ``dump/fbank/<split>/feats.scp``. Reading
+            one needs the optional ``kaldiio`` dependency
+            (``pip install "espnet[kaldiio]"``).
 
     Raises:
         ValueError: If ``split`` is unknown.
         FileNotFoundError: If the manifest is missing (run ``create_dataset``).
+        ImportError: If ``feats_path`` is given but ``kaldiio`` is not installed.
         KeyError: If ``feats_path`` lacks a manifest utterance id.
     """
 
@@ -92,6 +94,14 @@ class AudioSetDataset(TorchDataset):
         self._utt_ids, self._audio_paths = _read_manifest(manifest_path)
         self._feats = None
         if feats_path is not None:
+            # Optional dependency: the default waveform path does not need it.
+            try:
+                import kaldiio
+            except ImportError as err:
+                raise ImportError(
+                    "Reading feats_path requires kaldiio: "
+                    'pip install "espnet[kaldiio]".'
+                ) from err
             self._feats = kaldiio.load_scp(str(feats_path))
             missing = next((u for u in self._utt_ids if u not in self._feats), None)
             if missing is not None:

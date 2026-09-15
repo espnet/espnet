@@ -1,6 +1,7 @@
 """Tests for the AudioSet-2M BEATs dataset builder and dataset."""
 
-import kaldiio
+import builtins
+
 import numpy as np
 import pytest
 import soundfile as sf
@@ -20,6 +21,8 @@ from egs3.audioset.ssl.dataset import Dataset, DatasetBuilder
 # | test_dataset_reads_waveforms_and_targets     | Raw waveform + target join.    |
 # | test_dataset_reads_kaldi_features            | feats_path mode.               |
 # | test_dataset_rejects_unknown_split           | Unknown split raises.          |
+# | test_dataset_requires_kaldiio_for_features   | feats_path without kaldiio     |
+# |                                              | raises a pointed ImportError.  |
 
 SAMPLE_RATE = 16000
 
@@ -121,6 +124,7 @@ def test_dataset_reads_waveforms_and_targets(tmp_path):
 
 
 def test_dataset_reads_kaldi_features(tmp_path):
+    kaldiio = pytest.importorskip("kaldiio")
     feats = {"a": np.ones((98, 128), dtype=np.float32)}
     with kaldiio.WriteHelper(
         f"ark,scp:{tmp_path}/feats.ark,{tmp_path}/feats.scp"
@@ -137,3 +141,21 @@ def test_dataset_reads_kaldi_features(tmp_path):
 def test_dataset_rejects_unknown_split(tmp_path):
     with pytest.raises(ValueError, match="Unknown split"):
         Dataset("dev", recipe_dir=tmp_path)
+
+
+def test_dataset_requires_kaldiio_for_features(tmp_path, monkeypatch):
+    _write_manifest(tmp_path, "eval", [("a", "-", 98)])
+    real_import = builtins.__import__
+
+    def without_kaldiio(name, *args, **kwargs):
+        if name == "kaldiio":
+            raise ImportError("No module named 'kaldiio'")
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", without_kaldiio)
+
+    with pytest.raises(ImportError, match="espnet\\[kaldiio\\]"):
+        Dataset("eval", recipe_dir=tmp_path, feats_path=tmp_path / "feats.scp")
+
+    # The default waveform path stays importable without kaldiio.
+    assert len(Dataset("eval", recipe_dir=tmp_path)) == 1
