@@ -17,6 +17,12 @@
 # run.py, so only recipe-specific keys live here.
 
 pack_model:
+  # The template excludes every checkpoint from the bulk copy, so the one that
+  # `conf/inference.yaml` references must be registered here; `files` entries
+  # bypass `exclude` and the packed inference config is rewritten to the bundled
+  # copy. Keep this in sync with `model.model_file` in conf/inference.yaml.
+  files:
+    model_file: ${exp_dir}/epoch95_step1201215_step.ckpt
   include:
     # `conf/inference.yaml` sets `output_fn: src.inference.build_output`, so
     # the recipe `src` package must travel with the bundle.

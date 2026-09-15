@@ -26,3 +26,16 @@
 # `src` package, which the demo imports to format the model output.
 model:
   trust_user_code: true
+
+##########################################################
+#                     UI DEFINITION                      #
+##########################################################
+# `conf/inference.yaml` applies `src.inference.build_output`, which returns
+# `{utt_id, ref, wav}` instead of AudioCoding's raw `resyn_audio`, so the demo
+# must read the resynthesized waveform under `wav`. Overriding a list replaces
+# the template's list, hence the full entry.
+ui:
+  outputs:
+    - key: wav
+      type: audio
+      label: "Resynthesized Audio"

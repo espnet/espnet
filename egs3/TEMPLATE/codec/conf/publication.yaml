@@ -50,9 +50,20 @@ data_dir: ${recipe_dir}/data
 #
 #   5. `meta.yaml` is written at the bundle root.
 #
-# Neural codecs carry no tokenizer or token list, so unlike the ASR template
-# there is nothing to add under `files`/`yaml_files` by default: the codec
-# checkpoint plus the training config in `${exp_dir}` are the whole model.
+# Neural codecs carry no tokenizer or token list, so the bundle is the training
+# config in `${exp_dir}` plus ONE checkpoint. The `exclude` list below drops every
+# checkpoint from the bulk copy (`last.ckpt`, step and epoch checkpoints, the
+# `*.pth` averaging stubs), so the recipe MUST register the checkpoint that its
+# `conf/inference.yaml` `model.model_file` points at under `files`, e.g.
+#
+#   pack_model:
+#     files:
+#       model_file: ${exp_dir}/last.ckpt
+#
+# `files` entries are copied regardless of `exclude` (symlinks such as
+# `last.ckpt` are dereferenced) and `model_file` in the packed inference config
+# is rewritten to the bundled copy. Without that entry the packed config points
+# at a file that is not in the bundle and `InferenceModel.from_packed` fails.
 pack_model:
   out_dir: ${exp_dir}/model_pack
   allow_overwrite: false
@@ -73,6 +84,13 @@ pack_model:
     - inference_*
     - last.ckpt
     - "**/step*.ckpt"
+    # Per-epoch best-K checkpoints and the checkpoint-averaging stubs: a long
+    # run keeps dozens of them (~200 MB each) and none is the published model.
+    - "**/epoch*.ckpt"
+    - "**/*.pth"
+    # Earlier bundles packed into the same exp_dir; without this a second
+    # pack_model nests the first bundle inside the new one.
+    - model_pack*
     - "**/*.log"
     - "**/tensorboard/**"
     - "**/wandb/**"

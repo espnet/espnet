@@ -27,7 +27,7 @@ dataset:
 model:
   _target_: espnet2.bin.gan_codec_inference.AudioCoding
   train_config: ${exp_dir}/config.yaml
-  model_file: ${exp_dir}/last.ckpt
+  model_file: ${exp_dir}/epoch95_step1201215_step.ckpt
 
 output_fn: src.inference.build_output
 output_artifacts:

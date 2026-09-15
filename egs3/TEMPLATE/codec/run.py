@@ -188,6 +188,17 @@ def main(
     )
 
     logger = configure_logging()
+
+    # The demo config refers to `${exp_tag}` (Space name, model repo), which only
+    # the training config provides. Check before OmegaConf resolution, which
+    # would otherwise fail with an opaque InterpolationKeyError.
+    demo_stages = [s for s in stages_to_run if s in {"pack_demo", "upload_demo"}]
+    if demo_stages and training_config is None:
+        raise ValueError(
+            f"Stage(s) {', '.join(demo_stages)} require --training_config: "
+            "the demo config resolves ${exp_tag} from the training config."
+        )
+
     apply_training_experiment_context(
         training_config=training_config,
         inference_config=inference_config,
@@ -243,8 +254,8 @@ def main(
         {
             "pack_model": (training_config, publication_config),
             "upload_model": publication_config,
-            "pack_demo": demo_config,
-            "upload_demo": demo_config,
+            "pack_demo": (training_config, demo_config),
+            "upload_demo": (training_config, demo_config),
         }
     )
     missing = [
