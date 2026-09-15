@@ -7,6 +7,7 @@ lm: transformer_opt
 lm_conf:
     opt_name: facebook/opt-350m
 
+model: lm_multitask
 model_conf:
     lsm_weight: 0.1
     length_normalized_loss: true

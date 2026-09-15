@@ -44,7 +44,11 @@ from espnet2.text.build_tokenizer import build_tokenizer
 from espnet2.text.hugging_face_token_id_converter import HuggingFaceTokenIDConverter
 from espnet2.text.token_id_converter import TokenIDConverter
 from espnet2.text.whisper_token_id_converter import OpenAIWhisperTokenIDConverter
-from espnet2.torch_utils.device_funcs import to_device
+from espnet2.torch_utils.device_funcs import (
+    is_out_of_memory_error,
+    release_accelerator_memory,
+    to_device,
+)
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
 from espnet2.utils.nested_dict_action import NestedDictAction
@@ -525,7 +529,12 @@ class Speech2Text:
 
     @torch.no_grad()
     @typechecked
-    def __call__(self, speech: Union[torch.Tensor, np.ndarray]) -> Union[
+    def __call__(
+        self,
+        speech: Union[
+            torch.Tensor, np.ndarray, Sequence[Union[torch.Tensor, np.ndarray]]
+        ],
+    ) -> Union[
         ListOfHypothesis,
         List[ListOfHypothesis],
         Tuple[
@@ -536,11 +545,17 @@ class Speech2Text:
         """Inference
 
         Args:
-            data: Input speech data
+            speech: One utterance of shape `(nsamples,)`, or a list of them.
+                A list is decoded as one minibatch by :meth:`batch_decode`
+                and returns one n-best list per utterance, in the given order;
+                this is what the ESPnet3 inference runner passes when its
+                `batch_size` is set.
         Returns:
             text, token, token_int, hyp
 
         """
+        if isinstance(speech, (list, tuple)):
+            return self.batch_decode(speech)
 
         # Input as audio signal
         if isinstance(speech, np.ndarray):
@@ -721,25 +736,116 @@ class Speech2Text:
     @typechecked
     def batch_decode(
         self,
-        speech: torch.Tensor,
-        speech_lengths: torch.Tensor,
+        speech: Union[torch.Tensor, Sequence[Union[torch.Tensor, np.ndarray]]],
+        speech_lengths: Optional[torch.Tensor] = None,
     ) -> List[ListOfHypothesis]:
         """Decode a minibatch of utterances in one beam search.
 
         The whole minibatch shares a single set of decoder/LM/CTC calls, which
-        keeps the accelerator busy on short utterances. Results are identical
-        to decoding the utterances one by one with `--batch_size 1`.
+        keeps the accelerator busy on short utterances. Given the same encoder
+        output, the results are identical to decoding the utterances one by
+        one; encoders whose output depends on the padding (Conv2d subsampling,
+        the legacy relative-position attention) can differ slightly.
 
         Args:
-            speech: Padded speech of shape `(n_utt, nsamples)`.
+            speech: Padded speech of shape `(n_utt, nsamples)` together with
+                `speech_lengths`, or a list of unpadded utterances of shape
+                `(nsamples,)`, which is padded here.
             speech_lengths: Number of valid samples of each utterance,
-                of shape `(n_utt,)`.
+                of shape `(n_utt,)`. Required for a padded tensor, ignored for
+                a list.
 
         Returns:
             One n-best list of `(text, token, token_int, hyp)` per utterance,
             in the order the utterances were given.
 
+        Raises:
+            RuntimeError: When a single utterance does not fit in the
+                accelerator's memory even on its own. A *batch* that does not
+                fit is not an error: it is split in halves and retried, with a
+                warning that names the utterance lengths.
+
         """
+        if isinstance(speech, (list, tuple)):
+            waves = [
+                torch.as_tensor(w).reshape(-1).to(getattr(torch, self.dtype))
+                for w in speech
+            ]
+            speech_lengths = torch.tensor([w.numel() for w in waves], dtype=torch.long)
+            speech = torch.nn.utils.rnn.pad_sequence(waves, batch_first=True)
+        elif speech_lengths is None:
+            raise ValueError("speech_lengths is required for a padded speech tensor")
+
+        if not self._can_batch_decode():
+            # e.g. a non-batch scorer forced the plain `BeamSearch`, or a
+            # streaming / multi-speaker model: decode the utterances in turn
+            # so that a caller handing over a list still gets its results
+            if not getattr(self, "_warned_no_batch_decode", False):
+                self._warned_no_batch_decode = True
+                logger.warning(
+                    f"{type(self.beam_search).__name__} cannot decode a batch of "
+                    "utterances at once; decoding them one at a time instead."
+                )
+            results = []
+            for b in range(speech.size(0)):
+                length = int(speech_lengths[b])
+                try:
+                    results.append(self(speech[b, :length]))
+                except Exception as exc:  # noqa: BLE001 -- only an OOM is handled
+                    self._reraise_if_out_of_memory(exc, length)
+                    raise
+            return results
+
+        try:
+            return self._batch_decode_padded(speech, speech_lengths)
+        except Exception as exc:  # noqa: BLE001 -- only an OOM is handled
+            if not is_out_of_memory_error(exc):
+                raise
+            release_accelerator_memory()
+            lengths = speech_lengths.tolist()
+            n_utt = len(lengths)
+            if n_utt == 1:
+                self._reraise_if_out_of_memory(exc, lengths[0])
+            half = n_utt // 2
+            logger.warning(
+                f"Out of memory on {self.device} while decoding a batch of "
+                f"{n_utt} utterances of {lengths} samples; retrying as two "
+                f"batches of {n_utt - half} and {half}. Lower the batch size, "
+                "or sort the data by length so that long utterances are not "
+                "padded to each other, to avoid the retry."
+            )
+            results = []
+            for part in (slice(0, n_utt - half), slice(n_utt - half, n_utt)):
+                part_lengths = speech_lengths[part]
+                results += self.batch_decode(
+                    speech[part, : int(part_lengths.max())], part_lengths
+                )
+            return results
+
+    def _reraise_if_out_of_memory(self, exc: BaseException, length: int) -> None:
+        """Turn an OOM on one utterance into an error that says which one."""
+        if not is_out_of_memory_error(exc):
+            return
+        release_accelerator_memory()
+        raise RuntimeError(
+            f"Out of memory on {self.device} while decoding a single utterance "
+            f"of {length} samples, even on its own. Decode it on a device with "
+            "more memory or on the CPU, lower beam_size, or split the audio "
+            "before decoding."
+        ) from exc
+
+    def _can_batch_decode(self) -> bool:
+        """Return whether the configured search decodes several utterances at once."""
+        return (
+            type(self.beam_search) is BatchBeamSearch
+            and not self.enh_s2t_task
+            and not self.multi_asr
+        )
+
+    def _batch_decode_padded(
+        self, speech: torch.Tensor, speech_lengths: torch.Tensor
+    ) -> List[ListOfHypothesis]:
+        """Run one batched beam search over padded speech; see `batch_decode`."""
         # Some encoders (e.g. the RNN encoder, via `pack_padded_sequence`)
         # require the batch to be sorted by decreasing length. Sort here and
         # restore the caller's order at the end.

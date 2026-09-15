@@ -178,9 +178,9 @@ espnet.done: pytorch.done conda_packages.done lightning.done
 	# and the prebuilt image ships without the tagger. <prefix>/share/nltk_data
 	# is on nltk's default search path and lives inside the venv, so it is
 	# copied, and it is found without depending on who $$HOME belongs to.
-	. ./activate_python.sh && python -m nltk.downloader \
-		-d "$$(python -c 'import sys; print(sys.prefix)')/share/nltk_data" \
-		averaged_perceptron_tagger_eng
+	. ./activate_python.sh && installers/install_nltk_data.sh \
+		averaged_perceptron_tagger_eng \
+		"$$(python -c 'import sys; print(sys.prefix)')/share/nltk_data"
 	# nltk.downloader exits 0 on some failures, so check the download landed.
 	# Two things this deliberately does not do. Not nltk.data.find: that
 	# searches $$HOME too, so it passes on a machine that happens to have the

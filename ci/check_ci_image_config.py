@@ -65,14 +65,30 @@ schedule. So when install_torch.sh stopped supporting 2.7.1, the default stayed
 at 2.7.1 and the weekly docker publish failed every Monday for five months
 without a single red pull request.
 
+Tenth, every download in the CI and installer scripts must survive a transient
+failure. Almost all of them used to pass --tries=3, and that flag does not cover
+an HTTP error response at all: against a server returning 500, wget --tries=3
+makes exactly one request and exits 8. Nor does it start a fresh connection,
+which is what a failed TLS handshake needs. Asking for retries and getting none
+is worse than not asking, because the flag is right there in review.
+github.com answered one 500 for the miniforge installer and took the macOS
+install job down with it. So a shell script downloads through
+download_with_retry, and the two dockerfiles and the two `curl | bash` pipes,
+which cannot source it, carry --retry-on-http-error with the full transient set
+(a partial list retries only what it names) or curl's --fail with --retry N.
+curl needs --fail specifically: without it a 500 is not an error, so curl exits
+0 and writes the error body to the output - which, piped to a shell, runs it.
+
 And ninth, the workflow files must have no duplicate mapping keys. PyYAML
 accepts them and lets the last one win, so writing a second env: block into a
 step silently discards the first - which is exactly what nearly dropped
 GITHUB_TOKEN from the two steps that need it for torch.hub.
 """
 
+import fnmatch
 import json
 import re
+import subprocess
 import sys
 import tomllib
 from pathlib import Path
@@ -615,6 +631,284 @@ def check_declared_support_matches_variants() -> list:
     return problems
 
 
+# Where a failed download takes down a job nobody is watching. Explicit globs
+# rather than a walk: tools/ also holds the built venv and a kaldi checkout,
+# and the egs2 recipes are deliberately out of scope - a corpus download that
+# fails in front of the person who started it gets re-run.
+DOWNLOAD_SITES = (
+    "ci/*.sh",
+    "tools/Makefile",
+    "tools/*.sh",
+    "tools/installers/*.sh",
+    "docker/*.sh",
+    "docker/*.dockerfile",
+    "docker/prebuilt/*.dockerfile",
+    ".devcontainer/*/*.dockerfile",
+    ".devcontainer/*/build_image.sh",
+    ".github/workflows/*.yml",
+    ".github/actions/*/*.yml",
+)
+
+# The one wget that is allowed to stand alone, because it *is* the retry loop.
+RETRY_HELPER = Path("tools/installers/download_with_retry.sh")
+
+# wget or curl as the command being run rather than as an argument, which is
+# what keeps this off "apt-get install -y wget curl bc" and off "choco install
+# -y wget". Anything may come between in the form of an assignment prefix
+# (FOO=bar wget ...).
+COMMAND = re.compile(
+    r"""(?: ^ | [|;&(){}] | ! | \b(?:RUN|if|elif|while|until|then|do|else|
+                                   sudo|time|exec|eval)\b )
+        \s*
+        (?: [A-Za-z_][A-Za-z0-9_]* = \S* \s+ )*
+        (wget|curl) \b
+    """,
+    re.X,
+)
+
+# A trailing comment is still a comment, so cut the line at the first # that
+# starts a word. No URL can contain one - whitespace ends a URL - and ${#var}
+# is not preceded by whitespace.
+COMMENT = re.compile(r"(?:^|\s)#")
+
+# What curl calls a transient error and therefore retries. wget has to be told
+# the same set by hand, so that the two behave alike.
+TRANSIENT = ("429", "500", "502", "503", "504")
+
+# A transfer needs something to fetch, which is either a literal URL or an
+# expansion holding one. Without this, `wget --version` in the windows
+# workflow reads as an unguarded download; with it, a URL kept in a variable
+# is still checked - which is the point, since most of these scripts do that.
+HAS_TARGET = re.compile(r"https?://|\$\{?\w")
+PROBE = re.compile(r"(?:^|\s)(?:--version|--help|-V)(?:\s|$)")
+
+FAIL_FLAG = re.compile(
+    r"(?:^|\s)(?:-[A-Za-z]*f[A-Za-z]*|--fail(?:-with-body)?)(?:\s|$)"
+)
+CURL_RETRY = re.compile(r"--retry[= ](\d+)")
+WGET_RETRY = re.compile(r"--retry-on-http-error=(\S+)")
+
+# The nltk CLI, which prompts on failure and never retries.
+NLTK_CLI = re.compile(r"python[0-9.]*\s+-m\s+nltk\.downloader")
+
+
+def logical_lines(text: str) -> list:
+    """(line number, code) with comments cut and continuations joined.
+
+    A command split across physical lines is one command, and the URL is
+    routinely on the second half - so a scan of physical lines sees a download
+    with no options and a bare URL with no command, and reports neither.
+    """
+    joined, number, parts = [], None, []
+    for count, line in enumerate(text.splitlines(), 1):
+        comment = COMMENT.search(line)
+        code = line[: comment.start()] if comment else line
+        number = count if number is None else number
+        if code.rstrip().endswith("\\"):
+            parts.append(code.rstrip()[:-1])
+            continue
+        parts.append(code)
+        joined.append((number, " ".join(parts)))
+        number, parts = None, []
+    if parts:
+        joined.append((number, " ".join(parts)))
+    return joined
+
+
+def _wget_problem(line: str) -> str:
+    """Why this wget would not survive a transient response, or ""."""
+    codes = WGET_RETRY.search(line)
+    if codes is None:
+        return (
+            "no --retry-on-http-error, so a 5xx response is fatal on the "
+            "first try. --tries does not cover it: against a server "
+            "answering 500, wget --tries=3 makes one request and exits 8"
+        )
+    missing = [code for code in TRANSIENT if code not in codes.group(1).split(",")]
+    if missing:
+        return (
+            f"--retry-on-http-error={codes.group(1)} leaves "
+            f"{', '.join(missing)} fatal. Only the codes listed are retried, "
+            "so a partial list reads like a retry and is not one"
+        )
+    return ""
+
+
+def _curl_problem(line: str) -> str:
+    """Why this curl would not survive a transient response, or ""."""
+    if FAIL_FLAG.search(line) is None:
+        return (
+            "no --fail, so curl exits 0 on a 5xx and writes the error body to "
+            "the output. Measured: a server answering 500 leaves 'oops' in "
+            "the file and curl reports success - which, piped to a shell, "
+            "runs it"
+        )
+    retry = CURL_RETRY.search(line)
+    if retry is None:
+        return "no --retry, so a transient 5xx is fatal on the first try"
+    if int(retry.group(1)) < 1:
+        return f"--retry {retry.group(1)} performs no retries at all"
+    return ""
+
+
+def check_downloads_retry_on_5xx() -> list:
+    """Every CI download must survive a transient failure."""
+    problems = []
+    for glob in DOWNLOAD_SITES:
+        for path in sorted(Path().glob(glob)):
+            if path == RETRY_HELPER:
+                continue
+            for number, line in logical_lines(path.read_text()):
+                if NLTK_CLI.search(line):
+                    problems.append(
+                        f"{path}:{number}: downloads through the nltk CLI.\n"
+                        f"    {line.strip()[:120]}\n"
+                        "  `python -m nltk.downloader` calls download() with "
+                        "halt_on_error=False, so a failed download prompts "
+                        '"Retry? [n/y/e]" and reads stdin - in CI that is an '
+                        "EOFError traceback from input() with the real cause "
+                        "scrolled off above it, on the first attempt, because "
+                        "nltk has no retry. Call "
+                        "installers/install_nltk_data.sh instead."
+                    )
+                    continue
+                match = COMMAND.search(line)
+                if match is None:
+                    continue
+                if HAS_TARGET.search(line) is None or PROBE.search(line):
+                    continue
+                tool = match.group(1)
+                why = _wget_problem(line) if tool == "wget" else _curl_problem(line)
+                if not why:
+                    continue
+                problems.append(
+                    f"{path}:{number}: {tool} {why}.\n"
+                    f"    {line.strip()[:120]}\n"
+                    f"  In a shell script, call download_with_retry instead - "
+                    f"it retries on a fresh connection, which the wget flags "
+                    f"cannot do for a failed TLS handshake, and checks that "
+                    f"what came back is what was asked for."
+                )
+    return problems
+
+
+LABELER = Path(".github/labeler.yml")
+MERGIFY = Path(".mergify.yml")
+
+
+def _segments(glob: str) -> list:
+    """The glob split into path segments, with runs of `*` collapsed.
+
+    Inside a segment `**` means the same as `*` - neither crosses a `/` - so
+    collapsing the run changes no answer, and it is what keeps a segment
+    pattern from holding two adjacent `.*`.
+    """
+    return [
+        part if part == "**" else re.sub(r"\*+", "*", part) for part in glob.split("/")
+    ]
+
+
+def _after_globstars(states: set, globs: list) -> set:
+    """The states reachable by letting `**` match no segments at all."""
+    reached, pending = set(states), list(states)
+    while pending:
+        index = pending.pop()
+        if index < len(globs) and globs[index] == "**" and index + 1 not in reached:
+            reached.add(index + 1)
+            pending.append(index + 1)
+    return reached
+
+
+def _matches(globs: list, path: str) -> bool:
+    """Does this glob match this path? The subset labeler.yml uses.
+
+    Segment by segment, tracking which prefixes of the glob are still live,
+    rather than as one regular expression. `**` in a regex becomes `.*`, and
+    several of those in one pattern backtrack exponentially: the version this
+    replaces took 9.6s on a glob with eight `**/` against a 40-segment path,
+    and did not finish in 25s with sixteen. This is O(glob segments x path
+    segments) with no backtracking between segments.
+
+    It is an approximation of minimatch in one direction only - a trailing
+    `**` here also matches zero segments - which cannot matter, because the
+    question asked of it is only whether the glob matches any tracked file.
+    """
+    states = _after_globstars({0}, globs)
+    for part in path.split("/"):
+        moved = set()
+        for index in states:
+            if index >= len(globs):
+                continue
+            if globs[index] == "**":
+                moved.add(index)
+            elif fnmatch.fnmatchcase(part, globs[index]):
+                moved.add(index + 1)
+        states = _after_globstars(moved, globs)
+        if not states:
+            return False
+    return len(globs) in states
+
+
+def check_label_rules() -> list:
+    """One mechanism labels by path, and its globs must match something."""
+    if not LABELER.exists():
+        return [f"{LABELER}: missing"]
+    tracked = subprocess.run(
+        ["git", "ls-files", "-z"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if tracked.returncode != 0:
+        return [f"{LABELER}: could not list tracked files: {tracked.stderr.strip()}"]
+    paths = [path for path in tracked.stdout.split("\0") if path]
+    lines = LABELER.read_text().splitlines()
+    problems = []
+    for label, rules in yaml.safe_load(LABELER.read_text()).items():
+        for rule in rules:
+            for kind in rule.get("changed-files", []):
+                for glob in kind.get("any-glob-to-any-file", []):
+                    globs = _segments(glob)
+                    if any(_matches(globs, path) for path in paths):
+                        continue
+                    number = next(
+                        (n for n, ln in enumerate(lines, 1) if glob in ln), None
+                    )
+                    at = f":{number}" if number else ""
+                    problems.append(
+                        f"{LABELER}{at}: [{label}] matches no tracked file: {glob}\n"
+                        "  A rule that matches nothing applies its label to "
+                        "nothing, and nothing else says so. Four rules in "
+                        ".mergify.yml were written as globs where the "
+                        "condition takes a regex, so ASR, TTS, MT and LM "
+                        "matched none of the repository's paths and were "
+                        "never applied."
+                    )
+    problems += _mergify_label_rules()
+    return problems
+
+
+def _mergify_label_rules() -> list:
+    """Path-based label rules that came back to .mergify.yml."""
+    if not MERGIFY.exists():
+        return []
+    problems = []
+    for rule in yaml.safe_load(MERGIFY.read_text()).get("pull_request_rules", []):
+        conditions = [c for c in rule.get("conditions", []) if isinstance(c, str)]
+        if not any(c.startswith("files~=") for c in conditions):
+            continue
+        if "label" not in rule.get("actions", {}):
+            continue
+        problems.append(
+            f"{MERGIFY}: labels by path: {rule.get('name')!r}\n"
+            "  Path-based labelling belongs in .github/labeler.yml, which "
+            "matches globs. `files~=` here takes a regular expression, and "
+            "four rules written as globs meant ASR, TTS, MT and LM were never "
+            "applied to anything."
+        )
+    return problems
+
+
 def main() -> int:
     bad = (
         check_variants()
@@ -629,6 +923,8 @@ def main() -> int:
         + check_no_direct_references()
         + check_versions_are_built_variants()
         + check_declared_support_matches_variants()
+        + check_downloads_retry_on_5xx()
+        + check_label_rules()
     )
     for problem in bad:
         print(problem, file=sys.stderr)
@@ -643,7 +939,8 @@ def main() -> int:
             "permissions; every codecov upload has a token; pyproject declares "
             "no direct references; every python and pytorch version named "
             "outside image_variants.json is one it lists, and what the "
-            "package declares matches it; no duplicate keys"
+            "package declares matches it; every download retries on 5xx; "
+            "every labeler glob matches a tracked file; no duplicate keys"
         )
         return 0
     if bad:

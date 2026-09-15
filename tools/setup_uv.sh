@@ -3,7 +3,7 @@
 # Check pixi
 if ! command -v pixi >/dev/null 2>&1; then
     echo "pixi not found. Installing pixi..."
-    curl -fsSL https://pixi.sh/install.sh | bash
+    curl -fsSL --retry 3 https://pixi.sh/install.sh | bash
 else
     echo "pixi is already installed"
 fi
@@ -11,7 +11,7 @@ fi
 # Check uv
 if ! command -v uv >/dev/null 2>&1; then
     echo "uv not found. Installing uv..."
-    curl -fsSL https://astral.sh/uv/install.sh | bash
+    curl -fsSL --retry 3 https://astral.sh/uv/install.sh | bash
 else
     echo "uv is already installed"
 fi

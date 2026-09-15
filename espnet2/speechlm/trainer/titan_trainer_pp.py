@@ -132,7 +132,6 @@ class TitanPPTrainer(TitanTrainer):
                 self.max_norm,
                 foreach=True,
                 pp_mesh=self.parallel_dims.get_optional_mesh("pp"),
-                ep_enabled=self.parallel_dims.ep_enabled,
             )
 
             self.optimizer.step()
