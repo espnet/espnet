@@ -104,9 +104,16 @@ input_key: speech
 #
 #idx_key: utt_id
 
-# Optional batch size.
-# Set to `null` if your model or `output_fn` only supports single-item decoding.
-# batch_size: 1
+# Number of utterances decoded per model call. Consecutive dataset items form a
+# batch and are passed to the model as a list per input key.
+# `espnet2.bin.asr_inference.Speech2Text` decodes such a list in one beam
+# search, which is 1.5-2.5x faster than one utterance at a time on a GPU.
+# A long utterance next to short ones pads them all, so 4 is a safe default;
+# 8-16 pays off when the test set is roughly sorted by length. A batch that does
+# not fit in memory is split in halves and retried with a warning; a single
+# utterance that does not fit raises an error that names its length.
+# Set to `null` for a model or `output_fn` that only supports one item per call.
+batch_size: 4
 
 # Optional recipe-provided formatter that converts raw model outputs into dicts such as:
 #   {"utt_id": "...", "hyp": "..."}

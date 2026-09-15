@@ -131,6 +131,13 @@ class EMA(Module):
         coerce_dtype=False,
         lazy_init_ema=False,
     ):
+        """Initialize EMA state from vendored ``ema-pytorch`` code.
+
+        This implementation is copied from
+        `lucidrains/ema-pytorch <https://github.com/lucidrains/ema-pytorch>`_.
+        Refer to that project's documentation for the complete EMA API and
+        behavioral details; ESPnet keeps this copy to avoid a runtime dependency.
+        """
         super().__init__()
         self.beta = beta
 

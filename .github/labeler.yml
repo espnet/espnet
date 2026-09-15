@@ -1,0 +1,286 @@
+# Which label a pull request gets from the paths it touches.
+#
+# These rules used to live in .mergify.yml, where the condition is `files~=`
+# and takes a *regular expression*. Four of them were written as globs:
+# `^(espnet*/asr|egs*/*/asr1)` reads as `espne` followed by any number of `t`,
+# so ASR, TTS, MT and LM matched none of the repository's 10890 paths and had
+# never been applied. Globs are what anyone editing this file will expect, so
+# labelling moved here and mergify kept only auto-merge and conflicts.
+#
+# ci/check_ci_image_config.py fails if a glob here matches no tracked file,
+# which is what would have caught that.
+
+# --- which part of the project -------------------------------------------
+ESPnet2:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "espnet2/**"
+          - "egs2/**"
+          - "test/espnet2/**"
+
+ESPnet3:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "espnet3/**"
+          - "egs3/**"
+          - "test/espnet3/**"
+
+Recipe:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "egs2/**"
+          - "egs3/**"
+
+# --- tasks ---------------------------------------------------------------
+ASR:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "espnet2/asr/**"
+          - "espnet2/asr_transducer/**"
+          - "espnet2/tasks/asr*.py"
+          - "espnet2/bin/asr_*"
+          - "espnet3/systems/asr/**"
+          - "test/espnet2/asr/**"
+          - "egs2/*/asr1/**"
+          - "egs2/*/asr2/**"
+          - "egs2/*/asr1_pipeline/**"
+          - "egs2/*/sot_asr1/**"
+          - "egs2/*/diar_asr1/**"
+          - "egs2/*/enh_asr1/**"
+          - "egs3/*/asr/**"
+
+RNNT:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "espnet2/asr_transducer/**"
+          - "espnet2/tasks/asr_transducer.py"
+          - "espnet2/bin/asr_transducer_*"
+          - "test/espnet2/asr_transducer/**"
+
+TTS:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "espnet2/tts/**"
+          - "espnet2/tts2/**"
+          - "espnet2/gan_tts/**"
+          - "espnet2/tasks/tts*.py"
+          - "espnet2/tasks/gan_tts.py"
+          - "espnet2/bin/tts*_*"
+          - "espnet2/bin/gan_tts_*"
+          - "espnet3/systems/tts/**"
+          - "test/espnet2/tts/**"
+          - "egs2/*/tts1/**"
+          - "egs2/*/tts2/**"
+          - "egs3/*/tts/**"
+
+SE:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "espnet2/enh/**"
+          - "espnet2/tasks/enh*.py"
+          - "espnet2/bin/enh_*"
+          - "test/espnet2/enh/**"
+          - "egs2/*/enh1/**"
+          - "egs2/*/enh_asr1/**"
+          - "egs2/*/enh_st1/**"
+          - "egs2/*/enh_diar1/**"
+          - "egs2/*/mixit_enh1/**"
+          - "egs2/*/tse1/**"
+
+ST:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "espnet2/st/**"
+          - "espnet2/tasks/st.py"
+          - "espnet2/bin/st_*"
+          - "egs2/*/st1/**"
+          - "egs2/*/enh_st1/**"
+
+MT:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "espnet2/mt/**"
+          - "espnet2/tasks/mt.py"
+          - "espnet2/bin/mt_*"
+          - "egs2/*/mt1/**"
+
+LM:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "espnet2/lm/**"
+          - "espnet2/tasks/lm.py"
+          - "espnet2/bin/lm_*"
+          - "test/espnet2/lm/**"
+          - "egs2/*/lm1/**"
+
+S2ST:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "espnet2/s2st/**"
+          - "espnet2/ps2st/**"
+          - "espnet2/tasks/s2st.py"
+          - "espnet2/tasks/ps2st.py"
+          - "espnet2/bin/s2st_*"
+          - "espnet2/bin/ps2st_*"
+          - "egs2/*/s2st1/**"
+          - "egs2/*/ps2st1/**"
+
+SLU:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "espnet2/slu/**"
+          - "espnet2/tasks/slu.py"
+          - "espnet2/bin/slu_*"
+          - "test/espnet2/slu/**"
+          - "egs2/*/slu1/**"
+
+SID:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "espnet2/spk/**"
+          - "espnet2/tasks/spk.py"
+          - "espnet2/bin/spk_*"
+          - "test/espnet2/spk/**"
+          - "egs2/*/spk1/**"
+
+Diarization:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "espnet2/diar/**"
+          - "espnet2/tasks/diar.py"
+          - "espnet2/bin/diar_*"
+          - "test/espnet2/diar/**"
+          - "egs2/*/diar1/**"
+          - "egs2/*/diar_asr1/**"
+          - "egs2/*/enh_diar1/**"
+
+Codec:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "espnet2/gan_codec/**"
+          - "espnet2/tasks/gan_codec.py"
+          - "espnet2/bin/gan_codec_*"
+          - "test/espnet2/gan_codec/**"
+          - "egs2/*/codec1/**"
+
+SSL:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "espnet2/ssl/**"
+          - "espnet2/hubert/**"
+          - "espnet2/beats/**"
+          - "espnet2/tasks/ssl.py"
+          - "espnet2/tasks/hubert.py"
+          - "espnet2/tasks/beats.py"
+          - "espnet2/bin/hubert_*"
+          - "espnet2/bin/ssl_*"
+          - "espnet2/bin/beats_*"
+          - "egs2/*/ssl1/**"
+          - "egs2/*/hubert1/**"
+
+SLM:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "espnet2/speechlm/**"
+          - "test/espnet2/speechlm/**"
+          - "egs2/*/speechlm1/**"
+
+# Singing voice synthesis. The repository has no SVS label and Music is
+# "Music processing", so svs* lands here - change this line if that is wrong.
+Music:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "espnet2/svs/**"
+          - "espnet2/gan_svs/**"
+          - "espnet2/tasks/svs.py"
+          - "espnet2/tasks/gan_svs.py"
+          - "espnet2/bin/svs_*"
+          - "test/espnet2/svs/**"
+          - "egs2/*/svs1/**"
+          - "egs2/*/svs2/**"
+
+# s2t is the OWSM family, which is what the s2t1 recipes train.
+OWSM:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "espnet2/s2t/**"
+          - "espnet2/tasks/s2t*.py"
+          - "espnet2/bin/s2t_*"
+          - "egs2/*/s2t1/**"
+
+Unsupervise:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "espnet2/uasr/**"
+          - "espnet2/tasks/uasr.py"
+          - "espnet2/bin/uasr_*"
+          - "egs2/*/uasr1/**"
+
+AV:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "egs2/*/avsr1/**"
+          - "egs2/*/lipreading1/**"
+
+OCR:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "egs2/*/ocr1/**"
+
+SSUM:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "egs2/*/sum1/**"
+
+Streaming:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "espnet2/bin/*_streaming.py"
+          - "espnet2/asr/state_spaces/**"
+
+Force alignment:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "espnet2/bin/asr_align.py"
+          - "espnet2/bin/s2t_ctc_align.py"
+
+# --- infrastructure ------------------------------------------------------
+CI:
+  - changed-files:
+      - any-glob-to-any-file:
+          - ".github/**"
+          - "ci/**"
+          - "codecov.yml"
+          - ".pre-commit-config.yaml"
+
+Docker:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "docker/**"
+          - ".devcontainer/**"
+          - ".dockerignore"
+
+Installation:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "tools/**"
+          - "pyproject.toml"
+          - "setup.cfg"
+
+Documentation:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "doc/**"
+          - "CONTRIBUTING.md"
+
+# Only the top-level one. `files~=README.md` in mergify matched all 256 of
+# them, so every recipe change was labelled README.
+README:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "README.md"
+
+mergify:
+  - changed-files:
+      - any-glob-to-any-file:
+          - ".mergify.yml"

@@ -8,27 +8,52 @@ on:
     branches:
       - master
 
-# Only one run per PR at a time: a new push cancels the superseded run.
-# Non-PR events key the group on github.sha rather than github.ref so that
-# every push to master gets its own group. cancel-in-progress only protects
-# runs that have actually started; a *pending* run is cancelled when a newer
-# run joins its group, and master runs here sit pending for a long time.
+# One run per pull request, and one per branch otherwise: a newer run cancels
+# the superseded one.
+#
+# Non-PR events used to key the group on github.sha, so that every push to
+# master got its own group and nothing could cancel a master verification. That
+# was an overcorrection. Merging six PRs in an afternoon left five full master
+# runs alive at once - about 330 queued jobs against a 60-runner cap - which
+# starved the pull request runs that actually gate merges, mine and everyone
+# else's.
+#
+# master is linear, so the newest run verifies a superset of what the older ones
+# were verifying, and cancelling them loses coverage of nothing. What it does
+# lose is per-commit attribution: if a batch of merges goes red together, the
+# surviving run says the batch is broken but not which merge did it. Re-run the
+# workflow at the specific commit to find out - cheaper than paying for five
+# parallel runs on every busy day.
+#
+# Note this is not the stale-merge problem: that was a pull request's own CI
+# having run against an old master, which is about when a PR is merged, not
+# about master verifications cancelling each other.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 env:
   NLTK_DISABLE_IMPORT_SECURITY: "1"
 
+# The default on this repository is write on almost everything (see #6583).
+# Declared per job here rather than once at the top, because only one of them
+# needs to write anything.
+permissions:
+  contents: read
+
 jobs:
   get_labels:
+    # joerick/pr-labels-action reads the pull request's labels.
+    permissions:
+      contents: read
+      pull-requests: read
     runs-on: ubuntu-latest
     outputs:
       is_doc: ${{ steps.check-labels.outputs.is_doc }}
     steps:
       - name: Get PR labels
         id: pr-labels
-        uses: joerick/pr-labels-action@v1.0.9
+        uses: joerick/pr-labels-action@0543b277721e852d821c6738d449f2f4dea03d5f # v1.0.9
       - name: Check whether PR is related to documentation
         id: check-labels
         run: |
@@ -39,20 +64,40 @@ jobs:
           fi
 
   generate_and_deploy_doc:
+    # contents: write is for the deploy step, which pushes the built docs to the
+    # gh-pages branch through peaceiris/actions-gh-pages.
+    #
+    # That step is gated on `github.ref == 'refs/heads/master'`, but the job runs
+    # on pull requests too - it builds the docs - so on a pull request it holds a
+    # token it does not use. Two things bound that: a fork pull request gets a
+    # read-only token from GitHub regardless of what this block says, so the write
+    # is only reachable by someone who already has push access; and the write is
+    # scoped to this job instead of the whole workflow.
+    #
+    # Tighter still would be splitting build from deploy and passing the output as
+    # an artifact, so the write lives in a job that never runs on a pull request.
+    # That is a restructure of doc publishing which only executes on master pushes,
+    # so it cannot be verified by this PR's CI - left as its own change rather than
+    # smuggled into a permissions cleanup.
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
     needs: get_labels
     if: |
       github.event_name != 'pull_request' ||
         (github.event.pull_request.draft == false && needs.get_labels.outputs.is_doc == 'true')
     steps:
-      - uses: actions/checkout@master
-      - uses: actions/cache@v6
+      # See ci_on_ubuntu.yml: the default persists GITHUB_TOKEN in .git/config.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ~/.cache/pip
           key: pip-${{ hashFiles('**/pyproject.toml') }}
-      - uses: actions/setup-python@v7
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
-          python-version: '3.10'
+          python-version: '3.12'
           architecture: "x64"
       - name: check OS
         run: cat /etc/os-release
@@ -62,7 +107,7 @@ jobs:
           sudo apt-get install -qq -y cmake python3-dev git pandoc ffmpeg bc nodejs npm
       - name: install espnet
         env:
-          ESPNET_PYTHON_VERSION: 3.10
+          ESPNET_PYTHON_VERSION: 3.12
           TH_VERSION: 2.9.1
           USE_CONDA: false
         run: ./ci/install.sh
@@ -70,7 +115,7 @@ jobs:
         run: ./ci/doc.sh
       - name: deploy
         if: github.ref == 'refs/heads/master'
-        uses: peaceiris/actions-gh-pages@v4
+        uses: peaceiris/actions-gh-pages@84c30a85c19949d7eee79c4ff27748b70285e453 # v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./dist

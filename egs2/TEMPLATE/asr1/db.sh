@@ -17,6 +17,7 @@ ASVTutorial=espnet_tutorial_asvspoof
 APHASIABANK=
 AR_SC=
 AUDIOSET=downloads
+VGGSOUND=  # local path to VGGSound; the recipe does not download it automatically
 ASVSpoof_CMD=
 BIBLETTS=downloads
 CORAAL=downloads
