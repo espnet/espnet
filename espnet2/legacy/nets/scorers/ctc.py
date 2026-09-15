@@ -10,17 +10,23 @@ from espnet2.legacy.nets.scorer_interface import BatchPartialScorerInterface
 class CTCPrefixScorer(BatchPartialScorerInterface):
     """Decoder interface wrapper for CTCPrefixScore."""
 
-    def __init__(self, ctc: torch.nn.Module, eos: int):
+    def __init__(self, ctc: torch.nn.Module, eos: int, window_margin: int = 0):
         """Initialize class.
 
         Args:
             ctc (torch.nn.Module): The CTC implementation.
                 For example, :class:`espnet2.legacy.nets.pytorch_backend.ctc.CTC`
             eos (int): The end-of-sequence id.
+            window_margin (int): Half-width, in encoder frames, of the window
+                the CTC forward recursion is restricted to. 0 (default) walks
+                the whole utterance at every decoding step, which is exact but
+                costs O(T) per step. A positive value centres a window on the
+                frame the prefix has reached and is an approximation.
 
         """
         self.ctc = ctc
         self.eos = eos
+        self.window_margin = window_margin
         self.impl = None
 
     def init_state(self, x: torch.Tensor):
@@ -53,6 +59,9 @@ class CTCPrefixScorer(BatchPartialScorerInterface):
             if len(state) == 2:  # for CTCPrefixScore
                 sc, st = state
                 return sc[i], st[i]
+            elif len(state) == 4:  # already reordered by `batch_select_state`
+                r, s, f_min, f_max = state
+                return r[:, :, i], s[i], f_min, f_max
             else:  # for CTCPrefixScoreTH (need new_id > 0)
                 r, log_psi, f_min, f_max, scoring_idmap = state
                 s = log_psi[i, new_id].expand(log_psi.size(1))
@@ -84,18 +93,29 @@ class CTCPrefixScorer(BatchPartialScorerInterface):
         )
         return tscore, (presub_score, new_st)
 
-    def batch_init_state(self, x: torch.Tensor):
+    def batch_init_state(self, x: torch.Tensor, xs_lengths: torch.Tensor = None):
         """Get an initial state for decoding.
 
         Args:
-            x (torch.Tensor): The encoded feature tensor
+            x (torch.Tensor): The encoded feature tensor.
+                Either a single utterance `(T, D)` or a batch `(B, T, D)`.
+            xs_lengths (torch.Tensor): Encoder output lengths `(B,)`.
+                Required when `x` is a padded batch; the padded frames are
+                excluded from the CTC prefix scores.
 
         Returns: initial state
 
         """
-        logp = self.ctc.log_softmax(x.unsqueeze(0))  # assuming batch_size = 1
-        xlen = torch.tensor([logp.size(1)])
-        self.impl = CTCPrefixScoreTH(logp, xlen, 0, self.eos)
+        if x.dim() == 2:  # (T, D) -> (1, T, D)
+            x = x.unsqueeze(0)
+        logp = self.ctc.log_softmax(x)
+        if xs_lengths is None:
+            xlen = torch.full(
+                (logp.size(0),), logp.size(1), dtype=torch.long, device=logp.device
+            )
+        else:
+            xlen = xs_lengths.to(dtype=torch.long)
+        self.impl = CTCPrefixScoreTH(logp, xlen, 0, self.eos, margin=self.window_margin)
         return None
 
     def batch_score_partial(self, y, ids, state, x):
@@ -113,17 +133,37 @@ class CTCPrefixScorer(BatchPartialScorerInterface):
                 and next state for ys
 
         """
-        batch_state = (
-            (
+        if isinstance(state, tuple):
+            # already batched by `batch_select_state`
+            batch_state = state
+        elif state[0] is not None:
+            batch_state = (
                 torch.stack([s[0] for s in state], dim=2),
                 torch.stack([s[1] for s in state]),
                 state[0][2],
                 state[0][3],
             )
-            if state[0] is not None
-            else None
-        )
+        else:
+            batch_state = None
         return self.impl(y, batch_state, ids)
+
+    def batch_select_state(self, state, best_ids: torch.Tensor):
+        """Select states of a whole `(n_utt, beam)` hypothesis grid at once.
+
+        This is the vectorized counterpart of calling :meth:`select_state`
+        once per hypothesis, used by
+        :class:`espnet2.legacy.nets.batch_beam_search.BatchBeamSearch`.
+
+        Args:
+            state: The state returned by :meth:`batch_score_partial`.
+            best_ids (torch.Tensor): `(n_utt, beam)` tensor of pruned
+                candidates encoded as `beam_index * odim + token_index`.
+
+        Returns: the reordered state, in the batched form that
+            :meth:`batch_score_partial` accepts directly.
+
+        """
+        return self.impl.index_select_state(state, best_ids)
 
     def extend_prob(self, x: torch.Tensor):
         """Extend probs for decoding.

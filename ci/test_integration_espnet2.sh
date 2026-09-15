@@ -131,6 +131,25 @@ if [ "${task}" == "asr" ] || [ "${task}" == "all" ]; then
             --train_set raw/train_nodev --valid_set raw/train_dev --test_sets raw/test --python "${python}" --asr-args "--num_workers 0"
         echo "::endgroup::"
     done
+
+    # Decoding several utterances in one beam search. Needs a decoder whose
+    # scorers are all batch scorers, so the RNN decoder that the other asr1
+    # cases use will not do. inference_nj=1 keeps the test sets in one job, so
+    # that a batch really holds more than one utterance.
+    # NOTE: this only checks that batch decoding runs and writes a result for
+    # every key. The output is deliberately not compared against --batch_size 1:
+    # an utterance's encoder output length depends on the longest utterance
+    # beside it, because Conv1dSubsampling* subsamples the padding mask
+    # relative to the padded width of the batch.
+    echo "::group::==== batch decoding, feats_type=raw, token_types=bpe ==="
+    ./run.sh --ngpu 0 --stage 10 --stop-stage 13 --skip-packing false --feats-type "raw" --token-type "bpe" \
+        --python "${python}" \
+        --asr_config "conf/train_asr_transformer_debug.yaml" \
+        --asr-tag "train_raw_bpe_batch_decode" \
+        --asr-args "--num_workers 0" \
+        --inference_nj 1 \
+        --inference_args "--batch_size 2"
+    echo "::endgroup::"
     finish_asr
 fi
 
@@ -160,15 +179,22 @@ if [ "${task}" == "asr_transducer" ] || [ "${task}" == "all" ]; then
         fi
     fi
 
-    # k2 is not installed in CI, so neither of these runs today - "use_k2" does
-    # not appear in any current log. Noting it because they are the one place the
-    # split leaves a latent cross-task dependency: they decode at stage 12 only,
-    # and the model they load (feats_normalize=utterance_mvn,
-    # extract_feats_in_collect_stats=false) is trained by the asr_misc task, not
-    # this one. Whoever installs k2 will have to train it here first.
+    # These two decode with the utterance_mvn / extract_feats_in_collect_stats=false
+    # model. In the single asr job that model came from a training run earlier in
+    # the same job; after the split that run lives in asr_misc, so the first of
+    # these starts at stage 10 and trains it, and the second decodes at stage 12
+    # against what the first left behind.
+    #
+    # The note that used to sit here said a latent cross-task dependency was
+    # harmless because k2 was never installed, and that whoever installed it would
+    # have to train the model here. That happened, and it failed exactly as
+    # described:
+    #
+    #   FileNotFoundError: exp/asr_train_asr_rnn_debug_raw_en_bpe30_model_conf...
+    #                      /config.yaml
     if python3 -c "import k2" &> /dev/null; then
         echo "::group::==== use_k2, num_paths > nll_batch_size, feats_type=raw, token_types=bpe, model_conf.extract_feats_in_collect_stats=False, normalize=utt_mvn ==="
-        ./run.sh --num_paths 4 --nll_batch_size 2 --use_k2 true --ngpu 0 --stage 12 --stop-stage 13 --skip-packing false --feats-type "raw" --token-type "bpe" \
+        ./run.sh --num_paths 4 --nll_batch_size 2 --use_k2 true --ngpu 0 --stage 10 --stop-stage 13 --skip-packing false --feats-type "raw" --token-type "bpe" \
             --feats_normalize "utterance_mvn" --python "${python}" --asr-args "--model_conf extract_feats_in_collect_stats=false --num_workers 0"
         echo "::endgroup::"
 

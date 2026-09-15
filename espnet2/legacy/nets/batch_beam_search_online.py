@@ -229,7 +229,7 @@ class BatchBeamSearchOnline(BatchBeamSearch):
                 )
             else:
                 ret = self.process_one_block(
-                    h, block_is_final, maxlen - self.process_idx, maxlenratio
+                    h, block_is_final, maxlen - self.process_idx, minlen, maxlenratio
                 )
             logging.debug("Finished processing chunk: %d", self.processed_block)
             self.processed_block += 1

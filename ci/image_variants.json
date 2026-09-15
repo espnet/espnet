@@ -10,6 +10,6 @@
     "ci/check_ci_image_config.py fails if a job asks for a variant this file",
     "does not list."
   ],
-  "python-version": ["3.10", "3.12"],
+  "python-version": ["3.12", "3.13"],
   "pytorch-version": ["2.9.1", "2.10.0", "2.11.0"]
 }

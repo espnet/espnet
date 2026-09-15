@@ -23,7 +23,7 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - uses: actions/setup-python@v6
+    - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
       if: ${{ inputs.os-version == 'ubuntu' }}
       with:
         python-version: ${{ inputs.python-version }}

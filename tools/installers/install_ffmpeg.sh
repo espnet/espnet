@@ -9,6 +9,9 @@ fi
 unames="$(uname -s)"
 unamem="$(uname -m)"
 
+# shellcheck source=tools/installers/download_with_retry.sh
+. "$(dirname "$0")"/download_with_retry.sh
+
 dirname=ffmpeg-release
 rm -rf ${dirname}
 
@@ -47,42 +50,9 @@ if [[ ${unames} =~ Linux ]]; then
     PRIMARY_URL="https://johnvansickle.com/ffmpeg/releases/${ffmpeg_name}"
     BACKUP_URL="https://huggingface.co/espnet/ci_tools/resolve/main/${ffmpeg_name}"
 
-    download_with_retry() {
-        local url="$1"
-        local output="$2"
-        # Any remaining arguments are extra wget options. They are forwarded
-        # with "$@" rather than through a quoted "${var:+...}" scalar, which
-        # expands to one empty argument when unset; wget reads that as an empty
-        # URL, reports "http://: Invalid host name." and then exits non-zero
-        # even when the real download succeeded.
-        shift 2
-        local max_attempts=3
-        local attempt=1
-        local wait=5
-        while [ "${attempt}" -le "${max_attempts}" ]; do
-            if wget "$@" --no-check-certificate --trust-server-names \
-                    --tries=1 -O "${output}" "${url}"; then
-                # A mirror can answer 200 with an HTML error page, which would
-                # only fail later in tar. Treat that as a failed attempt so the
-                # backup URL is tried.
-                if tar tf "${output}" > /dev/null 2>&1; then
-                    return 0
-                fi
-                echo "Downloaded ${output} is not a valid archive; the server" \
-                     "probably returned an error page"
-            fi
-            echo "Attempt ${attempt}/${max_attempts} failed for ${url}"
-            if [ "${attempt}" -lt "${max_attempts}" ]; then
-                echo "Waiting ${wait}s before retry..."
-                sleep "${wait}"
-                wait=$((wait * 2))
-            fi
-            attempt=$((attempt + 1))
-        done
-        return 1
-    }
 
-    if ! download_with_retry "${PRIMARY_URL}" "${ffmpeg_name}"; then
+    if ! download_with_retry "${PRIMARY_URL}" "${ffmpeg_name}" \
+            --no-check-certificate; then
         echo "Primary download failed, trying backup URL..."
         wget_args=()
         if [ -n "${HF_TOKEN:-}" ]; then
@@ -90,7 +60,8 @@ if [[ ${unames} =~ Linux ]]; then
         else
             echo "HF_TOKEN is not set, backup download may fail if the file has many downloads"
         fi
-        if ! download_with_retry "${BACKUP_URL}" "${ffmpeg_name}" "${wget_args[@]}"; then
+        if ! download_with_retry "${BACKUP_URL}" "${ffmpeg_name}" \
+                --no-check-certificate "${wget_args[@]}"; then
             echo "Both primary and backup downloads failed"
             exit 1
         fi
