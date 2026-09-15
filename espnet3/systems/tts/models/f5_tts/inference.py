@@ -1,14 +1,14 @@
 """F5-TTS inference engine.
 
 Built by a recipe's ``infer`` stage
-(``model._target_: espnet3.systems.tts.f5_tts.inference.F5TTSInference``).
+(``model._target_: espnet3.systems.tts.models.f5_tts.inference.F5TTSInference``).
 For each test sample the runner calls ``model(**{key: data[key] for key in input_key})``
 with ``input_key: [text, reference_speech, reference_text]`` (the cross- and
 same-speaker protocol) and feeds the result to ``src.inference.build_output``
 (which needs a ``"wav"`` entry).
 
 The model is rebuilt from the *training* config by instantiating that config's
-own ``model`` block (``espnet3.systems.tts.f5_tts.f5tts.F5TTS``), so it stays in
+own ``model`` block (``espnet3.systems.tts.models.f5_tts.f5tts.F5TTS``), so it stays in
 sync with whatever was trained. Text is tokenized with the exact espnet2
 components used in training (TextCleaner + tokenizer + TokenIDConverter) read
 from the training config's preprocessor.
@@ -29,7 +29,7 @@ from espnet2.text.build_tokenizer import build_tokenizer
 from espnet2.text.cleaner import TextCleaner
 from espnet2.text.token_id_converter import TokenIDConverter
 from espnet2.torch_utils.safe_torch_load import safe_torch_load
-from espnet3.systems.tts.f5_tts import (
+from espnet3.systems.tts.models.f5_tts import (
     BIGVGAN_DEFAULT_MODEL,
     VOCOS_DEFAULT_MODEL,
 )
@@ -206,7 +206,7 @@ class F5TTSInference:
             .. code-block:: yaml
 
                 inference:
-                  _target_: espnet3.systems.tts.f5_tts.inference.F5TTSInference
+                  _target_: espnet3.systems.tts.models.f5_tts.inference.F5TTSInference
                   train_config: ${recipe_dir}/conf/training_f5_tts_small.yaml
                   checkpoint_path: ${exp_dir}/last.ckpt
                   device: cuda
@@ -339,7 +339,7 @@ class F5TTSInference:
 
         if "F5PinyinPreprocessor" in target or preprocessor_config.get("vocab_file"):
             # F5 zh+en pinyin: F5's own tokenizer + vocab (unknown token -> 0).
-            from espnet3.systems.tts.f5_tts.pinyin import (
+            from espnet3.systems.tts.models.f5_tts.pinyin import (
                 load_vocab_char_map,
                 text_to_pinyin_ids,
             )
@@ -355,7 +355,7 @@ class F5TTSInference:
                 "Could not find dataset.preprocessor.token_list in train_config."
             )
         if preprocessor_config.get("g2p_type") == "f5_pinyin":
-            from espnet3.systems.tts.f5_tts.pinyin import register_f5_pinyin_g2p
+            from espnet3.systems.tts.models.f5_tts.pinyin import register_f5_pinyin_g2p
 
             register_f5_pinyin_g2p()
         cleaner = TextCleaner(preprocessor_config.get("text_cleaner"))

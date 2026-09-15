@@ -46,9 +46,9 @@ import torch.nn.functional as F
 from torch import nn
 from torch.nn.utils.rnn import pad_sequence
 
-from espnet3.systems.tts.f5_tts.modules import MelSpec
-from espnet3.systems.tts.f5_tts.solvers import odeint
-from espnet3.systems.tts.f5_tts.utils import (
+from espnet3.systems.tts.models.f5_tts.modules import MelSpec
+from espnet3.systems.tts.models.f5_tts.solvers import odeint
+from espnet3.systems.tts.models.f5_tts.utils import (
     default,
     exists,
     get_epss_timesteps,

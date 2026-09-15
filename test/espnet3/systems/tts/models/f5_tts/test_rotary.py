@@ -8,7 +8,7 @@ driven directly here.
 import pytest
 import torch
 
-from espnet3.systems.tts.f5_tts.rotary import (
+from espnet3.systems.tts.models.f5_tts.rotary import (
     RotaryEmbedding,
     apply_rotary_pos_emb,
     rotate_half,

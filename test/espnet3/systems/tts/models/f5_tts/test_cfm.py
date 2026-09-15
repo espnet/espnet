@@ -8,7 +8,7 @@ vocoder - which a normal train or infer run leaves untouched.
 import pytest
 import torch
 
-from espnet3.systems.tts.f5_tts.f5tts import F5TTS
+from espnet3.systems.tts.models.f5_tts.f5tts import F5TTS
 
 MODEL_CONF = dict(
     hidden_size=32,

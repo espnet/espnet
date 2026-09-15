@@ -6,7 +6,7 @@ being reached indirectly through a model forward.
 
 import torch
 
-from espnet3.systems.tts.f5_tts.utils import (
+from espnet3.systems.tts.models.f5_tts.utils import (
     get_epss_timesteps,
     list_str_to_idx,
     list_str_to_tensor,

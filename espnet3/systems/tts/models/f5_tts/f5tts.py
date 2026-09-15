@@ -21,9 +21,9 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 import torch
 from torch.amp import autocast
 
-from espnet3.systems.tts.f5_tts.cfm import CFM
-from espnet3.systems.tts.f5_tts.dit import DiT
-from espnet3.systems.tts.f5_tts.vocoder_mel import VocoderMelSpec
+from espnet3.systems.tts.models.f5_tts.cfm import CFM
+from espnet3.systems.tts.models.f5_tts.dit import DiT
+from espnet3.systems.tts.models.f5_tts.vocoder_mel import VocoderMelSpec
 from espnet3.utils.config_utils import convert_to_dict
 
 
@@ -125,7 +125,7 @@ class F5TTS(torch.nn.Module):
             .. code-block:: yaml
 
                 model:            # F5TTS_Small; omit the sizes for F5TTS_Base
-                  _target_: espnet3.systems.tts.f5_tts.f5tts.F5TTS
+                  _target_: espnet3.systems.tts.models.f5_tts.f5tts.F5TTS
                   token_list: ${data_dir}/tokens/char_tokens.txt
                   feats_extract_config:
                     fs: 24000
@@ -319,7 +319,7 @@ class F5TTS(torch.nn.Module):
         F5 is zero-shot: it needs a reference. ``speech`` is the reference mel or
         waveform; ``text`` should be the (ref + target) token ids, and for the full
         cross-speaker recipe protocol use
-        ``espnet3.systems.tts.f5_tts.inference.F5TTSInference``,
+        ``espnet3.systems.tts.models.f5_tts.inference.F5TTSInference``,
         which handles reference pairing and vocoding.
 
         Args:

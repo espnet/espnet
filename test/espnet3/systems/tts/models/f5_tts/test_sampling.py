@@ -1,15 +1,15 @@
-"""Sampling path: the fixed-step solvers, ``CFM.sample`` and ``F5TTS.inference``.
+"""Sampling path: ``CFM.sample`` and ``F5TTS.inference``.
 
 The training tests only exercise ``forward``. Everything reached during
-generation - the ODE loop, the classifier-free-guidance branch, the mel
-extraction inside ``CFM.sample`` - is covered here instead.
+generation - the classifier-free-guidance branch, the mel extraction inside
+``CFM.sample``, the reference handling in ``F5TTS.inference`` - is covered here
+instead. The ODE solver those paths drive is tested in ``test_solvers.py``.
 """
 
 import pytest
 import torch
 
-from espnet3.systems.tts.f5_tts.f5tts import F5TTS
-from espnet3.systems.tts.f5_tts.solvers import odeint
+from espnet3.systems.tts.models.f5_tts.f5tts import F5TTS
 
 MODEL_CONF = dict(
     hidden_size=32,
@@ -44,73 +44,6 @@ def _build(token_file, **overrides):
         feats_extract_config=FEATS_CONF,
         **dict(MODEL_CONF, **overrides),
     )
-
-
-# --------------------------------------------------------------------- solvers
-
-
-def test_euler_matches_the_closed_form_solution():
-    """dy/dt = y from y0 = 1 steps to (1 + dt) ** n under euler."""
-    t = torch.linspace(0.0, 1.0, 5)
-    sol = odeint(lambda _t, y: y, torch.tensor([1.0]), t, method="euler")
-
-    assert sol.shape == (5, 1)
-    torch.testing.assert_close(sol[0], torch.tensor([1.0]))
-    torch.testing.assert_close(sol[-1], torch.tensor([1.25**4]))
-
-
-def test_midpoint_is_second_order_so_beats_euler_on_the_same_grid():
-    """Both approximate exp(1); midpoint must land closer."""
-
-    def f(_t, y):
-        return y
-
-    t = torch.linspace(0.0, 1.0, 5)
-    y0 = torch.tensor([1.0])
-    exact = torch.e
-
-    euler_err = abs(odeint(f, y0, t, method="euler")[-1].item() - exact)
-    midpoint_err = abs(odeint(f, y0, t, method="midpoint")[-1].item() - exact)
-
-    assert midpoint_err < euler_err
-
-
-def test_step_size_follows_a_non_uniform_grid():
-    """F5's sway sampling produces uneven grids, so dt is read per step."""
-    t = torch.tensor([0.0, 0.1, 1.0])
-    sol = odeint(lambda _t, y: torch.ones_like(y), torch.tensor([0.0]), t)
-
-    # dy/dt = 1, so the exact solution is y = t regardless of the spacing.
-    torch.testing.assert_close(sol.reshape(-1), t)
-
-
-def test_derivative_receives_the_grid_time_not_the_step_index():
-    seen = []
-    t = torch.tensor([0.0, 0.25, 0.75])
-    odeint(
-        lambda ti, y: seen.append(float(ti)) or torch.zeros_like(y),
-        torch.tensor([0.0]),
-        t,
-    )
-    assert seen == [0.0, 0.25]
-
-
-def test_unsupported_method_is_rejected_rather_than_delegated():
-    """Adaptive solvers would need torchdiffeq, which espnet does not ship."""
-    with pytest.raises(ValueError, match="dopri5"):
-        odeint(
-            lambda _t, y: y,
-            torch.tensor([1.0]),
-            torch.linspace(0, 1, 3),
-            method="dopri5",
-        )
-
-
-def test_the_error_names_the_supported_methods():
-    with pytest.raises(ValueError) as excinfo:
-        odeint(lambda _t, y: y, torch.tensor([1.0]), torch.linspace(0, 1, 3), "rk4")
-    message = str(excinfo.value)
-    assert "euler" in message and "midpoint" in message
 
 
 # ------------------------------------------------------------------- CFM.sample

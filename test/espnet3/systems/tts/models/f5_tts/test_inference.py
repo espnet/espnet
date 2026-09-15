@@ -14,8 +14,8 @@ import pytest
 import torch
 import yaml
 
-from espnet3.systems.tts.f5_tts.f5tts import F5TTS
-from espnet3.systems.tts.f5_tts.inference import (
+from espnet3.systems.tts.models.f5_tts.f5tts import F5TTS
+from espnet3.systems.tts.models.f5_tts.inference import (
     F5TTSInference,
     _chunk_text,
     _cross_fade,
@@ -186,7 +186,7 @@ def train_config(tmp_path):
     token_file.write_text("\n".join(TOKENS) + "\n", encoding="utf-8")
     cfg = {
         "model": {
-            "_target_": "espnet3.systems.tts.f5_tts.f5tts.F5TTS",
+            "_target_": "espnet3.systems.tts.models.f5_tts.f5tts.F5TTS",
             "token_list": str(token_file),
             "feats_extract_config": dict(FEATS_CONF),
             **dict(MODEL_CONF),
@@ -327,8 +327,11 @@ def test_a_vocab_file_selects_the_pinyin_tokenizer(
     vocab = tmp_path / "vocab.txt"
     vocab.write_text("\n".join(TOKENS) + "\n", encoding="utf-8")
     cfg = yaml.safe_load(train_config.read_text(encoding="utf-8"))
+    preprocessor_target = (
+        "espnet3.systems.tts.models.f5_tts.preprocessor.F5PinyinPreprocessor"
+    )
     cfg["dataset"]["preprocessor"] = {
-        "_target_": "espnet3.systems.tts.f5_tts.preprocessor.F5PinyinPreprocessor",
+        "_target_": preprocessor_target,
         "vocab_file": str(vocab),
     }
     path = tmp_path / "pinyin.yaml"
@@ -633,7 +636,7 @@ def restore_g2p_registry():
     run after it see a patched tokenizer.
     """
     import espnet2.text.phoneme_tokenizer as pt
-    from espnet3.systems.tts.f5_tts import pinyin
+    from espnet3.systems.tts.models.f5_tts import pinyin
 
     choices = list(pt.g2p_choices)
     init = pt.PhonemeTokenizer.__init__

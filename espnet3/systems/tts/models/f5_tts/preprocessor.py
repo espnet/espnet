@@ -15,7 +15,10 @@ A plain callable (not an ``AbsPreprocessor``), so ESPnet3 calls
 
 from __future__ import annotations
 
-from espnet3.systems.tts.f5_tts.pinyin import load_vocab_char_map, text_to_pinyin_ids
+from espnet3.systems.tts.models.f5_tts.pinyin import (
+    load_vocab_char_map,
+    text_to_pinyin_ids,
+)
 
 
 class F5PinyinPreprocessor:
@@ -38,7 +41,8 @@ class F5PinyinPreprocessor:
             .. code-block:: yaml
 
                 preprocessor:
-                  _target_: espnet3.systems.tts.f5_tts.preprocessor.F5PinyinPreprocessor
+                  _target_:
+                    espnet3.systems.tts.models.f5_tts.preprocessor.F5PinyinPreprocessor
                   vocab_file: /path/to/Emilia_ZH_EN_pinyin/vocab.txt
 
         Note:

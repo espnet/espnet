@@ -5,7 +5,7 @@ import random
 import pytest
 import torch
 
-from espnet3.systems.tts.f5_tts.f5tts import F5TTS
+from espnet3.systems.tts.models.f5_tts.f5tts import F5TTS
 
 FS = 24000
 N_MELS = 100

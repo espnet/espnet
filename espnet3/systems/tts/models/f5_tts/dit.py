@@ -43,7 +43,7 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
-from espnet3.systems.tts.f5_tts.modules import (
+from espnet3.systems.tts.models.f5_tts.modules import (
     AdaLayerNorm_Final,
     ConvNeXtV2Block,
     ConvPositionEmbedding,
@@ -51,7 +51,7 @@ from espnet3.systems.tts.f5_tts.modules import (
     TimestepEmbedding,
     precompute_freqs_cis,
 )
-from espnet3.systems.tts.f5_tts.rotary import RotaryEmbedding
+from espnet3.systems.tts.models.f5_tts.rotary import RotaryEmbedding
 
 # Text embedding
 

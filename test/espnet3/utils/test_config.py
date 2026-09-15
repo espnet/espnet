@@ -14,6 +14,7 @@ from espnet3.utils.config_utils import (
 )
 from espnet3.utils.config_utils import config_path as config_path_resolver
 from espnet3.utils.config_utils import (
+    convert_to_dict,
     load_and_merge_config,
     load_config_with_defaults,
     load_default_config,
@@ -806,3 +807,54 @@ def test_config_path_end_to_end_with_real_template(tmp_path):
         "egs3/TEMPLATE/asr/src/hf_demo_readme.md"
     ), f"pack.readme must point to the TEMPLATE file, got: {readme}"
     assert Path(readme).exists(), f"pack.readme path must exist on disk: {readme}"
+
+
+# ===============================================================
+# Tests for `convert_to_dict(value)`
+# ===============================================================
+
+
+def test_convert_to_dict_turns_a_dictconfig_into_a_plain_dict():
+    result = convert_to_dict(OmegaConf.create({"depth": 18}))
+
+    assert result == {"depth": 18}
+    assert type(result) is dict
+
+
+def test_convert_to_dict_turns_a_listconfig_into_a_plain_list():
+    """A config list such as `mask_fraction_range: [0.7, 1.0]` must arrive as a
+    real list so the component signature can coerce it."""
+    result = convert_to_dict(OmegaConf.create([0.7, 1.0]))
+
+    assert result == [0.7, 1.0]
+    assert type(result) is list
+
+
+def test_convert_to_dict_converts_nested_containers_too():
+    """The point of the helper is that no OmegaConf node survives into a stored
+    attribute or into checkpointed hparams."""
+    cfg = OmegaConf.create({"mel": {"n_mels": 100, "range": [0.0, 1.0]}})
+
+    result = convert_to_dict(cfg)
+
+    assert type(result["mel"]) is dict
+    assert type(result["mel"]["range"]) is list
+
+
+def test_convert_to_dict_resolves_interpolations():
+    cfg = OmegaConf.create({"fs": 24000, "sample_rate": "${fs}"})
+
+    assert convert_to_dict(cfg) == {"fs": 24000, "sample_rate": 24000}
+
+
+def test_convert_to_dict_returns_a_plain_dict_unchanged():
+    """Direct Python calls pass the value straight through."""
+    value = {"depth": 18}
+
+    assert convert_to_dict(value) is value
+
+
+@pytest.mark.parametrize("value", ["tokens.txt", None, 18, ["a", "b"]])
+def test_convert_to_dict_passes_non_omegaconf_values_through(value):
+    """`token_list` reaches the helper as a path string or a plain list."""
+    assert convert_to_dict(value) is value

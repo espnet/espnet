@@ -3,7 +3,7 @@ import importlib.util
 import numpy as np
 import pytest
 
-from espnet3.systems.tts.f5_tts.pinyin import (
+from espnet3.systems.tts.models.f5_tts.pinyin import (
     build_pinyin_vocab,
     convert_char_to_pinyin,
     f5_pinyin_g2p,
@@ -130,7 +130,7 @@ def test_vocab_has_no_espnet_special_symbols():
 @pinyin_deps
 def test_registering_the_g2p_is_idempotent():
     import espnet2.text.phoneme_tokenizer as pt
-    from espnet3.systems.tts.f5_tts.pinyin import register_f5_pinyin_g2p
+    from espnet3.systems.tts.models.f5_tts.pinyin import register_f5_pinyin_g2p
 
     register_f5_pinyin_g2p()
     register_f5_pinyin_g2p()
