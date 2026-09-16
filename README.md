@@ -106,18 +106,21 @@ pip install git+https://github.com/espnet/espnet  # latest master
 **Run a pretrained model** — any model from the [ESPnet Hugging Face organization](https://huggingface.co/espnet):
 
 ```python
-import soundfile as sf
-from espnet2.bin.s2t_inference import Speech2Text
+from espnet2.bin.s2t_inference_ctc import Speech2TextGreedySearch
 
-# OWSM v4: multilingual ASR, translation, and language ID in one model
-s2t = Speech2Text.from_pretrained("espnet/owsm_v4_small_370M", lang_sym="<eng>", task_sym="<asr>")
-speech, rate = sf.read("audio.wav")  # 16 kHz
-text, *_ = s2t(speech)[0]
-print(text)
+# OWSM-CTC v4: multilingual ASR, translation and language ID in one
+# encoder-only model. Non-autoregressive, so one CPU pass is enough.
+s2t = Speech2TextGreedySearch.from_pretrained(
+    "espnet/owsm_ctc_v4_1B", lang_sym="<eng>", task_sym="<asr>"
+)
+print(s2t.batch_decode("audio.wav"))  # any length or sample rate
 ```
 
-Task-specific entry points follow the same pattern — `espnet2.bin.asr_inference`,
-`tts_inference`, `enh_inference`, `st_inference`, `spk_inference`, and so on.
+The checkpoint (4 GB) is downloaded once and cached. Pass `device="cuda"` for a GPU,
+`task_sym="<st_deu>"` to translate, or `lang_sym="<nolang>"` to identify the language.
+The encoder-decoder OWSM v4 models (`espnet2.bin.s2t_inference`) and every other task —
+`asr_inference`, `tts_inference`, `enh_inference`, `spk_inference`, and so on — use
+the same `from_pretrained` pattern.
 
 **Train and evaluate a recipe** — every corpus follows the same interface:
 
@@ -161,15 +164,32 @@ of 200+ corpora recipes.
 
 ## Demos
 
+Try a model in the browser:
+
 | Demo | |
 | :-- | :-- |
+| Spoken dialogue — ASR → LLM → TTS, cascaded or end-to-end, with live metrics | [![Hugging Face Spaces](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-blue)](https://huggingface.co/spaces/Siddhant/Voice_Assistant_Demo) · [recipe](egs2/TEMPLATE/sds1) |
+| ASR · TTS · SLU | [ASR](https://huggingface.co/spaces/akhaliq/espnet2_asr) · [TTS](https://huggingface.co/spaces/akhaliq/ESPnet2-TTS) · [SLU](https://huggingface.co/spaces/Siddhant/ESPnet2-SLU) |
 | Real-time ASR | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/ESPnet2/Demo/ASR/asr_realtime_demo.ipynb) |
 | Real-time TTS | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/ESPnet2/Demo/TTS/tts_realtime_demo.ipynb) |
 | Speech enhancement | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1fjRJCh96SoYLZPRxsjF9VDv4Q2VoIckI?usp=sharing) |
 | Streaming enhancement | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/17vd1V78eJpp3PHBnbFE5aVY5uMxQFL6o?usp=sharing) |
-| Hugging Face Spaces | [ASR](https://huggingface.co/spaces/akhaliq/espnet2_asr) · [TTS](https://huggingface.co/spaces/akhaliq/ESPnet2-TTS) |
 
 More notebooks: [espnet/notebook](https://github.com/espnet/notebook).
+
+**Publish your own.** Every ESPnet3 recipe can wrap its trained model in a
+[Gradio](https://www.gradio.app/) app and push it to Hugging Face Spaces — the UI,
+the Space `README.md` and `requirements.txt` are all generated from
+[`conf/demo.yaml`](egs3/TEMPLATE/asr/conf/demo.yaml):
+
+```sh
+cd egs3/librispeech_100/asr
+python run.py --stages pack_model  --publication_config conf/publication.yaml  # -> exp/.../model_pack
+python run.py --stages pack_demo   --demo_config conf/demo.yaml                # -> demo/
+python run.py --stages upload_demo --demo_config conf/demo.yaml                # needs `hf auth login`
+```
+
+Run the packed app locally with `python demo/app.py`.
 
 ## Learn
 
