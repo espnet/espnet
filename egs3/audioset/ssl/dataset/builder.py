@@ -104,21 +104,30 @@ def _read_segment_list(
 
 
 def _prepare_clip(example: AudioSetExample) -> tuple[bool, int]:
-    """Cut the clip if needed and return ``(ok, num_samples)``."""
-    try:
-        if example.audio_path != example.source_path and not (
-            example.audio_path.is_file() and example.audio_path.stat().st_size > 0
-        ):
+    """Cut the clip if needed and return ``(ok, num_samples)``.
+
+    Only reading the source clip is allowed to fail: AudioSet downloads contain
+    missing and truncated files, and those clips are dropped. Writing the cut
+    clip is not guarded, so a full disk or an unwritable directory stops the
+    build instead of silently shrinking the corpus.
+    """
+    if example.audio_path != example.source_path and not (
+        example.audio_path.is_file() and example.audio_path.stat().st_size > 0
+    ):
+        try:
             audio, sample_rate = sf.read(str(example.source_path), dtype="float32")
-            tmp_path = example.audio_path.with_suffix(".tmp.wav")
-            sf.write(
-                str(tmp_path),
-                audio[: int(sample_rate * example.segment_seconds)],
-                sample_rate,
-            )
-            tmp_path.replace(example.audio_path)
+        except (sf.LibsndfileError, OSError):
+            return False, 0
+        tmp_path = example.audio_path.with_suffix(".tmp.wav")
+        sf.write(
+            str(tmp_path),
+            audio[: int(sample_rate * example.segment_seconds)],
+            sample_rate,
+        )
+        tmp_path.replace(example.audio_path)
+    try:
         info = sf.info(str(example.audio_path))
-    except Exception:  # noqa: BLE001 - unreadable clips are dropped
+    except (sf.LibsndfileError, OSError):
         return False, 0
     if info.samplerate != int(_CFG["sample_rate"]) or info.channels != 1:
         return False, 0

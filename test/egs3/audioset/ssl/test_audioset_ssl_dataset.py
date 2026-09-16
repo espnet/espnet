@@ -7,6 +7,7 @@ import pytest
 import soundfile as sf
 
 from egs3.audioset.ssl.dataset import Dataset, DatasetBuilder
+from egs3.audioset.ssl.dataset.builder import AudioSetExample, _prepare_clip
 
 # ===============================================================
 # Test Case Summary
@@ -18,6 +19,9 @@ from egs3.audioset.ssl.dataset import Dataset, DatasetBuilder
 # |                                              | missing/corrupt/long clips,    |
 # |                                              | keeps stable utterance ids.    |
 # | test_builder_requires_source                 | Missing AudioSet root.         |
+# | test_prepare_clip_drops_unreadable_source    | Corrupt source clip is dropped.|
+# | test_prepare_clip_propagates_write_errors    | A failed cut stops the build   |
+# |                                              | instead of dropping the clip.  |
 # | test_dataset_reads_waveforms_and_targets     | Raw waveform + target join.    |
 # | test_dataset_reads_kaldi_features            | feats_path mode.               |
 # | test_dataset_rejects_unknown_split           | Unknown split raises.          |
@@ -94,6 +98,29 @@ def test_builder_requires_source(tmp_path, monkeypatch):
     assert not builder.is_source_prepared(tmp_path)
     with pytest.raises(FileNotFoundError, match="AUDIOSET"):
         builder.prepare_source(tmp_path)
+
+
+def test_prepare_clip_drops_unreadable_source(tmp_path):
+    source = tmp_path / "corrupt.wav"
+    source.write_bytes(b"not audio")
+    example = AudioSetExample(source, tmp_path / "cut.wav", 4.0)
+
+    assert _prepare_clip(example) == (False, 0)
+
+
+def test_prepare_clip_propagates_write_errors(tmp_path, monkeypatch):
+    source = tmp_path / "source.wav"
+    _write_wav(source, 10.0)
+    example = AudioSetExample(source, tmp_path / "cut" / "cut.wav", 4.0)
+
+    def full_disk(*args, **kwargs):
+        raise OSError(28, "No space left on device")
+
+    monkeypatch.setattr(sf, "write", full_disk)
+
+    # Dropping the clip here would publish a manifest that is quietly short.
+    with pytest.raises(OSError, match="No space left"):
+        _prepare_clip(example)
 
 
 def _write_manifest(recipe_dir, split, rows):
