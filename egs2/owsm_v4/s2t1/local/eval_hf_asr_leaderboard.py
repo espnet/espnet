@@ -32,6 +32,14 @@ from espnet2.text.cleaner import TextCleaner
 from espnet2.utils.types import str2bool
 
 
+def positive_int(value: str) -> int:
+    """Argument type for a strictly positive integer."""
+    number = int(value)
+    if number <= 0:
+        raise argparse.ArgumentTypeError("must be greater than zero")
+    return number
+
+
 def get_parser() -> argparse.ArgumentParser:
     """Build the argument parser."""
     parser = argparse.ArgumentParser(
@@ -43,7 +51,7 @@ def get_parser() -> argparse.ArgumentParser:
     parser.add_argument("--model_tag", default="espnet/owsm_v4_base_102M")
     parser.add_argument("--device", default="cpu")
     parser.add_argument("--dtype", default="float32")
-    parser.add_argument("--batch_size", type=int, default=1)
+    parser.add_argument("--batch_size", type=positive_int, default=1)
     parser.add_argument("--beam_size", type=int, default=5)
     parser.add_argument("--ctc_weight", type=float, default=0.0)
     parser.add_argument(

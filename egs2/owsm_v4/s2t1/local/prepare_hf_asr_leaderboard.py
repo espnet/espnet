@@ -33,6 +33,9 @@ import soundfile as sf
 
 TEXT_KEYS = ("text", "sentence", "normalized_text", "transcript", "transcription")
 IGNORE_REF = "ignore time segment in scoring"
+# commit of hf-audio/open-asr-leaderboard the README numbers were sampled from; the
+# default branch of a dataset can change, which would change the sample despite the seed
+DEFAULT_REVISION = "b6bdcd0beb34f8975dc659796176d88f43aff502"
 TARGET_SR = 16000
 
 
@@ -57,6 +60,12 @@ def get_parser() -> argparse.ArgumentParser:
         type=float,
         default=30.0,
         help="skip utterances longer than this many seconds",
+    )
+    parser.add_argument(
+        "--revision",
+        default=DEFAULT_REVISION,
+        help="dataset commit hash or branch to stream from (default: the commit "
+        "the recipe README numbers were sampled from)",
     )
     parser.add_argument("--out", required=True, help="output data directory")
     return parser
@@ -99,6 +108,7 @@ def main() -> None:
         "hf-audio/open-asr-leaderboard",
         name=args.dataset,
         split=args.split,
+        revision=args.revision,
         streaming=True,
     )
     dataset = dataset.cast_column("audio", Audio(decode=False))
@@ -148,6 +158,7 @@ def main() -> None:
     info = {
         "dataset": args.dataset,
         "split": args.split,
+        "revision": args.revision,
         "n": len(rows),
         "seed": args.seed,
         "buffer": args.buffer,
