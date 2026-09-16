@@ -4,7 +4,7 @@
 #
 # Usage:
 #   local/run_hf_asr_leaderboard.sh [--model_tag espnet/owsm_v4_base_102M] \
-#       [--n 100] [--batch_size 8] [--maxlenratio 0.0] [--sort true] [--threads 4]
+#       [--n 100] [--seed 0] [--revision <dataset commit>] [--batch_size 8] [--maxlenratio 0.0] [--sort true] [--threads 4]
 #
 # The dataset is gated: accept the terms at
 # https://huggingface.co/datasets/hf-audio/open-asr-leaderboard and log in
@@ -25,7 +25,8 @@ device=cpu
 dtype=float32
 outdir=exp/hf_asr_leaderboard
 # "config:split" pairs of hf-audio/open-asr-leaderboard
-sets="librispeech:test.clean librispeech:test.other ami_cleaned:test voxpopuli_cleaned_aa:test earnings22:test"
+sets="librispeech:test.clean librispeech:test.other ami_cleaned:test voxpopuli_cleaned_aa:test earnings22:test common_voice:test"
+revision=b6bdcd0beb34f8975dc659796176d88f43aff502  # dataset commit, see prepare_hf_asr_leaderboard.py
 
 . utils/parse_options.sh
 . ./path.sh
@@ -44,11 +45,19 @@ for pair in ${sets}; do
     split=${pair#*:}
     name=$(echo "lb_${dataset}_${split}" | tr -c 'A-Za-z0-9_\n' '_')
     data="data/${name}"
-    if [ ! -f "${data}/wav.scp" ]; then
+    # reuse a sample only if it is complete and was drawn with the same n, seed and revision
+    if [ ! -f "${data}/wav.scp" ] || [ ! -f "${data}/text" ] || ! python3 - "${data}/info.json" "${n}" "${seed}" "${revision}" <<'EOF'
+import json, sys
+info = json.load(open(sys.argv[1]))
+ok = info["n"] == int(sys.argv[2]) and info["seed"] == int(sys.argv[3]) and info.get("revision") == sys.argv[4]
+sys.exit(0 if ok else 1)
+EOF
+    then
         echo "=== preparing ${data}"
+        rm -rf "${data}"
         python3 local/prepare_hf_asr_leaderboard.py \
             --dataset "${dataset}" --split "${split}" --n "${n}" --seed "${seed}" \
-            --out "${data}"
+            --revision "${revision}" --out "${data}"
     fi
     echo "=== decoding ${data}"
     python3 local/eval_hf_asr_leaderboard.py \
