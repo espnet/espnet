@@ -66,7 +66,7 @@ exit status.
 `conf/inference.yaml` and `conf/publication.yaml` both name the checkpoint to
 use, and they ship pointing at the checkpoint of the published run. After
 training your own model, set both of them to a file your run wrote under
-`exp/${exp_tag}/`. 
+`exp/${exp_tag}/`.
 
 ```yaml
 # conf/inference.yaml
