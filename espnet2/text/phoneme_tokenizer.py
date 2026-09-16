@@ -9,11 +9,17 @@ from typeguard import typechecked
 
 from espnet2.text.abs_tokenizer import AbsTokenizer
 
+# One try per package. Bundled, a missing jamo - Korean - takes g2p_en - English
+# - down with it, and the error then tells you to install the tts extra you have
+# already installed. Neither package implies the other.
 try:
     import g2p_en
-    import jamo
 except ImportError:
     g2p_en = None
+
+try:
+    import jamo
+except ImportError:
     jamo = None
 
 g2p_choices = [
@@ -256,7 +262,7 @@ class G2p_en:
 
     def __init__(self, no_space: bool = False):
         if g2p_en is None:
-            raise RuntimeError("Please install espnet with `pip install espnet[tts]`")
+            raise RuntimeError("g2p_en is not installed: pip install espnet[tts]")
         self.no_space = no_space
         self.g2p = None
 
@@ -333,9 +339,7 @@ class Jaso:
 
     def __init__(self, space_symbol=" ", no_space=False):
         if jamo is None:
-            raise RuntimeError(
-                "Please install espnet with " "`pip install espnet[tts]`"
-            )
+            raise RuntimeError("jamo is not installed: pip install espnet[tts]")
         self.space_symbol = space_symbol
         self.no_space = no_space
 
