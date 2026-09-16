@@ -169,10 +169,24 @@ jobs:
       # The task list lives here because a matrix cannot mix an expression with
       # literal keys, and putting it here is what keeps the versions themselves
       # from being written out a second time.
+      # A pull request runs the tasks against one pytorch per python; a push
+      # to master runs the full grid. 14 tasks across the full 2x3 grid is 84
+      # jobs against a 20-wide cap - five waves, and the whole critical path of
+      # this workflow, 97 of its 104 minutes. Over 300 runs no integration
+      # failure was ever specific to a pytorch version: every version-specific
+      # one was specific to a python and failed on all three pytorches, and the
+      # two single-variant failures did not reproduce on their own python's
+      # other pytorches, which is what a flake looks like. So the pytorch axis
+      # is not dropped, it is moved off the path that gates a review.
       - id: integration
         run: |
           tasks=asr,asr_transducer,asr_misc,tts,asr2,enh,ssl,st,spk,lid,s2t,s2st,lm,codec
-          echo "matrix=$(python3 ci/image_variants.py matrix "config-task=${tasks}")" >> "$GITHUB_OUTPUT"
+          if [ "${{ github.event_name }}" = pull_request ]; then
+            matrix=$(python3 ci/image_variants.py matrix --newest-pytorch "config-task=${tasks}")
+          else
+            matrix=$(python3 ci/image_variants.py matrix "config-task=${tasks}")
+          fi
+          echo "matrix=${matrix}" >> "$GITHUB_OUTPUT"
       - id: hash
         run: |
           full=${{ hashFiles('ci/install.sh', 'ci/install_kaldi.sh', 'ci/no_redistribute.txt', 'docker/ci.dockerfile', 'pyproject.toml', 'tools/Makefile', 'tools/installers/**') }}

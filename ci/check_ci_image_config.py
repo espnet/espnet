@@ -159,6 +159,71 @@ def check_variants() -> list:
     return problems
 
 
+VARIANTS_SCRIPT = Path("ci/image_variants.py")
+# Every `image_variants.py matrix ...` the workflow runs, with the shell
+# variables left in - they are dropped before the command is re-run here.
+GENERATED = re.compile(r"python3 ci/image_variants\.py matrix([^\n)]*)")
+
+
+def check_generated_matrices() -> list:
+    """A matrix the workflow generates must still cover every python.
+
+    The integration grid is narrowed to one pytorch per python on pull
+    requests, because 14 tasks across the full grid is 84 jobs and the whole
+    critical path. Narrowing the other axis instead would drop the axis that
+    actually catches things - every version-specific integration failure in
+    300 runs was specific to a python - and nothing else would say so: the
+    jobs would pass, in half the time, testing half of what they claim to.
+    """
+    pythons, pytorches = variants()
+    problems = []
+    for match in GENERATED.finditer(CONSUMER.read_text()):
+        # Shell expansions cannot be evaluated here; the flags can.
+        words = [w.strip("\"'") for w in match.group(1).split()]
+        arguments = [w for w in words if w and "${" not in w]
+        run = subprocess.run(
+            [sys.executable, str(VARIANTS_SCRIPT), "matrix", *arguments],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        shown = " ".join(arguments) or "(no arguments)"
+        if run.returncode != 0:
+            problems.append(
+                f"{CONSUMER}: `image_variants.py matrix {shown}` exits "
+                f"{run.returncode}: {run.stderr.strip()[:120]}"
+            )
+            continue
+        try:
+            grid = json.loads(run.stdout)
+        except json.JSONDecodeError:
+            problems.append(
+                f"{CONSUMER}: `image_variants.py matrix {shown}` did not print JSON"
+            )
+            continue
+        if grid.get("python-version") != list(pythons):
+            problems.append(
+                f"{CONSUMER}: `image_variants.py matrix {shown}` yields pythons "
+                f"{grid.get('python-version')}, but ci/image_variants.json "
+                f"builds {list(pythons)}.\n"
+                "  The python axis is the one that catches things - every "
+                "version-specific integration failure in 300 runs was specific "
+                "to a python and failed on every pytorch. Narrow pytorch, "
+                "never python."
+            )
+        unbuilt = [v for v in grid.get("pytorch-version", []) if v not in pytorches]
+        if unbuilt:
+            problems.append(
+                f"{CONSUMER}: `image_variants.py matrix {shown}` asks for "
+                f"pytorch {unbuilt}, which no image is built for"
+            )
+        if not grid.get("pytorch-version"):
+            problems.append(
+                f"{CONSUMER}: `image_variants.py matrix {shown}` yields no pytorch"
+            )
+    return problems
+
+
 def implemented(script: Path) -> set:
     """The task names a ci/test_*.sh dispatches on."""
     text = script.read_text()
@@ -1014,6 +1079,7 @@ def _mergify_label_rules() -> list:
 def main() -> int:
     bad = (
         check_variants()
+        + check_generated_matrices()
         + check_integration_tasks()
         + check_configuration_tasks()
         + check_no_duplicate_keys()
@@ -1034,7 +1100,8 @@ def main() -> int:
     build, consumer = inputs(BUILD), inputs(CONSUMER)
     if build == consumer and not bad:
         print(
-            f"hash inputs agree ({len(build)} entries); every job matrix is a "
+            f"hash inputs agree ({len(build)} entries); every job matrix and "
+            "every matrix the workflow generates is a "
             "built variant; integration and configuration tasks match their "
             "scripts; every shard set is complete; every test step has "
             "HF_TOKEN; every third-party action is pinned to a SHA; "
