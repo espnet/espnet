@@ -19,11 +19,18 @@ classifiers = [
 requires-python = ">=3.12,<3.14"
 license = { "text" = "Apache Software License" }
 
-# We can use newer setuptools after removing chainer support.
 # We didn't specify torch-related packages as it highly depends on environment.
 dependencies = [
     # ESPnet-2 and ESPnet-3 dependencies
-    "setuptools>=38.5.1,<74.0.0",
+    # The "<74.0.0" that stood here was waiting on chainer, which is gone - only
+    # espnet2/legacy/utils/dummy_chainer.py is left, and nothing in the tree
+    # imports pkg_resources, which is what a newer setuptools takes away. It had
+    # stopped being a preference and become a torch bound: torch 2.13.0 and
+    # 2.14.0 require setuptools>=77.0.3, so under the old cap pip could satisfy
+    # espnet only by resolving torch backwards, and that is exactly what it did,
+    # quietly, until ci/install.sh pinned the version and turned it into the
+    # ResolutionImpossible it always was.
+    "setuptools>=77.0.3",
     "configargparse>=1.2.1",
     "packaging",
     "typeguard",
