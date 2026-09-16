@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import os
 from pathlib import Path
 
 from lightning.pytorch.utilities import rank_zero_only
@@ -311,7 +312,10 @@ def write_token_list(output_path: str | Path, codebook_size: int) -> Path:
             )
         return output
     output.parent.mkdir(parents=True, exist_ok=True)
-    tmp_path = output.with_name(output.name + ".tmp")
+    # Every rank runs collect_stats/train, so the temporary name must be
+    # per-process: a shared one is truncated by the next writer while an
+    # earlier rank is still writing it.
+    tmp_path = output.with_name(f"{output.name}.{os.getpid()}.tmp")
     tmp_path.write_text("\n".join(expected) + "\n", encoding="utf-8")
     tmp_path.replace(output)
     logger.info("Wrote token list (%d entries): %s", len(expected), output)
@@ -330,7 +334,8 @@ def write_target_shape(target_path: str | Path, output_path: str | Path) -> Path
         Path: ``output_path``.
     """
     output = Path(output_path)
-    tmp_path = output.with_name(output.name + ".tmp")
+    # Per-process temporary name, for the same reason as in write_token_list.
+    tmp_path = output.with_name(f"{output.name}.{os.getpid()}.tmp")
     with (
         Path(target_path).open("r", encoding="utf-8") as reader,
         tmp_path.open("w", encoding="utf-8") as writer,

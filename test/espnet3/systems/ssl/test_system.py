@@ -1,5 +1,6 @@
 """Tests for the BEATs SSL system stage hooks."""
 
+import os
 from pathlib import Path
 
 import pytest
@@ -55,6 +56,8 @@ from espnet3.systems.ssl.system import (
 # |---------------------------------------------|------------------------------|
 # | test_write_token_list_validates_existing    | Mismatched list raises.      |
 # | test_write_target_shape_counts_tokens       | Counts ids per line.         |
+# | test_writers_use_per_process_temp_names     | Concurrent ranks do not share|
+# |                                             | one temporary file.          |
 
 
 def _training_config(tmp_path, iteration=0):
@@ -364,6 +367,34 @@ def test_write_token_list_validates_existing(tmp_path):
 
     with pytest.raises(ValueError, match="codebook size 3"):
         write_token_list(path, 3)
+
+
+def test_writers_use_per_process_temp_names(tmp_path, monkeypatch):
+    seen = []
+
+    class RecordingPath(type(tmp_path)):
+        def open(self, *args, **kwargs):
+            seen.append(self.name)
+            return super().open(*args, **kwargs)
+
+        def write_text(self, *args, **kwargs):
+            seen.append(self.name)
+            return super().write_text(*args, **kwargs)
+
+    monkeypatch.setattr(sysmod, "Path", RecordingPath)
+    target = RecordingPath(tmp_path / "target.scp")
+    target.write_text("0 5 6\n", encoding="utf-8")
+    seen.clear()
+
+    write_token_list(RecordingPath(tmp_path / "tokens.txt"), 2)
+    write_target_shape(target, RecordingPath(tmp_path / "target_shape"))
+
+    # Every rank writes its own temporary file before the atomic replace.
+    temporary = list(dict.fromkeys(name for name in seen if name.endswith(".tmp")))
+    assert temporary == [
+        f"tokens.txt.{os.getpid()}.tmp",
+        f"target_shape.{os.getpid()}.tmp",
+    ]
 
 
 def test_write_target_shape_counts_tokens(tmp_path):
