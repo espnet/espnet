@@ -79,9 +79,53 @@ def test_one_missing_package_does_not_disable_the_other(
         assert getattr(module, kept_attr) is not None
 
 
-def test_the_error_names_the_package_that_is_missing(monkeypatch):
+# (module, package to hide, what to call, the name the error must contain)
+MESSAGES = [
+    ("espnet2.text.phoneme_tokenizer", "jamo", lambda m: m.Jaso(), "jamo"),
+    ("espnet2.text.phoneme_tokenizer", "g2p_en", lambda m: m.G2p_en(), "g2p_en"),
+    (
+        "espnet2.text.cleaner",
+        "jaconv",
+        lambda m: m.TextCleaner(["jaconv"])("hello"),
+        "jaconv",
+    ),
+    (
+        "espnet2.text.cleaner",
+        "tacotron_cleaner",
+        lambda m: m.TextCleaner(["tacotron"])("hello"),
+        "tacotron_cleaner",
+    ),
+    (
+        "espnet2.enh.loss.criterions.time_domain",
+        "ci_sdr",
+        lambda m: m.CISDRLoss(),
+        "ci_sdr",
+    ),
+    (
+        "espnet2.enh.loss.criterions.time_domain",
+        "fast_bss_eval",
+        lambda m: m.SDRLoss(),
+        "fast_bss_eval",
+    ),
+    (
+        "espnet2.enh.loss.criterions.time_domain",
+        "fast_bss_eval",
+        lambda m: m.SISNRLoss(),
+        "fast_bss_eval",
+    ),
+]
+
+
+@pytest.mark.parametrize("module_name, hide, call, named", MESSAGES)
+def test_the_error_names_the_package_that_is_missing(
+    monkeypatch, module_name, hide, call, named
+):
+    with reloaded_without(monkeypatch, module_name, hide) as module:
+        with pytest.raises(RuntimeError, match=named):
+            call(module)
+
+
+def test_english_still_works_without_korean(monkeypatch):
     pytest.importorskip("g2p_en")
     with reloaded_without(monkeypatch, "espnet2.text.phoneme_tokenizer", "jamo") as m:
-        with pytest.raises(RuntimeError, match="jamo"):
-            m.Jaso()
-        m.G2p_en()  # English is unaffected by Korean being absent
+        m.G2p_en()  # the point of the change: this used to raise
