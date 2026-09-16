@@ -92,6 +92,18 @@ def test_Classification_multilabel(multi_label_config_file):
     assert torch.all(score >= 0), score
 
 
+def test_Classification_from_pretrained(multi_class_config_file):
+    # model_tag=None skips the model-zoo download and builds from the kwargs,
+    # the same path every other from_pretrained in espnet2/bin takes.
+    classification = Classification.from_pretrained(
+        model_tag=None,
+        classification_train_config=multi_class_config_file,
+        batch_size=1,
+    )
+    pred, score, pred_str = classification(np.random.randn(1000))
+    assert score.shape == (52,), score.shape
+
+
 @pytest.fixture()
 def data_setup(tmp_path):
     """Creates temporary files for inference and returns their paths."""
