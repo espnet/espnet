@@ -96,12 +96,17 @@ def _conv2d_project(module, x, convs):
     frame is repeated for the rest. Frames whose receptive field touches real
     content are computed as usual, so the result is that of the full
     computation. The check is one comparison of every frame with the last one.
-    The full computation is used in training mode, when the tail is not
-    constant, and when ``module.skip_constant_tail`` is set to False.
+    The full computation is used in training mode, whenever autograd is
+    enabled (the omitted frames would receive no gradient), when the tail is
+    not constant, and when ``module.skip_constant_tail`` is set to False.
 
     ``convs`` lists the time-axis ``(kernel_size, stride)`` of ``module.conv``.
     """
-    if not module.training and getattr(module, "skip_constant_tail", True):
+    if (
+        not module.training
+        and not torch.is_grad_enabled()
+        and getattr(module, "skip_constant_tail", True)
+    ):
         time = x.size(1)
         same_as_last = (x == x[:, -1:, :]).all(dim=2)  # (#batch, time)
         trailing = same_as_last.flip(1).to(torch.int64).cumprod(1).sum(1)

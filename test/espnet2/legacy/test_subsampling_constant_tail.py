@@ -60,6 +60,7 @@ def _reference(module, x, mask):
 
 @pytest.mark.parametrize("cls", CLASSES)
 @pytest.mark.parametrize("with_mask", [True, False])
+@torch.no_grad()
 def test_constant_tail_gives_full_result(cls, with_mask):
     module = _module(cls)
     x = _padded_input([70, 55, 40])  # long enough for every stride
@@ -79,6 +80,7 @@ def test_constant_tail_gives_full_result(cls, with_mask):
 
 
 @pytest.mark.parametrize("cls", CLASSES)
+@torch.no_grad()
 def test_no_constant_tail_or_training_runs_full(cls):
     module = _module(cls)
     x = _padded_input([0, 0])
@@ -90,6 +92,11 @@ def test_no_constant_tail_or_training_runs_full(cls):
     module.conv.seen.clear()
     module(x, None)
     assert module.conv.seen == [x.size(1)]
+    # autograd enabled (gradients wanted in eval mode) never takes the shortcut
+    with torch.enable_grad():
+        module.conv.seen.clear()
+        module(_padded_input([40, 40]), None)
+        assert module.conv.seen == [x.size(1)]
     # training mode never takes the shortcut
     x = _padded_input([40, 40])
     module.train()
@@ -99,6 +106,7 @@ def test_no_constant_tail_or_training_runs_full(cls):
 
 
 @pytest.mark.parametrize("cls", CLASSES)
+@torch.no_grad()
 def test_all_constant_input(cls):
     module = _module(cls)
     x = torch.randn(1, 1, 20).expand(2, 97, 20).contiguous()
