@@ -562,7 +562,6 @@ class TitanTrainer:
                 self.model.parameters(),
                 self.max_norm,
                 foreach=True,
-                ep_enabled=self.parallel_dims.ep_enabled,
             )
 
             # Optimizer step

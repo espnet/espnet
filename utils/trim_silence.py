@@ -10,13 +10,13 @@ import codecs
 import logging
 import os
 
-import kaldiio
 import librosa
 import matplotlib.pyplot as plt
 import numpy
 import resampy
 
 from espnet2.legacy.utils.cli_utils import get_commandline_args
+from espnet2.utils.kaldiio_utils import import_kaldiio
 
 
 def _time_to_str(time_idx):
@@ -109,7 +109,7 @@ def main():
     os.makedirs(args.figdir, exist_ok=True)
 
     with (
-        kaldiio.ReadHelper(args.rspecifier) as reader,
+        import_kaldiio().ReadHelper(args.rspecifier) as reader,
         codecs.open(args.wspecifier, "w", encoding="utf-8") as f,
     ):
         for utt_id, (rate, array) in reader:

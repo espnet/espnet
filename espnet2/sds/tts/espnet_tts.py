@@ -8,6 +8,7 @@ from typeguard import typechecked
 
 from espnet2.bin.tts_inference import Text2Speech
 from espnet2.sds.tts.abs_tts import AbsTTS
+from espnet2.utils.kaldiio_utils import import_kaldiio
 from espnet2.utils.types import str_or_none
 
 
@@ -79,7 +80,7 @@ class ESPnetTTSModel(AbsTTS):
             # randomly select speaker
             self.sids = np.array(np.random.randint(1, len(sid2spk)))
         if self.text2speech.use_spembs:
-            import kaldiio
+            kaldiio = import_kaldiio()
 
             xvector_ark = [
                 p

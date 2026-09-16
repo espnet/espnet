@@ -100,7 +100,7 @@ def collect_data(
     train_data = [
         x
         for x in validated_data
-        if x["client_id"] not in dev_ids and x["client_id"] not in dev_ids
+        if x["client_id"] not in dev_ids and x["client_id"] not in test_ids
     ]
 
     logging.info("start to transform into talks")

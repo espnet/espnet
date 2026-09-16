@@ -1,11 +1,8 @@
 import pytest
 import torch
-from packaging.version import parse as V
 
 from espnet2.tts.prodiff import ProDiff
 from espnet2.tts.prodiff.loss import SSimLoss
-
-is_torch_1_7_plus = V(torch.__version__) >= V("1.7.0")
 
 
 @pytest.mark.parametrize("reduction_factor", [1])
@@ -18,10 +15,6 @@ is_torch_1_7_plus = V(torch.__version__) >= V("1.7.0")
 @pytest.mark.parametrize(
     "spks, langs, use_gst",
     [(-1, -1, False), (5, 2, True)],
-)
-@pytest.mark.skipif(
-    not is_torch_1_7_plus,
-    reason="Pytorch >= 1.7 is required.",
 )
 def test_prodiff(
     reduction_factor,
@@ -126,10 +119,6 @@ def test_prodiff(
 
 
 @pytest.mark.parametrize("reduction_type", ["none", "mean"])
-@pytest.mark.skipif(
-    not is_torch_1_7_plus,
-    reason="Pytorch >= 1.7 is required.",
-)
 def test_ssim(reduction_type):
     lossfun = SSimLoss(reduction=reduction_type)
     feats = torch.randn(2, 4, 5)

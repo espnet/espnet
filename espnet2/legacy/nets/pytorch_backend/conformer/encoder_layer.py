@@ -7,6 +7,8 @@
 
 """Encoder self-attention layer definition."""
 
+import inspect
+
 import torch
 from torch import nn
 
@@ -58,6 +60,10 @@ class EncoderLayer(nn.Module):
         self.feed_forward = feed_forward
         self.feed_forward_macaron = feed_forward_macaron
         self.conv_module = conv_module
+        # a custom convolution module may predate the mask argument
+        self._conv_takes_mask = conv_module is not None and (
+            "mask_pad" in inspect.signature(conv_module.forward).parameters
+        )
         self.norm_ff = LayerNorm(size)  # for the FNN module
         self.norm_mha = LayerNorm(size)  # for the MHA module
         if feed_forward_macaron is not None:
@@ -153,7 +159,11 @@ class EncoderLayer(nn.Module):
             residual = x
             if self.normalize_before:
                 x = self.norm_conv(x)
-            x = residual + stoch_layer_coeff * self.dropout(self.conv_module(x))
+            if self._conv_takes_mask:
+                x_conv = self.conv_module(x, mask_pad=mask)
+            else:
+                x_conv = self.conv_module(x)
+            x = residual + stoch_layer_coeff * self.dropout(x_conv)
             if not self.normalize_before:
                 x = self.norm_conv(x)
 

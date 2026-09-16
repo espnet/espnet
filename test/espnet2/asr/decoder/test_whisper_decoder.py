@@ -2,7 +2,6 @@ import sys
 
 import pytest
 import torch
-from packaging.version import parse as V
 
 from espnet2.asr.decoder.whisper_decoder import OpenAIWhisperDecoder
 
@@ -12,12 +11,11 @@ pytest.importorskip("whisper")
 
 # NOTE(Shih-Lun): needed for `persistent` param in
 #                 torch.nn.Module.register_buffer()
-is_torch_1_7_plus = V(torch.__version__) >= V("1.7.0")
 is_python_3_8_plus = sys.version_info >= (3, 8)
 
 
 @pytest.mark.skipif(
-    not is_python_3_8_plus or not is_torch_1_7_plus,
+    not is_python_3_8_plus,
     reason="whisper not supported on python<3.8, torch<1.7",
 )
 @pytest.fixture()
@@ -30,7 +28,7 @@ def whisper_decoder(request):
 
 
 @pytest.mark.skipif(
-    not is_python_3_8_plus or not is_torch_1_7_plus,
+    not is_python_3_8_plus,
     reason="whisper not supported on python<3.8, torch<1.7",
 )
 @pytest.mark.timeout(50)
@@ -63,7 +61,7 @@ def test_embedding_expanded_decoder(load_origin_token_embedding):
 
 
 @pytest.mark.skipif(
-    not is_python_3_8_plus or not is_torch_1_7_plus,
+    not is_python_3_8_plus,
     reason="whisper not supported on python<3.8, torch<1.7",
 )
 @pytest.mark.timeout(50)
@@ -78,7 +76,7 @@ def test_decoder_reinit_emb():
 
 
 @pytest.mark.skipif(
-    not is_python_3_8_plus or not is_torch_1_7_plus,
+    not is_python_3_8_plus,
     reason="whisper not supported on python<3.8, torch<1.7",
 )
 def test_decoder_invalid_init():
@@ -92,7 +90,7 @@ def test_decoder_invalid_init():
 
 
 @pytest.mark.skipif(
-    not is_python_3_8_plus or not is_torch_1_7_plus,
+    not is_python_3_8_plus,
     reason="whisper not supported on python<3.8, torch<1.7",
 )
 @pytest.mark.timeout(50)
@@ -108,7 +106,7 @@ def test_decoder_forward_backward(whisper_decoder):
 
 
 @pytest.mark.skipif(
-    not is_python_3_8_plus or not is_torch_1_7_plus,
+    not is_python_3_8_plus,
     reason="whisper not supported on python<3.8, torch<1.7",
 )
 @pytest.mark.timeout(50)

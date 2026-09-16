@@ -7,7 +7,8 @@ import sys
 from os.path import join
 
 import numpy as np
-from kaldiio import ReadHelper
+
+from espnet2.utils.kaldiio_utils import import_kaldiio
 
 
 def get_parser():
@@ -23,7 +24,7 @@ def get_parser():
 if __name__ == "__main__":
     args = get_parser().parse_args(sys.argv[1:])
     os.makedirs(args.out_dir, exist_ok=True)
-    with ReadHelper(f"scp:{args.scp_file}") as f:
+    with import_kaldiio().ReadHelper(f"scp:{args.scp_file}") as f:
         for utt_id, arr in f:
             out_path = join(args.out_dir, f"{utt_id}-feats.npy")
             np.save(out_path, arr, allow_pickle=False)

@@ -11,8 +11,18 @@ if [[ ! ${unames} =~ Linux && ! ${unames} =~ Darwin ]]; then
     exit 0
 fi
 
+# NOTE: espnet only uses the espeak backend of phonemizer
+# (see the espeak_ng_* g2p types in espnet2/text/phoneme_tokenizer.py).
+# The festival and MBROLA backends are not referenced anywhere in espnet,
+# and building speech_tools + festival takes ~4.5 min, which dominates the
+# install time of this script. They are therefore opt-in.
+: "${PHONEMIZER_WITH_FESTIVAL:=false}"
+: "${PHONEMIZER_WITH_MBROLA:=false}"
+
 # Install festival
-if [ ! -e festival.done ]; then
+if ! "${PHONEMIZER_WITH_FESTIVAL}"; then
+    echo "Skip installing festival (set PHONEMIZER_WITH_FESTIVAL=true to install it)"
+elif [ ! -e festival.done ]; then
     rm -rf speech_tools
     # NOTE(kan-bayashi): It is better to use fixed tag
     git clone --depth 5 https://github.com/festvox/speech_tools.git
@@ -56,7 +66,9 @@ else
 fi
 
 # Install MBROLA
-if [ ! -e MBROLA.done ]; then
+if ! "${PHONEMIZER_WITH_MBROLA}"; then
+    echo "Skip installing MBROLA (set PHONEMIZER_WITH_MBROLA=true to install it)"
+elif [ ! -e MBROLA.done ]; then
     rm -rf MBROLA
     # NOTE(kan-bayashi): It is better to use fixed tag
     git clone https://github.com/numediart/MBROLA.git
