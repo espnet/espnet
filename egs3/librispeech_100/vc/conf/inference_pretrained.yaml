@@ -1,0 +1,42 @@
+##########################################################
+#   kNN-VC conversion with the authors' released vocoder #
+##########################################################
+# No training needed: uses a HiFi-GAN generator released with the paper
+# (converted on the fly to espnet2's HiFiGANGenerator layout).
+#
+# The authors released two generators, both of which load here unchanged:
+#   prematch_g_02500000.pt  trained on prematched features -- their default,
+#                           and the paper's headline system;
+#   g_02500000.pt           trained on plain WavLM features -- the ablation
+#                           that shows what prematching buys.
+# Swap `vocoder_checkpoint` below to switch. (The `*_do_*.pt` assets in the
+# same release are discriminator/optimizer states for resuming training, not
+# for inference.)
+#
+#   python run.py --stages infer \
+#       --training_config conf/training.yaml \
+#       --inference_config conf/inference_pretrained.yaml
+#
+# `--training_config` only supplies exp_dir / wavlm settings here.
+
+dataset:
+  test:
+    - name: dev-clean
+      data_src_args:
+        split: dev-clean
+        kind: conversion
+        num_pairs: 200
+        seed: 1234
+        max_reference_seconds: 300
+
+model:
+  _target_: espnet3.systems.vc.models.knnvc.model.KNNVCModel
+  # Non-prematched alternative:
+  #   .../releases/download/v0.1/g_02500000.pt
+  vocoder_checkpoint: https://github.com/bshall/knn-vc/releases/download/v0.1/prematch_g_02500000.pt
+  wavlm_checkpoint: ${wavlm_checkpoint}
+  layer: ${wavlm_layer}
+  topk: 4
+  tgt_loudness_db: -16
+
+input_key: [speech, reference_speech, target_speaker]

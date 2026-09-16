@@ -1,0 +1,41 @@
+##########################################################
+#        kNN-VC conversion with the trained vocoder      #
+##########################################################
+#   python run.py --stages infer \
+#       --training_config conf/training.yaml --inference_config conf/inference.yaml
+#
+# 200 dev-clean utterances are each converted to a different dev-clean
+# speaker using up to 5 minutes of that speaker's utterances as the matching
+# set. Output: `${inference_dir}/dev-clean/wav.scp` (+ WAV files), `ref.scp`.
+
+dataset:
+  test:
+    - name: dev-clean
+      data_src_args:
+        split: dev-clean
+        kind: conversion
+        num_pairs: 200
+        seed: 1234
+        max_reference_seconds: 300
+
+model:
+  _target_: espnet3.systems.vc.models.knnvc.model.KNNVCModel
+  # Average of the 3 best checkpoints by validation mel loss, as in
+  # `librispeech_100/asr`. This file is what `pack_model` publishes; raw
+  # `*.ckpt` training states are excluded from the bundle because they also
+  # carry optimizer and discriminator weights.
+  #
+  # Two caveats:
+  # - the authors use the *final* checkpoint instead; set
+  #   `vocoder_checkpoint: ${exp_dir}/last.ckpt` to reproduce their choice
+  #   exactly (local inference only, that file is not packed);
+  # - the `ave_<N>best` count follows how many validation epochs ran, so a
+  #   short run writes `ave_1best.pth` / `ave_2best.pth`. Adjust the name when
+  #   trying the recipe with a handful of epochs.
+  vocoder_checkpoint: ${exp_dir}/valid.mel_loss.ave_3best.pth
+  wavlm_checkpoint: ${wavlm_checkpoint}
+  layer: ${wavlm_layer}
+  topk: 4
+  tgt_loudness_db: -16
+
+input_key: [speech, reference_speech, target_speaker]

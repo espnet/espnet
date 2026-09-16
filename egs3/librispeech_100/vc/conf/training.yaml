@@ -1,0 +1,99 @@
+##########################################################
+#          kNN-VC HiFi-GAN vocoder on LibriSpeech 100h   #
+##########################################################
+# Reproduces the "prematched" HiFi-GAN of "Voice Conversion With Just Nearest
+# Neighbors" (Baas et al., Interspeech 2023): WavLM-Large layer-6 features of
+# train-clean-100, prematched within each speaker chapter (k=4), as the
+# official prematch_dataset.py pools them, vocoded by HiFi-GAN V1.
+#
+#   python run.py --stages create_dataset    --training_config conf/training.yaml
+#   python run.py --stages prepare_features  --training_config conf/training.yaml
+#   python run.py --stages train             --training_config conf/training.yaml
+#
+# Place LibriSpeech under `download/LibriSpeech` or set $LIBRISPEECH.
+# The WavLM-Large checkpoint is downloaded from the kNN-VC release on first
+# use; override `wavlm_checkpoint` (TEMPLATE default) with a local copy to
+# avoid that. `wavlm_layer` defaults to 6 (TEMPLATE).
+
+prepare_features:
+  features_dir: ${data_dir}/wavlm_l${wavlm_layer}_prematched
+  # Same corpus coverage as the official prematch_dataset.py: the vocoder
+  # trains on train-clean-100 and validates on dev-clean.
+  dataset:
+    - name: train-clean-100
+      data_src_args:
+        split: train-clean-100
+        kind: audio
+    - name: dev-clean
+      data_src_args:
+        split: dev-clean
+        kind: audio
+  encoder:
+    _target_: espnet3.systems.vc.models.knnvc.wavlm_encoder.WavLMEncoder
+    checkpoint: ${wavlm_checkpoint}
+    layer: ${wavlm_layer}
+  prematch: true
+  topk: 4
+
+# Official split (data_splits/wavlm-hifigan-{train,valid}.csv of bshall/knn-vc):
+# all of train-clean-100 for training, all of dev-clean for validation, with
+# validation on whole utterances (batch size 1). To hold out part of
+# train-clean-100 instead, set `subset: train` / `subset: valid` (+ optional
+# `valid_ratio`) on two train-clean-100 entries.
+dataset:
+  train:
+    - data_src_args:
+        split: train-clean-100
+        kind: vocoder
+        features_dir: ${prepare_features.features_dir}
+        segment_frames: 22          # 22 * 320 = 7040 samples, as in config_v1_wavlm.json
+  valid:
+    - data_src_args:
+        split: dev-clean
+        kind: vocoder
+        features_dir: ${prepare_features.features_dir}
+        segment_frames:             # whole utterances, as in the official validation loop
+
+model:
+  _target_: espnet3.systems.vc.models.knnvc.vocoder.KNNVCVocoderModel
+  lambda_adv: 1.0
+  lambda_feat_match: 2.0
+  lambda_mel: 45.0
+
+optimizers:
+  generator:
+    optimizer:
+      _target_: torch.optim.AdamW
+      lr: 2.0e-4
+      betas: [0.8, 0.99]
+    params: generator
+  discriminator:
+    optimizer:
+      _target_: torch.optim.AdamW
+      lr: 2.0e-4
+      betas: [0.8, 0.99]
+    params: discriminator
+
+schedulers:
+  generator:
+    scheduler:
+      _target_: torch.optim.lr_scheduler.ExponentialLR
+      gamma: 0.999
+    interval: epoch
+  discriminator:
+    scheduler:
+      _target_: torch.optim.lr_scheduler.ExponentialLR
+      gamma: 0.999
+    interval: epoch
+
+dataloader:
+  train:
+    batch_size: 16
+    num_workers: 4
+  valid:
+    batch_size: 1
+
+trainer:
+  # The paper trains for 2.5M updates (~1800 epochs of train-clean-100).
+  max_epochs: 1800
+  log_every_n_steps: 25
