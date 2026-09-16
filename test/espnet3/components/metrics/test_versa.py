@@ -1,6 +1,7 @@
 """Unit tests for espnet3.components.metrics.versa."""
 
 import json
+import sys
 
 import pytest
 import yaml
@@ -110,7 +111,9 @@ class TestCall:
 
         assert averages == {"mcd": 3.0}
         assert recorded["check"] is True
-        assert recorded["cmd"][:3] == ["python", "-m", "versa.bin.scorer"]
+        # sys.executable, not "python": under srun or a venv the interpreter
+        # running the stage is the only one known to have versa installed.
+        assert recorded["cmd"][:3] == [sys.executable, "-m", "versa.bin.scorer"]
         assert "--use_gpu" not in recorded["cmd"]
         assert "--text" not in recorded["cmd"]
 

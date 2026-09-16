@@ -11,6 +11,7 @@ from __future__ import annotations
 import json
 import logging
 import subprocess
+import sys
 from pathlib import Path
 from typing import Dict
 
@@ -183,8 +184,11 @@ class VersaMetric(BaseMetric):
         score_config_path = self._resolve_score_config_path(eval_dir)
         result_file = eval_dir / "result.json"
 
+        # The interpreter running this stage, not whatever `python` resolves to
+        # on PATH: under srun or a venv those differ, and only this one is known
+        # to have versa installed.
         cmd = [
-            "python",
+            sys.executable,
             "-m",
             "versa.bin.scorer",
             "--pred",
