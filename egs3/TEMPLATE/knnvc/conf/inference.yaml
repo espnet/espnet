@@ -1,0 +1,54 @@
+##########################################################
+#                   Inference SETTING                    #
+##########################################################
+# Quick usage:
+#   python run.py --stages infer \
+#       --training_config conf/training.yaml --inference_config conf/inference.yaml
+#
+# Shared default merged under every VC recipe's inference config.
+# Each test entry yields conversion pairs; the model is called as
+# `model(**{key: item[key] for key in input_key})` and must return the
+# converted waveform, which `output_fn` wraps for SCP/WAV writing.
+
+recipe_dir: .
+exp_tag:
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+data_dir: ${recipe_dir}/data
+inference_dir: ${exp_dir}/${self_name:}
+
+# Frozen encoder settings (see training.yaml); must match the features the
+# vocoder was trained on.
+wavlm_checkpoint: https://github.com/bshall/knn-vc/releases/download/v0.1/WavLM-Large.pt
+wavlm_layer: 6
+
+dataset:
+  _target_: espnet3.components.data.data_organizer.DataOrganizer
+  _recursive_: false
+  recipe_dir: ${recipe_dir}
+  test:
+
+parallel:
+  env: local
+  n_workers: 1
+
+# The inference model. kNN-VC builds its frozen encoder from
+# `wavlm_checkpoint`/`wavlm_layer` above; add an `encoder:` block with a
+# `_target_` to run on a different self-supervised encoder, which must be the
+# same one the vocoder was trained on.
+model:
+
+# Dataset fields forwarded to the model, in order. kNN-VC uses
+# [speech, reference_speech, target_speaker].
+input_key:
+# Conversions are run one utterance at a time (reference sets differ in size).
+batch_size:
+output_fn: egs3.TEMPLATE.knnvc.src.inference.build_output
+output_artifacts:
+  wav:
+    type: wav
+    sample_rate: 16000
+
+provider:
+  _target_: espnet3.systems.base.inference_provider.InferenceProvider
+runner:
+  _target_: espnet3.systems.base.inference_runner.InferenceRunner

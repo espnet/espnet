@@ -23,13 +23,27 @@ UTTERANCES = [
     ("spkC-0001", "spkC", 0.3),  # single-utterance speaker: nothing to prematch
 ]
 
+# Same utterances, but with the pools interleaved so that dataset order and
+# pool order disagree. `prepare_features` must still hand the runner one pool
+# at a time, or its per-pool feature cache thrashes.
+INTERLEAVED_UTTERANCES = [
+    ("spkA-0001", "spkA", 0.5),
+    ("spkB-0001", "spkB", 0.6),
+    ("spkA-0002", "spkA", 0.7),
+    ("spkC-0001", "spkC", 0.3),
+    ("spkB-0002", "spkB", 0.5),
+    ("spkA-0003", "spkA", 0.4),
+]
+
 
 class TinyAudioDataset:
     """Synthetic audio dataset implementing the ``prepare_features`` contract."""
 
-    def __init__(self, split: str = "train", **_kwargs) -> None:
+    def __init__(
+        self, split: str = "train", interleaved: bool = False, **_kwargs
+    ) -> None:
         self.split = split
-        self.utterances = list(UTTERANCES)
+        self.utterances = list(INTERLEAVED_UTTERANCES if interleaved else UTTERANCES)
 
     def __len__(self) -> int:
         return len(self.utterances)
