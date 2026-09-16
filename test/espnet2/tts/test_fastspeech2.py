@@ -115,3 +115,52 @@ def test_fastspeech2(
         inputs.update(pitch=torch.tensor([2, 2, 0], dtype=torch.float).unsqueeze(-1))
         inputs.update(energy=torch.tensor([2, 2, 0], dtype=torch.float).unsqueeze(-1))
         model.inference(**inputs, use_teacher_forcing=True)
+
+
+@pytest.mark.parametrize("alpha", [0.8, 1.0, 1.5])
+def test_fastspeech2_speed_control(alpha):
+    """alpha scales the durations, and the decoder mask has to follow.
+
+    The mask used to be built from the durations before alpha was applied while
+    the length regulator had already applied it, so any alpha != 1.0 failed with
+    "The size of tensor a (...) must match the size of tensor b (...)".
+    """
+    model = FastSpeech2(
+        idim=10,
+        odim=5,
+        adim=4,
+        aheads=2,
+        elayers=1,
+        eunits=4,
+        dlayers=1,
+        dunits=4,
+        postnet_layers=1,
+        postnet_chans=4,
+        postnet_filts=5,
+        reduction_factor=1,
+        duration_predictor_layers=2,
+        duration_predictor_chans=4,
+        duration_predictor_kernel_size=3,
+        energy_predictor_layers=2,
+        energy_predictor_chans=4,
+        energy_predictor_kernel_size=3,
+        energy_embed_kernel_size=9,
+        pitch_predictor_layers=2,
+        pitch_predictor_chans=4,
+        pitch_predictor_kernel_size=3,
+        pitch_embed_kernel_size=9,
+    )
+    model.eval()
+
+    torch.manual_seed(0)  # the untrained duration predictor is the input here
+    with torch.no_grad():
+        out = model.inference(text=torch.randint(0, 10, (20,)), alpha=alpha)
+
+    expected = int(
+        torch.round(out["duration"].float() * alpha).long().clamp(min=0).sum()
+    )
+    if expected == 0:
+        # LengthRegulator fills in one frame when a sample predicts nothing at
+        # all, which an untrained duration predictor sometimes does.
+        expected = 1
+    assert out["feat_gen"].size(0) == expected
