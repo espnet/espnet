@@ -55,8 +55,17 @@ def _durations_after_alpha(d_outs: torch.Tensor, alpha: float) -> torch.Tensor:
     has to do the same arithmetic. Written out twice, the two drifted apart.
     """
     if alpha != 1.0:
-        return torch.round(d_outs.float() * alpha).long().clamp(min=0)
-    return d_outs.long().clamp(min=0)
+        ds = torch.round(d_outs.float() * alpha).long().clamp(min=0)
+    else:
+        ds = d_outs.long().clamp(min=0)
+
+    # LengthRegulator's own fallback, mirrored: when the whole batch predicts
+    # nothing it fills every position of each empty row with 1 - so the output
+    # is as wide as the source, not one frame, whatever the warning there says.
+    if ds.sum() == 0:
+        ds = ds.clone()
+        ds[ds.sum(dim=1).eq(0)] = 1
+    return ds
 
 
 class FastSpeech2(AbsTTS):
