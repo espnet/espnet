@@ -62,8 +62,7 @@ class TextCleaner:
             if t == "tacotron":
                 if tacotron_cleaners is None:
                     raise RuntimeError(
-                        "tacotron_cleaner is not installed: "
-                        "pip install espnet[tts]"
+                        "tacotron_cleaner is not installed: " "pip install espnet[tts]"
                     )
                 text = tacotron_cleaners.custom_english_cleaners(text)
             elif t == "jaconv":
