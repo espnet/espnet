@@ -545,8 +545,12 @@ INSTALL_TORCH = Path("tools/installers/install_torch.sh")
 LINE_PINS = (
     (re.compile(r"\bTH_VERSION\s*[:=]{1,2}\s*[\"']?(\d+\.\d+\.\d+)"), "pytorch"),
     (re.compile(r"\bth_ver\s*=\s*[\"']?(\d+\.\d+\.\d+)"), "pytorch"),
-    (re.compile(r"\btorch==(\d+\.\d+\.\d+)"), "pytorch"),
-    (re.compile(r"\"torch>=(\d+\.\d+\.\d+)"), "pytorch"),
+    # \s* around the operators: a specifier written with spaces around == or >=
+    # is the same pin as the unspaced form, and a scan that misses one shape is
+    # the list problem again in miniature. (Spelling an example here would trip
+    # the scan itself, which is the check working.)
+    (re.compile(r"\btorch\s*==\s*(\d+\.\d+\.\d+)"), "pytorch"),
+    (re.compile(r"[\"']torch\s*>=\s*(\d+\.\d+\.\d+)"), "pytorch"),
     (re.compile(r"\bPYTHON_VERSION\s*[:=]{1,2}\s*[\"']?(\d+\.\d+)"), "python"),
     (re.compile(r"conda install[^\n]*\"python=(\d+\.\d+)\""), "python"),
     (re.compile(r"uv venv -p (\d+\.\d+)"), "python"),

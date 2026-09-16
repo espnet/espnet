@@ -174,7 +174,12 @@ espnet.done: pytorch.done conda_packages.done lightning.done
 	# identical, so nothing installs two copies of ctc_segmentation or g2p_en.
 	. ./activate_python.sh && python3 -m pip install espnet-g2p-en
 	. ./activate_python.sh && python3 -m pip install espnet-ctc-segmentation
-	. ./activate_python.sh && python3 -m pip install -e ".."  # Install editable mode by default
+	# torch==$(TH_VERSION) on the same line, not because it is missing - it was
+	# installed above - but to hold it still. Unpinned, this resolve is free to
+	# move torch anywhere the dependency range allows, and it did: it dropped
+	# 2.13.0 for 2.12.1, so install_k2.sh then built against 2.12.1 and the
+	# version check at the end of ci/install.sh failed the job.
+	. ./activate_python.sh && python3 -m pip install -e ".." "torch==$(TH_VERSION)"  # Install editable mode by default
 	@echo NUMPY_VERSION=$(shell . ./activate_python.sh && python3 -c "import numpy; print(numpy.__version__)")
 	# Into the venv, not $$HOME. docker/ci.dockerfile builds in a builder stage
 	# and copies only /espnet/tools into the final image, so a download to
