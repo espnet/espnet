@@ -267,14 +267,14 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
 
     ```sh
     $ cd <espnet-root>/tools
-    $ make TH_VERSION=1.10.1
+    $ make TH_VERSION=2.11.0
     ```
 
     Note that the CUDA version is derived from `nvcc` command. If you'd like to specify the other CUDA version, you need to give `CUDA_VERSION`.
 
     ```sh
     $ cd <espnet-root>/tools
-    $ make TH_VERSION=1.10.1 CUDA_VERSION=11.3
+    $ make TH_VERSION=2.11.0 CUDA_VERSION=12.8
     ```
 
     If you don't have `nvcc` command, packages are installed for CPU mode by default.

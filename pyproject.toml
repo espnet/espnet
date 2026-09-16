@@ -19,11 +19,20 @@ classifiers = [
 requires-python = ">=3.12,<3.14"
 license = { "text" = "Apache Software License" }
 
-# We can use newer setuptools after removing chainer support.
 # We didn't specify torch-related packages as it highly depends on environment.
 dependencies = [
     # ESPnet-2 and ESPnet-3 dependencies
-    "setuptools>=38.5.1,<74.0.0",
+    # Both ends are torch's, near enough. The floor: torch 2.13.0 and 2.14.0
+    # require setuptools>=77.0.3, and the "<74.0.0" that stood here - left over
+    # from chainer, which is gone - meant pip could satisfy espnet only by
+    # resolving torch backwards, which it did, quietly, until ci/install.sh
+    # pinned the version and turned it into the ResolutionImpossible it always
+    # was. The cap: setuptools 82.0.0 removed pkg_resources, and pyworld imports
+    # it at module scope, so every TTS/SVS test module fails to import under 82
+    # with ModuleNotFoundError. torch 2.11.0 declares setuptools<82 itself for
+    # the same class of reason. Drop the cap when pyworld stops importing
+    # pkg_resources, not before.
+    "setuptools>=77.0.3,<82",
     "configargparse>=1.2.1",
     "packaging",
     "typeguard",
@@ -54,16 +63,30 @@ dependencies = [
     "datasets",
     "dask[distributed]",
     "dask_jobqueue",
-    # The supported set is exactly {2.9.1, 2.10.0, 2.11.0}, and three places have
-    # to agree on it: ci/image_variants.json, which is what CI builds images for;
-    # tools/installers/install_torch.sh, which exits 1 on anything else; and here.
-    # The upper bound is not arbitrary - torchaudio's newest release is 2.11.0,
-    # ESPnet installs the two as a matched pair, and torchaudio publishes no
-    # dependency metadata at all, so nothing stops pip from pairing torchaudio
-    # 2.11.0 with a much newer torch. It did: `pip install espnet[asr]==202609`
-    # resolved torch 2.12.1 against torchaudio 2.11.0.
-    "torch>=2.9.1,<2.12",
-    "torchaudio>=2.9.1,<2.12",
+    # The supported set is exactly {2.11.0, 2.13.0, 2.14.0}, and three places
+    # have to agree on it: ci/image_variants.json, which is what CI builds
+    # images for; tools/installers/install_torch.sh, which exits 1 on anything
+    # else; and here. 2.12.0 and 2.12.1 exist and sit between two supported
+    # versions, so they are excluded one at a time: a plain range would let pip
+    # resolve to a torch CI never tests, and it does exactly that given the
+    # chance - `pip install -e ".[test,all]"` in ci/install.sh picked 2.12.1
+    # while the environment had been built for 2.13.0.
+    # The two bounds differ on purpose. torchaudio's newest release is 2.11.0
+    # and there is no 2.12, 2.13 or 2.14, so from torch 2.12 on the pair is no
+    # longer lockstep: torchaudio 2.11.0 is what every supported torch above it
+    # gets, which makes this range exactly that one version.
+    # That pairing is deliberate now rather than an accident of resolution:
+    # torchaudio 2.11.0's native libraries import only PyTorch's stable ABI (the
+    # aoti_torch_* C API, no mangled C++ torch symbols), and it was run against
+    # both torch 2.13.0 and 2.14.0 - resample, MelSpectrogram, Spectrogram and
+    # compliance.kaldi.fbank all work.
+    # The bounds still have to be written out, because torchaudio publishes no
+    # dependency metadata at all: nothing here would otherwise stop pip from
+    # pairing torchaudio 2.11.0 with a torch past the set CI tests, which is how
+    # `pip install espnet[asr]==202609` reached torch 2.12.1 back when the
+    # supported set stopped at 2.11.0.
+    "torch>=2.11.0,!=2.12.0,!=2.12.1,<2.15",
+    "torchaudio>=2.11.0,<2.12",
     "huggingface_hub",
     "wandb",
 ]

@@ -7,7 +7,6 @@ import numpy as np
 import pytest
 import torch
 import yaml
-from packaging.version import parse as V
 
 from espnet2.bin.asr_inference import Speech2Text, get_parser, main
 from espnet2.bin.asr_inference_streaming import Speech2TextStreaming
@@ -16,8 +15,6 @@ from espnet2.legacy.nets.beam_search import Hypothesis
 from espnet2.tasks.asr import ASRTask
 from espnet2.tasks.enh_s2t import EnhS2TTask
 from espnet2.tasks.lm import LMTask
-
-is_torch_2_6_plus = V(torch.__version__) >= V("2.6.0")
 
 
 def test_get_parser():
@@ -453,7 +450,6 @@ def token_list_whisper_lang(tmp_path: Path, token_list_whisper_lang_add):
     return tmp_path / "token_whisper_lang.txt"
 
 
-@pytest.mark.skipif(not is_torch_2_6_plus, reason="Require torch 2.6.0+")
 @pytest.mark.parametrize(
     "model_name_or_path",
     [
@@ -497,7 +493,6 @@ def test_Speech2Text_hugging_face(
         assert isinstance(hyp, Hypothesis)
 
 
-@pytest.mark.skipif(not is_torch_2_6_plus, reason="Require torch 2.6.0+")
 @pytest.mark.parametrize(
     "model_name_or_path",
     [
