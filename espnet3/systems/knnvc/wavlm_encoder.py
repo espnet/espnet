@@ -31,7 +31,7 @@ class WavLMEncoder(torch.nn.Module):
     used in two places:
 
     - the ``prepare_features`` stage of
-      :class:`espnet3.systems.knnvc.system.KNNKNNVCSystem`, to precompute (optionally
+      :class:`espnet3.systems.knnvc.system.KNNVCSystem`, to precompute (optionally
       prematched) vocoder training features for every corpus utterance;
     - :class:`espnet3.systems.knnvc.model.KNNVCModel` at inference time, to
       encode the source utterance and the target speaker's reference set.
