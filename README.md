@@ -109,7 +109,7 @@ pip install git+https://github.com/espnet/espnet  # latest master
 from espnet2.bin.s2t_inference_ctc import Speech2TextGreedySearch
 
 # OWSM-CTC v4: multilingual ASR, translation and language ID in one
-# encoder-only model. Non-autoregressive, so one CPU pass is enough.
+# encoder-only model. No beam search: one encoder pass per 30 s window.
 s2t = Speech2TextGreedySearch.from_pretrained(
     "espnet/owsm_ctc_v4_1B", lang_sym="<eng>", task_sym="<asr>"
 )
@@ -164,12 +164,9 @@ of 200+ corpora recipes.
 
 ## Demos
 
-Try a model in the browser:
-
 | Demo | |
 | :-- | :-- |
-| Spoken dialogue — ASR → LLM → TTS, cascaded or end-to-end, with live metrics | [![Hugging Face Spaces](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-blue)](https://huggingface.co/spaces/Siddhant/Voice_Assistant_Demo) · [recipe](egs2/TEMPLATE/sds1) |
-| ASR · TTS · SLU | [ASR](https://huggingface.co/spaces/akhaliq/espnet2_asr) · [TTS](https://huggingface.co/spaces/akhaliq/ESPnet2-TTS) · [SLU](https://huggingface.co/spaces/Siddhant/ESPnet2-SLU) |
+| Spoken dialogue — ASR → LLM → TTS, cascaded or end-to-end, with live metrics | [recipe](egs2/TEMPLATE/sds1) (Gradio, runs locally) |
 | Real-time ASR | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/ESPnet2/Demo/ASR/asr_realtime_demo.ipynb) |
 | Real-time TTS | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/ESPnet2/Demo/TTS/tts_realtime_demo.ipynb) |
 | Speech enhancement | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1fjRJCh96SoYLZPRxsjF9VDv4Q2VoIckI?usp=sharing) |
@@ -184,9 +181,10 @@ the Space `README.md` and `requirements.txt` are all generated from
 
 ```sh
 cd egs3/librispeech_100/asr
-python run.py --stages pack_model  --publication_config conf/publication.yaml  # -> exp/.../model_pack
-python run.py --stages pack_demo   --demo_config conf/demo.yaml                # -> demo/
-python run.py --stages upload_demo --demo_config conf/demo.yaml                # needs `hf auth login`
+train=conf/tuning/training_e_branchformer.yaml   # the config the model was trained with
+python run.py --stages pack_model  --training_config $train --publication_config conf/publication.yaml  # -> exp/.../model_pack
+python run.py --stages pack_demo   --training_config $train --demo_config conf/demo.yaml                # -> demo/
+python run.py --stages upload_demo --training_config $train --demo_config conf/demo.yaml                # needs `hf auth login`
 ```
 
 Run the packed app locally with `python demo/app.py`.
