@@ -720,9 +720,11 @@ def check_readme_coverage_table() -> list:
             problems.append(f"{README}: no table headed {prefix!r}")
 
     gap = _k2_gap()
+    seen_k2_row = False
     for number, line in enumerate(lines, 1):
         if not line.startswith(README_K2_ROW):
             continue
+        seen_k2_row = True
         if "|test suite|" not in headers:
             break
         columns = headers["|test suite|"][1]
@@ -739,6 +741,15 @@ def check_readme_coverage_table() -> list:
                 f"{README}:{number}: the k2 row says no wheel for "
                 f"{sorted(said)}, but {INSTALL_K2} skips k2 for {sorted(gap)}"
             )
+    # A row that is not there validates nothing, and the loop above would have
+    # said so by saying nothing at all - which is the shape of every defect
+    # this file was written against.
+    if not seen_k2_row:
+        problems.append(
+            f"{README}: no row starting {README_K2_ROW!r}, so nothing records "
+            f"that {INSTALL_K2} skips k2 for torch {sorted(gap) or 'nothing'} "
+            "and that those tests importorskip rather than fail"
+        )
     return problems
 
 
