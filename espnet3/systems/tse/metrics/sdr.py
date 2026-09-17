@@ -79,7 +79,7 @@ class SDR(BaseMetric):
         elif ref.ndim == inf.ndim == 2:
             ref = ref[..., self.ref_channel]
             inf = inf[..., self.ref_channel]
-        else:
+        elif ref.ndim == inf.ndim != 1:
             raise ValueError(
                 "Reference and inference must have the same shape, "
                 f"but got {ref.shape} and {inf.shape}"

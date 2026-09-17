@@ -90,7 +90,13 @@ class TSOS(BaseMetric):
                     "Reference and inference must have the same shape, "
                     f"but got {ref.shape} and {inf.shape}"
                 )
-        assert ref.ndim == inf.ndim <= 2, (ref.shape, inf.shape)
+        if ref.shape != inf.shape:
+            raise ValueError(
+                "Reference and inference must have the same shape after channel "
+                f"selection, but got {ref.shape} and {inf.shape}"
+            )
+        else:
+            assert ref.ndim <= 2, ref.shape
         return ref, inf
 
     def _load_audio_pairs(
@@ -143,12 +149,13 @@ class TSOS(BaseMetric):
         # the encoder, otherwise zero-padded frames can depress the per-sample TSOS.
         valid_mask = torch.arange(ref_spec.size(1), device=ref_spec.device).unsqueeze(0)
         valid_mask = valid_mask < flens.unsqueeze(1)
+        score_dtype = ref_mag.dtype
         tsos = torch.where(
             valid_mask,
-            threshold_mask.to(ref_spec.dtype),
-            torch.zeros_like(threshold_mask, dtype=ref_spec.dtype),
+            threshold_mask.to(score_dtype),
+            torch.zeros_like(threshold_mask, dtype=score_dtype),
         )
-        tsos = tsos.sum(-1) / valid_mask.sum(-1).clamp_min(1).to(ref_spec.dtype)
+        tsos = tsos.sum(-1) / valid_mask.sum(-1).clamp_min(1).to(score_dtype)
         return tsos.cpu().tolist()
 
     def __call__(
