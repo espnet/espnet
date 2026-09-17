@@ -11,5 +11,5 @@
     "does not list."
   ],
   "python-version": ["3.12", "3.13"],
-  "pytorch-version": ["2.9.1", "2.10.0", "2.11.0"]
+  "pytorch-version": ["2.11.0", "2.13.0", "2.14.0"]
 }
