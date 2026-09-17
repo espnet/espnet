@@ -89,9 +89,7 @@ def test_synthesize():
     ).transpose(1, 2)
     torch.testing.assert_close(condition.detach(), expected_condition)
 
-    waveform, waveform_lengths = objective.synthesize(
-        tokenizer_output, spembs=spembs
-    )
+    waveform, waveform_lengths = objective.synthesize(tokenizer_output, spembs=spembs)
 
     assert waveform.shape == (1, 1, 10)
     torch.testing.assert_close(waveform_lengths, torch.tensor([10]))
