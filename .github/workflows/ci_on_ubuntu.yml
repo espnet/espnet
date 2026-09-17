@@ -825,12 +825,31 @@ jobs:
         ./tools/installers/install_torch.sh false ${TH_VERSION} CPU
         python3 -m build --wheel
         echo "::endgroup::"
-        python3 -m pip install "$(echo dist/espnet-*.whl)"[all]
+        # No extras, in a venv of its own: this is what `pip install espnet`
+        # gives a user who only wants to run a model. The job environment
+        # already holds Cython, numba and six for the build, so a check run
+        # there would not notice an undeclared import of one of them. This
+        # step used to install [all] here as well, which made it the same
+        # check as Try2 and let the inference path grow training-only imports
+        # unnoticed.
+        python3 -m venv bare
+        . bare/bin/activate
+        # packaging: install_torch.sh compares versions with it
+        python3 -m pip install --upgrade pip packaging
+        ./tools/installers/install_torch.sh false ${TH_VERSION} CPU
+        python3 -m pip install "$(echo dist/espnet-*.whl)"
         # log
         python3 -m pip freeze
-    - name: Import all modules (Try1)
+    - name: Import the inference entry points with the least requirement (Try1)
       run: |
-        python3 ./ci/test_import_all.py
+        bare/bin/python ./ci/check_inference_imports.py
+    - name: Import the speechlm inference entry point with [speechlm] (Try1b)
+      run: |
+        # speechlm inference needs its extra by design (transformers, duckdb,
+        # lhotse, liger_kernel at module level); this catches the extra losing
+        # a package, which is invisible under [all].
+        bare/bin/python -m pip install "$(echo dist/espnet-*.whl)[speechlm]"
+        bare/bin/python ./ci/check_inference_imports.py --extra speechlm
     - name: Install espnet with the full requirement
       env:
         TH_VERSION: ${{ matrix.pytorch-version }}
