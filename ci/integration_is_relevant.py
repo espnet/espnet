@@ -1,10 +1,22 @@
 #!/usr/bin/env python3
 """Decide whether a pull request can reach one of the integration suites.
 
-    ci/integration_is_relevant.py <espnet2|espnet3> < changed-paths
+    gh api ... --jq '.[] | {filename, previous_filename}' |
+        ci/integration_is_relevant.py <espnet2|espnet3>
 
-Reads changed paths on stdin, one per line. Exits 0 if any of them could
-affect what that suite runs, 1 if none could.
+Reads the pull request's changed files as JSON lines on stdin. Exits 0 if any
+of them could affect what that suite runs, 1 if none could.
+
+Both paths of a rename count. The API reports the destination in `filename`
+and the source in `previous_filename`, and moving espnet2/foo.py somewhere
+unrelated changes espnet2 while leaving no espnet2 path in `filename` - so
+reading only that would skip the tests for the change most likely to need
+them. Renames are not rare here: two of the last forty pull requests had
+them.
+
+The files endpoint returns at most 3000 records even when paginated, and says
+so in no way the caller can see. A pull request larger than that could
+present only unrelated paths, so hitting the cap runs everything.
 
 The lists are deliberately broad. Being wrong in the "skip it" direction means
 a pull request merges without the recipe tests having run, and the only thing
@@ -17,6 +29,7 @@ espnet2 throughout - 51 references to espnet2.asr alone - so a change to
 espnet2 can break the espnet3 recipes without touching espnet3 at all.
 """
 
+import json
 import sys
 
 # What both suites run through: the environment, the packaging, the harness.
@@ -56,11 +69,48 @@ def relevant(suite: str, paths) -> list:
     return [p for p in paths if any(p == r or p.startswith(r) for r in prefixes)]
 
 
+# What GET /repos/{owner}/{repo}/pulls/{number}/files will return and no more.
+API_FILE_CAP = 3000
+
+
+def read(stream) -> tuple:
+    """(paths, record count), or (None, n) if a line could not be read."""
+    paths, records = [], 0
+    for line in stream:
+        line = line.strip()
+        if not line:
+            continue
+        records += 1
+        try:
+            entry = json.loads(line)
+        except json.JSONDecodeError:
+            return None, records
+        if not isinstance(entry, dict) or "filename" not in entry:
+            return None, records
+        paths.append(entry["filename"])
+        if entry.get("previous_filename"):
+            paths.append(entry["previous_filename"])
+    return paths, records
+
+
 def main() -> int:
     if len(sys.argv) != 2 or sys.argv[1] not in RELEVANT:
         sys.exit(f"usage: {sys.argv[0]} <{'|'.join(RELEVANT)}>")
     suite = sys.argv[1]
-    paths = [line.strip() for line in sys.stdin if line.strip()]
+    paths, records = read(sys.stdin)
+    if paths is None:
+        print(
+            f"could not read the changed files; running the {suite} "
+            "integration tests"
+        )
+        return 0
+    if records >= API_FILE_CAP:
+        print(
+            f"{records} changed files reaches the API's {API_FILE_CAP}-record "
+            f"cap, so the list may be short; running the {suite} integration "
+            "tests"
+        )
+        return 0
     if not paths:
         # No list means no information, and no information is not evidence of
         # irrelevance. Run them.

@@ -192,8 +192,11 @@ jobs:
             exit 0
           fi
 
+          # Both paths of a rename, and one record per line so the helper can
+          # tell how many there were: the endpoint caps at 3000 records and
+          # does not say when it has.
           gh api "repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/files" \
-            --paginate --jq '.[].filename' > changed.txt
+            --paginate --jq '.[] | {filename, previous_filename}' > changed.txt
 
           # Not skipped with `if:`. ci_gate_ubuntu deliberately fails on a
           # skipped job, so that a job quietly not running cannot pass for a
