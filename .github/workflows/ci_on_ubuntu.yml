@@ -106,7 +106,7 @@ jobs:
   #     max-parallel: 20
   #     matrix:
   #       python-version: ["3.12", "3.13"]
-  #       pytorch-version: [2.9.1, 2.10.0, 2.11.0]
+  #       pytorch-version: [2.11.0, 2.13.0, 2.14.0]
   #       use-conda: [false]
   #   steps:
   #     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -142,6 +142,8 @@ jobs:
       available: ${{ steps.probe.outputs.available }}
       matrix: ${{ steps.variants.outputs.matrix }}
       integration_matrix: ${{ steps.integration.outputs.matrix }}
+      integration_matrix_espnet3: ${{ steps.integration.outputs.espnet3 }}
+      espnet3_relevant: ${{ steps.integration.outputs.espnet3_relevant }}
     steps:
       # actions/checkout defaults persist-credentials to true, which writes
       # GITHUB_TOKEN into .git/config. Every job here then runs checked-out code,
@@ -169,10 +171,51 @@ jobs:
       # The task list lives here because a matrix cannot mix an expression with
       # literal keys, and putting it here is what keeps the versions themselves
       # from being written out a second time.
+      # A pull request runs the tasks against one pytorch per python; a push
+      # to master runs the full grid. 14 tasks across the full 2x3 grid is 84
+      # jobs against a 20-wide cap - five waves, and the whole critical path of
+      # this workflow, 97 of its 104 minutes. Over 300 runs no integration
+      # failure was ever specific to a pytorch version: every version-specific
+      # one was specific to a python and failed on all three pytorches, and the
+      # two single-variant failures did not reproduce on their own python's
+      # other pytorches, which is what a flake looks like. So the pytorch axis
+      # is not dropped, it is moved off the path that gates a review.
       - id: integration
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           tasks=asr,asr_transducer,asr_misc,tts,asr2,enh,ssl,st,spk,lid,s2t,s2st,lm,codec
-          echo "matrix=$(python3 ci/image_variants.py matrix "config-task=${tasks}")" >> "$GITHUB_OUTPUT"
+          if [ "${{ github.event_name }}" != pull_request ]; then
+            echo "matrix=$(python3 ci/image_variants.py matrix "config-task=${tasks}")" >> "$GITHUB_OUTPUT"
+            echo "espnet3=$(python3 ci/image_variants.py matrix)" >> "$GITHUB_OUTPUT"
+            echo "espnet3_relevant=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Both paths of a rename, and one record per line so the helper can
+          # tell how many there were: the endpoint caps at 3000 records and
+          # does not say when it has.
+          gh api "repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/files" \
+            --paginate --jq '.[] | {filename, previous_filename}' > changed.txt
+
+          # Not skipped with `if:`. ci_gate_ubuntu deliberately fails on a
+          # skipped job, so that a job quietly not running cannot pass for a
+          # green pull request - and that rule is worth more than the jobs
+          # this saves. A suite that cannot be reached still runs its jobs,
+          # which print why they did nothing and exit 0.
+          if python3 ci/integration_is_relevant.py espnet2 < changed.txt; then
+            echo "matrix=$(python3 ci/image_variants.py matrix --newest-pytorch "config-task=${tasks}")" >> "$GITHUB_OUTPUT"
+          else
+            echo "matrix=$(python3 ci/image_variants.py matrix --newest-pytorch "config-task=none")" >> "$GITHUB_OUTPUT"
+          fi
+
+          if python3 ci/integration_is_relevant.py espnet3 < changed.txt; then
+            echo "espnet3=$(python3 ci/image_variants.py matrix --newest-pytorch)" >> "$GITHUB_OUTPUT"
+            echo "espnet3_relevant=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "espnet3=$(python3 ci/image_variants.py matrix --newest-pytorch "config-task=none")" >> "$GITHUB_OUTPUT"
+            echo "espnet3_relevant=false" >> "$GITHUB_OUTPUT"
+          fi
       - id: hash
         run: |
           full=${{ hashFiles('ci/install.sh', 'ci/install_kaldi.sh', 'ci/no_redistribute.txt', 'docker/ci.dockerfile', 'pyproject.toml', 'tools/Makefile', 'tools/installers/**') }}
@@ -336,7 +379,7 @@ jobs:
       max-parallel: 20
       matrix:
         python-version: ["3.12", "3.13"]
-        pytorch-version: [2.9.1]
+        pytorch-version: [2.11.0]
     # Empty when the image for this hash is not published, which makes the job
     # run on the runner instead. That behaviour is not documented; it was
     # verified directly before being relied on here.
@@ -396,7 +439,7 @@ jobs:
       max-parallel: 20
       matrix:
         python-version: ["3.12"]
-        pytorch-version: [2.9.1]
+        pytorch-version: [2.11.0]
     # Empty when the image for this hash is not published, which makes the job
     # run on the runner instead. That behaviour is not documented; it was
     # verified directly before being relied on here.
@@ -488,8 +531,17 @@ jobs:
       - name: test espnet2 integration
         env:
           HF_TOKEN: ${{ secrets.HF_CI_TOKEN }}
-        run: ./ci/test_integration_espnet2.sh ${{ matrix.config-task }}
-      - uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7
+        run: |
+          if [ "${{ matrix.config-task }}" = none ]; then
+            echo "::notice::No changed path in this pull request can reach the" \
+                 "espnet2 integration tests, so they were not run. The list of" \
+                 "paths that can is in ci/integration_is_relevant.py. A push to" \
+                 "master runs them regardless."
+            exit 0
+          fi
+          ./ci/test_integration_espnet2.sh ${{ matrix.config-task }}
+      - if: matrix.config-task != 'none'
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7
         with:
           flags: test_integration_espnet2
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -516,7 +568,7 @@ jobs:
       # explicit. ci/check_ci_image_config.py verifies both are built variants.
       matrix:
         python-version: ["3.12"]
-        pytorch-version: ["2.9.1"]
+        pytorch-version: ["2.11.0"]
         # asr is sharded: see ci/test_configuration_espnet2.sh. Three shards put
         # it at ~21 min, just under lm's 24 min, so lm becomes the binding
         # constraint and a fourth shard would buy nothing until lm is split too.
@@ -631,7 +683,7 @@ jobs:
     strategy:
       fail-fast: false
       max-parallel: 20
-      matrix: ${{ fromJSON(needs.resolve_ci_image.outputs.matrix) }}
+      matrix: ${{ fromJSON(needs.resolve_ci_image.outputs.integration_matrix_espnet3) }}
     # Empty when the image for this hash is not published, which runs the job on
     # the runner instead and takes the slow steps below.
     container:
@@ -659,7 +711,15 @@ jobs:
       - name: test integration
         env:
           HF_TOKEN: ${{ secrets.HF_CI_TOKEN }}
-        run: ./ci/test_integration_espnet3.sh
+        run: |
+          if [ "${{ matrix.config-task }}" = none ]; then
+            echo "::notice::No changed path in this pull request can reach the" \
+                 "espnet3 integration tests, so they were not run. The list of" \
+                 "paths that can is in ci/integration_is_relevant.py. A push to" \
+                 "master runs them regardless."
+            exit 0
+          fi
+          ./ci/test_integration_espnet3.sh
       - uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7
         with:
           flags: test_integration_espnet3
@@ -672,7 +732,7 @@ jobs:
 
   test_integration_espnet3_publication:
     runs-on: ubuntu-latest
-    needs: process_labels
+    needs: [process_labels, resolve_ci_image]
     if: |
       github.event.pull_request.draft == false
     env:
@@ -685,15 +745,15 @@ jobs:
       - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-3.12-2.9.1-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
+          key: ${{ runner.os }}-pip-3.12-2.11.0-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
           restore-keys: |
-            ${{ runner.os }}-pip-3.12-2.9.1-
+            ${{ runner.os }}-pip-3.12-2.11.0-
       - name: Make environment
         uses: ./.github/actions/prepare-environment
         with:
           os-version: ubuntu
           python-version: "3.12"
-          pytorch-version: "2.9.1"
+          pytorch-version: "2.11.0"
           use-conda: false
           hf-token: ${{ secrets.HF_CI_TOKEN }}
       - name: Validate publication upload test configuration
@@ -704,7 +764,14 @@ jobs:
             exit 1
           }
       - name: test publication integration
-        run: ./ci/test_integration_espnet3_publication.sh
+        run: |
+          if [ "${{ needs.resolve_ci_image.outputs.espnet3_relevant }}" != true ]; then
+            echo "::notice::No changed path in this pull request can reach the" \
+                 "espnet3 publication test, so it was not run. See" \
+                 "ci/integration_is_relevant.py."
+            exit 0
+          fi
+          ./ci/test_integration_espnet3_publication.sh
       - uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7
         with:
           flags: test_integration_espnet3_publication
@@ -722,7 +789,7 @@ jobs:
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-3.12-2.9.1-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
+          key: ${{ runner.os }}-pip-3.12-2.11.0-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
 
   test_import:
     runs-on: ubuntu-latest
@@ -734,7 +801,7 @@ jobs:
       max-parallel: 20
       matrix:
         python-version: ["3.12"]
-        pytorch-version: [2.9.1]
+        pytorch-version: [2.11.0]
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       with:
