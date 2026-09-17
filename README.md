@@ -94,6 +94,34 @@ pip install git+https://github.com/espnet/espnet  # latest master
 |macos/python3.12/pip|[![ci on macos](https://github.com/espnet/espnet/actions/workflows/ci_on_macos.yml/badge.svg)](https://github.com/espnet/espnet/actions/workflows/ci_on_macos.yml?query=branch%3Amaster)|||
 |macos/python3.12/conda|[![ci on macos](https://github.com/espnet/espnet/actions/workflows/ci_on_macos.yml/badge.svg)](https://github.com/espnet/espnet/actions/workflows/ci_on_macos.yml?query=branch%3Amaster)|||
 
+Every badge above is the aggregate status of its workflow on `master`, where the
+full grid runs. It does not say what each combination covers, and the coverage is
+not uniform - some suites only ever run on one pytorch, and a pull request runs
+less than `master` does. What each column actually gets:
+
+|test suite|2.11.0|2.13.0|2.14.0|
+| :---- | :---: | :---: | :---: |
+|unit tests (`espnet2`, `espnet3`)|every PR|every PR|every PR|
+|`espnet3` integration|every PR|every PR|every PR|
+|`espnet2` recipe integration|`master` only|every PR|`master` only|
+|configuration, utils, shell, import|every PR|not run|not run|
+|k2-dependent tests|yes|yes|**no wheel published - skipped**|
+
+- **`master` only** - a pull request runs the 14 recipe integration tasks against
+  one pytorch per python rather than all three, because that is 84 jobs against a
+  20-wide cap and no integration failure in 300 runs was ever specific to a
+  pytorch version. Pushes to `master` run the full grid, so nothing goes
+  untested; it is tested after the merge rather than before it.
+- **not run** - `test_configuration_espnet2`, `test_shell_espnet2` and
+  `test_import` run on python 3.12 with pytorch 2.11.0 only, and
+  `test_utils_espnet2` on both pythons with 2.11.0 only.
+- **no wheel** - k2 publishes one wheel per pytorch version and lags new
+  releases. `tools/installers/install_k2.sh` lists the versions it has nothing
+  for in `k2_missing_for` and skips them; the k2 tests are `importorskip`, so
+  they skip silently on that column. That list is the only record of it, and
+  `ci/check_ci_image_config.py` fails if it names a version the grid does not
+  build, or if the environment check stops reading it.
+
 [![pre-commit.ci](https://results.pre-commit.ci/badge/github/espnet/espnet/master.svg)](https://results.pre-commit.ci/latest/github/espnet/espnet/master)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Imports: isort](https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat&labelColor=ef8336)](https://pycqa.github.io/isort/)

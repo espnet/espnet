@@ -679,6 +679,69 @@ def tracked_files() -> list:
     ]
 
 
+README = Path("README.md")
+# The two tables in "Tested environments": the badge grid and the one saying
+# what each column covers. Both carry the pytorch list as column headers.
+README_HEADERS = ("|system/pytorch ver.|", "|test suite|")
+README_K2_ROW = "|k2-dependent tests|"
+
+
+def _columns(line: str) -> list:
+    return [cell.strip() for cell in line.strip().strip("|").split("|")][1:]
+
+
+def check_readme_coverage_table() -> list:
+    """README's CI tables must name exactly the grid, and agree about k2.
+
+    The existing version check rejects a version the grid does not build, which
+    catches a stale column but not a missing one: add a pytorch and the tables
+    quietly describe a grid one column smaller than the real one. And the k2
+    row is a written-down copy of k2_missing_for, which is the fact that has
+    already gone stale once.
+    """
+    if not README.exists():
+        return [f"{README}: missing"]
+    torches = list(variants()[1])
+    lines = README.read_text(encoding="utf-8").splitlines()
+    problems = []
+    headers = {}
+    for number, line in enumerate(lines, 1):
+        for prefix in README_HEADERS:
+            if line.startswith(prefix):
+                headers[prefix] = (number, _columns(line))
+                if _columns(line) != torches:
+                    problems.append(
+                        f"{README}:{number}: the table headed {prefix!r} lists "
+                        f"pytorch {_columns(line)}, but ci/image_variants.json "
+                        f"builds {torches}"
+                    )
+    for prefix in README_HEADERS:
+        if prefix not in headers:
+            problems.append(f"{README}: no table headed {prefix!r}")
+
+    gap = _k2_gap()
+    for number, line in enumerate(lines, 1):
+        if not line.startswith(README_K2_ROW):
+            continue
+        if "|test suite|" not in headers:
+            break
+        columns = headers["|test suite|"][1]
+        cells = _columns(line)
+        if len(cells) != len(columns):
+            problems.append(
+                f"{README}:{number}: the k2 row has {len(cells)} "
+                f"cells for {len(columns)} pytorch columns"
+            )
+            break
+        said = {v for v, cell in zip(columns, cells) if "no wheel" in cell}
+        if said != gap:
+            problems.append(
+                f"{README}:{number}: the k2 row says no wheel for "
+                f"{sorted(said)}, but {INSTALL_K2} skips k2 for {sorted(gap)}"
+            )
+    return problems
+
+
 def check_versions_are_built_variants() -> list:
     """Every version pinned anywhere must be one image_variants.json builds.
 
@@ -1114,6 +1177,7 @@ def main() -> int:
         + check_codecov_token()
         + check_no_direct_references()
         + check_versions_are_built_variants()
+        + check_readme_coverage_table()
         + check_declared_support_matches_variants()
         + check_k2_gap_is_a_built_variant()
         + check_downloads_retry_on_5xx()
