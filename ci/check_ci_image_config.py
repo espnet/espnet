@@ -165,6 +165,14 @@ VARIANTS_SCRIPT = Path("ci/image_variants.py")
 GENERATED = re.compile(r"python3 ci/image_variants\.py matrix([^\n)]*)")
 
 
+def _k2_gap() -> set:
+    """Torch versions install_k2.sh skips k2 for."""
+    if not INSTALL_K2.exists():
+        return set()
+    match = re.search(r'^k2_missing_for="([^"]*)"', INSTALL_K2.read_text(), re.M)
+    return set(match.group(1).split()) if match else set()
+
+
 def check_generated_matrices() -> list:
     """A matrix the workflow generates must still cover every python.
 
@@ -221,6 +229,22 @@ def check_generated_matrices() -> list:
             problems.append(
                 f"{CONSUMER}: `image_variants.py matrix {shown}` yields no pytorch"
             )
+        # A narrowed grid must not land on a version the suite only half
+        # supports. install_k2.sh skips k2 for those, and the k2 blocks in
+        # ci/test_integration_espnet2.sh are guarded by `import k2`, so a
+        # pull-request grid pinned there would stop exercising them anywhere
+        # except master - green, faster, and testing less than it says.
+        if len(grid.get("pytorch-version", [])) < len(pytorches):
+            gap = _k2_gap() & set(grid["pytorch-version"])
+            if gap:
+                problems.append(
+                    f"{CONSUMER}: `image_variants.py matrix {shown}` narrows to "
+                    f"pytorch {sorted(gap)}, which {INSTALL_K2} lists in "
+                    "k2_missing_for.\n"
+                    "  On that version k2 is not installed and the k2 parts of "
+                    "the suite skip themselves, so narrowing onto it stops "
+                    "running them on pull requests at all."
+                )
     return problems
 
 
