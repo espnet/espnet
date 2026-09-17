@@ -71,7 +71,7 @@ pip install "espnet[train]"     # also train them, with espnet2 or espnet3 (Ligh
 <summary>Other installation options</summary>
 
 ```sh
-pip install "espnet[all]"                       # training and the task extras (not dev/test/doc)
+pip install "espnet[all]"                       # training and every task extra except sds (not dev/test/doc)
 pip install git+https://github.com/espnet/espnet  # latest master
 ```
 

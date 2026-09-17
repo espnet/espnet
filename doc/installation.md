@@ -242,7 +242,7 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
         | `dev`      | Code formatting and linting   |
         | `test`     | Unit test dependencies (includes `train`) |
         | `doc`      | Documentation generation      |
-        | `all`      | `train`, `asr`, `tts`, `enh`, `spk`, `speechlm`, `egs2`, `kaldiio`, `mcp`, plus fairscale, transformers and evaluate — not `asr2`, `st`, `s2t`, `s2st`, `sds`, `dev`, `test`, `doc` |
+        | `all`      | `train` and every task group above except `sds`, plus fairscale, transformers and evaluate — not `dev`, `test`, `doc` |
 
         You can mix and match groups as needed:
 
