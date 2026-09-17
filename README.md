@@ -823,6 +823,50 @@ If you use ESPnet in your research, please cite the main paper:
     publisher = "Association for Computational Linguistics",
     pages = "400--411",
 }
+@inproceedings{someki2022espnet,
+  title={{ESPnet-ONNX}: Bridging a gap between research and production},
+  author={Someki, Masao and Higuchi, Yosuke and Hayashi, Tomoki and Watanabe, Shinji},
+  booktitle={2022 Asia-Pacific Signal and Information Processing Association Annual Summit and Conference (APSIPA ASC)},
+  year={2022},
+  organization={IEEE}
+}
+@inproceedings{someki2024espnet,
+  title={{ESPnet-EZ}: Python-only {ESPnet} for easy fine-tuning and integration},
+  author={Someki, Masao and Choi, Kwanghee and Arora, Siddhant and Chen, William and Cornell, Samuele and Han, Jionghao and Peng, Yifan and Shi, Jiatong and Srivastav, Vaibhav and Watanabe, Shinji},
+  booktitle={2024 IEEE Spoken Language Technology Workshop (SLT)},
+  year={2024},
+  organization={IEEE}
+}
+@inproceedings{shi2024espnet,
+  title={{ESPnet-Codec}: Comprehensive Training and Evaluation of Neural Codecs for Audio, Music, and Speech},
+  author={Shi, Jiatong and Tian, Jinchuan and Wu, Yihan and Jung, Jee-weon and Yip, Jia Qi and Masuyama, Yoshiki and Chen, William and Wu, Yuning and Tang, Yuxun and Baali, Massa and Alharhi, Dareen and Zhang, Dong and Deng, Ruifan and Srivastava, Tejes and Wu, Haibin and Liu, Alexander H. and Raj, Bhiksha and Jin, Qin and Song, Ruihua and Watanabe, Shinji},
+  booktitle={2024 IEEE Spoken Language Technology Workshop (SLT)},
+  pages={562--569},
+  year={2024},
+  organization={IEEE}
+}
+@inproceedings{tian-etal-2025-espnet,
+  title={{ESP}net-{S}peech{LM}: An Open Speech Language Model Toolkit},
+  author={Tian, Jinchuan and Shi, Jiatong and Chen, William and Arora, Siddhant and Masuyama, Yoshiki and Maekaku, Takashi and Wu, Yihan and Peng, Junyi and Bharadwaj, Shikhar and Zhao, Yiwen and Cornell, Samuele and Peng, Yifan and Yue, Xiang and Yang, Chao-Han Huck and Neubig, Graham and Watanabe, Shinji},
+  booktitle={Proceedings of the 2025 Conference of the Nations of the Americas Chapter of the Association for Computational Linguistics: Human Language Technologies (System Demonstrations)},
+  pages={116--124},
+  year={2025},
+  publisher={Association for Computational Linguistics}
+}
+@inproceedings{arora-etal-2025-espnet,
+  title={{ESP}net-{SDS}: Unified Toolkit and Demo for Spoken Dialogue Systems},
+  author={Arora, Siddhant and Peng, Yifan and Shi, Jiatong and Tian, Jinchuan and Chen, William and Bharadwaj, Shikhar and Futami, Hayato and Kashiwagi, Yosuke and Tsunoo, Emiru and Shimizu, Shuichiro and Srivastav, Vaibhav and Watanabe, Shinji},
+  booktitle={Proceedings of the 2025 Conference of the Nations of the Americas Chapter of the Association for Computational Linguistics: Human Language Technologies (System Demonstrations)},
+  pages={248--259},
+  year={2025},
+  publisher={Association for Computational Linguistics}
+}
+@inproceedings{someki2026espnet3,
+  title={{ESPnet3}: Infrastructure for Scalable Speech and Audio Research in the Foundation Model Era},
+  author={Someki, Masao and Polok, Alexander and Carvalho, Carlos and Lin, Chyi-Jiunn and Yang, Da-Hee and Shi, Jiatong and Tian, Jinchuan and Yalta Soplin, Nelson Enrique and Cornell, Samuele and Arora, Siddhant and Teixeira, Francisco and Wang, Wei and Chen, William and Abad, Alberto and Li, Chenda and Watanabe, Shinji and Zhang, Wangyou},
+  booktitle={Interspeech 2026},
+  year={2026}
+}
 ```
 
 </details>
