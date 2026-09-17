@@ -179,12 +179,22 @@ jobs:
       # other pytorches, which is what a flake looks like. So the pytorch axis
       # is not dropped, it is moved off the path that gates a review.
       - id: integration
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           tasks=asr,asr_transducer,asr_misc,tts,asr2,enh,ssl,st,spk,lid,s2t,s2st,lm,codec
-          if [ "${{ github.event_name }}" = pull_request ]; then
+          if [ "${{ github.event_name }}" != pull_request ]; then
+            matrix=$(python3 ci/image_variants.py matrix "config-task=${tasks}")
+          elif gh api "repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/files" \
+                 --paginate --jq '.[].filename' \
+               | python3 ci/integration_is_relevant.py; then
             matrix=$(python3 ci/image_variants.py matrix --newest-pytorch "config-task=${tasks}")
           else
-            matrix=$(python3 ci/image_variants.py matrix "config-task=${tasks}")
+            # Not skipped with `if:`. ci_gate_ubuntu deliberately fails on a
+            # skipped job, so that a job quietly not running cannot pass for a
+            # green pull request - and that rule is worth more than the two
+            # jobs this costs. The jobs run and report why they did nothing.
+            matrix=$(python3 ci/image_variants.py matrix --newest-pytorch "config-task=none")
           fi
           echo "matrix=${matrix}" >> "$GITHUB_OUTPUT"
       - id: hash
@@ -502,8 +512,17 @@ jobs:
       - name: test espnet2 integration
         env:
           HF_TOKEN: ${{ secrets.HF_CI_TOKEN }}
-        run: ./ci/test_integration_espnet2.sh ${{ matrix.config-task }}
-      - uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7
+        run: |
+          if [ "${{ matrix.config-task }}" = none ]; then
+            echo "::notice::No changed path in this pull request can reach the" \
+                 "espnet2 integration tests, so they were not run. The list of" \
+                 "paths that can is in ci/integration_is_relevant.py. A push to" \
+                 "master runs them regardless."
+            exit 0
+          fi
+          ./ci/test_integration_espnet2.sh ${{ matrix.config-task }}
+      - if: matrix.config-task != 'none'
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7
         with:
           flags: test_integration_espnet2
           token: ${{ secrets.CODECOV_TOKEN }}

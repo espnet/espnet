@@ -100,6 +100,7 @@ GITHUB_TOKEN from the two steps that need it for torch.hub.
 """
 
 import fnmatch
+import importlib.util
 import json
 import re
 import subprocess
@@ -171,6 +172,56 @@ def _k2_gap() -> set:
         return set()
     match = re.search(r'^k2_missing_for="([^"]*)"', INSTALL_K2.read_text(), re.M)
     return set(match.group(1).split()) if match else set()
+
+
+RELEVANCE = Path("ci/integration_is_relevant.py")
+# Removing any of these makes pull requests that change them stop running the
+# recipe tests, which is the failure worth guarding: it is green and faster,
+# and the only thing that catches it is the master push after the merge. The
+# rest of the list is judgement and can be edited freely.
+RELEVANCE_CORE = (
+    "espnet2/",
+    "egs2/TEMPLATE/",
+    "egs2/mini_an4/",
+    "tools/",
+    "ci/test_integration_espnet2.sh",
+)
+
+
+def check_integration_relevance_paths() -> list:
+    """Every path prefix that gates the integration tests must still exist.
+
+    A prefix that matches nothing is a path that was renamed or removed, and
+    it fails silently in the dangerous direction: pull requests touching what
+    used to live there stop running the recipe tests, and the jobs go green
+    faster, which looks like the change working.
+    """
+    if not RELEVANCE.exists():
+        return [f"{RELEVANCE}: missing"]
+    spec = importlib.util.spec_from_file_location("relevance", RELEVANCE)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    # Not tracked_files(): that one is for the version-pin scan and skips the
+    # recipes, which is most of what this list is about.
+    listed = subprocess.run(
+        ["git", "ls-files", "-z"], capture_output=True, text=True, check=False
+    )
+    if listed.returncode != 0:
+        return [f"{RELEVANCE}: could not list tracked files"]
+    paths = [name for name in listed.stdout.split("\0") if name]
+    problems = [
+        f"{RELEVANCE}: the prefix {prefix!r} matches no tracked file, so "
+        "whatever used to be there no longer runs the integration tests"
+        for prefix in module.RELEVANT
+        if not any(name == prefix or name.startswith(prefix) for name in paths)
+    ]
+    problems += [
+        f"{RELEVANCE}: {prefix!r} is not in RELEVANT, so a pull request that "
+        "changes it would not run the integration tests at all"
+        for prefix in RELEVANCE_CORE
+        if prefix not in module.RELEVANT
+    ]
+    return problems
 
 
 def check_generated_matrices() -> list:
@@ -1104,6 +1155,7 @@ def main() -> int:
     bad = (
         check_variants()
         + check_generated_matrices()
+        + check_integration_relevance_paths()
         + check_integration_tasks()
         + check_configuration_tasks()
         + check_no_duplicate_keys()
