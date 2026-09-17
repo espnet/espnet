@@ -228,6 +228,7 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
 
         | Group      | Purpose                       |
         | ---------- | ----------------------------- |
+        | `train`    | Training with espnet2 or espnet3 (Lightning, TensorBoard, W&B, Hydra, Dask, ...) |
         | `asr`      | ASR-specific dependencies     |
         | `asr2`     | ASR2-specific dependencies    |
         | `tts`      | TTS-specific dependencies     |
@@ -236,10 +237,12 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
         | `s2t`      | Speech to Text (e.g., OWSM)   |
         | `spk`      | Speaker recognition           |
         | `kaldiio`  | Kaldi ark/scp I/O (`kaldiio`) |
+        | `speechlm` | Speech language models        |
+        | `mcp`      | The `espnet-mcp` server for agents |
         | `dev`      | Code formatting and linting   |
-        | `test`     | Unit test dependencies        |
+        | `test`     | Unit test dependencies (includes `train`) |
         | `doc`      | Documentation generation      |
-        | `all`      | All of the above (except dev) |
+        | `all`      | `train` plus the task groups above (not `dev`, `test`, `doc`) |
 
         You can mix and match groups as needed:
 
