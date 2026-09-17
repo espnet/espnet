@@ -231,6 +231,9 @@ Run the packed app locally with `python demo/app.py`.
 - [Documentation](https://espnet.github.io/espnet/) · [ESPnet2 tutorial](https://espnet.github.io/espnet/espnet2_tutorial.html)
 - Course tutorials at CMU: [usage](https://youtu.be/YDN8cVjxSik) · [adding new models/tasks](https://youtu.be/Css3XAes7SU) ([materials](https://github.com/espnet/notebook))
 - [Interspeech 2019 tutorial](https://github.com/espnet/interspeech2019-tutorial)
+- **From an agent** — `pip install "espnet[mcp]"`, then register `espnet-mcp` as an
+  [MCP](https://modelcontextprotocol.io/) server (Claude Code: `claude mcp add espnet -- espnet-mcp`).
+  Claude, Cursor and other agents then call `transcribe`, `synthesize` and `enhance` themselves.
 
 ## Contributing
 
