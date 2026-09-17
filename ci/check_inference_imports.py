@@ -9,6 +9,11 @@ espnet3 stack (hydra, omegaconf, datasets, dask) live in extras, so this
 script fails the moment a module on the inference path starts importing one of
 them at module level. test_import_all.py, run with [all] installed, covers
 everything else.
+
+Some entry points need a task extra by design - speechlm's inference imports
+transformers, duckdb, lhotse and liger_kernel at module level - and
+`--extra NAME` checks those after `pip install "espnet[NAME]"` in the same
+bare environment, which is what catches an extra that lost a package.
 """
 
 import importlib
@@ -44,8 +49,19 @@ MODULES = [
     "espnet2.bin.mcp_server",
 ]
 
+# Entry points that need one task extra installed on top of the bare package.
+EXTRA_MODULES = {
+    "speechlm": ["espnet2.speechlm.bin.inference"],
+}
+
+extras = sys.argv[1:]
+if extras and extras[0] == "--extra":
+    modules, what = EXTRA_MODULES[extras[1]], f"[{extras[1]}]"
+else:
+    modules, what = MODULES, "a bare install"
+
 failed = []
-for name in MODULES:
+for name in modules:
     print(f"import {name}", file=sys.stderr)
     try:
         importlib.import_module(name)
@@ -53,8 +69,8 @@ for name in MODULES:
         failed.append((name, traceback.format_exc()))
 
 if failed:
-    print(f"Error: {len(failed)} inference modules do not import with a bare install")
+    print(f"Error: {len(failed)} inference modules do not import with {what}")
     for i, (name, reason) in enumerate(failed, 1):
         print(f"[{i}] {name}\n\t{reason}\n")
     raise SystemExit(1)
-print(f"OK: {len(MODULES)} inference modules import with a bare install")
+print(f"OK: {len(modules)} inference modules import with {what}")

@@ -843,6 +843,13 @@ jobs:
     - name: Import the inference entry points with the least requirement (Try1)
       run: |
         bare/bin/python ./ci/check_inference_imports.py
+    - name: Import the speechlm inference entry point with [speechlm] (Try1b)
+      run: |
+        # speechlm inference needs its extra by design (transformers, duckdb,
+        # lhotse, liger_kernel at module level); this catches the extra losing
+        # a package, which is invisible under [all].
+        bare/bin/python -m pip install "$(echo dist/espnet-*.whl)[speechlm]"
+        bare/bin/python ./ci/check_inference_imports.py --extra speechlm
     - name: Install espnet with the full requirement
       env:
         TH_VERSION: ${{ matrix.pytorch-version }}
