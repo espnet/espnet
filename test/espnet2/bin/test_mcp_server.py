@@ -124,6 +124,9 @@ def test_synthesize_refuses_a_model_without_a_rate(monkeypatch, tmp_path):
 
 
 def test_enhance_resamples_and_writes(monkeypatch, wav, tmp_path):
+    # Pin the rate: a runner with ESPNET_MCP_ENH_FS set would otherwise decide
+    # whether the 8 kHz file gets resampled at all.
+    monkeypatch.setattr(mcp_server, "ENH_FS", 16000)
     seen = {}
 
     class ENH:
@@ -150,9 +153,15 @@ def test_build_server_names_the_missing_package(monkeypatch):
 
 
 def test_enhancement_rate_is_validated_at_import(monkeypatch):
-    monkeypatch.setenv("ESPNET_MCP_ENH_FS", "0")
-    with pytest.raises(ValueError, match="positive integer"):
+    try:
+        with monkeypatch.context() as env:
+            env.setenv("ESPNET_MCP_ENH_FS", "0")
+            with pytest.raises(ValueError, match="positive integer"):
+                importlib.reload(mcp_server)
+            env.delenv("ESPNET_MCP_ENH_FS")
+            importlib.reload(mcp_server)
+            assert mcp_server.ENH_FS == 16000
+    finally:
+        # Reload once more with the runner's own environment restored, so the
+        # module globals other tests read match it again.
         importlib.reload(mcp_server)
-    monkeypatch.delenv("ESPNET_MCP_ENH_FS")
-    importlib.reload(mcp_server)
-    assert mcp_server.ENH_FS == 16000
