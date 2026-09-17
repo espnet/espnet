@@ -372,7 +372,8 @@ def _simulate_librimix(
         if result.returncode != 0:
             logger.error(result.stderr)
             raise RuntimeError(
-                f"LibriMix simulation script failed with return code {result.returncode}"
+                "LibriMix simulation script failed with return code "
+                f"{result.returncode}"
             )
     finally:
         os.chdir(cwd)
@@ -545,7 +546,8 @@ def _prepare_librimix_data(
                     row = dict(zip(headers, line.strip().split(",")))
                     if len(row) < 5:
                         logger.warning(
-                            f"Invalid line (#{idx}) in '{sset}' metadata: {line.strip()}"
+                            f"Invalid line (#{idx}) in '{sset}' "
+                            f"metadata: {line.strip()}"
                         )
                         continue
                     sub_uids.add(row["mixture_ID"])

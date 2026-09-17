@@ -141,7 +141,8 @@ class LibriMixTSEDataset(TorchDataset):
         >>> dataset = LibriMixTSEDataset(split="2mix_16k_max_dev_mix-clean")
         >>> sample = dataset[0]
         >>> sorted(sample.keys())
-        ['enroll_ref1', 'enroll_ref2', 'num_spk', 'speech_mix', 'speech_ref1', 'speech_ref2']
+        ['enroll_ref1', 'enroll_ref2', 'num_spk',
+         'speech_mix', 'speech_ref1', 'speech_ref2']
     """
 
     def __init__(
@@ -162,7 +163,8 @@ class LibriMixTSEDataset(TorchDataset):
             else Path(__file__).resolve().parents[1]
         )
 
-        # Parse split parameters before any build decision: {num_spk}mix_{fs}_{mode}_{dset}_{mix_type}
+        # Parse split parameters before any build decision:
+        #   {num_spk}mix_{fs}_{mode}_{dset}_{mix_type}
         # e.g. "2mix_16k_max_train_mix-both" → num_spk=2, fs=16k, mode=max,
         #       dset=train, mix_type=mix_both
         num_spk_str, fs, mode, dset, mix_type = self.split.split("_", 4)
