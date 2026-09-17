@@ -24,8 +24,8 @@ dependencies = [
     # What `pip install espnet` has to be able to do: load a pretrained model
     # through any from_pretrained in espnet2/bin and run it. Nothing here is
     # for training - that stack (lightning, tensorboard, wandb, torch_optimizer,
-    # matplotlib, nltk) is the [train] extra, and the espnet3 layer (hydra,
-    # omegaconf, datasets, dask) is the [espnet3] extra; [all] pulls both.
+    # matplotlib, nltk, and hydra, omegaconf, datasets, dask for espnet3) is the
+    # [train] extra, which [all] includes.
     # ci/check_inference_imports.py, run by the test_import job on a wheel
     # installed with no extras, fails when an inference module starts
     # importing one of them at module level.
@@ -107,12 +107,14 @@ egs3 = ["egs3/TEMPLATE/**/*.yaml"]
 
 
 [project.optional-dependencies]
-# Training with espnet2 (espnet2/bin/*_train.py, egs2 recipes). Every one of
-# these was a hard dependency until 202609, so `pip install espnet` dragged
-# W&B, Lightning and TensorBoard into installs that only ever ran a model.
-# abs_task.py and espnet2/train import wandb, torch_optimizer and matplotlib
-# lazily; lightning_train.py, the Lightning callbacks and the speechlm
-# trainers import theirs at module level and are training entry points.
+# Training, with espnet2 (espnet2/bin/*_train.py, egs2 recipes) or espnet3
+# (espnet3/, egs3/: Hydra configs, the Lightning trainer, Hugging Face
+# datasets, Dask for the parallel/ helpers). Every one of these was a hard
+# dependency until 202609, so `pip install espnet` dragged W&B, Lightning,
+# TensorBoard and Dask into installs that only ever ran a model. abs_task.py
+# and espnet2/train import wandb, torch_optimizer and matplotlib lazily;
+# lightning_train.py, the Lightning callbacks, the speechlm trainers and
+# espnet3 import theirs at module level and are training entry points.
 train = [
   "lightning",
   "tensorboard>=1.14",
@@ -123,17 +125,11 @@ train = [
   # CER/WER during validation (legacy/nets/e2e_asr_common.py, the transducer
   # error calculator, uasr/espnet_model.py); also in [asr].
   "editdistance",
-]
-
-# The espnet3 layer (espnet3/, egs3/): Hydra configs, Lightning trainer,
-# Hugging Face datasets, Dask for the parallel/ helpers.
-espnet3 = [
   "hydra-core",
   "omegaconf",
   "datasets",
   "dask[distributed]",
   "dask_jobqueue",
-  "lightning",
 ]
 # Three of the packages below are ESPnet-maintained forks of projects whose
 # upstream releases do not work here, published to PyPI under their own names:
@@ -276,7 +272,6 @@ dev = [
 
 test = [
   "espnet[train]",
-  "espnet[espnet3]",
   "pytest>=7.0.0,<8.4.0",
   "pytest-timeouts>=1.2.1",
   "pytest-pythonpath>=0.7.3",
@@ -308,7 +303,6 @@ doc = [
 
 all = [
   "espnet[train]",
-  "espnet[espnet3]",
   "espnet[asr]",
   "espnet[tts]",
   "espnet[enh]",
