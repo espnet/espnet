@@ -1914,7 +1914,6 @@ class TSEPreprocessor(EnhPreprocessor):
                     f"{num_spk * 2} columns, got {len(tup)} columns:\n{tup}"
                 )
 
-        fs = float(data.get("utt2fs", self.sample_rate))
         if self.train:
             assert len(ref_names) == len(aux_names), (len(ref_names), len(aux_names))
             if not self.load_all_speakers:

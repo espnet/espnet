@@ -346,7 +346,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         if self.always_forward_in_48k and fs_tuple is not None:
             fs2, fs0 = fs_tuple
             speech_lengths = speech_lengths0
-            func = lambda sp: torchaudio.functional.resample(sp, fs2, fs0)[
+            func = lambda sp: torchaudio.functional.resample(sp, fs2, fs0)[  # noqa:E731
                 ..., : speech_lengths0.max()
             ]
             if pre_is_multi_list:
