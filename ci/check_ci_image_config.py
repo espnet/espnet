@@ -179,13 +179,51 @@ RELEVANCE = Path("ci/integration_is_relevant.py")
 # recipe tests, which is the failure worth guarding: it is green and faster,
 # and the only thing that catches it is the master push after the merge. The
 # rest of the list is judgement and can be edited freely.
-RELEVANCE_CORE = (
-    "espnet2/",
-    "egs2/TEMPLATE/",
-    "egs2/mini_an4/",
-    "tools/",
-    "ci/test_integration_espnet2.sh",
-)
+RELEVANCE_CORE = {
+    "espnet2": (
+        "espnet2/",
+        "egs2/TEMPLATE/",
+        "egs2/mini_an4/",
+        "tools/",
+        "ci/test_integration_espnet2.sh",
+    ),
+    # espnet2/ is here because espnet3 imports it throughout, so an espnet2
+    # change can break the espnet3 recipes without touching espnet3.
+    "espnet3": (
+        "espnet2/",
+        "espnet3/",
+        "egs3/",
+        "tools/",
+        "ci/test_integration_espnet3.sh",
+    ),
+}
+
+
+def check_needed_before_read() -> list:
+    """A job reading another job's outputs must declare it in `needs`.
+
+    An expression naming a job that is not a dependency evaluates to the empty
+    string rather than failing, so the step sees "" and carries on. Writing
+    `needs.resolve_ci_image.outputs.espnet3_relevant` into a job whose needs
+    was only process_labels is how the espnet3 publication test came within
+    one commit of being skipped on every pull request, silently and in green.
+    """
+    workflow = yaml.safe_load(CONSUMER.read_text())
+    problems = []
+    for name, job in (workflow.get("jobs") or {}).items():
+        needs = job.get("needs") or []
+        if isinstance(needs, str):
+            needs = [needs]
+        for read in sorted(
+            set(re.findall(r"needs\.([a-z_0-9]+)\.outputs", yaml.dump(job)))
+        ):
+            if read not in needs:
+                problems.append(
+                    f"{CONSUMER}: job {name} reads "
+                    f"needs.{read}.outputs but does not need {read}, so the "
+                    "expression is the empty string rather than an error"
+                )
+    return problems
 
 
 def check_integration_relevance_paths() -> list:
@@ -209,18 +247,24 @@ def check_integration_relevance_paths() -> list:
     if listed.returncode != 0:
         return [f"{RELEVANCE}: could not list tracked files"]
     paths = [name for name in listed.stdout.split("\0") if name]
-    problems = [
-        f"{RELEVANCE}: the prefix {prefix!r} matches no tracked file, so "
-        "whatever used to be there no longer runs the integration tests"
-        for prefix in module.RELEVANT
-        if not any(name == prefix or name.startswith(prefix) for name in paths)
-    ]
-    problems += [
-        f"{RELEVANCE}: {prefix!r} is not in RELEVANT, so a pull request that "
-        "changes it would not run the integration tests at all"
-        for prefix in RELEVANCE_CORE
-        if prefix not in module.RELEVANT
-    ]
+    problems = []
+    for suite, prefixes in module.RELEVANT.items():
+        problems += [
+            f"{RELEVANCE}: [{suite}] the prefix {prefix!r} matches no tracked "
+            "file, so whatever used to be there no longer runs the "
+            "integration tests"
+            for prefix in prefixes
+            if not any(name == prefix or name.startswith(prefix) for name in paths)
+        ]
+        problems += [
+            f"{RELEVANCE}: [{suite}] {prefix!r} is missing, so a pull request "
+            "that changes it would not run these integration tests at all"
+            for prefix in RELEVANCE_CORE[suite]
+            if prefix not in prefixes
+        ]
+    for suite in RELEVANCE_CORE:
+        if suite not in module.RELEVANT:
+            problems.append(f"{RELEVANCE}: no list for the {suite} suite")
     return problems
 
 
@@ -1156,6 +1200,7 @@ def main() -> int:
         check_variants()
         + check_generated_matrices()
         + check_integration_relevance_paths()
+        + check_needed_before_read()
         + check_integration_tasks()
         + check_configuration_tasks()
         + check_no_duplicate_keys()
