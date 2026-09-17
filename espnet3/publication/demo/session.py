@@ -149,7 +149,7 @@ class DemoSession:
                 # Make the sample rate a list so that
                 #   it can be modified in-place by _normalize_input_audio
                 # The sample rate will be overridden by the demo config
-                #   if the model expects a different rate.
+                # if the model expects a different rate.
                 sr = [16000]
                 item = {}
                 for key, value in zip(resolved_input_keys, values):
