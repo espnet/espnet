@@ -48,11 +48,12 @@ def main() -> int:
         return 0
     hits = relevant(paths)
     if hits:
-        print(f"{len(hits)} of {len(paths)} changed paths can reach the "
-              f"integration tests, for example: {', '.join(hits[:3])}")
+        print(
+            f"{len(hits)} of {len(paths)} changed paths can reach the "
+            f"integration tests, for example: {', '.join(hits[:3])}"
+        )
         return 0
-    print(f"none of the {len(paths)} changed paths can reach the integration "
-          "tests")
+    print(f"none of the {len(paths)} changed paths can reach the integration " "tests")
     return 1
 
 
