@@ -56,14 +56,22 @@ with the setup.py to pyproject.toml migration and went unnoticed for five months
 because the release before it had deliberately moved the same three packages out
 to tools/Makefile and nothing recorded why.
 
-Eighth, every pytorch version named outside ci/image_variants.json must be one
-that file lists. tools/Makefile's TH_VERSION default and the docker publish
-workflow's build argument are the two places that name one, and both are only
-reached by paths no pull request exercises - the Makefile default because
-ci/install.sh always passes TH_VERSION, the workflow because it runs on a
-schedule. So when install_torch.sh stopped supporting 2.7.1, the default stayed
-at 2.7.1 and the weekly docker publish failed every Monday for five months
-without a single red pull request.
+Eighth, every python or pytorch version pinned anywhere in the repository must
+be one ci/image_variants.json lists. Almost none of these sites is reached by a
+path a pull request exercises - tools/Makefile's default because ci/install.sh
+always passes TH_VERSION, the docker publish workflow because it runs on a
+schedule, the rest because they are instructions for a human - so a rotted one
+stays green until someone follows it. That is how the weekly docker publish
+failed every Monday for five months.
+
+This check used to hold a list of the files that pin a version, and the list was
+the bug: docker/build.sh, both devcontainer files, tools/setup_uv.sh and the
+build instructions in doc/installation.md were not in it, and all four sat on
+versions install_torch.sh had long stopped accepting. They were found by a
+by-hand grep of the whole repository, which is not a check, so the list is gone
+- every tracked file is scanned for the shapes that pin a version, and the
+handful of version strings that are records rather than instructions are named
+in ALLOWED_PINS.
 
 Tenth, every download in the CI and installer scripts must survive a transient
 failure. Almost all of them used to pass --tries=3, and that flag does not cover
@@ -78,6 +86,12 @@ which cannot source it, carry --retry-on-http-error with the full transient set
 (a partial list retries only what it names) or curl's --fail with --retry N.
 curl needs --fail specifically: without it a 500 is not an error, so curl exits
 0 and writes the error body to the output - which, piped to a shell, runs it.
+
+Eleventh, tools/installers/install_k2.sh names the torch versions k2 has no
+wheel for yet, so that they skip k2 rather than fail the image build, and every
+version it names must be one ci/image_variants.json builds. The k2 tests are
+pytest.importorskip, so that skip never turns a run red on its own, and a stale
+entry would keep k2 out of a variant that could have had it.
 
 And ninth, the workflow files must have no duplicate mapping keys. PyYAML
 accepts them and lets the last one win, so writing a second env: block into a
@@ -514,61 +528,108 @@ def check_no_direct_references() -> list:
 
 INSTALL_TORCH = Path("tools/installers/install_torch.sh")
 
-# Everywhere outside ci/image_variants.json that names a python or pytorch
-# version. An explicit list rather than a scan of every file: a scan invents
-# false positives on comments and prose, and this is meant to be readable.
-VARIANT_SITES = (
-    (Path("tools/Makefile"), re.compile(r"^TH_VERSION\s*:?=\s*(\S+)", re.M), "pytorch"),
-    (
-        Path("docker/ci.dockerfile"),
-        re.compile(r"^ARG PYTHON_VERSION=(\S+)", re.M),
-        "python",
-    ),
-    (
-        Path("docker/ci.dockerfile"),
-        re.compile(r"^ARG TH_VERSION=(\S+)", re.M),
-        "pytorch",
-    ),
-    (
-        Path("docker/prebuilt/devel.dockerfile"),
-        re.compile(r"conda install[^\n]*\"python=([0-9.]+)\""),
-        "python",
-    ),
-    (
-        Path(".github/workflows/publish_docker_image.yml"),
-        re.compile(r"--build-arg\s+TH_VERSION=(\S+)"),
-        "pytorch",
-    ),
+# Every way this repository pins a python or pytorch version, as patterns
+# applied to every tracked file rather than as a list of the files that do it.
+# The list came first, and the list was the bug: it named tools/Makefile, two
+# dockerfile ARGs and the docker publish workflow, and for as long as it did,
+# docker/build.sh sat on torch 2.8.0, both devcontainer files on 2.7.1,
+# tools/setup_uv.sh installed 2.6.0, and doc/installation.md told a new user to
+# build with 1.10.1 - none of them a version install_torch.sh still accepts, and
+# none of them red, because a file nobody added is a file nobody checks. Finding
+# them took a by-hand grep of the whole repository, which is not a check.
+#
+# A scan does invent false positives on prose, which is what the list was for,
+# so these match the shapes that pin a version and nothing else - an assignment,
+# a pip specifier, a matrix entry - and the real exceptions are named in
+# ALLOWED_PINS with a reason each.
+LINE_PINS = (
+    (re.compile(r"\bTH_VERSION\s*[:=]{1,2}\s*[\"']?(\d+\.\d+\.\d+)"), "pytorch"),
+    (re.compile(r"\bth_ver\s*=\s*[\"']?(\d+\.\d+\.\d+)"), "pytorch"),
+    # \s* around the operators: a specifier written with spaces around == or >=
+    # is the same pin as the unspaced form, and a scan that misses one shape is
+    # the list problem again in miniature. (Spelling an example here would trip
+    # the scan itself, which is the check working.)
+    (re.compile(r"\btorch\s*==\s*(\d+\.\d+\.\d+)"), "pytorch"),
+    (re.compile(r"[\"']torch\s*>=\s*(\d+\.\d+\.\d+)"), "pytorch"),
+    (re.compile(r"\bPYTHON_VERSION\s*[:=]{1,2}\s*[\"']?(\d+\.\d+)"), "python"),
+    (re.compile(r"conda install[^\n]*\"python=(\d+\.\d+)\""), "python"),
+    (re.compile(r"uv venv -p (\d+\.\d+)"), "python"),
+)
+
+# A matrix line names any number of versions: `pytorch-version: [a, b, c]`.
+MATRIX_PINS = (
+    ("pytorch-version:", re.compile(r"\d+\.\d+\.\d+"), "pytorch"),
+    ("python-version:", re.compile(r"\d+\.\d+(?!\.\d)"), "python"),
+)
+
+# Version strings that are records rather than instructions: what a recipe was
+# run on, and npm lockfiles.
+PIN_SCAN_SKIP = ("egs/", "egs2/", "egs3/", "doc/vuepress/")
+
+ALLOWED_PINS = frozenset(
+    {
+        # The issue templates carry a filled-in example of the reporter's own
+        # environment, from whenever they were written. Nothing is installed
+        # from them, and bumping them would say nothing to anyone.
+        (".github/ISSUE_TEMPLATE/bug_report.md", "1.4.0"),
+        (".github/ISSUE_TEMPLATE/installation-issue-template.md", "1.4.0"),
+        (".github/ISSUE_TEMPLATE/installation-issue-template.md", "1.3.1"),
+    }
 )
 
 
+def tracked_files() -> list:
+    """Every tracked file the pin scan looks at, skipping records and .eol."""
+    listed = subprocess.run(
+        ["git", "ls-files"], capture_output=True, text=True, check=True
+    ).stdout.split("\n")
+    return [
+        name
+        for name in listed
+        if name and not name.startswith(PIN_SCAN_SKIP) and not name.endswith(".eol")
+    ]
+
+
 def check_versions_are_built_variants() -> list:
-    """Every version named at those sites must be one image_variants.json lists.
+    """Every version pinned anywhere must be one image_variants.json builds.
 
     install_torch.sh exits 1 on a pytorch version outside that set, and the
     python floor is a hard requirement of pyproject.toml, so a version outside
-    it is not a slow path - it is a build that cannot succeed. Two of these
-    sites were wrong for five months (TH_VERSION 2.7.1 and conda python=3.11)
-    because the only path that reads them is the weekly docker publish, which
-    runs on a schedule and so never turns a pull request red.
+    it is not a slow path - it is a build that cannot succeed. Most of these
+    sites are reached only by a human following a README or a scheduled job, so
+    nothing turns red when one rots: TH_VERSION sat at 2.7.1 for five months and
+    took the weekly docker publish down every Monday.
     """
     pythons, torches = variants()
     allowed = {"python": pythons, "pytorch": torches}
     problems = []
-    for path, pattern, axis in VARIANT_SITES:
-        if not path.exists():
-            problems.append(f"{path}: missing, so its version cannot be checked")
-            continue
-        text = path.read_text()
-        for match in pattern.finditer(text):
-            found = match.group(1).strip("\"'")
-            if found in allowed[axis]:
+    for name in tracked_files():
+        try:
+            text = Path(name).read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            continue  # binary, or a symlink into something not checked out
+
+        found = []
+        for pattern, axis in LINE_PINS:
+            for match in pattern.finditer(text):
+                line = text[: match.start()].count("\n") + 1
+                found.append((line, match.group(1), axis))
+        for key, pattern, axis in MATRIX_PINS:
+            for number, line in enumerate(text.split("\n"), start=1):
+                if key not in line:
+                    continue
+                found.extend(
+                    (number, version, axis) for version in pattern.findall(line)
+                )
+
+        for line, version, axis in sorted(found):
+            if version in allowed[axis] or (name, version) in ALLOWED_PINS:
                 continue
-            line = text[: match.start()].count("\n") + 1
             problems.append(
-                f"{path}:{line}: names {axis} {found}, which "
+                f"{name}:{line}: pins {axis} {version}, which "
                 f"ci/image_variants.json does not list "
-                f"({', '.join(allowed[axis])})"
+                f"({', '.join(allowed[axis])}). Move it to a built version, or "
+                "add it to ALLOWED_PINS with the reason it is not installed"
             )
     return problems
 
@@ -615,13 +676,18 @@ def check_declared_support_matches_variants() -> list:
     if not INSTALL_TORCH.exists():
         problems.append(f"{INSTALL_TORCH}: missing")
         return problems
-    installable = set(
-        re.findall(
-            r"^\s*install_torch (\d+\.\d+\.\d+)",
-            INSTALL_TORCH.read_text(),
-            re.M,
-        )
-    )
+    # The torch version a branch installs is the one it guards on, not the
+    # argument to install_torch - that argument is the torchaudio version, and
+    # the two stopped being the same at torch 2.12, where torchaudio's releases
+    # end (2.11.0 is its last). Reading the argument, as this did while they
+    # matched, reports every torch above 2.11.0 as missing from a script that
+    # installs it.
+    text = INSTALL_TORCH.read_text()
+    installable = set()
+    for branch in re.split(r"^(?:el)?if \$\(pytorch_plus ", text, flags=re.M)[1:]:
+        guard, _, body = branch.partition("\n")
+        if re.search(r"^\s*install_torch \d", body, re.M):
+            installable.add(guard.split(")")[0].strip())
     if installable != set(torches):
         problems.append(
             f"{INSTALL_TORCH}: installs {sorted(installable)}, but "
@@ -629,6 +695,42 @@ def check_declared_support_matches_variants() -> list:
             "anything it does not install"
         )
     return problems
+
+
+INSTALL_K2 = Path("tools/installers/install_k2.sh")
+
+
+def check_k2_gap_is_a_built_variant() -> list:
+    """install_k2.sh's k2_missing_for may only name torch versions CI builds.
+
+    k2 publishes one wheel per (k2 version, torch version, python version) and
+    lags torch by weeks, so a newly supported torch spends a while with no k2 at
+    all. install_k2.sh skips itself for those rather than failing every image
+    build, and because the k2 tests are pytest.importorskip, that skip is
+    invisible in a green run - the list is the only record that one variant
+    tests less than the others.
+
+    So the list has to stay tied to the grid. An entry for a torch version
+    nobody builds is either a version that was dropped, or one k2 has since
+    published and nobody removed; both read as "k2 is handled here" while
+    silently keeping it out of the next run that uses that version.
+    """
+    torches = variants()[1]
+    if not INSTALL_K2.exists():
+        return [f"{INSTALL_K2}: missing, so its k2 gap list cannot be checked"]
+    match = re.search(r'^k2_missing_for="([^"]*)"', INSTALL_K2.read_text(), re.M)
+    if match is None:
+        return [
+            f"{INSTALL_K2}: no k2_missing_for= assignment, so a torch version "
+            "k2 has no wheel for fails the whole environment build instead of "
+            "skipping k2"
+        ]
+    return [
+        f"{INSTALL_K2}: k2_missing_for names torch {version}, which "
+        f"ci/image_variants.json does not build ({', '.join(torches)})"
+        for version in match.group(1).split()
+        if version not in torches
+    ]
 
 
 # Where a failed download takes down a job nobody is watching. Explicit globs
@@ -923,6 +1025,7 @@ def main() -> int:
         + check_no_direct_references()
         + check_versions_are_built_variants()
         + check_declared_support_matches_variants()
+        + check_k2_gap_is_a_built_variant()
         + check_downloads_retry_on_5xx()
         + check_label_rules()
     )
@@ -939,7 +1042,8 @@ def main() -> int:
             "permissions; every codecov upload has a token; pyproject declares "
             "no direct references; every python and pytorch version named "
             "outside image_variants.json is one it lists, and what the "
-            "package declares matches it; every download retries on 5xx; "
+            "package declares matches it; the k2 gap list names only built "
+            "variants; every download retries on 5xx; "
             "every labeler glob matches a tracked file; no duplicate keys"
         )
         return 0
