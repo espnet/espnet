@@ -100,6 +100,7 @@ GITHUB_TOKEN from the two steps that need it for torch.hub.
 """
 
 import fnmatch
+import importlib.util
 import json
 import re
 import subprocess
@@ -171,6 +172,100 @@ def _k2_gap() -> set:
         return set()
     match = re.search(r'^k2_missing_for="([^"]*)"', INSTALL_K2.read_text(), re.M)
     return set(match.group(1).split()) if match else set()
+
+
+RELEVANCE = Path("ci/integration_is_relevant.py")
+# Removing any of these makes pull requests that change them stop running the
+# recipe tests, which is the failure worth guarding: it is green and faster,
+# and the only thing that catches it is the master push after the merge. The
+# rest of the list is judgement and can be edited freely.
+RELEVANCE_CORE = {
+    "espnet2": (
+        "espnet2/",
+        "egs2/TEMPLATE/",
+        "egs2/mini_an4/",
+        "tools/",
+        "ci/test_integration_espnet2.sh",
+    ),
+    # espnet2/ is here because espnet3 imports it throughout, so an espnet2
+    # change can break the espnet3 recipes without touching espnet3.
+    "espnet3": (
+        "espnet2/",
+        "espnet3/",
+        "egs3/",
+        "tools/",
+        "ci/test_integration_espnet3.sh",
+    ),
+}
+
+
+def check_needed_before_read() -> list:
+    """A job reading another job's outputs must declare it in `needs`.
+
+    An expression naming a job that is not a dependency evaluates to the empty
+    string rather than failing, so the step sees "" and carries on. Writing
+    `needs.resolve_ci_image.outputs.espnet3_relevant` into a job whose needs
+    was only process_labels is how the espnet3 publication test came within
+    one commit of being skipped on every pull request, silently and in green.
+    """
+    workflow = yaml.safe_load(CONSUMER.read_text())
+    problems = []
+    for name, job in (workflow.get("jobs") or {}).items():
+        needs = job.get("needs") or []
+        if isinstance(needs, str):
+            needs = [needs]
+        for read in sorted(
+            set(re.findall(r"needs\.([a-z_0-9]+)\.outputs", yaml.dump(job)))
+        ):
+            if read not in needs:
+                problems.append(
+                    f"{CONSUMER}: job {name} reads "
+                    f"needs.{read}.outputs but does not need {read}, so the "
+                    "expression is the empty string rather than an error"
+                )
+    return problems
+
+
+def check_integration_relevance_paths() -> list:
+    """Every path prefix that gates the integration tests must still exist.
+
+    A prefix that matches nothing is a path that was renamed or removed, and
+    it fails silently in the dangerous direction: pull requests touching what
+    used to live there stop running the recipe tests, and the jobs go green
+    faster, which looks like the change working.
+    """
+    if not RELEVANCE.exists():
+        return [f"{RELEVANCE}: missing"]
+    spec = importlib.util.spec_from_file_location("relevance", RELEVANCE)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    # Not tracked_files(): that one is for the version-pin scan and skips the
+    # recipes, which is most of what this list is about.
+    listed = subprocess.run(
+        ["git", "ls-files", "-z"], capture_output=True, text=True, check=False
+    )
+    if listed.returncode != 0:
+        return [f"{RELEVANCE}: could not list tracked files"]
+    paths = [name for name in listed.stdout.split("\0") if name]
+    problems = []
+    for suite, prefixes in module.RELEVANT.items():
+        problems += [
+            f"{RELEVANCE}: [{suite}] the prefix {prefix!r} matches no tracked "
+            "file, so whatever used to be there no longer runs the "
+            "integration tests"
+            for prefix in prefixes
+            if not any(name == prefix or name.startswith(prefix) for name in paths)
+        ]
+        problems += [
+            f"{RELEVANCE}: [{suite}] {prefix!r} is missing, so a pull request "
+            "that changes it would not run these integration tests at all"
+            for prefix in RELEVANCE_CORE[suite]
+            if prefix not in prefixes
+        ]
+    for suite in RELEVANCE_CORE:
+        if suite not in module.RELEVANT:
+            problems.append(f"{RELEVANCE}: no list for the {suite} suite")
+    return problems
 
 
 def check_generated_matrices() -> list:
@@ -1178,6 +1273,8 @@ def main() -> int:
     bad = (
         check_variants()
         + check_generated_matrices()
+        + check_integration_relevance_paths()
+        + check_needed_before_read()
         + check_integration_tasks()
         + check_configuration_tasks()
         + check_no_duplicate_keys()
