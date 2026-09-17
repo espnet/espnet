@@ -102,16 +102,25 @@ less than `master` does. What each column actually gets:
 |test suite|2.11.0|2.13.0|2.14.0|
 | :---- | :---: | :---: | :---: |
 |unit tests (`espnet2`, `espnet3`)|every PR|every PR|every PR|
-|`espnet3` integration|every PR|every PR|every PR|
-|`espnet2` recipe integration|`master` only|every PR|`master` only|
+|`espnet2` recipe integration|`master` only|PR + `master`|`master` only|
+|`espnet3` integration|`master` only|PR + `master`|`master` only|
 |configuration, utils, shell, import|every PR|not run|not run|
 |k2-dependent tests|yes|yes|**no wheel published - skipped**|
 
-- **`master` only** - a pull request runs the 14 recipe integration tasks against
-  one pytorch per python rather than all three, because that is 84 jobs against a
-  20-wide cap and no integration failure in 300 runs was ever specific to a
-  pytorch version. Pushes to `master` run the full grid, so nothing goes
+- **`master` only** - a pull request runs the recipe integration suites against
+  one pytorch per python rather than all three, because the full grid is 84 jobs
+  against a 20-wide cap and no integration failure in 300 runs was ever specific
+  to a pytorch version. Pushes to `master` run the full grid, so nothing goes
   untested; it is tested after the merge rather than before it.
+- **PR + `master`** - and on a pull request, only when something changed can
+  reach that suite. A pull request touching only documentation, or only
+  `test/`, does not run the recipes at all; `ci/integration_is_relevant.py`
+  holds the paths that count, deliberately broadly, and anything it cannot
+  read - a truncated file list, an unparseable one, an empty one - runs them.
+  `master` again runs them regardless. The espnet3 publication test has no
+  matrix and follows the same rule.
+- **every PR** - the unit tests run the whole grid on every pull request. They
+  are six jobs of a few minutes; the recipe suites are the expensive ones.
 - **not run** - `test_configuration_espnet2`, `test_shell_espnet2` and
   `test_import` run on python 3.12 with pytorch 2.11.0 only, and
   `test_utils_espnet2` on both pythons with 2.11.0 only.

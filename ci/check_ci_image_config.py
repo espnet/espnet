@@ -779,6 +779,10 @@ README = Path("README.md")
 # what each column covers. Both carry the pytorch list as column headers.
 README_HEADERS = ("|system/pytorch ver.|", "|test suite|")
 README_K2_ROW = "|k2-dependent tests|"
+# The rows whose "runs on a pull request" columns must be the narrowed grid,
+# so that changing which pytorch a pull request gets cannot leave the README
+# describing the old one.
+README_PR_ROWS = ("|`espnet2` recipe integration|", "|`espnet3` integration|")
 
 
 def _columns(line: str) -> list:
@@ -813,6 +817,42 @@ def check_readme_coverage_table() -> list:
     for prefix in README_HEADERS:
         if prefix not in headers:
             problems.append(f"{README}: no table headed {prefix!r}")
+
+    narrowed = json.loads(
+        subprocess.run(
+            [sys.executable, str(VARIANTS_SCRIPT), "matrix", "--newest-pytorch"],
+            capture_output=True,
+            text=True,
+            check=False,
+        ).stdout
+        or "{}"
+    ).get("pytorch-version", [])
+    if "|test suite|" in headers:
+        columns = headers["|test suite|"][1]
+        for prefix in README_PR_ROWS:
+            rows = [
+                (number, line)
+                for number, line in enumerate(lines, 1)
+                if line.startswith(prefix)
+            ]
+            if not rows:
+                problems.append(f"{README}: no row starting {prefix!r}")
+                continue
+            for number, line in rows:
+                cells = _columns(line)
+                if len(cells) != len(columns):
+                    problems.append(
+                        f"{README}:{number}: {prefix} has {len(cells)} cells "
+                        f"for {len(columns)} pytorch columns"
+                    )
+                    continue
+                on_pr = [v for v, cell in zip(columns, cells) if "PR" in cell]
+                if on_pr != narrowed:
+                    problems.append(
+                        f"{README}:{number}: {prefix} says a pull request runs "
+                        f"pytorch {on_pr}, but image_variants.py --newest-pytorch "
+                        f"gives {narrowed}"
+                    )
 
     gap = _k2_gap()
     seen_k2_row = False
