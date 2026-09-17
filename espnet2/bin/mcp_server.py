@@ -34,7 +34,7 @@ import soundfile
 try:
     from mcp.server.mcpserver import MCPServer
     from mcp.server.mcpserver.exceptions import ToolError
-except ImportError:
+except ImportError:  # pragma: no cover - the test extra installs mcp
     MCPServer = None
 
     class ToolError(Exception):  # noqa: N818 - stands in for mcp's when absent
@@ -58,7 +58,7 @@ _quiet_stdout = functools.partial(contextlib.redirect_stdout, sys.stderr)
 
 
 @functools.lru_cache(maxsize=None)
-def _asr():
+def _asr():  # pragma: no cover - downloads the checkpoint
     with _quiet_stdout():
         from espnet2.bin.s2t_inference_ctc import Speech2TextGreedySearch
 
@@ -68,7 +68,7 @@ def _asr():
 
 
 @functools.lru_cache(maxsize=None)
-def _tts():
+def _tts():  # pragma: no cover - downloads the checkpoint
     with _quiet_stdout():
         from espnet2.bin.tts_inference import Text2Speech
 
@@ -76,7 +76,7 @@ def _tts():
 
 
 @functools.lru_cache(maxsize=None)
-def _enh():
+def _enh():  # pragma: no cover - downloads the checkpoint
     with _quiet_stdout():
         from espnet2.bin.enh_inference import SeparateSpeech
 
@@ -217,7 +217,7 @@ def build_server():
     return server
 
 
-def main():
+def main():  # pragma: no cover - blocks on stdio; exercised by hand
     """Serve the tools over stdio; this is the `espnet-mcp` command."""
     build_server().run(transport="stdio")
 

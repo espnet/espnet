@@ -1,4 +1,5 @@
 import asyncio
+import importlib
 from types import SimpleNamespace
 
 import numpy as np
@@ -140,3 +141,18 @@ def test_enhance_resamples_and_writes(monkeypatch, wav, tmp_path):
     assert seen["shape"] == (1, 16000)
     data, fs = soundfile.read(str(out))
     assert fs == 16000 and len(data) == 16000
+
+
+def test_build_server_names_the_missing_package(monkeypatch):
+    monkeypatch.setattr(mcp_server, "MCPServer", None)
+    with pytest.raises(ImportError, match=r"espnet\[mcp\]"):
+        mcp_server.build_server()
+
+
+def test_enhancement_rate_is_validated_at_import(monkeypatch):
+    monkeypatch.setenv("ESPNET_MCP_ENH_FS", "0")
+    with pytest.raises(ValueError, match="positive integer"):
+        importlib.reload(mcp_server)
+    monkeypatch.delenv("ESPNET_MCP_ENH_FS")
+    importlib.reload(mcp_server)
+    assert mcp_server.ENH_FS == 16000
