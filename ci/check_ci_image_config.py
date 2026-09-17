@@ -698,6 +698,7 @@ def check_declared_support_matches_variants() -> list:
 
 
 INSTALL_K2 = Path("tools/installers/install_k2.sh")
+PREBUILT_ACTION = Path(".github/actions/use-prebuilt-environment/action.yml")
 
 
 def check_k2_gap_is_a_built_variant() -> list:
@@ -725,12 +726,30 @@ def check_k2_gap_is_a_built_variant() -> list:
             "k2 has no wheel for fails the whole environment build instead of "
             "skipping k2"
         ]
-    return [
+    problems = [
         f"{INSTALL_K2}: k2_missing_for names torch {version}, which "
         f"ci/image_variants.json does not build ({', '.join(torches)})"
         for version in match.group(1).split()
         if version not in torches
     ]
+    # The other half of the same fact. The installer skipping k2 is only safe
+    # if whatever verifies the environment also knows to skip it: an
+    # unconditional `import k2` there fails every job on that torch. That is
+    # what torch 2.14.0 did the moment its images were published - and the runs
+    # before publication were green only because the step was skipped entirely,
+    # so nothing said the two disagreed.
+    if match.group(1).split():
+        if not PREBUILT_ACTION.exists():
+            problems.append(f"{PREBUILT_ACTION}: missing")
+        elif "k2_missing_for" not in PREBUILT_ACTION.read_text():
+            problems.append(
+                f"{PREBUILT_ACTION}: verifies the environment without reading "
+                f"{INSTALL_K2}'s k2_missing_for, which currently skips k2 for "
+                f"torch {' '.join(match.group(1).split())}.\n"
+                "  Requiring `import k2` on a torch version k2 publishes no "
+                "wheel for fails every job on that part of the grid."
+            )
+    return problems
 
 
 # Where a failed download takes down a job nobody is watching. Explicit globs

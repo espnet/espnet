@@ -38,4 +38,30 @@ runs:
         # importable, and once by landing in the system interpreter instead of the
         # venv while the log said it had succeeded. An install log is not
         # evidence; an import is.
-        "${VENV}/python" -c 'import espnet2, espnet3, kaldiio, k2; print("espnet2 from", espnet2.__file__); print("k2 from", k2.__file__)'
+        #
+        # Except on a torch version k2 publishes no wheel for at all:
+        # tools/installers/install_k2.sh skips those, so demanding the import
+        # here fails every job on that part of the grid. That is not
+        # hypothetical - it is what torch 2.14.0 did the moment its images were
+        # published, while the runs before that were green only because the
+        # image did not exist yet and this whole step was skipped.
+        #
+        # Ask the interpreter which torch it has rather than trusting the image
+        # tag, and read the gap list out of the installer so the two cannot say
+        # different things.
+        torch_version=$("${VENV}/python" -c 'import torch; print(torch.__version__.split("+")[0])')
+        k2_missing_for=$(sed -n 's/^k2_missing_for="\(.*\)"/\1/p' tools/installers/install_k2.sh)
+        expect_k2=true
+        for missing in ${k2_missing_for}; do
+          if [ "${torch_version}" = "${missing}" ]; then
+            expect_k2=false
+          fi
+        done
+
+        if "${expect_k2}"; then
+          "${VENV}/python" -c 'import espnet2, espnet3, kaldiio, k2; print("espnet2 from", espnet2.__file__); print("k2 from", k2.__file__)'
+        else
+          echo "k2 publishes no wheel for torch ${torch_version}; not requiring its" \
+               "import here (tools/installers/install_k2.sh: k2_missing_for)"
+          "${VENV}/python" -c 'import espnet2, espnet3, kaldiio; print("espnet2 from", espnet2.__file__)'
+        fi
