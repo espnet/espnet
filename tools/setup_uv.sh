@@ -23,7 +23,7 @@ fi
 # If .venv doesn't exist, create it
 if [ ! -d ".venv" ]; then
     echo "Creating .venv..."
-    uv venv -p 3.11
+    uv venv -p 3.12
 else
     echo ".venv already exists"
 fi
@@ -33,7 +33,7 @@ echo "Activating .venv..."
 . .venv/bin/activate
 
 
-uv pip install torch==2.6.0 torchaudio==2.6.0
+uv pip install torch==2.11.0 torchaudio==2.11.0
 uv pip install -e ../
 
 # create activate_python.sh

@@ -1,11 +1,15 @@
-# PyTorch version: The latest six versions have been tested.
+# PyTorch version: The latest three versions have been tested.
 # Please check https://github.com/espnet/espnet?tab=readme-ov-file#espnet-end-to-end-speech-processing-toolkit
 # Only used when TH_VERSION is not passed in. ci/install.sh always passes it,
 # so this default is what a manual `make` and the docker build get - and it is
 # checked against ci/image_variants.json by ci/check_ci_image_config.py,
 # because install_torch.sh exits 1 on anything outside that set and nothing
 # noticed for five months when this said 2.7.1.
-TH_VERSION := 2.11.0
+#
+# Deliberately one behind the newest supported version: k2 publishes no wheel
+# for torch 2.14.0 yet (see k2_missing_for in installers/install_k2.sh), and a
+# plain `make` should not quietly come out without k2.
+TH_VERSION := 2.13.0
 
 # Use pip for pytorch installation even if you have anaconda
 ifneq ($(shell test -f ./activate_python.sh && grep 'conda activate' ./activate_python.sh),)
@@ -170,7 +174,12 @@ espnet.done: pytorch.done conda_packages.done lightning.done
 	# identical, so nothing installs two copies of ctc_segmentation or g2p_en.
 	. ./activate_python.sh && python3 -m pip install espnet-g2p-en
 	. ./activate_python.sh && python3 -m pip install espnet-ctc-segmentation
-	. ./activate_python.sh && python3 -m pip install -e ".."  # Install editable mode by default
+	# torch==$(TH_VERSION) on the same line, not because it is missing - it was
+	# installed above - but to hold it still. Unpinned, this resolve is free to
+	# move torch anywhere the dependency range allows, and it did: it dropped
+	# 2.13.0 for 2.12.1, so install_k2.sh then built against 2.12.1 and the
+	# version check at the end of ci/install.sh failed the job.
+	. ./activate_python.sh && python3 -m pip install -e ".." "torch==$(TH_VERSION)"  # Install editable mode by default
 	@echo NUMPY_VERSION=$(shell . ./activate_python.sh && python3 -c "import numpy; print(numpy.__version__)")
 	# Into the venv, not $$HOME. docker/ci.dockerfile builds in a builder stage
 	# and copies only /espnet/tools into the final image, so a download to
