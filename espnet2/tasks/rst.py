@@ -134,7 +134,10 @@ def degrade_waveform(
     rir_files: List[str],
     probability: float = 0.5,
 ) -> torch.Tensor:
-    """Apply the six independent degradations described by Sidon."""
+    """Apply the six independent degradations of the Sidon paper.
+
+    Nakata et al., arXiv:2509.17052, Sec. 4.1; each with ``probability``.
+    """
     original = wav.float()
     output = original.clone()
     operations = (
@@ -162,7 +165,7 @@ def degrade_waveform(
                 if name not in _DEGRADE_WARNED:
                     _DEGRADE_WARNED.add(name)
                     logger.warning(
-                        "Sidon degradation %r failed and is being SKIPPED for "
+                        "degradation %r failed and is being SKIPPED for "
                         "every utterance in this process: %s: %s. The "
                         "degradation distribution is now missing this "
                         "component.",
@@ -175,7 +178,10 @@ def degrade_waveform(
 
 
 class RestorationCollateFn:
-    """Collate function for Sidon: online degradation + padding.
+    """Collate function for restoration training: online degradation + padding.
+
+    Not specific to one method: any SSL encoder / vocoder pair trains with it. The
+    degradation pipeline itself follows the Sidon paper (see ``degrade_waveform``).
 
     SSL feature extraction is done on GPU in the model forward pass
     (W2VBert2Encoder._wav_to_ssl_inputs), not here.

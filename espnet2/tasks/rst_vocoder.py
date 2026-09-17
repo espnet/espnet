@@ -1,4 +1,4 @@
-"""Task definition for training the restoration vocoder (Sidon stages 2 and 3)."""
+"""Task definition for training the restoration vocoder (recipe stages 7 and 8)."""
 
 import logging
 import random

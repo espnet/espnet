@@ -4,7 +4,7 @@
 # (src/sidon/model/losses.py, config/model/sidon_vocoder_pretrain.yaml),
 # Copyright (c) 2025 sarulab-speech, MIT License. The losses themselves are
 # ESPnet's (espnet2.gan_tts); see egs2/libritts_r/rst1/README.md.
-"""GAN training of the restoration vocoder (Sidon stages 2 and 3).
+"""GAN training of the restoration vocoder (recipe stages 7 and 8).
 
 Stage 2 pretrains the vocoder to invert *ground-truth* w2v-BERT 2.0 layer-8
 features of clean 48 kHz speech; stage 3 finetunes it on features *predicted*

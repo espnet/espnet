@@ -37,8 +37,8 @@ def _wn_conv_transpose1d(*args, **kwargs) -> nn.Module:
     return weight_norm(nn.ConvTranspose1d(*args, **kwargs))
 
 
-# The three blocks below are the decoder of the official Sidon release (DAC
-# geometry). They are kept as their own modules rather than built from
+# The three blocks below are the DAC decoder (the geometry the Sidon release
+# uses). They are kept as their own modules rather than built from
 # espnet2.gan_codec because local/convert_official_sidon_vocoder.py loads the
 # published TorchScript weights into them bit-exactly: gan_codec's Snake1d
 # shares one alpha across channels (the release has one per channel) and its

@@ -47,7 +47,12 @@ SSL_FRAME_RATE = 50
 
 
 class W2VBert2Encoder(nn.Module):
-    """Frozen teacher and LoRA-adapted student, both truncated at ``target_layer``."""
+    """w2v-BERT 2.0 encoder pair for the restoration feature predictor.
+
+    The *teacher* is a frozen copy that extracts the target features from clean
+    speech; the *student* is a LoRA-adapted copy trained to produce the same
+    features from degraded speech. Both are truncated at ``target_layer``.
+    """
 
     def __init__(
         self,
@@ -89,7 +94,8 @@ class W2VBert2Encoder(nn.Module):
         self._ssl_dim = self.student.config.hidden_size
         trainable = sum(p.numel() for p in self.student.parameters() if p.requires_grad)
         logger.info(
-            "Sidon w2v-BERT student trainable parameters: %.2fM", trainable / 1e6
+            "restoration feature predictor (w2v-BERT 2.0 LoRA student): "
+            "trainable parameters %.2fM", trainable / 1e6
         )
 
     @property
@@ -188,7 +194,10 @@ class W2VBert2Encoder(nn.Module):
 
 
 class XeusEncoder(nn.Module):
-    """Frozen XEUS teacher and LoRA-adapted student, truncated at ``target_layer``.
+    """XEUS encoder pair for the restoration feature predictor.
+
+    Same teacher/student roles as ``W2vBert2Encoder`` (frozen target extractor
+    and LoRA-adapted predictor), truncated at ``target_layer``.
 
     XEUS is loaded the ESPnet way, ``SSLTask.build_model_from_file`` on the
     ``model/config.yaml`` + ``model/xeus_checkpoint_new.pth`` pair of the
@@ -246,7 +255,8 @@ class XeusEncoder(nn.Module):
         self._ssl_dim = self.student.encoder.output_size()
         trainable = sum(p.numel() for p in self.student.parameters() if p.requires_grad)
         logger.info(
-            "Sidon XEUS student: %d of %d blocks kept, trainable parameters %.2fM",
+            "restoration feature predictor (XEUS LoRA student): %d of %d blocks kept, "
+            "trainable parameters %.2fM",
             target_layer,
             self._total_blocks,
             trainable / 1e6,
