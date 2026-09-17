@@ -54,20 +54,20 @@ class TSEAudioLoadTransform:
                     _target_: src.transforms.TSEAudioLoadTransform
                     load_enrollment_as_audio: true
 
-        Called directly:
+        Called directly::
 
-        >>> transform = TSEAudioLoadTransform(load_enrollment_as_audio=True)
-        >>> sample = transform(
-        ...     {
-        ...         "speech_mix": "/data/2mix/mix_clean/utt.wav",
-        ...         "speech_ref1": "/data/2mix/s1/utt.wav",
-        ...         "enroll_ref1": "*1272-128104-0000 1272",
-        ...     }
-        ... )
-        >>> type(sample["speech_mix"]).__name__
-        'ndarray'
-        >>> sample["enroll_ref1"]  # placeholder left for TSEPreprocessor
-        '*1272-128104-0000 1272'
+            >>> transform = TSEAudioLoadTransform(load_enrollment_as_audio=True)
+            >>> sample = transform(
+            ...     {
+            ...         "speech_mix": "/data/2mix/mix_clean/utt.wav",
+            ...         "speech_ref1": "/data/2mix/s1/utt.wav",
+            ...         "enroll_ref1": "*1272-128104-0000 1272",
+            ...     }
+            ... )
+            >>> type(sample["speech_mix"]).__name__
+            'ndarray'
+            >>> sample["enroll_ref1"]  # placeholder left for TSEPreprocessor
+            '*1272-128104-0000 1272'
     """
 
     def __init__(
