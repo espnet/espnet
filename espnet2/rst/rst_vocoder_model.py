@@ -1,3 +1,9 @@
+# The generator loss weighting (mel 15, adversarial 2, feature matching 1)
+# and the summed (not averaged) LSGAN / feature-matching aggregation in this
+# file follow the Sidon implementation, https://github.com/sarulab-speech/Sidon
+# (src/sidon/model/losses.py, config/model/sidon_vocoder_pretrain.yaml),
+# Copyright (c) 2025 sarulab-speech, MIT License. The losses themselves are
+# ESPnet's (espnet2.gan_tts); see egs2/libritts_r/rst1/README.md.
 """GAN training of the restoration vocoder (Sidon stages 2 and 3).
 
 Stage 2 pretrains the vocoder to invert *ground-truth* w2v-BERT 2.0 layer-8

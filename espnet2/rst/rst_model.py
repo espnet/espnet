@@ -1,3 +1,9 @@
+# The LoRA adapter configuration and the frozen-teacher / LoRA-student
+# setup on an 8-layer w2v-BERT 2.0 in this file are derived from the Sidon
+# implementation, https://github.com/sarulab-speech/Sidon
+# (src/sidon/model/sidon/lightning_module.py, FeaturePredictorLightningModule),
+# Copyright (c) 2025 sarulab-speech, MIT License. Rewritten for ESPnet;
+# see egs2/libritts_r/rst1/README.md (Acknowledgements).
 """Restoration feature predictor: clean SSL features from degraded speech.
 
 This is stage 1 of Sidon (Nakata et al., arXiv:2509.17052), the reference

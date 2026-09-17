@@ -1,3 +1,8 @@
+# Snake1d, ResidualUnit, DecoderBlock and the decoder layout in this file are
+# adapted from descript-audio-codec, https://github.com/descriptinc/descript-audio-codec
+# (dac/nn/layers.py, dac/model/dac.py), Copyright (c) 2023-present Descript,
+# Inc., MIT License. Sidon uses that decoder as published; it is reproduced
+# here so the recipe does not depend on the dac package.
 """DAC vocoder: DAC decoder from 50 Hz SSL features to 48 kHz waveform.
 
 Sidon (Nakata et al., arXiv:2509.17052) synthesises 48 kHz speech from
@@ -13,8 +18,7 @@ tree, parameter names and initialisation follow ``dac.model.dac.Decoder``
 exactly, so a checkpoint saved by that class loads into this one without
 renaming, and the published Sidon vocoder, distributed only as a frozen
 TorchScript graph, can be recovered into it with
-``load_official_torchscript`` below. Snake, ResidualUnit and DecoderBlock
-are Copyright (c) 2023-present Descript, MIT licence.
+``load_official_torchscript`` below.
 """
 
 import math

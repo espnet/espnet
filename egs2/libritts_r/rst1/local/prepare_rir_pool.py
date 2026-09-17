@@ -1,4 +1,10 @@
 #!/usr/bin/env python3
+# The room simulation recipe (RT60 ~ U(0.1, 2.0) s, room sides ~ U(2, 20) m,
+# pyroomacoustics inverse_sabine + ShoeBox, random source and microphone) is
+# derived from the Sidon implementation, https://github.com/sarulab-speech/Sidon
+# (src/sidon/data/preprocess/functional_degrations.py, convolve_rir_pra),
+# Copyright (c) 2025 sarulab-speech, MIT License. Sidon simulates on the fly;
+# this script pre-generates a pool (see the module docstring).
 """Pre-generate Room Impulse Responses (RIRs) for on-the-fly degradation.
 
 Saves RIRs as 16kHz mono WAV files to out_dir/rir_XXXXXX.wav.

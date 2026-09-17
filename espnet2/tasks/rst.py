@@ -1,3 +1,11 @@
+# The online degradation pipeline in this file (degrade_waveform and the
+# _reverb/_noise/_band_limit/_clip/_codec helpers: the six-step order, the
+# per-step probability, the SNR range, the band-limit rates, the quantile
+# clipping bounds and the MP3 quality set) is derived from the Sidon
+# implementation, https://github.com/sarulab-speech/Sidon
+# (src/sidon/data/preprocess/degrations.py, functional_degrations.py),
+# Copyright (c) 2025 sarulab-speech, MIT License. Rewritten for ESPnet;
+# see egs2/libritts_r/rst1/README.md (Acknowledgements) for the differences.
 """Task definition for the ESPnet restoration feature predictor."""
 
 import logging

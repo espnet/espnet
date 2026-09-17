@@ -114,3 +114,64 @@ The RIR pool is generated ahead of training rather than simulated on the fly.
 On-the-fly `pyroomacoustics` simulation is CPU-bound and starves the GPUs; with
 a pre-generated pool the dataloader keeps 4x A40 at ~98% SM occupancy
 (`iter_time` ~1e-4 s per step).
+
+## Acknowledgements
+
+This recipe reproduces **Sidon** (W. Nakata, Y. Saito, Y. Ueda, H. Saruwatari,
+"Sidon: Fast and Robust Open-Source Multilingual Speech Restoration for
+Large-Scale Dataset Cleansing", arXiv:2509.17052). The code was written for
+ESPnet on ESPnet's own task, trainer and GAN infrastructure and copies no file
+from the Sidon repository, but four parts are derived from that implementation
+(https://github.com/sarulab-speech/Sidon, Copyright (c) 2025 sarulab-speech, MIT License) rather than from the
+paper alone, and each file says so in its header:
+
+- the online degradation pipeline in `espnet2/tasks/rst.py`
+  (`src/sidon/data/preprocess/degrations.py`, `functional_degrations.py`):
+  the six-step order with independent p=0.5 draws, SNR ~ U(-5, 20) dB, the
+  band-limit sampling rates, quantile clipping bounds U(0, 0.1) / U(0.9, 1.0)
+  and MP3 `qscale` 1-10. Differences: packet loss follows the paper (9 %,
+  20-200 ms segments); reverberation uses a pre-generated RIR pool
+  (`local/prepare_rir_pool.py`) instead of on-the-fly simulation;
+- the room-impulse-response simulation recipe in `local/prepare_rir_pool.py`
+  (`functional_degrations.py: convolve_rir_pra`);
+- the LoRA adapter configuration (rank 64, alpha 16, dropout 0.1,
+  `bias="lora_only"`, target `output_dense`) and the frozen-teacher /
+  LoRA-student setup on the first 8 layers of w2v-BERT 2.0 in
+  `espnet2/rst/rst_model.py` (`src/sidon/model/sidon/lightning_module.py`);
+- the generator loss weighting (mel 15, adversarial 2, feature matching 1) and
+  the summed LSGAN / feature-matching aggregation in
+  `espnet2/rst/rst_vocoder_model.py` (`src/sidon/model/losses.py`,
+  `config/model/sidon_vocoder_pretrain.yaml`); the loss modules are ESPnet's.
+
+`espnet2/rst/decoder/dac_vocoder.py` reproduces the decoder of the Descript
+Audio Codec (R. Kumar et al., NeurIPS 2023; `descript-audio-codec`,
+Copyright (c) 2023-present Descript, Inc., MIT License) so that the recipe
+does not depend on the `dac` package and the released Sidon vocoder can be
+loaded into it. `local/convert_official_sidon*.py` only rename keys of the
+released weights (`sarulab-speech/sidon_raw_weight`, `sarulab-speech/sidon-v0.1`,
+MIT).
+
+MIT License text applying to the derived parts above:
+
+```
+Copyright (c) 2025 sarulab-speech
+Copyright (c) 2023-present Descript, Inc.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
