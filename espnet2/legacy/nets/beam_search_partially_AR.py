@@ -16,7 +16,6 @@ from typing import Any, Dict, List, NamedTuple, Tuple, Union
 import torch
 
 from espnet2.legacy.nets.batch_beam_search import BatchBeamSearch, BatchHypothesis
-from espnet2.legacy.nets.e2e_asr_common import end_detect
 
 
 class Hypothesis(NamedTuple):
@@ -233,7 +232,7 @@ class PartiallyARBeamSearch(BatchBeamSearch):
             running_hyps = self.post_process(i, maxlen, best, ended_hyps)
 
             # end detection
-            if end_detect([h.asdict() for eh in ended_hyps for h in eh], i):
+            if self.end_detected([h for eh in ended_hyps for h in eh], i):
                 logging.info(f"end detected at {i}")
                 break
             if len(running_hyps) == 0:

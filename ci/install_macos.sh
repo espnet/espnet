@@ -24,7 +24,7 @@ ${CXX:-g++} -v
 
     # FIXME(kamo): Failed to compile pesq
     make TH_VERSION="${TH_VERSION}" WITH_OMP="${WITH_OMP-ON}" all \
-        warp-transducer.done nkf.done moses.done mwerSegmenter.done \
+        warp-transducer.done nkf.done moses.done \
             pyopenjtalk.done py3mmseg.done s3prl.done transformers.done \
             phonemizer.done fairseq.done k2.done longformer.done \
             whisper.done parallel-wavegan.done muskits.done lora.done
@@ -34,8 +34,6 @@ ${CXX:-g++} -v
 python3 --version
 
 python3 -m pip install https://github.com/kpu/kenlm/archive/master.zip
-# NOTE(kamo): tensorboardx is used for chainer mode only
-python3 -m pip install tensorboardx
 # NOTE(kamo): Create matplotlib.cache to reduce runtime for test phase
 python3 -c "import matplotlib.pyplot"
 # NOTE(wangyou): onnxruntime and onnx2torch are used for testing dnsmos functions
@@ -52,8 +50,10 @@ python3 -m pip uninstall -y typing
 python3 -m pip install "hacking>=2.0.0" "flake8>=3.7.8"
 
 # install espnet
-python3 -m pip install -e ".[test]"
-python3 -m pip install -e ".[doc]"
+# -c constraints.txt for the same reason as ci/install.sh: unconstrained, this
+# resolve can replace the torch install_torch.sh just put in place.
+python3 -m pip install -c constraints.txt -e ".[test]"
+python3 -m pip install -c constraints.txt -e ".[doc]"
 
 # log
 python3 -m pip freeze

@@ -1,12 +1,9 @@
 import pytest
 import torch
-from packaging.version import parse as V
 
 from espnet2.asr.postencoder.hugging_face_transformers_postencoder import (
     HuggingFaceTransformersPostEncoder,
 )
-
-is_torch_2_6_plus = V(torch.__version__) >= V("2.6.0")
 
 
 @pytest.mark.parametrize(
@@ -26,8 +23,6 @@ is_torch_2_6_plus = V(torch.__version__) >= V("2.6.0")
 def test_transformers_forward(
     model_name_or_path, length_adaptor_n_layers, lang_token_id
 ):
-    if not is_torch_2_6_plus:
-        return
     idim = 400
     postencoder = HuggingFaceTransformersPostEncoder(
         idim, model_name_or_path, length_adaptor_n_layers, lang_token_id
@@ -53,8 +48,6 @@ def test_transformers_forward(
 
 @pytest.mark.execution_timeout(30)
 def test_transformers_too_short_utt():
-    if not is_torch_2_6_plus:
-        return
     idim = 400
     postencoder = HuggingFaceTransformersPostEncoder(
         idim, "hf-internal-testing/tiny-random-BertModel", 2
@@ -67,8 +60,6 @@ def test_transformers_too_short_utt():
 
 @pytest.mark.execution_timeout(30)
 def test_reload_pretrained_parameters():
-    if not is_torch_2_6_plus:
-        return
     postencoder = HuggingFaceTransformersPostEncoder(
         400, "hf-internal-testing/tiny-random-BertModel"
     )

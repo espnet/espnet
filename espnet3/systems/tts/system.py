@@ -27,15 +27,19 @@ logger = logging.getLogger(__name__)
 class TTSSystem(BaseSystem):
     """TTS-specific system.
 
-    This system adds:
-      - Removing long-short utterances
-      - Creating token lists
+    This system adds long-short-utterance removal and token-list creation.
 
-    Additional stage log paths:
-        | Stage                 | Path reference                  |
-        |---                   |---                              |
-        | remove_long_short    | training_config.remove_long_short.save_path |
-        | create_token_list    | training_config.create_token_list.save_path |
+    Additional stage-log mappings:
+
+    .. list-table::
+       :header-rows: 1
+
+       * - Stage
+         - Path reference
+       * - ``remove_long_short``
+         - ``training_config.remove_long_short.save_path``
+       * - ``create_token_list``
+         - ``training_config.create_token_list.save_path``
     """
 
     def __init__(
@@ -66,14 +70,24 @@ class TTSSystem(BaseSystem):
         parallel, via RemoveLongShortProvider/Runner) and saves filtered
         manifests for downstream stages.
 
-        Configuration should include (under
-        ``training_config.remove_long_short``):
-            - ``min_wav_duration``: Minimum duration in seconds
-            - ``max_wav_duration``: Maximum duration in seconds
-            - ``save_path``: Directory to save filtered manifests
-            - ``splits``: List of splits to process (train, valid, test)
-            - ``manifest_paths``: Optional dict of split to manifest path
-              (default: data/manifest/{split}.tsv)
+        Under ``training_config.remove_long_short``, configure:
+
+        .. list-table::
+           :header-rows: 1
+
+           * - Field
+             - Description
+           * - ``min_wav_duration``
+             - Minimum duration in seconds.
+           * - ``max_wav_duration``
+             - Maximum duration in seconds.
+           * - ``save_path``
+             - Directory in which to save filtered manifests.
+           * - ``splits``
+             - Splits to process, such as ``train``, ``valid``, and ``test``.
+           * - ``manifest_paths``
+             - Optional mapping from split to manifest path. Defaults to
+               ``data/manifest/{split}.tsv``.
 
         Example:
             .. code-block:: yaml
@@ -219,23 +233,34 @@ class TTSSystem(BaseSystem):
         tokens from the text transcriptions and saves them to a token
         list file.
 
-        Configuration should include (under
-        ``training_config.create_token_list``):
-            - ``save_path``: Directory to save the token list file
-            - ``filename``: Token list file name (e.g. tokens.txt)
-            - ``manifest_path``: Path to the training manifest file
-              (default: data/manifest/train.tsv)
-            - ``token_type``: Tokenization type such as char, word, bpe,
-              or phn (default: char)
-            - ``cleaner``: Optional text cleaner name (e.g. tacotron)
-            - ``g2p``: Optional grapheme-to-phoneme model name
-            - ``add_symbol`` / ``add_nonsplit_symbol``: Special symbols
-              to insert, as "<symbol>:<index>" strings
-            - ``cutoff`` / ``vocabulary_size``: Frequency cutoff and
-              vocabulary size limit (default: 0 = unlimited)
-            - ``vocab_builder`` / ``vocab_builder_conf``: Optional custom
-              vocab builder callable path and its options; when set it
-              replaces the default frequency-count construction
+        Under ``training_config.create_token_list``, configure:
+
+        .. list-table::
+           :header-rows: 1
+
+           * - Field
+             - Description
+           * - ``save_path``
+             - Directory in which to save the token-list file.
+           * - ``filename``
+             - Token-list filename, such as ``tokens.txt``.
+           * - ``manifest_path``
+             - Training-manifest path. Defaults to ``data/manifest/train.tsv``.
+           * - ``token_type``
+             - Tokenization type, such as ``char``, ``word``, ``bpe``, or
+               ``phn``. Defaults to ``char``.
+           * - ``cleaner``
+             - Optional text-cleaner name, such as ``tacotron``.
+           * - ``g2p``
+             - Optional grapheme-to-phoneme model name.
+           * - ``add_symbol`` / ``add_nonsplit_symbol``
+             - Special symbols to insert, expressed as ``"<symbol>:<index>"``.
+           * - ``cutoff`` / ``vocabulary_size``
+             - Frequency cutoff and vocabulary-size limit. Defaults to ``0``
+               (unlimited).
+           * - ``vocab_builder`` / ``vocab_builder_conf``
+             - Optional custom vocabulary-builder callable and its options. When
+               configured, it replaces the default frequency-count construction.
 
         Example:
             .. code-block:: yaml

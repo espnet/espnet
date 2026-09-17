@@ -55,7 +55,7 @@ def test_espnet_model(encoder_arch, decoder_arch, aux_ctc):
 def test_espnet_model_transducer(encoder_arch, decoder_arch, multi_blank_durations):
     # Multi-Blank Transducer only supports GPU
     if len(multi_blank_durations) > 0 and not torch.cuda.is_available():
-        return
+        pytest.skip("multi-blank transducer requires a GPU")
     device = "cuda" if len(multi_blank_durations) > 0 else "cpu"
     device = torch.device(device)
 

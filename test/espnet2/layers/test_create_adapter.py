@@ -1,8 +1,5 @@
-import sys
-
 import pytest
 import torch
-from packaging.version import parse as V
 
 from espnet2.asr.decoder.transformer_decoder import TransformerDecoder
 from espnet2.asr.frontend.s3prl import S3prlFrontend
@@ -12,9 +9,6 @@ from espnet2.layers.houlsby_adapter_layer import HoulsbyTransformerSentenceEncod
 pytest.importorskip("transformers")
 pytest.importorskip("s3prl")
 pytest.importorskip("loralib")
-is_python_3_8_plus = sys.version_info >= (3, 8)
-is_torch_1_8_plus = V(torch.__version__) >= V("1.8.0")
-is_torch_2_9_plus = V(torch.__version__) >= V("2.9.0")
 
 
 def init_S3prl_model():
@@ -41,13 +35,6 @@ def init_decoder_model():
     )
 
 
-@pytest.mark.skipif(
-    is_torch_2_9_plus,
-    reason="S3PRL is using unsupported attribute `set_audio_backend`.",
-)
-@pytest.mark.skipif(
-    not is_torch_1_8_plus or not is_python_3_8_plus, reason="Not supported"
-)
 @pytest.mark.parametrize(
     "model, adapter, adapter_conf",
     [(init_S3prl_model(), "houlsby", {"bottleneck": 64, "target_layers": []})],
