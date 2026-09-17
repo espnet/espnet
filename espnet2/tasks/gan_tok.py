@@ -9,6 +9,18 @@ from typeguard import typechecked
 
 from espnet2.asr.ctc import CTC
 from espnet2.asr.espnet_model import ESPnetASRModel
+from espnet2.tasks.abs_task import AbsTask, optim_classes
+from espnet2.tasks.asr import (
+    ASRTask,
+    decoder_choices,
+    encoder_choices,
+    frontend_choices,
+    normalize_choices,
+    postencoder_choices,
+    preencoder_choices,
+    specaug_choices,
+)
+from espnet2.text.phoneme_tokenizer import g2p_choices
 from espnet2.tok.espnet_model import ESPnetGANSpeechTokenizerModel
 from espnet2.tok.modules.token_embedding import TokenEmbedding
 from espnet2.tok.objective.asr import ASRObjective
@@ -22,18 +34,6 @@ from espnet2.tok.quantizer.differentiable_kmeans import (
     DifferentiableKMeans,
 )
 from espnet2.tok.tokenizer import SpeechTokenizer
-from espnet2.tasks.abs_task import AbsTask, optim_classes
-from espnet2.tasks.asr import (
-    ASRTask,
-    decoder_choices,
-    encoder_choices,
-    frontend_choices,
-    normalize_choices,
-    postencoder_choices,
-    preencoder_choices,
-    specaug_choices,
-)
-from espnet2.text.phoneme_tokenizer import g2p_choices
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.collate_fn import CommonCollateFn
 from espnet2.train.preprocessor import CommonPreprocessor
