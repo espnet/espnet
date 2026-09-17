@@ -112,3 +112,33 @@ For multiple nodes, run the same command on each node with `--num-nodes N`,
 data and a shared output directory. `--ngpu` is the number of GPUs per node.
 All relative paths are resolved from the recipe directory. See `./run.sh --help`
 for options; W&B is disabled by default.
+
+## Inference
+
+Use the [ESPnet vLLM fork](https://github.com/espnet/vllm) for fast inference
+through an OpenAI-compatible API. The general SFT checkpoint
+[`espnet/bagpiper-sft`](https://huggingface.co/espnet/bagpiper-sft) and the TTS
+checkpoint [`espnet/bagpiper-tts-sft`](https://huggingface.co/espnet/bagpiper-tts-sft)
+share the same conversion and serving workflow.
+
+Download the selected checkpoint and follow the
+[conversion guide](https://github.com/espnet/vllm/blob/main/examples/espnet/MODELS.md)
+to prepare a vLLM model directory. The published `.pt` files require conversion
+before serving. The prebuilt [`espnet/vllm:latest`](https://hub.docker.com/r/espnet/vllm)
+Docker image includes the fork and its runtime dependencies for Linux amd64 and
+arm64. Replace `/path/to/converted-checkpoint` with the converted model directory:
+
+```bash
+docker run --rm --gpus all \
+    -v /path/to/converted-checkpoint:/models/bagpiper \
+    -v ~/.cache/huggingface:/root/.cache/huggingface \
+    -p 9811:9811 \
+    --entrypoint bash espnet/vllm:latest \
+    -c 'MODEL_PATH=/models/bagpiper bash /workspace/vllm-fork/examples/espnet/serve_bagpiper.sh'
+```
+
+The server exposes `/v1/chat/completions` on port 9811 with model name `bagpiper`.
+See the [reference clients](https://github.com/espnet/vllm/blob/main/examples/espnet/clients/README.md)
+for task-specific requests and classifier-free guidance, and the
+[Docker guide](https://github.com/espnet/vllm/blob/main/examples/espnet/docker/README.md)
+for GPU requirements and model-cache configuration.
