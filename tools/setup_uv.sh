@@ -34,7 +34,7 @@ echo "Activating .venv..."
 
 
 uv pip install torch==2.11.0 torchaudio==2.11.0
-uv pip install -e ../
+uv pip install -e "../[train]"  # the tools env is for recipes, which train
 
 # create activate_python.sh
 echo "Creating activate_python.sh..."

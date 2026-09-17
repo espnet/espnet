@@ -174,10 +174,18 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
 1. Install ESPnet via `pyproject.toml`
 
     ESPnet adopts the modern Python packaging standard using `pyproject.toml`.
-    You can install ESPnet with a simple pip command `pip install -e .`,
-    but the required dependencies vary depending on the task you want to run.
-    Therefore, we recommend installing the appropriate extra dependencies
-    for your specific task. For example:
+    `pip install -e .` installs what running a pretrained model needs. Training
+    needs the `train` extra (Lightning, TensorBoard, W&B, torch_optimizer,
+    matplotlib), which `make` in `tools/` installs for you; the ESPnet3 layer
+    (`egs3/`) needs `espnet3`. The task extras add the packages a task's models
+    and metrics use. For example:
+
+    * For training with the recipes:
+
+        ```sh
+        $ cd <espnet-root>
+        $ pip install -e ".[train]"
+        ```
 
     * For ASR:
 

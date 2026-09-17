@@ -63,14 +63,16 @@ Full history: [Releases](https://github.com/espnet/espnet/releases).
 
 ```sh
 # Install PyTorch first: https://pytorch.org/get-started/locally/
-pip install espnet
+pip install espnet              # run pretrained models
+pip install "espnet[train]"     # also train them (Lightning, TensorBoard, W&B, ...)
 ```
 
 <details>
 <summary>Other installation options</summary>
 
 ```sh
-pip install "espnet[all]"                       # optional dependencies
+pip install "espnet[all]"                       # every optional dependency, ESPnet3 included
+pip install "espnet[espnet3]"                   # the ESPnet3 layer (egs3/): Hydra, Lightning, Dask
 pip install git+https://github.com/espnet/espnet  # latest master
 ```
 

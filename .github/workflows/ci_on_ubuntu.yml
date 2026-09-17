@@ -825,12 +825,16 @@ jobs:
         ./tools/installers/install_torch.sh false ${TH_VERSION} CPU
         python3 -m build --wheel
         echo "::endgroup::"
-        python3 -m pip install "$(echo dist/espnet-*.whl)"[all]
+        # No extras: this is what `pip install espnet` gives a user who only
+        # wants to run a model. This step used to install [all] here as well,
+        # which made it the same check as Try2 and let the inference path
+        # grow training-only imports unnoticed.
+        python3 -m pip install "$(echo dist/espnet-*.whl)"
         # log
         python3 -m pip freeze
-    - name: Import all modules (Try1)
+    - name: Import the inference entry points with the least requirement (Try1)
       run: |
-        python3 ./ci/test_import_all.py
+        python3 ./ci/check_inference_imports.py
     - name: Install espnet with the full requirement
       env:
         TH_VERSION: ${{ matrix.pytorch-version }}
