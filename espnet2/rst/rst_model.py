@@ -95,7 +95,8 @@ class W2VBert2Encoder(nn.Module):
         trainable = sum(p.numel() for p in self.student.parameters() if p.requires_grad)
         logger.info(
             "restoration feature predictor (w2v-BERT 2.0 LoRA student): "
-            "trainable parameters %.2fM", trainable / 1e6
+            "trainable parameters %.2fM",
+            trainable / 1e6,
         )
 
     @property
