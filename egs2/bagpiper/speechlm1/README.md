@@ -132,12 +132,13 @@ arm64. Replace `/path/to/converted-checkpoint` with the converted model director
 docker run --rm --gpus all \
     -v /path/to/converted-checkpoint:/models/bagpiper \
     -v ~/.cache/huggingface:/root/.cache/huggingface \
-    -p 9811:9811 \
+    -p 127.0.0.1:9811:9811 \
     --entrypoint bash espnet/vllm:latest \
     -c 'MODEL_PATH=/models/bagpiper bash /workspace/vllm-fork/examples/espnet/serve_bagpiper.sh'
 ```
 
-The server exposes `/v1/chat/completions` on port 9811 with model name `bagpiper`.
+The server exposes `http://127.0.0.1:9811/v1/chat/completions` on the Docker host
+with model name `bagpiper`.
 See the [reference clients](https://github.com/espnet/vllm/blob/main/examples/espnet/clients/README.md)
 for task-specific requests and classifier-free guidance, and the
 [Docker guide](https://github.com/espnet/vllm/blob/main/examples/espnet/docker/README.md)
