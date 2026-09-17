@@ -48,6 +48,12 @@ dependencies = [
     "numpy>=2.0.0",
     "PyYAML>=5.1.2",
     "soundfile>=0.10.2",
+    # Kaldi ark/scp I/O. Replaced kaldiio, whose license restricts
+    # redistribution; see https://github.com/espnet/espnet/issues/6529.
+    # 0.1.2 is the floor, not a preference: earlier versions refuse the WAV
+    # header sox leaves behind when it pipes to stdout and so cannot read a
+    # speed-perturbed wav.scp entry at all.
+    "omniio>=0.1.2",
     # Imported directly by espnet2/asr/encoder/{hubert,avhubert,wav2vec2}_encoder.py.
     "filelock",
     "sentencepiece==0.2.1",
@@ -242,11 +248,6 @@ sds = [
   "transformers",
 ]
 
-# Kaldi ark/scp I/O (kaldiio). Kept out of the default dependencies because
-# the kaldiio license restricts redistribution, which is a problem for software
-# that is publicly distributed; see
-# https://github.com/espnet/espnet/issues/6529.
-# Install this extra only if you need to read/write Kaldi-format features.
 # Model Context Protocol server (espnet2/bin/mcp_server.py): the `espnet-mcp`
 # command through which Claude Code, Cursor and other agents call ESPnet as
 # tools. It pulls the three task extras because its default tools cover ASR,
@@ -256,10 +257,6 @@ mcp = [
   "espnet[asr]",
   "espnet[tts]",
   "espnet[enh]",
-]
-
-kaldiio = [
-  "kaldiio>=2.18.0",
 ]
 
 dev = [
@@ -285,7 +282,6 @@ test = [
   "black",
   "isort",
   "h5py>=2.10.0",
-  "kaldiio>=2.18.0",
   "gradio",
   "playwright",
   # test_mcp_server.py imports mcp outright; macOS CI installs only .[test].
@@ -316,7 +312,6 @@ all = [
   "espnet[spk]",
   "espnet[speechlm]",
   "espnet[egs2]",
-  "espnet[kaldiio]",
   "espnet[mcp]",
   "fairscale",
   "transformers",

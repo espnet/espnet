@@ -10,11 +10,7 @@ from pathlib import Path
 from typing import Iterator, Tuple
 
 import pyarrow as pa
-
-try:
-    from omniio.text.read import text_read_local
-except ImportError:
-    text_read_local = None
+from omniio.text.read import text_read_local
 
 try:
     import duckdb
