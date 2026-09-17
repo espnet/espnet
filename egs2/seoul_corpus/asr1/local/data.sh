@@ -19,7 +19,9 @@ stop_stage=100
 #   utt.prono.  pronounced    (as actually spoken,  e.g. 제 이르믄)
 tier=utt.ortho.
 min_duration=0.2
-max_duration=20.0
+# Interviewer-to-interviewer spans longer than this are cut, preferring a <SIL>
+# boundary; nothing is discarded for being long.
+max_duration=30.0
 # Where the corpus is unpacked to when only the distributed archives are found.
 unpack_dir=downloads
 
@@ -147,10 +149,8 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         # not the corpus's any more and the score stops being comparable.
         if [ "${part}" = test ]; then
             _min_duration=0
-            _max_duration=100000
         else
             _min_duration="${min_duration}"
-            _max_duration="${max_duration}"
         fi
 
         python3 local/prepare_data.py \
@@ -160,12 +160,24 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
             --speakers "${speakers}" \
             --tier "${tier}" \
             --min_duration "${_min_duration}" \
-            --max_duration "${_max_duration}"
+            --max_duration "${max_duration}"
 
         utils/utt2spk_to_spk2utt.pl "data/${part}/utt2spk" > "data/${part}/spk2utt"
         utils/fix_data_dir.sh "data/${part}"
         utils/validate_data_dir.sh --no-feats "data/${part}"
     done
+
+    # The special tags, one per line, straight from prepare_data.py so the list
+    # lives in exactly one place.  run.sh hands this file to both --bpe_nlsyms,
+    # which keeps each tag a single BPE token, and --nlsyms_txt, which makes
+    # asr.sh drop them from the reference and the hypothesis before scoring CER
+    # and WER.  Without that the tag names are scored as text: they are 13.7% of
+    # the dev tokens but 40.4% of its characters (<VOCNOISE> alone is 24.2%),
+    # which would measure tag spelling rather than transcription and make the
+    # numbers incomparable to a run without tags.  TER still keeps them, so tag
+    # accuracy is not lost.
+    python3 local/prepare_data.py --print_special_tags > data/nlsyms.txt
+    log "  special tags for scoring: $(paste -sd' ' data/nlsyms.txt)"
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"
