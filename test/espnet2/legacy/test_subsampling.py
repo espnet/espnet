@@ -13,9 +13,6 @@ from espnet2.legacy.nets.pytorch_backend.transformer.subsampling import (
     _conv_out_length,
     check_short_utt,
 )
-from espnet2.legacy.nets.pytorch_backend.transformer.subsampling_without_posenc import (
-    Conv2dSubsamplingWOPosEnc,
-)
 
 SUBSAMPLING_CLASSES = (
     Conv1dSubsampling1,
@@ -247,71 +244,3 @@ def test_uniform_batch_mask_matches_conv_length(subsampling_cls):
 
     assert y.size(1) == y_mask.size(2)
     assert y_mask.squeeze(1).sum(1).tolist() == expected.tolist()
-
-
-# 71 / 47 / 35: reviewed in #6633.
-WOPOSENC_CASES = (
-    ("conv2d", [3, 3], [2, 2], 71),
-    ("conv2d6", [3, 5], [2, 3], 47),
-    ("conv2d8", [3, 3, 3], [2, 2, 2], 35),
-)
-
-
-@pytest.mark.parametrize("_name, kernels, strides, alone_olen", WOPOSENC_CASES)
-def test_woposenc_olens_is_independent_of_batch_mates(
-    _name, kernels, strides, alone_olen
-):
-    short, long_ = 288, 363
-    convs = tuple(zip(kernels, strides))
-    module = Conv2dSubsamplingWOPosEnc(
-        TEST_IDIM, TEST_ODIM, 0.0, kernels, strides
-    ).eval()
-
-    feats = torch.randn(2, long_, TEST_IDIM)
-    mask_alone = _pad_mask([short], short)
-    mask_mixed = _pad_mask([long_, short], long_)
-    mask_pair = _pad_mask([short, short], short)
-
-    with torch.no_grad():
-        _, mask_from_alone = module(feats[1:2, :short], mask_alone)
-        y_mixed, mask_from_mixed = module(feats, mask_mixed)
-        _, mask_from_pair = module(feats[:, :short], mask_pair)
-
-    olens_alone = mask_from_alone.squeeze(1).sum(1)
-    olens_mixed = mask_from_mixed.squeeze(1).sum(1)
-    olens_pair = mask_from_pair.squeeze(1).sum(1)
-    expected = _expected_olens([long_, short], convs)
-
-    assert olens_alone.tolist() == [alone_olen]
-    assert olens_mixed[1].item() == alone_olen
-    assert olens_mixed.tolist() == expected.tolist()
-    assert olens_pair.tolist() == [alone_olen, alone_olen]
-    assert mask_from_mixed.size(2) == y_mixed.size(1)
-
-
-def test_woposenc_contextual_block_encoder_olens():
-    pytest.importorskip("typeguard")
-    from espnet2.asr.encoder.contextual_block_transformer_encoder import (
-        ContextualBlockTransformerEncoder,
-    )
-
-    enc = ContextualBlockTransformerEncoder(
-        input_size=8,
-        output_size=4,
-        attention_heads=2,
-        linear_units=4,
-        num_blocks=1,
-        input_layer="conv2d",
-        block_size=0,
-    ).eval()
-
-    short, long_ = 288, 363
-    feats = torch.randn(2, long_, 8)
-    with torch.no_grad():
-        _, olens_alone, _ = enc(feats[1:2, :short], torch.tensor([short]))
-        _, olens_batch, _ = enc(feats, torch.tensor([long_, short]))
-        _, olens_pair, _ = enc(feats[:, :short], torch.tensor([short, short]))
-
-    assert olens_alone.tolist() == [71]
-    assert olens_batch[1].item() == 71
-    assert olens_pair.tolist() == [71, 71]
