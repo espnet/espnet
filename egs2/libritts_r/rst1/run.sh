@@ -20,10 +20,10 @@ voc_pretrain_config=conf/tuning/train_sidon_vocoder_pretrain.yaml
 voc_finetune_config=conf/tuning/train_sidon_vocoder_finetune.yaml
 voc_pretrain_exp=exp/sidon_vocoder_pretrain
 voc_finetune_exp=exp/sidon_vocoder_finetune
-# Warm start for stage 8: default the stage-7 best. To start from the
-# published vocoder instead, run local/convert_official_sidon_vocoder.py and
-# pass --vocoder_init exp/official_sidon_vocoder/vocoder.pth
-# --discriminator_init "" (the release has no discriminator).
+# Stage 8 initialises the generator and the discriminator from the stage-7
+# best checkpoint (this recipe's own run); --vocoder_init/--discriminator_init
+# only point it at a different stage-7 run. Nothing is initialised from the
+# published Sidon weights.
 vocoder_init=
 discriminator_init=
 # Vocoder used at inference: an ESPnet-trained one (default the stage-8

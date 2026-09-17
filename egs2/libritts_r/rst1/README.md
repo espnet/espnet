@@ -91,17 +91,14 @@ config's `vocoder_type` selects one and `vocoder_conf` configures it.
 | `dac` (default) | DAC decoder as in the official release, 52.4M | GAN, `rst_vocoder_train` | `train_sidon_vocoder_pretrain.yaml` |
 | `hifigan` | ESPnet `HiFiGANGenerator`, 512 channels, 17M | GAN, `rst_vocoder_train` | `train_sidon_vocoder_pretrain_hifigan.yaml` |
 
-The official vocoder is published only as a frozen TorchScript graph.
-`local/convert_official_sidon_vocoder.py` recovers its weights into the
-recipe's module (verified bit-exact against the graph), which lets stage 8
-start from the published vocoder instead of a stage-7 run:
-
-```bash
-python local/convert_official_sidon_vocoder.py \
-    --torchscript /path/to/decoder_cuda.pt --out_dir exp/official_sidon_vocoder
-./run.sh --stage 8 --stop_stage 8 \
-    --vocoder_init exp/official_sidon_vocoder/vocoder.pth --discriminator_init ""
-```
+All models in this recipe are trained from scratch (the SSL backbone is the
+public w2v-BERT 2.0; the LoRA adapter, the vocoder and its discriminator start
+from random initialisation, and stage 8 starts from the recipe's own stage-7
+checkpoint). The published Sidon weights are never used for training. They can
+be run through the same inference and scoring path for comparison:
+`local/convert_official_sidon.py` and `local/convert_official_sidon_vocoder.py`
+convert the released adapter and the released TorchScript vocoder into
+checkpoints that stage 9 loads like a trained one.
 
 ## Configs
 

@@ -2,20 +2,16 @@
 """Convert the published Sidon vocoder into an ESPnet restoration checkpoint.
 
 The release (``sarulab-speech/sidon-v0.1``, MIT) ships the vocoder only as a
-frozen TorchScript graph, ``decoder_{cpu,cuda}.pt``. That is enough to run
-it but not to train from it: a frozen graph has no parameters. This script
-recovers the weights into the recipe's ``DACVocoder`` -- the same DAC
-decoder, so the recovery is exact and is verified by running both on the
-same input -- and writes them in the layout of a stage-7/8 checkpoint.
+frozen TorchScript graph, ``decoder_{cpu,cuda}.pt``. This script recovers
+the weights into the recipe's ``DACVocoder`` -- the same DAC decoder, so the
+recovery is exact and is verified by running both on the same input -- and
+writes them in the layout of a stage-7/8 checkpoint.
 
-Two uses:
-
-  * warm-start stage 8 (finetune on predicted features) from the published
-    vocoder instead of a stage-7 pretrain:
-        --init_param exp/official_sidon_vocoder/vocoder.pth:vocoder:vocoder
-  * run the official vocoder through the same inference path as a trained
-    one (--vocoder_train_config / --vocoder_model_file), as a check that
-    the path reproduces --sidon_vocoder exactly.
+Evaluation only: the converted checkpoint runs the official vocoder through
+the same inference path as a trained one (--vocoder_train_config /
+--vocoder_model_file), so the released model can be scored by the same
+harness and the path can be checked against --sidon_vocoder. The recipe
+never trains from these weights.
 
 Usage
 -----

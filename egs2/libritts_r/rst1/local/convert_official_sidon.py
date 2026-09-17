@@ -16,12 +16,10 @@ projections. So the conversion is a rename, not a reimplementation, and the
 fact that it round-trips is itself the strongest available check that this
 recipe reproduces the published architecture rather than merely resembling it.
 
-Two uses:
-
-  * run official Sidon through the ESPnet inference path, so it can be scored
-    by the same harness as everything else instead of a separate script
-  * warm-start a derived model from the published predictor rather than from
-    scratch
+Evaluation only: the converted checkpoint runs official Sidon through the
+ESPnet inference path, so it can be scored by the same harness as everything
+else instead of a separate script. The recipe never trains from these
+weights; the feature predictor is trained from scratch (stage 5).
 
 Usage
 -----

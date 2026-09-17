@@ -2,7 +2,7 @@
 #
 # The frozen stage-1 predictor (LoRA student, --fp_model_path) encodes
 # degraded 16 kHz speech produced online from the 48 kHz reference; the
-# vocoder, warm-started from stage 2 via --init_param, learns to synthesise
+# vocoder, initialised from the stage-7 checkpoint via --init_param, learns to synthesise
 # the clean 48 kHz reference from those imperfect features. Same losses and
 # geometry as stage 2. Data must be 48 kHz (data/train_voc, data/dev_voc).
 ssl_encoder: w2v_bert2
