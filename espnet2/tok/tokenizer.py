@@ -16,6 +16,9 @@ class SpeechTokenizer(torch.nn.Module):
     The tokenizer consists of a speech frontend followed by a quantizer.  Its
     training output will preserve gradients through hard token assignments,
     while its inference interface will expose integer token sequences.
+    ``AbsGANCodec`` encodes waveforms into codes and decodes codes back into
+    waveforms. This tokenizer only maps speech to units for downstream
+    objectives, so it does not implement the codec's waveform decoder.
     """
 
     @typechecked
