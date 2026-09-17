@@ -170,25 +170,26 @@ class LibriMixTSEDataset(TorchDataset):
         self.num_spk = int(num_spk_str.split("mix")[0])
         self.partition = f"{dset}/{mix_type_us}"
 
-        # Build if not already done, using the split-specific configuration rather than
-        # the default 2-speaker / 16k / max settings.
-        builder = LibriMixTSEBuilder()
-        if not builder.is_built(recipe_dir=recipe_root):
-            builder.build(
-                recipe_dir=recipe_root,
-                num_spk=self.num_spk,
-                sample_rate=fs,
-                min_or_max=mode,
-            )
-
-        # Resolve the LibriMix dataset root only after the build decision is made.
-        if data_dir is not None:
-            self.librimix_root = resolve_librimix_root(
-                Path(data_dir).resolve(), self.split
-            )
-        else:
+        # Only run the recipe-local build check when the dataset is expected to be
+        # resolved from the recipe root. When an explicit data_dir points at a valid
+        # LibriMix dataset, we should trust that location and avoid requiring the
+        # recipe-local LibriSpeech source to be present.
+        if data_dir is None:
+            builder = LibriMixTSEBuilder()
+            if not builder.is_built(recipe_dir=recipe_root):
+                builder.build(
+                    recipe_dir=recipe_root,
+                    num_spk=self.num_spk,
+                    sample_rate=fs,
+                    min_or_max=mode,
+                )
             self.librimix_root = resolve_librimix_root(
                 Path(recipe_root) / _CONFIG["builder"]["dataset_path"], self.split
+            )
+        else:
+            # Resolve the LibriMix dataset root after the build decision is made.
+            self.librimix_root = resolve_librimix_root(
+                Path(data_dir).resolve(), self.split
             )
 
         # Directory containing the raw WAV files
