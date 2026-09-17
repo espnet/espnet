@@ -27,7 +27,7 @@ class STOI(BaseMetric):
         noisy speech.
         IEEE Transactions on Audio, Speech, and Language Processing,
         vol. 19, no. 7, pp. 2125-2136, 2011.
-    """
+    """  # noqa: H405, D205, D400
 
     def __init__(
         self,

@@ -27,7 +27,7 @@ class SISNR(BaseMetric):
         [2] Jonathan Le Roux, Scott Wisdom, Hakan Erdogan, John R Hershey.
             SDR--half-baked or well done?.
             in Proc. IEEE ICASSP, 2019, pp. 626-630.
-    """
+    """  # noqa: H405, D205, D400
 
     def __init__(
         self,

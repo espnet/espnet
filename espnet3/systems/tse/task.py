@@ -51,6 +51,8 @@ MAX_REFERENCE_NUM = 100
 
 
 class TSETask(AbsTask):
+    """Target Speaker Extraction (TSE) Task."""
+
     # If you need more than one optimizers, change this value
     num_optimizers: int = 1
 
@@ -70,6 +72,7 @@ class TSETask(AbsTask):
 
     @classmethod
     def add_task_arguments(cls, parser: argparse.ArgumentParser):
+        """Add task-specific arguments to the parser."""
         group = parser.add_argument_group(description="Task related")
 
         # NOTE(kamo): add_arguments(..., required=True) can't be used
@@ -122,7 +125,7 @@ class TSETask(AbsTask):
         [Collection[Tuple[str, Dict[str, np.ndarray]]]],
         Tuple[List[str], Dict[str, torch.Tensor]],
     ]:
-
+        """Build collate function."""
         return CommonCollateFn(float_pad_value=0.0, int_pad_value=0)
 
     @classmethod
@@ -130,6 +133,7 @@ class TSETask(AbsTask):
     def build_preprocess_fn(
         cls, args: argparse.Namespace, train: bool
     ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
+        """Build preprocess function."""
         kwargs = dict(
             train_spk2enroll=args.train_spk2enroll,
             enroll_segment=getattr(args, "enroll_segment", None),
@@ -144,6 +148,7 @@ class TSETask(AbsTask):
     def required_data_names(
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
+        """Define required data names for the task."""
         if not inference:
             retval = ("speech_mix", "enroll_ref1", "speech_ref1")
         else:
@@ -155,6 +160,7 @@ class TSETask(AbsTask):
     def optional_data_names(
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
+        """Define optional data names for the task."""
         retval = ["enroll_ref{}".format(n) for n in range(2, MAX_REFERENCE_NUM + 1)]
         if "speech_ref1" in retval:
             retval += [
@@ -171,7 +177,7 @@ class TSETask(AbsTask):
     @classmethod
     @typechecked
     def build_model(cls, args: argparse.Namespace) -> ESPnetExtractionModel:
-
+        """Build model instance."""
         encoder = encoder_choices.get_class(args.encoder)(**args.encoder_conf)
         extractor = extractor_choices.get_class(args.extractor)(
             encoder.output_dim, **args.extractor_conf

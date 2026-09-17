@@ -27,7 +27,7 @@ class SDR(BaseMetric):
         Performance measurement in blind audio source separation.
         IEEE Transactions on Audio, Speech, and Language Processing,
         vol. 14, no. 4, pp. 1462-1469, 2006.
-    """
+    """  # noqa: H405, D205, D400
 
     def __init__(
         self,

@@ -28,7 +28,7 @@ class PESQ(BaseMetric):
         Perceptual evaluation of speech quality (PESQ)---a new method for
         speech quality assessment of telephone networks and codecs.
         in Proc. IEEE ICASSP, 2001, pp. 749-752.
-    """
+    """  # noqa: H405, D205, D400
 
     def __init__(
         self,
