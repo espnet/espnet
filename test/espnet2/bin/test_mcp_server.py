@@ -5,11 +5,9 @@ import numpy as np
 import pytest
 import soundfile
 import torch
+from mcp.server.mcpserver.exceptions import ToolError
 
-pytest.importorskip("mcp")
-from mcp.server.mcpserver.exceptions import ToolError  # noqa: E402
-
-from espnet2.bin import mcp_server  # noqa: E402
+from espnet2.bin import mcp_server
 
 
 def call(server, name, **arguments):
@@ -106,6 +104,22 @@ def test_synthesize_writes_a_wav_at_the_model_rate(monkeypatch, tmp_path):
     assert written == str(out.resolve())
     data, fs = soundfile.read(str(out))
     assert fs == 22050 and len(data) == 2205
+
+
+def test_synthesize_refuses_a_model_without_a_rate(monkeypatch, tmp_path):
+    class TTS:
+        fs = None
+
+        def __call__(self, text):
+            raise AssertionError("must not synthesize without a rate to write at")
+
+    monkeypatch.setattr(mcp_server, "_tts", TTS)
+    with pytest.raises(ToolError, match="sampling rate"):
+        asyncio.run(
+            mcp_server.build_server().call_tool(
+                "synthesize", {"text": "x", "output_path": str(tmp_path / "o.wav")}
+            )
+        )
 
 
 def test_enhance_resamples_and_writes(monkeypatch, wav, tmp_path):

@@ -47,6 +47,8 @@ ENH_MODEL = os.environ.get(
     "ESPNET_MCP_ENH_MODEL", "espnet/Wangyou_Zhang_chime4_enh_train_enh_conv_tasnet_raw"
 )
 ENH_FS = int(os.environ.get("ESPNET_MCP_ENH_FS", "16000"))
+if ENH_FS <= 0:
+    raise ValueError(f"ESPNET_MCP_ENH_FS must be a positive integer, not {ENH_FS}")
 DEVICE = os.environ.get("ESPNET_MCP_DEVICE", "cpu")
 
 # Over stdio the protocol owns stdout, so anything a model prints while
@@ -146,6 +148,13 @@ def synthesize(text: str, output_path: str) -> str:
         the model (about 400 MB).
     """
     model = _tts()
+    if model.fs is None:
+        # Text2Speech.fs is None when neither the model nor its vocoder
+        # states a rate, and soundfile needs one to write the file.
+        raise ToolError(
+            f"{TTS_MODEL} does not state a sampling rate, so its output cannot "
+            "be written; choose another model with ESPNET_MCP_TTS_MODEL."
+        )
     with _quiet_stdout():
         wav = model(text)["wav"]
     out = Path(output_path).expanduser()

@@ -262,6 +262,8 @@ test = [
   "kaldiio>=2.18.0",
   "gradio",
   "playwright",
+  # test_mcp_server.py imports mcp outright; macOS CI installs only .[test].
+  "mcp>=2.0",
 ]
 
 doc = [
