@@ -699,6 +699,13 @@ def check_declared_support_matches_variants() -> list:
 
 INSTALL_K2 = Path("tools/installers/install_k2.sh")
 PREBUILT_ACTION = Path(".github/actions/use-prebuilt-environment/action.yml")
+# Not a substring test for the name. A comment mentioning k2_missing_for, or
+# the action keeping its own literal copy under that same name, satisfies one
+# of those while the import still fires on a torch version with no wheel -
+# both were checked against the pre-#6681 action and both passed. What has to
+# be there is a read of the installer, and a use of what was read.
+READS_GAP_LIST = re.compile(r"k2_missing_for=\$\([^\n]*install_k2\.sh")
+USES_GAP_LIST = re.compile(r"\$\{?k2_missing_for\}?")
 
 
 def check_k2_gap_is_a_built_variant() -> list:
@@ -744,16 +751,31 @@ def check_k2_gap_is_a_built_variant() -> list:
     if match.group(1).split():
         if not PREBUILT_ACTION.exists():
             problems.append(f"{PREBUILT_ACTION}: missing")
-        elif "k2_missing_for" not in PREBUILT_ACTION.read_text():
-            problems.append(
-                f"{PREBUILT_ACTION}: verifies the environment without reading "
-                f"{INSTALL_K2}'s k2_missing_for, which currently skips k2 for "
-                f"torch {' '.join(match.group(1).split())}.\n"
+        else:
+            text = PREBUILT_ACTION.read_text()
+            gap = " ".join(match.group(1).split())
+            why = (
                 "  Asserting `import k2` on a torch version k2 publishes no "
                 "wheel for fails every job on that part of the grid, and only "
                 "once the prebuilt images exist - before that the jobs build "
                 "their own environment and never run this action."
             )
+            if READS_GAP_LIST.search(text) is None:
+                problems.append(
+                    f"{PREBUILT_ACTION}: does not read {INSTALL_K2}'s "
+                    f"k2_missing_for, which currently skips k2 for torch "
+                    f"{gap}.\n"
+                    "  Expected an assignment reading the installer, as in "
+                    "`k2_missing_for=$(sed ... tools/installers/install_k2.sh)`"
+                    ". Naming it in a comment, or keeping a second copy of the "
+                    f"list here, is what drifts.\n{why}"
+                )
+            elif USES_GAP_LIST.search(text) is None:
+                problems.append(
+                    f"{PREBUILT_ACTION}: reads {INSTALL_K2}'s k2_missing_for "
+                    f"and never uses it, so k2 is still asserted on torch "
+                    f"{gap}.\n{why}"
+                )
     return problems
 
 
