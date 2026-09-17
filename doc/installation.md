@@ -180,11 +180,11 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
     (`egs3/`) needs `espnet3`. The task extras add the packages a task's models
     and metrics use. For example:
 
-    * For training with the recipes:
+    * For training with the recipes (extras combine, so add the task's):
 
         ```sh
         $ cd <espnet-root>
-        $ pip install -e ".[train]"
+        $ pip install -e ".[asr,train]"
         ```
 
     * For ASR:

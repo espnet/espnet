@@ -56,7 +56,7 @@ dependencies = [
     "einops",
     # enh_inference and enh_tse_inference import it at module level; until now
     # it arrived only through huggingface_hub.
-    "tqdm",
+    "tqdm>=4.64",
     "espnet_model_zoo",
     # The supported set is exactly {2.11.0, 2.13.0, 2.14.0}, and three places
     # have to agree on it: ci/image_variants.json, which is what CI builds
@@ -120,6 +120,9 @@ train = [
   "matplotlib",
   "nltk>=3.4.5",
   "wandb",
+  # CER/WER during validation (legacy/nets/e2e_asr_common.py, the transducer
+  # error calculator, uasr/espnet_model.py); also in [asr].
+  "editdistance",
 ]
 
 # The espnet3 layer (espnet3/, egs3/): Hydra configs, Lightning trainer,

@@ -71,7 +71,7 @@ pip install "espnet[train]"     # also train them (Lightning, TensorBoard, W&B, 
 <summary>Other installation options</summary>
 
 ```sh
-pip install "espnet[all]"                       # every optional dependency, ESPnet3 included
+pip install "espnet[all]"                       # training, ESPnet3 and the task extras (not dev/test/doc)
 pip install "espnet[espnet3]"                   # the ESPnet3 layer (egs3/): Hydra, Lightning, Dask
 pip install git+https://github.com/espnet/espnet  # latest master
 ```
