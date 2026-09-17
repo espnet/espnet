@@ -17,6 +17,12 @@ class AbsSpeechTokenizerQuantizer(torch.nn.Module, ABC):
 
     @property
     @abstractmethod
+    def feature_dim(self) -> int:
+        """Return the expected dimension of input features."""
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
     def num_clusters(self) -> int:
         """Return the number of discrete clusters."""
         raise NotImplementedError

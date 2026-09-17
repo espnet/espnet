@@ -36,10 +36,10 @@ class SpeechTokenizer(torch.nn.Module):
         super().__init__()
         if freeze_epochs < 0:
             raise ValueError(f"freeze_epochs must be non-negative: {freeze_epochs}")
-        if frontend.output_size() != getattr(quantizer, "feature_dim", None):
+        if frontend.output_size() != quantizer.feature_dim:
             raise ValueError(
                 f"Frontend output size {frontend.output_size()} does not match "
-                f"quantizer feature dimension {getattr(quantizer, 'feature_dim', None)}"
+                f"quantizer feature dimension {quantizer.feature_dim}"
             )
         self.frontend = frontend
         self.quantizer = quantizer

@@ -17,12 +17,14 @@ class DummyFrontend(AbsFrontend):
 
 
 class DummyQuantizer(AbsSpeechTokenizerQuantizer):
-    feature_dim = 2
-
     def __init__(self):
         super().__init__()
         self.forward_count = 0
         self.encode_count = 0
+
+    @property
+    def feature_dim(self):
+        return 2
 
     @property
     def num_clusters(self):
