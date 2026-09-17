@@ -4,7 +4,7 @@
 The predictor is the stage-5 model (w2v-BERT 2.0 or XEUS student). The vocoder
 is any one trained by recipe stages 7-8 (DAC or HiFi-GAN; --vocoder_train_config,
 --vocoder_model_file) or a TorchScript decoder such as the released Sidon one
-(--sidon_vocoder), which is used for comparison only.
+(--external_vocoder), which is used for comparison only.
 """
 
 import argparse
@@ -109,15 +109,17 @@ def get_parser():
     parser.add_argument("--train_config", required=True)
     parser.add_argument("--model_file", required=True)
     parser.add_argument(
-        "--sidon_vocoder",
+        "--external_vocoder",
         default=None,
-        help="Official TorchScript decoder_cpu.pt or decoder_cuda.pt",
+        help="externally released vocoder as a TorchScript graph, e.g. the Sidon "
+        "v0.1 decoder_cpu.pt / decoder_cuda.pt; for comparison with recipe-trained "
+        "vocoders",
     )
     parser.add_argument(
         "--vocoder_train_config",
         default=None,
         help="config.yaml of a vocoder trained by stages 7-8 "
-        "(alternative to --sidon_vocoder)",
+        "(alternative to --external_vocoder)",
     )
     parser.add_argument(
         "--vocoder_model_file",
@@ -135,16 +137,16 @@ def get_parser():
 def _load_vocoder(args, input_dim, device):
     """Either vocoder as a callable (B, D, T) -> (B, 1, T * 960)."""
     espnet_args = (args.vocoder_train_config, args.vocoder_model_file)
-    if args.sidon_vocoder and any(espnet_args):
+    if args.external_vocoder and any(espnet_args):
         raise ValueError(
-            "give either --sidon_vocoder or --vocoder_train_config with "
+            "give either --external_vocoder or --vocoder_train_config with "
             "--vocoder_model_file, not both"
         )
-    if args.sidon_vocoder:
-        return torch.jit.load(args.sidon_vocoder, map_location=device).eval()
+    if args.external_vocoder:
+        return torch.jit.load(args.external_vocoder, map_location=device).eval()
     if not all(espnet_args):
         raise ValueError(
-            "a vocoder is required: --sidon_vocoder (official TorchScript) or "
+            "a vocoder is required: --external_vocoder (released TorchScript) or "
             "--vocoder_train_config and --vocoder_model_file (stages 7-8)"
         )
     import yaml

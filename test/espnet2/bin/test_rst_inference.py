@@ -75,7 +75,7 @@ def test_main_writes_manifest_and_resumes(monkeypatch, tmp_path):
             "x",
             "--model_file",
             "x",
-            "--sidon_vocoder",
+            "--external_vocoder",
             "x",
             "--wav_scp",
             str(scp),
@@ -97,7 +97,7 @@ def test_vocoder_args_are_exclusive(tmp_path):
             "x",
             "--model_file",
             "x",
-            "--sidon_vocoder",
+            "--external_vocoder",
             "x",
             "--vocoder_train_config",
             "y",
@@ -111,7 +111,7 @@ def test_vocoder_args_are_exclusive(tmp_path):
     )
     with pytest.raises(ValueError):
         rst_inference._load_vocoder(args, 8, "cpu")
-    args.sidon_vocoder = None
+    args.external_vocoder = None
     args.vocoder_train_config = None
     with pytest.raises(ValueError):
         rst_inference._load_vocoder(args, 8, "cpu")

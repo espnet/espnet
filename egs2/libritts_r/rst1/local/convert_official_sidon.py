@@ -93,7 +93,7 @@ def main():
     print(f"wrote {args.out}  ({total / 1e6:.2f}M parameters)")
     print(
         "Load with rst_inference.py --model_file <this> and the official "
-        "decoder via --sidon_vocoder. Note the recipe's train.yaml must keep "
+        "decoder via --external_vocoder. Note the recipe's train.yaml must keep "
         "lora_rank=64 for the shapes to line up."
     )
 

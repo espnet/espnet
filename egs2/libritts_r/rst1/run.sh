@@ -27,10 +27,11 @@ voc_finetune_exp=exp/rst_vocoder_dac_finetune
 vocoder_init=
 discriminator_init=
 # Vocoder used at inference: an ESPnet-trained one (default the stage-8
-# best) or, if --sidon_vocoder is set, the official TorchScript decoder.
+# best) or, if --external_vocoder is set, an externally released TorchScript
+# decoder such as the Sidon v0.1 one (comparison only).
 vocoder_exp=
 vocoder_model_file=
-sidon_vocoder=
+external_vocoder=
 test_sets="test-clean test-other"
 versa_config=conf/versa_enh.yaml
 versa_ref_config=conf/versa_enh_ref_based.yaml
@@ -135,14 +136,14 @@ if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
 fi
 
 if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
-    if [ -n "${sidon_vocoder}" ]; then
-        vocoder_opts=(--sidon_vocoder "${sidon_vocoder}")
+    if [ -n "${external_vocoder}" ]; then
+        vocoder_opts=(--external_vocoder "${external_vocoder}")
     else
         vocoder_exp=${vocoder_exp:-${voc_finetune_exp}}
         vocoder_model_file=${vocoder_model_file:-${vocoder_exp}/valid.loss_mel.best.pth}
         for required_file in "${vocoder_exp}/config.yaml" "${vocoder_model_file}"; do
             [ -f "${required_file}" ] || {
-                log "Missing vocoder file ${required_file}: train one (stages 6-8) or set --sidon_vocoder"
+                log "Missing vocoder file ${required_file}: train one (stages 6-8) or set --external_vocoder"
                 exit 1
             }
         done

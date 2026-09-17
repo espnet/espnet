@@ -10,7 +10,7 @@ writes them in the layout of a stage-7/8 checkpoint.
 Evaluation only: the converted checkpoint runs the official vocoder through
 the same inference path as a trained one (--vocoder_train_config /
 --vocoder_model_file), so the released model can be scored by the same
-harness and the path can be checked against --sidon_vocoder. The recipe
+harness and the path can be checked against --external_vocoder. The recipe
 never trains from these weights.
 
 Usage
