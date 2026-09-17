@@ -47,6 +47,20 @@ def multi_class_config_file(tmp_path: Path, token_list):
     return tmp_path / "multi_class" / "config.yaml"
 
 
+def test_Classification_from_pretrained_tag(monkeypatch, multi_class_config_file):
+    class FakeDownloader:
+        def download_and_unpack(self, model_tag):
+            assert model_tag == "espnet/some_classifier"
+            return {"classification_train_config": str(multi_class_config_file)}
+
+    monkeypatch.setattr("espnet_model_zoo.downloader.ModelDownloader", FakeDownloader)
+    classification = Classification.from_pretrained(
+        "espnet/some_classifier", batch_size=1
+    )
+    pred, score, pred_str = classification(np.random.randn(1000))
+    assert score.shape == (52,), score.shape
+
+
 @pytest.fixture()
 def multi_label_config_file(tmp_path: Path, token_list):
     # Write default configuration file

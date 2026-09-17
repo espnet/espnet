@@ -108,6 +108,23 @@ def test_Speech2TextStreaming_from_pretrained(st_config_file_streaming):
         assert isinstance(hyp, Hypothesis)
 
 
+@pytest.mark.execution_timeout(20)
+def test_Speech2TextStreaming_from_pretrained_tag(
+    monkeypatch, st_config_file_streaming
+):
+    class FakeDownloader:
+        def download_and_unpack(self, model_tag):
+            assert model_tag == "espnet/some_streaming_st"
+            return {"st_train_config": str(st_config_file_streaming)}
+
+    monkeypatch.setattr("espnet_model_zoo.downloader.ModelDownloader", FakeDownloader)
+    speech2text = Speech2TextStreaming.from_pretrained(
+        "espnet/some_streaming_st", beam_size=1
+    )
+    assert isinstance(speech2text, Speech2TextStreaming)
+    assert speech2text.beam_search.beam_size == 1
+
+
 @pytest.mark.execution_timeout(5)
 def test_Speech2Text(st_config_file):
     speech2text = Speech2Text(st_train_config=st_config_file, beam_size=1)
