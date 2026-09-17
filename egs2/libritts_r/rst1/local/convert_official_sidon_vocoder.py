@@ -48,8 +48,8 @@ def main():
     vocoder = DACVocoder(input_dim=args.input_dim, **VOCODER_CONF)
     vocoder.load_official_torchscript(args.torchscript, verify=True)
     # Training checkpoints carry weight-normalised convolutions
-    # (weight_g / weight_v); re-parametrise so the file loads into a fresh
-    # training model with --init_param without any key surgery.
+    # (weight_g / weight_v); re-parametrise so the file loads through the
+    # recipe's inference loader (--vocoder_model_file) without any key surgery.
     for module in vocoder.modules():
         if isinstance(module, (nn.Conv1d, nn.ConvTranspose1d)):
             weight_norm(module)

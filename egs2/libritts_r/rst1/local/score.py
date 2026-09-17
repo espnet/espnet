@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Sidon evaluation script: the four numbers reported in the paper.
+"""Restoration evaluation script: the four metrics reported in the Sidon paper.
 
 Metrics following the paper:
   WER     — word error rate via mms-1b-all ASR model
@@ -256,7 +256,9 @@ def compute_wer(
 
 
 def get_parser():
-    p = argparse.ArgumentParser(description="Sidon evaluation")
+    p = argparse.ArgumentParser(
+        description="Restoration evaluation: the four metrics of the Sidon paper"
+    )
     p.add_argument("--restored_dir", required=True)
     p.add_argument("--ref_wav_scp", required=True)
     p.add_argument("--noisy_wav_scp", required=True)
