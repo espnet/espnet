@@ -196,28 +196,14 @@ def _read_audio(value: str, sample_rate: int = 16000):
     return waveform
 
 
-# The released TorchScript decoder is used in the official pipeline on input
-# padded by 160 samples (16 kHz) on each side, with the output cropped back
-# to 3x the unpadded length. Without the pad its last frame is decoded at
-# the boundary and the final ~10 samples come out at full scale (a click at
-# the end of every utterance); with it the output is exactly 3x the input.
-OFFICIAL_PAD = 160
-
-
 @torch.inference_mode()
 def _restore_chunk(waveform, model, vocoder, device):
-    official = isinstance(vocoder, torch.jit.ScriptModule)
-    if official:
-        waveform = np.pad(waveform, (OFFICIAL_PAD, OFFICIAL_PAD))
     wav_tensor = torch.from_numpy(waveform).float().to(device)
     lengths = torch.tensor([len(waveform)], device=device)
     ssl_inputs = model.ssl_encoder._wav_to_ssl_inputs(wav_tensor.unsqueeze(0), lengths)
     features, _ = model.ssl_encoder(ssl_inputs)
-    output = vocoder(features.transpose(1, 2)).reshape(-1)
-    if official:
-        start = OFFICIAL_PAD * 3
-        output = output[start : start + (len(waveform) - 2 * OFFICIAL_PAD) * 3]
-    return output.float().cpu().numpy()
+    output = vocoder(features.transpose(1, 2))
+    return output.reshape(-1).float().cpu().numpy()
 
 
 def _restore(waveform, model, vocoder, device, chunk_sec, overlap_sec):
@@ -304,11 +290,7 @@ def main(cmd=None):
                 args.overlap_sec,
             )
             path = wav_dir / f"{utterance}.wav"
-            # float32 WAV: the vocoder is not bounded, and writing 16-bit PCM
-            # hard-clips anything above full scale (the released Sidon decoder
-            # driven by our predictor peaks well above 1.0). Level handling
-            # belongs to the consumer.
-            sf.write(path, restored, 48000, subtype="FLOAT")
+            sf.write(path, restored, 48000)
             manifest.write(f"{utterance} {path}\n")
             manifest.flush()
             done[utterance] = str(path)
