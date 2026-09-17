@@ -1,0 +1,9 @@
+# Default decoding (stage 6) settings for the ESPnet restoration feature predictor.
+# Variants belong under conf/tuning/.
+#
+# The predictor is fully non-causal, so chunking exists only to bound memory on
+# long inputs. chunk_sec matches the 20 s max_duration used in training;
+# overlap_sec is cross-faded between adjacent chunks at the 48 kHz output rate.
+chunk_sec: 20.0
+overlap_sec: 0.5
+device: cuda
