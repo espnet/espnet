@@ -12,14 +12,14 @@ nj=64
 python=python3
 config=conf/train.yaml
 decode_config=conf/decode.yaml
-expdir=exp/sidon_w2v_bert2_layer8
+expdir=exp/rst_w2v_bert2
 # Vocoder (stages 6-8). Stage 7 pretrains on ground-truth features, stage 8
 # finetunes on the stage-5 predictor's features. The config's vocoder_type
 # picks the DAC decoder (default) or ESPnet's HiFi-GAN generator.
-voc_pretrain_config=conf/tuning/train_sidon_vocoder_pretrain.yaml
-voc_finetune_config=conf/tuning/train_sidon_vocoder_finetune.yaml
-voc_pretrain_exp=exp/sidon_vocoder_pretrain
-voc_finetune_exp=exp/sidon_vocoder_finetune
+voc_pretrain_config=conf/tuning/train_rst_vocoder_dac_pretrain.yaml
+voc_finetune_config=conf/tuning/train_rst_vocoder_dac_finetune.yaml
+voc_pretrain_exp=exp/rst_vocoder_dac_pretrain
+voc_finetune_exp=exp/rst_vocoder_dac_finetune
 # Stage 8 initialises the generator and the discriminator from the stage-7
 # best checkpoint (this recipe's own run); --vocoder_init/--discriminator_init
 # only point it at a different stage-7 run. Nothing is initialised from the

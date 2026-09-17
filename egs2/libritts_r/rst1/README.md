@@ -22,7 +22,7 @@ Two SSL backbones are supported (`ssl_encoder` in the config), both 1024-d at
 | `w2v_bert2` (default, paper) | w2v-BERT 2.0 | 8 | `facebook/w2v-bert-2.0` | MIT |
 | `xeus` | XEUS (ESPnet E-Branchformer SSL, [Chen et al. 2024](https://arxiv.org/abs/2407.00837)) | block 10 | `espnet/xeus`, loaded with `SSLTask.build_model_from_file` | **CC-BY-NC-SA-4.0** (non-commercial) |
 
-Select XEUS with `--config conf/tuning/train_sidon_xeus.yaml` for stage 5 and
+Select XEUS with `--config conf/tuning/train_rst_xeus.yaml` for stage 5 and
 pass the same `ssl_encoder` / `ssl_encoder_conf` to the vocoder configs (stages
 7-8); inference reads the encoder type from the training config.
 
@@ -67,7 +67,7 @@ Set the paths in `db.sh`. `DATASET_LIBRITTS_R` and `LIBRITTS` are mandatory;
 
 ```bash
 ./run.sh --stage 1 --stop_stage 8 --ngpu 4 --nj 64     # predictor + vocoder
-./run.sh --stage 9 --stop_stage 11                      # uses exp/sidon_vocoder_finetune
+./run.sh --stage 9 --stop_stage 11                      # uses exp/rst_vocoder_dac_finetune
 # or skip vocoder training and use the official decoder
 ./run.sh --stage 9 --stop_stage 11 --sidon_vocoder /path/to/decoder_cuda.pt
 ```
@@ -88,8 +88,8 @@ config's `vocoder_type` selects one and `vocoder_conf` configures it.
 
 | `vocoder_type` | Model | Training | Config (stage 7) |
 |---|---|---|---|
-| `dac` (default) | DAC decoder as in the official release, 52.4M | GAN, `rst_vocoder_train` | `train_sidon_vocoder_pretrain.yaml` |
-| `hifigan` | ESPnet `HiFiGANGenerator`, 512 channels, 17M | GAN, `rst_vocoder_train` | `train_sidon_vocoder_pretrain_hifigan.yaml` |
+| `dac` (default) | DAC decoder as in the official release, 52.4M | GAN, `rst_vocoder_train` | `train_rst_vocoder_dac_pretrain.yaml` |
+| `hifigan` | ESPnet `HiFiGANGenerator`, 512 channels, 17M | GAN, `rst_vocoder_train` | `train_rst_vocoder_hifigan_pretrain.yaml` |
 
 All models in this recipe are trained from scratch (the SSL backbone is the
 public w2v-BERT 2.0; the LoRA adapter, the vocoder and its discriminator start
