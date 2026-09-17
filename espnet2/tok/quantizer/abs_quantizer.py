@@ -12,7 +12,12 @@ class AbsSpeechTokenizerQuantizer(torch.nn.Module, ABC):
 
     Implementations are expected to provide differentiable assignments for
     training, hard integer token IDs for inference, and the corresponding
-    sequence lengths.
+    sequence lengths. This interface discretizes continuous features while
+    preserving a gradient path for training. The similarly named
+    ``speechlm.tokenizer.AbsTokenizer`` is intended for no-grad postprocessing
+    of generated tokens, such as codec codes to waveform or BPE tokens to text.
+    Use that interface for SpeechLM postprocessing and this one when
+    discretization must preserve gradients.
     """
 
     @property

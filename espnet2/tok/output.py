@@ -19,6 +19,10 @@ class SpeechTokenizerOutput:
         lengths: Valid token lengths of shape ``(B,)``.
         soft_assignment: Optional soft cluster assignments of shape
             ``(B, T, K)`` for analysis and auxiliary regularization.
+        quantized_features: Optional differentiable quantized features of shape
+            ``(B, T, D)``. A future VQ implementation can expose its
+            straight-through vectors here so downstream losses can reach the
+            frontend.
     """
 
     continuous: torch.Tensor
@@ -26,3 +30,4 @@ class SpeechTokenizerOutput:
     token_ids: torch.Tensor
     lengths: torch.Tensor
     soft_assignment: Optional[torch.Tensor] = None
+    quantized_features: Optional[torch.Tensor] = None

@@ -13,12 +13,21 @@ from espnet2.tok.quantizer.abs_quantizer import (
 class SpeechTokenizer(torch.nn.Module):
     """Convert speech into differentiable assignments and discrete token IDs.
 
-    The tokenizer consists of a speech frontend followed by a quantizer.  Its
-    training output will preserve gradients through hard token assignments,
-    while its inference interface will expose integer token sequences.
+    This class combines a speech frontend and quantizer for joint training
+    with downstream objectives. Its training output preserves gradients
+    through hard token assignments, while inference exposes integer token IDs.
+
     ``AbsGANCodec`` encodes waveforms into codes and decodes codes back into
     waveforms. This tokenizer only maps speech to units for downstream
     objectives, so it does not implement the codec's waveform decoder.
+
+    The similarly named classes serve different purposes:
+    ``speechlm.tokenizer.AbsTokenizer`` is intended for no-grad SpeechLM token
+    postprocessing, ``AudioTokenizer`` extracts discrete BEATs codes for
+    offline use, and ``BeatsTokenizer`` provides a BEATs-specific encoder and VQ
+    for pretraining.
+    Use this class when downstream losses must train the frontend and quantizer
+    together.
     """
 
     @typechecked
