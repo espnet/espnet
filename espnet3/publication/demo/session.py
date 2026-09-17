@@ -81,6 +81,9 @@ class DemoSession:
             raise TypeError("demo config model.call_args must be a mapping.")
         call_args = OmegaConf.to_container(mapping, resolve=True)
         self.call_args = call_args
+        self.forward_fs = bool(
+            getattr(model_cfg, "forward_fs", False) if model_cfg is not None else False
+        )
 
         self.input_specs = [
             OmegaConf.to_container(spec, resolve=True)
@@ -143,8 +146,9 @@ class DemoSession:
                 resolved_output_keys,
             )
             try:
-                # make the sample rate a list so that it can be modified in-place
-                # by _normalize_input_audio
+                # Make the sample rate a list so that
+                #   it can be modified in-place by _normalize_input_audio
+                # The sample rate will be overridden by the demo config if the model expects a different rate.
                 sr = [16000]
                 item = {}
                 for key, value in zip(resolved_input_keys, values):
@@ -152,7 +156,8 @@ class DemoSession:
                         value = _normalize_input_audio(value, sr)
                     item[key] = value
                 call_args = dict(self.call_args)
-                call_args["fs"] = sr[0]
+                if self.forward_fs:
+                    call_args["fs"] = sr[0]
                 logger.info(
                     "Calling inference model | input_keys=%s call_args=%s",
                     list(item.keys()),

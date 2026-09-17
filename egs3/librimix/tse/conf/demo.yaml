@@ -17,9 +17,13 @@
 # - a local packed model directory created by `pack_model`
 # - a Hugging Face model repo tag usable by `InferenceModel.from_pretrained()`
 # Relative local paths are resolved from the packed demo directory at runtime.
+# `model.forward_fs` controls whether the demo injects `fs` into the call.
+# Set it to true only for backends that explicitly accept `fs`.
 model:
   dir_or_tag: exp/training_td_speakerbeam_16k/model_pack
   trust_user_code: true
+  call_args: {}
+  forward_fs: true
 
 ##########################################################
 #                        UI SETTING                      #
