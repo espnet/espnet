@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 
 def _load_feature_predictor(config_path, model_path, device):
-    """Load a feature-predictor checkpoint (this recipe's or a legacy SpeechCleaner one)."""
+    """Load a feature-predictor checkpoint (this recipe's or legacy SpeechCleaner)."""
     import yaml
 
     with open(config_path, encoding="utf-8") as stream:
