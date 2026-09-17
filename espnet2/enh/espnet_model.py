@@ -346,13 +346,16 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         if self.always_forward_in_48k and fs_tuple is not None:
             fs2, fs0 = fs_tuple
             speech_lengths = speech_lengths0
-            func = lambda sp: torchaudio.functional.resample(sp, fs2, fs0)[  # noqa:E731
-                ..., : speech_lengths0.max()
-            ]
+
+            def resample_back(sp):
+                return torchaudio.functional.resample(sp, fs2, fs0)[
+                    ..., : speech_lengths0.max()
+                ]
+
             if pre_is_multi_list:
-                speech_pre = [[func(sp) for sp in sps] for sps in speech_pre]
+                speech_pre = [[resample_back(sp) for sp in sps] for sps in speech_pre]
             else:
-                speech_pre = [func(sp) for sp in speech_pre]
+                speech_pre = [resample_back(sp) for sp in speech_pre]
 
         # loss computation
         loss, stats, weight, perm = self.forward_loss(
