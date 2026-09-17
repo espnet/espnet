@@ -198,7 +198,9 @@ class TSOS(BaseMetric):
                     batch_uids = [b[0] for b in batch]
                     ref_paths = [b[1] for b in batch]
                     inf_paths = [b[2] for b in batch]
-                    ref_audios, inf_audios = self._load_audio_pairs(ref_paths, inf_paths)
+                    ref_audios, inf_audios = self._load_audio_pairs(
+                        ref_paths, inf_paths
+                    )
                     ref_tensor, ref_ilens = self.collate_fn(ref_audios)
                     inf_tensor, _ = self.collate_fn(inf_audios)
                     ref_specs, flens = self.stft(ref_tensor, ilens=ref_ilens)

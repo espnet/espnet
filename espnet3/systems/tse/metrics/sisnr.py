@@ -171,7 +171,9 @@ class SISNR(BaseMetric):
                     ref_paths = [sample[1] for sample in batch]
                     inf_paths = [sample[2] for sample in batch]
 
-                    ref_audios, inf_audios = self._load_audio_pairs(ref_paths, inf_paths)
+                    ref_audios, inf_audios = self._load_audio_pairs(
+                        ref_paths, inf_paths
+                    )
                     for uid, ref_audio, inf_audio in zip(
                         batch_uids, ref_audios, inf_audios
                     ):
