@@ -167,6 +167,20 @@ class DifferentiableKMeans(AbsSpeechTokenizerQuantizer):
                 "feature_lengths must have shape (B,), but got "
                 f"{feature_lengths.shape} for features {features.shape}"
             )
+        if feature_lengths.dtype not in (
+            torch.uint8,
+            torch.int8,
+            torch.int16,
+            torch.int32,
+            torch.int64,
+        ):
+            raise TypeError("feature_lengths must have an integer dtype")
+        if torch.any(feature_lengths < 0) or torch.any(
+            feature_lengths > features.size(1)
+        ):
+            raise ValueError(
+                f"feature_lengths must be between 0 and {features.size(1)}"
+            )
         valid = self._valid_mask(feature_lengths, features.size(1), features.device)
         assignment = assignment * valid.unsqueeze(-1).to(assignment.dtype)
         soft_assignment = soft_assignment * valid.unsqueeze(-1).to(

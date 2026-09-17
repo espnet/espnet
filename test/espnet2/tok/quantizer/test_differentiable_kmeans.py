@@ -45,6 +45,42 @@ def test_encode_matches_nearest_centroid_and_masks_padding(centroid_path):
     assert output.soft_assignment[1, 1:].sum() == 0.0
 
 
+@pytest.mark.parametrize("method", ["forward", "encode"])
+def test_accepts_zero_and_full_feature_lengths(centroid_path, method):
+    path, _ = centroid_path
+    quantizer = DifferentiableKMeans(path)
+    features = torch.randn(2, 3, 2)
+    lengths = torch.tensor([0, 3])
+
+    output = getattr(quantizer, method)(features, lengths)
+
+    torch.testing.assert_close(output.lengths, lengths)
+    assert output.assignment[0].sum() == 0
+    assert output.soft_assignment[0].sum() == 0
+    assert output.assignment[1].sum() == 3
+
+
+@pytest.mark.parametrize("method", ["forward", "encode"])
+@pytest.mark.parametrize(
+    ("lengths", "error", "message"),
+    [
+        ([-1], ValueError, "between 0 and 3"),
+        ([4], ValueError, "between 0 and 3"),
+        ([1.5], TypeError, "integer dtype"),
+        ([2.0], TypeError, "integer dtype"),
+        ([True], TypeError, "integer dtype"),
+    ],
+)
+def test_rejects_invalid_feature_lengths(
+    centroid_path, method, lengths, error, message
+):
+    path, _ = centroid_path
+    quantizer = DifferentiableKMeans(path)
+
+    with pytest.raises(error, match=message):
+        getattr(quantizer, method)(torch.randn(1, 3, 2), torch.tensor(lengths))
+
+
 def test_forward_is_hard_and_backpropagates(centroid_path):
     path, _ = centroid_path
     quantizer = DifferentiableKMeans(path, temperature_init=2.0)
