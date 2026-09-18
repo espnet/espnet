@@ -65,8 +65,27 @@ def split_by_space(text) -> List[str]:
         return text.split(" ")
 
 
+def _import_pyopenjtalk():
+    """Import pyopenjtalk, or say how to install it.
+
+    pyopenjtalk publishes no wheels, so it is built from source and cannot be
+    a dependency of the tts extra; every Japanese g2p goes through here.
+    """
+    try:
+        import pyopenjtalk
+    except ImportError as e:
+        raise ImportError(
+            "pyopenjtalk is required for Japanese g2p (every pyopenjtalk* "
+            "g2p_type). It is not installed by any espnet extra because it "
+            "has no wheels and is built from source. Install it with "
+            "`pip install pyopenjtalk` (needs cmake), or with "
+            "`cd tools && ./installers/install_pyopenjtalk.sh`."
+        ) from e
+    return pyopenjtalk
+
+
 def pyopenjtalk_g2p(text) -> List[str]:
-    import pyopenjtalk
+    pyopenjtalk = _import_pyopenjtalk()
 
     # phones is a str object separated by space
     phones = pyopenjtalk.g2p(text, kana=False)
@@ -75,7 +94,7 @@ def pyopenjtalk_g2p(text) -> List[str]:
 
 
 def _extract_fullcontext_label(text):
-    import pyopenjtalk
+    pyopenjtalk = _import_pyopenjtalk()
 
     if V(pyopenjtalk.__version__) >= V("0.3.0"):
         return pyopenjtalk.make_label(pyopenjtalk.run_frontend(text))
@@ -105,7 +124,7 @@ def pyopenjtalk_g2p_accent_with_pause(text) -> List[str]:
 
 
 def pyopenjtalk_g2p_kana(text) -> List[str]:
-    import pyopenjtalk
+    pyopenjtalk = _import_pyopenjtalk()
 
     kanas = pyopenjtalk.g2p(text, kana=True)
     return list(kanas)
@@ -466,14 +485,19 @@ class PhonemeTokenizer(AbsTokenizer):
         elif g2p_type == "g2p_en_no_space":
             self.g2p = G2p_en(no_space=True)
         elif g2p_type == "pyopenjtalk":
+            _import_pyopenjtalk()
             self.g2p = pyopenjtalk_g2p
         elif g2p_type == "pyopenjtalk_kana":
+            _import_pyopenjtalk()
             self.g2p = pyopenjtalk_g2p_kana
         elif g2p_type == "pyopenjtalk_accent":
+            _import_pyopenjtalk()
             self.g2p = pyopenjtalk_g2p_accent
         elif g2p_type == "pyopenjtalk_accent_with_pause":
+            _import_pyopenjtalk()
             self.g2p = pyopenjtalk_g2p_accent_with_pause
         elif g2p_type == "pyopenjtalk_prosody":
+            _import_pyopenjtalk()
             self.g2p = pyopenjtalk_g2p_prosody
         elif g2p_type == "pypinyin_g2p":
             self.g2p = pypinyin_g2p
