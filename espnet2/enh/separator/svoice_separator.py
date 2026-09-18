@@ -151,7 +151,8 @@ class SVoiceSeparator(AbsSeparator):
         """Forward.
 
         Args:
-            input (complex torch.Tensor): Encoded feature [B, T, N]
+            input (torch.Tensor): waveform [B, T]; the encoder is the
+                model's own Conv1d, not an STFT
             ilens (torch.Tensor): input lengths [Batch]
             additional (Dict or None): other data included in model
                 NOTE: not used in this model

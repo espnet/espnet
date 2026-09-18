@@ -1,14 +1,14 @@
 """DNN beamformer module."""
 
 import logging
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Union
 
 import torch
 from torch.nn import functional as F
 
 import espnet2.enh.layers.beamformer as bf_v1
 import espnet2.enh.layers.beamformer_th as bf_v2
-from espnet2.enh.layers.complex_utils import stack, to_double, to_float
+from espnet2.enh.layers.complex_utils import as_native, stack, to_double, to_float
 from espnet2.enh.layers.mask_estimator import MaskEstimator
 
 BEAMFORMER_TYPES = (
@@ -163,7 +163,11 @@ class DNN_Beamformer(torch.nn.Module):
         ilens: torch.LongTensor,
         powers: Optional[List[torch.Tensor]] = None,
         oracle_masks: Optional[List[torch.Tensor]] = None,
-    ) -> Tuple[torch.Tensor, torch.LongTensor, torch.Tensor]:
+    ) -> Tuple[
+        Union[torch.Tensor, List[torch.Tensor]],
+        torch.LongTensor,
+        Union[torch.Tensor, List[torch.Tensor]],
+    ]:
         """DNN_Beamformer forward function.
 
         Notation:
@@ -183,6 +187,7 @@ class DNN_Beamformer(torch.nn.Module):
             ilens (torch.Tensor): (B,)
             masks (torch.Tensor): (B, T, C, F)
         """
+        data = as_native(data)
         # data (B, T, C, F) -> (B, F, C, T)
         data = data.permute(0, 3, 2, 1)
         data_d = to_double(data)

@@ -3,7 +3,7 @@ from typing import Dict, List, Optional, Tuple
 
 import torch
 
-from espnet2.enh.layers.complex_utils import is_complex, new_complex_like
+from espnet2.enh.layers.complex_utils import as_native, is_complex, new_complex_like
 from espnet2.enh.layers.dc_crn import DC_CRN
 from espnet2.enh.separator.abs_separator import AbsSeparator
 
@@ -133,6 +133,7 @@ class DC_CRNSeparator(AbsSeparator):
                 'mask_spkn': torch.Tensor(Batch, Frames, Freq),
             ]
         """
+        input = as_native(input)
         assert is_complex(input)
         is_multichannel = input.ndim == 4
         if is_multichannel:

@@ -3,6 +3,7 @@ from typing import Dict, List, Optional, Tuple
 
 import torch
 
+from espnet2.enh.layers.complex_utils import as_native
 from espnet2.enh.layers.dnn_beamformer import DNN_Beamformer
 from espnet2.enh.layers.dnn_wpe import DNN_WPE
 from espnet2.enh.separator.abs_separator import AbsSeparator
@@ -151,6 +152,7 @@ class NeuralBeamformer(AbsSeparator):
                 'mask_spkn': torch.Tensor(Batch, Frames, Channel, Freq),
             ]
         """
+        input = as_native(input)
         # Shape of input spectrum must be (B, T, F) or (B, T, C, F)
         assert input.dim() in (3, 4), input.dim()
         enhanced = input

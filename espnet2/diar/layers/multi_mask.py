@@ -9,6 +9,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from espnet2.diar.layers.abs_mask import AbsMask
+from espnet2.enh.layers.complex_utils import as_native
 
 
 class MultiMask(AbsMask):
@@ -76,6 +77,7 @@ class MultiMask(AbsMask):
             ]
 
         """
+        input = as_native(input)
         M, K, N = input.size()
         bottleneck_feat = bottleneck_feat.transpose(1, 2)  # [M, B, K]
         score = self.mask_conv1x1[num_spk - 1](
