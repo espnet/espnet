@@ -301,11 +301,18 @@ doc = [
   "sphinx-markdown-tables"
 ]
 
+# Every task extra plus training. Not sds: it pins litgpt==0.4.3 and pulls
+# openai-whisper and gradio for one demo, and would drag those into every
+# `pip install espnet[all]`; install it by name.
 all = [
   "espnet[train]",
   "espnet[asr]",
+  "espnet[asr2]",
   "espnet[tts]",
   "espnet[enh]",
+  "espnet[st]",
+  "espnet[s2t]",
+  "espnet[s2st]",
   "espnet[spk]",
   "espnet[speechlm]",
   "espnet[egs2]",
