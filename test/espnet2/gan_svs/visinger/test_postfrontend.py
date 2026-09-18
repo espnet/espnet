@@ -1,13 +1,9 @@
 import pytest
 import torch
-from packaging.version import parse as V
 
 from espnet2.gan_svs.post_frontend.fused import S3prlPostFrontend
 
-is_torch_2_9_plus = V(torch.__version__) >= V("2.9.0")
 
-
-@pytest.mark.skipif(is_torch_2_9_plus, reason="Not supported")
 def test_frontend_init():
     frontend = S3prlPostFrontend(
         fs=16000,
@@ -18,7 +14,6 @@ def test_frontend_init():
     assert frontend.output_size() > 0
 
 
-@pytest.mark.skipif(is_torch_2_9_plus, reason="Not supported")
 def test_frontend_output_size():
     frontend = S3prlPostFrontend(
         fs=16000,
@@ -33,7 +28,6 @@ def test_frontend_output_size():
     assert feats.shape[-1] == frontend.output_size()
 
 
-@pytest.mark.skipif(is_torch_2_9_plus, reason="Not supported")
 @pytest.mark.parametrize(
     "fs, input_fs, postfrontend_conf, multilayer_feature, layer",
     [

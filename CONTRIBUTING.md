@@ -309,7 +309,7 @@ inside it:
 
 ```bash
 docker build -f docker/ci.dockerfile \
-    --build-arg PYTHON_VERSION=3.12 --build-arg TH_VERSION=2.9.1 \
+    --build-arg PYTHON_VERSION=3.12 --build-arg TH_VERSION=2.11.0 \
     -t espnet-ci:local .
 
 docker run --rm -it -v "$PWD:/work" -w /work espnet-ci:local bash
