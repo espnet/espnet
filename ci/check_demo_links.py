@@ -33,7 +33,10 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from collections import defaultdict
+from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple
+
+import yaml
 
 NOTEBOOK_REPO = "espnet/notebook"
 # Colab and GitHub spellings of a path inside the notebook repository.
@@ -205,6 +208,65 @@ def space_stage(space_id: str) -> str:
     return runtime["stage"]
 
 
+# What the Hub refuses in a Space's README front matter. Every one of these
+# stops `hf upload` before a single file lands, and the demo card in this
+# repository is written here rather than on the Hub, so nothing else checks it.
+SPACE_CARD_LIMITS = {"short_description": 60, "title": 100}
+SPACE_CARD_REQUIRED = ("title", "sdk", "app_file")
+
+
+def space_cards(names: List[str]) -> List[str]:
+    """Paths of the Space READMEs among the tracked files."""
+    return [p for p in names if p.endswith("README.md") and "/demo/" in f"/{p}"]
+
+
+def check_space_card(path: str, text: str, root: str = ".") -> List[str]:
+    """Report what the Hub would refuse in this Space card's front matter.
+
+    ``path`` is relative to ``root``, and so is everything resolved from it:
+    the check must say the same thing wherever it is run from.
+    """
+    if not text.startswith("---"):
+        return []  # not a Space card, just a README in a demo directory
+    parts = text.split("---", 2)
+    if len(parts) < 3:
+        # the Hub reads metadata only between two delimiters; without the
+        # closing one it sees none at all, whatever the text says
+        return [f"{path}: front matter is opened with --- but never closed"]
+    try:
+        front = yaml.safe_load(parts[1])
+    except yaml.YAMLError as e:
+        return [f"{path}: front matter is not valid YAML: {e}"]
+    if not isinstance(front, dict) or "sdk" not in front:
+        return []
+
+    problems = []
+    for key in SPACE_CARD_REQUIRED:
+        value = front.get(key)
+        # YAML turns `title: true` into a bool and `sdk: 1` into an int, and
+        # the Hub wants text in both
+        if not isinstance(value, str) or not value.strip():
+            problems.append(f"{path}: the Hub requires {key} in a Space card, as text")
+    for key, limit in SPACE_CARD_LIMITS.items():
+        value = front.get(key)
+        if isinstance(value, str) and len(value) > limit:
+            problems.append(
+                f"{path}: {key} is {len(value)} characters; the Hub allows {limit}"
+            )
+
+    app = front.get("app_file")
+    if isinstance(app, str) and app.strip():
+        # the directory uploaded as the Space is the Space's root, so app_file
+        # has to stay inside it
+        directory = (Path(root) / path).parent
+        target = (directory / app).resolve()
+        if not str(target).startswith(str(directory.resolve())):
+            problems.append(f"{path}: app_file {app} points outside the Space")
+        elif not target.exists():
+            problems.append(f"{path}: app_file {app} is not next to it")
+    return problems
+
+
 def scan() -> List[str]:
     root, names = documentation_files()
     texts = {}
@@ -230,6 +292,9 @@ def scan() -> List[str]:
             raise ScanError(f"cannot read {name}: {e}") from e
     notebooks, spaces = find_links(texts)
     broken = []
+    for path in space_cards(names):
+        # an upload is refused outright for these, so the demo never appears
+        broken.extend(check_space_card(path, texts.get(path, ""), root))
     known: Dict[str, Optional[Set[str]]] = {}  # one request per ref, not per link
     for ref, path in sorted(notebooks):
         real_ref, real_path, files = split_ref(ref, path, known)
@@ -281,6 +346,51 @@ def self_check() -> None:
     }, spaces
     both = find_links({"a.md": text, "b.md": text})[1]["espnet/TTS"]
     assert both == {"a.md", "b.md"}, both
+
+    # a Space card the Hub would refuse: 67 characters where it allows 60,
+    # which is what stopped the OWSM-CTC demo's first upload
+    card = (
+        "---\ntitle: OWSM-CTC v4\nsdk: gradio\napp_file: app.py\n"
+        "short_description: Multilingual ASR, speech translation and language ID"
+        " in one encoder\n---\n"
+    )
+    problems = check_space_card("egs2/x/demo/README.md", card)
+    assert any("short_description is 67 characters" in p for p in problems), problems
+    assert any("app_file app.py is not next to it" in p for p in problems), problems
+    ok = card.replace(
+        "Multilingual ASR, speech translation and language ID in one encoder",
+        "ASR, speech translation and language ID in one encoder",
+    ).replace("app_file: app.py\n", "")
+    assert check_space_card("egs2/x/demo/README.md", ok) == [
+        "egs2/x/demo/README.md: the Hub requires app_file in a Space card, as text"
+    ], check_space_card("egs2/x/demo/README.md", ok)
+    # a plain README in a demo directory is not a Space card
+    assert check_space_card("egs2/x/demo/README.md", "# just a readme\n") == []
+
+    # YAML types: `title: true` is a bool and `sdk: 1` an int, and the Hub
+    # wants text - truthiness alone would have let both through
+    typed = "---\ntitle: true\nsdk: 1\napp_file: app.py\n---\n"
+    problems = check_space_card("egs2/x/demo/README.md", typed)
+    assert any("requires title" in p for p in problems), problems
+    assert any("requires sdk" in p for p in problems), problems
+
+    # front matter that is never closed carries no metadata to the Hub
+    unclosed = "---\ntitle: x\nsdk: gradio\napp_file: app.py\n"
+    assert check_space_card("egs2/x/demo/README.md", unclosed) == [
+        "egs2/x/demo/README.md: front matter is opened with --- but never closed"
+    ], check_space_card("egs2/x/demo/README.md", unclosed)
+
+    # app_file has to stay inside the directory that becomes the Space
+    escaping = "---\ntitle: x\nsdk: gradio\napp_file: ../outside.py\n---\n"
+    assert check_space_card("egs2/x/demo/README.md", escaping) == [
+        "egs2/x/demo/README.md: app_file ../outside.py points outside the Space"
+    ], check_space_card("egs2/x/demo/README.md", escaping)
+
+    # a non-string app_file is reported, not a TypeError that ends the scan
+    weird = "---\ntitle: x\nsdk: gradio\napp_file: true\n---\n"
+    assert check_space_card("egs2/x/demo/README.md", weird) == [
+        "egs2/x/demo/README.md: the Hub requires app_file in a Space card, as text"
+    ], check_space_card("egs2/x/demo/README.md", weird)
 
     # the ref/path boundary, against a repository where only "feature/demo"
     # exists: the first candidate 404s and the second resolves
