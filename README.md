@@ -325,7 +325,7 @@ First time here? Read the [contribution guide](CONTRIBUTING.md).
 
 Demonstration
 - Real-time ASR demo with ESPnet2  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/ESPnet2/Demo/ASR/asr_realtime_demo.ipynb)
-- Hosted demos, both maintained from this repository: the [OWSM v4 demo](https://huggingface.co/spaces/espnet/OWSM_V4_Demo) ([source](egs2/owsm_v4/s2t1/demo)), which serves the encoder-decoder and CTC models with timestamps and long-form decoding, and the smaller [OWSM-CTC v4 demo](https://huggingface.co/spaces/espnet/owsm-ctc-v4) ([source](egs2/owsm_ctc_v4/s2t1/demo))
+- Hosted demos, maintained from this repository: [OWSM-CTC v4](https://huggingface.co/spaces/espnet/owsm-ctc-v4) ([source](egs2/owsm_ctc_v4/s2t1/demo)) and `espnet/owsm-v4` ([source](egs2/owsm_v4/s2t1/demo)). Both recognise, translate and identify 151 languages and decode long-form audio; the second also takes a text prompt
 - Streaming Transformer ASR [Local Demo](https://github.com/espnet/notebook/blob/master/ESPnet2/Demo/ASR/streaming_asr_demo.ipynb) with ESPnet2.
 
 #### TTS: Text-to-speech

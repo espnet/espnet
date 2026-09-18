@@ -1,14 +1,14 @@
 ---
-title: OWSM V4 Demo
+title: OWSM v4
 emoji: 🌍
 colorFrom: blue
 colorTo: pink
 sdk: gradio
-sdk_version: 5.44.0
+sdk_version: 6.27.0
 app_file: app.py
 pinned: false
 license: apache-2.0
-short_description: A demo of the OWSM v4 CTC and medium models
+short_description: Recognise, translate and prompt across 151 languages
 tags:
   - espnet
   - owsm
@@ -17,27 +17,24 @@ tags:
   - language-identification
 models:
   - espnet/owsm_v4_medium_1B
-  - espnet/owsm_ctc_v4_1B
 ---
 
-# OWSM v4 Demo
+# OWSM v4
 
-The source of [`espnet/OWSM_V4_Demo`](https://huggingface.co/spaces/espnet/OWSM_V4_Demo),
-which serves both OWSM v4 models: the encoder-decoder
-[`owsm_v4_medium_1B`](https://huggingface.co/espnet/owsm_v4_medium_1B) with beam
-search, and the encoder-only
-[`owsm_ctc_v4_1B`](https://huggingface.co/espnet/owsm_ctc_v4_1B). It recognises
-151 languages, translates into 25, identifies the spoken language, predicts
-utterance timestamps and decodes long-form audio.
+The source of `espnet/owsm-v4`, one of two OWSM v4 demos kept in this
+repository. Both offer the same tasks - speech recognition, any-to-any speech
+translation, language identification and long-form decoding - so the two models
+can be compared on the same audio:
 
-The Space was maintained on the Hub alone until now; keeping the source here
-means it is reviewed, versioned and checked with the rest of the repository —
-`ci/check_demo_links.py` verifies this card daily against the rules the Hub
-enforces, and reports the Space when it stops running.
+| | this demo | [`espnet/owsm-ctc-v4`](https://huggingface.co/spaces/espnet/owsm-ctc-v4) |
+|---|---|---|
+| model | [`owsm_v4_medium_1B`](https://huggingface.co/espnet/owsm_v4_medium_1B), encoder-decoder | [`owsm_ctc_v4_1B`](https://huggingface.co/espnet/owsm_ctc_v4_1B), encoder-only |
+| decoding | beam search | one encoder pass per 30 s window |
+| text prompt | supported | not supported by OWSM-CTC |
+| source | this directory | [`egs2/owsm_ctc_v4/s2t1/demo`](../../../owsm_ctc_v4/s2t1/demo) |
 
-The smaller single-model demo lives in
-[`egs2/owsm_ctc_v4/s2t1/demo`](../../../owsm_ctc_v4/s2t1/demo) and publishes to
-[`espnet/owsm-ctc-v4`](https://huggingface.co/spaces/espnet/owsm-ctc-v4).
+Language identification uses `Speech2Language` on the same checkpoint; the
+language menu and the translation targets are read from it too.
 
 ## Running and publishing
 
@@ -46,20 +43,25 @@ pip install -r requirements.txt gradio
 python app.py                     # http://127.0.0.1:7860
 ```
 
-`DEVICE` selects where the models run; it is CUDA on the Space and whatever is
-available locally. To publish, from the ESPnet checkout:
+`DEVICE` chooses where it runs; on the Space it is the GPU that ZeroGPU
+attaches to the decorated function. To publish, from the ESPnet checkout:
 
 ```sh
 hf auth login
-hf upload espnet/OWSM_V4_Demo egs2/owsm_v4/s2t1/demo . --repo-type space
+hf upload espnet/owsm-v4 egs2/owsm_v4/s2t1/demo . --repo-type space
 ```
+
+The Space itself has to exist as ZeroGPU hardware (`zero-a10g`), which is a
+setting on the Space rather than something in these files.
 
 ## Citation
 
 ```bibtex
 @inproceedings{owsm-v4,
-  title={{OWSM} v4: Improving Open Whisper-Style Speech Models via Data Scaling and Cleaning},
-  author={Yifan Peng and Shakeel Muhammad and Yui Sudo and William Chen and Jinchuan Tian and Chyi-Jiunn Lin and Shinji Watanabe},
+  title={{OWSM} v4: Improving Open Whisper-Style Speech Models via Data Scaling
+         and Cleaning},
+  author={Yifan Peng and Shakeel Muhammad and Yui Sudo and William Chen and
+          Jinchuan Tian and Chyi-Jiunn Lin and Shinji Watanabe},
   booktitle={Proc. Interspeech},
   year={2025}
 }
