@@ -5,7 +5,7 @@ import torch
 from lightning.pytorch.callbacks import ModelCheckpoint
 
 from espnet3.components.callbacks.hf_callbacks import HFCheckpointSaveCallback
-from espnet3.components.modeling.hf_models import AbsHFTrainingWrapper
+from espnet3.systems.asr.models.hf_models import AbsHFTrainingWrapper
 
 
 class TestHFWrapper(AbsHFTrainingWrapper):

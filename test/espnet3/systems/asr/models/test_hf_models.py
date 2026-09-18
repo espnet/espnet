@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 import torch
 
-from espnet3.components.modeling.hf_models import (
+from espnet3.systems.asr.models.hf_models import (
     AbsHFInferenceWrapper,
     AbsHFTrainingWrapper,
 )

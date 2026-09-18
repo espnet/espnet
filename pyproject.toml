@@ -47,7 +47,6 @@ dependencies = [
     "espnet_model_zoo",
     "matplotlib",
     "nltk>=3.4.5",
-
     # ESPnet-3 related
     "hydra-core",
     "omegaconf",
@@ -66,6 +65,9 @@ dependencies = [
     "torchaudio>=2.9.1,<2.12",
     "huggingface_hub",
     "wandb",
+    "transformers>=5.14.1",
+    "pytest>=8.3.5",
+    "pytest-cov>=7.1.0",
 ]
 
 [project.urls]

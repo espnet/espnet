@@ -3,7 +3,7 @@ from typing import Any, Dict, List, Tuple
 import torch
 from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor
 
-from espnet3.components.modeling.hf_models import (
+from espnet3.systems.asr.models.hf_models import (
     AbsHFInferenceWrapper,
     AbsHFTrainingWrapper,
 )
