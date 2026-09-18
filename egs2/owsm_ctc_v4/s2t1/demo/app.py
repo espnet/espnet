@@ -1,7 +1,8 @@
 """OWSM-CTC v4: speech recognition, translation and language ID.
 
 Published as https://huggingface.co/spaces/espnet/owsm-ctc-v4; the source lives in
-espnet, at egs2/owsm_ctc_v4/s2t1/demo. Its autoregressive sibling is egs2/owsm_v4/s2t1/demo.
+espnet, at egs2/owsm_ctc_v4/s2t1/demo. Its autoregressive sibling is
+egs2/owsm_v4/s2t1/demo.
 
 Both demos offer the same tasks - speech recognition, any-to-any speech
 translation, language identification and long-form decoding - so that the two
@@ -219,7 +220,8 @@ and identifies the language, and it is fast.
 Its autoregressive sibling, which adds text prompting, runs the same tasks:
 `espnet/owsm-v4`.
 """
-ARTICLE = """Model: [`espnet/owsm_ctc_v4_1B`](https://huggingface.co/espnet/owsm_ctc_v4_1B)
+ARTICLE = """Model:
+[`espnet/owsm_ctc_v4_1B`](https://huggingface.co/espnet/owsm_ctc_v4_1B)
 (CC-BY-4.0). Source of this Space:
 [`egs2/owsm_ctc_v4/s2t1/demo`](https://github.com/espnet/espnet/tree/master/egs2/owsm_ctc_v4/s2t1/demo).
 

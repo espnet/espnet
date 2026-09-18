@@ -1,7 +1,8 @@
 """OWSM v4: speech recognition, translation, language ID and prompting.
 
 Published as https://huggingface.co/spaces/espnet/owsm-v4; the source lives in
-espnet, at egs2/owsm_v4/s2t1/demo. Its encoder-only sibling is egs2/owsm_ctc_v4/s2t1/demo.
+espnet, at egs2/owsm_v4/s2t1/demo. Its encoder-only sibling is
+egs2/owsm_ctc_v4/s2t1/demo.
 
 Both demos offer the same tasks - speech recognition, any-to-any speech
 translation, language identification and long-form decoding - so that the two
@@ -221,7 +222,8 @@ long-form audio, and can be steered with a text prompt.
 The encoder-only CTC sibling, which is faster, is at
 [espnet/owsm-ctc-v4](https://huggingface.co/spaces/espnet/owsm-ctc-v4).
 """
-ARTICLE = """Model: [`espnet/owsm_v4_medium_1B`](https://huggingface.co/espnet/owsm_v4_medium_1B)
+ARTICLE = """Model:
+[`espnet/owsm_v4_medium_1B`](https://huggingface.co/espnet/owsm_v4_medium_1B)
 (CC-BY-4.0). Source of this Space:
 [`egs2/owsm_v4/s2t1/demo`](https://github.com/espnet/espnet/tree/master/egs2/owsm_v4/s2t1/demo).
 
