@@ -30,9 +30,10 @@ import subprocess
 import sys
 import traceback
 import urllib.error
+import urllib.parse
 import urllib.request
 from collections import defaultdict
-from typing import Dict, List, Set, Tuple
+from typing import Dict, List, Optional, Set, Tuple
 
 NOTEBOOK_REPO = "espnet/notebook"
 # Colab and GitHub spellings of a path inside the notebook repository.
@@ -117,16 +118,41 @@ def _get_json(url: str):
         raise ScanError(f"{url}: {e}") from e
 
 
-def notebook_paths(ref: str) -> Set[str]:
-    """The files the notebook repository holds at ``ref`` (branch, tag or sha)."""
+def notebook_paths(ref: str) -> Optional[Set[str]]:
+    """The files the notebook repository holds at ``ref``, or None if no such ref.
+
+    A slash in a branch name has to be encoded, or the API reads it as a path.
+    """
+    quoted = urllib.parse.quote(ref, safe="")
     tree = _get_json(
-        f"https://api.github.com/repos/{NOTEBOOK_REPO}/git/trees/{ref}?recursive=1"
+        f"https://api.github.com/repos/{NOTEBOOK_REPO}/git/trees/{quoted}?recursive=1"
     )
-    if tree is None or "tree" not in tree:
+    if tree is None:
+        return None
+    if "tree" not in tree:
         raise ScanError(f"cannot list {NOTEBOOK_REPO} at {ref}")
     if tree.get("truncated"):
         raise ScanError(f"{NOTEBOOK_REPO} file list at {ref} came back truncated")
     return {t["path"] for t in tree["tree"]}
+
+
+def split_ref(ref: str, path: str, known: Dict[str, Optional[Set[str]]]):
+    """Return (ref, path, files) for a link, moving the ref/path boundary.
+
+    A URL says ``blob/<ref>/<path>`` with nothing marking where one ends, so a
+    branch with a slash in it - ``blob/feature/demo/x.ipynb`` - parses as the
+    ref ``feature``. Candidates are tried longest-ref-last: the common case,
+    ``master``, resolves on the first request and is cached.
+    """
+    parts = path.split("/")
+    for i in range(len(parts)):
+        candidate = "/".join([ref] + parts[:i])
+        if candidate not in known:
+            known[candidate] = notebook_paths(candidate)
+        files = known[candidate]
+        if files is not None:
+            return candidate, "/".join(parts[i:]), files
+    raise ScanError(f"no such ref in {NOTEBOOK_REPO}: {ref} (from {ref}/{path})")
 
 
 def space_stage(space_id: str) -> str:
@@ -164,14 +190,13 @@ def scan() -> List[str]:
             raise ScanError(f"cannot read {name}: {e}") from e
     notebooks, spaces = find_links(texts)
     broken = []
-    known: Dict[str, Set[str]] = {}
+    known: Dict[str, Optional[Set[str]]] = {}  # one request per ref, not per link
     for ref, path in sorted(notebooks):
-        if ref not in known:  # one request per ref, however many links use it
-            known[ref] = notebook_paths(ref)
-        if path not in known[ref]:
+        real_ref, real_path, files = split_ref(ref, path, known)
+        if real_path not in files:
             where = ", ".join(sorted(notebooks[(ref, path)]))
-            at = "" if ref == "master" else f" at {ref}"
-            broken.append(f"notebook gone{at}: {path}  (linked from {where})")
+            at = "" if real_ref == "master" else f" at {real_ref}"
+            broken.append(f"notebook gone{at}: {real_path}  (linked from {where})")
     for space_id in sorted(spaces):
         stage = space_stage(space_id)
         if stage in BROKEN_STAGES:
@@ -207,6 +232,29 @@ def self_check() -> None:
     assert spaces == {"espnet/TTS": {"README.md"}}, spaces
     both = find_links({"a.md": text, "b.md": text})[1]["espnet/TTS"]
     assert both == {"a.md", "b.md"}, both
+
+    # the ref/path boundary, against a repository where only "feature/demo"
+    # exists: the first candidate 404s and the second resolves
+    seen = []
+
+    def fake_paths(ref):
+        seen.append(ref)
+        return {"x.ipynb"} if ref == "feature/demo" else None
+
+    global notebook_paths
+    real, notebook_paths = notebook_paths, fake_paths
+    try:
+        got = split_ref("feature", "demo/x.ipynb", {})
+        assert got == ("feature/demo", "x.ipynb", {"x.ipynb"}), got
+        assert seen == ["feature", "feature/demo"], seen
+        try:
+            split_ref("nope", "x.ipynb", {})
+        except ScanError as e:
+            assert "no such ref" in str(e), e
+        else:  # pragma: no cover - the raise above is the expected path
+            raise AssertionError("a ref that does not exist must fail the scan")
+    finally:
+        notebook_paths = real
     print("self-check ok")
 
 
