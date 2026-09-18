@@ -66,24 +66,31 @@ class ScanError(RuntimeError):
     """The scan could not be completed, which is not the same as a broken link."""
 
 
-def documentation_files() -> List[str]:
-    """Tracked files that point people at a demo: docs and the shell scripts.
-
-    A script's help text sends people to demos as readily as a README does -
-    utils/synth_wav.sh did, with a link that had rotted, until this PR
-    removed the script itself as ESPnet1 residue.
-    """
+def _git(*args: str, cwd: Optional[str] = None) -> str:
     try:
         out = subprocess.run(
-            ["git", "ls-files", "*.md", "*.sh"],
-            capture_output=True,
-            text=True,
-            check=True,
+            ["git", *args], capture_output=True, text=True, check=True, cwd=cwd
         )
     except (OSError, subprocess.CalledProcessError) as e:
         # not "nothing is broken": the scan never looked
-        raise ScanError(f"cannot list tracked documentation files: {e}") from e
-    return [p for p in out.stdout.split("\n") if p]
+        raise ScanError(f"git {' '.join(args)} failed: {e}") from e
+    return out.stdout
+
+
+def documentation_files() -> Tuple[str, List[str]]:
+    """The repository root, and the tracked files that point people at a demo.
+
+    Docs and shell scripts both do: utils/synth_wav.sh sent beginners to a
+    Colab notebook from its help text, with a link that had rotted like the
+    rest. Paths come from the root rather than the working directory, so
+    running this from a subdirectory scans the whole repository instead of
+    quietly reporting that the few files below it are fine.
+    """
+    root = _git("rev-parse", "--show-toplevel").strip()
+    if not root:
+        raise ScanError("not inside a git repository")
+    listing = _git("ls-files", "--full-name", "*.md", "*.sh", cwd=root)
+    return root, [p for p in listing.split("\n") if p]
 
 
 def find_links(
@@ -101,8 +108,14 @@ def find_links(
 
 
 def _get_json(url: str):
+    request = urllib.request.Request(url)
+    token = os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")
+    if token and url.startswith("https://api.github.com/"):
+        # unauthenticated GitHub allows 60 requests an hour per address, which
+        # a shared runner can exhaust; the workflow's own token lifts that
+        request.add_header("Authorization", f"Bearer {token}")
     try:
-        with urllib.request.urlopen(url, timeout=TIMEOUT) as r:
+        with urllib.request.urlopen(request, timeout=TIMEOUT) as r:
             return json.load(r)
     except urllib.error.HTTPError as e:
         if e.code == 404:
@@ -136,22 +149,38 @@ def notebook_paths(ref: str) -> Optional[Set[str]]:
     return {t["path"] for t in tree["tree"]}
 
 
-def split_ref(ref: str, path: str, known: Dict[str, Optional[Set[str]]]):
+def split_ref(
+    ref: str,
+    path: str,
+    known: Dict[str, Optional[Set[str]]],
+    fetch=None,
+):
     """Return (ref, path, files) for a link, moving the ref/path boundary.
 
     A URL says ``blob/<ref>/<path>`` with nothing marking where one ends, so a
     branch with a slash in it - ``blob/feature/demo/x.ipynb`` - parses as the
-    ref ``feature``. Candidates are tried longest-ref-last: the common case,
-    ``master``, resolves on the first request and is cached.
+    ref ``feature``. The split that finds the file wins, so a ref which merely
+    exists cannot make a live notebook look gone; failing that, the first ref
+    that resolves is used, and the file is reported missing there. ``master``
+    costs one request and is cached across links.
     """
+    fetch = fetch or notebook_paths
     parts = path.split("/")
+    first = None
     for i in range(len(parts)):
         candidate = "/".join([ref] + parts[:i])
         if candidate not in known:
-            known[candidate] = notebook_paths(candidate)
+            known[candidate] = fetch(candidate)
         files = known[candidate]
-        if files is not None:
-            return candidate, "/".join(parts[i:]), files
+        if files is None:
+            continue
+        rest = "/".join(parts[i:])
+        if rest in files:  # this is the split the link meant
+            return candidate, rest, files
+        if first is None:  # a ref that exists but does not hold the file
+            first = (candidate, rest, files)
+    if first is not None:
+        return first
     raise ScanError(f"no such ref in {NOTEBOOK_REPO}: {ref} (from {ref}/{path})")
 
 
@@ -168,11 +197,13 @@ def space_stage(space_id: str) -> str:
 
 
 def scan() -> List[str]:
+    root, names = documentation_files()
     texts = {}
-    for name in documentation_files():
-        if os.path.islink(name):
+    for name in names:
+        full = os.path.join(root, name)
+        if os.path.islink(full):
             try:
-                os.stat(name)  # follows the link
+                os.stat(full)  # follows the link
             except OSError as e:
                 # three tracked scripts under egs2 are symlinks whose target is
                 # not in the repository; they hold no text to scan here. Any
@@ -182,7 +213,7 @@ def scan() -> List[str]:
                     raise ScanError(f"cannot read {name}: {e}") from e
                 continue
         try:
-            with open(name, encoding="utf-8") as f:
+            with open(full, encoding="utf-8") as f:
                 texts[name] = f.read()
         except (OSError, UnicodeDecodeError) as e:
             # a file skipped here could be the one holding the broken link, and
@@ -241,20 +272,26 @@ def self_check() -> None:
         seen.append(ref)
         return {"x.ipynb"} if ref == "feature/demo" else None
 
-    global notebook_paths
-    real, notebook_paths = notebook_paths, fake_paths
+    got = split_ref("feature", "demo/x.ipynb", {}, fetch=fake_paths)
+    assert got == ("feature/demo", "x.ipynb", {"x.ipynb"}), got
+    assert seen == ["feature", "feature/demo"], seen
+
+    # a ref that exists but does not hold the file must not hide a split that
+    # does: "master" resolves first, and the file lives on "master/ESPnet2"
+    trees = {"master": {"other.ipynb"}, "master/ESPnet2": {"x.ipynb"}}
+    got = split_ref("master", "ESPnet2/x.ipynb", {}, fetch=trees.get)
+    assert got == ("master/ESPnet2", "x.ipynb", {"x.ipynb"}), got
+
+    # when no split holds the file, it is reported against the ref that exists
+    got = split_ref("master", "gone.ipynb", {}, fetch={"master": {"a.ipynb"}}.get)
+    assert got == ("master", "gone.ipynb", {"a.ipynb"}), got
+
     try:
-        got = split_ref("feature", "demo/x.ipynb", {})
-        assert got == ("feature/demo", "x.ipynb", {"x.ipynb"}), got
-        assert seen == ["feature", "feature/demo"], seen
-        try:
-            split_ref("nope", "x.ipynb", {})
-        except ScanError as e:
-            assert "no such ref" in str(e), e
-        else:  # pragma: no cover - the raise above is the expected path
-            raise AssertionError("a ref that does not exist must fail the scan")
-    finally:
-        notebook_paths = real
+        split_ref("nope", "x.ipynb", {}, fetch=lambda ref: None)
+    except ScanError as e:
+        assert "no such ref" in str(e), e
+    else:  # pragma: no cover - the raise above is the expected path
+        raise AssertionError("a ref that does not exist must fail the scan")
     print("self-check ok")
 
 

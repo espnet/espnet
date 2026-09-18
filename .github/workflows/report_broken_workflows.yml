@@ -67,6 +67,10 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TITLE: "CI: workflows failing where no pull request shows it"
         run: |
+          # pipefail, because `gh issue list | head -1` otherwise reports
+          # head's status: a failed lookup would leave "existing" empty and
+          # this step would file a second issue.
+          set -euo pipefail
           {
             echo "Maintained by \`.github/workflows/report_broken_workflows.yml\`."
             echo "Edited in place each day; close it once the runs are green."
@@ -93,6 +97,9 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TITLE: "CI: workflows failing where no pull request shows it"
         run: |
+          # pipefail here too: a failed lookup must not read as "no issue
+          # open", which would leave a stale report behind.
+          set -euo pipefail
           existing=$(gh issue list --state open --search "$TITLE in:title" \
             --json number,title \
             --jq ".[] | select(.title == \"$TITLE\") | .number" | head -1)

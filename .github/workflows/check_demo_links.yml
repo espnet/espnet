@@ -44,6 +44,10 @@ jobs:
 
       - name: Look for demo links that no longer work
         id: scan
+        env:
+          # read-only here, and only to lift GitHub's unauthenticated rate
+          # limit on the notebook repository's file list
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # pipefail, because `python3 ... | tee` otherwise reports tee's
           # status. Status 2 means the scan could not reach an API, which must
