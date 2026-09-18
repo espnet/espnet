@@ -46,6 +46,7 @@ MODULES = [
     "espnet2.bin.cls_inference",
     "espnet2.bin.gan_codec_inference",
     "espnet2.bin.uasr_inference",
+    "espnet2.bin.cli",
     "espnet2.bin.mcp_server",
 ]
 

@@ -89,6 +89,7 @@ dependencies = [
 Homepage = "http://github.com/espnet/espnet"
 
 [project.scripts]
+espnet = "espnet2.bin.cli:main"
 espnet-mcp = "espnet2.bin.mcp_server:main"
 
 [build-system]

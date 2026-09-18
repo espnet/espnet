@@ -141,7 +141,22 @@ less than `master` does. What each column actually gets:
 
 ## Quick start
 
-**Run a pretrained model** — any model from the [ESPnet Hugging Face organization](https://huggingface.co/espnet):
+**From the terminal** — no code, on any audio file:
+
+```sh
+pip install espnet
+espnet asr audio.wav                       # transcribe, detecting the language
+espnet translate audio.wav --to eng        # speech in, English text out
+espnet tts "Hello from ESPnet" -o out.wav
+espnet enhance noisy.wav -o clean.wav
+espnet models                              # the default model of each command
+```
+
+Each command takes `--model <tag>` for any model in the organization that suits
+it, and `--device cuda`. There is a hosted version of the first one:
+[the OWSM-CTC v4 Space](https://huggingface.co/spaces/espnet/owsm-ctc-v4).
+
+**From Python** — any model from the [ESPnet Hugging Face organization](https://huggingface.co/espnet):
 
 ```python
 from espnet2.bin.s2t_inference_ctc import Speech2TextGreedySearch
