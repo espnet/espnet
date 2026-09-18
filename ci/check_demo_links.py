@@ -22,11 +22,13 @@ Exit status: 0 nothing broken, 1 something broken, 2 the scan itself failed
 
 import argparse
 import errno
+import http.client
 import json
 import os
 import re
 import subprocess
 import sys
+import traceback
 import urllib.error
 import urllib.request
 from collections import defaultdict
@@ -105,7 +107,13 @@ def _get_json(url: str):
         if e.code == 404:
             return None
         raise ScanError(f"{url}: HTTP {e.code}") from e
-    except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as e:
+    except (
+        urllib.error.URLError,
+        TimeoutError,
+        json.JSONDecodeError,
+        # a truncated response raises IncompleteRead, an HTTPException
+        http.client.HTTPException,
+    ) as e:
         raise ScanError(f"{url}: {e}") from e
 
 
@@ -208,6 +216,13 @@ def main() -> int:
         broken = scan()
     except ScanError as e:
         print(f"scan failed: {e}", file=sys.stderr)
+        return 2
+    except Exception:
+        # Anything unforeseen is still "the scan did not run": exiting 1 here
+        # would tell the workflow that the links are broken, and it would file
+        # a report naming none of them.
+        traceback.print_exc()
+        print("scan failed: unexpected error", file=sys.stderr)
         return 2
     for line in broken:
         print(line)
