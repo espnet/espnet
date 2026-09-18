@@ -58,8 +58,9 @@ class ScanError(RuntimeError):
 def documentation_files() -> List[str]:
     """Tracked files that point people at a demo: docs and the shell scripts.
 
-    utils/synth_wav.sh sends beginners to a Colab notebook in its help text,
-    and that link had rotted with the rest.
+    A script's help text sends people to demos as readily as a README does -
+    utils/synth_wav.sh did, with a link that had rotted, until this PR
+    removed the script itself as ESPnet1 residue.
     """
     try:
         out = subprocess.run(
