@@ -19,7 +19,10 @@ from espnet2.bin.s2t_inference_ctc import Speech2TextGreedySearch
 
 try:  # ZeroGPU's decorator exists only on Hugging Face's runners
     import spaces
+
+    ZERO_GPU = True
 except ImportError:  # running locally: the decorator does nothing
+    ZERO_GPU = False
 
     class spaces:  # noqa: N801 - stands in for the module
         @staticmethod
@@ -30,7 +33,15 @@ except ImportError:  # running locally: the decorator does nothing
 SAMPLE_RATE = 16000
 WINDOW_SECS = 30  # what OWSM is trained on; longer audio is decoded in chunks
 MODEL_TAG = os.environ.get("OWSM_MODEL_TAG", "espnet/owsm_ctc_v4_1B")
-DEVICE = os.environ.get("DEVICE") or ("cuda" if torch.cuda.is_available() else "cpu")
+# On ZeroGPU the GPU is attached only while a @spaces.GPU function runs, so
+# torch.cuda.is_available() is False here and asking it would pin the models to
+# the CPU on the very hardware bought to run them.
+if os.environ.get("DEVICE"):
+    DEVICE = os.environ["DEVICE"]
+elif ZERO_GPU or os.environ.get("SPACES_ZERO_GPU"):
+    DEVICE = "cuda"
+else:
+    DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 # ISO 639-3 to English, for the menu. The codes themselves come from the
 # loaded model, so a checkpoint covering more languages needs no edit here;
