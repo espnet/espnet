@@ -15,12 +15,15 @@ writing Python. These subcommands take a file and print, or write, the
 result.
 
 Each downloads its model on first use and keeps it in the espnet_model_zoo
-cache; `--model` takes any tag from https://huggingface.co/espnet.
+cache. `--model` takes any tag from https://huggingface.co/espnet that suits
+the command: a command loads one task's inference class, so a TTS tag given
+to `espnet asr` is reported rather than half-loaded.
 """
 
 import argparse
 import os
 import sys
+from pathlib import Path
 from typing import List, Optional
 
 # One flagship per task, so that `espnet asr x.wav` works with no arguments.
@@ -57,8 +60,8 @@ def _load_audio(path: str):
         speech, rate = sf.read(path, dtype="float32", always_2d=False)
     except (OSError, RuntimeError) as e:
         raise CLIError(f"cannot read {path}: {e}") from e
-    if speech.ndim > 1:  # mix down: these models take one channel
-        speech = speech.mean(axis=1)
+    # channels are kept: SeparateSpeech takes (Batch, Nsamples [, Channels])
+    # and a beamformer is worthless without them
     return speech, rate
 
 
@@ -69,11 +72,24 @@ def _write_audio(path: str, wave, rate: int) -> None:
     print(f"wrote {path}", file=sys.stderr)
 
 
+def _build(loader, args, task: str):
+    """Load a published model, or say why this tag cannot serve this command."""
+    try:
+        return loader.from_pretrained(args.model, device=args.device)
+    except TypeError as e:
+        # the downloader hands each task's own keys to the constructor, so a
+        # tag from another task arrives as unexpected arguments
+        raise CLIError(
+            f"{args.model} does not look like a model for `espnet {task}` ({e}). "
+            f"Pass --model with a {task} model; `espnet models` names the default."
+        ) from e
+
+
 def cmd_asr(args) -> int:
     _require_file(args.audio)
     from espnet2.bin.s2t_inference_ctc import Speech2TextGreedySearch
 
-    s2t = Speech2TextGreedySearch.from_pretrained(args.model, device=args.device)
+    s2t = _build(Speech2TextGreedySearch, args, "asr")
     print(s2t.batch_decode(args.audio, lang_sym=f"<{args.language}>", task_sym="<asr>"))
     return 0
 
@@ -82,7 +98,7 @@ def cmd_translate(args) -> int:
     _require_file(args.audio)
     from espnet2.bin.s2t_inference_ctc import Speech2TextGreedySearch
 
-    s2t = Speech2TextGreedySearch.from_pretrained(args.model, device=args.device)
+    s2t = _build(Speech2TextGreedySearch, args, "translate")
     print(
         s2t.batch_decode(
             args.audio, lang_sym=f"<{args.language}>", task_sym=f"<st_{args.to}>"
@@ -91,28 +107,38 @@ def cmd_translate(args) -> int:
     return 0
 
 
+def _output_path(value: str) -> Path:
+    """The file to write, with the extension soundfile needs to pick a format."""
+    path = Path(value)
+    if not path.suffix:
+        raise CLIError(f"output needs a file extension, e.g. {value}.wav")
+    return path
+
+
 def cmd_tts(args) -> int:
     from espnet2.bin.tts_inference import Text2Speech
 
-    tts = Text2Speech.from_pretrained(args.model, device=args.device)
+    tts = _build(Text2Speech, args, "tts")
+    path = _output_path(args.output)
     output = tts(args.text)
-    _write_audio(args.output, output["wav"].view(-1).cpu().numpy(), tts.fs)
+    _write_audio(str(path), output["wav"].view(-1).cpu().numpy(), tts.fs)
     return 0
 
 
 def cmd_enhance(args) -> int:
     _require_file(args.audio)
+    output = _output_path(args.output)
     from espnet2.bin.enh_inference import SeparateSpeech
 
     speech, rate = _load_audio(args.audio)
-    enh = SeparateSpeech.from_pretrained(args.model, device=args.device)
-    waves = enh(speech[None, :], fs=rate)
+    enh = _build(SeparateSpeech, args, "enhance")
+    waves = enh(speech[None, ...], fs=rate)
     if len(waves) == 1:
-        _write_audio(args.output, waves[0][0], rate)
+        _write_audio(str(output), waves[0][0], rate)
     else:  # a separation model returns one wave per speaker
-        stem, _, suffix = args.output.rpartition(".")
         for i, wave in enumerate(waves, start=1):
-            _write_audio(f"{stem}.spk{i}.{suffix}", wave[0], rate)
+            speaker = output.with_name(f"{output.stem}.spk{i}{output.suffix}")
+            _write_audio(str(speaker), wave[0], rate)
     return 0
 
 
@@ -121,8 +147,8 @@ def cmd_models(args) -> int:
     for task, tag in DEFAULT_MODELS.items():
         print(f"  {task:10} {tag}")
     print(
-        "\nEvery model in https://huggingface.co/espnet works as a tag."
-        "\nThe first run downloads one; it is cached afterwards."
+        "\nAny tag from https://huggingface.co/espnet that suits the command"
+        "\nworks with --model. The first run downloads it; it is cached after."
     )
     return 0
 
@@ -138,7 +164,11 @@ def build_parser() -> argparse.ArgumentParser:
 
     def add(name, help_text, func):
         p = sub.add_parser(name, help=help_text)
-        p.add_argument("--model", default=DEFAULT_MODELS.get(name), help="model tag")
+        p.add_argument(
+            "--model",
+            default=DEFAULT_MODELS.get(name),
+            help=f"tag of a model for this task (default: {DEFAULT_MODELS.get(name)})",
+        )
         p.add_argument("--device", default="cpu", help="cpu, cuda, mps (default: cpu)")
         p.set_defaults(func=func)
         return p
