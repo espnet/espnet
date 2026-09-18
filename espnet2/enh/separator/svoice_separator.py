@@ -1,6 +1,6 @@
 import math
 from collections import OrderedDict
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Union
 
 import torch
 import torch.nn as nn
@@ -147,7 +147,9 @@ class SVoiceSeparator(AbsSeparator):
         input: torch.Tensor,
         ilens: torch.Tensor,
         additional: Optional[Dict] = None,
-    ) -> Tuple[List[torch.Tensor], torch.Tensor, OrderedDict]:
+    ) -> Tuple[
+        Union[List[torch.Tensor], List[List[torch.Tensor]]], torch.Tensor, OrderedDict
+    ]:
         """Forward.
 
         Args:
