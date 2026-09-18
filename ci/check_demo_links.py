@@ -258,9 +258,11 @@ def check_space_card(path: str, text: str, root: str = ".") -> List[str]:
     if isinstance(app, str) and app.strip():
         # the directory uploaded as the Space is the Space's root, so app_file
         # has to stay inside it
-        directory = (Path(root) / path).parent
+        directory = (Path(root) / path).parent.resolve()
         target = (directory / app).resolve()
-        if not str(target).startswith(str(directory.resolve())):
+        # is_relative_to, not a string prefix: a sibling directory whose name
+        # starts the same way - demo-copy beside demo - passes a prefix test
+        if not target.is_relative_to(directory):
             problems.append(f"{path}: app_file {app} points outside the Space")
         elif not target.exists():
             problems.append(f"{path}: app_file {app} is not next to it")
@@ -385,6 +387,12 @@ def self_check() -> None:
     assert check_space_card("egs2/x/demo/README.md", escaping) == [
         "egs2/x/demo/README.md: app_file ../outside.py points outside the Space"
     ], check_space_card("egs2/x/demo/README.md", escaping)
+
+    # a sibling whose name begins with this directory's name is outside it too
+    sibling = "---\ntitle: x\nsdk: gradio\napp_file: ../demo-copy/app.py\n---\n"
+    assert check_space_card("egs2/x/demo/README.md", sibling) == [
+        "egs2/x/demo/README.md: app_file ../demo-copy/app.py points outside the Space"
+    ], check_space_card("egs2/x/demo/README.md", sibling)
 
     # a non-string app_file is reported, not a TypeError that ends the scan
     weird = "---\ntitle: x\nsdk: gradio\napp_file: true\n---\n"
