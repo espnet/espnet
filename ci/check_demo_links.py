@@ -108,9 +108,12 @@ def scan() -> List[str]:
     texts = {}
     for name in markdown_files():
         try:
-            texts[name] = open(name, encoding="utf-8").read()
-        except (OSError, UnicodeDecodeError):
-            continue
+            with open(name, encoding="utf-8") as f:
+                texts[name] = f.read()
+        except (OSError, UnicodeDecodeError) as e:
+            # a file skipped here could be the one holding the broken link, and
+            # the run would then close the report issue
+            raise ScanError(f"cannot read {name}: {e}") from e
     notebooks, spaces = find_links(texts)
     broken = []
     known = notebook_paths()
