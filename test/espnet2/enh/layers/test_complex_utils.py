@@ -195,3 +195,14 @@ def test_complex_norm_keeps_epsilon_for_legacy_input_only():
     # the plain norm
     assert torch.allclose(complex_norm(legacy), torch.full((2,), EPS**0.5))
     assert torch.equal(complex_norm(zero), torch.zeros(2))
+
+
+@pytest.mark.parametrize("dtype", [torch.bfloat16, torch.float16])
+def test_to_complex_widens_half_precision_pairs(dtype):
+    from espnet2.enh.layers.complex_utils import to_complex
+
+    pair = torch.randn(2, 3, 2).to(dtype)
+    out = to_complex(pair)
+    assert out.dtype == torch.complex64
+    assert torch.equal(out.real, pair[..., 0].float())
+    assert torch.equal(out.imag, pair[..., 1].float())

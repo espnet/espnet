@@ -67,6 +67,9 @@ def to_complex(c) -> torch.Tensor:
         return complex_tensor(c.real, c.imag)
     if torch.is_complex(c):
         return c
+    if c.dtype not in (torch.float32, torch.float64):
+        # view_as_complex has no half-precision view; widen the parts instead
+        return complex_tensor(c[..., 0], c[..., 1])
     return torch.view_as_complex(c)
 
 

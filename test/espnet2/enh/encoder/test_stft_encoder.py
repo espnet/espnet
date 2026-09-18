@@ -113,7 +113,7 @@ def test_stft_encoder_widens_half_precision_input(dtype):
     x = torch.randn(2, 400).to(dtype)
     spec, flens = enc(x, torch.tensor([400, 400]))
     assert spec.dtype == torch.complex64
-    frame, _ = enc.forward_streaming(x[:, :64])
+    frame = enc.forward_streaming(x[:, :64])
     assert frame.dtype == torch.complex64
 
 

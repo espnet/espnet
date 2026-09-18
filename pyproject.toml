@@ -163,7 +163,7 @@ enh = [
   # fast-bss-eval 0.1.3 imports torch_complex unconditionally in its torch
   # backend and does not declare it; without it the package silently falls
   # back to a stub that has no si_sdr_loss. ESPnet itself no longer uses it.
-  "torch_complex",
+  "torch_complex>=0.4.4",
 ]
 
 asr2 = [
