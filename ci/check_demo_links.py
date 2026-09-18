@@ -133,7 +133,12 @@ def space_stage(space_id: str) -> str:
     d = _get_json(f"https://huggingface.co/api/spaces/{space_id}")
     if d is None:
         return "DELETED"
-    return (d.get("runtime") or {}).get("stage") or "UNKNOWN"
+    runtime = d.get("runtime")
+    if not isinstance(runtime, dict) or not runtime.get("stage"):
+        # the Space exists and its state could not be read; saying so beats
+        # inventing a stage that is not in BROKEN_STAGES and passing it
+        raise ScanError(f"{space_id}: the Hub's answer carries no runtime stage")
+    return runtime["stage"]
 
 
 def scan() -> List[str]:
