@@ -116,7 +116,10 @@ def stack(seq: Sequence[torch.Tensor], *args, **kwargs) -> torch.Tensor:
 def complex_norm(c: torch.Tensor, dim=-1, keepdim=False) -> torch.Tensor:
     if not is_complex(c):
         raise TypeError("Input is not a complex tensor.")
-    return torch.norm(to_complex(c), dim=dim, keepdim=keepdim)
+    norm = torch.norm(to_complex(c), dim=dim, keepdim=keepdim)
+    # torch_complex callers got sqrt(sum|c|^2 + EPS); keep that for them so an
+    # all-zero legacy input still returns sqrt(EPS) rather than 0
+    return torch.sqrt(norm.square() + EPS) if _is_legacy(c) else norm
 
 
 def _mixed(op, a: torch.Tensor, b: torch.Tensor, *args) -> torch.Tensor:

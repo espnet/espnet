@@ -121,6 +121,7 @@ class RNNSeparator(AbsSeparator):
         return self._num_spk
 
     def forward_streaming(self, input_frame: torch.Tensor, states=None):
+        input_frame = as_native(input_frame)
         # input_frame # B, 1, N
 
         # if complex spectrum,

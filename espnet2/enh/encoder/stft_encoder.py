@@ -106,10 +106,8 @@ class STFTEncoder(AbsEncoder):
             spectrum = spectrum.to(dtype=input.dtype)
         else:
             spectrum, flens = self.stft(input, ilens)
-        if self.use_builtin_complex:
-            spectrum = torch.complex(spectrum[..., 0], spectrum[..., 1])
-        else:
-            spectrum = complex_tensor(spectrum[..., 0], spectrum[..., 1])
+        # complex_tensor widens bfloat16 parts, which torch.complex refuses
+        spectrum = complex_tensor(spectrum[..., 0], spectrum[..., 1])
 
         self._reset_config()
 
@@ -166,8 +164,6 @@ class STFTEncoder(AbsEncoder):
             torch.fft.rfft(windowed) if self.stft.onesided else torch.fft.fft(windowed)
         )
         feature = feature.unsqueeze(1)
-        if not self.use_builtin_complex:
-            feature = complex_tensor(feature.real, feature.imag)
 
         feature = self.spec_transform_func(feature)
 

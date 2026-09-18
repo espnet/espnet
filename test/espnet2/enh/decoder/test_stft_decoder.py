@@ -152,3 +152,17 @@ def test_STFTDecoder_reconfig_for_fs():
 
     x = torch.rand(1, 32, 257, dtype=torch.complex64)
     y_16k, _ = decoder(x, ilens * 2)
+
+
+def test_stft_decoder_accepts_legacy_complextensor_spectrum():
+    torch_complex = pytest.importorskip("torch_complex")
+    torch.random.manual_seed(0)
+    x = torch.randn(2, 400)
+    enc = STFTEncoder(n_fft=64, hop_length=16)
+    dec = STFTDecoder(n_fft=64, hop_length=16)
+    spec, flens = enc(x, torch.tensor([400, 400]))
+    legacy = torch_complex.tensor.ComplexTensor(spec.real, spec.imag)
+    # the decoder converts a legacy spectrum and gives the same waveform
+    wav_native, _ = dec(spec, flens)
+    wav_legacy, _ = dec(legacy, flens)
+    assert torch.allclose(wav_native, wav_legacy)

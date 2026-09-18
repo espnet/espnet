@@ -159,3 +159,16 @@ def test_gev_phase_correction():
     norm = gev_phase_correction(mat)
     norm_th = gev_phase_correction(mat_th)
     assert np.allclose(norm.numpy(), norm_th.numpy())
+
+
+def test_signal_framing_accepts_legacy_complextensor():
+    torch_complex = pytest.importorskip("torch_complex")
+    from espnet2.enh.layers.beamformer import signal_framing
+
+    torch.random.manual_seed(0)
+    spec = torch.complex(torch.randn(2, 20, 33), torch.randn(2, 20, 33))
+    legacy = torch_complex.tensor.ComplexTensor(spec.real, spec.imag)
+    framed = signal_framing(legacy, 3, 1, 1)
+    # the legacy form is converted at the boundary and a native tensor comes back
+    assert torch.is_complex(framed)
+    assert torch.allclose(framed, signal_framing(spec, 3, 1, 1))

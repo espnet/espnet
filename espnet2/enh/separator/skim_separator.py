@@ -130,6 +130,7 @@ class SkiMSeparator(AbsSeparator):
         return masked, ilens, others
 
     def forward_streaming(self, input_frame: torch.Tensor, states=None):
+        input_frame = as_native(input_frame)
         if is_complex(input_frame):
             feature = abs(input_frame)
         else:

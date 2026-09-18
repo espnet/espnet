@@ -66,7 +66,7 @@ class DNN_WPE(torch.nn.Module):
         Union[torch.Tensor, List[torch.Tensor]],
         torch.LongTensor,
         Optional[Union[torch.Tensor, List[torch.Tensor]]],
-        Optional[torch.Tensor],
+        Optional[List[torch.Tensor]],
     ]:
         """DNN_WPE forward function.
 

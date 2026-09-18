@@ -20,6 +20,19 @@ except ImportError:
     fast_bss_eval = None
 
 
+def _require_fast_bss_eval_torch():
+    if fast_bss_eval is None:
+        raise RuntimeError("fast_bss_eval is not installed: pip install espnet[enh]")
+    # fast_bss_eval swaps in a stub without the *_loss functions when its torch
+    # backend fails to import (0.1.3 needs torch_complex for that); fail here
+    # with the cause instead of an AttributeError inside forward().
+    if not getattr(fast_bss_eval, "has_torch", True):
+        raise RuntimeError(
+            "fast_bss_eval is installed but its torch backend did not import "
+            "(fast-bss-eval 0.1.3 needs torch_complex): pip install espnet[enh]"
+        )
+
+
 class TimeDomainLoss(AbsEnhLoss, ABC):
     """Base class for all time-domain Enhancement loss modules."""
 
@@ -189,10 +202,7 @@ class SDRLoss(TimeDomainLoss):
             is_noise_loss=is_noise_loss,
             is_dereverb_loss=is_dereverb_loss,
         )
-        if fast_bss_eval is None:
-            raise RuntimeError(
-                "fast_bss_eval is not installed: pip install espnet[enh]"
-            )
+        _require_fast_bss_eval_torch()
 
         self.filter_length = filter_length
         self.use_cg_iter = use_cg_iter
@@ -259,10 +269,7 @@ class SISNRLoss(TimeDomainLoss):
             is_noise_loss=is_noise_loss,
             is_dereverb_loss=is_dereverb_loss,
         )
-        if fast_bss_eval is None:
-            raise RuntimeError(
-                "fast_bss_eval is not installed: pip install espnet[enh]"
-            )
+        _require_fast_bss_eval_torch()
 
         self.clamp_db = clamp_db
         self.zero_mean = zero_mean
