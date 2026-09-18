@@ -21,7 +21,14 @@ class GraniteSpeechModel(AbsHFTrainingWrapper):
 class GraniteSpeechInferenceSession(AbsHFInferenceWrapper):
     model_class = AutoModelForSpeechSeq2Seq
 
-    def __init__(self, model_tag_or_path: str, user_prompt: str, max_new_tokens: int, num_beams: int, **kwargs):
+    def __init__(
+        self,
+        model_tag_or_path: str,
+        user_prompt: str,
+        max_new_tokens: int,
+        num_beams: int,
+        **kwargs,
+    ):
         super().__init__(model_tag_or_path, **kwargs)
         self.tokenizer = self.processor.tokenizer
 
@@ -40,7 +47,10 @@ class GraniteSpeechInferenceSession(AbsHFInferenceWrapper):
             self.model.device
         )
         outputs = self.model.generate(
-            **inputs, max_new_tokens=self.max_new_tokens, do_sample=False, num_beams=self.num_beams
+            **inputs,
+            max_new_tokens=self.max_new_tokens,
+            do_sample=False,
+            num_beams=self.num_beams,
         )
 
         num_input_tokens = inputs["input_ids"].shape[-1]
