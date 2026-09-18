@@ -5,8 +5,10 @@ subcommand imports, so what is checked is the wiring: which class is asked
 for which tag, what it is called with, and what reaches the terminal.
 """
 
+import subprocess
 import sys
 import types
+from pathlib import Path
 
 import pytest
 
@@ -245,3 +247,122 @@ def test_multichannel_audio_keeps_its_channels(tmp_path):
     # reduce it to one
     assert speech.shape == (160, 3)
     assert rate == 16000
+
+
+# --- the command as a user runs it: a real process, no model downloaded ---
+
+
+def _run(*args):
+    """Invoke the console script's module the way the installed command does."""
+    return subprocess.run(
+        [sys.executable, "-m", "espnet2.bin.cli", *args],
+        capture_output=True,
+        text=True,
+        cwd=Path(cli.__file__).parents[2],
+    )
+
+
+def test_help_runs_as_a_process_and_exits_zero():
+    r = _run("--help")
+    assert r.returncode == 0
+    for command in ("asr", "translate", "tts", "enhance", "models"):
+        assert command in r.stdout
+
+
+def test_models_runs_as_a_process_and_names_the_defaults():
+    r = _run("models")
+    assert r.returncode == 0
+    for tag in cli.DEFAULT_MODELS.values():
+        assert tag in r.stdout
+
+
+def test_a_user_error_is_one_line_and_exits_one():
+    r = _run("asr", "/nowhere/missing.wav")
+    assert r.returncode == 1
+    assert r.stdout == ""
+    assert r.stderr.strip().endswith("no such file: /nowhere/missing.wav")
+    assert "Traceback" not in r.stderr
+
+
+def test_an_unknown_subcommand_exits_two():
+    r = _run("frobnicate")
+    assert r.returncode == 2
+    assert "invalid choice" in r.stderr
+
+
+def test_an_unknown_device_is_refused_by_the_parser():
+    r = _run("asr", "a.wav", "--device", "banana")
+    assert r.returncode == 2
+    assert "unknown device" in r.stderr
+
+
+@pytest.mark.parametrize("device", ["cpu", "mps", "cuda", "cuda:1"])
+def test_the_devices_torch_understands_are_accepted(device):
+    assert cli._device(device) == device
+
+
+def test_a_write_failure_is_reported_like_the_others(monkeypatch, tmp_path, capsys):
+    import numpy as np
+    import torch
+
+    rec = _Recorder({"wav": torch.from_numpy(np.zeros(160, dtype=np.float32))})
+    _fake_module(monkeypatch, "espnet2.bin.tts_inference", "Text2Speech", rec)
+
+    assert cli.main(["tts", "hello", "-o", str(tmp_path / "gone" / "x.wav")]) == 1
+
+    assert "cannot write" in capsys.readouterr().err
+
+
+def test_tts_checks_the_output_before_fetching_a_model(monkeypatch, capsys):
+    def explode(*a, **k):  # pragma: no cover - not reached
+        raise AssertionError("fetched a model before checking the output path")
+
+    monkeypatch.setattr(cli, "_build", explode)
+
+    assert cli.main(["tts", "hello", "-o", "out"]) == 1
+
+    assert "file extension" in capsys.readouterr().err
+
+
+def test_only_an_unexpected_keyword_is_blamed_on_the_model(monkeypatch, tmp_path):
+    audio = tmp_path / "a.wav"
+    audio.write_bytes(b"")
+
+    class Bug:
+        def __init__(self, s2t_train_config=None, **kwargs):
+            pass
+
+        @staticmethod
+        def from_pretrained(model_tag=None, device=None, **kwargs):
+            raise TypeError("unsupported operand type(s) for +: 'int' and 'str'")
+
+    _fake_module(
+        monkeypatch, "espnet2.bin.s2t_inference_ctc", "Speech2TextGreedySearch", Bug
+    )
+
+    # a TypeError from inside the model must not be reported as "wrong model"
+    with pytest.raises(TypeError, match="unsupported operand"):
+        cli.main(["asr", str(audio)])
+
+
+def test_a_keyword_the_constructor_does_take_is_not_blamed_on_the_model(
+    monkeypatch, tmp_path
+):
+    audio = tmp_path / "a.wav"
+    audio.write_bytes(b"")
+
+    class Bug:
+        def __init__(self, device=None, **kwargs):
+            pass
+
+        @staticmethod
+        def from_pretrained(model_tag=None, device=None, **kwargs):
+            # raised from deeper inside, about an argument this class accepts
+            raise TypeError("f() got an unexpected keyword argument 'device'")
+
+    _fake_module(
+        monkeypatch, "espnet2.bin.s2t_inference_ctc", "Speech2TextGreedySearch", Bug
+    )
+
+    with pytest.raises(TypeError, match="'device'"):
+        cli.main(["asr", str(audio)])
