@@ -310,7 +310,7 @@ First time here? Read the [contribution guide](CONTRIBUTING.md).
 
 Demonstration
 - Real-time ASR demo with ESPnet2  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/ESPnet2/Demo/ASR/asr_realtime_demo.ipynb)
-- [Gradio](https://github.com/gradio-app/gradio) Web Demo on [Hugging Face Spaces](https://huggingface.co/docs/hub/spaces). Check out the [Web Demo](https://huggingface.co/spaces/akhaliq/espnet2_asr)
+- [Gradio](https://github.com/gradio-app/gradio) Web Demo on [Hugging Face Spaces](https://huggingface.co/docs/hub/spaces). Check out the [OWSM v4 demo](https://huggingface.co/spaces/espnet/OWSM_V4_Demo)
 - Streaming Transformer ASR [Local Demo](https://github.com/espnet/notebook/blob/master/ESPnet2/Demo/ASR/streaming_asr_demo.ipynb) with ESPnet2.
 
 #### TTS: Text-to-speech
@@ -343,7 +343,7 @@ Demonstration
 
 Demonstration
 - Real-time TTS demo with ESPnet2  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/ESPnet2/Demo/TTS/tts_realtime_demo.ipynb)
-- Integrated to [Hugging Face Spaces](https://huggingface.co/spaces) with [Gradio](https://github.com/gradio-app/gradio). See demo: [![Hugging Face Spaces](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-blue)](https://huggingface.co/spaces/akhaliq/ESPnet2-TTS)
+- Integrated to [Hugging Face Spaces](https://huggingface.co/spaces) with [Gradio](https://github.com/gradio-app/gradio). See demo: [![Hugging Face Spaces](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-blue)](https://huggingface.co/spaces/espnet/TTS)
 
 To train the neural vocoder, please check the following repositories:
 - [kan-bayashi/ParallelWaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN)
@@ -401,7 +401,6 @@ Demonstration
 Demonstration
 - Performing noisy spoken language understanding using a speech enhancement model followed by a spoken language understanding model.  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/14nCrJ05vJcQX0cJuXjbMVFWUHJ3Wfb6N?usp=sharing)
 - Performing two-pass spoken language understanding where the second pass model attends to both acoustic and semantic information.  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1p2cbGIPpIIcynuDl4ZVHDpmNPl8Nh_ci?usp=sharing)
-- Integrated to [Hugging Face Spaces](https://huggingface.co/spaces) with [Gradio](https://github.com/gradio-app/gradio). See SLU demo on multiple languages: [![Hugging Face Spaces](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-blue)](https://huggingface.co/spaces/Siddhant/ESPnet2-SLU)
 
 
 #### SUM: Speech Summarization
@@ -538,7 +537,7 @@ You can download pre-trained vocoders via `kan-bayashi/ParallelWaveGAN`.
 You can try the real-time demo in Google Colab.
 Please access the notebook from the following button and enjoy the real-time synthesis!
 
-- Real-time TTS demo with ESPnet2  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/espnet2_tts_realtime_demo.ipynb)
+- Real-time TTS demo with ESPnet2  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/ESPnet2/Demo/TTS/tts_realtime_demo.ipynb)
 
 English, Japanese, and Mandarin models are available in the demo.
 
