@@ -172,3 +172,15 @@ def test_signal_framing_accepts_legacy_complextensor():
     # the legacy form is converted at the boundary and a native tensor comes back
     assert torch.is_complex(framed)
     assert torch.allclose(framed, signal_framing(spec, 3, 1, 1))
+
+
+def test_gev_phase_correction_accepts_legacy_complextensor():
+    torch_complex = pytest.importorskip("torch_complex")
+    torch.random.manual_seed(0)
+    mat = torch.complex(torch.randn(2, 6, 3), torch.randn(2, 6, 3))
+    legacy = torch_complex.tensor.ComplexTensor(mat.real, mat.imag)
+    out = gev_phase_correction(legacy)
+    # a legacy vector is converted first; ComplexTensor.__mul__ would otherwise
+    # scale the real and imaginary parts independently
+    assert torch.is_complex(out)
+    assert torch.allclose(out, gev_phase_correction(mat))

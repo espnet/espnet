@@ -683,6 +683,7 @@ def gev_phase_correction(vector):
     Returns:
         w: Phase corrected beamforming vectors
     """
+    vector = as_native(vector)
     B, F, C = vector.shape
     correction = torch.empty_like(vector.real)
     for f in range(F):

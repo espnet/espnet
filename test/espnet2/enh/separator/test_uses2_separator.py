@@ -47,6 +47,8 @@ def test_uses_separator_forward_backward(
     x_lens = torch.tensor([18, 16], dtype=torch.long)
 
     output, flens, others = model(x, ilens=x_lens)
+    # a legacy ComplexTensor input must still come back native
+    assert torch.is_complex(output[0])
     assert len(output) == num_spk
     sum(output).abs().mean().backward()
 
