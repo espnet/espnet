@@ -8,7 +8,7 @@ sdk_version: 6.27.0
 app_file: app.py
 pinned: false
 license: apache-2.0
-short_description: Recognise, translate and prompt across 151 languages
+short_description: 151 languages in, 25 translation targets out, promptable
 tags:
   - espnet
   - owsm
