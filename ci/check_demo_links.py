@@ -22,6 +22,7 @@ Exit status: 0 nothing broken, 1 something broken, 2 the scan itself failed
 
 import argparse
 import json
+import os
 import re
 import subprocess
 import sys
@@ -53,14 +54,22 @@ class ScanError(RuntimeError):
     """The scan could not be completed, which is not the same as a broken link."""
 
 
-def markdown_files() -> List[str]:
+def documentation_files() -> List[str]:
+    """Tracked files that point people at a demo: docs and the shell scripts.
+
+    utils/synth_wav.sh sends beginners to a Colab notebook in its help text,
+    and that link had rotted with the rest.
+    """
     try:
         out = subprocess.run(
-            ["git", "ls-files", "*.md"], capture_output=True, text=True, check=True
+            ["git", "ls-files", "*.md", "*.sh"],
+            capture_output=True,
+            text=True,
+            check=True,
         )
     except (OSError, subprocess.CalledProcessError) as e:
         # not "nothing is broken": the scan never looked
-        raise ScanError(f"cannot list tracked markdown files: {e}") from e
+        raise ScanError(f"cannot list tracked documentation files: {e}") from e
     return [p for p in out.stdout.split("\n") if p]
 
 
@@ -111,7 +120,11 @@ def space_stage(space_id: str) -> str:
 
 def scan() -> List[str]:
     texts = {}
-    for name in markdown_files():
+    for name in documentation_files():
+        # three tracked scripts under egs2 are symlinks whose target is not in
+        # the repository; they hold no text to scan here
+        if os.path.islink(name) and not os.path.exists(name):
+            continue
         try:
             with open(name, encoding="utf-8") as f:
                 texts[name] = f.read()
