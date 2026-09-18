@@ -151,13 +151,13 @@ class SVoiceSeparator(AbsSeparator):
         """Forward.
 
         Args:
-            input (torch.Tensor or ComplexTensor): Encoded feature [B, T, N]
+            input (complex torch.Tensor): Encoded feature [B, T, N]
             ilens (torch.Tensor): input lengths [Batch]
             additional (Dict or None): other data included in model
                 NOTE: not used in this model
 
         Returns:
-            masked (List[Union(torch.Tensor, ComplexTensor)]): [(B, T, N), ...]
+            masked (List[torch.Tensor]): [(B, T, N), ...]
             ilens (torch.Tensor): (B,)
             others predicted data, e.g. masks: OrderedDict[
                 'mask_spk1': torch.Tensor(Batch, Frames, Freq),

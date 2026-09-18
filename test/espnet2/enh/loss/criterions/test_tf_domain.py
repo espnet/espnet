@@ -1,6 +1,5 @@
 import pytest
 import torch
-from torch_complex import ComplexTensor
 
 from espnet2.enh.loss.criterions.tf_domain import (
     FrequencyDomainAbsCoherence,
@@ -96,9 +95,9 @@ def test_tf_dpcl_loss_criterion_forward(loss_type):
     batch = 2
     inf = torch.rand(batch, 10 * 200, 40)
     ref_spec = [
-        ComplexTensor(torch.rand(batch, 10, 200), torch.rand(batch, 10, 200)),
-        ComplexTensor(torch.rand(batch, 10, 200), torch.rand(batch, 10, 200)),
-        ComplexTensor(torch.rand(batch, 10, 200), torch.rand(batch, 10, 200)),
+        torch.complex(torch.rand(batch, 10, 200), torch.rand(batch, 10, 200)),
+        torch.complex(torch.rand(batch, 10, 200), torch.rand(batch, 10, 200)),
+        torch.complex(torch.rand(batch, 10, 200), torch.rand(batch, 10, 200)),
     ]
 
     ref = [abs(r) for r in ref_spec]

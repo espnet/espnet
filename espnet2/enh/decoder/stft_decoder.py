@@ -1,6 +1,4 @@
 import torch
-import torch_complex
-from torch_complex.tensor import ComplexTensor
 
 from espnet2.enh.decoder.abs_decoder import AbsDecoder
 from espnet2.enh.layers.complex_utils import is_torch_complex_tensor
@@ -53,17 +51,17 @@ class STFTDecoder(AbsDecoder):
         self.spec_abs_exponent = spec_abs_exponent
 
     @torch.amp.autocast("cuda", enabled=False)
-    def forward(self, input: ComplexTensor, ilens: torch.Tensor, fs: int = None):
+    def forward(self, input: torch.Tensor, ilens: torch.Tensor, fs: int = None):
         """Forward.
 
         Args:
-            input (ComplexTensor): spectrum [Batch, T, (C,) F]
+            input (complex tensor): spectrum [Batch, T, (C,) F]
             ilens (torch.Tensor): input lengths [Batch]
             fs (int): sampling rate in Hz
                 If not None, reconfigure iSTFT window and hop lengths for a new
                 sampling rate while keeping their duration fixed.
         """
-        if not isinstance(input, ComplexTensor) and (not torch.is_complex(input)):
+        if not torch.is_complex(input):
             raise TypeError("Only support complex tensors for stft decoder")
         if fs is not None:
             self._reconfig_for_fs(fs)
@@ -139,7 +137,7 @@ class STFTDecoder(AbsDecoder):
         """Forward.
 
         Args:
-            input (ComplexTensor): spectrum [Batch, 1, F]
+            input (complex tensor): spectrum [Batch, 1, F]
             output: wavs [Batch, 1, self.win_length]
         """
         input_frame = self.spec_back(input_frame)
@@ -234,7 +232,7 @@ if __name__ == "__main__":
     merged = decoder.streaming_merge(swavs, ilens)
 
     if not encoder.use_builtin_complex:
-        sframes = torch_complex.cat(sframes, dim=1)
+        sframes = torch.cat(sframes, dim=1)
     else:
         sframes = torch.cat(sframes, dim=1)
 

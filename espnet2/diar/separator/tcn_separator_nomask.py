@@ -1,7 +1,6 @@
-from typing import Tuple, Union
+from typing import Tuple
 
 import torch
-from torch_complex.tensor import ComplexTensor
 
 from espnet2.diar.layers.tcn_nomask import TemporalConvNet
 from espnet2.enh.layers.complex_utils import is_complex
@@ -55,12 +54,12 @@ class TCNSeparatorNomask(AbsSeparator):
         self._output_dim = bottleneck_dim
 
     def forward(
-        self, input: Union[torch.Tensor, ComplexTensor], ilens: torch.Tensor
+        self, input: torch.Tensor, ilens: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Forward.
 
         Args:
-            input (torch.Tensor or ComplexTensor): Encoded feature [B, T, N]
+            input (complex torch.Tensor): Encoded feature [B, T, N]
             ilens (torch.Tensor): input lengths [Batch]
 
         Returns:

@@ -1,7 +1,5 @@
 import pytest
 import torch
-import torch_complex
-from torch_complex import ComplexTensor
 
 from espnet2.enh.decoder.stft_decoder import STFTDecoder
 from espnet2.enh.encoder.stft_encoder import STFTEncoder
@@ -38,7 +36,7 @@ def test_STFTDecoder_backward(
 
     real = torch.rand(2, 300, n_fft // 2 + 1 if onesided else n_fft, requires_grad=True)
     imag = torch.rand(2, 300, n_fft // 2 + 1 if onesided else n_fft, requires_grad=True)
-    x = ComplexTensor(real, imag)
+    x = torch.complex(real, imag)
     x_lens = torch.tensor([300 * hop_length, 295 * hop_length], dtype=torch.long)
     y, ilens = decoder(x, x_lens)
     y.sum().backward()
@@ -94,10 +92,7 @@ def test_stft_enc_dec_streaming(n_fft, win_length, hop_length, onesided):
     swavs = [decoder.forward_streaming(s) for s in sframes]
     merged = decoder.streaming_merge(swavs, ilens)
 
-    if not encoder.use_builtin_complex:
-        sframes = torch_complex.cat(sframes, dim=1)
-    else:
-        sframes = torch.cat(sframes, dim=1)
+    sframes = torch.cat(sframes, dim=1)
 
     torch.testing.assert_close(sframes.real, frames.real)
     torch.testing.assert_close(sframes.imag, frames.imag)

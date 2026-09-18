@@ -1,6 +1,5 @@
 import pytest
 import torch
-from torch_complex import ComplexTensor
 
 from espnet2.enh.layers.bsrnn import get_erb_subbands, get_mel_subbands
 from espnet2.enh.separator.bsrnn_separator import BSRNNSeparator
@@ -42,12 +41,12 @@ def test_bsrnn_separator_forward_backward_complex(
 
     real = torch.rand(2, 10, input_dim)
     imag = torch.rand(2, 10, input_dim)
-    x = ComplexTensor(real, imag)
+    x = torch.complex(real, imag)
     x_lens = torch.tensor([10, 8], dtype=torch.long)
 
     masked, flens, others = model(x, ilens=x_lens)
 
-    assert isinstance(masked[0], ComplexTensor)
+    assert torch.is_complex(masked[0])
     assert len(masked) == num_spk
 
     masked[0].abs().mean().backward()
@@ -162,12 +161,12 @@ def test_bsrnn_separator_predict_noise(
 
     real = torch.rand(2, 10, input_dim)
     imag = torch.rand(2, 10, input_dim)
-    x = ComplexTensor(real, imag)
+    x = torch.complex(real, imag)
     x_lens = torch.tensor([10, 8], dtype=torch.long)
 
     masked, flens, others = model(x, ilens=x_lens)
 
-    assert isinstance(masked[0], ComplexTensor)
+    assert torch.is_complex(masked[0])
     assert len(masked) == num_spk
     assert others["noise1"].shape == masked[0].shape
 

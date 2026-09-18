@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 import torch
-import torch_complex.functional as FC
-from torch_complex.tensor import ComplexTensor
 
 from espnet2.enh.layers.beamformer import (
     generalized_eigenvalue_decomposition,
@@ -59,12 +57,8 @@ random_speech = torch.tensor(
 @pytest.mark.parametrize("ch", [2, 4, 6, 8])
 @pytest.mark.parametrize("mode", ["power", "evd"])
 def test_get_rtf(ch, mode):
-    if mode == "evd":
-        complex_wrapper = torch.complex
-        complex_module = torch
-    else:
-        complex_wrapper = ComplexTensor
-        complex_module = FC
+    complex_wrapper = torch.complex
+    complex_module = torch
     stft = Stft(
         n_fft=8,
         win_length=None,
@@ -104,23 +98,23 @@ def test_get_rtf(ch, mode):
 def test_signal_framing():
     # tap length = 1
     taps, delay = 0, 1
-    X = ComplexTensor(torch.rand(2, 10, 6, 20), torch.rand(2, 10, 6, 20))
+    X = torch.complex(torch.rand(2, 10, 6, 20), torch.rand(2, 10, 6, 20))
     X2 = signal_framing(X, taps + 1, 1, delay, do_padding=False)
-    assert FC.allclose(X, X2.squeeze(-1))
+    assert torch.allclose(X, X2.squeeze(-1))
 
     # tap length > 1, no padding
     taps, delay = 5, 3
-    X = ComplexTensor(torch.rand(2, 10, 6, 20), torch.rand(2, 10, 6, 20))
+    X = torch.complex(torch.rand(2, 10, 6, 20), torch.rand(2, 10, 6, 20))
     X2 = signal_framing(X, taps + 1, 1, delay, do_padding=False)
     assert X2.shape == torch.Size([2, 10, 6, 20 - taps - delay + 1, taps + 1])
-    assert FC.allclose(X2[..., 0], X[..., : 20 - taps - delay + 1])
+    assert torch.allclose(X2[..., 0], X[..., : 20 - taps - delay + 1])
 
     # tap length > 1, padding
     taps, delay = 5, 3
-    X = ComplexTensor(torch.rand(2, 10, 6, 20), torch.rand(2, 10, 6, 20))
+    X = torch.complex(torch.rand(2, 10, 6, 20), torch.rand(2, 10, 6, 20))
     X2 = signal_framing(X, taps + 1, 1, delay, do_padding=True)
     assert X2.shape == torch.Size([2, 10, 6, 20, taps + 1])
-    assert FC.allclose(X2[..., -1], X)
+    assert torch.allclose(X2[..., -1], X)
 
 
 @pytest.mark.parametrize("ch", [2, 4, 6, 8])
@@ -160,7 +154,7 @@ def test_gevd(ch):
 
 
 def test_gev_phase_correction():
-    mat = ComplexTensor(torch.rand(2, 3, 4), torch.rand(2, 3, 4))
+    mat = torch.complex(torch.rand(2, 3, 4), torch.rand(2, 3, 4))
     mat_th = torch.complex(mat.real, mat.imag)
     norm = gev_phase_correction(mat)
     norm_th = gev_phase_correction(mat_th)

@@ -3,8 +3,9 @@
 from typing import List, Union
 
 import torch
-import torch_complex.functional as FC
 import torchaudio
+
+from espnet2.enh.layers.complex_utils import trace
 
 
 def prepare_beamformer_stats(
@@ -395,7 +396,7 @@ def get_sdw_mwf_vector(
         )
         # Eq. (25) in Ref[2]
         psd_speech_r1 = torch.einsum("...c,...e->...ce", recon_vec, recon_vec.conj())
-        sigma_speech = FC.trace(psd_speech) / (FC.trace(psd_speech_r1) + eps)
+        sigma_speech = trace(psd_speech) / (trace(psd_speech_r1) + eps)
         psd_speech_r1 = psd_speech_r1 * sigma_speech[..., None, None]
         # c.f. Eq. (62) in Ref[3]
         psd_speech = psd_speech_r1
@@ -473,7 +474,7 @@ def get_rank1_mwf_vector(
         )
         # Eq. (25) in Ref[1]
         psd_speech_r1 = torch.einsum("...c,...e->...ce", recon_vec, recon_vec.conj())
-        sigma_speech = FC.trace(psd_speech) / (FC.trace(psd_speech_r1) + eps)
+        sigma_speech = trace(psd_speech) / (trace(psd_speech_r1) + eps)
         psd_speech_r1 = psd_speech_r1 * sigma_speech[..., None, None]
         # c.f. Eq. (62) in Ref[2]
         psd_speech = psd_speech_r1
@@ -481,9 +482,9 @@ def get_rank1_mwf_vector(
     numerator = torch.linalg.solve(psd_noise, psd_speech)
 
     # NOTE (wangyou): until PyTorch 1.9.0, torch.trace does not
-    # support bacth processing. Use FC.trace() as fallback.
+    # support bacth processing. Use trace() as fallback.
     # ws: (..., C, C) / (...,) -> (..., C, C)
-    ws = numerator / (denoising_weight + FC.trace(numerator)[..., None, None] + eps)
+    ws = numerator / (denoising_weight + trace(numerator)[..., None, None] + eps)
 
     # h: (..., F, C_1, C_2) x (..., C_2) -> (..., F, C_1)
     if isinstance(reference_vector, int):
@@ -715,7 +716,7 @@ def get_gev_vector(
                 C = psd_noise.size(-1)
                 e_vec[..., f, :] = (
                     psd_noise.new_ones(e_vec[..., f, :].shape)
-                    / FC.trace(psd_noise[..., f, :, :])
+                    / trace(psd_noise[..., f, :, :])
                     * C
                 )
     else:
@@ -894,9 +895,9 @@ def get_WPD_filter(
     # numerator: (..., C_1, C_2) x (..., C_2, C_3) -> (..., C_1, C_3)
     numerator = torch.linalg.solve(Rf, Phi)
     # NOTE (wangyou): until PyTorch 1.9.0, torch.trace does not
-    # support bacth processing. Use FC.trace() as fallback.
+    # support bacth processing. Use trace() as fallback.
     # ws: (..., C, C) / (...,) -> (..., C, C)
-    ws = numerator / (FC.trace(numerator)[..., None, None] + eps)
+    ws = numerator / (trace(numerator)[..., None, None] + eps)
     # h: (..., F, C_1, C_2) x (..., C_2) -> (..., F, C_1)
     beamform_vector = torch.einsum(
         "...fec,...c->...fe", ws, reference_vector.to(dtype=ws.dtype)
@@ -942,9 +943,9 @@ def get_WPD_filter_v2(
     # numerator: (..., C_1, C_2) x (..., C_2, C_3) -> (..., C_1, C_3)
     numerator = torch.matmul(inv_Rf_pruned, Phi)
     # NOTE (wangyou): until PyTorch 1.9.0, torch.trace does not
-    # support bacth processing. Use FC.trace() as fallback.
+    # support bacth processing. Use trace() as fallback.
     # ws: (..., (btaps+1) * C, C) / (...,) -> (..., (btaps+1) * C, C)
-    ws = numerator / (FC.trace(numerator[..., :C, :])[..., None, None] + eps)
+    ws = numerator / (trace(numerator[..., :C, :])[..., None, None] + eps)
     # h: (..., F, C_1, C_2) x (..., C_2) -> (..., F, C_1)
     beamform_vector = torch.einsum(
         "...fec,...c->...fe", ws, reference_vector.to(dtype=ws.dtype)
@@ -1068,7 +1069,7 @@ def tik_reg(mat, reg: float = 1e-8, eps: float = 1e-8):
     shape = [1 for _ in range(mat.dim() - 2)] + [C, C]
     eye = eye.view(*shape).repeat(*mat.shape[:-2], 1, 1)
     with torch.no_grad():
-        epsilon = FC.trace(mat).real[..., None, None] * reg
+        epsilon = trace(mat).real[..., None, None] * reg
         # in case that correlation_matrix is all-zero
         epsilon = epsilon + eps
     mat = mat + epsilon * eye

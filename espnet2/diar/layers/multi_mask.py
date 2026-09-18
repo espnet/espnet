@@ -2,12 +2,11 @@
 # in https://arxiv.org/pdf/2203.17068.pdf
 
 from collections import OrderedDict
-from typing import List, Tuple, Union
+from typing import List, Tuple
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch_complex.tensor import ComplexTensor
 
 from espnet2.diar.layers.abs_mask import AbsMask
 
@@ -51,11 +50,11 @@ class MultiMask(AbsMask):
 
     def forward(
         self,
-        input: Union[torch.Tensor, ComplexTensor],
+        input: torch.Tensor,
         ilens: torch.Tensor,
         bottleneck_feat: torch.Tensor,
         num_spk: int,
-    ) -> Tuple[List[Union[torch.Tensor, ComplexTensor]], torch.Tensor, OrderedDict]:
+    ) -> Tuple[List[torch.Tensor], torch.Tensor, OrderedDict]:
         """Keep this API same with TasNet.
 
         Args:
@@ -67,7 +66,7 @@ class MultiMask(AbsMask):
             Inference: estimated by other module (e.g, EEND-EDA))
 
         Returns:
-            masked (List[Union(torch.Tensor, ComplexTensor)]): [(M, K, N), ...]
+            masked (List[torch.Tensor]): [(M, K, N), ...]
             ilens (torch.Tensor): (M,)
             others predicted data, e.g. masks: OrderedDict[
                 'mask_spk1': torch.Tensor(Batch, Frames, Freq),

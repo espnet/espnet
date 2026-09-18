@@ -1,7 +1,6 @@
 import pytest
 import torch
 from torch import Tensor
-from torch_complex.tensor import ComplexTensor
 
 from espnet2.enh.separator.conformer_separator import ConformerSeparator
 
@@ -80,12 +79,12 @@ def test_conformer_separator_forward_backward_complex(
 
     real = torch.rand(2, 10, input_dim)
     imag = torch.rand(2, 10, input_dim)
-    x = ComplexTensor(real, imag)
+    x = torch.complex(real, imag)
     x_lens = torch.tensor([10, 8], dtype=torch.long)
 
     masked, flens, others = model(x, ilens=x_lens)
 
-    assert isinstance(masked[0], ComplexTensor)
+    assert torch.is_complex(masked[0])
     assert len(masked) == num_spk
 
     masked[0].abs().mean().backward()

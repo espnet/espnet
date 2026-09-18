@@ -1,7 +1,7 @@
 import torch
-from torch_complex.tensor import ComplexTensor
 
 from espnet2.enh.encoder.abs_encoder import AbsEncoder
+from espnet2.enh.layers.complex_utils import complex_tensor
 from espnet2.layers.stft import Stft
 
 
@@ -84,7 +84,7 @@ class STFTEncoder(AbsEncoder):
                 If not None, reconfigure STFT window and hop lengths for a new
                 sampling rate while keeping their duration fixed.
         Returns:
-            spectrum (ComplexTensor): [Batch, T, (C,) F]
+            spectrum (complex tensor): [Batch, T, (C,) F]
             flens (torch.Tensor): [Batch]
         """
         if fs is not None:
@@ -98,7 +98,7 @@ class STFTEncoder(AbsEncoder):
         if self.use_builtin_complex:
             spectrum = torch.complex(spectrum[..., 0], spectrum[..., 1])
         else:
-            spectrum = ComplexTensor(spectrum[..., 0], spectrum[..., 1])
+            spectrum = complex_tensor(spectrum[..., 0], spectrum[..., 1])
 
         self._reset_config()
 
@@ -156,7 +156,7 @@ class STFTEncoder(AbsEncoder):
         )
         feature = feature.unsqueeze(1)
         if not self.use_builtin_complex:
-            feature = ComplexTensor(feature.real, feature.imag)
+            feature = complex_tensor(feature.real, feature.imag)
 
         feature = self.spec_transform_func(feature)
 

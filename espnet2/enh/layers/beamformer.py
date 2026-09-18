@@ -3,8 +3,6 @@
 from typing import List, Union
 
 import torch
-from torch_complex import functional as FC
-from torch_complex.tensor import ComplexTensor
 
 from espnet2.enh.layers.complex_utils import (
     cat,
@@ -17,6 +15,7 @@ from espnet2.enh.layers.complex_utils import (
     reverse,
     solve,
     to_double,
+    trace,
 )
 
 EPS = torch.finfo(torch.double).eps
@@ -35,7 +34,7 @@ def prepare_beamformer_stats(
     """Prepare necessary statistics for constructing the specified beamformer.
 
     Args:
-        signal (torch.complex64/ComplexTensor): (..., F, C, T)
+        signal (torch.complex64): (..., F, C, T)
         masks_speech (List[torch.Tensor]): (..., F, C, T) masks for all speech sources
         mask_noise (torch.Tensor): (..., F, C, T) noise mask
         powers (List[torch.Tensor]): powers for all speech sources (..., F, T)
@@ -169,13 +168,13 @@ def get_power_spectral_density_matrix(
     """Return cross-channel power spectral density (PSD) matrix
 
     Args:
-        xs (torch.complex64/ComplexTensor): (..., F, C, T)
+        xs (torch.complex64): (..., F, C, T)
         reduction (str): "mean" or "median"
         mask (torch.Tensor): (..., F, C, T)
         normalization (bool):
         eps (float):
     Returns
-        psd (torch.complex64/ComplexTensor): (..., F, C, C)
+        psd (torch.complex64): (..., F, C, C)
 
     """
     if reduction == "mean":
@@ -217,9 +216,9 @@ def get_rtf(
     Note: 4) Normalization at the reference channel is not performed here.
 
     Args:
-        psd_speech (torch.complex64/ComplexTensor):
+        psd_speech (torch.complex64):
             speech covariance matrix (..., F, C, C)
-        psd_noise (torch.complex64/ComplexTensor):
+        psd_noise (torch.complex64):
             noise covariance matrix (..., F, C, C)
         mode (str): one of ("power", "evd")
             "power": power method
@@ -227,7 +226,7 @@ def get_rtf(
         reference_vector (torch.Tensor or int): (..., C) or scalar
         iterations (int): number of iterations in power method
     Returns:
-        rtf (torch.complex64/ComplexTensor): (..., F, C, 1)
+        rtf (torch.complex64): (..., F, C, 1)
     """
     if mode == "power":
         phi = solve(psd_speech, psd_noise)
@@ -269,40 +268,40 @@ def get_mvdr_vector(
         https://ieeexplore.ieee.org/document/5089420
 
     Args:
-        psd_s (torch.complex64/ComplexTensor):
+        psd_s (torch.complex64):
             speech covariance matrix (..., F, C, C)
-        psd_n (torch.complex64/ComplexTensor):
+        psd_n (torch.complex64):
             observation/noise covariance matrix (..., F, C, C)
         reference_vector (torch.Tensor): (..., C)
         diagonal_loading (bool): Whether to add a tiny term to the diagonal of psd_n
         diag_eps (float):
         eps (float):
     Returns:
-        beamform_vector (torch.complex64/ComplexTensor): (..., F, C)
+        beamform_vector (torch.complex64): (..., F, C)
     """  # noqa: D400
     if diagonal_loading:
         psd_n = tik_reg(psd_n, reg=diag_eps, eps=eps)
 
     numerator = solve(psd_s, psd_n)
     # NOTE (wangyou): until PyTorch 1.9.0, torch.trace does not
-    # support bacth processing. Use FC.trace() as fallback.
+    # support bacth processing. Use trace() as fallback.
     # ws: (..., C, C) / (...,) -> (..., C, C)
-    ws = numerator / (FC.trace(numerator)[..., None, None] + eps)
+    ws = numerator / (trace(numerator)[..., None, None] + eps)
     # h: (..., F, C_1, C_2) x (..., C_2) -> (..., F, C_1)
     beamform_vector = einsum("...fec,...c->...fe", ws, reference_vector)
     return beamform_vector
 
 
 def get_mvdr_vector_with_rtf(
-    psd_n: Union[torch.Tensor, ComplexTensor],
-    psd_speech: Union[torch.Tensor, ComplexTensor],
-    psd_noise: Union[torch.Tensor, ComplexTensor],
+    psd_n: torch.Tensor,
+    psd_speech: torch.Tensor,
+    psd_noise: torch.Tensor,
     iterations: int = 3,
     reference_vector: Union[int, torch.Tensor, None] = None,
     diagonal_loading: bool = True,
     diag_eps: float = 1e-7,
     eps: float = 1e-8,
-) -> Union[torch.Tensor, ComplexTensor]:
+) -> torch.Tensor:
     """Return the MVDR (Minimum Variance Distortionless Response) vector
         calculated with RTF:
 
@@ -314,11 +313,11 @@ def get_mvdr_vector_with_rtf(
         https://ieeexplore.ieee.org/document/5089420
 
     Args:
-        psd_n (torch.complex64/ComplexTensor):
+        psd_n (torch.complex64):
             observation/noise covariance matrix (..., F, C, C)
-        psd_speech (torch.complex64/ComplexTensor):
+        psd_speech (torch.complex64):
             speech covariance matrix (..., F, C, C)
-        psd_noise (torch.complex64/ComplexTensor):
+        psd_noise (torch.complex64):
             noise covariance matrix (..., F, C, C)
         iterations (int): number of iterations in power method
         reference_vector (torch.Tensor or int): (..., C) or scalar
@@ -326,7 +325,7 @@ def get_mvdr_vector_with_rtf(
         diag_eps (float):
         eps (float):
     Returns:
-        beamform_vector (torch.complex64/ComplexTensor): (..., F, C)
+        beamform_vector (torch.complex64): (..., F, C)
     """  # noqa: H405, D205, D400
     if diagonal_loading:
         psd_noise = tik_reg(psd_noise, reg=diag_eps, eps=eps)
@@ -357,9 +356,9 @@ def get_mvdr_vector_with_rtf(
 
 
 def apply_beamforming_vector(
-    beamform_vector: Union[torch.Tensor, ComplexTensor],
-    mix: Union[torch.Tensor, ComplexTensor],
-) -> Union[torch.Tensor, ComplexTensor]:
+    beamform_vector: torch.Tensor,
+    mix: torch.Tensor,
+) -> torch.Tensor:
     # (..., C) x (..., C, T) -> (..., T)
     es = einsum("...c,...ct->...t", beamform_vector.conj(), mix)
     return es
@@ -378,16 +377,16 @@ def get_mwf_vector(
         h = (Npsd^-1 @ Spsd) @ u
 
     Args:
-        psd_s (torch.complex64/ComplexTensor):
+        psd_s (torch.complex64):
             speech covariance matrix (..., F, C, C)
-        psd_n (torch.complex64/ComplexTensor):
+        psd_n (torch.complex64):
             power-normalized observation covariance matrix (..., F, C, C)
         reference_vector (torch.Tensor or int): (..., C) or scalar
         diagonal_loading (bool): Whether to add a tiny term to the diagonal of psd_n
         diag_eps (float):
         eps (float):
     Returns:
-        beamform_vector (torch.complex64/ComplexTensor): (..., F, C)
+        beamform_vector (torch.complex64): (..., F, C)
     """  # noqa: D400
     if diagonal_loading:
         psd_n = tik_reg(psd_n, reg=diag_eps, eps=eps)
@@ -428,9 +427,9 @@ def get_sdw_mwf_vector(
         https://ieeexplore.ieee.org/document/6730918
 
     Args:
-        psd_speech (torch.complex64/ComplexTensor):
+        psd_speech (torch.complex64):
             speech covariance matrix (..., F, C, C)
-        psd_noise (torch.complex64/ComplexTensor):
+        psd_noise (torch.complex64):
             noise covariance matrix (..., F, C, C)
         reference_vector (torch.Tensor or int): (..., C) or scalar
         denoising_weight (float): a trade-off parameter between noise reduction and
@@ -446,7 +445,7 @@ def get_sdw_mwf_vector(
         diag_eps (float):
         eps (float):
     Returns:
-        beamform_vector (torch.complex64/ComplexTensor): (..., F, C)
+        beamform_vector (torch.complex64): (..., F, C)
     """  # noqa: H405, D205, D400, E501
     if approx_low_rank_psd_speech:
         if diagonal_loading:
@@ -462,7 +461,7 @@ def get_sdw_mwf_vector(
         )
         # Eq. (25) in Ref[2]
         psd_speech_r1 = matmul(recon_vec, recon_vec.conj().transpose(-1, -2))
-        sigma_speech = FC.trace(psd_speech) / (FC.trace(psd_speech_r1) + eps)
+        sigma_speech = trace(psd_speech) / (trace(psd_speech_r1) + eps)
         psd_speech_r1 = psd_speech_r1 * sigma_speech[..., None, None]
         # c.f. Eq. (62) in Ref[3]
         psd_speech = psd_speech_r1
@@ -504,9 +503,9 @@ def get_rank1_mwf_vector(
         https://ieeexplore.ieee.org/document/6730918
 
     Args:
-        psd_speech (torch.complex64/ComplexTensor):
+        psd_speech (torch.complex64):
             speech covariance matrix (..., F, C, C)
-        psd_noise (torch.complex64/ComplexTensor):
+        psd_noise (torch.complex64):
             noise covariance matrix (..., F, C, C)
         reference_vector (torch.Tensor or int): (..., C) or scalar
         denoising_weight (float): a trade-off parameter between noise reduction and
@@ -522,7 +521,7 @@ def get_rank1_mwf_vector(
         diag_eps (float):
         eps (float):
     Returns:
-        beamform_vector (torch.complex64/ComplexTensor): (..., F, C)
+        beamform_vector (torch.complex64): (..., F, C)
     """  # noqa: H405, D205, D400
     if approx_low_rank_psd_speech:
         if diagonal_loading:
@@ -538,7 +537,7 @@ def get_rank1_mwf_vector(
         )
         # Eq. (25) in Ref[1]
         psd_speech_r1 = matmul(recon_vec, recon_vec.conj().transpose(-1, -2))
-        sigma_speech = FC.trace(psd_speech) / (FC.trace(psd_speech_r1) + eps)
+        sigma_speech = trace(psd_speech) / (trace(psd_speech_r1) + eps)
         psd_speech_r1 = psd_speech_r1 * sigma_speech[..., None, None]
         # c.f. Eq. (62) in Ref[2]
         psd_speech = psd_speech_r1
@@ -548,9 +547,9 @@ def get_rank1_mwf_vector(
     numerator = solve(psd_speech, psd_noise)
 
     # NOTE (wangyou): until PyTorch 1.9.0, torch.trace does not
-    # support bacth processing. Use FC.trace() as fallback.
+    # support bacth processing. Use trace() as fallback.
     # ws: (..., C, C) / (...,) -> (..., C, C)
-    ws = numerator / (denoising_weight + FC.trace(numerator)[..., None, None] + eps)
+    ws = numerator / (denoising_weight + trace(numerator)[..., None, None] + eps)
 
     # h: (..., F, C_1, C_2) x (..., C_2) -> (..., F, C_1)
     if isinstance(reference_vector, int):
@@ -591,13 +590,13 @@ def get_rtf_matrix(
 
 
 def get_lcmv_vector_with_rtf(
-    psd_n: Union[torch.Tensor, ComplexTensor],
-    rtf_mat: Union[torch.Tensor, ComplexTensor],
+    psd_n: torch.Tensor,
+    rtf_mat: torch.Tensor,
     reference_vector: Union[int, torch.Tensor, None] = None,
     diagonal_loading: bool = True,
     diag_eps: float = 1e-7,
     eps: float = 1e-8,
-) -> Union[torch.Tensor, ComplexTensor]:
+) -> torch.Tensor:
     """Return the LCMV (Linearly Constrained Minimum Variance) vector
         calculated with RTF:
 
@@ -608,16 +607,16 @@ def get_lcmv_vector_with_rtf(
         and modulation theory,” John Wiley & Sons, 2004. (Chapter 6.7)
 
     Args:
-        psd_n (torch.complex64/ComplexTensor):
+        psd_n (torch.complex64):
             observation/noise covariance matrix (..., F, C, C)
-        rtf_mat (torch.complex64/ComplexTensor):
+        rtf_mat (torch.complex64):
             RTF matrix (..., F, C, num_spk)
         reference_vector (torch.Tensor or int): (..., num_spk) or scalar
         diagonal_loading (bool): Whether to add a tiny term to the diagonal of psd_n
         diag_eps (float):
         eps (float):
     Returns:
-        beamform_vector (torch.complex64/ComplexTensor): (..., F, C)
+        beamform_vector (torch.complex64): (..., F, C)
     """  # noqa: H405, D205, D400
     if diagonal_loading:
         psd_n = tik_reg(psd_n, reg=diag_eps, eps=eps)
@@ -691,10 +690,7 @@ def gev_phase_correction(vector):
             .sum(dim=-1, keepdim=True)
             .angle()
         )
-    if isinstance(vector, ComplexTensor):
-        correction = ComplexTensor(torch.cos(correction), -torch.sin(correction))
-    else:
-        correction = torch.exp(-1j * correction)
+    correction = torch.exp(-1j * correction)
     return vector * correction
 
 
@@ -702,11 +698,11 @@ def blind_analytic_normalization(ws, psd_noise, eps=1e-8):
     """Blind analytic normalization (BAN) for post-filtering
 
     Args:
-        ws (torch.complex64/ComplexTensor): beamformer vector (..., F, C)
-        psd_noise (torch.complex64/ComplexTensor): noise PSD matrix (..., F, C, C)
+        ws (torch.complex64): beamformer vector (..., F, C)
+        psd_noise (torch.complex64): noise PSD matrix (..., F, C, C)
         eps (float)
     Returns:
-        ws_ban (torch.complex64/ComplexTensor): normalized beamformer vector (..., F)
+        ws_ban (torch.complex64): normalized beamformer vector (..., F)
     """
     C2 = psd_noise.size(-1) ** 2
     denominator = einsum("...c,...ce,...e->...", ws.conj(), psd_noise, ws)
@@ -718,15 +714,15 @@ def blind_analytic_normalization(ws, psd_noise, eps=1e-8):
 
 
 def get_gev_vector(
-    psd_noise: Union[torch.Tensor, ComplexTensor],
-    psd_speech: Union[torch.Tensor, ComplexTensor],
+    psd_noise: torch.Tensor,
+    psd_speech: torch.Tensor,
     mode="power",
     reference_vector: Union[int, torch.Tensor] = 0,
     iterations: int = 3,
     diagonal_loading: bool = True,
     diag_eps: float = 1e-7,
     eps: float = 1e-8,
-) -> Union[torch.Tensor, ComplexTensor]:
+) -> torch.Tensor:
     """Return the generalized eigenvalue (GEV) beamformer vector:
 
         psd_speech @ h = lambda * psd_noise @ h
@@ -736,9 +732,9 @@ def get_gev_vector(
         E. Warsitz and R. Haeb-Umbach, 2007.
 
     Args:
-        psd_noise (torch.complex64/ComplexTensor):
+        psd_noise (torch.complex64):
             noise covariance matrix (..., F, C, C)
-        psd_speech (torch.complex64/ComplexTensor):
+        psd_speech (torch.complex64):
             speech covariance matrix (..., F, C, C)
         mode (str): one of ("power", "evd")
             "power": power method
@@ -749,7 +745,7 @@ def get_gev_vector(
         diag_eps (float):
         eps (float):
     Returns:
-        beamform_vector (torch.complex64/ComplexTensor): (..., F, C)
+        beamform_vector (torch.complex64): (..., F, C)
     """  # noqa: H405, D205, D400
     if diagonal_loading:
         psd_noise = tik_reg(psd_noise, reg=diag_eps, eps=eps)
@@ -785,7 +781,7 @@ def get_gev_vector(
                 C = psd_noise.size(-1)
                 e_vec[..., f, :] = (
                     psd_noise.new_ones(e_vec[..., f, :].shape)
-                    / FC.trace(psd_noise[..., f, :, :])
+                    / trace(psd_noise[..., f, :, :])
                     * C
                 )
     else:
@@ -797,14 +793,14 @@ def get_gev_vector(
 
 
 def signal_framing(
-    signal: Union[torch.Tensor, ComplexTensor],
+    signal: torch.Tensor,
     frame_length: int,
     frame_step: int,
     bdelay: int,
     do_padding: bool = False,
     pad_value: int = 0,
     indices: List = None,
-) -> Union[torch.Tensor, ComplexTensor]:
+) -> torch.Tensor:
     """Expand `signal` into several frames, with each frame of length `frame_length`.
 
     Args:
@@ -821,14 +817,9 @@ def signal_framing(
             if do_padding: (..., T, frame_length)
             else:          (..., T - bdelay - frame_length + 2, frame_length)
     """
-    if isinstance(signal, ComplexTensor):
-        complex_wrapper = ComplexTensor
-        pad_func = FC.pad
-    elif is_torch_complex_tensor(signal):
+    if is_torch_complex_tensor(signal):
         complex_wrapper = torch.complex
-        pad_func = torch.nn.functional.pad
-    else:
-        pad_func = torch.nn.functional.pad
+    pad_func = torch.nn.functional.pad
 
     frame_length2 = frame_length - 1
     # pad to the right at the last dimension of `signal` (time dimension)
@@ -877,12 +868,12 @@ def signal_framing(
 
 
 def get_covariances(
-    Y: Union[torch.Tensor, ComplexTensor],
+    Y: torch.Tensor,
     inverse_power: torch.Tensor,
     bdelay: int,
     btaps: int,
     get_vector: bool = False,
-) -> Union[torch.Tensor, ComplexTensor]:
+) -> torch.Tensor:
     """Calculates the power normalized spatio-temporal covariance
         matrix of the framed signal.
 
@@ -931,13 +922,13 @@ def get_covariances(
 
 
 def get_WPD_filter(
-    Phi: Union[torch.Tensor, ComplexTensor],
-    Rf: Union[torch.Tensor, ComplexTensor],
+    Phi: torch.Tensor,
+    Rf: torch.Tensor,
     reference_vector: torch.Tensor,
     diagonal_loading: bool = True,
     diag_eps: float = 1e-7,
     eps: float = 1e-8,
-) -> Union[torch.Tensor, ComplexTensor]:
+) -> torch.Tensor:
     """Return the WPD vector.
 
         WPD is the Weighted Power minimization Distortionless response
@@ -953,9 +944,9 @@ def get_WPD_filter(
         https://ieeexplore.ieee.org/document/8691481
 
     Args:
-        Phi (torch.complex64/ComplexTensor): (B, F, (btaps+1) * C, (btaps+1) * C)
+        Phi (torch.complex64): (B, F, (btaps+1) * C, (btaps+1) * C)
             is the PSD of zero-padded speech [x^T(t,f) 0 ... 0]^T.
-        Rf (torch.complex64/ComplexTensor): (B, F, (btaps+1) * C, (btaps+1) * C)
+        Rf (torch.complex64): (B, F, (btaps+1) * C, (btaps+1) * C)
             is the power normalized spatio-temporal covariance matrix.
         reference_vector (torch.Tensor): (B, (btaps+1) * C)
             is the reference_vector.
@@ -964,7 +955,7 @@ def get_WPD_filter(
         eps (float):
 
     Returns:
-        filter_matrix (torch.complex64/ComplexTensor): (B, F, (btaps + 1) * C)
+        filter_matrix (torch.complex64): (B, F, (btaps + 1) * C)
     """
     if diagonal_loading:
         Rf = tik_reg(Rf, reg=diag_eps, eps=eps)
@@ -972,9 +963,9 @@ def get_WPD_filter(
     # numerator: (..., C_1, C_2) x (..., C_2, C_3) -> (..., C_1, C_3)
     numerator = solve(Phi, Rf)
     # NOTE (wangyou): until PyTorch 1.9.0, torch.trace does not
-    # support bacth processing. Use FC.trace() as fallback.
+    # support bacth processing. Use trace() as fallback.
     # ws: (..., C, C) / (...,) -> (..., C, C)
-    ws = numerator / (FC.trace(numerator)[..., None, None] + eps)
+    ws = numerator / (trace(numerator)[..., None, None] + eps)
     # h: (..., F, C_1, C_2) x (..., C_2) -> (..., F, C_1)
     beamform_vector = einsum("...fec,...c->...fe", ws, reference_vector)
     # (B, F, (btaps + 1) * C)
@@ -982,22 +973,22 @@ def get_WPD_filter(
 
 
 def get_WPD_filter_v2(
-    Phi: Union[torch.Tensor, ComplexTensor],
-    Rf: Union[torch.Tensor, ComplexTensor],
+    Phi: torch.Tensor,
+    Rf: torch.Tensor,
     reference_vector: torch.Tensor,
     diagonal_loading: bool = True,
     diag_eps: float = 1e-7,
     eps: float = 1e-8,
-) -> Union[torch.Tensor, ComplexTensor]:
+) -> torch.Tensor:
     """Return the WPD vector (v2).
 
        This implementation is more efficient than `get_WPD_filter` as
         it skips unnecessary computation with zeros.
 
     Args:
-        Phi (torch.complex64/ComplexTensor): (B, F, C, C)
+        Phi (torch.complex64): (B, F, C, C)
             is speech PSD.
-        Rf (torch.complex64/ComplexTensor): (B, F, (btaps+1) * C, (btaps+1) * C)
+        Rf (torch.complex64): (B, F, (btaps+1) * C, (btaps+1) * C)
             is the power normalized spatio-temporal covariance matrix.
         reference_vector (torch.Tensor): (B, C)
             is the reference_vector.
@@ -1007,7 +998,7 @@ def get_WPD_filter_v2(
         eps (float):
 
     Returns:
-        filter_matrix (torch.complex64/ComplexTensor): (B, F, (btaps+1) * C)
+        filter_matrix (torch.complex64): (B, F, (btaps+1) * C)
     """
     C = reference_vector.shape[-1]
     if diagonal_loading:
@@ -1018,9 +1009,9 @@ def get_WPD_filter_v2(
     # numerator: (..., C_1, C_2) x (..., C_2, C_3) -> (..., C_1, C_3)
     numerator = matmul(inv_Rf_pruned, Phi)
     # NOTE (wangyou): until PyTorch 1.9.0, torch.trace does not
-    # support bacth processing. Use FC.trace() as fallback.
+    # support bacth processing. Use trace() as fallback.
     # ws: (..., (btaps+1) * C, C) / (...,) -> (..., (btaps+1) * C, C)
-    ws = numerator / (FC.trace(numerator[..., :C, :])[..., None, None] + eps)
+    ws = numerator / (trace(numerator[..., :C, :])[..., None, None] + eps)
     # h: (..., F, C_1, C_2) x (..., C_2) -> (..., F, C_1)
     beamform_vector = einsum("...fec,...c->...fe", ws, reference_vector)
     # (B, F, (btaps+1) * C)
@@ -1028,15 +1019,15 @@ def get_WPD_filter_v2(
 
 
 def get_WPD_filter_with_rtf(
-    psd_observed_bar: Union[torch.Tensor, ComplexTensor],
-    psd_speech: Union[torch.Tensor, ComplexTensor],
-    psd_noise: Union[torch.Tensor, ComplexTensor],
+    psd_observed_bar: torch.Tensor,
+    psd_speech: torch.Tensor,
+    psd_noise: torch.Tensor,
     iterations: int = 3,
     reference_vector: Union[int, torch.Tensor, None] = None,
     diagonal_loading: bool = True,
     diag_eps: float = 1e-7,
     eps: float = 1e-15,
-) -> Union[torch.Tensor, ComplexTensor]:
+) -> torch.Tensor:
     """Return the WPD vector calculated with RTF.
 
         WPD is the Weighted Power minimization Distortionless response
@@ -1052,11 +1043,11 @@ def get_WPD_filter_with_rtf(
         https://ieeexplore.ieee.org/document/8691481
 
     Args:
-        psd_observed_bar (torch.complex64/ComplexTensor):
+        psd_observed_bar (torch.complex64):
             stacked observation covariance matrix
-        psd_speech (torch.complex64/ComplexTensor):
+        psd_speech (torch.complex64):
             speech covariance matrix (..., F, C, C)
-        psd_noise (torch.complex64/ComplexTensor):
+        psd_noise (torch.complex64):
             noise covariance matrix (..., F, C, C)
         iterations (int): number of iterations in power method
         reference_vector (torch.Tensor or int): (..., C) or scalar
@@ -1065,16 +1056,11 @@ def get_WPD_filter_with_rtf(
         diag_eps (float):
         eps (float):
     Returns:
-        beamform_vector (torch.complex64/ComplexTensor)r: (..., F, C)
+        beamform_vector (torch.complex64): (..., F, C)
     """
-    if isinstance(psd_speech, ComplexTensor):
-        pad_func = FC.pad
-    elif is_torch_complex_tensor(psd_speech):
-        pad_func = torch.nn.functional.pad
-    else:
-        raise ValueError(
-            "Please update your PyTorch version to 1.9+ for complex support."
-        )
+    if not is_torch_complex_tensor(psd_speech):
+        raise ValueError("psd_speech must be a complex tensor")
+    pad_func = torch.nn.functional.pad
 
     C = psd_noise.size(-1)
     if diagonal_loading:
@@ -1108,11 +1094,11 @@ def get_WPD_filter_with_rtf(
 
 
 def perform_WPD_filtering(
-    filter_matrix: Union[torch.Tensor, ComplexTensor],
-    Y: Union[torch.Tensor, ComplexTensor],
+    filter_matrix: torch.Tensor,
+    Y: torch.Tensor,
     bdelay: int,
     btaps: int,
-) -> Union[torch.Tensor, ComplexTensor]:
+) -> torch.Tensor:
     """Perform WPD filtering.
 
     Args:
@@ -1120,7 +1106,7 @@ def perform_WPD_filtering(
         Y : Complex STFT signal with shape (B, F, C, T)
 
     Returns:
-        enhanced (torch.complex64/ComplexTensor): (B, F, T)
+        enhanced (torch.complex64): (B, F, T)
     """
     # (B, F, C, T) --> (B, F, C, T, btaps + 1)
     Ytilde = signal_framing(Y, btaps + 1, 1, bdelay, do_padding=True, pad_value=0)
@@ -1138,11 +1124,11 @@ def tik_reg(mat, reg: float = 1e-8, eps: float = 1e-8):
     """Perform Tikhonov regularization (only modifying real part).
 
     Args:
-        mat (torch.complex64/ComplexTensor): input matrix (..., C, C)
+        mat (torch.complex64): input matrix (..., C, C)
         reg (float): regularization factor
         eps (float)
     Returns:
-        ret (torch.complex64/ComplexTensor): regularized matrix (..., C, C)
+        ret (torch.complex64): regularized matrix (..., C, C)
     """
     # Add eps
     C = mat.size(-1)
@@ -1150,7 +1136,7 @@ def tik_reg(mat, reg: float = 1e-8, eps: float = 1e-8):
     shape = [1 for _ in range(mat.dim() - 2)] + [C, C]
     eye = eye.view(*shape).repeat(*mat.shape[:-2], 1, 1)
     with torch.no_grad():
-        epsilon = FC.trace(mat).real[..., None, None] * reg
+        epsilon = trace(mat).real[..., None, None] * reg
         # in case that correlation_matrix is all-zero
         epsilon = epsilon + eps
     mat = mat + epsilon * eye

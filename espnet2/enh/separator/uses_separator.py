@@ -2,9 +2,12 @@ from collections import OrderedDict
 from typing import Dict, List, Optional, Tuple, Union
 
 import torch
-from torch_complex.tensor import ComplexTensor
 
-from espnet2.enh.layers.complex_utils import is_complex, new_complex_like
+from espnet2.enh.layers.complex_utils import (
+    complex_tensor,
+    is_complex,
+    new_complex_like,
+)
 from espnet2.enh.layers.uses import USES
 from espnet2.enh.separator.abs_separator import AbsSeparator
 
@@ -121,14 +124,14 @@ class USESSeparator(AbsSeparator):
 
     def forward(
         self,
-        input: Union[torch.Tensor, ComplexTensor],
+        input: torch.Tensor,
         ilens: torch.Tensor,
         additional: Optional[Dict] = None,
-    ) -> Tuple[List[Union[torch.Tensor, ComplexTensor]], torch.Tensor, OrderedDict]:
+    ) -> Tuple[List[torch.Tensor], torch.Tensor, OrderedDict]:
         """Forward.
 
         Args:
-            input (torch.Tensor or ComplexTensor): STFT spectrum [B, T, (C,) F (,2)]
+            input (complex torch.Tensor): STFT spectrum [B, T, (C,) F (,2)]
                 B is the batch size
                 T is the number of time frames
                 C is the number of microphone channels (optional)
@@ -145,7 +148,7 @@ class USESSeparator(AbsSeparator):
                     dereverberation
 
         Returns:
-            masked (List[Union(torch.Tensor, ComplexTensor)]): [(B, T, F), ...]
+            masked (List[torch.Tensor]): [(B, T, F), ...]
             ilens (torch.Tensor): (B,)
             others predicted data, e.g. masks: OrderedDict[
                 'mask_spk1': torch.Tensor(Batch, Frames, Freq),
@@ -197,7 +200,7 @@ class USESSeparator(AbsSeparator):
                 # B, num_spk, T, F
                 if not is_complex(input):
                     for spk in range(specs2.size(1)):
-                        others[f"dereverb{spk + 1}"] = ComplexTensor(
+                        others[f"dereverb{spk + 1}"] = complex_tensor(
                             specs2[:, spk, 0], specs2[:, spk, 1]
                         )
                 else:
@@ -217,7 +220,7 @@ class USESSeparator(AbsSeparator):
 
         # B, num_spk, T, F
         if not is_complex(input):
-            specs = list(ComplexTensor(specs[:, :, 0], specs[:, :, 1]).unbind(1))
+            specs = list(complex_tensor(specs[:, :, 0], specs[:, :, 1]).unbind(1))
         else:
             specs = list(
                 new_complex_like(input, (specs[:, :, 0], specs[:, :, 1])).unbind(1)

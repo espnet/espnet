@@ -1,9 +1,7 @@
-from typing import Tuple, Union
+from typing import Tuple
 
 import torch
 import torch.nn.functional as F
-import torch_complex.functional as FC
-from torch_complex.tensor import ComplexTensor
 
 from espnet2.enh.layers.complex_utils import einsum, matmul, reverse
 
@@ -12,11 +10,11 @@ Many functions aren't enough tested"""
 
 
 def signal_framing(
-    signal: Union[torch.Tensor, ComplexTensor],
+    signal: torch.Tensor,
     frame_length: int,
     frame_step: int,
     pad_value=0,
-) -> Union[torch.Tensor, ComplexTensor]:
+) -> torch.Tensor:
     """Expands signal into frames of frame_length.
 
     Args:
@@ -24,11 +22,7 @@ def signal_framing(
     Returns:
         torch.Tensor: (B * F, D, T, W)
     """
-    if isinstance(signal, ComplexTensor):
-        real = signal_framing(signal.real, frame_length, frame_step, pad_value)
-        imag = signal_framing(signal.imag, frame_length, frame_step, pad_value)
-        return ComplexTensor(real, imag)
-    elif torch.is_complex(signal):
+    if torch.is_complex(signal):
         real = signal_framing(signal.real, frame_length, frame_step, pad_value)
         imag = signal_framing(signal.imag, frame_length, frame_step, pad_value)
         return torch.complex(real, imag)
@@ -63,8 +57,8 @@ def get_power(signal, dim=-2) -> torch.Tensor:
 
 
 def get_correlations(
-    Y: Union[torch.Tensor, ComplexTensor], inverse_power: torch.Tensor, taps, delay
-) -> Tuple[Union[torch.Tensor, ComplexTensor], Union[torch.Tensor, ComplexTensor]]:
+    Y: torch.Tensor, inverse_power: torch.Tensor, taps, delay
+) -> Tuple[torch.Tensor, torch.Tensor]:
     """Calculates weighted correlations of a window of length taps
 
     Args:
@@ -104,10 +98,10 @@ def get_correlations(
 
 
 def get_filter_matrix_conj(
-    correlation_matrix: Union[torch.Tensor, ComplexTensor],
-    correlation_vector: Union[torch.Tensor, ComplexTensor],
+    correlation_matrix: torch.Tensor,
+    correlation_vector: torch.Tensor,
     eps: float = 1e-10,
-) -> Union[torch.Tensor, ComplexTensor]:
+) -> torch.Tensor:
     """Calculate (conjugate) filter matrix based on correlations for one freq.
 
     Args:
@@ -116,7 +110,7 @@ def get_filter_matrix_conj(
         eps:
 
     Returns:
-        filter_matrix_conj (torch.complex/ComplexTensor): (F, taps, C, C)
+        filter_matrix_conj (torch.complex64): (F, taps, C, C)
     """
     F, taps, C, _ = correlation_vector.size()
 
@@ -149,25 +143,21 @@ def get_filter_matrix_conj(
 
 
 def perform_filter_operation(
-    Y: Union[torch.Tensor, ComplexTensor],
-    filter_matrix_conj: Union[torch.Tensor, ComplexTensor],
+    Y: torch.Tensor,
+    filter_matrix_conj: torch.Tensor,
     taps,
     delay,
-) -> Union[torch.Tensor, ComplexTensor]:
+) -> torch.Tensor:
     """perform_filter_operation
 
     Args:
         Y : Complex-valued STFT signal of shape (F, C, T)
         filter Matrix (F, taps, C, C)
     """
-    if isinstance(Y, ComplexTensor):
-        complex_module = FC
-        pad_func = FC.pad
-    elif torch.is_complex(Y):
-        complex_module = torch
-        pad_func = F.pad
-    else:
-        raise ValueError("Input must be a ComplexTensor or a complex torch.Tensor.")
+    if not torch.is_complex(Y):
+        raise ValueError("Input must be a complex torch.Tensor.")
+    complex_module = torch
+    pad_func = F.pad
 
     T = Y.size(-1)
     # Y_tilde: (taps, F, C, T)
@@ -183,13 +173,13 @@ def perform_filter_operation(
 
 
 def wpe_one_iteration(
-    Y: Union[torch.Tensor, ComplexTensor],
+    Y: torch.Tensor,
     power: torch.Tensor,
     taps: int = 10,
     delay: int = 3,
     eps: float = 1e-10,
     inverse_power: bool = True,
-) -> Union[torch.Tensor, ComplexTensor]:
+) -> torch.Tensor:
     """WPE for one iteration
 
     Args:
@@ -222,9 +212,7 @@ def wpe_one_iteration(
     return enhanced
 
 
-def wpe(
-    Y: Union[torch.Tensor, ComplexTensor], taps=10, delay=3, iterations=3
-) -> Union[torch.Tensor, ComplexTensor]:
+def wpe(Y: torch.Tensor, taps=10, delay=3, iterations=3) -> torch.Tensor:
     """WPE
 
     Args:

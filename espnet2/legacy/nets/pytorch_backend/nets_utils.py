@@ -406,13 +406,13 @@ def th_accuracy(pad_outputs, pad_targets, ignore_label):
 
 
 def to_torch_tensor(x):
-    """Change to torch.Tensor or ComplexTensor from numpy.ndarray.
+    """Change to complex torch.Tensor from numpy.ndarray.
 
     Args:
-        x: Inputs. It should be one of numpy.ndarray, Tensor, ComplexTensor, and dict.
+        x: Inputs. It should be one of numpy.ndarray, Tensor, complex tensor, and dict.
 
     Returns:
-        Tensor or ComplexTensor: Type converted inputs.
+        Tensor or complex tensor: Type converted inputs.
 
     Examples:
         >>> xs = np.ones(3, dtype=np.float32)
@@ -422,7 +422,7 @@ def to_torch_tensor(x):
         >>> assert to_torch_tensor(xs) is xs
         >>> xs = {'real': xs, 'imag': xs}
         >>> to_torch_tensor(xs)
-        ComplexTensor(
+        complex tensor (
         Real:
         tensor([1., 1., 1.])
         Imag;
@@ -432,23 +432,16 @@ def to_torch_tensor(x):
     """
     # If numpy, change to torch tensor
     if isinstance(x, np.ndarray):
-        if x.dtype.kind == "c":
-            # Dynamically importing because torch_complex requires python3
-            from torch_complex.tensor import ComplexTensor
+        # a complex ndarray becomes a complex tensor directly
+        return torch.from_numpy(x)
 
-            return ComplexTensor(x)
-        else:
-            return torch.from_numpy(x)
-
-    # If {'real': ..., 'imag': ...}, convert to ComplexTensor
+    # If {'real': ..., 'imag': ...}, convert to complex tensor
     elif isinstance(x, dict):
-        # Dynamically importing because torch_complex requires python3
-        from torch_complex.tensor import ComplexTensor
-
         if "real" not in x or "imag" not in x:
             raise ValueError("has 'real' and 'imag' keys: {}".format(list(x)))
-        # Relative importing because of using python3 syntax
-        return ComplexTensor(x["real"], x["imag"])
+        from espnet2.enh.layers.complex_utils import complex_tensor
+
+        return complex_tensor(torch.as_tensor(x["real"]), torch.as_tensor(x["imag"]))
 
     # If torch.Tensor, as it is
     elif isinstance(x, torch.Tensor):
@@ -460,17 +453,11 @@ def to_torch_tensor(x):
             "{{'real': torch.Tensor, 'imag': torch.Tensor}}, "
             "but got {}".format(type(x))
         )
-        try:
-            from torch_complex.tensor import ComplexTensor
-        except Exception:
-            # If PY2
-            raise ValueError(error)
-        else:
-            # If PY3
-            if isinstance(x, ComplexTensor):
-                return x
-            else:
-                raise ValueError(error)
+        from espnet2.enh.layers.complex_utils import is_complex, to_complex
+
+        if is_complex(x):  # a legacy torch_complex.ComplexTensor
+            return to_complex(x)
+        raise ValueError(error)
 
 
 def get_subsample(train_args, mode, arch):

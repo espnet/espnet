@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 import torch
-import torch_complex.functional as FC
-from torch_complex.tensor import ComplexTensor
 
 from espnet2.enh.layers.complex_utils import (
     cat,
@@ -35,8 +33,8 @@ mat_np = np.array(
 
 @pytest.mark.parametrize("dim", [0, 1, 2])
 def test_cat(dim):
-    wrappers = [ComplexTensor, torch.complex]
-    modules = [FC, torch]
+    wrappers = [torch.complex]
+    modules = [torch]
 
     for complex_wrapper, complex_module in zip(wrappers, modules):
         mat1 = complex_wrapper(torch.rand(2, 3, 4), torch.rand(2, 3, 4))
@@ -48,7 +46,7 @@ def test_cat(dim):
 
 @pytest.mark.parametrize("dim", [None, 0, 1, 2])
 def test_complex_norm(dim):
-    mat = ComplexTensor(torch.rand(2, 3, 4), torch.rand(2, 3, 4))
+    mat = torch.complex(torch.rand(2, 3, 4), torch.rand(2, 3, 4))
     mat_th = torch.complex(mat.real, mat.imag)
     norm = complex_norm(mat, dim=dim, keepdim=True)
     norm_th = complex_norm(mat_th, dim=dim, keepdim=True)
@@ -59,8 +57,8 @@ def test_complex_norm(dim):
 
 @pytest.mark.parametrize("real_vec", [True, False])
 def test_einsum(real_vec):
-    wrappers = [ComplexTensor, torch.complex]
-    modules = [FC, torch]
+    wrappers = [torch.complex]
+    modules = [torch]
 
     for complex_wrapper, complex_module in zip(wrappers, modules):
         mat = complex_wrapper(torch.rand(2, 3, 3), torch.rand(2, 3, 3))
@@ -76,8 +74,8 @@ def test_einsum(real_vec):
 
 
 def test_inverse():
-    wrappers = [ComplexTensor, torch.complex]
-    modules = [FC, torch]
+    wrappers = [torch.complex]
+    modules = [torch]
 
     eye = torch.eye(3).expand(2, 3, 3)
     for complex_wrapper, complex_module in zip(wrappers, modules):
@@ -90,8 +88,8 @@ def test_inverse():
 
 @pytest.mark.parametrize("real_vec", [True, False])
 def test_matmul(real_vec):
-    wrappers = [ComplexTensor, torch.complex]
-    modules = [FC, torch]
+    wrappers = [torch.complex]
+    modules = [torch]
 
     for complex_wrapper, complex_module in zip(wrappers, modules):
         mat = complex_wrapper(torch.rand(2, 3, 3), torch.rand(2, 3, 3))
@@ -107,8 +105,8 @@ def test_matmul(real_vec):
 
 
 def test_trace():
-    wrappers = [ComplexTensor, torch.complex]
-    modules = [FC, torch]
+    wrappers = [torch.complex]
+    modules = [torch]
 
     for complex_wrapper, complex_module in zip(wrappers, modules):
         mat = complex_wrapper(torch.rand(2, 3, 3), torch.rand(2, 3, 3))
@@ -119,31 +117,28 @@ def test_trace():
 
 @pytest.mark.parametrize("real_vec", [True, False])
 def test_solve(real_vec):
-    wrappers = [ComplexTensor, torch.complex]
-    modules = [FC, torch]
+    wrappers = [torch.complex]
+    modules = [torch]
 
     for complex_wrapper, complex_module in zip(wrappers, modules):
         mat = complex_wrapper(
             torch.from_numpy(mat_np.real), torch.from_numpy(mat_np.imag)
         )
-        if not real_vec or complex_wrapper is ComplexTensor:
+        if not real_vec:
             vec = complex_wrapper(torch.rand(2, 3, 1), torch.rand(2, 3, 1))
             vec2 = vec
         else:
             vec = torch.rand(2, 3, 1)
             vec2 = complex_wrapper(vec, torch.zeros_like(vec))
         ret = solve(vec, mat)
-        if isinstance(vec2, ComplexTensor):
-            ret2 = FC.solve(vec2, mat, return_LU=False)
-        else:
-            ret2 = torch.linalg.solve(mat, vec2)
+        ret2 = torch.linalg.solve(mat, vec2)
         assert complex_module.allclose(ret, ret2)
 
 
 @pytest.mark.parametrize("dim", [0, 1, 2])
 def test_stack(dim):
-    wrappers = [ComplexTensor, torch.complex]
-    modules = [FC, torch]
+    wrappers = [torch.complex]
+    modules = [torch]
 
     for complex_wrapper, complex_module in zip(wrappers, modules):
         print(complex_wrapper, complex_module)
@@ -154,23 +149,37 @@ def test_stack(dim):
         assert complex_module.allclose(ret, ret2)
 
 
-def test_complex_impl_consistency():
+def test_against_numpy():
+    # numpy is the independent oracle: inverse, matmul, solve and einsum on
+    # the fixed matrix above must agree with it
     torch.random.manual_seed(0)
-    mat_th = torch.complex(torch.from_numpy(mat_np.real), torch.from_numpy(mat_np.imag))
-    mat_ct = ComplexTensor(torch.from_numpy(mat_np.real), torch.from_numpy(mat_np.imag))
-    bs = mat_th.shape[0]
-    rank = mat_th.shape[-1]
-    vec_th = torch.complex(torch.rand(bs, rank), torch.rand(bs, rank)).type_as(mat_th)
-    vec_ct = ComplexTensor(vec_th.real, vec_th.imag)
+    mat = torch.from_numpy(mat_np)
+    vec_np = (np.random.rand(2, 3, 1) + 1j * np.random.rand(2, 3, 1)).astype(
+        np.complex64
+    )
+    vec = torch.from_numpy(vec_np)
+    np.testing.assert_allclose(inverse(mat).numpy(), np.linalg.inv(mat_np), atol=1e-5)
+    np.testing.assert_allclose(matmul(mat, vec).numpy(), mat_np @ vec_np, atol=1e-5)
+    np.testing.assert_allclose(
+        solve(vec, mat).numpy(), np.linalg.solve(mat_np, vec_np), atol=1e-4
+    )
+    np.testing.assert_allclose(
+        einsum("bec,bcf->bef", mat, vec).numpy(),
+        np.einsum("bec,bcf->bef", mat_np, vec_np),
+        atol=1e-5,
+    )
+    np.testing.assert_allclose(
+        trace(mat).numpy(), np.trace(mat_np, axis1=-2, axis2=-1), atol=1e-6
+    )
 
-    for result_th, result_ct in (
-        (abs(mat_th), abs(mat_ct)),
-        (inverse(mat_th), inverse(mat_ct)),
-        (matmul(mat_th, vec_th.unsqueeze(-1)), matmul(mat_ct, vec_ct.unsqueeze(-1))),
-        (solve(vec_th.unsqueeze(-1), mat_th), solve(vec_ct.unsqueeze(-1), mat_ct)),
-        (
-            einsum("bec,bc->be", mat_th, vec_th),
-            einsum("bec,bc->be", mat_ct, vec_ct),
-        ),
-    ):
-        np.testing.assert_allclose(result_th.numpy(), result_ct.numpy(), atol=1e-6)
+
+def test_legacy_complextensor_is_accepted_when_installed():
+    torch_complex = pytest.importorskip("torch_complex")
+    from espnet2.enh.layers.complex_utils import is_complex, to_complex
+
+    mat = torch.from_numpy(mat_np)
+    legacy = torch_complex.tensor.ComplexTensor(mat.real, mat.imag)
+    assert is_complex(legacy)
+    assert torch.allclose(to_complex(legacy), mat)
+    assert torch.allclose(matmul(legacy, mat), mat @ mat)
+    assert torch.allclose(trace(legacy), trace(mat))
