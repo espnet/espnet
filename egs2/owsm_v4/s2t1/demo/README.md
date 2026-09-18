@@ -36,6 +36,10 @@ can be compared on the same audio:
 Language identification uses `Speech2Language` on the same checkpoint; the
 language menu and the translation targets are read from it too.
 
+The hosted demo takes audio of up to two minutes and asks ZeroGPU for a
+matching slice of GPU time; the model itself has no such limit, so run the app
+yourself for longer recordings.
+
 ## Running and publishing
 
 ```sh

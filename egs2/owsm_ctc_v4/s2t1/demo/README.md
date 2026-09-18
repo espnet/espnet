@@ -36,6 +36,10 @@ long-form decoding - so the two models can be compared on the same audio:
 The language menu and the translation targets are read from the checkpoint, so
 a model covering more languages needs no edit here.
 
+The hosted demo takes audio of up to two minutes and asks ZeroGPU for a
+matching slice of GPU time; the model itself has no such limit, so run the app
+yourself for longer recordings.
+
 ## Running and publishing
 
 ```sh

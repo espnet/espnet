@@ -27,12 +27,17 @@ except ImportError:  # running locally: the decorator does nothing
 
     class spaces:  # noqa: N801 - stands in for the module
         @staticmethod
-        def GPU(func):
-            return func
+        def GPU(func=None, **kwargs):
+            return func if func is not None else (lambda f: f)
 
 
 SAMPLE_RATE = 16000
 WINDOW_SECS = 30  # what OWSM is trained on; longer audio is decoded in chunks
+# ZeroGPU gives a decorated call a fixed slice of GPU time and kills it at the
+# end, so the demo asks for a slice and refuses audio it could not finish in
+# one. The Space this replaces limited the input the same way, to two minutes.
+MAX_SECS = 120
+GPU_SECONDS = 120
 MODEL_TAG = os.environ.get("OWSM_MODEL_TAG", "espnet/owsm_ctc_v4_1B")
 # On ZeroGPU the GPU is attached only while a @spaces.GPU function runs, so
 # torch.cuda.is_available() is False here and asking it would pin the models to
@@ -200,6 +205,12 @@ def _read(path):
     if path is None:
         raise gr.Error("Record or upload some audio first.")
     speech, _ = librosa.load(path, sr=SAMPLE_RATE)
+    seconds = len(speech) / SAMPLE_RATE
+    if seconds > MAX_SECS:
+        raise gr.Error(
+            f"This demo takes up to {MAX_SECS} s; that file is {seconds:.0f} s. "
+            "Run the app yourself for longer audio - the model has no such limit."
+        )
     return speech
 
 
@@ -265,7 +276,7 @@ def _split_tokens(decoded):
     return language, rest
 
 
-@spaces.GPU
+@spaces.GPU(duration=GPU_SECONDS)
 def predict(audio_path, language_label, task_label, long_form):
     speech = _read(audio_path)
     lang_sym = (
