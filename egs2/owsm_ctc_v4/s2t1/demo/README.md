@@ -55,7 +55,7 @@ To publish it as a Hugging Face Space, from the ESPnet checkout:
 
 ```sh
 hf auth login
-hf upload spaces/espnet/owsm-ctc-v4 egs2/owsm_ctc_v4/s2t1/demo . --repo-type space
+hf upload espnet/owsm-ctc-v4 egs2/owsm_ctc_v4/s2t1/demo . --repo-type space
 ```
 
 `OWSM_MODEL_TAG` selects another OWSM-CTC checkpoint. On a GPU Space set
