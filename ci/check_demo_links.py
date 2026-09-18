@@ -48,17 +48,19 @@ SPACE_LINK = re.compile(
     r"https://huggingface\.co/spaces/(?P<owner>[A-Za-z0-9_.-]+)"
     r"/(?P<name>[A-Za-z0-9_.-]+)/?(?![A-Za-z0-9_.-]|/\S)"
 )
-# A Space is usable when it is running; a paused or sleeping one wakes up on a
-# visit, so only these stages are reported. NO_APP_FILE is in the list because
-# it is the state an upload that sent the wrong directory leaves behind: the
-# repository exists and the page loads, with nothing to run.
-BROKEN_STAGES = {
-    "RUNTIME_ERROR",
-    "BUILD_ERROR",
-    "CONFIG_ERROR",
-    "NO_APP_FILE",
-    "DELETED",
-    "DELETING",
+# Listed the other way round on purpose. A link is good when clicking it gets
+# you the app: running, still starting, or asleep - a visit wakes a sleeping
+# Space. Everything else is reported: erroring, being deleted, stopped, paused
+# (only its owner can restart one), an upload that sent the wrong directory
+# (NO_APP_FILE), and any stage the Hub adds after this was written, which is
+# the point - an unrecognised state must not read as a working demo.
+WORKING_STAGES = {
+    "RUNNING",
+    "RUNNING_BUILDING",
+    "RUNNING_APP_STARTING",
+    "BUILDING",
+    "APP_STARTING",
+    "SLEEPING",
 }
 TIMEOUT = 30
 
@@ -102,7 +104,13 @@ def find_links(
     spaces: Dict[str, Set[str]] = defaultdict(set)
     for name, text in texts.items():
         for m in NOTEBOOK_LINK.finditer(text):
-            notebooks[(m.group("ref"), m.group("path"))].add(name)
+            # a URL may carry %2F and friends; notebook_paths re-encodes the
+            # ref itself, and the tree lists decoded paths
+            key = (
+                urllib.parse.unquote(m.group("ref")),
+                urllib.parse.unquote(m.group("path")),
+            )
+            notebooks[key].add(name)
         for m in SPACE_LINK.finditer(text):
             spaces[f"{m.group('owner')}/{m.group('name')}"].add(name)
     return dict(notebooks), dict(spaces)
@@ -231,7 +239,7 @@ def scan() -> List[str]:
             broken.append(f"notebook gone{at}: {real_path}  (linked from {where})")
     for space_id in sorted(spaces):
         stage = space_stage(space_id)
-        if stage in BROKEN_STAGES:
+        if stage not in WORKING_STAGES:
             where = ", ".join(sorted(spaces[space_id]))
             broken.append(f"space {stage}: {space_id}  (linked from {where})")
     print(
@@ -252,13 +260,17 @@ def self_check() -> None:
         "[f](https://colab.research.google.com/assets/colab-badge.svg) "
         "[g](https://huggingface.co/spaces/gradio/omni-mini/tree/main) "
         "[h](https://github.com/espnet/notebook/blob/v1.0/tagged.ipynb) "
-        "[i](https://huggingface.co/spaces/espnet/svs/)"
+        "[i](https://huggingface.co/spaces/espnet/svs/) "
+        "[j](https://github.com/espnet/notebook/blob/feature%2Fdemo/a%20b.ipynb)"
     )
     notebooks, spaces = find_links({"README.md": text})
     assert notebooks == {
         ("master", "ESPnet2/Demo/TTS/tts_realtime_demo.ipynb"): {"README.md"},
         ("master", "x/y.ipynb"): {"README.md"},
         ("v1.0", "tagged.ipynb"): {"README.md"},
+        # percent-encoding is undone here, since the ref is encoded again when
+        # its tree is fetched and the tree's paths come back decoded
+        ("feature/demo", "a b.ipynb"): {"README.md"},
     }, notebooks
     # the bare /spaces listing, the docs page, the badge image and a link into
     # a Space's files are not links to a running Space
