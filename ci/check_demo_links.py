@@ -21,6 +21,7 @@ Exit status: 0 nothing broken, 1 something broken, 2 the scan itself failed
 """
 
 import argparse
+import errno
 import json
 import os
 import re
@@ -121,10 +122,17 @@ def space_stage(space_id: str) -> str:
 def scan() -> List[str]:
     texts = {}
     for name in documentation_files():
-        # three tracked scripts under egs2 are symlinks whose target is not in
-        # the repository; they hold no text to scan here
-        if os.path.islink(name) and not os.path.exists(name):
-            continue
+        if os.path.islink(name):
+            try:
+                os.stat(name)  # follows the link
+            except OSError as e:
+                # three tracked scripts under egs2 are symlinks whose target is
+                # not in the repository; they hold no text to scan here. Any
+                # other error is a file this scan failed to read, not an empty
+                # one - os.path.exists() would have called both of them False.
+                if e.errno not in (errno.ENOENT, errno.ENOTDIR):
+                    raise ScanError(f"cannot read {name}: {e}") from e
+                continue
         try:
             with open(name, encoding="utf-8") as f:
                 texts[name] = f.read()
