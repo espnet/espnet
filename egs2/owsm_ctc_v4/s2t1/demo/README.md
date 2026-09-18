@@ -8,7 +8,7 @@ sdk_version: 6.27.0
 app_file: app.py
 pinned: false
 license: apache-2.0
-short_description: Multilingual ASR, speech translation and language ID in one encoder
+short_description: ASR, speech translation and language ID in one encoder
 tags:
   - espnet
   - owsm

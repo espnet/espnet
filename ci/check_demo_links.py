@@ -33,7 +33,10 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from collections import defaultdict
+from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple
+
+import yaml
 
 NOTEBOOK_REPO = "espnet/notebook"
 # Colab and GitHub spellings of a path inside the notebook repository.
@@ -205,6 +208,48 @@ def space_stage(space_id: str) -> str:
     return runtime["stage"]
 
 
+# What the Hub refuses in a Space's README front matter. Every one of these
+# stops `hf upload` before a single file lands, and the demo card in this
+# repository is written here rather than on the Hub, so nothing else checks it.
+SPACE_CARD_LIMITS = {"short_description": 60, "title": 100}
+SPACE_CARD_REQUIRED = ("title", "sdk", "app_file")
+
+
+def space_cards() -> List[str]:
+    """Paths of the Space READMEs kept in this repository."""
+    return [
+        p
+        for p in documentation_files()[1]
+        if p.endswith("README.md") and "/demo/" in f"/{p}"
+    ]
+
+
+def check_space_card(path: str, text: str) -> List[str]:
+    """Report what the Hub would refuse in this Space card's front matter."""
+    if not text.startswith("---"):
+        return []  # not a Space card, just a README in a demo directory
+    try:
+        front = yaml.safe_load(text.split("---", 2)[1])
+    except yaml.YAMLError as e:
+        return [f"{path}: front matter is not valid YAML: {e}"]
+    if not isinstance(front, dict) or "sdk" not in front:
+        return []
+    problems = []
+    for key in SPACE_CARD_REQUIRED:
+        if not front.get(key):
+            problems.append(f"{path}: the Hub requires {key} in a Space card")
+    for key, limit in SPACE_CARD_LIMITS.items():
+        value = front.get(key)
+        if isinstance(value, str) and len(value) > limit:
+            problems.append(
+                f"{path}: {key} is {len(value)} characters; the Hub allows {limit}"
+            )
+    app = front.get("app_file")
+    if app and not (Path(path).parent / app).exists():
+        problems.append(f"{path}: app_file {app} is not next to it")
+    return problems
+
+
 def scan() -> List[str]:
     root, names = documentation_files()
     texts = {}
@@ -230,6 +275,9 @@ def scan() -> List[str]:
             raise ScanError(f"cannot read {name}: {e}") from e
     notebooks, spaces = find_links(texts)
     broken = []
+    for path in space_cards():
+        # an upload is refused outright for these, so the demo never appears
+        broken.extend(check_space_card(path, texts.get(path, "")))
     known: Dict[str, Optional[Set[str]]] = {}  # one request per ref, not per link
     for ref, path in sorted(notebooks):
         real_ref, real_path, files = split_ref(ref, path, known)
@@ -281,6 +329,26 @@ def self_check() -> None:
     }, spaces
     both = find_links({"a.md": text, "b.md": text})[1]["espnet/TTS"]
     assert both == {"a.md", "b.md"}, both
+
+    # a Space card the Hub would refuse: 67 characters where it allows 60,
+    # which is what stopped the OWSM-CTC demo's first upload
+    card = (
+        "---\ntitle: OWSM-CTC v4\nsdk: gradio\napp_file: app.py\n"
+        "short_description: Multilingual ASR, speech translation and language ID"
+        " in one encoder\n---\n"
+    )
+    problems = check_space_card("egs2/x/demo/README.md", card)
+    assert any("short_description is 67 characters" in p for p in problems), problems
+    assert any("app_file app.py is not next to it" in p for p in problems), problems
+    ok = card.replace(
+        "Multilingual ASR, speech translation and language ID in one encoder",
+        "ASR, speech translation and language ID in one encoder",
+    ).replace("app_file: app.py\n", "")
+    assert check_space_card("egs2/x/demo/README.md", ok) == [
+        "egs2/x/demo/README.md: the Hub requires app_file in a Space card"
+    ], check_space_card("egs2/x/demo/README.md", ok)
+    # a plain README in a demo directory is not a Space card
+    assert check_space_card("egs2/x/demo/README.md", "# just a readme\n") == []
 
     # the ref/path boundary, against a repository where only "feature/demo"
     # exists: the first candidate 404s and the second resolves
