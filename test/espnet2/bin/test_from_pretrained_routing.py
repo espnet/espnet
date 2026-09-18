@@ -16,26 +16,44 @@ import pytest
 BIN = pathlib.Path(__file__).parents[3] / "espnet2" / "bin"
 
 
-def _classes_with_from_pretrained():
+def _from_pretrained_methods():
+    """Yield (module, class, argument names) for every from_pretrained."""
     for f in sorted(BIN.glob("*.py")):
-        src = f.read_text()
-        if "download_pretrained(model_tag)" not in src:
-            continue
-        for node in ast.walk(ast.parse(src)):
-            if isinstance(node, ast.ClassDef) and any(
-                isinstance(x, ast.FunctionDef) and x.name == "from_pretrained"
-                for x in node.body
-            ):
-                yield f.stem, node.name
+        for node in ast.walk(ast.parse(f.read_text())):
+            if not isinstance(node, ast.ClassDef):
+                continue
+            for x in node.body:
+                if isinstance(x, ast.FunctionDef) and x.name == "from_pretrained":
+                    args = [a.arg for a in x.args.args + x.args.kwonlyargs]
+                    yield f.stem, node.name, args
 
 
-CLASSES = sorted(_classes_with_from_pretrained())
+# Membership is decided by the signature, not by what the file already
+# contains: a class that took a model_tag and fetched it its own way would
+# be tested like the rest, and fail.
+CLASSES = sorted(
+    (module, name)
+    for module, name, args in _from_pretrained_methods()
+    if "model_tag" in args
+)
+NO_MODEL_TAG = sorted(
+    (module, name)
+    for module, name, args in _from_pretrained_methods()
+    if "model_tag" not in args
+)
 
 
-def test_every_bin_module_with_from_pretrained_was_found():
-    # the list is derived, so a new inference class is covered automatically;
-    # this guards against the derivation silently finding nothing
+def test_every_inference_class_that_takes_a_model_tag_was_found():
+    # the list is derived, so a new inference class is covered without
+    # touching this file; this guards against the derivation finding nothing
     assert len(CLASSES) > 20
+
+
+def test_only_s2st_offers_from_pretrained_without_a_model_tag():
+    # Speech2Speech.from_pretrained takes only vocoder_tag, so an S2ST model
+    # cannot be loaded from a published tag at all. If that is ever fixed,
+    # the class joins CLASSES above and this expectation goes away.
+    assert NO_MODEL_TAG == [("s2st_inference", "Speech2Speech")]
 
 
 @pytest.mark.parametrize("module_name, class_name", CLASSES)
