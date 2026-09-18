@@ -54,21 +54,25 @@ class ScanError(RuntimeError):
 
 
 def markdown_files() -> List[str]:
-    out = subprocess.run(
-        ["git", "ls-files", "*.md"], capture_output=True, text=True, check=True
-    )
+    try:
+        out = subprocess.run(
+            ["git", "ls-files", "*.md"], capture_output=True, text=True, check=True
+        )
+    except (OSError, subprocess.CalledProcessError) as e:
+        # not "nothing is broken": the scan never looked
+        raise ScanError(f"cannot list tracked markdown files: {e}") from e
     return [p for p in out.stdout.split("\n") if p]
 
 
 def find_links(
     texts: Dict[str, str],
-) -> Tuple[Dict[str, Set[str]], Dict[str, Set[str]]]:
-    """Return {notebook path: {files}} and {space id: {files}}."""
-    notebooks: Dict[str, Set[str]] = defaultdict(set)
+) -> Tuple[Dict[Tuple[str, str], Set[str]], Dict[str, Set[str]]]:
+    """Return {(ref, notebook path): {files}} and {space id: {files}}."""
+    notebooks: Dict[Tuple[str, str], Set[str]] = defaultdict(set)
     spaces: Dict[str, Set[str]] = defaultdict(set)
     for name, text in texts.items():
         for m in NOTEBOOK_LINK.finditer(text):
-            notebooks[m.group("path")].add(name)
+            notebooks[(m.group("ref"), m.group("path"))].add(name)
         for m in SPACE_LINK.finditer(text):
             spaces[f"{m.group('owner')}/{m.group('name')}"].add(name)
     return dict(notebooks), dict(spaces)
@@ -86,14 +90,15 @@ def _get_json(url: str):
         raise ScanError(f"{url}: {e}") from e
 
 
-def notebook_paths() -> Set[str]:
+def notebook_paths(ref: str) -> Set[str]:
+    """The files the notebook repository holds at ``ref`` (branch, tag or sha)."""
     tree = _get_json(
-        f"https://api.github.com/repos/{NOTEBOOK_REPO}/git/trees/master?recursive=1"
+        f"https://api.github.com/repos/{NOTEBOOK_REPO}/git/trees/{ref}?recursive=1"
     )
     if tree is None or "tree" not in tree:
-        raise ScanError(f"cannot list {NOTEBOOK_REPO}")
+        raise ScanError(f"cannot list {NOTEBOOK_REPO} at {ref}")
     if tree.get("truncated"):
-        raise ScanError(f"{NOTEBOOK_REPO} file list came back truncated")
+        raise ScanError(f"{NOTEBOOK_REPO} file list at {ref} came back truncated")
     return {t["path"] for t in tree["tree"]}
 
 
@@ -116,11 +121,14 @@ def scan() -> List[str]:
             raise ScanError(f"cannot read {name}: {e}") from e
     notebooks, spaces = find_links(texts)
     broken = []
-    known = notebook_paths()
-    for path in sorted(notebooks):
-        if path not in known:
-            where = ", ".join(sorted(notebooks[path]))
-            broken.append(f"notebook gone: {path}  (linked from {where})")
+    known: Dict[str, Set[str]] = {}
+    for ref, path in sorted(notebooks):
+        if ref not in known:  # one request per ref, however many links use it
+            known[ref] = notebook_paths(ref)
+        if path not in known[ref]:
+            where = ", ".join(sorted(notebooks[(ref, path)]))
+            at = "" if ref == "master" else f" at {ref}"
+            broken.append(f"notebook gone{at}: {path}  (linked from {where})")
     for space_id in sorted(spaces):
         stage = space_stage(space_id)
         if stage in BROKEN_STAGES:
@@ -142,12 +150,14 @@ def self_check() -> None:
         "[d](https://huggingface.co/spaces) "
         "[e](https://huggingface.co/docs/hub/spaces) "
         "[f](https://colab.research.google.com/assets/colab-badge.svg) "
-        "[g](https://huggingface.co/spaces/gradio/omni-mini/tree/main)"
+        "[g](https://huggingface.co/spaces/gradio/omni-mini/tree/main) "
+        "[h](https://github.com/espnet/notebook/blob/v1.0/tagged.ipynb)"
     )
     notebooks, spaces = find_links({"README.md": text})
     assert notebooks == {
-        "ESPnet2/Demo/TTS/tts_realtime_demo.ipynb": {"README.md"},
-        "x/y.ipynb": {"README.md"},
+        ("master", "ESPnet2/Demo/TTS/tts_realtime_demo.ipynb"): {"README.md"},
+        ("master", "x/y.ipynb"): {"README.md"},
+        ("v1.0", "tagged.ipynb"): {"README.md"},
     }, notebooks
     # the bare /spaces listing, the docs page, the badge image and a link into
     # a Space's files are not links to a running Space
