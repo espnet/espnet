@@ -180,7 +180,7 @@ class ESTOI(STOI):
         modulated noise maskers.
         IEEE/ACM Transactions on Audio, Speech, and Language Processing,
         vol. 24, no. 11, pp. 2009-2022, 2016.
-    """
+    """  # noqa: D205, D400
 
     def __init__(
         self,
