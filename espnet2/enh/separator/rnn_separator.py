@@ -150,6 +150,6 @@ class RNNSeparator(AbsSeparator):
             zip(["mask_spk{}".format(i + 1) for i in range(len(masks))], masks)
         )
         if self.predict_noise:
-            others["noise1"] = input * mask_noise
+            others["noise1"] = input_frame * mask_noise
 
         return masked, states, others

@@ -4,7 +4,7 @@ from typing import Dict, List, Optional, Tuple
 import torch
 
 from espnet2.enh.extractor.abs_extractor import AbsExtractor
-from espnet2.enh.layers.complex_utils import is_complex
+from espnet2.enh.layers.complex_utils import as_native, is_complex
 from espnet2.enh.layers.tcn import TemporalConvNet, TemporalConvNetInformed
 from espnet2.legacy.nets.pytorch_backend.nets_utils import make_pad_mask
 
@@ -136,6 +136,7 @@ class TDSpeakerBeamExtractor(AbsExtractor):
                 f'enroll_emb{suffix_tag}': torch.Tensor(Batch, adapt_enroll_dim/adapt_enroll_dim*2),
             ]
         """  # noqa: E501
+        input, input_aux = as_native(input), as_native(input_aux)
         # if complex spectrum
         feature = abs(input) if is_complex(input) else input
         aux_feature = abs(input_aux) if is_complex(input_aux) else input_aux

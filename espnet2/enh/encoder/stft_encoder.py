@@ -158,6 +158,10 @@ class STFTEncoder(AbsEncoder):
             input.dim() == 2
         ), "forward_streaming only support for single-channel input currently."
 
+        if input.dtype in (torch.float16, torch.bfloat16):
+            # the CPU FFT has no half-precision kernels; forward() widens too
+            input = input.float()
+
         windowed = self._apply_window_func(input)
 
         feature = (

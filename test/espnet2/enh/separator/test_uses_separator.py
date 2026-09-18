@@ -34,7 +34,9 @@ def test_uses_separator_forward_backward(
     if use_builtin_complex:
         x = torch.complex(real, imag)
     else:
-        x = torch.complex(real, imag)
+        # the separator converts a legacy ComplexTensor at its boundary
+        torch_complex = pytest.importorskip("torch_complex")
+        x = torch_complex.tensor.ComplexTensor(real, imag)
     x_lens = torch.tensor([18, 16], dtype=torch.long)
 
     output, flens, others = model(x, ilens=x_lens)

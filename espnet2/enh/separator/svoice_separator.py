@@ -158,7 +158,10 @@ class SVoiceSeparator(AbsSeparator):
                 NOTE: not used in this model
 
         Returns:
-            masked (List[torch.Tensor]): [(B, T, N), ...]
+            masked: in training, one list of per-speaker waveforms per
+                intermediate output (List[List[torch.Tensor]]); in inference,
+                the last output's per-speaker waveforms (List[torch.Tensor]);
+                every tensor is (B, T)
             ilens (torch.Tensor): (B,)
             others predicted data, e.g. masks: OrderedDict[
                 'mask_spk1': torch.Tensor(Batch, Frames, Freq),
