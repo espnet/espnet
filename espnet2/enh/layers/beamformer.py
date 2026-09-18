@@ -5,6 +5,7 @@ from typing import List, Union
 import torch
 
 from espnet2.enh.layers.complex_utils import (
+    as_native,
     cat,
     complex_norm,
     einsum,
@@ -817,6 +818,7 @@ def signal_framing(
             if do_padding: (..., T, frame_length)
             else:          (..., T - bdelay - frame_length + 2, frame_length)
     """
+    signal = as_native(signal)
     if is_torch_complex_tensor(signal):
         complex_wrapper = torch.complex
     pad_func = torch.nn.functional.pad
@@ -1058,6 +1060,7 @@ def get_WPD_filter_with_rtf(
     Returns:
         beamform_vector (torch.complex64): (..., F, C)
     """
+    psd_speech, psd_noise = as_native(psd_speech), as_native(psd_noise)
     if not is_torch_complex_tensor(psd_speech):
         raise ValueError("psd_speech must be a complex tensor")
     pad_func = torch.nn.functional.pad

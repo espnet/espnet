@@ -70,6 +70,15 @@ def to_complex(c) -> torch.Tensor:
     return torch.view_as_complex(c)
 
 
+def as_native(c):
+    """Convert a legacy ComplexTensor to a native tensor; pass anything else through.
+
+    Public entry points that take a spectrum call this first, so a caller that
+    still builds a torch_complex.ComplexTensor gets the same result as before.
+    """
+    return to_complex(c) if _is_legacy(c) else c
+
+
 def to_double(c: torch.Tensor) -> torch.Tensor:
     if is_complex(c):
         return to_complex(c).to(dtype=torch.complex128)

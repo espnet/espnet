@@ -3,7 +3,7 @@ from typing import Dict, List, Optional, Tuple
 
 import torch
 
-from espnet2.enh.layers.complex_utils import is_complex
+from espnet2.enh.layers.complex_utils import as_native, is_complex
 from espnet2.enh.layers.dptnet import DPTNet
 from espnet2.enh.layers.tcn import choose_norm
 from espnet2.enh.separator.abs_separator import AbsSeparator
@@ -110,6 +110,7 @@ class DPTNetSeparator(AbsSeparator):
         """
 
         # if complex spectrum,
+        input = as_native(input)
         if is_complex(input):
             feature = abs(input)
         elif self.post_enc_relu:

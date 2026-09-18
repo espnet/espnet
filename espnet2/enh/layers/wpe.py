@@ -3,7 +3,7 @@ from typing import Tuple
 import torch
 import torch.nn.functional as F
 
-from espnet2.enh.layers.complex_utils import einsum, matmul, reverse
+from espnet2.enh.layers.complex_utils import as_native, einsum, matmul, reverse
 
 """ WPE pytorch version: Ported from https://github.com/fgnt/nara_wpe
 Many functions aren't enough tested"""
@@ -22,6 +22,7 @@ def signal_framing(
     Returns:
         torch.Tensor: (B * F, D, T, W)
     """
+    signal = as_native(signal)
     if torch.is_complex(signal):
         real = signal_framing(signal.real, frame_length, frame_step, pad_value)
         imag = signal_framing(signal.imag, frame_length, frame_step, pad_value)
@@ -51,6 +52,7 @@ def get_power(signal, dim=-2) -> torch.Tensor:
         Power with shape (F, T)
 
     """
+    signal = as_native(signal)
     power = signal.real**2 + signal.imag**2
     power = power.mean(dim=dim)
     return power
@@ -71,6 +73,7 @@ def get_correlations(
         Correlation matrix of shape (F, taps*C, taps*C)
         Correlation vector of shape (F, taps, C, C)
     """
+    Y = as_native(Y)
     assert inverse_power.dim() == 2, inverse_power.dim()
     assert inverse_power.size(0) == Y.size(0), (inverse_power.size(0), Y.size(0))
 
@@ -154,6 +157,7 @@ def perform_filter_operation(
         Y : Complex-valued STFT signal of shape (F, C, T)
         filter Matrix (F, taps, C, C)
     """
+    Y = as_native(Y)
     if not torch.is_complex(Y):
         raise ValueError("Input must be a complex torch.Tensor.")
     complex_module = torch
@@ -192,6 +196,7 @@ def wpe_one_iteration(
     Returns:
         enhanced: (..., C, T)
     """
+    Y = as_native(Y)
     assert Y.size()[:-2] == power.size()[:-1]
     batch_freq_size = Y.size()[:-2]
     Y = Y.view(-1, *Y.size()[-2:])
@@ -225,6 +230,7 @@ def wpe(Y: torch.Tensor, taps=10, delay=3, iterations=3) -> torch.Tensor:
         enhanced: (F, C, T)
 
     """
+    Y = as_native(Y)
     enhanced = Y
     for _ in range(iterations):
         power = get_power(enhanced)

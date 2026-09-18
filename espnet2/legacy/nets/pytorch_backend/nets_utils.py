@@ -421,13 +421,9 @@ def to_torch_tensor(x):
         >>> xs = torch.ones(3, 4, 5)
         >>> assert to_torch_tensor(xs) is xs
         >>> xs = {'real': xs, 'imag': xs}
-        >>> to_torch_tensor(xs)
-        complex tensor (
-        Real:
-        tensor([1., 1., 1.])
-        Imag;
-        tensor([1., 1., 1.])
-        )
+        >>> ys = to_torch_tensor(xs)
+        >>> torch.is_complex(ys)
+        True
 
     """
     # If numpy, change to torch tensor

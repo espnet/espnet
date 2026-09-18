@@ -4,6 +4,7 @@ from typing import Dict, List, Optional, Tuple, Union
 import torch
 
 from espnet2.enh.layers.complex_utils import (
+    as_native,
     complex_tensor,
     is_complex,
     new_complex_like,
@@ -211,6 +212,7 @@ class USES2Separator(AbsSeparator):
             ]
         """
         # B, 2, T, (C,) F
+        input = as_native(input)
         if is_complex(input):
             feature = torch.stack([input.real, input.imag], dim=1)
         else:

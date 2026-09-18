@@ -1,7 +1,7 @@
 import torch
 
 from espnet2.enh.decoder.abs_decoder import AbsDecoder
-from espnet2.enh.layers.complex_utils import is_torch_complex_tensor
+from espnet2.enh.layers.complex_utils import as_native, is_torch_complex_tensor
 from espnet2.layers.stft import Stft
 
 
@@ -61,6 +61,7 @@ class STFTDecoder(AbsDecoder):
                 If not None, reconfigure iSTFT window and hop lengths for a new
                 sampling rate while keeping their duration fixed.
         """
+        input = as_native(input)
         if not torch.is_complex(input):
             raise TypeError("Only support complex tensors for stft decoder")
         if fs is not None:
@@ -140,7 +141,7 @@ class STFTDecoder(AbsDecoder):
             input (complex tensor): spectrum [Batch, 1, F]
             output: wavs [Batch, 1, self.win_length]
         """
-        input_frame = self.spec_back(input_frame)
+        input_frame = self.spec_back(as_native(input_frame))
         input_frame = input_frame.real + 1j * input_frame.imag
         output_wav = (
             torch.fft.irfft(input_frame)

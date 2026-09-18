@@ -5,6 +5,7 @@ import torch
 
 from espnet2.enh.layers.bsrnn import BSRNN
 from espnet2.enh.layers.complex_utils import (
+    as_native,
     complex_tensor,
     is_complex,
     new_complex_like,
@@ -80,7 +81,8 @@ class BSRNNSeparator(AbsSeparator):
         """BSRNN Forward.
 
         Args:
-            input (complex torch.Tensor): STFT spectrum [B, T, (C,) F (,2)]
+            input (torch.Tensor): STFT spectrum, complex [B, T, (C,) F] or
+                real with real/imag parts stacked last [B, T, (C,) F, 2]
             ilens (torch.Tensor): input lengths [Batch]
             additional (Dict or None): other data included in model.
                 unused in this model.
@@ -96,6 +98,7 @@ class BSRNNSeparator(AbsSeparator):
             ]
         """
         # B, T, (C,) F, 2
+        input = as_native(input)
         if is_complex(input):
             feature = torch.stack([input.real, input.imag], dim=-1)
         else:

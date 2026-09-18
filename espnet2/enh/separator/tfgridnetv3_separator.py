@@ -8,7 +8,7 @@ import torch.nn.functional as F
 from torch.nn import init
 from torch.nn.parameter import Parameter
 
-from espnet2.enh.layers.complex_utils import is_complex, new_complex_like
+from espnet2.enh.layers.complex_utils import as_native, is_complex, new_complex_like
 from espnet2.enh.separator.abs_separator import AbsSeparator
 from espnet2.torch_utils.get_layer_from_string import get_layer
 
@@ -134,6 +134,7 @@ class TFGridNetV3(AbsSeparator):
         """
 
         # B, 2, T, (C,) F
+        input = as_native(input)
         if is_complex(input):
             feature = torch.stack([input.real, input.imag], dim=1)
         else:

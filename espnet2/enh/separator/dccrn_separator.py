@@ -1,3 +1,4 @@
+import warnings
 from collections import OrderedDict
 from typing import Dict, List, Optional, Tuple
 
@@ -52,7 +53,14 @@ class DCCRNSeparator(AbsSeparator):
             use_noise_mask (bool, optional): whether to estimate the mask of noise.
         """
         super().__init__()
-        self.use_builtin_complex = use_builtin_complex
+        if not use_builtin_complex:
+            warnings.warn(
+                "use_builtin_complex=False is ignored: masks are torch.complex "
+                "tensors (torch_complex is no longer used).",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+        self.use_builtin_complex = True
         self._num_spk = num_spk
         self.use_noise_mask = use_noise_mask
         self.predict_noise = use_noise_mask

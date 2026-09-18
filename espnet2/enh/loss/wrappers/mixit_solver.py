@@ -3,6 +3,7 @@ from typing import Dict, List
 
 import torch
 
+from espnet2.enh.layers.complex_utils import as_native
 from espnet2.enh.layers.complex_utils import einsum as complex_einsum
 from espnet2.enh.layers.complex_utils import stack as complex_stack
 from espnet2.enh.loss.criterions.abs_loss import AbsEnhLoss
@@ -54,6 +55,7 @@ class MixITSolver(AbsLossWrapper):
         num_ref = num_inf // 2
         device = ref[0].device
 
+        ref, inf = [as_native(r) for r in ref], [as_native(x) for x in inf]
         is_complex = torch.is_complex(ref[0])
         assert is_complex == torch.is_complex(inf[0])
 

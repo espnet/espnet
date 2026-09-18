@@ -3,7 +3,7 @@ from typing import Dict, List, Optional, Tuple
 
 import torch
 
-from espnet2.enh.layers.complex_utils import is_complex
+from espnet2.enh.layers.complex_utils import as_native, is_complex
 from espnet2.enh.separator.abs_separator import AbsSeparator
 from espnet2.legacy.nets.pytorch_backend.rnn.encoders import RNN
 
@@ -90,6 +90,7 @@ class DPCLSeparator(AbsSeparator):
             ]
         """
         # if complex spectrum,
+        input = as_native(input)
         if is_complex(input):
             feature = abs(input)
         else:

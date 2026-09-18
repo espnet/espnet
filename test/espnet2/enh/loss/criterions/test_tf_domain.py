@@ -100,7 +100,6 @@ def test_tf_dpcl_loss_criterion_forward(loss_type):
         torch.complex(torch.rand(batch, 10, 200), torch.rand(batch, 10, 200)),
     ]
 
-    ref = [abs(r) for r in ref_spec]
-
-    loss = criterion(ref, inf)
+    # the criterion takes the magnitude itself; give it the complex spectra
+    loss = criterion(ref_spec, inf)
     assert loss.shape == (batch,), "Invalid loss shape with " + criterion.name

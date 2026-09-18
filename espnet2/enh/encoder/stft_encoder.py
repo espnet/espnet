@@ -1,3 +1,5 @@
+import warnings
+
 import torch
 
 from espnet2.enh.encoder.abs_encoder import AbsEncoder
@@ -35,7 +37,16 @@ class STFTEncoder(AbsEncoder):
         )
 
         self._output_dim = n_fft // 2 + 1 if onesided else n_fft
-        self.use_builtin_complex = use_builtin_complex
+        # Spectra are torch.complex tensors since torch_complex left the
+        # dependencies; the flag stays so that configs written with it load.
+        if not use_builtin_complex:
+            warnings.warn(
+                "use_builtin_complex=False is ignored: STFTEncoder returns "
+                "torch.complex tensors (torch_complex is no longer used).",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+        self.use_builtin_complex = True
         self.win_length = win_length if win_length else n_fft
         self.hop_length = hop_length
         self.window = window

@@ -183,3 +183,41 @@ def test_legacy_complextensor_is_accepted_when_installed():
     assert torch.allclose(to_complex(legacy), mat)
     assert torch.allclose(matmul(legacy, mat), mat @ mat)
     assert torch.allclose(trace(legacy), trace(mat))
+
+
+def test_legacy_complextensor_accepted_at_public_boundaries():
+    torch_complex = pytest.importorskip("torch_complex")
+    from espnet2.enh.decoder.stft_decoder import STFTDecoder
+    from espnet2.enh.encoder.stft_encoder import STFTEncoder
+    from espnet2.enh.layers.beamformer import signal_framing
+    from espnet2.enh.layers.wpe import wpe_one_iteration
+
+    torch.random.manual_seed(0)
+    x = torch.randn(2, 400)
+    enc, dec = STFTEncoder(n_fft=64, hop_length=16), STFTDecoder(
+        n_fft=64, hop_length=16
+    )
+    spec, flens = enc(x, torch.tensor([400, 400]))
+    legacy = torch_complex.tensor.ComplexTensor(spec.real, spec.imag)
+    # the decoder converts a legacy spectrum and gives the same waveform
+    wav_native, _ = dec(spec, flens)
+    wav_legacy, _ = dec(legacy, flens)
+    assert torch.allclose(wav_native, wav_legacy)
+    # framing and WPE take the legacy form too, and return native tensors
+    framed = signal_framing(legacy, 3, 1, 1)
+    assert torch.is_complex(framed)
+    Y = spec.permute(2, 0, 1)  # (F, C=batch, T)
+    Yl = torch_complex.tensor.ComplexTensor(Y.real, Y.imag)
+    power = (Y.real**2 + Y.imag**2).mean(-2)  # (F, T)
+    out_native = wpe_one_iteration(Y, power, taps=2, delay=1)
+    out_legacy = wpe_one_iteration(Yl, power, taps=2, delay=1)
+    assert torch.is_complex(out_legacy) and torch.allclose(out_native, out_legacy)
+
+
+def test_use_builtin_complex_false_is_deprecated_not_honoured():
+    from espnet2.enh.encoder.stft_encoder import STFTEncoder
+
+    with pytest.warns(DeprecationWarning, match="use_builtin_complex"):
+        enc = STFTEncoder(n_fft=64, hop_length=16, use_builtin_complex=False)
+    spec, _ = enc(torch.randn(1, 200), torch.tensor([200]))
+    assert torch.is_complex(spec)
