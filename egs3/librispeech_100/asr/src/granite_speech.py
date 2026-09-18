@@ -35,7 +35,7 @@ class GraniteSpeechInferenceSession(AbsHFInferenceWrapper):
         self.max_new_tokens = max_new_tokens
         self.num_beams = num_beams
 
-    def forward(self, speech):
+    def forward(self, speech: torch.Tensor):
         inputs = self.processor(text=self.prompt, audio=speech, return_tensors="pt").to(
             self.model.device
         )

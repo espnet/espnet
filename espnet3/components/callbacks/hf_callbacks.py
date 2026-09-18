@@ -7,7 +7,21 @@ from espnet3.systems.asr.models.hf_models import AbsHFTrainingWrapper
 
 
 class HFCheckpointSaveCallback(Callback):
-    """Callback for saving HF model checkpoints."""
+    """Callback for saving HF models.
+
+    Since ESPnet3 uses LightningModules, model checkpoints will be saved in
+    Lightning's format. This format is incompatible with how Hugging Face
+    models are saved. To address this, this callback saves the best model
+    in the format expected by HF at the end of training.
+    This way, the model can be loaded natively using only `transformers`
+    (no ESPnet). This is especially important if someone wants to fine-tune
+    a model in ESPnet and publish it on HF.
+
+    As such, this callback should only be used with models derived from
+    AbsHFTrainingWrapper (a compatibility wrapper for training HF models
+    in ESPnet). This condition is checked at the beginning of training,
+    and an expection is thrown if the model is not compatible.
+    """
 
     def __init__(self, dirpath: str):
         """Initialize the callback.
@@ -19,6 +33,7 @@ class HFCheckpointSaveCallback(Callback):
         self.dirpath = dirpath
 
     def _check_module(self, pl_module):
+        """Check that the model is actually a HF model."""
         model = getattr(pl_module, "model", None)
         if not isinstance(model, AbsHFTrainingWrapper):
             raise TypeError(f"""Failed to save Hugging Face model.
@@ -30,7 +45,7 @@ class HFCheckpointSaveCallback(Callback):
         self._check_module(pl_module)
 
     def on_train_end(self, trainer, pl_module):
-        """Save the model checkpoint."""
+        """Save the best model."""
         if trainer.global_rank == 0:
             self._check_module(pl_module)
 
