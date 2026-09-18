@@ -46,8 +46,16 @@ SPACE_LINK = re.compile(
     r"/(?P<name>[A-Za-z0-9_.-]+)(?![A-Za-z0-9_.-]|/\S)"
 )
 # A Space is usable when it is running; a paused or sleeping one wakes up on a
-# visit, so only these stages are reported.
-BROKEN_STAGES = {"RUNTIME_ERROR", "BUILD_ERROR", "CONFIG_ERROR", "DELETED"}
+# visit, so only these stages are reported. NO_APP_FILE is in the list because
+# it is the state an upload that sent the wrong directory leaves behind: the
+# repository exists and the page loads, with nothing to run.
+BROKEN_STAGES = {
+    "RUNTIME_ERROR",
+    "BUILD_ERROR",
+    "CONFIG_ERROR",
+    "NO_APP_FILE",
+    "DELETED",
+}
 TIMEOUT = 30
 
 
