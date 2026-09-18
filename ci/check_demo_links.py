@@ -46,7 +46,7 @@ NOTEBOOK_LINK = re.compile(
 # pages work whether or not the container runs.
 SPACE_LINK = re.compile(
     r"https://huggingface\.co/spaces/(?P<owner>[A-Za-z0-9_.-]+)"
-    r"/(?P<name>[A-Za-z0-9_.-]+)(?![A-Za-z0-9_.-]|/\S)"
+    r"/(?P<name>[A-Za-z0-9_.-]+)/?(?![A-Za-z0-9_.-]|/\S)"
 )
 # A Space is usable when it is running; a paused or sleeping one wakes up on a
 # visit, so only these stages are reported. NO_APP_FILE is in the list because
@@ -58,6 +58,7 @@ BROKEN_STAGES = {
     "CONFIG_ERROR",
     "NO_APP_FILE",
     "DELETED",
+    "DELETING",
 }
 TIMEOUT = 30
 
@@ -250,7 +251,8 @@ def self_check() -> None:
         "[e](https://huggingface.co/docs/hub/spaces) "
         "[f](https://colab.research.google.com/assets/colab-badge.svg) "
         "[g](https://huggingface.co/spaces/gradio/omni-mini/tree/main) "
-        "[h](https://github.com/espnet/notebook/blob/v1.0/tagged.ipynb)"
+        "[h](https://github.com/espnet/notebook/blob/v1.0/tagged.ipynb) "
+        "[i](https://huggingface.co/spaces/espnet/svs/)"
     )
     notebooks, spaces = find_links({"README.md": text})
     assert notebooks == {
@@ -260,7 +262,11 @@ def self_check() -> None:
     }, notebooks
     # the bare /spaces listing, the docs page, the badge image and a link into
     # a Space's files are not links to a running Space
-    assert spaces == {"espnet/TTS": {"README.md"}}, spaces
+    assert spaces == {
+        "espnet/TTS": {"README.md"},
+        # a root URL with a trailing slash is still a link to the app
+        "espnet/svs": {"README.md"},
+    }, spaces
     both = find_links({"a.md": text, "b.md": text})[1]["espnet/TTS"]
     assert both == {"a.md", "b.md"}, both
 
