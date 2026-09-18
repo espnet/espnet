@@ -30,6 +30,8 @@ model:
   _target_: egs3.librispeech_100.asr.src.granite_speech.GraniteSpeechInferenceSession
   model_tag_or_path: ${exp_dir}/hf
   user_prompt: "<|audio|>transcribe the speech with proper punctuation and capitalization."
+  max_new_tokens: 200
+  num_beams: 1
 
 input_key: speech
 output_fn: src.inference.build_output
