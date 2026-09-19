@@ -35,14 +35,14 @@ from torch.utils.data import Dataset as TorchDataset
 
 from egs3.must_c.st.dataset.builder import (
     LANG_PAIR,
-    MustCSTBuilder,
     REQUIRED_SPLITS,
     SRC_LANG,
     TGT_LANG,
     VERSION,
+    MustCSTBuilder,
+    available_target_languages,
     kept_indices,
     resolve_source_root,
-    available_target_languages,
 )
 from espnet3.systems.st.text_case import apply_case as _apply_case
 from espnet3.utils.config_utils import load_config_with_defaults
@@ -61,6 +61,7 @@ _COMPACT_SEGMENT_RE = re.compile(
     r"^-\s*\{\s*duration:\s*([^,}]+),\s*offset:\s*([^,}]+),"
     r".*?speaker_id:\s*([^,}]+),\s*wav:\s*([^,}]+)\s*\}\s*$"
 )
+
 
 @dataclass(frozen=True)
 class MustCExample:
@@ -89,28 +90,38 @@ def _parse_segments(split_dir: Path, split: str) -> list[tuple[float, float, str
             match = _COMPACT_SEGMENT_RE.match(line)
             if match is not None:
                 duration, offset, speaker_id, wav = match.groups()
-                segments.append((float(offset), float(duration), speaker_id.strip(), wav.strip()))
+                segments.append(
+                    (float(offset), float(duration), speaker_id.strip(), wav.strip())
+                )
                 continue
             try:
                 entry = yaml.safe_load(line)
             except yaml.YAMLError as exc:
-                raise ValueError(f"Unrecognized MuST-C yaml entry in {yaml_path}: {line}") from exc
+                raise ValueError(
+                    f"Unrecognized MuST-C yaml entry in {yaml_path}: {line}"
+                ) from exc
             # A line beginning with ``-`` is parsed as a one-item sequence by
             # PyYAML; unwrap that sequence to its mapping entry.
             if isinstance(entry, list) and len(entry) == 1:
                 entry = entry[0]
             if not isinstance(entry, dict):
-                raise ValueError(f"Unrecognized MuST-C yaml entry in {yaml_path}: {line}")
+                raise ValueError(
+                    f"Unrecognized MuST-C yaml entry in {yaml_path}: {line}"
+                )
             required = {"duration", "offset", "speaker_id", "wav"}
             if not required.issubset(entry):
-                raise ValueError(f"Unrecognized MuST-C yaml entry in {yaml_path}: {line}")
+                raise ValueError(
+                    f"Unrecognized MuST-C yaml entry in {yaml_path}: {line}"
+                )
             try:
                 duration = float(entry["duration"])
                 offset = float(entry["offset"])
                 speaker_id = str(entry["speaker_id"]).strip()
                 wav = str(entry["wav"]).strip()
             except (TypeError, ValueError) as exc:
-                raise ValueError(f"Invalid MuST-C yaml entry in {yaml_path}: {line}") from exc
+                raise ValueError(
+                    f"Invalid MuST-C yaml entry in {yaml_path}: {line}"
+                ) from exc
             segments.append((offset, duration, speaker_id, wav))
     return segments
 
@@ -120,7 +131,9 @@ def _read_lines(path: Path) -> list[str]:
         return [line.rstrip("\n") for line in fh]
 
 
-def _scan_split(lang_pair_root: Path, alias: str, tgt_lang: str = TGT_LANG) -> list[MustCExample]:
+def _scan_split(
+    lang_pair_root: Path, alias: str, tgt_lang: str = TGT_LANG
+) -> list[MustCExample]:
     """Build an index for one split by zipping the yaml, en, and tgt files."""
     split_dir = lang_pair_root / "data" / alias
     wav_dir = split_dir / "wav"
@@ -248,7 +261,9 @@ class MustCSTDataset(TorchDataset):
         if self._hf_cache is not None:
             required = {"audio_path", "src_text", "tgt_text", "offset", "duration"}
             if not required.issubset(self._hf_cache.column_names):
-                raise RuntimeError("MuST-C HF cache predates segment metadata; recreate it with create_dataset")
+                raise RuntimeError(
+                    "MuST-C HF cache predates segment metadata; recreate it with create_dataset"
+                )
             # One columnar read, not 229,703 row reads.
             self._apply_duration_filter(self._hf_cache["duration"])
             return
@@ -260,19 +275,37 @@ class MustCSTDataset(TorchDataset):
         )
 
         builder = MustCSTBuilder()
-        if not builder.is_source_prepared(recipe_dir=recipe_root, source_dir=source_dir, tgt_lang=self.tgt_lang):
-            builder.prepare_source(recipe_dir=recipe_root, source_dir=source_dir, tgt_lang=self.tgt_lang)
+        if not builder.is_source_prepared(
+            recipe_dir=recipe_root, source_dir=source_dir, tgt_lang=self.tgt_lang
+        ):
+            builder.prepare_source(
+                recipe_dir=recipe_root, source_dir=source_dir, tgt_lang=self.tgt_lang
+            )
 
         alias = self.split_aliases.get(self.split, self.split)
         if self.tgt_lang == "all":
             self.lang_pair_root = None
             self._examples = [
-                MustCExample(f"{target}_{item.utt_id}", item.wav_path, item.offset, item.duration, item.speaker_id, item.src_text, item.tgt_text, item.src_lang, item.tgt_lang)
+                MustCExample(
+                    f"{target}_{item.utt_id}",
+                    item.wav_path,
+                    item.offset,
+                    item.duration,
+                    item.speaker_id,
+                    item.src_text,
+                    item.tgt_text,
+                    item.src_lang,
+                    item.tgt_lang,
+                )
                 for target in available_target_languages(recipe_root, source_dir)
-                for item in _scan_split(resolve_source_root(recipe_root, source_dir, target), alias, target)
+                for item in _scan_split(
+                    resolve_source_root(recipe_root, source_dir, target), alias, target
+                )
             ]
         else:
-            self.lang_pair_root = resolve_source_root(recipe_root, source_dir=source_dir, tgt_lang=self.tgt_lang)
+            self.lang_pair_root = resolve_source_root(
+                recipe_root, source_dir=source_dir, tgt_lang=self.tgt_lang
+            )
             split_dir = self.lang_pair_root / "data" / alias
             if not split_dir.is_dir():
                 raise FileNotFoundError(f"Split directory not found: {split_dir}")
@@ -313,9 +346,7 @@ class MustCSTDataset(TorchDataset):
             return self._sample(speech, src_text, tgt_text, str(row["utt_id"]))
         example = self._examples[index]
         speech = _read_segment(example.wav_path, example.offset, example.duration)
-        return self._sample(
-            speech, example.src_text, example.tgt_text, example.utt_id
-        )
+        return self._sample(speech, example.src_text, example.tgt_text, example.utt_id)
 
     def _sample(
         self, speech, src_text: str, tgt_text: str, utt_id: str | None = None
@@ -401,14 +432,17 @@ __all__ = [
     "REQUIRED_SPLITS",
 ]
 
+
 def _load_hf_cache(cache, recipe_dir, split):
     import os
+
     environment_root = os.environ.get("EGS3_HF_CACHE_DIR")
     if cache is None and environment_root:
         cache = {"enabled": True, "backend": "hf", "cache_dir": environment_root}
     if not cache or not cache.get("enabled", False):
         return None
     from datasets import load_from_disk
+
     root = Path(cache.get("cache_dir", "data/hf"))
     if not root.is_absolute():
         root = Path(recipe_dir or Path.cwd()) / root

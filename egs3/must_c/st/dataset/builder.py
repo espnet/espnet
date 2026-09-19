@@ -100,7 +100,9 @@ def _lang_pair_dir(candidate: Path, tgt_lang: str = TGT_LANG) -> Path | None:
     return None
 
 
-def missing_required_splits(lang_pair_root: Path, tgt_lang: str = TGT_LANG) -> list[str]:
+def missing_required_splits(
+    lang_pair_root: Path, tgt_lang: str = TGT_LANG
+) -> list[str]:
     """Return required split names whose yaml/txt/wav files are incomplete."""
     missing = []
     for split in REQUIRED_SPLITS:
@@ -135,13 +137,17 @@ def resolve_source_root(
 
     raise FileNotFoundError(
         f"MuST-C {VERSION} language pair '{SRC_LANG}-{tgt_lang}' not found. Checked these "
-        "locations:\n" + "\n".join(f"  - {path}/{SRC_LANG}-{tgt_lang}" for path in checked) + "\n"
+        "locations:\n"
+        + "\n".join(f"  - {path}/{SRC_LANG}-{tgt_lang}" for path in checked)
+        + "\n"
         f"Set {SOURCE_ENV_VAR} to the raw corpus root (the directory that "
         f"contains '{LANG_PAIR}/'), or pass source_dir explicitly."
     )
 
 
-def available_target_languages(recipe_root: Path, source_dir: str | Path | None = None) -> list[str]:
+def available_target_languages(
+    recipe_root: Path, source_dir: str | Path | None = None
+) -> list[str]:
     """Return every complete English-to-target MuST-C pair installed locally."""
     targets: set[str] = set()
     for candidate in iter_source_candidates(recipe_root, source_dir):
@@ -176,8 +182,17 @@ class MustCSTBuilder(DatasetBuilder):
         recipe_root = Path(recipe_dir).resolve()
         try:
             selected = tgt_lang or TGT_LANG
-            targets = available_target_languages(recipe_root, source_dir) if selected == "all" else [selected]
-            return bool(targets) and all(not missing_required_splits(resolve_source_root(recipe_root, source_dir, item), item) for item in targets)
+            targets = (
+                available_target_languages(recipe_root, source_dir)
+                if selected == "all"
+                else [selected]
+            )
+            return bool(targets) and all(
+                not missing_required_splits(
+                    resolve_source_root(recipe_root, source_dir, item), item
+                )
+                for item in targets
+            )
         except FileNotFoundError:
             return False
 
@@ -201,7 +216,11 @@ class MustCSTBuilder(DatasetBuilder):
         """
         recipe_root = Path(recipe_dir).resolve()
         selected = tgt_lang or TGT_LANG
-        targets = available_target_languages(recipe_root, source_dir) if selected == "all" else [selected]
+        targets = (
+            available_target_languages(recipe_root, source_dir)
+            if selected == "all"
+            else [selected]
+        )
         if not targets:
             raise FileNotFoundError(
                 f"No complete MuST-C {SRC_LANG}-<target> pairs found"
@@ -215,7 +234,9 @@ class MustCSTBuilder(DatasetBuilder):
         **_kwargs,
     ) -> bool:
         """Return source readiness because this recipe has no build artifacts."""
-        return self.is_source_prepared(recipe_dir=recipe_dir, source_dir=source_dir, tgt_lang=tgt_lang)
+        return self.is_source_prepared(
+            recipe_dir=recipe_dir, source_dir=source_dir, tgt_lang=tgt_lang
+        )
 
     def _build_recipe_source(
         self,
@@ -225,12 +246,16 @@ class MustCSTBuilder(DatasetBuilder):
         **_kwargs,
     ) -> None:
         """No-op build step for raw-directory-backed MuST-C access."""
-        self.prepare_source(recipe_dir=recipe_dir, source_dir=source_dir, tgt_lang=tgt_lang)
+        self.prepare_source(
+            recipe_dir=recipe_dir, source_dir=source_dir, tgt_lang=tgt_lang
+        )
 
     def is_built(self, recipe_dir, cache=None, **kwargs):
         cache_root = _hf_cache_root(recipe_dir, cache)
         if cache_root is not None:
-            return all(_cache_has_columns(cache_root / split) for split in _HF_CACHE_SPLITS)
+            return all(
+                _cache_has_columns(cache_root / split) for split in _HF_CACHE_SPLITS
+            )
         return _call_supported(
             self._is_recipe_built,
             recipe_dir=recipe_dir,
@@ -265,12 +290,19 @@ class MustCSTBuilder(DatasetBuilder):
         _build_hf_cache(recipe_dir, cache_root, kwargs)
 
 
-_HF_CACHE_SPLITS = ["train","dev","test","tst-HE"]
-_HF_CACHE_REQUIRED_COLUMNS = {"audio_path", "src_text", "tgt_text", "offset", "duration"}
+_HF_CACHE_SPLITS = ["train", "dev", "test", "tst-HE"]
+_HF_CACHE_REQUIRED_COLUMNS = {
+    "audio_path",
+    "src_text",
+    "tgt_text",
+    "offset",
+    "duration",
+}
 
 
 def _cache_has_columns(path):
     import json
+
     try:
         features = json.loads((path / "dataset_info.json").read_text())["features"]
     except (OSError, KeyError, ValueError):
@@ -282,6 +314,7 @@ def _hf_cache_root(recipe_dir, cache):
     if not cache or not cache.get("enabled", False):
         return None
     from pathlib import Path
+
     root = Path(cache.get("cache_dir", "data/hf"))
     if not root.is_absolute():
         root = Path(recipe_dir) / root
@@ -290,15 +323,13 @@ def _hf_cache_root(recipe_dir, cache):
 
 def _call_supported(function, **kwargs):
     import inspect
+
     parameters = inspect.signature(function).parameters
     variadic = any(
-        parameter.kind == parameter.VAR_KEYWORD
-        for parameter in parameters.values()
+        parameter.kind == parameter.VAR_KEYWORD for parameter in parameters.values()
     )
     clean = {
-        key: value
-        for key, value in kwargs.items()
-        if variadic or key in parameters
+        key: value for key, value in kwargs.items() if variadic or key in parameters
     }
     return function(**clean)
 
@@ -307,8 +338,10 @@ def _build_hf_cache(recipe_dir, cache_root, dataset_kwargs):
     import importlib
     import json
     import shutil
+
     import numpy as np
     from datasets import Dataset as HFDataset
+
     module = importlib.import_module(__package__)
     dataset_class = module.Dataset
     # Deferred: dataset.py imports this module, so a top-level import loops.
@@ -373,8 +406,7 @@ def _build_hf_cache(recipe_dir, cache_root, dataset_kwargs):
                         }
                     except Exception as exc:
                         stream.write(
-                            json.dumps({"raw_index": index, "error": repr(exc)})
-                            + "\n"
+                            json.dumps({"raw_index": index, "error": repr(exc)}) + "\n"
                         )
 
         HFDataset.from_generator(rows).save_to_disk(str(temporary))
