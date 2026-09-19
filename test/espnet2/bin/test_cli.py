@@ -314,6 +314,19 @@ def test_an_output_without_an_extension_is_refused(monkeypatch, tmp_path, capsys
     assert "file extension" in capsys.readouterr().err
 
 
+def test_an_output_soundfile_cannot_write_is_refused(monkeypatch, capsys):
+    # this used to reach soundfile after the model had been downloaded and
+    # run, and came out as a traceback
+    import torch
+
+    recorder = _Recorder({"wav": torch.zeros(160)})
+    _fake_module(monkeypatch, "espnet2.bin.tts_inference", "Text2Speech", recorder)
+    assert cli.main(["tts", "hello", "-o", "notes.txt"]) == 1
+    err = capsys.readouterr().err
+    assert "cannot write .txt audio" in err and "Traceback" not in err
+    assert recorder.tag is None  # nothing was downloaded
+
+
 def test_a_tag_for_another_task_is_explained(monkeypatch, tmp_path, capsys):
     audio = tmp_path / "a.wav"
     audio.write_bytes(b"")
