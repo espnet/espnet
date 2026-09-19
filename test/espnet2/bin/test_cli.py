@@ -10,6 +10,7 @@ import subprocess
 import sys
 import types
 from pathlib import Path
+from unittest import mock
 
 import pytest
 
@@ -191,7 +192,7 @@ def test_the_help_lists_every_command(capsys):
         cli.main(["--help"])
     assert e.value.code == 0
     out = capsys.readouterr().out
-    for command in ("asr", "translate", "tts", "enhance", "models"):
+    for command in ("asr", "translate", "tts", "enhance", "demo", "models"):
         assert command in out
 
 
@@ -266,7 +267,7 @@ def _run(*args):
 def test_help_runs_as_a_process_and_exits_zero():
     r = _run("--help")
     assert r.returncode == 0
-    for command in ("asr", "translate", "tts", "enhance", "models"):
+    for command in ("asr", "translate", "tts", "enhance", "demo", "models"):
         assert command in r.stdout
 
 
@@ -398,3 +399,163 @@ def test_a_keyword_the_constructor_does_take_is_not_blamed_on_the_model(
 
     with pytest.raises(TypeError, match="'device'"):
         cli.main(["asr", str(audio)])
+
+
+# --- `espnet demo`: the browser app, built but never launched for real ---
+
+
+class _FakeOWSM:
+    """An OWSM-CTC stand-in: a token list to read menus from, and decoding."""
+
+    def __init__(self, decoded="<eng><asr> hello there"):
+        self.decoded = decoded
+        self.tag = None
+        self.device = None
+        self.calls = []
+        self.long_calls = []
+        self.s2t_model = types.SimpleNamespace(
+            token_list=[
+                "<unk>",
+                "<nolang>",
+                "<eng>",
+                "<jpn>",
+                "<asr>",
+                "<st_deu>",
+                "<sos>",
+            ]
+        )
+
+    def from_pretrained(self, model_tag=None, device=None, **kwargs):
+        self.tag, self.device = model_tag, device
+        return self
+
+    def __call__(self, speech, *args, **kwargs):
+        self.calls.append((speech, kwargs))
+        return [(self.decoded,)]
+
+    def decode_long_batched_buffered(self, speech, **kwargs):
+        self.long_calls.append((speech, kwargs))
+        return "long form text"
+
+
+def _fake_demo(monkeypatch, s2t=None, device="cpu"):
+    """Wire up a gradio that records instead of serving, and a fake model."""
+    from espnet2.bin import demo
+
+    gradio = mock.MagicMock()
+    monkeypatch.setitem(sys.modules, "gradio", gradio)
+    monkeypatch.setattr(demo, "default_device", lambda: device)
+    s2t = s2t or _FakeOWSM()
+    _fake_module(
+        monkeypatch, "espnet2.bin.s2t_inference_ctc", "Speech2TextGreedySearch", s2t
+    )
+    return gradio, s2t
+
+
+def _launch(gradio):
+    """How `app.launch(...)` was called on the Blocks the command built."""
+    return gradio.Blocks.return_value.launch.call_args
+
+
+def test_demo_serves_the_default_model_and_prints_the_url(monkeypatch, capsys):
+    gradio, s2t = _fake_demo(monkeypatch)
+
+    assert cli.main(["demo"]) == 0
+
+    assert s2t.tag == cli.DEFAULT_MODELS["demo"] and s2t.device == "cpu"
+    assert _launch(gradio).kwargs == {"server_port": 7860, "share": False}
+    # the URL has to be on stdout before launch(), which blocks until Ctrl-C
+    assert "http://127.0.0.1:7860" in capsys.readouterr().out
+
+
+def test_demo_takes_the_port_the_share_flag_and_the_model(monkeypatch, capsys):
+    gradio, s2t = _fake_demo(monkeypatch)
+
+    argv = ["demo", "--model", "espnet/other", "--port", "8000", "--share"]
+    assert cli.main(argv) == 0
+
+    assert s2t.tag == "espnet/other"
+    assert _launch(gradio).kwargs == {"server_port": 8000, "share": True}
+    assert "http://127.0.0.1:8000" in capsys.readouterr().out
+
+
+def test_demo_uses_the_gpu_when_there_is_one_and_the_flag_when_given(monkeypatch):
+    gradio, s2t = _fake_demo(monkeypatch, device="cuda")
+
+    assert cli.main(["demo"]) == 0
+    assert s2t.device == "cuda"  # no --device: the demo asks torch
+
+    gradio, s2t = _fake_demo(monkeypatch, device="cuda")
+    assert cli.main(["demo", "--device", "cpu"]) == 0
+    assert s2t.device == "cpu"  # --device wins over the rule
+
+
+def test_demo_without_gradio_is_a_user_error(monkeypatch, capsys):
+    from espnet2.bin import demo
+
+    def explode(*a, **k):  # pragma: no cover - not reached
+        raise AssertionError("fetched a model before checking for gradio")
+
+    monkeypatch.setattr(demo, "load_gradio", lambda: None)
+    monkeypatch.setattr(cli, "_build", explode)
+
+    assert cli.main(["demo"]) == 1
+
+    err = capsys.readouterr().err
+    assert err.startswith("espnet: gradio is not installed")
+    assert "espnet[demo]" in err
+    assert "Traceback" not in err
+
+
+def test_demo_menus_come_from_the_checkpoint(monkeypatch):
+    gradio, _ = _fake_demo(monkeypatch)
+
+    assert cli.main(["demo"]) == 0
+
+    # the two dropdowns are this checkpoint's own tokens, not a fixed list
+    languages, targets = [call.args[0] for call in gradio.Dropdown.call_args_list]
+    assert languages == ["Detect automatically", "English (eng)", "Japanese (jpn)"]
+    assert targets == ["Transcribe", "Translate to German (deu)"]
+
+
+def _predict(gradio):
+    """The function the Run button was wired to."""
+    return gradio.Button.return_value.click.call_args.args[0]
+
+
+def test_the_demo_decodes_a_short_recording(monkeypatch):
+    import numpy as np
+
+    from espnet2.bin import demo
+
+    gradio, s2t = _fake_demo(monkeypatch)
+    monkeypatch.setattr(demo, "read_audio", lambda path: np.zeros(16000 * 5, "float32"))
+    assert cli.main(["demo"]) == 0
+
+    language, text = _predict(gradio)("a.wav", demo.DETECT, demo.ASR_LABEL, False)
+
+    assert (language, text) == ("English", "hello there")
+    speech, kwargs = s2t.calls[0]
+    # padded to the 30 s window OWSM is trained on, and the language left open
+    assert len(speech) == 16000 * demo.WINDOW_SECS
+    assert kwargs == {"lang_sym": "<nolang>", "task_sym": "<asr>"}
+
+
+def test_the_demo_trims_audio_past_the_cap_and_says_so(monkeypatch):
+    import numpy as np
+
+    from espnet2.bin import demo
+
+    gradio, s2t = _fake_demo(monkeypatch)
+    long_audio = np.zeros(16000 * (demo.MAX_SECS + 30), "float32")
+    monkeypatch.setattr(demo, "read_audio", lambda path: long_audio)
+    assert cli.main(["demo"]) == 0
+
+    _predict(gradio)("a.wav", "English (eng)", demo.ASR_LABEL, True)
+
+    warned = " ".join(str(call) for call in gradio.Warning.call_args_list)
+    assert f"first {demo.MAX_SECS} s" in warned
+    speech, kwargs = s2t.long_calls[0]
+    assert len(speech) == 16000 * demo.MAX_SECS
+    # the language the user chose, so no detection pass was needed
+    assert kwargs["lang_sym"] == "<eng>" and s2t.calls == []

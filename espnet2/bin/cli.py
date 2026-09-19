@@ -6,6 +6,7 @@
     espnet translate audio.wav --to eng
     espnet tts "Hello from ESPnet" -o hello.wav
     espnet enhance noisy.wav -o clean.wav
+    espnet demo
     espnet models
 
 Every espnet2.bin.*_inference module already has a command line, but it is
@@ -18,6 +19,9 @@ Each downloads its model on first use and keeps it in the espnet_model_zoo
 cache. `--model` takes any tag from https://huggingface.co/espnet that suits
 the command: a command loads one task's inference class, so a TTS tag given
 to `espnet asr` is reported rather than half-loaded.
+
+`espnet demo` is the same OWSM model in a browser instead: it serves the app
+the Hugging Face Space runs, locally, and prints the URL to open.
 """
 
 import argparse
@@ -37,6 +41,8 @@ DEFAULT_MODELS = {
     "translate": "espnet/owsm_ctc_v4_1B",
     "tts": "espnet/kan-bayashi_ljspeech_vits",
     "enhance": "espnet/Wangyou_Zhang_universal_train_enh_uses_refch0_2mem_raw",
+    # the browser demo runs the model `espnet asr` runs, so that the two agree
+    "demo": "espnet/owsm_ctc_v4_1B",
 }
 # OWSM writes languages as ISO 639-3 in its own token symbols.
 # OWSM's own symbol for "work out the language yourself". asr and translate
@@ -175,6 +181,35 @@ def cmd_enhance(args) -> int:
     return 0
 
 
+def cmd_demo(args) -> int:
+    """Serve the model in a browser, the way its Hugging Face Space does."""
+    from espnet2.bin import demo
+
+    # gradio is not part of `pip install espnet`, and a web framework is a
+    # large thing to install by accident, so this reads like a missing file
+    # rather than like a bug in the command.
+    if demo.load_gradio() is None:
+        raise CLIError(demo.GRADIO_MISSING)
+
+    # The demo decides for itself unless asked, because it is the one command
+    # that runs a 1B model interactively: a CPU default would be unusable on a
+    # machine that has a GPU sitting idle.
+    args.device = args.device or demo.default_device()
+
+    # only now: importing the inference stack costs seconds, and a missing
+    # package or an unusable --device should be reported instantly
+    from espnet2.bin.s2t_inference_ctc import Speech2TextGreedySearch
+
+    s2t = _build(Speech2TextGreedySearch, args, "demo")
+    app = demo.build_app(s2t, device=args.device, model_tag=args.model)
+    url = f"http://127.0.0.1:{args.port}"
+    # printed before launching: gradio's own banner goes to stdout only after
+    # the server is up, and launch() then blocks until Ctrl-C
+    print(f"{args.model} on {args.device}: open {url}")
+    app.launch(server_port=args.port, share=args.share)
+    return 0
+
+
 def cmd_models(args) -> int:
     print("Defaults, each overridable with --model <tag>:\n")
     for task, tag in DEFAULT_MODELS.items():
@@ -196,7 +231,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--version", action="version", version=f"espnet {_version()}")
     sub = parser.add_subparsers(dest="command", required=True)
 
-    def add(name, help_text, func):
+    def add(name, help_text, func, device="cpu"):
         p = sub.add_parser(name, help=help_text)
         p.add_argument(
             "--model",
@@ -205,9 +240,12 @@ def build_parser() -> argparse.ArgumentParser:
         )
         p.add_argument(
             "--device",
-            default="cpu",
+            default=device,
             type=_device,
-            help="cpu, mps, cuda or cuda:<n> (default: cpu)",
+            # None means the command picks, which only `espnet demo` does
+            help="cpu, mps, cuda or cuda:<n> (default: "
+            + (device or "cuda when torch sees one, else cpu")
+            + ")",
         )
         p.set_defaults(func=func)
         return p
@@ -236,6 +274,16 @@ def build_parser() -> argparse.ArgumentParser:
     p = add("enhance", "remove noise from an audio file", cmd_enhance)
     p.add_argument("audio", help="audio file, any format soundfile reads")
     p.add_argument("-o", "--output", default="enhanced.wav", help="output wav")
+
+    p = add("demo", "serve a model in the browser", cmd_demo, device=None)
+    p.add_argument(
+        "--port", type=int, default=7860, help="port to serve on (default: 7860)"
+    )
+    p.add_argument(
+        "--share",
+        action="store_true",
+        help="also publish a temporary public gradio.live link",
+    )
 
     sub.add_parser(
         "models", help="show the default model of each command"
