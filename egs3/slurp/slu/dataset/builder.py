@@ -196,9 +196,7 @@ def read_manifest(path: str | Path) -> list[dict[str, str]]:
                 continue
             fields = line.split("\t")
             if len(fields) != len(MANIFEST_COLUMNS):
-                raise ValueError(
-                    f"Invalid manifest line in {manifest_path}: {line!r}"
-                )
+                raise ValueError(f"Invalid manifest line in {manifest_path}: {line!r}")
             rows.append(dict(zip(MANIFEST_COLUMNS, fields)))
 
     if not rows:
@@ -286,9 +284,7 @@ def _iter_split_rows(
                 if recording_id in seen_recordings:
                     continue
                 seen_recordings.add(recording_id)
-                speaker = (
-                    "synthetic" if is_synthetic else speakers[recording_id]
-                )
+                speaker = "synthetic" if is_synthetic else speakers[recording_id]
                 yield (
                     f"slurp_{speaker}_{recording_id}",
                     str(audio_dir / recording["file"]),
