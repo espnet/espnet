@@ -51,6 +51,54 @@ def test_version_is_a_string():
     assert espnet.__version__
 
 
+def test_a_source_tree_that_was_never_installed_still_has_a_version():
+    # the fallback only runs at import time, so the module is re-executed with
+    # the metadata lookup failing the way it does in an uninstalled checkout
+    import importlib.metadata
+
+    real = importlib.metadata.version
+
+    def not_installed(name):
+        raise importlib.metadata.PackageNotFoundError(name)
+
+    importlib.metadata.version = not_installed
+    try:
+        importlib.reload(espnet)
+        assert isinstance(espnet.__version__, str)
+        assert "not installed" in espnet.__version__
+    finally:
+        importlib.metadata.version = real
+        importlib.reload(espnet)
+
+    assert isinstance(espnet.__version__, str)
+
+
+def test_hub_labels_merge_the_pipeline_tag_with_the_tags(monkeypatch):
+    # one repository's labels arrive in two places and either may be empty;
+    # the task table is matched against both at once
+    class Info:
+        pipeline_tag = "audio-classification"
+        tags = ["espnet", "speaker-verification"]
+
+    monkeypatch.setattr("huggingface_hub.model_info", lambda tag: Info())
+
+    assert espnet._hub_labels("espnet/some-model") == {
+        "audio-classification",
+        "espnet",
+        "speaker-verification",
+    }
+
+
+def test_a_repository_that_carries_no_labels_at_all(monkeypatch):
+    class Bare:
+        pipeline_tag = None
+        tags = None
+
+    monkeypatch.setattr("huggingface_hub.model_info", lambda tag: Bare())
+
+    assert espnet._hub_labels("espnet/some-model") == set()
+
+
 def test_importing_espnet_does_not_drag_in_torch():
     # the promise of a light top level: `import espnet` must stay cheap, so
     # the module body may not import torch or espnet2 (`load` does, on call)
