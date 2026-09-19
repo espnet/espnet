@@ -266,7 +266,8 @@ class MustCSTDataset(TorchDataset):
             required = {"audio_path", "src_text", "tgt_text", "offset", "duration"}
             if not required.issubset(self._hf_cache.column_names):
                 raise RuntimeError(
-                    "MuST-C HF cache predates segment metadata; recreate it with create_dataset"
+                    "MuST-C HF cache predates segment metadata; "
+                    "recreate it with create_dataset"
                 )
             # One columnar read, not 229,703 row reads.
             self._apply_duration_filter(self._hf_cache["duration"])

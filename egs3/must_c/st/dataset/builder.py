@@ -137,8 +137,8 @@ def resolve_source_root(
             return lang_pair_root
 
     raise FileNotFoundError(
-        f"MuST-C {VERSION} language pair '{SRC_LANG}-{tgt_lang}' not found. Checked these "
-        "locations:\n"
+        f"MuST-C {VERSION} language pair '{SRC_LANG}-{tgt_lang}' not found. "
+        "Checked these locations:\n"
         + "\n".join(f"  - {path}/{SRC_LANG}-{tgt_lang}" for path in checked)
         + "\n"
         f"Set {SOURCE_ENV_VAR} to the raw corpus root (the directory that "
