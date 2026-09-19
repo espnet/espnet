@@ -30,15 +30,13 @@ import torch  # noqa: E402
 
 from espnet2.bin.enh_inference import SeparateSpeech  # noqa: E402
 
-# USES runs a recurrent block over the whole recording rather than over a
-# fixed window, so the cost is linear in the input and half a minute is what
-# comfortably fits the GPU slice asked for below. Longer audio is trimmed
+# TF-GridNet's cost is linear in the input and quadratic in nothing that
+# grows with it, so half a minute comfortably fits the GPU slice asked for
+# below - at 48 kHz, the rate that costs the most. Longer audio is trimmed
 # rather than refused.
 MAX_SECS = 30
 GPU_SECONDS = 120
-MODEL_TAG = os.environ.get(
-    "ENH_MODEL_TAG", "espnet/Wangyou_Zhang_universal_train_enh_uses_refch0_2mem_raw"
-)
+MODEL_TAG = os.environ.get("ENH_MODEL_TAG", "kohei0209/tfgridnet_urgent25")
 # ZeroGPU attaches the GPU only while a @spaces.GPU function runs, so
 # torch.cuda.is_available() is False here and asking it would pin the models to
 # the CPU on the very hardware bought to run them. SPACES_ZERO_GPU is the
@@ -74,13 +72,19 @@ def _categories(model):
 def _rates(categories):
     """The sample rates a category list names, highest first.
 
-    A category reads like "2ch_16k": two channels at 16 kHz.
+    A category reads like "2ch_16k" or "1ch_16000Hz": two channels at
+    16 kHz, one channel at 16 kHz. Recipes spell the rate both ways, so a
+    checkpoint from either one fills the menu.
     """
     found = set()
     for category in categories:
-        match = re.search(r"(\d+)k", category)
+        match = re.search(r"(\d+)k(?:Hz)?\b", category)
         if match:
             found.add(int(match.group(1)) * 1000)
+            continue
+        match = re.search(r"(\d+)\s*Hz", category)
+        if match:
+            found.add(int(match.group(1)))
     return sorted(found, reverse=True)
 
 
@@ -97,11 +101,11 @@ def _channels(categories):
 TITLE = "Universal speech enhancement"
 DESCRIPTION = """# Universal speech enhancement
 
-USES is a single speech enhancement model for every condition the task
-usually splits into separate ones: noise, reverberation, one microphone or
-several, and any sample rate. It was trained on the
-[`egs2/universal_se_v1`](https://github.com/espnet/espnet/tree/master/egs2/universal_se_v1)
-data with [ESPnet](https://github.com/espnet/espnet), and it is the model
+One speech enhancement model for every condition the task usually splits
+into separate ones: noise, reverberation, and any sample rate from 8 to
+48 kHz. This is the TF-GridNet baseline of the
+[URGENT 2025 challenge](https://urgent-challenge.github.io/urgent2025),
+trained with [ESPnet](https://github.com/espnet/espnet), and it is the model
 `espnet enhance` uses by default.
 
 Upload something noisy. Multi-channel files keep their channels on the way
@@ -109,17 +113,22 @@ in, because a model that can use them should be given them; what comes back
 is one channel.
 """
 ARTICLE = """Model:
-[`espnet/Wangyou_Zhang_universal_train_enh_uses_refch0_2mem_raw`](https://huggingface.co/espnet/Wangyou_Zhang_universal_train_enh_uses_refch0_2mem_raw).
+[`kohei0209/tfgridnet_urgent25`](https://huggingface.co/kohei0209/tfgridnet_urgent25).
 Source of this Space:
 [`egs2/universal_se_v1/enh1/demo`](https://github.com/espnet/espnet/tree/master/egs2/universal_se_v1/enh1/demo).
+Set `ENH_MODEL_TAG` to run the same app on another enhancement checkpoint,
+such as the USES model of the recipe this directory sits in.
 
 ```bibtex
-@inproceedings{zhang2023uses,
-  title={Toward Universal Speech Enhancement for Diverse Input Conditions},
-  author={Zhang, Wangyou and Saijo, Kohei and Wang, Zhong-Qiu and
-          Watanabe, Shinji and Qian, Yanmin},
-  booktitle={Proc. ASRU},
-  year={2023}
+@inproceedings{li2020espnetse,
+  title={ESPnet-SE: End-to-End Speech Enhancement and Separation Toolkit
+         Designed for ASR Integration},
+  author={Chenda Li and Jing Shi and Wangyou Zhang and
+          Aswin Shanmugam Subramanian and Xuankai Chang and Naoyuki Kamo and
+          Moto Hira and Tomoki Hayashi and Christoph Boeddeker and
+          Zhuo Chen and Shinji Watanabe},
+  booktitle={SLT},
+  year={2021}
 }
 ```"""
 

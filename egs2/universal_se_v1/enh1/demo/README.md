@@ -9,29 +9,35 @@ sdk_version: 6.27.0
 app_file: app.py
 pinned: false
 license: apache-2.0
-short_description: One model for noise, reverb, any mics, any rate
+short_description: One model for noise, reverb, and 8-48 kHz
 tags:
   - espnet
   - speech-enhancement
   - audio-to-audio
-  - uses
+  - tfgridnet
 models:
-  - espnet/Wangyou_Zhang_universal_train_enh_uses_refch0_2mem_raw
+  - kohei0209/tfgridnet_urgent25
 ---
 
 # Universal speech enhancement
 
 The source of the Hugging Face Space `espnet/universal-se`, one of the demos
-kept in this repository. USES is a single enhancement model for every
-condition the task usually splits into separate ones — noise, reverberation,
-one microphone or several, and any sample rate — trained by the recipe in the
-directory above this one. It is the model `espnet enhance` uses by default.
+kept in this repository. It runs the TF-GridNet baseline of the
+[URGENT 2025 challenge](https://urgent-challenge.github.io/urgent2025), a
+single enhancement model for noise, reverberation and every sample rate from
+8 to 48 kHz, and it is the model `espnet enhance` uses by default.
+
+The app reads everything model-specific off the checkpoint, so `ENH_MODEL_TAG`
+points it at another one — the USES model of the recipe in the directory above
+this one, say, which is what this directory was written around. The URGENT 2025
+recipe that trained the default is not upstream yet; when it lands, this demo
+moves next to it.
 
 What the app reads from the checkpoint rather than from this file:
 
 | from the checkpoint | how the app uses it |
 |---|---|
-| the training categories (`1ch_48k`, `2ch_16k`, …) | the rates in the "Process at" menu |
+| the training categories (`1ch_16000Hz`, `2ch_16k`, …; recipes spell the rate either way) | the rates in the "Process at" menu |
 | the largest channel count those categories name | a warning when a file has more |
 | `num_spk` | one output player per speaker, so a separation checkpoint reached through `ENH_MODEL_TAG` grows the column instead of dropping speakers |
 
@@ -75,17 +81,24 @@ hf upload espnet/universal-se egs2/universal_se_v1/enh1/demo . --repo-type space
 
 The Space itself has to exist as ZeroGPU hardware (`zero-a10g`), which is a
 setting on the Space rather than something in these files. This model is the
-slowest of the five demos on a CPU — around three times real time — so the
-GPU is what makes it usable.
+slowest of the five demos on a CPU — measured on one here, about three times
+real time at 16 kHz and nine times at 48 kHz — so the GPU is what makes it
+usable.
 
 ## Citation
 
 ```bibtex
-@inproceedings{zhang2023uses,
-  title={Toward Universal Speech Enhancement for Diverse Input Conditions},
-  author={Zhang, Wangyou and Saijo, Kohei and Wang, Zhong-Qiu and
-          Watanabe, Shinji and Qian, Yanmin},
-  booktitle={Proc. ASRU},
-  year={2023}
+@inproceedings{li2020espnetse,
+  title={ESPnet-SE: End-to-End Speech Enhancement and Separation Toolkit
+         Designed for ASR Integration},
+  author={Chenda Li and Jing Shi and Wangyou Zhang and
+          Aswin Shanmugam Subramanian and Xuankai Chang and Naoyuki Kamo and
+          Moto Hira and Tomoki Hayashi and Christoph Boeddeker and
+          Zhuo Chen and Shinji Watanabe},
+  booktitle={SLT},
+  year={2021}
 }
 ```
+
+The checkpoint is released under CC-BY-4.0; see
+[its model card](https://huggingface.co/kohei0209/tfgridnet_urgent25).
