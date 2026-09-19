@@ -22,9 +22,9 @@ from typing import (
 )
 
 import humanfriendly
-import kaldiio
 import numpy as np
 import torch
+from omniio import kaldi as kaldi_io
 from torch.utils.data.dataset import Dataset
 from typeguard import typechecked
 
@@ -234,7 +234,7 @@ def label_loader(path):
 def kaldi_loader(
     path, float_dtype=None, max_cache_fd: int = 0, allow_multi_rates=False
 ):
-    loader = kaldiio.load_scp(path, max_cache_fd=max_cache_fd)
+    loader = kaldi_io.load_scp(path, max_cache_fd=max_cache_fd)
     return AdapterForSoundScpReader(
         loader, float_dtype, allow_multi_rates=allow_multi_rates
     )

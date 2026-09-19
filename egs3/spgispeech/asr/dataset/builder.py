@@ -308,10 +308,10 @@ def _audio_path(record):
 def _build_hf_cache(recipe_dir, cache_root, dataset_kwargs):
     """Write one HuggingFace audio index per split under ``cache_root``.
 
-        Splits whose directory already exists are skipped, so the build is
-        incremental. Each split is written to a temporary directory and renamed
-        into place, so an interrupted run leaves no partial index behind.
-        """
+    Splits whose directory already exists are skipped, so the build is
+    incremental. Each split is written to a temporary directory and renamed
+    into place, so an interrupted run leaves no partial index behind.
+    """
     import concurrent.futures
     import importlib
     import json

@@ -8,6 +8,9 @@ References:
 
 import torch
 
+from espnet2.legacy.nets.pytorch_backend.conformer.convolution import (
+    mask_padded_frames,
+)
 from espnet2.legacy.nets.pytorch_backend.nets_utils import get_activation
 from espnet2.legacy.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 
@@ -54,7 +57,7 @@ class ConvolutionalSpatialGatingUnit(torch.nn.Module):
             torch.nn.init.normal_(self.linear.weight, std=1e-6)
             torch.nn.init.ones_(self.linear.bias)
 
-    def forward(self, x, gate_add=None):
+    def forward(self, x, gate_add=None, mask_pad=None):
         """Forward method
 
         Args:
@@ -67,8 +70,11 @@ class ConvolutionalSpatialGatingUnit(torch.nn.Module):
 
         x_r, x_g = x.chunk(2, dim=-1)
 
-        x_g = self.norm(x_g)  # (N, T, D/2)
-        x_g = self.conv(x_g.transpose(1, 2)).transpose(1, 2)  # (N, T, D/2)
+        x_g = self.norm(x_g).transpose(1, 2)  # (N, D/2, T)
+        # zero the padded frames right before the convolution reads them; the
+        # LayerNorm above has just written its bias into them
+        x_g = mask_padded_frames(x_g, mask_pad)
+        x_g = self.conv(x_g).transpose(1, 2)  # (N, T, D/2)
         if self.linear is not None:
             x_g = self.linear(x_g)
 
@@ -114,7 +120,7 @@ class ConvolutionalGatingMLP(torch.nn.Module):
             xs_pad, pos_emb = x, None
 
         xs_pad = self.channel_proj1(xs_pad)  # size -> linear_units
-        xs_pad = self.csgu(xs_pad)  # linear_units -> linear_units/2
+        xs_pad = self.csgu(xs_pad, mask_pad=mask)  # linear_units -> linear_units/2
         xs_pad = self.channel_proj2(xs_pad)  # linear_units/2 -> size
 
         if pos_emb is not None:

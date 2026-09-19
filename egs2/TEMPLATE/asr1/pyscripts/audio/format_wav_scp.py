@@ -6,7 +6,6 @@ from pathlib import Path
 from typing import Optional, Tuple
 
 import humanfriendly
-import kaldiio
 import numpy as np
 
 try:
@@ -14,6 +13,7 @@ try:
 except ImportError:
     resampy = None
 import soundfile
+from omniio import kaldi as kaldi_io
 from tqdm import tqdm
 from typeguard import typechecked
 
@@ -118,7 +118,7 @@ class SegmentsExtractor:
                             "Not supporting multi_columns wav.scp for inputs by pipe"
                         )
                     # Streaming input e.g. cat a.wav |
-                    with kaldiio.open_like_kaldi(wavpath, "rb") as f:
+                    with kaldi_io.open_like_kaldi(wavpath, "rb") as f:
                         with BytesIO(f.read()) as g:
                             array, rate = soundfile.read(g)
 
@@ -269,7 +269,7 @@ def main():
                                 " pipe"
                             )
                         # Streaming input e.g. cat a.wav |
-                        with kaldiio.open_like_kaldi(wavpath, "rb") as f:
+                        with kaldi_io.open_like_kaldi(wavpath, "rb") as f:
                             with BytesIO(f.read()) as g:
                                 wave, rate = soundfile.read(g)
                         subtypes = None
@@ -371,7 +371,7 @@ def main():
 
                 # NOTE(kamo): Using extended ark format style here.
                 # This format is incompatible with Kaldi
-                kaldiio.save_ark(
+                kaldi_io.save_ark(
                     fark,
                     {uttid: (wave, rate)},
                     scp=fscp_out,

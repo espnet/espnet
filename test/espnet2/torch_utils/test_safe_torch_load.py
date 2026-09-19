@@ -46,13 +46,6 @@ class TestSafeTorchLoad:
         with pytest.raises(RuntimeError):
             safe_torch_load(p)
 
-    def test_allow_unsafe_fallback_param(self, tmp_path):
-        p = tmp_path / "bad.pkl"
-        _save_incompatible_object(p)
-        with pytest.warns(UserWarning, match="unsafe fallback"):
-            result = safe_torch_load(p, allow_unsafe_fallback=True)
-        assert result is not None
-
     def test_env_var_opt_in(self, tmp_path):
         p = tmp_path / "bad.pkl"
         _save_incompatible_object(p)
@@ -60,6 +53,18 @@ class TestSafeTorchLoad:
             with pytest.warns(UserWarning, match="unsafe fallback"):
                 result = safe_torch_load(p)
         assert result is not None
+
+    def test_error_message_lists_supported_opt_in_paths_only(self, tmp_path):
+        p = tmp_path / "bad.pkl"
+        _save_incompatible_object(p)
+
+        with pytest.raises(UnsafeLoadRefusedError) as excinfo:
+            safe_torch_load(p)
+
+        message = str(excinfo.value)
+        assert _ENV_VAR in message
+        assert "interactive terminal" in message
+        assert "allow_unsafe_fallback" not in message
 
     def test_env_var_not_set_raises(self, tmp_path):
         p = tmp_path / "bad.pkl"

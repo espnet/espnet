@@ -1,0 +1,22 @@
+# Packages that must NOT be baked into the prebuilt CI image, because their
+# licence does not permit redistribution.
+#
+# Shipping a container image that contains one of these would be distributing
+# it to whoever can pull the image. Installing it at run time, which is what
+# every CI job does today, is not distribution by this project - each machine
+# obtains its own copy from the original source under the original terms.
+#
+# docker/ci.dockerfile uninstalls everything listed here after the build and
+# fails if any of it survives. Jobs that run inside the image install them
+# again with:
+#
+#     pip install -r ci/no_redistribute.txt
+#
+# Keep the version specifier in sync with the corresponding extra in
+# pyproject.toml. Remove an entry once the dependency is gone or relicensed.
+#
+# The list is currently empty. It held kaldiio, whose NTT evaluation licence
+# forbade distributing, transferring or reproducing the software; that entry
+# went away when Kaldi ark/scp I/O moved to the MIT-licensed omniio, which the
+# image may carry like any other dependency. Everything around this file stays
+# in place, so re-excluding a package is one line.

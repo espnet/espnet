@@ -8,7 +8,6 @@ from typing import Any, Dict, Tuple, Union
 
 import humanfriendly
 import numpy as np
-import pyworld
 import torch
 import torch.nn.functional as F
 from scipy.interpolate import interp1d
@@ -50,6 +49,15 @@ class Dio(AbsFeatsExtract):
         use_log_f0: bool = True,
         reduction_factor: int_or_none = None,
     ):
+        # pyworld is in the [tts] extra: only pitch-based models need it, and
+        # every TTS model passes through this module's import.
+        try:
+            import pyworld  # noqa: F401
+        except ImportError as e:
+            raise ImportError(
+                "`pyworld` is not available. Please install it via "
+                '`pip install "espnet[tts]"`.'
+            ) from e
         super().__init__()
         if isinstance(fs, str):
             fs = humanfriendly.parse_size(fs)
@@ -125,6 +133,8 @@ class Dio(AbsFeatsExtract):
 
     def _calculate_f0(self, input: torch.Tensor) -> torch.Tensor:
         x = input.cpu().numpy().astype(np.double)
+        import pyworld
+
         f0, timeaxis = pyworld.dio(
             x,
             self.fs,

@@ -202,9 +202,7 @@ class BeatsEncoder(AbsEncoder):
             )
         self.loaded_state_dict_ = None
         if beats_ckpt_path is not None:
-            self.loaded_state_dict_ = safe_torch_load(
-                beats_ckpt_path, allow_unsafe_fallback=True
-            )
+            self.loaded_state_dict_ = safe_torch_load(beats_ckpt_path)
             logging.info(f"Loaded Beats pretrained config from {beats_ckpt_path}.")
             config = BeatsConfig(self.loaded_state_dict_["cfg"])
         if beats_config is not None:

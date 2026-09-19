@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# shellcheck source=tools/installers/download_with_retry.sh
+. "$(dirname "$0")"/installers/download_with_retry.sh
+
 if [ -z "${PS1:-}" ]; then
     PS1=__dummy__
 fi
@@ -50,7 +53,9 @@ fi
 
 if [ ! -e "${output_dir}/etc/profile.d/conda.sh" ]; then
     if [ ! -e "${script}" ]; then
-        wget --tries=3 --no-check-certificate "https://github.com/conda-forge/miniforge/releases/latest/download/${script}"
+        download_with_retry \
+            "https://github.com/conda-forge/miniforge/releases/latest/download/${script}" \
+            "${script}" --no-check-certificate
     fi
     if "${is_windows}"; then
         echo "Error: miniforge installation is not supported for Windows for now."
@@ -76,7 +81,12 @@ if [ -n "${name}" ] && ! conda activate ${name}; then
 fi
 conda activate ${name}
 
-conda config --prepend channels https://software.repos.intel.com/python/conda/
+# Only the mkl=2024.0 install further down needs this channel, and that runs on
+# x86_64 only. Adding it everywhere makes an unreachable software.repos.intel.com
+# fail platforms that never install anything from it - osx-arm64 in particular.
+if [ "${unamem}" = "x86_64" ]; then
+    conda config --prepend channels https://software.repos.intel.com/python/conda/
+fi
 
 if [ -n "${PYTHON_VERSION}" ]; then
     conda install -y conda "python=${PYTHON_VERSION}"

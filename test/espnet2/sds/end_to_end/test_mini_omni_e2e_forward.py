@@ -39,7 +39,10 @@ class _StubClient:
         self.snacmodel = _StubSnac()
         self.device = torch.device("cpu")
 
-    def run_AT_batch_stream(self, audio_path, stream_stride, max_tokens):
+    def run_AT_batch_stream(self, audio_path, stream_stride, max_tokens, **kwargs):
+        # kwargs absorbs the generation settings forward() passes through. What
+        # reaches the client is asserted in test_mini_omni_e2e_sampling.py; this
+        # file is only about how the streamed output is assembled.
         # reconscruct_snac drops the text layer and trims layer i by i + 1, so a
         # stream of N_FRAMES + 7 steps leaves N_FRAMES coarse frames.
         tokens = [[1] * (N_FRAMES + 7) for _ in range(8)]
@@ -69,6 +72,11 @@ def _build_model():
     model.client = _StubClient()
     model.stream_stride = STREAM_STRIDE
     model.max_tokens = 2048
+    # forward() reads these, so skipping __init__ means setting them here. The
+    # values are the shipped defaults.
+    model.temperature = 0.9
+    model.top_k = 1
+    model.top_p = 1.0
     model.OUT_CHANNELS = 1
     model.OUT_RATE = 24000
     model.OUT_SAMPLE_WIDTH = 2

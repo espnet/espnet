@@ -7,9 +7,9 @@ import argparse
 import logging
 from distutils.util import strtobool
 
-import kaldiio
 import numpy
 import resampy
+from omniio import kaldi as kaldi_io
 
 from espnet2.legacy.transform.spectrogram import spectrogram
 from espnet2.legacy.utils.cli_utils import get_commandline_args
@@ -93,7 +93,7 @@ def main():
     logging.info(get_commandline_args())
 
     with (
-        kaldiio.ReadHelper(args.rspecifier, segments=args.segments) as reader,
+        kaldi_io.ReadHelper(args.rspecifier, segments=args.segments) as reader,
         file_writer_helper(
             args.wspecifier,
             filetype=args.filetype,
