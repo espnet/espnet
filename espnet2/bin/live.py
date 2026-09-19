@@ -21,6 +21,13 @@ import numpy as np
 # the wait between printed lines short enough to watch.
 WINDOW_SECS = 20.0
 SAMPLE_RATE = 16000
+# The most unprocessed microphone audio kept in memory. A microphone produces
+# audio at exactly one second per second and the decoder consumes it as fast
+# as it can, so the two only stay level while decoding is faster than real
+# time. When it is not - a large model, a busy CPU, no GPU - the difference
+# has to go somewhere, and the only choices are memory that grows for as long
+# as the program runs or audio that is dropped. Half a minute is the ceiling.
+MAX_BUFFERED_SECS = 30.0
 
 
 class LiveError(RuntimeError):
@@ -49,21 +56,117 @@ def windows(
 
 
 def from_file(path: str, sample_rate: int = SAMPLE_RATE, block: int = 4000):
-    """Read an audio file in blocks, resampled to what the model expects."""
+    """Read an audio file block by block, resampled to what the model expects.
+
+    Reading the file and then cutting it up would make memory proportional to
+    its length - two hours of 16 kHz float32 is about 460 MB, and more before
+    it is resampled - which is the opposite of what `--stream` promises. So
+    one block is read, mixed to one channel and resampled at a time, and the
+    only thing kept between blocks is the resampler's own state.
+
+    That state is why this uses `soxr` directly rather than
+    `librosa.resample`: resampling each block as if it were a whole recording
+    puts a discontinuity at every boundary. `ResampleStream` carries its
+    filter across the blocks, so the result is the same signal the one-shot
+    call would have produced.
+    """
     try:
         import soundfile as sf
     except ImportError as e:  # pragma: no cover - soundfile is a core dependency
         raise LiveError("soundfile is not installed: pip install espnet") from e
 
-    speech, rate = sf.read(path, dtype="float32", always_2d=False)
-    if speech.ndim > 1:
-        speech = speech.mean(axis=1)  # a live transcript wants one channel
-    if rate != sample_rate:
-        import librosa
+    with sf.SoundFile(path) as audio:
+        resampler = None
+        if audio.samplerate != sample_rate:
+            try:
+                import soxr
+            except ImportError as e:  # pragma: no cover - librosa requires soxr
+                raise LiveError("resampling needs soxr: pip install espnet") from e
 
-        speech = librosa.resample(speech, orig_sr=rate, target_sr=sample_rate)
-    for start in range(0, len(speech), block):
-        yield speech[start : start + block]
+            resampler = soxr.ResampleStream(
+                audio.samplerate, sample_rate, num_channels=1, dtype="float32"
+            )
+        # blocks are read in the file's own rate, so that each one covers the
+        # same amount of time whatever rate the file was recorded at
+        read_size = max(1, round(block * audio.samplerate / sample_rate))
+        while True:
+            data = audio.read(read_size, dtype="float32", always_2d=False)
+            # a short read is the end of the file, and so is an empty one:
+            # either way this is the pass that flushes the resampler, which
+            # is why it is not a `break` on an empty read
+            last = len(data) < read_size
+            if data.ndim > 1:
+                data = data.mean(axis=1)  # a live transcript wants one channel
+            if resampler is not None:
+                # `last` flushes the filter's tail, so the final block is not
+                # a few samples short of the recording
+                data = resampler.resample_chunk(data, last=last)
+            if len(data) > 0:
+                yield np.asarray(data, dtype=np.float32).reshape(-1)
+            if last:
+                break
+
+
+class BoundedBlocks:
+    """A queue of audio blocks that cannot grow past a fixed ceiling.
+
+    An unbounded queue between a microphone and a decoder turns "the decoder
+    is slower than real time" into memory that grows for as long as the
+    program runs, and a transcript that falls a little further behind every
+    second. Neither is something the user can see happening until the
+    machine is out of memory.
+
+    So there is a ceiling, and the oldest block is what goes when it is
+    reached: a live transcript is worth having because it is live, and a gap
+    in it beats a transcript that is minutes behind. Every dropped block is
+    counted and reported, because quietly losing speech is not something a
+    transcript may do.
+    """
+
+    def __init__(
+        self,
+        maxsize: int,
+        secs_per_block: float,
+        warn_every_secs: float = 10.0,
+        report: Callable[[str], None] = None,
+    ):
+        self._blocks: "queue.Queue[np.ndarray]" = queue.Queue(maxsize=max(1, maxsize))
+        self._secs_per_block = secs_per_block
+        self._warn_every = max(1, round(warn_every_secs / max(secs_per_block, 1e-9)))
+        self._report = report or (lambda line: print(line, file=sys.stderr))
+        self.dropped = 0
+
+    def put(self, block: np.ndarray) -> None:
+        """Add a block, dropping the oldest one if there is no room.
+
+        Called from the audio callback, so it never blocks and never raises:
+        a callback that waits for the consumer stalls the device itself.
+        """
+        try:
+            self._blocks.put_nowait(block)
+            return
+        except queue.Full:
+            pass
+        try:
+            self._blocks.get_nowait()
+        except queue.Empty:  # pragma: no cover - the consumer got there first
+            pass
+        self.dropped += 1
+        if self.dropped == 1 or self.dropped % self._warn_every == 0:
+            self._report(
+                "decoding is slower than the audio arrives: dropped "
+                f"{self.dropped * self._secs_per_block:.0f} s of audio so far"
+            )
+        try:
+            self._blocks.put_nowait(block)
+        except queue.Full:  # pragma: no cover - room was just made
+            pass
+
+    def get(self) -> np.ndarray:
+        return self._blocks.get()
+
+    def dropped_secs(self) -> float:
+        return self.dropped * self._secs_per_block
 
 
 def from_microphone(sample_rate: int = SAMPLE_RATE, block: int = 4000):
@@ -71,6 +174,9 @@ def from_microphone(sample_rate: int = SAMPLE_RATE, block: int = 4000):
 
     sounddevice is not a dependency of espnet: it needs PortAudio, which is a
     system package, and nothing else here records audio.
+
+    What is held between the device and the decoder is bounded: see
+    `BoundedBlocks` for what happens when decoding cannot keep up.
     """
     try:
         import sounddevice
@@ -82,23 +188,36 @@ def from_microphone(sample_rate: int = SAMPLE_RATE, block: int = 4000):
             " `apt install libportaudio2`)"
         ) from e
 
-    blocks: "queue.Queue[np.ndarray]" = queue.Queue()
+    secs_per_block = block / sample_rate
+    blocks = BoundedBlocks(
+        maxsize=round(MAX_BUFFERED_SECS / secs_per_block),
+        secs_per_block=secs_per_block,
+    )
 
     def collect(indata, frames, time, status):
-        if status:  # an overflow means blocks were dropped; say so once
+        if status:  # an overflow means the device itself dropped blocks
             print(f"audio input: {status}", file=sys.stderr)
         blocks.put(indata.copy().reshape(-1))
 
     print("listening, press Ctrl-C to stop", file=sys.stderr)
-    with sounddevice.InputStream(
-        samplerate=sample_rate,
-        channels=1,
-        dtype="float32",
-        blocksize=block,
-        callback=collect,
-    ):
-        while True:
-            yield blocks.get()
+    try:
+        with sounddevice.InputStream(
+            samplerate=sample_rate,
+            channels=1,
+            dtype="float32",
+            blocksize=block,
+            callback=collect,
+        ):
+            while True:
+                yield blocks.get()
+    finally:
+        if blocks.dropped:
+            print(
+                f"{blocks.dropped_secs():.0f} s of audio was dropped: the "
+                "decoder could not keep up. A smaller model or --device cuda "
+                "would have kept it.",
+                file=sys.stderr,
+            )
 
 
 def transcribe(

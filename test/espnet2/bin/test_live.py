@@ -117,3 +117,65 @@ def test_the_microphone_stream_yields_what_the_callback_was_given(monkeypatch, c
     assert next(source).tolist() == [2.0, 2.0, 2.0, 2.0]
     assert captured["samplerate"] == 16000 and captured["channels"] == 1
     assert "input overflow" in capsys.readouterr().err
+
+
+def test_a_file_is_never_read_whole(tmp_path, monkeypatch):
+    # the point of --stream is that memory does not follow the file's
+    # length, so reading it in one call is the one thing this must not do
+    path = tmp_path / "long.wav"
+    sf.write(path, np.zeros(16000 * 3, dtype=np.float32), 16000)
+
+    def fail(*args, **kwargs):  # pragma: no cover - the point is it is not called
+        raise AssertionError("the whole file was read at once")
+
+    monkeypatch.setattr(sf, "read", fail)
+    sizes = [len(b) for b in live.from_file(str(path), block=4000)]
+    assert sizes == [4000] * 12
+    assert max(sizes) == 4000  # no block is the size of the file
+
+
+def test_resampling_across_blocks_matches_resampling_the_whole_file(tmp_path):
+    # a resampler restarted at every block leaves a discontinuity at each
+    # boundary; this is the check that the filter is carried across them
+    librosa = pytest.importorskip("librosa")
+    rng = np.random.default_rng(0)
+    speech = rng.standard_normal(8000 * 2).astype(np.float32) * 0.1
+    path = tmp_path / "eight.wav"
+    sf.write(path, speech, 8000)
+
+    streamed = np.concatenate(list(live.from_file(str(path), block=1000)))
+    whole = librosa.resample(speech, orig_sr=8000, target_sr=16000)
+
+    n = min(len(streamed), len(whole))
+    assert abs(len(streamed) - len(whole)) < 100  # same signal, same length
+    assert np.corrcoef(streamed[:n], whole[:n])[0, 1] > 0.99
+
+
+def test_the_block_queue_does_not_grow_past_its_ceiling():
+    said = []
+    blocks = live.BoundedBlocks(
+        maxsize=2, secs_per_block=0.25, warn_every_secs=10.0, report=said.append
+    )
+    for i in range(5):
+        blocks.put(np.full(4, float(i), dtype=np.float32))
+
+    # three were dropped, and what is left is the newest audio: a live
+    # transcript that is minutes behind is worse than one with a gap
+    assert blocks.dropped == 3
+    assert [blocks.get()[0], blocks.get()[0]] == [3.0, 4.0]
+    assert blocks.dropped_secs() == pytest.approx(0.75)
+
+
+def test_dropping_audio_is_reported_at_once_and_then_sparingly():
+    said = []
+    blocks = live.BoundedBlocks(
+        maxsize=1, secs_per_block=1.0, warn_every_secs=4.0, report=said.append
+    )
+    for _ in range(9):
+        blocks.put(np.zeros(4, dtype=np.float32))
+
+    # the first drop is said immediately, then one line per 4 s dropped:
+    # silence about lost speech is not an option, a line per block is noise
+    assert len(said) == 3
+    assert "slower than the audio arrives" in said[0]
+    assert "8 s of audio" in said[-1]
