@@ -1,0 +1,14 @@
+defaults:
+  - inference
+  - _self_
+
+# Keep embedding artifacts separate from a completed label-only inference run.
+inference_dir: ${exp_dir}/inference_embeddings
+
+model:
+  extract_embd: true
+
+output_keys:
+  - hyp
+  - ref
+  - embedding

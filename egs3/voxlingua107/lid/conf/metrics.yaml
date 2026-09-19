@@ -1,0 +1,16 @@
+##########################################################
+#                 METRIC SCORING SETTING                 #
+##########################################################
+# Common usage:
+#   python run.py --stages measure \
+#       --training_config conf/training.yaml \
+#       --inference_config conf/inference.yaml \
+#       --metrics_config conf/metrics.yaml
+
+inference_dir: ${exp_dir}/inference
+
+metrics:
+  - metric:
+      _target_: espnet3.systems.lid.metrics.accuracy.Accuracy
+      ref_key: ref
+      hyp_key: hyp

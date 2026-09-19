@@ -1,0 +1,145 @@
+##########################################################
+#                    TRAINING SETTING                    #
+##########################################################
+# Quick usage:
+#   python run.py --stages create_dataset --training_config conf/training.yaml
+#   python run.py --stages collect_stats  --training_config conf/training.yaml
+#   python run.py --stages train          --training_config conf/training.yaml
+
+##########################################################
+#                  SYSTEM AND PATH SETTING               #
+##########################################################
+task: espnet3.systems.lid.task.LIDTask
+dataset_dir: ${oc.env:VOXLINGUA107,/path/to/voxlingua107}
+
+##########################################################
+#                    DATASET DEFINITION                  #
+##########################################################
+dataset:
+  train:
+    - data_src_args:
+        split: train
+        # Use [0.9, 1.0, 1.1] to include three speed variants per utterance.
+        speed_perturb_factors: [1.0]
+        source_dir: ${dataset_dir}
+        data_dir: ${data_dir}/voxlingua107
+        sample_rate: 16000
+  valid:
+    - data_src_args:
+        split: dev
+        source_dir: ${dataset_dir}
+        data_dir: ${data_dir}/voxlingua107
+        sample_rate: 16000
+  preprocessor:
+    _target_: espnet2.train.preprocessor.LIDPreprocessor
+    lang2utt: ${stats_dir}/train/lang2utt
+    fix_duration: false
+    target_duration: 3.0
+    sample_rate: 16000
+    noise_apply_prob: 0.0
+    rir_apply_prob: 0.0
+
+create_dataset:
+  source_dir: ${dataset_dir}
+  data_dir: ${data_dir}/voxlingua107
+
+##########################################################
+#                      MODEL SETTING                     #
+##########################################################
+model:
+  lang_num: 107
+
+  frontend: s3prl
+  frontend_conf:
+    frontend_conf:
+      upstream: hf_wav2vec2_custom
+      path_or_url: facebook/mms-1b
+    download_dir: ./hub
+    multilayer_feature: true
+
+  normalize: utterance_mvn
+  normalize_conf:
+    norm_vars: false
+
+  encoder: ecapa_tdnn
+  encoder_conf:
+    model_scale: 8
+    ndim: 512
+    output_size: 1536
+
+  pooling: chn_attn_stat
+
+  projector: rawnet3
+  projector_conf:
+    output_size: 192
+
+  loss: aamsoftmax_sc_topk
+  loss_conf:
+    margin: 0.5
+    scale: 30
+    K: 3
+    mp: 0.06
+    k_top: 5
+
+  model_conf:
+    extract_feats_in_collect_stats: false
+
+##########################################################
+#                OTHER TRAINING SETTING                  #
+##########################################################
+seed: 3702
+
+##########################################################
+#                   DATALOADER SETTING                   #
+##########################################################
+dataloader:
+  train:
+    iter_factory:
+      seed: ${seed}
+      num_workers: 8
+      num_iters_per_epoch: 1000
+      batches:
+        type: catpow
+        shape_files:
+          - ${stats_dir}/train/speech_shape
+        batch_size: 4
+        batch_bins: 2880000
+        min_batch_size: 1
+        max_batch_size: 16
+        upsampling_factor: 0.5
+        dataset_scaling_factor: 1.2
+        drop_last: false
+        category2utt_file: ${stats_dir}/train/category2utt
+  valid:
+    iter_factory:
+      seed: ${seed}
+      num_workers: 8
+      batches:
+        type: catpow
+        shape_files:
+          - ${stats_dir}/valid/speech_shape
+        batch_size: 4
+        batch_bins: 2880000
+        min_batch_size: 1
+        max_batch_size: 16
+        upsampling_factor: 0.5
+        dataset_scaling_factor: 1.2
+        drop_last: false
+        category2utt_file: ${stats_dir}/valid/category2utt
+
+##########################################################
+#                    TRAINER SETTING                     #
+##########################################################
+trainer:
+  accumulate_grad_batches: 2
+  benchmark: true
+  deterministic: false
+  gradient_clip_val: 9999
+  log_every_n_steps: 100
+  max_epochs: 30
+  num_sanity_val_steps: 0
+  precision: bf16-mixed
+  callbacks:
+    - _target_: espnet3.systems.lid.callbacks.ESPnet2MatmulPrecision
+    - _target_: espnet3.systems.lid.callbacks.BestCheckpointLink
+      output_dir: ${exp_dir}

@@ -1,0 +1,16 @@
+defaults:
+  - metrics
+  - _self_
+
+inference_dir: ${exp_dir}/inference_embeddings
+
+metrics:
+  - metric:
+      _target_: espnet3.systems.lid.metrics.accuracy.Accuracy
+  - metric:
+      _target_: espnet3.systems.lid.metrics.embedding.Embedding
+      max_utt_per_lang: 100
+      save_tsne_plot: true
+    inputs:
+      ref: ref
+      embedding: embedding

@@ -1,0 +1,5 @@
+defaults:
+  - ../../asr/conf/publication
+  - _self_
+
+stats_dir: ${recipe_dir}/exp/stats

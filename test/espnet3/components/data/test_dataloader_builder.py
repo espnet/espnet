@@ -5,6 +5,7 @@ from hydra.utils import instantiate
 from omegaconf import DictConfig, OmegaConf
 from torch.utils.data import BatchSampler, Sampler
 
+from espnet2.iterators.sequence_iter_factory import SequenceIterFactory
 from espnet3.components.data import data_organizer as data_organizer_module
 from espnet3.components.data.data_organizer import DataOrganizer, do_nothing
 from espnet3.components.data.dataloader import DataLoaderBuilder
@@ -459,6 +460,128 @@ dataloader:
     assert len(batch[0]) == 2
     assert "audio" in batch[1]
     assert "audio_lengths" in batch[1]
+
+
+@pytest.mark.parametrize("mode", ["train", "valid"])
+@pytest.mark.parametrize("num_iters_per_epoch", [None, 3, 5, 9, 1000])
+@pytest.mark.parametrize("shuffle", [False, True])
+@pytest.mark.parametrize("seed", [0, 3702])
+def test_iter_factory_uses_one_based_epochs(
+    tmp_path, mode, num_iters_per_epoch, shuffle, seed
+):
+    """Match ESPnet2's initial, next, and resumed epoch batch selection."""
+    batches = [[str(idx)] for idx in range(5)]
+    shape_file = tmp_path / "speech_shape"
+    shape_file.write_text("".join(f"{idx} 16000\n" for idx in range(5)))
+    config = OmegaConf.create(
+        {
+            "dataloader": {
+                mode: {
+                    "iter_factory": {
+                        "_target_": (
+                            "espnet2.iterators.sequence_iter_factory."
+                            "SequenceIterFactory"
+                        ),
+                        "num_iters_per_epoch": num_iters_per_epoch,
+                        "shuffle": shuffle,
+                        "seed": seed,
+                        "batches": {
+                            "type": "unsorted",
+                            "batch_size": 1,
+                            "batch_bins": 0,
+                            "shape_files": [str(shape_file)],
+                        },
+                    }
+                }
+            }
+        }
+    )
+    original_config = OmegaConf.to_container(config, resolve=True)
+    organizer = build_organizer(DUMMY_DATASET_TARGET)
+    dataset = getattr(organizer, mode)
+    reference_factory = SequenceIterFactory(
+        dataset=dataset,
+        batches=batches,
+        num_iters_per_epoch=num_iters_per_epoch,
+        shuffle=shuffle,
+        seed=seed,
+    )
+
+    # Reconstruct the builder at a later epoch, as when resuming training.
+    for epoch in (0, 1, 4):
+        builder = build_builder(dataset, config, None, num_device=1, epoch=epoch)
+        loader = builder.build(mode)._iterator
+        expected = reference_factory.build_iter(epoch + 1)
+
+        assert loader.batch_sampler == expected.batch_sampler
+        assert len(loader) == (num_iters_per_epoch or len(batches))
+        assert loader.worker_init_fn.keywords["base_seed"] == epoch + 1 + seed
+        assert builder.epoch == epoch
+        assert OmegaConf.to_container(config, resolve=True) == original_config
+        if not shuffle:
+            start = 0 if num_iters_per_epoch is None else num_iters_per_epoch * epoch
+            assert loader.batch_sampler == [
+                batches[(start + idx) % len(batches)] for idx in range(len(loader))
+            ]
+
+
+@pytest.mark.parametrize("batch_type", ["catbel", "catpow", "catpow_balance_dataset"])
+@pytest.mark.parametrize(
+    "epoch,sampler_epoch,expected_epoch",
+    [(0, None, 1), (3, None, 4), (0, 0, 0), (3, 17, 17)],
+)
+def test_iter_factory_dispatches_category_sampler(
+    monkeypatch, batch_type, epoch, sampler_epoch, expected_epoch
+):
+    import espnet3.components.data.dataloader as dl
+
+    captured = {}
+
+    def _fake_build_category_batch_sampler(**kwargs):
+        captured.update(kwargs)
+        return [["0", "1"], ["2", "3"]], kwargs
+
+    monkeypatch.setattr(
+        dl, "build_category_batch_sampler", _fake_build_category_batch_sampler
+    )
+
+    batch_config = {"type": batch_type, "num_batches": 1}
+    if sampler_epoch is not None:
+        batch_config["epoch"] = sampler_epoch
+    config = OmegaConf.create(
+        {
+            "dataloader": {
+                "train": {
+                    "iter_factory": {
+                        "_target_": (
+                            "test.espnet3.components.data."
+                            "test_dataloader_builder.DummyIterFactory"
+                        ),
+                        "batches": batch_config,
+                    }
+                }
+            }
+        }
+    )
+    organizer = build_organizer(DUMMY_DATASET_TARGET)
+    builder = DataLoaderBuilder(
+        dataset=organizer.train,
+        config=config,
+        collate_fn=None,
+        num_device=1,
+        epoch=epoch,
+    )
+
+    assert list(builder.build("train")) == [["0", "1"]]
+    assert captured == {
+        "type": batch_type,
+        "num_batches": 1,
+        "epoch": expected_epoch,
+    }
+    assert builder.epoch == epoch
+    assert OmegaConf.to_container(config.dataloader.train.iter_factory.batches) == (
+        batch_config
+    )
 
 
 @pytest.mark.parametrize("flag", [True, False])

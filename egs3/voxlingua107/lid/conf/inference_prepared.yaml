@@ -1,0 +1,16 @@
+defaults:
+  - inference
+  - _self_
+
+# Set a distinct name for each corpus/split to separate inference outputs.
+prepared_name: fleurs_test
+# A manifest from any of the *_prepare.py scripts.
+prepared_manifest: ${recipe_dir}/data/fleurs/test/manifest.tsv
+
+dataset:
+  test:
+    - name: ${prepared_name}
+      data_src: egs3.voxlingua107.lid.src.prepared_dataset
+      data_src_args:
+        manifest: ${prepared_manifest}
+        lang2utt: ${stats_dir}/train/lang2utt

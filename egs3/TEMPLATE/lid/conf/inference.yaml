@@ -1,0 +1,13 @@
+defaults:
+  - ../../asr/conf/inference
+  - _self_
+
+# Language inventory collected from the combined training datasets.
+stats_dir: ${recipe_dir}/exp/stats
+
+# LID inference writes the predicted and reference language codes.
+output_keys:
+  - hyp
+  - ref
+idx_key: utt_id
+batch_size:

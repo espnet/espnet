@@ -7,7 +7,11 @@ import torch
 from hydra.utils import instantiate
 from omegaconf import DictConfig, OmegaConf
 
-from espnet2.samplers.build_batch_sampler import build_batch_sampler
+from espnet2.samplers.build_batch_sampler import (
+    CATEGORY_BATCH_TYPES,
+    build_batch_sampler,
+    build_category_batch_sampler,
+)
 from espnet3.components.data.iterator import EpochSyncIterator
 from espnet3.utils.logging_utils import _dump_attrs, build_qualified_name
 
@@ -59,7 +63,15 @@ class DataLoaderBuilder:
         config (DictConfig): Full training configuration (e.g., from OmegaConf).
         collate_fn (Callable): Function to collate individual samples into mini-batches.
         num_device (int): Number of devices in use (e.g., GPUs or nodes).
-        epoch (int): Current epoch number. Used to reseed samplers deterministically.
+        epoch (int): Zero-based Lightning epoch used for dataset shard rotation.
+            ESPnet-style iter factories receive ``epoch + 1``. Category samplers
+            use the same one-based epoch unless ``batches.epoch`` is specified.
+
+    Notes:
+        Iter factories configured through ``iter_factory`` must accept ESPnet2's
+        one-based epoch convention. Plain PyTorch DataLoaders are unaffected.
+        Compared with passing zero-based epochs, this changes shuffle and worker
+        seeds, including the data order when resuming an older experiment.
 
     Example:
         builder = DataLoaderBuilder(
@@ -253,7 +265,16 @@ class DataLoaderBuilder:
         if dataset is None:
             dataset = self.dataset
 
-        batches = build_batch_sampler(**factory_config.pop("batches"))
+        # ESPnet2 iter factories use one-based epochs; shard rotation stays zero-based.
+        factory_epoch = self.epoch + 1
+        batch_config = factory_config.pop("batches")
+        if batch_config.get("type") in CATEGORY_BATCH_TYPES:
+            batch_config.setdefault("epoch", factory_epoch)
+            batches, _ = build_category_batch_sampler(**batch_config)
+            if batch_config.get("num_batches") is not None:
+                batches = list(batches)[: batch_config["num_batches"]]
+        else:
+            batches = build_batch_sampler(**batch_config)
 
         if self.num_device > 1:
             batches = list(batches)
@@ -299,7 +320,7 @@ class DataLoaderBuilder:
                 _LOGGED_DISTRIBUTED_BATCHES.add(mode)
 
         iter_factory = instantiate(factory_config, dataset, batches=batches)
-        iterator = EpochSyncIterator(iter_factory.build_iter(self.epoch))
+        iterator = EpochSyncIterator(iter_factory.build_iter(factory_epoch))
         log_dataloader(
             logger,
             iterator,
