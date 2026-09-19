@@ -1,6 +1,6 @@
 import math
 from collections import OrderedDict
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Union
 
 import torch
 import torch.nn as nn
@@ -147,17 +147,23 @@ class SVoiceSeparator(AbsSeparator):
         input: torch.Tensor,
         ilens: torch.Tensor,
         additional: Optional[Dict] = None,
-    ) -> Tuple[List[torch.Tensor], torch.Tensor, OrderedDict]:
+    ) -> Tuple[
+        Union[List[torch.Tensor], List[List[torch.Tensor]]], torch.Tensor, OrderedDict
+    ]:
         """Forward.
 
         Args:
-            input (torch.Tensor or ComplexTensor): Encoded feature [B, T, N]
+            input (torch.Tensor): waveform [B, T]; the encoder is the
+                model's own Conv1d, not an STFT
             ilens (torch.Tensor): input lengths [Batch]
             additional (Dict or None): other data included in model
                 NOTE: not used in this model
 
         Returns:
-            masked (List[Union(torch.Tensor, ComplexTensor)]): [(B, T, N), ...]
+            masked: in training, one list of per-speaker waveforms per
+                intermediate output (List[List[torch.Tensor]]); in inference,
+                the last output's per-speaker waveforms (List[torch.Tensor]);
+                every tensor is (B, T)
             ilens (torch.Tensor): (B,)
             others predicted data, e.g. masks: OrderedDict[
                 'mask_spk1': torch.Tensor(Batch, Frames, Freq),

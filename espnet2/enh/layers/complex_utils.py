@@ -1,195 +1,180 @@
-"""Beamformer module."""
+"""Helpers for complex-valued tensors.
 
-from typing import Sequence, Tuple, Union
+Everything in espnet2 that handles a spectrum uses PyTorch's own complex
+tensors (``torch.complex64`` / ``torch.complex128``). This module holds the
+few operations that need care - building a complex tensor from parts whose
+dtype PyTorch's constructor refuses, mixed real/complex products, a batched
+trace - and the acceptance of ``torch_complex.ComplexTensor``, the class
+espnet used before PyTorch had complex support: when that package happens to
+be installed, its tensors are recognised by :func:`is_complex` and converted
+by :func:`to_complex`, so a caller that still builds one gets a native tensor
+back. Nothing here requires the package.
+"""
+
+from typing import Sequence, Tuple
 
 import torch
-from torch_complex import functional as FC
-from torch_complex.tensor import ComplexTensor
+
+try:  # accepted on input only; never produced
+    from torch_complex.tensor import ComplexTensor
+except ImportError:  # pragma: no cover - the package is optional
+    ComplexTensor = None
 
 EPS = torch.finfo(torch.double).eps
 
 
+def _is_legacy(c) -> bool:
+    return ComplexTensor is not None and isinstance(c, ComplexTensor)
+
+
+def complex_tensor(real: torch.Tensor, imag: torch.Tensor) -> torch.Tensor:
+    """Build a complex tensor from real and imaginary parts.
+
+    ``torch.complex`` accepts only float16, float32 and float64 parts, and
+    complex32 supports few operators; parts in any other dtype, bfloat16 in
+    particular, are widened to float32 first.
+    """
+    if real.dtype not in (torch.float32, torch.float64):
+        real = real.float()
+    if imag.dtype != real.dtype:
+        imag = imag.to(real.dtype)
+    return torch.complex(real, imag)
+
+
 def new_complex_like(
-    ref: Union[torch.Tensor, ComplexTensor],
+    ref: torch.Tensor,
     real_imag: Tuple[torch.Tensor, torch.Tensor],
-):
-    if isinstance(ref, ComplexTensor):
-        return ComplexTensor(*real_imag)
-    elif is_torch_complex_tensor(ref):
-        return torch.complex(*real_imag)
-    else:
-        raise ValueError(
-            "Please update your PyTorch version to 1.9+ for complex support."
-        )
+) -> torch.Tensor:
+    """Build a complex tensor from parts; ``ref`` is kept for API compatibility."""
+    return complex_tensor(*real_imag)
 
 
-def is_torch_complex_tensor(c):
-    return not isinstance(c, ComplexTensor) and torch.is_complex(c)
+def is_torch_complex_tensor(c) -> bool:
+    return isinstance(c, torch.Tensor) and torch.is_complex(c)
 
 
-def is_complex(c):
-    return isinstance(c, ComplexTensor) or is_torch_complex_tensor(c)
+def is_complex(c) -> bool:
+    return is_torch_complex_tensor(c) or _is_legacy(c)
 
 
-def to_complex(c):
-    # Convert to torch native complex
-    if isinstance(c, ComplexTensor):
-        c = c.real + 1j * c.imag
+def to_complex(c) -> torch.Tensor:
+    """Return ``c`` as a native complex tensor.
+
+    Accepts a complex tensor (returned as is), a legacy ComplexTensor, or a
+    real tensor whose last dimension holds (real, imag).
+    """
+    if _is_legacy(c):
+        return complex_tensor(c.real, c.imag)
+    if torch.is_complex(c):
         return c
-    elif torch.is_complex(c):
-        return c
-    else:
-        return torch.view_as_complex(c)
+    if c.dtype not in (torch.float32, torch.float64):
+        # view_as_complex has no half-precision view; widen the parts instead
+        return complex_tensor(c[..., 0], c[..., 1])
+    return torch.view_as_complex(c)
 
 
-def to_double(c):
-    if not isinstance(c, ComplexTensor) and torch.is_complex(c):
-        return c.to(dtype=torch.complex128)
-    else:
-        return c.double()
+def as_native(c):
+    """Convert a legacy ComplexTensor to a native tensor; pass anything else through.
+
+    Public entry points that take a spectrum call this first, so a caller that
+    still builds a torch_complex.ComplexTensor gets the same result as before.
+    """
+    return to_complex(c) if _is_legacy(c) else c
 
 
-def to_float(c):
-    if not isinstance(c, ComplexTensor) and torch.is_complex(c):
-        return c.to(dtype=torch.complex64)
-    else:
-        return c.float()
+def to_double(c: torch.Tensor) -> torch.Tensor:
+    if is_complex(c):
+        return to_complex(c).to(dtype=torch.complex128)
+    return c.double()
 
 
-def cat(seq: Sequence[Union[ComplexTensor, torch.Tensor]], *args, **kwargs):
+def to_float(c: torch.Tensor) -> torch.Tensor:
+    if is_complex(c):
+        return to_complex(c).to(dtype=torch.complex64)
+    return c.float()
+
+
+def _native(seq: Sequence[torch.Tensor]):
+    return [to_complex(x) if _is_legacy(x) else x for x in seq]
+
+
+def cat(seq: Sequence[torch.Tensor], *args, **kwargs) -> torch.Tensor:
     if not isinstance(seq, (list, tuple)):
         raise TypeError(
             "cat(): argument 'tensors' (position 1) must be tuple of Tensors, "
             "not Tensor"
         )
-    if isinstance(seq[0], ComplexTensor):
-        return FC.cat(seq, *args, **kwargs)
-    else:
-        return torch.cat(seq, *args, **kwargs)
+    return torch.cat(_native(seq), *args, **kwargs)
 
 
-def complex_norm(
-    c: Union[torch.Tensor, ComplexTensor], dim=-1, keepdim=False
-) -> torch.Tensor:
-    if not is_complex(c):
-        raise TypeError("Input is not a complex tensor.")
-    if is_torch_complex_tensor(c):
-        return torch.norm(c, dim=dim, keepdim=keepdim)
-    else:
-        if dim is None:
-            return torch.sqrt((c.real**2 + c.imag**2).sum() + EPS)
-        else:
-            return torch.sqrt(
-                (c.real**2 + c.imag**2).sum(dim=dim, keepdim=keepdim) + EPS
-            )
-
-
-def einsum(equation, *operands):
-    # NOTE: Do not mix ComplexTensor and torch.complex in the input!
-    # NOTE (wangyou): Until PyTorch 1.9.0, torch.einsum does not support
-    # mixed input with complex and real tensors.
-    if len(operands) == 1:
-        if isinstance(operands[0], (tuple, list)):
-            operands = operands[0]
-        complex_module = FC if isinstance(operands[0], ComplexTensor) else torch
-        return complex_module.einsum(equation, *operands)
-    elif len(operands) != 2:
-        op0 = operands[0]
-        same_type = all(op.dtype == op0.dtype for op in operands[1:])
-        if same_type:
-            _einsum = FC.einsum if isinstance(op0, ComplexTensor) else torch.einsum
-            return _einsum(equation, *operands)
-        else:
-            raise ValueError("0 or More than 2 operands are not supported.")
-    a, b = operands
-    if isinstance(a, ComplexTensor) or isinstance(b, ComplexTensor):
-        return FC.einsum(equation, a, b)
-    elif torch.is_complex(a) or torch.is_complex(b):
-        if not torch.is_complex(a):
-            o_real = torch.einsum(equation, a, b.real)
-            o_imag = torch.einsum(equation, a, b.imag)
-            return torch.complex(o_real, o_imag)
-        elif not torch.is_complex(b):
-            o_real = torch.einsum(equation, a.real, b)
-            o_imag = torch.einsum(equation, a.imag, b)
-            return torch.complex(o_real, o_imag)
-        else:
-            return torch.einsum(equation, a, b)
-    else:
-        return torch.einsum(equation, a, b)
-
-
-def inverse(
-    c: Union[torch.Tensor, ComplexTensor],
-) -> Union[torch.Tensor, ComplexTensor]:
-    if isinstance(c, ComplexTensor):
-        return c.inverse2()
-    else:
-        return c.inverse()
-
-
-def matmul(
-    a: Union[torch.Tensor, ComplexTensor], b: Union[torch.Tensor, ComplexTensor]
-) -> Union[torch.Tensor, ComplexTensor]:
-    # NOTE: Do not mix ComplexTensor and torch.complex in the input!
-    # NOTE (wangyou): Until PyTorch 1.9.0, torch.matmul does not support
-    # multiplication between complex and real tensors.
-    if isinstance(a, ComplexTensor) or isinstance(b, ComplexTensor):
-        return FC.matmul(a, b)
-    elif torch.is_complex(a) or torch.is_complex(b):
-        if not torch.is_complex(a):
-            o_real = torch.matmul(a, b.real)
-            o_imag = torch.matmul(a, b.imag)
-            return torch.complex(o_real, o_imag)
-        elif not torch.is_complex(b):
-            o_real = torch.matmul(a.real, b)
-            o_imag = torch.matmul(a.imag, b)
-            return torch.complex(o_real, o_imag)
-        else:
-            return torch.matmul(a, b)
-    else:
-        return torch.matmul(a, b)
-
-
-def trace(a: Union[torch.Tensor, ComplexTensor]):
-    # NOTE (wangyou): until PyTorch 1.9.0, torch.trace does not
-    # support bacth processing. Use FC.trace() as fallback.
-    return FC.trace(a)
-
-
-def reverse(a: Union[torch.Tensor, ComplexTensor], dim=0):
-    if isinstance(a, ComplexTensor):
-        return FC.reverse(a, dim=dim)
-    else:
-        return torch.flip(a, dims=(dim,))
-
-
-def solve(b: Union[torch.Tensor, ComplexTensor], a: Union[torch.Tensor, ComplexTensor]):
-    """Solve the linear equation ax = b."""
-    # NOTE: Do not mix ComplexTensor and torch.complex in the input!
-    # NOTE (wangyou): Until PyTorch 1.9.0, torch.solve does not support
-    # mixed input with complex and real tensors.
-    if isinstance(a, ComplexTensor) or isinstance(b, ComplexTensor):
-        if isinstance(a, ComplexTensor) and isinstance(b, ComplexTensor):
-            return FC.solve(b, a, return_LU=False)
-        else:
-            return matmul(inverse(a), b)
-    elif torch.is_complex(a) or torch.is_complex(b):
-        if torch.is_complex(a) and torch.is_complex(b):
-            return torch.linalg.solve(a, b)
-        else:
-            return matmul(inverse(a), b)
-    else:
-        return torch.linalg.solve(a, b)
-
-
-def stack(seq: Sequence[Union[ComplexTensor, torch.Tensor]], *args, **kwargs):
+def stack(seq: Sequence[torch.Tensor], *args, **kwargs) -> torch.Tensor:
     if not isinstance(seq, (list, tuple)):
         raise TypeError(
             "stack(): argument 'tensors' (position 1) must be tuple of Tensors, "
             "not Tensor"
         )
-    if isinstance(seq[0], ComplexTensor):
-        return FC.stack(seq, *args, **kwargs)
-    else:
-        return torch.stack(seq, *args, **kwargs)
+    return torch.stack(_native(seq), *args, **kwargs)
+
+
+def complex_norm(c: torch.Tensor, dim=-1, keepdim=False) -> torch.Tensor:
+    if not is_complex(c):
+        raise TypeError("Input is not a complex tensor.")
+    norm = torch.norm(to_complex(c), dim=dim, keepdim=keepdim)
+    # torch_complex callers got sqrt(sum|c|^2 + EPS); keep that for them so an
+    # all-zero legacy input still returns sqrt(EPS) rather than 0
+    return torch.sqrt(norm.square() + EPS) if _is_legacy(c) else norm
+
+
+def _mixed(op, a: torch.Tensor, b: torch.Tensor, *args) -> torch.Tensor:
+    """Apply a bilinear ``op`` when exactly one operand may be real.
+
+    torch.einsum / torch.matmul promote a real operand to complex themselves
+    since PyTorch 1.9, but doing the two real products keeps the result
+    identical to what the code produced before and costs nothing.
+    """
+    if torch.is_complex(a) and not torch.is_complex(b):
+        return torch.complex(op(*args, a.real, b), op(*args, a.imag, b))
+    if torch.is_complex(b) and not torch.is_complex(a):
+        return torch.complex(op(*args, a, b.real), op(*args, a, b.imag))
+    return op(*args, a, b)
+
+
+def einsum(equation: str, *operands) -> torch.Tensor:
+    if len(operands) == 1 and isinstance(operands[0], (tuple, list)):
+        operands = tuple(operands[0])
+    operands = tuple(_native(operands))
+    if len(operands) == 2:
+        return _mixed(torch.einsum, operands[0], operands[1], equation)
+    if len(operands) < 2 or len({op.dtype for op in operands}) != 1:
+        raise ValueError("0 or More than 2 operands are not supported.")
+    return torch.einsum(equation, *operands)
+
+
+def matmul(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
+    a, b = _native((a, b))
+    return _mixed(torch.matmul, a, b)
+
+
+def inverse(c: torch.Tensor) -> torch.Tensor:
+    return torch.linalg.inv(to_complex(c) if _is_legacy(c) else c)
+
+
+def trace(a: torch.Tensor) -> torch.Tensor:
+    """Batched trace over the last two dimensions: (..., N, N) -> (...)."""
+    if _is_legacy(a):
+        a = to_complex(a)
+    return torch.diagonal(a, dim1=-2, dim2=-1).sum(-1)
+
+
+def reverse(a: torch.Tensor, dim=0) -> torch.Tensor:
+    if _is_legacy(a):
+        a = to_complex(a)
+    return torch.flip(a, dims=(dim,))
+
+
+def solve(b: torch.Tensor, a: torch.Tensor) -> torch.Tensor:
+    """Solve the linear equation ax = b."""
+    a, b = _native((a, b))
+    if torch.is_complex(a) != torch.is_complex(b):
+        return matmul(inverse(a), b)
+    return torch.linalg.solve(a, b)

@@ -1,10 +1,9 @@
 from collections import OrderedDict
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple
 
 import torch
-from torch_complex.tensor import ComplexTensor
 
-from espnet2.enh.layers.complex_utils import is_complex
+from espnet2.enh.layers.complex_utils import as_native, is_complex
 from espnet2.enh.separator.abs_separator import AbsSeparator
 from espnet2.legacy.nets.pytorch_backend.rnn.encoders import RNN
 
@@ -92,18 +91,18 @@ class DPCLE2ESeparator(AbsSeparator):
 
     def forward(
         self,
-        input: Union[torch.Tensor, ComplexTensor],
+        input: torch.Tensor,
         ilens: torch.Tensor,
         additional: Optional[Dict] = None,
-    ) -> Tuple[List[Union[torch.Tensor, ComplexTensor]], torch.Tensor, OrderedDict]:
+    ) -> Tuple[List[torch.Tensor], torch.Tensor, OrderedDict]:
         """Forward.
 
         Args:
-            input (torch.Tensor or ComplexTensor): Encoded feature [B, T, F]
+            input (complex torch.Tensor): Encoded feature [B, T, F]
             ilens (torch.Tensor): input lengths [Batch]
 
         Returns:
-            masked (List[Union(torch.Tensor, ComplexTensor)]): [(B, T, N), ...]
+            masked (List[torch.Tensor]): [(B, T, N), ...]
             ilens (torch.Tensor): (B,)
             others predicted data, e.g. V: OrderedDict[
                 others predicted data, e.g. masks: OrderedDict[
@@ -115,6 +114,7 @@ class DPCLE2ESeparator(AbsSeparator):
         """
 
         # if complex spectrum,
+        input = as_native(input)
         if is_complex(input):
             feature = abs(input)
         else:

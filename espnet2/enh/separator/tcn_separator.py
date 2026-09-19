@@ -1,10 +1,9 @@
 from collections import OrderedDict
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple
 
 import torch
-from torch_complex.tensor import ComplexTensor
 
-from espnet2.enh.layers.complex_utils import is_complex
+from espnet2.enh.layers.complex_utils import as_native, is_complex
 from espnet2.enh.layers.tcn import TemporalConvNet
 from espnet2.enh.separator.abs_separator import AbsSeparator
 
@@ -70,20 +69,20 @@ class TCNSeparator(AbsSeparator):
 
     def forward(
         self,
-        input: Union[torch.Tensor, ComplexTensor],
+        input: torch.Tensor,
         ilens: torch.Tensor,
         additional: Optional[Dict] = None,
-    ) -> Tuple[List[Union[torch.Tensor, ComplexTensor]], torch.Tensor, OrderedDict]:
+    ) -> Tuple[List[torch.Tensor], torch.Tensor, OrderedDict]:
         """Forward.
 
         Args:
-            input (torch.Tensor or ComplexTensor): Encoded feature [B, T, N]
+            input (complex torch.Tensor): Encoded feature [B, T, N]
             ilens (torch.Tensor): input lengths [Batch]
             additional (Dict or None): other data included in model
                 NOTE: not used in this model
 
         Returns:
-            masked (List[Union(torch.Tensor, ComplexTensor)]): [(B, T, N), ...]
+            masked (List[torch.Tensor]): [(B, T, N), ...]
             ilens (torch.Tensor): (B,)
             others predicted data, e.g. masks: OrderedDict[
                 'mask_spk1': torch.Tensor(Batch, Frames, Freq),
@@ -93,6 +92,7 @@ class TCNSeparator(AbsSeparator):
             ]
         """
         # if complex spectrum
+        input = as_native(input)
         if is_complex(input):
             feature = abs(input)
         else:

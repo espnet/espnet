@@ -1,11 +1,12 @@
+import warnings
 from collections import OrderedDict
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch_complex.tensor import ComplexTensor
 
+from espnet2.enh.layers.complex_utils import complex_tensor
 from espnet2.enh.layers.complexnn import (
     ComplexBatchNorm,
     ComplexConv2d,
@@ -48,11 +49,18 @@ class DCCRNSeparator(AbsSeparator):
             kernel_size (int, optional): convolution kernel size. Defaults to 5.
             kernel_num (list, optional): output dimension of each layer of the encoder.
             use_builtin_complex (bool, optional): torch.complex if True,
-                                                else ComplexTensor.
+                                                else complex tensor.
             use_noise_mask (bool, optional): whether to estimate the mask of noise.
         """
         super().__init__()
-        self.use_builtin_complex = use_builtin_complex
+        if not use_builtin_complex:
+            warnings.warn(
+                "use_builtin_complex=False is ignored: masks are torch.complex "
+                "tensors (torch_complex is no longer used).",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+        self.use_builtin_complex = True
         self._num_spk = num_spk
         self.use_noise_mask = use_noise_mask
         self.predict_noise = use_noise_mask
@@ -169,20 +177,20 @@ class DCCRNSeparator(AbsSeparator):
 
     def forward(
         self,
-        input: Union[torch.Tensor, ComplexTensor],
+        input: torch.Tensor,
         ilens: torch.Tensor,
         additional: Optional[Dict] = None,
-    ) -> Tuple[List[Union[torch.Tensor, ComplexTensor]], torch.Tensor, OrderedDict]:
+    ) -> Tuple[List[torch.Tensor], torch.Tensor, OrderedDict]:
         """Forward.
 
         Args:
-            input (torch.Tensor or ComplexTensor): Encoded feature [B, T, F]
+            input (complex torch.Tensor): Encoded feature [B, T, F]
             ilens (torch.Tensor): input lengths [Batch]
             additional (Dict or None): other data included in model
                 NOTE: not used in this model
 
         Returns:
-            masked (List[Union(torch.Tensor, ComplexTensor)]): [(B, T, F), ...]
+            masked (List[torch.Tensor]): [(B, T, F), ...]
             ilens (torch.Tensor): (B,)
             others predicted data, e.g. masks: OrderedDict[
                 'mask_spk1': torch.Tensor(Batch, Frames, Freq),
@@ -304,7 +312,7 @@ class DCCRNSeparator(AbsSeparator):
                     mask_real.permute(0, 2, 1), mask_imag.permute(0, 2, 1)
                 )
             else:
-                complex_mask = ComplexTensor(
+                complex_mask = complex_tensor(
                     mask_real.permute(0, 2, 1), mask_imag.permute(0, 2, 1)
                 )
 
@@ -314,7 +322,7 @@ class DCCRNSeparator(AbsSeparator):
 
     def apply_masks(
         self,
-        masks: List[Union[torch.Tensor, ComplexTensor]],
+        masks: List[torch.Tensor],
         real: torch.Tensor,
         imag: torch.Tensor,
     ):
@@ -326,7 +334,7 @@ class DCCRNSeparator(AbsSeparator):
             imag (torch.Tensor): imag part of the noisy spectrum, (B, F, T)
 
         Returns:
-            masked (List[Union(torch.Tensor, ComplexTensor)]): [(B, T, F), ...]
+            masked (List[torch.Tensor]): [(B, T, F), ...]
         """
         masked = []
         for i in range(len(masks)):
@@ -364,7 +372,7 @@ class DCCRNSeparator(AbsSeparator):
                 )
             else:
                 masked.append(
-                    ComplexTensor(real.permute(0, 2, 1), imag.permute(0, 2, 1))
+                    complex_tensor(real.permute(0, 2, 1), imag.permute(0, 2, 1))
                 )
         return masked
 

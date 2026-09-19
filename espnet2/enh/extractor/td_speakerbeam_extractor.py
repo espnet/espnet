@@ -1,11 +1,10 @@
 from collections import OrderedDict
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple
 
 import torch
-from torch_complex.tensor import ComplexTensor
 
 from espnet2.enh.extractor.abs_extractor import AbsExtractor
-from espnet2.enh.layers.complex_utils import is_complex
+from espnet2.enh.layers.complex_utils import as_native, is_complex
 from espnet2.enh.layers.tcn import TemporalConvNet, TemporalConvNetInformed
 from espnet2.legacy.nets.pytorch_backend.nets_utils import make_pad_mask
 
@@ -109,19 +108,19 @@ class TDSpeakerBeamExtractor(AbsExtractor):
 
     def forward(
         self,
-        input: Union[torch.Tensor, ComplexTensor],
+        input: torch.Tensor,
         ilens: torch.Tensor,
         input_aux: torch.Tensor,
         ilens_aux: torch.Tensor,
         suffix_tag: str = "",
         additional: Optional[Dict] = None,
-    ) -> Tuple[List[Union[torch.Tensor, ComplexTensor]], torch.Tensor, OrderedDict]:
+    ) -> Tuple[List[torch.Tensor], torch.Tensor, OrderedDict]:
         """TD-SpeakerBeam Forward.
 
         Args:
-            input (torch.Tensor or ComplexTensor): Encoded feature [B, T, N]
+            input (complex torch.Tensor): Encoded feature [B, T, N]
             ilens (torch.Tensor): input lengths [Batch]
-            input_aux (torch.Tensor or ComplexTensor): Encoded auxiliary feature
+            input_aux (complex torch.Tensor): Encoded auxiliary feature
                 for the target speaker [B, T, N] or [B, N]
             ilens_aux (torch.Tensor): input lengths of auxiliary input for the
                 target speaker [Batch]
@@ -130,13 +129,14 @@ class TDSpeakerBeamExtractor(AbsExtractor):
                 not used in this model
 
         Returns:
-            masked (List[Union(torch.Tensor, ComplexTensor)]): [(B, T, N), ...]
+            masked (List[torch.Tensor]): [(B, T, N), ...]
             ilens (torch.Tensor): (B,)
             others predicted data, e.g. masks: OrderedDict[
                 f'mask{suffix_tag}': torch.Tensor(Batch, Frames, Freq),
                 f'enroll_emb{suffix_tag}': torch.Tensor(Batch, adapt_enroll_dim/adapt_enroll_dim*2),
             ]
         """  # noqa: E501
+        input, input_aux = as_native(input), as_native(input_aux)
         # if complex spectrum
         feature = abs(input) if is_complex(input) else input
         aux_feature = abs(input_aux) if is_complex(input_aux) else input_aux

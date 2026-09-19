@@ -1,9 +1,9 @@
 from collections import OrderedDict
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple
 
 import torch
-from torch_complex.tensor import ComplexTensor
 
+from espnet2.enh.layers.complex_utils import as_native
 from espnet2.enh.layers.dnn_beamformer import DNN_Beamformer
 from espnet2.enh.layers.dnn_wpe import DNN_WPE
 from espnet2.enh.separator.abs_separator import AbsSeparator
@@ -126,24 +126,24 @@ class NeuralBeamformer(AbsSeparator):
 
     def forward(
         self,
-        input: Union[torch.Tensor, ComplexTensor],
+        input: torch.Tensor,
         ilens: torch.Tensor,
         additional: Optional[Dict] = None,
-    ) -> Tuple[List[Union[torch.Tensor, ComplexTensor]], torch.Tensor, OrderedDict]:
+    ) -> Tuple[List[torch.Tensor], torch.Tensor, OrderedDict]:
         """Forward.
 
         Args:
-            input (torch.complex64/ComplexTensor):
+            input (torch.complex64):
                 mixed speech [Batch, Frames, Channel, Freq]
             ilens (torch.Tensor): input lengths [Batch]
             additional (Dict or None): other data included in model
                 NOTE: not used in this model
 
         Returns:
-            enhanced speech (single-channel): List[torch.complex64/ComplexTensor]
+            enhanced speech (single-channel): List[torch.complex64]
             output lengths
             other predcited data: OrderedDict[
-                'dereverb1': ComplexTensor(Batch, Frames, Channel, Freq),
+                'dereverb1': torch.Tensor(Batch, Frames, Channel, Freq),
                 'mask_dereverb1': torch.Tensor(Batch, Frames, Channel, Freq),
                 'mask_noise1': torch.Tensor(Batch, Frames, Channel, Freq),
                 'mask_spk1': torch.Tensor(Batch, Frames, Channel, Freq),
@@ -152,6 +152,7 @@ class NeuralBeamformer(AbsSeparator):
                 'mask_spkn': torch.Tensor(Batch, Frames, Channel, Freq),
             ]
         """
+        input = as_native(input)
         # Shape of input spectrum must be (B, T, F) or (B, T, C, F)
         assert input.dim() in (3, 4), input.dim()
         enhanced = input
