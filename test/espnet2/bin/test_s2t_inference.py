@@ -1,3 +1,4 @@
+import logging
 from argparse import ArgumentParser
 from pathlib import Path
 
@@ -108,6 +109,23 @@ def test_best_path_on_an_encoder_decoder_model(s2t_config_file):
     blank = speech2text.s2t_model.blank_id
     assert blank not in token_int
     assert all(a != b for a, b in zip(token_int, token_int[1:]))
+
+
+def test_ctc_only_decoding_says_it_is_not_best_path(s2t_config_file, caplog):
+    # "CTC decoding" is the name of two different things, and a user who
+    # asked for one and got the other can only tell by the clock
+    with caplog.at_level(logging.INFO):
+        Speech2Text(s2t_train_config=s2t_config_file, ctc_weight=1.0, beam_size=1)
+    said = caplog.text
+    assert "prefix beam search" in said and "not best-path" in said
+    assert "best_path()" in said
+
+    caplog.clear()
+    with caplog.at_level(logging.INFO):
+        Speech2Text(s2t_train_config=s2t_config_file, ctc_weight=0.3)
+    # a search that uses the decoder is not the one being confused with
+    # best path, so it says nothing
+    assert "prefix beam search" not in caplog.text
 
 
 def test_best_path_takes_one_utterance(s2t_config_file):

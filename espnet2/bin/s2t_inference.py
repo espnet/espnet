@@ -333,6 +333,11 @@ class Speech2Text:
         #   best path              CTC, no search         best_path(), which
         #                                                 ignores all of this
         #
+        # The last two are both "CTC decoding" and are not the same: the
+        # third searches over label sequences and the fourth takes the
+        # argmax of each frame. ctc_weight = 1 selects the third, whatever
+        # beam_size is, which is what the log line below is for.
+        #
         # A language model or an n-gram joins any of the searches, through
         # lm_weight and ngram_weight below. None of them reaches best_path():
         # an argmax over frames has nothing to score.
@@ -387,6 +392,21 @@ class Speech2Text:
             )
             # with the decoder dropped there is no full scorer to pre-beam with
             pre_beam_score_key = None if ctc_weight == 1.0 else "full"
+
+        if weights["ctc"] == 1.0:
+            # "CTC decoding" names both of the things below, and "greedy" is
+            # used loosely for the second, so a user who asked for one and
+            # got the other has no way to tell except by the clock.
+            logging.info(
+                "decoding on the CTC head alone: a prefix beam search over "
+                f"{beam_size} hypotheses. This is not best-path decoding "
+                "(also called greedy or argmax decoding), and beam_size=1 "
+                "would not make it so - a prefix search scores label "
+                "sequences, summing the frame paths that collapse to each "
+                "one, where best-path takes the most likely symbol at each "
+                "frame and collapses once. They can disagree, and the search "
+                "is far slower. Speech2Text.best_path() is best-path decoding."
+            )
 
         # 2. Build language model
         if lm_train_config is not None:
@@ -848,10 +868,17 @@ class Speech2Text:
             Optional[Dict[int, List[str]]],
         ],
     ]:
-        """Inference for a single utterance.
+        """Decode a single utterance with a beam search.
 
         The input speech will be padded or trimmed to the fixed length,
         which is consistent with training.
+
+        Which search is decided by the weights the object was built with,
+        and by whether the checkpoint has a decoder at all: see the class
+        docstring. A CTC-only checkpoint, or `ctc_weight=1.0`, means a CTC
+        prefix beam search - a search over label sequences, which is not
+        best-path decoding and is not made into it by `beam_size=1`.
+        :meth:`best_path` is best-path decoding, and is much faster.
 
         Args:
             speech: input speech of shape (nsamples,) or (nsamples, nchannels=1)
