@@ -102,7 +102,14 @@ def collect_stats_batch(
     for key, tensor in tensors.items():
         if key.endswith("_lengths") or key in feats:
             continue
-        if torch.is_floating_point(tensor):
+        if not torch.is_tensor(tensor) or torch.is_floating_point(tensor):
+            continue
+        # A padded token stream is [B, L]. A 1-D integer tensor is a
+        # per-utterance scalar -- a length or an id -- with no stream length to
+        # record, and a collate fn is free to call it something other than
+        # "<key>_lengths" (espnet3's own test collate returns a bare
+        # "lengths"), so the suffix check above cannot be relied on alone.
+        if tensor.dim() < 2:
             continue
         lengths = tensors.get(f"{key}_lengths")
         for batch_idx, uid in enumerate(list(uids)):

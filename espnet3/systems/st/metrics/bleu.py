@@ -160,11 +160,13 @@ class BLEU(BaseMetric):
             out[f"{result.name}{suffix}"] = round(result.score, 2)
             if isinstance(scorer, sacrebleu.BLEU):
                 # The brevity penalty and n-gram precisions are what make one
-                # BLEU comparable to another.
-                out[f"BLEU_bp{suffix}"] = round(result.bp, 4)
+                # BLEU comparable to another. Spelled out rather than as
+                # sacreBLEU's "60.0/32.0/19.4/12.2" block or the literature's
+                # p_n, because these become column headers in metrics.json.
+                out[f"BLEU_brevity_penalty{suffix}"] = round(result.bp, 4)
                 out.update(
                     {
-                        f"BLEU_p{n}{suffix}": round(p, 2)
+                        f"BLEU_{n}gram_prec{suffix}": round(p, 2)
                         for n, p in enumerate(result.precisions, start=1)
                     }
                 )
