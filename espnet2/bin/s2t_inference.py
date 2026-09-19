@@ -853,8 +853,8 @@ class Speech2Text:
         return Speech2Text(**kwargs)
 
 
-class Speech2TextCTCBestPathSearch(Speech2Text):
-    """Decode with the CTC head alone: the best path, no search.
+class Speech2TextCTCGreedySearch(Speech2Text):
+    """Decode with the CTC head alone, no beam search and no decoder.
 
     An encoder-decoder S2T model such as OWSM v3.1 is trained with a CTC
     branch, and reading that branch directly is an order of magnitude faster
@@ -863,10 +863,11 @@ class Speech2TextCTCBestPathSearch(Speech2Text):
     number in a paper. `espnet2.bin.s2t_inference_ctc` is the one to use for a
     model trained as CTC-only, such as OWSM-CTC.
 
-    The name is the usual one for taking the most likely symbol per frame and
-    collapsing the repeats: best-path decoding. It is also called greedy or
-    argmax decoding, and `espnet2.bin.s2t_inference_ctc.Speech2TextGreedySearch`
-    is the same idea for a model trained CTC-only.
+    What it does is best-path decoding: the most likely symbol per frame, with
+    the repeats and blanks collapsed. The name follows
+    `espnet2.bin.s2t_inference_ctc.Speech2TextGreedySearch`, which is the same
+    idea for a model trained CTC-only, and greedy search is what the rest of
+    the toolkit calls it.
 
     The prompt arguments the parent takes - `lang_sym`, `task_sym`,
     `predict_time`, `text_prev` - do not apply here. They condition the
@@ -876,19 +877,19 @@ class Speech2TextCTCBestPathSearch(Speech2Text):
 
     @staticmethod
     def from_pretrained(model_tag: Optional[str] = None, **kwargs: Optional[Any]):
-        """Build a Speech2TextCTCBestPathSearch from a published model.
+        """Build a Speech2TextCTCGreedySearch from a published model.
 
         Args:
             model_tag (Optional[str]): Model tag of the pretrained models.
                 Currently, the tags of espnet_model_zoo are supported.
 
         Returns:
-            Speech2TextCTCBestPathSearch: the instance.
+            Speech2TextCTCGreedySearch: the instance.
 
         """
         if model_tag is not None:
             kwargs.update(**download_pretrained(model_tag))
-        return Speech2TextCTCBestPathSearch(**kwargs)
+        return Speech2TextCTCGreedySearch(**kwargs)
 
     @torch.no_grad()
     @typechecked
