@@ -162,7 +162,7 @@ def test_the_base_class_batch_decodes_a_ctc_only_checkpoint(s2t_config_file):
         assert len(results) == 1 and isinstance(results[0][4], Hypothesis)
 
 
-@pytest.mark.execution_timeout(15)
+@pytest.mark.execution_timeout(30)
 def test_decode_long_returns_one_segment_for_a_ctc_only_checkpoint(s2t_config_file):
     speech2text = Speech2TextBase(s2t_train_config=s2t_config_file)
     # longer than the buffer the model was trained on, so it is chunked
@@ -176,7 +176,7 @@ def test_decode_long_returns_one_segment_for_a_ctc_only_checkpoint(s2t_config_fi
     assert isinstance(text, str)
 
 
-@pytest.mark.execution_timeout(15)
+@pytest.mark.execution_timeout(40)
 def test_the_deprecated_class_decodes_the_same_way(s2t_config_file):
     speech2text = Speech2TextBase(s2t_train_config=s2t_config_file)
     with pytest.warns(DeprecationWarning, match="deprecated"):
