@@ -92,6 +92,8 @@ Reusable building blocks the systems in
 
 - **`base_metric.py`** -- `BaseMetric(ABC)`: the contract `systems/asr/metrics/*` implement
   (`__call__(hyp, ref, ...) -> dict`), including the shared SCP-reading (`iter_inputs`) helper.
+  Name concrete metrics after the metric itself (`WER`, `CER`, `TER`, `PESQ`),
+  without a redundant `Metric` suffix such as `WERMetric` or `PESQMetric`.
 
 ## `optimizers/`
 

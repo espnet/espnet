@@ -307,7 +307,7 @@ are bare adjectives or verbs: `train` ("is this the training split"), `resolve`,
 | `*Callback` | `lightning.Callback` subclass | `AverageCheckpointsCallback`, `EMACallback` |
 | `*Spec` / `*Step` / `*State` | Declarative config object / one unit of work / mutable runtime state (all in `optimization_spec.py`) | `OptimizerSpec`, `SchedulerSpec`, `OptimizationStep`, `OptimizerRuntimeState` |
 | `*Config` | A typed view over a config block | `DatasetConfig` |
-| `*Metric` / bare acronym | Metric implementations subclass `BaseMetric` but are named by the metric itself | `CER`, `WER`, `TER` |
+| `*Metric` / bare acronym | Metric implementations subclass `BaseMetric` but are named by the metric itself. Prefer the bare metric name; do not append the redundant `Metric` suffix. | `CER`, `WER`, `TER`, `PESQ` (not `WERMetric` or `PESQMetric`) |
 | `*Module` / `*Trainer` | Lightning integration | `ESPnetLightningModule`, `ESPnet3LightningTrainer` (note the inconsistent `ESPnet`/`ESPnet3` prefix -- use `ESPnet3*` for new Lightning-facing classes) |
 | `*Iterator` | Custom iterator | `EpochSyncIterator` |
 | `*Model` | A loadable, callable inference wrapper | `InferenceModel` |
