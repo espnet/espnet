@@ -1,0 +1,26 @@
+# Resume link for the MuST-C en-de ST run.
+#
+# espnet3 calls `trainer.fit(**config.fit)` (espnet3/systems/base/training.py)
+# and TEMPLATE sets `fit: {}`, so a plain restart begins from scratch. Every
+# job after the first must therefore use THIS config instead of the base one.
+#
+# "last" resolves to ${exp_dir}/last.ckpt, which the default ESPnet3 callbacks
+# write at the end of every training epoch (`save_last: "link"` in
+# espnet3/components/callbacks/default_callbacks.py, save_weights_only=false,
+# so optimizer and scheduler state come back too). It FAILS if no checkpoint
+# exists yet, so the first run must use train_st_conformer.yaml.
+#
+# Point ckpt_path at a specific stepN.ckpt for an exact restart.
+defaults:
+- train_st_conformer.yaml
+- _self_
+
+fit:
+  ckpt_path: last
+
+# PIN exp_tag. TEMPLATE sets `exp_tag: ${self_name:}`, the stem of the config
+# file actually passed on the command line, so without this line a resume would
+# write to exp/train_st_conformer_resume/ -- a fresh, empty experiment beside
+# the run it is supposed to continue, and `ckpt_path: last` would then fail
+# looking for a last.ckpt that is in the other directory.
+exp_tag: train_st_conformer

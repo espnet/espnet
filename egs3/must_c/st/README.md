@@ -35,12 +35,17 @@ no Kaldi data preparation (`egs2/must_c/st1/local/data.sh`) is required.
   matching the egs2 recipe's convention. `tst-HE` is available as its own
   split (`"tst-HE"`).
 
-- Each example returns exactly three keys: `speech` (float32 waveform, native
-  MuST-C sample rate), `text` (the target text selected by `task`, default
-  `"st"` → target-language translation; `task="asr"` → English transcript),
-  and `src_text` (English). Nothing else — `espnet2`'s ST preprocessor is
-  `@typechecked` to `Dict[str, np.ndarray]`, so returning a string key such as
-  `utt_id` or `tgt_text` raises `TypeCheckError` in the dataloader.
+- Each example returns three keys: `speech` (float32 waveform, native MuST-C
+  sample rate), `text` (the target text selected by `task`, default `"st"` →
+  target-language translation; `task="asr"` → English transcript), and
+  `src_text` (English). Passing `return_utt_id=True` adds `utt_id`, which
+  `conf/inference.yaml` does for its test entries.
+
+  Training cannot carry `utt_id`: `CommonCollateFn` pads and stacks every value
+  in the sample dict, so a `str` raises `AttributeError: 'str' object has no
+  attribute 'dtype'` on the first batch of train and of `collect_stats` alike.
+  Inference reads samples one at a time without collating, and requires an
+  identifier (`InferenceRunner.idx_key` defaults to `utt_id`).
 
 - **Case conventions from `run.sh` ARE reproduced**, because they change which
   characters exist at all: `src_case="lc.rm"` (lowercased, punctuation

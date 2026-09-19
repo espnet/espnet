@@ -108,6 +108,7 @@ tokenizer:
       recipe_dir: ${recipe_dir}
       source_dir: ${dataset_dir}
       cache: ${cache}
+      tgt_lang: de
       side: tgt
       case: tc
   src:
@@ -120,6 +121,7 @@ tokenizer:
       recipe_dir: ${recipe_dir}
       source_dir: ${dataset_dir}
       cache: ${cache}
+      tgt_lang: de
       side: src
       case: lc.rm
 

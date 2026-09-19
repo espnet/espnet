@@ -19,6 +19,7 @@ from espnet3.utils.config_utils import load_config_with_defaults
 
 
 def _load_config() -> dict:
+    """Load this package's config.yaml with its defaults resolved."""
     config_resource = resources.files(__package__).joinpath("config.yaml")
     with resources.as_file(config_resource) as config_path:
         return load_config_with_defaults(str(config_path), resolve=False)
@@ -225,6 +226,18 @@ class MustCSTBuilder(DatasetBuilder):
             raise FileNotFoundError(
                 f"No complete MuST-C {SRC_LANG}-<target> pairs found"
             )
+        # A pinned target was never checked, so prepare_source could return
+        # while is_source_prepared stayed False. resolve_source_root raises if
+        # the pair directory is absent; missing_required_splits catches a pair
+        # that exists but is incomplete.
+        for target in targets:
+            lang_pair_root = resolve_source_root(recipe_root, source_dir, target)
+            missing = missing_required_splits(lang_pair_root, target)
+            if missing:
+                raise FileNotFoundError(
+                    f"MuST-C {SRC_LANG}-{target} is missing required splits "
+                    f"{missing} under {lang_pair_root}"
+                )
 
     def _is_recipe_built(
         self,
@@ -251,6 +264,7 @@ class MustCSTBuilder(DatasetBuilder):
         )
 
     def is_built(self, recipe_dir, cache=None, **kwargs):
+        """Whether the cache (or, uncached, the raw source) is ready."""
         cache_root = _hf_cache_root(recipe_dir, cache)
         if cache_root is not None:
             return all(
@@ -264,6 +278,7 @@ class MustCSTBuilder(DatasetBuilder):
         )
 
     def build(self, recipe_dir, cache=None, **kwargs):
+        """Build the HF cache, preparing the raw source first if needed."""
         cache_root = _hf_cache_root(recipe_dir, cache)
         if cache_root is None:
             return _call_supported(
@@ -301,6 +316,7 @@ _HF_CACHE_REQUIRED_COLUMNS = {
 
 
 def _cache_has_columns(path):
+    """Whether an HF cache split exists and carries the required columns."""
     import json
 
     try:
@@ -311,6 +327,7 @@ def _cache_has_columns(path):
 
 
 def _hf_cache_root(recipe_dir, cache):
+    """Resolve the HF cache root, or None when caching is disabled."""
     if not cache or not cache.get("enabled", False):
         return None
     from pathlib import Path
@@ -322,6 +339,7 @@ def _hf_cache_root(recipe_dir, cache):
 
 
 def _call_supported(function, **kwargs):
+    """Call ``function`` with only the keyword arguments it accepts."""
     import inspect
 
     parameters = inspect.signature(function).parameters
@@ -335,6 +353,7 @@ def _call_supported(function, **kwargs):
 
 
 def _build_hf_cache(recipe_dir, cache_root, dataset_kwargs):
+    """Write one HF cache split per required split, skipping complete ones."""
     import importlib
     import json
     import shutil
@@ -358,6 +377,7 @@ def _build_hf_cache(recipe_dir, cache_root, dataset_kwargs):
         failures = cache_root / f"{split}.failures.jsonl"
 
         def rows():
+            """Yield one cache row per corpus segment, logging failures."""
             dataset = _call_supported(
                 dataset_class,
                 split=split,

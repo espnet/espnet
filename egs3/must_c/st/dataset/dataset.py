@@ -127,6 +127,7 @@ def _parse_segments(split_dir: Path, split: str) -> list[tuple[float, float, str
 
 
 def _read_lines(path: Path) -> list[str]:
+    """Read a text file into a list of lines, without trailing newlines."""
     with path.open("r", encoding="utf-8") as fh:
         return [line.rstrip("\n") for line in fh]
 
@@ -144,7 +145,7 @@ def _scan_split(
 
     if not (len(segments) == len(src_lines) == len(tgt_lines)):
         raise RuntimeError(
-            f"MuST-C {alias}: yaml/{SRC_LANG}/{TGT_LANG} line counts differ "
+            f"MuST-C {alias}: yaml/{SRC_LANG}/{tgt_lang} line counts differ "
             f"({len(segments)}, {len(src_lines)}, {len(tgt_lines)})"
         )
 
@@ -178,10 +179,12 @@ def _scan_split(
 
 @lru_cache(maxsize=None)
 def _wav_samplerate(wav_path: str) -> int:
+    """Sample rate of one wav, cached because talks are read many times."""
     return int(sf.info(wav_path).samplerate)
 
 
 def _read_segment(wav_path: Path, offset: float, duration: float) -> np.ndarray:
+    """Read one segment out of a talk-length wav as float32."""
     samplerate = _wav_samplerate(str(wav_path))
     start = int(round(offset * samplerate))
     frames = int(round(duration * samplerate))
@@ -239,6 +242,7 @@ class MustCSTDataset(TorchDataset):
         apply_filter: bool = True,
         return_utt_id: bool = False,
     ) -> None:
+        """Index one MuST-C split, from the HF cache or the raw release."""
         # False only for the cache builder, which indexes the corpus as released.
         self.apply_filter = bool(apply_filter)
         # OFF for training (a str breaks collation), ON for inference, which
@@ -329,6 +333,7 @@ class MustCSTDataset(TorchDataset):
         return self._keep[int(idx)]
 
     def __len__(self) -> int:
+        """Number of utterances, after the long/short filter if applied."""
         if self._keep is not None:
             return len(self._keep)
         if self._hf_cache is not None:
@@ -336,6 +341,7 @@ class MustCSTDataset(TorchDataset):
         return len(self._examples)
 
     def __getitem__(self, idx: int) -> dict[str, Any]:
+        """Return one sample: speech, text, src_text, optionally utt_id."""
         index = self._source_index(idx)
         if self._hf_cache is not None:
             row = self._hf_cache[index]
@@ -380,6 +386,7 @@ def gather_training_text(
     source_dir: str | Path | None = None,
     side: str = "joint",
     case: str | None = None,
+    tgt_lang: str | None = None,
     **_kwargs,
 ) -> list[str]:
     """Collect train text for a SentencePiece model.
@@ -389,6 +396,9 @@ def gather_training_text(
             as ``STSystem`` needs for the two separate vocabularies egs2's
             ``st.sh`` builds (``src_nbpe``/``tgt_nbpe``). ``"joint"`` (default)
             concatenates both, for a single shared vocabulary.
+        tgt_lang: Target language of the pair to read. Only used when no HF
+            cache is configured; the module default is ``all``, which is not a
+            directory on disk.
         case: Case convention to apply, one of ``tc``, ``lc``, ``lc.rm``. When
             omitted it follows ``egs2/must_c/st1/run.sh``: ``lc.rm`` for the
             source side and ``tc`` for the target. A ``"joint"`` gather applies
@@ -412,8 +422,14 @@ def gather_training_text(
             if recipe_dir is not None
             else Path(__file__).resolve().parents[1]
         )
-        lang_pair_root = resolve_source_root(recipe_root, source_dir=source_dir)
-        examples = _scan_split(lang_pair_root, SPLIT_ALIASES.get("train", "train"))
+        # Without this the module default (``all``) is used and the lookup
+        # asks for a nonexistent ``en-all`` directory.
+        lang_pair_root = resolve_source_root(
+            recipe_root, source_dir=source_dir, tgt_lang=tgt_lang or TGT_LANG
+        )
+        examples = _scan_split(
+            lang_pair_root, SPLIT_ALIASES.get("train", "train"), tgt_lang or TGT_LANG
+        )
         src = [e.src_text for e in examples] if side in {"joint", "src"} else []
         tgt = [e.tgt_text for e in examples] if side in {"joint", "tgt"} else []
 
@@ -434,6 +450,7 @@ __all__ = [
 
 
 def _load_hf_cache(cache, recipe_dir, split):
+    """Load one split of the HF cache, or None when caching is disabled."""
     import os
 
     environment_root = os.environ.get("EGS3_HF_CACHE_DIR")
