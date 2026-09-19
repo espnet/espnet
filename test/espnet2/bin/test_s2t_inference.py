@@ -7,7 +7,7 @@ import torch
 
 from espnet2.bin.s2t_inference import (
     Speech2Text,
-    Speech2TextCTCGreedySearch,
+    Speech2TextCTCBestPathSearch,
     get_parser,
     main,
 )
@@ -99,8 +99,8 @@ def test_Speech2Text(s2t_config_file):
 
 
 @pytest.mark.execution_timeout(5)
-def test_Speech2TextCTCGreedySearch(s2t_config_file):
-    speech2text = Speech2TextCTCGreedySearch(s2t_train_config=s2t_config_file)
+def test_Speech2TextCTCBestPathSearch(s2t_config_file):
+    speech2text = Speech2TextCTCBestPathSearch(s2t_train_config=s2t_config_file)
     results = speech2text(np.random.randn(1000))
     assert len(results) == 1
     for text, token, token_int, text_nospecial, hyp in results:
@@ -113,8 +113,8 @@ def test_Speech2TextCTCGreedySearch(s2t_config_file):
 
 
 @pytest.mark.execution_timeout(5)
-def test_Speech2TextCTCGreedySearch_drops_blanks_and_repeats(s2t_config_file):
-    speech2text = Speech2TextCTCGreedySearch(s2t_train_config=s2t_config_file)
+def test_Speech2TextCTCBestPathSearch_drops_blanks_and_repeats(s2t_config_file):
+    speech2text = Speech2TextCTCBestPathSearch(s2t_train_config=s2t_config_file)
     blank = speech2text.s2t_model.blank_id
     _, _, token_int, _, _ = speech2text(np.random.randn(1000))[0]
     assert blank not in token_int
@@ -122,10 +122,10 @@ def test_Speech2TextCTCGreedySearch_drops_blanks_and_repeats(s2t_config_file):
 
 
 @pytest.mark.execution_timeout(10)
-def test_Speech2TextCTCGreedySearch_batch_matches_single(s2t_config_file):
+def test_Speech2TextCTCBestPathSearch_batch_matches_single(s2t_config_file):
     # inherited unchanged, batch_decode would run the beam search and answer
     # differently from __call__ for the same model
-    speech2text = Speech2TextCTCGreedySearch(s2t_train_config=s2t_config_file)
+    speech2text = Speech2TextCTCBestPathSearch(s2t_train_config=s2t_config_file)
     speech = np.random.randn(3, 1000).astype(np.float32)
     batched = speech2text.batch_decode(torch.from_numpy(speech))
     assert len(batched) == 3
