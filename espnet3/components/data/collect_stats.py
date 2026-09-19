@@ -107,9 +107,7 @@ def collect_stats_batch(
         lengths = tensors.get(f"{key}_lengths")
         for batch_idx, uid in enumerate(list(uids)):
             length = (
-                int(lengths[batch_idx])
-                if lengths is not None
-                else int(tensor.shape[1])
+                int(lengths[batch_idx]) if lengths is not None else int(tensor.shape[1])
             )
             shape_info[key][uid] = str(length)
 

@@ -6,7 +6,6 @@ from importlib import import_module
 from pathlib import Path
 from typing import Iterable, List
 
-
 from espnet3.systems.asr.system import ASRSystem
 from espnet3.systems.asr.tokenizers.sentencepiece import train_sentencepiece
 
@@ -162,8 +161,11 @@ class STSystem(ASRSystem):
                         lines.append(f"{uid} {shape},{vocab}")
                 path.write_text("\n".join(lines) + "\n", encoding="utf-8")
                 logger.info(
-                    "[%s] %s -> %s entries, vocab %d", mode, path.name,
-                    len(lines), vocab,
+                    "[%s] %s -> %s entries, vocab %d",
+                    mode,
+                    path.name,
+                    len(lines),
+                    vocab,
                 )
 
     def train_tokenizer(self, *args, **kwargs):
