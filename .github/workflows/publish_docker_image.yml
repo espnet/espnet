@@ -24,15 +24,47 @@ jobs:
     if: github.repository == 'espnet/espnet' && github.ref == 'refs/heads/master'
     strategy:
       matrix:
+        # Two dockerfiles, so every row carries its own -f and its own flags
+        # rather than the build step growing a conditional per variant.
+        # build_flags is pasted into the `run:` script, so a `$(...)` in it is
+        # evaluated by that shell, in the docker/ directory.
         include:
           - variant: cpu
-            from_tag: runtime-latest
+            dockerfile: prebuilt/devel.dockerfile
             image_tag: espnet/espnet:cpu-latest
-            cuda_arg: ""
+            build_flags: >-
+              --build-arg FROM_TAG=runtime-latest
+              --build-arg TH_VERSION=2.11.0
+              --target devel
           - variant: gpu
-            from_tag: cuda-latest
+            dockerfile: prebuilt/devel.dockerfile
             image_tag: espnet/espnet:gpu-latest
-            cuda_arg: "--build-arg CUDA_VER=12.6"
+            build_flags: >-
+              --build-arg FROM_TAG=cuda-latest
+              --build-arg TH_VERSION=2.11.0
+              --build-arg CUDA_VER=12.6
+              --target devel
+          # Both inference images come out of one dockerfile; only which
+          # torch goes in differs. They install a published release from PyPI
+          # rather than this checkout, so each is told which one: version.txt
+          # is what the branch being published says it is, and passing it here
+          # means the image cannot lag a release even if the dockerfile's own
+          # default does.
+          - variant: inference-cpu
+            dockerfile: inference.dockerfile
+            image_tag: espnet/espnet:inference-cpu-latest
+            build_flags: >-
+              --build-arg ESPNET_VERSION="$(cat ../version.txt)"
+              --build-arg TORCH_INDEX_URL=https://download.pytorch.org/whl/cpu
+          - variant: inference-gpu
+            dockerfile: inference.dockerfile
+            image_tag: espnet/espnet:inference-gpu-latest
+            # CUDA 12.6, the same toolkit the gpu development image is built
+            # against. The wheels carry the CUDA runtime, so the image needs
+            # no CUDA base image, only a host driver.
+            build_flags: >-
+              --build-arg ESPNET_VERSION="$(cat ../version.txt)"
+              --build-arg TORCH_INDEX_URL=https://download.pytorch.org/whl/cu126
     steps:
       # See ci_on_ubuntu.yml: the default persists GITHUB_TOKEN in .git/config.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -54,10 +86,7 @@ jobs:
       - name: Build and push ${{ matrix.variant }} container
         run: |
           cd docker
-          docker build --build-arg FROM_TAG=${{ matrix.from_tag }} \
-            --build-arg TH_VERSION=2.11.0 \
-            ${{ matrix.cuda_arg }} \
-            -f prebuilt/devel.dockerfile \
-            --target devel \
+          docker build ${{ matrix.build_flags }} \
+            -f ${{ matrix.dockerfile }} \
             -t ${{ matrix.image_tag }} .
           docker push ${{ matrix.image_tag }}
