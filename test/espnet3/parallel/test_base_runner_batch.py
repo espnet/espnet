@@ -2,8 +2,10 @@ import ast
 import types
 
 import pytest
+from omegaconf import OmegaConf
 
 from espnet3.parallel.base_runner import BaseRunner
+from espnet3.parallel.parallel import set_parallel
 
 
 class DummyProvider:
@@ -89,6 +91,37 @@ class FailingRunner(BaseRunner):
     open_writers = DummyRunner.open_writers
     write_record = DummyRunner.write_record
     close_writers = DummyRunner.close_writers
+
+
+@pytest.fixture(autouse=True)
+def reset_parallel_config(monkeypatch):
+    """Keep runner tests independent of the process-global parallel config."""
+    monkeypatch.setattr("espnet3.parallel.parallel.parallel_config", None)
+
+
+def test_local_config_uses_workers_and_dask_dispatch(tmp_path, monkeypatch):
+    set_parallel(
+        OmegaConf.create(
+            {
+                "env": "local",
+                "n_workers": 2,
+                "options": {},
+            }
+        )
+    )
+    runner = DummyRunner(DummyProvider(), output_dir=tmp_path)
+    dispatched = []
+
+    monkeypatch.setattr(
+        runner,
+        "_run_parallel_dask",
+        lambda shards: dispatched.extend(shards),
+    )
+    monkeypatch.setattr(runner, "_get_completed_shard_dirs", lambda _shards: [])
+    monkeypatch.setattr(runner, "merge", lambda _shard_dirs: "merged")
+
+    assert runner([0, 1, 2, 3]) == "merged"
+    assert [shard["items"] for shard in dispatched] == [[0, 1], [2, 3]]
 
 
 def test_batch_size_chunks_indices(tmp_path):

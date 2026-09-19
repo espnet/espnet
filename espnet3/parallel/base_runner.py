@@ -283,10 +283,9 @@ class BaseRunner(ABC):
     def _plan_shards(self, items: Sequence[Any]) -> List[Dict[str, Any]]:
         """Divide items into per-shard specs per the active parallel config."""
         par_config = get_parallel_config()
-        env = getattr(par_config, "env", "local") if par_config is not None else "local"
-        num_shards = 1
-        if par_config is not None and env not in ("local",):
-            num_shards = int(getattr(par_config, "n_workers", 1))
+        num_shards = (
+            int(getattr(par_config, "n_workers", 1)) if par_config is not None else 1
+        )
         n_chunks = max(1, num_shards)
         items_list = list(items)
         quotient, remainder = divmod(len(items_list), n_chunks)
@@ -472,7 +471,7 @@ class BaseRunner(ABC):
 
         par_config = get_parallel_config()
         if pending:
-            if par_config is None or getattr(par_config, "env", "local") == "local":
+            if par_config is None:
                 self._run_local(pending)
             else:
                 self._run_parallel_dask(pending)

@@ -103,11 +103,9 @@ output_fn: src.inference.build_output
 ##########################################################
 #                  PARALLELIZATION SETTING               #
 ##########################################################
-# `env: local` yields exactly ONE shard regardless of n_workers:
-# BaseRunner._plan_shards only reads n_workers when env is not "local", so
-# inference runs as a single process here. Since shards are also the unit of
-# resume (each writes a `done` sentinel), a large test set is better served by
-# a cluster backend -- set `env: slurm` and supply your scheduler's options.
+# `env: local` uses a Dask LocalCluster with `n_workers` workers. To dispatch
+# workers through a scheduler instead, set `env: slurm` and supply the
+# site-specific scheduler options.
 parallel:
   env: local
   n_workers: 1
