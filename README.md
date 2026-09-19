@@ -127,6 +127,20 @@ Every command takes `--model <tag>` and `--device cuda`, and `espnet --version` 
 installed version. The first one also runs hosted, as
 [the OWSM-CTC v4 Space](https://huggingface.co/spaces/espnet/owsm-ctc-v4).
 
+**Without installing anything** — the same commands, in a container:
+
+```sh
+docker run --rm -v "$PWD:/data" -v "$HOME/.cache/huggingface:/cache/huggingface" \
+    espnet/espnet:inference-cpu-latest asr /data/audio.wav
+```
+
+With a GPU, `espnet/espnet:inference-gpu-latest`, `--gpus all` and
+`--device cuda`.
+
+The second mount is what keeps the downloaded model between runs; on a Linux
+host add `--user "$(id -u):$(id -g)"`, so that what it writes belongs to you.
+The other two images, and what each is for, are in [`docker/`](docker/).
+
 **From Python** — any model from the [ESPnet Hugging Face organization](https://huggingface.co/espnet):
 
 ```python
