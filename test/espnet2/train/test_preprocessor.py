@@ -3,7 +3,11 @@ import logging
 import numpy as np
 import pytest
 
-from espnet2.train.preprocessor import CommonPreprocessor, Qwen2AudioPreprocessor
+from espnet2.train.preprocessor import (
+    CommonPreprocessor,
+    Qwen2AudioPreprocessor,
+    S2TPreprocessor,
+)
 
 
 def _build_preprocessor(**kwargs):
@@ -95,3 +99,21 @@ def test_pretokenized_text_is_passed_through(caplog):
 
     assert out["text"].shape == (600,)
     assert not [r for r in caplog.records if "exceeds" in r.getMessage()]
+
+
+def test_s2t_preprocessor_passes_the_augmentation_through():
+    # CommonPreprocessor has taken these three for a long time; S2TPreprocessor
+    # did not forward them, so a speed-perturbed S2T config was silently
+    # trained without augmentation
+    effects = [[1.0, "speed_perturb", {"factor": 1.1}]]
+    preprocessor = S2TPreprocessor(
+        train=True,
+        token_type="word",
+        # the symbols S2TPreprocessor looks up when it is built
+        token_list=["<unk>", "hello", "<notimestamps>", "<0.00>", "<30.00>"],
+        data_aug_effects=effects,
+        data_aug_num=[1, 1],
+        data_aug_prob=1.0,
+    )
+    assert preprocessor.data_aug is not None
+    assert preprocessor.data_aug_prob == 1.0

@@ -2541,6 +2541,9 @@ class S2TPreprocessor(CommonPreprocessor):
         notime_symbol: str = "<notimestamps>",
         first_time_symbol: str = "<0.00>",
         last_time_symbol: str = "<30.00>",
+        data_aug_effects: List = None,
+        data_aug_num: List[int] = [1, 1],
+        data_aug_prob: float = 0.0,
     ):
         super().__init__(
             train=train,
@@ -2563,6 +2566,9 @@ class S2TPreprocessor(CommonPreprocessor):
             speech_name=speech_name,
             text_name=text_name,
             fs=fs,
+            data_aug_effects=data_aug_effects,
+            data_aug_num=data_aug_num,
+            data_aug_prob=data_aug_prob,
         )
         self.text_prev_name = text_prev_name
         self.text_ctc_name = text_ctc_name

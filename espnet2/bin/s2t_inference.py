@@ -43,7 +43,8 @@ ListOfHypothesis = List[
         List[str],
         List[int],
         Optional[str],
-        Hypothesis,
+        # None when the text came from the CTC head, which has no hypothesis
+        Optional[Hypothesis],
     ]
 ]
 
@@ -850,6 +851,55 @@ class Speech2Text:
             kwargs.update(download_pretrained(model_tag))
 
         return Speech2Text(**kwargs)
+
+
+class Speech2TextCTCGreedySearch(Speech2Text):
+    """Decode with the CTC head alone, no beam search and no decoder.
+
+    An encoder-decoder S2T model such as OWSM v3.1 is trained with a CTC
+    branch, and reading that branch directly is an order of magnitude faster
+    than running the decoder. The transcript is worse, which is the trade:
+    it is for a first look, a sanity check, or a teaching example, not for a
+    number in a paper. `espnet2.bin.s2t_inference_ctc` is the one to use for a
+    model trained as CTC-only, such as OWSM-CTC.
+    """
+
+    @staticmethod
+    def from_pretrained(model_tag: Optional[str] = None, **kwargs: Optional[Any]):
+        """Build a Speech2TextCTCGreedySearch from a published model.
+
+        Args:
+            model_tag (Optional[str]): Model tag of the pretrained models.
+                Currently, the tags of espnet_model_zoo are supported.
+
+        Returns:
+            Speech2TextCTCGreedySearch: the instance.
+
+        """
+        if model_tag is not None:
+            kwargs.update(**download_pretrained(model_tag))
+        return Speech2TextCTCGreedySearch(**kwargs)
+
+    def _decode_single_sample(self, enc: torch.Tensor):
+        """Collapse the CTC path of one utterance into text."""
+        # enc: (T, D); ctc.argmax takes a batch, and this decodes one sample
+        token_int = self.s2t_model.ctc.argmax(enc.unsqueeze(0))[0]  # (T,)
+        token_int = torch.unique_consecutive(token_int).cpu().tolist()
+        token_int = [x for x in token_int if x != self.s2t_model.blank_id]
+        token = self.converter.ids2tokens(token_int)
+        # the language, task and timestamp symbols are the model's own, and
+        # are not part of what was said
+        token_nospecial = [x for x in token if not (x[0] == "<" and x[-1] == ">")]
+
+        if self.tokenizer is not None:
+            text = self.tokenizer.tokens2text(token)
+            text_nospecial = self.tokenizer.tokens2text(token_nospecial)
+        else:
+            text, text_nospecial = None, None
+
+        logging.info(f"best hypo: {text}")
+        # no Hypothesis: nothing searched, so there is no score to report
+        return [(text, token, token_int, text_nospecial, None)]
 
 
 @typechecked

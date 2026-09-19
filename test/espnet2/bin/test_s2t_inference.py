@@ -5,7 +5,12 @@ import numpy as np
 import pytest
 import torch
 
-from espnet2.bin.s2t_inference import Speech2Text, get_parser, main
+from espnet2.bin.s2t_inference import (
+    Speech2Text,
+    Speech2TextCTCGreedySearch,
+    get_parser,
+    main,
+)
 from espnet2.legacy.nets.beam_search import Hypothesis
 from espnet2.tasks.s2t import S2TTask
 
@@ -91,6 +96,29 @@ def test_Speech2Text(s2t_config_file):
         assert isinstance(token_int[0], int)
         assert isinstance(text_nospecial, str)
         assert isinstance(hyp, Hypothesis)
+
+
+@pytest.mark.execution_timeout(5)
+def test_Speech2TextCTCGreedySearch(s2t_config_file):
+    speech2text = Speech2TextCTCGreedySearch(s2t_train_config=s2t_config_file)
+    results = speech2text(np.random.randn(1000))
+    assert len(results) == 1
+    for text, token, token_int, text_nospecial, hyp in results:
+        assert isinstance(text, str)
+        assert all(isinstance(t, str) for t in token)
+        assert all(isinstance(t, int) for t in token_int)
+        assert isinstance(text_nospecial, str)
+        # nothing was searched, so there is no hypothesis to report
+        assert hyp is None
+
+
+@pytest.mark.execution_timeout(5)
+def test_Speech2TextCTCGreedySearch_drops_blanks_and_repeats(s2t_config_file):
+    speech2text = Speech2TextCTCGreedySearch(s2t_train_config=s2t_config_file)
+    blank = speech2text.s2t_model.blank_id
+    _, _, token_int, _, _ = speech2text(np.random.randn(1000))[0]
+    assert blank not in token_int
+    assert all(a != b for a, b in zip(token_int, token_int[1:]))
 
 
 @pytest.fixture()
