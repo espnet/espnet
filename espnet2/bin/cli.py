@@ -116,12 +116,44 @@ def _build(loader, args, task: str):
 
 
 def cmd_asr(args) -> int:
-    _require_file(args.audio)
     from espnet2.bin.s2t_inference_ctc import Speech2TextGreedySearch
 
+    if args.live or args.stream:
+        return _transcribe_as_it_arrives(args, Speech2TextGreedySearch)
+
+    if not args.audio:
+        # the argument is optional only because --live has nothing to name
+        raise CLIError("give an audio file, or --live to record one")
+    _require_file(args.audio)
     s2t = _build(Speech2TextGreedySearch, args, "asr")
     print(s2t.batch_decode(args.audio, lang_sym=f"<{args.language}>", task_sym="<asr>"))
     return 0
+
+
+def _transcribe_as_it_arrives(args, loader) -> int:
+    """`--live` from the microphone, `--stream` from a file, same decoding."""
+    from espnet2.bin import live
+
+    if args.live and args.audio:
+        raise CLIError("--live records from the microphone; do not also name a file")
+    if args.stream and not args.audio:
+        raise CLIError("--stream needs an audio file; --live reads the microphone")
+
+    s2t = _build(loader, args, "asr")
+    try:
+        source = (
+            live.from_microphone()
+            if args.live
+            else live.from_file(_require_file(args.audio))
+        )
+
+        def decode(chunk):
+            results = s2t(chunk, lang_sym=f"<{args.language}>", task_sym="<asr>")
+            return results[0][3] if results else ""
+
+        return live.transcribe(decode, source)
+    except live.LiveError as e:
+        raise CLIError(str(e)) from e
 
 
 def cmd_translate(args) -> int:
@@ -209,7 +241,17 @@ def build_parser() -> argparse.ArgumentParser:
         return p
 
     p = add("asr", "transcribe an audio file", cmd_asr)
-    p.add_argument("audio", help="audio file, any format soundfile reads")
+    p.add_argument("audio", nargs="?", help="audio file, any format soundfile reads")
+    p.add_argument(
+        "--stream",
+        action="store_true",
+        help="print each window of the file as it is decoded",
+    )
+    p.add_argument(
+        "--live",
+        action="store_true",
+        help="transcribe from the microphone until Ctrl-C (needs sounddevice)",
+    )
     p.add_argument(
         "--language",
         default=DEFAULT_LANGUAGE,
