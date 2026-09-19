@@ -105,7 +105,7 @@ class SlurpDataset(TorchDataset):
         self.with_transcript = bool(with_transcript)
         self._rows = read_manifest(get_manifest_path(recipe_root, self.split))
         self._transcripts = (
-            _read_hypothesis_transcripts(
+            read_hypothesis_transcripts(
                 Path(transcript_source) / self.split / "hyp_transcript.scp",
                 expected=len(self._rows),
             )
@@ -132,8 +132,18 @@ class SlurpDataset(TorchDataset):
         return sample
 
 
-def _read_hypothesis_transcripts(path: Path, expected: int) -> list[str]:
+def read_hypothesis_transcripts(path: Path, expected: int) -> list[str]:
     """Read first-pass ASR transcripts, in the item order the manifest defines.
+
+    Also used by ``src/tokenizer.py`` to build the transcript token list from
+    the same text the ASR-transcript config trains on.
+
+    Args:
+        path: ``<transcript_source>/<split>/hyp_transcript.scp``.
+        expected: Number of manifest rows the SCP has to match.
+
+    Returns:
+        One transcript per item, in manifest order.
 
     Raises:
         FileNotFoundError: If the SCP is missing, meaning the `infer` stage that

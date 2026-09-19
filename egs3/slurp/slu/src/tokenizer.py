@@ -11,6 +11,7 @@ from egs3.slurp.slu.dataset.builder import (
     get_manifest_path,
     read_manifest,
 )
+from egs3.slurp.slu.dataset.dataset import read_hypothesis_transcripts
 
 
 def gather_training_text(
@@ -92,6 +93,7 @@ def build_transcript_token_list(
     recipe_dir: str | Path | None = None,
     source_dir: str | Path | None = None,
     splits: Iterable[str] = ("train", "train_synthetic"),
+    transcript_source: str | Path | None = None,
 ) -> Path:
     """Write the word list the BERT post-decoder's transcript field is keyed by.
 
@@ -99,17 +101,40 @@ def build_transcript_token_list(
     by looking each id up in ``transcript_token_list`` and joining with spaces,
     then hands that string to the Hugging Face tokenizer. So this list only has
     to round-trip words, and a plain word vocabulary of the training transcripts
-    is what ``egs2/slurp/slu1`` uses (``--token_type word``).
+    is what ``egs2/slurp/slu1`` builds (``--token_type word`` over
+    ``data/train/transcript`` in stage 5 of ``slu.sh``).
+
+    Called by :meth:`src.system.SLUSystem.train_tokenizer`, which reads its
+    arguments from ``training_config.tokenizer.transcript_token_list``. Writing
+    is skipped when the file is already there, so the stage stays re-runnable.
 
     Args:
         token_list_path: Where to write the list, one token per line.
-        recipe_dir: Recipe directory used to locate the manifests.
+        recipe_dir: Recipe directory used to locate the manifests. Defaults to
+            the current working directory.
         source_dir: Optional corpus root override.
         splits: Manifest splits to collect words from.
+        transcript_source: Where the transcripts come from, matching the
+            ``data_src_args`` of the config being trained. ``None`` uses the
+            corpus transcript, the ground-truth setting. A directory reads
+            ``<transcript_source>/<split>/hyp_transcript.scp`` instead, so that
+            the ASR-transcript config's vocabulary covers the words its
+            first-pass model actually emits -- words only the reference uses
+            would otherwise be unreachable, and hypothesis words outside the
+            reference vocabulary would collapse to ``<unk>``.
 
     Returns:
-        The path written.
+        The path written, or the existing path when it was already there.
+
+    Raises:
+        FileNotFoundError: If ``transcript_source`` is set but the inference
+            stage that fills it has not run for one of ``splits``.
+        RuntimeError: If a hypothesis SCP does not line up with its manifest.
     """
+    output_path = Path(token_list_path)
+    if output_path.is_file():
+        return output_path
+
     recipe_root = (
         Path(recipe_dir).resolve() if recipe_dir is not None else Path.cwd().resolve()
     )
@@ -117,11 +142,18 @@ def build_transcript_token_list(
 
     words: set[str] = set()
     for split in splits:
-        for row in read_manifest(get_manifest_path(recipe_root, str(split))):
-            words.update(row["transcript"].split())
+        rows = read_manifest(get_manifest_path(recipe_root, str(split)))
+        if transcript_source is None:
+            transcripts = [row["transcript"] for row in rows]
+        else:
+            transcripts = read_hypothesis_transcripts(
+                Path(transcript_source) / str(split) / "hyp_transcript.scp",
+                expected=len(rows),
+            )
+        for transcript in transcripts:
+            words.update(transcript.split())
 
     tokens = ["<blank>", "<unk>", *sorted(words), "<sos/eos>"]
-    output_path = Path(token_list_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     temporary_path = output_path.with_name(f".{output_path.name}.tmp")
     temporary_path.write_text("\n".join(tokens) + "\n", encoding="utf-8")

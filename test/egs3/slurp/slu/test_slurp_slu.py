@@ -16,7 +16,11 @@ from egs3.slurp.slu.dataset.builder import (
 from egs3.slurp.slu.dataset.dataset import SlurpDataset
 from egs3.slurp.slu.src.inference import build_output, split_intent
 from egs3.slurp.slu.src.metrics import IntentAccuracy
-from egs3.slurp.slu.src.tokenizer import gather_training_text, read_intent_labels
+from egs3.slurp.slu.src.tokenizer import (
+    build_transcript_token_list,
+    gather_training_text,
+    read_intent_labels,
+)
 
 _PROMPTS = {
     "train": [("audio", "volume_mute", "Turn off the speakers.", "1")],
@@ -209,3 +213,82 @@ def test_intent_accuracy_scores_and_reports_errors(tmp_path: Path):
     assert result == {"IntentAccuracy": 50.0}
     errors = (test_dir / "intent_errors").read_text(encoding="utf-8").splitlines()
     assert errors[1] == "1\taudio_volume_mute\tcalendar_query"
+
+
+def _write_hypotheses(source_dir: Path, split: str, transcripts) -> None:
+    """Write the SCP the infer stage dumps for one split."""
+    scp_path = source_dir / split / "hyp_transcript.scp"
+    scp_path.parent.mkdir(parents=True, exist_ok=True)
+    scp_path.write_text(
+        "".join(f"{i} {text}\n" for i, text in enumerate(transcripts)),
+        encoding="utf-8",
+    )
+
+
+def test_transcript_token_list_covers_the_training_words(
+    tmp_path: Path, recipe_dir: Path
+):
+    """The list must round-trip every training word, framed by the specials.
+
+    `ESPnetSLUModel` detokenizes the transcript field through this list before
+    handing it to the Hugging Face tokenizer, so a missing word is a word the
+    post-decoder can never read.
+    """
+    output_path = tmp_path / "transcript_tokens.txt"
+
+    build_transcript_token_list(output_path, recipe_dir=recipe_dir)
+
+    tokens = output_path.read_text(encoding="utf-8").splitlines()
+    assert tokens[0] == "<blank>"
+    assert tokens[1] == "<unk>"
+    assert tokens[-1] == "<sos/eos>"
+    assert tokens[2:-1] == sorted(tokens[2:-1])
+    # "Turn off the speakers" (real, kept as written) and "mute the speakers"
+    # (synthetic, lowercased) are the two training utterances of the fixture.
+    assert set(tokens[2:-1]) == {"Turn", "off", "the", "speakers", "mute"}
+
+
+def test_transcript_token_list_follows_the_transcript_source(
+    tmp_path: Path, recipe_dir: Path
+):
+    """With a transcript source the vocabulary comes from the hypotheses.
+
+    That is what the ASR-transcript config trains on, so collecting the words
+    from the reference instead would leave its own inputs as `<unk>`.
+    """
+    source_dir = tmp_path / "inference_transcripts"
+    _write_hypotheses(source_dir, "train", ["turn of the speaker"])
+    _write_hypotheses(source_dir, "train_synthetic", ["mood the speakers"])
+    output_path = tmp_path / "transcript_tokens_asr.txt"
+
+    build_transcript_token_list(
+        output_path, recipe_dir=recipe_dir, transcript_source=source_dir
+    )
+
+    tokens = set(output_path.read_text(encoding="utf-8").splitlines())
+    assert {"turn", "of", "speaker", "mood"} <= tokens
+    assert "Turn" not in tokens
+
+
+def test_transcript_token_list_is_left_alone_when_present(
+    tmp_path: Path, recipe_dir: Path
+):
+    """Re-running the stage must not rewrite a list the model already uses."""
+    output_path = tmp_path / "transcript_tokens.txt"
+    output_path.write_text("<blank>\n<unk>\nkept\n<sos/eos>\n", encoding="utf-8")
+
+    build_transcript_token_list(output_path, recipe_dir=recipe_dir)
+
+    assert "kept" in output_path.read_text(encoding="utf-8").splitlines()
+
+
+def test_transcript_token_list_reports_a_missing_source(
+    tmp_path: Path, recipe_dir: Path
+):
+    """A source that the infer stage has not filled in must say so."""
+    with pytest.raises(FileNotFoundError, match="First-pass transcripts not found"):
+        build_transcript_token_list(
+            tmp_path / "tokens.txt",
+            recipe_dir=recipe_dir,
+            transcript_source=tmp_path / "never_run",
+        )

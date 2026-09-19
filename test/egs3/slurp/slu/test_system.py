@@ -142,3 +142,90 @@ def test_train_tokenizer_requires_text_builder(tmp_path, recipe_dir):
 
     with pytest.raises(RuntimeError, match="text_builder.func must be set"):
         system.train_tokenizer()
+
+
+def _with_transcript_token_list(config, path: Path):
+    """Turn on the stage's second artifact, as the SLU configs do."""
+    config.tokenizer.transcript_token_list = {
+        "path": str(path),
+        "splits": ["train"],
+    }
+    return config
+
+
+def test_train_tokenizer_builds_the_transcript_token_list(
+    tmp_path, recipe_dir, captured_sentencepiece, monkeypatch
+):
+    """The stage must write the transcript list the SLU configs point at."""
+    calls = {}
+
+    def fake_build(token_list_path, **kwargs):
+        calls["path"] = Path(token_list_path)
+        calls["kwargs"] = kwargs
+        return Path(token_list_path)
+
+    monkeypatch.setattr(system_module, "build_transcript_token_list", fake_build)
+    token_list_path = tmp_path / "transcript_tokens.txt"
+    config = _with_transcript_token_list(
+        _training_config(tmp_path, recipe_dir), token_list_path
+    )
+
+    SLUSystem(training_config=config).train_tokenizer()
+
+    assert calls["path"] == token_list_path
+    assert calls["kwargs"]["splits"] == ["train"]
+    assert calls["kwargs"]["recipe_dir"] == str(recipe_dir)
+
+
+def test_transcript_token_list_survives_an_existing_tokenizer(
+    tmp_path, recipe_dir, captured_sentencepiece, monkeypatch
+):
+    """The list must still be built when SentencePiece training is skipped.
+
+    The SLU configs reuse the tokenizer the ASR config trained, so this is the
+    normal path, not an edge case: returning early here would leave the model
+    pointing at a file nothing ever writes.
+    """
+    calls = {}
+    monkeypatch.setattr(
+        system_module,
+        "build_transcript_token_list",
+        lambda token_list_path, **kwargs: calls.setdefault("path", token_list_path),
+    )
+    config = _with_transcript_token_list(
+        _training_config(tmp_path, recipe_dir), tmp_path / "transcript_tokens.txt"
+    )
+    save_path = Path(config.tokenizer.save_path)
+    save_path.mkdir(parents=True)
+    (save_path / "bpe.model").write_text("", encoding="utf-8")
+    (save_path / "bpe.vocab").write_text("", encoding="utf-8")
+
+    SLUSystem(training_config=config).train_tokenizer()
+
+    assert captured_sentencepiece == {}
+    assert calls["path"] == str(tmp_path / "transcript_tokens.txt")
+
+
+def test_train_tokenizer_leaves_asr_configs_alone(
+    tmp_path, recipe_dir, captured_sentencepiece, monkeypatch
+):
+    """Without the config block the stage behaves as the base one."""
+    monkeypatch.setattr(
+        system_module,
+        "build_transcript_token_list",
+        lambda *a, **k: pytest.fail("ASR configs must not build a transcript list"),
+    )
+
+    system = SLUSystem(training_config=_training_config(tmp_path, recipe_dir))
+    system.train_tokenizer()
+
+    assert captured_sentencepiece["user_defined_symbols"] == _INTENTS
+
+
+def test_transcript_token_list_requires_a_path(tmp_path, recipe_dir):
+    """A block without a path must fail before anything is written."""
+    config = _training_config(tmp_path, recipe_dir)
+    config.tokenizer.transcript_token_list = {"splits": ["train"]}
+
+    with pytest.raises(RuntimeError, match="transcript_token_list.path must be set"):
+        SLUSystem(training_config=config).train_tokenizer()
