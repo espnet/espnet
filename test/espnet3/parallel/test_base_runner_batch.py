@@ -363,6 +363,34 @@ def test_resume_raises_for_locked_shard(tmp_path):
         runner([0, 1])
 
 
+def test_parallel_config_can_replace_stale_lock(tmp_path):
+    set_parallel(
+        OmegaConf.create(
+            {
+                "env": "local",
+                "n_workers": 1,
+                "options": {},
+                "allow_overwrite_lock": True,
+            }
+        )
+    )
+    runner = ResumeRunner(
+        TrackingProvider(),
+        batch_size=2,
+        output_dir=tmp_path,
+        shard_subdir="overwrite_lock",
+    )
+    shard_dir = tmp_path / "overwrite_lock" / "split.0"
+    shard_dir.mkdir(parents=True)
+    lock_path = ResumeRunner._get_lock_path(shard_dir)
+    lock_path.write_text("stale\n", encoding="utf-8")
+
+    pending = runner._filter_pending_shards([{"shard_id": 0, "items": [[0, 1]]}])
+
+    assert pending == [{"shard_id": 0, "items": [[0, 1]]}]
+    assert lock_path.read_text(encoding="utf-8") != "stale\n"
+
+
 def test_failed_shard_releases_lock(tmp_path):
     FailingRunner.calls = {"forward": 0}
     FailingRunner.fail = True

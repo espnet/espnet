@@ -335,17 +335,31 @@ class BaseRunner(ABC):
     def _filter_pending_shards(
         self, shards: Sequence[Dict[str, Any]]
     ) -> List[Dict[str, Any]]:
-        """Return locked shards; skips done-marked ones when resume=True."""
+        """Return locked shards; skips done-marked ones when resume=True.
+
+        Set ``parallel.allow_overwrite_lock: true`` to replace an existing
+        shard lock. This is intended for a stale lock left by an interrupted
+        run; it must not be enabled while another run may still be active.
+        """
         pending = []
+        parallel_config = get_parallel_config()
+        allow_overwrite_lock = bool(
+            getattr(parallel_config, "allow_overwrite_lock", False)
+        )
         for shard in shards:
             shard_dir = self._resolve_shard_dir(
                 str(self.output_dir), self.shard_subdir, int(shard["shard_id"])
             )
             if self.resume and self.is_shard_done(shard_dir):
                 continue
-            if not self._try_lock_shard(shard_dir):
+            locked = self._try_lock_shard(shard_dir)
+            if not locked:
                 if self.resume and self.is_shard_done(shard_dir):
                     continue
+                if allow_overwrite_lock:
+                    self._get_lock_path(shard_dir).unlink(missing_ok=True)
+                    locked = self._try_lock_shard(shard_dir)
+            if not locked:
                 raise RuntimeError(
                     "Shard is already locked by another runner: " f"{shard_dir}"
                 )
