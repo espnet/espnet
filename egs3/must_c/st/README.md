@@ -81,15 +81,16 @@ no Kaldi data preparation (`egs2/must_c/st1/local/data.sh`) is required.
 
 MuST-C en-de, conformer ST (`conf/tuning/train_st_conformer.yaml`), decoded with
 `conf/inference.yaml` (beam 10) and scored with `conf/metrics.yaml`
-(sacreBLEU, `tok:13a`). `BLEU` is case-sensitive, `BLEU_lc` case-insensitive --
-the two numbers `st.sh` reports.
+(sacreBLEU, `tok:13a`). This is both passes `st.sh` runs: case-sensitive, and
+case-insensitive after `remove_punctuation.pl` (suffix `_lc`). All twelve
+numbers were checked against the egs2 shell pipeline itself and match exactly.
 
 **Intermediate checkpoint: `valid.acc.ave_10best` at epoch 41 of 80.**
 
-| test set | utts | BLEU | BLEU_lc | 1/2/3/4-gram precision | BP |
-|---|---|---|---|---|---|
-| tst-COMMON | 2,641 | **23.49** | 24.20 | 59.9 / 32.0 / 19.4 / 12.2 | 0.906 |
-| tst-HE | 600 | **22.48** | 22.95 | 56.9 / 30.1 / 18.3 / 11.5 | 0.919 |
+| test set | utts | BLEU | chrF2 | TER | BLEU_lc | chrF2_lc | TER_lc | 1/2/3/4-gram precision | BP |
+|---|---|---|---|---|---|---|---|---|---|
+| tst-COMMON | 2,641 | **23.47** | 50.27 | 62.65 | 22.59 | 50.91 | 58.64 | 60.0 / 32.0 / 19.4 / 12.2 | 0.904 |
+| tst-HE | 600 | **22.48** | 49.58 | 66.87 | 20.98 | 50.08 | 63.31 | 56.9 / 30.1 / 18.3 / 11.5 | 0.919 |
 
 Reproduce with:
 

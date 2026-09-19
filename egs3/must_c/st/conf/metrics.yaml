@@ -19,17 +19,24 @@
 # -> ref.scp and hyp.scp. (It also writes src.scp, the English source, which
 # nothing scores -- it is there so a hypothesis can be read against its input.)
 #
-# BOTH CASE VARIANTS, as egs2 reports. st.sh scores case-sensitive
-# (st.sh:1604 `sacrebleu ref.trn.detok hyp.trn.detok`) and case-insensitive
-# (st.sh:1616 `sacrebleu -lc ...lc.rm`), and papers quote the case-sensitive
-# number for MuST-C. tokenize 13a is sacreBLEU's default and what egs2 uses.
+# BOTH SCORING PASSES OF st.sh (egs2/TEMPLATE/st1/st.sh:1551-1620), which runs
+# `sacrebleu -m bleu chrf ter` case-sensitive (st.sh:1604) and then, after
+# scripts/utils/remove_punctuation.pl, `sacrebleu -lc -m bleu chrf ter`
+# (st.sh:1616). Papers quote the case-sensitive BLEU. tokenize 13a is
+# sacreBLEU's default and what egs2 uses.
+#
+# st.sh's word tokenization + Moses detokenizer.perl are omitted: they undo
+# each other, and exist because egs2 stores Moses-tokenized text. This recipe
+# keeps natural text on both sides, so detokenization changes 0 of 3,241
+# reference and 0 of 3,241 hypothesis lines (checked with sacremoses). With
+# that, all 12 numbers reproduce the shell pipeline exactly.
 #
 # No CER/WER: this is translation. The auxiliary ASR decoder's accuracy shows
 # up as valid/acc_asr during training and is not a deliverable of this recipe.
 # ONE entry, not two. espnet3 keys results by metric CLASS PATH
 # (espnet3/systems/base/metric.py:109 `results[get_class_path(metric)]`), so a
 # second BLEU entry would overwrite the first instead of adding a column. The
-# metric reports both variants itself: BLEU and BLEU_lc.
+# metric reports both passes itself, the second suffixed _lc.
 metrics:
   - metric:
       _target_: espnet3.systems.st.metrics.bleu.BLEU
