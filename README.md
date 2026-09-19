@@ -120,6 +120,7 @@ espnet asr audio.wav                       # transcribe, detecting the language
 espnet translate audio.wav --to eng        # speech in, English text out
 espnet tts "Hello from ESPnet" -o out.wav
 espnet enhance noisy.wav -o clean.wav
+espnet asr --live                          # transcribe the microphone
 espnet models                              # the default model of each command
 pip install "espnet[demo]"
 espnet demo                                # the same model in your browser
@@ -213,8 +214,8 @@ of 200+ corpora recipes.
 | Demo | |
 | :-- | :-- |
 | Spoken dialogue — ASR → LLM → TTS, cascaded or end-to-end, with live metrics | [recipe](egs2/TEMPLATE/sds1) (Gradio, runs locally) |
-| Real-time ASR | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/ESPnet2/Demo/ASR/asr_realtime_demo.ipynb) |
-| Real-time TTS | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/ESPnet2/Demo/TTS/tts_realtime_demo.ipynb) |
+| Real-time ASR | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/Demos/ASR/asr_realtime_demo.ipynb) |
+| Real-time TTS | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/Demos/TTS/tts_realtime_demo.ipynb) |
 | Speech enhancement | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1fjRJCh96SoYLZPRxsjF9VDv4Q2VoIckI?usp=sharing) |
 | Streaming enhancement | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/17vd1V78eJpp3PHBnbFE5aVY5uMxQFL6o?usp=sharing) |
 
@@ -313,16 +314,16 @@ First time here? Read the [contribution guide](CONTRIBUTING.md).
   - Select any upstream model by setting the `frontend_conf` to the corresponding name.
 - Transfer Learning :
   - easy usage and transfers from models previously trained by your group or models from [ESPnet Hugging Face repository](https://huggingface.co/espnet).
-  - [Documentation](https://github.com/espnet/espnet/tree/master/egs2/mini_an4/asr1/transfer_learning.md) and [toy example runnable on colab](https://github.com/espnet/notebook/blob/master/ESPnet2/Demo/ASR/asr_transfer_learning_demo.ipynb).
+  - [Documentation](https://github.com/espnet/espnet/tree/master/egs2/mini_an4/asr1/transfer_learning.md) and [toy example runnable on colab](https://github.com/espnet/notebook/blob/master/Demos/ASR/asr_transfer_learning_demo.ipynb).
 - Streaming Transformer/Conformer ASR with blockwise synchronous beam search.
 - Restricted Self-Attention based on [Longformer](https://arxiv.org/abs/2004.05150) as an encoder for long sequences
 - OpenAI [Whisper](https://openai.com/blog/whisper/) model, robust ASR based on large-scale, weakly-supervised multitask learning
 
 Demonstration
-- Real-time ASR demo with ESPnet2  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/ESPnet2/Demo/ASR/asr_realtime_demo.ipynb)
+- Real-time ASR demo with ESPnet2  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/Demos/ASR/asr_realtime_demo.ipynb)
 - Hosted demo: [OWSM-CTC v4](https://huggingface.co/spaces/espnet/owsm-ctc-v4), maintained from [`egs2/owsm_ctc_v4/s2t1/demo`](egs2/owsm_ctc_v4/s2t1/demo) — recognises and identifies 151 languages, translates into 25 of them, and decodes long-form audio
 - Hosted demo: [OWSM v4](https://huggingface.co/spaces/espnet/owsm-v4), maintained from [`egs2/owsm_v4/s2t1/demo`](egs2/owsm_v4/s2t1/demo) — the same four tasks with the encoder-decoder model, which also takes a text prompt
-- Streaming Transformer ASR [Local Demo](https://github.com/espnet/notebook/blob/master/ESPnet2/Demo/ASR/streaming_asr_demo.ipynb) with ESPnet2.
+- Streaming Transformer ASR [Local Demo](https://github.com/espnet/notebook/blob/master/Demos/ASR/streaming_asr_demo.ipynb) with ESPnet2.
 
 #### TTS: Text-to-speech
 - Architecture
@@ -353,7 +354,7 @@ Demonstration
     - Mix of the above models
 
 Demonstration
-- Real-time TTS demo with ESPnet2  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/ESPnet2/Demo/TTS/tts_realtime_demo.ipynb)
+- Real-time TTS demo with ESPnet2  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/Demos/TTS/tts_realtime_demo.ipynb)
 - Integrated to [Hugging Face Spaces](https://huggingface.co/spaces) with [Gradio](https://github.com/gradio-app/gradio). See demo: [![Hugging Face Spaces](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-blue)](https://huggingface.co/spaces/espnet/TTS)
 
 To train the neural vocoder, please check the following repositories:
@@ -548,7 +549,7 @@ You can download pre-trained vocoders via `kan-bayashi/ParallelWaveGAN`.
 You can try the real-time demo in Google Colab.
 Please access the notebook from the following button and enjoy the real-time synthesis!
 
-- Real-time TTS demo with ESPnet2  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/ESPnet2/Demo/TTS/tts_realtime_demo.ipynb)
+- Real-time TTS demo with ESPnet2  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/Demos/TTS/tts_realtime_demo.ipynb)
 
 English, Japanese, and Mandarin models are available in the demo.
 
