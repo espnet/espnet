@@ -133,8 +133,17 @@ best_model_criterion:
     - min
 
 ##########################################################
+#                   PARALLELIZATION SETTING              #
+##########################################################
+# Parallel backend used by collect_stats/train.
+parallel:
+  env: local
+  n_workers: 4
+
+##########################################################
 #                   DATALOADER SETTING                   #
 ##########################################################
+
 dataloader:
   train:
     iter_factory:

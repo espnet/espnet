@@ -10,6 +10,9 @@ environment variable to an existing LibriSpeech root, before running
 # 0) Load Python environment
 source path.sh
 
+# OMP_NUM_THREADS should be set to #PhysicalCores / #Processes for optimized performance.
+export OMP_NUM_THREADS=1
+
 #-----------------------------------------
 # Option 1: Run all/multiple stages in one command
 #-----------------------------------------
