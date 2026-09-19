@@ -36,7 +36,7 @@ DEFAULT_MODELS = {
     "asr": "espnet/owsm_ctc_v4_1B",
     "translate": "espnet/owsm_ctc_v4_1B",
     "tts": "espnet/kan-bayashi_ljspeech_vits",
-    "enhance": "espnet/Wangyou_Zhang_universal_train_enh_uses_refch0_2mem_raw",
+    "enhance": "kohei0209/tfgridnet_urgent25",
 }
 # OWSM writes languages as ISO 639-3 in its own token symbols.
 # OWSM's own symbol for "work out the language yourself". asr and translate

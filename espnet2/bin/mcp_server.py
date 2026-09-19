@@ -43,9 +43,7 @@ except ImportError:  # pragma: no cover - the test extra installs mcp
 
 ASR_MODEL = os.environ.get("ESPNET_MCP_ASR_MODEL", "espnet/owsm_ctc_v4_1B")
 TTS_MODEL = os.environ.get("ESPNET_MCP_TTS_MODEL", "espnet/kan-bayashi_ljspeech_vits")
-ENH_MODEL = os.environ.get(
-    "ESPNET_MCP_ENH_MODEL", "espnet/Wangyou_Zhang_chime4_enh_train_enh_conv_tasnet_raw"
-)
+ENH_MODEL = os.environ.get("ESPNET_MCP_ENH_MODEL", "kohei0209/tfgridnet_urgent25")
 ENH_FS = int(os.environ.get("ESPNET_MCP_ENH_FS", "16000"))
 if ENH_FS <= 0:
     raise ValueError(f"ESPNET_MCP_ENH_FS must be a positive integer, not {ENH_FS}")

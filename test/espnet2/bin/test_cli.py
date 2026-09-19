@@ -53,10 +53,28 @@ def test_models_lists_one_default_per_command(capsys):
         assert task in out and tag in out
 
 
-def test_every_default_names_a_model_in_the_espnet_organisation():
+# A default outside the espnet organisation is one the organisation cannot
+# keep alive: the account that owns it can rename or delete it, and every
+# `espnet enhance` with no --model then fails to download. Each one is
+# listed here with the reason it is worth that, and drops off the list once
+# the model is mirrored into the organisation.
+DEFAULTS_OUTSIDE_THE_ORGANISATION = {
+    # the URGENT 2025 challenge baseline, a TF-GridNet covering 8-48 kHz
+    # and that challenge's distortion set, trained here in the lab; it is
+    # in the author's own account and wants mirroring into the organisation
+    "kohei0209/tfgridnet_urgent25",
+}
+
+
+def test_every_default_names_a_published_model():
     # a typo here would only show as a download failure on a user's machine
     for task, tag in cli.DEFAULT_MODELS.items():
-        assert tag.startswith("espnet/"), (task, tag)
+        owner, _, name = tag.partition("/")
+        assert owner and name and "/" not in name, (task, tag)
+        assert owner == "espnet" or tag in DEFAULTS_OUTSIDE_THE_ORGANISATION, (
+            task,
+            tag,
+        )
 
 
 def test_asr_prints_the_transcript(monkeypatch, tmp_path, capsys):
