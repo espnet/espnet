@@ -153,7 +153,7 @@ espnet models                              # the default model of each command
 ```
 
 Each command takes `--model <tag>` for any model in the organization that suits
-it, and `--device cuda`. There is a hosted version of the first one:
+it, and `--device cuda`; `espnet --version` names the installed version. There is a hosted version of the first one:
 [the OWSM-CTC v4 Space](https://huggingface.co/spaces/espnet/owsm-ctc-v4).
 
 **From Python** — any model from the [ESPnet Hugging Face organization](https://huggingface.co/espnet):
