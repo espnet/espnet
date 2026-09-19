@@ -269,6 +269,18 @@ def test_help_runs_as_a_process_and_exits_zero():
         assert command in r.stdout
 
 
+def test_version_names_the_installed_version():
+    r = _run("--version")
+    assert r.returncode == 0
+    assert r.stdout.strip() == f"espnet {cli._version()}"
+    assert cli._version().strip() != ""
+
+
+def test_version_does_not_need_a_subcommand():
+    # --version is answered before the required subcommand is missed
+    assert _run("--version").stderr == ""
+
+
 def test_models_runs_as_a_process_and_names_the_defaults():
     r = _run("models")
     assert r.returncode == 0

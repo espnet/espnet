@@ -21,6 +21,7 @@ to `espnet asr` is reported rather than half-loaded.
 """
 
 import argparse
+import importlib.metadata
 import inspect
 import os
 import re
@@ -45,6 +46,15 @@ DEFAULT_LANGUAGE = "nolang"
 
 class CLIError(RuntimeError):
     """Something the user can fix, reported without a traceback."""
+
+
+def _version() -> str:
+    """The installed version, so that a bug report can name one."""
+    try:
+        return importlib.metadata.version("espnet")
+    except importlib.metadata.PackageNotFoundError:
+        # a source tree that was never installed: the command still runs
+        return "unknown (running from a source tree)"
 
 
 def _device(value: str) -> str:
@@ -190,6 +200,7 @@ def build_parser() -> argparse.ArgumentParser:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="\n".join(__doc__.split("\n\n")[1].split("\n")),
     )
+    parser.add_argument("--version", action="version", version=f"espnet {_version()}")
     sub = parser.add_subparsers(dest="command", required=True)
 
     def add(name, help_text, func):
