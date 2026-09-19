@@ -74,13 +74,21 @@ def _categories(model):
 def _rates(categories):
     """The sample rates a category list names, highest first.
 
-    A category reads like "2ch_16k": two channels at 16 kHz.
+    A category reads like "2ch_16k" or "1ch_16000Hz": two channels at
+    16 kHz, one channel at 16 kHz. Recipes spell the rate both ways - USES
+    one way, the URGENT 2025 recipe the other - and a checkpoint reached
+    through ENH_MODEL_TAG comes from whichever recipe trained it, so both
+    spellings fill the menu.
     """
     found = set()
     for category in categories:
-        match = re.search(r"(\d+)k", category)
+        match = re.search(r"(\d+)k(?:Hz)?\b", category)
         if match:
             found.add(int(match.group(1)) * 1000)
+            continue
+        match = re.search(r"(\d+)\s*Hz", category)
+        if match:
+            found.add(int(match.group(1)))
     return sorted(found, reverse=True)
 
 

@@ -56,10 +56,23 @@ else:
 # 1.135, which is a cosine of 0.36. That is where the slider starts. It is
 # one operating point measured on one corpus of read English speech, not a
 # constant of nature, which is why it is a slider and not a constant.
-THRESHOLD = 0.36
+# Not something a checkpoint records: a threshold is a choice about which
+# errors to make, and this one is the default model's equal error point on
+# VoxCeleb1-O. Another checkpoint reached through SPK_MODEL_TAG has its own,
+# so it is settable - and the slider is there because the right value is the
+# user's to pick whatever the checkpoint.
+DEFAULT_TAG = "espnet/voxcelebs12_ecapa_mel"
+THRESHOLD = float(os.environ.get("SPK_THRESHOLD", "0.36"))
 FIRST_WAV = "https://github.com/espnet/espnet/raw/master/test_utils/ctc_align_test.wav"
 SECOND_WAV = "https://github.com/espnet/espnet/raw/master/test_utils/st_test.wav"
 
+
+THRESHOLD_INFO = (
+    f"{THRESHOLD} is this model's equal error point on VoxCeleb1-O"
+    if MODEL_TAG == DEFAULT_TAG
+    else f"{THRESHOLD} is a starting point, not this checkpoint's own "
+    "operating point; set SPK_THRESHOLD once you know it"
+)
 
 TITLE = "Speaker verification"
 DESCRIPTION = """# Speaker verification
@@ -167,7 +180,7 @@ with gr.Blocks(title=TITLE) as demo:
                 value=THRESHOLD,
                 step=0.01,
                 label="Threshold",
-                info=f"{THRESHOLD} is this model's equal error point on " "VoxCeleb1-O",
+                info=THRESHOLD_INFO,
             )
             button = gr.Button("Compare", variant="primary")
         with gr.Column():
