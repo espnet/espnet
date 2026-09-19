@@ -1,13 +1,36 @@
 ##########################################################
 #                    DEMO PACK SETTING                   #
 ##########################################################
+# Quick usage:
+#   python run.py --stages pack_demo   --demo_config conf/demo.yaml
+#   python run.py --stages upload_demo --demo_config conf/demo.yaml
+#
+# Main stages and what this config is used for:
+# - `pack_demo`: packs `demo.yaml`, `ui.app_script`, and `pack.include`
+# - `upload_demo`: uploads the packed demo directory
 recipe_dir: .
 
+##########################################################
+#                    MODEL SOURCE                        #
+##########################################################
+# `model.dir_or_tag` selects the packed model used by the demo.
+# - local packed directory relative to the demo dir, e.g. `../model_pack`
+# - remote model tag understood by `espnet_model_zoo`
+#
+# `model.call_args` is passed at inference call time as:
+#   model(sample, **call_args)
 model:
   dir_or_tag: exp/${exp_tag}/model_pack
   trust_user_code: false
   call_args: {}
 
+##########################################################
+#                     UI DEFINITION                      #
+##########################################################
+# `ui.app_script` is copied into the packed demo as `app.py`.
+# `ui.inputs` / `ui.outputs` define the Gradio wiring used by `src/app.py`.
+# Keep the order aligned with the values expected by the app and returned by
+# the inference function.
 ui:
   app_script: src/app.py
   title: ${set_corpus_and_system:} demo
@@ -21,6 +44,11 @@ ui:
       type: audio
       label: "Enhanced Output Audio"
 
+##########################################################
+#                    PACKING SETTING                     #
+##########################################################
+# `pack.include` copies extra files or directories into the packed demo.
+# `pack.exclude` removes matches from copied include directories.
 pack:
   out_dir: demo
   include: []
@@ -45,6 +73,9 @@ pack:
     hf_repo: ${upload_demo.hf_repo}
     model_ref: ${model.dir_or_tag}
 
+##########################################################
+#                  UPLOAD DEMO SETTING                   #
+##########################################################
 upload_demo:
   hf_repo: espnet/${set_corpus_and_system:}_${exp_tag}
   update: false
