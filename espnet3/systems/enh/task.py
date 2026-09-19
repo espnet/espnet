@@ -199,6 +199,8 @@ MAX_REFERENCE_NUM = 100
 
 
 class EnhancementTask(AbsTask):
+    """Enhancement task definition for argument wiring and model construction."""
+
     # If you need more than one optimizers, change this value
     num_optimizers: int = 1
 
@@ -222,6 +224,7 @@ class EnhancementTask(AbsTask):
 
     @classmethod
     def add_task_arguments(cls, parser: argparse.ArgumentParser):
+        """Add enhancement-specific task arguments to the parser."""
         group = parser.add_argument_group("Task related")
 
         # NOTE(kamo): add_arguments(..., required=True) can't be used
@@ -409,7 +412,7 @@ class EnhancementTask(AbsTask):
         [Collection[Tuple[str, Dict[str, np.ndarray]]]],
         Tuple[List[str], Dict[str, torch.Tensor]],
     ]:
-
+        """Build the collate function for enhancement batches."""
         return CommonCollateFn(float_pad_value=0.0, int_pad_value=0)
 
     @classmethod
@@ -417,7 +420,7 @@ class EnhancementTask(AbsTask):
     def build_preprocess_fn(
         cls, args: argparse.Namespace, train: bool
     ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
-
+        """Build the preprocessing function for enhancement inputs."""
         use_preprocessor = getattr(args, "preprocessor", None) is not None
 
         if use_preprocessor:
@@ -484,6 +487,7 @@ class EnhancementTask(AbsTask):
     def required_data_names(
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
+        """Return required data field names for the task."""
         if not inference:
             retval = ("speech_ref1",)
         else:
@@ -495,6 +499,7 @@ class EnhancementTask(AbsTask):
     def optional_data_names(
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
+        """Return optional data field names for the task."""
         retval = ["speech_mix"]
         retval += ["dereverb_ref{}".format(n) for n in range(1, MAX_REFERENCE_NUM + 1)]
         retval += ["speech_ref{}".format(n) for n in range(2, MAX_REFERENCE_NUM + 1)]
@@ -506,7 +511,7 @@ class EnhancementTask(AbsTask):
     @classmethod
     @typechecked
     def build_model(cls, args: argparse.Namespace) -> ESPnetEnhancementModel:
-
+        """Build the ESPnet enhancement model from parsed arguments."""
         encoder = encoder_choices.get_class(args.encoder)(**args.encoder_conf)
         separator = separator_choices.get_class(args.separator)(
             encoder.output_dim, **args.separator_conf
@@ -572,6 +577,7 @@ class EnhancementTask(AbsTask):
         mode: str,
         kwargs: dict = None,
     ) -> AbsIterFactory:
+        """Build the iterator factory, adjusting fold length for dynamic mixing."""
         dynamic_mixing = getattr(args, "dynamic_mixing", False)
         if dynamic_mixing and mode == "train":
             args = copy.deepcopy(args)
