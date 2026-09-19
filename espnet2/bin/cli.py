@@ -22,12 +22,13 @@ to `espnet asr` is reported rather than half-loaded.
 
 import argparse
 import importlib.metadata
-import inspect
 import os
 import re
 import sys
 from pathlib import Path
 from typing import List, Optional
+
+from espnet2.utils.pretrained import ModelTagError, build_pretrained
 
 # One flagship per task, so that `espnet asr x.wav` works with no arguments.
 # Each is checked by test_cli.py against the espnet2 class that loads it.
@@ -104,25 +105,17 @@ def _write_audio(path: str, wave, rate: int) -> None:
 def _build(loader, args, task: str):
     """Load a published model, or say why this tag cannot serve this command.
 
-    The downloader hands a model's own artifact keys to the constructor, so a
-    tag published for another task arrives as an unexpected keyword argument.
-    Only that is translated: every other TypeError is a bug worth seeing in
-    full rather than being blamed on the user's choice of model.
+    The loading and the "wrong task" message are shared with ``espnet.load``,
+    so that both front ends explain a mismatched tag the same way; only the
+    wording of the fix is this command line's own.
     """
-    try:
-        return loader.from_pretrained(args.model, device=args.device)
-    except TypeError as e:
-        unexpected = re.search(r"unexpected keyword argument '([^']+)'", str(e))
-        if not unexpected:
-            raise
-        name = unexpected.group(1)
-        if name in inspect.signature(loader.__init__).parameters:
-            raise  # the constructor does take it; something else went wrong
-        raise CLIError(
-            f"{args.model} does not look like a model for `espnet {task}`: it "
-            f"was published with {name}, which {loader.__name__} does not take. "
-            f"Pass --model with a {task} model; `espnet models` names the default."
-        ) from e
+    return build_pretrained(
+        loader,
+        args.model,
+        args.device,
+        f"`espnet {task}`",
+        f"Pass --model with a {task} model; `espnet models` names the default.",
+    )
 
 
 def cmd_asr(args) -> int:
@@ -254,7 +247,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     args = build_parser().parse_args(argv)
     try:
         return args.func(args)
-    except CLIError as e:
+    except (CLIError, ModelTagError) as e:
         print(f"espnet: {e}", file=sys.stderr)
         return 1
     except KeyboardInterrupt:  # pragma: no cover - interactive
