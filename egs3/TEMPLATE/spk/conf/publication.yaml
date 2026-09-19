@@ -71,6 +71,9 @@ pack_model:
     - inference_*
     - last.ckpt
     - "**/step*.ckpt"
+    # Per-epoch Lightning checkpoints (~80 MB each) are only needed to resume
+    # training; the bundle ships the averaged `*.ave_*best.pth` instead.
+    - "**/epoch*.ckpt"
     - "**/*.log"
     - "**/tensorboard/**"
     - "**/wandb/**"

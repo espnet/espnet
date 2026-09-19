@@ -179,12 +179,32 @@ class AverageCheckpointsCallback(Callback):
                     else:
                         avg_state_dict[k] = avg_state_dict[k] / len(checkpoints)
 
-                # remove extra prefix in model keys
-                new_avg_state_dict = {
-                    k.removeprefix("model."): v
-                    for k, v in avg_state_dict.items()
-                    if k.startswith("model.")
-                }
+                # Remove the extra prefix in model keys, when there is one.
+                #
+                # A LightningModule that holds the network as `self.model`
+                # produces `model.`-prefixed keys, and filtering on that prefix
+                # also usefully drops anything outside the network. But a task
+                # that registers its submodules directly has no such prefix --
+                # the spk task's checkpoints are keyed `frontend.*`, `encoder.*`,
+                # `pooling.*`, `projector.*`, `loss.*` -- and filtering then
+                # matched nothing and saved an empty state dict, so every
+                # `*.ave_Nbest.pth` this callback wrote was `{}`.
+                if any(k.startswith("model.") for k in avg_state_dict):
+                    new_avg_state_dict = {
+                        k.removeprefix("model."): v
+                        for k, v in avg_state_dict.items()
+                        if k.startswith("model.")
+                    }
+                else:
+                    new_avg_state_dict = dict(avg_state_dict)
+
+                if not new_avg_state_dict:
+                    raise RuntimeError(
+                        f"Refusing to write an empty averaged checkpoint to "
+                        f"{self.output_dir}: none of the "
+                        f"{len(avg_state_dict)} averaged parameters survived "
+                        f"prefix handling."
+                    )
 
                 avg_ckpt_path = Path(self.output_dir) / (
                     f"{ckpt_callback.monitor.replace('/', '.')}."

@@ -321,3 +321,57 @@ def test_metric_to_float_rejects_unsupported_type():
         AssertionError, match="does not support metric values of type dict"
     ):
         _metric_to_float({"loss": 1.0})
+
+
+def _average_single_monitor(tmp_path, state_dicts):
+    """Run the averaging callback over mocked checkpoints; return torch.save mock."""
+    paths = [str(tmp_path / f"ckpt_{i}.ckpt") for i in range(len(state_dicts))]
+    pending = list(state_dicts)
+    with (
+        mock.patch("torch.load", side_effect=lambda *a, **k: pending.pop(0)),
+        mock.patch("torch.save") as mock_save,
+    ):
+        callback = AverageCheckpointsCallback(
+            output_dir=str(tmp_path),
+            best_ckpt_callbacks=[
+                mock.Mock(best_k_models={p: 0.0 for p in paths}, monitor="valid/eer")
+            ],
+        )
+        callback.on_validation_end(
+            mock.Mock(is_global_zero=True), pl_module=mock.Mock()
+        )
+    return mock_save
+
+
+def test_average_checkpoint_without_model_prefix(tmp_path):
+    """Keys of a task without a `model.` wrapper are kept, not dropped.
+
+    The speaker task registers `encoder`, `pooling`, ... directly on the
+    LightningModule, so filtering on `model.` used to save an empty dict.
+    """
+    mock_save = _average_single_monitor(
+        tmp_path,
+        [
+            {
+                "state_dict": {
+                    "encoder.weight": torch.tensor([2.0]),
+                    "loss.w": torch.tensor([1.0]),
+                }
+            },
+            {
+                "state_dict": {
+                    "encoder.weight": torch.tensor([4.0]),
+                    "loss.w": torch.tensor([3.0]),
+                }
+            },
+        ],
+    )
+    saved = mock_save.call_args[0][0]
+    assert set(saved) == {"encoder.weight", "loss.w"}
+    assert torch.allclose(saved["encoder.weight"], torch.tensor([3.0]))
+
+
+def test_average_checkpoint_empty_result_raises(tmp_path):
+    """An empty state dict is refused instead of written as a usable model."""
+    with pytest.raises(RuntimeError, match="empty averaged checkpoint"):
+        _average_single_monitor(tmp_path, [{"state_dict": {}}])

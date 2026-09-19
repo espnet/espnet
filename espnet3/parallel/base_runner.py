@@ -287,6 +287,15 @@ class BaseRunner(ABC):
         num_shards = 1
         if par_config is not None and env not in ("local",):
             num_shards = int(getattr(par_config, "n_workers", 1))
+        elif int(getattr(par_config, "n_workers", 1) or 1) > 1:
+            # `local` runs in-process without dask, so extra workers would
+            # otherwise be dropped without a trace.
+            logger.warning(
+                "parallel.env=local runs every item in a single process; "
+                "n_workers=%s is ignored. Use a dask backend (e.g. local_gpu, "
+                "slurm) to run shards in parallel.",
+                par_config.n_workers,
+            )
         n_chunks = max(1, num_shards)
         items_list = list(items)
         quotient, remainder = divmod(len(items_list), n_chunks)
