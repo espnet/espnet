@@ -84,7 +84,7 @@ def test_recording_without_sounddevice_says_how_to_install_it(monkeypatch):
     assert "pip install sounddevice" in str(raised.value)
 
 
-def test_the_microphone_stream_yields_what_the_callback_was_given(monkeypatch):
+def test_the_microphone_stream_yields_what_the_callback_was_given(monkeypatch, capsys):
     captured = {}
 
     class Stream:
@@ -92,9 +92,11 @@ def test_the_microphone_stream_yields_what_the_callback_was_given(monkeypatch):
             captured.update(kwargs)
 
         def __enter__(self):
-            # the device hands blocks to the callback; two are enough
-            for value in (1.0, 2.0):
-                captured["callback"](np.full((4, 1), value), 4, None, None)
+            # the device hands blocks to the callback; two are enough, and
+            # the second arrives with a status, which is how PortAudio
+            # reports that blocks were dropped
+            captured["callback"](np.full((4, 1), 1.0), 4, None, None)
+            captured["callback"](np.full((4, 1), 2.0), 4, None, "input overflow")
             return self
 
         def __exit__(self, *exc):
@@ -114,3 +116,4 @@ def test_the_microphone_stream_yields_what_the_callback_was_given(monkeypatch):
     assert next(source).tolist() == [1.0, 1.0, 1.0, 1.0]
     assert next(source).tolist() == [2.0, 2.0, 2.0, 2.0]
     assert captured["samplerate"] == 16000 and captured["channels"] == 1
+    assert "input overflow" in capsys.readouterr().err
