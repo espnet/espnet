@@ -13,5 +13,8 @@ rm -rf ParallelWaveGAN
 git clone https://github.com/kan-bayashi/ParallelWaveGAN.git
 cd ParallelWaveGAN
 pip install "setuptools<80.0.0"
-pip install --no-build-isolation -e .
+# --use-pep517: see install_warp-transducer.sh. Without it a setup.py-only
+# project takes pip's legacy editable path, which setuptools>=80 re-invokes in a
+# fresh isolated environment, and the `import torch` in that setup.py then fails.
+pip install --use-pep517 --no-build-isolation -e .
 cd ..
