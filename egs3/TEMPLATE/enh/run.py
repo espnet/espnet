@@ -27,6 +27,10 @@ DEFAULT_STAGES: List[str] = [
     "train",
     "infer",
     "measure",
+    "pack_model",
+    "upload_model",
+    "pack_demo",
+    "upload_demo",
 ]
 
 
@@ -43,6 +47,18 @@ def build_parser(stages: Sequence[str]) -> argparse.ArgumentParser:
     parser.add_argument("--training_config", default=None, type=Path)
     parser.add_argument("--inference_config", default=None, type=Path)
     parser.add_argument("--metrics_config", default=None, type=Path)
+    parser.add_argument(
+        "--publication_config",
+        default=None,
+        type=Path,
+        help="Hydra config for pack/upload stages.",
+    )
+    parser.add_argument(
+        "--demo_config",
+        default=None,
+        type=Path,
+        help="Hydra config for pack_demo/upload_demo stages.",
+    )
     parser.add_argument("--dry_run", action="store_true")
     parser.add_argument("--write_requirements", action="store_true")
     return parser
@@ -69,12 +85,26 @@ def main(args, system_cls, stages: Sequence[str] = DEFAULT_STAGES) -> None:
         default_package=__package__,
         resolve=False,
     )
+    publication_config = load_and_merge_config(
+        args.publication_config,
+        config_name="publication.yaml",
+        default_package=__package__,
+        resolve=False,
+    )
+    demo_config = load_and_merge_config(
+        args.demo_config,
+        config_name="demo.yaml",
+        default_package=__package__,
+        resolve=False,
+    )
 
     run_logger = configure_logging()
     apply_training_experiment_context(
         training_config=training_config,
         inference_config=inference_config,
         metrics_config=metrics_config,
+        publication_config=publication_config,
+        demo_config=demo_config,
         log=run_logger,
     )
     validate_experiment_context(
@@ -83,12 +113,20 @@ def main(args, system_cls, stages: Sequence[str] = DEFAULT_STAGES) -> None:
         metrics_config=metrics_config,
         stages_to_run=stages_to_run,
     )
-    resolve_loaded_configs(training_config, inference_config, metrics_config)
+    resolve_loaded_configs(
+        training_config,
+        inference_config,
+        metrics_config,
+        publication_config,
+        demo_config,
+    )
 
     system = system_cls(
         training_config=training_config,
         inference_config=inference_config,
         metrics_config=metrics_config,
+        publication_config=publication_config,
+        demo_config=demo_config,
     )
     run_logger.info("System: %s", system_cls.__name__)
     run_logger.info("Requested stages: %s", args.stages)
@@ -101,16 +139,26 @@ def main(args, system_cls, stages: Sequence[str] = DEFAULT_STAGES) -> None:
         "train": training_config,
         "infer": inference_config,
         "measure": metrics_config,
+        "pack_model": (training_config, publication_config),
+        "upload_model": publication_config,
+        "pack_demo": demo_config,
+        "upload_demo": demo_config,
     }
     missing = [
         stage
         for stage in stages_to_run
-        if stage in required_configs and required_configs[stage] is None
+        if stage in required_configs
+        and (
+            any(cfg is None for cfg in required_configs[stage])
+            if isinstance(required_configs[stage], tuple)
+            else required_configs[stage] is None
+        )
     ]
     if missing:
         raise ValueError(
             f"Config not provided for stage(s): {', '.join(missing)}. "
-            "Use --training_config/--inference_config/--metrics_config."
+            "Use --training_config/--inference_config/--metrics_config/"
+            "--publication_config/--demo_config."
         )
 
     run_stages(
