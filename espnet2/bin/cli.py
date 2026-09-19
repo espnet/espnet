@@ -181,6 +181,34 @@ def cmd_enhance(args) -> int:
     return 0
 
 
+def _require_s2t(model_tag: str) -> None:
+    """Stop before the download when the tag is not a speech-to-text model.
+
+    `espnet demo` is the generic name of the command; what it serves today is
+    one app, the OWSM one in `espnet2/bin/demo.py`, whose menus are the
+    language and translation symbols of an OWSM token list. A tag for another
+    task will not grow those menus - it will fail somewhere inside the
+    constructor, after four gigabytes have been fetched - so the task is
+    settled here, from the model's own Hugging Face metadata.
+
+    A model whose metadata says nothing is let through rather than refused:
+    the check exists to turn a knowable mistake into a sentence, not to
+    become a second gate a valid checkpoint has to pass.
+    """
+    import espnet
+
+    try:
+        task = espnet._infer_task(model_tag)
+    except Exception:  # unreachable Hub, no metadata, an unknown label
+        return
+    if task != "s2t":
+        raise CLIError(
+            f"`espnet demo` serves speech-to-text models, and {model_tag} is "
+            f"a {task} model. Pass --model with an OWSM tag; `espnet models` "
+            "names the default."
+        )
+
+
 def cmd_demo(args) -> int:
     """Serve the model in a browser, the way its Hugging Face Space does."""
     from espnet2.bin import demo
@@ -195,6 +223,10 @@ def cmd_demo(args) -> int:
     # that runs a 1B model interactively: a CPU default would be unusable on a
     # machine that has a GPU sitting idle.
     args.device = args.device or demo.default_device()
+
+    # Before the download, not after it: the checkpoint is 4 GB and the
+    # answer to "can this demo serve it" is one metadata request away.
+    _require_s2t(args.model)
 
     # only now: importing the inference stack costs seconds, and a missing
     # package or an unusable --device should be reported instantly

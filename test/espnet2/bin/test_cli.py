@@ -438,13 +438,16 @@ class _FakeOWSM:
         return "long form text"
 
 
-def _fake_demo(monkeypatch, s2t=None, device="cpu"):
+def _fake_demo(monkeypatch, s2t=None, device="cpu", task="s2t"):
     """Wire up a gradio that records instead of serving, and a fake model."""
+    import espnet
     from espnet2.bin import demo
 
     gradio = mock.MagicMock()
     monkeypatch.setitem(sys.modules, "gradio", gradio)
     monkeypatch.setattr(demo, "default_device", lambda: device)
+    # the task check is one Hub request; the tests answer it themselves
+    monkeypatch.setattr(espnet, "_infer_task", lambda tag: task)
     s2t = s2t or _FakeOWSM()
     _fake_module(
         monkeypatch, "espnet2.bin.s2t_inference_ctc", "Speech2TextGreedySearch", s2t
@@ -559,3 +562,33 @@ def test_the_demo_trims_audio_past_the_cap_and_says_so(monkeypatch):
     assert len(speech) == 16000 * demo.MAX_SECS
     # the language the user chose, so no detection pass was needed
     assert kwargs["lang_sym"] == "<eng>" and s2t.calls == []
+
+
+def test_demo_refuses_a_model_for_another_task_before_downloading_it(
+    monkeypatch, capsys
+):
+    gradio, s2t = _fake_demo(monkeypatch, task="tts")
+
+    assert cli.main(["demo", "--model", "espnet/kan-bayashi_ljspeech_vits"]) == 1
+
+    # refused on the metadata alone: nothing was built, so nothing was fetched
+    assert s2t.tag is None
+    err = capsys.readouterr().err
+    assert "serves speech-to-text models" in err and "is a tts model" in err
+    assert "Traceback" not in err
+
+
+def test_demo_runs_when_the_metadata_says_nothing_about_the_task(monkeypatch):
+    # the check turns a knowable mistake into a sentence; it is not a second
+    # gate a valid checkpoint has to pass
+    import espnet
+
+    gradio, s2t = _fake_demo(monkeypatch)
+
+    def unknown(tag):
+        raise ValueError("cannot tell what task this is for")
+
+    monkeypatch.setattr(espnet, "_infer_task", unknown)
+
+    assert cli.main(["demo", "--model", "espnet/undocumented"]) == 0
+    assert s2t.tag == "espnet/undocumented"

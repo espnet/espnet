@@ -25,11 +25,16 @@ import librosa
 import numpy as np
 import torch
 
+# Two limits, from two different places, which is why they are named apart.
 SAMPLE_RATE = 16000
-WINDOW_SECS = 30  # what OWSM is trained on; longer audio is decoded in chunks
-# A browser demo answers while someone waits, so both Spaces refuse audio
-# longer than this and `espnet demo` decodes only the first two minutes of it.
-# Neither the model nor `espnet asr` has such a limit.
+# The model's: what OWSM was trained on. Longer audio is decoded in chunks,
+# and a checkpoint trained on a different length would change this number.
+WINDOW_SECS = 30
+# The demo's: a browser demo answers while someone waits, and two minutes of
+# audio is already a wait. It has nothing to do with OWSM - neither the model
+# nor `espnet asr` has such a limit - and it would be the same number for any
+# model this command grew to serve. Both Spaces refuse audio longer than
+# this; `espnet demo` decodes the first two minutes and says so.
 MAX_SECS = 120
 DETECT = "Detect automatically"
 ASR_LABEL = "Transcribe"
