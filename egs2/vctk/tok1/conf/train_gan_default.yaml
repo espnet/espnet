@@ -1,0 +1,221 @@
+# VCTK speech-tokenizer configuration using the stage 7 default centroids.
+#
+# This configuration jointly trains ASR and GAN reconstruction objectives
+# through GANSpeechTokenizerTask.
+
+# Shared speech tokenizer: WavLM-large layer 21 followed by differentiable
+# k-means initialized from the ASR2 offline k-means model.
+frontend: s3prl
+frontend_conf:
+    fs: 16000
+    frontend_conf:
+        upstream: wavlm_large
+    download_dir: ./hub
+    multilayer_feature: false
+    layer: 21
+
+quantizer: differentiable_kmeans
+quantizer_conf:
+    # centroid_path is supplied from the stage 7 output by tok.sh.
+    distance_type: euclidean
+    sigma_squared: 1.0
+    temperature_init: 2.0
+    temperature_floor: 0.1
+    temperature_decay: 0.999995
+
+tokenizer_conf:
+    freeze_epochs: 30
+
+model_conf:
+    # L = (1 - alpha) * L_asr + alpha * L_reconstruction
+    reconstruction_weight: 0.1
+
+# ASR consumes differentiably embedded cluster assignments.  Its own acoustic
+# frontend is disabled by GANSpeechTokenizerTask.
+asr_embedding_conf:
+    embed_dim: 512
+    use_positional_encoding: true
+    positional_dropout_rate: 0.1
+asr_specaug: specaug
+asr_specaug_conf:
+    apply_time_warp: false
+    time_warp_window: 5
+    time_warp_mode: bicubic
+    apply_freq_mask: false
+    freq_mask_width_range: [0, 10]
+    num_freq_mask: 0
+    apply_time_mask: true
+    time_mask_width_ratio_range: [0.0, 0.05]
+    num_time_mask: 10
+asr_normalize: null
+asr_preencoder: null
+asr_encoder: e_branchformer
+asr_encoder_conf:
+    output_size: 256
+    attention_heads: 4
+    attention_layer_type: rel_selfattn
+    pos_enc_layer_type: rel_pos
+    rel_pos_type: latest
+    cgmlp_linear_units: 1024
+    cgmlp_conv_kernel: 31
+    use_linear_after_conv: false
+    gate_activation: identity
+    num_blocks: 12
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    attention_dropout_rate: 0.1
+    input_layer: conv1d2
+    layer_drop_rate: 0.0
+    linear_units: 1024
+    positionwise_layer_type: linear
+    use_ffn: true
+    macaron_ffn: true
+    merge_conv_kernel: 31
+asr_postencoder: null
+asr_decoder: transformer
+asr_decoder_conf:
+    attention_heads: 4
+    linear_units: 2048
+    num_blocks: 6
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    self_attention_dropout_rate: 0.1
+    src_attention_dropout_rate: 0.1
+    layer_drop_rate: 0.0
+asr_ctc_conf:
+    dropout_rate: 0.0
+    ctc_type: builtin
+    reduce: true
+asr_model_conf:
+    ctc_weight: 0.3
+    lsm_weight: 0.1
+    length_normalized_loss: false
+    report_cer: true
+    report_wer: true
+    extract_feats_in_collect_stats: false
+
+reconstruction_objective: hifigan
+reconstruction_objective_conf:
+    token_embed_dim: 512
+    speaker_embed_dim: 192
+    segment_size: 32
+    generator_params:
+        channels: 512
+        global_channels: -1
+        kernel_size: 7
+        upsample_scales: [10, 8, 2, 2]
+        upsample_kernel_sizes: [20, 16, 4, 4]
+        resblock_kernel_sizes: [3, 7, 11]
+        resblock_dilations: [[1, 3, 5], [1, 3, 5], [1, 3, 5]]
+        use_additional_convs: true
+        bias: true
+        nonlinear_activation: LeakyReLU
+        nonlinear_activation_params:
+            negative_slope: 0.1
+        use_weight_norm: true
+    discriminator_params:
+        scales: 3
+        scale_downsample_pooling: AvgPool1d
+        scale_downsample_pooling_params:
+            kernel_size: 4
+            stride: 2
+            padding: 2
+        scale_discriminator_params:
+            in_channels: 1
+            out_channels: 1
+            kernel_sizes: [15, 41, 5, 3]
+            channels: 128
+            max_downsample_channels: 1024
+            max_groups: 16
+            bias: true
+            downsample_scales: [4, 4, 4, 4, 1]
+            nonlinear_activation: LeakyReLU
+            nonlinear_activation_params:
+                negative_slope: 0.1
+        follow_official_norm: true
+        periods: [2, 3, 5, 7, 11]
+        period_discriminator_params:
+            in_channels: 1
+            out_channels: 1
+            kernel_sizes: [5, 3]
+            channels: 32
+            downsample_scales: [3, 3, 3, 3, 1]
+            max_downsample_channels: 1024
+            bias: true
+            nonlinear_activation: LeakyReLU
+            nonlinear_activation_params:
+                negative_slope: 0.1
+            use_weight_norm: true
+            use_spectral_norm: false
+    generator_adv_loss_params:
+        average_by_discriminators: false
+        loss_type: mse
+    discriminator_adv_loss_params:
+        average_by_discriminators: false
+        loss_type: mse
+    use_feat_match_loss: true
+    feat_match_loss_params:
+        average_by_discriminators: false
+        average_by_layers: false
+        include_final_outputs: true
+    use_mel_loss: true
+    mel_loss_params:
+        fs: 16000
+        n_fft: 1024
+        hop_length: 256
+        win_length: null
+        window: hann
+        n_mels: 80
+        fmin: 0
+        fmax: 8000
+        log_base: null
+    lambda_adv: 1.0
+    lambda_feat_match: 2.0
+    lambda_mel: 45.0
+    cache_generator_outputs: true
+
+# The GAN task owns two optimizers.  Optimizer 1 covers the tokenizer, ASR,
+# embeddings, and reconstruction generator; optimizer 2 covers only the
+# discriminator. Optimizer 1 is reset when the tokenizer becomes trainable so
+# the second phase starts with fresh optimizer state.
+optim: adam
+optim_conf:
+    lr: 0.0001
+    betas: [0.5, 0.9]
+    weight_decay: 0.0
+scheduler: multisteplr
+scheduler_conf:
+    milestones: [30]
+    gamma: 0.1
+
+optim2: adam
+optim2_conf:
+    lr: 0.0001
+    betas: [0.5, 0.9]
+    weight_decay: 0.0
+scheduler2: multisteplr
+scheduler2_conf:
+    milestones: [30]
+    gamma: 0.1
+
+reset_optimizer_on_unfreeze: true
+
+# MultiStepLR changes 1e-4 to 1e-5 after the 30 frozen-tokenizer epochs.
+seed: 0
+num_workers: 4
+batch_type: numel
+batch_bins: 16000000
+accum_grad: 1
+max_epoch: 90
+patience: none
+best_model_criterion:
+    - [valid, generator_loss, min]
+keep_nbest_models: 3
+use_amp: false
+num_att_plot: 0
+cudnn_deterministic: false
+cudnn_benchmark: true
+
+# Frozen tokenizer parameters do not participate in the loss graph during the
+# first 30 epochs.  This is required when training through DDP.
+unused_parameters: true
