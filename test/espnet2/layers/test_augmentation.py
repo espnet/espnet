@@ -148,11 +148,12 @@ def test_data_augmentation_accepts_an_omegaconf_list():
     # a config read by hydra arrives as ListConfig, whose elements are
     # ListConfig too: taken as-is, every effect is mis-read
     omegaconf = pytest.importorskip("omegaconf")
+    # only the nested effect: DataAugmentation picks one at random, so a
+    # second, flat effect would let this pass against the broken version
     effects = omegaconf.OmegaConf.create(
         [
-            [0.1, "lowpass", {"cutoff_freq": 1000, "Q": 0.707}],
             [
-                0.5,
+                1.0,
                 [
                     [0.5, "clipping", {"min_quantile": 0.1, "max_quantile": 0.9}],
                     [0.5, "reverse", {}],
@@ -161,5 +162,11 @@ def test_data_augmentation_accepts_an_omegaconf_list():
         ]
     )
     data_aug = DataAugmentation(effects)
-    assert data_aug.effect_probs == (0.1, 0.5)
+    assert data_aug.effect_probs == (1.0,)
+    assert data_aug.effects == (
+        [
+            [0.5, "clipping", {"min_quantile": 0.1, "max_quantile": 0.9}],
+            [0.5, "reverse", {}],
+        ],
+    )
     _ = data_aug(torch.randn(1000), 8000)

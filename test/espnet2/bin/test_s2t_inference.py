@@ -121,6 +121,20 @@ def test_Speech2TextCTCGreedySearch_drops_blanks_and_repeats(s2t_config_file):
     assert all(a != b for a, b in zip(token_int, token_int[1:]))
 
 
+@pytest.mark.execution_timeout(10)
+def test_Speech2TextCTCGreedySearch_batch_matches_single(s2t_config_file):
+    # inherited unchanged, batch_decode would run the beam search and answer
+    # differently from __call__ for the same model
+    speech2text = Speech2TextCTCGreedySearch(s2t_train_config=s2t_config_file)
+    speech = np.random.randn(3, 1000).astype(np.float32)
+    batched = speech2text.batch_decode(torch.from_numpy(speech))
+    assert len(batched) == 3
+    for utterance, results in zip(speech, batched):
+        assert len(results) == 1
+        assert results[0][4] is None  # no hypothesis: nothing was searched
+        assert results[0][:4] == speech2text(utterance)[0][:4]
+
+
 @pytest.fixture()
 def s2t_config_file_transformer(tmp_path: Path, token_list):
     # A decoder whose scorers are batch scorers, as required by batch decoding
