@@ -159,6 +159,63 @@ def publishable_metadata():
         return module.check_no_direct_references()
 
 
+def next_milestone_exists(repo, version):
+    """There has to be a milestone for the release after this one.
+
+    Every pull request a person opens is given the next open v.YYYYMM
+    milestone by .github/workflows/assign_milestone.yml, and the notes for
+    that release are generated from it. If the milestone does not exist, the
+    pull requests merged after this release belong to nothing and the next
+    release note starts empty.
+    """
+    later = [
+        m.title
+        for m in repo.get_milestones(state="open")
+        if re.fullmatch(r"v\.\d{6}", m.title) and version_of(m.title) > version
+    ]
+    if later:
+        return []
+    return [
+        f"no open milestone after v.{version}: create the next one (v.YYYYMM) so "
+        "pull requests merged from now on land in the next release's notes"
+    ]
+
+
+def merged_without_milestone(client, slug, repo, version):
+    """Merged pull requests that no milestone will ever list.
+
+    The notes are "everything in the milestone", so a merged pull request with
+    no milestone is invisible to them. Finding those at release time is the
+    last chance; assign_milestone.yml is what stops them happening.
+    """
+    previous = next(
+        (t for t in repo.get_tags() if t.name != f"v.{version}"),
+        None,
+    )
+    if previous is None:
+        return []
+    since = previous.commit.commit.author.date.date().isoformat()
+    query = f"repo:{slug} is:pr is:merged no:milestone merged:>={since}"
+    try:
+        orphans = [
+            issue
+            for issue in client.search_issues(query)
+            if issue.user is None or issue.user.type != "Bot"
+        ]
+    except github.GithubException:
+        return [
+            f"could not search for merged pull requests without a milestone ({query})"
+        ]
+    if not orphans:
+        return []
+    listed = ", ".join(f"#{i.number}" for i in orphans[:5])
+    more = f" and {len(orphans) - 5} more" if len(orphans) > 5 else ""
+    return [
+        f"{len(orphans)} pull request(s) merged since {previous.name} have no "
+        f"milestone, so no release note lists them: {listed}{more}"
+    ]
+
+
 def readme_sections():
     """The What's new list and the Earlier releases list, as text.
 
@@ -249,7 +306,7 @@ def update_readme(version):
     print("  replace its placeholder line with what the release is about")
 
 
-def preflight(repo, milestone, version, open_items, will_apply):
+def preflight(client, slug, repo, milestone, version, open_items, will_apply):
     """Everything that has to be true before a release can go out.
 
     will_apply excuses the one problem --apply exists to fix. Without it the
@@ -289,6 +346,8 @@ def preflight(repo, milestone, version, open_items, will_apply):
         problems.append("could not reach PyPI to check whether this version exists")
 
     problems += readme_up_to_date(version, will_apply)
+    problems += next_milestone_exists(repo, version)
+    problems += merged_without_milestone(client, slug, repo, version)
     problems += trusted_publishing_ready()
     problems += publishable_metadata()
 
@@ -441,7 +500,7 @@ def main():
 
     grouped, contributors, merged, open_items = collect(repo, milestone)
 
-    problems = preflight(repo, milestone, version, open_items, args.apply)
+    problems = preflight(client, slug, repo, milestone, version, open_items, args.apply)
     if problems:
         print(
             f"{len(problems)} problem(s) before {milestone.title} can ship:\n",
@@ -481,7 +540,9 @@ def main():
         "     publish_python_package.yml and uploads to PyPI. It cannot be undone.\n"
         "  4. Check the run: gh run list --workflow publish_python_package.yml\n"
         "     Both 202604 tags failed here silently. Do not assume it worked.\n"
-        "  5. Move anything still open to the next milestone and close this one.",
+        "  5. Move anything still open to the next milestone and close this one.\n"
+        "  6. Create the milestone after that, so assign_milestone.yml has\n"
+        "     somewhere to put the pull requests opened from now on.",
         file=sys.stderr,
     )
 
