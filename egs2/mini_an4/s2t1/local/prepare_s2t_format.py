@@ -1,7 +1,7 @@
 from argparse import ArgumentParser
 from pathlib import Path
 
-from kaldiio import ReadHelper
+from omniio.kaldi import ReadHelper
 
 SYMBOL_NA: str = "<na>"  # symbol denoting text is not available
 SPEECH_RESOLUTION: float = 0.02  # resolution in seconds

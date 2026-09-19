@@ -16,7 +16,6 @@ from espnet2.legacy.nets.beam_search import Hypothesis
 from espnet2.legacy.nets.beam_search_timesync_streaming import (
     BeamSearchTimeSyncStreaming,
 )
-from espnet2.legacy.nets.e2e_asr_common import end_detect
 
 
 class BatchBeamSearchOnline(BatchBeamSearch):
@@ -431,9 +430,7 @@ class BatchBeamSearchOnline(BatchBeamSearch):
             if (
                 is_final
                 and maxlenratio == 0.0
-                and end_detect(
-                    [lh.asdict() for lh in self.ended_hyps], self.process_idx
-                )
+                and self.end_detected(self.ended_hyps, self.process_idx)
             ):
                 logging.info(f"end detected at {self.process_idx}")
                 return self.assemble_hyps(self.ended_hyps)
