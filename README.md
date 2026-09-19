@@ -150,11 +150,15 @@ espnet translate audio.wav --to eng        # speech in, English text out
 espnet tts "Hello from ESPnet" -o out.wav
 espnet enhance noisy.wav -o clean.wav
 espnet models                              # the default model of each command
+pip install "espnet[demo]"
+espnet demo                                # the same model in your browser
 ```
 
 Each command takes `--model <tag>` for any model in the organization that suits
-it, and `--device cuda`. There is a hosted version of the first one:
-[the OWSM-CTC v4 Space](https://huggingface.co/spaces/espnet/owsm-ctc-v4).
+it, and `--device cuda`. `espnet demo` serves, on localhost, the app behind
+[the OWSM-CTC v4 Space](https://huggingface.co/spaces/espnet/owsm-ctc-v4) -
+recording, upload, the checkpoint's own language and translation menus, and
+long-form decoding - and takes `--port` and `--share`.
 
 **From Python** — any model from the [ESPnet Hugging Face organization](https://huggingface.co/espnet):
 

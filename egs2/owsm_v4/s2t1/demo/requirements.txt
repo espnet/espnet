@@ -1,3 +1,5 @@
-espnet>=202609.post2
+# 202612 is the first release carrying espnet2.bin.demo, which this app
+# imports; with an older one the Space would build and then fail to start.
+espnet>=202612
 espnet_model_zoo>=0.1.11
 librosa

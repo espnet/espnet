@@ -47,6 +47,10 @@ MODULES = [
     "espnet2.bin.gan_codec_inference",
     "espnet2.bin.uasr_inference",
     "espnet2.bin.cli",
+    # gradio is in [demo], not in the bare install: this module must import
+    # without it, or `espnet demo` would be the one command that cannot even
+    # report what is missing.
+    "espnet2.bin.demo",
     "espnet2.bin.mcp_server",
 ]
 
