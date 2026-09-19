@@ -49,6 +49,7 @@ from espnet2.torch_utils.device_funcs import (
     release_accelerator_memory,
     to_device,
 )
+from espnet2.torch_utils.quantization import quantize_dynamic
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
 from espnet2.utils.nested_dict_action import NestedDictAction
@@ -169,7 +170,7 @@ class Speech2Text:
         if quantize_asr_model:
             logger.info("Use quantized asr model for decoding.")
 
-            asr_model = torch.quantization.quantize_dynamic(
+            asr_model = quantize_dynamic(
                 asr_model, qconfig_spec=qconfig_spec, dtype=quantize_dtype
             )
 
@@ -194,7 +195,7 @@ class Speech2Text:
             if quantize_lm:
                 logger.info("Use quantized lm for decoding.")
 
-                lm = torch.quantization.quantize_dynamic(
+                lm = quantize_dynamic(
                     lm, qconfig_spec=qconfig_spec, dtype=quantize_dtype
                 )
 

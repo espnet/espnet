@@ -20,6 +20,7 @@ from espnet2.tasks.lm import LMTask
 from espnet2.text.build_tokenizer import build_tokenizer
 from espnet2.text.token_id_converter import TokenIDConverter
 from espnet2.text.whisper_token_id_converter import OpenAIWhisperTokenIDConverter
+from espnet2.torch_utils.quantization import quantize_dynamic
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
 from espnet2.utils.types import str2bool, str2triple_str, str_or_none
@@ -83,7 +84,7 @@ class GenerateText:
         if quantize_lm:
             logging.info("Use quantized LM for decoding.")
 
-            lm = torch.quantization.quantize_dynamic(
+            lm = quantize_dynamic(
                 lm,
                 qconfig_spec=set([getattr(torch.nn, q) for q in quantize_modules]),
                 dtype=getattr(torch, quantize_dtype),

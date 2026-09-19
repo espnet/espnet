@@ -16,6 +16,7 @@ from espnet2.legacy.nets.pytorch_backend.transformer.subsampling import TooShort
 from espnet2.legacy.utils.cli_utils import get_commandline_args
 from espnet2.tasks.s2t import S2TTask
 from espnet2.torch_utils.device_funcs import to_device
+from espnet2.torch_utils.quantization import quantize_dynamic
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
 from espnet2.utils.types import str2bool, str2triple_str, str_or_none
@@ -55,7 +56,7 @@ class Speech2Language:
         if quantize_s2t_model:
             logging.info("Use quantized s2t model for decoding.")
 
-            s2t_model = torch.quantization.quantize_dynamic(
+            s2t_model = quantize_dynamic(
                 s2t_model, qconfig_spec=qconfig_spec, dtype=quantize_dtype
             )
 
