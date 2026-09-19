@@ -2,7 +2,6 @@ import argparse
 import logging
 from typing import Dict, Optional, Tuple
 
-import editdistance
 import torch
 import torch.nn.functional as F
 from torch.amp import autocast
@@ -218,6 +217,8 @@ class ESPnetUASRModel(AbsESPnetModel):
 
                 ref_ids = ref_ids[ref_ids != self.pad]
                 ref_ids_list = ref_ids.tolist()
+                import editdistance  # [asr] extra; training-time metric
+
                 num_errors = editdistance.eval(hyp_ids_nosil_list, ref_ids_list)
                 batch_num_errors += num_errors
 
