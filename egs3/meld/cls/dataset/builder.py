@@ -6,14 +6,16 @@ import csv
 import logging
 import os
 import re
-import shutil
-import subprocess
 import urllib.error
 from importlib import resources
 from pathlib import Path
 from typing import Iterator
 
+from omegaconf import OmegaConf
+
 from espnet3.components.data.dataset_builder import DatasetBuilder
+from espnet3.systems.cls.audio_conversion_provider import AudioConversionProvider
+from espnet3.systems.cls.audio_conversion_runner import AudioConversionRunner
 from espnet3.utils.config_utils import load_config_with_defaults
 from espnet3.utils.download_utils import download_url, extract_targz
 
@@ -231,6 +233,49 @@ def _unpack_archive(source_root: Path, archive: Path) -> None:
     raw_dir.rename(source_root / _CFG["audio_subdir"])
 
 
+def _convert_clips(conversions: list[tuple[Path, Path]], data_root: Path) -> None:
+    """Convert every clip to mono WAV, fanning the work out over the cluster.
+
+    MELD ships 13,708 MP4 clips and converting them one at a time dominates
+    `create_dataset`. Each clip is independent, so the work is handed to
+    ``AudioConversionRunner``; the `create_dataset` stage has already applied
+    ``training_config.parallel``.
+
+    Args:
+        conversions: ``(source clip, destination WAV)`` pairs.
+        data_root: Output root, used to place the shard bookkeeping.
+
+    Raises:
+        RuntimeError: If ``ffmpeg`` is not installed.
+        subprocess.CalledProcessError: If a conversion fails.
+    """
+    if not conversions:
+        return
+
+    provider = AudioConversionProvider(
+        config=OmegaConf.create({}),
+        params={
+            "jobs": conversions,
+            "sampling_rate": _CFG["sampling_rate"],
+        },
+    )
+    # resume=False: a shard marked done by an earlier run says nothing about
+    # whether its WAV files are still on disk. The per-file existence check in
+    # the runner is what makes a rerun cheap.
+    runner = AudioConversionRunner(
+        provider=provider,
+        output_dir=data_root / "conversion_shards",
+        resume=False,
+    )
+    results = runner(list(range(len(conversions))))
+    converted = sum(1 for record in results if record["converted"])
+    logger.info(
+        "Converted %d clip(s); %d already present",
+        converted,
+        len(results) - converted,
+    )
+
+
 class MELDBuilder(DatasetBuilder):
     """Prepare and build MELD assets for ESPnet3 recipes."""
 
@@ -347,13 +392,10 @@ class MELDBuilder(DatasetBuilder):
         source_root = _resolve_source_root(recipe_root, source_dir=source_dir)
         data_root = resolve_data_root(recipe_root)
 
-        ffmpeg = shutil.which("ffmpeg")
-        if not ffmpeg:
-            raise RuntimeError("ffmpeg not found in PATH")
-
         excluded = {str(utt_id) for utt_id in _CFG["excluded_utterance_ids"]}
-        sampling_rate = str(_CFG["sampling_rate"])
 
+        split_entries: dict[str, list[tuple[str, Path, str]]] = {}
+        conversions: list[tuple[Path, Path]] = []
         for split, spec in _CFG["splits"].items():
             annotation = source_root / _CFG["metadata_subdir"] / spec["csv_name"]
             clip_dir = source_root / _CFG["audio_subdir"] / spec["audio_subdir"]
@@ -378,27 +420,7 @@ class MELDBuilder(DatasetBuilder):
                         continue
 
                     wav = (wav_dir / f"{utt_id}.wav").resolve()
-                    if not wav.exists():
-                        subprocess.run(
-                            [
-                                ffmpeg,
-                                "-i",
-                                str(clip),
-                                "-ac",
-                                "1",
-                                "-ar",
-                                sampling_rate,
-                                "-f",
-                                "wav",
-                                "-vn",
-                                "-y",
-                                "-hide_banner",
-                                "-loglevel",
-                                "error",
-                                str(wav),
-                            ],
-                            check=True,
-                        )
+                    conversions.append((clip, wav))
                     entries.append((utt_id, wav, label))
 
             if not entries:
@@ -410,7 +432,11 @@ class MELDBuilder(DatasetBuilder):
                     skipped,
                     clip_dir,
                 )
+            split_entries[split] = entries
 
+        _convert_clips(conversions, data_root)
+
+        for split, entries in split_entries.items():
             manifest = data_root / _CFG["manifest_paths"][split]
             manifest.parent.mkdir(parents=True, exist_ok=True)
             # Write to a part file and rename, so an interrupted build cannot
