@@ -184,3 +184,16 @@ def test_required_data_names_beats_tokenizer(inference):
 def test_optional_data_names_beats_tokenizer(inference):
     retval = BeatsTokenizerTask.optional_data_names(True, inference)
     assert "speech_lengths" in retval
+
+
+@pytest.mark.timeout(50)
+def test_build_tokenizer_model_teacher_uses_fbank_stats(beats_ckpt_path):
+    args = get_dummy_namespace(beats_ckpt_path, "beats_tokenizer")
+    args.encoder_conf.update(
+        tokenizer_config=get_beats_config(), fbank_mean=1.5, fbank_std=2.5
+    )
+
+    model = BeatsTokenizerTask.build_model(args)
+
+    assert (model.encoder.fbank_mean, model.encoder.fbank_std) == (1.5, 2.5)
+    assert (model.teacher.fbank_mean, model.teacher.fbank_std) == (1.5, 2.5)
