@@ -259,6 +259,7 @@ def test_Speech2Text_batch_decode_accepts_numpy_and_lists(s2t_config_file_transf
     from_numpy = batched.batch_decode(padded, np.array(lengths))
     from_list = batched.batch_decode(speeches)
     for actual in (from_numpy, from_list):
+        assert len(actual) == len(expected)
         for exp, act in zip(expected, actual):
             assert [e[1] for e in exp] == [a[1] for a in act]
             np.testing.assert_allclose(
