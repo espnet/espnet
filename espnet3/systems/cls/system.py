@@ -286,13 +286,28 @@ class CLSSystem(BaseSystem):
             )
 
         counter = Counter()
+        n_unlabelled = 0
         with open(manifest_path, "r", encoding="utf-8") as f:
             for line in f:
-                parts = line.rstrip("\n").split("\t")
-                if len(parts) < 3:
+                line = line.rstrip("\n")
+                if not line.strip():
                     continue
-                for label in parts[2].split():
+                parts = line.split("\t")
+                labels = parts[2].split() if len(parts) >= 3 else []
+                if not labels:
+                    # The row still reaches training, so say so rather than
+                    # letting it disappear from the label inventory in silence.
+                    n_unlabelled += 1
+                    continue
+                for label in labels:
                     counter[label] += 1
+
+        if n_unlabelled:
+            logger.warning(
+                "prepare_labels: %d row(s) in %s carry no label",
+                n_unlabelled,
+                manifest_path,
+            )
 
         if not counter:
             raise RuntimeError(f"No label found in manifest: {manifest_path}")

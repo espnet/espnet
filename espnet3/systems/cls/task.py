@@ -1,6 +1,13 @@
 """CLS Task.
 
-Note: This file is a direct copy of the corresponding espnet2 task class.
+Note: This file is a direct copy of the corresponding espnet2 task class,
+apart from three changes to how ``build_model`` builds the model:
+
+1. ``model_choices`` maps ``espnet`` to
+   :class:`espnet3.systems.cls.espnet_model.ClassificationModel`.
+2. The model class is resolved through ``model_choices`` rather than named
+   directly.
+3. ``freeze_param`` is forwarded to the model, which applies it itself.
 """
 
 import argparse
@@ -28,6 +35,7 @@ from espnet2.asr.specaug.specaug import SpecAug
 from espnet2.beats.encoder import BeatsEncoder
 from espnet2.cls.decoder.abs_decoder import AbsDecoder
 from espnet2.cls.decoder.linear_decoder import LinearDecoder
+from espnet2.cls.espnet_model import ESPnetClassificationModel
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.layers.utterance_mvn import UtteranceMVN
@@ -249,7 +257,7 @@ class CLSTask(AbsTask):
 
     @classmethod
     @typechecked
-    def build_model(cls, args: argparse.Namespace) -> ClassificationModel:
+    def build_model(cls, args: argparse.Namespace) -> ESPnetClassificationModel:
         """Build the classification model from the parsed task arguments."""
         if isinstance(args.token_list, str):
             with open(args.token_list, encoding="utf-8") as f:
@@ -314,9 +322,7 @@ class CLSTask(AbsTask):
         )
 
         # 6. Build model
-        # Resolve the class through `model_choices` the way `ASRTask` does;
-        # the ESPnet2 task ignores its own registry and hardcodes the class.
-        model_class = model_choices.get_class(getattr(args, "model", None))
+        model_class = model_choices.get_class(getattr(args, "model", "espnet"))
         model = model_class(
             vocab_size=n_classes,
             token_list=args.token_list,

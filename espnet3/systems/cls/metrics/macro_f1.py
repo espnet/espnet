@@ -18,6 +18,16 @@ class MacroF1(BaseMetric):
 
     The F1 score of each class is computed independently and then averaged
     without weighting by support, so rare classes are not drowned out.
+
+    Declare it in ``conf/metrics.yaml``:
+
+    .. code-block:: yaml
+
+        - metric:
+            _target_: espnet3.systems.cls.metrics.macro_f1.MacroF1
+            ref_key: ref
+            hyp_key: hyp
+            token_list: data/token_list  # optional; fixes the class set
     """
 
     def __init__(

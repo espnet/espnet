@@ -49,7 +49,7 @@ def _utterance_id(row: dict, split: str) -> str:
     )
 
 
-def iter_source_candidates(
+def _iter_source_candidates(
     recipe_root: Path,
     source_dir: str | Path | None = None,
 ) -> Iterator[Path]:
@@ -64,7 +64,7 @@ def iter_source_candidates(
     yield recipe_root / _CFG["dataset_path"]
 
 
-def missing_source_entries(source_root: Path) -> list[str]:
+def _missing_source_entries(source_root: Path) -> list[str]:
     """Return required source paths that are absent from ``source_root``."""
     missing: list[str] = []
     for spec in _CFG["splits"].values():
@@ -77,7 +77,7 @@ def missing_source_entries(source_root: Path) -> list[str]:
     return missing
 
 
-def resolve_source_root(
+def _resolve_source_root(
     recipe_root: Path,
     source_dir: str | Path | None = None,
 ) -> Path:
@@ -95,9 +95,9 @@ def resolve_source_root(
         FileNotFoundError: If no candidate directory holds a complete corpus.
     """
     checked: list[str] = []
-    for candidate in iter_source_candidates(recipe_root, source_dir):
+    for candidate in _iter_source_candidates(recipe_root, source_dir):
         checked.append(str(candidate))
-        if not missing_source_entries(candidate):
+        if not _missing_source_entries(candidate):
             return candidate
 
     env_var = str(_CFG["source_env_var"])
@@ -122,16 +122,16 @@ def resolve_data_root(recipe_root: Path) -> Path:
     return recipe_root / _CFG["data_path"]
 
 
-def resolve_download_root(
+def _resolve_download_root(
     recipe_root: Path,
     source_dir: str | Path | None = None,
 ) -> Path:
     """Resolve where the corpus is downloaded when it is missing.
 
-    Unlike :func:`resolve_source_root` this never fails: it returns the first
+    Unlike :func:`_resolve_source_root` this never fails: it returns the first
     candidate location regardless of whether the corpus is already there.
     """
-    return next(iter_source_candidates(recipe_root, source_dir))
+    return next(_iter_source_candidates(recipe_root, source_dir))
 
 
 def _download_archive(destination: Path) -> None:
@@ -238,12 +238,12 @@ class MELDBuilder(DatasetBuilder):
         self,
         recipe_dir: str | Path,
         source_dir: str | Path | None = None,
-        **_kwargs,
+        **kwargs,
     ) -> bool:
         """Check whether a complete MELD source tree is reachable."""
         recipe_root = Path(recipe_dir).resolve()
         try:
-            resolve_source_root(recipe_root, source_dir=source_dir)
+            _resolve_source_root(recipe_root, source_dir=source_dir)
         except FileNotFoundError:
             return False
         return True
@@ -252,7 +252,7 @@ class MELDBuilder(DatasetBuilder):
         self,
         recipe_dir: str | Path,
         source_dir: str | Path | None = None,
-        **_kwargs,
+        **kwargs,
     ) -> None:
         """Download and unpack MELD unless the corpus is already available.
 
@@ -260,7 +260,7 @@ class MELDBuilder(DatasetBuilder):
             recipe_dir: Recipe root directory.
             source_dir: Optional explicit source root that wins over the
                 environment variable and the in-recipe download directory.
-            **_kwargs: Unused extra options for API compatibility.
+            **kwargs: Unused extra options for API compatibility.
 
         Returns:
             None.
@@ -285,7 +285,7 @@ class MELDBuilder(DatasetBuilder):
         if self.is_source_prepared(recipe_dir=recipe_root, source_dir=source_dir):
             return
 
-        source_root = resolve_download_root(recipe_root, source_dir=source_dir)
+        source_root = _resolve_download_root(recipe_root, source_dir=source_dir)
         source_root.mkdir(parents=True, exist_ok=True)
 
         archive = source_root / str(_CFG["archive_name"])
@@ -294,7 +294,7 @@ class MELDBuilder(DatasetBuilder):
 
         _unpack_archive(source_root, archive)
 
-        missing = missing_source_entries(source_root)
+        missing = _missing_source_entries(source_root)
         if missing:
             raise RuntimeError(
                 "MELD source is incomplete after unpacking. Missing:\n"
@@ -305,7 +305,7 @@ class MELDBuilder(DatasetBuilder):
     def is_built(
         self,
         recipe_dir: str | Path,
-        **_kwargs,
+        **kwargs,
     ) -> bool:
         """Check whether every split manifest already exists."""
         data_root = resolve_data_root(Path(recipe_dir).resolve())
@@ -318,14 +318,14 @@ class MELDBuilder(DatasetBuilder):
         self,
         recipe_dir: str | Path,
         source_dir: str | Path | None = None,
-        **_kwargs,
+        **kwargs,
     ) -> None:
         """Convert clips to WAV and write one TSV manifest per split.
 
         Args:
             recipe_dir: Recipe root directory.
             source_dir: Optional explicit MELD source root.
-            **_kwargs: Unused extra options for API compatibility.
+            **kwargs: Unused extra options for API compatibility.
 
         Raises:
             FileNotFoundError: If the MELD source tree cannot be resolved.
@@ -344,7 +344,7 @@ class MELDBuilder(DatasetBuilder):
             stage derives it from the training manifest.
         """
         recipe_root = Path(recipe_dir).resolve()
-        source_root = resolve_source_root(recipe_root, source_dir=source_dir)
+        source_root = _resolve_source_root(recipe_root, source_dir=source_dir)
         data_root = resolve_data_root(recipe_root)
 
         ffmpeg = shutil.which("ffmpeg")

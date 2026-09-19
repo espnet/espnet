@@ -110,8 +110,8 @@ def save_espnet_config(
         if isinstance(v, tuple):
             default_config[k] = list(v)
 
-    # ESPnet2 inlines this inside `build_model()`, which runs after this function.
-    # Without it the saved config keeps a path that only exists on this machine.
+    # Inline the token list: a packed model is loaded from this config on
+    # another machine, where a path written here would not resolve.
     token_list = default_config.get("token_list")
     if isinstance(token_list, str):
         token_list_path = Path(token_list)

@@ -20,6 +20,9 @@ model:
 
 ui:
   title: MELD speech emotion recognition demo
+  # The TEMPLATE default is `readme.md`, which here is the recipe's own readme
+  # -- download sizes and training commands, not something a demo visitor needs.
+  description: src/demo_description.md
   outputs:
     - key: hyp
       type: text

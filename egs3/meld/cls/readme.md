@@ -43,7 +43,7 @@ python run.py --stages measure \
     --metrics_config conf/metrics.yaml
 ```
 
-`remove_long_short` filters the train and valid splits to 0.1–20 s; the test
+`remove_long_short` filters the train and valid splits to 0.1–30 s; the test
 split is left untouched so the reported scores cover the whole set.
 `prepare_labels` writes `token_list` from the filtered training manifest.
 

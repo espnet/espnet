@@ -15,6 +15,15 @@ class WA(BaseMetric):
     reference label. It is the same quantity espnet2's ``cls_score.py``
     reports as ``mean_acc``; the "mean" there averages one shared accuracy
     value across classes and is a no-op.
+
+    Declare it in ``conf/metrics.yaml``:
+
+    .. code-block:: yaml
+
+        - metric:
+            _target_: espnet3.systems.cls.metrics.wa.WA
+            ref_key: ref        # -> `<test_name>/ref.scp`
+            hyp_key: hyp        # -> `<test_name>/hyp.scp`
     """
 
     def __init__(self, ref_key: str = "ref", hyp_key: str = "hyp") -> None:

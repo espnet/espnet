@@ -24,6 +24,11 @@ def require_sklearn():
 
     Raises:
         RuntimeError: If ``scikit-learn`` is not installed.
+
+    Example:
+        >>> metrics = require_sklearn()
+        >>> metrics.recall_score([0, 1], [0, 1], average="macro")
+        1.0
     """
     if sklearn_metrics is None:
         raise RuntimeError(
@@ -78,6 +83,13 @@ def build_target_matrix(
 
     Raises:
         ValueError: If a reference label is absent from ``classes``.
+
+    Example:
+        The second utterance carries two labels, so its row has two ones.
+
+        >>> build_target_matrix(["joy", "joy anger"], ["neutral", "joy", "anger"])
+        array([[0., 1., 0.],
+               [0., 1., 1.]])
     """
     index = {label: i for i, label in enumerate(classes)}
     target = np.zeros((len(references), len(classes)), dtype=np.float64)
@@ -104,6 +116,10 @@ def build_score_matrix(scores: Sequence[str], n_classes: int) -> np.ndarray:
 
     Raises:
         ValueError: If any row does not hold exactly ``n_classes`` values.
+
+    Example:
+        >>> build_score_matrix(["0.1 0.7 0.2"], 3)
+        array([[0.1, 0.7, 0.2]])
     """
     matrix = np.zeros((len(scores), n_classes), dtype=np.float64)
     for row, score in enumerate(scores):
@@ -136,6 +152,14 @@ def supported_classes(
 
     Raises:
         ValueError: If no class has a positive reference.
+
+    Example:
+        ``neutral`` never appears in the references, so it is left out and
+        the caller averages over the remaining two columns.
+
+        >>> target = np.array([[0.0, 1.0, 0.0], [0.0, 1.0, 1.0]])
+        >>> supported_classes(target, ["neutral", "joy", "anger"])
+        (array([1, 2]), ['joy', 'anger'])
     """
     keep = np.flatnonzero(target.sum(axis=0) > 0)
     dropped = [classes[i] for i in range(len(classes)) if i not in set(keep)]
@@ -157,6 +181,13 @@ def single_labels(references: Sequence[str]) -> List[str]:
 
     Raises:
         ValueError: If any utterance carries zero or multiple labels.
+
+    Example:
+        >>> single_labels(["joy", "anger"])
+        ['joy', 'anger']
+        >>> single_labels(["joy anger"])
+        Traceback (most recent call last):
+        ValueError: Expected one label per utterance but row 0 has 2: ...
     """
     labels = []
     for row, reference in enumerate(references):
@@ -187,6 +218,12 @@ def resolve_classes(
     Raises:
         ValueError: If a reference label is absent from ``token_list``, or if
             ``labels`` is empty.
+
+    Example:
+        Without a token list the classes come from the references, sorted.
+
+        >>> resolve_classes(["joy", "anger", "joy"])
+        ['anger', 'joy']
     """
     present = set(labels)
     if not present:

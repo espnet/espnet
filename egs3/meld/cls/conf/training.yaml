@@ -30,7 +30,7 @@ exp_tag: train_cls_wavlm_transformer
 # on, so `splits` lists train and valid only.
 remove_long_short:
   min_wav_duration: 0.1
-  max_wav_duration: 20
+  max_wav_duration: 30
   splits:
     - train
     - valid

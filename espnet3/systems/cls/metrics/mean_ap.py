@@ -27,7 +27,9 @@ class MAP(BaseMetric):
 
     This metric needs ``score.scp`` in addition to ``ref.scp``, which the
     default ``ref_key``/``hyp_key`` fallback cannot express. Declare the
-    inputs in ``conf/metrics.yaml``::
+    inputs in ``conf/metrics.yaml``:
+
+    .. code-block:: yaml
 
         - metric:
             _target_: espnet3.systems.cls.metrics.mean_ap.MAP

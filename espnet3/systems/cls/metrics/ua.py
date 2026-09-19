@@ -17,9 +17,21 @@ class UA(BaseMetric):
     """Compute unweighted accuracy (UA) for a classification dataset.
 
     UA is the macro average of the per-class recall, so every class counts
-    equally regardless of how many examples it has. On the imbalanced label
-    distributions typical of emotion recognition it is the more informative
-    companion to :class:`espnet3.systems.cls.metrics.wa.WA`.
+    equally regardless of how many examples it has. The emotion recognition
+    literature also calls it unweighted average recall (UAR), and scikit-learn
+    calls it balanced accuracy. On the imbalanced label distributions typical
+    of the task it is the more informative companion to
+    :class:`espnet3.systems.cls.metrics.wa.WA`.
+
+    Declare it in ``conf/metrics.yaml``:
+
+    .. code-block:: yaml
+
+        - metric:
+            _target_: espnet3.systems.cls.metrics.ua.UA
+            ref_key: ref
+            hyp_key: hyp
+            token_list: data/token_list  # optional; fixes the class set
     """
 
     def __init__(

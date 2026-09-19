@@ -184,6 +184,8 @@ def main(
     # Guardrail: ensure required configs exist for requested stages
     pretrain_stages = {
         "create_dataset",
+        "remove_long_short",
+        "prepare_labels",
         "collect_stats",
         "train",
     }

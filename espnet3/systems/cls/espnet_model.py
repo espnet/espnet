@@ -29,6 +29,11 @@ class ClassificationModel(ESPnetClassificationModel):
         *args: Forwarded to the ESPnet2 model.
         **kwargs: Forwarded to the ESPnet2 model.
 
+    Raises:
+        ValueError: If a name in ``freeze_param`` matches no parameter. That
+            is always a typo, and letting it through would start a training
+            run with nothing frozen.
+
     Examples:
         Selected from a recipe's ``conf/training.yaml``:
 
@@ -54,6 +59,11 @@ class ClassificationModel(ESPnetClassificationModel):
                     param.requires_grad = False
                     frozen += 1
             if frozen == 0:
-                logger.warning("freeze_param matched no parameter: %s", name)
-            else:
-                logger.info("Froze %d parameter tensor(s) under %s", frozen, name)
+                modules = sorted(
+                    {key.split(".")[0] for key, _ in self.named_parameters()}
+                )
+                raise ValueError(
+                    f"freeze_param matched no parameter: {name}. "
+                    f"Top-level modules are: {modules}"
+                )
+            logger.info("Froze %d parameter tensor(s) under %s", frozen, name)

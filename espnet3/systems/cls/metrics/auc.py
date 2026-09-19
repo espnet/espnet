@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 from typing import Dict
 
@@ -16,6 +17,8 @@ from espnet3.systems.cls.metrics.scoring_utils import (
     supported_classes,
 )
 
+logger = logging.getLogger(__name__)
+
 
 class AUC(BaseMetric):
     """Compute the macro-averaged one-vs-rest AUC from class probabilities.
@@ -25,7 +28,9 @@ class AUC(BaseMetric):
 
     This metric needs ``score.scp`` in addition to ``ref.scp``, which the
     default ``ref_key``/``hyp_key`` fallback cannot express. Declare the
-    inputs in ``conf/metrics.yaml``::
+    inputs in ``conf/metrics.yaml``:
+
+    .. code-block:: yaml
 
         - metric:
             _target_: espnet3.systems.cls.metrics.auc.AUC
@@ -75,7 +80,7 @@ class AUC(BaseMetric):
             RuntimeError: If ``scikit-learn`` is not installed.
             ValueError: If a score row does not match the class count, if a
                 reference label is missing from the token list, or if no class
-                has a reference example.
+                has both a positive and a negative reference.
 
         Example:
             >>> metric({"ref": Path("test/ref.scp"),
@@ -92,8 +97,19 @@ class AUC(BaseMetric):
         classes = load_class_labels(self.token_list)
         target = build_target_matrix(refs, classes)
         output = build_score_matrix(scores, len(classes))
-        keep, _ = supported_classes(target, classes)
+        keep, kept_labels = supported_classes(target, classes)
+        # A class every utterance belongs to has no negative to rank against,
+        # and sklearn returns nan for it rather than raising.
+        scorable = [k for k in keep if target[:, k].sum() < target.shape[0]]
+        if not scorable:
+            raise ValueError(
+                "AUC needs a class with both a positive and a negative "
+                f"reference, but every utterance carries {kept_labels}"
+            )
+        dropped = [classes[k] for k in keep if k not in set(scorable)]
+        if dropped:
+            logger.warning("Skipping classes with no negative example: %s", dropped)
         values = [
-            sklearn_metrics.roc_auc_score(target[:, k], output[:, k]) for k in keep
+            sklearn_metrics.roc_auc_score(target[:, k], output[:, k]) for k in scorable
         ]
         return {"AUC": round(float(np.mean(values)) * 100, 2)}
