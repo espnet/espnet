@@ -270,6 +270,15 @@ def test_help_runs_as_a_process_and_exits_zero():
         assert command in r.stdout
 
 
+def test_version_exits_zero_in_process(capsys):
+    # the subprocess tests below do not count towards coverage, and this is
+    # the line argparse runs when the flag is given
+    with pytest.raises(SystemExit) as exit_:
+        cli.main(["--version"])
+    assert exit_.value.code == 0
+    assert capsys.readouterr().out.strip() == f"espnet {cli._version()}"
+
+
 def test_version_names_the_installed_version():
     r = _run("--version")
     assert r.returncode == 0
