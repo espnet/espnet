@@ -114,15 +114,26 @@ def normalize_punctuation(text: str, language: str = "en") -> str:
     text = text.replace("‘", '"').replace("‚", '"').replace("’", '"')
     text = text.replace("''", '"').replace("´´", '"').replace("…", "...")
 
-    # French quotes
-    text = text.replace(" « ", ' "').replace("« ", '"').replace("«", '"')
-    text = text.replace(" » ", '" ').replace(" »", '"').replace("»", '"')
+    # French quotes. NBSP, not ASCII space: Moses writes U+00A0 here, which
+    # renders identically and silently became a plain space when transcribed.
+    text = text.replace("\u00a0«\u00a0", ' "')
+    text = text.replace("«\u00a0", '"').replace("«", '"')
+    text = text.replace("\u00a0»\u00a0", '" ')
+    text = text.replace("\u00a0»", '"').replace("»", '"')
 
-    # handle pseudo-spaces
-    text = text.replace(" %", "%")
-    text = text.replace("nº ", "nº ").replace(" :", ":").replace(" ºC", " ºC")
-    text = text.replace(" cm", " cm").replace(" ?", "?").replace(" !", "!")
-    text = text.replace(" ;", ";").replace(", ", ", ")
+    # Pseudo-spaces: every left-hand side here is U+00A0, and the right-hand
+    # side an ordinary space or nothing. Written as escapes because the two are
+    # indistinguishable on screen -- with ASCII on the left, four of these
+    # rules replace a string with itself and the rest strip spaces Moses keeps.
+    text = text.replace("\u00a0%", "%")
+    text = text.replace("nº\u00a0", "nº ")
+    text = text.replace("\u00a0:", ":")
+    text = text.replace("\u00a0ºC", " ºC")
+    text = text.replace("\u00a0cm", " cm")
+    text = text.replace("\u00a0?", "?")
+    text = text.replace("\u00a0!", "!")
+    text = text.replace("\u00a0;", ";")
+    text = text.replace(",\u00a0", ", ")
     text = re.sub(r" +", " ", text)
 
     if language == "en":
