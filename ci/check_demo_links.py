@@ -319,7 +319,7 @@ def scan() -> List[str]:
 def self_check() -> None:
     text = (
         "[a](https://colab.research.google.com/github/espnet/notebook/blob/master/"
-        "ESPnet2/Demo/TTS/tts_realtime_demo.ipynb) "
+        "Demos/TTS/tts_realtime_demo.ipynb) "
         "[b](https://github.com/espnet/notebook/blob/master/x/y.ipynb) "
         "[c](https://huggingface.co/spaces/espnet/TTS) "
         "[d](https://huggingface.co/spaces) "
@@ -332,7 +332,7 @@ def self_check() -> None:
     )
     notebooks, spaces = find_links({"README.md": text})
     assert notebooks == {
-        ("master", "ESPnet2/Demo/TTS/tts_realtime_demo.ipynb"): {"README.md"},
+        ("master", "Demos/TTS/tts_realtime_demo.ipynb"): {"README.md"},
         ("master", "x/y.ipynb"): {"README.md"},
         ("v1.0", "tagged.ipynb"): {"README.md"},
         # percent-encoding is undone here, since the ref is encoded again when

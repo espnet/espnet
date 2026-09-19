@@ -4,7 +4,7 @@ This is the recipe of Mandrain multi-speaker TTS2 model with [aishell3](https://
 
 See the following pages for running on clusters. They can help you to set the environment and get familiar with ESPNet's repo structure.
 - [PSC usage tutorial](https://www.wavlab.org/activities/2022/psc-usage/)
-- [Espnet recipe tutorial](https://github.com/espnet/notebook/blob/master/ESPnet2/Course/CMU_SpeechRecognition_Fall2022/recipe_tutorial.ipynb)
+- [Espnet recipe tutorial](https://github.com/espnet/notebook/blob/master/Courses/CMUSpeechRecognition22F/recipe_tutorial.ipynb)
 
 
 ## Brief on TTS2
