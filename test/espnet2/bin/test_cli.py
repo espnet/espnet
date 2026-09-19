@@ -11,7 +11,9 @@ import sys
 import types
 from pathlib import Path
 
+import numpy as np
 import pytest
+import soundfile
 
 from espnet2.bin import cli
 
@@ -186,6 +188,107 @@ def test_a_missing_file_fails_before_a_model_is_fetched(command, capsys, monkeyp
     assert "no such file" in capsys.readouterr().err
 
 
+def _stub_live(monkeypatch, blocks, said):
+    """Replace the module `cmd_asr` imports, so nothing is recorded or decoded."""
+    live = types.ModuleType("espnet2.bin.live")
+    live.LiveError = type("LiveError", (RuntimeError,), {})
+    live.from_file = lambda path, **kw: iter(blocks)
+    live.from_microphone = lambda **kw: iter(blocks)
+
+    def transcribe(decode, source, **kwargs):
+        for chunk in source:
+            said.append(decode(chunk))
+        return 0
+
+    live.transcribe = transcribe
+    monkeypatch.setitem(sys.modules, "espnet2.bin.live", live)
+    # `from espnet2.bin import live` reads the package attribute first, and
+    # another test may already have imported the real module
+    import espnet2.bin
+
+    monkeypatch.setattr(espnet2.bin, "live", live, raising=False)
+    return live
+
+
+def test_stream_decodes_a_file_window_by_window(monkeypatch, tmp_path):
+    said = []
+    _stub_live(monkeypatch, [np.zeros(16000, dtype=np.float32)], said)
+    recorder = _Recorder([("hello", ["h"], [1], "hello", None)])
+    _fake_module(
+        monkeypatch,
+        "espnet2.bin.s2t_inference_ctc",
+        "Speech2TextGreedySearch",
+        recorder,
+    )
+    audio = tmp_path / "a.wav"
+    soundfile.write(audio, np.zeros(16000, dtype=np.float32), 16000)
+
+    assert cli.main(["asr", str(audio), "--stream"]) == 0
+    assert said == ["hello"]
+
+
+def test_live_records_instead_of_reading_a_file(monkeypatch):
+    said = []
+    _stub_live(monkeypatch, [np.zeros(16000, dtype=np.float32)], said)
+    recorder = _Recorder([("spoken", ["s"], [1], "spoken", None)])
+    _fake_module(
+        monkeypatch,
+        "espnet2.bin.s2t_inference_ctc",
+        "Speech2TextGreedySearch",
+        recorder,
+    )
+
+    assert cli.main(["asr", "--live"]) == 0
+    assert said == ["spoken"]
+
+
+def test_live_with_a_file_is_refused(monkeypatch, capsys, tmp_path):
+    _stub_live(monkeypatch, [], [])
+    audio = tmp_path / "a.wav"
+    soundfile.write(audio, np.zeros(16000, dtype=np.float32), 16000)
+    assert cli.main(["asr", str(audio), "--live"]) == 1
+    assert "do not also name a file" in capsys.readouterr().err
+
+
+def test_stream_without_a_file_is_refused(monkeypatch, capsys):
+    _stub_live(monkeypatch, [], [])
+    assert cli.main(["asr", "--stream"]) == 1
+    assert "--stream needs an audio file" in capsys.readouterr().err
+
+
+def test_a_recording_failure_is_reported_like_the_others(monkeypatch, capsys):
+    live = _stub_live(monkeypatch, [], [])
+
+    def refuse(**kwargs):
+        raise live.LiveError("no microphone here")
+
+    live.from_microphone = refuse
+    recorder = _Recorder([])
+    _fake_module(
+        monkeypatch,
+        "espnet2.bin.s2t_inference_ctc",
+        "Speech2TextGreedySearch",
+        recorder,
+    )
+    assert cli.main(["asr", "--live"]) == 1
+    err = capsys.readouterr().err
+    assert err.strip().endswith("no microphone here") and "Traceback" not in err
+
+
+def test_an_empty_result_becomes_an_empty_transcript(monkeypatch):
+    said = []
+    _stub_live(monkeypatch, [np.zeros(16000, dtype=np.float32)], said)
+    recorder = _Recorder([])  # the model returned nothing for this window
+    _fake_module(
+        monkeypatch,
+        "espnet2.bin.s2t_inference_ctc",
+        "Speech2TextGreedySearch",
+        recorder,
+    )
+    assert cli.main(["asr", "--live"]) == 0
+    assert said == [""]
+
+
 def test_the_help_lists_every_command(capsys):
     with pytest.raises(SystemExit) as e:
         cli.main(["--help"])
@@ -210,6 +313,19 @@ def test_an_output_without_an_extension_is_refused(monkeypatch, tmp_path, capsys
     assert cli.main(["enhance", str(source), "-o", str(tmp_path / "clean")]) == 1
 
     assert "file extension" in capsys.readouterr().err
+
+
+def test_an_output_soundfile_cannot_write_is_refused(monkeypatch, capsys):
+    # this used to reach soundfile after the model had been downloaded and
+    # run, and came out as a traceback
+    import torch
+
+    recorder = _Recorder({"wav": torch.zeros(160)})
+    _fake_module(monkeypatch, "espnet2.bin.tts_inference", "Text2Speech", recorder)
+    assert cli.main(["tts", "hello", "-o", "notes.txt"]) == 1
+    err = capsys.readouterr().err
+    assert "cannot write .txt audio" in err and "Traceback" not in err
+    assert recorder.tag is None  # nothing was downloaded
 
 
 def test_a_tag_for_another_task_is_explained(monkeypatch, tmp_path, capsys):

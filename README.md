@@ -121,6 +121,7 @@ espnet translate audio.wav --to eng        # speech in, English text out
 espnet tts "Hello from ESPnet" -o out.wav
 espnet enhance noisy.wav -o clean.wav
 espnet models                              # the default model of each command
+espnet asr --live                          # transcribe the microphone
 ```
 
 Every command takes `--model <tag>` and `--device cuda`, and `espnet --version` names the
