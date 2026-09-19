@@ -112,14 +112,17 @@ def _read(path, which):
     """One recording at the model's rate, trimmed to the cap."""
     if path is None:
         raise gr.Error(f"Record or upload the {which} recording too.")
-    speech, _ = librosa.load(path, sr=SAMPLE_RATE)
-    if len(speech) > SAMPLE_RATE * MAX_SECS:
+    # The header says how long the file is, so only the part that is scored
+    # is decoded: an hour of audio uploaded to a 30 s demo is not resampled
+    # in full first, and the warning is still about the file rather than
+    # about what came back.
+    if librosa.get_duration(path=path) > MAX_SECS:
         gr.Warning(
             f"Only the first {MAX_SECS} s of the {which} recording were used. "
             "Run the app yourself for longer audio - the model has no such "
             "limit."
         )
-        speech = speech[: SAMPLE_RATE * MAX_SECS]
+    speech, _ = librosa.load(path, sr=SAMPLE_RATE, duration=MAX_SECS)
     if len(speech) < SAMPLE_RATE * TRAINED_SECS:
         gr.Warning(
             f"The {which} recording is under the {TRAINED_SECS:.0f} s this "

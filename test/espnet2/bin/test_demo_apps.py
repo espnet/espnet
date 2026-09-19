@@ -85,7 +85,8 @@ def _named_in_messages(name):
     """Every identifier interpolated into a gr.Warning or gr.Error message.
 
     Read from the syntax tree rather than by matching text, so that a message
-    split across lines or rewrapped by black still counts.
+    split across lines or rewrapped by black still counts. Only the arguments
+    of the call are read, which for these apps is the message itself.
     """
     named = set()
     for node in ast.walk(ast.parse(_source(name))):
@@ -97,9 +98,29 @@ def _named_in_messages(name):
             "Error",
         ):
             continue
-        named.update(
-            child.id for child in ast.walk(node) if isinstance(child, ast.Name)
-        )
+        for argument in node.args:
+            named.update(
+                child.id for child in ast.walk(argument) if isinstance(child, ast.Name)
+            )
+    return named
+
+
+def _compared_against(name):
+    """Every identifier one side of a comparison is measured against.
+
+    An app that declares a cap and mentions it in a warning but never tests
+    the input against it would pass a check on the message alone - it would
+    announce a limit it does not apply. Whether the branch then trims or
+    refuses is left to the app: the OWSM demos refuse, the other three trim.
+    """
+    named = set()
+    for node in ast.walk(ast.parse(_source(name))):
+        if not isinstance(node, ast.Compare):
+            continue
+        for side in [node.left, *node.comparators]:
+            named.update(
+                child.id for child in ast.walk(side) if isinstance(child, ast.Name)
+            )
     return named
 
 
@@ -158,13 +179,21 @@ def test_each_demo_asks_for_the_gpu_time_it_limits_itself_to(name):
 
 @pytest.mark.parametrize("name", list(DEMOS))
 def test_each_demo_caps_its_input_and_says_so(name):
-    """A cap nobody is told about reads as the model losing the tail."""
+    """One cap, applied to the input, and named in what the user is told.
+
+    Either half alone is a demo that misleads: a cap nobody is told about
+    reads as the model losing the tail, and a cap announced but never tested
+    against the input is a promise the app does not keep.
+    """
     caps = _caps(name)
     assert len(caps) == 1, f"{name}: expected one MAX_* cap, found {caps}"
     constant, _ = caps[0]
+    assert constant in _compared_against(name), (
+        f"{name}: {constant} is declared but the input is never measured " "against it"
+    )
     assert constant in _named_in_messages(name), (
-        f"{name}: {constant} trims the input without a gr.Warning or gr.Error "
-        "naming it"
+        f"{name}: {constant} limits the input without a gr.Warning or "
+        "gr.Error naming it"
     )
 
 

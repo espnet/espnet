@@ -150,18 +150,21 @@ def _read(path):
     """The recording as (samples, channels) or (samples,), at its own rate."""
     if path is None:
         raise gr.Error("Record or upload some audio first.")
-    # sr=None keeps the file's rate: the model is free to work at it, and
-    # resampling is the user's choice below rather than a silent one here.
-    speech, rate = librosa.load(path, sr=None, mono=False)
-    if speech.ndim > 1:  # librosa hands back (channels, samples)
-        speech = speech.T
-    if len(speech) > rate * MAX_SECS:
+    # The header says how long the file is, so only the part that is enhanced
+    # is decoded: an hour of audio uploaded to a 30 s demo is not read in full
+    # first, and the warning is still about the file rather than about what
+    # came back.
+    if librosa.get_duration(path=path) > MAX_SECS:
         gr.Warning(
             f"Only the first {MAX_SECS} s were enhanced. "
             "Run the app yourself for longer audio - the model has no such "
             "limit."
         )
-        speech = speech[: rate * MAX_SECS]
+    # sr=None keeps the file's rate: the model is free to work at it, and
+    # resampling is the user's choice below rather than a silent one here.
+    speech, rate = librosa.load(path, sr=None, mono=False, duration=MAX_SECS)
+    if speech.ndim > 1:  # librosa hands back (channels, samples)
+        speech = speech.T
     channels = speech.shape[1] if speech.ndim > 1 else 1
     if channels > MAX_CHANNELS:
         gr.Warning(
