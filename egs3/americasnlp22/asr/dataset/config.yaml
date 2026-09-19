@@ -1,0 +1,23 @@
+builder:
+  # Where the corpus archives are extracted, relative to the recipe root.
+  dataset_path: downloads
+  # Environment variable that can point to a pre-downloaded corpus root
+  # (each subdirectory must be named after the archive, e.g. Bribri/).
+  source_env_var: AMERICASNLP22
+  # Per-language tarballs of the second AmericasNLP 2022 shared task.
+  url_base: https://rcweb.dartmouth.edu/homes/f00458c/americasnlp2
+  archive_suffix: TrainDev.tar.gz
+  required_splits:
+    - train
+    - dev
+  languages:
+    bzd: Bribri
+    gn: Guarani
+    gvc: Kotiria
+    quy: Quechua
+    tav: Waikhana
+
+dataset:
+  supported_splits:
+    - train
+    - dev

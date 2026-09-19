@@ -1,0 +1,193 @@
+##########################################################
+#                    TRAINING SETTING                    #
+##########################################################
+# AmericasNLP 2022 ASR baseline for Kotiria (gvc).
+# Faithful ESPnet3 port of egs2/americasnlp22/asr1: frozen XLS-R 300M
+# frontend + 1-block transformer encoder, pure CTC, unigram-100 BPE
+# tokenizer, speed-perturb augmentation, dev split used for validation.
+#
+# Quick usage:
+#   python run.py --stages create_dataset --training_config conf/tuning/training_gvc.yaml
+#   python run.py --stages train          --training_config conf/tuning/training_gvc.yaml
+#
+# Reference training environment (egs2 README):
+# - XLS-R 300M frozen below layer 22; ~15 epochs fit on a single GPU.
+#
+# Only overrides of the TEMPLATE defaults live here; the valid dataloader
+# block, feature-shape file paths, collate_fn, and trainer defaults
+# (accelerator, strategy, tensorboard logger, ...) are inherited.
+##########################################################
+#                  LANGUAGE AND PATH SETTING             #
+##########################################################
+lang: gvc
+
+##########################################################
+#                    DATASET DEFINITION                  #
+##########################################################
+# `data_src` is omitted, so ESPnet3 loads `${recipe_dir}/dataset/__init__.py`.
+# Transcripts keep the corpus `source_raw` text verbatim (no cleaner).
+dataset:
+  train:
+    - data_src_args:
+        lang: ${lang}
+        split: train
+  valid:
+    - data_src_args:
+        lang: ${lang}
+        split: dev
+  preprocessor:
+    _target_: espnet2.train.preprocessor.CommonPreprocessor
+    train: true
+    token_type: bpe
+    token_list: ${tokenizer.save_path}/tokens.txt
+    bpemodel: ${tokenizer.save_path}/unigram.model
+    fs: 16000
+    # On-the-fly approximation of the egs2 recipe's data-level speed
+    # perturbation (egs2 materializes 3 copies with factors 0.9/1.0/1.1;
+    # here one factor is drawn per sample access).
+    data_aug_prob: 1.0
+    data_aug_num: [1, 1]
+    data_aug_effects:
+      - [1, "speed_perturb", {"factor": 0.9}]
+      - [1, "speed_perturb", {"factor": 1.0}]
+      - [1, "speed_perturb", {"factor": 1.1}]
+
+create_dataset:
+  recipe_dir: ${recipe_dir}
+  lang: ${lang}
+
+##########################################################
+#                   TOKENIZER SETTING                    #
+##########################################################
+# SentencePiece unigram with the egs2 vocabulary size (--nbpe 100),
+# trained on this language's training transcripts only.
+tokenizer:
+  vocab_size: 100
+  model_type: unigram
+  save_path: ${data_dir}/${lang}_unigram100
+  text_builder:
+    func: src.tokenizer.gather_training_text
+    recipe_dir: ${recipe_dir}
+    lang: ${lang}
+    split: train
+
+##########################################################
+#                      MODEL SETTING                     #
+##########################################################
+task: espnet3.systems.asr.task.ASRTask
+
+model:
+  vocab_size: ${tokenizer.vocab_size}
+  token_list: ${tokenizer.save_path}/tokens.txt
+
+  encoder: transformer
+  encoder_conf:
+    input_layer: conv2d2
+    num_blocks: 1
+    linear_units: 2048
+    dropout_rate: 0.2
+    output_size: 256
+    attention_heads: 8
+    attention_dropout_rate: 0.2
+
+  model_conf:
+    ctc_weight: 1.0
+    lsm_weight: 0.0
+    length_normalized_loss: false
+    # Kept for config parity with the published espnet/americasnlp22-asr-*
+    # models; no-op for ASR models in current espnet2 (collect_feats always
+    # extracts real features).
+    extract_feats_in_collect_stats: false
+
+  # utterance_mvn needs no stats file; ESPnet3 collect_stats strips
+  # `normalize`/`normalize_conf` before collecting shape statistics.
+  normalize: utterance_mvn
+
+  frontend: s3prl
+  frontend_conf:
+    frontend_conf:
+      upstream: wav2vec2_url
+      path_or_url: https://huggingface.co/s3prl/converted_ckpts/resolve/main/xlsr2_300m.pt
+    download_dir: ./hub
+    multilayer_feature: true
+
+  # Freeze the XLS-R feature extractor and encoder layers 0-21 (of 24),
+  # exactly as egs2/americasnlp22/asr1/conf/train_asr_transformer.yaml.
+  freeze_param:
+    - frontend.upstream.model.feature_extractor
+    - frontend.upstream.model.encoder.layers.0
+    - frontend.upstream.model.encoder.layers.1
+    - frontend.upstream.model.encoder.layers.2
+    - frontend.upstream.model.encoder.layers.3
+    - frontend.upstream.model.encoder.layers.4
+    - frontend.upstream.model.encoder.layers.5
+    - frontend.upstream.model.encoder.layers.6
+    - frontend.upstream.model.encoder.layers.7
+    - frontend.upstream.model.encoder.layers.8
+    - frontend.upstream.model.encoder.layers.9
+    - frontend.upstream.model.encoder.layers.10
+    - frontend.upstream.model.encoder.layers.11
+    - frontend.upstream.model.encoder.layers.12
+    - frontend.upstream.model.encoder.layers.13
+    - frontend.upstream.model.encoder.layers.14
+    - frontend.upstream.model.encoder.layers.15
+    - frontend.upstream.model.encoder.layers.16
+    - frontend.upstream.model.encoder.layers.17
+    - frontend.upstream.model.encoder.layers.18
+    - frontend.upstream.model.encoder.layers.19
+    - frontend.upstream.model.encoder.layers.20
+    - frontend.upstream.model.encoder.layers.21
+
+  preencoder: linear
+  preencoder_conf:
+    input_size: 1024
+    output_size: 80
+
+##########################################################
+#            OPTIMIZER & SCHEDULER SETTING               #
+##########################################################
+# egs2: optim=adamw, lr=1e-4; warmuplr with 300 warmup steps.
+# `weight_decay` is set explicitly because the TEMPLATE default carries
+# a nonzero value while espnet2's default is 0.
+optimizer:
+  _target_: torch.optim.AdamW
+  lr: 0.0001
+  weight_decay: 0.0
+
+scheduler:
+  _target_: espnet2.schedulers.warmup_lr.WarmupLR
+  warmup_steps: 300
+
+##########################################################
+#                OTHER TRAINING SETTING                  #
+##########################################################
+# Keep the single best checkpoint by CER on the validation CTC branch
+# (egs2 `best_model_criterion: [valid, cer_ctc, min]`, keep_nbest_models=1).
+best_model_criterion:
+  - - valid/cer_ctc
+    - 1
+    - min
+
+##########################################################
+#                   DATALOADER SETTING                   #
+##########################################################
+# egs2: batch_type=numel, batch_bins=200000, batching on collected feature
+# shapes. The valid block and the shape-file paths are inherited from the
+# TEMPLATE (its valid block interpolates `type`/`batch_bins` from the train
+# block); the TEMPLATE-inherited `batch_size` is ignored by the numel sampler.
+dataloader:
+  train:
+    iter_factory:
+      num_workers: 4
+      batches:
+        type: numel
+        batch_bins: 200000
+
+##########################################################
+#                    TRAINER SETTING                     #
+##########################################################
+# egs2: max_epoch=15, grad_clip default 5.0, fp32, accumulate_grad=1.
+# Everything else (accelerator, strategy, logger, ...) is TEMPLATE default.
+trainer:
+  max_epochs: 15
+  gradient_clip_val: 5.0
