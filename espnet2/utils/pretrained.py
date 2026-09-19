@@ -77,6 +77,12 @@ def build_pretrained(
         name = unexpected.group(1)
         if name in inspect.signature(loader.__init__).parameters:
             raise  # the constructor does take it; something else went wrong
+        if name in kwargs:
+            # The caller named it themselves, so the published model cannot be
+            # blamed for it: `from_pretrained` merges the two sets of keyword
+            # arguments and the message does not say which one it came from.
+            # The real TypeError stands, and it names the key.
+            raise
         raise ModelTagError(
             f"{model_tag} does not look like a model for {what}: it "
             f"was published with {name}, which {loader.__name__} does not take. "

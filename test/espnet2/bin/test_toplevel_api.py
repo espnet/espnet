@@ -12,6 +12,7 @@ imports, so what is checked is the wiring: which class is asked for which tag,
 what it is called with, and what is said when the answer is unclear.
 """
 
+import importlib
 import subprocess
 import sys
 import types
@@ -81,9 +82,13 @@ def test_each_task_dispatches_to_its_own_class(task, monkeypatch):
 
 
 def test_every_task_names_a_class_that_exists():
-    # a typo in TASKS would only show as an ImportError on a user's machine
+    # a typo in TASKS would only show as an ImportError on a user's machine.
+    # Imported outright rather than skipped when missing: every one of these
+    # is an inference entry point that ci/check_inference_imports.py already
+    # requires to import on a bare install, so a skip here would only hide
+    # the typo this test exists to catch.
     for module_name, class_name in espnet.TASKS.values():
-        module = pytest.importorskip(module_name)
+        module = importlib.import_module(module_name)
         assert hasattr(module, class_name), (module_name, class_name)
 
 
@@ -203,3 +208,65 @@ def test_a_tag_for_another_task_is_explained(monkeypatch):
     message = str(e.value)
     assert "does not look like a model for espnet.load(task='tts')" in message
     assert "asr_train_config" in message
+
+
+def test_an_argument_the_caller_invented_is_not_blamed_on_the_model(monkeypatch):
+    from espnet2.utils.pretrained import ModelTagError
+
+    class Strict:
+        __name__ = "Text2Speech"
+
+        def __init__(self, train_config=None, model_file=None, device="cpu"):
+            pass
+
+        @staticmethod
+        def from_pretrained(model_tag=None, device=None, **kwargs):
+            raise TypeError("__init__() got an unexpected keyword argument 'beam_size'")
+
+    _fake_class(monkeypatch, "tts", Strict)
+
+    # from_pretrained merges the caller's arguments with the model's own, so
+    # an unexpected keyword is only the model's fault when the caller did not
+    # pass it; here they did, and the real TypeError has to stand
+    with pytest.raises(TypeError) as e:
+        espnet.load("espnet/a-tts-model", task="tts", beam_size=1)
+
+    assert not isinstance(e.value, ModelTagError)
+    assert "beam_size" in str(e.value)
+
+
+def test_a_tag_with_no_hub_repository_carries_no_labels():
+    # a local directory or a URL is a legitimate model_tag for the downloader
+    # but names no repository, so there is nothing to read and nothing to fail
+    assert espnet._hub_labels("/no/such/directory") == set()
+
+
+@pytest.mark.parametrize("meta", ["not a mapping", {"files": {}}])
+def test_an_unreadable_meta_yaml_leaves_asr_and_s2t_undecided(
+    meta, monkeypatch, tmp_path
+):
+    import yaml
+
+    path = tmp_path / "meta.yaml"
+    path.write_text(yaml.safe_dump(meta), encoding="utf-8")
+    monkeypatch.setattr("huggingface_hub.hf_hub_download", lambda *a, **k: str(path))
+
+    # a mapping with no artifact keys still answers "asr"; only a file that is
+    # not a mapping at all leaves the question open
+    expected = None if meta == "not a mapping" else "asr"
+    assert espnet._asr_or_s2t("espnet/some-model") == expected
+
+
+def test_a_meta_yaml_that_cannot_be_fetched_asks_for_the_task(monkeypatch):
+    def missing(*args, **kwargs):
+        raise OSError("meta.yaml is not in this repository")
+
+    monkeypatch.setattr(
+        espnet, "_hub_labels", lambda tag: {"automatic-speech-recognition"}
+    )
+    monkeypatch.setattr("huggingface_hub.hf_hub_download", missing)
+
+    with pytest.raises(ValueError) as e:
+        espnet.load("espnet/hand-uploaded")
+
+    assert "espnet/hand-uploaded" in str(e.value)
