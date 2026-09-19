@@ -5,6 +5,7 @@ subcommand imports, so what is checked is the wiring: which class is asked
 for which tag, what it is called with, and what reaches the terminal.
 """
 
+import importlib.metadata
 import subprocess
 import sys
 import types
@@ -274,6 +275,16 @@ def test_version_names_the_installed_version():
     assert r.returncode == 0
     assert r.stdout.strip() == f"espnet {cli._version()}"
     assert cli._version().strip() != ""
+
+
+def test_version_says_so_when_the_package_is_not_installed(monkeypatch):
+    # running from a source tree: nothing declares a version, and the command
+    # still has to answer
+    def missing(_name):
+        raise importlib.metadata.PackageNotFoundError("espnet")
+
+    monkeypatch.setattr(importlib.metadata, "version", missing)
+    assert "source tree" in cli._version()
 
 
 def test_version_does_not_need_a_subcommand():
