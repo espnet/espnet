@@ -1,0 +1,16 @@
+##########################################################
+#                 METRIC SCORING SETTING                 #
+##########################################################
+# Common usage:
+#   python run.py --stages measure \
+#       --training_config conf/training.yaml \
+#       --inference_config conf/inference.yaml \
+#       --metrics_config conf/metrics.yaml
+#
+# The five classification metrics come from `egs3/TEMPLATE/cls/conf/metrics.yaml`
+# and read `${data_dir}/token_list`, which this recipe leaves at its default.
+#
+# Test sets are discovered from the subdirectories of `${inference_dir}`, so
+# `valid` and `test` are both scored without listing them here.
+
+data_dir: ${recipe_dir}/data
