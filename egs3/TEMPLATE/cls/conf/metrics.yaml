@@ -1,0 +1,73 @@
+##########################################################
+#                 METRIC SCORING SETTING                 #
+##########################################################
+# Quick usage:
+#   python run.py --stages measure --metrics_config conf/metrics.yaml
+#
+# Assumptions:
+# - `infer` has already produced `<test_name>/{ref,hyp,score}.scp`.
+# - `prepare_labels` has written `${data_dir}/token_list`.
+# - If `dataset.test` is omitted, test sets are discovered from `${inference_dir}`
+#   subdirectories.
+
+##########################################################
+#                    PATHS AND INPUTS                    #
+##########################################################
+# Common case:
+# - pass `--training_config`, `--inference_config`, and `--metrics_config`
+# - `run.py` copies `training_config.exp_tag` / `training_config.exp_dir` here
+# - `run.py` also copies `inference_config.inference_dir` here, so `measure`
+#   reads the same directory used by `infer`
+#
+# Standalone `measure` is also supported. In that case, set either `exp_tag` or
+# a concrete `exp_dir` below, and add `inference_dir` here unless
+# `--inference_config` provides it.
+recipe_dir: .
+exp_tag:
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+data_dir: ${recipe_dir}/data
+
+dataset:
+
+##########################################################
+#                    METRIC DEFINITION                   #
+##########################################################
+# WA, mAP and AUC reproduce `mean_acc` / `mAP` / `mean_auc` from ESPnet2's
+# `pyscripts/utils/cls_score.py`. UA and MacroF1 are added because
+# classification corpora are usually imbalanced and WA alone hides that.
+#
+# A recipe that only wants a subset should redefine the whole `metrics` list;
+# OmegaConf replaces lists rather than appending to them.
+metrics:
+  - metric:
+      _target_: espnet3.systems.cls.metrics.wa.WA
+      ref_key: ref        # reference label key -> `<test_name>/ref.scp`
+      hyp_key: hyp        # hypothesis label key -> `<test_name>/hyp.scp`
+
+  - metric:
+      _target_: espnet3.systems.cls.metrics.ua.UA
+      ref_key: ref
+      hyp_key: hyp
+      token_list: ${data_dir}/token_list  # optional; fixes the class set
+
+  - metric:
+      _target_: espnet3.systems.cls.metrics.macro_f1.MacroF1
+      ref_key: ref
+      hyp_key: hyp
+      token_list: ${data_dir}/token_list  # optional; fixes the class set
+
+  # mAP and AUC rank per-class probabilities, so `score` must be declared in
+  # `inputs`; the `ref_key`/`hyp_key` fallback cannot express a third input.
+  - metric:
+      _target_: espnet3.systems.cls.metrics.mean_ap.MAP
+      token_list: ${data_dir}/token_list  # required; sets the column order
+    inputs:
+      ref: ref
+      score: score
+
+  - metric:
+      _target_: espnet3.systems.cls.metrics.auc.AUC
+      token_list: ${data_dir}/token_list  # required; sets the column order
+    inputs:
+      ref: ref
+      score: score

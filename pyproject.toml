@@ -191,6 +191,16 @@ spk = [
   "asteroid_filterbanks==0.4.0"
 ]
 
+# espnet2/cls/espnet_model.py raises ImportError without torcheval, and the
+# espnet3 classification metrics need scikit-learn. espnet-s3prl is here
+# because SSL frontends are the usual choice for classification, and it was
+# only reachable through the s2st extras.
+cls = [
+  "torcheval",
+  "scikit-learn>=1.0.0",
+  "espnet-s3prl>=2026.5.14",  # fork of s3prl/s3prl
+]
+
 egs2 = [
   "espnet[train]",
   "gdown",
@@ -311,6 +321,7 @@ all = [
   "espnet[s2t]",
   "espnet[s2st]",
   "espnet[spk]",
+  "espnet[cls]",
   "espnet[speechlm]",
   "espnet[egs2]",
   "espnet[mcp]",
