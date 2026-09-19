@@ -6,13 +6,13 @@ from itertools import groupby
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
-import humanfriendly
 import librosa
 import numpy as np
 import torch
 import torch.quantization
 from typeguard import typechecked
 
+from espnet2.bin.s2t_inference import Speech2Text as Speech2TextBase
 from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.legacy.nets.batch_beam_search import BatchBeamSearch
 from espnet2.legacy.nets.batch_beam_search_online_sim import BatchBeamSearchOnlineSim
@@ -399,241 +399,44 @@ class Speech2Text:
         return Speech2Text(**kwargs)
 
 
-class Speech2TextGreedySearch:
-    """Speech2Text with greedy search for CTC."""
+class Speech2TextGreedySearch(Speech2TextBase):
+    """Best-path CTC decoding on long audio, and on files.
 
+    The decoding itself now lives in
+    `espnet2.bin.s2t_inference.Speech2Text`, which loads a CTC-only
+    checkpoint as readily as an encoder-decoder one and decodes it with
+    `best_path`. This class remains for what the base class does not do:
+    `batch_decode` here takes file paths and cuts long audio into
+    overlapping buffers, where the base class's `batch_decode` takes a batch
+    of equal-length utterances.
+
+    Examples:
+        >>> s2t = Speech2TextGreedySearch.from_pretrained("espnet/owsm_ctc_v4_1B")
+        >>> s2t.batch_decode("long_audio.wav")
+
+    """
+
+    @typechecked
     def __init__(
         self,
-        s2t_train_config: Optional[Union[Path, str]] = None,
-        s2t_model_file: Optional[Union[Path, str]] = None,
-        token_type: Optional[str] = None,
-        bpemodel: Optional[str] = None,
-        device: str = "cpu",
-        batch_size: int = 1,
-        dtype: str = "float32",
-        quantize_s2t_model: bool = False,
-        quantize_modules: List[str] = ["Linear"],
-        quantize_dtype: str = "qint8",
+        s2t_train_config: Union[Path, str, None] = None,
+        s2t_model_file: Union[Path, str, None] = None,
+        # a CTC-only OWSM is usually asked to work the language out itself
         lang_sym: str = "<nolang>",
-        task_sym: str = "<asr>",
-        use_flash_attn: bool = False,
-        generate_interctc_outputs: bool = False,
         **kwargs,
     ):
-
-        quantize_modules = set([getattr(torch.nn, q) for q in quantize_modules])
-        quantize_dtype = getattr(torch, quantize_dtype)
-
-        # 1. Build S2T model
-        s2t_model, s2t_train_args = S2TTask.build_model_from_file(
-            s2t_train_config, s2t_model_file, device
+        super().__init__(
+            s2t_train_config=s2t_train_config,
+            s2t_model_file=s2t_model_file,
+            lang_sym=lang_sym,
+            **kwargs,
         )
-        s2t_model.to(dtype=getattr(torch, dtype)).eval()
-
-        # Set flash_attn
-        for m in s2t_model.modules():
-            if hasattr(m, "use_flash_attn"):
-                setattr(m, "use_flash_attn", use_flash_attn)
-
-        if quantize_s2t_model:
-            logging.info("Use quantized s2t model for decoding.")
-
-            s2t_model = torch.quantization.quantize_dynamic(
-                s2t_model, qconfig_spec=quantize_modules, dtype=quantize_dtype
+        if not self.ctc_only:
+            raise ValueError(
+                "this checkpoint has a decoder, so it is not CTC-only; "
+                "espnet2.bin.s2t_inference.Speech2Text.best_path does the "
+                "same decoding for it"
             )
-
-        logging.info(f"Decoding device={device}, dtype={dtype}")
-
-        # [Optional] Build Text converter: e.g. bpe-sym -> Text
-        if token_type is None:
-            token_type = s2t_train_args.token_type
-        if bpemodel is None:
-            bpemodel = s2t_train_args.bpemodel
-
-        if token_type is None:
-            tokenizer = None
-        elif (
-            token_type == "bpe"
-            or token_type == "hugging_face"
-            or "whisper" in token_type
-        ):
-            if bpemodel is not None:
-                tokenizer = build_tokenizer(token_type=token_type, bpemodel=bpemodel)
-            else:
-                tokenizer = None
-        else:
-            tokenizer = build_tokenizer(token_type=token_type)
-
-        if bpemodel not in ["whisper_en", "whisper_multilingual"]:
-            converter = TokenIDConverter(token_list=s2t_model.token_list)
-        else:
-            converter = OpenAIWhisperTokenIDConverter(model_type=bpemodel)
-        logging.info(f"Text tokenizer: {tokenizer}")
-
-        self.s2t_model = s2t_model
-        self.s2t_train_args = s2t_train_args
-        self.preprocessor_conf = s2t_train_args.preprocessor_conf
-        self.converter = converter
-        self.tokenizer = tokenizer
-        self.device = device
-        self.dtype = dtype
-        self.generate_interctc_outputs = generate_interctc_outputs
-
-        # default lang and task symbols
-        self.lang_sym = lang_sym
-        self.task_sym = task_sym
-
-        # retrieve sample rate and compute frames per second
-        sample_rate = s2t_train_args.frontend_conf["fs"]
-        if isinstance(sample_rate, str):
-            sample_rate = humanfriendly.parse_size(sample_rate)
-        self.sample_rate = sample_rate
-        logging.info(f"Audio sampling rate: {sample_rate}")
-
-        subsample_dict = {
-            "conv2d1": 1,
-            "conv2d2": 2,
-            "conv2d": 4,
-            "conv2d6": 6,
-            "conv2d8": 8,
-        }
-        subsample_factor = subsample_dict[s2t_train_args.encoder_conf["input_layer"]]
-        frames_per_sec = sample_rate / s2t_train_args.frontend_conf["hop_length"]
-        frames_per_sec /= subsample_factor
-        self.frames_per_sec = frames_per_sec
-        logging.info(f"Final encoder frames per second: {frames_per_sec}")
-
-    @torch.no_grad()
-    def __call__(
-        self,
-        speech: Union[torch.Tensor, np.ndarray],
-        text_prev: Union[torch.Tensor, np.ndarray, str] = "<na>",
-        lang_sym: Optional[str] = None,
-        task_sym: Optional[str] = None,
-    ) -> Union[
-        ListOfHypothesis,
-        Tuple[
-            ListOfHypothesis,
-            Optional[Dict[int, List[str]]],
-        ],
-    ]:
-        """Inference for a short utterance.
-
-        Args:
-            speech: Input speech
-            text_prev: Previous text used as condition
-        Returns:
-            text, token, token_int, hyp
-
-        """
-
-        # Obtain lang and task tokens
-        lang_sym = lang_sym if lang_sym is not None else self.lang_sym
-        task_sym = task_sym if task_sym is not None else self.task_sym
-        lang_id = self.converter.token2id[lang_sym]
-        task_id = self.converter.token2id[task_sym]
-
-        if isinstance(text_prev, str):
-            text_prev = self.converter.tokens2ids(self.tokenizer.text2tokens(text_prev))
-        else:
-            text_prev = text_prev.tolist()
-
-        # Check if text_prev is valid
-        if self.s2t_model.na in text_prev:
-            text_prev = [self.s2t_model.na]
-
-        text_prev = torch.tensor(text_prev, dtype=torch.long).unsqueeze(
-            0
-        )  # (1, length)
-        text_prev_lengths = text_prev.new_full(
-            [1], dtype=torch.long, fill_value=text_prev.size(1)
-        )
-
-        # Prepare prefix
-        prefix = torch.tensor([[lang_id, task_id]], dtype=torch.long)  # (1, 2)
-        prefix_lengths = prefix.new_full(
-            [1], dtype=torch.long, fill_value=prefix.size(-1)
-        )
-
-        # Preapre speech
-        if isinstance(speech, np.ndarray):
-            speech = torch.tensor(speech)
-
-        # Batchify input
-        # speech: (nsamples,) -> (1, nsamples)
-        speech = speech.unsqueeze(0).to(getattr(torch, self.dtype))
-        # lengths: (1,)
-        speech_lengths = speech.new_full(
-            [1], dtype=torch.long, fill_value=speech.size(1)
-        )
-        logging.info("speech length: " + str(speech.size(1)))
-
-        batch = {
-            "speech": speech,
-            "speech_lengths": speech_lengths,
-            "text_prev": text_prev,
-            "text_prev_lengths": text_prev_lengths,
-            "prefix": prefix,
-            "prefix_lengths": prefix_lengths,
-        }
-
-        # a. To device
-        batch = to_device(batch, device=self.device)
-
-        # b. Forward Encoder
-        enc, enc_olens = self.s2t_model.encode(**batch)
-
-        intermediate_outs = None
-        if isinstance(enc, tuple):
-            enc, intermediate_outs = enc
-
-        assert len(enc) == 1, len(enc)
-
-        # c. Pass the encoder result to the beam search
-        results = self._decode_single_sample(enc)
-
-        # Encoder intermediate CTC predictions
-        if intermediate_outs is not None and self.generate_interctc_outputs:
-            encoder_interctc_res = self._decode_interctc(intermediate_outs)
-            results = (results, encoder_interctc_res)
-
-        return results
-
-    def _decode_interctc(
-        self, intermediate_outs: List[Tuple[int, torch.Tensor]]
-    ) -> Dict[int, List[str]]:
-
-        exclude_ids = [self.s2t_model.blank_id, self.s2t_model.sos, self.s2t_model.eos]
-        token_list = self.s2t_model.token_list
-
-        res = {}
-        for layer_idx, encoder_out in intermediate_outs:
-            y = self.s2t_model.ctc.argmax(encoder_out)[0]  # batch_size = 1
-            y = [x[0] for x in groupby(y) if x[0] not in exclude_ids]
-            y = [token_list[x] for x in y]
-
-            res[layer_idx] = y
-
-        return res
-
-    def _decode_single_sample(self, enc: torch.Tensor):
-        # enc: (B, T, D)
-        token_int = self.s2t_model.ctc.argmax(enc)[0]  # batch size is 1; (T,)
-        token_int = torch.unique_consecutive(token_int).cpu().tolist()
-        token_int = list(filter(lambda x: x != self.s2t_model.blank_id, token_int))
-        token = self.converter.ids2tokens(token_int)
-        token_nospecial = [x for x in token if not (x[0] == "<" and x[-1] == ">")]
-
-        if self.tokenizer is not None:
-            text = self.tokenizer.tokens2text(token)
-            text_nospecial = self.tokenizer.tokens2text(token_nospecial)
-        else:
-            text, text_nospecial = None, None
-
-        logging.info(f"best hypo: {text}")
-
-        results = [(text, token, token_int, text_nospecial, None)]
-        return results
 
     @torch.no_grad()
     def decode_long_batched_buffered(

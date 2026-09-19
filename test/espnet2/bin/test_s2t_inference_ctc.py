@@ -3,7 +3,9 @@ from pathlib import Path
 
 import numpy as np
 import pytest
+import torch
 
+from espnet2.bin.s2t_inference import Speech2Text as Speech2TextBase
 from espnet2.bin.s2t_inference_ctc import (
     Speech2Text,
     Speech2TextGreedySearch,
@@ -130,6 +132,60 @@ def test_Speech2Text_quantized(s2t_config_file):
         assert isinstance(token_int[0], int)
         assert isinstance(text_nospecial, str)
         assert isinstance(hyp, Hypothesis)
+
+
+@pytest.mark.execution_timeout(10)
+def test_the_base_class_loads_a_ctc_only_checkpoint(s2t_config_file):
+    # one interface for both kinds of model: no decoder here, so there is no
+    # beam search and __call__ decodes the best path
+    speech2text = Speech2TextBase(s2t_train_config=s2t_config_file)
+    assert speech2text.ctc_only is True
+    assert speech2text.beam_search is None
+
+    speech = np.random.randn(3000)
+    called = speech2text(speech)
+    best_path = speech2text.best_path(speech)
+    assert [r[:4] for r in called] == [r[:4] for r in best_path]
+    assert called[0][4] is None
+
+
+@pytest.mark.execution_timeout(10)
+def test_the_base_class_batch_decodes_a_ctc_only_checkpoint(s2t_config_file):
+    speech2text = Speech2TextBase(s2t_train_config=s2t_config_file)
+    batched = speech2text.batch_decode(torch.randn(3, 3000))
+    assert len(batched) == 3
+    for results in batched:
+        assert len(results) == 1 and results[0][4] is None
+
+
+@pytest.mark.execution_timeout(10)
+def test_greedy_search_refuses_a_checkpoint_with_a_decoder(tmp_path, token_list):
+    # its long-form paths read the CTC head directly; an encoder-decoder
+    # model would silently decode with something else
+    from espnet2.tasks.s2t import S2TTask as S2TAttentionTask
+
+    S2TAttentionTask.main(
+        cmd=[
+            "--dry_run",
+            "true",
+            "--output_dir",
+            str(tmp_path / "attention"),
+            "--token_list",
+            str(token_list),
+            "--token_type",
+            "char",
+            "--decoder",
+            "rnn",
+            "--preprocessor_conf",
+            "notime_symbol='<na>'",
+            "--preprocessor_conf",
+            "first_time_symbol='<na>'",
+            "--preprocessor_conf",
+            "last_time_symbol='<na>'",
+        ]
+    )
+    with pytest.raises(ValueError, match="CTC-only"):
+        Speech2TextGreedySearch(s2t_train_config=tmp_path / "attention" / "config.yaml")
 
 
 @pytest.mark.execution_timeout(5)
