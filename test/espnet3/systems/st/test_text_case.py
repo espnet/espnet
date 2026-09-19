@@ -93,7 +93,7 @@ def test_apply_case_rejects_unknown_case():
 
 
 def test_normalize_punctuation_unifies_quotes_and_dashes():
-    out = normalize_punctuation('„quoted“ and –dashed–')
+    out = normalize_punctuation("„quoted“ and –dashed–")
     assert "„" not in out and "“" not in out
     assert out.count('"') == 2
     assert "–" not in out
