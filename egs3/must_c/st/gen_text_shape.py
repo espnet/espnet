@@ -69,14 +69,22 @@ def _lengths(texts, model_file, chunk=100_000):
 def main() -> None:
     tgt_v, src_v = _vocab_size(TGT_BPE), _vocab_size(SRC_BPE)
     print(f"vocab sizes: tgt={tgt_v} src={src_v}")
-    cache_cfg = {"enabled": True, "backend": "hf",
-                 "cache_dir": str(RECIPE_DIR / "data" / "hf" / "en_de")}
+    cache_cfg = {
+        "enabled": True,
+        "backend": "hf",
+        "cache_dir": str(RECIPE_DIR / "data" / "hf" / "en_de"),
+    }
 
     for split, stats_split in SPLITS:
         # _keep is the filter's surviving positions; None means unfiltered.
-        ds = Dataset(split=split, recipe_dir=str(RECIPE_DIR),
-                     source_dir=str(RECIPE_DIR / "data"), cache=cache_cfg,
-                     task="st", tgt_lang="de")
+        ds = Dataset(
+            split=split,
+            recipe_dir=str(RECIPE_DIR),
+            source_dir=str(RECIPE_DIR / "data"),
+            cache=cache_cfg,
+            task="st",
+            tgt_lang="de",
+        )
         raw = load_from_disk(str(CACHE / split))
         keep = ds._keep if ds._keep is not None else range(len(raw))
 
@@ -97,8 +105,10 @@ def main() -> None:
                 for index, length in enumerate(lengths):
                     stream.write(f"{index} {length},{vocab}\n")
             pct = [np.percentile(lengths, p) for p in (50, 99, 100)]
-            print(f"[{stats_split}] {len(lengths):,} rows -> {out.name}  "
-                  f"p50={pct[0]:.0f} p99={pct[1]:.0f} max={pct[2]:.0f} tokens")
+            print(
+                f"[{stats_split}] {len(lengths):,} rows -> {out.name}  "
+                f"p50={pct[0]:.0f} p99={pct[1]:.0f} max={pct[2]:.0f} tokens"
+            )
 
 
 if __name__ == "__main__":
