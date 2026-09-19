@@ -1,7 +1,7 @@
 # Run a published ESPnet model with one command, without installing anything:
 #
 #   docker run --rm -v "$PWD:/data" \
-#       -v "$HOME/.cache/huggingface:/root/.cache/huggingface" \
+#       -v "$HOME/.cache/huggingface:/cache/huggingface" \
 #       espnet/espnet:inference-latest asr /data/audio.wav
 #
 # This is not espnet.dockerfile's smaller sibling - it is a different image for
@@ -71,12 +71,25 @@ ENV PATH=/opt/venv/bin:${PATH}
 # subcommands' defaults are three different checkpoints between them, and any
 # Hugging Face tag can be asked for with --model, so an image holding them would
 # be both enormous and wrong for most users. They download on first use into the
-# cache below; mount it (-v "$HOME/.cache/huggingface:/root/.cache/huggingface")
-# or every `docker run` downloads the model again.
-# espnet_model_zoo resolves an espnet/* tag through huggingface_hub, which reads
-# HF_HOME; a tag published somewhere other than the Hub instead lands in
-# ~/.cache/espnet_model_zoo, so mount that too if you use one.
-ENV HF_HOME=/root/.cache/huggingface
+# cache below; mount it (-v "$HOME/.cache/huggingface:/cache/huggingface") or
+# every `docker run` downloads the model again.
+#
+# /cache rather than /root/.cache: on a Linux host, a container writing to a
+# bind mount as root leaves root-owned files behind in the user's directory, so
+# the answer is `--user "$(id -u):$(id -g)"` - and an arbitrary uid has no home
+# directory in this image and cannot write under /root. Everything the process
+# writes therefore lives in one world-writable directory (sticky, like /tmp)
+# that is the same path whoever runs it.
+#   HOME     espnet_model_zoo caches a tag published outside the Hub under
+#            ~/.cache/espnet_model_zoo rather than through huggingface_hub.
+#   HF_HOME  what huggingface_hub reads; a Hub tag lands here.
+#   NUMBA    librosa's JIT functions are @jit(cache=True), and their cache would
+#            otherwise be written beside the installed librosa, which is not
+#            writable except as root.
+ENV HOME=/cache \
+    HF_HOME=/cache/huggingface \
+    NUMBA_CACHE_DIR=/cache/numba
+RUN mkdir -p /cache/huggingface /cache/numba && chmod -R 1777 /cache
 
 # soundfile and sentencepiece ship their native libraries inside their wheels,
 # so the final image needs no libsndfile or build tools of its own.

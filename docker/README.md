@@ -12,7 +12,7 @@ one published model on one file, and the vLLM image serves SpeechLM models.
 
 | Image | What it is for | One command |
 | :---- | :---- | :---- |
-| `espnet/espnet:inference-latest` | Trying a published model - ASR, translation, TTS, enhancement - with nothing installed. CPU only. | `docker run --rm -v "$PWD:/data" -v "$HOME/.cache/huggingface:/root/.cache/huggingface" espnet/espnet:inference-latest asr /data/audio.wav` |
+| `espnet/espnet:inference-latest` | Trying a published model - ASR, translation, TTS, enhancement - with nothing installed. CPU only. | `docker run --rm -v "$PWD:/data" -v "$HOME/.cache/huggingface:/cache/huggingface" espnet/espnet:inference-latest asr /data/audio.wav` |
 | `espnet/espnet:cpu-latest`, `espnet/espnet:gpu-latest` | Development: running and writing `egs2` recipes, training, the Kaldi-style tooling. The whole toolkit. | `docker run --rm -it -v "$PWD:/work" espnet/espnet:cpu-latest bash` |
 | `espnet/vllm:latest` | Serving a SpeechLM checkpoint behind an OpenAI-compatible API, on GPU. Built from the [ESPnet vLLM fork](https://github.com/espnet/vllm). | [Serving guide](https://github.com/espnet/espnet/pull/6695) (conversion, then `docker run --gpus all ... espnet/vllm:latest`) |
 
@@ -28,7 +28,7 @@ every subcommand of that command is an argument to `docker run`:
 ```sh
 docker run --rm \
     -v "$PWD:/data" \
-    -v "$HOME/.cache/huggingface:/root/.cache/huggingface" \
+    -v "$HOME/.cache/huggingface:/cache/huggingface" \
     espnet/espnet:inference-latest asr /data/audio.wav
 ```
 
@@ -47,13 +47,21 @@ Both mounts matter:
 - `-v "$PWD:/data"` is how the container sees your audio, and where a file
   written with `-o` ends up. The working directory inside the image is `/data`,
   so that is also what a relative path means.
-- `-v "$HOME/.cache/huggingface:/root/.cache/huggingface"` keeps the model
+- `-v "$HOME/.cache/huggingface:/cache/huggingface"` keeps the model
   between runs. No weights are baked into the image - one OWSM checkpoint is
   around 4 GB, and any tag from the [ESPnet Hugging Face
   organization](https://huggingface.co/espnet) can be asked for with `--model` -
   so the first run downloads one. Without this mount, so does every run after
-  it. A model published outside the Hub is cached in `~/.cache/espnet_model_zoo`
-  instead, so mount that as `/root/.cache/espnet_model_zoo` if you use one.
+  it. A model published outside the Hub is cached by `espnet_model_zoo` rather
+  than by `huggingface_hub`, under `/cache/.cache/espnet_model_zoo`; mount that
+  too if you use one.
+
+On a Linux host, add `--user "$(id -u):$(id -g)"`. Without it the container
+writes as root, and the transcript or wav it leaves in your directory is
+root-owned. Everything the image writes - both caches - is under `/cache`,
+which is world-writable for exactly this reason, so no other change is needed.
+(On Docker Desktop for macOS and Windows the file sharing already maps
+ownership, and the flag is unnecessary.)
 
 `--model <tag>` selects any published model that suits the subcommand;
 `espnet models` names the default of each. The image is CPU-only - it installs
