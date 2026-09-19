@@ -49,10 +49,13 @@ dataloader:
   train:
     iter_factory:
       batches:
+        # RNN separator uses pack_padded_sequence(enforce_sorted=True).
+        type: sorted
         batch_size: 2
   valid:
     iter_factory:
       batches:
+        type: sorted
         batch_size: 2
 
 trainer:

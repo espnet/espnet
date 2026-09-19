@@ -1,4 +1,3 @@
-# egs3/vctk_noisy/enh/src/inference.py
 """Inference output helpers for VCTK-Noisy enhancement recipes."""
 
 import numpy as np
@@ -9,7 +8,9 @@ def build_output(data, model_output, idx):
 
     Args:
         data: One dataset sample, or a list of samples for batched inference.
-        model_output: Speaker-wise model outputs. Each item has shape ``(B, T)``.
+        model_output: Speaker-wise model outputs. For a single utterance each
+            item is ``(T,)`` (or ``(1, T)``). For a batch, each item is a list
+            of per-utterance ``(T_i,)`` arrays, or a padded ``(B, T)`` array.
         idx: One dataset index, or a list of indices for batched inference.
 
     Returns:
@@ -22,21 +23,23 @@ def build_output(data, model_output, idx):
     if not is_batched:
         utt_id = data.get("utt_id", str(idx))
         reference = np.asarray(data["speech_ref1"], dtype=np.float32)
-        enhanced = np.asarray(model_output[0][0], dtype=np.float32)
+        enhanced = np.asarray(model_output[0], dtype=np.float32)
+        if enhanced.ndim > 1:
+            enhanced = enhanced[0]
+        enhanced = enhanced[: reference.shape[0]]
         max_val = np.max(np.abs(enhanced))
         if max_val > 1.0:
             enhanced = enhanced / max_val * 0.9
         return {"utt_id": utt_id, "reference": reference, "enhanced": enhanced}
 
-    # Batched: return list of dicts
     results = []
     batch_size = len(idx)
+    spk0 = model_output[0]
     for i in range(batch_size):
         utt_id = data[i].get("utt_id", str(idx[i]))
         reference = np.asarray(data[i]["speech_ref1"], dtype=np.float32)
-        enhanced = np.asarray(model_output[0][i], dtype=np.float32)[
-            : reference.shape[0]
-        ]
+        enhanced = np.asarray(spk0[i], dtype=np.float32)
+        enhanced = enhanced[: reference.shape[0]]
         max_val = np.max(np.abs(enhanced))
         if max_val > 1.0:
             enhanced = enhanced / max_val * 0.9
@@ -51,13 +54,6 @@ class SeparateSpeechWrapper:
         train_config: Enhancement training configuration path.
         model_file: Trained enhancement checkpoint path.
         **kwargs: Additional keyword arguments forwarded to ``SeparateSpeech``.
-
-    Example:
-        >>> separator = SeparateSpeechWrapper(
-        ...     train_config="exp/train/config.yaml",
-        ...     model_file="exp/train/last.ckpt",
-        ...     normalize_output_wav=True,
-        ... )
     """
 
     def __init__(self, train_config, model_file, **kwargs):
@@ -76,41 +72,38 @@ class SeparateSpeechWrapper:
         Args:
             speech_mix: A waveform with shape ``(T,)`` or ``(B, T)``, or a list
                 of one-dimensional NumPy waveforms. List inputs may have
-                different lengths and are zero-padded to the longest waveform.
+                different lengths and are zero-padded only for the model call.
 
         Returns:
-            A list with one item per separated speaker. Each item is a tensor
-            or NumPy array with shape ``(B, T)``.
-
-        Examples:
-            Single inference:
-
-            >>> waveform = np.zeros(16000, dtype=np.float32)
-            >>> enhanced = separator(waveform)
-            >>> enhanced[0].shape[0]
-            1
-
-            Batched inference:
-
-            >>> waveforms = [
-            ...     np.zeros(16000, dtype=np.float32),
-            ...     np.zeros(12000, dtype=np.float32),
-            ... ]
-            >>> enhanced = separator(waveforms)
-            >>> enhanced[0].shape
-            (2, 16000)
+            A list with one item per separated speaker.
+            - single ``(T,)`` input -> each speaker is ``(T,)`` (no batch dim)
+            - list input -> each speaker is a list of ``(T_i,)`` arrays
+            - already-batched ``(B, T)`` input -> each speaker is ``(B, T)``
         """
+        was_list = isinstance(speech_mix, list)
+        was_1d = (not was_list) and getattr(speech_mix, "ndim", 1) == 1
+        orig_lens = None
 
-        if isinstance(speech_mix, list):
-            # Batched: pad to same length and stack to (batch, T)
-            max_len = max(len(s) for s in speech_mix)
+        if was_list:
+            orig_lens = [len(s) for s in speech_mix]
+            max_len = max(orig_lens)
             padded = np.zeros((len(speech_mix), max_len), dtype=np.float32)
-            for i, s in enumerate(speech_mix):
-                padded[i, : len(s)] = s
+            for i, waveform in enumerate(speech_mix):
+                padded[i, : len(waveform)] = waveform
             speech_mix = padded
-        else:
-            # Single sample: (T,) -> (1, T)
-            if speech_mix.ndim == 1:
-                speech_mix = speech_mix[np.newaxis, :]
+        elif was_1d:
+            speech_mix = speech_mix[np.newaxis, :]
 
-        return self._model(speech_mix)
+        outputs = self._model(speech_mix)
+
+        if was_list:
+            return [
+                [
+                    np.asarray(spk_out[i, : orig_lens[i]], dtype=np.float32)
+                    for i in range(len(orig_lens))
+                ]
+                for spk_out in outputs
+            ]
+        if was_1d:
+            return [np.asarray(spk_out[0], dtype=np.float32) for spk_out in outputs]
+        return outputs
