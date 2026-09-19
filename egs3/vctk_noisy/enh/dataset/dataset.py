@@ -17,9 +17,7 @@ def _speaker_id(utt_id: str) -> str:
     return utt_id.split("_", 1)[0]
 
 
-def _list_pairs(
-    noisy_dir: Path, clean_dir: Path
-) -> list[tuple[str, Path, Path]]:
+def _list_pairs(noisy_dir: Path, clean_dir: Path) -> list[tuple[str, Path, Path]]:
     """Return ``(utt_id, noisy_path, clean_path)`` sorted by utt id."""
     pairs: list[tuple[str, Path, Path]] = []
     for noisy_path in sorted(noisy_dir.rglob("*.wav")):
@@ -30,8 +28,7 @@ def _list_pairs(
             clean_path = clean_dir / noisy_path.relative_to(noisy_dir)
         if not clean_path.is_file():
             raise FileNotFoundError(
-                f"Missing clean reference for {noisy_path}: "
-                f"expected {clean_path}"
+                f"Missing clean reference for {noisy_path}: " f"expected {clean_path}"
             )
         pairs.append((utt_id, noisy_path, clean_path))
     if not pairs:
@@ -72,25 +69,17 @@ class VCTKNoisyDataset(TorchDataset):
             clean_dir = self.data_path / "clean_trainset_28spk_wav"
             pairs = _list_pairs(noisy_dir, clean_dir)
             if split == "train":
-                pairs = [
-                    p
-                    for p in pairs
-                    if _speaker_id(p[0]) not in _VALID_SPEAKERS
-                ]
+                pairs = [p for p in pairs if _speaker_id(p[0]) not in _VALID_SPEAKERS]
             else:
-                pairs = [
-                    p for p in pairs if _speaker_id(p[0]) in _VALID_SPEAKERS
-                ]
+                pairs = [p for p in pairs if _speaker_id(p[0]) in _VALID_SPEAKERS]
         else:
             raise ValueError(
-                f"Unknown split '{split}'. "
-                "Expected one of: train, valid, test"
+                f"Unknown split '{split}'. " "Expected one of: train, valid, test"
             )
 
         if not pairs:
             raise RuntimeError(
-                f"No utterances left for split '{split}' under "
-                f"{self.data_path}"
+                f"No utterances left for split '{split}' under " f"{self.data_path}"
             )
         self._pairs = pairs
 
@@ -99,12 +88,8 @@ class VCTKNoisyDataset(TorchDataset):
 
     def __getitem__(self, idx: int) -> dict[str, Any]:
         utt_id, noisy_path, clean_path = self._pairs[int(idx)]
-        speech_mix, _ = sf.read(
-            str(noisy_path), dtype="float32", always_2d=False
-        )
-        speech_ref, _ = sf.read(
-            str(clean_path), dtype="float32", always_2d=False
-        )
+        speech_mix, _ = sf.read(str(noisy_path), dtype="float32", always_2d=False)
+        speech_ref, _ = sf.read(str(clean_path), dtype="float32", always_2d=False)
         speech_mix = np.asarray(speech_mix, dtype=np.float32)
         speech_ref = np.asarray(speech_ref, dtype=np.float32)
         if speech_mix.ndim > 1:
@@ -117,9 +102,7 @@ class VCTKNoisyDataset(TorchDataset):
         speech_ref = speech_ref[:length]
 
         if self.chunk_length is not None and length > self.chunk_length:
-            start = int(
-                np.random.randint(0, length - self.chunk_length + 1)
-            )
+            start = int(np.random.randint(0, length - self.chunk_length + 1))
             end = start + self.chunk_length
             speech_mix = speech_mix[start:end]
             speech_ref = speech_ref[start:end]
