@@ -83,7 +83,7 @@ def _load_audio(path: str):
     _require_file(path)
     try:
         speech, rate = sf.read(path, dtype="float32", always_2d=False)
-    except (OSError, RuntimeError) as e:
+    except (OSError, RuntimeError, TypeError) as e:
         raise CLIError(f"cannot read {path}: {e}") from e
     # channels are kept: SeparateSpeech takes (Batch, Nsamples [, Channels])
     # and a beamformer is worthless without them
@@ -119,12 +119,46 @@ def _build(loader, args, task: str):
 
 
 def cmd_asr(args) -> int:
+    # every check the user can fail comes before the import: loading the s2t
+    # stack takes seconds, and "no such file" should not wait for it
+    if args.live or args.stream:
+        return _transcribe_as_it_arrives(args)
+
+    if not args.audio:
+        # the argument is optional only because --live has nothing to name
+        raise CLIError("give an audio file, or --live to record one")
     _require_file(args.audio)
+
     from espnet2.bin.s2t_inference_ctc import Speech2TextGreedySearch
 
     s2t = _build(Speech2TextGreedySearch, args, "asr")
     print(s2t.batch_decode(args.audio, lang_sym=f"<{args.language}>", task_sym="<asr>"))
     return 0
+
+
+def _transcribe_as_it_arrives(args) -> int:
+    """`--live` from the microphone, `--stream` from a file, same decoding."""
+    if args.live and args.audio:
+        raise CLIError("--live records from the microphone; do not also name a file")
+    if args.stream and not args.audio:
+        raise CLIError("--stream needs an audio file; --live reads the microphone")
+    if args.stream:
+        _require_file(args.audio)
+
+    from espnet2.bin import live
+    from espnet2.bin.s2t_inference_ctc import Speech2TextGreedySearch
+
+    s2t = _build(Speech2TextGreedySearch, args, "asr")
+    try:
+        source = live.from_microphone() if args.live else live.from_file(args.audio)
+
+        def decode(chunk):
+            results = s2t(chunk, lang_sym=f"<{args.language}>", task_sym="<asr>")
+            return results[0][3] if results else ""
+
+        return live.transcribe(decode, source)
+    except live.LiveError as e:
+        raise CLIError(str(e)) from e
 
 
 def cmd_translate(args) -> int:
@@ -141,10 +175,21 @@ def cmd_translate(args) -> int:
 
 
 def _output_path(value: str) -> Path:
-    """The file to write, with the extension soundfile needs to pick a format."""
+    """The file to write, with an extension soundfile can turn into a format.
+
+    Checked here rather than at the write: a model is downloaded and run in
+    between, and `-o notes.txt` ended in a traceback out of soundfile after
+    all of that work.
+    """
     path = Path(value)
     if not path.suffix:
         raise CLIError(f"output needs a file extension, e.g. {value}.wav")
+
+    import soundfile as sf
+
+    if path.suffix.lstrip(".").upper() not in sf.available_formats():
+        known = ", ".join(sorted(f".{fmt.lower()}" for fmt in sf.available_formats()))
+        raise CLIError(f"cannot write {path.suffix} audio; soundfile writes {known}")
     return path
 
 
@@ -213,7 +258,17 @@ def build_parser() -> argparse.ArgumentParser:
         return p
 
     p = add("asr", "transcribe an audio file", cmd_asr)
-    p.add_argument("audio", help="audio file, any format soundfile reads")
+    p.add_argument("audio", nargs="?", help="audio file, any format soundfile reads")
+    p.add_argument(
+        "--stream",
+        action="store_true",
+        help="print each window of the file as it is decoded",
+    )
+    p.add_argument(
+        "--live",
+        action="store_true",
+        help="transcribe from the microphone until Ctrl-C (needs sounddevice)",
+    )
     p.add_argument(
         "--language",
         default=DEFAULT_LANGUAGE,
