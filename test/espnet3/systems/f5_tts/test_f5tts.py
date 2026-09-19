@@ -1,8 +1,8 @@
 import pytest
 import torch
 
-from espnet3.systems.tts.models.f5_tts.f5tts import F5TTS
-from espnet3.systems.tts.models.f5_tts.vocoder_mel import VocoderMelSpec
+from espnet3.systems.f5_tts.f5tts import F5TTS
+from espnet3.systems.f5_tts.vocoder_mel import VocoderMelSpec
 
 MODEL_CONF = dict(
     hidden_size=32,
@@ -124,7 +124,7 @@ def test_accepts_omegaconf_containers(token_file):
 
     config = OmegaConf.create(
         {
-            "_target_": "espnet3.systems.tts.models.f5_tts.f5tts.F5TTS",
+            "_target_": "espnet3.systems.f5_tts.f5tts.F5TTS",
             "token_list": token_file,
             "feats_extract_config": dict(FEATS_CONF),
             **dict(MODEL_CONF, mask_fraction_range=[0.7, 1.0]),

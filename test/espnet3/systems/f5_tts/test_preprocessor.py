@@ -3,7 +3,7 @@ import importlib.util
 import numpy as np
 import pytest
 
-from espnet3.systems.tts.models.f5_tts.preprocessor import F5PinyinPreprocessor
+from espnet3.systems.f5_tts.preprocessor import F5PinyinPreprocessor
 
 # The tokenizer dependencies do real work (rjieba segmentation, pypinyin
 # tables). CI's 10 s default is tight for that on the slower runners.

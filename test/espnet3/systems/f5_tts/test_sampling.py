@@ -9,7 +9,7 @@ instead. The ODE solver those paths drive is tested in ``test_solvers.py``.
 import pytest
 import torch
 
-from espnet3.systems.tts.models.f5_tts.f5tts import F5TTS
+from espnet3.systems.f5_tts.f5tts import F5TTS
 
 MODEL_CONF = dict(
     hidden_size=32,

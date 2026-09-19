@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from espnet3.systems.tts.models.f5_tts.vocoder_mel import VocoderMelSpec
+from espnet3.systems.f5_tts.vocoder_mel import VocoderMelSpec
 
 FS = 24000
 HOP = 256

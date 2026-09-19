@@ -11,7 +11,7 @@ signature and the returned shape are covered here too.
 import pytest
 import torch
 
-from espnet3.systems.tts.models.f5_tts.solvers import odeint
+from espnet3.systems.f5_tts.solvers import odeint
 
 
 def test_euler_matches_the_closed_form_solution():

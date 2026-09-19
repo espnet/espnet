@@ -48,8 +48,8 @@ import torchaudio
 from librosa.filters import mel as librosa_mel_fn
 from torch import nn
 
-from espnet3.systems.tts.models.f5_tts.rotary import apply_rotary_pos_emb
-from espnet3.systems.tts.models.f5_tts.utils import is_package_available
+from espnet3.systems.f5_tts.rotary import apply_rotary_pos_emb
+from espnet3.systems.f5_tts.utils import is_package_available
 
 # raw wav to mel spec
 

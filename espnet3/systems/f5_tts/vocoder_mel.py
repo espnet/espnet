@@ -1,6 +1,6 @@
 """Neural-vocoder mel front-end as an ``AbsFeatsExtract``.
 
-Wraps F5-TTS's ``MelSpec`` so :class:`~espnet3.systems.tts.models.f5_tts.f5tts.F5TTS`
+Wraps F5-TTS's ``MelSpec`` so :class:`~espnet3.systems.f5_tts.f5tts.F5TTS`
 can use it as its ``feats_extract``. Using F5's own mel, rather than
 ``LogMelFbank``, keeps training features bit-compatible with the neural vocoder
 used at inference. ``mel_spec_type`` selects which vocoder family the mel
@@ -17,7 +17,7 @@ from typing import Any, Dict, Optional, Tuple
 import torch
 
 from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
-from espnet3.systems.tts.models.f5_tts.modules import MelSpec
+from espnet3.systems.f5_tts.modules import MelSpec
 
 
 class VocoderMelSpec(AbsFeatsExtract):
@@ -92,7 +92,7 @@ class VocoderMelSpec(AbsFeatsExtract):
         Note:
             A method, not a property, because ``AbsFeatsExtract`` declares it as
             one and espnet2 calls it as ``feats_extract.output_size()``.
-            :class:`~espnet3.systems.tts.models.f5_tts.f5tts.F5TTS` reads it to size its
+            :class:`~espnet3.systems.f5_tts.f5tts.F5TTS` reads it to size its
             backbone, which is why the recipe states the mel dimension only once,
             in ``feats_extract_config``.
         """
