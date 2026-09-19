@@ -5,6 +5,7 @@ subcommand imports, so what is checked is the wiring: which class is asked
 for which tag, what it is called with, and what reaches the terminal.
 """
 
+import importlib.metadata
 import subprocess
 import sys
 import types
@@ -268,6 +269,37 @@ def test_help_runs_as_a_process_and_exits_zero():
     assert r.returncode == 0
     for command in ("asr", "translate", "tts", "enhance", "demo", "models"):
         assert command in r.stdout
+
+
+def test_version_exits_zero_in_process(capsys):
+    # the subprocess tests below do not count towards coverage, and this is
+    # the line argparse runs when the flag is given
+    with pytest.raises(SystemExit) as exit_:
+        cli.main(["--version"])
+    assert exit_.value.code == 0
+    assert capsys.readouterr().out.strip() == f"espnet {cli._version()}"
+
+
+def test_version_names_the_installed_version():
+    r = _run("--version")
+    assert r.returncode == 0
+    assert r.stdout.strip() == f"espnet {cli._version()}"
+    assert cli._version().strip() != ""
+
+
+def test_version_says_so_when_the_package_is_not_installed(monkeypatch):
+    # running from a source tree: nothing declares a version, and the command
+    # still has to answer
+    def missing(_name):
+        raise importlib.metadata.PackageNotFoundError("espnet")
+
+    monkeypatch.setattr(importlib.metadata, "version", missing)
+    assert "source tree" in cli._version()
+
+
+def test_version_does_not_need_a_subcommand():
+    # --version is answered before the required subcommand is missed
+    assert _run("--version").stderr == ""
 
 
 def test_models_runs_as_a_process_and_names_the_defaults():

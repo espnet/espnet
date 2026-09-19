@@ -155,10 +155,11 @@ espnet demo                                # the same model in your browser
 ```
 
 Each command takes `--model <tag>` for any model in the organization that suits
-it, and `--device cuda`. `espnet demo` serves, on localhost, the app behind
-[the OWSM-CTC v4 Space](https://huggingface.co/spaces/espnet/owsm-ctc-v4) -
-recording, upload, the checkpoint's own language and translation menus, and
-long-form decoding - and takes `--port` and `--share`.
+it, and `--device cuda`; `espnet --version` names the installed version.
+`espnet demo` serves, on localhost, the app behind [the OWSM-CTC v4
+Space](https://huggingface.co/spaces/espnet/owsm-ctc-v4) - recording, upload,
+the checkpoint's own language and translation menus, and long-form decoding -
+and takes `--port` and `--share`.
 
 **From Python** — any model from the [ESPnet Hugging Face organization](https://huggingface.co/espnet):
 
