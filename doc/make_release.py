@@ -10,7 +10,8 @@ Replaces doc/make_release_note_from_milestone.py, which only generated notes.
     # check, and print the notes
     python doc/make_release.py <github_token> <milestone>
 
-    # also write version.txt and create or update the draft release
+    # also write version.txt and the README entry, and create or update
+    # the draft release
     python doc/make_release.py <github_token> <milestone> --apply
 
 Everything this does is reversible. It never creates a tag and never uploads
@@ -49,7 +50,12 @@ import github
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 VERSION_FILE = REPO_ROOT / "version.txt"
+README_FILE = REPO_ROOT / "README.md"
 PUBLISH_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "publish_python_package.yml"
+
+# What the What's new entry says until a person writes the real summary. A
+# release that still carries it has a README that says nothing about itself.
+README_PLACEHOLDER = "TODO: what this release is about, in one or two lines."
 
 # The labels the notes are grouped under, in the order they appear.
 PICKUP_LABELS = [
@@ -153,6 +159,96 @@ def publishable_metadata():
         return module.check_no_direct_references()
 
 
+def readme_sections():
+    """The What's new list and the Earlier releases list, as text.
+
+    Returns None if README.md is not shaped the way this function edits, so a
+    restructured README makes the script say what to do by hand rather than
+    rewrite something it does not understand.
+    """
+    if not README_FILE.is_file():
+        return None
+    text = README_FILE.read_text()
+    match = re.search(
+        r"(## What's new\n\n)(.*?)"
+        r"(\n<details>\n<summary>Earlier releases</summary>\n\n)(.*?)"
+        r"(\nFull history:)",
+        text,
+        re.S,
+    )
+    return (text, match) if match else None
+
+
+def readme_entry(version):
+    """The What's new bullet for this version, or None if there is none."""
+    if not README_FILE.is_file():
+        return None
+    # one bullet: from its "- **[ESPnet <version>]" to the next bullet or blank line
+    match = re.search(
+        rf"- \*\*\[ESPnet {re.escape(version)}\].*?(?=\n- \*\*\[ESPnet |\n\n)",
+        README_FILE.read_text(),
+        re.S,
+    )
+    return match.group(0) if match else None
+
+
+def readme_up_to_date(version, will_apply):
+    """README's What's new has to name this release, with a real summary.
+
+    The 202610 release went out with What's new still describing 202609: the
+    README is the first thing a visitor reads, and nothing in the procedure
+    pointed at it. --apply writes the entry, so its absence is excused there,
+    the way the version.txt mismatch is.
+    """
+    entry = readme_entry(version)
+    if entry is None:
+        if will_apply:
+            return []
+        return [
+            f"README.md's What's new does not mention {version} "
+            "(--apply writes the entry, then fill in its summary)"
+        ]
+    if README_PLACEHOLDER in entry:
+        return [
+            f"README.md's What's new entry for {version} is still the placeholder "
+            "- write what the release is about"
+        ]
+    return []
+
+
+def update_readme(version):
+    """Add the What's new entry for this release and demote the previous one."""
+    if readme_entry(version) is not None:
+        return
+    sections = readme_sections()
+    if sections is None:
+        print(
+            "README.md is not shaped as expected: add the What's new entry for "
+            f"{version} by hand"
+        )
+        return
+    text, match = sections
+    header, current, opener, earlier, tail = match.groups()
+    entry = (
+        f"- **[ESPnet {version}]"
+        f"(https://github.com/espnet/espnet/releases/tag/v.{version})** —\n"
+        f"  {README_PLACEHOLDER}\n"
+    )
+    demoted = current.strip("\n")
+    README_FILE.write_text(
+        text[: match.start()]
+        + header
+        + entry
+        + opener
+        + (demoted + "\n" if demoted else "")
+        + earlier
+        + tail
+        + text[match.end() :]
+    )
+    print(f"wrote README.md: What's new now lists {version}")
+    print("  replace its placeholder line with what the release is about")
+
+
 def preflight(repo, milestone, version, open_items, will_apply):
     """Everything that has to be true before a release can go out.
 
@@ -192,6 +288,7 @@ def preflight(repo, milestone, version, open_items, will_apply):
     elif on_pypi is None:
         problems.append("could not reach PyPI to check whether this version exists")
 
+    problems += readme_up_to_date(version, will_apply)
     problems += trusted_publishing_ready()
     problems += publishable_metadata()
 
@@ -281,6 +378,8 @@ def apply_changes(repo, milestone, version, notes):
         VERSION_FILE.write_text(version + "\n")
         print(f"wrote version.txt = {version}")
         print("  commit it, open a pull request, and merge before tagging")
+
+    update_readme(version)
 
     title = f"ESPnet version {version}"
     for release in repo.get_releases():
@@ -375,7 +474,8 @@ def main():
 
     print(
         "\nRemaining, by hand:\n"
-        "  1. Merge the version.txt bump.\n"
+        "  1. Write the README What's new summary, and merge it with the\n"
+        "     version.txt bump - the same pull request carries both.\n"
         "  2. Fill in the Overview in the draft release.\n"
         f"  3. Publish the draft. That creates tag v.{version}, which triggers\n"
         "     publish_python_package.yml and uploads to PyPI. It cannot be undone.\n"
