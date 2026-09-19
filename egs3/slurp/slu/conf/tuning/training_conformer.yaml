@@ -1,0 +1,187 @@
+##########################################################
+#                    TRAINING SETTING                    #
+##########################################################
+# Quick usage:
+#   python run.py --stages create_dataset --training_config conf/tuning/training_conformer.yaml
+#   python run.py --stages train          --training_config conf/tuning/training_conformer.yaml
+#
+# ESPnet3 port of `egs2/slurp/asr1/conf/train_asr.yaml`: a Conformer encoder and
+# Transformer decoder trained to emit `<scenario>_<action> <transcript>`, so one
+# autoregressive decoder does intent classification and ASR at once.
+#
+# Only values that differ from `egs3/TEMPLATE/asr/conf/training.yaml` appear
+# here; everything else is inherited from those defaults.
+
+task: espnet3.systems.asr.task.ASRTask
+
+##########################################################
+#                    DATASET DEFINITION                  #
+##########################################################
+# No `data_src`, so the entries resolve to `${recipe_dir}/dataset/__init__.py`
+# and `data_src_args` is forwarded to `SlurpDataset(...)`. Training uses the
+# real and the synthetic SLURP training splits together, as `egs2/slurp/asr1`
+# does by writing both into a single `data/train`.
+dataset:
+  train:
+    - data_src_args:
+        split: train
+    - data_src_args:
+        split: train_synthetic
+  valid:
+    - data_src_args:
+        split: devel
+  preprocessor:
+    _target_: espnet2.train.preprocessor.CommonPreprocessor
+    token_type: bpe
+    token_list: ${tokenizer.save_path}/tokens.txt
+    bpemodel: ${tokenizer.save_path}/bpe.model
+    text_cleaner:
+    fs: 16000
+
+create_dataset:
+  recipe_dir: ${recipe_dir}
+  # Set this, or the `SLURP` environment variable, when the corpus does not sit
+  # under `${recipe_dir}/download/slurp`.
+  source_dir:
+
+##########################################################
+#                   TOKENIZER SETTING                    #
+##########################################################
+# BPE is trained on transcripts only; `SLUSystem` additionally reserves every
+# intent label as a SentencePiece user-defined symbol, so a label stays one
+# token. `vocab_size` therefore has to cover the ~500 subwords of the egs2
+# recipe plus SLURP's 69 intent labels.
+tokenizer:
+  vocab_size: 1000
+  character_coverage: 1.0
+  model_type: bpe
+  save_path: ${data_dir}/${tokenizer.model_type}_${tokenizer.vocab_size}
+  text_builder:
+    func: src.tokenizer.gather_training_text
+    recipe_dir: ${recipe_dir}
+    splits:
+      - train
+      - train_synthetic
+
+##########################################################
+#                      MODEL SETTING                     #
+##########################################################
+model:
+  vocab_size: ${tokenizer.vocab_size}
+  token_list: ${tokenizer.save_path}/tokens.txt
+
+  encoder: conformer
+  encoder_conf:
+    output_size: 512
+    attention_heads: 8
+    linear_units: 2048
+    num_blocks: 12
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    attention_dropout_rate: 0.1
+    input_layer: conv2d
+    normalize_before: true
+    macaron_style: true
+    pos_enc_layer_type: rel_pos
+    selfattention_layer_type: rel_selfattn
+    activation_type: swish
+    use_cnn_module: true
+    cnn_module_kernel: 31
+
+  decoder: transformer
+  decoder_conf:
+    attention_heads: 8
+    linear_units: 2048
+    num_blocks: 6
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    self_attention_dropout_rate: 0.1
+    src_attention_dropout_rate: 0.1
+
+  # `egs2/slurp/asr1/run.sh` passes `--feats_normalize utterance_mvn`, which
+  # needs no statistics file of its own.
+  normalize: utterance_mvn
+  normalize_conf: {}
+
+  model_conf:
+    ctc_weight: 0.3
+    lsm_weight: 0.1
+    length_normalized_loss: false
+
+  frontend: default
+  frontend_conf:
+    n_fft: 512
+    win_length: 400
+    hop_length: 160
+
+  specaug: specaug
+  specaug_conf:
+    apply_time_warp: true
+    time_warp_window: 5
+    time_warp_mode: bicubic
+    apply_freq_mask: true
+    freq_mask_width_range: [0, 30]
+    num_freq_mask: 2
+    apply_time_mask: true
+    time_mask_width_range: [0, 40]
+    num_time_mask: 2
+
+##########################################################
+#            OPTIMIZER & SCHEDULER SETTING               #
+##########################################################
+# `batch_bins` batching yields ~611 batches, and so ~611 optimizer steps, per
+# epoch: 50 epochs is ~30.5k steps in total. Warmup is sized against that
+# budget (~8 epochs), not against the 25000 steps of the egs2 recipe, whose
+# utterance-count batching gives it thousands of steps per epoch. The peak
+# learning rate is raised to suit the much larger per-step batch.
+optimizer:
+  lr: 0.001
+
+scheduler:
+  warmup_steps: 5000
+
+##########################################################
+#                OTHER TRAINING SETTING                  #
+##########################################################
+# `valid.acc.ave_10best.pth`, written from this criterion by
+# `AverageCheckpointsCallback`, is the checkpoint `conf/inference.yaml` loads.
+best_model_criterion:
+  - - valid/acc
+    - 10
+    - max
+
+##########################################################
+#                   DATALOADER SETTING                   #
+##########################################################
+# SLURP is ~130k short FLAC files, so both loops are I/O bound rather than
+# compute bound: on one A40, raising the worker counts took an epoch from about
+# 60 minutes to about 5 minutes 30 seconds. Lower them on a node with fewer
+# cores than workers.
+dataloader:
+  train:
+    iter_factory:
+      num_workers: 16
+      batches:
+        # ~4M raw samples is about 250 s of audio, i.e. ~196 SLURP utterances.
+        type: numel
+  valid:
+    iter_factory:
+      num_workers: 8
+
+##########################################################
+#                    TRAINER SETTING                     #
+##########################################################
+trainer:
+  gradient_clip_val: 5.0
+  max_epochs: 50
+  precision: bf16-mixed
+
+##########################################################
+#                      FIT SETTING                       #
+##########################################################
+# Resume from the last checkpoint when one exists. Lightning treats
+# `ckpt_path: last` as set-and-forget -- with no checkpoint yet it warns and
+# starts from scratch -- so a run stopped by a scheduler wall clock can be
+# continued by resubmitting the same command.
+fit:
+  ckpt_path: last

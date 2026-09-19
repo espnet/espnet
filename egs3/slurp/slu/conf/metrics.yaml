@@ -1,0 +1,37 @@
+##########################################################
+#                 METRIC SCORING SETTING                 #
+##########################################################
+# Quick usage:
+#   python run.py --stages measure \
+#       --training_config conf/tuning/training_conformer.yaml \
+#       --inference_config conf/inference.yaml \
+#       --metrics_config conf/metrics.yaml
+#
+# Every directory under `${inference_dir}` is scored as one test set, and
+# `run.py` copies the experiment and inference paths from the other configs.
+
+##########################################################
+#                    METRIC DEFINITION                   #
+##########################################################
+# Intent accuracy is the headline SLURP number. WER and CER are scored on the
+# transcript alone, after the intent label has been split off, the way
+# `egs2/slurp/asr1/local/score.py` rewrites `hyp.trn` into `hyp_asr.trn` before
+# scoring ASR. This list replaces the TEMPLATE default, which scores the raw
+# hypothesis and would mix the two.
+metrics:
+  - metric:
+      _target_: src.metrics.IntentAccuracy
+      ref_key: ref_intent
+      hyp_key: hyp_intent
+
+  - metric:
+      _target_: espnet3.systems.asr.metrics.wer.WER
+      ref_key: ref_transcript
+      hyp_key: hyp_transcript
+      clean_types:
+
+  - metric:
+      _target_: espnet3.systems.asr.metrics.cer.CER
+      ref_key: ref_transcript
+      hyp_key: hyp_transcript
+      clean_types:

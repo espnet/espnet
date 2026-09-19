@@ -1,0 +1,213 @@
+##########################################################
+#                    TRAINING SETTING                    #
+##########################################################
+# ESPnet3 port of
+# `egs2/slurp/slu1/conf/tuning/train_asr_bert_conformer_deliberation.yaml`,
+# in its `--gt true` form: the ground-truth transcript is the second input.
+# egs2 reports 89.0% intent accuracy on test for that setting (86.8% when
+# first-pass ASR hypotheses are used instead).
+#
+# The architecture is two-pass: a frozen ASR encoder and a frozen BERT
+# post-decoder feed a deliberation encoder and a transformer decoder, and only
+# those last two train. The ASR encoder comes from this recipe's own
+# `conf/tuning/training_conformer.yaml` run, so that config has to have been
+# trained first -- the two are stages of one pipeline, not alternatives.
+#
+# Only values that differ from `egs3/TEMPLATE/asr/conf/training.yaml` appear
+# here.
+
+# `get_task_class` accepts any dotted path to an `AbsTask`, so the espnet2 SLU
+# task is used directly; espnet3 needs no compatibility copy of it.
+task: espnet2.tasks.slu.SLUTask
+
+##########################################################
+#                    DATASET DEFINITION                  #
+##########################################################
+# `SLUPreprocessor` tokenizes `text` and `transcript` with separate tokenizers:
+# `text` with the BPE model (intent labels reserved as single symbols), and
+# `transcript` with the word list `build_transcript_token_list` writes, which
+# the model uses to detokenize before calling the Hugging Face tokenizer.
+dataset:
+  train:
+    - data_src_args:
+        split: train
+        with_transcript: true
+    - data_src_args:
+        split: train_synthetic
+        with_transcript: true
+  valid:
+    - data_src_args:
+        split: devel
+        with_transcript: true
+  preprocessor:
+    _target_: espnet2.train.preprocessor.SLUPreprocessor
+    token_type: bpe
+    token_list: ${tokenizer.save_path}/tokens.txt
+    transcript_token_list: ${data_dir}/manifest/transcript_tokens.txt
+    bpemodel: ${tokenizer.save_path}/bpe.model
+    text_cleaner:
+    fs: 16000
+
+create_dataset:
+  recipe_dir: ${recipe_dir}
+  source_dir:
+
+##########################################################
+#                   TOKENIZER SETTING                    #
+##########################################################
+# The same tokenizer the ASR config trains, so `train_tokenizer` returns
+# immediately once that config has been run.
+tokenizer:
+  vocab_size: 1000
+  character_coverage: 1.0
+  model_type: bpe
+  save_path: ${data_dir}/${tokenizer.model_type}_${tokenizer.vocab_size}
+  text_builder:
+    func: src.tokenizer.gather_training_text
+    recipe_dir: ${recipe_dir}
+    splits:
+      - train
+      - train_synthetic
+
+##########################################################
+#                      MODEL SETTING                     #
+##########################################################
+model:
+  vocab_size: ${tokenizer.vocab_size}
+  token_list: ${tokenizer.save_path}/tokens.txt
+  transcript_token_list: ${data_dir}/manifest/transcript_tokens.txt
+
+  # Frozen; loaded from the first-pass ASR model by the callback below.
+  encoder: conformer
+  encoder_conf:
+    output_size: 512
+    attention_heads: 8
+    linear_units: 2048
+    num_blocks: 12
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    attention_dropout_rate: 0.1
+    input_layer: conv2d
+    normalize_before: true
+    macaron_style: true
+    pos_enc_layer_type: rel_pos
+    selfattention_layer_type: rel_selfattn
+    activation_type: swish
+    use_cnn_module: true
+    cnn_module_kernel: 31
+
+  # Trained: fuses the frozen encoder output with the BERT representation.
+  deliberationencoder: conformer
+  deliberationencoder_conf:
+    output_size: 512
+    attention_heads: 8
+    linear_units: 2048
+    num_blocks: 12
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    attention_dropout_rate: 0.1
+    input_layer: linear
+    normalize_before: true
+    macaron_style: true
+    pos_enc_layer_type: rel_pos
+    selfattention_layer_type: rel_selfattn
+    activation_type: swish
+    use_cnn_module: true
+    cnn_module_kernel: 31
+
+  decoder: transformer
+  decoder_conf:
+    attention_heads: 8
+    linear_units: 2048
+    num_blocks: 6
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    self_attention_dropout_rate: 0.1
+    src_attention_dropout_rate: 0.1
+
+  # Frozen; reads the transcript. `output_size` must match the encoder's, which
+  # `ESPnetSLUModel.__init__` checks.
+  postdecoder: hugging_face_transformers
+  postdecoder_conf:
+    model_name_or_path: bert-base-cased
+    output_size: 512
+
+  normalize: utterance_mvn
+  normalize_conf: {}
+
+  model_conf:
+    ctc_weight: 0.3
+    lsm_weight: 0.1
+    length_normalized_loss: false
+
+  frontend: default
+  frontend_conf:
+    n_fft: 512
+    win_length: 400
+    hop_length: 160
+
+  specaug: specaug
+  specaug_conf:
+    apply_time_warp: true
+    time_warp_window: 5
+    time_warp_mode: bicubic
+    apply_freq_mask: true
+    freq_mask_width_range: [0, 30]
+    num_freq_mask: 2
+    apply_time_mask: true
+    time_mask_width_range: [0, 40]
+    num_time_mask: 2
+
+##########################################################
+#            OPTIMIZER & SCHEDULER SETTING               #
+##########################################################
+# egs2's own values. Only the deliberation encoder and the decoder train, so
+# the step budget is not the concern it was for the from-scratch ASR recipe.
+optimizer:
+  lr: 0.0002
+
+scheduler:
+  warmup_steps: 25000
+
+##########################################################
+#                OTHER TRAINING SETTING                  #
+##########################################################
+best_model_criterion:
+  - - valid/acc
+    - 10
+    - max
+
+##########################################################
+#                   DATALOADER SETTING                   #
+##########################################################
+dataloader:
+  train:
+    iter_factory:
+      num_workers: 16
+      batches:
+        type: numel
+        batch_bins: 2000000
+  valid:
+    iter_factory:
+      num_workers: 8
+
+##########################################################
+#                    TRAINER SETTING                     #
+##########################################################
+# `--pretrained_model` and `freeze_param` have no field in the ESPnet3 training
+# config, so the recipe supplies both as callbacks. The loader must come first:
+# both act in `setup`, and Lightning runs callbacks in config order.
+trainer:
+  gradient_clip_val: 5.0
+  max_epochs: 50
+  precision: bf16-mixed
+  callbacks:
+    - _target_: src.callbacks.PretrainedParameterLoader
+      init_param: ${recipe_dir}/exp/training_conformer/valid.acc.ave_10best.pth:encoder:encoder
+    - _target_: src.callbacks.ParameterFreezer
+      freeze_param:
+        - encoder
+        - postdecoder.model
+
+fit:
+  ckpt_path: last
