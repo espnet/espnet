@@ -21,7 +21,8 @@ models:
 
 # OWSM v4
 
-The source of `espnet/owsm-v4`, one of two OWSM v4 demos kept in this
+The source of [`espnet/owsm-v4`](https://huggingface.co/spaces/espnet/owsm-v4),
+one of two OWSM v4 demos kept in this
 repository. Both offer the same tasks - speech recognition, any-to-any speech
 translation, language identification and long-form decoding - so the two models
 can be compared on the same audio:
