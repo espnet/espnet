@@ -397,6 +397,10 @@ class Speech2Text:
             # "CTC decoding" names both of the things below, and "greedy" is
             # used loosely for the second, so a user who asked for one and
             # got the other has no way to tell except by the clock.
+            #
+            # Here rather than in the decoding methods: this is a property of
+            # how the object was built, and a loop over a test set would
+            # otherwise repeat it once per utterance.
             logging.info(
                 "decoding on the CTC head alone: a prefix beam search over "
                 f"{beam_size} hypotheses. This is not best-path decoding "

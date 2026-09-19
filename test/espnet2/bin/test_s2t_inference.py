@@ -115,10 +115,17 @@ def test_ctc_only_decoding_says_it_is_not_best_path(s2t_config_file, caplog):
     # "CTC decoding" is the name of two different things, and a user who
     # asked for one and got the other can only tell by the clock
     with caplog.at_level(logging.INFO):
-        Speech2Text(s2t_train_config=s2t_config_file, ctc_weight=1.0, beam_size=1)
-    said = caplog.text
-    assert "prefix beam search" in said and "not best-path" in said
-    assert "best_path()" in said
+        s2t = Speech2Text(s2t_train_config=s2t_config_file, ctc_weight=1.0, beam_size=1)
+        said = caplog.text
+        assert "prefix beam search" in said and "not best-path" in said
+        assert "best_path()" in said
+
+        # said when the model is built, not when it is used: a loop over a
+        # test set would otherwise print it once per utterance
+        assert said.count("prefix beam search") == 1
+        for _ in range(3):
+            s2t(np.random.randn(1000))
+        assert caplog.text.count("prefix beam search") == 1
 
     caplog.clear()
     with caplog.at_level(logging.INFO):
