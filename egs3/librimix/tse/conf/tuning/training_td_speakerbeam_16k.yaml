@@ -13,6 +13,19 @@
 # from the TEMPLATE config. In particular, `exp_tag` follows `${self_name:}`.
 task: espnet3.systems.tse.task.TSETask
 
+# Path scaffold relative to the recipe root.
+recipe_dir: .
+data_dir: ${recipe_dir}/data
+exp_tag: ${self_name:}
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+stats_dir: ${recipe_dir}/exp/stats
+
+# egs2 run.sh: --ngpu 1. Under a SLURM launcher this must match the number of
+# tasks the job actually starts, since Lightning takes the world size from the
+# environment while trainer.devices comes from num_device.
+num_device: 1
+num_nodes: 1
+
 ##########################################################
 #                    DATASET DEFINITION                  #
 ##########################################################
@@ -146,8 +159,8 @@ dataloader:
 #                    TRAINER SETTING                     #
 ##########################################################
 trainer:
-  devices: 1
-  num_nodes: 1
+  devices: ${num_device}
+  num_nodes: ${num_nodes}
   accumulate_grad_batches: 1
   check_val_every_n_epoch: 1
   gradient_clip_val: 5.0
