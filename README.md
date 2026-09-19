@@ -156,6 +156,16 @@ Each command takes `--model <tag>` for any model in the organization that suits
 it, and `--device cuda`. There is a hosted version of the first one:
 [the OWSM-CTC v4 Space](https://huggingface.co/spaces/espnet/owsm-ctc-v4).
 
+**Without installing anything** — the same commands, in a container:
+
+```sh
+docker run --rm -v "$PWD:/data" -v "$HOME/.cache/huggingface:/root/.cache/huggingface" \
+    espnet/espnet:inference-latest asr /data/audio.wav
+```
+
+The second mount is what keeps the downloaded model between runs. The other two
+images, and what each is for, are in [`docker/`](docker/).
+
 **From Python** — any model from the [ESPnet Hugging Face organization](https://huggingface.co/espnet):
 
 ```python
