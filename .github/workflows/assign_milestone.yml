@@ -19,9 +19,10 @@ on:
     types: [opened, reopened, ready_for_review]
   schedule:
     # Catches what the event missed: a pull request opened while this workflow
-    # was broken, or one whose milestone was cleared.
+    # was broken, or one whose milestone was cleared. There is deliberately no
+    # workflow_dispatch: it would let this job's write permissions run from any
+    # ref a maintainer picks, and the daily sweep already covers the same need.
     - cron: "30 6 * * *"
-  workflow_dispatch:
 
 permissions: {}
 
@@ -57,8 +58,17 @@ jobs:
           fi
           echo "next release milestone: #${milestone}"
 
+          # Re-read the milestone immediately before writing: between listing
+          # and patching, a maintainer may have set one, and this job must not
+          # replace somebody's choice with the default.
           assign() {
             number="$1"
+            current=$(gh api "repos/${REPO}/issues/${number}" \
+              --jq '.milestone.number // empty')
+            if [ -n "${current}" ]; then
+              echo "#${number} already has milestone #${current}"
+              return 0
+            fi
             gh api -X PATCH "repos/${REPO}/issues/${number}" \
               -F milestone="${milestone}" --silent
             echo "assigned #${number}"
@@ -67,11 +77,6 @@ jobs:
           if [ "${EVENT}" = "pull_request_target" ]; then
             if [ "${AUTHOR_TYPE}" = "Bot" ]; then
               echo "#${PR} was opened by a bot; leaving it alone"
-              exit 0
-            fi
-            current=$(gh api "repos/${REPO}/issues/${PR}" --jq '.milestone.number // empty')
-            if [ -n "${current}" ]; then
-              echo "#${PR} already has milestone #${current}"
               exit 0
             fi
             assign "${PR}"
