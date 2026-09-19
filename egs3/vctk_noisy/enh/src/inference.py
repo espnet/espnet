@@ -34,7 +34,9 @@ def build_output(data, model_output, idx):
     for i in range(batch_size):
         utt_id = data[i].get("utt_id", str(idx[i]))
         reference = np.asarray(data[i]["speech_ref1"], dtype=np.float32)
-        enhanced = np.asarray(model_output[0][i], dtype=np.float32)
+        enhanced = np.asarray(model_output[0][i], dtype=np.float32)[
+            : reference.shape[0]
+        ]
         max_val = np.max(np.abs(enhanced))
         if max_val > 1.0:
             enhanced = enhanced / max_val * 0.9
