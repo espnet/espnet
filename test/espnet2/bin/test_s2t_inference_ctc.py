@@ -158,6 +158,52 @@ def test_the_base_class_batch_decodes_a_ctc_only_checkpoint(s2t_config_file):
         assert len(results) == 1 and results[0][4] is None
 
 
+@pytest.mark.execution_timeout(15)
+def test_decode_long_returns_one_segment_for_a_ctc_only_checkpoint(s2t_config_file):
+    speech2text = Speech2TextBase(s2t_train_config=s2t_config_file)
+    # longer than the buffer the model was trained on, so it is chunked
+    speech = np.random.randn(int(speech2text.sample_rate * 7))
+    segments = speech2text.decode_long(speech, batch_size=2, context_len_in_secs=0.5)
+
+    assert len(segments) == 1  # no timestamps in a CTC-only model
+    start, end, text = segments[0]
+    assert start == 0.0
+    assert end == pytest.approx(len(speech) / speech2text.sample_rate)
+    assert isinstance(text, str)
+
+
+@pytest.mark.execution_timeout(15)
+def test_the_deprecated_class_decodes_the_same_way(s2t_config_file):
+    speech2text = Speech2TextBase(s2t_train_config=s2t_config_file)
+    with pytest.warns(DeprecationWarning, match="deprecated"):
+        old = Speech2TextGreedySearch(s2t_train_config=s2t_config_file)
+
+    speech = np.random.randn(int(speech2text.sample_rate * 7))
+    segments = speech2text.decode_long(speech, batch_size=2, context_len_in_secs=0.5)
+    assert (
+        old.decode_long_batched_buffered(speech, batch_size=2, context_len_in_secs=0.5)
+        == segments[0][2]
+    )
+    assert (
+        old.batch_decode(speech, batch_size=2, context_len_in_secs=0.5)
+        == segments[0][2]
+    )
+    # a list in, a list out
+    assert old.batch_decode([speech], batch_size=2, context_len_in_secs=0.5) == [
+        segments[0][2]
+    ]
+
+
+@pytest.mark.execution_timeout(10)
+def test_from_pretrained_builds_the_class_it_was_called_on(s2t_config_file):
+    # it named the base class, so every subclass got the base class back
+    with pytest.warns(DeprecationWarning):
+        built = Speech2TextGreedySearch.from_pretrained(
+            s2t_train_config=s2t_config_file
+        )
+    assert isinstance(built, Speech2TextGreedySearch)
+
+
 @pytest.mark.execution_timeout(10)
 def test_greedy_search_refuses_a_checkpoint_with_a_decoder(tmp_path, token_list):
     # its long-form paths read the CTC head directly; an encoder-decoder

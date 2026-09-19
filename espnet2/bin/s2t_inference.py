@@ -907,9 +907,172 @@ class Speech2Text:
 
         return res
 
+    def _read_audio(self, speech) -> np.ndarray:
+        """One channel of float audio at the rate the model was trained on.
+
+        Accepting a path here is what lets `decode_long` be the whole
+        transcription API for a recording, rather than something every caller
+        wraps in file reading and resampling.
+        """
+        if isinstance(speech, (str, Path)):
+            import soundfile as sf
+
+            speech, rate = sf.read(str(speech), dtype="float32", always_2d=False)
+            if speech.ndim > 1:
+                speech = speech.mean(axis=1)
+            if self.sample_rate is not None and rate != self.sample_rate:
+                import librosa
+
+                speech = librosa.resample(
+                    speech, orig_sr=rate, target_sr=self.sample_rate
+                )
+            return speech
+        if isinstance(speech, torch.Tensor):
+            speech = speech.cpu().numpy()
+        speech = np.asarray(speech, dtype=np.float32)
+        if speech.ndim == 2 and speech.shape[1] == 1:
+            speech = speech[:, 0]
+        if speech.ndim != 1:
+            raise ValueError(f"speech of size {speech.shape} is not one recording")
+        return speech
+
+    @torch.no_grad()
+    def _decode_long_ctc(
+        self,
+        speech: np.ndarray,
+        batch_size: int = 1,
+        context_len_in_secs: float = 2,
+        lang_sym: Optional[str] = None,
+        task_sym: Optional[str] = None,
+    ) -> str:
+        """Best-path decoding of a long recording, buffer by buffer.
+
+        The model sees one training-length buffer at a time, with context on
+        either side that is decoded and then dropped, so the frames kept from
+        each buffer were never at its edge.
+        """
+        lang_id = self.converter.token2id[lang_sym or self.lang_sym]
+        task_id = self.converter.token2id[task_sym or self.task_sym]
+
+        buffer_len_in_secs = self.preprocessor_conf["speech_length"]
+        chunk_len_in_secs = buffer_len_in_secs - 2 * context_len_in_secs
+        buffer_len = int(self.sample_rate * buffer_len_in_secs)
+        chunk_len = int(self.sample_rate * chunk_len_in_secs)
+        context = int(self.sample_rate * context_len_in_secs)
+
+        padded = np.pad(speech, (context, context))
+        buffers = []
+        for start in range(0, len(padded), chunk_len):
+            buffer = padded[start : start + buffer_len]
+            if len(buffer) < buffer_len:
+                buffers.append(np.pad(buffer, (0, buffer_len - len(buffer))))
+                break
+            buffers.append(buffer)
+
+        batched = torch.tensor(np.array(buffers)).to(getattr(torch, self.dtype))
+        buffer_frames = int(self.frames_per_sec * buffer_len_in_secs)
+        context_frames = int(self.frames_per_sec * context_len_in_secs)
+
+        kept = []
+        for idx in range(0, batched.size(0), batch_size):
+            window = batched[idx : idx + batch_size]
+            n = window.size(0)
+            prev = torch.tensor([self.s2t_model.na], dtype=torch.long).repeat(n, 1)
+            prefix = torch.tensor([lang_id, task_id], dtype=torch.long).repeat(n, 1)
+            batch = to_device(
+                {
+                    "speech": window,
+                    "speech_lengths": window.new_full(
+                        [n], dtype=torch.long, fill_value=window.size(1)
+                    ),
+                    "text_prev": prev,
+                    "text_prev_lengths": prev.new_full(
+                        [n], dtype=torch.long, fill_value=prev.size(1)
+                    ),
+                    "prefix": prefix,
+                    "prefix_lengths": prefix.new_full(
+                        [n], dtype=torch.long, fill_value=prefix.size(1)
+                    ),
+                },
+                device=self.device,
+            )
+            enc, _ = self.s2t_model.encode(**batch)
+            if isinstance(enc, tuple):
+                enc = enc[0]
+            # the convolutional front end can return more frames than the
+            # buffer itself, so the tail goes before the context does
+            enc = enc[:, :buffer_frames]
+            frames = self.s2t_model.ctc.argmax(enc)
+            kept.append(frames[:, context_frames:-context_frames].reshape(-1))
+
+        merged = torch.unique_consecutive(torch.cat(kept)).cpu().tolist()
+        token_int = [x for x in merged if x != self.s2t_model.blank_id]
+        token = self.converter.ids2tokens(token_int)
+        token_nospecial = [x for x in token if not (x[0] == "<" and x[-1] == ">")]
+        return self.tokenizer.tokens2text(token_nospecial)
+
+    @torch.no_grad()
+    def decode_long(
+        self,
+        speech: Union[str, Path, torch.Tensor, np.ndarray],
+        batch_size: int = 1,
+        context_len_in_secs: float = 2,
+        condition_on_prev_text: bool = False,
+        init_text: Optional[str] = None,
+        end_time_threshold: str = "<29.00>",
+        lang_sym: Optional[str] = None,
+        task_sym: Optional[str] = None,
+        skip_last_chunk_threshold: float = 0.2,
+    ) -> List[Tuple[float, float, str]]:
+        """Decode one unsegmented recording of any length.
+
+        Takes a path, an array or a tensor, and returns a list of
+        `(start_time, end_time, text)`.
+
+        How the recording is cut up depends on the checkpoint, because the two
+        kinds of model were trained to be read differently. An encoder-decoder
+        model emits timestamps, is decoded segment by segment and optionally
+        conditioned on what it said before, and returns one entry per
+        utterance. A CTC-only model has no timestamps, so it is decoded in
+        overlapping buffers and returns a single entry covering the recording.
+
+        Args:
+            batch_size: buffers decoded together, on a CTC-only checkpoint.
+            context_len_in_secs: context decoded and then dropped on either
+                side of each buffer, on a CTC-only checkpoint.
+            condition_on_prev_text, init_text, end_time_threshold,
+                skip_last_chunk_threshold: the encoder-decoder path.
+
+        """
+        speech = self._read_audio(speech)
+        if self.sample_rate is None:
+            raise RuntimeError(
+                "this config does not say what sample rate and hop length the "
+                "model was trained with, so a long recording cannot be lined "
+                "up with what it expects"
+            )
+        if self.ctc_only:
+            text = self._decode_long_ctc(
+                speech,
+                batch_size=batch_size,
+                context_len_in_secs=context_len_in_secs,
+                lang_sym=lang_sym,
+                task_sym=task_sym,
+            )
+            return [(0.0, len(speech) / self.sample_rate, text)]
+        return self._decode_long_attention(
+            speech,
+            condition_on_prev_text=condition_on_prev_text,
+            init_text=init_text,
+            end_time_threshold=end_time_threshold,
+            lang_sym=lang_sym,
+            task_sym=task_sym,
+            skip_last_chunk_threshold=skip_last_chunk_threshold,
+        )
+
     @torch.no_grad()
     @typechecked
-    def decode_long(
+    def _decode_long_attention(
         self,
         speech: Union[torch.Tensor, np.ndarray],
         condition_on_prev_text: bool = False,
@@ -1037,25 +1200,30 @@ class Speech2Text:
 
         return utterances
 
-    @staticmethod
+    @classmethod
     def from_pretrained(
+        cls,
         model_tag: Optional[str] = None,
         **kwargs: Optional[Any],
     ):
-        """Build Speech2Text instance from the pretrained model.
+        """Build an instance from a published model.
+
+        A classmethod rather than a staticmethod so that a subclass gets an
+        instance of itself: naming the class here returned the base class for
+        anything that inherited this.
 
         Args:
             model_tag (Optional[str]): Model tag of the pretrained models.
                 Currently, the tags of espnet_model_zoo are supported.
 
         Returns:
-            Speech2Text: Speech2Text instance.
+            Speech2Text: an instance of the class this was called on.
 
         """
         if model_tag is not None:
             kwargs.update(download_pretrained(model_tag))
 
-        return Speech2Text(**kwargs)
+        return cls(**kwargs)
 
 
 @typechecked

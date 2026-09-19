@@ -2,11 +2,11 @@
 import argparse
 import logging
 import sys
+import warnings
 from itertools import groupby
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
-import librosa
 import numpy as np
 import torch
 import torch.quantization
@@ -17,7 +17,6 @@ from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.legacy.nets.batch_beam_search import BatchBeamSearch
 from espnet2.legacy.nets.batch_beam_search_online_sim import BatchBeamSearchOnlineSim
 from espnet2.legacy.nets.beam_search import BeamSearch, Hypothesis
-from espnet2.legacy.nets.pytorch_backend.nets_utils import pad_list
 from espnet2.legacy.nets.pytorch_backend.transformer.subsampling import TooShortUttError
 from espnet2.legacy.nets.scorer_interface import BatchScorerInterface
 from espnet2.legacy.nets.scorers.ctc import CTCPrefixScorer
@@ -400,19 +399,18 @@ class Speech2Text:
 
 
 class Speech2TextGreedySearch(Speech2TextBase):
-    """Best-path CTC decoding on long audio, and on files.
+    """Deprecated: use `espnet2.bin.s2t_inference.Speech2Text`.
 
-    The decoding itself now lives in
-    `espnet2.bin.s2t_inference.Speech2Text`, which loads a CTC-only
-    checkpoint as readily as an encoder-decoder one and decodes it with
-    `best_path`. This class remains for what the base class does not do:
-    `batch_decode` here takes file paths and cuts long audio into
-    overlapping buffers, where the base class's `batch_decode` takes a batch
-    of equal-length utterances.
+    Everything this class did now lives there, on a class that loads a
+    CTC-only checkpoint and an encoder-decoder one alike: `__call__` and
+    `best_path` decode an utterance, `decode_long` a whole recording. This
+    remains so that code written against it keeps working, and forwards.
 
     Examples:
-        >>> s2t = Speech2TextGreedySearch.from_pretrained("espnet/owsm_ctc_v4_1B")
-        >>> s2t.batch_decode("long_audio.wav")
+        >>> from espnet2.bin.s2t_inference import Speech2Text
+        >>> s2t = Speech2Text.from_pretrained("espnet/owsm_ctc_v4_1B")
+        >>> s2t.decode_long("long_audio.wav")
+        [(0.0, 91.2, 'the sale of the hotels ...')]
 
     """
 
@@ -425,6 +423,13 @@ class Speech2TextGreedySearch(Speech2TextBase):
         lang_sym: str = "<nolang>",
         **kwargs,
     ):
+        warnings.warn(
+            "Speech2TextGreedySearch is deprecated; "
+            "espnet2.bin.s2t_inference.Speech2Text decodes this checkpoint "
+            "with best_path() and decode_long()",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         super().__init__(
             s2t_train_config=s2t_train_config,
             s2t_model_file=s2t_model_file,
@@ -438,7 +443,6 @@ class Speech2TextGreedySearch(Speech2TextBase):
                 "same decoding for it"
             )
 
-    @torch.no_grad()
     def decode_long_batched_buffered(
         self,
         speech: Union[torch.Tensor, np.ndarray],
@@ -446,271 +450,16 @@ class Speech2TextGreedySearch(Speech2TextBase):
         context_len_in_secs: float = 2,
         lang_sym: Optional[str] = None,
         task_sym: Optional[str] = None,
-    ):
-        """Decode unsegmented long-form speech.
-
-        Args:
-            speech: 1D long-form input speech
-            batch_size (int): decode this number of segments together in parallel
-        """
-
-        sample_rate = self.sample_rate
-        frames_per_sec = self.frames_per_sec
-
-        lang_sym = lang_sym if lang_sym is not None else self.lang_sym
-        task_sym = task_sym if task_sym is not None else self.task_sym
-        lang_id = self.converter.token2id[lang_sym]
-        task_id = self.converter.token2id[task_sym]
-
-        buffer_len_in_secs = self.s2t_train_args.preprocessor_conf["speech_length"]
-        chunk_len_in_secs = buffer_len_in_secs - 2 * context_len_in_secs
-        buffer_len = int(sample_rate * buffer_len_in_secs)
-        chunk_len = int(sample_rate * chunk_len_in_secs)
-
-        speech = np.pad(
+    ) -> str:
+        """Deprecated: `Speech2Text.decode_long` does this."""
+        return self.decode_long(
             speech,
-            (
-                int(sample_rate * context_len_in_secs),
-                int(sample_rate * context_len_in_secs),
-            ),
-        )
-        buffer_list = []
-        for i in range(0, len(speech), chunk_len):
-            cur_buffer = speech[i : i + buffer_len]
-            if len(cur_buffer) < buffer_len:
-                buffer_list.append(
-                    np.pad(cur_buffer, (0, buffer_len - len(cur_buffer)))
-                )
-                break
-            else:
-                buffer_list.append(cur_buffer)
+            batch_size=batch_size,
+            context_len_in_secs=context_len_in_secs,
+            lang_sym=lang_sym,
+            task_sym=task_sym,
+        )[0][2]
 
-        speech = torch.tensor(np.array(buffer_list)).to(getattr(torch, self.dtype))
-        buffer_frames = int(frames_per_sec * buffer_len_in_secs)
-        context_frames = int(frames_per_sec * context_len_in_secs)
-
-        unmerged = []
-        for idx in range(0, speech.size(0), batch_size):
-            cur_speech = speech[idx : idx + batch_size]
-            cur_speech_lengths = cur_speech.new_full(
-                [cur_speech.size(0)], dtype=torch.long, fill_value=cur_speech.size(1)
-            )
-
-            text_prev = torch.tensor([self.s2t_model.na], dtype=torch.long).repeat(
-                cur_speech.size(0), 1
-            )
-            text_prev_lengths = text_prev.new_full(
-                [cur_speech.size(0)], dtype=torch.long, fill_value=text_prev.size(1)
-            )
-
-            prefix = torch.tensor([lang_id, task_id], dtype=torch.long).repeat(
-                cur_speech.size(0), 1
-            )
-            prefix_lengths = prefix.new_full(
-                [cur_speech.size(0)], dtype=torch.long, fill_value=prefix.size(-1)
-            )
-
-            batch = {
-                "speech": cur_speech,
-                "speech_lengths": cur_speech_lengths,
-                "text_prev": text_prev,
-                "text_prev_lengths": text_prev_lengths,
-                "prefix": prefix,
-                "prefix_lengths": prefix_lengths,
-            }
-
-            # a. To device
-            batch = to_device(batch, device=self.device)
-
-            # b. Forward Encoder
-            enc, enc_olens = self.s2t_model.encode(**batch)
-
-            intermediate_outs = None
-            if isinstance(enc, tuple):
-                enc, intermediate_outs = enc
-
-            # enc: (B, T, D)
-            enc = enc[
-                :, :buffer_frames
-            ]  # NOTE(yifan): IMPORTANT: it might be longer due to padding in conv
-            batched_token_int = self.s2t_model.ctc.argmax(enc)  # (B, T)
-            valid_token_int = batched_token_int[
-                :, context_frames:-context_frames
-            ].reshape(-1)
-            unmerged.append(valid_token_int)
-
-        unmerged = torch.cat(unmerged)
-        merged = torch.unique_consecutive(unmerged).cpu().tolist()
-        token_int = list(filter(lambda x: x != self.s2t_model.blank_id, merged))
-        token = self.converter.ids2tokens(token_int)
-        token_nospecial = [x for x in token if not (x[0] == "<" and x[-1] == ">")]
-        text_nospecial = self.tokenizer.tokens2text(token_nospecial)
-
-        return text_nospecial
-
-    def _prepare_inputs(
-        self,
-        speech: List[Union[str, Path, torch.Tensor, np.ndarray]],
-        context_len_in_secs: float,
-        text_prev: List[str],
-        lang_sym: List[str],
-        task_sym: List[str],
-    ):
-        """Prepare inputs for batched decoding of short- or long-form audio."""
-
-        sample_rate = self.sample_rate
-        buffer_len_in_secs = self.s2t_train_args.preprocessor_conf["speech_length"]
-        chunk_len_in_secs = buffer_len_in_secs - 2 * context_len_in_secs
-        buffer_len = int(sample_rate * buffer_len_in_secs)
-        chunk_len = int(sample_rate * chunk_len_in_secs)
-
-        # number of chunks for each audio
-        # for short-form audio, it is always 1
-        n_chunks = []
-        all_speech = []
-        all_text_prev = []
-        all_prefix = []
-        for cur_speech, cur_text_prev, cur_lang_sym, cur_task_sym in zip(
-            speech, text_prev, lang_sym, task_sym
-        ):
-            if isinstance(cur_speech, (str, Path)):
-                # load audio as mono-channel (1-D array)
-                cur_speech, _ = librosa.load(cur_speech, sr=self.sample_rate)
-            elif isinstance(cur_speech, torch.Tensor):
-                cur_speech = cur_speech.cpu().numpy()
-
-            if len(cur_speech) <= buffer_len:
-                # short-form audio
-                n_chunks.append(1)
-                cur_speech = librosa.util.fix_length(cur_speech, size=buffer_len)
-                all_speech.append(
-                    torch.tensor(cur_speech, dtype=getattr(torch, self.dtype))
-                )
-
-                cur_text_prev = self.converter.tokens2ids(
-                    self.tokenizer.text2tokens(cur_text_prev)
-                )
-                if self.s2t_model.na in cur_text_prev:
-                    cur_text_prev = [self.s2t_model.na]
-                all_text_prev.append(torch.tensor(cur_text_prev, dtype=torch.long))
-
-                cur_lang_id = self.converter.token2id[cur_lang_sym]
-                cur_task_id = self.converter.token2id[cur_task_sym]
-                all_prefix.append(
-                    torch.tensor([cur_lang_id, cur_task_id], dtype=torch.long)
-                )
-
-            else:
-                # long-form audio needs to be split into overlapped segments
-                cur_speech = np.pad(
-                    cur_speech,
-                    (
-                        int(sample_rate * context_len_in_secs),
-                        int(sample_rate * context_len_in_secs),
-                    ),
-                )
-                buffer_list = []
-                for i in range(0, len(cur_speech), chunk_len):
-                    cur_buffer = cur_speech[i : i + buffer_len]
-                    if len(cur_buffer) < buffer_len:
-                        buffer_list.append(
-                            np.pad(cur_buffer, (0, buffer_len - len(cur_buffer)))
-                        )
-                        break
-                    else:
-                        buffer_list.append(cur_buffer)
-                buffer_list = [
-                    torch.tensor(x, dtype=getattr(torch, self.dtype))
-                    for x in buffer_list
-                ]
-
-                n_chunks.append(len(buffer_list))
-                all_speech.extend(buffer_list)
-
-                cur_text_prev = self.converter.tokens2ids(
-                    self.tokenizer.text2tokens(cur_text_prev)
-                )
-                if self.s2t_model.na in cur_text_prev:
-                    cur_text_prev = [self.s2t_model.na]
-                all_text_prev.append(torch.tensor(cur_text_prev, dtype=torch.long))
-                for _ in range(len(buffer_list) - 1):
-                    all_text_prev.append(
-                        torch.tensor([self.s2t_model.na], dtype=torch.long)
-                    )
-
-                cur_lang_id = self.converter.token2id[cur_lang_sym]
-                cur_task_id = self.converter.token2id[cur_task_sym]
-                all_prefix.extend(
-                    [
-                        torch.tensor([cur_lang_id, cur_task_id], dtype=torch.long)
-                        for _ in buffer_list
-                    ]
-                )
-
-        all_speech = torch.stack(all_speech)
-        all_speech_lengths = all_speech.new_full(
-            [all_speech.size(0)], dtype=torch.long, fill_value=all_speech.size(1)
-        )
-
-        all_text_prev_lengths = torch.tensor(
-            [x.size(0) for x in all_text_prev], dtype=torch.long
-        )
-        all_text_prev = pad_list(all_text_prev, self.s2t_model.eos)
-
-        all_prefix = torch.stack(all_prefix)
-        all_prefix_lengths = all_prefix.new_full(
-            [all_prefix.size(0)], dtype=torch.long, fill_value=all_prefix.size(1)
-        )
-
-        return (
-            all_speech,
-            all_speech_lengths,
-            all_text_prev,
-            all_text_prev_lengths,
-            all_prefix,
-            all_prefix_lengths,
-            n_chunks,
-        )
-
-    def _get_predictions(
-        self,
-        outputs: torch.Tensor,
-        n_chunks: List[int],
-        context_len_in_secs: float,
-    ) -> List[str]:
-        assert sum(n_chunks) == outputs.size(0)
-
-        frames_per_sec = self.frames_per_sec
-        buffer_len_in_secs = self.s2t_train_args.preprocessor_conf["speech_length"]
-        buffer_frames = int(frames_per_sec * buffer_len_in_secs)
-        context_frames = int(frames_per_sec * context_len_in_secs)
-
-        predictions = []
-        start = 0
-        for n_chunk in n_chunks:
-            cur_outputs = outputs[start : start + n_chunk]
-
-            if len(cur_outputs) == 1:
-                # short-form audio
-                token_int = cur_outputs[0]
-            else:
-                token_int = cur_outputs[:, :buffer_frames][
-                    :, context_frames:-context_frames
-                ].reshape(-1)
-
-            token_int = torch.unique_consecutive(token_int).cpu().tolist()
-            token_int = list(filter(lambda x: x != self.s2t_model.blank_id, token_int))
-            token = self.converter.ids2tokens(token_int)
-            token_nospecial = [x for x in token if not (x[0] == "<" and x[-1] == ">")]
-            text_nospecial = self.tokenizer.tokens2text(token_nospecial)
-            predictions.append(text_nospecial)
-
-            start += n_chunk
-
-        return predictions
-
-    @torch.no_grad()
-    @typechecked
     def batch_decode(
         self,
         speech: Union[
@@ -725,88 +474,30 @@ class Speech2TextGreedySearch(Speech2TextBase):
         text_prev: Union[str, List[str]] = "<na>",
         lang_sym: Optional[Union[str, List[str]]] = None,
         task_sym: Optional[Union[str, List[str]]] = None,
-    ):
-        """Decode a batch of audios (either short-form or long-form)."""
+    ) -> Union[str, List[str]]:
+        """Deprecated: `Speech2Text.decode_long` does this, one audio at a time.
 
-        if isinstance(speech, (str, Path, torch.Tensor, np.ndarray)):
-            speech = [speech]
-            # for nonbatched input, the output will be nonbatched
-            is_batched = False
-        else:
-            is_batched = True
-
-        n_audios = len(speech)
-
-        if isinstance(text_prev, str):
-            text_prev = [text_prev] * n_audios
-
-        if lang_sym is None:
-            lang_sym = self.lang_sym
-        if isinstance(lang_sym, str):
-            lang_sym = [lang_sym] * n_audios
-
-        if task_sym is None:
-            task_sym = self.task_sym
-        if isinstance(task_sym, str):
-            task_sym = [task_sym] * n_audios
-
-        # speech, text_prev, lang_sym, task_sym are all lists of the same length
-        (
-            all_speech,
-            all_speech_lengths,
-            all_text_prev,
-            all_text_prev_lengths,
-            all_prefix,
-            all_prefix_lengths,
-            n_chunks,
-        ) = self._prepare_inputs(
-            speech, context_len_in_secs, text_prev, lang_sym, task_sym
-        )
-
-        all_outputs = []
-        for idx in range(0, all_speech.size(0), batch_size):
-            batch = {
-                "speech": all_speech[idx : idx + batch_size],
-                "speech_lengths": all_speech_lengths[idx : idx + batch_size],
-                "text_prev": all_text_prev[idx : idx + batch_size],
-                "text_prev_lengths": all_text_prev_lengths[idx : idx + batch_size],
-                "prefix": all_prefix[idx : idx + batch_size],
-                "prefix_lengths": all_prefix_lengths[idx : idx + batch_size],
-            }
-
-            batch = to_device(batch, device=self.device)
-
-            enc, enc_olens = self.s2t_model.encode(**batch)
-
-            if isinstance(enc, tuple):
-                enc = enc[0]
-
-            all_outputs.append(self.s2t_model.ctc.argmax(enc))  # (B, T)
-
-        all_outputs = torch.cat(all_outputs)
-
-        predictions = self._get_predictions(all_outputs, n_chunks, context_len_in_secs)
-        return predictions if is_batched else predictions[0]
-
-    @staticmethod
-    def from_pretrained(
-        model_tag: Optional[str] = None,
-        **kwargs: Optional[Any],
-    ):
-        """Build Speech2TextGreedySearch instance from the pretrained model.
-
-        Args:
-            model_tag (Optional[str]): Model tag of the pretrained models.
-                Currently, the tags of espnet_model_zoo are supported.
-
-        Returns:
-            Speech2TextGreedySearch: Speech2TextGreedySearch instance.
-
+        The buffers of one recording are still decoded in batches; what this
+        no longer does is fill a batch with buffers from different
+        recordings, which changed nothing but the packing.
         """
-        if model_tag is not None:
-            kwargs.update(download_pretrained(model_tag))
+        one = isinstance(speech, (str, Path, torch.Tensor, np.ndarray))
+        audios = [speech] if one else list(speech)
+        n = len(audios)
+        langs = [lang_sym] * n if isinstance(lang_sym, (str, type(None))) else lang_sym
+        tasks = [task_sym] * n if isinstance(task_sym, (str, type(None))) else task_sym
 
-        return Speech2TextGreedySearch(**kwargs)
+        texts = [
+            self.decode_long(
+                audio,
+                batch_size=batch_size,
+                context_len_in_secs=context_len_in_secs,
+                lang_sym=lang,
+                task_sym=task,
+            )[0][2]
+            for audio, lang, task in zip(audios, langs, tasks)
+        ]
+        return texts[0] if one else texts
 
 
 @typechecked
