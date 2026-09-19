@@ -231,7 +231,7 @@ One encoder pass per 30 s window, no beam search: it transcribes, translates
 and identifies the language, and it is fast.
 
 Its autoregressive sibling, which adds text prompting, runs the same tasks:
-`espnet/owsm-v4`.
+[espnet/owsm-v4](https://huggingface.co/spaces/espnet/owsm-v4).
 """
 ARTICLE = """Model:
 [`espnet/owsm_ctc_v4_1B`](https://huggingface.co/espnet/owsm_ctc_v4_1B)
