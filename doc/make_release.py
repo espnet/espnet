@@ -236,14 +236,22 @@ def readme_sections():
     return (text, match) if match else None
 
 
-def readme_entry(version):
-    """The What's new bullet for this version, or None if there is none."""
-    if not README_FILE.is_file():
-        return None
+def readme_entry(version, where=None):
+    """The What's new bullet for this version, or None if there is none.
+
+    `where` is the text to search, so a caller can limit it to the current
+    What's new list: a bullet found anywhere else - under Earlier releases,
+    or in a README whose sections were renamed - is not this release being
+    announced.
+    """
+    if where is None:
+        if not README_FILE.is_file():
+            return None
+        where = README_FILE.read_text()
     # one bullet: from its "- **[ESPnet <version>]" to the next bullet or blank line
     match = re.search(
-        rf"- \*\*\[ESPnet {re.escape(version)}\].*?(?=\n- \*\*\[ESPnet |\n\n)",
-        README_FILE.read_text(),
+        rf"- \*\*\[ESPnet {re.escape(version)}\].*?(?=\n- \*\*\[ESPnet |\n\n|\Z)",
+        where,
         re.S,
     )
     return match.group(0) if match else None
@@ -257,7 +265,16 @@ def readme_up_to_date(version, will_apply):
     pointed at it. --apply writes the entry, so its absence is excused there,
     the way the version.txt mismatch is.
     """
-    entry = readme_entry(version)
+    sections = readme_sections()
+    if sections is None:
+        # Not "the entry is missing": the section this reads and writes is not
+        # there to read, and --apply would not write it either.
+        return [
+            "README.md has no What's new section shaped as this script expects "
+            "(a list, then <details><summary>Earlier releases</summary>, then "
+            "Full history:) - add the entry by hand, or fix the section"
+        ]
+    entry = readme_entry(version, where=sections[1].group(2))
     if entry is None:
         if will_apply:
             return []
@@ -275,8 +292,6 @@ def readme_up_to_date(version, will_apply):
 
 def update_readme(version):
     """Add the What's new entry for this release and demote the previous one."""
-    if readme_entry(version) is not None:
-        return
     sections = readme_sections()
     if sections is None:
         print(
@@ -285,6 +300,8 @@ def update_readme(version):
         )
         return
     text, match = sections
+    if readme_entry(version, where=match.group(2)) is not None:
+        return
     header, current, opener, earlier, tail = match.groups()
     entry = (
         f"- **[ESPnet {version}]"
