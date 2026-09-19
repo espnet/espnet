@@ -31,14 +31,18 @@ evaluation, and hundreds of pretrained models on Hugging Face.
 
 ## What's new
 
-- **[ESPnet 202609](https://github.com/espnet/espnet/releases/tag/v.202609)** —
-  ESPnet3 complete on [`egs3/librispeech_100`](egs3/librispeech_100) at ESPnet2
-  parity, CI rebuilt on a prebuilt image (compute per run halved), OpenBEATs
-  pretraining, ten new recipes (ASR, TTS, SER, ST, audio SSL), Python 3.12-3.13.
+- **[ESPnet 202610](https://github.com/espnet/espnet/releases/tag/v.202610)** —
+  one-line inference from the command line (`pip install espnet && espnet asr audio.wav`),
+  two OWSM v4 demos as Hugging Face Spaces, a core install without the training
+  stack (training is `espnet[train]`), batched beam search, PyTorch 2.11-2.14.
 
 <details>
 <summary>Earlier releases</summary>
 
+- **[ESPnet 202609](https://github.com/espnet/espnet/releases/tag/v.202609)** —
+  ESPnet3 complete on [`egs3/librispeech_100`](egs3/librispeech_100) at ESPnet2
+  parity, CI rebuilt on a prebuilt image (compute per run halved), OpenBEATs
+  pretraining, ten new recipes (ASR, TTS, SER, ST, audio SSL), Python 3.12-3.13.
 - **[ESPnet 202604](https://github.com/espnet/espnet/releases/tag/v.202604)** —
   Docker-based CI, PyTorch 2.9.1 support, FastSpeech2 inference ~1.9x faster
   at batch 8, new recipes (Kinyarwanda, Emilia, kosp2e).
@@ -153,7 +157,7 @@ espnet models                              # the default model of each command
 ```
 
 Each command takes `--model <tag>` for any model in the organization that suits
-it, and `--device cuda`. There is a hosted version of the first one:
+it, and `--device cuda`; `espnet --version` names the installed version. There is a hosted version of the first one:
 [the OWSM-CTC v4 Space](https://huggingface.co/spaces/espnet/owsm-ctc-v4).
 
 **From Python** — any model from the [ESPnet Hugging Face organization](https://huggingface.co/espnet):
