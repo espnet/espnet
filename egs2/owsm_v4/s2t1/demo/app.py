@@ -1,8 +1,8 @@
-"""OWSM-CTC v4: speech recognition, translation and language ID.
+"""OWSM v4: speech recognition, translation, language ID and prompting.
 
-Published as https://huggingface.co/spaces/espnet/owsm-ctc-v4; the source lives in
-espnet, at egs2/owsm_ctc_v4/s2t1/demo. Its autoregressive sibling is
-egs2/owsm_v4/s2t1/demo.
+Published as https://huggingface.co/spaces/espnet/owsm-v4; the source lives in
+espnet, at egs2/owsm_v4/s2t1/demo. Its encoder-only sibling is
+egs2/owsm_ctc_v4/s2t1/demo.
 
 Both demos offer the same tasks - speech recognition, any-to-any speech
 translation, language identification and long-form decoding - so that the two
@@ -28,7 +28,8 @@ import gradio as gr  # noqa: E402
 import librosa  # noqa: E402
 import torch  # noqa: E402
 
-from espnet2.bin.s2t_inference_ctc import Speech2TextGreedySearch  # noqa: E402
+from espnet2.bin.s2t_inference import Speech2Text  # noqa: E402
+from espnet2.bin.s2t_inference_language import Speech2Language  # noqa: E402
 
 SAMPLE_RATE = 16000
 WINDOW_SECS = 30  # what OWSM is trained on; longer audio is decoded in chunks
@@ -37,7 +38,7 @@ WINDOW_SECS = 30  # what OWSM is trained on; longer audio is decoded in chunks
 # one. The Space this replaces limited the input the same way, to two minutes.
 MAX_SECS = 120
 GPU_SECONDS = 120
-MODEL_TAG = os.environ.get("OWSM_MODEL_TAG", "espnet/owsm_ctc_v4_1B")
+MODEL_TAG = os.environ.get("OWSM_MODEL_TAG", "espnet/owsm_v4_medium_1B")
 # ZeroGPU attaches the GPU only while a @spaces.GPU function runs, so
 # torch.cuda.is_available() is False here and asking it would pin the models to
 # the CPU on the very hardware bought to run them. SPACES_ZERO_GPU is the
@@ -221,105 +222,84 @@ def _pad(speech):
     return librosa.util.fix_length(speech, size=SAMPLE_RATE * WINDOW_SECS)
 
 
-TITLE = "OWSM-CTC v4"
-DESCRIPTION = """# OWSM-CTC v4
+TITLE = "OWSM v4"
+DESCRIPTION = """# OWSM v4
 
-[OWSM-CTC](https://aclanthology.org/2024.acl-long.549/) is an encoder-only
-speech foundation model from [CMU WAVLab](https://www.wavlab.org/), trained on
-320k hours of public audio with [ESPnet](https://github.com/espnet/espnet).
-One encoder pass per 30 s window, no beam search: it transcribes, translates
-and identifies the language, and it is fast.
+[OWSM](https://www.wavlab.org/activities/2024/owsm/) is a series of Open
+Whisper-style Speech Models from [CMU WAVLab](https://www.wavlab.org/),
+reproducing Whisper-style training on public data with
+[ESPnet](https://github.com/espnet/espnet). This is the encoder-decoder v4
+medium model: it transcribes, translates, identifies the language, decodes
+long-form audio, and can be steered with a text prompt.
 
-Its autoregressive sibling, which adds text prompting, runs the same tasks:
-`espnet/owsm-v4`.
+The encoder-only CTC sibling, which is faster, is at
+[espnet/owsm-ctc-v4](https://huggingface.co/spaces/espnet/owsm-ctc-v4).
 """
 ARTICLE = """Model:
-[`espnet/owsm_ctc_v4_1B`](https://huggingface.co/espnet/owsm_ctc_v4_1B)
+[`espnet/owsm_v4_medium_1B`](https://huggingface.co/espnet/owsm_v4_medium_1B)
 (CC-BY-4.0). Source of this Space:
-[`egs2/owsm_ctc_v4/s2t1/demo`](https://github.com/espnet/espnet/tree/master/egs2/owsm_ctc_v4/s2t1/demo).
+[`egs2/owsm_v4/s2t1/demo`](https://github.com/espnet/espnet/tree/master/egs2/owsm_v4/s2t1/demo).
+
+OWSM has not been evaluated on every task it supports; with limited training
+data it may do poorly in some languages.
 
 ```bibtex
-@inproceedings{owsm-ctc,
-  title={{OWSM-CTC}: An Open Encoder-Only Speech Foundation Model for Speech
-         Recognition, Translation, and Language Identification},
-  author={Yifan Peng and Yui Sudo and Muhammad Shakeel and Shinji Watanabe},
-  booktitle={Proc. ACL},
-  year={2024}
+@inproceedings{owsm-v4,
+  title={{OWSM} v4: Improving Open Whisper-Style Speech Models via Data Scaling
+         and Cleaning},
+  author={Yifan Peng and Shakeel Muhammad and Yui Sudo and William Chen and
+          Jinchuan Tian and Chyi-Jiunn Lin and Shinji Watanabe},
+  booktitle={Proc. Interspeech},
+  year={2025}
 }
 ```"""
 
 
-s2t = Speech2TextGreedySearch.from_pretrained(
+s2t = Speech2Text.from_pretrained(
     MODEL_TAG,
     device=DEVICE,
-    generate_interctc_outputs=False,
-    lang_sym="<nolang>",
+    beam_size=5,
+    ctc_weight=0.0,
+    maxlenratio=0.0,
+    lang_sym="<eng>",
     task_sym="<asr>",
+    predict_time=False,
 )
+s2l = Speech2Language.from_pretrained(MODEL_TAG, device=DEVICE, nbest=1)
 
-# The menus come from the checkpoint: OWSM's token list holds every language
-# between <nolang> and <asr>, and one <st_xxx> per translation target.
 LANGUAGES = _names(_language_codes(s2t.s2t_model.token_list))
 TARGETS = [
     (f"Translate to {LANGUAGE_NAMES.get(c, c)} ({c})", c)
     for _, c in _names(_target_codes(s2t.s2t_model.token_list))
 ]
 ASR_LABEL = "Transcribe"
-LANGUAGE_CODES = frozenset(code for _, code in LANGUAGES)
 CODE_OF_LANGUAGE = dict(LANGUAGES)
 CODE_OF_TARGET = dict(TARGETS)
 
 
-def _split_tokens(decoded):
-    """Separate OWSM's leading symbols from the text it decoded.
-
-    The model writes the language and the task first, and can write a
-    timestamp too. A symbol counts as the language only if the checkpoint
-    lists it as one: "asr" is three lowercase letters as well, and a
-    timestamp is a symbol like any other.
-    """
-    language, rest = "", decoded.strip()
-    while rest.startswith("<") and ">" in rest:
-        symbol, rest = rest[1:].split(">", 1)
-        if symbol in LANGUAGE_CODES:
-            language = symbol
-        rest = rest.strip()
-    return language, rest
-
-
-def _detect(speech, task_sym):
-    """The language OWSM-CTC names for the first window of this audio."""
-    decoded = s2t(
-        _pad(speech[: SAMPLE_RATE * WINDOW_SECS]),
-        lang_sym="<nolang>",
-        task_sym=task_sym,
-    )
-    return _split_tokens(decoded[0][0])[0] or "eng"
-
-
 @spaces.GPU(duration=GPU_SECONDS)
-def predict(audio_path, language_label, task_label, long_form):
+def predict(audio_path, language_label, task_label, long_form, prompt):
     speech = _read(audio_path)
-    lang_sym = (
-        "<nolang>"
-        if language_label == DETECT
-        else f"<{CODE_OF_LANGUAGE[language_label]}>"
-    )
+    if language_label == DETECT:
+        code = s2l(_pad(speech[: SAMPLE_RATE * WINDOW_SECS]))[0][0].strip()[1:-1]
+    else:
+        code = CODE_OF_LANGUAGE[language_label]
+    lang_sym = f"<{code}>"
     task_sym = (
         "<asr>" if task_label == ASR_LABEL else f"<st_{CODE_OF_TARGET[task_label]}>"
     )
+    prompt = prompt.strip()
 
-    chosen = None if language_label == DETECT else CODE_OF_LANGUAGE[language_label]
     if long_form:
-        # One 30 s pass first, only to name the language the rest is decoded
-        # in; skipped when the user has already said what it is.
-        detected = chosen or _detect(speech, task_sym)
-        text = s2t.decode_long_batched_buffered(
+        utterances = s2t.decode_long(
             speech,
-            batch_size=1 if DEVICE == "cpu" else 8,
-            context_len_in_secs=4,
-            lang_sym=f"<{detected}>",
+            init_text=prompt or None,
+            lang_sym=lang_sym,
             task_sym=task_sym,
+        )
+        text = "\n".join(
+            f"[{float(start):6.2f} - {float(end):6.2f}] {line}"
+            for start, end, line in utterances
         )
     else:
         if len(speech) > SAMPLE_RATE * WINDOW_SECS:
@@ -327,17 +307,16 @@ def predict(audio_path, language_label, task_label, long_form):
                 f"Only the first {WINDOW_SECS} s were decoded. "
                 "Tick Long-form for the whole recording."
             )
-        decoded = s2t(
+        text = s2t(
             _pad(speech[: SAMPLE_RATE * WINDOW_SECS]),
+            prompt or "<na>",
             lang_sym=lang_sym,
             task_sym=task_sym,
-        )
-        detected, text = _split_tokens(decoded[0][0])
-        detected = detected or chosen or ""
-    return LANGUAGE_NAMES.get(detected, detected or "unknown"), text
+        )[0][-2]
+    return LANGUAGE_NAMES.get(code, code), text
 
 
-EXAMPLES = [[EXAMPLE_WAV, DETECT, ASR_LABEL, False]]
+EXAMPLES = [[EXAMPLE_WAV, DETECT, ASR_LABEL, False, ""]]
 
 
 with gr.Blocks(title=TITLE) as demo:
@@ -361,14 +340,18 @@ with gr.Blocks(title=TITLE) as demo:
                 label="Long-form",
                 info=f"Decode audio longer than {WINDOW_SECS} s in chunks",
             )
+            prompt = gr.Textbox(
+                label="Text prompt (optional)",
+                info="Decoding is conditioned on this text",
+            )
             button = gr.Button("Run", variant="primary")
         with gr.Column():
             detected = gr.Textbox(label="Language")
             text = gr.Textbox(label="Text", lines=8)
-    button.click(predict, [audio, language, task, long_form], [detected, text])
+    button.click(predict, [audio, language, task, long_form, prompt], [detected, text])
     gr.Examples(
         EXAMPLES,
-        inputs=[audio, language, task, long_form],
+        inputs=[audio, language, task, long_form, prompt],
         outputs=[detected, text],
         fn=predict,
         cache_examples=False,
