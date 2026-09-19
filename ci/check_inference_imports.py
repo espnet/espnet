@@ -21,6 +21,9 @@ import sys
 import traceback
 
 MODULES = [
+    # the top-level package: `import espnet; espnet.load(tag)` is the entry
+    # point a user reaches for first, and it ships in the same wheel
+    "espnet",
     "espnet2.bin.asr_inference",
     "espnet2.bin.asr_inference_streaming",
     "espnet2.bin.asr_inference_maskctc",
