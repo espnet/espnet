@@ -20,9 +20,9 @@ from espnet3.utils.stages_utils import (
     run_stages,
 )
 
+# Enhancement recipes do not train a tokenizer.
 DEFAULT_STAGES: List[str] = [
     "create_dataset",
-    "train_tokenizer",
     "collect_stats",
     "train",
     "infer",
@@ -44,9 +44,27 @@ def build_parser(stages: Sequence[str]) -> argparse.ArgumentParser:
         default=["all"],
         help="Which stages to run. Multiple values allowed.",
     )
-    parser.add_argument("--training_config", default=None, type=Path)
-    parser.add_argument("--inference_config", default=None, type=Path)
-    parser.add_argument("--metrics_config", default=None, type=Path)
+    parser.add_argument(
+        "--training_config",
+        default=None,
+        type=Path,
+        help=(
+            "Hydra config for training (passed to load_config_with_defaults). "
+            "Required for create_dataset/collect_stats/train stages."
+        ),
+    )
+    parser.add_argument(
+        "--inference_config",
+        default=None,
+        type=Path,
+        help="Hydra config for infer stage.",
+    )
+    parser.add_argument(
+        "--metrics_config",
+        default=None,
+        type=Path,
+        help="Hydra config for measure stage.",
+    )
     parser.add_argument(
         "--publication_config",
         default=None,
@@ -59,8 +77,16 @@ def build_parser(stages: Sequence[str]) -> argparse.ArgumentParser:
         type=Path,
         help="Hydra config for pack_demo/upload_demo stages.",
     )
-    parser.add_argument("--dry_run", action="store_true")
-    parser.add_argument("--write_requirements", action="store_true")
+    parser.add_argument(
+        "--dry_run",
+        action="store_true",
+        help="Print what would be executed without actually running stages.",
+    )
+    parser.add_argument(
+        "--write_requirements",
+        action="store_true",
+        help="Write requirements.txt alongside each stage log.",
+    )
     return parser
 
 
@@ -134,7 +160,6 @@ def main(args, system_cls, stages: Sequence[str] = DEFAULT_STAGES) -> None:
 
     required_configs = {
         "create_dataset": training_config,
-        "train_tokenizer": training_config,
         "collect_stats": training_config,
         "train": training_config,
         "infer": inference_config,

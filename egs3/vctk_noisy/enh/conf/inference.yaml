@@ -16,10 +16,12 @@ dataset:
     - name: valid
       data_src_args:
         split: valid
+        data_path: ${dataset_dir}
         inference: true
     - name: test
       data_src_args:
         split: test
+        data_path: ${dataset_dir}
         inference: true
 
 ##########################################################

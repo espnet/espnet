@@ -1,22 +1,85 @@
 ##########################################################
 #                    TRAINING SETTING                    #
 ##########################################################
+# Quick usage:
+#   python run.py --stages create_dataset --training_config conf/training.yaml
+#   python run.py --stages collect_stats  --training_config conf/training.yaml
+#   python run.py --stages train          --training_config conf/training.yaml
+#
+# Main stages and what this config is used for:
+# - `create_dataset`: uses `create_dataset` / the recipe `DatasetBuilder`
+# - `collect_stats`: uses `dataset`, `dataloader`, `model`, and `parallel`
+# - `train`: uses most fields in this file
+#
+# Speech enhancement has no tokenizer stage.
+
+##########################################################
+#                  SYSTEM AND PATH SETTING               #
+##########################################################
 num_device: 1
 num_nodes: 1
 
+# Optional ESPnet task class path used by `get_espnet_model(...)`.
+# If unset, `model` is instantiated directly via Hydra.
 task: espnet3.systems.enh.task.EnhancementTask
 
+# Path scaffold relative to the recipe root.
 recipe_dir: .
 data_dir: ${recipe_dir}/data
 exp_tag: ${self_name:}
 exp_dir: ${recipe_dir}/exp/${exp_tag}
 stats_dir: ${recipe_dir}/exp/stats
+
+# Directory where this recipe stores prepared manifests and any recipe-local
+# dataset artifacts, or the external corpus root for datasets that read wavs
+# directly (e.g. VCTK-DEMAND).
+#
+# Keep this value as the single source of truth for dataset location. Training,
+# inference, and dataset creation should all reuse the same path instead of
+# redefining dataset names in multiple configs.
 dataset_dir: /path/to/your/dataset
 
+##########################################################
+#                 DATASET CREATION SETTING               #
+##########################################################
+# Optional kwargs forwarded to `DatasetBuilder.prepare_source` / `build`.
+# If your recipe builds manifests locally, write them under `${dataset_dir}` so
+# later stages can consume the same files without extra path overrides.
 create_dataset:
   recipe_dir: ${recipe_dir}
   dataset_dir: ${dataset_dir}
 
+##########################################################
+#                    DATASET DEFINITION                  #
+##########################################################
+# Dataset organizer used across collect_stats/train/infer/measure.
+# Fill `train`, `valid`, and optionally `test` with dataset reference entries.
+#
+# Each dataset entry supports:
+# - `data_src`: optional dataset source reference.
+#   - `<recipe>/<task>` tag, e.g. `mini_an4/enh`
+#   - dotted module path
+#   - omitted: load `${recipe_dir}/dataset/__init__.py`
+# - `data_src_args`: kwargs forwarded to `Dataset(...)`
+# - `transform`: optional Hydra-instantiated per-sample transform
+# - `name`: mainly useful for `test`; inference uses it as the output
+#   subdirectory name
+#
+# Example:
+# dataset:
+#   train:
+#     - data_src_args:
+#         split: train
+#         data_path: ${dataset_dir}
+#   valid:
+#     - data_src_args:
+#         split: valid
+#         data_path: ${dataset_dir}
+#   preprocessor:
+#     _target_: espnet2.train.preprocessor.EnhPreprocessor
+#     speech_ref_name_prefix: speech_ref
+#     num_spk: 1
+#     sample_rate: 16000
 dataset:
   _target_: espnet3.components.data.data_organizer.DataOrganizer
   _recursive_: false
@@ -26,8 +89,17 @@ dataset:
   test:
   preprocessor:
 
+##########################################################
+#                      MODEL SETTING                     #
+##########################################################
+# Training model definition for `EnhancementTask`.
+# Fill encoder / separator / decoder / criterions (or model_conf.loss_type)
+# in the concrete recipe override.
 model:
 
+##########################################################
+#                   OPTIMIZER / SCHEDULER                #
+##########################################################
 optimizer:
   _target_: torch.optim.Adam
   lr: 1.0e-03
@@ -50,10 +122,16 @@ best_model_criterion:
     - 1
     - min
 
+##########################################################
+#                  PARALLELIZATION SETTING               #
+##########################################################
 parallel:
   env: local
   n_workers: 1
 
+##########################################################
+#                   DATALOADER SETTING                   #
+##########################################################
 dataloader:
   collate_fn:
     _target_: espnet2.train.collate_fn.CommonCollateFn
@@ -66,6 +144,7 @@ dataloader:
       shuffle: true
       collate_fn: ${dataloader.collate_fn}
       batches:
+        # Prefer `sorted` when using RNN separators that pack sequences.
         type: unsorted
         shape_files:
           - ${stats_dir}/train/feats_shape
@@ -85,6 +164,9 @@ dataloader:
         batch_size: ${dataloader.train.iter_factory.batches.batch_size}
         batch_bins: ${dataloader.train.iter_factory.batches.batch_bins}
 
+##########################################################
+#                    TRAINER SETTING                     #
+##########################################################
 trainer:
   accelerator: auto
   devices: ${num_device}

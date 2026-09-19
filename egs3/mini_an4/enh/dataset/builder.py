@@ -10,6 +10,7 @@ from pathlib import Path
 
 from espnet3.components.data.dataset_builder import DatasetBuilder
 from espnet3.utils.config_utils import load_config_with_defaults
+from espnet3.utils.download_utils import extract_targz
 
 TRANSCRIPT_RE = re.compile(r"^(?P<words>.+?)\s+\((?P<src>[^)]+)\)\s*$")
 
@@ -98,7 +99,7 @@ class MiniAn4Builder(DatasetBuilder):
 
         Raises:
             FileNotFoundError: If configured archive file does not exist.
-            subprocess.CalledProcessError: If ``tar`` extraction fails.
+            tarfile.TarError: If archive extraction fails.
 
         Notes:
             This method:
@@ -120,10 +121,7 @@ class MiniAn4Builder(DatasetBuilder):
         _normalize_downloads_layout(dataset_root)
         if self.is_source_prepared(recipe_dir=recipe_dir):
             return
-        subprocess.run(
-            ["tar", "-xzf", str(archive), "-C", str(dataset_root)],
-            check=True,
-        )
+        extract_targz(archive, dataset_root)
         _normalize_downloads_layout(dataset_root)
 
     def is_built(self, recipe_dir: str | Path, **_kwargs) -> bool:
