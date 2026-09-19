@@ -2,7 +2,8 @@
 
 This page covers the development images, which exist to run recipes and to
 train. Running a *published* model on an audio file needs none of that: the
-`espnet/espnet:inference-latest` image is one `docker run` and no checkout. The
+`espnet/espnet:inference-cpu-latest` and `espnet/espnet:inference-gpu-latest`
+images are one `docker run` and no checkout. The
 three images, and what each is for, are listed in
 [docker/README.md](https://github.com/espnet/espnet/tree/master/docker/README.md).
 

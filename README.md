@@ -164,8 +164,11 @@ it, and `--device cuda`; `espnet --version` names the installed version. There i
 
 ```sh
 docker run --rm -v "$PWD:/data" -v "$HOME/.cache/huggingface:/cache/huggingface" \
-    espnet/espnet:inference-latest asr /data/audio.wav
+    espnet/espnet:inference-cpu-latest asr /data/audio.wav
 ```
+
+With a GPU, `espnet/espnet:inference-gpu-latest`, `--gpus all` and
+`--device cuda`.
 
 The second mount is what keeps the downloaded model between runs; on a Linux
 host add `--user "$(id -u):$(id -g)"`, so that what it writes belongs to you.

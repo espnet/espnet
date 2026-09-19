@@ -44,15 +44,27 @@ jobs:
               --build-arg TH_VERSION=2.11.0
               --build-arg CUDA_VER=12.6
               --target devel
-          - variant: inference
+          # Both inference images come out of one dockerfile; only which
+          # torch goes in differs. They install a published release from PyPI
+          # rather than this checkout, so each is told which one: version.txt
+          # is what the branch being published says it is, and passing it here
+          # means the image cannot lag a release even if the dockerfile's own
+          # default does.
+          - variant: inference-cpu
             dockerfile: inference.dockerfile
-            image_tag: espnet/espnet:inference-latest
-            # It installs a published release from PyPI rather than this
-            # checkout, so it is told which one: version.txt is what the branch
-            # being published says it is, and passing it here means the image
-            # cannot lag a release even if the dockerfile's own default does.
+            image_tag: espnet/espnet:inference-cpu-latest
             build_flags: >-
               --build-arg ESPNET_VERSION="$(cat ../version.txt)"
+              --build-arg TORCH_INDEX_URL=https://download.pytorch.org/whl/cpu
+          - variant: inference-gpu
+            dockerfile: inference.dockerfile
+            image_tag: espnet/espnet:inference-gpu-latest
+            # CUDA 12.6, the same toolkit the gpu development image is built
+            # against. The wheels carry the CUDA runtime, so the image needs
+            # no CUDA base image, only a host driver.
+            build_flags: >-
+              --build-arg ESPNET_VERSION="$(cat ../version.txt)"
+              --build-arg TORCH_INDEX_URL=https://download.pytorch.org/whl/cu126
     steps:
       # See ci_on_ubuntu.yml: the default persists GITHUB_TOKEN in .git/config.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7

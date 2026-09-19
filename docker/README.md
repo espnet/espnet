@@ -12,7 +12,8 @@ one published model on one file, and the vLLM image serves SpeechLM models.
 
 | Image | What it is for | One command |
 | :---- | :---- | :---- |
-| `espnet/espnet:inference-latest` | Trying a published model - ASR, translation, TTS, enhancement - with nothing installed. CPU only. | `docker run --rm -v "$PWD:/data" -v "$HOME/.cache/huggingface:/cache/huggingface" espnet/espnet:inference-latest asr /data/audio.wav` |
+| `espnet/espnet:inference-cpu-latest` | Trying a published model - ASR, translation, TTS, enhancement - with nothing installed. | `docker run --rm -v "$PWD:/data" -v "$HOME/.cache/huggingface:/cache/huggingface" espnet/espnet:inference-cpu-latest asr /data/audio.wav` |
+| `espnet/espnet:inference-gpu-latest` | The same, on a GPU: the CUDA 12.6 build of torch, for the 1B models where the CPU is the wait. | `docker run --rm --gpus all -v "$PWD:/data" -v "$HOME/.cache/huggingface:/cache/huggingface" espnet/espnet:inference-gpu-latest asr /data/audio.wav --device cuda` |
 | `espnet/espnet:cpu-latest`, `espnet/espnet:gpu-latest` | Development: running and writing `egs2` recipes, training, the Kaldi-style tooling. The whole toolkit. | `docker run --rm -it -v "$PWD:/work" espnet/espnet:cpu-latest bash` |
 | `espnet/vllm:latest` | Serving a SpeechLM checkpoint behind an OpenAI-compatible API, on GPU. Built from the [ESPnet vLLM fork](https://github.com/espnet/vllm). | [Serving guide](https://github.com/espnet/espnet/pull/6695) (conversion, then `docker run --gpus all ... espnet/vllm:latest`) |
 
@@ -29,8 +30,24 @@ every subcommand of that command is an argument to `docker run`:
 docker run --rm \
     -v "$PWD:/data" \
     -v "$HOME/.cache/huggingface:/cache/huggingface" \
-    espnet/espnet:inference-latest asr /data/audio.wav
+    espnet/espnet:inference-cpu-latest asr /data/audio.wav
 ```
+
+On a machine with a GPU, the same thing with the CUDA image. `--device cuda`
+is what tells the command to use it; without it the model runs on the CPU
+inside a much larger image, which is the worst of both:
+
+```sh
+docker run --rm --gpus all \
+    -v "$PWD:/data" \
+    -v "$HOME/.cache/huggingface:/cache/huggingface" \
+    espnet/espnet:inference-gpu-latest asr /data/audio.wav --device cuda
+```
+
+The two images are built from one dockerfile and differ only in which torch
+they install: `+cpu` against `+cu126`. The CUDA one is several gigabytes
+larger, because the CUDA runtime travels inside those wheels - which is also
+why it needs no CUDA base image, only a host driver new enough for CUDA 12.6.
 
 With the same two mounts, the other subcommands are:
 

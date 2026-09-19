@@ -2,7 +2,16 @@
 #
 #   docker run --rm -v "$PWD:/data" \
 #       -v "$HOME/.cache/huggingface:/cache/huggingface" \
-#       espnet/espnet:inference-latest asr /data/audio.wav
+#       espnet/espnet:inference-cpu-latest asr /data/audio.wav
+#
+#   docker run --rm --gpus all -v "$PWD:/data" \
+#       -v "$HOME/.cache/huggingface:/cache/huggingface" \
+#       espnet/espnet:inference-gpu-latest asr /data/audio.wav --device cuda
+#
+# One dockerfile builds both: TORCH_INDEX_URL decides which torch goes in, and
+# nothing else differs. The CUDA wheels carry the CUDA runtime themselves, so
+# the GPU image needs no CUDA base image - only a host driver new enough for
+# the toolkit the wheels were built against.
 #
 # This is not espnet.dockerfile's smaller sibling - it is a different image for
 # a different reader. The cpu/gpu images carry Kaldi, the recipe tooling and the
@@ -34,11 +43,10 @@ ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
 RUN python -m venv /opt/venv
 ENV PATH=/opt/venv/bin:${PATH}
 
-# torch's PyPI wheel bundles the CUDA runtime - around 3 GB of nvidia-* wheels
-# that this image can never use, since it has no CUDA driver stack and inference
-# here is on CPU. The +cpu build from PyTorch's own index is the same torch
-# without them. Install it first so that espnet's `torch>=...` is already
-# satisfied and pip does not resolve back to PyPI.
+# Which torch, and therefore which image: the +cpu build is the same torch
+# without the ~3 GB of nvidia-* wheels the PyPI one bundles, and a +cuXXX build
+# carries the CUDA runtime it needs. Install it before espnet so that espnet's
+# `torch>=...` is already satisfied and pip does not resolve back to PyPI.
 # TH_VERSION is the version ci/image_variants.json builds and
 # tools/installers/install_torch.sh installs; ci/check_ci_image_config.py fails
 # if it drifts off that set.
@@ -47,7 +55,10 @@ ARG TH_VERSION=2.11.0
 # torchaudio's last release is 2.11.0, and every supported torch above it pairs
 # with that one version (see the dependency comment in pyproject.toml).
 ARG TORCHAUDIO_VERSION=2.11.0
-RUN pip install --index-url https://download.pytorch.org/whl/cpu \
+# https://download.pytorch.org/whl/cu126 for the GPU image; CUDA 12.6 is what
+# the gpu development image builds against too.
+ARG TORCH_INDEX_URL=https://download.pytorch.org/whl/cpu
+RUN pip install --index-url "${TORCH_INDEX_URL}" \
     "torch==${TH_VERSION}" "torchaudio==${TORCHAUDIO_VERSION}"
 
 # From PyPI, at a release, not from this checkout: the image is meant to be the
@@ -59,7 +70,7 @@ RUN pip install "espnet==${ESPNET_VERSION}"
 
 FROM python:${PYTHON_VERSION}-slim
 LABEL maintainer="ESPnet developers <espnet@googlegroups.com>"
-LABEL description="Run a published ESPnet model from the command line (CPU)."
+LABEL description="Run a published ESPnet model from the command line."
 
 # The virtualenv records the absolute path of the interpreter that made it, so
 # both stages have to be the same python:<version>-slim - which is what the one
@@ -99,6 +110,6 @@ RUN mkdir -p /cache/huggingface /cache/numba && chmod -R 1777 /cache
 WORKDIR /data
 
 ENTRYPOINT ["espnet"]
-# `docker run espnet/espnet:inference-latest` with no arguments should say what
-# the image does rather than fail on a missing subcommand.
+# `docker run espnet/espnet:inference-cpu-latest` with no arguments should say
+# what the image does rather than fail on a missing subcommand.
 CMD ["--help"]
