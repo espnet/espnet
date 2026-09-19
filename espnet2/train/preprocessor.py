@@ -2721,6 +2721,9 @@ class S2TCTCPreprocessor(CommonPreprocessor):
         text_prev_apply_prob: float = 0.5,  # whether to condition on text_prev
         lang_apply_prob: float = 0.5,  # whether to use groundtruth language or unknown
         nolang_symbol: str = "<nolang>",
+        data_aug_effects: List = None,
+        data_aug_num: List[int] = [1, 1],
+        data_aug_prob: float = 0.0,
     ):
         super().__init__(
             train=train,
@@ -2743,6 +2746,9 @@ class S2TCTCPreprocessor(CommonPreprocessor):
             speech_name=speech_name,
             text_name=text_name,
             fs=fs,
+            data_aug_effects=data_aug_effects,
+            data_aug_num=data_aug_num,
+            data_aug_prob=data_aug_prob,
         )
         self.text_prev_name = text_prev_name
         self.text_ctc_name = text_ctc_name
