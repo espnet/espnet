@@ -481,7 +481,7 @@ def test_demo_menus_come_from_the_checkpoint(monkeypatch):
     assert cli.main(["demo"]) == 0
 
     # the two dropdowns are this checkpoint's own tokens, not a fixed list
-    (languages, targets) = [call.args[0] for call in gradio.Dropdown.call_args_list]
+    languages, targets = [call.args[0] for call in gradio.Dropdown.call_args_list]
     assert languages == ["Detect automatically", "English (eng)", "Japanese (jpn)"]
     assert targets == ["Transcribe", "Translate to German (deu)"]
 
