@@ -9,27 +9,26 @@ translation, language identification and long-form decoding - so that the two
 models can be compared on the same audio.
 """
 
-import os
-import re
-
-import gradio as gr
-import librosa
-import torch
-
-from espnet2.bin.s2t_inference_ctc import Speech2TextGreedySearch
-
-try:  # ZeroGPU's decorator exists only on Hugging Face's runners
-    import spaces
-
-    ZERO_GPU = True
-except ImportError:  # running locally: the decorator does nothing
-    ZERO_GPU = False
+# The ZeroGPU package patches torch as it is imported, so it has to come
+# first - before torch, and before anything that imports torch.
+try:  # only Hugging Face's runners have it
+    import spaces  # isort: skip
+except ImportError:  # running elsewhere: the decorator does nothing
 
     class spaces:  # noqa: N801 - stands in for the module
         @staticmethod
         def GPU(func=None, **kwargs):
             return func if func is not None else (lambda f: f)
 
+
+import os  # noqa: E402
+import re  # noqa: E402
+
+import gradio as gr  # noqa: E402
+import librosa  # noqa: E402
+import torch  # noqa: E402
+
+from espnet2.bin.s2t_inference_ctc import Speech2TextGreedySearch  # noqa: E402
 
 SAMPLE_RATE = 16000
 WINDOW_SECS = 30  # what OWSM is trained on; longer audio is decoded in chunks
@@ -39,15 +38,18 @@ WINDOW_SECS = 30  # what OWSM is trained on; longer audio is decoded in chunks
 MAX_SECS = 120
 GPU_SECONDS = 120
 MODEL_TAG = os.environ.get("OWSM_MODEL_TAG", "espnet/owsm_ctc_v4_1B")
-# On ZeroGPU the GPU is attached only while a @spaces.GPU function runs, so
+# ZeroGPU attaches the GPU only while a @spaces.GPU function runs, so
 # torch.cuda.is_available() is False here and asking it would pin the models to
-# the CPU on the very hardware bought to run them.
+# the CPU on the very hardware bought to run them. SPACES_ZERO_GPU is the
+# runtime's own marker; `spaces` being importable is not, since anyone can
+# install it.
+ZERO_GPU = bool(os.environ.get("SPACES_ZERO_GPU"))
 if os.environ.get("DEVICE"):
     DEVICE = os.environ["DEVICE"]
-elif ZERO_GPU or os.environ.get("SPACES_ZERO_GPU"):
+elif ZERO_GPU or torch.cuda.is_available():
     DEVICE = "cuda"
 else:
-    DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+    DEVICE = "cpu"
 
 # ISO 639-3 to English, for the menu. The codes themselves come from the
 # loaded model, so a checkpoint covering more languages needs no edit here;
@@ -263,17 +265,36 @@ TARGETS = [
     for _, c in _names(_target_codes(s2t.s2t_model.token_list))
 ]
 ASR_LABEL = "Transcribe"
+LANGUAGE_CODES = frozenset(code for _, code in LANGUAGES)
+CODE_OF_LANGUAGE = dict(LANGUAGES)
+CODE_OF_TARGET = dict(TARGETS)
 
 
 def _split_tokens(decoded):
-    """Separate OWSM's leading <lang><task> symbols from the text."""
+    """Separate OWSM's leading symbols from the text it decoded.
+
+    The model writes the language and the task first, and can write a
+    timestamp too. A symbol counts as the language only if the checkpoint
+    lists it as one: "asr" is three lowercase letters as well, and a
+    timestamp is a symbol like any other.
+    """
     language, rest = "", decoded.strip()
     while rest.startswith("<") and ">" in rest:
         symbol, rest = rest[1:].split(">", 1)
-        if not symbol.startswith(("asr", "st_", "notimestamps")):
+        if symbol in LANGUAGE_CODES:
             language = symbol
         rest = rest.strip()
     return language, rest
+
+
+def _detect(speech, task_sym):
+    """The language OWSM-CTC names for the first window of this audio."""
+    decoded = s2t(
+        _pad(speech[: SAMPLE_RATE * WINDOW_SECS]),
+        lang_sym="<nolang>",
+        task_sym=task_sym,
+    )
+    return _split_tokens(decoded[0][0])[0] or "eng"
 
 
 @spaces.GPU(duration=GPU_SECONDS)
@@ -282,26 +303,37 @@ def predict(audio_path, language_label, task_label, long_form):
     lang_sym = (
         "<nolang>"
         if language_label == DETECT
-        else f"<{dict(LANGUAGES)[language_label]}>"
+        else f"<{CODE_OF_LANGUAGE[language_label]}>"
     )
     task_sym = (
-        "<asr>" if task_label == ASR_LABEL else f"<st_{dict(TARGETS)[task_label]}>"
+        "<asr>" if task_label == ASR_LABEL else f"<st_{CODE_OF_TARGET[task_label]}>"
     )
 
-    # A short pass names the language even when the user left it to the model,
-    # and it is the whole answer for audio that fits the window.
-    head = s2t(
-        _pad(speech[: SAMPLE_RATE * WINDOW_SECS]), lang_sym=lang_sym, task_sym=task_sym
-    )
-    detected, text = _split_tokens(head[0][0])
+    chosen = None if language_label == DETECT else CODE_OF_LANGUAGE[language_label]
     if long_form:
+        # One 30 s pass first, only to name the language the rest is decoded
+        # in; skipped when the user has already said what it is.
+        detected = chosen or _detect(speech, task_sym)
         text = s2t.decode_long_batched_buffered(
             speech,
             batch_size=1 if DEVICE == "cpu" else 8,
             context_len_in_secs=4,
-            lang_sym=f"<{detected}>" if detected else lang_sym,
+            lang_sym=f"<{detected}>",
             task_sym=task_sym,
         )
+    else:
+        if len(speech) > SAMPLE_RATE * WINDOW_SECS:
+            gr.Warning(
+                f"Only the first {WINDOW_SECS} s were decoded. "
+                "Tick Long-form for the whole recording."
+            )
+        decoded = s2t(
+            _pad(speech[: SAMPLE_RATE * WINDOW_SECS]),
+            lang_sym=lang_sym,
+            task_sym=task_sym,
+        )
+        detected, text = _split_tokens(decoded[0][0])
+        detected = detected or chosen or ""
     return LANGUAGE_NAMES.get(detected, detected or "unknown"), text
 
 

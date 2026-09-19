@@ -9,28 +9,27 @@ translation, language identification and long-form decoding - so that the two
 models can be compared on the same audio.
 """
 
-import os
-import re
-
-import gradio as gr
-import librosa
-import torch
-
-from espnet2.bin.s2t_inference import Speech2Text
-from espnet2.bin.s2t_inference_language import Speech2Language
-
-try:  # ZeroGPU's decorator exists only on Hugging Face's runners
-    import spaces
-
-    ZERO_GPU = True
-except ImportError:  # running locally: the decorator does nothing
-    ZERO_GPU = False
+# The ZeroGPU package patches torch as it is imported, so it has to come
+# first - before torch, and before anything that imports torch.
+try:  # only Hugging Face's runners have it
+    import spaces  # isort: skip
+except ImportError:  # running elsewhere: the decorator does nothing
 
     class spaces:  # noqa: N801 - stands in for the module
         @staticmethod
         def GPU(func=None, **kwargs):
             return func if func is not None else (lambda f: f)
 
+
+import os  # noqa: E402
+import re  # noqa: E402
+
+import gradio as gr  # noqa: E402
+import librosa  # noqa: E402
+import torch  # noqa: E402
+
+from espnet2.bin.s2t_inference import Speech2Text  # noqa: E402
+from espnet2.bin.s2t_inference_language import Speech2Language  # noqa: E402
 
 SAMPLE_RATE = 16000
 WINDOW_SECS = 30  # what OWSM is trained on; longer audio is decoded in chunks
@@ -40,15 +39,18 @@ WINDOW_SECS = 30  # what OWSM is trained on; longer audio is decoded in chunks
 MAX_SECS = 120
 GPU_SECONDS = 120
 MODEL_TAG = os.environ.get("OWSM_MODEL_TAG", "espnet/owsm_v4_medium_1B")
-# On ZeroGPU the GPU is attached only while a @spaces.GPU function runs, so
+# ZeroGPU attaches the GPU only while a @spaces.GPU function runs, so
 # torch.cuda.is_available() is False here and asking it would pin the models to
-# the CPU on the very hardware bought to run them.
+# the CPU on the very hardware bought to run them. SPACES_ZERO_GPU is the
+# runtime's own marker; `spaces` being importable is not, since anyone can
+# install it.
+ZERO_GPU = bool(os.environ.get("SPACES_ZERO_GPU"))
 if os.environ.get("DEVICE"):
     DEVICE = os.environ["DEVICE"]
-elif ZERO_GPU or os.environ.get("SPACES_ZERO_GPU"):
+elif ZERO_GPU or torch.cuda.is_available():
     DEVICE = "cuda"
 else:
-    DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+    DEVICE = "cpu"
 
 # ISO 639-3 to English, for the menu. The codes themselves come from the
 # loaded model, so a checkpoint covering more languages needs no edit here;
@@ -271,6 +273,8 @@ TARGETS = [
     for _, c in _names(_target_codes(s2t.s2t_model.token_list))
 ]
 ASR_LABEL = "Transcribe"
+CODE_OF_LANGUAGE = dict(LANGUAGES)
+CODE_OF_TARGET = dict(TARGETS)
 
 
 @spaces.GPU(duration=GPU_SECONDS)
@@ -279,10 +283,10 @@ def predict(audio_path, language_label, task_label, long_form, prompt):
     if language_label == DETECT:
         code = s2l(_pad(speech[: SAMPLE_RATE * WINDOW_SECS]))[0][0].strip()[1:-1]
     else:
-        code = dict(LANGUAGES)[language_label]
+        code = CODE_OF_LANGUAGE[language_label]
     lang_sym = f"<{code}>"
     task_sym = (
-        "<asr>" if task_label == ASR_LABEL else f"<st_{dict(TARGETS)[task_label]}>"
+        "<asr>" if task_label == ASR_LABEL else f"<st_{CODE_OF_TARGET[task_label]}>"
     )
     prompt = prompt.strip()
 
@@ -293,8 +297,16 @@ def predict(audio_path, language_label, task_label, long_form, prompt):
             lang_sym=lang_sym,
             task_sym=task_sym,
         )
-        text = "\n".join(f"[{start} - {end}] {line}" for start, end, line in utterances)
+        text = "\n".join(
+            f"[{float(start):6.2f} - {float(end):6.2f}] {line}"
+            for start, end, line in utterances
+        )
     else:
+        if len(speech) > SAMPLE_RATE * WINDOW_SECS:
+            gr.Warning(
+                f"Only the first {WINDOW_SECS} s were decoded. "
+                "Tick Long-form for the whole recording."
+            )
         text = s2t(
             _pad(speech[: SAMPLE_RATE * WINDOW_SECS]),
             prompt or "<na>",

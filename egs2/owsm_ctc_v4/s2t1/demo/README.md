@@ -47,8 +47,15 @@ pip install -r requirements.txt gradio
 python app.py                     # http://127.0.0.1:7860
 ```
 
-`DEVICE` chooses where it runs; on the Space it is the GPU that ZeroGPU
-attaches to the decorated function. To publish, from the ESPnet checkout:
+`DEVICE` decides where the models run and takes precedence over everything
+else, so `DEVICE=cpu` is a local CPU test even on a machine with a GPU. With
+`DEVICE` unset, the choice is CUDA when the runtime is ZeroGPU
+(`SPACES_ZERO_GPU`, the marker Hugging Face sets — asking
+`torch.cuda.is_available()` there answers False, because the GPU is attached
+only while a `@spaces.GPU` function runs) or when torch reports a GPU, and CPU
+otherwise.
+
+To publish, from the ESPnet checkout:
 
 ```sh
 hf auth login
