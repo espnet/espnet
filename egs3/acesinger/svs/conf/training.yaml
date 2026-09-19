@@ -1,0 +1,354 @@
+##########################################################
+#            ACE-OPENCPOP VISINGER2 TRAINING SETTING     #
+##########################################################
+# Port of the egs2 ACE-Opencpop SVS recipe:
+#   egs2/acesinger/svs1/conf/tuning/train_visinger2.yaml
+#   egs2/acesinger/svs1/run.sh
+#
+# Merged over egs3/TEMPLATE/svs/conf/training.yaml, so only the values this
+# recipe changes are listed here. Everything egs2 spread over run.sh (fs,
+# n_fft/n_shift/win_length, fmin/fmax, score_feats_extract, pitch_extract,
+# use_sid) and svs.sh defaults (feats_extract=fbank, feats_normalize=global_mvn,
+# f0min=80, f0max=810, min/max_wav_duration) is spelled out here.
+#
+# Deliberate deviations from egs2 are marked [DEVIATION].
+#
+# Quick usage:
+#   python run.py --stages create_dataset remove_long_short create_token_list \
+#       --training_config conf/training.yaml
+#   python run.py --stages collect_stats train --training_config conf/training.yaml
+
+exp_tag: train_visinger2
+task: espnet2.tasks.gan_svs.GANSVSTask
+num_device: 4
+seed: 777
+
+##########################################################
+#                DATA PREPARATION SETTING                #
+##########################################################
+create_dataset:
+  recipe_dir: ${recipe_dir}
+
+# Drop utterances outside [0.1, 20] s from train/valid, as svs.sh stage 3
+# does. The test set is kept as is.
+remove_long_short:
+  min_wav_duration: 0.1
+  max_wav_duration: 20.0
+  splits: [train, valid]
+  manifest_paths:
+    train: ${data_dir}/manifest/train.tsv
+    valid: ${data_dir}/manifest/valid.tsv
+  save_path: ${data_dir}/manifest_filtered
+
+# [DEVIATION] The splits are the Hub's train / validation / test
+# (dataset/config.yaml), not egs2's tr_no_dev / dev / eval cut from the raw
+# archives; the content is the same segmentation.
+#
+# The manifest text is already a phoneme sequence, so no g2p is applied.
+create_token_list:
+  manifest_path: ${remove_long_short.save_path}/train.tsv
+  save_path: ${data_dir}/token_list/phn_none
+  filename: tokens.txt
+  token_type: phn
+  cleaner: null
+  g2p: null
+  add_symbol:
+    - "<blank>:0"
+    - "<unk>:1"
+    - "<sos/eos>:-1"
+
+##########################################################
+#                   DATASET DEFINITION                   #
+##########################################################
+# collect_stats reads singing and computes fbank/pitch; train reads the
+# dumped features back through `collect_feats_dir`.
+dataset:
+  train:
+    - data_src_args:
+        split: train
+        manifest_path: ${remove_long_short.save_path}/train.tsv
+        collect_feats_dir: ${stats_dir}/train/collect_feats
+  valid:
+    - data_src_args:
+        split: valid
+        manifest_path: ${remove_long_short.save_path}/valid.tsv
+        collect_feats_dir: ${stats_dir}/valid/collect_feats
+  preprocessor:
+    _target_: espnet2.train.preprocessor.SVSPreprocessor
+    train: true
+    token_type: phn
+    token_list: ${create_token_list.save_path}/${create_token_list.filename}
+    fs: 44100
+    hop_length: 512
+
+write_collected_feats: true
+
+# collect_stats extracts dio pitch for every utterance (about 0.2 s each on
+# one core), so run it on a Dask cluster when you can, e.g. on Slurm:
+#   parallel:
+#     env: slurm
+#     n_workers: 32
+#     options: {queue: <partition>, account: <account>, cores: 32,
+#               processes: 32, memory: 120GB, walltime: "01:00:00"}
+parallel:
+  env: local
+  n_workers: 1
+
+##########################################################
+#                     MODEL SETTING                      #
+##########################################################
+model:
+  token_list: ${create_token_list.save_path}/${create_token_list.filename}
+  feats_extract: fbank
+  feats_extract_conf:
+    fs: 44100
+    n_fft: 2048
+    hop_length: 512
+    win_length: 2048
+    fmin: 80
+    fmax: 22050
+    n_mels: 80
+  normalize: global_mvn
+  normalize_conf:
+    stats_file: ${stats_dir}/train/feats_stats.npz
+  score_feats_extract: syllable_score_feats
+  score_feats_extract_conf:
+    fs: 44100
+    n_fft: 2048
+    win_length: 2048
+    hop_length: 512
+  pitch_extract: dio
+  pitch_extract_conf:
+    fs: 44100
+    n_fft: 2048
+    hop_length: 512
+    f0max: 810
+    f0min: 80
+    use_token_averaged_f0: false
+    use_log_f0: false
+  pitch_normalize: null
+  svs: vits
+  svs_conf:
+    # generator related
+    generator_type: visinger2
+    vocoder_generator_type: visinger2
+    generator_params:
+      hidden_channels: 192
+      spks: 31
+      global_channels: 256
+      segment_size: 20
+      text_encoder_attention_heads: 2
+      text_encoder_ffn_expand: 4
+      text_encoder_blocks: 6
+      text_encoder_positionwise_layer_type: conv1d
+      text_encoder_positionwise_conv_kernel_size: 3
+      text_encoder_positional_encoding_layer_type: rel_pos
+      text_encoder_self_attention_layer_type: rel_selfattn
+      text_encoder_activation_type: swish
+      text_encoder_normalize_before: true
+      text_encoder_dropout_rate: 0.1
+      text_encoder_positional_dropout_rate: 0.0
+      text_encoder_attention_dropout_rate: 0.1
+      use_macaron_style_in_text_encoder: true
+      use_conformer_conv_in_text_encoder: false
+      text_encoder_conformer_kernel_size: -1
+      decoder_kernel_size: 7
+      decoder_channels: 256
+      decoder_upsample_scales: [8, 8, 4, 2]
+      decoder_upsample_kernel_sizes: [16, 16, 8, 4]
+      n_harmonic: 64
+      decoder_resblock_kernel_sizes: [3, 7, 11]
+      decoder_resblock_dilations: [[1, 3, 5], [1, 3, 5], [1, 3, 5]]
+      use_weight_norm_in_decoder: true
+      posterior_encoder_kernel_size: 3
+      posterior_encoder_layers: 8
+      posterior_encoder_stacks: 1
+      posterior_encoder_base_dilation: 1
+      posterior_encoder_dropout_rate: 0.0
+      use_weight_norm_in_posterior_encoder: true
+      flow_flows: -1
+      flow_kernel_size: 5
+      flow_base_dilation: 1
+      flow_layers: 4
+      flow_dropout_rate: 0.0
+      use_weight_norm_in_flow: true
+      use_only_mean_in_flow: true
+      use_phoneme_predictor: false
+    # discriminator related
+    discriminator_type: visinger2
+    discriminator_params:
+      scales: 1
+      scale_downsample_pooling: AvgPool1d
+      scale_downsample_pooling_params:
+        kernel_size: 4
+        stride: 2
+        padding: 2
+      scale_discriminator_params:
+        in_channels: 1
+        out_channels: 1
+        kernel_sizes: [15, 41, 5, 3]
+        channels: 128
+        max_downsample_channels: 1024
+        max_groups: 256
+        bias: true
+        downsample_scales: [4, 4, 4, 4]
+        nonlinear_activation: LeakyReLU
+        nonlinear_activation_params:
+          negative_slope: 0.1
+        use_weight_norm: true
+        use_spectral_norm: false
+      follow_official_norm: false
+      periods: [2, 3, 5, 7, 11]
+      period_discriminator_params:
+        in_channels: 1
+        out_channels: 1
+        kernel_sizes: [5, 3]
+        channels: 32
+        downsample_scales: [3, 3, 3, 3, 1]
+        max_downsample_channels: 1024
+        bias: true
+        nonlinear_activation: LeakyReLU
+        nonlinear_activation_params:
+          negative_slope: 0.1
+        use_weight_norm: true
+        use_spectral_norm: false
+      multi_freq_disc_params:
+        hop_length_factors: [2.5, 5, 7.5, 10, 12.5, 15]
+        hidden_channels: [256, 256, 256, 256, 256]
+        domain: double
+        mel_scale: true
+        divisors: [32, 16, 8, 4, 2, 1, 1]
+        strides: [1, 2, 1, 2, 1, 2, 1]
+    # loss function related
+    generator_adv_loss_params:
+      average_by_discriminators: false
+      loss_type: mse
+    discriminator_adv_loss_params:
+      average_by_discriminators: false
+      loss_type: mse
+    feat_match_loss_params:
+      average_by_discriminators: false
+      average_by_layers: false
+      include_final_outputs: true
+    mel_loss_params:
+      fs: 44100
+      n_fft: 2048
+      hop_length: 512
+      win_length: 2048
+      window: hann
+      n_mels: 80
+      fmin: 0
+      fmax: 22050
+      log_base: null
+    lambda_adv: 1.0
+    lambda_mel: 45.0
+    lambda_feat_match: 2.0
+    lambda_dur: 0.1
+    lambda_pitch: 10.0
+    lambda_phoneme: 1.0
+    lambda_kl: 1.0
+    # others
+    sampling_rate: 44100
+    cache_generator_outputs: true
+
+##########################################################
+#             OPTIMIZER & SCHEDULER SETTING              #
+##########################################################
+generator_first: true
+
+optimizers:
+  generator:
+    optimizer:
+      _target_: torch.optim.AdamW
+      lr: 2.0e-4
+      betas: [0.8, 0.99]
+      eps: 1.0e-9
+      weight_decay: 0.0
+    params: generator
+  discriminator:
+    optimizer:
+      _target_: torch.optim.AdamW
+      lr: 2.0e-4
+      betas: [0.8, 0.99]
+      eps: 1.0e-9
+      weight_decay: 0.0
+    params: discriminator
+
+schedulers:
+  generator:
+    scheduler:
+      _target_: torch.optim.lr_scheduler.ExponentialLR
+      gamma: 0.998
+    interval: epoch
+  discriminator:
+    scheduler:
+      _target_: torch.optim.lr_scheduler.ExponentialLR
+      gamma: 0.998
+    interval: epoch
+
+##########################################################
+#              CHECKPOINT SELECTION SETTING              #
+##########################################################
+# [DEVIATION] egs2 keeps the latest epochs (train.total_count.best) and decodes
+# the last one; here the 5 best validation checkpoints are kept and averaged.
+best_model_criterion:
+  - - valid/generator/loss
+    - 5
+    - min
+
+##########################################################
+#                   DATALOADER SETTING                   #
+##########################################################
+dataloader:
+  collate_fn:
+    _target_: espnet2.train.collate_fn.CommonCollateFn
+    int_pad_value: 0
+    float_pad_value: 0.0
+    not_sequence: [spembs, sids, lids]
+  train:
+    iter_factory:
+      _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
+      shuffle: true
+      num_workers: 4
+      collate_fn: ${dataloader.collate_fn}
+      batches:
+        type: sorted
+        # [DEVIATION] egs2's batch_size 8 is global and sharded over the 4 GPUs
+        # (2 per GPU); here each GPU takes whole batches, so 8 is per GPU.
+        batch_size: 8
+        batch_bins: 0  # required by the signature, unused for "sorted"
+        sort_batch: descending
+        shape_files:
+          - ${stats_dir}/train/feats_shape
+  valid:
+    iter_factory:
+      _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
+      shuffle: false
+      num_workers: 4
+      collate_fn: ${dataloader.collate_fn}
+      batches:
+        type: sorted
+        batch_size: 8
+        batch_bins: 0  # required by the signature, unused for "sorted"
+        sort_batch: descending
+        shape_files:
+          - ${stats_dir}/valid/feats_shape
+
+##########################################################
+#                    TRAINER SETTING                     #
+##########################################################
+# One epoch is 1000 iterations, as num_iters_per_epoch in egs2.
+trainer:
+  max_epochs: 500
+  limit_train_batches: 1000
+  check_val_every_n_epoch: 1
+  log_every_n_steps: 50
+  strategy: ddp_find_unused_parameters_true
+  logger:
+    - _target_: lightning.pytorch.loggers.TensorBoardLogger
+      save_dir: ${exp_dir}/tensorboard
+      name: tb_logger
+
+# Resume from the last checkpoint when there is one, like `--resume true`.
+fit:
+  ckpt_path: last
