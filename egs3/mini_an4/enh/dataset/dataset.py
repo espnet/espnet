@@ -106,8 +106,9 @@ class MiniAn4EnhDataset(TorchDataset):
         array, _sr = sf.read(str(entry.wav_path))
         speech = np.asarray(array, dtype=np.float32)
         # Identity mix/ref matches egs2 mini_an4 enh1 without preprocessor.
+        # Keep only array fields: CommonCollateFn cannot pad string metadata,
+        # and utterance ids come from CombinedDataset when collating.
         return {
-            "utt_id": entry.utt_id,
             "speech_mix": speech,
             "speech_ref1": speech.copy(),
         }
