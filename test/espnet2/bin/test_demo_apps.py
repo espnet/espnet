@@ -171,8 +171,6 @@ def test_the_apps_menus_are_the_ones_espnet_demo_builds(name):
 
 @pytest.mark.parametrize("name", list(DEMOS))
 def test_the_apps_padding_is_what_espnet_demo_pads_to(name):
-    # librosa.util reaches for scipy.ndimage, which a mismatched numpy breaks
-    pytest.importorskip("scipy.ndimage")
     speech = np.random.default_rng(0).standard_normal(16000, dtype="float32")
 
     # np.pad in espnet2.bin.demo, librosa.util.fix_length here: same array

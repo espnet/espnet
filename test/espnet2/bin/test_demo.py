@@ -10,6 +10,7 @@ import sys
 from pathlib import Path
 
 import numpy as np
+import pytest
 
 from espnet2.bin import demo
 
@@ -105,3 +106,37 @@ def test_importing_this_module_does_not_import_gradio():
 
     assert r.returncode == 0, r.stderr
     assert r.stdout.strip() == "False"
+
+
+def _import_fails_with(monkeypatch, error):
+    """Make `import gradio` raise, whether or not gradio is installed."""
+    import builtins
+
+    real_import = builtins.__import__
+
+    def fake_import(name, *args, **kwargs):
+        if name == "gradio":
+            raise error
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.delitem(sys.modules, "gradio", raising=False)
+    monkeypatch.setattr(builtins, "__import__", fake_import)
+
+
+def test_a_missing_gradio_is_the_answer_none(monkeypatch):
+    _import_fails_with(
+        monkeypatch, ModuleNotFoundError("No module named 'gradio'", name="gradio")
+    )
+
+    assert demo.load_gradio() is None
+
+
+def test_a_gradio_that_is_installed_but_broken_is_not_called_missing(monkeypatch):
+    # "pip install espnet[demo]" would not fix this one, and naming gradio
+    # instead of the package that is actually absent would send a user there
+    _import_fails_with(
+        monkeypatch, ModuleNotFoundError("No module named 'pandas'", name="pandas")
+    )
+
+    with pytest.raises(ModuleNotFoundError, match="pandas"):
+        demo.load_gradio()

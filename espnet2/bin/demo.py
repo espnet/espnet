@@ -264,10 +264,16 @@ def load_gradio():
     Returning None rather than raising lets `espnet demo` report a missing
     package in the CLI's own one-line style, the way it reports a missing
     audio file, instead of ending in an ImportError traceback.
+
+    Only gradio's own absence answers None. An installed gradio that fails on
+    one of its dependencies is a broken install, not a missing extra, and
+    saying "gradio is not installed" would hide the name of what is.
     """
     try:
         import gradio
-    except ImportError:
+    except ModuleNotFoundError as e:
+        if e.name != "gradio":
+            raise
         return None
     return gradio
 
