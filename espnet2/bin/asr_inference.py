@@ -736,8 +736,10 @@ class Speech2Text:
     @typechecked
     def batch_decode(
         self,
-        speech: Union[torch.Tensor, Sequence[Union[torch.Tensor, np.ndarray]]],
-        speech_lengths: Optional[torch.Tensor] = None,
+        speech: Union[
+            torch.Tensor, np.ndarray, Sequence[Union[torch.Tensor, np.ndarray]]
+        ],
+        speech_lengths: Optional[Union[torch.Tensor, np.ndarray, Sequence[int]]] = None,
     ) -> List[ListOfHypothesis]:
         """Decode a minibatch of utterances in one beam search.
 
@@ -748,12 +750,12 @@ class Speech2Text:
         the legacy relative-position attention) can differ slightly.
 
         Args:
-            speech: Padded speech of shape `(n_utt, nsamples)` together with
-                `speech_lengths`, or a list of unpadded utterances of shape
-                `(nsamples,)`, which is padded here.
+            speech: Padded speech of shape `(n_utt, nsamples)`, a tensor or a
+                numpy array, together with `speech_lengths`; or a list of
+                unpadded utterances of shape `(nsamples,)`, which is padded here.
             speech_lengths: Number of valid samples of each utterance,
-                of shape `(n_utt,)`. Required for a padded tensor, ignored for
-                a list.
+                of shape `(n_utt,)`, a tensor, a numpy array or a list of ints.
+                Required for a padded array, ignored for a list of utterances.
 
         Returns:
             One n-best list of `(text, token, token_int, hyp)` per utterance,
@@ -773,8 +775,15 @@ class Speech2Text:
             ]
             speech_lengths = torch.tensor([w.numel() for w in waves], dtype=torch.long)
             speech = torch.nn.utils.rnn.pad_sequence(waves, batch_first=True)
-        elif speech_lengths is None:
-            raise ValueError("speech_lengths is required for a padded speech tensor")
+        else:
+            if isinstance(speech, np.ndarray):
+                speech = torch.as_tensor(speech).to(getattr(torch, self.dtype))
+            if speech_lengths is None:
+                raise ValueError("speech_lengths is required for a padded speech array")
+            if not isinstance(speech_lengths, torch.Tensor):
+                speech_lengths = torch.as_tensor(
+                    np.asarray(speech_lengths), dtype=torch.long
+                )
 
         if not self._can_batch_decode():
             # e.g. a non-batch scorer forced the plain `BeamSearch`, or a

@@ -465,8 +465,10 @@ class Speech2Text:
     @typechecked
     def batch_decode(
         self,
-        speech: torch.Tensor,
-        speech_lengths: Optional[torch.Tensor] = None,
+        speech: Union[
+            torch.Tensor, np.ndarray, Sequence[Union[torch.Tensor, np.ndarray]]
+        ],
+        speech_lengths: Optional[Union[torch.Tensor, np.ndarray, Sequence[int]]] = None,
         text_prev: Optional[torch.Tensor] = None,
         text_prev_lengths: Optional[torch.Tensor] = None,
         lang_sym: Optional[str] = None,
@@ -480,7 +482,9 @@ class Speech2Text:
         batch all have the same length and no padding mask is needed.
 
         Args:
-            speech: Padded speech of shape `(n_utt, nsamples)`.
+            speech: Padded speech of shape `(n_utt, nsamples)`, a tensor or a
+                numpy array, or a list of unpadded utterances of shape
+                `(nsamples,)`, which is padded here.
             speech_lengths: Unused, and accepted only so that a collated
                 batch can be passed straight through. Every utterance is
                 padded or trimmed to the same fixed length, and the collated
@@ -498,6 +502,12 @@ class Speech2Text:
             per utterance, in the order the utterances were given.
 
         """
+        if isinstance(speech, (list, tuple)):
+            speech = torch.nn.utils.rnn.pad_sequence(
+                [torch.as_tensor(w).reshape(-1) for w in speech], batch_first=True
+            )
+        elif isinstance(speech, np.ndarray):
+            speech = torch.as_tensor(speech)
         if speech.dim() == 3 and speech.size(2) == 1:
             speech = speech.squeeze(2)  # (n_utt, nsamples, 1) -> (n_utt, nsamples)
         if speech.dim() != 2:

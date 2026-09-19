@@ -883,3 +883,27 @@ def test_Speech2Text_list_input_falls_back_without_batch_beam_search(
     assert [r[0][0] for r in results] == [speech2text(s)[0][0] for s in speech]
     notes = [r for r in caplog.records if "one at a time" in r.getMessage()]
     assert len(notes) == 1, "warned once, not per call"
+
+
+def test_Speech2Text_batch_decode_accepts_numpy_and_lists(asr_config_file_transformer):
+    """A padded numpy array or a list of utterances decodes like the tensor."""
+    batched = Speech2Text(
+        asr_train_config=asr_config_file_transformer, beam_size=2, batch_size=3
+    )
+    lengths = [16000, 12000, 20000]
+    padded = torch.zeros(len(lengths), max(lengths))
+    for i, n in enumerate(lengths):
+        padded[i, :n] = torch.randn(n)
+    expected = batched.batch_decode(padded, torch.tensor(lengths))
+
+    from_numpy = batched.batch_decode(padded.numpy(), np.array(lengths))
+    from_list = batched.batch_decode(
+        [padded[i, :n].numpy() for i, n in enumerate(lengths)]
+    )
+    with_int_lengths = batched.batch_decode(padded, lengths)
+    for actual in (from_numpy, from_list, with_int_lengths):
+        for exp, act in zip(expected, actual):
+            assert [e[1] for e in exp] == [a[1] for a in act]
+            np.testing.assert_allclose(
+                [float(e[3].score) for e in exp], [float(a[3].score) for a in act]
+            )
