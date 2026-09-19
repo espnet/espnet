@@ -93,6 +93,29 @@ def test_Speech2Text(s2t_config_file):
         assert isinstance(hyp, Hypothesis)
 
 
+@pytest.mark.execution_timeout(5)
+def test_best_path_on_an_encoder_decoder_model(s2t_config_file):
+    # the CTC branch of a model that also has a decoder
+    speech2text = Speech2Text(s2t_train_config=s2t_config_file, beam_size=1)
+    assert speech2text.ctc_only is False
+    results = speech2text.best_path(np.random.randn(1000))
+    assert len(results) == 1
+    text, token, token_int, text_nospecial, hyp = results[0]
+    assert isinstance(text, str) and isinstance(text_nospecial, str)
+    assert all(isinstance(t, str) for t in token)
+    # nothing was searched, so there is no hypothesis to report
+    assert hyp is None
+    blank = speech2text.s2t_model.blank_id
+    assert blank not in token_int
+    assert all(a != b for a, b in zip(token_int, token_int[1:]))
+
+
+def test_best_path_takes_one_utterance(s2t_config_file):
+    speech2text = Speech2Text(s2t_train_config=s2t_config_file, beam_size=1)
+    with pytest.raises(ValueError, match="one utterance"):
+        speech2text.best_path(np.random.randn(2, 1000))
+
+
 @pytest.fixture()
 def s2t_config_file_transformer(tmp_path: Path, token_list):
     # A decoder whose scorers are batch scorers, as required by batch decoding

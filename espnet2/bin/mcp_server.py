@@ -60,9 +60,9 @@ _quiet_stdout = functools.partial(contextlib.redirect_stdout, sys.stderr)
 @functools.lru_cache(maxsize=None)
 def _asr():  # pragma: no cover - downloads the checkpoint
     with _quiet_stdout():
-        from espnet2.bin.s2t_inference_ctc import Speech2TextGreedySearch
+        from espnet2.bin.s2t_inference import Speech2Text
 
-        return Speech2TextGreedySearch.from_pretrained(
+        return Speech2Text.from_pretrained(
             ASR_MODEL, device=DEVICE, lang_sym="<nolang>", task_sym="<asr>"
         )
 
@@ -133,7 +133,14 @@ def transcribe(
         else "<asr>"
     )
     with _quiet_stdout():
-        return model.batch_decode(str(path), lang_sym=lang_sym, task_sym=task_sym)
+        # one recording of any length, decoded on the CTC head: the same
+        # route batch_decode took before it was deprecated
+        return " ".join(
+            text
+            for _, _, text in model.decode_long(
+                str(path), lang_sym=lang_sym, task_sym=task_sym
+            )
+        )
 
 
 def synthesize(text: str, output_path: str) -> str:
