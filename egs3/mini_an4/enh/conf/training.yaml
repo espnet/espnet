@@ -1,0 +1,65 @@
+##########################################################
+#              MINI_AN4 ENH TRAINING OVERRIDES           #
+##########################################################
+# Tiny STFT+BLSTM config for CI, following egs2/mini_an4/enh1/conf/train_debug.yaml
+
+num_device: 1
+
+create_dataset:
+  recipe_dir: ${recipe_dir}
+
+dataset:
+  train:
+    - data_src_args:
+        split: train
+  valid:
+    - data_src_args:
+        split: valid
+
+model:
+  encoder: stft
+  encoder_conf:
+    n_fft: 512
+    hop_length: 128
+
+  decoder: stft
+  decoder_conf:
+    n_fft: 512
+    hop_length: 128
+
+  separator: rnn
+  separator_conf:
+    rnn_type: blstm
+    num_spk: 1
+    nonlinear: relu
+    layer: 1
+    unit: 2
+    dropout: 0.2
+
+  criterions:
+    - name: mse
+      conf:
+        compute_on_mask: true
+        mask_type: PSM^2
+      wrapper: fixed_order
+      wrapper_conf:
+        weight: 1.0
+
+dataloader:
+  train:
+    iter_factory:
+      batches:
+        # RNN separator uses pack_padded_sequence(enforce_sorted=True).
+        type: sorted
+        batch_size: 2
+  valid:
+    iter_factory:
+      batches:
+        type: sorted
+        batch_size: 2
+
+trainer:
+  max_epochs: 1
+  limit_train_batches: 1
+  limit_val_batches: 1
+  log_every_n_steps: 1

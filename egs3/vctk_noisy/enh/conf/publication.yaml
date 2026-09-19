@@ -1,0 +1,39 @@
+##########################################################
+#              VCTK-NOISY PUBLICATION OVERRIDES          #
+##########################################################
+# Pack and upload the trained Conv-TasNet checkpoint.
+#
+#   python run.py --stages pack_model \
+#       --training_config conf/training.yaml \
+#       --publication_config conf/publication.yaml
+#   python run.py --stages upload_model \
+#       --training_config conf/training.yaml \
+#       --publication_config conf/publication.yaml
+#
+# pack_model copies exp/<exp_tag>/ plus recipe `src` and `dataset`, writes
+# conf/ with rewritten paths, and renders the Hugging Face model README from
+# src/hf_model_readme.md. Prefer running infer + measure first so metrics.json
+# is available under inference_dir.
+#
+# upload_model pushes pack_model.out_dir to Hugging Face. Run `hf auth login`
+# first. Keep update: false unless you intend to overwrite an existing repo.
+pack_model:
+  out_dir: ${exp_dir}/model_pack
+  allow_overwrite: false
+  include:
+    - src
+    - dataset
+  exclude:
+    - inference
+    - inference_*
+    - last.ckpt
+    - "**/step*.ckpt"
+    - "**/*.log"
+    - "**/tensorboard/**"
+
+upload_model:
+  hf_repo: espnet/vctk_noisy_enh_${exp_tag}
+  private: false
+  update: false
+  delete_patterns:
+    - "*"
