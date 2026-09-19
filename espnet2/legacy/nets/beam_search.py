@@ -120,6 +120,54 @@ class BeamSearch(torch.nn.Module):
         self.return_hs = return_hs
         self.normalize_length = normalize_length
 
+    def end_detected(self, ended_hyps, i: int) -> bool:
+        """Run :func:`end_detect` over hypotheses that have already ended.
+
+        `end_detect` only needs each hypothesis's length and score, and an
+        ended hypothesis never changes, yet the search used to rebuild
+        ``h.asdict()`` for every ended hypothesis at every step. That is
+        several device-to-host reads per hypothesis (``yseq.tolist()``,
+        ``float(score)`` and one per scorer), so the cost of a step grew with
+        the number of hypotheses that had ended so far: on a 16-utterance
+        batch it was 140 ms of a 200 ms step. The summaries are computed once
+        per hypothesis here and cached.
+
+        The cache is shared by every call, because `BatchBeamSearch` calls
+        this once per utterance within a step and the utterances must not
+        evict each other. An entry is dropped once its hypothesis has not been
+        seen for a whole step, which frees the cache at the end of a decode
+        and also when a caller passes a fresh list every step. The entry
+        holds the hypothesis itself, so a recycled ``id()`` cannot alias it.
+
+        Args:
+            ended_hyps: Iterable of ended :class:`Hypothesis` objects.
+            i: The current decoding step; consecutive calls within one step
+                pass the same value, and it grows between steps.
+
+        Returns:
+            Whether :func:`end_detect` says the search for these hypotheses
+            is over.
+
+        """
+        cache = getattr(self, "_ended_summaries", None)
+        if cache is None:
+            cache = self._ended_summaries = {}
+        if getattr(self, "_ended_summaries_step", None) != i:
+            # a new step: forget whatever the previous step did not use
+            for key in [k for k, v in cache.items() if v[2] != i - 1]:
+                del cache[key]
+            self._ended_summaries_step = i
+        summaries = []
+        for h in ended_hyps:
+            hit = cache.get(id(h))
+            if hit is None or hit[0] is not h:
+                hit = (h, {"yseq": h.yseq.tolist(), "score": float(h.score)}, i)
+            elif hit[2] != i:
+                hit = (h, hit[1], i)
+            cache[id(h)] = hit
+            summaries.append(hit[1])
+        return end_detect(summaries, i)
+
     def set_hyp_primer(self, hyp_primer: List[int] = None) -> None:
         """Set the primer sequence for decoding.
 
@@ -440,7 +488,7 @@ class BeamSearch(torch.nn.Module):
                 i, maxlen, minlen, maxlenratio, best, ended_hyps
             )
             # end detection
-            if maxlenratio == 0.0 and end_detect([h.asdict() for h in ended_hyps], i):
+            if maxlenratio == 0.0 and self.end_detected(ended_hyps, i):
                 logger.info(f"end detected at {i}")
                 break
             if len(running_hyps) == 0:

@@ -6,10 +6,29 @@ set -euo pipefail
 # live on Hugging Face under csukuangfj2/k2, which is the maintainer's account -
 # that is k2's documented distribution channel, not a mirror of our choosing.
 #
-# 1.24.4.dev20260625 is the one release that covers every python x torch pair
-# ci/image_variants.json builds: cp312 and cp313 against torch 2.9.1, 2.10.0 and
-# 2.11.0. Check the index before adding a torch version, because k2 lags torch.
-pip_k2_version="1.24.4.dev20260625"
+# No single k2 release covers the whole set ci/image_variants.json builds any
+# more, so the version is picked per torch version further down.
+# 1.24.4.dev20260625 is the wide one - every torch from 2.0.0 to 2.12.1, which
+# includes the 2.11.0 this grid builds - and torch 2.13.0 appears only in
+# 1.24.4.dev20260710, which publishes wheels for nothing else. Left empty here
+# so that the $2 override below can still win.
+pip_k2_version=""
+
+# The torch versions the grid builds that k2 publishes nothing for at all yet.
+# k2 lags torch by weeks: 2.13.0 arrived in dev20260710, about three weeks after
+# dev20260625 added 2.12.1, and the index has no 2.14.0 wheel in either the cpu
+# or the cuda listing. For those, installing is not a choice between versions -
+# there is nothing to install - so this path skips loudly instead of failing the
+# whole environment build.
+#
+# Named one version at a time, not as "newer than the newest k2 covers": the
+# second form would swallow every future torch silently, which is the shape of
+# the bug that kept the use_k2 tests from running for four years. The k2 tests
+# are pytest.importorskip, so a skip here is invisible in a green run and this
+# list is the only record of it. ci/check_ci_image_config.py fails if an entry
+# is not a torch version the grid builds, so it cannot outlive the variant.
+# Delete an entry as soon as https://k2-fsa.github.io/k2/cpu.html has the wheels.
+k2_missing_for="2.14.0"
 
 # The conda channel stops at 1.24.3.dev20230508 and has nothing for torch 2.9 or
 # later, so the conda path cannot install k2 at all here. Left empty deliberately;
@@ -105,6 +124,30 @@ echo "[INFO] torch_version=${torch_version}"
 echo "[INFO] cuda_version=${cuda_version}"
 echo "[INFO] libc_version=${libc_version}"
 
+# Per torch version, unless $2 already set one: see the note at the top. An
+# explicit $2 skips both the gap list and the mapping - someone naming a version
+# gets the install they asked for, and its error if the wheel is not there.
+if [ -z "${pip_k2_version}" ]; then
+    for missing in ${k2_missing_for}; do
+        if [ "${torch_version}" = "${missing}" ]; then
+            echo "[WARNING] k2 publishes no wheel for torch=${torch_version} at all yet,"
+            echo "[WARNING] for any python version. Skip k2-installation."
+            echo "[WARNING] The k2 tests importorskip, so they will skip on this torch"
+            echo "[WARNING] while the rest of the grid still runs them."
+            echo "[WARNING] Check https://k2-fsa.github.io/k2/cpu.html and drop"
+            echo "[WARNING] ${torch_version} from k2_missing_for once the wheels exist."
+            exit 0
+        fi
+    done
+
+    if $(pytorch_plus 2.13.0); then
+        pip_k2_version="1.24.4.dev20260710"
+    else
+        pip_k2_version="1.24.4.dev20260625"
+    fi
+fi
+echo "[INFO] pip_k2_version=${pip_k2_version}"
+
 if ! "${python_36_plus}"; then
     echo "[ERROR] k2 requires python>=3.6"
     exit 1
@@ -158,10 +201,11 @@ else
     # k2 into /usr/local/lib/python3.13/site-packages, which the image's final
     # stage then discarded, while the log said "Successfully installed k2".
     #
-    # --no-deps because the wheel declares torch==2.9.1, and resolving that pulls
-    # the default PyPI torch, which is the CUDA build: ~3 GB of nvidia-* wheels
-    # replacing the CPU torch this environment installed on purpose. k2's only
-    # other dependency is graphviz, installed explicitly below.
+    # --no-deps because the wheel declares an exact torch== pin, and resolving
+    # that pulls the default PyPI torch, which is the CUDA build: ~3 GB of
+    # nvidia-* wheels replacing the CPU torch this environment installed on
+    # purpose. k2's only other dependency is graphviz, installed explicitly
+    # below.
     echo python3 -m pip install --no-deps "${spec}" -f "${index}"
     python3 -m pip install --no-deps "${spec}" -f "${index}" || {
         echo "[ERROR] No k2 wheel for ${spec}" >&2

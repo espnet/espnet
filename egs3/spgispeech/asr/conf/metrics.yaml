@@ -1,0 +1,32 @@
+##########################################################
+#                 METRIC SCORING SETTING                 #
+##########################################################
+#   python run.py --stages measure \
+#       --training_config conf/tuning/train_asr_conformer6_n_fft512_hop_length256.yaml \
+#       --inference_config conf/inference_dev4k.yaml \
+#       --metrics_config conf/metrics.yaml
+#
+# exp_tag / exp_dir / inference_dir are omitted on purpose: run.py copies
+# exp_tag and exp_dir from the training config and inference_dir from the
+# inference config, so `measure` scores exactly the directory `infer` wrote.
+# Every subdirectory of inference_dir is discovered and scored as one test set,
+# and results land in ${inference_dir}/metrics.json.
+
+##########################################################
+#                    METRIC DEFINITION                   #
+##########################################################
+# ref_key/hyp_key default to ref/hyp, matching the keys returned by
+# src/inference.py:build_output -> ref.scp and hyp.scp.
+#
+# No clean_types: SPGISpeech transcripts are already normalized by
+# dataset/dataset.py:normalize_text, and egs2 sets no --cleaner for this recipe.
+#
+# TER is left out: it needs the SentencePiece model and egs2 does not score it.
+metrics:
+  - metric:
+      _target_: espnet3.systems.asr.metrics.wer.WER
+      clean_types:
+
+  - metric:
+      _target_: espnet3.systems.asr.metrics.cer.CER
+      clean_types:
