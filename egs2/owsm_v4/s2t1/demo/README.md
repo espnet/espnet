@@ -4,6 +4,7 @@ emoji: 🌍
 colorFrom: blue
 colorTo: pink
 sdk: gradio
+python_version: "3.12"
 sdk_version: 6.27.0
 app_file: app.py
 pinned: false
@@ -40,6 +41,10 @@ language menu and the translation targets are read from it too.
 The hosted demo takes audio of up to two minutes and asks ZeroGPU for a
 matching slice of GPU time; the model itself has no such limit, so run the app
 yourself for longer recordings.
+
+The card pins `python_version: "3.12"`. espnet requires 3.12 or 3.13, and a
+Space image with an older interpreter installs no espnet at all - pip reports
+"No matching distribution found" and the build fails.
 
 ## Running and publishing
 
