@@ -9,16 +9,15 @@ from typing import Callable, Collection, Dict, Iterator, List, Optional, Tuple, 
 import numpy as np
 import soundfile
 import torch
+from omniio import kaldi as kaldi_io
 from torch.utils.data.dataset import IterableDataset
 from typeguard import typechecked
 
 from espnet2.train.dataset import ESPnetDataset
-from espnet2.utils.kaldiio_utils import import_kaldiio
 
 
 def load_kaldi(input):
-    kaldiio = import_kaldiio()
-    retval = kaldiio.load_mat(input)
+    retval = kaldi_io.load_mat(input)
     if isinstance(retval, tuple):
         assert len(retval) == 2, len(retval)
         if isinstance(retval[0], int) and isinstance(retval[1], np.ndarray):

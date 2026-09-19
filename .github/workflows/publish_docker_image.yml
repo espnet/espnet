@@ -55,7 +55,7 @@ jobs:
         run: |
           cd docker
           docker build --build-arg FROM_TAG=${{ matrix.from_tag }} \
-            --build-arg TH_VERSION=2.9.1 \
+            --build-arg TH_VERSION=2.11.0 \
             ${{ matrix.cuda_arg }} \
             -f prebuilt/devel.dockerfile \
             --target devel \
