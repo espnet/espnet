@@ -43,8 +43,7 @@ ListOfHypothesis = List[
         List[str],
         List[int],
         Optional[str],
-        # None when the text came from the CTC head, which has no hypothesis
-        Optional[Hypothesis],
+        Hypothesis,
     ]
 ]
 
@@ -851,118 +850,6 @@ class Speech2Text:
             kwargs.update(download_pretrained(model_tag))
 
         return Speech2Text(**kwargs)
-
-
-class Speech2TextCTCGreedySearch(Speech2Text):
-    """Decode with the CTC head alone, no beam search and no decoder.
-
-    An encoder-decoder S2T model such as OWSM v3.1 is trained with a CTC
-    branch, and reading that branch directly is an order of magnitude faster
-    than running the decoder. The transcript is worse, which is the trade:
-    it is for a first look, a sanity check, or a teaching example, not for a
-    number in a paper. `espnet2.bin.s2t_inference_ctc` is the one to use for a
-    model trained as CTC-only, such as OWSM-CTC.
-
-    What it does is best-path decoding: the most likely symbol per frame, with
-    the repeats and blanks collapsed. The name follows
-    `espnet2.bin.s2t_inference_ctc.Speech2TextGreedySearch`, which is the same
-    idea for a model trained CTC-only, and greedy search is what the rest of
-    the toolkit calls it.
-
-    The prompt arguments the parent takes - `lang_sym`, `task_sym`,
-    `predict_time`, `text_prev` - do not apply here. They condition the
-    decoder, and this class never runs it: the CTC head emits whatever the
-    encoder heard.
-    """
-
-    @staticmethod
-    def from_pretrained(model_tag: Optional[str] = None, **kwargs: Optional[Any]):
-        """Build a Speech2TextCTCGreedySearch from a published model.
-
-        Args:
-            model_tag (Optional[str]): Model tag of the pretrained models.
-                Currently, the tags of espnet_model_zoo are supported.
-
-        Returns:
-            Speech2TextCTCGreedySearch: the instance.
-
-        """
-        if model_tag is not None:
-            kwargs.update(**download_pretrained(model_tag))
-        return Speech2TextCTCGreedySearch(**kwargs)
-
-    @torch.no_grad()
-    @typechecked
-    def batch_decode(
-        self,
-        speech: torch.Tensor,
-        speech_lengths: Optional[torch.Tensor] = None,
-        text_prev: Optional[torch.Tensor] = None,
-        text_prev_lengths: Optional[torch.Tensor] = None,
-        lang_sym: Optional[str] = None,
-        task_sym: Optional[str] = None,
-        predict_time: Optional[bool] = None,
-    ) -> List[ListOfHypothesis]:
-        """Decode a minibatch of utterances with the CTC head.
-
-        Inherited unchanged, the parent's batch_decode runs the beam search:
-        the same model would then answer one way through `__call__` and
-        another way through `batch_decode`. This takes the same padded batch
-        through the encoder once and collapses each utterance's CTC path.
-
-        Args:
-            speech: Padded speech of shape `(n_utt, nsamples)`.
-            speech_lengths: Unused, and accepted only so that a collated batch
-                can be passed straight through - every utterance is padded or
-                trimmed to the same fixed length, as in the parent.
-            text_prev, text_prev_lengths, lang_sym, task_sym, predict_time:
-                Accepted for the same reason and ignored; see the class
-                docstring.
-
-        Returns:
-            One single-entry list of `(text, token, token_int, text_nospecial,
-            None)` per utterance, in the order the utterances were given.
-
-        """
-        if speech.dim() == 3 and speech.size(2) == 1:
-            speech = speech.squeeze(2)  # (n_utt, nsamples, 1) -> (n_utt, nsamples)
-        if speech.dim() != 2:
-            raise ValueError(f"speech of size {tuple(speech.shape)} is not supported")
-        n_utt = speech.size(0)
-
-        speech = self._pad_or_trim(speech).to(getattr(torch, self.dtype))
-        lengths = speech.new_full([n_utt], dtype=torch.long, fill_value=speech.size(1))
-        batch = to_device(
-            {"speech": speech, "speech_lengths": lengths}, device=self.device
-        )
-        enc, _ = self.s2t_model.encode(**batch)
-        if isinstance(enc, tuple):
-            # intermediate CTC outputs are not reported in batch decoding
-            enc = enc[0]
-        return [self._decode_single_sample(enc[b]) for b in range(n_utt)]
-
-    def _decode_single_sample(self, enc: torch.Tensor):
-        """Collapse the best CTC path of one utterance into text."""
-        # ctc.argmax is the linear layer and an argmax over it: no softmax,
-        # which would cost a pass over the vocabulary without changing which
-        # symbol is largest. enc is (T, D) and argmax takes a batch.
-        token_int = self.s2t_model.ctc.argmax(enc.unsqueeze(0))[0]  # (T,)
-        token_int = torch.unique_consecutive(token_int).cpu().tolist()
-        token_int = [x for x in token_int if x != self.s2t_model.blank_id]
-        token = self.converter.ids2tokens(token_int)
-        # the language, task and timestamp symbols are the model's own, and
-        # are not part of what was said
-        token_nospecial = [x for x in token if not (x[0] == "<" and x[-1] == ">")]
-
-        if self.tokenizer is not None:
-            text = self.tokenizer.tokens2text(token)
-            text_nospecial = self.tokenizer.tokens2text(token_nospecial)
-        else:
-            text, text_nospecial = None, None
-
-        logging.info(f"best hypo: {text}")
-        # no Hypothesis: nothing searched, so there is no score to report
-        return [(text, token, token_int, text_nospecial, None)]
 
 
 @typechecked
