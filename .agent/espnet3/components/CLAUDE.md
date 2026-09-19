@@ -94,6 +94,9 @@ Reusable building blocks the systems in
   (`__call__(hyp, ref, ...) -> dict`), including the shared SCP-reading (`iter_inputs`) helper.
   Name concrete metrics after the metric itself (`WER`, `CER`, `TER`, `PESQ`),
   without a redundant `Metric` suffix such as `WERMetric` or `PESQMetric`.
+  Metrics are correctness-critical: first use a widely adopted implementation;
+  otherwise use ESPnet's implementation when available; implement one locally
+  only when neither exists.
 
 ## `optimizers/`
 

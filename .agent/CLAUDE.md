@@ -322,7 +322,18 @@ Recipe class names are `<Corpus><Kind>`: `MiniAn4Builder`, `LibriSpeech100Datase
 across `Builder`/`Dataset`/`Example`. The recipe's `dataset/__init__.py` then re-exports them under
 the fixed names `Dataset` and `DatasetBuilder`.
 
-### 3.5 Methods that belong to a protocol
+### 3.5 Metric implementation policy
+
+Metric implementations determine reported model quality, so treat them as correctness-critical.
+Choose the implementation source in this order:
+
+1. Use a widely adopted implementation of the metric.
+2. If ESPnet already implements the metric, use that implementation.
+3. Implement the metric locally only when neither source is available.
+
+Do not write a new implementation when an established implementation is available.
+
+### 3.6 Methods that belong to a protocol
 
 These method names are **contracts** read by other code; implement them with exactly these names and
 signatures, and do not reuse the names for unrelated methods:
@@ -346,7 +357,7 @@ signatures, and do not reuse the names for unrelated methods:
 - Lightning: `training_step`, `validation_step`, `configure_optimizers`, `train_dataloader`,
   `val_dataloader`, `on_*`, `state_dict`/`load_state_dict`, `setup(trainer, pl_module, stage)`.
 
-### 3.6 Modules, constants, and visibility
+### 3.7 Modules, constants, and visibility
 
 - **Module names** are nouns: `<noun>_utils.py` under `utils/` (`config_utils`, `run_utils`,
   `stages_utils`, `task_utils`, `logging_utils`, `publication_utils`, `writer_utils`, `scp_utils`,
@@ -367,7 +378,7 @@ signatures, and do not reuse the names for unrelated methods:
   Anything without an underscore in `espnet3/` is public API and needs a full docstring (section 2)
   and a mirrored test.
 
-### 3.7 Inconsistencies already in the tree (do not propagate)
+### 3.8 Inconsistencies already in the tree (do not propagate)
 
 Known drift, listed so a reviewer can say "use the established form" with a reference:
 `cfg`/`demo_cfg`/`writer_cfg`/`preprocessor_cfg` (use `config`/`*_config`); `out_dir` (use
