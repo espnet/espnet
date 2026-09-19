@@ -14,7 +14,7 @@ import pytest
 import torch
 import yaml
 
-from espnet3.systems.f5_tts.f5tts import F5TTS
+from espnet3.systems.f5_tts.f5_tts import F5TTS
 from espnet3.systems.f5_tts.inference import (
     F5TTSInference,
     _chunk_text,
@@ -186,7 +186,7 @@ def train_config(tmp_path):
     token_file.write_text("\n".join(TOKENS) + "\n", encoding="utf-8")
     cfg = {
         "model": {
-            "_target_": "espnet3.systems.f5_tts.f5tts.F5TTS",
+            "_target_": "espnet3.systems.f5_tts.f5_tts.F5TTS",
             "token_list": str(token_file),
             "feats_extract_config": dict(FEATS_CONF),
             **dict(MODEL_CONF),

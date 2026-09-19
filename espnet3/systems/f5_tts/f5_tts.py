@@ -125,7 +125,7 @@ class F5TTS(torch.nn.Module):
             .. code-block:: yaml
 
                 model:            # F5TTS_Small; omit the sizes for F5TTS_Base
-                  _target_: espnet3.systems.f5_tts.f5tts.F5TTS
+                  _target_: espnet3.systems.f5_tts.f5_tts.F5TTS
                   token_list: ${data_dir}/tokens/char_tokens.txt
                   feats_extract_config:
                     fs: 24000

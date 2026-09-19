@@ -8,7 +8,7 @@ same-speaker protocol) and feeds the result to ``src.inference.build_output``
 (which needs a ``"wav"`` entry).
 
 The model is rebuilt from the *training* config by instantiating that config's
-own ``model`` block (``espnet3.systems.f5_tts.f5tts.F5TTS``), so it stays in
+own ``model`` block (``espnet3.systems.f5_tts.f5_tts.F5TTS``), so it stays in
 sync with whatever was trained. Text is tokenized with the exact espnet2
 components used in training (TextCleaner + tokenizer + TokenIDConverter) read
 from the training config's preprocessor.
