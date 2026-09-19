@@ -539,3 +539,30 @@ def test_conv2d6_default_context_keeps_contiguous_frames(ctc_config_file, monkey
     for decode in (speech2text.ctc_log_probs, speech2text.decode_long):
         with pytest.raises(ValueError, match="context_len_in_secs.*whole number"):
             decode(speech, context_len_in_secs=2)
+
+
+def test_Speech2Text_batch_decode_accepts_numpy_and_lists(s2t_config_file_transformer):
+    """A padded numpy array or a list of utterances decodes like the tensor."""
+    batched = Speech2Text(
+        s2t_train_config=s2t_config_file_transformer,
+        beam_size=2,
+        batch_size=3,
+        maxlenratio=-8,
+    )
+    lengths = [4000, 3000, 9000]
+    speeches = [np.random.randn(n).astype(np.float32) for n in lengths]
+    padded = np.zeros((len(speeches), max(lengths)), dtype=np.float32)
+    for i, sp in enumerate(speeches):
+        padded[i, : len(sp)] = sp
+    expected = batched.batch_decode(torch.tensor(padded), torch.tensor(lengths))
+
+    from_numpy = batched.batch_decode(padded, np.array(lengths))
+    from_list = batched.batch_decode(speeches)
+    for actual in (from_numpy, from_list):
+        assert len(actual) == len(expected)
+        for exp, act in zip(expected, actual):
+            assert [e[1] for e in exp] == [a[1] for a in act]
+            np.testing.assert_allclose(
+                float(exp[0][4].score), float(act[0][4].score), rtol=1e-4
+            )
+
