@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
-"""The browser demo of an OWSM model, and the pieces its two Spaces share.
+"""The browser demo of an OWSM model: what `espnet demo` serves.
 
-`espnet demo` builds the app here and serves it on localhost; the Hugging Face
-Spaces at egs2/owsm_ctc_v4/s2t1/demo and egs2/owsm_v4/s2t1/demo import the
-constants and helpers from the first half of this module, so that the language
-table, the menus a checkpoint describes and the reading of audio are written
-once instead of three times.
+The first half - the language table, the menus a checkpoint describes, the
+reading and padding of audio - is the same ground the two Hugging Face Space
+apps cover, at egs2/owsm_ctc_v4/s2t1/demo and egs2/owsm_v4/s2t1/demo. They do
+not import it yet, and must not: a Space installs espnet from PyPI, so an
+import of a module newer than every release would kill both live demos the
+next time one is uploaded. They keep their copies until a release carries
+this module; test/espnet2/bin/test_demo_apps.py compares the two against it
+and fails when either drifts.
 
 gradio is not a dependency of `pip install espnet` and must not become one: a
 Space's requirements.txt and `uvx espnet-mcp` install the bare package to load

@@ -1,4 +1,4 @@
-"""The two OWSM demos must not drift apart.
+"""The two OWSM demos must not drift apart, from each other or from espnet.
 
 Each demo is uploaded as a Hugging Face Space, and a Space is exactly one
 directory: `hf upload espnet/owsm-v4 egs2/owsm_v4/s2t1/demo .` sends that
@@ -6,12 +6,25 @@ directory and nothing else. So the parts both apps share - the language
 table, the helpers, the interface - are copied rather than imported, and a
 fix applied to one could be forgotten in the other. These tests fail when
 that happens.
+
+`espnet demo` (espnet2/bin/demo.py) is a third copy of the same pieces, and
+the only one a Space could import. It does not: a Space installs espnet from
+PyPI, so importing a module newer than every release would break both live
+demos the next time one of them is uploaded. The apps switch to importing it
+once a release carries it; until then the comparisons at the bottom of this
+file are what hold the three together.
 """
 
+import ast
 import re
+import types
 from pathlib import Path
 
+import librosa
+import numpy as np
 import pytest
+
+from espnet2.bin import demo
 
 DEMOS = {
     "ctc": Path(__file__).parents[3] / "egs2/owsm_ctc_v4/s2t1/demo",
@@ -92,3 +105,84 @@ def test_the_card_names_the_app_and_the_model_the_app_loads(name):
         re.M,
     ).group(1)
     assert tag in front, f"{name}: the card does not list {tag}"
+
+
+# --- and neither may drift from espnet2.bin.demo, which `espnet demo` runs ---
+
+# A token list shaped like OWSM's, so the menus can be built from something
+# smaller than a 1B checkpoint.
+TOKENS = ["<unk>", "<nolang>", "<eng>", "<deu>", "<asr>", "<st_deu>", "<sos>"]
+# The names each app defines that espnet2.bin.demo also defines. Everything
+# else in an app is its own: the ZeroGPU shim, the model, the page.
+SHARED = (
+    "SAMPLE_RATE",
+    "WINDOW_SECS",
+    "MAX_SECS",
+    "DETECT",
+    "ASR_LABEL",
+    "LANGUAGE_NAMES",
+)
+HELPERS = ("_names", "_language_codes", "_target_codes", "_pad", "_split_tokens")
+MENUS = ("LANGUAGES", "TARGETS", "LANGUAGE_CODES")
+
+
+def _app(name):
+    """The app's own constants and helpers, run without importing the app.
+
+    Importing app.py downloads a 1B checkpoint, needs gradio and builds a
+    page, so the definitions these tests compare are lifted out of its syntax
+    tree and executed on their own, with the loaded model stood in for.
+    """
+    wanted = set(SHARED) | set(HELPERS) | set(MENUS)
+    body = []
+    for node in ast.parse(_source(name)).body:
+        if isinstance(node, ast.FunctionDef) and node.name in wanted:
+            body.append(node)
+        elif isinstance(node, ast.Assign):
+            named = {t.id for t in node.targets if isinstance(t, ast.Name)}
+            if named & wanted:
+                body.append(node)
+    namespace = {
+        "re": re,
+        "librosa": librosa,
+        # the app reads nothing else off the model at module level
+        "s2t": types.SimpleNamespace(
+            s2t_model=types.SimpleNamespace(token_list=TOKENS)
+        ),
+    }
+    code = compile(ast.Module(body=body, type_ignores=[]), str(name), "exec")
+    exec(code, namespace)
+    return namespace
+
+
+@pytest.mark.parametrize("name", list(DEMOS))
+@pytest.mark.parametrize("constant", SHARED)
+def test_the_apps_constants_are_the_ones_espnet_demo_uses(name, constant):
+    assert _app(name)[constant] == getattr(demo, constant), f"{name}: {constant}"
+
+
+@pytest.mark.parametrize("name", list(DEMOS))
+def test_the_apps_menus_are_the_ones_espnet_demo_builds(name):
+    app = _app(name)
+
+    # both read the dropdowns off the checkpoint; they must read them alike
+    assert (app["LANGUAGES"], app["TARGETS"]) == demo.menus(TOKENS)
+
+
+@pytest.mark.parametrize("name", list(DEMOS))
+def test_the_apps_padding_is_what_espnet_demo_pads_to(name):
+    # librosa.util reaches for scipy.ndimage, which a mismatched numpy breaks
+    pytest.importorskip("scipy.ndimage")
+    speech = np.random.default_rng(0).standard_normal(16000, dtype="float32")
+
+    # np.pad in espnet2.bin.demo, librosa.util.fix_length here: same array
+    assert np.array_equal(_app(name)["_pad"](speech), demo.pad(speech))
+
+
+def test_the_ctc_apps_symbol_splitting_is_what_espnet_demo_splits():
+    app = _app("ctc")  # only the CTC app reads symbols back out of its output
+
+    for decoded in ("<eng><asr><0.00> hello there", "<asr> hello", " plain "):
+        assert app["_split_tokens"](decoded) == demo.split_tokens(
+            decoded, app["LANGUAGE_CODES"]
+        ), decoded

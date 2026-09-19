@@ -61,11 +61,6 @@ else, so `DEVICE=cpu` is a local CPU test even on a machine with a GPU. With
 only while a `@spaces.GPU` function runs) or when torch reports a GPU, and CPU
 otherwise.
 
-The language table, the menus read from the checkpoint and the audio handling
-live in `espnet2/bin/demo.py`, shared with the other demo and with
-`espnet demo`, the command that serves a local app of its own — so
-`requirements.txt` needs an espnet release that carries that module.
-
 To publish, from the ESPnet checkout:
 
 ```sh
