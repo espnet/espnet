@@ -118,25 +118,36 @@ def _build(loader, args, task: str):
     )
 
 
+def _decode(s2t, audio: str, lang_sym: str, task_sym: str) -> str:
+    """One recording of any length, as one line of text.
+
+    ``decode_long`` returns ``(start, end, text)`` per segment and reads the
+    checkpoint to decide how to cut the recording up: a CTC-only model in
+    overlapping buffers with no search, an encoder-decoder model segment by
+    segment on its own timestamps. This command prints a transcript, so the
+    segments are joined.
+    """
+    return " ".join(
+        text
+        for _, _, text in s2t.decode_long(audio, lang_sym=lang_sym, task_sym=task_sym)
+    )
+
+
 def cmd_asr(args) -> int:
     _require_file(args.audio)
-    from espnet2.bin.s2t_inference_ctc import Speech2TextGreedySearch
+    from espnet2.bin.s2t_inference import Speech2Text
 
-    s2t = _build(Speech2TextGreedySearch, args, "asr")
-    print(s2t.batch_decode(args.audio, lang_sym=f"<{args.language}>", task_sym="<asr>"))
+    s2t = _build(Speech2Text, args, "asr")
+    print(_decode(s2t, args.audio, f"<{args.language}>", "<asr>"))
     return 0
 
 
 def cmd_translate(args) -> int:
     _require_file(args.audio)
-    from espnet2.bin.s2t_inference_ctc import Speech2TextGreedySearch
+    from espnet2.bin.s2t_inference import Speech2Text
 
-    s2t = _build(Speech2TextGreedySearch, args, "translate")
-    print(
-        s2t.batch_decode(
-            args.audio, lang_sym=f"<{args.language}>", task_sym=f"<st_{args.to}>"
-        )
-    )
+    s2t = _build(Speech2Text, args, "translate")
+    print(_decode(s2t, args.audio, f"<{args.language}>", f"<st_{args.to}>"))
     return 0
 
 

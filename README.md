@@ -163,20 +163,23 @@ it, and `--device cuda`; `espnet --version` names the installed version. There i
 **From Python** — any model from the [ESPnet Hugging Face organization](https://huggingface.co/espnet):
 
 ```python
-from espnet2.bin.s2t_inference_ctc import Speech2TextGreedySearch
+from espnet2.bin.s2t_inference import Speech2Text
 
 # OWSM-CTC v4: multilingual ASR, translation and language ID in one
 # encoder-only model. No beam search: one encoder pass per 30 s window.
-s2t = Speech2TextGreedySearch.from_pretrained(
+s2t = Speech2Text.from_pretrained(
     "espnet/owsm_ctc_v4_1B", lang_sym="<eng>", task_sym="<asr>"
 )
-print(s2t.batch_decode("audio.wav"))  # any length or sample rate
+for start, end, text in s2t.decode_long("audio.wav"):  # any length or rate
+    print(text)
 ```
 
 The checkpoint (4 GB) is downloaded once and cached. Pass `device="cuda"` for a GPU,
 `task_sym="<st_deu>"` to translate, or `lang_sym="<nolang>"` to identify the language.
-The encoder-decoder OWSM v4 models (`espnet2.bin.s2t_inference`) and every other task —
-`asr_inference`, `tts_inference`, `enh_inference`, `spk_inference`, and so on — use
+The same class loads the encoder-decoder OWSM v4 models: `decode_long` then decodes
+segment by segment on the model's own timestamps, `s2t(speech)` runs the beam search,
+and `s2t.best_path(speech)` is the CTC head with no search. Every other task —
+`asr_inference`, `tts_inference`, `enh_inference`, `spk_inference`, and so on — uses
 the same `from_pretrained` pattern.
 
 **Train and evaluate a recipe** — every corpus follows the same interface:

@@ -41,9 +41,14 @@ class _Recorder:
         self.calls.append((args, kwargs))
         return self.result
 
-    def batch_decode(self, *args, **kwargs):
+    def decode_long(self, *args, **kwargs):
         self.calls.append((args, kwargs))
-        return self.result
+        # one (start, end, text) per segment: two of them, so that a test
+        # reading the printed line sees them joined rather than concatenated
+        first, _, rest = self.result.partition(" ")
+        if not rest:
+            return [(0.0, 1.0, self.result)]
+        return [(0.0, 1.0, first), (1.0, 2.0, rest)]
 
 
 def test_models_lists_one_default_per_command(capsys):
@@ -63,9 +68,7 @@ def test_asr_prints_the_transcript(monkeypatch, tmp_path, capsys):
     audio = tmp_path / "a.wav"
     audio.write_bytes(b"")
     rec = _Recorder("hello there")
-    _fake_module(
-        monkeypatch, "espnet2.bin.s2t_inference_ctc", "Speech2TextGreedySearch", rec
-    )
+    _fake_module(monkeypatch, "espnet2.bin.s2t_inference", "Speech2Text", rec)
 
     assert cli.main(["asr", str(audio)]) == 0
 
@@ -82,9 +85,7 @@ def test_asr_passes_the_language_and_the_chosen_model(monkeypatch, tmp_path):
     audio = tmp_path / "a.wav"
     audio.write_bytes(b"")
     rec = _Recorder("x")
-    _fake_module(
-        monkeypatch, "espnet2.bin.s2t_inference_ctc", "Speech2TextGreedySearch", rec
-    )
+    _fake_module(monkeypatch, "espnet2.bin.s2t_inference", "Speech2Text", rec)
 
     assert (
         cli.main(
@@ -110,9 +111,7 @@ def test_translate_builds_the_target_token(monkeypatch, tmp_path):
     audio = tmp_path / "a.wav"
     audio.write_bytes(b"")
     rec = _Recorder("bonjour")
-    _fake_module(
-        monkeypatch, "espnet2.bin.s2t_inference_ctc", "Speech2TextGreedySearch", rec
-    )
+    _fake_module(monkeypatch, "espnet2.bin.s2t_inference", "Speech2Text", rec)
 
     assert cli.main(["translate", str(audio), "--to", "fra", "--language", "eng"]) == 0
 
@@ -223,8 +222,8 @@ def test_a_tag_for_another_task_is_explained(monkeypatch, tmp_path, capsys):
 
     _fake_module(
         monkeypatch,
-        "espnet2.bin.s2t_inference_ctc",
-        "Speech2TextGreedySearch",
+        "espnet2.bin.s2t_inference",
+        "Speech2Text",
         Mismatch,
     )
 
@@ -368,9 +367,7 @@ def test_only_an_unexpected_keyword_is_blamed_on_the_model(monkeypatch, tmp_path
         def from_pretrained(model_tag=None, device=None, **kwargs):
             raise TypeError("unsupported operand type(s) for +: 'int' and 'str'")
 
-    _fake_module(
-        monkeypatch, "espnet2.bin.s2t_inference_ctc", "Speech2TextGreedySearch", Bug
-    )
+    _fake_module(monkeypatch, "espnet2.bin.s2t_inference", "Speech2Text", Bug)
 
     # a TypeError from inside the model must not be reported as "wrong model"
     with pytest.raises(TypeError, match="unsupported operand"):
@@ -392,9 +389,7 @@ def test_a_keyword_the_constructor_does_take_is_not_blamed_on_the_model(
             # raised from deeper inside, about an argument this class accepts
             raise TypeError("f() got an unexpected keyword argument 'device'")
 
-    _fake_module(
-        monkeypatch, "espnet2.bin.s2t_inference_ctc", "Speech2TextGreedySearch", Bug
-    )
+    _fake_module(monkeypatch, "espnet2.bin.s2t_inference", "Speech2Text", Bug)
 
     with pytest.raises(TypeError, match="'device'"):
         cli.main(["asr", str(audio)])
