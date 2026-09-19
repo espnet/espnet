@@ -18,6 +18,7 @@ from espnet2.asr.decoder.s4_decoder import S4Decoder
 from espnet2.asr.partially_AR_model import PartiallyARInference
 from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.legacy.nets.batch_beam_search import BatchBeamSearch
+from espnet2.legacy.nets.batch_beam_search_online_sim import BatchBeamSearchOnlineSim
 from espnet2.legacy.nets.beam_search import BeamSearch, Hypothesis
 from espnet2.legacy.nets.pytorch_backend.transformer.subsampling import TooShortUttError
 from espnet2.legacy.nets.scorer_interface import (
@@ -199,7 +200,7 @@ def _is_ctc_only(s2t_train_config) -> bool:
 
 
 class Speech2Text:
-    """Speech2Text class
+    """Decode a speech-to-text model, of either kind, however you ask.
 
     Examples:
         >>> import soundfile
@@ -207,6 +208,42 @@ class Speech2Text:
         >>> audio, rate = soundfile.read("speech.wav")
         >>> speech2text(audio)
         [(text, token, token_int, text_nospecial, hypothesis object), ...]
+
+    Two methods, and the arguments decide the rest::
+
+        Speech2Text
+        |
+        +-- __call__()          a search, over the scorers this model has
+        |   |
+        |   +-- decoder         weight 1 - ctc_weight
+        |   +-- CTC             weight ctc_weight
+        |   +-- LM              weight lm_weight
+        |   +-- n-gram          weight ngram_weight
+        |
+        +-- best_path()         no search: CTC argmax, repeats collapsed
+
+    Which gives, on an encoder-decoder checkpoint:
+
+    =========================  ================================================
+    attention beam search      ``ctc_weight=0``
+    hybrid beam search         ``0 < ctc_weight < 1``
+    CTC beam search            ``ctc_weight=1``
+    with a language model      any of the above, plus ``lm_weight>0`` and an
+                               ``lm_train_config``
+    best path                  ``best_path()``, which reads the CTC branch and
+                               ignores every weight above
+    =========================  ================================================
+
+    and on a CTC-only checkpoint - OWSM-CTC, anything the `s2t_ctc` task
+    trained - the decoder simply is not there, so ``__call__`` is a CTC beam
+    search, with a language model if one is given, and ``best_path`` is the
+    same fast route. `decode_long` decodes a whole recording either way.
+
+    The branching is in three places: which model to build (`_is_ctc_only`,
+    at the top of `__init__`), which scorers the search gets (the
+    ``self.ctc_only`` branch a few lines further down), and how the encoder
+    is fed (`_encode`, since a CTC-only model takes the prompt as an encoder
+    input rather than as a decoder prefix).
 
     """
 
@@ -246,6 +283,8 @@ class Speech2Text:
         lang_sym: str = "<eng>",
         task_sym: str = "<asr>",
         predict_time: bool = False,
+        # simulated streaming, from the CTC-only inference this replaces
+        streaming: bool = False,
         # only best-path decoding reports these, and only when asked: the
         # beam search path reports them whenever the model produces them
         generate_interctc_outputs: bool = False,
@@ -284,16 +323,43 @@ class Speech2Text:
             )
 
         token_list = s2t_model.token_list
-        # A CTC-only checkpoint has no decoder, so there is nothing for a
-        # beam search to search over: best_path() is how it decodes, and
-        # __call__ uses it.
-        beam_search = None
-        scorers: Dict[str, Any] = {}
-        if not self.ctc_only:
-            decoder = s2t_model.decoder
-            ctc = CTCPrefixScorer(ctc=s2t_model.ctc, eos=s2t_model.eos)
+        # Which scorers the search is given is the whole difference between
+        # the ways an S2T model can be decoded:
+        #
+        #   attention beam search  decoder                ctc_weight = 0
+        #   hybrid beam search     decoder + CTC          0 < ctc_weight < 1
+        #   CTC beam search        CTC                    ctc_weight = 1, or any
+        #                                                 CTC-only checkpoint
+        #   best path              CTC, no search         best_path(), which
+        #                                                 ignores all of this
+        #
+        # A language model or an n-gram joins any of the searches, through
+        # lm_weight and ngram_weight below. None of them reaches best_path():
+        # an argmax over frames has nothing to score.
+        ctc = CTCPrefixScorer(ctc=s2t_model.ctc, eos=s2t_model.eos)
+        if self.ctc_only:
+            if partial_ar:
+                raise ValueError(
+                    "partial_ar needs a decoder, and this checkpoint is CTC-only"
+                )
+            # no decoder to score with, and no timestamps for ScoreFilter to
+            # constrain: a CTC-only model emits neither
+            scorers: Dict[str, Any] = dict(
+                decoder=None,
+                ctc=ctc,
+                length_bonus=LengthBonus(len(token_list)),
+            )
+            weights = dict(
+                decoder=0.0,
+                ctc=1.0,
+                lm=lm_weight,
+                ngram=ngram_weight,
+                length_bonus=penalty,
+            )
+            pre_beam_score_key = None
+        else:
             scorers = dict(
-                decoder=decoder,
+                decoder=s2t_model.decoder,
                 ctc=ctc,
                 length_bonus=LengthBonus(len(token_list)),
                 scorefilter=ScoreFilter(
@@ -311,35 +377,6 @@ class Speech2Text:
                     vocab_size=len(token_list),
                 ),
             )
-
-            # 2. Build language model
-            if lm_train_config is not None:
-                lm, lm_train_args = LMTask.build_model_from_file(
-                    lm_train_config, lm_file, device
-                )
-
-                if quantize_lm:
-                    logging.info("Use quantized lm for decoding.")
-
-                    lm = torch.quantization.quantize_dynamic(
-                        lm, qconfig_spec=qconfig_spec, dtype=quantize_dtype
-                    )
-
-                scorers["lm"] = lm.lm
-
-            # 3. Build ngram model
-            if ngram_file is not None:
-                if ngram_scorer == "full":
-                    from espnet2.legacy.nets.scorers.ngram import NgramFullScorer
-
-                    ngram = NgramFullScorer(ngram_file, token_list)
-                else:
-                    from espnet2.legacy.nets.scorers.ngram import NgramPartScorer
-
-                    ngram = NgramPartScorer(ngram_file, token_list)
-                scorers["ngram"] = ngram
-
-            # 4. Build BeamSearch object
             weights = dict(
                 decoder=1.0 - ctc_weight,
                 ctc=ctc_weight,
@@ -348,74 +385,109 @@ class Speech2Text:
                 length_bonus=penalty,
                 scorefilter=1.0,
             )
-            if partial_ar:
-                beam_search = PartiallyARInference(
-                    s2t_model.ctc,
-                    s2t_model.decoder,
-                    threshold_probability=threshold_probability,
-                    sos=s2t_model.sos,
-                    eos=s2t_model.eos,
-                    mask_token=len(token_list),
-                    token_list=token_list,
-                    scorers={"decoder": s2t_model.decoder},
-                    weights=weights,
-                    beam_size=beam_size,
-                    max_seq_len=max_seq_len,
-                    max_mask_parallel=max_mask_parallel,
+            # with the decoder dropped there is no full scorer to pre-beam with
+            pre_beam_score_key = None if ctc_weight == 1.0 else "full"
+
+        # 2. Build language model
+        if lm_train_config is not None:
+            lm, lm_train_args = LMTask.build_model_from_file(
+                lm_train_config, lm_file, device
+            )
+
+            if quantize_lm:
+                logging.info("Use quantized lm for decoding.")
+
+                lm = torch.quantization.quantize_dynamic(
+                    lm, qconfig_spec=qconfig_spec, dtype=quantize_dtype
                 )
+
+            scorers["lm"] = lm.lm
+
+        # 3. Build ngram model
+        if ngram_file is not None:
+            if ngram_scorer == "full":
+                from espnet2.legacy.nets.scorers.ngram import NgramFullScorer
+
+                ngram = NgramFullScorer(ngram_file, token_list)
             else:
-                beam_search = BeamSearch(
-                    beam_size=beam_size,
-                    weights=weights,
-                    scorers=scorers,
-                    sos=s2t_model.sos,
-                    eos=s2t_model.eos,
-                    vocab_size=len(token_list),
-                    token_list=token_list,
-                    pre_beam_score_key=None if ctc_weight == 1.0 else "full",
-                    normalize_length=normalize_length,
-                )
+                from espnet2.legacy.nets.scorers.ngram import NgramPartScorer
 
-                # TODO(karita): make all scorers batchfied
-                non_batch = [
+                ngram = NgramPartScorer(ngram_file, token_list)
+            scorers["ngram"] = ngram
+
+        # 4. Build BeamSearch object
+        if partial_ar:
+            beam_search = PartiallyARInference(
+                s2t_model.ctc,
+                s2t_model.decoder,
+                threshold_probability=threshold_probability,
+                sos=s2t_model.sos,
+                eos=s2t_model.eos,
+                mask_token=len(token_list),
+                token_list=token_list,
+                scorers={"decoder": s2t_model.decoder},
+                weights=weights,
+                beam_size=beam_size,
+                max_seq_len=max_seq_len,
+                max_mask_parallel=max_mask_parallel,
+            )
+        else:
+            beam_search = BeamSearch(
+                beam_size=beam_size,
+                weights=weights,
+                scorers=scorers,
+                sos=s2t_model.sos,
+                eos=s2t_model.eos,
+                vocab_size=len(token_list),
+                token_list=token_list,
+                pre_beam_score_key=pre_beam_score_key,
+                normalize_length=normalize_length,
+            )
+
+            # TODO(karita): make all scorers batchfied
+            non_batch = [
+                k
+                for k, v in beam_search.full_scorers.items()
+                if not isinstance(v, BatchScorerInterface)
+            ]
+            # NOTE: partial scorers too. `NgramPartScorer` is a plain
+            # `PartialScorerInterface`, so batch decoding would reach
+            # `batch_score_partial` and fail deep inside the search.
+            non_batch += (
+                [
                     k
-                    for k, v in beam_search.full_scorers.items()
-                    if not isinstance(v, BatchScorerInterface)
+                    for k, v in beam_search.part_scorers.items()
+                    if not isinstance(v, BatchPartialScorerInterface)
                 ]
-                # NOTE: partial scorers too. `NgramPartScorer` is a plain
-                # `PartialScorerInterface`, so batch decoding would reach
-                # `batch_score_partial` and fail deep inside the search.
-                non_batch += (
-                    [
-                        k
-                        for k, v in beam_search.part_scorers.items()
-                        if not isinstance(v, BatchPartialScorerInterface)
-                    ]
-                    if batch_size > 1
-                    else []
-                )
-                if len(non_batch) > 0:
-                    if batch_size > 1:
-                        raise NotImplementedError(
-                            f"Batch decoding needs batch scorers, but {non_batch} "
-                            f"are not. Please use --batch_size 1."
-                        )
-                    logging.warning(
-                        f"As non-batch scorers {non_batch} are found, "
-                        f"fall back to non-batch implementation."
+                if batch_size > 1
+                else []
+            )
+            if len(non_batch) > 0:
+                if batch_size > 1:
+                    raise NotImplementedError(
+                        f"Batch decoding needs batch scorers, but {non_batch} "
+                        f"are not. Please use --batch_size 1."
                     )
-                else:
-                    beam_search.__class__ = BatchBeamSearch
-                    logging.info("BatchBeamSearch implementation is selected.")
+                logging.warning(
+                    f"As non-batch scorers {non_batch} are found, "
+                    f"fall back to non-batch implementation."
+                )
+            elif streaming:
+                beam_search.__class__ = BatchBeamSearchOnlineSim
+                beam_search.set_streaming_config(s2t_train_config)
+                logging.info("BatchBeamSearchOnlineSim implementation is selected.")
+            else:
+                beam_search.__class__ = BatchBeamSearch
+                logging.info("BatchBeamSearch implementation is selected.")
 
-            # NOTE: this used to sit inside the `else` above, so the partial_ar
-            # beam search never got the requested device and dtype.
-            beam_search.to(device=device, dtype=getattr(torch, dtype)).eval()
-            for scorer in scorers.values():
-                if isinstance(scorer, torch.nn.Module):
-                    scorer.to(device=device, dtype=getattr(torch, dtype)).eval()
-            logging.info(f"Beam_search: {beam_search}")
-            logging.info(f"Decoding device={device}, dtype={dtype}")
+        # NOTE: this used to sit inside the `else` above, so the partial_ar
+        # beam search never got the requested device and dtype.
+        beam_search.to(device=device, dtype=getattr(torch, dtype)).eval()
+        for scorer in scorers.values():
+            if isinstance(scorer, torch.nn.Module):
+                scorer.to(device=device, dtype=getattr(torch, dtype)).eval()
+        logging.info(f"Beam_search: {beam_search}")
+        logging.info(f"Decoding device={device}, dtype={dtype}")
 
         # 5. [Optional] Build Text converter: e.g. bpe-sym -> Text
         if token_type is None:
@@ -582,10 +654,10 @@ class Speech2Text:
         n_utt = speech.size(0)
 
         if self.ctc_only:
-            # one encoder pass for the batch, then each utterance's own path
+            # one encoder pass for the batch, then each utterance's own search
             speech = self._pad_or_trim(speech).to(getattr(torch, self.dtype))
             enc, _ = self._encode(speech, "<na>", lang_sym, task_sym)
-            return [self._collapse_ctc_path(enc[b]) for b in range(n_utt)]
+            return [self._decode_single_sample(enc[b]) for b in range(n_utt)]
 
         if text_prev is None:
             primers = self._build_hyp_primer(lang_sym, task_sym, predict_time)
@@ -736,13 +808,15 @@ class Speech2Text:
         """Decode with the CTC head alone, no search.
 
         The most likely symbol per frame with the repeats collapsed: best-path
-        decoding, also called greedy or argmax decoding. It is an order of
-        magnitude faster than the beam search and the transcript is worse,
-        which is the trade - a first look, a sanity check, a teaching example.
+        decoding, also called greedy or argmax decoding. An order of magnitude
+        faster than a search, and worse, which is the trade - a first look, a
+        sanity check, a teaching example.
 
-        Works on both kinds of checkpoint. A CTC-only model has nothing else,
-        so `__call__` uses this for it; an encoder-decoder model has a CTC
-        branch beside its decoder, and this reads that branch.
+        Nothing here is scored, so `lm_weight`, `ngram_weight`, `ctc_weight`
+        and `beam_size` do not apply: a language model can only join a search,
+        which is `__call__`. On an encoder-decoder checkpoint this reads the
+        CTC branch beside the decoder; on a CTC-only one it reads the only
+        head there is.
         """
         if isinstance(speech, np.ndarray):
             speech = torch.tensor(speech)
@@ -788,8 +862,24 @@ class Speech2Text:
 
         """
         if self.ctc_only:
-            # nothing to search over; this is the only way such a model decodes
-            return self.best_path(speech, text_prev, lang_sym, task_sym)
+            # The prompt is an encoder input for a CTC-only model, not a
+            # decoder prefix, so there is no hyp primer to set and nothing to
+            # pad: the search still runs, over the CTC scorer alone.
+            if isinstance(speech, np.ndarray):
+                speech = torch.tensor(speech)
+            enc, intermediate_outs = self._encode(
+                speech.unsqueeze(0).to(getattr(torch, self.dtype)),
+                text_prev,
+                lang_sym,
+                task_sym,
+            )
+            results = self._decode_single_sample(enc[0])
+            # a CTC-only model always produces intermediate outputs, so unlike
+            # the encoder-decoder path it reports them only when asked; that is
+            # what the class this replaces did, and callers unpack accordingly
+            if intermediate_outs is not None and self.generate_interctc_outputs:
+                return results, self._decode_interctc(intermediate_outs)
+            return results
 
         self.beam_search.set_hyp_primer(
             self._build_hyp_primer(lang_sym, task_sym, predict_time, text_prev)

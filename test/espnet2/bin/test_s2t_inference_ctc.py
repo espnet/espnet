@@ -138,24 +138,28 @@ def test_Speech2Text_quantized(s2t_config_file):
 def test_the_base_class_loads_a_ctc_only_checkpoint(s2t_config_file):
     # one interface for both kinds of model: no decoder here, so there is no
     # beam search and __call__ decodes the best path
-    speech2text = Speech2TextBase(s2t_train_config=s2t_config_file)
+    speech2text = Speech2TextBase(s2t_train_config=s2t_config_file, beam_size=1)
     assert speech2text.ctc_only is True
-    assert speech2text.beam_search is None
+    # it searches over the CTC scorer alone: there is no decoder to score with
+    assert speech2text.beam_search is not None
+    assert "ctc" in speech2text.beam_search.scorers
+    assert "decoder" not in speech2text.beam_search.scorers
 
     speech = np.random.randn(3000)
-    called = speech2text(speech)
-    best_path = speech2text.best_path(speech)
-    assert [r[:4] for r in called] == [r[:4] for r in best_path]
-    assert called[0][4] is None
+    searched = speech2text(speech)
+    assert isinstance(searched[0][4], Hypothesis)
+
+    # and best_path is the unsearched route, on the same object
+    assert speech2text.best_path(speech)[0][4] is None
 
 
 @pytest.mark.execution_timeout(10)
 def test_the_base_class_batch_decodes_a_ctc_only_checkpoint(s2t_config_file):
-    speech2text = Speech2TextBase(s2t_train_config=s2t_config_file)
+    speech2text = Speech2TextBase(s2t_train_config=s2t_config_file, beam_size=1)
     batched = speech2text.batch_decode(torch.randn(3, 3000))
     assert len(batched) == 3
     for results in batched:
-        assert len(results) == 1 and results[0][4] is None
+        assert len(results) == 1 and isinstance(results[0][4], Hypothesis)
 
 
 @pytest.mark.execution_timeout(15)
