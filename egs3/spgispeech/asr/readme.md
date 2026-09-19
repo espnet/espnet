@@ -52,18 +52,26 @@ python run.py --stages infer measure \
 
 | dataset | CER | WER |
 | --- | --- | --- |
-| dev_4k | 1.01 | 2.42 |
+| dev_4k | 0.93 | 2.25 |
 
-Decoded with `conf/inference.yaml` (beam 20, `ctc_weight` 0.3) from the
-`valid.acc.ave_10best` average after 24 of the configured 35 epochs on 4 GPUs.
+Decoded with `conf/inference.yaml` (beam 20, `ctc_weight` 0.3, `batch_size` 4)
+from the `valid.acc.ave_10best` average after all 35 configured epochs on 4
+GPUs. Decoding the same checkpoint without batching (`batch_size: null`) gives
+WER 2.26 / CER 0.93: `Speech2Text.batch_decode`'s padded batching is not
+perfectly invariant for `Conv2d` subsampling and the legacy relative-position
+attention this config uses, so a handful of hypotheses differ between the two
+paths -- not a decoding bug, and not a difference in the model.
+
+Batching also makes `dev_4k` (1 GPU, single process) **2.8x faster to decode**:
+31.3 min (`batch_size` 4) vs. 88.75 min (`batch_size: null`), same checkpoint,
+same hardware.
+
+`val` (39,341 utterances) -- the set egs2 also reports -- has not been
+decoded.
 
 ## Pretrained Models
 
-None published yet. The evaluation above is a partial result: it covers only
-`dev_4k` (4,000 utterances) from a run stopped at 25 of the configured 35
-epochs, and `val` (39,341 utterances) -- the set egs2 reports -- has not been
-decoded. A model will be packaged and uploaded once training completes and the
-full test sets have been scored.
+- [`espnet/spgispeech_asr_train_asr_conformer6_n_fft512_hop_length256`](https://huggingface.co/espnet/spgispeech_asr_train_asr_conformer6_n_fft512_hop_length256)
 
 ## Differences from the egs2 recipe
 

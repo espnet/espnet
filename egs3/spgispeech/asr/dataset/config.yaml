@@ -1,6 +1,11 @@
 builder:
   dataset_path: download
   source_env_var: SPGISPEECH
+  # Shared on-disk location of the raw SPGISpeech distribution. builder.py
+  # reads this via _CFG.get("default_source_dir"); without it resolution only
+  # ever checked <recipe_dir>/download/spgispeech and every caller had to pass
+  # source_dir explicitly.
+  default_source_dir: /work/hdd/bbjs/shared/corpora/spgispeech
   audio_subdir: spgispeech
   csv_files:
     train: train.csv
