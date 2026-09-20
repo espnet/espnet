@@ -67,8 +67,8 @@ AMI SDM test, 6127 utterance groups, beam size 5.
 
 | Metric | Value |
 | --- | --- |
-| cpWER | 28.31 % |
-| DER (0.25 s collar) | 8.57 % |
+| cpWER | 28.28 % |
+| DER (0.25 s collar) | 8.54 % |
 
 ## Packaging
 

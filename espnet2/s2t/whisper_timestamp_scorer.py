@@ -202,17 +202,29 @@ class WhisperTimestampFilter(BatchScorerInterface):
                 # this leaves eos, the specials and the timestamps open.
                 mask[: self.eos] = neg
 
-        # In one block, timestamps must not decrease.
+        # In one block, timestamps must not decrease, and a segment must not
+        # be empty. whisper reopens the last timestamp only where it closed a
+        # segment, so the next segment may start where the previous one
+        # ended. Everywhere else the next timestamp has to be strictly
+        # larger, which is what gives a segment a nonzero length. whisper
+        # added the second half of this rule after release 20230308. Nothing
+        # in this repo pins openai-whisper, so the installed release varies;
+        # follow the current rule, which the older one only fails to
+        # enforce.
         times = [t for t in block if self._is_time(t)]
         if times:
-            mask[self.first_time : times[-1]] = neg
+            reopen = last_is_time and not penult_is_time
+            mask[self.first_time : times[-1] + (0 if reopen else 1)] = neg
 
         if sep is not None:
-            if last_is_time and not penult_is_time:
-                # A speaker can change only at the end of a segment.
-                mask[sep] = 0.0
-            elif last_is_time and penult_is_time:
-                mask[sep] = neg
+            # A speaker can change only at the end of a segment: right after
+            # the timestamp that closed one, and nowhere else. The closed
+            # case has to be reopened explicitly, because the branch above
+            # masked everything below eos, and the separator sits there.
+            # Leaving the remaining cases alone would permit a separator
+            # while a segment is still open, and its opening timestamp would
+            # then reach the segment parser with nothing to pair it with.
+            mask[sep] = 0.0 if (last_is_time and not penult_is_time) else neg
 
         return mask
 

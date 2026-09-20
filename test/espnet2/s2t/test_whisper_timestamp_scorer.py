@@ -136,11 +136,21 @@ def test_after_single_closing_timestamp_text_is_forbidden():
 
 
 def test_timestamps_are_monotonic():
-    # last emitted timestamp is 20, and the last token is text, so timestamps
-    # below 20 must be forbidden.
+    # The open segment started at timestamp 20, so nothing below it may close
+    # it, and 20 itself may not either: a segment must have a nonzero length.
     a = allowed(mask_of(build(), [FIRST_T, 3, 20, 4]))
-    assert a.isdisjoint(set(range(FIRST_T, 20)))
-    assert 20 in a
+    assert a.isdisjoint(set(range(FIRST_T, 21)))
+    assert 21 in a
+
+
+def test_a_closing_timestamp_may_reopen_the_one_that_closed_a_segment():
+    """The nonzero length rule must not block the next segment.
+
+    A segment that has just closed at timestamp 20 leaves 20 available again,
+    so the next segment can start where the previous one ended. Forbidding it
+    here as well would push every segment one step apart.
+    """
+    assert 20 in allowed(mask_of(build(), [FIRST_T, 3, 20]))
 
 
 # ---------------------------------------------------------------------------
@@ -157,6 +167,20 @@ def test_separator_is_allowed_after_a_closing_timestamp():
 def test_separator_forbidden_when_text_must_follow():
     # two consecutive timestamps -> text must follow, so no separator.
     assert SEP not in allowed(mask_of(build(speaker_change=SEP), [FIRST_T, 20]))
+
+
+def test_separator_forbidden_while_a_segment_is_open():
+    """A speaker cannot change in the middle of a segment.
+
+    The timestamp that opened the segment would reach the segment parser
+    with nothing to pair it with. Only the two cases whose last token is a
+    timestamp used to be handled, which left this one permitted.
+    """
+    filt = build(speaker_change=SEP)
+    assert SEP not in allowed(mask_of(filt, [FIRST_T, 3]))  # ts, text
+    assert SEP not in allowed(mask_of(filt, [FIRST_T, 3, 4]))  # ts, text, text
+    # and the block-scoped form of the same state, after a speaker change
+    assert SEP not in allowed(mask_of(filt, [FIRST_T, 3, 20, SEP, 16, 4]))
 
 
 def test_just_after_separator_forces_a_timestamp():
@@ -211,6 +235,104 @@ def test_score_and_batch_score_agree(sampled):
     assert torch.equal(single, batched[0])
 
 
+# ---------------------------------------------------------------------------
+# The reference whisper applies
+# ---------------------------------------------------------------------------
+
+
+class _WhisperCurrentRules:
+    """whisper's ApplyTimestampRules as openai/whisper main writes it.
+
+    Transcribed rather than imported because nothing in this repo pins
+    openai-whisper. Release 20230308 forbids only the timestamps below the
+    last one; every later release also forbids the last one itself, except
+    where that timestamp closed a segment, so that a segment cannot have zero
+    length. The filter follows the later rule, so a test that compared against
+    whatever release happens to be installed would pass or fail by accident.
+
+    ``_current_rules`` below hands back the installed class when it already
+    carries the rule, so a modern environment still checks the real package.
+    The order matters and is why this is a transcription and not a patch
+    applied afterwards: the adaptive rule at the end reads the masked logits,
+    so forbidding one more timestamp can decide whether it fires.
+    """
+
+    def __init__(self, tokenizer, sample_begin, max_initial_timestamp_index):
+        self.tokenizer = tokenizer
+        self.sample_begin = sample_begin
+        self.max_initial_timestamp_index = max_initial_timestamp_index
+
+    def apply(self, logits, tokens):
+        neg = -float("inf")
+        tok = self.tokenizer
+        if tok.no_timestamps is not None:
+            logits[:, tok.no_timestamps] = neg
+
+        for k in range(tokens.shape[0]):
+            sampled = tokens[k, self.sample_begin :]
+            seq = sampled.tolist()
+            last_was_ts = len(seq) >= 1 and seq[-1] >= tok.timestamp_begin
+            penult_was_ts = len(seq) < 2 or seq[-2] >= tok.timestamp_begin
+
+            if last_was_ts:
+                if penult_was_ts:
+                    logits[k, tok.timestamp_begin :] = neg
+                else:
+                    logits[k, : tok.eot] = neg
+
+            times = sampled[sampled.ge(tok.timestamp_begin)]
+            if times.numel() > 0:
+                if last_was_ts and not penult_was_ts:
+                    last = times[-1]
+                else:
+                    last = times[-1] + 1
+                logits[k, tok.timestamp_begin : last] = neg
+
+        if tokens.shape[1] == self.sample_begin:
+            logits[:, : tok.timestamp_begin] = neg
+            if self.max_initial_timestamp_index is not None:
+                allowed_to = tok.timestamp_begin + self.max_initial_timestamp_index
+                logits[:, allowed_to + 1 :] = neg
+
+        logprobs = torch.log_softmax(logits.float(), dim=-1)
+        for k in range(tokens.shape[0]):
+            ts_logprob = logprobs[k, tok.timestamp_begin :].logsumexp(dim=-1)
+            best_text = logprobs[k, : tok.timestamp_begin].max()
+            if ts_logprob > best_text:
+                logits[k, : tok.timestamp_begin] = neg
+
+
+class _Tok:  # minimal stand-in for whisper's Tokenizer
+    no_timestamps = NOTS
+    timestamp_begin = FIRST_T
+    eot = EOS
+
+
+def _installed_forces_nonzero_segments() -> bool:
+    """True when the installed whisper already carries the nonzero segment rule."""
+    from whisper.decoding import ApplyTimestampRules
+
+    ref = ApplyTimestampRules(_Tok(), SAMPLE_BEGIN, None)
+    # An open segment that started at timestamp 20, with text after it. Under
+    # the current rule 20 may not close it; under 20230308 it may.
+    logits = torch.full((1, VOCAB), -10.0)
+    logits[0, 3] = 10.0  # dominant text token, to keep the adaptive rule quiet
+    ref.apply(logits, torch.tensor([PROMPT + [FIRST_T, 3, 20, 4]], dtype=torch.long))
+    return bool(torch.isinf(logits[0, 20]))
+
+
+def _current_rules(max_initial_timestamp_index=None):
+    """whisper's rules as they stand today, from the package where possible."""
+    from whisper.decoding import ApplyTimestampRules
+
+    cls = (
+        ApplyTimestampRules
+        if _installed_forces_nonzero_segments()
+        else _WhisperCurrentRules
+    )
+    return cls(_Tok(), SAMPLE_BEGIN, max_initial_timestamp_index)
+
+
 @pytest.mark.execution_timeout(30.0)  # importing whisper dominates
 def test_matches_whisper_apply_timestamp_rules():
     """Without a separator the filter must reproduce whisper's own rules.
@@ -224,14 +346,8 @@ def test_matches_whisper_apply_timestamp_rules():
     eos.
     """
     pytest.importorskip("whisper")
-    from whisper.decoding import ApplyTimestampRules
 
-    class _Tok:  # minimal stand-in for whisper's Tokenizer
-        no_timestamps = NOTS
-        timestamp_begin = FIRST_T
-        eot = EOS
-
-    ref = ApplyTimestampRules(_Tok(), SAMPLE_BEGIN, None)
+    ref = _current_rules()
     filt = build()
 
     for sampled in ([], [FIRST_T], [FIRST_T, 20], [FIRST_T, 3, 20, 4]):
@@ -442,14 +558,8 @@ def test_wrapper_matches_whisper_apply_timestamp_rules_including_adaptive():
     forbidden positions must match exactly.
     """
     pytest.importorskip("whisper")
-    from whisper.decoding import ApplyTimestampRules
 
-    class _Tok:
-        no_timestamps = NOTS
-        timestamp_begin = FIRST_T
-        eot = EOS
-
-    ref = ApplyTimestampRules(_Tok(), SAMPLE_BEGIN, None)
+    ref = _current_rules()
     torch.manual_seed(0)
     for sampled in (
         [],
@@ -498,7 +608,9 @@ def test_adaptive_rule_forbids_tokens_above_the_timestamp_range():
     out, _ = dec.score(y, None, torch.zeros(1))
     assert torch.isinf(out[:FIRST_T]).all()
     assert torch.isinf(out[LAST_T + 1 :]).all(), "the tail must be forbidden too"
-    assert not torch.isinf(out[20 : LAST_T + 1]).any()
+    # 20 opened the segment that is still open, so the first timestamp that
+    # may close it is 21.
+    assert not torch.isinf(out[21 : LAST_T + 1]).any()
 
 
 def test_adaptive_rule_compares_against_tokens_above_the_timestamp_range():
@@ -527,18 +639,11 @@ def test_wrapper_matches_whisper_over_many_prefixes():
     import itertools
     import random
 
-    from whisper.decoding import ApplyTimestampRules
-
-    class _Tok:
-        no_timestamps = NOTS
-        timestamp_begin = FIRST_T
-        eot = EOS
-
     # whisper puts the timestamps at the very top of the vocabulary, and the
     # adaptive rule relies on it, so the synthetic layout must match.
     assert LAST_T + 1 == VOCAB
 
-    ref = ApplyTimestampRules(_Tok(), SAMPLE_BEGIN, None)
+    ref = _current_rules()
     dec = _wrap(torch.zeros(VOCAB))  # speaker_change=None
 
     rng = random.Random(0)
