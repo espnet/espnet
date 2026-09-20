@@ -12,11 +12,19 @@ def build_output(data, model_output, idx):
         idx: Index of the trial in the trial list, used as its identifier.
 
     Returns:
-        Mapping written as one line of `score.scp` and one of `label.scp`.
+        Mapping written as one line of `score.scp`, plus one of `label.scp`
+        when the item carries a ground-truth label.
+
+    The recipe's own trial lists always carry `spk_labels`, so `measure` still
+    gets the `label.scp` that EER and minDCF read. A published model scored on
+    a user's own pair of utterances does not, and `InferenceModel` applies this
+    same function to its output, so the label is omitted instead of raising.
     """
-    label = np.asarray(data["spk_labels"]).reshape(-1)[0]
-    return {
+    output = {
         "utt_id": data.get("utt_id", str(idx)),
         "score": float(model_output),
-        "label": int(label),
     }
+    labels = data.get("spk_labels")
+    if labels is not None:
+        output["label"] = int(np.asarray(labels).reshape(-1)[0])
+    return output
