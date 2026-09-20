@@ -44,7 +44,7 @@ class CommonCollateFn:
 
 
 class HuBERTCollateFn(CommonCollateFn):
-    """Functor class of common_collate_fn()"""
+    """HuBERT functor class of common_collate_fn()"""
 
     @typechecked
     def __init__(
@@ -422,3 +422,53 @@ def common_collate_fn(
 
     output = (uttids, output)
     return output
+
+
+class UniversaCollateFn(CommonCollateFn):
+    """Universa functor class of common_collate_fn()"""
+
+    @typechecked
+    def __init__(
+        self,
+        metrics_list: List[str],
+        float_pad_value: Union[float, int] = 0.0,
+        metric_pad_value: Union[float, int] = -1e10,
+        int_pad_value: int = -32768,
+        not_sequence: Collection[str] = (),
+    ):
+        super().__init__(
+            float_pad_value=float_pad_value,
+            int_pad_value=int_pad_value,
+            not_sequence=not_sequence,
+        )
+        self.metrics_list = metrics_list
+        self.metric_pad_value = metric_pad_value
+
+    def __repr__(self):
+        return (
+            f"{self.__class__}(float_pad_value={self.float_pad_value}, "
+            f"int_pad_value={self.int_pad_value}, "
+            f"metrics_list={self.metrics_list}, "
+            f"metric_pad_value={self.metric_pad_value})"
+        )
+
+    def __call__(self, data):
+        """Pad sequences normally and keep metric labels in a named tensor map."""
+        data = list(data)
+        sequences = [
+            (uid, {key: value for key, value in sample.items() if key != "metrics"})
+            for uid, sample in data
+        ]
+        uttids, output = super().__call__(sequences)
+        if any("metrics" in sample for _, sample in data):
+            output["metrics"] = {
+                metric: torch.tensor(
+                    [
+                        sample.get("metrics", {}).get(metric, self.metric_pad_value)
+                        for _, sample in data
+                    ],
+                    dtype=torch.float32,
+                )
+                for metric in self.metrics_list
+            }
+        return uttids, output
