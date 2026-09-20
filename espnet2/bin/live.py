@@ -1,12 +1,12 @@
 """Transcribe audio as it arrives, from a file or from a microphone.
 
-`espnet asr file.wav` waits for the whole file and prints once. That is the
+`espnet transcribe file.wav` waits for the whole file and prints once. That is the
 wrong shape for a demonstration and impossible for a microphone, so this
 decodes a window at a time and prints each one as it is ready.
 
 The windows are decoded independently: a word straddling a boundary can come
 out twice or not at all. Reading the whole file at once is more accurate, and
-it is what `espnet asr` without `--stream` does; this is for watching the
+it is what `espnet transcribe` without `--stream` does; this is for watching the
 words appear.
 """
 

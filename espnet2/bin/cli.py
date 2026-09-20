@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """Run a published ESPnet model from the command line.
 
-    espnet asr audio.wav
-    espnet asr audio.wav --language jpn
+    espnet transcribe audio.wav
+    espnet transcribe audio.wav --language jpn
     espnet phonemize audio.wav
     espnet align audio.wav --text "the words that were said"
     espnet translate audio.wav --to eng
-    espnet tts "Hello from ESPnet" -o hello.wav
+    espnet synthesize "Hello from ESPnet" -o hello.wav
     espnet enhance noisy.wav -o clean.wav
     espnet demo
     espnet models
@@ -20,7 +20,7 @@ result.
 Each downloads its model on first use and keeps it in the espnet_model_zoo
 cache. `--model` takes any tag from https://huggingface.co/espnet that suits
 the command: a command loads one task's inference class, so a TTS tag given
-to `espnet asr` is reported rather than half-loaded.
+to `espnet transcribe` is reported rather than half-loaded.
 
 `espnet demo` is the same OWSM model in a browser instead: it serves the app
 the Hugging Face Space runs, locally, and prints the URL to open.
@@ -36,10 +36,11 @@ from typing import List, Optional
 
 from espnet2.utils.pretrained import ModelTagError, build_pretrained
 
-# One flagship per task, so that `espnet asr x.wav` works with no arguments.
+# One flagship per task, so that `espnet transcribe x.wav` works with no
+# arguments.
 # Each is checked by test_cli.py against the espnet2 class that loads it.
 DEFAULT_MODELS = {
-    "asr": "espnet/owsm_ctc_v4_1B",
+    "transcribe": "espnet/owsm_ctc_v4_1B",
     # POWSM, a phonetic model built on OWSM: the CTC one, which is the
     # faster of the two and the one that can read a recording of any length
     "phonemize": "espnet/powsm_ctc",
@@ -47,9 +48,9 @@ DEFAULT_MODELS = {
     # model that aligns
     "align": "espnet/owsm_ctc_v4_1B",
     "translate": "espnet/owsm_ctc_v4_1B",
-    "tts": "espnet/kan-bayashi_ljspeech_vits",
+    "synthesize": "espnet/kan-bayashi_ljspeech_vits",
     "enhance": "espnet/Wangyou_Zhang_universal_train_enh_uses_refch0_2mem_raw",
-    # the browser demo runs the model `espnet asr` runs, so that the two agree
+    # the browser demo runs the model `espnet transcribe` runs, so the two agree
     "demo": "espnet/owsm_ctc_v4_1B",
 }
 # OWSM writes languages as ISO 639-3 in its own token symbols.
@@ -147,7 +148,7 @@ def _decode(s2t, audio: str, lang_sym: str, task_sym: str) -> str:
     )
 
 
-def cmd_asr(args) -> int:
+def cmd_transcribe(args) -> int:
     # every check the user can fail comes before the import: loading the s2t
     # stack takes seconds, and "no such file" should not wait for it
     if args.live or args.stream:
@@ -160,7 +161,7 @@ def cmd_asr(args) -> int:
 
     from espnet2.bin.s2t_inference import Speech2Text
 
-    s2t = _build(Speech2Text, args, "asr")
+    s2t = _build(Speech2Text, args, "transcribe")
     print(_decode(s2t, args.audio, f"<{args.language}>", "<asr>"))
     return 0
 
@@ -177,7 +178,7 @@ def _transcribe_as_it_arrives(args) -> int:
     from espnet2.bin import live
     from espnet2.bin.s2t_inference import Speech2Text
 
-    s2t = _build(Speech2Text, args, "asr")
+    s2t = _build(Speech2Text, args, "transcribe")
     try:
         source = live.from_microphone() if args.live else live.from_file(args.audio)
 
@@ -335,11 +336,11 @@ def _output_path(value: str) -> Path:
     return path
 
 
-def cmd_tts(args) -> int:
+def cmd_synthesize(args) -> int:
     path = _output_path(args.output)
     from espnet2.bin.tts_inference import Text2Speech
 
-    tts = _build(Text2Speech, args, "tts")
+    tts = _build(Text2Speech, args, "synthesize")
     output = tts(args.text)
     _write_audio(str(path), output["wav"].view(-1).cpu().numpy(), tts.fs)
     return 0
@@ -444,8 +445,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--version", action="version", version=f"espnet {_version()}")
     sub = parser.add_subparsers(dest="command", required=True)
 
-    def add(name, help_text, func, device="cpu"):
-        p = sub.add_parser(name, help=help_text)
+    def add(name, help_text, func, device="cpu", was=None):
+        # `was` is the name this command had in a release. argparse aliases
+        # share one parser, so the old name keeps working exactly, and the
+        # help listing says "transcribe (asr)" - which is where someone
+        # looking for the name they remember will look.
+        p = sub.add_parser(name, aliases=[was] if was else [], help=help_text)
         p.add_argument(
             "--model",
             default=DEFAULT_MODELS.get(name),
@@ -463,7 +468,7 @@ def build_parser() -> argparse.ArgumentParser:
         p.set_defaults(func=func)
         return p
 
-    p = add("asr", "transcribe an audio file", cmd_asr)
+    p = add("transcribe", "transcribe an audio file", cmd_transcribe, was="asr")
     p.add_argument("audio", nargs="?", help="audio file, any format soundfile reads")
     p.add_argument(
         "--stream",
@@ -526,7 +531,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="OWSM language token of the speech, ISO 639-3 (default: detected)",
     )
 
-    p = add("tts", "synthesise speech from text", cmd_tts)
+    p = add("synthesize", "synthesise speech from text", cmd_synthesize, was="tts")
     p.add_argument("text", help="what to say")
     p.add_argument("-o", "--output", default="out.wav", help="output wav")
 
@@ -550,7 +555,26 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+# What each command was called in a release. Both names work; this is only
+# so that the old one says where it went, once, on stderr.
+RENAMED = {"asr": "transcribe", "tts": "synthesize"}
+
+
 def main(argv: Optional[List[str]] = None) -> int:
+    typed = next(
+        (
+            a
+            for a in (argv if argv is not None else sys.argv[1:])
+            if not a.startswith("-")
+        ),
+        None,
+    )
+    if typed in RENAMED:
+        print(
+            f"espnet: `{typed}` is now `{RENAMED[typed]}`, for one name a task "
+            f"rather than two. The old name still works.",
+            file=sys.stderr,
+        )
     args = build_parser().parse_args(argv)
     try:
         return args.func(args)

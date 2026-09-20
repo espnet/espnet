@@ -101,16 +101,16 @@ def test_every_default_names_a_model_in_the_espnet_organisation():
         assert tag.startswith("espnet/"), (task, tag)
 
 
-def test_asr_prints_the_transcript(monkeypatch, tmp_path, capsys):
+def test_transcribe_prints_the_transcript(monkeypatch, tmp_path, capsys):
     audio = tmp_path / "a.wav"
     audio.write_bytes(b"")
     rec = _Recorder("hello there")
     _fake_module(monkeypatch, "espnet2.bin.s2t_inference", "Speech2Text", rec)
 
-    assert cli.main(["asr", str(audio)]) == 0
+    assert cli.main(["transcribe", str(audio)]) == 0
 
     assert capsys.readouterr().out.strip() == "hello there"
-    assert rec.tag == cli.DEFAULT_MODELS["asr"]
+    assert rec.tag == cli.DEFAULT_MODELS["transcribe"]
     assert rec.device == "cpu"
     args, kwargs = rec.calls[0]
     assert args == (str(audio),)
@@ -541,8 +541,20 @@ def test_the_help_lists_every_command(capsys):
         cli.main(["--help"])
     assert e.value.code == 0
     out = capsys.readouterr().out
-    for command in ("asr", "translate", "tts", "enhance", "demo", "models"):
+    for command in (
+        "transcribe",
+        "phonemize",
+        "align",
+        "translate",
+        "synthesize",
+        "enhance",
+        "demo",
+        "models",
+    ):
         assert command in out
+    # and the names they had in a release, where someone looking for the one
+    # they remember will look
+    assert "(asr)" in out and "(tts)" in out
 
 
 def test_an_output_without_an_extension_is_refused(monkeypatch, tmp_path, capsys):
@@ -591,11 +603,51 @@ def test_a_tag_for_another_task_is_explained(monkeypatch, tmp_path, capsys):
         Mismatch,
     )
 
-    assert cli.main(["asr", str(audio), "--model", "espnet/a-tts-model"]) == 1
+    assert cli.main(["transcribe", str(audio), "--model", "espnet/a-tts-model"]) == 1
 
     err = capsys.readouterr().err
-    assert "does not look like a model for `espnet asr`" in err
+    assert "does not look like a model for `espnet transcribe`" in err
     assert "espnet models" in err
+
+
+def test_the_name_a_release_had_still_works(monkeypatch, tmp_path, capsys):
+    audio = tmp_path / "a.wav"
+    audio.write_bytes(b"")
+    rec = _Recorder("hello there")
+    _fake_module(monkeypatch, "espnet2.bin.s2t_inference", "Speech2Text", rec)
+
+    assert cli.main(["asr", str(audio)]) == 0
+
+    printed = capsys.readouterr()
+    assert printed.out.strip() == "hello there"
+    # and it says where the name went, once, on stderr, so a pipe is unharmed
+    assert "`asr` is now `transcribe`" in printed.err
+
+
+def test_the_new_name_says_nothing_about_the_old_one(monkeypatch, tmp_path, capsys):
+    audio = tmp_path / "a.wav"
+    audio.write_bytes(b"")
+    rec = _Recorder("hello there")
+    _fake_module(monkeypatch, "espnet2.bin.s2t_inference", "Speech2Text", rec)
+
+    assert cli.main(["transcribe", str(audio)]) == 0
+
+    assert capsys.readouterr().err == ""
+
+
+def test_both_names_reach_the_same_command(monkeypatch, tmp_path, capsys):
+    import torch
+
+    out = tmp_path / "out.wav"
+    rec = _Recorder({"wav": torch.from_numpy(np.zeros(160, dtype=np.float32))})
+    _fake_module(monkeypatch, "espnet2.bin.tts_inference", "Text2Speech", rec)
+
+    assert cli.main(["tts", "hello", "-o", str(out)]) == 0
+    assert cli.main(["synthesize", "hello", "-o", str(out)]) == 0
+
+    # one parser, two names: the same model and the same call
+    assert rec.tag == cli.DEFAULT_MODELS["synthesize"]
+    assert len(rec.calls) == 2 and rec.calls[0] == rec.calls[1]
 
 
 def test_multichannel_audio_keeps_its_channels(tmp_path):
