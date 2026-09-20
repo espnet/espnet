@@ -215,11 +215,67 @@ class ESPnetLightningModule(lightning.LightningModule):
         """
         model_config = self.config.get("model", {})
         freeze_params = model_config.get("freeze_param", [])
-        for selector in freeze_params or []:
-            for name, parameter in self.model.named_parameters():
-                if name.startswith(selector + ".") or name == selector:
-                    logger.info("Setting %s.requires_grad = False", name)
-                    parameter.requires_grad = False
+        if not freeze_params:
+            return
+
+        named_parameters = list(self.model.named_parameters())
+        initially_trainable = {
+            name for name, parameter in named_parameters if parameter.requires_grad
+        }
+        frozen_names = set()
+
+        logger.info(
+            "Applying model.freeze_param selectors: %s",
+            ", ".join(freeze_params),
+        )
+        for selector in freeze_params:
+            matched = [
+                (name, parameter)
+                for name, parameter in named_parameters
+                if name.startswith(selector + ".") or name == selector
+            ]
+            if not matched:
+                logger.warning(
+                    "model.freeze_param selector %r did not match any model parameter.",
+                    selector,
+                )
+                continue
+
+            newly_frozen = [
+                (name, parameter)
+                for name, parameter in matched
+                if parameter.requires_grad
+            ]
+            for name, parameter in newly_frozen:
+                parameter.requires_grad = False
+                frozen_names.add(name)
+
+            logger.info(
+                "model.freeze_param selector %r matched %d parameters (%d values); "
+                "froze %d trainable parameters (%d values).",
+                selector,
+                len(matched),
+                sum(parameter.numel() for _, parameter in matched),
+                len(newly_frozen),
+                sum(parameter.numel() for _, parameter in newly_frozen),
+            )
+
+        frozen_values = sum(
+            parameter.numel()
+            for name, parameter in named_parameters
+            if name in frozen_names
+        )
+        remaining_trainable = sum(
+            parameter.numel() for _, parameter in named_parameters if parameter.requires_grad
+        )
+        logger.info(
+            "model.freeze_param froze %d of %d initially trainable parameters "
+            "(%d values); %d trainable values remain.",
+            len(frozen_names),
+            len(initially_trainable),
+            frozen_values,
+            remaining_trainable,
+        )
 
     def _sync2skip(self, flag_skip):
         """Synchronize a skip flag across all DDP workers.

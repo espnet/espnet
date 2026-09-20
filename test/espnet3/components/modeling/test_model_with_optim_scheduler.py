@@ -1,3 +1,5 @@
+import logging
+
 import numpy as np
 import pytest
 import torch
@@ -309,12 +311,13 @@ def test_single_optim_and_scheduler():
     assert out["lr_scheduler"]["interval"] == "step"
 
 
-def test_model_freeze_param_excludes_selected_parameters_from_optimizer():
+def test_model_freeze_param_excludes_selected_parameters_from_optimizer(caplog):
     config = make_single_config()
     config.model = {
         "freeze_param": ["frontend", "encoder.bias"],
     }
-    module = ESPnetLightningModule(DummyFreezeModel(), config)
+    with caplog.at_level(logging.INFO, logger="lightning"):
+        module = ESPnetLightningModule(DummyFreezeModel(), config)
 
     assert not module.model.frontend.weight.requires_grad
     assert not module.model.frontend.bias.requires_grad
@@ -326,6 +329,10 @@ def test_model_freeze_param_excludes_selected_parameters_from_optimizer():
         parameter for group in optimizer.param_groups for parameter in group["params"]
     }
     assert optimized_params == {module.model.encoder.weight}
+    assert "Applying model.freeze_param selectors: frontend, encoder.bias" in caplog.text
+    assert "selector 'frontend' matched 2 parameters" in caplog.text
+    assert "selector 'encoder.bias' matched 1 parameters" in caplog.text
+    assert "froze 3 of 4 initially trainable parameters" in caplog.text
 
 
 def test_single_reduce_on_plateau_monitor():
