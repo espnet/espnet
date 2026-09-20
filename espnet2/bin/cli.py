@@ -298,9 +298,9 @@ def _aligner(args):
             raise
         raise CLIError(SEGMENTATION_MISSING) from e
     logging.info("aligning with %s model %s", kind, args.model)
-    return segmentation(
-        **files, ngpu=0 if args.device == "cpu" else 1, kaldi_style_text=False
-    )
+    # the device as it was typed, rather than ngpu: `ngpu=1` is "cuda", which
+    # silently sends --device mps to CUDA and --device cuda:1 to GPU 0
+    return segmentation(**files, device=args.device, kaldi_style_text=False)
 
 
 def cmd_align(args) -> int:

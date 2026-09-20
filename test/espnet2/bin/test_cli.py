@@ -339,6 +339,43 @@ def test_align_reads_a_file_of_utterances(monkeypatch, tmp_path, capsys):
     assert [line.split("\t")[-1] for line in printed] == ["one", "two"]
 
 
+def test_align_passes_the_device_it_was_given(monkeypatch, tmp_path):
+    audio = tmp_path / "a.wav"
+    soundfile.write(audio, np.zeros(16000, dtype="float32"), 16000)
+    _fake_alignment(monkeypatch, tmp_path, {"s2t_train_config": "c"})
+    made = []
+
+    class Remember(_FakeAligner):
+        def __init__(self, **kwargs):
+            super().__init__(**kwargs)
+            made.append(kwargs)
+
+    monkeypatch.setattr(
+        cli.importlib,
+        "import_module",
+        lambda name: types.SimpleNamespace(CTCSegmentation=Remember),
+    )
+
+    # ngpu cannot say "mps", nor which GPU: both used to become cuda:0
+    assert cli.main(["align", str(audio), "--text", "one", "--device", "mps"]) == 0
+    assert cli.main(["align", str(audio), "--text", "one", "--device", "cuda:1"]) == 0
+
+    assert [k["device"] for k in made] == ["mps", "cuda:1"]
+
+
+def test_a_tag_for_the_other_aligner_is_named(monkeypatch):
+    import espnet2.bin.asr_align as asr_align
+
+    monkeypatch.setattr(
+        asr_align,
+        "download_pretrained",
+        lambda tag: {"s2t_train_config": "c", "s2t_model_file": "m"},
+    )
+
+    with pytest.raises(cli.ModelTagError, match="asr_train_config"):
+        asr_align.CTCSegmentation.from_pretrained("espnet/owsm_ctc_v4_1B")
+
+
 def test_align_picks_the_aligner_the_model_was_published_for(monkeypatch, tmp_path):
     audio = tmp_path / "a.wav"
     soundfile.write(audio, np.zeros(16000, dtype="float32"), 16000)

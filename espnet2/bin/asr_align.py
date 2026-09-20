@@ -19,7 +19,7 @@ from espnet2.legacy.utils.cli_utils import get_commandline_args
 from espnet2.tasks.asr import ASRTask
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.utils import config_argparse
-from espnet2.utils.pretrained import download_pretrained
+from espnet2.utils.pretrained import ModelTagError, download_pretrained
 from espnet2.utils.types import str2bool, str_or_none
 
 try:
@@ -183,6 +183,7 @@ class CTCSegmentation:
         asr_model_file: Union[Path, str, None] = None,
         fs: int = 16000,
         ngpu: int = 0,
+        device: Optional[str] = None,
         batch_size: int = 1,
         dtype: str = "float32",
         kaldi_style_text: bool = True,
@@ -196,6 +197,8 @@ class CTCSegmentation:
             asr_train_config: ASR model config file (yaml).
             asr_model_file: ASR model file (pth).
             fs: Sample rate of audio file.
+            device: Where to run, as torch spells it: "cpu", "cuda",
+                "cuda:1", "mps". Overrides `ngpu`, which cannot say which.
             ngpu: Number of GPUs. Set 0 for processing on CPU, set to 1 for
                 processing on GPU. Multi-GPU aligning is currently not
                 implemented. Default: 0.
@@ -225,12 +228,17 @@ class CTCSegmentation:
         # Basic settings
         if batch_size > 1:
             raise NotImplementedError("Batch decoding is not implemented")
-        device = "cpu"
-        if ngpu == 1:
-            device = "cuda"
-        elif ngpu > 1:
-            logging.error("Multi-GPU not yet implemented.")
-            raise NotImplementedError("Only single GPU decoding is supported")
+        if device is None:
+            # `ngpu` is what the scripting interface has always taken, and it
+            # cannot say which GPU or that it means mps: a caller that knows
+            # passes `device` instead, and one that does not gets what it got
+            # before.
+            device = "cpu"
+            if ngpu == 1:
+                device = "cuda"
+            elif ngpu > 1:
+                logging.error("Multi-GPU not yet implemented.")
+                raise NotImplementedError("Only single GPU decoding is supported")
 
         # Prepare ASR model
         asr_model, asr_train_args = ASRTask.build_model_from_file(
@@ -288,7 +296,15 @@ class CTCSegmentation:
                 "espnet/kamo-naoyuki_wsj_transformer2".
             **kwargs: Passed to the constructor.
         """
-        kwargs.update(download_pretrained(model_tag))
+        files = download_pretrained(model_tag)
+        if "asr_train_config" not in files:
+            raise ModelTagError(
+                f"{model_tag} was not published as a model this aligns with: "
+                f"it has no asr_train_config. The module named in this "
+                f"class's docstring takes the other kind, and `espnet align` "
+                f"picks between them for you."
+            )
+        kwargs.update(files)
         return cls(**kwargs)
 
     def set_config(self, **kwargs):
