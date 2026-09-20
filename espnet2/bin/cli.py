@@ -4,6 +4,7 @@
     espnet asr audio.wav
     espnet asr audio.wav --language jpn
     espnet phonemize audio.wav
+    espnet align audio.wav --text "the words that were said"
     espnet translate audio.wav --to eng
     espnet tts "Hello from ESPnet" -o hello.wav
     espnet enhance noisy.wav -o clean.wav
@@ -26,7 +27,9 @@ the Hugging Face Space runs, locally, and prints the URL to open.
 """
 
 import argparse
+import importlib
 import importlib.metadata
+import logging
 import os
 import re
 import sys
@@ -42,6 +45,9 @@ DEFAULT_MODELS = {
     # POWSM, a phonetic model built on OWSM: the CTC one, which is the
     # faster of the two and the one that can read a recording of any length
     "phonemize": "espnet/powsm_ctc",
+    # alignment reads the CTC head, so the model that transcribes is the
+    # model that aligns
+    "align": "espnet/owsm_ctc_v4_1B",
     "translate": "espnet/owsm_ctc_v4_1B",
     "tts": "espnet/kan-bayashi_ljspeech_vits",
     "enhance": "espnet/Wangyou_Zhang_universal_train_enh_uses_refch0_2mem_raw",
@@ -259,6 +265,76 @@ def _windows(s2t, audio: str):
         yield speech[start : start + length]
 
 
+SEGMENTATION_MISSING = (
+    "CTC segmentation is not installed. Install it with " '`pip install "espnet[asr]"`.'
+)
+
+
+def _aligner(args):
+    """The alignment class that fits this tag, already loaded.
+
+    CTC segmentation lives twice in espnet2.bin - once for an ASR model and
+    once for OWSM-CTC, because the two tasks build their models differently -
+    and a user should not have to know which. The downloaded model says: it
+    arrives with `asr_train_config` or with `s2t_train_config`.
+    """
+    from espnet2.utils.pretrained import download_pretrained
+
+    files = download_pretrained(args.model)
+    if "asr_train_config" in files:
+        module, kind = "espnet2.bin.asr_align", "an ASR"
+    elif "s2t_train_config" in files:
+        module, kind = "espnet2.bin.s2t_ctc_align", "an OWSM-CTC"
+    else:
+        raise CLIError(
+            f"{args.model} was not published as a model `espnet align` can "
+            f"read: it has neither an ASR nor an S2T config. "
+            f"`espnet models` names the default."
+        )
+    try:
+        segmentation = importlib.import_module(module).CTCSegmentation
+    except ImportError as e:
+        if "ctc_segmentation" not in str(e):
+            raise
+        raise CLIError(SEGMENTATION_MISSING) from e
+    logging.info("aligning with %s model %s", kind, args.model)
+    return segmentation(
+        **files, ngpu=0 if args.device == "cpu" else 1, kaldi_style_text=False
+    )
+
+
+def cmd_align(args) -> int:
+    _require_file(args.audio)
+    if not args.text and not args.text_file:
+        raise CLIError("give --text once per utterance, or --text-file")
+    if args.text and args.text_file:
+        raise CLIError("give --text or --text-file, not both")
+    if args.text_file:
+        _require_file(args.text_file)
+        utterances = [
+            line.strip()
+            for line in Path(args.text_file).read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+    else:
+        utterances = list(args.text)
+    if not utterances:
+        raise CLIError(f"{args.text_file} has no lines to align")
+
+    import soundfile as sf
+
+    aligner = _aligner(args)
+    speech, rate = sf.read(args.audio, dtype="float32", always_2d=False)
+    if speech.ndim > 1:
+        speech = speech.mean(axis=1)
+    segments = aligner(speech, utterances, fs=rate)
+    # start, end and how sure the alignment is, then the words: a line a
+    # person can read and a line `cut` can take apart
+    for (start, end, score), text in zip(segments.segments, segments.text):
+        print(f"{start:.2f}\t{end:.2f}\t{score:.4f}\t{text}")
+    return 0
+
+
 def cmd_translate(args) -> int:
     _require_file(args.audio)
     from espnet2.bin.s2t_inference import Speech2Text
@@ -450,6 +526,18 @@ def build_parser() -> argparse.ArgumentParser:
         "--spaced",
         action="store_true",
         help="one phone at a time, separated by spaces, rather than as IPA",
+    )
+
+    p = add("align", "line text up with the audio it was said in", cmd_align)
+    p.add_argument("audio", help="audio file, any format soundfile reads")
+    p.add_argument(
+        "--text",
+        action="append",
+        default=[],
+        help="one utterance; give it once per utterance, in the order spoken",
+    )
+    p.add_argument(
+        "--text-file", help="a file with one utterance a line, instead of --text"
     )
 
     p = add("translate", "translate speech into another language", cmd_translate)

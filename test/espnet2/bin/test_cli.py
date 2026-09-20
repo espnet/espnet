@@ -243,6 +243,154 @@ def test_phonemize_prints_what_a_model_said_when_there_are_no_slashes(
     assert capsys.readouterr().out.strip() == "hello there"
 
 
+class _FakeSegments:
+    """What a CTCSegmentation call returns: segments and the text they are of."""
+
+    def __init__(self, utterances):
+        self.text = list(utterances)
+        self.segments = [
+            (i * 1.0, i * 1.0 + 0.5, -0.1 * i) for i in range(len(self.text))
+        ]
+
+
+class _FakeAligner:
+    def __init__(self, **kwargs):
+        self.kwargs = kwargs
+        self.calls = []
+
+    def __call__(self, speech, text, fs=None):
+        self.calls.append((len(speech), list(text), fs))
+        return _FakeSegments(text)
+
+
+def _fake_alignment(monkeypatch, tmp_path, files, aligner_by_module=None):
+    """Stand in for the downloader and for whichever aligner it points at."""
+    monkeypatch.setitem(
+        sys.modules,
+        "espnet2.utils.pretrained",
+        types.SimpleNamespace(
+            download_pretrained=lambda tag: dict(files),
+            build_pretrained=cli.build_pretrained,
+            ModelTagError=cli.ModelTagError,
+        ),
+    )
+    made = {}
+
+    def fake_import(name):
+        made[name] = _FakeAligner
+        return types.SimpleNamespace(CTCSegmentation=_FakeAligner)
+
+    monkeypatch.setattr(cli.importlib, "import_module", fake_import)
+    return made
+
+
+def test_align_prints_a_line_an_utterance(monkeypatch, tmp_path, capsys):
+    audio = tmp_path / "a.wav"
+    soundfile.write(audio, np.zeros(16000, dtype="float32"), 16000)
+    _fake_alignment(
+        monkeypatch, tmp_path, {"s2t_train_config": "c", "s2t_model_file": "m"}
+    )
+
+    assert cli.main(["align", str(audio), "--text", "one", "--text", "two"]) == 0
+
+    lines = capsys.readouterr().out.strip().split("\n")
+    assert [line.split("\t")[-1] for line in lines] == ["one", "two"]
+    assert lines[0].startswith("0.00\t0.50\t")
+
+
+def test_align_reads_a_file_of_utterances(monkeypatch, tmp_path, capsys):
+    audio = tmp_path / "a.wav"
+    soundfile.write(audio, np.zeros(16000, dtype="float32"), 16000)
+    utterances = tmp_path / "utts.txt"
+    utterances.write_text("one\n\ntwo\n")  # blank lines are not utterances
+    _fake_alignment(
+        monkeypatch, tmp_path, {"asr_train_config": "c", "asr_model_file": "m"}
+    )
+
+    assert cli.main(["align", str(audio), "--text-file", str(utterances)]) == 0
+
+    printed = capsys.readouterr().out.strip().split("\n")
+    assert [line.split("\t")[-1] for line in printed] == ["one", "two"]
+
+
+def test_align_picks_the_aligner_the_model_was_published_for(monkeypatch, tmp_path):
+    audio = tmp_path / "a.wav"
+    soundfile.write(audio, np.zeros(16000, dtype="float32"), 16000)
+    seen = []
+
+    def remember(files):
+        monkeypatch.setitem(
+            sys.modules,
+            "espnet2.utils.pretrained",
+            types.SimpleNamespace(download_pretrained=lambda tag: dict(files)),
+        )
+
+        def fake_import(name):
+            seen.append(name)
+            return types.SimpleNamespace(CTCSegmentation=_FakeAligner)
+
+        monkeypatch.setattr(cli.importlib, "import_module", fake_import)
+
+    remember({"asr_train_config": "c"})
+    cli.main(["align", str(audio), "--text", "one"])
+    remember({"s2t_train_config": "c"})
+    cli.main(["align", str(audio), "--text", "one"])
+
+    # one CTC segmentation for an ASR model, another for OWSM-CTC; the tag
+    # decides, not the user
+    assert seen == ["espnet2.bin.asr_align", "espnet2.bin.s2t_ctc_align"]
+
+
+def test_align_says_what_to_install_when_segmentation_is_missing(
+    monkeypatch, tmp_path, capsys
+):
+    audio = tmp_path / "a.wav"
+    soundfile.write(audio, np.zeros(16000, dtype="float32"), 16000)
+    monkeypatch.setitem(
+        sys.modules,
+        "espnet2.utils.pretrained",
+        types.SimpleNamespace(
+            download_pretrained=lambda tag: {"asr_train_config": "c"}
+        ),
+    )
+
+    def missing(name):
+        raise ImportError("No module named 'ctc_segmentation'")
+
+    monkeypatch.setattr(cli.importlib, "import_module", missing)
+
+    assert cli.main(["align", str(audio), "--text", "one"]) == 1
+
+    assert 'pip install "espnet[asr]"' in capsys.readouterr().err
+
+
+def test_align_refuses_a_model_published_for_neither(monkeypatch, tmp_path, capsys):
+    audio = tmp_path / "a.wav"
+    soundfile.write(audio, np.zeros(16000, dtype="float32"), 16000)
+    monkeypatch.setitem(
+        sys.modules,
+        "espnet2.utils.pretrained",
+        types.SimpleNamespace(
+            download_pretrained=lambda tag: {"tts_train_config": "c"}
+        ),
+    )
+
+    assert cli.main(["align", str(audio), "--text", "one"]) == 1
+
+    assert "neither an ASR nor an S2T config" in capsys.readouterr().err
+
+
+def test_align_needs_text_and_only_one_way_of_giving_it(monkeypatch, tmp_path, capsys):
+    audio = tmp_path / "a.wav"
+    soundfile.write(audio, np.zeros(16000, dtype="float32"), 16000)
+
+    assert cli.main(["align", str(audio)]) == 1
+    assert "--text" in capsys.readouterr().err
+
+    assert cli.main(["align", str(audio), "--text", "one", "--text-file", "f.txt"]) == 1
+    assert "not both" in capsys.readouterr().err
+
+
 def test_translate_builds_the_target_token(monkeypatch, tmp_path):
     audio = tmp_path / "a.wav"
     audio.write_bytes(b"")

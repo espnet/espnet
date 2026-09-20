@@ -19,6 +19,7 @@ from espnet2.legacy.utils.cli_utils import get_commandline_args
 from espnet2.tasks.s2t_ctc import S2TTask
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.utils import config_argparse
+from espnet2.utils.pretrained import build_pretrained
 from espnet2.utils.types import str2bool, str_or_none
 
 try:
@@ -283,6 +284,34 @@ class CTCSegmentation:
             s2t_train_args.frontend_conf["hop_length"] * subsample_factor
         )
         self.frames_per_sec = fs / self.samples_to_frames_ratio
+
+    @classmethod
+    def from_pretrained(
+        cls,
+        model_tag: str,
+        **kwargs,
+    ):
+        """Align with a published model, named by its tag.
+
+        The tag is what every other inference class in espnet2.bin takes, and
+        what a model card gives you. Without this, aligning with a published
+        model meant downloading it yourself and handing over two paths -
+        which is what the example above used to do, through
+        espnet_model_zoo's downloader.
+
+        Args:
+            model_tag: A tag on the Hugging Face hub, e.g. "espnet/owsm_ctc_v4_1B".
+            **kwargs: Passed to the constructor.
+        """
+        return build_pretrained(
+            cls,
+            model_tag,
+            kwargs.pop("device", None),
+            "CTC segmentation with an OWSM-CTC model",
+            "An ASR-task tag is aligned by espnet2.bin.asr_align instead; "
+            "`espnet align` picks between the two for you.",
+            **kwargs,
+        )
 
     def set_config(self, **kwargs):
         """Set CTC segmentation parameters.

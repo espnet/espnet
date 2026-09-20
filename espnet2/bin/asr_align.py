@@ -19,6 +19,7 @@ from espnet2.legacy.utils.cli_utils import get_commandline_args
 from espnet2.tasks.asr import ASRTask
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.utils import config_argparse
+from espnet2.utils.pretrained import build_pretrained
 from espnet2.utils.types import str2bool, str_or_none
 
 try:
@@ -137,12 +138,10 @@ class CTCSegmentation:
         >>> # example file included in the ESPnet repository
         >>> import soundfile
         >>> speech, fs = soundfile.read("test_utils/ctc_align_test.wav")
-        >>> # load an ASR model
-        >>> from espnet_model_zoo.downloader import ModelDownloader
-        >>> d = ModelDownloader()
-        >>> wsjmodel = d.download_and_unpack( "kamo-naoyuki/wsj" )
-        >>> # Apply CTC segmentation
-        >>> aligner = CTCSegmentation( **wsjmodel )
+        >>> # an ASR model, by the tag its model card gives
+        >>> aligner = CTCSegmentation.from_pretrained(
+        ...     "espnet/kamo-naoyuki_wsj_transformer2"
+        ... )
         >>> text=["utt1 THE SALE OF THE HOTELS", "utt2 ON PROPERTY MANAGEMENT"]
         >>> aligner.set_config( gratis_blank=True )
         >>> segments = aligner( speech, text, fs=fs )
@@ -268,6 +267,35 @@ class CTCSegmentation:
         )
         # last token "<sos/eos>", not needed
         self.config.char_list = asr_model.token_list[:-1]
+
+    @classmethod
+    def from_pretrained(
+        cls,
+        model_tag: str,
+        **kwargs,
+    ):
+        """Align with a published model, named by its tag.
+
+        The tag is what every other inference class in espnet2.bin takes, and
+        what a model card gives you. Without this, aligning with a published
+        model meant downloading it yourself and handing over two paths -
+        which is what the example above used to do, through
+        espnet_model_zoo's downloader.
+
+        Args:
+            model_tag: A tag on the Hugging Face hub, for example
+                "espnet/kamo-naoyuki_wsj_transformer2".
+            **kwargs: Passed to the constructor.
+        """
+        return build_pretrained(
+            cls,
+            model_tag,
+            kwargs.pop("device", None),
+            "CTC segmentation with an ASR model",
+            "An OWSM-CTC tag is aligned by espnet2.bin.s2t_ctc_align instead; "
+            "`espnet align` picks between the two for you.",
+            **kwargs,
+        )
 
     def set_config(self, **kwargs):
         """Set CTC segmentation parameters.
