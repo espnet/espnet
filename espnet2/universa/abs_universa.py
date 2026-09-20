@@ -1,7 +1,7 @@
 # Copyright 2024 Jiatong Shi
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-"""Universa abstrast class."""
+"""Universa abstract class."""
 
 from abc import ABC, abstractmethod
 from typing import Dict, Tuple

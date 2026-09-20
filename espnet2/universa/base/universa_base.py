@@ -86,7 +86,7 @@ class UniversaBase(AbsUniversa):
         use_mse: bool = False,
         use_l1: bool = True,
         metric_pad_value: float = -100,
-        loss_weights: Optional[Dict[str, float]] = None,
+        loss_weights: Optional[Dict[Union[str, int], float]] = None,
         **kwargs,
     ):
         """Initialize UniversaBase module.
@@ -138,13 +138,15 @@ class UniversaBase(AbsUniversa):
         ), "At least one loss function should be enabled"
         self.metric_pad_value = metric_pad_value
 
-        # setup loss weights
+        # Legacy configs may index weights by ID; new configs can use metric names.
         if loss_weights is None:
-            loss_weights = {}
-            for i in range(self.metric_size):
-                loss_weights[i] = 1.0
-        self.loss_weights = loss_weights
-        assert len(self.loss_weights) == self.metric_size, "mismatch loss weights size"
+            self.loss_weights = dict.fromkeys(range(self.metric_size), 1.0)
+        elif set(loss_weights) == set(metric2id):
+            self.loss_weights = {i: loss_weights[name] for name, i in metric2id.items()}
+        elif set(loss_weights) == set(range(self.metric_size)):
+            self.loss_weights = dict(loss_weights)
+        else:
+            raise ValueError("loss_weights must cover all metric names or integer IDs")
 
         # Initialize audio encoder
         if audio_encoder_type == "transformer":
@@ -357,15 +359,18 @@ class UniversaBase(AbsUniversa):
                 # skip numeric stability with float16
                 pred_metric = self.projector(pooling_output)
             final_metric_mask = final_metrics > self.metric_pad_value + 1e-6
+            weights = pred_metric.new_tensor(
+                [self.loss_weights[i] for i in range(self.metric_size)]
+            )
             if self.use_mse:
                 metric_mse_loss = masked_mse_loss(
-                    pred_metric, final_metrics, final_metric_mask
+                    pred_metric, final_metrics, final_metric_mask, weights
                 )
                 loss = loss + metric_mse_loss
                 stats["mse"] = metric_mse_loss.detach()
             if self.use_l1:
                 metric_l1_loss = masked_l1_loss(
-                    pred_metric, final_metrics, final_metric_mask
+                    pred_metric, final_metrics, final_metric_mask, weights
                 )
                 loss = loss + metric_l1_loss
                 stats["l1"] = metric_l1_loss.detach()

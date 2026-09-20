@@ -41,23 +41,11 @@ class ESPnetUniversaModel(AbsESPnetModel):
         ref_text_lengths: Optional[torch.Tensor] = None,
         **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
-        """Calculate outputs and return the loss tensor.
+        """Extract input/reference features and compute the predictor's loss.
 
-        Args:
-            audio (torch.Tensor): Input audio tensor (B, T).
-            audio_lengths (torch.Tensor): Length of audio tensor (B,).
-            metrics (torch.Tensor): Metrics tensor (B, C).
-            ref_audio (torch.Tensor, optional): Reference audio tensor (B', T').
-            ref_audio_lengths (torch.Tensor, optional):
-                Length of reference audio tensor (B',).
-            ref_text (torch.Tensor, optional): Reference text tensor (B', U).
-            ref_text_lengths (torch.Tensor, optional):
-                Length of reference text tensor (B',).
-
-        Returns:
-            Tensor: Loss scalar tensor.
-            Dict[str, torch.Tensor]: Statistics to be monitored.
-            Tensor: Weight scalar tensor to summarize losses.
+        Audio tensors are (batch, samples), text is (batch, tokens), and each
+        length tensor has one entry per utterance. Metrics map names to scalar
+        target batches. Returns loss, detached statistics, and batch weight.
         """
         with autocast("cuda", enabled=False):
             # Extract features
@@ -115,16 +103,7 @@ class ESPnetUniversaModel(AbsESPnetModel):
     def _extract_feats(
         self, audio: torch.Tensor, audio_lengths: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Extract features from audio tensor.
-
-        Args:
-            audio (torch.Tensor): Input audio tensor (B, T).
-            audio_lengths (torch.Tensor): Length of audio tensor (B,).
-
-        Returns:
-            Tuple[torch.Tensor, torch.Tensor]: Extracted features and lengths.
-
-        """
+        """Trim waveform padding and extract features with their lengths."""
         # for data-parallel
         audio = audio[:, : audio_lengths.max()]
         if self.frontend is not None:
