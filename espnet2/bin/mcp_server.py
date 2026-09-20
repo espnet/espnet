@@ -8,25 +8,30 @@ Cursor::
 
     {"mcpServers": {"espnet": {"command": "espnet-mcp"}}}
 
-The agent then sees three tools - ``transcribe``, ``synthesize`` and
-``enhance`` - and calls them itself when a task needs speech recognition,
-translation, synthesis or denoising. Audio moves as file paths on this
-machine; nothing is uploaded anywhere. Each model is downloaded from the
-Hugging Face Hub on first use and kept loaded for the rest of the session.
+The agent then sees six tools - ``transcribe``, ``translate``, ``phonemize``,
+``align``, ``synthesize`` and ``enhance`` - and calls them itself when a task
+needs one. They are named after the subcommands of ``espnet``, so a person
+reading an agent's transcript and a person at a terminal are talking about
+the same thing. Audio moves as file paths on this machine; nothing is
+uploaded anywhere. Each model is downloaded from the Hugging Face Hub on
+first use and kept loaded for the rest of the session.
 
 The defaults are the checkpoints the tools were written against and can be
 swapped through the environment: ``ESPNET_MCP_ASR_MODEL`` (any OWSM-CTC
 checkpoint), ``ESPNET_MCP_TTS_MODEL`` (any ESPnet text-to-speech model),
 ``ESPNET_MCP_ENH_MODEL`` (any single-channel enhancement model, with
-``ESPNET_MCP_ENH_FS`` its sampling rate) and ``ESPNET_MCP_DEVICE``.
+``ESPNET_MCP_ENH_FS`` its sampling rate), ``ESPNET_MCP_PR_MODEL`` (a POWSM
+checkpoint, for the phones) and ``ESPNET_MCP_DEVICE``. Alignment uses the
+recognition model, since it is a Viterbi path through that model's CTC head.
 """
 
 import contextlib
 import functools
 import os
+import re
 import sys
 from pathlib import Path
-from typing import Optional
+from typing import List
 
 import numpy as np
 import soundfile
@@ -41,6 +46,8 @@ except ImportError:  # pragma: no cover - the test extra installs mcp
         """Raised for input the tool cannot act on; mcp relays its message."""
 
 
+PHONE = re.compile(r"/([^/]+)/")
+
 ASR_MODEL = os.environ.get("ESPNET_MCP_ASR_MODEL", "espnet/owsm_ctc_v4_1B")
 TTS_MODEL = os.environ.get("ESPNET_MCP_TTS_MODEL", "espnet/kan-bayashi_ljspeech_vits")
 # The model `espnet enhance` and the universal-se Space load, so that the
@@ -51,6 +58,9 @@ ENH_MODEL = os.environ.get(
     "ESPNET_MCP_ENH_MODEL",
     "espnet/Wangyou_Zhang_universal_train_enh_uses_refch0_2mem_raw",
 )
+# POWSM, the phonetic model built on OWSM. The CTC one: it reads a recording
+# of any length, where the encoder-decoder one repeats itself on the padding.
+PR_MODEL = os.environ.get("ESPNET_MCP_PR_MODEL", "espnet/powsm_ctc")
 ENH_FS = int(os.environ.get("ESPNET_MCP_ENH_FS", "16000"))
 if ENH_FS <= 0:
     raise ValueError(f"ESPNET_MCP_ENH_FS must be a positive integer, not {ENH_FS}")
@@ -70,6 +80,26 @@ def _asr():  # pragma: no cover - downloads the checkpoint
         return Speech2Text.from_pretrained(
             ASR_MODEL, device=DEVICE, lang_sym="<nolang>", task_sym="<asr>"
         )
+
+
+@functools.lru_cache(maxsize=None)
+def _pr():  # pragma: no cover - downloads the checkpoint
+    with _quiet_stdout():
+        from espnet2.bin.s2t_inference import Speech2Text
+
+        model = Speech2Text.from_pretrained(PR_MODEL, device=DEVICE, task_sym="<pr>")
+        model.lang_sym = model.no_language()
+        return model
+
+
+@functools.lru_cache(maxsize=None)
+def _aligner():  # pragma: no cover - downloads the checkpoint
+    with _quiet_stdout():
+        from espnet2.bin.align import ForcedAligner
+
+        # the recognition model again: alignment is a Viterbi path through
+        # the CTC head this tool's transcribe already reads
+        return ForcedAligner.from_pretrained(ASR_MODEL, device=DEVICE)
 
 
 @functools.lru_cache(maxsize=None)
@@ -107,35 +137,110 @@ def _symbol(model, symbol: str, what: str) -> str:
     return symbol
 
 
-def transcribe(
-    audio_path: str, language: str = "auto", translate_to: Optional[str] = None
-) -> str:
-    """Transcribe a speech recording, or translate it into another language.
+def transcribe(audio_path: str, language: str = "auto") -> str:
+    """Transcribe a speech recording.
 
     Args:
         audio_path: Local audio file. Any common format, sample rate or length;
             long recordings are processed in 30-second windows.
         language: ISO 639-3 code of the spoken language (eng, jpn, deu, zho,
             fra, spa, ...) or "auto" to let the model detect it.
-        translate_to: ISO 639-3 code to translate the speech into (deu, jpn,
-            zho, fra, spa, ...). Leave unset to transcribe in the spoken language.
 
     Returns:
-        The transcript or translation as plain text. The first call downloads
-        the model (about 4 GB) and takes minutes; later calls take 10-30 s per
-        30 s of audio on a laptop CPU, about a second on a GPU.
+        The transcript as plain text. The first call downloads the model
+        (about 4 GB) and takes minutes; later calls take 10-30 s per 30 s of
+        audio on a laptop CPU, about a second on a GPU.
     """
+    return _decode(audio_path, language, "<asr>")
+
+
+def translate(audio_path: str, to: str, language: str = "auto") -> str:
+    """Translate a speech recording into another language, as text.
+
+    Args:
+        audio_path: Local audio file, as for `transcribe`.
+        to: ISO 639-3 code to translate into (eng, deu, jpn, zho, fra, spa,
+            ...). The model translates into 25 languages.
+        language: ISO 639-3 code of the spoken language, or "auto".
+
+    Returns:
+        The translation as plain text.
+    """
+    model = _asr()
+    return _decode(audio_path, language, _symbol(model, f"<st_{to}>", "target"))
+
+
+def phonemize(audio_path: str, language: str = "auto") -> str:
+    """Recognise the phones in a recording, as IPA.
+
+    What was said, in sounds rather than words: useful for pronunciation
+    work, for a language with no written form to hand, and for lining speech
+    up with a lexicon.
+
+    Args:
+        audio_path: Local audio file, as for `transcribe`.
+        language: ISO 639-3 code of the spoken language, or "auto".
+
+    Returns:
+        The phones, space-separated, one token per phone: "ð ə s eɪ l".
+    """
+    path = _existing_file(audio_path)
+    model = _pr()
+    lang_sym = (
+        model.no_language()
+        if language == "auto"
+        else _symbol(model, f"<{language}>", "language")
+    )
+    with _quiet_stdout():
+        decoded = " ".join(
+            text
+            for _, _, text in model.decode_long(
+                str(path), lang_sym=lang_sym, task_sym="<pr>"
+            )
+        )
+    # POWSM writes each phone between slashes, so that a phone spelled like a
+    # BPE token is still one token
+    phones = PHONE.findall(decoded)
+    return " ".join(phones) if phones else decoded
+
+
+def align(audio_path: str, utterances: List[str]) -> str:
+    """Find when each utterance was said in a recording.
+
+    Args:
+        audio_path: Local audio file, as for `transcribe`.
+        utterances: The lines that were said, in the order they were said.
+            Each is aligned to a stretch of the recording.
+
+    Returns:
+        One line an utterance: start seconds, end seconds, how sure the
+        alignment is, and the text, separated by tabs. The score is the mean
+        probability of the utterance's tokens, so 1.0 is a perfect match and
+        a caption that does not belong to the audio scores near zero.
+    """
+    path = _existing_file(audio_path)
+    lines = [str(u).strip() for u in utterances if str(u).strip()]
+    if not lines:
+        raise ToolError("Give the utterances to align, as a list of strings.")
+    try:
+        with _quiet_stdout():
+            segments = _aligner()(str(path), lines)
+    except ValueError as e:
+        # "this text cannot fit in this recording", and the like
+        raise ToolError(str(e)) from e
+    return "\n".join(
+        f"{s.start:.2f}\t{s.end:.2f}\t{s.score:.4f}\t{s.text}" for s in segments
+    )
+
+
+def _decode(audio_path: str, language: str, task_sym: str) -> str:
+    """One recording of any length, decoded on the recognition model."""
     path = _existing_file(audio_path)
     model = _asr()
     lang_sym = (
         "<nolang>"
         if language == "auto"
         else _symbol(model, f"<{language}>", "language")
-    )
-    task_sym = (
-        _symbol(model, f"<st_{translate_to}>", "translation target")
-        if translate_to
-        else "<asr>"
     )
     with _quiet_stdout():
         # one recording of any length, decoded on the CTC head: the same
@@ -205,11 +310,11 @@ def enhance(audio_path: str, output_path: str) -> str:
     return str(out.resolve())
 
 
-TOOLS = (transcribe, synthesize, enhance)
+TOOLS = (transcribe, translate, phonemize, align, synthesize, enhance)
 
 
 def build_server():
-    """Return an MCPServer with the three ESPnet tools registered."""
+    """Return an MCPServer with the ESPnet tools registered."""
     if MCPServer is None:
         raise ImportError(
             "`mcp` is not available. Please install it via `pip install mcp` "
@@ -218,10 +323,14 @@ def build_server():
     server = MCPServer(
         "espnet",
         instructions=(
-            "Speech tools from ESPnet. transcribe: speech recognition in 150 "
-            "languages and speech translation into 25 (OWSM-CTC). synthesize: "
-            "text-to-speech to a WAV file. enhance: denoise a recording. Audio is "
-            "passed as file paths on this machine."
+            "Speech tools from ESPnet, named after the `espnet` subcommands. "
+            "transcribe: speech recognition in 150 languages (OWSM-CTC). "
+            "translate: speech into text in another language, 25 of them. "
+            "phonemize: the phones that were said, as IPA (POWSM). "
+            "align: when each utterance was said. "
+            "synthesize: text-to-speech to a WAV file. "
+            "enhance: denoise a recording. Audio is passed as file paths on "
+            "this machine."
         ),
     )
     for fn in TOOLS:
