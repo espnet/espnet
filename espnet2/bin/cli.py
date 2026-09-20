@@ -27,9 +27,7 @@ the Hugging Face Space runs, locally, and prints the URL to open.
 """
 
 import argparse
-import importlib
 import importlib.metadata
-import logging
 import os
 import re
 import sys
@@ -265,44 +263,6 @@ def _windows(s2t, audio: str):
         yield speech[start : start + length]
 
 
-SEGMENTATION_MISSING = (
-    "CTC segmentation is not installed. Install it with " '`pip install "espnet[asr]"`.'
-)
-
-
-def _aligner(args):
-    """The alignment class that fits this tag, already loaded.
-
-    CTC segmentation lives twice in espnet2.bin - once for an ASR model and
-    once for OWSM-CTC, because the two tasks build their models differently -
-    and a user should not have to know which. The downloaded model says: it
-    arrives with `asr_train_config` or with `s2t_train_config`.
-    """
-    from espnet2.utils.pretrained import download_pretrained
-
-    files = download_pretrained(args.model)
-    if "asr_train_config" in files:
-        module, kind = "espnet2.bin.asr_align", "an ASR"
-    elif "s2t_train_config" in files:
-        module, kind = "espnet2.bin.s2t_ctc_align", "an OWSM-CTC"
-    else:
-        raise CLIError(
-            f"{args.model} was not published as a model `espnet align` can "
-            f"read: it has neither an ASR nor an S2T config. "
-            f"`espnet models` names the default."
-        )
-    try:
-        segmentation = importlib.import_module(module).CTCSegmentation
-    except ImportError as e:
-        if "ctc_segmentation" not in str(e):
-            raise
-        raise CLIError(SEGMENTATION_MISSING) from e
-    logging.info("aligning with %s model %s", kind, args.model)
-    # the device as it was typed, rather than ngpu: `ngpu=1` is "cuda", which
-    # silently sends --device mps to CUDA and --device cuda:1 to GPU 0
-    return segmentation(**files, device=args.device, kaldi_style_text=False)
-
-
 def cmd_align(args) -> int:
     _require_file(args.audio)
     if not args.text and not args.text_file:
@@ -321,17 +281,29 @@ def cmd_align(args) -> int:
     if not utterances:
         raise CLIError(f"{args.text_file} has no lines to align")
 
-    import soundfile as sf
+    from espnet2.bin.align import ForcedAligner
 
-    aligner = _aligner(args)
-    speech, rate = sf.read(args.audio, dtype="float32", always_2d=False)
-    if speech.ndim > 1:
-        speech = speech.mean(axis=1)
-    segments = aligner(speech, utterances, fs=rate)
-    # start, end and how sure the alignment is, then the words: a line a
-    # person can read and a line `cut` can take apart
-    for (start, end, score), text in zip(segments.segments, segments.text):
-        print(f"{start:.2f}\t{end:.2f}\t{score:.4f}\t{text}")
+    aligner = _build(ForcedAligner, args, "align")
+    try:
+        segments = aligner(args.audio, utterances)
+    except ValueError as e:
+        # "this text cannot fit in this recording", and the like: things the
+        # user can correct, rather than a traceback
+        raise CLIError(str(e)) from e
+
+    # start, end, how sure it is, and the words: a line a person can read and
+    # a line `cut` can take apart
+    def line(piece, indent=""):
+        return (
+            f"{indent}{piece.start:.2f}\t{piece.end:.2f}\t"
+            f"{piece.score:.4f}\t{piece.text}"
+        )
+
+    for segment in segments:
+        print(line(segment))
+        if args.tokens:
+            for token in segment.tokens:
+                print(line(token, indent="  "))
     return 0
 
 
@@ -538,6 +510,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p.add_argument(
         "--text-file", help="a file with one utterance a line, instead of --text"
+    )
+    p.add_argument(
+        "--tokens",
+        action="store_true",
+        help="also print each token's own start, end and probability",
     )
 
     p = add("translate", "translate speech into another language", cmd_translate)

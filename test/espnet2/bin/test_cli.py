@@ -243,14 +243,20 @@ def test_phonemize_prints_what_a_model_said_when_there_are_no_slashes(
     assert capsys.readouterr().out.strip() == "hello there"
 
 
-class _FakeSegments:
-    """What a CTCSegmentation call returns: segments and the text they are of."""
+class _FakeSegment:
+    """What ForcedAligner returns: an utterance, when it was said, and how sure.
 
-    def __init__(self, utterances):
-        self.text = list(utterances)
-        self.segments = [
-            (i * 1.0, i * 1.0 + 0.5, -0.1 * i) for i in range(len(self.text))
-        ]
+    A token has the same four fields, which is what lets the command print
+    both with one line of formatting.
+    """
+
+    def __init__(self, text, start, end, score=0.9, tokens=None):
+        self.text, self.start, self.end, self.score = text, start, end, score
+        self.tokens = (
+            tokens
+            if tokens is not None
+            else [_FakeSegment(text.split()[0], start, start + 0.1, 0.8, tokens=[])]
+        )
 
 
 class _FakeAligner:
@@ -258,194 +264,91 @@ class _FakeAligner:
         self.kwargs = kwargs
         self.calls = []
 
-    def __call__(self, speech, text, fs=None):
-        self.calls.append((len(speech), list(text), fs))
-        return _FakeSegments(text)
+    def from_pretrained(self, model_tag=None, device=None, **kwargs):
+        self.tag, self.device = model_tag, device
+        return self
+
+    def __call__(self, speech, utterances):
+        self.calls.append((speech, list(utterances)))
+        return [
+            _FakeSegment(text, i * 1.0, i * 1.0 + 0.5)
+            for i, text in enumerate(utterances)
+        ]
 
 
-def _fake_alignment(monkeypatch, tmp_path, files, aligner_by_module=None):
-    """Stand in for the downloader and for whichever aligner it points at."""
-    monkeypatch.setitem(
-        sys.modules,
-        "espnet2.utils.pretrained",
-        types.SimpleNamespace(
-            download_pretrained=lambda tag: dict(files),
-            build_pretrained=cli.build_pretrained,
-            ModelTagError=cli.ModelTagError,
-        ),
-    )
-    made = {}
-
-    def fake_import(name):
-        made[name] = _FakeAligner
-        return types.SimpleNamespace(CTCSegmentation=_FakeAligner)
-
-    monkeypatch.setattr(cli.importlib, "import_module", fake_import)
-    return made
-
-
-def test_the_aligners_take_a_tag(monkeypatch):
-    """from_pretrained downloads and constructs, rather than calling itself.
-
-    build_pretrained calls `loader.from_pretrained`, which is right for the
-    command line - where the loader is the class - and a recursion when the
-    class uses it to implement that very method.
-    """
-    import espnet2.bin.asr_align as asr_align
-
-    built = {}
-
-    class Fake(asr_align.CTCSegmentation):
-        def __init__(self, **kwargs):  # no model, no ctc_segmentation
-            built.update(kwargs)
-
-    monkeypatch.setattr(
-        asr_align,
-        "download_pretrained",
-        lambda tag: {"asr_train_config": f"{tag}/config.yaml"},
-    )
-
-    Fake.from_pretrained("espnet/a-model", fs=8000)
-
-    assert built == {"asr_train_config": "espnet/a-model/config.yaml", "fs": 8000}
+def _fake_aligner(monkeypatch, aligner=None):
+    aligner = aligner or _FakeAligner()
+    _fake_module(monkeypatch, "espnet2.bin.align", "ForcedAligner", aligner)
+    return aligner
 
 
 def test_align_prints_a_line_an_utterance(monkeypatch, tmp_path, capsys):
     audio = tmp_path / "a.wav"
-    soundfile.write(audio, np.zeros(16000, dtype="float32"), 16000)
-    _fake_alignment(
-        monkeypatch, tmp_path, {"s2t_train_config": "c", "s2t_model_file": "m"}
-    )
+    audio.write_bytes(b"")
+    rec = _fake_aligner(monkeypatch)
 
     assert cli.main(["align", str(audio), "--text", "one", "--text", "two"]) == 0
 
     lines = capsys.readouterr().out.strip().split("\n")
     assert [line.split("\t")[-1] for line in lines] == ["one", "two"]
     assert lines[0].startswith("0.00\t0.50\t")
+    assert rec.tag == cli.DEFAULT_MODELS["align"]
+    assert rec.calls == [(str(audio), ["one", "two"])]
+
+
+def test_align_can_print_each_token(monkeypatch, tmp_path, capsys):
+    audio = tmp_path / "a.wav"
+    audio.write_bytes(b"")
+    _fake_aligner(monkeypatch)
+
+    assert cli.main(["align", str(audio), "--text", "one two", "--tokens"]) == 0
+
+    lines = capsys.readouterr().out.strip().split("\n")
+    # the utterance, then the tokens it was made of, indented
+    assert len(lines) == 2 and lines[1].startswith("  ")
 
 
 def test_align_reads_a_file_of_utterances(monkeypatch, tmp_path, capsys):
     audio = tmp_path / "a.wav"
-    soundfile.write(audio, np.zeros(16000, dtype="float32"), 16000)
+    audio.write_bytes(b"")
     utterances = tmp_path / "utts.txt"
     utterances.write_text("one\n\ntwo\n")  # blank lines are not utterances
-    _fake_alignment(
-        monkeypatch, tmp_path, {"asr_train_config": "c", "asr_model_file": "m"}
-    )
+    rec = _fake_aligner(monkeypatch)
 
     assert cli.main(["align", str(audio), "--text-file", str(utterances)]) == 0
 
-    printed = capsys.readouterr().out.strip().split("\n")
-    assert [line.split("\t")[-1] for line in printed] == ["one", "two"]
+    assert rec.calls[0][1] == ["one", "two"]
 
 
 def test_align_passes_the_device_it_was_given(monkeypatch, tmp_path):
     audio = tmp_path / "a.wav"
-    soundfile.write(audio, np.zeros(16000, dtype="float32"), 16000)
-    _fake_alignment(monkeypatch, tmp_path, {"s2t_train_config": "c"})
-    made = []
+    audio.write_bytes(b"")
+    rec = _fake_aligner(monkeypatch)
 
-    class Remember(_FakeAligner):
-        def __init__(self, **kwargs):
-            super().__init__(**kwargs)
-            made.append(kwargs)
-
-    monkeypatch.setattr(
-        cli.importlib,
-        "import_module",
-        lambda name: types.SimpleNamespace(CTCSegmentation=Remember),
-    )
-
-    # ngpu cannot say "mps", nor which GPU: both used to become cuda:0
     assert cli.main(["align", str(audio), "--text", "one", "--device", "mps"]) == 0
-    assert cli.main(["align", str(audio), "--text", "one", "--device", "cuda:1"]) == 0
 
-    assert [k["device"] for k in made] == ["mps", "cuda:1"]
-
-
-def test_a_tag_for_the_other_aligner_is_named(monkeypatch):
-    import espnet2.bin.asr_align as asr_align
-
-    monkeypatch.setattr(
-        asr_align,
-        "download_pretrained",
-        lambda tag: {"s2t_train_config": "c", "s2t_model_file": "m"},
-    )
-
-    with pytest.raises(cli.ModelTagError, match="asr_train_config"):
-        asr_align.CTCSegmentation.from_pretrained("espnet/owsm_ctc_v4_1B")
+    assert rec.device == "mps"
 
 
-def test_align_picks_the_aligner_the_model_was_published_for(monkeypatch, tmp_path):
+def test_align_reports_text_that_cannot_fit(monkeypatch, tmp_path, capsys):
     audio = tmp_path / "a.wav"
-    soundfile.write(audio, np.zeros(16000, dtype="float32"), 16000)
-    seen = []
+    audio.write_bytes(b"")
 
-    def remember(files):
-        monkeypatch.setitem(
-            sys.modules,
-            "espnet2.utils.pretrained",
-            types.SimpleNamespace(download_pretrained=lambda tag: dict(files)),
-        )
+    class _TooMuch(_FakeAligner):
+        def __call__(self, speech, utterances):
+            raise ValueError("120 tokens to align against 40 frames")
 
-        def fake_import(name):
-            seen.append(name)
-            return types.SimpleNamespace(CTCSegmentation=_FakeAligner)
-
-        monkeypatch.setattr(cli.importlib, "import_module", fake_import)
-
-    remember({"asr_train_config": "c"})
-    cli.main(["align", str(audio), "--text", "one"])
-    remember({"s2t_train_config": "c"})
-    cli.main(["align", str(audio), "--text", "one"])
-
-    # one CTC segmentation for an ASR model, another for OWSM-CTC; the tag
-    # decides, not the user
-    assert seen == ["espnet2.bin.asr_align", "espnet2.bin.s2t_ctc_align"]
-
-
-def test_align_says_what_to_install_when_segmentation_is_missing(
-    monkeypatch, tmp_path, capsys
-):
-    audio = tmp_path / "a.wav"
-    soundfile.write(audio, np.zeros(16000, dtype="float32"), 16000)
-    monkeypatch.setitem(
-        sys.modules,
-        "espnet2.utils.pretrained",
-        types.SimpleNamespace(
-            download_pretrained=lambda tag: {"asr_train_config": "c"}
-        ),
-    )
-
-    def missing(name):
-        raise ImportError("No module named 'ctc_segmentation'")
-
-    monkeypatch.setattr(cli.importlib, "import_module", missing)
+    _fake_aligner(monkeypatch, _TooMuch())
 
     assert cli.main(["align", str(audio), "--text", "one"]) == 1
 
-    assert 'pip install "espnet[asr]"' in capsys.readouterr().err
-
-
-def test_align_refuses_a_model_published_for_neither(monkeypatch, tmp_path, capsys):
-    audio = tmp_path / "a.wav"
-    soundfile.write(audio, np.zeros(16000, dtype="float32"), 16000)
-    monkeypatch.setitem(
-        sys.modules,
-        "espnet2.utils.pretrained",
-        types.SimpleNamespace(
-            download_pretrained=lambda tag: {"tts_train_config": "c"}
-        ),
-    )
-
-    assert cli.main(["align", str(audio), "--text", "one"]) == 1
-
-    assert "neither an ASR nor an S2T config" in capsys.readouterr().err
+    # the aligner's own sentence, not a traceback
+    assert "120 tokens to align against 40 frames" in capsys.readouterr().err
 
 
 def test_align_needs_text_and_only_one_way_of_giving_it(monkeypatch, tmp_path, capsys):
     audio = tmp_path / "a.wav"
-    soundfile.write(audio, np.zeros(16000, dtype="float32"), 16000)
+    audio.write_bytes(b"")
 
     assert cli.main(["align", str(audio)]) == 1
     assert "--text" in capsys.readouterr().err

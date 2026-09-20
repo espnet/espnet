@@ -1108,20 +1108,25 @@ class Speech2Text:
         return speech
 
     @torch.no_grad()
-    def _decode_long_ctc(
+    def ctc_log_probs(
         self,
-        speech: np.ndarray,
+        speech: Union[str, Path, torch.Tensor, np.ndarray],
         batch_size: int = 1,
         context_len_in_secs: float = 2,
         lang_sym: Optional[str] = None,
         task_sym: Optional[str] = None,
-    ) -> str:
-        """Best-path decoding of a long recording, buffer by buffer.
+    ) -> np.ndarray:
+        """The CTC head's log posteriors for a recording, as (frames, vocab).
 
         The model sees one training-length buffer at a time, with context on
-        either side that is decoded and then dropped, so the frames kept from
+        either side that is encoded and then dropped, so the frames kept from
         each buffer were never at its edge.
+
+        Long-form best-path decoding is an argmax over what this returns, and
+        a forced alignment (espnet2.bin.align) is a Viterbi path through it:
+        one buffering, read two ways.
         """
+        speech = self.read_audio(speech)
         lang_id = self.converter.token2id[lang_sym or self.lang_sym]
         task_id = self.converter.token2id[task_sym or self.task_sym]
 
@@ -1173,10 +1178,33 @@ class Speech2Text:
             # the convolutional front end can return more frames than the
             # buffer itself, so the tail goes before the context does
             enc = enc[:, :buffer_frames]
-            frames = self.s2t_model.ctc.argmax(enc)
-            kept.append(frames[:, context_frames:-context_frames].reshape(-1))
+            frames = self.s2t_model.ctc.log_softmax(enc)
+            kept.append(frames[:, context_frames:-context_frames])
 
-        merged = torch.unique_consecutive(torch.cat(kept)).cpu().tolist()
+        # (buffers, frames, vocab) back into one run of frames, cut to the
+        # frames the recording itself covers rather than the padding
+        probs = torch.cat([k.reshape(-1, k.size(-1)) for k in kept])
+        wanted = int(round(len(speech) / self.sample_rate * self.frames_per_sec))
+        return probs[:wanted].cpu().numpy()
+
+    def _decode_long_ctc(
+        self,
+        speech: np.ndarray,
+        batch_size: int = 1,
+        context_len_in_secs: float = 2,
+        lang_sym: Optional[str] = None,
+        task_sym: Optional[str] = None,
+    ) -> str:
+        """Best-path decoding of a long recording: an argmax over the frames."""
+        probs = self.ctc_log_probs(
+            speech,
+            batch_size=batch_size,
+            context_len_in_secs=context_len_in_secs,
+            lang_sym=lang_sym,
+            task_sym=task_sym,
+        )
+        frames = torch.tensor(probs).argmax(dim=-1)
+        merged = torch.unique_consecutive(frames).tolist()
         token_int = [x for x in merged if x != self.s2t_model.blank_id]
         token = self.converter.ids2tokens(token_int)
         token_nospecial = [x for x in token if not (x[0] == "<" and x[-1] == ">")]

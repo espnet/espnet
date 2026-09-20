@@ -1,0 +1,220 @@
+#!/usr/bin/env python3
+"""Line text up with the audio it was said in.
+
+One algorithm - a forced alignment over a model's CTC head - for every
+checkpoint that has one, whether it was trained as ASR or as speech-to-text::
+
+    from espnet2.bin.align import ForcedAligner
+
+    aligner = ForcedAligner.from_pretrained("espnet/owsm_ctc_v4_1B")
+    for segment in aligner("audio.wav", ["the sale of the hotels",
+                                         "is part of holiday's strategy"]):
+        print(segment.start, segment.end, segment.score, segment.text)
+
+Each segment also carries the tokens it was made of, with a time and a
+probability each, which is where a word-level timestamp comes from.
+
+This is not the only alignment in the repository. `espnet2.bin.asr_align` and
+`espnet2.bin.s2t_ctc_align` wrap the `ctc_segmentation` package, one per task,
+and the OWSM v4 recipe cleans its training data with the second of them
+(egs2/owsm_v4/s2t1/local/ctc_seg.py). Those keep their scripting interfaces.
+What is here is what `espnet align` and the MCP server call, and it is one
+implementation rather than one per task: the algorithm needs the CTC
+posteriors and the token ids, and nothing else about the model.
+
+Measured against `ctc_segmentation` on the same posteriors, on
+test_utils/ctc_align_test.wav: the ends agree within 0.03 s, the starts differ
+because a forced alignment marks where a token is rather than partitioning the
+timeline, and when the text does not cover the whole recording this returns
+the same times it returns when it does.
+"""
+
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, List, Optional, Sequence, Union
+
+import numpy as np
+import torch
+
+from espnet2.utils.pretrained import ModelTagError, download_pretrained
+
+
+@dataclass
+class Token:
+    """One token of the text, and where the model heard it."""
+
+    text: str
+    start: float
+    end: float
+    score: float
+
+
+@dataclass
+class Segment:
+    """One utterance, and where the model heard it.
+
+    `score` is the mean probability of its tokens: 1.0 is a perfect match,
+    and a caption that does not belong to the audio scores near zero.
+    """
+
+    text: str
+    start: float
+    end: float
+    score: float
+    tokens: List[Token]
+
+
+class ForcedAligner:
+    """Align utterances to a recording, on a published model's CTC head."""
+
+    def __init__(self, model: Any):
+        """Wrap a loaded inference object.
+
+        Args:
+            model: `espnet2.bin.s2t_inference.Speech2Text` or
+                `espnet2.bin.asr_inference.Speech2Text`. It is used for its
+                encoder, its CTC head and its tokenizer, not for decoding.
+        """
+        self.model = model
+        self.s2t = hasattr(model, "s2t_model")
+        self.network = model.s2t_model if self.s2t else model.asr_model
+        if getattr(self.network, "ctc", None) is None:
+            raise ValueError(
+                "this model has no CTC head, so there is nothing to align on"
+            )
+
+    @classmethod
+    def from_pretrained(cls, model_tag: str, device: str = "cpu", **kwargs):
+        """Build from a tag, loading whichever inference class fits it.
+
+        A published model says which it is: it arrives with `s2t_train_config`
+        or with `asr_train_config`. A tag for neither is named rather than
+        half-loaded.
+        """
+        files = download_pretrained(model_tag)
+        if "s2t_train_config" in files:
+            from espnet2.bin.s2t_inference import Speech2Text
+        elif "asr_train_config" in files:
+            from espnet2.bin.asr_inference import Speech2Text
+        else:
+            raise ModelTagError(
+                f"{model_tag} is not a model `espnet align` can read: it has "
+                f"neither an S2T nor an ASR config. `espnet models` names the "
+                f"default."
+            )
+        return cls(Speech2Text(**files, device=device, **kwargs))
+
+    def _ids(self, text: str) -> List[int]:
+        """The token ids of one utterance, without blanks."""
+        tokens = self.model.tokenizer.text2tokens(text)
+        ids = self.model.converter.tokens2ids(tokens)
+        return [i for i in ids if i != self.network.blank_id]
+
+    @torch.no_grad()
+    def log_probs(self, speech: np.ndarray) -> np.ndarray:
+        """CTC log posteriors for a recording, as (frames, vocabulary)."""
+        if self.s2t:
+            return self.model.ctc_log_probs(speech)
+        speech_t = (
+            torch.tensor(speech).unsqueeze(0).to(getattr(torch, self.model.dtype))
+        )
+        lengths = speech_t.new_full([1], dtype=torch.long, fill_value=speech_t.size(1))
+        enc, _ = self.network.encode(
+            **{
+                "speech": speech_t.to(self.model.device),
+                "speech_lengths": lengths.to(self.model.device),
+            }
+        )
+        if isinstance(enc, tuple):
+            enc = enc[0]
+        return self.network.ctc.log_softmax(enc)[0].cpu().numpy()
+
+    def __call__(
+        self,
+        speech: Union[str, Path, torch.Tensor, np.ndarray],
+        utterances: Sequence[str],
+        fs: Optional[int] = None,
+    ) -> List[Segment]:
+        """Align each utterance to the recording, in the order given.
+
+        Args:
+            speech: A path, or audio at the model's sample rate.
+            utterances: What was said, one string per utterance.
+            fs: Unused; accepted so that a caller does not have to know that
+                a path is resampled for it.
+
+        Returns:
+            One Segment per utterance, in the order given.
+        """
+        import torchaudio
+
+        if not list(utterances):
+            raise ValueError("give the utterances to align")
+        audio = self._read(speech)
+        emissions = self.log_probs(audio)
+        frames_per_sec = len(emissions) / (len(audio) / self._sample_rate())
+
+        ids, spans = [], []
+        for utterance in utterances:
+            piece = self._ids(utterance)
+            if not piece:
+                raise ValueError(f"nothing to align in {utterance!r}")
+            spans.append((len(ids), len(ids) + len(piece)))
+            ids.extend(piece)
+        if len(ids) > len(emissions):
+            raise ValueError(
+                f"{len(ids)} tokens to align against {len(emissions)} frames: "
+                f"this text cannot fit in this recording"
+            )
+
+        labels, scores = torchaudio.functional.forced_align(
+            torch.tensor(emissions).unsqueeze(0),
+            torch.tensor([ids], dtype=torch.int32),
+            torch.tensor([len(emissions)]),
+            torch.tensor([len(ids)]),
+            blank=self.network.blank_id,
+        )
+        merged = torchaudio.functional.merge_tokens(labels[0], scores[0].exp())
+
+        segments = []
+        for (start, end), utterance in zip(spans, utterances):
+            pieces = merged[start:end]
+            tokens = [
+                Token(
+                    text=self.network.token_list[piece.token],
+                    start=piece.start / frames_per_sec,
+                    end=piece.end / frames_per_sec,
+                    score=float(piece.score),
+                )
+                for piece in pieces
+            ]
+            segments.append(
+                Segment(
+                    text=utterance,
+                    start=tokens[0].start,
+                    end=tokens[-1].end,
+                    score=float(np.mean([t.score for t in tokens])),
+                    tokens=tokens,
+                )
+            )
+        return segments
+
+    def _sample_rate(self) -> int:
+        rate = getattr(self.model, "sample_rate", None)
+        if rate:
+            return int(rate)
+        conf = getattr(self.model, "preprocessor_conf", None) or {}
+        return int(conf.get("fs", 16000))
+
+    def _read(self, speech) -> np.ndarray:
+        if hasattr(self.model, "read_audio"):
+            return self.model.read_audio(speech)
+        if isinstance(speech, (str, Path)):
+            import librosa
+
+            audio, _ = librosa.load(str(speech), sr=self._sample_rate())
+            return audio
+        if isinstance(speech, torch.Tensor):
+            speech = speech.cpu().numpy()
+        speech = np.asarray(speech, dtype=np.float32)
+        return speech.mean(axis=1) if speech.ndim == 2 else speech
