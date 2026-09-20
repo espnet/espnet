@@ -95,6 +95,26 @@ def test_Speech2Text(s2t_config_file):
 
 
 @pytest.mark.execution_timeout(5)
+def test_the_long_form_threshold_follows_the_models_own_window(s2t_config_file):
+    """An utterance ending within a second of the window end is taken as cut off.
+
+    That second used to be written out as OWSM's `<29.00>`, which is 30 s
+    minus one. POWSM's window is 20 s and has no such token, so decoding a
+    long recording with it ended in `KeyError: '<29.00>'` rather than in a
+    transcript.
+    """
+    speech2text = Speech2Text(s2t_train_config=s2t_config_file, beam_size=1)
+    # this fixture's window is one second
+    assert speech2text._near_window_end() == "<0.00>"
+
+    speech2text.preprocessor_conf["last_time_symbol"] = "<30.00>"
+    assert speech2text._near_window_end() == "<29.00>"  # OWSM, as before
+
+    speech2text.preprocessor_conf["last_time_symbol"] = "<20.00>"
+    assert speech2text._near_window_end() == "<19.00>"  # POWSM
+
+
+@pytest.mark.execution_timeout(5)
 def test_best_path_on_an_encoder_decoder_model(s2t_config_file):
     # the CTC branch of a model that also has a decoder
     speech2text = Speech2Text(s2t_train_config=s2t_config_file, beam_size=1)

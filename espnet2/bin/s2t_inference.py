@@ -1028,12 +1028,15 @@ class Speech2Text:
 
         return res
 
-    def _read_audio(self, speech) -> np.ndarray:
+    def read_audio(self, speech) -> np.ndarray:
         """One channel of float audio at the rate the model was trained on.
 
-        Accepting a path here is what lets `decode_long` be the whole
-        transcription API for a recording, rather than something every caller
-        wraps in file reading and resampling.
+        Takes a path, an array or a tensor. Accepting a path is what lets
+        `decode_long` be the whole transcription API for a recording, rather
+        than something every caller wraps in file reading and resampling -
+        and it is public for the same reason: a caller that cuts a recording
+        up itself should not have to repeat the resampling, nor guess the
+        rate the checkpoint wants.
         """
         if isinstance(speech, (str, Path)):
             import soundfile as sf
@@ -1140,7 +1143,7 @@ class Speech2Text:
         context_len_in_secs: float = 2,
         condition_on_prev_text: bool = False,
         init_text: Optional[str] = None,
-        end_time_threshold: str = "<29.00>",
+        end_time_threshold: Optional[str] = None,
         lang_sym: Optional[str] = None,
         task_sym: Optional[str] = None,
         skip_last_chunk_threshold: float = 0.2,
@@ -1163,9 +1166,13 @@ class Speech2Text:
                 side of each buffer, on a CTC-only checkpoint.
             condition_on_prev_text, init_text, end_time_threshold,
                 skip_last_chunk_threshold: the encoder-decoder path.
+                `end_time_threshold` defaults to one second before the end of
+                the model's own window, which is where it was hardcoded as
+                OWSM's `<29.00>` until a 20 s model asked for a token that
+                does not exist in its vocabulary.
 
         """
-        speech = self._read_audio(speech)
+        speech = self.read_audio(speech)
         if self.sample_rate is None:
             raise RuntimeError(
                 "this config does not say what sample rate and hop length the "
@@ -1191,6 +1198,20 @@ class Speech2Text:
             skip_last_chunk_threshold=skip_last_chunk_threshold,
         )
 
+    def _near_window_end(self) -> str:
+        """The timestamp a second before the end of the model's own window.
+
+        An utterance whose end timestamp is past this one is taken to be cut
+        off by the window rather than finished, so the next segment starts
+        where it began. The number used to be written out as OWSM's
+        `<29.00>`, which is that model's 30 s window minus a second; POWSM's
+        window is 20 s and `<29.00>` is not in its vocabulary at all, so the
+        decode ended in a KeyError rather than in a transcript.
+        """
+        last = self.preprocessor_conf["last_time_symbol"]
+        seconds = float(last.strip("<>"))
+        return f"<{seconds - 1.0:.2f}>"
+
     @torch.no_grad()
     @typechecked
     def _decode_long_attention(
@@ -1198,7 +1219,7 @@ class Speech2Text:
         speech: Union[torch.Tensor, np.ndarray],
         condition_on_prev_text: bool = False,
         init_text: Optional[str] = None,
-        end_time_threshold: str = "<29.00>",
+        end_time_threshold: Optional[str] = None,
         lang_sym: Optional[str] = None,
         task_sym: Optional[str] = None,
         skip_last_chunk_threshold: float = 0.2,
@@ -1210,7 +1231,8 @@ class Speech2Text:
             condition_on_prev_text (bool): whether to condition on previous text
             init_text: text used as condition for the first segment
             end_time_threshold: the last utterance is considered as incomplete
-                if its end timestamp exceeds this threshold
+                if its end timestamp exceeds this threshold. None means one
+                second before the end of the model's window.
 
         Returns:
             utterances: list of tuples of (start_time, end_time, text)
@@ -1222,6 +1244,8 @@ class Speech2Text:
         segment_len = int(
             self.preprocessor_conf["speech_length"] * self.preprocessor_conf["fs"]
         )
+        if end_time_threshold is None:
+            end_time_threshold = self._near_window_end()
         end_time_id_threshold = self.converter.token2id[end_time_threshold]
         first_time_id = self.converter.token2id[
             self.preprocessor_conf["first_time_symbol"]
