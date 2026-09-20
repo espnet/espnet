@@ -106,10 +106,18 @@ corpus's specifics live; get this right before touching anything else.
   If a recipe needs to download or extract files, use the shared helpers in
   `espnet3.utils.download_utils` (`download_url`, `extract_targz`, and related utilities) instead of
   adding ad-hoc HTTP or archive handling. Test the download/extraction path with a small fixture or a
-  local URL, and keep `is_source_prepared`/`is_built` side-effect-free.
-  Keep `is_source_prepared`/`is_built` cheap and side-effect-free (they get called on every
-  `create_dataset` run to decide whether to skip work). Keep manifest writes atomic when a recipe
-  generates artifacts.
+  local URL. The four methods have deliberately separate responsibilities:
+  - `is_source_prepared` and `is_built` are cheap, side-effect-free predicates. They only inspect
+    whether the raw source or task-ready cache exists and return a boolean. Do not download,
+    extract, validate expensively, create directories, or write cache files from an `is_*` method.
+  - `prepare_source` obtains the raw source. Download or extract it when the recipe can do so; when
+    users must obtain the corpus themselves, emit a warning that explains the required source and
+    where it must be placed.
+  - `build` creates the task-ready cache, such as manifests or converted audio, and nothing else.
+    Do not repeat an `is_built` check inside `build`: the caller has already made that decision via
+    `is_built`. Keep cache writes atomic when a recipe generates artifacts.
+  `is_source_prepared`/`is_built` get called on every `create_dataset` run to decide whether to skip
+  work, so keep them fast and limited to their respective existence checks.
 - **`dataset/dataset.py`** is the actual `torch.utils.data.Dataset`. `__getitem__` must return only
   the fields accepted by its model/preprocessor. Do **not** add `utt_id` to any recipe sample:
   ESPnet's dataset paths pass the full dictionary onward, where unsupported fields can break a stage.
@@ -221,7 +229,8 @@ setting found. Never push a recipe containing credentials; remove them first.
 
 - [ ] `dataset/__init__.py` exports `Dataset`/`DatasetBuilder` by those exact names
 - [ ] `dataset/builder.py` implements all four `DatasetBuilder` methods; staleness checks are cheap
-      and builds are idempotent (use temp-file-then-rename when writing manifests)
+      and side-effect-free, `prepare_source` downloads or warns, and `build` only creates caches
+      after `is_built` has decided they are needed (use temp-file-then-rename when writing manifests)
 - [ ] `dataset/dataset.py` returns only fields accepted by the task/preprocessor; never add `utt_id`
 - [ ] `conf/*.yaml` copied and adjusted (`data_src`, tokenizer, model, `_recursive_: false` kept)
 - [ ] `run.py` is the thin three-line re-export unless a custom `System` is genuinely needed
