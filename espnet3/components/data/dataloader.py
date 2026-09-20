@@ -2,6 +2,7 @@
 
 import copy
 import logging
+from functools import partial
 
 import torch
 from hydra.utils import instantiate
@@ -12,7 +13,7 @@ from espnet2.samplers.build_batch_sampler import (
     build_batch_sampler,
     build_category_batch_sampler,
 )
-from espnet3.components.data.iterator import EpochSyncIterator
+from espnet3.components.data.epoch_sync_iterator import EpochSyncIterator
 from espnet3.utils.logging_utils import _dump_attrs, build_qualified_name
 
 logger = logging.getLogger(__name__)
@@ -63,25 +64,19 @@ class DataLoaderBuilder:
         config (DictConfig): Full training configuration (e.g., from OmegaConf).
         collate_fn (Callable): Function to collate individual samples into mini-batches.
         num_device (int): Number of devices in use (e.g., GPUs or nodes).
-        epoch (int): Zero-based Lightning epoch used for dataset shard rotation.
-            ESPnet-style iter factories receive ``epoch + 1``. Category samplers
-            use the same one-based epoch unless ``batches.epoch`` is specified.
-
-    Notes:
-        Iter factories configured through ``iter_factory`` must accept ESPnet2's
-        one-based epoch convention. Plain PyTorch DataLoaders are unaffected.
-        Compared with passing zero-based epochs, this changes shuffle and worker
-        seeds, including the data order when resuming an older experiment.
+        epoch (int): Current epoch number. Used to reseed samplers deterministically.
 
     Example:
-        builder = DataLoaderBuilder(
-            dataset=train_dataset,
-            config=config,
-            collate_fn=collate_fn,
-            num_device=4,
-            epoch=3
-        )
-        train_loader = builder.build(mode="train")
+        .. code-block:: python
+
+            builder = DataLoaderBuilder(
+                dataset=train_dataset,
+                config=config,
+                collate_fn=collate_fn,
+                num_device=4,
+                epoch=3,
+            )
+            train_loader = builder.build(mode="train")
     """
 
     def __init__(self, dataset, config, collate_fn, num_device: int, epoch: int):
@@ -265,11 +260,13 @@ class DataLoaderBuilder:
         if dataset is None:
             dataset = self.dataset
 
-        # ESPnet2 iter factories use one-based epochs; shard rotation stays zero-based.
-        factory_epoch = self.epoch + 1
+        # espnet2 iter factories count epochs from 1 (their RNGs seed with
+        # epoch - 1), while self.epoch is Lightning's 0-based current_epoch;
+        # _maybe_shard_dataset keeps the 0-based convention.
+        espnet2_epoch = self.epoch + 1
         batch_config = factory_config.pop("batches")
         if batch_config.get("type") in CATEGORY_BATCH_TYPES:
-            batch_config.setdefault("epoch", factory_epoch)
+            batch_config.setdefault("epoch", espnet2_epoch)
             batches, _ = build_category_batch_sampler(**batch_config)
             if batch_config.get("num_batches") is not None:
                 batches = list(batches)[: batch_config["num_batches"]]
@@ -320,10 +317,10 @@ class DataLoaderBuilder:
                 _LOGGED_DISTRIBUTED_BATCHES.add(mode)
 
         iter_factory = instantiate(factory_config, dataset, batches=batches)
-        iterator = EpochSyncIterator(iter_factory.build_iter(factory_epoch))
+        loader = EpochSyncIterator(partial(iter_factory.build_iter, espnet2_epoch))
         log_dataloader(
             logger,
-            iterator,
+            loader,
             label=mode,
         )
-        return iterator
+        return loader

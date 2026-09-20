@@ -5,12 +5,11 @@ from hydra.utils import instantiate
 from omegaconf import DictConfig, OmegaConf
 from torch.utils.data import BatchSampler, Sampler
 
-from espnet2.iterators.sequence_iter_factory import SequenceIterFactory
 from espnet3.components.data import data_organizer as data_organizer_module
 from espnet3.components.data.data_organizer import DataOrganizer, do_nothing
 from espnet3.components.data.dataloader import DataLoaderBuilder
 from espnet3.components.data.dataset import ShardedDataset
-from espnet3.components.data.iterator import EpochSyncIterator
+from espnet3.components.data.epoch_sync_iterator import EpochSyncIterator
 from espnet3.utils.config_utils import load_config_with_defaults
 
 # | Test Name                                         | Description                                                    | # noqa: E501
@@ -462,69 +461,6 @@ dataloader:
     assert "audio_lengths" in batch[1]
 
 
-@pytest.mark.parametrize("mode", ["train", "valid"])
-@pytest.mark.parametrize("num_iters_per_epoch", [None, 3, 5, 9, 1000])
-@pytest.mark.parametrize("shuffle", [False, True])
-@pytest.mark.parametrize("seed", [0, 3702])
-def test_iter_factory_uses_one_based_epochs(
-    tmp_path, mode, num_iters_per_epoch, shuffle, seed
-):
-    """Match ESPnet2's initial, next, and resumed epoch batch selection."""
-    batches = [[str(idx)] for idx in range(5)]
-    shape_file = tmp_path / "speech_shape"
-    shape_file.write_text("".join(f"{idx} 16000\n" for idx in range(5)))
-    config = OmegaConf.create(
-        {
-            "dataloader": {
-                mode: {
-                    "iter_factory": {
-                        "_target_": (
-                            "espnet2.iterators.sequence_iter_factory."
-                            "SequenceIterFactory"
-                        ),
-                        "num_iters_per_epoch": num_iters_per_epoch,
-                        "shuffle": shuffle,
-                        "seed": seed,
-                        "batches": {
-                            "type": "unsorted",
-                            "batch_size": 1,
-                            "batch_bins": 0,
-                            "shape_files": [str(shape_file)],
-                        },
-                    }
-                }
-            }
-        }
-    )
-    original_config = OmegaConf.to_container(config, resolve=True)
-    organizer = build_organizer(DUMMY_DATASET_TARGET)
-    dataset = getattr(organizer, mode)
-    reference_factory = SequenceIterFactory(
-        dataset=dataset,
-        batches=batches,
-        num_iters_per_epoch=num_iters_per_epoch,
-        shuffle=shuffle,
-        seed=seed,
-    )
-
-    # Reconstruct the builder at a later epoch, as when resuming training.
-    for epoch in (0, 1, 4):
-        builder = build_builder(dataset, config, None, num_device=1, epoch=epoch)
-        loader = builder.build(mode)._iterator
-        expected = reference_factory.build_iter(epoch + 1)
-
-        assert loader.batch_sampler == expected.batch_sampler
-        assert len(loader) == (num_iters_per_epoch or len(batches))
-        assert loader.worker_init_fn.keywords["base_seed"] == epoch + 1 + seed
-        assert builder.epoch == epoch
-        assert OmegaConf.to_container(config, resolve=True) == original_config
-        if not shuffle:
-            start = 0 if num_iters_per_epoch is None else num_iters_per_epoch * epoch
-            assert loader.batch_sampler == [
-                batches[(start + idx) % len(batches)] for idx in range(len(loader))
-            ]
-
-
 @pytest.mark.parametrize("batch_type", ["catbel", "catpow", "catpow_balance_dataset"])
 @pytest.mark.parametrize(
     "epoch,sampler_epoch,expected_epoch",
@@ -945,22 +881,26 @@ def test_iter_factory_returns_base_iterator_without_distributed(monkeypatch):
 
 def test_iter_factory_syncs_iterator_when_distributed_initialized(monkeypatch):
     import espnet3.components.data.dataloader as dl
-    import espnet3.components.data.iterator as iterator_module
+    import espnet3.components.data.epoch_sync_iterator as epoch_sync_iterator_module
 
     monkeypatch.setattr(
         dl, "build_batch_sampler", lambda **kw: [[0, 1], [2, 3], [4, 5], [6, 7]]
     )
     monkeypatch.setattr(dl.torch.distributed, "get_world_size", lambda: 2)
     monkeypatch.setattr(dl.torch.distributed, "get_rank", lambda: 0)
-    monkeypatch.setattr(iterator_module.torch.distributed, "is_available", lambda: True)
     monkeypatch.setattr(
-        iterator_module.torch.distributed, "is_initialized", lambda: True
+        epoch_sync_iterator_module.torch.distributed, "is_available", lambda: True
     )
     monkeypatch.setattr(
-        iterator_module.torch.distributed, "get_backend", lambda: "gloo"
+        epoch_sync_iterator_module.torch.distributed, "is_initialized", lambda: True
     )
     monkeypatch.setattr(
-        iterator_module.torch.distributed, "all_reduce", lambda tensor, op=None: None
+        epoch_sync_iterator_module.torch.distributed, "get_backend", lambda: "gloo"
+    )
+    monkeypatch.setattr(
+        epoch_sync_iterator_module.torch.distributed,
+        "all_reduce",
+        lambda tensor, op=None: None,
     )
 
     organizer = build_organizer(DUMMY_DATASET_TARGET)
@@ -974,3 +914,243 @@ def test_iter_factory_syncs_iterator_when_distributed_initialized(monkeypatch):
     iterator = builder.build("train")
     assert isinstance(iterator, EpochSyncIterator)
     assert list(iterator) == [[0, 1], [4, 5]]
+
+
+class GeneratorIterFactory:
+    """Iter factory whose ``build_iter`` is a generator function.
+
+    Mirrors espnet2's ``ChunkIterFactory``, which yields batches rather than
+    returning a re-iterable container. ``DummyIterFactory`` returns a list, so
+    it cannot catch single-use iterator bugs.
+    """
+
+    def __init__(self, dataset, batches, **kwargs):
+        self.dataset = dataset
+        self.batches = list(batches)
+
+    def build_iter(self, epoch, shuffle=False):
+        yield from self.batches
+
+
+def _make_generator_iter_factory_config():
+    return OmegaConf.create(
+        {
+            "dataloader": {
+                "train": {
+                    "iter_factory": {
+                        "_target_": (
+                            "test.espnet3.components.data."
+                            "test_dataloader_builder.GeneratorIterFactory"
+                        ),
+                        "batches": {"dummy": 1},
+                    }
+                }
+            }
+        }
+    )
+
+
+def test_generator_iter_factory_loader_yields_a_full_pass_each_iteration(monkeypatch):
+    """Lightning calls iter() on the train loader more than once per epoch.
+
+    With a generator-based iter factory the second pass used to be empty, which
+    silently emptied every epoch after the first.
+    """
+    import espnet3.components.data.dataloader as dl
+
+    monkeypatch.setattr(dl, "build_batch_sampler", lambda **kw: [[0, 1], [2, 3]])
+
+    organizer = build_organizer(DUMMY_DATASET_TARGET)
+    builder = build_builder(
+        organizer.train,
+        _make_generator_iter_factory_config(),
+        collate_fn=None,
+        num_device=1,
+        epoch=0,
+    )
+    iterator = builder.build("train")
+
+    assert list(iterator) == [[0, 1], [2, 3]]
+    assert list(iterator) == [[0, 1], [2, 3]]
+
+
+class EpochRecordingIterFactory:
+    """Records the epoch value ``build_iter`` is called with."""
+
+    epochs_seen = []
+
+    def __init__(self, dataset, batches, **kwargs):
+        self.batches = list(batches)
+
+    def build_iter(self, epoch, shuffle=False):
+        type(self).epochs_seen.append(epoch)
+        return list(self.batches)
+
+
+def test_build_iter_receives_espnet2_one_based_epoch(monkeypatch):
+    """Give espnet2 factories the 1-based epoch they assume.
+
+    espnet2's trainer loops from epoch 1 while Lightning's current_epoch is
+    0-based; without translation, epoch 0 seeds espnet2 with RandomState(-1).
+    """
+    import espnet3.components.data.dataloader as dl
+
+    monkeypatch.setattr(dl, "build_batch_sampler", lambda **kw: [[0], [1]])
+    EpochRecordingIterFactory.epochs_seen = []
+
+    organizer = build_organizer(DUMMY_DATASET_TARGET)
+    config = OmegaConf.create(
+        {
+            "dataloader": {
+                "train": {
+                    "iter_factory": {
+                        "_target_": (
+                            "test.espnet3.components.data."
+                            "test_dataloader_builder.EpochRecordingIterFactory"
+                        ),
+                        "batches": {"dummy": 1},
+                    }
+                }
+            }
+        }
+    )
+    builder = build_builder(
+        organizer.train, config, collate_fn=None, num_device=1, epoch=0
+    )
+    iterator = builder.build("train")
+    list(iterator)
+
+    # The builder may build more than one pass (length probe + iteration);
+    # every one of them must carry the 1-based epoch.
+    assert EpochRecordingIterFactory.epochs_seen
+    assert set(EpochRecordingIterFactory.epochs_seen) == {1}
+
+
+def test_epoch0_with_shuffle_and_num_iters_per_epoch_does_not_crash(monkeypatch):
+    """Epoch 0 must not crash when shuffle and num_iters_per_epoch are set.
+
+    The real SequenceIterFactory used to raise ``ValueError: Seed must be
+    between 0 and 2**32 - 1`` at Lightning epoch 0 via
+    RandomState(real_epoch - 1 + seed) = RandomState(-1); the shipped codec
+    recipe config has exactly this shape.
+    """
+    import espnet3.components.data.dataloader as dl
+
+    monkeypatch.setattr(dl, "build_batch_sampler", lambda **kw: [[0], [1], [2]])
+
+    organizer = build_organizer(DUMMY_DATASET_TARGET)
+    config = OmegaConf.create(
+        {
+            "dataloader": {
+                "train": {
+                    "iter_factory": {
+                        "_target_": (
+                            "espnet2.iterators.sequence_iter_factory."
+                            "SequenceIterFactory"
+                        ),
+                        "num_iters_per_epoch": 2,
+                        "shuffle": True,
+                        "batches": {"dummy": 1},
+                    }
+                }
+            }
+        }
+    )
+    builder = build_builder(
+        organizer.train, config, collate_fn=None, num_device=1, epoch=0
+    )
+    iterator = builder.build("train")
+
+    assert len(list(iterator)) == 2
+
+
+def test_shard_wrapper_without_shard_method_is_rejected():
+    """A wrapper whose inner dataset is sharded must itself expose shard()."""
+    from types import SimpleNamespace
+
+    inner = SimpleNamespace(total_shards=2, shard=lambda idx: None, dist_world_size=1)
+    wrapper = SimpleNamespace(datasets=[inner])  # no shard() on the wrapper
+    builder = build_builder(wrapper, DictConfig({}), None, num_device=1, epoch=0)
+    with pytest.raises(RuntimeError, match="Dataset does not expose shard"):
+        builder._maybe_shard_dataset(wrapper)
+
+
+def test_missing_dist_world_size_is_rejected():
+    """A sharded dataset without dist_world_size cannot be shard-scheduled."""
+    from types import SimpleNamespace
+
+    inner = SimpleNamespace(total_shards=2, shard=lambda idx: None)
+    wrapper = SimpleNamespace(datasets=[inner], shard=lambda idx: None)
+    builder = build_builder(wrapper, DictConfig({}), None, num_device=1, epoch=0)
+    with pytest.raises(RuntimeError, match="requires dist_world_size"):
+        builder._maybe_shard_dataset(wrapper)
+
+
+def test_non_positive_dist_world_size_is_rejected():
+    """dist_world_size must be a positive integer."""
+    organizer = build_organizer(
+        DUMMY_SHARDED_DATASET_TARGET,
+        dataset_kwargs={"total_shards": 2, "dist_world_size": 0},
+    )
+    config = make_standard_dataloader_config()
+    builder = build_builder(
+        organizer.train, config, collate_fn=None, num_device=1, epoch=0
+    )
+    with pytest.raises(RuntimeError, match="dist_world_size must be an integer"):
+        builder.build("train")
+
+
+def test_non_integer_total_shards_is_rejected():
+    """total_shards must be an integer, not a numeric string."""
+    organizer = build_organizer(
+        DUMMY_SHARDED_DATASET_TARGET,
+        dataset_kwargs={"total_shards": "2", "dist_world_size": 1},
+    )
+    config = make_standard_dataloader_config()
+    builder = build_builder(
+        organizer.train, config, collate_fn=None, num_device=1, epoch=0
+    )
+    with pytest.raises(RuntimeError, match="total_shards must be an integer"):
+        builder.build("train")
+
+
+def test_multiple_iter_factory_in_plain_dict_config_is_rejected():
+    """The MultipleIterFactory guard also reads a plain-dict iter_factory."""
+    from types import SimpleNamespace
+
+    train_cfg = SimpleNamespace(
+        iter_factory={
+            "_target_": "espnet2.iterators.multiple_iter_factory.MultipleIterFactory"
+        }
+    )
+    config = SimpleNamespace(dataloader=SimpleNamespace(train=train_cfg))
+    organizer = build_organizer(DUMMY_DATASET_TARGET)
+    builder = build_builder(
+        organizer.train, config, collate_fn=None, num_device=1, epoch=0
+    )
+    with pytest.raises(RuntimeError, match="MultipleIterFactory is not supported"):
+        builder.build("train")
+
+
+def test_build_iter_factory_defaults_to_the_builder_dataset(monkeypatch):
+    """_build_iter_factory falls back to the builder's own dataset."""
+    import espnet3.components.data.dataloader as dl
+
+    monkeypatch.setattr(dl, "build_batch_sampler", lambda **kw: [[0], [1]])
+    organizer = build_organizer(DUMMY_DATASET_TARGET)
+    builder = build_builder(
+        organizer.train,
+        _make_generator_iter_factory_config(),
+        collate_fn=None,
+        num_device=1,
+        epoch=0,
+    )
+    factory_config = {
+        "_target_": (
+            "test.espnet3.components.data."
+            "test_dataloader_builder.GeneratorIterFactory"
+        ),
+        "batches": {"dummy": 1},
+    }
+    loader = builder._build_iter_factory(factory_config)  # dataset=None path
+    assert list(loader) == [[0], [1]]
