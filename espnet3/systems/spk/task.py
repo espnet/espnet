@@ -49,16 +49,11 @@ from espnet2.tasks.abs_task import AbsTask
 from espnet2.torch_utils.initialize import initialize
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.collate_fn import CommonCollateFn
-from espnet2.train.preprocessor import (
-    AbsPreprocessor,
-    CommonPreprocessor,
-    SpkPreprocessor,
-)
+from espnet2.train.preprocessor import AbsPreprocessor, CommonPreprocessor
 from espnet2.train.spk_trainer import SpkTrainer as Trainer
-from espnet2.utils.get_default_kwargs import get_default_kwargs
-from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import int_or_none, str2bool, str_or_none
 from espnet3.systems.spk.espnet_model import ESPnetSpeakerVerificationModel
+from espnet3.systems.spk.preprocessor import SpkPreprocessor
 
 frontend_choices = ClassChoices(
     name="frontend",
@@ -132,6 +127,11 @@ projector_choices = ClassChoices(
     default="rawnet3",
 )
 
+# `spk` is the ESPnet3 subclass, not `espnet2.train.preprocessor.SpkPreprocessor`.
+# The ESPnet2 augmentation promotes waveforms to float64, which ESPnet2 hides by
+# casting inside `ESPnetDataset`; ESPnet3 hands preprocessor output straight to
+# the collate function, so the cast has to happen here. Overriding only under a
+# new name would leave every config that selects `spk` on the float64 path.
 preprocessor_choices = ClassChoices(
     name="preprocessor",
     classes=dict(
@@ -247,13 +247,6 @@ class SpeakerTask(AbsTask):
             help="Directory of the rir data to be augmented",
         )
 
-        group.add_argument(
-            "--model_conf",
-            action=NestedDictAction,
-            default=get_default_kwargs(ESPnetSpeakerVerificationModel),
-            help="The keyword arguments for model class.",
-        )
-
         for class_choices in cls.class_choices_list:
             class_choices.add_arguments(group)
 
@@ -366,7 +359,6 @@ class SpeakerTask(AbsTask):
             pooling=pooling,
             projector=projector,
             loss=loss,
-            # **args.model_conf, # uncomment when model_conf exists
         )
 
         if args.init is not None:
