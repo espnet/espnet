@@ -29,11 +29,14 @@ def main(
     stages: Sequence[str] = DEFAULT_STAGES,
 ) -> None:
     """Run the requested stages against the speaker default configs."""
+    # A concrete package, not `__package__`: when `run.py` is executed as a
+    # script rather than imported, `__package__` is None and
+    # `load_and_merge_config` cannot infer where the defaults live.
     run_stages_with_configs(
         args=args,
         system_cls=system_cls,
         stages=stages,
-        default_package=__package__,
+        default_package="egs3.TEMPLATE.spk",
     )
 
 
