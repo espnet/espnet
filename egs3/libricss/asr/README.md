@@ -151,19 +151,28 @@ minimum, matching Kaldi's `extract_xvectors.sh`), and NME-SC parameters
 
 ## Results
 
-Reference numbers from the ESPnet1 recipe (same LibriSpeech Transformer ASR,
-Kaldi `0012_diarization_v1` x-vectors + NME-SC, egs1 scoring):
+Measured with this recipe on the full corpus (RTX 3090, beam 20, ASR-only
+decoding, `pad_missing_speakers: true`), against the ESPnet1 reference
+numbers (same LibriSpeech Transformer ASR + Transformer LM rescoring, Kaldi
+`0012_diarization_v1` x-vectors + NME-SC, egs1 scoring):
 
-| flow | metric | dev | eval |
-| --- | --- | --- | --- |
-| oracle | WER | 19.20 | 19.72 |
-| diarized (spectral) | SA-WER | 28.07 | 27.01 |
+| flow | metric | split | this recipe | egs1 reference |
+| --- | --- | --- | --- | --- |
+| oracle | WER | dev | 20.27 | 19.20 |
+| oracle | WER | eval | 21.20 | 19.72 |
+| diarized (spectral) | SA-WER | dev | 28.88 | 28.07 |
+| diarized (spectral) | SA-WER | eval | 29.24 | 27.01 |
 
-Expect both flows to land **somewhat above** these numbers: the egs1 decoder
-additionally rescored with a Transformer LM (see deviations below), and the
-**diarized** flow extracts embeddings with the ESPnet
-`espnet/voxcelebs12_xvector_mel` model instead of the Kaldi x-vector
-extractor, with a changed scoring default.
+The +1–2 point gaps are the expected cost of the deviations below (no LM
+rescoring; for the diarized flow, a different speaker-embedding extractor
+and a stricter `pad_missing_speakers` default). Both metrics rise steadily
+with the overlap ratio — oracle eval WER goes from ~6.9 on the
+non-overlapping conditions to 39.03 on `OV40`; SA-WER eval from ~15.0 to
+43.17. Scores land in `exp/eval/inference/metrics.json` and
+`exp/eval_oracle/inference_oracle/metrics.json`, with per-recording details
+in `exp/eval/inference/<split>/sawer_details.json` (diarized) and
+`exp/eval_oracle/inference_oracle/<split>/condition_wer_details.json`
+(oracle).
 
 Three documented deviations from egs1:
 
@@ -182,17 +191,33 @@ Three documented deviations from egs1:
 
 ## Runtime notes
 
-The `diarize` stage embeds every 1.5 s subsegment individually
-(`Speech2Embedding` has no batched interface): measured on the dev split
-(6 recordings, ~1 h of audio), `segment` runs in under a second and
-`diarize` in ~4 minutes (531–753 subsegments per recording, ~4.2 k
-x-vector embeddings at a few ms each once warm; `device: auto` uses CUDA
-when available). As a diarization sanity signal, NME-SC estimated exactly
-8 speakers — the true per-meeting count — on 5 of the 6 dev recordings
-(10 on `OV40`, the hardest condition). `infer` decodes ~1 h of audio on
-dev and ~9 h on eval; on CPU it runs at roughly 0.6× real time per stream
-(beam 20), so use a GPU for the full corpus. `batch_size: 4` in the
-inference configs is a safe GPU default.
+Measured on a shared RTX 3090 (12-core CPU host), full corpus (~10 h of
+audio, 60 recordings):
+
+- `segment`: ~15 s for the diarized flow (5,892 webrtcvad segments across
+  both splits), ~3 s for the oracle flow.
+- `diarize`: ~1.2 min for all 60 recordings (~41 k x-vector embeddings of
+  1.5 s subsegments, one call each — `Speech2Embedding` has no batched
+  interface; `device: auto` uses CUDA when available). The NME sweep runs
+  ~19 small LAPACK eigendecompositions per recording, which OpenBLAS makes
+  drastically slower under thread oversubscription (`eigvalsh` on a
+  750×750 matrix: ~16 ms at 1–2 threads vs ~5.8 s at 12), so
+  `src/spectral_clustering.py` caps BLAS/OpenMP threads at 2 via
+  `threadpoolctl` (ships with scikit-learn; no-op if absent) and uses
+  vectorized neighbor/threshold helpers. Outputs are byte-identical to the
+  uncapped code (verified on the full corpus); the cap cuts this stage
+  from ~34 min to ~1.2 min.
+- `infer`: ~27 min for the diarized flow (8,714 turns) and ~45 min for the
+  oracle flow (5,023 utterances) on GPU — roughly 14–20× real time at
+  `batch_size: 4`, whose peak GPU memory is ~5.4 GiB (a batch of the four
+  longest oracle segments, ~34 s each); `batch_size: 1` needs ~3.3 GiB. On
+  CPU, decoding runs at ~0.6× real time per stream (beam 20), so use a GPU
+  for the full corpus.
+- `measure`: ~1 s.
+
+As a diarization sanity signal, NME-SC estimated exactly 8 speakers — the
+true per-meeting count — on 5 of the 6 dev recordings (10 on `OV40`, the
+hardest condition) and on the large majority of the 54 eval recordings.
 
 ## Credits
 

@@ -23,13 +23,42 @@ Documented differences from the egs1 original:
   ``ComputeNMEParameters(A, p)`` with an undefined ``p`` and a wrong
   unpacking order (a dead code path). This port recomputes the eigengap
   parameters at the given ``pbest`` instead.
+- The NME sweep runs with BLAS/OpenMP threads capped (``_BLAS_THREADS``):
+  the small-matrix LAPACK eigendecompositions are orders of magnitude
+  slower under OpenBLAS thread oversubscription (measured on a 12-core
+  host: ``eigvalsh`` on 750x750 takes ~16 ms at 1-2 threads vs ~5.8 s at
+  12). Clustering results are unaffected.
 """
 
 from __future__ import annotations
 
-from typing import Optional
+from contextlib import contextmanager
+from typing import Iterator, Optional
 
 import numpy as np
+
+# BLAS/OpenMP thread cap for the LAPACK-heavy parts of this module; see the
+# module docstring for the measured oversubscription pathology. 2 measured
+# fastest; the cap also stops idle OpenBLAS workers from spin-waiting at
+# 100% CPU on every core during the single-threaded Python sections.
+_BLAS_THREADS = 2
+
+
+@contextmanager
+def _limited_blas_threads() -> Iterator[None]:
+    """Cap BLAS/OpenMP threads inside the block; no-op if unavailable.
+
+    ``threadpoolctl`` ships with scikit-learn, which the ``diarize`` stage
+    requires anyway; the lazy import keeps this module importable without
+    it (e.g. for unit tests of the pure-numpy helpers).
+    """
+    try:
+        from threadpoolctl import threadpool_limits  # noqa: PLC0415
+    except ImportError:
+        yield
+        return
+    with threadpool_limits(limits=_BLAS_THREADS):
+        yield
 
 
 def get_kneighbors_conn(X_dist: np.ndarray, p_neighbors: int) -> np.ndarray:
@@ -37,11 +66,22 @@ def get_kneighbors_conn(X_dist: np.ndarray, p_neighbors: int) -> np.ndarray:
 
     For each row i, entry (j, i) is set to 1 for the ``p_neighbors``
     positions j holding the largest values of that row.
+
+    Vectorized form of the egs1 per-row loop: one axis-wise ``argsort``
+    (same quicksort/introsort as ``np.argsort`` on a single row, hence
+    identical output including tie-breaking) replaces N Python-level
+    sort-and-assign iterations; ``p_neighbors`` outside 1..N is clamped,
+    matching the loop's slicing semantics.
     """
+    X_dist = np.asarray(X_dist)
+    n = X_dist.shape[0]
     X_dist_out = np.zeros_like(X_dist)
-    for i, line in enumerate(X_dist):
-        sorted_idx = np.argsort(line)[::-1][:p_neighbors]
-        X_dist_out[sorted_idx, i] = 1
+    if n == 0 or p_neighbors <= 0:
+        return X_dist_out
+    k = min(int(p_neighbors), n)
+    order = np.argsort(X_dist, axis=1, kind="quicksort")
+    top = order[:, ::-1][:, :k]  # per-row indices of the k largest values
+    X_dist_out[top, np.arange(n)[:, None]] = 1
     return X_dist_out
 
 
@@ -49,14 +89,25 @@ def threshold_affinity(A: np.ndarray, p: int) -> np.ndarray:
     """Keep row values greater than the (p+1)-th largest (egs1 port).
 
     Unlike a binarization, the original values above the threshold are
-    preserved. Requires ``p <= N - 1``; callers must clamp.
+    preserved. Requires ``0 <= p <= N - 1``; callers must clamp.
+
+    Vectorized form of the egs1 per-row loop: one axis-wise ``np.sort``
+    yields every row's (p+1)-th largest value at once. The threshold is
+    compared as a value (not selected by index), so rows with ties give
+    exactly the loop's result.
     """
+    A = np.asarray(A)
     N = A.shape[0]
+    if N == 0:
+        return np.zeros((0, 0))
+    if p < 0 or p > N - 1:
+        raise IndexError(
+            f"threshold index p must satisfy 0 <= p <= N-1; got p={p}, N={N}."
+        )
+    ascending = np.sort(A, axis=1)
+    thr = ascending[:, N - 1 - int(p)]  # per-row (p+1)-th largest value
     Ap = np.zeros((N, N))
-    for i in range(N):
-        thr = np.sort(A[i, :])[::-1][p]
-        mask = A[i, :] > thr
-        Ap[i, mask] = A[i, mask]
+    np.copyto(Ap, A, where=A > thr[:, None])
     return Ap
 
 
@@ -127,36 +178,40 @@ def nme_spectral_clustering(
     if n == 1:
         return np.zeros(1, dtype=int)
 
-    max_k = max(1, min(int(max_num_clusters), n - 1))
-    kbest: Optional[int] = None
+    with _limited_blas_threads():
+        max_k = max(1, min(int(max_num_clusters), n - 1))
+        kbest: Optional[int] = None
 
-    if pbest == 0:
-        p_hi = min(int(pmax), n - 1)
-        rbest: Optional[float] = None
-        for p in range(2, p_hi + 1):
-            _e, _g, k, r = compute_nme_parameters(A, p, max_k)
-            if not np.isfinite(r):
-                continue
-            if rbest is None or rbest > r:
-                rbest, pbest, kbest = r, p, k
-        if rbest is None:
-            # Degenerate case (too few points for the p >= 2 search, or all
-            # criteria non-finite): fall back to a minimal threshold.
-            pbest = max(1, p_hi)
+        if pbest == 0:
+            p_hi = min(int(pmax), n - 1)
+            rbest: Optional[float] = None
+            for p in range(2, p_hi + 1):
+                _e, _g, k, r = compute_nme_parameters(A, p, max_k)
+                if not np.isfinite(r):
+                    continue
+                if rbest is None or rbest > r:
+                    rbest, pbest, kbest = r, p, k
+            if rbest is None:
+                # Degenerate case (too few points for the p >= 2 search, or
+                # all criteria non-finite): fall back to a minimal threshold.
+                pbest = max(1, p_hi)
 
-    if num_clusters is None:
-        if kbest is None:
-            # pbest was given: the egs1 original crashes here (undefined p);
-            # recompute the eigengap parameters at the given pbest instead.
-            _e, _g, kbest, _r = compute_nme_parameters(A, _effective_p(pbest, n), max_k)
-        num_clusters = kbest + 1
+        if num_clusters is None:
+            if kbest is None:
+                # pbest was given: the egs1 original crashes here (undefined
+                # p); recompute the eigengap parameters at the given pbest
+                # instead.
+                _e, _g, kbest, _r = compute_nme_parameters(
+                    A, _effective_p(pbest, n), max_k
+                )
+            num_clusters = kbest + 1
 
-    num_clusters = max(1, min(int(num_clusters), n))
-    if num_clusters == 1:
-        return np.zeros(n, dtype=int)
-    return _spectral_clustering_sklearn(
-        A, num_clusters, _effective_p(pbest, n), random_state
-    )
+        num_clusters = max(1, min(int(num_clusters), n))
+        if num_clusters == 1:
+            return np.zeros(n, dtype=int)
+        return _spectral_clustering_sklearn(
+            A, num_clusters, _effective_p(pbest, n), random_state
+        )
 
 
 def _spectral_clustering_sklearn(
