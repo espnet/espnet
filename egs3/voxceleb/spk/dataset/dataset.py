@@ -46,22 +46,42 @@ def _subsample_trials(
     to the full evaluation. A single stride over the list would not: official
     trial lists alternate target and nontarget lines.
 
+    ``num_trials`` is an exact cap, not a per-class one. The per-class quotas
+    are allocated by largest remainder so that they sum to ``num_trials``,
+    rather than each class rounding up on its own: two classes each keeping
+    ``max(1, ...)`` would return two trials for ``num_trials=1``.
+
     Args:
         trials: Full trial list as `(label, utt1, utt2)` entries.
         num_trials: Number of trials to keep, or ``None`` to keep them all.
 
     Returns:
-        The selected trials, in their original order.
+        The selected trials, in their original order. At most ``num_trials`` of
+        them, and exactly that many whenever the full list is longer.
     """
     if num_trials is None or num_trials >= len(trials):
         return trials
 
+    by_label: Dict[int, List[int]] = {}
+    for index, trial in enumerate(trials):
+        by_label.setdefault(trial[0], []).append(index)
+
+    quotas: Dict[int, int] = {}
+    remainders: List[Tuple[float, int]] = []
+    for label, indices in by_label.items():
+        exact = num_trials * len(indices) / len(trials)
+        quotas[label] = int(exact)
+        remainders.append((exact - int(exact), label))
+    # Hand the seats lost to truncation to the largest remainders.
+    short = num_trials - sum(quotas.values())
+    for _, label in sorted(remainders, reverse=True)[:short]:
+        quotas[label] += 1
+
     keep: List[int] = []
-    for label in (0, 1):
-        indices = [i for i, trial in enumerate(trials) if trial[0] == label]
-        if not indices:
+    for label, indices in by_label.items():
+        n_keep = quotas[label]
+        if n_keep == 0:
             continue
-        n_keep = max(1, round(num_trials * len(indices) / len(trials)))
         stride = len(indices) / n_keep
         keep.extend(indices[int(i * stride)] for i in range(n_keep))
     return [trials[i] for i in sorted(keep)]
