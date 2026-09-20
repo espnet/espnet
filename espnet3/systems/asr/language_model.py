@@ -10,6 +10,7 @@ import gzip
 import json
 import subprocess
 import sys
+import uuid
 from pathlib import Path
 
 from omegaconf import OmegaConf
@@ -142,16 +143,23 @@ def train_language_model(config):
         "--output_dir",
         str(output),
     ]
+    rendezvous = None
     if int(config.ngpu) > 1:
+        # FileStore requires a fresh path, including when resuming a checkpoint.
+        rendezvous = output / f"distributed_init.{uuid.uuid4().hex}"
         arguments += [
             "--multiprocessing_distributed",
             "true",
             "--dist_init_method",
-            (output / "distributed_init").as_uri(),
+            rendezvous.as_uri(),
             "--dist_world_size",
             "1",
         ]
-    run(arguments)
+    try:
+        run(arguments)
+    finally:
+        if rendezvous is not None:
+            rendezvous.unlink(missing_ok=True)
     checkpoint = output / "valid.loss.ave.pth"
     if not checkpoint.is_file():
         raise FileNotFoundError(checkpoint)

@@ -42,6 +42,15 @@ def write_text(path, text):
     temporary.replace(path)
 
 
+def _manifest_digest(path):
+    """Hash a manifest without loading the entire file into memory."""
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
 def read_manifest(path):
     """Read prepared rows, preserving metadata outside model samples.
 
@@ -235,14 +244,20 @@ class VoicesBuilder(DatasetBuilder):
             **_kwargs: Unused stage settings.
 
         Returns:
-            Whether manifests, tokenizer text and LM text match the build marker.
+            Whether settings and manifest hashes match the build marker and
+            the tokenizer and LM text files exist.
         """
         manifest = Path(recipe_dir).resolve() / "data/manifest"
         try:
             metadata = json.loads((manifest / "build.json").read_text())
-        except (FileNotFoundError, ValueError):
+        except (OSError, ValueError):
             return False
-        return (
+        if not isinstance(metadata, dict):
+            return False
+        hashes = metadata.get("manifest_sha256")
+        if not isinstance(hashes, dict):
+            return False
+        matches = (
             metadata.get("format_version") == 2
             and metadata.get("corpus") == corpus
             and metadata.get("source_dir")
@@ -254,6 +269,15 @@ class VoicesBuilder(DatasetBuilder):
                 (manifest.parent / "lm" / f"{split}.txt").is_file() for split in SPLITS
             )
         )
+        if not matches:
+            return False
+        try:
+            return all(
+                _manifest_digest(manifest / f"{split}.tsv") == hashes.get(split)
+                for split in SPLITS
+            )
+        except OSError:
+            return False
 
     def build(self, recipe_dir, source_dir=None, corpus="devkit", **_kwargs):
         """Write speaker-disjoint manifests and original pre-filtering text.
@@ -331,7 +355,7 @@ class VoicesBuilder(DatasetBuilder):
                 writer.writeheader()
                 writer.writerows(rows)
             temporary.replace(path)
-            hashes[split] = hashlib.sha256(path.read_bytes()).hexdigest()
+            hashes[split] = _manifest_digest(path)
         write_text(
             manifest / "build.json",
             json.dumps(

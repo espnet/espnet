@@ -33,6 +33,14 @@ The wrapper config includes the original external LibriSpeech text and runs
 statistics, training, checkpoint averaging and perplexity. Inference loads the
 LM at weight 0.6. A limited-text smoke test does not reproduce the full LM.
 
+The LM launcher retains `ngpu: 4` from `egs2/voices/asr1/run.sh`. The original
+LM YAML retains `batch_bins: 500000000` and a comment describing 16 V100 GPUs
+with 32 GB each; that resource note differs from the source launcher's GPU count.
+The full LM has not been validated on four GPUs. For a smaller experiment, use a
+separate LM config/output directory and explicit `native_overrides.batch_bins`;
+choose it for the available memory. The delivered source defaults are unchanged.
+Multi-GPU LM launches use a fresh rendezvous file even when resuming a checkpoint.
+
 SCTK is required for the source-compatible WER/CER/TER. In an ESPnet checkout,
 run `cd tools && bash installers/install_sctk.sh` once; the recipe's `path.sh`
 adds the resulting `tools/sctk/bin` when present. Standalone recipes require
@@ -44,7 +52,8 @@ adds the resulting `tools/sctk/bin` when present. Standalone recipes require
   stays with its source. ASR train/valid use strict 0.1--30 second filtering.
 - Tokenizer/LM text is exported before duration filtering. Corrected devkit
   tokenizer text has 12540 lines, including the 33 previously missing lines.
-  Builder format 2 invalidates old manifests. Audio is read in place.
+  Builder format 2 invalidates old manifests. Cached TSV manifests are checked
+  against their recorded SHA-256 hashes before reuse. Audio is read in place.
 - Original model, optimizer, warmup scheduler and AMP are retained.
   Descending batch order, one worker, native epoch seeding and disabled TF32
   are explicit. `ESPnet2LightningModule` owns accumulation 4 and clipping 5;
@@ -96,8 +105,13 @@ override and CPU CTCLoss. These overrides are separate from the delivered
 full-corpus, 5000-piece defaults. The full stage integration test uses a small
 CPU fixture; it does not establish recognition accuracy on the full release.
 
-Standalone regression checks passed: 158 tests, with one CUDA-only test skipped
-in the CPU test run. Formatting, import ordering and lint checks also passed.
+Local CPU regression checks passed: 794 tests, with two CUDA tests and two
+optional Whisper tests skipped. The run used the CI timeout settings:
+`pytest -q --execution-timeout 10.0 --timeouts-order moi test/espnet3/ test/egs3/`.
+Recipe tests mirror the source modules and are collected by ESPnet3 CI. The real
+two-rank DDP test has a 60-second limit to include child-process imports; the
+other tests retain the default timeout unless explicitly marked. Formatting,
+import ordering and lint checks also passed.
 On September 20, 2026, a paired single-node, four-A10 experiment completed one
 devkit epoch in each framework: 117 training batches, 29 optimizer updates and
 7 validation batches per rank. Inputs and random-number states matched across

@@ -308,11 +308,26 @@ def _check_distributed_buffer_sync(rank, rendezvous):
         torch.distributed.destroy_process_group()
 
 
+@pytest.mark.execution_timeout(60)
 def test_manual_optimization_preserves_native_ddp_buffers(tmp_path):
     """A rank with different training data must receive rank-zero validation buffers."""
-    torch.multiprocessing.spawn(
+    # Spawn imports Torch/Lightning in both children before starting Gloo.
+    processes = torch.multiprocessing.spawn(
         _check_distributed_buffer_sync,
         args=((tmp_path / "rendezvous").as_uri(),),
         nprocs=2,
-        join=True,
+        join=False,
     )
+    try:
+        while not processes.join():
+            pass
+    finally:
+        # Do not leave workers behind if pytest interrupts the parent on timeout.
+        for process in processes.processes:
+            if process.is_alive():
+                process.terminate()
+        for process in processes.processes:
+            process.join(timeout=5)
+            if process.is_alive():
+                process.kill()
+                process.join(timeout=5)
