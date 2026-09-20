@@ -37,14 +37,15 @@ from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
 import numpy as np
+
 from espnet3.components.metrics.base_metric import BaseMetric
 
 try:  # recipe-dir import
     from src.metrics.common import pair_word_counts, read_scp
     from src.textnorm import normalize_text
 except ImportError:  # package-style import fallback
-    from .common import pair_word_counts, read_scp
     from ..textnorm import normalize_text
+    from .common import pair_word_counts, read_scp
 
 logger = logging.getLogger(__name__)
 
@@ -88,9 +89,7 @@ class SAWER(BaseMetric):
                 start = float(row["start"]) if row["start"] else 0.0
             except ValueError:
                 start = 0.0
-            streams[row["reco"]][row["spk"]].append(
-                (start, normalize_text(row["hyp"]))
-            )
+            streams[row["reco"]][row["spk"]].append((start, normalize_text(row["hyp"])))
 
         out: Dict[str, Dict[str, str]] = {}
         for reco, spks in streams.items():

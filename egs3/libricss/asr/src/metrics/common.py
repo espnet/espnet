@@ -19,8 +19,7 @@ def _jiwer_counts(ref: str, hyp: str) -> Tuple[int, int, int]:
         import jiwer  # noqa: PLC0415
     except ImportError as e:
         raise RuntimeError(
-            "LibriCSS metrics require jiwer: `pip install jiwer` "
-            "(or espnet[asr])."
+            "LibriCSS metrics require jiwer: `pip install jiwer` " "(or espnet[asr])."
         ) from e
     if hasattr(jiwer, "process_words"):
         out = jiwer.process_words(ref, hyp)

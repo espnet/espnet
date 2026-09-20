@@ -26,8 +26,8 @@ try:  # recipe-dir import
     from src.metrics.common import pair_word_counts
     from src.textnorm import normalize_text
 except ImportError:  # package-style import fallback
-    from .common import pair_word_counts
     from ..textnorm import normalize_text
+    from .common import pair_word_counts
 
 logger = logging.getLogger(__name__)
 

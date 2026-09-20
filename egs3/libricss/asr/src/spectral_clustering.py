@@ -148,9 +148,7 @@ def nme_spectral_clustering(
         if kbest is None:
             # pbest was given: the egs1 original crashes here (undefined p);
             # recompute the eigengap parameters at the given pbest instead.
-            _e, _g, kbest, _r = compute_nme_parameters(
-                A, _effective_p(pbest, n), max_k
-            )
+            _e, _g, kbest, _r = compute_nme_parameters(A, _effective_p(pbest, n), max_k)
         num_clusters = kbest + 1
 
     num_clusters = max(1, min(int(num_clusters), n))

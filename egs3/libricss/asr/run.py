@@ -35,11 +35,11 @@ parameters of the recipe-local stages.
 
 from pathlib import Path
 
-from egs3.TEMPLATE.asr.run import build_parser, main, parse_cli_and_stage_args
-from espnet3.systems.asr.system import ASRSystem
-
 from src.diarization import run_diarization
 from src.segmentation import run_segmentation
+
+from egs3.TEMPLATE.asr.run import build_parser, main, parse_cli_and_stage_args
+from espnet3.systems.asr.system import ASRSystem
 
 # LibriCSS extends the template stage list with two recipe-local stages.
 # The template's train/collect_stats/pack stages are not used (benchmark only).

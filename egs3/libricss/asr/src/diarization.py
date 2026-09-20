@@ -190,18 +190,16 @@ def make_flat_turns(
 
     merged: List[Tuple[float, float, str]] = []
     for start, end, spk in cut:
-        if (
-            merged
-            and merged[-1][2] == spk
-            and abs(start - merged[-1][1]) <= merge_eps
-        ):
+        if merged and merged[-1][2] == spk and abs(start - merged[-1][1]) <= merge_eps:
             merged[-1] = (merged[-1][0], end, spk)
         else:
             merged.append((start, end, spk))
     return merged
 
 
-def quantize_turn(reco: str, start: float, end: float, spk: str) -> Optional[Dict[str, Any]]:
+def quantize_turn(
+    reco: str, start: float, end: float, spk: str
+) -> Optional[Dict[str, Any]]:
     """Quantize one flat turn into a manifest segment dict.
 
     Faithful to egs1's RTTM round trip: ``make_rttm.py`` writes times with
@@ -255,7 +253,9 @@ def diarize_recording(
             )
         )
     if not subsegs:
-        logger.warning("%s: no subsegments >= %.2fs; writing empty manifest", reco, min_segment)
+        logger.warning(
+            "%s: no subsegments >= %.2fs; writing empty manifest", reco, min_segment
+        )
         return []
 
     audio, file_sr = sf.read(wav, dtype="float32")
@@ -275,9 +275,7 @@ def diarize_recording(
         random_state=random_state,
     )
 
-    turns = sorted(
-        (s, e, str(int(lab) + 1)) for (s, e), lab in zip(subsegs, labels)
-    )
+    turns = sorted((s, e, str(int(lab) + 1)) for (s, e), lab in zip(subsegs, labels))
     segments = []
     for start, end, spk in make_flat_turns(turns):
         seg = quantize_turn(reco, start, end, spk)
@@ -303,9 +301,7 @@ def run_diarization(eval_config) -> None:
     """
     cfg = _libricss_cfg(eval_config)
     dia_cfg = OmegaConf.select(cfg, "diarize") or OmegaConf.create({})
-    spk_model_tag = str(
-        dia_cfg.get("spk_model_tag", "espnet/voxcelebs12_xvector_mel")
-    )
+    spk_model_tag = str(dia_cfg.get("spk_model_tag", "espnet/voxcelebs12_xvector_mel"))
     device = _resolve_device(str(dia_cfg.get("device", "auto")))
     dtype = str(dia_cfg.get("dtype", "float32"))
     window = float(dia_cfg.get("window_sec", 1.5))
@@ -323,9 +319,7 @@ def run_diarization(eval_config) -> None:
     seg_root = Path(str(eval_config.exp_dir)) / "segments"
     out_root = Path(str(eval_config.exp_dir)) / "diarized"
     if not seg_root.is_dir():
-        raise FileNotFoundError(
-            f"{seg_root} not found; run the `segment` stage first."
-        )
+        raise FileNotFoundError(f"{seg_root} not found; run the `segment` stage first.")
 
     spk_model = _load_speaker_encoder(spk_model_tag, device, dtype)
 
@@ -379,5 +373,12 @@ def run_diarization(eval_config) -> None:
         if write_rttm:
             with (out_split / "rttm").open("w", encoding="utf-8") as f:
                 f.write("\n".join(rttm_lines) + ("\n" if rttm_lines else ""))
-            logger.info("Wrote %d RTTM lines to %s", len(rttm_lines), out_split / "rttm")
-        logger.info("Split %s: wrote %d diarized manifests to %s", split, len(manifests), out_split)
+            logger.info(
+                "Wrote %d RTTM lines to %s", len(rttm_lines), out_split / "rttm"
+            )
+        logger.info(
+            "Split %s: wrote %d diarized manifests to %s",
+            split,
+            len(manifests),
+            out_split,
+        )

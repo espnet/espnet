@@ -94,9 +94,7 @@ def _read_wave_pcm(path: str | Path) -> tuple[bytes, int]:
     return audio.tobytes(), int(sample_rate)
 
 
-def _frame_generator(
-    frame_duration_ms: int, audio: bytes, sample_rate: int
-):
+def _frame_generator(frame_duration_ms: int, audio: bytes, sample_rate: int):
     """Yield fixed-duration frames of PCM audio (egs1 port)."""
     n = int(sample_rate * (frame_duration_ms / 1000.0) * 2)
     offset = 0
