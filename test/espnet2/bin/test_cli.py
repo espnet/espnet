@@ -44,9 +44,20 @@ class _Recorder:
         self.calls.append((args, kwargs))
         return self.result
 
-    def batch_decode(self, *args, **kwargs):
+    def best_path(self, *args, **kwargs):
+        # what --live and --stream call: one window, decoded on the CTC head
+        # with no search, because the next window is already arriving
         self.calls.append((args, kwargs))
         return self.result
+
+    def decode_long(self, *args, **kwargs):
+        self.calls.append((args, kwargs))
+        # one (start, end, text) per segment: two of them, so that a test
+        # reading the printed line sees them joined rather than concatenated
+        first, _, rest = self.result.partition(" ")
+        if not rest:
+            return [(0.0, 1.0, self.result)]
+        return [(0.0, 1.0, first), (1.0, 2.0, rest)]
 
 
 def test_models_lists_one_default_per_command(capsys):
@@ -66,9 +77,7 @@ def test_asr_prints_the_transcript(monkeypatch, tmp_path, capsys):
     audio = tmp_path / "a.wav"
     audio.write_bytes(b"")
     rec = _Recorder("hello there")
-    _fake_module(
-        monkeypatch, "espnet2.bin.s2t_inference_ctc", "Speech2TextGreedySearch", rec
-    )
+    _fake_module(monkeypatch, "espnet2.bin.s2t_inference", "Speech2Text", rec)
 
     assert cli.main(["asr", str(audio)]) == 0
 
@@ -85,9 +94,7 @@ def test_asr_passes_the_language_and_the_chosen_model(monkeypatch, tmp_path):
     audio = tmp_path / "a.wav"
     audio.write_bytes(b"")
     rec = _Recorder("x")
-    _fake_module(
-        monkeypatch, "espnet2.bin.s2t_inference_ctc", "Speech2TextGreedySearch", rec
-    )
+    _fake_module(monkeypatch, "espnet2.bin.s2t_inference", "Speech2Text", rec)
 
     assert (
         cli.main(
@@ -113,9 +120,7 @@ def test_translate_builds_the_target_token(monkeypatch, tmp_path):
     audio = tmp_path / "a.wav"
     audio.write_bytes(b"")
     rec = _Recorder("bonjour")
-    _fake_module(
-        monkeypatch, "espnet2.bin.s2t_inference_ctc", "Speech2TextGreedySearch", rec
-    )
+    _fake_module(monkeypatch, "espnet2.bin.s2t_inference", "Speech2Text", rec)
 
     assert cli.main(["translate", str(audio), "--to", "fra", "--language", "eng"]) == 0
 
@@ -217,8 +222,8 @@ def test_stream_decodes_a_file_window_by_window(monkeypatch, tmp_path):
     recorder = _Recorder([("hello", ["h"], [1], "hello", None)])
     _fake_module(
         monkeypatch,
-        "espnet2.bin.s2t_inference_ctc",
-        "Speech2TextGreedySearch",
+        "espnet2.bin.s2t_inference",
+        "Speech2Text",
         recorder,
     )
     audio = tmp_path / "a.wav"
@@ -234,8 +239,8 @@ def test_live_records_instead_of_reading_a_file(monkeypatch):
     recorder = _Recorder([("spoken", ["s"], [1], "spoken", None)])
     _fake_module(
         monkeypatch,
-        "espnet2.bin.s2t_inference_ctc",
-        "Speech2TextGreedySearch",
+        "espnet2.bin.s2t_inference",
+        "Speech2Text",
         recorder,
     )
 
@@ -267,8 +272,8 @@ def test_a_recording_failure_is_reported_like_the_others(monkeypatch, capsys):
     recorder = _Recorder([])
     _fake_module(
         monkeypatch,
-        "espnet2.bin.s2t_inference_ctc",
-        "Speech2TextGreedySearch",
+        "espnet2.bin.s2t_inference",
+        "Speech2Text",
         recorder,
     )
     assert cli.main(["asr", "--live"]) == 1
@@ -282,8 +287,8 @@ def test_an_empty_result_becomes_an_empty_transcript(monkeypatch):
     recorder = _Recorder([])  # the model returned nothing for this window
     _fake_module(
         monkeypatch,
-        "espnet2.bin.s2t_inference_ctc",
-        "Speech2TextGreedySearch",
+        "espnet2.bin.s2t_inference",
+        "Speech2Text",
         recorder,
     )
     assert cli.main(["asr", "--live"]) == 0
@@ -340,8 +345,8 @@ def test_a_tag_for_another_task_is_explained(monkeypatch, tmp_path, capsys):
 
     _fake_module(
         monkeypatch,
-        "espnet2.bin.s2t_inference_ctc",
-        "Speech2TextGreedySearch",
+        "espnet2.bin.s2t_inference",
+        "Speech2Text",
         Mismatch,
     )
 
@@ -485,9 +490,7 @@ def test_only_an_unexpected_keyword_is_blamed_on_the_model(monkeypatch, tmp_path
         def from_pretrained(model_tag=None, device=None, **kwargs):
             raise TypeError("unsupported operand type(s) for +: 'int' and 'str'")
 
-    _fake_module(
-        monkeypatch, "espnet2.bin.s2t_inference_ctc", "Speech2TextGreedySearch", Bug
-    )
+    _fake_module(monkeypatch, "espnet2.bin.s2t_inference", "Speech2Text", Bug)
 
     # a TypeError from inside the model must not be reported as "wrong model"
     with pytest.raises(TypeError, match="unsupported operand"):
@@ -509,9 +512,7 @@ def test_a_keyword_the_constructor_does_take_is_not_blamed_on_the_model(
             # raised from deeper inside, about an argument this class accepts
             raise TypeError("f() got an unexpected keyword argument 'device'")
 
-    _fake_module(
-        monkeypatch, "espnet2.bin.s2t_inference_ctc", "Speech2TextGreedySearch", Bug
-    )
+    _fake_module(monkeypatch, "espnet2.bin.s2t_inference", "Speech2Text", Bug)
 
     with pytest.raises(TypeError, match="'device'"):
         cli.main(["asr", str(audio)])
@@ -545,13 +546,15 @@ class _FakeOWSM:
         self.tag, self.device = model_tag, device
         return self
 
-    def __call__(self, speech, *args, **kwargs):
+    def best_path(self, speech, *args, **kwargs):
+        # what the page calls for a single window: the CTC head, no search
         self.calls.append((speech, kwargs))
         return [(self.decoded,)]
 
-    def decode_long_batched_buffered(self, speech, **kwargs):
+    def decode_long(self, speech, **kwargs):
         self.long_calls.append((speech, kwargs))
-        return "long form text"
+        # (start, end, text) per segment, joined by the page
+        return [(0.0, 15.0, "long form"), (15.0, 30.0, "text")]
 
 
 def _fake_demo(monkeypatch, s2t=None, device="cpu", task="s2t"):
@@ -565,9 +568,7 @@ def _fake_demo(monkeypatch, s2t=None, device="cpu", task="s2t"):
     # the task check is one Hub request; the tests answer it themselves
     monkeypatch.setattr(espnet, "_infer_task", lambda tag: task)
     s2t = s2t or _FakeOWSM()
-    _fake_module(
-        monkeypatch, "espnet2.bin.s2t_inference_ctc", "Speech2TextGreedySearch", s2t
-    )
+    _fake_module(monkeypatch, "espnet2.bin.s2t_inference", "Speech2Text", s2t)
     return gradio, s2t
 
 

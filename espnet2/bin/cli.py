@@ -124,6 +124,21 @@ def _build(loader, args, task: str):
     )
 
 
+def _decode(s2t, audio: str, lang_sym: str, task_sym: str) -> str:
+    """One recording of any length, as one line of text.
+
+    ``decode_long`` returns ``(start, end, text)`` per segment and reads the
+    checkpoint to decide how to cut the recording up: a CTC-only model in
+    overlapping buffers with no search, an encoder-decoder model segment by
+    segment on its own timestamps. This command prints a transcript, so the
+    segments are joined.
+    """
+    return " ".join(
+        text
+        for _, _, text in s2t.decode_long(audio, lang_sym=lang_sym, task_sym=task_sym)
+    )
+
+
 def cmd_asr(args) -> int:
     # every check the user can fail comes before the import: loading the s2t
     # stack takes seconds, and "no such file" should not wait for it
@@ -135,10 +150,10 @@ def cmd_asr(args) -> int:
         raise CLIError("give an audio file, or --live to record one")
     _require_file(args.audio)
 
-    from espnet2.bin.s2t_inference_ctc import Speech2TextGreedySearch
+    from espnet2.bin.s2t_inference import Speech2Text
 
-    s2t = _build(Speech2TextGreedySearch, args, "asr")
-    print(s2t.batch_decode(args.audio, lang_sym=f"<{args.language}>", task_sym="<asr>"))
+    s2t = _build(Speech2Text, args, "asr")
+    print(_decode(s2t, args.audio, f"<{args.language}>", "<asr>"))
     return 0
 
 
@@ -152,14 +167,21 @@ def _transcribe_as_it_arrives(args) -> int:
         _require_file(args.audio)
 
     from espnet2.bin import live
-    from espnet2.bin.s2t_inference_ctc import Speech2TextGreedySearch
+    from espnet2.bin.s2t_inference import Speech2Text
 
-    s2t = _build(Speech2TextGreedySearch, args, "asr")
+    s2t = _build(Speech2Text, args, "asr")
     try:
         source = live.from_microphone() if args.live else live.from_file(args.audio)
 
         def decode(chunk):
-            results = s2t(chunk, lang_sym=f"<{args.language}>", task_sym="<asr>")
+            # best_path, not the object itself: a window has to be decoded
+            # before the next one arrives, and a search on the CTC head is
+            # nowhere near that fast. This is the one place in the command
+            # line where the difference is the difference between working
+            # and not.
+            results = s2t.best_path(
+                chunk, lang_sym=f"<{args.language}>", task_sym="<asr>"
+            )
             return results[0][3] if results else ""
 
         return live.transcribe(decode, source)
@@ -169,14 +191,10 @@ def _transcribe_as_it_arrives(args) -> int:
 
 def cmd_translate(args) -> int:
     _require_file(args.audio)
-    from espnet2.bin.s2t_inference_ctc import Speech2TextGreedySearch
+    from espnet2.bin.s2t_inference import Speech2Text
 
-    s2t = _build(Speech2TextGreedySearch, args, "translate")
-    print(
-        s2t.batch_decode(
-            args.audio, lang_sym=f"<{args.language}>", task_sym=f"<st_{args.to}>"
-        )
-    )
+    s2t = _build(Speech2Text, args, "translate")
+    print(_decode(s2t, args.audio, f"<{args.language}>", f"<st_{args.to}>"))
     return 0
 
 
@@ -275,9 +293,9 @@ def cmd_demo(args) -> int:
 
     # only now: importing the inference stack costs seconds, and a missing
     # package or an unusable --device should be reported instantly
-    from espnet2.bin.s2t_inference_ctc import Speech2TextGreedySearch
+    from espnet2.bin.s2t_inference import Speech2Text
 
-    s2t = _build(Speech2TextGreedySearch, args, "demo")
+    s2t = _build(Speech2Text, args, "demo")
     app = demo.build_app(s2t, device=args.device, model_tag=args.model)
     url = f"http://127.0.0.1:{args.port}"
     # printed before launching: gradio's own banner goes to stdout only after

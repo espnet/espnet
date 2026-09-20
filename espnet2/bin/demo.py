@@ -287,7 +287,10 @@ def build_app(s2t, device: str = "cpu", model_tag: str = ""):
     """The Gradio app for an already loaded OWSM-CTC model.
 
     Args:
-        s2t: a Speech2TextGreedySearch, loaded from the tag below.
+        s2t: a Speech2Text, loaded from the tag below. It is decoded with
+            best_path() and decode_long(), not by calling it: a browser
+            demo answers while someone waits, and a search on the CTC head
+            is an order of magnitude slower for no gain here.
         device: where it runs; long-form decoding batches on a GPU only.
         model_tag: shown in the page, so a demo of a different checkpoint
             says which one it is.
@@ -306,7 +309,7 @@ def build_app(s2t, device: str = "cpu", model_tag: str = ""):
 
     def detect(speech, task_sym):
         """The language OWSM-CTC names for the first window of this audio."""
-        decoded = s2t(pad(speech), lang_sym="<nolang>", task_sym=task_sym)
+        decoded = s2t.best_path(pad(speech), lang_sym="<nolang>", task_sym=task_sym)
         return split_tokens(decoded[0][0], codes)[0] or "eng"
 
     def predict(audio_path, language_label, task_label, long_form):
@@ -330,12 +333,15 @@ def build_app(s2t, device: str = "cpu", model_tag: str = ""):
             # One 30 s pass first, only to name the language the rest is
             # decoded in; skipped when the user has already said what it is.
             detected = chosen or detect(speech, task_sym)
-            text = s2t.decode_long_batched_buffered(
-                speech,
-                batch_size=1 if device == "cpu" else 8,
-                context_len_in_secs=4,
-                lang_sym=f"<{detected}>",
-                task_sym=task_sym,
+            text = " ".join(
+                segment
+                for _, _, segment in s2t.decode_long(
+                    speech,
+                    batch_size=1 if device == "cpu" else 8,
+                    context_len_in_secs=4,
+                    lang_sym=f"<{detected}>",
+                    task_sym=task_sym,
+                )
             )
         else:
             if len(speech) > SAMPLE_RATE * WINDOW_SECS:
@@ -343,7 +349,7 @@ def build_app(s2t, device: str = "cpu", model_tag: str = ""):
                     f"Only the first {WINDOW_SECS} s were decoded. "
                     "Tick Long-form for the whole recording."
                 )
-            decoded = s2t(pad(speech), lang_sym=lang_sym, task_sym=task_sym)
+            decoded = s2t.best_path(pad(speech), lang_sym=lang_sym, task_sym=task_sym)
             detected, text = split_tokens(decoded[0][0], codes)
             detected = detected or chosen or ""
         return LANGUAGE_NAMES.get(detected, detected or "unknown"), text
