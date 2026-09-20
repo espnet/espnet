@@ -107,3 +107,9 @@ runs also differed in gradients, starting at batch 94; this does not by itself
 establish the cause of the migrated run's divergence. Strict numerical parity
 remains unresolved, and this branch must not be described as a completed
 accuracy reproduction.
+
+A one-4090 inference smoke test used these one-epoch checkpoints, four validation
+and four test recordings, beam size 20, and the existing smoke-test LM at weight
+0.6. Both frameworks produced identical hypotheses and SCTK WER/CER/TER counts
+on those eight recordings. This limited check does not resolve training parity
+or establish final recognition accuracy.
