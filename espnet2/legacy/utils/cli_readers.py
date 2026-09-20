@@ -5,8 +5,8 @@ import logging
 import sys
 
 import h5py
-import kaldiio
 import soundfile
+from omniio import kaldi as kaldi_io
 
 from espnet2.legacy.utils.io_utils import SoundHDF5File
 
@@ -65,7 +65,7 @@ class KaldiReader:
 
     def __iter__(self):
         """Iterate self reader."""
-        with kaldiio.ReadHelper(self.rspecifier, segments=self.segments) as reader:
+        with kaldi_io.ReadHelper(self.rspecifier, segments=self.segments) as reader:
             for key, array in reader:
                 if self.return_shape:
                     array = array.shape

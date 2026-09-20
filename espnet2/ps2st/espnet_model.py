@@ -71,6 +71,14 @@ class ESPnetQwen2AudioModel(AbsESPnetModel):
             config.text_config.num_attention_heads = 4
             config.text_config.num_key_value_heads = 4
             config.text_config.intermediate_size = 256
+            # The checkpoint config asks for bfloat16, but only the submodules
+            # built through `AutoModel.from_config` honour it: since transformers
+            # v5.10 `lm_head` and `audio_tower` are created on the outer model at
+            # the default dtype, which leaves the dummy model half bfloat16 and
+            # half float32. Build the whole thing in float32 instead.
+            config.dtype = torch.float32
+            config.text_config.dtype = torch.float32
+            config.audio_config.dtype = torch.float32
             with no_init_weights():
                 self.qwen2audio_model = Qwen2AudioForConditionalGeneration(config)
 
@@ -168,11 +176,17 @@ class ESPnetQwen2AudioModel(AbsESPnetModel):
             feature_attention_mask,
         )
 
+        # `Qwen2AudioForConditionalGeneration.language_model` was moved under
+        # `.model` in transformers v5.10, so read the token ids from the text
+        # sub-config instead, which is the config the text model is built from
+        # in every supported version.
+        text_config = self.qwen2audio_model.config.get_text_config()
+
         beam_search = BeamSearch(
             beam_size=self.decode_config["beam_size"],
             vocab_size=self.qwen2audio_model.config.vocab_size,
-            sos=self.qwen2audio_model.language_model.config.bos_token_id,
-            eos=self.qwen2audio_model.language_model.config.eos_token_id,
+            sos=text_config.bos_token_id,
+            eos=text_config.eos_token_id,
             scorers={"decoder": scorer},
             weights={"decoder": 1.0},
             normalize_length=False,
