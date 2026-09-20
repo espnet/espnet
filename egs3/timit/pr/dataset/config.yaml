@@ -1,0 +1,88 @@
+builder:
+  # TIMIT is LDC-gated input: prepare_source only validates, never downloads.
+  # The audio is read in place, so nothing is written outside manifest_path.
+  source_env_var: TIMIT
+  dataset_path: downloads
+  splits:
+    - TRAIN
+    - TEST
+
+  output_env_var: TIMIT_OUTPUT
+  data_path: data
+  manifest_path: manifest/test.tsv
+
+  # TIMIT labels phones with its own 61-symbol set; PhoneticXeus predicts IPA.
+  # Silences and stop closures are removed because they have no IPA phone and
+  # are absent from the model's vocabulary, so keeping them would make every
+  # stop an unavoidable deletion. `epi` and `q` are kept: both do map.
+  drop_phones:
+    - h#
+    - pau
+    - bcl
+    - dcl
+    - gcl
+    - kcl
+    - pcl
+    - tcl
+
+  # Verified to reproduce the IPAPack/POWSM `text.good` references for all 6300
+  # TIMIT utterances. Note `ix` folds onto `ih`, which is what those references
+  # do; mapping it to a distinct vowel breaks the match.
+  phone_to_ipa:
+    aa: "ɑ"
+    ae: "æ"
+    ah: "ʌ"
+    ao: "ɔ"
+    aw: "aʊ"
+    ax: "ə"
+    ax-h: "ə̥"
+    axr: "ə˞"
+    ay: "aɪ"
+    b: "b"
+    ch: "t͡ʃ"
+    d: "d"
+    dh: "ð"
+    dx: "ɾ"
+    eh: "ɛ"
+    el: "l̩"
+    em: "m̩"
+    en: "n̩"
+    eng: "ŋ̍"
+    epi: "ʔ̞"
+    er: "ɜ˞"
+    ey: "eɪ"
+    f: "f"
+    g: "ɡ"
+    hh: "h"
+    hv: "ɦ"
+    ih: "ɪ"
+    ix: "ɪ"
+    iy: "i"
+    jh: "d͡ʒ"
+    k: "k"
+    l: "l"
+    m: "m"
+    n: "n"
+    ng: "ŋ"
+    nx: "ɾ̃"
+    ow: "oʊ"
+    oy: "ɔɪ"
+    p: "p"
+    q: "ʔ"
+    r: "ɹ"
+    s: "s"
+    sh: "ʃ"
+    t: "t"
+    th: "θ"
+    uh: "ʊ"
+    uw: "u"
+    ux: "ʉ"
+    v: "v"
+    w: "w"
+    wh: "ʍ"
+    y: "j"
+    z: "z"
+    zh: "ʒ"
+
+dataset:
+  manifest_path: manifest/test.tsv
