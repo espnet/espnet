@@ -284,6 +284,32 @@ def _fake_alignment(monkeypatch, tmp_path, files, aligner_by_module=None):
     return made
 
 
+def test_the_aligners_take_a_tag(monkeypatch):
+    """from_pretrained downloads and constructs, rather than calling itself.
+
+    build_pretrained calls `loader.from_pretrained`, which is right for the
+    command line - where the loader is the class - and a recursion when the
+    class uses it to implement that very method.
+    """
+    import espnet2.bin.asr_align as asr_align
+
+    built = {}
+
+    class Fake(asr_align.CTCSegmentation):
+        def __init__(self, **kwargs):  # no model, no ctc_segmentation
+            built.update(kwargs)
+
+    monkeypatch.setattr(
+        asr_align,
+        "download_pretrained",
+        lambda tag: {"asr_train_config": f"{tag}/config.yaml"},
+    )
+
+    Fake.from_pretrained("espnet/a-model", fs=8000)
+
+    assert built == {"asr_train_config": "espnet/a-model/config.yaml", "fs": 8000}
+
+
 def test_align_prints_a_line_an_utterance(monkeypatch, tmp_path, capsys):
     audio = tmp_path / "a.wav"
     soundfile.write(audio, np.zeros(16000, dtype="float32"), 16000)
