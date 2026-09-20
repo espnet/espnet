@@ -552,6 +552,16 @@ if [ "${task}" == "codec" ] || [ "${task}" == "all" ]; then
     cd "${cwd}"
 fi
 
+if [ "${task}" == "audio_metric" ] || [ "${task}" == "all" ]; then
+    # [ESPnet2] test Uni-VERSA recipe
+    cd ./egs2/mini_an4/audio_metric1
+    gen_dummy_coverage
+    echo "==== [ESPnet2] Uni-VERSA ==="
+    ./run.sh --ngpu 0 --stage 1 --stop_stage 8 --python "${python}"
+    rm -rf exp dump data
+    cd "${cwd}"
+fi
+
 echo "::group::=== report ==="
 if compgen -G "egs2/*/*/.coverage" > /dev/null; then
     coverage combine egs2/*/*/.coverage
