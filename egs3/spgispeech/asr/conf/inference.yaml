@@ -100,6 +100,14 @@ model:
 input_key: speech
 output_fn: src.inference.build_output
 
+# Pinned explicitly rather than left to inherit egs3/TEMPLATE/asr's default
+# (also 4, as of espnet/espnet#6658): consecutive utterances are decoded
+# together in one `Speech2Text.batch_decode` call, 2.8x faster on dev_4k than
+# batch_size: null (31.3 min vs 88.75 min, 1 GPU) with WER/CER unchanged
+# within noise -- see readme.md's Results section. `src/inference.py`'s
+# `build_output` handles the resulting list-of-samples call.
+batch_size: 4
+
 ##########################################################
 #                  PARALLELIZATION SETTING               #
 ##########################################################
