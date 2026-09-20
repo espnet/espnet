@@ -150,3 +150,52 @@ def test_main_add_token(tmp_path):
                 found = True
 
     assert found is True
+
+
+@pytest.mark.execution_timeout(30)
+def test_sot_asr_does_not_append_a_symbol_the_vocabulary_already_has(tmp_path):
+    """A symbol already in the vocabulary is not appended again.
+
+    "????" is Whisper BPE id 25629; appending it a second time would
+    duplicate the row.
+    """
+    import whisper
+
+    # Both are lru_cached, and build_tokenizer is the one holding the HF
+    # object an earlier test in this file mutated with add_tokens.
+    whisper.tokenizer.build_tokenizer.cache_clear()
+    whisper.tokenizer.get_tokenizer.cache_clear()
+    out = tmp_path / "tokens.txt"
+    export_vocabulary(
+        output=str(out),
+        whisper_model="whisper_multilingual",
+        log_level="INFO",
+        sot_asr=True,
+        speaker_change_symbol="????",
+    )
+    tokens = out.read_text().splitlines()
+    assert tokens.count("????") == 1
+    assert tokens.index("????") == 25629
+    assert len(tokens) == 51865
+
+
+@pytest.mark.execution_timeout(30)
+def test_sot_asr_still_appends_a_symbol_the_vocabulary_lacks(tmp_path):
+    import whisper
+
+    # Both are lru_cached, and build_tokenizer is the one holding the HF
+    # object an earlier test in this file mutated with add_tokens.
+    whisper.tokenizer.build_tokenizer.cache_clear()
+    whisper.tokenizer.get_tokenizer.cache_clear()
+    out = tmp_path / "tokens.txt"
+    export_vocabulary(
+        output=str(out),
+        whisper_model="whisper_multilingual",
+        log_level="INFO",
+        sot_asr=True,
+        speaker_change_symbol="<sc>",
+    )
+    tokens = out.read_text().splitlines()
+    assert tokens[-1] == "<sc>"
+    assert len(tokens) == 51866
+    assert tokens[51864] == "<|30.00|>"

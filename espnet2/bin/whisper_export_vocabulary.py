@@ -89,8 +89,27 @@ def export_vocabulary(
         fout.write(f"<|{i * 0.02:.2f}|>" + "\n")
 
     if sot_asr:
-        full_vocab_size += 1
-        fout.write(speaker_change_symbol + "\n")
+        # Append only a symbol the vocabulary does not already have. A symbol
+        # that is already one BPE token, such as "????" (id 25629), would
+        # otherwise appear twice: token_list.index and the tokenizer both
+        # resolve the first, leaving the appended row unreachable and the
+        # model one row wider than the alphabet it can emit.
+        existing = tokenizer.tokenizer.convert_tokens_to_ids(speaker_change_symbol)
+        if existing is None or existing == tokenizer.tokenizer.unk_token_id:
+            # An unknown symbol maps to the unk id, which for Whisper is
+            # <|endoftext|>; a symbol literally spelled that way is not a
+            # sensible separator and is treated as absent.
+            fout.write(speaker_change_symbol + "\n")
+            logging.info("Appended %s to the vocabulary", speaker_change_symbol)
+        else:
+            logging.warning(
+                "%s is already token id %d; not appending. The exported list "
+                "is one row shorter than the same command produced before "
+                "this guard, so a checkpoint trained against the older list "
+                "will not load against it.",
+                speaker_change_symbol,
+                existing,
+            )
 
 
 def get_parser() -> argparse.ArgumentParser:
