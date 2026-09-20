@@ -1,0 +1,27 @@
+# Conventional ASR scoring: WER and CER over pre-segmented utterances.
+#
+# A config is either a bare list of metrics, exactly as in VERSA, or -- as
+# here -- a mapping whose `normalize:` pipeline applies to every metric that
+# does not override it. The pipeline is part of the result: a score reported
+# without the normalization that produced it cannot be reproduced.
+
+normalize:
+  - name: unicode
+    form: NFKC
+  - name: remove_tokens
+    tokens: ["<unk>", "<noise>"]
+  - name: lowercase
+  - name: remove_punctuation
+    keep: "'"        # keeping apostrophes: "don't" must not become "dont"
+  - name: whitespace
+
+metrics:
+  # word error rate
+  - name: wer
+
+  # character error rate
+  #  -- spaces are counted as characters, matching jiwer.cer and the current
+  #     espnet3 CER. Recipes that strip spaces need remove_space: true.
+  - name: cer
+    tokenizer_conf:
+      remove_space: false
