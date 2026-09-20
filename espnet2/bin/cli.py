@@ -293,9 +293,9 @@ def cmd_demo(args) -> int:
 
     # only now: importing the inference stack costs seconds, and a missing
     # package or an unusable --device should be reported instantly
-    from espnet2.bin.s2t_inference_ctc import Speech2TextGreedySearch
+    from espnet2.bin.s2t_inference import Speech2Text
 
-    s2t = _build(Speech2TextGreedySearch, args, "demo")
+    s2t = _build(Speech2Text, args, "demo")
     app = demo.build_app(s2t, device=args.device, model_tag=args.model)
     url = f"http://127.0.0.1:{args.port}"
     # printed before launching: gradio's own banner goes to stdout only after

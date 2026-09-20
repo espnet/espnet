@@ -546,13 +546,15 @@ class _FakeOWSM:
         self.tag, self.device = model_tag, device
         return self
 
-    def __call__(self, speech, *args, **kwargs):
+    def best_path(self, speech, *args, **kwargs):
+        # what the page calls for a single window: the CTC head, no search
         self.calls.append((speech, kwargs))
         return [(self.decoded,)]
 
-    def decode_long_batched_buffered(self, speech, **kwargs):
+    def decode_long(self, speech, **kwargs):
         self.long_calls.append((speech, kwargs))
-        return "long form text"
+        # (start, end, text) per segment, joined by the page
+        return [(0.0, 15.0, "long form"), (15.0, 30.0, "text")]
 
 
 def _fake_demo(monkeypatch, s2t=None, device="cpu", task="s2t"):
@@ -566,9 +568,7 @@ def _fake_demo(monkeypatch, s2t=None, device="cpu", task="s2t"):
     # the task check is one Hub request; the tests answer it themselves
     monkeypatch.setattr(espnet, "_infer_task", lambda tag: task)
     s2t = s2t or _FakeOWSM()
-    _fake_module(
-        monkeypatch, "espnet2.bin.s2t_inference_ctc", "Speech2TextGreedySearch", s2t
-    )
+    _fake_module(monkeypatch, "espnet2.bin.s2t_inference", "Speech2Text", s2t)
     return gradio, s2t
 
 
