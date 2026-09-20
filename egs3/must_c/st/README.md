@@ -102,6 +102,27 @@ python run.py --stages infer measure \
     --metrics_config conf/metrics.yaml
 ```
 
+### Pretrained model
+
+The converged model is published at
+**<https://huggingface.co/espnet/must_c_st_train_st_conformer>**, packed with
+`--stages pack_model upload_model` and `conf/publication.yaml`. The bundle
+carries the averaged checkpoint, BOTH BPE vocabularies (an ST bundle missing
+either side cannot be loaded), the `global_mvn` statistics the config
+references, and `metrics.json` for the numbers above.
+
+```python
+from espnet3.publication.inference_model import InferenceModel
+
+model = InferenceModel.from_pretrained(
+    "espnet/must_c_st_train_st_conformer", trust_user_code=True
+)
+```
+
+`trust_user_code=True` is required: the bundle ships this recipe's `dataset/`
+and `src/` so the packed config's `output_fn` can be imported.
+
+
 ### Comparison
 
 `egs2/must_c/st1` publishes no results, so there is no like-for-like reference.

@@ -54,7 +54,14 @@ pack_model:
     # inference outputs (TEMPLATE defaults)
     - inference
     - inference_*
+    # Both spellings, as for "inference" above: a mid-training evaluation
+    # leaves sibling directories such as infer_epoch41, and a bare "infer"
+    # excludes only the final one, shipping a stale metrics.json that
+    # contradicts the README. NOT "infer*", which also matches the recipe's
+    # own src/inference.py and silently drops the output_fn the packed config
+    # names.
     - infer
+    - infer_*
     # every raw Lightning checkpoint: periodic_step*, step*, last*, epoch*.
     # Inference loads the averaged .pth, never these.
     - "*.ckpt"
@@ -62,8 +69,29 @@ pack_model:
     # matches ave_1best..ave_9best but not ave_10best.
     - "valid.acc.ave_?best.pth"
     - "valid.acc.ave_10best.snap_*.pth"
+    - "valid.acc.ave_10best.epoch*.pth"
     # training-time bookkeeping
     - tensorboard
     - wandb
     - curves
     - "*.log"
+
+##########################################################
+#                   UPLOAD SETTING                       #
+##########################################################
+#   python run.py --stages upload_model \
+#       --training_config conf/tuning/train_st_conformer.yaml \
+#       --inference_config conf/inference.yaml \
+#       --metrics_config conf/metrics.yaml \
+#       --publication_config conf/publication.yaml
+#
+# Uploads ${pack_model.out_dir} as-is, so pack_model must have run first.
+# Requires a token with write access to the namespace below (HF_TOKEN or a
+# cached `huggingface-cli login`).
+upload_model:
+  hf_repo: espnet/must_c_st_train_st_conformer
+  private: false
+  # update: false (the default) refuses to overwrite an existing repo, which
+  # is what stops a re-run from silently replacing a published model. Set it
+  # to true deliberately when re-publishing.
+  update: false
