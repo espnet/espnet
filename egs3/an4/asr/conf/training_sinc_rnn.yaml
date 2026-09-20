@@ -1,0 +1,136 @@
+# Port of egs2/an4/asr1/conf/train_asr_sinc_rnn.yaml.
+task: espnet3.systems.asr.task.ASRTask
+seed: 0
+lightning_module: espnet3.components.modeling.espnet2_module.ESPnet2LightningModule
+float32_matmul_precision: highest
+cudnn_deterministic: true
+use_tf32: false
+# asr.sh collect_stats: contiguous splits, CPU, native accumulation.
+espnet2_stats:
+  nj: 32
+  batch_size: 15
+  num_workers: 1
+espnet2_compat:
+  accum_grad: 1
+  grad_clip: 5.0
+  ctc_on_cpu: false
+init: xavier_uniform
+stats_dir: ${recipe_dir}/exp/stats_sinc_rnn
+
+create_dataset:
+  recipe_dir: ${recipe_dir}
+
+dataset:
+  train:
+    - data_src_args:
+        split: train
+        recipe_dir: ${recipe_dir}
+  valid:
+    - data_src_args:
+        split: valid
+        recipe_dir: ${recipe_dir}
+  preprocessor:
+    _target_: espnet2.train.preprocessor.CommonPreprocessor
+    token_type: bpe
+    token_list: ${tokenizer.save_path}/tokens.txt
+    bpemodel: ${tokenizer.save_path}/unigram.model
+    text_cleaner: null
+    fs: 16000
+
+tokenizer:
+  vocab_size: 30
+  model_type: unigram
+  save_path: ${data_dir}/unigram_30
+  text_builder:
+    func: egs3.an4.asr.src.tokenizer.gather_training_text
+    manifest_path: ${data_dir}/manifest/train.tsv
+
+model:
+  # Initialization belongs to the task's model arguments in this API.
+  init: ${init}
+  token_list: ${tokenizer.save_path}/tokens.txt
+  frontend: sliding_window
+  frontend_conf:
+    hop_length: 240
+  preencoder: sinc
+  encoder: rnn
+  encoder_conf:
+    rnn_type: lstm
+    bidirectional: true
+    use_projection: true
+    num_layers: 4
+    hidden_size: 320
+    output_size: 320
+    dropout: 0.0
+    subsample: [2, 1, 1, 1]
+  decoder: rnn
+  decoder_conf:
+    rnn_type: lstm
+    num_layers: 1
+    hidden_size: 320
+    dropout: 0.0
+  normalize: global_mvn
+  normalize_conf:
+    stats_file: ${stats_dir}/train/feats_stats.npz
+  model_conf:
+    ctc_weight: 0.5
+    lsm_weight: 0.0
+    length_normalized_loss: false
+
+optimizer:
+  _target_: torch.optim.Adadelta
+  lr: 1.0
+  rho: 0.95
+  eps: 1.0e-08
+  weight_decay: 0
+
+# A node interpolation replaces the whole TEMPLATE scheduler mapping;
+# merging mappings would retain its incompatible warmup_steps argument.
+scheduler: ${plateau_scheduler}
+plateau_scheduler:
+  _target_: torch.optim.lr_scheduler.ReduceLROnPlateau
+  mode: min
+  factor: 0.5
+  patience: 1
+scheduler_interval: epoch
+scheduler_monitor: valid/loss
+best_model_criterion:
+  - [valid/acc, 1, max]
+
+dataloader:
+  train:
+    iter_factory:
+      distributed_batch_mode: split_batch
+      num_workers: 1
+      seed: ${seed}
+      batches:
+        sort_batch: descending
+        type: folded
+        batch_size: 15
+        shape_files:
+          - ${stats_dir}/train/speech_shape
+          - ${stats_dir}/train/text_shape
+        fold_lengths: [80000, 150]
+  valid:
+    iter_factory:
+      distributed_batch_mode: split_batch
+      num_workers: 1
+      seed: ${seed}
+      batches:
+        sort_batch: descending
+        shape_files:
+          - ${stats_dir}/valid/speech_shape
+          - ${stats_dir}/valid/text_shape
+        fold_lengths: [80000, 150]
+
+trainer:
+  num_sanity_val_steps: 0
+  max_epochs: 25
+  gradient_clip_val: 0.0
+  callbacks:
+    - _target_: lightning.pytorch.callbacks.EarlyStopping
+      monitor: valid/loss
+      mode: min
+      # ESPnet2 stops when bad epochs > 4; Lightning stops at >= patience.
+      patience: 5
+      min_delta: 0.0

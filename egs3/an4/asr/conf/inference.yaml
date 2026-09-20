@@ -1,0 +1,29 @@
+dataset:
+  test:
+    - name: valid
+      data_src_args:
+        split: valid
+        recipe_dir: ${recipe_dir}
+    - name: test
+      data_src_args:
+        split: test
+        recipe_dir: ${recipe_dir}
+
+model:
+  _target_: egs3.an4.asr.src.inference.load_best_model
+  asr_train_config: ${exp_dir}/config.yaml
+  checkpoint_dir: ${exp_dir}
+  device: cpu
+  beam_size: 10
+  ctc_weight: 0.3
+  lm_weight: 0.1
+  lm_train_config: ${recipe_dir}/exp/lm/config.yaml
+  lm_file: ${recipe_dir}/exp/lm/valid.loss.ave.pth
+  penalty: 0.0
+  maxlenratio: 0.0
+  minlenratio: 0.0
+
+# RNN beam search uses one utterance per call for parity with ESPnet2.
+batch_size: null
+input_key: speech
+output_fn: egs3.an4.asr.src.inference.build_output

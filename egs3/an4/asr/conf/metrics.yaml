@@ -1,0 +1,11 @@
+metrics:
+  - metric:
+      _target_: espnet3.systems.asr.metrics.sclite.ScliteErrorRate
+      token_type: word
+  - metric:
+      _target_: espnet3.systems.asr.metrics.sclite.ScliteErrorRate
+      token_type: char
+  - metric:
+      _target_: espnet3.systems.asr.metrics.sclite.ScliteErrorRate
+      token_type: bpe
+      bpemodel: ${recipe_dir}/data/unigram_30/unigram.model
