@@ -1,0 +1,20 @@
+dataset:
+  test:
+    - name: test
+      data_src_args:
+        split: test
+        recipe_dir: ${recipe_dir}
+
+model:
+  _target_: egs3.voices.asr.src.inference.load_averaged_model
+  asr_train_config: ${exp_dir}/config.yaml
+  checkpoint_dir: ${exp_dir}
+  max_checkpoints: 10
+  device: cpu
+  beam_size: 20
+  ctc_weight: 0.3
+  lm_weight: 0.6
+  lm_train_config: ${recipe_dir}/exp/lm/config.yaml
+  lm_file: ${recipe_dir}/exp/lm/valid.loss.ave.pth
+
+output_fn: egs3.voices.asr.src.inference.build_output

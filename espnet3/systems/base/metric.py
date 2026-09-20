@@ -65,7 +65,9 @@ def measure(metrics_config: DictConfig):
         metrics_config: Omegaconf configuration with inference and metric settings.
 
     Returns:
-        Nested dict keyed by metric class path and test set name.
+        Nested dict keyed by metric class path and test set name. Results from
+        multiple configurations of one metric class are merged, so distinct
+        outputs such as WER, CER and TER are all retained.
 
     Raises:
         ValueError: If no test sets can be resolved from either
@@ -87,7 +89,7 @@ def measure(metrics_config: DictConfig):
             obj=metric,
             max_depth=2,
         )
-        results[get_class_path(metric)] = {}
+        metric_results = results.setdefault(get_class_path(metric), {})
         for test_name in test_sets:
             if hasattr(metric_config, "inputs"):
                 inputs = OmegaConf.to_container(metric_config.inputs, resolve=True)
@@ -106,7 +108,7 @@ def measure(metrics_config: DictConfig):
                 file_suffix=".scp",
             )
             metric_result = metric(data, test_name, metrics_config.inference_dir)
-            results[get_class_path(metric)].update({test_name: metric_result})
+            metric_results.setdefault(test_name, {}).update(metric_result)
 
     out_path = Path(metrics_config.inference_dir) / "metrics.json"
     with open(out_path, "w", encoding="utf-8") as f:

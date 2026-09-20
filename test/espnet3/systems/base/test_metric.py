@@ -269,3 +269,37 @@ def test_metric_requires_test_sets_from_config_or_inference_dir(tmp_path):
     (tmp_path / "infer").mkdir()
     with pytest.raises(ValueError, match="No test sets found"):
         measure(cfg)
+
+
+class ConfiguredMetric(BaseMetric):
+    """Expose several metric names through one parameterized implementation."""
+
+    ref_key = "ref"
+    hyp_key = "hyp"
+
+    def __init__(self, name):
+        self.name = name
+
+    def __call__(self, data, test_name, inference_dir):
+        return {self.name: 0.0}
+
+
+def test_measure_retains_outputs_of_repeated_metric_class(tmp_path):
+    """Keep all WER/CER/TER outputs when the same scorer class is configured thrice."""
+    directory = tmp_path / "test"
+    directory.mkdir()
+    _write_scp(directory / "ref.scp", ["utt1 WORD"])
+    _write_scp(directory / "hyp.scp", ["utt1 WORD"])
+    config = OmegaConf.create(
+        {
+            "inference_dir": str(tmp_path),
+            "metrics": [
+                {"metric": {"_target_": f"{__name__}.ConfiguredMetric", "name": name}}
+                for name in ("WER", "CER", "TER")
+            ],
+        }
+    )
+    actual = measure(config)
+    expected = {"WER": 0.0, "CER": 0.0, "TER": 0.0}
+    assert actual[get_class_path(ConfiguredMetric("WER"))]["test"] == expected
+    assert json.loads((tmp_path / "metrics.json").read_text()) == actual

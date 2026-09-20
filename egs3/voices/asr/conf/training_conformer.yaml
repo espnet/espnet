@@ -1,0 +1,141 @@
+# Port of egs2/voices/asr1/conf/train_asr_conformer.yaml.
+# Source + distant single-channel recordings; devkit is an explicit override.
+task: espnet3.systems.asr.task.ASRTask
+num_device: 4
+seed: 0
+lightning_module: espnet3.components.modeling.espnet2_module.ESPnet2LightningModule
+float32_matmul_precision: highest
+cudnn_deterministic: true
+use_tf32: false
+# asr.sh collect_stats: contiguous splits, CPU, native accumulation.
+espnet2_stats:
+  nj: 32
+  batch_size: 20
+  num_workers: 1
+espnet2_compat:
+  accum_grad: 4
+  grad_clip: 5.0
+  ctc_on_cpu: false
+stats_dir: ${recipe_dir}/exp/stats_conformer
+create_dataset:
+  recipe_dir: ${recipe_dir}
+  corpus: full
+dataset:
+  train:
+  - data_src_args:
+      split: train
+      recipe_dir: ${recipe_dir}
+  valid:
+  - data_src_args:
+      split: valid
+      recipe_dir: ${recipe_dir}
+  preprocessor:
+    _target_: espnet2.train.preprocessor.CommonPreprocessor
+    token_type: bpe
+    token_list: ${tokenizer.save_path}/tokens.txt
+    bpemodel: ${tokenizer.save_path}/unigram.model
+    text_cleaner: null
+    fs: 16000
+tokenizer:
+  vocab_size: 5000
+  model_type: unigram
+  save_path: ${data_dir}/unigram_5000
+  text_builder:
+    func: egs3.voices.asr.src.tokenizer.gather_training_text
+    text_path: ${data_dir}/manifest/tokenizer_train.txt
+model:
+  token_list: ${tokenizer.save_path}/tokens.txt
+  normalize: global_mvn
+  normalize_conf:
+    stats_file: ${stats_dir}/train/feats_stats.npz
+  frontend_conf:
+    n_fft: 512
+    hop_length: 160
+  encoder: conformer
+  encoder_conf:
+    output_size: 512
+    attention_heads: 8
+    linear_units: 2048
+    num_blocks: 12
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    attention_dropout_rate: 0.1
+    input_layer: conv2d
+    normalize_before: true
+    macaron_style: true
+    rel_pos_type: latest
+    pos_enc_layer_type: rel_pos
+    selfattention_layer_type: rel_selfattn
+    activation_type: swish
+    use_cnn_module: true
+    cnn_module_kernel: 31
+  decoder: transformer
+  decoder_conf:
+    attention_heads: 8
+    linear_units: 2048
+    num_blocks: 6
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    self_attention_dropout_rate: 0.1
+    src_attention_dropout_rate: 0.1
+  model_conf:
+    ctc_weight: 0.3
+    lsm_weight: 0.1
+    length_normalized_loss: false
+  specaug: specaug
+  specaug_conf:
+    apply_time_warp: true
+    time_warp_window: 5
+    time_warp_mode: bicubic
+    apply_freq_mask: true
+    freq_mask_width_range:
+    - 0
+    - 27
+    num_freq_mask: 2
+    apply_time_mask: true
+    time_mask_width_ratio_range:
+    - 0.0
+    - 0.05
+    num_time_mask: 10
+optimizer:
+  lr: 0.0025
+scheduler:
+  warmup_steps: 40000
+best_model_criterion:
+- - valid/acc
+  - 10
+  - max
+dataloader:
+  train:
+    iter_factory:
+      distributed_batch_mode: split_batch
+      num_workers: 1
+      seed: ${seed}
+      batches:
+        sort_batch: descending
+        shape_files:
+        - ${stats_dir}/train/speech_shape
+        - ${stats_dir}/train/text_shape
+        type: numel
+        batch_bins: 35000000
+  valid:
+    iter_factory:
+      distributed_batch_mode: split_batch
+      num_workers: 1
+      seed: ${seed}
+      batches:
+        sort_batch: descending
+        shape_files:
+        - ${stats_dir}/valid/speech_shape
+        - ${stats_dir}/valid/text_shape
+trainer:
+  strategy:
+    _target_: lightning.pytorch.strategies.DDPStrategy
+    # Match the native ASRTask DDP defaults.
+    gradient_as_bucket_view: true
+    broadcast_buffers: true
+  num_sanity_val_steps: 0
+  # Retain GradScaler; the compatibility module chooses native BF16/FP16 autocast.
+  precision: 16-mixed
+  gradient_clip_val: 0.0
+  max_epochs: 50
