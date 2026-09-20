@@ -16,9 +16,7 @@ from it.
 
 from __future__ import annotations
 
-import importlib.util
 import re
-from pathlib import Path
 from typing import Any, Dict
 
 try:
@@ -31,31 +29,6 @@ except ImportError:
     from dataset.dataset import current_utt_id
 from espnet2.text.whisper_token_id_converter import OpenAIWhisperTokenIDConverter
 from espnet2.text.whisper_tokenizer import OpenAIWhisperTokenizer
-
-if __package__:
-    # Normal case: this module is part of the real egs3.ami.s2t.src package,
-    # so the relative import resolves against it directly. Gating on
-    # __package__ instead of wrapping this in try/except ImportError means a
-    # genuine breakage in separator.py surfaces as its own ImportError here,
-    # rather than being caught and silently rerouted into the fallback below.
-    from .separator import SPEAKER_CHANGE_SYMBOL
-else:
-    # A relative import has no parent package to resolve against when this
-    # file is loaded standalone, for example via
-    # ``importlib.util.spec_from_file_location`` in tests with a flat,
-    # non-dotted module name (so __package__ is ``""``). Fall back to loading
-    # separator.py by file path, freshly every time and with no sys.modules
-    # caching: SPEAKER_CHANGE_SYMBOL must reflect whatever separator.py's
-    # environment variable is set to at the moment this module is (re)loaded,
-    # which is exactly what a test reloading this module after monkeypatching
-    # the environment relies on.
-    _spec = importlib.util.spec_from_file_location(
-        f"{__name__}_ami_sot_separator_impl",
-        Path(__file__).resolve().parent / "separator.py",
-    )
-    _separator = importlib.util.module_from_spec(_spec)
-    _spec.loader.exec_module(_separator)
-    SPEAKER_CHANGE_SYMBOL = _separator.SPEAKER_CHANGE_SYMBOL
 
 MODEL_TYPE = "whisper_multilingual"
 
@@ -132,8 +105,11 @@ def build_output(data: Dict[str, Any], model_output: Any, idx: int) -> Dict[str,
             this process (see ``current_utt_id``), so there is no id to
             attach to ``idx``.
     """
-    hyp_sot = _render(model_output).replace(SPEAKER_CHANGE_SYMBOL, " <sc> ")
-    ref_sot = str(data.get("text", "")).replace(SPEAKER_CHANGE_SYMBOL, " <sc> ")
+    # Written with the symbol the model was trained on, not a scoring-side
+    # spelling: the SCP files should say what the model actually emitted. The
+    # metrics split on that same symbol, so nothing downstream needs a rewrite.
+    hyp_sot = _render(model_output)
+    ref_sot = str(data.get("text", ""))
     return {
         "utt_id": current_utt_id(idx),
         "hyp": strip_timestamps(hyp_sot),

@@ -65,12 +65,10 @@ else:
 
 # The model separates speakers with a single BPE token, resolved once for the
 # whole recipe as SPEAKER_CHANGE_SYMBOL (separator.py). This recipe's
-# inference step (src/inference.py) normalizes it to "<sc>" before writing ref
-# and hyp text, so "<sc>" is what this metric normally sees; the raw separator
-# is still accepted for text that has not gone through that normalization.
-# Both inference.py and this constant import the same symbol from
-# separator.py, so it cannot drift out of sync between them.
-_SEP_VARIANTS = ("<sc>", SPEAKER_CHANGE_SYMBOL)
+# inference step writes it through untouched, so this metric splits on the
+# symbol the checkpoint was trained with and on nothing else. Text written by
+# some other tool with a different spelling has to be converted before it is
+# scored here.
 _SEP = "▁SPKCHANGE▁"  # internal marker unlikely to occur in text
 _SPECIAL_RE = re.compile(r"<\|[^|]*\|>")  # Whisper special tokens, e.g. <|1.20|>
 
@@ -83,11 +81,10 @@ def strip_special_tokens(text: str) -> str:
 def split_speakers(text: str, cleaner) -> List[str]:
     """Split SOT text into per-speaker word lists.
 
-    Both separator spellings are accepted, Whisper special tokens are stripped,
-    the normalizer is applied, and empty blocks are dropped.
+    The text is split on the configured separator, Whisper special tokens are
+    stripped, the normalizer is applied, and empty blocks are dropped.
     """
-    for v in _SEP_VARIANTS:
-        text = text.replace(v, _SEP)
+    text = text.replace(SPEAKER_CHANGE_SYMBOL, _SEP)
     blocks = []
     for chunk in text.split(_SEP):
         chunk = strip_special_tokens(chunk)

@@ -33,7 +33,8 @@ der_mod = _load()
 
 
 def test_segments_from_sot_pairs_timestamps_within_a_speaker_block():
-    text = "<|0.00|> hello<|1.20|> <sc> <|2.00|> world<|3.50|>"
+    sep = der_mod.SPEAKER_CHANGE_SYMBOL
+    text = f"<|0.00|> hello<|1.20|> {sep} <|2.00|> world<|3.50|>"
     assert der_mod.segments_from_sot(text) == [
         (0, 0.0, 1.2),
         (1, 2.0, 3.5),
@@ -42,7 +43,8 @@ def test_segments_from_sot_pairs_timestamps_within_a_speaker_block():
 
 def test_segments_from_sot_drops_an_unclosed_final_segment():
     """prepare_sot omits the closing timestamp of a cut-truncated segment."""
-    text = "<|0.00|> hello<|1.20|> <sc> <|2.00|> world"
+    sep = der_mod.SPEAKER_CHANGE_SYMBOL
+    text = f"<|0.00|> hello<|1.20|> {sep} <|2.00|> world"
     assert der_mod.segments_from_sot(text) == [(0, 0.0, 1.2)]
 
 
@@ -177,10 +179,20 @@ _RECORDED_TEXT_SOT = (
 def test_der_reproduces_the_recorded_full_test_set_score(tmp_path):
     ref = tmp_path / "ref_sot.scp"
     hyp = tmp_path / "hyp_sot.scp"
+
+    # Both the recorded decode and a corpus prepared before this recipe spell
+    # the separator "<sc>"; the metric splits on the checkpoint's own symbol.
+    def _as_configured(text):
+        return text.replace("<sc>", der_mod.SPEAKER_CHANGE_SYMBOL)
+
     ref.write_text(
-        ami_sot_paths.TEST_TEXT.read_text(encoding="utf-8"), encoding="utf-8"
+        _as_configured(ami_sot_paths.TEST_TEXT.read_text(encoding="utf-8")),
+        encoding="utf-8",
     )
-    hyp.write_text(_RECORDED_TEXT_SOT.read_text(encoding="utf-8"), encoding="utf-8")
+    hyp.write_text(
+        _as_configured(_RECORDED_TEXT_SOT.read_text(encoding="utf-8")),
+        encoding="utf-8",
+    )
     result = der_mod.DER()({"ref": ref, "hyp": hyp}, "test", tmp_path)
     assert result["DER"] == 8.57
 
@@ -188,7 +200,7 @@ def test_der_reproduces_the_recorded_full_test_set_score(tmp_path):
 def test_segments_from_sot_follows_the_configured_symbol(monkeypatch):
     """segments_from_sot must honour the configured symbol, not a literal.
 
-    Only checking the _SEP_VARIANTS constant would pass without proving
+    Only checking the separator constant would pass without proving
     segments_from_sot actually uses it. Without the fix, "@@" is not recognized as a
     separator, so the whole text stays one block and this assertion fails.
     """

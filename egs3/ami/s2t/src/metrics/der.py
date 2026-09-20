@@ -92,12 +92,10 @@ logger = logging.getLogger(__name__)
 
 # The model separates speakers with a single BPE token, resolved once for the
 # whole recipe as SPEAKER_CHANGE_SYMBOL (separator.py). This recipe's
-# inference step (src/inference.py) normalizes it to "<sc>" before writing
-# hyp_sot and ref_sot text, so "<sc>" is what this metric normally sees; the
-# raw separator is still accepted for text that has not gone through that
-# normalization. Both inference.py and this constant import the same symbol
-# from separator.py, so it cannot drift out of sync between them.
-_SEP_VARIANTS = ("<sc>", SPEAKER_CHANGE_SYMBOL)
+# inference step writes it through untouched, so this metric splits on the
+# symbol the checkpoint was trained with and on nothing else. Text written by
+# some other tool with a different spelling has to be converted before it is
+# scored here.
 _SEP = "▁SPKCHANGE▁"  # internal marker unlikely to occur in text
 _TS_RE = re.compile(r"<\|(\d+(?:\.\d+)?)\|>")
 _DER_RE = re.compile(r"OVERALL SPEAKER DIARIZATION ERROR\s*=\s*([\d.]+)\s*percent")
@@ -116,8 +114,7 @@ def segments_from_sot(text: str) -> List[Tuple[int, float, float]]:
     timestamp in any of its 9319 blocks, while the recorded decode carries
     one.
     """
-    for variant in _SEP_VARIANTS:
-        text = text.replace(variant, _SEP)
+    text = text.replace(SPEAKER_CHANGE_SYMBOL, _SEP)
     segments = []
     for idx, block in enumerate(text.split(_SEP)):
         timestamps = [float(x) for x in _TS_RE.findall(block)]

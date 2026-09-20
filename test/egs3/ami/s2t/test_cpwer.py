@@ -53,8 +53,9 @@ def test_group_cpwer_counts_an_empty_reference_as_insertions():
 def test_metric_scores_two_aligned_scp_files(tmp_path):
     ref = tmp_path / "ref.scp"
     hyp = tmp_path / "hyp.scp"
-    ref.write_text("u1 the cat sat <sc> a dog barked\n", encoding="utf-8")
-    hyp.write_text("u1 a dog barked <sc> the cat sat\n", encoding="utf-8")
+    sep = cp.SPEAKER_CHANGE_SYMBOL
+    ref.write_text(f"u1 the cat sat {sep} a dog barked\n", encoding="utf-8")
+    hyp.write_text(f"u1 a dog barked {sep} the cat sat\n", encoding="utf-8")
     metric = cp.CpWER(clean_types=None)
     result = metric({"ref": ref, "hyp": hyp}, "test", tmp_path)
     assert result == {"cpWER": 0.0}
@@ -63,8 +64,9 @@ def test_metric_scores_two_aligned_scp_files(tmp_path):
 def test_metric_writes_a_by_speaker_count_side_file(tmp_path):
     ref = tmp_path / "ref.scp"
     hyp = tmp_path / "hyp.scp"
-    ref.write_text("u1 the cat sat <sc> a dog barked\n", encoding="utf-8")
-    hyp.write_text("u1 the cat sat <sc> a dog barked\n", encoding="utf-8")
+    sep = cp.SPEAKER_CHANGE_SYMBOL
+    ref.write_text(f"u1 the cat sat {sep} a dog barked\n", encoding="utf-8")
+    hyp.write_text(f"u1 the cat sat {sep} a dog barked\n", encoding="utf-8")
     cp.CpWER(clean_types=None)({"ref": ref, "hyp": hyp}, "test", tmp_path)
     assert (tmp_path / "test" / "cpwer_by_num_speakers.json").is_file()
 
@@ -131,10 +133,22 @@ def test_cpwer_reproduces_the_recorded_full_test_set_score(tmp_path):
     """The port must agree with the number the native run already produced."""
     ref = tmp_path / "ref.scp"
     hyp = tmp_path / "hyp.scp"
+
+    # Both sides may predate this recipe and spell the separator "<sc>": the
+    # recorded decode came from the older decode.py path, and a corpus
+    # prepared before the recipe writes it that way too. The metric splits on
+    # the checkpoint's own symbol, so convert here rather than teach it a
+    # spelling this recipe never writes.
+    def _as_configured(text):
+        return text.replace("<sc>", cp.SPEAKER_CHANGE_SYMBOL)
+
     ref.write_text(
-        ami_sot_paths.TEST_TEXT.read_text(encoding="utf-8"), encoding="utf-8"
+        _as_configured(ami_sot_paths.TEST_TEXT.read_text(encoding="utf-8")),
+        encoding="utf-8",
     )
-    hyp.write_text(_RECORDED_TEXT.read_text(encoding="utf-8"), encoding="utf-8")
+    hyp.write_text(
+        _as_configured(_RECORDED_TEXT.read_text(encoding="utf-8")), encoding="utf-8"
+    )
     result = cp.CpWER()({"ref": ref, "hyp": hyp}, "test", tmp_path)
     assert result["cpWER"] == 28.31
 
@@ -142,7 +156,7 @@ def test_cpwer_reproduces_the_recorded_full_test_set_score(tmp_path):
 def test_split_speakers_follows_the_configured_symbol(monkeypatch):
     """split_speakers must honour the configured symbol, not a literal.
 
-    Only checking the _SEP_VARIANTS constant would pass without proving split_speakers
+    Only checking the separator constant would pass without proving split_speakers
     actually uses it. Without the fix, "@@" is not recognized as a separator, so the
     whole text stays one block.
     """

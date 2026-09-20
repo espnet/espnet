@@ -186,15 +186,16 @@ def test_build_output_raises_when_no_dataset_has_been_built_yet():
         inf.build_output(data={"text": ""}, model_output=_fake_model_output(""), idx=0)
 
 
-def test_build_output_rewrites_the_separator(monkeypatch):
+def test_build_output_keeps_the_symbol_the_model_emitted(monkeypatch):
+    """The SCP files say what the model wrote, not a scoring-side spelling."""
     _build_active_dataset(monkeypatch, "test", ["utt-0"])
     out = inf.build_output(
         data={"text": ""},
         model_output=_fake_model_output("<|0.00|> a????b<|1.00|>"),
         idx=0,
     )
-    assert " <sc> " in out["hyp_sot"]
-    assert "????" not in out["hyp_sot"]
+    assert "????" in out["hyp_sot"]
+    assert "<sc>" not in out["hyp_sot"]
 
 
 def _fake_model_output(rendered: str):
@@ -218,20 +219,29 @@ def _fake_model_output(rendered: str):
     return [("ignored", [], ids, None, None)]
 
 
+def _load_separator_module():
+    """Load src/separator.py freshly, so it re-reads its environment."""
+    spec = importlib.util.spec_from_file_location(
+        "ami_sot_separator_under_test", _RECIPE / "src" / "separator.py"
+    )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
 def test_separator_defaults_to_the_released_checkpoints_symbol():
     """The released model separates speakers with four question marks."""
-    assert inf.SPEAKER_CHANGE_SYMBOL == "????"
+    assert _load_separator_module().SPEAKER_CHANGE_SYMBOL == "????"
 
 
 def test_separator_follows_the_environment_override(monkeypatch):
     """A checkpoint trained with another symbol needs no code edit."""
     monkeypatch.setenv("AMI_SOT_SPEAKER_CHANGE_SYMBOL", "@@")
-    reloaded = _load_inference_module()
-    assert reloaded.SPEAKER_CHANGE_SYMBOL == "@@"
+    assert _load_separator_module().SPEAKER_CHANGE_SYMBOL == "@@"
 
 
-def test_build_output_rewrites_whatever_symbol_is_configured(monkeypatch):
-    """build_output must rewrite the configured symbol, not a literal."""
+def test_build_output_keeps_whatever_symbol_is_configured(monkeypatch):
+    """Whatever separator the checkpoint uses reaches the output untouched."""
     monkeypatch.setenv("AMI_SOT_SPEAKER_CHANGE_SYMBOL", "@@")
     reloaded = _load_inference_module()
     _build_active_dataset(monkeypatch, "test", ["utt-0"])
@@ -252,5 +262,5 @@ def test_build_output_rewrites_whatever_symbol_is_configured(monkeypatch):
         ],
         idx=0,
     )
-    assert " <sc> " in out["hyp_sot"] and "@@" not in out["hyp_sot"]
-    assert " <sc> " in out["ref_sot"] and "@@" not in out["ref_sot"]
+    assert "@@" in out["hyp_sot"] and "<sc>" not in out["hyp_sot"]
+    assert "@@" in out["ref_sot"] and "<sc>" not in out["ref_sot"]
