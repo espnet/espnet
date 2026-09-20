@@ -1,0 +1,33 @@
+##########################################################
+#                 METRIC SCORING SETTING                 #
+##########################################################
+# Quick usage:
+#   python run.py --stages measure --metrics_config conf/metrics.yaml
+#
+# Scores the `<test_name>/*.scp` files `infer` wrote. Test sets are discovered
+# from `${inference_dir}` unless `dataset.test` names them.
+
+recipe_dir: .
+# `run.py` copies `exp_tag`/`exp_dir` from the training config and
+# `inference_dir` from the inference config. Standalone `measure` needs
+# `exp_tag` set here instead.
+exp_tag:
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+
+# Both metrics normalize and re-segment each transcript with panphon, so a
+# reference written as space-separated phones and a hypothesis written as one
+# concatenated string score on identical units. They need `espnet[pr]`.
+metrics:
+  # Whole-phone errors over the reference phone count.
+  - metric:
+      _target_: espnet3.systems.pr.metrics.per.PER
+      ref_key: ref
+      hyp_key: hyp
+
+  # Same denominator, but a substitution costs the fraction of articulatory
+  # features that differ, so a near-miss is penalized less than an unrelated
+  # phone.
+  - metric:
+      _target_: espnet3.systems.pr.metrics.pfer.PFER
+      ref_key: ref
+      hyp_key: hyp
