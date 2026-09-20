@@ -129,3 +129,6 @@ tools/condarc
 tools/lightning_constraints.txt
 tools/versa
 tools/ParallelWaveGAN
+# pixi environments
+.pixi/*
+!.pixi/config.toml
