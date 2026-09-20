@@ -32,6 +32,7 @@ class _FakeModule:
     def __init__(self):
         self.model = _FakeModel()
         self.logged = {}
+        self.device = torch.device("cpu")
 
     def all_gather(self, tensor):
         return tensor
@@ -111,3 +112,60 @@ def test_min_dcf_operating_point_is_configurable():
     _feed(SpeakerVerificationScoring(p_target=0.01), module, trainer, batches)
 
     assert module.logged["valid/mindcf"] > lenient
+
+
+class _FakeDDPModule(_FakeModule):
+    """Two-rank stand-in whose peer holds a different number of trials.
+
+    ``all_gather`` is called three times per reduction -- the trial counts,
+    then the padded scores, then the padded labels -- so the peer contribution
+    is built per call, the way a real collective would return one row per rank.
+    """
+
+    def __init__(self, peer_scores, peer_labels):
+        super().__init__()
+        self.peer_scores = peer_scores
+        self.peer_labels = peer_labels
+        self._calls = 0
+
+    def all_gather(self, tensor):
+        self._calls += 1
+        if self._calls == 1:
+            peer = tensor.new_tensor([self.peer_scores.numel()])
+        else:
+            source = self.peer_scores if self._calls == 2 else self.peer_labels
+            peer = torch.zeros_like(tensor)
+            peer[: source.numel()] = source
+        return torch.stack([tensor, peer])
+
+
+def test_ranks_with_unequal_trial_counts_are_gathered():
+    callback = SpeakerVerificationScoring()
+    module = _FakeDDPModule(torch.tensor([0.1]), torch.tensor([0]))
+    trainer = SimpleNamespace(num_val_batches=[1])
+
+    # 3 trials locally against 1 on the peer: `all_gather` needs one shape, so
+    # the buffers have to be padded to 3 and unpadded again after the gather.
+    _feed(
+        callback,
+        module,
+        trainer,
+        [(torch.tensor([0.9, 0.8, 0.2]), torch.tensor([1, 1, 0]))],
+    )
+
+    # All four trials separate perfectly; padding left in place would not.
+    assert module.logged == {"valid/eer": 0.0, "valid/mindcf": 0.0}
+
+
+def test_a_rank_without_trials_still_joins_the_collective():
+    callback = SpeakerVerificationScoring()
+    module = _FakeDDPModule(torch.tensor([0.9, 0.1]), torch.tensor([1, 0]))
+    trainer = SimpleNamespace(num_val_batches=[1])
+
+    # This rank saw no trial batch. Returning early here would leave the peer
+    # waiting in `all_gather` forever, so it must reach the collective anyway
+    # and score the peer's trials.
+    callback.on_validation_epoch_start(trainer, module)
+    callback.on_validation_batch_end(trainer, module, None, None, 0)
+
+    assert module.logged == {"valid/eer": 0.0, "valid/mindcf": 0.0}

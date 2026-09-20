@@ -83,15 +83,48 @@ class SpeakerVerificationScoring(Callback):
     def score_epoch(self, pl_module) -> None:
         """Gather the buffered trials across ranks and log the metrics.
 
+        ``all_gather`` is a collective: every rank has to call it, with the
+        same shape. Neither is free here -- the validation sampler need not
+        divide evenly, so a rank can hold fewer trials than its peers, and a
+        rank that saw no trial batch holds none at all. Returning early on the
+        empty rank would hang the others. So the local counts are gathered
+        first, the buffers are padded to the largest of them, and the padding
+        is dropped again once the gather is done.
+
         Args:
             pl_module: LightningModule wrapping the speaker model.
         """
         scores, labels = pl_module.model.pop_trials()
-        if scores.numel() == 0:
+        device = pl_module.device
+        scores = scores.to(device)
+        labels = labels.to(device)
+
+        counts = pl_module.all_gather(
+            torch.tensor([scores.numel()], device=device)
+        ).flatten()
+        max_count = int(counts.max())
+        if max_count == 0:
             return
 
-        scores = pl_module.all_gather(scores).flatten().cpu().numpy()
-        labels = pl_module.all_gather(labels).flatten().cpu().numpy()
+        padded_scores = scores.new_zeros(max_count)
+        padded_scores[: scores.numel()] = scores
+        padded_labels = labels.new_zeros(max_count)
+        padded_labels[: labels.numel()] = labels
+
+        gathered_scores = pl_module.all_gather(padded_scores).reshape(-1, max_count)
+        gathered_labels = pl_module.all_gather(padded_labels).reshape(-1, max_count)
+        per_rank = counts.tolist()
+
+        scores = (
+            torch.cat([row[:n] for row, n in zip(gathered_scores, per_rank)])
+            .cpu()
+            .numpy()
+        )
+        labels = (
+            torch.cat([row[:n] for row, n in zip(gathered_labels, per_rank)])
+            .cpu()
+            .numpy()
+        )
 
         # The sanity-check run only sees a couple of batches, which may not
         # contain both target and nontarget trials.
