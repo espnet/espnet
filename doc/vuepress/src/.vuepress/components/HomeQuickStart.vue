@@ -71,7 +71,7 @@
             </div>
             <p class="qs-install-note">
               conda / source install →
-              <a href="./get-started/installation.html">Installation docs</a>
+              <a href="./get-started/installation-troubleshooting.html">Installation docs</a>
             </p>
           </div>
 

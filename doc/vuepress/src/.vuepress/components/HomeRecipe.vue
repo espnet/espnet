@@ -179,14 +179,14 @@ const guides = [
     name: 'Config',
     badge: 'Reference',
     desc: 'Understand the YAML config slots for training, inference, dataset, resolvers, and publication.',
-    href: './core/config/index.html',
+    href: './config/index.html',
     icon: IconConfig,
     iconBg: '#e6f7f7',
     iconColor: '#0f7a7a',
     links: [
-      { label: 'Training config',          href: './core/config/training.html' },
-      { label: 'Resolvers',                href: './core/config/resolvers.html' },
-      { label: 'Dataset config',           href: './core/config/dataset.html' },
+      { label: 'Training config',          href: './config/train_config.html' },
+      { label: 'Resolvers',                href: './config/train_config.html#resolvers' },
+      { label: 'Dataset config',           href: './config/train_config.html#dataset' },
     ],
   },
   {
