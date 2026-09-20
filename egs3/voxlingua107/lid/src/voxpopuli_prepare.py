@@ -75,9 +75,10 @@ def download_recordings(source_dir, sessions, base_url=BASE_URL):
                     target = source_dir / "raw_audios" / name
                     target.parent.mkdir(parents=True, exist_ok=True)
                     temporary = target.with_suffix(".part")
-                    with archive.extractfile(member) as audio, temporary.open(
-                        "wb"
-                    ) as output:
+                    with (
+                        archive.extractfile(member) as audio,
+                        temporary.open("wb") as output,
+                    ):
                         shutil.copyfileobj(audio, output, length=16 * 1024 * 1024)
                     temporary.replace(target)
                     names.remove(name)
