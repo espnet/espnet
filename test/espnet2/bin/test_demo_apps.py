@@ -29,6 +29,7 @@ import librosa
 import numpy as np
 import pytest
 import yaml
+from packaging.version import Version
 
 from espnet2.bin import demo
 
@@ -363,7 +364,10 @@ def test_an_app_using_a_new_api_asks_for_the_release_that_has_it(name):
         if f".{attribute}(" not in source:
             continue
         floor = requirement.split(">=")[1].strip()
-        assert floor >= since, (
+        # parsed, not compared as text: "202612rc1" sorts after "202612" as a
+        # string and before it as a version, and so does "202610.post2"
+        # against "202610.post10"
+        assert Version(floor) >= Version(since), (
             f"{name}: the app calls {attribute}(), which no espnet before "
             f"{since} has, but requirements.txt asks for {requirement}"
         )
