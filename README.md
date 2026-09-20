@@ -120,13 +120,17 @@ espnet asr audio.wav                       # transcribe, detecting the language
 espnet translate audio.wav --to eng        # speech in, English text out
 espnet tts "Hello from ESPnet" -o out.wav
 espnet enhance noisy.wav -o clean.wav
-espnet models                              # the default model of each command
 espnet asr --live                          # transcribe the microphone
+espnet models                              # the default model of each command
+pip install "espnet[demo]"
+espnet demo                                # the same model in your browser
 ```
 
-Every command takes `--model <tag>` and `--device cuda`, and `espnet --version` names the
-installed version. The first one also runs hosted, as
-[the OWSM-CTC v4 Space](https://huggingface.co/spaces/espnet/owsm-ctc-v4).
+Every command takes `--model <tag>` and `--device cuda`, and `espnet --version` names
+the installed version. `espnet demo` serves, on localhost, the app behind [the OWSM-CTC
+v4 Space](https://huggingface.co/spaces/espnet/owsm-ctc-v4) — recording, upload, the
+checkpoint's own language and translation menus, and long-form decoding — and takes
+`--port` and `--share`.
 
 **Without installing anything** — the same commands, in a container:
 
