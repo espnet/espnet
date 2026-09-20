@@ -1,3 +1,3 @@
-espnet>=202612
+espnet>=202610.post1
 espnet_model_zoo>=0.1.11
 librosa

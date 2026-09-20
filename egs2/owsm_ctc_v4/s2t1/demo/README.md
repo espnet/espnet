@@ -71,8 +71,8 @@ hf upload espnet/owsm-ctc-v4 egs2/owsm_ctc_v4/s2t1/demo . --repo-type space
 espnet from PyPI, so an app that calls something only master has is a Space
 that builds and then fails to start. This app decodes with `best_path()` and
 the `decode_long()` that takes a path and a batch size, which arrived after
-202610 - hence `espnet>=202612`, which pip will refuse until that release
-exists. Uploading this directory before then replaces a working Space with a
+202610 - hence `espnet>=202610.post1`, which pip will refuse until that
+release exists. Uploading this directory before then replaces a working Space with a
 broken one, which is exactly what happened on 2026-09-20.
 
 ## Citation

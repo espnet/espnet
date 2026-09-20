@@ -331,7 +331,7 @@ def test_the_ctc_apps_symbol_splitting_is_what_espnet_demo_splits():
 # 2026-09-20: uploading the CTC app with `espnet>=202609.post2` took the live
 # owsm-ctc-v4 Space down that way.
 UNRELEASED = {
-    "best_path": "202612",
+    "best_path": "202610.post1",
 }
 # The extra each front-end needs, by the import that gives it away. RawNet3's
 # asteroid_frontend imports asteroid_filterbanks, which only espnet[spk] has;
