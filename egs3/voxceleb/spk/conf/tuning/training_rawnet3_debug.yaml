@@ -3,7 +3,7 @@
 ##########################################################
 # RawNet3 trained on the VoxCeleb 1 and 2 development sets.
 #
-# NOTE: SMOKE TEST. Identical to `training_rawnet3.yaml` except for how much
+# NOTE: DEBUG CONFIG. Identical to `training_rawnet3.yaml` except for how much
 # data it sees: one epoch of 30 batches, 20 validation batches over 1,000
 # trials. It exercises the whole path -- 4-way DDP, MUSAN/RIR augmentation, the
 # AAMSoftmax head, and the `valid/eer` callback -- so a broken recipe fails in
@@ -11,7 +11,7 @@
 #
 # Quick usage:
 #   python run.py --stages create_dataset train \
-#       --training_config conf/tuning/training_rawnet3.yaml
+#       --training_config conf/tuning/training_rawnet3_debug.yaml
 #
 # Reference training environment:
 # - Number of GPUs: 4

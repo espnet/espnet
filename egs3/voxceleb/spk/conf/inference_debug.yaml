@@ -1,0 +1,54 @@
+##########################################################
+#                   Inference SETTING                    #
+##########################################################
+# Common usage:
+#   python run.py --stages infer \
+#       --training_config conf/tuning/training_rawnet3_debug.yaml \
+#       --inference_config conf/inference_debug.yaml
+#
+##########################################################
+#                    PATHS AND INPUTS                    #
+##########################################################
+# This recipe omits `exp_tag`, `exp_dir`, and `inference_dir` on purpose.
+# `run.py` copies `training_config.exp_tag` and `training_config.exp_dir` here
+# before resolving `${exp_dir}`, and `inference_dir` defaults to
+# `${exp_dir}/${self_name:}`, so results land in `${exp_dir}/inference_debug`
+# rather than overwriting the full run's `${exp_dir}/inference`.
+#
+# `device` is unset here, exactly as in `conf/inference.yaml`:
+# `InferenceProvider._resolve_device` picks the first CUDA device visible to
+# the worker and only falls back to CPU when there is none. Pin it with a
+# TOP-LEVEL `device:` if you need to; a `device` inside the `model` block has
+# no effect, because `build_model` passes the resolved device to `instantiate`
+# and that overrides whatever the block says.
+
+##########################################################
+#                    DATASET DEFINITION                  #
+##########################################################
+# Unlike validation, scoring runs once, so the full Vox1-O list is used.
+dataset:
+  test:
+    - name: vox1_o
+      data_src_args:
+        split: voxceleb1_test
+        trials: vox1_o
+        # DEBUG: a strided subset keeps single-process scoring to minutes;
+        # conf/inference.yaml scores the full 37,611-trial list.
+        num_trials: 2000
+
+##########################################################
+#                    MODEL AND OUTPUT                    #
+##########################################################
+model:
+  # DEBUG CONFIG ONLY. `AverageCheckpointsCallback` names its output after the
+  # number of checkpoints it actually averaged, not after the configured
+  # `best_model_criterion` nbest: `f"{monitor}.ave_{len(checkpoints)}best.pth"`.
+  # This config trains a single epoch, so exactly one checkpoint exists and the
+  # file is `ave_1best.pth`. The real 40-epoch run keeps 3 and produces the
+  # `ave_3best.pth` that `conf/inference.yaml` points at.
+  #
+  # This means the debug run does NOT cover the filename the real run depends
+  # on.
+  model_file: ${exp_dir}/valid.eer.ave_1best.pth
+
+output_fn: src.inference.build_output
