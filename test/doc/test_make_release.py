@@ -46,6 +46,9 @@ def test_a_release_milestone_names_its_version(title, version):
         "v.20261",
         "v.202610.post",
         "v.202610.dev1",
+        # \d would take these; PyPI would not
+        "v.２０２６１０",
+        "v.202610.post１",
         "Backlog",
         "",
     ],

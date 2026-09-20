@@ -113,7 +113,11 @@ def version_of(milestone_title):
 # the file at all. Deriving the version from the milestone title is what stops
 # the tag and the published version drifting apart again, and that only works
 # if the title is already the version.
-RELEASE_VERSION = re.compile(r"\d{6}(\.post\d+)?")
+# [0-9] and not \d: \d matches every Unicode decimal digit, so a milestone
+# typed with fullwidth digits - easy enough on a Japanese keyboard - would
+# pass this and then be refused by PyPI, which is the failure this check
+# exists to catch early.
+RELEASE_VERSION = re.compile(r"[0-9]{6}(\.post[0-9]+)?")
 
 
 def release_version(milestone_title):
