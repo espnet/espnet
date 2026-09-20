@@ -1,7 +1,7 @@
 # VoxCeleb speaker verification recipe
 
 Trains a speaker embedding extractor on the VoxCeleb 1 and 2 development sets
-and evaluates it on the cleaned Vox1-O trial list (`veri_test2.txt`).
+and evaluates it on the cleaned Vox1-O protocol (`veri_test2.txt`).
 
 ## Corpus layout
 
@@ -68,6 +68,14 @@ is its line count. So `dataset/config.yaml` declares the union under
 `data/voxceleb12_dev/spk2utt` holding nothing but that label space. Add a
 corpus by adding it to `builder.sources`, to the union, and to `dataset.train`.
 
+Mini-batches over a merged training set are drawn by the plain shuffling
+sampler of `dataloader.train`, so a batch is speaker-balanced only in the
+statistical sense: it is a uniform sample of the merged utterance list, and a
+corpus contributes in proportion to its size. That is what the reference
+RawNet3 result below was trained with. If you need an explicit guarantee of
+how many speakers appear per batch, or per corpus, that is what ESPnet3's
+`CategoryIterator` is for; wire it up under `dataloader.train.iter_factory`.
+
 ## Quick start
 
 ```bash
@@ -98,7 +106,9 @@ python run.py --stages measure \
 | [`conf/tuning/training_rawnet3.yaml`](conf/tuning/training_rawnet3.yaml) | learnable sinc filterbank | RawNet3 | trained from scratch on raw waveform |
 | [`conf/tuning/training_xeus_ecapa.yaml`](conf/tuning/training_xeus_ecapa.yaml) | XEUS (jointly fine-tuned) | ECAPA-TDNN | needs the XEUS checkpoint, see below |
 
-The SSL configuration expects a local XEUS checkpoint:
+`training_xeus_ecapa.yaml`, and only that config, expects a local XEUS
+checkpoint. The default RawNet3 config consumes raw waveform through a
+learnable sinc filterbank and downloads no pretrained model at all:
 
 ```bash
 hf download espnet/xeus model/xeus_checkpoint.pth --local-dir download
