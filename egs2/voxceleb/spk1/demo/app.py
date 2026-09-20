@@ -34,7 +34,7 @@ from espnet2.bin.spk_inference import Speech2Embedding  # noqa: E402
 # is trimmed rather than refused.
 MAX_SECS = 30
 GPU_SECONDS = 60
-MODEL_TAG = os.environ.get("SPK_MODEL_TAG", "espnet/voxcelebs12_ecapa_mel")
+MODEL_TAG = os.environ.get("SPK_MODEL_TAG", "espnet/voxcelebs12_rawnet3")
 # ZeroGPU attaches the GPU only while a @spaces.GPU function runs, so
 # torch.cuda.is_available() is False here and asking it would pin the models to
 # the CPU on the very hardware bought to run them. SPACES_ZERO_GPU is the
@@ -56,40 +56,39 @@ else:
 # 1.135, which is a cosine of 0.36. That is where the slider starts. It is
 # one operating point measured on one corpus of read English speech, not a
 # constant of nature, which is why it is a slider and not a constant.
-# Not something a checkpoint records: a threshold is a choice about which
-# errors to make, and this one is the default model's equal error point on
-# VoxCeleb1-O. Another checkpoint reached through SPK_MODEL_TAG has its own,
-# so it is settable - and the slider is there because the right value is the
-# user's to pick whatever the checkpoint.
-DEFAULT_TAG = "espnet/voxcelebs12_ecapa_mel"
+# Not something a checkpoint records, and not something the recipe records
+# either: its table gives each model's equal error *rate*, not the score at
+# which that rate occurs. A threshold is a choice about which errors to make,
+# so 0.36 is a place to start moving the slider from rather than a
+# measurement, and SPK_THRESHOLD sets that starting value for anyone who has
+# measured one for their checkpoint.
 THRESHOLD = float(os.environ.get("SPK_THRESHOLD", "0.36"))
 FIRST_WAV = "https://github.com/espnet/espnet/raw/master/test_utils/ctc_align_test.wav"
 SECOND_WAV = "https://github.com/espnet/espnet/raw/master/test_utils/st_test.wav"
 
 
 THRESHOLD_INFO = (
-    f"{THRESHOLD} is this model's equal error point on VoxCeleb1-O"
-    if MODEL_TAG == DEFAULT_TAG
-    else f"{THRESHOLD} is a starting point, not this checkpoint's own "
-    "operating point; set SPK_THRESHOLD once you know it"
+    f"{THRESHOLD} is a place to start, not a measured operating point; "
+    "set SPK_THRESHOLD if you have one"
 )
 
 TITLE = "Speaker verification"
 DESCRIPTION = """# Speaker verification
 
-ECAPA-TDNN turns a recording into one vector that describes the voice
-rather than the words. Two recordings of the
-same person land close together, two people land far apart, and the cosine
-between the vectors is the score. This checkpoint was trained on VoxCeleb 1+2
-with [ESPnet](https://github.com/espnet/espnet), by the recipe at
+RawNet3 turns a recording into one vector that describes the voice rather
+than the words, reading the waveform itself instead of a spectrogram. Two
+recordings of the same person land close together, two people land far
+apart, and the cosine between the vectors is the score. This checkpoint was
+trained on VoxCeleb 1+2 with [ESPnet](https://github.com/espnet/espnet), by
+the recipe at
 [`egs2/voxceleb/spk1`](https://github.com/espnet/espnet/tree/master/egs2/voxceleb/spk1),
-where it reaches 0.86% equal error rate on VoxCeleb1-O.
+where it reaches 0.74% equal error rate on VoxCeleb1-O.
 
 Give it two recordings of speech. The verdict is the score against the
 threshold, and the threshold is yours to move.
 """
 ARTICLE = """Model:
-[`espnet/voxcelebs12_ecapa_mel`](https://huggingface.co/espnet/voxcelebs12_ecapa_mel).
+[`espnet/voxcelebs12_rawnet3`](https://huggingface.co/espnet/voxcelebs12_rawnet3).
 Source of this Space:
 [`egs2/voxceleb/spk1/demo`](https://github.com/espnet/espnet/tree/master/egs2/voxceleb/spk1/demo).
 

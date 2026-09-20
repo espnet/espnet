@@ -14,20 +14,32 @@ tags:
   - espnet
   - speaker-verification
   - speaker-recognition
-  - ecapa-tdnn
+  - rawnet3
 models:
-  - espnet/voxcelebs12_ecapa_mel
+  - espnet/voxcelebs12_rawnet3
 ---
 
 # Speaker verification
 
 The source of the Hugging Face Space `espnet/speaker-verification`, one of
 the demos kept in this repository. It takes two recordings, turns each into
-an ECAPA-TDNN embedding, and reports the cosine between them together with a
-verdict. The checkpoint is
-[`voxcelebs12_ecapa_mel`](https://huggingface.co/espnet/voxcelebs12_ecapa_mel),
+a RawNet3 embedding taken from the waveform itself, and reports the cosine
+between them together with a verdict. The checkpoint is
+[`voxcelebs12_rawnet3`](https://huggingface.co/espnet/voxcelebs12_rawnet3),
 trained on VoxCeleb 1+2 by the recipe in the directory above this one, where
-it reaches 0.856% equal error rate on VoxCeleb1-O.
+it reaches 0.739% equal error rate on VoxCeleb1-O.
+
+It is the best of that recipe's models that a `pip install` can load. The
+three that score better - `ecapa_frozen` at 0.638%, and the two that
+fine-tune WavLM - reach their front end through S3PRL, whose released
+version calls `torchaudio.set_audio_backend`, removed in torchaudio 2.1. A
+Space installs from `requirements.txt` and nothing else, so those checkpoints
+would leave this one failing to start.
+
+The threshold is not read from the checkpoint and could not be: the recipe
+records each model's equal error *rate*, not the score at which it occurs.
+The slider starts at 0.36 as a place to move from, and `SPK_THRESHOLD` sets
+that starting value for anyone who has measured one.
 
 The sample rate and the length the model was trained to score both come from
 the checkpoint's own preprocessor config: 16 kHz and 3 s here. A recording
