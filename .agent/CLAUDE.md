@@ -2,7 +2,7 @@
 
 Internal reference for anyone writing or reviewing code in `espnet3/`, `egs3/`, or `ci/`. It answers
 "where does X live" and "what convention should I follow", not "how do I use espnet3 as an end user"
-(for that, see each recipe's `readme.md` and the package docstrings themselves).
+(for that, see each recipe's `README.md` and the package docstrings themselves).
 
 `.agent/` mirrors the source tree: every package that has its own reference doc keeps it at the
 matching path (e.g. `espnet3/components/` is documented at `.agent/espnet3/components/CLAUDE.md`).
@@ -155,9 +155,9 @@ classes each pattern refers to):**
   trained model on data is **`infer`/`inference`**, end to end -- the stage is `infer`, the config is
   `inference_config`/`inference.yaml`, the module is `inference.py`, the class is `InferenceRunner`/
   `InferenceProvider`/`InferenceModel`. Do not introduce `decode`/`decoding`/`decode_config` as a
-  synonym for this, including in comments, readmes, or example paths -- `decode`/`decoder` is reserved
+  synonym for this, including in comments, README files, or example paths -- `decode`/`decoder` is reserved
   for the model-architecture sense (an ASR decoder module, `decoder_conf`, `return_decoded_hyp`).
-  Every shipped recipe readme currently labels its `--stages infer` step `# ... Decode` and one
+  Every shipped recipe README currently labels its `--stages infer` step `# ... Decode` and one
   docstring uses `/exp/decode` as an example path; both are the drift this rule exists to stop, not
   something to match.
 
@@ -467,5 +467,5 @@ pytest -q test/espnet3/                 # or a smaller scope, e.g. pytest -q tes
    runner-level test if you touched `run.py`'s stage dispatch, and an integration-test addition if the
    stage is meant to run end-to-end in CI (extend `ci/test_integration_espnet3.sh` or add a new CI
    script following its pattern -- see `ci/CLAUDE.md`).
-8. **Update docs**: the recipe's `readme.md` if the stage is recipe-specific, and the matching package
+8. **Update docs**: the recipe's `README.md` if the stage is recipe-specific, and the matching package
    doc under `.agent/` (section 1) if it changes what a shared package owns.

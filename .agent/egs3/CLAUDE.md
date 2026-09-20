@@ -11,7 +11,7 @@ egs3/
 │   │   ├── run.py             # DEFAULT_STAGES, build_parser(), main() -- every ASR recipe's run.py imports these
 │   │   ├── conf/{training,inference,metrics,publication,demo}.yaml   # fully-commented default configs
 │   │   ├── src/{app.py, inference.py, hf_model_readme.md, hf_demo_readme.md}
-│   │   └── readme.md
+│   │   └── README.md
 │   └── tts/
 │       └── conf/{training,inference,metrics}.yaml   # no run.py / src/ yet -- no TTS recipe exists to date
 ├── mini_an4/asr/               # tiny CI recipe (an4 corpus); the one exercised by ci/test_integration_espnet3*.sh
@@ -19,25 +19,31 @@ egs3/
 │   ├── conf/                  # 8 training-config variants + inference / inference_transducer / metrics / publication / demo
 │   ├── dataset/{builder.py, dataset.py, config.yaml, __init__.py}  # resolved via `data_src: mini_an4/asr`
 │   ├── src/{tokenizer.py, preprocessor.py, inference.py, app.py}
-│   ├── path.sh, readme.md, downloads.tar.gz   # (prebuilt corpus fixture, so CI does not hit the network)
+│   ├── path.sh, README.md, downloads.tar.gz   # (prebuilt corpus fixture, so CI does not hit the network)
 ├── librispeech_100/asr/        # larger real-scale recipe, same shape as mini_an4 -- the reference recipe to
 │   │                           # copy from when creating a new one (see below)
 │   ├── run.py, conf/ (incl. conf/tuning/training_e_branchformer.yaml)
 │   ├── dataset/{builder.py, dataset.py, config.yaml, __init__.py}
 │   ├── src/{tokenizer.py, inference.py, app.py}
-│   └── path.sh, readme.md
+│   └── path.sh, README.md
 └── aishell/asr/                # AISHELL-1 (Mandarin) recipe; same shape as librispeech_100 (AishellBuilder /
     │                           # AishellDataset / AishellExample, stock ASRSystem, raw-passthrough builder)
     ├── run.py, run.sh, conf/ (incl. conf/tuning/)
     ├── dataset/{builder.py, dataset.py, config.yaml, __init__.py}
     ├── src/{tokenizer.py, inference.py, app.py}
-    └── path.sh, readme.md
+    └── path.sh, README.md
 ```
 
 Cloning: `espnet3 clone <dataset>/<task> [--project DIR]` (see
 [`espnet3/cli/CLAUDE.md`](../espnet3/cli/CLAUDE.md)) copies `conf/`, `dataset/`, `src/`, `run.py`,
-`readme.md`, `path.sh` out of `egs3/` into a standalone directory that only needs `espnet3` installed
+`README.md`, `path.sh` out of `egs3/` into a standalone directory that only needs `espnet3` installed
 -- it no longer needs to live inside this checkout.
+
+## Recipe README filenames
+
+Every recipe README is named exactly `README.md`, with uppercase `README`.
+Never add `readme.md`: filename casing matters on case-sensitive filesystems and
+the conventional uppercase name keeps recipes consistent.
 
 ## TEMPLATE defaults
 
@@ -164,9 +170,9 @@ stages and behavior are sufficient. Do not introduce a wrapper class just to wir
 required behavior or stage is not supplied by the existing System, define a recipe-local System under
 `src/system.py` and make `run.py` import and pass that class as `system_cls`.
 
-**`path.sh`, `readme.md`** -- environment setup (`PYTHONPATH`, `tools/activate_python.sh`) and a
+**`path.sh`, `README.md`** -- environment setup (`PYTHONPATH`, `tools/activate_python.sh`) and a
 quick-start section showing the real `--stages ...` invocations for this recipe, in the order they are
-meant to be run (see librispeech_100's `readme.md` for the pattern: train -> infer -> measure, each as
+meant to be run (see librispeech_100's `README.md` for the pattern: train -> infer -> measure, each as
 its own copy-pasteable command).
 
 ### When you need a custom System
@@ -202,6 +208,6 @@ A stage is just a named method, so no separate registration step exists beyond w
 - [ ] `dataset/dataset.py` returns only fields accepted by the task/preprocessor; never add `utt_id`
 - [ ] `conf/*.yaml` copied and adjusted (`data_src`, tokenizer, model, `_recursive_: false` kept)
 - [ ] `run.py` is the thin three-line re-export unless a custom `System` is genuinely needed
-- [ ] `readme.md` shows the real, working `--stages` commands for this recipe
+- [ ] `README.md` shows the real, working `--stages` commands for this recipe
 - [ ] a unit test exists for any new/non-trivial code under `dataset/` or `src/`
       (mirrored at `test/espnet3/...` if it's promoted into shared `espnet3/` code later)
