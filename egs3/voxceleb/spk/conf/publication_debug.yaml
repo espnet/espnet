@@ -1,0 +1,32 @@
+##########################################################
+#                  PUBLICATION SETTING                   #
+##########################################################
+# Throwaway counterpart of `conf/publication.yaml`, for the debug configs.
+# `run.py` takes config files and no per-key command-line overrides, so
+# publishing a debug bundle somewhere harmless needs a second file.
+#
+# Quick usage:
+#   export HF_USER=<your huggingface account>
+#   python run.py --stages pack_model upload_model \
+#       --training_config conf/tuning/training_rawnet3_debug.yaml \
+#       --inference_config conf/inference_debug.yaml \
+#       --metrics_config conf/metrics.yaml \
+#       --publication_config conf/publication_debug.yaml
+
+##########################################################
+#                  UPLOAD MODEL SETTING                  #
+##########################################################
+upload_model:
+  # A debug model has seen 30 batches. It belongs in a personal namespace and
+  # never in the `espnet` organisation, which is what `conf/publication.yaml`
+  # inherits from the TEMPLATE. `HF_USER` is deliberately mandatory: with no
+  # default there is no way to publish a throwaway to the org by forgetting it.
+  hf_repo: ${oc.env:HF_USER}/${set_corpus_and_system:}_${exp_tag}
+  private: true
+  # The TEMPLATE default `false` raises if the repo already exists, which is
+  # the right guard for a release: it prevents silently overwriting a published
+  # model. A debug run is repeated against the same throwaway repo, so it has
+  # to be allowed to replace its own previous upload.
+  update: true
+  delete_patterns:
+    - "*"
