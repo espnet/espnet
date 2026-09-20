@@ -119,6 +119,15 @@ class UniversaBase(AbsUniversa):
         """
         super().__init__()
 
+        if (
+            not metric2id
+            or any(type(i) is not int for i in metric2id.values())
+            or set(metric2id.values()) != set(range(len(metric2id)))
+        ):
+            raise ValueError("metric2id must contain unique integer IDs from 0 to N-1")
+        if use_ref_text and (vocab_size is None or vocab_size <= 0):
+            raise ValueError("vocab_size must be positive when use_ref_text=True")
+
         # Initialize parameters
         self.input_size = input_size
         self.metric_size = len(metric2id)
@@ -525,7 +534,7 @@ class UniversaBase(AbsUniversa):
         """
         if self.multi_branch:
             results = {
-                self.id2metric[i]: pred_metrics[i].detach().cpu().numpy()
+                self.id2metric[i]: pred_metrics[i].squeeze(-1).detach().cpu().numpy()
                 for i in range(self.metric_size)
             }
         else:

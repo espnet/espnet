@@ -4,8 +4,9 @@
 """Universa abstract class."""
 
 from abc import ABC, abstractmethod
-from typing import Dict, Tuple
+from typing import Dict, Tuple, Union
 
+import numpy as np
 import torch
 
 
@@ -17,7 +18,7 @@ class AbsUniversa(torch.nn.Module, ABC):
         self,
         audio: torch.Tensor,
         audio_lengths: torch.Tensor,
-        metrics: torch.Tensor,
+        metrics: Dict[str, torch.Tensor],
         ref_audio: torch.Tensor,
         ref_audio_lengths: torch.Tensor,
         ref_text: torch.Tensor,
@@ -33,7 +34,7 @@ class AbsUniversa(torch.nn.Module, ABC):
         audio: torch.Tensor,
         audio_lengths: torch.Tensor,
         **kwargs,
-    ) -> Dict[str, torch.Tensor]:
+    ) -> Dict[str, Union[np.ndarray, torch.Tensor]]:
         """Return predicted output as a dict."""
         raise NotImplementedError
 
