@@ -104,12 +104,23 @@ devkit epoch in each framework: 117 training batches, 29 optimizer updates and
 all training batches, but gradients first differed at batch 66 and parameters
 at batch 69. Final checkpoint tensors were not identical. Two native ESPnet2
 runs also differed in gradients, starting at batch 94; this does not by itself
-establish the cause of the migrated run's divergence. Strict numerical parity
-remains unresolved, and this branch must not be described as a completed
-accuracy reproduction.
+establish the cause of the migrated run's divergence. That run did not achieve
+strict numerical parity; a deterministic follow-up is reported below.
 
 A one-4090 inference smoke test used these one-epoch checkpoints, four validation
 and four test recordings, beam size 20, and the existing smoke-test LM at weight
 0.6. Both frameworks produced identical hypotheses and SCTK WER/CER/TER counts
 on those eight recordings. This limited check does not resolve training parity
 or establish final recognition accuracy.
+
+A follow-up four-A10 experiment enabled `torch.use_deterministic_algorithms(True)`
+in both frameworks and `trainer.deterministic: true` in Lightning, retaining the
+same one-epoch devkit, 1000-piece tokenizer and CPU CTCLoss conditions. Across
+all four ranks, all 117 training batches matched in inputs, RNG states, losses
+and gradients; all 29 parameter updates and all 7 validation batches also
+matched. Final checkpoint keys, dtypes and values were identical for all 654
+state tensors. The seven validation aggregates matched exactly on every rank,
+including loss 726.6682113185074. Strict determinism is an experiment setting,
+not a change to the source recipe defaults. This establishes one-epoch parity
+under these controlled conditions; it does not establish 50-epoch or full-release
+accuracy, or identify the specific operation responsible for the earlier drift.
