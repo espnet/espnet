@@ -266,7 +266,9 @@ class ESPnetLightningModule(lightning.LightningModule):
             if name in frozen_names
         )
         remaining_trainable = sum(
-            parameter.numel() for _, parameter in named_parameters if parameter.requires_grad
+            parameter.numel()
+            for _, parameter in named_parameters
+            if parameter.requires_grad
         )
         logger.info(
             "model.freeze_param froze %d of %d initially trainable parameters "

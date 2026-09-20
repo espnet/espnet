@@ -329,7 +329,9 @@ def test_model_freeze_param_excludes_selected_parameters_from_optimizer(caplog):
         parameter for group in optimizer.param_groups for parameter in group["params"]
     }
     assert optimized_params == {module.model.encoder.weight}
-    assert "Applying model.freeze_param selectors: frontend, encoder.bias" in caplog.text
+    assert (
+        "Applying model.freeze_param selectors: frontend, encoder.bias" in caplog.text
+    )
     assert "selector 'frontend' matched 2 parameters" in caplog.text
     assert "selector 'encoder.bias' matched 1 parameters" in caplog.text
     assert "froze 3 of 4 initially trainable parameters" in caplog.text
