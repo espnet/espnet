@@ -321,3 +321,57 @@ def test_the_ctc_apps_symbol_splitting_is_what_espnet_demo_splits():
         assert app["_split_tokens"](decoded) == demo.split_tokens(
             decoded, app["LANGUAGE_CODES"]
         ), decoded
+
+
+# --- what a Space installs, against what its app needs ---
+
+# Names that no released espnet has yet. A Space installs espnet from PyPI,
+# so an app calling one of these is a Space that builds and then fails to
+# start; its requirements.txt has to ask for a release that carries it.
+# 2026-09-20: uploading the CTC app with `espnet>=202609.post2` took the live
+# owsm-ctc-v4 Space down that way.
+UNRELEASED = {
+    "best_path": "202612",
+}
+# The extra each front-end needs, by the import that gives it away. RawNet3's
+# asteroid_frontend imports asteroid_filterbanks, which only espnet[spk] has;
+# leaving it out is the same failure, one package lower down.
+EXTRA_FOR_TASK = {"spk": "spk", "enh": "enh", "tts": "tts"}
+
+
+def _requirements(name):
+    return (DEMOS[name] / "requirements.txt").read_text()
+
+
+def _espnet_requirement(name):
+    for line in _requirements(name).splitlines():
+        if line.strip().startswith("espnet") and "model_zoo" not in line:
+            return line.strip()
+    raise AssertionError(f"{name}: requirements.txt does not ask for espnet")
+
+
+@pytest.mark.parametrize("name", list(DEMOS))
+def test_every_demo_pins_a_lowest_espnet_it_works_with(name):
+    assert ">=" in _espnet_requirement(name), name
+
+
+@pytest.mark.parametrize("name", list(DEMOS))
+def test_an_app_using_a_new_api_asks_for_the_release_that_has_it(name):
+    source = _source(name)
+    requirement = _espnet_requirement(name)
+    for attribute, since in UNRELEASED.items():
+        if f".{attribute}(" not in source:
+            continue
+        floor = requirement.split(">=")[1].strip()
+        assert floor >= since, (
+            f"{name}: the app calls {attribute}(), which no espnet before "
+            f"{since} has, but requirements.txt asks for {requirement}"
+        )
+
+
+@pytest.mark.parametrize("name, extra", sorted(EXTRA_FOR_TASK.items()))
+def test_the_task_demos_ask_for_their_extra(name, extra):
+    assert f"espnet[{extra}]" in _espnet_requirement(name), (
+        f"{name}: the checkpoint's front-end or criteria come from "
+        f"espnet[{extra}], and a Space installs nothing else"
+    )
