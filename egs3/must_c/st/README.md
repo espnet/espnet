@@ -85,12 +85,13 @@ MuST-C en-de, conformer ST (`conf/tuning/train_st_conformer.yaml`), decoded with
 case-insensitive after `remove_punctuation.pl` (suffix `_lc`). All twelve
 numbers were checked against the egs2 shell pipeline itself and match exactly.
 
-**Intermediate checkpoint: `valid.acc.ave_10best` at epoch 41 of 80.**
+Converged model: `valid.acc.ave_10best`, the average of the ten best-`valid.acc`
+checkpoints (epochs 53-74) after the full 80 epochs. Lower is better for TER.
 
 | test set | utts | BLEU | chrF2 | TER | BLEU_lc | chrF2_lc | TER_lc | 1/2/3/4-gram precision | BP |
 |---|---|---|---|---|---|---|---|---|---|
-| tst-COMMON | 2,641 | **23.47** | 50.27 | 62.65 | 22.59 | 50.91 | 58.64 | 60.0 / 32.0 / 19.4 / 12.2 | 0.904 |
-| tst-HE | 600 | **22.48** | 49.58 | 66.87 | 20.98 | 50.08 | 63.31 | 56.9 / 30.1 / 18.3 / 11.5 | 0.919 |
+| tst-COMMON | 2,641 | **24.22** | 50.76 | 61.80 | 23.54 | 51.44 | 57.85 | 61.0 / 33.2 / 20.5 / 13.3 | 0.889 |
+| tst-HE | 600 | **22.85** | 49.35 | 66.16 | 21.07 | 49.80 | 62.76 | 58.8 / 31.9 / 19.8 / 12.5 | 0.876 |
 
 Reproduce with:
 
@@ -106,9 +107,9 @@ python run.py --stages infer measure \
 `egs2/must_c/st1` publishes no results, so there is no like-for-like reference.
 The nearest published number is `egs2/must_c_v2/st1`'s `decode_st_conformer`
 row -- the same architecture and the same `valid.acc.ave_10best` selection --
-at **25.7** BLEU on tst-COMMON. That is MuST-C **v2**, a larger release than the
-**v1.2** used here, and it is a converged model rather than epoch 41 of 80, so
-treat it as indicative rather than a target.
+at **25.7** BLEU on tst-COMMON, against **24.22** here. That row is MuST-C
+**v2**, a larger release than the **v1.2** this recipe uses, so the gap is not
+a like-for-like deficit -- treat it as indicative rather than a target.
 
 
 ## Usage
