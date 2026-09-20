@@ -323,9 +323,7 @@ def test_model_freeze_param_excludes_selected_parameters_from_optimizer():
 
     optimizer = module.configure_optimizers()["optimizer"]
     optimized_params = {
-        parameter
-        for group in optimizer.param_groups
-        for parameter in group["params"]
+        parameter for group in optimizer.param_groups for parameter in group["params"]
     }
     assert optimized_params == {module.model.encoder.weight}
 
