@@ -224,12 +224,15 @@ of 200+ corpora recipes.
 | Demo | |
 | :-- | :-- |
 | Spoken dialogue — ASR → LLM → TTS, cascaded or end-to-end, with live metrics | [recipe](egs2/TEMPLATE/sds1) (Gradio, runs locally) |
-| Real-time ASR | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/Demos/unmaintained/asr_realtime_demo.ipynb) |
-| TTS | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/Demos/tts_demo.ipynb) |
-| Speech enhancement | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1fjRJCh96SoYLZPRxsjF9VDv4Q2VoIckI?usp=sharing) |
-| Streaming enhancement | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/17vd1V78eJpp3PHBnbFE5aVY5uMxQFL6o?usp=sharing) |
+| Speech recognition, and the words appearing as the audio arrives | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/Demos/asr_demo.ipynb) [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/Demos/asr_streaming_demo.ipynb) |
+| Speech translation — the same model, a different task symbol | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/Demos/st_demo.ipynb) |
+| Text-to-speech, one voice and then 128 | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/Demos/tts_demo.ipynb) |
+| Speech enhancement, and what it did to the signal-to-noise | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/Demos/enh_demo.ipynb) |
+| Speaker verification — two recordings, one score | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/Demos/spk_demo.ipynb) |
+| Neural codecs — a waveform as a few integers a frame | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/Demos/codec_demo.ipynb) |
 
-More notebooks: [espnet/notebook](https://github.com/espnet/notebook).
+Each runs top to bottom on a CPU and pins the release it was checked against.
+More, including the CMU course material: [espnet/notebook](https://github.com/espnet/notebook).
 
 **Publish your own.** Every ESPnet3 recipe can wrap its trained model in a
 [Gradio](https://www.gradio.app/) app and push it to Hugging Face Spaces — the UI,
@@ -330,10 +333,10 @@ First time here? Read the [contribution guide](CONTRIBUTING.md).
 - OpenAI [Whisper](https://openai.com/blog/whisper/) model, robust ASR based on large-scale, weakly-supervised multitask learning
 
 Demonstration
-- Real-time ASR demo with ESPnet2  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/Demos/unmaintained/asr_realtime_demo.ipynb)
+- Speech recognition with OWSM-CTC  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/Demos/asr_demo.ipynb)
 - Hosted demo: [OWSM-CTC v4](https://huggingface.co/spaces/espnet/owsm-ctc-v4), maintained from [`egs2/owsm_ctc_v4/s2t1/demo`](egs2/owsm_ctc_v4/s2t1/demo) — recognises and identifies 151 languages, translates into 25 of them, and decodes long-form audio
 - Hosted demo: [OWSM v4](https://huggingface.co/spaces/espnet/owsm-v4), maintained from [`egs2/owsm_v4/s2t1/demo`](egs2/owsm_v4/s2t1/demo) — the same four tasks with the encoder-decoder model, which also takes a text prompt
-- Streaming Transformer ASR [Local Demo](https://github.com/espnet/notebook/blob/master/Demos/unmaintained/streaming_asr_demo.ipynb) with ESPnet2.
+- Streaming ASR, decoded as the audio arrives [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/Demos/asr_streaming_demo.ipynb)
 
 #### TTS: Text-to-speech
 - Architecture
