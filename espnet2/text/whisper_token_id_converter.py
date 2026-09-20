@@ -52,17 +52,22 @@ class OpenAIWhisperTokenIDConverter:
             self.tokenizer = whisper.tokenizer.get_tokenizer(
                 multilingual=True, language=language, task=task
             )
-            if added_tokens_txt is not None:
-                _added_tokens = []
-                with open(added_tokens_txt) as f:
-                    lines = f.readlines()
-                    for line in lines:
-                        _added_tokens.append(line.rstrip())
-                self.tokenizer.tokenizer.add_tokens(_added_tokens)
         else:
             raise ValueError("tokenizer unsupported:", model_type)
 
+        # Copy before anything is added. whisper.tokenizer.get_tokenizer is
+        # lru_cached, so the object above is shared with every other caller
+        # in the process; add_tokens on it would follow them all, and the
+        # vocabulary size would then depend on who ran first.
         self.tokenizer = copy.deepcopy(self.tokenizer)
+
+        if model_type == "whisper_multilingual" and added_tokens_txt is not None:
+            _added_tokens = []
+            with open(added_tokens_txt) as f:
+                lines = f.readlines()
+                for line in lines:
+                    _added_tokens.append(line.rstrip())
+            self.tokenizer.tokenizer.add_tokens(_added_tokens)
         timestamps = [f"<|{i * 30 / 1500:.2f}|>" for i in range(0, 1501)]
         sc = [speaker_change_symbol] if sot else []
         # workaround for transformers v5

@@ -36,14 +36,17 @@ def test_init_multilingual():
     id_converter = OpenAIWhisperTokenIDConverter(
         "whisper_multilingual", "zh", task="transcribe"
     )
-    assert id_converter.get_num_vocabulary_size() == 51867
+    # 50257 base + 107 specials + 1501 timestamps. This used to read 51867,
+    # which only held while an earlier test had grown the shared tokenizer
+    # through the added_tokens_txt path; that path now copies first.
+    assert id_converter.get_num_vocabulary_size() == 51865
 
 
 def test_init_translation():
     id_converter = OpenAIWhisperTokenIDConverter(
         "whisper_multilingual", "zh", task="translate"
     )
-    assert id_converter.get_num_vocabulary_size() == 51867
+    assert id_converter.get_num_vocabulary_size() == 51865
 
 
 def test_ids2tokens(whisper_token_id_converter: OpenAIWhisperTokenIDConverter):

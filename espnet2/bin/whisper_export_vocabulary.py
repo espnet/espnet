@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+import copy
 import logging
 import os
 import sys
@@ -59,7 +60,10 @@ def export_vocabulary(
         tokenizer = whisper.tokenizer.get_tokenizer(
             multilingual=True, language=whisper_language, task=whisper_task
         )
-        # import pdb;pdb.set_trace()
+        # Copy before anything is added: get_tokenizer is lru_cached, so the
+        # object above is shared with every other caller in the process, and
+        # the padding loop below reads its size.
+        tokenizer = copy.deepcopy(tokenizer)
         if add_token_file_name != "none":
             _added_tokens = []
             with open(add_token_file_name) as f:
