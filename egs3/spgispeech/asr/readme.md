@@ -54,13 +54,15 @@ python run.py --stages infer measure \
 | --- | --- | --- |
 | dev_4k | 0.93 | 2.25 |
 
-Decoded with `conf/inference.yaml` (beam 20, `ctc_weight` 0.3, `batch_size` 4)
-from the `valid.acc.ave_10best` average after all 35 configured epochs on 4
-GPUs. Decoding the same checkpoint without batching (`batch_size: null`) gives
-WER 2.26 / CER 0.93: `Speech2Text.batch_decode`'s padded batching is not
-perfectly invariant for `Conv2d` subsampling and the legacy relative-position
-attention this config uses, so a handful of hypotheses differ between the two
-paths -- not a decoding bug, and not a difference in the model.
+Trained for all 35 configured epochs (mostly on 4 GPUs; a brief stretch during
+epochs 32-33 ran on 2 GPUs with `accumulate_grad_batches` doubled to keep the
+effective batch constant). Decoded on 1 GPU with `conf/inference.yaml` (beam
+20, `ctc_weight` 0.3, `batch_size` 4) from the `valid.acc.ave_10best` average.
+Decoding the same checkpoint without batching (`batch_size: null`) gives WER
+2.26 / CER 0.93: `Speech2Text.batch_decode`'s padded batching is not perfectly
+invariant for `Conv2d` subsampling and the legacy relative-position attention
+this config uses, so a handful of hypotheses differ between the two paths --
+not a decoding bug, and not a difference in the model.
 
 Batching also makes `dev_4k` (1 GPU, single process) **2.8x faster to decode**:
 31.3 min (`batch_size` 4) vs. 88.75 min (`batch_size: null`), same checkpoint,
