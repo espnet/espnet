@@ -21,7 +21,8 @@ Exit status: 0 nothing broken, 1 something broken, 2 the scan itself failed
 """
 
 import argparse
-import email
+import datetime
+import email.utils
 import errno
 import http.client
 import io
@@ -138,18 +139,28 @@ def find_links(
 def retry_delay(headers) -> Optional[float]:
     """Seconds the server asked us to wait, or None if it did not say.
 
-    Two spellings: `Retry-After: 30`, and the RateLimit header's `t` field,
-    which is what the Hub sends - `ratelimit: "api";r=0;t=231` is 231 seconds
-    until the window reopens.
+    Three spellings: `Retry-After: 30`, the same header as an HTTP date, which
+    RFC 9110 allows and which a 30 second guess would not be long enough for,
+    and the RateLimit header's `t` field, which is what the Hub sends -
+    `ratelimit: "api";r=0;t=231` is 231 seconds until the window reopens.
     """
     after = headers.get("Retry-After") if headers else None
     if after:
         try:
-            # the other form is an HTTP date, which is not worth parsing: the
-            # fallback below covers it
             return max(0.0, float(after.strip()))
         except ValueError:
             pass
+        try:
+            when = email.utils.parsedate_to_datetime(after)
+        except (TypeError, ValueError):
+            when = None
+        if when is not None:
+            # a date without a zone is read as UTC, which is what the header
+            # is required to carry anyway
+            if when.tzinfo is None:
+                when = when.replace(tzinfo=datetime.timezone.utc)
+            now = datetime.datetime.now(datetime.timezone.utc)
+            return max(0.0, (when - now).total_seconds())
     limit = headers.get("RateLimit") if headers else None
     if limit:
         m = re.search(r"\bt\s*=\s*(\d+(?:\.\d+)?)", limit)
@@ -486,6 +497,19 @@ def self_check() -> None:
     assert retry_delay(email.message_from_string('RateLimit: "api";r=0;t=231')) == 231
     assert retry_delay(email.message_from_string("")) is None
     assert retry_delay(email.message_from_string("Retry-After: Wed, 21 Oct")) is None
+
+    # the date spelling RFC 9110 allows. Guessing 30 seconds at one of these
+    # would retry while still throttled, which is the failure this exists to
+    # avoid, so it is read rather than ignored
+    soon = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(
+        seconds=120
+    )
+    dated = email.message_from_string(
+        f"Retry-After: {email.utils.format_datetime(soon)}"
+    )
+    assert 110 <= retry_delay(dated) <= 120, retry_delay(dated)
+    past = email.message_from_string("Retry-After: Wed, 21 Oct 2015 07:28:00 GMT")
+    assert retry_delay(past) == 0.0, retry_delay(past)
 
     calls = []
     slept = []
