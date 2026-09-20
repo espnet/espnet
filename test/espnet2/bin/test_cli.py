@@ -10,8 +10,11 @@ import subprocess
 import sys
 import types
 from pathlib import Path
+from unittest import mock
 
+import numpy as np
 import pytest
+import soundfile
 
 from espnet2.bin import cli
 
@@ -186,12 +189,113 @@ def test_a_missing_file_fails_before_a_model_is_fetched(command, capsys, monkeyp
     assert "no such file" in capsys.readouterr().err
 
 
+def _stub_live(monkeypatch, blocks, said):
+    """Replace the module `cmd_asr` imports, so nothing is recorded or decoded."""
+    live = types.ModuleType("espnet2.bin.live")
+    live.LiveError = type("LiveError", (RuntimeError,), {})
+    live.from_file = lambda path, **kw: iter(blocks)
+    live.from_microphone = lambda **kw: iter(blocks)
+
+    def transcribe(decode, source, **kwargs):
+        for chunk in source:
+            said.append(decode(chunk))
+        return 0
+
+    live.transcribe = transcribe
+    monkeypatch.setitem(sys.modules, "espnet2.bin.live", live)
+    # `from espnet2.bin import live` reads the package attribute first, and
+    # another test may already have imported the real module
+    import espnet2.bin
+
+    monkeypatch.setattr(espnet2.bin, "live", live, raising=False)
+    return live
+
+
+def test_stream_decodes_a_file_window_by_window(monkeypatch, tmp_path):
+    said = []
+    _stub_live(monkeypatch, [np.zeros(16000, dtype=np.float32)], said)
+    recorder = _Recorder([("hello", ["h"], [1], "hello", None)])
+    _fake_module(
+        monkeypatch,
+        "espnet2.bin.s2t_inference_ctc",
+        "Speech2TextGreedySearch",
+        recorder,
+    )
+    audio = tmp_path / "a.wav"
+    soundfile.write(audio, np.zeros(16000, dtype=np.float32), 16000)
+
+    assert cli.main(["asr", str(audio), "--stream"]) == 0
+    assert said == ["hello"]
+
+
+def test_live_records_instead_of_reading_a_file(monkeypatch):
+    said = []
+    _stub_live(monkeypatch, [np.zeros(16000, dtype=np.float32)], said)
+    recorder = _Recorder([("spoken", ["s"], [1], "spoken", None)])
+    _fake_module(
+        monkeypatch,
+        "espnet2.bin.s2t_inference_ctc",
+        "Speech2TextGreedySearch",
+        recorder,
+    )
+
+    assert cli.main(["asr", "--live"]) == 0
+    assert said == ["spoken"]
+
+
+def test_live_with_a_file_is_refused(monkeypatch, capsys, tmp_path):
+    _stub_live(monkeypatch, [], [])
+    audio = tmp_path / "a.wav"
+    soundfile.write(audio, np.zeros(16000, dtype=np.float32), 16000)
+    assert cli.main(["asr", str(audio), "--live"]) == 1
+    assert "do not also name a file" in capsys.readouterr().err
+
+
+def test_stream_without_a_file_is_refused(monkeypatch, capsys):
+    _stub_live(monkeypatch, [], [])
+    assert cli.main(["asr", "--stream"]) == 1
+    assert "--stream needs an audio file" in capsys.readouterr().err
+
+
+def test_a_recording_failure_is_reported_like_the_others(monkeypatch, capsys):
+    live = _stub_live(monkeypatch, [], [])
+
+    def refuse(**kwargs):
+        raise live.LiveError("no microphone here")
+
+    live.from_microphone = refuse
+    recorder = _Recorder([])
+    _fake_module(
+        monkeypatch,
+        "espnet2.bin.s2t_inference_ctc",
+        "Speech2TextGreedySearch",
+        recorder,
+    )
+    assert cli.main(["asr", "--live"]) == 1
+    err = capsys.readouterr().err
+    assert err.strip().endswith("no microphone here") and "Traceback" not in err
+
+
+def test_an_empty_result_becomes_an_empty_transcript(monkeypatch):
+    said = []
+    _stub_live(monkeypatch, [np.zeros(16000, dtype=np.float32)], said)
+    recorder = _Recorder([])  # the model returned nothing for this window
+    _fake_module(
+        monkeypatch,
+        "espnet2.bin.s2t_inference_ctc",
+        "Speech2TextGreedySearch",
+        recorder,
+    )
+    assert cli.main(["asr", "--live"]) == 0
+    assert said == [""]
+
+
 def test_the_help_lists_every_command(capsys):
     with pytest.raises(SystemExit) as e:
         cli.main(["--help"])
     assert e.value.code == 0
     out = capsys.readouterr().out
-    for command in ("asr", "translate", "tts", "enhance", "models"):
+    for command in ("asr", "translate", "tts", "enhance", "demo", "models"):
         assert command in out
 
 
@@ -210,6 +314,19 @@ def test_an_output_without_an_extension_is_refused(monkeypatch, tmp_path, capsys
     assert cli.main(["enhance", str(source), "-o", str(tmp_path / "clean")]) == 1
 
     assert "file extension" in capsys.readouterr().err
+
+
+def test_an_output_soundfile_cannot_write_is_refused(monkeypatch, capsys):
+    # this used to reach soundfile after the model had been downloaded and
+    # run, and came out as a traceback
+    import torch
+
+    recorder = _Recorder({"wav": torch.zeros(160)})
+    _fake_module(monkeypatch, "espnet2.bin.tts_inference", "Text2Speech", recorder)
+    assert cli.main(["tts", "hello", "-o", "notes.txt"]) == 1
+    err = capsys.readouterr().err
+    assert "cannot write .txt audio" in err and "Traceback" not in err
+    assert recorder.tag is None  # nothing was downloaded
 
 
 def test_a_tag_for_another_task_is_explained(monkeypatch, tmp_path, capsys):
@@ -266,7 +383,7 @@ def _run(*args):
 def test_help_runs_as_a_process_and_exits_zero():
     r = _run("--help")
     assert r.returncode == 0
-    for command in ("asr", "translate", "tts", "enhance", "models"):
+    for command in ("asr", "translate", "tts", "enhance", "demo", "models"):
         assert command in r.stdout
 
 
@@ -398,3 +515,196 @@ def test_a_keyword_the_constructor_does_take_is_not_blamed_on_the_model(
 
     with pytest.raises(TypeError, match="'device'"):
         cli.main(["asr", str(audio)])
+
+
+# --- `espnet demo`: the browser app, built but never launched for real ---
+
+
+class _FakeOWSM:
+    """An OWSM-CTC stand-in: a token list to read menus from, and decoding."""
+
+    def __init__(self, decoded="<eng><asr> hello there"):
+        self.decoded = decoded
+        self.tag = None
+        self.device = None
+        self.calls = []
+        self.long_calls = []
+        self.s2t_model = types.SimpleNamespace(
+            token_list=[
+                "<unk>",
+                "<nolang>",
+                "<eng>",
+                "<jpn>",
+                "<asr>",
+                "<st_deu>",
+                "<sos>",
+            ]
+        )
+
+    def from_pretrained(self, model_tag=None, device=None, **kwargs):
+        self.tag, self.device = model_tag, device
+        return self
+
+    def __call__(self, speech, *args, **kwargs):
+        self.calls.append((speech, kwargs))
+        return [(self.decoded,)]
+
+    def decode_long_batched_buffered(self, speech, **kwargs):
+        self.long_calls.append((speech, kwargs))
+        return "long form text"
+
+
+def _fake_demo(monkeypatch, s2t=None, device="cpu", task="s2t"):
+    """Wire up a gradio that records instead of serving, and a fake model."""
+    import espnet
+    from espnet2.bin import demo
+
+    gradio = mock.MagicMock()
+    monkeypatch.setitem(sys.modules, "gradio", gradio)
+    monkeypatch.setattr(demo, "default_device", lambda: device)
+    # the task check is one Hub request; the tests answer it themselves
+    monkeypatch.setattr(espnet, "_infer_task", lambda tag: task)
+    s2t = s2t or _FakeOWSM()
+    _fake_module(
+        monkeypatch, "espnet2.bin.s2t_inference_ctc", "Speech2TextGreedySearch", s2t
+    )
+    return gradio, s2t
+
+
+def _launch(gradio):
+    """How `app.launch(...)` was called on the Blocks the command built."""
+    return gradio.Blocks.return_value.launch.call_args
+
+
+def test_demo_serves_the_default_model_and_prints_the_url(monkeypatch, capsys):
+    gradio, s2t = _fake_demo(monkeypatch)
+
+    assert cli.main(["demo"]) == 0
+
+    assert s2t.tag == cli.DEFAULT_MODELS["demo"] and s2t.device == "cpu"
+    assert _launch(gradio).kwargs == {"server_port": 7860, "share": False}
+    # the URL has to be on stdout before launch(), which blocks until Ctrl-C
+    assert "http://127.0.0.1:7860" in capsys.readouterr().out
+
+
+def test_demo_takes_the_port_the_share_flag_and_the_model(monkeypatch, capsys):
+    gradio, s2t = _fake_demo(monkeypatch)
+
+    argv = ["demo", "--model", "espnet/other", "--port", "8000", "--share"]
+    assert cli.main(argv) == 0
+
+    assert s2t.tag == "espnet/other"
+    assert _launch(gradio).kwargs == {"server_port": 8000, "share": True}
+    assert "http://127.0.0.1:8000" in capsys.readouterr().out
+
+
+def test_demo_uses_the_gpu_when_there_is_one_and_the_flag_when_given(monkeypatch):
+    gradio, s2t = _fake_demo(monkeypatch, device="cuda")
+
+    assert cli.main(["demo"]) == 0
+    assert s2t.device == "cuda"  # no --device: the demo asks torch
+
+    gradio, s2t = _fake_demo(monkeypatch, device="cuda")
+    assert cli.main(["demo", "--device", "cpu"]) == 0
+    assert s2t.device == "cpu"  # --device wins over the rule
+
+
+def test_demo_without_gradio_is_a_user_error(monkeypatch, capsys):
+    from espnet2.bin import demo
+
+    def explode(*a, **k):  # pragma: no cover - not reached
+        raise AssertionError("fetched a model before checking for gradio")
+
+    monkeypatch.setattr(demo, "load_gradio", lambda: None)
+    monkeypatch.setattr(cli, "_build", explode)
+
+    assert cli.main(["demo"]) == 1
+
+    err = capsys.readouterr().err
+    assert err.startswith("espnet: gradio is not installed")
+    assert "espnet[demo]" in err
+    assert "Traceback" not in err
+
+
+def test_demo_menus_come_from_the_checkpoint(monkeypatch):
+    gradio, _ = _fake_demo(monkeypatch)
+
+    assert cli.main(["demo"]) == 0
+
+    # the two dropdowns are this checkpoint's own tokens, not a fixed list
+    languages, targets = [call.args[0] for call in gradio.Dropdown.call_args_list]
+    assert languages == ["Detect automatically", "English (eng)", "Japanese (jpn)"]
+    assert targets == ["Transcribe", "Translate to German (deu)"]
+
+
+def _predict(gradio):
+    """The function the Run button was wired to."""
+    return gradio.Button.return_value.click.call_args.args[0]
+
+
+def test_the_demo_decodes_a_short_recording(monkeypatch):
+    import numpy as np
+
+    from espnet2.bin import demo
+
+    gradio, s2t = _fake_demo(monkeypatch)
+    monkeypatch.setattr(demo, "read_audio", lambda path: np.zeros(16000 * 5, "float32"))
+    assert cli.main(["demo"]) == 0
+
+    language, text = _predict(gradio)("a.wav", demo.DETECT, demo.ASR_LABEL, False)
+
+    assert (language, text) == ("English", "hello there")
+    speech, kwargs = s2t.calls[0]
+    # padded to the 30 s window OWSM is trained on, and the language left open
+    assert len(speech) == 16000 * demo.WINDOW_SECS
+    assert kwargs == {"lang_sym": "<nolang>", "task_sym": "<asr>"}
+
+
+def test_the_demo_trims_audio_past_the_cap_and_says_so(monkeypatch):
+    import numpy as np
+
+    from espnet2.bin import demo
+
+    gradio, s2t = _fake_demo(monkeypatch)
+    long_audio = np.zeros(16000 * (demo.MAX_SECS + 30), "float32")
+    monkeypatch.setattr(demo, "read_audio", lambda path: long_audio)
+    assert cli.main(["demo"]) == 0
+
+    _predict(gradio)("a.wav", "English (eng)", demo.ASR_LABEL, True)
+
+    warned = " ".join(str(call) for call in gradio.Warning.call_args_list)
+    assert f"first {demo.MAX_SECS} s" in warned
+    speech, kwargs = s2t.long_calls[0]
+    assert len(speech) == 16000 * demo.MAX_SECS
+    # the language the user chose, so no detection pass was needed
+    assert kwargs["lang_sym"] == "<eng>" and s2t.calls == []
+
+
+def test_demo_refuses_a_model_for_another_task_before_downloading_it(
+    monkeypatch, capsys
+):
+    gradio, s2t = _fake_demo(monkeypatch, task="tts")
+
+    assert cli.main(["demo", "--model", "espnet/kan-bayashi_ljspeech_vits"]) == 1
+
+    # refused on the metadata alone: nothing was built, so nothing was fetched
+    assert s2t.tag is None
+    err = capsys.readouterr().err
+    assert "serves speech-to-text models" in err and "is a tts model" in err
+    assert "Traceback" not in err
+
+
+def test_demo_runs_when_the_metadata_says_nothing_about_the_task(monkeypatch):
+    # the check turns a knowable mistake into a sentence; it is not a second
+    # gate a valid checkpoint has to pass
+    import espnet
+
+    gradio, s2t = _fake_demo(monkeypatch)
+
+    def unknown(tag):
+        raise ValueError("cannot tell what task this is for")
+
+    monkeypatch.setattr(espnet, "_infer_task", unknown)
+
+    assert cli.main(["demo", "--model", "espnet/undocumented"]) == 0
+    assert s2t.tag == "espnet/undocumented"
