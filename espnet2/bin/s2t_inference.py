@@ -334,11 +334,43 @@ class Speech2Text:
         if ctc_weight > 0.0 and predict_time:
             raise ValueError("CTC cannot predict timestamps")
 
+        if adaptive_timestamp and ctc_weight == 1.0:
+            # The adaptive rule rides on the decoder score, whose weight is
+            # 1 - ctc_weight. At zero BeamSearch drops the scorer and the
+            # timestamp rules with it. speaker_change_symbol on its own is
+            # unaffected: it registers as scorefilter, at a fixed weight.
+            raise ValueError(
+                "adaptive_timestamp carries the timestamp rules on the "
+                "decoder score, which ctc_weight=1.0 gives no weight"
+            )
+
         qconfig_spec = set([getattr(torch.nn, q) for q in quantize_modules])
         quantize_dtype: torch.dtype = getattr(torch, quantize_dtype)
 
         # 1. Build S2T model, from whichever task trained it
         self.ctc_only = _is_ctc_only(s2t_train_config)
+        requested = [
+            name
+            for name, asked in (
+                ("speaker_change_symbol", speaker_change_symbol is not None),
+                ("adaptive_timestamp", adaptive_timestamp),
+            )
+            if asked
+        ]
+        if self.ctc_only and requested:
+            # Both options constrain the decoder's timestamp tokens, and a
+            # CTC-only checkpoint has no decoder and emits no timestamps.
+            # Refused here because otherwise the request fails late and
+            # obscurely instead: adaptive_timestamp reads a decoder that is
+            # not there, and building the filter reads timestamp symbols that
+            # a CTC-only preprocessor_conf need not carry. Where it is built
+            # at all it is then dropped without a word, because the CTC-only
+            # branch gives it no weight and BeamSearch keeps only the scorers
+            # that have one.
+            raise ValueError(
+                f"{' and '.join(requested)} needs a decoder with timestamp "
+                "tokens, and this checkpoint is CTC-only"
+            )
         if self.ctc_only:
             from espnet2.tasks.s2t_ctc import S2TTask as S2TCTCTask
 
@@ -488,7 +520,9 @@ class Speech2Text:
                 # again, because the second mask has no effect and costs
                 # time. The mask now rides on the decoder score, weighted by
                 # 1 - ctc_weight instead of the filter's fixed 1.0; -inf
-                # survives any positive weight, so the rules stay hard.
+                # survives any positive weight, so the rules stay hard. At
+                # ctc_weight 1.0 that weight is zero and the scorer would be
+                # dropped, which the guard above refuses.
                 scorers["decoder"] = wrap_timestamp_decoder(
                     s2t_model.decoder, self.timestamp_filter
                 )

@@ -263,6 +263,42 @@ def test_decode_window_asks_the_checkpoint_which_way(s2t_config_file):
     assert called == ["head"]
 
 
+def test_adaptive_timestamp_is_refused_when_ctc_takes_all_the_weight(
+    s2t_config_file,
+):
+    """The adaptive rule rides on the decoder score, so it needs some weight.
+
+    At ctc_weight 1.0 the decoder weight is zero, BeamSearch keeps only the
+    scorers that have a weight, and the timestamp rules would be dropped
+    without a word.
+    """
+    with pytest.raises(ValueError, match="ctc_weight"):
+        Speech2Text(
+            s2t_train_config=s2t_config_file,
+            ctc_weight=1.0,
+            adaptive_timestamp=True,
+        )
+
+
+def test_a_speaker_change_symbol_is_not_caught_by_the_ctc_weight_guard(
+    s2t_config_file,
+):
+    """speaker_change_symbol registers as scorefilter, at a fixed weight.
+
+    It does not ride on the decoder score, so ctc_weight 1.0 must not reject
+    it. This fixture's token list is not Whisper-shaped, so the filter's own
+    layout check stops it further in; reaching that check is the assertion,
+    because the guard above would have stopped it earlier.
+    """
+    with pytest.raises(ValueError, match="Whisper layout"):
+        Speech2Text(
+            s2t_train_config=s2t_config_file,
+            ctc_weight=1.0,
+            beam_size=1,
+            speaker_change_symbol="a",
+        )
+
+
 def test_best_path_takes_one_utterance(s2t_config_file):
     speech2text = Speech2Text(s2t_train_config=s2t_config_file, beam_size=1)
     with pytest.raises(ValueError, match="one utterance"):
