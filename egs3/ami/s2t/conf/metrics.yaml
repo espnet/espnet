@@ -1,0 +1,24 @@
+##########################################################
+#                    Metrics SETTING                     #
+##########################################################
+# Used together with conf/inference.yaml; see its Quick usage. exp_tag is
+# left empty and inherited through the inference config.
+recipe_dir: .
+exp_tag:
+
+# cpWER compares words, so it reads the timestamp-free view. DER compares
+# speaker activity in time, so it reads the view that keeps timestamps. The
+# inputs block binds each metric to the SCP files build_output wrote.
+metrics:
+  - metric:
+      _target_: src.metrics.cpwer.CpWER
+      clean_types: [whisper_en]  # TextCleaner pipeline; matches the class default
+    inputs:
+      ref: ref
+      hyp: hyp
+  - metric:
+      _target_: src.metrics.der.DER
+      collar: 0.25  # md-eval.pl forgiveness collar, seconds; matches the class default
+    inputs:
+      ref: ref_sot
+      hyp: hyp_sot

@@ -1,0 +1,75 @@
+# Builder and dataset settings, loaded at import time by dataset/__init__.py.
+builder:
+  # Root the split directories and the relative wav.scp paths resolve against.
+  data_root: ${oc.env:AMI_SOT_DATA_ROOT,.}
+
+  split_dirs:
+    train: data/train
+    valid: data/dev
+    test: data/test
+
+  # Written by the builder, read by conf/training.yaml. One token per line;
+  # S2TTask sizes the model from its length. Under data/ so that .gitignore's
+  # egs*/*/*/data* rule covers it when data_root is the recipe directory.
+  token_list: data/tokens.txt
+
+  required_files:
+    - wav.scp
+    - text
+
+  # Lhotse CutSet manifests, carrying the speaker-attributed supervisions the
+  # SOT text is serialized from. Fetched on demand from cutset_repo.
+  cutset_repo: espnet/multi-talker-whisper-small-ami
+  cutset_dir: ${oc.env:AMI_SOT_CUTSET_DIR,downloads/cutsets}
+
+  # AMI SDM audio, in the <root>/<meeting>/audio/<meeting>.Array1-01.wav layout
+  # egs2/ami/asr1/local/ami_download.sh produces. The manifests store absolute
+  # paths from wherever they were built, so the builder relocates every
+  # recording into this root by basename.
+  ami_audio_root: ${oc.env:AMI_AUDIO_ROOT,downloads/ami}
+
+  # Utterance groups at or beyond this many seconds are dropped: their span
+  # exceeded Whisper's 30 s window and was truncated, so the audio no longer
+  # holds all the speech the transcript names.
+  max_cut_duration: 30.0
+
+  # Speaker-change symbol, written between blocks. It must be a single token
+  # under Whisper tokenization; one the vocabulary lacks is appended to
+  # tokens.txt, which then runs one row longer than Whisper's own and needs
+  # decoder_conf.load_origin_token_embedding true in the training config.
+  separator: "????"
+
+  # Prepended to every line. The S2T data format is
+  # <language><task><starttime> utt<endtime>...; <sos> and <eos> are added
+  # during preprocessing.
+  prompt: "<|en|><|transcribe|>"
+
+  # Written to text.prev and text.ctc, and resolved by the model as sym_na.
+  # A Whisper vocabulary has no "<na>", so this must be a real Whisper token.
+  na_symbol: "<|nospeech|>"
+
+  # Per-split serialization; see dataset/sot_text.py for what each option does.
+  sot:
+    train:
+      cutset: ami-sdm_cutset_train_utt_group_max_30s.jsonl.gz
+      ordering: start_time
+      lowercase: true
+      max_timestamp_pause: 2.0
+    valid:
+      cutset: ami-sdm_cutset_dev_utt_group_max_30s.jsonl.gz
+      ordering: start_time
+      lowercase: true
+      max_timestamp_pause: 2.0
+    test:
+      cutset: ami-sdm_cutset_test_utt_group_max_30s.jsonl.gz
+      ordering: longest_first
+      lowercase: true
+      max_timestamp_pause: 2.0
+
+dataset:
+  train:
+    split: train
+  valid:
+    split: valid
+  test:
+    split: test

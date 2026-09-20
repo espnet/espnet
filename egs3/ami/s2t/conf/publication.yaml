@@ -1,0 +1,44 @@
+##########################################################
+#                  PUBLICATION SETTING                   #
+##########################################################
+# Quick usage:
+#   python run.py --stages pack_model \
+#       --training_config conf/training.yaml \
+#       --publication_config conf/publication.yaml \
+#       --inference_config conf/inference.yaml --metrics_config conf/metrics.yaml
+#
+# A partial overlay on egs3/TEMPLATE/asr/conf/publication.yaml, which supplies
+# out_dir, the readme template and the upload_model block. Run infer and
+# measure first: pack_model bundles the metrics.json that measure writes and
+# renders it into the model's readme.
+recipe_dir: .
+
+##########################################################
+#                   PACK MODEL SETTING                   #
+##########################################################
+pack_model:
+  include:
+    # A packed model imports src.preprocessor and src.inference by name.
+    - ${recipe_dir}/src
+    - ${recipe_dir}/dataset
+    # The vocabulary the checkpoint was trained against. It lives beside the
+    # corpus rather than under the recipe, hence the same expression
+    # conf/training.yaml uses. Copying it here is what lets the rewrite below
+    # find it.
+    - ${oc.env:AMI_SOT_DATA_ROOT,${recipe_dir}}/data/tokens.txt
+
+  # The checkpoint's config.yaml names the token list by absolute path, which
+  # a bulk copy would carry over unchanged. Registered here instead, because
+  # pack_model rewrites a yaml_files entry's paths to bundle-relative
+  # ${recipe_dir}/... form for every source it has copied.
+  yaml_files:
+    s2t_train_config: ${exp_dir}/config.yaml
+
+  exclude:
+    # Applied to the bulk copy only, never to files or yaml_files.
+    - inference
+    - inference_*
+    - "*.ckpt"
+    - "**/*.log"
+    - "**/tensorboard/**"
+    - "**/wandb/**"

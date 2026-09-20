@@ -1,0 +1,190 @@
+##########################################################
+#                   TRAINING SETTING                     #
+##########################################################
+# Drives create_dataset, collect_stats and train. Run each as its own
+# command; collect_stats and train must not be combined into one invocation.
+#
+# A partial overlay on egs3/TEMPLATE/asr/conf/training.yaml, which supplies the
+# dataloader's iter_factory target and collate_fn. Not valid on its own.
+recipe_dir: .
+exp_tag: whisper_sot_train
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+stats_dir: ${recipe_dir}/exp/stats/${exp_tag}
+task: espnet2.tasks.s2t.S2TTask
+
+num_device: 1
+num_nodes: 1
+
+# The builder writes the token list under the corpus root, at data/tokens.txt.
+token_list_path: ${oc.env:AMI_SOT_DATA_ROOT,${recipe_dir}}/data/tokens.txt
+
+##########################################################
+#                    DATASET DEFINITION                  #
+##########################################################
+# data_src is omitted, so ESPnet3 loads ${recipe_dir}/dataset/__init__.py and
+# instantiates the exported DatasetBuilder. All three splits name the same
+# builder, which prepares each one once.
+#
+# What create_dataset does, per split, is in dataset/builder.py: fetch the
+# Lhotse CutSet manifests, download AMI SDM audio with
+# egs2/ami/asr1/local/ami_download.sh, relocate recordings whose stored
+# absolute path is gone, cut each utterance group's segment, and write the
+# Kaldi files. Serialization options live in dataset/config.yaml under
+# builder.sot.
+dataset:
+  train:
+    - name: train
+      data_src_args:
+        split: train
+  valid:
+    - name: valid
+      data_src_args:
+        split: valid
+  # Training reads train and valid only. All three entries share one builder
+  # (create_dataset dedupes them into a single call), and the builder prepares
+  # every split in dataset/config.yaml's split_dirs, test included, which the
+  # inference stage assumes was done.
+  test:
+    - name: test
+      data_src_args:
+        split: test
+  # Recipe-local: see src/preprocessor.py for why the shared S2TPreprocessor
+  # cannot be used unchanged with a Whisper vocabulary. DataOrganizer sets
+  # `train` itself, so it is not given here.
+  preprocessor:
+    _target_: src.preprocessor.AmiSotS2TPreprocessor
+    token_type: whisper_multilingual
+    bpemodel: whisper_multilingual
+    token_list: ${token_list_path}
+    speaker_change_symbol: "????"
+    # OWSM's spellings are the defaults and raise KeyError here.
+    notime_symbol: "<|notimestamps|>"
+    first_time_symbol: "<|0.00|>"
+    last_time_symbol: "<|30.00|>"
+    # The default 0.5 strips every timestamp from about half the samples.
+    time_apply_prob: 1.0
+    # The default "<na>" is not a Whisper token: it BPE-splits, so the model's
+    # `if self.na in y_prev` test misses and the decoder is conditioned on the
+    # literal characters.
+    na_symbol: "<|nospeech|>"
+    # The preprocessor substitutes na_symbol when uniform() > this, so 0.0
+    # means ALWAYS substitute. That is what we want: text.prev is NA on every
+    # line anyway, and randomising it would only add a code path nothing tests.
+    text_prev_apply_prob: 0.0
+    speech_length: 30
+    speech_resolution: 0.02
+    fs: 16000
+
+##########################################################
+#                      MODEL SETTING                     #
+##########################################################
+model:
+  token_list: ${token_list_path}
+
+  # What the inference stage reads back out of the checkpoint: the saved
+  # config carries the model block at its root, and Speech2Text takes its
+  # symbols from preprocessor_conf. Interpolated from the preprocessor the
+  # train stage builds, so the two cannot drift apart.
+  preprocessor_conf:
+    notime_symbol: ${dataset.preprocessor.notime_symbol}
+    first_time_symbol: ${dataset.preprocessor.first_time_symbol}
+    last_time_symbol: ${dataset.preprocessor.last_time_symbol}
+    na_symbol: ${dataset.preprocessor.na_symbol}
+    fs: ${dataset.preprocessor.fs}
+    speech_length: ${dataset.preprocessor.speech_length}
+    speech_resolution: ${dataset.preprocessor.speech_resolution}
+    time_apply_prob: ${dataset.preprocessor.time_apply_prob}
+    text_prev_apply_prob: ${dataset.preprocessor.text_prev_apply_prob}
+  frontend: null
+  input_size: 1
+  specaug: null
+  normalize: null
+
+  encoder: whisper
+  encoder_conf:
+    whisper_model: small
+    dropout_rate: 0.0
+    do_pad_trim: true
+
+  decoder: whisper
+  decoder_conf:
+    whisper_model: small
+    # Required when the token list is longer than Whisper's own, which it is
+    # whenever builder.separator is a symbol the vocabulary lacks: it keeps the
+    # pretrained embedding rows instead of reinitialising all of them. It also
+    # changes the state_dict keys, so any config that later loads this
+    # checkpoint must set it the same way.
+    load_origin_token_embedding: true
+
+  model_conf:
+    ctc_weight: 0.0
+    # ESPnetS2TModel resolves all five by token_list.index, and a Whisper
+    # vocabulary has none of the usual spellings. <|translate|> stands in for
+    # the blank, which is unused at ctc_weight 0.0.
+    sym_blank: "<|translate|>"
+    sym_sos: "<|startoftranscript|>"
+    sym_eos: "<|endoftext|>"
+    sym_sop: "<|startofprev|>"
+    sym_na: "<|nospeech|>"
+
+##########################################################
+#            OPTIMIZER & SCHEDULER SETTING               #
+##########################################################
+optimizer:
+  _target_: torch.optim.AdamW
+  lr: 5.0e-6
+  betas: [0.9, 0.999]
+  eps: 1.0e-8
+  weight_decay: 0.01
+  # Not fused: a fused optimizer unscales gradients inside its own step, so
+  # Lightning's precision plugin refuses trainer.gradient_clip_val alongside
+  # it, and the clipping is the part that shapes training.
+
+# Linear warmup then a single cosine decay: first_cycle_steps equals
+# trainer.max_steps, so the cycle never restarts. warmup_steps is 4 % of it.
+scheduler:
+  _target_: espnet2.schedulers.cosine_anneal_warmup_restart.CosineAnnealingWarmupRestarts
+  first_cycle_steps: 50000
+  max_lr: 5.0e-6
+  min_lr: 0.0
+  warmup_steps: 2000
+  cycle_mult: 1.0
+  gamma: 1.0
+scheduler_interval: step
+
+best_model_criterion:
+  - - valid/loss
+    - 1
+    - min
+
+# Batches are unsorted because there is nothing to sort on: the preprocessor
+# pads every utterance to speech_length * fs, so feats_shape serves only as the
+# key list. shape_files come from collect_stats, which must run first.
+#
+# batch_size 16 with accumulate_grad_batches 2 gives an effective batch of 32.
+# Per-device 32 does not fit: the decoder target drives peak memory and its
+# length is heavily skewed, so an unsorted batch of long targets overflows a
+# 95 GiB device inside the label-smoothing loss.
+dataloader:
+  train:
+    iter_factory:
+      batches:
+        type: unsorted
+        batch_size: 16
+        shape_files:
+          - ${stats_dir}/train/feats_shape
+  valid:
+    iter_factory:
+      batches:
+        type: unsorted
+        batch_size: 16
+        shape_files:
+          - ${stats_dir}/valid/feats_shape
+
+trainer:
+  max_steps: 50000
+  accumulate_grad_batches: 2
+  gradient_clip_val: 1.0
+  precision: bf16-mixed
+
+fit: {}
