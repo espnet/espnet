@@ -19,7 +19,22 @@
 ##########################################################
 # `task`, `recipe_dir`, `data_dir`, `exp_tag`, and `exp_dir` are inherited
 # from the TEMPLATE config. In particular, `exp_tag` follows `${self_name:}`.
-num_device: 4
+#
+# 4 is this recipe's reference environment (see below) and stays the default.
+# `dataloader.train.batch_size` is per rank, so a smaller world size shrinks the
+# effective global batch -- 2 ranks give 2x256 rather than 4x256 -- while the
+# AAMSoftmax margin and the warmup/decay schedule were tuned for 4x256. Running
+# narrower therefore needs `batch_size` or the scheduler adjusted to reproduce
+# the published EER; it is not a bug to chase. Override only to match the
+# hardware actually allocated, and note Lightning's SLURMEnvironment requires
+# this to equal the job's `--ntasks-per-node`.
+num_device: ${oc.env:VOX_NUM_DEVICE,4}
+
+# Escape hatch for sites where reading the corpus over the shared filesystem is
+# the bottleneck: a launcher can copy it to fast local storage and point the
+# recipe at the rewritten `data/` tree. Unset -- the normal case -- this
+# resolves to the TEMPLATE's `${recipe_dir}/data` and nothing changes.
+data_dir: ${oc.env:VOX_DATA_DIR,${recipe_dir}/data}
 
 ##########################################################
 #                    DATASET DEFINITION                  #
@@ -116,3 +131,19 @@ scheduler:
 ##########################################################
 trainer:
   max_epochs: 40
+
+##########################################################
+#                      FIT SETTING                       #
+##########################################################
+# Resume from the last checkpoint when one exists. This overrides the
+# TEMPLATE's `fit: {}`, which left `ckpt_path` unset and so made every
+# resubmission restart at epoch 0 -- the 40-epoch run cannot fit in the
+# partition's 48 h limit (epochs take 4-7.5 h), so it *must* resume.
+#
+# `last` is safe to set before the first run: Lightning 2.6.5 warns and starts
+# fresh when no last checkpoint is found rather than raising
+# (checkpoint_connector.py, the `not candidates_ts` branch). It resolves to
+# `${exp_dir}/last.ckpt`, which the ModelCheckpoint callback writes every epoch
+# with full optimizer state.
+fit:
+  ckpt_path: last
