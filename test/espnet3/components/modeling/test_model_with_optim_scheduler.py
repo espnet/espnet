@@ -183,6 +183,17 @@ class DummySingleModel(nn.Module):
         return loss, {"loss": loss.detach()}, None
 
 
+class DummyFreezeModel(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.frontend = nn.Linear(2, 2)
+        self.encoder = nn.Linear(2, 1)
+
+    def forward(self, x, **kwargs):
+        loss = self.encoder(self.frontend(x)).sum()
+        return loss, {"loss": loss.detach()}, None
+
+
 class DummyDataset:
     def __init__(self, path=None):
         self.data = [
@@ -296,6 +307,27 @@ def test_single_optim_and_scheduler():
     assert "optimizer" in out
     assert "lr_scheduler" in out
     assert out["lr_scheduler"]["interval"] == "step"
+
+
+def test_model_freeze_param_excludes_selected_parameters_from_optimizer():
+    config = make_single_config()
+    config.model = {
+        "freeze_param": ["frontend", "encoder.bias"],
+    }
+    module = ESPnetLightningModule(DummyFreezeModel(), config)
+
+    assert not module.model.frontend.weight.requires_grad
+    assert not module.model.frontend.bias.requires_grad
+    assert module.model.encoder.weight.requires_grad
+    assert not module.model.encoder.bias.requires_grad
+
+    optimizer = module.configure_optimizers()["optimizer"]
+    optimized_params = {
+        parameter
+        for group in optimizer.param_groups
+        for parameter in group["params"]
+    }
+    assert optimized_params == {module.model.encoder.weight}
 
 
 def test_single_reduce_on_plateau_monitor():

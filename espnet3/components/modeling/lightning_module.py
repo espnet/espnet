@@ -161,6 +161,7 @@ class ESPnetLightningModule(lightning.LightningModule):
         super().__init__()
         self.config = config
         self.model = model
+        self._freeze_parameters()
         data_organizer = instantiate(config.dataset)
 
         data_organizer.log_summary(logger)
@@ -203,6 +204,22 @@ class ESPnetLightningModule(lightning.LightningModule):
 
         # Named `optimizers` switches the module to the manual multi-optimizer path.
         self.automatic_optimization = getattr(self.config, "optimizers", None) is None
+
+    def _freeze_parameters(self) -> None:
+        """Apply ESPnet2-compatible ``model.freeze_param`` selectors.
+
+        Each selector matches an exact parameter name or a dot-delimited
+        parameter-name prefix within the wrapped model.  The selectors use
+        ``self.model.named_parameters()``, so they do not include Lightning's
+        outer ``model.`` prefix.
+        """
+        model_config = self.config.get("model", {})
+        freeze_params = model_config.get("freeze_param", [])
+        for selector in freeze_params or []:
+            for name, parameter in self.model.named_parameters():
+                if name.startswith(selector + ".") or name == selector:
+                    logger.info("Setting %s.requires_grad = False", name)
+                    parameter.requires_grad = False
 
     def _sync2skip(self, flag_skip):
         """Synchronize a skip flag across all DDP workers.
