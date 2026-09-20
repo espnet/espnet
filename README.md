@@ -223,7 +223,7 @@ of 200+ corpora recipes.
 
 | Demo | |
 | :-- | :-- |
-| Spoken dialogue — ASR → LLM → TTS, cascaded or end-to-end, with live metrics | [recipe](egs2/TEMPLATE/sds1) (Gradio, runs locally) |
+| Spoken dialogue — listen, think, speak | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/Demos/sds_demo.ipynb) |
 | Speech recognition, and the words appearing as the audio arrives | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/Demos/asr_demo.ipynb) [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/Demos/asr_streaming_demo.ipynb) |
 | Speech translation — the same model, a different task symbol | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/Demos/st_demo.ipynb) |
 | Text-to-speech, one voice and then 128 | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/Demos/tts_demo.ipynb) |
@@ -231,8 +231,13 @@ of 200+ corpora recipes.
 | Speaker verification — two recordings, one score | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/Demos/spk_demo.ipynb) |
 | Neural codecs — a waveform as a few integers a frame | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/Demos/codec_demo.ipynb) |
 
-Each runs top to bottom on a CPU and pins the release it was checked against.
-More, including the CMU course material: [espnet/notebook](https://github.com/espnet/notebook).
+Each runs top to bottom on a CPU, pins the release it was checked against, and
+is executed again every Sunday. More, including the CMU course material:
+[espnet/notebook](https://github.com/espnet/notebook).
+
+The full spoken dialogue system — microphone, voice activity detection, an
+end-to-end option beside the cascade, and latency and quality measured while
+you talk — is [`egs2/TEMPLATE/sds1`](egs2/TEMPLATE/sds1), which runs locally.
 
 **Publish your own.** Every ESPnet3 recipe can wrap its trained model in a
 [Gradio](https://www.gradio.app/) app and push it to Hugging Face Spaces — the UI,
