@@ -76,10 +76,13 @@ The card pins `python_version: "3.12"`. espnet requires 3.12 or 3.13, and a
 Space image with an older interpreter installs no espnet at all - pip reports
 "No matching distribution found" and the build fails.
 
-`requirements.txt` asks for plain `espnet`, where the other two new demos ask
-for an extra: this checkpoint's front-end is `melspec_torch`, which needs
-nothing beyond the core install. A RawNet3 checkpoint reached through
-`SPK_MODEL_TAG` would want `espnet[spk]`, for `asteroid_filterbanks`.
+`requirements.txt` asks for `espnet[spk]`, not plain `espnet`: RawNet3's
+front-end is `asteroid_frontend`, which imports `asteroid_filterbanks`, and
+that extra is where it comes from. A Space installs from `requirements.txt`
+and nothing else, so leaving it out is a build that succeeds and a Space that
+cannot start - which is how it was found. A checkpoint with a `melspec_torch`
+front-end needs nothing beyond the core install, and the extra costs it one
+small package.
 
 ## Running and publishing
 
