@@ -202,6 +202,23 @@ A stage is just a named method, so no separate registration step exists beyond w
 
 ### Checklist
 
+### Recipe portability review before push
+
+Before pushing changes to a recipe, inspect its tracked YAML, Python, shell,
+and README files for values that only work in the author's environment. Do not
+commit absolute local paths, user-home paths, API keys, tokens, passwords, or
+other credentials. Resolve dataset and output locations through recipe config,
+environment variables, or documented command-line overrides instead.
+
+Review `parallel` settings as well. Do not leave `n_workers: 1` or another
+machine-specific resource value merely because it was needed on the development
+host or in a local test. Keep a documented, generally useful default and make
+site-specific worker counts an override.
+
+When a user asks to push recipe changes, report this portability review and
+call out any hard-coded path, credential, or environment-specific parallel
+setting found. Never push a recipe containing credentials; remove them first.
+
 - [ ] `dataset/__init__.py` exports `Dataset`/`DatasetBuilder` by those exact names
 - [ ] `dataset/builder.py` implements all four `DatasetBuilder` methods; staleness checks are cheap
       and builds are idempotent (use temp-file-then-rename when writing manifests)

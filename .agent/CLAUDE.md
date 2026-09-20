@@ -427,6 +427,9 @@ pytest -q test/espnet3/                 # or a smaller scope, e.g. pytest -q tes
 **PR expectations:**
 
 - Keep PRs small: roughly 20 changed files / 2000 changed lines as a soft ceiling.
+- Before pushing a change under `egs3/`, follow the recipe portability review in
+  [`egs3/CLAUDE.md`](egs3/CLAUDE.md): report hard-coded paths, credentials, and
+  host-specific parallel settings to the user, and never push credentials.
 - Every change to `espnet3/` needs a new or updated unit test at the mirrored `test/espnet3/` path
   (section 3 above). A new end-to-end feature needs integration coverage too -- see `ci/CLAUDE.md` for
   what "full workflow" (train -> infer -> measure -> publish -> demo) actually means here.
