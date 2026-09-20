@@ -237,20 +237,20 @@ class IterableESPnetDataset(IterableDataset):
             # 4. Force data-precision
             for name in data:
                 value = data[name]
-                # NOTE(jiatong): skip the process for None value
                 if value is None:
-                    data[name] = value
-                    continue
+                    raise RuntimeError(
+                        f'Missing value for "{name}" after preprocessing.'
+                    )
                 if not isinstance(value, np.ndarray) and not isinstance(value, dict):
                     raise RuntimeError(
                         f"All values must be converted to np.ndarray or "
-                        "dict (universa-only) object by preprocessing, "
+                        "dict object by preprocessing, "
                         f'but "{name}" is still {type(value)}.'
                     )
 
                 # Cast to desired type
                 if type(value) is dict:
-                    # NOTE(jiatong): Universa metric case
+                    # Structured annotation values may contain preprocessed arrays.
                     for k, v in value.items():
                         if isinstance(v, np.ndarray):
                             if v.dtype.kind == "f":

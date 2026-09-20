@@ -3005,10 +3005,6 @@ class UniversaProcessor(AbsPreprocessor):
                 if self.train:
                     audio = data[name]
 
-                    # audio: (Nmic, Time)
-                    if audio.ndim == 1:
-                        audio = audio[:, None]
-
                     ma = np.max(np.abs(audio))
                     if ma > 1.0:
                         audio /= ma
@@ -3040,9 +3036,10 @@ class UniversaProcessor(AbsPreprocessor):
             if isinstance(text, np.ndarray):
                 return data
             if text is None:
-                text = self.token_id_converter.unk_symbol
-            text = self.text_cleaner(text)
-            tokens = self.tokenizer.text2tokens(text)
+                tokens = [self.token_id_converter.unk_symbol]
+            else:
+                text = self.text_cleaner(text)
+                tokens = self.tokenizer.text2tokens(text)
             text_ints = self.token_id_converter.tokens2ids(tokens)
             if len(text_ints) > 500:
                 logging.warning(
@@ -3069,7 +3066,10 @@ class UniversaProcessor(AbsPreprocessor):
                     elif self.metric2type[key] in ("float", "numerical"):
                         metric[key] = float(value)
                     elif self.metric2type[key] == "str":
-                        metric[key] = str(value)
+                        raise ValueError(
+                            f"String metric {key!r} needs a tokenizing preprocessor; "
+                            "UniversaProcessor supports only numeric labels"
+                        )
                     else:
                         raise ValueError(
                             f"Unsupported metric type: {self.metric2type[key]}"

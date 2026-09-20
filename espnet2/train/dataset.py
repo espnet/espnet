@@ -28,7 +28,7 @@ from omniio import kaldi as kaldi_io
 from torch.utils.data.dataset import Dataset
 from typeguard import typechecked
 
-from espnet2.fileio.metric_scp import MetricReader
+from espnet2.fileio.json_scp import JsonScpReader
 from espnet2.fileio.multi_sound_scp import MultiSoundScpReader
 from espnet2.fileio.npy_scp import NpyScpReader
 from espnet2.fileio.rand_gen_dataset import (
@@ -431,16 +431,19 @@ DATA_TYPES = {
         "    END     file1 <NA> 4023 <NA> <NA> <NA> <NA>"
         "   ...",
     ),
-    "metric": dict(
-        func=MetricReader,
+    "json": dict(
+        func=JsonScpReader,
         kwargs=[],
-        help="Metric scp loader, currently support for universa learning"
+        help="Utterance-keyed JSON objects for structured annotations"
         "\n\n"
-        "   utterance_id_A {'metric': 0.0}\n"
-        "   utterance_id_B {'metric': 0.1}\n"
+        '   utterance_id_A {"metric": 0.0}\n'
+        '   utterance_id_B {"metric": 0.1}\n'
         "   ...",
     ),
 }
+
+# Historical recipes use the metric data-type name.
+DATA_TYPES["metric"] = DATA_TYPES["json"]
 
 
 class AbsDataset(Dataset, ABC):
@@ -651,16 +654,18 @@ class ESPnetDataset(AbsDataset):
         # 3. Force data-precision
         for name in data:
             value = data[name]
+            if value is None:
+                raise RuntimeError(f'Missing value for "{name}" after preprocessing.')
             if not isinstance(value, np.ndarray) and not isinstance(value, dict):
                 raise RuntimeError(
                     f"All values must be converted to np.ndarray or "
-                    "dict (universa-only) object by preprocessing, "
+                    "dict object by preprocessing, "
                     f'but "{name}" is still {type(value)}.'
                 )
 
             # Cast to desired type
             if type(value) is dict:
-                # NOTE(jiatong): Universa metric case
+                # Structured annotation values may contain preprocessed arrays.
                 for k, v in value.items():
                     if isinstance(v, np.ndarray):
                         if v.dtype.kind == "f":
