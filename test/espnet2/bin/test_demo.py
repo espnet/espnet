@@ -9,6 +9,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import types
+
 import numpy as np
 import pytest
 
@@ -114,6 +116,39 @@ def test_the_window_is_the_one_the_checkpoint_was_trained_on():
 def test_the_phone_option_appears_only_for_a_checkpoint_that_has_it():
     assert demo.phone_task(["<eng>", "<asr>", "<pr>"])
     assert not demo.phone_task(["<eng>", "<asr>", "<st_deu>"])
+
+
+def test_a_checkpoint_that_cannot_detect_a_language_opens_on_one(monkeypatch):
+    """A model with no "work it out yourself" symbol must not break the page.
+
+    espnet/powsm records none and has no <nolang> in its vocabulary at all.
+    The menu then has no Detect entry and opens on a language, rather than
+    every Run raising.
+    """
+    gr = pytest.importorskip("gradio")
+    assert gr  # the page is built below
+
+    class _Cannot:
+        preprocessor_conf = {"speech_length": 20}
+        s2t_model = types.SimpleNamespace(
+            token_list=["<unk>", "<eng>", "<deu>", "<asr>", "<pr>", "<sos>"]
+        )
+
+        def no_language(self):
+            raise ValueError("this model has no symbol for an unknown language")
+
+    app = demo.build_app(_Cannot(), device="cpu", model_tag="espnet/a-model")
+    menus = {
+        block.label: [
+            c[0] if isinstance(c, (list, tuple)) else c for c in block.choices
+        ]
+        for block in app.blocks.values()
+        if getattr(block, "label", None) in ("Spoken language", "Task")
+    }
+    assert demo.DETECT not in menus["Spoken language"]
+    assert menus["Spoken language"][0] == "English (eng)"
+    # and the phone option is there, since this checkpoint has <pr>
+    assert demo.PHONES_LABEL in menus["Task"]
 
 
 def test_the_device_rule_answers_a_device_torch_accepts():

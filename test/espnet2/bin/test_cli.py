@@ -670,6 +670,8 @@ class _FakeOWSM:
         )
 
     preprocessor_conf = {"speech_length": 30, "nolang_symbol": "<nolang>"}
+    # OWSM-CTC: read off the CTC head, no decoder to search over
+    ctc_only = True
 
     def from_pretrained(self, model_tag=None, device=None, **kwargs):
         self.tag, self.device = model_tag, device

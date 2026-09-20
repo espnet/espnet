@@ -338,13 +338,36 @@ def build_app(s2t, device: str = "cpu", model_tag: str = ""):
     # the checkpoint's own window and its own spelling of "no language given":
     # OWSM is 30 s and <nolang>, POWSM is 20 s and <unk>
     window = window_secs(s2t)
-    nolang = s2t.no_language()
     phones = phone_task(tokens)
+    try:
+        nolang = s2t.no_language()
+    except ValueError:
+        # A checkpoint with no symbol for "work it out yourself" cannot be
+        # asked to detect: the menu then has no Detect entry and opens on a
+        # language instead. Better than a page that raises on every Run.
+        nolang = None
+
+    def decode(speech, lang_sym, task_sym):
+        """One window, decoded the way this checkpoint has to be.
+
+        A CTC-only model is read off its CTC head with no search, which is an
+        order of magnitude faster and loses nothing. An encoder-decoder model
+        is called: its CTC head answers whatever that head was trained on -
+        POWSM's returns phones whether you ask for `<asr>` or `<pr>` - and
+        only the decoder reads the task symbol.
+        """
+        if s2t.ctc_only:
+            return s2t.best_path(speech, lang_sym=lang_sym, task_sym=task_sym)[0][0]
+        return s2t(speech, lang_sym=lang_sym, task_sym=task_sym)[0][0]
 
     def detect(speech, task_sym):
         """The language the model names for the first window of this audio."""
-        decoded = s2t.best_path(pad(speech, window), lang_sym=nolang, task_sym=task_sym)
-        return split_tokens(decoded[0][0], codes)[0] or "eng"
+        decoded = decode(pad(speech, window), nolang, task_sym)
+        return split_tokens(decoded, codes)[0] or "eng"
+
+    def chosen_language(label):
+        """The code the menu is showing, or None when it says Detect."""
+        return None if label == DETECT else code_of_language[label]
 
     def predict(audio_path, language_label, task_label, long_form):
         if audio_path is None:
@@ -357,7 +380,7 @@ def build_app(s2t, device: str = "cpu", model_tag: str = ""):
             )
             speech = speech[: SAMPLE_RATE * MAX_SECS]
 
-        chosen = None if language_label == DETECT else code_of_language[language_label]
+        chosen = chosen_language(language_label)
         lang_sym = nolang if chosen is None else f"<{chosen}>"
         if task_label == ASR_LABEL:
             task_sym = "<asr>"
@@ -367,29 +390,39 @@ def build_app(s2t, device: str = "cpu", model_tag: str = ""):
             task_sym = f"<st_{code_of_target[task_label]}>"
 
         if long_form:
-            # One 30 s pass first, only to name the language the rest is
-            # decoded in; skipped when the user has already said what it is.
+            # One window first, only to name the language the rest is decoded
+            # in; skipped when the user has already said what it is.
             detected = chosen or detect(speech, task_sym)
-            text = " ".join(
-                segment
-                for _, _, segment in s2t.decode_long(
-                    speech,
-                    batch_size=1 if device == "cpu" else 8,
-                    context_len_in_secs=4,
-                    lang_sym=f"<{detected}>",
-                    task_sym=task_sym,
+            if s2t.ctc_only:
+                text = " ".join(
+                    segment
+                    for _, _, segment in s2t.decode_long(
+                        speech,
+                        batch_size=1 if device == "cpu" else 8,
+                        context_len_in_secs=4,
+                        lang_sym=f"<{detected}>",
+                        task_sym=task_sym,
+                    )
                 )
-            )
+            else:
+                # decode_long segments an encoder-decoder model by its own
+                # timestamps, and POWSM asked for phones fills a window that
+                # is mostly padding with repetitions. One window at a time.
+                step = SAMPLE_RATE * window
+                text = " ".join(
+                    split_tokens(
+                        decode(speech[at : at + step], f"<{detected}>", task_sym), codes
+                    )[1]
+                    for at in range(0, len(speech), step)
+                )
         else:
             if len(speech) > SAMPLE_RATE * window:
                 gr.Warning(
                     f"Only the first {window} s were decoded. "
                     "Tick Long-form for the whole recording."
                 )
-            decoded = s2t.best_path(
-                pad(speech, window), lang_sym=lang_sym, task_sym=task_sym
-            )
-            detected, text = split_tokens(decoded[0][0], codes)
+            decoded = decode(pad(speech, window), lang_sym, task_sym)
+            detected, text = split_tokens(decoded, codes)
             detected = detected or chosen or ""
         if task_sym == PHONE_TASK:
             # POWSM writes each phone between slashes, so that a phone spelled
@@ -406,9 +439,10 @@ def build_app(s2t, device: str = "cpu", model_tag: str = ""):
                 audio = gr.Audio(
                     sources=["microphone", "upload"], type="filepath", label="Speech"
                 )
+                choices = ([DETECT] if nolang else []) + [n for n, _ in languages]
                 language = gr.Dropdown(
-                    [DETECT] + [name for name, _ in languages],
-                    value=DETECT,
+                    choices,
+                    value=choices[0],
                     label="Spoken language",
                 )
                 task = gr.Dropdown(
