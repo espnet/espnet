@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""The browser demo of an OWSM model: what `espnet demo` serves.
+"""The browser demo of a speech-to-text model: what `espnet demo` serves.
+
+The page is the checkpoint's rather than OWSM's: the language menu, the
+translation targets, the window it decodes in a pass and its own spelling of
+"no language given" all come off the model that was loaded, and a checkpoint
+with `<pr>` in its token list - POWSM, the phonetic model built on OWSM - is
+offered phone recognition beside transcription.
 
 The first half - the language table, the menus a checkpoint describes, the
 reading and padding of audio - is the same ground the two Hugging Face Space
@@ -38,6 +44,12 @@ WINDOW_SECS = 30
 MAX_SECS = 120
 DETECT = "Detect automatically"
 ASR_LABEL = "Transcribe"
+# POWSM, the phonetic model built on OWSM, answers <pr> with the phones it
+# hears. A checkpoint that has the symbol gets the option; OWSM does not have
+# it and its menu is unchanged.
+PHONES_LABEL = "Recognise phones"
+PHONE_TASK = "<pr>"
+PHONE = re.compile(r"/([^/]+)/")
 
 # ISO 639-3 to English, for the menu. The codes themselves come from the
 # loaded model, so a checkpoint covering more languages needs no edit here;
@@ -217,15 +229,31 @@ def read_audio(path: str) -> np.ndarray:
     return speech
 
 
-def pad(speech: np.ndarray) -> np.ndarray:
-    """The one 30 s window OWSM decodes in a pass: the start of this audio.
+def pad(speech: np.ndarray, window_secs: int = WINDOW_SECS) -> np.ndarray:
+    """The one window the model decodes in a pass: the start of this audio.
 
     Shorter audio is zero-padded to the window the model is trained on, longer
     audio is cut to it. What librosa.util.fix_length does, in numpy, because
     reaching it through librosa.util imports scipy.ndimage for this one line.
+
+    The default is OWSM's 30 s, which is what the two Space apps pass and what
+    this module meant for as long as it served one model. POWSM's window is
+    20 s, and padding it to 30 would be 10 s of silence for the model to
+    hallucinate over.
     """
-    window = SAMPLE_RATE * WINDOW_SECS
+    window = SAMPLE_RATE * window_secs
     return np.pad(speech[:window], (0, max(0, window - len(speech))))
+
+
+def window_secs(s2t) -> int:
+    """The window this checkpoint was trained on, in seconds."""
+    conf = getattr(s2t, "preprocessor_conf", None) or {}
+    return int(conf.get("speech_length", WINDOW_SECS))
+
+
+def phone_task(tokens: Sequence[str]) -> bool:
+    """Whether this checkpoint answers the phone recognition symbol."""
+    return PHONE_TASK in tokens
 
 
 def split_tokens(decoded: str, codes: Iterable[str]) -> Tuple[str, str]:
@@ -302,14 +330,20 @@ def build_app(s2t, device: str = "cpu", model_tag: str = ""):
     if gr is None:  # pragma: no cover - `espnet demo` checks this first
         raise ImportError(GRADIO_MISSING)
 
-    languages, targets = menus(s2t.s2t_model.token_list)
+    tokens = s2t.s2t_model.token_list
+    languages, targets = menus(tokens)
     code_of_language = dict(languages)
     code_of_target = dict(targets)
     codes = frozenset(code_of_language.values())
+    # the checkpoint's own window and its own spelling of "no language given":
+    # OWSM is 30 s and <nolang>, POWSM is 20 s and <unk>
+    window = window_secs(s2t)
+    nolang = s2t.no_language()
+    phones = phone_task(tokens)
 
     def detect(speech, task_sym):
-        """The language OWSM-CTC names for the first window of this audio."""
-        decoded = s2t.best_path(pad(speech), lang_sym="<nolang>", task_sym=task_sym)
+        """The language the model names for the first window of this audio."""
+        decoded = s2t.best_path(pad(speech, window), lang_sym=nolang, task_sym=task_sym)
         return split_tokens(decoded[0][0], codes)[0] or "eng"
 
     def predict(audio_path, language_label, task_label, long_form):
@@ -324,10 +358,13 @@ def build_app(s2t, device: str = "cpu", model_tag: str = ""):
             speech = speech[: SAMPLE_RATE * MAX_SECS]
 
         chosen = None if language_label == DETECT else code_of_language[language_label]
-        lang_sym = "<nolang>" if chosen is None else f"<{chosen}>"
-        task_sym = (
-            "<asr>" if task_label == ASR_LABEL else f"<st_{code_of_target[task_label]}>"
-        )
+        lang_sym = nolang if chosen is None else f"<{chosen}>"
+        if task_label == ASR_LABEL:
+            task_sym = "<asr>"
+        elif task_label == PHONES_LABEL:
+            task_sym = PHONE_TASK
+        else:
+            task_sym = f"<st_{code_of_target[task_label]}>"
 
         if long_form:
             # One 30 s pass first, only to name the language the rest is
@@ -344,14 +381,21 @@ def build_app(s2t, device: str = "cpu", model_tag: str = ""):
                 )
             )
         else:
-            if len(speech) > SAMPLE_RATE * WINDOW_SECS:
+            if len(speech) > SAMPLE_RATE * window:
                 gr.Warning(
-                    f"Only the first {WINDOW_SECS} s were decoded. "
+                    f"Only the first {window} s were decoded. "
                     "Tick Long-form for the whole recording."
                 )
-            decoded = s2t.best_path(pad(speech), lang_sym=lang_sym, task_sym=task_sym)
+            decoded = s2t.best_path(
+                pad(speech, window), lang_sym=lang_sym, task_sym=task_sym
+            )
             detected, text = split_tokens(decoded[0][0], codes)
             detected = detected or chosen or ""
+        if task_sym == PHONE_TASK:
+            # POWSM writes each phone between slashes, so that a phone spelled
+            # like a BPE token is still one token. The page shows them spaced,
+            # which is the form anything counting or aligning them wants.
+            text = " ".join(PHONE.findall(text)) or text
         return LANGUAGE_NAMES.get(detected, detected or "unknown"), text
 
     app = gr.Blocks(title=TITLE)
@@ -368,13 +412,15 @@ def build_app(s2t, device: str = "cpu", model_tag: str = ""):
                     label="Spoken language",
                 )
                 task = gr.Dropdown(
-                    [ASR_LABEL] + [name for name, _ in targets],
+                    [ASR_LABEL]
+                    + ([PHONES_LABEL] if phones else [])
+                    + [name for name, _ in targets],
                     value=ASR_LABEL,
                     label="Task",
                 )
                 long_form = gr.Checkbox(
                     label="Long-form",
-                    info=f"Decode audio longer than {WINDOW_SECS} s in chunks",
+                    info=f"Decode audio longer than {window} s in chunks",
                 )
                 button = gr.Button("Run", variant="primary")
             with gr.Column():

@@ -89,6 +89,33 @@ def test_padding_never_returns_more_than_one_window():
     assert len(demo.pad(long_clip)) == demo.SAMPLE_RATE * demo.WINDOW_SECS
 
 
+def test_padding_can_be_told_a_different_window():
+    # POWSM's window is 20 s, and padding it to OWSM's 30 would be ten
+    # seconds of silence for the model to hallucinate over
+    padded = demo.pad(np.ones(demo.SAMPLE_RATE, dtype="float32"), 20)
+
+    assert len(padded) == demo.SAMPLE_RATE * 20
+
+
+def test_the_window_is_the_one_the_checkpoint_was_trained_on():
+    class _Model:
+        preprocessor_conf = {"speech_length": 20}
+
+    assert demo.window_secs(_Model()) == 20
+
+    class _Silent:
+        preprocessor_conf = {}
+
+    # a config that does not say keeps OWSM's, which is what this page meant
+    # for as long as it served one model
+    assert demo.window_secs(_Silent()) == demo.WINDOW_SECS
+
+
+def test_the_phone_option_appears_only_for_a_checkpoint_that_has_it():
+    assert demo.phone_task(["<eng>", "<asr>", "<pr>"])
+    assert not demo.phone_task(["<eng>", "<asr>", "<st_deu>"])
+
+
 def test_the_device_rule_answers_a_device_torch_accepts():
     assert demo.default_device() in ("cpu", "cuda")
 

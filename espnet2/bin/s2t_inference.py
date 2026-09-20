@@ -1262,8 +1262,29 @@ class Speech2Text:
                 )
         return first, last, step
 
+    def no_language(self) -> str:
+        """The symbol this checkpoint uses for "work the language out yourself".
+
+        Both POWSM checkpoints use `<unk>` and OWSM uses `<nolang>`, but
+        only some configs say so: POWSM-CTC records `nolang_symbol`, POWSM
+        does not, and POWSM has no `<nolang>` in its vocabulary at all, so a
+        guess turns into a KeyError several seconds after the model has
+        loaded. What the config says if it says anything, then either
+        spelling, each checked against the token list before it is offered.
+
+        Raises:
+            ValueError: the checkpoint has no such symbol, and the caller has
+                to name a language instead.
+        """
+        tokens = set(getattr(self.s2t_model, "token_list", None) or ())
+        named = (self.preprocessor_conf or {}).get("nolang_symbol")
+        for candidate in (named, "<nolang>", "<unk>"):
+            if candidate and (not tokens or candidate in tokens):
+                return str(candidate)
+        raise ValueError("this model has no symbol for an unknown language: name one")
+
     def _near_window_end(self) -> int:
-        """The timestamp id a second before the end of the model's window.
+        """The timestamp a second before the end of the model's own window.
 
         An utterance whose end timestamp is past this one is taken to be cut
         off by the window rather than finished, so the next segment starts

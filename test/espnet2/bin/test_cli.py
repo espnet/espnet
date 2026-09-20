@@ -50,6 +50,20 @@ class _Recorder:
         # two windows of the length above, so that a test can see both
         return np.zeros(20 * 16000 * 2, dtype=np.float32)
 
+    def no_language(self):
+        # Speech2Text.no_language, which the command line only rewords: the
+        # config's symbol, then either spelling, each checked against the
+        # token list
+        tokens = set(self.s2t_model.token_list or ())
+        for candidate in (
+            self.preprocessor_conf.get("nolang_symbol"),
+            "<nolang>",
+            "<unk>",
+        ):
+            if candidate and (not tokens or candidate in tokens):
+                return candidate
+        raise ValueError("this model has no symbol for an unknown language")
+
     def from_pretrained(self, model_tag=None, device=None, **kwargs):
         self.tag, self.device = model_tag, device
         return self
@@ -655,9 +669,14 @@ class _FakeOWSM:
             ]
         )
 
+    preprocessor_conf = {"speech_length": 30, "nolang_symbol": "<nolang>"}
+
     def from_pretrained(self, model_tag=None, device=None, **kwargs):
         self.tag, self.device = model_tag, device
         return self
+
+    def no_language(self):
+        return self.preprocessor_conf["nolang_symbol"]
 
     def best_path(self, speech, *args, **kwargs):
         # what the page calls for a single window: the CTC head, no search
