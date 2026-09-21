@@ -43,8 +43,13 @@ except ImportError:  # pragma: no cover - the test extra installs mcp
 
 ASR_MODEL = os.environ.get("ESPNET_MCP_ASR_MODEL", "espnet/owsm_ctc_v4_1B")
 TTS_MODEL = os.environ.get("ESPNET_MCP_TTS_MODEL", "espnet/kan-bayashi_ljspeech_vits")
+# The model `espnet enhance` and the universal-se Space load, so that the
+# three front ends enhance a recording the same way. It is the CHiME-4
+# Conv-TasNet's replacement here: that one was trained on one corpus at one
+# rate, and an agent hands this tool whatever file it was given.
 ENH_MODEL = os.environ.get(
-    "ESPNET_MCP_ENH_MODEL", "espnet/Wangyou_Zhang_chime4_enh_train_enh_conv_tasnet_raw"
+    "ESPNET_MCP_ENH_MODEL",
+    "espnet/Wangyou_Zhang_universal_train_enh_uses_refch0_2mem_raw",
 )
 ENH_FS = int(os.environ.get("ESPNET_MCP_ENH_FS", "16000"))
 if ENH_FS <= 0:
@@ -60,9 +65,9 @@ _quiet_stdout = functools.partial(contextlib.redirect_stdout, sys.stderr)
 @functools.lru_cache(maxsize=None)
 def _asr():  # pragma: no cover - downloads the checkpoint
     with _quiet_stdout():
-        from espnet2.bin.s2t_inference_ctc import Speech2TextGreedySearch
+        from espnet2.bin.s2t_inference import Speech2Text
 
-        return Speech2TextGreedySearch.from_pretrained(
+        return Speech2Text.from_pretrained(
             ASR_MODEL, device=DEVICE, lang_sym="<nolang>", task_sym="<asr>"
         )
 
@@ -133,7 +138,14 @@ def transcribe(
         else "<asr>"
     )
     with _quiet_stdout():
-        return model.batch_decode(str(path), lang_sym=lang_sym, task_sym=task_sym)
+        # one recording of any length, decoded on the CTC head: the same
+        # route batch_decode took before it was deprecated
+        return " ".join(
+            text
+            for _, _, text in model.decode_long(
+                str(path), lang_sym=lang_sym, task_sym=task_sym
+            )
+        )
 
 
 def synthesize(text: str, output_path: str) -> str:
@@ -174,7 +186,7 @@ def enhance(audio_path: str, output_path: str) -> str:
 
     Returns:
         The absolute path of the WAV file written. The first call downloads
-        the model (about 30 MB).
+        the model (about 15 MB).
     """
     path = _existing_file(audio_path)
     speech, fs = soundfile.read(str(path), dtype="float32", always_2d=True)

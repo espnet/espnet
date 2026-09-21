@@ -31,14 +31,25 @@ evaluation, and hundreds of pretrained models on Hugging Face.
 
 ## What's new
 
-- **[ESPnet 202609](https://github.com/espnet/espnet/releases/tag/v.202609)** —
-  ESPnet3 complete on [`egs3/librispeech_100`](egs3/librispeech_100) at ESPnet2
-  parity, CI rebuilt on a prebuilt image (compute per run halved), OpenBEATs
-  pretraining, ten new recipes (ASR, TTS, SER, ST, audio SSL), Python 3.12-3.13.
+- **[ESPnet 202610.post1](https://github.com/espnet/espnet/releases/tag/v.202610.post1)** —
+  the command line grows `espnet demo` (the OWSM browser demo) and `espnet asr
+  --live` (the microphone, transcribed as you speak); one `Speech2Text` now loads
+  either kind of OWSM checkpoint, with `best_path()` for CTC decoding without a
+  search; `espnet/espnet:inference-cpu-latest` and `-gpu-latest` run a published
+  model with nothing installed; three more demo Spaces (TTS, enhancement, speaker
+  verification).
 
 <details>
 <summary>Earlier releases</summary>
 
+- **[ESPnet 202610](https://github.com/espnet/espnet/releases/tag/v.202610)** —
+  one-line inference from the command line (`pip install espnet && espnet asr audio.wav`),
+  two OWSM v4 demos as Hugging Face Spaces, a core install without the training
+  stack (training is `espnet[train]`), batched beam search, PyTorch 2.11-2.14.
+- **[ESPnet 202609](https://github.com/espnet/espnet/releases/tag/v.202609)** —
+  ESPnet3 complete on [`egs3/librispeech_100`](egs3/librispeech_100) at ESPnet2
+  parity, CI rebuilt on a prebuilt image (compute per run halved), OpenBEATs
+  pretraining, ten new recipes (ASR, TTS, SER, ST, audio SSL), Python 3.12-3.13.
 - **[ESPnet 202604](https://github.com/espnet/espnet/releases/tag/v.202604)** —
   Docker-based CI, PyTorch 2.9.1 support, FastSpeech2 inference ~1.9x faster
   at batch 8, new recipes (Kinyarwanda, Emilia, kosp2e).
@@ -63,14 +74,15 @@ Full history: [Releases](https://github.com/espnet/espnet/releases).
 
 ```sh
 # Install PyTorch first: https://pytorch.org/get-started/locally/
-pip install espnet
+pip install espnet              # run pretrained models
+pip install "espnet[train]"     # also train them, with espnet2 or espnet3 (Lightning, TensorBoard, W&B, Hydra, Dask, ...)
 ```
 
 <details>
 <summary>Other installation options</summary>
 
 ```sh
-pip install "espnet[all]"                       # optional dependencies
+pip install "espnet[all]"                       # training plus every task extra (except sds)
 pip install git+https://github.com/espnet/espnet  # latest master
 ```
 
@@ -94,42 +106,9 @@ pip install git+https://github.com/espnet/espnet  # latest master
 |macos/python3.12/pip|[![ci on macos](https://github.com/espnet/espnet/actions/workflows/ci_on_macos.yml/badge.svg)](https://github.com/espnet/espnet/actions/workflows/ci_on_macos.yml?query=branch%3Amaster)|||
 |macos/python3.12/conda|[![ci on macos](https://github.com/espnet/espnet/actions/workflows/ci_on_macos.yml/badge.svg)](https://github.com/espnet/espnet/actions/workflows/ci_on_macos.yml?query=branch%3Amaster)|||
 
-Every badge above is the aggregate status of its workflow on `master`, where the
-full grid runs. It does not say what each combination covers, and the coverage is
-not uniform - some suites only ever run on one pytorch, and a pull request runs
-less than `master` does. What each column actually gets:
-
-|test suite|2.11.0|2.13.0|2.14.0|
-| :---- | :---: | :---: | :---: |
-|unit tests (`espnet2`, `espnet3`)|every PR|every PR|every PR|
-|`espnet2` recipe integration|`master` only|PR + `master`|`master` only|
-|`espnet3` integration|`master` only|PR + `master`|`master` only|
-|configuration, utils, shell, import|every PR|not run|not run|
-|k2-dependent tests|yes|yes|**no wheel published - skipped**|
-
-- **`master` only** - a pull request runs the recipe integration suites against
-  one pytorch per python rather than all three, because the full grid is 84 jobs
-  against a 20-wide cap and no integration failure in 300 runs was ever specific
-  to a pytorch version. Pushes to `master` run the full grid, so nothing goes
-  untested; it is tested after the merge rather than before it.
-- **PR + `master`** - and on a pull request, only when something changed can
-  reach that suite. A pull request touching only documentation, or only
-  `test/`, does not run the recipes at all; `ci/integration_is_relevant.py`
-  holds the paths that count, deliberately broadly, and anything it cannot
-  read - a truncated file list, an unparseable one, an empty one - runs them.
-  `master` again runs them regardless. The espnet3 publication test has no
-  matrix and follows the same rule.
-- **every PR** - the unit tests run the whole grid on every pull request. They
-  are six jobs of a few minutes; the recipe suites are the expensive ones.
-- **not run** - `test_configuration_espnet2`, `test_shell_espnet2` and
-  `test_import` run on python 3.12 with pytorch 2.11.0 only, and
-  `test_utils_espnet2` on both pythons with 2.11.0 only.
-- **no wheel** - k2 publishes one wheel per pytorch version and lags new
-  releases. `tools/installers/install_k2.sh` lists the versions it has nothing
-  for in `k2_missing_for` and skips them; the k2 tests are `importorskip`, so
-  they skip silently on that column. That list is the only record of it, and
-  `ci/check_ci_image_config.py` fails if it names a version the grid does not
-  build, or if the environment check stops reading it.
+Each badge is its workflow's aggregate status on `master`, where the full grid runs.
+Coverage is not uniform — some suites run on one pytorch only, and a pull request runs
+less than `master` does. [What each column covers](CONTRIBUTING.md#53-what-runs-on-a-pull-request).
 
 [![pre-commit.ci](https://results.pre-commit.ci/badge/github/espnet/espnet/master.svg)](https://results.pre-commit.ci/latest/github/espnet/espnet/master)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
@@ -140,31 +119,76 @@ less than `master` does. What each column actually gets:
 
 ## Quick start
 
-**Run a pretrained model** — any model from the [ESPnet Hugging Face organization](https://huggingface.co/espnet):
+**From the terminal** — no code, on any audio file:
+
+```sh
+pip install espnet
+espnet asr audio.wav                       # transcribe, detecting the language
+espnet translate audio.wav --to eng        # speech in, English text out
+espnet phonemize audio.wav                 # the phones, in IPA, with POWSM
+espnet align audio.wav --text "what was said"   # when each utterance was said
+espnet tts "Hello from ESPnet" -o out.wav
+espnet enhance noisy.wav -o clean.wav
+espnet asr --live                          # transcribe the microphone
+espnet models                              # the default model of each command
+pip install "espnet[demo]"
+espnet demo                                # the same model in your browser
+```
+
+Every command takes `--model <tag>` and `--device cuda`, and `espnet --version` names
+the installed version. `espnet demo` serves, on localhost, the app behind [the OWSM-CTC
+v4 Space](https://huggingface.co/spaces/espnet/owsm-ctc-v4) — recording, upload, the
+checkpoint's own language and translation menus, and long-form decoding — and takes
+`--port` and `--share`. The page is the checkpoint's: `espnet demo --model
+espnet/powsm_ctc` offers phone recognition instead of translation, because that is
+what POWSM's token list has.
+
+**Without installing anything** — the same commands, in a container:
+
+```sh
+docker run --rm -v "$PWD:/data" -v "$HOME/.cache/huggingface:/cache/huggingface" \
+    espnet/espnet:inference-cpu-latest asr /data/audio.wav
+```
+
+With a GPU, `espnet/espnet:inference-gpu-latest`, `--gpus all` and
+`--device cuda`.
+
+The second mount is what keeps the downloaded model between runs; on a Linux
+host add `--user "$(id -u):$(id -g)"`, so that what it writes belongs to you.
+The other two images, and what each is for, are in [`docker/`](docker/).
+
+**From Python** — any model from the [ESPnet Hugging Face organization](https://huggingface.co/espnet):
 
 ```python
-from espnet2.bin.s2t_inference_ctc import Speech2TextGreedySearch
+from espnet2.bin.s2t_inference import Speech2Text
 
 # OWSM-CTC v4: multilingual ASR, translation and language ID in one
 # encoder-only model. No beam search: one encoder pass per 30 s window.
-s2t = Speech2TextGreedySearch.from_pretrained(
+s2t = Speech2Text.from_pretrained(
     "espnet/owsm_ctc_v4_1B", lang_sym="<eng>", task_sym="<asr>"
 )
-print(s2t.batch_decode("audio.wav"))  # any length or sample rate
+for start, end, text in s2t.decode_long("audio.wav"):  # any length or rate
+    print(text)
 ```
 
-The checkpoint (4 GB) is downloaded once and cached. Pass `device="cuda"` for a GPU,
-`task_sym="<st_deu>"` to translate, or `lang_sym="<nolang>"` to identify the language.
-The encoder-decoder OWSM v4 models (`espnet2.bin.s2t_inference`) and every other task —
-`asr_inference`, `tts_inference`, `enh_inference`, `spk_inference`, and so on — use
-the same `from_pretrained` pattern.
+The 4 GB checkpoint is cached after the first download. `device="cuda"` runs on a GPU,
+`task_sym="<st_deu>"` translates, `lang_sym="<nolang>"` identifies the language. The
+same class loads the encoder-decoder OWSM v4 models: `decode_long` then decodes segment
+by segment on the model's own timestamps, `s2t(speech)` runs the beam search, and
+`s2t.best_path(speech)` is the CTC head with no search. Every other task —
+`asr_inference`, `tts_inference`, `enh_inference`, `spk_inference` — follows the same
+`from_pretrained` pattern.
 
-**Train and evaluate a recipe** — every corpus follows the same interface:
+**From an agent** — `pip install "espnet[mcp]"`, then register `espnet-mcp` as an
+[MCP](https://modelcontextprotocol.io/) server (Claude Code: `claude mcp add espnet -- espnet-mcp`).
+Agents then call `transcribe`, `synthesize` and `enhance` themselves.
+
+**Train a recipe** — every corpus follows the same interface:
 
 ```sh
 cd egs2/librispeech/asr1
-./run.sh                      # full pipeline: data → features → training → scoring
-./run.sh --stage 11 --stop_stage 13   # or run selected stages
+./run.sh                              # data → features → training → scoring
+./run.sh --stage 11 --stop_stage 13   # or selected stages
 ```
 
 New to ESPnet? Start with [`egs2/mini_an4/asr1`](egs2/mini_an4/asr1) — it runs end to end in minutes.
@@ -201,20 +225,34 @@ of 200+ corpora recipes.
 
 ## Demos
 
-| Demo | |
-| :-- | :-- |
-| Spoken dialogue — ASR → LLM → TTS, cascaded or end-to-end, with live metrics | [recipe](egs2/TEMPLATE/sds1) (Gradio, runs locally) |
-| Real-time ASR | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/ESPnet2/Demo/ASR/asr_realtime_demo.ipynb) |
-| Real-time TTS | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/ESPnet2/Demo/TTS/tts_realtime_demo.ipynb) |
-| Speech enhancement | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1fjRJCh96SoYLZPRxsjF9VDv4Q2VoIckI?usp=sharing) |
-| Streaming enhancement | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/17vd1V78eJpp3PHBnbFE5aVY5uMxQFL6o?usp=sharing) |
+| Demo | | Last run |
+| :-- | :-- | :-- |
+| Spoken dialogue — listen, think, speak | [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/Demos/sds_demo.ipynb) | [![sds_demo](https://github.com/espnet/notebook/actions/workflows/sds_demo.yml/badge.svg)](https://github.com/espnet/notebook/actions/workflows/sds_demo.yml) |
+| Speech recognition, in any of 151 languages | [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/Demos/asr_demo.ipynb) | [![asr_demo](https://github.com/espnet/notebook/actions/workflows/asr_demo.yml/badge.svg)](https://github.com/espnet/notebook/actions/workflows/asr_demo.yml) |
+| The words appearing as the audio arrives | [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/Demos/asr_streaming_demo.ipynb) | [![asr_streaming_demo](https://github.com/espnet/notebook/actions/workflows/asr_streaming_demo.yml/badge.svg)](https://github.com/espnet/notebook/actions/workflows/asr_streaming_demo.yml) |
+| Speech translation — the same model, a different task symbol | [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/Demos/st_demo.ipynb) | [![st_demo](https://github.com/espnet/notebook/actions/workflows/st_demo.yml/badge.svg)](https://github.com/espnet/notebook/actions/workflows/st_demo.yml) |
+| Text-to-speech, one voice and then 128 | [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/Demos/tts_demo.ipynb) | [![tts_demo](https://github.com/espnet/notebook/actions/workflows/tts_demo.yml/badge.svg)](https://github.com/espnet/notebook/actions/workflows/tts_demo.yml) |
+| Speech enhancement, and what it did to the signal-to-noise | [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/Demos/enh_demo.ipynb) | [![enh_demo](https://github.com/espnet/notebook/actions/workflows/enh_demo.yml/badge.svg)](https://github.com/espnet/notebook/actions/workflows/enh_demo.yml) |
+| Speaker verification — two recordings, one score | [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/Demos/spk_demo.ipynb) | [![spk_demo](https://github.com/espnet/notebook/actions/workflows/spk_demo.yml/badge.svg)](https://github.com/espnet/notebook/actions/workflows/spk_demo.yml) |
+| Neural codecs — a waveform as a few integers a frame | [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/Demos/codec_demo.ipynb) | [![codec_demo](https://github.com/espnet/notebook/actions/workflows/codec_demo.yml/badge.svg)](https://github.com/espnet/notebook/actions/workflows/codec_demo.yml) |
 
-More notebooks: [espnet/notebook](https://github.com/espnet/notebook).
+Each runs top to bottom on a CPU and pins the release it was checked against.
+The second badge is that notebook being executed cell by cell every Sunday, so
+a red one names the demo that broke rather than leaving you to find out by
+opening it. More, including the CMU course material:
+[espnet/notebook](https://github.com/espnet/notebook).
+
+The full spoken dialogue system — microphone, voice activity detection, an
+end-to-end option beside the cascade, and latency and quality measured while
+you talk — is [`egs2/TEMPLATE/sds1`](egs2/TEMPLATE/sds1), which runs locally.
 
 **Publish your own.** Every ESPnet3 recipe can wrap its trained model in a
 [Gradio](https://www.gradio.app/) app and push it to Hugging Face Spaces — the UI,
 the Space `README.md` and `requirements.txt` are all generated from
-[`conf/demo.yaml`](egs3/TEMPLATE/asr/conf/demo.yaml):
+[`conf/demo.yaml`](egs3/TEMPLATE/asr/conf/demo.yaml).
+
+<details>
+<summary>The three stages</summary>
 
 ```sh
 cd egs3/librispeech_100/asr
@@ -226,14 +264,13 @@ python run.py --stages upload_demo --training_config $train --demo_config conf/d
 
 Run the packed app locally with `python demo/app.py`.
 
+</details>
+
 ## Learn
 
 - [Documentation](https://espnet.github.io/espnet/) · [ESPnet2 tutorial](https://espnet.github.io/espnet/espnet2_tutorial.html)
 - Course tutorials at CMU: [usage](https://youtu.be/YDN8cVjxSik) · [adding new models/tasks](https://youtu.be/Css3XAes7SU) ([materials](https://github.com/espnet/notebook))
 - [Interspeech 2019 tutorial](https://github.com/espnet/interspeech2019-tutorial)
-- **From an agent** — `pip install "espnet[mcp]"`, then register `espnet-mcp` as an
-  [MCP](https://modelcontextprotocol.io/) server (Claude Code: `claude mcp add espnet -- espnet-mcp`).
-  Claude, Cursor and other agents then call `transcribe`, `synthesize` and `enhance` themselves.
 
 ## Contributing
 
@@ -302,15 +339,16 @@ First time here? Read the [contribution guide](CONTRIBUTING.md).
   - Select any upstream model by setting the `frontend_conf` to the corresponding name.
 - Transfer Learning :
   - easy usage and transfers from models previously trained by your group or models from [ESPnet Hugging Face repository](https://huggingface.co/espnet).
-  - [Documentation](https://github.com/espnet/espnet/tree/master/egs2/mini_an4/asr1/transfer_learning.md) and [toy example runnable on colab](https://github.com/espnet/notebook/blob/master/ESPnet2/Demo/ASR/asr_transfer_learning_demo.ipynb).
+  - [Documentation](https://github.com/espnet/espnet/tree/master/egs2/mini_an4/asr1/transfer_learning.md), and an [old notebook](https://github.com/espnet/notebook/blob/master/Demos/unmaintained/asr_transfer_learning_demo.ipynb) that shows the idea. It is unmaintained and nothing runs it, so expect to fix it before it works.
 - Streaming Transformer/Conformer ASR with blockwise synchronous beam search.
 - Restricted Self-Attention based on [Longformer](https://arxiv.org/abs/2004.05150) as an encoder for long sequences
 - OpenAI [Whisper](https://openai.com/blog/whisper/) model, robust ASR based on large-scale, weakly-supervised multitask learning
 
 Demonstration
-- Real-time ASR demo with ESPnet2  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/ESPnet2/Demo/ASR/asr_realtime_demo.ipynb)
-- [Gradio](https://github.com/gradio-app/gradio) Web Demo on [Hugging Face Spaces](https://huggingface.co/docs/hub/spaces). Check out the [Web Demo](https://huggingface.co/spaces/akhaliq/espnet2_asr)
-- Streaming Transformer ASR [Local Demo](https://github.com/espnet/notebook/blob/master/ESPnet2/Demo/ASR/streaming_asr_demo.ipynb) with ESPnet2.
+- Speech recognition with OWSM-CTC  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/Demos/asr_demo.ipynb)
+- Hosted demo: [OWSM-CTC v4](https://huggingface.co/spaces/espnet/owsm-ctc-v4), maintained from [`egs2/owsm_ctc_v4/s2t1/demo`](egs2/owsm_ctc_v4/s2t1/demo) — recognises and identifies 151 languages, translates into 25 of them, and decodes long-form audio
+- Hosted demo: [OWSM v4](https://huggingface.co/spaces/espnet/owsm-v4), maintained from [`egs2/owsm_v4/s2t1/demo`](egs2/owsm_v4/s2t1/demo) — the same four tasks with the encoder-decoder model, which also takes a text prompt
+- Streaming ASR, decoded as the audio arrives [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/Demos/asr_streaming_demo.ipynb)
 
 #### TTS: Text-to-speech
 - Architecture
@@ -341,8 +379,8 @@ Demonstration
     - Mix of the above models
 
 Demonstration
-- Real-time TTS demo with ESPnet2  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/ESPnet2/Demo/TTS/tts_realtime_demo.ipynb)
-- Integrated to [Hugging Face Spaces](https://huggingface.co/spaces) with [Gradio](https://github.com/gradio-app/gradio). See demo: [![Hugging Face Spaces](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-blue)](https://huggingface.co/spaces/akhaliq/ESPnet2-TTS)
+- TTS demo with ESPnet2  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/Demos/tts_demo.ipynb)
+- Integrated to [Hugging Face Spaces](https://huggingface.co/spaces) with [Gradio](https://github.com/gradio-app/gradio). See demo: [![Hugging Face Spaces](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-blue)](https://huggingface.co/spaces/espnet/TTS)
 
 To train the neural vocoder, please check the following repositories:
 - [kan-bayashi/ParallelWaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN)
@@ -400,7 +438,6 @@ Demonstration
 Demonstration
 - Performing noisy spoken language understanding using a speech enhancement model followed by a spoken language understanding model.  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/14nCrJ05vJcQX0cJuXjbMVFWUHJ3Wfb6N?usp=sharing)
 - Performing two-pass spoken language understanding where the second pass model attends to both acoustic and semantic information.  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1p2cbGIPpIIcynuDl4ZVHDpmNPl8Nh_ci?usp=sharing)
-- Integrated to [Hugging Face Spaces](https://huggingface.co/spaces) with [Gradio](https://github.com/gradio-app/gradio). See SLU demo on multiple languages: [![Hugging Face Spaces](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-blue)](https://huggingface.co/spaces/Siddhant/ESPnet2-SLU)
 
 
 #### SUM: Speech Summarization
@@ -442,7 +479,7 @@ Demonstration
 
 #### DNN Framework
 - Flexible network architecture on PyTorch
-- Flexible front-end processing thanks to [kaldiio](https://github.com/nttcslab-sp/kaldiio) and HDF5 support
+- Flexible front-end processing thanks to [omniio](https://github.com/wavlab-speech/omniio) and HDF5 support
 - Tensorboard-based monitoring
 - [DeepSpeed](https://github.com/microsoft/DeepSpeed)-based large-scale training
 
@@ -537,7 +574,7 @@ You can download pre-trained vocoders via `kan-bayashi/ParallelWaveGAN`.
 You can try the real-time demo in Google Colab.
 Please access the notebook from the following button and enjoy the real-time synthesis!
 
-- Real-time TTS demo with ESPnet2  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/espnet2_tts_realtime_demo.ipynb)
+- TTS demo with ESPnet2  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/Demos/tts_demo.ipynb)
 
 English, Japanese, and Mandarin models are available in the demo.
 
@@ -859,6 +896,13 @@ If you use ESPnet in your research, please cite the main paper:
   pages={248--259},
   year={2025},
   publisher={Association for Computational Linguistics}
+}
+@inproceedings{bharadwaj2025openbeats,
+  title={{OpenBEATs}: A Fully Open-Source General-Purpose Audio Encoder},
+  author={Bharadwaj, Shikhar and Cornell, Samuele and Choi, Kwanghee and Fukayama, Satoru and Shim, Hye-jin and Deshmukh, Soham and Watanabe, Shinji},
+  booktitle={2025 IEEE Workshop on Applications of Signal Processing to Audio and Acoustics (WASPAA)},
+  year={2025},
+  organization={IEEE}
 }
 @inproceedings{someki2026espnet3,
   title={{ESPnet3}: Infrastructure for Scalable Speech and Audio Research in the Foundation Model Era},

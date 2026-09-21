@@ -19,6 +19,7 @@ from espnet2.legacy.utils.cli_utils import get_commandline_args
 from espnet2.tasks.asr import ASRTask
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.utils import config_argparse
+from espnet2.utils.pretrained import download_pretrained
 from espnet2.utils.types import str2bool, str_or_none
 
 try:
@@ -137,12 +138,10 @@ class CTCSegmentation:
         >>> # example file included in the ESPnet repository
         >>> import soundfile
         >>> speech, fs = soundfile.read("test_utils/ctc_align_test.wav")
-        >>> # load an ASR model
-        >>> from espnet_model_zoo.downloader import ModelDownloader
-        >>> d = ModelDownloader()
-        >>> wsjmodel = d.download_and_unpack( "kamo-naoyuki/wsj" )
-        >>> # Apply CTC segmentation
-        >>> aligner = CTCSegmentation( **wsjmodel )
+        >>> # an ASR model, by the tag its model card gives
+        >>> aligner = CTCSegmentation.from_pretrained(
+        ...     "espnet/kamo-naoyuki_wsj_transformer2"
+        ... )
         >>> text=["utt1 THE SALE OF THE HOTELS", "utt2 ON PROPERTY MANAGEMENT"]
         >>> aligner.set_config( gratis_blank=True )
         >>> segments = aligner( speech, text, fs=fs )
@@ -189,6 +188,9 @@ class CTCSegmentation:
         kaldi_style_text: bool = True,
         text_converter: str = "tokenize",
         time_stamps: str = "auto",
+        # last, and after every argument this class already had: a caller
+        # passing them positionally must keep binding what it bound before
+        device: Optional[str] = None,
         **ctc_segmentation_args,
     ):
         """Initialize the CTCSegmentation module.
@@ -197,6 +199,8 @@ class CTCSegmentation:
             asr_train_config: ASR model config file (yaml).
             asr_model_file: ASR model file (pth).
             fs: Sample rate of audio file.
+            device: Where to run, as torch spells it: "cpu", "cuda",
+                "cuda:1", "mps". Overrides `ngpu`, which cannot say which.
             ngpu: Number of GPUs. Set 0 for processing on CPU, set to 1 for
                 processing on GPU. Multi-GPU aligning is currently not
                 implemented. Default: 0.
@@ -226,12 +230,17 @@ class CTCSegmentation:
         # Basic settings
         if batch_size > 1:
             raise NotImplementedError("Batch decoding is not implemented")
-        device = "cpu"
-        if ngpu == 1:
-            device = "cuda"
-        elif ngpu > 1:
-            logging.error("Multi-GPU not yet implemented.")
-            raise NotImplementedError("Only single GPU decoding is supported")
+        if device is None:
+            # `ngpu` is what the scripting interface has always taken, and it
+            # cannot say which GPU or that it means mps: a caller that knows
+            # passes `device` instead, and one that does not gets what it got
+            # before.
+            device = "cpu"
+            if ngpu == 1:
+                device = "cuda"
+            elif ngpu > 1:
+                logging.error("Multi-GPU not yet implemented.")
+                raise NotImplementedError("Only single GPU decoding is supported")
 
         # Prepare ASR model
         asr_model, asr_train_args = ASRTask.build_model_from_file(
@@ -268,6 +277,31 @@ class CTCSegmentation:
         )
         # last token "<sos/eos>", not needed
         self.config.char_list = asr_model.token_list[:-1]
+
+    @classmethod
+    def from_pretrained(cls, model_tag: Optional[str] = None, **kwargs):
+        """Align with a published model, named by its tag.
+
+        The tag is what every other inference class in espnet2.bin takes, and
+        what a model card gives you. Without this, aligning with a published
+        model meant downloading it yourself and handing over two paths -
+        which is what the example above used to do, through
+        espnet_model_zoo's downloader.
+
+        This aligns with an ASR model; espnet2.bin.s2t_ctc_align takes the
+        other kind, and a tag for that one arrives with artifacts this
+        constructor does not take. `espnet align` picks between them for you
+        and says so in a sentence; here it is a TypeError naming the
+        argument, as it is for every other class handed the wrong tag.
+
+        Args:
+            model_tag: A tag on the Hugging Face hub. None builds from
+                whatever paths are given instead.
+            **kwargs: Passed to the constructor.
+        """
+        if model_tag is not None:
+            kwargs.update(download_pretrained(model_tag))
+        return cls(**kwargs)
 
     def set_config(self, **kwargs):
         """Set CTC segmentation parameters.
