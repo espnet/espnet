@@ -11,7 +11,7 @@ from argparse import Namespace
 import numpy as np
 import pytest
 
-from espnet3.systems.esp2_cls.espnet_model import ClassificationModel
+from espnet2.cls.espnet_model import ESPnetClassificationModel
 from espnet3.systems.esp2_cls.task import CLSTask
 
 # ===============================================================
@@ -42,16 +42,14 @@ from espnet3.systems.esp2_cls.task import CLSTask
 # | Test Name                                   | Description                  |
 # |---------------------------------------------|------------------------------|
 # | test_build_model_returns_espnet3_model      | model_choices resolves       |
-# |                                             | `espnet` to the ESPnet3      |
-# |                                             | model.                       |
+# |                                             | `espnet` to the model        |
+# |                                             | class.                       |
 # | test_build_model_rejects_an_unknown_model_name | An unknown name is        |
 # |                                             | rejected by the registry.    |
 # | test_build_model_defaults_the_model_name    | An unset name falls back to  |
 # |                                             | the registry default.        |
 # | test_build_model_rejects_a_null_model_name  | An explicit null is an       |
 # |                                             | error, not a fallback.       |
-# | test_build_model_forwards_freeze_param      | freeze_param reaches the     |
-# |                                             | model and freezes a subtree. |
 #
 # Branches the ESPnet2 tests leave uncovered
 # | Test Name                                   | Description                  |
@@ -238,15 +236,15 @@ def test_build_model():
 
 
 # ---------------------------------------------------------------
-# The three ESPnet3 changes
+# The ESPnet3 change
 # ---------------------------------------------------------------
 
 
-def test_build_model_returns_espnet3_model():
-    """Ensure `model_choices` resolves `espnet` to the ESPnet3 model."""
+def test_build_model_resolves_the_model_through_the_registry():
+    """Ensure `model_choices` resolves `espnet` to the model class."""
     model = CLSTask.build_model(get_dummy_namespace())
 
-    assert isinstance(model, ClassificationModel)
+    assert isinstance(model, ESPnetClassificationModel)
 
 
 def test_build_model_rejects_an_unknown_model_name():
@@ -266,7 +264,7 @@ def test_build_model_defaults_the_model_name():
     args = get_dummy_namespace()
     assert not hasattr(args, "model")
 
-    assert isinstance(CLSTask.build_model(args), ClassificationModel)
+    assert isinstance(CLSTask.build_model(args), ESPnetClassificationModel)
 
 
 def test_build_model_rejects_a_null_model_name():
@@ -276,18 +274,6 @@ def test_build_model_rejects_a_null_model_name():
 
     with pytest.raises(TypeError):
         CLSTask.build_model(args)
-
-
-def test_build_model_forwards_freeze_param():
-    """Ensure `freeze_param` reaches the model and freezes the named subtree."""
-    args = get_dummy_namespace()
-    args.freeze_param = ["encoder"]
-
-    model = CLSTask.build_model(args)
-
-    assert model.freeze_param == ["encoder"]
-    assert not any(p.requires_grad for p in model.encoder.parameters())
-    assert all(p.requires_grad for p in model.decoder.parameters())
 
 
 # ---------------------------------------------------------------

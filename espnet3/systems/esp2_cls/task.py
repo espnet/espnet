@@ -1,13 +1,9 @@
 """CLS Task.
 
 Note: This file is a direct copy of the corresponding espnet2 task class,
-apart from three changes to how ``build_model`` builds the model:
-
-1. ``model_choices`` maps ``espnet`` to
-   :class:`espnet3.systems.esp2_cls.espnet_model.ClassificationModel`.
-2. The model class is resolved through ``model_choices`` rather than named
-   directly.
-3. ``freeze_param`` is forwarded to the model, which applies it itself.
+apart from one change to ``build_model``: the model class is resolved through
+``model_choices`` rather than named directly, so a new entry in the registry
+is selectable from a config.
 """
 
 import argparse
@@ -47,7 +43,6 @@ from espnet2.train.collate_fn import CommonCollateFn
 from espnet2.train.preprocessor import CommonPreprocessor
 from espnet2.train.trainer import Trainer
 from espnet2.utils.types import int_or_none, str2bool, str_or_none
-from espnet3.systems.esp2_cls.espnet_model import ClassificationModel
 
 logger = logging.getLogger("cls")
 
@@ -112,7 +107,7 @@ decoder_choices = ClassChoices(
 model_choices = ClassChoices(
     "model",
     classes=dict(
-        espnet=ClassificationModel,
+        espnet=ESPnetClassificationModel,
     ),
     type_check=AbsESPnetModel,
     default="espnet",
@@ -332,7 +327,6 @@ class CLSTask(AbsTask):
             preencoder=preencoder,
             encoder=encoder,
             decoder=decoder,
-            freeze_param=getattr(args, "freeze_param", None) or (),
             **args.model_conf,
         )
 

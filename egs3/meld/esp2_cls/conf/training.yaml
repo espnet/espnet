@@ -8,9 +8,8 @@
 ##########################################################
 #                  SYSTEM AND PATH SETTING               #
 ##########################################################
-# ESPnet3's own classification task. Its `model_choices` resolves to
-# `espnet3.systems.esp2_cls.espnet_model.ClassificationModel`, which applies
-# `freeze_param` itself.
+# ESPnet3's own classification task, which resolves the model class through
+# `model_choices`.
 task: espnet3.systems.esp2_cls.task.CLSTask
 
 # `dataset/builder.py` writes converted audio and manifests here. Keep the two
