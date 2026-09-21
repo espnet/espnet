@@ -7,6 +7,10 @@ The algorithm is `espnet2.bin.ctc_segment`, shared with
 `espnet2.bin.asr_align`, which aligns with an ASR model instead. What is
 here is how an OWSM-CTC model produces the CTC posteriors - in windows, with
 a language and a task symbol in front of each - and the script interface.
+
+This module is where an OWSM-CTC model is aligned from::
+
+    from espnet2.bin.s2t_ctc_align import CTCSegmentation
 """
 
 import logging

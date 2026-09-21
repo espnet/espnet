@@ -11,6 +11,13 @@ symbol, an ASR model reads the whole recording at once - and in nothing
 else. Everything after the posteriors is this module, and each of those two
 is its model-specific half plus a script interface.
 
+This module is not an entry point. `AbsCTCSegmentation` has no model, so
+it is never instantiated: a caller imports `CTCSegmentation` from
+`espnet2.bin.asr_align` for an ASR checkpoint or from
+`espnet2.bin.s2t_ctc_align` for an OWSM-CTC one. Those two are not two
+spellings of one class - they take different constructor arguments and
+different models - which is why there is no single class here that picks.
+
 `espnet2.bin.align` is the other alignment in this repository, and the one
 `espnet align` and the MCP server use: torchaudio's forced alignment, which
 needs no extra package. This one stays because it is a different algorithm
