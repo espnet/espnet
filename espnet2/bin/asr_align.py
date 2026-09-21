@@ -19,7 +19,7 @@ from espnet2.legacy.utils.cli_utils import get_commandline_args
 from espnet2.tasks.asr import ASRTask
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.utils import config_argparse
-from espnet2.utils.pretrained import ModelTagError, download_pretrained
+from espnet2.utils.pretrained import download_pretrained
 from espnet2.utils.types import str2bool, str_or_none
 
 try:
@@ -277,7 +277,7 @@ class CTCSegmentation:
         self.config.char_list = asr_model.token_list[:-1]
 
     @classmethod
-    def from_pretrained(cls, model_tag: str, **kwargs):
+    def from_pretrained(cls, model_tag: Optional[str] = None, **kwargs):
         """Align with a published model, named by its tag.
 
         The tag is what every other inference class in espnet2.bin takes, and
@@ -286,25 +286,19 @@ class CTCSegmentation:
         which is what the example above used to do, through
         espnet_model_zoo's downloader.
 
-        A tag published for another task arrives with the wrong artifact
-        names and fails in the constructor, naming them: this aligns with
-        an ASR model, and the module named above takes the other kind.
-        `espnet align` picks between the two for you.
+        This aligns with an ASR model; espnet2.bin.s2t_ctc_align takes the
+        other kind, and a tag for that one arrives with artifacts this
+        constructor does not take. `espnet align` picks between them for you
+        and says so in a sentence; here it is a TypeError naming the
+        argument, as it is for every other class handed the wrong tag.
 
         Args:
-            model_tag: A tag on the Hugging Face hub, for example
-                "espnet/kamo-naoyuki_wsj_transformer2".
+            model_tag: A tag on the Hugging Face hub. None builds from
+                whatever paths are given instead.
             **kwargs: Passed to the constructor.
         """
-        files = download_pretrained(model_tag)
-        if "asr_train_config" not in files:
-            raise ModelTagError(
-                f"{model_tag} was not published as a model this aligns with: "
-                f"it has no asr_train_config. The module named in this "
-                f"class's docstring takes the other kind, and `espnet align` "
-                f"picks between them for you."
-            )
-        kwargs.update(files)
+        if model_tag is not None:
+            kwargs.update(download_pretrained(model_tag))
         return cls(**kwargs)
 
     def set_config(self, **kwargs):

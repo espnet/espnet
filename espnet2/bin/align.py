@@ -67,14 +67,23 @@ class Segment:
 class ForcedAligner:
     """Align utterances to a recording, on a published model's CTC head."""
 
-    def __init__(self, model: Any):
-        """Wrap a loaded inference object.
+    def __init__(self, model: Any = None, device: str = "cpu", **artifacts):
+        """Wrap a loaded inference object, or build one from a model's files.
 
         Args:
             model: `espnet2.bin.s2t_inference.Speech2Text` or
-                `espnet2.bin.asr_inference.Speech2Text`. It is used for its
-                encoder, its CTC head and its tokenizer, not for decoding.
+                `espnet2.bin.asr_inference.Speech2Text`, already loaded. It
+                is used for its encoder, its CTC head and its tokenizer, not
+                for decoding.
+            device: Where to load, when the files are given rather than a
+                model.
+            **artifacts: What a published model arrives with -
+                `s2t_train_config` and `s2t_model_file`, or the `asr_` pair -
+                as `from_pretrained` hands them over. Which of the two is
+                present is what says how to load it.
         """
+        if model is None:
+            model = self._load(artifacts, device)
         self.model = model
         self.s2t = hasattr(model, "s2t_model")
         self.network = model.s2t_model if self.s2t else model.asr_model
@@ -83,26 +92,32 @@ class ForcedAligner:
                 "this model has no CTC head, so there is nothing to align on"
             )
 
-    @classmethod
-    def from_pretrained(cls, model_tag: str, device: str = "cpu", **kwargs):
-        """Build from a tag, loading whichever inference class fits it.
-
-        A published model says which it is: it arrives with `s2t_train_config`
-        or with `asr_train_config`. A tag for neither is named rather than
-        half-loaded.
-        """
-        files = download_pretrained(model_tag)
-        if "s2t_train_config" in files:
+    @staticmethod
+    def _load(artifacts: dict, device: str):
+        """The inference class the artifacts were published for."""
+        if "s2t_train_config" in artifacts:
             from espnet2.bin.s2t_inference import Speech2Text
-        elif "asr_train_config" in files:
+        elif "asr_train_config" in artifacts:
             from espnet2.bin.asr_inference import Speech2Text
         else:
             raise ModelTagError(
-                f"{model_tag} is not a model `espnet align` can read: it has "
-                f"neither an S2T nor an ASR config. `espnet models` names the "
-                f"default."
+                f"these files are not a model `espnet align` can read: "
+                f"{sorted(artifacts)} is neither an S2T nor an ASR config. "
+                f"`espnet models` names the default."
             )
-        return cls(Speech2Text(**files, device=device, **kwargs))
+        return Speech2Text(**artifacts, device=device)
+
+    @classmethod
+    def from_pretrained(cls, model_tag: Optional[str] = None, **kwargs):
+        """Build from a tag, loading whichever inference class fits it.
+
+        A published model says which it is: it arrives with `s2t_train_config`
+        or with `asr_train_config`, and the constructor reads that. A tag for
+        neither is named rather than half-loaded.
+        """
+        if model_tag is not None:
+            kwargs.update(download_pretrained(model_tag))
+        return cls(**kwargs)
 
     def _ids(self, text: str) -> List[int]:
         """The token ids of one utterance, without blanks."""
