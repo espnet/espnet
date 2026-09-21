@@ -216,11 +216,13 @@ def phones(decoded: str, spaced: bool = False) -> str:
 def _no_language(s2t) -> str:
     """The symbol this checkpoint uses for "work the language out yourself".
 
-    OWSM spells it `<nolang>`; POWSM-CTC records `<unk>`; POWSM itself records
-    nothing and has no `<nolang>` in its vocabulary at all, which is how a
+    Both POWSM checkpoints use `<unk>` and OWSM uses `<nolang>`, but only
+    some configs say so: POWSM-CTC records `nolang_symbol`, POWSM does not,
+    and POWSM has no `<nolang>` in its vocabulary at all - which is how a
     guess here turns into `KeyError: '<nolang>'` several seconds after the
-    model has finished loading. So: what the config says, then either
-    spelling, and each is checked against the token list before it is used.
+    model has finished loading. So: what the config says if it says
+    anything, then either spelling, each checked against the token list
+    before it is used.
     """
     conf = getattr(s2t, "preprocessor_conf", None) or {}
     model = getattr(s2t, "s2t_model", None)
@@ -245,10 +247,12 @@ def cmd_phonemize(args) -> int:
         decoded = _decode(s2t, args.audio, lang_sym, "<pr>")
     else:
         # An encoder-decoder checkpoint segments long audio by its own
-        # timestamps, which is right for a transcript and wrong here: asked
-        # for phones, POWSM fills a window that is mostly padding with
-        # repetitions of what it already said. One window at a time instead,
-        # each decoded on its own, which is what the model card does.
+        # timestamps, which is right for a transcript and wrong here. A
+        # window shorter than the model's is padded with silence, and asked
+        # for phones over that silence POWSM repeats what it has already
+        # said, for as long as the window lasts. One window at a time
+        # instead, each decoded on its own, which is what the model card
+        # does.
         decoded = " ".join(
             s2t(window, lang_sym=lang_sym, task_sym="<pr>")[0][0]
             for window in _windows(s2t, args.audio)
@@ -444,7 +448,13 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument(
         "--language",
         default=None,
-        help="POWSM language token, ISO 639-3 (default: the model works it out)",
+        # Worth naming: on test_utils/ctc_align_test.wav, POWSM-CTC answers
+        # `dəseɪlʌvðəhotɛlsɪz` without it and `ðəseɪlʌvðəhoʊtɛlzɪz` with
+        # --language eng - English r and diphthongs rather than a tap and
+        # plain vowels.
+        help="POWSM language token, ISO 639-3: eng, jpn, deu … Name it if you "
+        "know it; without it the model is told the language is unknown, which "
+        "it handles but reads less like the language",
     )
     p.add_argument(
         "--spaced",
