@@ -3,14 +3,12 @@
 from __future__ import annotations
 
 import argparse
-import os
 import subprocess
 import sys
 
 import pytest
 
 from espnet3.cli.clone.command import (
-    _INCLUDE,
     _copy_recipe,
     _inject_corpus_system,
     add_arguments,
@@ -18,18 +16,31 @@ from espnet3.cli.clone.command import (
 )
 
 
-def test_copy_recipe_creates_destination_and_includes_items(fake_recipe, tmp_path):
+def test_copy_recipe_copies_complete_recipe_package(fake_recipe, tmp_path):
     dest = tmp_path / "clone"
     _copy_recipe(fake_recipe, dest)
     assert dest.is_dir()
-    assert all((dest / item).exists() for item in _INCLUDE)
+    assert all(
+        (dest / item).exists()
+        for item in (
+            "conf",
+            "src",
+            "dataset",
+            "run.py",
+            "readme.md",
+            "path.sh",
+            "__init__.py",
+        )
+    )
+    assert (dest / "assets" / "metadata.json").read_text() == '{"version": 1}'
 
 
 def test_copy_recipe_excludes_unwanted_files(fake_recipe, tmp_path):
     dest = tmp_path / "clone"
     _copy_recipe(fake_recipe, dest)
     assert not (dest / "demo").exists()
-    assert not (dest / "__init__.py").exists()
+    assert not (dest / "downloads.tar.gz").exists()
+    assert not (dest / ".agents").exists()
     assert not any(dest.rglob("__pycache__"))
 
 
@@ -59,7 +70,7 @@ def test_copy_recipe_preserves_file_content_and_empty_recipe(tmp_path):
     assert list(empty_dest.iterdir()) == []
 
 
-def test_copy_recipe_normalizes_internal_symlink_targets(tmp_path):
+def test_copy_recipe_dereferences_internal_symlink_targets(tmp_path):
     source = tmp_path / "recipe"
     conf = source / "conf"
     conf.mkdir(parents=True)
@@ -71,7 +82,7 @@ def test_copy_recipe_normalizes_internal_symlink_targets(tmp_path):
     _copy_recipe(source, dest)
     for name in ("relative.yaml", "absolute.yaml"):
         link = dest / "conf" / name
-        assert link.is_symlink() and not os.path.isabs(os.readlink(link))
+        assert link.is_file() and not link.is_symlink()
         assert link.read_text() == "config: true"
 
 
@@ -138,7 +149,7 @@ def cloned_mini_an4(tmp_path_factory):
 
 def test_integration_clone_layout(cloned_mini_an4):
     assert cloned_mini_an4.is_dir()
-    assert all((cloned_mini_an4 / item).exists() for item in _INCLUDE)
+    assert (cloned_mini_an4 / "__init__.py").exists()
     assert (cloned_mini_an4 / "conf" / "training.yaml").exists()
     assert (cloned_mini_an4 / "conf" / "inference.yaml").exists()
     assert not any(cloned_mini_an4.rglob("__pycache__"))

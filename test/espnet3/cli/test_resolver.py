@@ -2,9 +2,24 @@
 
 from __future__ import annotations
 
+import sys
+from types import ModuleType
+
 import pytest
 
-from espnet3.cli.clone.resolver import _list_available, list_recipes, resolve_recipe
+from espnet3.cli.clone.resolver import (
+    _get_egs3_root,
+    _list_available,
+    list_recipes,
+    resolve_recipe,
+)
+
+
+def test_get_egs3_root_supports_namespace_package(tmp_path, monkeypatch):
+    package = ModuleType("egs3")
+    package.__path__ = [str(tmp_path)]
+    monkeypatch.setitem(sys.modules, "egs3", package)
+    assert _get_egs3_root() == tmp_path
 
 
 def test_resolve_recipe_returns_correct_path(fake_egs3):

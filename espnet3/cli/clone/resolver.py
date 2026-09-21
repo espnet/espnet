@@ -8,7 +8,11 @@ from pathlib import Path
 def _get_egs3_root() -> Path:
     import egs3
 
-    return Path(egs3.__file__).parent
+    for package_path in egs3.__path__:
+        root = Path(package_path)
+        if root.is_dir():
+            return root
+    raise RuntimeError("Could not locate the installed egs3 package directory.")
 
 
 def resolve_recipe(recipe: str) -> Path:

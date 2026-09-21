@@ -31,7 +31,7 @@ def empty_egs3(tmp_path, monkeypatch):
 
 @pytest.fixture
 def fake_recipe(tmp_path):
-    """Create a recipe with every included item and excluded extras."""
+    """Create a recipe package with source files and generated extras."""
     recipe = tmp_path / "recipe_src"
     recipe.mkdir()
     for directory in ("conf", "src", "dataset"):
@@ -44,8 +44,14 @@ def fake_recipe(tmp_path):
     (recipe / "run.py").write_text("# run")
     (recipe / "readme.md").write_text("# readme")
     (recipe / "path.sh").write_text("#!/bin/bash")
+    assets = recipe / "assets"
+    assets.mkdir()
+    (assets / "metadata.json").write_text('{"version": 1}')
     (recipe / "demo").mkdir()
     (recipe / "demo" / "app.py").write_text("# demo")
     (recipe / "__init__.py").write_text("")
     (recipe / "__pycache__").mkdir()
+    (recipe / "downloads.tar.gz").write_bytes(b"")
+    (recipe / ".agents").mkdir()
+    (recipe / ".agents" / "instructions.md").write_text("ignore")
     return recipe
