@@ -1,8 +1,10 @@
 import multiprocessing as mp
+from pathlib import Path
 
 import pytest
 from omegaconf import OmegaConf
 
+from espnet3.parallel.base_runner import BaseRunner
 from espnet3.parallel.parallel import (
     _DASK_AVAILABLE,
     DictReturnWorkerPlugin,
@@ -28,6 +30,51 @@ def _add_bias(x, bias):
 
 def _worker_env():
     return {"bias": 4}
+
+
+def _empty_worker_env():
+    return {}
+
+
+class LocalRunnerProvider:
+    """Minimal provider used to exercise BaseRunner's local Dask path."""
+
+    def build_env_local(self):
+        return {}
+
+    def build_worker_setup_fn(self):
+        return _empty_worker_env
+
+
+class LocalRunner(BaseRunner):
+    """Persist input indices so the test can validate local shard dispatch."""
+
+    @staticmethod
+    def forward(idx, **_kwargs):
+        return idx
+
+    @staticmethod
+    def open_writers(shard_dir, **_kwargs):
+        return {"path": Path(shard_dir) / "records.txt", "records": []}
+
+    @staticmethod
+    def write_record(writers, result, state, **_kwargs):
+        writers["records"].append(str(result))
+
+    @staticmethod
+    def close_writers(writers, state, **_kwargs):
+        writers["path"].write_text(
+            "\n".join(writers["records"]) + "\n", encoding="utf-8"
+        )
+
+    def merge(self, shard_dirs):
+        return [
+            int(line)
+            for shard_dir in shard_dirs
+            for line in (Path(shard_dir) / "records.txt")
+            .read_text(encoding="utf-8")
+            .splitlines()
+        ]
 
 
 @pytest.fixture
@@ -59,6 +106,22 @@ def test_build_client_local(local_cfg):
         assert out == [0, 1, 4, 9, 16]
     finally:
         client.close()
+
+
+def test_base_runner_uses_local_cluster_workers(local_cfg, tmp_path):
+    """``env: local`` must use ``n_workers`` instead of falling back to serial."""
+    set_parallel(local_cfg)
+    output_dir = tmp_path / "runner"
+
+    result = LocalRunner(LocalRunnerProvider(), output_dir=output_dir, resume=False)(
+        range(4)
+    )
+
+    assert sorted(result) == [0, 1, 2, 3]
+    assert sorted(path.name for path in output_dir.glob("split.*")) == [
+        "split.0",
+        "split.1",
+    ]
 
 
 def test_get_client_registers_worker_env(local_cfg):
