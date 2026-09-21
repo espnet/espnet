@@ -1,140 +1,127 @@
 # VOiCES Conformer ASR
 
-Ports `egs2/voices/asr1/conf/train_asr_conformer.yaml` and its single-channel
-source-plus-distant pipeline. `training_conformer.yaml` selects the full
-VOiCES_rebuilt corpus. `training_devkit.yaml` selects the original devkit mode;
-other parameters remain 5000 vocabulary, 35000000 batch_bins and 4 GPUs.
-An existing extracted source can be selected with `create_dataset.source_dir`.
-Otherwise the selected official archive is downloaded. The multi-channel data
-variant is not implemented by this single-channel Dataset.
+Ports the single-channel, source-plus-distant pipeline in `egs2/voices/asr1`
+using the existing ESPnet3 `ASRSystem`, data loader, statistics collector,
+Lightning module/trainer, checkpoint callbacks and metrics. Shared ESPnet3 code
+is unchanged; this recipe does not depend on the AN4 recipe.
 
-**The devkit text cannot train the source's 5000-piece unigram vocabulary:**
-SentencePiece reports `Vocabulary size too high`. Workspace smoke tests explicitly
-use a separate 1000-piece configuration. This is an experiment override, not a
-change to the delivered source defaults. The full release has not been tested.
+`training_conformer.yaml` selects the full VOiCES release. An extracted corpus
+can be supplied through `create_dataset.source_dir`; otherwise the builder
+fetches the configured official archive. The first ten lexical training speakers
+form validation, with all recording conditions kept together. Train/valid use
+the source 0.1--30 second duration filter; test audio remains unfiltered.
+Tokenizer and LM text are exported before filtering. Cached manifests are
+checked against their recorded hashes, and audio is read in place.
 
-## Run with source settings
+`training_devkit.yaml` selects the official devkit, with 12507 training, 660
+validation and 6600 test recordings after filtering. It does not reduce the
+vocabulary automatically: the devkit cannot train the source 5000-piece
+vocabulary. For a devkit experiment, set `tokenizer.vocab_size: 1000` and
+`tokenizer.save_path: ${data_dir}/unigram_1000` in a separate training config;
+update the LM tokenizer path and the TER `bpemodel` as well. The full release and
+multi-channel variant have not been validated.
 
-From this directory, after activating ESPnet:
+## Run
+
+From this directory, activate an environment with ESPnet ASR dependencies:
 
 ```bash
 . ./path.sh
-python run.py --stages create_dataset train_tokenizer collect_stats train \
+python run.py --stages create_dataset train_tokenizer collect_stats \
   --training_config conf/training_conformer.yaml
-python -m espnet3.systems.asr.language_model --config conf/language_model.yaml
+python run.py --stages train --training_config conf/training_conformer.yaml
+python -m egs3.voices.asr.src.language_model --config conf/language_model.yaml
 python run.py --stages infer measure \
   --training_config conf/training_conformer.yaml \
   --inference_config conf/inference.yaml --metrics_config conf/metrics.yaml
 ```
 
-The explicit LM entrypoint reuses ESPnet2 LMTask because ASRSystem has no LM
-training stage. `conf/lm_native.yaml` exactly copies the source Transformer LM.
-The wrapper config includes the original external LibriSpeech text and runs
-statistics, training, checkpoint averaging and perplexity. Inference loads the
-LM at weight 0.6. A limited-text smoke test does not reproduce the full LM.
+Run statistics collection and training as separate invocations, as above. At this
+ESPnet3 revision the shared collector removes normalization from its in-memory
+config; a fresh train invocation reloads GlobalMVN from YAML. Do not combine
+`collect_stats train` in a single invocation.
 
-The LM launcher retains `ngpu: 4` from `egs2/voices/asr1/run.sh`. The original
-LM YAML retains `batch_bins: 500000000` and a comment describing 16 V100 GPUs
-with 32 GB each; that resource note differs from the source launcher's GPU count.
-The full LM has not been validated on four GPUs. For a smaller experiment, use a
-separate LM config/output directory and explicit `native_overrides.batch_bins`;
-choose it for the available memory. The delivered source defaults are unchanged.
-Multi-GPU LM launches use a fresh rendezvous file even when resuming a checkpoint.
+ESPnet3 currently has no dedicated LM training stage. The recipe-local
+`src/language_model.py` invokes existing ESPnet2 commands for LM statistics,
+training and perplexity. `conf/lm_native.yaml` preserves the source LM model
+settings. The helper records its commands in the LM experiment directory and
+resumes an existing native checkpoint. Prepare the ASR tokenizer before training
+the LM; inference uses that tokenizer and the trained LM at weight 0.6.
 
-SCTK is required for the source-compatible WER/CER/TER. In an ESPnet checkout,
-run `cd tools && bash installers/install_sctk.sh` once; the recipe's `path.sh`
-adds the resulting `tools/sctk/bin` when present. Standalone recipes require
-`sclite` on PATH.
+The VOiCES LM includes external LibriSpeech text. The source launcher uses four
+GPUs, while its Transformer LM YAML describes a 500000000-bin budget used with
+16 V100s. That full LM budget has not been validated here. Smaller experiments
+must explicitly override it in their own config; testing a small LM does not
+validate the full LM or its memory requirements.
 
-## Source behavior and adapters
+## ESPnet2 mapping and ESPnet3 behavior
 
-- First ten lexical training speakers form validation. Every recording variant
-  stays with its source. ASR train/valid use strict 0.1--30 second filtering.
-- Tokenizer/LM text is exported before duration filtering. Corrected devkit
-  tokenizer text has 12540 lines, including the 33 previously missing lines.
-  Builder format 2 invalidates old manifests. Cached TSV manifests are checked
-  against their recorded SHA-256 hashes before reuse. Audio is read in place.
-- Original model, optimizer, warmup scheduler and AMP are retained.
-  Descending batch order, one worker, native epoch seeding and disabled TF32
-  are explicit. `ESPnet2LightningModule` owns accumulation 4 and clipping 5;
-  Lightning's trainer accumulation/clipping remain 1/0. Incomplete gradients
-  survive epoch boundaries as in the native trainer.
-- `distributed_batch_mode: split_batch` splits each global sequence batch across
-  ranks, retaining source batch membership and sample coverage.
-- DDP uses the native `gradient_as_bucket_view: true`. The compatibility module
-  restores DDP's buffer-synchronization flag before training forwards and the
-  first validation forward, preserving BatchNorm behavior under Lightning
-  manual optimization. DDP handles the actual broadcast.
-- Metrics already reduced across ranks are accumulated in float64, matching
-  the native reporter's Python-float weighted sums. This prevents float32
-  rounding from changing checkpoint scores or scheduler inputs.
-- `espnet2_compat.ctc_on_cpu: true` moves only CTCLoss to CPU. Workspace GPU
-  tests enable it to isolate the previously observed CUDA CTC nondeterminism.
-- Native AMP prefers BF16 on capable CUDA devices and otherwise FP16. The
-  compatibility module reproduces this choice while retaining GradScaler;
-  Lightning's `16-mixed` supplies the scaler, not the final model autocast dtype.
-  Backward and optimizer updates run outside autocast, as in native Trainer.
-- Inference sums the best 10 retained checkpoints in validation-accuracy order,
-  using the final full `step*.ckpt` for exact scores. With fewer than 10, it
-  selects the best one, as ESPnet2 does. Keep that full checkpoint alongside
-  the retained weights. Earlier epochs take precedence when scores tie.
-- `espnet2_stats` uses the source CPU collector, 32 contiguous splits, batch
-  size 20, one worker and the original accumulation order. Independent devkit
-  GlobalMVN counts, sums and squared sums match exactly in acceptance tests.
-- WER/CER/TER use SCTK with the source tokenization, case handling, whitespace
-  normalization and empty hypotheses.
+- The source Conformer/Transformer, SpecAugment, Adam settings, 40000 warmup
+  steps, 5000-piece unigram tokenizer and 50-epoch budget are retained.
+- The shared collector writes frontend `feats_shape`. The batch budget is
+  2000000 feature elements per GPU, chosen for 24 GiB accelerators. The source
+  35000000-bin budget counts raw speech and text across a global batch; that
+  number cannot be reused as a per-GPU frontend-feature budget. A larger acoustic
+  conversion (4375000) exceeded 24 GiB in devkit testing. Batch membership and
+  updates per epoch differ from ESPnet2.
+- The public loader assigns whole batches to ranks, truncating a tail of batches
+  when necessary for equal rank lengths. `num_device: 4` and Lightning gradient
+  accumulation 4 are explicit; changing GPU count changes the effective batch.
+- Lightning owns clipping, accumulation boundaries and AMP (`bf16-mixed`).
+  BF16 follows ESPnet2 on capable GPUs and the ESPnet3 LibriSpeech reference.
+  This default requires BF16 support; older GPUs need a separate precision
+  configuration. Remainder-gradient handling follows Lightning.
+- Inference uses `Speech2Text` directly, the shared top-10 checkpoint average,
+  beam size 20, CTC weight 0.3 and LM weight 0.6. Short experiments must explicitly
+  select a checkpoint that exists; there is no recipe-specific averaging fallback.
 
-For vocabulary overrides, update tokenizer.save_path, LM tokenizer_dir and TER
-bpemodel together, and use a separate output directory. Previous small-batch,
-1000-vocabulary, ASR-only scores are historical experiment results.
+The shared checkpoint callback writes `valid.acc.ave_Nbest.pth`, where `N` is
+the number of retained checkpoints available to the averaging callback. For short
+runs, inspect the experiment directory and explicitly set `model.asr_model_file`
+in a separate inference config. `last.ckpt` is also produced by the stock trainer.
+Averaging runs during validation and is not a separate finalization stage; the
+average can precede the latest checkpoint update. This recipe uses that shared
+callback without adding its own averaging logic. Keep checkpoints together with
+their generated ASR `config.yaml`.
 
-## Included compatibility code
+WER, CER and TER use the existing ESPnet3 metric classes (JiWER), with TER using
+the ASR SentencePiece model. These are not the previous SCTK scorer: the shared
+CER counts spaces and the shared metrics use a placeholder for empty text.
+Trainer reductions, batching, precision, checkpoint averaging and metric
+conventions can produce different results from ESPnet2. No strict numerical
+identity with ESPnet2 is claimed.
 
-This recipe includes its required adapters under `espnet3/`, alongside mirrored
-unit tests. It runs from this branch without the AN4 recipe or AN4 checkpoints.
-The base ESPnet3 behavior remains the default for recipes that do not opt in.
-The measurement stage retains all WER/CER/TER outputs when a scorer class is
-configured more than once.
+For review, compare data preparation with `egs2/voices/asr1/local/` and its
+`run.sh`; compare ASR/LM model settings with `egs2/voices/asr1/conf/` and stage
+defaults with `egs2/TEMPLATE/asr1/asr.sh`. ESPnet3 interfaces follow
+`egs3/TEMPLATE/asr` and `egs3/librispeech_100/asr`.
 
-## Validation scope
+## Validation
 
-The full VOiCES release and a repaired 50-epoch accuracy reproduction have not
-been validated. Experiments use the source devkit splits (12507 training,
-660 validation and 6600 test recordings), with an explicit 1000-piece tokenizer
-override and CPU CTCLoss. These overrides are separate from the delivered
-full-corpus, 5000-piece defaults. The full stage integration test uses a small
-CPU fixture; it does not establish recognition accuracy on the full release.
+Recipe tests live under `test/egs3/voices/asr`, matching the source layout. Run
+`pytest -q test/egs3/voices` from the repository root. They exercise preparation,
+source model settings, output alignment, native LM commands and the stock ASR
+stages on a small CPU fixture, including a trained LM with nonzero fusion weight.
+Public recipe functions document their arguments, return values and usage examples.
 
-Local CPU regression checks passed: 794 tests, with two CUDA tests and two
-optional Whisper tests skipped. The run used the CI timeout settings:
-`pytest -q --execution-timeout 10.0 --timeouts-order moi test/espnet3/ test/egs3/`.
-Recipe tests mirror the source modules and are collected by ESPnet3 CI. The real
-two-rank DDP test has a 60-second limit to include child-process imports; the
-other tests retain the default timeout unless explicitly marked. Formatting,
-import ordering and lint checks also passed.
-On September 20, 2026, a paired single-node, four-A10 experiment completed one
-devkit epoch in each framework: 117 training batches, 29 optimizer updates and
-7 validation batches per rank. Inputs and random-number states matched across
-all training batches, but gradients first differed at batch 66 and parameters
-at batch 69. Final checkpoint tensors were not identical. Two native ESPnet2
-runs also differed in gradients, starting at batch 94; this does not by itself
-establish the cause of the migrated run's divergence. That run did not achieve
-strict numerical parity; a deterministic follow-up is reported below.
+Earlier results from the removed ESPnet2 compatibility adapters describe the old
+implementation only. They are not results for this stock ESPnet3 implementation.
+New validation results are recorded separately; full accuracy reproduction is
+not implied by a short pipeline test.
 
-A one-4090 inference smoke test used these one-epoch checkpoints, four validation
-and four test recordings, beam size 20, and the existing smoke-test LM at weight
-0.6. Both frameworks produced identical hypotheses and SCTK WER/CER/TER counts
-on those eight recordings. This limited check does not resolve training parity
-or establish final recognition accuracy.
+CPU validation for this revision: 764 tests passed across `test/espnet3` and
+`test/egs3`; four were skipped (two optional Whisper imports and two CUDA-only
+tests in the CPU test environment). Black, isort and flake8 passed.
 
-A follow-up four-A10 experiment enabled `torch.use_deterministic_algorithms(True)`
-in both frameworks and `trainer.deterministic: true` in Lightning, retaining the
-same one-epoch devkit, 1000-piece tokenizer and CPU CTCLoss conditions. Across
-all four ranks, all 117 training batches matched in inputs, RNG states, losses
-and gradients; all 29 parameter updates and all 7 validation batches also
-matched. Final checkpoint keys, dtypes and values were identical for all 654
-state tensors. The seven validation aggregates matched exactly on every rank,
-including loss 726.6682113185074. Strict determinism is an experiment setting,
-not a change to the source recipe defaults. This establishes one-epoch parity
-under these controlled conditions; it does not establish 50-epoch or full-release
-accuracy, or identify the specific operation responsible for the earlier drift.
+GPU validation completed one devkit epoch on four NVIDIA A10 GPUs, using a
+1000-piece tokenizer, BF16 mixed precision, 2000000 feature bins per GPU, and
+CPU CTCLoss through an experiment-only callback. The shared loader/trainer ran
+190 batches and 48 optimizer updates per rank; recorded gradients and final
+parameters were finite. Peak allocated GPU memory was 13.22 GiB across ranks.
+The run used `PYTORCH_ALLOC_CONF=expandable_segments:True`; this is an environment
+setting, not a framework patch. The subsequent inference test loaded the
+one-epoch weights directly, reused an existing native LM at weight 0.6, and
+scored four validation plus four test recordings with the stock metrics.
+This short run validates the pipeline, not recognition accuracy or the default
+5000-piece/full-corpus/50-epoch setup. Tiny LM training and fusion were tested
+separately in the CPU integration test.

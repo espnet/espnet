@@ -14,5 +14,12 @@ def gather_training_text(text_path):
 
     Raises:
         FileNotFoundError: The create_dataset stage has not produced the text.
+
+    Examples:
+        After the create_dataset stage:
+
+        >>> texts = gather_training_text("data/manifest/tokenizer_train.txt")
+        >>> isinstance(texts[0], str)
+        True
     """
     return Path(text_path).read_text(encoding="utf-8").splitlines()

@@ -34,6 +34,12 @@ def write_text(path, text):
 
     Raises:
         OSError: The temporary file cannot be written or published.
+
+    Returns:
+        None. Completion is recorded by the files written to disk.
+
+    Examples:
+        >>> write_text(Path("data/note.txt"), "prepared")
     """
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -63,6 +69,13 @@ def read_manifest(path):
     Raises:
         FileNotFoundError: Preparation has not produced this manifest.
         ValueError: A sample count is invalid.
+
+    Examples:
+        After the create_dataset stage:
+
+        >>> rows = read_manifest(Path("data/manifest/train.tsv"))
+        >>> len(rows) > 0
+        True
     """
     with Path(path).open(encoding="utf-8", newline="") as stream:
         rows = list(csv.DictReader(stream, delimiter="\t"))
@@ -84,6 +97,10 @@ def resolve_source_root(recipe_dir, source_dir=None, corpus="devkit"):
 
     Raises:
         ValueError: corpus is neither devkit nor full.
+
+    Examples:
+        >>> resolve_source_root(".", source_dir="/datasets/VOiCES_devkit")
+        PosixPath('/datasets/VOiCES_devkit')
     """
     if corpus not in ("devkit", "full"):
         raise ValueError(f"Unknown VOiCES corpus: {corpus}")
@@ -191,6 +208,10 @@ class VoicesBuilder(DatasetBuilder):
 
         Returns:
             Whether both recording conditions and transcript references exist.
+
+        Examples:
+            >>> builder = VoicesBuilder()
+            >>> ready = builder.is_source_prepared(recipe_dir=".")
         """
         root = resolve_source_root(recipe_dir, source_dir, corpus)
         return (root / "references/filename_transcripts").is_file() and all(
@@ -211,6 +232,15 @@ class VoicesBuilder(DatasetBuilder):
         Raises:
             FileNotFoundError: The explicit or extracted layout is incomplete.
             ValueError: The corpus selector is invalid.
+
+        Returns:
+            None. Completion is recorded by the files written to disk.
+
+        Examples:
+            Download the configured corpus when it is not already present:
+
+            >>> builder = VoicesBuilder()
+            >>> builder.prepare_source(recipe_dir=".")
         """
         if self.is_source_prepared(recipe_dir, source_dir, corpus):
             return
@@ -246,6 +276,10 @@ class VoicesBuilder(DatasetBuilder):
         Returns:
             Whether settings and manifest hashes match the build marker and
             the tokenizer and LM text files exist.
+
+        Examples:
+            >>> builder = VoicesBuilder()
+            >>> ready = builder.is_built(recipe_dir=".")
         """
         manifest = Path(recipe_dir).resolve() / "data/manifest"
         try:
@@ -298,6 +332,15 @@ class VoicesBuilder(DatasetBuilder):
             train/valid use strict 0.1--30 second bounds. tokenizer_train.txt
             and data/lm retain the source recipe's pre-filtering text. Audio
             remains in place. Rebuild markers include the selected corpus mode.
+
+        Returns:
+            None. Completion is recorded by the files written to disk.
+
+        Examples:
+            After prepare_source has completed:
+
+            >>> builder = VoicesBuilder()
+            >>> builder.build(recipe_dir=".")
         """
         if self.is_built(recipe_dir, source_dir, corpus):
             return

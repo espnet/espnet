@@ -1,6 +1,6 @@
 """Train the original ESPnet2 LM for an ESPnet3 ASR recipe.
 
-The current ASRSystem has no LM training stage. This explicit compatibility
+The current ASRSystem has no LM training stage. This recipe-local
 entrypoint uses the existing LMTask for statistics, training and perplexity;
 it does not reimplement the language model or silently disable shallow fusion.
 """
@@ -32,8 +32,16 @@ def prepare_lm_text(config):
     Raises:
         FileNotFoundError: The ASR builder has not produced train_text.
         RuntimeError: No nonempty training lines were found.
+
+    Examples:
+        After data preparation:
+
+        >>> config = OmegaConf.load("conf/language_model.yaml")
+        >>> text_path = prepare_lm_text(config)
+        >>> text_path.is_file()
+        True
     """
-    output = Path(config.exp_dir) / "lm_train.txt"
+    output = Path(config.exp_dir).resolve() / "lm_train.txt"
     output.parent.mkdir(parents=True, exist_ok=True)
     temporary = output.with_suffix(".tmp")
     count = 0
@@ -81,7 +89,7 @@ def train_language_model(config):
 
     Examples:
         From a prepared recipe directory, run
-        ``python -m espnet3.systems.asr.language_model`` with
+        ``python -m egs3.voices.asr.src.language_model`` with
         ``--config conf/language_model.yaml``.
         The ASR tokenizer must already exist. Use a new exp_dir for new conditions;
         native training resumes its checkpoint when rerunning the same config.
@@ -184,7 +192,20 @@ def train_language_model(config):
 
 
 def main():
-    """Read one explicit LM config and run the compatibility pipeline."""
+    """Read an explicit LM config and invoke the ESPnet2 LM commands.
+
+    Args:
+        None. Command-line arguments are read from ``sys.argv``.
+
+    Returns:
+        None. Statistics, weights and perplexity are written to ``exp_dir``.
+
+    Examples:
+        From a prepared recipe directory with a trained ASR tokenizer::
+
+            python -m egs3.voices.asr.src.language_model \
+                --config conf/language_model.yaml
+    """
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", required=True, type=Path)
     args = parser.parse_args()

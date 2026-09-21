@@ -23,7 +23,22 @@ class VoicesDataset(TorchDataset):
     """
 
     def __init__(self, split, recipe_dir=None, condition="all", limit=None):
-        """Read only the small manifest; waveforms are loaded by __getitem__."""
+        """Load an ordered manifest without reading its waveforms.
+
+        Args:
+            split: Prepared ``train``, ``valid`` or ``test`` split.
+            recipe_dir: Root containing ``data/manifest``; None uses this recipe.
+            condition: ``all``, ``source`` or ``distant`` recording selection.
+            limit: Optional positive prefix length for smoke tests; None keeps all.
+
+        Returns:
+            None. Manifest rows are stored in ``self.entries``.
+
+        Examples:
+            After the create_dataset stage:
+
+            >>> dataset = VoicesDataset("train", recipe_dir=".")
+        """
         if split not in SPLITS or condition not in ("all", "distant", "source"):
             raise ValueError(f"Unknown VOiCES split/condition: {split}/{condition}")
         root = Path(recipe_dir or RECIPE_ROOT).resolve() / "data/manifest"
@@ -40,11 +55,42 @@ class VoicesDataset(TorchDataset):
             self.entries = self.entries[: int(limit)]
 
     def __len__(self):
-        """Return the selected number of recordings."""
+        """Return the number of selected recordings.
+
+        Args:
+            None.
+
+        Returns:
+            Integer number of indexed utterances, including recording variants.
+
+        Examples:
+            After loading a prepared split:
+
+            >>> count = len(dataset)
+        """
         return len(self.entries)
 
     def __getitem__(self, index):
-        """Return only the waveform and text accepted by CommonPreprocessor."""
+        """Read one waveform and its transcript for ASR preprocessing.
+
+        Args:
+            index: Integer position in the ordered, optionally filtered manifest.
+
+        Returns:
+            Dictionary with mono 16 kHz float32 ``speech`` and string ``text``.
+            Metadata such as speaker ID stays in ``entries``.
+
+        Raises:
+            IndexError: The requested manifest position is out of range.
+            ValueError: Audio does not match the expected prepared format.
+
+        Examples:
+            After loading a prepared split:
+
+            >>> sample = dataset[0]
+            >>> sorted(sample)
+            ['speech', 'text']
+        """
         entry = self.entries[int(index)]
         speech, rate = sf.read(entry["path"], dtype="float32")
         if rate != 16000 or speech.ndim != 1 or len(speech) != entry["samples"]:

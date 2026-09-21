@@ -6,10 +6,9 @@ dataset:
         recipe_dir: ${recipe_dir}
 
 model:
-  _target_: egs3.voices.asr.src.inference.load_averaged_model
+  _target_: espnet2.bin.asr_inference.Speech2Text
   asr_train_config: ${exp_dir}/config.yaml
-  checkpoint_dir: ${exp_dir}
-  max_checkpoints: 10
+  asr_model_file: ${exp_dir}/valid.acc.ave_10best.pth
   device: cpu
   beam_size: 20
   ctc_weight: 0.3

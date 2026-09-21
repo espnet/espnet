@@ -3,19 +3,6 @@
 task: espnet3.systems.asr.task.ASRTask
 num_device: 4
 seed: 0
-lightning_module: espnet3.components.modeling.espnet2_module.ESPnet2LightningModule
-float32_matmul_precision: highest
-cudnn_deterministic: true
-use_tf32: false
-# asr.sh collect_stats: contiguous splits, CPU, native accumulation.
-espnet2_stats:
-  nj: 32
-  batch_size: 20
-  num_workers: 1
-espnet2_compat:
-  accum_grad: 4
-  grad_clip: 5.0
-  ctc_on_cpu: false
 stats_dir: ${recipe_dir}/exp/stats_conformer
 create_dataset:
   recipe_dir: ${recipe_dir}
@@ -108,34 +95,26 @@ best_model_criterion:
 dataloader:
   train:
     iter_factory:
-      distributed_batch_mode: split_batch
       num_workers: 1
       seed: ${seed}
       batches:
         sort_batch: descending
         shape_files:
-        - ${stats_dir}/train/speech_shape
-        - ${stats_dir}/train/text_shape
+        - ${stats_dir}/train/feats_shape
         type: numel
-        batch_bins: 35000000
+        # Feature-element budget per GPU, sized for 24 GiB accelerators.
+        batch_bins: 2000000
   valid:
     iter_factory:
-      distributed_batch_mode: split_batch
       num_workers: 1
       seed: ${seed}
       batches:
         sort_batch: descending
         shape_files:
-        - ${stats_dir}/valid/speech_shape
-        - ${stats_dir}/valid/text_shape
+        - ${stats_dir}/valid/feats_shape
 trainer:
-  strategy:
-    _target_: lightning.pytorch.strategies.DDPStrategy
-    # Match the native ASRTask DDP defaults.
-    gradient_as_bucket_view: true
-    broadcast_buffers: true
   num_sanity_val_steps: 0
-  # Retain GradScaler; the compatibility module chooses native BF16/FP16 autocast.
-  precision: 16-mixed
-  gradient_clip_val: 0.0
+  precision: bf16-mixed
+  gradient_clip_val: 5.0
+  accumulate_grad_batches: 4
   max_epochs: 50

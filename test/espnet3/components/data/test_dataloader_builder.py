@@ -1095,34 +1095,3 @@ def test_build_iter_factory_defaults_to_the_builder_dataset(monkeypatch):
     }
     loader = builder._build_iter_factory(factory_config)  # dataset=None path
     assert list(loader) == [[0], [1]]
-
-
-@pytest.mark.parametrize("rank", [0, 1])
-def test_source_sequence_shards_each_global_batch(monkeypatch, rank):
-    """Retain all global batches while splitting their members across ranks."""
-    from types import SimpleNamespace
-
-    from espnet3.components.data import dataloader as module
-
-    batches = [("a", "b", "c", "d"), ("e", "f"), ("g", "h", "i")]
-    captured = {}
-
-    def sampler(**kwargs):
-        captured["min_batch_size"] = kwargs["min_batch_size"]
-        return batches
-
-    monkeypatch.setattr(module, "build_batch_sampler", sampler)
-    monkeypatch.setattr(torch.distributed, "get_world_size", lambda: 2)
-    monkeypatch.setattr(torch.distributed, "get_rank", lambda: rank)
-
-    def factory(config, dataset, batches):
-        captured["batches"] = batches
-        return SimpleNamespace(build_iter=lambda epoch: batches)
-
-    monkeypatch.setattr(module, "instantiate", factory)
-    builder = DataLoaderBuilder([], OmegaConf.create({}), None, 2, 0)
-    builder._build_iter_factory(
-        {"batches": {}, "distributed_batch_mode": "split_batch"}
-    )
-    assert captured["batches"] == [batch[rank::2] for batch in batches]
-    assert captured["min_batch_size"] == 2

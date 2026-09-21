@@ -1,1 +1,1 @@
-"""VOiCES ASR recipe regression tests."""
+"""Recipe regression tests."""

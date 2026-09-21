@@ -8,7 +8,7 @@ from urllib.parse import unquote, urlparse
 import pytest
 from omegaconf import OmegaConf
 
-from espnet3.systems.asr import language_model as module
+from egs3.voices.asr.src import language_model as module
 
 
 @pytest.fixture

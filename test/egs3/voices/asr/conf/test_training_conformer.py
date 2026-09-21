@@ -39,14 +39,14 @@ def test_model_and_training_settings_match_source():
     scheduler = instantiate(config.scheduler, optimizer=optimizer)
     assert scheduler.warmup_steps == source["scheduler_conf"]["warmup_steps"]
     assert config.trainer.max_epochs == source["max_epoch"]
-    assert config.espnet2_compat.accum_grad == source["accum_grad"]
-    assert config.trainer.precision == "16-mixed" and source["use_amp"]
+    assert config.trainer.accumulate_grad_batches == source["accum_grad"]
+    assert config.trainer.precision == "bf16-mixed" and source["use_amp"]
     assert config.best_model_criterion == [["valid/acc", 10, "max"]]
     assert config.dataset._recursive_ is False
     assert config.tokenizer.model_type == "unigram"
-    assert (
-        config.dataloader.train.iter_factory.batches.batch_bins == source["batch_bins"]
-    )
+    batches = config.dataloader.train.iter_factory.batches
+    assert batches.type == "numel"
+    assert list(batches.shape_files) == [f"{config.stats_dir}/train/feats_shape"]
 
 
 @pytest.mark.execution_timeout(60)

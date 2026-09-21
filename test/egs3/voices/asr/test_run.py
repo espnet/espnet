@@ -1,4 +1,4 @@
-"""Run the shared stage entrypoint with the VOiCES system and a CPU fixture."""
+"""Exercise the stock ASR stages and native LM using a small CPU corpus."""
 
 from pathlib import Path
 
@@ -10,12 +10,17 @@ from espnet3.utils.config_utils import load_and_merge_config
 RECIPE = Path(__file__).resolve().parents[4] / "egs3/voices/asr"
 
 
-@pytest.mark.execution_timeout(120)
+@pytest.mark.execution_timeout(180)
 def test_complete_stage_pipeline_on_fixture(corpus, monkeypatch):
-    """Exercise all six shared stages with a tiny CPU model and real WAV files."""
+    """Train, load and score ASR with a nonzero trained LM fusion weight."""
+    import json
+
+    import yaml
+
     from egs3.TEMPLATE.asr.run import DEFAULT_STAGES, build_parser, main
     from egs3.voices.asr.src import tokenizer as tokenizer_module
-    from egs3.voices.asr.src.system import VoicesSystem
+    from egs3.voices.asr.src.language_model import train_language_model
+    from espnet3.systems.asr.system import ASRSystem
 
     recipe, source = corpus
     monkeypatch.setattr(
@@ -41,21 +46,20 @@ def test_complete_stage_pipeline_on_fixture(corpus, monkeypatch):
         output_size=16, attention_heads=2, linear_units=32, num_blocks=1
     )
     training.model.decoder_conf.update(attention_heads=2, linear_units=32, num_blocks=1)
+    training.dataloader.train.iter_factory.batches.batch_bins = 100000
     training.num_device = 1
-    training.espnet2_compat.accum_grad = 1
+    training.best_model_criterion = [["valid/acc", 1, "max"]]
     training.trainer.update(
         accelerator="cpu",
         devices=1,
-        # This single-process fixture must not leave a DDP group in pytest.
         strategy="auto",
         precision="32-true",
-        max_epochs=1,
+        max_epochs=2,
         limit_train_batches=2,
         limit_val_batches=1,
         num_sanity_val_steps=0,
         accumulate_grad_batches=1,
     )
-    training.dataloader.train.iter_factory.batches.batch_bins = 100000
     inference = load_and_merge_config(
         RECIPE / "conf/inference.yaml", "inference.yaml", resolve=False
     )
@@ -64,7 +68,11 @@ def test_complete_stage_pipeline_on_fixture(corpus, monkeypatch):
     inference.inference_dir = str(recipe / "inference")
     inference.batch_size = 1
     inference.model.update(
-        beam_size=2, maxlenratio=0.1, lm_weight=0.0, lm_file=None, lm_train_config=None
+        asr_model_file=str(recipe / "experiment/valid.acc.ave_1best.pth"),
+        beam_size=2,
+        maxlenratio=0.1,
+        lm_train_config=str(recipe / "lm/config.yaml"),
+        lm_file=str(recipe / "lm/valid.loss.ave.pth"),
     )
     for entry in inference.dataset.test:
         entry.data_src = "egs3.voices.asr.dataset"
@@ -74,30 +82,54 @@ def test_complete_stage_pipeline_on_fixture(corpus, monkeypatch):
         RECIPE / "conf/metrics.yaml", "metrics.yaml", resolve=False
     )
     metrics.metrics[2].metric.bpemodel = str(recipe / "tokenizer/unigram.model")
-    metrics_path = recipe / "metrics.yaml"
-    OmegaConf.save(metrics, metrics_path)
-    training_path = recipe / "training.yaml"
-    inference_path = recipe / "inference.yaml"
-    OmegaConf.save(training, training_path)
-    OmegaConf.save(inference, inference_path)
-    args = build_parser(DEFAULT_STAGES).parse_args(
-        [
-            "--stages",
-            "create_dataset",
-            "train_tokenizer",
-            "collect_stats",
-            "train",
-            "infer",
-            "measure",
-            "--training_config",
-            str(training_path),
-            "--inference_config",
-            str(inference_path),
-            "--metrics_config",
-            str(metrics_path),
-        ]
+    configs = {"training": training, "inference": inference, "metrics": metrics}
+    for name, config in configs.items():
+        OmegaConf.save(config, recipe / f"{name}.yaml")
+
+    def run(stages):
+        argv = ["--stages", *stages]
+        for name in configs:
+            argv += [f"--{name}_config", str(recipe / f"{name}.yaml")]
+        main(build_parser(DEFAULT_STAGES).parse_args(argv), ASRSystem, DEFAULT_STAGES)
+
+    # Reload YAML for train: stock collect_stats removes normalization in memory.
+    run(["create_dataset", "train_tokenizer", "collect_stats"])
+    assert (recipe / "statistics/train/feats_shape").is_file()
+    run(["train"])
+    assert (
+        yaml.safe_load((recipe / "experiment/config.yaml").read_text())["normalize"]
+        == "global_mvn"
     )
-    main(args, VoicesSystem, DEFAULT_STAGES)
-    assert (recipe / "experiment/valid.acc.final_ave.pth").is_file()
+    lm = OmegaConf.create(
+        {
+            "exp_dir": str(recipe / "lm"),
+            "native_config": str(RECIPE / "conf/lm_native.yaml"),
+            "tokenizer_dir": str(recipe / "tokenizer"),
+            "train_text": str(recipe / "data/lm/train.txt"),
+            "valid_text": str(recipe / "data/lm/valid.txt"),
+            "test_text": str(recipe / "data/lm/test.txt"),
+            "ngpu": 0,
+            "native_overrides": {
+                "lm": "seq_rnn",
+                "lm_conf": {"nlayers": 1, "unit": 16},
+                "max_epoch": 1,
+                "batch_type": "folded",
+                "batch_size": 2,
+                "optim": "adam",
+                "optim_conf": {"lr": 0.001},
+                "scheduler": None,
+                "scheduler_conf": {},
+                "num_workers": 0,
+            },
+        }
+    )
+    # Replace the model-specific config rather than merging Transformer options.
+    tiny_lm = recipe / "tiny_lm.yaml"
+    OmegaConf.save(OmegaConf.create({}), tiny_lm)
+    lm.native_config = str(tiny_lm)
+    train_language_model(lm)
+    run(["infer", "measure"])
+    assert (recipe / "experiment/valid.acc.ave_1best.pth").is_file()
     assert (recipe / "inference/test/hyp.scp").is_file()
-    assert (recipe / "inference/metrics.json").is_file()
+    scores = json.loads((recipe / "inference/metrics.json").read_text())
+    assert scores
