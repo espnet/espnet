@@ -135,9 +135,9 @@ pip install "espnet[demo]"
 espnet demo                                # the same model in your browser
 ```
 
-Every command is a verb, takes `--model <tag>` and `--device cuda`, and
-`espnet --version` names the installed version. `asr` and `tts` were the names
-in 202610 and still work. `espnet demo` serves, on localhost, the app behind [the OWSM-CTC
+Every command but `espnet models` takes `--model <tag>` and `--device cuda`,
+and `espnet --version` names the installed version. The six that do one task
+are verbs; `asr` and `tts` were the names in 202610 and still work. `espnet demo` serves, on localhost, the app behind [the OWSM-CTC
 v4 Space](https://huggingface.co/spaces/espnet/owsm-ctc-v4) — recording, upload, the
 checkpoint's own language and translation menus, and long-form decoding — and takes
 `--port` and `--share`. The page is the checkpoint's: `espnet demo --model
