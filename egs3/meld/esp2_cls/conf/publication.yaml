@@ -33,7 +33,7 @@ pack_model:
 
 upload_model:
   # Match the ESPnet2 model already published as `espnet/meld_cls1_wavlm_base_plus`.
-  hf_repo: espnet/meld_cls_wavlm_base_plus
-  # The first upload carried a `token_list` path that only existed locally, so
-  # the published bundle has to be replaced.
+  hf_repo: espnet/meld_esp2_cls_wavlm_base_plus
+  # Upload over the repo when it already exists, so re-running the stage
+  # replaces the published bundle instead of failing.
   update: true

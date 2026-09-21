@@ -28,6 +28,12 @@ exp_tag: train_cls_wavlm_transformer
 #
 # Filtering the test split would change what the reported scores are measured
 # on, so `splits` lists train and valid only.
+# The TEMPLATE default of one worker starts a cluster without overlapping
+# anything. MELD converts 13,708 clips in create_dataset, so it shards them.
+parallel:
+  env: local
+  n_workers: 8
+
 remove_long_short:
   min_wav_duration: 0.1
   max_wav_duration: 30

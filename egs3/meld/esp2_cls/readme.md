@@ -55,8 +55,8 @@ split is left untouched so the reported scores cover the whole set.
 
 | | WA | UA | Macro F1 | mAP | AUC |
 |---|---|---|---|---|---|
-| test | 52.72 | 25.44 | 26.17 | 28.30 | 70.05 |
-| valid | 48.55 | 26.07 | 26.07 | 30.45 | 69.57 |
+| test | 51.61 | 24.63 | 24.32 | 27.31 | 68.83 |
+| valid | 49.01 | 26.37 | 25.59 | 28.69 | 67.80 |
 
 MELD is heavily imbalanced — `neutral` is 47% of the training split — so WA alone
 overstates how well a model separates the emotions. UA and Macro F1 weight every
@@ -68,4 +68,5 @@ limits the accuracy any model can reach on it.
 
 ## Pretrained Models
 
-- [`conf/training.yaml`](https://huggingface.co/espnet/meld_cls_wavlm_base_plus)
+- [`conf/training.yaml`](https://huggingface.co/espnet/meld_esp2_cls_wavlm_base_plus)
+- [Demo Space](https://huggingface.co/spaces/espnet/meld_esp2_cls_wavlm_base_plus)
