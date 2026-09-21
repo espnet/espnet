@@ -3,6 +3,7 @@
 
     espnet asr audio.wav
     espnet asr audio.wav --language jpn
+    espnet phonemize audio.wav
     espnet translate audio.wav --to eng
     espnet tts "Hello from ESPnet" -o hello.wav
     espnet enhance noisy.wav -o clean.wav
@@ -38,6 +39,9 @@ from espnet2.utils.pretrained import ModelTagError, build_pretrained
 # Each is checked by test_cli.py against the espnet2 class that loads it.
 DEFAULT_MODELS = {
     "asr": "espnet/owsm_ctc_v4_1B",
+    # POWSM, a phonetic model built on OWSM: the CTC one, which is the
+    # faster of the two and the one that can read a recording of any length
+    "phonemize": "espnet/powsm_ctc",
     "translate": "espnet/owsm_ctc_v4_1B",
     "tts": "espnet/kan-bayashi_ljspeech_vits",
     "enhance": "espnet/Wangyou_Zhang_universal_train_enh_uses_refch0_2mem_raw",
@@ -187,6 +191,72 @@ def _transcribe_as_it_arrives(args) -> int:
         return live.transcribe(decode, source)
     except live.LiveError as e:
         raise CLIError(str(e)) from e
+
+
+# POWSM writes each phone between slashes, so that a phone spelled like a BPE
+# token is still one token: /pʰ//ɔ//s//ə//m/ is five phones, not a string to
+# be read character by character.
+PHONE = re.compile(r"/([^/]+)/")
+
+
+def phones(decoded: str, spaced: bool = False) -> str:
+    """The phones of a decoded line, without the slashes that delimit them.
+
+    Returned as IPA - `pʰɔsəm` - or one phone at a time when asked, which is
+    what anything counting or aligning them wants. Text with no slashes in it
+    is passed through: a checkpoint that does not write phones this way has
+    still said something, and swallowing it would be worse than printing it.
+    """
+    found = PHONE.findall(decoded)
+    if not found:
+        return decoded
+    return " ".join(found) if spaced else "".join(found)
+
+
+def _no_language(s2t) -> str:
+    """The checkpoint's own symbol for an unknown language, or a fixable error.
+
+    The lookup is the model's own - both POWSM checkpoints use `<unk>` and
+    OWSM uses `<nolang>`, and one of the three does not record which - and
+    only the wording of the fix belongs to this command line.
+    """
+    try:
+        return s2t.no_language()
+    except ValueError as e:
+        raise CLIError(f"{e}; pass --language, as ISO 639-3") from e
+
+
+def cmd_phonemize(args) -> int:
+    _require_file(args.audio)
+    from espnet2.bin.s2t_inference import Speech2Text
+
+    s2t = _build(Speech2Text, args, "phonemize")
+    lang_sym = f"<{args.language}>" if args.language else _no_language(s2t)
+
+    if s2t.ctc_only:
+        decoded = _decode(s2t, args.audio, lang_sym, "<pr>")
+    else:
+        # An encoder-decoder checkpoint segments long audio by its own
+        # timestamps, which is right for a transcript and wrong here. A
+        # window shorter than the model's is padded with silence, and asked
+        # for phones over that silence POWSM repeats what it has already
+        # said, for as long as the window lasts. One window at a time
+        # instead, each decoded on its own, which is what the model card
+        # does.
+        decoded = " ".join(
+            s2t(window, lang_sym=lang_sym, task_sym="<pr>")[0][0]
+            for window in _windows(s2t, args.audio)
+        )
+    print(phones(decoded, spaced=args.spaced))
+    return 0
+
+
+def _windows(s2t, audio: str):
+    """The recording in pieces of the length the checkpoint was trained on."""
+    speech = s2t.read_audio(audio)
+    length = int(s2t.preprocessor_conf["speech_length"] * s2t.preprocessor_conf["fs"])
+    for start in range(0, max(len(speech), 1), length):
+        yield speech[start : start + length]
 
 
 def cmd_translate(args) -> int:
@@ -361,6 +431,25 @@ def build_parser() -> argparse.ArgumentParser:
         "--language",
         default=DEFAULT_LANGUAGE,
         help="OWSM language token, ISO 639-3: eng, jpn … (default: OWSM detects it)",
+    )
+
+    p = add("phonemize", "recognise the phones in an audio file", cmd_phonemize)
+    p.add_argument("audio", help="audio file, any format soundfile reads")
+    p.add_argument(
+        "--language",
+        default=None,
+        # Worth naming: on test_utils/ctc_align_test.wav, POWSM-CTC answers
+        # `dəseɪlʌvðəhotɛlsɪz` without it and `ðəseɪlʌvðəhoʊtɛlzɪz` with
+        # --language eng - English r and diphthongs rather than a tap and
+        # plain vowels.
+        help="POWSM language token, ISO 639-3: eng, jpn, deu … Name it if you "
+        "know it; without it the model is told the language is unknown, which "
+        "it handles but reads less like the language",
+    )
+    p.add_argument(
+        "--spaced",
+        action="store_true",
+        help="one phone at a time, separated by spaces, rather than as IPA",
     )
 
     p = add("translate", "translate speech into another language", cmd_translate)

@@ -29,12 +29,40 @@ def _fake_module(monkeypatch, name, attr, obj):
 class _Recorder:
     """Stands in for an inference class: records how it was built and called."""
 
-    def __init__(self, result):
+    def __init__(self, result, ctc_only=True, nolang="<nolang>", tokens=None):
         self.result = result
         self.tag = None
         self.device = None
         self.calls = []
         self.fs = 16000
+        # what `espnet phonemize` reads off a loaded checkpoint: whether there is
+        # a decoder to segment long audio with, and how this model spells
+        # "work the language out yourself"
+        self.ctc_only = ctc_only
+        self.preprocessor_conf = {"speech_length": 20, "fs": 16000}
+        if nolang is not None:
+            self.preprocessor_conf["nolang_symbol"] = nolang
+        self.s2t_model = types.SimpleNamespace(
+            token_list=list(tokens) if tokens is not None else None
+        )
+
+    def read_audio(self, path):
+        # two windows of the length above, so that a test can see both
+        return np.zeros(20 * 16000 * 2, dtype=np.float32)
+
+    def no_language(self):
+        # Speech2Text.no_language, which the command line only rewords: the
+        # config's symbol, then either spelling, each checked against the
+        # token list
+        tokens = set(self.s2t_model.token_list or ())
+        for candidate in (
+            self.preprocessor_conf.get("nolang_symbol"),
+            "<nolang>",
+            "<unk>",
+        ):
+            if candidate and (not tokens or candidate in tokens):
+                return candidate
+        raise ValueError("this model has no symbol for an unknown language")
 
     def from_pretrained(self, model_tag=None, device=None, **kwargs):
         self.tag, self.device = model_tag, device
@@ -114,6 +142,105 @@ def test_asr_passes_the_language_and_the_chosen_model(monkeypatch, tmp_path):
 
     assert rec.tag == "espnet/other" and rec.device == "cuda"
     assert rec.calls[0][1]["lang_sym"] == "<jpn>"
+
+
+def test_phonemize_prints_ipa_without_the_slashes(monkeypatch, tmp_path, capsys):
+    audio = tmp_path / "a.wav"
+    audio.write_bytes(b"")
+    # POWSM writes one phone between each pair of slashes
+    rec = _Recorder("/ð//ə//s//e//ɪ/", nolang="<unk>")
+    _fake_module(monkeypatch, "espnet2.bin.s2t_inference", "Speech2Text", rec)
+
+    assert cli.main(["phonemize", str(audio)]) == 0
+
+    assert capsys.readouterr().out.strip() == "ðəseɪ"
+    assert rec.tag == cli.DEFAULT_MODELS["phonemize"]
+    assert rec.calls[0][1] == {"lang_sym": "<unk>", "task_sym": "<pr>"}
+
+
+def test_phonemize_can_print_one_phone_at_a_time(monkeypatch, tmp_path, capsys):
+    audio = tmp_path / "a.wav"
+    audio.write_bytes(b"")
+    # the point of the slashes: pʰ is one phone, not p followed by ʰ
+    rec = _Recorder("/pʰ//ɔ//s//ə//m/")
+    _fake_module(monkeypatch, "espnet2.bin.s2t_inference", "Speech2Text", rec)
+
+    assert cli.main(["phonemize", str(audio), "--spaced"]) == 0
+
+    assert capsys.readouterr().out.strip() == "pʰ ɔ s ə m"
+
+
+def test_phonemize_passes_a_language_when_one_is_given(monkeypatch, tmp_path):
+    audio = tmp_path / "a.wav"
+    audio.write_bytes(b"")
+    rec = _Recorder("/a/")
+    _fake_module(monkeypatch, "espnet2.bin.s2t_inference", "Speech2Text", rec)
+
+    assert cli.main(["phonemize", str(audio), "--language", "jpn"]) == 0
+
+    assert rec.calls[0][1]["lang_sym"] == "<jpn>"
+
+
+def test_phonemize_uses_a_no_language_symbol_the_model_has(monkeypatch, tmp_path):
+    audio = tmp_path / "a.wav"
+    audio.write_bytes(b"")
+    # espnet/powsm records no nolang_symbol and has no <nolang> in its
+    # vocabulary; guessing one is a KeyError after the model has loaded
+    rec = _Recorder("/a/", nolang=None, tokens=["<unk>", "<eng>", "<pr>"])
+    _fake_module(monkeypatch, "espnet2.bin.s2t_inference", "Speech2Text", rec)
+
+    assert cli.main(["phonemize", str(audio)]) == 0
+
+    assert rec.calls[0][1]["lang_sym"] == "<unk>"
+
+
+def test_phonemize_without_any_such_symbol_says_what_to_pass(
+    monkeypatch, tmp_path, capsys
+):
+    audio = tmp_path / "a.wav"
+    audio.write_bytes(b"")
+    rec = _Recorder("/a/", nolang=None, tokens=["<eng>", "<pr>"])
+    _fake_module(monkeypatch, "espnet2.bin.s2t_inference", "Speech2Text", rec)
+
+    assert cli.main(["phonemize", str(audio)]) == 1
+
+    assert "--language" in capsys.readouterr().err
+
+
+def test_phonemize_decodes_an_encoder_decoder_model_window_by_window(
+    monkeypatch, tmp_path, capsys
+):
+    audio = tmp_path / "a.wav"
+    audio.write_bytes(b"")
+    # asked for phones, an encoder-decoder checkpoint fills a window that is
+    # mostly padding with repetitions, so decode_long is not the way in
+    rec = _Recorder("/a/", ctc_only=False, nolang="<unk>")
+    # calling the object returns hypotheses, where decode_long returns
+    # (start, end, text); this path calls the object
+    rec.result = [("/a/", [], [], "/a/", None)]
+    _fake_module(monkeypatch, "espnet2.bin.s2t_inference", "Speech2Text", rec)
+
+    assert cli.main(["phonemize", str(audio)]) == 0
+
+    assert capsys.readouterr().out.strip() == "aa"  # one window each
+    assert len(rec.calls) == 2
+    for args, kwargs in rec.calls:
+        assert len(args[0]) == 20 * 16000
+        assert kwargs == {"lang_sym": "<unk>", "task_sym": "<pr>"}
+
+
+def test_phonemize_prints_what_a_model_said_when_there_are_no_slashes(
+    monkeypatch, tmp_path, capsys
+):
+    audio = tmp_path / "a.wav"
+    audio.write_bytes(b"")
+    rec = _Recorder("hello there")
+    _fake_module(monkeypatch, "espnet2.bin.s2t_inference", "Speech2Text", rec)
+
+    assert cli.main(["phonemize", str(audio)]) == 0
+
+    # swallowing it would be worse than printing a transcript nobody wanted
+    assert capsys.readouterr().out.strip() == "hello there"
 
 
 def test_translate_builds_the_target_token(monkeypatch, tmp_path):
@@ -542,9 +669,21 @@ class _FakeOWSM:
             ]
         )
 
+    preprocessor_conf = {"speech_length": 30, "nolang_symbol": "<nolang>"}
+    # OWSM-CTC: read off the CTC head, no decoder to search over
+    ctc_only = True
+
     def from_pretrained(self, model_tag=None, device=None, **kwargs):
         self.tag, self.device = model_tag, device
         return self
+
+    def no_language(self):
+        return self.preprocessor_conf["nolang_symbol"]
+
+    def decode_window(self, speech, lang_sym=None, task_sym=None):
+        # Speech2Text.decode_window: the checkpoint chooses its own way, and
+        # this one is CTC-only
+        return self.best_path(speech, lang_sym=lang_sym, task_sym=task_sym)[0][0]
 
     def best_path(self, speech, *args, **kwargs):
         # what the page calls for a single window: the CTC head, no search
@@ -649,7 +788,9 @@ def test_the_demo_decodes_a_short_recording(monkeypatch):
     from espnet2.bin import demo
 
     gradio, s2t = _fake_demo(monkeypatch)
-    monkeypatch.setattr(demo, "read_audio", lambda path: np.zeros(16000 * 5, "float32"))
+    monkeypatch.setattr(
+        demo, "read_audio", lambda path, rate=16000: np.zeros(16000 * 5, "float32")
+    )
     assert cli.main(["demo"]) == 0
 
     language, text = _predict(gradio)("a.wav", demo.DETECT, demo.ASR_LABEL, False)
@@ -668,7 +809,7 @@ def test_the_demo_trims_audio_past_the_cap_and_says_so(monkeypatch):
 
     gradio, s2t = _fake_demo(monkeypatch)
     long_audio = np.zeros(16000 * (demo.MAX_SECS + 30), "float32")
-    monkeypatch.setattr(demo, "read_audio", lambda path: long_audio)
+    monkeypatch.setattr(demo, "read_audio", lambda path, rate=16000: long_audio)
     assert cli.main(["demo"]) == 0
 
     _predict(gradio)("a.wav", "English (eng)", demo.ASR_LABEL, True)
