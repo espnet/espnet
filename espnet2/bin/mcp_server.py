@@ -142,14 +142,14 @@ def transcribe(audio_path: str, language: str = "auto") -> str:
 
     Args:
         audio_path: Local audio file. Any common format, sample rate or length;
-            long recordings are processed in 30-second windows.
+            a long recording is decoded in windows of the model's own length.
         language: ISO 639-3 code of the spoken language (eng, jpn, deu, zho,
             fra, spa, ...) or "auto" to let the model detect it.
 
     Returns:
-        The transcript as plain text. The first call downloads the model
-        (about 4 GB) and takes minutes; later calls take 10-30 s per 30 s of
-        audio on a laptop CPU, about a second on a GPU.
+        The transcript as plain text. The first call downloads the model -
+        the default is about 4 GB - and takes minutes; later calls take
+        10-30 s per 30 s of audio on a laptop CPU, about a second on a GPU.
     """
     return _decode(audio_path, language, "<asr>")
 
@@ -160,7 +160,8 @@ def translate(audio_path: str, to: str, language: str = "auto") -> str:
     Args:
         audio_path: Local audio file, as for `transcribe`.
         to: ISO 639-3 code to translate into (eng, deu, jpn, zho, fra, spa,
-            ...). The model translates into 25 languages.
+            ...). A code the model was not trained for is reported with the
+            ones it has.
         language: ISO 639-3 code of the spoken language, or "auto".
 
     Returns:
