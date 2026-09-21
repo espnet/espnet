@@ -138,7 +138,9 @@ Every command takes `--model <tag>` and `--device cuda`, and `espnet --version` 
 the installed version. `espnet demo` serves, on localhost, the app behind [the OWSM-CTC
 v4 Space](https://huggingface.co/spaces/espnet/owsm-ctc-v4) — recording, upload, the
 checkpoint's own language and translation menus, and long-form decoding — and takes
-`--port` and `--share`.
+`--port` and `--share`. The page is the checkpoint's: `espnet demo --model
+espnet/powsm_ctc` offers phone recognition instead of translation, because that is
+what POWSM's token list has.
 
 **Without installing anything** — the same commands, in a container:
 
