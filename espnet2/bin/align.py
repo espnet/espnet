@@ -176,9 +176,17 @@ class ForcedAligner:
                 raise ValueError(f"nothing to align in {utterance!r}")
             spans.append((len(ids), len(ids) + len(piece)))
             ids.extend(piece)
-        if len(ids) > len(emissions):
+        # CTC needs a blank frame between two of the same token in a row, so
+        # what has to fit is the tokens plus those blanks. Without counting
+        # them, a text that is a few frames too long got torchaudio's
+        # "targets length is too long for CTC" instead of this sentence.
+        repeats = sum(1 for first, second in zip(ids, ids[1:]) if first == second)
+        if len(ids) + repeats > len(emissions):
+            needed = f"{len(ids)} tokens"
+            if repeats:
+                needed += f" and {repeats} blank(s) between repeated ones"
             raise ValueError(
-                f"{len(ids)} tokens to align against {len(emissions)} frames: "
+                f"{needed} to align against {len(emissions)} frames: "
                 f"this text cannot fit in this recording"
             )
 

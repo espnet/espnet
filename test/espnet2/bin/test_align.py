@@ -91,6 +91,23 @@ def test_text_that_cannot_fit_is_refused_by_name():
         aligner(np.zeros(16000, dtype=np.float32), ["abcabcabc"])
 
 
+def test_a_repeated_token_needs_the_blank_between_it():
+    """Three frames hold three tokens, unless two of them are the same.
+
+    CTC reads "aa" as one "a" without a blank in between, so the text has to
+    fit the blanks too. Counting only the tokens let a text through to
+    torchaudio, which refused it in its own words.
+    """
+    aligner = _aligner([1, 1, 2])
+
+    with pytest.raises(ValueError, match="blank"):
+        aligner(np.zeros(16000, dtype=np.float32), ["aab"])
+
+    # the same three frames take three different tokens
+    segments = aligner(np.zeros(16000, dtype=np.float32), ["ab"])
+    assert [t.text for t in segments[0].tokens] == ["a", "b"]
+
+
 def test_nothing_to_align_is_refused():
     aligner = _aligner([1, 2, 3])
     audio = np.zeros(16000, dtype=np.float32)
