@@ -184,6 +184,18 @@ def _frame_rate(s2t_train_args) -> Tuple[Optional[int], Optional[float]]:
     return sample_rate, sample_rate / hop_length / subsample
 
 
+def _stated_seconds(symbol: str) -> Optional[float]:
+    """The time a symbol is named after, if it is named after one.
+
+    `<12.34>` is 12.34; `<sos>` and anything else is None. Used to check a
+    config against itself, never to decide what a timestamp means.
+    """
+    try:
+        return float(str(symbol).strip("<>"))
+    except ValueError:
+        return None
+
+
 def _is_ctc_only(s2t_train_config) -> bool:
     """True when the config describes a model trained as CTC-only.
 
@@ -1204,23 +1216,51 @@ class Speech2Text:
         The window is the source of truth - `speech_length`, which every
         other part of this class already reads - and the timestamp symbols
         are one model's way of writing positions inside it. So the step is
-        the window divided by the symbols that span it, and nothing here
-        parses a symbol's name or assumes a format for it: a checkpoint that
-        spells its timestamps differently still works, as long as its config
-        names the first and the last.
+        that window divided by the symbols that span it, and nothing here
+        parses a symbol's name or assumes a format for it.
 
         Not `speech_resolution`: POWSM's config states 0.04 while its
         vocabulary steps 0.02, and a timestamp read at twice its value points
         past the end of the window it came from.
+
+        What this does assume, and checks rather than trusts, is that the
+        timestamps run one id a step from the start of the window to its end.
+        A model that changes its window, its step, or both changes both
+        numbers together and needs nothing here; a model that breaks the
+        assumption is told which of its own two statements disagree, rather
+        than quietly returning times that are a constant factor out.
         """
         first = self.converter.token2id[self.preprocessor_conf["first_time_symbol"]]
         last = self.converter.token2id[self.preprocessor_conf["last_time_symbol"]]
         if last <= first:
             raise RuntimeError(
-                "this config's first and last timestamp symbols are not in "
-                "order, so a position inside its window cannot be read"
+                f"{self.preprocessor_conf['first_time_symbol']} and "
+                f"{self.preprocessor_conf['last_time_symbol']} are not in order "
+                f"in this vocabulary, so a position inside the window cannot "
+                f"be read from an id"
             )
-        return first, last, self.preprocessor_conf["speech_length"] / (last - first)
+        window = float(self.preprocessor_conf["speech_length"])
+        step = window / (last - first)
+
+        # When the symbols are named after the times they mark - both models
+        # in the wild are - the names have to agree with the window. This is
+        # a check on the config, not the contract: a checkpoint whose
+        # timestamps are named some other way skips it.
+        named = [
+            _stated_seconds(self.preprocessor_conf[key])
+            for key in ("first_time_symbol", "last_time_symbol")
+        ]
+        if all(t is not None for t in named):
+            spanned = named[1] - named[0]
+            if abs(spanned - window) > step:
+                raise RuntimeError(
+                    f"this config's timestamps span {spanned:g} s "
+                    f"({self.preprocessor_conf['first_time_symbol']} to "
+                    f"{self.preprocessor_conf['last_time_symbol']}) while its "
+                    f"speech_length says {window:g} s. One of the two is wrong, "
+                    f"and either would put every timestamp in the wrong place"
+                )
+        return first, last, step
 
     def _near_window_end(self) -> int:
         """The timestamp id a second before the end of the model's window.
@@ -1232,8 +1272,10 @@ class Speech2Text:
         `<29.00>` is not in its vocabulary at all, so the decode ended in a
         KeyError rather than in a transcript.
         """
-        _, last, step = self._time_ids()
-        return last - round(1.0 / step)
+        first, last, step = self._time_ids()
+        # one second back, and never less than one step: a model whose steps
+        # are coarser than a second would otherwise have no threshold at all
+        return max(first, last - max(1, round(1.0 / step)))
 
     @torch.no_grad()
     @typechecked

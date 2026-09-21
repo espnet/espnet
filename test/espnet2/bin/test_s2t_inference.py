@@ -123,6 +123,62 @@ def test_the_long_form_window_is_read_from_the_model(s2t_config_file):
 
 
 @pytest.mark.execution_timeout(5)
+def test_a_window_or_a_step_may_change_without_changing_this(s2t_config_file):
+    """Both come from the checkpoint, so a new one needs nothing agreed here.
+
+    30 s at 0.02 is OWSM, 20 s at 0.02 is POWSM, and the other two are models
+    that do not exist yet: a finer step, and a step coarser than the second
+    the threshold is measured in.
+    """
+    speech2text = Speech2Text(s2t_train_config=s2t_config_file, beam_size=1)
+    first = speech2text.converter.token2id["<0.00>"]
+
+    for window, steps, expected_step in (
+        (30, 1500, 0.02),  # OWSM
+        (20, 1000, 0.02),  # POWSM
+        (10, 1000, 0.01),  # a finer grid
+        (60, 20, 3.0),  # a step coarser than a second
+    ):
+        speech2text.converter.token2id["<last>"] = first + steps
+        speech2text.preprocessor_conf.update(
+            speech_length=window,
+            last_time_symbol="<last>",
+            first_time_symbol="<0.00>",
+        )
+        _, last, step = speech2text._time_ids()
+        assert step == pytest.approx(expected_step)
+
+        # a second before the end, or one step when a step is longer than a
+        # second - never the end itself, which would be no threshold at all
+        back = max(1, round(1.0 / expected_step))
+        assert speech2text._near_window_end() == last - back
+
+
+@pytest.mark.execution_timeout(5)
+def test_a_config_at_odds_with_itself_is_named(s2t_config_file):
+    """Timestamps named after times have to agree with the window.
+
+    The check is on the config, not the contract: it runs only because both
+    symbols here are named after seconds. A checkpoint that writes its
+    timestamps some other way is read from its ids alone.
+    """
+    speech2text = Speech2Text(s2t_train_config=s2t_config_file, beam_size=1)
+    first = speech2text.converter.token2id["<0.00>"]
+    speech2text.converter.token2id["<20.00>"] = first + 1000
+    speech2text.preprocessor_conf.update(
+        speech_length=30, last_time_symbol="<20.00>"  # the symbols say 20
+    )
+
+    with pytest.raises(RuntimeError, match="span 20 s.*speech_length says 30"):
+        speech2text._time_ids()
+
+    # a symbol that is not a time is not checked, only used
+    speech2text.converter.token2id["<end>"] = first + 1000
+    speech2text.preprocessor_conf["last_time_symbol"] = "<end>"
+    assert speech2text._time_ids()[2] == pytest.approx(0.03)
+
+
+@pytest.mark.execution_timeout(5)
 def test_a_configs_stated_resolution_does_not_override_its_vocabulary(
     s2t_config_file,
 ):
