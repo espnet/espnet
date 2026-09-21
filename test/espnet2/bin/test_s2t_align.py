@@ -140,3 +140,30 @@ def test_CTCSegmentation(s2t_config_file):
     segments_str = str(segments)
     first_line = segments_str.splitlines()[0]
     assert "foo_0000" == first_line.split(" ")[0]
+
+
+def test_the_old_module_name_still_aligns(s2t_config_file):
+    """`espnet2.bin.s2t_ctc_align` was this module until 202610.
+
+    The recipes in this repository import the new name, but a script
+    someone else wrote does not, so the old path forwards and says so.
+    """
+    from espnet2.bin.s2t_ctc_align import CTCSegmentation as Moved
+    from espnet2.bin.s2t_ctc_align import CTCSegmentationTask as MovedTask
+
+    assert issubclass(Moved, CTCSegmentation)
+    assert MovedTask is CTCSegmentationTask
+
+    with pytest.warns(DeprecationWarning, match="espnet2.bin.s2t_align"):
+        aligner = Moved(
+            s2t_train_config=s2t_config_file,
+            fs=16000,
+            context_len_in_secs=1,
+            kaldi_style_text=True,
+            min_window_size=10,
+        )
+
+    speech = np.random.randn(200000)
+    segments = aligner(speech, "utt_a HOTELS\nutt_b ASSETS\n", fs=16000)
+    assert isinstance(segments, CTCSegmentationTask)
+    assert str(segments).splitlines()[0].split(" ")[0] == "utt_a"
