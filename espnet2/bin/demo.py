@@ -38,7 +38,7 @@ SAMPLE_RATE = 16000
 WINDOW_SECS = 30
 # The demo's: a browser demo answers while someone waits, and two minutes of
 # audio is already a wait. It has nothing to do with OWSM - neither the model
-# nor `espnet asr` has such a limit - and it would be the same number for any
+# nor `espnet transcribe` has such a limit - and it is the same number for any
 # model this command grew to serve. Both Spaces refuse audio longer than
 # this; `espnet demo` decodes the first two minutes and says so.
 MAX_SECS = 120
@@ -395,7 +395,7 @@ def build_app(s2t, device: str = "cpu", model_tag: str = ""):
         if len(speech) > rate * MAX_SECS:
             gr.Warning(
                 f"Only the first {MAX_SECS} s were decoded. "
-                "`espnet asr` has no such limit."
+                "`espnet transcribe` has no such limit."
             )
             speech = speech[: rate * MAX_SECS]
 
