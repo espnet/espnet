@@ -28,7 +28,7 @@ import gradio as gr  # noqa: E402
 import librosa  # noqa: E402
 import torch  # noqa: E402
 
-from espnet2.bin.s2t_inference_ctc import Speech2TextGreedySearch  # noqa: E402
+from espnet2.bin.s2t_inference import Speech2Text  # noqa: E402
 
 SAMPLE_RATE = 16000
 WINDOW_SECS = 30  # what OWSM is trained on; longer audio is decoded in chunks
@@ -249,7 +249,7 @@ ARTICLE = """Model:
 ```"""
 
 
-s2t = Speech2TextGreedySearch.from_pretrained(
+s2t = Speech2Text.from_pretrained(
     MODEL_TAG,
     device=DEVICE,
     generate_interctc_outputs=False,
@@ -289,7 +289,7 @@ def _split_tokens(decoded):
 
 def _detect(speech, task_sym):
     """The language OWSM-CTC names for the first window of this audio."""
-    decoded = s2t(
+    decoded = s2t.best_path(
         _pad(speech[: SAMPLE_RATE * WINDOW_SECS]),
         lang_sym="<nolang>",
         task_sym=task_sym,
@@ -314,12 +314,15 @@ def predict(audio_path, language_label, task_label, long_form):
         # One 30 s pass first, only to name the language the rest is decoded
         # in; skipped when the user has already said what it is.
         detected = chosen or _detect(speech, task_sym)
-        text = s2t.decode_long_batched_buffered(
-            speech,
-            batch_size=1 if DEVICE == "cpu" else 8,
-            context_len_in_secs=4,
-            lang_sym=f"<{detected}>",
-            task_sym=task_sym,
+        text = " ".join(
+            segment
+            for _, _, segment in s2t.decode_long(
+                speech,
+                batch_size=1 if DEVICE == "cpu" else 8,
+                context_len_in_secs=4,
+                lang_sym=f"<{detected}>",
+                task_sym=task_sym,
+            )
         )
     else:
         if len(speech) > SAMPLE_RATE * WINDOW_SECS:
@@ -327,7 +330,7 @@ def predict(audio_path, language_label, task_label, long_form):
                 f"Only the first {WINDOW_SECS} s were decoded. "
                 "Tick Long-form for the whole recording."
             )
-        decoded = s2t(
+        decoded = s2t.best_path(
             _pad(speech[: SAMPLE_RATE * WINDOW_SECS]),
             lang_sym=lang_sym,
             task_sym=task_sym,

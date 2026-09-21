@@ -249,6 +249,17 @@ sds = [
   "transformers",
 ]
 
+# The browser demo (espnet2/bin/demo.py): `espnet demo` serves the OWSM app
+# the Hugging Face Spaces run. gradio is the only thing it needs beyond a bare
+# install, and it stays here rather than in the core dependencies because a
+# web framework has no business in `pip install espnet`: the command imports
+# it inside the function that builds the app and names this extra when it is
+# missing. Not in [all], for the reason [sds] is not - one demo must not drag
+# gradio into every install.
+demo = [
+  "gradio",
+]
+
 # Model Context Protocol server (espnet2/bin/mcp_server.py): the `espnet-mcp`
 # command through which Claude Code, Cursor and other agents call ESPnet as
 # tools. It pulls the three task extras because its default tools cover ASR,

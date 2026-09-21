@@ -21,6 +21,9 @@ import sys
 import traceback
 
 MODULES = [
+    # the top-level package: `import espnet; espnet.load(tag)` is the entry
+    # point a user reaches for first, and it ships in the same wheel
+    "espnet",
     "espnet2.bin.asr_inference",
     "espnet2.bin.asr_inference_streaming",
     "espnet2.bin.asr_inference_maskctc",
@@ -47,6 +50,10 @@ MODULES = [
     "espnet2.bin.gan_codec_inference",
     "espnet2.bin.uasr_inference",
     "espnet2.bin.cli",
+    # gradio is in [demo], not in the bare install: this module must import
+    # without it, or `espnet demo` would be the one command that cannot even
+    # report what is missing.
+    "espnet2.bin.demo",
     "espnet2.bin.mcp_server",
 ]
 

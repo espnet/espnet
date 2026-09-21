@@ -17,9 +17,12 @@
 # Reference training environment:
 # - Number of GPUs: 4
 # - GPU type: NVIDIA GH200 120GB
-# - Training time: approximately 44 h for 24 of the configured 35 epochs
+# - Training time: approximately 104 h of compute for all 35 configured
+#   epochs (sum of SLURM job elapsed time; includes per-session startup
+#   overhead and a brief run at 2 GPUs)
 # - dev_4k, valid.acc.ave_10best, beam 20, ctc_weight 0.3, no LM:
-#   WER 2.42 / CER 1.01
+#   WER 2.25 / CER 0.93 (batch_size 4; 2.26 / 0.93 without batching --
+#   see conf/inference.yaml)
 #
 # Quick usage:
 #   python run.py --stages train_tokenizer \
