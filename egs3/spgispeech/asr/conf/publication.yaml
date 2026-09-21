@@ -1,0 +1,62 @@
+##########################################################
+#                  PUBLICATION SETTING                   #
+##########################################################
+#   python run.py --stages pack_model \
+#       --training_config conf/tuning/train_asr_conformer6_n_fft512_hop_length256.yaml \
+#       --inference_config conf/inference_dev4k_ep25.yaml \
+#       --metrics_config conf/metrics.yaml \
+#       --publication_config conf/publication.yaml
+#
+# --inference_config is passed so pack_model can find metrics.json under that
+# run's inference_dir and render the results table into the bundled README.
+#
+# THE THREE ARTIFACTS THE PACKED CONFIG POINTS AT LIVE OUTSIDE exp_dir.
+# exp/<tag>/config.yaml uses recipe-relative paths:
+#     token_list: ./data/unigram_5000/tokens.txt
+#     bpemodel:   ./data/unigram_5000/unigram.model
+#     stats_file: ./exp/stats/train/feats_stats.npz
+# stats_dir is ${recipe_dir}/exp/stats, a SIBLING of exp_dir, so the bulk copy
+# of exp_dir does not contain it. All three are listed under `include`.
+#
+# WHY THE EXCLUDE LIST IS LONG. exp_dir is 23 GB and TEMPLATE's defaults barely
+# dent it -- _matches_ignore_pattern fnmatches the basename, so "**/step*.ckpt"
+# does NOT match "periodic_step294.ckpt" (6.5 GB) and "last.ckpt" does not match
+# "last-v1.ckpt"/"last-v2.ckpt" (2.6 GB); the epoch checkpoints (8.2 GB) and the
+# 11 averaged .pth files (4.8 GB) are not covered at all. A packed model needs
+# exactly one weights file, so everything else is dropped and the bundle comes
+# out around 470 MB instead of ~22 GB.
+
+recipe_dir: .
+data_dir: ${recipe_dir}/data
+
+pack_model:
+  out_dir: ${exp_dir}/model_pack
+  allow_overwrite: false
+  include_model_detail: false
+  include:
+    - ${recipe_dir}/src
+    - ${recipe_dir}/dataset
+    # tokenizer: unigram, NOT bpe -- egs2 uses bpemode=unigram, so the files are
+    # unigram.model/unigram.vocab. The librispeech/mini_an4 publication configs
+    # glob for bpe.model and would silently match nothing here.
+    - ${data_dir}/unigram_5000/tokens.txt
+    - ${data_dir}/unigram_5000/unigram.model
+    - ${data_dir}/unigram_5000/unigram.vocab
+    # global_mvn statistics referenced by model.normalize_conf.stats_file
+    - ${recipe_dir}/exp/stats/train/feats_stats.npz
+  exclude:
+    # inference outputs (TEMPLATE defaults)
+    - inference
+    - inference_*
+    # every raw Lightning checkpoint: periodic_step*, step*, last*, epoch*.
+    # Inference loads the averaged .pth, never these.
+    - "*.ckpt"
+    # keep ONLY valid.acc.ave_10best.pth. "?" is a single character, so this
+    # matches ave_1best..ave_9best but not ave_10best.
+    - "valid.acc.ave_?best.pth"
+    - "valid.acc.ave_10best.snap_*.pth"
+    # training-time bookkeeping
+    - tensorboard
+    - wandb
+    - curves
+    - "*.log"

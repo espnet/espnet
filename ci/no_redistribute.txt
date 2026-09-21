@@ -14,11 +14,9 @@
 #
 # Keep the version specifier in sync with the corresponding extra in
 # pyproject.toml. Remove an entry once the dependency is gone or relicensed.
-
-# NTT "SOFTWARE LICENSE AGREEMENT FOR EVALUATION". Section 1 grants use only
-# for internally evaluating the method in a specific 2017 paper; section 4(b)
-# forbids distributing, transferring or reproducing the software. PyPI carries
-# no licence metadata for it and GitHub reports NOASSERTION.
-# https://github.com/nttcslab-sp/kaldiio/blob/master/LICENSE
-# Slated for replacement; drop this line when that lands.
-kaldiio>=2.18.0
+#
+# The list is currently empty. It held kaldiio, whose NTT evaluation licence
+# forbade distributing, transferring or reproducing the software; that entry
+# went away when Kaldi ark/scp I/O moved to the MIT-licensed omniio, which the
+# image may carry like any other dependency. Everything around this file stays
+# in place, so re-excluding a package is one line.

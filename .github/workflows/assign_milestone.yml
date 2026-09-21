@@ -1,0 +1,89 @@
+# Every pull request that a person opens belongs to the next release, because
+# the release notes are generated from a milestone: doc/make_release.py reads
+# the milestone, and a pull request without one is simply not in the notes.
+# Assigning it by hand was the step everyone forgot.
+#
+# Bots are left alone. A dependency bump or a pre-commit autoupdate is not part
+# of what a release is about, and nobody writes a release note from one.
+
+name: assign milestone
+
+# pull_request_target, not pull_request: a pull request from a fork gets a
+# read-only GITHUB_TOKEN whatever the permissions block asks for, and most
+# pull requests here come from forks. pull_request_target runs the base
+# branch's copy of this workflow with a writable token, which is safe here for
+# one reason only - this job never checks out or runs any code from the pull
+# request. Do not add a checkout step.
+on:
+  pull_request_target:
+    types: [opened, reopened, ready_for_review]
+  schedule:
+    # Catches what the event missed: a pull request opened while this workflow
+    # was broken, or one whose milestone was cleared. There is deliberately no
+    # workflow_dispatch: it would let this job's write permissions run from any
+    # ref a maintainer picks, and the daily sweep already covers the same need.
+    - cron: "30 6 * * *"
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || 'sweep' }}
+  cancel-in-progress: false
+
+jobs:
+  assign:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write # milestones are set through the issues API
+      pull-requests: write
+    steps:
+      - name: Assign the next release milestone
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          EVENT: ${{ github.event_name }}
+          PR: ${{ github.event.pull_request.number }}
+          AUTHOR_TYPE: ${{ github.event.pull_request.user.type }}
+        run: |
+          set -euo pipefail
+
+          # The next release is the earliest open v.YYYYMM milestone: titles
+          # sort the same way the dates do.
+          milestone=$(gh api "repos/${REPO}/milestones?state=open&per_page=100" \
+            --jq '[.[] | select(.title | test("^v\\.[0-9]{6}$"))]
+                  | sort_by(.title) | first | .number // empty')
+          if [ -z "${milestone}" ]; then
+            echo "no open v.YYYYMM milestone: create the next one" >&2
+            exit 0
+          fi
+          echo "next release milestone: #${milestone}"
+
+          # Re-read the milestone immediately before writing: between listing
+          # and patching, a maintainer may have set one, and this job must not
+          # replace somebody's choice with the default.
+          assign() {
+            number="$1"
+            current=$(gh api "repos/${REPO}/issues/${number}" \
+              --jq '.milestone.number // empty')
+            if [ -n "${current}" ]; then
+              echo "#${number} already has milestone #${current}"
+              return 0
+            fi
+            gh api -X PATCH "repos/${REPO}/issues/${number}" \
+              -F milestone="${milestone}" --silent
+            echo "assigned #${number}"
+          }
+
+          if [ "${EVENT}" = "pull_request_target" ]; then
+            if [ "${AUTHOR_TYPE}" = "Bot" ]; then
+              echo "#${PR} was opened by a bot; leaving it alone"
+              exit 0
+            fi
+            assign "${PR}"
+            exit 0
+          fi
+
+          # Sweep: every open pull request a person wrote that has no milestone.
+          gh api "repos/${REPO}/pulls?state=open&per_page=100" --paginate \
+            --jq '.[] | select(.milestone == null) | select(.user.type != "Bot") | .number' \
+            | while read -r number; do assign "${number}"; done

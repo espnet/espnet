@@ -103,3 +103,64 @@ def test_reference_is_a_frozen_copy():
     assert "Frozen copy of the loop-based" in source
     # the frozen copy is the one that still walks the hypotheses in Python
     assert "for si in range(n_bh):" in source
+
+
+@pytest.mark.parametrize("n_utt, beam, frames, vocab", [(1, 3, 20, 9), (3, 2, 24, 7)])
+def test_a_window_wider_than_the_utterance_changes_nothing(n_utt, beam, frames, vocab):
+    """`margin` is an approximation only when the window actually bites.
+
+    A window at least as wide as the utterance covers every frame the exact
+    recursion visits, so the result must be the same. It is not bit-identical:
+    the window also moves `start`, so the final `logsumexp` sums a different
+    number of logzero terms, which reassociates the addition.
+    """
+    n_bh, steps = n_utt * beam, 4
+    x, xlens = _inputs(n_utt, beam, frames, vocab, seed=5, uneven=True)
+    torch.manual_seed(3)
+    ys = torch.randint(BLANK + 2, vocab, (steps + 2, n_bh))
+
+    exact = _run(CTCPrefixScoreTH, x, xlens, ys, None, steps)
+    wide = _run(
+        lambda a, b, c, d, m=0: CTCPrefixScoreTH(a, b, c, d, margin=frames),
+        x,
+        xlens,
+        ys,
+        None,
+        steps,
+    )
+    for i, (e, w) in enumerate(zip(exact, wide)):
+        numpy.testing.assert_allclose(
+            e.numpy(), w.numpy(), rtol=1e-12, atol=1e-12, err_msg=f"step {i}"
+        )
+
+
+def test_a_narrow_window_really_narrows_the_recursion():
+    """A small margin must cut the work, not merely be accepted."""
+    n_utt, beam, frames, vocab, steps = 1, 2, 60, 7, 5
+    x, xlens = _inputs(n_utt, beam, frames, vocab, seed=11, uneven=False)
+    torch.manual_seed(1)
+    ys = torch.randint(BLANK + 2, vocab, (steps + 2, n_utt * beam))
+
+    def logsumexp_calls(margin):
+        scorer = CTCPrefixScoreTH(x.clone(), xlens, BLANK, EOS, margin)
+        original = torch.logsumexp
+        seen = [0]
+
+        def spy(*a, **k):
+            seen[0] += 1
+            return original(*a, **k)
+
+        torch.logsumexp = spy
+        try:
+            state = None
+            for i in range(steps):
+                scores, state = scorer(ys[: i + 2].t().contiguous(), state, None)
+                odim = scores.shape[1]
+                best = torch.arange(n_utt * beam).view(n_utt, beam) * odim + EOS + 1
+                state = scorer.index_select_state(state, best)
+        finally:
+            torch.logsumexp = original
+        return seen[0]
+
+    exact, windowed = logsumexp_calls(0), logsumexp_calls(6)
+    assert windowed < exact / 2, (windowed, exact)
