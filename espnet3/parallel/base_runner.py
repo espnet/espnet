@@ -361,7 +361,7 @@ class BaseRunner(ABC):
                     locked = self._try_lock_shard(shard_dir)
             if not locked:
                 raise RuntimeError(
-                    "Shard is already locked by another runner: " f"{shard_dir}"
+                    f"Shard is already locked by another runner: {shard_dir}"
                 )
             if self.resume and self.is_shard_done(shard_dir):
                 self._unlock_shard(shard_dir)

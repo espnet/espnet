@@ -797,10 +797,10 @@ def test_config_path_end_to_end_with_real_template(tmp_path):
     )
 
     readme = cfg.pack.readme
-    assert Path(
-        readme
-    ).is_absolute(), f"pack.readme must be an absolute path, got: {readme}"
-    assert readme.endswith(
-        "egs3/TEMPLATE/asr/src/hf_demo_readme.md"
-    ), f"pack.readme must point to the TEMPLATE file, got: {readme}"
+    assert Path(readme).is_absolute(), (
+        f"pack.readme must be an absolute path, got: {readme}"
+    )
+    assert readme.endswith("egs3/TEMPLATE/asr/src/hf_demo_readme.md"), (
+        f"pack.readme must point to the TEMPLATE file, got: {readme}"
+    )
     assert Path(readme).exists(), f"pack.readme path must exist on disk: {readme}"

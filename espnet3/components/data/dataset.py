@@ -126,8 +126,7 @@ class CombinedDataset:
                 sample_keys = keys
             else:
                 assert keys == sample_keys, (
-                    f"Inconsistent output keys in dataset {i}: "
-                    f"{keys} != {sample_keys}"
+                    f"Inconsistent output keys in dataset {i}: {keys} != {sample_keys}"
                 )
 
         # Check if dataset is a subclass of ShardedDataset.

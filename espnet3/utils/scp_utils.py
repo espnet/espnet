@@ -74,9 +74,9 @@ def load_scp_paths(
           returned paths directly to external tools.
     """
     task_dir = inference_dir / test_name
-    assert (
-        task_dir.exists()
-    ), f"Missing hypothesis/reference files in inference_dir: {task_dir}"
+    assert task_dir.exists(), (
+        f"Missing hypothesis/reference files in inference_dir: {task_dir}"
+    )
 
     input_map = {k: k for k in inputs} if isinstance(inputs, list) else dict(inputs)
     paths = {}

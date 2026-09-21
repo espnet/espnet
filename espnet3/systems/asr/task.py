@@ -332,7 +332,7 @@ class ASRTask(AbsTask):
                 "whisper_en",
                 "whisper_multilingual",
             ],
-            help="The text will be tokenized " "in the specified level token",
+            help="The text will be tokenized in the specified level token",
         )
         group.add_argument(
             "--bpemodel",
@@ -424,7 +424,9 @@ class ASRTask(AbsTask):
 
     @classmethod
     @typechecked
-    def build_collate_fn(cls, args: argparse.Namespace, train: bool) -> Callable[
+    def build_collate_fn(
+        cls, args: argparse.Namespace, train: bool
+    ) -> Callable[
         [Collection[Tuple[str, Dict[str, np.ndarray]]]],
         Tuple[List[str], Dict[str, torch.Tensor]],
     ]:
