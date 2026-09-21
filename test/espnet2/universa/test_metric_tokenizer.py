@@ -1,4 +1,5 @@
 import pytest
+import torch
 
 from espnet2.universa.metric_tokenizer.metric_tokenizer import MetricTokenizer
 
@@ -70,3 +71,12 @@ def test_category_round_trip(category, token):
     assert tokenizer.metric2token({"language": category}) == {"language": (10, token)}
     assert tokenizer.token2metric(token, "language") == category
     assert tokenizer.tokenseq2metric([2, 10, token], True) == {"language": [category]}
+
+
+@pytest.mark.parametrize("sequence", [list, iter, torch.tensor])
+def test_decode_integer_sequences(sequence):
+    tokenizer = MetricTokenizer(token_info(), ["mos", "language"])
+    assert tokenizer.tokenseq2metric(sequence([2, 4, 7, 10, 13]), True) == {
+        "mos": [1.0],
+        "language": ["jpn"],
+    }

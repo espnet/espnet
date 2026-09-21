@@ -1,5 +1,6 @@
 import json
 from abc import ABC, abstractmethod
+from operator import index
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
 from typeguard import typechecked
@@ -193,7 +194,7 @@ class MetricTokenizer(AbsMetricTokenizer):
         Returns:
             String representation of the metrics
         """
-        tokens_list = list(tokens)
+        tokens_list = [index(token) for token in tokens]
         if not tokens_list:
             raise ValueError("Token list is empty")
         if tokens_list[0] == 2:
