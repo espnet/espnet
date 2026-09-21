@@ -36,6 +36,10 @@ Apply these rules in priority order when naming a directory under `espnet3/syste
 2. **Make the name clear and unambiguous.** It must identify the system without being readily
    confused with another system.
 3. **Keep it short.** Choose the shortest name that remains clear and unambiguous.
+   For system directories, use an established, readily understood abbreviation when it keeps an
+   otherwise unwieldy name short. This exception is specific to system names: `esp2`, `asr`, `tts`,
+   `st`, and `enh` are accepted terms here. Do not expand `esp2_asr_transducer` to
+   `espnet2_asr_transducer` merely to avoid the abbreviation.
 4. **Prefer one word.** Do not use an underscore when a clear one-word name is available. Examples:
    `f5tts`, `parakeet`, `granitespeech`, and `speechlm`.
 5. **Use underscores only to preserve meaningful structure.** They are appropriate when they are
