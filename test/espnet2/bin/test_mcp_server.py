@@ -1,5 +1,6 @@
 import asyncio
 import importlib
+import warnings
 from types import SimpleNamespace
 
 import numpy as np
@@ -51,7 +52,15 @@ class FakeASR:
     def __init__(self):
         self.calls = []
         self.s2t_model = SimpleNamespace(
-            token_list=["<nolang>", "<eng>", "<deu>", "<asr>", "<st_deu>"]
+            token_list=[
+                "<nolang>",
+                "<eng>",
+                "<deu>",
+                "<jpn>",
+                "<asr>",
+                "<st_deu>",
+                "<st_eng>",
+            ]
         )
 
     def decode_long(self, speech, lang_sym, task_sym):
@@ -77,6 +86,24 @@ def test_transcribe_maps_codes_to_symbols(monkeypatch, wav):
         (str(wav), "<nolang>", "<asr>"),
         (str(wav), "<eng>", "<st_deu>"),
     ]
+
+
+def test_translation_says_when_neither_side_is_english(monkeypatch, wav):
+    """OWSM's translation training pairs English with the other language."""
+    fake = FakeASR()
+    monkeypatch.setattr(mcp_server, "_asr", lambda: fake)
+    server = mcp_server.build_server()
+
+    with pytest.warns(UserWarning, match="English on neither side"):
+        call(server, "translate", audio_path=str(wav), language="jpn", to="deu")
+
+    # a direction the model was trained on, and one the server cannot know
+    # the source of, are not warned about
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        call(server, "translate", audio_path=str(wav), language="jpn", to="eng")
+        call(server, "translate", audio_path=str(wav), language="eng", to="deu")
+        call(server, "translate", audio_path=str(wav), to="deu")
 
 
 def test_transcribe_rejects_what_the_model_cannot_do(monkeypatch, wav, tmp_path):

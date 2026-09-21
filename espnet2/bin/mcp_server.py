@@ -30,6 +30,7 @@ import functools
 import os
 import re
 import sys
+import warnings
 from pathlib import Path
 from typing import List
 
@@ -154,8 +155,33 @@ def transcribe(audio_path: str, language: str = "auto") -> str:
     return _decode(audio_path, language, "<asr>")
 
 
+def _warn_if_untrained_direction(language: str, to: str) -> None:
+    """Say so when neither side of the translation is English.
+
+    OWSM's speech translation is trained on data that pairs English with the
+    other language, so a direction with English on neither side is zero-shot
+    - raised in review on #6780. The model has one target symbol per
+    language and none for the pair, so this is the only place the direction
+    is known. With `language="auto"` the source is decided inside the model,
+    which is why that case is documented rather than warned about.
+    """
+    if to != "eng" and language not in ("auto", "eng"):
+        warnings.warn(
+            f"{language} to {to} translation has English on neither side, "
+            "which is outside what the model was trained on; the output may "
+            "be unreliable",
+            UserWarning,
+            stacklevel=3,
+        )
+
+
 def translate(audio_path: str, to: str, language: str = "auto") -> str:
     """Translate a speech recording into another language, as text.
+
+    The training data pairs English with the other language, so translation
+    into or out of English is what the model was taught. A direction with
+    English on neither side - Japanese into German, say - is outside that:
+    it decodes, and may be right, but nothing about it was trained.
 
     Args:
         audio_path: Local audio file, as for `transcribe`.
@@ -167,6 +193,7 @@ def translate(audio_path: str, to: str, language: str = "auto") -> str:
     Returns:
         The translation as plain text.
     """
+    _warn_if_untrained_direction(language, to)
     model = _asr()
     return _decode(audio_path, language, _symbol(model, f"<st_{to}>", "target"))
 
