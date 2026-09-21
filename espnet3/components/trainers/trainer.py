@@ -99,9 +99,9 @@ class ESPnet3LightningTrainer:
             OmegaConf.to_container(best_model_criterion),
         )
         if getattr(self.config, "callbacks", None):
-            assert isinstance(self.config.callbacks, ListConfig), (
-                "callbacks should be a list"
-            )
+            assert isinstance(
+                self.config.callbacks, ListConfig
+            ), "callbacks should be a list"
             for callback in self.config.callbacks:
                 callbacks.append(instantiate(callback))
 

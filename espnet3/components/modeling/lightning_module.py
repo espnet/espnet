@@ -192,9 +192,9 @@ class ESPnetLightningModule(lightning.LightningModule):
         ):
             is_valid_espnet = True
 
-        assert is_train_espnet == is_valid_espnet, (
-            "Train and valid should have the same type of dataloader."
-        )
+        assert (
+            is_train_espnet == is_valid_espnet
+        ), "Train and valid should have the same type of dataloader."
 
         self.is_espnet_sampler = is_train_espnet
 
@@ -697,12 +697,12 @@ class ESPnetLightningModule(lightning.LightningModule):
         if getattr(self.config, "optimizer", None) and getattr(
             self.config, "scheduler", None
         ):
-            assert getattr(self.config, "optimizers", None) is None, (
-                "Mixture of `optimizer` and `optimizers` is not allowed."
-            )
-            assert getattr(self.config, "schedulers", None) is None, (
-                "Mixture of `scheduler` and `schedulers` is not allowed."
-            )
+            assert (
+                getattr(self.config, "optimizers", None) is None
+            ), "Mixture of `optimizer` and `optimizers` is not allowed."
+            assert (
+                getattr(self.config, "schedulers", None) is None
+            ), "Mixture of `scheduler` and `schedulers` is not allowed."
 
             params = filter(lambda p: p.requires_grad, self.parameters())
             optimizer = instantiate(
@@ -730,12 +730,12 @@ class ESPnetLightningModule(lightning.LightningModule):
         if getattr(self.config, "optimizers", None) and getattr(
             self.config, "schedulers", None
         ):
-            assert getattr(self.config, "optimizer", None) is None, (
-                "Mixture of `optimizer` and `optimizers` is not allowed."
-            )
-            assert getattr(self.config, "scheduler", None) is None, (
-                "Mixture of `scheduler` and `schedulers` is not allowed."
-            )
+            assert (
+                getattr(self.config, "optimizer", None) is None
+            ), "Mixture of `optimizer` and `optimizers` is not allowed."
+            assert (
+                getattr(self.config, "scheduler", None) is None
+            ), "Mixture of `scheduler` and `schedulers` is not allowed."
             if getattr(self.config, "scheduler_interval", None) is not None:
                 raise AssertionError(
                     "Top-level `scheduler_interval` is only supported in the "

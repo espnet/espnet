@@ -11,12 +11,14 @@ from espnet3.utils.config_utils import (
     _ensure_target_convert_all,
     _resolve_egs3_path,
     _rewrite_relative_resolver_paths,
+)
+from espnet3.utils.config_utils import config_path as config_path_resolver
+from espnet3.utils.config_utils import (
     load_and_merge_config,
     load_config_with_defaults,
     load_default_config,
     load_line,
 )
-from espnet3.utils.config_utils import config_path as config_path_resolver
 
 # ===============================================================
 # Test Case Summary for Config Utilities
@@ -797,10 +799,10 @@ def test_config_path_end_to_end_with_real_template(tmp_path):
     )
 
     readme = cfg.pack.readme
-    assert Path(readme).is_absolute(), (
-        f"pack.readme must be an absolute path, got: {readme}"
-    )
-    assert readme.endswith("egs3/TEMPLATE/asr/src/hf_demo_readme.md"), (
-        f"pack.readme must point to the TEMPLATE file, got: {readme}"
-    )
+    assert Path(
+        readme
+    ).is_absolute(), f"pack.readme must be an absolute path, got: {readme}"
+    assert readme.endswith(
+        "egs3/TEMPLATE/asr/src/hf_demo_readme.md"
+    ), f"pack.readme must point to the TEMPLATE file, got: {readme}"
     assert Path(readme).exists(), f"pack.readme path must exist on disk: {readme}"

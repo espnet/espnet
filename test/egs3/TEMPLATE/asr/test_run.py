@@ -36,8 +36,7 @@ exp_tag: user_train
 optimizer:
   _target_: torch.optim.SGD
   lr: 0.1
-""".strip()
-        + "\n",
+""".strip() + "\n",
         encoding="utf-8",
     )
 
@@ -69,8 +68,7 @@ pack:
   readme_context:
     color_from: indigo
     color_to: purple
-""".strip()
-        + "\n",
+""".strip() + "\n",
         encoding="utf-8",
     )
 

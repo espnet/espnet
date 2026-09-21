@@ -231,9 +231,9 @@ class DataLoaderBuilder:
         if hasattr(self.config, "batch_sampler"):
             batch_sampler = instantiate(self.config.batch_sampler, dataset)
 
-        assert not (sampler and batch_sampler), (
-            "Cannot specify both sampler and batch_sampler"
-        )
+        assert not (
+            sampler and batch_sampler
+        ), "Cannot specify both sampler and batch_sampler"
         config.pop("dataset", None)
 
         # Remove default config for espnet's data loader
