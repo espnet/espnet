@@ -25,11 +25,17 @@ class Esp2ClsSystem(BaseSystem):
       - Removing utterances outside a duration range
       - Building the label list consumed as ``token_list``
 
-    Additional stage log paths:
-        | Stage             | Path reference                              |
-        |---                |---                                          |
-        | remove_long_short | training_config.remove_long_short.save_path |
-        | prepare_labels    | training_config.prepare_labels.save_path    |
+    Additional stage-log mappings:
+
+    .. list-table::
+       :header-rows: 1
+
+       * - Stage
+         - Path reference
+       * - ``remove_long_short``
+         - ``training_config.remove_long_short.save_path``
+       * - ``prepare_labels``
+         - ``training_config.prepare_labels.save_path``
     """
 
     def __init__(
@@ -74,24 +80,33 @@ class Esp2ClsSystem(BaseSystem):
         filtered manifests for downstream stages. It mirrors stage 3 of the
         ESPnet2 ``cls.sh`` recipe.
 
-        Configuration should include (under
-        ``training_config.remove_long_short``):
-            - ``min_wav_duration``: Minimum duration in seconds
-            - ``max_wav_duration``: Maximum duration in seconds
-            - ``save_path``: Directory to save filtered manifests
-            - ``splits``: List of splits to process (default:
-              ``[train, valid, test]``)
-            - ``manifest_paths``: Optional dict of split to manifest path
-              (default: ``data/manifest/{split}.tsv``)
+        Under ``training_config.remove_long_short``, configure:
+
+        .. list-table::
+           :header-rows: 1
+
+           * - Field
+             - Description
+           * - ``min_wav_duration``
+             - Minimum duration in seconds.
+           * - ``max_wav_duration``
+             - Maximum duration in seconds.
+           * - ``save_path``
+             - Directory in which to save filtered manifests.
+           * - ``splits``
+             - Splits to process. Defaults to ``[train, valid, test]``.
+           * - ``manifest_paths``
+             - Optional mapping from split to manifest path. Defaults to
+               ``data/manifest/{split}.tsv``.
 
         Example:
             .. code-block:: yaml
 
                 remove_long_short:
                   min_wav_duration: 0.1
-                  max_wav_duration: 20
+                  max_wav_duration: 30
                   save_path: data/manifest_filtered
-                  splits: [train, valid]
+                  splits: [train, valid, test]
 
         Raises:
             RuntimeError: If required configuration is missing or a manifest
@@ -227,14 +242,23 @@ class Esp2ClsSystem(BaseSystem):
         label they carry. The list is ordered by descending frequency, which
         matches stage 4 of the ESPnet2 ``cls.sh`` recipe.
 
-        Configuration should include (under
-        ``training_config.prepare_labels``):
-            - ``save_path``: Directory to write the label list into
-            - ``filename``: Label list file name (e.g. ``token_list``)
-            - ``manifest_path``: Training manifest to read
-              (default: ``data/manifest/train.tsv``)
-            - ``add_symbol``: Optional ``"<symbol>:<index>"`` entries; a
-              negative index counts from the end
+        Under ``training_config.prepare_labels``, configure:
+
+        .. list-table::
+           :header-rows: 1
+
+           * - Field
+             - Description
+           * - ``save_path``
+             - Directory to write the label list into.
+           * - ``filename``
+             - Label list file name, such as ``token_list``.
+           * - ``manifest_path``
+             - Training manifest to read. Defaults to
+               ``data/manifest/train.tsv``.
+           * - ``add_symbol``
+             - Optional ``"<symbol>:<index>"`` entries; a negative index
+               counts from the end.
 
         Example:
             .. code-block:: yaml
