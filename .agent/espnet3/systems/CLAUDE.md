@@ -28,6 +28,29 @@ Keep each system self-contained. Reuse behavior from another system only when it
 abstraction; move that behavior into `systems/base`, `components`, `parallel`, or `utils` instead of
 making one task family depend on another task family's implementation.
 
+## System directory names
+
+Apply these rules in priority order when naming a directory under `espnet3/systems/`:
+
+1. **Use lowercase consistently.** Every system directory name is lowercase.
+2. **Make the name clear and unambiguous.** It must identify the system without being readily
+   confused with another system.
+3. **Keep it short.** Choose the shortest name that remains clear and unambiguous.
+4. **Prefer one word.** Do not use an underscore when a clear one-word name is available. Examples:
+   `f5tts`, `parakeet`, `granitespeech`, and `speechlm`.
+5. **Use underscores only to preserve meaningful structure.** They are appropriate when they are
+   part of the established name or distinguish a meaningful version or variant. Examples:
+   `owsm_v4`, `owsm_v3`, `qwen2_audio`, and `qwen2_5_omni`.
+6. **Name ESPnet2 task-derived systems `esp2_<task>`.** Use `esp2_asr`, `esp2_tts`, `esp2_st`, or
+   `esp2_enh` when the system follows the ESPnet2 task structure. The `esp2_` prefix makes
+   provenance visible and groups these directories together alphabetically.
+7. **Treat other ESPnet2-derived systems as regular systems.** A system without an ESPnet2
+   task-based structure keeps its ordinary name, for example `speechlm`. Reconsider the name only
+   if that system is later split into distinct systems such as `opus` and `bugpiper`.
+
+The naming practices in the Hugging Face Transformers `models/` directory are a useful reference,
+but ESPnet3's conventions and maintenance needs take precedence.
+
 - **`base/system.py`** -- `BaseSystem`: stores the five per-stage configs (`training_config`,
   `inference_config`, `metrics_config`, `publication_config`, `demo_config`), resolves
   `stage_log_mapping` (which directory each stage's log file goes in), and implements
