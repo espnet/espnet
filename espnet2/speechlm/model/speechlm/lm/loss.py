@@ -8,9 +8,45 @@ for typical configurations (32k tokens × 150k vocab).
 from typing import Dict, Optional, Tuple
 
 import torch
+import torch.nn.functional as F
 from liger_kernel.ops.fused_linear_cross_entropy import (
     LigerFusedLinearCrossEntropyFunction,
 )
+
+
+def memory_efficient_load_balancing_loss(
+    gate_logits,
+    num_experts=None,
+    top_k=2,
+):
+    """Compute the router loss without allocating token-by-expert one-hot masks."""
+    if (
+        gate_logits is None
+        or not isinstance(gate_logits, tuple)
+        or len(gate_logits) == 0
+    ):
+        return torch.tensor(0.0)
+
+    device = gate_logits[0].device
+    total_tokens = 0
+    expert_counts = torch.zeros(num_experts, device=device)
+    router_prob_sum = torch.zeros(num_experts, device=device)
+
+    for layer_gate in gate_logits:
+        total_tokens += layer_gate.shape[0]
+        routing_weights = F.softmax(layer_gate, dim=-1, dtype=torch.float)
+        _, selected_experts = torch.topk(routing_weights, top_k, dim=-1)
+        expert_counts = (
+            expert_counts
+            + torch.bincount(
+                selected_experts.reshape(-1), minlength=num_experts
+            ).float()
+        )
+        router_prob_sum = router_prob_sum + routing_weights.sum(dim=0)
+
+    tokens_per_expert = expert_counts / total_tokens
+    router_prob_per_expert = router_prob_sum / total_tokens
+    return torch.dot(tokens_per_expert, router_prob_per_expert) * num_experts
 
 
 def fused_cross_entropy_loss(

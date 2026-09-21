@@ -4,6 +4,7 @@ import numpy as np
 from pyscripts.utils.dialog_eval.model_cache import (
     pseudo_mos_args,
     sheet_ssqa_model,
+    use_gpu,
 )
 
 from espnet2.sds.utils.utils import int2float
@@ -46,10 +47,8 @@ def TTS_psuedomos(TTS_audio_output: Tuple[int, np.ndarray]) -> str:
         sheet_ssqa: 4.03
     """
     try:
-        from versa import (
-            pseudo_mos_metric,
-            sheet_ssqa,
-        )
+        from versa.utterance_metrics.pseudo_mos import pseudo_mos_metric
+        from versa.utterance_metrics.sheet_ssqa import sheet_ssqa
     except Exception as e:
         print("Error: Versa is not properly installed.")
         raise e
@@ -60,7 +59,7 @@ def TTS_psuedomos(TTS_audio_output: Tuple[int, np.ndarray]) -> str:
         "args": {
             "predictor_dict": predictor_dict,
             "predictor_fs": predictor_fs,
-            "use_gpu": True,
+            "use_gpu": use_gpu(),
         },
     }
     dict1 = score_modules["module"](
@@ -74,7 +73,7 @@ def TTS_psuedomos(TTS_audio_output: Tuple[int, np.ndarray]) -> str:
     sheet_model = sheet_ssqa_model()
     score_modules = {
         "module": sheet_ssqa,
-        "args": {"model": sheet_model, "use_gpu": True},
+        "args": {"model": sheet_model, "use_gpu": use_gpu()},
     }
     dict1 = score_modules["module"](
         score_modules["args"]["model"],
