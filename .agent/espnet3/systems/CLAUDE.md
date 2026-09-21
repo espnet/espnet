@@ -24,6 +24,10 @@ A "system" is the class that owns a task family's staged pipeline
 (`create_dataset -> train_tokenizer -> collect_stats -> train -> infer -> measure -> pack_model ->
 upload_model -> pack_demo -> upload_demo`). Every system subclasses `BaseSystem`.
 
+Keep each system self-contained. Reuse behavior from another system only when it is truly a shared
+abstraction; move that behavior into `systems/base`, `components`, `parallel`, or `utils` instead of
+making one task family depend on another task family's implementation.
+
 - **`base/system.py`** -- `BaseSystem`: stores the five per-stage configs (`training_config`,
   `inference_config`, `metrics_config`, `publication_config`, `demo_config`), resolves
   `stage_log_mapping` (which directory each stage's log file goes in), and implements
