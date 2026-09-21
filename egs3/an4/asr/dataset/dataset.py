@@ -26,6 +26,10 @@ class An4Dataset(TorchDataset):
         Returns:
             None. Manifest rows are stored in ``self.entries``.
 
+        Raises:
+            ValueError: The split is unknown or its manifest is invalid.
+            FileNotFoundError: Data preparation has not produced the manifest.
+
         Examples:
             After the create_dataset stage:
 
@@ -58,11 +62,11 @@ class An4Dataset(TorchDataset):
         """Read one waveform and its transcript for ASR preprocessing.
 
         Args:
-            index: Integer position in the ordered, optionally filtered manifest.
+            index: Integer position in the prepared manifest's existing order.
 
         Returns:
             Dictionary with mono 16 kHz float32 ``speech`` and string ``text``.
-            Metadata such as speaker ID stays in ``entries``.
+            The utterance ID and waveform path stay in ``entries``.
 
         Raises:
             IndexError: The requested manifest position is out of range.
