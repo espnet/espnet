@@ -47,7 +47,7 @@ def test_training_batch_returns_a_classification_loss(model):
     assert torch.isfinite(loss).all()
     assert set(stats) == {"loss", "accuracy"}
     assert int(weight) == 4
-    assert model.trial_scores == []
+    assert model.trial_metric.update_count == 0
 
 
 def test_trial_batch_scores_pairs_instead_of_classifying(model):
@@ -62,10 +62,10 @@ def test_trial_batch_scores_pairs_instead_of_classifying(model):
     assert stats == {}
     assert int(weight) == 3
 
-    scores, buffered_labels = model.pop_trials()
+    scores, buffered_labels = model.trial_metric.compute()
     assert scores.shape == (3,)
     assert buffered_labels.tolist() == [1, 0, 1]
-    assert model.trial_scores == []
+    model.trial_metric.reset()
 
 
 def test_identical_utterances_score_one(model):
@@ -75,7 +75,7 @@ def test_identical_utterances_score_one(model):
     scores = model.score_trials(crops, crops.clone())
 
     assert torch.allclose(scores, torch.ones(2), atol=1e-3)
-    model.reset_trials()
+    model.trial_metric.reset()
 
 
 def test_crop_embeddings_are_unit_norm(model):
@@ -87,10 +87,17 @@ def test_crop_embeddings_are_unit_norm(model):
     assert torch.allclose(embd.norm(dim=-1), torch.ones(2, 3), atol=1e-5)
 
 
-def test_pop_trials_on_an_empty_buffer(model):
-    model.reset_trials()
+def test_trial_metric_is_not_saved_with_the_model(model):
+    # ESPnet2 inference loads ``model.pth`` strictly, so the metric state must
+    # stay out of the state dict.
+    assert not any(key.startswith("trial_metric") for key in model.state_dict())
 
-    scores, labels = model.pop_trials()
+
+def test_trial_metric_on_an_empty_buffer(model):
+    model.trial_metric.reset()
+
+    with pytest.warns(UserWarning, match="before the ``update``"):
+        scores, labels = model.trial_metric.compute()
 
     assert scores.numel() == 0 and labels.numel() == 0
 
@@ -102,4 +109,4 @@ def test_trial_batch_without_labels_is_rejected(model):
     with pytest.raises(ValueError, match="spk_labels"):
         model(speech=crops, speech2=crops)
 
-    model.reset_trials()
+    model.trial_metric.reset()

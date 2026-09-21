@@ -2,6 +2,7 @@
 
 import logging
 import math
+import warnings
 
 import torch
 from lightning.pytorch.callbacks import Callback
@@ -15,9 +16,9 @@ class SpeakerVerificationScoring(Callback):
     """Turn one epoch of validation trial scores into EER and minDCF.
 
     :class:`espnet3.systems.spk.espnet_model.ESPnetSpeakerVerificationModel`
-    buffers a similarity score and a target/nontarget label for every trial it
-    sees during validation. This callback gathers those buffers across ranks
-    and logs ``valid/eer`` and ``valid/mindcf``, so that ``best_model_criterion``
+    adds a similarity score and a target/nontarget label for every trial it
+    sees during validation to its ``trial_metric``. This callback computes that
+    metric, which gathers the trials across ranks, and logs ``valid/eer`` and ``valid/mindcf``, so that ``best_model_criterion``
     can select checkpoints on open-set verification performance instead of
     closed-set classification loss.
 
@@ -54,7 +55,7 @@ class SpeakerVerificationScoring(Callback):
 
     def on_validation_epoch_start(self, trainer, pl_module) -> None:
         """Drop trial scores left over from a previous validation run."""
-        pl_module.model.reset_trials()
+        pl_module.model.trial_metric.reset()
 
     def on_validation_batch_end(
         self,
@@ -81,50 +82,24 @@ class SpeakerVerificationScoring(Callback):
         self.score_epoch(pl_module)
 
     def score_epoch(self, pl_module) -> None:
-        """Gather the buffered trials across ranks and log the metrics.
+        """Gather the trials of every rank and log the metrics.
 
-        ``all_gather`` is a collective: every rank has to call it, with the
-        same shape. Neither is free here -- the validation sampler need not
-        divide evenly, so a rank can hold fewer trials than its peers, and a
-        rank that saw no trial batch holds none at all. Returning early on the
-        empty rank would hang the others. So the local counts are gathered
-        first, the buffers are padded to the largest of them, and the padding
-        is dropped again once the gather is done.
+        ``compute`` is a collective, so every rank calls it, including a rank
+        that saw no trial batch; ``TrialScores`` handles the uneven and empty
+        cases. The metric is reset afterwards so the next epoch starts clean.
 
         Args:
             pl_module: LightningModule wrapping the speaker model.
         """
-        scores, labels = pl_module.model.pop_trials()
-        device = pl_module.device
-        scores = scores.to(device)
-        labels = labels.to(device)
-
-        counts = pl_module.all_gather(
-            torch.tensor([scores.numel()], device=device)
-        ).flatten()
-        max_count = int(counts.max())
-        if max_count == 0:
-            return
-
-        padded_scores = scores.new_zeros(max_count)
-        padded_scores[: scores.numel()] = scores
-        padded_labels = labels.new_zeros(max_count)
-        padded_labels[: labels.numel()] = labels
-
-        gathered_scores = pl_module.all_gather(padded_scores).reshape(-1, max_count)
-        gathered_labels = pl_module.all_gather(padded_labels).reshape(-1, max_count)
-        per_rank = counts.tolist()
-
-        scores = (
-            torch.cat([row[:n] for row, n in zip(gathered_scores, per_rank)])
-            .cpu()
-            .numpy()
-        )
-        labels = (
-            torch.cat([row[:n] for row, n in zip(gathered_labels, per_rank)])
-            .cpu()
-            .numpy()
-        )
+        metric = pl_module.model.trial_metric
+        with warnings.catch_warnings():
+            # A rank without trial batches never called ``update``; it still
+            # has to join the gather, so the warning about that is expected.
+            warnings.filterwarnings("ignore", message=".*before the ``update``")
+            scores, labels = metric.compute()
+        metric.reset()
+        scores = scores.cpu().numpy()
+        labels = labels.cpu().numpy()
 
         # The sanity-check run only sees a couple of batches, which may not
         # contain both target and nontarget trials.

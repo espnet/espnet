@@ -1,12 +1,13 @@
 """Speaker model that also scores verification trials during validation."""
 
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, Optional
 
 import torch
 import torch.nn.functional as F
 
 from espnet2.spk.espnet_model import ESPnetSpeakerModel
 from espnet2.torch_utils.device_funcs import force_gatherable
+from espnet3.systems.spk.scoring import TrialScores
 
 
 class ESPnetSpeakerVerificationModel(ESPnetSpeakerModel):
@@ -21,22 +22,22 @@ class ESPnetSpeakerVerificationModel(ESPnetSpeakerModel):
 
     A closed-set validation loss says little about verification performance, so
     trial batches skip the classification head. Their cosine similarities and
-    labels accumulate in ``trial_scores`` / ``trial_labels`` until
+    labels accumulate in ``trial_metric``, a
+    :class:`espnet3.systems.spk.scoring.TrialScores`, until
     :class:`espnet3.systems.spk.callbacks.SpeakerVerificationScoring` reduces
     one epoch worth of them into EER and minDCF.
 
     Examples:
         >>> loss, stats, weight = model(speech=wavs, spk_labels=labels)
         >>> _ = model(speech=enroll, speech2=test, spk_labels=is_target)
-        >>> len(model.trial_scores)
+        >>> model.trial_metric.update_count
         1
     """
 
     def __init__(self, *args, **kwargs):
-        """Initialize the model and the per-epoch trial buffers."""
+        """Initialize the model and the per-epoch trial metric."""
         super().__init__(*args, **kwargs)
-        self.trial_scores: List[torch.Tensor] = []
-        self.trial_labels: List[torch.Tensor] = []
+        self.trial_metric = TrialScores()
 
     def forward(
         self,
@@ -94,7 +95,7 @@ class ESPnetSpeakerVerificationModel(ESPnetSpeakerModel):
             ...     speech2=torch.randn(4, 10, 48000),
             ...     spk_labels=torch.tensor([[1], [0], [1], [0]]),
             ... )
-            >>> float(loss), stats, len(model.trial_scores)
+            >>> float(loss), stats, model.trial_metric.update_count
             (0.0, {}, 1)
         """
         if speech2 is None:
@@ -112,8 +113,7 @@ class ESPnetSpeakerVerificationModel(ESPnetSpeakerModel):
             )
 
         scores = self.score_trials(speech, speech2)
-        self.trial_scores.append(scores.detach())
-        self.trial_labels.append(spk_labels.detach().flatten())
+        self.trial_metric.update(scores, spk_labels)
 
         stats: Dict[str, torch.Tensor] = {}
         loss = scores.new_zeros(())
@@ -196,36 +196,3 @@ class ESPnetSpeakerVerificationModel(ESPnetSpeakerModel):
         embd = super().forward(speech=crops, speech_lengths=lengths, extract_embd=True)
         embd = F.normalize(embd, p=2, dim=-1)
         return embd.view(batch_size, num_crop, -1)
-
-    def pop_trials(self) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Return the buffered trial scores and labels, and clear the buffers.
-
-        Public because it is the hand-off point to the scoring callback:
-        :class:`espnet3.systems.spk.callbacks.SpeakerVerificationScoring` calls
-        it once per validation epoch, gathers the returned tensors across ranks
-        and reduces them into EER and minDCF. A recipe that wants a different
-        metric can reduce the same buffers from its own callback.
-
-        Returns:
-            ``(scores, labels)`` as 1-D tensors. Both are empty when no trial
-            batch has been seen since the last call.
-        """
-        if not self.trial_scores:
-            empty = torch.zeros(0)
-            return empty, empty.to(torch.long)
-
-        scores = torch.cat(self.trial_scores).flatten().float()
-        labels = torch.cat(self.trial_labels).flatten().long()
-        self.reset_trials()
-        return scores, labels
-
-    def reset_trials(self) -> None:
-        """Drop every buffered trial score and label.
-
-        Public for the same reason as :meth:`pop_trials`:
-        :class:`espnet3.systems.spk.callbacks.SpeakerVerificationScoring` calls
-        it at the start of every validation epoch, so that trials left behind
-        by an interrupted epoch cannot leak into the next metric.
-        """
-        self.trial_scores.clear()
-        self.trial_labels.clear()

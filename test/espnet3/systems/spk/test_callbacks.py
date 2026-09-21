@@ -1,29 +1,17 @@
+import datetime
 from types import SimpleNamespace
 
 import torch
 
 from espnet3.systems.spk.callbacks import SpeakerVerificationScoring
+from espnet3.systems.spk.scoring import TrialScores
 
 
 class _FakeModel:
-    """Stand-in for the buffer interface of the speaker verification model."""
+    """Stand-in for the trial interface of the speaker verification model."""
 
     def __init__(self):
-        self.trial_scores = []
-        self.trial_labels = []
-
-    def reset_trials(self):
-        self.trial_scores.clear()
-        self.trial_labels.clear()
-
-    def pop_trials(self):
-        if not self.trial_scores:
-            empty = torch.zeros(0)
-            return empty, empty.long()
-        scores = torch.cat(self.trial_scores).float()
-        labels = torch.cat(self.trial_labels).long()
-        self.reset_trials()
-        return scores, labels
+        self.trial_metric = TrialScores()
 
 
 class _FakeModule:
@@ -44,8 +32,7 @@ class _FakeModule:
 def _feed(callback, module, trainer, batches):
     callback.on_validation_epoch_start(trainer, module)
     for batch_idx, (scores, labels) in enumerate(batches):
-        module.model.trial_scores.append(scores)
-        module.model.trial_labels.append(labels)
+        module.model.trial_metric.update(scores, labels)
         callback.on_validation_batch_end(trainer, module, None, None, batch_idx)
 
 
@@ -55,17 +42,15 @@ def test_metrics_are_logged_only_after_the_last_batch():
     trainer = SimpleNamespace(num_val_batches=[2])
 
     callback.on_validation_epoch_start(trainer, module)
-    module.model.trial_scores.append(torch.tensor([0.9, 0.2]))
-    module.model.trial_labels.append(torch.tensor([1, 0]))
+    module.model.trial_metric.update(torch.tensor([0.9, 0.2]), torch.tensor([1, 0]))
     callback.on_validation_batch_end(trainer, module, None, None, 0)
     assert module.logged == {}
 
-    module.model.trial_scores.append(torch.tensor([0.8, 0.1]))
-    module.model.trial_labels.append(torch.tensor([1, 0]))
+    module.model.trial_metric.update(torch.tensor([0.8, 0.1]), torch.tensor([1, 0]))
     callback.on_validation_batch_end(trainer, module, None, None, 1)
 
     assert module.logged == {"valid/eer": 0.0, "valid/mindcf": 0.0}
-    assert module.model.trial_scores == []
+    assert module.model.trial_metric.scores == []
 
 
 def test_epoch_start_drops_stale_trials():
@@ -73,11 +58,10 @@ def test_epoch_start_drops_stale_trials():
     module = _FakeModule()
     trainer = SimpleNamespace(num_val_batches=[1])
 
-    module.model.trial_scores.append(torch.tensor([0.5]))
-    module.model.trial_labels.append(torch.tensor([1]))
+    module.model.trial_metric.update(torch.tensor([0.5]), torch.tensor([1]))
     callback.on_validation_epoch_start(trainer, module)
 
-    assert module.model.trial_scores == []
+    assert module.model.trial_metric.scores == []
 
 
 def test_single_class_batches_are_not_scored():
@@ -114,58 +98,68 @@ def test_min_dcf_operating_point_is_configurable():
     assert module.logged["valid/mindcf"] > lenient
 
 
-class _FakeDDPModule(_FakeModule):
-    """Two-rank stand-in whose peer holds a different number of trials.
-
-    ``all_gather`` is called three times per reduction -- the trial counts,
-    then the padded scores, then the padded labels -- so the peer contribution
-    is built per call, the way a real collective would return one row per rank.
-    """
-
-    def __init__(self, peer_scores, peer_labels):
-        super().__init__()
-        self.peer_scores = peer_scores
-        self.peer_labels = peer_labels
-        self._calls = 0
-
-    def all_gather(self, tensor):
-        self._calls += 1
-        if self._calls == 1:
-            peer = tensor.new_tensor([self.peer_scores.numel()])
-        else:
-            source = self.peer_scores if self._calls == 2 else self.peer_labels
-            peer = torch.zeros_like(tensor)
-            peer[: source.numel()] = source
-        return torch.stack([tensor, peer])
+def _run_rank(rank, world_size, init_file, trials, results):
+    torch.distributed.init_process_group(
+        "gloo",
+        init_method=f"file://{init_file}",
+        rank=rank,
+        world_size=world_size,
+        # A rank that skips the collective makes its peers fail here instead
+        # of hanging the test run.
+        timeout=datetime.timedelta(seconds=60),
+    )
+    try:
+        callback = SpeakerVerificationScoring()
+        module = _FakeModule()
+        trainer = SimpleNamespace(num_val_batches=[1])
+        callback.on_validation_epoch_start(trainer, module)
+        for scores, labels in trials[rank]:
+            module.model.trial_metric.update(scores, labels)
+        callback.on_validation_batch_end(trainer, module, None, None, 0)
+        results[rank] = dict(module.logged)
+    finally:
+        torch.distributed.destroy_process_group()
 
 
-def test_ranks_with_unequal_trial_counts_are_gathered():
-    callback = SpeakerVerificationScoring()
-    module = _FakeDDPModule(torch.tensor([0.1]), torch.tensor([0]))
-    trainer = SimpleNamespace(num_val_batches=[1])
+def _score_across_ranks(tmp_path, trials):
+    ctx = torch.multiprocessing.get_context("spawn")
+    with ctx.Manager() as manager:
+        results = manager.dict()
+        torch.multiprocessing.start_processes(
+            _run_rank,
+            args=(len(trials), str(tmp_path / "init"), trials, results),
+            nprocs=len(trials),
+            start_method="spawn",
+        )
+        return [results[rank] for rank in range(len(trials))]
 
-    # 3 trials locally against 1 on the peer: `all_gather` needs one shape, so
-    # the buffers have to be padded to 3 and unpadded again after the gather.
-    _feed(
-        callback,
-        module,
-        trainer,
-        [(torch.tensor([0.9, 0.8, 0.2]), torch.tensor([1, 1, 0]))],
+
+def test_ranks_with_unequal_trial_counts_are_gathered(tmp_path):
+    # 3 trials against 1: every rank must score all four, and padding left
+    # behind by the gather would break the perfect separation.
+    logged = _score_across_ranks(
+        tmp_path,
+        [
+            [(torch.tensor([0.9, 0.8, 0.2]), torch.tensor([1, 1, 0]))],
+            [(torch.tensor([0.1]), torch.tensor([0]))],
+        ],
     )
 
-    # All four trials separate perfectly; padding left in place would not.
-    assert module.logged == {"valid/eer": 0.0, "valid/mindcf": 0.0}
+    assert logged == [{"valid/eer": 0.0, "valid/mindcf": 0.0}] * 2
 
 
-def test_a_rank_without_trials_still_joins_the_collective():
-    callback = SpeakerVerificationScoring()
-    module = _FakeDDPModule(torch.tensor([0.9, 0.1]), torch.tensor([1, 0]))
-    trainer = SimpleNamespace(num_val_batches=[1])
+def test_a_rank_without_trials_still_joins_the_collective(tmp_path):
+    # Rank 1 saw no trial batch. If it skipped the gather, rank 0 would time
+    # out waiting for it; instead both ranks score rank 0's trials.
+    logged = _score_across_ranks(
+        tmp_path,
+        [[(torch.tensor([0.9, 0.1]), torch.tensor([1, 0]))], []],
+    )
 
-    # This rank saw no trial batch. Returning early here would leave the peer
-    # waiting in `all_gather` forever, so it must reach the collective anyway
-    # and score the peer's trials.
-    callback.on_validation_epoch_start(trainer, module)
-    callback.on_validation_batch_end(trainer, module, None, None, 0)
+    assert logged == [{"valid/eer": 0.0, "valid/mindcf": 0.0}] * 2
 
-    assert module.logged == {"valid/eer": 0.0, "valid/mindcf": 0.0}
+
+def test_no_trials_on_any_rank_logs_nothing(tmp_path):
+    logged = _score_across_ranks(tmp_path, [[], []])
+
+    assert logged == [{}, {}]
