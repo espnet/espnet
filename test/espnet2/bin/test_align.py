@@ -6,6 +6,7 @@ between them - which frames a token is given, and what comes back as a
 second - because that is what a caller reads.
 """
 
+import sys
 import types
 
 import numpy as np
@@ -13,6 +14,7 @@ import pytest
 import torch
 
 from espnet2.bin.align import ForcedAligner, Segment, Token
+from espnet2.utils.pretrained import ModelTagError
 
 TOKENS = ["<blank>", "a", "b", "c"]
 
@@ -105,6 +107,76 @@ def test_a_model_without_a_ctc_head_says_so():
 
     with pytest.raises(ValueError, match="no CTC head"):
         ForcedAligner(stub)
+
+
+def test_from_pretrained_loads_the_class_the_model_was_published_for(monkeypatch):
+    """The tag says which: an S2T config or an ASR one, and nothing else."""
+    import espnet2.bin.align as align
+
+    built = {}
+
+    class _S2T:
+        def __init__(self, **kwargs):
+            built.update(kwargs, which="s2t")
+            self.s2t_model = types.SimpleNamespace(ctc=object(), blank_id=0)
+
+    class _ASR:
+        def __init__(self, **kwargs):
+            built.update(kwargs, which="asr")
+            self.asr_model = types.SimpleNamespace(ctc=object(), blank_id=0)
+
+    modules = {
+        "espnet2.bin.s2t_inference": types.SimpleNamespace(Speech2Text=_S2T),
+        "espnet2.bin.asr_inference": types.SimpleNamespace(Speech2Text=_ASR),
+    }
+    for name, module in modules.items():
+        monkeypatch.setitem(sys.modules, name, module)
+
+    monkeypatch.setattr(
+        align, "download_pretrained", lambda tag: {"s2t_train_config": "c"}
+    )
+    align.ForcedAligner.from_pretrained("espnet/a-model")
+    assert built["which"] == "s2t" and built["s2t_train_config"] == "c"
+
+    monkeypatch.setattr(
+        align, "download_pretrained", lambda tag: {"asr_train_config": "c"}
+    )
+    align.ForcedAligner.from_pretrained("espnet/another", device="mps")
+    assert built["which"] == "asr" and built["device"] == "mps"
+
+
+def test_from_pretrained_names_a_tag_it_cannot_read(monkeypatch):
+    import espnet2.bin.align as align
+
+    monkeypatch.setattr(
+        align, "download_pretrained", lambda tag: {"tts_train_config": "c"}
+    )
+
+    with pytest.raises(ModelTagError, match="neither an S2T nor an ASR"):
+        align.ForcedAligner.from_pretrained("espnet/a-tts-model")
+
+
+def test_an_s2t_model_is_read_through_its_own_buffering():
+    """Speech2Text.ctc_log_probs knows the window; the aligner does not."""
+    asked = []
+
+    class _S2T:
+        s2t_model = types.SimpleNamespace(ctc=object(), blank_id=0, token_list=TOKENS)
+        sample_rate = 16000
+
+        def ctc_log_probs(self, speech):
+            asked.append(len(speech))
+            return _emissions([1, 2, 3])
+
+        def read_audio(self, speech):
+            return np.asarray(speech, dtype=np.float32)
+
+    aligner = ForcedAligner(_S2T())
+    assert aligner.s2t
+
+    probs = aligner.log_probs(np.zeros(1600, dtype=np.float32))
+
+    assert probs.shape == (3, len(TOKENS)) and asked == [1600]
 
 
 def test_the_segment_type_is_what_it_says():
