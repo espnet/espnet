@@ -1,9 +1,9 @@
 """Tests for the ST BLEU metric.
 
-sacrebleu lives in the ``egs2`` extra rather than the base install, so each
-test that needs a score is guarded the way test_metrics.py guards jiwer: when
-the package is absent the metric must raise a named RuntimeError instead of
-failing obscurely.
+sacrebleu is an extra rather than a base dependency, so each test that needs a
+score is guarded the way test_metrics.py guards jiwer: when the package is
+absent the metric must raise a named RuntimeError instead of failing
+obscurely.
 """
 
 from pathlib import Path

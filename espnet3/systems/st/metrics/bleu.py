@@ -118,7 +118,9 @@ class BLEU(BaseMetric):
         ``sacrebleu.BLEU`` is a scorer class only from 2.0; in 1.x the same
         name is the score namedtuple, so the ``tokenize``/``lowercase``
         arguments below would fail confusingly. espnet declares
-        ``sacrebleu>=1.5.1``, so the version is checked rather than assumed.
+        ``sacrebleu>=2.0.0`` under the ``st`` extra, but the ``egs2`` extra
+        still permits 1.5.1 and an existing environment may predate either, so
+        the version is checked rather than assumed.
         """
         if sacrebleu is None:
             raise RuntimeError(
