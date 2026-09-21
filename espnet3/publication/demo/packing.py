@@ -184,6 +184,9 @@ def upload_demo(system) -> None:
             repo_type=repo_type,
             folder_path=str(demo_dir),
             delete_patterns=delete_patterns,
+            # Stage logs are written into the bundle directory and name the
+            # build host and its paths, which a public Space must not carry.
+            ignore_patterns=["*.log"],
         )
     except (HfHubHTTPError, ValueError) as exc:
         raise RuntimeError(f"Failed to upload demo pack to '{repo}': {exc}") from exc

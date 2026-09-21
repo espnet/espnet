@@ -30,6 +30,12 @@ from espnet3.systems.esp2_cls.remove_long_short_runner import RemoveLongShortRun
 # |                                             | scattered across shards.     |
 
 
+@pytest.fixture(autouse=True)
+def reset_parallel_config(monkeypatch):
+    """Keep runner tests independent of the process-global parallel config."""
+    monkeypatch.setattr("espnet3.parallel.parallel.parallel_config", None)
+
+
 def _write_wav(path, seconds, sr=16000):
     frames = int(seconds * sr)
     sf.write(path, np.zeros(frames, dtype=np.float32), sr)

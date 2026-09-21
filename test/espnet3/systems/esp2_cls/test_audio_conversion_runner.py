@@ -35,6 +35,12 @@ from espnet3.systems.esp2_cls.audio_conversion_runner import AudioConversionRunn
 FFMPEG = "/usr/bin/ffmpeg"
 
 
+@pytest.fixture(autouse=True)
+def reset_parallel_config(monkeypatch):
+    """Keep runner tests independent of the process-global parallel config."""
+    monkeypatch.setattr("espnet3.parallel.parallel.parallel_config", None)
+
+
 @pytest.fixture
 def calls(monkeypatch):
     """Replace ffmpeg with a recorder that writes the file it is asked for."""
