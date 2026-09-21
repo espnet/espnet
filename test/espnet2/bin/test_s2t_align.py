@@ -5,12 +5,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from espnet2.bin.s2t_align import (
-    CTCSegmentation,
-    CTCSegmentationTask,
-    get_parser,
-    main,
-)
+from espnet2.bin.s2t_align import CTCSegmentation, CTCSegmentationTask, get_parser, main
 from espnet2.tasks.s2t_ctc import S2TTask
 
 
@@ -167,3 +162,20 @@ def test_the_old_module_name_still_aligns(s2t_config_file):
     segments = aligner(speech, "utt_a HOTELS\nutt_b ASSETS\n", fs=16000)
     assert isinstance(segments, CTCSegmentationTask)
     assert str(segments).splitlines()[0].split(" ")[0] == "utt_a"
+
+
+def test_the_old_script_path_still_runs():
+    """`python espnet2/bin/s2t_ctc_align.py` keeps working, and says so."""
+    from espnet2.bin import s2t_ctc_align
+
+    parser = s2t_ctc_align.get_parser()
+    assert isinstance(parser, ArgumentParser)
+    assert "moved" in parser.description
+    # the arguments are the new module's, so a recipe calling the script
+    # does not have to change either
+    options = {a.option_strings[0] for a in parser._actions}
+    assert "--s2t_train_config" in options
+
+    with pytest.raises(SystemExit):
+        with pytest.warns(DeprecationWarning, match="espnet2.bin.s2t_align"):
+            s2t_ctc_align.main()
