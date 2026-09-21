@@ -34,10 +34,20 @@ class VoicesDataset(TorchDataset):
         Returns:
             None. Manifest rows are stored in ``self.entries``.
 
+        Raises:
+            ValueError: The split, condition or limit is invalid.
+            FileNotFoundError: Data preparation has not produced the manifest.
+
         Examples:
             After the create_dataset stage:
 
             >>> dataset = VoicesDataset("train", recipe_dir=".")
+
+            Select at most four distant recordings, preserving manifest order:
+
+            >>> dataset = VoicesDataset(
+            ...     "test", recipe_dir=".", condition="distant", limit=4
+            ... )
         """
         if split not in SPLITS or condition not in ("all", "distant", "source"):
             raise ValueError(f"Unknown VOiCES split/condition: {split}/{condition}")
