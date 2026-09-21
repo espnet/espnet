@@ -38,6 +38,8 @@ sklearn = pytest.importorskip("sklearn")
 # |                                             | class.                       |
 # | test_load_class_labels_rejects_short_file   | Fewer than two entries is an |
 # |                                             | error.                       |
+# | test_load_class_labels_requires_trailing_unk | A list without <unk> would  |
+# |                                             | lose a real class.           |
 # | test_single_labels_rejects_multi_label      | WA/UA/MacroF1 are            |
 # |                                             | multi-class only.            |
 # | test_resolve_classes_drops_unused           | Classes with no reference    |
@@ -123,6 +125,13 @@ def test_load_class_labels_rejects_short_file(tmp_path: Path):
     path = tmp_path / "short"
     path.write_text("only\n", encoding="utf-8")
     with pytest.raises(ValueError, match="at least two entries"):
+        load_class_labels(path)
+
+
+def test_load_class_labels_requires_trailing_unk(tmp_path: Path):
+    path = tmp_path / "token_list"
+    path.write_text("\n".join(TOKENS[:-1]) + "\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="must end with <unk>"):
         load_class_labels(path)
 
 

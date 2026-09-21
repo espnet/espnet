@@ -51,7 +51,7 @@ def build_demo(
 ):
     """Build the default Gradio Blocks app for one packed demo."""
     if demo_config_path is None:
-        demo_config_path = demo_dir / "demo.yaml"
+        demo_config_path = Path("demo.yaml")
     logger.info(
         "Building recipe demo UI | demo_dir=%s demo_config_path=%s",
         demo_dir,
@@ -133,10 +133,9 @@ def main() -> None:
     args = parser.parse_args()
     configure_logging(log_dir=args.demo_dir, filename="demo.log")
     logger.info("Starting recipe demo CLI | args=%s", args)
-    demo_config_path = args.demo_config or (args.demo_dir / "demo.yaml")
     app = build_demo(
         args.demo_dir,
-        demo_config_path=demo_config_path,
+        demo_config_path=args.demo_config,
     )
     logger.info("Launching Gradio app")
     app.launch()

@@ -119,12 +119,18 @@ class MiniAn4ClsBuilder(DatasetBuilder):
                 wav = (data / "wav" / split / f"{utt_id}.wav").resolve()
                 wav.parent.mkdir(parents=True, exist_ok=True)
                 if not wav.exists():
-                    with wav.open("wb") as fh:
-                        subprocess.run(
-                            [sph2pipe, "-f", "wav", "-p", "-c", "1", str(sph)],
-                            stdout=fh,
-                            check=True,
-                        )
+                    part = wav.with_suffix(wav.suffix + ".part")
+                    try:
+                        with part.open("wb") as fh:
+                            subprocess.run(
+                                [sph2pipe, "-f", "wav", "-p", "-c", "1", str(sph)],
+                                stdout=fh,
+                                check=True,
+                            )
+                        part.replace(wav)
+                    except BaseException:
+                        part.unlink(missing_ok=True)
+                        raise
                 label = test_speaker_labels.get(speaker, speaker)
                 entries.append((utt_id, wav, label))
             split_entries[split] = sorted(entries)

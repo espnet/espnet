@@ -15,6 +15,8 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
+UNK_SYMBOL = "<unk>"
+
 
 def require_sklearn():
     """Return ``sklearn.metrics``, raising a helpful error when unavailable.
@@ -43,16 +45,19 @@ def load_class_labels(token_list: str | Path) -> List[str]:
 
     The final entry is dropped to mirror ``n_classes = len(token_list) - 1``
     in ``espnet2/tasks/cls.py``, where the trailing ``<unk>`` is not a class.
+    A token list that does not end with ``<unk>`` is rejected, because
+    dropping its last entry would silently discard a real class.
 
     Args:
         token_list: Path to the token list written by the ``prepare_labels``
-            stage.
+            stage, which must be configured with ``add_symbol: ["<unk>:-1"]``.
 
     Returns:
         List[str]: Class labels ordered to match the score vector.
 
     Raises:
-        ValueError: If the token list holds fewer than two entries.
+        ValueError: If the token list holds fewer than two entries, or does
+            not end with ``<unk>``.
 
     Example:
         >>> load_class_labels("data/token_list")
@@ -64,6 +69,12 @@ def load_class_labels(token_list: str | Path) -> List[str]:
     if len(tokens) < 2:
         raise ValueError(
             f"token_list must hold at least two entries, got {len(tokens)}: {path}"
+        )
+    if tokens[-1] != UNK_SYMBOL:
+        raise ValueError(
+            f"token_list must end with {UNK_SYMBOL}, got {tokens[-1]!r}: {path}. "
+            'Set add_symbol: ["<unk>:-1"] in the prepare_labels stage, '
+            "otherwise the last label is dropped from the class list."
         )
     return tokens[:-1]
 

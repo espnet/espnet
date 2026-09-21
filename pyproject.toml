@@ -196,7 +196,7 @@ spk = [
 # because SSL frontends are the usual choice for classification, and it was
 # only reachable through the s2st extras.
 cls = [
-  "torcheval",
+  "torcheval>=0.0.7",
   "scikit-learn>=1.0.0",
   "espnet-s3prl>=2026.5.14",  # fork of s3prl/s3prl
 ]

@@ -6,6 +6,7 @@ import csv
 import logging
 import os
 import re
+import shutil
 import urllib.error
 from importlib import resources
 from pathlib import Path
@@ -22,6 +23,10 @@ from espnet3.utils.download_utils import download_url, extract_targz
 logger = logging.getLogger(__name__)
 
 NON_ALNUM_RE = re.compile(r"[^A-Za-z0-9]+")
+
+# Scratch directory the archive is unpacked into before the layout is moved
+# into place. Kept inside the source root so the final move is a rename.
+STAGING_DIRNAME = ".unpack"
 
 
 def _load_builder_config() -> dict:
@@ -185,30 +190,32 @@ def _move_first_existing(candidates: list[Path], target: Path) -> None:
     )
 
 
-def _unpack_archive(source_root: Path, archive: Path) -> None:
-    """Unpack the MELD archive into the layout this recipe expects.
+def _build_source_layout(staging: Path, archive: Path) -> None:
+    """Extract the archive under ``staging`` in the layout this recipe expects.
 
     The distributed archive nests one tar per split and names the splits
     differently from the annotation CSVs, so the entries are renamed to
     ``<audio_subdir>/{train,valid,test}`` and the CSVs are collected under
     ``<metadata_subdir>/``.
     """
-    raw_dir = source_root / "MELD.Raw"
-    extract_targz(archive, source_root, logger=logger)
+    raw_dir = staging / "MELD.Raw"
+    extract_targz(archive, staging, logger=logger)
 
+    audio_dir = staging / _CFG["audio_subdir"]
+    audio_dir.mkdir(parents=True, exist_ok=True)
     split_archives = (
         ("dev.tar.gz", "dev_splits_complete", "valid"),
         ("test.tar.gz", "output_repeated_splits_test", "test"),
         ("train.tar.gz", "train_splits", "train"),
     )
     for archive_name, extracted_name, split in split_archives:
-        extract_targz(raw_dir / archive_name, source_root, logger=logger)
+        extract_targz(raw_dir / archive_name, staging, logger=logger)
         _move_first_existing(
-            [source_root / extracted_name, raw_dir / extracted_name],
-            raw_dir / split,
+            [staging / extracted_name, raw_dir / extracted_name],
+            audio_dir / split,
         )
 
-    metadata_dir = source_root / _CFG["metadata_subdir"]
+    metadata_dir = staging / _CFG["metadata_subdir"]
     metadata_dir.mkdir(parents=True, exist_ok=True)
     csv_moves = (
         ("test_sent_emo.csv", "test_sent_emo.csv"),
@@ -217,20 +224,41 @@ def _unpack_archive(source_root: Path, archive: Path) -> None:
     )
     for original_name, target_name in csv_moves:
         _move_first_existing(
-            [raw_dir / original_name, source_root / original_name],
+            [raw_dir / original_name, staging / original_name],
             metadata_dir / target_name,
         )
 
     readme = raw_dir / "README.txt"
     if readme.exists():
-        readme.rename(source_root / "README.txt")
+        readme.rename(staging / "README.txt")
+
+
+def _unpack_archive(source_root: Path, archive: Path) -> None:
+    """Unpack the MELD archive into ``source_root``.
+
+    The layout is assembled in a scratch directory and moved into place only
+    once it is complete, so an interrupted unpack leaves the source root
+    untouched and the next run can simply start over.
+    """
+    staging = source_root / STAGING_DIRNAME
+    # Discard whatever a previous run left behind, so the moves below always
+    # find their targets in a known state.
+    shutil.rmtree(staging, ignore_errors=True)
+    staging.mkdir(parents=True)
+    try:
+        _build_source_layout(staging, archive)
+        for name in (_CFG["audio_subdir"], _CFG["metadata_subdir"]):
+            target = source_root / str(name)
+            shutil.rmtree(target, ignore_errors=True)
+            (staging / str(name)).rename(target)
+        readme = staging / "README.txt"
+        if readme.exists():
+            readme.replace(source_root / "README.txt")
+    finally:
+        shutil.rmtree(staging, ignore_errors=True)
 
     if _CFG.get("remove_archive", False):
         archive.unlink(missing_ok=True)
-        for inner in raw_dir.glob("*.tar.gz"):
-            inner.unlink()
-
-    raw_dir.rename(source_root / _CFG["audio_subdir"])
 
 
 def _convert_clips(conversions: list[tuple[Path, Path]], data_root: Path) -> None:

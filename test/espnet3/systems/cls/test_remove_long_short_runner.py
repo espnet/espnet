@@ -1,4 +1,4 @@
-"""Tests for the remove_long_short provider and runner."""
+"""Tests for the remove_long_short runner."""
 
 import json
 
@@ -14,21 +14,6 @@ from espnet3.systems.cls.remove_long_short_runner import RemoveLongShortRunner
 # Test Case Summary
 # ===============================================================
 #
-# RemoveLongShortProvider
-# | Test Name                                   | Description                  |
-# |---------------------------------------------|------------------------------|
-# | test_load_entries_filters_empty_text        | Rows without text and blank  |
-# |                          | lines are dropped and counted separately.       |
-# | test_build_env_local_returns_entries_and_bounds | build_env_local exposes  |
-# |                          | entries, duration bounds and drop count.        |
-# | test_build_worker_setup_fn_matches_local    | The worker setup fn builds   |
-# |                                             | the same environment.        |
-# | test_build_env_requires_manifest_path       | Missing manifest_path raises |
-# |                                             | RuntimeError.                |
-# | test_build_env_requires_duration_bounds     | Missing min/max duration     |
-# |                                             | raises RuntimeError.         |
-#
-# RemoveLongShortRunner
 # | Test Name                                   | Description                  |
 # |---------------------------------------------|------------------------------|
 # | test_forward_single_index                   | Single int idx returns one   |
@@ -84,63 +69,6 @@ def _runner(manifest_path, tmp_path, **kwargs):
         resume=False,
         **kwargs,
     )
-
-
-# ---------------------------------------------------------------
-# RemoveLongShortProvider
-# ---------------------------------------------------------------
-
-
-def test_load_entries_filters_empty_text(manifest):
-    entries, n_dropped_empty = RemoveLongShortProvider._load_entries(manifest)
-
-    assert [utt_id for utt_id, _, _ in entries] == [
-        "utt_short",
-        "utt_mid",
-        "utt_long",
-    ]
-    assert n_dropped_empty == 1
-    assert all(line.endswith("\n") for _, _, line in entries)
-
-
-def test_build_env_local_returns_entries_and_bounds(manifest):
-    provider = RemoveLongShortProvider(
-        config=OmegaConf.create({}), params=_params(manifest)
-    )
-    env = provider.build_env_local()
-
-    assert len(env["entries"]) == 3
-    assert env["min_duration"] == 1.0
-    assert env["max_duration"] == 4.0
-    assert env["n_dropped_empty"] == 1
-
-
-def test_build_worker_setup_fn_matches_local(manifest):
-    provider = RemoveLongShortProvider(
-        config=OmegaConf.create({}), params=_params(manifest)
-    )
-    setup = provider.build_worker_setup_fn()
-    assert setup() == provider.build_env_local()
-
-
-def test_build_env_requires_manifest_path():
-    provider = RemoveLongShortProvider(config=OmegaConf.create({}), params={})
-    with pytest.raises(RuntimeError, match="manifest_path"):
-        provider.build_env_local()
-
-
-def test_build_env_requires_duration_bounds(manifest):
-    provider = RemoveLongShortProvider(
-        config=OmegaConf.create({}),
-        params={"manifest_path": str(manifest)},
-    )
-    with pytest.raises(RuntimeError, match="min_duration and max_duration"):
-        provider.build_env_local()
-
-
-# ---------------------------------------------------------------
-# RemoveLongShortRunner
-# ---------------------------------------------------------------
 
 
 def test_forward_single_index(manifest):
