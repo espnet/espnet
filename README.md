@@ -31,6 +31,16 @@ evaluation, and hundreds of pretrained models on Hugging Face.
 
 ## What's new
 
+- **[ESPnet 202610.post2](https://github.com/espnet/espnet/releases/tag/v.202610.post2)** —
+  the command line has one name a task and two more of them: `espnet phonemize`
+  reads the phones with POWSM, `espnet align` lines text up with the audio it
+  was said in, and `asr` and `tts` became `transcribe` and `synthesize` (the old
+  names still work); models published before June 2025 load again, after
+  `init: chainer` was removed from the toolkit.
+
+<details>
+<summary>Earlier releases</summary>
+
 - **[ESPnet 202610.post1](https://github.com/espnet/espnet/releases/tag/v.202610.post1)** —
   the command line grows `espnet demo` (the OWSM browser demo) and `--live`
   (the microphone, transcribed as you speak); one `Speech2Text` now loads
@@ -38,10 +48,6 @@ evaluation, and hundreds of pretrained models on Hugging Face.
   search; `espnet/espnet:inference-cpu-latest` and `-gpu-latest` run a published
   model with nothing installed; three more demo Spaces (TTS, enhancement, speaker
   verification).
-
-<details>
-<summary>Earlier releases</summary>
-
 - **[ESPnet 202610](https://github.com/espnet/espnet/releases/tag/v.202610)** —
   one-line inference from the command line (`pip install espnet && espnet asr audio.wav`),
   two OWSM v4 demos as Hugging Face Spaces, a core install without the training
