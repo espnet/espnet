@@ -1,20 +1,6 @@
 # Port of egs2/an4/asr1/conf/train_asr_sinc_rnn.yaml.
 task: espnet3.systems.asr.task.ASRTask
 seed: 0
-lightning_module: espnet3.components.modeling.espnet2_module.ESPnet2LightningModule
-float32_matmul_precision: highest
-cudnn_deterministic: true
-use_tf32: false
-# asr.sh collect_stats: contiguous splits, CPU, native accumulation.
-espnet2_stats:
-  nj: 32
-  batch_size: 15
-  num_workers: 1
-espnet2_compat:
-  accum_grad: 1
-  grad_clip: 5.0
-  ctc_on_cpu: false
-init: xavier_uniform
 stats_dir: ${recipe_dir}/exp/stats_sinc_rnn
 
 create_dataset:
@@ -47,7 +33,7 @@ tokenizer:
 
 model:
   # Initialization belongs to the task's model arguments in this API.
-  init: ${init}
+  init: xavier_uniform
   token_list: ${tokenizer.save_path}/tokens.txt
   frontend: sliding_window
   frontend_conf:
@@ -100,7 +86,6 @@ best_model_criterion:
 dataloader:
   train:
     iter_factory:
-      distributed_batch_mode: split_batch
       num_workers: 1
       seed: ${seed}
       batches:
@@ -108,25 +93,23 @@ dataloader:
         type: folded
         batch_size: 15
         shape_files:
-          - ${stats_dir}/train/speech_shape
-          - ${stats_dir}/train/text_shape
-        fold_lengths: [80000, 150]
+          - ${stats_dir}/train/feats_shape
+        # About 5 seconds at the 240-sample frontend hop.
+        fold_lengths: [334]
   valid:
     iter_factory:
-      distributed_batch_mode: split_batch
       num_workers: 1
       seed: ${seed}
       batches:
         sort_batch: descending
         shape_files:
-          - ${stats_dir}/valid/speech_shape
-          - ${stats_dir}/valid/text_shape
-        fold_lengths: [80000, 150]
+          - ${stats_dir}/valid/feats_shape
+        fold_lengths: [334]
 
 trainer:
   num_sanity_val_steps: 0
   max_epochs: 25
-  gradient_clip_val: 0.0
+  gradient_clip_val: 5.0
   callbacks:
     - _target_: lightning.pytorch.callbacks.EarlyStopping
       monitor: valid/loss

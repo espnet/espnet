@@ -51,12 +51,6 @@ class DataLoaderBuilder:
     - Sequence-based batch sampling with batch_bins or batch_size
     - Dynamic handling of DDP-compatible iteration strategies
 
-    ``iter_factory.distributed_batch_mode`` defaults to ``whole_batch``.
-    Set it to ``split_batch`` for native ESPnet2 sequence batching: each
-    configured batch is global, its items are strided across ranks, and no
-    tail batches are discarded. Every global batch must contain at least as
-    many items as ranks. This option is consumed here, not by the iter factory.
-
     Typically used by ESPnetLightningModule to instantiate training and validation
     DataLoaders with consistent behavior across single-GPU, multi-GPU, and distributed
     training.
@@ -262,69 +256,51 @@ class DataLoaderBuilder:
         if dataset is None:
             dataset = self.dataset
 
-        sampler_config = factory_config.pop("batches")
-        if (
-            self.num_device > 1
-            and factory_config.get("distributed_batch_mode") == "split_batch"
-        ):
-            # Native sequence sampling also sizes tail batches for all ranks.
-            sampler_config["min_batch_size"] = torch.distributed.get_world_size()
-        batches = build_batch_sampler(**sampler_config)
+        batches = build_batch_sampler(**factory_config.pop("batches"))
 
         if self.num_device > 1:
             batches = list(batches)
             world_size = torch.distributed.get_world_size()
             rank = torch.distributed.get_rank()
-            sharding = factory_config.pop("distributed_batch_mode", "whole_batch")
-            if sharding == "split_batch":
-                if any(len(batch) < world_size for batch in batches):
-                    raise ValueError(
-                        "Each global batch must contain at least " "world_size items"
-                    )
-                batches = [batch[rank::world_size] for batch in batches]
-            elif sharding == "whole_batch":
+            total_batches = len(batches)
+            remainder = total_batches % world_size
+            if remainder != 0:
+                # Drop tail batches so each rank sees the same number of batches.
+                # This avoids DDP barrier deadlocks when per-rank batch counts differ.
+                keep = total_batches - remainder
+                logger.warning(
+                    "[%s] Dropping %s tail batches to align with world_size=%s "
+                    "(total=%s -> keep=%s)",
+                    mode,
+                    remainder,
+                    world_size,
+                    total_batches,
+                    keep,
+                )
+                batches = batches[:keep]
                 total_batches = len(batches)
-                remainder = total_batches % world_size
-                if remainder != 0:
-                    # Drop tail batches so each rank sees the same number of batches.
-                    # Avoid DDP deadlocks from unequal per-rank batch counts.
-                    keep = total_batches - remainder
-                    logger.warning(
-                        "[%s] Dropping %s tail batches to align with world_size=%s "
-                        "(total=%s -> keep=%s)",
-                        mode,
-                        remainder,
-                        world_size,
-                        total_batches,
-                        keep,
-                    )
-                    batches = batches[:keep]
-                    total_batches = len(batches)
-                # Each rank takes every world_size-th whole batch, so per-rank
-                # batch size equals the configured batch size and batches of any
-                # size shard correctly - including the mandatory single-utterance
-                # batches of espnet2's ChunkIterFactory. A `len(batch) >=
-                # world_size` check would only apply to espnet2's element-wise
-                # split (`[batch[rank::world_size] for batch in batches]`,
-                # espnet2/tasks/abs_task.py build_sequence_iter_factory); its own
-                # chunk path (build_chunk_iter_factory) strides whole batches
-                # like this without any such check.
-                batches = batches[rank::world_size]
-                if mode not in _LOGGED_DISTRIBUTED_BATCHES:
-                    logger.info(
-                        "[%s] distributed batches: "
-                        + "world_size=%s, rank=%s, total=%s, per_rank=%s",
-                        mode,
-                        world_size,
-                        rank,
-                        total_batches,
-                        len(batches),
-                    )
-                    _LOGGED_DISTRIBUTED_BATCHES.add(mode)
-            else:
-                raise ValueError(f"Unknown distributed_batch_mode: {sharding}")
-        else:
-            factory_config.pop("distributed_batch_mode", None)
+            # Each rank takes every world_size-th whole batch, so per-rank
+            # batch size equals the configured batch size and batches of any
+            # size shard correctly - including the mandatory single-utterance
+            # batches of espnet2's ChunkIterFactory. A `len(batch) >=
+            # world_size` check would only apply to espnet2's element-wise
+            # split (`[batch[rank::world_size] for batch in batches]`,
+            # espnet2/tasks/abs_task.py build_sequence_iter_factory); its own
+            # chunk path (build_chunk_iter_factory) strides whole batches
+            # like this without any such check.
+            batches = batches[rank::world_size]
+            if mode not in _LOGGED_DISTRIBUTED_BATCHES:
+                logger.info(
+                    "[%s] distributed batches: "
+                    + "world_size=%s, rank=%s, total=%s, per_rank=%s",
+                    mode,
+                    world_size,
+                    rank,
+                    total_batches,
+                    len(batches),
+                )
+                _LOGGED_DISTRIBUTED_BATCHES.add(mode)
+
         iter_factory = instantiate(factory_config, dataset, batches=batches)
         # espnet2 iter factories count epochs from 1 (their RNGs seed with
         # epoch - 1), while self.epoch is Lightning's 0-based current_epoch;

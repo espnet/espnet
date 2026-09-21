@@ -10,6 +10,7 @@ from pathlib import Path
 import soundfile as sf
 from omegaconf import OmegaConf
 
+from espnet3.components.data.dataset_builder import DatasetBuilder
 from espnet3.utils.config_utils import load_config_with_defaults
 from espnet3.utils.download_utils import download_url, extract_targz
 
@@ -32,6 +33,12 @@ def atomic_write(path: Path, text: str) -> None:
 
     Raises:
         OSError: Writing or atomically replacing the destination fails.
+
+    Returns:
+        None. Completion is recorded by the files written to disk.
+
+    Examples:
+        >>> atomic_write(Path("data/note.txt"), "prepared")
     """
     path.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.NamedTemporaryFile(
@@ -58,6 +65,13 @@ def read_manifest(path: Path) -> list[tuple[str, Path, str]]:
     Raises:
         ValueError: Rows are malformed, empty or contain duplicate IDs.
         FileNotFoundError: The manifest has not been prepared.
+
+    Examples:
+        After the create_dataset stage:
+
+        >>> rows = read_manifest(Path("data/manifest/train.tsv"))
+        >>> len(rows) > 0
+        True
     """
     rows = []
     with path.open(encoding="utf-8") as stream:
@@ -69,7 +83,7 @@ def read_manifest(path: Path) -> list[tuple[str, Path, str]]:
     return rows
 
 
-class An4Builder:
+class An4Builder(DatasetBuilder):
     """Download AN4 and build manifests; checks do not create any files.
 
     Builder methods accept ``recipe_dir``, optional ``source_dir`` (the extracted
@@ -93,6 +107,10 @@ class An4Builder:
 
         Returns:
             Whether both original transcript files and waveform directories exist.
+
+        Examples:
+            >>> builder = An4Builder()
+            >>> ready = builder.is_source_prepared(recipe_dir=".")
         """
         _, source = self._paths(recipe_dir, source_dir)
         return all(
@@ -116,6 +134,15 @@ class An4Builder:
         Raises:
             FileNotFoundError: An explicitly supplied source is incomplete.
             RuntimeError: The extracted archive lacks required AN4 files.
+
+        Returns:
+            None. Completion is recorded by the files written to disk.
+
+        Examples:
+            Download the configured corpus when it is not already present:
+
+            >>> builder = An4Builder()
+            >>> builder.prepare_source(recipe_dir=".")
         """
         root, _ = self._paths(recipe_dir, source_dir)
         if self.is_source_prepared(recipe_dir, source_dir):
@@ -151,6 +178,10 @@ class An4Builder:
 
         Returns:
             Whether complete current-format preparation is recorded.
+
+        Examples:
+            >>> builder = An4Builder()
+            >>> ready = builder.is_built(recipe_dir=".")
         """
         root, _ = self._paths(recipe_dir, source_dir)
         marker = root / "data/manifest/build.json"
@@ -201,6 +232,15 @@ class An4Builder:
             Writes data/wav, data/manifest and pre-filtering data/lm text.
             Rebuilding replaces generated artifacts; old statistics and tokenizers
             must be regenerated after any data or builder change.
+
+        Returns:
+            None. Completion is recorded by the files written to disk.
+
+        Examples:
+            After prepare_source has completed:
+
+            >>> builder = An4Builder()
+            >>> builder.build(recipe_dir=".")
         """
         root, source = self._paths(recipe_dir, source_dir)
         signature = self._signature(recipe_dir, source_dir, dev_size)

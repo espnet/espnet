@@ -9,7 +9,7 @@ from typing import Any, Dict
 
 import lightning as L
 import torch
-from hydra.utils import get_class, instantiate
+from hydra.utils import instantiate
 from omegaconf import DictConfig, OmegaConf
 
 from espnet3.components.modeling.lightning_module import ESPnetLightningModule
@@ -30,12 +30,7 @@ def _instantiate_model(config: DictConfig) -> Any:
 
 def _build_trainer(config: DictConfig) -> ESPnet3LightningTrainer:
     model = _instantiate_model(config)
-    module_class = (
-        get_class(config.lightning_module)
-        if config.get("lightning_module")
-        else ESPnetLightningModule
-    )
-    lit_model = module_class(model, config)
+    lit_model = ESPnetLightningModule(model, config)
     trainer = ESPnet3LightningTrainer(
         model=lit_model,
         exp_dir=config.exp_dir,
@@ -62,18 +57,7 @@ def collect_stats(config: DictConfig) -> None:
     if config.get("seed") is not None:
         L.seed_everything(int(config.seed), workers=True)
 
-    torch.set_float32_matmul_precision(config.get("float32_matmul_precision", "high"))
-    if config.get("cudnn_deterministic") is not None:
-        torch.backends.cudnn.deterministic = bool(config.cudnn_deterministic)
-    if config.get("use_tf32") is not None:
-        torch.backends.cuda.matmul.allow_tf32 = bool(config.use_tf32)
-        torch.backends.cudnn.allow_tf32 = bool(config.use_tf32)
-
-    if config.get("espnet2_stats"):
-        from espnet3.components.data.espnet2_stats import collect_stats_espnet2
-
-        collect_stats_espnet2(config)
-        return
+    torch.set_float32_matmul_precision("high")
 
     if "normalize" in config.model:
         config.model.pop("normalize")
@@ -101,12 +85,7 @@ def train(config: DictConfig) -> None:
     if config.get("seed") is not None:
         L.seed_everything(int(config.seed), workers=True)
 
-    torch.set_float32_matmul_precision(config.get("float32_matmul_precision", "high"))
-    if config.get("cudnn_deterministic") is not None:
-        torch.backends.cudnn.deterministic = bool(config.cudnn_deterministic)
-    if config.get("use_tf32") is not None:
-        torch.backends.cuda.matmul.allow_tf32 = bool(config.use_tf32)
-        torch.backends.cudnn.allow_tf32 = bool(config.use_tf32)
+    torch.set_float32_matmul_precision("high")
 
     task = config.get("task")
     if task:

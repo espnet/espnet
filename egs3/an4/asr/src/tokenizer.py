@@ -17,5 +17,12 @@ def gather_training_text(manifest_path):
     Raises:
         FileNotFoundError: create_dataset has not produced the manifest.
         ValueError: The manifest is empty or has duplicate utterance IDs.
+
+    Examples:
+        After the create_dataset stage:
+
+        >>> texts = gather_training_text("data/manifest/train.tsv")
+        >>> isinstance(texts[0], str)
+        True
     """
     return [text for _, _, text in read_manifest(Path(manifest_path))]

@@ -1,79 +1,103 @@
 # AN4 Sinc-BLSTMP ASR
 
-Ports `egs2/an4/asr1/conf/train_asr_sinc_rnn.yaml`, AN4 data preparation and
-the shared ASR shell stages. The original run.sh's default Transformer is not
-the selected model.
+Ports `egs2/an4/asr1` using the existing ESPnet3 `ASRSystem`, data loader,
+statistics collector, Lightning module/trainer, checkpoint callbacks and metrics.
+The recipe adds dataset preparation, configuration and inference output formatting;
+it does not modify shared ESPnet3 code.
+
+The first 100 lexical training utterance IDs form validation. Training audio uses
+SoX speed perturbation at 0.9, 1.0 and 1.1. Train/valid use the source 0.1--20 second
+filter; test recordings remain unfiltered. The full corpus contains 2544 prepared
+training, 100 validation and 130 test recordings. SoX is required for preparation.
 
 ## Run
 
-Activate ESPnet and SoX, then run from this directory:
+From this directory, activate an environment with ESPnet ASR dependencies:
 
 ```bash
 . ./path.sh
-python run.py --stages create_dataset train_tokenizer collect_stats train \
+python run.py --stages create_dataset train_tokenizer collect_stats \
   --training_config conf/training_sinc_rnn.yaml
-python -m espnet3.systems.asr.language_model --config conf/language_model.yaml
+python run.py --stages train --training_config conf/training_sinc_rnn.yaml
+python -m egs3.an4.asr.src.language_model --config conf/language_model.yaml
 python run.py --stages infer measure \
   --training_config conf/training_sinc_rnn.yaml \
   --inference_config conf/inference.yaml --metrics_config conf/metrics.yaml
 ```
 
-The LM entrypoint reuses native ESPnet2 LMTask because ASRSystem has no LM
-training stage. `conf/lm_native.yaml` is copied unchanged from the source.
-It collects statistics, trains/averages checkpoints, and computes perplexity.
-Inference uses the original LM weight 0.1 and evaluates validation plus test.
+Run statistics collection and training as separate invocations, as above. At this
+ESPnet3 revision the shared collector removes normalization from its in-memory
+config; a fresh train invocation reloads GlobalMVN from YAML. Do not combine
+`collect_stats train` in a single invocation.
 
-SCTK is required for the source-compatible WER/CER/TER. In an ESPnet checkout,
-run `cd tools && bash installers/install_sctk.sh` once; the recipe's `path.sh`
-adds the resulting `tools/sctk/bin` when present. Standalone recipes require
-`sclite` on PATH.
+ESPnet3 currently has no dedicated LM training stage. The recipe-local
+`src/language_model.py` invokes existing ESPnet2 commands for LM statistics,
+training and perplexity. `conf/lm_native.yaml` preserves the source LM model
+settings. The helper records its commands in the LM experiment directory and
+resumes an existing native checkpoint. Prepare the ASR tokenizer before training
+the LM; inference uses that tokenizer and the trained LM at weight 0.1.
 
-## Source behavior and adapters
+## ESPnet2 mapping and ESPnet3 behavior
 
-- First 100 sorted training IDs form validation; the remaining 848 receive
-  0.9/1.0/1.1 speed perturbation. Original-speed IDs and original SoX options
-  remain unchanged. Expected filtered ASR counts: 2544 / 100 / 130.
-- Builder format 4 exports ASR manifests and original pre-filtering LM text.
-  Rebuild older data and regenerate tokenizer/statistics in a new experiment.
-- Unigram vocabulary 30; original Sinc-BLSTMP, Adadelta, plateau scheduler,
-  25-epoch limit and best-validation-accuracy checkpoint selection.
-- Folded batch size 15, fold lengths `[80000, 150]`, descending batch order,
-  one data worker and native epoch seeds. Raw length scaling follows asr.sh.
-- `lightning_module` selects the optional `ESPnet2LightningModule`.
-  `espnet2_compat` owns accumulation/clipping, while Lightning trainer values
-  remain 1/0 to avoid applying them twice. `distributed_batch_mode: split_batch`
-  splits each global batch across ranks. cuDNN determinism and TF32 are explicit.
-- `espnet2_compat.ctc_on_cpu: true` is a diagnostic override used by workspace
-  GPU tests. Only CTCLoss runs on CPU; projection/log-softmax remain on GPU and
-  cross-device autograd remains connected.
-- Source early stopping `bad_epochs > 4` maps to Lightning patience 5.
-- `espnet2_stats` preserves the source CPU collector, 32 contiguous splits,
-  batch size 15, one worker, per-utterance accumulation and ordered merging.
-- WER/CER/TER call the source SCTK scorer, including case handling, whitespace
-  normalization and empty predictions.
+- `conf/training_sinc_rnn.yaml` retains the source Sinc frontend, BLSTMP/RNN,
+  Adadelta, plateau scheduler, 30-piece unigram tokenizer and 25-epoch budget.
+  Clipping is configured through Lightning. Its early-stopping patience is 5
+  checks, corresponding to the source stopping after more than 4 bad epochs.
+- The shared collector writes frontend `feats_shape`, not raw `speech_shape`
+  and `text_shape`. Folded batches use an acoustic fold length of 334 frames
+  (approximately 80000 input samples / 240-sample hop) and batch size 15.
+  Text-length folding is no longer applied, so batch membership can change.
+- Inference uses `Speech2Text` directly, the shared top-1 checkpoint average,
+  beam size 10, CTC weight 0.3 and LM weight 0.1.
+
+The shared checkpoint callback writes `valid.acc.ave_Nbest.pth`, where `N` is
+the number of retained checkpoints available to the averaging callback. For short
+runs, inspect the experiment directory and explicitly set `model.asr_model_file`
+in a separate inference config. `last.ckpt` is also produced by the stock trainer.
+Averaging runs during validation and is not a separate finalization stage; the
+average can precede the latest checkpoint update. This recipe uses that shared
+callback without adding its own averaging logic. Keep checkpoints together with
+their generated ASR `config.yaml`.
+
+WER, CER and TER use the existing ESPnet3 metric classes (JiWER), with TER using
+the ASR SentencePiece model. These are not the previous SCTK scorer: the shared
+CER counts spaces and the shared metrics use a placeholder for empty text.
+Trainer reductions, batching, precision, checkpoint averaging and metric
+conventions can produce different results from ESPnet2. No strict numerical
+identity with ESPnet2 is claimed.
+
+For review, compare data preparation with `egs2/an4/asr1/local/` and its
+`run.sh`; compare ASR/LM model settings with `egs2/an4/asr1/conf/` and stage
+defaults with `egs2/TEMPLATE/asr1/asr.sh`. ESPnet3 interfaces follow
+`egs3/TEMPLATE/asr` and `egs3/librispeech_100/asr`.
 
 ## Validation
 
-A paired ESPnet2/ESPnet3 run at base commit
-`6f1263a6069de753cd0a888e341ff6e78e42ca96` completed 25 ASR epochs on one
-NVIDIA A10 per run, with seed 0 and FP32 training. Both runs used the same
-prepared audio, tokenizer, normalization statistics and native LM checkpoint
-(LM weight 0.1). Only CTCLoss was moved to CPU in both runs to avoid CUDA CTC
-nondeterminism; this is an experiment override, not the recipe default.
+Recipe tests live under `test/egs3/an4/asr`, matching the source layout. Run
+`pytest -q test/egs3/an4` from the repository root. They exercise preparation,
+source model settings, output alignment, native LM commands and the stock ASR
+stages on a small CPU fixture, including a trained LM with nonzero fusion weight.
+Public recipe functions document their arguments, return values and usage examples.
 
-| Split | Utterances | WER (%) | CER (%) | TER (%) |
+Earlier results from the removed ESPnet2 compatibility adapters describe the old
+implementation only. They are not results for this stock ESPnet3 implementation.
+New validation results are recorded separately; full accuracy reproduction is
+not implied by a short pipeline test.
+
+CPU validation for this revision: 20 recipe tests passed. Black, isort and flake8 passed.
+
+A single-A10 run with the delivered 25-epoch maximum stopped after 23 epochs
+through the configured early-stopping callback. It used CPU CTCLoss via an
+experiment-only callback, fresh shared ESPnet3 statistics, and the existing
+native AN4 LM at weight 0.1. All 4117 optimizer updates had finite gradients;
+final parameters were finite. Inference used the stock top-1 average and scored
+all validation/test recordings with the shared ESPnet3 metrics:
+
+| Split | Recordings | WER (%) | CER (%) | TER (%) |
 | --- | ---: | ---: | ---: | ---: |
-| valid | 100 | 14.38 | 8.72 | 8.29 |
-| test | 130 | 8.28 | 4.52 | 4.30 |
+| Validation | 100 | 15.57 | 10.29 | 9.78 |
+| Test | 130 | 8.67 | 5.07 | 4.82 |
 
-The final ASR checkpoints matched exactly across all 100 state tensors.
-Decoding used the best validation-accuracy checkpoint. SCTK integer error
-counts matched for all three metrics on both splits. Recognized text matched
-after whitespace normalization; one test output had an extra trailing space.
-This establishes single-GPU ASR parity under these conditions, not multi-GPU
-parity or an independent comparison of two LM training runs.
-
-Separate acceptance checks covered audio, tokenizer outputs, normalization
-statistics and complete batch plans. AN4's original SoX dithering is stochastic:
-exact waveform diagnostics fixed SoX randomness on both sides externally;
-the recipe retains the source SoX command and its default randomness.
+Training took about 16.8 minutes; scoring ran in a separate one-A10 allocation.
+These results describe this stock ESPnet3 implementation, not the earlier
+25-epoch ESPnet2-compatibility experiment or its SCTK scores.
