@@ -183,12 +183,14 @@ class CTCSegmentation:
         asr_model_file: Union[Path, str, None] = None,
         fs: int = 16000,
         ngpu: int = 0,
-        device: Optional[str] = None,
         batch_size: int = 1,
         dtype: str = "float32",
         kaldi_style_text: bool = True,
         text_converter: str = "tokenize",
         time_stamps: str = "auto",
+        # last, and after every argument this class already had: a caller
+        # passing them positionally must keep binding what it bound before
+        device: Optional[str] = None,
         **ctc_segmentation_args,
     ):
         """Initialize the CTCSegmentation module.

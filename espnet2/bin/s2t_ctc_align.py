@@ -184,7 +184,6 @@ class CTCSegmentation:
         s2t_model_file: Union[Path, str] = None,
         fs: int = 16000,
         ngpu: int = 0,
-        device: Optional[str] = None,
         batch_size: int = 1,
         dtype: str = "float32",
         kaldi_style_text: bool = True,
@@ -193,6 +192,9 @@ class CTCSegmentation:
         lang_sym: str = "<eng>",
         task_sym: str = "<asr>",
         context_len_in_secs: float = 4,
+        # last, and after every argument this class already had: a caller
+        # passing them positionally must keep binding what it bound before
+        device: Optional[str] = None,
         **ctc_segmentation_args,
     ):
         """Initialize the CTCSegmentation module.
