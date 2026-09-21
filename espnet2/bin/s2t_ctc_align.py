@@ -19,6 +19,7 @@ from espnet2.legacy.utils.cli_utils import get_commandline_args
 from espnet2.tasks.s2t_ctc import S2TTask
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.utils import config_argparse
+from espnet2.utils.pretrained import download_pretrained
 from espnet2.utils.types import str2bool, str_or_none
 
 try:
@@ -191,6 +192,9 @@ class CTCSegmentation:
         lang_sym: str = "<eng>",
         task_sym: str = "<asr>",
         context_len_in_secs: float = 4,
+        # last, and after every argument this class already had: a caller
+        # passing them positionally must keep binding what it bound before
+        device: Optional[str] = None,
         **ctc_segmentation_args,
     ):
         """Initialize the CTCSegmentation module.
@@ -199,6 +203,8 @@ class CTCSegmentation:
             s2t_train_config: S2T model config file (yaml).
             s2t_model_file: S2T model file (pth).
             fs: Sample rate of audio file.
+            device: Where to run, as torch spells it: "cpu", "cuda",
+                "cuda:1", "mps". Overrides `ngpu`, which cannot say which.
             ngpu: Number of GPUs. Set 0 for processing on CPU, set to 1 for
                 processing on GPU. Multi-GPU aligning is currently not
                 implemented. Default: 0.
@@ -226,12 +232,17 @@ class CTCSegmentation:
         """
 
         # Basic settings
-        device = "cpu"
-        if ngpu == 1:
-            device = "cuda"
-        elif ngpu > 1:
-            logging.error("Multi-GPU not yet implemented.")
-            raise NotImplementedError("Only single GPU decoding is supported")
+        if device is None:
+            # `ngpu` is what the scripting interface has always taken, and it
+            # cannot say which GPU or that it means mps: a caller that knows
+            # passes `device` instead, and one that does not gets what it got
+            # before.
+            device = "cpu"
+            if ngpu == 1:
+                device = "cuda"
+            elif ngpu > 1:
+                logging.error("Multi-GPU not yet implemented.")
+                raise NotImplementedError("Only single GPU decoding is supported")
 
         # Prepare ASR model
         s2t_model, s2t_train_args = S2TTask.build_model_from_file(
@@ -283,6 +294,31 @@ class CTCSegmentation:
             s2t_train_args.frontend_conf["hop_length"] * subsample_factor
         )
         self.frames_per_sec = fs / self.samples_to_frames_ratio
+
+    @classmethod
+    def from_pretrained(cls, model_tag: Optional[str] = None, **kwargs):
+        """Align with a published model, named by its tag.
+
+        The tag is what every other inference class in espnet2.bin takes, and
+        what a model card gives you. Without this, aligning with a published
+        model meant downloading it yourself and handing over two paths -
+        which is what the example above used to do, through
+        espnet_model_zoo's downloader.
+
+        This aligns with an OWSM-CTC model; espnet2.bin.asr_align takes the
+        other kind, and a tag for that one arrives with artifacts this
+        constructor does not take. `espnet align` picks between them for you
+        and says so in a sentence; here it is a TypeError naming the
+        argument, as it is for every other class handed the wrong tag.
+
+        Args:
+            model_tag: A tag on the Hugging Face hub. None builds from
+                whatever paths are given instead.
+            **kwargs: Passed to the constructor.
+        """
+        if model_tag is not None:
+            kwargs.update(download_pretrained(model_tag))
+        return cls(**kwargs)
 
     def set_config(self, **kwargs):
         """Set CTC segmentation parameters.

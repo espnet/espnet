@@ -125,7 +125,8 @@ less than `master` does. [What each column covers](CONTRIBUTING.md#53-what-runs-
 pip install espnet
 espnet asr audio.wav                       # transcribe, detecting the language
 espnet translate audio.wav --to eng        # speech in, English text out
-espnet phonemize audio.wav                    # the phones, in IPA, with POWSM
+espnet phonemize audio.wav                 # the phones, in IPA, with POWSM
+espnet align audio.wav --text "what was said"   # when each utterance was said
 espnet tts "Hello from ESPnet" -o out.wav
 espnet enhance noisy.wav -o clean.wav
 espnet asr --live                          # transcribe the microphone

@@ -4,6 +4,7 @@
     espnet asr audio.wav
     espnet asr audio.wav --language jpn
     espnet phonemize audio.wav
+    espnet align audio.wav --text "the words that were said"
     espnet translate audio.wav --to eng
     espnet tts "Hello from ESPnet" -o hello.wav
     espnet enhance noisy.wav -o clean.wav
@@ -42,6 +43,9 @@ DEFAULT_MODELS = {
     # POWSM, a phonetic model built on OWSM: the CTC one, which is the
     # faster of the two and the one that can read a recording of any length
     "phonemize": "espnet/powsm_ctc",
+    # alignment reads the CTC head, so the model that transcribes is the
+    # model that aligns
+    "align": "espnet/owsm_ctc_v4_1B",
     "translate": "espnet/owsm_ctc_v4_1B",
     "tts": "espnet/kan-bayashi_ljspeech_vits",
     "enhance": "espnet/Wangyou_Zhang_universal_train_enh_uses_refch0_2mem_raw",
@@ -259,6 +263,50 @@ def _windows(s2t, audio: str):
         yield speech[start : start + length]
 
 
+def cmd_align(args) -> int:
+    _require_file(args.audio)
+    if not args.text and not args.text_file:
+        raise CLIError("give --text once per utterance, or --text-file")
+    if args.text and args.text_file:
+        raise CLIError("give --text or --text-file, not both")
+    if args.text_file:
+        _require_file(args.text_file)
+        utterances = [
+            line.strip()
+            for line in Path(args.text_file).read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+    else:
+        utterances = list(args.text)
+    if not utterances:
+        raise CLIError(f"{args.text_file} has no lines to align")
+
+    from espnet2.bin.align import ForcedAligner
+
+    aligner = _build(ForcedAligner, args, "align")
+    try:
+        segments = aligner(args.audio, utterances)
+    except ValueError as e:
+        # "this text cannot fit in this recording", and the like: things the
+        # user can correct, rather than a traceback
+        raise CLIError(str(e)) from e
+
+    # start, end, how sure it is, and the words: a line a person can read and
+    # a line `cut` can take apart
+    def line(piece, indent=""):
+        return (
+            f"{indent}{piece.start:.2f}\t{piece.end:.2f}\t"
+            f"{piece.score:.4f}\t{piece.text}"
+        )
+
+    for segment in segments:
+        print(line(segment))
+        if args.tokens:
+            for token in segment.tokens:
+                print(line(token, indent="  "))
+    return 0
+
+
 def cmd_translate(args) -> int:
     _require_file(args.audio)
     from espnet2.bin.s2t_inference import Speech2Text
@@ -450,6 +498,23 @@ def build_parser() -> argparse.ArgumentParser:
         "--spaced",
         action="store_true",
         help="one phone at a time, separated by spaces, rather than as IPA",
+    )
+
+    p = add("align", "line text up with the audio it was said in", cmd_align)
+    p.add_argument("audio", help="audio file, any format soundfile reads")
+    p.add_argument(
+        "--text",
+        action="append",
+        default=[],
+        help="one utterance; give it once per utterance, in the order spoken",
+    )
+    p.add_argument(
+        "--text-file", help="a file with one utterance a line, instead of --text"
+    )
+    p.add_argument(
+        "--tokens",
+        action="store_true",
+        help="also print each token's own start, end and probability",
     )
 
     p = add("translate", "translate speech into another language", cmd_translate)
