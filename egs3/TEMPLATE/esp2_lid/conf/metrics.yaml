@@ -1,0 +1,9 @@
+defaults:
+  - ../../asr/conf/metrics
+  - _self_
+
+metrics:
+  - metric:
+      _target_: espnet3.systems.esp2_lid.metrics.accuracy.Accuracy
+      ref_key: ref
+      hyp_key: hyp
