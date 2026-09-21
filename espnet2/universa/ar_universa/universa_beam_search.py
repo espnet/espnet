@@ -26,7 +26,7 @@ class Hypothesis(NamedTuple):
     unused_meta_label_ids: List[int] = None
 
 
-class ARUniVERSABeamSearch:
+class ARUniVERSABeamSearch(torch.nn.Module):
     """Beam search module for ARUniVERSA models."""
 
     @typechecked
@@ -70,6 +70,11 @@ class ARUniVERSABeamSearch:
             raise ValueError("beam_size must be positive")
         if len(set(meta_label_for_search)) != len(meta_label_for_search):
             raise ValueError("Requested metrics must be unique")
+        if any(label < 0 or label >= vocab_size for label in meta_label_for_search):
+            raise ValueError("Metric label IDs must be within the vocabulary")
+        for start, end in (beam_masking or {}).values():
+            if not 0 <= start < end <= vocab_size:
+                raise ValueError("Beam masking ranges must be within the vocabulary")
         self.use_fixed_order = use_fixed_order
         self.weights = weights
         self.meta_label_for_search = meta_label_for_search

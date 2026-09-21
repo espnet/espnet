@@ -9,12 +9,22 @@ from typeguard import typechecked
 class AbsMetricTokenizer(ABC):
     @abstractmethod
     def metric2token(
-        self, metrics: Dict[str, Union[float, str, int]]
-    ) -> List[Tuple[int, int]]:
+        self,
+        metrics: Dict[str, Union[float, str, int, Tuple[int, int]]],
+        reduce_offset: bool = False,
+    ) -> Dict[str, Tuple[int, int]]:
         raise NotImplementedError
 
     @abstractmethod
-    def token2metric(self, tokens: Iterable[int]) -> str:
+    def token2metric(
+        self, token: int, metric: Optional[str] = None
+    ) -> Union[float, str]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def tokenseq2metric(
+        self, tokens: Iterable[int], return_dict: bool = False
+    ) -> Union[str, Dict[str, List[Union[float, int, str, Tuple[float, float]]]]]:
         raise NotImplementedError
 
 
@@ -22,8 +32,7 @@ class MetricTokenizer(AbsMetricTokenizer):
     def __init__(
         self, tokenizer_config: Union[str, Dict[str, Any]], tokenize_metric: List[str]
     ):
-        """
-        Initialize the MetricTokenizer with a configuration file path.
+        """Initialize the MetricTokenizer with a configuration file path.
 
         Args:
             tokenizer_config: The tokenizer configuration JSON file/Dictionary
@@ -52,8 +61,7 @@ class MetricTokenizer(AbsMetricTokenizer):
         self.adjusted_vocab = ["<pad>", "<unk>", "<eos>", "<sos>"] + self.vocab
 
     def get_metric_meta_label(self, metric_name: str) -> int:
-        """
-        Get the meta label index for a given metric.
+        """Get the meta label index for a given metric.
 
         Args:
             metric_name: Name of the metric
@@ -70,8 +78,7 @@ class MetricTokenizer(AbsMetricTokenizer):
         return meta_label_index
 
     def get_token_list(self) -> List[str]:
-        """
-        Get the list of tokens in the vocabulary.
+        """Get the list of tokens in the vocabulary.
 
         Returns:
             List of tokens
@@ -81,8 +88,7 @@ class MetricTokenizer(AbsMetricTokenizer):
     def get_token_index(
         self, metric_name: str, value_index: int, reduce_offset: bool = False
     ) -> Tuple[int, int]:
-        """
-        Get the token indices for a metric and its value.
+        """Get the token indices for a metric and its value.
 
         Args:
             metric_name: Name of the metric
@@ -108,8 +114,7 @@ class MetricTokenizer(AbsMetricTokenizer):
         return meta_label_index, value_index
 
     def _get_value_index(self, metric_name: str, value: Union[float, str, int]) -> int:
-        """
-        Determine the appropriate token index for a given metric value.
+        """Determine the appropriate token index for a given metric value.
 
         Args:
             metric_name: Name of the metric
@@ -142,8 +147,7 @@ class MetricTokenizer(AbsMetricTokenizer):
         metrics: Dict[str, Union[float, str, int, Tuple[int, int]]],
         reduce_offset: bool = False,
     ) -> Dict[str, Tuple[int, int]]:
-        """
-        Convert metrics dictionary to token indices.
+        """Convert metrics dictionary to token indices.
 
         Args:
             metrics: Dictionary of metric names and their values
@@ -184,8 +188,7 @@ class MetricTokenizer(AbsMetricTokenizer):
     def tokenseq2metric(
         self, tokens: Iterable[int], return_dict: bool = False
     ) -> Union[str, Dict[str, List[Union[float, int, str, Tuple[float, float]]]]]:
-        """
-        Convert token indices back to a metric representation.
+        """Convert token indices back to a metric representation.
 
         Args:
             tokens: Iterable of token indices
@@ -228,8 +231,7 @@ class MetricTokenizer(AbsMetricTokenizer):
     def token2metric(
         self, token: int, metric: Optional[str] = None
     ) -> Union[float, str]:
-        """
-        Convert a single token index back to its metric representation.
+        """Convert a single token index back to its metric representation.
 
         Args:
             token: Token index
@@ -262,8 +264,7 @@ class MetricTokenizer(AbsMetricTokenizer):
 
     @typechecked
     def add_offset(self, src_tokens: Iterable[int], metric_name: str) -> List[int]:
-        """
-        Add back the offset related to metrics.
+        """Add back the offset related to metrics.
 
         Args:
             src_tokens: source tokens to be added

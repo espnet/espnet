@@ -57,3 +57,42 @@ def test_empty_metric_request():
 def test_invalid_search_request(beam_size, labels):
     with pytest.raises(ValueError):
         ARUniVERSABeamSearch({}, {}, beam_size, 9, 2, 3, labels)
+
+
+@pytest.mark.parametrize("label", [-1, 9])
+def test_invalid_metric_label(label):
+    with pytest.raises(ValueError, match="label"):
+        ARUniVERSABeamSearch({}, {}, 1, 9, 2, 3, [label])
+
+
+@pytest.mark.parametrize("bounds", [(-1, 2), (5, 5), (7, 5), (5, 10)])
+def test_invalid_value_range(bounds):
+    with pytest.raises(ValueError, match="range"):
+        ARUniVERSABeamSearch({}, {}, 1, 9, 2, 3, [4], beam_masking={4: bounds})
+
+
+def test_module_call_and_scorer_dtype_conversion():
+    class ModuleScorer(torch.nn.Module, Scorer):
+        def __init__(self):
+            super().__init__()
+            self.register_buffer("token_scores", torch.arange(9, dtype=torch.float32))
+
+        def score(self, yseq, state, x):
+            assert self.token_scores.dtype == x.dtype
+            assert self.token_scores.device == x.device
+            return self.token_scores, state + 1
+
+    scorer = ModuleScorer()
+    search = ARUniVERSABeamSearch(
+        {"decoder": scorer},
+        {"decoder": 1.0},
+        1,
+        9,
+        2,
+        3,
+        [4],
+        beam_masking={4: (5, 7)},
+    )
+    search.to(dtype=torch.float64)
+    assert scorer.token_scores.dtype == torch.float64
+    assert search(torch.zeros(3, 2, dtype=torch.float64))[0].yseq.tolist() == [2, 4, 6]
