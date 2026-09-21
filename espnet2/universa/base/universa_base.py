@@ -329,17 +329,12 @@ class UniversaBase(AbsUniversa):
             ref_text_lengths,
         )
 
-        # 3. Multi-branch pooling and projectors
+        pred_metrics = self._predict_metrics(audio_enc, audio_enc_lengths)
         loss = 0.0
         stats = {}
         if self.multi_branch:
             for i in range(self.metric_size):
-                pooling_output = self.pooling[i](
-                    audio_enc.permute(0, 2, 1), feat_lengths=audio_enc_lengths
-                )
-                with autocast("cuda", enabled=False):
-                    # skip numeric stability with float16
-                    pred_metric = self.projector[i](pooling_output)
+                pred_metric = pred_metrics[i]
                 metric_loss = 0.0
                 # NOTE(jiatong): we use > instead of != to handle the case
                 # where the metric_pad_value is not 0
@@ -361,12 +356,7 @@ class UniversaBase(AbsUniversa):
                 loss = loss + metric_loss
             stats["loss"] = loss.detach()
         else:
-            pooling_output = self.pooling(
-                audio_enc.permute(0, 2, 1), feat_lengths=audio_enc_lengths
-            )
-            with autocast("cuda", enabled=False):
-                # skip numeric stability with float16
-                pred_metric = self.projector(pooling_output)
+            pred_metric = pred_metrics
             final_metric_mask = final_metrics > self.metric_pad_value + 1e-6
             weights = pred_metric.new_tensor(
                 [self.loss_weights[i] for i in range(self.metric_size)]
@@ -495,8 +485,15 @@ class UniversaBase(AbsUniversa):
             ref_text_lengths,
         )
 
-        # 2. Multi-branch pooling and projectors
+        pred_metrics = self._predict_metrics(audio_enc, audio_enc_lengths)
+        pred_metrics = self._inference_decoration(pred_metrics)
+        pred_metrics["encoded_feat"] = audio_enc
+        return pred_metrics
 
+    def _predict_metrics(
+        self, audio_enc: torch.Tensor, audio_enc_lengths: torch.Tensor
+    ) -> Union[torch.Tensor, List[torch.Tensor]]:
+        """Pool and project encoded audio without detaching training gradients."""
         if self.multi_branch:
             pred_metrics = []
             for i in range(self.metric_size):
@@ -514,8 +511,6 @@ class UniversaBase(AbsUniversa):
             with autocast("cuda", enabled=False):
                 # skip numeric stability with float16
                 pred_metrics = self.projector(pooling_output)
-        pred_metrics = self._inference_decoration(pred_metrics)
-        pred_metrics["encoded_feat"] = audio_enc
         return pred_metrics
 
     @typechecked

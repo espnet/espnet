@@ -47,38 +47,15 @@ class ESPnetUniversaModel(AbsESPnetModel):
         length tensor has one entry per utterance. Metrics map names to scalar
         target batches. Returns loss, detached statistics, and batch weight.
         """
-        with autocast("cuda", enabled=False):
-            # Extract features
-            feats, feats_lengths = self._extract_feats(audio, audio_lengths)
-
-            # Extract reference features if necessary
-            if ref_audio is not None:
-                ref_feats, ref_feats_lengths = self._extract_feats(
-                    ref_audio, ref_audio_lengths
-                )
-            else:
-                ref_feats, ref_feats_lengths = None, None
-
-            # Make batch for universa inputs
-            batch = dict(
-                audio=feats,
-                audio_lengths=feats_lengths,
-                metrics=metrics,
-            )
-
-            # Update batch with reference features and text
-            if ref_feats is not None:
-                batch.update(
-                    ref_audio=ref_feats,
-                    ref_audio_lengths=ref_feats_lengths,
-                )
-            if ref_text is not None:
-                batch.update(
-                    ref_text=ref_text,
-                    ref_text_lengths=ref_text_lengths,
-                )
-
-        return self.universa(**batch)
+        batch = self._prepare_inputs(
+            audio,
+            audio_lengths,
+            ref_audio,
+            ref_audio_lengths,
+            ref_text,
+            ref_text_lengths,
+        )
+        return self.universa(metrics=metrics, **batch)
 
     def collect_feats(
         self,
@@ -129,36 +106,34 @@ class ESPnetUniversaModel(AbsESPnetModel):
     ) -> Dict[str, Any]:
         """Return predicted output as a dict."""
 
-        with autocast("cuda", enabled=False):
-            # Extract features
-            feats, feats_lengths = self._extract_feats(audio, audio_lengths)
+        batch = self._prepare_inputs(
+            audio,
+            audio_lengths,
+            ref_audio,
+            ref_audio_lengths,
+            ref_text,
+            ref_text_lengths,
+        )
+        return self.universa.inference(**batch)
 
-            # Extract reference features if necessary
+    def _prepare_inputs(
+        self,
+        audio: torch.Tensor,
+        audio_lengths: torch.Tensor,
+        ref_audio: Optional[torch.Tensor],
+        ref_audio_lengths: Optional[torch.Tensor],
+        ref_text: Optional[torch.Tensor],
+        ref_text_lengths: Optional[torch.Tensor],
+    ) -> Dict[str, torch.Tensor]:
+        """Extract features and assemble the shared training/inference inputs."""
+        with autocast("cuda", enabled=False):
+            feats, feats_lengths = self._extract_feats(audio, audio_lengths)
+            batch = dict(audio=feats, audio_lengths=feats_lengths)
             if ref_audio is not None:
                 ref_feats, ref_feats_lengths = self._extract_feats(
                     ref_audio, ref_audio_lengths
                 )
-            else:
-                ref_feats, ref_feats_lengths = None, None
-
-            # Make batch for universa inputs
-            batch = dict(
-                audio=feats,
-                audio_lengths=feats_lengths,
-            )
-
-            # Update batch with reference features and text
-            if ref_feats is not None:
-                batch.update(
-                    ref_audio=ref_feats,
-                    ref_audio_lengths=ref_feats_lengths,
-                )
+                batch.update(ref_audio=ref_feats, ref_audio_lengths=ref_feats_lengths)
             if ref_text is not None:
-                batch.update(
-                    ref_text=ref_text,
-                    ref_text_lengths=ref_text_lengths,
-                )
-
-        return self.universa.inference(
-            **batch,
-        )
+                batch.update(ref_text=ref_text, ref_text_lengths=ref_text_lengths)
+        return batch
