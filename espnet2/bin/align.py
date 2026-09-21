@@ -55,6 +55,14 @@ class Segment:
 
     `score` is the mean probability of its tokens: 1.0 is a perfect match,
     and a caption that does not belong to the audio scores near zero.
+
+    It is a probability under this model, so the text has to be written the
+    way the model writes it. On test_utils/ctc_align_test.wav with
+    espnet/owsm_ctc_v4_1B, "The sale of the hotels" scores 0.99; the same
+    words in capitals, as that recording's reference transcript has them,
+    score 0.0000, because the vocabulary has no capitalised words and each
+    one breaks into single letters. The times stay roughly right either way -
+    it is the score that stops meaning anything.
     """
 
     text: str
