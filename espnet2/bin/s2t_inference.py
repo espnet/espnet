@@ -875,6 +875,34 @@ class Speech2Text:
             return results, self._decode_interctc(intermediate_outs)
         return results
 
+    def decode_window(
+        self,
+        speech: Union[torch.Tensor, np.ndarray],
+        lang_sym: Optional[str] = None,
+        task_sym: Optional[str] = None,
+    ) -> str:
+        """One window of audio, decoded the way this checkpoint has to be.
+
+        A CTC-only checkpoint is read off its CTC head with no search, which
+        is an order of magnitude faster and loses nothing: that head is the
+        whole model. One with a decoder is called, because its CTC branch
+        answers what that branch was trained on rather than what `task_sym`
+        asks for - see `best_path`.
+
+        Here rather than in each front end: `espnet phonemize` and the
+        browser demo both had to know which kind of checkpoint they were
+        holding, and it is the checkpoint that knows.
+
+        Args:
+            speech: One window, no longer than the model's own.
+            lang_sym, task_sym: As for `best_path` and `__call__`.
+
+        Returns:
+            The decoded text, with whatever symbols the model wrote.
+        """
+        decode = self.best_path if self.ctc_only else self.__call__
+        return decode(speech, lang_sym=lang_sym, task_sym=task_sym)[0][0]
+
     @torch.no_grad()
     @typechecked
     def __call__(

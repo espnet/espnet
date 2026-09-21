@@ -236,13 +236,17 @@ def menus(tokens: Sequence[str]) -> Tuple[List[Tuple[str, str]], List[Tuple[str,
     return languages, targets
 
 
-def read_audio(path: str) -> np.ndarray:
-    """An audio file as the mono 16 kHz float array OWSM takes."""
-    speech, _ = librosa.load(path, sr=SAMPLE_RATE)
+def read_audio(path: str, rate: int = SAMPLE_RATE) -> np.ndarray:
+    """An audio file as the mono float array a model takes, at its own rate."""
+    speech, _ = librosa.load(path, sr=rate)
     return speech
 
 
-def pad(speech: np.ndarray, window_secs: int = WINDOW_SECS) -> np.ndarray:
+def pad(
+    speech: np.ndarray,
+    window_secs: int = WINDOW_SECS,
+    rate: int = SAMPLE_RATE,
+) -> np.ndarray:
     """The one window the model decodes in a pass: the start of this audio.
 
     Shorter audio is zero-padded to the window the model is trained on, longer
@@ -254,7 +258,7 @@ def pad(speech: np.ndarray, window_secs: int = WINDOW_SECS) -> np.ndarray:
     20 s, and padding it to 30 would be 10 s of silence for the model to
     hallucinate over.
     """
-    window = SAMPLE_RATE * window_secs
+    window = rate * window_secs
     return np.pad(speech[:window], (0, max(0, window - len(speech))))
 
 
@@ -262,6 +266,20 @@ def window_secs(s2t) -> int:
     """The window this checkpoint was trained on, in seconds."""
     conf = getattr(s2t, "preprocessor_conf", None) or {}
     return int(conf.get("speech_length", WINDOW_SECS))
+
+
+def sample_rate(s2t) -> int:
+    """The rate this checkpoint's audio is read at.
+
+    Like the window: the module's constant is what OWSM uses and what the two
+    Space apps pass, and a checkpoint that says otherwise is believed. Nothing
+    in this page should hold a number a model could tell it.
+    """
+    rate = getattr(s2t, "sample_rate", None)
+    if rate:
+        return int(rate)
+    conf = getattr(s2t, "preprocessor_conf", None) or {}
+    return int(conf.get("fs", SAMPLE_RATE))
 
 
 def phone_task(tokens: Sequence[str]) -> bool:
@@ -351,6 +369,7 @@ def build_app(s2t, device: str = "cpu", model_tag: str = ""):
     # the checkpoint's own window and its own spelling of "no language given":
     # OWSM is 30 s and <nolang>, POWSM is 20 s and <unk>
     window = window_secs(s2t)
+    rate = sample_rate(s2t)
     phones = phone_task(tokens)
     try:
         nolang = s2t.no_language()
@@ -360,22 +379,9 @@ def build_app(s2t, device: str = "cpu", model_tag: str = ""):
         # language instead. Better than a page that raises on every Run.
         nolang = None
 
-    def decode(speech, lang_sym, task_sym):
-        """One window, decoded the way this checkpoint has to be.
-
-        A CTC-only model is read off its CTC head with no search, which is an
-        order of magnitude faster and loses nothing. An encoder-decoder model
-        is called: its CTC head answers whatever that head was trained on -
-        POWSM's returns phones whether you ask for `<asr>` or `<pr>` - and
-        only the decoder reads the task symbol.
-        """
-        if s2t.ctc_only:
-            return s2t.best_path(speech, lang_sym=lang_sym, task_sym=task_sym)[0][0]
-        return s2t(speech, lang_sym=lang_sym, task_sym=task_sym)[0][0]
-
     def detect(speech, task_sym):
         """The language the model names for the first window of this audio."""
-        decoded = decode(pad(speech, window), nolang, task_sym)
+        decoded = s2t.decode_window(pad(speech, window, rate), nolang, task_sym)
         return split_tokens(decoded, codes)[0] or "eng"
 
     def chosen_language(label):
@@ -385,13 +391,13 @@ def build_app(s2t, device: str = "cpu", model_tag: str = ""):
     def predict(audio_path, language_label, task_label, long_form):
         if audio_path is None:
             raise gr.Error("Record or upload some audio first.")
-        speech = read_audio(audio_path)
-        if len(speech) > SAMPLE_RATE * MAX_SECS:
+        speech = read_audio(audio_path, rate)
+        if len(speech) > rate * MAX_SECS:
             gr.Warning(
                 f"Only the first {MAX_SECS} s were decoded. "
                 "`espnet asr` has no such limit."
             )
-            speech = speech[: SAMPLE_RATE * MAX_SECS]
+            speech = speech[: rate * MAX_SECS]
 
         chosen = chosen_language(language_label)
         lang_sym = nolang if chosen is None else f"<{chosen}>"
@@ -406,7 +412,8 @@ def build_app(s2t, device: str = "cpu", model_tag: str = ""):
             # One window first, only to name the language the rest is decoded
             # in; skipped when the user has already said what it is.
             detected = chosen or detect(speech, task_sym)
-            if s2t.ctc_only:
+            phone_pass = task_sym == PHONE_TASK and not s2t.ctc_only
+            if not phone_pass:
                 text = " ".join(
                     segment
                     for _, _, segment in s2t.decode_long(
@@ -418,23 +425,29 @@ def build_app(s2t, device: str = "cpu", model_tag: str = ""):
                     )
                 )
             else:
-                # decode_long segments an encoder-decoder model by its own
-                # timestamps, and POWSM asked for phones fills a window that
-                # is mostly padding with repetitions. One window at a time.
-                step = SAMPLE_RATE * window
+                # The exception is a task rather than a kind of model. An
+                # encoder-decoder checkpoint segments a long recording by the
+                # timestamps it writes, which is what OWSM does well; POWSM
+                # asked for phones instead fills the padding at the end of a
+                # window with repetitions of what it already said. That one
+                # combination goes window by window.
+                step = rate * window
                 text = " ".join(
                     split_tokens(
-                        decode(speech[at : at + step], f"<{detected}>", task_sym), codes
+                        s2t.decode_window(
+                            speech[at : at + step], f"<{detected}>", task_sym
+                        ),
+                        codes,
                     )[1]
                     for at in range(0, len(speech), step)
                 )
         else:
-            if len(speech) > SAMPLE_RATE * window:
+            if len(speech) > rate * window:
                 gr.Warning(
                     f"Only the first {window} s were decoded. "
                     "Tick Long-form for the whole recording."
                 )
-            decoded = decode(pad(speech, window), lang_sym, task_sym)
+            decoded = s2t.decode_window(pad(speech, window, rate), lang_sym, task_sym)
             detected, text = split_tokens(decoded, codes)
             detected = detected or chosen or ""
         if task_sym == PHONE_TASK:

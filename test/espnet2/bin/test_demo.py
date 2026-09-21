@@ -186,6 +186,26 @@ def test_a_phonetic_checkpoint_says_what_it_is_for(monkeypatch):
     assert demo.PHONE_MODEL_NOTE not in markdown(_NotPhonetic())
 
 
+def test_the_rate_comes_from_the_checkpoint_too():
+    class _Fast:
+        sample_rate = 24000
+
+    class _Silent:
+        preprocessor_conf = {}
+
+    assert demo.sample_rate(_Fast()) == 24000
+    # nothing said: the rate this page was written for, which is what the two
+    # Space apps pass
+    assert demo.sample_rate(_Silent()) == demo.SAMPLE_RATE
+
+
+def test_padding_uses_the_rate_it_is_given():
+    at_8k = demo.pad(np.ones(8000, dtype="float32"), 2, 8000)
+
+    assert len(at_8k) == 16000
+    assert demo.pad(np.ones(10, dtype="float32"), 1).shape == (demo.SAMPLE_RATE,)
+
+
 def test_the_device_rule_answers_a_device_torch_accepts():
     assert demo.default_device() in ("cpu", "cuda")
 

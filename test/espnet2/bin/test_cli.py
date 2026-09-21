@@ -680,6 +680,11 @@ class _FakeOWSM:
     def no_language(self):
         return self.preprocessor_conf["nolang_symbol"]
 
+    def decode_window(self, speech, lang_sym=None, task_sym=None):
+        # Speech2Text.decode_window: the checkpoint chooses its own way, and
+        # this one is CTC-only
+        return self.best_path(speech, lang_sym=lang_sym, task_sym=task_sym)[0][0]
+
     def best_path(self, speech, *args, **kwargs):
         # what the page calls for a single window: the CTC head, no search
         self.calls.append((speech, kwargs))
@@ -783,7 +788,9 @@ def test_the_demo_decodes_a_short_recording(monkeypatch):
     from espnet2.bin import demo
 
     gradio, s2t = _fake_demo(monkeypatch)
-    monkeypatch.setattr(demo, "read_audio", lambda path: np.zeros(16000 * 5, "float32"))
+    monkeypatch.setattr(
+        demo, "read_audio", lambda path, rate=16000: np.zeros(16000 * 5, "float32")
+    )
     assert cli.main(["demo"]) == 0
 
     language, text = _predict(gradio)("a.wav", demo.DETECT, demo.ASR_LABEL, False)
@@ -802,7 +809,7 @@ def test_the_demo_trims_audio_past_the_cap_and_says_so(monkeypatch):
 
     gradio, s2t = _fake_demo(monkeypatch)
     long_audio = np.zeros(16000 * (demo.MAX_SECS + 30), "float32")
-    monkeypatch.setattr(demo, "read_audio", lambda path: long_audio)
+    monkeypatch.setattr(demo, "read_audio", lambda path, rate=16000: long_audio)
     assert cli.main(["demo"]) == 0
 
     _predict(gradio)("a.wav", "English (eng)", demo.ASR_LABEL, True)
