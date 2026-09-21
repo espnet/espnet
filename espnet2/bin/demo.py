@@ -49,6 +49,19 @@ ASR_LABEL = "Transcribe"
 # it and its menu is unchanged.
 PHONES_LABEL = "Recognise phones"
 PHONE_TASK = "<pr>"
+# Shown when the loaded checkpoint offers phones, because the same page then
+# also offers Transcribe on a model built for something else. POWSM's author
+# asked for this to be said where someone would read it: its English ASR is
+# weak - a text normalisation problem the authors have since retrained - and
+# a page that offers the button without the caveat invites the wrong reading.
+PHONE_MODEL_NOTE = (
+    "This checkpoint is a phonetic model. **Recognise phones** is what it is "
+    "for; its transcription is weaker than a model trained for text, and on "
+    "[POWSM](https://huggingface.co/espnet/powsm) in particular the English "
+    "ASR suffers from a text normalisation problem — the authors have since "
+    "published a retrained variant in that repository's `textnorm_retrained` "
+    "folder."
+)
 PHONE = re.compile(r"/([^/]+)/")
 
 # ISO 639-3 to English, for the menu. The codes themselves come from the
@@ -434,6 +447,8 @@ def build_app(s2t, device: str = "cpu", model_tag: str = ""):
     app = gr.Blocks(title=TITLE)
     with app:
         gr.Markdown(DESCRIPTION)
+        if phones:
+            gr.Markdown(PHONE_MODEL_NOTE)
         with gr.Row():
             with gr.Column():
                 audio = gr.Audio(

@@ -853,6 +853,13 @@ class Speech2Text:
         which is `__call__`. On an encoder-decoder checkpoint this reads the
         CTC branch beside the decoder; on a CTC-only one it reads the only
         head there is.
+
+        **A CTC branch answers what that branch was trained on, which is not
+        always what `task_sym` asks for.** POWSM's answers phones whether it
+        is asked for `<pr>` or `<asr>`: on espnet/powsm, best_path returns
+        the same phones for both, and only the decoder - `__call__` - reads
+        the task. A caller that must honour the task on an encoder-decoder
+        checkpoint should call the object instead, and pay for the search.
         """
         if isinstance(speech, np.ndarray):
             speech = torch.tensor(speech)

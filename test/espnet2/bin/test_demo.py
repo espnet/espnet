@@ -150,6 +150,42 @@ def test_a_checkpoint_that_cannot_detect_a_language_opens_on_one(monkeypatch):
     assert demo.PHONES_LABEL in menus["Task"]
 
 
+def test_a_phonetic_checkpoint_says_what_it_is_for(monkeypatch):
+    """The page offers Transcribe on every model; some are not built for it.
+
+    Asked for by POWSM's author on #6776: its English ASR is weak, and a page
+    that offers the button without saying so invites the wrong reading.
+    """
+    pytest.importorskip("gradio")
+
+    class _Phonetic:
+        preprocessor_conf = {"speech_length": 20, "nolang_symbol": "<unk>"}
+        ctc_only = True
+        s2t_model = types.SimpleNamespace(
+            token_list=["<unk>", "<eng>", "<asr>", "<pr>", "<sos>"]
+        )
+
+        def no_language(self):
+            return "<unk>"
+
+    class _NotPhonetic(_Phonetic):
+        s2t_model = types.SimpleNamespace(
+            token_list=["<nolang>", "<eng>", "<asr>", "<st_deu>", "<sos>"]
+        )
+
+        def no_language(self):
+            return "<nolang>"
+
+    def markdown(model):
+        app = demo.build_app(model, device="cpu", model_tag="espnet/a-model")
+        return "\n".join(
+            str(getattr(block, "value", "")) for block in app.blocks.values()
+        )
+
+    assert demo.PHONE_MODEL_NOTE in markdown(_Phonetic())
+    assert demo.PHONE_MODEL_NOTE not in markdown(_NotPhonetic())
+
+
 def test_the_device_rule_answers_a_device_torch_accepts():
     assert demo.default_device() in ("cpu", "cuda")
 
