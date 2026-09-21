@@ -14,10 +14,12 @@ checkpoint that has one, whether it was trained as ASR or as speech-to-text::
 Each segment also carries the tokens it was made of, with a time and a
 probability each, which is where a word-level timestamp comes from.
 
-This is not the only alignment in the repository. `espnet2.bin.asr_align` and
-`espnet2.bin.s2t_ctc_align` wrap the `ctc_segmentation` package, one per task,
-and the OWSM v4 recipe cleans its training data with the second of them
-(egs2/owsm_v4/s2t1/local/ctc_seg.py). Those keep their scripting interfaces.
+This is not the only alignment in the repository. `espnet2.bin.ctc_segment`
+is the `ctc_segmentation` package's algorithm, which `espnet2.bin.asr_align`
+and `espnet2.bin.s2t_ctc_align` run with an ASR and an OWSM-CTC model
+respectively, and the OWSM v4 recipe cleans its training data with the second
+of them (egs2/owsm_v4/s2t1/local/ctc_seg.py). Those keep their scripting
+interfaces.
 What is here is what `espnet align` and the MCP server call, and it is one
 implementation rather than one per task: the algorithm needs the CTC
 posteriors and the token ids, and nothing else about the model.
