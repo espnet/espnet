@@ -184,6 +184,18 @@ def _frame_rate(s2t_train_args) -> Tuple[Optional[int], Optional[float]]:
     return sample_rate, sample_rate / hop_length / subsample
 
 
+def _stated_seconds(symbol: str) -> Optional[float]:
+    """The time a symbol is named after, if it is named after one.
+
+    `<12.34>` is 12.34; `<sos>` and anything else is None. Used to check a
+    config against itself, never to decide what a timestamp means.
+    """
+    try:
+        return float(str(symbol).strip("<>"))
+    except ValueError:
+        return None
+
+
 def _is_ctc_only(s2t_train_config) -> bool:
     """True when the config describes a model trained as CTC-only.
 
@@ -1028,12 +1040,15 @@ class Speech2Text:
 
         return res
 
-    def _read_audio(self, speech) -> np.ndarray:
+    def read_audio(self, speech) -> np.ndarray:
         """One channel of float audio at the rate the model was trained on.
 
-        Accepting a path here is what lets `decode_long` be the whole
-        transcription API for a recording, rather than something every caller
-        wraps in file reading and resampling.
+        Takes a path, an array or a tensor. Accepting a path is what lets
+        `decode_long` be the whole transcription API for a recording, rather
+        than something every caller wraps in file reading and resampling -
+        and it is public for the same reason: a caller that cuts a recording
+        up itself should not have to repeat the resampling, nor guess the
+        rate the checkpoint wants.
         """
         if isinstance(speech, (str, Path)):
             import soundfile as sf
@@ -1140,7 +1155,7 @@ class Speech2Text:
         context_len_in_secs: float = 2,
         condition_on_prev_text: bool = False,
         init_text: Optional[str] = None,
-        end_time_threshold: str = "<29.00>",
+        end_time_threshold: Optional[str] = None,
         lang_sym: Optional[str] = None,
         task_sym: Optional[str] = None,
         skip_last_chunk_threshold: float = 0.2,
@@ -1163,9 +1178,13 @@ class Speech2Text:
                 side of each buffer, on a CTC-only checkpoint.
             condition_on_prev_text, init_text, end_time_threshold,
                 skip_last_chunk_threshold: the encoder-decoder path.
+                `end_time_threshold` defaults to one second before the end of
+                the model's own window, which is where it was hardcoded as
+                OWSM's `<29.00>` until a 20 s model asked for a token that
+                does not exist in its vocabulary.
 
         """
-        speech = self._read_audio(speech)
+        speech = self.read_audio(speech)
         if self.sample_rate is None:
             raise RuntimeError(
                 "this config does not say what sample rate and hop length the "
@@ -1191,6 +1210,73 @@ class Speech2Text:
             skip_last_chunk_threshold=skip_last_chunk_threshold,
         )
 
+    def _time_ids(self) -> Tuple[int, int, float]:
+        """The first and last timestamp symbols, and the seconds between two.
+
+        The window is the source of truth - `speech_length`, which every
+        other part of this class already reads - and the timestamp symbols
+        are one model's way of writing positions inside it. So the step is
+        that window divided by the symbols that span it, and nothing here
+        parses a symbol's name or assumes a format for it.
+
+        Not `speech_resolution`: POWSM's config states 0.04 while its
+        vocabulary steps 0.02, and a timestamp read at twice its value points
+        past the end of the window it came from.
+
+        What this does assume, and checks rather than trusts, is that the
+        timestamps run one id a step from the start of the window to its end.
+        A model that changes its window, its step, or both changes both
+        numbers together and needs nothing here; a model that breaks the
+        assumption is told which of its own two statements disagree, rather
+        than quietly returning times that are a constant factor out.
+        """
+        first = self.converter.token2id[self.preprocessor_conf["first_time_symbol"]]
+        last = self.converter.token2id[self.preprocessor_conf["last_time_symbol"]]
+        if last <= first:
+            raise RuntimeError(
+                f"{self.preprocessor_conf['first_time_symbol']} and "
+                f"{self.preprocessor_conf['last_time_symbol']} are not in order "
+                f"in this vocabulary, so a position inside the window cannot "
+                f"be read from an id"
+            )
+        window = float(self.preprocessor_conf["speech_length"])
+        step = window / (last - first)
+
+        # When the symbols are named after the times they mark - both models
+        # in the wild are - the names have to agree with the window. This is
+        # a check on the config, not the contract: a checkpoint whose
+        # timestamps are named some other way skips it.
+        named = [
+            _stated_seconds(self.preprocessor_conf[key])
+            for key in ("first_time_symbol", "last_time_symbol")
+        ]
+        if all(t is not None for t in named):
+            spanned = named[1] - named[0]
+            if abs(spanned - window) > step:
+                raise RuntimeError(
+                    f"this config's timestamps span {spanned:g} s "
+                    f"({self.preprocessor_conf['first_time_symbol']} to "
+                    f"{self.preprocessor_conf['last_time_symbol']}) while its "
+                    f"speech_length says {window:g} s. One of the two is wrong, "
+                    f"and either would put every timestamp in the wrong place"
+                )
+        return first, last, step
+
+    def _near_window_end(self) -> int:
+        """The timestamp id a second before the end of the model's window.
+
+        An utterance whose end timestamp is past this one is taken to be cut
+        off by the window rather than finished, so the next segment starts
+        where it began. It used to be written out as OWSM's `<29.00>`, that
+        model's 30 s window minus a second; POWSM's window is 20 s and
+        `<29.00>` is not in its vocabulary at all, so the decode ended in a
+        KeyError rather than in a transcript.
+        """
+        first, last, step = self._time_ids()
+        # one second back, and never less than one step: a model whose steps
+        # are coarser than a second would otherwise have no threshold at all
+        return max(first, last - max(1, round(1.0 / step)))
+
     @torch.no_grad()
     @typechecked
     def _decode_long_attention(
@@ -1198,7 +1284,7 @@ class Speech2Text:
         speech: Union[torch.Tensor, np.ndarray],
         condition_on_prev_text: bool = False,
         init_text: Optional[str] = None,
-        end_time_threshold: str = "<29.00>",
+        end_time_threshold: Optional[str] = None,
         lang_sym: Optional[str] = None,
         task_sym: Optional[str] = None,
         skip_last_chunk_threshold: float = 0.2,
@@ -1210,7 +1296,8 @@ class Speech2Text:
             condition_on_prev_text (bool): whether to condition on previous text
             init_text: text used as condition for the first segment
             end_time_threshold: the last utterance is considered as incomplete
-                if its end timestamp exceeds this threshold
+                if its end timestamp exceeds this threshold. None means one
+                second before the end of the model's window.
 
         Returns:
             utterances: list of tuples of (start_time, end_time, text)
@@ -1222,14 +1309,12 @@ class Speech2Text:
         segment_len = int(
             self.preprocessor_conf["speech_length"] * self.preprocessor_conf["fs"]
         )
-        end_time_id_threshold = self.converter.token2id[end_time_threshold]
-        first_time_id = self.converter.token2id[
-            self.preprocessor_conf["first_time_symbol"]
-        ]
-        last_time_id = self.converter.token2id[
-            self.preprocessor_conf["last_time_symbol"]
-        ]
-        resolution = self.preprocessor_conf["speech_resolution"]
+        first_time_id, last_time_id, resolution = self._time_ids()
+        end_time_id_threshold = (
+            self._near_window_end()
+            if end_time_threshold is None
+            else self.converter.token2id[end_time_threshold]
+        )
         fs = self.preprocessor_conf["fs"]
 
         if isinstance(speech, np.ndarray):
