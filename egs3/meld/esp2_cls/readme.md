@@ -8,7 +8,9 @@ a Transformer encoder and a linear head.
 [MELD](https://affective-meld.github.io/) ships audio as MP4, so `ffmpeg` must be
 on `PATH`. `create_dataset` downloads the corpus when it is not already present,
 extracts it, converts every clip to 16 kHz mono WAV, and writes one manifest per
-split. The conversion dominates the stage and takes over an hour.
+split. The conversion dominates the stage: 13,708 clips take over an hour one
+at a time, so it is sharded over `parallel.n_workers` workers. Raise that from
+its default of 1 in `conf/training.yaml` to convert clips concurrently.
 
 Two environment variables control where the data lives. Both are optional and
 default to `download/` and `data/` under the recipe.

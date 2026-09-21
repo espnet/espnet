@@ -125,7 +125,12 @@ init:
 
 parallel:
   env: local
+  # Raise this to convert clips concurrently in create_dataset. At 1 the
+  # cluster is started but nothing overlaps, which is slower than no cluster.
   n_workers: 1
+  # Replace a stale shard lock left by an interrupted run. Do not enable while
+  # another run may still be writing to the same output directory.
+  allow_overwrite_lock: false
 
 ##########################################################
 #                   DATALOADER SETTING                   #
