@@ -95,23 +95,50 @@ def test_Speech2Text(s2t_config_file):
 
 
 @pytest.mark.execution_timeout(5)
-def test_the_long_form_threshold_follows_the_models_own_window(s2t_config_file):
-    """An utterance ending within a second of the window end is taken as cut off.
+def test_the_long_form_window_is_read_from_the_model(s2t_config_file):
+    """The window is `speech_length`; the timestamp symbols only spell it.
 
-    That second used to be written out as OWSM's `<29.00>`, which is 30 s
-    minus one. POWSM's window is 20 s and has no such token, so decoding a
-    long recording with it ended in `KeyError: '<29.00>'` rather than in a
-    transcript.
+    The threshold for "this utterance was cut off by the window" used to be
+    written out as OWSM's `<29.00>` - 30 s minus a second - so a 20 s model
+    decoded a long recording into `KeyError: '<29.00>'`. It is derived now,
+    and from the window rather than from a symbol's name, so a checkpoint
+    that spells its timestamps differently needs no format agreed here.
     """
     speech2text = Speech2Text(s2t_train_config=s2t_config_file, beam_size=1)
-    # this fixture's window is one second
-    assert speech2text._near_window_end() == "<0.00>"
+    first, last, step = speech2text._time_ids()
 
-    speech2text.preprocessor_conf["last_time_symbol"] = "<30.00>"
-    assert speech2text._near_window_end() == "<29.00>"  # OWSM, as before
+    # this fixture's window is one second, spanned by <0.00> and <1.00>
+    assert step == pytest.approx(1.0)
+    assert speech2text._near_window_end() == last - 1 == first
 
-    speech2text.preprocessor_conf["last_time_symbol"] = "<20.00>"
-    assert speech2text._near_window_end() == "<19.00>"  # POWSM
+    # and what OWSM and POWSM each describe, without either config present
+    for window, symbols, expected in ((30, 1500, 0.02), (20, 1000, 0.02)):
+        speech2text.preprocessor_conf["speech_length"] = window
+        speech2text.converter.token2id["<last>"] = first + symbols
+        speech2text.preprocessor_conf["last_time_symbol"] = "<last>"
+        _, last, step = speech2text._time_ids()
+        assert step == pytest.approx(expected)
+        # a second before the end of the window, in that model's own steps
+        assert speech2text._near_window_end() == last - round(1 / expected)
+
+
+@pytest.mark.execution_timeout(5)
+def test_a_configs_stated_resolution_does_not_override_its_vocabulary(
+    s2t_config_file,
+):
+    """POWSM states 0.04 and steps 0.02; the vocabulary is the one to believe.
+
+    Read at twice its value, a timestamp points past the end of the window it
+    came from, and long-form decoding cuts the recording in the wrong places.
+    """
+    speech2text = Speech2Text(s2t_train_config=s2t_config_file, beam_size=1)
+    first = speech2text.converter.token2id["<0.00>"]
+    speech2text.converter.token2id["<last>"] = first + 1000
+    speech2text.preprocessor_conf.update(
+        speech_length=20, speech_resolution=0.04, last_time_symbol="<last>"
+    )
+
+    assert speech2text._time_ids()[2] == pytest.approx(0.02)
 
 
 @pytest.mark.execution_timeout(5)

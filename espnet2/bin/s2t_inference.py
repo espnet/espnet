@@ -1198,19 +1198,42 @@ class Speech2Text:
             skip_last_chunk_threshold=skip_last_chunk_threshold,
         )
 
-    def _near_window_end(self) -> str:
-        """The timestamp a second before the end of the model's own window.
+    def _time_ids(self) -> Tuple[int, int, float]:
+        """The first and last timestamp symbols, and the seconds between two.
+
+        The window is the source of truth - `speech_length`, which every
+        other part of this class already reads - and the timestamp symbols
+        are one model's way of writing positions inside it. So the step is
+        the window divided by the symbols that span it, and nothing here
+        parses a symbol's name or assumes a format for it: a checkpoint that
+        spells its timestamps differently still works, as long as its config
+        names the first and the last.
+
+        Not `speech_resolution`: POWSM's config states 0.04 while its
+        vocabulary steps 0.02, and a timestamp read at twice its value points
+        past the end of the window it came from.
+        """
+        first = self.converter.token2id[self.preprocessor_conf["first_time_symbol"]]
+        last = self.converter.token2id[self.preprocessor_conf["last_time_symbol"]]
+        if last <= first:
+            raise RuntimeError(
+                "this config's first and last timestamp symbols are not in "
+                "order, so a position inside its window cannot be read"
+            )
+        return first, last, self.preprocessor_conf["speech_length"] / (last - first)
+
+    def _near_window_end(self) -> int:
+        """The timestamp id a second before the end of the model's window.
 
         An utterance whose end timestamp is past this one is taken to be cut
         off by the window rather than finished, so the next segment starts
-        where it began. The number used to be written out as OWSM's
-        `<29.00>`, which is that model's 30 s window minus a second; POWSM's
-        window is 20 s and `<29.00>` is not in its vocabulary at all, so the
-        decode ended in a KeyError rather than in a transcript.
+        where it began. It used to be written out as OWSM's `<29.00>`, that
+        model's 30 s window minus a second; POWSM's window is 20 s and
+        `<29.00>` is not in its vocabulary at all, so the decode ended in a
+        KeyError rather than in a transcript.
         """
-        last = self.preprocessor_conf["last_time_symbol"]
-        seconds = float(last.strip("<>"))
-        return f"<{seconds - 1.0:.2f}>"
+        _, last, step = self._time_ids()
+        return last - round(1.0 / step)
 
     @torch.no_grad()
     @typechecked
@@ -1244,16 +1267,12 @@ class Speech2Text:
         segment_len = int(
             self.preprocessor_conf["speech_length"] * self.preprocessor_conf["fs"]
         )
-        if end_time_threshold is None:
-            end_time_threshold = self._near_window_end()
-        end_time_id_threshold = self.converter.token2id[end_time_threshold]
-        first_time_id = self.converter.token2id[
-            self.preprocessor_conf["first_time_symbol"]
-        ]
-        last_time_id = self.converter.token2id[
-            self.preprocessor_conf["last_time_symbol"]
-        ]
-        resolution = self.preprocessor_conf["speech_resolution"]
+        first_time_id, last_time_id, resolution = self._time_ids()
+        end_time_id_threshold = (
+            self._near_window_end()
+            if end_time_threshold is None
+            else self.converter.token2id[end_time_threshold]
+        )
         fs = self.preprocessor_conf["fs"]
 
         if isinstance(speech, np.ndarray):
