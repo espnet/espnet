@@ -1,6 +1,6 @@
-import kaldiio
 import numpy as np
 import pytest
+from omniio import kaldi as kaldi_io
 
 from espnet2.legacy.transform.spectrogram import logmelspectrogram
 from espnet2.legacy.transform.transformation import Transformation
@@ -23,7 +23,7 @@ def test_preprocessing(tmpdir):
     stats[1, :80] = (samples**2).sum(axis=0)
     stats[0, -1] = 100.0
     stats[1, -1] = 0.0
-    kaldiio.save_mat(cmvn_ark, stats)
+    kaldi_io.save_mat(cmvn_ark, stats)
 
     bs = 1
     xs = [np.random.randn(1000).astype(np.float32) for _ in range(bs)]

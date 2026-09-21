@@ -135,8 +135,11 @@ class SoundScpReader(collections.abc.Mapping):
         self.multi_columns = multi_columns
         self.concat_axis = concat_axis
 
-    def __getitem__(self, key) -> Tuple[int, np.ndarray]:
+    def __getitem__(self, key) -> Tuple[Optional[int], Optional[np.ndarray]]:
         wavs = self.data[key]
+        if type(wavs) is str and wavs == "None":
+            # NOTE(jiatong): for missing audio case
+            return None, None
 
         array, rate = soundfile_read(
             wavs,

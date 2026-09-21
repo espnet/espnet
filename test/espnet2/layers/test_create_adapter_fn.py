@@ -37,7 +37,16 @@ def init_decoder_model():
 
 
 # =========================================Houlsby================================================
-@pytest.mark.execution_timeout(20)
+# These four tests build an s3prl frontend, and the first one to run downloads
+# the upstream it asks for - hubert_base is a few hundred MB. The 20 s budget
+# they carried predates that being on the clock: the tests spent six months
+# skipped behind a torch version check, and were re-enabled in #6678. Two
+# consecutive CI runs then failed here, one on a connection reset mid-download
+# and one on the 20 s timeout itself, on a change that touches none of this.
+# 120 s covers a cold cache on a slow morning. If it still flakes, the answer is
+# to fetch the upstream when the CI image is built rather than to keep raising
+# this number.
+@pytest.mark.execution_timeout(120)
 @pytest.mark.parametrize("model, bottleneck, target_layers", [("s3prl", 64, [])])
 def test_create_houlsby_adapter_bottleneck(
     model,
@@ -55,7 +64,7 @@ def test_create_houlsby_adapter_bottleneck(
     )
 
 
-@pytest.mark.execution_timeout(20)
+@pytest.mark.execution_timeout(120)
 @pytest.mark.parametrize(
     "model, bottleneck, target_layers",
     [
@@ -87,7 +96,7 @@ def test_create_houlsby_adapter_hf_wav2vec2_custom_bottleneck(
     )
 
 
-@pytest.mark.execution_timeout(20)
+@pytest.mark.execution_timeout(120)
 @pytest.mark.parametrize("model, bottleneck, target_layers", [("s3prl", 64, [1, 2])])
 def test_create_houlsby_adapter_target_layers(
     model,
@@ -117,7 +126,7 @@ def test_create_houlsby_adapter_target_layers(
     ), type(model.frontend.upstream.upstream.model.encoder.layers[3])
 
 
-@pytest.mark.execution_timeout(20)
+@pytest.mark.execution_timeout(120)
 @pytest.mark.parametrize("model, bottleneck, target_layers", [("s3prl", 64, [200])])
 def test_create_houlsby_adapter_invalid_target_layers(
     model,

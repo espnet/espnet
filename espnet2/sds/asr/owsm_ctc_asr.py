@@ -3,7 +3,7 @@ import numpy as np
 import torch
 from typeguard import typechecked
 
-from espnet2.bin.s2t_inference_ctc import Speech2TextGreedySearch
+from espnet2.bin.s2t_inference import Speech2Text
 from espnet2.sds.asr.abs_asr import AbsASR
 
 
@@ -33,7 +33,7 @@ class OWSMCTCModel(AbsASR):
             Defaults to "float16".
         """
         super().__init__()
-        self.s2t = Speech2TextGreedySearch.from_pretrained(
+        self.s2t = Speech2Text.from_pretrained(
             tag,
             device=device,
             generate_interctc_outputs=False,
@@ -59,7 +59,7 @@ class OWSMCTCModel(AbsASR):
                 .numpy()
             )
             speech = librosa.util.fix_length(dummy_input, size=(16000 * 30))
-            _ = self.s2t(speech)
+            _ = self.s2t.best_path(speech)
 
     def forward(self, array: np.ndarray) -> str:
         """Perform a forward pass on the given audio data,
@@ -78,5 +78,8 @@ class OWSMCTCModel(AbsASR):
         """
         with torch.no_grad():
             array = librosa.util.fix_length(array, size=(16000 * 30))
-            prompt = " ".join(self.s2t(array)[0][0].split()[1:])
+            # best_path, not __call__: this is the fast CTC route the
+            # class this replaced always took, and a dialogue turn cannot
+            # wait for a beam search
+            prompt = " ".join(self.s2t.best_path(array)[0][0].split()[1:])
             return prompt
