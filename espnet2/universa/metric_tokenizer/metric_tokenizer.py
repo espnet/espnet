@@ -50,11 +50,6 @@ class MetricTokenizer(AbsMetricTokenizer):
         self.vocab_indices["<sos>"] = 3  # Add start-of-sequence token index
         self.adjusted_vocab = ["<pad>", "<unk>", "<eos>", "<sos>"] + self.vocab
 
-        # Extract metric types and their thresholds/categories
-        self.metrics = {}
-        for metric_name, values in self.tokenizer_config.items():
-            self.metrics[metric_name] = values
-
     def get_metric_meta_label(self, metric_name: str) -> int:
         """
         Get the meta label index for a given metric.
@@ -151,7 +146,6 @@ class MetricTokenizer(AbsMetricTokenizer):
 
         Args:
             metrics: Dictionary of metric names and their values
-            return_dict: If True, return a dictionary of token indices instead of a list
             reduce_offset: Whether to reduce metric-related offset
 
         Returns:
@@ -166,7 +160,7 @@ class MetricTokenizer(AbsMetricTokenizer):
             ):
                 continue
 
-            if metric_name not in self.metrics:
+            if metric_name not in self.tokenizer_config:
                 continue
 
             if isinstance(value, tuple):
@@ -200,9 +194,10 @@ class MetricTokenizer(AbsMetricTokenizer):
             String representation of the metrics
         """
         tokens_list = list(tokens)
-        assert len(tokens_list) > 0, "Token list is empty"
+        if not tokens_list:
+            raise ValueError("Token list is empty")
         if tokens_list[0] == 2:
-            # Remove the first token if it is <sos>
+            # Published ARECHO checkpoints use ID 2 as the start token.
             tokens_list = tokens_list[1:]
         if len(tokens_list) % 2 != 0:
             raise ValueError(
@@ -214,38 +209,13 @@ class MetricTokenizer(AbsMetricTokenizer):
             meta_label_idx = tokens_list[i]
             value_idx = tokens_list[i + 1]
 
+            if not 0 <= meta_label_idx < len(self.adjusted_vocab):
+                raise ValueError(f"Invalid token index: {meta_label_idx}")
             meta_label = self.adjusted_vocab[meta_label_idx]
-            value_token = self.adjusted_vocab[value_idx]
-
-            assert meta_label.endswith(
-                "@meta_label"
-            ), f"Invalid meta_label: {meta_label}"
-            # Extract metric name from meta_label
-            metric_name = meta_label.split("@meta_label")[0]
-
-            # Extract value index from value token
-            value_index = int(value_token.split("@")[-1])
-            assert (
-                value_index >= 0
-            ), f"Invalid value index: {value_index} for token {value_token}"
-
-            if metric_name not in self.tokenizer_config.keys():
-                raise ValueError(f"Unknown metric in decoding: {metric_name}")
-
-            # For category, get the actual category value
-            if isinstance(self.tokenizer_config[metric_name][0], str):
-                result[metric_name] = [
-                    self.tokenizer_config[metric_name][value_index - 1]
-                ]
-            else:
-                # For numerical metrics, represent as ranges
-                thresholds = self.tokenizer_config[metric_name]
-                if value_index == 0:
-                    result[metric_name] = [thresholds[0]]
-                elif value_index == len(thresholds):
-                    result[metric_name] = [thresholds[-1]]
-                else:
-                    result[metric_name] = [thresholds[value_index - 1]]
+            if not meta_label.endswith("@meta_label"):
+                raise ValueError(f"Invalid meta_label: {meta_label}")
+            metric_name = meta_label.removesuffix("@meta_label")
+            result[metric_name] = [self.token2metric(value_idx, metric_name)]
 
         if return_dict:
             return result
@@ -267,27 +237,27 @@ class MetricTokenizer(AbsMetricTokenizer):
         Returns:
             String representation of the metric
         """
-        if token not in self.vocab_indices.values():
+        if not 0 <= token < len(self.adjusted_vocab):
             raise ValueError(f"Invalid token index: {token}")
 
         token_result = self.adjusted_vocab[token]
-        if token_result.endswith("@meta_label"):
-            metric_name = token_result.split("@meta_label")[0]
-            return metric_name
-        else:
-            token_value = int(token_result.split("@")[-1])
-            if metric is None:
-                raise ValueError(
-                    "Metric name must be provided for non-meta_label tokens"
-                )
-            if metric not in self.tokenizer_config.keys():
-                raise ValueError(f"Unknown metric: {metric}")
-
-            # NOTE(jiatong): the first token is for padding
-            assert token_value >= 1 and token_value <= len(
-                self.tokenizer_config[metric]
-            ), f"Invalid token value: {token_value} for metric {metric}"
-            return self.tokenizer_config[metric][token_value - 1]
+        if metric is None:
+            if token_result.endswith("@meta_label"):
+                return token_result.removesuffix("@meta_label")
+            raise ValueError("Metric name must be provided for non-meta_label tokens")
+        if metric not in self.tokenizer_config:
+            raise ValueError(f"Unknown metric: {metric}")
+        prefix = f"{metric}@"
+        suffix = token_result.removeprefix(prefix)
+        if not token_result.startswith(prefix) or not suffix.isdecimal():
+            raise ValueError(f"Invalid value token {token_result} for metric {metric}")
+        token_value = int(suffix)
+        values = self.tokenizer_config[metric]
+        minimum = 1 if isinstance(values[0], str) else 0
+        if not minimum <= token_value <= len(values):
+            raise ValueError(f"Invalid token value: {token_value} for metric {metric}")
+        # Preserve historical numeric bins, including the below-first-threshold bin.
+        return values[max(token_value - 1, 0)]
 
     @typechecked
     def add_offset(self, src_tokens: Iterable[int], metric_name: str) -> List[int]:
@@ -301,6 +271,5 @@ class MetricTokenizer(AbsMetricTokenizer):
         Returns:
             Token with added offset
         """
-        offset = self.metric_offset[metric_name][0]
-        # NOTE(jiatong): +1 for position of meta label
+        offset = self.metric_offset[metric_name][0] + self.overall_offset
         return [int(t + offset) for t in src_tokens]

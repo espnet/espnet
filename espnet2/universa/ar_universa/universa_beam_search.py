@@ -1,6 +1,5 @@
 """Beam search module."""
 
-import copy
 import logging
 from typing import Any, Dict, List, NamedTuple, Optional, Tuple, Union
 
@@ -8,17 +7,6 @@ import torch
 from typeguard import typechecked
 
 logger = logging.getLogger(__name__)
-
-
-def deep_copy_without_element(lst, element_to_remove):
-    # Create a deep copy of the original list
-    new_list = copy.deepcopy(lst)
-
-    # Remove the element if it exists in the top level
-    if element_to_remove in new_list:
-        new_list.remove(element_to_remove)
-
-    return new_list
 
 
 class Hypothesis(NamedTuple):
@@ -108,14 +96,14 @@ class ARUniVERSABeamSearch:
         self.beam_size = beam_size
         self.n_vocab = vocab_size
 
-    def init_hyp(self, x: torch.Tensor) -> Hypothesis:
+    def init_hyp(self, x: torch.Tensor) -> List[Hypothesis]:
         """Initialize a hypothesis.
 
         Args:
             x (torch.Tensor): Encoder output tensor.
 
         Returns:
-            Hypothesis: Initialized hypothesis.
+            List[Hypothesis]: Initial beam containing one hypothesis.
         """
         init_states = dict()
         init_scores = dict()
@@ -129,7 +117,7 @@ class ARUniVERSABeamSearch:
                 scores=init_scores,
                 states=init_states,
                 yseq=torch.tensor([self.sos], device=x.device),
-                unused_meta_label_ids=copy.deepcopy(self.meta_label_for_search),
+                unused_meta_label_ids=list(self.meta_label_for_search),
             )
         ]
 
@@ -244,30 +232,18 @@ class ARUniVERSABeamSearch:
             if self.use_fixed_order:
                 labels = labels[:1]
             part_ids = torch.tensor(labels, device=x.device)
-            if self.skip_meta_label_score:
-                weighted_scores = torch.zeros(
-                    self.n_vocab, dtype=x.dtype, device=x.device
-                )
-                scores, states = self.score(hyp, x)
-                for k in self.scorers:
+            scores, states = self.score(hyp, x)
+            weighted_scores = torch.zeros(self.n_vocab, dtype=x.dtype, device=x.device)
+            for k in self.scorers:
+                if self.skip_meta_label_score:
                     scores[k] = torch.zeros_like(scores[k])
-                weighted_scores += hyp.score
-                use_id_size = True
-            else:
-                # scoring
-                weighted_scores = torch.zeros(
-                    self.n_vocab, dtype=x.dtype, device=x.device
-                )
-                scores, states = self.score(hyp, x)
-                for k in self.scorers:
-                    weighted_scores += self.weights[k] * scores[k]
-
-                # add previous hyp score
-                weighted_scores += hyp.score
-                use_id_size = False
+                weighted_scores += self.weights[k] * scores[k]
+            weighted_scores += hyp.score
 
             # update hyps
-            for j, _ in zip(*self.beam(weighted_scores, part_ids, use_id_size)):
+            for j, _ in zip(
+                *self.beam(weighted_scores, part_ids, self.skip_meta_label_score)
+            ):
                 j = int(j)
                 # will be (2 x beam at most)
                 extended_hyps.append(
@@ -276,9 +252,9 @@ class ARUniVERSABeamSearch:
                         yseq=self.append_token(hyp.yseq, j),
                         scores=self.merge_scores(hyp.scores, scores, j),
                         states=states,
-                        unused_meta_label_ids=deep_copy_without_element(
-                            hyp.unused_meta_label_ids, j
-                        ),
+                        unused_meta_label_ids=[
+                            label for label in hyp.unused_meta_label_ids if label != j
+                        ],
                     )
                 )
         return extended_hyps
@@ -299,10 +275,7 @@ class ARUniVERSABeamSearch:
 
         """
         best_hyps = []
-        extended_running_hyps = []
-
-        extended_running_hyps.extend(self.extend(running_hyps, x))
-        for hyp in extended_running_hyps:
+        for hyp in self.extend(running_hyps, x):
             # scoring
             weighted_scores = torch.zeros(self.n_vocab, dtype=x.dtype, device=x.device)
             scores, states = self.score(hyp, x)
@@ -314,15 +287,10 @@ class ARUniVERSABeamSearch:
 
             # NOTE(jiatong): conduct pre-beam with value tokens based on metric meta
             # label ids
-            if self.beam_masking is None:
-                part_ids = torch.arange(self.n_vocab, device=x.device)
-            else:
-                token_range = self.beam_masking.get(int(hyp.yseq[-1]), None)
-                if token_range is None:
-                    part_ids = torch.arange(self.n_vocab, device=x.device)
-                else:
-                    start_idx, end_idx = token_range
-                    part_ids = torch.arange(start_idx, end_idx, device=x.device)
+            token_range = (self.beam_masking or {}).get(
+                int(hyp.yseq[-1]), (0, self.n_vocab)
+            )
+            part_ids = torch.arange(*token_range, device=x.device)
 
             # update hyps
             for j, _ in zip(*self.beam(weighted_scores, part_ids)):
@@ -334,9 +302,7 @@ class ARUniVERSABeamSearch:
                         yseq=self.append_token(hyp.yseq, j),
                         scores=self.merge_scores(hyp.scores, scores, j),
                         states=states,
-                        unused_meta_label_ids=deep_copy_without_element(
-                            hyp.unused_meta_label_ids, j
-                        ),
+                        unused_meta_label_ids=list(hyp.unused_meta_label_ids),
                     )
                 )
 
@@ -360,8 +326,7 @@ class ARUniVERSABeamSearch:
 
         """
         # set length bounds
-        inp = x
-        logger.info("decoder input length: " + str(inp.shape[0]))
+        logger.info("decoder input length: " + str(x.shape[0]))
         logger.info(
             "expected output length: " + str(len(self.meta_label_for_search) * 2)
         )
