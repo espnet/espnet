@@ -7,9 +7,8 @@ silently go wrong when a new OWSM spells its symbols differently.
 
 import subprocess
 import sys
-from pathlib import Path
-
 import types
+from pathlib import Path
 
 import numpy as np
 import pytest
