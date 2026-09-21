@@ -15,7 +15,7 @@
 #   `model.dir_or_tag`, or that field points to a Hugging Face model repo.
 # - `ui.app_script` points to the Gradio launcher copied into the packed demo.
 #
-# Merged over egs3/TEMPLATE/codec/conf/demo.yaml, which already wires the
+# Merged over egs3/TEMPLATE/esp2_codec/conf/demo.yaml, which already wires the
 # audio-in / audio-out UI for a codec roundtrip and the default
 # `exp/${exp_tag}/model_pack` model reference.
 

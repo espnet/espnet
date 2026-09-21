@@ -1,14 +1,14 @@
-"""Unit tests for espnet3.systems.codec.gan_trainer."""
+"""Unit tests for espnet3.systems.esp2_codec.gan_trainer."""
 
-from test.espnet3.systems.codec._gan_dummies import (
+from test.espnet3.systems.esp2_codec._gan_dummies import (
     DummyGANModel,
     make_gan_training_config,
 )
 
 from omegaconf import OmegaConf
 
-import espnet3.systems.codec.gan_trainer as gt
-from espnet3.systems.codec.models.gan_lightning_module import GANLightningModule
+import espnet3.systems.esp2_codec.gan_trainer as gt
+from espnet3.systems.esp2_codec.models.gan_lightning_module import GANLightningModule
 
 
 def _capture_parent_init(monkeypatch):
@@ -101,7 +101,7 @@ def test_build_gan_trainer_wires_module_and_trainer(monkeypatch):
 
 
 def test_gan_fit_runs_one_batch_with_real_trainer(tmp_path):
-    from espnet3.systems.codec.gan_trainer import GANLightningTrainer
+    from espnet3.systems.esp2_codec.gan_trainer import GANLightningTrainer
 
     model = GANLightningModule(
         DummyGANModel(), make_gan_training_config(tmp_path / "exp")

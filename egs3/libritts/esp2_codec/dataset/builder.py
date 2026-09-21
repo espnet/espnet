@@ -2,7 +2,7 @@
 
 Downloads the LibriTTS subsets listed in ``dataset/config.yaml`` from OpenSLR
 and turns them into the TSV manifests consumed by
-``egs3.libritts.codec.dataset.dataset.LibriTTSCodecDataset``.
+``egs3.libritts.esp2_codec.dataset.dataset.LibriTTSCodecDataset``.
 """
 
 from __future__ import annotations
@@ -169,8 +169,8 @@ class LibriTTSBuilder(DatasetBuilder):
         Examples:
             ```python
             builder = LibriTTSBuilder()
-            if not builder.is_source_prepared(recipe_dir="egs3/libritts/codec"):
-                builder.prepare_source(recipe_dir="egs3/libritts/codec")
+            if not builder.is_source_prepared(recipe_dir="egs3/libritts/esp2_codec"):
+                builder.prepare_source(recipe_dir="egs3/libritts/esp2_codec")
             ```
         """
         recipe_root = Path(recipe_dir).resolve()
@@ -209,17 +209,17 @@ class LibriTTSBuilder(DatasetBuilder):
             Called by the ``create_dataset`` stage, but it can also be driven
             directly:
             ```python
-            from egs3.libritts.codec.dataset.builder import LibriTTSBuilder
+            from egs3.libritts.esp2_codec.dataset.builder import LibriTTSBuilder
 
             builder = LibriTTSBuilder()
-            builder.prepare_source(recipe_dir="egs3/libritts/codec")
+            builder.prepare_source(recipe_dir="egs3/libritts/esp2_codec")
             ```
 
             The full recipe download is ~80 GB. To keep only the extracted
             audio:
             ```python
             builder.prepare_source(
-                recipe_dir="egs3/libritts/codec",
+                recipe_dir="egs3/libritts/esp2_codec",
                 remove_archive=True,
             )
             ```
@@ -255,8 +255,8 @@ class LibriTTSBuilder(DatasetBuilder):
         Examples:
             ```python
             builder = LibriTTSBuilder()
-            if not builder.is_built(recipe_dir="egs3/libritts/codec"):
-                builder.build(recipe_dir="egs3/libritts/codec")
+            if not builder.is_built(recipe_dir="egs3/libritts/esp2_codec"):
+                builder.build(recipe_dir="egs3/libritts/esp2_codec")
             ```
         """
         recipe_root = Path(recipe_dir).resolve()
@@ -291,11 +291,11 @@ class LibriTTSBuilder(DatasetBuilder):
 
         Examples:
             ```python
-            from egs3.libritts.codec.dataset.builder import LibriTTSBuilder
+            from egs3.libritts.esp2_codec.dataset.builder import LibriTTSBuilder
 
             builder = LibriTTSBuilder()
-            builder.prepare_source(recipe_dir="egs3/libritts/codec")
-            builder.build(recipe_dir="egs3/libritts/codec")
+            builder.prepare_source(recipe_dir="egs3/libritts/esp2_codec")
+            builder.build(recipe_dir="egs3/libritts/esp2_codec")
             ```
 
             Each manifest row is four tab-separated fields, e.g.:

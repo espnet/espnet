@@ -1,6 +1,7 @@
 """Shared GAN trainer helpers for ESPnet3.
 
-Pairs with ``espnet3.systems.codec.models.gan_lightning_module.GANLightningModule``.
+Pairs with
+``espnet3.systems.esp2_codec.models.gan_lightning_module.GANLightningModule``.
 Kept task-agnostic so both GAN-TTS and GAN-based neural codec systems can
 reuse it without duplication.
 """
@@ -12,7 +13,7 @@ import copy
 from omegaconf import DictConfig
 
 from espnet3.components.trainers.trainer import ESPnet3LightningTrainer
-from espnet3.systems.codec.models.gan_lightning_module import GANLightningModule
+from espnet3.systems.esp2_codec.models.gan_lightning_module import GANLightningModule
 
 
 class GANLightningTrainer(ESPnet3LightningTrainer):
@@ -94,7 +95,7 @@ def build_gan_trainer(training_config, model) -> GANLightningTrainer:
 
     Examples:
         ```python
-        from espnet3.systems.codec.gan_trainer import build_gan_trainer
+        from espnet3.systems.esp2_codec.gan_trainer import build_gan_trainer
         from espnet3.utils.task_utils import get_espnet_model
 
         model = get_espnet_model(config.task, config.model)

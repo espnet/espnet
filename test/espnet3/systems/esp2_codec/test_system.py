@@ -1,13 +1,13 @@
-"""Unit tests for espnet3.systems.codec.system."""
+"""Unit tests for espnet3.systems.esp2_codec.system."""
 
-from test.espnet3.systems.codec._gan_dummies import DummyGANModel
+from test.espnet3.systems.esp2_codec._gan_dummies import DummyGANModel
 
 import pytest
 import torch.nn as nn
 from omegaconf import OmegaConf
 
-import espnet3.systems.codec.system as sysmod
-from espnet3.systems.codec.system import CodecSystem, _instantiate_model
+import espnet3.systems.esp2_codec.system as sysmod
+from espnet3.systems.esp2_codec.system import CodecSystem, _instantiate_model
 
 
 class DummyTrainer:

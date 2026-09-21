@@ -5,7 +5,7 @@
 #   python run.py --stages measure --metrics_config conf/metrics.yaml
 #
 # Recipe configs fill in the `metrics` list; see
-# `egs3/libritts/codec/conf/metrics.yaml` for a working example built on the
+# `egs3/libritts/esp2_codec/conf/metrics.yaml` for a working example built on the
 # shared `espnet3.components.metrics.versa.VersaMetric` (PESQ/STOI/mel-cepstral
 # distortion and more).
 #

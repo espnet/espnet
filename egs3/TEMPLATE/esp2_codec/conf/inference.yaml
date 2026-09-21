@@ -11,7 +11,7 @@
 # Recipe configs fill in `model` (typically
 # `espnet2.bin.gan_codec_inference.AudioCoding` for the encode -> decode
 # roundtrip) plus `output_fn`/`output_artifacts`; see
-# `egs3/libritts/codec/conf/inference.yaml` for a working example.
+# `egs3/libritts/esp2_codec/conf/inference.yaml` for a working example.
 
 ##########################################################
 #                    PATHS AND INPUTS                    #

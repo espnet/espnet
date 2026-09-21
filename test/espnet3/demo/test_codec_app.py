@@ -7,7 +7,7 @@ import pytest
 
 pytest.importorskip("gradio")
 
-from egs3.TEMPLATE.codec.src import app as codec_app  # noqa: E402
+from egs3.TEMPLATE.esp2_codec.src import app as codec_app  # noqa: E402
 
 AUDIO_INPUT_SPECS = [{"key": "audio", "type": "audio", "label": "Input Audio"}]
 AUDIO_OUTPUT_SPECS = [{"key": "wav", "type": "audio", "label": "Resynthesized Audio"}]

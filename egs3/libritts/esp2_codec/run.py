@@ -1,10 +1,10 @@
-from egs3.TEMPLATE.codec.run import (
+from egs3.TEMPLATE.esp2_codec.run import (
     DEFAULT_STAGES,
     build_parser,
     main,
     parse_cli_and_stage_args,
 )
-from espnet3.systems.codec.system import CodecSystem
+from espnet3.systems.esp2_codec.system import CodecSystem
 
 if __name__ == "__main__":
     parser = build_parser(

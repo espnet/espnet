@@ -6,7 +6,7 @@
 #       --training_config conf/training_encodec.yaml \
 #       --inference_config conf/inference.yaml
 #
-# Merged over egs3/TEMPLATE/codec/conf/inference.yaml, which supplies
+# Merged over egs3/TEMPLATE/esp2_codec/conf/inference.yaml, which supplies
 # `recipe_dir`, `exp_dir`, `inference_dir`, `parallel`, `input_key: audio`,
 # and the provider/runner classes. `exp_tag`/`exp_dir` are copied in from
 # the training config by run.py, so only recipe-specific keys live here.

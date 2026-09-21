@@ -7,11 +7,11 @@ from pathlib import Path
 
 import pytest
 
-import egs3.TEMPLATE.codec.run as codec_run
-from espnet3.systems.codec.system import CodecSystem
+import egs3.TEMPLATE.esp2_codec.run as codec_run
+from espnet3.systems.esp2_codec.system import CodecSystem
 
 REPO_ROOT = Path(__file__).resolve().parents[4]
-RECIPE_CONF = REPO_ROOT / "egs3" / "libritts" / "codec" / "conf"
+RECIPE_CONF = REPO_ROOT / "egs3" / "libritts" / "esp2_codec" / "conf"
 
 
 def _build_stage_args(stages, **configs):

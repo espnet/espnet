@@ -1,4 +1,4 @@
-from test.espnet3.systems.codec._gan_dummies import DummyDataset
+from test.espnet3.systems.esp2_codec._gan_dummies import DummyDataset
 
 import pytest
 

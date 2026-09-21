@@ -16,7 +16,7 @@ import numpy as np
 import soundfile as sf
 from torch.utils.data import Dataset as TorchDataset
 
-from egs3.libritts.codec.dataset.builder import LibriTTSBuilder
+from egs3.libritts.esp2_codec.dataset.builder import LibriTTSBuilder
 from espnet3.utils.config_utils import load_config_with_defaults
 
 # ---------------------------------------------------------------------------
@@ -86,7 +86,7 @@ class LibriTTSCodecDataset(TorchDataset):
     """LibriTTS dataset returning audio-only samples for codec training.
 
     Reads one manifest TSV written by
-    :class:`~egs3.libritts.codec.dataset.builder.LibriTTSBuilder` and returns
+    :class:`~egs3.libritts.esp2_codec.dataset.builder.LibriTTSBuilder` and returns
     ``{"audio": np.float32 waveform}`` per utterance, matching
     ``CommonPreprocessor(speech_name="audio")``. In ``inference`` mode the
     sample also carries ``utt_id`` and ``wav_path`` so the infer stage can

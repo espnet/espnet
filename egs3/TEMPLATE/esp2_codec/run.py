@@ -129,7 +129,7 @@ def main(
     Args:
         args: Parsed CLI namespace from :func:`build_parser`.
         system_cls: System class to instantiate, normally
-            ``espnet3.systems.codec.system.CodecSystem``.
+            ``espnet3.systems.esp2_codec.system.CodecSystem``.
         stages: Full ordered stage list this runner supports; used to resolve
             ``--stages all`` and to order the requested stages.
 
@@ -289,7 +289,7 @@ if __name__ == "__main__":
 
     # Here you should replace `YourSystemClass` with the actual system class
     # you want to use for your experiment.
-    from espnet3.systems.codec.system import CodecSystem
+    from espnet3.systems.esp2_codec.system import CodecSystem
 
     main(
         args=args,

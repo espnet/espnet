@@ -11,7 +11,7 @@
 #       --training_config conf/training_encodec.yaml \
 #       --publication_config conf/publication.yaml
 #
-# Merged over egs3/TEMPLATE/codec/conf/publication.yaml, which supplies the
+# Merged over egs3/TEMPLATE/esp2_codec/conf/publication.yaml, which supplies the
 # path scaffold, the README template, the exclude list and the upload
 # settings. `exp_tag`/`exp_dir` are copied in from the training config by
 # run.py, so only recipe-specific keys live here.

@@ -1,6 +1,6 @@
-"""Unit tests for espnet3.systems.codec.models.gan_lightning_module."""
+"""Unit tests for espnet3.systems.esp2_codec.models.gan_lightning_module."""
 
-from test.espnet3.systems.codec._gan_dummies import (
+from test.espnet3.systems.esp2_codec._gan_dummies import (
     DummyGANModel,
     make_gan_training_config,
     make_train_batch,
@@ -13,7 +13,7 @@ import torch
 import torch.nn as nn
 from omegaconf import OmegaConf
 
-from espnet3.systems.codec.models.gan_lightning_module import GANLightningModule
+from espnet3.systems.esp2_codec.models.gan_lightning_module import GANLightningModule
 
 
 def make_module(tmp_path, gan=None, model=None, optimizers=None):

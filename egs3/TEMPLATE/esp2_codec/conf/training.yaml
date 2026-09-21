@@ -18,7 +18,7 @@
 # differ in optimizer, chunk length and checkpoint criteria), so only generic,
 # non-conflicting path/system scaffolding lives here. Everything
 # architecture-specific is left null for the recipe config to fill in; see
-# `egs3/libritts/codec/conf/training_encodec.yaml` for a worked example.
+# `egs3/libritts/esp2_codec/conf/training_encodec.yaml` for a worked example.
 
 ##########################################################
 #                  SYSTEM AND PATH SETTING               #
@@ -59,7 +59,7 @@ create_dataset: {}
 #
 # Each dataset entry supports:
 # - `data_src`: optional dataset source reference.
-#   - `<recipe>/<task>` tag, e.g. `libritts/codec`
+#   - `<recipe>/<task>` tag, e.g. `libritts/esp2_codec`
 #   - dotted module path, e.g. `my_project.datasets.foo`
 #   - omitted: load `${recipe_dir}/dataset/__init__.py`
 # - `data_src_args`: kwargs forwarded to `Dataset(...)`
