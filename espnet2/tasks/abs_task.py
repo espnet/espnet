@@ -52,6 +52,7 @@ from espnet2.schedulers.tristage_lr import TristageLR
 from espnet2.schedulers.warmup_lr import WarmupLR
 from espnet2.schedulers.warmup_reducelronplateau import WarmupReduceLROnPlateau
 from espnet2.schedulers.warmup_step_lr import WarmupStepLR
+from espnet2.torch_utils.initialize import INITIALIZATIONS
 from espnet2.torch_utils.load_pretrained_model import load_pretrained_model
 from espnet2.torch_utils.model_summary import model_summary
 from espnet2.torch_utils.pytorch_version import pytorch_cudnn_version
@@ -202,6 +203,34 @@ class IteratorOptions:
     num_batches: Optional[int]
     num_iters_per_epoch: Optional[int]
     train: bool
+
+
+def _drop_init_this_version_removed(args: argparse.Namespace) -> None:
+    """Ignore an initialization this version no longer has, when loading.
+
+    `--init` says how to fill the parameters *before* training. Loading a
+    trained model fills them from the checkpoint instead, so the setting has
+    no effect here - but `build_model` applies it anyway and raises on a
+    value it does not recognise, which is how a model published with
+    `init: chainer` stopped loading when that choice was removed in June 2025
+    (9e9897a4703). espnet_model_zoo's daily run found it on jv_openslr35,
+    published against espnet 0.9.7.
+
+    A value this version does know is left alone: it is wasted work before
+    the state dict overwrites it, but `load_state_dict` here is not strict,
+    so a parameter the checkpoint does not carry keeps what the
+    initialization gave it.
+    """
+    init = getattr(args, "init", None)
+    if init is None or init in INITIALIZATIONS:
+        return
+    logging.warning(
+        "this model was trained with init=%s, which this version of espnet "
+        "does not have. Ignoring it: the weights come from the checkpoint, "
+        "not from an initialization.",
+        init,
+    )
+    args.init = None
 
 
 class AbsTask(ABC):
@@ -2482,6 +2511,7 @@ class AbsTask(ABC):
         with config_file.open("r", encoding="utf-8") as f:
             args = yaml.safe_load(f)
         args = argparse.Namespace(**args)
+        _drop_init_this_version_removed(args)
         model = cls.build_model(args)
         if not isinstance(model, AbsESPnetModel):
             raise RuntimeError(

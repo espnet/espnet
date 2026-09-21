@@ -1,12 +1,15 @@
 import argparse
+import logging
 
 import configargparse
 import pytest
 import torch
 import yaml
 
+from espnet2.tasks import abs_task
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.torch_utils.device_funcs import force_gatherable
+from espnet2.torch_utils.initialize import initialize
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.train.collate_fn import CommonCollateFn
 
@@ -162,3 +165,46 @@ def test_main(tmp_path):
             "1",
         ]
     )
+
+
+def test_an_init_this_version_removed_does_not_stop_a_model_loading(tmp_path, caplog):
+    """A checkpoint says how it was initialised; this version may not know it.
+
+    `init: chainer` was one of six choices until it was removed in June 2025,
+    and espnet_model_zoo's daily run found it still published: jv_openslr35,
+    trained on espnet 0.9.7, failed with `Unknown initialization: chainer`.
+    The setting cannot matter when loading - the weights come from the file -
+    so it is ignored, with a line saying so.
+    """
+    config_file = tmp_path / "config.yaml"
+    model_file = tmp_path / "model.pth"
+    with config_file.open("w", encoding="utf-8") as f:
+        yaml.safe_dump({"init": "chainer"}, f)
+    torch.save(DummyModel().state_dict(), model_file)
+
+    with caplog.at_level(logging.WARNING):
+        _, args = TestTask.build_model_from_file(
+            config_file=config_file, model_file=model_file, device="cpu"
+        )
+
+    assert args.init is None
+    assert "init=chainer" in caplog.text
+
+
+def test_an_init_this_version_has_is_left_alone(tmp_path):
+    """Not a blanket "ignore init when loading": it still applies.
+
+    load_state_dict here is not strict, so a parameter the checkpoint does
+    not carry keeps whatever the initialization gave it.
+    """
+    args = argparse.Namespace(init="xavier_uniform")
+
+    abs_task._drop_init_this_version_removed(args)
+
+    assert args.init == "xavier_uniform"
+
+
+def test_a_misspelled_init_is_still_reported_when_training():
+    """Ignoring is for loading a checkpoint; building one still refuses."""
+    with pytest.raises(ValueError, match="Unknown initialization: xavier"):
+        initialize(DummyModel(), "xavier")
