@@ -112,6 +112,27 @@ include = ["espnet*", "egs3*"]
 [tool.setuptools.package-data]
 egs3 = ["egs3/TEMPLATE/**/*.yaml"]
 
+[tool.ruff]
+include = [
+    "espnet3/**/*.py",
+    "egs3/**/*.py",
+    "test/espnet3/**/*.py",
+    "test/egs3/**/*.py",
+]
+
+[tool.ruff.lint]
+select = [
+    "E", # pycodestyle errors
+    "W", # pycodestyle warnings
+    "F", # flake8
+    "I", # isort
+]
+
+[tool.ruff.format]
+# Like Black
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
 
 [project.optional-dependencies]
 # Training, with espnet2 (espnet2/bin/*_train.py, egs2 recipes) or espnet3
@@ -277,6 +298,7 @@ dev = [
   "pytest>=7.0.0,<8.4.0",
   "pytest-cov>=2.7.1",
   "isort",
+  "ruff>=0.16.8",
 ]
 
 test = [
