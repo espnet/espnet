@@ -100,6 +100,7 @@ GITHUB_TOKEN from the two steps that need it for torch.hub.
 """
 
 import fnmatch
+import importlib.util
 import json
 import re
 import subprocess
@@ -156,6 +157,189 @@ def check_variants() -> list:
         for value in job_th:
             if value not in pytorches:
                 problems.append(f"{job}: pytorch {value} is not a built variant")
+    return problems
+
+
+VARIANTS_SCRIPT = Path("ci/image_variants.py")
+# Every `image_variants.py matrix ...` the workflow runs, with the shell
+# variables left in - they are dropped before the command is re-run here.
+GENERATED = re.compile(r"python3 ci/image_variants\.py matrix([^\n)]*)")
+
+
+def _k2_gap() -> set:
+    """Torch versions install_k2.sh skips k2 for."""
+    if not INSTALL_K2.exists():
+        return set()
+    match = re.search(r'^k2_missing_for="([^"]*)"', INSTALL_K2.read_text(), re.M)
+    return set(match.group(1).split()) if match else set()
+
+
+RELEVANCE = Path("ci/integration_is_relevant.py")
+# Removing any of these makes pull requests that change them stop running the
+# recipe tests, which is the failure worth guarding: it is green and faster,
+# and the only thing that catches it is the master push after the merge. The
+# rest of the list is judgement and can be edited freely.
+RELEVANCE_CORE = {
+    "espnet2": (
+        "espnet2/",
+        "egs2/TEMPLATE/",
+        "egs2/mini_an4/",
+        "tools/",
+        "ci/test_integration_espnet2.sh",
+    ),
+    # espnet2/ is here because espnet3 imports it throughout, so an espnet2
+    # change can break the espnet3 recipes without touching espnet3.
+    "espnet3": (
+        "espnet2/",
+        "espnet3/",
+        "egs3/",
+        "tools/",
+        "ci/test_integration_espnet3.sh",
+    ),
+}
+
+
+def check_needed_before_read() -> list:
+    """A job reading another job's outputs must declare it in `needs`.
+
+    An expression naming a job that is not a dependency evaluates to the empty
+    string rather than failing, so the step sees "" and carries on. Writing
+    `needs.resolve_ci_image.outputs.espnet3_relevant` into a job whose needs
+    was only process_labels is how the espnet3 publication test came within
+    one commit of being skipped on every pull request, silently and in green.
+    """
+    workflow = yaml.safe_load(CONSUMER.read_text())
+    problems = []
+    for name, job in (workflow.get("jobs") or {}).items():
+        needs = job.get("needs") or []
+        if isinstance(needs, str):
+            needs = [needs]
+        for read in sorted(
+            set(re.findall(r"needs\.([a-z_0-9]+)\.outputs", yaml.dump(job)))
+        ):
+            if read not in needs:
+                problems.append(
+                    f"{CONSUMER}: job {name} reads "
+                    f"needs.{read}.outputs but does not need {read}, so the "
+                    "expression is the empty string rather than an error"
+                )
+    return problems
+
+
+def check_integration_relevance_paths() -> list:
+    """Every path prefix that gates the integration tests must still exist.
+
+    A prefix that matches nothing is a path that was renamed or removed, and
+    it fails silently in the dangerous direction: pull requests touching what
+    used to live there stop running the recipe tests, and the jobs go green
+    faster, which looks like the change working.
+    """
+    if not RELEVANCE.exists():
+        return [f"{RELEVANCE}: missing"]
+    spec = importlib.util.spec_from_file_location("relevance", RELEVANCE)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    # Not tracked_files(): that one is for the version-pin scan and skips the
+    # recipes, which is most of what this list is about.
+    listed = subprocess.run(
+        ["git", "ls-files", "-z"], capture_output=True, text=True, check=False
+    )
+    if listed.returncode != 0:
+        return [f"{RELEVANCE}: could not list tracked files"]
+    paths = [name for name in listed.stdout.split("\0") if name]
+    problems = []
+    for suite, prefixes in module.RELEVANT.items():
+        problems += [
+            f"{RELEVANCE}: [{suite}] the prefix {prefix!r} matches no tracked "
+            "file, so whatever used to be there no longer runs the "
+            "integration tests"
+            for prefix in prefixes
+            if not any(name == prefix or name.startswith(prefix) for name in paths)
+        ]
+        problems += [
+            f"{RELEVANCE}: [{suite}] {prefix!r} is missing, so a pull request "
+            "that changes it would not run these integration tests at all"
+            for prefix in RELEVANCE_CORE[suite]
+            if prefix not in prefixes
+        ]
+    for suite in RELEVANCE_CORE:
+        if suite not in module.RELEVANT:
+            problems.append(f"{RELEVANCE}: no list for the {suite} suite")
+    return problems
+
+
+def check_generated_matrices() -> list:
+    """A matrix the workflow generates must still cover every python.
+
+    The integration grid is narrowed to one pytorch per python on pull
+    requests, because 14 tasks across the full grid is 84 jobs and the whole
+    critical path. Narrowing the other axis instead would drop the axis that
+    actually catches things - every version-specific integration failure in
+    300 runs was specific to a python - and nothing else would say so: the
+    jobs would pass, in half the time, testing half of what they claim to.
+    """
+    pythons, pytorches = variants()
+    problems = []
+    for match in GENERATED.finditer(CONSUMER.read_text()):
+        # Shell expansions cannot be evaluated here; the flags can.
+        words = [w.strip("\"'") for w in match.group(1).split()]
+        arguments = [w for w in words if w and "${" not in w]
+        run = subprocess.run(
+            [sys.executable, str(VARIANTS_SCRIPT), "matrix", *arguments],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        shown = " ".join(arguments) or "(no arguments)"
+        if run.returncode != 0:
+            problems.append(
+                f"{CONSUMER}: `image_variants.py matrix {shown}` exits "
+                f"{run.returncode}: {run.stderr.strip()[:120]}"
+            )
+            continue
+        try:
+            grid = json.loads(run.stdout)
+        except json.JSONDecodeError:
+            problems.append(
+                f"{CONSUMER}: `image_variants.py matrix {shown}` did not print JSON"
+            )
+            continue
+        if grid.get("python-version") != list(pythons):
+            problems.append(
+                f"{CONSUMER}: `image_variants.py matrix {shown}` yields pythons "
+                f"{grid.get('python-version')}, but ci/image_variants.json "
+                f"builds {list(pythons)}.\n"
+                "  The python axis is the one that catches things - every "
+                "version-specific integration failure in 300 runs was specific "
+                "to a python and failed on every pytorch. Narrow pytorch, "
+                "never python."
+            )
+        unbuilt = [v for v in grid.get("pytorch-version", []) if v not in pytorches]
+        if unbuilt:
+            problems.append(
+                f"{CONSUMER}: `image_variants.py matrix {shown}` asks for "
+                f"pytorch {unbuilt}, which no image is built for"
+            )
+        if not grid.get("pytorch-version"):
+            problems.append(
+                f"{CONSUMER}: `image_variants.py matrix {shown}` yields no pytorch"
+            )
+        # A narrowed grid must not land on a version the suite only half
+        # supports. install_k2.sh skips k2 for those, and the k2 blocks in
+        # ci/test_integration_espnet2.sh are guarded by `import k2`, so a
+        # pull-request grid pinned there would stop exercising them anywhere
+        # except master - green, faster, and testing less than it says.
+        if len(grid.get("pytorch-version", [])) < len(pytorches):
+            gap = _k2_gap() & set(grid["pytorch-version"])
+            if gap:
+                problems.append(
+                    f"{CONSUMER}: `image_variants.py matrix {shown}` narrows to "
+                    f"pytorch {sorted(gap)}, which {INSTALL_K2} lists in "
+                    "k2_missing_for.\n"
+                    "  On that version k2 is not installed and the k2 parts of "
+                    "the suite skip themselves, so narrowing onto it stops "
+                    "running them on pull requests at all."
+                )
     return problems
 
 
@@ -590,6 +774,144 @@ def tracked_files() -> list:
     ]
 
 
+README = Path("README.md")
+CONTRIBUTING = Path("CONTRIBUTING.md")
+# The two CI tables and where each one lives. The badge grid stays in the
+# README's "Tested environments"; the table saying what each column covers sits
+# in CONTRIBUTING 5.3, beside the rest of the testing sections, because it is
+# what someone whose pull request just went red is looking for. Both carry the
+# pytorch list as column headers and both have to keep naming the real grid,
+# wherever they are - so this maps prefix to file rather than assuming one.
+COVERAGE_TABLES = {
+    "|system/pytorch ver.|": README,
+    "|test suite|": CONTRIBUTING,
+}
+SUITE_HEADER = "|test suite|"
+K2_ROW = "|k2-dependent tests|"
+# The rows whose "runs on a pull request" columns must be the narrowed grid,
+# so that changing which pytorch a pull request gets cannot leave the table
+# describing the old one.
+PR_ROWS = ("|`espnet2` recipe integration|", "|`espnet3` integration|")
+
+
+def _columns(line: str) -> list:
+    return [cell.strip() for cell in line.strip().strip("|").split("|")][1:]
+
+
+def check_coverage_tables() -> list:
+    """The CI tables must name exactly the grid, and agree about k2.
+
+    The existing version check rejects a version the grid does not build, which
+    catches a stale column but not a missing one: add a pytorch and the tables
+    quietly describe a grid one column smaller than the real one. And the k2
+    row is a written-down copy of k2_missing_for, which is the fact that has
+    already gone stale once.
+
+    Each table is looked for in the file that holds it, so moving one between
+    documents is a one-line change here rather than a check that starts
+    reporting a missing table.
+    """
+    torches = list(variants()[1])
+    problems = []
+    text = {}
+    for path in dict.fromkeys(COVERAGE_TABLES.values()):
+        if not path.exists():
+            problems.append(f"{path}: missing")
+            continue
+        text[path] = path.read_text(encoding="utf-8").splitlines()
+
+    headers = {}
+    for prefix, path in COVERAGE_TABLES.items():
+        lines = text.get(path)
+        if lines is None:
+            continue
+        found = False
+        for number, line in enumerate(lines, 1):
+            if not line.startswith(prefix):
+                continue
+            found = True
+            headers[prefix] = (path, number, _columns(line))
+            if _columns(line) != torches:
+                problems.append(
+                    f"{path}:{number}: the table headed {prefix!r} lists "
+                    f"pytorch {_columns(line)}, but ci/image_variants.json "
+                    f"builds {torches}"
+                )
+        if not found:
+            problems.append(f"{path}: no table headed {prefix!r}")
+
+    narrowed = json.loads(
+        subprocess.run(
+            [sys.executable, str(VARIANTS_SCRIPT), "matrix", "--newest-pytorch"],
+            capture_output=True,
+            text=True,
+            check=False,
+        ).stdout
+        or "{}"
+    ).get("pytorch-version", [])
+    suite = headers.get(SUITE_HEADER)
+    if suite is not None:
+        suite_path, _, columns = suite
+        for prefix in PR_ROWS:
+            rows = [
+                (number, line)
+                for number, line in enumerate(text[suite_path], 1)
+                if line.startswith(prefix)
+            ]
+            if not rows:
+                problems.append(f"{suite_path}: no row starting {prefix!r}")
+                continue
+            for number, line in rows:
+                cells = _columns(line)
+                if len(cells) != len(columns):
+                    problems.append(
+                        f"{suite_path}:{number}: {prefix} has {len(cells)} cells "
+                        f"for {len(columns)} pytorch columns"
+                    )
+                    continue
+                on_pr = [v for v, cell in zip(columns, cells) if "PR" in cell]
+                if on_pr != narrowed:
+                    problems.append(
+                        f"{suite_path}:{number}: {prefix} says a pull request "
+                        f"runs pytorch {on_pr}, but image_variants.py "
+                        f"--newest-pytorch gives {narrowed}"
+                    )
+
+    gap = _k2_gap()
+    k2_path = COVERAGE_TABLES[SUITE_HEADER]
+    seen_k2_row = False
+    for number, line in enumerate(text.get(k2_path, []), 1):
+        if not line.startswith(K2_ROW):
+            continue
+        seen_k2_row = True
+        if suite is None:
+            break
+        columns = suite[2]
+        cells = _columns(line)
+        if len(cells) != len(columns):
+            problems.append(
+                f"{k2_path}:{number}: the k2 row has {len(cells)} "
+                f"cells for {len(columns)} pytorch columns"
+            )
+            break
+        said = {v for v, cell in zip(columns, cells) if "no wheel" in cell}
+        if said != gap:
+            problems.append(
+                f"{k2_path}:{number}: the k2 row says no wheel for "
+                f"{sorted(said)}, but {INSTALL_K2} skips k2 for {sorted(gap)}"
+            )
+    # A row that is not there validates nothing, and the loop above would have
+    # said so by saying nothing at all - which is the shape of every defect
+    # this file was written against.
+    if not seen_k2_row and k2_path in text:
+        problems.append(
+            f"{k2_path}: no row starting {K2_ROW!r}, so nothing records "
+            f"that {INSTALL_K2} skips k2 for torch {sorted(gap) or 'nothing'} "
+            "and that those tests importorskip rather than fail"
+        )
+    return problems
+
+
 def check_versions_are_built_variants() -> list:
     """Every version pinned anywhere must be one image_variants.json builds.
 
@@ -698,6 +1020,14 @@ def check_declared_support_matches_variants() -> list:
 
 
 INSTALL_K2 = Path("tools/installers/install_k2.sh")
+PREBUILT_ACTION = Path(".github/actions/use-prebuilt-environment/action.yml")
+# Not a substring test for the name. A comment mentioning k2_missing_for, or
+# the action keeping its own literal copy under that same name, satisfies one
+# of those while the import still fires on a torch version with no wheel -
+# both were checked against the pre-#6681 action and both passed. What has to
+# be there is a read of the installer, and a use of what was read.
+READS_GAP_LIST = re.compile(r"k2_missing_for=\$\([^\n]*install_k2\.sh")
+USES_GAP_LIST = re.compile(r"\$\{?k2_missing_for\}?")
 
 
 def check_k2_gap_is_a_built_variant() -> list:
@@ -725,12 +1055,50 @@ def check_k2_gap_is_a_built_variant() -> list:
             "k2 has no wheel for fails the whole environment build instead of "
             "skipping k2"
         ]
-    return [
+    problems = [
         f"{INSTALL_K2}: k2_missing_for names torch {version}, which "
         f"ci/image_variants.json does not build ({', '.join(torches)})"
         for version in match.group(1).split()
         if version not in torches
     ]
+    # The other half of the same fact, and the half that actually broke.
+    # Skipping k2 in the installer is only safe while whatever verifies the
+    # environment knows to skip it too: an unconditional `import k2` there
+    # fails every job on that torch. #6678 added 2.14.0 to the gap list and
+    # left the assertion in .github/actions/use-prebuilt-environment demanding
+    # k2, and nothing said so for a day - the runs before the images for that
+    # hash were published took the build-from-scratch path, where this action
+    # does not run at all. #6681 fixed it; this is what keeps the two from
+    # drifting apart again.
+    if match.group(1).split():
+        if not PREBUILT_ACTION.exists():
+            problems.append(f"{PREBUILT_ACTION}: missing")
+        else:
+            text = PREBUILT_ACTION.read_text()
+            gap = " ".join(match.group(1).split())
+            why = (
+                "  Asserting `import k2` on a torch version k2 publishes no "
+                "wheel for fails every job on that part of the grid, and only "
+                "once the prebuilt images exist - before that the jobs build "
+                "their own environment and never run this action."
+            )
+            if READS_GAP_LIST.search(text) is None:
+                problems.append(
+                    f"{PREBUILT_ACTION}: does not read {INSTALL_K2}'s "
+                    f"k2_missing_for, which currently skips k2 for torch "
+                    f"{gap}.\n"
+                    "  Expected an assignment reading the installer, as in "
+                    "`k2_missing_for=$(sed ... tools/installers/install_k2.sh)`"
+                    ". Naming it in a comment, or keeping a second copy of the "
+                    f"list here, is what drifts.\n{why}"
+                )
+            elif USES_GAP_LIST.search(text) is None:
+                problems.append(
+                    f"{PREBUILT_ACTION}: reads {INSTALL_K2}'s k2_missing_for "
+                    f"and never uses it, so k2 is still asserted on torch "
+                    f"{gap}.\n{why}"
+                )
+    return problems
 
 
 # Where a failed download takes down a job nobody is watching. Explicit globs
@@ -1014,6 +1382,9 @@ def _mergify_label_rules() -> list:
 def main() -> int:
     bad = (
         check_variants()
+        + check_generated_matrices()
+        + check_integration_relevance_paths()
+        + check_needed_before_read()
         + check_integration_tasks()
         + check_configuration_tasks()
         + check_no_duplicate_keys()
@@ -1024,6 +1395,7 @@ def main() -> int:
         + check_codecov_token()
         + check_no_direct_references()
         + check_versions_are_built_variants()
+        + check_coverage_tables()
         + check_declared_support_matches_variants()
         + check_k2_gap_is_a_built_variant()
         + check_downloads_retry_on_5xx()
@@ -1034,7 +1406,8 @@ def main() -> int:
     build, consumer = inputs(BUILD), inputs(CONSUMER)
     if build == consumer and not bad:
         print(
-            f"hash inputs agree ({len(build)} entries); every job matrix is a "
+            f"hash inputs agree ({len(build)} entries); every job matrix and "
+            "every matrix the workflow generates is a "
             "built variant; integration and configuration tasks match their "
             "scripts; every shard set is complete; every test step has "
             "HF_TOKEN; every third-party action is pinned to a SHA; "
