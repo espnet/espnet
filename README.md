@@ -32,8 +32,8 @@ evaluation, and hundreds of pretrained models on Hugging Face.
 ## What's new
 
 - **[ESPnet 202610.post1](https://github.com/espnet/espnet/releases/tag/v.202610.post1)** —
-  the command line grows `espnet demo` (the OWSM browser demo) and `espnet asr
-  --live` (the microphone, transcribed as you speak); one `Speech2Text` now loads
+  the command line grows `espnet demo` (the OWSM browser demo) and `--live`
+  (the microphone, transcribed as you speak); one `Speech2Text` now loads
   either kind of OWSM checkpoint, with `best_path()` for CTC decoding without a
   search; `espnet/espnet:inference-cpu-latest` and `-gpu-latest` run a published
   model with nothing installed; three more demo Spaces (TTS, enhancement, speaker
@@ -123,20 +123,21 @@ less than `master` does. [What each column covers](CONTRIBUTING.md#53-what-runs-
 
 ```sh
 pip install espnet
-espnet asr audio.wav                       # transcribe, detecting the language
+espnet transcribe audio.wav                # transcribe, detecting the language
 espnet translate audio.wav --to eng        # speech in, English text out
 espnet phonemize audio.wav                 # the phones, in IPA, with POWSM
 espnet align audio.wav --text "what was said"   # when each utterance was said
-espnet tts "Hello from ESPnet" -o out.wav
+espnet synthesize "Hello from ESPnet" -o out.wav
 espnet enhance noisy.wav -o clean.wav
-espnet asr --live                          # transcribe the microphone
+espnet transcribe --live                   # transcribe the microphone
 espnet models                              # the default model of each command
 pip install "espnet[demo]"
 espnet demo                                # the same model in your browser
 ```
 
-Every command takes `--model <tag>` and `--device cuda`, and `espnet --version` names
-the installed version. `espnet demo` serves, on localhost, the app behind [the OWSM-CTC
+Every command is a verb, takes `--model <tag>` and `--device cuda`, and
+`espnet --version` names the installed version. `asr` and `tts` were the names
+in 202610 and still work. `espnet demo` serves, on localhost, the app behind [the OWSM-CTC
 v4 Space](https://huggingface.co/spaces/espnet/owsm-ctc-v4) — recording, upload, the
 checkpoint's own language and translation menus, and long-form decoding — and takes
 `--port` and `--share`. The page is the checkpoint's: `espnet demo --model
