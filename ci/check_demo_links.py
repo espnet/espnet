@@ -21,13 +21,17 @@ Exit status: 0 nothing broken, 1 something broken, 2 the scan itself failed
 """
 
 import argparse
+import datetime
+import email.utils
 import errno
 import http.client
+import io
 import json
 import os
 import re
 import subprocess
 import sys
+import time
 import traceback
 import urllib.error
 import urllib.parse
@@ -66,6 +70,19 @@ WORKING_STAGES = {
     "SLEEPING",
 }
 TIMEOUT = 30
+# The Hub rate-limits by address - 500 requests in a five-minute window - and
+# a shared runner can reach that without this repository having asked for
+# anything. A 429 is then a wait rather than a broken link, and the response
+# says how long to wait, so it is waited out once instead of failing the scan.
+RATE_LIMITED = {429, 503}
+# One window, and no more. Waiting five minutes in a job that otherwise takes
+# seconds is still cheaper than a red daily run that someone has to open to
+# find out it was throttling; a wait longer than a window is not this
+# repository being throttled and is reported instead.
+MAX_WAIT = 300
+# what to wait when the server throttles without saying for how long, which is
+# what a 503 from either API usually looks like
+DEFAULT_WAIT = 30
 
 
 class ScanError(RuntimeError):
@@ -119,28 +136,79 @@ def find_links(
     return dict(notebooks), dict(spaces)
 
 
-def _get_json(url: str):
+def retry_delay(headers) -> Optional[float]:
+    """Seconds the server asked us to wait, or None if it did not say.
+
+    Three spellings: `Retry-After: 30`, the same header as an HTTP date, which
+    RFC 9110 allows and which a 30 second guess would not be long enough for,
+    and the RateLimit header's `t` field, which is what the Hub sends -
+    `ratelimit: "api";r=0;t=231` is 231 seconds until the window reopens.
+    """
+    after = headers.get("Retry-After") if headers else None
+    if after:
+        try:
+            return max(0.0, float(after.strip()))
+        except ValueError:
+            pass
+        try:
+            when = email.utils.parsedate_to_datetime(after)
+        except (TypeError, ValueError):
+            when = None
+        if when is not None:
+            # a date without a zone is read as UTC, which is what the header
+            # is required to carry anyway
+            if when.tzinfo is None:
+                when = when.replace(tzinfo=datetime.timezone.utc)
+            now = datetime.datetime.now(datetime.timezone.utc)
+            return max(0.0, (when - now).total_seconds())
+    limit = headers.get("RateLimit") if headers else None
+    if limit:
+        m = re.search(r"\bt\s*=\s*(\d+(?:\.\d+)?)", limit)
+        if m:
+            return float(m.group(1))
+    return None
+
+
+def _get_json(url: str, sleep=time.sleep):
     request = urllib.request.Request(url)
     token = os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")
     if token and url.startswith("https://api.github.com/"):
         # unauthenticated GitHub allows 60 requests an hour per address, which
         # a shared runner can exhaust; the workflow's own token lifts that
         request.add_header("Authorization", f"Bearer {token}")
-    try:
-        with urllib.request.urlopen(request, timeout=TIMEOUT) as r:
-            return json.load(r)
-    except urllib.error.HTTPError as e:
-        if e.code == 404:
-            return None
-        raise ScanError(f"{url}: HTTP {e.code}") from e
-    except (
-        urllib.error.URLError,
-        TimeoutError,
-        json.JSONDecodeError,
-        # a truncated response raises IncompleteRead, an HTTPException
-        http.client.HTTPException,
-    ) as e:
-        raise ScanError(f"{url}: {e}") from e
+    for attempt in (1, 2):
+        try:
+            with urllib.request.urlopen(request, timeout=TIMEOUT) as r:
+                return json.load(r)
+        except urllib.error.HTTPError as e:
+            if e.code == 404:
+                return None
+            wait = retry_delay(e.headers) if e.code in RATE_LIMITED else None
+            if attempt == 1 and e.code in RATE_LIMITED:
+                # a server that throttles without saying for how long still
+                # deserves the one retry; only a wait it named and that is
+                # longer than a window skips it
+                naps = DEFAULT_WAIT if wait is None else wait
+                if naps <= MAX_WAIT:
+                    sleep(naps)
+                    continue
+            if e.code in RATE_LIMITED:
+                # said plainly: a red job here is the address being throttled,
+                # and no link in this repository has been shown to be wrong
+                said = f" and asked for {wait:.0f}s" if wait is not None else ""
+                raise ScanError(
+                    f"{url}: HTTP {e.code} - rate limited{said}, not a broken link"
+                ) from e
+            raise ScanError(f"{url}: HTTP {e.code}") from e
+        except (
+            urllib.error.URLError,
+            TimeoutError,
+            json.JSONDecodeError,
+            # a truncated response raises IncompleteRead, an HTTPException
+            http.client.HTTPException,
+        ) as e:
+            raise ScanError(f"{url}: {e}") from e
+    raise AssertionError("unreachable: the loop returns or raises")
 
 
 def notebook_paths(ref: str) -> Optional[Set[str]]:
@@ -319,7 +387,7 @@ def scan() -> List[str]:
 def self_check() -> None:
     text = (
         "[a](https://colab.research.google.com/github/espnet/notebook/blob/master/"
-        "ESPnet2/Demo/TTS/tts_realtime_demo.ipynb) "
+        "Demos/TTS/tts_realtime_demo.ipynb) "
         "[b](https://github.com/espnet/notebook/blob/master/x/y.ipynb) "
         "[c](https://huggingface.co/spaces/espnet/TTS) "
         "[d](https://huggingface.co/spaces) "
@@ -332,7 +400,7 @@ def self_check() -> None:
     )
     notebooks, spaces = find_links({"README.md": text})
     assert notebooks == {
-        ("master", "ESPnet2/Demo/TTS/tts_realtime_demo.ipynb"): {"README.md"},
+        ("master", "Demos/TTS/tts_realtime_demo.ipynb"): {"README.md"},
         ("master", "x/y.ipynb"): {"README.md"},
         ("v1.0", "tagged.ipynb"): {"README.md"},
         # percent-encoding is undone here, since the ref is encoded again when
@@ -421,6 +489,110 @@ def self_check() -> None:
     # when no split holds the file, it is reported against the ref that exists
     got = split_ref("master", "gone.ipynb", {}, fetch={"master": {"a.ipynb"}}.get)
     assert got == ("master", "gone.ipynb", {"a.ipynb"}), got
+
+    # a rate limit is waited out once, with the wait the server named, and
+    # only then reported - the daily run went red on a 429 from a shared
+    # runner while every link in the repository was fine
+    assert retry_delay(email.message_from_string("Retry-After: 30")) == 30
+    assert retry_delay(email.message_from_string('RateLimit: "api";r=0;t=231')) == 231
+    assert retry_delay(email.message_from_string("")) is None
+    assert retry_delay(email.message_from_string("Retry-After: Wed, 21 Oct")) is None
+
+    # the date spelling RFC 9110 allows. Guessing 30 seconds at one of these
+    # would retry while still throttled, which is the failure this exists to
+    # avoid, so it is read rather than ignored
+    soon = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(
+        seconds=120
+    )
+    dated = email.message_from_string(
+        f"Retry-After: {email.utils.format_datetime(soon)}"
+    )
+    assert 110 <= retry_delay(dated) <= 120, retry_delay(dated)
+    past = email.message_from_string("Retry-After: Wed, 21 Oct 2015 07:28:00 GMT")
+    assert retry_delay(past) == 0.0, retry_delay(past)
+
+    calls = []
+    slept = []
+
+    def rate_limited(url, **_):
+        calls.append(url)
+        if len(calls) == 1:
+            raise urllib.error.HTTPError(
+                url,
+                429,
+                "Too Many Requests",
+                email.message_from_string('RateLimit: "api";r=0;t=7'),
+                None,
+            )
+        return io.BytesIO(b'{"ok": true}')
+
+    real_urlopen = urllib.request.urlopen
+    urllib.request.urlopen = rate_limited
+    try:
+        got = _get_json("https://huggingface.co/api/spaces/x/y", sleep=slept.append)
+    finally:
+        urllib.request.urlopen = real_urlopen
+    assert got == {"ok": True}, got
+    assert slept == [7.0], slept
+    assert len(calls) == 2, calls
+
+    def always_limited(url, **_):
+        raise urllib.error.HTTPError(
+            url,
+            429,
+            "Too Many Requests",
+            email.message_from_string('RateLimit: "api";r=0;t=9'),
+            None,
+        )
+
+    urllib.request.urlopen = always_limited
+    try:
+        _get_json("https://huggingface.co/api/spaces/x/y", sleep=lambda _: None)
+    except ScanError as e:
+        assert "rate limited" in str(e) and "not a broken link" in str(e), e
+    else:  # pragma: no cover - the raise above is the expected path
+        raise AssertionError("a rate limit that does not clear must fail the scan")
+    finally:
+        urllib.request.urlopen = real_urlopen
+
+    # a 503 that says nothing still gets the one retry, after the default
+    third = []
+
+    def silent_503(url, **_):
+        third.append(url)
+        if len(third) == 1:
+            raise urllib.error.HTTPError(
+                url, 503, "Service Unavailable", email.message_from_string(""), None
+            )
+        return io.BytesIO(b'{"ok": true}')
+
+    urllib.request.urlopen = silent_503
+    waited = []
+    try:
+        got = _get_json("https://huggingface.co/api/spaces/x/y", sleep=waited.append)
+    finally:
+        urllib.request.urlopen = real_urlopen
+    assert got == {"ok": True} and waited == [DEFAULT_WAIT], (got, waited)
+
+    # a wait longer than a CI minute is not waited out at all
+    def far_off(url, **_):
+        raise urllib.error.HTTPError(
+            url,
+            429,
+            "Too Many Requests",
+            email.message_from_string(f"Retry-After: {MAX_WAIT + 1}"),
+            None,
+        )
+
+    urllib.request.urlopen = far_off
+    try:
+        _get_json("https://huggingface.co/api/spaces/x/y", sleep=lambda _: 1 / 0)
+    except ScanError as e:
+        assert f"asked for {MAX_WAIT + 1}s" in str(e), e
+    else:  # pragma: no cover - the raise above is the expected path
+        raise AssertionError("a long wait must be reported, not slept through")
+    finally:
+        urllib.request.urlopen = real_urlopen
 
     try:
         split_ref("nope", "x.ipynb", {}, fetch=lambda ref: None)

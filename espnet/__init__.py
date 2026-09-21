@@ -30,7 +30,11 @@ except PackageNotFoundError:  # a source tree that was never pip-installed
 # that naming a task costs no import.
 TASKS: Dict[str, Tuple[str, str]] = {
     "asr": ("espnet2.bin.asr_inference", "Speech2Text"),
-    "s2t": ("espnet2.bin.s2t_inference_ctc", "Speech2TextGreedySearch"),
+    # one class for both kinds of OWSM checkpoint: it reads the training
+    # config and builds either the encoder-decoder or the CTC-only model.
+    # `__call__` searches, `best_path()` decodes on the CTC head alone, and
+    # `decode_long()` handles a recording of any length.
+    "s2t": ("espnet2.bin.s2t_inference", "Speech2Text"),
     "tts": ("espnet2.bin.tts_inference", "Text2Speech"),
     "enh": ("espnet2.bin.enh_inference", "SeparateSpeech"),
     "spk": ("espnet2.bin.spk_inference", "Speech2Embedding"),
@@ -151,9 +155,15 @@ def load(
         **kwargs: Passed on to the inference class, e.g. ``beam_size=1``.
 
     Returns:
-        The espnet2 inference object for the task: ``Speech2Text``,
-        ``Speech2TextGreedySearch``, ``Text2Speech``, ``SeparateSpeech``,
-        ``Speech2Embedding`` or ``DiarizeSpeech``.
+        The espnet2 inference object for the task: ``Speech2Text`` (``asr``
+        and ``s2t`` have one of their own), ``Text2Speech``,
+        ``SeparateSpeech``, ``Speech2Embedding`` or ``DiarizeSpeech``.
+
+        Calling an ``s2t`` object runs a search, which on a CTC-only
+        checkpoint such as OWSM-CTC is a CTC prefix beam search and is slow;
+        its ``best_path()`` is the argmax decoding that was
+        ``Speech2TextGreedySearch``, and is what an interactive first look
+        wants.
 
     Raises:
         ValueError: ``task`` is not an espnet task, or none was given and the

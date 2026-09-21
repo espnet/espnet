@@ -30,6 +30,11 @@ ways at once, and nothing said so:
     newest espnet was five months older than GitHub's. Nobody found out until
     somebody went looking.
 
+A patch is v.YYYYMM.postN, and the tag is the milestone title. The older tags
+spell it -patchN, which is not a version PyPI accepts, so their version.txt
+had to say something else - and v.202609-patch1 forgot to, leaving the tag
+and the published version one apart for the rest of that series.
+
 So: check first, and fail with the reason rather than producing a release note
 for a release that cannot happen.
 """
@@ -97,6 +102,28 @@ def package_name():
 def version_of(milestone_title):
     """v.202609 -> 202609. version.txt holds the number without the prefix."""
     return milestone_title.removeprefix("v.").removeprefix("v")
+
+
+# A release is v.YYYYMM, and a patch on top of one is v.YYYYMM.postN.
+#
+# .postN and not -patchN, because version.txt is what the package is published
+# as and `202610-patch1` is not a version PyPI accepts; PEP 440 spells it
+# `202610.post1`. The tags before 202610 say -patchN and their version.txt
+# says .postN - and off by one at that, because v.202609-patch1 never bumped
+# the file at all. Deriving the version from the milestone title is what stops
+# the tag and the published version drifting apart again, and that only works
+# if the title is already the version.
+# [0-9] and not \d: \d matches every Unicode decimal digit, so a milestone
+# typed with fullwidth digits - easy enough on a Japanese keyboard - would
+# pass this and then be refused by PyPI, which is the failure this check
+# exists to catch early.
+RELEASE_VERSION = re.compile(r"[0-9]{6}(\.post[0-9]+)?")
+
+
+def release_version(milestone_title):
+    """The version this milestone releases, or None if it names no release."""
+    version = version_of(milestone_title)
+    return version if RELEASE_VERSION.fullmatch(version) else None
 
 
 def pypi_has(version):
@@ -508,11 +535,12 @@ def main():
         titles = ", ".join(m.title for m in repo.get_milestones(state="all"))
         sys.exit(f"no milestone titled {args.milestone!r}. Existing: {titles}")
 
-    version = version_of(milestone.title)
-    if not re.fullmatch(r"\d{6}(-patch\d+)?", version):
+    version = release_version(milestone.title)
+    if version is None:
         sys.exit(
             f"milestone {milestone.title!r} does not look like a release: expected "
-            "v.YYYYMM, optionally with -patchN"
+            "v.YYYYMM, optionally with .postN for a patch (PyPI spells it that "
+            "way; -patchN is not a version it accepts)"
         )
 
     grouped, contributors, merged, open_items = collect(repo, milestone)
