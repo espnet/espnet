@@ -4,7 +4,7 @@ import pytest
 
 from espnet2.bin.asr_align import CTCSegmentation as AsrCTCSegmentation
 from espnet2.bin.ctc_segment import AbsCTCSegmentation, build_parser
-from espnet2.bin.s2t_ctc_align import CTCSegmentation as S2TCTCSegmentation
+from espnet2.bin.s2t_align import CTCSegmentation as S2TCTCSegmentation
 
 
 def test_each_model_has_its_own_segmentation_parameters():

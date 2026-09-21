@@ -244,7 +244,7 @@ Force alignment:
           - "espnet2/bin/align.py"
           - "espnet2/bin/asr_align.py"
           - "espnet2/bin/ctc_segment.py"
-          - "espnet2/bin/s2t_ctc_align.py"
+          - "espnet2/bin/s2t_align.py"
 
 # --- infrastructure ------------------------------------------------------
 CI:

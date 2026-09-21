@@ -638,7 +638,7 @@ Aligned utterance segments constitute the labels of speech datasets.
 
 As a demo, we align the start and end of utterances within the audio file `ctc_align_test.wav`.
 This can be done either directly from the Python command line or using the script `espnet2/bin/asr_align.py`.
-Import `CTCSegmentation` from `espnet2.bin.asr_align` for an ASR model and from `espnet2.bin.s2t_ctc_align` for an OWSM-CTC one:
+Import `CTCSegmentation` from `espnet2.bin.asr_align` for an ASR model and from `espnet2.bin.s2t_align` for an OWSM-CTC one:
 those are the two entry points, and both run the algorithm in `espnet2/bin/ctc_segment.py`, which is not instantiated on its own.
 For a forced alignment over any CTC head instead, and for what `espnet align` runs, see `espnet2/bin/align.py`.
 

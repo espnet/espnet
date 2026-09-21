@@ -3,14 +3,21 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 """Perform CTC segmentation to align utterances within audio files using OWSM-CTC.
 
+The four alignment modules in espnet2.bin, and what each is::
+
+    align.py        forced alignment over any CTC head; what `espnet align`
+                    and the MCP server run
+    asr_align.py    CTC segmentation with an ASR model, and its script
+    s2t_align.py    CTC segmentation with an OWSM-CTC model, and its script
+    ctc_segment.py  the CTC segmentation algorithm those two share; not an
+                    entry point
+
 The algorithm is `espnet2.bin.ctc_segment`, shared with
-`espnet2.bin.asr_align`, which aligns with an ASR model instead. What is
-here is how an OWSM-CTC model produces the CTC posteriors - in windows, with
-a language and a task symbol in front of each - and the script interface.
+`espnet2.bin.asr_align`. What is here is how an OWSM-CTC model produces the
+CTC posteriors - in windows, with a language and a task symbol in front of
+each - and this module is what such a model is aligned from::
 
-This module is where an OWSM-CTC model is aligned from::
-
-    from espnet2.bin.s2t_ctc_align import CTCSegmentation
+    from espnet2.bin.s2t_align import CTCSegmentation
 """
 
 import logging

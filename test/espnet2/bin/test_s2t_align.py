@@ -5,7 +5,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from espnet2.bin.s2t_ctc_align import (
+from espnet2.bin.s2t_align import (
     CTCSegmentation,
     CTCSegmentationTask,
     get_parser,

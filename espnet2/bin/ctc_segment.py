@@ -3,27 +3,27 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 """CTC segmentation: the algorithm, written once.
 
+The four alignment modules in espnet2.bin, and what each is::
+
+    align.py        forced alignment over any CTC head; what `espnet align`
+                    and the MCP server run
+    asr_align.py    CTC segmentation with an ASR model, and its script
+    s2t_align.py    CTC segmentation with an OWSM-CTC model, and its script
+    ctc_segment.py  the CTC segmentation algorithm those two share; not an
+                    entry point
+
 Two scripts align text to audio with the `ctc_segmentation` package:
-`espnet2.bin.asr_align` with an ASR model, and `espnet2.bin.s2t_ctc_align`
-with an OWSM-CTC one. They differ in how the CTC posteriors are obtained -
-an OWSM-CTC model reads fixed-length windows and needs a language and a task
+`espnet2.bin.asr_align` with an ASR model, and `espnet2.bin.s2t_align` with
+an OWSM-CTC one. They differ in how the CTC posteriors are obtained - an
+OWSM-CTC model reads fixed-length windows and needs a language and a task
 symbol, an ASR model reads the whole recording at once - and in nothing
-else. Everything after the posteriors is this module, and each of those two
-is its model-specific half plus a script interface.
+else. Everything after the posteriors is here, and each of those two is its
+model-specific half plus a script interface.
 
-This module is not an entry point. `AbsCTCSegmentation` has no model, so
-it is never instantiated: a caller imports `CTCSegmentation` from
-`espnet2.bin.asr_align` for an ASR checkpoint or from
-`espnet2.bin.s2t_ctc_align` for an OWSM-CTC one. Those two are not two
-spellings of one class - they take different constructor arguments and
-different models - which is why there is no single class here that picks.
-
-`espnet2.bin.align` is the other alignment in this repository, and the one
-`espnet align` and the MCP server use: torchaudio's forced alignment, which
-needs no extra package. This one stays because it is a different algorithm
-with different output - a confidence score per utterance, from a search over
-a window - and it is what the recipes here run, `egs2/owsm_v4/s2t1` among
-them, for alignment-score data cleaning.
+So this module is not an entry point: `AbsCTCSegmentation` has no model and
+is never instantiated. The two subclasses are not two spellings of one class
+either - they take different constructor arguments and different checkpoints
+- which is why there is no single class here that picks between them.
 """
 
 import argparse
@@ -151,7 +151,7 @@ class AbsCTCSegmentation:
     everything that follows from the posteriors, which is the same for every
     model: the text preparation, the alignment itself, and the parameters
     that steer it. `espnet2.bin.asr_align.CTCSegmentation` and
-    `espnet2.bin.s2t_ctc_align.CTCSegmentation` are the two subclasses, and
+    `espnet2.bin.s2t_align.CTCSegmentation` are the two subclasses, and
     each of them is what a caller instantiates.
 
     On multiprocessing:
@@ -389,7 +389,7 @@ class AbsCTCSegmentation:
 
         For an ASR model the posteriors cover the input, so the length is
         the input's. OWSM-CTC decodes padded windows and covers a round
-        number of them, which is why `s2t_ctc_align` overrides this and its
+        number of them, which is why `s2t_align` overrides this and its
         `get_lpz` returns the length as well.
         """
         return self.get_lpz(speech), speech.shape[0]
