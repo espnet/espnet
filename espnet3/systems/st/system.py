@@ -169,7 +169,50 @@ class STSystem(ASRSystem):
                 )
 
     def train_tokenizer(self, *args, **kwargs):
-        """Train the target and source SentencePiece models."""
+        """Train the target and source SentencePiece models.
+
+        Expected config -- one block per side, each side optional except
+        ``tgt``::
+
+            tokenizer:
+              tgt:
+                vocab_size: 4000
+                model_type: bpe
+                save_path: ${data_dir}/bpe_tgt_4000
+                text_builder:
+                  func: egs3.must_c.st.dataset.gather_training_text
+                  recipe_dir: ${recipe_dir}
+                  tgt_lang: de
+              src:
+                vocab_size: 4000
+                model_type: bpe
+                save_path: ${data_dir}/bpe_src_4000
+                text_builder: {...}
+
+        ``text_builder.func`` is a dotted path to a callable returning either a
+        path or an iterable of lines; every other key under it is passed
+        through as a keyword argument. Set ``train_file`` to read prepared text
+        instead, and ``reuse_existing_text: false`` to make a leftover file an
+        error rather than silently reused.
+
+        What it writes, per side::
+
+            data/bpe_tgt_4000/bpe.model     SentencePiece model
+            data/bpe_tgt_4000/bpe.vocab     SentencePiece vocabulary
+            data/bpe_tgt_4000/tokens.txt    one token per line, the token_list
+            data/train_tokenizer/tgt.txt    the gathered training text
+
+        ``tokens.txt`` is what the model config points ``token_list`` and
+        ``src_token_list`` at, and its line count is the vocabulary size
+        ``collect_stats`` appends to the text shapes.
+
+        A side whose model and ``tokens.txt`` already exist is skipped, so a
+        rerun after adding the source side trains only the missing one.
+
+        Raises:
+            RuntimeError: If no side is configured, or a side's builder
+                produces no text.
+        """
         self._reject_stage_args("train_tokenizer", args, kwargs)
         config = self.training_config.tokenizer
 

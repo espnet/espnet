@@ -9,6 +9,7 @@ expected layout for the configured language pair.
 
 from __future__ import annotations
 
+import logging
 import os
 from importlib import resources
 from pathlib import Path
@@ -29,11 +30,13 @@ _CONFIG = _load_config()
 _CFG = _CONFIG["builder"]
 SRC_LANG = str(_CFG["src_lang"])
 TGT_LANG = str(_CFG["tgt_lang"])
+
+logger = logging.getLogger(__name__)
 VERSION = str(_CFG["version"])
 LANG_PAIR = f"{SRC_LANG}-{TGT_LANG}"
 REQUIRED_SPLITS: tuple[str, ...] = tuple(str(s) for s in _CFG["required_splits"])
 SOURCE_ENV_VAR = str(_CFG["source_env_var"])
-SOURCE_DIR_DEFAULT = str(_CFG["source_dir_default"])
+DATASET_PATH = str(_CFG.get("dataset_path", "download"))
 
 # Long/short filtering (egs2 st.sh stage 4). st.sh keeps the unfiltered index
 # at ${data_feats}/org/<dset>; the HF cache here is that `org` side, and the
@@ -76,6 +79,24 @@ def kept_indices(durations, split: str) -> list[int] | None:
     return [i for i, duration in enumerate(durations) if keep_duration(duration)]
 
 
+def _resolve_tgt_lang(tgt_lang: str | None) -> str:
+    """Return the target language, warning when the config default is taken.
+
+    The default is ``all``, which indexes every installed ``en-<tgt>`` pair --
+    14 of them for MuST-C v1.2, so dev becomes 17,740 examples instead of
+    en-de's 1,423. That is a surprising thing to get by omission, hence the
+    warning; pass ``tgt_lang="de"`` to reproduce egs2.
+    """
+    if tgt_lang:
+        return str(tgt_lang)
+    logger.warning(
+        "tgt_lang was not given; using the dataset/config.yaml default %r. "
+        "Pass tgt_lang='de' to reproduce egs2/must_c/st1.",
+        TGT_LANG,
+    )
+    return TGT_LANG
+
+
 def iter_source_candidates(
     recipe_root: Path,
     source_dir: str | Path | None,
@@ -86,7 +107,7 @@ def iter_source_candidates(
     env_path = os.environ.get(SOURCE_ENV_VAR)
     if env_path:
         yield Path(env_path)
-    yield Path(SOURCE_DIR_DEFAULT)
+    yield recipe_root / DATASET_PATH
     yield recipe_root / "data"
 
 
@@ -141,7 +162,8 @@ def resolve_source_root(
         "Checked these locations:\n"
         + "\n".join(f"  - {path}/{SRC_LANG}-{tgt_lang}" for path in checked)
         + "\n"
-        f"Set {SOURCE_ENV_VAR} to the raw corpus root (the directory that "
+        f"Unpack the corpus under '{DATASET_PATH}/' in the recipe, set "
+        f"{SOURCE_ENV_VAR} to the raw corpus root (the directory that "
         f"contains '{LANG_PAIR}/'), or pass source_dir explicitly."
     )
 
@@ -182,7 +204,7 @@ class MustCSTBuilder(DatasetBuilder):
         """Check whether the required MuST-C splits are available."""
         recipe_root = Path(recipe_dir).resolve()
         try:
-            selected = tgt_lang or TGT_LANG
+            selected = _resolve_tgt_lang(tgt_lang)
             targets = (
                 available_target_languages(recipe_root, source_dir)
                 if selected == "all"
@@ -216,7 +238,7 @@ class MustCSTBuilder(DatasetBuilder):
                 splits are missing.
         """
         recipe_root = Path(recipe_dir).resolve()
-        selected = tgt_lang or TGT_LANG
+        selected = _resolve_tgt_lang(tgt_lang)
         targets = (
             available_target_languages(recipe_root, source_dir)
             if selected == "all"
@@ -239,68 +261,28 @@ class MustCSTBuilder(DatasetBuilder):
                     f"{missing} under {lang_pair_root}"
                 )
 
-    def _is_recipe_built(
-        self,
-        recipe_dir: str | Path,
-        source_dir: str | Path | None = None,
-        tgt_lang: str | None = None,
-        **_kwargs,
-    ) -> bool:
-        """Return source readiness because this recipe has no build artifacts."""
-        return self.is_source_prepared(
-            recipe_dir=recipe_dir, source_dir=source_dir, tgt_lang=tgt_lang
-        )
-
-    def _build_recipe_source(
-        self,
-        recipe_dir: str | Path,
-        source_dir: str | Path | None = None,
-        tgt_lang: str | None = None,
-        **_kwargs,
-    ) -> None:
-        """No-op build step for raw-directory-backed MuST-C access."""
-        self.prepare_source(
-            recipe_dir=recipe_dir, source_dir=source_dir, tgt_lang=tgt_lang
-        )
-
     def is_built(self, recipe_dir, cache=None, **kwargs):
-        """Whether the cache (or, uncached, the raw source) is ready."""
+        """Whether the HF cache exists with the columns the Dataset reads.
+
+        A cheap filesystem check, as ``DatasetBuilder`` asks for: source
+        readiness is ``is_source_prepared``'s job, and the framework runs
+        ``prepare_source`` before it ever calls ``build``.
+        """
         cache_root = _hf_cache_root(recipe_dir, cache)
-        if cache_root is not None:
-            return all(
-                _cache_has_columns(cache_root / split) for split in _HF_CACHE_SPLITS
-            )
-        return _call_supported(
-            self._is_recipe_built,
-            recipe_dir=recipe_dir,
-            cache=cache,
-            **kwargs,
+        if cache_root is None:
+            return False
+        return all(
+            _cache_has_columns(cache_root / split) for split in _HF_CACHE_SPLITS
         )
 
     def build(self, recipe_dir, cache=None, **kwargs):
-        """Build the HF cache, preparing the raw source first if needed."""
+        """Write one HF cache split per required split."""
         cache_root = _hf_cache_root(recipe_dir, cache)
         if cache_root is None:
-            return _call_supported(
-                self._build_recipe_source,
-                recipe_dir=recipe_dir,
-                cache=cache,
-                **kwargs,
-            )
-        no_cache = dict(cache)
-        no_cache["enabled"] = False
-        no_cache["backend"] = "omniio"
-        if not _call_supported(
-            self._is_recipe_built,
-            recipe_dir=recipe_dir,
-            cache=no_cache,
-            **kwargs,
-        ):
-            _call_supported(
-                self._build_recipe_source,
-                recipe_dir=recipe_dir,
-                cache=no_cache,
-                **kwargs,
+            raise RuntimeError(
+                "must_c/st reads its splits from an HF cache, so the dataset "
+                "cache must be enabled. Set `cache.enabled: true` (and a "
+                "`cache.cache_dir`) in the training config."
             )
         _build_hf_cache(recipe_dir, cache_root, kwargs)
 
@@ -339,7 +321,14 @@ def _hf_cache_root(recipe_dir, cache):
 
 
 def _call_supported(function, **kwargs):
-    """Call ``function`` with only the keyword arguments it accepts."""
+    """Call ``function`` with only the keyword arguments it accepts.
+
+    The cache builder forwards the recipe's ``data_src_args`` straight through,
+    and those carry keys the Dataset does not take (``split`` is set per
+    iteration here, and the training config adds entries the loader consumes).
+    ``Dataset.__init__`` has no ``**kwargs``, so an unexpected key is a
+    ``TypeError`` rather than something silently ignored.
+    """
     import inspect
 
     parameters = inspect.signature(function).parameters
@@ -352,19 +341,90 @@ def _call_supported(function, **kwargs):
     return function(**clean)
 
 
+def _verify_segment(task):
+    """Decode one segment to confirm it is readable.
+
+    Module-level and argument-only so it can be pickled to a Dask worker; it
+    must not close over the Dataset, which is not serializable.
+
+    Args:
+        task: ``(index, wav_path, offset, duration)``.
+
+    Returns:
+        ``(index, None)`` when the segment decodes to finite, non-empty audio,
+        otherwise ``(index, "<ExcType>: <message>")``.
+    """
+    index, wav_path, offset, duration = task
+    try:
+        import numpy as np
+
+        from .dataset import _read_segment
+
+        speech = np.asarray(_read_segment(wav_path, offset, duration))
+        if speech.size == 0 or not np.isfinite(speech).all():
+            raise ValueError("decoded audio is empty or non-finite")
+    except Exception as exc:  # noqa: BLE001 - recorded per segment, not raised
+        return index, repr(exc)
+    return index, None
+
+
+def _verify_segments(tasks):
+    """Verify every segment, in parallel when a parallel config is set.
+
+    Decoding each of MuST-C's ~230k train segments is the whole cost of a cache
+    build and the segments are independent, so this fans out over
+    ``espnet3.parallel``. Recipes that never called ``set_parallel`` -- or a
+    plain ``Dataset(...)`` call outside a stage -- fall back to the serial path
+    rather than failing.
+
+    Args:
+        tasks: Sequence of ``(index, wav_path, offset, duration)``.
+
+    Returns:
+        ``{index: error_or_None}`` for every task.
+    """
+    tasks = list(tasks)
+    if not tasks:
+        return {}
+    # espnet3.parallel's __init__ re-exports nothing, so import the module.
+    from espnet3.parallel.parallel import get_client, get_parallel_config
+
+    config = get_parallel_config()
+    env = getattr(config, "env", "local") if config is not None else "local"
+
+    if env != "local":
+        logger.info("verifying %d segments on the %s cluster", len(tasks), env)
+        with get_client(config) as client:
+            return dict(client.gather(client.map(_verify_segment, tasks)))
+
+    # espnet3 reads `env: local` as "no Dask cluster" and runs in-process
+    # (base_runner.py: _run_local), so building a LocalCluster here would both
+    # break that convention and fail wherever workers cannot be spawned.
+    # Decoding is IO-bound and soundfile releases the GIL, so a thread pool
+    # gives the speedup without a cluster.
+    workers = int(getattr(config, "n_workers", 1) or 1) if config is not None else 1
+    if workers <= 1:
+        logger.info("verifying %d segments serially", len(tasks))
+        return dict(_verify_segment(task) for task in tasks)
+
+    from concurrent.futures import ThreadPoolExecutor
+
+    logger.info("verifying %d segments on %d local threads", len(tasks), workers)
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        return dict(pool.map(_verify_segment, tasks))
+
+
 def _build_hf_cache(recipe_dir, cache_root, dataset_kwargs):
     """Write one HF cache split per required split, skipping complete ones."""
-    import importlib
     import json
     import shutil
 
-    import numpy as np
     from datasets import Dataset as HFDataset
 
-    module = importlib.import_module(__package__)
-    dataset_class = module.Dataset
-    # Deferred: dataset.py imports this module, so a top-level import loops.
-    _read_segment = importlib.import_module(f"{__package__}.dataset")._read_segment
+    # Imported here, not at module scope: dataset.py imports this module, so a
+    # top-level import would be circular.
+    from . import Dataset as dataset_class
+
     cache_root.mkdir(parents=True, exist_ok=True)
     for split in _HF_CACHE_SPLITS:
         target = cache_root / split
@@ -393,18 +453,23 @@ def _build_hf_cache(recipe_dir, cache_root, dataset_kwargs):
                     "cache build needs the raw-scan Dataset; got a cache-backed "
                     "one, which has no _examples (see Dataset.__init__)"
                 )
+            # Verification first, fanned out; then the rows, which are pure
+            # metadata. The decoded audio is never stored -- the cache keeps
+            # audio_path/offset/duration and the read path decodes on demand --
+            # so decoding here only proves the segment is readable.
+            errors = _verify_segments(
+                (index, example.wav_path, example.offset, example.duration)
+                for index, example in enumerate(dataset._examples)
+            )
             with failures.open("w", encoding="utf-8") as stream:
-                # Every field, audio included, comes from `example`. Reading
-                # audio via dataset[index] would mix index spaces: __getitem__
-                # maps through `_keep`, `_examples[index]` does not.
+                # Every field comes from `example`. Reading via dataset[index]
+                # would mix index spaces: __getitem__ maps through `_keep`,
+                # `_examples[index]` does not.
                 for index, example in enumerate(dataset._examples):
                     try:
-                        speech = _read_segment(
-                            example.wav_path, example.offset, example.duration
-                        )
-                        speech = np.asarray(speech)
-                        if speech.size == 0 or not np.isfinite(speech).all():
-                            raise ValueError("decoded audio is empty or non-finite")
+                        error = errors.get(index)
+                        if error is not None:
+                            raise RuntimeError(error)
                         # Text from `example` (raw corpus), never from
                         # __getitem__ output: that is already case-folded and
                         # carries only speech/text/src_text.

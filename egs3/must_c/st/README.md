@@ -25,11 +25,15 @@ no Kaldi data preparation (`egs2/must_c/st1/local/data.sh`) is required.
   where `<split>` is one of `train`, `dev`, `tst-COMMON`, `tst-HE`.
 
 - Source root resolution order: an explicit `source_dir=` argument, then the
-  `MUST_C` environment variable, then the default path
-  `/work/hdd/bbjs/shared/corpora/must-c_v1.2` (the on-disk location of this
-  corpus release on this cluster). Note this default path's directory name
-  differs from the `MUST_C` variable name used by the egs2 recipe/`db.sh` —
-  either set `MUST_C` to point elsewhere, or rely on the default.
+  `MUST_C` environment variable, then `download/` inside the recipe
+  (`builder.dataset_path` in `dataset/config.yaml`), then `data/`. MuST-C
+  cannot be fetched non-interactively — the release is behind a licence form
+  at https://mt.fbk.eu/must-c-release-v1-0/ — so unpack it yourself into
+  `download/`, or point `MUST_C` at wherever it already lives:
+
+  ```bash
+  ln -s /path/to/must-c_v1.2 download        # or: export MUST_C=/path/to/must-c_v1.2
+  ```
 
 - Logical `test` maps to the physical `tst-COMMON` split (`split_aliases`),
   matching the egs2 recipe's convention. `tst-HE` is available as its own

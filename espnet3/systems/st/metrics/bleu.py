@@ -12,7 +12,7 @@ except ImportError:
 
 from espnet2.text.cleaner import TextCleaner
 from espnet3.components.metrics.base_metric import BaseMetric
-from espnet3.systems.st.text_case import remove_punctuation
+from espnet3.systems.st.normalization import remove_punctuation
 
 
 class BLEU(BaseMetric):

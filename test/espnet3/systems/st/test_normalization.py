@@ -2,7 +2,7 @@
 
 import pytest
 
-from espnet3.systems.st.text_case import (
+from espnet3.systems.st.normalization import (
     CASES,
     apply_case,
     is_punctuation,

@@ -1,4 +1,4 @@
-"""Case conventions used by egs2's ``st.sh`` (``src_case`` / ``tgt_case``).
+"""Text normalization for ST: case conventions and Moses punctuation rules.
 
 ST recipes label each side of the corpus with a case convention and build a
 separate text stream for it:

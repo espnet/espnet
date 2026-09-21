@@ -1,9 +1,9 @@
 builder:
   source_env_var: MUST_C
-  # Real on-disk location of the raw MuST-C v1 corpus release used to develop
-  # this recipe. Overridden by $MUST_C when that env var is set, or by an
-  # explicit source_dir argument.
-  source_dir_default: /work/hdd/bbjs/shared/corpora/must-c_v1.2
+  # Where the raw corpus is expected, relative to the recipe. MuST-C is not
+  # downloadable without accepting its licence, so this directory is populated
+  # by hand; $MUST_C or an explicit source_dir overrides it.
+  dataset_path: download
   version: v1
   src_lang: en
   # Aggregate all installed English-to-target language pairs.

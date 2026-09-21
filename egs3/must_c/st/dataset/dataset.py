@@ -44,7 +44,7 @@ from egs3.must_c.st.dataset.builder import (
     kept_indices,
     resolve_source_root,
 )
-from espnet3.systems.st.text_case import apply_case as _apply_case
+from espnet3.systems.st.normalization import apply_case as _apply_case
 from espnet3.utils.config_utils import load_config_with_defaults
 
 _CONFIG_RESOURCE = resources.files(__package__).joinpath("config.yaml")

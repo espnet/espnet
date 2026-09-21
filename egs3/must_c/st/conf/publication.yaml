@@ -35,8 +35,6 @@ data_dir: ${recipe_dir}/data
 
 pack_model:
   out_dir: ${exp_dir}/model_pack
-  allow_overwrite: false
-  include_model_detail: false
   include:
     - ${recipe_dir}/src
     - ${recipe_dir}/dataset

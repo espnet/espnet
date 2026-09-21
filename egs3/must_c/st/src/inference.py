@@ -39,7 +39,35 @@ class Speech2TextShortSafe(Speech2Text):
     """
 
     def __call__(self, *args, **kwargs):
-        """Decode, falling back to a blank hypothesis when subsampling fails."""
+        """Decode one utterance, tolerating one too short to subsample.
+
+        Args:
+            *args: Forwarded to ``espnet2.bin.st_inference.Speech2Text``, whose
+                only positional argument is ``speech``: a 1-D ``torch.Tensor``
+                or ``np.ndarray`` of samples at the model's rate, unbatched.
+                ``MustCSTDataset`` supplies it as float32 under ``"speech"``.
+            **kwargs: Likewise forwarded unchanged.
+
+        Returns:
+            The parent's n-best list, one tuple per hypothesis:
+            ``(text, token, token_int, hyp)`` -- the detokenized string, its
+            SentencePiece pieces, their ids, and the ``Hypothesis`` carrying
+            the score. ``build_output`` reads ``[0][0]``, the best text.
+
+        Example:
+            >>> speech = dataset[0]["speech"]          # float32, (Nsamples,)
+            >>> nbest = model(speech)
+            >>> nbest[0][0]
+            'Zurück in New York bin ich der Leiter der Entwicklung.'
+            >>> nbest[0][1][:4]
+            ['▁Zur', 'ück', '▁in', '▁New']
+
+            An utterance below the subsampling minimum yields the blank
+            fallback rather than raising::
+
+            >>> model(speech[:800])                    # 0.05 s at 16 kHz
+            [(' ', ['<space>'], [2], Hypothesis(...))]
+        """
         try:
             return super().__call__(*args, **kwargs)
         except TooShortUttError:

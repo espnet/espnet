@@ -44,6 +44,11 @@ create_dataset:
 dataset:
   train:
     - data_src: must_c/st
+      # `&pair_args` names this block so the valid/test entries below can say
+      # `<<: *pair_args` and override only `split`. It is plain YAML anchor /
+      # merge-key syntax, not an espnet3 feature: every split shares one
+      # language pair and one set of case conventions, and repeating them is
+      # how they drift apart.
       data_src_args: &pair_args
         split: train
         recipe_dir: ${recipe_dir}
