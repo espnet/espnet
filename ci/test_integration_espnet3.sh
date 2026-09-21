@@ -51,7 +51,7 @@ run_with_training_config \
 
 cd "${cwd}" || exit
 
-cd ./egs3/mini_an4/cls || exit
+cd ./egs3/mini_an4/esp2_cls || exit
 gen_dummy_coverage
 echo "==== [ESPnet3] CLS ===="
 source path.sh
