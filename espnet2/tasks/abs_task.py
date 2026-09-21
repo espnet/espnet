@@ -220,6 +220,10 @@ def _drop_init_this_version_removed(args: argparse.Namespace) -> None:
     the state dict overwrites it, but `load_state_dict` here is not strict,
     so a parameter the checkpoint does not carry keeps what the
     initialization gave it.
+
+    Only called when there is a checkpoint to load. Building from a config
+    alone leaves the model with whatever the initialization gives it, so an
+    unknown one there is a real problem and still says so.
     """
     init = getattr(args, "init", None)
     if init is None or init in INITIALIZATIONS:
@@ -2511,7 +2515,10 @@ class AbsTask(ABC):
         with config_file.open("r", encoding="utf-8") as f:
             args = yaml.safe_load(f)
         args = argparse.Namespace(**args)
-        _drop_init_this_version_removed(args)
+        if model_file is not None:
+            # only when a checkpoint is about to overwrite the parameters;
+            # with none, the initialization is all the model will have
+            _drop_init_this_version_removed(args)
         model = cls.build_model(args)
         if not isinstance(model, AbsESPnetModel):
             raise RuntimeError(

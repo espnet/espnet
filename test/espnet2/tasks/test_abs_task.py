@@ -77,6 +77,17 @@ class TestTask(AbsTask):
         return optimizers
 
 
+class InitTask(TestTask):
+    """A task that initializes what it builds, as the real ones do."""
+
+    @classmethod
+    def build_model(cls, args):
+        model = DummyModel()
+        if getattr(args, "init", None) is not None:
+            initialize(model, args.init)
+        return model
+
+
 @pytest.mark.parametrize("parser", [configargparse.ArgumentParser(), None])
 def test_add_arguments(parser):
     AbsTask.get_parser()
@@ -189,6 +200,22 @@ def test_an_init_this_version_removed_does_not_stop_a_model_loading(tmp_path, ca
 
     assert args.init is None
     assert "init=chainer" in caplog.text
+
+
+def test_without_a_checkpoint_an_unknown_init_is_still_an_error(tmp_path):
+    """Nothing overwrites the parameters then, so the setting is all there is.
+
+    Building from a config alone - no model file - leaves the model with
+    whatever the initialization gives it. Quietly using the default instead
+    of the one the config asked for would be a different model with no sign
+    of it.
+    """
+    config_file = tmp_path / "config.yaml"
+    with config_file.open("w", encoding="utf-8") as f:
+        yaml.safe_dump({"init": "chainer"}, f)
+
+    with pytest.raises(ValueError, match="Unknown initialization: chainer"):
+        InitTask.build_model_from_file(config_file=config_file, device="cpu")
 
 
 def test_an_init_this_version_has_is_left_alone(tmp_path):
