@@ -7,6 +7,7 @@ silently go wrong when a new OWSM spells its symbols differently.
 
 import subprocess
 import sys
+import types
 from pathlib import Path
 
 import numpy as np
@@ -87,6 +88,122 @@ def test_padding_never_returns_more_than_one_window():
     long_clip = np.ones(demo.SAMPLE_RATE * (demo.WINDOW_SECS + 10), dtype="float32")
 
     assert len(demo.pad(long_clip)) == demo.SAMPLE_RATE * demo.WINDOW_SECS
+
+
+def test_padding_can_be_told_a_different_window():
+    # POWSM's window is 20 s, and padding it to OWSM's 30 would be ten
+    # seconds of silence for the model to hallucinate over
+    padded = demo.pad(np.ones(demo.SAMPLE_RATE, dtype="float32"), 20)
+
+    assert len(padded) == demo.SAMPLE_RATE * 20
+
+
+def test_the_window_is_the_one_the_checkpoint_was_trained_on():
+    class _Model:
+        preprocessor_conf = {"speech_length": 20}
+
+    assert demo.window_secs(_Model()) == 20
+
+    class _Silent:
+        preprocessor_conf = {}
+
+    # a config that does not say keeps OWSM's, which is what this page meant
+    # for as long as it served one model
+    assert demo.window_secs(_Silent()) == demo.WINDOW_SECS
+
+
+def test_the_phone_option_appears_only_for_a_checkpoint_that_has_it():
+    assert demo.phone_task(["<eng>", "<asr>", "<pr>"])
+    assert not demo.phone_task(["<eng>", "<asr>", "<st_deu>"])
+
+
+def test_a_checkpoint_that_cannot_detect_a_language_opens_on_one(monkeypatch):
+    """A model with no "work it out yourself" symbol must not break the page.
+
+    espnet/powsm records none and has no <nolang> in its vocabulary at all.
+    The menu then has no Detect entry and opens on a language, rather than
+    every Run raising.
+    """
+    gr = pytest.importorskip("gradio")
+    assert gr  # the page is built below
+
+    class _Cannot:
+        preprocessor_conf = {"speech_length": 20}
+        s2t_model = types.SimpleNamespace(
+            token_list=["<unk>", "<eng>", "<deu>", "<asr>", "<pr>", "<sos>"]
+        )
+
+        def no_language(self):
+            raise ValueError("this model has no symbol for an unknown language")
+
+    app = demo.build_app(_Cannot(), device="cpu", model_tag="espnet/a-model")
+    menus = {
+        block.label: [
+            c[0] if isinstance(c, (list, tuple)) else c for c in block.choices
+        ]
+        for block in app.blocks.values()
+        if getattr(block, "label", None) in ("Spoken language", "Task")
+    }
+    assert demo.DETECT not in menus["Spoken language"]
+    assert menus["Spoken language"][0] == "English (eng)"
+    # and the phone option is there, since this checkpoint has <pr>
+    assert demo.PHONES_LABEL in menus["Task"]
+
+
+def test_a_phonetic_checkpoint_says_what_it_is_for(monkeypatch):
+    """The page offers Transcribe on every model; some are not built for it.
+
+    Asked for by POWSM's author on #6776: its English ASR is weak, and a page
+    that offers the button without saying so invites the wrong reading.
+    """
+    pytest.importorskip("gradio")
+
+    class _Phonetic:
+        preprocessor_conf = {"speech_length": 20, "nolang_symbol": "<unk>"}
+        ctc_only = True
+        s2t_model = types.SimpleNamespace(
+            token_list=["<unk>", "<eng>", "<asr>", "<pr>", "<sos>"]
+        )
+
+        def no_language(self):
+            return "<unk>"
+
+    class _NotPhonetic(_Phonetic):
+        s2t_model = types.SimpleNamespace(
+            token_list=["<nolang>", "<eng>", "<asr>", "<st_deu>", "<sos>"]
+        )
+
+        def no_language(self):
+            return "<nolang>"
+
+    def markdown(model):
+        app = demo.build_app(model, device="cpu", model_tag="espnet/a-model")
+        return "\n".join(
+            str(getattr(block, "value", "")) for block in app.blocks.values()
+        )
+
+    assert demo.PHONE_MODEL_NOTE in markdown(_Phonetic())
+    assert demo.PHONE_MODEL_NOTE not in markdown(_NotPhonetic())
+
+
+def test_the_rate_comes_from_the_checkpoint_too():
+    class _Fast:
+        sample_rate = 24000
+
+    class _Silent:
+        preprocessor_conf = {}
+
+    assert demo.sample_rate(_Fast()) == 24000
+    # nothing said: the rate this page was written for, which is what the two
+    # Space apps pass
+    assert demo.sample_rate(_Silent()) == demo.SAMPLE_RATE
+
+
+def test_padding_uses_the_rate_it_is_given():
+    at_8k = demo.pad(np.ones(8000, dtype="float32"), 2, 8000)
+
+    assert len(at_8k) == 16000
+    assert demo.pad(np.ones(10, dtype="float32"), 1).shape == (demo.SAMPLE_RATE,)
 
 
 def test_the_device_rule_answers_a_device_torch_accepts():

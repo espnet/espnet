@@ -214,26 +214,16 @@ def phones(decoded: str, spaced: bool = False) -> str:
 
 
 def _no_language(s2t) -> str:
-    """The symbol this checkpoint uses for "work the language out yourself".
+    """The checkpoint's own symbol for an unknown language, or a fixable error.
 
-    Both POWSM checkpoints use `<unk>` and OWSM uses `<nolang>`, but only
-    some configs say so: POWSM-CTC records `nolang_symbol`, POWSM does not,
-    and POWSM has no `<nolang>` in its vocabulary at all - which is how a
-    guess here turns into `KeyError: '<nolang>'` several seconds after the
-    model has finished loading. So: what the config says if it says
-    anything, then either spelling, each checked against the token list
-    before it is used.
+    The lookup is the model's own - both POWSM checkpoints use `<unk>` and
+    OWSM uses `<nolang>`, and one of the three does not record which - and
+    only the wording of the fix belongs to this command line.
     """
-    conf = getattr(s2t, "preprocessor_conf", None) or {}
-    model = getattr(s2t, "s2t_model", None)
-    tokens = set(getattr(model, "token_list", None) or ())
-    for candidate in (conf.get("nolang_symbol"), f"<{DEFAULT_LANGUAGE}>", "<unk>"):
-        if candidate and (not tokens or candidate in tokens):
-            return str(candidate)
-    raise CLIError(
-        "this model has no symbol for an unknown language; name one with "
-        "--language, as ISO 639-3"
-    )
+    try:
+        return s2t.no_language()
+    except ValueError as e:
+        raise CLIError(f"{e}; pass --language, as ISO 639-3") from e
 
 
 def cmd_phonemize(args) -> int:

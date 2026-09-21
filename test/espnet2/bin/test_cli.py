@@ -50,6 +50,20 @@ class _Recorder:
         # two windows of the length above, so that a test can see both
         return np.zeros(20 * 16000 * 2, dtype=np.float32)
 
+    def no_language(self):
+        # Speech2Text.no_language, which the command line only rewords: the
+        # config's symbol, then either spelling, each checked against the
+        # token list
+        tokens = set(self.s2t_model.token_list or ())
+        for candidate in (
+            self.preprocessor_conf.get("nolang_symbol"),
+            "<nolang>",
+            "<unk>",
+        ):
+            if candidate and (not tokens or candidate in tokens):
+                return candidate
+        raise ValueError("this model has no symbol for an unknown language")
+
     def from_pretrained(self, model_tag=None, device=None, **kwargs):
         self.tag, self.device = model_tag, device
         return self
@@ -655,9 +669,21 @@ class _FakeOWSM:
             ]
         )
 
+    preprocessor_conf = {"speech_length": 30, "nolang_symbol": "<nolang>"}
+    # OWSM-CTC: read off the CTC head, no decoder to search over
+    ctc_only = True
+
     def from_pretrained(self, model_tag=None, device=None, **kwargs):
         self.tag, self.device = model_tag, device
         return self
+
+    def no_language(self):
+        return self.preprocessor_conf["nolang_symbol"]
+
+    def decode_window(self, speech, lang_sym=None, task_sym=None):
+        # Speech2Text.decode_window: the checkpoint chooses its own way, and
+        # this one is CTC-only
+        return self.best_path(speech, lang_sym=lang_sym, task_sym=task_sym)[0][0]
 
     def best_path(self, speech, *args, **kwargs):
         # what the page calls for a single window: the CTC head, no search
@@ -762,7 +788,9 @@ def test_the_demo_decodes_a_short_recording(monkeypatch):
     from espnet2.bin import demo
 
     gradio, s2t = _fake_demo(monkeypatch)
-    monkeypatch.setattr(demo, "read_audio", lambda path: np.zeros(16000 * 5, "float32"))
+    monkeypatch.setattr(
+        demo, "read_audio", lambda path, rate=16000: np.zeros(16000 * 5, "float32")
+    )
     assert cli.main(["demo"]) == 0
 
     language, text = _predict(gradio)("a.wav", demo.DETECT, demo.ASR_LABEL, False)
@@ -781,7 +809,7 @@ def test_the_demo_trims_audio_past_the_cap_and_says_so(monkeypatch):
 
     gradio, s2t = _fake_demo(monkeypatch)
     long_audio = np.zeros(16000 * (demo.MAX_SECS + 30), "float32")
-    monkeypatch.setattr(demo, "read_audio", lambda path: long_audio)
+    monkeypatch.setattr(demo, "read_audio", lambda path, rate=16000: long_audio)
     assert cli.main(["demo"]) == 0
 
     _predict(gradio)("a.wav", "English (eng)", demo.ASR_LABEL, True)
