@@ -21,8 +21,8 @@ from espnet2.legacy.utils.cli_utils import get_commandline_args
 from espnet2.tasks.tts2 import TTS2Task
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
-from espnet2.tts2.fastspeech2 import FastSpeech2Discrete
 from espnet2.tts.utils import DurationCalculator
+from espnet2.tts2.fastspeech2 import FastSpeech2Discrete
 from espnet2.utils import config_argparse
 from espnet2.utils.pretrained import download_pretrained
 from espnet2.utils.types import str2bool, str2triple_str, str_or_none

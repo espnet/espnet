@@ -127,8 +127,8 @@ def main(args):
         test_lines = f.readlines()
     test_lines = [line.strip().split(" ")[0] for line in test_lines]
     with open(out_dir, "w", buffering=100) as f:
-        for line, s, l in zip(test_lines, test_scores, test_labels):
-            f.write(f"{line} {s} {l}\n")
+        for line, score, length in zip(test_lines, test_scores, test_labels):
+            f.write(f"{line} {score} {length}\n")
 
 
 if __name__ == "__main__":

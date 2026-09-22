@@ -14,8 +14,8 @@ def add_optimizer_hooks(
     attribute _no_weight_decay==True, for bias parameters if bias_weight_decay==False,
     for normalization parameters if normalization_weight_decay==False
 
-    See: https://discuss.pytorch.org/t/weight-decay-only-for-weights-of-nn-linear-and-nn-conv/114348 # noqa
-    """
+    See: https://discuss.pytorch.org/t/weight-decay-only-for-weights-of-nn-linear-and-nn-conv/114348
+    """ # noqa: E501
     # Separate out all parameters to those that will and won't experience regularizing
     # weight decay
     blacklist_weight_modules = (nn.Embedding,)

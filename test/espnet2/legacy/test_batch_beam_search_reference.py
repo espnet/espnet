@@ -9,11 +9,6 @@ alter what ESPnet decodes today.
 The comparison is exact: same tokens, same scores, same n-best ordering.
 """
 
-from test.espnet2.legacy.reference_batch_beam_search import (
-    BatchBeamSearch as ReferenceBatchBeamSearch,
-)
-from test.espnet2.legacy.test_beam_search import prepare, transformer_args
-
 import numpy
 import pytest
 import torch
@@ -23,6 +18,10 @@ from espnet2.legacy.nets.scorers.ctc import CTCPrefixScorer
 from espnet2.legacy.nets.scorers.length_bonus import LengthBonus
 from espnet2.lm.seq_rnn_lm import SequentialRNNLM
 from espnet2.lm.transformer_lm import TransformerLM
+from test.espnet2.legacy.reference_batch_beam_search import (
+    BatchBeamSearch as ReferenceBatchBeamSearch,
+)
+from test.espnet2.legacy.test_beam_search import prepare, transformer_args
 
 
 def _setup(args, ctc_weight, lm, bonus, dtype, normalize_length, return_hs=False):
@@ -200,6 +199,7 @@ def test_matches_reference_return_hs(ctc_weight):
 def test_reference_is_a_frozen_copy_of_master():
     """Guard the reference against being edited to track the implementation."""
     import inspect
+
     from test.espnet2.legacy import reference_batch_beam_search
 
     source = inspect.getsource(reference_batch_beam_search)

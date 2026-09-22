@@ -31,7 +31,10 @@ rd.seed(531)
 remove_punc = '()[]{}.,?·@，。、「」＃"~-—#%_`｀×*（）［］&【】～ｌ\\'
 pattern = str.maketrans(remove_punc, " " * len(remove_punc))
 
-translate_char_source = "ａｂｃｄｅｆｇｈｉｊｋｌｍｎｏｐｑｒｓｔｕｖｗｘｙｚＡＢＣＤＥＦＧＨＩＪＫＬＭＮＯＰＱＲＳＴＵＶＷＸＹＺé"
+translate_char_source = (
+    "ａｂｃｄｅｆｇｈｉｊｋｌｍｎｏｐｑｒｓｔｕｖｗｘｙｚ"
+    "ＡＢＣＤＥＦＧＨＩＪＫＬＭＮＯＰＱＲＳＴＵＶＷＸＹＺé"
+)
 translate_char_target = "abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyze"
 pattern2 = str.maketrans(translate_char_source, translate_char_target)
 

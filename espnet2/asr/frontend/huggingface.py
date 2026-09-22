@@ -77,7 +77,9 @@ class HuggingFaceFrontend(AbsFrontend):
         with torch.no_grad():
             # Re-obtain jagged inputs to feed into the HF processor
             device = inputs.device
-            inputs = [arr[:l].cpu().numpy() for arr, l in zip(inputs, input_lengths)]
+            inputs = [
+                arr[:length].cpu().numpy() for arr, length in zip(inputs, input_lengths)
+            ]
             encoded = self.processor(
                 inputs,
                 return_tensors="pt",

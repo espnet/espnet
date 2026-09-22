@@ -15,19 +15,19 @@ from espnet2.enh.espnet_model import ESPnetEnhancementModel
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.tasks.asr import (
     ASRTask,
+    frontend_choices,
+    normalize_choices,
+    specaug_choices,
 )
 from espnet2.tasks.asr import decoder_choices as asr_decoder_choices_
 from espnet2.tasks.asr import encoder_choices as asr_encoder_choices_
-from espnet2.tasks.asr import frontend_choices, normalize_choices
 from espnet2.tasks.asr import postencoder_choices as asr_postencoder_choices_
 from espnet2.tasks.asr import preencoder_choices as asr_preencoder_choices_
-from espnet2.tasks.asr import specaug_choices
-from espnet2.tasks.diar import DiarizationTask
+from espnet2.tasks.diar import DiarizationTask, label_aggregator_choices
 from espnet2.tasks.diar import attractor_choices as diar_attractor_choices_
 from espnet2.tasks.diar import decoder_choices as diar_decoder_choices_
 from espnet2.tasks.diar import encoder_choices as diar_encoder_choices_
 from espnet2.tasks.diar import frontend_choices as diar_front_end_choices_
-from espnet2.tasks.diar import label_aggregator_choices
 from espnet2.tasks.diar import normalize_choices as diar_normalize_choices_
 from espnet2.tasks.diar import specaug_choices as diar_specaug_choices_
 from espnet2.tasks.enh import EnhancementTask

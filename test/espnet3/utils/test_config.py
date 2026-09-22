@@ -11,14 +11,12 @@ from espnet3.utils.config_utils import (
     _ensure_target_convert_all,
     _resolve_egs3_path,
     _rewrite_relative_resolver_paths,
-)
-from espnet3.utils.config_utils import config_path as config_path_resolver
-from espnet3.utils.config_utils import (
     load_and_merge_config,
     load_config_with_defaults,
     load_default_config,
     load_line,
 )
+from espnet3.utils.config_utils import config_path as config_path_resolver
 
 # ===============================================================
 # Test Case Summary for Config Utilities

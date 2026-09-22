@@ -313,8 +313,8 @@ class Tacotron2(AbsTTS):
 
         # Add eos at the last of sequence
         xs = F.pad(text, [0, 1], "constant", self.padding_idx)
-        for i, l in enumerate(text_lengths):
-            xs[i, l] = self.eos
+        for i, length in enumerate(text_lengths):
+            xs[i, length] = self.eos
         ilens = text_lengths + 1
 
         ys = feats

@@ -176,7 +176,9 @@ class CTC(torch.nn.Module):
             # ys_hat: (B, L, D) -> (L, B, D)
             ys_hat = ys_hat.transpose(0, 1)
             # (B, L) -> (BxL,)
-            ys_true = torch.cat([ys_pad[i, :l] for i, l in enumerate(ys_lens)])
+            ys_true = torch.cat(
+                [ys_pad[i, :length] for i, length in enumerate(ys_lens)]
+            )
 
         loss = self.loss_fn(ys_hat, ys_true, hlens, ys_lens).to(
             device=hs_pad.device, dtype=hs_pad.dtype

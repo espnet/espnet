@@ -8,13 +8,13 @@ import subprocess
 import sys
 import warnings
 from collections import OrderedDict
-from distutils.util import strtobool
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
 import museval
 import numpy as np
 import soundfile
+from distutils.util import strtobool
 from pystoi.stoi import stoi
 
 from espnet2.legacy.utils.cli_utils import get_commandline_args
