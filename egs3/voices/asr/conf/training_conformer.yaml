@@ -113,7 +113,6 @@ dataloader:
         shape_files:
         - ${stats_dir}/valid/feats_shape
 trainer:
-  num_sanity_val_steps: 0
   precision: bf16-mixed
   gradient_clip_val: 5.0
   accumulate_grad_batches: 4

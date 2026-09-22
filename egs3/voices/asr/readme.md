@@ -56,6 +56,17 @@ validate the full LM or its memory requirements.
 
 ## ESPnet2 mapping and ESPnet3 behavior
 
+CTC loss follows the model/input device, as in ESPnet2. GPU training uses the
+existing GPU CTC implementation. GPU CTC can introduce nondeterministic
+differences and does not promise bitwise agreement across training runs.
+
+The recipe uses the shared ESPnet3 training flow, including Lightning's default
+pre-training validation checks. It does not replay initial weights, reset RNG
+state at epoch boundaries, force ESPnet2 batch membership, replace gradient
+accumulation/clipping, or override the shared precision and statistics code.
+The configured seed and source model/data settings are ordinary recipe inputs.
+No experimental loss or gradient-monitoring callback is required to run it.
+
 - The source Conformer/Transformer, SpecAugment, Adam settings, 40000 warmup
   steps, 5000-piece unigram tokenizer and 50-epoch budget are retained.
 - The shared collector writes frontend `feats_shape`. The batch budget is
@@ -68,9 +79,10 @@ validate the full LM or its memory requirements.
   when necessary for equal rank lengths. `num_device: 4` and Lightning gradient
   accumulation 4 are explicit; changing GPU count changes the effective batch.
 - Lightning owns clipping, accumulation boundaries and AMP (`bf16-mixed`).
-  BF16 follows ESPnet2 on capable GPUs and the ESPnet3 LibriSpeech reference.
-  This default requires BF16 support; older GPUs need a separate precision
-  configuration. Remainder-gradient handling follows Lightning.
+  BF16 follows the ESPnet3 LibriSpeech reference and requires BF16 support;
+  older GPUs need a separate precision configuration. The local ESPnet2
+  baseline below uses the source FP16 AMP setting. Remainder-gradient handling
+  follows Lightning.
 - Inference uses `Speech2Text` directly, the shared top-10 checkpoint average,
   beam size 20, CTC weight 0.3 and LM weight 0.6. Short experiments must explicitly
   select a checkpoint that exists; there is no recipe-specific averaging fallback.
@@ -104,24 +116,72 @@ source model settings, output alignment, native LM commands and the stock ASR
 stages on a small CPU fixture, including a trained LM with nonzero fusion weight.
 Public recipe functions document their arguments, return values and usage examples.
 
-Earlier results from the removed ESPnet2 compatibility adapters describe the old
-implementation only. They are not results for this stock ESPnet3 implementation.
-New validation results are recorded separately; full accuracy reproduction is
-not implied by a short pipeline test.
+Recipe validation: 36 tests passed; formatting, import order and lint checks passed.
 
-CPU validation for this revision: 764 tests passed across `test/espnet3` and
-`test/egs3`; four were skipped (two optional Whisper imports and two CUDA-only
-tests in the CPU test environment). Black, isort and flake8 passed.
+### Native GPU CTC results
 
-GPU validation completed one devkit epoch on four NVIDIA A10 GPUs, using a
-1000-piece tokenizer, BF16 mixed precision, 2000000 feature bins per GPU, and
-CPU CTCLoss through an experiment-only callback. The shared loader/trainer ran
-190 batches and 48 optimizer updates per rank; recorded gradients and final
-parameters were finite. Peak allocated GPU memory was 13.22 GiB across ranks.
-The run used `PYTORCH_ALLOC_CONF=expandable_segments:True`; this is an environment
-setting, not a framework patch. The subsequent inference test loaded the
-one-epoch weights directly, reused an existing native LM at weight 0.6, and
-scored four validation plus four test recordings with the stock metrics.
-This short run validates the pipeline, not recognition accuracy or the default
-5000-piece/full-corpus/50-epoch setup. Tiny LM training and fusion were tested
-separately in the CPU integration test.
+Validation used the shared framework at commit
+`6f1263a6069de753cd0a888e341ff6e78e42ca96`, Python 3.13.2,
+PyTorch 2.11.0+cu128, Lightning 2.6.0 and JiWER 4.0.0. The runs below use
+native GPU CTC and Lightning's default pre-training validation, with fresh
+ASR initialization and no numerical-alignment or diagnostic callbacks.
+Previously prepared data, shared ESPnet3 statistics, tokenizer and native
+ESPnet2 LM artifacts were reused; the LM was not retrained in these runs.
+Earlier CPU CTC and compatibility-adapter experiments are historical diagnostics
+and are not included in the results below.
+
+The devkit run used four NVIDIA A10 GPUs for 50 epochs, BF16 mixed precision,
+seed 0, 2000000 feature elements per GPU and gradient accumulation 4. Each rank
+completed 2400 optimizer updates; final parameters were finite. Experiment
+configs selected the devkit corpus, a 1000-piece unigram tokenizer and
+matching TER/LM tokenizer paths, with the existing devkit-only LM and no external
+LibriSpeech text. The standard 40000-step warmup was retained. The full-release
+configuration and its 5000-piece vocabulary are unchanged.
+
+Inference used one A10, batch size 4, the shared top-10 average, beam size 20 and
+LM weight 0.6. Both the 660-recording validation set and 6600-recording test set
+were explicitly selected in the experiment config, with all IDs and reference
+texts verified. `PYTORCH_ALLOC_CONF=expandable_segments:True` was used for GPU
+memory allocation. The following are the unchanged public ESPnet3 metrics:
+
+| Split | Recordings | WER (%) | CER (%) | TER (%) |
+| --- | ---: | ---: | ---: | ---: |
+| Validation | 660 | 92.84 | 70.90 | 91.67 |
+| Test | 6600 | 93.40 | 71.79 | 91.79 |
+
+### Local native ESPnet2 comparison
+
+No matching published ESPnet2 result was found for this experiment. A local
+baseline directly ran the official ESPnet2 preparation, statistics collection,
+ASR training, inference and SCTK scoring at the same framework commit, using
+GPU CTC and the same tokenizer and LM artifacts as the ESPnet3 run.
+It completed 50 epochs on two A10 GPUs with native FP16 AMP, raw-speech/text
+numel batches and gradient accumulation 4. The source 35000000-bin budget
+exceeded two 24 GB GPUs, so the experiment explicitly used
+`--asr_args "--batch_bins 17500000"`; source model YAML and trainer code were
+unchanged. This batch adjustment, GPU count, precision, batch distribution and
+optimizer update counts differ from the ESPnet3 run.
+
+The official final 10-best average ran separately in a fresh CPU process after
+host-memory exhaustion in the training process. It used the same saved reporter
+and `valid.acc/max` selection; the training checkpoint hash was unchanged and
+averaged parameters were finite. Full inference and scoring then completed
+successfully on one A10. This recovery did not change CTC or repeat training.
+
+For a common scoring convention, the existing ESPnet3 hypotheses were separately
+rescored with the same ESPnet2 tokenizer and SCTK used for the baseline. This
+offline comparison does not change the recipe's public ESPnet3 metric classes
+or the original predictions. Values below are percentages:
+
+| Split | Framework | WER | CER | TER |
+| --- | --- | ---: | ---: | ---: |
+| Validation | ESPnet2 | 91.01 | 69.29 | 91.33 |
+| Validation | ESPnet3, SCTK rescored | 92.90 | 71.16 | 91.83 |
+| Test | ESPnet2 | 92.35 | 70.37 | 91.54 |
+| Test | ESPnet3, SCTK rescored | 93.51 | 72.01 | 91.90 |
+
+The high devkit error rates also occur in the native ESPnet2 baseline. This
+validates full-budget devkit training, inference and scoring as a migration
+check, not full-corpus recognition quality. Similar high errors alone do not
+prove every migration detail correct; the framework and experiment differences
+above remain part of the comparison.
