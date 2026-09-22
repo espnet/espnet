@@ -610,7 +610,7 @@ def combination(measures, N, R, S, **ssm_args):
 
 
 class OptimModule(nn.Module):
-    """Interface for Module that allows registering buffers/parameters with configurable optimizer hyperparameters.""" # noqa: E501
+    """Interface for Module that allows registering buffers/parameters with configurable optimizer hyperparameters."""  # noqa: E501
 
     def register(self, name, tensor, lr=None):
         """Register a tensor with a configurable learning rate and 0 weight decay."""
@@ -670,7 +670,7 @@ class SSKernelNPLR(OptimModule):
         """Calculate (and cache) FFT nodes and their "unprocessed" version with the bilinear transform.
 
         This should be called everytime the internal length self.L changes
-        """ # noqa: E501
+        """  # noqa: E501
 
         # Use cached if available
         if cache and hasattr(self, "omega") and self.omega.size(-1) == L // 2 + 1:

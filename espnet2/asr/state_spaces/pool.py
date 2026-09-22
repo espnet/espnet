@@ -142,10 +142,12 @@ class DownSpectralPool(SequenceModule):
         for axis, length in enumerate(shape):
             assert length % self.stride == 0, "input length must be divisible by stride"
             new_length = length // self.stride
-            idx = torch.cat([
-                torch.arange(0, new_length - new_length // 2),
-                length + torch.arange(-new_length // 2, 0)
-            ]).to(x_f.device)
+            idx = torch.cat(
+                [
+                    torch.arange(0, new_length - new_length // 2),
+                    length + torch.arange(-new_length // 2, 0),
+                ]
+            ).to(x_f.device)
             x_f = torch.index_select(x_f, 2 + axis, idx)
         x = torch.fft.ifftn(x_f, s=[length // self.stride for length in shape])
         x = x.real

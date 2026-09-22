@@ -5,12 +5,12 @@
 
 import argparse
 import logging
+from distutils.util import strtobool
 
 import librosa
 import numpy
 import torch
 import torchaudio.compliance.kaldi as ta_kaldi
-from distutils.util import strtobool
 from omniio import kaldi as kaldi_io
 
 from espnet2.legacy.utils.cli_utils import get_commandline_args
