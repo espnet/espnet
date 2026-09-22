@@ -9,7 +9,7 @@ import numpy as np
 import soundfile as sf
 from torch.utils.data import Dataset as TorchDataset
 
-from egs3.vctk_noisy.esp2_enh.dataset.builder import default_dataset_dir
+from egs3.vctk_noisy.esp2_enh.dataset.builder import resolve_dataset_dir
 
 # Same speaker hold-out as egs2/vctk_noisy/enh1/local/vctk_data_prep.sh
 _VALID_SPEAKERS = frozenset({"p226", "p287"})
@@ -44,7 +44,8 @@ class VCTKNoisyDataset(TorchDataset):
     Args:
         split: ``train``, ``valid``, or ``test``.
         data_path: Root directory containing the four official wav folders.
-            Defaults to ``builder.dataset_dir`` in ``dataset/config.yaml``.
+            Defaults to the ``$VCTK_DEMAND`` environment variable named by
+            ``dataset/config.yaml``.
         chunk_length: If set, randomly crop that many samples on train/valid.
             Ignored when ``inference`` is True or the utterance is shorter.
         inference: When True, always return the full utterance (no chunking).
@@ -59,14 +60,7 @@ class VCTKNoisyDataset(TorchDataset):
         **_kwargs,
     ) -> None:
         self.split = split
-        if data_path is None:
-            data_path = default_dataset_dir()
-        if data_path is None:
-            raise ValueError(
-                "data_path is required. Set builder.dataset_dir in "
-                "dataset/config.yaml to your VCTK-DEMAND root."
-            )
-        self.data_path = Path(data_path).expanduser().resolve()
+        self.data_path = resolve_dataset_dir(data_path)
         self.chunk_length = None if inference else chunk_length
         self.inference = inference
 

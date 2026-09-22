@@ -51,7 +51,7 @@ run_with_training_config \
 
 cd "${cwd}" || exit
 
-python3 -m pip install -e '.[enh]' pesq pystoi
+python3 -m pip install -e '.[enh]'
 
 cd ./egs3/mini_an4/esp2_enh || exit
 gen_dummy_coverage

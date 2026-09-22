@@ -9,8 +9,8 @@
 ##########################################################
 #                    PATHS AND INPUTS                    #
 ##########################################################
-# VCTK-DEMAND root. Leave empty to use builder.dataset_dir from
-# dataset/config.yaml, the same way conf/training.yaml does.
+# VCTK-DEMAND root. Leave empty to use $VCTK_DEMAND, the same way
+# conf/training.yaml does.
 dataset_dir:
 
 # Experiment trained with conf/training.yaml. run.py replaces both with the

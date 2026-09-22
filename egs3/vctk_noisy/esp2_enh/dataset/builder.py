@@ -2,8 +2,9 @@
 
 The public VCTK-DEMAND release already ships wav directories, so this builder
 only validates that layout. Download and extract the corpus yourself, then
-point ``builder.dataset_dir`` in ``dataset/config.yaml`` (or ``dataset_dir`` in
-the training config) at the root that contains the four wav folders.
+point ``$VCTK_DEMAND`` (the variable named by ``dataset/config.yaml``) or
+``dataset_dir`` in the training config at the root that contains the four wav
+folders.
 
 The corpus is not downloaded automatically on purpose. It could be fetched with
 ``espnet3.utils.download_utils``, but VCTK-DEMAND is large and most users
@@ -14,18 +15,12 @@ user's storage, so the builder reads the existing copy in place instead.
 
 from __future__ import annotations
 
+import os
 from importlib import resources
 from pathlib import Path
 
 from espnet3.components.data.dataset_builder import DatasetBuilder
 from espnet3.utils.config_utils import load_config_with_defaults
-
-_REQUIRED_DIRS = (
-    "clean_trainset_28spk_wav",
-    "noisy_trainset_28spk_wav",
-    "clean_testset_wav",
-    "noisy_testset_wav",
-)
 
 
 def _load_builder_config() -> dict:
@@ -35,26 +30,35 @@ def _load_builder_config() -> dict:
 
 
 _CFG = _load_builder_config()
+_REQUIRED_DIRS = tuple(str(name) for name in _CFG["required_dirs"])
+_SOURCE_ENV_VAR = str(_CFG["source_env_var"])
 
 
-def default_dataset_dir() -> str | None:
-    """Return the VCTK-DEMAND root configured in ``dataset/config.yaml``."""
-    return _CFG.get("dataset_dir")
+def resolve_dataset_dir(dataset_dir: str | Path | None = None) -> Path:
+    """Resolve the VCTK-DEMAND root from an explicit path or the environment.
+
+    ``dataset_dir`` wins when a config sets it; otherwise the environment
+    variable named by ``builder.source_env_var`` in ``dataset/config.yaml``
+    (``VCTK_DEMAND``) is used, so no recipe file has to hard-code a site path.
+    """
+    if dataset_dir is not None:
+        return Path(dataset_dir).expanduser().resolve()
+    env_path = os.environ.get(_SOURCE_ENV_VAR)
+    if env_path:
+        return Path(env_path).expanduser().resolve()
+    raise ValueError(
+        "VCTK-DEMAND root is not set. Either export "
+        f"{_SOURCE_ENV_VAR}=/path/to/vctk_noisy or set dataset_dir in "
+        "conf/training.yaml (and conf/inference.yaml). It must point at the "
+        "directory that contains: " + ", ".join(_REQUIRED_DIRS) + "."
+    )
 
 
 class VCTKNoisyBuilder(DatasetBuilder):
     """Validate the on-disk VCTK-DEMAND layout used by ``VCTKNoisyDataset``."""
 
     def _root(self, dataset_dir: str | Path | None, **_kwargs) -> Path:
-        if dataset_dir is None:
-            dataset_dir = default_dataset_dir()
-        if dataset_dir is None:
-            raise ValueError(
-                "dataset_dir is required. Set builder.dataset_dir in "
-                "dataset/config.yaml to your VCTK-DEMAND root (the directory "
-                "that contains clean_/noisy_ train and test wav folders)."
-            )
-        return Path(dataset_dir).expanduser().resolve()
+        return resolve_dataset_dir(dataset_dir)
 
     def is_source_prepared(
         self,

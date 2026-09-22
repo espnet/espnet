@@ -6,10 +6,10 @@
 #   python run.py --stages collect_stats  --training_config conf/training.yaml
 #   python run.py --stages train          --training_config conf/training.yaml
 #
-# The VCTK-DEMAND root is set in dataset/config.yaml (see README.md).
+# Export VCTK_DEMAND with your VCTK-DEMAND root before running (see README.md).
 
-# Leave empty to use builder.dataset_dir from dataset/config.yaml. Set it here
-# only to point this experiment at another copy of the corpus.
+# Leave empty to use $VCTK_DEMAND. Set it here only to point this experiment at
+# another copy of the corpus.
 dataset_dir:
 num_device: 3
 
