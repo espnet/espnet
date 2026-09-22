@@ -37,6 +37,7 @@ EGS2 = Path(__file__).parents[3] / "egs2"
 DEMOS = {
     "ctc": EGS2 / "owsm_ctc_v4/s2t1/demo",
     "attention": EGS2 / "owsm_v4/s2t1/demo",
+    "align": EGS2 / "owsm_ctc_v4/s2t1/demo_align",
     "tts": EGS2 / "ljspeech/tts1/demo",
     "enh": EGS2 / "universal_se_v1/enh1/demo",
     "spk": EGS2 / "voxceleb/spk1/demo",
@@ -333,6 +334,8 @@ def test_the_ctc_apps_symbol_splitting_is_what_espnet_demo_splits():
 # owsm-ctc-v4 Space down that way.
 UNRELEASED = {
     "best_path": "202610.post1",
+    # espnet2.bin.align, and with it `espnet align`, arrived in 202610.post2
+    "ForcedAligner": "202610.post2",
 }
 # The extra each front-end needs, by the import that gives it away. RawNet3's
 # asteroid_frontend imports asteroid_filterbanks, which only espnet[spk] has;
@@ -361,7 +364,8 @@ def test_an_app_using_a_new_api_asks_for_the_release_that_has_it(name):
     source = _source(name)
     requirement = _espnet_requirement(name)
     for attribute, since in UNRELEASED.items():
-        if f".{attribute}(" not in source:
+        # a method the app calls on a model, or a name it imports
+        if not re.search(rf"\b{attribute}\b", source):
             continue
         floor = requirement.split(">=")[1].strip()
         # parsed, not compared as text: "202612rc1" sorts after "202612" as a
