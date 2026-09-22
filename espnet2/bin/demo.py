@@ -67,6 +67,16 @@ PROMPT_LABELS = {
 # and each frame is read on its own. So the box appears for a checkpoint
 # that has a decoder, and for the two tasks whose input is written whether
 # or not there is one.
+# Said where someone is about to try the two prompted tasks on a CTC
+# checkpoint. POWSM's author asked for it on #6792: <g2p> and <p2g> are
+# encoder-decoder work, and an encoder-CTC model is less stable at them.
+PROMPT_TASK_NOTE = (
+    "**Phones from text** and **text from phones** read what you type, and "
+    "this checkpoint is encoder-CTC: it answers them, less reliably than the "
+    "encoder-decoder [POWSM](https://huggingface.co/espnet/powsm), which is "
+    "what to reach for if you need them. Its own recognition - the audio "
+    "alone - is what it is built for."
+)
 PROMPT_LABEL = "Text prompt"
 PROMPT_INFO = "Optional: what was said before, or a name to expect"
 NO_PROMPT_NOTE = (
@@ -561,6 +571,8 @@ def build_app(s2t, device: str = "cpu", model_tag: str = "", wrap=None):
             gr.Markdown(PHONE_MODEL_NOTE)
         if not searches:
             gr.Markdown(NO_PROMPT_NOTE)
+        if prompted and not searches:
+            gr.Markdown(PROMPT_TASK_NOTE)
         with gr.Row():
             with gr.Column():
                 audio = gr.Audio(

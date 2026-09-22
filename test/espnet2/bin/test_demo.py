@@ -173,9 +173,11 @@ def test_the_written_input_box_appears_for_the_tasks_that_read_it(monkeypatch):
     assert len(box) == 1, "the box is one box"
     assert box[0].visible is False, "and hidden until a task asks for it"
 
-    # the note that says why there is nothing to prime
+    # the two notes: why there is nothing to prime, and what the prompted
+    # tasks are worth on a checkpoint of this kind
     markdown = "\n".join(str(getattr(b, "value", "")) for b in blocks)
     assert demo.NO_PROMPT_NOTE in markdown
+    assert demo.PROMPT_TASK_NOTE in markdown
 
 
 def test_a_checkpoint_with_a_decoder_can_be_prompted(monkeypatch):

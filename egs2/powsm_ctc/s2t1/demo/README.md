@@ -60,6 +60,16 @@ The last two are the model's own `<g2p>` and `<p2g>`, trained with the
 written half as the prompt (`text.prev` in the recipe). They read one window,
 since the prompt belongs to one utterance.
 
+**They are the weaker half of this checkpoint, and the page says so.** POWSM's
+author put it plainly on [#6792](https://github.com/espnet/espnet/pull/6792):
+`<g2p>` and `<p2g>` are encoder-decoder work, and an encoder-CTC model is less
+stable at them - [POWSM](https://huggingface.co/espnet/powsm) is what to reach
+for if you need them, at four to twelve times the runtime. For a user the two
+are also close to the tasks above: `<g2p>` is `<pr>` with the words typed in
+first, and `<p2g>` is `<asr>` with the phones typed in first. They are here
+because the model was trained with them and the page reads its token list, not
+because this checkpoint is good at them.
+
 So `python app.py` and `espnet demo --model espnet/powsm_ctc` are the same
 page, and a fix to either is a fix to both. The two OWSM demos beside this
 one still carry their own copies of that code, written before the module
