@@ -91,3 +91,24 @@ def test_invalid_metric_ids(make_model, metric2id):
 def test_reference_text_requires_vocabulary(make_model, vocab_size):
     with pytest.raises(ValueError, match="vocab_size"):
         make_model(use_ref_text=True, vocab_size=vocab_size)
+
+
+@pytest.mark.parametrize("requires_grad", [False, True])
+def test_normalization_preserves_caller_audio(make_model, requires_grad):
+    model = make_model(use_normalize=True, use_ref_audio=True).eval()
+    audio = torch.randn(2, 10, 8, requires_grad=requires_grad)
+    reference = torch.randn(2, 12, 8, requires_grad=requires_grad)
+    original_audio, original_reference = (
+        audio.detach().clone(),
+        reference.detach().clone(),
+    )
+    with torch.set_grad_enabled(requires_grad):
+        encoded, _ = model.encode(
+            audio, torch.tensor([10, 8]), reference, torch.tensor([12, 9])
+        )
+        if requires_grad:
+            encoded.square().sum().backward()
+            assert audio.grad is not None and torch.isfinite(audio.grad).all()
+            assert reference.grad is not None and torch.isfinite(reference.grad).all()
+    torch.testing.assert_close(audio, original_audio)
+    torch.testing.assert_close(reference, original_reference)
