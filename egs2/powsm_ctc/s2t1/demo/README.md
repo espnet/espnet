@@ -95,10 +95,14 @@ Measured on `test_utils/ctc_align_test.wav`, on a laptop CPU, through
 
 | | `powsm_ctc` | `powsm` |
 |---|---|---|
-| `<pr>` | 5.3 s | 21.8 s, and finer - `pʰ`, `tʰ`, `oʊ` where the CTC writes `p`, `t`, `o` |
+| `<pr>` | 5.3 s | 21.8 s, and a different reading of the same phones - `ð ə s e ɪ l ʌ v` where the CTC wrote `d ə s e ɪ l ɔ v` |
 | `<asr>` | 7.0 s | 53.4 s, and the text comes back as `T ⁇ E  ⁇ A ⁇ E OF …` |
 | `<g2p>` | 5.9 s | 65.7 s |
 | `<p2g>` | 7.6 s | 89.4 s, same `⁇` |
+
+Both write the same phone set - a diphthong is two symbols in either, by
+design - so the difference above is which phones each chose on this file,
+not what either can say.
 
 The hosted Space is the CTC one: 89 s against a 120 s ZeroGPU slice leaves no
 room, and the encoder-decoder's two text tasks are the ones its text
