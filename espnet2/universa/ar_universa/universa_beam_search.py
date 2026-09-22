@@ -1,40 +1,76 @@
-"""Beam search module."""
+"""Metric constraints and pair scheduling for the shared ESPnet beam search."""
 
-import logging
-from typing import Any, Dict, List, NamedTuple, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple
 
 import torch
 from typeguard import typechecked
 
-logger = logging.getLogger(__name__)
+from espnet2.legacy.nets.beam_search import BeamSearch, Hypothesis
+from espnet2.legacy.nets.scorer_interface import (
+    BatchScorerInterface,
+    PartialScorerInterface,
+    ScorerInterface,
+)
 
 
-class Hypothesis(NamedTuple):
-    """Hypothesis data type.
+class MetricConstraintScorer(BatchScorerInterface):
+    """Allow unused metric labels and their values with a zero/-inf mask.
 
-    Attributes:
-        yseq: Sequence of token IDs.
-        score: Score of the hypothesis.
-        scores: Dictionary of scores for each token in the sequence.
-        states: Dictionary of additional states.
+    The prefix is the source of truth for metric order and completion; no
+    separate per-hypothesis list of unused labels needs to be maintained.
+    The scorer also supports the shared BatchBeamSearch scorer interface.
     """
 
-    yseq: torch.Tensor
-    score: Union[float, torch.Tensor] = 0
-    scores: Dict[str, Union[float, torch.Tensor]] = dict()
-    states: Dict[str, Any] = dict()
-    unused_meta_label_ids: List[int] = None
+    def __init__(self, vocab_size, labels, beam_masking, use_fixed_order):
+        """Store the metric vocabulary, value ranges, and ordering policy."""
+        self.vocab_size = vocab_size
+        self.labels = labels
+        self.beam_masking = beam_masking or {}
+        self.use_fixed_order = use_fixed_order
+
+    def score(self, y, state, x):
+        """Mask tokens using the alternating label/value prefix after SOS."""
+        mask = x.new_full((self.vocab_size,), -float("inf"))
+        if len(y) % 2:
+            used = set(y[1::2].tolist())
+            allowed = [label for label in self.labels if label not in used]
+            if self.use_fixed_order:
+                allowed = allowed[:1]
+            mask[allowed] = 0
+        else:
+            start, end = self.beam_masking.get(int(y[-1]), (0, self.vocab_size))
+            mask[start:end] = 0
+        return mask, None
+
+    def batch_score(self, ys, states, xs):
+        """Build independent masks for hypotheses and utterances in a batch."""
+        return torch.stack([self.score(y, None, x)[0] for y, x in zip(ys, xs)]), [
+            None
+        ] * len(ys)
 
 
-class ARUniVERSABeamSearch(torch.nn.Module):
-    """Beam search module for ARUniVERSA models."""
+class ARUniVERSABeamSearch(BeamSearch):
+    """Schedule metric/value pairs using ESPnet's shared token search.
+
+    Each result contains SOS followed by exactly one pair per requested metric.
+    EOS is accepted for compatibility with the model's decoder configuration,
+    but is neither appended nor scored; completion is determined by pair count.
+
+    Both BeamSearch and BatchBeamSearch normally prune after every token. Here
+    all retained label branches compete only after their value is scored. When
+    label scores are skipped, every allowed label must reach the value step,
+    even with beam_size=1. A mask alone cannot express this pruning schedule.
+    Only this pair schedule and fixed-length termination are specialized;
+    token expansion, score/state merging, hypotheses, and module registration
+    come from BeamSearch. BatchBeamSearch supports batching both hypotheses and
+    utterances, but its token-level pruning/termination needs the same schedule
+    adaptation before it can replace this single-utterance entry point.
+    """
 
     @typechecked
     def __init__(
         self,
-        scorers: Dict[
-            str, Any
-        ],  # NOTE(jiatong): need a better type (beyond ScorerInterface)
+        scorers: Dict[str, Optional[ScorerInterface]],
         weights: Dict[str, float],
         beam_size: int,
         vocab_size: int,
@@ -46,26 +82,14 @@ class ARUniVERSABeamSearch(torch.nn.Module):
         beam_masking: Optional[Dict[int, Tuple[int, int]]] = None,
         use_fixed_order: bool = False,
     ):
-        """Initialize beam search.
+        """Configure full scorers and the requested metric/value constraints.
 
-        Args:
-            scorers (dict[str, ScorerInterface]): Dict of decoder modules
-                e.g., Decoder, CTCPrefixScorer, LM
-                The scorer will be ignored if it is `None`
-            weights (dict[str, float]): Dict of weights for each scorers
-                The scorer will be ignored if its weight is 0
-            beam_size (int): The number of hypotheses kept during search
-            vocab_size (int): The number of vocabulary
-            sos (int): Start of sequence id
-            eos (int): End of sequence id
-            meta_label_for_search (list[int]): List of meta label ids for search
-            token_list (list[str]): List of tokens for debug log
-            skip_meta_label_score (bool): Whether to extend without scorer.
-                If True, the beam search will be performed without scoring.
-
+        ``beam_masking`` maps metric label IDs to half-open value-token ranges.
+        ``skip_meta_label_score`` ignores label scores while still advancing
+        scorer states. ``use_fixed_order`` follows ``meta_label_for_search``.
+        Other arguments follow :class:`BeamSearch`; partial scorers are not
+        supported by this fixed-pair decoder.
         """
-        super().__init__()
-        # set scorers
         if beam_size < 1:
             raise ValueError("beam_size must be positive")
         if len(set(meta_label_for_search)) != len(meta_label_for_search):
@@ -75,298 +99,62 @@ class ARUniVERSABeamSearch(torch.nn.Module):
         for start, end in (beam_masking or {}).values():
             if not 0 <= start < end <= vocab_size:
                 raise ValueError("Beam masking ranges must be within the vocabulary")
-        self.use_fixed_order = use_fixed_order
-        self.weights = weights
+        if "metric_constraint" in scorers:
+            raise ValueError("metric_constraint is reserved for the constraint scorer")
+        if any(
+            isinstance(scorer, PartialScorerInterface) and weights.get(name, 0) != 0
+            for name, scorer in scorers.items()
+        ):
+            raise ValueError("Metric pair search requires full ScorerInterface scorers")
+        constraint = MetricConstraintScorer(
+            vocab_size, meta_label_for_search, beam_masking, use_fixed_order
+        )
+        super().__init__(
+            scorers={**scorers, "metric_constraint": constraint},
+            weights={**weights, "metric_constraint": 1.0},
+            beam_size=beam_size,
+            vocab_size=vocab_size,
+            sos=sos,
+            eos=eos,
+            token_list=token_list,
+        )
         self.meta_label_for_search = meta_label_for_search
         self.skip_meta_label_score = skip_meta_label_score
-        self.beam_masking = beam_masking
-        self.scorers = dict()
 
-        # this module dict is required for recursive cast
-        # `self.to(device, dtype)` in `recog.py`
-        self.nn_dict = torch.nn.ModuleDict()
-        for k, v in scorers.items():
-            w = weights.get(k, 0)
-            if w == 0 or v is None:
-                continue
-            self.scorers[k] = v
-            if isinstance(v, torch.nn.Module):
-                self.nn_dict[k] = v
-
-        # set configurations
-        self.sos = sos
-        self.eos = eos  # NOTE(jiatong): this is not used in the current implementation
-
-        self.token_list = token_list
-        self.beam_size = beam_size
-        self.n_vocab = vocab_size
-
-    def init_hyp(self, x: torch.Tensor) -> List[Hypothesis]:
-        """Initialize a hypothesis.
-
-        Args:
-            x (torch.Tensor): Encoder output tensor.
-
-        Returns:
-            List[Hypothesis]: Initial beam containing one hypothesis.
-        """
-        init_states = dict()
-        init_scores = dict()
-        for k, d in self.scorers.items():
-            init_states[k] = d.init_state(x)
-            init_scores[k] = 0.0
-
-        return [
-            Hypothesis(
-                score=0.0,
-                scores=init_scores,
-                states=init_states,
-                yseq=torch.tensor([self.sos], device=x.device),
-                unused_meta_label_ids=list(self.meta_label_for_search),
-            )
-        ]
-
-    @typechecked
-    @staticmethod
-    def append_token(xs: torch.Tensor, x: int) -> torch.Tensor:
-        """Append new token to prefix tokens.
-
-        Args:
-            xs (torch.Tensor): The prefix token
-            x (int): The new token to append
-
-        Returns:
-            torch.Tensor: New tensor contains: xs + [x] with xs.dtype and xs.device
-
-        """
-        new_x = torch.tensor([x], dtype=xs.dtype, device=xs.device)
-        return torch.cat((xs, new_x))
-
-    @typechecked
-    def score(
-        self,
-        hyp: Hypothesis,
-        x: torch.Tensor,
-    ) -> Tuple[Dict[str, torch.Tensor], Dict[str, Any]]:
-        """Score new hypothesis by `self.scorers`.
-
-        Args:
-            hyp (Hypothesis): Hypothesis with prefix tokens to score
-            x (torch.Tensor): Corresponding input feature
-
-        Returns:
-            Tuple[Dict[str, torch.Tensor], Dict[str, Any]]: Tuple of
-                score dict of `hyp` that has string keys of `self.scorers`
-                and tensor score values of shape: `(self.n_vocab,)`,
-                and state dict that has string keys
-                and state values of `self.scorers`
-
-        """
-        scores = dict()
-        states = dict()
-        for k, d in self.scorers.items():
-            scores[k], states[k] = d.score(hyp.yseq, hyp.states[k], x)
-
+    def score_full(self, hyp, x, pre_x=None):
+        """Advance all states, optionally ignoring the model's label scores."""
+        scores, states = super().score_full(hyp, x, pre_x)
+        if self.skip_meta_label_score and len(hyp.yseq) % 2:
+            scores = {
+                name: score if name == "metric_constraint" else torch.zeros_like(score)
+                for name, score in scores.items()
+            }
         return scores, states
 
-    @typechecked
-    def beam(
-        self,
-        weighted_scores: torch.Tensor,
-        ids: torch.Tensor,
-        use_id_size: bool = False,
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Compute topk full token ids and partial token ids.
+    def beam(self, weighted_scores, ids):
+        """Keep only finite candidates, including when the beam exceeds a range."""
+        allowed = ids[torch.isfinite(weighted_scores[ids])]
+        local = weighted_scores[allowed].topk(min(self.beam_size, len(allowed))).indices
+        chosen = allowed[local]
+        # No pre-beam/partial scoring: full and partial IDs coincide.
+        return chosen, chosen
 
-        Args:
-            weighted_scores (torch.Tensor): The weighted sum scores for each tokens.
-            Its shape is `(self.n_vocab,)`.
-            ids (torch.Tensor): The partial token ids to compute topk
-            use_id_size (bool): Whether to use the size of ids for topk.
-                If True, the topk will be computed based on the size of ids.
+    def search(self, running_hyps, x, pre_x=None):
+        """Expand labels per parent, then prune globally after the value step."""
+        pair_beam_size = self.beam_size
+        try:
+            if self.skip_meta_label_score:
+                self.beam_size = max(pair_beam_size, len(self.meta_label_for_search))
+            labels = []
+            for hyp in running_hyps:
+                labels.extend(super().search([hyp], x, pre_x))
+        finally:
+            self.beam_size = pair_beam_size
+        return super().search(labels, x, pre_x)
 
-        Returns:
-            Tuple[torch.Tensor, torch.Tensor]:
-                The topk full token ids and partial token ids.
-                Their shapes are `(self.beam_size,)`
-
-        """
-        size = ids.numel() if use_id_size else min(self.beam_size, ids.numel())
-        local_ids = weighted_scores[ids].topk(size).indices
-        return ids[local_ids], local_ids
-
-    @staticmethod
-    def merge_scores(
-        prev_scores: Dict[str, float],
-        next_scores: Dict[str, torch.Tensor],
-        idx: int,
-    ) -> Dict[str, torch.Tensor]:
-        """Merge scores for new hypothesis.
-
-        Args:
-            prev_scores (Dict[str, float]):
-                The previous hypothesis scores by `self.scorers`
-            next_scores (Dict[str, torch.Tensor]): scores by `self.full_scorers`
-            idx (int): The next token id for `next_full_scores`
-
-        Returns:
-            Dict[str, torch.Tensor]: The new score dict.
-                Its keys are names of `self.full_scorers` and `self.part_scorers`.
-                Its values are scalar tensors by the scorers.
-
-        """
-        new_scores = dict()
-        for k, v in next_scores.items():
-            new_scores[k] = prev_scores[k] + v[idx]
-        return new_scores
-
-    def extend(
-        self,
-        running_hyps: List[Hypothesis],
-        x: torch.Tensor,
-    ) -> List[Hypothesis]:
-        """Extend the hypotheses with the list of meta label ids.
-
-        Args:
-            running_hyps (List[Hypothesis]): Running hypotheses on beam
-            x (torch.Tensor): Encoded speech feature (T, D)
-        """
-        extended_hyps = []
-        for hyp in running_hyps:
-            labels = hyp.unused_meta_label_ids
-            if self.use_fixed_order:
-                labels = labels[:1]
-            part_ids = torch.tensor(labels, device=x.device)
-            scores, states = self.score(hyp, x)
-            weighted_scores = torch.zeros(self.n_vocab, dtype=x.dtype, device=x.device)
-            for k in self.scorers:
-                if self.skip_meta_label_score:
-                    scores[k] = torch.zeros_like(scores[k])
-                weighted_scores += self.weights[k] * scores[k]
-            weighted_scores += hyp.score
-
-            # update hyps
-            for j, _ in zip(
-                *self.beam(weighted_scores, part_ids, self.skip_meta_label_score)
-            ):
-                j = int(j)
-                # will be (2 x beam at most)
-                extended_hyps.append(
-                    Hypothesis(
-                        score=weighted_scores[j],
-                        yseq=self.append_token(hyp.yseq, j),
-                        scores=self.merge_scores(hyp.scores, scores, j),
-                        states=states,
-                        unused_meta_label_ids=[
-                            label for label in hyp.unused_meta_label_ids if label != j
-                        ],
-                    )
-                )
-        return extended_hyps
-
-    def search(
-        self,
-        running_hyps: List[Hypothesis],
-        x: torch.Tensor,
-    ) -> List[Hypothesis]:
-        """Search new tokens for running hypotheses and encoded speech x.
-
-        Args:
-            running_hyps (List[Hypothesis]): Running hypotheses on beam
-            x (torch.Tensor): Encoded speech feature (T, D)
-
-        Returns:
-            List[Hypotheses]: Best sorted hypotheses
-
-        """
-        best_hyps = []
-        for hyp in self.extend(running_hyps, x):
-            # scoring
-            weighted_scores = torch.zeros(self.n_vocab, dtype=x.dtype, device=x.device)
-            scores, states = self.score(hyp, x)
-            for k in self.scorers:
-                weighted_scores += self.weights[k] * scores[k]
-
-            # add previous hyp score
-            weighted_scores += hyp.score
-
-            # NOTE(jiatong): conduct pre-beam with value tokens based on metric meta
-            # label ids
-            token_range = (self.beam_masking or {}).get(
-                int(hyp.yseq[-1]), (0, self.n_vocab)
-            )
-            part_ids = torch.arange(*token_range, device=x.device)
-
-            # update hyps
-            for j, _ in zip(*self.beam(weighted_scores, part_ids)):
-                j = int(j)
-                # will be (2 x beam at most)
-                best_hyps.append(
-                    Hypothesis(
-                        score=weighted_scores[j],
-                        yseq=self.append_token(hyp.yseq, j),
-                        scores=self.merge_scores(hyp.scores, scores, j),
-                        states=states,
-                        unused_meta_label_ids=list(hyp.unused_meta_label_ids),
-                    )
-                )
-
-            # sort and prune 2 x beam -> beam
-            best_hyps = sorted(best_hyps, key=lambda x: x.score, reverse=True)[
-                : min(len(best_hyps), self.beam_size)
-            ]
-        return best_hyps
-
-    def forward(
-        self,
-        x: torch.Tensor,
-    ) -> List[Hypothesis]:
-        """Perform beam search.
-
-        Args:
-            x (torch.Tensor): Encoded speech feature (T, D)
-
-        Returns:
-            list[Hypothesis]: N-best decoding results
-
-        """
-        # set length bounds
-        logger.info("decoder input length: " + str(x.shape[0]))
-        logger.info(
-            "expected output length: " + str(len(self.meta_label_for_search) * 2)
-        )
-
-        # main loop of prefix search
+    def forward(self, x: torch.Tensor) -> List[Hypothesis]:
+        """Decode a single encoded utterance (T, D) into complete metric pairs."""
         running_hyps = self.init_hyp(x)
-        for i in range(len(self.meta_label_for_search)):
-            logger.debug("position " + str(i) + " and position " + str(i + 1))
-            # extend hypotheses
+        for _ in self.meta_label_for_search:
             running_hyps = self.search(running_hyps, x)
-
-        nbest_hyps = sorted(running_hyps, key=lambda x: x.score, reverse=True)
-
-        # check the number of hypotheses reaching to eos
-        if len(nbest_hyps) == 0:
-            logger.warning("there is no N-best results, likely due to a bug")
-            return []
-
-        # report the best result
-        best = nbest_hyps[0]
-        for k, v in best.scores.items():
-            v = float(v) if isinstance(v, torch.Tensor) else v
-            logger.info(
-                f"{v:6.2f} * {self.weights[k]:3} = {v * self.weights[k]:6.2f} for {k}"
-            )
-
-        score = (
-            float(best.score) if isinstance(best.score, torch.Tensor) else best.score
-        )
-        logger.info(f"total log probability: {score:.2f}")
-        logger.info(f"normalized log probability: {score / len(best.yseq):.2f}")
-        if self.token_list is not None:
-            logger.info(
-                "best hypo: "
-                + " ".join([self.token_list[x] for x in best.yseq[1:]])
-                + "\n"
-            )
-        return nbest_hyps
+        return running_hyps

@@ -80,3 +80,20 @@ def test_decode_integer_sequences(sequence):
         "mos": [1.0],
         "language": ["jpn"],
     }
+
+
+def test_known_unselected_metric_is_skipped():
+    tokenizer = MetricTokenizer(token_info(), ["mos"])
+    assert tokenizer.metric2token({"mos": 1.5, "language": "eng"}) == {"mos": (4, 7)}
+
+
+@pytest.mark.parametrize("selected", [["mos"], None])
+def test_unknown_input_metric_is_rejected(selected):
+    tokenizer = MetricTokenizer(token_info(), selected)
+    with pytest.raises(ValueError, match="Unknown metric: mso"):
+        tokenizer.metric2token({"mos": 1.5, "mso": 1.5})
+
+
+def test_unknown_selected_metric_is_rejected():
+    with pytest.raises(ValueError, match="Unknown selected metrics.*mso"):
+        MetricTokenizer(token_info(), ["mso"])

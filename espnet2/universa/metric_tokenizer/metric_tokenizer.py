@@ -30,13 +30,15 @@ class AbsMetricTokenizer(ABC):
 
 class MetricTokenizer(AbsMetricTokenizer):
     def __init__(
-        self, tokenizer_config: Union[str, Dict[str, Any]], tokenize_metric: List[str]
+        self,
+        tokenizer_config: Union[str, Dict[str, Any]],
+        tokenize_metric: Optional[List[str]],
     ):
         """Initialize the MetricTokenizer with a configuration file path.
 
         Args:
             tokenizer_config: The tokenizer configuration JSON file/Dictionary
-            tokenize_metric: List of metric names to be tokenized
+            tokenize_metric: Selected known metric names, or None for all metrics
         """
         if isinstance(tokenizer_config, str):
             with open(tokenizer_config, "r") as f:
@@ -48,6 +50,10 @@ class MetricTokenizer(AbsMetricTokenizer):
         self.vocab = config["VOCAB"]
         self.metric_offset = config["offset"]
         self.tokenize_metric = tokenize_metric
+        if tokenize_metric is not None:
+            unknown = set(tokenize_metric) - self.tokenizer_config.keys()
+            if unknown:
+                raise ValueError(f"Unknown selected metrics: {sorted(unknown)}")
 
         # Build inverse mapping for faster lookups
         self.overall_offset = 4  # Offset for the vocab indices
@@ -150,7 +156,8 @@ class MetricTokenizer(AbsMetricTokenizer):
         """Convert metrics dictionary to token indices.
 
         Args:
-            metrics: Dictionary of metric names and their values
+            metrics: Dictionary of metric names and their values. Unknown names
+                raise ValueError; known metrics outside tokenize_metric are skipped.
             reduce_offset: Whether to reduce metric-related offset
 
         Returns:
@@ -159,13 +166,12 @@ class MetricTokenizer(AbsMetricTokenizer):
         token_indices = {}
 
         for metric_name, value in metrics.items():
+            if metric_name not in self.tokenizer_config:
+                raise ValueError(f"Unknown metric: {metric_name}")
             if (
                 self.tokenize_metric is not None
                 and metric_name not in self.tokenize_metric
             ):
-                continue
-
-            if metric_name not in self.tokenizer_config:
                 continue
 
             if isinstance(value, tuple):
