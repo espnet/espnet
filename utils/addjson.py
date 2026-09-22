@@ -10,6 +10,7 @@ import codecs
 import json
 import logging
 import sys
+
 from distutils.util import strtobool
 
 from espnet2.legacy.utils.cli_utils import get_commandline_args

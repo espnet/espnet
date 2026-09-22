@@ -1,5 +1,4 @@
 from argparse import Namespace
-from test.espnet2.legacy.test_beam_search import prepare, transformer_args
 
 import numpy
 import pytest
@@ -11,6 +10,7 @@ from espnet2.legacy.nets.scorers.length_bonus import LengthBonus
 
 # from espnet2.legacy.nets.scorers.ngram import NgramFullScorer
 from espnet2.lm.transformer_lm import TransformerLM
+from test.espnet2.legacy.test_beam_search import prepare, transformer_args
 
 
 def test_batchfy_hyp():

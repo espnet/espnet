@@ -1,5 +1,3 @@
-from test.espnet2.legacy.test_beam_search import prepare, transformer_args
-
 import numpy
 import pytest
 import torch
@@ -8,6 +6,7 @@ from espnet2.legacy.nets.batch_beam_search import BatchBeamSearch
 from espnet2.legacy.nets.scorers.ctc import CTCPrefixScorer
 from espnet2.legacy.nets.scorers.length_bonus import LengthBonus
 from espnet2.lm.transformer_lm import TransformerLM
+from test.espnet2.legacy.test_beam_search import prepare, transformer_args
 
 
 def _build(args, ctc_weight, lm_weight, bonus, device, dtype, normalize_length=False):

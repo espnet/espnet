@@ -52,7 +52,7 @@ for test_name in ("test", "dev"):
             # remove all lines that contain ids that correspond to duplicate sentences
             out_lines = []
             for line in f:
-                if not line.split()[0] in duplicate_uttids:
+                if line.split()[0] not in duplicate_uttids:
                     out_lines.append(line.strip())
         with open(f"data/{test_name}/{name}", "w") as f:
             f.write("\n".join(out_lines))

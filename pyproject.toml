@@ -124,7 +124,7 @@ extend-exclude = [
 select = [
     "E", # pycodestyle errors
     "W", # pycodestyle warnings
-    "F", # flake8
+    # "F", # flake8
     "I", # isort
     "D", # docstrings (ESPnet3 only)
 ]

@@ -1,5 +1,3 @@
-from test.espnet2.cls.test_espnet_model import calculate_stats_testing_internal_
-
 import numpy as np
 import torch
 
@@ -7,6 +5,7 @@ from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
 from espnet2.cls.decoder.linear_decoder import LinearDecoder
 from espnet2.cls.espnet_model import ESPnetClassificationModel
 from espnet2.cls.lightning_callbacks import MultilabelAUPRCCallback
+from test.espnet2.cls.test_espnet_model import calculate_stats_testing_internal_
 
 
 class DummyLightningModule:

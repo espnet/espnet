@@ -3,12 +3,12 @@ import argparse
 import logging
 import os
 import sys
-from distutils.version import LooseVersion
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 import torch
 import whisper
+from distutils.version import LooseVersion
 from typeguard import typechecked
 
 from espnet2.fileio.datadir_writer import DatadirWriter
