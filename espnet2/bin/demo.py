@@ -62,6 +62,18 @@ PROMPT_LABELS = {
     G2P_LABEL: "The words that were said",
     P2G_LABEL: "The phones, spaced or between slashes",
 }
+# A decoder can be primed with text before it searches - what was said
+# before, a name to expect. A CTC head cannot: there is no search to prime,
+# and each frame is read on its own. So the box appears for a checkpoint
+# that has a decoder, and for the two tasks whose input is written whether
+# or not there is one.
+PROMPT_LABEL = "Text prompt"
+PROMPT_INFO = "Optional: what was said before, or a name to expect"
+NO_PROMPT_NOTE = (
+    "This checkpoint is CTC-only, so there is nothing to prompt: it reads "
+    "each frame on its own rather than searching. Measured on OWSM-CTC, "
+    "previous-text hints were ignored or made the transcript worse."
+)
 # Shown when the loaded checkpoint offers phones, because the same page then
 # also offers Transcribe on a model built for something else. POWSM's author
 # asked for this to be said where someone would read it: its English ASR is
@@ -416,6 +428,7 @@ def build_app(s2t, device: str = "cpu", model_tag: str = "", wrap=None):
     rate = sample_rate(s2t)
     phones = phone_task(tokens)
     prompted = prompt_tasks(tokens)
+    searches = not getattr(s2t, "ctc_only", False)
     try:
         nolang = s2t.no_language()
     except ValueError:
@@ -425,8 +438,19 @@ def build_app(s2t, device: str = "cpu", model_tag: str = "", wrap=None):
         nolang = None
 
     def detect(speech, task_sym):
-        """The language the model names for the first window of this audio."""
-        decoded = s2t.decode_window(pad(speech, window, rate), nolang, task_sym)
+        """The language the model names for the first window of this audio.
+
+        Read off the CTC head where there is one, even on a checkpoint with a
+        decoder: all that is wanted is the language symbol, which that head
+        writes too, and a beam search to obtain it costs a minute of CPU on
+        the encoder-decoder OWSM. Without a CTC head there is nothing to read
+        cheaply, and the window is decoded properly.
+        """
+        padded = pad(speech, window, rate)
+        if getattr(s2t.s2t_model, "ctc", None) is not None:
+            decoded = s2t.best_path(padded, lang_sym=nolang, task_sym=task_sym)[0][0]
+        else:
+            decoded = s2t.decode_window(padded, nolang, task_sym)
         return split_tokens(decoded, codes)[0] or "eng"
 
     def chosen_language(label):
@@ -458,6 +482,11 @@ def build_app(s2t, device: str = "cpu", model_tag: str = "", wrap=None):
             text_prev = as_phones(prompt) if task_sym == P2G_TASK else prompt.strip()
         else:
             task_sym = f"<st_{code_of_target[task_label]}>"
+
+        # on a checkpoint with a decoder, whatever else is in the box primes
+        # the search; on a CTC-only one there is no box to read
+        if task_label not in PROMPT_TASKS and (prompt or "").strip():
+            text_prev = prompt.strip()
 
         if task_sym in PROMPT_TASKS.values() and long_form:
             # The written input is one utterance's, and the windows after the
@@ -524,6 +553,8 @@ def build_app(s2t, device: str = "cpu", model_tag: str = "", wrap=None):
         gr.Markdown(DESCRIPTION)
         if phones:
             gr.Markdown(PHONE_MODEL_NOTE)
+        if not searches:
+            gr.Markdown(NO_PROMPT_NOTE)
         with gr.Row():
             with gr.Column():
                 audio = gr.Audio(
@@ -543,12 +574,14 @@ def build_app(s2t, device: str = "cpu", model_tag: str = "", wrap=None):
                     value=ASR_LABEL,
                     label="Task",
                 )
-                # shown only for the tasks that read it, since for the rest
-                # there is nothing to type and a box invites typing anyway
+                # a decoder can be primed with anything; a CTC head cannot,
+                # and the box then shows only for the tasks whose input is
+                # written - so a page never offers typing that does nothing
                 prompt = gr.Textbox(
-                    label="Written input",
+                    label=PROMPT_LABEL,
+                    info=PROMPT_INFO if searches else None,
                     lines=2,
-                    visible=False,
+                    visible=searches,
                 )
                 long_form = gr.Checkbox(
                     label="Long-form",
@@ -558,13 +591,15 @@ def build_app(s2t, device: str = "cpu", model_tag: str = "", wrap=None):
             with gr.Column():
                 detected = gr.Textbox(label="Language")
                 text = gr.Textbox(label="Text", lines=8)
-        if prompted:
+        if prompted or searches:
 
             def show_prompt(task_label):
-                """The box, labelled for the task that reads it."""
+                """The box, labelled for whatever will read it."""
+                asked = task_label in PROMPT_TASKS
                 return gr.update(
-                    visible=task_label in PROMPT_TASKS,
-                    label=PROMPT_LABELS.get(task_label, "Written input"),
+                    visible=asked or searches,
+                    label=PROMPT_LABELS.get(task_label, PROMPT_LABEL),
+                    info=None if asked else PROMPT_INFO,
                 )
 
             task.change(show_prompt, task, prompt)
