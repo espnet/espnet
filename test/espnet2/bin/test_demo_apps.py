@@ -37,12 +37,17 @@ EGS2 = Path(__file__).parents[3] / "egs2"
 DEMOS = {
     "ctc": EGS2 / "owsm_ctc_v4/s2t1/demo",
     "attention": EGS2 / "owsm_v4/s2t1/demo",
+    "powsm": EGS2 / "powsm_ctc/s2t1/demo",
     "tts": EGS2 / "ljspeech/tts1/demo",
     "enh": EGS2 / "universal_se_v1/enh1/demo",
     "spk": EGS2 / "voxceleb/spk1/demo",
 }
 # The two that decode speech with OWSM, and so share far more than the rest.
 OWSM = ("ctc", "attention")
+# The app with no page of its own: it imports the one `espnet demo` serves,
+# which is where the two OWSM apps are meant to end up. The checks about an
+# interface do not apply to it, and one about the import does.
+IMPORTED = ("powsm",)
 # Everything from the ZeroGPU shim to the model section is common ground
 # between the two OWSM apps.
 SHARED_FROM = "# The ZeroGPU package patches torch"
@@ -52,6 +57,8 @@ SHIM_TO = "import os  # noqa: E402"
 DEVICE_FROM = "# ZeroGPU attaches the GPU only while"
 DEVICE_TO = '    DEVICE = "cpu"'
 OTHERS = [name for name in DEMOS if name not in OWSM]
+# the apps that draw their own page, and so answer for what is on it
+OWN_PAGE = [name for name in DEMOS if name not in IMPORTED]
 
 
 def _source(name):
@@ -182,7 +189,9 @@ def test_both_owsm_demos_offer_the_same_tasks():
 @pytest.mark.parametrize("name", list(DEMOS))
 def test_each_demo_asks_for_the_gpu_time_it_limits_itself_to(name):
     source = _source(name)
-    assert "@spaces.GPU(duration=GPU_SECONDS)" in source, name
+    # as a decorator on the app's own predict, or handed to build_app as the
+    # wrapper for the one it builds
+    assert "spaces.GPU(duration=GPU_SECONDS)" in source, name
     granted = int(re.search(r"^GPU_SECONDS = (\d+)", source, re.M).group(1))
     for constant, limit in _caps(name):
         # a cap counted in characters says nothing about seconds
@@ -190,7 +199,7 @@ def test_each_demo_asks_for_the_gpu_time_it_limits_itself_to(name):
             assert limit <= granted, f"{name}: takes {limit}s but asks for {granted}s"
 
 
-@pytest.mark.parametrize("name", list(DEMOS))
+@pytest.mark.parametrize("name", OWN_PAGE)
 def test_each_demo_caps_its_input_and_says_so(name):
     """One cap, applied to the input, and named in what the user is told.
 
@@ -207,6 +216,28 @@ def test_each_demo_caps_its_input_and_says_so(name):
     assert constant in _named_in_messages(name), (
         f"{name}: {constant} limits the input without a gr.Warning or "
         "gr.Error naming it"
+    )
+
+
+@pytest.mark.parametrize("name", IMPORTED)
+def test_the_imported_page_is_the_one_espnet_demo_serves(name):
+    """An app with no interface has to have no interface.
+
+    The point of importing `build_app` is that the Space and `espnet demo`
+    cannot drift, which only holds while the app adds nothing of its own. Its
+    input cap is then espnet2.bin.demo's, and that is what the ZeroGPU slice
+    has to cover.
+    """
+    source = _source(name)
+    assert "from espnet2.bin.demo import build_app" in source, name
+    assert "wrap=spaces.GPU(duration=GPU_SECONDS)" in source, name
+    assert "gr.Blocks" not in source, f"{name}: builds a page of its own"
+    assert "def predict" not in source, f"{name}: decodes on its own"
+
+    granted = int(re.search(r"^GPU_SECONDS = (\d+)", source, re.M).group(1))
+    assert demo.MAX_SECS <= granted, (
+        f"{name}: the page takes {demo.MAX_SECS}s of audio and the app asks "
+        f"for {granted}s of GPU"
     )
 
 
@@ -333,6 +364,9 @@ def test_the_ctc_apps_symbol_splitting_is_what_espnet_demo_splits():
 # owsm-ctc-v4 Space down that way.
 UNRELEASED = {
     "best_path": "202610.post1",
+    # build_app took its `wrap` argument, and offered a phone page for a
+    # checkpoint that has <pr>, in 202610.post2
+    "build_app": "202610.post2",
 }
 # The extra each front-end needs, by the import that gives it away. RawNet3's
 # asteroid_frontend imports asteroid_filterbanks, which only espnet[spk] has;
@@ -361,7 +395,8 @@ def test_an_app_using_a_new_api_asks_for_the_release_that_has_it(name):
     source = _source(name)
     requirement = _espnet_requirement(name)
     for attribute, since in UNRELEASED.items():
-        if f".{attribute}(" not in source:
+        # a method on a loaded model, or a name the app imported
+        if f".{attribute}(" not in source and f"\n{attribute}(" not in source:
             continue
         floor = requirement.split(">=")[1].strip()
         # parsed, not compared as text: "202612rc1" sorts after "202612" as a

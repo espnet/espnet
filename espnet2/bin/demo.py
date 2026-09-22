@@ -342,7 +342,7 @@ def load_gradio():
     return gradio
 
 
-def build_app(s2t, device: str = "cpu", model_tag: str = ""):
+def build_app(s2t, device: str = "cpu", model_tag: str = "", wrap=None):
     """The Gradio app for an already loaded OWSM-CTC model.
 
     Args:
@@ -353,6 +353,12 @@ def build_app(s2t, device: str = "cpu", model_tag: str = ""):
         device: where it runs; long-form decoding batches on a GPU only.
         model_tag: shown in the page, so a demo of a different checkpoint
             says which one it is.
+        wrap: applied to the function behind the Run button, for a caller
+            that has to say something about how it runs. A Hugging Face
+            Space on ZeroGPU has no GPU except inside a function the
+            `spaces` package has decorated, and that decorator belongs to
+            the Space rather than to this module - so the Space passes it
+            in and gets the same page as everyone else.
 
     Returns:
         A gradio Blocks, not yet launched.
@@ -456,6 +462,9 @@ def build_app(s2t, device: str = "cpu", model_tag: str = ""):
             # which is the form anything counting or aligning them wants.
             text = " ".join(PHONE.findall(text)) or text
         return LANGUAGE_NAMES.get(detected, detected or "unknown"), text
+
+    if wrap is not None:
+        predict = wrap(predict)
 
     app = gr.Blocks(title=TITLE)
     with app:
