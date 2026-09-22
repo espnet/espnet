@@ -65,6 +65,18 @@ demo = build_app(
     model_tag=MODEL_TAG,
     # the Run button is the only thing that touches the GPU
     wrap=spaces.GPU(duration=GPU_SECONDS),
+    title="OWSM v4",
+    description="""# OWSM v4
+
+[OWSM](https://www.wavlab.org/activities/2024/owsm/) is the Open
+Whisper-style Speech Model from [CMU WAVLab](https://www.wavlab.org/),
+trained with [ESPnet](https://github.com/espnet/espnet). This is the
+encoder-decoder one: it searches, which is slower and is what lets a text
+prompt steer the answer.
+
+Its encoder-only sibling runs the same tasks in one pass per window:
+[espnet/owsm-ctc-v4](https://huggingface.co/spaces/espnet/owsm-ctc-v4).
+""",
 )
 
 

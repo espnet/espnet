@@ -370,15 +370,28 @@ def split_tokens(decoded: str, codes: Iterable[str]) -> Tuple[str, str]:
 # Worded like the CLI's own missing-soundfile message: what is absent, then
 # the one command that fixes it.
 GRADIO_MISSING = "gradio is not installed: pip install 'espnet[demo]'"
-TITLE = "OWSM"
-DESCRIPTION = """# OWSM
+# What the page calls itself when the caller does not say. It named OWSM
+# while OWSM was the only model this served; a Space for another checkpoint
+# passes its own title and description, and `espnet demo` gets the tag it
+# was given.
+TITLE = "ESPnet"
 
-Transcribe, translate or identify the language of a recording with
-[OWSM](https://www.wavlab.org/activities/2024/owsm/), the Open Whisper-style
-Speech Models from [CMU WAVLab](https://www.wavlab.org/).
 
-Served from your own machine by `espnet demo`. The language menu and the
-translation targets below are this checkpoint's own.
+def default_description(model_tag: str = "") -> str:
+    """The heading for a checkpoint nobody has written a page about.
+
+    Says what the page does and which model is doing it, and no more: the
+    menus, the tasks and the window are the checkpoint's and are described
+    by being there.
+    """
+    named = f"[`{model_tag}`](https://huggingface.co/{model_tag})" if model_tag else ""
+    return f"""# {model_tag or TITLE}
+
+Speech in, text out{f", with {named}" if named else ""}. What this page
+offers - the languages, the tasks, the length it reads in one pass - is read
+from the checkpoint rather than written here.
+
+Served from your own machine by `espnet demo`.
 """
 
 
@@ -402,7 +415,14 @@ def load_gradio():
     return gradio
 
 
-def build_app(s2t, device: str = "cpu", model_tag: str = "", wrap=None):
+def build_app(
+    s2t,
+    device: str = "cpu",
+    model_tag: str = "",
+    wrap=None,
+    title: str = "",
+    description: str = "",
+):
     """The Gradio app for an already loaded OWSM-CTC model.
 
     Args:
@@ -419,6 +439,11 @@ def build_app(s2t, device: str = "cpu", model_tag: str = "", wrap=None):
             `spaces` package has decorated, and that decorator belongs to
             the Space rather than to this module - so the Space passes it
             in and gets the same page as everyone else.
+        title: the browser tab's name. Defaults to "ESPnet": this page
+            serves any checkpoint, and a Space for one says what it is.
+        description: the markdown above the controls, as a Space's own
+            introduction to its model. Defaults to a heading naming the
+            checkpoint and what the page does with it.
 
     Returns:
         A gradio Blocks, not yet launched.
@@ -564,9 +589,9 @@ def build_app(s2t, device: str = "cpu", model_tag: str = "", wrap=None):
     if wrap is not None:
         predict = wrap(predict)
 
-    app = gr.Blocks(title=TITLE)
+    app = gr.Blocks(title=title or model_tag or TITLE)
     with app:
-        gr.Markdown(DESCRIPTION)
+        gr.Markdown(description or default_description(model_tag))
         if phones:
             gr.Markdown(PHONE_MODEL_NOTE)
         if not searches:

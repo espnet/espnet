@@ -180,6 +180,41 @@ def test_the_written_input_box_appears_for_the_tasks_that_read_it(monkeypatch):
     assert demo.PROMPT_TASK_NOTE in markdown
 
 
+def test_the_page_says_which_model_it_is_serving(monkeypatch):
+    """The page serves any checkpoint, so its heading is not OWSM's.
+
+    A Space passes its own title and description; `espnet demo` passes the
+    tag it was given and gets a heading that names it.
+    """
+    pytest.importorskip("gradio")
+
+    class _Any:
+        preprocessor_conf = {"speech_length": 30, "nolang_symbol": "<nolang>"}
+        ctc_only = True
+        s2t_model = types.SimpleNamespace(
+            token_list=["<nolang>", "<eng>", "<asr>", "<sos>"]
+        )
+
+        def no_language(self):
+            return "<nolang>"
+
+    def markdown(app):
+        return "\n".join(str(getattr(b, "value", "")) for b in app.blocks.values())
+
+    given = demo.build_app(_Any(), device="cpu", model_tag="espnet/a-model")
+    assert "espnet/a-model" in markdown(given)
+
+    own = demo.build_app(
+        _Any(),
+        device="cpu",
+        model_tag="espnet/a-model",
+        title="A Model",
+        description="# A Model\n\nWhat this one is for.",
+    )
+    assert "What this one is for." in markdown(own)
+    assert "Speech in, text out" not in markdown(own)
+
+
 def test_a_checkpoint_with_a_decoder_can_be_prompted(monkeypatch):
     """There the box is open from the start, and no note says otherwise."""
     pytest.importorskip("gradio")

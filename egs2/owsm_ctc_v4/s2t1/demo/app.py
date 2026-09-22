@@ -62,6 +62,19 @@ demo = build_app(
     model_tag=MODEL_TAG,
     # the Run button is the only thing that touches the GPU
     wrap=spaces.GPU(duration=GPU_SECONDS),
+    title="OWSM-CTC v4",
+    description="""# OWSM-CTC v4
+
+[OWSM-CTC](https://aclanthology.org/2024.acl-long.549/) is an encoder-only
+speech foundation model from [CMU WAVLab](https://www.wavlab.org/), trained
+on 320k hours of public audio with
+[ESPnet](https://github.com/espnet/espnet). One encoder pass per window, no
+beam search: it transcribes, translates and identifies the language, and it
+is fast.
+
+Its autoregressive sibling runs the same tasks with a search, and takes a
+text prompt: [espnet/owsm-v4](https://huggingface.co/spaces/espnet/owsm-v4).
+""",
 )
 
 
