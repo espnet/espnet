@@ -5,10 +5,10 @@
 
 import argparse
 import logging
+from distutils.util import strtobool
 
 import numpy
 import resampy
-from distutils.util import strtobool
 from omniio import kaldi as kaldi_io
 
 from espnet2.legacy.transform.spectrogram import logmelspectrogram
