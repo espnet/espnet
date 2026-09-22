@@ -75,6 +75,30 @@ language menu is the checkpoint's own and so is its language identification,
 which on that file names Kurmanji; the phones are right regardless, since
 they are what it was trained to produce.
 
+## Which POWSM
+
+There are two, and `POWSM_MODEL_TAG` chooses between them without touching a
+file - `espnet/powsm_ctc` here, `espnet/powsm` for the encoder-decoder.
+
+Measured on `test_utils/ctc_align_test.wav`, on a laptop CPU, through
+`espnet2.bin.s2t_inference`:
+
+| | `powsm_ctc` | `powsm` |
+|---|---|---|
+| `<pr>` | 5.3 s | 21.8 s, and finer - `pʰ`, `tʰ`, `oʊ` where the CTC writes `p`, `t`, `o` |
+| `<asr>` | 7.0 s | 53.4 s, and the text comes back as `T ⁇ E  ⁇ A ⁇ E OF …` |
+| `<g2p>` | 5.9 s | 65.7 s |
+| `<p2g>` | 7.6 s | 89.4 s, same `⁇` |
+
+The hosted Space is the CTC one: 89 s against a 120 s ZeroGPU slice leaves no
+room, and the encoder-decoder's two text tasks are the ones its text
+normalisation is hurting today. Asked with text the audio does not say, it
+was the CTC model whose phones followed the prompt and the encoder-decoder's
+that did not change - so on this file the prompted tasks are the CTC one's
+strength rather than its weakness. One file, no metric; see
+[#6792](https://github.com/espnet/espnet/pull/6792) for the numbers and the
+caveats.
+
 ## Running and publishing
 
 ```sh
