@@ -62,7 +62,6 @@ def test_complete_stage_pipeline_on_fixture(corpus, monkeypatch):
         max_epochs=2,
         limit_train_batches=2,
         limit_val_batches=1,
-        num_sanity_val_steps=0,
         accumulate_grad_batches=1,
     )
     inference = load_and_merge_config(

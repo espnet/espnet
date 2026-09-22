@@ -39,6 +39,17 @@ the LM; inference uses that tokenizer and the trained LM at weight 0.1.
 
 ## ESPnet2 mapping and ESPnet3 behavior
 
+CTC loss follows the model/input device, as in ESPnet2. GPU training uses the
+existing GPU CTC implementation. GPU CTC can introduce nondeterministic
+differences and does not promise bitwise agreement across training runs.
+
+The recipe uses the shared ESPnet3 training flow, including Lightning's default
+pre-training validation checks. It does not replay initial weights, reset RNG
+state at epoch boundaries, force ESPnet2 batch membership, replace gradient
+accumulation/clipping, or override the shared precision and statistics code.
+The configured seed and source model/data settings are ordinary recipe inputs.
+No experimental loss or gradient-monitoring callback is required to run it.
+
 - `conf/training_sinc_rnn.yaml` retains the source Sinc frontend, BLSTMP/RNN,
   Adadelta, plateau scheduler, 30-piece unigram tokenizer and 25-epoch budget.
   Clipping is configured through Lightning. Its early-stopping patience is 5
@@ -79,25 +90,55 @@ source model settings, output alignment, native LM commands and the stock ASR
 stages on a small CPU fixture, including a trained LM with nonzero fusion weight.
 Public recipe functions document their arguments, return values and usage examples.
 
-Earlier results from the removed ESPnet2 compatibility adapters describe the old
-implementation only. They are not results for this stock ESPnet3 implementation.
-New validation results are recorded separately; full accuracy reproduction is
-not implied by a short pipeline test.
+Recipe validation: 20 tests passed; formatting, import order and lint checks passed.
 
-CPU validation for this revision: 20 recipe tests passed. Black, isort and flake8 passed.
+### Native GPU CTC results
 
-A single-A10 run with the delivered 25-epoch maximum stopped after 23 epochs
-through the configured early-stopping callback. It used CPU CTCLoss via an
-experiment-only callback, fresh shared ESPnet3 statistics, and the existing
-native AN4 LM at weight 0.1. All 4117 optimizer updates had finite gradients;
-final parameters were finite. Inference used the stock top-1 average and scored
-all validation/test recordings with the shared ESPnet3 metrics:
+Validation used the shared framework at commit
+`6f1263a6069de753cd0a888e341ff6e78e42ca96`, Python 3.13.2,
+PyTorch 2.11.0+cu128, Lightning 2.6.0 and JiWER 4.0.0. The runs below use
+native GPU CTC and Lightning's default pre-training validation, with fresh
+ASR initialization and no numerical-alignment or diagnostic callbacks.
+Previously prepared data, shared ESPnet3 statistics, tokenizer and native
+ESPnet2 LM artifacts were reused; the LM was not retrained in these runs.
+Earlier CPU CTC and compatibility-adapter experiments are historical diagnostics
+and are not included in the results below.
+
+The complete AN4 run used one NVIDIA A10, FP32, seed 0 and the configured
+25-epoch maximum. Standard early stopping ended training after 21 epochs
+(3759 optimizer updates); final parameters were finite. Inference used the
+shared top-1 average, beam size 10 and LM weight 0.1 on one A10, covering all
+100 validation and 130 test recordings. The following are the unchanged public
+ESPnet3 WER/CER/TER outputs; TER uses the 30-piece ASR tokenizer.
 
 | Split | Recordings | WER (%) | CER (%) | TER (%) |
 | --- | ---: | ---: | ---: | ---: |
-| Validation | 100 | 15.57 | 10.29 | 9.78 |
-| Test | 130 | 8.67 | 5.07 | 4.82 |
+| Validation | 100 | 15.06 | 8.98 | 8.54 |
+| Test | 130 | 8.93 | 5.03 | 4.86 |
 
-Training took about 16.8 minutes; scoring ran in a separate one-A10 allocation.
-These results describe this stock ESPnet3 implementation, not the earlier
-25-epoch ESPnet2-compatibility experiment or its SCTK scores.
+### Local native ESPnet2 comparison
+
+No matching published ESPnet2 result was found for this experiment. A local
+baseline directly ran the official ESPnet2 preparation, statistics collection,
+ASR training, inference and SCTK scoring at the same framework commit, using
+GPU CTC and the same tokenizer and LM artifacts as the ESPnet3 run.
+It used the original Sinc-RNN YAML on one A10 and completed 25 epochs with
+the source early-stopping setting. The same 100 validation and 130 test IDs
+and reference texts were verified. Native raw-speech/text folded batches and
+statistics differ from ESPnet3's frontend-feature batches and shared statistics.
+
+For a common scoring convention, the existing ESPnet3 hypotheses were separately
+rescored with the same ESPnet2 tokenizer and SCTK used for the baseline. This
+offline comparison does not change the recipe's public ESPnet3 metric classes
+or the original predictions. Values below are percentages:
+
+| Split | Framework | WER | CER | TER |
+| --- | --- | ---: | ---: | ---: |
+| Validation | ESPnet2 | 14.72 | 9.92 | 9.43 |
+| Validation | ESPnet3, SCTK rescored | 15.06 | 8.98 | 8.54 |
+| Test | ESPnet2 | 7.63 | 4.33 | 4.12 |
+| Test | ESPnet3, SCTK rescored | 8.93 | 5.11 | 4.86 |
+
+These are local native-framework results with different training trajectories
+and stopping epochs, not a bitwise parity test. The scoring convention explains
+why the rescored ESPnet3 CER differs slightly from its public-metric result.

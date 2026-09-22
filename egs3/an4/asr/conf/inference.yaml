@@ -25,5 +25,4 @@ model:
 
 # RNN beam search decodes one utterance per call.
 batch_size: null
-input_key: speech
 output_fn: egs3.an4.asr.src.inference.build_output

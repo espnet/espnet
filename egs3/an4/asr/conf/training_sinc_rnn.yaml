@@ -107,7 +107,6 @@ dataloader:
         fold_lengths: [334]
 
 trainer:
-  num_sanity_val_steps: 0
   max_epochs: 25
   gradient_clip_val: 5.0
   callbacks:
