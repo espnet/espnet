@@ -7,8 +7,8 @@ Speech enhancement recipe using Conv-TasNet on the VCTK-Noisy (VCTK-DEMAND) data
 Download VCTK-Noisy (VCTK-DEMAND) from:
 https://datashare.ed.ac.uk/handle/10283/2791
 
-Extract so that the following directories exist under your dataset root, then set
-`builder.dataset_dir` in `dataset/config.yaml` to that root:
+Extract so that the following directories exist under your dataset root, then
+point `VCTK_DEMAND` at that root:
 
 - `clean_trainset_28spk_wav/`
 - `noisy_trainset_28spk_wav/`
@@ -25,7 +25,7 @@ download the corpus for you.
 cd egs3/vctk_noisy/esp2_enh
 source path.sh
 
-# Set builder.dataset_dir in dataset/config.yaml to your VCTK-Noisy root, then run:
+export VCTK_DEMAND=/path/to/vctk_noisy
 python run.py --stages create_dataset --training_config conf/training.yaml
 python run.py --stages collect_stats  --training_config conf/training.yaml
 python run.py --stages train          --training_config conf/training.yaml
