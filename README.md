@@ -31,6 +31,16 @@ evaluation, and hundreds of pretrained models on Hugging Face.
 
 ## What's new
 
+- **[ESPnet 202610.post2](https://github.com/espnet/espnet/releases/tag/v.202610.post2)** —
+  the command line has one name a task and two more of them: `espnet phonemize`
+  reads the phones with POWSM, `espnet align` lines text up with the audio it
+  was said in, and `asr` and `tts` became `transcribe` and `synthesize` (the old
+  names still work); models published before June 2025 load again, after
+  `init: chainer` was removed from the toolkit.
+
+<details>
+<summary>Earlier releases</summary>
+
 - **[ESPnet 202610.post1](https://github.com/espnet/espnet/releases/tag/v.202610.post1)** —
   the command line grows `espnet demo` (the OWSM browser demo) and `--live`
   (the microphone, transcribed as you speak); one `Speech2Text` now loads
@@ -38,10 +48,6 @@ evaluation, and hundreds of pretrained models on Hugging Face.
   search; `espnet/espnet:inference-cpu-latest` and `-gpu-latest` run a published
   model with nothing installed; three more demo Spaces (TTS, enhancement, speaker
   verification).
-
-<details>
-<summary>Earlier releases</summary>
-
 - **[ESPnet 202610](https://github.com/espnet/espnet/releases/tag/v.202610)** —
   one-line inference from the command line (`pip install espnet && espnet asr audio.wav`),
   two OWSM v4 demos as Hugging Face Spaces, a core install without the training
@@ -135,9 +141,9 @@ pip install "espnet[demo]"
 espnet demo                                # the same model in your browser
 ```
 
-Every command is a verb, takes `--model <tag>` and `--device cuda`, and
-`espnet --version` names the installed version. `asr` and `tts` were the names
-in 202610 and still work. `espnet demo` serves, on localhost, the app behind [the OWSM-CTC
+Every command but `espnet models` takes `--model <tag>` and `--device cuda`,
+and `espnet --version` names the installed version. The six that do one task
+are verbs; `asr` and `tts` were the names in 202610 and still work. `espnet demo` serves, on localhost, the app behind [the OWSM-CTC
 v4 Space](https://huggingface.co/spaces/espnet/owsm-ctc-v4) — recording, upload, the
 checkpoint's own language and translation menus, and long-form decoding — and takes
 `--port` and `--share`. The page is the checkpoint's: `espnet demo --model
@@ -638,6 +644,9 @@ Aligned utterance segments constitute the labels of speech datasets.
 
 As a demo, we align the start and end of utterances within the audio file `ctc_align_test.wav`.
 This can be done either directly from the Python command line or using the script `espnet2/bin/asr_align.py`.
+Import `CTCSegmentation` from `espnet2.bin.asr_align` for an ASR model and from `espnet2.bin.s2t_align` for an OWSM-CTC one:
+those are the two entry points, and both run the algorithm in `espnet2/bin/ctc_segment.py`, which is not instantiated on its own.
+For a forced alignment over any CTC head instead, and for what `espnet align` runs, see `espnet2/bin/align.py`.
 
 From the Python command line interface:
 
