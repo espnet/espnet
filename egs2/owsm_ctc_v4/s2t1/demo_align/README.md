@@ -29,7 +29,9 @@ Nothing is trained for this. The alignment is a Viterbi path through the CTC
 head of a model that already exists — [OWSM-CTC
 v4](https://huggingface.co/espnet/owsm_ctc_v4_1B) here — so it works in any
 language that model covers, and `ALIGN_MODEL_TAG` points it at another
-checkpoint without touching this file.
+checkpoint without touching this file. The sample rate comes from that
+checkpoint too (`ForcedAligner.sample_rate`), so a model trained at another
+rate needs no edit here either.
 
 ## Why this one has a page of its own
 
@@ -50,6 +52,14 @@ and a line that does not belong to this audio scores near zero. That is what
 alignment-score filtering uses — OWSM v4 cleaned its training data by aligning
 it and dropping the low scores
 ([recipe](../../../owsm_v4/s2t1)).
+
+The app warns when the weakest line falls under `ALIGN_WARN_BELOW`, which is
+0.3 by default. That number is a **heuristic, not a calibrated confidence**:
+it is where a line that was not said sits on OWSM-CTC v4 and read English,
+measured on the example this Space ships with (0.000 for a line that does not
+belong, against 0.99, 0.77 and 0.99 for the three that do). A checkpoint that
+scores differently wants a different number, and the environment variable is
+there for that.
 
 It is a probability **under this model**, so the text has to be written the
 way the model writes it. Measured on `test_utils/ctc_align_test.wav` with

@@ -36,13 +36,17 @@ from espnet2.bin.align import ForcedAligner  # noqa: E402
 matplotlib.use("Agg")  # a Space has no display, and gradio wants the figure
 import matplotlib.pyplot as plt  # noqa: E402
 
-SAMPLE_RATE = 16000
 # ZeroGPU gives a decorated call a fixed slice of GPU time and kills it at the
 # end, so the demo asks for a slice and refuses audio it could not finish in
 # one. The same two minutes the other demos take.
 MAX_SECS = 120
 GPU_SECONDS = 120
 MODEL_TAG = os.environ.get("ALIGN_MODEL_TAG", "espnet/owsm_ctc_v4_1B")
+# A score is a probability under the checkpoint that produced it, so this is
+# a heuristic rather than a calibrated confidence: 0.3 is where a line that
+# was not said sits, on OWSM-CTC v4 and read English. ALIGN_WARN_BELOW moves
+# it for a checkpoint that scores differently.
+WARN_BELOW = float(os.environ.get("ALIGN_WARN_BELOW", "0.3"))
 # ZeroGPU attaches the GPU only while a @spaces.GPU function runs, so
 # torch.cuda.is_available() is False here and asking it would pin the models to
 # the CPU on the very hardware bought to run them. SPACES_ZERO_GPU is the
@@ -93,6 +97,9 @@ Space: [`egs2/owsm_ctc_v4/s2t1/demo_align`](https://github.com/espnet/espnet/tre
 """  # noqa: E501 - one markdown link, and breaking a URL breaks the link
 
 aligner = ForcedAligner.from_pretrained(MODEL_TAG, device=DEVICE)
+# the rate the checkpoint wants, not this file's idea of it: ALIGN_MODEL_TAG
+# can point at a model trained at another rate
+SAMPLE_RATE = aligner.sample_rate
 
 
 def _read(path):
@@ -145,10 +152,11 @@ def predict(audio_path, text):
         [f"{s.start:.2f}", f"{s.end:.2f}", f"{s.score:.3f}", s.text] for s in segments
     ]
     worst = min(s.score for s in segments)
-    if worst < 0.3:
+    if worst < WARN_BELOW:
         gr.Warning(
-            f"The weakest line scores {worst:.2f}. Either it was not said, or "
-            "the text is spelled a way this model does not use."
+            f"The weakest line scores {worst:.2f}, under {WARN_BELOW:.2f}. "
+            "Either it was not said, or the text is spelled a way this model "
+            "does not use."
         )
     return rows, _figure(speech, segments)
 
