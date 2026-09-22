@@ -29,6 +29,7 @@ timeline, and when the text does not cover the whole recording this returns
 the same times it returns when it does.
 """
 
+import warnings
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, List, Optional, Sequence, Union
@@ -55,6 +56,14 @@ class Segment:
 
     `score` is the mean probability of its tokens: 1.0 is a perfect match,
     and a caption that does not belong to the audio scores near zero.
+
+    It is a probability under this model, so the text has to be written the
+    way the model writes it. On test_utils/ctc_align_test.wav with
+    espnet/owsm_ctc_v4_1B, "The sale of the hotels" scores 0.99; the same
+    words in capitals, as that recording's reference transcript has them,
+    score 0.0000, because the vocabulary has no capitalised words and each
+    one breaks into single letters. The times stay roughly right either way -
+    it is the score that stops meaning anything.
     """
 
     text: str
@@ -125,6 +134,40 @@ class ForcedAligner:
         ids = self.model.converter.tokens2ids(tokens)
         return [i for i in ids if i != self.network.blank_id]
 
+    def _warn_about_spelling(self, utterance: str, ids: List[int]) -> None:
+        """Say so when the vocabulary has a far shorter spelling of this text.
+
+        A score is a probability under this model, so text spelled a way the
+        model never saw gets aligned but not usefully scored - the times stay
+        roughly right, which is what makes it confusing. On
+        test_utils/ctc_align_test.wav with espnet/owsm_ctc_v4_1B, "THE SALE
+        OF THE HOTELS" is 18 tokens and scores 0.0000, where "The sale of the
+        hotels" is 6 and scores 0.99.
+
+        Which case a model wants is the model's own business - one trained on
+        WSJ wants capitals - so this compares instead of assuming: if the same
+        words in another case need less than half as many tokens, that is the
+        spelling this vocabulary has, and the caller is told which.
+        """
+        others = {utterance.lower(), utterance.upper()} - {utterance}
+        for other in sorted(others):
+            try:
+                shorter = self._ids(other)
+            except Exception:  # noqa: BLE001 - a diagnostic never breaks a run
+                # a tokenizer or converter that cannot encode the variant at
+                # all says nothing about the text that was given
+                continue
+            if shorter and len(shorter) * 2 <= len(ids):
+                warnings.warn(
+                    f"{utterance!r} is {len(ids)} tokens for this model, "
+                    f"where {other!r} is {len(shorter)}: the text is spelled "
+                    f"a way the vocabulary does not have, and the score will "
+                    f"be near zero however well the audio matches",
+                    UserWarning,
+                    stacklevel=3,
+                )
+                return
+
     @torch.no_grad()
     def log_probs(self, speech: np.ndarray) -> np.ndarray:
         """CTC log posteriors for a recording, as (frames, vocabulary)."""
@@ -174,11 +217,20 @@ class ForcedAligner:
             piece = self._ids(utterance)
             if not piece:
                 raise ValueError(f"nothing to align in {utterance!r}")
+            self._warn_about_spelling(utterance, piece)
             spans.append((len(ids), len(ids) + len(piece)))
             ids.extend(piece)
-        if len(ids) > len(emissions):
+        # CTC needs a blank frame between two of the same token in a row, so
+        # what has to fit is the tokens plus those blanks. Without counting
+        # them, a text that is a few frames too long got torchaudio's
+        # "targets length is too long for CTC" instead of this sentence.
+        repeats = sum(1 for first, second in zip(ids, ids[1:]) if first == second)
+        if len(ids) + repeats > len(emissions):
+            needed = f"{len(ids)} tokens"
+            if repeats:
+                needed += f" and {repeats} blank(s) between repeated ones"
             raise ValueError(
-                f"{len(ids)} tokens to align against {len(emissions)} frames: "
+                f"{needed} to align against {len(emissions)} frames: "
                 f"this text cannot fit in this recording"
             )
 
