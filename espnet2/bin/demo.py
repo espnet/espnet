@@ -49,6 +49,19 @@ ASR_LABEL = "Transcribe"
 # it and its menu is unchanged.
 PHONES_LABEL = "Recognise phones"
 PHONE_TASK = "<pr>"
+# POWSM's other two tasks take the audio and something written with it: the
+# words that were said, to be answered with phones, or the phones, to be
+# answered with words. A checkpoint that has the symbol gets the entry, and
+# the box to type the input into.
+G2P_LABEL = "Phones for text you give (G2P)"
+G2P_TASK = "<g2p>"
+P2G_LABEL = "Text for phones you give (P2G)"
+P2G_TASK = "<p2g>"
+PROMPT_TASKS = {G2P_LABEL: G2P_TASK, P2G_LABEL: P2G_TASK}
+PROMPT_LABELS = {
+    G2P_LABEL: "The words that were said",
+    P2G_LABEL: "The phones, spaced or between slashes",
+}
 # Shown when the loaded checkpoint offers phones, because the same page then
 # also offers Transcribe on a model built for something else. POWSM's author
 # asked for this to be said where someone would read it: its English ASR is
@@ -287,6 +300,31 @@ def phone_task(tokens: Sequence[str]) -> bool:
     return PHONE_TASK in tokens
 
 
+def prompt_tasks(tokens: Sequence[str]) -> List[str]:
+    """The labels of the tasks this checkpoint takes written input for.
+
+    POWSM has `<g2p>` and `<p2g>`; OWSM has neither, and its page is
+    unchanged.
+    """
+    return [label for label, task in PROMPT_TASKS.items() if task in tokens]
+
+
+def as_phones(text: str) -> str:
+    """Phones the way POWSM was trained to read them, from either spelling.
+
+    Its training data writes each phone between slashes - /p//h//o/ - so that
+    a phone spelled like a BPE token is still one token. The page shows them
+    spaced, which is what anything counting or aligning them wants, and a
+    person typing them in will type them that way too.
+    """
+    text = text.strip()
+    if not text:
+        return text
+    if "/" in text:
+        return text
+    return "/" + "//".join(text.split()) + "/"
+
+
 def split_tokens(decoded: str, codes: Iterable[str]) -> Tuple[str, str]:
     """Separate OWSM's leading symbols from the text it decoded.
 
@@ -342,7 +380,7 @@ def load_gradio():
     return gradio
 
 
-def build_app(s2t, device: str = "cpu", model_tag: str = ""):
+def build_app(s2t, device: str = "cpu", model_tag: str = "", wrap=None):
     """The Gradio app for an already loaded OWSM-CTC model.
 
     Args:
@@ -353,6 +391,12 @@ def build_app(s2t, device: str = "cpu", model_tag: str = ""):
         device: where it runs; long-form decoding batches on a GPU only.
         model_tag: shown in the page, so a demo of a different checkpoint
             says which one it is.
+        wrap: applied to the function behind the Run button, for a caller
+            that has to say something about how it runs. A Hugging Face
+            Space on ZeroGPU has no GPU except inside a function the
+            `spaces` package has decorated, and that decorator belongs to
+            the Space rather than to this module - so the Space passes it
+            in and gets the same page as everyone else.
 
     Returns:
         A gradio Blocks, not yet launched.
@@ -371,6 +415,7 @@ def build_app(s2t, device: str = "cpu", model_tag: str = ""):
     window = window_secs(s2t)
     rate = sample_rate(s2t)
     phones = phone_task(tokens)
+    prompted = prompt_tasks(tokens)
     try:
         nolang = s2t.no_language()
     except ValueError:
@@ -388,7 +433,7 @@ def build_app(s2t, device: str = "cpu", model_tag: str = ""):
         """The code the menu is showing, or None when it says Detect."""
         return None if label == DETECT else code_of_language[label]
 
-    def predict(audio_path, language_label, task_label, long_form):
+    def predict(audio_path, language_label, task_label, long_form, prompt=""):
         if audio_path is None:
             raise gr.Error("Record or upload some audio first.")
         speech = read_audio(audio_path, rate)
@@ -401,12 +446,24 @@ def build_app(s2t, device: str = "cpu", model_tag: str = ""):
 
         chosen = chosen_language(language_label)
         lang_sym = nolang if chosen is None else f"<{chosen}>"
+        text_prev = "<na>"
         if task_label == ASR_LABEL:
             task_sym = "<asr>"
         elif task_label == PHONES_LABEL:
             task_sym = PHONE_TASK
+        elif task_label in PROMPT_TASKS:
+            task_sym = PROMPT_TASKS[task_label]
+            if not (prompt or "").strip():
+                raise gr.Error(f"{PROMPT_LABELS[task_label]}: this task needs it.")
+            text_prev = as_phones(prompt) if task_sym == P2G_TASK else prompt.strip()
         else:
             task_sym = f"<st_{code_of_target[task_label]}>"
+
+        if task_sym in PROMPT_TASKS.values() and long_form:
+            # The written input is one utterance's, and the windows after the
+            # first would each be given the whole of it again.
+            gr.Warning(f"{task_label} reads one window; Long-form was ignored.")
+            long_form = False
 
         if long_form:
             # One window first, only to name the language the rest is decoded
@@ -447,15 +504,20 @@ def build_app(s2t, device: str = "cpu", model_tag: str = ""):
                     f"Only the first {window} s were decoded. "
                     "Tick Long-form for the whole recording."
                 )
-            decoded = s2t.decode_window(pad(speech, window, rate), lang_sym, task_sym)
+            decoded = s2t.decode_window(
+                pad(speech, window, rate), lang_sym, task_sym, text_prev
+            )
             detected, text = split_tokens(decoded, codes)
             detected = detected or chosen or ""
-        if task_sym == PHONE_TASK:
+        if task_sym in (PHONE_TASK, G2P_TASK):
             # POWSM writes each phone between slashes, so that a phone spelled
             # like a BPE token is still one token. The page shows them spaced,
             # which is the form anything counting or aligning them wants.
             text = " ".join(PHONE.findall(text)) or text
         return LANGUAGE_NAMES.get(detected, detected or "unknown"), text
+
+    if wrap is not None:
+        predict = wrap(predict)
 
     app = gr.Blocks(title=TITLE)
     with app:
@@ -476,9 +538,17 @@ def build_app(s2t, device: str = "cpu", model_tag: str = ""):
                 task = gr.Dropdown(
                     [ASR_LABEL]
                     + ([PHONES_LABEL] if phones else [])
+                    + prompted
                     + [name for name, _ in targets],
                     value=ASR_LABEL,
                     label="Task",
+                )
+                # shown only for the tasks that read it, since for the rest
+                # there is nothing to type and a box invites typing anyway
+                prompt = gr.Textbox(
+                    label="Written input",
+                    lines=2,
+                    visible=False,
                 )
                 long_form = gr.Checkbox(
                     label="Long-form",
@@ -488,7 +558,19 @@ def build_app(s2t, device: str = "cpu", model_tag: str = ""):
             with gr.Column():
                 detected = gr.Textbox(label="Language")
                 text = gr.Textbox(label="Text", lines=8)
-        button.click(predict, [audio, language, task, long_form], [detected, text])
+        if prompted:
+
+            def show_prompt(task_label):
+                """The box, labelled for the task that reads it."""
+                return gr.update(
+                    visible=task_label in PROMPT_TASKS,
+                    label=PROMPT_LABELS.get(task_label, "Written input"),
+                )
+
+            task.change(show_prompt, task, prompt)
+        button.click(
+            predict, [audio, language, task, long_form, prompt], [detected, text]
+        )
         if model_tag:
             gr.Markdown(f"Model: `{model_tag}`, running on {device}.")
     return app
