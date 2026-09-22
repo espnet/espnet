@@ -410,10 +410,10 @@ class UniversaBase(AbsUniversa):
             ref_text_embed = self.text_embedding(ref_text)
         if self.use_normalize:
             with autocast("cuda", enabled=False):
-                feats, feats_lengths = self.normalize(audio, audio_lengths)
+                feats, feats_lengths = self.normalize(audio.clone(), audio_lengths)
                 if use_ref_audio:
                     ref_feats, ref_feats_lengths = self.ref_normalize(
-                        ref_audio, ref_audio_lengths
+                        ref_audio.clone(), ref_audio_lengths
                     )
 
         # 2. Encode audio
