@@ -113,11 +113,11 @@ include = ["espnet*", "egs3*"]
 egs3 = ["egs3/TEMPLATE/**/*.yaml"]
 
 [tool.ruff]
-include = [
-    "espnet3/**/*.py",
-    "egs3/**/*.py",
-    "test/espnet3/**/*.py",
-    "test/egs3/**/*.py",
+line-length = 88
+extend-exclude = [
+    "egs2/TEMPLATE/asr1/utils", "egs2/TEMPLATE/asr1/steps", "egs2/TEMPLATE/tts1/sid",
+    "tools/installers/patch_mwerSegmenter", "doc",
+    "test_utils/bats-core", "test_utils/bats-support", "test_utils/bats-assert",
 ]
 
 [tool.ruff.lint]
@@ -126,13 +126,23 @@ select = [
     "W", # pycodestyle warnings
     "F", # flake8
     "I", # isort
+    "D", # docstrings (ESPnet3 only)
 ]
+
+[tool.ruff.lint.pydocstyle]
+convention = "pep257"
+
+[tool.ruff.lint.per-file-ignores]
+# Only check ESPnet3 docstrings
+"!espnet3/**" = ["D"]
 
 [tool.ruff.format]
 # Like Black
 quote-style = "double"
 indent-style = "space"
-line-ending = "auto"
+
+# See PR #6668
+line-ending = "lf"
 
 [project.optional-dependencies]
 # Training, with espnet2 (espnet2/bin/*_train.py, egs2 recipes) or espnet3
