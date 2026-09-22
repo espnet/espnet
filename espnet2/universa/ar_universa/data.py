@@ -11,7 +11,10 @@ from espnet2.universa.metric_tokenizer.metric_tokenizer import MetricTokenizer
 
 
 class ARMetricProcessor(UniversaProcessor):
+    """Tokenize selected metrics while retaining shared waveform preprocessing."""
+
     def __init__(self, metric_token_info, metrics_list, **kwargs):
+        """Initialize preprocessing from a metric vocabulary and selection."""
         super().__init__(**kwargs)
         self.metric_tokenizer = MetricTokenizer(metric_token_info, metrics_list)
 
@@ -22,12 +25,16 @@ class ARMetricProcessor(UniversaProcessor):
 
 
 class ARMetricCollateFn(CommonCollateFn):
+    """Pad metric/value pairs and optionally shuffle whole pairs for training."""
+
     def __init__(self, metric_token_pad_value=0, randomize=False):
+        """Set the token padding ID and pair-order policy."""
         super().__init__(float_pad_value=0.0, int_pad_value=0)
         self.metric_token_pad_value = metric_token_pad_value
         self.randomize = randomize
 
     def __call__(self, data):
+        """Collate features and variable-length metric targets independently."""
         data = list(data)
         keys, batch = super().__call__(
             [

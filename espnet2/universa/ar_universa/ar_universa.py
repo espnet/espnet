@@ -1,7 +1,7 @@
 # Copyright 2024 Jiatong Shi
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-"""UniversaBase related modules."""
+"""ARECHO autoregressive metric prediction with published checkpoint names."""
 
 from typing import Any, Dict, List, Optional, Tuple, Union
 
@@ -30,6 +30,10 @@ from espnet2.universa.metric_tokenizer.metric_tokenizer import MetricTokenizer
 
 
 class ARUniversa(AbsUniversa):
+    """Encode audio and optional references, then decode metric/value pairs."""
+
+    sequential_metrics = True
+
     def __init__(
         self,
         # Model Backbone
@@ -114,7 +118,7 @@ class ARUniversa(AbsUniversa):
         sym_eos: str = "<eos>",
         **kwargs,
     ):
-        """Initialize UniversaBase module.
+        """Initialize ARECHO with the published architecture and token convention.
 
         Args:
             input_size (int): Input feature size.
@@ -129,9 +133,9 @@ class ARUniversa(AbsUniversa):
             metric_vocab_size (Optional[int]): Vocabulary size for metrics.
             metric_token_info (Optional[Dict[str, Any]]): Information about metric
                 tokens.
-            metric2type (Optional[Dict[str, str]]): Dictionary mapping metric names to
-                types.
-            metric_pad_value (float): Padding value for metrics.
+            metric2type (Optional[Dict[str, str]]): Legacy config field. Metric types
+                are defined by metric_token_info.
+            metric_pad_value (float): Legacy config field for regression metrics.
             metric_token_pad_value (int): Padding value for metric tokens.
             sequential_metrics (bool): Whether to use sequential metrics.
             vocab_size (Optional[int]): Vocabulary size for text encoder.
@@ -146,8 +150,8 @@ class ARUniversa(AbsUniversa):
                 decoder module.
             use_rope_pos (bool): Whether to use RoPE positional encoding.
             lsm_weight (float): Label smoothing weight.
-            sym_sos (str): Symbol for start of sequence.
-            sym_eos (str): Symbol for end of sequence.
+            sym_sos (str): Legacy config field; ARECHO uses SOS ID 2.
+            sym_eos (str): Legacy config field; ARECHO uses EOS ID 3.
             **kwargs: Additional parameters.
 
         """
@@ -171,30 +175,14 @@ class ARUniversa(AbsUniversa):
         self.use_normalize = use_normalize
         self.search_module = None
         self.save_token_seq = False
-        self.sequential_metrics = sequential_metrics
 
-        # Metric information
-        # NOTE(jiatong): not useful for ARUniversa, but keep it for future use
-        self.metric_size = len(metric2id)
         self.metric2id = metric2id
-        self.id2metric = {v: k for k, v in metric2id.items()}
-        if metric2type is None:
-            self.id2type = {i: "numerical" for i in range(self.metric_size)}
-        else:
-            self.id2type = {
-                i: metric2type.get(self.id2metric[i], "numerical")
-                for i in range(self.metric_size)
-            }
-
-        self.metric_pad_value = metric_pad_value
         self.metric_token_pad_value = metric_token_pad_value
         self.metric_tokenizer = MetricTokenizer(
             metric_token_info, tokenize_metric=list(metric2id.keys())
         )
 
-        # NOTE(jiatong): the ID is set in tokenizer for <sos> and <eos>
-        # will need to make it more flexible in the future
-        # refer to espnet2/unisersa/metric_tokenizer/metric_tokenizer.py
+        # Published ARECHO checkpoints reverse the tokenizer's SOS/EOS names.
         self.sos = 2
         self.eos = 3
 
@@ -212,14 +200,11 @@ class ARUniversa(AbsUniversa):
 
         # Initialize reference audio encoder
         if self.use_ref_audio:
-            if audio_encoder_type == "transformer":
-                self.ref_audio_encoder = TransformerEncoder(
-                    input_size=input_size,
-                    output_size=embedding_size,
-                    **audio_encoder_params,
-                )
-            else:
-                raise ValueError(f"Not supported: {audio_encoder_type}")
+            self.ref_audio_encoder = TransformerEncoder(
+                input_size=input_size,
+                output_size=embedding_size,
+                **audio_encoder_params,
+            )
             decoder_input_dim += embedding_size
             if self.use_normalize:
                 self.ref_normalize = UtteranceMVN(norm_means=True, norm_vars=True)
@@ -323,8 +308,12 @@ class ARUniversa(AbsUniversa):
 
         # for data-parallel
         metric_token = metric_token[:, : metric_token_lengths.max()]
+        padding = torch.arange(metric_token.size(1), device=metric_token.device)
+        padding = padding.unsqueeze(0) >= metric_token_lengths.to(
+            metric_token.device
+        ).unsqueeze(1)
         metric_token = metric_token.masked_fill(
-            metric_token == -1, self.metric_token_pad_value
+            padding | (metric_token == -1), self.metric_token_pad_value
         )
 
         # 2. Encode audio
@@ -338,20 +327,16 @@ class ARUniversa(AbsUniversa):
         )
 
         # 3. Metric Decoder
-        loss_ar_decoder, acc_ar_decoder, value_ar_decoder = self._calc_decoder_loss(
+        loss, acc_ar_decoder, value_ar_decoder = self._calc_decoder_loss(
             audio_enc, audio_enc_lengths, metric_token, metric_token_lengths
         )
 
-        stats = {}
-        stats["loss_ar_decoder"] = loss_ar_decoder.detach()
-        stats["acc_ar_decoder"] = acc_ar_decoder
-        stats["value_ar_decoder"] = value_ar_decoder
-
-        # TODO(jiatong): add nar decoder loss
-        # 4. Loss calculation
-        loss = loss_ar_decoder
-
-        stats["loss"] = loss.detach()
+        stats = {
+            "loss_ar_decoder": loss.detach(),
+            "acc_ar_decoder": acc_ar_decoder,
+            "value_ar_decoder": value_ar_decoder,
+            "loss": loss.detach(),
+        }
 
         # force_gatherable: to-device and to-tensor if scalar for DataParallel
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
@@ -368,10 +353,19 @@ class ARUniversa(AbsUniversa):
         ref_text_lengths: Optional[torch.Tensor] = None,
         **kwargs,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Encode references without modifying caller-owned inputs.
+
+        Missing references contribute zero features in their configured slots.
+        """
         batch_size = audio.shape[0]
 
         use_ref_audio = self.use_ref_audio and ref_audio is not None
         use_ref_text = self.use_ref_text and ref_text is not None
+
+        if use_ref_audio and ref_audio_lengths is None:
+            raise ValueError("ref_audio_lengths is required with ref_audio")
+        if use_ref_text and ref_text_lengths is None:
+            raise ValueError("ref_text_lengths is required with ref_text")
 
         if use_ref_text:
             assert (
@@ -388,10 +382,10 @@ class ARUniversa(AbsUniversa):
             ref_text_embed = self.text_embedding(ref_text)
         if self.use_normalize:
             with autocast("cuda", enabled=False):
-                feats, feats_lengths = self.normalize(audio, audio_lengths)
+                feats, feats_lengths = self.normalize(audio.clone(), audio_lengths)
                 if use_ref_audio:
                     ref_feats, ref_feats_lengths = self.ref_normalize(
-                        ref_audio, ref_audio_lengths
+                        ref_audio.clone(), ref_audio_lengths
                     )
 
         # 2. Encode audio
@@ -437,7 +431,7 @@ class ARUniversa(AbsUniversa):
         audio_enc_lengths: torch.Tensor,
         metric_token: torch.Tensor,
         metric_token_lengths: torch.Tensor,
-    ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
+    ) -> Tuple[torch.Tensor, float, float]:
         """Calculate decoder loss.
 
         Args:
@@ -469,10 +463,15 @@ class ARUniversa(AbsUniversa):
             ys_out_pad,
             ignore_label=self.metric_token_pad_value,
         )
-        acc_value_ar_decoder = th_accuracy(
-            decoder_out[:, 1::2].reshape(-1, self.metric_vocab_size),
-            ys_out_pad[:, 1::2],
-            ignore_label=self.metric_token_pad_value,
+        # An entirely unlabelled batch trains EOS but has no value accuracy.
+        acc_value_ar_decoder = (
+            th_accuracy(
+                decoder_out[:, 1::2].reshape(-1, self.metric_vocab_size),
+                ys_out_pad[:, 1::2],
+                ignore_label=self.metric_token_pad_value,
+            )
+            if metric_token_lengths.sum() > 0
+            else 0.0
         )
 
         return loss_ar_decoder, acc_ar_decoder, acc_value_ar_decoder
@@ -493,6 +492,7 @@ class ARUniversa(AbsUniversa):
             metric_list (List[str]): List of metrics to predict.
             skip_meta_label_score (bool): Whether to skip meta label score.
             save_token_seq (bool): Whether to save token sequence.
+            use_fixed_order (bool): Decode metrics in the requested order.
         """
         scorers = {
             "metric_decoder": self.decoder,
@@ -502,10 +502,8 @@ class ARUniversa(AbsUniversa):
         # NOTE(jiatong): add the metric token offset for beam search, this masking is
         # used for pre-beam pruning
         beam_masking = {}
-        for metric_name in self.metric_tokenizer.metric_offset.keys():
-            metric_token = self.metric_tokenizer.vocab_indices[
-                "{}@meta_label".format(metric_name)
-            ]
+        for metric_name in metric_list:
+            metric_token = self.metric_tokenizer.get_metric_meta_label(metric_name)
             start_idx, num_idx = self.metric_tokenizer.metric_offset[metric_name]
             # +2 to skip the meta label token and padding token
             start_idx = start_idx + self.metric_tokenizer.overall_offset + 2
@@ -552,7 +550,6 @@ class ARUniversa(AbsUniversa):
             ref_audio_lengths (torch.Tensor): Length of reference audio tensor (B,).
             ref_text (torch.Tensor): Reference text tensor (B, U).
             ref_text_lengths (torch.Tensor): Length of reference text tensor (B,).
-            metric_list (Optional[List[str]]): List of metrics to predict.
             **kwargs: Additional parameters.
 
         Returns:
@@ -580,10 +577,6 @@ class ARUniversa(AbsUniversa):
         assert audio_enc.size(0) == 1, "Inference only supports batch size of 1."
 
         # 2. Inference
-        if self.search_module is None:
-            raise ValueError(
-                "Inference module is not set. Please call set_inference() first."
-            )
         nbest_hyps = self.search_module.forward(audio_enc[0, : encoded_lengths[0]])
 
         # NOTE(jiatong): get the top one hypothesis
