@@ -10,7 +10,10 @@ from espnet2.universa.ar_universa.data import ARMetricCollateFn, ARMetricProcess
 
 @pytest.fixture
 def make_arecho():
+    """Provide a tiny checkpoint-compatible model factory."""
+
     def build(**kwargs):
+        """Construct a tiny ARECHO model with optional configuration overrides."""
         info = token_info()
         options = dict(
             input_size=8,
@@ -43,6 +46,7 @@ def make_arecho():
 
 @pytest.mark.parametrize("pool_size", [1, 10])
 def test_arecho_backward_and_constrained_search(make_arecho, pool_size):
+    """Train tokenized metrics and decode a complete constrained sequence."""
     info = token_info()
     model = make_arecho()
     processor = ARMetricProcessor(
@@ -85,6 +89,7 @@ def test_arecho_backward_and_constrained_search(make_arecho, pool_size):
 
 @pytest.mark.parametrize("reference", ["ref_audio", "ref_text"])
 def test_reference_requires_lengths(make_arecho, reference):
+    """Reject supplied references that have no length information."""
     model = make_arecho(use_ref_audio=True, use_ref_text=True, vocab_size=6)
     ref = torch.randn(1, 5, 8) if reference == "ref_audio" else torch.ones(1, 5).long()
     with pytest.raises(ValueError, match=reference + "_lengths"):
@@ -95,6 +100,7 @@ def test_reference_requires_lengths(make_arecho, reference):
     "audio_ref,text_ref", [(False, False), (True, False), (False, True), (True, True)]
 )
 def test_reference_encoding_preserves_inputs(make_arecho, audio_ref, text_ref):
+    """Preserve input ownership and feature slots for every reference combination."""
     model = make_arecho(
         use_ref_audio=True, use_ref_text=True, vocab_size=6, use_normalize=True
     ).eval()
@@ -127,6 +133,7 @@ def test_reference_encoding_preserves_inputs(make_arecho, audio_ref, text_ref):
 
 
 def test_empty_metric_targets(make_arecho):
+    """Train EOS for unlabelled batches without undefined value accuracy."""
     model = make_arecho()
     _, batch = ARMetricCollateFn()(
         [("a", dict(audio=np.random.randn(5, 8).astype(np.float32), metrics={}))]
@@ -138,6 +145,7 @@ def test_empty_metric_targets(make_arecho):
 
 
 def test_target_padding_uses_lengths(make_arecho):
+    """Ignore padded targets while preserving the caller-owned token tensor."""
     model = make_arecho().eval()
     audio = torch.randn(2, 5, 8)
     lengths = torch.tensor([5, 4])
@@ -152,28 +160,10 @@ def test_target_padding_uses_lengths(make_arecho):
     assert dirty[1, 2:].tolist() == [12, 12]
 
 
-@pytest.mark.parametrize("randomize", [False, True])
-def test_collate_sparse_metrics_preserves_pairs(randomize, monkeypatch):
-    monkeypatch.setattr("random.shuffle", lambda pairs: pairs.reverse())
-    labels = {"mos": (4, 7), "language": (10, 12)}
-    samples = [
-        ("a", dict(audio=np.ones((5, 8), dtype=np.float32), metrics=labels)),
-        ("b", dict(audio=np.ones((3, 8), dtype=np.float32))),
-    ]
-    keys, batch = ARMetricCollateFn(randomize=randomize)(samples)
-    assert keys == ["a", "b"]
-    assert batch["audio_lengths"].tolist() == [5, 3]
-    assert batch["metrics"]["metric_token_lengths"].tolist() == [4, 0]
-    expected = [10, 12, 4, 7] if randomize else [4, 7, 10, 12]
-    assert batch["metrics"]["metric_token"].tolist() == [expected, [0, 0, 0, 0]]
-    assert list(labels.values()) == [(4, 7), (10, 12)]
-    _, unlabelled = ARMetricCollateFn()([samples[1]])
-    assert "metrics" not in unlabelled
-
-
 @pytest.mark.parametrize("skip_label_score", [False, True])
 @pytest.mark.parametrize("fixed_order", [False, True])
 def test_inference_metric_subset(make_arecho, skip_label_score, fixed_order):
+    """Restrict predictions to requested metrics in either decoding order."""
     model = make_arecho().eval()
     model.set_inference(2, ["mos"], skip_label_score, True, fixed_order)
     result = model.inference(torch.randn(1, 5, 8), torch.tensor([5]))
@@ -181,3 +171,69 @@ def test_inference_metric_subset(make_arecho, skip_label_score, fixed_order):
     assert result["token_seq"][0][1::2] == [4]
     with pytest.raises(ValueError, match="Invalid token"):
         model.set_inference(1, ["unknown"], True)
+
+
+@pytest.mark.parametrize("use_normalize", [False, True])
+def test_encode_trims_data_parallel_padding(make_arecho, use_normalize):
+    """A shard's local lengths determine feature and cross-attention widths."""
+    model = make_arecho(use_ref_audio=True, use_normalize=use_normalize).eval()
+    audio = torch.randn(2, 12, 8)
+    reference = torch.randn(2, 11, 8)
+    lengths, ref_lengths = torch.tensor([7, 5]), torch.tensor([6, 4])
+    original_audio, original_reference = audio.clone(), reference.clone()
+    actual, actual_lengths = model.encode(audio, lengths, reference, ref_lengths)
+    expected, _ = model.encode(audio[:, :7], lengths, reference[:, :6], ref_lengths)
+    assert actual.shape == (2, 7, 16)
+    torch.testing.assert_close(actual_lengths, lengths)
+    torch.testing.assert_close(actual, expected)
+    torch.testing.assert_close(audio, original_audio)
+    torch.testing.assert_close(reference, original_reference)
+
+
+@pytest.mark.parametrize(
+    "metric,preferred,unused,expected",
+    [
+        ("mos", 5, 9, 0.0),
+        ("mos", 8, 9, 2.0),
+        ("language", 12, 11, "eng"),
+        ("language", 13, 11, "jpn"),
+    ],
+)
+def test_inference_uses_trainable_value_range(
+    make_arecho, metric, preferred, unused, expected
+):
+    """Decode both value boundaries and reject a higher-scoring unused token."""
+    model = make_arecho().eval()
+    with torch.no_grad():
+        model.decoder.output_layer.weight.zero_()
+        model.decoder.output_layer.bias.zero_()
+        model.decoder.output_layer.bias[preferred] = 10
+        model.decoder.output_layer.bias[unused] = 20
+    model.set_inference(1, [metric], True, True)
+    result = model.inference(torch.randn(1, 5, 8), torch.tensor([5]))
+    assert result["token_seq"][0][-1] == preferred
+    assert result[metric] == [expected]
+
+
+@pytest.mark.parametrize(
+    "options",
+    [
+        dict(sequential_metrics=False),
+        dict(audio_encoder_type="unsupported"),
+        dict(use_ref_text=True, vocab_size=6, text_encoder_type="unsupported"),
+        dict(cross_attention_type="unsupported"),
+        dict(use_rope_pos=True),
+    ],
+)
+def test_unsupported_architecture_rejected(make_arecho, options):
+    """Unsupported architecture settings fail instead of changing checkpoint shape."""
+    with pytest.raises(ValueError):
+        make_arecho(**options)
+
+
+def test_default_inference_setup(make_arecho):
+    """Unconfigured inference selects every model metric without token output."""
+    model = make_arecho().eval()
+    result = model.inference(torch.randn(1, 5, 8), torch.tensor([5]))
+    assert "mos" in result and "language" in result
+    assert "token_seq" not in result

@@ -375,6 +375,11 @@ class ARUniversa(AbsUniversa):
             # for data-parallel
             ref_text = ref_text[:, : ref_text_lengths.max()]
 
+        # DataParallel keeps global padding even when a shard has shorter inputs.
+        audio = audio[:, : audio_lengths.max()]
+        if use_ref_audio:
+            ref_audio = ref_audio[:, : ref_audio_lengths.max()]
+
         # 1. Feats normalization
         feats, feats_lengths = audio, audio_lengths
         ref_feats, ref_feats_lengths = ref_audio, ref_audio_lengths
@@ -499,16 +504,19 @@ class ARUniversa(AbsUniversa):
         }
         weights = {"metric_decoder": 1.0}
 
-        # NOTE(jiatong): add the metric token offset for beam search, this masking is
-        # used for pre-beam pruning
+        # Use the same value-token boundaries as training tokenization.
         beam_masking = {}
         for metric_name in metric_list:
             metric_token = self.metric_tokenizer.get_metric_meta_label(metric_name)
-            start_idx, num_idx = self.metric_tokenizer.metric_offset[metric_name]
-            # +2 to skip the meta label token and padding token
-            start_idx = start_idx + self.metric_tokenizer.overall_offset + 2
-            end_idx = start_idx + (num_idx - 2)
-            beam_masking[metric_token] = (start_idx, end_idx)
+            values = self.metric_tokenizer.tokenizer_config[metric_name]
+            first_value_index = 1 if isinstance(values[0], str) else 0
+            _, start_idx = self.metric_tokenizer.get_token_index(
+                metric_name, first_value_index
+            )
+            _, last_idx = self.metric_tokenizer.get_token_index(
+                metric_name, first_value_index + len(values) - 1
+            )
+            beam_masking[metric_token] = (start_idx, last_idx + 1)
 
         self.save_token_seq = save_token_seq
 

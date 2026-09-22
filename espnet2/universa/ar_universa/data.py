@@ -19,6 +19,7 @@ class ARMetricProcessor(UniversaProcessor):
         self.metric_tokenizer = MetricTokenizer(metric_token_info, metrics_list)
 
     def _metric_process(self, data):
+        """Replace present metric values with tokenizer label/value pairs."""
         if "metrics" in data:
             data["metrics"] = self.metric_tokenizer.metric2token(data["metrics"])
         return data
