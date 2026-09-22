@@ -274,6 +274,17 @@ class ForcedAligner:
             )
         return segments
 
+    @property
+    def sample_rate(self) -> int:
+        """The rate this model's audio has to arrive at.
+
+        Public because a caller that reads its own audio - a Space drawing a
+        waveform, a script batching files - has to resample to the same rate
+        this class would, and hard-coding 16000 makes a checkpoint at another
+        rate quietly wrong.
+        """
+        return self._sample_rate()
+
     def _sample_rate(self) -> int:
         rate = getattr(self.model, "sample_rate", None)
         if rate:
