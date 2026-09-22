@@ -117,6 +117,57 @@ def test_the_phone_option_appears_only_for_a_checkpoint_that_has_it():
     assert not demo.phone_task(["<eng>", "<asr>", "<st_deu>"])
 
 
+def test_the_written_input_tasks_appear_only_for_a_checkpoint_that_has_them():
+    """POWSM answers <g2p> and <p2g>; OWSM has neither and its page is unchanged."""
+    assert demo.prompt_tasks(["<eng>", "<asr>", "<pr>", "<g2p>", "<p2g>"]) == [
+        demo.G2P_LABEL,
+        demo.P2G_LABEL,
+    ]
+    assert demo.prompt_tasks(["<eng>", "<asr>", "<p2g>"]) == [demo.P2G_LABEL]
+    assert demo.prompt_tasks(["<nolang>", "<eng>", "<asr>", "<st_deu>"]) == []
+
+
+def test_phones_are_taken_in_either_spelling():
+    """The page prints them spaced; POWSM reads them between slashes.
+
+    Someone typing phones into the box will copy what the page showed them,
+    and someone who knows the training data will type its own spelling. Both
+    have to work, and neither may be turned into the other twice.
+    """
+    assert demo.as_phones("ð ə s e ɪ l") == "/ð//ə//s//e//ɪ//l/"
+    assert demo.as_phones("/ð//ə//s/") == "/ð//ə//s/"
+    assert demo.as_phones("  ") == ""
+
+
+def test_the_written_input_box_appears_for_the_tasks_that_read_it(monkeypatch):
+    """One box, hidden until a task needs it, labelled for that task."""
+    pytest.importorskip("gradio")
+
+    class _Powsm:
+        preprocessor_conf = {"speech_length": 20, "nolang_symbol": "<unk>"}
+        ctc_only = True
+        s2t_model = types.SimpleNamespace(
+            token_list=["<unk>", "<eng>", "<asr>", "<pr>", "<g2p>", "<p2g>", "<sos>"]
+        )
+
+        def no_language(self):
+            return "<unk>"
+
+    app = demo.build_app(_Powsm(), device="cpu", model_tag="espnet/a-model")
+    blocks = list(app.blocks.values())
+    tasks = [
+        c[0] if isinstance(c, (list, tuple)) else c
+        for block in blocks
+        if getattr(block, "label", None) == "Task"
+        for c in block.choices
+    ]
+    assert demo.G2P_LABEL in tasks and demo.P2G_LABEL in tasks
+
+    box = [b for b in blocks if getattr(b, "label", None) == "Written input"]
+    assert len(box) == 1, "the box is one box"
+    assert box[0].visible is False, "and hidden until a task asks for it"
+
+
 def test_a_checkpoint_that_cannot_detect_a_language_opens_on_one(monkeypatch):
     """A model with no "work it out yourself" symbol must not break the page.
 

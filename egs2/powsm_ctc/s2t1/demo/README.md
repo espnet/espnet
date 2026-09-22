@@ -42,9 +42,23 @@ demo` serves, and it reads what to offer off the checkpoint:
 | | read from the model |
 |---|---|
 | the language menu | the symbols before `<asr>` in its token list |
-| the tasks | `<pr>` is there, so **Recognise phones** is offered beside Transcribe |
+| the tasks | the four symbols this checkpoint has: `<asr>`, `<pr>`, `<g2p>`, `<p2g>` |
+| the written-input box | shown for `<g2p>` and `<p2g>`, which take something besides the audio |
 | the decoding window | 20 s for POWSM, where OWSM is 30 |
 | "detect the language" | this checkpoint spells it `<unk>` rather than `<nolang>` |
+
+POWSM does four things with one recording, and the page offers all four:
+
+| task | you give | it answers |
+|---|---|---|
+| Transcribe | the audio | the words |
+| Recognise phones | the audio | the phones, in IPA |
+| Phones for text you give (G2P) | the audio and the words that were said | the phones |
+| Text for phones you give (P2G) | the audio and the phones | the words |
+
+The last two are the model's own `<g2p>` and `<p2g>`, trained with the
+written half as the prompt (`text.prev` in the recipe). They read one window,
+since the prompt belongs to one utterance.
 
 So `python app.py` and `espnet demo --model espnet/powsm_ctc` are the same
 page, and a fix to either is a fix to both. The two OWSM demos beside this
