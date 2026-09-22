@@ -1,0 +1,6 @@
+builder:
+  # VCTK-DEMAND root that holds the four official wav folders
+  # (clean_/noisy_trainset_28spk_wav and clean_/noisy_testset_wav).
+  # Used whenever dataset_dir is left empty in conf/training.yaml and
+  # conf/inference.yaml, so other recipes can reuse this dataset as is.
+  dataset_dir: /DB/VCTK_DEMAND
