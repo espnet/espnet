@@ -11,7 +11,7 @@ import warnings
 import pytest
 import torch
 
-from espnet3.systems.f5_tts.modules import JointAttnProcessor, MMDiTBlock
+from espnet3.systems.f5tts.modules import JointAttnProcessor, MMDiTBlock
 
 DIM = 16
 HEADS = 2
@@ -108,7 +108,7 @@ def test_the_joint_processor_rejects_flash_attention_when_absent():
 
 def test_rotary_embeddings_apply_to_both_streams(inputs):
     """Audio and text each carry their own rope in joint attention."""
-    from espnet3.systems.f5_tts.rotary import RotaryEmbedding
+    from espnet3.systems.f5tts.rotary import RotaryEmbedding
 
     rope_module = RotaryEmbedding(DIM_HEAD)
     block = _block()
@@ -125,7 +125,7 @@ def test_rotary_embeddings_apply_to_both_streams(inputs):
 
 def test_rope_changes_the_result(inputs):
     """Position information must actually reach the attention scores."""
-    from espnet3.systems.f5_tts.rotary import RotaryEmbedding
+    from espnet3.systems.f5tts.rotary import RotaryEmbedding
 
     block = _block().eval()
     rope = RotaryEmbedding(DIM_HEAD).forward_from_seq_len(5)

@@ -10,7 +10,7 @@ import warnings
 import pytest
 import torch
 
-from espnet3.systems.f5_tts.modules import (
+from espnet3.systems.f5tts.modules import (
     Attention,
     AttnProcessor,
     ConvPositionEmbedding,
@@ -56,7 +56,7 @@ def test_bigvgan_mel_is_log_compressed():
 
 def test_bigvgan_mel_basis_is_cached_across_calls():
     """The basis and window are rebuilt per (shape, device) key, not per call."""
-    from espnet3.systems.f5_tts.modules import mel_basis_cache
+    from espnet3.systems.f5tts.modules import mel_basis_cache
 
     wav = torch.randn(1, 4096)
     get_bigvgan_mel_spectrogram(wav)
