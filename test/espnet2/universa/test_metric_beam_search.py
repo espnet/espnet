@@ -165,6 +165,9 @@ def test_constraint_supports_batched_utterances_and_hypotheses():
         torch.zeros(2, 3, 2),
         x_lengths=torch.tensor([3, 2]),
         maxlenratio=-4,
+        # Fixed-pair outputs cannot terminate early. The shared batch engine
+        # may otherwise collect an EOS from a padded, impossible beam slot.
+        minlenratio=-3,
     )
     assert len(results) == 2
     for hypotheses in results:
