@@ -255,6 +255,24 @@ UNRELEASED = {
 EXTRA_FOR_TASK = {"spk": "spk", "enh": "enh", "tts": "tts"}
 
 
+def _names_used(source):
+    """Every name the app calls or imports, method or plain.
+
+    Read from the syntax tree rather than by matching text: `demo =
+    build_app(...)` is how every app calls the builder, and a check for
+    `build_app(` at the start of a line sees none of them - which is how the
+    release floor for an imported name went unchecked.
+    """
+    used = set()
+    for node in ast.walk(ast.parse(source)):
+        if isinstance(node, ast.Call):
+            called = node.func
+            used.add(getattr(called, "attr", None) or getattr(called, "id", None))
+        elif isinstance(node, ast.ImportFrom):
+            used.update(alias.name for alias in node.names)
+    return used - {None}
+
+
 def _requirements(name):
     return (DEMOS[name] / "requirements.txt").read_text()
 
@@ -275,9 +293,9 @@ def test_every_demo_pins_a_lowest_espnet_it_works_with(name):
 def test_an_app_using_a_new_api_asks_for_the_release_that_has_it(name):
     source = _source(name)
     requirement = _espnet_requirement(name)
+    called = _names_used(source)
     for attribute, since in UNRELEASED.items():
-        # a method on a loaded model, or a name the app imported
-        if f".{attribute}(" not in source and f"\n{attribute}(" not in source:
+        if attribute not in called:
             continue
         floor = requirement.split(">=")[1].strip()
         # parsed, not compared as text: "202612rc1" sorts after "202612" as a

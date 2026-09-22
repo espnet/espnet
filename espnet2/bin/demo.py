@@ -506,6 +506,12 @@ def build_app(s2t, device: str = "cpu", model_tag: str = "", wrap=None):
                         speech,
                         batch_size=1 if device == "cpu" else 8,
                         context_len_in_secs=4,
+                        # the prompt primes the first window, as it does for
+                        # a single one. `condition_on_prev_text` is left off:
+                        # carrying each window's own output into the next is
+                        # a different thing, and one that sends this model
+                        # into repetition loops.
+                        init_text=None if text_prev == "<na>" else text_prev,
                         lang_sym=f"<{detected}>",
                         task_sym=task_sym,
                     )

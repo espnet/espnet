@@ -156,6 +156,6 @@ Space whose `requirements.txt` asks for less.
 | the CLI's commands and default models | `test/espnet2/bin/test_cli.py` |
 | the MCP tools | `test/espnet2/bin/test_mcp_server.py` |
 | `from_pretrained` on every inference class | `test/espnet2/bin/test_from_pretrained_routing.py` |
-| the README's table against the CLI and the MCP tools | `ci/check_front_ends.py` |
+| the README's table against the CLI and the MCP tools | `ci/check_front_ends.py`, with the table |
 | the links in the README | `ci/check_demo_links.py`, daily |
 | the notebooks' names, badges and tables | `tools/check_layout.py` in `espnet/notebook` |
