@@ -38,6 +38,7 @@ DEMOS = {
     "ctc": EGS2 / "owsm_ctc_v4/s2t1/demo",
     "attention": EGS2 / "owsm_v4/s2t1/demo",
     "powsm": EGS2 / "powsm_ctc/s2t1/demo",
+    "align": EGS2 / "owsm_ctc_v4/s2t1/demo_align",
     "tts": EGS2 / "ljspeech/tts1/demo",
     "enh": EGS2 / "universal_se_v1/enh1/demo",
     "spk": EGS2 / "voxceleb/spk1/demo",
@@ -367,6 +368,8 @@ UNRELEASED = {
     # build_app took its `wrap` argument, and offered a phone page for a
     # checkpoint that has <pr>, in 202610.post2
     "build_app": "202610.post2",
+    # espnet2.bin.align, and with it `espnet align`, arrived in 202610.post2
+    "ForcedAligner": "202610.post2",
 }
 # The extra each front-end needs, by the import that gives it away. RawNet3's
 # asteroid_frontend imports asteroid_filterbanks, which only espnet[spk] has;
@@ -395,8 +398,8 @@ def test_an_app_using_a_new_api_asks_for_the_release_that_has_it(name):
     source = _source(name)
     requirement = _espnet_requirement(name)
     for attribute, since in UNRELEASED.items():
-        # a method on a loaded model, or a name the app imported
-        if f".{attribute}(" not in source and f"\n{attribute}(" not in source:
+        # a method the app calls on a model, or a name it imports
+        if not re.search(rf"\b{attribute}\b", source):
             continue
         floor = requirement.split(">=")[1].strip()
         # parsed, not compared as text: "202612rc1" sorts after "202612" as a

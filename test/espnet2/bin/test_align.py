@@ -153,6 +153,19 @@ def test_text_spelled_a_way_the_vocabulary_lacks_is_pointed_out():
         aligner(audio, ["abc"])
 
 
+def test_the_sample_rate_is_the_models_own():
+    """A caller that reads its own audio has to resample to the same rate.
+
+    The Space draws a waveform and so loads the audio itself; hard-coding
+    16000 there makes a checkpoint trained at another rate quietly wrong.
+    """
+    aligner = _aligner([1, 2, 3])
+    assert aligner.sample_rate == 16000
+
+    aligner.model.sample_rate = 8000
+    assert aligner.sample_rate == 8000
+
+
 def test_nothing_to_align_is_refused():
     aligner = _aligner([1, 2, 3])
     audio = np.zeros(16000, dtype=np.float32)
