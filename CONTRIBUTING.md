@@ -65,7 +65,7 @@ $ python run.py --stages measure        --metrics_config conf/metrics.yaml
 ```
 
 See [egs3/TEMPLATE](https://github.com/espnet/espnet/tree/master/egs3/TEMPLATE) for the
-recipe layout, and [`egs3/mini_an4/asr`](egs3/mini_an4/asr) for the smallest working
+recipe layout, and [`egs3/mini_an4/esp2_asr`](egs3/mini_an4/esp2_asr) for the smallest working
 example. Packing and uploading a trained model is part of the same interface:
 
 ``` console
@@ -274,7 +274,7 @@ In ESPnet3 the recipe *is* a Python entry point, so the interpreter is used dire
 
 python="coverage run --append"
 
-cd egs3/mini_an4/asr
+cd egs3/mini_an4/esp2_asr
 ${python} run.py \
     --stages create_dataset train_tokenizer collect_stats train infer measure \
     --training_config conf/training.yaml \
@@ -343,6 +343,44 @@ them.
 > the workflow's token and probes for published image tags, and the test jobs then run with
 > `container.credentials` pointing at that same token. It remains usable for simple
 > workflows that run directly on the runner.
+
+### 5.3 What runs on a pull request
+
+The CI badges in the README show each workflow's aggregate status on `master`, where the
+full grid runs. Your pull request does not run all of it, and the coverage is not uniform —
+some suites only ever run on one pytorch. What each column actually gets:
+
+|test suite|2.11.0|2.13.0|2.14.0|
+| :---- | :---: | :---: | :---: |
+|unit tests (`espnet2`, `espnet3`)|every PR|every PR|every PR|
+|`espnet2` recipe integration|`master` only|PR + `master`|`master` only|
+|`espnet3` integration|`master` only|PR + `master`|`master` only|
+|configuration, utils, shell, import|every PR|not run|not run|
+|k2-dependent tests|yes|yes|**no wheel published — skipped**|
+
+- **`master` only** — a pull request runs the recipe integration suites against
+  one pytorch per python rather than all three, because the full grid is 84 jobs
+  against a 20-wide cap and no integration failure in 300 runs was ever specific
+  to a pytorch version. Pushes to `master` run the full grid, so nothing goes
+  untested; it is tested after the merge rather than before it.
+- **PR + `master`** — and on a pull request, only when something changed can
+  reach that suite. A pull request touching only documentation, or only
+  `test/`, does not run the recipes at all; `ci/integration_is_relevant.py`
+  holds the paths that count, deliberately broadly, and anything it cannot
+  read — a truncated file list, an unparseable one, an empty one — runs them.
+  `master` again runs them regardless. The espnet3 publication test has no
+  matrix and follows the same rule.
+- **every PR** — the unit tests run the whole grid on every pull request. They
+  are six jobs of a few minutes; the recipe suites are the expensive ones.
+- **not run** — `test_configuration_espnet2`, `test_shell_espnet2` and
+  `test_import` run on python 3.12 with pytorch 2.11.0 only, and
+  `test_utils_espnet2` on both pythons with 2.11.0 only.
+- **no wheel** — k2 publishes one wheel per pytorch version and lags new
+  releases. `tools/installers/install_k2.sh` lists the versions it has nothing
+  for in `k2_missing_for` and skips them; the k2 tests are `importorskip`, so
+  they skip silently on that column. That list is the only record of it, and
+  `ci/check_ci_image_config.py` fails if it names a version the grid does not
+  build, or if the environment check stops reading it.
 
 ## 6. Writing new tools
 

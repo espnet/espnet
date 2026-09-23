@@ -179,7 +179,7 @@ espnet.done: pytorch.done conda_packages.done lightning.done
 	# move torch anywhere the dependency range allows, and it did: it dropped
 	# 2.13.0 for 2.12.1, so install_k2.sh then built against 2.12.1 and the
 	# version check at the end of ci/install.sh failed the job.
-	. ./activate_python.sh && python3 -m pip install -e ".." "torch==$(TH_VERSION)"  # Install editable mode by default
+	. ./activate_python.sh && python3 -m pip install -e "..[train]" "torch==$(TH_VERSION)"  # Install editable mode by default; recipes train, so the [train] extra comes along
 	@echo NUMPY_VERSION=$(shell . ./activate_python.sh && python3 -c "import numpy; print(numpy.__version__)")
 	# Into the venv, not $$HOME. docker/ci.dockerfile builds in a builder stage
 	# and copies only /espnet/tools into the final image, so a download to

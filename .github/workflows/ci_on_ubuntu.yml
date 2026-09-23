@@ -142,6 +142,8 @@ jobs:
       available: ${{ steps.probe.outputs.available }}
       matrix: ${{ steps.variants.outputs.matrix }}
       integration_matrix: ${{ steps.integration.outputs.matrix }}
+      integration_matrix_espnet3: ${{ steps.integration.outputs.espnet3 }}
+      espnet3_relevant: ${{ steps.integration.outputs.espnet3_relevant }}
     steps:
       # actions/checkout defaults persist-credentials to true, which writes
       # GITHUB_TOKEN into .git/config. Every job here then runs checked-out code,
@@ -179,14 +181,41 @@ jobs:
       # other pytorches, which is what a flake looks like. So the pytorch axis
       # is not dropped, it is moved off the path that gates a review.
       - id: integration
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           tasks=asr,asr_transducer,asr_misc,tts,asr2,enh,ssl,st,spk,lid,s2t,s2st,lm,codec
-          if [ "${{ github.event_name }}" = pull_request ]; then
-            matrix=$(python3 ci/image_variants.py matrix --newest-pytorch "config-task=${tasks}")
-          else
-            matrix=$(python3 ci/image_variants.py matrix "config-task=${tasks}")
+          if [ "${{ github.event_name }}" != pull_request ]; then
+            echo "matrix=$(python3 ci/image_variants.py matrix "config-task=${tasks}")" >> "$GITHUB_OUTPUT"
+            echo "espnet3=$(python3 ci/image_variants.py matrix)" >> "$GITHUB_OUTPUT"
+            echo "espnet3_relevant=true" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
-          echo "matrix=${matrix}" >> "$GITHUB_OUTPUT"
+
+          # Both paths of a rename, and one record per line so the helper can
+          # tell how many there were: the endpoint caps at 3000 records and
+          # does not say when it has.
+          gh api "repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/files" \
+            --paginate --jq '.[] | {filename, previous_filename}' > changed.txt
+
+          # Not skipped with `if:`. ci_gate_ubuntu deliberately fails on a
+          # skipped job, so that a job quietly not running cannot pass for a
+          # green pull request - and that rule is worth more than the jobs
+          # this saves. A suite that cannot be reached still runs its jobs,
+          # which print why they did nothing and exit 0.
+          if python3 ci/integration_is_relevant.py espnet2 < changed.txt; then
+            echo "matrix=$(python3 ci/image_variants.py matrix --newest-pytorch "config-task=${tasks}")" >> "$GITHUB_OUTPUT"
+          else
+            echo "matrix=$(python3 ci/image_variants.py matrix --newest-pytorch "config-task=none")" >> "$GITHUB_OUTPUT"
+          fi
+
+          if python3 ci/integration_is_relevant.py espnet3 < changed.txt; then
+            echo "espnet3=$(python3 ci/image_variants.py matrix --newest-pytorch)" >> "$GITHUB_OUTPUT"
+            echo "espnet3_relevant=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "espnet3=$(python3 ci/image_variants.py matrix --newest-pytorch "config-task=none")" >> "$GITHUB_OUTPUT"
+            echo "espnet3_relevant=false" >> "$GITHUB_OUTPUT"
+          fi
       - id: hash
         run: |
           full=${{ hashFiles('ci/install.sh', 'ci/install_kaldi.sh', 'ci/no_redistribute.txt', 'docker/ci.dockerfile', 'pyproject.toml', 'tools/Makefile', 'tools/installers/**') }}
@@ -502,8 +531,17 @@ jobs:
       - name: test espnet2 integration
         env:
           HF_TOKEN: ${{ secrets.HF_CI_TOKEN }}
-        run: ./ci/test_integration_espnet2.sh ${{ matrix.config-task }}
-      - uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7
+        run: |
+          if [ "${{ matrix.config-task }}" = none ]; then
+            echo "::notice::No changed path in this pull request can reach the" \
+                 "espnet2 integration tests, so they were not run. The list of" \
+                 "paths that can is in ci/integration_is_relevant.py. A push to" \
+                 "master runs them regardless."
+            exit 0
+          fi
+          ./ci/test_integration_espnet2.sh ${{ matrix.config-task }}
+      - if: matrix.config-task != 'none'
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7
         with:
           flags: test_integration_espnet2
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -645,7 +683,7 @@ jobs:
     strategy:
       fail-fast: false
       max-parallel: 20
-      matrix: ${{ fromJSON(needs.resolve_ci_image.outputs.matrix) }}
+      matrix: ${{ fromJSON(needs.resolve_ci_image.outputs.integration_matrix_espnet3) }}
     # Empty when the image for this hash is not published, which runs the job on
     # the runner instead and takes the slow steps below.
     container:
@@ -673,7 +711,15 @@ jobs:
       - name: test integration
         env:
           HF_TOKEN: ${{ secrets.HF_CI_TOKEN }}
-        run: ./ci/test_integration_espnet3.sh
+        run: |
+          if [ "${{ matrix.config-task }}" = none ]; then
+            echo "::notice::No changed path in this pull request can reach the" \
+                 "espnet3 integration tests, so they were not run. The list of" \
+                 "paths that can is in ci/integration_is_relevant.py. A push to" \
+                 "master runs them regardless."
+            exit 0
+          fi
+          ./ci/test_integration_espnet3.sh
       - uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7
         with:
           flags: test_integration_espnet3
@@ -686,7 +732,7 @@ jobs:
 
   test_integration_espnet3_publication:
     runs-on: ubuntu-latest
-    needs: process_labels
+    needs: [process_labels, resolve_ci_image]
     if: |
       github.event.pull_request.draft == false
     env:
@@ -718,7 +764,14 @@ jobs:
             exit 1
           }
       - name: test publication integration
-        run: ./ci/test_integration_espnet3_publication.sh
+        run: |
+          if [ "${{ needs.resolve_ci_image.outputs.espnet3_relevant }}" != true ]; then
+            echo "::notice::No changed path in this pull request can reach the" \
+                 "espnet3 publication test, so it was not run. See" \
+                 "ci/integration_is_relevant.py."
+            exit 0
+          fi
+          ./ci/test_integration_espnet3_publication.sh
       - uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7
         with:
           flags: test_integration_espnet3_publication
@@ -772,12 +825,31 @@ jobs:
         ./tools/installers/install_torch.sh false ${TH_VERSION} CPU
         python3 -m build --wheel
         echo "::endgroup::"
-        python3 -m pip install "$(echo dist/espnet-*.whl)"[all]
+        # No extras, in a venv of its own: this is what `pip install espnet`
+        # gives a user who only wants to run a model. The job environment
+        # already holds Cython, numba and six for the build, so a check run
+        # there would not notice an undeclared import of one of them. This
+        # step used to install [all] here as well, which made it the same
+        # check as Try2 and let the inference path grow training-only imports
+        # unnoticed.
+        python3 -m venv bare
+        . bare/bin/activate
+        # packaging: install_torch.sh compares versions with it
+        python3 -m pip install --upgrade pip packaging
+        ./tools/installers/install_torch.sh false ${TH_VERSION} CPU
+        python3 -m pip install "$(echo dist/espnet-*.whl)"
         # log
         python3 -m pip freeze
-    - name: Import all modules (Try1)
+    - name: Import the inference entry points with the least requirement (Try1)
       run: |
-        python3 ./ci/test_import_all.py
+        bare/bin/python ./ci/check_inference_imports.py
+    - name: Import the speechlm inference entry point with [speechlm] (Try1b)
+      run: |
+        # speechlm inference needs its extra by design (transformers, duckdb,
+        # lhotse, liger_kernel at module level); this catches the extra losing
+        # a package, which is invisible under [all].
+        bare/bin/python -m pip install "$(echo dist/espnet-*.whl)[speechlm]"
+        bare/bin/python ./ci/check_inference_imports.py --extra speechlm
     - name: Install espnet with the full requirement
       env:
         TH_VERSION: ${{ matrix.pytorch-version }}

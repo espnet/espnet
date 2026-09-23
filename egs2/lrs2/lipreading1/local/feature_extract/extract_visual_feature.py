@@ -7,7 +7,6 @@ import argparse
 import logging
 from distutils.util import strtobool
 
-import kaldiio
 import numpy
 import resampy
 from video_processing import *

@@ -284,6 +284,62 @@ def asr_config_file_streaming(tmp_path: Path, token_list):
 
 
 @pytest.mark.execution_timeout(20)
+def test_Speech2Text_streaming_from_pretrained(asr_config_file_streaming):
+    with open(asr_config_file_streaming, "r", encoding="utf-8") as f:
+        asr_train_config = yaml.full_load(f.read())
+    asr_train_config["frontend"] = "default"
+    asr_train_config["encoder_conf"] = {
+        "look_ahead": 16,
+        "hop_size": 16,
+        "block_size": 40,
+    }
+    with open(asr_config_file_streaming, "w", encoding="utf-8") as f:
+        yaml.dump(asr_train_config, f)
+    # model_tag=None skips the model-zoo download and builds from the kwargs,
+    # the same path every other from_pretrained in espnet2/bin takes.
+    speech2text = Speech2TextStreaming.from_pretrained(
+        model_tag=None,
+        asr_train_config=asr_config_file_streaming,
+        beam_size=1,
+    )
+    results = speech2text(np.random.randn(2048), is_final=True)
+    for text, token, token_int, hyp in results:
+        assert text is None or isinstance(text, str)
+        assert isinstance(hyp, Hypothesis)
+
+
+@pytest.mark.execution_timeout(20)
+def test_Speech2Text_streaming_from_pretrained_tag(
+    monkeypatch, asr_config_file_streaming
+):
+    with open(asr_config_file_streaming, "r", encoding="utf-8") as f:
+        asr_train_config = yaml.full_load(f.read())
+    asr_train_config["frontend"] = "default"
+    asr_train_config["encoder_conf"] = {
+        "look_ahead": 16,
+        "hop_size": 16,
+        "block_size": 40,
+    }
+    with open(asr_config_file_streaming, "w", encoding="utf-8") as f:
+        yaml.dump(asr_train_config, f)
+
+    # A tag goes through espnet_model_zoo, whose unpacked files become the
+    # constructor's keyword arguments; the downloader itself is faked so the
+    # test stays offline.
+    class FakeDownloader:
+        def download_and_unpack(self, model_tag):
+            assert model_tag == "espnet/some_streaming_asr"
+            return {"asr_train_config": str(asr_config_file_streaming)}
+
+    monkeypatch.setattr("espnet_model_zoo.downloader.ModelDownloader", FakeDownloader)
+    speech2text = Speech2TextStreaming.from_pretrained(
+        "espnet/some_streaming_asr", beam_size=1
+    )
+    assert isinstance(speech2text, Speech2TextStreaming)
+    assert speech2text.beam_search.beam_size == 1
+
+
+@pytest.mark.execution_timeout(20)
 def test_Speech2Text_streaming(asr_config_file_streaming, lm_config_file):
     file = open(asr_config_file_streaming, "r", encoding="utf-8")
     asr_train_config = file.read()

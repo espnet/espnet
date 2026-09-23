@@ -1,5 +1,6 @@
 import logging
 from collections import defaultdict
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Tuple, Union
 
@@ -52,9 +53,12 @@ def collect_stats(
                 batch = to_device(batch, "cuda" if ngpu > 0 else "cpu")
 
                 # 1. Write shape file
-                for name in batch:
-                    if name.endswith("_lengths"):
-                        continue
+                shape_names = [
+                    name
+                    for name, value in batch.items()
+                    if not name.endswith("_lengths") and not isinstance(value, Mapping)
+                ]
+                for name in shape_names:
                     for i, (key, data) in enumerate(zip(keys, batch[name])):
                         if f"{name}_lengths" in batch:
                             lg = int(batch[f"{name}_lengths"][i])
@@ -116,8 +120,6 @@ def collect_stats(
 
         # batch_keys and stats_keys are used by aggregate_stats_dirs.py
         with (output_dir / mode / "batch_keys").open("w", encoding="utf-8") as f:
-            f.write(
-                "\n".join(filter(lambda x: not x.endswith("_lengths"), batch)) + "\n"
-            )
+            f.write("\n".join(shape_names) + "\n")
         with (output_dir / mode / "stats_keys").open("w", encoding="utf-8") as f:
             f.write("\n".join(sum_dict) + "\n")

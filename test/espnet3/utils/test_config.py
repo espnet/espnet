@@ -317,7 +317,7 @@ defaults:
 
 
 def test_load_default_config_train():
-    cfg = load_default_config("training.yaml", "egs3.TEMPLATE.asr")
+    cfg = load_default_config("training.yaml", "egs3.TEMPLATE.esp2_asr")
     assert "dataset" in cfg
     assert "exp_dir" in cfg
 
@@ -515,15 +515,15 @@ exp_dir: ./exp/from_user
 
 def test_load_and_merge_publication_config_inherits_template_readme_path() -> None:
     cfg = load_and_merge_config(
-        Path("egs3/mini_an4/asr/conf/publication.yaml"),
+        Path("egs3/mini_an4/esp2_asr/conf/publication.yaml"),
         "publication.yaml",
-        default_package="egs3.TEMPLATE.asr",
+        default_package="egs3.TEMPLATE.esp2_asr",
         resolve=False,
     )
 
     readme = cfg.pack_model.readme
     assert Path(readme).is_absolute()
-    assert readme.endswith("egs3/TEMPLATE/asr/src/hf_model_readme.md")
+    assert readme.endswith("egs3/TEMPLATE/esp2_asr/src/hf_model_readme.md")
     assert list(cfg.pack_model.include) == [
         "./src",
         "./dataset",
@@ -576,8 +576,8 @@ def test_infer_default_package_returns_none_when_conf_too_shallow(tmp_path):
 
 
 def test_infer_default_package_infers_valid_task(tmp_path):
-    path = tmp_path / "egs3" / "mini_an4" / "asr" / "conf" / "train.yaml"
-    assert _resolve_egs3_path(path, as_package=True) == "egs3.TEMPLATE.asr"
+    path = tmp_path / "egs3" / "mini_an4" / "esp2_asr" / "conf" / "train.yaml"
+    assert _resolve_egs3_path(path, as_package=True) == "egs3.TEMPLATE.esp2_asr"
 
 
 def test_rewrite_preserves_absolute_resolver_path(tmp_path):
@@ -773,7 +773,7 @@ def test_rewrite_config_path_absolute_unchanged(tmp_path):
 
 
 def test_config_path_end_to_end_with_real_template(tmp_path):
-    """Load a real-world demo.yaml against egs3.TEMPLATE.asr.
+    """Load a real-world demo.yaml against egs3.TEMPLATE.esp2_asr.
 
     Verifies that pack.readme resolves to the TEMPLATE's actual
     hf_demo_readme.md file. This is the core regression test for the removal
@@ -794,7 +794,7 @@ def test_config_path_end_to_end_with_real_template(tmp_path):
     cfg = load_and_merge_config(
         user_demo,
         "demo.yaml",
-        default_package="egs3.TEMPLATE.asr",
+        default_package="egs3.TEMPLATE.esp2_asr",
         resolve=False,
     )
 
@@ -803,6 +803,6 @@ def test_config_path_end_to_end_with_real_template(tmp_path):
         readme
     ).is_absolute(), f"pack.readme must be an absolute path, got: {readme}"
     assert readme.endswith(
-        "egs3/TEMPLATE/asr/src/hf_demo_readme.md"
+        "egs3/TEMPLATE/esp2_asr/src/hf_demo_readme.md"
     ), f"pack.readme must point to the TEMPLATE file, got: {readme}"
     assert Path(readme).exists(), f"pack.readme path must exist on disk: {readme}"
