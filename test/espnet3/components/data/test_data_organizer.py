@@ -91,6 +91,10 @@ SPLIT_RECORDING_PREPROCESSOR_TARGET = (
 ESPNET_TRAIN_FLAG_PREPROCESSOR_TARGET = (
     "test.espnet3.components.data." "test_data_organizer.TrainFlagRecordingPreprocessor"
 )
+ESPNET_TRAIN_FLAG_FACTORY_TARGET = (
+    "test.espnet3.components.data."
+    "test_data_organizer.build_train_flag_recording_preprocessor"
+)
 
 
 # Dummy classes
@@ -153,6 +157,13 @@ class TrainFlagRecordingPreprocessor(AbsPreprocessor):
 
     def __call__(self, uid, sample):
         return {**sample, "was_train": self.train}
+
+
+def build_train_flag_recording_preprocessor(
+    train: bool = False,
+) -> TrainFlagRecordingPreprocessor:
+    """Factory function (not a class) that returns an AbsPreprocessor."""
+    return TrainFlagRecordingPreprocessor(train=train)
 
 
 class DummyDataset:
@@ -1037,6 +1048,33 @@ def test_espnet_preprocessor_train_flag_auto_set_from_dictconfig():
     preprocessor_cfg = OmegaConf.create(
         {"_target_": ESPNET_TRAIN_FLAG_PREPROCESSOR_TARGET}
     )
+    organizer = DataOrganizer(
+        train=config["train"],
+        valid=config["valid"],
+        preprocessor=preprocessor_cfg,
+    )
+    assert organizer.train[0]["was_train"] is True
+    assert organizer.valid[0]["was_train"] is False
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason=(
+        "data-organizer#26: _instantiate_preprocessor_from_config detects "
+        "an ESPnet AbsPreprocessor via "
+        "isinstance(partial_preprocessor.func, type), which is False for a "
+        "_target_ factory *function* (as opposed to the class itself), so "
+        "the per-split train flag is never auto-set for factory-based "
+        "shared preprocessor configs."
+    ),
+)
+def test_espnet_preprocessor_train_flag_auto_set_from_factory_function():
+    """A _target_ that is a factory function should still get train auto-set."""
+    config = {
+        "train": [_entry("train_dummy")],
+        "valid": [_entry("valid_dummy")],
+    }
+    preprocessor_cfg = OmegaConf.create({"_target_": ESPNET_TRAIN_FLAG_FACTORY_TARGET})
     organizer = DataOrganizer(
         train=config["train"],
         valid=config["valid"],
