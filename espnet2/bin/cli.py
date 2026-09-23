@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """Run a published ESPnet model from the command line.
 
-    espnet asr audio.wav
-    espnet asr audio.wav --language jpn
+    espnet transcribe audio.wav
+    espnet transcribe audio.wav --language jpn
+    espnet phonemize audio.wav
+    espnet align audio.wav --text "the words that were said"
     espnet translate audio.wav --to eng
-    espnet tts "Hello from ESPnet" -o hello.wav
+    espnet synthesize "Hello from ESPnet" -o hello.wav
     espnet enhance noisy.wav -o clean.wav
     espnet demo
     espnet models
@@ -18,7 +20,7 @@ result.
 Each downloads its model on first use and keeps it in the espnet_model_zoo
 cache. `--model` takes any tag from https://huggingface.co/espnet that suits
 the command: a command loads one task's inference class, so a TTS tag given
-to `espnet asr` is reported rather than half-loaded.
+to `espnet transcribe` is reported rather than half-loaded.
 
 `espnet demo` is the same OWSM model in a browser instead: it serves the app
 the Hugging Face Space runs, locally, and prints the URL to open.
@@ -34,14 +36,21 @@ from typing import List, Optional
 
 from espnet2.utils.pretrained import ModelTagError, build_pretrained
 
-# One flagship per task, so that `espnet asr x.wav` works with no arguments.
+# One flagship per task, so that `espnet transcribe x.wav` works with no
+# arguments.
 # Each is checked by test_cli.py against the espnet2 class that loads it.
 DEFAULT_MODELS = {
-    "asr": "espnet/owsm_ctc_v4_1B",
+    "transcribe": "espnet/owsm_ctc_v4_1B",
+    # POWSM, a phonetic model built on OWSM: the CTC one, which is the
+    # faster of the two and the one that can read a recording of any length
+    "phonemize": "espnet/powsm_ctc",
+    # alignment reads the CTC head, so the model that transcribes is the
+    # model that aligns
+    "align": "espnet/owsm_ctc_v4_1B",
     "translate": "espnet/owsm_ctc_v4_1B",
-    "tts": "espnet/kan-bayashi_ljspeech_vits",
+    "synthesize": "espnet/kan-bayashi_ljspeech_vits",
     "enhance": "espnet/Wangyou_Zhang_universal_train_enh_uses_refch0_2mem_raw",
-    # the browser demo runs the model `espnet asr` runs, so that the two agree
+    # the browser demo runs the model `espnet transcribe` runs, so the two agree
     "demo": "espnet/owsm_ctc_v4_1B",
 }
 # OWSM writes languages as ISO 639-3 in its own token symbols.
@@ -139,7 +148,7 @@ def _decode(s2t, audio: str, lang_sym: str, task_sym: str) -> str:
     )
 
 
-def cmd_asr(args) -> int:
+def cmd_transcribe(args) -> int:
     # every check the user can fail comes before the import: loading the s2t
     # stack takes seconds, and "no such file" should not wait for it
     if args.live or args.stream:
@@ -152,7 +161,7 @@ def cmd_asr(args) -> int:
 
     from espnet2.bin.s2t_inference import Speech2Text
 
-    s2t = _build(Speech2Text, args, "asr")
+    s2t = _build(Speech2Text, args, "transcribe")
     print(_decode(s2t, args.audio, f"<{args.language}>", "<asr>"))
     return 0
 
@@ -169,7 +178,7 @@ def _transcribe_as_it_arrives(args) -> int:
     from espnet2.bin import live
     from espnet2.bin.s2t_inference import Speech2Text
 
-    s2t = _build(Speech2Text, args, "asr")
+    s2t = _build(Speech2Text, args, "transcribe")
     try:
         source = live.from_microphone() if args.live else live.from_file(args.audio)
 
@@ -187,6 +196,116 @@ def _transcribe_as_it_arrives(args) -> int:
         return live.transcribe(decode, source)
     except live.LiveError as e:
         raise CLIError(str(e)) from e
+
+
+# POWSM writes each phone between slashes, so that a phone spelled like a BPE
+# token is still one token: /pʰ//ɔ//s//ə//m/ is five phones, not a string to
+# be read character by character.
+PHONE = re.compile(r"/([^/]+)/")
+
+
+def phones(decoded: str, spaced: bool = False) -> str:
+    """The phones of a decoded line, without the slashes that delimit them.
+
+    Returned as IPA - `pʰɔsəm` - or one phone at a time when asked, which is
+    what anything counting or aligning them wants. Text with no slashes in it
+    is passed through: a checkpoint that does not write phones this way has
+    still said something, and swallowing it would be worse than printing it.
+    """
+    found = PHONE.findall(decoded)
+    if not found:
+        return decoded
+    return " ".join(found) if spaced else "".join(found)
+
+
+def _no_language(s2t) -> str:
+    """The checkpoint's own symbol for an unknown language, or a fixable error.
+
+    The lookup is the model's own - both POWSM checkpoints use `<unk>` and
+    OWSM uses `<nolang>`, and one of the three does not record which - and
+    only the wording of the fix belongs to this command line.
+    """
+    try:
+        return s2t.no_language()
+    except ValueError as e:
+        raise CLIError(f"{e}; pass --language, as ISO 639-3") from e
+
+
+def cmd_phonemize(args) -> int:
+    _require_file(args.audio)
+    from espnet2.bin.s2t_inference import Speech2Text
+
+    s2t = _build(Speech2Text, args, "phonemize")
+    lang_sym = f"<{args.language}>" if args.language else _no_language(s2t)
+
+    if s2t.ctc_only:
+        decoded = _decode(s2t, args.audio, lang_sym, "<pr>")
+    else:
+        # An encoder-decoder checkpoint segments long audio by its own
+        # timestamps, which is right for a transcript and wrong here. A
+        # window shorter than the model's is padded with silence, and asked
+        # for phones over that silence POWSM repeats what it has already
+        # said, for as long as the window lasts. One window at a time
+        # instead, each decoded on its own, which is what the model card
+        # does.
+        decoded = " ".join(
+            s2t(window, lang_sym=lang_sym, task_sym="<pr>")[0][0]
+            for window in _windows(s2t, args.audio)
+        )
+    print(phones(decoded, spaced=args.spaced))
+    return 0
+
+
+def _windows(s2t, audio: str):
+    """The recording in pieces of the length the checkpoint was trained on."""
+    speech = s2t.read_audio(audio)
+    length = int(s2t.preprocessor_conf["speech_length"] * s2t.preprocessor_conf["fs"])
+    for start in range(0, max(len(speech), 1), length):
+        yield speech[start : start + length]
+
+
+def cmd_align(args) -> int:
+    _require_file(args.audio)
+    if not args.text and not args.text_file:
+        raise CLIError("give --text once per utterance, or --text-file")
+    if args.text and args.text_file:
+        raise CLIError("give --text or --text-file, not both")
+    if args.text_file:
+        _require_file(args.text_file)
+        utterances = [
+            line.strip()
+            for line in Path(args.text_file).read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+    else:
+        utterances = list(args.text)
+    if not utterances:
+        raise CLIError(f"{args.text_file} has no lines to align")
+
+    from espnet2.bin.align import ForcedAligner
+
+    aligner = _build(ForcedAligner, args, "align")
+    try:
+        segments = aligner(args.audio, utterances)
+    except ValueError as e:
+        # "this text cannot fit in this recording", and the like: things the
+        # user can correct, rather than a traceback
+        raise CLIError(str(e)) from e
+
+    # start, end, how sure it is, and the words: a line a person can read and
+    # a line `cut` can take apart
+    def line(piece, indent=""):
+        return (
+            f"{indent}{piece.start:.2f}\t{piece.end:.2f}\t"
+            f"{piece.score:.4f}\t{piece.text}"
+        )
+
+    for segment in segments:
+        print(line(segment))
+        if args.tokens:
+            for token in segment.tokens:
+                print(line(token, indent="  "))
+    return 0
 
 
 def cmd_translate(args) -> int:
@@ -217,11 +336,11 @@ def _output_path(value: str) -> Path:
     return path
 
 
-def cmd_tts(args) -> int:
+def cmd_synthesize(args) -> int:
     path = _output_path(args.output)
     from espnet2.bin.tts_inference import Text2Speech
 
-    tts = _build(Text2Speech, args, "tts")
+    tts = _build(Text2Speech, args, "synthesize")
     output = tts(args.text)
     _write_audio(str(path), output["wav"].view(-1).cpu().numpy(), tts.fs)
     return 0
@@ -326,8 +445,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--version", action="version", version=f"espnet {_version()}")
     sub = parser.add_subparsers(dest="command", required=True)
 
-    def add(name, help_text, func, device="cpu"):
-        p = sub.add_parser(name, help=help_text)
+    def add(name, help_text, func, device="cpu", was=None):
+        # `was` is the name this command had in a release. argparse aliases
+        # share one parser, so the old name keeps working exactly, and the
+        # help listing says "transcribe (asr)" - which is where someone
+        # looking for the name they remember will look.
+        p = sub.add_parser(name, aliases=[was] if was else [], help=help_text)
         p.add_argument(
             "--model",
             default=DEFAULT_MODELS.get(name),
@@ -345,7 +468,7 @@ def build_parser() -> argparse.ArgumentParser:
         p.set_defaults(func=func)
         return p
 
-    p = add("asr", "transcribe an audio file", cmd_asr)
+    p = add("transcribe", "transcribe an audio file", cmd_transcribe, was="asr")
     p.add_argument("audio", nargs="?", help="audio file, any format soundfile reads")
     p.add_argument(
         "--stream",
@@ -363,6 +486,42 @@ def build_parser() -> argparse.ArgumentParser:
         help="OWSM language token, ISO 639-3: eng, jpn … (default: OWSM detects it)",
     )
 
+    p = add("phonemize", "recognise the phones in an audio file", cmd_phonemize)
+    p.add_argument("audio", help="audio file, any format soundfile reads")
+    p.add_argument(
+        "--language",
+        default=None,
+        # Worth naming: on test_utils/ctc_align_test.wav, POWSM-CTC answers
+        # `dəseɪlʌvðəhotɛlsɪz` without it and `ðəseɪlʌvðəhoʊtɛlzɪz` with
+        # --language eng - English r and diphthongs rather than a tap and
+        # plain vowels.
+        help="POWSM language token, ISO 639-3: eng, jpn, deu … Name it if you "
+        "know it; without it the model is told the language is unknown, which "
+        "it handles but reads less like the language",
+    )
+    p.add_argument(
+        "--spaced",
+        action="store_true",
+        help="one phone at a time, separated by spaces, rather than as IPA",
+    )
+
+    p = add("align", "line text up with the audio it was said in", cmd_align)
+    p.add_argument("audio", help="audio file, any format soundfile reads")
+    p.add_argument(
+        "--text",
+        action="append",
+        default=[],
+        help="one utterance; give it once per utterance, in the order spoken",
+    )
+    p.add_argument(
+        "--text-file", help="a file with one utterance a line, instead of --text"
+    )
+    p.add_argument(
+        "--tokens",
+        action="store_true",
+        help="also print each token's own start, end and probability",
+    )
+
     p = add("translate", "translate speech into another language", cmd_translate)
     p.add_argument("audio", help="audio file, any format soundfile reads")
     p.add_argument("--to", required=True, help="OWSM target language token, ISO 639-3")
@@ -372,7 +531,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="OWSM language token of the speech, ISO 639-3 (default: detected)",
     )
 
-    p = add("tts", "synthesise speech from text", cmd_tts)
+    p = add("synthesize", "synthesise speech from text", cmd_synthesize, was="tts")
     p.add_argument("text", help="what to say")
     p.add_argument("-o", "--output", default="out.wav", help="output wav")
 
@@ -396,7 +555,26 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+# What each command was called in a release. Both names work; this is only
+# so that the old one says where it went, once, on stderr.
+RENAMED = {"asr": "transcribe", "tts": "synthesize"}
+
+
 def main(argv: Optional[List[str]] = None) -> int:
+    typed = next(
+        (
+            a
+            for a in (argv if argv is not None else sys.argv[1:])
+            if not a.startswith("-")
+        ),
+        None,
+    )
+    if typed in RENAMED:
+        print(
+            f"espnet: `{typed}` is now `{RENAMED[typed]}`, for one name a task "
+            f"rather than two. The old name still works.",
+            file=sys.stderr,
+        )
     args = build_parser().parse_args(argv)
     try:
         return args.func(args)
