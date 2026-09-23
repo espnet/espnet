@@ -443,9 +443,8 @@ def test_beam_search_output_obeys_sot_grammar():
         if tok != SEP:
             continue
         if i + 1 == len(seq):
-            # The separator was followed by eos, which the filter permits and
-            # which matches the reference implementation. Decoding here simply
-            # ran into maxlen.
+            # The filter permits a separator followed by eos. Decoding here
+            # simply ran into maxlen.
             continue
         nxt = seq[i + 1]
         assert (
