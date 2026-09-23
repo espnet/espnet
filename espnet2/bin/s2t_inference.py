@@ -6,16 +6,19 @@ from itertools import groupby
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
+import humanfriendly
 import numpy as np
 import torch
 import torch.nn.functional as F
 import torch.quantization
+import yaml
 from typeguard import typechecked
 
 from espnet2.asr.decoder.s4_decoder import S4Decoder
 from espnet2.asr.partially_AR_model import PartiallyARInference
 from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.legacy.nets.batch_beam_search import BatchBeamSearch
+from espnet2.legacy.nets.batch_beam_search_online_sim import BatchBeamSearchOnlineSim
 from espnet2.legacy.nets.beam_search import BeamSearch, Hypothesis
 from espnet2.legacy.nets.pytorch_backend.transformer.subsampling import TooShortUttError
 from espnet2.legacy.nets.scorer_interface import (
@@ -43,7 +46,9 @@ ListOfHypothesis = List[
         List[str],
         List[int],
         Optional[str],
-        Hypothesis,
+        # None when the text came from the CTC head: nothing was searched,
+        # so there is no hypothesis to report
+        Optional[Hypothesis],
     ]
 ]
 
@@ -151,8 +156,63 @@ class ScoreFilter(BatchScorerInterface, torch.nn.Module):
         return scores, outstates
 
 
+# espnet2.tasks.s2t and espnet2.tasks.s2t_ctc both write `model:` into the
+# training config, and only the CTC-only task writes this value. Reading one
+# key tells the two apart without building a model to see which one fails.
+CTC_ONLY_MODEL = "espnet_ctc"
+
+
+SUBSAMPLE = {"conv2d1": 1, "conv2d2": 2, "conv2d": 4, "conv2d6": 6, "conv2d8": 8}
+
+
+def _frame_rate(s2t_train_args) -> Tuple[Optional[int], Optional[float]]:
+    """The audio sample rate and the encoder's output frames per second.
+
+    Only the long-form paths need these, and only a config that names its
+    frontend's rate, hop and input layer can give them, so a config that does
+    not gets (None, None) rather than a KeyError at construction.
+    """
+    frontend = getattr(s2t_train_args, "frontend_conf", None) or {}
+    encoder = getattr(s2t_train_args, "encoder_conf", None) or {}
+    sample_rate = frontend.get("fs")
+    hop_length = frontend.get("hop_length")
+    subsample = SUBSAMPLE.get(encoder.get("input_layer"))
+    if sample_rate is None or hop_length is None or subsample is None:
+        return None, None
+    if isinstance(sample_rate, str):
+        sample_rate = humanfriendly.parse_size(sample_rate)
+    return sample_rate, sample_rate / hop_length / subsample
+
+
+def _stated_seconds(symbol: str) -> Optional[float]:
+    """The time a symbol is named after, if it is named after one.
+
+    `<12.34>` is 12.34; `<sos>` and anything else is None. Used to check a
+    config against itself, never to decide what a timestamp means.
+    """
+    try:
+        return float(str(symbol).strip("<>"))
+    except ValueError:
+        return None
+
+
+def _is_ctc_only(s2t_train_config) -> bool:
+    """True when the config describes a model trained as CTC-only.
+
+    Such a model - OWSM-CTC is the one in the wild - has an encoder and a CTC
+    head and no decoder, so there is nothing for a beam search to search over.
+    """
+    if s2t_train_config is None:
+        # only a checkpoint was given; the encoder-decoder task is the older
+        # and more common one, and build_model_from_file will say if it is wrong
+        return False
+    with Path(s2t_train_config).open("r", encoding="utf-8") as f:
+        config = yaml.safe_load(f)
+    return isinstance(config, dict) and config.get("model") == CTC_ONLY_MODEL
+
+
 class Speech2Text:
-    """Speech2Text class
+    """Decode a speech-to-text model, of either kind, however you ask.
 
     Examples:
         >>> import soundfile
@@ -160,6 +220,42 @@ class Speech2Text:
         >>> audio, rate = soundfile.read("speech.wav")
         >>> speech2text(audio)
         [(text, token, token_int, text_nospecial, hypothesis object), ...]
+
+    Two methods, and the arguments decide the rest::
+
+        Speech2Text
+        |
+        +-- __call__()          a search, over the scorers this model has
+        |   |
+        |   +-- decoder         weight 1 - ctc_weight
+        |   +-- CTC             weight ctc_weight
+        |   +-- LM              weight lm_weight
+        |   +-- n-gram          weight ngram_weight
+        |
+        +-- best_path()         no search: CTC argmax, repeats collapsed
+
+    Which gives, on an encoder-decoder checkpoint:
+
+    =========================  ================================================
+    attention beam search      ``ctc_weight=0``
+    hybrid beam search         ``0 < ctc_weight < 1``
+    CTC beam search            ``ctc_weight=1``
+    with a language model      any of the above, plus ``lm_weight>0`` and an
+                               ``lm_train_config``
+    best path                  ``best_path()``, which reads the CTC branch and
+                               ignores every weight above
+    =========================  ================================================
+
+    and on a CTC-only checkpoint - OWSM-CTC, anything the `s2t_ctc` task
+    trained - the decoder simply is not there, so ``__call__`` is a CTC beam
+    search, with a language model if one is given, and ``best_path`` is the
+    same fast route. `decode_long` decodes a whole recording either way.
+
+    The branching is in three places: which model to build (`_is_ctc_only`,
+    at the top of `__init__`), which scorers the search gets (the
+    ``self.ctc_only`` branch a few lines further down), and how the encoder
+    is fed (`_encode`, since a CTC-only model takes the prompt as an encoder
+    input rather than as a decoder prefix).
 
     """
 
@@ -199,6 +295,11 @@ class Speech2Text:
         lang_sym: str = "<eng>",
         task_sym: str = "<asr>",
         predict_time: bool = False,
+        # simulated streaming, from the CTC-only inference this replaces
+        streaming: bool = False,
+        # only best-path decoding reports these, and only when asked: the
+        # beam search path reports them whenever the model produces them
+        generate_interctc_outputs: bool = False,
     ):
 
         if ctc_weight > 0.0 and predict_time:
@@ -207,10 +308,18 @@ class Speech2Text:
         qconfig_spec = set([getattr(torch.nn, q) for q in quantize_modules])
         quantize_dtype: torch.dtype = getattr(torch, quantize_dtype)
 
-        # 1. Build S2T model
-        s2t_model, s2t_train_args = S2TTask.build_model_from_file(
-            s2t_train_config, s2t_model_file, device
-        )
+        # 1. Build S2T model, from whichever task trained it
+        self.ctc_only = _is_ctc_only(s2t_train_config)
+        if self.ctc_only:
+            from espnet2.tasks.s2t_ctc import S2TTask as S2TCTCTask
+
+            s2t_model, s2t_train_args = S2TCTCTask.build_model_from_file(
+                s2t_train_config, s2t_model_file, device
+            )
+        else:
+            s2t_model, s2t_train_args = S2TTask.build_model_from_file(
+                s2t_train_config, s2t_model_file, device
+            )
         s2t_model.to(dtype=getattr(torch, dtype)).eval()
 
         # Set flash_attn
@@ -225,28 +334,95 @@ class Speech2Text:
                 s2t_model, qconfig_spec=qconfig_spec, dtype=quantize_dtype
             )
 
-        decoder = s2t_model.decoder
-        ctc = CTCPrefixScorer(ctc=s2t_model.ctc, eos=s2t_model.eos)
         token_list = s2t_model.token_list
-        scorers = dict(
-            decoder=decoder,
-            ctc=ctc,
-            length_bonus=LengthBonus(len(token_list)),
-            scorefilter=ScoreFilter(
-                notimestamps=token_list.index(
-                    s2t_train_args.preprocessor_conf["notime_symbol"]
+        # Which scorers the search is given is the whole difference between
+        # the ways an S2T model can be decoded:
+        #
+        #   attention beam search  decoder                ctc_weight = 0
+        #   hybrid beam search     decoder + CTC          0 < ctc_weight < 1
+        #   CTC beam search        CTC                    ctc_weight = 1, or any
+        #                                                 CTC-only checkpoint
+        #   best path              CTC, no search         best_path(), which
+        #                                                 ignores all of this
+        #
+        # The last two are both "CTC decoding" and are not the same: the
+        # third searches over label sequences and the fourth takes the
+        # argmax of each frame. ctc_weight = 1 selects the third, whatever
+        # beam_size is, which is what the log line below is for.
+        #
+        # A language model or an n-gram joins any of the searches, through
+        # lm_weight and ngram_weight below. None of them reaches best_path():
+        # an argmax over frames has nothing to score.
+        ctc = CTCPrefixScorer(ctc=s2t_model.ctc, eos=s2t_model.eos)
+        if self.ctc_only:
+            if partial_ar:
+                raise ValueError(
+                    "partial_ar needs a decoder, and this checkpoint is CTC-only"
+                )
+            # no decoder to score with, and no timestamps for ScoreFilter to
+            # constrain: a CTC-only model emits neither
+            scorers: Dict[str, Any] = dict(
+                decoder=None,
+                ctc=ctc,
+                length_bonus=LengthBonus(len(token_list)),
+            )
+            weights = dict(
+                decoder=0.0,
+                ctc=1.0,
+                lm=lm_weight,
+                ngram=ngram_weight,
+                length_bonus=penalty,
+            )
+            pre_beam_score_key = None
+        else:
+            scorers = dict(
+                decoder=s2t_model.decoder,
+                ctc=ctc,
+                length_bonus=LengthBonus(len(token_list)),
+                scorefilter=ScoreFilter(
+                    notimestamps=token_list.index(
+                        s2t_train_args.preprocessor_conf["notime_symbol"]
+                    ),
+                    first_time=token_list.index(
+                        s2t_train_args.preprocessor_conf["first_time_symbol"]
+                    ),
+                    last_time=token_list.index(
+                        s2t_train_args.preprocessor_conf["last_time_symbol"]
+                    ),
+                    sos=s2t_model.sos,
+                    eos=s2t_model.eos,
+                    vocab_size=len(token_list),
                 ),
-                first_time=token_list.index(
-                    s2t_train_args.preprocessor_conf["first_time_symbol"]
-                ),
-                last_time=token_list.index(
-                    s2t_train_args.preprocessor_conf["last_time_symbol"]
-                ),
-                sos=s2t_model.sos,
-                eos=s2t_model.eos,
-                vocab_size=len(token_list),
-            ),
-        )
+            )
+            weights = dict(
+                decoder=1.0 - ctc_weight,
+                ctc=ctc_weight,
+                lm=lm_weight,
+                ngram=ngram_weight,
+                length_bonus=penalty,
+                scorefilter=1.0,
+            )
+            # with the decoder dropped there is no full scorer to pre-beam with
+            pre_beam_score_key = None if ctc_weight == 1.0 else "full"
+
+        if weights["ctc"] == 1.0:
+            # "CTC decoding" names both of the things below, and "greedy" is
+            # used loosely for the second, so a user who asked for one and
+            # got the other has no way to tell except by the clock.
+            #
+            # Here rather than in the decoding methods: this is a property of
+            # how the object was built, and a loop over a test set would
+            # otherwise repeat it once per utterance.
+            logging.info(
+                "decoding on the CTC head alone: a prefix beam search over "
+                f"{beam_size} hypotheses. This is not best-path decoding "
+                "(also called greedy or argmax decoding), and beam_size=1 "
+                "would not make it so - a prefix search scores label "
+                "sequences, summing the frame paths that collapse to each "
+                "one, where best-path takes the most likely symbol at each "
+                "frame and collapses once. They can disagree, and the search "
+                "is far slower. Speech2Text.best_path() is best-path decoding."
+            )
 
         # 2. Build language model
         if lm_train_config is not None:
@@ -276,14 +452,6 @@ class Speech2Text:
             scorers["ngram"] = ngram
 
         # 4. Build BeamSearch object
-        weights = dict(
-            decoder=1.0 - ctc_weight,
-            ctc=ctc_weight,
-            lm=lm_weight,
-            ngram=ngram_weight,
-            length_bonus=penalty,
-            scorefilter=1.0,
-        )
         if partial_ar:
             beam_search = PartiallyARInference(
                 s2t_model.ctc,
@@ -308,7 +476,7 @@ class Speech2Text:
                 eos=s2t_model.eos,
                 vocab_size=len(token_list),
                 token_list=token_list,
-                pre_beam_score_key=None if ctc_weight == 1.0 else "full",
+                pre_beam_score_key=pre_beam_score_key,
                 normalize_length=normalize_length,
             )
 
@@ -340,6 +508,10 @@ class Speech2Text:
                     f"As non-batch scorers {non_batch} are found, "
                     f"fall back to non-batch implementation."
                 )
+            elif streaming:
+                beam_search.__class__ = BatchBeamSearchOnlineSim
+                beam_search.set_streaming_config(s2t_train_config)
+                logging.info("BatchBeamSearchOnlineSim implementation is selected.")
             else:
                 beam_search.__class__ = BatchBeamSearch
                 logging.info("BatchBeamSearch implementation is selected.")
@@ -377,9 +549,10 @@ class Speech2Text:
             converter = TokenIDConverter(token_list=token_list)
         else:
             converter = OpenAIWhisperTokenIDConverter(model_type=bpemodel)
-            beam_search.set_hyp_primer(
-                list(converter.tokenizer.sot_sequence_including_notimestamps)
-            )
+            if beam_search is not None:
+                beam_search.set_hyp_primer(
+                    list(converter.tokenizer.sot_sequence_including_notimestamps)
+                )
         logging.info(f"Text tokenizer: {tokenizer}")
 
         self.s2t_model = s2t_model
@@ -400,12 +573,23 @@ class Speech2Text:
 
         self.partial_ar = partial_ar
         self.batch_size = batch_size
+        self.generate_interctc_outputs = generate_interctc_outputs
 
-        if batch_size > 1 and type(beam_search) is not BatchBeamSearch:
+        if (
+            batch_size > 1
+            and not self.ctc_only
+            and type(beam_search) is not BatchBeamSearch
+        ):
             raise NotImplementedError(
                 "Batch decoding is only supported for the attention/CTC beam "
                 "search. Please use --batch_size 1."
             )
+
+        # The sample rate and the encoder's frame rate, which the long-form
+        # paths need to line chunks up with what the model was trained on.
+        # Both are None when the config does not say - a configuration that
+        # decodes utterance by utterance never needs them.
+        self.sample_rate, self.frames_per_sec = _frame_rate(s2t_train_args)
 
     def _build_hyp_primer(
         self,
@@ -505,6 +689,12 @@ class Speech2Text:
             raise ValueError(f"speech of size {tuple(speech.shape)} is not supported")
         n_utt = speech.size(0)
 
+        if self.ctc_only:
+            # one encoder pass for the batch, then each utterance's own search
+            speech = self._pad_or_trim(speech).to(getattr(torch, self.dtype))
+            enc, _ = self._encode(speech, "<na>", lang_sym, task_sym)
+            return [self._decode_single_sample(enc[b]) for b in range(n_utt)]
+
         if text_prev is None:
             primers = self._build_hyp_primer(lang_sym, task_sym, predict_time)
         else:
@@ -555,6 +745,172 @@ class Speech2Text:
         )
         return [self._hyps_to_results(hyps) for hyps in nbest_hyps]
 
+    def _ctc_batch(self, speech, text_prev, lang_sym, task_sym):
+        """The batch a CTC-only model's encoder takes.
+
+        OWSM-CTC conditions its encoder on the prompt, so the language and
+        task symbols and the previous text are encoder inputs here, where an
+        encoder-decoder model takes them as the decoder's prefix.
+        """
+        lang_id = self.converter.token2id[lang_sym or self.lang_sym]
+        task_id = self.converter.token2id[task_sym or self.task_sym]
+
+        if text_prev is None:
+            # __call__ leaves it unset; the CTC models read "not available"
+            text_prev = "<na>"
+        if isinstance(text_prev, str):
+            text_prev = self.converter.tokens2ids(self.tokenizer.text2tokens(text_prev))
+        else:
+            text_prev = list(text_prev)
+        if self.s2t_model.na in text_prev:
+            text_prev = [self.s2t_model.na]
+
+        n_utt = speech.size(0)
+        prev = torch.tensor(text_prev, dtype=torch.long).repeat(n_utt, 1)
+        prefix = torch.tensor([[lang_id, task_id]], dtype=torch.long).repeat(n_utt, 1)
+        return to_device(
+            {
+                "speech": speech,
+                "speech_lengths": speech.new_full(
+                    [n_utt], dtype=torch.long, fill_value=speech.size(1)
+                ),
+                "text_prev": prev,
+                "text_prev_lengths": prev.new_full(
+                    [n_utt], dtype=torch.long, fill_value=prev.size(1)
+                ),
+                "prefix": prefix,
+                "prefix_lengths": prefix.new_full(
+                    [n_utt], dtype=torch.long, fill_value=prefix.size(1)
+                ),
+            },
+            device=self.device,
+        )
+
+    def _encode(self, speech, text_prev, lang_sym, task_sym):
+        """Encoder output for a batch of utterances, whichever model this is."""
+        if self.ctc_only:
+            batch = self._ctc_batch(speech, text_prev, lang_sym, task_sym)
+        else:
+            # the encoder-decoder model was trained on a fixed window, and
+            # __call__ pads or trims to it
+            speech = self._pad_or_trim(speech)
+            batch = to_device(
+                {
+                    "speech": speech,
+                    "speech_lengths": speech.new_full(
+                        [speech.size(0)], dtype=torch.long, fill_value=speech.size(1)
+                    ),
+                },
+                device=self.device,
+            )
+        enc, _ = self.s2t_model.encode(**batch)
+        intermediate_outs = None
+        if isinstance(enc, tuple):
+            enc, intermediate_outs = enc
+        return enc, intermediate_outs
+
+    def _collapse_ctc_path(self, enc: torch.Tensor) -> ListOfHypothesis:
+        """One utterance's frame-wise argmax, with repeats and blanks removed.
+
+        ctc.argmax is the CTC head's linear layer and an argmax over it: no
+        softmax, which would cost a pass over the vocabulary without changing
+        which symbol is largest.
+        """
+        token_int = self.s2t_model.ctc.argmax(enc.unsqueeze(0))[0]
+        token_int = torch.unique_consecutive(token_int).cpu().tolist()
+        token_int = [x for x in token_int if x != self.s2t_model.blank_id]
+        token = self.converter.ids2tokens(token_int)
+        # the language, task and timestamp symbols are the model's own, and
+        # are not part of what was said
+        token_nospecial = [x for x in token if not (x[0] == "<" and x[-1] == ">")]
+
+        if self.tokenizer is not None:
+            text = self.tokenizer.tokens2text(token)
+            text_nospecial = self.tokenizer.tokens2text(token_nospecial)
+        else:
+            text, text_nospecial = None, None
+        logging.info(f"best hypo: {text}")
+        # no Hypothesis: nothing was searched, so there is no score to report
+        return [(text, token, token_int, text_nospecial, None)]
+
+    @torch.no_grad()
+    def best_path(
+        self,
+        speech: Union[torch.Tensor, np.ndarray],
+        text_prev: Union[torch.Tensor, np.ndarray, str, List] = "<na>",
+        lang_sym: Optional[str] = None,
+        task_sym: Optional[str] = None,
+    ) -> ListOfHypothesis:
+        """Decode with the CTC head alone, no search.
+
+        The most likely symbol per frame with the repeats collapsed: best-path
+        decoding, also called greedy or argmax decoding. An order of magnitude
+        faster than a search, and worse, which is the trade - a first look, a
+        sanity check, a teaching example.
+
+        Nothing here is scored, so `lm_weight`, `ngram_weight`, `ctc_weight`
+        and `beam_size` do not apply: a language model can only join a search,
+        which is `__call__`. On an encoder-decoder checkpoint this reads the
+        CTC branch beside the decoder; on a CTC-only one it reads the only
+        head there is.
+
+        **A CTC branch answers what that branch was trained on, which is not
+        always what `task_sym` asks for.** POWSM's answers phones whether it
+        is asked for `<pr>` or `<asr>`: on espnet/powsm, best_path returns
+        the same phones for both, and only the decoder - `__call__` - reads
+        the task. A caller that must honour the task on an encoder-decoder
+        checkpoint should call the object instead, and pay for the search.
+        """
+        if isinstance(speech, np.ndarray):
+            speech = torch.tensor(speech)
+        if speech.dim() > 1:
+            raise ValueError(
+                f"speech of size {tuple(speech.shape)} is not one utterance; "
+                "use batch_decode for a batch"
+            )
+        speech = speech.unsqueeze(0).to(getattr(torch, self.dtype))
+        enc, intermediate_outs = self._encode(speech, text_prev, lang_sym, task_sym)
+        results = self._collapse_ctc_path(enc[0])
+        if intermediate_outs is not None and self.generate_interctc_outputs:
+            return results, self._decode_interctc(intermediate_outs)
+        return results
+
+    def decode_window(
+        self,
+        speech: Union[torch.Tensor, np.ndarray],
+        lang_sym: Optional[str] = None,
+        task_sym: Optional[str] = None,
+        text_prev: Union[torch.Tensor, np.ndarray, str, List] = "<na>",
+    ) -> str:
+        """One window of audio, decoded the way this checkpoint has to be.
+
+        A CTC-only checkpoint is read off its CTC head with no search, which
+        is an order of magnitude faster and loses nothing: that head is the
+        whole model. One with a decoder is called, because its CTC branch
+        answers what that branch was trained on rather than what `task_sym`
+        asks for - see `best_path`.
+
+        Here rather than in each front end: `espnet phonemize` and the
+        browser demo both had to know which kind of checkpoint they were
+        holding, and it is the checkpoint that knows.
+
+        Args:
+            speech: One window, no longer than the model's own.
+            lang_sym, task_sym: As for `best_path` and `__call__`.
+            text_prev: What the model is given to condition on, for a task
+                that has an input besides the audio. POWSM's `<g2p>` takes
+                the words that were said and answers with phones, and its
+                `<p2g>` takes phones and answers with words; `<asr>` and
+                `<pr>` take `<na>`, which is the default.
+
+        Returns:
+            The decoded text, with whatever symbols the model wrote.
+        """
+        decode = self.best_path if self.ctc_only else self.__call__
+        return decode(
+            speech, text_prev=text_prev, lang_sym=lang_sym, task_sym=task_sym
+        )[0][0]
+
     @torch.no_grad()
     @typechecked
     def __call__(
@@ -571,10 +927,17 @@ class Speech2Text:
             Optional[Dict[int, List[str]]],
         ],
     ]:
-        """Inference for a single utterance.
+        """Decode a single utterance with a beam search.
 
         The input speech will be padded or trimmed to the fixed length,
         which is consistent with training.
+
+        Which search is decided by the weights the object was built with,
+        and by whether the checkpoint has a decoder at all: see the class
+        docstring. A CTC-only checkpoint, or `ctc_weight=1.0`, means a CTC
+        prefix beam search - a search over label sequences, which is not
+        best-path decoding and is not made into it by `beam_size=1`.
+        :meth:`best_path` is best-path decoding, and is much faster.
 
         Args:
             speech: input speech of shape (nsamples,) or (nsamples, nchannels=1)
@@ -584,6 +947,25 @@ class Speech2Text:
             n-best list of (text, token, token_int, text_nospecial, hyp)
 
         """
+        if self.ctc_only:
+            # The prompt is an encoder input for a CTC-only model, not a
+            # decoder prefix, so there is no hyp primer to set and nothing to
+            # pad: the search still runs, over the CTC scorer alone.
+            if isinstance(speech, np.ndarray):
+                speech = torch.tensor(speech)
+            enc, intermediate_outs = self._encode(
+                speech.unsqueeze(0).to(getattr(torch, self.dtype)),
+                text_prev,
+                lang_sym,
+                task_sym,
+            )
+            results = self._decode_single_sample(enc[0])
+            # a CTC-only model always produces intermediate outputs, so unlike
+            # the encoder-decoder path it reports them only when asked; that is
+            # what the class this replaces did, and callers unpack accordingly
+            if intermediate_outs is not None and self.generate_interctc_outputs:
+                return results, self._decode_interctc(intermediate_outs)
+            return results
 
         self.beam_search.set_hyp_primer(
             self._build_hyp_primer(lang_sym, task_sym, predict_time, text_prev)
@@ -701,14 +1083,300 @@ class Speech2Text:
 
         return res
 
+    def read_audio(self, speech) -> np.ndarray:
+        """One channel of float audio at the rate the model was trained on.
+
+        Takes a path, an array or a tensor. Accepting a path is what lets
+        `decode_long` be the whole transcription API for a recording, rather
+        than something every caller wraps in file reading and resampling -
+        and it is public for the same reason: a caller that cuts a recording
+        up itself should not have to repeat the resampling, nor guess the
+        rate the checkpoint wants.
+        """
+        if isinstance(speech, (str, Path)):
+            import soundfile as sf
+
+            speech, rate = sf.read(str(speech), dtype="float32", always_2d=False)
+            if speech.ndim > 1:
+                speech = speech.mean(axis=1)
+            if self.sample_rate is not None and rate != self.sample_rate:
+                import librosa
+
+                speech = librosa.resample(
+                    speech, orig_sr=rate, target_sr=self.sample_rate
+                )
+            return speech
+        if isinstance(speech, torch.Tensor):
+            speech = speech.cpu().numpy()
+        speech = np.asarray(speech, dtype=np.float32)
+        if speech.ndim == 2 and speech.shape[1] == 1:
+            speech = speech[:, 0]
+        if speech.ndim != 1:
+            raise ValueError(f"speech of size {speech.shape} is not one recording")
+        return speech
+
+    @torch.no_grad()
+    def ctc_log_probs(
+        self,
+        speech: Union[str, Path, torch.Tensor, np.ndarray],
+        batch_size: int = 1,
+        context_len_in_secs: float = 2,
+        lang_sym: Optional[str] = None,
+        task_sym: Optional[str] = None,
+    ) -> np.ndarray:
+        """The CTC head's log posteriors for a recording, as (frames, vocab).
+
+        The model sees one training-length buffer at a time, with context on
+        either side that is encoded and then dropped, so the frames kept from
+        each buffer were never at its edge.
+
+        Long-form best-path decoding is an argmax over what this returns, and
+        a forced alignment (espnet2.bin.align) is a Viterbi path through it:
+        one buffering, read two ways.
+        """
+        speech = self.read_audio(speech)
+        lang_id = self.converter.token2id[lang_sym or self.lang_sym]
+        task_id = self.converter.token2id[task_sym or self.task_sym]
+
+        buffer_len_in_secs = self.preprocessor_conf["speech_length"]
+        chunk_len_in_secs = buffer_len_in_secs - 2 * context_len_in_secs
+        buffer_len = int(self.sample_rate * buffer_len_in_secs)
+        chunk_len = int(self.sample_rate * chunk_len_in_secs)
+        context = int(self.sample_rate * context_len_in_secs)
+
+        padded = np.pad(speech, (context, context))
+        buffers = []
+        for start in range(0, len(padded), chunk_len):
+            buffer = padded[start : start + buffer_len]
+            if len(buffer) < buffer_len:
+                buffers.append(np.pad(buffer, (0, buffer_len - len(buffer))))
+                break
+            buffers.append(buffer)
+
+        batched = torch.tensor(np.array(buffers)).to(getattr(torch, self.dtype))
+        buffer_frames = int(self.frames_per_sec * buffer_len_in_secs)
+        context_frames = int(self.frames_per_sec * context_len_in_secs)
+
+        kept = []
+        for idx in range(0, batched.size(0), batch_size):
+            window = batched[idx : idx + batch_size]
+            n = window.size(0)
+            prev = torch.tensor([self.s2t_model.na], dtype=torch.long).repeat(n, 1)
+            prefix = torch.tensor([lang_id, task_id], dtype=torch.long).repeat(n, 1)
+            batch = to_device(
+                {
+                    "speech": window,
+                    "speech_lengths": window.new_full(
+                        [n], dtype=torch.long, fill_value=window.size(1)
+                    ),
+                    "text_prev": prev,
+                    "text_prev_lengths": prev.new_full(
+                        [n], dtype=torch.long, fill_value=prev.size(1)
+                    ),
+                    "prefix": prefix,
+                    "prefix_lengths": prefix.new_full(
+                        [n], dtype=torch.long, fill_value=prefix.size(1)
+                    ),
+                },
+                device=self.device,
+            )
+            enc, _ = self.s2t_model.encode(**batch)
+            if isinstance(enc, tuple):
+                enc = enc[0]
+            # the convolutional front end can return more frames than the
+            # buffer itself, so the tail goes before the context does
+            enc = enc[:, :buffer_frames]
+            frames = self.s2t_model.ctc.log_softmax(enc)
+            kept.append(frames[:, context_frames:-context_frames])
+
+        # (buffers, frames, vocab) back into one run of frames, cut to the
+        # frames the recording itself covers rather than the padding
+        probs = torch.cat([k.reshape(-1, k.size(-1)) for k in kept])
+        wanted = int(round(len(speech) / self.sample_rate * self.frames_per_sec))
+        return probs[:wanted].cpu().numpy()
+
+    def _decode_long_ctc(
+        self,
+        speech: np.ndarray,
+        batch_size: int = 1,
+        context_len_in_secs: float = 2,
+        lang_sym: Optional[str] = None,
+        task_sym: Optional[str] = None,
+    ) -> str:
+        """Best-path decoding of a long recording: an argmax over the frames."""
+        probs = self.ctc_log_probs(
+            speech,
+            batch_size=batch_size,
+            context_len_in_secs=context_len_in_secs,
+            lang_sym=lang_sym,
+            task_sym=task_sym,
+        )
+        frames = torch.tensor(probs).argmax(dim=-1)
+        merged = torch.unique_consecutive(frames).tolist()
+        token_int = [x for x in merged if x != self.s2t_model.blank_id]
+        token = self.converter.ids2tokens(token_int)
+        token_nospecial = [x for x in token if not (x[0] == "<" and x[-1] == ">")]
+        return self.tokenizer.tokens2text(token_nospecial)
+
+    @torch.no_grad()
+    def decode_long(
+        self,
+        speech: Union[str, Path, torch.Tensor, np.ndarray],
+        batch_size: int = 1,
+        context_len_in_secs: float = 2,
+        condition_on_prev_text: bool = False,
+        init_text: Optional[str] = None,
+        end_time_threshold: Optional[str] = None,
+        lang_sym: Optional[str] = None,
+        task_sym: Optional[str] = None,
+        skip_last_chunk_threshold: float = 0.2,
+    ) -> List[Tuple[float, float, str]]:
+        """Decode one unsegmented recording of any length.
+
+        Takes a path, an array or a tensor, and returns a list of
+        `(start_time, end_time, text)`.
+
+        How the recording is cut up depends on the checkpoint, because the two
+        kinds of model were trained to be read differently. An encoder-decoder
+        model emits timestamps, is decoded segment by segment and optionally
+        conditioned on what it said before, and returns one entry per
+        utterance. A CTC-only model has no timestamps, so it is decoded in
+        overlapping buffers and returns a single entry covering the recording.
+
+        Args:
+            batch_size: buffers decoded together, on a CTC-only checkpoint.
+            context_len_in_secs: context decoded and then dropped on either
+                side of each buffer, on a CTC-only checkpoint.
+            condition_on_prev_text, init_text, end_time_threshold,
+                skip_last_chunk_threshold: the encoder-decoder path.
+                `end_time_threshold` defaults to one second before the end of
+                the model's own window, which is where it was hardcoded as
+                OWSM's `<29.00>` until a 20 s model asked for a token that
+                does not exist in its vocabulary.
+
+        """
+        speech = self.read_audio(speech)
+        if self.sample_rate is None:
+            raise RuntimeError(
+                "this config does not say what sample rate and hop length the "
+                "model was trained with, so a long recording cannot be lined "
+                "up with what it expects"
+            )
+        if self.ctc_only:
+            text = self._decode_long_ctc(
+                speech,
+                batch_size=batch_size,
+                context_len_in_secs=context_len_in_secs,
+                lang_sym=lang_sym,
+                task_sym=task_sym,
+            )
+            return [(0.0, len(speech) / self.sample_rate, text)]
+        return self._decode_long_attention(
+            speech,
+            condition_on_prev_text=condition_on_prev_text,
+            init_text=init_text,
+            end_time_threshold=end_time_threshold,
+            lang_sym=lang_sym,
+            task_sym=task_sym,
+            skip_last_chunk_threshold=skip_last_chunk_threshold,
+        )
+
+    def _time_ids(self) -> Tuple[int, int, float]:
+        """The first and last timestamp symbols, and the seconds between two.
+
+        The window is the source of truth - `speech_length`, which every
+        other part of this class already reads - and the timestamp symbols
+        are one model's way of writing positions inside it. So the step is
+        that window divided by the symbols that span it, and nothing here
+        parses a symbol's name or assumes a format for it.
+
+        Not `speech_resolution`: POWSM's config states 0.04 while its
+        vocabulary steps 0.02, and a timestamp read at twice its value points
+        past the end of the window it came from.
+
+        What this does assume, and checks rather than trusts, is that the
+        timestamps run one id a step from the start of the window to its end.
+        A model that changes its window, its step, or both changes both
+        numbers together and needs nothing here; a model that breaks the
+        assumption is told which of its own two statements disagree, rather
+        than quietly returning times that are a constant factor out.
+        """
+        first = self.converter.token2id[self.preprocessor_conf["first_time_symbol"]]
+        last = self.converter.token2id[self.preprocessor_conf["last_time_symbol"]]
+        if last <= first:
+            raise RuntimeError(
+                f"{self.preprocessor_conf['first_time_symbol']} and "
+                f"{self.preprocessor_conf['last_time_symbol']} are not in order "
+                f"in this vocabulary, so a position inside the window cannot "
+                f"be read from an id"
+            )
+        window = float(self.preprocessor_conf["speech_length"])
+        step = window / (last - first)
+
+        # When the symbols are named after the times they mark - both models
+        # in the wild are - the names have to agree with the window. This is
+        # a check on the config, not the contract: a checkpoint whose
+        # timestamps are named some other way skips it.
+        named = [
+            _stated_seconds(self.preprocessor_conf[key])
+            for key in ("first_time_symbol", "last_time_symbol")
+        ]
+        if all(t is not None for t in named):
+            spanned = named[1] - named[0]
+            if abs(spanned - window) > step:
+                raise RuntimeError(
+                    f"this config's timestamps span {spanned:g} s "
+                    f"({self.preprocessor_conf['first_time_symbol']} to "
+                    f"{self.preprocessor_conf['last_time_symbol']}) while its "
+                    f"speech_length says {window:g} s. One of the two is wrong, "
+                    f"and either would put every timestamp in the wrong place"
+                )
+        return first, last, step
+
+    def no_language(self) -> str:
+        """The symbol this checkpoint uses for "work the language out yourself".
+
+        Both POWSM checkpoints use `<unk>` and OWSM uses `<nolang>`, but
+        only some configs say so: POWSM-CTC records `nolang_symbol`, POWSM
+        does not, and POWSM has no `<nolang>` in its vocabulary at all, so a
+        guess turns into a KeyError several seconds after the model has
+        loaded. What the config says if it says anything, then either
+        spelling, each checked against the token list before it is offered.
+
+        Raises:
+            ValueError: the checkpoint has no such symbol, and the caller has
+                to name a language instead.
+        """
+        tokens = set(getattr(self.s2t_model, "token_list", None) or ())
+        named = (self.preprocessor_conf or {}).get("nolang_symbol")
+        for candidate in (named, "<nolang>", "<unk>"):
+            if candidate and (not tokens or candidate in tokens):
+                return str(candidate)
+        raise ValueError("this model has no symbol for an unknown language: name one")
+
+    def _near_window_end(self) -> int:
+        """The timestamp a second before the end of the model's own window.
+
+        An utterance whose end timestamp is past this one is taken to be cut
+        off by the window rather than finished, so the next segment starts
+        where it began. It used to be written out as OWSM's `<29.00>`, that
+        model's 30 s window minus a second; POWSM's window is 20 s and
+        `<29.00>` is not in its vocabulary at all, so the decode ended in a
+        KeyError rather than in a transcript.
+        """
+        first, last, step = self._time_ids()
+        # one second back, and never less than one step: a model whose steps
+        # are coarser than a second would otherwise have no threshold at all
+        return max(first, last - max(1, round(1.0 / step)))
+
     @torch.no_grad()
     @typechecked
-    def decode_long(
+    def _decode_long_attention(
         self,
         speech: Union[torch.Tensor, np.ndarray],
         condition_on_prev_text: bool = False,
         init_text: Optional[str] = None,
-        end_time_threshold: str = "<29.00>",
+        end_time_threshold: Optional[str] = None,
         lang_sym: Optional[str] = None,
         task_sym: Optional[str] = None,
         skip_last_chunk_threshold: float = 0.2,
@@ -720,7 +1388,8 @@ class Speech2Text:
             condition_on_prev_text (bool): whether to condition on previous text
             init_text: text used as condition for the first segment
             end_time_threshold: the last utterance is considered as incomplete
-                if its end timestamp exceeds this threshold
+                if its end timestamp exceeds this threshold. None means one
+                second before the end of the model's window.
 
         Returns:
             utterances: list of tuples of (start_time, end_time, text)
@@ -732,14 +1401,12 @@ class Speech2Text:
         segment_len = int(
             self.preprocessor_conf["speech_length"] * self.preprocessor_conf["fs"]
         )
-        end_time_id_threshold = self.converter.token2id[end_time_threshold]
-        first_time_id = self.converter.token2id[
-            self.preprocessor_conf["first_time_symbol"]
-        ]
-        last_time_id = self.converter.token2id[
-            self.preprocessor_conf["last_time_symbol"]
-        ]
-        resolution = self.preprocessor_conf["speech_resolution"]
+        first_time_id, last_time_id, resolution = self._time_ids()
+        end_time_id_threshold = (
+            self._near_window_end()
+            if end_time_threshold is None
+            else self.converter.token2id[end_time_threshold]
+        )
         fs = self.preprocessor_conf["fs"]
 
         if isinstance(speech, np.ndarray):
@@ -831,25 +1498,30 @@ class Speech2Text:
 
         return utterances
 
-    @staticmethod
+    @classmethod
     def from_pretrained(
+        cls,
         model_tag: Optional[str] = None,
         **kwargs: Optional[Any],
     ):
-        """Build Speech2Text instance from the pretrained model.
+        """Build an instance from a published model.
+
+        A classmethod rather than a staticmethod so that a subclass gets an
+        instance of itself: naming the class here returned the base class for
+        anything that inherited this.
 
         Args:
             model_tag (Optional[str]): Model tag of the pretrained models.
                 Currently, the tags of espnet_model_zoo are supported.
 
         Returns:
-            Speech2Text: Speech2Text instance.
+            Speech2Text: an instance of the class this was called on.
 
         """
         if model_tag is not None:
             kwargs.update(download_pretrained(model_tag))
 
-        return Speech2Text(**kwargs)
+        return cls(**kwargs)
 
 
 @typechecked
