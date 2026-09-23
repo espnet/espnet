@@ -13,7 +13,7 @@ gen_dummy_coverage(){
     ${python} empty.py
 }
 
-python3 -m pip install -e '.[asr,cls]'
+python3 -m pip install -e '.[asr]'
 
 cd ./egs3/mini_an4/asr || exit
 gen_dummy_coverage
@@ -50,6 +50,8 @@ run_with_training_config \
     conf/inference_transducer.yaml
 
 cd "${cwd}" || exit
+
+python3 -m pip install -e '.[cls]'
 
 cd ./egs3/mini_an4/esp2_cls || exit
 gen_dummy_coverage

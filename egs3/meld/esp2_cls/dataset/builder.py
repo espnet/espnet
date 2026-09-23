@@ -190,18 +190,18 @@ def _move_first_existing(candidates: list[Path], target: Path) -> None:
     )
 
 
-def _build_source_layout(staging: Path, archive: Path) -> None:
-    """Extract the archive under ``staging`` in the layout this recipe expects.
+def _build_source_layout(staging_dir: Path, archive: Path) -> None:
+    """Extract the archive under ``staging_dir`` in the layout this recipe expects.
 
     The distributed archive nests one tar per split and names the splits
     differently from the annotation CSVs, so the entries are renamed to
     ``<audio_subdir>/{train,valid,test}`` and the CSVs are collected under
     ``<metadata_subdir>/``.
     """
-    raw_dir = staging / "MELD.Raw"
-    extract_targz(archive, staging, logger=logger)
+    raw_dir = staging_dir / "MELD.Raw"
+    extract_targz(archive, staging_dir, logger=logger)
 
-    audio_dir = staging / _CFG["audio_subdir"]
+    audio_dir = staging_dir / _CFG["audio_subdir"]
     audio_dir.mkdir(parents=True, exist_ok=True)
     split_archives = (
         ("dev.tar.gz", "dev_splits_complete", "valid"),
@@ -209,13 +209,13 @@ def _build_source_layout(staging: Path, archive: Path) -> None:
         ("train.tar.gz", "train_splits", "train"),
     )
     for archive_name, extracted_name, split in split_archives:
-        extract_targz(raw_dir / archive_name, staging, logger=logger)
+        extract_targz(raw_dir / archive_name, staging_dir, logger=logger)
         _move_first_existing(
-            [staging / extracted_name, raw_dir / extracted_name],
+            [staging_dir / extracted_name, raw_dir / extracted_name],
             audio_dir / split,
         )
 
-    metadata_dir = staging / _CFG["metadata_subdir"]
+    metadata_dir = staging_dir / _CFG["metadata_subdir"]
     metadata_dir.mkdir(parents=True, exist_ok=True)
     csv_moves = (
         ("test_sent_emo.csv", "test_sent_emo.csv"),
@@ -224,13 +224,13 @@ def _build_source_layout(staging: Path, archive: Path) -> None:
     )
     for original_name, target_name in csv_moves:
         _move_first_existing(
-            [raw_dir / original_name, staging / original_name],
+            [raw_dir / original_name, staging_dir / original_name],
             metadata_dir / target_name,
         )
 
     readme = raw_dir / "README.txt"
     if readme.exists():
-        readme.rename(staging / "README.txt")
+        readme.rename(staging_dir / "README.txt")
 
 
 def _unpack_archive(source_root: Path, archive: Path) -> None:
@@ -240,22 +240,22 @@ def _unpack_archive(source_root: Path, archive: Path) -> None:
     once it is complete, so an interrupted unpack leaves the source root
     untouched and the next run can simply start over.
     """
-    staging = source_root / STAGING_DIRNAME
+    staging_dir = source_root / STAGING_DIRNAME
     # Discard whatever a previous run left behind, so the moves below always
     # find their targets in a known state.
-    shutil.rmtree(staging, ignore_errors=True)
-    staging.mkdir(parents=True)
+    shutil.rmtree(staging_dir, ignore_errors=True)
+    staging_dir.mkdir(parents=True)
     try:
-        _build_source_layout(staging, archive)
+        _build_source_layout(staging_dir, archive)
         for name in (_CFG["audio_subdir"], _CFG["metadata_subdir"]):
             target = source_root / str(name)
             shutil.rmtree(target, ignore_errors=True)
-            (staging / str(name)).rename(target)
-        readme = staging / "README.txt"
+            (staging_dir / str(name)).rename(target)
+        readme = staging_dir / "README.txt"
         if readme.exists():
             readme.replace(source_root / "README.txt")
     finally:
-        shutil.rmtree(staging, ignore_errors=True)
+        shutil.rmtree(staging_dir, ignore_errors=True)
 
     if _CFG.get("remove_archive", False):
         archive.unlink(missing_ok=True)
