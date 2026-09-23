@@ -69,7 +69,10 @@ def _create_module_path_dataset(tmp_path: Path) -> str:
 
 
 def test_resolve_dataset_module_name_supports_task_scoped_dataset_names():
-    assert dm.resolve_dataset_module_name("mini_an4/esp2_asr") == "egs3.mini_an4.esp2_asr.dataset"
+    assert (
+        dm.resolve_dataset_module_name("mini_an4/esp2_asr")
+        == "egs3.mini_an4.esp2_asr.dataset"
+    )
 
 
 def test_load_dataset_module_accepts_full_module_path():
