@@ -16,7 +16,7 @@ Use this section for those three topics.
     href="./custom-dataset.html"
   />
   <DocCard
-    title="Customize the model"
+    title="Custom model"
     desc="Use `src/model.py`, keep or replace old weights, and switch from the task bridge when needed."
     icon="tabler:puzzle"
     href="./custom-model.html"
@@ -28,7 +28,7 @@ Use this section for those three topics.
     href="../../contributing/adding-a-stage.html"
   />
   <DocCard
-    title="Customize the training loop"
+    title="Custom training loop"
     desc="Use recipe-local LightningModule, trainer, or System code when the default loop is not enough."
     icon="tabler:settings-cog"
     href="./training-loop.html"

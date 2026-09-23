@@ -83,13 +83,13 @@ ESPnet3 lets you split that work across:
     href="../finetuning/custom-dataset.html"
   />
   <DocCard
-    title="Customize the model"
+    title="Custom model"
     desc="See how to wire a custom model and custom training logic."
     icon="tabler:puzzle"
     href="../finetuning/custom-model.html"
   />
   <DocCard
-    title="Customize the training loop"
+    title="Custom training loop"
     desc="See when to use recipe-local LightningModule or trainer wrappers."
     icon="tabler:settings-cog"
     href="../finetuning/training-loop.html"

@@ -90,7 +90,7 @@ Move code into `espnet3/` only when it is reusable across recipes.
     href="../finetuning/custom-dataset.html"
   />
   <DocCard
-    title="Customize the model"
+    title="Custom model"
     desc="See how to use `src/model.py` and switch away from the task bridge when needed."
     icon="tabler:puzzle"
     href="../finetuning/custom-model.html"

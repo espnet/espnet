@@ -26,41 +26,14 @@ the right choice.
 
 ## Dynamic batching with batch_bins
 
-Fixed batch sizes waste GPU memory because sequences vary in length.
-`batch_bins` packs samples until the total frame count hits a target, giving
-roughly equal compute per batch regardless of sequence length.
+Use the interactive [Dataloader and Collate](../../core/components/dataloader.html) reference to explore the iterator and batch-sampler settings. Configure parallel `collect_stats` work through [Parallel config](../../core/parallel/provider_runner.html#parallel-config).
 
-```yaml
-dataloader:
-  train:
-    iter_factory:
-      _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
-      shuffle: true
-      collate_fn: ${dataloader.collate_fn}
-      batches:
-        type: unsorted
-        shape_files:
-          - ${stats_dir}/train/feats_shape
-        batch_bins: 4000000
-```
-
-`batch_bins` is measured in frames (or tokens, depending on the feature type).
-`shape_files` must point to the output of `collect_stats`, which writes
-per-utterance frame counts to `${stats_dir}/train/feats_shape`.
-
-**Choosing batch_bins:**
-
-A rough starting point is to divide your target GPU memory budget by the
-memory cost of one frame.
-For 40 GB GPUs training on 80-dimensional filterbanks:
-
-- `batch_bins: 2000000` → conservative, leaves room for long sequences
-- `batch_bins: 4000000` → typical
-- `batch_bins: 8000000` → aggressive; monitor for OOM on long-tail sequences
-
-Increase `batch_bins` as long as GPU utilization rises without OOM errors.
-Long-tail sequences set the effective ceiling — if one utterance is unusually
-long, the batch it lands in may have only one sample.
+- `batch_bins` groups variable-length samples until their total frame or token
+  count reaches the target. `shape_files` must point to the `feats_shape` output
+  from `collect_stats`.
+- Start with a value that fits your GPU, then increase it while utilization rises
+  without out-of-memory errors. Very long utterances can still form one-sample
+  batches.
 
 ## Sharding for multi-GPU and multi-node
 

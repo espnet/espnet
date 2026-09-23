@@ -39,6 +39,8 @@ synchronization across nodes.
 
 ## Choosing a strategy
 
+Choose `trainer.strategy` from the [Lightning strategy reference](https://pytorch-lightning.readthedocs.io/en/1.6.5/extensions/strategy.html).
+
 | Strategy | When to use |
 | --- | --- |
 | `ddp` | Default. Gradients are all-reduced across all ranks. Works for most models. |

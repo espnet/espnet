@@ -83,7 +83,7 @@ you port.
     href="../finetuning/custom-dataset.html"
   />
   <DocCard
-    title="Customize the training loop"
+    title="Custom training loop"
     desc="See when to replace the default LightningModule or trainer wrapper."
     icon="tabler:settings-cog"
     href="../finetuning/training-loop.html"

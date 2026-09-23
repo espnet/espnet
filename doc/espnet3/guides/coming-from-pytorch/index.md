@@ -32,7 +32,7 @@ Use these pages to map the usual PyTorch questions:
     href="./logging-and-debug.html"
   />
   <DocCard
-    title="Customize the training loop"
+    title="Custom training loop"
     desc="Move to recipe-local LightningModule, trainer, or System code when the default loop is not enough."
     icon="tabler:settings-cog"
     href="../finetuning/training-loop.html"

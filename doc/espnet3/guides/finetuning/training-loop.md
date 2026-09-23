@@ -1,4 +1,4 @@
-# Customize the training loop
+# Custom training loop
 
 ESPnet3 training uses PyTorch Lightning.
 For many recipes, `training.yaml` is enough.
@@ -144,7 +144,7 @@ For example, a GAN helper that only one recipe uses can stay recipe-local.
 
 <DocCards :cols="3">
   <DocCard
-    title="Customize the model"
+    title="Custom model"
     desc="See when `src/model.py` is enough and when you also need loop changes."
     icon="tabler:puzzle"
     href="./custom-model.html"

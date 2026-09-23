@@ -1,4 +1,4 @@
-# Customize the model
+# Custom model
 
 If you want to change the model more seriously, the practical ESPnet3 pattern
 is usually:
