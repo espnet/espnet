@@ -363,3 +363,160 @@ def test_parallel_shards_streaming_with_base_runner(test_audio_paths, tmp_path):
     assert len(merged) == len(indices)
     for obj in merged:
         _assert_stft_json(obj)
+
+
+# ---------------------------------------------------------------------------
+# parallel#16: the two tests above (tightened for tq-B#03) already cover
+# real multi-shard dispatch via a genuine dask LocalCluster and a real
+# espnet3.systems.base.inference_provider.InferenceProvider subclass
+# (STFTProvider) being pickled to workers. The gap still open is merge
+# order: BaseRunner.merge() must return items in original shard order
+# even when shards finish out of order, and a failing shard's lock must
+# still be released when using this file's real InferenceProvider-based
+# runner/provider pair (tq-B#01 only covered this with a toy BaseRunner).
+#
+# Per shared_fixture_policy, this duplicates a small local dask config
+# instead of importing test_base_runner_batch.py's fixture.
+# ---------------------------------------------------------------------------
+
+
+class _OrderRecordingProvider(InferenceProvider):
+    """Real InferenceProvider subclass, picklable for real Dask dispatch."""
+
+    @staticmethod
+    def build_dataset(cfg: DictConfig):
+        return list(range(cfg.n_items))
+
+    @staticmethod
+    def build_model(cfg: DictConfig):
+        return {}
+
+
+class _SlowFirstShardRunner(BaseRunner):
+    """Runner where shard 0 sleeps, so shard 1 finishes first -- merge()
+    must still return items in original index order, not completion order."""
+
+    @staticmethod
+    def forward(idx: int, *, dataset, model, **env) -> int:
+        import time
+
+        if idx < 2:
+            time.sleep(0.5)
+        return dataset[idx]
+
+    @staticmethod
+    def open_writers(shard_dir, **env):
+        return {"path": shard_dir / "records.txt", "records": []}
+
+    @staticmethod
+    def write_record(writers, result, state, **env):
+        writers["records"].append(str(result))
+
+    @staticmethod
+    def close_writers(writers, state, **env):
+        writers["path"].write_text(
+            "\n".join(writers["records"]) + "\n", encoding="utf-8"
+        )
+        return None
+
+    def merge(self, shard_dirs):
+        outputs = []
+        for shard_dir in shard_dirs:
+            for line in (
+                (shard_dir / "records.txt").read_text(encoding="utf-8").splitlines()
+            ):
+                outputs.append(int(line))
+        return outputs
+
+
+@pytest.mark.execution_timeout(30)
+def test_run_parallel_dask_merge_preserves_shard_order(tmp_path):
+    """merge() must read shards in shard_id order regardless of which
+    shard's Dask future actually completes first."""
+    from espnet3.parallel.parallel import set_parallel
+
+    set_parallel(
+        OmegaConf.create(
+            {
+                "env": "local",
+                "n_workers": 2,
+                "options": {"threads_per_worker": 1, "processes": True},
+            }
+        )
+    )
+
+    cfg = OmegaConf.create({"n_items": 4})
+    provider = _OrderRecordingProvider(cfg, params={})
+    runner = _SlowFirstShardRunner(
+        provider,
+        output_dir=tmp_path,
+        shard_subdir="order",
+    )
+
+    result = runner(range(4))
+
+    # Shard 0 (items 0,1) sleeps and finishes after shard 1 (items 2,3),
+    # but the merged output must still be in original index order.
+    assert result == [0, 1, 2, 3]
+
+
+class _LockCheckFailingRunner(BaseRunner):
+    """Real-InferenceProvider-driven runner whose forward() raises for one
+    item, to check lock release on a genuine Dask-dispatched failure."""
+
+    @staticmethod
+    def forward(idx: int, *, dataset, model, **env) -> int:
+        if idx == 2:
+            raise RuntimeError("inference worker boom")
+        return dataset[idx]
+
+    @staticmethod
+    def open_writers(shard_dir, **env):
+        return {"path": shard_dir / "records.txt", "records": []}
+
+    @staticmethod
+    def write_record(writers, result, state, **env):
+        writers["records"].append(str(result))
+
+    @staticmethod
+    def close_writers(writers, state, **env):
+        writers["path"].write_text(
+            "\n".join(writers["records"]) + "\n", encoding="utf-8"
+        )
+        return None
+
+    def merge(self, shard_dirs):
+        return None
+
+
+@pytest.mark.execution_timeout(30)
+def test_run_parallel_dask_releases_lock_for_real_inference_provider(tmp_path):
+    """A worker exception with a real InferenceProvider must still release
+    the failing shard's lock (not just with the toy BaseRunner in
+    test_base_runner_batch.py)."""
+    from espnet3.parallel.parallel import set_parallel
+
+    set_parallel(
+        OmegaConf.create(
+            {
+                "env": "local",
+                "n_workers": 2,
+                "options": {"threads_per_worker": 1, "processes": True},
+            }
+        )
+    )
+
+    cfg = OmegaConf.create({"n_items": 4})
+    provider = _OrderRecordingProvider(cfg, params={})
+    runner = _LockCheckFailingRunner(
+        provider,
+        output_dir=tmp_path,
+        shard_subdir="lock_check",
+        resume=False,
+    )
+
+    with pytest.raises(RuntimeError, match="inference worker boom"):
+        runner(range(4))
+
+    lock_paths = list((tmp_path / "lock_check").glob("split.*/lock"))
+    assert lock_paths == []
