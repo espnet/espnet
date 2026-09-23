@@ -152,16 +152,17 @@ class UtteranceGroupCpWER(BaseMetric):
         ref_key: Alias of the reference SCP input.
         hyp_key: Alias of the hypothesis SCP input.
         clean_types: TextCleaner pipeline.
-        speaker_change_symbol: The symbol the model separates speakers with.
-            It belongs to the checkpoint, so it has no useful default here.
+        speaker_change_symbol: The symbol the model separates speakers
+            with. Required: it belongs to the checkpoint, and the wrong one
+            would leave every group as a single block instead of failing.
     """
 
     def __init__(
         self,
+        speaker_change_symbol: str,
         ref_key: str = "ref",
         hyp_key: str = "hyp",
-        clean_types=("whisper_en",),
-        speaker_change_symbol: str = "????",
+        clean_types=None,
     ) -> None:
         self.ref_key = ref_key
         self.hyp_key = hyp_key

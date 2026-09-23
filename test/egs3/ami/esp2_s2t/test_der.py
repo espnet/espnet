@@ -108,7 +108,7 @@ def test_call_warns_once_when_a_reference_group_has_no_segments(tmp_path, caplog
     )
     md = _fake_md_eval(tmp_path, _DER_LINE + "exit 0\n")
     with caplog.at_level(logging.WARNING):
-        result = der_mod.UtteranceGroupDER(md_eval=md)(
+        result = der_mod.UtteranceGroupDER(SEP, md_eval=md)(
             {"ref": ref, "hyp": hyp}, "test", tmp_path
         )
     assert result["ug_DER"] == 12.34
@@ -122,7 +122,7 @@ def test_call_does_not_warn_when_every_reference_group_has_segments(tmp_path, ca
     hyp.write_text("u1 <|0.00|> hello<|1.20|>\n", encoding="utf-8")
     md = _fake_md_eval(tmp_path, _DER_LINE + "exit 0\n")
     with caplog.at_level(logging.WARNING):
-        der_mod.UtteranceGroupDER(md_eval=md)(
+        der_mod.UtteranceGroupDER(SEP, md_eval=md)(
             {"ref": ref, "hyp": hyp}, "test", tmp_path
         )
     assert "had no reference segments" not in caplog.text
@@ -191,7 +191,9 @@ def test_der_reproduces_the_recorded_full_test_set_score(tmp_path):
         _as_configured(_RECORDED_TEXT_SOT.read_text(encoding="utf-8")),
         encoding="utf-8",
     )
-    result = der_mod.UtteranceGroupDER()({"ref": ref, "hyp": hyp}, "test", tmp_path)
+    result = der_mod.UtteranceGroupDER(SEP, clean_types=["whisper_en"])(
+        {"ref": ref, "hyp": hyp}, "test", tmp_path
+    )
     assert result["ug_DER"] == 8.57
 
 

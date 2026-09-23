@@ -47,9 +47,7 @@ def segments_from_sot(
     pair is dropped, and so is an unpaired trailing timestamp, which a
     decode produces when the model opens a segment and reaches its length
     limit before closing it. That tolerance is aimed at hypotheses, not
-    references: across the AMI test set the reference carries no unpaired
-    timestamp in any of its 9319 blocks, while the recorded decode carries
-    one.
+    references, which a prepared corpus does not produce.
     """
     text = text.replace(speaker_change_symbol, _SEP)
     segments = []
@@ -68,7 +66,7 @@ def write_rttm(rows: List[Tuple[str, int, float, float]], path) -> None:
     Field order matches SCTK's md-eval.pl expectation:
     ``SPEAKER <file> <channel> <start> <duration> <NA> <NA> <speaker> <NA>
     <NA>``. Each ``utt_id`` is scored by md-eval.pl as its own "file"
-    (recording), so every AMI utterance group becomes an independent
+    (recording), so every utterance group becomes an independent
     diarization instance.
     """
     with Path(path).open("w", encoding="utf-8") as f:
@@ -139,8 +137,8 @@ def run_md_eval(md_eval: str, ref_rttm: str, hyp_rttm: str, collar: float) -> fl
 
     Raises:
         SystemExit: When md-eval.pl exits non-zero, or prints no overall
-            line. Both are loud on purpose: a silently wrong DER is the
-            failure mode this recipe has already been bitten by.
+            line. Both are loud on purpose, because a silently wrong DER
+            looks like a result.
     """
     proc = subprocess.run(
         [md_eval, "-c", str(collar), "-r", ref_rttm, "-s", hyp_rttm],
@@ -175,18 +173,19 @@ class UtteranceGroupDER(BaseMetric):
         clean_types: TextCleaner pipeline used only to count reference
             speakers for the by-speaker-count breakdown, so that breakdown
             covers the same groups as cpWER's.
-        speaker_change_symbol: The symbol the model separates speakers with.
-            It belongs to the checkpoint, so it has no useful default here.
+        speaker_change_symbol: The symbol the model separates speakers
+            with. Required: it belongs to the checkpoint, and the wrong one
+            would leave every group as a single block instead of failing.
     """
 
     def __init__(
         self,
+        speaker_change_symbol: str,
         ref_key: str = "ref",
         hyp_key: str = "hyp",
         collar: float = 0.25,
         md_eval: str = None,
-        clean_types=("whisper_en",),
-        speaker_change_symbol: str = "????",
+        clean_types=None,
     ) -> None:
         self.ref_key = ref_key
         self.hyp_key = hyp_key
@@ -201,8 +200,8 @@ class UtteranceGroupDER(BaseMetric):
         Args:
             data: Alias to path mapping. Needs ``self.ref_key`` and
                 ``self.hyp_key``, both SCP files with matching utterance ids
-                in the same order, carrying SOT text with inline timestamps
-                (``hyp_sot``/``ref_sot`` in this recipe's config).
+                in the same order, carrying SOT text with inline
+                timestamps.
             test_name: Test set name, used for the side-file directory.
             output_dir: Root the side files are written under.
 

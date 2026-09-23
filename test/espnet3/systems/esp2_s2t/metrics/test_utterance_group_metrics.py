@@ -50,7 +50,7 @@ def test_cpwer_reports_the_utterance_group_key(tmp_path):
     ref, hyp = tmp_path / "ref.scp", tmp_path / "hyp.scp"
     ref.write_text("u1 the cat sat ???? a dog barked\n", encoding="utf-8")
     hyp.write_text("u1 a dog barked ???? the cat sat\n", encoding="utf-8")
-    result = UtteranceGroupCpWER(clean_types=None)(
+    result = UtteranceGroupCpWER("????", clean_types=None)(
         {"ref": ref, "hyp": hyp}, "test", tmp_path
     )
     assert result == {"ug_cpWER": 0.0}
@@ -63,7 +63,7 @@ def test_der_reports_the_utterance_group_key(tmp_path):
     line = "u1 <|0.00|> a<|1.00|> ???? <|2.00|> b<|3.00|>\n"
     ref.write_text(line, encoding="utf-8")
     hyp.write_text(line, encoding="utf-8")
-    metric = UtteranceGroupDER(clean_types=None)
+    metric = UtteranceGroupDER("????", clean_types=None)
     try:
         result = metric({"ref": ref, "hyp": hyp}, "test", tmp_path)
     except FileNotFoundError:
@@ -71,7 +71,13 @@ def test_der_reports_the_utterance_group_key(tmp_path):
     assert set(result) == {"ug_DER"}
 
 
-def test_the_default_symbol_is_the_one_the_released_checkpoint_uses():
-    """Four question marks, one Whisper BPE token."""
-    assert UtteranceGroupCpWER().speaker_change_symbol == "????"
-    assert UtteranceGroupDER().speaker_change_symbol == "????"
+def test_the_symbol_has_no_default():
+    """A wrong symbol scores badly rather than failing, so it must be given.
+
+    Left to a default, a checkpoint that separates speakers some other way
+    would score every group as one block and report a plausible number.
+    """
+    with pytest.raises(TypeError, match="speaker_change_symbol"):
+        UtteranceGroupCpWER()
+    with pytest.raises(TypeError, match="speaker_change_symbol"):
+        UtteranceGroupDER()

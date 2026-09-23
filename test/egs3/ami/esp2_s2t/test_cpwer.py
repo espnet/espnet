@@ -49,7 +49,7 @@ def test_metric_scores_two_aligned_scp_files(tmp_path):
     sep = SEP
     ref.write_text(f"u1 the cat sat {sep} a dog barked\n", encoding="utf-8")
     hyp.write_text(f"u1 a dog barked {sep} the cat sat\n", encoding="utf-8")
-    metric = cp.UtteranceGroupCpWER(clean_types=None)
+    metric = cp.UtteranceGroupCpWER(SEP, clean_types=None)
     result = metric({"ref": ref, "hyp": hyp}, "test", tmp_path)
     assert result == {"ug_cpWER": 0.0}
 
@@ -60,7 +60,9 @@ def test_metric_writes_a_by_speaker_count_side_file(tmp_path):
     sep = SEP
     ref.write_text(f"u1 the cat sat {sep} a dog barked\n", encoding="utf-8")
     hyp.write_text(f"u1 the cat sat {sep} a dog barked\n", encoding="utf-8")
-    cp.UtteranceGroupCpWER(clean_types=None)({"ref": ref, "hyp": hyp}, "test", tmp_path)
+    cp.UtteranceGroupCpWER(SEP, clean_types=None)(
+        {"ref": ref, "hyp": hyp}, "test", tmp_path
+    )
     assert (tmp_path / "test" / "cpwer_by_num_speakers.json").is_file()
 
 
@@ -76,7 +78,7 @@ def test_metric_raises_when_every_reference_is_empty(tmp_path):
     hyp = tmp_path / "hyp.scp"
     ref.write_text("u1\nu2\n", encoding="utf-8")
     hyp.write_text("u1 some words\nu2 more words\n", encoding="utf-8")
-    metric = cp.UtteranceGroupCpWER(clean_types=None)
+    metric = cp.UtteranceGroupCpWER(SEP, clean_types=None)
     with pytest.raises(ValueError, match="empty"):
         metric({"ref": ref, "hyp": hyp}, "test", tmp_path)
 
@@ -95,7 +97,9 @@ def test_by_speaker_count_file_reports_null_not_zero_for_empty_references(
     hyp = tmp_path / "hyp.scp"
     ref.write_text("u1\nu2 the cat sat\n", encoding="utf-8")
     hyp.write_text("u1 spurious words\nu2 the cat sat\n", encoding="utf-8")
-    cp.UtteranceGroupCpWER(clean_types=None)({"ref": ref, "hyp": hyp}, "test", tmp_path)
+    cp.UtteranceGroupCpWER(SEP, clean_types=None)(
+        {"ref": ref, "hyp": hyp}, "test", tmp_path
+    )
     by_nspk = json.loads(
         (tmp_path / "test" / "cpwer_by_num_speakers.json").read_text(encoding="utf-8")
     )
@@ -142,7 +146,9 @@ def test_cpwer_reproduces_the_recorded_full_test_set_score(tmp_path):
     hyp.write_text(
         _as_configured(_RECORDED_TEXT.read_text(encoding="utf-8")), encoding="utf-8"
     )
-    result = cp.UtteranceGroupCpWER()({"ref": ref, "hyp": hyp}, "test", tmp_path)
+    result = cp.UtteranceGroupCpWER(SEP, clean_types=["whisper_en"])(
+        {"ref": ref, "hyp": hyp}, "test", tmp_path
+    )
     assert result["ug_cpWER"] == 27.65
 
 
