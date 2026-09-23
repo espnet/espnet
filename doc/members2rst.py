@@ -30,7 +30,10 @@ def top_level_functions(body):
 
 
 def top_level_classes(body):
-    return (f for f in body if isinstance(f, ast.ClassDef))
+    # VuePress strips leading underscores from page URLs; document public API only.
+    return (
+        f for f in body if isinstance(f, ast.ClassDef) and not f.name.startswith("_")
+    )
 
 
 def parse_ast(filename):
