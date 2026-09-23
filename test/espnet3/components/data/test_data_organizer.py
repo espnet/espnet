@@ -969,6 +969,21 @@ def test_combined_dataset_sharded_metadata_mismatch():
         )
 
 
+def test_combined_dataset_repr_is_callable():
+    # [data-organizer#25] repr() used to raise AttributeError via a stray
+    # self.multiple_iterator reference that is never set in __init__.
+    ds1 = DummyDataset()
+    ds2 = DummyDataset()
+    combined = CombinedDataset(
+        [ds1, ds2],
+        [(DummyTransform(), do_nothing), (DummyTransform(), do_nothing)],
+    )
+    text = repr(combined)
+    assert "CombinedDataset(" in text
+    assert "total_len=4" in text
+    assert "multiple_iterator" not in text
+
+
 # -----------------------------------------------------------------------
 # ESPnet preprocessor train-flag auto-setting
 # -----------------------------------------------------------------------
