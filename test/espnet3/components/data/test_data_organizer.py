@@ -10,6 +10,7 @@ from espnet2.train.preprocessor import AbsPreprocessor
 from espnet3.components.data import data_organizer as data_organizer_module
 from espnet3.components.data.data_organizer import (
     DataOrganizer,
+    DatasetConfig,
     do_nothing,
 )
 from espnet3.components.data.dataset import (
@@ -17,6 +18,7 @@ from espnet3.components.data.dataset import (
     DatasetWithTransform,
     ShardedDataset,
 )
+from espnet3.components.data.dataset_module import parse_dataset_reference_config
 
 # ===============================================================
 # Test Case Summary for DataOrganizer & CombinedDataset
@@ -982,6 +984,20 @@ def test_combined_dataset_repr_is_callable():
     assert "CombinedDataset(" in text
     assert "total_len=4" in text
     assert "multiple_iterator" not in text
+
+
+def test_parse_dataset_reference_config_accepts_dataset_config_instance():
+    # [data-organizer#27] a real (non-dict, non-DictConfig) DatasetConfig
+    # instance used to raise "TypeError: 'DatasetConfig' object is not
+    # iterable" inside dataset_module._to_plain_dict's dict(config) fallback.
+    config = DatasetConfig(
+        name="train_dummy",
+        data_src="mini_an4/asr",
+        data_src_args={"split": "train"},
+    )
+    data_src, data_src_args = parse_dataset_reference_config(config)
+    assert data_src == "mini_an4/asr"
+    assert data_src_args == {"split": "train"}
 
 
 # -----------------------------------------------------------------------
