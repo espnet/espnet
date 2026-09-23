@@ -47,7 +47,7 @@ ASR:
           - "egs2/*/sot_asr1/**"
           - "egs2/*/diar_asr1/**"
           - "egs2/*/enh_asr1/**"
-          - "egs3/*/asr/**"
+          - "egs3/*/esp2_asr/**"
 
 RNNT:
   - changed-files:

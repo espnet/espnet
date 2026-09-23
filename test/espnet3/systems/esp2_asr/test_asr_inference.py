@@ -54,7 +54,7 @@ def test_build_dataset_uses_test_set(monkeypatch):
                 "test": [
                     {
                         "name": "dev",
-                        "data_src": "mini_an4/asr",
+                        "data_src": "mini_an4/esp2_asr",
                         "data_src_args": {"split": "dev"},
                     }
                 ],
@@ -335,7 +335,7 @@ def test_template_build_output_handles_a_batch(tmp_path):
     import importlib.util
     from pathlib import Path
 
-    src = Path(__file__).resolve().parents[4] / "egs3/TEMPLATE/asr/src/inference.py"
+    src = Path(__file__).resolve().parents[4] / "egs3/TEMPLATE/esp2_asr/src/inference.py"
     spec = importlib.util.spec_from_file_location("template_inference", src)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
