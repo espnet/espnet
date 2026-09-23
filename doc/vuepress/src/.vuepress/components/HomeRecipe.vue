@@ -171,8 +171,8 @@ const guides = [
     iconColor: '#b06a00',
     links: [
       { label: 'Custom dataset',           href: './guides/finetuning/custom-dataset.html' },
-      { label: 'Customize the model',      href: './guides/finetuning/custom-model.html' },
-      { label: 'Customize training loop',  href: './guides/finetuning/training-loop.html' },
+      { label: 'Custom model',                href: './guides/finetuning/custom-model.html' },
+      { label: 'Custom training loop',        href: './guides/finetuning/training-loop.html' },
     ],
   },
   {
