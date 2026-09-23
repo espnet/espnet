@@ -1,4 +1,4 @@
-"""Tests for the SOT text builder in egs3/ami/s2t/dataset/sot_text.py.
+"""Tests for the SOT text builder in egs3/ami/esp2_s2t/dataset/sot_text.py.
 
 These tests use lightweight supervision stubs rather than lhotse objects, so they stay
 inside the suite's 2 s per-test budget and need no corpus.
@@ -11,7 +11,7 @@ from pathlib import Path
 import pytest
 
 _REPO = Path(__file__).resolve().parents[4]
-_RECIPE = _REPO / "egs3" / "ami" / "s2t"
+_RECIPE = _REPO / "egs3" / "ami" / "esp2_s2t"
 
 
 def _load():

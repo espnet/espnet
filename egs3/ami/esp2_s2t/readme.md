@@ -3,7 +3,8 @@
 Serialized Output Training (SOT) multi-talker ASR on AMI SDM, with Whisper
 small under `espnet2.tasks.s2t.S2TTask`. One utterance group is transcribed as
 a single sequence, with the speakers separated inline, so overlapping speech is
-handled without a separation front end. Scored with cpWER and DER.
+handled without a separation front end. Scored with utterance-group
+cpWER and DER.
 
 `create_dataset` fetches the Lhotse CutSet manifests from the Hugging Face repo
 named by `builder.cutset_repo` in `dataset/config.yaml`, downloads the AMI SDM
@@ -58,9 +59,12 @@ Run each stage as its own command; `collect_stats` and `train` must not be
 combined into one invocation.
 
 `infer` writes `exp/<tag>/inference/test/{hyp,ref,hyp_sot,ref_sot}.scp`, one row
-per utterance group. `hyp`/`ref` are the timestamp-free view scored by cpWER;
-`hyp_sot`/`ref_sot` keep the inline Whisper timestamps and are scored by DER.
-`measure` writes `metrics.json` beside them.
+per utterance group. `hyp`/`ref` are the timestamp-free view scored by
+`ug_cpWER`;
+`hyp_sot`/`ref_sot` keep the inline Whisper timestamps and are scored by
+`ug_DER`.
+`measure` writes `metrics.json` beside them, with the scores under
+`ug_cpWER` and `ug_DER`.
 
 ## Pretrained model
 
@@ -74,10 +78,14 @@ them, then run stage 4.
 
 AMI SDM test, 6127 utterance groups, beam size 5.
 
+Both metrics score each utterance group on its own, so they are not
+comparable with session-level numbers, where one speaker assignment has to
+serve a whole meeting.
+
 | Metric | Value |
 | --- | --- |
-| cpWER | 27.61 % |
-| DER (0.25 s collar) | 8.54 % |
+| ug_cpWER | 27.61 % |
+| ug_DER (0.25 s collar) | 8.54 % |
 
 ## Packaging
 

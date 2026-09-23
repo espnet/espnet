@@ -1,4 +1,4 @@
-"""Tests for the AMI SOT preprocessor in egs3/ami/s2t/src/preprocessor.py."""
+"""Tests for the AMI SOT preprocessor in egs3/ami/esp2_s2t/src/preprocessor.py."""
 
 import argparse
 import importlib.util

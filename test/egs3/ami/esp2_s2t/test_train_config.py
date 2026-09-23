@@ -1,4 +1,4 @@
-"""Tests for egs3/ami/s2t/conf/training.yaml.
+"""Tests for egs3/ami/esp2_s2t/conf/training.yaml.
 
 These build the objects the config describes. Asserting the config's literals back at it
 would pass whatever those literals said.

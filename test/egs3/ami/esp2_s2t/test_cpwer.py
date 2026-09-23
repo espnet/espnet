@@ -1,8 +1,10 @@
-"""Tests for egs3/ami/s2t/src/metrics/cpwer.py."""
+"""Recipe-level tests for the utterance-group cpWER metric.
 
-import importlib.util
+The scorer itself lives in espnet3/systems/esp2_s2t/metrics/cpwer.py;
+what these pin is the score it gives on this recipe's corpus.
+"""
+
 import json
-import sys
 
 import ami_sot_paths
 import pytest
@@ -10,18 +12,9 @@ import pytest
 pytest.importorskip("scipy")
 pytest.importorskip("editdistance")
 
+from espnet3.systems.esp2_s2t.metrics import cpwer as cp  # noqa: E402
 
-def _load():
-    sys.path.insert(0, str(ami_sot_paths.REPO))
-    spec = importlib.util.spec_from_file_location(
-        "ami_s2t_cpwer", ami_sot_paths.RECIPE / "src" / "metrics" / "cpwer.py"
-    )
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
-
-
-cp = _load()
+SEP = "????"
 
 
 def test_edit_counts_counts_each_error_kind():
@@ -53,21 +46,21 @@ def test_group_cpwer_counts_an_empty_reference_as_insertions():
 def test_metric_scores_two_aligned_scp_files(tmp_path):
     ref = tmp_path / "ref.scp"
     hyp = tmp_path / "hyp.scp"
-    sep = cp.SPEAKER_CHANGE_SYMBOL
+    sep = SEP
     ref.write_text(f"u1 the cat sat {sep} a dog barked\n", encoding="utf-8")
     hyp.write_text(f"u1 a dog barked {sep} the cat sat\n", encoding="utf-8")
-    metric = cp.CpWER(clean_types=None)
+    metric = cp.UtteranceGroupCpWER(clean_types=None)
     result = metric({"ref": ref, "hyp": hyp}, "test", tmp_path)
-    assert result == {"cpWER": 0.0}
+    assert result == {"ug_cpWER": 0.0}
 
 
 def test_metric_writes_a_by_speaker_count_side_file(tmp_path):
     ref = tmp_path / "ref.scp"
     hyp = tmp_path / "hyp.scp"
-    sep = cp.SPEAKER_CHANGE_SYMBOL
+    sep = SEP
     ref.write_text(f"u1 the cat sat {sep} a dog barked\n", encoding="utf-8")
     hyp.write_text(f"u1 the cat sat {sep} a dog barked\n", encoding="utf-8")
-    cp.CpWER(clean_types=None)({"ref": ref, "hyp": hyp}, "test", tmp_path)
+    cp.UtteranceGroupCpWER(clean_types=None)({"ref": ref, "hyp": hyp}, "test", tmp_path)
     assert (tmp_path / "test" / "cpwer_by_num_speakers.json").is_file()
 
 
@@ -83,7 +76,7 @@ def test_metric_raises_when_every_reference_is_empty(tmp_path):
     hyp = tmp_path / "hyp.scp"
     ref.write_text("u1\nu2\n", encoding="utf-8")
     hyp.write_text("u1 some words\nu2 more words\n", encoding="utf-8")
-    metric = cp.CpWER(clean_types=None)
+    metric = cp.UtteranceGroupCpWER(clean_types=None)
     with pytest.raises(ValueError, match="empty"):
         metric({"ref": ref, "hyp": hyp}, "test", tmp_path)
 
@@ -102,7 +95,7 @@ def test_by_speaker_count_file_reports_null_not_zero_for_empty_references(
     hyp = tmp_path / "hyp.scp"
     ref.write_text("u1\nu2 the cat sat\n", encoding="utf-8")
     hyp.write_text("u1 spurious words\nu2 the cat sat\n", encoding="utf-8")
-    cp.CpWER(clean_types=None)({"ref": ref, "hyp": hyp}, "test", tmp_path)
+    cp.UtteranceGroupCpWER(clean_types=None)({"ref": ref, "hyp": hyp}, "test", tmp_path)
     by_nspk = json.loads(
         (tmp_path / "test" / "cpwer_by_num_speakers.json").read_text(encoding="utf-8")
     )
@@ -140,7 +133,7 @@ def test_cpwer_reproduces_the_recorded_full_test_set_score(tmp_path):
     # the checkpoint's own symbol, so convert here rather than teach it a
     # spelling this recipe never writes.
     def _as_configured(text):
-        return text.replace("<sc>", cp.SPEAKER_CHANGE_SYMBOL)
+        return text.replace("<sc>", SEP)
 
     ref.write_text(
         _as_configured(ami_sot_paths.TEST_TEXT.read_text(encoding="utf-8")),
@@ -149,17 +142,14 @@ def test_cpwer_reproduces_the_recorded_full_test_set_score(tmp_path):
     hyp.write_text(
         _as_configured(_RECORDED_TEXT.read_text(encoding="utf-8")), encoding="utf-8"
     )
-    result = cp.CpWER()({"ref": ref, "hyp": hyp}, "test", tmp_path)
-    assert result["cpWER"] == 27.65
+    result = cp.UtteranceGroupCpWER()({"ref": ref, "hyp": hyp}, "test", tmp_path)
+    assert result["ug_cpWER"] == 27.65
 
 
-def test_split_speakers_follows_the_configured_symbol(monkeypatch):
-    """split_speakers must honour the configured symbol, not a literal.
+def test_split_speakers_follows_the_symbol_it_is_given():
+    """split_speakers must use its argument, not a literal.
 
-    Only checking the separator constant would pass without proving split_speakers
-    actually uses it. Without the fix, "@@" is not recognized as a separator, so the
-    whole text stays one block.
+    Without it, "@@" is not recognized as a separator and the whole text
+    stays one block.
     """
-    monkeypatch.setenv("AMI_SOT_SPEAKER_CHANGE_SYMBOL", "@@")
-    reloaded = _load()
-    assert reloaded.split_speakers("a b @@ c d", None) == ["a b", "c d"]
+    assert cp.split_speakers("a b @@ c d", None, "@@") == ["a b", "c d"]

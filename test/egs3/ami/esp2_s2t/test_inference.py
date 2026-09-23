@@ -1,4 +1,4 @@
-"""Tests for egs3/ami/s2t/src/inference.py."""
+"""Tests for egs3/ami/esp2_s2t/src/inference.py."""
 
 import importlib.util
 import sys
@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 _REPO = Path(__file__).resolve().parents[4]
-_RECIPE = _REPO / "egs3" / "ami" / "s2t"
+_RECIPE = _REPO / "egs3" / "ami" / "esp2_s2t"
 
 pytest.importorskip("whisper")
 
@@ -26,11 +26,11 @@ def _load_inference_module():
 inf = _load_inference_module()
 
 # inference.py imports dataset.py through the real, dotted package path
-# (``from egs3.ami.s2t.dataset.dataset import ...``), not the flat,
+# (``from egs3.ami.esp2_s2t.dataset.dataset import ...``), not the flat,
 # file-path loading _load_inference_module() itself uses. Importing it the
 # same way here means constructing an AmiSotDataset below registers itself
 # on the exact module object inf.build_output reads from, same as a real run.
-import egs3.ami.s2t.dataset.dataset as ds_mod  # noqa: E402
+import egs3.ami.esp2_s2t.dataset.dataset as ds_mod  # noqa: E402
 
 
 @pytest.fixture(autouse=True)
@@ -135,8 +135,8 @@ def test_build_output_survives_the_frameworks_own_module_loading(monkeypatch, tm
 
     The strongest form of the property, and the actual shape of the bug: ESPnet3 does
     not build AmiSotDataset through the same, stable, dotted
-    `egs3.ami.s2t.dataset.dataset` path this test file's `ds_mod` (and src/inference.py)
-    import by.
+    `egs3.ami.esp2_s2t.dataset.dataset` path this test file's `ds_mod`
+    (and src/inference.py) import by.
 
     It loads a recipe's own dataset/__init__.py through
     espnet3.components.data.dataset_module._load_local_dataset_module, under a fresh,
@@ -219,30 +219,13 @@ def _fake_model_output(rendered: str):
     return [("ignored", [], ids, None, None)]
 
 
-def _load_separator_module():
-    """Load src/separator.py freshly, so it re-reads its environment."""
-    spec = importlib.util.spec_from_file_location(
-        "ami_sot_separator_under_test", _RECIPE / "src" / "separator.py"
-    )
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
+def test_build_output_keeps_whatever_symbol_the_model_emitted(monkeypatch):
+    """The separator reaches the output untouched, whatever it is.
 
-
-def test_separator_defaults_to_the_released_checkpoints_symbol():
-    """The released model separates speakers with four question marks."""
-    assert _load_separator_module().SPEAKER_CHANGE_SYMBOL == "????"
-
-
-def test_separator_follows_the_environment_override(monkeypatch):
-    """A checkpoint trained with another symbol needs no code edit."""
-    monkeypatch.setenv("AMI_SOT_SPEAKER_CHANGE_SYMBOL", "@@")
-    assert _load_separator_module().SPEAKER_CHANGE_SYMBOL == "@@"
-
-
-def test_build_output_keeps_whatever_symbol_is_configured(monkeypatch):
-    """Whatever separator the checkpoint uses reaches the output untouched."""
-    monkeypatch.setenv("AMI_SOT_SPEAKER_CHANGE_SYMBOL", "@@")
+    build_output never looks at the symbol: conf/inference.yaml tells the
+    model about it and conf/metrics.yaml tells the metrics, so anything
+    between the two would be a place for them to drift apart.
+    """
     reloaded = _load_inference_module()
     _build_active_dataset(monkeypatch, "test", ["utt-0"])
 

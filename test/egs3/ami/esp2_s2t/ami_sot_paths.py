@@ -26,7 +26,7 @@ from pathlib import Path
 import pytest
 
 REPO = Path(__file__).resolve().parents[4]
-RECIPE = REPO / "egs3" / "ami" / "s2t"
+RECIPE = REPO / "egs3" / "ami" / "esp2_s2t"
 
 
 def _env_path(name: str):

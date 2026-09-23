@@ -26,7 +26,7 @@ from pathlib import Path
 from espnet3.components.data.dataset_builder import DatasetBuilder
 
 if __package__:
-    # Normal case: this module is part of the real egs3.ami.s2t.dataset
+    # Normal case: this module is part of the real egs3.ami.esp2_s2t.dataset
     # package, so the relative import resolves against it directly. Gating
     # on __package__ instead of wrapping this in try/except ImportError
     # means a genuine breakage in dataset.py (for example _CONFIG or
@@ -222,7 +222,7 @@ class AmiSotBuilder(DatasetBuilder):
         marker = Path(_CONFIG["data_root"]) / _MARKER_NAME
         marker.parent.mkdir(parents=True, exist_ok=True)
         marker.write_text(
-            "Written by egs3/ami/s2t AmiSotBuilder. Its presence lets the "
+            "Written by egs3/ami/esp2_s2t AmiSotBuilder. Its presence lets the "
             "builder rewrite this directory; delete it to protect the corpus.\n"
         )
 

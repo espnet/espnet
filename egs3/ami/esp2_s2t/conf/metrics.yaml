@@ -9,16 +9,25 @@ exp_tag:
 # cpWER compares words, so it reads the timestamp-free view. DER compares
 # speaker activity in time, so it reads the view that keeps timestamps. The
 # inputs block binds each metric to the SCP files build_output wrote.
+#
+# Both are utterance-group metrics: every group is scored on its own, so the
+# reported ug_cpWER and ug_DER are not comparable with session-level numbers.
+#
+# speaker_change_symbol reads the same variable as conf/inference.yaml, so the
+# symbol the model is told about and the symbol the metrics split on cannot
+# drift apart.
 metrics:
   - metric:
-      _target_: src.metrics.cpwer.CpWER
+      _target_: espnet3.systems.esp2_s2t.metrics.cpwer.UtteranceGroupCpWER
       clean_types: [whisper_en]  # TextCleaner pipeline; matches the class default
+      speaker_change_symbol: ${oc.env:AMI_SOT_SPEAKER_CHANGE_SYMBOL,????}
     inputs:
       ref: ref
       hyp: hyp
   - metric:
-      _target_: src.metrics.der.DER
+      _target_: espnet3.systems.esp2_s2t.metrics.der.UtteranceGroupDER
       collar: 0.25  # md-eval.pl forgiveness collar, seconds; matches the class default
+      speaker_change_symbol: ${oc.env:AMI_SOT_SPEAKER_CHANGE_SYMBOL,????}
     inputs:
       ref: ref_sot
       hyp: hyp_sot

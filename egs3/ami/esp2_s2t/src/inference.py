@@ -20,7 +20,7 @@ import re
 from typing import Any, Dict
 
 try:
-    from egs3.ami.s2t.dataset.dataset import current_utt_id
+    from egs3.ami.esp2_s2t.dataset.dataset import current_utt_id
 except ImportError:
     # A packed bundle ships src/ and dataset/ at its root with no egs3 package
     # above them; InferenceModel puts the bundle root on sys.path, so the

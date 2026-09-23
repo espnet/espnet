@@ -1,9 +1,11 @@
-"""Tests for egs3/ami/s2t/src/metrics/der.py."""
+"""Recipe-level tests for the utterance-group DER metric.
 
-import importlib.util
+The scorer itself lives in espnet3/systems/esp2_s2t/metrics/der.py;
+what these pin is the score it gives on this recipe's corpus.
+"""
+
 import logging
 import stat
-import sys
 from pathlib import Path
 
 import ami_sot_paths
@@ -19,23 +21,15 @@ pytest.importorskip("scipy")
 pytest.importorskip("editdistance")
 
 
-def _load():
-    sys.path.insert(0, str(ami_sot_paths.REPO))
-    spec = importlib.util.spec_from_file_location(
-        "ami_s2t_der", ami_sot_paths.RECIPE / "src" / "metrics" / "der.py"
-    )
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
+from espnet3.systems.esp2_s2t.metrics import der as der_mod  # noqa: E402
 
-
-der_mod = _load()
+SEP = "????"
 
 
 def test_segments_from_sot_pairs_timestamps_within_a_speaker_block():
-    sep = der_mod.SPEAKER_CHANGE_SYMBOL
+    sep = SEP
     text = f"<|0.00|> hello<|1.20|> {sep} <|2.00|> world<|3.50|>"
-    assert der_mod.segments_from_sot(text) == [
+    assert der_mod.segments_from_sot(text, SEP) == [
         (0, 0.0, 1.2),
         (1, 2.0, 3.5),
     ]
@@ -43,13 +37,13 @@ def test_segments_from_sot_pairs_timestamps_within_a_speaker_block():
 
 def test_segments_from_sot_drops_an_unclosed_final_segment():
     """The corpus omits the closing timestamp of a cut-truncated segment."""
-    sep = der_mod.SPEAKER_CHANGE_SYMBOL
+    sep = SEP
     text = f"<|0.00|> hello<|1.20|> {sep} <|2.00|> world"
-    assert der_mod.segments_from_sot(text) == [(0, 0.0, 1.2)]
+    assert der_mod.segments_from_sot(text, SEP) == [(0, 0.0, 1.2)]
 
 
 def test_segments_from_sot_drops_a_zero_length_segment():
-    assert der_mod.segments_from_sot("<|1.00|> x<|1.00|>") == []
+    assert der_mod.segments_from_sot("<|1.00|> x<|1.00|>", SEP) == []
 
 
 def test_write_rttm_uses_the_sctk_field_order(tmp_path):
@@ -114,8 +108,10 @@ def test_call_warns_once_when_a_reference_group_has_no_segments(tmp_path, caplog
     )
     md = _fake_md_eval(tmp_path, _DER_LINE + "exit 0\n")
     with caplog.at_level(logging.WARNING):
-        result = der_mod.DER(md_eval=md)({"ref": ref, "hyp": hyp}, "test", tmp_path)
-    assert result["DER"] == 12.34
+        result = der_mod.UtteranceGroupDER(md_eval=md)(
+            {"ref": ref, "hyp": hyp}, "test", tmp_path
+        )
+    assert result["ug_DER"] == 12.34
     assert "1 utterance group(s) had no reference segments" in caplog.text
 
 
@@ -126,7 +122,9 @@ def test_call_does_not_warn_when_every_reference_group_has_segments(tmp_path, ca
     hyp.write_text("u1 <|0.00|> hello<|1.20|>\n", encoding="utf-8")
     md = _fake_md_eval(tmp_path, _DER_LINE + "exit 0\n")
     with caplog.at_level(logging.WARNING):
-        der_mod.DER(md_eval=md)({"ref": ref, "hyp": hyp}, "test", tmp_path)
+        der_mod.UtteranceGroupDER(md_eval=md)(
+            {"ref": ref, "hyp": hyp}, "test", tmp_path
+        )
     assert "had no reference segments" not in caplog.text
 
 
@@ -150,7 +148,7 @@ def test_find_md_eval_does_not_climb_past_the_repo_root(tmp_path):
 
     inner = tmp_path / "inner"
     (inner / ".git").mkdir(parents=True)
-    fake_module = inner / "egs3" / "ami" / "s2t" / "src" / "metrics" / "der.py"
+    fake_module = inner / "egs3" / "ami" / "esp2_s2t" / "src" / "metrics" / "der.py"
     fake_module.parent.mkdir(parents=True)
 
     with pytest.raises(FileNotFoundError, match="inner"):
@@ -183,7 +181,7 @@ def test_der_reproduces_the_recorded_full_test_set_score(tmp_path):
     # Both the recorded decode and a corpus prepared before this recipe spell
     # the separator "<sc>"; the metric splits on the checkpoint's own symbol.
     def _as_configured(text):
-        return text.replace("<sc>", der_mod.SPEAKER_CHANGE_SYMBOL)
+        return text.replace("<sc>", SEP)
 
     ref.write_text(
         _as_configured(ami_sot_paths.TEST_TEXT.read_text(encoding="utf-8")),
@@ -193,18 +191,13 @@ def test_der_reproduces_the_recorded_full_test_set_score(tmp_path):
         _as_configured(_RECORDED_TEXT_SOT.read_text(encoding="utf-8")),
         encoding="utf-8",
     )
-    result = der_mod.DER()({"ref": ref, "hyp": hyp}, "test", tmp_path)
-    assert result["DER"] == 8.57
+    result = der_mod.UtteranceGroupDER()({"ref": ref, "hyp": hyp}, "test", tmp_path)
+    assert result["ug_DER"] == 8.57
 
 
-def test_segments_from_sot_follows_the_configured_symbol(monkeypatch):
-    """segments_from_sot must honour the configured symbol, not a literal.
-
-    Only checking the separator constant would pass without proving
-    segments_from_sot actually uses it. Without the fix, "@@" is not recognized as a
-    separator, so the whole text stays one block and this assertion fails.
-    """
-    monkeypatch.setenv("AMI_SOT_SPEAKER_CHANGE_SYMBOL", "@@")
-    reloaded = _load()
-    segments = reloaded.segments_from_sot("<|0.00|> a<|1.20|> @@ <|2.00|> b<|3.50|>")
+def test_segments_from_sot_follows_the_symbol_it_is_given():
+    """segments_from_sot must use its argument, not a literal."""
+    segments = der_mod.segments_from_sot(
+        "<|0.00|> a<|1.20|> @@ <|2.00|> b<|3.50|>", "@@"
+    )
     assert segments == [(0, 0.0, 1.2), (1, 2.0, 3.5)]

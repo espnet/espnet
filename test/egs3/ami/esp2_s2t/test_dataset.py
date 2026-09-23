@@ -1,4 +1,4 @@
-"""Tests for the AMI SOT dataset in egs3/ami/s2t/dataset/."""
+"""Tests for the AMI SOT dataset in egs3/ami/esp2_s2t/dataset/."""
 
 import importlib.util
 import os
@@ -178,8 +178,9 @@ def test_current_utt_id_survives_the_frameworks_own_module_loading(
 
     The real bug shape: ESPnet3 loads a recipe's own dataset/__init__.py through
     espnet3.components.data.dataset_module's _load_local_dataset_module, under a fresh,
-    uniquely named module spec -- not the stable, dotted `egs3.ami.s2t.dataset.dataset`
-    path this test file (and src/inference.py) import by.
+    uniquely named module spec -- not the stable, dotted
+    `egs3.ami.esp2_s2t.dataset.dataset` path this test file (and
+    src/inference.py) import by.
 
     A module-level Python global set by one copy would be invisible to the other; only a
     process-wide channel bridges them. This goes through the real framework loader, for
@@ -255,9 +256,9 @@ def test_dataset_package_exports_the_names_the_framework_looks_up():
     """
     import importlib
 
-    package = importlib.import_module("egs3.ami.s2t.dataset")
-    from egs3.ami.s2t.dataset.builder import AmiSotBuilder
-    from egs3.ami.s2t.dataset.dataset import AmiSotDataset
+    package = importlib.import_module("egs3.ami.esp2_s2t.dataset")
+    from egs3.ami.esp2_s2t.dataset.builder import AmiSotBuilder
+    from egs3.ami.esp2_s2t.dataset.dataset import AmiSotDataset
 
     assert package.Dataset is AmiSotDataset
     assert package.DatasetBuilder is AmiSotBuilder

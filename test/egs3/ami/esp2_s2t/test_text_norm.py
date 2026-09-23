@@ -1,4 +1,4 @@
-"""Tests for the normalizer resolver in egs3/ami/s2t/dataset/text_norm.py.
+"""Tests for the normalizer resolver in egs3/ami/esp2_s2t/dataset/text_norm.py.
 
 The CHiME-8 normalizer it can return is an optional dependency, so the tests
 that need it skip when it is absent. Everything else runs anywhere.
@@ -10,7 +10,7 @@ from pathlib import Path
 import pytest
 
 _REPO = Path(__file__).resolve().parents[4]
-_RECIPE = _REPO / "egs3" / "ami" / "s2t"
+_RECIPE = _REPO / "egs3" / "ami" / "esp2_s2t"
 
 
 def _load():

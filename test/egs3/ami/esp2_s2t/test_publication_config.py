@@ -1,4 +1,4 @@
-"""Tests for egs3/ami/s2t/conf/publication.yaml."""
+"""Tests for egs3/ami/esp2_s2t/conf/publication.yaml."""
 
 import importlib.util
 from pathlib import Path

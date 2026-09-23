@@ -1,4 +1,4 @@
-"""Tests for the AMI SOT builder in egs3/ami/s2t/dataset/builder.py."""
+"""Tests for the AMI SOT builder in egs3/ami/esp2_s2t/dataset/builder.py."""
 
 import importlib.util
 import sys
