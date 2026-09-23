@@ -5,6 +5,7 @@ utterances and creating token lists, plus the stats-collection stage.
 """
 
 import logging
+import shutil
 import time
 from collections import Counter
 from pathlib import Path
@@ -184,7 +185,16 @@ class TTSSystem(BaseSystem):
 
             # resume=False: the keep/drop decisions depend on the duration
             # bounds, so shard results from an earlier run (possibly with
-            # different bounds) must never be reused.
+            # different bounds) must never be reused. Clear any leftover
+            # shard directory first, so a stale lock left behind by a hard
+            # kill (SIGKILL/OOM/SLURM time limit) during a previous run does
+            # not make this run fail with "already locked by another
+            # runner" -- with resume=False the whole shard is recomputed
+            # anyway, so the lock buys nothing.
+            shard_dir = save_path / "shards" / split
+            if shard_dir.exists():
+                shutil.rmtree(shard_dir)
+
             runner = RemoveLongShortRunner(
                 provider=provider,
                 batch_size=batch_size,
@@ -387,8 +397,15 @@ class TTSSystem(BaseSystem):
 
         with open(manifest_path, "r", encoding="utf-8") as f:
             for line in f:
-                line = line.rstrip()
-                parts = line.split("\t")
+                # Use rstrip("\n") (not bare rstrip()) so a row whose text
+                # column is empty doesn't also lose its trailing tab, and
+                # skip blank lines / rows with fewer than 3 tab-separated
+                # columns -- the same tolerance as the vocab_builder branch
+                # above and RemoveLongShortProvider._load_entries.
+                stripped = line.rstrip("\n")
+                parts = stripped.split("\t")
+                if len(parts) < 3 or not parts[2].strip():
+                    continue
                 text = parts[2]
                 cleaned_text = cleaner(text)
                 tokens = tokenizer.text2tokens(cleaned_text)
