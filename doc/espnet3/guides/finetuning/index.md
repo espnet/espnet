@@ -1,6 +1,6 @@
-# Finetuning
+# Customize
 
-Most ESPnet3 finetuning work reduces to three questions:
+Most ESPnet3 customization work reduces to three questions:
 
 1. Which dataset do you train on?
 2. Which model do you actually fine-tune?

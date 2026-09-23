@@ -10,8 +10,8 @@ Guides are goal-oriented. Pick the track that matches what you want to do.
     href="./scaling/index.html"
   />
   <DocCard
-    title="Finetuning"
-    desc="Load a checkpoint, adapt configs, freeze layers, and evaluate a finetuned model."
+    title="Customize"
+    desc="Adapt a dataset, model, or training loop for your ESPnet3 experiment."
     icon="tabler:adjustments"
     href="./finetuning/index.html"
   />
