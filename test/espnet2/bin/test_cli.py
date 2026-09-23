@@ -846,9 +846,11 @@ class _FakeOWSM:
     def no_language(self):
         return self.preprocessor_conf["nolang_symbol"]
 
-    def decode_window(self, speech, lang_sym=None, task_sym=None):
+    def decode_window(self, speech, lang_sym=None, task_sym=None, text_prev="<na>"):
         # Speech2Text.decode_window: the checkpoint chooses its own way, and
-        # this one is CTC-only
+        # this one is CTC-only. text_prev is what a task with a written input
+        # is given - POWSM's <g2p> and <p2g> - and what primes the search on a
+        # checkpoint that has one; this fake ignores it, as a CTC head does.
         return self.best_path(speech, lang_sym=lang_sym, task_sym=task_sym)[0][0]
 
     def best_path(self, speech, *args, **kwargs):

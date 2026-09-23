@@ -117,6 +117,127 @@ def test_the_phone_option_appears_only_for_a_checkpoint_that_has_it():
     assert not demo.phone_task(["<eng>", "<asr>", "<st_deu>"])
 
 
+def test_the_written_input_tasks_appear_only_for_a_checkpoint_that_has_them():
+    """POWSM answers <g2p> and <p2g>; OWSM has neither and its page is unchanged."""
+    assert demo.prompt_tasks(["<eng>", "<asr>", "<pr>", "<g2p>", "<p2g>"]) == [
+        demo.G2P_LABEL,
+        demo.P2G_LABEL,
+    ]
+    assert demo.prompt_tasks(["<eng>", "<asr>", "<p2g>"]) == [demo.P2G_LABEL]
+    assert demo.prompt_tasks(["<nolang>", "<eng>", "<asr>", "<st_deu>"]) == []
+
+
+def test_phones_are_taken_in_either_spelling():
+    """The page prints them spaced; POWSM reads them between slashes.
+
+    Someone typing phones into the box will copy what the page showed them,
+    and someone who knows the training data will type its own spelling. Both
+    have to work, and neither may be turned into the other twice.
+    """
+    assert demo.as_phones("ð ə s e ɪ l") == "/ð//ə//s//e//ɪ//l/"
+    assert demo.as_phones("/ð//ə//s/") == "/ð//ə//s/"
+    assert demo.as_phones("  ") == ""
+
+
+def test_the_written_input_box_appears_for_the_tasks_that_read_it(monkeypatch):
+    """One box: hidden on a CTC checkpoint until a task asks for it.
+
+    A checkpoint with a decoder has it open from the start, since anything
+    typed there primes the search. One with none has nothing to prime, so
+    the box appears only for `<g2p>` and `<p2g>`, whose input is written
+    whether or not there is a decoder.
+    """
+    pytest.importorskip("gradio")
+
+    class _Powsm:
+        preprocessor_conf = {"speech_length": 20, "nolang_symbol": "<unk>"}
+        ctc_only = True
+        s2t_model = types.SimpleNamespace(
+            token_list=["<unk>", "<eng>", "<asr>", "<pr>", "<g2p>", "<p2g>", "<sos>"]
+        )
+
+        def no_language(self):
+            return "<unk>"
+
+    app = demo.build_app(_Powsm(), device="cpu", model_tag="espnet/a-model")
+    blocks = list(app.blocks.values())
+    tasks = [
+        c[0] if isinstance(c, (list, tuple)) else c
+        for block in blocks
+        if getattr(block, "label", None) == "Task"
+        for c in block.choices
+    ]
+    assert demo.G2P_LABEL in tasks and demo.P2G_LABEL in tasks
+
+    box = [b for b in blocks if getattr(b, "label", None) == demo.PROMPT_LABEL]
+    assert len(box) == 1, "the box is one box"
+    assert box[0].visible is False, "and hidden until a task asks for it"
+
+    # the two notes: why there is nothing to prime, and what the prompted
+    # tasks are worth on a checkpoint of this kind
+    markdown = "\n".join(str(getattr(b, "value", "")) for b in blocks)
+    assert demo.NO_PROMPT_NOTE in markdown
+    assert demo.PROMPT_TASK_NOTE in markdown
+
+
+def test_the_page_says_which_model_it_is_serving(monkeypatch):
+    """The page serves any checkpoint, so its heading is not OWSM's.
+
+    A Space passes its own title and description; `espnet demo` passes the
+    tag it was given and gets a heading that names it.
+    """
+    pytest.importorskip("gradio")
+
+    class _Any:
+        preprocessor_conf = {"speech_length": 30, "nolang_symbol": "<nolang>"}
+        ctc_only = True
+        s2t_model = types.SimpleNamespace(
+            token_list=["<nolang>", "<eng>", "<asr>", "<sos>"]
+        )
+
+        def no_language(self):
+            return "<nolang>"
+
+    def markdown(app):
+        return "\n".join(str(getattr(b, "value", "")) for b in app.blocks.values())
+
+    given = demo.build_app(_Any(), device="cpu", model_tag="espnet/a-model")
+    assert "espnet/a-model" in markdown(given)
+
+    own = demo.build_app(
+        _Any(),
+        device="cpu",
+        model_tag="espnet/a-model",
+        title="A Model",
+        description="# A Model\n\nWhat this one is for.",
+    )
+    assert "What this one is for." in markdown(own)
+    assert "Speech in, text out" not in markdown(own)
+
+
+def test_a_checkpoint_with_a_decoder_can_be_prompted(monkeypatch):
+    """There the box is open from the start, and no note says otherwise."""
+    pytest.importorskip("gradio")
+
+    class _Searches:
+        preprocessor_conf = {"speech_length": 30, "nolang_symbol": "<nolang>"}
+        ctc_only = False
+        s2t_model = types.SimpleNamespace(
+            token_list=["<nolang>", "<eng>", "<asr>", "<st_deu>", "<sos>"]
+        )
+
+        def no_language(self):
+            return "<nolang>"
+
+    app = demo.build_app(_Searches(), device="cpu", model_tag="espnet/a-model")
+    blocks = list(app.blocks.values())
+    box = [b for b in blocks if getattr(b, "label", None) == demo.PROMPT_LABEL]
+    assert len(box) == 1 and box[0].visible is True
+
+    markdown = "\n".join(str(getattr(b, "value", "")) for b in blocks)
+    assert demo.NO_PROMPT_NOTE not in markdown
+
+
 def test_a_checkpoint_that_cannot_detect_a_language_opens_on_one(monkeypatch):
     """A model with no "work it out yourself" symbol must not break the page.
 
