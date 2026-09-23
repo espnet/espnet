@@ -3,8 +3,8 @@
 from pathlib import Path
 from typing import Dict
 
+import librosa
 import numpy as np
-import resampy
 import soundfile as sf
 
 from espnet3.components.metrics.base_metric import BaseMetric
@@ -29,7 +29,9 @@ def load_audio(path: str | Path, sample_rate: int | None = None) -> np.ndarray:
         # Prefer the reference (first) channel over averaging across channels.
         waveform = waveform[:, 0]
     if sample_rate is not None and current_rate != sample_rate:
-        waveform = resampy.resample(waveform, current_rate, sample_rate)
+        waveform = librosa.resample(
+            waveform, orig_sr=current_rate, target_sr=sample_rate
+        )
     return np.asarray(waveform, dtype=np.float32)
 
 
