@@ -955,3 +955,162 @@ def test_trainer_level_gradient_clipping_is_rejected_for_multi_optimizer():
     config.gradient_clip_val = 1.0
     with pytest.raises(AssertionError, match="gradient_clip_val"):
         ESPnet3LightningTrainer(model=module, exp_dir=".", config=config)
+
+
+# ---------------------------------------------------------------
+# lightning-module#19: gradient-magnitude coverage the review flagged as
+# missing (accum_grad_steps > 1, cross-optimizer contamination, real
+# gradient_clip_val path).
+# ---------------------------------------------------------------
+
+
+def _make_microbatch(x_values):
+    return (["u0"], {"x": torch.tensor([x_values], dtype=torch.float32)})
+
+
+def test_accum_grad_steps_grad_equals_micro_batch_mean():
+    """(a) accum_grad_steps=2: accumulated grad equals the mean of the two
+    micro-batch grads (single optimizer, no cross-branch contamination)."""
+    module = ESPnetLightningModule(
+        DummyMultiModel(["generator"]), make_multi_config(accum_grad_steps=2)
+    )
+    configured = module.configure_optimizers()
+    optimizer_map, _, _, _ = prepare_manual_optimization(module, configured)
+
+    batch0 = _make_microbatch([0.1, 0.2])
+    batch1 = _make_microbatch([0.5, 0.6])
+
+    linear = module.model.generator
+
+    def micro_batch_grad(batch):
+        linear.zero_grad()
+        loss = linear(batch[1]["x"]).sum()
+        loss.backward()
+        return linear.weight.grad.clone(), linear.bias.grad.clone()
+
+    w0, b0 = micro_batch_grad(batch0)
+    w1, b1 = micro_batch_grad(batch1)
+    expected_weight_grad = (w0 + w1) / 2
+    expected_bias_grad = (b0 + b1) / 2
+
+    # optimizer.step() zeroes the grad right after applying it, so capture
+    # the accumulated grad at the instant step() is called rather than
+    # reading .grad afterward.
+    optimizer = optimizer_map["generator"]
+    captured = {}
+    original_step = optimizer.step
+
+    def spy_step(*args, **kwargs):
+        captured["weight_grad"] = linear.weight.grad.clone()
+        captured["bias_grad"] = linear.bias.grad.clone()
+        return original_step(*args, **kwargs)
+
+    optimizer.step = spy_step
+
+    module.training_step(batch0, 0)
+    module.training_step(batch1, 1)
+
+    assert torch.allclose(captured["weight_grad"], expected_weight_grad)
+    assert torch.allclose(captured["bias_grad"], expected_bias_grad)
+    assert module._optimizer_states["generator"].update_step == 1
+
+
+class DummyGANModel(nn.Module):
+    """Generator loss routed through the discriminator, like a real GAN.
+
+    ``g_loss`` depends on both generator and discriminator parameters
+    (``discriminator(generator(x))``), matching the TEMPLATE GAN scenario the
+    review's lightning-module#01 finding reproduces.
+    """
+
+    def __init__(self):
+        super().__init__()
+        self.generator = nn.Linear(2, 2)
+        self.discriminator = nn.Linear(2, 1)
+
+    def forward(self, x, **kwargs):
+        fake = self.generator(x)
+        g_loss = self.discriminator(fake).sum()
+        d_loss = self.discriminator(x).sum()
+        stats = {"g_loss": g_loss.detach(), "d_loss": d_loss.detach()}
+        steps = [
+            OptimizationStep(loss=g_loss, name="generator"),
+            OptimizationStep(loss=d_loss, name="discriminator"),
+        ]
+        return steps, stats, None
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason=(
+        "lightning-module#01: manual_backward(g_loss) is not restricted to the "
+        "generator's parameters, so while the discriminator optimizer is "
+        "mid-accumulation (accum_grad_steps=2) it silently absorbs the "
+        "generator loss's gradient contribution through discriminator(fake). "
+        "Fixing this requires a design decision (e.g. manual_backward(inputs=...) "
+        "or zeroing other optimizers' grads before each backward) tracked as a "
+        "separate issue; this test documents the gap per lightning-module#19."
+    ),
+)
+def test_discriminator_grad_has_no_generator_loss_contamination():
+    """(b) D.grad after a full accumulation cycle must contain only d_loss."""
+    config = make_multi_config(accum_grad_steps=2)
+    module = ESPnetLightningModule(DummyGANModel(), config)
+    configured = module.configure_optimizers()
+    prepare_manual_optimization(module, configured)
+
+    batch0 = _make_microbatch([0.1, 0.2])
+    batch1 = _make_microbatch([0.5, 0.6])
+
+    # Pure d_loss-only gradient for comparison: backward both micro-batches'
+    # d_loss (scaled the same way production code scales it) with the
+    # generator branch never invoked.
+    pure_discriminator = nn.Linear(2, 1)
+    pure_discriminator.load_state_dict(module.model.discriminator.state_dict())
+    for batch in (batch0, batch1):
+        loss = pure_discriminator(batch[1]["x"]).sum() / 2
+        loss.backward()
+
+    module.training_step(batch0, 0)
+    module.training_step(batch1, 1)
+
+    assert torch.allclose(
+        module.model.discriminator.weight.grad, pure_discriminator.weight.grad
+    )
+    assert torch.allclose(
+        module.model.discriminator.bias.grad, pure_discriminator.bias.grad
+    )
+
+
+def test_gradient_clip_val_invokes_clip_grad_norm_with_real_trainer(monkeypatch):
+    """(c) A real trainer.fit() with gradient_clip_val spies on the actual
+    torch.nn.utils.clip_grad_norm_ call, rather than replacing clip_gradients
+    with a recorder (test_clip_gradients_uses_optimizer_spec)."""
+    import torch.nn.utils as nn_utils
+
+    calls = []
+    original_clip = nn_utils.clip_grad_norm_
+
+    def spy_clip_grad_norm_(parameters, max_norm, *args, **kwargs):
+        calls.append(max_norm)
+        return original_clip(parameters, max_norm, *args, **kwargs)
+
+    monkeypatch.setattr(nn_utils, "clip_grad_norm_", spy_clip_grad_norm_)
+
+    config = make_multi_step_scheduler_config()
+    config.optimizers.generator.gradient_clip_val = 0.01
+    model = ESPnetLightningModule(DummyMultiModel(["generator"]), config)
+    trainer_config = make_trainer_config()
+    # Lightning's own clip_gradients() rejects a per-call gradient_clip_val
+    # when the trainer itself was also configured with one; ESPnet3's
+    # per-optimizer clipping is the one under test here.
+    del trainer_config.gradient_clip_val
+    trainer = ESPnet3LightningTrainer(
+        model=model,
+        exp_dir="test_utils/espnet3",
+        config=trainer_config,
+    )
+
+    trainer.fit()
+
+    assert calls == [0.01]
