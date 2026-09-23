@@ -43,19 +43,18 @@ class ARMetricCollateFn(CommonCollateFn):
                 for uid, sample in data
             ]
         )
-        if any("metrics" in sample for _, sample in data):
-            sequences = []
-            for _, sample in data:
-                pairs = list(sample.get("metrics", {}).values())
-                if self.randomize:
-                    random.shuffle(pairs)
-                sequences.append(
-                    torch.tensor(
-                        [token for pair in pairs for token in pair], dtype=torch.long
-                    )
+        sequences = []
+        for _, sample in data:
+            pairs = list(sample.get("metrics", {}).values())
+            if self.randomize:
+                random.shuffle(pairs)
+            sequences.append(
+                torch.tensor(
+                    [token for pair in pairs for token in pair], dtype=torch.long
                 )
-            batch["metrics"] = {
-                "metric_token": pad_list(sequences, self.metric_token_pad_value),
-                "metric_token_lengths": torch.tensor([s.numel() for s in sequences]),
-            }
+            )
+        batch["metrics"] = {
+            "metric_token": pad_list(sequences, self.metric_token_pad_value),
+            "metric_token_lengths": torch.tensor([s.numel() for s in sequences]),
+        }
         return keys, batch

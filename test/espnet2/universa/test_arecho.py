@@ -132,12 +132,18 @@ def test_reference_encoding_preserves_inputs(make_arecho, audio_ref, text_ref):
     assert model.audio_encoder.embed[0].weight.grad is not None
 
 
-def test_empty_metric_targets(make_arecho):
+@pytest.mark.parametrize("labels", [{}, {"metrics": {}}])
+def test_empty_metric_targets(make_arecho, labels):
     """Train EOS for unlabelled batches without undefined value accuracy."""
     model = make_arecho()
     _, batch = ARMetricCollateFn()(
-        [("a", dict(audio=np.random.randn(5, 8).astype(np.float32), metrics={}))]
+        [
+            (uid, dict(audio=np.random.randn(length, 8).astype(np.float32), **labels))
+            for uid, length in [("a", 5), ("b", 3)]
+        ]
     )
+    assert batch["metrics"]["metric_token"].shape == (2, 0)
+    assert batch["metrics"]["metric_token_lengths"].tolist() == [0, 0]
     loss, stats, _ = model(**batch)
     assert torch.isfinite(loss) and loss > 0
     assert stats["value_ar_decoder"] == 0

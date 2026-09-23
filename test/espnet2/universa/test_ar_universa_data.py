@@ -23,4 +23,5 @@ def test_collate_sparse_metrics_preserves_pairs(randomize, monkeypatch):
     assert batch["metrics"]["metric_token"].tolist() == [expected, [0, 0, 0, 0]]
     assert list(labels.values()) == [(4, 7), (10, 12)]
     _, unlabelled = ARMetricCollateFn()([samples[1]])
-    assert "metrics" not in unlabelled
+    assert unlabelled["metrics"]["metric_token"].shape == (1, 0)
+    assert unlabelled["metrics"]["metric_token_lengths"].tolist() == [0]
