@@ -2,25 +2,29 @@
 
 from __future__ import annotations
 
-import logging
-import subprocess
+import os
 from collections import defaultdict
 from importlib import resources
 from pathlib import Path
 from urllib.parse import urlparse
 
+from omegaconf import OmegaConf
+
+from egs3.voxlingua107.esp2_lid.src.download import DownloadProvider, DownloadRunner
 from espnet3.components.data.dataset_builder import DatasetBuilder
+from espnet3.parallel.parallel import set_parallel
 from espnet3.utils.config_utils import load_config_with_defaults
+from espnet3.utils.download_utils import download_url
 
 
 def _load_builder_config() -> dict:
+    """Read the recipe dataset settings without resolving experiment paths."""
     config_resource = resources.files(__package__).joinpath("config.yaml")
     with resources.as_file(config_resource) as config_path:
         return load_config_with_defaults(str(config_path), resolve=False)["builder"]
 
 
 _CFG = _load_builder_config()
-_LOGGER = logging.getLogger(__name__)
 _PREPARING = ".voxlingua107.preparing"
 _BUILDING = ".voxlingua107.building"
 _EXCLUDED_TRAIN_DIRS = {str(name) for name in _CFG["excluded_train_dirs"]}
@@ -137,7 +141,11 @@ _ISO3_CODES = {
 
 def resolve_source_root(source_dir: str | Path | None = None) -> Path:
     """Resolve the VoxLingua107 source directory."""
-    return Path(source_dir or _CFG["default_source_dir"]).expanduser().resolve()
+    return (
+        Path(source_dir or os.environ[str(_CFG["source_env_var"])])
+        .expanduser()
+        .resolve()
+    )
 
 
 def resolve_metadata_root(
@@ -154,6 +162,7 @@ def resolve_metadata_root(
 
 
 def _iter_audio(source_root: Path, split: str) -> list[tuple[str, Path]]:
+    """List original WAVs, excluding development duplicates from training."""
     if split == "dev":
         split_root = source_root / "dev"
         language_dirs = [
@@ -186,6 +195,7 @@ def _iter_audio(source_root: Path, split: str) -> list[tuple[str, Path]]:
 
 
 def _has_audio(source_root: Path, split: str) -> bool:
+    """Check whether the requested split contains at least one WAV."""
     split_root = source_root / "dev" if split == "dev" else source_root
     excluded = _EXCLUDED_TRAIN_DIRS if split == "train" else set()
     return any(
@@ -198,6 +208,7 @@ def _has_audio(source_root: Path, split: str) -> bool:
 
 
 def _has_complete_training_data(source_root: Path) -> bool:
+    """Check that every training language has extracted audio."""
     return all(
         (source_root / language).is_dir()
         and next((source_root / language).rglob("*.wav"), None) is not None
@@ -206,6 +217,7 @@ def _has_complete_training_data(source_root: Path) -> bool:
 
 
 def _has_complete_training_metadata(metadata_root: Path) -> bool:
+    """Check that the prepared training inventory contains all source languages."""
     category2utt = metadata_root / "train" / "category2utt"
     if not category2utt.is_file():
         return False
@@ -218,6 +230,7 @@ def _has_complete_training_metadata(metadata_root: Path) -> bool:
 
 
 def _write_split(source_root: Path, metadata_root: Path, split: str) -> None:
+    """Write source-local manifests and language/category mappings."""
     entries = _iter_audio(source_root, split)
     if not entries:
         raise RuntimeError(f"No WAV files found for VoxLingua107 split '{split}'.")
@@ -265,6 +278,7 @@ class VoxLingua107Builder(DatasetBuilder):
         source_dir: str | Path | None = None,
         zip_urls_url: str | None = None,
         dev_zip_url: str | None = None,
+        parallel=None,
         **_kwargs,
     ) -> None:
         """Download and unzip the official corpus as in ESPnet2 local/data.sh.
@@ -272,6 +286,17 @@ class VoxLingua107Builder(DatasetBuilder):
         Keep completed archives and resume partial downloads with wget. A marker
         prevents interrupted extraction from being treated as a prepared source.
         Audio is extracted unchanged; no cropping or resampling is performed.
+
+        Args:
+            source_dir: Corpus directory, or the VOXLINGUA107 environment variable.
+            zip_urls_url: Optional override of the official training ZIP list.
+            dev_zip_url: Optional override of the development ZIP URL.
+            parallel: ESPnet3 parallel configuration, e.g. an HPC backend with
+                n_workers. Defaults to local sequential execution.
+            **_kwargs: Unused arguments from the common builder interface.
+
+        Example:
+            >>> builder.prepare_source(source_dir="/corpora/voxlingua107")
         """
         source_root = resolve_source_root(source_dir)
         if self.is_source_prepared(source_dir=source_root):
@@ -282,10 +307,7 @@ class VoxLingua107Builder(DatasetBuilder):
         url_list = source_root / "zip_urls.txt"
         if not url_list.is_file():
             temporary = source_root / "zip_urls.txt.part"
-            subprocess.run(
-                ["wget", "-O", str(temporary), zip_urls_url or _CFG["zip_urls_url"]],
-                check=True,
-            )
+            download_url(zip_urls_url or _CFG["zip_urls_url"], temporary)
             temporary.replace(url_list)
         urls = url_list.read_text(encoding="utf-8").split()
         if not urls:
@@ -293,24 +315,21 @@ class VoxLingua107Builder(DatasetBuilder):
         # The published list contains training ZIPs only.
         if not any(Path(urlparse(url).path).name == "dev.zip" for url in urls):
             urls.append(dev_zip_url or _CFG["dev_zip_url"])
-        for url in urls:
-            name = Path(urlparse(url).path).name
-            if not name.endswith(".zip"):
-                raise ValueError(f"Expected a ZIP URL, got: {url}")
-            _LOGGER.info("Downloading/resuming %s", url)
-            subprocess.run(
-                ["wget", "--continue", "-P", str(source_root), url], check=True
-            )
+        tasks = []
         for url in urls:
             name = Path(urlparse(url).path).name
             destination = source_root / "dev" if name == "dev.zip" else source_root
-            destination.mkdir(parents=True, exist_ok=True)
-            _LOGGER.info("Extracting %s to %s", name, destination)
-            # unzip checks member CRCs and fails on incomplete/corrupt archives.
-            subprocess.run(
-                ["unzip", "-q", "-o", str(source_root / name), "-d", str(destination)],
-                check=True,
+            tasks.append(
+                {
+                    "url": url,
+                    "path": str(source_root / name),
+                    "extract_to": str(destination),
+                }
             )
+        set_parallel(parallel or OmegaConf.create({"env": "local"}))
+        DownloadRunner(
+            DownloadProvider(tasks), output_dir=source_root / ".download", resume=False
+        )(range(len(tasks)))
         if not _has_complete_training_data(source_root) or not _has_audio(
             source_root, "dev"
         ):
@@ -342,10 +361,32 @@ class VoxLingua107Builder(DatasetBuilder):
         data_dir: str | Path | None = None,
         **_kwargs,
     ) -> None:
-        """Create deterministic train/development manifests and mappings."""
+        """Create manifests and mappings from an already prepared source.
+
+        Args:
+            source_dir: Extracted corpus root, or VOXLINGUA107 when omitted.
+            recipe_dir: Recipe root used to resolve the metadata destination.
+            data_dir: Explicit metadata destination, overriding recipe_dir.
+            **_kwargs: Unused arguments from the common builder interface.
+
+        Example:
+            >>> builder.build(source_dir="/corpora/voxlingua107", data_dir="data/voxlingua107")
+
+        Each split contains a tab-separated manifest (utterance ID, WAV path,
+        language). Mapping keys use zero-based Dataset indices, for example::
+
+            # utt2lang: Dataset index -> language
+            0 eng
+            1 jpn
+            # lang2utt and category2utt: language -> Dataset indices
+            eng 0
+            jpn 1
+
+        lang2utt defines language order; category2utt groups category-sampler
+        inputs. collect_stats regenerates these mappings with global indices
+        when datasets or speed variants are combined.
+        """
         source_root = resolve_source_root(source_dir)
-        if not self.is_source_prepared(source_dir=source_root):
-            self.prepare_source(source_dir=source_root)
         metadata_root = resolve_metadata_root(recipe_dir, data_dir)
         metadata_root.mkdir(parents=True, exist_ok=True)
         marker = metadata_root / _BUILDING

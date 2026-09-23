@@ -16,7 +16,17 @@ TIMESTAMP = re.compile(r"^\[([0-9.]+)\]$")
 
 
 def segments(transcript):
-    """Pair consecutive timestamps, keeping segments containing lexical speech."""
+    """Pair consecutive timestamps, keeping segments containing lexical speech.
+
+    Args:
+        transcript: Path to a Babel transcript with bracketed timestamps.
+
+    Yields:
+        Start and end times in seconds for segments with lexical speech.
+
+    Example:
+        >>> spans = list(segments(Path("transcription/recording.txt")))
+    """
     start, text = None, ""
     with transcript.open(encoding="utf-8-sig") as source:
         for line in source:
@@ -40,7 +50,12 @@ def segments(transcript):
 
 
 def main():
-    """Read raw audio/transcription directories; no LDC download is attempted."""
+    """Read raw audio/transcription directories; no LDC download is attempted.
+
+    Example:
+        python -m egs3.voxlingua107.esp2_lid.src.babel_prepare \
+            --source-dir /corpora/babel/dev --language asm --output-dir data/babel
+    """
     argparser = parser(__doc__)
     argparser.add_argument(
         "--source-dir",

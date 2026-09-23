@@ -3,20 +3,24 @@
 import os
 from pathlib import Path
 
-import torch
 from lightning.pytorch.callbacks import Callback
 
 
-class ESPnet2MatmulPrecision(Callback):
-    """Keep FP32 matrix multiplication consistent with ESPnet2 use_tf32=false."""
-
-    def on_fit_start(self, trainer, pl_module):
-        """Override the common ESPnet3 training entrypoint's TF32 setting."""
-        torch.set_float32_matmul_precision("highest")
-
-
 class BestCheckpointLink(Callback):
-    """Expose the best individual checkpoint alongside the common top-K average."""
+    """Link the best individual checkpoint for inference after every epoch.
+
+    Args:
+        output_dir: Experiment directory where the link is created.
+        monitor: ModelCheckpoint metric, defaulting to valid/accuracy.
+
+    The default output is output_dir/valid.accuracy.best.pth, a relative symlink
+    to ModelCheckpoint.best_model_path. The callback refreshes it after validation
+    checkpoints are saved and at training end, on rank zero only. Checkpoint
+    selection itself remains ModelCheckpoint's responsibility.
+
+    Example:
+        >>> callback = BestCheckpointLink("exp/training")
+    """
 
     def __init__(self, output_dir: str, monitor: str = "valid/accuracy") -> None:
         """Select the existing ModelCheckpoint monitor used for the best link."""

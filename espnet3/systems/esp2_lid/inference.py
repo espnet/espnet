@@ -50,6 +50,7 @@ class Speech2Language:
 
     @staticmethod
     def _load_languages(lang2utt: str | Path) -> list[str]:
+        """Read language codes in the checkpoint class order."""
         return [
             line.split(maxsplit=1)[0]
             for line in Path(lang2utt).read_text(encoding="utf-8").splitlines()
@@ -57,6 +58,7 @@ class Speech2Language:
         ]
 
     def _prepare_speech(self, speech) -> tuple[torch.Tensor, torch.Tensor, bool]:
+        """Pad mono waveforms and retain their lengths for batched inference."""
         is_batch = isinstance(speech, (list, tuple))
         items = list(speech) if is_batch else [speech]
         if not items:
@@ -96,6 +98,12 @@ class Speech2Language:
 
         Raises:
             ValueError: If a waveform is empty or not one-dimensional.
+
+        Example:
+            >>> predictor = Speech2Language("exp/config.yaml", "exp/model.pth",
+            ...                             "exp/stats/train/lang2utt")
+            >>> language = predictor(speech)
+            >>> languages = predictor([speech, other_speech])
         """
         padded, lengths, is_batch = self._prepare_speech(speech)
         embeddings, predictions = self.model(

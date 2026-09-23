@@ -1,103 +1,162 @@
-"""Statistics collection for LID systems."""
+"""Collect LID speech shapes and category mappings with ESPnet3 runners."""
 
+from bisect import bisect_right
 from collections import defaultdict
 from pathlib import Path
 
 from hydra.utils import instantiate
 from omegaconf import OmegaConf
-from torch.utils.data import DataLoader
 
-from espnet2.main_funcs.collect_stats import collect_stats
-
-
-def _get_num_workers(config, mode: str) -> int:
-    mode_config = getattr(config.dataloader, mode, None)
-    iter_factory = getattr(mode_config, "iter_factory", None)
-    return int(getattr(iter_factory, "num_workers", 0))
+from espnet3.parallel.base_runner import BaseRunner, concatenate_shard_files
+from espnet3.parallel.env_provider import EnvironmentProvider
+from espnet3.parallel.parallel import set_parallel
 
 
-def _iter_speech_batches(loader, categories):
-    """Adapt raw samples to ESPnet2's indexed batches when iteration starts."""
-    for index, sample in enumerate(loader):
-        language = sample["lid_labels"]
-        if not isinstance(language, str) or not language or len(language.split()) != 1:
-            raise ValueError(
-                "LID statistics require a single language string per sample"
-            )
-        categories[language].append(str(index))
-        yield [str(index)], {"speech": sample["speech"].unsqueeze(0)}
+class LIDCollectStatsProvider(EnvironmentProvider):
+    """Build an unprocessed split on each worker without loading a model.
+
+    Args:
+        config: Dataset organizer configuration and the ``train`` or ``valid`` mode.
+
+    Example:
+        >>> provider = LIDCollectStatsProvider(config)
+        >>> dataset = provider.build_env_local()["dataset"]
+    """
+
+    def build_env_local(self):
+        """Return the split and source-dataset boundaries for global sample IDs."""
+        dataset = getattr(instantiate(self.config.dataset), self.config.mode)
+        boundaries = []
+        offset = 0
+        for source in getattr(dataset, "datasets", [dataset]):
+            offset += len(source)
+            boundaries.append(offset)
+        return {"dataset": dataset, "boundaries": boundaries}
+
+    def build_worker_setup_fn(self):
+        """Build the same lightweight environment on each local or HPC worker."""
+        return self.build_env_local
+
+
+class LIDCollectStatsRunner(BaseRunner):
+    """Write shard-local shapes and merge mappings using global Dataset indices.
+
+    Args:
+        provider: Provider for one unprocessed Dataset split.
+        output_dir: Statistics root containing train and valid outputs.
+        mode: Split name, ``train`` or ``valid``.
+
+    Example:
+        >>> runner = LIDCollectStatsRunner(provider, "exp/stats", "train")
+        >>> runner(range(len(dataset)))
+    """
+
+    def __init__(self, provider, output_dir, mode):
+        """Keep raw LID shards separate from optional feature-statistics shards."""
+        super().__init__(
+            provider,
+            batch_size=4,
+            output_dir=output_dir,
+            shard_subdir=f".lid_shapes/{mode}",
+            resume=False,
+        )
+        self.mode = mode
+
+    @staticmethod
+    def forward(indices, dataset, boundaries, **env):
+        """Return IDs, waveform shapes, languages and source indices for a batch."""
+        rows = []
+        for index in indices:
+            sample = dataset[index]
+            language = sample["lid_labels"]
+            if (
+                not isinstance(language, str)
+                or not language
+                or len(language.split()) != 1
+            ):
+                raise ValueError(
+                    "LID statistics require a single language string per sample"
+                )
+            shape = ",".join(map(str, sample["speech"].shape))
+            rows.append((index, shape, language, bisect_right(boundaries, index)))
+        return rows
+
+    @staticmethod
+    def open_writers(shard_dir, **env):
+        """Open separate files so only one worker writes each shard."""
+        return {
+            name: (shard_dir / name).open("w", encoding="utf-8")
+            for name in ("speech_shape", "utt2lang", "utt2dataset")
+        }
+
+    @staticmethod
+    def write_record(writers, result, state, **env):
+        """Write a batch without retaining waveform data in runner state."""
+        for index, shape, language, source in result:
+            writers["speech_shape"].write(f"{index} {shape}\n")
+            writers["utt2lang"].write(f"{index} {language}\n")
+            writers["utt2dataset"].write(f"{index} {source}\n")
+
+    def merge(self, shard_dirs):
+        """Merge in shard order, retaining the original global sample IDs."""
+        destination = self.output_dir / self.mode
+        destination.mkdir(parents=True, exist_ok=True)
+        for name in ("speech_shape", "utt2dataset"):
+            concatenate_shard_files(shard_dirs, name, destination / name)
+        for source, targets in (
+            ("utt2lang", ("lang2utt", "category2utt")),
+            ("utt2dataset", ("dataset2utt",)),
+        ):
+            groups = defaultdict(list)
+            for shard in shard_dirs:
+                with (shard / source).open(encoding="utf-8") as stream:
+                    for line in stream:
+                        index, group = line.split()
+                        groups[group].append(index)
+            for target in targets:
+                with (destination / target).open("w", encoding="utf-8") as stream:
+                    for group in sorted(
+                        groups, key=int if source == "utt2dataset" else str
+                    ):
+                        stream.write(f"{group} {' '.join(groups[group])}\n")
+        (destination / "batch_keys").write_text("speech\n", encoding="utf-8")
+        (destination / "stats_keys").write_text("\n", encoding="utf-8")
 
 
 def collect_speech_shapes(config) -> None:
-    """Collect raw speech shapes with ESPnet2 without constructing a model.
-
-    Preprocessing is disabled and combined-dataset indices are used as IDs.
-    Only speech is forwarded; string language labels are used to write category
-    mappings with the same combined indices, including across multiple datasets.
+    """Collect raw speech shapes and language mappings without a model.
 
     Args:
-        config: Training config containing ``dataset``, ``stats_dir``, and
-            ``dataloader``. Each split's ``iter_factory.num_workers`` defaults to 0.
+        config: Training configuration with ``dataset``, ``stats_dir`` and optional
+            ``parallel`` settings. Preprocessing is disabled during collection.
 
     Returns:
-        None: Writes ``speech_shape``, ``batch_keys``, and empty ``stats_keys``
-        under ``stats_dir/train`` and ``stats_dir/valid`` using ESPnet2's format.
-        Also writes ``category2utt`` and ``lang2utt`` for each combined split,
-        plus ``dataset2utt``/``utt2dataset`` using dataset positions as names.
+        None. Writes speech_shape, lang2utt, category2utt, dataset2utt,
+        utt2dataset, batch_keys and stats_keys under stats_dir/{train,valid}.
+        IDs match the CombinedDataset, including speed-perturbed variants.
 
-    Raises:
-        ValueError: If either split is empty or a language label is not a single string.
+    Example:
+        >>> collect_speech_shapes(training_config)
     """
     dataset_config = OmegaConf.create(
         OmegaConf.to_container(config.dataset, resolve=True)
     )
     dataset_config.preprocessor = None
-    organizer = instantiate(dataset_config)
-    iterators = {}
-    categories = {mode: defaultdict(list) for mode in ("train", "valid")}
-
-    for mode in ("train", "valid"):
-        dataset = getattr(organizer, mode)
-        if len(dataset) == 0:
+    set_parallel(config.get("parallel", OmegaConf.create({"env": "local"})))
+    providers = {
+        mode: LIDCollectStatsProvider(
+            OmegaConf.create({"dataset": dataset_config, "mode": mode})
+        )
+        for mode in ("train", "valid")
+    }
+    lengths = {
+        mode: len(provider.build_env_local()["dataset"])
+        for mode, provider in providers.items()
+    }
+    for mode, length in lengths.items():
+        if length == 0:
             raise ValueError(f"Cannot collect speech shapes: {mode} dataset is empty")
-        loader = DataLoader(
-            dataset,
-            batch_size=None,
-            num_workers=_get_num_workers(config, mode),
+    for mode, provider in providers.items():
+        LIDCollectStatsRunner(provider, Path(config.stats_dir), mode)(
+            range(lengths[mode])
         )
-        iterators[mode] = _iter_speech_batches(loader, categories[mode])
-
-    collect_stats(
-        model=None,
-        train_iter=iterators["train"],
-        valid_iter=iterators["valid"],
-        output_dir=Path(config.stats_dir),
-        ngpu=0,
-        log_interval=None,
-        write_collected_feats=False,
-    )
-
-    for mode, mapping in categories.items():
-        lines = "".join(
-            f"{language} {' '.join(indices)}\n"
-            for language, indices in sorted(mapping.items())
-        )
-        output_dir = Path(config.stats_dir) / mode
-        output_dir.mkdir(parents=True, exist_ok=True)
-        for name in ("category2utt", "lang2utt"):
-            (output_dir / name).write_text(lines, encoding="utf-8")
-
-        dataset = getattr(organizer, mode)
-        sources = getattr(dataset, "datasets", [dataset])
-        offset = 0
-        with (
-            (output_dir / "dataset2utt").open("w", encoding="utf-8") as dataset2utt,
-            (output_dir / "utt2dataset").open("w", encoding="utf-8") as utt2dataset,
-        ):
-            for source_index, source in enumerate(sources):
-                indices = range(offset, offset + len(source))
-                if len(source):
-                    dataset2utt.write(f"{source_index} {' '.join(map(str, indices))}\n")
-                    for index in indices:
-                        utt2dataset.write(f"{index} {source_index}\n")
-                offset += len(source)

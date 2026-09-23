@@ -40,6 +40,7 @@ dataset:
     rir_apply_prob: 0.0
 
 create_dataset:
+  parallel: ${parallel}
   source_dir: ${dataset_dir}
   data_dir: ${data_dir}/voxlingua107
 
@@ -140,6 +141,5 @@ trainer:
   num_sanity_val_steps: 0
   precision: bf16-mixed
   callbacks:
-    - _target_: espnet3.systems.esp2_lid.callbacks.ESPnet2MatmulPrecision
     - _target_: espnet3.systems.esp2_lid.callbacks.BestCheckpointLink
       output_dir: ${exp_dir}

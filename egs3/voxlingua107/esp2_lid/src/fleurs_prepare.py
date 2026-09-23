@@ -35,13 +35,29 @@ REVISION = "e71d660cb63834e9aec8462f50fd0b00232b5aaf"
 
 
 def language_code(tag):
-    """Map the FLEURS locale to the ISO-639-3 labels used for LID."""
+    """Map the FLEURS locale to the ISO-639-3 labels used for LID.
+
+    Args:
+        tag: FLEURS locale, such as en_us.
+
+    Returns:
+        The corresponding LID language code.
+
+    Example:
+        >>> language_code("en_us")
+        'eng'
+    """
     code = tag.split("_")[0]
     return LANGUAGES.get(code, code)
 
 
 def main():
-    """Download selected languages and preserve the published split names."""
+    """Download selected languages and preserve the published split names.
+
+    Example:
+        python -m egs3.voxlingua107.esp2_lid.src.fleurs_prepare \
+            --source-dir download/fleurs --languages en_us --output-dir data/fleurs
+    """
     argparser = parser(__doc__)
     argparser.add_argument("--source-dir", required=True)
     argparser.add_argument("--languages", nargs="+", default=["all"])

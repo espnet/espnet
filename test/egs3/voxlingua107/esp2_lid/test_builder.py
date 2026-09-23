@@ -198,3 +198,44 @@ def test_interrupted_manifest_build_is_retried(tmp_path, monkeypatch):
     assert builder.is_built(data_dir=metadata)
     (metadata / "dev/manifest.tsv").write_text("")
     assert not builder.is_built(data_dir=metadata)
+
+
+def test_parallel_zip_extraction_preserves_train_dev_layout(tmp_path, monkeypatch):
+    """Keep disjoint extraction destinations when ZIPs run on different workers."""
+    import zipfile
+
+    import espnet3.parallel.parallel as parallel_module
+
+    distributed = pytest.importorskip("distributed")
+    monkeypatch.setattr(
+        parallel_module,
+        "_build_client",
+        lambda config: distributed.Client(
+            distributed.LocalCluster(
+                n_workers=2,
+                threads_per_worker=1,
+                processes=True,
+                dashboard_address=None,
+            )
+        ),
+    )
+    monkeypatch.setattr(builder_module, "_ISO3_CODES", {"aa": "aaa", "bb": "bbb"})
+    source = tmp_path / "source"
+    source.mkdir()
+    for name, member in [
+        ("aa", "aa/train.wav"),
+        ("bb", "bb/train.wav"),
+        ("dev", "aa/dev.wav"),
+    ]:
+        with zipfile.ZipFile(source / f"{name}.zip", "w") as archive:
+            archive.writestr(member, b"existing audio")
+    (source / "zip_urls.txt").write_text(
+        "https://example.org/aa.zip\nhttps://example.org/bb.zip\n"
+    )
+    VoxLingua107Builder().prepare_source(
+        source_dir=source, parallel=OmegaConf.create({"env": "pbs", "n_workers": 2})
+    )
+    assert (source / "aa/train.wav").read_bytes() == b"existing audio"
+    assert (source / "bb/train.wav").read_bytes() == b"existing audio"
+    assert (source / "dev/aa/dev.wav").read_bytes() == b"existing audio"
+    parallel_module.set_parallel(OmegaConf.create({"env": "local"}))

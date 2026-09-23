@@ -30,7 +30,7 @@ python run.py --stages measure \
 ## Results
 
 Accuracy (%) of the MMS-1B + ECAPA-TDNN model trained on VoxLingua107 with
-[`conf/training.yaml`](conf/training.yaml).
+[`conf/training.yaml`](conf/training.yaml), with FP32 matmul set to `highest`.
 
 | Dataset | Split | Evaluated languages | Utterances | Accuracy (%) |
 | --- | --- | ---: | ---: | ---: |

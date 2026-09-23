@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 
 from espnet3.systems.esp2_lid.metrics.accuracy import Accuracy
+from espnet3.systems.esp2_lid.metrics.classification_report import ClassificationReport
 
 
 def test_accuracy_matches_voxlingua_scoring(tmp_path: Path):
@@ -22,6 +23,9 @@ def test_accuracy_matches_voxlingua_scoring(tmp_path: Path):
         inference_dir=tmp_path,
     )
 
+    assert result == {"Accuracy": 50.0, "Macro Accuracy": 50.0}
+    assert not (tmp_path / "dev/lid_errors").exists()
+    result.update(ClassificationReport()({"ref": ref, "hyp": hyp}, "dev", tmp_path))
     assert result == {
         "Accuracy": 50.0,
         "Precision": 50.0,

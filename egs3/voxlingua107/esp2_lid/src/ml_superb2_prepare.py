@@ -13,7 +13,20 @@ LID_MAP = {"org_jpn": "jpn", "lga": "lug", "ory": "ori", "arb": "ara"}
 
 
 def normalize_lid(split, uttid, lid):
-    """Follow egs2/ml_superb2/asr1/local/download.py, including dialect labels."""
+    """Follow ESPnet2 ML-SUPERB label normalization, including dialect labels.
+
+    Args:
+        split: Published train, dev or dev_dialect split.
+        uttid: Source utterance ID, used for the ms_speech dialect labels.
+        lid: Source language label.
+
+    Returns:
+        Normalized language code, or None for excluded Norwegian train/dev rows.
+
+    Example:
+        >>> normalize_lid("dev", "sample", "org_jpn")
+        'jpn'
+    """
     lid = lid.strip()
     if split == "dev_dialect" and uttid.startswith("ms_speech_"):
         parts = uttid.split("_")
@@ -26,7 +39,12 @@ def normalize_lid(split, uttid, lid):
 
 
 def main():
-    """Download selected splits and materialize their embedded audio."""
+    """Download selected splits and materialize their embedded audio.
+
+    Example:
+        python -m egs3.voxlingua107.esp2_lid.src.ml_superb2_prepare \
+            --source-dir download/ml_superb2 --output-dir data/ml_superb2
+    """
     argparser = parser(__doc__)
     argparser.add_argument("--source-dir", required=True)
     argparser.add_argument(

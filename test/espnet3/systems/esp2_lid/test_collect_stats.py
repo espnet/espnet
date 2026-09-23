@@ -1,11 +1,10 @@
-"""Tests for the LID-to-ESPnet2 statistics collection adapter."""
+"""Tests for model-free LID statistics and global Dataset IDs."""
 
 from types import SimpleNamespace
 
 import numpy as np
 import pytest
 import soundfile as sf
-import torch
 from omegaconf import OmegaConf
 
 import espnet3.systems.esp2_lid.collect_stats as stats_module
@@ -13,41 +12,12 @@ from espnet2.fileio.read_text import read_2columns_text
 from espnet2.samplers.build_batch_sampler import build_category_batch_sampler
 
 
-def test_collect_speech_shapes_delegates_to_espnet2(tmp_path, monkeypatch):
-    """Forward only indexed speech tensors to the model-free collector."""
-    organizer = SimpleNamespace(
-        train=[{"speech": np.zeros(3, dtype=np.float32), "lid_labels": "eng"}],
-        valid=[{"speech": np.zeros(5, dtype=np.float32), "lid_labels": "jpn"}],
-    )
-    monkeypatch.setattr(stats_module, "instantiate", lambda config: organizer)
-    captured = {}
-    monkeypatch.setattr(stats_module, "collect_stats", lambda **kw: captured.update(kw))
-    config = OmegaConf.create(
-        {"dataset": {}, "dataloader": {}, "stats_dir": str(tmp_path)}
-    )
-
-    stats_module.collect_speech_shapes(config)
-
-    assert captured["model"] is None
-    assert captured["ngpu"] == 0
-    assert captured["write_collected_feats"] is False
-    assert captured["output_dir"] == tmp_path
-    for mode, length in (("train", 3), ("valid", 5)):
-        [(keys, batch)] = list(captured[f"{mode}_iter"])
-        assert keys == ["0"]
-        assert set(batch) == {"speech"}
-        assert isinstance(batch["speech"], torch.Tensor)
-        assert batch["speech"].shape == (1, length)
-
-
 @pytest.mark.parametrize("empty_mode", ["train", "valid"])
 def test_collect_speech_shapes_rejects_empty_dataset(tmp_path, monkeypatch, empty_mode):
-    """Reject empty splits before the ESPnet2 collector writes partial outputs."""
+    """Reject empty splits before the runner writes partial outputs."""
     organizer = SimpleNamespace(train=[{}], valid=[{}])
     setattr(organizer, empty_mode, [])
     monkeypatch.setattr(stats_module, "instantiate", lambda config: organizer)
-    calls = []
-    monkeypatch.setattr(stats_module, "collect_stats", lambda **kw: calls.append(kw))
     config = OmegaConf.create(
         {"dataset": {}, "dataloader": {}, "stats_dir": str(tmp_path)}
     )
@@ -55,13 +25,31 @@ def test_collect_speech_shapes_rejects_empty_dataset(tmp_path, monkeypatch, empt
     with pytest.raises(ValueError, match=f"{empty_mode} dataset is empty"):
         stats_module.collect_speech_shapes(config)
 
-    assert not calls
     assert not list(tmp_path.iterdir())
 
 
-@pytest.mark.parametrize("num_workers", [0, 2])
-def test_combined_category_metadata_matches_shapes(tmp_path, num_workers):
+@pytest.mark.parametrize("num_workers", [1, 2])
+def test_combined_category_metadata_matches_shapes(tmp_path, monkeypatch, num_workers):
     """Use global IDs for real collection and sampling across two source datasets."""
+    # Exercise real Dask workers without submitting nested scheduler jobs.
+    import espnet3.parallel.parallel as parallel_module
+
+    if num_workers > 1:
+        distributed = pytest.importorskip("distributed")
+        Client, LocalCluster = distributed.Client, distributed.LocalCluster
+
+        monkeypatch.setattr(
+            parallel_module,
+            "_build_client",
+            lambda config: Client(
+                LocalCluster(
+                    n_workers=2,
+                    threads_per_worker=1,
+                    processes=True,
+                    dashboard_address=None,
+                )
+            ),
+        )
     entries = []
     for source_index in range(2):
         source = tmp_path / f"source{source_index}"
@@ -96,6 +84,10 @@ def test_combined_category_metadata_matches_shapes(tmp_path, num_workers):
                 for mode in ("train", "valid")
             },
             "stats_dir": str(tmp_path / "stats"),
+            "parallel": {
+                "env": "pbs" if num_workers > 1 else "local",
+                "n_workers": num_workers,
+            },
         }
     )
     stats_module.collect_speech_shapes(config)

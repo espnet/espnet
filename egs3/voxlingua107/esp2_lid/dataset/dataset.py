@@ -65,6 +65,14 @@ class VoxLingua107Dataset(TorchDataset):
         from the manifest. Other splits and their source audio are not required.
         ``speed_perturb_factors`` expands train into one copy per factor. Audio
         is perturbed on read, preserving labels; dev always uses original audio.
+
+        Args:
+            split: Prepared train or dev split.
+            source_dir: Accepted for shared configs; audio paths come from manifests.
+            sample_rate: Expected waveform sample rate, normally 16000.
+            recipe_dir: Recipe root used to locate prepared manifests.
+            data_dir: Explicit metadata root overriding the recipe default.
+            speed_perturb_factors: Training speed factors; default is [1.0].
         """
         self.split = str(split)
         if self.split not in _KNOWN_SPLITS:

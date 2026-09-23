@@ -156,8 +156,31 @@ def test_babel_raw_timestamps(tmp_path, monkeypatch):
         assert ds[i]["lid_labels"] == "asm"
 
 
-def test_voxpopuli_selection_and_archive_download(tmp_path, monkeypatch):
+@pytest.mark.parametrize("parallel", [False, True])
+def test_voxpopuli_selection_and_archive_download(tmp_path, monkeypatch, parallel):
     """Fetch only selected recordings and preserve the ASR bounding interval."""
+    from omegaconf import OmegaConf
+
+    import espnet3.parallel.parallel as parallel_module
+
+    config = OmegaConf.create({"env": "pbs" if parallel else "local", "n_workers": 2})
+    config_path = tmp_path / "parallel.yaml"
+    OmegaConf.save(config, config_path)
+    if parallel:
+        distributed = pytest.importorskip("distributed")
+        monkeypatch.setattr(
+            parallel_module,
+            "_build_client",
+            lambda config: distributed.Client(
+                distributed.LocalCluster(
+                    n_workers=2,
+                    threads_per_worker=1,
+                    processes=True,
+                    dashboard_address=None,
+                )
+            ),
+        )
+    parallel_module.set_parallel(config)
     path = tmp_path / "asr_en.tsv.gz"
     rows = [
         {
@@ -231,6 +254,8 @@ def test_voxpopuli_selection_and_archive_download(tmp_path, monkeypatch):
             "--languages",
             "en",
             "fr",
+            "--parallel-config",
+            str(config_path),
         ],
     )
     voxpopuli_prepare.main()
@@ -241,3 +266,4 @@ def test_voxpopuli_selection_and_archive_download(tmp_path, monkeypatch):
     assert len({example.audio_path for example in ds.examples}) == 3
     assert ds[1]["speech"].mean() == pytest.approx(0.25, abs=0.001)
     assert not np.allclose(ds[0]["speech"], ds[1]["speech"])
+    parallel_module.set_parallel(OmegaConf.create({"env": "local"}))

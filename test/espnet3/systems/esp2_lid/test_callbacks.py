@@ -5,10 +5,7 @@ import pytest
 import torch
 from torch.utils.data import DataLoader
 
-from espnet3.systems.esp2_lid.callbacks import (
-    BestCheckpointLink,
-    ESPnet2MatmulPrecision,
-)
+from espnet3.systems.esp2_lid.callbacks import BestCheckpointLink
 
 
 @pytest.mark.parametrize("interrupt", [False, True])
@@ -41,7 +38,7 @@ def test_best_checkpoint_is_readable_before_training_ends(tmp_path, interrupt):
             assert link.resolve() == Path(checkpoint.best_model_path).resolve()
             saved = torch.load(link, weights_only=True)
             assert saved["epoch"] == min(self.current_epoch, 1)
-            assert torch.get_float32_matmul_precision() == "highest"
+            assert torch.get_float32_matmul_precision() == "high"
             seen.append(self.current_epoch)
             if interrupt:
                 raise RuntimeError("Interrupted after the saved epoch")
@@ -57,7 +54,6 @@ def test_best_checkpoint_is_readable_before_training_ends(tmp_path, interrupt):
         callbacks=[
             checkpoint,
             BestCheckpointLink(str(tmp_path)),
-            ESPnet2MatmulPrecision(),
         ],
     )
     loader = DataLoader([torch.tensor(1.0)])

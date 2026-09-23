@@ -1,9 +1,5 @@
-defaults:
-  - metrics
-  - _self_
-
+# LID metrics embeddings settings.
 inference_dir: ${exp_dir}/inference_embeddings
-
 metrics:
   - metric:
       _target_: espnet3.systems.esp2_lid.metrics.accuracy.Accuracy
@@ -14,3 +10,5 @@ metrics:
     inputs:
       ref: ref
       embedding: embedding
+  - metric:
+      _target_: espnet3.systems.esp2_lid.metrics.classification_report.ClassificationReport

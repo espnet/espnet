@@ -1,13 +1,28 @@
-defaults:
-  - ../../asr/conf/inference
-  - _self_
-
-# Language inventory collected from the combined training datasets.
+# Default LID inference settings.
+recipe_dir: .
+exp_tag: null
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+data_dir: ${recipe_dir}/data
+inference_dir: ${exp_dir}/${self_name:}
+dataset:
+  _target_: espnet3.components.data.data_organizer.DataOrganizer
+  _recursive_: false
+  recipe_dir: ${recipe_dir}
+  test: null
+  preprocessor: null
+parallel:
+  env: local
+  n_workers: 1
+model: null
+input_key: speech
+batch_size: null
+output_fn: null
+provider:
+  _target_: espnet3.systems.base.inference_provider.InferenceProvider
+runner:
+  _target_: espnet3.systems.base.inference_runner.InferenceRunner
 stats_dir: ${recipe_dir}/exp/stats
-
-# LID inference writes the predicted and reference language codes.
 output_keys:
   - hyp
   - ref
 idx_key: utt_id
-batch_size:
