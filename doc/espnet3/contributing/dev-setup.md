@@ -45,7 +45,7 @@ Create a Pixi environment with Python and common system tools:
 
 ```bash
 pixi init
-pixi add python=3.11 pip ffmpeg
+pixi add python=3.11 pip uv ffmpeg
 ```
 
 If your recipe needs extra system packages, add them in the same way:
