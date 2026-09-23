@@ -20,8 +20,8 @@ This page describes the current `training.yaml` used to configure the following 
 | -------------------------------------------------- | -------------- | --------------------------------------------------------------- |
 | `recipe_dir`, `data_dir`, `exp_dir`, ...           | ✅              | path scaffold for outputs and cached assets                     |
 | `num_device`, `num_nodes`                          |                | resource counts for training                                    |
-| `task`                                             | ✅ (or `model`) | ESPnet task entrypoint used to build an ESPnet2-style model     |
-| `model`                                            | ✅ (or `task`)  | Custom model definition                                                            |
+| `task`                                             |                | ESPnet task entrypoint; optional — selects task-loader model resolution instead of direct Hydra instantiation of `model` |
+| `model`                                            | ✅              | Model definition; always required — interpreted as an ESPnet2-style task model when `task` is set, otherwise instantiated directly via Hydra |
 | `create_dataset`                                   |                | dataset builder kwargs used by `create_dataset`                 |
 | `dataset`                                          | ✅              | train and valid dataset definitions resolved by `DataOrganizer` |
 | `tokenizer`                                        |                | tokenizer or text-builder settings                              |
@@ -283,13 +283,17 @@ dataloader:
 
 ### Sharding keys
 
-The TEMPLATE also shows `total_shards` and `dist_world_size` under
-`dataloader.train` / `dataloader.valid`. These are not read from the dataloader
-config — `DataLoaderBuilder._maybe_shard_dataset()` reads `total_shards` /
-`dist_world_size` as attributes of the underlying dataset object instead. Set
-them on the dataset (e.g. via `data_src_args`) as described in
-[Dataset Sharding](../guides/scaling/dataset-sharding.html); leave the
-dataloader-level copies at `1` for a single-shard, non-distributed setup.
+Do not set `total_shards` / `dist_world_size` under `dataloader.train` /
+`dataloader.valid` — `DataLoaderBuilder._maybe_shard_dataset()` reads them as
+attributes of the underlying dataset object instead, so a dataloader-level
+copy is silently ignored in `iter_factory` mode and raises a `TypeError` in
+standard-DataLoader mode (`iter_factory: null`), where leftover
+`dataloader.train`/`dataloader.valid` keys are forwarded straight to
+`torch.utils.data.DataLoader(...)`. Set them on the dataset instead (e.g. via
+`data_src_args`) as described in
+[Dataset Sharding](../guides/scaling/dataset-sharding.html); for a
+single-shard, non-distributed setup, set `total_shards: 1` /
+`dist_world_size: 1` on the dataset side rather than under `dataloader`.
 
 ## `optimizer` / `scheduler`
 

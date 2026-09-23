@@ -13,8 +13,8 @@ to an `inference.yaml` path. For a deeper dive on demo behavior, see the
 [Demo guide](../stages/demo.html).
 
 ```bash
-python run.py --stages pack_demo   --demo_config conf/demo.yaml
-python run.py --stages upload_demo --demo_config conf/demo.yaml
+python run.py --stages pack_demo   --training_config conf/training.yaml --demo_config conf/demo.yaml
+python run.py --stages upload_demo --training_config conf/training.yaml --demo_config conf/demo.yaml
 ```
 
 ## Minimum required keys
