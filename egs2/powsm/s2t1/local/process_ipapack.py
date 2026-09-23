@@ -70,7 +70,7 @@ def main(root_dir, output_dir):
             utt_id = row["utt_id"]
             lang = get_lang(row["lang"])
             text = row["text"]
-            path = row["path"]
+            _path = row["path"]
             ipa_panphon = row["ipa_panphon"]
             ipa_panphon_nosup = row["ipa_panphon_nosup"]
 

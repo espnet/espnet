@@ -106,7 +106,6 @@ def get_duration():
 
     print(len(line_arr1))
 
-    line_arr2 = []
     file1 = open("sox_duration.sh")
     id_dict = {}
     for line in file1:

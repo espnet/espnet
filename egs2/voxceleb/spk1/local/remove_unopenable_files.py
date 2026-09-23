@@ -18,7 +18,7 @@ def main(args):
 
         for scp, u2s in tzip(lines_scp, lines_u2s):
             try:
-                audio = sf.read(scp.strip().split(" ")[1])
+                sf.read(scp.strip().split(" ")[1])
                 f_scp.write(scp)
                 f_u2s.write(u2s)
             except sf.LibsndfileError:

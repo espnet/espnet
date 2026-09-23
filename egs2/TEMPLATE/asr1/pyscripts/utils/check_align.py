@@ -33,6 +33,7 @@ def compare(key, score, label, silence=["<AP>", "<SP>"]):
         g2p_type=args.g2p,
     )
     index = 0
+    pre_phn = None
     for i in range(len(score)):
         syb = score[i][2]
         # multi note in one syllable

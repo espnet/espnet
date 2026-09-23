@@ -49,10 +49,6 @@ def create_score(uid, phns, midis, syb_dur, keep):
     assert len(phns) == len(midis)
     assert len(midis) == len(syb_dur)
     assert len(syb_dur) == len(keep)
-    lyrics_seq = []
-    midis_seq = []
-    segs_seq = []
-    phns_seq = []
     st = 0
     index_phn = 0
     note_list = []

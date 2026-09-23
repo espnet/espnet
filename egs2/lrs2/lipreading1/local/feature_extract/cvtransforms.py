@@ -17,7 +17,7 @@ def CenterCrop(batch_img, size):
 
 
 def RandomCrop(batch_img, size):
-    w, h = batch_img[0][0].shape[1], batch_img[0][0].shape[0]
+    _w, _h = batch_img[0][0].shape[1], batch_img[0][0].shape[0]
     th, tw = size
     img = np.zeros((len(batch_img), len(batch_img[0]), th, tw))
     for i in range(len(batch_img)):

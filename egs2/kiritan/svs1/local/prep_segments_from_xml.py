@@ -175,7 +175,6 @@ def get_parser():
     parser.add_argument(
         "--score_dump", type=str, default="score_dump", help="score dump directory"
     )
-    args = parser.parse_args()
     return parser
 
 

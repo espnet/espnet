@@ -196,7 +196,7 @@ def learn_kmeans(
             inertia,
         )
         c = km_model.predict(feat)
-        r = km_model.cluster_centers_[c]
+        km_model.cluster_centers_[c]
         feat = feat - km_model.cluster_centers_[km_model.predict(feat)]
     logger.info("finished successfully")
 

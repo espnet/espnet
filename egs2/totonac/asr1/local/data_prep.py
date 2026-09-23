@@ -116,23 +116,20 @@ def TraverseData(
     utt2spk = open(os.path.join(target_dir, "utt2spk"), "w", encoding="utf-8")
     spk2utt = open(os.path.join(target_dir, "spk2utt"), "w", encoding="utf-8")
     text = open(os.path.join(target_dir, "text"), "w", encoding="utf-8")
-    name2spk = open(os.path.join(target_dir, "name2spk"), "w", encoding="utf-8")
 
     # get relationship
     sound_files = {}
     annotation_files = {}
-    spk_id = 1
     spk2utt_prep = {}
-    name2spk_prep = {}
 
     wav_spk_info = LoadWavSpeakerInfo(speaker_info)
-    for root, dirs, files in os.walk(sound_dir):
+    for root, _dirs, files in os.walk(sound_dir):
         for file in files:
             if file[-4:] == ".wav":
                 sound_files[ExtractAudioID(file, wav_spk_info)] = os.path.join(
                     root, file
                 )
-    for root, dirs, files in os.walk(annotation_dir):
+    for root, _dirs, files in os.walk(annotation_dir):
         for file in files:
             if file[-4:] == ".eaf":
                 annotation_files[ExtractAudioID(file, wav_spk_info)] = os.path.join(

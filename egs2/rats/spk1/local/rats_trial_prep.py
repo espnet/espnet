@@ -40,6 +40,7 @@ def main(args):
     n_trials = len(d_src2spk) * 20
     batch_size = 100
 
+    spk_keys = list(d_spk2utt.keys())
     random_spks = np.random.choice(spk_keys, size=n_trials)
     class_indices = np.random.randint(0, 2, size=n_trials)
 
@@ -56,7 +57,6 @@ def main(args):
                 unique_trials.append(trial)
         return unique_trials
 
-    spk_keys = list(d_spk2utt.keys())
     dev_set = set(l_dev)
 
     with open(args.out, "w") as f_out:

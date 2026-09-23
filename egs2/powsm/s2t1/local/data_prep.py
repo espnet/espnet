@@ -365,7 +365,7 @@ def write_dir(target_dir, transcripts):
         open(target_dir / "text.asr", "w", encoding="utf-8") as prompt,
     ):
         for _, row in transcripts.iterrows():
-            utt_id, old_utt_id, path, ipa_original, ipa, ipa_nosup, orthography = (
+            utt_id, _old_utt_id, path, ipa_original, ipa, ipa_nosup, orthography = (
                 row["utt_id"],
                 row["old_utt_id"],
                 row["path"],

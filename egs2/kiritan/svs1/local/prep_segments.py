@@ -145,6 +145,7 @@ def compare(key, score, label):
     )
     index = 0
     val = []
+    pre_phn = None
     for i in range(len(score)):
         syb = score[i][2]
         if syb == "—":
