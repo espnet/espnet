@@ -264,8 +264,23 @@ def split_ref(
     raise ScanError(f"no such ref in {NOTEBOOK_REPO}: {ref} (from {ref}/{path})")
 
 
+# A Space this repository holds the source of, but which has not been
+# uploaded yet. Its card names the release it needs, a Space installs espnet
+# from PyPI, and the cards say plainly that an upload before that release
+# replaces a working demo with a broken one - so until the release is out,
+# the Space being absent is the rule working, not a broken link.
+ABSENT = "NOT PUBLISHED"
+
+
 def space_stage(space_id: str) -> str:
-    d = _get_json(f"https://huggingface.co/api/spaces/{space_id}")
+    try:
+        d = _get_json(f"https://huggingface.co/api/spaces/{space_id}")
+    except ScanError as e:
+        # the Hub answers 401 for a Space that does not exist, so that a
+        # private one cannot be told from a missing one
+        if " HTTP 401" in str(e):
+            return ABSENT
+        raise
     if d is None:
         return "DELETED"
     runtime = d.get("runtime")
@@ -283,9 +298,46 @@ SPACE_CARD_LIMITS = {"short_description": 60, "title": 100}
 SPACE_CARD_REQUIRED = ("title", "sdk", "app_file")
 
 
+def awaiting_release(path: str, text: str, root: str = ".") -> Optional[str]:
+    """The espnet release a Space card is waiting for, if it is not out yet.
+
+    A card names the Space it will be uploaded to before that Space exists -
+    that is the order the cards themselves prescribe. This says which release
+    the directory pins and whether PyPI has it, so an absent Space can be
+    reported as pending rather than as a broken link.
+    """
+    pinned = None
+    requirements = os.path.join(root, os.path.dirname(path), "requirements.txt")
+    try:
+        with open(requirements, encoding="utf-8") as f:
+            for line in f:
+                match = re.match(r"\s*espnet(\[[a-z,]+\])?>=(?P<version>\S+)", line)
+                if match:
+                    pinned = match.group("version")
+                    break
+    except OSError:
+        return None
+    if pinned is None:
+        return None
+    released = _get_json(f"https://pypi.org/pypi/espnet/{pinned}/json")
+    return None if released else pinned
+
+
+def space_ids_in(text: str) -> Set[str]:
+    """The Spaces a card names, which for its own card is where it will go."""
+    return {f"{m.group('owner')}/{m.group('name')}" for m in SPACE_LINK.finditer(text)}
+
+
+# `demo/` is one Space in a recipe, `demo_align/` a second one beside it -
+# a recipe whose model serves two demos of different shapes. Matching only
+# `/demo/` left the second card unchecked: neither its front matter, which
+# the Hub refuses silently, nor the Space it names.
+DEMO_DIR = re.compile(r"/demo(_[a-z0-9]+)?/")
+
+
 def space_cards(names: List[str]) -> List[str]:
     """Paths of the Space READMEs among the tracked files."""
-    return [p for p in names if p.endswith("README.md") and "/demo/" in f"/{p}"]
+    return [p for p in names if p.endswith("README.md") and DEMO_DIR.search(f"/{p}")]
 
 
 def check_space_card(path: str, text: str, root: str = ".") -> List[str]:
@@ -372,8 +424,24 @@ def scan() -> List[str]:
             where = ", ".join(sorted(notebooks[(ref, path)]))
             at = "" if real_ref == "master" else f" at {real_ref}"
             broken.append(f"notebook gone{at}: {real_path}  (linked from {where})")
+    # a Space whose source is here and whose card pins a release PyPI does
+    # not have cannot have been uploaded yet
+    pending = {}
+    for path in space_cards(names):
+        waiting = awaiting_release(path, texts.get(path, ""), root)
+        if waiting:
+            for space_id in space_ids_in(texts.get(path, "")):
+                pending[space_id] = (waiting, path)
     for space_id in sorted(spaces):
         stage = space_stage(space_id)
+        if stage == ABSENT and space_id in pending:
+            waiting, card = pending[space_id]
+            print(
+                f"not published yet: {space_id} waits for espnet {waiting} "
+                f"({card} says so)",
+                file=sys.stderr,
+            )
+            continue
         if stage not in WORKING_STAGES:
             where = ", ".join(sorted(spaces[space_id]))
             broken.append(f"space {stage}: {space_id}  (linked from {where})")
