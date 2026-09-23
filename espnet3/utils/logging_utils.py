@@ -459,11 +459,11 @@ def log_run_metadata(
         [hostname] 2026-02-11 03:57:16 EST (run.py:244) INFO: [train] \
             Working directory: /path/to/espnet3/egs3/librispeech_100/esp2_asr
         [hostname] 2026-02-11 03:57:16 EST (run.py:244) INFO:	[train] \
-            train config: /path/to/espnet3/egs3/librispeech_100/esp2_asr/conf/train.yaml
+            train config: /path/to/egs3/librispeech_100/esp2_asr/conf/train.yaml
         [hostname] 2026-02-11 03:57:16 EST (run.py:244) INFO:	[train] \
-            infer config: /path/to/espnet3/egs3/librispeech_100/esp2_asr/conf/inference.yaml
+            infer config: /path/to/egs3/librispeech_100/esp2_asr/conf/inference.yaml
         [hostname] 2026-02-11 03:57:16 EST (run.py:244) INFO:	[train] \
-            measure config: /path/to/espnet3/egs3/librispeech_100/esp2_asr/conf/measure.yaml
+            measure config: /path/to/egs3/librispeech_100/esp2_asr/conf/measure.yaml
         [hostname] 2026-02-11 03:57:17 EST (run.py:244) INFO:	[train] \
             Git: commit=..., short_commit=..., branch=master, worktree=clean
         ```
