@@ -237,7 +237,7 @@ class CEMOESSystem(ASRSystem):
         original = self.training_config
         self.training_config = self.training_easy_config
         try:
-            return train(self.training_config)
+            return super().train()
         finally:
             self.training_config = original
 
@@ -245,7 +245,7 @@ class CEMOESSystem(ASRSystem):
         original = self.training_config
         self.training_config = self.training_full_config
         try:
-            return train(self.training_config)
+            return super().train()
         finally:
             self.training_config = original
 ```
