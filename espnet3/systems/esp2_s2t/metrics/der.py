@@ -24,7 +24,6 @@ from typing import Dict, List, Tuple
 
 from espnet2.text.cleaner import TextCleaner
 from espnet3.components.metrics.base_metric import BaseMetric
-
 from espnet3.systems.esp2_s2t.metrics.cpwer import split_speakers
 
 logger = logging.getLogger(__name__)
