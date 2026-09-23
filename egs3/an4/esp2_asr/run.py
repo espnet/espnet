@@ -1,12 +1,12 @@
 """Run the full AN4 Sinc-BLSTMP recipe using the shared ASR entrypoint."""
 
-from egs3.TEMPLATE.asr.run import (
+from egs3.TEMPLATE.esp2_asr.run import (
     DEFAULT_STAGES,
     build_parser,
     main,
     parse_cli_and_stage_args,
 )
-from espnet3.systems.asr.system import ASRSystem
+from espnet3.systems.esp2_asr.system import ASRSystem
 
 if __name__ == "__main__":
     parser = build_parser(stages=DEFAULT_STAGES)

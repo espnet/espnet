@@ -1,8 +1,0 @@
-metrics:
-  - metric:
-      _target_: espnet3.systems.asr.metrics.wer.WER
-  - metric:
-      _target_: espnet3.systems.asr.metrics.cer.CER
-  - metric:
-      _target_: espnet3.systems.asr.metrics.ter.TER
-      bpemodel: ${recipe_dir}/data/unigram_30/unigram.model

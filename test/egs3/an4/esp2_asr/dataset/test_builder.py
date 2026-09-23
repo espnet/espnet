@@ -6,12 +6,12 @@ import numpy as np
 import pytest
 import soundfile as sf
 
-from egs3.an4.asr.dataset import Dataset, DatasetBuilder
-from egs3.an4.asr.dataset.builder import read_manifest
-from egs3.an4.asr.src.tokenizer import gather_training_text
+from egs3.an4.esp2_asr.dataset import Dataset, DatasetBuilder
+from egs3.an4.esp2_asr.dataset.builder import read_manifest
+from egs3.an4.esp2_asr.src.tokenizer import gather_training_text
 
 ROOT = Path(__file__).resolve().parents[5]
-RECIPE = ROOT / "egs3/an4/asr"
+RECIPE = ROOT / "egs3/an4/esp2_asr"
 
 
 def test_checks_are_read_only(tmp_path):
@@ -121,7 +121,7 @@ def test_download_extraction_and_lm_text(corpus, tmp_path, monkeypatch):
     import shutil
     import tarfile
 
-    from egs3.an4.asr.dataset import builder as module
+    from egs3.an4.esp2_asr.dataset import builder as module
 
     archive = tmp_path / "fixture.tar.gz"
     with tarfile.open(archive, "w:gz") as stream:

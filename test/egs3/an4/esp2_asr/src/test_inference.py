@@ -4,10 +4,10 @@ from pathlib import Path
 
 import pytest
 
-from egs3.an4.asr.src.inference import build_output
+from egs3.an4.esp2_asr.src.inference import build_output
 
 ROOT = Path(__file__).resolve().parents[5]
-RECIPE = ROOT / "egs3/an4/asr"
+RECIPE = ROOT / "egs3/an4/esp2_asr"
 
 
 def test_output_pairs_single_and_batched_references():

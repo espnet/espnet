@@ -7,7 +7,7 @@ import pytest
 import soundfile as sf
 
 ROOT = Path(__file__).resolve().parents[4]
-RECIPE = ROOT / "egs3/an4/asr"
+RECIPE = ROOT / "egs3/an4/esp2_asr"
 
 
 @pytest.fixture

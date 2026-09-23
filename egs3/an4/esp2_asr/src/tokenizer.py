@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from egs3.an4.asr.dataset.builder import read_manifest
+from egs3.an4.esp2_asr.dataset.builder import read_manifest
 
 
 def gather_training_text(manifest_path):

@@ -1,0 +1,36 @@
+# Inference through the shared ESPnet3 runner and Speech2Text beam search.
+# run.py inherits exp_dir from --training_config; outputs use this file's stem.
+# Each named dataset below creates a separate hypothesis/reference directory.
+dataset:
+  test:
+    - name: valid
+      data_src_args:
+        split: valid
+        recipe_dir: ${recipe_dir}
+    - name: test
+      data_src_args:
+        split: test
+        recipe_dir: ${recipe_dir}
+
+# Use the shared ASR checkpoint average and the LM trained by run_lm.py.
+# For a short smoke run with fewer retained checkpoints, explicitly select
+# the actual ave_Nbest.pth file. CPU is the default inference device only.
+model:
+  _target_: espnet2.bin.asr_inference.Speech2Text
+  asr_train_config: ${exp_dir}/config.yaml
+  asr_model_file: ${exp_dir}/valid.acc.ave_1best.pth
+  device: cpu
+  # Beam width and CTC/LM interpolation preserve the source ASR recipe.
+  beam_size: 10
+  ctc_weight: 0.3
+  lm_weight: 0.1
+  lm_train_config: ${recipe_dir}/exp/lm/config.yaml
+  lm_file: ${recipe_dir}/exp/lm/valid.loss.ave_1best.pth
+  penalty: 0.0
+  maxlenratio: 0.0
+  minlenratio: 0.0
+
+# RNN beam search decodes one utterance per call.
+batch_size: null
+# Format the first hypothesis and reference for the shared WER/CER/TER stage.
+output_fn: egs3.an4.esp2_asr.src.inference.build_output

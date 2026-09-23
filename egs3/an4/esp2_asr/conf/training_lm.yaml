@@ -1,0 +1,93 @@
+# ESPnet3 LMSystem configuration; shares the ASR tokenizer for shallow fusion.
+# Prepare data with src.language_model, then run run_lm.py collect_stats/train.
+# Source: egs2/an4/asr1/conf/train_lm.yaml.
+
+# Paths are relative to the recipe directory, independently of the ASR exp_tag.
+task: espnet3.systems.esp2_asr.lm_task.LMTask
+num_device: 1
+seed: 0
+exp_tag: lm
+exp_dir: ${recipe_dir}/exp/lm
+stats_dir: ${exp_dir}/stats
+tokenizer_dir: ${data_dir}/unigram_30
+train_text: ${data_dir}/lm/train.txt
+valid_text: ${data_dir}/lm/valid.txt
+
+# The preparation command writes lm_train.txt, preserving source text before
+# ASR duration filtering. DataOrganizer handles preprocessing and batching.
+dataset:
+  train:
+  - data_src: espnet3.systems.esp2_asr.lm_dataset
+    data_src_args:
+      text_path: ${exp_dir}/lm_train.txt
+  valid:
+  - data_src: espnet3.systems.esp2_asr.lm_dataset
+    data_src_args:
+      text_path: ${valid_text}
+  preprocessor:
+    _target_: espnet2.train.preprocessor.CommonPreprocessor
+    token_type: bpe
+    token_list: ${tokenizer_dir}/tokens.txt
+    bpemodel: ${tokenizer_dir}/unigram.model
+    text_cleaner: null
+
+# Only model construction uses the copied LMTask. LMSystem.train delegates to
+# the existing ESPnet3 Lightning trainer; no ESPnet2 training CLI is launched.
+model:
+  token_list: ${tokenizer_dir}/tokens.txt
+  lm: seq_rnn
+  lm_conf:
+    unit: 650
+    nlayers: 2
+
+# Source optimizer/scheduler settings. Zero weight decay overrides TEMPLATE.
+optimizer:
+  lr: 0.1
+  weight_decay: 0.0
+# The public trainer requires a scheduler; factor 1 preserves the source
+# fixed learning rate without changing the optimizer or shared trainer.
+# Node interpolation replaces TEMPLATE warmup arguments instead of merging.
+scheduler: ${constant_scheduler}
+constant_scheduler:
+  _target_: torch.optim.lr_scheduler.ConstantLR
+  factor: 1.0
+  total_iters: 1
+
+# Select the lowest validation loss using the shared checkpoint callback.
+# Speech2Text consumes config.yaml and valid.loss.ave_Nbest.pth directly.
+best_model_criterion:
+- - valid/loss
+  - 1
+  - min
+
+# collect_stats writes token lengths with a vocabulary-size dimension for
+# numel accounting. Pad ID 0 is the source LM model's ignored token.
+dataloader:
+  collate_fn:
+    int_pad_value: 0
+  train:
+    iter_factory:
+      seed: ${seed}
+      num_workers: 1
+      batches:
+        sort_batch: descending
+        shape_files:
+        - ${stats_dir}/train/text_shape
+        type: folded
+        batch_size: 256
+        fold_lengths: [150]
+  valid:
+    iter_factory:
+      seed: ${seed}
+      num_workers: 1
+      batches:
+        sort_batch: descending
+        shape_files:
+        - ${stats_dir}/valid/text_shape
+        fold_lengths: [150]
+
+# Source training budget; normal Lightning validation/AMP/accumulation apply.
+# To resume, set fit.ckpt_path to the existing exp/lm/last.ckpt explicitly.
+trainer:
+  max_epochs: 40
+  gradient_clip_val: 5.0

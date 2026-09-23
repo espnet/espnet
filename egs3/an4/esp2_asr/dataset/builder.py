@@ -248,6 +248,7 @@ class An4Builder(DatasetBuilder):
             raise FileNotFoundError("Run prepare_source before building AN4")
         if shutil.which("sox") is None:
             raise RuntimeError("SoX is required for the original speed perturbation")
+        # Split the sorted original training IDs before speed perturbation.
         training = self._transcripts(source, "train")
         ndev = signature["dev_size"]
         if not 0 < ndev < len(training):
@@ -261,6 +262,7 @@ class An4Builder(DatasetBuilder):
         }
         marker = root / "data/manifest/build.json"
         marker.unlink(missing_ok=True)
+        # Only training recordings receive the source 0.9/1.0/1.1 speeds.
         for split, rows in splits.items():
             output = root / "data/wav" / split
             output.mkdir(parents=True, exist_ok=True)
@@ -293,6 +295,7 @@ class An4Builder(DatasetBuilder):
                         )
                     if split != "train" or text.strip():
                         lm_text.append((item_id, text))
+                    # Preserve LM text before filtering ASR train/valid audio.
                     duration = sf.info(waveform).duration
                     if split == "test" or (
                         CONFIG["min_duration"] < duration < CONFIG["max_duration"]
@@ -311,4 +314,5 @@ class An4Builder(DatasetBuilder):
                     f"{uid}\t{path}\t{text}\n" for uid, path, text in sorted(prepared)
                 ),
             )
+        # Publish the build marker after every split has been written.
         atomic_write(marker, json.dumps(signature, indent=2) + "\n")

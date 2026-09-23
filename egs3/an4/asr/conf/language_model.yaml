@@ -1,9 +1,0 @@
-# LM parameters are copied unchanged from egs2/an4/asr1/conf/train_lm.yaml.
-recipe_dir: .
-native_config: ${recipe_dir}/conf/lm_native.yaml
-tokenizer_dir: ${recipe_dir}/data/unigram_30
-exp_dir: ${recipe_dir}/exp/lm
-train_text: ${recipe_dir}/data/lm/train.txt
-valid_text: ${recipe_dir}/data/lm/valid.txt
-test_text: ${recipe_dir}/data/lm/valid.txt
-ngpu: 1

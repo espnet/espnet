@@ -9,7 +9,7 @@ from hydra.utils import instantiate
 from espnet3.utils.config_utils import load_and_merge_config
 
 ROOT = Path(__file__).resolve().parents[5]
-RECIPE = ROOT / "egs3/an4/asr"
+RECIPE = ROOT / "egs3/an4/esp2_asr"
 
 
 def test_source_model_and_optimizer_equivalence():
@@ -70,7 +70,7 @@ def test_model_matches_espnet2_initial_state():
     torch.manual_seed(0)
     original = get_espnet_model("espnet2.tasks.asr.ASRTask", source)
     torch.manual_seed(0)
-    migrated = get_espnet_model("espnet3.systems.asr.task.ASRTask", target)
+    migrated = get_espnet_model("espnet3.systems.esp2_asr.task.ASRTask", target)
     assert original.ctc_weight == migrated.ctc_weight == 0.5
     before, after = original.state_dict(), migrated.state_dict()
     assert before.keys() == after.keys()
