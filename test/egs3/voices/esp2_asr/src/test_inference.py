@@ -2,7 +2,7 @@
 
 import pytest
 
-from egs3.voices.asr.src.inference import build_output
+from egs3.voices.esp2_asr.src.inference import build_output
 
 
 def test_output_alignment_and_empty_prediction():

@@ -4,8 +4,8 @@ import numpy as np
 import pytest
 import soundfile as sf
 
-from egs3.voices.asr.dataset import Dataset, DatasetBuilder
-from egs3.voices.asr.dataset.builder import SPLITS
+from egs3.voices.esp2_asr.dataset import Dataset, DatasetBuilder
+from egs3.voices.esp2_asr.dataset.builder import SPLITS
 
 
 def test_waveforms_and_condition_selection(corpus):

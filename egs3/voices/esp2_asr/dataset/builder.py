@@ -345,9 +345,11 @@ class VoicesBuilder(DatasetBuilder):
         if self.is_built(recipe_dir, source_dir, corpus):
             return
         root = resolve_source_root(recipe_dir, source_dir, corpus)
+        # Resolve original transcripts before joining source/distant recordings.
         transcripts = _load_transcripts(root)
         train = _scan_recordings(root, "train", transcripts, corpus)
         test = _scan_recordings(root, "test", transcripts, corpus)
+        # Reserve the first ten lexical speakers, keeping conditions together.
         speakers = sorted({row["speaker"] for row in train})
         dev_count = int(_BUILDER_CFG["dev_speakers"])
         if len(speakers) <= dev_count:
@@ -358,6 +360,7 @@ class VoicesBuilder(DatasetBuilder):
         rate = int(_BUILDER_CFG["sample_rate"])
         minimum = int(_BUILDER_CFG["min_duration"] * rate)
         maximum = int(_BUILDER_CFG["max_duration"] * rate)
+        # Apply the original duration bounds to train/valid only.
         selected = [row for row in train if minimum < row["samples"] < maximum]
         splits = {
             "train": [row for row in selected if row["speaker"] not in valid_speakers],
@@ -367,6 +370,7 @@ class VoicesBuilder(DatasetBuilder):
         manifest = Path(recipe_dir).resolve() / "data/manifest"
         manifest.mkdir(parents=True, exist_ok=True)
         (manifest / "build.json").unlink(missing_ok=True)
+        # Tokenizer and LM text retain the original pre-filter utterances.
         original_splits = {
             "train": [row for row in train if row["speaker"] not in valid_speakers],
             "valid": [row for row in train if row["speaker"] in valid_speakers],
@@ -385,6 +389,7 @@ class VoicesBuilder(DatasetBuilder):
                     if row["text"].strip()
                 ),
             )
+        # Publish each manifest atomically; fingerprints detect stale outputs.
         hashes = {}
         for split, rows in splits.items():
             if not rows or len({row["utt_id"] for row in rows}) != len(rows):
@@ -399,6 +404,7 @@ class VoicesBuilder(DatasetBuilder):
                 writer.writerows(rows)
             temporary.replace(path)
             hashes[split] = _manifest_digest(path)
+        # Write the completion marker only after all outputs succeeded.
         write_text(
             manifest / "build.json",
             json.dumps(

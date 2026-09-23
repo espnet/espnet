@@ -3,9 +3,9 @@
 import numpy as np
 import soundfile as sf
 
-from egs3.voices.asr.dataset import DatasetBuilder
-from egs3.voices.asr.dataset.builder import read_manifest
-from egs3.voices.asr.src.tokenizer import gather_training_text
+from egs3.voices.esp2_asr.dataset import DatasetBuilder
+from egs3.voices.esp2_asr.dataset.builder import read_manifest
+from egs3.voices.esp2_asr.src.tokenizer import gather_training_text
 
 
 def test_tokenizer_and_lm_keep_pre_filter_text(corpus):

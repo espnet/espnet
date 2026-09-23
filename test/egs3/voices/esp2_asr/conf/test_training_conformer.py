@@ -11,7 +11,7 @@ from omegaconf import OmegaConf
 from espnet3.utils.config_utils import load_and_merge_config
 
 ROOT = Path(__file__).resolve().parents[5]
-RECIPE = ROOT / "egs3/voices/asr"
+RECIPE = ROOT / "egs3/voices/esp2_asr"
 
 
 def test_model_and_training_settings_match_source():
@@ -70,7 +70,26 @@ def test_model_matches_native_espnet2_initial_state():
     torch.manual_seed(0)
     before = get_espnet_model("espnet2.tasks.asr.ASRTask", original).state_dict()
     torch.manual_seed(0)
-    after = get_espnet_model("espnet3.systems.asr.task.ASRTask", migrated).state_dict()
+    after = get_espnet_model(
+        "espnet3.systems.esp2_asr.task.ASRTask", migrated
+    ).state_dict()
     assert before.keys() == after.keys()
     for name in before:
         torch.testing.assert_close(before[name], after[name], rtol=0, atol=0)
+
+
+def test_devkit_config_is_self_contained():
+    """Keep full/devkit settings equivalent without a sibling defaults lookup."""
+    full = load_and_merge_config(
+        RECIPE / "conf/training_conformer.yaml", "training.yaml", resolve=False
+    )
+    devkit = load_and_merge_config(
+        RECIPE / "conf/training_devkit.yaml", "training.yaml", resolve=False
+    )
+    assert "defaults" not in yaml.safe_load(
+        (RECIPE / "conf/training_devkit.yaml").read_text()
+    )
+    assert devkit.create_dataset.corpus == "devkit"
+    devkit.create_dataset.corpus = full.create_dataset.corpus
+    devkit.exp_tag = full.exp_tag
+    assert OmegaConf.to_container(devkit) == OmegaConf.to_container(full)

@@ -1,6 +1,0 @@
-# Original model/training parameters with the source recipe's devkit mode.
-defaults:
-  - training_conformer
-  - _self_
-create_dataset:
-  corpus: devkit

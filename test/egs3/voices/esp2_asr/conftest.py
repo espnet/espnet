@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 import soundfile as sf
 
-from egs3.voices.asr.dataset import builder as module
+from egs3.voices.esp2_asr.dataset import builder as module
 
 
 @pytest.fixture

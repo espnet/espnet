@@ -9,8 +9,8 @@ import numpy as np
 import pytest
 import soundfile as sf
 
-from egs3.voices.asr.dataset import DatasetBuilder
-from egs3.voices.asr.dataset import builder as module
+from egs3.voices.esp2_asr.dataset import DatasetBuilder
+from egs3.voices.esp2_asr.dataset import builder as module
 
 
 def test_checks_are_read_only(tmp_path):

@@ -1,12 +1,20 @@
+# Self-contained devkit training configuration: no sibling-YAML inheritance.
+# Model/training settings match training_conformer.yaml; only corpus changes.
+# The small devkit needs explicit 1000-piece tokenizer/path overrides; the
+# source 5000-piece vocabulary below remains the full-release model default.
 # Port of egs2/voices/asr1/conf/train_asr_conformer.yaml.
 # Source + distant single-channel recordings; devkit is an explicit override.
-task: espnet3.systems.asr.task.ASRTask
+# ESPnet2-derived model construction inside the existing ESPnet3 ASRSystem.
+task: espnet3.systems.esp2_asr.task.ASRTask
 num_device: 4
 seed: 0
 stats_dir: ${recipe_dir}/exp/stats_conformer
+# Build the source data split and transcripts before statistics/training.
 create_dataset:
   recipe_dir: ${recipe_dir}
-  corpus: full
+  corpus: devkit
+# DataOrganizer supplies the public preprocessing and data-loader interfaces.
+# Local Dataset accepts only the data_src_args below; it returns speech/text.
 dataset:
   train:
   - data_src_args:
@@ -23,13 +31,17 @@ dataset:
     bpemodel: ${tokenizer.save_path}/unigram.model
     text_cleaner: null
     fs: 16000
+# Train SentencePiece on the original, pre-duration-filter training text.
+# The token list is also reused by the shallow-fusion LM.
 tokenizer:
   vocab_size: 5000
   model_type: unigram
   save_path: ${data_dir}/unigram_5000
   text_builder:
-    func: egs3.voices.asr.src.tokenizer.gather_training_text
+    func: egs3.voices.esp2_asr.src.tokenizer.gather_training_text
     text_path: ${data_dir}/manifest/tokenizer_train.txt
+# Preserve the source acoustic model, decoder, and loss/augmentation settings.
+# GlobalMVN reads statistics collected in a separate run.py invocation.
 model:
   token_list: ${tokenizer.save_path}/tokens.txt
   normalize: global_mvn
@@ -39,6 +51,7 @@ model:
     n_fft: 512
     hop_length: 160
   encoder: conformer
+  # Encoder depth, hidden size, and source regularization.
   encoder_conf:
     output_size: 512
     attention_heads: 8
@@ -57,6 +70,7 @@ model:
     use_cnn_module: true
     cnn_module_kernel: 31
   decoder: transformer
+  # Autoregressive attention decoder used with the CTC branch.
   decoder_conf:
     attention_heads: 8
     linear_units: 2048
@@ -65,11 +79,13 @@ model:
     positional_dropout_rate: 0.1
     self_attention_dropout_rate: 0.1
     src_attention_dropout_rate: 0.1
+  # Joint CTC/attention training objective and label smoothing.
   model_conf:
     ctc_weight: 0.3
     lsm_weight: 0.1
     length_normalized_loss: false
   specaug: specaug
+  # Training-only frequency/time masking and time warping.
   specaug_conf:
     apply_time_warp: true
     time_warp_window: 5
@@ -84,14 +100,19 @@ model:
     - 0.0
     - 0.05
     num_time_mask: 10
+# Source optimizer hyperparameters; remaining defaults come from TEMPLATE.
 optimizer:
   lr: 0.0025
+# Advance the source learning-rate schedule through the shared trainer.
 scheduler:
   warmup_steps: 40000
+# Average the best validation-accuracy checkpoints with the shared callback.
 best_model_criterion:
 - - valid/acc
   - 10
   - max
+# Shapes describe frontend features rather than raw waveform/text lengths.
+# Batch construction and distribution follow the public ESPnet3 data loader.
 dataloader:
   train:
     iter_factory:
@@ -112,6 +133,7 @@ dataloader:
         sort_batch: descending
         shape_files:
         - ${stats_dir}/valid/feats_shape
+# Ordinary Lightning training: native GPU CTC and default validation checks.
 trainer:
   precision: bf16-mixed
   gradient_clip_val: 5.0

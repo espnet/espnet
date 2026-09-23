@@ -5,7 +5,7 @@ from pathlib import Path
 import soundfile as sf
 from torch.utils.data import Dataset as TorchDataset
 
-from .builder import RECIPE_ROOT, SPLITS, read_manifest
+from egs3.voices.esp2_asr.dataset.builder import RECIPE_ROOT, SPLITS, read_manifest
 
 
 class VoicesDataset(TorchDataset):
