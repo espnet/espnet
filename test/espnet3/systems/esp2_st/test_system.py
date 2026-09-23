@@ -160,22 +160,32 @@ def test_train_tokenizer_requires_a_configured_side(tmp_path: Path):
 
 
 def test_gather_texts_reuses_an_existing_training_file(tmp_path: Path):
-    system = _system(tmp_path)
-    system.training_config = OmegaConf.create(
-        {
-            "tokenizer": dict(system.training_config.tokenizer),
-            "stats_dir": str(tmp_path / "stats"),
-            "data_dir": str(tmp_path / "data"),
-        }
-    )
-    train_path = tmp_path / "data" / "train_tokenizer" / "tgt.txt"
+    train_path = tmp_path / "train_tokenizer" / "tgt.txt"
     train_path.parent.mkdir(parents=True, exist_ok=True)
     train_path.write_text("erste zeile\nzweite zeile\n", encoding="utf-8")
+    side = {
+        "vocab_size": 8,
+        "model_type": "bpe",
+        "save_path": str(tmp_path / "bpe_tgt"),
+        "train_file": str(train_path),
+    }
+    system = STSystem.__new__(STSystem)
+    system.training_config = OmegaConf.create({"tokenizer": {"tgt": side}})
 
     path, texts = system._gather_texts("tgt", system.training_config.tokenizer.tgt)
 
     assert path == train_path
     assert texts == ["erste zeile", "zweite zeile"]
+
+
+def test_gather_texts_requires_train_file(tmp_path: Path):
+    """The path is declared in config, never derived from data_dir."""
+    side = {"vocab_size": 8, "model_type": "bpe", "save_path": str(tmp_path / "b")}
+    system = STSystem.__new__(STSystem)
+    system.training_config = OmegaConf.create({"tokenizer": {"tgt": side}})
+
+    with pytest.raises(RuntimeError, match="train_file is required"):
+        system._gather_texts("tgt", system.training_config.tokenizer.tgt)
 
 
 def test_gather_texts_refuses_to_reuse_when_disallowed(tmp_path: Path):
@@ -207,7 +217,7 @@ def test_gather_texts_runs_a_text_builder(tmp_path: Path, monkeypatch):
         "model_type": "bpe",
         "save_path": str(tmp_path / "bpe_tgt"),
         "train_file": str(tmp_path / "built.txt"),
-        "text_builder": {"func": "fake_builder.build", "tgt_lang": "de"},
+        "text_builder": {"_target_": "fake_builder.build", "tgt_lang": "de"},
     }
     system = STSystem.__new__(STSystem)
     system.training_config = OmegaConf.create({"tokenizer": {"tgt": side}})
@@ -228,7 +238,7 @@ def test_gather_texts_rejects_an_empty_builder_result(tmp_path: Path, monkeypatc
         "model_type": "bpe",
         "save_path": str(tmp_path / "bpe_tgt"),
         "train_file": str(tmp_path / "built.txt"),
-        "text_builder": {"func": "empty_builder.build"},
+        "text_builder": {"_target_": "empty_builder.build"},
     }
     system = STSystem.__new__(STSystem)
     system.training_config = OmegaConf.create({"tokenizer": {"tgt": side}})

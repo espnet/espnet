@@ -142,13 +142,21 @@ a like-for-like deficit -- treat it as indicative rather than a target.
 ```python
 from egs3.must_c.esp2_st.dataset import Dataset, DatasetBuilder
 
+# The Dataset reads the HF cache and nothing else; it builds the cache on
+# first use if it is missing. `--stages create_dataset` does the same thing.
+cache = {"enabled": True, "backend": "hf", "cache_dir": "data/hf/en_de"}
+
 builder = DatasetBuilder()
-assert builder.is_source_prepared(recipe_dir=".")
+if not builder.is_built(recipe_dir=".", cache=cache):
+    builder.build(recipe_dir=".", cache=cache, tgt_lang="de")
 
 # tgt_lang="de" reproduces egs2. Omitting it takes the builder default
 # `all`, which aggregates every installed pair -- dev is then 17,740
 # examples over 14 pairs instead of en-de's 1,423.
-train = Dataset(split="train", recipe_dir=".", tgt_lang="de")   # 229,703
-test = Dataset(split="test", recipe_dir=".", tgt_lang="de")     # 2,641, aliased
-                                                                # to tst-COMMON
+#
+# Lengths are post-filter: the cache holds the corpus as released (229,703
+# train segments) and the Dataset drops the ones st.sh stage 4 would.
+train = Dataset(split="train", recipe_dir=".", cache=cache, tgt_lang="de")  # 220,466
+test = Dataset(split="test", recipe_dir=".", cache=cache, tgt_lang="de")    # 2,641,
+                                                            # aliased to tst-COMMON
 ```

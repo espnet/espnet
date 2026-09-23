@@ -11,9 +11,16 @@ from __future__ import annotations
 
 import logging
 import os
+import re
+from dataclasses import dataclass
+from functools import lru_cache
 from importlib import resources
 from pathlib import Path
 from typing import Iterable
+
+import numpy as np
+import soundfile as sf
+import yaml
 
 from espnet3.components.data.dataset_builder import DatasetBuilder
 from espnet3.utils.config_utils import load_config_with_defaults
@@ -38,45 +45,10 @@ REQUIRED_SPLITS: tuple[str, ...] = tuple(str(s) for s in _CFG["required_splits"]
 SOURCE_ENV_VAR = str(_CFG["source_env_var"])
 DATASET_PATH = str(_CFG.get("dataset_path", "download"))
 
-# Long/short filtering (egs2 st.sh stage 4). st.sh keeps the unfiltered index
-# at ${data_feats}/org/<dset>; the HF cache here is that `org` side, and the
-# Dataset applies the bounds when it reads it. See dataset/config.yaml.
-_FILTER_CFG = _CONFIG["filter"]
-MIN_WAV_DURATION = float(_FILTER_CFG["min_wav_duration"])
-MAX_WAV_DURATION = float(_FILTER_CFG["max_wav_duration"])
-FILTERED_SPLITS: tuple[str, ...] = tuple(str(s) for s in _FILTER_CFG["splits"])
-FILTER_TOKENIZER_TEXT = bool(_FILTER_CFG["apply_to_tokenizer_text"])
-
-
-def split_is_filtered(split: str) -> bool:
-    """Whether ``split`` is one st.sh would trim (train and valid, not test)."""
-    return str(split) in FILTERED_SPLITS
-
-
-def keep_duration(duration: float) -> bool:
-    """Reproduce st.sh's ``$2 > min_length && $2 < max_length``.
-
-    Both bounds are strict, as in the awk expression st.sh applies to
-    ``utt2num_samples``.
-    """
-    return MIN_WAV_DURATION < float(duration) < MAX_WAV_DURATION
-
-
-def kept_indices(durations, split: str) -> list[int] | None:
-    """Indices of ``durations`` to keep for ``split``.
-
-    Args:
-        durations: Segment durations in seconds, in corpus order.
-        split: Logical split name, e.g. ``"train"`` or ``"test"``.
-
-    Returns:
-        The positions to keep, or ``None`` when ``split`` is not filtered at
-        all. ``None`` rather than ``list(range(len(durations)))`` so callers
-        can skip the indirection entirely on the test splits.
-    """
-    if not split_is_filtered(split):
-        return None
-    return [i for i, duration in enumerate(durations) if keep_duration(duration)]
+# "test" is the logical name; tst-COMMON is the directory on disk.
+SPLIT_ALIASES: dict[str, str] = {
+    str(k): str(v) for k, v in _CONFIG["dataset"]["split_aliases"].items()
+}
 
 
 def _resolve_tgt_lang(tgt_lang: str | None) -> str:
@@ -248,10 +220,8 @@ class MustCSTBuilder(DatasetBuilder):
             raise FileNotFoundError(
                 f"No complete MuST-C {SRC_LANG}-<target> pairs found"
             )
-        # A pinned target was never checked, so prepare_source could return
-        # while is_source_prepared stayed False. resolve_source_root raises if
-        # the pair directory is absent; missing_required_splits catches a pair
-        # that exists but is incomplete.
+        # Validate the pinned target too: without this, prepare_source could
+        # return while is_source_prepared stayed False.
         for target in targets:
             lang_pair_root = resolve_source_root(recipe_root, source_dir, target)
             missing = missing_required_splits(lang_pair_root, target)
@@ -320,25 +290,145 @@ def _hf_cache_root(recipe_dir, cache):
     return root / "hf_audio_index"
 
 
-def _call_supported(function, **kwargs):
-    """Call ``function`` with only the keyword arguments it accepts.
+# Reading the raw corpus. These live here rather than in dataset.py so that
+# nothing in this module imports dataset.py -- that cycle is what previously
+# forced lazy imports.
 
-    The cache builder forwards the recipe's ``data_src_args`` straight through,
-    and those carry keys the Dataset does not take (``split`` is set per
-    iteration here, and the training config adds entries the loader consumes).
-    ``Dataset.__init__`` has no ``**kwargs``, so an unexpected key is a
-    ``TypeError`` rather than something silently ignored.
-    """
-    import inspect
+_COMPACT_SEGMENT_RE = re.compile(
+    r"^-\s*\{\s*duration:\s*([^,}]+),\s*offset:\s*([^,}]+),"
+    r".*?speaker_id:\s*([^,}]+),\s*wav:\s*([^,}]+)\s*\}\s*$"
+)
 
-    parameters = inspect.signature(function).parameters
-    variadic = any(
-        parameter.kind == parameter.VAR_KEYWORD for parameter in parameters.values()
+
+@dataclass(frozen=True)
+class MustCExample:
+    """Internal index entry for one MuST-C segment."""
+
+    utt_id: str
+    wav_path: Path
+    offset: float
+    duration: float
+    speaker_id: str
+    src_text: str
+    tgt_text: str
+    src_lang: str
+    tgt_lang: str
+
+
+def _parse_segments(split_dir: Path, split: str) -> list[tuple[float, float, str, str]]:
+    """Parse ``txt/<split>.yaml`` into (offset, duration, speaker_id, wav) tuples."""
+    yaml_path = split_dir / "txt" / f"{split}.yaml"
+    segments: list[tuple[float, float, str, str]] = []
+    with yaml_path.open("r", encoding="utf-8") as fh:
+        for line in fh:
+            line = line.strip()
+            if not line:
+                continue
+            match = _COMPACT_SEGMENT_RE.match(line)
+            if match is not None:
+                duration, offset, speaker_id, wav = match.groups()
+                segments.append(
+                    (float(offset), float(duration), speaker_id.strip(), wav.strip())
+                )
+                continue
+            try:
+                entry = yaml.safe_load(line)
+            except yaml.YAMLError as exc:
+                raise ValueError(
+                    f"Unrecognized MuST-C yaml entry in {yaml_path}: {line}"
+                ) from exc
+            # A line beginning with ``-`` is parsed as a one-item sequence by
+            # PyYAML; unwrap that sequence to its mapping entry.
+            if isinstance(entry, list) and len(entry) == 1:
+                entry = entry[0]
+            if not isinstance(entry, dict):
+                raise ValueError(
+                    f"Unrecognized MuST-C yaml entry in {yaml_path}: {line}"
+                )
+            required = {"duration", "offset", "speaker_id", "wav"}
+            if not required.issubset(entry):
+                raise ValueError(
+                    f"Unrecognized MuST-C yaml entry in {yaml_path}: {line}"
+                )
+            try:
+                duration = float(entry["duration"])
+                offset = float(entry["offset"])
+                speaker_id = str(entry["speaker_id"]).strip()
+                wav = str(entry["wav"]).strip()
+            except (TypeError, ValueError) as exc:
+                raise ValueError(
+                    f"Invalid MuST-C yaml entry in {yaml_path}: {line}"
+                ) from exc
+            segments.append((offset, duration, speaker_id, wav))
+    return segments
+
+
+def _read_lines(path: Path) -> list[str]:
+    """Read a text file into a list of lines, without trailing newlines."""
+    with path.open("r", encoding="utf-8") as fh:
+        return [line.rstrip("\n") for line in fh]
+
+
+def scan_split(
+    lang_pair_root: Path, alias: str, tgt_lang: str = TGT_LANG
+) -> list[MustCExample]:
+    """Build an index for one split by zipping the yaml, en, and tgt files."""
+    split_dir = lang_pair_root / "data" / alias
+    wav_dir = split_dir / "wav"
+
+    segments = _parse_segments(split_dir, alias)
+    src_lines = _read_lines(split_dir / "txt" / f"{alias}.{SRC_LANG}")
+    tgt_lines = _read_lines(split_dir / "txt" / f"{alias}.{tgt_lang}")
+
+    if not (len(segments) == len(src_lines) == len(tgt_lines)):
+        raise RuntimeError(
+            f"MuST-C {alias}: yaml/{SRC_LANG}/{tgt_lang} line counts differ "
+            f"({len(segments)}, {len(src_lines)}, {len(tgt_lines)})"
+        )
+
+    examples: list[MustCExample] = []
+    talk_counters: dict[str, int] = {}
+    for (offset, duration, speaker_id, wav_name), src_text, tgt_text in zip(
+        segments, src_lines, tgt_lines
+    ):
+        talk_id = Path(wav_name).stem
+        idx = talk_counters.get(talk_id, 0)
+        talk_counters[talk_id] = idx + 1
+        utt_id = f"{alias}_{talk_id}_{idx:04d}"
+        examples.append(
+            MustCExample(
+                utt_id=utt_id,
+                wav_path=(wav_dir / wav_name).resolve(),
+                offset=offset,
+                duration=duration,
+                speaker_id=speaker_id,
+                src_text=src_text,
+                tgt_text=tgt_text,
+                src_lang=SRC_LANG,
+                tgt_lang=tgt_lang,
+            )
+        )
+
+    if not examples:
+        raise RuntimeError(f"No segments found for MuST-C split: {split_dir}")
+    return examples
+
+
+@lru_cache(maxsize=None)
+def _wav_samplerate(wav_path: str) -> int:
+    """Sample rate of one wav, cached because talks are read many times."""
+    return int(sf.info(wav_path).samplerate)
+
+
+def read_segment(wav_path: Path, offset: float, duration: float) -> np.ndarray:
+    """Read one segment out of a talk-length wav as float32."""
+    samplerate = _wav_samplerate(str(wav_path))
+    start = int(round(offset * samplerate))
+    frames = int(round(duration * samplerate))
+    array, _sr = sf.read(
+        str(wav_path), start=start, frames=frames, dtype="float32", always_2d=False
     )
-    clean = {
-        key: value for key, value in kwargs.items() if variadic or key in parameters
-    }
-    return function(**clean)
+    return np.asarray(array, dtype=np.float32)
 
 
 def _verify_segment(task):
@@ -356,11 +446,7 @@ def _verify_segment(task):
     """
     index, wav_path, offset, duration = task
     try:
-        import numpy as np
-
-        from .dataset import _read_segment
-
-        speech = np.asarray(_read_segment(wav_path, offset, duration))
+        speech = np.asarray(read_segment(wav_path, offset, duration))
         if speech.size == 0 or not np.isfinite(speech).all():
             raise ValueError("decoded audio is empty or non-finite")
     except Exception as exc:  # noqa: BLE001 - recorded per segment, not raised
@@ -386,7 +472,10 @@ def _verify_segments(tasks):
     tasks = list(tasks)
     if not tasks:
         return {}
-    # espnet3.parallel's __init__ re-exports nothing, so import the module.
+    # Deferred: espnet3.parallel.parallel builds CLUSTER_MAP at module scope,
+    # so importing it pulls dask and distributed -- 4s that a read-only
+    # `import ...dataset` should not pay. The submodule, not the package:
+    # espnet3/parallel/__init__.py re-exports nothing.
     from espnet3.parallel.parallel import get_client, get_parallel_config
 
     config = get_parallel_config()
@@ -421,9 +510,11 @@ def _build_hf_cache(recipe_dir, cache_root, dataset_kwargs):
 
     from datasets import Dataset as HFDataset
 
-    # Imported here, not at module scope: dataset.py imports this module, so a
-    # top-level import would be circular.
-    from . import Dataset as dataset_class
+    recipe_root = Path(recipe_dir).resolve()
+    tgt_lang = _resolve_tgt_lang(dataset_kwargs.get("tgt_lang"))
+    lang_pair_root = resolve_source_root(
+        recipe_root, source_dir=dataset_kwargs.get("source_dir"), tgt_lang=tgt_lang
+    )
 
     cache_root.mkdir(parents=True, exist_ok=True)
     for split in _HF_CACHE_SPLITS:
@@ -438,48 +529,29 @@ def _build_hf_cache(recipe_dir, cache_root, dataset_kwargs):
 
         def rows():
             """Yield one cache row per corpus segment, logging failures."""
-            dataset = _call_supported(
-                dataset_class,
-                split=split,
-                recipe_dir=recipe_dir,
-                cache={"enabled": False},
-                # The cache is the corpus as released; the filter belongs to
-                # the read path. Iterating `_examples` ignores it regardless.
-                apply_filter=False,
-                **dataset_kwargs,
+            # The cache is the corpus as released; the filter is a read-path
+            # concern and must not reach it.
+            examples = scan_split(
+                lang_pair_root, SPLIT_ALIASES.get(split, split), tgt_lang
             )
-            if getattr(dataset, "_examples", None) is None:
-                raise RuntimeError(
-                    "cache build needs the raw-scan Dataset; got a cache-backed "
-                    "one, which has no _examples (see Dataset.__init__)"
-                )
-            # Verification first, fanned out; then the rows, which are pure
-            # metadata. The decoded audio is never stored -- the cache keeps
-            # audio_path/offset/duration and the read path decodes on demand --
-            # so decoding here only proves the segment is readable.
+            # Decoded audio is never stored, so this pass only proves each
+            # segment is readable; the rows below are pure metadata.
             errors = _verify_segments(
                 (index, example.wav_path, example.offset, example.duration)
-                for index, example in enumerate(dataset._examples)
+                for index, example in enumerate(examples)
             )
             with failures.open("w", encoding="utf-8") as stream:
-                # Every field comes from `example`. Reading via dataset[index]
-                # would mix index spaces: __getitem__ maps through `_keep`,
-                # `_examples[index]` does not.
-                for index, example in enumerate(dataset._examples):
+                for index, example in enumerate(examples):
                     try:
                         error = errors.get(index)
                         if error is not None:
                             raise RuntimeError(error)
-                        # Text from `example` (raw corpus), never from
-                        # __getitem__ output: that is already case-folded and
-                        # carries only speech/text/src_text.
                         yield {
                             "raw_index": index,
                             "audio_path": str(example.wav_path),
                             "utt_id": str(example.utt_id),
                             # Unused by the reader; kept so a rebuilt cache
-                            # keeps the same columns as existing ones. For
-                            # task="st" the target side is the corpus text.
+                            # matches the columns of existing ones.
                             "text": str(example.tgt_text),
                             "src_text": str(example.src_text),
                             "tgt_text": str(example.tgt_text),

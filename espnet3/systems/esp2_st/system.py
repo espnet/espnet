@@ -2,10 +2,10 @@
 
 import logging
 import os
-from importlib import import_module
 from pathlib import Path
 from typing import Iterable, List
 
+from hydra.utils import instantiate
 from omegaconf import DictConfig
 
 from espnet3.systems.base.system import BaseSystem
@@ -38,12 +38,12 @@ class STSystem(BaseSystem):
             vocab_size: 4000
             model_type: bpe
             save_path: ${data_dir}/bpe_tgt_4000
-            text_builder: {func: ..., ...}
+            text_builder: {_target_: ..., ...}
           src:
             vocab_size: 4000
             model_type: bpe
             save_path: ${data_dir}/bpe_src_4000
-            text_builder: {func: ..., ...}
+            text_builder: {_target_: ..., ...}
 
     The model config then points at the two token lists::
 
@@ -143,10 +143,21 @@ class STSystem(BaseSystem):
         return all(self._has_tokenizer_side(getattr(config, s)) for s in sides)
 
     def _gather_texts(self, side: str, side_config) -> tuple[Path, List[str]]:
-        train_path = Path(
-            getattr(side_config, "train_file", "")
-            or f"{self.training_config.data_dir}/train_tokenizer/{side}.txt"
-        )
+        """Return the gathered tokenizer text for one side, writing it if new.
+
+        Raises:
+            RuntimeError: If the side declares no ``train_file``, or its text
+                builder yields nothing.
+        """
+        train_file = getattr(side_config, "train_file", None)
+        if not train_file:
+            raise RuntimeError(
+                f"tokenizer.{side}.train_file is required: it names the file the "
+                f"gathered text is written to and reused from. Set it in the "
+                f"training config, e.g. "
+                f"train_file: ${{data_dir}}/train_tokenizer/{side}.txt"
+            )
+        train_path = Path(train_file)
         reuse = bool(getattr(side_config, "reuse_existing_text", True))
         if train_path.exists():
             if not reuse:
@@ -156,10 +167,7 @@ class STSystem(BaseSystem):
             logger.info("[%s] reusing existing tokenizer text at %s", side, train_path)
             return train_path, train_path.read_text(encoding="utf-8").splitlines()
 
-        builder_config = side_config.text_builder
-        module_path, func_name = builder_config.func.rsplit(".", 1)
-        builder = getattr(import_module(module_path), func_name)
-        built = builder(**{k: v for k, v in builder_config.items() if k != "func"})
+        built = instantiate(side_config.text_builder, _convert_="all")
         if isinstance(built, (str, os.PathLike)):
             texts = Path(built).read_text(encoding="utf-8").splitlines()
         elif isinstance(built, Iterable):
@@ -240,7 +248,7 @@ class STSystem(BaseSystem):
                 model_type: bpe
                 save_path: ${data_dir}/bpe_tgt_4000
                 text_builder:
-                  func: egs3.must_c.esp2_st.dataset.gather_training_text
+                  _target_: egs3.must_c.esp2_st.dataset.gather_training_text
                   recipe_dir: ${recipe_dir}
                   tgt_lang: de
               src:
@@ -249,9 +257,9 @@ class STSystem(BaseSystem):
                 save_path: ${data_dir}/bpe_src_4000
                 text_builder: {...}
 
-        ``text_builder.func`` is a dotted path to a callable returning either a
-        path or an iterable of lines; every other key under it is passed
-        through as a keyword argument. Set ``train_file`` to read prepared text
+        ``text_builder`` is a Hydra config: ``_target_`` names a callable that
+        returns a path or an iterable of lines, and every other key is passed
+        to it as a keyword argument. Set ``train_file`` to read prepared text
         instead, and ``reuse_existing_text: false`` to make a leftover file an
         error rather than silently reused.
 

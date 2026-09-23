@@ -16,8 +16,7 @@
 #                    METRIC DEFINITION                   #
 ##########################################################
 # ref_key/hyp_key default to ref/hyp, matching src/inference.py:build_output
-# -> ref.scp and hyp.scp. (It also writes src.scp, the English source, which
-# nothing scores -- it is there so a hypothesis can be read against its input.)
+# -> ref.scp and hyp.scp.
 #
 # BOTH SCORING PASSES OF st.sh (egs2/TEMPLATE/st1/st.sh:1551-1620), which runs
 # `sacrebleu -m bleu chrf ter` case-sensitive (st.sh:1604) and then, after

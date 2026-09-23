@@ -107,8 +107,9 @@ tokenizer:
     character_coverage: 1.0
     model_type: bpe
     save_path: ${data_dir}/bpe_tgt_4000
+    train_file: ${data_dir}/train_tokenizer/tgt.txt
     text_builder:
-      func: egs3.must_c.esp2_st.dataset.gather_training_text
+      _target_: egs3.must_c.esp2_st.dataset.gather_training_text
       recipe_dir: ${recipe_dir}
       source_dir: ${data_dir}
       cache: ${cache}
@@ -120,8 +121,9 @@ tokenizer:
     character_coverage: 1.0
     model_type: bpe
     save_path: ${data_dir}/bpe_src_4000
+    train_file: ${data_dir}/train_tokenizer/src.txt
     text_builder:
-      func: egs3.must_c.esp2_st.dataset.gather_training_text
+      _target_: egs3.must_c.esp2_st.dataset.gather_training_text
       recipe_dir: ${recipe_dir}
       source_dir: ${data_dir}
       cache: ${cache}

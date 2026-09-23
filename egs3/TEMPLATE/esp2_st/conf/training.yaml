@@ -109,7 +109,7 @@ dataset:
 #                   TOKENIZER SETTING                    #
 ##########################################################
 # Used by the `train_tokenizer` stage in `espnet3.systems.esp2_st.system.STSystem`.
-# `text_builder.func` must return either:
+# `text_builder._target_` must name a callable returning either:
 # - a path to a text file, or
 # - an iterable of training strings
 # ST can carry TWO vocabularies, for the `tgt` language and the `src language.
@@ -119,8 +119,9 @@ dataset:
 #       vocab_size: 4000
 #       model_type: bpe
 #       save_path: ${data_dir}/bpe_tgt_4000
+#       train_file: ${data_dir}/train_tokenizer/tgt.txt   # required
 #       text_builder:
-#         func: <dotted.path.to.callable>   # returns a path or an iterable
+#         _target_: <dotted.path.to.callable>  # returns a path or iterable
 #     src:   # optional
 #       ...
 tokenizer:

@@ -21,16 +21,10 @@ Scope: the egs2 ST recipe (``egs2/must_c/st1``).
 
 from __future__ import annotations
 
-import re
-from dataclasses import dataclass
-from functools import lru_cache
 from importlib import resources
 from pathlib import Path
 from typing import Any
 
-import numpy as np
-import soundfile as sf
-import yaml
 from torch.utils.data import Dataset as TorchDataset
 
 from egs3.must_c.esp2_st.dataset.builder import (
@@ -40,9 +34,7 @@ from egs3.must_c.esp2_st.dataset.builder import (
     TGT_LANG,
     VERSION,
     MustCSTBuilder,
-    available_target_languages,
-    kept_indices,
-    resolve_source_root,
+    read_segment,
 )
 from espnet3.systems.esp2_st.normalization import apply_case as _apply_case
 from espnet3.utils.config_utils import load_config_with_defaults
@@ -57,141 +49,43 @@ SPLIT_ALIASES: dict[str, str] = {
 }
 _KNOWN_SPLITS = {str(split) for split in _DATASET_CFG["supported_splits"]}
 
-_COMPACT_SEGMENT_RE = re.compile(
-    r"^-\s*\{\s*duration:\s*([^,}]+),\s*offset:\s*([^,}]+),"
-    r".*?speaker_id:\s*([^,}]+),\s*wav:\s*([^,}]+)\s*\}\s*$"
-)
+# Long/short filtering (egs2 st.sh stage 4). The HF cache is the unfiltered
+# `${data_feats}/org/<dset>` side; the Dataset applies the bounds on read.
+_FILTER_CFG = _CONFIG["filter"]
+MIN_WAV_DURATION = float(_FILTER_CFG["min_wav_duration"])
+MAX_WAV_DURATION = float(_FILTER_CFG["max_wav_duration"])
+FILTERED_SPLITS: tuple[str, ...] = tuple(str(s) for s in _FILTER_CFG["splits"])
 
 
-@dataclass(frozen=True)
-class MustCExample:
-    """Internal index entry for one MuST-C segment."""
-
-    utt_id: str
-    wav_path: Path
-    offset: float
-    duration: float
-    speaker_id: str
-    src_text: str
-    tgt_text: str
-    src_lang: str
-    tgt_lang: str
+def split_is_filtered(split: str) -> bool:
+    """Whether ``split`` is one st.sh would trim (train and valid, not test)."""
+    return str(split) in FILTERED_SPLITS
 
 
-def _parse_segments(split_dir: Path, split: str) -> list[tuple[float, float, str, str]]:
-    """Parse ``txt/<split>.yaml`` into (offset, duration, speaker_id, wav) tuples."""
-    yaml_path = split_dir / "txt" / f"{split}.yaml"
-    segments: list[tuple[float, float, str, str]] = []
-    with yaml_path.open("r", encoding="utf-8") as fh:
-        for line in fh:
-            line = line.strip()
-            if not line:
-                continue
-            match = _COMPACT_SEGMENT_RE.match(line)
-            if match is not None:
-                duration, offset, speaker_id, wav = match.groups()
-                segments.append(
-                    (float(offset), float(duration), speaker_id.strip(), wav.strip())
-                )
-                continue
-            try:
-                entry = yaml.safe_load(line)
-            except yaml.YAMLError as exc:
-                raise ValueError(
-                    f"Unrecognized MuST-C yaml entry in {yaml_path}: {line}"
-                ) from exc
-            # A line beginning with ``-`` is parsed as a one-item sequence by
-            # PyYAML; unwrap that sequence to its mapping entry.
-            if isinstance(entry, list) and len(entry) == 1:
-                entry = entry[0]
-            if not isinstance(entry, dict):
-                raise ValueError(
-                    f"Unrecognized MuST-C yaml entry in {yaml_path}: {line}"
-                )
-            required = {"duration", "offset", "speaker_id", "wav"}
-            if not required.issubset(entry):
-                raise ValueError(
-                    f"Unrecognized MuST-C yaml entry in {yaml_path}: {line}"
-                )
-            try:
-                duration = float(entry["duration"])
-                offset = float(entry["offset"])
-                speaker_id = str(entry["speaker_id"]).strip()
-                wav = str(entry["wav"]).strip()
-            except (TypeError, ValueError) as exc:
-                raise ValueError(
-                    f"Invalid MuST-C yaml entry in {yaml_path}: {line}"
-                ) from exc
-            segments.append((offset, duration, speaker_id, wav))
-    return segments
+def keep_duration(duration: float) -> bool:
+    """Reproduce st.sh's ``$2 > min_length && $2 < max_length``.
+
+    Both bounds are strict, as in the awk expression st.sh applies to
+    ``utt2num_samples``.
+    """
+    return MIN_WAV_DURATION < float(duration) < MAX_WAV_DURATION
 
 
-def _read_lines(path: Path) -> list[str]:
-    """Read a text file into a list of lines, without trailing newlines."""
-    with path.open("r", encoding="utf-8") as fh:
-        return [line.rstrip("\n") for line in fh]
+def kept_indices(durations, split: str) -> list[int] | None:
+    """Indices of ``durations`` to keep for ``split``.
 
+    Args:
+        durations: Segment durations in seconds, in corpus order.
+        split: Logical split name, e.g. ``"train"`` or ``"test"``.
 
-def _scan_split(
-    lang_pair_root: Path, alias: str, tgt_lang: str = TGT_LANG
-) -> list[MustCExample]:
-    """Build an index for one split by zipping the yaml, en, and tgt files."""
-    split_dir = lang_pair_root / "data" / alias
-    wav_dir = split_dir / "wav"
-
-    segments = _parse_segments(split_dir, alias)
-    src_lines = _read_lines(split_dir / "txt" / f"{alias}.{SRC_LANG}")
-    tgt_lines = _read_lines(split_dir / "txt" / f"{alias}.{tgt_lang}")
-
-    if not (len(segments) == len(src_lines) == len(tgt_lines)):
-        raise RuntimeError(
-            f"MuST-C {alias}: yaml/{SRC_LANG}/{tgt_lang} line counts differ "
-            f"({len(segments)}, {len(src_lines)}, {len(tgt_lines)})"
-        )
-
-    examples: list[MustCExample] = []
-    talk_counters: dict[str, int] = {}
-    for (offset, duration, speaker_id, wav_name), src_text, tgt_text in zip(
-        segments, src_lines, tgt_lines
-    ):
-        talk_id = Path(wav_name).stem
-        idx = talk_counters.get(talk_id, 0)
-        talk_counters[talk_id] = idx + 1
-        utt_id = f"{alias}_{talk_id}_{idx:04d}"
-        examples.append(
-            MustCExample(
-                utt_id=utt_id,
-                wav_path=(wav_dir / wav_name).resolve(),
-                offset=offset,
-                duration=duration,
-                speaker_id=speaker_id,
-                src_text=src_text,
-                tgt_text=tgt_text,
-                src_lang=SRC_LANG,
-                tgt_lang=tgt_lang,
-            )
-        )
-
-    if not examples:
-        raise RuntimeError(f"No segments found for MuST-C split: {split_dir}")
-    return examples
-
-
-@lru_cache(maxsize=None)
-def _wav_samplerate(wav_path: str) -> int:
-    """Sample rate of one wav, cached because talks are read many times."""
-    return int(sf.info(wav_path).samplerate)
-
-
-def _read_segment(wav_path: Path, offset: float, duration: float) -> np.ndarray:
-    """Read one segment out of a talk-length wav as float32."""
-    samplerate = _wav_samplerate(str(wav_path))
-    start = int(round(offset * samplerate))
-    frames = int(round(duration * samplerate))
-    array, _sr = sf.read(
-        str(wav_path), start=start, frames=frames, dtype="float32", always_2d=False
-    )
-    return np.asarray(array, dtype=np.float32)
+    Returns:
+        The positions to keep, or ``None`` when ``split`` is not filtered at
+        all. ``None`` rather than ``list(range(len(durations)))`` so callers
+        can skip the indirection entirely on the test splits.
+    """
+    if not split_is_filtered(split):
+        return None
+    return [i for i, duration in enumerate(durations) if keep_duration(duration)]
 
 
 class MustCSTDataset(TorchDataset):
@@ -243,79 +137,36 @@ class MustCSTDataset(TorchDataset):
         return_utt_id: bool = False,
     ) -> None:
         """Index one MuST-C split, from the HF cache or the raw release."""
-        # False only for the cache builder, which indexes the corpus as released.
-        self.apply_filter = bool(apply_filter)
-        # OFF for training (a str breaks collation), ON for inference, which
-        # reads samples one at a time and requires an id. See _sample.
-        self.return_utt_id = bool(return_utt_id)
-        self._keep: list[int] | None = None
-        self.split = str(split)
-        # egs2/must_c/st1/run.sh: src_case=lc.rm, tgt_case=tc
-        self.src_case = str(src_case)
-        self.tgt_case = str(tgt_case)
-        if self.split not in _KNOWN_SPLITS:
+        if str(split) not in _KNOWN_SPLITS:
             known = ", ".join(sorted(_KNOWN_SPLITS))
-            raise ValueError(f"Unknown split '{self.split}'. Expected one of: {known}")
+            raise ValueError(f"Unknown split '{split}'. Expected one of: {known}")
         if task not in {"asr", "st"}:
             raise ValueError("task must be 'asr' or 'st'")
+
+        self.split = str(split)
         self.task = task
         self.tgt_lang = tgt_lang or TGT_LANG
+        self.src_case = str(src_case)
+        self.tgt_case = str(tgt_case)
+        self.apply_filter = bool(apply_filter)
+        self.return_utt_id = bool(return_utt_id)
+        self._keep: list[int] | None = None
 
-        self._hf_cache = _load_hf_cache(cache, recipe_dir, self.split)
-        if self._hf_cache is not None:
-            required = {"audio_path", "src_text", "tgt_text", "offset", "duration"}
-            if not required.issubset(self._hf_cache.column_names):
-                raise RuntimeError(
-                    "MuST-C HF cache predates segment metadata; "
-                    "recreate it with create_dataset"
-                )
-            # One columnar read, not 229,703 row reads.
-            self._apply_duration_filter(self._hf_cache["duration"])
-            return
-
-        recipe_root = (
-            Path(recipe_dir).resolve()
-            if recipe_dir is not None
-            else Path(__file__).resolve().parents[1]
+        self._hf_cache = _require_hf_cache(
+            cache, recipe_dir, self.split, source_dir, self.tgt_lang
         )
+        self._init_from_cache()
 
-        builder = MustCSTBuilder()
-        if not builder.is_source_prepared(
-            recipe_dir=recipe_root, source_dir=source_dir, tgt_lang=self.tgt_lang
-        ):
-            builder.prepare_source(
-                recipe_dir=recipe_root, source_dir=source_dir, tgt_lang=self.tgt_lang
+    def _init_from_cache(self) -> None:
+        """Take durations from the cache column and filter on them."""
+        required = {"audio_path", "src_text", "tgt_text", "offset", "duration"}
+        if not required.issubset(self._hf_cache.column_names):
+            raise RuntimeError(
+                "MuST-C HF cache predates segment metadata; "
+                "recreate it with create_dataset"
             )
-
-        alias = self.split_aliases.get(self.split, self.split)
-        if self.tgt_lang == "all":
-            self.lang_pair_root = None
-            self._examples = [
-                MustCExample(
-                    f"{target}_{item.utt_id}",
-                    item.wav_path,
-                    item.offset,
-                    item.duration,
-                    item.speaker_id,
-                    item.src_text,
-                    item.tgt_text,
-                    item.src_lang,
-                    item.tgt_lang,
-                )
-                for target in available_target_languages(recipe_root, source_dir)
-                for item in _scan_split(
-                    resolve_source_root(recipe_root, source_dir, target), alias, target
-                )
-            ]
-        else:
-            self.lang_pair_root = resolve_source_root(
-                recipe_root, source_dir=source_dir, tgt_lang=self.tgt_lang
-            )
-            split_dir = self.lang_pair_root / "data" / alias
-            if not split_dir.is_dir():
-                raise FileNotFoundError(f"Split directory not found: {split_dir}")
-            self._examples = _scan_split(self.lang_pair_root, alias, self.tgt_lang)
-        self._apply_duration_filter([e.duration for e in self._examples])
+        # One columnar read, not 229,703 row reads.
+        self._apply_duration_filter(self._hf_cache["duration"])
 
     def _apply_duration_filter(self, durations) -> None:
         """Drop segments st.sh stage 4 would have removed.
@@ -337,23 +188,17 @@ class MustCSTDataset(TorchDataset):
         """Number of utterances, after the long/short filter if applied."""
         if self._keep is not None:
             return len(self._keep)
-        if self._hf_cache is not None:
-            return len(self._hf_cache)
-        return len(self._examples)
+        return len(self._hf_cache)
 
     def __getitem__(self, idx: int) -> dict[str, Any]:
         """Return one sample: speech, text, src_text, optionally utt_id."""
-        index = self._source_index(idx)
-        if self._hf_cache is not None:
-            row = self._hf_cache[index]
-            speech = _read_segment(
-                Path(row["audio_path"]), float(row["offset"]), float(row["duration"])
-            )
-            src_text, tgt_text = str(row["src_text"]), str(row["tgt_text"])
-            return self._sample(speech, src_text, tgt_text, str(row["utt_id"]))
-        example = self._examples[index]
-        speech = _read_segment(example.wav_path, example.offset, example.duration)
-        return self._sample(speech, example.src_text, example.tgt_text, example.utt_id)
+        row = self._hf_cache[self._source_index(idx)]
+        speech = read_segment(
+            Path(row["audio_path"]), float(row["offset"]), float(row["duration"])
+        )
+        return self._sample(
+            speech, str(row["src_text"]), str(row["tgt_text"]), str(row["utt_id"])
+        )
 
     def _sample(
         self, speech, src_text: str, tgt_text: str, utt_id: str | None = None
@@ -413,26 +258,13 @@ def gather_training_text(
     src_case = case or "lc.rm"
     tgt_case = case or "tc"
 
-    cached = _load_hf_cache(_kwargs.get("cache"), recipe_dir, "train")
-    if cached is not None:
-        src = cached["src_text"] if side in {"joint", "src"} else []
-        tgt = cached["tgt_text"] if side in {"joint", "tgt"} else []
-    else:
-        recipe_root = (
-            Path(recipe_dir).resolve()
-            if recipe_dir is not None
-            else Path(__file__).resolve().parents[1]
-        )
-        # Without this the module default (``all``) is used and the lookup
-        # asks for a nonexistent ``en-all`` directory.
-        lang_pair_root = resolve_source_root(
-            recipe_root, source_dir=source_dir, tgt_lang=tgt_lang or TGT_LANG
-        )
-        examples = _scan_split(
-            lang_pair_root, SPLIT_ALIASES.get("train", "train"), tgt_lang or TGT_LANG
-        )
-        src = [e.src_text for e in examples] if side in {"joint", "src"} else []
-        tgt = [e.tgt_text for e in examples] if side in {"joint", "tgt"} else []
+    cached = _require_hf_cache(
+        _kwargs.get("cache"), recipe_dir, "train", source_dir, tgt_lang or TGT_LANG
+    )
+    # The cache is unfiltered, which is what egs2 wants: run.sh:48-49 points
+    # bpe_train_text at data/${train_set}, before st.sh stage 4 trims it.
+    src = cached["src_text"] if side in {"joint", "src"} else []
+    tgt = cached["tgt_text"] if side in {"joint", "tgt"} else []
 
     return [_apply_case(str(text), src_case) for text in src] + [
         _apply_case(str(text), tgt_case) for text in tgt
@@ -450,8 +282,35 @@ __all__ = [
 ]
 
 
-def _load_hf_cache(cache, recipe_dir, split):
-    """Load one split of the HF cache, or None when caching is disabled."""
+def _require_hf_cache(cache, recipe_dir, split, source_dir=None, tgt_lang=None):
+    """Return one split of the HF cache, building it first when it is absent.
+
+    The cache is not optional: reading MuST-C straight from the release means
+    re-parsing 229,703 yaml entries per Dataset construction (185s against 21s
+    for train), and it skips the build-time decode check that turns a corrupt
+    segment into a `failures.jsonl` entry instead of a crash mid-epoch.
+
+    Raises:
+        RuntimeError: If no cache is configured.
+    """
+    cached = _load_hf_cache(cache, recipe_dir, split, missing_ok=True)
+    if cached is not None:
+        return cached
+    if not cache or not cache.get("enabled", False):
+        raise RuntimeError(
+            "must_c/esp2_st reads its splits from an HF cache. Enable it in the "
+            "training config (`cache.enabled: true` with a `cache.cache_dir`), "
+            "or run `--stages create_dataset` to build it."
+        )
+    builder = MustCSTBuilder()
+    builder.build(
+        recipe_dir=recipe_dir, cache=cache, source_dir=source_dir, tgt_lang=tgt_lang
+    )
+    return _load_hf_cache(cache, recipe_dir, split)
+
+
+def _load_hf_cache(cache, recipe_dir, split, missing_ok: bool = False):
+    """Load one split of the HF cache, or None when it is unavailable."""
     import os
 
     environment_root = os.environ.get("EGS3_HF_CACHE_DIR")
@@ -466,6 +325,8 @@ def _load_hf_cache(cache, recipe_dir, split):
         root = Path(recipe_dir or Path.cwd()) / root
     split_root = root / "hf_audio_index" / str(split)
     if not split_root.is_dir():
+        if missing_ok:
+            return None
         raise FileNotFoundError(
             f"HF audio cache is missing: {split_root}. "
             "Run DatasetBuilder.build() first."

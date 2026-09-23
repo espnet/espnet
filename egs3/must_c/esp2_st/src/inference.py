@@ -9,8 +9,8 @@
 ESPnet3 decodes one sample at a time
 (``espnet3/systems/base/inference_runner.py``: ``data = dataset[idx]``) and
 writes one SCP file per key ``build_output`` returns, under
-``${inference_dir}/<test_name>/`` -- so the keys below become ``hyp.scp``,
-``ref.scp`` and ``src.scp``, which ``conf/metrics.yaml`` scores.
+``${inference_dir}/<test_name>/`` -- so the keys below become ``hyp.scp`` and
+``ref.scp``, which ``conf/metrics.yaml`` scores.
 """
 
 from espnet2.bin.st_inference import Speech2Text
@@ -41,32 +41,14 @@ class Speech2TextShortSafe(Speech2Text):
     def __call__(self, *args, **kwargs):
         """Decode one utterance, tolerating one too short to subsample.
 
+        Forwarded to ``espnet2.bin.st_inference.Speech2Text``, whose only
+        argument is ``speech``.
+
         Args:
-            *args: Forwarded to ``espnet2.bin.st_inference.Speech2Text``, whose
-                only positional argument is ``speech``: a 1-D ``torch.Tensor``
-                or ``np.ndarray`` of samples at the model's rate, unbatched.
-                ``MustCSTDataset`` supplies it as float32 under ``"speech"``.
-            **kwargs: Likewise forwarded unchanged.
+            speech: input speech of shape (nsamples,) or (nsamples, nchannels=1)
 
         Returns:
-            The parent's n-best list, one tuple per hypothesis:
-            ``(text, token, token_int, hyp)`` -- the detokenized string, its
-            SentencePiece pieces, their ids, and the ``Hypothesis`` carrying
-            the score. ``build_output`` reads ``[0][0]``, the best text.
-
-        Example:
-            >>> speech = dataset[0]["speech"]          # float32, (Nsamples,)
-            >>> nbest = model(speech)
-            >>> nbest[0][0]
-            'Zurück in New York bin ich der Leiter der Entwicklung.'
-            >>> nbest[0][1][:4]
-            ['▁Zur', 'ück', '▁in', '▁New']
-
-            An utterance below the subsampling minimum yields the blank
-            fallback rather than raising::
-
-            >>> model(speech[:800])                    # 0.05 s at 16 kHz
-            [(' ', ['<space>'], [2], Hypothesis(...))]
+            n-best list of (text, token, token_int, hyp)
         """
         try:
             return super().__call__(*args, **kwargs)
@@ -85,22 +67,10 @@ def build_output(data, model_output, idx):
         idx: Index of the sample within its test set.
 
     Returns:
-        dict with ``utt_id``, ``hyp``, ``ref`` and ``src``.
-
-    The training path cannot carry ``utt_id``: ``CommonCollateFn`` pads and
-    stacks every value in the sample dict, so a str dies with
-    ``AttributeError: 'str' object has no attribute 'dtype'`` on the first
-    batch. Inference does not collate and requires an identifier
-    (``InferenceRunner.idx_key`` defaults to ``"utt_id"``), so the Dataset emits
-    it for test entries only. The ``str(idx)`` fallback keeps this working if
-    that flag is off, as spgispeech and librispeech_100 do unconditionally --
-    but integer keys make a bad hypothesis impossible to trace back to a talk.
+        dict with ``utt_id``, ``hyp`` and ``ref``.
     """
     return {
         "utt_id": data.get("utt_id", str(idx)),
         "hyp": model_output[0][0],
-        # `text` is the ST target (test entries use task="st"); `src_text` is
-        # the English side, written so hypotheses can be read against input.
         "ref": data.get("text", ""),
-        "src": data.get("src_text", ""),
     }
