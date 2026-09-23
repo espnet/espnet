@@ -4,6 +4,7 @@ import torch
 from omegaconf import OmegaConf
 
 import espnet3.parallel.parallel as parallel_module
+import espnet3.systems.base.inference as base_inference_module
 import espnet3.systems.esp2_lid.inference as inference_module
 from egs3.voxlingua107.esp2_lid.src.inference import build_output
 from espnet3.systems.base.inference import infer
@@ -120,6 +121,8 @@ def test_lid_infer_and_measure_pipeline(tmp_path, monkeypatch, extract_embd):
         staticmethod(lambda **_kwargs: (DummyLIDModel(), None)),
     )
     monkeypatch.setattr(parallel_module, "parallel_config", None)
+    # Run shards in this process so the patched model builder is used.
+    monkeypatch.setattr(base_inference_module, "set_parallel", lambda config: None)
 
     inference_dir = tmp_path / "inference"
     inference_config = OmegaConf.create(

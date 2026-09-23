@@ -53,7 +53,6 @@ class VoxLingua107Dataset(TorchDataset):
     def __init__(
         self,
         split: str,
-        source_dir: str | Path | None = None,
         sample_rate: int = 16000,
         recipe_dir: str | Path | None = None,
         data_dir: str | Path | None = None,
@@ -61,14 +60,13 @@ class VoxLingua107Dataset(TorchDataset):
     ) -> None:
         """Read only the requested split's manifest and referenced audio.
 
-        ``source_dir`` is accepted for shared recipe configs; audio paths come
-        from the manifest. Other splits and their source audio are not required.
+        Audio paths come from the manifest. Other splits and their source audio
+        are not required.
         ``speed_perturb_factors`` expands train into one copy per factor. Audio
         is perturbed on read, preserving labels; dev always uses original audio.
 
         Args:
             split: Prepared train or dev split.
-            source_dir: Accepted for shared configs; audio paths come from manifests.
             sample_rate: Expected waveform sample rate, normally 16000.
             recipe_dir: Recipe root used to locate prepared manifests.
             data_dir: Explicit metadata root overriding the recipe default.

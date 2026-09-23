@@ -10,7 +10,6 @@
 #                  SYSTEM AND PATH SETTING               #
 ##########################################################
 task: espnet3.systems.esp2_lid.task.LIDTask
-dataset_dir: ${oc.env:VOXLINGUA107,/path/to/voxlingua107}
 
 ##########################################################
 #                    DATASET DEFINITION                  #
@@ -21,13 +20,11 @@ dataset:
         split: train
         # Use [0.9, 1.0, 1.1] to include three speed variants per utterance.
         speed_perturb_factors: [1.0]
-        source_dir: ${dataset_dir}
         data_dir: ${data_dir}/voxlingua107
         sample_rate: 16000
   valid:
     - data_src_args:
         split: dev
-        source_dir: ${dataset_dir}
         data_dir: ${data_dir}/voxlingua107
         sample_rate: 16000
   preprocessor:
@@ -40,8 +37,8 @@ dataset:
     rir_apply_prob: 0.0
 
 create_dataset:
+  recipe_dir: ${recipe_dir}
   parallel: ${parallel}
-  source_dir: ${dataset_dir}
   data_dir: ${data_dir}/voxlingua107
 
 ##########################################################

@@ -142,7 +142,7 @@ def collect_speech_shapes(config) -> None:
         OmegaConf.to_container(config.dataset, resolve=True)
     )
     dataset_config.preprocessor = None
-    set_parallel(config.get("parallel", OmegaConf.create({"env": "local"})))
+    set_parallel(config.get("parallel"))
     providers = {
         mode: LIDCollectStatsProvider(
             OmegaConf.create({"dataset": dataset_config, "mode": mode})

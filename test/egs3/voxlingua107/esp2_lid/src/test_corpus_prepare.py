@@ -180,6 +180,7 @@ def test_voxpopuli_selection_and_archive_download(tmp_path, monkeypatch, paralle
                 )
             ),
         )
+    monkeypatch.setattr(parallel_module, "parallel_config", None)
     parallel_module.set_parallel(config)
     path = tmp_path / "asr_en.tsv.gz"
     rows = [
@@ -266,4 +267,3 @@ def test_voxpopuli_selection_and_archive_download(tmp_path, monkeypatch, paralle
     assert len({example.audio_path for example in ds.examples}) == 3
     assert ds[1]["speech"].mean() == pytest.approx(0.25, abs=0.001)
     assert not np.allclose(ds[0]["speech"], ds[1]["speech"])
-    parallel_module.set_parallel(OmegaConf.create({"env": "local"}))

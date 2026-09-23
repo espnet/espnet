@@ -1,11 +1,9 @@
 # LID inference embeddings settings.
-dataset_dir: ${oc.env:VOXLINGUA107,/path/to/voxlingua107}
 dataset:
   test:
     - name: dev
       data_src_args:
         split: dev
-        source_dir: ${dataset_dir}
         data_dir: ${data_dir}/voxlingua107
         sample_rate: 16000
 model:

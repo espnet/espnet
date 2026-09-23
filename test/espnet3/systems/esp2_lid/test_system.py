@@ -11,6 +11,12 @@ from espnet3.systems.esp2_lid.system import LIDSystem
 from espnet3.utils.config_utils import load_and_merge_config
 
 
+@pytest.fixture(autouse=True)
+def reset_parallel_config(monkeypatch):
+    """Keep tests independent of the process-global parallel config."""
+    monkeypatch.setattr("espnet3.parallel.parallel.parallel_config", None)
+
+
 class DummyDataset:
     def __init__(self, lengths):
         self.lengths = lengths
@@ -37,6 +43,8 @@ def test_collect_speech_shapes(tmp_path, monkeypatch):
         return organizer
 
     monkeypatch.setattr(stats_module, "instantiate", fake_instantiate)
+    # Run shards in this process so the patched organizer is used.
+    monkeypatch.setattr(stats_module, "set_parallel", lambda config: None)
     config = OmegaConf.create(
         {
             "stats_dir": str(tmp_path),

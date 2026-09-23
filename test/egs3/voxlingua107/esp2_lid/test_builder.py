@@ -10,9 +10,18 @@ from omegaconf import OmegaConf
 
 from egs3.voxlingua107.esp2_lid.dataset import Dataset
 from egs3.voxlingua107.esp2_lid.dataset import builder as builder_module
-from egs3.voxlingua107.esp2_lid.dataset.builder import VoxLingua107Builder
+from egs3.voxlingua107.esp2_lid.dataset.builder import (
+    VoxLingua107Builder,
+    resolve_source_root,
+)
 from espnet3.systems.esp2_lid.collect_stats import collect_speech_shapes
 from espnet3.utils.config_utils import load_and_merge_config
+
+
+@pytest.fixture(autouse=True)
+def reset_parallel_config(monkeypatch):
+    """Keep tests independent of the process-global parallel config."""
+    monkeypatch.setattr("espnet3.parallel.parallel.parallel_config", None)
 
 
 def _touch_wav(root, language):
@@ -31,13 +40,38 @@ def test_source_requires_every_training_language(tmp_path, monkeypatch):
     _touch_wav(tmp_path / "dev", "aa")
     _touch_wav(tmp_path, "aa")
     _touch_wav(tmp_path, "unknown")
+    monkeypatch.delenv("VOXLINGUA107", raising=False)
     builder = VoxLingua107Builder()
+    recipe_dir = tmp_path / "recipe"
 
-    assert not builder.is_source_prepared(source_dir=tmp_path)
+    assert not builder.is_source_prepared(recipe_dir=recipe_dir, source_dir=tmp_path)
 
     _touch_wav(tmp_path, "bb")
 
-    assert builder.is_source_prepared(source_dir=tmp_path)
+    assert builder.is_source_prepared(recipe_dir=recipe_dir, source_dir=tmp_path)
+
+
+def test_source_resolution_prefers_argument_then_environment_then_recipe(
+    tmp_path, monkeypatch
+):
+    """Find the corpus like the ASR recipes and report every location checked."""
+    monkeypatch.setattr(builder_module, "_ISO3_CODES", {"aa": "aaa"})
+    monkeypatch.delenv("VOXLINGUA107", raising=False)
+    recipe_dir = tmp_path / "recipe"
+    local = recipe_dir / "download" / "voxlingua107"
+    with pytest.raises(FileNotFoundError, match="VOXLINGUA107") as error:
+        resolve_source_root(recipe_dir)
+    assert str(local) in str(error.value)
+
+    environment = tmp_path / "environment"
+    explicit = tmp_path / "explicit"
+    for root in (local, environment, explicit):
+        _touch_wav(root, "aa")
+        _touch_wav(root / "dev", "aa")
+    assert resolve_source_root(recipe_dir) == local
+    monkeypatch.setenv("VOXLINGUA107", str(environment))
+    assert resolve_source_root(recipe_dir) == environment
+    assert resolve_source_root(recipe_dir, explicit) == explicit
 
 
 def test_built_requires_complete_training_metadata(tmp_path, monkeypatch):
@@ -84,7 +118,7 @@ def test_build_keeps_metadata_outside_source(tmp_path, monkeypatch):
     assert not (source_dir / "espnet3").exists()
     assert set(source_dir.rglob("*.wav")) == set(original_files)
     assert all(path.read_bytes() == content for path, content in original_files.items())
-    dataset = Dataset("train", source_dir=source_dir, recipe_dir=recipe_dir)
+    dataset = Dataset("train", recipe_dir=recipe_dir)
     assert len(dataset) == 2
     assert dataset[0]["speech"].shape == (160,)
     assert dataset[1]["lid_labels"] == "bbb"
@@ -93,7 +127,7 @@ def test_build_keeps_metadata_outside_source(tmp_path, monkeypatch):
     other_data = tmp_path / "other_data"
     builder.build(source_dir=source_dir, data_dir=other_data)
     assert builder.is_built(data_dir=other_data)
-    assert len(Dataset("dev", source_dir=source_dir, data_dir=other_data)) == 2
+    assert len(Dataset("dev", data_dir=other_data)) == 2
 
     # Evaluation needs only its split, even after training data is removed.
     for language in ("aa", "bb"):
@@ -102,7 +136,7 @@ def test_build_keeps_metadata_outside_source(tmp_path, monkeypatch):
     for path in (other_data / "dev").iterdir():
         if path.name != "manifest.tsv":
             path.unlink()
-    evaluation = Dataset("dev", source_dir=source_dir, data_dir=other_data)
+    evaluation = Dataset("dev", data_dir=other_data)
     assert len(evaluation) == 2
     assert evaluation[0]["speech"].shape == (160,)
     assert evaluation[1]["lid_labels"] == "bbb"
@@ -117,7 +151,7 @@ def test_dataset_requires_explicit_preparation(tmp_path, monkeypatch):
     monkeypatch.setattr(VoxLingua107Builder, "prepare_source", unexpected_write)
     monkeypatch.setattr(VoxLingua107Builder, "build", unexpected_write)
     with pytest.raises(FileNotFoundError, match="create_dataset"):
-        Dataset("dev", source_dir=tmp_path / "source", data_dir=tmp_path / "metadata")
+        Dataset("dev", data_dir=tmp_path / "metadata")
     assert not list(tmp_path.iterdir())
 
 
@@ -193,7 +227,7 @@ def test_interrupted_manifest_build_is_retried(tmp_path, monkeypatch):
             builder.build(source_dir=source, data_dir=metadata)
     assert not builder.is_built(data_dir=metadata)
     with pytest.raises(FileNotFoundError, match="create_dataset"):
-        Dataset("dev", source_dir=source, data_dir=metadata)
+        Dataset("dev", data_dir=metadata)
     builder.build(source_dir=source, data_dir=metadata)
     assert builder.is_built(data_dir=metadata)
     (metadata / "dev/manifest.tsv").write_text("")
@@ -238,4 +272,3 @@ def test_parallel_zip_extraction_preserves_train_dev_layout(tmp_path, monkeypatc
     assert (source / "aa/train.wav").read_bytes() == b"existing audio"
     assert (source / "bb/train.wav").read_bytes() == b"existing audio"
     assert (source / "dev/aa/dev.wav").read_bytes() == b"existing audio"
-    parallel_module.set_parallel(OmegaConf.create({"env": "local"}))

@@ -6,8 +6,6 @@
 #       --training_config conf/training.yaml \
 #       --inference_config conf/inference.yaml
 
-dataset_dir: ${oc.env:VOXLINGUA107,/path/to/voxlingua107}
-
 ##########################################################
 #                    DATASET DEFINITION                  #
 ##########################################################
@@ -16,7 +14,6 @@ dataset:
     - name: dev
       data_src_args:
         split: dev
-        source_dir: ${dataset_dir}
         data_dir: ${data_dir}/voxlingua107
         sample_rate: 16000
 

@@ -5,7 +5,6 @@ from pathlib import Path
 from omegaconf import OmegaConf
 
 from egs3.TEMPLATE.esp2_lid.run import DEFAULT_STAGES
-from egs3.voxlingua107.esp2_lid.dataset.builder import resolve_source_root
 from espnet3.utils.config_utils import load_and_merge_config, load_default_config
 from espnet3.utils.publication_utils import pack_model
 
@@ -76,22 +75,6 @@ def test_voxlingua_training_overrides_default_sampler():
             f"{config.data_dir}/voxlingua107"
         )
     assert config.trainer.accumulate_grad_batches == 2
-
-
-def test_corpus_environment_is_shared_by_training_inference_and_builder(
-    tmp_path, monkeypatch
-):
-    """One portable source override must select the same corpus in every stage."""
-    monkeypatch.setenv("VOXLINGUA107", str(tmp_path))
-    for config_name in ("training.yaml", "inference.yaml"):
-        config = load_and_merge_config(
-            Path("egs3/voxlingua107/esp2_lid/conf") / config_name,
-            config_name=config_name,
-            default_package="egs3.TEMPLATE.esp2_lid",
-            resolve=True,
-        )
-        assert config.dataset_dir == str(tmp_path)
-    assert resolve_source_root() == tmp_path
 
 
 def test_voxlingua_model_pack_includes_lang2utt(tmp_path):

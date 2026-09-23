@@ -6,9 +6,8 @@ import os
 from collections import defaultdict
 from importlib import resources
 from pathlib import Path
+from typing import Iterable
 from urllib.parse import urlparse
-
-from omegaconf import OmegaConf
 
 from egs3.voxlingua107.esp2_lid.src.download import DownloadProvider, DownloadRunner
 from espnet3.components.data.dataset_builder import DatasetBuilder
@@ -139,12 +138,57 @@ _ISO3_CODES = {
 }
 
 
-def resolve_source_root(source_dir: str | Path | None = None) -> Path:
-    """Resolve the VoxLingua107 source directory."""
-    return (
-        Path(source_dir or os.environ[str(_CFG["source_env_var"])])
-        .expanduser()
-        .resolve()
+def _recipe_root(recipe_dir: str | Path | None) -> Path:
+    """Return the recipe root, defaulting to this recipe package."""
+    return Path(recipe_dir) if recipe_dir is not None else Path(__file__).parents[1]
+
+
+def iter_source_candidates(
+    recipe_dir: str | Path | None = None,
+    source_dir: str | Path | None = None,
+) -> Iterable[Path]:
+    """Yield candidate VoxLingua107 roots in precedence order.
+
+    An explicit ``source_dir`` comes first, then the directory named by the
+    ``VOXLINGUA107`` environment variable, then ``<recipe_dir>/download/voxlingua107``.
+    """
+    if source_dir is not None:
+        yield Path(source_dir).expanduser().resolve()
+    env_path = os.environ.get(str(_CFG["source_env_var"]))
+    if env_path:
+        yield Path(env_path).expanduser().resolve()
+    yield _recipe_root(recipe_dir).resolve() / str(_CFG["dataset_path"])
+
+
+def resolve_source_root(
+    recipe_dir: str | Path | None = None,
+    source_dir: str | Path | None = None,
+) -> Path:
+    """Resolve the first candidate that holds an extracted VoxLingua107 corpus.
+
+    Args:
+        recipe_dir: Recipe root used for the ``download/voxlingua107`` default.
+        source_dir: Optional explicit corpus root, checked first.
+
+    Returns:
+        The prepared corpus root.
+
+    Raises:
+        FileNotFoundError: If no candidate holds a complete extracted corpus.
+
+    Example:
+        >>> resolve_source_root(recipe_dir="egs3/voxlingua107/esp2_lid")
+    """
+    checked = []
+    for candidate in iter_source_candidates(recipe_dir, source_dir):
+        checked.append(str(candidate))
+        if _is_prepared_source(candidate):
+            return candidate
+    env_var = str(_CFG["source_env_var"])
+    raise FileNotFoundError(
+        "VoxLingua107 source not found. Checked these locations:\n"
+        + "\n".join(f"  - {path}" for path in checked)
+        + f"\nRun the create_dataset stage, or set {env_var} to the corpus root."
     )
 
 
@@ -155,10 +199,7 @@ def resolve_metadata_root(
     """Resolve recipe-local manifests independently of the source audio."""
     if data_dir is not None:
         return Path(data_dir).expanduser().resolve()
-    recipe_root = (
-        Path(recipe_dir) if recipe_dir is not None else Path(__file__).parents[1]
-    )
-    return recipe_root.resolve() / str(_CFG["data_path"])
+    return _recipe_root(recipe_dir).resolve() / str(_CFG["data_path"])
 
 
 def _iter_audio(source_root: Path, split: str) -> list[tuple[str, Path]]:
@@ -216,6 +257,15 @@ def _has_complete_training_data(source_root: Path) -> bool:
     )
 
 
+def _is_prepared_source(source_root: Path) -> bool:
+    """Check that extraction finished and train/development WAVs are present."""
+    if (source_root / _PREPARING).exists():
+        return False
+    if not source_root.is_dir() or not (source_root / "dev").is_dir():
+        return False
+    return _has_complete_training_data(source_root) and _has_audio(source_root, "dev")
+
+
 def _has_complete_training_metadata(metadata_root: Path) -> bool:
     """Check that the prepared training inventory contains all source languages."""
     category2utt = metadata_root / "train" / "category2utt"
@@ -261,20 +311,21 @@ class VoxLingua107Builder(DatasetBuilder):
     """Build manifests and category metadata from an extracted VoxLingua107 tree."""
 
     def is_source_prepared(
-        self, source_dir: str | Path | None = None, **_kwargs
+        self,
+        recipe_dir: str | Path | None = None,
+        source_dir: str | Path | None = None,
+        **_kwargs,
     ) -> bool:
-        """Check that train and development WAV files are present."""
-        source_root = resolve_source_root(source_dir)
-        if (source_root / _PREPARING).exists():
+        """Check whether any source candidate holds train and development WAVs."""
+        try:
+            resolve_source_root(recipe_dir, source_dir)
+        except FileNotFoundError:
             return False
-        if not source_root.is_dir() or not (source_root / "dev").is_dir():
-            return False
-        return _has_complete_training_data(source_root) and _has_audio(
-            source_root, "dev"
-        )
+        return True
 
     def prepare_source(
         self,
+        recipe_dir: str | Path | None = None,
         source_dir: str | Path | None = None,
         zip_urls_url: str | None = None,
         dev_zip_url: str | None = None,
@@ -287,20 +338,25 @@ class VoxLingua107Builder(DatasetBuilder):
         prevents interrupted extraction from being treated as a prepared source.
         Audio is extracted unchanged; no cropping or resampling is performed.
 
+        When no candidate already holds the corpus, it is downloaded to the first
+        candidate: ``source_dir``, then ``VOXLINGUA107``, then
+        ``<recipe_dir>/download/voxlingua107``.
+
         Args:
-            source_dir: Corpus directory, or the VOXLINGUA107 environment variable.
+            recipe_dir: Recipe root used for the default download location.
+            source_dir: Optional explicit corpus directory.
             zip_urls_url: Optional override of the official training ZIP list.
             dev_zip_url: Optional override of the development ZIP URL.
-            parallel: ESPnet3 parallel configuration, e.g. an HPC backend with
-                n_workers. Defaults to local sequential execution.
+            parallel: ESPnet3 parallel configuration, e.g. ``env`` and
+                ``n_workers``. Defaults to the active or shared default setting.
             **_kwargs: Unused arguments from the common builder interface.
 
         Example:
-            >>> builder.prepare_source(source_dir="/corpora/voxlingua107")
+            >>> builder.prepare_source(recipe_dir="egs3/voxlingua107/esp2_lid")
         """
-        source_root = resolve_source_root(source_dir)
-        if self.is_source_prepared(source_dir=source_root):
+        if self.is_source_prepared(recipe_dir=recipe_dir, source_dir=source_dir):
             return
+        source_root = next(iter_source_candidates(recipe_dir, source_dir))
         source_root.mkdir(parents=True, exist_ok=True)
         marker = source_root / _PREPARING
         marker.touch()
@@ -326,7 +382,7 @@ class VoxLingua107Builder(DatasetBuilder):
                     "extract_to": str(destination),
                 }
             )
-        set_parallel(parallel or OmegaConf.create({"env": "local"}))
+        set_parallel(parallel)
         DownloadRunner(
             DownloadProvider(tasks), output_dir=source_root / ".download", resume=False
         )(range(len(tasks)))
@@ -356,21 +412,24 @@ class VoxLingua107Builder(DatasetBuilder):
 
     def build(
         self,
-        source_dir: str | Path | None = None,
         recipe_dir: str | Path | None = None,
+        source_dir: str | Path | None = None,
         data_dir: str | Path | None = None,
         **_kwargs,
     ) -> None:
         """Create manifests and mappings from an already prepared source.
 
         Args:
-            source_dir: Extracted corpus root, or VOXLINGUA107 when omitted.
-            recipe_dir: Recipe root used to resolve the metadata destination.
+            recipe_dir: Recipe root used to find the source and metadata.
+            source_dir: Optional explicit corpus root, checked first.
             data_dir: Explicit metadata destination, overriding recipe_dir.
             **_kwargs: Unused arguments from the common builder interface.
 
+        Raises:
+            FileNotFoundError: If no source candidate holds an extracted corpus.
+
         Example:
-            >>> builder.build(source_dir="/corpora/voxlingua107", data_dir="data/voxlingua107")
+            >>> builder.build(recipe_dir="egs3/voxlingua107/esp2_lid")
 
         Each split contains a tab-separated manifest (utterance ID, WAV path,
         language). Mapping keys use zero-based Dataset indices, for example::
@@ -386,7 +445,7 @@ class VoxLingua107Builder(DatasetBuilder):
         inputs. collect_stats regenerates these mappings with global indices
         when datasets or speed variants are combined.
         """
-        source_root = resolve_source_root(source_dir)
+        source_root = resolve_source_root(recipe_dir, source_dir)
         metadata_root = resolve_metadata_root(recipe_dir, data_dir)
         metadata_root.mkdir(parents=True, exist_ok=True)
         marker = metadata_root / _BUILDING

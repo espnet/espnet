@@ -71,16 +71,13 @@ create_dataset: {}
 #     - data_src: voxlingua107/esp2_lid
 #       data_src_args:
 #         split: train
-#         source_dir: ${dataset_dir}
 #   valid:
 #     - data_src_args:
 #         split: dev
-#         source_dir: ${dataset_dir}
 #   test:
 #     - name: dev
 #       data_src_args:
 #         split: dev
-#         source_dir: ${dataset_dir}
 #   preprocessor:
 #     _target_: espnet2.train.preprocessor.LIDPreprocessor
 dataset:
@@ -154,6 +151,9 @@ init:
 parallel:
   env: local
   n_workers: 1
+  # Replace a stale shard lock left by an interrupted run. Do not enable while
+  # another run may still be writing to the same output directory.
+  allow_overwrite_lock: false
 
 ##########################################################
 #                   DATALOADER SETTING                   #

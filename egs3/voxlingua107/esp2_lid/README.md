@@ -6,6 +6,7 @@ Train an MMS/ECAPA-TDNN model to identify 107 spoken languages.
 
 Run from `egs3/voxlingua107/esp2_lid` with ESPnet installed.
 Set `VOXLINGUA107` to the corpus destination or an existing extracted corpus.
+Without it, `create_dataset` downloads the corpus to `download/voxlingua107`.
 Model and training settings are in `conf/training.yaml`.
 
 ```bash

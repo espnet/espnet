@@ -12,6 +12,12 @@ from espnet2.fileio.read_text import read_2columns_text
 from espnet2.samplers.build_batch_sampler import build_category_batch_sampler
 
 
+@pytest.fixture(autouse=True)
+def reset_parallel_config(monkeypatch):
+    """Keep tests independent of the process-global parallel config."""
+    monkeypatch.setattr("espnet3.parallel.parallel.parallel_config", None)
+
+
 @pytest.mark.parametrize("empty_mode", ["train", "valid"])
 def test_collect_speech_shapes_rejects_empty_dataset(tmp_path, monkeypatch, empty_mode):
     """Reject empty splits before the runner writes partial outputs."""
@@ -142,6 +148,8 @@ def test_collect_speech_shapes_rejects_non_string_language(tmp_path, monkeypatch
         "instantiate",
         lambda config: SimpleNamespace(train=samples, valid=samples),
     )
+    # Run shards in this process so the patched organizer is used.
+    monkeypatch.setattr(stats_module, "set_parallel", lambda config: None)
     config = OmegaConf.create(
         {"dataset": {}, "dataloader": {}, "stats_dir": str(tmp_path)}
     )

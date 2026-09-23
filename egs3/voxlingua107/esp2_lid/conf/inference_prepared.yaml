@@ -1,5 +1,4 @@
 # LID inference prepared settings.
-dataset_dir: ${oc.env:VOXLINGUA107,/path/to/voxlingua107}
 dataset:
   test:
     - name: ${prepared_name}
