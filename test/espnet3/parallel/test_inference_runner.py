@@ -314,7 +314,13 @@ def test_parallel_shards_offline_with_base_runner(test_audio_paths, tmp_path):
 
     base = tmp_path / "inference"
     shard_dirs = sorted(base.glob("split.*"))
-    assert len(shard_dirs) >= 1
+    # On this branch env="local" builds a real dask LocalCluster(n_workers=...)
+    # (espnet3/parallel/parallel.py:144-145) and BaseRunner.__call__ dispatches
+    # to _run_parallel_dask whenever a parallel config is set (base_runner.py's
+    # __call__), so with len(indices) >= n_workers this must produce exactly
+    # n_workers shards -- not just "at least one" (which the single-shard
+    # driver path would also satisfy).
+    assert len(shard_dirs) == 2
     for d in shard_dirs:
         assert (d / "done").exists()
     assert len(merged) == len(indices)
@@ -348,7 +354,9 @@ def test_parallel_shards_streaming_with_base_runner(test_audio_paths, tmp_path):
 
     base = tmp_path / "inference"
     shard_dirs = sorted(base.glob("split.*"))
-    assert len(shard_dirs) >= 1
+    # See test_parallel_shards_offline_with_base_runner: n_workers shards, not
+    # just "at least one", now that env="local" drives a real LocalCluster.
+    assert len(shard_dirs) == 3
     for d in shard_dirs:
         assert (d / "done").exists()
 
