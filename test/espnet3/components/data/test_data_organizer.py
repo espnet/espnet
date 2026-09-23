@@ -351,6 +351,29 @@ def test_combined_dataset_mixed_index_types():
     assert combined["utt1"]["text"] == "world"
 
 
+@pytest.mark.xfail(
+    strict=True,
+    reason=(
+        "data-organizer#23: in mixed (string-index) mode, an "
+        "int-addressable sub-dataset's numeric position is not registered "
+        "in _uid_to_dataset, so combined[str(int_position)] raises "
+        "ValueError instead of resolving like combined[int_position] does."
+    ),
+)
+def test_combined_dataset_mixed_index_types_numeric_string_lookup():
+    numeric = DummyDataset()
+    stringy = DummyStringKeyDataset()
+    combined = CombinedDataset(
+        [numeric, stringy],
+        [
+            (do_nothing, do_nothing),
+            (do_nothing, do_nothing),
+        ],
+    )
+
+    assert combined["0"]["text"] == combined[0]["text"] == "hello"
+
+
 def test_combined_dataset_duplicate_string_ids_error():
     class AnotherStringDataset(DummyStringKeyDataset):
         def __init__(self):
