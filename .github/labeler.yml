@@ -39,7 +39,7 @@ ASR:
           - "espnet2/asr_transducer/**"
           - "espnet2/tasks/asr*.py"
           - "espnet2/bin/asr_*"
-          - "espnet3/systems/asr/**"
+          - "espnet3/systems/esp2_asr/**"
           - "test/espnet2/asr/**"
           - "egs2/*/asr1/**"
           - "egs2/*/asr2/**"

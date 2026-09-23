@@ -3,11 +3,11 @@ from pathlib import Path
 import pytest
 import sentencepiece as spm
 
-import espnet3.systems.asr.metrics.cer as cer_module
-import espnet3.systems.asr.metrics.wer as wer_module
-from espnet3.systems.asr.metrics.cer import CER
-from espnet3.systems.asr.metrics.ter import TER
-from espnet3.systems.asr.metrics.wer import WER
+import espnet3.systems.esp2_asr.metrics.cer as cer_module
+import espnet3.systems.esp2_asr.metrics.wer as wer_module
+from espnet3.systems.esp2_asr.metrics.cer import CER
+from espnet3.systems.esp2_asr.metrics.ter import TER
+from espnet3.systems.esp2_asr.metrics.wer import WER
 
 
 def _build_inputs(tmp_path: Path, ref_lines, hyp_lines) -> dict[str, Path]:
@@ -134,7 +134,7 @@ def test_ter_positive_when_different(tmp_path: Path, tiny_bpemodel: str):
 
 @pytest.mark.execution_timeout(30)
 def test_ter_requires_jiwer(tmp_path: Path, tiny_bpemodel: str, monkeypatch):
-    import espnet3.systems.asr.metrics.ter as ter_module
+    import espnet3.systems.esp2_asr.metrics.ter as ter_module
 
     monkeypatch.setattr(ter_module, "jiwer", None)
     metric = TER(bpemodel=tiny_bpemodel)

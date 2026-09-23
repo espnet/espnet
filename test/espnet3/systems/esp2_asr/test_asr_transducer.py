@@ -2,7 +2,7 @@ from argparse import Namespace
 
 import pytest
 
-from espnet3.systems.asr.transducer_task import ASRTransducerTask
+from espnet3.systems.esp2_asr.transducer_task import ASRTransducerTask
 
 
 def test_add_arguments():

@@ -40,7 +40,7 @@
 # of appending `_unnorm` to the four split names below. As shipped this config
 # runs egs2's `norm=""` branch: the same recipe over normalized text.
 
-task: espnet3.systems.asr.task.ASRTask
+task: espnet3.systems.esp2_asr.task.ASRTask
 
 ##########################################################
 #                  SYSTEM AND PATH SETTING               #

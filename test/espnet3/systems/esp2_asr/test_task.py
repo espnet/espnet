@@ -4,7 +4,7 @@ from argparse import Namespace
 
 import pytest
 
-from espnet3.systems.asr.task import ASRTask
+from espnet3.systems.esp2_asr.task import ASRTask
 
 
 def test_add_arguments():

@@ -8,7 +8,7 @@ import pytest
 from huggingface_hub.errors import HfHubHTTPError
 from omegaconf import OmegaConf
 
-from espnet3.systems.asr.system import ASRSystem
+from espnet3.systems.esp2_asr.system import ASRSystem
 from espnet3.utils import publication_utils as publish
 from espnet3.utils.publication_utils import (
     _build_results_table,
@@ -194,7 +194,7 @@ def test_build_results_table_with_multiple_metrics_and_test_sets(tmp_path):
 def test_build_results_table_uses_short_metric_name(tmp_path):
     metrics_file = tmp_path / "metrics.json"
     metrics_file.write_text(
-        json.dumps({"espnet3.systems.asr.metrics.wer.WER": {"test": 3.0}}),
+        json.dumps({"espnet3.systems.esp2_asr.metrics.wer.WER": {"test": 3.0}}),
         encoding="utf-8",
     )
 
@@ -680,7 +680,7 @@ def test_pack_model_drops_readme_lines_for_missing_context(
         exp_dir=exp_dir,
         recipe_dir=recipe_dir,
         publication_config=publication_config,
-        task="espnet3.systems.asr.task.ASRTask",
+        task="espnet3.systems.esp2_asr.task.ASRTask",
     )
     monkeypatch.setattr(
         publish,
@@ -801,7 +801,7 @@ def test_pack_model_includes_extra_data_dir(tmp_path):
         {
             "exp_dir": str(exp_dir),
             "recipe_dir": str(recipe_dir),
-            "task": "espnet3.systems.asr.task.ASRTask",
+            "task": "espnet3.systems.esp2_asr.task.ASRTask",
         }
     )
     inference_config = OmegaConf.create(
@@ -852,7 +852,7 @@ def test_pack_model_expands_globbed_include_paths(tmp_path):
         {
             "exp_dir": str(exp_dir),
             "recipe_dir": str(recipe_dir),
-            "task": "espnet3.systems.asr.task.ASRTask",
+            "task": "espnet3.systems.esp2_asr.task.ASRTask",
         }
     )
     inference_config = OmegaConf.create(
@@ -902,7 +902,7 @@ def test_pack_model_preserves_symlink_name(tmp_path):
         {
             "exp_dir": str(exp_dir),
             "recipe_dir": str(recipe_dir),
-            "task": "espnet3.systems.asr.task.ASRTask",
+            "task": "espnet3.systems.esp2_asr.task.ASRTask",
         }
     )
     inference_config = OmegaConf.create(

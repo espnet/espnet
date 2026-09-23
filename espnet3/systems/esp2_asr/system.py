@@ -13,7 +13,7 @@ from typing import Iterable
 
 from omegaconf import DictConfig
 
-from espnet3.systems.asr.tokenizers.sentencepiece import train_sentencepiece
+from espnet3.systems.esp2_asr.tokenizers.sentencepiece import train_sentencepiece
 from espnet3.systems.base.system import BaseSystem
 
 logger = logging.getLogger(__name__)

@@ -6,9 +6,9 @@ from pathlib import Path
 import pytest
 from omegaconf import OmegaConf
 
-import espnet3.systems.asr.system as sysmod
+import espnet3.systems.esp2_asr.system as sysmod
 import espnet3.systems.base.system as basesys
-from espnet3.systems.asr.system import ASRSystem
+from espnet3.systems.esp2_asr.system import ASRSystem
 
 
 def test_asr_system_train_runs_tokenizer_then_train(tmp_path, monkeypatch):

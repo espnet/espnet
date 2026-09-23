@@ -108,7 +108,7 @@ dataset:
 ##########################################################
 #                   TOKENIZER SETTING                    #
 ##########################################################
-# Used by the `train_tokenizer` stage in `espnet3.systems.asr.system.ASRSystem`.
+# Used by the `train_tokenizer` stage in `espnet3.systems.esp2_asr.system.ASRSystem`.
 # `text_builder.func` must return either:
 # - a path to a text file, or
 # - an iterable of training strings

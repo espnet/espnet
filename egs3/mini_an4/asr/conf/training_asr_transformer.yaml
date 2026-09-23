@@ -8,7 +8,7 @@
 ##########################################################
 #                  SYSTEM AND PATH SETTING               #
 ##########################################################
-task: espnet3.systems.asr.task.ASRTask
+task: espnet3.systems.esp2_asr.task.ASRTask
 
 ##########################################################
 #                    DATASET DEFINITION                  #

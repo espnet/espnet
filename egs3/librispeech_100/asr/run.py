@@ -4,7 +4,7 @@ from egs3.TEMPLATE.asr.run import (
     main,
     parse_cli_and_stage_args,
 )
-from espnet3.systems.asr.system import ASRSystem
+from espnet3.systems.esp2_asr.system import ASRSystem
 
 if __name__ == "__main__":
     parser = build_parser(

@@ -230,7 +230,7 @@ if __name__ == "__main__":
 
     # Here you should replace `YourSystemClass` with the actual system class
     # you want to use for your experiment.
-    from espnet3.systems.asr.system import ASRSystem
+    from espnet3.systems.esp2_asr.system import ASRSystem
 
     main(
         args=args,

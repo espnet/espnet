@@ -23,7 +23,7 @@
 ##########################################################
 # `recipe_dir`, `data_dir`, `exp_tag`, `exp_dir`, and `stats_dir` are inherited
 # from the TEMPLATE config. In particular, `exp_tag` follows `${self_name:}`.
-task: espnet3.systems.asr.task.ASRTask
+task: espnet3.systems.esp2_asr.task.ASRTask
 
 ##########################################################
 #                    DATASET DEFINITION                  #
