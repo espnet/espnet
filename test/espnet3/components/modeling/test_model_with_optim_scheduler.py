@@ -888,8 +888,8 @@ def test_checkpoint_restores_runtime_state():
     restored = ESPnetLightningModule(
         DummyMultiModel(["generator"]), make_multi_config(step_every_n_iters=2)
     )
-    restored.configure_optimizers()
     restored.on_load_checkpoint(checkpoint)
+    restored.configure_optimizers()
     assert restored._optimizer_states["generator"].update_step == 1
     assert restored._optimizer_states["generator"].accum_counter == 0
 
