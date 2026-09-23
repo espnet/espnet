@@ -311,7 +311,13 @@ def awaiting_release(path: str, text: str, root: str = ".") -> Optional[str]:
     try:
         with open(requirements, encoding="utf-8") as f:
             for line in f:
-                match = re.match(r"\s*espnet(\[[a-z,]+\])?>=(?P<version>\S+)", line)
+                # one version, not the rest of the requirement:
+                # `espnet>=a,!=b` would otherwise ask PyPI for the release
+                # "a,!=b", get nothing, and call a published Space pending
+                match = re.match(
+                    r"\s*espnet(\[[a-z,]+\])?(>=|==)" r"(?P<version>[A-Za-z0-9._+!-]+)",
+                    line,
+                )
                 if match:
                     pinned = match.group("version")
                     break
@@ -323,9 +329,30 @@ def awaiting_release(path: str, text: str, root: str = ".") -> Optional[str]:
     return None if released else pinned
 
 
-def space_ids_in(text: str) -> Set[str]:
-    """The Spaces a card names, which for its own card is where it will go."""
-    return {f"{m.group('owner')}/{m.group('name')}" for m in SPACE_LINK.finditer(text)}
+# The line every card carries, and the only statement in it of where this
+# directory goes. A card also links to its sibling - the two OWSM demos point
+# at each other - so the links cannot say which Space is the card's own, and
+# taking them all would have hidden a real outage of the sibling behind
+# "not published yet".
+UPLOAD = re.compile(
+    r"^hf upload (?P<space>[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+) (?P<dir>\S+) ",
+    re.M,
+)
+
+
+def upload_target(path: str, text: str) -> Optional[str]:
+    """The Space this card says its own directory is uploaded to.
+
+    None when the card does not say, or says it of another directory. Then
+    nothing about it is treated as pending, which is the safe direction: an
+    absent Space is reported rather than excused.
+    """
+    match = UPLOAD.search(text)
+    if match is None:
+        return None
+    if match.group("dir").rstrip("/") != os.path.dirname(path).rstrip("/"):
+        return None
+    return match.group("space")
 
 
 # `demo/` is one Space in a recipe, `demo_align/` a second one beside it -
@@ -428,10 +455,10 @@ def scan() -> List[str]:
     # not have cannot have been uploaded yet
     pending = {}
     for path in space_cards(names):
-        waiting = awaiting_release(path, texts.get(path, ""), root)
+        target = upload_target(path, texts.get(path, ""))
+        waiting = awaiting_release(path, texts.get(path, ""), root) if target else None
         if waiting:
-            for space_id in space_ids_in(texts.get(path, "")):
-                pending[space_id] = (waiting, path)
+            pending[target] = (waiting, path)
     for space_id in sorted(spaces):
         stage = space_stage(space_id)
         if stage == ABSENT and space_id in pending:
