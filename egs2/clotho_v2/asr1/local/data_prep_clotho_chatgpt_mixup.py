@@ -10,7 +10,6 @@ from typing import List, Optional
 
 import librosa
 import numpy as np
-import pandas as pd
 import soundfile as sf
 from torch.utils.data import Dataset
 from transformers import AutoTokenizer
@@ -174,7 +173,7 @@ class ClothoMixupDataset(Dataset):
                 mixed_audio,
                 SAMPLE_RATE,
             )
-        except Exception as e:
+        except Exception:
             print(f"Can not write audio {mixed_audio_path}")
             mixed_audio = None
             mixed_audio_path = None

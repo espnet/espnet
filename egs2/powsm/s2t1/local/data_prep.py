@@ -1,6 +1,4 @@
 import argparse
-import glob
-import json
 import logging
 import os
 import pickle
@@ -8,17 +6,11 @@ import string
 import sys
 import unicodedata
 from collections import defaultdict
-from glob import glob
 from pathlib import Path
-from shlex import split
-from tarfile import ReadError
 
 import pandas as pd
 import regex as re
-import webdataset as wds
-from ipatok import tokenise
 from lhotse import CutSet
-from scipy.io import wavfile
 from tqdm import tqdm
 
 
@@ -336,7 +328,7 @@ def text_normalization(orthography):
     # but keep apostrophes and hyphens after normalization
     orthography = unicodedata.normalize("NFKC", str(orthography))
     orthography = orthography.lower().replace("’", "'")
-    pattern = rf"[^\w\s\-']"
+    pattern = r"[^\w\s\-']"
     return re.sub(pattern, "", orthography)
 
 

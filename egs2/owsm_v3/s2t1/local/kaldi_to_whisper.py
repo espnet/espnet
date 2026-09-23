@@ -14,7 +14,6 @@ from utils import (
     SYMBOL_NA,
     SYMBOL_NOSPEECH,
     SYMBOLS_TIME,
-    LongUtterance,
     Utterance,
     generate_long_utterances,
 )

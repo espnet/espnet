@@ -1,4 +1,3 @@
-from collections import Counter
 
 train_file = "data/train/text"
 

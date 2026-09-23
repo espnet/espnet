@@ -8,7 +8,6 @@ import logging
 import os
 import sys
 
-import numpy as np
 import torch
 from espnet2.speechlm.tokenizer.codec_tokenizer import CodecTokenizer
 from omniio import kaldi as kaldi_io

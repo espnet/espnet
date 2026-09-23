@@ -7,10 +7,7 @@
 
 import argparse
 import os
-import re
-import sys
 
-import pandas as pd
 from sklearn.metrics import classification_report, f1_score
 
 

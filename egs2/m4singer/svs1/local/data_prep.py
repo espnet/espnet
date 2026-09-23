@@ -4,9 +4,7 @@ import os
 import random
 import shutil
 
-import librosa
 import miditoolkit
-import numpy as np
 
 from espnet2.fileio.score_scp import SingingScoreWriter
 

@@ -9,7 +9,6 @@
 # https://github.com/facebookresearch/fairseq
 
 import argparse
-import logging
 import os
 import os.path as osp
 import sys

@@ -2,7 +2,6 @@
 import argparse
 import math
 import os
-import sys
 
 """Generate segments according to label."""
 

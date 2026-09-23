@@ -8,7 +8,6 @@ import glob
 import os
 
 import soundfile as sf
-import tqdm
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

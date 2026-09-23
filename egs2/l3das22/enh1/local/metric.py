@@ -6,13 +6,10 @@
 
 
 import argparse
-import os
-import sys
 import warnings
 
 import jiwer
 import numpy as np
-import soundfile as sf
 import torch
 import torchaudio
 import transformers

@@ -6,13 +6,10 @@
 
 
 import os
-import re
 import sys
 
-import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
-from tqdm import tqdm
 
 if len(sys.argv) != 2:
     print("Usage: python data_prep.py [SINHALA]")

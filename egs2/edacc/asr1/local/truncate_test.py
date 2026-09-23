@@ -1,7 +1,5 @@
 import os
-import shutil
 import sys
-import wave
 
 
 def truncate_test_set(test_dir, utterance_splits):

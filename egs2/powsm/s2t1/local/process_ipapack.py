@@ -1,16 +1,10 @@
 import argparse
 import csv
-import json
 import os
 import shutil
-from collections import defaultdict
 
 import langcodes
-import matplotlib.pyplot as plt
-import pandas as pd
-import regex as re
 from langcodes import tag_is_valid
-from tqdm import tqdm
 
 """
 Converts IPAPack++ into OWSM's expected format

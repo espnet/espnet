@@ -2,8 +2,6 @@
 
 import json
 import os
-import re
-import subprocess
 import sys
 
 slurp_dir = sys.argv[1]

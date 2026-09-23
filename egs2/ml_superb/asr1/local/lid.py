@@ -1,7 +1,5 @@
 import argparse
 
-from sklearn.metrics import classification_report
-
 
 def main(args):
     txt_path = f"{args.dir}/lid.trn"

@@ -2,7 +2,6 @@
 import argparse
 import math
 import os
-import sys
 
 from espnet2.fileio.score_scp import SingingScoreReader, SingingScoreWriter
 from espnet2.text.build_tokenizer import build_tokenizer

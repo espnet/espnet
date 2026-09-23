@@ -10,7 +10,6 @@
 
 
 import argparse
-import glob
 import os
 import random
 import xml.etree.ElementTree as ET

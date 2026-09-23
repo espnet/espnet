@@ -4,7 +4,6 @@ import argparse
 import codecs
 import glob
 import os
-import sys
 from multiprocessing import Pool
 
 

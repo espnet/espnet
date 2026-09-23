@@ -5,7 +5,6 @@ import sys
 from copy import deepcopy
 from io import BytesIO
 from pathlib import Path
-from typing import Optional, Tuple
 
 import numpy as np
 import resampy
@@ -15,7 +14,6 @@ from omniio import kaldi as kaldi_io
 from scipy.signal import lfilter
 from tqdm import tqdm
 
-from espnet2.fileio.read_text import read_2columns_text
 from espnet2.legacy.utils.cli_utils import get_commandline_args
 
 

@@ -2,7 +2,6 @@
 import argparse
 import math
 import os
-import sys
 
 import music21 as m21
 import numpy as np

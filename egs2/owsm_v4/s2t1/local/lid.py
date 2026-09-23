@@ -8,7 +8,6 @@ import argparse
 import json
 import logging
 import tempfile
-from pathlib import Path
 
 import fasttext
 import librosa

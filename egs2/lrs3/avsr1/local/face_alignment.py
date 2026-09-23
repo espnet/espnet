@@ -86,7 +86,7 @@ class VideoProcess:
         if output is None:
             return None
         sequence, yx_min, transformed_landmarks = output
-        assert sequence is not None, f"cannot crop a patch from."
+        assert sequence is not None, "cannot crop a patch from."
 
         sequence = self.transform(sequence)
 

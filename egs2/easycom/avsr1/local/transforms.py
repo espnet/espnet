@@ -7,8 +7,6 @@ import random
 
 import cv2
 import numpy as np
-import torch
-from scipy import signal
 
 __all__ = [
     "Compose",

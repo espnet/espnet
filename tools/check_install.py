@@ -12,8 +12,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-from packaging.version import parse
-
 module_list = [
     ("torchaudio", None, None),
     ("torch_optimizer", None, None),

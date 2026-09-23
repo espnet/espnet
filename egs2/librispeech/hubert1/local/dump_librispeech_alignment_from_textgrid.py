@@ -3,7 +3,6 @@
 import argparse
 import glob
 import os
-import sys
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
