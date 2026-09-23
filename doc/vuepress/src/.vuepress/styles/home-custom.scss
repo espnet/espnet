@@ -91,6 +91,22 @@ $mono:        'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
   }
 }
 
+// Interactive tags/toggles are real <button>s for keyboard operability;
+// reset UA button chrome that the classes above don't already cover.
+button.tag,
+[role='button'].pipe-step {
+  appearance: none;
+  margin: 0;
+  font: inherit;
+  line-height: inherit;
+  text-align: left;
+
+  &:focus-visible {
+    outline: 2px solid $green;
+    outline-offset: 2px;
+  }
+}
+
 .tag-blue {
   background: $blue-light;
   color: $blue;

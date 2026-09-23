@@ -13,7 +13,13 @@
           :key="step.name"
           class="pipe-step"
           :class="{ active: activeIndex === si }"
+          role="button"
+          tabindex="0"
+          :aria-expanded="activeIndex === si"
+          :aria-controls="`pipe-detail-${si}`"
           @click="toggle(si)"
+          @keydown.enter.prevent="toggle(si)"
+          @keydown.space.prevent="toggle(si)"
         >
           <div class="pipe-left">
             <div class="pipe-dot" />
@@ -27,18 +33,21 @@
             </div>
 
             <div
+              :id="`pipe-detail-${si}`"
               class="pipe-detail"
               :class="{ 'pipe-detail-open': activeIndex === si }"
             >
               <div class="pipe-detail-inner">
                 <div v-if="step.tasks?.length" class="pipe-detail-row">
-                  <span
+                  <button
                     v-for="(t, ti) in step.tasks"
                     :key="t.label"
+                    type="button"
                     class="tag tag-green"
                     :class="{ 'tag-selected': activeTasks[si] === ti }"
+                    :aria-pressed="activeTasks[si] === ti"
                     @click.stop="activeTasks[si] = ti"
-                  >{{ t.label }}</span>
+                  >{{ t.label }}</button>
                 </div>
                 <pre v-if="step.tasks?.length" class="pipe-yaml"><code v-html="step.tasks[activeTasks[si]].yaml" /></pre>
                 <div v-else class="pipe-yaml">No configuration required</div>

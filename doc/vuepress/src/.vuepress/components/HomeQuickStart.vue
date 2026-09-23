@@ -7,16 +7,18 @@
         <!-- Left: system list -->
         <div class="qs-list">
           <div class="qs-list-head">Systems</div>
-          <div
+          <button
             v-for="s in systems"
             :key="s.key"
+            type="button"
             class="qs-list-item"
             :class="{ active: activeKey === s.key }"
+            :aria-pressed="activeKey === s.key"
             @click="activeKey = s.key"
           >
             {{ s.key }}
             <span class="qs-list-dot" />
-          </div>
+          </button>
         </div>
 
         <!-- Right: detail + install -->
@@ -146,14 +148,22 @@ function copy() {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  width: 100%;
   padding: 9px 14px;
   cursor: pointer;
   transition: background 0.12s;
+  border: none;
   border-bottom: 0.5px solid #f7f8fa;
+  background: transparent;
   font-family: var(--font-family-code);
   font-size: 0.85em;
   font-weight: 600;
   color: #3a4a5c;
+  text-align: left;
+}
+.qs-list-item:focus-visible {
+  outline: 2px solid #0f7a5a;
+  outline-offset: -2px;
 }
 .qs-list-item:last-child { border-bottom: none; }
 .qs-list-item:hover { background: #f7f8fa; color: #0d1520; }

@@ -10,9 +10,11 @@
         <div class="col-label">files</div>
 
         <!-- run.py -->
-        <div
+        <button
+          type="button"
           class="tree-node"
           :class="fileNodeClass('run_py')"
+          :aria-pressed="activeFile === 'run_py'"
           @click="selectFile('run_py')"
         >
           <span class="ficon">
@@ -22,69 +24,75 @@
           </span>
           <span class="fname">run.py</span>
           <span class="fbadge">entry</span>
-        </div>
+        </button>
 
         <!-- conf/ -->
-        <div class="tree-dir" :class="{ open: openDirs.conf }" @click="toggleDir('conf')">
+        <button type="button" class="tree-dir" :class="{ open: openDirs.conf }" :aria-expanded="openDirs.conf" @click="toggleDir('conf')">
           <span class="dir-chevron">▶</span>📁 conf/
-        </div>
+        </button>
         <div class="dir-children" :class="{ open: openDirs.conf }">
-          <div
+          <button
+            type="button"
             class="tree-node indent1"
             :class="fileNodeClass('metrics_yaml')"
+            :aria-pressed="activeFile === 'metrics_yaml'"
             @click="selectFile('metrics_yaml')"
           >
             <span class="ficon">≡</span>
             <span class="fname">metrics.yaml</span>
             <span class="fbadge">config</span>
-          </div>
+          </button>
         </div>
 
         <!-- exp/{expdir}/inference/ -->
-        <div class="tree-dir" :class="{ open: openDirs.inference }" @click="toggleDir('inference')">
+        <button type="button" class="tree-dir" :class="{ open: openDirs.inference }" :aria-expanded="openDirs.inference" @click="toggleDir('inference')">
           <span class="dir-chevron">▶</span>📁 exp/{expdir}/inference/
-        </div>
+        </button>
         <div class="dir-children" :class="{ open: openDirs.inference }">
 
           <!-- test_1/ -->
-          <div class="tree-dir indent1" :class="{ open: openDirs.test1 }" @click.stop="toggleDir('test1')">
+          <button type="button" class="tree-dir indent1" :class="{ open: openDirs.test1 }" :aria-expanded="openDirs.test1" @click.stop="toggleDir('test1')">
             <span class="dir-chevron">▶</span>📁 test_1/
-          </div>
+          </button>
           <div class="dir-children" :class="{ open: openDirs.test1 }">
 
-            <div
+            <button
+              type="button"
               class="tree-node indent2"
               :class="fileNodeClass('ref_wav_scp')"
+              :aria-pressed="activeFile === 'ref_wav_scp'"
               @click.stop="selectFile('ref_wav_scp')"
             >
               <span class="ficon">≡</span>
               <span class="fname">ref_wav.scp</span>
               <span class="fbadge">required</span>
-            </div>
+            </button>
 
-            <div
+            <button
+              type="button"
               class="tree-node indent2"
               :class="fileNodeClass('hyp_wav_scp')"
+              :aria-pressed="activeFile === 'hyp_wav_scp'"
               @click.stop="selectFile('hyp_wav_scp')"
             >
               <span class="ficon">≡</span>
               <span class="fname">hyp_wav.scp</span>
               <span class="fbadge">required</span>
-            </div>
+            </button>
 
             <!-- ref_wav/ -->
-            <div class="tree-dir indent2" :class="{ open: openDirs.ref_wav }" @click.stop="toggleDir('ref_wav')">
+            <button type="button" class="tree-dir indent2" :class="{ open: openDirs.ref_wav }" :aria-expanded="openDirs.ref_wav" @click.stop="toggleDir('ref_wav')">
               <span class="dir-chevron">▶</span>📁 ref_wav/
-            </div>
+            </button>
             <div class="dir-children" :class="{ open: openDirs.ref_wav }">
               <div class="tree-node indent3 no-click"><span class="ficon">♪</span><span class="fname">utt001.wav</span></div>
               <div class="tree-node indent3 no-click"><span class="ficon">♪</span><span class="fname">utt002.wav</span></div>
             </div>
 
             <!-- hyp_wav/ -->
-            <div class="tree-dir indent2" :class="{ open: openDirs.hyp_wav }" @click.stop="toggleDir('hyp_wav')">
+            <button type="button" class="tree-dir indent2" :class="{ open: openDirs.hyp_wav }" :aria-expanded="openDirs.hyp_wav" @click.stop="toggleDir('hyp_wav')">
               <span class="dir-chevron">▶</span>📁 hyp_wav/
-            </div>
+            </button>
             <div class="dir-children" :class="{ open: openDirs.hyp_wav }">
               <div class="tree-node indent3 no-click"><span class="ficon">♪</span><span class="fname">utt001.wav</span></div>
               <div class="tree-node indent3 no-click"><span class="ficon">♪</span><span class="fname">utt002.wav</span></div>
@@ -93,21 +101,23 @@
           </div><!-- /test_1 children -->
 
           <!-- test_2/ -->
-          <div class="tree-dir indent1" :class="{ open: openDirs.test2 }" @click.stop="toggleDir('test2')">
+          <button type="button" class="tree-dir indent1" :class="{ open: openDirs.test2 }" :aria-expanded="openDirs.test2" @click.stop="toggleDir('test2')">
             <span class="dir-chevron">▶</span>📁 test_2/
-          </div>
+          </button>
           <div class="dir-children" :class="{ open: openDirs.test2 }"></div>
 
           <!-- metrics.json -->
-          <div
+          <button
+            type="button"
             class="tree-node indent1"
             :class="fileNodeClass('metrics_json')"
+            :aria-pressed="activeFile === 'metrics_json'"
             @click="selectFile('metrics_json')"
           >
             <span class="ficon">{}</span>
             <span class="fname">metrics.json</span>
             <span class="fbadge">generated</span>
-          </div>
+          </button>
 
         </div><!-- /inference children -->
       </div><!-- /files col -->
@@ -124,9 +134,11 @@
       <div>
         <div class="col-label">stages</div>
         <template v-for="(stage, i) in stages" :key="stage.id">
-          <div
+          <button
+            type="button"
             class="stage-node"
             :class="stageNodeClass(stage.id)"
+            :aria-pressed="activeStage === stage.id"
             @click="selectStage(stage.id)"
           >
             <span class="stage-num">{{ i + 1 }}</span>
@@ -134,7 +146,7 @@
               <div class="sname">{{ stage.label }}</div>
               <div class="ssub">{{ stage.sub }}</div>
             </div>
-          </div>
+          </button>
           <div v-if="i < stages.length - 1" class="stage-connector" />
         </template>
       </div>
@@ -316,6 +328,26 @@ function stageNodeClass(sid) {
   text-transform: uppercase;
   letter-spacing: 0.06em;
   margin-bottom: 8px;
+}
+
+/* ── interactive node/button reset (tree-node, tree-dir, stage-node render
+   as real <button>s for keyboard operability; .no-click leaf nodes stay
+   plain <div>s and are unaffected by this reset) ── */
+.tree-node,
+.tree-dir,
+.stage-node {
+  width: 100%;
+  border: none;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  appearance: none;
+}
+.tree-node:focus-visible,
+.tree-dir:focus-visible,
+.stage-node:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 1px;
 }
 
 /* ── accordion dir ── */

@@ -118,6 +118,8 @@ const yamlHl = computed(() => hlYaml(yamlRaw.value))
 // ── Provider code ─────────────────────────────────────────────────────────────
 const providerCode = computed(() => {
   if (toolkit.value === 'speechbrain') return `\
+from pathlib import Path
+
 from espnet3.parallel.env_provider import EnvironmentProvider
 from speechbrain.inference.classifiers import EncoderClassifier
 
@@ -159,6 +161,8 @@ class XVectorProvider(EnvironmentProvider):
         return setup   # ← return the function, not the dict!`
 
   if (toolkit.value === 'espnet') return `\
+from pathlib import Path
+
 from espnet3.parallel.env_provider import EnvironmentProvider
 from espnet2.bin.spk_inference import Speech2Embedding
 
@@ -204,6 +208,8 @@ class XVectorProvider(EnvironmentProvider):
         return setup   # ← return the function, not the dict!`
 
   return `\
+from pathlib import Path
+
 from espnet3.parallel.env_provider import EnvironmentProvider
 import torch
 from RawNet3 import RawNet3
@@ -389,6 +395,9 @@ params = {
 
 provider = XVectorProvider(config, params=params)
 runner   = XVectorRunner(provider)
+
+with open(params["manifest_path"]) as f:
+    n_utterances = sum(1 for _ in f)   # one line per utterance in the TSV manifest
 
 # Local: uses build_env_local()
 runner(range(n_utterances))
