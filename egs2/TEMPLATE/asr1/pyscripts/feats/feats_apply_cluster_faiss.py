@@ -94,11 +94,7 @@ def main():
     parser = get_parser()
     args = parser.parse_args()
 
-    try:
-        faiss_spec = parse_faiss_specs(args.faiss_specs.rstrip("/"))[0]
-    except Exception:
-        print(spec)
-        raise
+    faiss_spec = parse_faiss_specs(args.faiss_specs.rstrip("/"))[0]
 
     print("Faiss Spec:", faiss_spec, file=sys.stderr)
 

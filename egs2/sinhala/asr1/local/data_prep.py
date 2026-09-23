@@ -98,5 +98,5 @@ for x in dir_dict:
             path_arr = row[1].split("/")
             utt_id = path_arr[-2] + "_" + path_arr[-1]
             text_f.write(utt_id + " " + words + "\n")
-            wav_scp_f.write(utt_id + " " + hyper_root + "/" + row[1] + "\n")
+            wav_scp_f.write(utt_id + " " + sinhala_root + "/" + row[1] + "\n")
             utt2spk_f.write(utt_id + " " + row[2] + "\n")

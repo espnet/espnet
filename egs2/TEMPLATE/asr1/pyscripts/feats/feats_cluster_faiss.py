@@ -104,7 +104,7 @@ def main():
             print("Reloading...")
             del feats
             gc.collect()
-            feats = np.load(feat_path + ".npy")
+            feats = np.load(feat_file + ".npy")
 
         save_path = osp.join(args.save_dir, spec.spec_str)
         os.makedirs(save_path, exist_ok=True)

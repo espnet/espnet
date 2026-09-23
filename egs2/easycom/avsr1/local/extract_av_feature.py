@@ -13,7 +13,16 @@ import torch
 import torch.nn.functional as F
 from python_speech_features import logfbank
 from scipy.io import wavfile
-from transforms import *
+from transforms import (
+    CenterCrop,
+    Compose,
+    CutoutHole,
+    HorizontalFlip,
+    Identity,
+    Normalize,
+    RandomCrop,
+    TimeMask,
+)
 
 from espnet2.asr.encoder.avhubert_encoder import FairseqAVHubertEncoder
 from espnet2.legacy.utils.cli_writers import file_writer_helper

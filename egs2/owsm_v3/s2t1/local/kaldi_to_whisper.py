@@ -175,7 +175,7 @@ def process_kaldi_directory(
             continue
 
         if tgt_dict is not None:
-            tgt_text = tgt_text[uttid]
+            tgt_text = tgt_dict[uttid]
         else:
             tgt_text = text
 

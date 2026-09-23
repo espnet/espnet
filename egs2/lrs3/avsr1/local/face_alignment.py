@@ -9,7 +9,16 @@ import os
 import cv2
 import numpy as np
 from skimage import transform as tf
-from transforms import *
+from transforms import (
+    CenterCrop,
+    Compose,
+    CutoutHole,
+    HorizontalFlip,
+    Identity,
+    Normalize,
+    RandomCrop,
+    TimeMask,
+)
 
 
 def linear_interpolate(landmarks, start_idx, stop_idx):

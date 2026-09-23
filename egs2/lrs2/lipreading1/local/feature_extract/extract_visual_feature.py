@@ -7,7 +7,7 @@ import argparse
 import logging
 
 from distutils.util import strtobool
-from video_processing import *
+from video_processing import VideoReader
 
 from espnet2.legacy.utils.cli_utils import get_commandline_args
 from espnet2.legacy.utils.cli_writers import file_writer_helper
