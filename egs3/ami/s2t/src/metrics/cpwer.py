@@ -17,7 +17,7 @@ assignment over speaker blocks, and the word-level edit counts. A
 regression test pins those by rescoring a recorded decode of the full test
 set.
 
-That recorded decode scores cpWER 28.31% here. The ESPnet2 recipe reports
+That recorded decode scores cpWER 27.65% here. The ESPnet2 recipe reports
 27.95% for the same model decoded another way (the openai-whisper
 ``transcribe()`` path); this recipe decodes with ESPnet's own beam search
 instead, see ``src/inference.py``. The two numbers belong to different

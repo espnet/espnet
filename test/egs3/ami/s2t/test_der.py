@@ -42,7 +42,7 @@ def test_segments_from_sot_pairs_timestamps_within_a_speaker_block():
 
 
 def test_segments_from_sot_drops_an_unclosed_final_segment():
-    """prepare_sot omits the closing timestamp of a cut-truncated segment."""
+    """The corpus omits the closing timestamp of a cut-truncated segment."""
     sep = der_mod.SPEAKER_CHANGE_SYMBOL
     text = f"<|0.00|> hello<|1.20|> {sep} <|2.00|> world"
     assert der_mod.segments_from_sot(text) == [(0, 0.0, 1.2)]

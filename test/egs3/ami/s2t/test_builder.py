@@ -244,6 +244,13 @@ def test_test_split_transcripts_still_match_the_reference_content():
     from lhotse import CutSet
 
     options = bl._CONFIG["sot"]["test"]
+    try:
+        normalizer = bl.get_text_norm(options.get("text_norm"))
+    except ImportError as exc:
+        # The configured normalizer is an optional dependency. Without it the
+        # builder cannot produce the prepared text at all, so there is nothing
+        # this test could compare.
+        pytest.skip(str(exc).splitlines()[0])
     cuts = {
         c.id: c
         for c in CutSet.from_file(str(ami_sot_paths.CUTSET_DIR / options["cutset"]))
@@ -261,6 +268,7 @@ def test_test_split_transcripts_still_match_the_reference_content():
             ordering=options["ordering"],
             separator=bl._CONFIG["separator"],
             lowercase=options["lowercase"],
+            text_norm=normalizer,
             prompt=prompt,
             eos=None,
         )

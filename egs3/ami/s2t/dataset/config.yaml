@@ -49,21 +49,28 @@ builder:
   na_symbol: "<|nospeech|>"
 
   # Per-split serialization; see dataset/sot_text.py for what each option does.
+  #
+  # text_norm names a normalizer from dataset/text_norm.py, applied to each
+  # segment before the timestamps wrap it. "chime8_keep_fillers" needs
+  # chime-utils; "none" builds without it.
   sot:
     train:
       cutset: ami-sdm_cutset_train_utt_group_max_30s.jsonl.gz
       ordering: start_time
       lowercase: true
+      text_norm: chime8_keep_fillers
       max_timestamp_pause: 2.0
     valid:
       cutset: ami-sdm_cutset_dev_utt_group_max_30s.jsonl.gz
       ordering: start_time
       lowercase: true
+      text_norm: chime8_keep_fillers
       max_timestamp_pause: 2.0
     test:
       cutset: ami-sdm_cutset_test_utt_group_max_30s.jsonl.gz
       ordering: longest_first
       lowercase: true
+      text_norm: chime8_keep_fillers
       max_timestamp_pause: 2.0
 
 dataset:

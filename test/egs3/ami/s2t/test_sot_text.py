@@ -156,3 +156,72 @@ def test_prompt_survives_a_multi_speaker_line():
 def test_an_empty_line_is_still_only_the_end_token_even_with_a_prompt():
     """No content means no prompt either; an empty target must stay empty."""
     assert st.build_sot_text([], prompt="<|en|><|transcribe|>") == "<|endoftext|>"
+
+
+# ---------------------------------------------------------------------------
+# text_norm: applied to a segment's words, never to the markup
+# ---------------------------------------------------------------------------
+
+
+def test_text_norm_runs_before_the_timestamps_wrap_the_text():
+    """The normalizer must see words only.
+
+    A segment is normalized and then wrapped, so neither the timestamps nor
+    the separator can reach the normalizer. One that swallowed either would
+    produce a line the metrics cannot split.
+    """
+    seen = []
+
+    def norm(text):
+        seen.append(text)
+        return text.replace("dont", "do not")
+
+    sups = [Sup("A", 0.0, 1.0, "i dont know"), Sup("B", 2.0, 1.0, "me neither")]
+    out = st.build_sot_text(
+        sups, ordering="start_time", separator="????", text_norm=norm
+    )
+
+    assert seen == ["i dont know", "me neither"]  # no markup, no separator
+    assert "<|0.00|> i do not know<|1.00|> ???? <|2.00|> me neither<|3.00|>" in out
+
+
+def test_text_norm_replaces_lowercasing_rather_than_stacking_with_it():
+    """A normalizer case-folds on its own, so lowercase must not run too.
+
+    The normalizer is given the raw supervision text. Case-folding first
+    would hand it a different input than the targets were written from.
+    """
+    seen = []
+
+    def norm(text):
+        seen.append(text)
+        return text.lower()
+
+    st.build_sot_text(
+        [Sup("A", 0.0, 1.0, "Hello There")], lowercase=True, text_norm=norm
+    )
+    assert seen == ["Hello There"]
+
+
+def test_a_segment_that_normalizes_to_nothing_is_dropped():
+    """Emptiness is judged after normalizing, not before.
+
+    A segment holding only symbols survives the strip() but normalizes away.
+    Keeping it would leave a bare timestamp pair with no words between them,
+    which the DER segment parser would read as a real speech segment.
+    """
+    # 4 s apart, so merge_supervisions keeps them as two segments.
+    sups = [Sup("A", 0.0, 1.0, "%%%"), Sup("A", 5.0, 1.0, "real words")]
+    out = st.build_sot_text(
+        sups, separator="????", text_norm=lambda t: "" if t == "%%%" else t
+    )
+    assert "<|0.00|>" not in out
+    assert out.startswith("<|5.00|> real words<|6.00|>")
+
+
+def test_a_speaker_whose_every_segment_normalizes_away_adds_no_separator():
+    sups = [Sup("A", 0.0, 1.0, "%%%"), Sup("B", 2.0, 1.0, "real words")]
+    out = st.build_sot_text(
+        sups, separator="????", text_norm=lambda t: "" if t == "%%%" else t
+    )
+    assert "????" not in out

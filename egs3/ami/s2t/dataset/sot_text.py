@@ -16,6 +16,10 @@ arguments rather than constants:
     The speaker-change symbol. Whisper tokenizes ``????`` as a single id
     (25629); ``<sc>`` is id 51865 and is only safe in a reference file that is
     split on rather than tokenized.
+``text_norm``
+    Applied to each segment's text before the timestamps wrap it, so the
+    separator and the markup never reach it. See dataset/text_norm.py.
+
 ``lowercase``
     Whether to case-fold. AMI's dev split keeps its original case and
     punctuation; train and test do not.
@@ -27,7 +31,7 @@ be exercised without building a manifest. Anything with ``speaker``, ``start``,
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, Sequence
+from typing import Any, Callable, Dict, List, Optional, Sequence
 
 # Whisper emits timestamps on a 20 ms grid, so segment bounds snap to it.
 TIMESTAMP_RESOLUTION = 0.02
@@ -85,6 +89,7 @@ def speaker_blocks(
     max_timestamp_pause: float = 2.0,
     lowercase: bool = True,
     use_timestamps: bool = True,
+    text_norm: Optional[Callable[[str], str]] = None,
 ) -> List[Dict[str, Any]]:
     """Build one rendered text block per speaker.
 
@@ -94,8 +99,12 @@ def speaker_blocks(
     Args:
         supervisions: Every supervision in the cut.
         max_timestamp_pause: Passed to :func:`merge_supervisions`.
-        lowercase: Case-fold the transcript text.
+        lowercase: Case-fold the transcript text. Ignored when ``text_norm``
+            is set, because a normalizer case-folds on its own.
         use_timestamps: Wrap each segment in ``<|start|> text<|end|>``.
+        text_norm: Applied to a segment's text before the timestamps wrap it,
+            so the separator and the timestamp markup never reach the
+            normalizer. A segment is dropped when it normalizes to nothing.
 
     Returns:
         Block dicts with ``speaker``, ``text`` and ``start``. Speakers whose
@@ -114,10 +123,15 @@ def speaker_blocks(
         starts: List[float] = []
         for segment in segments:
             text = segment["text"].strip()
+            if text_norm is not None:
+                # Emptiness is judged after normalizing, not before: a segment
+                # that holds only symbols normalizes away, and an empty
+                # segment must not leave a bare timestamp pair behind.
+                text = text_norm(text)
+            elif lowercase:
+                text = text.lower()
             if not text:
                 continue
-            if lowercase:
-                text = text.lower()
             if use_timestamps:
                 start_ts = f"<|{round_nearest(segment['start']):.2f}|>"
                 end_ts = f"<|{round_nearest(segment['end']):.2f}|>"
@@ -147,6 +161,7 @@ def build_sot_text(
     use_timestamps: bool = True,
     eos: Optional[str] = "<|endoftext|>",
     prompt: Optional[str] = None,
+    text_norm: Optional[Callable[[str], str]] = None,
 ) -> str:
     """Serialize a cut's supervisions into one SOT string.
 
@@ -162,6 +177,7 @@ def build_sot_text(
             data format expects the language and task symbols here, as in
             ``"<|en|><|transcribe|>"``. ``<sos>`` and ``<eos>`` are added
             during preprocessing, so they do not belong in it.
+        text_norm: Passed to :func:`speaker_blocks`.
 
     Returns:
         The serialized line. A cut with no usable text yields ``eos`` alone.
@@ -179,6 +195,7 @@ def build_sot_text(
         max_timestamp_pause=max_timestamp_pause,
         lowercase=lowercase,
         use_timestamps=use_timestamps,
+        text_norm=text_norm,
     )
     blocks = sorted(blocks, key=_ORDERINGS[ordering])
 

@@ -150,7 +150,7 @@ def test_cpwer_reproduces_the_recorded_full_test_set_score(tmp_path):
         _as_configured(_RECORDED_TEXT.read_text(encoding="utf-8")), encoding="utf-8"
     )
     result = cp.CpWER()({"ref": ref, "hyp": hyp}, "test", tmp_path)
-    assert result["cpWER"] == 28.31
+    assert result["cpWER"] == 27.65
 
 
 def test_split_speakers_follows_the_configured_symbol(monkeypatch):

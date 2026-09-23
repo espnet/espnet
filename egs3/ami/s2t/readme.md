@@ -16,6 +16,15 @@ tokenizer and the pretrained encoder and decoder), `lhotse` (reading the
 CutSet manifests in `create_dataset`) and SCTK's `md-eval.pl` for the DER
 metric, which `tools/installers/install_sctk.sh` builds.
 
+`create_dataset` normalizes the transcript with the CHiME-8 English text
+normalizer, which is not on PyPI:
+
+```bash
+pip install git+https://github.com/chimechallenge/chime-utils@main
+```
+
+Set `text_norm: none` in `dataset/config.yaml` to build without it.
+
 Every knob the recipe reads from the environment, all optional:
 
 | Variable | Meaning | Default |
@@ -67,7 +76,7 @@ AMI SDM test, 6127 utterance groups, beam size 5.
 
 | Metric | Value |
 | --- | --- |
-| cpWER | 28.28 % |
+| cpWER | 27.61 % |
 | DER (0.25 s collar) | 8.54 % |
 
 ## Packaging
