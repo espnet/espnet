@@ -6,7 +6,7 @@ task gets all four, and the point of it is that the next task should cost an
 afternoon rather than a design discussion.
 
 It is the rules, and only the rules. What runs where **today** is the support
-matrix in the top-level [README](../README.md), which `ci/check_front_ends.py`
+matrix in the top-level [README](https://github.com/espnet/espnet/blob/master/README.md), which `ci/check_front_ends.py`
 checks against the code — so adding a task means following this page and
 adding a row there, and never editing this page at all.
 
@@ -37,7 +37,7 @@ Two naming systems meet here and neither wins everywhere:
 Say which one you are using when you name something new.
 
 **Which tasks exist today, and how much of each is built, is the table in the
-top-level [README](../README.md)** — not this page. This page is the rules; a
+top-level [README](https://github.com/espnet/espnet/blob/master/README.md)** — not this page. This page is the rules; a
 new task adds a row there and changes nothing here. `ci/check_front_ends.py`
 holds that table to the code.
 
