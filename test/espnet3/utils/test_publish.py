@@ -695,8 +695,8 @@ def test_pack_model_drops_readme_lines_for_missing_context(
     )
 
     readme = (out_dir / "README.md").read_text(encoding="utf-8")
-    assert "# ESPnet3 asr model" in readme
-    assert "- System: `asr`" in readme
+    assert "# ESPnet3 esp2_asr model" in readme
+    assert "- System: `esp2_asr`" in readme
     assert "- Creator: `tester`" in readme
     assert "- Git: `abc123` (dirty)" in readme
     assert "language:" not in readme
