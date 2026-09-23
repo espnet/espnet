@@ -140,7 +140,7 @@ a like-for-like deficit -- treat it as indicative rather than a target.
 ## Usage
 
 ```python
-from egs3.must_c.st.dataset import Dataset, DatasetBuilder
+from egs3.must_c.esp2_st.dataset import Dataset, DatasetBuilder
 
 builder = DatasetBuilder()
 assert builder.is_source_prepared(recipe_dir=".")

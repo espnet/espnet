@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from espnet3.systems.st.metrics.bleu import BLEU
+from espnet3.systems.esp2_st.metrics.bleu import BLEU
 
 try:
     import sacrebleu  # noqa: F401
@@ -33,7 +33,7 @@ def _build_inputs(tmp_path: Path, ref_lines, hyp_lines) -> dict[str, Path]:
 
 
 def test_bleu_requires_sacrebleu(tmp_path: Path, monkeypatch):
-    import espnet3.systems.st.metrics.bleu as bleu_module
+    import espnet3.systems.esp2_st.metrics.bleu as bleu_module
 
     monkeypatch.setattr(bleu_module, "sacrebleu", None)
     data = _build_inputs(tmp_path, ["utt1 hallo welt"], ["utt1 hallo welt"])
@@ -46,7 +46,7 @@ def test_bleu_rejects_sacrebleu_1x_api(tmp_path: Path, monkeypatch):
     # In sacrebleu 1.x the name "BLEU" is a namedtuple, not a scorer class.
     import collections
 
-    import espnet3.systems.st.metrics.bleu as bleu_module
+    import espnet3.systems.esp2_st.metrics.bleu as bleu_module
 
     class Fake:
         BLEU = collections.namedtuple("BLEU", "score")(1.0)

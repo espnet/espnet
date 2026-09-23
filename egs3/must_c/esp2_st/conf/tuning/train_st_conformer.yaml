@@ -1,31 +1,31 @@
-# MuST-C en-de speech translation, ported from
-#   egs2/must_c/st1/run.sh + conf/tuning/train_st_conformer.yaml
+##########################################################
+#                    TRAINING SETTING                    #
+##########################################################
+# Quick usage:
+#   python run.py --stages create_dataset --training_config conf/training.yaml
+#   python run.py --stages train          --training_config conf/training.yaml
 #
-# Standalone: egs3/TEMPLATE/asr/conf/training.yaml is merged in automatically as
+# Reference training environment:
+# - Number of GPUs: 1
+# - GPU type: NVIDIA ? (? GB)
+# - Training time: approximately ? h for ? epochs
+#
+# Note:
+# egs3/TEMPLATE/esp2_st/conf/training.yaml is merged in automatically as
 # the base, so only the fields this recipe changes appear below.
 #
+# MuST-C en-de speech translation, ported from
+#   egs2/must_c/st1/run.sh + conf/tuning/train_st_conformer.yaml
 # egs2 run.sh pins ONE language pair (src_lang=en, tgt_lang=de) and two separate
 # BPE vocabularies:
 #     src_nbpe=4000  src_case=lc.rm    (lowercased, punctuation stripped)
 #     tgt_nbpe=4000  tgt_case=tc       (truecased)
-# espnet2.tasks.st.STTask carries both: the target vocabulary drives the ST
-# decoder and ST-CTC, the source vocabulary the auxiliary ASR decoder and
-# ASR-CTC. That is what espnet3.systems.st.system.STSystem builds, one
-# SentencePiece model per side -- ASRSystem's single-vocabulary tokenizer stage
-# cannot express it.
-#
-# NOT reproduced from egs2: --speed_perturb_factors "0.9 1.0 1.1" (three-fold
-# data duplication at prep time) and the Moses normalize-punctuation.perl /
-# tokenizer.perl passes. SentencePiece is trained on raw text here and does its
-# own segmentation; only lowercase.perl + remove_punctuation.pl are reproduced,
-# in dataset/dataset.py, because they change which characters exist at all.
 
-system: espnet3.systems.st.system.STSystem
+##########################################################
+#                  SYSTEM AND PATH SETTING               #
+##########################################################
+system: espnet3.systems.esp2_st.system.STSystem
 task: espnet2.tasks.st.STTask
-
-num_device: 1          # egs2 st.sh default ngpu=1
-recipe_dir: .
-dataset_dir: ${data_dir}
 
 cache:
   enabled: true
@@ -43,7 +43,7 @@ create_dataset:
 #       test_sets="tst-COMMON.en-de tst-HE.en-de"
 dataset:
   train:
-    - data_src: must_c/st
+    - data_src: must_c/esp2_st
       # `&pair_args` names this block so the valid/test entries below can say
       # `<<: *pair_args` and override only `split`. It is plain YAML anchor /
       # merge-key syntax, not an espnet3 feature: every split shares one
@@ -52,39 +52,38 @@ dataset:
       data_src_args: &pair_args
         split: train
         recipe_dir: ${recipe_dir}
-        source_dir: ${dataset_dir}
+        source_dir: ${data_dir}
         cache: ${cache}
         task: st
         tgt_lang: de
         src_case: lc.rm
         tgt_case: tc
   valid:
-    - data_src: must_c/st
+    - data_src: must_c/esp2_st
       data_src_args:
         <<: *pair_args
         split: dev
   test:
     - name: tst-COMMON
-      data_src: must_c/st
+      data_src: must_c/esp2_st
       data_src_args:
         <<: *pair_args
         split: test
     - name: tst-HE
-      data_src: must_c/st
+      data_src: must_c/esp2_st
       data_src_args:
         <<: *pair_args
         split: tst-HE
   # Two text streams with two different vocabularies, so this must be the
-  # MULTI-tokenizer preprocessor -- exactly what STTask.build_preprocess_fn()
-  # constructs in egs2. `CommonPreprocessor` holds a single tokenizer and a
-  # single `text_name` string; passing it two of anything raises
-  #   TypeError: __init__() got an unexpected keyword argument
-  #              'tokenizer_encode_conf'
+  # MULTI-tokenizer preprocessor.
   # Index 0 is the target side (ST decoder / ST-CTC), index 1 the source side
   # (auxiliary ASR decoder / ASR-CTC), matching `text` / `src_text`.
   preprocessor:
     _target_: espnet2.train.preprocessor.MutliTokenizerCommonPreprocessor
-    train: true
+    # No `train:` here. DataOrganizer injects it per split -- True for train,
+    # False for valid and test -- and warns that a config value is ignored
+    # (espnet3/components/data/data_organizer.py:_instantiate_preprocessor_from_config).
+    # Hardcoding it would also read as though validation ran in train mode.
     token_type:
       - bpe
       - bpe
@@ -109,9 +108,9 @@ tokenizer:
     model_type: bpe
     save_path: ${data_dir}/bpe_tgt_4000
     text_builder:
-      func: egs3.must_c.st.dataset.gather_training_text
+      func: egs3.must_c.esp2_st.dataset.gather_training_text
       recipe_dir: ${recipe_dir}
-      source_dir: ${dataset_dir}
+      source_dir: ${data_dir}
       cache: ${cache}
       tgt_lang: de
       side: tgt
@@ -122,9 +121,9 @@ tokenizer:
     model_type: bpe
     save_path: ${data_dir}/bpe_src_4000
     text_builder:
-      func: egs3.must_c.st.dataset.gather_training_text
+      func: egs3.must_c.esp2_st.dataset.gather_training_text
       recipe_dir: ${recipe_dir}
-      source_dir: ${dataset_dir}
+      source_dir: ${data_dir}
       cache: ${cache}
       tgt_lang: de
       side: src
@@ -263,17 +262,12 @@ best_model_criterion:
 # batch_bins * num_device constant, or rescale warmup_steps to match.
 batch_bins: 26500000
 
-#
-# [DEVIATION] num_workers 4, not egs2's inherited 1. espnet3's
-# SequenceIterFactory defaults to 0, which decodes every wav slice in the
-# training process between steps. Moves work off the critical path only.
 dataloader:
   train:
     iter_factory:
       num_workers: 4
       batches:
         type: numel
-        # All three, matching st.sh. Dropping the text files is what caused the
         shape_files:
           - ${stats_dir}/train/feats_shape
           - ${stats_dir}/train/text_shape
@@ -303,26 +297,8 @@ trainer:
     - _target_: lightning.pytorch.loggers.TensorBoardLogger
       save_dir: ${exp_dir}/tensorboard
       name: tb_logger
-    - _target_: lightning.pytorch.loggers.WandbLogger
-      project: "OWSM-Related Recipes"
-      name: must_c_st
-      save_dir: ${exp_dir}
-      # Fixed id + resume: allow, so the chained jobs append to one run
-      # instead of opening a new one each time.
-      id: must_c_st_conformer_en_de
-      resume: allow
-      # entity intentionally unset: W&B uses the default entity of whichever
-      # API key is active, so this follows $repo_root/.wandb.key instead of
-      # hardcoding someone else's namespace.
-  # egs2 grad_clip is 5.0 -- espnet2's default (espnet2/tasks/abs_task.py), which
-  # this recipe's conf does not override. TEMPLATE's base leaves 1.0, so it has
-  # to be restated here or the run clips five times harder than egs2 did.
   gradient_clip_val: 5.0
 
-# collect_stats parallelism. `env: local` means SERIAL: base_runner.py only
-# reads n_workers when env is not "local", so this is ONE shard (220,466 train
-# utterances took 35 min on one core). `env: slurm` gives real sharding but
-# needs two queue waits -- driver, then workers -- which was slower here.
 parallel:
   env: local
   n_workers: 16

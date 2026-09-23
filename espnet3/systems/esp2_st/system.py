@@ -6,16 +6,18 @@ from importlib import import_module
 from pathlib import Path
 from typing import Iterable, List
 
-from espnet3.systems.asr.system import ASRSystem
-from espnet3.systems.asr.tokenizers.sentencepiece import train_sentencepiece
+from omegaconf import DictConfig
+
+from espnet3.systems.base.system import BaseSystem
+from espnet3.systems.esp2_st.tokenizers.sentencepiece import train_sentencepiece
 
 logger = logging.getLogger(__name__)
 
 _SIDES = ("tgt", "src")
 
 
-class STSystem(ASRSystem):
-    """ASRSystem whose tokenizer stage trains TWO SentencePiece models.
+class STSystem(BaseSystem):
+    """System for speech translation, with one vocabulary per side.
 
     ``espnet2.tasks.st.STTask`` carries two vocabularies, not one:
 
@@ -53,6 +55,66 @@ class STSystem(ASRSystem):
     ``use_src_lang=false`` trains the target model only.
     """
 
+    def __init__(
+        self,
+        training_config: DictConfig | None = None,
+        inference_config: DictConfig | None = None,
+        metrics_config: DictConfig | None = None,
+        publication_config: DictConfig | None = None,
+        stage_log_mapping: dict | None = None,
+        demo_config: DictConfig | None = None,
+    ) -> None:
+        """Initialize the ST system with optional stage configs.
+
+        Args:
+            training_config: Training configuration.
+            inference_config: Inference configuration.
+            metrics_config: Measurement configuration.
+            publication_config: Publication configuration for the model
+                packing and upload stages.
+            stage_log_mapping: Optional per-stage log directory overrides.
+            demo_config: Demo configuration for the demo stages.
+        """
+        # ASRSystem points train_tokenizer's log at tokenizer.save_path. There
+        # is no single save_path here -- the sides live under tokenizer.tgt and
+        # tokenizer.src -- so the target side stands for the stage.
+        super().__init__(
+            training_config=training_config,
+            inference_config=inference_config,
+            metrics_config=metrics_config,
+            publication_config=publication_config,
+            stage_log_mapping={
+                "train_tokenizer": "training_config.tokenizer.tgt.save_path",
+                **(stage_log_mapping or {}),
+            },
+            demo_config=demo_config,
+        )
+
+    def train(self, *args, **kwargs):
+        """Train the model, training any missing tokenizer first.
+
+        Raises:
+            RuntimeError: If neither ``dataset`` nor ``dataset_dir`` is set on
+                the training config.
+        """
+        self._reject_stage_args("train", args, kwargs)
+        logger.info("STSystem.train(): starting training process")
+
+        dataset_dir = getattr(self.training_config, "dataset_dir", None)
+        dataset_config = getattr(self.training_config, "dataset", None)
+        if dataset_dir is None and dataset_config is None:
+            raise RuntimeError(
+                "training_config.dataset or training_config.dataset_dir must be "
+                "set for training."
+            )
+
+        # False when EITHER configured side is missing, so a run that added the
+        # source side after training the target one fills in just that side.
+        if not self._has_tokenizer():
+            self.train_tokenizer()
+
+        return super().train()
+
     def _has_tokenizer_side(self, side_config) -> bool:
         model = Path(side_config.save_path) / f"{side_config.model_type}.model"
         tokens = Path(side_config.save_path) / "tokens.txt"
@@ -61,16 +123,14 @@ class STSystem(ASRSystem):
     def _has_tokenizer(self) -> bool:
         """Whether every configured side already has a trained model.
 
-        ``ASRSystem.train`` calls this before training and runs
-        ``train_tokenizer`` when it is False. The inherited implementation
-        reads ``tokenizer.save_path``, which a two-vocabulary config does not
-        have -- the sides live under ``tokenizer.tgt`` and ``tokenizer.src``.
-        Without this override the train stage aborts before its first step::
+        ``train`` calls this before training and runs ``train_tokenizer``
+        when it is False. It is spelled per side because a two-vocabulary
+        config has no single ``tokenizer.save_path``: the sides live under
+        ``tokenizer.tgt`` and ``tokenizer.src``, and reading the flat key
+        would abort the train stage before its first step with::
 
             omegaconf.errors.ConfigAttributeError: Missing key save_path
                 full_key: tokenizer.save_path
-
-        so ``STSystem`` could train tokenizers but never a model.
 
         Returning False when a configured side is missing is what makes
         ``train`` fall through to ``train_tokenizer``, which then skips
@@ -180,7 +240,7 @@ class STSystem(ASRSystem):
                 model_type: bpe
                 save_path: ${data_dir}/bpe_tgt_4000
                 text_builder:
-                  func: egs3.must_c.st.dataset.gather_training_text
+                  func: egs3.must_c.esp2_st.dataset.gather_training_text
                   recipe_dir: ${recipe_dir}
                   tgt_lang: de
               src:

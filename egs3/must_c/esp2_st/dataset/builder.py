@@ -280,7 +280,7 @@ class MustCSTBuilder(DatasetBuilder):
         cache_root = _hf_cache_root(recipe_dir, cache)
         if cache_root is None:
             raise RuntimeError(
-                "must_c/st reads its splits from an HF cache, so the dataset "
+                "must_c/esp2_st reads its splits from an HF cache, so the dataset "
                 "cache must be enabled. Set `cache.enabled: true` (and a "
                 "`cache.cache_dir`) in the training config."
             )

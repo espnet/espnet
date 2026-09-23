@@ -39,7 +39,7 @@
 # metric reports both passes itself, the second suffixed _lc.
 metrics:
   - metric:
-      _target_: espnet3.systems.st.metrics.bleu.BLEU
+      _target_: espnet3.systems.esp2_st.metrics.bleu.BLEU
       clean_types:
       tokenize: "13a"
       also_lowercase: true

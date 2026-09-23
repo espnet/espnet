@@ -33,7 +33,7 @@ import soundfile as sf
 import yaml
 from torch.utils.data import Dataset as TorchDataset
 
-from egs3.must_c.st.dataset.builder import (
+from egs3.must_c.esp2_st.dataset.builder import (
     LANG_PAIR,
     REQUIRED_SPLITS,
     SRC_LANG,
@@ -44,7 +44,7 @@ from egs3.must_c.st.dataset.builder import (
     kept_indices,
     resolve_source_root,
 )
-from espnet3.systems.st.normalization import apply_case as _apply_case
+from espnet3.systems.esp2_st.normalization import apply_case as _apply_case
 from espnet3.utils.config_utils import load_config_with_defaults
 
 _CONFIG_RESOURCE = resources.files(__package__).joinpath("config.yaml")

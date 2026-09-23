@@ -1,6 +1,6 @@
 """Cross-check the ST BLEU metric against egs2's own scoring pipeline.
 
-`espnet3.systems.st.metrics.bleu.BLEU` exists to reproduce what
+`espnet3.systems.esp2_st.metrics.bleu.BLEU` exists to reproduce what
 `egs2/TEMPLATE/st1/st.sh` reports (st.sh:1551-1620). Asserting that in prose is
 not enough, so these tests run the shell pipeline itself -- the real
 `utils/remove_punctuation.pl` and the `sacrebleu` CLI -- over shared fixtures
@@ -18,7 +18,7 @@ from pathlib import Path
 
 import pytest
 
-from espnet3.systems.st.metrics.bleu import BLEU
+from espnet3.systems.esp2_st.metrics.bleu import BLEU
 
 REPO_ROOT = Path(__file__).resolve().parents[4]
 FIXTURES = REPO_ROOT / "test_utils" / "espnet3" / "st"

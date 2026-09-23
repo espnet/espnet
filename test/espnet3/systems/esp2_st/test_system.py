@@ -11,7 +11,7 @@ from pathlib import Path
 import pytest
 from omegaconf import OmegaConf
 
-from espnet3.systems.st.system import STSystem
+from espnet3.systems.esp2_st.system import STSystem
 
 
 def _write_tokenizer(save_path: Path, model_type: str, n_tokens: int) -> None:
