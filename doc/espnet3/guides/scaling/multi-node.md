@@ -97,6 +97,7 @@ trainer:
   devices: ${num_device}
   num_nodes: ${num_nodes}
   strategy: ddp
+  use_distributed_sampler: false
 
 dataset:
   train:
@@ -114,36 +115,27 @@ dataset:
 
 dataloader:
   train:
-    iter_factory:
-      _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
-      shuffle: true
-      collate_fn: ${dataloader.collate_fn}
-      batches:
-        type: unsorted
-        shape_files:
-          - ${stats_dir}/train/feats_shape
-        batch_bins: 4000000
+    iter_factory: null
+    batch_size: 32
+    num_workers: 4
+    shuffle: true
   valid:
-    iter_factory:
-      _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
-      shuffle: false
-      collate_fn: ${dataloader.collate_fn}
-      batches:
-        type: unsorted
-        shape_files:
-          - ${stats_dir}/valid/feats_shape
-        batch_bins: ${dataloader.train.iter_factory.batches.batch_bins}
+    iter_factory: null
+    batch_size: 32
+    num_workers: 4
+    shuffle: false
 ```
 
 ::: warning
-This `iter_factory` + shape-file `batches` combination does not actually
-support `total_shards > 1` today — shape files are keyed by the unsharded
-dataset's index, which no longer matches after sharding. See
+`total_shards > 1` here is only valid with the standard `DataLoader` path
+shown above (`iter_factory: null`), plus the explicit
+`trainer.use_distributed_sampler: false`. `iter_factory` + shape-file
+`batches` does not support `total_shards > 1` today — shape files are keyed
+by the unsharded dataset's index, which no longer matches after sharding. See
 [Dataset sharding](./dataset-sharding.html#common-mistakes) before combining
 sharding with `iter_factory`; keep `total_shards: 1` unless you control batch
 construction yourself (e.g. `ChunkIterFactory` with an explicit `batches`
-list), or shard through the standard `DataLoader` path instead (and set
-`trainer.use_distributed_sampler: false` explicitly — see the same section).
+list).
 :::
 
 ## How shard rotation works

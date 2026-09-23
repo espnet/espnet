@@ -57,8 +57,11 @@ dataset:
         dist_world_size: 16
 ```
 
-`dist_world_size` must equal `num_nodes` times `num_device` (write the product
-as a literal -- OmegaConf has no multiply operator).
+When `num_device` is at most `1`, `DataLoaderBuilder._get_world_info()` skips
+`torch.distributed` entirely and uses `world_size = 1`, so `dist_world_size`
+must be `1`. Otherwise it must equal the literal product of `num_nodes` and
+`num_device` (write the product as a literal -- OmegaConf has no multiply
+operator), matching the runtime `torch.distributed.get_world_size()`.
 `total_shards` must be divisible by `dist_world_size`.
 
 For single-GPU runs, either skip `ShardedDataset` entirely or set both to `1`.
@@ -79,20 +82,17 @@ rotation formula.
 
 The validation dataloader does not need shuffle. Give the `valid` dataset
 entry the same `total_shards`/`dist_world_size` as `train` (again via
-`data_src_args`) so each GPU validates only its own slice:
+`data_src_args`) so each GPU validates only its own slice. Sharding is not
+supported together with `iter_factory` shape-file batching (see the warning
+above), so when sharding is on, mirror `train`'s standard-`DataLoader` mode:
 
 ```yaml
 dataloader:
   valid:
-    iter_factory:
-      _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
-      shuffle: false
-      collate_fn: ${dataloader.collate_fn}
-      batches:
-        type: ${dataloader.train.iter_factory.batches.type}
-        shape_files:
-          - ${stats_dir}/valid/feats_shape
-        batch_bins: ${dataloader.train.iter_factory.batches.batch_bins}
+    iter_factory: null
+    batch_size: 32
+    num_workers: 4
+    shuffle: false
 ```
 
 Validation shards rotate every epoch exactly like training (both use the same

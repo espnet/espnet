@@ -6,9 +6,24 @@ const totalShards = ref(8)
 const worldSize = ref(4)
 const epochsToShow = ref(6)
 
-const clampedWorldSize = computed(() => Math.max(1, worldSize.value || 1))
-const clampedTotalShards = computed(() => Math.max(1, totalShards.value || 1))
-const clampedEpochs = computed(() => Math.max(2, Math.min(12, epochsToShow.value || 2)))
+const clampedWorldSize = computed({
+  get: () => Math.max(1, Math.min(8, Number(worldSize.value) || 1)),
+  set: (v) => {
+    worldSize.value = Math.max(1, Math.min(8, Number(v) || 1))
+  },
+})
+const clampedTotalShards = computed({
+  get: () => Math.max(1, Math.min(32, Number(totalShards.value) || 1)),
+  set: (v) => {
+    totalShards.value = Math.max(1, Math.min(32, Number(v) || 1))
+  },
+})
+const clampedEpochs = computed({
+  get: () => Math.max(2, Math.min(12, Number(epochsToShow.value) || 2)),
+  set: (v) => {
+    epochsToShow.value = Math.max(2, Math.min(12, Number(v) || 2))
+  },
+})
 
 const isValid = computed(
   () => clampedTotalShards.value % clampedWorldSize.value === 0
@@ -38,8 +53,8 @@ const yamlOutput = computed(
     `    - data_src: egs3.my_recipe.asr.dataset.builder\n` +
     `      data_src_args:\n` +
     `        split: train\n` +
-    `        total_shards: ${totalShards.value}\n` +
-    `        dist_world_size: ${worldSize.value}`
+    `        total_shards: ${clampedTotalShards.value}\n` +
+    `        dist_world_size: ${clampedWorldSize.value}`
 )
 
 // ---------- Section 03: code tabs ----------
@@ -67,15 +82,15 @@ const activeTab = ref('basic')
         <div class="slurm-grid">
           <div class="config-field">
             <label class="config-label">total_shards</label>
-            <input type="number" v-model.number="totalShards" min="1" max="32" />
+            <input type="number" v-model.number="clampedTotalShards" min="1" max="32" />
           </div>
           <div class="config-field">
             <label class="config-label">dist_world_size <span>GPUs</span></label>
-            <input type="number" v-model.number="worldSize" min="1" max="8" />
+            <input type="number" v-model.number="clampedWorldSize" min="1" max="8" />
           </div>
           <div class="config-field">
             <label class="config-label">epochs to preview</label>
-            <input type="number" v-model.number="epochsToShow" min="2" max="12" />
+            <input type="number" v-model.number="clampedEpochs" min="2" max="12" />
           </div>
         </div>
       </div>
@@ -124,8 +139,8 @@ const activeTab = ref('basic')
           <div>
             <p>
               <strong>Full coverage every {{ cycleLength }} epoch{{ cycleLength === 1 ? '' : 's' }}.</strong>
-              With <code>total_shards={{ totalShards }}</code> and
-              <code>dist_world_size={{ worldSize }}</code>, each rank rotates through all
+              With <code>total_shards={{ clampedTotalShards }}</code> and
+              <code>dist_world_size={{ clampedWorldSize }}</code>, each rank rotates through all
               {{ cycleLength }} of its reachable shards before repeating, and the union of all
               ranks covers the full dataset every epoch.
             </p>

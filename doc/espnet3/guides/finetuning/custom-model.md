@@ -76,6 +76,10 @@ That is the main switch from system-driven to recipe-local model ownership.
 
 At minimum, this can just be a normal PyTorch module.
 
+The `ESPnetLightningModule` training step calls the model as `model(**batch)`
+and expects it to return `(loss, stats, weight)`, so `forward` must accept the
+batch as keyword arguments and produce that triple, not just raw logits:
+
 ```python
 import torch
 
@@ -86,10 +90,17 @@ class MyModel(torch.nn.Module):
         self.encoder = torch.nn.Linear(80, hidden_size)
         self.head = torch.nn.Linear(hidden_size, vocab_size)
 
-    def forward(self, speech):
+    def forward(self, speech, text, **kwargs):
         hidden = self.encoder(speech)
-        return self.head(hidden)
+        logits = self.head(hidden)
+        loss = torch.nn.functional.cross_entropy(logits.transpose(1, 2), text)
+        stats = {"loss": loss.detach()}
+        weight = torch.tensor(speech.size(0), device=loss.device)
+        return loss, stats, weight
 ```
+
+`**kwargs` absorbs any other keys the dataset's collate function adds (e.g.
+`utt_id`) that this model does not need.
 
 
 ## Inference alignment

@@ -56,9 +56,13 @@ Keep code under `src/` when it is specific to one recipe:
 
 - `src/model.py`
 - `src/system.py`
-- `src/dataset.py`
 - `src/trainer.py`
 - `src/lightning_module.py`
+
+Dataset code is the exception: it defaults to `dataset/dataset.py`, with
+`dataset/__init__.py` exporting `Dataset` and `DatasetBuilder`. Use
+`src/dataset.py` only when you set an explicit `data_src` override pointing
+at it.
 
 Move code into `espnet3/` only when it is reusable across recipes.
 
