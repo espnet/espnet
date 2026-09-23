@@ -10,7 +10,7 @@ espnet3/
 │   ├── main.py                 # argparse dispatcher, registers subcommands
 │   └── clone/                  # `espnet3 clone` subcommand
 │       ├── command.py          # add_arguments() / run() -- copies + rewrites publication/demo config
-│       └── resolver.py         # resolve_recipe() / list_recipes() -- <dataset>/<task> -> egs3/ path
+│       └── resolver.py         # resolve_recipe() / list_recipes() -- <corpus_name>/<system_name> -> egs3/ path
 ├── systems/                     # -> systems/CLAUDE.md -- one class per "system" (task family)
 │   ├── base/                    # BaseSystem + the stage implementations shared by every system
 │   │   ├── system.py            # BaseSystem: stage stubs, stage_log_mapping, create_dataset()

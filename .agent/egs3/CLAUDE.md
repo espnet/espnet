@@ -3,41 +3,72 @@
 See [`.agent/CLAUDE.md`](../CLAUDE.md) for cross-cutting guidance (dev setup and
 docstring/naming conventions).
 
-```
+```text
 egs3/
-├── __init__.py
-├── TEMPLATE/                  # NOT a runnable recipe -- the shared code/config every real recipe imports
-│   ├── asr/
-│   │   ├── run.py             # DEFAULT_STAGES, build_parser(), main() -- every ASR recipe's run.py imports these
-│   │   ├── conf/{training,inference,metrics,publication,demo}.yaml   # fully-commented default configs
-│   │   ├── src/{app.py, inference.py, hf_model_readme.md, hf_demo_readme.md}
-│   │   └── README.md
+├── TEMPLATE/                         # starter/reference files; not a runnable recipe
+│   ├── esp2_asr/
+│   │   ├── conf/{training,inference,metrics,publication,demo}.yaml
+│   │   ├── run.py
+│   │   └── src/
 │   └── tts/
-│       └── conf/{training,inference,metrics}.yaml   # no run.py / src/ yet -- no TTS recipe exists to date
-├── mini_an4/asr/               # tiny CI recipe (an4 corpus); the one exercised by ci/test_integration_espnet3*.sh
-│   ├── run.py                 # imports DEFAULT_STAGES / build_parser / main from egs3.TEMPLATE.asr.run
-│   ├── conf/                  # 8 training-config variants + inference / inference_transducer / metrics / publication / demo
-│   ├── dataset/{builder.py, dataset.py, config.yaml, __init__.py}  # resolved via `data_src: mini_an4/asr`
-│   ├── src/{tokenizer.py, preprocessor.py, inference.py, app.py}
-│   ├── path.sh, README.md, downloads.tar.gz   # (prebuilt corpus fixture, so CI does not hit the network)
-├── librispeech_100/asr/        # larger real-scale recipe, same shape as mini_an4 -- the reference recipe to
-│   │                           # copy from when creating a new one (see below)
-│   ├── run.py, conf/ (incl. conf/tuning/training_e_branchformer.yaml)
-│   ├── dataset/{builder.py, dataset.py, config.yaml, __init__.py}
-│   ├── src/{tokenizer.py, inference.py, app.py}
-│   └── path.sh, README.md
-└── aishell/asr/                # AISHELL-1 (Mandarin) recipe; same shape as librispeech_100 (AishellBuilder /
-    │                           # AishellDataset / AishellExample, stock ASRSystem, raw-passthrough builder)
-    ├── run.py, run.sh, conf/ (incl. conf/tuning/)
-    ├── dataset/{builder.py, dataset.py, config.yaml, __init__.py}
-    ├── src/{tokenizer.py, inference.py, app.py}
-    └── path.sh, README.md
+│       └── conf/{training,inference,metrics}.yaml
+├── mini_an4/esp2_asr/                # small CI recipe
+├── librispeech_100/esp2_asr/         # full ASR reference recipe
+└── spgispeech/esp2_asr/              # full ASR recipe
 ```
 
-Cloning: `espnet3 clone <dataset>/<task> [--project DIR]` (see
-[`espnet3/cli/CLAUDE.md`](../espnet3/cli/CLAUDE.md)) copies `conf/`, `dataset/`, `src/`, `run.py`,
-`README.md`, `path.sh` out of `egs3/` into a standalone directory that only needs `espnet3` installed
--- it no longer needs to live inside this checkout.
+## Recipe layout and system boundary
+
+A shipped recipe always lives at **`egs3/<corpus_name>/<system_name>/`**.
+`<corpus_name>` identifies the data source (for example, `librispeech_100` or
+`mini_an4`); `<system_name>` identifies the implementation used to run it (for
+example, `esp2_asr` or `tts`). Apply the system-directory naming rules in
+[`.agent/espnet3/systems/CLAUDE.md`](../espnet3/systems/CLAUDE.md) to the second
+component. Do not call it a `task` in paths, import names, or clone arguments.
+
+A recipe combines a particular corpus with an instantiation of one System:
+configs, dataset code, and any recipe-specific helpers. The System is the
+framework-side staged pipeline. A recipe normally uses one existing System, but
+may define a recipe-local System when it needs recipe-specific stages or when it
+coordinates multiple systems, such as a multi-stage challenge recipe.
+
+Every recipe directory has this structure:
+
+```text
+egs3/<corpus_name>/<system_name>/
+├── conf/
+│   ├── training.yaml                 # noun form of the train stage
+│   ├── inference.yaml                # noun form of the infer stage
+│   ├── metrics.yaml                  # noun form of the measure stage
+│   ├── publication.yaml, demo.yaml   # noun form of their stages
+│   └── <stage_noun>_*.yaml           # explicit variants, e.g. training_small.yaml
+├── dataset/
+│   ├── __init__.py
+│   ├── builder.py                    # source download/preparation and cache creation
+│   ├── config.yaml                   # dataset URLs, paths, environment variables, splits
+│   └── dataset.py                    # torch.utils.data.Dataset implementation
+├── src/
+│   ├── __init__.py
+│   └── *.py                          # recipe-specific, noun-named helpers
+├── run.py
+├── path.sh
+└── README.md
+```
+
+`conf/` filenames use the noun form of the corresponding System stage method.
+System code can enforce this config naming convention, but it does not prescribe
+the rest of the recipe layout. `dataset/` has fixed core filenames. It may add
+library-specific modules where useful, such as `lhotse_builder.py`,
+`lhotse_dataset.py`, `hf_builder.py`, or `omniio_dataset.py`. `src/` remains
+open to recipe-specific helpers, with ordinary noun-form filenames.
+
+Keep every config self-consistent: one training experiment or one inference
+trial should be understandable from its own YAML. Do not use Hydra `defaults`
+to make one recipe config depend on another. Repetition that makes a config
+self-contained is intentional.
+
+Cloning uses the same two components: `espnet3 clone <corpus_name>/<system_name>
+--project DIR`. It copies the concrete recipe into a standalone working project.
 
 ## Recipe README filenames
 
@@ -45,15 +76,12 @@ Every recipe README is named exactly `README.md`, with uppercase `README`.
 Never add `readme.md`: filename casing matters on case-sensitive filesystems and
 the conventional uppercase name keeps recipes consistent.
 
-## TEMPLATE defaults
+## TEMPLATE
 
-`egs3/TEMPLATE/` is not a runnable recipe. It is the shared home for default values and baseline
-helpers that real recipes inherit or import. Put task-family defaults there; put corpus-specific
-datasets, model choices, and overrides under the concrete `egs3/<dataset>/<task>/` recipe.
-
-Recipe configs must contain only overrides. Do not repeat a value that already has the desired default
-in `TEMPLATE/`; omitting it keeps the source of truth in one place. Add a field to a recipe config
-only when that recipe intentionally differs from the TEMPLATE default.
+`egs3/TEMPLATE/` provides starter/reference files and shared code where that code is
+actually reused. It is not a runnable recipe and it must not create hidden config
+dependencies. Copy a template config when starting a recipe, then keep the concrete
+recipe config self-consistent.
 
 ---
 
@@ -61,21 +89,21 @@ only when that recipe intentionally differs from the TEMPLATE default.
 
 A recipe is "an all-in-one project under `egs3/`": configs, dataset code, recipe-local Python
 helpers, a `run.py` entry point, and the output paths a system's stages write to. Use
-**`egs3/librispeech_100/asr`** as the reference recipe to copy from -- it is the current example of a
+**`egs3/librispeech_100/esp2_asr`** as the reference recipe to copy from -- it is the current example of a
 real-scale recipe using a stock `System` and a real `dataset/` implementation (as opposed to
-`egs3/mini_an4/asr`, which exists to be a tiny, fast fixture for CI, or `egs3/TEMPLATE/asr`, which is
+`egs3/mini_an4/esp2_asr`, which exists to be a tiny, fast fixture for CI, or `egs3/TEMPLATE/esp2_asr`, which is
 not a runnable recipe at all).
 
 ### Two ways to start
 
-- **Exploring / a personal project, outside this checkout**: `espnet3 clone librispeech/asr --project
+- **Exploring / a personal project, outside this checkout**: `espnet3 clone librispeech_100/esp2_asr --project
   my_recipe`. This is the "clone a recipe and keep working in it" workflow: clone, run the baseline
   once, read through the copied `conf/` and `dataset/` code, then edit settings and dataset code in
   place and re-run `train`/`infer`/`measure` (or fine-tune) inside the same cloned project. Nothing
   under `my_recipe/` depends on the ESPnet checkout afterwards.
-- **Contributing a new shipped recipe to this repo**: copy `egs3/librispeech_100/asr/` to
-  `egs3/<dataset>/<task>/` by hand (not via `espnet3 clone`, which is meant for the first workflow)
-  and edit the pieces below. Keep the same file layout so the shared `egs3.TEMPLATE.<task>.run` code
+- **Contributing a new shipped recipe to this repo**: copy `egs3/librispeech_100/esp2_asr/` to
+  `egs3/<corpus_name>/<system_name>/` by hand (not via `espnet3 clone`, which is meant for the first workflow)
+  and edit the pieces below. Keep the same file layout so the shared `egs3.TEMPLATE.<system_name>.run` code
   and `espnet3 clone`/`--list` keep working for it.
 
 ### What to change, file by file
@@ -88,8 +116,8 @@ corpus's specifics live; get this right before touching anything else.
   (`DATASET_CLASS_NAME`/`DATASET_BUILDER_CLASS_NAME` -- root guide, Naming conventions). Copy
   librispeech_100's pattern:
   ```python
-  from egs3.<dataset>.<task>.dataset.builder import MyBuilder as DatasetBuilder
-  from egs3.<dataset>.<task>.dataset.dataset import MyDataset as Dataset
+  from egs3.<corpus_name>.<system_name>.dataset.builder import MyBuilder as DatasetBuilder
+  from egs3.<corpus_name>.<system_name>.dataset.dataset import MyDataset as Dataset
   __all__ = ["Dataset", "DatasetBuilder"]
   ```
 - **`dataset/builder.py`** implements `espnet3.components.data.dataset_builder.DatasetBuilder`'s four
@@ -145,12 +173,11 @@ corpus's specifics live; get this right before touching anything else.
   `librispeech_100` and `mini_an4` do -- do not hardcode these values inside `builder.py`.
 
 **`conf/`** -- copy `training.yaml`/`inference.yaml`/`metrics.yaml`/`publication.yaml`/`demo.yaml`
-from the reference recipe (or `egs3/TEMPLATE/<task>/conf/` for the fully-commented defaults) and
+from the reference recipe (or `egs3/TEMPLATE/<system_name>/conf/` for the fully-commented defaults) and
 adjust: the `dataset:` block's `data_src`/`data_src_args` entries (or point them at your recipe's own
 `dataset/` via a bare `data_src_args:` entry with no `data_src`, which resolves to the recipe-local
 module -- see `espnet3/components/CLAUDE.md`'s `dataset_module.py` entry), the tokenizer settings, and
-the model config. Keep only values that override the TEMPLATE defaults; do not copy unchanged default
-values into the recipe. Keep `_recursive_: false` on the `dataset:` block when it is not inherited.
+the model config. Keep each config self-consistent. Keep `_recursive_: false` on the `dataset:` block when needed.
 
 **`src/`** -- recipe-specific but framework-facing helpers, wired in by name from `conf/`:
 - an inference-output builder such as librispeech_100's `build_output(data, model_output, idx)`,
@@ -161,7 +188,7 @@ values into the recipe. Keep `_recursive_: false` on the `dataset:` block when i
 
 **`run.py`** -- keep it a thin re-export, the same three lines every stock recipe has:
 ```python
-from egs3.TEMPLATE.<task>.run import DEFAULT_STAGES, build_parser, main, parse_cli_and_stage_args
+from egs3.TEMPLATE.<system_name>.run import DEFAULT_STAGES, build_parser, main, parse_cli_and_stage_args
 from espnet3.systems.<family>.system import <Family>System
 
 if __name__ == "__main__":
@@ -190,10 +217,10 @@ most recipes. Only subclass when you need genuinely recipe-specific behaviour th
 the shared framework layer (`espnet3/systems/`): shared logic belongs in `espnet3/systems/`,
 recipe-specific logic belongs inside the recipe.
 
-Add the subclass at `egs3/<recipe>/<task>/src/system.py`:
+Add the subclass at `egs3/<corpus_name>/<system_name>/src/system.py`:
 
 ```python
-from espnet3.systems.asr.system import ASRSystem
+from espnet3.systems.esp2_asr.system import ASRSystem
 
 class RecipeSystem(ASRSystem):
     def export_debug(self):

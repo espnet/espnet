@@ -437,7 +437,7 @@ black espnet3/ test/espnet3/ ci/
 isort espnet3/ test/espnet3/ ci/
 pycodestyle espnet3/ test/espnet3/ ci/
 bash ci/test_flake8.sh espnet3
-pytest -q test/espnet3/                 # or a smaller scope, e.g. pytest -q test/espnet3/systems/asr/
+pytest -q test/espnet3/                 # or a smaller scope, e.g. pytest -q test/espnet3/systems/esp2_asr/
 ```
 
 **PR expectations:**
@@ -467,7 +467,7 @@ pytest -q test/espnet3/                 # or a smaller scope, e.g. pytest -q tes
 2. **Implement it as a method on the relevant `System` subclass**, named with a short verb-style
    `snake_case` name (`prepare_labels`, `export_onnx`, ...). Shared logic goes in
    `espnet3/systems/<family>/system.py` (or a free function it calls, per section 3 above);
-   recipe-only logic goes in `egs3/<recipe>/<task>/src/`. Keep the method itself thin -- move any
+   recipe-only logic goes in `egs3/<corpus_name>/<system_name>/src/`. Keep the method itself thin -- move any
    nontrivial logic into its own module.
 3. **Register it in `run.py`.** Add the stage name to the canonical `ALL_STAGES` list (or
    `DEFAULT_STAGES` if it should run by default). **Stage execution order always follows this list's

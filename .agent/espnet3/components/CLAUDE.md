@@ -43,7 +43,7 @@ Reusable building blocks the systems in
   `dataset/builder.py` implements (`is_source_prepared`, `prepare_source`, `is_built`, `build`).
   See [`.agent/egs3/CLAUDE.md`](../../egs3/CLAUDE.md) for two real implementations to copy from when
   creating a new recipe.
-- **`dataset_module.py`** -- resolves a dataset reference (`data_src: "<recipe>/<task>"`, a
+- **`dataset_module.py`** -- resolves a dataset reference (`data_src: "<corpus_name>/<system_name>"`, a
   dotted module path, or the recipe's own local `dataset/__init__.py`) to a `DatasetBuilder`/`Dataset`
   pair: `load_dataset_module`, `resolve_dataset_module_name`, `parse_dataset_reference_config`,
   `instantiate_dataset_reference`.
@@ -90,7 +90,7 @@ Reusable building blocks the systems in
 
 ## `metrics/`
 
-- **`base_metric.py`** -- `BaseMetric(ABC)`: the contract `systems/asr/metrics/*` implement
+- **`base_metric.py`** -- `BaseMetric(ABC)`: the contract `systems/esp2_asr/metrics/*` implement
   (`__call__(hyp, ref, ...) -> dict`), including the shared SCP-reading (`iter_inputs`) helper.
   Name concrete metrics after the metric itself (`WER`, `CER`, `TER`, `PESQ`),
   without a redundant `Metric` suffix such as `WERMetric` or `PESQMetric`.

@@ -59,7 +59,7 @@ concatenation in the Runner. For a complete implementation, read
 `espnet3/systems/tts/remove_long_short_provider.py`. For model-backed inference, compare
 `espnet3/systems/base/inference_runner.py` and
 `espnet3/systems/base/inference_provider.py`. Recipe-level configuration and call sites are also
-available under `egs3/mini_an4/asr/` and `egs3/librispeech_100/asr/`.
+available under `egs3/mini_an4/esp2_asr/` and `egs3/librispeech_100/esp2_asr/`.
 
 When adding a new parallel stage, start from one of those pairs, write a focused unit test for the
 Runner and Provider contracts, and add a small integration invocation when the stage is part of a
