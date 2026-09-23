@@ -1034,7 +1034,7 @@ Under construction.
 
 ### How to test my model with an arbitrary given text?
 
-See Google Colab demo notebook: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/ESPnet2/Demo/TTS/tts_realtime_demo.ipynb)
+See Google Colab demo notebook: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/Demos/tts_demo.ipynb)
 
 If you want to try in local:
 

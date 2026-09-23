@@ -44,9 +44,14 @@ class FakeASR:
             token_list=["<nolang>", "<eng>", "<deu>", "<asr>", "<st_deu>"]
         )
 
-    def batch_decode(self, speech, lang_sym, task_sym):
+    def decode_long(self, speech, lang_sym, task_sym):
         self.calls.append((speech, lang_sym, task_sym))
-        return "hallo welt" if task_sym == "<st_deu>" else "hello world"
+        # decode_long returns one (start, end, text) per segment; the two
+        # segments are joined by the server, so a single-word return here
+        # would not show that the join happens.
+        words = "hallo welt" if task_sym == "<st_deu>" else "hello world"
+        first, second = words.split()
+        return [(0.0, 1.0, first), (1.0, 2.0, second)]
 
 
 def test_transcribe_maps_codes_to_symbols(monkeypatch, wav):

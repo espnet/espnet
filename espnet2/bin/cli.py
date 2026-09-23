@@ -3,9 +3,11 @@
 
     espnet asr audio.wav
     espnet asr audio.wav --language jpn
+    espnet phonemize audio.wav
     espnet translate audio.wav --to eng
     espnet tts "Hello from ESPnet" -o hello.wav
     espnet enhance noisy.wav -o clean.wav
+    espnet demo
     espnet models
 
 Every espnet2.bin.*_inference module already has a command line, but it is
@@ -18,6 +20,9 @@ Each downloads its model on first use and keeps it in the espnet_model_zoo
 cache. `--model` takes any tag from https://huggingface.co/espnet that suits
 the command: a command loads one task's inference class, so a TTS tag given
 to `espnet asr` is reported rather than half-loaded.
+
+`espnet demo` is the same OWSM model in a browser instead: it serves the app
+the Hugging Face Space runs, locally, and prints the URL to open.
 """
 
 import argparse
@@ -34,9 +39,14 @@ from espnet2.utils.pretrained import ModelTagError, build_pretrained
 # Each is checked by test_cli.py against the espnet2 class that loads it.
 DEFAULT_MODELS = {
     "asr": "espnet/owsm_ctc_v4_1B",
+    # POWSM, a phonetic model built on OWSM: the CTC one, which is the
+    # faster of the two and the one that can read a recording of any length
+    "phonemize": "espnet/powsm_ctc",
     "translate": "espnet/owsm_ctc_v4_1B",
     "tts": "espnet/kan-bayashi_ljspeech_vits",
     "enhance": "espnet/Wangyou_Zhang_universal_train_enh_uses_refch0_2mem_raw",
+    # the browser demo runs the model `espnet asr` runs, so that the two agree
+    "demo": "espnet/owsm_ctc_v4_1B",
 }
 # OWSM writes languages as ISO 639-3 in its own token symbols.
 # OWSM's own symbol for "work out the language yourself". asr and translate
@@ -83,7 +93,7 @@ def _load_audio(path: str):
     _require_file(path)
     try:
         speech, rate = sf.read(path, dtype="float32", always_2d=False)
-    except (OSError, RuntimeError) as e:
+    except (OSError, RuntimeError, TypeError) as e:
         raise CLIError(f"cannot read {path}: {e}") from e
     # channels are kept: SeparateSpeech takes (Batch, Nsamples [, Channels])
     # and a beamformer is worthless without them
@@ -118,33 +128,172 @@ def _build(loader, args, task: str):
     )
 
 
-def cmd_asr(args) -> int:
-    _require_file(args.audio)
-    from espnet2.bin.s2t_inference_ctc import Speech2TextGreedySearch
+def _decode(s2t, audio: str, lang_sym: str, task_sym: str) -> str:
+    """One recording of any length, as one line of text.
 
-    s2t = _build(Speech2TextGreedySearch, args, "asr")
-    print(s2t.batch_decode(args.audio, lang_sym=f"<{args.language}>", task_sym="<asr>"))
+    ``decode_long`` returns ``(start, end, text)`` per segment and reads the
+    checkpoint to decide how to cut the recording up: a CTC-only model in
+    overlapping buffers with no search, an encoder-decoder model segment by
+    segment on its own timestamps. This command prints a transcript, so the
+    segments are joined.
+    """
+    return " ".join(
+        text
+        for _, _, text in s2t.decode_long(audio, lang_sym=lang_sym, task_sym=task_sym)
+    )
+
+
+def cmd_asr(args) -> int:
+    # every check the user can fail comes before the import: loading the s2t
+    # stack takes seconds, and "no such file" should not wait for it
+    if args.live or args.stream:
+        return _transcribe_as_it_arrives(args)
+
+    if not args.audio:
+        # the argument is optional only because --live has nothing to name
+        raise CLIError("give an audio file, or --live to record one")
+    _require_file(args.audio)
+
+    from espnet2.bin.s2t_inference import Speech2Text
+
+    s2t = _build(Speech2Text, args, "asr")
+    print(_decode(s2t, args.audio, f"<{args.language}>", "<asr>"))
     return 0
+
+
+def _transcribe_as_it_arrives(args) -> int:
+    """`--live` from the microphone, `--stream` from a file, same decoding."""
+    if args.live and args.audio:
+        raise CLIError("--live records from the microphone; do not also name a file")
+    if args.stream and not args.audio:
+        raise CLIError("--stream needs an audio file; --live reads the microphone")
+    if args.stream:
+        _require_file(args.audio)
+
+    from espnet2.bin import live
+    from espnet2.bin.s2t_inference import Speech2Text
+
+    s2t = _build(Speech2Text, args, "asr")
+    try:
+        source = live.from_microphone() if args.live else live.from_file(args.audio)
+
+        def decode(chunk):
+            # best_path, not the object itself: a window has to be decoded
+            # before the next one arrives, and a search on the CTC head is
+            # nowhere near that fast. This is the one place in the command
+            # line where the difference is the difference between working
+            # and not.
+            results = s2t.best_path(
+                chunk, lang_sym=f"<{args.language}>", task_sym="<asr>"
+            )
+            return results[0][3] if results else ""
+
+        return live.transcribe(decode, source)
+    except live.LiveError as e:
+        raise CLIError(str(e)) from e
+
+
+# POWSM writes each phone between slashes, so that a phone spelled like a BPE
+# token is still one token: /pʰ//ɔ//s//ə//m/ is five phones, not a string to
+# be read character by character.
+PHONE = re.compile(r"/([^/]+)/")
+
+
+def phones(decoded: str, spaced: bool = False) -> str:
+    """The phones of a decoded line, without the slashes that delimit them.
+
+    Returned as IPA - `pʰɔsəm` - or one phone at a time when asked, which is
+    what anything counting or aligning them wants. Text with no slashes in it
+    is passed through: a checkpoint that does not write phones this way has
+    still said something, and swallowing it would be worse than printing it.
+    """
+    found = PHONE.findall(decoded)
+    if not found:
+        return decoded
+    return " ".join(found) if spaced else "".join(found)
+
+
+def _no_language(s2t) -> str:
+    """The symbol this checkpoint uses for "work the language out yourself".
+
+    Both POWSM checkpoints use `<unk>` and OWSM uses `<nolang>`, but only
+    some configs say so: POWSM-CTC records `nolang_symbol`, POWSM does not,
+    and POWSM has no `<nolang>` in its vocabulary at all - which is how a
+    guess here turns into `KeyError: '<nolang>'` several seconds after the
+    model has finished loading. So: what the config says if it says
+    anything, then either spelling, each checked against the token list
+    before it is used.
+    """
+    conf = getattr(s2t, "preprocessor_conf", None) or {}
+    model = getattr(s2t, "s2t_model", None)
+    tokens = set(getattr(model, "token_list", None) or ())
+    for candidate in (conf.get("nolang_symbol"), f"<{DEFAULT_LANGUAGE}>", "<unk>"):
+        if candidate and (not tokens or candidate in tokens):
+            return str(candidate)
+    raise CLIError(
+        "this model has no symbol for an unknown language; name one with "
+        "--language, as ISO 639-3"
+    )
+
+
+def cmd_phonemize(args) -> int:
+    _require_file(args.audio)
+    from espnet2.bin.s2t_inference import Speech2Text
+
+    s2t = _build(Speech2Text, args, "phonemize")
+    lang_sym = f"<{args.language}>" if args.language else _no_language(s2t)
+
+    if s2t.ctc_only:
+        decoded = _decode(s2t, args.audio, lang_sym, "<pr>")
+    else:
+        # An encoder-decoder checkpoint segments long audio by its own
+        # timestamps, which is right for a transcript and wrong here. A
+        # window shorter than the model's is padded with silence, and asked
+        # for phones over that silence POWSM repeats what it has already
+        # said, for as long as the window lasts. One window at a time
+        # instead, each decoded on its own, which is what the model card
+        # does.
+        decoded = " ".join(
+            s2t(window, lang_sym=lang_sym, task_sym="<pr>")[0][0]
+            for window in _windows(s2t, args.audio)
+        )
+    print(phones(decoded, spaced=args.spaced))
+    return 0
+
+
+def _windows(s2t, audio: str):
+    """The recording in pieces of the length the checkpoint was trained on."""
+    speech = s2t.read_audio(audio)
+    length = int(s2t.preprocessor_conf["speech_length"] * s2t.preprocessor_conf["fs"])
+    for start in range(0, max(len(speech), 1), length):
+        yield speech[start : start + length]
 
 
 def cmd_translate(args) -> int:
     _require_file(args.audio)
-    from espnet2.bin.s2t_inference_ctc import Speech2TextGreedySearch
+    from espnet2.bin.s2t_inference import Speech2Text
 
-    s2t = _build(Speech2TextGreedySearch, args, "translate")
-    print(
-        s2t.batch_decode(
-            args.audio, lang_sym=f"<{args.language}>", task_sym=f"<st_{args.to}>"
-        )
-    )
+    s2t = _build(Speech2Text, args, "translate")
+    print(_decode(s2t, args.audio, f"<{args.language}>", f"<st_{args.to}>"))
     return 0
 
 
 def _output_path(value: str) -> Path:
-    """The file to write, with the extension soundfile needs to pick a format."""
+    """The file to write, with an extension soundfile can turn into a format.
+
+    Checked here rather than at the write: a model is downloaded and run in
+    between, and `-o notes.txt` ended in a traceback out of soundfile after
+    all of that work.
+    """
     path = Path(value)
     if not path.suffix:
         raise CLIError(f"output needs a file extension, e.g. {value}.wav")
+
+    import soundfile as sf
+
+    if path.suffix.lstrip(".").upper() not in sf.available_formats():
+        known = ", ".join(sorted(f".{fmt.lower()}" for fmt in sf.available_formats()))
+        raise CLIError(f"cannot write {path.suffix} audio; soundfile writes {known}")
     return path
 
 
@@ -175,6 +324,67 @@ def cmd_enhance(args) -> int:
     return 0
 
 
+def _require_s2t(model_tag: str) -> None:
+    """Stop before the download when the tag is not a speech-to-text model.
+
+    `espnet demo` is the generic name of the command; what it serves today is
+    one app, the OWSM one in `espnet2/bin/demo.py`, whose menus are the
+    language and translation symbols of an OWSM token list. A tag for another
+    task will not grow those menus - it will fail somewhere inside the
+    constructor, after four gigabytes have been fetched - so the task is
+    settled here, from the model's own Hugging Face metadata.
+
+    A model whose metadata says nothing is let through rather than refused:
+    the check exists to turn a knowable mistake into a sentence, not to
+    become a second gate a valid checkpoint has to pass.
+    """
+    import espnet
+
+    try:
+        task = espnet._infer_task(model_tag)
+    except Exception:  # unreachable Hub, no metadata, an unknown label
+        return
+    if task != "s2t":
+        raise CLIError(
+            f"`espnet demo` serves speech-to-text models, and {model_tag} is "
+            f"a {task} model. Pass --model with an OWSM tag; `espnet models` "
+            "names the default."
+        )
+
+
+def cmd_demo(args) -> int:
+    """Serve the model in a browser, the way its Hugging Face Space does."""
+    from espnet2.bin import demo
+
+    # gradio is not part of `pip install espnet`, and a web framework is a
+    # large thing to install by accident, so this reads like a missing file
+    # rather than like a bug in the command.
+    if demo.load_gradio() is None:
+        raise CLIError(demo.GRADIO_MISSING)
+
+    # The demo decides for itself unless asked, because it is the one command
+    # that runs a 1B model interactively: a CPU default would be unusable on a
+    # machine that has a GPU sitting idle.
+    args.device = args.device or demo.default_device()
+
+    # Before the download, not after it: the checkpoint is 4 GB and the
+    # answer to "can this demo serve it" is one metadata request away.
+    _require_s2t(args.model)
+
+    # only now: importing the inference stack costs seconds, and a missing
+    # package or an unusable --device should be reported instantly
+    from espnet2.bin.s2t_inference import Speech2Text
+
+    s2t = _build(Speech2Text, args, "demo")
+    app = demo.build_app(s2t, device=args.device, model_tag=args.model)
+    url = f"http://127.0.0.1:{args.port}"
+    # printed before launching: gradio's own banner goes to stdout only after
+    # the server is up, and launch() then blocks until Ctrl-C
+    print(f"{args.model} on {args.device}: open {url}")
+    app.launch(server_port=args.port, share=args.share)
+    return 0
+
+
 def cmd_models(args) -> int:
     print("Defaults, each overridable with --model <tag>:\n")
     for task, tag in DEFAULT_MODELS.items():
@@ -196,7 +406,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--version", action="version", version=f"espnet {_version()}")
     sub = parser.add_subparsers(dest="command", required=True)
 
-    def add(name, help_text, func):
+    def add(name, help_text, func, device="cpu"):
         p = sub.add_parser(name, help=help_text)
         p.add_argument(
             "--model",
@@ -205,19 +415,51 @@ def build_parser() -> argparse.ArgumentParser:
         )
         p.add_argument(
             "--device",
-            default="cpu",
+            default=device,
             type=_device,
-            help="cpu, mps, cuda or cuda:<n> (default: cpu)",
+            # None means the command picks, which only `espnet demo` does
+            help="cpu, mps, cuda or cuda:<n> (default: "
+            + (device or "cuda when torch sees one, else cpu")
+            + ")",
         )
         p.set_defaults(func=func)
         return p
 
     p = add("asr", "transcribe an audio file", cmd_asr)
-    p.add_argument("audio", help="audio file, any format soundfile reads")
+    p.add_argument("audio", nargs="?", help="audio file, any format soundfile reads")
+    p.add_argument(
+        "--stream",
+        action="store_true",
+        help="print each window of the file as it is decoded",
+    )
+    p.add_argument(
+        "--live",
+        action="store_true",
+        help="transcribe from the microphone until Ctrl-C (needs sounddevice)",
+    )
     p.add_argument(
         "--language",
         default=DEFAULT_LANGUAGE,
         help="OWSM language token, ISO 639-3: eng, jpn … (default: OWSM detects it)",
+    )
+
+    p = add("phonemize", "recognise the phones in an audio file", cmd_phonemize)
+    p.add_argument("audio", help="audio file, any format soundfile reads")
+    p.add_argument(
+        "--language",
+        default=None,
+        # Worth naming: on test_utils/ctc_align_test.wav, POWSM-CTC answers
+        # `dəseɪlʌvðəhotɛlsɪz` without it and `ðəseɪlʌvðəhoʊtɛlzɪz` with
+        # --language eng - English r and diphthongs rather than a tap and
+        # plain vowels.
+        help="POWSM language token, ISO 639-3: eng, jpn, deu … Name it if you "
+        "know it; without it the model is told the language is unknown, which "
+        "it handles but reads less like the language",
+    )
+    p.add_argument(
+        "--spaced",
+        action="store_true",
+        help="one phone at a time, separated by spaces, rather than as IPA",
     )
 
     p = add("translate", "translate speech into another language", cmd_translate)
@@ -236,6 +478,16 @@ def build_parser() -> argparse.ArgumentParser:
     p = add("enhance", "remove noise from an audio file", cmd_enhance)
     p.add_argument("audio", help="audio file, any format soundfile reads")
     p.add_argument("-o", "--output", default="enhanced.wav", help="output wav")
+
+    p = add("demo", "serve a model in the browser", cmd_demo, device=None)
+    p.add_argument(
+        "--port", type=int, default=7860, help="port to serve on (default: 7860)"
+    )
+    p.add_argument(
+        "--share",
+        action="store_true",
+        help="also publish a temporary public gradio.live link",
+    )
 
     sub.add_parser(
         "models", help="show the default model of each command"
