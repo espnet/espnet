@@ -15,6 +15,7 @@ from espnet2.tasks.spk import SpeakerTask
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
+from espnet2.utils.pretrained import download_pretrained
 from espnet2.utils.types import str2triple_str, str_or_none
 
 
@@ -94,17 +95,7 @@ class Speech2Embedding:
 
         """
         if model_tag is not None:
-            try:
-                from espnet_model_zoo.downloader import ModelDownloader
-
-            except ImportError:
-                logging.error(
-                    "`espnet_model_zoo` is not installed. "
-                    "Please install via `pip install -U espnet_model_zoo`."
-                )
-                raise
-            d = ModelDownloader()
-            kwargs.update(**d.download_and_unpack(model_tag))
+            kwargs.update(download_pretrained(model_tag))
 
         return Speech2Embedding(**kwargs)
 
