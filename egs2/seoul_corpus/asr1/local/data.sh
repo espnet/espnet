@@ -142,7 +142,14 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     label_dir=$(cat "${unpack_dir}/.label_dir")
 
     for part in train dev test; do
-        eval "speakers=\${${part}_speakers}"
+        # A case rather than an eval indirection: shellcheck cannot see through
+        # the latter and reports the split variables as unused and unassigned,
+        # which fails ci/test_shell_espnet2.sh.
+        case "${part}" in
+            train) speakers="${train_speakers}" ;;
+            dev)   speakers="${dev_speakers}" ;;
+            test)  speakers="${test_speakers}" ;;
+        esac
 
         # The duration filter is for training data only: the test set has to be
         # scored on every utterance the corpus annotates, or the reference text is
