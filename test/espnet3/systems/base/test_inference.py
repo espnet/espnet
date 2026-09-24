@@ -193,7 +193,7 @@ def test_inference_rejects_test_entry_without_name(tmp_path, monkeypatch):
         {
             "parallel": {"env": "local"},
             "inference_dir": str(tmp_path / "infer"),
-            "dataset": {"test": [{"data_src": "mini_an4/asr"}]},
+            "dataset": {"test": [{"data_src": "mini_an4/esp2_asr"}]},
             "input_key": "speech",
             "mock_dataset_length": 1,
             "provider": {"_target_": f"{__name__}.DummyProvider"},

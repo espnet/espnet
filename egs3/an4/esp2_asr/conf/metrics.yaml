@@ -1,0 +1,12 @@
+# Shared ESPnet3 metrics read aligned ref.scp/hyp.scp from each inference set.
+# WER uses words; CER uses characters (including spaces in the shared scorer).
+# TER uses the same SentencePiece model as ASR. Override its path alongside
+# the ASR/LM tokenizer when changing the vocabulary for an experiment.
+metrics:
+  - metric:
+      _target_: espnet3.systems.esp2_asr.metrics.wer.WER
+  - metric:
+      _target_: espnet3.systems.esp2_asr.metrics.cer.CER
+  - metric:
+      _target_: espnet3.systems.esp2_asr.metrics.ter.TER
+      bpemodel: ${recipe_dir}/data/unigram_30/unigram.model
