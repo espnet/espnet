@@ -104,29 +104,18 @@ def collect_stats_batch(
             continue
         if not torch.is_tensor(tensor) or torch.is_floating_point(tensor):
             continue
-        # A padded token stream is [B, L]. A 1-D integer tensor is a
-        # per-utterance scalar -- a length or an id -- with no stream length to
-        # record, and a collate fn is free to call it something other than
-        # "<key>_lengths" (espnet3's own test collate returns a bare
-        # "lengths"), so the suffix check above cannot be relied on alone.
-        if tensor.dim() < 2:
+        # A padded token stream is [B, L].
+        if tensor.dim() != 2:
             continue
         lengths = tensors.get(f"{key}_lengths")
         # Without a companion length tensor, fall back to counting non-padding
-        # positions rather than taking tensor.shape[1]: that is the padded
-        # width, i.e. the LONGEST utterance in the batch, so every utterance
-        # would be recorded with the same inflated length and the batch
-        # sampler would bin them all identically. A collate function that is
-        # not espnet's still pads to a known value, so read it off when the
-        # collate exposes one and fall back to CommonCollateFn's default.
+        # positions.
         pad_value = getattr(collate_fn, "int_pad_value", -1)
         for batch_idx, uid in enumerate(list(uids)):
             if lengths is not None:
                 length = int(lengths[batch_idx])
-            elif tensor.dim() == 2:
-                length = int((tensor[batch_idx] != pad_value).sum())
             else:
-                length = int(tensor.shape[1])
+                length = int((tensor[batch_idx] != pad_value).sum())
             shape_info[key][uid] = str(length)
 
     if write_collected_feats:

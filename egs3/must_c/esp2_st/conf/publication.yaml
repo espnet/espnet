@@ -30,8 +30,6 @@
 # Each full checkpoint here is 660 MB and each averaged .pth is 220 MB, so
 # without this the bundle is tens of GB instead of a few hundred MB.
 
-recipe_dir: .
-data_dir: ${recipe_dir}/data
 
 pack_model:
   include:

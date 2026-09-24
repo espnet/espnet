@@ -11,12 +11,6 @@
 # This recipe omits `exp_tag`, `exp_dir`, and `inference_dir` on purpose.
 # `run.py` copies `training_config.exp_tag` and `training_config.exp_dir` here
 # before resolving `${exp_dir}`.
-#
-# The default output directory uses the stem of the file passed to
-# `--inference_config`.
-# If `inference_dir` is omitted, `conf/<name>.yaml` becomes `${exp_dir}/<name>`.
-# Kept as `infer` because the published results and metrics.json live there.
-inference_dir: ${exp_dir}/infer
 
 # Not a TEMPLATE default -- the ST template defines no `cache`, so the Dataset
 # would fall back to scanning the raw corpus and fail without $MUST_C.
