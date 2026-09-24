@@ -71,12 +71,12 @@ The v3.1 model is trained with this config: [conf/train_s2t_multitask-ctc_ebf27_
 
 ### Example script for batched inference
 
-`Speech2TextGreedySearch` now provides a unified batched inference method `batch_decode`. It performs CTC greedy decoding for a batch of short-form or long-form audios. If an audio is shorter than 30s, it will be padded to 30s; otherwise it will be split into overlapped segments (same as the "long-form ASR/ST" method below).
+`Speech2Text.decode_long` decodes one recording of any length with CTC best-path decoding. Audio shorter than 30s is padded to 30s; anything longer is split into overlapping buffers. It returns `(start_time, end_time, text)` per segment, and a CTC-only model such as this one has no timestamps, so it returns a single entry covering the recording.
 
 ```python
-from espnet2.bin.s2t_inference_ctc import Speech2TextGreedySearch
+from espnet2.bin.s2t_inference import Speech2Text
 
-s2t = Speech2TextGreedySearch.from_pretrained(
+s2t = Speech2Text.from_pretrained(
     "espnet/owsm_ctc_v3.1_1B",
     device="cuda",
     use_flash_attn=False,   # set to True for better efficiency if flash attn is installed and dtype is float16 or bfloat16
@@ -84,20 +84,21 @@ s2t = Speech2TextGreedySearch.from_pretrained(
     task_sym='<asr>',
 )
 
-res = s2t.batch_decode(
+segments = s2t.decode_long(
     "audio.wav",    # a single audio (path or 1-D array/tensor) as input
     batch_size=16,
     context_len_in_secs=4,
-)   # res is a single str, i.e., the predicted text without special tokens
+)
+text = " ".join(segment for _, _, segment in segments)
 
-res = s2t.batch_decode(
-    ["audio1.wav", "audio2.wav", "audio3.wav"], # a list of audios as input
-    batch_size=16,
-    context_len_in_secs=4,
-)   # res is a list of str
-
-# Please check the code of `batch_decode` for all supported inputs
+# For several recordings, call it once per recording:
+texts = [
+    " ".join(t for _, _, t in s2t.decode_long(path, batch_size=16))
+    for path in ["audio1.wav", "audio2.wav", "audio3.wav"]
+]
 ```
+
+`Speech2TextGreedySearch.batch_decode` still works and forwards here, with a `DeprecationWarning`.
 
 ### Example script for short-form ASR/ST/LID
 
@@ -105,9 +106,9 @@ Our models are trained on 16kHz audio with a fixed duration of 30s. When using t
 
 ```python
 import librosa
-from espnet2.bin.s2t_inference_ctc import Speech2TextGreedySearch
+from espnet2.bin.s2t_inference import Speech2Text
 
-s2t = Speech2TextGreedySearch.from_pretrained(
+s2t = Speech2Text.from_pretrained(
     "espnet/owsm_ctc_v3.1_1B",
     device="cuda",
     generate_interctc_outputs=False,
@@ -119,7 +120,10 @@ s2t = Speech2TextGreedySearch.from_pretrained(
 speech, rate = librosa.load("xxx.wav", sr=16000)
 speech = librosa.util.fix_length(speech, size=(16000 * 30))
 
-res = s2t(speech)[0]
+# best_path is CTC best-path (greedy) decoding: one encoder pass, no search.
+# Calling s2t(speech) instead runs a CTC prefix beam search, which is far
+# slower and takes beam_size, lm_weight and the rest.
+res = s2t.best_path(speech)[0]
 print(res)
 ```
 
@@ -128,11 +132,11 @@ print(res)
 ```python
 import soundfile as sf
 import torch
-from espnet2.bin.s2t_inference_ctc import Speech2TextGreedySearch
+from espnet2.bin.s2t_inference import Speech2Text
 
 context_len_in_secs = 4   # left and right context when doing buffered inference
 batch_size = 32   # depends on the GPU memory
-s2t = Speech2TextGreedySearch.from_pretrained(
+s2t = Speech2Text.from_pretrained(
     "espnet/owsm_ctc_v3.1_1B",
     device='cuda' if torch.cuda.is_available() else 'cpu',
     generate_interctc_outputs=False,
@@ -144,12 +148,12 @@ speech, rate = sf.read(
     "xxx.wav"
 )
 
-text = s2t.decode_long_batched_buffered(
+segments = s2t.decode_long(
     speech,
     batch_size=batch_size,
     context_len_in_secs=context_len_in_secs,
 )
-print(text)
+print(" ".join(text for _, _, text in segments))
 ```
 
 ### Example of CTC forced alignment using `ctc-segmentation`
@@ -158,7 +162,7 @@ CTC segmentation can be efficiently applied to audio of an arbitrary length.
 
 ```python
 import soundfile as sf
-from espnet2.bin.s2t_ctc_align import CTCSegmentation
+from espnet2.bin.s2t_align import CTCSegmentation
 from espnet_model_zoo.downloader import ModelDownloader
 
 # Download model first

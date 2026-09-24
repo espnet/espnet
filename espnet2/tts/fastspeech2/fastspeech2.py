@@ -47,6 +47,27 @@ DEFAULT_ENC_BUCKETS = [16, 32, 64, 96, 128, 192, 256, 384, 512]
 DEFAULT_DEC_BUCKETS = [64, 128, 192, 256, 384, 512, 768, 1024, 1536, 2048]
 
 
+def _durations_after_alpha(d_outs: torch.Tensor, alpha: float) -> torch.Tensor:
+    """Apply the scaling LengthRegulator applies before it repeats.
+
+    The regulator rounds each duration after scaling by alpha, so anything that
+    needs the resulting length - the decoder mask, the olens reported back -
+    has to do the same arithmetic. Written out twice, the two drifted apart.
+    """
+    if alpha != 1.0:
+        ds = torch.round(d_outs.float() * alpha).long().clamp(min=0)
+    else:
+        ds = d_outs.long().clamp(min=0)
+
+    # LengthRegulator's own fallback, mirrored: when the whole batch predicts
+    # nothing it fills every position of each empty row with 1 - so the output
+    # is as wide as the source, not one frame, whatever the warning there says.
+    if ds.sum() == 0:
+        ds = ds.clone()
+        ds[ds.sum(dim=1).eq(0)] = 1
+    return ds
+
+
 class FastSpeech2(AbsTTS):
     """FastSpeech2 module.
 
@@ -759,7 +780,16 @@ class FastSpeech2(AbsTTS):
 
             if d_masks is not None:
                 d_outs[d_masks] = 0
-            hs = self.length_regulator(hs, d_outs, alpha)  # (B, T_feats, adim)
+            # Scale here and hand the regulator alpha=1.0, rather than letting
+            # it scale: the decoder mask further down has to be built from the
+            # numbers hs was actually repeated by. Built from the unscaled ones
+            # - as it was - it is a different length whenever alpha != 1.0, and
+            # the decoder dies on "The size of tensor a (197) must match the
+            # size of tensor b (160)". Scaling inside the regulator is no good
+            # either: it works on a copy, so its zero-duration fallback, which
+            # fills in one frame, would not be visible to the mask.
+            d_outs_scaled = _durations_after_alpha(d_outs, alpha)
+            hs = self.length_regulator(hs, d_outs_scaled)  # (B, T_feats, adim)
         else:
             d_outs = self.duration_predictor(hs, d_masks)
             # use groundtruth in training
@@ -781,7 +811,7 @@ class FastSpeech2(AbsTTS):
                 olens_in = olens
             h_masks = self._source_mask(olens_in)
         elif is_inference and d_masks is not None:
-            h_masks = self._source_mask(torch.sum(d_outs, dim=-1))
+            h_masks = self._source_mask(d_outs_scaled.sum(dim=-1))
         else:
             h_masks = None
 
@@ -995,20 +1025,12 @@ class FastSpeech2(AbsTTS):
                 alpha=alpha,
             )  # (B, T_feats, odim)
 
-        # Calculate output lengths from predicted durations
-        # d_outs: (B, T_text + 1)
-        # IMPORTANT: match the length regulator's behavior exactly:
-        # when alpha != 1.0, round each duration individually then sum,
-        # otherwise floor to int then sum.
+        # Calculate output lengths from predicted durations, through the same
+        # helper the decoder mask uses. d_outs: (B, T_text + 1)
         if use_teacher_forcing and durations is not None:
             olens = durations.long().clamp(min=0).sum(dim=1)
         else:
-            if alpha != 1.0:
-                olens = (
-                    torch.round(d_outs.float() * alpha).long().clamp(min=0).sum(dim=1)
-                )
-            else:
-                olens = d_outs.long().clamp(min=0).sum(dim=1)
+            olens = _durations_after_alpha(d_outs, alpha).sum(dim=1)
 
         # Return unbatched outputs as list for variable length handling
         T_max = outs.size(1)
