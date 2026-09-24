@@ -232,6 +232,36 @@ of 200+ corpora recipes.
 
 ## Demos
 
+Four ways to run a published model: a hosted [Space](https://huggingface.co/espnet),
+a notebook, the MCP server an assistant can call, and the command line. 🟢 is
+there today, 🚧 is in review, ❌ is not there yet.
+
+| Task | Space | Notebook | MCP | CLI |
+| :-- | :-- | :-- | :-- | :-- |
+| **ASR** — transcription | 🟢 [owsm-ctc-v4](https://huggingface.co/spaces/espnet/owsm-ctc-v4) | 🟢 [`asr_demo`](https://github.com/espnet/notebook/blob/master/Demos/asr_demo.ipynb) | 🟢 `transcribe` | 🟢 `espnet transcribe` |
+| **ST** — speech translation | 🟢 [owsm-ctc-v4](https://huggingface.co/spaces/espnet/owsm-ctc-v4) | 🟢 [`st_demo`](https://github.com/espnet/notebook/blob/master/Demos/st_demo.ipynb) | 🟢 `translate` | 🟢 `espnet translate` |
+| **TTS** — synthesis | 🟢 [ljspeech-vits](https://huggingface.co/spaces/espnet/ljspeech-vits) | 🟢 [`tts_demo`](https://github.com/espnet/notebook/blob/master/Demos/tts_demo.ipynb) | 🟢 `synthesize` | 🟢 `espnet synthesize` |
+| **SE** — enhancement | 🟢 [universal-se](https://huggingface.co/spaces/espnet/universal-se) | 🟢 [`enh_demo`](https://github.com/espnet/notebook/blob/master/Demos/enh_demo.ipynb) | 🟢 `enhance` | 🟢 `espnet enhance` |
+| **PR** — phone recognition | 🚧 | 🟢 [`s2t_pr_demo`](https://github.com/espnet/notebook/blob/master/Demos/s2t_pr_demo.ipynb) | 🟢 `phonemize` | 🟢 `espnet phonemize` |
+| **ALIGN** — forced alignment | 🚧 | 🟢 [`s2t_align_demo`](https://github.com/espnet/notebook/blob/master/Demos/s2t_align_demo.ipynb) | 🟢 `align` | 🟢 `espnet align` |
+
+The command line and the MCP server offer the same six, under the same names,
+so a person at a terminal and an agent reading a tool description are talking
+about the same thing, and [`doc/front_ends.md`](doc/front_ends.md) is how a
+seventh task gets all four.
+
+The two 🚧 are Spaces whose source is in this repository —
+[`egs2/powsm_ctc/s2t1/demo`](egs2/powsm_ctc/s2t1/demo) and
+[`egs2/owsm_ctc_v4/s2t1/demo_align`](egs2/owsm_ctc_v4/s2t1/demo_align) — and
+which are uploaded once the release they ask for is on PyPI, since a Space
+installs espnet from there.
+
+Beside the six: speaker verification has a
+[Space](https://huggingface.co/spaces/espnet/speaker-verification) and a [notebook](https://github.com/espnet/notebook/blob/master/Demos/spk_demo.ipynb),
+and neural codecs and spoken dialogue have notebooks.
+
+### The notebooks
+
 | Demo | | Last run |
 | :-- | :-- | :-- |
 | Spoken dialogue — listen, think, speak | [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/Demos/sds_demo.ipynb) | [![sds_demo](https://github.com/espnet/notebook/actions/workflows/sds_demo.yml/badge.svg)](https://github.com/espnet/notebook/actions/workflows/sds_demo.yml) |
