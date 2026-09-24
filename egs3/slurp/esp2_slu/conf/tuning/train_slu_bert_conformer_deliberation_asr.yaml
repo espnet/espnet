@@ -22,9 +22,9 @@
 # Only values that differ from `egs3/TEMPLATE/asr/conf/training.yaml` appear
 # here.
 
-# `get_task_class` accepts any dotted path to an `AbsTask`, so the espnet2 SLU
-# task is used directly; espnet3 needs no compatibility copy of it.
-task: espnet2.tasks.slu.SLUTask
+# `task` is not repeated here: `egs3/TEMPLATE/esp2_slu/conf/training.yaml`
+# already defaults it to `espnet2.tasks.slu.SLUTask`, which is what makes this
+# an esp2_slu recipe.
 
 ##########################################################
 #                    DATASET DEFINITION                  #
