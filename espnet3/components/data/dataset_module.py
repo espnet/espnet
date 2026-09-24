@@ -207,7 +207,10 @@ def parse_dataset_reference_config(
         if not isinstance(data_src, str):
             raise TypeError("`data_src` must be a string or None.")
         data_src = data_src.strip() or None
-    data_src_args = dict(plain.get(_DATA_SRC_ARGS_KEY, {}))
+    data_src_args = plain.get(_DATA_SRC_ARGS_KEY, {})
+    if data_src_args is None:
+        data_src_args = {}
+    data_src_args = dict(data_src_args)
     return data_src, data_src_args
 
 
