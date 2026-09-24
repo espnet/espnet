@@ -1,5 +1,3 @@
-import sys
-
 import pytest
 import torch
 
@@ -8,43 +6,26 @@ from espnet2.asr.frontend.whisper import WhisperFrontend
 pytest.importorskip("whisper")
 
 # NOTE(Shih-Lun): required by `return_complex` in torch.stft()
-is_python_3_8_plus = sys.version_info >= (3, 8)
 
 
-@pytest.mark.skipif(
-    not is_python_3_8_plus,
-    reason="whisper not supported on python<3.8, torch<1.7",
-)
 @pytest.fixture()
 def whisper_frontend(request):
     with torch.no_grad():
         return WhisperFrontend("tiny")
 
 
-@pytest.mark.skipif(
-    not is_python_3_8_plus,
-    reason="whisper not supported on python<3.8, torch<1.7",
-)
 @pytest.mark.timeout(50)
 def test_frontend_init():
     frontend = WhisperFrontend("tiny")
     assert frontend.output_size() == 384
 
 
-@pytest.mark.skipif(
-    not is_python_3_8_plus,
-    reason="whisper not supported on python<3.8, torch<1.7",
-)
 def test_frontend_invalid_init():
     with pytest.raises(AssertionError):
         frontend = WhisperFrontend("aaa")
         del frontend
 
 
-@pytest.mark.skipif(
-    not is_python_3_8_plus,
-    reason="whisper not supported on python<3.8, torch<1.7",
-)
 @pytest.mark.timeout(50)
 def test_frontend_forward_no_ilens(whisper_frontend):
     input_tensor = torch.randn(
@@ -55,10 +36,6 @@ def test_frontend_forward_no_ilens(whisper_frontend):
     assert feats.size() == torch.Size([4, 10, 384])
 
 
-@pytest.mark.skipif(
-    not is_python_3_8_plus,
-    reason="whisper not supported on python<3.8, torch<1.7",
-)
 @pytest.mark.timeout(50)
 def test_frontend_forward_ilens(whisper_frontend):
     input_tensor = torch.randn(

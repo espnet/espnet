@@ -1,3 +1,5 @@
+import logging
+
 import numpy as np
 import pytest
 import torch
@@ -183,6 +185,17 @@ class DummySingleModel(nn.Module):
         return loss, {"loss": loss.detach()}, None
 
 
+class DummyFreezeModel(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.frontend = nn.Linear(2, 2)
+        self.encoder = nn.Linear(2, 1)
+
+    def forward(self, x, **kwargs):
+        loss = self.encoder(self.frontend(x)).sum()
+        return loss, {"loss": loss.detach()}, None
+
+
 class DummyDataset:
     def __init__(self, path=None):
         self.data = [
@@ -247,6 +260,18 @@ class DummyAmbiguousSelectorModel(nn.Module):
         return loss, {"loss": loss.detach()}, None
 
 
+def apply_espnet2_freeze_param_reference(model, freeze_param):
+    """Apply the selector logic from ``AbsTask.build_model_from_file``.
+
+    Keep this small reference implementation aligned with ESPnet2 so this test
+    detects a behavior change between the two training APIs.
+    """
+    for selector in freeze_param:
+        for name, parameter in model.named_parameters():
+            if name.startswith(selector + ".") or name == selector:
+                parameter.requires_grad = False
+
+
 def make_train_batch(module):
     trainer = getattr(module, "_trainer", None)
     if trainer is None or not hasattr(trainer, "current_epoch"):
@@ -296,6 +321,69 @@ def test_single_optim_and_scheduler():
     assert "optimizer" in out
     assert "lr_scheduler" in out
     assert out["lr_scheduler"]["interval"] == "step"
+
+
+def test_model_freeze_param_excludes_selected_parameters_from_optimizer(caplog):
+    config = make_single_config()
+    config.model = {
+        "freeze_param": ["frontend", "encoder.bias"],
+    }
+    with caplog.at_level(logging.INFO, logger="lightning"):
+        module = ESPnetLightningModule(DummyFreezeModel(), config)
+
+    assert not module.model.frontend.weight.requires_grad
+    assert not module.model.frontend.bias.requires_grad
+    assert module.model.encoder.weight.requires_grad
+    assert not module.model.encoder.bias.requires_grad
+
+    optimizer = module.configure_optimizers()["optimizer"]
+    optimized_params = {
+        parameter for group in optimizer.param_groups for parameter in group["params"]
+    }
+    assert optimized_params == {module.model.encoder.weight}
+    assert (
+        "Applying model.freeze_param selectors: frontend, encoder.bias" in caplog.text
+    )
+    assert "selector 'frontend' matched 2 parameters" in caplog.text
+    assert "selector 'encoder.bias' matched 1 parameters" in caplog.text
+    assert "froze 3 of 4 initially trainable parameters" in caplog.text
+
+
+def test_model_freeze_param_matches_espnet2_selector_behavior():
+    """Verify ESPnet3 freezes the same parameters as ESPnet2's task wrapper."""
+    selectors = ["frontend", "encoder.bias", "does_not_exist"]
+
+    espnet2_model = DummyFreezeModel()
+    apply_espnet2_freeze_param_reference(espnet2_model, selectors)
+    espnet2_trainable = {
+        name
+        for name, parameter in espnet2_model.named_parameters()
+        if parameter.requires_grad
+    }
+
+    config = make_single_config()
+    config.model = {"freeze_param": selectors}
+    espnet3_module = ESPnetLightningModule(DummyFreezeModel(), config)
+    espnet3_trainable = {
+        name
+        for name, parameter in espnet3_module.model.named_parameters()
+        if parameter.requires_grad
+    }
+
+    assert espnet3_trainable == espnet2_trainable
+
+    optimizer = espnet3_module.configure_optimizers()["optimizer"]
+    optimized_ids = {
+        id(parameter)
+        for group in optimizer.param_groups
+        for parameter in group["params"]
+    }
+    optimized_names = {
+        name
+        for name, parameter in espnet3_module.model.named_parameters()
+        if id(parameter) in optimized_ids
+    }
+    assert optimized_names == espnet2_trainable
 
 
 def test_single_reduce_on_plateau_monitor():
