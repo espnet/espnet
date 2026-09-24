@@ -23,54 +23,23 @@
 
 ______________________________________________________________________
 
-ESPnet is an end-to-end speech processing toolkit built on [PyTorch](https://pytorch.org/).
-It covers speech recognition, text-to-speech, speech translation, speech enhancement, speaker
-diarization, spoken language understanding, singing voice synthesis, speech language models, and
-more — with [Kaldi](http://kaldi-asr.org/)-style reproducible recipes from data preparation to
-evaluation, and hundreds of pretrained models on Hugging Face.
+ESPnet is an end-to-end speech processing toolkit built on [PyTorch](https://pytorch.org/). It covers speech recognition, text-to-speech, speech translation, speech enhancement, speaker diarization, spoken language understanding, singing voice synthesis, speech language models, and more — with [Kaldi](http://kaldi-asr.org/)-style reproducible recipes from data preparation to evaluation, and hundreds of pretrained models on Hugging Face.
 
 ## What's new
 
-- **[ESPnet 202610.post2](https://github.com/espnet/espnet/releases/tag/v.202610.post2)** —
-  the command line has one name a task and two more of them: `espnet phonemize`
-  reads the phones with POWSM, `espnet align` lines text up with the audio it
-  was said in, and `asr` and `tts` became `transcribe` and `synthesize` (the old
-  names still work); models published before June 2025 load again, after
-  `init: chainer` was removed from the toolkit.
+- **[ESPnet 202610.post2](https://github.com/espnet/espnet/releases/tag/v.202610.post2)** — the command line has one name a task and two more of them: `espnet phonemize` reads the phones with POWSM, `espnet align` lines text up with the audio it was said in, and `asr` and `tts` became `transcribe` and `synthesize` (the old names still work); models published before June 2025 load again, after `init: chainer` was removed from the toolkit.
 
 <details>
 <summary>Earlier releases</summary>
 
-- **[ESPnet 202610.post1](https://github.com/espnet/espnet/releases/tag/v.202610.post1)** —
-  the command line grows `espnet demo` (the OWSM browser demo) and `--live`
-  (the microphone, transcribed as you speak); one `Speech2Text` now loads
-  either kind of OWSM checkpoint, with `best_path()` for CTC decoding without a
-  search; `espnet/espnet:inference-cpu-latest` and `-gpu-latest` run a published
-  model with nothing installed; three more demo Spaces (TTS, enhancement, speaker
-  verification).
-- **[ESPnet 202610](https://github.com/espnet/espnet/releases/tag/v.202610)** —
-  one-line inference from the command line (`pip install espnet && espnet asr audio.wav`),
-  two OWSM v4 demos as Hugging Face Spaces, a core install without the training
-  stack (training is `espnet[train]`), batched beam search, PyTorch 2.11-2.14.
-- **[ESPnet 202609](https://github.com/espnet/espnet/releases/tag/v.202609)** —
-  ESPnet3 complete on [`egs3/librispeech_100`](egs3/librispeech_100) at ESPnet2
-  parity, CI rebuilt on a prebuilt image (compute per run halved), OpenBEATs
-  pretraining, ten new recipes (ASR, TTS, SER, ST, audio SSL), Python 3.12-3.13.
-- **[ESPnet 202604](https://github.com/espnet/espnet/releases/tag/v.202604)** —
-  Docker-based CI, PyTorch 2.9.1 support, FastSpeech2 inference ~1.9x faster
-  at batch 8, new recipes (Kinyarwanda, Emilia, kosp2e).
-- **[ESPnet 202511](https://github.com/espnet/espnet/releases/tag/v.202511)** —
-  parallel-processing primitives, refactored inference and evaluation pipeline,
-  expanded SpeechLM support.
-- **[ESPnet 202509](https://github.com/espnet/espnet/releases/tag/v.202509)** —
-  Python 3.9-3.13, Debian 12 CI, the LID subsystem completed,
-  multi-optimizer training (`HybridOptim` / `HybridLRS`).
-- **[ESPnet 202506](https://github.com/espnet/espnet/releases/tag/v.202506)** —
-  ESPnet3 groundwork (data organizer, trainer, model), LID training and task setup,
-  `codec1` recipes, USES2 speech enhancement, IPAPack++ S2T recipes.
-- **[ESPnet 202503](https://github.com/espnet/espnet/releases/tag/v.202503)** —
-  PyTorch Lightning trainer support, Hugging Face front-end, scaled dot-product
-  attention, ML-SUPERB 2024 recipe.
+- **[ESPnet 202610.post1](https://github.com/espnet/espnet/releases/tag/v.202610.post1)** — the command line grows `espnet demo` (the OWSM browser demo) and `--live` (the microphone, transcribed as you speak); one `Speech2Text` now loads either kind of OWSM checkpoint, with `best_path()` for CTC decoding without a search; `espnet/espnet:inference-cpu-latest` and `-gpu-latest` run a published model with nothing installed; three more demo Spaces (TTS, enhancement, speaker verification).
+- **[ESPnet 202610](https://github.com/espnet/espnet/releases/tag/v.202610)** — one-line inference from the command line (`pip install espnet && espnet asr audio.wav`), two OWSM v4 demos as Hugging Face Spaces, a core install without the training stack (training is `espnet[train]`), batched beam search, PyTorch 2.11-2.14.
+- **[ESPnet 202609](https://github.com/espnet/espnet/releases/tag/v.202609)** — ESPnet3 complete on [`egs3/librispeech_100`](egs3/librispeech_100) at ESPnet2 parity, CI rebuilt on a prebuilt image (compute per run halved), OpenBEATs pretraining, ten new recipes (ASR, TTS, SER, ST, audio SSL), Python 3.12-3.13.
+- **[ESPnet 202604](https://github.com/espnet/espnet/releases/tag/v.202604)** — Docker-based CI, PyTorch 2.9.1 support, FastSpeech2 inference ~1.9x faster at batch 8, new recipes (Kinyarwanda, Emilia, kosp2e).
+- **[ESPnet 202511](https://github.com/espnet/espnet/releases/tag/v.202511)** — parallel-processing primitives, refactored inference and evaluation pipeline, expanded SpeechLM support.
+- **[ESPnet 202509](https://github.com/espnet/espnet/releases/tag/v.202509)** — Python 3.9-3.13, Debian 12 CI, the LID subsystem completed, multi-optimizer training (`HybridOptim` / `HybridLRS`).
+- **[ESPnet 202506](https://github.com/espnet/espnet/releases/tag/v.202506)** — ESPnet3 groundwork (data organizer, trainer, model), LID training and task setup, `codec1` recipes, USES2 speech enhancement, IPAPack++ S2T recipes.
+- **[ESPnet 202503](https://github.com/espnet/espnet/releases/tag/v.202503)** — PyTorch Lightning trainer support, Hugging Face front-end, scaled dot-product attention, ML-SUPERB 2024 recipe.
 
 Full history: [Releases](https://github.com/espnet/espnet/releases).
 
@@ -81,7 +50,7 @@ Full history: [Releases](https://github.com/espnet/espnet/releases).
 ```sh
 # Install PyTorch first: https://pytorch.org/get-started/locally/
 pip install espnet              # run pretrained models
-pip install "espnet[train]"     # also train them, with espnet2 or espnet3 (Lightning, TensorBoard, W&B, Hydra, Dask, ...)
+pip install "espnet[train]"     # also train them (Lightning, TensorBoard, W&B, Hydra, Dask)
 ```
 
 <details>
@@ -92,8 +61,7 @@ pip install "espnet[all]"                       # training plus every task extra
 pip install git+https://github.com/espnet/espnet  # latest master
 ```
 
-- **Full setup** (recipes, DNN training, Kaldi-style tooling): see the
-  [installation guide](https://espnet.github.io/espnet/installation.html).
+- **Full setup** (recipes, DNN training, Kaldi-style tooling): see the [installation guide](https://espnet.github.io/espnet/installation.html).
 - **Docker**: see [`docker/`](docker/) and the [Docker docs](https://espnet.github.io/espnet/docker.html).
 - **Task-specific tools** live in [`tools/installers`](tools/installers).
 - **ESPnet1 is no longer supported** — use ESPnet2 (`egs2/`) or ESPnet3 (`egs3/`). See [the ESPnet1 notice](https://espnet.github.io/espnet/espnet1_tutorial.html).
@@ -112,9 +80,7 @@ pip install git+https://github.com/espnet/espnet  # latest master
 |macos/python3.12/pip|[![ci on macos](https://github.com/espnet/espnet/actions/workflows/ci_on_macos.yml/badge.svg)](https://github.com/espnet/espnet/actions/workflows/ci_on_macos.yml?query=branch%3Amaster)|||
 |macos/python3.12/conda|[![ci on macos](https://github.com/espnet/espnet/actions/workflows/ci_on_macos.yml/badge.svg)](https://github.com/espnet/espnet/actions/workflows/ci_on_macos.yml?query=branch%3Amaster)|||
 
-Each badge is its workflow's aggregate status on `master`, where the full grid runs.
-Coverage is not uniform — some suites run on one pytorch only, and a pull request runs
-less than `master` does. [What each column covers](CONTRIBUTING.md#53-what-runs-on-a-pull-request).
+Each badge is its workflow's aggregate status on `master`, where the full grid runs. Coverage is not uniform — some suites run on one pytorch only, and a pull request runs less than `master` does. [What each column covers](CONTRIBUTING.md#53-what-runs-on-a-pull-request).
 
 [![pre-commit.ci](https://results.pre-commit.ci/badge/github/espnet/espnet/master.svg)](https://results.pre-commit.ci/latest/github/espnet/espnet/master)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
@@ -125,70 +91,56 @@ less than `master` does. [What each column covers](CONTRIBUTING.md#53-what-runs-
 
 ## Quick start
 
-**From the terminal** — no code, on any audio file:
-
 ```sh
 pip install espnet
-espnet transcribe audio.wav                # transcribe, detecting the language
-espnet translate audio.wav --to eng        # speech in, English text out
-espnet phonemize audio.wav                 # the phones, in IPA, with POWSM
-espnet align audio.wav --text "what was said"   # when each utterance was said
-espnet synthesize "Hello from ESPnet" -o out.wav
-espnet enhance noisy.wav -o clean.wav
-espnet transcribe --live                   # transcribe the microphone
-espnet models                              # the default model of each command
-pip install "espnet[demo]"
-espnet demo                                # the same model in your browser
 ```
 
-Every command but `espnet models` takes `--model <tag>` and `--device cuda`,
-and `espnet --version` names the installed version. The six that do one task
-are verbs; `asr` and `tts` were the names in 202610 and still work. `espnet demo` serves, on localhost, the app behind [the OWSM-CTC
-v4 Space](https://huggingface.co/spaces/espnet/owsm-ctc-v4) — recording, upload, the
-checkpoint's own language and translation menus, and long-form decoding — and takes
-`--port` and `--share`. The page is the checkpoint's: `espnet demo --model
-espnet/powsm_ctc` offers phone recognition instead of translation, because that is
-what POWSM's token list has.
+Then pick how you want to call it. Same models, same six tasks.
 
-**Without installing anything** — the same commands, in a container:
+**From the terminal**
+
+```sh
+espnet transcribe audio.wav                # detects the language
+espnet translate audio.wav --to eng
+espnet synthesize "Hello from ESPnet" -o out.wav
+espnet enhance noisy.wav -o clean.wav
+```
+
+`phonemize` and `align` are there too, and `espnet models` names the default model of each. Every command but that one takes `--model <tag>` and `--device cuda`.
+
+**From Python**
+
+```python
+from espnet2.bin.s2t_inference import Speech2Text
+
+# OWSM-CTC v4: multilingual ASR, translation and language ID in one model
+s2t = Speech2Text.from_pretrained("espnet/owsm_ctc_v4_1B")
+for start, end, text in s2t.decode_long("audio.wav"):  # any length or rate
+    print(text)
+```
+
+Any model from the [ESPnet organization](https://huggingface.co/espnet), cached after the first download.
+
+**From an agent**
+
+```sh
+pip install "espnet[mcp]"
+claude mcp add espnet -- espnet-mcp
+```
+
+An [MCP](https://modelcontextprotocol.io/) server offering the same six tasks as tools, so Claude, Cursor or another agent calls them itself.
+
+<details>
+<summary>Or without installing anything, in a container</summary>
 
 ```sh
 docker run --rm -v "$PWD:/data" -v "$HOME/.cache/huggingface:/cache/huggingface" \
     espnet/espnet:inference-cpu-latest asr /data/audio.wav
 ```
 
-With a GPU, `espnet/espnet:inference-gpu-latest`, `--gpus all` and
-`--device cuda`.
+The second mount keeps the downloaded model between runs. With a GPU, use `espnet/espnet:inference-gpu-latest`, `--gpus all` and `--device cuda`; on a Linux host add `--user "$(id -u):$(id -g)"`. The other images are in [`docker/`](docker/).
 
-The second mount is what keeps the downloaded model between runs; on a Linux
-host add `--user "$(id -u):$(id -g)"`, so that what it writes belongs to you.
-The other two images, and what each is for, are in [`docker/`](docker/).
-
-**From Python** — any model from the [ESPnet Hugging Face organization](https://huggingface.co/espnet):
-
-```python
-from espnet2.bin.s2t_inference import Speech2Text
-
-# OWSM-CTC v4: multilingual ASR, translation and language ID in one
-# encoder-only model. No beam search: one encoder pass per 30 s window.
-s2t = Speech2Text.from_pretrained(
-    "espnet/owsm_ctc_v4_1B", lang_sym="<eng>", task_sym="<asr>"
-)
-for start, end, text in s2t.decode_long("audio.wav"):  # any length or rate
-    print(text)
-```
-
-The 4 GB checkpoint is cached after the first download. `device="cuda"` runs on a GPU,
-`task_sym="<st_deu>"` translates, `lang_sym="<nolang>"` identifies the language. The
-same class loads the encoder-decoder OWSM v4 models: `decode_long` then decodes segment
-by segment on the model's own timestamps, `s2t(speech)` runs the beam search, and
-`s2t.best_path(speech)` is the CTC head with no search. Every other task —
-`asr_inference`, `tts_inference`, `enh_inference`, `spk_inference` — follows the same
-`from_pretrained` pattern.
-
-**From an agent** — `pip install "espnet[mcp]"`, then register `espnet-mcp` as an
-[MCP](https://modelcontextprotocol.io/) server (Claude Code: `claude mcp add espnet -- espnet-mcp`).
-Agents then call `transcribe`, `synthesize` and `enhance` themselves.
+</details>
 
 **Train a recipe** — every corpus follows the same interface:
 
@@ -217,24 +169,18 @@ New to ESPnet? Start with [`egs2/mini_an4/asr1`](egs2/mini_an4/asr1) — it runs
 | 📦 | **Codec** — neural audio codecs | [`codec1`](egs2/TEMPLATE/codec1) | Discrete speech tokens for downstream tasks |
 | ➕ | **More** | [`uasr1`](egs2/TEMPLATE/uasr1), [`cls1`](egs2/TEMPLATE/cls1), [`asvspoof1`](egs2/TEMPLATE/asvspoof1), [`lm1`](egs2/TEMPLATE/lm1), [`sds1`](egs2/TEMPLATE/sds1) | Unsupervised ASR ([EURO](https://arxiv.org/abs/2211.17196)), audio classification, anti-spoofing, LM, spoken dialogue |
 
-Each template ships a corpus-agnostic pipeline; see [`egs2/README.md`](egs2/README.md) for the full list
-of 200+ corpora recipes.
+Each template ships a corpus-agnostic pipeline; see [`egs2/README.md`](egs2/README.md) for the full list of 200+ corpora recipes.
 
 ## Why ESPnet
 
 - **Reproducible** — one `run.sh` per corpus, from download to scoring, with published results.
 - **Unified** — the same recipe structure, config format, and trainer across every task above.
-- **Scalable** — DDP, multi-node training, [Slurm](https://slurm.schedmd.com/)/MPI,
-  [DeepSpeed](https://github.com/microsoft/DeepSpeed), sharded training, on-the-fly feature extraction.
-- **Open** — hundreds of pretrained models and demos on
-  [Hugging Face](https://huggingface.co/espnet), plus [W&B](https://espnet.github.io/espnet/espnet2_training_option.html#weights-biases-integration)
-  and TensorBoard logging.
+- **Scalable** — DDP, multi-node training, [Slurm](https://slurm.schedmd.com/)/MPI, [DeepSpeed](https://github.com/microsoft/DeepSpeed), sharded training, on-the-fly feature extraction.
+- **Open** — hundreds of pretrained models and demos on [Hugging Face](https://huggingface.co/espnet), plus [W&B](https://espnet.github.io/espnet/espnet2_training_option.html#weights-biases-integration) and TensorBoard logging.
 
 ## Demos
 
-Four ways to run a published model: a hosted [Space](https://huggingface.co/espnet),
-a notebook, the MCP server an assistant can call, and the command line. 🟢 is
-there today, 🚧 is in review, ❌ is not there yet.
+Four ways to run a published model — a hosted [Space](https://huggingface.co/espnet), a notebook, the MCP server an agent calls, and the command line. 🟢 is there today, 🚧 is in review, ❌ is not there yet.
 
 | Task | Space | Notebook | MCP | CLI |
 | :-- | :-- | :-- | :-- | :-- |
@@ -245,22 +191,14 @@ there today, 🚧 is in review, ❌ is not there yet.
 | **PR** — phone recognition | 🟢 [powsm-ctc](https://huggingface.co/spaces/espnet/powsm-ctc) | 🟢 [`s2t_pr_demo`](https://github.com/espnet/notebook/blob/master/Demos/s2t_pr_demo.ipynb) | 🟢 `phonemize` | 🟢 `espnet phonemize` |
 | **ALIGN** — forced alignment | 🟢 [forced-alignment](https://huggingface.co/spaces/espnet/forced-alignment) | 🟢 [`s2t_align_demo`](https://github.com/espnet/notebook/blob/master/Demos/s2t_align_demo.ipynb) | 🟢 `align` | 🟢 `espnet align` |
 
-The command line and the MCP server offer the same six, under the same names,
-so a person at a terminal and an agent reading a tool description are talking
-about the same thing, and [`doc/front_ends.md`](doc/front_ends.md) is how a
-seventh task gets all four.
+Every Space is built from a directory in this repository, and [`doc/front_ends.md`](doc/front_ends.md) is how a seventh task gets all four columns.
 
-Every cell is filled, and every Space is built from a directory in this
-repository — [`egs2/powsm_ctc/s2t1/demo`](egs2/powsm_ctc/s2t1/demo) and
-[`egs2/owsm_ctc_v4/s2t1/demo_align`](egs2/owsm_ctc_v4/s2t1/demo_align) are
-the two newest — so a demo is reviewed and tested like the rest of the
-toolkit rather than edited on the Hub.
+`pip install "espnet[demo]"` adds `espnet demo`, the same app on localhost; `espnet transcribe --live` reads the microphone.
 
-Beside the six: speaker verification has a
-[Space](https://huggingface.co/spaces/espnet/speaker-verification) and a [notebook](https://github.com/espnet/notebook/blob/master/Demos/spk_demo.ipynb),
-and neural codecs and spoken dialogue have notebooks.
+Beyond the six: a [Space](https://huggingface.co/spaces/espnet/speaker-verification) and a [notebook](https://github.com/espnet/notebook/blob/master/Demos/spk_demo.ipynb) for speaker verification, notebooks for [neural codecs](https://github.com/espnet/notebook/blob/master/Demos/codec_demo.ipynb) and [spoken dialogue](https://github.com/espnet/notebook/blob/master/Demos/sds_demo.ipynb), and [`egs2/TEMPLATE/sds1`](egs2/TEMPLATE/sds1) for the full spoken dialogue system, which runs locally.
 
-### The notebooks
+<details>
+<summary>Every notebook, and whether it still runs</summary>
 
 | Demo | | Last run |
 | :-- | :-- | :-- |
@@ -273,20 +211,12 @@ and neural codecs and spoken dialogue have notebooks.
 | Speaker verification — two recordings, one score | [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/Demos/spk_demo.ipynb) | [![spk_demo](https://github.com/espnet/notebook/actions/workflows/spk_demo.yml/badge.svg)](https://github.com/espnet/notebook/actions/workflows/spk_demo.yml) |
 | Neural codecs — a waveform as a few integers a frame | [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/Demos/codec_demo.ipynb) | [![codec_demo](https://github.com/espnet/notebook/actions/workflows/codec_demo.yml/badge.svg)](https://github.com/espnet/notebook/actions/workflows/codec_demo.yml) |
 
-Each runs top to bottom on a CPU and pins the release it was checked against.
-The second badge is that notebook being executed cell by cell every Sunday, so
-a red one names the demo that broke rather than leaving you to find out by
-opening it. More, including the CMU course material:
-[espnet/notebook](https://github.com/espnet/notebook).
+Each runs top to bottom on a CPU and pins the release it was checked against. The second badge is that notebook being executed cell by cell every Sunday, so a red one names the demo that broke rather than leaving you to find out by opening it. More, including the CMU course material: [espnet/notebook](https://github.com/espnet/notebook).
 
-The full spoken dialogue system — microphone, voice activity detection, an
-end-to-end option beside the cascade, and latency and quality measured while
-you talk — is [`egs2/TEMPLATE/sds1`](egs2/TEMPLATE/sds1), which runs locally.
+</details>
 
 **Publish your own.** Every ESPnet3 recipe can wrap its trained model in a
-[Gradio](https://www.gradio.app/) app and push it to Hugging Face Spaces — the UI,
-the Space `README.md` and `requirements.txt` are all generated from
-[`conf/demo.yaml`](egs3/TEMPLATE/asr/conf/demo.yaml).
+[Gradio](https://www.gradio.app/) app and push it to Hugging Face Spaces — the UI, the Space `README.md` and `requirements.txt` are all generated from [`conf/demo.yaml`](egs3/TEMPLATE/asr/conf/demo.yaml).
 
 <details>
 <summary>The three stages</summary>
@@ -311,12 +241,11 @@ Run the packed app locally with `python demo/app.py`.
 
 ## Contributing
 
-Contributions, questions, and feature requests are all welcome — open an
-[issue](https://github.com/espnet/espnet/issues) or a pull request.
-First time here? Read the [contribution guide](CONTRIBUTING.md).
+Contributions, questions, and feature requests are all welcome — open an [issue](https://github.com/espnet/espnet/issues) or a pull request. First time here? Read the [contribution guide](CONTRIBUTING.md).
 
 <a href="https://github.com/espnet/espnet/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=espnet/espnet&max=100&columns=25" alt="Contributors"/>
+<img src="https://contrib.rocks/image?repo=espnet/espnet&max=100&columns=25"
+alt="Contributors"/>
 </a>
 
 ## Details
