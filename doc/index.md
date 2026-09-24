@@ -18,11 +18,11 @@ highlights:
       - title: "Running inference on existing ESPnet models"
         details: "<code>pip install espnet espnet-model-zoo</code> and start using it immediately."
         icon: fa-solid:bolt
-        link: notebook/#demo
-      - title: "Fine-tuning ESPnet models"
-        details: "<code>pip install espnet</code> and use the <code>espnetez</code> module for fine-tuning."
+        link: notebook/#demos
+      - title: "Learning ESPnet from a course"
+        details: "The notebooks CMU teaches with: recognition, translation, synthesis, enhancement, codecs."
         icon: fa-solid:fire
-        link: notebook/#espnet-ez
+        link: notebook/#courses
       - title: "Complete installation to fully reproduce ESPnet models"
         details: "Complete the full installation and use the existing recipes."
         icon: fa-solid:server
