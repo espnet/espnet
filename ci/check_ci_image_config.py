@@ -199,6 +199,71 @@ RELEVANCE_CORE = {
 }
 
 
+REPORTER = Path(".github/workflows/report_broken_workflows.yml")
+# How long after the last other daily schedule the reporter must run. GitHub
+# does not start a scheduled run on time - this repository has seen a 06:00
+# cron fire at 06:29 - so "later" needs a margin, not a minute.
+REPORTER_MARGIN = 60
+
+
+def _daily_crons() -> dict:
+    """{workflow path: [minutes past midnight]} for schedules that run daily."""
+    found = {}
+    for path in sorted(Path(".github/workflows").glob("*.yml")):
+        try:
+            workflow = yaml.safe_load(path.read_text())
+        except yaml.YAMLError:
+            continue
+        if not isinstance(workflow, dict):
+            continue
+        # `on` is the YAML 1.1 boolean True once parsed
+        triggers = workflow.get("on") or workflow.get(True) or {}
+        if not isinstance(triggers, dict):
+            continue
+        times = []
+        for entry in triggers.get("schedule") or []:
+            fields = str(entry.get("cron", "")).split()
+            if len(fields) != 5 or fields[2:] != ["*", "*", "*"]:
+                continue  # not a plain daily schedule; left alone
+            try:
+                times.append(int(fields[1]) * 60 + int(fields[0]))
+            except ValueError:
+                continue
+        if times:
+            found[path] = times
+    return found
+
+
+def check_reporter_runs_last() -> list:
+    """The broken-workflow report must be the last daily schedule.
+
+    It reports the latest run of every workflow, so anything scheduled after
+    it is reported a day late - which is not a wrong answer, but it is a stale
+    one, and it reads as a live failure. At 06:00 it was filing
+    check_demo_links (07:00) results from the previous morning, and issue
+    #6800 named a demo-link failure that had already passed.
+    """
+    crons = _daily_crons()
+    mine = crons.get(REPORTER)
+    if not mine:
+        return [f"{REPORTER}: no daily cron, so it cannot be checked to run last"]
+    others = {path: max(times) for path, times in crons.items() if path != REPORTER}
+    if not others:
+        return []
+    latest_path, latest = max(others.items(), key=lambda kv: kv[1])
+    if min(mine) < latest + REPORTER_MARGIN:
+        return [
+            f"{REPORTER}: runs at {min(mine) // 60:02d}:{min(mine) % 60:02d} UTC, "
+            f"but {latest_path.name} runs at {latest // 60:02d}:{latest % 60:02d} "
+            f"and it needs at least {REPORTER_MARGIN} minutes after the last "
+            "other daily schedule.\n"
+            "  It reports each workflow's latest run, so one scheduled after it "
+            "is reported a day late - a failure that has already been fixed, "
+            "and a fresh one missed for a day."
+        ]
+    return []
+
+
 def check_needed_before_read() -> list:
     """A job reading another job's outputs must declare it in `needs`.
 
@@ -1385,6 +1450,7 @@ def main() -> int:
         + check_generated_matrices()
         + check_integration_relevance_paths()
         + check_needed_before_read()
+        + check_reporter_runs_last()
         + check_integration_tasks()
         + check_configuration_tasks()
         + check_no_duplicate_keys()
