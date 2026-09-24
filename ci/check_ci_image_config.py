@@ -199,6 +199,116 @@ RELEVANCE_CORE = {
 }
 
 
+REPORTER = Path(".github/workflows/report_broken_workflows.yml")
+# How long after the last other daily schedule the reporter must run. GitHub
+# does not start a scheduled run on time - this repository has seen a 06:00
+# cron fire at 06:29 - so "later" needs a margin, not a minute.
+REPORTER_MARGIN = 60
+
+
+def _daily_crons() -> tuple:
+    """({workflow path: [minutes past midnight]}, [what could not be read]).
+
+    Anything daily-shaped that this cannot evaluate goes in the second list
+    rather than being dropped. Silently skipping what it cannot parse is how
+    a rule like this passes while the thing it guards is broken - a `.yaml`
+    file, a timezone, or `0 8,10 * * *` would each have done it.
+    """
+    found, unreadable = {}, []
+    files = sorted(
+        list(Path(".github/workflows").glob("*.yml"))
+        + list(Path(".github/workflows").glob("*.yaml"))
+    )
+    for path in files:
+        try:
+            workflow = yaml.safe_load(path.read_text())
+        except yaml.YAMLError as e:
+            unreadable.append(f"{path}: not valid YAML ({e.__class__.__name__})")
+            continue
+        if not isinstance(workflow, dict):
+            continue
+        # `on` is the YAML 1.1 boolean True once parsed
+        triggers = workflow.get("on") or workflow.get(True) or {}
+        if not isinstance(triggers, dict):
+            continue
+        times = []
+        for entry in triggers.get("schedule") or []:
+            if not isinstance(entry, dict):
+                unreadable.append(f"{path}: a schedule entry that is not a mapping")
+                continue
+            fields = str(entry.get("cron", "")).split()
+            if len(fields) != 5:
+                unreadable.append(
+                    f"{path}: cron {entry.get('cron')!r} is not five fields"
+                )
+                continue
+            if fields[2:] != ["*", "*", "*"]:
+                continue  # weekly or monthly; not part of this ordering
+            zone = entry.get("timezone")
+            if zone:
+                # GitHub takes an IANA timezone here, and its UTC time then
+                # moves with daylight saving. Rather than guess a fixed
+                # offset, say so: there are none today, and one added later
+                # deserves a decision rather than a silent pass.
+                unreadable.append(
+                    f"{path}: cron {entry.get('cron')!r} has timezone {zone!r}, "
+                    "which this check cannot convert to UTC"
+                )
+                continue
+            try:
+                minute, hour = int(fields[0]), int(fields[1])
+            except ValueError:
+                # a list, range or step - `0 8,10 * * *` is daily and runs at
+                # two times, one of which may be after the reporter
+                unreadable.append(
+                    f"{path}: cron {entry.get('cron')!r} is daily but its hour "
+                    "or minute is not a plain number, so this check cannot "
+                    "tell when it runs"
+                )
+                continue
+            times.append(hour * 60 + minute)
+        if times:
+            found[path] = times
+    return found, unreadable
+
+
+def check_reporter_runs_last() -> list:
+    """The broken-workflow report must be the last daily schedule.
+
+    It reports the latest run of every workflow, so anything scheduled after
+    it is reported a day late - which is not a wrong answer, but it is a stale
+    one, and it reads as a live failure. At 06:00 it was filing
+    check_demo_links (07:00) results from the previous morning, and issue
+    #6800 named a demo-link failure that had already passed.
+    """
+    crons, unreadable = _daily_crons()
+    problems = [
+        f"{where}.\n  A daily schedule this check cannot place is a daily "
+        "schedule it cannot prove runs before the report."
+        for where in unreadable
+    ]
+    mine = crons.get(REPORTER)
+    if not mine:
+        return problems + [
+            f"{REPORTER}: no daily cron, so it cannot be checked to run last"
+        ]
+    others = {path: max(times) for path, times in crons.items() if path != REPORTER}
+    if not others:
+        return problems
+    latest_path, latest = max(others.items(), key=lambda kv: kv[1])
+    if min(mine) < latest + REPORTER_MARGIN:
+        return problems + [
+            f"{REPORTER}: runs at {min(mine) // 60:02d}:{min(mine) % 60:02d} UTC, "
+            f"but {latest_path.name} runs at {latest // 60:02d}:{latest % 60:02d} "
+            f"and it needs at least {REPORTER_MARGIN} minutes after the last "
+            "other daily schedule.\n"
+            "  It reports each workflow's latest run, so one scheduled after it "
+            "is reported a day late - a failure that has already been fixed, "
+            "and a fresh one missed for a day."
+        ]
+    return problems
+
+
 def check_needed_before_read() -> list:
     """A job reading another job's outputs must declare it in `needs`.
 
@@ -775,48 +885,70 @@ def tracked_files() -> list:
 
 
 README = Path("README.md")
-# The two tables in "Tested environments": the badge grid and the one saying
-# what each column covers. Both carry the pytorch list as column headers.
-README_HEADERS = ("|system/pytorch ver.|", "|test suite|")
-README_K2_ROW = "|k2-dependent tests|"
+CONTRIBUTING = Path("CONTRIBUTING.md")
+# The two CI tables and where each one lives. The badge grid stays in the
+# README's "Tested environments"; the table saying what each column covers sits
+# in CONTRIBUTING 5.3, beside the rest of the testing sections, because it is
+# what someone whose pull request just went red is looking for. Both carry the
+# pytorch list as column headers and both have to keep naming the real grid,
+# wherever they are - so this maps prefix to file rather than assuming one.
+COVERAGE_TABLES = {
+    "|system/pytorch ver.|": README,
+    "|test suite|": CONTRIBUTING,
+}
+SUITE_HEADER = "|test suite|"
+K2_ROW = "|k2-dependent tests|"
 # The rows whose "runs on a pull request" columns must be the narrowed grid,
-# so that changing which pytorch a pull request gets cannot leave the README
+# so that changing which pytorch a pull request gets cannot leave the table
 # describing the old one.
-README_PR_ROWS = ("|`espnet2` recipe integration|", "|`espnet3` integration|")
+PR_ROWS = ("|`espnet2` recipe integration|", "|`espnet3` integration|")
 
 
 def _columns(line: str) -> list:
     return [cell.strip() for cell in line.strip().strip("|").split("|")][1:]
 
 
-def check_readme_coverage_table() -> list:
-    """README's CI tables must name exactly the grid, and agree about k2.
+def check_coverage_tables() -> list:
+    """The CI tables must name exactly the grid, and agree about k2.
 
     The existing version check rejects a version the grid does not build, which
     catches a stale column but not a missing one: add a pytorch and the tables
     quietly describe a grid one column smaller than the real one. And the k2
     row is a written-down copy of k2_missing_for, which is the fact that has
     already gone stale once.
+
+    Each table is looked for in the file that holds it, so moving one between
+    documents is a one-line change here rather than a check that starts
+    reporting a missing table.
     """
-    if not README.exists():
-        return [f"{README}: missing"]
     torches = list(variants()[1])
-    lines = README.read_text(encoding="utf-8").splitlines()
     problems = []
+    text = {}
+    for path in dict.fromkeys(COVERAGE_TABLES.values()):
+        if not path.exists():
+            problems.append(f"{path}: missing")
+            continue
+        text[path] = path.read_text(encoding="utf-8").splitlines()
+
     headers = {}
-    for number, line in enumerate(lines, 1):
-        for prefix in README_HEADERS:
-            if line.startswith(prefix):
-                headers[prefix] = (number, _columns(line))
-                if _columns(line) != torches:
-                    problems.append(
-                        f"{README}:{number}: the table headed {prefix!r} lists "
-                        f"pytorch {_columns(line)}, but ci/image_variants.json "
-                        f"builds {torches}"
-                    )
-    for prefix in README_HEADERS:
-        if prefix not in headers:
-            problems.append(f"{README}: no table headed {prefix!r}")
+    for prefix, path in COVERAGE_TABLES.items():
+        lines = text.get(path)
+        if lines is None:
+            continue
+        found = False
+        for number, line in enumerate(lines, 1):
+            if not line.startswith(prefix):
+                continue
+            found = True
+            headers[prefix] = (path, number, _columns(line))
+            if _columns(line) != torches:
+                problems.append(
+                    f"{path}:{number}: the table headed {prefix!r} lists "
+                    f"pytorch {_columns(line)}, but ci/image_variants.json "
+                    f"builds {torches}"
+                )
+        if not found:
+            problems.append(f"{path}: no table headed {prefix!r}")
 
     narrowed = json.loads(
         subprocess.run(
@@ -827,61 +959,63 @@ def check_readme_coverage_table() -> list:
         ).stdout
         or "{}"
     ).get("pytorch-version", [])
-    if "|test suite|" in headers:
-        columns = headers["|test suite|"][1]
-        for prefix in README_PR_ROWS:
+    suite = headers.get(SUITE_HEADER)
+    if suite is not None:
+        suite_path, _, columns = suite
+        for prefix in PR_ROWS:
             rows = [
                 (number, line)
-                for number, line in enumerate(lines, 1)
+                for number, line in enumerate(text[suite_path], 1)
                 if line.startswith(prefix)
             ]
             if not rows:
-                problems.append(f"{README}: no row starting {prefix!r}")
+                problems.append(f"{suite_path}: no row starting {prefix!r}")
                 continue
             for number, line in rows:
                 cells = _columns(line)
                 if len(cells) != len(columns):
                     problems.append(
-                        f"{README}:{number}: {prefix} has {len(cells)} cells "
+                        f"{suite_path}:{number}: {prefix} has {len(cells)} cells "
                         f"for {len(columns)} pytorch columns"
                     )
                     continue
                 on_pr = [v for v, cell in zip(columns, cells) if "PR" in cell]
                 if on_pr != narrowed:
                     problems.append(
-                        f"{README}:{number}: {prefix} says a pull request runs "
-                        f"pytorch {on_pr}, but image_variants.py --newest-pytorch "
-                        f"gives {narrowed}"
+                        f"{suite_path}:{number}: {prefix} says a pull request "
+                        f"runs pytorch {on_pr}, but image_variants.py "
+                        f"--newest-pytorch gives {narrowed}"
                     )
 
     gap = _k2_gap()
+    k2_path = COVERAGE_TABLES[SUITE_HEADER]
     seen_k2_row = False
-    for number, line in enumerate(lines, 1):
-        if not line.startswith(README_K2_ROW):
+    for number, line in enumerate(text.get(k2_path, []), 1):
+        if not line.startswith(K2_ROW):
             continue
         seen_k2_row = True
-        if "|test suite|" not in headers:
+        if suite is None:
             break
-        columns = headers["|test suite|"][1]
+        columns = suite[2]
         cells = _columns(line)
         if len(cells) != len(columns):
             problems.append(
-                f"{README}:{number}: the k2 row has {len(cells)} "
+                f"{k2_path}:{number}: the k2 row has {len(cells)} "
                 f"cells for {len(columns)} pytorch columns"
             )
             break
         said = {v for v, cell in zip(columns, cells) if "no wheel" in cell}
         if said != gap:
             problems.append(
-                f"{README}:{number}: the k2 row says no wheel for "
+                f"{k2_path}:{number}: the k2 row says no wheel for "
                 f"{sorted(said)}, but {INSTALL_K2} skips k2 for {sorted(gap)}"
             )
     # A row that is not there validates nothing, and the loop above would have
     # said so by saying nothing at all - which is the shape of every defect
     # this file was written against.
-    if not seen_k2_row:
+    if not seen_k2_row and k2_path in text:
         problems.append(
-            f"{README}: no row starting {README_K2_ROW!r}, so nothing records "
+            f"{k2_path}: no row starting {K2_ROW!r}, so nothing records "
             f"that {INSTALL_K2} skips k2 for torch {sorted(gap) or 'nothing'} "
             "and that those tests importorskip rather than fail"
         )
@@ -1361,6 +1495,7 @@ def main() -> int:
         + check_generated_matrices()
         + check_integration_relevance_paths()
         + check_needed_before_read()
+        + check_reporter_runs_last()
         + check_integration_tasks()
         + check_configuration_tasks()
         + check_no_duplicate_keys()
@@ -1371,7 +1506,7 @@ def main() -> int:
         + check_codecov_token()
         + check_no_direct_references()
         + check_versions_are_built_variants()
-        + check_readme_coverage_table()
+        + check_coverage_tables()
         + check_declared_support_matches_variants()
         + check_k2_gap_is_a_built_variant()
         + check_downloads_retry_on_5xx()

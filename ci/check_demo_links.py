@@ -21,13 +21,17 @@ Exit status: 0 nothing broken, 1 something broken, 2 the scan itself failed
 """
 
 import argparse
+import datetime
+import email.utils
 import errno
 import http.client
+import io
 import json
 import os
 import re
 import subprocess
 import sys
+import time
 import traceback
 import urllib.error
 import urllib.parse
@@ -66,6 +70,28 @@ WORKING_STAGES = {
     "SLEEPING",
 }
 TIMEOUT = 30
+# The Hub rate-limits by address - 500 requests in a five-minute window - and
+# a shared runner can reach that without this repository having asked for
+# anything. A 429 is then a wait rather than a broken link, and the response
+# says how long to wait, so it is waited out once instead of failing the scan.
+RATE_LIMITED = {429, 503}
+# The Hub also answers an anonymous request with 401 under load. Nothing here
+# sends credentials, so a 401 cannot be about credentials, and it is not about
+# the link either: on 2026-09-23 one took the daily run red on
+# api/spaces/espnet/forced-alignment, a Space that is public, ungated and
+# RUNNING, and the same scan passed the next morning. One of seven runs.
+DECLINED = {401}
+# What is worth one retry. Kept separate from RATE_LIMITED because only that
+# one is throttling, and only that one names a wait to honour.
+TRANSIENT = RATE_LIMITED | DECLINED
+# One window, and no more. Waiting five minutes in a job that otherwise takes
+# seconds is still cheaper than a red daily run that someone has to open to
+# find out it was throttling; a wait longer than a window is not this
+# repository being throttled and is reported instead.
+MAX_WAIT = 300
+# what to wait when the server throttles without saying for how long, which is
+# what a 503 from either API usually looks like
+DEFAULT_WAIT = 30
 
 
 class ScanError(RuntimeError):
@@ -119,28 +145,87 @@ def find_links(
     return dict(notebooks), dict(spaces)
 
 
-def _get_json(url: str):
+def retry_delay(headers) -> Optional[float]:
+    """Seconds the server asked us to wait, or None if it did not say.
+
+    Three spellings: `Retry-After: 30`, the same header as an HTTP date, which
+    RFC 9110 allows and which a 30 second guess would not be long enough for,
+    and the RateLimit header's `t` field, which is what the Hub sends -
+    `ratelimit: "api";r=0;t=231` is 231 seconds until the window reopens.
+    """
+    after = headers.get("Retry-After") if headers else None
+    if after:
+        try:
+            return max(0.0, float(after.strip()))
+        except ValueError:
+            pass
+        try:
+            when = email.utils.parsedate_to_datetime(after)
+        except (TypeError, ValueError):
+            when = None
+        if when is not None:
+            # a date without a zone is read as UTC, which is what the header
+            # is required to carry anyway
+            if when.tzinfo is None:
+                when = when.replace(tzinfo=datetime.timezone.utc)
+            now = datetime.datetime.now(datetime.timezone.utc)
+            return max(0.0, (when - now).total_seconds())
+    limit = headers.get("RateLimit") if headers else None
+    if limit:
+        m = re.search(r"\bt\s*=\s*(\d+(?:\.\d+)?)", limit)
+        if m:
+            return float(m.group(1))
+    return None
+
+
+def _get_json(url: str, sleep=time.sleep):
     request = urllib.request.Request(url)
     token = os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")
     if token and url.startswith("https://api.github.com/"):
         # unauthenticated GitHub allows 60 requests an hour per address, which
         # a shared runner can exhaust; the workflow's own token lifts that
         request.add_header("Authorization", f"Bearer {token}")
-    try:
-        with urllib.request.urlopen(request, timeout=TIMEOUT) as r:
-            return json.load(r)
-    except urllib.error.HTTPError as e:
-        if e.code == 404:
-            return None
-        raise ScanError(f"{url}: HTTP {e.code}") from e
-    except (
-        urllib.error.URLError,
-        TimeoutError,
-        json.JSONDecodeError,
-        # a truncated response raises IncompleteRead, an HTTPException
-        http.client.HTTPException,
-    ) as e:
-        raise ScanError(f"{url}: {e}") from e
+    for attempt in (1, 2):
+        try:
+            with urllib.request.urlopen(request, timeout=TIMEOUT) as r:
+                return json.load(r)
+        except urllib.error.HTTPError as e:
+            if e.code == 404:
+                return None
+            wait = retry_delay(e.headers) if e.code in RATE_LIMITED else None
+            if attempt == 1 and e.code in TRANSIENT:
+                # a server that throttles without saying for how long still
+                # deserves the one retry; only a wait it named and that is
+                # longer than a window skips it
+                naps = DEFAULT_WAIT if wait is None else wait
+                if naps <= MAX_WAIT:
+                    sleep(naps)
+                    continue
+            if e.code in RATE_LIMITED:
+                # said plainly: a red job here is the address being throttled,
+                # and no link in this repository has been shown to be wrong
+                said = f" and asked for {wait:.0f}s" if wait is not None else ""
+                raise ScanError(
+                    f"{url}: HTTP {e.code} - rate limited{said}, not a broken link"
+                ) from e
+            if e.code in DECLINED:
+                # not "rate limited", which it does not say it is, and not a
+                # broken link either - the request carried no credentials to
+                # be wrong about
+                raise ScanError(
+                    f"{url}: HTTP {e.code} - the request was declined, "
+                    "not a broken link"
+                ) from e
+            raise ScanError(f"{url}: HTTP {e.code}") from e
+        except (
+            urllib.error.URLError,
+            TimeoutError,
+            json.JSONDecodeError,
+            # a truncated response raises IncompleteRead, an HTTPException
+            http.client.HTTPException,
+        ) as e:
+            raise ScanError(f"{url}: {e}") from e
+    raise AssertionError("unreachable: the loop returns or raises")
 
 
 def notebook_paths(ref: str) -> Optional[Set[str]]:
@@ -196,8 +281,23 @@ def split_ref(
     raise ScanError(f"no such ref in {NOTEBOOK_REPO}: {ref} (from {ref}/{path})")
 
 
+# A Space this repository holds the source of, but which has not been
+# uploaded yet. Its card names the release it needs, a Space installs espnet
+# from PyPI, and the cards say plainly that an upload before that release
+# replaces a working demo with a broken one - so until the release is out,
+# the Space being absent is the rule working, not a broken link.
+ABSENT = "NOT PUBLISHED"
+
+
 def space_stage(space_id: str) -> str:
-    d = _get_json(f"https://huggingface.co/api/spaces/{space_id}")
+    try:
+        d = _get_json(f"https://huggingface.co/api/spaces/{space_id}")
+    except ScanError as e:
+        # the Hub answers 401 for a Space that does not exist, so that a
+        # private one cannot be told from a missing one
+        if " HTTP 401" in str(e):
+            return ABSENT
+        raise
     if d is None:
         return "DELETED"
     runtime = d.get("runtime")
@@ -215,9 +315,73 @@ SPACE_CARD_LIMITS = {"short_description": 60, "title": 100}
 SPACE_CARD_REQUIRED = ("title", "sdk", "app_file")
 
 
+def awaiting_release(path: str, text: str, root: str = ".") -> Optional[str]:
+    """The espnet release a Space card is waiting for, if it is not out yet.
+
+    A card names the Space it will be uploaded to before that Space exists -
+    that is the order the cards themselves prescribe. This says which release
+    the directory pins and whether PyPI has it, so an absent Space can be
+    reported as pending rather than as a broken link.
+    """
+    pinned = None
+    requirements = os.path.join(root, os.path.dirname(path), "requirements.txt")
+    try:
+        with open(requirements, encoding="utf-8") as f:
+            for line in f:
+                # one version, not the rest of the requirement:
+                # `espnet>=a,!=b` would otherwise ask PyPI for the release
+                # "a,!=b", get nothing, and call a published Space pending
+                match = re.match(
+                    r"\s*espnet(\[[a-z,]+\])?(>=|==)" r"(?P<version>[A-Za-z0-9._+!-]+)",
+                    line,
+                )
+                if match:
+                    pinned = match.group("version")
+                    break
+    except OSError:
+        return None
+    if pinned is None:
+        return None
+    released = _get_json(f"https://pypi.org/pypi/espnet/{pinned}/json")
+    return None if released else pinned
+
+
+# The line every card carries, and the only statement in it of where this
+# directory goes. A card also links to its sibling - the two OWSM demos point
+# at each other - so the links cannot say which Space is the card's own, and
+# taking them all would have hidden a real outage of the sibling behind
+# "not published yet".
+UPLOAD = re.compile(
+    r"^hf upload (?P<space>[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+) (?P<dir>\S+) ",
+    re.M,
+)
+
+
+def upload_target(path: str, text: str) -> Optional[str]:
+    """The Space this card says its own directory is uploaded to.
+
+    None when the card does not say, or says it of another directory. Then
+    nothing about it is treated as pending, which is the safe direction: an
+    absent Space is reported rather than excused.
+    """
+    match = UPLOAD.search(text)
+    if match is None:
+        return None
+    if match.group("dir").rstrip("/") != os.path.dirname(path).rstrip("/"):
+        return None
+    return match.group("space")
+
+
+# `demo/` is one Space in a recipe, `demo_align/` a second one beside it -
+# a recipe whose model serves two demos of different shapes. Matching only
+# `/demo/` left the second card unchecked: neither its front matter, which
+# the Hub refuses silently, nor the Space it names.
+DEMO_DIR = re.compile(r"/demo(_[a-z0-9]+)?/")
+
+
 def space_cards(names: List[str]) -> List[str]:
     """Paths of the Space READMEs among the tracked files."""
-    return [p for p in names if p.endswith("README.md") and "/demo/" in f"/{p}"]
+    return [p for p in names if p.endswith("README.md") and DEMO_DIR.search(f"/{p}")]
 
 
 def check_space_card(path: str, text: str, root: str = ".") -> List[str]:
@@ -304,8 +468,24 @@ def scan() -> List[str]:
             where = ", ".join(sorted(notebooks[(ref, path)]))
             at = "" if real_ref == "master" else f" at {real_ref}"
             broken.append(f"notebook gone{at}: {real_path}  (linked from {where})")
+    # a Space whose source is here and whose card pins a release PyPI does
+    # not have cannot have been uploaded yet
+    pending = {}
+    for path in space_cards(names):
+        target = upload_target(path, texts.get(path, ""))
+        waiting = awaiting_release(path, texts.get(path, ""), root) if target else None
+        if waiting:
+            pending[target] = (waiting, path)
     for space_id in sorted(spaces):
         stage = space_stage(space_id)
+        if stage == ABSENT and space_id in pending:
+            waiting, card = pending[space_id]
+            print(
+                f"not published yet: {space_id} waits for espnet {waiting} "
+                f"({card} says so)",
+                file=sys.stderr,
+            )
+            continue
         if stage not in WORKING_STAGES:
             where = ", ".join(sorted(spaces[space_id]))
             broken.append(f"space {stage}: {space_id}  (linked from {where})")
@@ -319,7 +499,7 @@ def scan() -> List[str]:
 def self_check() -> None:
     text = (
         "[a](https://colab.research.google.com/github/espnet/notebook/blob/master/"
-        "ESPnet2/Demo/TTS/tts_realtime_demo.ipynb) "
+        "Demos/TTS/tts_realtime_demo.ipynb) "
         "[b](https://github.com/espnet/notebook/blob/master/x/y.ipynb) "
         "[c](https://huggingface.co/spaces/espnet/TTS) "
         "[d](https://huggingface.co/spaces) "
@@ -332,7 +512,7 @@ def self_check() -> None:
     )
     notebooks, spaces = find_links({"README.md": text})
     assert notebooks == {
-        ("master", "ESPnet2/Demo/TTS/tts_realtime_demo.ipynb"): {"README.md"},
+        ("master", "Demos/TTS/tts_realtime_demo.ipynb"): {"README.md"},
         ("master", "x/y.ipynb"): {"README.md"},
         ("v1.0", "tagged.ipynb"): {"README.md"},
         # percent-encoding is undone here, since the ref is encoded again when
@@ -421,6 +601,172 @@ def self_check() -> None:
     # when no split holds the file, it is reported against the ref that exists
     got = split_ref("master", "gone.ipynb", {}, fetch={"master": {"a.ipynb"}}.get)
     assert got == ("master", "gone.ipynb", {"a.ipynb"}), got
+
+    # a rate limit is waited out once, with the wait the server named, and
+    # only then reported - the daily run went red on a 429 from a shared
+    # runner while every link in the repository was fine
+    assert retry_delay(email.message_from_string("Retry-After: 30")) == 30
+    assert retry_delay(email.message_from_string('RateLimit: "api";r=0;t=231')) == 231
+    assert retry_delay(email.message_from_string("")) is None
+    assert retry_delay(email.message_from_string("Retry-After: Wed, 21 Oct")) is None
+
+    # the date spelling RFC 9110 allows. Guessing 30 seconds at one of these
+    # would retry while still throttled, which is the failure this exists to
+    # avoid, so it is read rather than ignored
+    soon = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(
+        seconds=120
+    )
+    dated = email.message_from_string(
+        f"Retry-After: {email.utils.format_datetime(soon)}"
+    )
+    assert 110 <= retry_delay(dated) <= 120, retry_delay(dated)
+    past = email.message_from_string("Retry-After: Wed, 21 Oct 2015 07:28:00 GMT")
+    assert retry_delay(past) == 0.0, retry_delay(past)
+
+    calls = []
+    slept = []
+
+    def rate_limited(url, **_):
+        calls.append(url)
+        if len(calls) == 1:
+            raise urllib.error.HTTPError(
+                url,
+                429,
+                "Too Many Requests",
+                email.message_from_string('RateLimit: "api";r=0;t=7'),
+                None,
+            )
+        return io.BytesIO(b'{"ok": true}')
+
+    real_urlopen = urllib.request.urlopen
+    urllib.request.urlopen = rate_limited
+    try:
+        got = _get_json("https://huggingface.co/api/spaces/x/y", sleep=slept.append)
+    finally:
+        urllib.request.urlopen = real_urlopen
+    assert got == {"ok": True}, got
+    assert slept == [7.0], slept
+    assert len(calls) == 2, calls
+
+    def always_limited(url, **_):
+        raise urllib.error.HTTPError(
+            url,
+            429,
+            "Too Many Requests",
+            email.message_from_string('RateLimit: "api";r=0;t=9'),
+            None,
+        )
+
+    urllib.request.urlopen = always_limited
+    try:
+        _get_json("https://huggingface.co/api/spaces/x/y", sleep=lambda _: None)
+    except ScanError as e:
+        assert "rate limited" in str(e) and "not a broken link" in str(e), e
+    else:  # pragma: no cover - the raise above is the expected path
+        raise AssertionError("a rate limit that does not clear must fail the scan")
+    finally:
+        urllib.request.urlopen = real_urlopen
+
+    # a 401 gets the same one retry. The Hub answers anonymous requests with
+    # one under load, and on 2026-09-23 that alone took the daily run red
+    # while every link in the repository was fine.
+    unauthorised = []
+
+    def declined_once(url, **_):
+        unauthorised.append(url)
+        if len(unauthorised) == 1:
+            raise urllib.error.HTTPError(
+                url, 401, "Unauthorized", email.message_from_string(""), None
+            )
+        return io.BytesIO(b'{"ok": true}')
+
+    real_urlopen = urllib.request.urlopen
+    urllib.request.urlopen = declined_once
+    napped = []
+    try:
+        got = _get_json("https://huggingface.co/api/spaces/x/y", sleep=napped.append)
+    finally:
+        urllib.request.urlopen = real_urlopen
+    assert got == {"ok": True}, got
+    assert napped == [DEFAULT_WAIT], napped
+    assert len(unauthorised) == 2, unauthorised
+
+    # and one that does not clear is still the scan failing, not a broken
+    # link - the distinction the exit status exists for
+    def always_declined(url, **_):
+        raise urllib.error.HTTPError(
+            url, 401, "Unauthorized", email.message_from_string(""), None
+        )
+
+    urllib.request.urlopen = always_declined
+    try:
+        _get_json("https://huggingface.co/api/spaces/x/y", sleep=lambda _: None)
+    except ScanError as e:
+        assert "declined" in str(e) and "not a broken link" in str(e), e
+        assert "rate limited" not in str(e), e
+    else:  # pragma: no cover - the raise above is the expected path
+        raise AssertionError("a 401 that does not clear must fail the scan")
+    finally:
+        urllib.request.urlopen = real_urlopen
+
+    # a 403 is not in either set: it gets no retry and no reassurance
+    forbidden = []
+
+    def always_forbidden(url, **_):
+        forbidden.append(url)
+        raise urllib.error.HTTPError(
+            url, 403, "Forbidden", email.message_from_string(""), None
+        )
+
+    urllib.request.urlopen = always_forbidden
+    try:
+        _get_json("https://huggingface.co/api/spaces/x/y", sleep=lambda _: None)
+    except ScanError as e:
+        assert "403" in str(e) and "not a broken link" not in str(e), e
+    else:  # pragma: no cover - the raise above is the expected path
+        raise AssertionError("a 403 must fail the scan")
+    finally:
+        urllib.request.urlopen = real_urlopen
+    assert len(forbidden) == 1, forbidden
+
+    # a 503 that says nothing still gets the one retry, after the default
+    third = []
+
+    def silent_503(url, **_):
+        third.append(url)
+        if len(third) == 1:
+            raise urllib.error.HTTPError(
+                url, 503, "Service Unavailable", email.message_from_string(""), None
+            )
+        return io.BytesIO(b'{"ok": true}')
+
+    urllib.request.urlopen = silent_503
+    waited = []
+    try:
+        got = _get_json("https://huggingface.co/api/spaces/x/y", sleep=waited.append)
+    finally:
+        urllib.request.urlopen = real_urlopen
+    assert got == {"ok": True} and waited == [DEFAULT_WAIT], (got, waited)
+
+    # a wait longer than a CI minute is not waited out at all
+    def far_off(url, **_):
+        raise urllib.error.HTTPError(
+            url,
+            429,
+            "Too Many Requests",
+            email.message_from_string(f"Retry-After: {MAX_WAIT + 1}"),
+            None,
+        )
+
+    urllib.request.urlopen = far_off
+    try:
+        _get_json("https://huggingface.co/api/spaces/x/y", sleep=lambda _: 1 / 0)
+    except ScanError as e:
+        assert f"asked for {MAX_WAIT + 1}s" in str(e), e
+    else:  # pragma: no cover - the raise above is the expected path
+        raise AssertionError("a long wait must be reported, not slept through")
+    finally:
+        urllib.request.urlopen = real_urlopen
 
     try:
         split_ref("nope", "x.ipynb", {}, fetch=lambda ref: None)

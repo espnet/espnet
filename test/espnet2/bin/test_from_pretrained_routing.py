@@ -71,12 +71,14 @@ def test_from_pretrained_goes_through_the_shared_helper(
         asked.append(model_tag)
         return dict(artifacts)
 
-    class Recorder:
-        def __init__(self, **kwargs):
-            built.update(kwargs)
+    def record(self, **kwargs):
+        built.update(kwargs)
 
     monkeypatch.setattr(module, "download_pretrained", fake_download)
-    monkeypatch.setattr(module, class_name, Recorder)
+    # The constructor is replaced on the class rather than the module, so
+    # that a from_pretrained written as a classmethod - which calls
+    # cls(...), never the module-level name - is intercepted too.
+    monkeypatch.setattr(cls, "__init__", record)
 
     cls.from_pretrained("espnet/some-model")
 
@@ -95,11 +97,7 @@ def test_from_pretrained_without_a_tag_downloads_nothing(
     def fail(model_tag):  # pragma: no cover - the point is that it is not called
         raise AssertionError("downloaded without a model tag")
 
-    class Recorder:
-        def __init__(self, **kwargs):
-            pass
-
     monkeypatch.setattr(module, "download_pretrained", fail)
-    monkeypatch.setattr(module, class_name, Recorder)
+    monkeypatch.setattr(cls, "__init__", lambda self, **kwargs: None)
 
     cls.from_pretrained(None)
