@@ -122,6 +122,7 @@ cover all four age groups with two male and two female speakers.
   - Commit date: `Thu Sep 17 15:37:48 2026 -0500`
 
 ## asr_xeus
+- Model: https://huggingface.co/haerik/seoul_corpus_asr_xeus
 - ASR config: `conf/tuning/train_asr_xeus.yaml`
 - Decoding config: `conf/decode_asr.yaml`
 - Total number of ASR model parameters: 621.43 M (47.30 M trainable, 7.6%)
@@ -146,6 +147,7 @@ cover all four age groups with two male and two female speakers.
 |decode_asr_num_workers0_asr_model_valid.acc.ave/test|1409|47522|81.9|12.3|5.8|3.4|21.5|74.6|
 
 ## asr_wavlm
+- Model: https://huggingface.co/haerik/seoul_corpus_asr_wavlm
 - ASR config: `conf/tuning/train_asr_wavlm.yaml`
 - Decoding config: `conf/decode_asr.yaml`
 - Total number of ASR model parameters: 362.76 M (47.30 M trainable, 13.0%)
