@@ -729,10 +729,13 @@ def self_check() -> None:
     # worth acting on
     authed = []
 
-    def rejects_token(url, **_):
-        authed.append(url)
+    def rejects_token(request, **_):
+        # the Authorization header itself, not just the fact that a token was
+        # in the environment: without this the case passes with the
+        # add_header call deleted, which is the one thing it is here to check
+        authed.append(request.get_header("Authorization"))
         raise urllib.error.HTTPError(
-            url, 401, "Unauthorized", email.message_from_string(""), None
+            request.full_url, 401, "Unauthorized", email.message_from_string(""), None
         )
 
     real_urlopen = urllib.request.urlopen
@@ -757,6 +760,7 @@ def self_check() -> None:
         else:
             os.environ["GH_TOKEN"] = had
     assert len(authed) == 1, authed
+    assert authed[0] == "Bearer not-a-real-token", authed
     assert slept_on_auth == [], slept_on_auth
 
     # a 403 is not in either set: it gets no retry and no reassurance
