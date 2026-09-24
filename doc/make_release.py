@@ -10,7 +10,8 @@ Replaces doc/make_release_note_from_milestone.py, which only generated notes.
     # check, and print the notes
     python doc/make_release.py <github_token> <milestone>
 
-    # also write version.txt and create or update the draft release
+    # also write version.txt and the README entry, and create or update
+    # the draft release
     python doc/make_release.py <github_token> <milestone> --apply
 
 Everything this does is reversible. It never creates a tag and never uploads
@@ -28,6 +29,11 @@ ways at once, and nothing said so:
   - The PyPI upload had failed on both v.202604 and v.202604-patch1, so PyPI's
     newest espnet was five months older than GitHub's. Nobody found out until
     somebody went looking.
+
+A patch is v.YYYYMM.postN, and the tag is the milestone title. The older tags
+spell it -patchN, which is not a version PyPI accepts, so their version.txt
+had to say something else - and v.202609-patch1 forgot to, leaving the tag
+and the published version one apart for the rest of that series.
 
 So: check first, and fail with the reason rather than producing a release note
 for a release that cannot happen.
@@ -49,7 +55,12 @@ import github
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 VERSION_FILE = REPO_ROOT / "version.txt"
+README_FILE = REPO_ROOT / "README.md"
 PUBLISH_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "publish_python_package.yml"
+
+# What the What's new entry says until a person writes the real summary. A
+# release that still carries it has a README that says nothing about itself.
+README_PLACEHOLDER = "TODO: what this release is about, in one or two lines."
 
 # The labels the notes are grouped under, in the order they appear.
 PICKUP_LABELS = [
@@ -91,6 +102,28 @@ def package_name():
 def version_of(milestone_title):
     """v.202609 -> 202609. version.txt holds the number without the prefix."""
     return milestone_title.removeprefix("v.").removeprefix("v")
+
+
+# A release is v.YYYYMM, and a patch on top of one is v.YYYYMM.postN.
+#
+# .postN and not -patchN, because version.txt is what the package is published
+# as and `202610-patch1` is not a version PyPI accepts; PEP 440 spells it
+# `202610.post1`. The tags before 202610 say -patchN and their version.txt
+# says .postN - and off by one at that, because v.202609-patch1 never bumped
+# the file at all. Deriving the version from the milestone title is what stops
+# the tag and the published version drifting apart again, and that only works
+# if the title is already the version.
+# [0-9] and not \d: \d matches every Unicode decimal digit, so a milestone
+# typed with fullwidth digits - easy enough on a Japanese keyboard - would
+# pass this and then be refused by PyPI, which is the failure this check
+# exists to catch early.
+RELEASE_VERSION = re.compile(r"[0-9]{6}(\.post[0-9]+)?")
+
+
+def release_version(milestone_title):
+    """The version this milestone releases, or None if it names no release."""
+    version = version_of(milestone_title)
+    return version if RELEASE_VERSION.fullmatch(version) else None
 
 
 def pypi_has(version):
@@ -153,7 +186,171 @@ def publishable_metadata():
         return module.check_no_direct_references()
 
 
-def preflight(repo, milestone, version, open_items, will_apply):
+def next_milestone_exists(repo, version):
+    """There has to be a milestone for the release after this one.
+
+    Every pull request a person opens is given the next open v.YYYYMM
+    milestone by .github/workflows/assign_milestone.yml, and the notes for
+    that release are generated from it. If the milestone does not exist, the
+    pull requests merged after this release belong to nothing and the next
+    release note starts empty.
+    """
+    later = [
+        m.title
+        for m in repo.get_milestones(state="open")
+        if re.fullmatch(r"v\.\d{6}", m.title) and version_of(m.title) > version
+    ]
+    if later:
+        return []
+    return [
+        f"no open milestone after v.{version}: create the next one (v.YYYYMM) so "
+        "pull requests merged from now on land in the next release's notes"
+    ]
+
+
+def merged_without_milestone(client, slug, repo, version):
+    """Merged pull requests that no milestone will ever list.
+
+    The notes are "everything in the milestone", so a merged pull request with
+    no milestone is invisible to them. Finding those at release time is the
+    last chance; assign_milestone.yml is what stops them happening.
+    """
+    previous = next(
+        (t for t in repo.get_tags() if t.name != f"v.{version}"),
+        None,
+    )
+    if previous is None:
+        return []
+    since = previous.commit.commit.author.date.date().isoformat()
+    query = f"repo:{slug} is:pr is:merged no:milestone merged:>={since}"
+    try:
+        orphans = [
+            issue
+            for issue in client.search_issues(query)
+            if issue.user is None or issue.user.type != "Bot"
+        ]
+    except github.GithubException:
+        return [
+            f"could not search for merged pull requests without a milestone ({query})"
+        ]
+    if not orphans:
+        return []
+    listed = ", ".join(f"#{i.number}" for i in orphans[:5])
+    more = f" and {len(orphans) - 5} more" if len(orphans) > 5 else ""
+    return [
+        f"{len(orphans)} pull request(s) merged since {previous.name} have no "
+        f"milestone, so no release note lists them: {listed}{more}"
+    ]
+
+
+def readme_sections():
+    """The What's new list and the Earlier releases list, as text.
+
+    Returns None if README.md is not shaped the way this function edits, so a
+    restructured README makes the script say what to do by hand rather than
+    rewrite something it does not understand.
+    """
+    if not README_FILE.is_file():
+        return None
+    text = README_FILE.read_text()
+    match = re.search(
+        r"(## What's new\n\n)(.*?)"
+        r"(\n<details>\n<summary>Earlier releases</summary>\n\n)(.*?)"
+        r"(\nFull history:)",
+        text,
+        re.S,
+    )
+    return (text, match) if match else None
+
+
+def readme_entry(version, where=None):
+    """The What's new bullet for this version, or None if there is none.
+
+    `where` is the text to search, so a caller can limit it to the current
+    What's new list: a bullet found anywhere else - under Earlier releases,
+    or in a README whose sections were renamed - is not this release being
+    announced.
+    """
+    if where is None:
+        if not README_FILE.is_file():
+            return None
+        where = README_FILE.read_text()
+    # one bullet: from its "- **[ESPnet <version>]" to the next bullet or blank line
+    match = re.search(
+        rf"- \*\*\[ESPnet {re.escape(version)}\].*?(?=\n- \*\*\[ESPnet |\n\n|\Z)",
+        where,
+        re.S,
+    )
+    return match.group(0) if match else None
+
+
+def readme_up_to_date(version, will_apply):
+    """README's What's new has to name this release, with a real summary.
+
+    The 202610 release went out with What's new still describing 202609: the
+    README is the first thing a visitor reads, and nothing in the procedure
+    pointed at it. --apply writes the entry, so its absence is excused there,
+    the way the version.txt mismatch is.
+    """
+    sections = readme_sections()
+    if sections is None:
+        # Not "the entry is missing": the section this reads and writes is not
+        # there to read, and --apply would not write it either.
+        return [
+            "README.md has no What's new section shaped as this script expects "
+            "(a list, then <details><summary>Earlier releases</summary>, then "
+            "Full history:) - add the entry by hand, or fix the section"
+        ]
+    entry = readme_entry(version, where=sections[1].group(2))
+    if entry is None:
+        if will_apply:
+            return []
+        return [
+            f"README.md's What's new does not mention {version} "
+            "(--apply writes the entry, then fill in its summary)"
+        ]
+    if README_PLACEHOLDER in entry:
+        return [
+            f"README.md's What's new entry for {version} is still the placeholder "
+            "- write what the release is about"
+        ]
+    return []
+
+
+def update_readme(version):
+    """Add the What's new entry for this release and demote the previous one."""
+    sections = readme_sections()
+    if sections is None:
+        print(
+            "README.md is not shaped as expected: add the What's new entry for "
+            f"{version} by hand"
+        )
+        return
+    text, match = sections
+    if readme_entry(version, where=match.group(2)) is not None:
+        return
+    header, current, opener, earlier, tail = match.groups()
+    entry = (
+        f"- **[ESPnet {version}]"
+        f"(https://github.com/espnet/espnet/releases/tag/v.{version})** —\n"
+        f"  {README_PLACEHOLDER}\n"
+    )
+    demoted = current.strip("\n")
+    README_FILE.write_text(
+        text[: match.start()]
+        + header
+        + entry
+        + opener
+        + (demoted + "\n" if demoted else "")
+        + earlier
+        + tail
+        + text[match.end() :]
+    )
+    print(f"wrote README.md: What's new now lists {version}")
+    print("  replace its placeholder line with what the release is about")
+
+
+def preflight(client, slug, repo, milestone, version, open_items, will_apply):
     """Everything that has to be true before a release can go out.
 
     will_apply excuses the one problem --apply exists to fix. Without it the
@@ -192,6 +389,9 @@ def preflight(repo, milestone, version, open_items, will_apply):
     elif on_pypi is None:
         problems.append("could not reach PyPI to check whether this version exists")
 
+    problems += readme_up_to_date(version, will_apply)
+    problems += next_milestone_exists(repo, version)
+    problems += merged_without_milestone(client, slug, repo, version)
     problems += trusted_publishing_ready()
     problems += publishable_metadata()
 
@@ -282,6 +482,8 @@ def apply_changes(repo, milestone, version, notes):
         print(f"wrote version.txt = {version}")
         print("  commit it, open a pull request, and merge before tagging")
 
+    update_readme(version)
+
     title = f"ESPnet version {version}"
     for release in repo.get_releases():
         if release.tag_name == f"v.{version}":
@@ -333,16 +535,17 @@ def main():
         titles = ", ".join(m.title for m in repo.get_milestones(state="all"))
         sys.exit(f"no milestone titled {args.milestone!r}. Existing: {titles}")
 
-    version = version_of(milestone.title)
-    if not re.fullmatch(r"\d{6}(-patch\d+)?", version):
+    version = release_version(milestone.title)
+    if version is None:
         sys.exit(
             f"milestone {milestone.title!r} does not look like a release: expected "
-            "v.YYYYMM, optionally with -patchN"
+            "v.YYYYMM, optionally with .postN for a patch (PyPI spells it that "
+            "way; -patchN is not a version it accepts)"
         )
 
     grouped, contributors, merged, open_items = collect(repo, milestone)
 
-    problems = preflight(repo, milestone, version, open_items, args.apply)
+    problems = preflight(client, slug, repo, milestone, version, open_items, args.apply)
     if problems:
         print(
             f"{len(problems)} problem(s) before {milestone.title} can ship:\n",
@@ -375,13 +578,16 @@ def main():
 
     print(
         "\nRemaining, by hand:\n"
-        "  1. Merge the version.txt bump.\n"
+        "  1. Write the README What's new summary, and merge it with the\n"
+        "     version.txt bump - the same pull request carries both.\n"
         "  2. Fill in the Overview in the draft release.\n"
         f"  3. Publish the draft. That creates tag v.{version}, which triggers\n"
         "     publish_python_package.yml and uploads to PyPI. It cannot be undone.\n"
         "  4. Check the run: gh run list --workflow publish_python_package.yml\n"
         "     Both 202604 tags failed here silently. Do not assume it worked.\n"
-        "  5. Move anything still open to the next milestone and close this one.",
+        "  5. Move anything still open to the next milestone and close this one.\n"
+        "  6. Create the milestone after that, so assign_milestone.yml has\n"
+        "     somewhere to put the pull requests opened from now on.",
         file=sys.stderr,
     )
 

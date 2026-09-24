@@ -1,0 +1,3 @@
+espnet[demo]>=202610.post2
+espnet_model_zoo>=0.1.11
+librosa

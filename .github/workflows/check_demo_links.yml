@@ -1,0 +1,137 @@
+# Reports the demo links that have rotted, into a single issue that it keeps up
+# to date.
+#
+# Link rot here does not answer 404, so nothing turned red while it happened: a
+# notebook that moved inside espnet/notebook renders as Colab's "Notebook not
+# found", and a Space whose container died still serves a page. Four of the
+# five Spaces the README linked had been erroring since 2021-2022, and one
+# Colab notebook had been missing since the notebook repository was
+# reorganised.
+#
+# Runs on a schedule because it depends on two external services; a pull
+# request must not go red because a Space was restarting. Like
+# report_broken_workflows.yml, it cannot report its own failure - what it
+# leaves behind then is a stale issue.
+#
+# A runner shares its address with everyone else on it, so the Hub can throttle
+# this job for requests it did not make. The scanner waits one rate-limit
+# window out before giving up, which is why the job is allowed more than the
+# half minute it otherwise takes.
+
+name: check demo links
+
+on:
+  schedule:
+    # 07:00 UTC daily, after the broken-workflow report at 06:00.
+    - cron: "0 7 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    # the scan takes half a minute, or up to a rate-limit window longer; the
+    # default of six hours would hold a runner for an afternoon if an API hung
+    timeout-minutes: 20
+    if: github.repository == 'espnet/espnet'
+    steps:
+      # See ci_on_ubuntu.yml: the default persists GITHUB_TOKEN in .git/config.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Test the scanner offline
+        run: python3 ci/check_demo_links.py --self-check
+
+      - name: Look for demo links that no longer work
+        id: scan
+        env:
+          # read-only here, and only to lift GitHub's unauthenticated rate
+          # limit on the notebook repository's file list
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # pipefail, because `python3 ... | tee` otherwise reports tee's
+          # status. Status 2 means the scan could not reach an API, which must
+          # fail this step rather than be filed as link rot.
+          set -o pipefail
+          status=0
+          python3 ci/check_demo_links.py | tee report.txt || status=$?
+          case "${status}" in
+            0) echo "broken=false" >> "$GITHUB_OUTPUT" ;;
+            1) echo "broken=true" >> "$GITHUB_OUTPUT" ;;
+            *) echo "::error::the scan itself failed (status ${status})"
+               exit "${status}" ;;
+          esac
+
+      # One issue, edited in place: a link that stays broken does not mail
+      # everyone once a day, while a newly broken one does, because the issue
+      # is opened then.
+      - name: Open or update the report issue
+        if: steps.scan.outputs.broken == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TITLE: "Docs: demo links that no longer work"
+          MARKER: 'Maintained by `.github/workflows/check_demo_links.yml`.'
+        run: |
+          # -e and pipefail: a failed lookup must stop the step rather than
+          # leave "existing" empty, which would file a second issue.
+          set -euo pipefail
+          {
+            echo "$MARKER"
+            echo "Edited in place each day; close it once the links work again."
+            echo
+            echo '```'
+            cat report.txt
+            echo '```'
+            echo
+            echo "A Space reported here is erroring, not merely asleep."
+            echo "Either revive it or drop the link - a dead demo costs more"
+            echo "than no demo."
+            echo
+            echo "Last checked: $(date -u '+%Y-%m-%d %H:%M UTC')"
+          } > body.md
+          # `first(...)` inside gh rather than `head -1`: head can close the
+          # pipe before gh has finished writing, and with pipefail that broken
+          # pipe would fail the step. The marker keeps this from editing or
+          # closing an unrelated issue that happens to share the title.
+          existing=$(gh issue list --state open --search "$TITLE in:title" \
+            --json number,title,body \
+            --jq "first(.[] | select(.title == env.TITLE and ((.body // \"\") | contains(env.MARKER))) | .number)")
+          if [ -n "${existing}" ]; then
+            gh issue edit "${existing}" --body-file body.md
+            echo "updated #${existing}"
+          else
+            gh issue create --title "$TITLE" --body-file body.md
+          fi
+
+      - name: Close the report issue once every link works
+        if: steps.scan.outputs.broken == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TITLE: "Docs: demo links that no longer work"
+          MARKER: 'Maintained by `.github/workflows/check_demo_links.yml`.'
+        run: |
+          # here too: a failed lookup must not read as "no issue open",
+          # which would leave a stale report behind.
+          set -euo pipefail
+          # `first(...)` inside gh rather than `head -1`: head can close the
+          # pipe before gh has finished writing, and with pipefail that broken
+          # pipe would fail the step. The marker keeps this from editing or
+          # closing an unrelated issue that happens to share the title.
+          existing=$(gh issue list --state open --search "$TITLE in:title" \
+            --json number,title,body \
+            --jq "first(.[] | select(.title == env.TITLE and ((.body // \"\") | contains(env.MARKER))) | .number)")
+          if [ -n "${existing}" ]; then
+            gh issue close "${existing}" \
+              --comment "Every demo link points at a notebook that exists and a Space that runs."
+            echo "closed #${existing}"
+          else
+            echo "every demo link works, and no issue open"
+          fi

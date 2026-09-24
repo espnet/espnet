@@ -174,10 +174,18 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
 1. Install ESPnet via `pyproject.toml`
 
     ESPnet adopts the modern Python packaging standard using `pyproject.toml`.
-    You can install ESPnet with a simple pip command `pip install -e .`,
-    but the required dependencies vary depending on the task you want to run.
-    Therefore, we recommend installing the appropriate extra dependencies
-    for your specific task. For example:
+    `pip install -e .` installs what running a pretrained model needs. Training,
+    with espnet2 or espnet3, needs the `train` extra (Lightning, TensorBoard,
+    W&B, torch_optimizer, matplotlib, Hydra, Dask), which `make` in `tools/`
+    installs for you. The task extras add the packages a task's models and
+    metrics use. For example:
+
+    * For training with the recipes (extras combine, so add the task's):
+
+        ```sh
+        $ cd <espnet-root>
+        $ pip install -e ".[asr,train]"
+        ```
 
     * For ASR:
 
@@ -220,6 +228,7 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
 
         | Group      | Purpose                       |
         | ---------- | ----------------------------- |
+        | `train`    | Training with espnet2 or espnet3 (Lightning, TensorBoard, W&B, Hydra, Dask, ...) |
         | `asr`      | ASR-specific dependencies     |
         | `asr2`     | ASR2-specific dependencies    |
         | `tts`      | TTS-specific dependencies     |
@@ -227,34 +236,18 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
         | `st`       | Speech Translation            |
         | `s2t`      | Speech to Text (e.g., OWSM)   |
         | `spk`      | Speaker recognition           |
-        | `kaldiio`  | Kaldi ark/scp I/O (`kaldiio`) |
+        | `speechlm` | Speech language models        |
+        | `mcp`      | The `espnet-mcp` server for agents |
         | `dev`      | Code formatting and linting   |
-        | `test`     | Unit test dependencies        |
+        | `test`     | Unit test dependencies (includes `train`) |
         | `doc`      | Documentation generation      |
-        | `all`      | All of the above (except dev) |
+        | `all`      | `train` and every task group above except `sds`, plus fairscale, transformers and evaluate — not `dev`, `test`, `doc` |
 
         You can mix and match groups as needed:
 
         ```sh
         pip install -e ".[asr,tts,test]"
         ```
-
-    4. [Optional] Kaldi-format features (`kaldiio`)
-        `kaldiio` is **not** installed by default, because its license restricts
-        redistribution (see
-        [#6529](https://github.com/espnet/espnet/issues/6529)).
-        ESPnet only needs it to read or write Kaldi `ark`/`scp` files, so install
-        it explicitly if your recipe or data uses those formats:
-
-        ```sh
-        pip install -e ".[kaldiio]"
-        ```
-
-        Without it, the Kaldi code paths (e.g. the `kaldi_ark` data type, kaldi
-        pipe entries in `wav.scp`, and `--audio_format *.ark`) raise an
-        `ImportError` telling you to install it. Everything else, including the
-        default `raw`-feature recipes, works without `kaldiio`.
-
 
 2. Install ESPnet (Legacy)
     ```sh
@@ -267,14 +260,14 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
 
     ```sh
     $ cd <espnet-root>/tools
-    $ make TH_VERSION=1.10.1
+    $ make TH_VERSION=2.11.0
     ```
 
     Note that the CUDA version is derived from `nvcc` command. If you'd like to specify the other CUDA version, you need to give `CUDA_VERSION`.
 
     ```sh
     $ cd <espnet-root>/tools
-    $ make TH_VERSION=1.10.1 CUDA_VERSION=11.3
+    $ make TH_VERSION=2.11.0 CUDA_VERSION=12.8
     ```
 
     If you don't have `nvcc` command, packages are installed for CPU mode by default.
