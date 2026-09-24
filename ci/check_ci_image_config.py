@@ -206,13 +206,24 @@ REPORTER = Path(".github/workflows/report_broken_workflows.yml")
 REPORTER_MARGIN = 60
 
 
-def _daily_crons() -> dict:
-    """{workflow path: [minutes past midnight]} for schedules that run daily."""
-    found = {}
-    for path in sorted(Path(".github/workflows").glob("*.yml")):
+def _daily_crons() -> tuple:
+    """({workflow path: [minutes past midnight]}, [what could not be read]).
+
+    Anything daily-shaped that this cannot evaluate goes in the second list
+    rather than being dropped. Silently skipping what it cannot parse is how
+    a rule like this passes while the thing it guards is broken - a `.yaml`
+    file, a timezone, or `0 8,10 * * *` would each have done it.
+    """
+    found, unreadable = {}, []
+    files = sorted(
+        list(Path(".github/workflows").glob("*.yml"))
+        + list(Path(".github/workflows").glob("*.yaml"))
+    )
+    for path in files:
         try:
             workflow = yaml.safe_load(path.read_text())
-        except yaml.YAMLError:
+        except yaml.YAMLError as e:
+            unreadable.append(f"{path}: not valid YAML ({e.__class__.__name__})")
             continue
         if not isinstance(workflow, dict):
             continue
@@ -222,16 +233,43 @@ def _daily_crons() -> dict:
             continue
         times = []
         for entry in triggers.get("schedule") or []:
-            fields = str(entry.get("cron", "")).split()
-            if len(fields) != 5 or fields[2:] != ["*", "*", "*"]:
-                continue  # not a plain daily schedule; left alone
-            try:
-                times.append(int(fields[1]) * 60 + int(fields[0]))
-            except ValueError:
+            if not isinstance(entry, dict):
+                unreadable.append(f"{path}: a schedule entry that is not a mapping")
                 continue
+            fields = str(entry.get("cron", "")).split()
+            if len(fields) != 5:
+                unreadable.append(
+                    f"{path}: cron {entry.get('cron')!r} is not five fields"
+                )
+                continue
+            if fields[2:] != ["*", "*", "*"]:
+                continue  # weekly or monthly; not part of this ordering
+            zone = entry.get("timezone")
+            if zone:
+                # GitHub takes an IANA timezone here, and its UTC time then
+                # moves with daylight saving. Rather than guess a fixed
+                # offset, say so: there are none today, and one added later
+                # deserves a decision rather than a silent pass.
+                unreadable.append(
+                    f"{path}: cron {entry.get('cron')!r} has timezone {zone!r}, "
+                    "which this check cannot convert to UTC"
+                )
+                continue
+            try:
+                minute, hour = int(fields[0]), int(fields[1])
+            except ValueError:
+                # a list, range or step - `0 8,10 * * *` is daily and runs at
+                # two times, one of which may be after the reporter
+                unreadable.append(
+                    f"{path}: cron {entry.get('cron')!r} is daily but its hour "
+                    "or minute is not a plain number, so this check cannot "
+                    "tell when it runs"
+                )
+                continue
+            times.append(hour * 60 + minute)
         if times:
             found[path] = times
-    return found
+    return found, unreadable
 
 
 def check_reporter_runs_last() -> list:
@@ -243,16 +281,23 @@ def check_reporter_runs_last() -> list:
     check_demo_links (07:00) results from the previous morning, and issue
     #6800 named a demo-link failure that had already passed.
     """
-    crons = _daily_crons()
+    crons, unreadable = _daily_crons()
+    problems = [
+        f"{where}.\n  A daily schedule this check cannot place is a daily "
+        "schedule it cannot prove runs before the report."
+        for where in unreadable
+    ]
     mine = crons.get(REPORTER)
     if not mine:
-        return [f"{REPORTER}: no daily cron, so it cannot be checked to run last"]
+        return problems + [
+            f"{REPORTER}: no daily cron, so it cannot be checked to run last"
+        ]
     others = {path: max(times) for path, times in crons.items() if path != REPORTER}
     if not others:
-        return []
+        return problems
     latest_path, latest = max(others.items(), key=lambda kv: kv[1])
     if min(mine) < latest + REPORTER_MARGIN:
-        return [
+        return problems + [
             f"{REPORTER}: runs at {min(mine) // 60:02d}:{min(mine) % 60:02d} UTC, "
             f"but {latest_path.name} runs at {latest // 60:02d}:{latest % 60:02d} "
             f"and it needs at least {REPORTER_MARGIN} minutes after the last "
@@ -261,7 +306,7 @@ def check_reporter_runs_last() -> list:
             "is reported a day late - a failure that has already been fixed, "
             "and a fresh one missed for a day."
         ]
-    return []
+    return problems
 
 
 def check_needed_before_read() -> list:
