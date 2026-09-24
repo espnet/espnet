@@ -75,6 +75,15 @@ TIMEOUT = 30
 # anything. A 429 is then a wait rather than a broken link, and the response
 # says how long to wait, so it is waited out once instead of failing the scan.
 RATE_LIMITED = {429, 503}
+# The Hub also answers an anonymous request with 401 under load. Nothing here
+# sends credentials, so a 401 cannot be about credentials, and it is not about
+# the link either: on 2026-09-23 one took the daily run red on
+# api/spaces/espnet/forced-alignment, a Space that is public, ungated and
+# RUNNING, and the same scan passed the next morning. One of seven runs.
+DECLINED = {401}
+# What is worth one retry. Kept separate from RATE_LIMITED because only that
+# one is throttling, and only that one names a wait to honour.
+TRANSIENT = RATE_LIMITED | DECLINED
 # One window, and no more. Waiting five minutes in a job that otherwise takes
 # seconds is still cheaper than a red daily run that someone has to open to
 # find out it was throttling; a wait longer than a window is not this
@@ -184,7 +193,7 @@ def _get_json(url: str, sleep=time.sleep):
             if e.code == 404:
                 return None
             wait = retry_delay(e.headers) if e.code in RATE_LIMITED else None
-            if attempt == 1 and e.code in RATE_LIMITED:
+            if attempt == 1 and e.code in TRANSIENT:
                 # a server that throttles without saying for how long still
                 # deserves the one retry; only a wait it named and that is
                 # longer than a window skips it
@@ -198,6 +207,14 @@ def _get_json(url: str, sleep=time.sleep):
                 said = f" and asked for {wait:.0f}s" if wait is not None else ""
                 raise ScanError(
                     f"{url}: HTTP {e.code} - rate limited{said}, not a broken link"
+                ) from e
+            if e.code in DECLINED:
+                # not "rate limited", which it does not say it is, and not a
+                # broken link either - the request carried no credentials to
+                # be wrong about
+                raise ScanError(
+                    f"{url}: HTTP {e.code} - the request was declined, "
+                    "not a broken link"
                 ) from e
             raise ScanError(f"{url}: HTTP {e.code}") from e
         except (
@@ -649,6 +666,68 @@ def self_check() -> None:
         raise AssertionError("a rate limit that does not clear must fail the scan")
     finally:
         urllib.request.urlopen = real_urlopen
+
+    # a 401 gets the same one retry. The Hub answers anonymous requests with
+    # one under load, and on 2026-09-23 that alone took the daily run red
+    # while every link in the repository was fine.
+    unauthorised = []
+
+    def declined_once(url, **_):
+        unauthorised.append(url)
+        if len(unauthorised) == 1:
+            raise urllib.error.HTTPError(
+                url, 401, "Unauthorized", email.message_from_string(""), None
+            )
+        return io.BytesIO(b'{"ok": true}')
+
+    real_urlopen = urllib.request.urlopen
+    urllib.request.urlopen = declined_once
+    napped = []
+    try:
+        got = _get_json("https://huggingface.co/api/spaces/x/y", sleep=napped.append)
+    finally:
+        urllib.request.urlopen = real_urlopen
+    assert got == {"ok": True}, got
+    assert napped == [DEFAULT_WAIT], napped
+    assert len(unauthorised) == 2, unauthorised
+
+    # and one that does not clear is still the scan failing, not a broken
+    # link - the distinction the exit status exists for
+    def always_declined(url, **_):
+        raise urllib.error.HTTPError(
+            url, 401, "Unauthorized", email.message_from_string(""), None
+        )
+
+    urllib.request.urlopen = always_declined
+    try:
+        _get_json("https://huggingface.co/api/spaces/x/y", sleep=lambda _: None)
+    except ScanError as e:
+        assert "declined" in str(e) and "not a broken link" in str(e), e
+        assert "rate limited" not in str(e), e
+    else:  # pragma: no cover - the raise above is the expected path
+        raise AssertionError("a 401 that does not clear must fail the scan")
+    finally:
+        urllib.request.urlopen = real_urlopen
+
+    # a 403 is not in either set: it gets no retry and no reassurance
+    forbidden = []
+
+    def always_forbidden(url, **_):
+        forbidden.append(url)
+        raise urllib.error.HTTPError(
+            url, 403, "Forbidden", email.message_from_string(""), None
+        )
+
+    urllib.request.urlopen = always_forbidden
+    try:
+        _get_json("https://huggingface.co/api/spaces/x/y", sleep=lambda _: None)
+    except ScanError as e:
+        assert "403" in str(e) and "not a broken link" not in str(e), e
+    else:  # pragma: no cover - the raise above is the expected path
+        raise AssertionError("a 403 must fail the scan")
+    finally:
+        urllib.request.urlopen = real_urlopen
+    assert len(forbidden) == 1, forbidden
 
     # a 503 that says nothing still gets the one retry, after the default
     third = []
