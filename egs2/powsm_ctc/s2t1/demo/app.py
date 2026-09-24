@@ -61,6 +61,18 @@ demo = build_app(
     model_tag=MODEL_TAG,
     # the Run button is the only thing that touches the GPU
     wrap=spaces.GPU(duration=GPU_SECONDS),
+    title="POWSM-CTC",
+    description="""# POWSM-CTC
+
+[POWSM](https://arxiv.org/abs/2510.24992) is a phonetic foundation model:
+speech in, the phones that were said out, in IPA. This is the encoder-only
+variant, trained on [IPAPack++](https://huggingface.co/anyspeech) with
+[ESPnet](https://github.com/espnet/espnet) and released with
+[PRiSM](https://arxiv.org/abs/2601.14046).
+
+It is the model `espnet phonemize` loads. Its encoder-decoder sibling is
+[espnet/powsm](https://huggingface.co/espnet/powsm).
+""",
 )
 
 
