@@ -75,6 +75,15 @@ TIMEOUT = 30
 # anything. A 429 is then a wait rather than a broken link, and the response
 # says how long to wait, so it is waited out once instead of failing the scan.
 RATE_LIMITED = {429, 503}
+# The Hub also answers an anonymous request with 401 under load. Nothing here
+# sends credentials, so a 401 cannot be about credentials, and it is not about
+# the link either: on 2026-09-23 one took the daily run red on
+# api/spaces/espnet/forced-alignment, a Space that is public, ungated and
+# RUNNING, and the same scan passed the next morning. One of seven runs.
+DECLINED = {401}
+# What is worth one retry. Kept separate from RATE_LIMITED because only that
+# one is throttling, and only that one names a wait to honour.
+TRANSIENT = RATE_LIMITED | DECLINED
 # One window, and no more. Waiting five minutes in a job that otherwise takes
 # seconds is still cheaper than a red daily run that someone has to open to
 # find out it was throttling; a wait longer than a window is not this
@@ -184,7 +193,7 @@ def _get_json(url: str, sleep=time.sleep):
             if e.code == 404:
                 return None
             wait = retry_delay(e.headers) if e.code in RATE_LIMITED else None
-            if attempt == 1 and e.code in RATE_LIMITED:
+            if attempt == 1 and e.code in TRANSIENT:
                 # a server that throttles without saying for how long still
                 # deserves the one retry; only a wait it named and that is
                 # longer than a window skips it
@@ -198,6 +207,14 @@ def _get_json(url: str, sleep=time.sleep):
                 said = f" and asked for {wait:.0f}s" if wait is not None else ""
                 raise ScanError(
                     f"{url}: HTTP {e.code} - rate limited{said}, not a broken link"
+                ) from e
+            if e.code in DECLINED:
+                # not "rate limited", which it does not say it is, and not a
+                # broken link either - the request carried no credentials to
+                # be wrong about
+                raise ScanError(
+                    f"{url}: HTTP {e.code} - the request was declined, "
+                    "not a broken link"
                 ) from e
             raise ScanError(f"{url}: HTTP {e.code}") from e
         except (
@@ -264,8 +281,23 @@ def split_ref(
     raise ScanError(f"no such ref in {NOTEBOOK_REPO}: {ref} (from {ref}/{path})")
 
 
+# A Space this repository holds the source of, but which has not been
+# uploaded yet. Its card names the release it needs, a Space installs espnet
+# from PyPI, and the cards say plainly that an upload before that release
+# replaces a working demo with a broken one - so until the release is out,
+# the Space being absent is the rule working, not a broken link.
+ABSENT = "NOT PUBLISHED"
+
+
 def space_stage(space_id: str) -> str:
-    d = _get_json(f"https://huggingface.co/api/spaces/{space_id}")
+    try:
+        d = _get_json(f"https://huggingface.co/api/spaces/{space_id}")
+    except ScanError as e:
+        # the Hub answers 401 for a Space that does not exist, so that a
+        # private one cannot be told from a missing one
+        if " HTTP 401" in str(e):
+            return ABSENT
+        raise
     if d is None:
         return "DELETED"
     runtime = d.get("runtime")
@@ -283,9 +315,73 @@ SPACE_CARD_LIMITS = {"short_description": 60, "title": 100}
 SPACE_CARD_REQUIRED = ("title", "sdk", "app_file")
 
 
+def awaiting_release(path: str, text: str, root: str = ".") -> Optional[str]:
+    """The espnet release a Space card is waiting for, if it is not out yet.
+
+    A card names the Space it will be uploaded to before that Space exists -
+    that is the order the cards themselves prescribe. This says which release
+    the directory pins and whether PyPI has it, so an absent Space can be
+    reported as pending rather than as a broken link.
+    """
+    pinned = None
+    requirements = os.path.join(root, os.path.dirname(path), "requirements.txt")
+    try:
+        with open(requirements, encoding="utf-8") as f:
+            for line in f:
+                # one version, not the rest of the requirement:
+                # `espnet>=a,!=b` would otherwise ask PyPI for the release
+                # "a,!=b", get nothing, and call a published Space pending
+                match = re.match(
+                    r"\s*espnet(\[[a-z,]+\])?(>=|==)" r"(?P<version>[A-Za-z0-9._+!-]+)",
+                    line,
+                )
+                if match:
+                    pinned = match.group("version")
+                    break
+    except OSError:
+        return None
+    if pinned is None:
+        return None
+    released = _get_json(f"https://pypi.org/pypi/espnet/{pinned}/json")
+    return None if released else pinned
+
+
+# The line every card carries, and the only statement in it of where this
+# directory goes. A card also links to its sibling - the two OWSM demos point
+# at each other - so the links cannot say which Space is the card's own, and
+# taking them all would have hidden a real outage of the sibling behind
+# "not published yet".
+UPLOAD = re.compile(
+    r"^hf upload (?P<space>[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+) (?P<dir>\S+) ",
+    re.M,
+)
+
+
+def upload_target(path: str, text: str) -> Optional[str]:
+    """The Space this card says its own directory is uploaded to.
+
+    None when the card does not say, or says it of another directory. Then
+    nothing about it is treated as pending, which is the safe direction: an
+    absent Space is reported rather than excused.
+    """
+    match = UPLOAD.search(text)
+    if match is None:
+        return None
+    if match.group("dir").rstrip("/") != os.path.dirname(path).rstrip("/"):
+        return None
+    return match.group("space")
+
+
+# `demo/` is one Space in a recipe, `demo_align/` a second one beside it -
+# a recipe whose model serves two demos of different shapes. Matching only
+# `/demo/` left the second card unchecked: neither its front matter, which
+# the Hub refuses silently, nor the Space it names.
+DEMO_DIR = re.compile(r"/demo(_[a-z0-9]+)?/")
+
+
 def space_cards(names: List[str]) -> List[str]:
     """Paths of the Space READMEs among the tracked files."""
-    return [p for p in names if p.endswith("README.md") and "/demo/" in f"/{p}"]
+    return [p for p in names if p.endswith("README.md") and DEMO_DIR.search(f"/{p}")]
 
 
 def check_space_card(path: str, text: str, root: str = ".") -> List[str]:
@@ -372,8 +468,24 @@ def scan() -> List[str]:
             where = ", ".join(sorted(notebooks[(ref, path)]))
             at = "" if real_ref == "master" else f" at {real_ref}"
             broken.append(f"notebook gone{at}: {real_path}  (linked from {where})")
+    # a Space whose source is here and whose card pins a release PyPI does
+    # not have cannot have been uploaded yet
+    pending = {}
+    for path in space_cards(names):
+        target = upload_target(path, texts.get(path, ""))
+        waiting = awaiting_release(path, texts.get(path, ""), root) if target else None
+        if waiting:
+            pending[target] = (waiting, path)
     for space_id in sorted(spaces):
         stage = space_stage(space_id)
+        if stage == ABSENT and space_id in pending:
+            waiting, card = pending[space_id]
+            print(
+                f"not published yet: {space_id} waits for espnet {waiting} "
+                f"({card} says so)",
+                file=sys.stderr,
+            )
+            continue
         if stage not in WORKING_STAGES:
             where = ", ".join(sorted(spaces[space_id]))
             broken.append(f"space {stage}: {space_id}  (linked from {where})")
@@ -554,6 +666,68 @@ def self_check() -> None:
         raise AssertionError("a rate limit that does not clear must fail the scan")
     finally:
         urllib.request.urlopen = real_urlopen
+
+    # a 401 gets the same one retry. The Hub answers anonymous requests with
+    # one under load, and on 2026-09-23 that alone took the daily run red
+    # while every link in the repository was fine.
+    unauthorised = []
+
+    def declined_once(url, **_):
+        unauthorised.append(url)
+        if len(unauthorised) == 1:
+            raise urllib.error.HTTPError(
+                url, 401, "Unauthorized", email.message_from_string(""), None
+            )
+        return io.BytesIO(b'{"ok": true}')
+
+    real_urlopen = urllib.request.urlopen
+    urllib.request.urlopen = declined_once
+    napped = []
+    try:
+        got = _get_json("https://huggingface.co/api/spaces/x/y", sleep=napped.append)
+    finally:
+        urllib.request.urlopen = real_urlopen
+    assert got == {"ok": True}, got
+    assert napped == [DEFAULT_WAIT], napped
+    assert len(unauthorised) == 2, unauthorised
+
+    # and one that does not clear is still the scan failing, not a broken
+    # link - the distinction the exit status exists for
+    def always_declined(url, **_):
+        raise urllib.error.HTTPError(
+            url, 401, "Unauthorized", email.message_from_string(""), None
+        )
+
+    urllib.request.urlopen = always_declined
+    try:
+        _get_json("https://huggingface.co/api/spaces/x/y", sleep=lambda _: None)
+    except ScanError as e:
+        assert "declined" in str(e) and "not a broken link" in str(e), e
+        assert "rate limited" not in str(e), e
+    else:  # pragma: no cover - the raise above is the expected path
+        raise AssertionError("a 401 that does not clear must fail the scan")
+    finally:
+        urllib.request.urlopen = real_urlopen
+
+    # a 403 is not in either set: it gets no retry and no reassurance
+    forbidden = []
+
+    def always_forbidden(url, **_):
+        forbidden.append(url)
+        raise urllib.error.HTTPError(
+            url, 403, "Forbidden", email.message_from_string(""), None
+        )
+
+    urllib.request.urlopen = always_forbidden
+    try:
+        _get_json("https://huggingface.co/api/spaces/x/y", sleep=lambda _: None)
+    except ScanError as e:
+        assert "403" in str(e) and "not a broken link" not in str(e), e
+    else:  # pragma: no cover - the raise above is the expected path
+        raise AssertionError("a 403 must fail the scan")
+    finally:
+        urllib.request.urlopen = real_urlopen
+    assert len(forbidden) == 1, forbidden
 
     # a 503 that says nothing still gets the one retry, after the default
     third = []

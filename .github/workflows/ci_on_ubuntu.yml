@@ -163,6 +163,9 @@ jobs:
       # match exactly, or the image is published under one tag and requested
       # under another. Checked rather than trusted.
       - run: python3 ci/check_ci_image_config.py
+      # The table below, against the code it describes: a command renamed or
+      # a tool added leaves it quietly false.
+      - run: python3 ci/check_front_ends.py
       # Hand the grid to the jobs that run all of it, so the versions are
       # written down once rather than repeated per job.
       - id: variants

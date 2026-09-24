@@ -49,6 +49,41 @@ ASR_LABEL = "Transcribe"
 # it and its menu is unchanged.
 PHONES_LABEL = "Recognise phones"
 PHONE_TASK = "<pr>"
+# POWSM's other two tasks take the audio and something written with it: the
+# words that were said, to be answered with phones, or the phones, to be
+# answered with words. A checkpoint that has the symbol gets the entry, and
+# the box to type the input into.
+G2P_LABEL = "Phones for text you give (G2P)"
+G2P_TASK = "<g2p>"
+P2G_LABEL = "Text for phones you give (P2G)"
+P2G_TASK = "<p2g>"
+PROMPT_TASKS = {G2P_LABEL: G2P_TASK, P2G_LABEL: P2G_TASK}
+PROMPT_LABELS = {
+    G2P_LABEL: "The words that were said",
+    P2G_LABEL: "The phones, spaced or between slashes",
+}
+# A decoder can be primed with text before it searches - what was said
+# before, a name to expect. A CTC head cannot: there is no search to prime,
+# and each frame is read on its own. So the box appears for a checkpoint
+# that has a decoder, and for the two tasks whose input is written whether
+# or not there is one.
+# Said where someone is about to try the two prompted tasks on a CTC
+# checkpoint. POWSM's author asked for it on #6792: <g2p> and <p2g> are
+# encoder-decoder work, and an encoder-CTC model is less stable at them.
+PROMPT_TASK_NOTE = (
+    "**Phones from text** and **text from phones** read what you type, and "
+    "this checkpoint is encoder-CTC: it answers them, less reliably than the "
+    "encoder-decoder [POWSM](https://huggingface.co/espnet/powsm), which is "
+    "what to reach for if you need them. Its own recognition - the audio "
+    "alone - is what it is built for."
+)
+PROMPT_LABEL = "Text prompt"
+PROMPT_INFO = "Optional: what was said before, or a name to expect"
+NO_PROMPT_NOTE = (
+    "This checkpoint is CTC-only, so there is nothing to prompt: it reads "
+    "each frame on its own rather than searching. Measured on OWSM-CTC, "
+    "previous-text hints were ignored or made the transcript worse."
+)
 # Shown when the loaded checkpoint offers phones, because the same page then
 # also offers Transcribe on a model built for something else. POWSM's author
 # asked for this to be said where someone would read it: its English ASR is
@@ -287,6 +322,31 @@ def phone_task(tokens: Sequence[str]) -> bool:
     return PHONE_TASK in tokens
 
 
+def prompt_tasks(tokens: Sequence[str]) -> List[str]:
+    """The labels of the tasks this checkpoint takes written input for.
+
+    POWSM has `<g2p>` and `<p2g>`; OWSM has neither, and its page is
+    unchanged.
+    """
+    return [label for label, task in PROMPT_TASKS.items() if task in tokens]
+
+
+def as_phones(text: str) -> str:
+    """Phones the way POWSM was trained to read them, from either spelling.
+
+    Its training data writes each phone between slashes - /p//h//o/ - so that
+    a phone spelled like a BPE token is still one token. The page shows them
+    spaced, which is what anything counting or aligning them wants, and a
+    person typing them in will type them that way too.
+    """
+    text = text.strip()
+    if not text:
+        return text
+    if "/" in text:
+        return text
+    return "/" + "//".join(text.split()) + "/"
+
+
 def split_tokens(decoded: str, codes: Iterable[str]) -> Tuple[str, str]:
     """Separate OWSM's leading symbols from the text it decoded.
 
@@ -310,15 +370,28 @@ def split_tokens(decoded: str, codes: Iterable[str]) -> Tuple[str, str]:
 # Worded like the CLI's own missing-soundfile message: what is absent, then
 # the one command that fixes it.
 GRADIO_MISSING = "gradio is not installed: pip install 'espnet[demo]'"
-TITLE = "OWSM"
-DESCRIPTION = """# OWSM
+# What the page calls itself when the caller does not say. It named OWSM
+# while OWSM was the only model this served; a Space for another checkpoint
+# passes its own title and description, and `espnet demo` gets the tag it
+# was given.
+TITLE = "ESPnet"
 
-Transcribe, translate or identify the language of a recording with
-[OWSM](https://www.wavlab.org/activities/2024/owsm/), the Open Whisper-style
-Speech Models from [CMU WAVLab](https://www.wavlab.org/).
 
-Served from your own machine by `espnet demo`. The language menu and the
-translation targets below are this checkpoint's own.
+def default_description(model_tag: str = "") -> str:
+    """The heading for a checkpoint nobody has written a page about.
+
+    Says what the page does and which model is doing it, and no more: the
+    menus, the tasks and the window are the checkpoint's and are described
+    by being there.
+    """
+    named = f"[`{model_tag}`](https://huggingface.co/{model_tag})" if model_tag else ""
+    return f"""# {model_tag or TITLE}
+
+Speech in, text out{f", with {named}" if named else ""}. What this page
+offers - the languages, the tasks, the length it reads in one pass - is read
+from the checkpoint rather than written here.
+
+Served from your own machine by `espnet demo`.
 """
 
 
@@ -342,7 +415,14 @@ def load_gradio():
     return gradio
 
 
-def build_app(s2t, device: str = "cpu", model_tag: str = ""):
+def build_app(
+    s2t,
+    device: str = "cpu",
+    model_tag: str = "",
+    wrap=None,
+    title: str = "",
+    description: str = "",
+):
     """The Gradio app for an already loaded OWSM-CTC model.
 
     Args:
@@ -353,6 +433,17 @@ def build_app(s2t, device: str = "cpu", model_tag: str = ""):
         device: where it runs; long-form decoding batches on a GPU only.
         model_tag: shown in the page, so a demo of a different checkpoint
             says which one it is.
+        wrap: applied to the function behind the Run button, for a caller
+            that has to say something about how it runs. A Hugging Face
+            Space on ZeroGPU has no GPU except inside a function the
+            `spaces` package has decorated, and that decorator belongs to
+            the Space rather than to this module - so the Space passes it
+            in and gets the same page as everyone else.
+        title: the browser tab's name. Defaults to "ESPnet": this page
+            serves any checkpoint, and a Space for one says what it is.
+        description: the markdown above the controls, as a Space's own
+            introduction to its model. Defaults to a heading naming the
+            checkpoint and what the page does with it.
 
     Returns:
         A gradio Blocks, not yet launched.
@@ -371,6 +462,8 @@ def build_app(s2t, device: str = "cpu", model_tag: str = ""):
     window = window_secs(s2t)
     rate = sample_rate(s2t)
     phones = phone_task(tokens)
+    prompted = prompt_tasks(tokens)
+    searches = not getattr(s2t, "ctc_only", False)
     try:
         nolang = s2t.no_language()
     except ValueError:
@@ -380,15 +473,26 @@ def build_app(s2t, device: str = "cpu", model_tag: str = ""):
         nolang = None
 
     def detect(speech, task_sym):
-        """The language the model names for the first window of this audio."""
-        decoded = s2t.decode_window(pad(speech, window, rate), nolang, task_sym)
+        """The language the model names for the first window of this audio.
+
+        Read off the CTC head where there is one, even on a checkpoint with a
+        decoder: all that is wanted is the language symbol, which that head
+        writes too, and a beam search to obtain it costs a minute of CPU on
+        the encoder-decoder OWSM. Without a CTC head there is nothing to read
+        cheaply, and the window is decoded properly.
+        """
+        padded = pad(speech, window, rate)
+        if getattr(s2t.s2t_model, "ctc", None) is not None:
+            decoded = s2t.best_path(padded, lang_sym=nolang, task_sym=task_sym)[0][0]
+        else:
+            decoded = s2t.decode_window(padded, nolang, task_sym)
         return split_tokens(decoded, codes)[0] or "eng"
 
     def chosen_language(label):
         """The code the menu is showing, or None when it says Detect."""
         return None if label == DETECT else code_of_language[label]
 
-    def predict(audio_path, language_label, task_label, long_form):
+    def predict(audio_path, language_label, task_label, long_form, prompt=""):
         if audio_path is None:
             raise gr.Error("Record or upload some audio first.")
         speech = read_audio(audio_path, rate)
@@ -401,12 +505,29 @@ def build_app(s2t, device: str = "cpu", model_tag: str = ""):
 
         chosen = chosen_language(language_label)
         lang_sym = nolang if chosen is None else f"<{chosen}>"
+        text_prev = "<na>"
         if task_label == ASR_LABEL:
             task_sym = "<asr>"
         elif task_label == PHONES_LABEL:
             task_sym = PHONE_TASK
+        elif task_label in PROMPT_TASKS:
+            task_sym = PROMPT_TASKS[task_label]
+            if not (prompt or "").strip():
+                raise gr.Error(f"{PROMPT_LABELS[task_label]}: this task needs it.")
+            text_prev = as_phones(prompt) if task_sym == P2G_TASK else prompt.strip()
         else:
             task_sym = f"<st_{code_of_target[task_label]}>"
+
+        # on a checkpoint with a decoder, whatever else is in the box primes
+        # the search; on a CTC-only one there is no box to read
+        if task_label not in PROMPT_TASKS and (prompt or "").strip():
+            text_prev = prompt.strip()
+
+        if task_sym in PROMPT_TASKS.values() and long_form:
+            # The written input is one utterance's, and the windows after the
+            # first would each be given the whole of it again.
+            gr.Warning(f"{task_label} reads one window; Long-form was ignored.")
+            long_form = False
 
         if long_form:
             # One window first, only to name the language the rest is decoded
@@ -420,6 +541,12 @@ def build_app(s2t, device: str = "cpu", model_tag: str = ""):
                         speech,
                         batch_size=1 if device == "cpu" else 8,
                         context_len_in_secs=4,
+                        # the prompt primes the first window, as it does for
+                        # a single one. `condition_on_prev_text` is left off:
+                        # carrying each window's own output into the next is
+                        # a different thing, and one that sends this model
+                        # into repetition loops.
+                        init_text=None if text_prev == "<na>" else text_prev,
                         lang_sym=f"<{detected}>",
                         task_sym=task_sym,
                     )
@@ -447,21 +574,30 @@ def build_app(s2t, device: str = "cpu", model_tag: str = ""):
                     f"Only the first {window} s were decoded. "
                     "Tick Long-form for the whole recording."
                 )
-            decoded = s2t.decode_window(pad(speech, window, rate), lang_sym, task_sym)
+            decoded = s2t.decode_window(
+                pad(speech, window, rate), lang_sym, task_sym, text_prev
+            )
             detected, text = split_tokens(decoded, codes)
             detected = detected or chosen or ""
-        if task_sym == PHONE_TASK:
+        if task_sym in (PHONE_TASK, G2P_TASK):
             # POWSM writes each phone between slashes, so that a phone spelled
             # like a BPE token is still one token. The page shows them spaced,
             # which is the form anything counting or aligning them wants.
             text = " ".join(PHONE.findall(text)) or text
         return LANGUAGE_NAMES.get(detected, detected or "unknown"), text
 
-    app = gr.Blocks(title=TITLE)
+    if wrap is not None:
+        predict = wrap(predict)
+
+    app = gr.Blocks(title=title or model_tag or TITLE)
     with app:
-        gr.Markdown(DESCRIPTION)
+        gr.Markdown(description or default_description(model_tag))
         if phones:
             gr.Markdown(PHONE_MODEL_NOTE)
+        if not searches:
+            gr.Markdown(NO_PROMPT_NOTE)
+        if prompted and not searches:
+            gr.Markdown(PROMPT_TASK_NOTE)
         with gr.Row():
             with gr.Column():
                 audio = gr.Audio(
@@ -476,9 +612,19 @@ def build_app(s2t, device: str = "cpu", model_tag: str = ""):
                 task = gr.Dropdown(
                     [ASR_LABEL]
                     + ([PHONES_LABEL] if phones else [])
+                    + prompted
                     + [name for name, _ in targets],
                     value=ASR_LABEL,
                     label="Task",
+                )
+                # a decoder can be primed with anything; a CTC head cannot,
+                # and the box then shows only for the tasks whose input is
+                # written - so a page never offers typing that does nothing
+                prompt = gr.Textbox(
+                    label=PROMPT_LABEL,
+                    info=PROMPT_INFO if searches else None,
+                    lines=2,
+                    visible=searches,
                 )
                 long_form = gr.Checkbox(
                     label="Long-form",
@@ -488,7 +634,21 @@ def build_app(s2t, device: str = "cpu", model_tag: str = ""):
             with gr.Column():
                 detected = gr.Textbox(label="Language")
                 text = gr.Textbox(label="Text", lines=8)
-        button.click(predict, [audio, language, task, long_form], [detected, text])
+        if prompted or searches:
+
+            def show_prompt(task_label):
+                """The box, labelled for whatever will read it."""
+                asked = task_label in PROMPT_TASKS
+                return gr.update(
+                    visible=asked or searches,
+                    label=PROMPT_LABELS.get(task_label, PROMPT_LABEL),
+                    info=None if asked else PROMPT_INFO,
+                )
+
+            task.change(show_prompt, task, prompt)
+        button.click(
+            predict, [audio, language, task, long_form, prompt], [detected, text]
+        )
         if model_tag:
             gr.Markdown(f"Model: `{model_tag}`, running on {device}.")
     return app
