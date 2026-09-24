@@ -156,6 +156,12 @@ model:
     lsm_weight: 0.1
     length_normalized_loss: false
 
+  # egs2's `freeze_param`, which `ESPnetLightningModule` applies after building
+  # the model: only the deliberation encoder and the decoder train.
+  freeze_param:
+    - encoder
+    - postdecoder.model
+
   frontend: default
   frontend_conf:
     n_fft: 512
@@ -215,9 +221,12 @@ dataloader:
 ##########################################################
 #                    TRAINER SETTING                     #
 ##########################################################
-# `--pretrained_model` and `freeze_param` have no field in the ESPnet3 training
-# config, so the recipe supplies both as callbacks. The loader must come first:
-# both act in `setup`, and Lightning runs callbacks in config order.
+# egs2's `--pretrained_model` has no field in the ESPnet3 training config, so
+# it is supplied as a callback. Freezing needs none: `model.freeze_param` above
+# is applied by `ESPnetLightningModule`, and it runs at model construction,
+# before this callback loads into those parameters in `setup`. Loading copies
+# values through the state dict and leaves `requires_grad` alone, so the order
+# is harmless.
 trainer:
   gradient_clip_val: 5.0
   max_epochs: 50
@@ -225,10 +234,6 @@ trainer:
   callbacks:
     - _target_: espnet3.components.callbacks.pretrained_parameters.PretrainedParametersCallback
       init_param: ${recipe_dir}/exp/training_conformer/valid.acc.ave_10best.pth:encoder:encoder
-    - _target_: espnet3.components.callbacks.parameter_freeze.ParameterFreezeCallback
-      freeze_param:
-        - encoder
-        - postdecoder.model
 
 fit:
   ckpt_path: last

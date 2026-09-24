@@ -23,7 +23,10 @@ class PretrainedParametersCallback(Callback):
     ``<path>:<source key>:<destination key>`` syntax.
 
     The work happens in ``setup``, which Lightning calls before the optimizers
-    are built, so the loaded weights are the ones training starts from.
+    are built, so the loaded weights are the ones training starts from. This
+    composes with ``model.freeze_param``, which ``ESPnetLightningModule``
+    applies earlier, at model construction: loading copies values through the
+    state dict and leaves ``requires_grad`` untouched.
 
     Args:
         init_param: One or more ``<path>[:<src key>[:<dst key>[:<exclude>]]]``
