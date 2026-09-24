@@ -8,7 +8,7 @@ import pytest
 from huggingface_hub.errors import HfHubHTTPError
 from omegaconf import OmegaConf
 
-from espnet3.systems.asr.system import ASRSystem
+from espnet3.systems.esp2_asr.system import ASRSystem
 from espnet3.utils import publication_utils as publish
 from espnet3.utils.publication_utils import (
     _build_results_table,
@@ -194,7 +194,7 @@ def test_build_results_table_with_multiple_metrics_and_test_sets(tmp_path):
 def test_build_results_table_uses_short_metric_name(tmp_path):
     metrics_file = tmp_path / "metrics.json"
     metrics_file.write_text(
-        json.dumps({"espnet3.systems.asr.metrics.wer.WER": {"test": 3.0}}),
+        json.dumps({"espnet3.systems.esp2_asr.metrics.wer.WER": {"test": 3.0}}),
         encoding="utf-8",
     )
 
@@ -287,7 +287,7 @@ def test_pack_model_creates_output_dir_and_copies_exp_dir(tmp_path):
         {
             "pack_model": {
                 "out_dir": str(out_dir),
-                "readme": "egs3/TEMPLATE/asr/src/hf_model_readme.md",
+                "readme": "egs3/TEMPLATE/esp2_asr/src/hf_model_readme.md",
             }
         }
     )
@@ -318,7 +318,7 @@ def test_pack_model_resolves_repo_root_readme_path_outside_cwd(tmp_path, monkeyp
         {
             "pack_model": {
                 "out_dir": str(out_dir),
-                "readme": "egs3/TEMPLATE/asr/src/hf_model_readme.md",
+                "readme": "egs3/TEMPLATE/esp2_asr/src/hf_model_readme.md",
             }
         }
     )
@@ -508,7 +508,7 @@ def test_pack_model_excludes_inference_dir_and_copies_metrics_json(tmp_path):
             "pack_model": {
                 "out_dir": str(out_dir),
                 "exclude": ["inference"],
-                "readme": "egs3/TEMPLATE/asr/src/hf_model_readme.md",
+                "readme": "egs3/TEMPLATE/esp2_asr/src/hf_model_readme.md",
                 "readme_context": {
                     "task": "asr",
                     "lang": "en",
@@ -630,7 +630,7 @@ def test_pack_model_writes_readme_with_full_context(tmp_path):
         {
             "pack_model": {
                 "out_dir": str(out_dir),
-                "readme": "egs3/TEMPLATE/asr/src/hf_model_readme.md",
+                "readme": "egs3/TEMPLATE/esp2_asr/src/hf_model_readme.md",
                 "readme_context": {
                     "task": "asr",
                     "lang": "en",
@@ -672,7 +672,7 @@ def test_pack_model_drops_readme_lines_for_missing_context(
         {
             "pack_model": {
                 "out_dir": str(out_dir),
-                "readme": "egs3/TEMPLATE/asr/src/hf_model_readme.md",
+                "readme": "egs3/TEMPLATE/esp2_asr/src/hf_model_readme.md",
             }
         }
     )
@@ -680,7 +680,7 @@ def test_pack_model_drops_readme_lines_for_missing_context(
         exp_dir=exp_dir,
         recipe_dir=recipe_dir,
         publication_config=publication_config,
-        task="espnet3.systems.asr.task.ASRTask",
+        task="espnet3.systems.esp2_asr.task.ASRTask",
     )
     monkeypatch.setattr(
         publish,
@@ -695,8 +695,8 @@ def test_pack_model_drops_readme_lines_for_missing_context(
     )
 
     readme = (out_dir / "README.md").read_text(encoding="utf-8")
-    assert "# ESPnet3 asr model" in readme
-    assert "- System: `asr`" in readme
+    assert "# ESPnet3 esp2_asr model" in readme
+    assert "- System: `esp2_asr`" in readme
     assert "- Creator: `tester`" in readme
     assert "- Git: `abc123` (dirty)" in readme
     assert "language:" not in readme
@@ -801,7 +801,7 @@ def test_pack_model_includes_extra_data_dir(tmp_path):
         {
             "exp_dir": str(exp_dir),
             "recipe_dir": str(recipe_dir),
-            "task": "espnet3.systems.asr.task.ASRTask",
+            "task": "espnet3.systems.esp2_asr.task.ASRTask",
         }
     )
     inference_config = OmegaConf.create(
@@ -852,7 +852,7 @@ def test_pack_model_expands_globbed_include_paths(tmp_path):
         {
             "exp_dir": str(exp_dir),
             "recipe_dir": str(recipe_dir),
-            "task": "espnet3.systems.asr.task.ASRTask",
+            "task": "espnet3.systems.esp2_asr.task.ASRTask",
         }
     )
     inference_config = OmegaConf.create(
@@ -902,7 +902,7 @@ def test_pack_model_preserves_symlink_name(tmp_path):
         {
             "exp_dir": str(exp_dir),
             "recipe_dir": str(recipe_dir),
-            "task": "espnet3.systems.asr.task.ASRTask",
+            "task": "espnet3.systems.esp2_asr.task.ASRTask",
         }
     )
     inference_config = OmegaConf.create(
@@ -1023,7 +1023,7 @@ def test_pack_model_readme_includes_corpus_name(tmp_path):
         {
             "pack_model": {
                 "out_dir": str(tmp_path / "pack"),
-                "readme": "egs3/TEMPLATE/asr/src/hf_model_readme.md",
+                "readme": "egs3/TEMPLATE/esp2_asr/src/hf_model_readme.md",
                 "readme_context": {
                     "task": "asr",
                     "lang": "en",
@@ -1055,7 +1055,7 @@ def test_pack_model_readme_includes_model_summary(tmp_path, monkeypatch):
         {
             "pack_model": {
                 "out_dir": str(out_dir),
-                "readme": "egs3/TEMPLATE/asr/src/hf_model_readme.md",
+                "readme": "egs3/TEMPLATE/esp2_asr/src/hf_model_readme.md",
                 "readme_context": {
                     "task": "asr",
                     "lang": "en",
@@ -1118,7 +1118,7 @@ def test_pack_model_readme_includes_model_detail_when_enabled(tmp_path, monkeypa
         {
             "pack_model": {
                 "out_dir": str(out_dir),
-                "readme": "egs3/TEMPLATE/asr/src/hf_model_readme.md",
+                "readme": "egs3/TEMPLATE/esp2_asr/src/hf_model_readme.md",
                 "include_model_detail": True,
             }
         }
