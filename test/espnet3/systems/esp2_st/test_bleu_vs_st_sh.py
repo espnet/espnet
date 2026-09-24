@@ -74,9 +74,10 @@ def _st_sh_scores(ref_path: Path, hyp_path: Path, lowercase: bool):
 
 def _remove_punctuation(path: Path) -> Path:
     out_path = path.with_suffix(path.suffix + ".lc.rm")
-    with path.open(encoding="utf-8") as src, out_path.open(
-        "w", encoding="utf-8"
-    ) as dst:
+    with (
+        path.open(encoding="utf-8") as src,
+        out_path.open("w", encoding="utf-8") as dst,
+    ):
         subprocess.run(
             ["perl", str(REMOVE_PUNCTUATION_PL)], stdin=src, stdout=dst, check=True
         )

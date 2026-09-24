@@ -241,9 +241,7 @@ class MustCSTBuilder(DatasetBuilder):
         cache_root = _hf_cache_root(recipe_dir, cache)
         if cache_root is None:
             return False
-        return all(
-            _cache_has_columns(cache_root / split) for split in _HF_CACHE_SPLITS
-        )
+        return all(_cache_has_columns(cache_root / split) for split in _HF_CACHE_SPLITS)
 
     def build(self, recipe_dir, cache=None, **kwargs):
         """Write one HF cache split per required split."""
