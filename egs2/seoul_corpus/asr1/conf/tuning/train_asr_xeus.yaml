@@ -2,14 +2,15 @@
 #
 # XEUS (https://huggingface.co/espnet/xeus) is an ESPnet SSL model, not an s3prl
 # one, so it loads through frontend: espnet_ssl (espnet2/asr/frontend/espnet_ssl.py,
-# registered as "espnet_ssl" in espnet2/tasks/asr.py).  path_or_url is a local
-# copy of that repository rather than the "espnet/xeus" tag: a path ending in
-# .pth makes the frontend call SSLTask.build_model_from_file(None, path), which
-# resolves the config as Path(model_file).parent / "config.yaml" (abs_task.py),
-# and the snapshot has model/config.yaml next to the checkpoint -- so this needs
-# no network and no espnet_model_zoo cache.  Point it at your own copy, or put
-# "espnet/xeus" here to download it.  The frontend keeps the model at
-# self.upstream, which is what freeze_param names.  Config shape follows
+# registered as "espnet_ssl" in espnet2/tasks/asr.py).  path_or_url goes to
+# espnet_model_zoo, whose meta.yaml for this tag names model/config.yaml and
+# model/xeus_checkpoint_new.pth; the download is cached, so it happens once.
+# A local checkout of that repository works too: give the path of the .pth and
+# the frontend calls SSLTask.build_model_from_file(None, path) instead, which
+# resolves the config as Path(model_file).parent / "config.yaml" (abs_task.py)
+# and so needs the snapshot's model/config.yaml sitting next to it.  Either way
+# the model ends up at self.upstream, which is what freeze_param names.
+# Config shape follows
 # egs2/librilight_limited/asr1/conf/tuning/train_espnet_ssl_hubert_multilayer.yaml,
 # the one worked example of this frontend, including normalize/specaug: null --
 # the SSL model masks its own input while training (mask_feats defaults to true),
@@ -33,7 +34,7 @@ freeze_param: [
 frontend: espnet_ssl
 frontend_conf:
     frontend_conf:
-        path_or_url: /work/hdd/bbjs/hkim41/models/xeus/model/xeus_checkpoint_new.pth
+        path_or_url: espnet/xeus
     multilayer_feature: true
 
 normalize: null

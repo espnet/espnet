@@ -29,8 +29,16 @@ Those spans reach 376 s, which is far too long to train on, so a span longer tha
 placed on a ``<SIL>`` interval wherever one is available inside the window -- a
 silence is where a turn can be broken without splitting a phrase -- and fall back
 to the last interval boundary that fits when the window holds no silence.  Either
-way a cut lands on an annotated boundary, never inside a word, and no audio is
-lost.
+way a cut lands on an annotated boundary, never inside a word.
+
+Every utterance is then trimmed of the ``<SIL>`` intervals at its two ends, and
+the segment boundaries move with them, so the transcript still describes exactly
+what the segment holds.  Silences inside an utterance stay.  Without this a
+piece produced by a cut always ended on a silence -- 24% of the training
+utterances and 42% of the dev ones -- which tells the model how the segmenter
+worked rather than anything about the audio, and trimming only at cut points
+would instead make a given silence transcribed or not depending on the value of
+``--max_duration``.
 """
 
 import argparse
@@ -170,6 +178,33 @@ def join_tokens(tokens):
     return "".join(parts)
 
 
+def trim_edge_silence(items):
+    """Drop the ``<SIL>`` intervals at both ends of one utterance.
+
+    A silence at an utterance edge is not transcribed and its audio is not part
+    of the segment either, so the transcript still describes exactly what the
+    segment contains.  Internal silences stay, the way ``strip()`` leaves the
+    spaces inside a string alone.
+
+    This is applied to every utterance, whatever ended it.  Trimming only where
+    ``split_span`` cut would have made the label depend on ``--max_duration``:
+    the same silence would be transcribed at one setting and not at another.
+
+    Args:
+        items: ``(xmin, xmax, tokens)`` tuples of one utterance, in tier order.
+
+    Returns:
+        The same list with leading and trailing silence-only intervals removed,
+        empty if the utterance is nothing but silence.
+    """
+    lo, hi = 0, len(items)
+    while lo < hi and items[lo][2] == ["<SIL>"]:
+        lo += 1
+    while hi > lo and items[hi - 1][2] == ["<SIL>"]:
+        hi -= 1
+    return items[lo:hi]
+
+
 def split_span(items, max_duration):
     """Cut one interviewer-to-interviewer span into pieces of at most a length.
 
@@ -195,13 +230,15 @@ def split_span(items, max_duration):
                 if items[k][2] == ["<SIL>"]:
                     cut = k
                     break
-        out.append(
-            (
-                items[start][0],
-                items[cut][1],
-                join_tokens([tok for it in items[start : cut + 1] for tok in it[2]]),
+        piece = trim_edge_silence(items[start : cut + 1])
+        if piece:
+            out.append(
+                (
+                    piece[0][0],
+                    piece[-1][1],
+                    join_tokens([tok for it in piece for tok in it[2]]),
+                )
             )
-        )
         start = cut + 1
     return out
 

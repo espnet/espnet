@@ -9,26 +9,27 @@ train_set="train"
 valid_set="dev"
 test_sets="dev test"
 
-asr_config=conf/train_asr.yaml
+asr_config=conf/tuning/train_asr_xeus.yaml
 lm_config=conf/train_lm.yaml
 inference_config=conf/decode_asr.yaml
 
-# An SSL upstream replaces the log-mel frontend, and the global_mvn statistics
-# asr.sh collects are log-mel statistics -- meaningless for those features.
-# See https://github.com/espnet/espnet/issues/4006#issuecomment-1047898558
-# asr_config may also arrive on the command line, which is appended after these
-# defaults, so pick it up from there too rather than silently normalising SSL
-# features with log-mel statistics.
+# Both configs put a frozen SSL model in front of the encoder, and the
+# global_mvn statistics asr.sh collects are log-mel statistics -- meaningless
+# for those features.  See espnet/espnet#4006.  The config is read rather than
+# matched on its name, so renaming one cannot silently normalise SSL features
+# with log-mel statistics; asr_config may also arrive on the command line, which
+# is appended after these defaults, so look there too.
 _asr_config="${asr_config}"
 _prev=
 for _arg in "$@"; do
     [ "${_prev}" = --asr_config ] && _asr_config="${_arg}"
     _prev="${_arg}"
 done
-feats_normalize=global_mvn
-case "${_asr_config}" in
-    *wavlm*|*hubert*|*wav2vec*|*xlsr*|*xeus*) feats_normalize=utt_mvn ;;
-esac
+if grep -qE '^frontend:[[:space:]]*(s3prl|espnet_ssl|huggingface)' "${_asr_config}"; then
+    feats_normalize=utt_mvn
+else
+    feats_normalize=global_mvn
+fi
 
 # Use "--local_data_opts '--tier utt.prono.'" to train on the pronounced
 # (colloquial) transcription instead of the orthographic one.

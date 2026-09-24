@@ -14,9 +14,9 @@
 # shows.  Note WavLM-large is English-only (Libri-Light, VoxPopuli, GigaSpeech);
 # for Korean a multilingual upstream is the fairer comparison.
 #
-# run.sh switches --feats_normalize to utt_mvn for any config whose name has
-# "wavlm" or "hubert" in it: the global_mvn statistics are log-mel statistics
-# and mean nothing for SSL features (espnet/espnet#4006).
+# run.sh reads this file's frontend: line and switches --feats_normalize to
+# utt_mvn for an SSL one: the global_mvn statistics are log-mel statistics and
+# mean nothing for these features (espnet/espnet#4006).
 unused_parameters: true
 freeze_param: [
 "frontend.upstream"
