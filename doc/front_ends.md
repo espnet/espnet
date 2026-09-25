@@ -51,6 +51,14 @@ Whatever `espnet2.bin` class does the work. It takes `model_tag` through
 `from_pretrained`, and `test/espnet2/bin/test_from_pretrained_routing.py`
 holds every such class to one way of fetching a published model.
 
+An ESPnet3 system states the same thing as a contract: its
+`espnet3/systems/<name>/inference.py` defines `Inference`, a subclass of
+`espnet3.api.inference.InferenceAPI` that names the verb it performs and the
+fields it takes and returns, and `espnet3.api.inference.load(tag)` finds it
+from the bundle's `meta.yaml`. The verbs and their fields are the `TASKS`
+table in that module; a new verb is a row there, and the class is checked
+against it when it is defined.
+
 ### 2. The command line — `espnet2/bin/cli.py`
 
 - a verb in `DEFAULT_MODELS`, pointing at the flagship checkpoint
