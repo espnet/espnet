@@ -30,6 +30,22 @@ def _config():
     )
 
 
+def test_the_create_dataset_stage_can_read_this_config():
+    """The stage's own expression, because a null here raises before the builder.
+
+    espnet3/systems/base/system.py reads the block as
+    ``dict(getattr(config, "create_dataset", OmegaConf.create({})))``. That
+    default applies only when the key is absent; a key present and null reaches
+    ``dict`` and raises TypeError, and the stage never gets as far as the
+    recipe's DatasetBuilder.
+    """
+    from omegaconf import OmegaConf
+
+    config = _config()
+    block = getattr(config, "create_dataset", OmegaConf.create({}))
+    assert dict(block) is not None
+
+
 @pytest.mark.execution_timeout(120)
 def test_the_preprocessor_the_config_names_actually_builds(tmp_path):
     """The preprocessor the config names actually builds.

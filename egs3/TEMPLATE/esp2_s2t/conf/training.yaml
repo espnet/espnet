@@ -39,9 +39,14 @@ dataset_dir: ${recipe_dir}/data
 ##########################################################
 #                 DATASET CREATION SETTING               #
 ##########################################################
-# Left null: the `create_dataset` stage prefers the `DatasetBuilder` a recipe
-# exports from `dataset/__init__.py`. This hook is for a recipe that has none.
-create_dataset:
+# Empty, not null. The `create_dataset` stage prefers the `DatasetBuilder` a
+# recipe exports from `dataset/__init__.py`, and passes this block to it as
+# keyword arguments; a recipe that has no builder puts its own hook here.
+# `espnet3/systems/base/system.py` reads it as
+# `dict(getattr(config, "create_dataset", OmegaConf.create({})))`, and that
+# default only applies when the key is absent, so a null here reaches `dict`
+# and raises before any builder method runs.
+create_dataset: {}
 
 ##########################################################
 #                    DATASET DEFINITION                  #
