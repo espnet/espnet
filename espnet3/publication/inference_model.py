@@ -165,9 +165,11 @@ def load_backend(pack_dir: str | Path, *, device: str | None = None):
     """Build a bundle's model alone, for a caller that owns the output.
 
     An ``espnet3.api`` system fixes what it returns, so the recipe's
-    ``output_fn`` is never needed and never imported: it is dropped from the
-    config before the bundled-code check. A bundle whose model or provider
-    itself needs bundled code is refused, because this caller trusts none.
+    ``output_fn`` is never needed and never imported; nor is the runner,
+    which belongs to the ``infer`` stage. Both are dropped from the config
+    before the bundled-code check, which then covers what is built here:
+    the model and its provider. A bundle whose model or provider needs
+    bundled code is refused, because this caller trusts none.
 
     Args:
         pack_dir: The output directory of ``pack_model()``.
@@ -188,7 +190,10 @@ def load_backend(pack_dir: str | Path, *, device: str | None = None):
     inference_config_path, bundle_root = _resolve_packed_config(pack_dir)
     config = _load_inference_config(inference_config_path, bundle_root=bundle_root)
     with open_dict(config):
+        # neither is built here: the runner is the infer stage's, and the
+        # recipe's output_fn is what an API system replaces
         config.pop("output_fn", None)
+        config.pop("runner", None)
         if device is not None:
             config.device = device
     if _uses_bundled_code(config, _get_bundled_module_names(bundle_root)):

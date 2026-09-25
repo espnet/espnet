@@ -655,3 +655,12 @@ def test_load_backend_refuses_a_model_that_needs_bundled_code(tmp_path):
     )
     with pytest.raises(ValueError, match="needs the bundle's own code"):
         load_backend(bundle_root)
+
+
+def test_load_backend_ignores_a_bundled_runner(tmp_path, mock_build_model):
+    bundle_root = _make_pack_dir(
+        tmp_path, runner_target="src.custom_code.CustomRunner", with_src_module=True
+    )
+    with pytest.raises(ValueError, match="trust_user_code"):
+        InferenceModel.from_packed(bundle_root)
+    assert isinstance(load_backend(bundle_root), EchoModel)

@@ -125,10 +125,13 @@ class BackendInference(InferenceAPI):
     ) -> "BackendInference":
         """Load a ``pack_model`` bundle by directory or Hub tag.
 
-        The bundle's ``conf/inference.yaml`` says how to build the backend;
+        The bundle's ``conf/inference.yaml`` says how to build the model;
         it is built through the bundle's provider on ``device``, without
         importing the recipe's code: the outputs are fixed by the
-        declaration, so the recipe's ``output_fn`` is never needed.
+        declaration, so the recipe's ``output_fn`` is never needed. A
+        recipe that names this class as its ``model`` builds the
+        ``Inference`` itself, which is returned as it is; an older one
+        names the backend, which is wrapped.
 
         Args:
             tag_or_dir: A ``pack_model`` output directory, or a Hub tag.
@@ -136,7 +139,8 @@ class BackendInference(InferenceAPI):
             **kwargs: None are taken; a bundle is complete as packed.
 
         Raises:
-            TypeError: If ``kwargs`` are given.
+            TypeError: If ``kwargs`` are given, or the bundle builds an
+                ``Inference`` of another class.
             ValueError: If the bundle's model needs the bundle's own code.
 
         Examples:
@@ -145,7 +149,16 @@ class BackendInference(InferenceAPI):
         """
         if kwargs:
             raise TypeError(f"unexpected arguments {sorted(kwargs)}")
-        return cls(load_backend(locate_pack(tag_or_dir), device=device))
+        built = load_backend(locate_pack(tag_or_dir), device=device)
+        if isinstance(built, InferenceAPI):
+            # the bundle's inference.yaml names the Inference itself, as a
+            # recipe on the APIRunner does: it is the model, not a backend
+            if not isinstance(built, cls):
+                raise TypeError(
+                    f"the bundle builds {type(built).__name__}, not {cls.__name__}"
+                )
+            return built
+        return cls(built)
 
     @property
     def sample_rate(self) -> Optional[int]:
