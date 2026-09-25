@@ -25,9 +25,15 @@ class FakeSpeech2Text:
 
     def __call__(self, speech):
         self.seen = speech
+        if isinstance(speech, list):
+            return self.batch_decode(speech)
         best = ("hello world", ["hello", "world"], [1, 2], None)
         nbest = [best, ("hello", ["hello"], [1], None)]
         return [nbest, nbest] if self.per_speaker else nbest
+
+    def batch_decode(self, speeches):
+        self.batches = getattr(self, "batches", []) + [len(speeches)]
+        return [[(f"utt{i}", None, None, None)] for i in range(len(speeches))]
 
 
 def test_transcribes_the_best_hypothesis():
@@ -130,7 +136,7 @@ def test_the_infer_stage_runner_calls_it_as_it_is():
     batched = InferenceRunner.forward(
         [1, 2], dataset=dataset, model=model, input_key="speech"
     )
-    assert batched == [{"text": "hello world"}, {"text": "hello world"}]
+    assert batched == [{"text": "utt0"}, {"text": "utt1"}]  # one batch_decode
 
 
 def test_the_infer_stage_provider_builds_it_from_inference_yaml(monkeypatch):
@@ -150,3 +156,40 @@ def test_the_infer_stage_provider_builds_it_from_inference_yaml(monkeypatch):
     model = InferenceProvider.build_model(config)
     assert isinstance(model, Inference)
     assert model.backend.kwargs["asr_train_config"] == "exp/config.yaml"
+
+
+def test_a_batch_is_one_beam_search_when_the_backend_can():
+    backend = FakeSpeech2Text()
+    model = Inference(backend)
+    items = [{"speech": np.zeros(16, dtype=np.float32)}] * 3
+    assert [o["text"] for o in model.batch(items)] == ["utt0", "utt1", "utt2"]
+    assert backend.batches == [3]
+    assert model.batch(items[:1]) == [{"text": "hello world"}]  # one item: run
+
+    class NoBatch(FakeSpeech2Text):
+        batch_decode = None  # the transducer Speech2Text has none
+
+    assert [o["text"] for o in Inference(NoBatch()).batch(items)] == ["hello world"] * 3
+
+
+def test_from_pretrained_returns_the_bundles_own_inference(tmp_path, monkeypatch):
+    import espnet3.systems.base.backend_inference as base
+
+    monkeypatch.setattr(base, "locate_pack", lambda t: tmp_path)
+    ready = Inference(FakeSpeech2Text())
+    monkeypatch.setattr(base, "load_backend", lambda p, *, device=None: ready)
+    assert Inference.from_pretrained(tmp_path) is ready
+
+    from espnet3.api.inference import Field
+    from espnet3.systems.base.backend_inference import BackendInference
+
+    class Other(BackendInference):
+        inputs = (Field("text", "text"),)
+        outputs = (Field("speech", "audio"),)
+
+        def run(self, text):
+            return {}
+
+    monkeypatch.setattr(base, "load_backend", lambda p, *, device=None: Other(object()))
+    with pytest.raises(TypeError, match="builds Other, not Inference"):
+        Inference.from_pretrained(tmp_path)
