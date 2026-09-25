@@ -75,6 +75,11 @@ def test_audio_normalises_pcm_and_channels():
     assert audio.seconds == pytest.approx(0.001)
 
 
+def test_audio_takes_channels_on_either_axis():
+    assert len(Audio(np.zeros((100, 2)), 8000).array) == 100  # soundfile, Gradio
+    assert len(Audio(np.zeros((1, 100)), 8000).array) == 100  # torchaudio
+
+
 def test_audio_rejects_bad_shapes_and_rates():
     with pytest.raises(ValueError, match="1-D"):
         Audio(np.zeros((2, 2, 2)), 16000)
@@ -295,6 +300,20 @@ def test_load_rejects_a_system_without_the_class(tmp_path, monkeypatch):
     for name in ("blank", "wrong"):
         with pytest.raises(ImportError, match="defines no Inference"):
             load(_pack(tmp_path, name))
+
+
+def test_load_says_when_the_system_has_no_inference_module(tmp_path, monkeypatch):
+    with pytest.raises(ImportError, match="system 'nosuch' has no Inference yet"):
+        load(_pack(tmp_path, "nosuch"))
+
+    import importlib
+
+    def import_module(name):
+        raise ModuleNotFoundError("No module named 'somedep'", name="somedep")
+
+    monkeypatch.setattr(importlib, "import_module", import_module)
+    with pytest.raises(ModuleNotFoundError, match="somedep"):
+        load(_pack(tmp_path, "echo"))
 
 
 def test_locate_pack_downloads_a_tag(tmp_path, monkeypatch):

@@ -14,8 +14,8 @@ from typing import Any, Mapping
 
 import humanfriendly
 
-from espnet3.api.inference import Audio, Field, InferenceAPI
-from espnet3.publication.inference_model import InferenceModel
+from espnet3.api.inference import Audio, Field, InferenceAPI, locate_pack
+from espnet3.publication.inference_model import load_backend
 
 
 class Inference(InferenceAPI):
@@ -43,11 +43,7 @@ class Inference(InferenceAPI):
         """
         if kwargs:
             raise TypeError(f"unexpected arguments {sorted(kwargs)}")
-        if Path(tag_or_dir).is_dir():
-            model = InferenceModel.from_packed(tag_or_dir, device=device)
-        else:
-            model = InferenceModel.from_pretrained(str(tag_or_dir), device=device)
-        return cls(model.model)
+        return cls(load_backend(locate_pack(tag_or_dir), device=device))
 
     @property
     def sample_rate(self) -> int:
