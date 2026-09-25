@@ -79,7 +79,7 @@ import importlib
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, ClassVar, Iterable, Iterator, Mapping, Sequence
+from typing import Any, ClassVar, Iterable, Iterator, Mapping, Optional, Sequence
 
 import numpy as np
 import yaml
@@ -244,7 +244,7 @@ class Audio:
         return cls(np.concatenate([p.array for p in pieces]), rates.pop())
 
     @classmethod
-    def coerce(cls, value: Any, rate: int) -> "Audio":
+    def coerce(cls, value: Any, rate: Optional[int]) -> "Audio":
         """Turn whatever a caller holds into an :class:`Audio` at ``rate``.
 
         Args:
@@ -252,13 +252,16 @@ class Audio:
                 ``(rate, samples)`` pair, which is what ``gr.Audio`` returns;
                 a NumPy array or a torch tensor, taken to be at ``rate``
                 already, because nothing says otherwise.
-            rate: The rate the result is at.
+            rate: The rate the result is at; ``None`` keeps each value at
+                its own rate, for a model that takes any, and then an
+                array or tensor - which carries none - is refused.
 
         Returns:
             The audio, resampled when its own rate differs.
 
         Raises:
-            TypeError: If ``value`` is none of those.
+            TypeError: If ``value`` is none of those, or carries no rate
+                when none is fixed.
 
         Examples:
             >>> Audio.coerce("utt.wav", 16000).rate
@@ -269,7 +272,7 @@ class Audio:
             1.0
         """
         if isinstance(value, Audio):
-            return value.to(rate)
+            return value if rate is None else value.to(rate)
         if isinstance(value, (str, Path)):
             return cls.read(value, rate)
         if (
@@ -277,10 +280,16 @@ class Audio:
             and len(value) == 2
             and isinstance(value[0], (int, np.integer))
         ):
-            return cls(np.asarray(value[1]), int(value[0])).to(rate)
+            audio = cls(np.asarray(value[1]), int(value[0]))
+            return audio if rate is None else audio.to(rate)
         if hasattr(value, "detach"):  # a torch tensor, without importing torch
             value = value.detach().cpu().numpy()
         if isinstance(value, np.ndarray):
+            if rate is None:
+                raise TypeError(
+                    "a bare array carries no sample rate, and this model fixes "
+                    "none: give a (rate, samples) pair, an Audio or a path"
+                )
             return cls(value, rate)
         raise TypeError(
             "audio must be a path, an Audio, a (rate, samples) pair, "
@@ -353,9 +362,15 @@ class AudioKind(Kind):
 
     def check(self, value, field, model, *, output):
         """Coerce what a caller holds; a hook's bare array is at the model's rate."""
+        rate = model.sample_rate
         if output and isinstance(value, np.ndarray):
-            return Audio(value, model.sample_rate)
-        return Audio.coerce(value, model.sample_rate)
+            if rate is None:
+                raise TypeError(
+                    f"{field.name!r} returned as a bare array by a model that "
+                    "fixes no sample_rate; return an Audio with its rate"
+                )
+            return Audio(value, rate)
+        return Audio.coerce(value, rate)
 
     def join(self, first, second):
         """Concatenate the samples."""
@@ -468,7 +483,8 @@ class InferenceAPI(ABC):
       first, so a call by position means one thing.
     - :meth:`from_pretrained`: build one from a packed model directory or a
       Hub tag.
-    - :attr:`sample_rate`: the rate the model takes audio at.
+    - :attr:`sample_rate`: the rate the model takes audio at, or ``None``
+      to take any.
     - one of :meth:`run_stream` (online) and :meth:`run` (the whole input
       at once); the base class derives the other. :meth:`run_batch` may be
       overridden when the model decodes several inputs faster together.
@@ -565,8 +581,16 @@ class InferenceAPI(ABC):
 
     @property
     @abstractmethod
-    def sample_rate(self) -> int:
-        """The rate every audio input is resampled to before a hook sees it."""
+    def sample_rate(self) -> Optional[int]:
+        """The rate every audio input is resampled to before a hook sees it.
+
+        ``None`` for a model that takes audio at whatever rate it comes -
+        an enhancement model that adapts to the input, a test set mixing
+        rates as the URGENT challenge does. Each :class:`Audio` then keeps
+        its own rate for the hook to read, a bare array is refused for
+        carrying none, and an audio output must be returned as an
+        :class:`Audio`, since nothing else says its rate.
+        """
 
     # -- the hooks a system implements; each has the other as its default --
 

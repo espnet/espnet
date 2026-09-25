@@ -359,6 +359,41 @@ def test_gather_joins_pieces_by_kind():
         Audio.concat([a, Audio(np.ones(4, dtype=np.float32), 16000)])
 
 
+# --- a model that takes any rate -------------------------------------------
+
+
+class AnyRate(InferenceAPI):
+    """An enhancer that works at whatever rate the audio comes."""
+
+    inputs = (Field("speech", "audio"),)
+    outputs = (Field("speech", "audio"),)
+
+    @classmethod
+    def from_pretrained(cls, tag_or_dir, *, device="cpu", **kwargs):
+        return cls()
+
+    sample_rate = None
+
+    def __init__(self, bare=False):
+        self.bare = bare
+
+    def run(self, speech):
+        return {"speech": speech.array if self.bare else speech}
+
+
+def test_a_model_with_no_fixed_rate_sees_each_audio_at_its_own(tmp_path):
+    wav = tmp_path / "a.wav"
+    soundfile.write(wav, np.zeros(22050, dtype=np.float32), 22050)
+    model = AnyRate()
+    assert model(str(wav))["speech"].rate == 22050
+    assert model((8000, np.zeros(8000, dtype=np.float32)))["speech"].rate == 8000
+    assert model(Audio(np.zeros(100, dtype=np.float32), 44100))["speech"].rate == 44100
+    with pytest.raises(TypeError, match="carries no sample rate"):
+        model(np.zeros(100, dtype=np.float32))
+    with pytest.raises(TypeError, match="return an Audio with its rate"):
+        AnyRate(bare=True)((8000, np.zeros(80, dtype=np.float32)))
+
+
 # --- kinds -----------------------------------------------------------------
 
 
