@@ -577,13 +577,28 @@ class InferenceAPI(ABC):
 
         Yields:
             Output chunks, mappings of output field name to a piece of it.
-            Pieces of one field are joined by :func:`gather` - audio
-            concatenated, text and segments appended - so yield what should
-            be appended, not the whole state so far.
+            **A piece is what is new since the last chunk, never the state
+            so far**: pieces of one field are joined by :func:`gather` -
+            audio concatenated, text and segments appended - so a
+            cumulative transcript would come out doubled. A streaming ASR
+            model whose decoder holds ``"hello"`` and then ``"hello world"``
+            yields ``{"text": "hello"}`` and then ``{"text": " world"}``.
 
         Notes:
             The default gathers every chunk and calls :meth:`run` once,
             which is what a model that needs its whole input does.
+
+        Examples:
+            A blockwise decoder, one piece per chunk and a flush at the end::
+
+                def run_stream(self, chunks):
+                    decoder = self.new_decoder()
+                    committed = ""
+                    for chunk in chunks:
+                        text = decoder.feed(chunk["speech"].array)  # cumulative
+                        yield {"text": text[len(committed):]}
+                        committed = text
+                    yield {"text": decoder.finish()[len(committed):]}
         """
         yield self.run(**gather(self.inputs, chunks))
 
