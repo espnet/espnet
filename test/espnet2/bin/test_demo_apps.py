@@ -38,6 +38,7 @@ DEMOS = {
     "tts": EGS2 / "ljspeech/tts1/demo",
     "enh": EGS2 / "universal_se_v1/enh1/demo",
     "spk": EGS2 / "voxceleb/spk1/demo",
+    "bagpiper": EGS2 / "bagpiper/speechlm1/demo",
 }
 # The apps with no page of their own: they import the one `espnet demo`
 # serves, so the checks about an interface do not apply to them, and one
@@ -251,6 +252,10 @@ UNRELEASED = {
     "build_app": "202610.post2",
     # espnet2.bin.align, and with it `espnet align`, arrived in 202610.post2
     "ForcedAligner": "202610.post2",
+    # espnet2.bin.speechlm_inference, and with it `espnet describe` and
+    # `espnet render`, is unreleased: this is the release it is going into,
+    # and the Bagpiper Space cannot be uploaded until that one is out.
+    "from_server": "202611",
 }
 # The extra each front-end needs, by the import that gives it away. RawNet3's
 # asteroid_frontend imports asteroid_filterbanks, which only espnet[spk] has;
