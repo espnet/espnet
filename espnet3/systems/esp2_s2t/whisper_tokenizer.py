@@ -44,6 +44,8 @@ dirname = os.path.dirname(__file__)
 
 
 class OpenAIWhisperTokenizer(AbsTokenizer):
+    """Tokenizer over a Whisper vocabulary, with the extra tokens S2T needs."""
+
     @typechecked
     def __init__(
         self,
@@ -54,7 +56,7 @@ class OpenAIWhisperTokenizer(AbsTokenizer):
         speaker_change_symbol: str = "<sc>",
         added_tokens_txt: Optional[str] = None,
     ):
-
+        """Build the tokenizer, adding the timestamps and the separator to it."""
         try:
             import whisper.tokenizer
         except Exception as e:
@@ -113,13 +115,16 @@ class OpenAIWhisperTokenizer(AbsTokenizer):
             )
 
     def __repr__(self):
+        """Return the model type and language this tokenizer was built for."""
         return (
             f"{self.__class__.__name__}(model_type={self.model}, "
             f"language={self.language})"
         )
 
     def text2tokens(self, line: str) -> List[str]:
+        """Return the token symbols ``line`` tokenizes to."""
         return self.tokenizer.tokenizer.tokenize(line, add_special_tokens=False)
 
     def tokens2text(self, tokens: Iterable[str]) -> str:
+        """Return the text ``tokens`` render back to."""
         return self.tokenizer.tokenizer.convert_tokens_to_string(tokens)

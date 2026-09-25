@@ -185,7 +185,9 @@ def main(
     required_configs.update(
         {
             "pack_model": (training_config, publication_config),
-            "upload_model": publication_config,
+            # Both: upload_model reads training_config.recipe_dir and
+            # .exp_dir to find the bundle it uploads.
+            "upload_model": (training_config, publication_config),
         }
     )
     missing = [

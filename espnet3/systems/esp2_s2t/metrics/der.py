@@ -130,6 +130,7 @@ class UtteranceGroupDER(BaseMetric):
         collar: float = 0.25,
         clean_types=None,
     ) -> None:
+        """Build the metric. See the class docstring for the arguments."""
         if not speaker_change_symbol:
             raise ValueError(
                 "speaker_change_symbol is required and must be the symbol the "

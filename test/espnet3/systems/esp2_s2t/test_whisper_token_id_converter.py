@@ -20,15 +20,39 @@ def whisper_token_id_converter(request):
     return OpenAIWhisperTokenIDConverter(request.param)
 
 
-def test_the_vocabulary_size_does_not_depend_on_who_ran_first():
-    """50257 base + 107 specials + 1501 timestamps.
+def test_an_added_token_file_does_not_follow_the_next_caller(tmp_path):
+    """Adding tokens here must not grow the tokenizer everything else shares.
 
-    This used to read 51867, which only held while an earlier test had grown
-    the shared tokenizer through the added_tokens_txt path; that path now
-    copies first.
+    ``whisper.tokenizer.get_tokenizer`` is lru_cached, so one HuggingFace
+    tokenizer is shared by every caller in the process. Adding to it in place
+    made the vocabulary size depend on run order: another caller's
+    ``get_num_vocabulary_size()`` read 51866 or 51867 rather than 51865, and
+    the exporter, which pads with timestamps up to a fixed total, dropped one
+    timestamp per leaked token.
+
+    The copy this module takes before it adds anything is what stops that. It
+    does not make this module immune to a leak someone else caused: a copy of
+    an already-grown tokenizer is still grown. It stops the leak at its source.
     """
-    converter = OpenAIWhisperTokenIDConverter("whisper_multilingual")
-    assert converter.get_num_vocabulary_size() == 51865
+    import whisper.tokenizer
+
+    shared = whisper.tokenizer.get_tokenizer(
+        multilingual=True, language="en", task="transcribe"
+    )
+    before = len(shared.tokenizer.get_added_vocab())
+
+    add = tmp_path / "add.txt"
+    add.write_text("a-token-this-caller-wants\n", encoding="utf-8")
+    converter = OpenAIWhisperTokenIDConverter(
+        "whisper_multilingual", added_tokens_txt=str(add)
+    )
+
+    assert "a-token-this-caller-wants" in converter.token2id
+    assert len(shared.tokenizer.get_added_vocab()) == before
+    assert (
+        OpenAIWhisperTokenIDConverter("whisper_multilingual").get_num_vocabulary_size()
+        == 51865
+    )
 
 
 def test_token2id(whisper_token_id_converter: OpenAIWhisperTokenIDConverter):

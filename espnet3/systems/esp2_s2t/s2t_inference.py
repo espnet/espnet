@@ -107,6 +107,7 @@ class ScoreFilter(BatchScorerInterface, torch.nn.Module):
         eos: int,
         vocab_size: int,
     ):
+        """Record the vocabulary positions the rules are expressed over."""
         super().__init__()
 
         self.notimestamps = notimestamps
@@ -135,7 +136,6 @@ class ScoreFilter(BatchScorerInterface, torch.nn.Module):
                 and next state for ys
 
         """
-
         score = torch.zeros(
             self.vocab_size, dtype=self.param.dtype, device=self.param.device
         )
@@ -183,7 +183,6 @@ class ScoreFilter(BatchScorerInterface, torch.nn.Module):
                 and next state list for ys.
 
         """
-
         scores = list()
         outstates = list()
         for i, (y, state, x) in enumerate(zip(ys, states, xs)):
@@ -204,7 +203,7 @@ SUBSAMPLE = {"conv2d1": 1, "conv2d2": 2, "conv2d": 4, "conv2d6": 6, "conv2d8": 8
 
 
 def _frame_rate(s2t_train_args) -> Tuple[Optional[int], Optional[float]]:
-    """The audio sample rate and the encoder's output frames per second.
+    """Return the audio sample rate and the encoder's frames per second.
 
     Only the long-form paths need these, and only a config that names its
     frontend's rate, hop and input layer can give them, so a config that does
@@ -223,7 +222,7 @@ def _frame_rate(s2t_train_args) -> Tuple[Optional[int], Optional[float]]:
 
 
 def _stated_seconds(symbol: str) -> Optional[float]:
-    """The time a symbol is named after, if it is named after one.
+    """Return the time a symbol is named after, if it is named after one.
 
     `<12.34>` is 12.34; `<sos>` and anything else is None. Used to check a
     config against itself, never to decide what a timestamp means.
@@ -235,7 +234,7 @@ def _stated_seconds(symbol: str) -> Optional[float]:
 
 
 def _is_ctc_only(s2t_train_config) -> bool:
-    """True when the config describes a model trained as CTC-only.
+    """Report whether the config describes a model trained as CTC-only.
 
     Such a model - OWSM-CTC is the one in the wild - has an encoder and a CTC
     head and no decoder, so there is nothing for a beam search to search over.
@@ -341,7 +340,7 @@ class Speech2Text:
         speaker_change_symbol: Optional[str] = None,
         adaptive_timestamp: bool = False,
     ):
-
+        """Build the decoder. The class docstring documents the arguments."""
         if ctc_weight > 0.0 and predict_time:
             raise ValueError("CTC cannot predict timestamps")
 
@@ -874,7 +873,7 @@ class Speech2Text:
         return [self._hyps_to_results(hyps) for hyps in nbest_hyps]
 
     def _ctc_batch(self, speech, text_prev, lang_sym, task_sym):
-        """The batch a CTC-only model's encoder takes.
+        """Return the batch a CTC-only model's encoder takes.
 
         OWSM-CTC conditions its encoder on the prompt, so the language and
         task symbols and the previous text are encoder inputs here, where an
@@ -915,7 +914,7 @@ class Speech2Text:
         )
 
     def _encode(self, speech, text_prev, lang_sym, task_sym):
-        """Encoder output for a batch of utterances, whichever model this is."""
+        """Return the encoder output for a batch of utterances."""
         if self.ctc_only:
             batch = self._ctc_batch(speech, text_prev, lang_sym, task_sym)
         else:
@@ -1255,7 +1254,7 @@ class Speech2Text:
         lang_sym: Optional[str] = None,
         task_sym: Optional[str] = None,
     ) -> np.ndarray:
-        """The CTC head's log posteriors for a recording, as (frames, vocab).
+        """Return the CTC head's log posteriors, as (frames, vocab).
 
         The model sees one training-length buffer at a time, with context on
         either side that is encoded and then dropped, so the frames kept from
@@ -1413,7 +1412,7 @@ class Speech2Text:
         )
 
     def _time_ids(self) -> Tuple[int, int, float]:
-        """The first and last timestamp symbols, and the seconds between two.
+        """Return the first and last timestamp symbols, and the step between two.
 
         The window is the source of truth - `speech_length`, which every
         other part of this class already reads - and the timestamp symbols
@@ -1465,7 +1464,7 @@ class Speech2Text:
         return first, last, step
 
     def no_language(self) -> str:
-        """The symbol this checkpoint uses for "work the language out yourself".
+        """Return the symbol this checkpoint uses for "work the language out".
 
         Both POWSM checkpoints use `<unk>` and OWSM uses `<nolang>`, but
         only some configs say so: POWSM-CTC records `nolang_symbol`, POWSM
@@ -1486,7 +1485,7 @@ class Speech2Text:
         raise ValueError("this model has no symbol for an unknown language: name one")
 
     def _near_window_end(self) -> int:
-        """The timestamp a second before the end of the model's own window.
+        """Return the timestamp a second before the end of the model's window.
 
         An utterance whose end timestamp is past this one is taken to be cut
         off by the window rather than finished, so the next segment starts
@@ -1526,7 +1525,6 @@ class Speech2Text:
             utterances: list of tuples of (start_time, end_time, text)
 
         """
-
         lang_sym = lang_sym if lang_sym is not None else self.lang_sym
         task_sym = task_sym if task_sym is not None else self.task_sym
         segment_len = int(
@@ -1709,6 +1707,7 @@ def inference(
     speaker_change_symbol: Optional[str] = None,
     adaptive_timestamp: bool = False,
 ):
+    """Decode every recording in the configured data files."""
     if word_lm_train_config is not None:
         raise NotImplementedError("Word LM is not implemented")
     if ngpu > 1:
@@ -1861,6 +1860,7 @@ def inference(
 
 
 def get_parser():
+    """Return the CLI parser, as the documentation generator expects."""
     parser = config_argparse.ArgumentParser(
         description="S2T Decoding",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
@@ -2100,6 +2100,7 @@ def get_parser():
 
 
 def main(cmd=None):
+    """Decode the recordings named on the command line."""
     print(get_commandline_args(), file=sys.stderr)
     parser = get_parser()
     args = parser.parse_args(cmd)

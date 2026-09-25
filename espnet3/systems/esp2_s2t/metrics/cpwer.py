@@ -146,6 +146,7 @@ class UtteranceGroupCpWER(BaseMetric):
         hyp_key: str = "hyp",
         clean_types=None,
     ) -> None:
+        """Build the metric. See the class docstring for the arguments."""
         if not speaker_change_symbol:
             raise ValueError(
                 "speaker_change_symbol is required and must be the symbol the "

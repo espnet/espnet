@@ -9,8 +9,7 @@ import json
 import ami_sot_paths
 import pytest
 
-pytest.importorskip("scipy")
-pytest.importorskip("editdistance")
+pytest.importorskip("meeteval")
 
 from espnet3.systems.esp2_s2t.metrics import cpwer as cp  # noqa: E402
 

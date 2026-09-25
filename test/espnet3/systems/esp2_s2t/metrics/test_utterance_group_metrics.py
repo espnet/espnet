@@ -7,8 +7,8 @@ and that the reported keys say which scope the score has.
 
 import pytest
 
-pytest.importorskip("scipy")
-pytest.importorskip("editdistance")
+pytest.importorskip("meeteval")
+pytest.importorskip("pyannote.metrics")
 
 from espnet3.systems.esp2_s2t.metrics.cpwer import (  # noqa: E402
     UtteranceGroupCpWER,
@@ -57,17 +57,13 @@ def test_cpwer_reports_the_utterance_group_key(tmp_path):
 
 
 def test_der_reports_the_utterance_group_key(tmp_path):
-    """Same reasoning as cpWER: every group is its own RTTM file."""
-    pytest.importorskip("pytest")
+    """Same reasoning as cpWER: every group is scored as its own recording."""
     ref, hyp = tmp_path / "ref.scp", tmp_path / "hyp.scp"
     line = "u1 <|0.00|> a<|1.00|> ???? <|2.00|> b<|3.00|>\n"
     ref.write_text(line, encoding="utf-8")
     hyp.write_text(line, encoding="utf-8")
     metric = UtteranceGroupDER("????", clean_types=None)
-    try:
-        result = metric({"ref": ref, "hyp": hyp}, "test", tmp_path)
-    except FileNotFoundError:
-        pytest.skip("md-eval.pl is not built in this checkout")
+    result = metric({"ref": ref, "hyp": hyp}, "test", tmp_path)
     assert set(result) == {"ug_DER"}
 
 
@@ -95,3 +91,43 @@ def test_a_metric_refuses_a_symbol_it_cannot_split_on(metric_cls, symbol):
     """
     with pytest.raises(ValueError, match="speaker_change_symbol"):
         metric_cls(symbol)
+
+
+@pytest.mark.parametrize(
+    "case, reference, hypothesis, expected",
+    [
+        # One speaker over 0-2 s, heard only to 1 s: 1 s missed of 2 s.
+        (
+            "half the reference speech missed",
+            "<|0.00|> a<|2.00|>",
+            "<|0.00|> a<|1.00|>",
+            50.0,
+        ),
+        # Two speakers a second each, heard as one speaker over the whole
+        # window: the second second is attributed to the wrong speaker.
+        (
+            "second speaker heard as the first",
+            "<|0.00|> a<|1.00|> ???? <|1.00|> b<|2.00|>",
+            "<|0.00|> a<|2.00|>",
+            50.0,
+        ),
+        ("nothing hypothesised", "<|0.00|> a<|2.00|>", "", 100.0),
+        ("identical", "<|0.00|> a<|2.00|>", "<|0.00|> a<|2.00|>", 0.0),
+    ],
+)
+def test_der_counts_the_seconds_it_should(
+    case, reference, hypothesis, expected, tmp_path
+):
+    """The scoring arithmetic, on cases small enough to work out by hand.
+
+    Every value here is error seconds over reference seconds with no collar:
+    the reference is two seconds of speech, and each case misplaces a known
+    number of them. Without this the only unconditional DER assertion was a
+    0.0, which an accumulation that scored nothing at all also produces.
+    """
+    ref, hyp = tmp_path / "ref.scp", tmp_path / "hyp.scp"
+    ref.write_text(f"u1 {reference}\n", encoding="utf-8")
+    hyp.write_text(f"u1 {hypothesis}\n", encoding="utf-8")
+
+    metric = UtteranceGroupDER("????", collar=0.0)
+    assert metric({"ref": ref, "hyp": hyp}, "test", tmp_path)["ug_DER"] == expected

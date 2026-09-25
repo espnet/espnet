@@ -9,6 +9,10 @@ import argparse
 
 import pytest
 
+# Imported here rather than inside the tests: the first of these pulls in torch
+# and lightning, which takes longer than the suite's per-test timeout allows.
+from egs3.TEMPLATE.asr import run as asr_run  # noqa: E402
+from egs3.TEMPLATE.esp2_s2t import run as s2t_run  # noqa: E402
 from espnet3.utils.config_utils import load_default_config
 
 PACKAGE = "egs3.TEMPLATE.esp2_s2t"
@@ -51,11 +55,9 @@ def test_a_recipe_merges_over_this_template_not_the_asr_one(monkeypatch):
     load, and the recipe picks up a tokenizer block and a create_dataset hook
     that belong to another system.
     """
-    from egs3.TEMPLATE.esp2_s2t import run as s2t
-
-    seen = _record_packages(monkeypatch, s2t)
+    seen = _record_packages(monkeypatch, s2t_run)
     try:
-        s2t.main(_args(), system_cls=object, stages=s2t.DEFAULT_STAGES)
+        s2t_run.main(_args(), system_cls=object, stages=s2t_run.DEFAULT_STAGES)
     except Exception:
         pass
 
@@ -70,11 +72,8 @@ def test_this_templates_runner_is_its_own_not_the_asr_one():
     that template's conf/, because main resolves the defaults from the package
     it is defined in.
     """
-    from egs3.TEMPLATE.asr import run as generic
-    from egs3.TEMPLATE.esp2_s2t import run as s2t
-
-    assert s2t.main is not generic.main
-    assert s2t.main.__module__ == "egs3.TEMPLATE.esp2_s2t.run"
+    assert s2t_run.main is not asr_run.main
+    assert s2t_run.main.__module__ == "egs3.TEMPLATE.esp2_s2t.run"
 
 
 def test_train_tokenizer_is_not_a_stage_this_template_offers():
@@ -83,10 +82,8 @@ def test_train_tokenizer_is_not_a_stage_this_template_offers():
     The stage list is the only place this is decided: --stages accepts exactly
     these names, so a stage left out here cannot be reached at all.
     """
-    from egs3.TEMPLATE.esp2_s2t import run as s2t
-
-    assert "train_tokenizer" not in s2t.DEFAULT_STAGES
-    parser = s2t.build_parser(stages=s2t.DEFAULT_STAGES)
+    assert "train_tokenizer" not in s2t_run.DEFAULT_STAGES
+    parser = s2t_run.build_parser(stages=s2t_run.DEFAULT_STAGES)
     with pytest.raises(SystemExit):
         parser.parse_args(["--stages", "train_tokenizer"])
 
@@ -105,9 +102,12 @@ def test_the_training_default_names_the_s2t_task_and_no_tokenizer():
     cfg = load_default_config("training.yaml", PACKAGE)
     assert cfg.task == "espnet2.tasks.s2t.S2TTask"
     assert "tokenizer" not in cfg
-    # The create_dataset stage prefers a recipe's DatasetBuilder; a default hook
-    # would send a recipe that has one to a module it does not ship.
-    assert cfg.create_dataset is None
+    # The create_dataset stage prefers a recipe's DatasetBuilder, so the hook is
+    # empty rather than pointing at a module a recipe does not ship. Empty and
+    # not null: the stage reads it as dict(getattr(config, "create_dataset",
+    # {})), and that default applies only when the key is absent, so a null
+    # reaches dict() and raises before any builder method runs.
+    assert dict(cfg.create_dataset) == {}
 
 
 def test_the_training_default_carries_the_dataloader_plumbing():

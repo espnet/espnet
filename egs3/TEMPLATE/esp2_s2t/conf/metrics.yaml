@@ -2,10 +2,16 @@
 #                 METRIC SCORING SETTING                 #
 ##########################################################
 # Quick usage:
-#   python run.py --stages measure --metrics_config conf/metrics.yaml
+#   python run.py --stages measure \
+#       --training_config conf/training.yaml \
+#       --inference_config conf/inference.yaml \
+#       --metrics_config conf/metrics.yaml
 #
-# Assumes `infer` has written `<test_name>/*.scp`. When `dataset.test` is
-# omitted, the test sets are discovered from `${inference_dir}`.
+# Assumes `infer` has written `<test_name>/*.scp`. All three configs, because
+# exp_tag below is empty on purpose: run.py copies it and inference_dir across,
+# and without them `measure` has no directory to read the decode from. When
+# `dataset.test` is omitted, the test sets are discovered from
+# `${inference_dir}`.
 
 ##########################################################
 #                    PATHS AND INPUTS                    #

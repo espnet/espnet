@@ -35,6 +35,22 @@ def export_vocabulary(
     sot_asr: bool = False,
     speaker_change_symbol: str = "<sc>",
 ):
+    """Write the Whisper vocabulary to ``output``, one token per line.
+
+    The rows are the token list a model is sized from, so their order is the
+    id order the checkpoint was trained against.
+
+    Args:
+        output: File to write.
+        whisper_model: Whisper vocabulary name, such as ``whisper_multilingual``.
+        whisper_language: Language symbol, without the bars.
+        whisper_task: Task symbol, without the bars.
+        log_level: Logging level.
+        add_token_file_name: File of extra tokens to add, or ``"none"``.
+        sot_asr: Append the speaker-change symbol for serialized output
+            training, unless the vocabulary already holds it.
+        speaker_change_symbol: The symbol to append when ``sot_asr`` is set.
+    """
     try:
         import whisper.tokenizer
     except Exception as e:
@@ -125,6 +141,7 @@ def export_vocabulary(
 
 
 def get_parser() -> argparse.ArgumentParser:
+    """Return the CLI parser, as the documentation generator expects."""
     parser = argparse.ArgumentParser(
         description="Export Whisper vocabulary",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
@@ -183,6 +200,7 @@ def get_parser() -> argparse.ArgumentParser:
 
 
 def main(cmd=None):
+    """Export the vocabulary named on the command line."""
     print(get_commandline_args(), file=sys.stderr)
     parser = get_parser()
     args = parser.parse_args(cmd)

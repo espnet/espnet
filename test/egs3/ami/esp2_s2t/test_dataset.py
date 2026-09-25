@@ -59,10 +59,8 @@ def test_sample_carries_the_four_fields_the_s2t_model_consumes():
     assert isinstance(sample["speech"], np.ndarray)
     assert sample["speech"].dtype == np.float32
     assert sample["speech"].ndim == 1
-    # Either shape of prepared corpus is acceptable here: one this recipe
-    # built carries the configured prompt, an older one opens on a timestamp.
-    prompt = ds_mod._CONFIG.get("prompt", "")
-    assert sample["text"].startswith(prompt) or sample["text"].startswith("<|")
+    prompt = ds_mod._CONFIG["prompt"]
+    assert sample["text"].startswith(prompt)
 
 
 @ami_sot_paths.needs_corpus
@@ -77,6 +75,28 @@ def test_a_sample_reports_no_previous_text_and_no_ctc_target():
     sample = dataset[0]
     assert sample["text_prev"] == "<|nospeech|>"
     assert sample["text_ctc"] == "<|nospeech|>"
+
+
+def test_every_sample_reports_no_previous_text_and_no_ctc_target(monkeypatch):
+    """The two fields the model takes but this recipe never fills.
+
+    ESPnetS2TModel.forward takes text_prev and text_ctc as required positional
+    arguments. This recipe conditions on no previous text and trains with
+    ctc_weight 0.0, so both carry the not-available symbol on every sample; one
+    that grew content would change what the model is trained on. Its sibling
+    above reads the real corpus, which most machines do not have, so this one
+    runs off fake cuts and covers every sample rather than the first.
+    """
+    _seed_synthetic_split(monkeypatch, ["x", "y", "z"])
+    dataset = ds_mod.AmiSotDataset(split="test")
+
+    na = ds_mod._CONFIG["na_symbol"]
+    assert len(dataset) == 3
+    for idx in range(len(dataset)):
+        sample = dataset[idx]
+        assert set(sample) == {"speech", "text", "text_prev", "text_ctc"}
+        assert sample["text_prev"] == na
+        assert sample["text_ctc"] == na
 
 
 def test_reading_an_unbuilt_split_names_the_file_to_produce(tmp_path, monkeypatch):

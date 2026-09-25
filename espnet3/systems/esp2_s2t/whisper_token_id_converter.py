@@ -26,6 +26,8 @@ dirname = os.path.dirname(__file__)
 
 
 class OpenAIWhisperTokenIDConverter:
+    """Map between Whisper token symbols and the ids the model is sized for."""
+
     @typechecked
     def __init__(
         self,
@@ -37,7 +39,12 @@ class OpenAIWhisperTokenIDConverter:
         speaker_change_symbol: str = "<sc>",
         keep_special_tokens: bool = False,
     ):
+        """Build the converter over a Whisper vocabulary.
 
+        Args:
+            keep_special_tokens: Keep ``<|x.xx|>`` timestamps through
+                ``ids2tokens`` rather than dropping them.
+        """
         try:
             import whisper.tokenizer
         except Exception as e:
@@ -117,6 +124,7 @@ class OpenAIWhisperTokenIDConverter:
         return self._token2id
 
     def get_num_vocabulary_size(self) -> int:
+        """Return the number of rows the model's output layer needs."""
         if self.model_type == "whisper_en":
             return (
                 self.tokenizer.tokenizer.vocab_size
@@ -128,11 +136,17 @@ class OpenAIWhisperTokenIDConverter:
         )
 
     def ids2tokens(self, integers: Union[np.ndarray, Iterable[int]]) -> List[str]:
+        """Return the token symbols for ``integers``.
+
+        Keeps the ``<|x.xx|>`` timestamps when ``keep_special_tokens`` is set,
+        which is what the serialized output is scored on.
+        """
         return self.tokenizer.tokenizer.convert_ids_to_tokens(
             integers, skip_special_tokens=not self.keep_special_tokens
         )
 
     def tokens2ids(self, tokens: Iterable[str]) -> List[int]:
+        """Return the ids for ``tokens``, behind the prompt this model expects."""
         return list(
             self.tokenizer.sot_sequence_including_notimestamps[1:]
         ) + self.tokenizer.tokenizer.convert_tokens_to_ids(tokens)
