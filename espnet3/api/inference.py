@@ -66,6 +66,11 @@ resume and writers. The contract and that pair divide the work like this:
    given to :func:`load` with ``system=`` since there is no bundle. It
    need not have an ``infer`` stage config; if it has one, it may run it
    its own way. The front ends only ever see ``Inference``.
+6. Nothing assumes a task. No layer - the contract, a kind, the
+   provider/runner, a front end - may ask a system what task it performs
+   or dispatch on a task name; what a model does is read from its fields.
+   A verb such as ``transcribe`` is a front end's word for a shape of
+   fields, and a multi-task model declares its fields once.
 """
 
 from __future__ import annotations
