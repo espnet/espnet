@@ -28,9 +28,9 @@ dataset:
 #                    MODEL AND OUTPUT                    #
 ##########################################################
 # speaker_change_symbol and adaptive_timestamp select the SOT timestamp
-# constraints in espnet2/s2t/whisper_timestamp_scorer.py.
+# constraints in espnet3/systems/esp2_s2t/whisper_timestamp_scorer.py.
 model:
-  _target_: espnet2.bin.s2t_inference.Speech2Text
+  _target_: espnet3.systems.esp2_s2t.s2t_inference.Speech2Text
   # Put the checkpoint's config.yaml and model.pth in exp/whisper_sot_s2t
   # under the recipe directory, or set AMI_SOT_CHECKPOINT_DIR to where they
   # are. The default is recipe-relative; the inference stage chdirs into

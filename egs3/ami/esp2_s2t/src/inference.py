@@ -28,8 +28,11 @@ except ImportError:
     # top-level spelling resolves there. get_current_utt_id's state lives in
     # os.environ, so which copy answers does not matter.
     from dataset.dataset import get_current_utt_id
-from espnet2.text.whisper_token_id_converter import OpenAIWhisperTokenIDConverter
-from espnet2.text.whisper_tokenizer import OpenAIWhisperTokenizer
+
+from espnet3.systems.esp2_s2t.whisper_token_id_converter import (
+    OpenAIWhisperTokenIDConverter,
+)
+from espnet3.systems.esp2_s2t.whisper_tokenizer import OpenAIWhisperTokenizer
 
 # The Whisper vocabulary the ids are read back through. It belongs to the
 # checkpoint, not to a run, and the inference stage reaches this module through

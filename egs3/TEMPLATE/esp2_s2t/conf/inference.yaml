@@ -48,7 +48,7 @@ parallel:
 ##########################################################
 #                    MODEL AND OUTPUT                    #
 ##########################################################
-# Usually `espnet2.bin.s2t_inference.Speech2Text`, configured by the recipe.
+# Usually `espnet3.systems.esp2_s2t.s2t_inference.Speech2Text`, configured by the recipe.
 model:
 
 # Sample field passed to the model.

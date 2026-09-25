@@ -204,7 +204,7 @@ class AmiSotBuilder(DatasetBuilder):
         token and one that is not. Skipped when the file is already there: a
         full export takes seconds and every builder test calls ``build``.
         """
-        from espnet2.bin.whisper_export_vocabulary import export_vocabulary
+        from espnet3.systems.esp2_s2t.whisper_export_vocabulary import export_vocabulary
 
         target = Path(_CONFIG["data_root"]) / _CONFIG["token_list"]
         separator = _CONFIG["separator"]

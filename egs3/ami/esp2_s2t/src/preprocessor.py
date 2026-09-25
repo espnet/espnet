@@ -25,9 +25,11 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Dict
 
-from espnet2.text.whisper_token_id_converter import OpenAIWhisperTokenIDConverter
-from espnet2.text.whisper_tokenizer import OpenAIWhisperTokenizer
 from espnet2.train.preprocessor import S2TPreprocessor
+from espnet3.systems.esp2_s2t.whisper_token_id_converter import (
+    OpenAIWhisperTokenIDConverter,
+)
+from espnet3.systems.esp2_s2t.whisper_tokenizer import OpenAIWhisperTokenizer
 
 
 def build_tokens2ids(convert, placeholder: int):
