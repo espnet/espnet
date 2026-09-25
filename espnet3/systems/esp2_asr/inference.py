@@ -21,7 +21,6 @@ from espnet3.publication.inference_model import load_backend
 class Inference(InferenceAPI):
     """Transcribe with a packed ESPnet2 ASR model."""
 
-    task = "transcribe"
     inputs = (Field("speech", "audio", "Speech"),)
     outputs = (Field("text", "text", "Transcription"),)
 

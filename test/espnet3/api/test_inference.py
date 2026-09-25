@@ -17,7 +17,6 @@ import torch
 
 import espnet3.api.inference as inference_api
 from espnet3.api.inference import (
-    TASKS,
     Audio,
     Field,
     InferenceAPI,
@@ -30,7 +29,6 @@ from espnet3.api.inference import (
 class Echo(InferenceAPI):
     """A transcriber that reports what it was given."""
 
-    task = "transcribe"
     inputs = (Field("speech", "audio"), Field("prompt", "text", optional=True))
     outputs = (Field("text", "text"),)
 
@@ -113,55 +111,61 @@ def test_audio_coerce_every_shape_a_caller_holds(tmp_path):
 # --- the contract ----------------------------------------------------------
 
 
-def test_every_task_lists_fields_in_declaration_order():
-    for task, (inputs, outputs) in TASKS.items():
-        assert inputs and outputs, task
-        assert not any(f.optional for f in inputs + outputs), task
-
-
 def test_contract_is_checked_when_the_class_is_defined():
-    with pytest.raises(TypeError, match="task is 'hum'"):
+    with pytest.raises(TypeError, match="tuple of Field"):
 
-        class Hum(InferenceAPI):
-            task = "hum"
+        class NotFields(InferenceAPI):
+            inputs = ["speech"]
+            outputs = (Field("text", "text"),)
+
+    with pytest.raises(TypeError, match="at least one field"):
+
+        class Nothing(InferenceAPI):
             inputs = ()
-            outputs = ()
+            outputs = (Field("text", "text"),)
 
-    with pytest.raises(TypeError, match="must start with"):
+    with pytest.raises(TypeError, match="required fields before optional"):
 
-        class WrongOrder(InferenceAPI):
-            task = "align"
-            inputs = (Field("text", "text"), Field("speech", "audio"))
-            outputs = (Field("segments", "segments"),)
-
-    with pytest.raises(TypeError, match="must be optional"):
-
-        class ExtraRequired(InferenceAPI):
-            task = "transcribe"
-            inputs = (Field("speech", "audio"), Field("lang", "text"))
+        class OptionalFirst(InferenceAPI):
+            inputs = (Field("prompt", "text", optional=True), Field("speech", "audio"))
             outputs = (Field("text", "text"),)
 
     with pytest.raises(TypeError, match="repeats"):
 
         class Twice(InferenceAPI):
-            task = "transcribe"
             inputs = (Field("speech", "audio"), Field("speech", "audio", optional=True))
             outputs = (Field("text", "text"),)
 
     with pytest.raises(TypeError, match="optional"):
 
         class OptionalOut(InferenceAPI):
-            task = "transcribe"
             inputs = (Field("speech", "audio"),)
             outputs = (Field("text", "text", optional=True),)
 
 
-def test_an_intermediate_base_without_a_task_is_allowed():
+def test_an_intermediate_base_that_declares_nothing_is_allowed():
     class Base(InferenceAPI):
         pass
 
     with pytest.raises(TypeError):
         check_contract(Base)
+
+
+def test_a_conversation_model_declares_no_task():
+    class Chat(InferenceAPI):
+        inputs = (Field("messages", "text"),)
+        outputs = (Field("messages", "text"),)
+
+        @classmethod
+        def from_pretrained(cls, tag_or_dir, *, device="cpu", **kwargs):
+            return cls()
+
+        sample_rate = 16000
+
+        def run(self, messages):
+            return {"messages": messages + " and reply"}
+
+    assert Chat()("hi")["messages"] == "hi and reply"
 
 
 # --- calling ---------------------------------------------------------------
@@ -210,7 +214,6 @@ def test_call_checks_what_run_returns():
 
 def test_audio_output_is_wrapped_at_the_model_rate():
     class Enhancer(InferenceAPI):
-        task = "enhance"
         inputs = (Field("speech", "audio"),)
         outputs = (Field("speech", "audio"),)
 
@@ -230,7 +233,6 @@ def test_audio_output_is_wrapped_at_the_model_rate():
 
 def test_segments_output_is_checked():
     class Aligner(InferenceAPI):
-        task = "align"
         inputs = (Field("speech", "audio"), Field("text", "text"))
         outputs = (Field("segments", "segments"),)
 

@@ -2,20 +2,22 @@
 
 Every system under ``espnet3/systems/<name>/`` ships an ``inference.py``
 whose ``Inference`` class subclasses :class:`InferenceAPI`. The class states
-the task it performs and the fields it takes and returns, and implements
-:meth:`InferenceAPI.run` for one sample; the base class does the rest -
-reading a file, accepting what Gradio hands over, resampling to the model's
-rate, checking the declared contract - so the command line, the MCP server, a
-Space and a notebook can drive any system the same way::
+the fields it takes and returns, and implements :meth:`InferenceAPI.run` for
+one sample; the base class does the rest - reading a file, accepting what
+Gradio hands over, resampling to the model's rate, checking the declared
+fields - so the command line, the MCP server, a Space and a notebook can
+drive any system the same way::
 
     >>> from espnet3.api.inference import load
     >>> model = load("espnet/some_pack")          # meta.yaml names the system
     >>> model("utt.wav")["text"]
     >>> model(speech=(16000, samples))["text"]    # what gr.Audio returns
 
-The tasks are the verbs of ``doc/front_ends.md``; :data:`TASKS` fixes the
-fields each verb takes and returns, so a front end written against the verb
-never needs to know which system is behind it. A new verb is one entry there.
+A system says nothing about *what task* it performs; it says what goes in
+and what comes out. A front end that offers ``transcribe`` looks for a
+model whose first input is audio and whose outputs hold ``text``, and a
+model that answers a conversation declares one ``messages`` field and no
+list of the tasks a prompt might ask of it.
 """
 
 from __future__ import annotations
@@ -150,78 +152,41 @@ class Audio:
         )
 
 
-# The verbs, and the fields each one takes and returns. A system performing
-# a verb declares these fields first and in this order, so a call by
-# position means the same thing for every system; it may add optional inputs
-# and further outputs after them.
-TASKS: dict[str, tuple[tuple[Field, ...], tuple[Field, ...]]] = {
-    "transcribe": ((Field("speech", "audio"),), (Field("text", "text"),)),
-    "translate": ((Field("speech", "audio"),), (Field("text", "text"),)),
-    "phonemize": ((Field("speech", "audio"),), (Field("phones", "text"),)),
-    "align": (
-        (Field("speech", "audio"), Field("text", "text")),
-        (Field("segments", "segments"),),
-    ),
-    "synthesize": ((Field("text", "text"),), (Field("speech", "audio"),)),
-    "enhance": ((Field("speech", "audio"),), (Field("speech", "audio"),)),
-}
-
-
 def check_contract(cls: type) -> None:
-    """Raise ``TypeError`` unless ``cls`` declares a task and honours it.
+    """Raise ``TypeError`` unless ``cls`` declares usable inputs and outputs.
 
     Run on every concrete subclass as it is defined, so a system that gets
-    the contract wrong fails at import, not in a Space at runtime.
+    the declaration wrong fails at import, not in a Space at runtime.
     """
-    task = getattr(cls, "task", None)
-    if task not in TASKS:
-        raise TypeError(
-            f"{cls.__qualname__}.task is {task!r}; "
-            f"the tasks are {sorted(TASKS)} (add a new one to TASKS)"
-        )
     for attr in ("inputs", "outputs"):
         fields = getattr(cls, attr, None)
         if not isinstance(fields, tuple) or not all(
             isinstance(f, Field) for f in fields
         ):
             raise TypeError(f"{cls.__qualname__}.{attr} must be a tuple of Field")
+        if not fields:
+            raise TypeError(f"{cls.__qualname__}.{attr} must name at least one field")
         names = [f.name for f in fields]
         if len(set(names)) != len(names):
             raise TypeError(f"{cls.__qualname__}.{attr} repeats a name: {names}")
-    required_inputs, required_outputs = TASKS[task]
-    _check_leading(cls, "inputs", required_inputs)
-    _check_leading(cls, "outputs", required_outputs)
-    for f in cls.inputs[len(required_inputs) :]:
-        if not f.optional:
-            raise TypeError(
-                f"{cls.__qualname__} adds input {f.name!r} to task {task!r}; "
-                "inputs beyond the task's own must be optional"
-            )
+    optional = [f.optional for f in cls.inputs]
+    if optional != sorted(optional):
+        raise TypeError(
+            f"{cls.__qualname__}.inputs must list required fields before "
+            "optional ones, so a call by position means one thing"
+        )
     for f in cls.outputs:
         if f.optional:
             raise TypeError(f"{cls.__qualname__}: outputs cannot be optional")
 
 
-def _check_leading(cls: type, attr: str, required: tuple[Field, ...]) -> None:
-    declared = getattr(cls, attr)
-    want = [(f.name, f.kind) for f in required]
-    have = [(f.name, f.kind) for f in declared[: len(required)]]
-    if have != want or any(f.optional for f in declared[: len(required)]):
-        raise TypeError(
-            f"{cls.__qualname__}.{attr} must start with {want} "
-            f"for task {cls.task!r}, and none of those may be optional; "
-            f"got {[(f.name, f.kind) for f in declared]}"
-        )
-
-
 class InferenceAPI(ABC):
     """What a system implements to be callable from every front end.
 
-    A subclass declares three class attributes and three members:
+    A subclass declares two class attributes and three members:
 
-    - ``task``: a key of :data:`TASKS`.
-    - ``inputs`` / ``outputs``: tuples of :class:`Field`, beginning with the
-      task's own.
+    - ``inputs`` / ``outputs``: tuples of :class:`Field`; required inputs
+      first, so a call by position means one thing.
     - :meth:`from_pretrained`: build one from a packed model directory or a
       Hub tag.
     - :attr:`sample_rate`: the rate the model takes audio at.
@@ -232,15 +197,15 @@ class InferenceAPI(ABC):
     every text field, and never a missing required one.
     """
 
-    task: ClassVar[str]
     inputs: ClassVar[tuple[Field, ...]]
     outputs: ClassVar[tuple[Field, ...]]
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
         """Check a system's declaration the moment its class is defined."""
         super().__init_subclass__(**kwargs)
-        # An intermediate base without a task is allowed; a system is not.
-        if hasattr(cls, "task"):
+        # An intermediate base that declares nothing is allowed; a system
+        # declares both.
+        if hasattr(cls, "inputs") or hasattr(cls, "outputs"):
             check_contract(cls)
 
     @classmethod
