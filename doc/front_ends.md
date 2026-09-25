@@ -53,11 +53,13 @@ holds every such class to one way of fetching a published model.
 
 An ESPnet3 system states the same thing as a contract: its
 `espnet3/systems/<name>/inference.py` defines `Inference`, a subclass of
-`espnet3.api.inference.InferenceAPI` that names the verb it performs and the
-fields it takes and returns, and `espnet3.api.inference.load(tag)` finds it
-from the bundle's `meta.yaml`. The verbs and their fields are the `TASKS`
-table in that module; a new verb is a row there, and the class is checked
-against it when it is defined.
+`espnet3.api.inference.InferenceAPI` that declares the fields it takes and
+returns, and `espnet3.api.inference.load(tag)` finds it from the bundle's
+`meta.yaml`. The system does not name a verb: `transcribe` is the front
+end's word for "audio in, `text` out", and a model that answers a
+conversation declares one `messages` field rather than a list of the tasks
+a prompt might ask of it. The declaration is checked when the class is
+defined.
 
 ### 2. The command line — `espnet2/bin/cli.py`
 
