@@ -21,6 +21,7 @@ from espnet3.api.inference import (
     Field,
     InferenceAPI,
     check_contract,
+    gather,
     load,
     locate_pack,
 )
@@ -253,6 +254,104 @@ def test_segments_output_is_checked():
     assert Aligner()(np.zeros(16), "hi")["segments"][0]["text"] == "hi"
     with pytest.raises(TypeError, match="list of dicts"):
         Aligner(good=False)(np.zeros(16), "hi")
+
+
+# --- streaming -------------------------------------------------------------
+
+
+class Counter(InferenceAPI):
+    """An online model: one text piece per audio chunk, and a tail at the end."""
+
+    inputs = (Field("speech", "audio"),)
+    outputs = (Field("text", "text"),)
+
+    @classmethod
+    def from_pretrained(cls, tag_or_dir, *, device="cpu", **kwargs):
+        return cls()
+
+    sample_rate = 8000
+
+    def run_stream(self, chunks):
+        n = 0
+        for chunk in chunks:
+            if "speech" in chunk:
+                n += 1
+                yield {"text": f"{len(chunk['speech'].array)} "}
+        yield {"text": f"end:{n}"}
+
+
+def test_a_whole_input_model_streams_by_gathering():
+    model = Echo(rate=8000)
+    pieces = [{"speech": (8000, np.zeros(4000, dtype=np.float32))} for _ in range(4)]
+    out = list(model.stream(pieces))
+    assert out == [{"text": "2.0s@8000", "n": 1}]
+    assert model.seen.seconds == 2.0
+
+
+def test_an_online_model_answers_a_one_shot_call_by_gathering_its_stream():
+    model = Counter()
+    pieces = [{"speech": np.zeros(100, dtype=np.float32)} for _ in range(3)]
+    assert [o["text"] for o in model.stream(pieces)] == [
+        "100 ",
+        "100 ",
+        "100 ",
+        "end:3",
+    ]
+    assert model(np.zeros(300, dtype=np.float32)) == {"text": "300 end:1"}
+
+
+def test_stream_checks_each_chunk_and_the_input_as_a_whole():
+    with pytest.raises(TypeError, match="no input \\['lang'\\]"):
+        list(Counter().stream([{"lang": "en"}]))
+    with pytest.raises(TypeError, match="never got \\['speech'\\]"):
+        list(Counter().stream([{}]))
+    with pytest.raises(TypeError, match="never got"):
+        list(Counter().stream([]))
+
+
+def test_stream_checks_what_run_stream_yields():
+    class Wrong(Counter):
+        def run_stream(self, chunks):
+            for _ in chunks:
+                pass
+            yield {"text": 7}
+
+    with pytest.raises(TypeError, match="must be str"):
+        list(Wrong().stream([{"speech": np.zeros(8)}]))
+
+
+def test_a_system_must_implement_one_of_the_hooks():
+    with pytest.raises(TypeError, match="run_stream .* or run"):
+
+        class Neither(InferenceAPI):
+            inputs = (Field("speech", "audio"),)
+            outputs = (Field("text", "text"),)
+
+            @classmethod
+            def from_pretrained(cls, tag_or_dir, *, device="cpu", **kwargs):
+                return cls()
+
+            sample_rate = 16000
+
+
+def test_gather_joins_pieces_by_kind():
+    fields = (
+        Field("speech", "audio"),
+        Field("text", "text"),
+        Field("segments", "segments"),
+    )
+    a = Audio(np.ones(4, dtype=np.float32), 8000)
+    out = gather(
+        fields,
+        [
+            {"speech": a, "text": "ab", "segments": [1], "extra": 1},
+            {"speech": a, "text": "cd", "segments": [2], "extra": 2},
+        ],
+    )
+    assert len(out["speech"].array) == 8 and out["speech"].rate == 8000
+    assert out["text"] == "abcd" and out["segments"] == [1, 2] and out["extra"] == 2
+    with pytest.raises(ValueError, match="rates"):
+        Audio.concat([a, Audio(np.ones(4, dtype=np.float32), 16000)])
 
 
 # --- load ------------------------------------------------------------------
