@@ -3,13 +3,12 @@
 import importlib.util
 import os
 import sys
-from pathlib import Path
 
 import ami_sot_paths
 import numpy as np
 import pytest
 
-pytest.importorskip("soundfile")
+pytest.importorskip("lhotse")
 
 
 def _load_dataset_module():
@@ -26,7 +25,7 @@ ds_mod = _load_dataset_module()
 
 
 @ami_sot_paths.needs_corpus
-def test_load_utt_ids_reads_the_first_column_in_file_order():
+def test_load_utt_ids_covers_the_whole_split_in_cut_order():
     ids = ds_mod.load_utt_ids("test")
     assert len(ids) == 6127
     assert ids[0] == "EN2002a-0.37-11.83"
@@ -67,11 +66,12 @@ def test_sample_carries_the_four_fields_the_s2t_model_consumes():
 
 
 @ami_sot_paths.needs_corpus
-def test_a_corpus_without_the_optional_files_still_reads():
-    """A corpus without the optional files still reads.
+def test_a_sample_reports_no_previous_text_and_no_ctc_target():
+    """Both text fields carry the not-available symbol.
 
-    The prepared corpus predates them and cannot be rewritten, so absence must fall back
-    rather than raise.
+    This recipe conditions on no previous text and trains with ctc_weight 0.0, so
+    neither field ever carries content; a sample that grew one would change what the
+    model is trained on.
     """
     dataset = ds_mod.AmiSotDataset(split="test")
     sample = dataset[0]
@@ -79,20 +79,20 @@ def test_a_corpus_without_the_optional_files_still_reads():
     assert sample["text_ctc"] == "<|nospeech|>"
 
 
-def test_init_raises_when_the_two_wav_scp_parsers_disagree_in_length(
-    monkeypatch,
-):
-    """Init raises when the two wav scp parsers disagree in length.
+def test_reading_an_unbuilt_split_names_the_file_to_produce(tmp_path, monkeypatch):
+    """The error has to name the missing file and the stage that writes it.
 
-    load_utt_ids tolerates an id with no path; _load_wav_paths raises on one today.
-
-    Nothing ties the two parsers together as an invariant, so assert it directly in case
-    that ever changes without both being updated together.
+    A split is one file now, so this is the only way reading one can fail, and the
+    message is all a user has to go on.
     """
-    monkeypatch.setattr(ds_mod, "load_utt_ids", lambda split: ["a", "b", "c"])
-    monkeypatch.setattr(ds_mod, "_load_wav_paths", lambda split: [Path("x"), Path("y")])
-    with pytest.raises(ValueError, match="wav.scp"):
-        ds_mod.AmiSotDataset(split="test")
+    # setenv, not setitem: data_root interpolates ${oc.env:AMI_SOT_DATA_ROOT}
+    # lazily, and assigning over it freezes the node at its current value for
+    # the rest of the session -- monkeypatch's undo restores the resolved
+    # string, not the interpolation, so every later test in this process would
+    # read whatever root this one happened to use.
+    monkeypatch.setenv("AMI_SOT_DATA_ROOT", str(tmp_path))
+    with pytest.raises(FileNotFoundError, match="create_dataset"):
+        ds_mod.load_cuts("test")
 
 
 @ami_sot_paths.needs_corpus
@@ -109,22 +109,25 @@ def test_sample_order_matches_load_utt_ids():
         assert dataset[idx]["text"] == refs[ids[idx]]
 
 
-def _seed_synthetic_split(monkeypatch, ids):
-    """Point load_utt_ids/_load_wav_paths/load_reference_texts at fake data.
+class _FakeCut:
+    """The part of a cut this module reads, over one second of silence."""
 
-    Lets a test build an AmiSotDataset without touching disk or the real corpus, the
-    same trick test_init_raises_when_the_two_wav_scp_parsers... already uses for one
-    function at a time.
+    def __init__(self, cut_id):
+        self.id = cut_id
+        self.custom = {ds_mod._SOT_TEXT_FIELD: cut_id}
+
+    def load_audio(self):
+        return np.zeros((1, 16000), dtype="float32")
+
+
+def _seed_synthetic_split(monkeypatch, ids):
+    """Serve every split from fake cuts, so no test here needs the corpus.
+
+    Replacing the one reader leaves load_utt_ids, load_reference_texts and
+    AmiSotDataset running their own code, which is what these tests are about.
     """
-    monkeypatch.setattr(ds_mod, "load_utt_ids", lambda split: list(ids))
-    monkeypatch.setattr(
-        ds_mod, "_load_wav_paths", lambda split: [Path(utt) for utt in ids]
-    )
-    monkeypatch.setattr(
-        ds_mod,
-        "load_reference_texts",
-        lambda split, filename="text": {utt: "" for utt in ids},
-    )
+    cuts = [_FakeCut(utt) for utt in ids]
+    monkeypatch.setattr(ds_mod, "load_cuts", lambda split: cuts)
 
 
 @pytest.fixture(autouse=True)
@@ -155,13 +158,15 @@ def test_constructing_a_dataset_records_its_split(monkeypatch):
 def test_a_dataset_that_fails_to_construct_does_not_record_a_split(monkeypatch):
     """A dataset that fails to construct does not record a split.
 
-    A half-built dataset (the wav.scp parser disagreement below) must not record itself:
-    build_output must keep refusing, not silently resolve ids against a split that never
-    finished loading.
+    A dataset whose split will not read must not record itself: build_output has to
+    keep refusing, not silently resolve ids against a split that never loaded.
     """
-    monkeypatch.setattr(ds_mod, "load_utt_ids", lambda split: ["a", "b", "c"])
-    monkeypatch.setattr(ds_mod, "_load_wav_paths", lambda split: [Path("x")])
-    with pytest.raises(ValueError, match="wav.scp"):
+
+    def _missing(split):
+        raise FileNotFoundError("cuts.jsonl.gz is missing")
+
+    monkeypatch.setattr(ds_mod, "load_cuts", _missing)
+    with pytest.raises(FileNotFoundError):
         ds_mod.AmiSotDataset(split="test")
     assert ds_mod._CURRENT_SPLIT_ENV not in os.environ
 
@@ -190,18 +195,8 @@ def test_current_utt_id_survives_the_frameworks_own_module_loading(
     """
     # dataset/config.yaml's split_dirs: train->data/train, valid->data/dev,
     # test->data/test.
-    for split, rel_dir, ids in (
-        ("test", "data/test", ["t-0"]),
-        ("valid", "data/dev", ["v-0", "v-1"]),
-    ):
-        split_dir = tmp_path / rel_dir
-        split_dir.mkdir(parents=True)
-        (split_dir / "wav.scp").write_text(
-            "".join(f"{utt} {utt}.wav\n" for utt in ids), encoding="utf-8"
-        )
-        (split_dir / "text").write_text(
-            "".join(f"{utt}\n" for utt in ids), encoding="utf-8"
-        )
+    for rel_dir, ids in (("data/test", ["t-0"]), ("data/dev", ["v-0", "v-1"])):
+        ami_sot_paths.write_cuts(tmp_path / rel_dir, ids)
     monkeypatch.setenv("AMI_SOT_DATA_ROOT", str(tmp_path))
 
     from espnet3.components.data.dataset_module import load_dataset_module

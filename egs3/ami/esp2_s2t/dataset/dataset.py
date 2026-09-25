@@ -1,9 +1,11 @@
 """AMI serialized-output-training dataset for the ESPnet3 S2T recipe.
 
-The corpus is read straight from the Kaldi-style directories the ESPnet2
-recipe produced. Each utterance group is one sample, and its ``text`` is the
-serialized reference for every speaker in that group, separated by ``<sc>``
-and carrying Whisper timestamp tokens.
+One split is one Lhotse CutSet. Each cut is an utterance group: it names the
+recording, channel, offset and duration its audio comes from, so the audio is
+read through the cut rather than from a copy written out per group. The
+serialized reference for every speaker in the group, separated by the
+speaker-change symbol and carrying Whisper timestamp tokens, rides on the cut
+as ``sot_text``.
 
 Constructing an ``AmiSotDataset`` records the split it was built with (see
 ``current_utt_id``). That record has to be an environment variable rather
@@ -14,13 +16,11 @@ every dataset it builds
 the copy of this file that constructs ``AmiSotDataset`` for a real run is
 not necessarily the same module object ``src/inference.py`` imports by its
 stable, dotted name -- a plain global set by one is invisible to the other.
-``os.environ`` is the one thing every copy of this module actually shares,
-the same reason ``src/separator.py`` reads ``AMI_SOT_SPEAKER_CHANGE_SYMBOL``
-from it instead of importing a Python value. ``src/inference.py`` resolves
-an inference index to an utterance id through ``current_utt_id`` instead of
-loading its own, independent copy of a split's ids, so there is exactly one
-place -- the split the dataset the framework actually built for this run
-was constructed with -- an id can come from.
+``os.environ`` is the one thing every copy of this module actually shares.
+``src/inference.py`` resolves an inference index to an utterance id through
+``current_utt_id`` instead of loading its own, independent copy of a split's
+ids, so there is exactly one place -- the split the dataset the framework
+actually built for this run was constructed with -- an id can come from.
 """
 
 from __future__ import annotations
@@ -30,7 +30,6 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import numpy as np
-import soundfile as sf
 from torch.utils.data import Dataset as TorchDataset
 
 from espnet3.utils.config_utils import load_config_with_defaults
@@ -40,98 +39,98 @@ from espnet3.utils.config_utils import load_config_with_defaults
 # module-level variable.
 _CURRENT_SPLIT_ENV = "_AMI_SOT_CURRENT_SPLIT"
 
+# Both must match dataset/builder.py.
+_CUTS_FILENAME = "cuts.jsonl.gz"
+_SOT_TEXT_FIELD = "sot_text"
+
 
 def _load_builder_config() -> dict:
     config_path = Path(__file__).resolve().parent / "config.yaml"
-    # resolve=True so the AMI_SOT_DATA_ROOT override above is expanded.
-    return load_config_with_defaults(str(config_path), resolve=True)["builder"]
+    return load_config_with_defaults(str(config_path))["builder"]
 
 
 _CONFIG = _load_builder_config()
 
 
 def _split_dir(split: str) -> Path:
-    """Return the Kaldi-style directory for one split.
+    """Return the directory holding one split's cuts.
 
     Args:
-        split: One of the keys in ``config.yaml``'s ``builder.split_dirs``.
+        split: Key of ``builder.split_dirs``.
 
     Returns:
-        Absolute path to that split's directory.
+        ``<data_root>/<split_dirs[split]>``.
 
     Raises:
-        ValueError: If the split is not configured.
+        KeyError: When ``split`` is not a configured split.
     """
     split_dirs = _CONFIG["split_dirs"]
     if split not in split_dirs:
-        raise ValueError(
-            f"Unknown split '{split}'. Configured splits: {sorted(split_dirs)}"
+        raise KeyError(
+            f"Unknown split {split!r}; expected one of {sorted(split_dirs)}."
         )
     return Path(_CONFIG["data_root"]) / split_dirs[split]
 
 
+# Keyed by (path, mtime, size), not by split, so a corpus rebuilt in the same
+# process is re-read rather than served stale. Parsing a split is not free --
+# the train CutSet holds 53k cuts -- and load_utt_ids, load_reference_texts
+# and AmiSotDataset would otherwise each pay for it separately.
+_CUTS_CACHE: Dict[tuple, Any] = {}
+
+
+def load_cuts(split: str):
+    """Return one split's CutSet, eagerly.
+
+    Args:
+        split: Split name.
+
+    Returns:
+        A ``lhotse.CutSet`` supporting both integer and id indexing.
+
+    Raises:
+        FileNotFoundError: When the split has not been built.
+    """
+    from lhotse import CutSet
+
+    path = _split_dir(split) / _CUTS_FILENAME
+    if not path.is_file():
+        raise FileNotFoundError(
+            f"{path} is missing. Run the create_dataset stage for split "
+            f"{split!r} before reading it."
+        )
+    stat = path.stat()
+    key = (str(path), stat.st_mtime_ns, stat.st_size)
+    if key not in _CUTS_CACHE:
+        _CUTS_CACHE.clear()
+        _CUTS_CACHE[key] = CutSet.from_file(str(path)).to_eager()
+    return _CUTS_CACHE[key]
+
+
 def load_utt_ids(split: str) -> List[str]:
-    """Return the utterance ids of one split, in ``wav.scp`` order.
-
-    This is the single source of utterance identity for the recipe. The
-    dataset iterates in this order, and ``src/inference.py`` maps an inference
-    index back to an id through the same list, so neither side re-derives it.
+    """Return the utterance ids of one split, in cut order.
 
     Args:
-        split: Split name, for example ``"test"``.
+        split: Split name.
 
     Returns:
-        The first whitespace-separated field of every non-empty ``wav.scp``
-        line, in file order.
+        One id per cut, in the order the dataset indexes them.
     """
-    scp = _split_dir(split) / "wav.scp"
-    ids = []
-    with scp.open(encoding="utf-8") as handle:
-        for line in handle:
-            line = line.strip()
-            if line:
-                ids.append(line.split(maxsplit=1)[0])
-    return ids
+    return [cut.id for cut in load_cuts(split)]
 
 
-def load_reference_texts(split: str, filename: str = "text") -> Dict[str, str]:
-    """Return the reference text of one split, keyed by utterance id.
+def load_reference_texts(split: str) -> Dict[str, str]:
+    """Return the serialized reference text of one split, keyed by id.
 
     Args:
-        split: Split name, for example ``"test"``.
-        filename: Name of the file inside the split directory. The optional
-            ``text.prev`` and ``text.ctc`` use the same format.
+        split: Split name.
 
     Returns:
-        Mapping from utterance id to the rest of its ``text`` line. The value
-        keeps its Whisper timestamp tokens and its ``<sc>`` separators.
+        ``{utt_id: sot_text}`` for every cut in the split.
     """
-    text = _split_dir(split) / filename
-    refs = {}
-    with text.open(encoding="utf-8") as handle:
-        for line in handle:
-            line = line.rstrip("\n")
-            if not line.strip():
-                continue
-            parts = line.split(maxsplit=1)
-            refs[parts[0]] = parts[1].strip() if len(parts) > 1 else ""
-    return refs
-
-
-def _load_wav_paths(split: str) -> List[Path]:
-    """Return one absolute audio path per utterance, in ``wav.scp`` order."""
-    root = Path(_CONFIG["data_root"])
-    scp = _split_dir(split) / "wav.scp"
-    paths = []
-    with scp.open(encoding="utf-8") as handle:
-        for line in handle:
-            line = line.strip()
-            if not line:
-                continue
-            _, rel = line.split(maxsplit=1)
-            path = Path(rel)
-            paths.append(path if path.is_absolute() else root / path)
-    return paths
+    return {
+        cut.id: (cut.custom or {}).get(_SOT_TEXT_FIELD, "") for cut in load_cuts(split)
+    }
 
 
 class AmiSotDataset(TorchDataset):
@@ -143,83 +142,55 @@ class AmiSotDataset(TorchDataset):
     Examples:
         >>> dataset = AmiSotDataset(split="test")  # doctest: +SKIP
         >>> sorted(dataset[0])  # doctest: +SKIP
-        ['speech', 'text']
+        ['speech', 'text', 'text_ctc', 'text_prev']
     """
 
     def __init__(self, split: str) -> None:
-        """Read the split's manifests once and keep them in memory.
+        """Read the split's cuts once and keep them in memory.
 
         Records ``split`` as this process's current split (see
         ``current_utt_id``) once construction fully succeeds. A split that
-        fails to parse raises before that point, so a half-built dataset is
+        fails to read raises before that point, so a half-built dataset is
         never recorded.
         """
         self.split = split
-        self._utt_ids = load_utt_ids(split)
-        self._wav_paths = _load_wav_paths(split)
-        if len(self._wav_paths) != len(self._utt_ids):
-            raise ValueError(
-                f"wav.scp parsing disagreed for split {split!r}: "
-                f"load_utt_ids found {len(self._utt_ids)} utterance id(s) "
-                f"but _load_wav_paths found {len(self._wav_paths)} audio "
-                "path(s). load_utt_ids tolerates an id with no path; "
-                "_load_wav_paths does not. Check wav.scp for a malformed "
-                "line."
-            )
-        refs = load_reference_texts(split)
-        self._texts = [refs[utt_id] for utt_id in self._utt_ids]
-        # A corpus prepared before these files existed must still read. The
-        # inference path points at exactly such a tree and cannot be rewritten.
-        na = _CONFIG["na_symbol"]
-        self._text_prev = self._optional_texts(split, "text.prev", na)
-        self._text_ctc = self._optional_texts(split, "text.ctc", na)
+        self._cuts = load_cuts(split)
+        self._na = _CONFIG["na_symbol"]
         os.environ[_CURRENT_SPLIT_ENV] = split
-
-    def _optional_texts(self, split: str, filename: str, default: str):
-        """Return one text per utterance, or ``default`` where the file is absent.
-
-        Args:
-            split: Split name.
-            filename: File inside the split directory.
-            default: Value for every utterance when the file does not exist.
-
-        Returns:
-            A list aligned with ``self._utt_ids``.
-        """
-        if not (_split_dir(split) / filename).is_file():
-            return [default] * len(self._utt_ids)
-        texts = load_reference_texts(split, filename=filename)
-        return [texts.get(utt_id, default) for utt_id in self._utt_ids]
 
     def __len__(self) -> int:
         """Return the number of utterance groups in the split."""
-        return len(self._utt_ids)
+        return len(self._cuts)
 
     def __getitem__(self, idx: int) -> Dict[str, Any]:
         """Return one sample.
 
         Args:
-            idx: Position in ``wav.scp`` order.
+            idx: Position in cut order.
 
         Returns:
             ``speech`` as a float32 mono waveform and the three text fields
             ``text``, ``text_prev`` and ``text_ctc``. No other field: a recipe
-            sample must carry only what the model and preprocessor accept.
+            sample must carry only what the model and preprocessor accept, so
+            the cut's own id is deliberately absent (see ``current_utt_id``).
         """
-        array, _sample_rate = sf.read(str(self._wav_paths[int(idx)]))
-        if array.ndim > 1:
-            array = array[:, 0]
+        cut = self._cuts[int(idx)]
+        # The cut carries its own offset, duration and channel, so this is
+        # exactly the group's audio, without a per-group file on disk.
+        array = cut.load_audio()[0]
         return {
             "speech": np.asarray(array, dtype=np.float32),
-            "text": self._texts[int(idx)],
-            "text_prev": self._text_prev[int(idx)],
-            "text_ctc": self._text_ctc[int(idx)],
+            "text": (cut.custom or {}).get(_SOT_TEXT_FIELD, ""),
+            # This recipe conditions on no previous text and trains with
+            # ctc_weight 0.0, so both are the not-available symbol.
+            "text_prev": self._na,
+            "text_ctc": self._na,
         }
 
 
 # Cache for current_utt_id, keyed by the split it was computed for, so a long
-# test set does not re-read and re-parse wav.scp once per utterance. Reset
-# whenever the recorded split changes.
+# test set does not re-read the cuts once per utterance. Reset whenever the
+# recorded split changes.
 _CACHED_SPLIT: Optional[str] = None
 _CACHED_UTT_IDS: Optional[List[str]] = None
 
@@ -235,7 +206,7 @@ def current_utt_id(idx: int) -> str:
     from.
 
     Args:
-        idx: Position in the recorded split's ``wav.scp`` order.
+        idx: Position in the recorded split's cut order.
 
     Returns:
         The utterance id at ``idx`` in the recorded split.
@@ -254,9 +225,9 @@ def current_utt_id(idx: int) -> str:
             "espnet3.systems.base.inference.infer constructs for the run "
             "(via provider.build_dataset, before the runner starts) so it "
             "can read that split's own utterance ids; call it only from "
-            "inside an inference run, after that dataset exists."
+            "there."
         )
     if split != _CACHED_SPLIT:
-        _CACHED_UTT_IDS = load_utt_ids(split)
         _CACHED_SPLIT = split
+        _CACHED_UTT_IDS = load_utt_ids(split)
     return _CACHED_UTT_IDS[int(idx)]

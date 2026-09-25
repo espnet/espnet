@@ -1,6 +1,6 @@
 # Builder and dataset settings, loaded at import time by dataset/__init__.py.
 builder:
-  # Root the split directories and the relative wav.scp paths resolve against.
+  # Root the split directories resolve against.
   data_root: ${oc.env:AMI_SOT_DATA_ROOT,.}
 
   split_dirs:
@@ -14,8 +14,7 @@ builder:
   token_list: data/tokens.txt
 
   required_files:
-    - wav.scp
-    - text
+    - cuts.jsonl.gz
 
   # Lhotse CutSet manifests, carrying the speaker-attributed supervisions the
   # SOT text is serialized from. Fetched on demand from cutset_repo.
@@ -44,7 +43,8 @@ builder:
   # during preprocessing.
   prompt: "<|en|><|transcribe|>"
 
-  # Written to text.prev and text.ctc, and resolved by the model as sym_na.
+  # Carried by every sample as text_prev and text_ctc, and resolved by the
+  # model as sym_na.
   # A Whisper vocabulary has no "<na>", so this must be a real Whisper token.
   na_symbol: "<|nospeech|>"
 

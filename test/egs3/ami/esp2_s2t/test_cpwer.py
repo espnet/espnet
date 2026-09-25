@@ -17,28 +17,23 @@ from espnet3.systems.esp2_s2t.metrics import cpwer as cp  # noqa: E402
 SEP = "????"
 
 
-def test_edit_counts_counts_each_error_kind():
-    cor, sub, dele, ins = cp.edit_counts(["a", "b", "c"], ["a", "x", "c", "d"])
-    assert (cor, sub, dele, ins) == (2, 1, 0, 1)
-
-
-def test_group_cpwer_finds_the_best_speaker_permutation():
+def test_count_group_errors_finds_the_best_speaker_permutation():
     """Speaker blocks arrive in an arbitrary order, so the match is optimal."""
     ref = ["the cat sat", "a dog barked"]
     swapped = ["a dog barked", "the cat sat"]
-    acc = cp.group_cpwer(ref, swapped)
+    acc = cp.count_group_errors(ref, swapped)
     assert acc["sub"] == 0 and acc["del"] == 0 and acc["ins"] == 0
     assert acc["ref_len"] == 6
 
 
-def test_group_cpwer_pads_a_missing_hypothesis_speaker_as_deletions():
-    acc = cp.group_cpwer(["the cat sat", "a dog barked"], ["the cat sat"])
+def test_count_group_errors_pads_a_missing_hypothesis_speaker_as_deletions():
+    acc = cp.count_group_errors(["the cat sat", "a dog barked"], ["the cat sat"])
     assert acc["del"] == 3
     assert acc["ref_len"] == 6
 
 
-def test_group_cpwer_counts_an_empty_reference_as_insertions():
-    acc = cp.group_cpwer([], ["x y"])
+def test_count_group_errors_counts_an_empty_reference_as_insertions():
+    acc = cp.count_group_errors([], ["x y"])
     assert acc["ins"] == 2
     assert acc["ref_len"] == 0
 
@@ -131,20 +126,13 @@ def test_cpwer_reproduces_the_recorded_full_test_set_score(tmp_path):
     ref = tmp_path / "ref.scp"
     hyp = tmp_path / "hyp.scp"
 
-    # Both sides may predate this recipe and spell the separator "<sc>": the
-    # recorded decode came from the older decode.py path, and a corpus
-    # prepared before the recipe writes it that way too. The metric splits on
-    # the checkpoint's own symbol, so convert here rather than teach it a
-    # spelling this recipe never writes.
-    def _as_configured(text):
-        return text.replace("<sc>", SEP)
-
-    ref.write_text(
-        _as_configured(ami_sot_paths.TEST_TEXT.read_text(encoding="utf-8")),
-        encoding="utf-8",
-    )
+    # The recorded decode came from the older decode.py path and spells the
+    # separator "<sc>". The metric splits on the checkpoint's own symbol, so
+    # convert here rather than teach it a spelling this recipe never writes.
+    ami_sot_paths.write_test_reference(ref)
     hyp.write_text(
-        _as_configured(_RECORDED_TEXT.read_text(encoding="utf-8")), encoding="utf-8"
+        _RECORDED_TEXT.read_text(encoding="utf-8").replace("<sc>", SEP),
+        encoding="utf-8",
     )
     result = cp.UtteranceGroupCpWER(SEP, clean_types=["whisper_en"])(
         {"ref": ref, "hyp": hyp}, "test", tmp_path

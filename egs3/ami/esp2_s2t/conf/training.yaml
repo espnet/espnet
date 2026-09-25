@@ -68,8 +68,8 @@ dataset:
     # literal characters.
     na_symbol: "<|nospeech|>"
     # The preprocessor substitutes na_symbol when uniform() > this, so 0.0
-    # means ALWAYS substitute. That is what we want: text.prev is NA on every
-    # line anyway, and randomising it would only add a code path nothing tests.
+    # means ALWAYS substitute. That is what we want: text_prev is NA on every
+    # sample anyway, and randomising it would only add a code path nothing tests.
     text_prev_apply_prob: 0.0
     speech_length: 30
     speech_resolution: 0.02

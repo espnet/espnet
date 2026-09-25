@@ -2,7 +2,6 @@
 
 import importlib.util
 import sys
-from pathlib import Path
 from types import SimpleNamespace
 
 import ami_sot_paths
@@ -30,7 +29,7 @@ def test_relocate_remaps_a_recording_whose_stored_path_is_gone(tmp_path):
     cut = SimpleNamespace(recording=SimpleNamespace(sources=[source]))
     bl._relocate_recording(cut, tmp_path)
     assert source.source == str(
-        tmp_path / "EN2002a" / "audio" / "EN2002a.Array1-01.wav"
+        tmp_path / "wav_db" / "EN2002a" / "audio" / "EN2002a.Array1-01.wav"
     )
 
 
@@ -113,22 +112,30 @@ def _single_split_config(tmp_path, monkeypatch, **sot):
     monkeypatch.setitem(bl._CONFIG, "na_symbol", "<|nospeech|>")
 
 
+def _built_cuts(tmp_path, split="test"):
+    """Return the cuts the builder wrote for one split."""
+    from lhotse import CutSet
+
+    path = tmp_path / "data" / split / bl._CUTS_FILENAME
+    assert path.is_file(), path
+    return list(CutSet.from_file(str(path)))
+
+
 @pytest.mark.execution_timeout(30)
-def test_build_writes_every_kaldi_file_with_matching_ids(tmp_path, monkeypatch):
+def test_build_writes_one_cutset_carrying_the_group_ids(tmp_path, monkeypatch):
+    """A built split is one file, and every cut in it carries its own text.
+
+    Ids and text cannot drift apart the way separate files could, so what is left
+    to pin is that both are there.
+    """
     _tiny_cutset(tmp_path)
     _single_split_config(tmp_path, monkeypatch)
 
     bl.AmiSotBuilder().build()
 
-    split_dir = tmp_path / "data" / "test"
-    for name in ("wav.scp", "text", "utt2spk", "spk2utt"):
-        assert (split_dir / name).is_file(), name
-    ids = {
-        name: [line.split()[0] for line in (split_dir / name).read_text().splitlines()]
-        for name in ("wav.scp", "text", "utt2spk", "spk2utt")
-    }
-    assert ids["wav.scp"] == ids["text"] == ids["utt2spk"] == ids["spk2utt"]
-    assert ids["text"] == ["MEET-0.0-2.0"]
+    cuts = _built_cuts(tmp_path)
+    assert [cut.id for cut in cuts] == ["MEET-0.0-2.0"]
+    assert all(cut.custom[bl._SOT_TEXT_FIELD] for cut in cuts)
 
 
 @pytest.mark.execution_timeout(30)
@@ -139,32 +146,29 @@ def test_build_serializes_with_the_splits_configured_ordering(tmp_path, monkeypa
 
     bl.AmiSotBuilder().build()
 
-    text = (tmp_path / "data" / "test" / "text").read_text().strip()
+    text = _built_cuts(tmp_path)[0].custom[bl._SOT_TEXT_FIELD]
     # "A" speaks later but has the longer block, so longest_first leads on it.
     assert text.startswith(
-        "MEET-0.0-2.0 <|en|><|transcribe|><|1.00|> a much longer turn<|1.50|> ????"
+        "<|en|><|transcribe|><|1.00|> a much longer turn<|1.50|> ????"
     )
     assert not text.endswith("<|endoftext|>")
 
 
 @pytest.mark.execution_timeout(30)
-def test_build_cuts_the_segment_audio_and_points_wav_scp_at_it(tmp_path, monkeypatch):
+def test_build_leaves_the_group_audio_in_the_meeting_recording(tmp_path, monkeypatch):
+    """No per-group wav is written, and the cut still yields the group's audio.
+
+    Writing one file per group cost 8.6 GB across the three splits. The cut names
+    the offset and duration instead, so the samples have to come out the same.
+    """
     _tiny_cutset(tmp_path)
     _single_split_config(tmp_path, monkeypatch)
 
     bl.AmiSotBuilder().build()
 
-    split_dir = tmp_path / "data" / "test"
-    stored = (split_dir / "wav.scp").read_text().split()[1]
-    # Relative to data_root, which is what makes a prepared dir relocatable.
-    assert not Path(stored).is_absolute()
-    segment = tmp_path / stored
-    assert segment.is_file()
-
-    import soundfile as sf
-
-    info = sf.info(str(segment))
-    assert info.frames == 32000  # the cut's own 2.0 s at 16 kHz
+    assert not (tmp_path / "data" / "test" / "segments_wav").exists()
+    cut = _built_cuts(tmp_path)[0]
+    assert cut.load_audio().shape[1] == 32000  # the cut's own 2.0 s at 16 kHz
 
 
 @pytest.mark.execution_timeout(30)
@@ -180,16 +184,40 @@ def test_is_built_becomes_true_only_after_building(tmp_path, monkeypatch):
 
 
 @pytest.mark.execution_timeout(30)
-def test_rebuilding_reuses_the_segments_it_already_cut(tmp_path, monkeypatch):
-    """Re-running the stage must not re-decode audio it already wrote."""
+def test_asking_whether_the_source_is_prepared_downloads_nothing(tmp_path, monkeypatch):
+    """A question about disk must be answered from disk.
+
+    BaseSystem.create_dataset asks this of roots that hold nothing. Answering by
+    fetching turns the question into a multi-hundred-gigabyte AMI download, which
+    is slow enough to look like a hang and fills the caller's disk before it fails.
+    """
+    import lhotse.recipes.ami as ami
+
+    def _refuse(*args, **kwargs):
+        raise AssertionError("is_source_prepared must not download")
+
+    monkeypatch.setattr(ami, "download_audio", _refuse)
+    _tiny_cutset(tmp_path)
+    _single_split_config(tmp_path, monkeypatch)
+    # Cutsets present, audio absent: the branch the download sits behind.
+    monkeypatch.setitem(bl._CONFIG, "ami_audio_root", "no_audio_here")
+
+    assert bl.AmiSotBuilder().is_source_prepared() is False
+
+
+@pytest.mark.execution_timeout(30)
+def test_rebuilding_a_split_produces_the_same_cuts(tmp_path, monkeypatch):
+    """Re-running the stage over a built split must not change what it holds."""
     _tiny_cutset(tmp_path)
     _single_split_config(tmp_path, monkeypatch)
     bl.AmiSotBuilder().build()
+    first = [(cut.id, cut.custom[bl._SOT_TEXT_FIELD]) for cut in _built_cuts(tmp_path)]
 
-    segment = tmp_path / "data" / "test" / "segments_wav" / "MEET-0.0-2.0.wav"
-    marker = segment.stat().st_mtime_ns
     bl.AmiSotBuilder().build()
-    assert segment.stat().st_mtime_ns == marker
+
+    assert [
+        (cut.id, cut.custom[bl._SOT_TEXT_FIELD]) for cut in _built_cuts(tmp_path)
+    ] == first
 
 
 # --------------------------------------------------------------------------
@@ -228,11 +256,11 @@ def test_no_split_carries_its_own_separator():
         assert "separator" not in options
 
 
-# Needs both halves: the cutsets to rebuild from and the prepared transcript
+# Needs both halves: the cutsets to rebuild from and the recorded transcript
 # to rebuild against.
 @pytest.mark.execution_timeout(600)
 @ami_sot_paths.needs_cutsets
-@ami_sot_paths.needs_corpus
+@ami_sot_paths.needs_reference_text
 def test_test_split_transcripts_still_match_the_reference_content():
     """The text is S2T-shaped now, so compare what did not change.
 
@@ -258,7 +286,7 @@ def test_test_split_transcripts_still_match_the_reference_content():
     prompt = bl._CONFIG["prompt"]
 
     mismatched = []
-    for line in ami_sot_paths.TEST_TEXT.read_text().splitlines():
+    for line in ami_sot_paths.REFERENCE_TEXT.read_text().splitlines():
         utt_id, _, expected = line.partition(" ")
         cut = cuts.get(utt_id)
         assert cut is not None, f"{utt_id} is absent from the cutset"
@@ -323,14 +351,14 @@ def test_data_config_reaches_the_builder_through_the_create_dataset_stage():
 
 
 @ami_sot_paths.needs_cutsets
-@ami_sot_paths.needs_corpus
+@ami_sot_paths.needs_reference_text
 @pytest.mark.execution_timeout(600)
 def test_test_split_selects_exactly_the_reference_utterances():
     """The builder must emit the reference's ROW SET, not just matching text.
 
     Its sibling regression looks each reference line up in the cutset by id and compares
     the text, which says nothing about WHICH cuts the builder would write. The manifest
-    holds 6137 cuts and the prepared corpus holds 6127: ten utterance groups overran
+    holds 6137 cuts and the recorded reference holds 6127: ten utterance groups overran
     Whisper's 30 s window, were truncated to exactly 30.00 s, and are excluded. Without
     the max_cut_duration filter the builder emits all 6137 and every downstream count is
     wrong.
@@ -343,7 +371,8 @@ def test_test_split_selects_exactly_the_reference_utterances():
 
     emitted = sorted(c.id for c in cuts if c.duration < max_duration)
     expected = sorted(
-        line.split()[0] for line in ami_sot_paths.TEST_TEXT.read_text().splitlines()
+        line.split()[0]
+        for line in ami_sot_paths.REFERENCE_TEXT.read_text().splitlines()
     )
 
     assert len(cuts) > len(expected), "the filter must actually drop something"
@@ -362,13 +391,13 @@ def test_build_refuses_a_corpus_it_did_not_create(tmp_path, monkeypatch):
     _single_split_config(tmp_path, monkeypatch)
     split_dir = tmp_path / "data" / "test"
     split_dir.mkdir(parents=True)
-    (split_dir / "text").write_text("someone-elses-utt hello\n")
-    (split_dir / "wav.scp").write_text("someone-elses-utt /somewhere.wav\n")
+    foreign = split_dir / bl._CUTS_FILENAME
+    foreign.write_bytes(b"someone else's corpus")
 
     with pytest.raises(RuntimeError, match="not created by this builder"):
         bl.AmiSotBuilder().build()
 
-    assert (split_dir / "text").read_text() == "someone-elses-utt hello\n"
+    assert foreign.read_bytes() == b"someone else's corpus"
 
 
 @pytest.mark.execution_timeout(30)
@@ -382,7 +411,7 @@ def test_prepare_source_refuses_a_corpus_it_did_not_create(tmp_path, monkeypatch
     _single_split_config(tmp_path, monkeypatch)
     split_dir = tmp_path / "data" / "test"
     split_dir.mkdir(parents=True)
-    (split_dir / "text").write_text("someone-elses-utt hello\n")
+    (split_dir / bl._CUTS_FILENAME).write_bytes(b"someone else's corpus")
 
     with pytest.raises(RuntimeError, match="not created by this builder"):
         bl.AmiSotBuilder().prepare_source()
@@ -414,28 +443,11 @@ def test_an_interrupted_build_can_be_resumed(tmp_path, monkeypatch):
     marker.write_text("claimed\n")
     split_dir = tmp_path / "data" / "test"
     split_dir.mkdir(parents=True)
-    (split_dir / "text").write_text("half-written\n")
+    (split_dir / bl._CUTS_FILENAME).write_bytes(b"half-written")
 
     bl.AmiSotBuilder().build()
 
-    assert "half-written" not in (split_dir / "text").read_text()
-
-
-@pytest.mark.execution_timeout(30)
-def test_build_writes_the_prev_and_ctc_text_the_s2t_model_requires(
-    tmp_path, monkeypatch
-):
-    """ESPnetS2TModel.forward takes text_prev and text_ctc as required args."""
-    _tiny_cutset(tmp_path)
-    _single_split_config(tmp_path, monkeypatch)
-
-    bl.AmiSotBuilder().build()
-
-    split_dir = tmp_path / "data" / "test"
-    for name in ("text.prev", "text.ctc"):
-        assert (split_dir / name).read_text().splitlines() == [
-            "MEET-0.0-2.0 <|nospeech|>"
-        ], name
+    assert [cut.id for cut in _built_cuts(tmp_path)] == ["MEET-0.0-2.0"]
 
 
 @pytest.mark.execution_timeout(300)
@@ -481,10 +493,14 @@ def test_write_token_list_adds_the_vocabulary_without_rebuilding(tmp_path, monke
     _tiny_cutset(tmp_path)
     _single_split_config(tmp_path, monkeypatch)
     bl.AmiSotBuilder().build()
-    text_before = (tmp_path / "data" / "test" / "text").read_text()
+    cuts_before = [
+        (cut.id, cut.custom[bl._SOT_TEXT_FIELD]) for cut in _built_cuts(tmp_path)
+    ]
     (tmp_path / "data" / "tokens.txt").unlink()
 
     bl.AmiSotBuilder().write_token_list()
 
     assert (tmp_path / "data" / "tokens.txt").is_file()
-    assert (tmp_path / "data" / "test" / "text").read_text() == text_before
+    assert [
+        (cut.id, cut.custom[bl._SOT_TEXT_FIELD]) for cut in _built_cuts(tmp_path)
+    ] == cuts_before

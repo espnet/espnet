@@ -93,7 +93,7 @@ def build_output(data: Dict[str, Any], model_output: Any, idx: int) -> Dict[str,
     Args:
         data: The dataset sample, which holds the reference under ``text``.
         model_output: The value ``Speech2Text`` returned for this sample.
-        idx: Position of this sample in ``wav.scp`` order.
+        idx: Position of this sample in the split's cut order.
 
     Returns:
         ``utt_id``, plus ``hyp``/``ref`` for cpWER and ``hyp_sot``/``ref_sot``

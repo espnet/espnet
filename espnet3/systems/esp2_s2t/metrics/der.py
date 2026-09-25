@@ -7,20 +7,40 @@ symbol) is treated as one speaker; within a block, consecutive
 ``<|start|> ... <|end|>`` pairs become segments.
 
 Timestamps are relative to each utterance-group window, so **every group is
-scored as its own RTTM "file"** and the total is aggregated by SCTK's
-``md-eval.pl``. A meeting split across many groups is never scored as one
-long recording, so these numbers are not comparable with published
-session-level ones. The class and the reported key both say ``utterance
-group`` for that reason.
+scored on its own** and the totals are accumulated across groups. A meeting
+split across many groups is never scored as one long recording, so these
+numbers are not comparable with published session-level ones. The class and
+the reported key both say ``utterance group`` for that reason.
+
+Scoring is pyannote.metrics, which needs no external binary. Two of its
+conventions differ from SCTK's ``md-eval.pl`` and are handled here rather
+than left to the caller:
+
+- pyannote extrudes ``collar / 2`` around each reference boundary, while
+  md-eval's ``-c`` forgives that much on each side. ``collar`` below keeps
+  md-eval's meaning and is doubled on the way in.
+- pyannote's default scored region is the union of the reference and
+  hypothesis extents, which counts hypothesis speech past the end of the
+  reference. Each group is scored over ``0`` to the end of its reference
+  instead, which is md-eval's region.
+
+With both in place the reported rate agrees with md-eval to two decimals on
+AMI SDM test. The components do not: false alarm and confusion each differ
+by a few percent, in opposite directions, and that residue was not traced.
 """
 
 import json
 import logging
 import re
-import subprocess
 from collections import defaultdict
 from pathlib import Path
 from typing import Dict, List, Tuple
+
+try:
+    from pyannote.core import Annotation, Segment, Timeline
+    from pyannote.metrics.diarization import DiarizationErrorRate
+except ImportError:
+    DiarizationErrorRate = None
 
 from espnet2.text.cleaner import TextCleaner
 from espnet3.components.metrics.base_metric import BaseMetric
@@ -33,7 +53,6 @@ logger = logging.getLogger(__name__)
 # was trained with.
 _SEP = "▁SPKCHANGE▁"  # internal marker unlikely to occur in text
 _TS_RE = re.compile(r"<\|(\d+(?:\.\d+)?)\|>")
-_DER_RE = re.compile(r"OVERALL SPEAKER DIARIZATION ERROR\s*=\s*([\d.]+)\s*percent")
 
 
 def segments_from_sot(
@@ -60,99 +79,23 @@ def segments_from_sot(
     return segments
 
 
-def write_rttm(rows: List[Tuple[str, int, float, float]], path) -> None:
-    """Write ``(utt_id, speaker_index, start, end)`` rows as an RTTM file.
-
-    Field order matches SCTK's md-eval.pl expectation:
-    ``SPEAKER <file> <channel> <start> <duration> <NA> <NA> <speaker> <NA>
-    <NA>``. Each ``utt_id`` is scored by md-eval.pl as its own "file"
-    (recording), so every utterance group becomes an independent
-    diarization instance.
-    """
-    with Path(path).open("w", encoding="utf-8") as f:
-        for utt_id, speaker_index, start, end in rows:
-            f.write(
-                f"SPEAKER {utt_id} 1 {start:.3f} {end - start:.3f} "
-                f"<NA> <NA> spk{speaker_index} <NA> <NA>\n"
-            )
-
-
-def find_md_eval() -> str:
-    """Return the path to SCTK's md-eval.pl inside this checkout.
-
-    Raises:
-        FileNotFoundError: When SCTK has not been built inside this
-            checkout. There is no fallback: scoring against an unknown
-            md-eval would make the number unreproducible.
-    """
-    return _find_md_eval_from(Path(__file__).resolve())
-
-
-def _find_md_eval_from(start: Path) -> str:
-    """Search ``start``'s ancestors for ``tools/sctk/bin/md-eval.pl``.
-
-    ``Path.parents`` does not stop at a repository boundary, so an unbounded
-    walk could climb past this checkout and return an md-eval.pl from some
-    other checkout entirely -- there are several on this machine. The walk
-    instead stops at, and includes, the first ancestor holding ``.git``
-    (this checkout's root): that directory is still checked for
-    ``tools/sctk``, but its own parent is never examined.
+def build_annotation(segments: List[Tuple[int, float, float]]) -> "Annotation":
+    """Turn one group's segments into a pyannote Annotation.
 
     Args:
-        start: File to search from, typically this module's own path.
+        segments: ``(speaker_index, start, end)`` triples, as
+            :func:`segments_from_sot` returns them.
 
     Returns:
-        The resolved path to ``md-eval.pl``.
-
-    Raises:
-        FileNotFoundError: When no ``tools/sctk/bin/md-eval.pl`` is found at
-            or below the repository root.
+        An Annotation labelled ``spk<index>``. Zero-length segments are
+        dropped: pyannote keeps them, and they would count as reference
+        speech that no hypothesis can ever cover.
     """
-    root = None
-    for parent in start.parents:
-        candidate = parent / "tools" / "sctk" / "bin" / "md-eval.pl"
-        if candidate.is_file():
-            return str(candidate)
-        if (parent / ".git").exists():
-            root = parent
-            break
-    where = f" in the {root} checkout" if root is not None else ""
-    raise FileNotFoundError(
-        f"md-eval.pl not found{where}. Build it with "
-        "tools/installers/install_sctk.sh."
-    )
-
-
-def run_md_eval(md_eval: str, ref_rttm: str, hyp_rttm: str, collar: float) -> float:
-    """Score two RTTM files with SCTK's md-eval.pl.
-
-    Args:
-        md_eval: Path to ``md-eval.pl``.
-        ref_rttm: Reference RTTM path.
-        hyp_rttm: Hypothesis RTTM path.
-        collar: Forgiveness collar in seconds.
-
-    Returns:
-        The overall diarization error rate as a percentage.
-
-    Raises:
-        SystemExit: When md-eval.pl exits non-zero, or prints no overall
-            line. Both are loud on purpose, because a silently wrong DER
-            looks like a result.
-    """
-    proc = subprocess.run(
-        [md_eval, "-c", str(collar), "-r", ref_rttm, "-s", hyp_rttm],
-        capture_output=True,
-        text=True,
-    )
-    match = _DER_RE.search(proc.stdout)
-    if proc.returncode != 0 or not match:
-        logger.error(proc.stdout[-2000:])
-        logger.error(proc.stderr[-1000:])
-        if proc.returncode != 0:
-            raise SystemExit(f"md-eval.pl exited with status {proc.returncode}.")
-        raise SystemExit("Could not parse DER from md-eval.pl output.")
-    return float(match.group(1))
+    annotation = Annotation()
+    for index, start, end in segments:
+        if end > start:
+            annotation[Segment(start, end)] = f"spk{index}"
+    return annotation
 
 
 class UtteranceGroupDER(BaseMetric):
@@ -167,9 +110,10 @@ class UtteranceGroupDER(BaseMetric):
     Args:
         ref_key: Alias of the reference SCP input.
         hyp_key: Alias of the hypothesis SCP input.
-        collar: Forgiveness collar in seconds, passed to md-eval.pl.
-        md_eval: Path to ``md-eval.pl``. Resolved from this repository via
-            ``find_md_eval`` when not given.
+        collar: Seconds forgiven on **each side** of a reference boundary,
+            which is md-eval's convention and the one
+            ``scripts/utils/score_der.sh`` uses. pyannote's own argument is
+            the total width, so this is doubled on the way in.
         clean_types: TextCleaner pipeline used only to count reference
             speakers for the by-speaker-count breakdown, so that breakdown
             covers the same groups as cpWER's.
@@ -184,15 +128,25 @@ class UtteranceGroupDER(BaseMetric):
         ref_key: str = "ref",
         hyp_key: str = "hyp",
         collar: float = 0.25,
-        md_eval: str = None,
         clean_types=None,
     ) -> None:
         self.ref_key = ref_key
         self.hyp_key = hyp_key
         self.collar = collar
-        self.md_eval = md_eval or find_md_eval()
         self.cleaner = TextCleaner(list(clean_types) if clean_types else None)
         self.speaker_change_symbol = speaker_change_symbol
+
+    def _ensure_pyannote(self) -> None:
+        """Raise an error if the optional pyannote dependency is missing.
+
+        Raises:
+            RuntimeError: If ``pyannote.metrics`` is not installed.
+        """
+        if DiarizationErrorRate is None:
+            raise RuntimeError(
+                "pyannote.metrics is required to compute DER. "
+                "Please install it with `pip install espnet[s2t]`."
+            )
 
     def __call__(self, data, test_name, output_dir):
         """Score one test set.
@@ -208,6 +162,7 @@ class UtteranceGroupDER(BaseMetric):
         Returns:
             ``{"ug_DER": <percentage rounded to two decimals>}``.
         """
+        self._ensure_pyannote()
         ref_segments: Dict[str, List[Tuple[int, float, float]]] = {}
         hyp_segments: Dict[str, List[Tuple[int, float, float]]] = {}
         num_ref_speakers: Dict[str, int] = {}
@@ -241,19 +196,28 @@ class UtteranceGroupDER(BaseMetric):
         test_dir = Path(output_dir) / test_name
         test_dir.mkdir(parents=True, exist_ok=True)
 
-        def rows_for(utt_ids, segments) -> List[Tuple[str, int, float, float]]:
-            return [
-                (utt_id, idx, start, end)
-                for utt_id in utt_ids
-                for idx, start, end in segments[utt_id]
-            ]
+        def score(utt_ids) -> float:
+            """Accumulate DER over the given groups and return it as a rate."""
+            metric = DiarizationErrorRate(collar=2 * self.collar)
+            for utt_id in utt_ids:
+                reference = build_annotation(ref_segments[utt_id])
+                if len(reference) == 0:
+                    continue
+                hypothesis = build_annotation(hyp_segments[utt_id])
+                # md-eval scores each file from 0 to the end of its
+                # reference. pyannote would otherwise widen the region to
+                # cover hypothesis speech past that end and charge it as
+                # false alarm.
+                extent = reference.get_timeline().extent()
+                metric(
+                    reference,
+                    hypothesis,
+                    uem=Timeline([Segment(0.0, extent.end)]),
+                )
+            return 100.0 * abs(metric)
 
         all_ids = sorted(ref_segments)
-        ref_rttm = test_dir / "ref.rttm"
-        hyp_rttm = test_dir / "hyp.rttm"
-        write_rttm(rows_for(all_ids, ref_segments), ref_rttm)
-        write_rttm(rows_for(all_ids, hyp_segments), hyp_rttm)
-        score = run_md_eval(self.md_eval, str(ref_rttm), str(hyp_rttm), self.collar)
+        overall = score(all_ids)
 
         by_nspk = defaultdict(list)
         for utt_id, n in num_ref_speakers.items():
@@ -262,14 +226,9 @@ class UtteranceGroupDER(BaseMetric):
         der_by_nspk = {}
         for n in sorted(by_nspk):
             utt_ids = sorted(by_nspk[n])
-            r = test_dir / f"ref_{n}spk.rttm"
-            h = test_dir / f"hyp_{n}spk.rttm"
-            write_rttm(rows_for(utt_ids, ref_segments), r)
-            write_rttm(rows_for(utt_ids, hyp_segments), h)
-            d = run_md_eval(self.md_eval, str(r), str(h), self.collar)
-            der_by_nspk[n] = {"der": d, "num_groups": len(utt_ids)}
+            der_by_nspk[n] = {"der": score(utt_ids), "num_groups": len(utt_ids)}
 
         with (test_dir / "der_by_num_speakers.json").open("w", encoding="utf-8") as f:
             json.dump({str(n): v for n, v in der_by_nspk.items()}, f, indent=2)
 
-        return {"ug_DER": round(score, 2)}
+        return {"ug_DER": round(overall, 2)}

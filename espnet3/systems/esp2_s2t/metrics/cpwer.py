@@ -17,11 +17,12 @@ import json
 import re
 from collections import defaultdict
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List
 
-import editdistance
-import numpy as np
-from scipy.optimize import linear_sum_assignment
+try:
+    from meeteval.wer import cp_word_error_rate
+except ImportError:
+    cp_word_error_rate = None
 
 from espnet2.text.cleaner import TextCleaner
 from espnet3.components.metrics.base_metric import BaseMetric
@@ -56,71 +57,50 @@ def split_speakers(text: str, cleaner, speaker_change_symbol: str) -> List[str]:
     return blocks
 
 
-def edit_counts(ref: List[str], hyp: List[str]) -> Tuple[int, int, int, int]:
-    """Word-level Levenshtein with operation counts -> (cor, sub, del, ins)."""
-    n, m = len(ref), len(hyp)
-    dp = [[0] * (m + 1) for _ in range(n + 1)]
-    bp = [[""] * (m + 1) for _ in range(n + 1)]
-    for i in range(1, n + 1):
-        dp[i][0], bp[i][0] = i, "d"
-    for j in range(1, m + 1):
-        dp[0][j], bp[0][j] = j, "i"
-    for i in range(1, n + 1):
-        for j in range(1, m + 1):
-            if ref[i - 1] == hyp[j - 1]:
-                best, op = dp[i - 1][j - 1], "c"
-            else:
-                best, op = dp[i - 1][j - 1] + 1, "s"
-            if dp[i - 1][j] + 1 < best:
-                best, op = dp[i - 1][j] + 1, "d"
-            if dp[i][j - 1] + 1 < best:
-                best, op = dp[i][j - 1] + 1, "i"
-            dp[i][j], bp[i][j] = best, op
-    cor = sub = dele = ins = 0
-    i, j = n, m
-    while i > 0 or j > 0:
-        op = bp[i][j]
-        if op == "c":
-            cor, i, j = cor + 1, i - 1, j - 1
-        elif op == "s":
-            sub, i, j = sub + 1, i - 1, j - 1
-        elif op == "d":
-            dele, i = dele + 1, i - 1
-        else:
-            ins, j = ins + 1, j - 1
-    return cor, sub, dele, ins
+def count_group_errors(ref_blocks: List[str], hyp_blocks: List[str]) -> Dict[str, int]:
+    """Return optimal-permutation error counts for a single utterance group.
 
+    meeteval finds the assignment of hypothesis speaker blocks to reference
+    speaker blocks that minimizes the total word error, and reports the
+    operation counts under it. Unmatched blocks on either side are handled by
+    meeteval itself: an extra reference speaker becomes deletions, an extra
+    hypothesis speaker becomes insertions.
 
-def group_cpwer(ref_blocks: List[str], hyp_blocks: List[str]) -> Dict[str, int]:
-    """Optimal-permutation error counts for a single utterance group.
+    Note:
+        The operation split is not the only one a minimal alignment admits.
+        Where a word swap can be scored either as one substitution or as one
+        deletion plus one insertion, meeteval and a hand-rolled Levenshtein
+        traceback can disagree while agreeing on the total. Only the totals
+        feed the reported rate; the split reaches the side files.
 
-    Blocks are padded with empty speakers to a square cost matrix so that
-    unmatched reference blocks become deletions and unmatched hypothesis blocks
-    become insertions.
+    Args:
+        ref_blocks: One reference text block per speaker.
+        hyp_blocks: One hypothesis text block per speaker.
+
+    Returns:
+        ``{"cor", "sub", "del", "ins", "ref_len"}`` word counts.
     """
-    ref_w = [b.split() for b in ref_blocks]
-    hyp_w = [b.split() for b in hyp_blocks]
-    k = max(len(ref_w), len(hyp_w))
-    if k == 0:
+    if not ref_blocks and not hyp_blocks:
         return {"cor": 0, "sub": 0, "del": 0, "ins": 0, "ref_len": 0}
-    ref_w += [[] for _ in range(k - len(ref_w))]
-    hyp_w += [[] for _ in range(k - len(hyp_w))]
 
-    cost = np.zeros((k, k), dtype=np.int64)
-    for i in range(k):
-        for j in range(k):
-            cost[i, j] = editdistance.eval(ref_w[i], hyp_w[j])
-    rows, cols = linear_sum_assignment(cost)
-
-    acc = {"cor": 0, "sub": 0, "del": 0, "ins": 0, "ref_len": 0}
-    for i, j in zip(rows, cols):
-        cor, sub, dele, ins = edit_counts(ref_w[i], hyp_w[j])
-        acc["cor"] += cor
-        acc["sub"] += sub
-        acc["del"] += dele
-        acc["ins"] += ins
-        acc["ref_len"] += len(ref_w[i])
-    return acc
+    result = cp_word_error_rate(
+        list(ref_blocks) or [""],
+        list(hyp_blocks) or [""],
+        # The blocks carry no timestamps, and their order is the speaker
+        # order this recipe serialized them in. Saying so keeps meeteval from
+        # warning once per utterance that it cannot sort them.
+        reference_sort=False,
+        hypothesis_sort=False,
+    )
+    return {
+        # ref_len = cor + sub + del, so the correct count follows from the
+        # other two rather than being reported separately.
+        "cor": result.length - result.substitutions - result.deletions,
+        "sub": result.substitutions,
+        "del": result.deletions,
+        "ins": result.insertions,
+        "ref_len": result.length,
+    }
 
 
 def pct(num: float, den: float) -> float:
@@ -169,6 +149,18 @@ class UtteranceGroupCpWER(BaseMetric):
         self.cleaner = TextCleaner(list(clean_types) if clean_types else None)
         self.speaker_change_symbol = speaker_change_symbol
 
+    def _ensure_meeteval(self) -> None:
+        """Raise an error if the optional meeteval dependency is missing.
+
+        Raises:
+            RuntimeError: If ``meeteval`` is not installed.
+        """
+        if cp_word_error_rate is None:
+            raise RuntimeError(
+                "meeteval is required to compute cpWER. "
+                "Please install it with `pip install espnet[s2t]`."
+            )
+
     def __call__(self, data, test_name, output_dir):
         """Score one test set.
 
@@ -187,6 +179,7 @@ class UtteranceGroupCpWER(BaseMetric):
                 the aggregate has nothing to score against. Loud on purpose:
                 a zero denominator would otherwise report a perfect 0.00%.
         """
+        self._ensure_meeteval()
         total = {"cor": 0, "sub": 0, "del": 0, "ins": 0, "ref_len": 0}
         by_nspk = defaultdict(
             lambda: {"cor": 0, "sub": 0, "del": 0, "ins": 0, "ref_len": 0}
@@ -199,7 +192,7 @@ class UtteranceGroupCpWER(BaseMetric):
             hyp_blocks = split_speakers(
                 row[self.hyp_key], self.cleaner, self.speaker_change_symbol
             )
-            acc = group_cpwer(ref_blocks, hyp_blocks)
+            acc = count_group_errors(ref_blocks, hyp_blocks)
             for key in total:
                 total[key] += acc[key]
                 by_nspk[len(ref_blocks)][key] += acc[key]

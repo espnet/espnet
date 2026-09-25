@@ -4,6 +4,7 @@ import importlib.util
 import sys
 from pathlib import Path
 
+import ami_sot_paths
 import pytest
 
 _REPO = Path(__file__).resolve().parents[4]
@@ -51,23 +52,22 @@ def _isolate_module_globals(monkeypatch):
     inf._CONVERTER, inf._TOKENIZER = saved
 
 
+class _FakeCut:
+    """The part of a cut AmiSotDataset reads. No test here loads its audio."""
+
+    def __init__(self, cut_id):
+        self.id = cut_id
+        self.custom = {ds_mod._SOT_TEXT_FIELD: ""}
+
+
 def _build_active_dataset(monkeypatch, split, ids):
     """Construct a real AmiSotDataset for ``split`` without touching disk.
 
     Returns the constructed instance. Construction records ``split`` in os.environ,
     which is what build_output resolves ids through.
     """
-    monkeypatch.setattr(ds_mod, "load_utt_ids", lambda s: list(ids))
-    monkeypatch.setattr(
-        ds_mod, "_load_wav_paths", lambda s: [Path(f"{utt}.wav") for utt in ids]
-    )
-    # filename= is how AmiSotDataset reads text.prev and text.ctc. A stub
-    # without it only survives against a corpus that lacks those two files.
-    monkeypatch.setattr(
-        ds_mod,
-        "load_reference_texts",
-        lambda s, filename="text": {utt: "" for utt in ids},
-    )
+    cuts = [_FakeCut(utt) for utt in ids]
+    monkeypatch.setattr(ds_mod, "load_cuts", lambda s: cuts)
     return ds_mod.AmiSotDataset(split=split)
 
 
@@ -148,18 +148,8 @@ def test_build_output_survives_the_frameworks_own_module_loading(monkeypatch, tm
     yet a third way, via _load_inference_module's flat file path -- still resolves the
     id that split actually assigned.
     """
-    for split, rel_dir, ids in (
-        ("test", "data/test", ["t-0"]),
-        ("valid", "data/dev", ["v-0", "v-1"]),
-    ):
-        split_dir = tmp_path / rel_dir
-        split_dir.mkdir(parents=True)
-        (split_dir / "wav.scp").write_text(
-            "".join(f"{utt} {utt}.wav\n" for utt in ids), encoding="utf-8"
-        )
-        (split_dir / "text").write_text(
-            "".join(f"{utt}\n" for utt in ids), encoding="utf-8"
-        )
+    for rel_dir, ids in (("data/test", ["t-0"]), ("data/dev", ["v-0", "v-1"])):
+        ami_sot_paths.write_cuts(tmp_path / rel_dir, ids)
     monkeypatch.setenv("AMI_SOT_DATA_ROOT", str(tmp_path))
 
     from espnet3.components.data.dataset_module import load_dataset_module
