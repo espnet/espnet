@@ -8,7 +8,6 @@ import numpy as np
 import pytest
 
 from espnet3.api.inference import Audio
-from espnet3.publication.inference_model import InferenceModel
 from espnet3.systems.asr.inference import Inference
 
 
@@ -54,26 +53,31 @@ def test_audio_is_resampled_to_the_frontend_rate():
 
 
 def test_from_pretrained_takes_a_directory_or_a_tag(tmp_path, monkeypatch):
+    import espnet3.systems.asr.inference as module
+
     backend = FakeSpeech2Text()
     calls = []
 
-    def from_packed(pack_dir, device=None, **kw):
-        calls.append(("packed", str(pack_dir), device))
-        return SimpleNamespace(model=backend)
+    def locate_pack(tag_or_dir):
+        calls.append(("locate", str(tag_or_dir)))
+        return tmp_path
 
-    def from_pretrained(tag, device=None, **kw):
-        calls.append(("tag", tag, device))
-        return SimpleNamespace(model=backend)
+    def load_backend(pack_dir, *, device=None):
+        calls.append(("build", str(pack_dir), device))
+        return backend
 
-    monkeypatch.setattr(InferenceModel, "from_packed", staticmethod(from_packed))
-    monkeypatch.setattr(
-        InferenceModel, "from_pretrained", staticmethod(from_pretrained)
-    )
+    monkeypatch.setattr(module, "locate_pack", locate_pack)
+    monkeypatch.setattr(module, "load_backend", load_backend)
 
     assert Inference.from_pretrained(tmp_path, device="cpu").speech2text is backend
     assert (
         Inference.from_pretrained("org/model", device="cuda:0").speech2text is backend
     )
-    assert calls == [("packed", str(tmp_path), "cpu"), ("tag", "org/model", "cuda:0")]
+    assert calls == [
+        ("locate", str(tmp_path)),
+        ("build", str(tmp_path), "cpu"),
+        ("locate", "org/model"),
+        ("build", str(tmp_path), "cuda:0"),
+    ]
     with pytest.raises(TypeError, match="unexpected arguments"):
         Inference.from_pretrained(tmp_path, beam_size=3)

@@ -87,8 +87,10 @@ class Audio:
             array = array / np.iinfo(array.dtype).max
         array = array.astype(np.float32, copy=False)
         if array.ndim == 2:
-            # (samples, channels), as soundfile and Gradio lay it out
-            array = array.mean(axis=1)
+            # (samples, channels) as soundfile and Gradio lay it out,
+            # (channels, samples) as torchaudio does: channels are the short
+            # axis, there being far fewer of them than samples.
+            array = array.mean(axis=0 if array.shape[0] < array.shape[1] else 1)
         if array.ndim != 1:
             raise ValueError(f"audio must be 1-D, got shape {array.shape}")
         object.__setattr__(self, "array", array)
@@ -380,7 +382,18 @@ def load(
                 "before pack_model recorded one. Pass system=<name>."
             )
     system = SYSTEM_ALIASES.get(system, system)
-    module = importlib.import_module(f"espnet3.systems.{system}.inference")
+    name = f"espnet3.systems.{system}.inference"
+    try:
+        module = importlib.import_module(name)
+    except ModuleNotFoundError as e:
+        # the system's own module missing is one thing; a dependency it
+        # imports missing is another, and stays the error it was
+        if e.name is None or not (e.name == name or name.startswith(e.name + ".")):
+            raise
+        raise ImportError(
+            f"no {name}: system {system!r} has no Inference yet, or meta.yaml "
+            "names the wrong system. Pass system=<name>."
+        ) from e
     cls = getattr(module, "Inference", None)
     if not isinstance(cls, type) or not issubclass(cls, InferenceAPI):
         raise ImportError(
