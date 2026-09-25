@@ -125,7 +125,7 @@ select = [
     "E", # pycodestyle errors
     "W", # pycodestyle warnings
     # "F", # flake8
-    "I", # isort
+    # "I", # imports (temporarily disabled due to conflicts with isort)
     "D", # docstrings (ESPnet3 only)
 ]
 
