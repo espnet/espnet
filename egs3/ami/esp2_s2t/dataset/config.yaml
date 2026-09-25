@@ -1,6 +1,10 @@
 # Builder and dataset settings, loaded at import time by dataset/__init__.py.
 builder:
-  # Root the split directories resolve against.
+  # Root the split directories resolve against. The default is the recipe
+  # directory, so a plain run writes data/{train,dev,test} beside run.py, and
+  # AMI_SOT_DATA_ROOT moves the whole corpus without editing this file. What
+  # is fetched rather than built goes under downloads/ instead; see cutset_dir
+  # and ami_audio_root below.
   data_root: ${oc.env:AMI_SOT_DATA_ROOT,.}
 
   split_dirs:
@@ -21,8 +25,8 @@ builder:
   cutset_repo: espnet/multi-talker-whisper-small-ami
   cutset_dir: ${oc.env:AMI_SOT_CUTSET_DIR,downloads/cutsets}
 
-  # AMI SDM audio, in the <root>/<meeting>/audio/<meeting>.Array1-01.wav layout
-  # egs2/ami/asr1/local/ami_download.sh produces. The manifests store absolute
+  # AMI SDM audio, in the <root>/wav_db/<meeting>/audio/<file>.wav layout
+  # lhotse.recipes.ami.download_audio produces. The manifests store absolute
   # paths from wherever they were built, so the builder relocates every
   # recording into this root by basename.
   ami_audio_root: ${oc.env:AMI_AUDIO_ROOT,downloads/ami}

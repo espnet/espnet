@@ -103,19 +103,21 @@ def count_group_errors(ref_blocks: List[str], hyp_blocks: List[str]) -> Dict[str
     }
 
 
-def pct(num: float, den: float) -> float:
-    return 100.0 * num / den if den else 0.0
+def get_percentage(numerator: float, denominator: float) -> float:
+    """Return a percentage, or 0.0 when there is nothing to divide by."""
+    return 100.0 * numerator / denominator if denominator else 0.0
 
 
-def utt_cpwer(errors: int, ref_len: int):
+def get_utt_cpwer(errors: int, ref_len: int):
     """Per-utterance cpWER, or ``None`` when the reference is empty.
 
-    ``pct`` returns 0.0 for a zero denominator, which would report a group
-    whose reference is empty and whose hypothesis is not as a perfect score.
+    ``get_percentage`` returns 0.0 for a zero denominator, which would report
+    a group whose reference is empty and whose hypothesis is not as a perfect
+    score.
     Those insertions are still counted in the aggregate; only this
     per-utterance figure is undefined, so it is reported as ``null``.
     """
-    return pct(errors, ref_len) if ref_len else None
+    return get_percentage(errors, ref_len) if ref_len else None
 
 
 class UtteranceGroupCpWER(BaseMetric):
@@ -144,6 +146,13 @@ class UtteranceGroupCpWER(BaseMetric):
         hyp_key: str = "hyp",
         clean_types=None,
     ) -> None:
+        if not speaker_change_symbol:
+            raise ValueError(
+                "speaker_change_symbol is required and must be the symbol the "
+                "checkpoint was trained with. Splitting on nothing scores a "
+                "whole utterance group as one speaker, which reads as a poor "
+                "result rather than as a misconfiguration."
+            )
         self.ref_key = ref_key
         self.hyp_key = hyp_key
         self.cleaner = TextCleaner(list(clean_types) if clean_types else None)
@@ -198,7 +207,7 @@ class UtteranceGroupCpWER(BaseMetric):
                 by_nspk[len(ref_blocks)][key] += acc[key]
             errors = acc["sub"] + acc["del"] + acc["ins"]
             per_utt[utt_id] = {
-                "cpwer": utt_cpwer(errors, acc["ref_len"]),
+                "cpwer": get_utt_cpwer(errors, acc["ref_len"]),
                 "errors": errors,
                 "ref_len": acc["ref_len"],
                 "num_ref_speakers": len(ref_blocks),
@@ -209,14 +218,14 @@ class UtteranceGroupCpWER(BaseMetric):
         if total["ref_len"] == 0:
             raise ValueError(
                 f"cpWER cannot be computed for test set {test_name!r}: every "
-                "reference was empty (total ref_len is 0). pct() returns "
+                "reference was empty (total ref_len is 0). get_percentage() returns "
                 "0.0 for a zero denominator, which would otherwise misreport "
                 "a perfect score instead of failing. The likely cause is an "
                 "output function that wrote an empty string for every "
                 f"reference. Check that the {self.ref_key!r} input actually "
                 "carries reference text."
             )
-        score = pct(errors, total["ref_len"])
+        score = get_percentage(errors, total["ref_len"])
 
         test_dir = Path(output_dir) / test_name
         test_dir.mkdir(parents=True, exist_ok=True)
@@ -227,7 +236,7 @@ class UtteranceGroupCpWER(BaseMetric):
                 {
                     str(n): {
                         **counts,
-                        "cpwer": utt_cpwer(
+                        "cpwer": get_utt_cpwer(
                             counts["sub"] + counts["del"] + counts["ins"],
                             counts["ref_len"],
                         ),

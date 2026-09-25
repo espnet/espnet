@@ -1,20 +1,37 @@
-"""Runner template for S2T experiments.
+#!/usr/bin/env python3
+"""Runner template for esp2_s2t experiments.
 
-The argument parsing and stage dispatch are the generic ones. They live
-under ``egs3/TEMPLATE/asr`` because that is where the first system to need
-them put them; nothing in them is ASR-specific.
+A copy of the generic runner rather than an import of it, so this system's
+recipes do not depend on another system's template: ``main`` merges every
+recipe config over this package's own ``conf/``, which is what ``__package__``
+below resolves to.
 """
 
 from __future__ import annotations
 
-from typing import List
+import argparse
+from pathlib import Path
+from typing import List, Sequence
 
-from egs3.TEMPLATE.asr.run import build_parser, main, parse_cli_and_stage_args
 from espnet3.systems.esp2_s2t.system import S2TSystem
+from espnet3.utils.config_utils import (
+    load_and_merge_config,
+)
+from espnet3.utils.logging_utils import configure_logging
+from espnet3.utils.run_utils import (
+    apply_training_experiment_context,
+    resolve_loaded_configs,
+    validate_experiment_context,
+)
+from espnet3.utils.stages_utils import (
+    parse_cli_and_stage_args,
+    resolve_stages,
+    run_stages,
+)
 
-# The generic list minus train_tokenizer: an S2T vocabulary ships with the
-# pretrained model, so there is nothing to train. Advertising the stage would
-# let --stages reach a method that only raises.
+# No train_tokenizer: an S2T vocabulary ships with the pretrained checkpoint,
+# so there is nothing to train. No demo stages either: this template ships no
+# demo.yaml default and no demo app.
 DEFAULT_STAGES: List[str] = [
     "create_dataset",
     "collect_stats",
@@ -25,10 +42,183 @@ DEFAULT_STAGES: List[str] = [
     "upload_model",
 ]
 
-__all__ = [
-    "DEFAULT_STAGES",
-    "S2TSystem",
-    "build_parser",
-    "main",
-    "parse_cli_and_stage_args",
-]
+
+def build_parser(
+    stages: Sequence[str],
+) -> argparse.ArgumentParser:
+    """Build base ArgumentParser and let caller extend it."""
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument(
+        "--stages",
+        choices=list(stages) + ["all"],
+        nargs="+",
+        default=list(stages),
+        help="Which stages to run. Multiple values allowed.",
+    )
+    parser.add_argument(
+        "--training_config",
+        default=None,
+        type=Path,
+        help=(
+            "Hydra config for training (passed to load_config_with_defaults). "
+            "Required for create_dataset/collect_stats/train stages."
+        ),
+    )
+    parser.add_argument(
+        "--inference_config",
+        default=None,
+        type=Path,
+        help="Hydra config for infer stage.",
+    )
+    parser.add_argument(
+        "--metrics_config",
+        default=None,
+        type=Path,
+        help="Hydra config for measure stage.",
+    )
+    parser.add_argument(
+        "--publication_config",
+        default=None,
+        type=Path,
+        help="Hydra config for pack/upload stages.",
+    )
+    parser.add_argument(
+        "--dry_run",
+        action="store_true",
+        help="Print what would be executed without actually running stages.",
+    )
+    parser.add_argument(
+        "--write_requirements",
+        action="store_true",
+        help="Write requirements.txt alongside each stage log.",
+    )
+    return parser
+
+
+def main(
+    args,
+    system_cls,
+    stages: Sequence[str] = DEFAULT_STAGES,
+) -> None:
+    stages_to_run = resolve_stages(args.stages, stages)
+
+    # -----------------------------------------
+    # Load configs
+    # -----------------------------------------
+    # Keep default_package explicit so the recipe declares which package
+    # provides the default configs, instead of relying on path-based
+    # inference from the user-supplied config location.
+    training_config = load_and_merge_config(
+        args.training_config,
+        config_name="training.yaml",
+        default_package=__package__,
+        resolve=False,
+    )
+    inference_config = load_and_merge_config(
+        args.inference_config,
+        config_name="inference.yaml",
+        default_package=__package__,
+        resolve=False,
+    )
+    metrics_config = load_and_merge_config(
+        args.metrics_config,
+        config_name="metrics.yaml",
+        default_package=__package__,
+        resolve=False,
+    )
+    publication_config = load_and_merge_config(
+        args.publication_config,
+        config_name="publication.yaml",
+        default_package=__package__,
+        resolve=False,
+    )
+    logger = configure_logging()
+    apply_training_experiment_context(
+        training_config=training_config,
+        inference_config=inference_config,
+        metrics_config=metrics_config,
+        publication_config=publication_config,
+        demo_config=None,
+        log=logger,
+    )
+    validate_experiment_context(
+        training_config=training_config,
+        inference_config=inference_config,
+        metrics_config=metrics_config,
+        stages_to_run=stages_to_run,
+    )
+    resolve_loaded_configs(
+        training_config,
+        inference_config,
+        metrics_config,
+        publication_config,
+    )
+
+    # -----------------------------------------
+    # Instantiate system
+    # -----------------------------------------
+    system = system_cls(
+        training_config=training_config,
+        inference_config=inference_config,
+        metrics_config=metrics_config,
+        publication_config=publication_config,
+        demo_config=None,
+    )
+
+    # -----------------------------------------
+    # Resolve stages and run
+    # -----------------------------------------
+    logger.info("System: %s", system_cls.__name__)
+    logger.info("Requested stages: %s", args.stages)
+    logger.info("Resolved stages: %s", stages_to_run)
+
+    # Guardrail: ensure required configs exist for requested stages
+    pretrain_stages = {
+        "create_dataset",
+        "collect_stats",
+        "train",
+    }
+    required_configs = {}
+    required_configs.update({stage: training_config for stage in pretrain_stages})
+    required_configs.update({"infer": inference_config, "measure": metrics_config})
+    required_configs.update(
+        {
+            "pack_model": (training_config, publication_config),
+            "upload_model": publication_config,
+        }
+    )
+    missing = [
+        s
+        for s in stages_to_run
+        if s in required_configs
+        and (
+            any(cfg is None for cfg in required_configs[s])
+            if isinstance(required_configs[s], tuple)
+            else required_configs[s] is None
+        )
+    ]
+    if missing:
+        missing_str = ", ".join(missing)
+        raise ValueError(
+            f"Config not provided for stage(s): {missing_str}. "
+            "Use --training_config/--inference_config/--metrics_config/"
+            "--publication_config."
+        )
+    run_stages(
+        system=system,
+        stages_to_run=stages_to_run,
+        args=args,
+        log=logger,
+    )
+
+
+if __name__ == "__main__":
+    parser = build_parser(stages=DEFAULT_STAGES)
+    args, _ = parse_cli_and_stage_args(parser, stages=DEFAULT_STAGES)
+
+    main(
+        args=args,
+        system_cls=S2TSystem,
+        stages=DEFAULT_STAGES,
+    )

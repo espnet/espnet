@@ -47,11 +47,17 @@ def _token_list(extra=()):
 
 
 def _build(token_list=None, **kwargs):
+    """Build the preprocessor, defaulting to the released checkpoint's symbol.
+
+    The class takes no default for it -- the symbol belongs to a checkpoint --
+    so the tests name the one the token list above is built with.
+    """
     options = dict(
         train=False,
         token_type="whisper_multilingual",
         token_list=token_list if token_list is not None else _token_list(),
         bpemodel="whisper_multilingual",
+        speaker_change_symbol="????",
         notime_symbol="<|notimestamps|>",
         first_time_symbol="<|0.00|>",
         last_time_symbol="<|30.00|>",

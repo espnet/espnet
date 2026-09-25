@@ -1,0 +1,45 @@
+##########################################################
+#                 METRIC SCORING SETTING                 #
+##########################################################
+# Quick usage:
+#   python run.py --stages measure --metrics_config conf/metrics.yaml
+#
+# Assumes `infer` has written `<test_name>/*.scp`. When `dataset.test` is
+# omitted, the test sets are discovered from `${inference_dir}`.
+
+##########################################################
+#                    PATHS AND INPUTS                    #
+##########################################################
+recipe_dir: .
+# Leave empty in a recipe and pass `--inference_config` as well, so `measure`
+# reads the directory `infer` wrote.
+exp_tag:
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+
+##########################################################
+#                    METRIC DEFINITION                   #
+##########################################################
+# The metrics this system ships. Both score one utterance group at a time, so
+# what they report is NOT comparable with a session-level cpWER or DER: a group
+# is a short window, and every window gets its own speaker permutation.
+#
+# Both need the separator symbol the checkpoint was trained with, and neither
+# has a default: scoring a checkpoint against the wrong symbol reads as a bad
+# result rather than as a misconfiguration. It is deliberately absent here, so
+# a recipe that forgets it fails at construction. A recipe replaces this whole
+# list, adding `speaker_change_symbol` to each metric.
+metrics:
+  - metric:
+      _target_: espnet3.systems.esp2_s2t.metrics.cpwer.UtteranceGroupCpWER
+      clean_types:        # optional TextCleaner pipeline, e.g. [whisper_en]
+    inputs:
+      ref: ref            # -> `<test_name>/ref.scp`
+      hyp: hyp            # -> `<test_name>/hyp.scp`
+
+  - metric:
+      _target_: espnet3.systems.esp2_s2t.metrics.der.UtteranceGroupDER
+      collar: 0.25        # forgiveness collar, seconds
+      clean_types:
+    inputs:
+      ref: ref_sot        # the view that keeps timestamps
+      hyp: hyp_sot

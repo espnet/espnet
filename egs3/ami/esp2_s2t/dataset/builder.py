@@ -18,67 +18,13 @@ written out per utterance.
 
 from __future__ import annotations
 
-import importlib.util
 import logging
-import sys
 from pathlib import Path
 
+from egs3.ami.esp2_s2t.dataset import sot_text
+from egs3.ami.esp2_s2t.dataset.dataset import _CONFIG, _split_dir
+from egs3.ami.esp2_s2t.dataset.text_norm import get_text_norm
 from espnet3.components.data.dataset_builder import DatasetBuilder
-
-if __package__:
-    # Normal case: this module is part of the real egs3.ami.esp2_s2t.dataset
-    # package, so the relative import resolves against it directly. Gating
-    # on __package__ instead of wrapping this in try/except ImportError
-    # means a genuine breakage in dataset.py (for example _CONFIG or
-    # _split_dir renamed) surfaces as its own ImportError here, rather than
-    # being caught and silently rerouted into the fallback below.
-    from . import sot_text
-    from .dataset import _CONFIG, _split_dir
-    from .text_norm import get_text_norm
-else:
-    # A relative import has no parent package to resolve against when this
-    # file is loaded standalone, for example via
-    # ``importlib.util.spec_from_file_location`` in tests with a flat,
-    # non-dotted module name (so __package__ is ``""``). Fall back to
-    # loading the sibling module by file path so ``_CONFIG`` and
-    # ``_split_dir`` still come from ``dataset.py`` rather than being
-    # redefined here.
-    _module_key = f"{__name__}._ami_sot_dataset_impl"
-    if _module_key in sys.modules:
-        _dataset = sys.modules[_module_key]
-    else:
-        _spec = importlib.util.spec_from_file_location(
-            _module_key, Path(__file__).resolve().parent / "dataset.py"
-        )
-        _dataset = importlib.util.module_from_spec(_spec)
-        sys.modules[_module_key] = _dataset
-        _spec.loader.exec_module(_dataset)
-    _CONFIG = _dataset._CONFIG
-    _split_dir = _dataset._split_dir
-
-    _sot_key = f"{__name__}._ami_sot_text_impl"
-    if _sot_key in sys.modules:
-        sot_text = sys.modules[_sot_key]
-    else:
-        _sot_spec = importlib.util.spec_from_file_location(
-            _sot_key, Path(__file__).resolve().parent / "sot_text.py"
-        )
-        sot_text = importlib.util.module_from_spec(_sot_spec)
-        sys.modules[_sot_key] = sot_text
-        _sot_spec.loader.exec_module(sot_text)
-
-    _norm_key = f"{__name__}._ami_sot_text_norm_impl"
-    if _norm_key in sys.modules:
-        _text_norm = sys.modules[_norm_key]
-    else:
-        _norm_spec = importlib.util.spec_from_file_location(
-            _norm_key, Path(__file__).resolve().parent / "text_norm.py"
-        )
-        _text_norm = importlib.util.module_from_spec(_norm_spec)
-        sys.modules[_norm_key] = _text_norm
-        _norm_spec.loader.exec_module(_text_norm)
-    get_text_norm = _text_norm.get_text_norm
-
 
 logger = logging.getLogger(__name__)
 
@@ -119,29 +65,29 @@ class AmiSotBuilder(DatasetBuilder):
     """Build the AMI SOT split directories from cutsets and AMI audio."""
 
     # ------------------------------------------------------------- helpers
-    def _root(self, key: str) -> Path:
+    def _get_root(self, key: str) -> Path:
         """Resolve a configured directory against ``data_root``."""
         path = Path(_CONFIG[key])
         return path if path.is_absolute() else Path(_CONFIG["data_root"]) / path
 
-    def _cutset_path(self, split: str) -> Path:
+    def _get_cutset_path(self, split: str) -> Path:
         """Return the local path of ``split``'s CutSet manifest."""
-        return self._root("cutset_dir") / _CONFIG["sot"][split]["cutset"]
+        return self._get_root("cutset_dir") / _CONFIG["sot"][split]["cutset"]
 
     # -------------------------------------------------------------- source
     def is_source_prepared(self, **kwargs) -> bool:
         """Return True when every cutset and some AMI audio is on disk."""
-        if not all(self._cutset_path(s).is_file() for s in _CONFIG["sot"]):
+        if not all(self._get_cutset_path(s).is_file() for s in _CONFIG["sot"]):
             return False
-        audio_root = self._root("ami_audio_root")
+        audio_root = self._get_root("ami_audio_root")
         return audio_root.is_dir() and any(audio_root.glob("**/audio/*.wav"))
 
     def _prepare_source_impl(self, **kwargs) -> None:
         """Download the cutsets and, when absent, the AMI SDM audio."""
-        cutset_dir = self._root("cutset_dir")
+        cutset_dir = self._get_root("cutset_dir")
         cutset_dir.mkdir(parents=True, exist_ok=True)
         for split, options in _CONFIG["sot"].items():
-            if self._cutset_path(split).is_file():
+            if self._get_cutset_path(split).is_file():
                 continue
             logger.info("Fetching %s cutset %s", split, options["cutset"])
             from huggingface_hub import hf_hub_download
@@ -152,7 +98,7 @@ class AmiSotBuilder(DatasetBuilder):
                 local_dir=str(cutset_dir),
             )
 
-        audio_root = self._root("ami_audio_root")
+        audio_root = self._get_root("ami_audio_root")
         if audio_root.is_dir() and any(audio_root.glob("**/audio/*.wav")):
             return
         audio_root.mkdir(parents=True, exist_ok=True)
@@ -302,14 +248,14 @@ class AmiSotBuilder(DatasetBuilder):
         options = _CONFIG["sot"][split]
         split_dir = _split_dir(split)
         split_dir.mkdir(parents=True, exist_ok=True)
-        audio_root = self._root("ami_audio_root")
+        audio_root = self._get_root("ami_audio_root")
 
         max_duration = _CONFIG["max_cut_duration"]
         # Resolved once per split rather than per cut: the CHiME-8 normalizer
         # loads a 56 KB spelling table at construction.
         normalizer = get_text_norm(options.get("text_norm"))
         kept = []
-        for cut in CutSet.from_file(str(self._cutset_path(split))):
+        for cut in CutSet.from_file(str(self._get_cutset_path(split))):
             if cut.duration >= max_duration:
                 # A group whose span overran Whisper's window was truncated to
                 # exactly the limit, losing the speech the transcript still

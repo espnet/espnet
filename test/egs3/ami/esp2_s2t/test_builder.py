@@ -102,9 +102,13 @@ def _single_split_config(tmp_path, monkeypatch, **sot):
         "max_timestamp_pause": 2.0,
     }
     options.update(sot)
-    monkeypatch.setitem(bl._CONFIG, "data_root", str(tmp_path))
-    monkeypatch.setitem(bl._CONFIG, "cutset_dir", "cutsets")
-    monkeypatch.setitem(bl._CONFIG, "ami_audio_root", "audio")
+    # The three location keys interpolate ${oc.env:...} lazily, so they are set
+    # through the environment. Assigning over such a node freezes it: monkeypatch
+    # restores the resolved string rather than the interpolation, and every later
+    # test in the process would then read whatever root this one used.
+    monkeypatch.setenv("AMI_SOT_DATA_ROOT", str(tmp_path))
+    monkeypatch.setenv("AMI_SOT_CUTSET_DIR", "cutsets")
+    monkeypatch.setenv("AMI_AUDIO_ROOT", "audio")
     monkeypatch.setitem(bl._CONFIG, "split_dirs", {"test": "data/test"})
     monkeypatch.setitem(bl._CONFIG, "sot", {"test": options})
     monkeypatch.setitem(bl._CONFIG, "separator", "????")
@@ -200,7 +204,7 @@ def test_asking_whether_the_source_is_prepared_downloads_nothing(tmp_path, monke
     _tiny_cutset(tmp_path)
     _single_split_config(tmp_path, monkeypatch)
     # Cutsets present, audio absent: the branch the download sits behind.
-    monkeypatch.setitem(bl._CONFIG, "ami_audio_root", "no_audio_here")
+    monkeypatch.setenv("AMI_AUDIO_ROOT", "no_audio_here")
 
     assert bl.AmiSotBuilder().is_source_prepared() is False
 

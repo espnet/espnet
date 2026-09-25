@@ -47,9 +47,45 @@ def _isolate_module_globals(monkeypatch):
     monkeypatch.delenv(ds_mod._CURRENT_SPLIT_ENV, raising=False)
     monkeypatch.setattr(ds_mod, "_CACHED_SPLIT", None)
     monkeypatch.setattr(ds_mod, "_CACHED_UTT_IDS", None)
-    saved = (inf._CONVERTER, inf._TOKENIZER)
+    original = inf._get_tokenizers
     yield
-    inf._CONVERTER, inf._TOKENIZER = saved
+    # A test that seeded fakes replaced the cached factory outright; put the
+    # module's own back and drop anything the real one cached.
+    inf._get_tokenizers = original
+    inf._get_tokenizers.cache_clear()
+
+
+class _PassThroughTokenizer:
+    """Renders a token id list back as itself, so no test needs Whisper."""
+
+    def ids2tokens(self, ids):
+        return list(ids)
+
+    def tokens2text(self, tokens):
+        return "".join(tokens)
+
+
+def _seed_fake_tokenizers(module):
+    """Replace ``module``'s tokenizer pair, so no test reaches Whisper.
+
+    The real pair is built behind an lru_cache, which cannot be primed with a
+    chosen value, so the cached function itself is what gets replaced. The
+    autouse fixture clears the real cache afterwards.
+
+    Args:
+        module: The inference module to seed.
+
+    Returns:
+        A callable restoring the module's own factory.
+    """
+    fake = _PassThroughTokenizer()
+    original = module._get_tokenizers
+    module._get_tokenizers = lambda: (fake, fake)
+
+    def restore():
+        module._get_tokenizers = original
+
+    return restore
 
 
 class _FakeCut:
@@ -196,15 +232,7 @@ def _fake_model_output(rendered: str):
     a tokenizer that returns a fixed rendering.
     """
 
-    class _Tokenizer:
-        def ids2tokens(self, ids):
-            return list(ids)
-
-        def tokens2text(self, tokens):
-            return "".join(tokens)
-
-    inf._CONVERTER = _Tokenizer()
-    inf._TOKENIZER = _Tokenizer()
+    _seed_fake_tokenizers(inf)
     ids = ["<|en|>", "<|transcribe|>"] + ([rendered] if rendered else [])
     return [("ignored", [], ids, None, None)]
 
@@ -218,16 +246,7 @@ def test_build_output_keeps_whatever_symbol_the_model_emitted(monkeypatch):
     """
     reloaded = _load_inference_module()
     _build_active_dataset(monkeypatch, "test", ["utt-0"])
-
-    class _Tokenizer:
-        def ids2tokens(self, ids):
-            return list(ids)
-
-        def tokens2text(self, tokens):
-            return "".join(tokens)
-
-    reloaded._CONVERTER = _Tokenizer()
-    reloaded._TOKENIZER = _Tokenizer()
+    _seed_fake_tokenizers(reloaded)
     out = reloaded.build_output(
         data={"text": "<|0.00|> r@@s<|1.00|>"},
         model_output=[

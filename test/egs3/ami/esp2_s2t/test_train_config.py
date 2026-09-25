@@ -25,7 +25,7 @@ def _config():
     return load_and_merge_config(
         ami_sot_paths.RECIPE / "conf" / "training.yaml",
         config_name="training.yaml",
-        default_package="egs3.TEMPLATE.asr",
+        default_package=ami_sot_paths.TEMPLATE_PACKAGE,
         resolve=True,
     )
 

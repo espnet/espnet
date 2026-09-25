@@ -33,6 +33,11 @@ import pytest
 REPO = Path(__file__).resolve().parents[4]
 RECIPE = REPO / "egs3" / "ami" / "esp2_s2t"
 
+# The package whose conf/ the recipe's configs are merged over. run.py reaches
+# it through egs3.TEMPLATE.esp2_s2t.run.main, which passes its own package;
+# naming it once here keeps the tests from drifting off what run.py does.
+TEMPLATE_PACKAGE = "egs3.TEMPLATE.esp2_s2t"
+
 
 def _env_path(name: str):
     """Return the path in ``name``, or None when it is unset or empty."""

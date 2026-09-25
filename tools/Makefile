@@ -309,6 +309,13 @@ lora.done: espnet.done
 	. ./activate_python.sh && ./installers/install_lora.sh
 	$(call end_timer_and_touch,lora.done)
 
+# Not an espnet extra: chime-utils is not on PyPI, and pip rejects a URL
+# dependency in a published package's metadata.
+chime_utils.done: espnet.done
+	$(call start_timer,chime_utils.done)
+	. ./activate_python.sh && ./installers/install_chime_utils.sh
+	$(call end_timer_and_touch,chime_utils.done)
+
 k2.done: espnet.done
 	$(call start_timer,k2.done)
 	. ./activate_python.sh && ./installers/install_k2.sh

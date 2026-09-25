@@ -64,8 +64,9 @@ def test_metric_writes_a_by_speaker_count_side_file(tmp_path):
 def test_metric_raises_when_every_reference_is_empty(tmp_path):
     """A run whose references all came out empty must fail loudly.
 
-    total["ref_len"] would be 0, and pct() returns 0.0 for a zero denominator, so an
-    unguarded aggregate would misreport a perfect 0.00% instead. The realistic way in is
+    total["ref_len"] would be 0, and get_percentage() returns 0.0 for a zero
+    denominator, so an unguarded aggregate would misreport a perfect 0.00%
+    instead. The realistic way in is
     src/inference.py's ``data.get("text", "")``, which silently empties every reference
     if the dataset's text key is ever renamed.
     """
@@ -84,9 +85,9 @@ def test_by_speaker_count_file_reports_null_not_zero_for_empty_references(
     """cpwer_by_num_speakers.json must agree with cpwer_per_utt.json.
 
     Both describe the same zero-reference-speaker groups, and cpwer_per_utt.json already
-    reports ``null`` for one (via utt_cpwer). The by-speaker-count file must not
-    independently call the unguarded ``pct`` and report a contradictory 0.0 for the same
-    group.
+    reports ``null`` for one (via get_utt_cpwer). The by-speaker-count file must not
+    independently call the unguarded ``get_percentage`` and report a
+    contradictory 0.0 for the same group.
     """
     ref = tmp_path / "ref.scp"
     hyp = tmp_path / "hyp.scp"

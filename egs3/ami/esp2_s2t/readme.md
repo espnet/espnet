@@ -8,20 +8,23 @@ cpWER and DER.
 
 `create_dataset` fetches the Lhotse CutSet manifests from the Hugging Face repo
 named by `builder.cutset_repo` in `dataset/config.yaml`, downloads the AMI SDM
-audio with [`egs2/ami/asr1/local/ami_download.sh`](../../../egs2/ami/asr1/local/ami_download.sh),
-and writes `data/{train,dev,test}`. Set `AMI_SOT_DATA_ROOT` to build somewhere
-other than the recipe directory, or to reuse a prepared corpus.
+audio with `lhotse.recipes.ami.download_audio`, and writes one CutSet per
+split under `data/{train,dev,test}`. A cut names the offset, duration and
+channel its audio comes from, so no per-group wav is written. Set
+`AMI_SOT_DATA_ROOT` to build somewhere other than the recipe directory, or to
+reuse a prepared corpus.
 
-Beyond ESPnet's own requirements the recipe needs `openai-whisper` (the
-tokenizer and the pretrained encoder and decoder), `lhotse` (reading the
-CutSet manifests in `create_dataset`) and SCTK's `md-eval.pl` for the DER
-metric, which `tools/installers/install_sctk.sh` builds.
-
-`create_dataset` normalizes the transcript with the CHiME-8 English text
-normalizer, which is not on PyPI:
+Everything the recipe imports comes with:
 
 ```bash
-pip install git+https://github.com/chimechallenge/chime-utils@main
+pip install "espnet[s2t]"
+```
+
+`create_dataset` also normalizes the transcript with the CHiME-8 English text
+normalizer, which is not on PyPI and so cannot be an extra:
+
+```bash
+cd tools && make chime_utils.done
 ```
 
 Set `text_norm: none` in `dataset/config.yaml` to build without it.
@@ -32,7 +35,7 @@ Every knob the recipe reads from the environment, all optional:
 | --- | --- | --- |
 | `AMI_SOT_DATA_ROOT` | Corpus root the builder writes and the stages read | the recipe directory |
 | `AMI_SOT_CUTSET_DIR` | Where the CutSet manifests are fetched to | `downloads/cutsets` |
-| `AMI_AUDIO_ROOT` | AMI SDM audio, in `ami_download.sh`'s layout | `downloads/ami` |
+| `AMI_AUDIO_ROOT` | AMI SDM audio, in lhotse's `wav_db/<meeting>/audio` layout | `downloads/ami` |
 | `AMI_SOT_CHECKPOINT_DIR` | Directory holding `config.yaml` and `model.pth` for `infer` | `exp/whisper_sot_s2t` |
 | `AMI_SOT_SPEAKER_CHANGE_SYMBOL` | Separator `infer` tells the model about | `????` |
 
@@ -54,9 +57,6 @@ python run.py --stages infer measure \
     --inference_config conf/inference.yaml \
     --metrics_config conf/metrics.yaml
 ```
-
-Run each stage as its own command; `collect_stats` and `train` must not be
-combined into one invocation.
 
 `infer` writes `exp/<tag>/inference/test/{hyp,ref,hyp_sot,ref_sot}.scp`, one row
 per utterance group. `hyp`/`ref` are the timestamp-free view scored by

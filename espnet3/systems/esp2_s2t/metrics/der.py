@@ -55,7 +55,7 @@ _SEP = "▁SPKCHANGE▁"  # internal marker unlikely to occur in text
 _TS_RE = re.compile(r"<\|(\d+(?:\.\d+)?)\|>")
 
 
-def segments_from_sot(
+def parse_sot_segments(
     text: str, speaker_change_symbol: str
 ) -> List[Tuple[int, float, float]]:
     """Parse SOT text into ``(speaker_index, start, end)`` segments.
@@ -84,7 +84,7 @@ def build_annotation(segments: List[Tuple[int, float, float]]) -> "Annotation":
 
     Args:
         segments: ``(speaker_index, start, end)`` triples, as
-            :func:`segments_from_sot` returns them.
+            :func:`parse_sot_segments` returns them.
 
     Returns:
         An Annotation labelled ``spk<index>``. Zero-length segments are
@@ -103,9 +103,9 @@ class UtteranceGroupDER(BaseMetric):
 
     Each utterance group holds one text block per speaker, separated by
     ``speaker_change_symbol``, with inline Whisper timestamps. Every group is
-    written as its own RTTM "file" and scored together by SCTK's
-    ``md-eval.pl``, matching cpWER's utterance-group scope: a meeting split
-    across many groups is never scored as one long recording.
+    scored as its own recording and the errors are accumulated, matching
+    cpWER's utterance-group scope: a meeting split across many groups is never
+    scored as one long recording.
 
     Args:
         ref_key: Alias of the reference SCP input.
@@ -130,6 +130,13 @@ class UtteranceGroupDER(BaseMetric):
         collar: float = 0.25,
         clean_types=None,
     ) -> None:
+        if not speaker_change_symbol:
+            raise ValueError(
+                "speaker_change_symbol is required and must be the symbol the "
+                "checkpoint was trained with. Splitting on nothing scores a "
+                "whole utterance group as one speaker, which reads as a poor "
+                "result rather than as a misconfiguration."
+            )
         self.ref_key = ref_key
         self.hyp_key = hyp_key
         self.collar = collar
@@ -169,13 +176,13 @@ class UtteranceGroupDER(BaseMetric):
         num_dropped_empty_ref = 0
         for utt_id, row in self.iter_inputs(data, self.ref_key, self.hyp_key):
             ref_text = row[self.ref_key]
-            ref_seg = segments_from_sot(ref_text, self.speaker_change_symbol)
+            ref_seg = parse_sot_segments(ref_text, self.speaker_change_symbol)
             if not ref_seg:
                 # md-eval needs reference speech for a file to be scored.
                 num_dropped_empty_ref += 1
                 continue
             ref_segments[utt_id] = ref_seg
-            hyp_segments[utt_id] = segments_from_sot(
+            hyp_segments[utt_id] = parse_sot_segments(
                 row[self.hyp_key], self.speaker_change_symbol
             )
             # Same speaker-count definition as cpWER (split_speakers), so the

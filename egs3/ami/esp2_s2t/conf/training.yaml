@@ -1,11 +1,10 @@
 ##########################################################
 #                   TRAINING SETTING                     #
 ##########################################################
-# Drives create_dataset, collect_stats and train. Run each as its own
-# command; collect_stats and train must not be combined into one invocation.
+# Drives create_dataset, collect_stats and train.
 #
-# A partial overlay on egs3/TEMPLATE/asr/conf/training.yaml, which supplies the
-# dataloader's iter_factory target and collate_fn. Not valid on its own.
+# A partial overlay on egs3/TEMPLATE/esp2_s2t/conf/training.yaml, which supplies
+# the dataloader's iter_factory target and collate_fn. Not valid on its own.
 recipe_dir: .
 exp_tag: whisper_sot_train
 exp_dir: ${recipe_dir}/exp/${exp_tag}
@@ -27,10 +26,10 @@ token_list_path: ${oc.env:AMI_SOT_DATA_ROOT,${recipe_dir}}/data/tokens.txt
 #
 # What create_dataset does, per split, is in dataset/builder.py: fetch the
 # Lhotse CutSet manifests, download AMI SDM audio with
-# egs2/ami/asr1/local/ami_download.sh, relocate recordings whose stored
-# absolute path is gone, cut each utterance group's segment, and write the
-# Kaldi files. Serialization options live in dataset/config.yaml under
-# builder.sot.
+# lhotse.recipes.ami.download_audio, relocate recordings whose stored absolute
+# path is gone, attach each utterance group's serialized text to its cut, and
+# write one CutSet per split. Serialization options live in
+# dataset/config.yaml under builder.sot.
 dataset:
   train:
     - name: train
@@ -55,7 +54,10 @@ dataset:
     _target_: src.preprocessor.AmiSotS2TPreprocessor
     token_type: whisper_multilingual
     bpemodel: whisper_multilingual
+    # The Whisper vocabulary the tokenizer and the id converter are built from.
+    whisper_model_type: whisper_multilingual
     token_list: ${token_list_path}
+    # Required: the symbol belongs to the checkpoint, so there is no default.
     speaker_change_symbol: "????"
     # OWSM's spellings are the defaults and raise KeyError here.
     notime_symbol: "<|notimestamps|>"
@@ -81,10 +83,12 @@ dataset:
 model:
   token_list: ${token_list_path}
 
-  # What the inference stage reads back out of the checkpoint: the saved
-  # config carries the model block at its root, and Speech2Text takes its
-  # symbols from preprocessor_conf. Interpolated from the preprocessor the
-  # train stage builds, so the two cannot drift apart.
+  # Not part of the model definition: S2TTask.build_model ignores it, and
+  # training preprocesses with the dataset.preprocessor block above. It is
+  # here only so that it reaches exp/<tag>/config.yaml, which is what the
+  # inference stage rebuilds Speech2Text's preprocessor from. Interpolated
+  # from that same block, so the trained and the decoded preprocessor cannot
+  # drift apart.
   preprocessor_conf:
     notime_symbol: ${dataset.preprocessor.notime_symbol}
     first_time_symbol: ${dataset.preprocessor.first_time_symbol}

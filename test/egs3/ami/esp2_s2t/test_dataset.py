@@ -134,7 +134,7 @@ def _seed_synthetic_split(monkeypatch, ids):
 def _reset_current_split_record(monkeypatch):
     """Reset current split record.
 
-    Keep current_utt_id's split record and cache from leaking between tests:
+    Keep get_current_utt_id's split record and cache from leaking between tests:
     constructing an AmiSotDataset writes to real os.environ, which (unlike a plain
     module attribute) survives past the test that set it unless something resets it.
     """
@@ -146,12 +146,12 @@ def _reset_current_split_record(monkeypatch):
 def test_constructing_a_dataset_records_its_split(monkeypatch):
     """Constructing a dataset records its split.
 
-    current_utt_id must resolve through whichever split an AmiSotDataset was actually
-    constructed with, not a hardcoded split name.
+    get_current_utt_id must resolve through whichever split an AmiSotDataset
+    was actually constructed with, not a hardcoded split name.
     """
     _seed_synthetic_split(monkeypatch, ["x", "y"])
     ds_mod.AmiSotDataset(split="valid")
-    assert ds_mod.current_utt_id(0) == "x"
+    assert ds_mod.get_current_utt_id(0) == "x"
     assert os.environ[ds_mod._CURRENT_SPLIT_ENV] == "valid"
 
 
@@ -173,7 +173,7 @@ def test_a_dataset_that_fails_to_construct_does_not_record_a_split(monkeypatch):
 
 def test_current_utt_id_raises_before_any_dataset_is_built():
     with pytest.raises(RuntimeError, match="AmiSotDataset"):
-        ds_mod.current_utt_id(0)
+        ds_mod.get_current_utt_id(0)
 
 
 def test_current_utt_id_survives_the_frameworks_own_module_loading(
@@ -190,7 +190,7 @@ def test_current_utt_id_survives_the_frameworks_own_module_loading(
     A module-level Python global set by one copy would be invisible to the other; only a
     process-wide channel bridges them. This goes through the real framework loader, for
     a split ("valid") that disagrees with the old hardcoded "test", to prove
-    current_utt_id survives that wall for real, not just when the test happens to
+    get_current_utt_id survives that wall for real, not just when the test happens to
     construct AmiSotDataset the same way inference.py imports it.
     """
     # dataset/config.yaml's split_dirs: train->data/train, valid->data/dev,
@@ -204,7 +204,7 @@ def test_current_utt_id_survives_the_frameworks_own_module_loading(
     module = load_dataset_module(data_src=None, recipe_dir=str(ami_sot_paths.RECIPE))
     module.Dataset(split="valid")
 
-    assert ds_mod.current_utt_id(1) == "v-1"
+    assert ds_mod.get_current_utt_id(1) == "v-1"
 
 
 def _load_builder_module():
@@ -232,7 +232,7 @@ def test_builder_reports_an_empty_root_as_neither_built_nor_prepared(
     tmp_path, monkeypatch
 ):
     builder_mod = _load_builder_module()
-    monkeypatch.setitem(builder_mod._CONFIG, "data_root", str(tmp_path))
+    monkeypatch.setenv("AMI_SOT_DATA_ROOT", str(tmp_path))
     builder = builder_mod.AmiSotBuilder()
     assert builder.is_built() is False
     assert builder.is_source_prepared() is False

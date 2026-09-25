@@ -7,7 +7,7 @@
 #       --publication_config conf/publication.yaml \
 #       --inference_config conf/inference.yaml --metrics_config conf/metrics.yaml
 #
-# A partial overlay on egs3/TEMPLATE/asr/conf/publication.yaml, which supplies
+# A partial overlay on egs3/TEMPLATE/esp2_s2t/conf/publication.yaml, which supplies
 # out_dir, the readme template and the upload_model block. Run infer and
 # measure first: pack_model bundles the metrics.json that measure writes and
 # renders it into the model's readme.

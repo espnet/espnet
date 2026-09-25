@@ -30,6 +30,27 @@ from espnet2.text.whisper_tokenizer import OpenAIWhisperTokenizer
 from espnet2.train.preprocessor import S2TPreprocessor
 
 
+def build_tokens2ids(convert, placeholder: int):
+    """Return a ``tokens2ids`` that stands ``placeholder`` in the dropped slot.
+
+    ``S2TPreprocessor`` drops index 0 of the converted ids, expecting a prompt
+    id there. This recipe's text supplies its own ``<language><task>``, so a
+    placeholder goes in that slot instead of letting a real symbol be eaten.
+
+    Args:
+        convert: The tokenizer's own tokens-to-ids callable.
+        placeholder: Id to occupy index 0.
+
+    Returns:
+        A callable with ``tokens2ids``'s signature.
+    """
+
+    def tokens2ids(tokens):
+        return [placeholder] + convert(tokens)
+
+    return tokens2ids
+
+
 def _read_token_list(token_list):
     """Return the token list as a list of strings, from a path or a sequence.
 
@@ -49,11 +70,14 @@ class AmiSotS2TPreprocessor(S2TPreprocessor):
     """S2TPreprocessor for a Whisper vocabulary carrying a speaker-change token.
 
     Args:
-        speaker_change_symbol: The separator. It must be one token after
-            tokenization, or the model cannot emit it. Defaults to the symbol
-            the released checkpoint uses.
+        speaker_change_symbol: The separator. Required, because it belongs to
+            the checkpoint: it must be one token after tokenization, or the
+            model cannot emit it, and the wrong one trains quietly against a
+            vocabulary row that means something else.
         whisper_language: Language symbol for the tokenizer, without the bars.
         whisper_task: Task symbol for the tokenizer, without the bars.
+        whisper_model_type: Whisper vocabulary the tokenizer and the converter
+            are built from.
 
     Raises:
         ValueError: When the separator does not tokenize to a single id.
@@ -65,16 +89,17 @@ class AmiSotS2TPreprocessor(S2TPreprocessor):
         token_type: str,
         token_list,
         bpemodel,
+        speaker_change_symbol: str,
         *args,
-        speaker_change_symbol: str = "????",
         whisper_language: str = "en",
         whisper_task: str = "transcribe",
+        whisper_model_type: str = "whisper_multilingual",
         **kwargs,
     ) -> None:
         super().__init__(train, token_type, token_list, bpemodel, *args, **kwargs)
 
         shared = dict(
-            model_type="whisper_multilingual",
+            model_type=whisper_model_type,
             language=whisper_language,
             task=whisper_task,
             sot=True,
@@ -83,14 +108,12 @@ class AmiSotS2TPreprocessor(S2TPreprocessor):
         self.tokenizer = OpenAIWhisperTokenizer(**shared)
         converter = OpenAIWhisperTokenIDConverter(**shared)
 
-        # The base class drops index 0, expecting a prompt id there. Our text
-        # supplies its own <language><task>, so stand a placeholder in that
-        # slot rather than let a real symbol be eaten. The base reads
-        # notime/first_time/last_time from token2id before this runs, and those
-        # three resolve identically either way, so the swap is safe.
+        # The base reads notime/first_time/last_time from token2id before this
+        # runs, and those three resolve identically either way, so the swap is
+        # safe. See build_tokens2ids for what it is for.
         placeholder = converter.token2id["<|startoftranscript|>"]
         convert = converter.tokenizer.tokenizer.convert_tokens_to_ids
-        converter.tokens2ids = lambda tokens: [placeholder] + convert(tokens)
+        converter.tokens2ids = build_tokens2ids(convert, placeholder)
         self.token_id_converter = converter
 
         # The id the model must emit. Asking the sot=True tokenizer whether the
@@ -128,7 +151,19 @@ class AmiSotS2TPreprocessor(S2TPreprocessor):
             data: Sample with ``speech`` and the S2T text fields.
 
         Returns:
-            The processed sample.
+            The processed sample: ``speech`` as a 1-D float32 waveform, and
+            ``text``, ``text_prev`` and ``text_ctc`` as int64 token-id arrays.
+
+        Examples:
+            >>> sample = {  # doctest: +SKIP
+            ...     "speech": np.zeros(480000, dtype="float32"),
+            ...     "text": "<|en|><|transcribe|><|0.00|> hi<|0.50|>",
+            ...     "text_prev": "<|nospeech|>",
+            ...     "text_ctc": "<|nospeech|>",
+            ... }
+            >>> out = preprocessor("AMI-0.0-30.0", sample)  # doctest: +SKIP
+            >>> {key: out[key].shape for key in sorted(out)}  # doctest: +SKIP
+            {'speech': (480000,), 'text': (9,), 'text_ctc': (2,), 'text_prev': (2,)}
         """
         data = super().__call__(uid, data)
         speech = data.get("speech")

@@ -83,7 +83,7 @@ def merge_supervisions(
     return merged
 
 
-def speaker_blocks(
+def build_speaker_blocks(
     supervisions: Sequence[Any],
     *,
     max_timestamp_pause: float = 2.0,
@@ -177,7 +177,7 @@ def build_sot_text(
             data format expects the language and task symbols here, as in
             ``"<|en|><|transcribe|>"``. ``<sos>`` and ``<eos>`` are added
             during preprocessing, so they do not belong in it.
-        text_norm: Passed to :func:`speaker_blocks`.
+        text_norm: Passed to :func:`build_speaker_blocks`.
 
     Returns:
         The serialized line. A cut with no usable text yields ``eos`` alone.
@@ -190,7 +190,7 @@ def build_sot_text(
             f"Unknown ordering {ordering!r}; expected one of " f"{sorted(_ORDERINGS)}."
         )
 
-    blocks = speaker_blocks(
+    blocks = build_speaker_blocks(
         supervisions,
         max_timestamp_pause=max_timestamp_pause,
         lowercase=lowercase,

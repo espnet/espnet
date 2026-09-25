@@ -16,7 +16,7 @@ from espnet3.systems.esp2_s2t.metrics.cpwer import (  # noqa: E402
 )
 from espnet3.systems.esp2_s2t.metrics.der import (  # noqa: E402
     UtteranceGroupDER,
-    segments_from_sot,
+    parse_sot_segments,
 )
 
 
@@ -37,7 +37,7 @@ def test_split_speakers_does_not_split_on_a_symbol_it_was_not_given():
 @pytest.mark.parametrize("symbol", ["????", "<sc>", "@@"])
 def test_segments_from_sot_uses_the_symbol_it_is_given(symbol):
     text = f"<|0.00|> a<|1.20|> {symbol} <|2.00|> b<|3.50|>"
-    assert segments_from_sot(text, symbol) == [(0, 0.0, 1.2), (1, 2.0, 3.5)]
+    assert parse_sot_segments(text, symbol) == [(0, 0.0, 1.2), (1, 2.0, 3.5)]
 
 
 def test_cpwer_reports_the_utterance_group_key(tmp_path):
@@ -81,3 +81,17 @@ def test_the_symbol_has_no_default():
         UtteranceGroupCpWER()
     with pytest.raises(TypeError, match="speaker_change_symbol"):
         UtteranceGroupDER()
+
+
+@pytest.mark.parametrize("metric_cls", [UtteranceGroupCpWER, UtteranceGroupDER])
+@pytest.mark.parametrize("symbol", [None, ""])
+def test_a_metric_refuses_a_symbol_it_cannot_split_on(metric_cls, symbol):
+    """Refusing at construction is the only place this can be caught.
+
+    Neither class has a default symbol, but a config that names the key and
+    leaves it empty passes None through. Splitting on nothing scores a whole
+    utterance group as one speaker, which reads as a poor result rather than as
+    a misconfiguration.
+    """
+    with pytest.raises(ValueError, match="speaker_change_symbol"):
+        metric_cls(symbol)

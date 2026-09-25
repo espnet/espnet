@@ -32,7 +32,7 @@ SEP = "????"
 def test_segments_from_sot_pairs_timestamps_within_a_speaker_block():
     sep = SEP
     text = f"<|0.00|> hello<|1.20|> {sep} <|2.00|> world<|3.50|>"
-    assert der_mod.segments_from_sot(text, SEP) == [
+    assert der_mod.parse_sot_segments(text, SEP) == [
         (0, 0.0, 1.2),
         (1, 2.0, 3.5),
     ]
@@ -42,11 +42,11 @@ def test_segments_from_sot_drops_an_unclosed_final_segment():
     """The corpus omits the closing timestamp of a cut-truncated segment."""
     sep = SEP
     text = f"<|0.00|> hello<|1.20|> {sep} <|2.00|> world"
-    assert der_mod.segments_from_sot(text, SEP) == [(0, 0.0, 1.2)]
+    assert der_mod.parse_sot_segments(text, SEP) == [(0, 0.0, 1.2)]
 
 
 def test_segments_from_sot_drops_a_zero_length_segment():
-    assert der_mod.segments_from_sot("<|1.00|> x<|1.00|>", SEP) == []
+    assert der_mod.parse_sot_segments("<|1.00|> x<|1.00|>", SEP) == []
 
 
 def test_call_warns_once_when_a_reference_group_has_no_segments(tmp_path, caplog):
@@ -110,8 +110,8 @@ def test_der_reproduces_the_recorded_full_test_set_score(tmp_path):
 
 
 def test_segments_from_sot_follows_the_symbol_it_is_given():
-    """segments_from_sot must use its argument, not a literal."""
-    segments = der_mod.segments_from_sot(
+    """parse_sot_segments must use its argument, not a literal."""
+    segments = der_mod.parse_sot_segments(
         "<|0.00|> a<|1.20|> @@ <|2.00|> b<|3.50|>", "@@"
     )
     assert segments == [(0, 0.0, 1.2), (1, 2.0, 3.5)]

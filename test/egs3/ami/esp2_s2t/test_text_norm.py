@@ -7,6 +7,7 @@ that need it skip when it is absent. Everything else runs anywhere.
 import importlib.util
 from pathlib import Path
 
+import ami_sot_paths
 import pytest
 
 _REPO = Path(__file__).resolve().parents[4]
@@ -37,17 +38,31 @@ def test_an_unknown_name_is_rejected_by_name():
 
 
 def test_the_missing_dependency_is_named_with_its_install_command():
-    """chime-utils is not on PyPI, so pip's own error would not help."""
-    pytest.importorskip  # keep the import list honest
+    """chime-utils is not on PyPI, so pip's own error would not help.
+
+    It cannot be an espnet extra either -- pip rejects a URL dependency in a
+    published package's metadata -- so the message has to name the installer
+    that does have the URL.
+    """
     try:
         import chime_utils  # noqa: F401
     except ImportError:
         with pytest.raises(ImportError, match="chime-utils"):
             tn.get_text_norm("chime8_keep_fillers")
-        with pytest.raises(ImportError, match="github.com/chimechallenge"):
+        with pytest.raises(ImportError, match="make chime_utils.done"):
             tn.get_text_norm("chime8_keep_fillers")
     else:
         pytest.skip("chime-utils is installed, so the error path cannot run")
+
+
+def test_the_named_installer_exists_and_carries_the_repository():
+    """The message points at a real target, and that target installs the thing."""
+    installer = ami_sot_paths.REPO / "tools" / "installers" / "install_chime_utils.sh"
+    assert installer.is_file()
+    assert "github.com/chimechallenge/chime-utils" in installer.read_text()
+    makefile = (ami_sot_paths.REPO / "tools" / "Makefile").read_text()
+    assert "chime_utils.done:" in makefile
+    assert "install_chime_utils.sh" in makefile
 
 
 def test_the_chime8_normalizer_keeps_fillers_and_expands_contractions():

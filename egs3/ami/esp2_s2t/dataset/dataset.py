@@ -8,7 +8,7 @@ speaker-change symbol and carrying Whisper timestamp tokens, rides on the cut
 as ``sot_text``.
 
 Constructing an ``AmiSotDataset`` records the split it was built with (see
-``current_utt_id``). That record has to be an environment variable rather
+``get_current_utt_id``). That record has to be an environment variable rather
 than a plain module-level variable: ESPnet3 loads a recipe's own
 ``dataset/__init__.py`` through a fresh, uniquely named module spec for
 every dataset it builds
@@ -18,7 +18,7 @@ not necessarily the same module object ``src/inference.py`` imports by its
 stable, dotted name -- a plain global set by one is invisible to the other.
 ``os.environ`` is the one thing every copy of this module actually shares.
 ``src/inference.py`` resolves an inference index to an utterance id through
-``current_utt_id`` instead of loading its own, independent copy of a split's
+``get_current_utt_id`` instead of loading its own, independent copy of a split's
 ids, so there is exactly one place -- the split the dataset the framework
 actually built for this run was constructed with -- an id can come from.
 """
@@ -34,7 +34,7 @@ from torch.utils.data import Dataset as TorchDataset
 
 from espnet3.utils.config_utils import load_config_with_defaults
 
-# Written by AmiSotDataset.__init__, read by current_utt_id. See the module
+# Written by AmiSotDataset.__init__, read by get_current_utt_id. See the module
 # docstring for why this is an environment variable and not a plain
 # module-level variable.
 _CURRENT_SPLIT_ENV = "_AMI_SOT_CURRENT_SPLIT"
@@ -149,7 +149,7 @@ class AmiSotDataset(TorchDataset):
         """Read the split's cuts once and keep them in memory.
 
         Records ``split`` as this process's current split (see
-        ``current_utt_id``) once construction fully succeeds. A split that
+        ``get_current_utt_id``) once construction fully succeeds. A split that
         fails to read raises before that point, so a half-built dataset is
         never recorded.
         """
@@ -172,7 +172,7 @@ class AmiSotDataset(TorchDataset):
             ``speech`` as a float32 mono waveform and the three text fields
             ``text``, ``text_prev`` and ``text_ctc``. No other field: a recipe
             sample must carry only what the model and preprocessor accept, so
-            the cut's own id is deliberately absent (see ``current_utt_id``).
+            the cut's own id is deliberately absent (see ``get_current_utt_id``).
         """
         cut = self._cuts[int(idx)]
         # The cut carries its own offset, duration and channel, so this is
@@ -188,14 +188,14 @@ class AmiSotDataset(TorchDataset):
         }
 
 
-# Cache for current_utt_id, keyed by the split it was computed for, so a long
+# Cache for get_current_utt_id, keyed by the split it was computed for, so a long
 # test set does not re-read the cuts once per utterance. Reset whenever the
 # recorded split changes.
 _CACHED_SPLIT: Optional[str] = None
 _CACHED_UTT_IDS: Optional[List[str]] = None
 
 
-def current_utt_id(idx: int) -> str:
+def get_current_utt_id(idx: int) -> str:
     """Return the utterance id for ``idx`` in the split this process built.
 
     ``src/inference.py``'s ``build_output`` reads an id through this
@@ -219,7 +219,7 @@ def current_utt_id(idx: int) -> str:
     split = os.environ.get(_CURRENT_SPLIT_ENV)
     if split is None:
         raise RuntimeError(
-            "current_utt_id() was called before any AmiSotDataset was "
+            "get_current_utt_id() was called before any AmiSotDataset was "
             f"built in this process (checked os.environ[{_CURRENT_SPLIT_ENV!r}])"
             ". build_output needs the split the dataset "
             "espnet3.systems.base.inference.infer constructs for the run "

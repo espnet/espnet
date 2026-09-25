@@ -1,0 +1,70 @@
+##########################################################
+#                   INFERENCE SETTING                    #
+##########################################################
+# Quick usage:
+#   python run.py --stages infer --inference_config conf/inference.yaml
+#
+# Outputs one `${inference_dir}/<test_name>/<field>.scp` per inference field,
+# each holding `utt_id value` pairs.
+#
+# The shared default merged under every esp2_s2t recipe's inference config,
+# kept to generic path and plumbing scaffolding.
+
+##########################################################
+#                    PATHS AND INPUTS                    #
+##########################################################
+recipe_dir: .
+# Leave `exp_tag` empty in a recipe and pass `--training_config` as well:
+# `run.py` copies the training config's `exp_tag` and `exp_dir` here, so decode
+# output lands beside the run it came from.
+exp_tag:
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+data_dir: ${recipe_dir}/data
+inference_dir: ${exp_dir}/${self_name:}
+
+##########################################################
+#                    DATASET DEFINITION                  #
+##########################################################
+# `dataset.test` is required. Each entry's `name` becomes the output
+# subdirectory under `${inference_dir}`; omitting `data_src` loads
+# `${recipe_dir}/dataset/__init__.py`.
+dataset:
+  _target_: espnet3.components.data.data_organizer.DataOrganizer
+  _recursive_: false
+  recipe_dir: ${recipe_dir}
+  test:
+  preprocessor:
+
+##########################################################
+#                  PARALLELIZATION SETTING               #
+##########################################################
+parallel:
+  env: local
+  n_workers: 1
+  # Replace a stale shard lock left by an interrupted run. Do not enable while
+  # another run may still be writing to the same output directory.
+  allow_overwrite_lock: false
+
+##########################################################
+#                    MODEL AND OUTPUT                    #
+##########################################################
+# Usually `espnet2.bin.s2t_inference.Speech2Text`, configured by the recipe.
+model:
+
+# Sample field passed to the model.
+input_key: speech
+
+# Utterances per model call. A recipe whose scorer keeps per-hypothesis state
+# scoped to one seek window sets this to null.
+batch_size: 4
+
+# Recipe formatter turning raw model output into a dict of output fields.
+output_fn:
+
+##########################################################
+#               PROVIDER AND RUNNER SETTING              #
+##########################################################
+provider:
+  _target_: espnet3.systems.base.inference_provider.InferenceProvider
+runner:
+  _target_: espnet3.systems.base.inference_runner.InferenceRunner
