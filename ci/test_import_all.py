@@ -5,13 +5,13 @@ import sys
 import traceback
 
 try:
-    import k2 # noqa: F401
+    import k2  # noqa: F401
 except Exception:
     has_k2 = False
 else:
     has_k2 = True
 try:
-    import mir_eval # noqa: F401
+    import mir_eval  # noqa: F401
 except Exception:
     has_mir_eval = False
 else:
