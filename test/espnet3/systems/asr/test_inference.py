@@ -6,9 +6,12 @@ from types import SimpleNamespace
 
 import numpy as np
 import pytest
+from omegaconf import OmegaConf
 
 from espnet3.api.inference import Audio
 from espnet3.systems.asr.inference import Inference
+from espnet3.systems.base.inference_provider import InferenceProvider
+from espnet3.systems.base.inference_runner import InferenceRunner
 
 
 class FakeSpeech2Text:
@@ -81,3 +84,65 @@ def test_from_pretrained_takes_a_directory_or_a_tag(tmp_path, monkeypatch):
     ]
     with pytest.raises(TypeError, match="unexpected arguments"):
         Inference.from_pretrained(tmp_path, beam_size=3)
+
+
+def test_builds_a_speech2text_from_its_own_arguments(monkeypatch):
+    import espnet2.bin.asr_inference as asr_inference
+
+    built = {}
+
+    def fake(**kwargs):
+        built.update(kwargs)
+        return FakeSpeech2Text()
+
+    monkeypatch.setattr(asr_inference, "Speech2Text", fake)
+    model = Inference(asr_train_config="c.yaml", asr_model_file="m.pth", beam_size=3)
+    assert built == {
+        "device": "cpu",
+        "asr_train_config": "c.yaml",
+        "asr_model_file": "m.pth",
+        "beam_size": 3,
+    }
+    assert model(np.zeros(16))["text"] == "hello world"
+    with pytest.raises(TypeError, match="given, but a speech2text was too"):
+        Inference(FakeSpeech2Text(), beam_size=3)
+
+
+def test_the_infer_stage_runner_calls_it_as_it_is():
+    """InferenceRunner needs no output_fn: the contract's mapping is written."""
+    model = Inference(FakeSpeech2Text())
+    dataset = {
+        i: {"speech": np.zeros(160, dtype=np.float32), "text": "ref"} for i in range(3)
+    }
+    assert InferenceRunner.forward(
+        0, dataset=dataset, model=model, input_key="speech"
+    ) == {"text": "hello world"}
+    batched = InferenceRunner.forward(
+        [1, 2], dataset=dataset, model=model, input_key="speech"
+    )
+    assert batched == [{"text": "hello world"}, {"text": "hello world"}]
+
+
+def test_the_infer_stage_provider_builds_it_from_inference_yaml(monkeypatch):
+    import espnet2.bin.asr_inference as asr_inference
+
+    built = {}
+
+    def fake(**kwargs):
+        built.update(kwargs)
+        return FakeSpeech2Text()
+
+    monkeypatch.setattr(asr_inference, "Speech2Text", fake)
+    config = OmegaConf.create(
+        {
+            "device": "cpu",
+            "model": {
+                "_target_": "espnet3.systems.asr.inference.Inference",
+                "asr_train_config": "exp/config.yaml",
+                "asr_model_file": "exp/model.pth",
+            },
+        }
+    )
+    model = InferenceProvider.build_model(config)
+    assert isinstance(model, Inference)
+    assert built["asr_train_config"] == "exp/config.yaml" and built["device"] == "cpu"

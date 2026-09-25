@@ -354,6 +354,44 @@ def test_gather_joins_pieces_by_kind():
         Audio.concat([a, Audio(np.ones(4, dtype=np.float32), 16000)])
 
 
+# --- batches ---------------------------------------------------------------
+
+
+def test_lists_are_a_batch_one_entry_per_sample():
+    model = Echo(rate=8000)
+    a = np.zeros(8000, dtype=np.float32)
+    b = np.zeros(16000, dtype=np.float32)
+    out = model(speech=[a, b], prompt=["!", "?"])
+    assert [o["text"] for o in out] == ["1.0s@8000!", "2.0s@8000?"]
+    assert model.batch([{"speech": a}, {"speech": b, "prompt": "?"}]) == [
+        {"text": "1.0s@8000", "n": 1},
+        {"text": "2.0s@8000?", "n": 1},
+    ]
+    # a [rate, samples] list is one sample, not a batch of two
+    assert model(speech=[8000, a])["text"] == "1.0s@8000"
+    with pytest.raises(TypeError, match="differ in length"):
+        model(speech=[a, b], prompt=["!"])
+
+
+def test_a_model_may_decode_a_batch_together():
+    class Together(Echo):
+        def run_batch(self, items):
+            return [{"text": f"{len(items)} at once"} for _ in items]
+
+    a = np.zeros(8, dtype=np.float32)
+    assert [o["text"] for o in Together().batch([{"speech": a}] * 3)] == [
+        "3 at once"
+    ] * 3
+    assert Together()(a)["text"] == "0.0s@16000"  # one sample still goes through run
+
+    class Short(Echo):
+        def run_batch(self, items):
+            return [{"text": "only one"}]
+
+    with pytest.raises(RuntimeError, match="returned 1 outputs for 2 items"):
+        Short().batch([{"speech": a}, {"speech": a}])
+
+
 # --- load ------------------------------------------------------------------
 
 
