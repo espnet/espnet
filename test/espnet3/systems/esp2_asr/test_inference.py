@@ -17,9 +17,10 @@ from espnet3.systems.base.inference_runner import InferenceRunner
 class FakeSpeech2Text:
     """Returns the n-best list Speech2Text does, remembering its input."""
 
-    def __init__(self, fs="16k", per_speaker=False):
+    def __init__(self, fs="16k", per_speaker=False, **kwargs):
         self.asr_train_args = SimpleNamespace(frontend_conf={"fs": fs})
         self.per_speaker = per_speaker
+        self.kwargs = kwargs
         self.seen = None
 
     def __call__(self, speech):
@@ -56,7 +57,7 @@ def test_audio_is_resampled_to_the_frontend_rate():
 
 
 def test_from_pretrained_takes_a_directory_or_a_tag(tmp_path, monkeypatch):
-    import espnet3.systems.asr.inference as module
+    import espnet3.systems.base.backend_inference as base
 
     backend = FakeSpeech2Text()
     calls = []
@@ -69,13 +70,11 @@ def test_from_pretrained_takes_a_directory_or_a_tag(tmp_path, monkeypatch):
         calls.append(("build", str(pack_dir), device))
         return backend
 
-    monkeypatch.setattr(module, "locate_pack", locate_pack)
-    monkeypatch.setattr(module, "load_backend", load_backend)
+    monkeypatch.setattr(base, "locate_pack", locate_pack)
+    monkeypatch.setattr(base, "load_backend", load_backend)
 
-    assert Inference.from_pretrained(tmp_path, device="cpu").speech2text is backend
-    assert (
-        Inference.from_pretrained("org/model", device="cuda:0").speech2text is backend
-    )
+    assert Inference.from_pretrained(tmp_path, device="cpu").backend is backend
+    assert Inference.from_pretrained("org/model", device="cuda:0").backend is backend
     assert calls == [
         ("locate", str(tmp_path)),
         ("build", str(tmp_path), "cpu"),
@@ -89,23 +88,34 @@ def test_from_pretrained_takes_a_directory_or_a_tag(tmp_path, monkeypatch):
 def test_builds_a_speech2text_from_its_own_arguments(monkeypatch):
     import espnet2.bin.asr_inference as asr_inference
 
-    built = {}
-
-    def fake(**kwargs):
-        built.update(kwargs)
-        return FakeSpeech2Text()
-
-    monkeypatch.setattr(asr_inference, "Speech2Text", fake)
+    monkeypatch.setattr(asr_inference, "Speech2Text", FakeSpeech2Text)
     model = Inference(asr_train_config="c.yaml", asr_model_file="m.pth", beam_size=3)
-    assert built == {
+    assert model.backend.kwargs == {
         "device": "cpu",
         "asr_train_config": "c.yaml",
         "asr_model_file": "m.pth",
         "beam_size": 3,
     }
     assert model(np.zeros(16))["text"] == "hello world"
-    with pytest.raises(TypeError, match="given, but a speech2text was too"):
+    with pytest.raises(TypeError, match="but a built one was too"):
         Inference(FakeSpeech2Text(), beam_size=3)
+
+
+def test_builds_the_transducer_speech2text_when_told(monkeypatch):
+    import espnet2.bin.asr_transducer_inference as transducer
+
+    monkeypatch.setattr(transducer, "Speech2Text", FakeSpeech2Text)
+    model = Inference(
+        backend_class="espnet2.bin.asr_transducer_inference.Speech2Text",
+        asr_train_config="c.yaml",
+        return_decoded_hyp=True,
+    )
+    assert model.backend.kwargs == {
+        "device": "cpu",
+        "asr_train_config": "c.yaml",
+        "return_decoded_hyp": True,
+    }
+    assert model(np.zeros(16))["text"] == "hello world"
 
 
 def test_the_infer_stage_runner_calls_it_as_it_is():
@@ -126,13 +136,7 @@ def test_the_infer_stage_runner_calls_it_as_it_is():
 def test_the_infer_stage_provider_builds_it_from_inference_yaml(monkeypatch):
     import espnet2.bin.asr_inference as asr_inference
 
-    built = {}
-
-    def fake(**kwargs):
-        built.update(kwargs)
-        return FakeSpeech2Text()
-
-    monkeypatch.setattr(asr_inference, "Speech2Text", fake)
+    monkeypatch.setattr(asr_inference, "Speech2Text", FakeSpeech2Text)
     config = OmegaConf.create(
         {
             "device": "cpu",
@@ -145,4 +149,4 @@ def test_the_infer_stage_provider_builds_it_from_inference_yaml(monkeypatch):
     )
     model = InferenceProvider.build_model(config)
     assert isinstance(model, Inference)
-    assert built["asr_train_config"] == "exp/config.yaml" and built["device"] == "cpu"
+    assert model.backend.kwargs["asr_train_config"] == "exp/config.yaml"
