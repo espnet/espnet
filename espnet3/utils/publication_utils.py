@@ -502,16 +502,19 @@ def _write_meta(
     out_dir: Path,
     files: dict[str, str],
     yaml_files: dict[str, str],
+    system: str | None = None,
 ) -> None:
     """Write meta.yaml into the bundle output directory.
 
     Called at the end of ``pack_model`` to record all bundled artifact paths
     and environment versions. ``InferenceModel.from_packed`` reads this file
-    to locate the inference config.
+    to locate the inference config, and ``espnet3.api.inference.load`` reads
+    ``system`` to find the ``Inference`` class that serves the bundle.
 
     """
     meta = {
         "schema_version": 1,
+        "system": system,
         "files": files,
         "yaml_files": yaml_files,
         "torch": str(torch.__version__),
@@ -666,7 +669,12 @@ def pack_model(
         readme_text = _render_readme(template_path.read_text(encoding="utf-8"), context)
         (out_dir / "README.md").write_text(readme_text, encoding="utf-8")
 
-    _write_meta(out_dir, files=files, yaml_files=yaml_files)
+    _write_meta(
+        out_dir,
+        files=files,
+        yaml_files=yaml_files,
+        system=_infer_system_name(training_config, recipe_root),
+    )
     logger.info("Packed model to %s", out_dir)
     return out_dir
 

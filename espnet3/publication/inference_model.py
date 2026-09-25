@@ -25,7 +25,7 @@ from typing import Any, Mapping, Sequence
 import yaml
 from espnet_model_zoo.downloader import ModelDownloader
 from hydra.utils import get_class
-from omegaconf import DictConfig, ListConfig, OmegaConf
+from omegaconf import DictConfig, ListConfig, OmegaConf, open_dict
 
 from espnet3.systems.base.inference_provider import InferenceProvider
 from espnet3.systems.base.inference_runner import InferenceRunner, _load_output_fn
@@ -184,6 +184,7 @@ class InferenceModel:
         cls,
         pack_dir: str | Path,
         trust_user_code: bool = False,
+        device: str | None = None,
     ) -> "InferenceModel":
         """Build an inference model from a packed model directory.
 
@@ -207,6 +208,10 @@ class InferenceModel:
             trust_user_code: Set to ``True`` to allow importing bundled recipe
                 code from the pack directory. Required when the inference
                 config references modules shipped inside the bundle.
+            device: Where to build the model, such as ``"cpu"`` or
+                ``"cuda:0"``. Takes the place of the packed config's own
+                ``device``; when omitted the provider picks, as the ``infer``
+                stage does.
 
         Returns:
             InferenceModel: Inference model loaded from ``pack_model`` output.
@@ -296,6 +301,9 @@ class InferenceModel:
                 inference_config_path,
                 bundle_root=bundle_root,
             )
+        if device is not None:
+            with open_dict(inference_config):
+                inference_config.device = device
 
         return cls(inference_config)
 
@@ -304,6 +312,7 @@ class InferenceModel:
         cls,
         model_tag: str,
         trust_user_code: bool = False,
+        device: str | None = None,
     ) -> "InferenceModel":
         """Download a packaged model and build an inference model from it.
 
@@ -318,6 +327,7 @@ class InferenceModel:
             model_tag: Pretrained model identifier understood by
                 ``espnet_model_zoo``.
             trust_user_code: Forwarded to :meth:`from_packed`.
+            device: Forwarded to :meth:`from_packed`.
 
         Returns:
             InferenceModel: Downloaded inference model.
@@ -348,7 +358,7 @@ class InferenceModel:
             )
         inference_config_path = Path(artifacts["inference_config"])
         pack_dir = inference_config_path.parent.parent
-        return cls.from_packed(pack_dir, trust_user_code=trust_user_code)
+        return cls.from_packed(pack_dir, trust_user_code=trust_user_code, device=device)
 
     @property
     def primary_input_key(self) -> str:
