@@ -9,10 +9,10 @@ import os
 import sys
 
 import torch
-from espnet2.speechlm.tokenizer.codec_tokenizer import CodecTokenizer
 from omniio import kaldi as kaldi_io
 
 from espnet2.legacy.nets.pytorch_backend.nets_utils import pad_list
+from espnet2.speechlm.tokenizer.codec_tokenizer import CodecTokenizer
 from espnet2.utils.types import str2bool
 
 logging.basicConfig(

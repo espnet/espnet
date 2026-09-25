@@ -10,14 +10,15 @@ frozen beam search import the same prefix scorer, so a change here would move
 the reference along with the code. Hence a frozen copy of its own.
 """
 
+from test.espnet2.legacy.reference_ctc_prefix_score import (
+    CTCPrefixScoreTH as ReferenceCTCPrefixScoreTH,
+)
+
 import numpy
 import pytest
 import torch
 
 from espnet2.legacy.nets.ctc_prefix_score import CTCPrefixScoreTH
-from test.espnet2.legacy.reference_ctc_prefix_score import (
-    CTCPrefixScoreTH as ReferenceCTCPrefixScoreTH,
-)
 
 BLANK, EOS = 0, 1
 
@@ -96,7 +97,6 @@ def test_matches_the_loop_implementation(
 def test_reference_is_a_frozen_copy():
     """Guard the reference against being edited to track the implementation."""
     import inspect
-
     from test.espnet2.legacy import reference_ctc_prefix_score
 
     source = inspect.getsource(reference_ctc_prefix_score)

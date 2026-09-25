@@ -1,7 +1,7 @@
+from distutils.util import strtobool
 from typing import Optional, Tuple, Union
 
 import humanfriendly
-from distutils.util import strtobool
 
 
 def str2bool(value: str) -> bool:

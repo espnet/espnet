@@ -12,7 +12,11 @@ ftrain = open(utt_train_list, "w")
 fdev = open(utt_dev_list, "w")
 feval = open(utt_eval_list, "w")
 for spk in ["slt", "clb", "bdl", "rms", "jmk", "awb", "ksp"]:
-    for w in glob.glob("downloads/cmu_us_all_arctic/wav/{}_*.wav".format(spk, )):
+    for w in glob.glob(
+        "downloads/cmu_us_all_arctic/wav/{}_*.wav".format(
+            spk,
+        )
+    ):
         # check if in train list
         file_suffix = os.path.basename(w).split("_")[2]
 

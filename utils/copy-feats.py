@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import argparse
 import logging
-
 from distutils.util import strtobool
 
 from espnet2.legacy.transform.transformation import Transformation

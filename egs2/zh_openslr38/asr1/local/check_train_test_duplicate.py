@@ -1,4 +1,3 @@
-
 train_file = "data/train/text"
 
 train_lines = []

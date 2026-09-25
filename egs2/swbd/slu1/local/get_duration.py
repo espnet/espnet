@@ -1,4 +1,3 @@
-
 path_file = open("data/local/train/sph.scp")
 file_write = open("sox_duration.sh", "w")
 for k in path_file:

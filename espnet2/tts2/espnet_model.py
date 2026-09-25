@@ -12,9 +12,9 @@ from typeguard import typechecked
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.inversible_interface import InversibleInterface
 from espnet2.train.abs_espnet_model import AbsESPnetModel
-from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
 from espnet2.tts2.abs_tts2 import AbsTTS2
 from espnet2.tts2.feats_extract.abs_feats_extract import AbsFeatsExtractDiscrete
+from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
 
 
 class ESPnetTTS2Model(AbsESPnetModel):
