@@ -472,6 +472,7 @@ class LocalBagpiper(Bagpiper):
         train_config: Optional[Union[str, Path]] = None,
         checkpoint: Optional[Union[str, Path]] = None,
         allow_base: bool = False,
+        attn_implementation: Optional[str] = None,
     ) -> "LocalBagpiper":
         """Load a published checkpoint, downloading it if it is a tag.
 
@@ -489,6 +490,12 @@ class LocalBagpiper(Bagpiper):
             checkpoint: The `.pt`, likewise.
             allow_base: Load the pre-trained base checkpoint even though
                 it was never fine-tuned to answer requests.
+            attn_implementation: Overrides the attention backend in the
+                train config, for both the decoder and the audio encoder.
+                The published configs ask for `flash_attention_3`, which
+                is Hopper-only: on anything else - A100, A10G, a consumer
+                card - this has to be something that GPU has, such as
+                `sdpa`, or the load fails inside transformers.
 
         Returns:
             A LocalBagpiper with the model already loaded and in eval mode.
@@ -510,6 +517,8 @@ class LocalBagpiper(Bagpiper):
 
         with open(train_path) as f:
             config = yaml.safe_load(f)
+        if attn_implementation:
+            _set_attention(config, attn_implementation)
         # sft ships one config per direction; tts-sft ships the single
         # text-then-audio one, since that is all it does; the base ships
         # none, and falls back to the paper's Table 10
@@ -714,6 +723,16 @@ def _checked_wav(wav: bytes) -> bytes:
     with wave.open(io.BytesIO(wav), "rb"):
         pass
     return wav
+
+
+def _set_attention(config: Dict[str, Any], implementation: str) -> None:
+    """Put one attention backend in both places the config names one."""
+    config["model"].setdefault("model_conf", {})
+    config["model"]["model_conf"]["attn_implementation"] = implementation
+    encoder = config.get("multimodal_io", {}).get("continuous_audio")
+    if encoder is not None:
+        encoder["attn_implementation"] = implementation
+    logger.info("Attention backend: %s", implementation)
 
 
 def _resolve(tag_or_dir: Union[str, Path]) -> Path:

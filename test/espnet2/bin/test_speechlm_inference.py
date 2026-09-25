@@ -497,3 +497,21 @@ def test_render_reads_the_scene_from_a_pipe(cli_model, tmp_path, monkeypatch):
     assert cli.main(["render", "-", "-o", str(tmp_path / "b.wav")]) == 0
 
     assert cli_model.rendered[0][0] == "A bell rings twice."
+
+
+def test_the_attention_backend_can_be_moved_off_hopper():
+    """The published configs ask for FlashAttention-3, which only Hopper has."""
+    config = {
+        "model": {"model_conf": {"attn_implementation": "flash_attention_3"}},
+        "multimodal_io": {
+            "continuous_audio": {"attn_implementation": "flash_attention_3"},
+            "text": {"tokenizer_name": "Qwen/Qwen3-8B-Base"},
+        },
+    }
+
+    mod._set_attention(config, "sdpa")
+
+    assert config["model"]["model_conf"]["attn_implementation"] == "sdpa"
+    assert config["multimodal_io"]["continuous_audio"]["attn_implementation"] == "sdpa"
+    # the text IO has no attention of its own and is left alone
+    assert config["multimodal_io"]["text"] == {"tokenizer_name": "Qwen/Qwen3-8B-Base"}
