@@ -65,18 +65,23 @@ def test_field_label_defaults_to_spaced_name():
     assert Field("speech", "audio", "Mic").label == "Mic"
 
 
-def test_audio_normalises_pcm_and_channels():
-    pcm = np.full((8, 2), 16384, dtype=np.int16)
+def test_audio_normalises_pcm_and_keeps_the_first_channel():
+    pcm = np.stack(
+        [np.full(8, 16384, dtype=np.int16), np.zeros(8, dtype=np.int16)], axis=1
+    )
     audio = Audio(pcm, 8000)
     assert audio.array.dtype == np.float32
     assert audio.array.shape == (8,)
-    assert audio.array[0] == pytest.approx(16384 / 32767)
+    assert audio.array[0] == pytest.approx(16384 / 32767)  # channel 0, not the mean
     assert audio.seconds == pytest.approx(0.001)
 
 
 def test_audio_takes_channels_on_either_axis():
-    assert len(Audio(np.zeros((100, 2)), 8000).array) == 100  # soundfile, Gradio
-    assert len(Audio(np.zeros((1, 100)), 8000).array) == 100  # torchaudio
+    by_column = np.stack([np.ones(100), np.zeros(100)], axis=1)  # soundfile, Gradio
+    by_row = np.stack([np.ones(100), np.zeros(100)])  # torchaudio
+    for layout in (by_column, by_row):
+        audio = Audio(layout, 8000)
+        assert len(audio.array) == 100 and audio.array[0] == 1.0
 
 
 def test_audio_rejects_bad_shapes_and_rates():

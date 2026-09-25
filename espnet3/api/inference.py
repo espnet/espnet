@@ -147,10 +147,13 @@ class Audio:
     ever sees ``audio.array`` at ``audio.rate``.
 
     Args:
-        array: The samples. Integer PCM is scaled to ``[-1, 1]``; a 2-D
-            array is averaged to mono, taking the shorter axis as channels
-            (``(samples, channels)`` from soundfile and Gradio,
-            ``(channels, samples)`` from torchaudio).
+        array: The samples. Integer PCM is scaled to ``[-1, 1]``; from a
+            2-D array the first channel is kept, taking the shorter axis as
+            channels (``(samples, channels)`` from soundfile and Gradio,
+            ``(channels, samples)`` from torchaudio). The first channel,
+            not the mean: a microphone array's channels differ in delay,
+            and their mean cancels what a single channel keeps. A model
+            that wants every channel takes a multichannel kind, not audio.
         rate: Samples per second.
 
     Raises:
@@ -179,8 +182,10 @@ class Audio:
         if array.ndim == 2:
             # (samples, channels) as soundfile and Gradio lay it out,
             # (channels, samples) as torchaudio does: channels are the short
-            # axis, there being far fewer of them than samples.
-            array = array.mean(axis=0 if array.shape[0] < array.shape[1] else 1)
+            # axis, there being far fewer of them than samples. The first
+            # channel is the reference, as in ESPnet's enhancement; the mean
+            # of an array's channels would cancel across their delays.
+            array = array[0] if array.shape[0] < array.shape[1] else array[:, 0]
         if array.ndim != 1:
             raise ValueError(f"audio must be 1-D, got shape {array.shape}")
         object.__setattr__(self, "array", array)
@@ -308,7 +313,10 @@ class Kind(ABC):
     def check(
         self, value: Any, field: Field, model: "InferenceAPI", *, output: bool
     ) -> Any:
-        """Return ``value`` converted for ``field``, or raise ``TypeError``.
+        """Return ``value`` as this kind holds it, or raise ``TypeError``.
+
+        The kind decides the form; ``field`` supplies the name for the
+        error and any per-field detail a kind may read off its declaration.
 
         Args:
             value: What the caller gave, or what the hook returned.
