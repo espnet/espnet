@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generic runner template for System-based experiments."""
+"""Generic runner template for TSE System-based experiments."""
 
 from __future__ import annotations
 
@@ -7,9 +7,7 @@ import argparse
 from pathlib import Path
 from typing import List, Sequence
 
-from espnet3.utils.config_utils import (
-    load_and_merge_config,
-)
+from espnet3.utils.config_utils import load_and_merge_config
 from espnet3.utils.logging_utils import configure_logging
 from espnet3.utils.run_utils import (
     apply_training_experiment_context,
@@ -25,7 +23,6 @@ from espnet3.utils.stages_utils import (
 # Default stage list (can be extended/overridden by callers)
 DEFAULT_STAGES: List[str] = [
     "create_dataset",
-    "train_tokenizer",
     "collect_stats",
     "train",
     "infer",
@@ -40,7 +37,7 @@ DEFAULT_STAGES: List[str] = [
 def build_parser(
     stages: Sequence[str],
 ) -> argparse.ArgumentParser:
-    """Build base ArgumentParser and let caller extend it."""
+    """Build base ArgumentParser for TSE experiments."""
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
@@ -56,20 +53,20 @@ def build_parser(
         type=Path,
         help=(
             "Hydra config for training (passed to load_config_with_defaults). "
-            "Required for create_dataset/train_tokenizer/collect_stats/train stages."
+            "Required for create_dataset/collect_stats/train stages."
         ),
     )
     parser.add_argument(
         "--inference_config",
         default=None,
         type=Path,
-        help="Hydra config for infer stage.",
+        help="Hydra config for inference stage.",
     )
     parser.add_argument(
         "--metrics_config",
         default=None,
         type=Path,
-        help="Hydra config for measure stage.",
+        help="Hydra config for metric calculation stage.",
     )
     parser.add_argument(
         "--publication_config",
@@ -139,6 +136,7 @@ def main(
         default_package=__package__,
         resolve=False,
     )
+
     logger = configure_logging()
     apply_training_experiment_context(
         training_config=training_config,
@@ -181,12 +179,7 @@ def main(
     logger.info("Resolved stages: %s", stages_to_run)
 
     # Guardrail: ensure required configs exist for requested stages
-    pretrain_stages = {
-        "create_dataset",
-        "train_tokenizer",
-        "collect_stats",
-        "train",
-    }
+    pretrain_stages = {"create_dataset", "collect_stats", "train"}
     required_configs = {}
     required_configs.update({stage: training_config for stage in pretrain_stages})
     required_configs.update({"infer": inference_config, "measure": metrics_config})
@@ -227,12 +220,10 @@ if __name__ == "__main__":
     parser = build_parser(stages=DEFAULT_STAGES)
     args, _ = parse_cli_and_stage_args(parser, stages=DEFAULT_STAGES)
 
-    # Here you should replace `YourSystemClass` with the actual system class
-    # you want to use for your experiment.
-    from espnet3.systems.asr.system import ASRSystem
+    from espnet3.systems.base.system import BaseSystem
 
     main(
         args=args,
-        system_cls=ASRSystem,
+        system_cls=BaseSystem,
         stages=DEFAULT_STAGES,
     )

@@ -5,8 +5,9 @@ from __future__ import annotations
 import logging
 import re
 from pathlib import Path
-from typing import Any
+from typing import Any, List
 
+import numpy as np
 from omegaconf import DictConfig, OmegaConf
 
 from espnet3.publication.demo.assets import (
@@ -80,6 +81,9 @@ class DemoSession:
             raise TypeError("demo config model.call_args must be a mapping.")
         call_args = OmegaConf.to_container(mapping, resolve=True)
         self.call_args = call_args
+        self.forward_fs = bool(
+            getattr(model_cfg, "forward_fs", False) if model_cfg is not None else False
+        )
 
         self.input_specs = [
             OmegaConf.to_container(spec, resolve=True)
@@ -131,6 +135,8 @@ class DemoSession:
             if output_keys is not None
             else [spec["key"] for spec in resolved_output_specs]
         )
+        resolved_input_types = {s["key"]: s["type"] for s in resolved_input_specs}
+        resolved_output_types = {s["key"]: s["type"] for s in resolved_output_specs}
 
         def run_inference(*values: Any) -> Any:
             logger.info(
@@ -140,15 +146,25 @@ class DemoSession:
                 resolved_output_keys,
             )
             try:
+                # Make the sample rate a list so that
+                #   it can be modified in-place by _normalize_input_audio
+                # The sample rate will be overridden by the demo config
+                # if the model expects a different rate.
+                sr = [16000]
                 item = {}
                 for key, value in zip(resolved_input_keys, values):
+                    if resolved_input_types.get(key) == "audio":
+                        value = _normalize_input_audio(value, sr)
                     item[key] = value
+                call_args = dict(self.call_args)
+                if self.forward_fs:
+                    call_args["fs"] = sr[0]
                 logger.info(
                     "Calling inference model | input_keys=%s call_args=%s",
                     list(item.keys()),
-                    self.call_args,
+                    call_args,
                 )
-                result = self.model(item, **self.call_args)
+                result = self.model(item, **call_args)
                 logger.info(
                     "Inference model returned | output_keys=%s",
                     list(result.keys()) if isinstance(result, dict) else None,
@@ -156,6 +172,8 @@ class DemoSession:
                 outputs = []
                 for key in resolved_output_keys:
                     value = result[key] if isinstance(result, dict) else result
+                    if resolved_output_types.get(key) == "audio":
+                        value = _normalize_output_audio(value, sr=sr[0])
                     outputs.append(value)
                 if len(outputs) == 1:
                     outputs = outputs[0]
@@ -254,3 +272,30 @@ def _build_demo_model(
         raw_ref,
         trust_user_code=model_trust_user_code,
     )
+
+
+def _normalize_input_audio(value: Any, sr: List[int]) -> Any:
+    # Gradio Audio returns (sample_rate, np.ndarray); normalize to float32 waveform.
+    if (
+        isinstance(value, (list, tuple))
+        and len(value) == 2
+        and isinstance(value[0], int)
+    ):
+        sr[0], audio = value
+        if isinstance(audio, np.ndarray):
+            # Normalize audio to float32 in [-1.0, 1.0] range if it is an integer type.
+            if np.issubdtype(audio.dtype, np.integer):
+                audio = audio / np.iinfo(audio.dtype).max
+            audio = audio.astype(np.float32)
+        value = audio
+    return value
+
+
+def _normalize_output_audio(audio: np.ndarray, sr=16000) -> Any:
+    # Convert to Gradio Audio format (sample_rate, np.ndarray)
+    if np.issubdtype(audio.dtype, np.floating):
+        if np.abs(audio).max() > 1:
+            audio = audio / np.abs(audio).max()
+        audio = audio * 32767
+        audio = audio.astype(np.int16)
+    return sr, audio

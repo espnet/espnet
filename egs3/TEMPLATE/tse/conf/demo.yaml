@@ -24,11 +24,13 @@ recipe_dir: .
 # those in the packed `conf/inference.yaml`.
 # `model.forward_fs` controls whether the demo injects `fs` into the call.
 # Set it to true only for backends that explicitly accept `fs`.
+exp_tag:
+
 model:
   dir_or_tag: exp/${exp_tag}/model_pack
   trust_user_code: false
   call_args: {}
-  forward_fs: false
+  forward_fs: true
 
 ##########################################################
 #                     UI DEFINITION                      #
@@ -53,13 +55,16 @@ ui:
   title: ${set_corpus_and_system:} demo
   description: README.md
   inputs:
-    - key: speech
+    - key: speech_mix
       type: audio
-      label: "Input Audio"
+      label: "Mixture Audio"
+    - key: enroll_ref1
+      type: audio
+      label: "Enrollment Audio (Target Speaker)"
   outputs:
-    - key: hyp
-      type: text
-      label: "Transcription"
+    - key: inf
+      type: audio
+      label: "Extracted Audio"
 
 ##########################################################
 #                    PACKING SETTING                     #
@@ -97,8 +102,8 @@ pack:
       - espnet
       - espnet3
       - gradio
-      - speech-recognition
-      - automatic-speech-recognition
+      - speech-to-speech
+      - target-speaker-extraction
     hf_repo: ${upload_demo.hf_repo}
     model_ref: ${model.dir_or_tag}
 
