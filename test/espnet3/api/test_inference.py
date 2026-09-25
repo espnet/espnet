@@ -15,6 +15,7 @@ import pytest
 import soundfile
 import torch
 
+import espnet3.api.inference as inference_api
 from espnet3.api.inference import (
     TASKS,
     Audio,
@@ -278,6 +279,13 @@ def test_load_needs_a_system_name_from_somewhere(tmp_path, monkeypatch):
     _install_fake_system(monkeypatch, "echo", Echo)
     with pytest.raises(ValueError, match="does not name its system"):
         load(_pack(tmp_path, None))
+    assert isinstance(load(_pack(tmp_path, None), system="echo"), Echo)
+
+
+def test_load_follows_a_renamed_system(tmp_path, monkeypatch):
+    _install_fake_system(monkeypatch, "esp2_echo", Echo)
+    monkeypatch.setitem(inference_api.SYSTEM_ALIASES, "echo", "esp2_echo")
+    assert isinstance(load(_pack(tmp_path, "echo")), Echo)
     assert isinstance(load(_pack(tmp_path, None), system="echo"), Echo)
 
 
