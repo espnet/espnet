@@ -8,6 +8,7 @@ from hydra.utils import instantiate
 from omegaconf import DictConfig, OmegaConf
 
 from espnet3.parallel.parallel import set_parallel
+from espnet3.systems.base.api_runner import declared_input_names
 from espnet3.systems.base.inference_runner import _load_output_fn
 
 logger = logging.getLogger(__name__)
@@ -80,6 +81,13 @@ def infer(config: DictConfig):
     field must be a single value. If you need structured content, return a
     ``dict`` and let it be serialized as JSON.
 
+    When ``model`` names an :class:`espnet3.api.inference.InferenceAPI`
+    subclass, ``input_key`` may be omitted - the declared inputs are used -
+    and with :class:`espnet3.systems.base.api_runner.APIRunner` as the
+    runner, no ``output_fn`` is needed either: the declared outputs are
+    written by what they are, and ``copy: {text: ref}`` writes a dataset
+    column beside them.
+
     Args:
         config: Hydra/OmegaConf configuration containing the dataset,
             inference directory, provider/runner definitions, and optional
@@ -116,6 +124,9 @@ def infer(config: DictConfig):
 
         input_key = getattr(config, "input_key", None)
         if input_key is None:
+            # an Inference declares its inputs; a bare model must be told
+            input_key = declared_input_names(config)
+        if input_key is None:
             raise RuntimeError("inference_config.input_key must be set.")
 
         if isinstance(input_key, (list, tuple)) and not input_key:
@@ -149,6 +160,14 @@ def infer(config: DictConfig):
         provider_params["output_keys"] = output_keys
         if output_fn_path:
             provider_params["output_fn_path"] = output_fn_path
+        # config.get, not getattr: a DictConfig has a copy() method
+        copy = config.get("copy", None)
+        if copy:
+            provider_params["copy"] = (
+                OmegaConf.to_container(copy, resolve=True)
+                if OmegaConf.is_config(copy)
+                else dict(copy)
+            )
         artifact_configs = getattr(config, "output_artifacts", {}) or {}
         if OmegaConf.is_config(artifact_configs):
             artifact_configs = OmegaConf.to_container(artifact_configs, resolve=True)

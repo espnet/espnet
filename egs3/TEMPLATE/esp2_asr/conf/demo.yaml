@@ -54,7 +54,7 @@ ui:
       type: audio
       label: "Input Audio"
   outputs:
-    - key: hyp
+    - key: text
       type: text
       label: "Transcription"
 
