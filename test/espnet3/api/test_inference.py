@@ -354,6 +354,43 @@ def test_gather_joins_pieces_by_kind():
         Audio.concat([a, Audio(np.ones(4, dtype=np.float32), 16000)])
 
 
+# --- kinds -----------------------------------------------------------------
+
+
+def test_a_new_kind_is_one_registered_subclass(monkeypatch):
+    from espnet3.api.inference import KINDS, Kind
+
+    class Turns(Kind):
+        def check(self, value, field, model, *, output):
+            if not isinstance(value, list):
+                raise TypeError(f"{field.name} must be a list of turns")
+            return value
+
+    monkeypatch.setitem(KINDS, "messages", Turns())
+
+    class Chat(InferenceAPI):
+        inputs = (Field("messages", "messages"),)
+        outputs = (Field("messages", "messages"),)
+
+        @classmethod
+        def from_pretrained(cls, tag_or_dir, *, device="cpu", **kwargs):
+            return cls()
+
+        sample_rate = 16000
+
+        def run(self, messages):
+            return {"messages": messages + [("assistant", "text", "hi")]}
+
+    turns = [("user", "text", "hello")]
+    assert Chat()(turns)["messages"][-1] == ("assistant", "text", "hi")
+    with pytest.raises(TypeError, match="list of turns"):
+        Chat()("hello")
+    # gather joins through the kind: the default join is +
+    assert gather(Chat.inputs, [{"messages": turns}, {"messages": turns}])[
+        "messages"
+    ] == (turns * 2)
+
+
 # --- batches ---------------------------------------------------------------
 
 

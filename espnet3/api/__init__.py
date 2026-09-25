@@ -6,7 +6,8 @@ front end written against a contract works for every system that honours
 it.
 
 - :mod:`espnet3.api.inference` - calling a trained model: the fields it
-  takes and returns, and how audio reaches it.
+  takes and returns, how audio reaches it, and how the ``infer`` stage's
+  provider and runner run it.
 
 The candidates for what comes next, in the order they would pay off, are
 the item a recipe's ``dataset/`` must return, the ``metric(...)`` call the

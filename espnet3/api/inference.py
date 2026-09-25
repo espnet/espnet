@@ -25,15 +25,47 @@ Inference is a stream of chunks in and chunks out; the one-shot call is
 the stream of one chunk, and a batch is several one-shot calls that a
 model may choose to run together.
 
+What a field can hold is a :class:`Kind` registered in :data:`KINDS`;
+``audio``, ``text`` and ``segments`` are built in, and a new modality is
+one registered subclass.
+
 A system says nothing about *what task* it performs; it says what goes in
 and what comes out. A front end that offers ``transcribe`` looks for a
 model whose first input is audio and whose outputs hold ``text``, and a
 model that answers a conversation declares one ``messages`` field and no
 list of the tasks a prompt might ask of it.
 
-The ``infer`` stage needs nothing new: an ``Inference`` instance is a
-model :class:`espnet3.systems.base.inference_runner.InferenceRunner` can
-call, since ``model(**fields)`` returns the mapping the runner writes.
+Relation to the provider and runner
+-----------------------------------
+
+ESPnet3 runs its stages through an ``EnvironmentProvider`` and a
+``BaseRunner`` (``espnet3/parallel``): the provider builds the objects a
+stage needs, the runner processes dataset shards, in parallel, with
+resume and writers. The contract and that pair divide the work like this:
+
+1. ``Inference`` is the only thing a system must provide for inference.
+   It knows nothing of datasets, shards or runners, so the front ends -
+   which have none - can use it, and so can a test.
+2. The ``infer`` stage runs an ``Inference`` through the pair, and needs
+   nothing added to it: ``inference.yaml``'s ``model._target_`` names the
+   class (its constructor takes the model's own arguments, plus
+   ``device``), ``InferenceProvider.build_model`` instantiates it, and
+   ``InferenceRunner`` calls ``model(**fields)`` for one item or with a
+   list per field for a batch, and writes the mapping it returns. The
+   recipe's ``output_fn`` stays optional, for columns the contract does
+   not produce, such as ``ref`` for scoring.
+3. Parallelism - shards, workers, resume, writers - belongs to the
+   runner. Decoding several items together belongs to :meth:`run_batch`.
+   Streaming belongs to :meth:`run_stream`; the runner never streams.
+4. System authors do not subclass the provider or runner to implement
+   inference. They subclass them only for what the pair is for: how a
+   dataset is built, or how outputs are written.
+5. A system may not use the pair at all - a SpeechLM served by vLLM, a
+   model behind an endpoint - and still provides ``Inference``, whose
+   ``from_pretrained`` takes whatever handle it needs (a URL, a name),
+   given to :func:`load` with ``system=`` since there is no bundle. It
+   need not have an ``infer`` stage config; if it has one, it may run it
+   its own way. The front ends only ever see ``Inference``.
 """
 
 from __future__ import annotations
@@ -47,11 +79,6 @@ from typing import Any, ClassVar, Iterable, Iterator, Mapping, Sequence
 import numpy as np
 import yaml
 
-# What a field can hold. ``audio`` is an :class:`Audio`; ``text`` a ``str``;
-# ``segments`` a list of ``{"text", "start", "end", "score"}`` dicts with
-# times in seconds, the shape ``espnet align`` prints.
-KINDS = frozenset({"audio", "text", "segments"})
-
 
 @dataclass(frozen=True)
 class Field:
@@ -64,18 +91,18 @@ class Field:
     Args:
         name: The keyword the value is passed or returned as, such as
             ``speech`` or ``text``. Must be a Python identifier.
-        kind: One of :data:`KINDS`. Decides how a value is converted and
-            checked (``audio`` becomes an :class:`Audio` at the model's rate,
-            ``text`` must be a ``str``) and, for a front end, which widget
-            or argument type shows it.
+        kind: A name in :data:`KINDS`. Decides how a value is converted
+            and checked (``audio`` becomes an :class:`Audio` at the model's
+            rate, ``text`` must be a ``str``) and, for a front end, which
+            widget or argument type shows it.
         label: What a page calls the field. Defaults to the name with
             underscores spaced and the first letter capitalised.
         optional: An input the caller may leave out; the hook then does
             not receive it. Outputs are never optional.
 
     Raises:
-        ValueError: If ``kind`` is not in :data:`KINDS` or ``name`` is not an
-            identifier.
+        ValueError: If ``kind`` is not registered in :data:`KINDS` or
+            ``name`` is not an identifier.
 
     Examples:
         >>> Field("speech", "audio")
@@ -249,6 +276,118 @@ class Audio:
             "audio must be a path, an Audio, a (rate, samples) pair, "
             f"an array or a tensor, not {type(value).__name__}"
         )
+
+
+class Kind(ABC):
+    """What a field's ``kind`` means: how a value is converted, checked and joined.
+
+    A kind turns what a caller gives into what a hook receives, checks
+    what a hook returns, and says how pieces of a stream join. The
+    built-in kinds are ``audio``, ``text`` and ``segments``; a new
+    modality - a conversation, a multichannel signal, video, a JSON
+    document - is a subclass registered in :data:`KINDS`, and needs no
+    change to :class:`InferenceAPI`.
+
+    Examples:
+        >>> class Messages(Kind):
+        ...     def check(self, value, field, model, *, output):
+        ...         if not isinstance(value, list):
+        ...             raise TypeError(f"{field.name} must be a list of turns")
+        ...         return value
+        >>> KINDS["messages"] = Messages()
+        >>> Field("messages", "messages")
+        Field(name='messages', kind='messages', label='Messages', optional=False)
+    """
+
+    @abstractmethod
+    def check(
+        self, value: Any, field: Field, model: "InferenceAPI", *, output: bool
+    ) -> Any:
+        """Return ``value`` converted for ``field``, or raise ``TypeError``.
+
+        Args:
+            value: What the caller gave, or what the hook returned.
+            field: The declaration the value is for.
+            model: The instance, for what it knows (its ``sample_rate``).
+            output: Whether the value is a hook's result rather than a
+                caller's argument; a kind may accept different forms for
+                each.
+        """
+
+    def join(self, first: Any, second: Any) -> Any:
+        """Join two consecutive pieces of one field; the default is ``+``."""
+        return first + second
+
+    def is_batch(self, value: Any, field: Field, model: "InferenceAPI") -> bool:
+        """Tell one entry per sample from one value of this kind.
+
+        A list that is not itself a valid value of the kind is a batch:
+        a list of arrays is several utterances, a ``[rate, samples]`` pair
+        is one; a list of turns is one conversation, a list of those is
+        several. Override when a kind can say it more cheaply.
+        """
+        if not isinstance(value, list):
+            return False
+        try:
+            self.check(value, field, model, output=False)
+        except TypeError:
+            return True
+        return False
+
+
+class AudioKind(Kind):
+    """``audio``: an :class:`Audio` at the model's rate; pieces concatenate."""
+
+    def check(self, value, field, model, *, output):
+        """Coerce what a caller holds; a hook's bare array is at the model's rate."""
+        if output and isinstance(value, np.ndarray):
+            return Audio(value, model.sample_rate)
+        return Audio.coerce(value, model.sample_rate)
+
+    def join(self, first, second):
+        """Concatenate the samples."""
+        return Audio.concat([first, second])
+
+
+class TextKind(Kind):
+    """``text``: a ``str``; pieces append."""
+
+    def check(self, value, field, model, *, output):
+        """Require a str."""
+        if not isinstance(value, str):
+            where = "returned" if output else "given"
+            raise TypeError(
+                f"{field.name!r} {where} as {type(value).__name__}, must be str"
+            )
+        return value
+
+
+class SegmentsKind(Kind):
+    """``segments``: dicts with ``text``, ``start`` and ``end`` in seconds.
+
+    The shape ``espnet align`` prints; ``score`` is optional. Pieces append.
+    """
+
+    def check(self, value, field, model, *, output):
+        """Require a list of dicts with the three keys."""
+        if not isinstance(value, list) or not all(
+            isinstance(s, Mapping) and {"text", "start", "end"} <= set(s) for s in value
+        ):
+            where = "returned" if output else "given"
+            raise TypeError(
+                f"{field.name!r} {where} must be a list of dicts "
+                "with text, start and end"
+            )
+        return value
+
+
+# What a field can hold, by the name a Field's ``kind`` gives. Register a
+# subclass of Kind here to add a modality.
+KINDS: dict[str, Kind] = {
+    "audio": AudioKind(),
+    "text": TextKind(),
+    "segments": SegmentsKind(),
+}
 
 
 def check_contract(cls: type) -> None:
@@ -483,8 +622,9 @@ class InferenceAPI(ABC):
 
         Positional values fill ``inputs`` in order, so ``model(audio)`` is
         ``model(speech=audio)`` for any model whose first input is audio.
-        When every given value is a ``list``, they are a batch - one entry
-        per sample, as ``InferenceRunner`` passes one - and the result is a
+        When every given value is a list that is not itself a value of its
+        kind (see :meth:`Kind.is_batch`), they are a batch - one entry per
+        sample, as ``InferenceRunner`` passes one - and the result is a
         list of outputs, as from :meth:`batch`.
 
         Returns:
@@ -505,7 +645,11 @@ class InferenceAPI(ABC):
             [{'text': '...'}, {'text': '...'}]
         """
         values = self._collect(args, kwargs)
-        if values and all(_is_batch_value(v) for v in values.values()):
+        fields = {f.name: f for f in self.inputs}
+        if values and all(
+            KINDS[fields[name].kind].is_batch(v, fields[name], self)
+            for name, v in values.items()
+        ):
             lengths = {len(v) for v in values.values()}
             if len(lengths) != 1:
                 raise TypeError(f"batch inputs differ in length: {sorted(lengths)}")
@@ -636,36 +780,7 @@ class InferenceAPI(ABC):
 
     def _check(self, f: Field, value: Any, *, output: bool) -> Any:
         """Convert and check one value by its field's kind."""
-        where = "returned" if output else "given"
-        if f.kind == "audio":
-            if output and isinstance(value, np.ndarray):
-                # a model's own output is at its own rate
-                return Audio(value, self.sample_rate)
-            return Audio.coerce(value, self.sample_rate)
-        if f.kind == "text":
-            if not isinstance(value, str):
-                raise TypeError(
-                    f"{f.name!r} {where} as {type(value).__name__}, must be str"
-                )
-            return value
-        if f.kind == "segments":
-            if not isinstance(value, list) or not all(
-                isinstance(s, Mapping) and {"text", "start", "end"} <= set(s)
-                for s in value
-            ):
-                raise TypeError(
-                    f"{f.name!r} {where} must be a list of dicts "
-                    "with text, start and end"
-                )
-            return value
-        raise AssertionError(f.kind)  # KINDS and _check disagree
-
-
-def _is_batch_value(value: Any) -> bool:
-    """Tell a batch list (one entry per sample) from a ``[rate, samples]`` pair."""
-    return isinstance(value, list) and not (
-        len(value) == 2 and isinstance(value[0], (int, np.integer))
-    )
+        return KINDS[f.kind].check(value, f, self, output=output)
 
 
 def gather(fields: tuple[Field, ...], chunks: Iterable[Mapping[str, Any]]) -> dict:
@@ -677,8 +792,9 @@ def gather(fields: tuple[Field, ...], chunks: Iterable[Mapping[str, Any]]) -> di
     what ``run_stream`` yields.
 
     Args:
-        fields: The declarations that say how each name joins: ``audio`` by
-            :meth:`Audio.concat`, ``text`` and ``segments`` by ``+``.
+        fields: The declarations that say how each name joins, through
+            its kind's :meth:`Kind.join`: audio concatenated, text and
+            segments appended.
         chunks: The pieces, in order. A name outside ``fields`` keeps its
             last value.
 
@@ -689,16 +805,14 @@ def gather(fields: tuple[Field, ...], chunks: Iterable[Mapping[str, Any]]) -> di
         >>> gather((Field("text", "text"),), [{"text": "hel"}, {"text": "lo"}])
         {'text': 'hello'}
     """
-    kinds = {f.name: f.kind for f in fields}
+    kinds = {f.name: KINDS[f.kind] for f in fields}
     acc: dict[str, Any] = {}
     for chunk in chunks:
         for name, piece in chunk.items():
             if name not in acc or name not in kinds:
                 acc[name] = piece
-            elif kinds[name] == "audio":
-                acc[name] = Audio.concat([acc[name], piece])
             else:
-                acc[name] = acc[name] + piece
+                acc[name] = kinds[name].join(acc[name], piece)
     return acc
 
 
