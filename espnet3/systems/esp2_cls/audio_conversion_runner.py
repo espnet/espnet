@@ -14,9 +14,9 @@ logger = logging.getLogger(__name__)
 class AudioConversionRunner(BaseRunner):
     """Runner for converting source clips to WAV in parallel.
 
-    Conversion dominates ``create_dataset`` on corpora distributed as video:
-    MELD ships 13,708 MP4 clips, which takes over an hour one at a time. Each
-    clip is independent, so the work shards cleanly.
+    Conversion dominates ``create_dataset`` on corpora distributed as video,
+    where converting clips one at a time is slow. Each clip is independent,
+    so the work shards cleanly.
 
     Each shard appends its status dicts to a shard-local ``results.jsonl``
     file, and :meth:`merge` reads every shard file back and re-sorts by

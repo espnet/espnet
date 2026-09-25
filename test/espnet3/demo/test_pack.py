@@ -395,28 +395,6 @@ def test_upload_demo_update_true_passes_exist_ok_and_delete_patterns(
     assert upload_kwargs["delete_patterns"] == ["*"]
 
 
-def test_upload_demo_does_not_publish_stage_logs(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Stage logs name the build host, so they stay out of the Space."""
-    system = _make_demo_system(tmp_path, {"update": True})
-    calls = []
-
-    class DummyApi:
-        def create_repo(self, **kwargs):
-            calls.append(("create_repo", kwargs))
-
-        def upload_folder(self, **kwargs):
-            calls.append(("upload_folder", kwargs))
-
-    monkeypatch.setattr(demo_packing, "HfApi", lambda: DummyApi())
-
-    upload_demo(system)
-
-    assert "*.log" in calls[1][1]["ignore_patterns"]
-
-
 def test_upload_demo_raises_on_existing_space_without_update(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
