@@ -334,6 +334,12 @@ class InferenceAPI(ABC):
         raise AssertionError(f.kind)  # KINDS and _check disagree
 
 
+# A system renamed after bundles were published under its old name: old name
+# to current directory. ``load`` looks the name in ``meta.yaml`` up here, so a
+# rename is one row and every bundle already on the Hub keeps loading.
+SYSTEM_ALIASES: dict[str, str] = {}
+
+
 def locate_pack(tag_or_dir: str | Path) -> Path:
     """Return the directory of a ``pack_model`` bundle, downloading a Hub tag."""
     path = Path(tag_or_dir)
@@ -361,7 +367,8 @@ def load(
     The bundle's ``meta.yaml`` names the system that trained it; that
     system's ``inference.Inference`` loads it. ``system`` overrides the name,
     for bundles packed before it was recorded and for models that are not
-    ESPnet3 bundles at all.
+    ESPnet3 bundles at all. A name a system has since given up is followed
+    through :data:`SYSTEM_ALIASES`.
     """
     if system is None:
         tag_or_dir = locate_pack(tag_or_dir)
@@ -372,6 +379,7 @@ def load(
                 f"{tag_or_dir}/meta.yaml does not name its system; it was packed "
                 "before pack_model recorded one. Pass system=<name>."
             )
+    system = SYSTEM_ALIASES.get(system, system)
     module = importlib.import_module(f"espnet3.systems.{system}.inference")
     cls = getattr(module, "Inference", None)
     if not isinstance(cls, type) or not issubclass(cls, InferenceAPI):
