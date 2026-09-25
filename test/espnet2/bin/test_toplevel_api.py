@@ -206,8 +206,9 @@ def test_the_task_is_inferred_from_the_hub_labels(labels, task, monkeypatch):
 def test_asr_and_s2t_are_split_by_the_packed_meta_yaml(
     keys, task, monkeypatch, tmp_path
 ):
-    # both are automatic-speech-recognition on the Hub, so the labels alone
-    # cannot choose between Speech2Text and Speech2TextGreedySearch
+    # both are automatic-speech-recognition on the Hub, and the two tasks
+    # now name classes of the same name in different modules, so the labels
+    # alone cannot choose asr_inference from s2t_inference
     import yaml
 
     meta = tmp_path / "meta.yaml"
