@@ -14,7 +14,10 @@ channel its audio comes from, so no per-group wav is written. Set
 `AMI_SOT_DATA_ROOT` to build somewhere other than the recipe directory, or to
 reuse a prepared corpus.
 
-Everything the recipe imports comes with:
+The model code lives in the `esp2_s2t` system
+(`espnet3/systems/esp2_s2t/`): S2T inference with the Whisper timestamp rules,
+the Whisper tokenizer and vocabulary exporter, and the two metrics. Everything
+they import comes with:
 
 ```bash
 pip install "espnet[s2t]"
@@ -86,6 +89,10 @@ serve a whole meeting.
 | --- | --- |
 | ug_cpWER | 27.61 % |
 | ug_DER (0.25 s collar) | 8.54 % |
+
+cpWER is meeteval's `cp_word_error_rate` over the speaker permutations of one
+group; DER is pyannote's `DiarizationErrorRate` over the segments the inline
+timestamps describe.
 
 ## Packaging
 
