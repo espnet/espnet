@@ -15,7 +15,7 @@ from espnet2.asr.frontend.windowing import SlidingWindow
 from espnet2.fileio.read_text import read_2columns_text
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.text.phoneme_tokenizer import g2p_choices
-from espnet2.torch_utils.initialize import initialize
+from espnet2.torch_utils.initialize import INITIALIZATIONS, initialize
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.collate_fn import UniversaCollateFn
 from espnet2.train.preprocessor import UniversaProcessor
@@ -51,6 +51,8 @@ universa_choices = ClassChoices(
 
 
 class AudioMetricTask(AbsTask):
+    """Train Uni-VERSA and autoregressive ARECHO audio metric predictors."""
+
     # If you need more than one optimizers, change this value
     num_optimizers: int = 1
 
@@ -68,6 +70,7 @@ class AudioMetricTask(AbsTask):
     @classmethod
     @typechecked
     def add_task_arguments(cls, parser: argparse.ArgumentParser):
+        """Register predictor, metadata, and preprocessing options."""
         # NOTE(kamo): Use '_' instead of '-' to avoid confusion
         group = parser.add_argument_group(description="Task related")
 
@@ -95,7 +98,12 @@ class AudioMetricTask(AbsTask):
         )
         group.add_argument("--metric_token_info", type=str_or_none, default=None)
         group.add_argument("--metric_token_pad_value", type=int, default=0)
-        group.add_argument("--sequential_metric", type=str2bool, default=False)
+        group.add_argument(
+            "--sequential_metric",
+            type=str2bool,
+            default=None,
+            help="Use sequential metrics (defaults to true for ar_universa)",
+        )
         group.add_argument("--tokenize_numerical_metric", type=str2bool, default=False)
         group.add_argument("--randomize_sequential_metric", type=str2bool, default=True)
 
@@ -110,14 +118,7 @@ class AudioMetricTask(AbsTask):
             type=lambda x: str_or_none(x.lower()),
             default=None,
             help="The initialization method",
-            choices=[
-                "chainer",
-                "xavier_uniform",
-                "xavier_normal",
-                "kaiming_uniform",
-                "kaiming_normal",
-                None,
-            ],
+            choices=[*INITIALIZATIONS, None],
         )
         group.add_argument(
             "--model_conf",
@@ -189,6 +190,7 @@ class AudioMetricTask(AbsTask):
         [Collection[Tuple[str, Dict[str, np.ndarray]]]],
         Tuple[List[str], Dict[str, torch.Tensor]],
     ]:
+        """Collate scalar metrics or autoregressive metric token sequences."""
         if isinstance(args.metric2id, (str, Path)):
             metrics_list = Path(args.metric2id).read_text().splitlines()
         else:
@@ -212,6 +214,7 @@ class AudioMetricTask(AbsTask):
     def build_preprocess_fn(
         cls, args: argparse.Namespace, train: bool
     ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
+        """Prepare text and metric targets for the selected predictor."""
         if args.use_preprocessor:
             processor = UniversaProcessor
             extra = {}
@@ -248,6 +251,7 @@ class AudioMetricTask(AbsTask):
     def required_data_names(
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
+        """Require metric targets only during training and validation."""
         if not inference:
             retval = ("metrics", "audio")
         else:
@@ -259,6 +263,7 @@ class AudioMetricTask(AbsTask):
     def optional_data_names(
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
+        """Allow optional reference audio and text in every mode."""
         if not inference:
             retval = (
                 "ref_audio",
@@ -275,6 +280,10 @@ class AudioMetricTask(AbsTask):
     @classmethod
     @typechecked
     def build_model(cls, args: argparse.Namespace) -> ESPnetUniversaModel:
+        """Build a predictor and embed its metadata in the saved configuration."""
+        if getattr(args, "sequential_metric", None) is None:
+            args.sequential_metric = args.universa == "ar_universa"
+
         # Load metric2id
         if isinstance(args.metric2id, (str, Path)):
             mappings = Path(args.metric2id).read_text().splitlines()
@@ -326,7 +335,7 @@ class AudioMetricTask(AbsTask):
                 metric_token_info=token_info,
                 metric_vocab_size=len(token_info["VOCAB"]) + 4,
                 metric_token_pad_value=getattr(args, "metric_token_pad_value", 0),
-                sequential_metrics=getattr(args, "sequential_metric", True),
+                sequential_metrics=args.sequential_metric,
             )
         # 2. universa
         universa_class = universa_choices.get_class(args.universa)
