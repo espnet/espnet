@@ -12,6 +12,12 @@ drive any system the same way::
     >>> model = load("espnet/some_pack")          # meta.yaml names the system
     >>> model("utt.wav")["text"]
     >>> model(speech=(16000, samples))["text"]    # what gr.Audio returns
+    >>> for piece in model.stream(microphone_chunks()):
+    ...     print(piece.get("text", ""), end="")
+
+Inference is a stream of chunks in and chunks out; the one-shot call is the
+stream of one chunk, and a system implements whichever of the two it works
+by. The base class derives the other.
 
 A system says nothing about *what task* it performs; it says what goes in
 and what comes out. A front end that offers ``transcribe`` looks for a
@@ -26,7 +32,7 @@ import importlib
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, ClassVar, Mapping
+from typing import Any, ClassVar, Iterable, Iterator, Mapping, Sequence
 
 import numpy as np
 import yaml
@@ -125,6 +131,14 @@ class Audio:
         )
 
     @classmethod
+    def concat(cls, pieces: Sequence["Audio"]) -> "Audio":
+        """Join consecutive pieces of one signal; they must share a rate."""
+        rates = {p.rate for p in pieces}
+        if len(rates) != 1:
+            raise ValueError(f"cannot concatenate audio at rates {sorted(rates)}")
+        return cls(np.concatenate([p.array for p in pieces]), rates.pop())
+
+    @classmethod
     def coerce(cls, value: Any, rate: int) -> "Audio":
         """Turn ``value`` into an :class:`Audio` at ``rate``.
 
@@ -178,6 +192,11 @@ def check_contract(cls: type) -> None:
     for f in cls.outputs:
         if f.optional:
             raise TypeError(f"{cls.__qualname__}: outputs cannot be optional")
+    if cls.run is InferenceAPI.run and cls.run_stream is InferenceAPI.run_stream:
+        raise TypeError(
+            f"{cls.__qualname__} must implement run_stream (online) or run "
+            "(the whole input at once); each is the other's default"
+        )
 
 
 class InferenceAPI(ABC):
@@ -190,11 +209,17 @@ class InferenceAPI(ABC):
     - :meth:`from_pretrained`: build one from a packed model directory or a
       Hub tag.
     - :attr:`sample_rate`: the rate the model takes audio at.
-    - :meth:`run`: one sample in, one result out, both keyed by field name.
+    - one of :meth:`run_stream` and :meth:`run`.
 
-    Calling the instance does the checking and conversion; :meth:`run` sees
+    Inference is a stream: input chunks arrive, output chunks leave as they
+    are ready. A system that works online implements :meth:`run_stream`; a
+    system that needs the whole input implements :meth:`run`, and the base
+    class gathers the stream for it. Either way a caller has both
+    :meth:`stream` and the one-shot call, which is the stream of one chunk.
+
+    The public entry points do the checking and conversion; the hooks see
     :class:`Audio` at :attr:`sample_rate` for every audio field, ``str`` for
-    every text field, and never a missing required one.
+    every text field, and never a required one missing.
     """
 
     inputs: ClassVar[tuple[Field, ...]]
@@ -218,37 +243,71 @@ class InferenceAPI(ABC):
     @property
     @abstractmethod
     def sample_rate(self) -> int:
-        """The rate audio is resampled to before :meth:`run` sees it."""
+        """The rate audio is resampled to before the model sees it."""
 
-    @abstractmethod
+    # -- the hooks a system implements; each has the other as its default --
+
+    def run_stream(self, chunks: Iterable[Mapping[str, Any]]) -> Iterator[Mapping]:
+        """Consume input chunks as they arrive; yield output chunks when ready.
+
+        A chunk is a mapping of field name to a piece of that field: a
+        slice of audio, more text, some segments. Not every chunk carries
+        every field, and a system may yield nothing for a chunk and
+        several outputs for another. The input ends when the iterable
+        does; whatever is yielded after that is the tail.
+
+        The default gathers every chunk and calls :meth:`run` once, which
+        is what a model that needs its whole input does.
+        """
+        yield self.run(**gather(self.inputs, chunks))
+
     def run(self, **inputs: Any) -> Mapping[str, Any]:
-        """Infer one sample; keys in and out are the declared field names."""
+        """Infer one complete sample; keys in and out are the field names.
+
+        The default is the stream of one chunk, gathered: what a streaming
+        model does when handed everything at once.
+        """
+        return gather(self.outputs, self.run_stream(iter([inputs])))
+
+    # -- the entry points a caller uses --
 
     def __call__(self, *args: Any, **kwargs: Any) -> dict[str, Any]:
-        """Bind, check and convert the inputs, run, and check the outputs.
+        """Infer one complete sample, checking the inputs and the outputs.
 
         Positional values fill ``inputs`` in order, so ``model(audio)`` is
-        ``model(speech=audio)`` for any transcriber.
+        ``model(speech=audio)`` for any model whose first input is audio.
         """
         bound = self._bind(args, kwargs)
-        result = self.run(**bound)
-        if not isinstance(result, Mapping):
-            raise TypeError(
-                f"{type(self).__qualname__}.run returned "
-                f"{type(result).__name__}, not a mapping"
-            )
-        out: dict[str, Any] = {}
-        for f in self.outputs:
-            if f.name not in result:
-                raise RuntimeError(
-                    f"{type(self).__qualname__}.run did not return {f.name!r}"
-                )
-            out[f.name] = self._check(f, result[f.name], output=True)
-        for name, value in result.items():
-            out.setdefault(name, value)
-        return out
+        return self._check_output(self.run(**bound), complete=True)
 
-    def _bind(self, args: tuple, kwargs: dict[str, Any]) -> dict[str, Any]:
+    def stream(self, chunks: Iterable[Mapping[str, Any]]) -> Iterator[dict]:
+        """Infer from a stream of input chunks, yielding output chunks.
+
+        Each input chunk is checked and converted as a one-shot call's
+        arguments are, field by field; each output chunk likewise. A
+        required input that never arrived is an error once the input ends.
+        """
+        seen: set[str] = set()
+
+        def checked() -> Iterator[dict[str, Any]]:
+            for chunk in chunks:
+                piece = self._bind((), dict(chunk), partial=True)
+                seen.update(piece)
+                yield piece
+            missing = [
+                f.name for f in self.inputs if not f.optional and f.name not in seen
+            ]
+            if missing:
+                raise TypeError(f"{type(self).__qualname__} never got {missing}")
+
+        for out in self.run_stream(checked()):
+            yield self._check_output(out, complete=False)
+
+    # -- checking --
+
+    def _bind(
+        self, args: tuple, kwargs: dict[str, Any], *, partial: bool = False
+    ) -> dict[str, Any]:
         names = [f.name for f in self.inputs]
         if len(args) > len(names):
             raise TypeError(
@@ -269,11 +328,30 @@ class InferenceAPI(ABC):
         for f in self.inputs:
             value = values.get(f.name)
             if value is None:
-                if f.optional:
+                if f.optional or partial:
                     continue
                 raise TypeError(f"{type(self).__qualname__} needs {f.name!r}")
             bound[f.name] = self._check(f, value, output=False)
         return bound
+
+    def _check_output(self, result: Any, *, complete: bool) -> dict[str, Any]:
+        if not isinstance(result, Mapping):
+            raise TypeError(
+                f"{type(self).__qualname__} produced "
+                f"{type(result).__name__}, not a mapping"
+            )
+        out: dict[str, Any] = {}
+        for f in self.outputs:
+            if f.name not in result:
+                if complete:
+                    raise RuntimeError(
+                        f"{type(self).__qualname__} did not return {f.name!r}"
+                    )
+                continue
+            out[f.name] = self._check(f, result[f.name], output=True)
+        for name, value in result.items():
+            out.setdefault(name, value)
+        return out
 
     def _check(self, f: Field, value: Any, *, output: bool) -> Any:
         where = "returned" if output else "given"
@@ -299,6 +377,26 @@ class InferenceAPI(ABC):
                 )
             return value
         raise AssertionError(f.kind)  # KINDS and _check disagree
+
+
+def gather(fields: tuple[Field, ...], chunks: Iterable[Mapping[str, Any]]) -> dict:
+    """Join a stream of chunks into the one value each field would have had.
+
+    Audio is concatenated, text and segments appended; a field outside
+    ``fields`` keeps its last value. This is what makes a one-shot call the
+    special case of a stream, in both directions.
+    """
+    kinds = {f.name: f.kind for f in fields}
+    acc: dict[str, Any] = {}
+    for chunk in chunks:
+        for name, piece in chunk.items():
+            if name not in acc or name not in kinds:
+                acc[name] = piece
+            elif kinds[name] == "audio":
+                acc[name] = Audio.concat([acc[name], piece])
+            else:
+                acc[name] = acc[name] + piece
+    return acc
 
 
 # A system renamed after bundles were published under its old name: old name

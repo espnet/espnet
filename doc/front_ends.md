@@ -59,7 +59,9 @@ returns, and `espnet3.api.inference.load(tag)` finds it from the bundle's
 end's word for "audio in, `text` out", and a model that answers a
 conversation declares one `messages` field rather than a list of the tasks
 a prompt might ask of it. The declaration is checked when the class is
-defined.
+defined. Inference is a stream - chunks in, chunks out - and the one-shot
+call is the stream of one chunk: a system implements `run_stream` if it
+works online or `run` if it needs the whole input, and gets the other.
 
 ### 2. The command line — `espnet2/bin/cli.py`
 
