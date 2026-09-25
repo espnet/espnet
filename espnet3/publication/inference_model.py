@@ -175,6 +175,15 @@ def load_backend(pack_dir: str | Path, *, device: str | None = None):
 
     Returns:
         The instantiated backend, such as a ``Speech2Text``.
+
+    Raises:
+        FileNotFoundError: If ``pack_dir`` is not a bundle, or its
+            ``meta.yaml`` names no inference config.
+        ValueError: If the model or provider needs the bundle's own code.
+
+    Examples:
+        >>> speech2text = load_backend("exp/train/model_pack")
+        >>> speech2text = load_backend("exp/train/model_pack", device="cuda:0")
     """
     inference_config_path, bundle_root = _resolve_packed_config(pack_dir)
     config = _load_inference_config(inference_config_path, bundle_root=bundle_root)
