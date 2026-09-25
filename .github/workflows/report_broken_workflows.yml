@@ -66,9 +66,13 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TITLE: "CI: workflows failing where no pull request shows it"
+          MARKER: 'Maintained by `.github/workflows/report_broken_workflows.yml`.'
         run: |
+          # -e and pipefail: a failed lookup must stop the step rather than
+          # leave "existing" empty, which would file a second issue.
+          set -euo pipefail
           {
-            echo "Maintained by \`.github/workflows/report_broken_workflows.yml\`."
+            echo "$MARKER"
             echo "Edited in place each day; close it once the runs are green."
             echo
             echo '```'
@@ -77,9 +81,13 @@ jobs:
             echo
             echo "Last checked: $(date -u '+%Y-%m-%d %H:%M UTC')"
           } > body.md
+          # `first(...)` inside gh rather than `head -1`: head can close the
+          # pipe before gh has finished writing, and with pipefail that broken
+          # pipe would fail the step. The marker keeps this from editing or
+          # closing an unrelated issue that happens to share the title.
           existing=$(gh issue list --state open --search "$TITLE in:title" \
-            --json number,title \
-            --jq ".[] | select(.title == \"$TITLE\") | .number" | head -1)
+            --json number,title,body \
+            --jq "first(.[] | select(.title == env.TITLE and ((.body // \"\") | contains(env.MARKER))) | .number)")
           if [ -n "${existing}" ]; then
             gh issue edit "${existing}" --body-file body.md
             echo "updated #${existing}"
@@ -92,10 +100,18 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TITLE: "CI: workflows failing where no pull request shows it"
+          MARKER: 'Maintained by `.github/workflows/report_broken_workflows.yml`.'
         run: |
+          # here too: a failed lookup must not read as "no issue open",
+          # which would leave a stale report behind.
+          set -euo pipefail
+          # `first(...)` inside gh rather than `head -1`: head can close the
+          # pipe before gh has finished writing, and with pipefail that broken
+          # pipe would fail the step. The marker keeps this from editing or
+          # closing an unrelated issue that happens to share the title.
           existing=$(gh issue list --state open --search "$TITLE in:title" \
-            --json number,title \
-            --jq ".[] | select(.title == \"$TITLE\") | .number" | head -1)
+            --json number,title,body \
+            --jq "first(.[] | select(.title == env.TITLE and ((.body // \"\") | contains(env.MARKER))) | .number)")
           if [ -n "${existing}" ]; then
             gh issue close "${existing}" \
               --comment "Every workflow's latest run is green outside pull requests."
