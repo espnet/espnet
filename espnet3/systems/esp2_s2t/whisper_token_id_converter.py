@@ -5,6 +5,7 @@ differs in two places: the tokenizer is copied before the extra tokens are
 added, and ``keep_special_tokens`` preserves the ``<|x.xx|>`` timestamps that
 the serialized output is scored on.
 """
+
 import copy
 import os
 from typing import Dict, Iterable, List, Optional, Union

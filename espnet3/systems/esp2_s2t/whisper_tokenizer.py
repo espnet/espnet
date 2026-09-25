@@ -5,6 +5,7 @@ in one place: the tokenizer is copied before the extra tokens are added, so a
 vocabulary built here cannot follow ``whisper.tokenizer.get_tokenizer``'s cache
 into another caller's tokenizer.
 """
+
 import copy
 import os
 from typing import Iterable, List, Optional

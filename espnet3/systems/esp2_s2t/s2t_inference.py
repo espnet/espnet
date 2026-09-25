@@ -7,6 +7,7 @@ search is told about, and the Whisper timestamp rules in
 ``whisper_timestamp_scorer.py``. Copied rather than edited in place, so this
 system carries its own inference entry point and espnet2 keeps the one it had.
 """
+
 import argparse
 import logging
 import sys
@@ -36,22 +37,22 @@ from espnet2.legacy.nets.scorer_interface import (
 from espnet2.legacy.nets.scorers.ctc import CTCPrefixScorer
 from espnet2.legacy.nets.scorers.length_bonus import LengthBonus
 from espnet2.legacy.utils.cli_utils import get_commandline_args
-from espnet3.systems.esp2_s2t.whisper_timestamp_scorer import (
-    WhisperTimestampFilter,
-    wrap_timestamp_decoder,
-)
 from espnet2.tasks.lm import LMTask
 from espnet2.tasks.s2t import S2TTask
 from espnet2.text.build_tokenizer import build_tokenizer
 from espnet2.text.token_id_converter import TokenIDConverter
-from espnet3.systems.esp2_s2t.whisper_token_id_converter import (
-    OpenAIWhisperTokenIDConverter,
-)
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
 from espnet2.utils.pretrained import download_pretrained
 from espnet2.utils.types import str2bool, str2triple_str, str_or_none
+from espnet3.systems.esp2_s2t.whisper_timestamp_scorer import (
+    WhisperTimestampFilter,
+    wrap_timestamp_decoder,
+)
+from espnet3.systems.esp2_s2t.whisper_token_id_converter import (
+    OpenAIWhisperTokenIDConverter,
+)
 
 # Alias for typing
 ListOfHypothesis = List[

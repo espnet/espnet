@@ -6,6 +6,7 @@ differs in two places: the cached tokenizer is copied before anything is added
 to it, and a speaker-change symbol the vocabulary already holds is not appended
 a second time.
 """
+
 import argparse
 import copy
 import logging
