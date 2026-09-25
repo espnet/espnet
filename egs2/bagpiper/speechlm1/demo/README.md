@@ -49,6 +49,6 @@ same two things from a terminal, and the MCP server offers them as
 
 ## When this may be uploaded
 
-After the release that carries `espnet2.bin.speechlm_inference`, which
-`requirements.txt` pins. Uploading before it exists replaces a working Space
-with one that builds and then fails to start.
+After 202610.post3, the release that carries
+`espnet2.bin.speechlm_inference`. Uploading before it exists gives a Space
+that builds and then fails to start.

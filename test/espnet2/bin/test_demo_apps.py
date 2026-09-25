@@ -255,7 +255,7 @@ UNRELEASED = {
     # espnet2.bin.speechlm_inference, and with it `espnet describe` and
     # `espnet render`, is unreleased: this is the release it is going into,
     # and the Bagpiper Space cannot be uploaded until that one is out.
-    "from_server": "202611",
+    "from_server": "202610.post3",
 }
 # The extra each front-end needs, by the import that gives it away. RawNet3's
 # asteroid_frontend imports asteroid_filterbanks, which only espnet[spk] has;
