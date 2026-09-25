@@ -45,9 +45,15 @@ dataset:
 ##########################################################
 #                  PARALLELIZATION SETTING               #
 ##########################################################
+# `env: local` uses a Dask LocalCluster with `n_workers` workers. To dispatch
+# workers through a scheduler instead, set `env: slurm` and supply the
+# site-specific scheduler options.
 parallel:
   env: local
   n_workers: 1  # increase this to do parallel inference (multi-processing)
+  # Replace a stale shard lock left by an interrupted run. Do not enable while
+  # another run may still be writing to the same output directory.
+  allow_overwrite_lock: false
 
 ##########################################################
 #               PROVIDER AND RUNNER SETTING              #

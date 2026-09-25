@@ -69,6 +69,9 @@ dataset:
 ##########################################################
 #                  PARALLELIZATION SETTING               #
 ##########################################################
+# `env: local` uses a Dask LocalCluster with `n_workers` workers. To dispatch
+# workers through a scheduler instead, set `env: slurm` and supply the
+# site-specific scheduler options.
 parallel:
   env: local
   n_workers: 1

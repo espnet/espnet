@@ -27,7 +27,7 @@
 ##########################################################
 metrics:
   - metric:
-      _target_: espnet3.systems.tse.metrics.tsos.TSOS
+      _target_: espnet3.systems.esp2_tse.metrics.tsos.TSOS
       ref_key: ref
       hyp_key: inf
       batch_size: 1
@@ -37,21 +37,21 @@ metrics:
       device: cpu
 
   - metric:
-      _target_: espnet3.systems.tse.metrics.pesq.PESQ
+      _target_: espnet3.systems.esp2_tse.metrics.pesq.PESQ
       ref_key: ref
       hyp_key: inf
       batch_size: 1
       ref_channel: 0
 
   - metric:
-      _target_: espnet3.systems.tse.metrics.stoi.ESTOI
+      _target_: espnet3.systems.esp2_tse.metrics.stoi.ESTOI
       ref_key: ref
       hyp_key: inf
       batch_size: 1
       ref_channel: 0
 
   - metric:
-      _target_: espnet3.systems.tse.metrics.sisnr.SISNR
+      _target_: espnet3.systems.esp2_tse.metrics.sisnr.SISNR
       ref_key: ref
       hyp_key: inf
       batch_size: 1
@@ -61,7 +61,7 @@ metrics:
       zero_mean: true
 
   - metric:
-      _target_: espnet3.systems.tse.metrics.sdr.SDR
+      _target_: espnet3.systems.esp2_tse.metrics.sdr.SDR
       ref_key: ref
       hyp_key: inf
       batch_size: 1
@@ -70,7 +70,7 @@ metrics:
       clamp_db: 50
 
   - metric:
-      _target_: espnet3.systems.tse.metrics.dnsmos.DNSMOS
+      _target_: espnet3.systems.esp2_tse.metrics.dnsmos.DNSMOS
       hyp_key: inf
       batch_size: 1
       ref_channel: 0

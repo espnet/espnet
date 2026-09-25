@@ -33,7 +33,7 @@ exp_dir: ${recipe_dir}/exp/${exp_tag}
 ##########################################################
 metrics:
   - metric:
-      _target_: espnet3.systems.tse.metrics.tsos.TSOS
+      _target_: espnet3.systems.esp2_tse.metrics.tsos.TSOS
       ref_key: ref
       hyp_key: inf
       batch_size: 1
