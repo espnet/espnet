@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 from types import SimpleNamespace
 
 import httpx
@@ -12,6 +13,7 @@ from espnet3.systems.esp2_asr.system import ASRSystem
 from espnet3.utils import publication_utils as publish
 from espnet3.utils.publication_utils import (
     _build_results_table,
+    _infer_recipe_name,
     _render_readme,
     _resolve_results,
 )
@@ -1005,6 +1007,60 @@ def test_pack_model_external_include_placed_at_bundle_root(tmp_path):
     )
 
     assert (out_dir / "shared_tokenizer" / "tokenizer.model").exists()
+
+
+# ---------------------------------------------------------------------------
+# recipe path in README reflects the esp2_asr rename
+# ---------------------------------------------------------------------------
+
+
+def test_infer_recipe_name_reflects_renamed_system_directory():
+    repo_root = Path(publish.__file__).resolve().parents[2]
+    recipe_root = repo_root / "egs3" / "mini_an4" / "esp2_asr"
+
+    assert _infer_recipe_name(recipe_root) == "egs3/mini_an4/esp2_asr"
+
+
+def test_pack_model_readme_recipe_line_uses_renamed_path(tmp_path, monkeypatch):
+    repo_root = Path(publish.__file__).resolve().parents[2]
+    recipe_dir = repo_root / "egs3" / "mini_an4" / "esp2_asr"
+    exp_dir = tmp_path / "exp"
+    exp_dir.mkdir()
+    out_dir = tmp_path / "model_pack"
+    publication_config = OmegaConf.create(
+        {
+            "pack_model": {
+                "out_dir": str(out_dir),
+                "readme": "egs3/TEMPLATE/esp2_asr/src/hf_model_readme.md",
+                "readme_context": {
+                    "task": "asr",
+                    "lang": "en",
+                    "license": "apache-2.0",
+                    "description": "Test.",
+                },
+            }
+        }
+    )
+    system = _make_system(
+        exp_dir=exp_dir,
+        recipe_dir=recipe_dir,
+        publication_config=publication_config,
+        task="espnet3.systems.esp2_asr.task.ASRTask",
+    )
+    monkeypatch.setattr(
+        publish,
+        "get_git_metadata",
+        lambda cwd=None: {"short_commit": "abc123", "worktree": "clean"},
+    )
+
+    out_dir = publish.pack_model(
+        training_config=system.training_config,
+        publication_config=system.publication_config,
+    )
+
+    readme = (out_dir / "README.md").read_text(encoding="utf-8")
+    assert "- Recipe: `egs3/mini_an4/esp2_asr`" in readme
+    assert "egs3/mini_an4/asr" not in readme
 
 
 # ---------------------------------------------------------------------------

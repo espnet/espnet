@@ -114,7 +114,7 @@ def set_corpus_and_system(value: str) -> str:
     This resolver is used as ``${set_corpus_and_system:}`` in YAML configs.
     ``_normalize_relative_resolver_paths`` rewrites it to
     ``${set_corpus_and_system:<corpus>_<system>}`` (e.g.
-    ``${set_corpus_and_system:mini_an4_asr}``) by extracting the corpus and
+    ``${set_corpus_and_system:mini_an4_esp2_asr}``) by extracting the corpus and
     system names from the ``egs3/<corpus>/<system>/`` portion of the config
     file path. The resolver itself simply returns that injected value.
 
@@ -140,7 +140,7 @@ def set_corpus_and_system(value: str) -> str:
 
         After loading via ``load_and_merge_config``, resolves to::
 
-            espnet/mini_an4_asr_<exp_tag>
+            espnet/mini_an4_esp2_asr_<exp_tag>
     """
     if not value:
         raise RuntimeError(
@@ -459,7 +459,7 @@ def _resolve_egs3_path(path: Path, as_package: bool = False) -> str | None:
     Args:
         path (Path): Config file path or the ``conf/`` directory.
         as_package (bool): When ``False`` (default) returns
-            ``"<corpus>_<system>"`` (e.g. ``"mini_an4_asr"``). When ``True``
+            ``"<corpus>_<system>"`` (e.g. ``"mini_an4_esp2_asr"``). When ``True``
             returns the TEMPLATE package import path
             (e.g. ``"egs3.TEMPLATE.esp2_asr"``).
 
