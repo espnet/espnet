@@ -137,6 +137,7 @@ convention = "pep257"
 "!espnet3/**" = ["D"]
 
 [tool.ruff.format]
+# NOTE: `ruff format` isn't integrated into CI yet. Until then, use Black instead.
 # Like Black
 quote-style = "double"
 indent-style = "space"
