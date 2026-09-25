@@ -38,6 +38,9 @@ DEMOS = {
     "tts": EGS2 / "ljspeech/tts1/demo",
     "enh": EGS2 / "universal_se_v1/enh1/demo",
     "spk": EGS2 / "voxceleb/spk1/demo",
+    # not hosted: an 8B model whose encoder alone is a 70.5 GB download is
+    # not something free Space hardware runs. It is checked like the rest
+    # because it is run the same way, locally or from a cluster job.
     "bagpiper": EGS2 / "bagpiper/speechlm1/demo",
 }
 # The apps with no page of their own: they import the one `espnet demo`

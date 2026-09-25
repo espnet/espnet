@@ -47,8 +47,28 @@ serving command is in
 same two things from a terminal, and the MCP server offers them as
 `describe` and `render`.
 
-## When this may be uploaded
+## This one is not hosted
 
-After 202610.post3, the release that carries
-`espnet2.bin.speechlm_inference`. Uploading before it exists gives a Space
-that builds and then fails to start.
+There is no `espnet/bagpiper` Space, and this directory is the app rather
+than the source of one. Loading the model pulls about 106 GB before it can
+answer anything — the 18 GB checkpoint, Qwen3-8B-Base, Xcodec, and
+`Qwen/Qwen3-Omni-30B-A3B-Instruct`, all 70.5 GB of which is instantiated so
+that its audio tower can be kept and the rest deleted. No free Space
+hardware holds that, and ZeroGPU's A10G could not run it anyway: the
+published configs ask for FlashAttention-3, which is Hopper-only.
+
+So run it yourself, one of three ways:
+
+- **on a GPU** — `python app.py`, with `ESPNET_BAGPIPER_ATTN=sdpa` on
+  anything before Hopper;
+- **against a served model** — `BAGPIPER_URL=http://127.0.0.1:9811/v1
+  python app.py`, which needs no GPU on this side;
+- **from a cluster** — run it inside a batch job and forward the port:
+  `ssh -L 7860:<node>:7860 <cluster>`, then open `localhost:7860`.
+
+The demo that is public is the authors' own, at
+[bagpiper-cmu.github.io](https://bagpiper-cmu.github.io/). What ESPnet ships
+for Bagpiper is `espnet describe` / `espnet render` and the two MCP tools.
+
+If an audio-encoder-only repository ever replaces that 70.5 GB download, a
+hosted Space becomes possible again, and this directory is ready for it.

@@ -50,6 +50,9 @@ MODEL_TAG = os.environ.get("BAGPIPER_MODEL_TAG", "espnet/bagpiper-sft")
 # An address, if this Space is a front for a model served elsewhere; empty
 # means load the checkpoint here.
 SERVER = os.environ.get("BAGPIPER_URL", "")
+# The published configs ask for FlashAttention-3, which only Hopper has.
+# Anything older has to be told what it does have, such as sdpa.
+ATTN = os.environ.get("ESPNET_BAGPIPER_ATTN", "") or None
 # ZeroGPU attaches the GPU only while a @spaces.GPU function runs, so
 # torch.cuda.is_available() is False here and asking it would pin the models to
 # the CPU on the very hardware bought to run them. SPACES_ZERO_GPU is the
@@ -105,7 +108,11 @@ from a terminal, and they pipe into each other. Source of this Space:
 [`egs2/bagpiper/speechlm1/demo`](https://github.com/espnet/espnet/tree/master/egs2/bagpiper/speechlm1/demo).
 """  # noqa: E501 - markdown links, and breaking a URL breaks the link
 
-model = from_server(SERVER) if SERVER else from_pretrained(MODEL_TAG, device=DEVICE)
+model = (
+    from_server(SERVER)
+    if SERVER
+    else from_pretrained(MODEL_TAG, device=DEVICE, attn_implementation=ATTN)
+)
 
 
 def _seconds(path):
