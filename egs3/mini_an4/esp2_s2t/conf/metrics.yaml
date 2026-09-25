@@ -1,0 +1,26 @@
+##########################################################
+#                    METRICS SETTING                     #
+##########################################################
+# Used together with conf/inference.yaml; see its header. exp_tag is left empty
+# and inherited through the inference config.
+recipe_dir: .
+exp_tag:
+
+# cpWER compares words, so it reads the timestamp-free view. DER compares
+# speaker activity in time, so it reads the view that keeps timestamps.
+#
+# Both are utterance-group metrics: every group is scored on its own, so the
+# reported ug_cpWER and ug_DER are not comparable with session-level numbers.
+metrics:
+  - metric:
+      _target_: espnet3.systems.esp2_s2t.metrics.cpwer.UtteranceGroupCpWER
+      speaker_change_symbol: "????"
+    inputs:
+      ref: ref
+      hyp: hyp
+  - metric:
+      _target_: espnet3.systems.esp2_s2t.metrics.der.UtteranceGroupDER
+      speaker_change_symbol: "????"
+    inputs:
+      ref: ref_sot
+      hyp: hyp_sot

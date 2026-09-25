@@ -1,29 +1,14 @@
-"""Tests for the normalizer resolver in egs3/ami/esp2_s2t/dataset/text_norm.py.
+"""Tests for the normalizer resolver in espnet3/systems/esp2_s2t/text_norm.py.
 
 The CHiME-8 normalizer it can return is an optional dependency, so the tests
 that need it skip when it is absent. Everything else runs anywhere.
 """
 
-import importlib.util
 from pathlib import Path
 
-import ami_sot_paths
 import pytest
 
-_REPO = Path(__file__).resolve().parents[4]
-_RECIPE = _REPO / "egs3" / "ami" / "esp2_s2t"
-
-
-def _load():
-    spec = importlib.util.spec_from_file_location(
-        "ami_s2t_text_norm", _RECIPE / "dataset" / "text_norm.py"
-    )
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
-
-
-tn = _load()
+import espnet3.systems.esp2_s2t.text_norm as tn  # noqa: E402
 
 
 def test_none_means_no_normalizer_at_all():
@@ -57,10 +42,11 @@ def test_the_missing_dependency_is_named_with_its_install_command():
 
 def test_the_named_installer_exists_and_carries_the_repository():
     """The message points at a real target, and that target installs the thing."""
-    installer = ami_sot_paths.REPO / "tools" / "installers" / "install_chime_utils.sh"
+    repo = Path(__file__).resolve().parents[4]
+    installer = repo / "tools" / "installers" / "install_chime_utils.sh"
     assert installer.is_file()
     assert "github.com/chimechallenge/chime-utils" in installer.read_text()
-    makefile = (ami_sot_paths.REPO / "tools" / "Makefile").read_text()
+    makefile = (repo / "tools" / "Makefile").read_text()
     assert "chime_utils.done:" in makefile
     assert "install_chime_utils.sh" in makefile
 

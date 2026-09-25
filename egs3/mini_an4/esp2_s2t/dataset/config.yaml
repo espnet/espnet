@@ -1,0 +1,69 @@
+# Builder and dataset settings, loaded at import time by dataset/__init__.py.
+builder:
+  # Root the split directories resolve against. The default is the recipe
+  # directory, which is where the integration test runs it.
+  data_root: ${oc.env:MINI_AN4_SOT_DATA_ROOT,.}
+
+  split_dirs:
+    train: data/train
+    valid: data/dev
+    test: data/test
+
+  # The AN4 archive committed beside this file, and where it expands to.
+  archive_path: ./downloads.tar.gz
+  downloads_dir: downloads
+
+  # One token per line, written by the builder and read by conf/training.yaml.
+  token_list: data/tokens.txt
+
+  # A split directory holding this is built; see builder.is_built.
+  required_files:
+    - cuts.jsonl.gz
+
+  # Whisper BPE already holds "????" as one token (id 25629), so a checkpoint
+  # can emit it without the vocabulary growing a row. See
+  # espnet3/systems/esp2_s2t/whisper_export_vocabulary.py.
+  separator: "????"
+
+  # Prepended to every line. The S2T data format is
+  # <language><task><starttime> utt<endtime>...; <sos> and <eos> are added
+  # during preprocessing.
+  prompt: "<|en|><|transcribe|>"
+
+  # Carried by every sample as text_prev and text_ctc, and resolved by the
+  # model as sym_na. A Whisper vocabulary has no "<na>", so this must be a
+  # real Whisper token.
+  na_symbol: "<|nospeech|>"
+
+  # How many AN4 utterances go into one group, and the silence between them.
+  utterances_per_group: 2
+  gap: 0.2
+
+  # Per-split serialization; see espnet3/systems/esp2_s2t/sot_text.py for what
+  # each option does. text_norm is "none" here: the CHiME-8 normalizer is an
+  # optional dependency and this recipe exists to run anywhere.
+  sot:
+    train:
+      source: an4_clstk
+      transcript: an4_train.transcription
+      groups: 2
+      ordering: start_time
+      lowercase: true
+      max_timestamp_pause: 2.0
+      text_norm: none
+    valid:
+      source: an4_clstk
+      transcript: an4_train.transcription
+      groups: 1
+      ordering: start_time
+      lowercase: true
+      max_timestamp_pause: 2.0
+      text_norm: none
+    test:
+      source: an4test_clstk
+      transcript: an4_test.transcription
+      groups: 1
+      ordering: start_time
+      lowercase: true
+      max_timestamp_pause: 2.0
+      text_norm: none

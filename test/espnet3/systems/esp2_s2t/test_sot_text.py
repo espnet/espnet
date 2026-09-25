@@ -1,29 +1,14 @@
-"""Tests for the SOT text builder in egs3/ami/esp2_s2t/dataset/sot_text.py.
+"""Tests for the SOT text builder in espnet3/systems/esp2_s2t/sot_text.py.
 
 These tests use lightweight supervision stubs rather than lhotse objects, so they stay
 inside the suite's 2 s per-test budget and need no corpus.
 """
 
-import importlib.util
 from dataclasses import dataclass
-from pathlib import Path
 
 import pytest
 
-_REPO = Path(__file__).resolve().parents[4]
-_RECIPE = _REPO / "egs3" / "ami" / "esp2_s2t"
-
-
-def _load():
-    spec = importlib.util.spec_from_file_location(
-        "ami_s2t_sot_text", _RECIPE / "dataset" / "sot_text.py"
-    )
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
-
-
-st = _load()
+import espnet3.systems.esp2_s2t.sot_text as st  # noqa: E402
 
 
 @dataclass

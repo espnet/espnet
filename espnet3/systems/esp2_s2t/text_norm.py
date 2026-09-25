@@ -1,5 +1,8 @@
 """Transcript normalizers the serialization may apply to segment text.
 
+Shared by every esp2_s2t recipe: which normalizer a corpus was built with
+belongs to the corpus, and the lookup that resolves a name to one does not.
+
 ``chime8_keep_fillers`` is the CHiME-8 DASR English normalizer with filler
 removal switched off. It comes from chime-utils, which is not on PyPI, so it
 is an optional dependency; ``none`` needs nothing.

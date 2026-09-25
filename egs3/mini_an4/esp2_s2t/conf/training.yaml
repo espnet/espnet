@@ -1,0 +1,144 @@
+##########################################################
+#                   TRAINING SETTING                     #
+##########################################################
+# The CI arm of the esp2_s2t system: one optimizer step over a corpus built
+# from the AN4 archive committed in this recipe. It exists to prove the stages
+# run end to end, not to learn anything.
+#
+# A partial overlay on egs3/TEMPLATE/esp2_s2t/conf/training.yaml, which
+# supplies the dataloader's iter_factory target and collate_fn.
+recipe_dir: .
+exp_tag: mini_an4_sot
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+stats_dir: ${recipe_dir}/exp/stats/${exp_tag}
+task: espnet2.tasks.s2t.S2TTask
+
+num_device: 1
+num_nodes: 1
+
+# Written by the create_dataset stage; see dataset/config.yaml.
+token_list_path: ${oc.env:MINI_AN4_SOT_DATA_ROOT,${recipe_dir}}/data/tokens.txt
+
+##########################################################
+#                    DATASET DEFINITION                  #
+##########################################################
+dataset:
+  train:
+    - name: train
+      data_src_args:
+        split: train
+  valid:
+    - name: valid
+      data_src_args:
+        split: valid
+  test:
+    - name: test
+      data_src_args:
+        split: test
+  preprocessor:
+    _target_: src.preprocessor.MiniAn4SotS2TPreprocessor
+    token_type: whisper_multilingual
+    bpemodel: whisper_multilingual
+    whisper_model_type: whisper_multilingual
+    token_list: ${token_list_path}
+    # Required: the symbol belongs to the checkpoint, so there is no default.
+    speaker_change_symbol: "????"
+    # OWSM's spellings are the defaults and raise KeyError here.
+    notime_symbol: "<|notimestamps|>"
+    first_time_symbol: "<|0.00|>"
+    last_time_symbol: "<|30.00|>"
+    time_apply_prob: 1.0
+    na_symbol: "<|nospeech|>"
+    text_prev_apply_prob: 0.0
+    speech_length: 30
+    speech_resolution: 0.02
+    fs: 16000
+
+##########################################################
+#                      MODEL SETTING                     #
+##########################################################
+model:
+  token_list: ${token_list_path}
+
+  # Not part of the model definition; it reaches exp/<tag>/config.yaml so the
+  # inference stage can rebuild the same preprocessor. See the AMI recipe.
+  preprocessor_conf:
+    notime_symbol: ${dataset.preprocessor.notime_symbol}
+    first_time_symbol: ${dataset.preprocessor.first_time_symbol}
+    last_time_symbol: ${dataset.preprocessor.last_time_symbol}
+    na_symbol: ${dataset.preprocessor.na_symbol}
+    fs: ${dataset.preprocessor.fs}
+    speech_length: ${dataset.preprocessor.speech_length}
+    speech_resolution: ${dataset.preprocessor.speech_resolution}
+    time_apply_prob: ${dataset.preprocessor.time_apply_prob}
+    text_prev_apply_prob: ${dataset.preprocessor.text_prev_apply_prob}
+  frontend: null
+  input_size: 1
+  specaug: null
+  normalize: null
+
+  # tiny, not small: this is the smallest Whisper there is, and the point of
+  # the arm is that the recipe's own encoder and decoder are what run.
+  encoder: whisper
+  encoder_conf:
+    whisper_model: tiny
+    dropout_rate: 0.0
+    do_pad_trim: true
+
+  decoder: whisper
+  decoder_conf:
+    whisper_model: tiny
+    dropout_rate: 0.0
+    load_origin_token_embedding: true
+
+  model_conf:
+    ctc_weight: 0.0
+    lsm_weight: 0.1
+    length_normalized_loss: false
+    # ESPnetS2TModel resolves all five by token_list.index, and a Whisper
+    # vocabulary has none of the usual spellings. <|translate|> stands in for
+    # the blank, which is unused at ctc_weight 0.0.
+    sym_blank: "<|translate|>"
+    sym_sos: "<|startoftranscript|>"
+    sym_eos: "<|endoftext|>"
+    sym_sop: "<|startofprev|>"
+    sym_na: "<|nospeech|>"
+
+optimizer:
+  _target_: torch.optim.AdamW
+  lr: 1.0e-06
+
+scheduler:
+  _target_: espnet2.schedulers.warmup_lr.WarmupLR
+  warmup_steps: 1
+scheduler_interval: step
+
+best_model_criterion:
+  - - valid/loss
+    - 1
+    - min
+
+dataloader:
+  train:
+    iter_factory:
+      batches:
+        type: unsorted
+        batch_size: 1
+        shape_files:
+          - ${stats_dir}/train/feats_shape
+  valid:
+    iter_factory:
+      batches:
+        type: unsorted
+        batch_size: 1
+        shape_files:
+          - ${stats_dir}/valid/feats_shape
+
+trainer:
+  max_steps: 1
+  limit_train_batches: 1
+  limit_val_batches: 1
+  accumulate_grad_batches: 1
+  gradient_clip_val: 1.0
+
+fit: {}
