@@ -148,13 +148,15 @@ class BackendInference(InferenceAPI):
         return cls(load_backend(locate_pack(tag_or_dir), device=device))
 
     @property
-    def sample_rate(self) -> int:
+    def sample_rate(self) -> Optional[int]:
         """The rate the backend works at, read off the backend.
 
         In order: a ``sample_rate`` or ``fs`` attribute; the ESPnet2
         training config's ``frontend_conf.fs`` (an int or ``"16k"``) on
         any ``*_train_args`` the backend keeps; else 16 kHz. Override when
-        the backend says it some other way.
+        the backend says it some other way, and return ``None`` for a
+        backend that takes any rate (``SeparateSpeech`` takes ``fs`` per
+        call, so an enhancement system passes ``speech.rate`` through).
         """
         backend = self.backend
         for name in ("sample_rate", "fs"):
