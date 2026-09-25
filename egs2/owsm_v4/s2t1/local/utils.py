@@ -1,6 +1,5 @@
 from dataclasses import dataclass
-from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
+from typing import List, Optional
 
 # dependency at: https://github.com/noumar/iso639
 from iso639 import languages as iso_languages

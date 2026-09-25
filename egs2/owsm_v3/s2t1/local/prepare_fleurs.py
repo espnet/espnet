@@ -1,9 +1,7 @@
 import argparse
 import logging
 import traceback
-from collections import defaultdict
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
 
 from iso639 import languages as iso_languages
 
@@ -11,7 +9,6 @@ from utils import (
     SYMBOL_NA,
     SYMBOL_NOSPEECH,
     SYMBOLS_TIME,
-    LongUtterance,
     Utterance,
     generate_long_utterances,
 )
@@ -108,7 +105,7 @@ def main():
     logging.basicConfig(format="%(levelname)s:%(message)s", level=logging.DEBUG)
 
     fleurs_asr = load_dataset(
-        "google/xtreme_s", f"fleurs.all", cache_dir=args.cache, num_proc=16
+        "google/xtreme_s", "fleurs.all", cache_dir=args.cache, num_proc=16
     )
 
     # Language IDs are in ISO-639-3 format.

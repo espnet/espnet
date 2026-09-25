@@ -7,8 +7,6 @@ import random
 
 import cv2
 import numpy as np
-import torch
-from scipy import signal
 
 __all__ = [
     "Compose",
@@ -277,7 +275,6 @@ class SpeedRate(object):
             return x
         old_length = x.shape[0]
         new_length = int(old_length / self._speed_rate)
-        old_indices = np.arange(old_length)
         new_indices = np.linspace(
             start=0, stop=old_length, num=new_length, endpoint=False
         )

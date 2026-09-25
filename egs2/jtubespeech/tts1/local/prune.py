@@ -4,11 +4,7 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 import argparse
-import glob
 import os
-
-import soundfile as sf
-import tqdm
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

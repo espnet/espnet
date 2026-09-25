@@ -4,9 +4,7 @@ import os
 import random
 import shutil
 
-import librosa
 import miditoolkit
-import numpy as np
 
 from espnet2.fileio.score_scp import SingingScoreWriter
 
@@ -39,10 +37,6 @@ def create_score(uid, phns, midis, syb_dur, keep):
     assert len(phns) == len(midis)
     assert len(midis) == len(syb_dur)
     assert len(syb_dur) == len(keep)
-    lyrics_seq = []
-    midis_seq = []
-    segs_seq = []
-    phns_seq = []
     st = 0
     index_phn = 0
     note_list = []
@@ -89,7 +83,6 @@ def process_utterance(
     tgt_sr=24000,
 ):
     name = segment["item_name"]
-    lyrics = segment["txt"]
     phns = segment["phs"]
     midis = segment["notes"]
     syb_dur = segment["notes_dur"]
@@ -189,7 +182,7 @@ def split_subset(args, meta):
     # As they include test set in the validation set
     # but we do not.
     valid_names = item_names[test_num : valid_num + test_num]
-    train_names = item_names[valid_num + test_num :]
+    _train_names = item_names[valid_num + test_num :]
 
     data = {"tr_no_dev": [], "dev": [], "eval": []}
     print(test_names)

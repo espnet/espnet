@@ -1,8 +1,6 @@
 import argparse
 import logging
-import os
 
-import numpy as np
 from ssl_feature_utils import (
     ESPnetHubertFeatureReader,
     HubertFeatureReader,

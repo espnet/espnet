@@ -2,7 +2,7 @@ import argparse
 import os
 import shutil
 import time
-from typing import Generator, Optional, Tuple
+from typing import Tuple
 
 import gradio as gr
 import nltk

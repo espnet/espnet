@@ -2,14 +2,12 @@
 
 import csv
 import gzip
-import json
 import logging
 import urllib
 from argparse import ArgumentParser
 from ast import literal_eval
-from collections import defaultdict
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
+from typing import List, Union
 
 from iso639 import languages as iso_languages
 from torchaudio.datasets.utils import download_url
@@ -18,7 +16,6 @@ from utils import (
     SYMBOL_NA,
     SYMBOL_NOSPEECH,
     SYMBOLS_TIME,
-    LongUtterance,
     Utterance,
     generate_long_utterances,
 )

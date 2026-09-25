@@ -1,7 +1,5 @@
 import os
-import shutil
 import sys
-import wave
 
 
 def truncate_test_set(test_dir, utterance_splits):
@@ -19,7 +17,6 @@ def truncate_test_set(test_dir, utterance_splits):
         None
     """
     # Paths to Kaldi files
-    wav_scp_path = os.path.join(test_dir, "wav.scp")
     text_path = os.path.join(test_dir, "text")
     utt2spk_path = os.path.join(test_dir, "utt2spk")
     segment_path = os.path.join(test_dir, "segments")

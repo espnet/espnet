@@ -41,7 +41,7 @@ def wpe_worker(
                 processing_token = False
         if processing_token:
             file_list = wav_lines[wav_idx].split(" ")
-            name, wav_list = file_list[0], file_list[1:]
+            _name, wav_list = file_list[0], file_list[1:]
             file_exist = True
             for wav_path in wav_list:
                 file_exist = file_exist and os.path.exists(

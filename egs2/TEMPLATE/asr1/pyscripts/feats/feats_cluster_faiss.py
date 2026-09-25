@@ -13,14 +13,10 @@ import argparse
 import gc
 import os
 import os.path as osp
-import random
 from collections import namedtuple
 
 import faiss
 import numpy as np
-import soundfile as sf
-import torch
-import tqdm
 
 
 def get_parser():
@@ -108,7 +104,7 @@ def main():
             print("Reloading...")
             del feats
             gc.collect()
-            feats = np.load(feat_path + ".npy")
+            feats = np.load(feat_file + ".npy")
 
         save_path = osp.join(args.save_dir, spec.spec_str)
         os.makedirs(save_path, exist_ok=True)

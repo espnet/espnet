@@ -2,7 +2,6 @@ import argparse
 import os
 
 import librosa
-import numpy as np
 import soundfile as sf
 
 from espnet2.fileio.score_scp import SingingScoreWriter
@@ -55,10 +54,6 @@ def create_score(label_id, phns, midis, syb_dur):
     # Transfer into 'score' format
     assert len(phns) == len(midis)
     assert len(midis) == len(syb_dur)
-    lyrics_seq = []
-    midis_seq = []
-    segs_seq = []
-    phns_seq = []
     st = 0
     index_phn = 0
     note_list = []

@@ -4,8 +4,6 @@
 # LICENSE file in the root directory of this source tree.
 
 import math
-import sys
-import warnings
 from collections import Counter
 from fractions import Fraction
 

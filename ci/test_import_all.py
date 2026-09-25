@@ -5,13 +5,13 @@ import sys
 import traceback
 
 try:
-    import k2
+    import k2  # noqa: F401
 except Exception:
     has_k2 = False
 else:
     has_k2 = True
 try:
-    import mir_eval
+    import mir_eval  # noqa: F401
 except Exception:
     has_mir_eval = False
 else:
@@ -43,7 +43,7 @@ for dirname in ["espnet2", "espnet3", "egs3"]:
 
         try:
             importlib.import_module(module_name)
-        except Exception as e:
+        except Exception:
             reason = traceback.format_exc()
             failed_imports.append((module_name, reason))
 

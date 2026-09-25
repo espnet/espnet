@@ -2,7 +2,6 @@
 import argparse
 import math
 import os
-import sys
 
 from espnet2.fileio.score_scp import SingingScoreReader, SingingScoreWriter
 from espnet2.text.build_tokenizer import build_tokenizer
@@ -146,6 +145,7 @@ def compare(key, score, label):
     )
     index = 0
     val = []
+    pre_phn = None
     for i in range(len(score)):
         syb = score[i][2]
         if syb == "—":

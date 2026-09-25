@@ -1,10 +1,7 @@
-import os
-import random
 from argparse import ArgumentParser
 from pathlib import Path
-from typing import Union
 
-from prepare_lm_data import cjk2unit, read_text, unit2cjk
+from prepare_lm_data import cjk2unit
 
 if __name__ == "__main__":
     parser = ArgumentParser(

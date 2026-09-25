@@ -38,7 +38,7 @@ if __name__ == "__main__":
     f_wavscp = open(f"{outroot}/wav.scp", "w")
     f_segments = open(f"{outroot}/segments", "w")
 
-    for file in Path(args.in_dir).glob(f"*/quantile_0.10.jsonl"):
+    for file in Path(args.in_dir).glob("*/quantile_0.10.jsonl"):
         with open(file, "r") as f:
             for line in f:
                 sample = json.loads(line.strip())

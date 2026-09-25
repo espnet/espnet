@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, Tuple, Union
+from typing import List
 
 # adapted from https://github.com/espnet/espnet/blob/master/egs2/
 #              owsm_v1/s2t1/local/utils.py

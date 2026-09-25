@@ -124,7 +124,7 @@ extend-exclude = [
 select = [
     "E", # pycodestyle errors
     "W", # pycodestyle warnings
-    # "F", # flake8
+    "F", # flake8
     # "I", # imports (temporarily disabled due to conflicts with isort)
     "D", # docstrings (ESPnet3 only)
 ]
@@ -137,6 +137,7 @@ convention = "pep257"
 "!espnet3/**" = ["D"]
 
 [tool.ruff.format]
+# NOTE: `ruff format` isn't integrated into CI yet. Until then, use Black instead.
 # Like Black
 quote-style = "double"
 indent-style = "space"

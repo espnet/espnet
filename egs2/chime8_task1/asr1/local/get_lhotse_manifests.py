@@ -17,7 +17,7 @@ from gen_task1_data import choose_txt_normalization
 from lhotse import fix_manifests, validate_recordings_and_supervisions
 from lhotse.audio import AudioSource, Recording, RecordingSet
 from lhotse.supervision import SupervisionSegment, SupervisionSet
-from lhotse.utils import Pathlike, add_durations, safe_extract, urlretrieve_progress
+from lhotse.utils import Pathlike, add_durations
 
 
 def prepare_chime6(

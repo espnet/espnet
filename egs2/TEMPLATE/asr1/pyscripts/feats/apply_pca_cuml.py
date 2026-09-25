@@ -19,7 +19,6 @@ import math
 import os
 import os.path as osp
 import pickle
-from shutil import copyfile
 
 import numpy as np
 import tqdm

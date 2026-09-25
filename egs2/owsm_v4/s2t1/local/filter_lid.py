@@ -7,7 +7,6 @@ Reference: Section 2.1.2 in the paper (https://arxiv.org/pdf/2506.00338)
 import json
 from argparse import ArgumentParser
 
-import numpy as np
 from tqdm import tqdm
 
 from utils import TO_ISO_LANGUAGE_CODE

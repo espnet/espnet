@@ -5,8 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import logging
-import random
-from typing import Any, List, Optional, Sequence, Tuple, Union
+import pickle
 
 import torch
 from mosestokenizer import MosesDetokenizer
@@ -16,8 +15,9 @@ from simuleval.utils import entrypoint
 
 from espnet2.bin.st_inference import Speech2Text
 from espnet2.bin.st_inference_streaming import Speech2TextStreaming
+from espnet2.legacy.nets.pytorch_backend.transformer.subsampling import TooShortUttError
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
-from espnet2.utils.types import str2bool, str2triple_str, str_or_none
+from espnet2.utils.types import str2bool, str_or_none
 
 
 @entrypoint

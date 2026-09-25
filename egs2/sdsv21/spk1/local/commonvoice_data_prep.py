@@ -29,15 +29,6 @@ def process_line(line, db_base, out_dir):
     # Assign values to variables, with defaults for missing optional fields
     client_id = parts[0] if len(parts) > 0 else None
     path = parts[1] if len(parts) > 1 else None
-    sentence = parts[2] if len(parts) > 2 else None
-    up_votes = parts[3] if len(parts) > 3 else None
-    down_votes = parts[4] if len(parts) > 4 else None
-    age = parts[5] if len(parts) > 5 else None
-    gender = parts[6] if len(parts) > 6 else None
-    accents = parts[7] if len(parts) > 7 else None
-    variant = parts[8] if len(parts) > 8 else None
-    locale = parts[9] if len(parts) > 9 else None
-    segment = parts[10] if len(parts) > 10 else None
 
     # Check if critical fields are missing and skip the line if so
     if not client_id or not path:
@@ -52,7 +43,6 @@ def process_line(line, db_base, out_dir):
         print(f"null file {path}")
         return None
 
-    # return uttId, client_id, path
     return uttId, client_id, path
 
 
