@@ -26,7 +26,7 @@ echo "::endgroup::"
 # Ruff linting
 echo "::group::=== Run Ruff linting ==="
 # Install Ruff
-curl -LsSf https://astral.sh/ruff/install.sh | sh
+pip install ruff
 ruff check --fix
 echo "::endgroup::"
 
