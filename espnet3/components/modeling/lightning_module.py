@@ -1246,6 +1246,10 @@ class ESPnetLightningModule(lightning.LightningModule):
         """Collect training and validation statistics using ESPnet's collect_stats.
 
         Requires `config.stats_dir` to be defined. Saves stats under this directory.
+        When `config.write_collected_feats` is true, the features returned by
+        `model.collect_feats()` are also dumped under
+        `<stats_dir>/<mode>/collect_feats/` so later stages can load them
+        instead of recomputing them.
 
         Raises:
             AssertionError: If `config.stats_dir` is not provided.
@@ -1274,5 +1278,7 @@ class ESPnetLightningModule(lightning.LightningModule):
                     if "parallel" not in self.config.keys()
                     else self.config.parallel
                 ),
-                write_collected_feats=False,
+                write_collected_feats=bool(
+                    self.config.get("write_collected_feats", False)
+                ),
             )

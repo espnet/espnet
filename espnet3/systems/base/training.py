@@ -34,9 +34,11 @@ def _instantiate_model(config: DictConfig) -> Any:
     return instantiate(model_config)
 
 
-def _build_trainer(config: DictConfig) -> ESPnet3LightningTrainer:
+def _build_trainer(config: DictConfig, module_cls=None) -> ESPnet3LightningTrainer:
+    if module_cls is None:
+        module_cls = ESPnetLightningModule
     model = _instantiate_model(config)
-    lit_model = ESPnetLightningModule(model, config)
+    lit_model = module_cls(model, config)
     trainer = ESPnet3LightningTrainer(
         model=lit_model,
         exp_dir=config.exp_dir,
@@ -80,8 +82,16 @@ def collect_stats(config: DictConfig) -> None:
     )
 
 
-def train(config: DictConfig) -> None:
-    """Run the training loop."""
+def train(config: DictConfig, module_cls=None) -> None:
+    """Run the training loop.
+
+    Args:
+        config: Training configuration.
+        module_cls: ``ESPnetLightningModule`` subclass that wraps the model;
+            the base module when ``None``. Systems whose models need a
+            different step, such as the GAN generator/discriminator turns of
+            SVS, pass their own class here.
+    """
     _ensure_directories(config)
     start = time.perf_counter()
 
@@ -97,7 +107,7 @@ def train(config: DictConfig) -> None:
     if task:
         save_espnet_config(task, config, config.exp_dir)
 
-    trainer = _build_trainer(config)
+    trainer = _build_trainer(config, module_cls)
 
     fit_kwargs: Dict[str, Any] = {}
     if hasattr(config, "fit") and config.fit:

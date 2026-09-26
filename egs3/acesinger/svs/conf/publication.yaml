@@ -1,0 +1,39 @@
+##########################################################
+#           ACE-OPENCPOP VISINGER2 PUBLICATION SETTING   #
+##########################################################
+# Merged over egs3/TEMPLATE/svs/conf/publication.yaml, so only the values this
+# recipe changes are listed here.
+#
+# Quick usage:
+#   python run.py --stages pack_model upload_model \
+#       --training_config conf/training.yaml \
+#       --inference_config conf/inference.yaml \
+#       --publication_config conf/publication.yaml
+
+pack_model:
+  include:
+    - ${recipe_dir}/src
+    - ${recipe_dir}/dataset
+    - ${data_dir}/token_list/phn_none/tokens.txt
+  # The bundle keeps config.yaml, the averaged checkpoint and the feature
+  # statistics; per-epoch checkpoints and the dumped features are dropped.
+  exclude:
+    - inference
+    - inference_*
+    - last.ckpt
+    - "**/step*.ckpt"
+    - "**/epoch*.ckpt"
+    - "**/*.ave_[1-4]best.pth"
+    - "**/*.log"
+    - "**/tensorboard/**"
+    - "**/wandb/**"
+    - "**/collect_feats/**"
+    - "**/split.*/**"
+    - model_pack
+
+  # Shown as the model-card creator instead of the local user name.
+  readme_context:
+    creator: jjiang4
+
+upload_model:
+  hf_repo: jjiang4/acesinger_svs_train_visinger2
