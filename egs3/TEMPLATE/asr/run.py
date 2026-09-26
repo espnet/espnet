@@ -101,43 +101,56 @@ def main(
     args,
     system_cls,
     stages: Sequence[str] = DEFAULT_STAGES,
+    default_package: str | None = None,
 ) -> None:
+    """Load the configs and run the requested stages.
+
+    Args:
+        args: Parsed CLI arguments from :func:`build_parser`.
+        system_cls: The ``System`` class whose methods the stages dispatch to.
+        stages: The canonical stage list, in execution order.
+        default_package: Package supplying the default configs, i.e. the one
+            holding ``conf/<name>.yaml``. Defaults to this template, so a
+            recipe built on a different system points it at that system's
+            template -- ``egs3.TEMPLATE.esp2_slu``, say.
+    """
     stages_to_run = resolve_stages(args.stages, stages)
+    # Keep default_package explicit so the recipe declares which package
+    # provides the default configs, instead of relying on path-based
+    # inference from the user-supplied config location.
+    default_package = default_package or __package__
 
     # -----------------------------------------
     # Load configs
     # -----------------------------------------
-    # Keep default_package explicit so the recipe declares which package
-    # provides the default configs, instead of relying on path-based
-    # inference from the user-supplied config location.
     training_config = load_and_merge_config(
         args.training_config,
         config_name="training.yaml",
-        default_package=__package__,
+        default_package=default_package,
         resolve=False,
     )
     inference_config = load_and_merge_config(
         args.inference_config,
         config_name="inference.yaml",
-        default_package=__package__,
+        default_package=default_package,
         resolve=False,
     )
     metrics_config = load_and_merge_config(
         args.metrics_config,
         config_name="metrics.yaml",
-        default_package=__package__,
+        default_package=default_package,
         resolve=False,
     )
     publication_config = load_and_merge_config(
         args.publication_config,
         config_name="publication.yaml",
-        default_package=__package__,
+        default_package=default_package,
         resolve=False,
     )
     demo_config = load_and_merge_config(
         args.demo_config,
         config_name="demo.yaml",
-        default_package=__package__,
+        default_package=default_package,
         resolve=False,
     )
     logger = configure_logging()
