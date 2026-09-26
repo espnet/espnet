@@ -2,8 +2,6 @@ import argparse
 import os
 import string
 
-from espnet2.utils.types import str2bool
-
 DATA = [
     "ALFFA",
     "LAD",

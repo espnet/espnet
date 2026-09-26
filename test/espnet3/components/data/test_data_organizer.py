@@ -87,7 +87,7 @@ SPLIT_RECORDING_PREPROCESSOR_TARGET = (
     "test.espnet3.components.data.test_data_organizer.SplitRecordingPreprocessor"
 )
 ESPNET_TRAIN_FLAG_PREPROCESSOR_TARGET = (
-    "test.espnet3.components.data." "test_data_organizer.TrainFlagRecordingPreprocessor"
+    "test.espnet3.components.data.test_data_organizer.TrainFlagRecordingPreprocessor"
 )
 
 

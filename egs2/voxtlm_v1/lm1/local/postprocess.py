@@ -1,6 +1,5 @@
 from argparse import ArgumentParser
 from pathlib import Path
-from typing import Optional
 
 
 def process_text(fin: Path, fout: Path, sos: str, prefix: str):

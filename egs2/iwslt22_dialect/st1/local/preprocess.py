@@ -6,9 +6,6 @@ TBD
 """
 
 import argparse
-import itertools
-import os
-import re
 import sys
 
 parser = argparse.ArgumentParser()

@@ -19,11 +19,8 @@ import gc
 import os
 import os.path as osp
 import pickle
-import random
-from collections import namedtuple
 
 import numpy as np
-import tqdm
 from cuml.cluster import KMeans
 
 

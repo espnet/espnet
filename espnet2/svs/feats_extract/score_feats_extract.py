@@ -223,11 +223,11 @@ class SyllableScoreFeats(AbsFeatsExtract):
         seg_midi = []
         seg_duration = []
         for i in range(lengths):
-            l, r = seq[i], seq[i + 1]
+            left, right = seq[i], seq[i + 1]
 
-            tmp_label = label[l:r][(r - l) // 2]
-            tmp_midi = midi[l:r][(r - l) // 2]
-            tmp_duration = duration[l:r][(r - l) // 2]
+            tmp_label = label[left:right][(right - left) // 2]
+            tmp_midi = midi[left:right][(right - left) // 2]
+            tmp_duration = duration[left:right][(right - left) // 2]
 
             seg_label.append(tmp_label.item())
             seg_midi.append(tmp_midi.item())

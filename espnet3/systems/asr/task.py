@@ -332,7 +332,7 @@ class ASRTask(AbsTask):
                 "whisper_en",
                 "whisper_multilingual",
             ],
-            help="The text will be tokenized " "in the specified level token",
+            help="The text will be tokenized in the specified level token",
         )
         group.add_argument(
             "--bpemodel",

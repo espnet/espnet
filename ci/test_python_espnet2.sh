@@ -23,6 +23,11 @@ echo "::group::=== Run pycodestyle tests ==="
 pycodestyle --exclude "${exclude}" --show-source --show-pep8
 echo "::endgroup::"
 
+# Ruff linting
+echo "::group::=== Run Ruff linting ==="
+ruff check --extend-exclude "tools"
+echo "::endgroup::"
+
 # test/espnet2/layers/test_create_adapter*.py build an S3prlFrontend at import
 # time, so the hubert_base checkpoint is fetched during pytest collection. When
 # huggingface.co rate limits the download, s3prl writes the HTML error page to

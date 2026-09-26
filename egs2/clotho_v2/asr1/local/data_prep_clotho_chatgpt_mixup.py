@@ -10,7 +10,6 @@ from typing import List, Optional
 
 import librosa
 import numpy as np
-import pandas as pd
 import soundfile as sf
 from torch.utils.data import Dataset
 from transformers import AutoTokenizer
@@ -174,7 +173,7 @@ class ClothoMixupDataset(Dataset):
                 mixed_audio,
                 SAMPLE_RATE,
             )
-        except Exception as e:
+        except Exception:
             print(f"Can not write audio {mixed_audio_path}")
             mixed_audio = None
             mixed_audio_path = None
@@ -316,8 +315,6 @@ dset = ClothoMixupDataset(
     chatgpt_rejected_data_path=os.path.join(
         mixup_captions_root_dir, "clotho_development_chatgpt_mixups_err.json"
     ),
-    # caption_embed_dir="sent_embedding/datasets/instructor-xl/clotho/development_chatgpt_mixup",
-    # clap_embed_dir="sent_embedding/datasets/clap/clotho/development_chatgpt_mixup",
     audio_mixup_base_dir=audio_mixup_write_dir,
 )
 

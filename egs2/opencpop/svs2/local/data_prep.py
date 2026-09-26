@@ -2,9 +2,7 @@ import argparse
 import os
 import shutil
 
-import librosa
 import miditoolkit
-import numpy as np
 
 from espnet2.fileio.score_scp import SingingScoreWriter
 
@@ -51,10 +49,6 @@ def create_score(uid, phns, midis, syb_dur, keep):
     assert len(phns) == len(midis)
     assert len(midis) == len(syb_dur)
     assert len(syb_dur) == len(keep)
-    lyrics_seq = []
-    midis_seq = []
-    segs_seq = []
-    phns_seq = []
     st = 0
     index_phn = 0
     note_list = []

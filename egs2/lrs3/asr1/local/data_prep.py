@@ -177,13 +177,13 @@ def main():
     train_folders, dev_folders = DatasetUtils.train_val_files(args.train_val_path)
     test_folders = DatasetUtils.test_files(args.test_path)
 
-    logging.info(f"Performing Data Preparation for TEST")
+    logging.info("Performing Data Preparation for TEST")
     DatasetUtils.perform_data_prep(test_folders, "test")
 
-    logging.info(f"Performing Data Preparation for TRAIN")
+    logging.info("Performing Data Preparation for TRAIN")
     DatasetUtils.perform_data_prep(train_folders, "train")
 
-    logging.info(f"Performing Data Preparation for DEV")
+    logging.info("Performing Data Preparation for DEV")
     DatasetUtils.perform_data_prep(dev_folders, "dev")
 
 

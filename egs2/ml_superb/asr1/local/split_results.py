@@ -67,9 +67,9 @@ categorizer = Categorizer()
 tree = LanguageTree()
 if os.path.exists("downloads/linguistic.json"):
     tree.build_from_json("downloads/linguistic.json")
-    with open(f"downloads/macro.json", "r", encoding="utf-8") as f:
+    with open("downloads/macro.json", "r", encoding="utf-8") as f:
         macros = json.load(f)
-    with open(f"downloads/exception.json", "r", encoding="utf-8") as f:
+    with open("downloads/exception.json", "r", encoding="utf-8") as f:
         exceptions = json.load(f)
 else:
     print("[warning] linguistic information not loading")

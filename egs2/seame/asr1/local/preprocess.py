@@ -31,7 +31,10 @@ rd.seed(531)
 remove_punc = '()[]{}.,?·@，。、「」＃"~-—#%_`｀×*（）［］&【】～ｌ\\'
 pattern = str.maketrans(remove_punc, " " * len(remove_punc))
 
-translate_char_source = "ａｂｃｄｅｆｇｈｉｊｋｌｍｎｏｐｑｒｓｔｕｖｗｘｙｚＡＢＣＤＥＦＧＨＩＪＫＬＭＮＯＰＱＲＳＴＵＶＷＸＹＺé"
+translate_char_source = (
+    "ａｂｃｄｅｆｇｈｉｊｋｌｍｎｏｐｑｒｓｔｕｖｗｘｙｚ"
+    "ＡＢＣＤＥＦＧＨＩＪＫＬＭＮＯＰＱＲＳＴＵＶＷＸＹＺé"
+)
 translate_char_target = "abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyze"
 pattern2 = str.maketrans(translate_char_source, translate_char_target)
 
@@ -274,7 +277,6 @@ def check_audio(data_dict, audio_dict):
 def check_test_split(test, data_dict, splitname):
     """find testing data in data_dict"""
 
-    train_idx = []
     data = list(data_dict.keys())
     count = 0
     space = {}
@@ -312,7 +314,6 @@ def sieve_train(data_dict, train_dict):
 def split_val(data_dict, num_val=None):
     """split train/val sets"""
 
-    count = 0
     test_list = []
     tr_list = []
     for key, content in data_dict.items():

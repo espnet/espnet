@@ -81,8 +81,8 @@ class ESPnetMultitaskLanguageModel(AbsESPnetModel):
         # text: (Batch, Length) -> x, y: (Batch, Length + 1)
         x, x_lengths = text, text_lengths  # text already has <sos>
         t = F.pad(text, [0, 1], "constant", self.ignore_id)
-        for i, l in enumerate(text_lengths):
-            t[i, l] = self.eos_id
+        for i, length in enumerate(text_lengths):
+            t[i, length] = self.eos_id
         t = t[:, 1:]  # remove <sos>
 
         # 2. Forward Language model

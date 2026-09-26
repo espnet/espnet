@@ -2,7 +2,6 @@ import argparse
 import os
 import re
 import statistics
-import string
 import unicodedata
 
 from jiwer import cer

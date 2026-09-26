@@ -8,10 +8,8 @@ import argparse
 import json
 import os
 import re
-import sys
 
 import eval_utils
-import pandas as pd
 
 ontonotes_to_combined_label = {
     "GPE": "PLACE",

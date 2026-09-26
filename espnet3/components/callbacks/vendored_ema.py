@@ -437,7 +437,6 @@ class EMA(Module):
         # execute inplace copy or lerp
 
         if not self.use_foreach:
-
             for tgt, src in tensors_to_copy:
                 self.inplace_copy(tgt, src)
 

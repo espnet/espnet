@@ -112,6 +112,38 @@ include = ["espnet*", "egs3*"]
 [tool.setuptools.package-data]
 egs3 = ["egs3/TEMPLATE/**/*.yaml"]
 
+[tool.ruff]
+line-length = 88
+extend-exclude = [
+    "egs2/TEMPLATE/asr1/utils", "egs2/TEMPLATE/asr1/steps", "egs2/TEMPLATE/tts1/sid",
+    "tools/installers/patch_mwerSegmenter", "doc",
+    "test_utils/bats-core", "test_utils/bats-support", "test_utils/bats-assert",
+]
+
+[tool.ruff.lint]
+select = [
+    "E", # pycodestyle errors
+    "W", # pycodestyle warnings
+    "F", # flake8
+    # "I", # imports (temporarily disabled due to conflicts with isort)
+    "D", # docstrings (ESPnet3 only)
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "pep257"
+
+[tool.ruff.lint.per-file-ignores]
+# Only check ESPnet3 docstrings
+"!espnet3/**" = ["D"]
+
+[tool.ruff.format]
+# NOTE: `ruff format` isn't integrated into CI yet. Until then, use Black instead.
+# Like Black
+quote-style = "double"
+indent-style = "space"
+
+# See PR #6668
+line-ending = "lf"
 
 [project.optional-dependencies]
 # Training, with espnet2 (espnet2/bin/*_train.py, egs2 recipes) or espnet3
@@ -277,6 +309,7 @@ dev = [
   "pytest>=7.0.0,<8.4.0",
   "pytest-cov>=2.7.1",
   "isort",
+  "ruff>=0.16.8",
 ]
 
 test = [
@@ -298,6 +331,7 @@ test = [
   "playwright",
   # test_mcp_server.py imports mcp outright; macOS CI installs only .[test].
   "mcp>=2.0",
+  "ruff>=0.16.8",
 ]
 
 doc = [

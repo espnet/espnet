@@ -106,7 +106,7 @@ class LanguageTree(object):
         #     return self.name2node[key]
         else:
             raise NotImplementedError(
-                f'Searching not supported. Support tags: "iso", "name".'
+                'Searching not supported. Support tags: "iso", "name".'
             )
 
     def __str__(self) -> str:

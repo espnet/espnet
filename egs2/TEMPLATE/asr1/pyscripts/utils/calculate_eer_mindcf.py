@@ -26,7 +26,6 @@ def main(args):
     scores, labels = load_scorefile(scorefile)
 
     # calculate statistics in target and nontarget classes.
-    n_trials = len(scores)
     scores_trg = []
     scores_nontrg = []
     for _s, _l in zip(scores, labels):

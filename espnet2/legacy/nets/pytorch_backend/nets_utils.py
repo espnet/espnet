@@ -377,8 +377,8 @@ def mask_by_length(xs, lengths, fill=0):
     """
     assert xs.size(0) == len(lengths)
     ret = xs.data.new(*xs.size()).fill_(fill)
-    for i, l in enumerate(lengths):
-        ret[i, :l] = xs[i, :l]
+    for i, length in enumerate(lengths):
+        ret[i, :length] = xs[i, :length]
     return ret
 
 

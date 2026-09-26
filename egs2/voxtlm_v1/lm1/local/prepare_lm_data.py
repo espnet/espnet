@@ -1,6 +1,4 @@
 import argparse
-import random
-import shutil
 from pathlib import Path
 from typing import Union
 
@@ -55,7 +53,7 @@ def prepare_speechlm(
     use_cjk=True,
 ):
     res = []
-    uttid2token = read_text(root / f"token")
+    uttid2token = read_text(root / "token")
     for uttid in uttid2token:
         token = uttid2token[uttid].split()
         if use_cjk:
@@ -80,8 +78,8 @@ def prepare_asr(
     generate_text_token="<generatetext>",
     use_cjk=True,
 ):
-    uttid2text = read_text(root / f"text")
-    uttid2token = read_text(root / f"token")
+    uttid2text = read_text(root / "text")
+    uttid2token = read_text(root / "token")
     res = []
     for uttid, text in uttid2text.items():
         token = uttid2token[uttid].split()
@@ -110,8 +108,8 @@ def prepare_tts(
     generate_speech_token="<generatespeech>",
     use_cjk=True,
 ):
-    uttid2text = read_text(root / f"text")
-    uttid2token = read_text(root / f"token")
+    uttid2text = read_text(root / "text")
+    uttid2token = read_text(root / "token")
     res = []
     for uttid, text in uttid2text.items():
         token = uttid2token[uttid].split()

@@ -1,6 +1,5 @@
 # simulation script taken from https://github.com/sp-uhh/sgmse
 
-import argparse
 import os
 from argparse import ArgumentParser
 from glob import glob
@@ -8,7 +7,6 @@ from pathlib import Path
 
 import numpy as np
 from librosa import load
-from librosa.core import resample
 from soundfile import write
 from tqdm import tqdm
 

@@ -52,7 +52,7 @@ def main(args):
     cohort_embds = load_embeddings(cohort_embds)
 
     if cfg["average_spk"]:
-        print(f"Averaging cohort embeddings per speaker")
+        print("Averaging cohort embeddings per speaker")
         spk_embds_dic = {}
         for k, v in cohort_embds.items():
             spk = utt2spk[k]

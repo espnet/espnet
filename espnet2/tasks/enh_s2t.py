@@ -13,7 +13,9 @@ from espnet2.diar.espnet_model import ESPnetDiarizationModel
 from espnet2.enh.espnet_enh_s2t_model import ESPnetEnhS2TModel
 from espnet2.enh.espnet_model import ESPnetEnhancementModel
 from espnet2.tasks.abs_task import AbsTask
-from espnet2.tasks.asr import ASRTask
+from espnet2.tasks.asr import (
+    ASRTask,
+)
 from espnet2.tasks.asr import decoder_choices as asr_decoder_choices_
 from espnet2.tasks.asr import encoder_choices as asr_encoder_choices_
 from espnet2.tasks.asr import frontend_choices, normalize_choices

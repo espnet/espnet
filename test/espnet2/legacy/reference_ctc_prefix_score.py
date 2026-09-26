@@ -58,10 +58,10 @@ class CTCPrefixScoreTH(object):
             self.device = torch.device("cpu")
         # Pad the rest of posteriors in the batch
         # TODO(takaaki-hori): need a better way without for-loops
-        for i, l in enumerate(xlens):
-            if l < self.input_length:
-                x[i, l:, :] = self.logzero
-                x[i, l:, blank] = 0
+        for i, length in enumerate(xlens):
+            if length < self.input_length:
+                x[i, length:, :] = self.logzero
+                x[i, length:, blank] = 0
         # Reshape input x
         xn = x.transpose(0, 1)  # (B, T, O) -> (T, B, O)
         xb = xn[:, :, self.blank].unsqueeze(2).expand(-1, -1, self.odim)
@@ -243,10 +243,10 @@ class CTCPrefixScoreTH(object):
             # Pad the rest of posteriors in the batch
             # TODO(takaaki-hori): need a better way without for-loops
             xlens = [x.size(1)]
-            for i, l in enumerate(xlens):
-                if l < self.input_length:
-                    x[i, l:, :] = self.logzero
-                    x[i, l:, self.blank] = 0
+            for i, length in enumerate(xlens):
+                if length < self.input_length:
+                    x[i, length:, :] = self.logzero
+                    x[i, length:, self.blank] = 0
             tmp_x = self.x
             xn = x.transpose(0, 1)  # (B, T, O) -> (T, B, O)
             xb = xn[:, :, self.blank].unsqueeze(2).expand(-1, -1, self.odim)

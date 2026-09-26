@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """test of compute_metrics."""
 
-import pytest
 from pyscripts.utils.compute_turn_take_metrics import (
     ModelParam,
     ScoreResult,

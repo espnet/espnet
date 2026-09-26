@@ -31,3 +31,9 @@ repos:
     hooks:
     -   id: isort
         exclude: ^(egs2/TEMPLATE/asr1/utils|egs2/TEMPLATE/asr1/steps|egs2/TEMPLATE/tts1/sid|doc)
+
+-   repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.16.8
+    hooks:
+    -   id: ruff-check
+        args: [--fix]

@@ -22,9 +22,7 @@ from typing import List
 import librosa
 import numpy as np
 import soundfile as sf
-import torch
 from discrete_speech_metrics import SpeechBLEU
-from scipy import spatial
 
 
 def find_files(
