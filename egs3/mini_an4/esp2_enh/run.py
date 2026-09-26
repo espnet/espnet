@@ -1,0 +1,17 @@
+from egs3.TEMPLATE.esp2_enh.run import (
+    DEFAULT_STAGES,
+    build_parser,
+    main,
+    parse_cli_and_stage_args,
+)
+from espnet3.systems.esp2_enh.system import EnhancementSystem
+
+if __name__ == "__main__":
+    parser = build_parser(stages=DEFAULT_STAGES)
+    args, _ = parse_cli_and_stage_args(parser, stages=DEFAULT_STAGES)
+
+    main(
+        args=args,
+        system_cls=EnhancementSystem,
+        stages=DEFAULT_STAGES,
+    )
