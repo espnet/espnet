@@ -9,6 +9,11 @@ set -euo pipefail
 RECIPE_DIR=$(realpath "$(dirname "${BASH_SOURCE[0]}")/..")
 # shellcheck disable=SC1091
 . "$RECIPE_DIR/path.sh"
+# shellcheck disable=SC1091
+. "$RECIPE_DIR/db.sh"
+
+# The Nahuatl HF dataset location is registered as NAHUATL in db.sh.
+HF_DATA_DIR="${NAHUATL:?Set NAHUATL in db.sh to the Nahuatl HF dataset path}"
 
 DATA_DIR="$RECIPE_DIR/data"
 WAV_BASE="$DATA_DIR/wav"

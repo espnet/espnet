@@ -36,9 +36,10 @@ pass and are reported both per dialect and combined.
    - `data/token_list/bpe_unigram50000/bpe.model`
 
 2. **HuggingFace dataset.** Build the Nahuatl dataset (audio + time-aligned
-   transcripts, speaker-disjoint splits per dialect) and place it at
-   `${HF_DATA_DIR}` (`path.sh`, defaults to `<repo_root>/../hf_data`). The dataset
-   exposes nine splits: `{hidalgo,orizaba-zongolica,zacatlan-tepetzintla}-{train,val,test}`.
+   transcripts, speaker-disjoint splits per dialect) and set its path in `db.sh`
+   as the `NAHUATL` corpus entry (like every other corpus location in `egs2/`).
+   The dataset exposes nine splits:
+   `{hidalgo,orizaba-zongolica,zacatlan-tepetzintla}-{train,val,test}`.
 
 ## Usage
 

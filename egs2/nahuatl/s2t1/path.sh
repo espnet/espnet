@@ -10,9 +10,9 @@ export PYTHONPATH="$ESPNET_ROOT:${PYTHONPATH:-}"
 # ESPnet/Kaldi helper scripts (run.pl, split_scp.pl, ...) live in utils/
 export PATH="$RECIPE_ROOT/utils:$PATH"
 
-# Absolute path to hf_data (read-only source of truth)
-export HF_DATA_DIR="$ESPNET_ROOT/../hf_data"
+# Path to the Nahuatl HF dataset comes from db.sh (the NAHUATL corpus entry),
+# like every other corpus location in egs2/.
 
-# Absolute path to the model download cache
+# Absolute path to the model download cache (OWSM checkpoint + assets)
 export MODEL_CACHE_DIR="$ESPNET_ROOT/../model_cache"
 mkdir -p "$MODEL_CACHE_DIR"
