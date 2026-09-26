@@ -28,10 +28,10 @@ except ImportError:  # running elsewhere: the decorator does nothing
 
 
 import os  # noqa: E402
-import tempfile  # noqa: E402
 
 import gradio as gr  # noqa: E402
 import librosa  # noqa: E402
+import soundfile as sf  # noqa: E402
 import torch  # noqa: E402
 
 from espnet2.bin.speechlm_inference import (  # noqa: E402
@@ -150,13 +150,18 @@ def render(scene, cfg):
             "fixes it."
         )
         return None, thinking, said
-    # the model hands back a WAV; gradio plays a file
-    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
-        f.write(audio)
-    return f.name, thinking, said
+    # handed to gradio as samples rather than as a file this app would then
+    # own: a render an hour would otherwise leave an hour of WAVs behind
+    import io  # the shim above has to be the first import in this file
+
+    samples, rate = sf.read(io.BytesIO(audio))
+    return (rate, samples), thinking, said
 
 
-with gr.Blocks(title=TITLE) as demo:
+# delete_cache=(seconds between sweeps, age at which a file goes): gradio
+# copies what it serves into its own cache, and a long-lived page should not
+# keep every answer it ever gave.
+with gr.Blocks(title=TITLE, delete_cache=(600, 3600)) as demo:
     gr.Markdown(DESCRIPTION)
     with gr.Row():
         with gr.Column():
@@ -189,7 +194,7 @@ with gr.Blocks(title=TITLE) as demo:
                 info="how closely the audio follows the description",
             )
             make = gr.Button("Render", variant="primary")
-            audio_out = gr.Audio(label="Rendered", type="filepath")
+            audio_out = gr.Audio(label="Rendered", type="numpy")
             plan = gr.Textbox(label="What it decided to render", lines=4)
             with gr.Accordion("How it got there", open=False):
                 thinking_out = gr.Markdown()

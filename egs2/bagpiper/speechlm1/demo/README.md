@@ -62,7 +62,10 @@ So run it yourself, one of three ways:
 - **on a GPU** — `python app.py`, with `ESPNET_BAGPIPER_ATTN=sdpa` on
   anything before Hopper;
 - **against a served model** — `BAGPIPER_URL=http://127.0.0.1:9811/v1
-  python app.py`, which needs no GPU on this side;
+  python app.py`, which needs no GPU on this side. If what is served is
+  `espnet/bagpiper-tts-sft`, set `ESPNET_BAGPIPER_TTS_SYSTEM=` (empty): the
+  serving command calls every checkpoint `bagpiper`, and that one was
+  trained with no system turn;
 - **from a cluster** — run it inside a batch job and forward the port:
   `ssh -L 7860:<node>:7860 <cluster>`, then open `localhost:7860`.
 

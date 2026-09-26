@@ -115,6 +115,11 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 DEFAULT_URL = os.environ.get("ESPNET_BAGPIPER_URL", "http://127.0.0.1:9811/v1")
 DEFAULT_MODEL = os.environ.get("ESPNET_BAGPIPER_MODEL", "bagpiper")
 DEFAULT_TAG = "espnet/bagpiper-sft"
+# A served model is a name the server chose, and the documented docker run
+# serves every checkpoint as "bagpiper" - so the name cannot say which one is
+# mounted. A deployment that mounted the TTS checkpoint sets this to "" (it
+# was trained with no system turn at all); anything else is sent verbatim.
+SERVED_TTS_SYSTEM = os.environ.get("ESPNET_BAGPIPER_TTS_SYSTEM")
 
 
 # The one system prompt every sampled entry of the SFT data carries, verbatim.
@@ -349,10 +354,13 @@ class ServedBagpiper(Bagpiper):
             busy server is minutes rather than seconds, which is why this
             is not the usual half-minute.
         tts_system: The generation system turn, which differs by
-            checkpoint (see `RELEASES`). The default reads the served
-            model's name: a name with "tts" in it is taken to be
-            Bagpiper-TTS, which was trained without a system turn. Pass
-            one, or None, to decide it yourself.
+            checkpoint (see `RELEASES`). The default is
+            `ESPNET_BAGPIPER_TTS_SYSTEM` where the deployment set it -
+            empty for a served Bagpiper-TTS, which was trained without a
+            system turn - and otherwise a guess from the served model's
+            name. **The documented server calls every checkpoint
+            `bagpiper`**, so a TTS deployment has to say which it is.
+            Passing a string, or None, settles it here instead.
     """
 
     def __init__(
@@ -365,10 +373,15 @@ class ServedBagpiper(Bagpiper):
         self.url = url.rstrip("/")
         self.model = model
         self.timeout = timeout
-        # a served model is a name rather than a release, so the only thing
-        # to go on is that name; anything explicit wins, including None
         if tts_system is AUTO:
-            tts_system = None if "tts" in model.lower() else TTS_SYSTEM
+            if SERVED_TTS_SYSTEM is not None:
+                # the deployment said, which is the only thing that knows
+                tts_system = SERVED_TTS_SYSTEM or None
+            else:
+                # otherwise the name is all there is to go on, and it is a
+                # guess: the documented server calls every checkpoint
+                # "bagpiper", so a TTS deployment has to say so itself
+                tts_system = None if "tts" in model.lower() else TTS_SYSTEM
         self.tts_system = tts_system
 
     def __repr__(self) -> str:

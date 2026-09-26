@@ -515,3 +515,22 @@ def test_the_attention_backend_can_be_moved_off_hopper():
     assert config["multimodal_io"]["continuous_audio"]["attn_implementation"] == "sdpa"
     # the text IO has no attention of its own and is left alone
     assert config["multimodal_io"]["text"] == {"tokenizer_name": "Qwen/Qwen3-8B-Base"}
+
+
+def test_a_deployment_can_say_what_its_served_checkpoint_wants(monkeypatch, server):
+    """The documented server calls every checkpoint `bagpiper`.
+
+    So the name cannot say whether Bagpiper-TTS is mounted, and a
+    deployment that mounted it sets the variable to say so.
+    """
+    monkeypatch.setattr(mod, "SERVED_TTS_SYSTEM", "")
+    ServedBagpiper().render("A bell.")
+    assert server["payload"]["messages"][0]["role"] == "user"
+
+    monkeypatch.setattr(mod, "SERVED_TTS_SYSTEM", "a house prompt")
+    ServedBagpiper().render("A bell.")
+    assert server["payload"]["messages"][0]["content"] == "a house prompt"
+
+    monkeypatch.setattr(mod, "SERVED_TTS_SYSTEM", None)
+    ServedBagpiper().render("A bell.")
+    assert server["payload"]["messages"][0]["content"] == TTS_SYSTEM
