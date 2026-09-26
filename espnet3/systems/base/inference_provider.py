@@ -206,7 +206,6 @@ class InferenceProvider(EnvironmentProvider, ABC):
         """
         if isinstance(config, dict):
             config = OmegaConf.create(config)
-            organizer = instantiate(config.dataset)
 
         if isinstance(config, DictConfig):
             organizer = instantiate(config.dataset)

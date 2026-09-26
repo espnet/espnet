@@ -20,6 +20,7 @@ It supports:
 
 from __future__ import annotations
 
+import dataclasses
 import sys
 from importlib import import_module, util
 from pathlib import Path
@@ -33,6 +34,8 @@ def _to_plain_dict(config: Any) -> dict[str, Any]:
     # Keep unresolved OmegaConf values as-is at this layer.
     if isinstance(config, DictConfig):
         return dict(OmegaConf.to_container(config, resolve=False))
+    if dataclasses.is_dataclass(config) and not isinstance(config, type):
+        return dataclasses.asdict(config)
     return dict(config)
 
 

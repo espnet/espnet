@@ -113,6 +113,33 @@ def test_extract_targz_accepts_none_logger(monkeypatch, tmp_path: Path, caplog):
     assert "Extracting" in caplog.text
 
 
+def test_extract_targz_writes_real_archive_contents(tmp_path: Path):
+    """extract_targz on a real (non-stubbed) archive places files as expected.
+
+    [misc-utils#06] The other extract_targz tests fully stub out
+    tarfile.open/extractall, so no test previously verified that a real
+    archive is actually decompressed and its members land where expected.
+    """
+    import io
+    import tarfile
+
+    archive = tmp_path / "payload.tar.gz"
+    with tarfile.open(archive, "w:gz") as tf:
+        payload = b"hello world"
+        info = tarfile.TarInfo("nested/dir/file.txt")
+        info.size = len(payload)
+        tf.addfile(info, io.BytesIO(payload))
+
+    dst = tmp_path / "dst"
+    dst.mkdir()
+
+    download_utils.extract_targz(archive, dst, logger=None)
+
+    extracted = dst / "nested" / "dir" / "file.txt"
+    assert extracted.is_file()
+    assert extracted.read_bytes() == b"hello world"
+
+
 def test_extract_targz_refuses_traversal(tmp_path: Path):
     """A member escaping dst_dir must not be written.
 

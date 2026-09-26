@@ -160,6 +160,28 @@ def test_remove_long_short_rejects_stage_args(tmp_path, duration_manifests):
         system.remove_long_short("unexpected")
 
 
+def test_remove_long_short_recovers_from_stale_lock(tmp_path, duration_manifests):
+    """A lock file left behind by a hard-killed previous run (SIGKILL/OOM/
+    SLURM time limit -- the worker-side finally-unlock never executes)
+    must not make every subsequent run fail with "already locked by
+    another runner". Since this stage hard-codes resume=False, the whole
+    shard is recomputed anyway, so a leftover lock must be cleared, not
+    treated as an in-progress run. tts-system#15 / finding 4.
+    """
+    manifests = {"train": duration_manifests["train"]}
+    system = _rls_system(tmp_path, manifests, splits="train")
+
+    stale_shard_dir = tmp_path / "filtered" / "shards" / "train" / "split.0"
+    stale_shard_dir.mkdir(parents=True)
+    (stale_shard_dir / "lock").write_text("99999\n", encoding="utf-8")
+
+    # Must not raise "Shard is already locked by another runner".
+    system.remove_long_short()
+
+    filtered = (tmp_path / "filtered" / "train.tsv").read_text()
+    assert [line.split("\t")[0] for line in filtered.splitlines()] == ["train_mid"]
+
+
 # ---------------------------------------------------------------
 # create_token_list
 # ---------------------------------------------------------------
@@ -309,6 +331,52 @@ def test_collect_stats_preserves_null_normalize(tmp_path, monkeypatch):
     assert model_cfg.normalize_conf is None
 
 
+@pytest.mark.execution_timeout(30)
+@pytest.mark.xfail(
+    strict=True,
+    reason=(
+        "tts-system#15: TTSSystem.collect_stats does not pop "
+        "model.normalize/normalize_conf (by design, see docstring), but it "
+        "also never clears them for a real espnet2-canonical TTS config. "
+        "espnet2.tasks.tts.TTSTask's own default is normalize='global_mvn' "
+        "with a normalize_conf that has no stats_file key, so building the "
+        "real model crashes with "
+        "'GlobalMVN.__init__() missing 1 required positional argument: "
+        "stats_file' before any stats are collected -- the chicken-and-egg "
+        "the docstring claims to solve is only solved for normalize: null "
+        "configs, not the espnet2-canonical global_mvn default. Known gap; "
+        "see suggested_fix in "
+        "context/espnet3_fable_review/findings/tts-system.json finding 0."
+    ),
+)
+def test_collect_stats_real_global_mvn_model_currently_crashes(tmp_path):
+    """collect_stats() with a real (unmocked) TTSTask + default global_mvn
+    normalize must currently raise -- this is a known, unfixed bug (not a
+    passing regression guard). This test runs the *real* _build_trainer /
+    _instantiate_model path (no monkeypatching of _build_trainer), unlike
+    every other test in this file, to exercise the actual crash site.
+    """
+    from espnet2.tasks.tts import TTSTask
+
+    model_config = TTSTask.get_default_config()
+    # A minimal token_list is the only required field with no default.
+    model_config["token_list"] = ["<blank>", "<unk>", "a", "<sos/eos>"]
+
+    config = OmegaConf.create(
+        {
+            "exp_dir": str(tmp_path / "exp"),
+            "task": "espnet2.tasks.tts.TTSTask",
+            "model": model_config,
+        }
+    )
+    system = TTSSystem(training_config=config)
+
+    # No pytest.raises here: xfail(strict=True) is the assertion that this
+    # currently fails. If a future fix makes this pass, strict=True turns
+    # that XPASS into a failure, forcing the xfail marker to be removed.
+    system.collect_stats()
+
+
 # ---------------------------------------------------------------
 # Remaining configuration branches
 # ---------------------------------------------------------------
@@ -413,6 +481,55 @@ def test_create_token_list_warns_on_empty_manifest(tmp_path, caplog):
 
     assert "manifest contained no tokens" in caplog.text
     assert (tmp_path / "tokens" / "tokens.txt").read_text() == ""
+
+
+def test_create_token_list_skips_blank_manifest_lines(tmp_path):
+    """A blank line must be skipped, not crash with IndexError.
+
+    tts-system#15 / finding 2: the default path indexed parts[2] without
+    checking column count, so a blank line (0 columns after split) raised
+    a bare IndexError, while remove_long_short._load_entries and the
+    sibling vocab_builder branch both already tolerate blank lines.
+    """
+    manifest = _write_manifest(
+        tmp_path,
+        "train.tsv",
+        ["u1\t/x.wav\taab\tspk1\n", "\n", "u2\t/y.wav\tab\tspk1\n"],
+    )
+    system = _token_list_system(
+        tmp_path,
+        manifest,
+        add_symbol=["<blank>:0", "<unk>:1", "<sos/eos>:-1"],
+    )
+
+    system.create_token_list()
+
+    tokens = (tmp_path / "tokens" / "tokens.txt").read_text().splitlines()
+    assert tokens == ["<blank>", "<unk>", "a", "b", "<sos/eos>"]
+
+
+def test_create_token_list_skips_short_rows_without_crashing(tmp_path):
+    """A row with an empty trailing text column (no speaker column, so
+    ``rstrip()`` used to eat the trailing tab too) must be skipped, not
+    crash with IndexError.
+
+    tts-system#15 / finding 2: ``line.rstrip()`` (not ``rstrip("\\n")``)
+    strips a trailing empty-text tab along with the newline, so
+    ``"u2\\t/y.wav\\t\\n".rstrip()`` became ``"u2\\t/y.wav"`` (2 columns)
+    and ``parts[2]`` raised IndexError.
+    """
+    manifest = _write_manifest(
+        tmp_path,
+        "train.tsv",
+        ["u1\t/x.wav\taab\tspk1\n", "u2\t/y.wav\t\n"],
+    )
+    system = _token_list_system(tmp_path, manifest)
+
+    system.create_token_list()
+
+    # "aab" -> a:2, b:1 (frequency-sorted); the short/empty row is skipped.
+    tokens = (tmp_path / "tokens" / "tokens.txt").read_text().splitlines()
+    assert tokens == ["a", "b"]
 
 
 def test_collect_stats_sets_parallel(tmp_path, monkeypatch):
