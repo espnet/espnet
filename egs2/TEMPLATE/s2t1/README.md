@@ -419,6 +419,37 @@ Now, we can start training:
 ./run.sh --stage 11 --stop_stage 11
 ```
 
+## Decoding with Whisper timestamp rules
+
+`espnet2.bin.s2t_inference` can constrain beam search to the timestamp
+grammar Whisper uses, including the Serialized Output Training (SOT) variant
+where one sequence carries several speakers separated by an inline symbol.
+Two inference options switch it on:
+
+- `--speaker_change_symbol <sym>` applies the pair and order rules to the
+  current speaker block only, so a new speaker may start anywhere in the
+  window. The symbol must be a row of the checkpoint's own token list.
+- `--adaptive_timestamp true` adds Whisper's last rule, which compares the
+  summed timestamp probability with the best text token and forces a
+  timestamp when the timestamps win. It needs the model probabilities, so it
+  wraps the decoder scorer.
+
+Both require `--predict_time true`; a prompt built without timestamps forbids
+them, and decoding that way is rejected rather than run into a dead end.
+
+The rules assume Whisper's vocabulary layout, with the text tokens below
+`eos` and a contiguous timestamp range above it. A token list built by
+`s2t.sh` appends `<sos> <eos> <sop>` after the timestamps, so it has the
+opposite layout and is refused at construction time. Use these options with a
+Whisper vocabulary, for example one written by
+`espnet2/bin/whisper_export_vocabulary.py`.
+
+Note that `whisper_export_vocabulary.py --sot_asr true` appends the
+speaker-change symbol only when the vocabulary does not already hold it. A
+symbol that is already a single Whisper token, such as `????`, keeps its own
+id and the exported list is one row shorter than it was before that guard; a
+checkpoint trained against the older, longer list will not load against it.
+
 ## Related work
 ```
 @article{peng2023reproducing,
