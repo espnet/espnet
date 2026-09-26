@@ -25,7 +25,7 @@ from typing import Any, Mapping, Sequence
 import yaml
 from espnet_model_zoo.downloader import ModelDownloader
 from hydra.utils import get_class
-from omegaconf import DictConfig, ListConfig, OmegaConf
+from omegaconf import DictConfig, ListConfig, OmegaConf, open_dict
 
 from espnet3.systems.base.inference_provider import InferenceProvider
 from espnet3.systems.base.inference_runner import InferenceRunner, _load_output_fn
@@ -101,6 +101,110 @@ def _uses_bundled_code(
     return False
 
 
+def _resolve_packed_config(pack_dir: str | Path) -> tuple[Path, Path]:
+    """Return the packed inference config's path and the bundle root.
+
+    The checks every loader of a ``pack_model`` bundle makes: the directory
+    exists, ``meta.yaml`` is there and of a schema this installation reads,
+    and it names an inference config that exists.
+    """
+    bundle_root = Path(pack_dir).resolve()
+    if not bundle_root.is_dir():
+        raise FileNotFoundError(
+            "pack_dir must point to the output directory created by "
+            f"pack_model(), but got: {bundle_root}"
+        )
+
+    meta_path = bundle_root / "meta.yaml"
+    if not meta_path.is_file():
+        raise FileNotFoundError(
+            f"pack_dir must contain meta.yaml from pack_model(), "
+            f"but none was found under: {bundle_root}"
+        )
+    with meta_path.open("r", encoding="utf-8") as f:
+        meta = yaml.safe_load(f) or {}
+
+    schema = int(meta.get("schema_version", 0))
+    if schema == 0:
+        logger.warning(
+            "Bundle at %s has no schema_version (legacy format). "
+            "Some features may not be available.",
+            bundle_root,
+        )
+    elif schema == 1:
+        pass
+    else:
+        raise ValueError(
+            f"Bundle was produced by a newer pack_model "
+            f"(schema_version={schema}) than this installation supports. "
+            f"Upgrade espnet3."
+        )
+
+    inference_config_rel = (meta.get("yaml_files") or {}).get("inference_config")
+    if not inference_config_rel:
+        raise FileNotFoundError(
+            "meta.yaml must contain yaml_files.inference_config, "
+            f"but it was missing in: {meta_path}"
+        )
+    inference_config_path = bundle_root / inference_config_rel
+    if not inference_config_path.is_file():
+        raise FileNotFoundError(
+            "inference config listed in meta.yaml not found: "
+            f"{inference_config_path}"
+        )
+    return inference_config_path, bundle_root
+
+
+def _provider_class(config: DictConfig):
+    """Return the provider class the packed config names, or the default."""
+    target = getattr(getattr(config, "provider", None), "_target_", None)
+    return get_class(target) if target else InferenceProvider
+
+
+def load_backend(pack_dir: str | Path, *, device: str | None = None):
+    """Build a bundle's model alone, for a caller that owns the output.
+
+    An ``espnet3.api`` system fixes what it returns, so the recipe's
+    ``output_fn`` is never needed and never imported; nor is the runner,
+    which belongs to the ``infer`` stage. Both are dropped from the config
+    before the bundled-code check, which then covers what is built here:
+    the model and its provider. A bundle whose model or provider needs
+    bundled code is refused, because this caller trusts none.
+
+    Args:
+        pack_dir: The output directory of ``pack_model()``.
+        device: Where to build the model; the provider picks when omitted.
+
+    Returns:
+        The instantiated backend, such as a ``Speech2Text``.
+
+    Raises:
+        FileNotFoundError: If ``pack_dir`` is not a bundle, or its
+            ``meta.yaml`` names no inference config.
+        ValueError: If the model or provider needs the bundle's own code.
+
+    Examples:
+        >>> speech2text = load_backend("exp/train/model_pack")
+        >>> speech2text = load_backend("exp/train/model_pack", device="cuda:0")
+    """
+    inference_config_path, bundle_root = _resolve_packed_config(pack_dir)
+    config = _load_inference_config(inference_config_path, bundle_root=bundle_root)
+    with open_dict(config):
+        # neither is built here: the runner is the infer stage's, and the
+        # recipe's output_fn is what an API system replaces
+        config.pop("output_fn", None)
+        config.pop("runner", None)
+        if device is not None:
+            config.device = device
+    if _uses_bundled_code(config, _get_bundled_module_names(bundle_root)):
+        raise ValueError(
+            f"The model in {bundle_root} needs the bundle's own code to build, "
+            "which an espnet3.api system does not import. Load it with "
+            "InferenceModel.from_packed(..., trust_user_code=True) instead."
+        )
+    return _provider_class(config).build_model(config)
+
+
 class InferenceModel:
     """User-facing inference wrapper for packaged ESPnet models.
 
@@ -158,12 +262,7 @@ class InferenceModel:
             inference_config: Resolved inference config loaded from the packed
                 bundle.
         """
-        provider_target = getattr(
-            getattr(inference_config, "provider", None), "_target_", None
-        )
-        provider_cls = (
-            get_class(provider_target) if provider_target else InferenceProvider
-        )
+        provider_cls = _provider_class(inference_config)
         runner_target = getattr(
             getattr(inference_config, "runner", None), "_target_", None
         )
@@ -184,6 +283,7 @@ class InferenceModel:
         cls,
         pack_dir: str | Path,
         trust_user_code: bool = False,
+        device: str | None = None,
     ) -> "InferenceModel":
         """Build an inference model from a packed model directory.
 
@@ -207,6 +307,10 @@ class InferenceModel:
             trust_user_code: Set to ``True`` to allow importing bundled recipe
                 code from the pack directory. Required when the inference
                 config references modules shipped inside the bundle.
+            device: Where to build the model, such as ``"cpu"`` or
+                ``"cuda:0"``. Takes the place of the packed config's own
+                ``device``; when omitted the provider picks, as the ``infer``
+                stage does.
 
         Returns:
             InferenceModel: Inference model loaded from ``pack_model`` output.
@@ -232,50 +336,7 @@ class InferenceModel:
             ...     trust_user_code=True,
             ... )
         """
-        bundle_root = Path(pack_dir).resolve()
-        if not bundle_root.is_dir():
-            raise FileNotFoundError(
-                "pack_dir must point to the output directory created by "
-                f"pack_model(), but got: {bundle_root}"
-            )
-
-        meta_path = bundle_root / "meta.yaml"
-        if not meta_path.is_file():
-            raise FileNotFoundError(
-                f"pack_dir must contain meta.yaml from pack_model(), "
-                f"but none was found under: {bundle_root}"
-            )
-        with meta_path.open("r", encoding="utf-8") as f:
-            meta = yaml.safe_load(f) or {}
-
-        schema = int(meta.get("schema_version", 0))
-        if schema == 0:
-            logger.warning(
-                "Bundle at %s has no schema_version (legacy format). "
-                "Some features may not be available.",
-                bundle_root,
-            )
-        elif schema == 1:
-            pass
-        else:
-            raise ValueError(
-                f"Bundle was produced by a newer pack_model "
-                f"(schema_version={schema}) than this installation supports. "
-                f"Upgrade espnet3."
-            )
-
-        inference_config_rel = (meta.get("yaml_files") or {}).get("inference_config")
-        if not inference_config_rel:
-            raise FileNotFoundError(
-                "meta.yaml must contain yaml_files.inference_config, "
-                f"but it was missing in: {meta_path}"
-            )
-        inference_config_path = bundle_root / inference_config_rel
-        if not inference_config_path.is_file():
-            raise FileNotFoundError(
-                "inference config listed in meta.yaml not found: "
-                f"{inference_config_path}"
-            )
+        inference_config_path, bundle_root = _resolve_packed_config(pack_dir)
         inference_config = _load_inference_config(
             inference_config_path,
             bundle_root=bundle_root,
@@ -296,6 +357,9 @@ class InferenceModel:
                 inference_config_path,
                 bundle_root=bundle_root,
             )
+        if device is not None:
+            with open_dict(inference_config):
+                inference_config.device = device
 
         return cls(inference_config)
 
@@ -304,6 +368,7 @@ class InferenceModel:
         cls,
         model_tag: str,
         trust_user_code: bool = False,
+        device: str | None = None,
     ) -> "InferenceModel":
         """Download a packaged model and build an inference model from it.
 
@@ -318,6 +383,7 @@ class InferenceModel:
             model_tag: Pretrained model identifier understood by
                 ``espnet_model_zoo``.
             trust_user_code: Forwarded to :meth:`from_packed`.
+            device: Forwarded to :meth:`from_packed`.
 
         Returns:
             InferenceModel: Downloaded inference model.
@@ -348,7 +414,7 @@ class InferenceModel:
             )
         inference_config_path = Path(artifacts["inference_config"])
         pack_dir = inference_config_path.parent.parent
-        return cls.from_packed(pack_dir, trust_user_code=trust_user_code)
+        return cls.from_packed(pack_dir, trust_user_code=trust_user_code, device=device)
 
     @property
     def primary_input_key(self) -> str:

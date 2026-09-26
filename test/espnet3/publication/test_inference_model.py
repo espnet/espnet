@@ -8,6 +8,7 @@ import pytest
 import yaml
 
 from espnet3.publication import InferenceModel
+from espnet3.publication.inference_model import load_backend
 from espnet3.systems.base.inference_provider import InferenceProvider
 from espnet3.systems.base.inference_runner import InferenceRunner
 
@@ -616,3 +617,50 @@ def test_forward_batch_falls_back_on_runtime_error(
     args, _ = mock_logger.warning.call_args
     assert "CUDA OOM" in str(args[1])
     assert results == ["cfg:a@cpu", "cfg:b@cpu"]
+
+
+# ---------------------------------------------------------------------------
+# load_backend
+# ---------------------------------------------------------------------------
+
+
+def test_load_backend_builds_without_the_recipe_output_fn(tmp_path, mock_build_model):
+    bundle_root = _make_pack_dir(
+        tmp_path, output_fn="src.custom_code.build_output", with_src_module=True
+    )
+    with pytest.raises(ValueError, match="trust_user_code"):
+        InferenceModel.from_packed(bundle_root)
+    model = load_backend(bundle_root, device="cpu")
+    assert isinstance(model, EchoModel)
+    assert model("x") == "cfg:x@cpu"
+
+
+def test_load_backend_sets_the_device_it_is_given(tmp_path, monkeypatch):
+    seen = {}
+
+    def _fake_build(config):
+        seen["device"] = config.get("device")
+        seen["output_fn"] = config.get("output_fn")
+        return EchoModel()
+
+    monkeypatch.setattr(InferenceProvider, "build_model", staticmethod(_fake_build))
+    bundle_root = _make_pack_dir(tmp_path, output_fn="builtins.print")
+    load_backend(bundle_root, device="cuda:1")
+    assert seen == {"device": "cuda:1", "output_fn": None}
+
+
+def test_load_backend_refuses_a_model_that_needs_bundled_code(tmp_path):
+    bundle_root = _make_pack_dir(
+        tmp_path, model_target="src.custom_code.CustomModel", with_src_module=True
+    )
+    with pytest.raises(ValueError, match="needs the bundle's own code"):
+        load_backend(bundle_root)
+
+
+def test_load_backend_ignores_a_bundled_runner(tmp_path, mock_build_model):
+    bundle_root = _make_pack_dir(
+        tmp_path, runner_target="src.custom_code.CustomRunner", with_src_module=True
+    )
+    with pytest.raises(ValueError, match="trust_user_code"):
+        InferenceModel.from_packed(bundle_root)
+    assert isinstance(load_backend(bundle_root), EchoModel)
