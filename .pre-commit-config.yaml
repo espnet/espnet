@@ -32,6 +32,15 @@ repos:
     -   id: isort
         exclude: ^(egs2/TEMPLATE/asr1/utils|egs2/TEMPLATE/asr1/steps|egs2/TEMPLATE/tts1/sid|doc)
 
+# Auto-application lives here, not in CI: pre-commit.ci commits the fix back
+# to the pull request, whereas `ruff check --fix` in CI writes it to the
+# runner's checkout, exits 0, and throws it away - so every fixable violation
+# would pass the gate and land unfixed.
+#
+# This hook sees a slightly larger file set than `ruff check` does in CI.
+# pre-commit passes files explicitly, so extension-less Python scripts such as
+# tools/sentencepiece_commands/spm_encode are linted here; Ruff's own directory
+# walk only picks up *.py and skips them. Expect findings that CI never reports.
 -   repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.16.8
     hooks:

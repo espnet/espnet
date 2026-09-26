@@ -114,13 +114,31 @@ egs3 = ["egs3/TEMPLATE/**/*.yaml"]
 
 [tool.ruff]
 line-length = 88
+# The single source of truth for what Ruff skips - do not repeat these on the
+# command line, or the two lists drift.
+#
+# "tools" is here because tools/ is where the toolkits get installed, and
+# fifteen of the tools/installers/*.sh scripts `git clone` into it. A clone
+# carries its own .git, and Ruff's .gitignore filtering stops at a repository
+# boundary - so the outer .gitignore entries for tools/ParallelWaveGAN,
+# tools/kaldi*, tools/s3prl and the rest stop applying once the tools are
+# built, and Ruff walks into third-party source. It does not reproduce on a
+# fresh checkout, only after `make`, which is why CI saw it and nobody else
+# did. The cost is that the three tracked Python files under tools/
+# (check_install.py and the two sentencepiece_commands scripts) are not linted.
 extend-exclude = [
     "egs2/TEMPLATE/asr1/utils", "egs2/TEMPLATE/asr1/steps", "egs2/TEMPLATE/tts1/sid",
-    "tools/installers/patch_mwerSegmenter", "doc",
+    "tools", "doc",
     "test_utils/bats-core", "test_utils/bats-support", "test_utils/bats-assert",
 ]
 
 [tool.ruff.lint]
+# Do not enable --unsafe-fixes. Every one of them was reviewed by hand when
+# Ruff was introduced and they are not reliable here: F841 drops an unused
+# assignment but keeps the call, which is right only when the call has no
+# side effect worth keeping, and F401 removed `import k2` from the
+# try/except probe in ci/test_import_all.py, which made has_k2
+# unconditionally True.
 select = [
     "E", # pycodestyle errors
     "W", # pycodestyle warnings
