@@ -50,3 +50,18 @@ run_with_training_config \
     conf/inference_transducer.yaml
 
 cd "${cwd}" || exit
+
+cd ./egs3/mini_an4/knnvc || exit
+gen_dummy_coverage
+echo "==== [ESPnet3] kNN-VC ===="
+source path.sh
+# The shipped kNN-VC recipe needs LibriSpeech and a 1.2 GB WavLM checkpoint, so
+# this one stands a stub encoder (src/stub_encoder.py) and a tiny HiFi-GAN in
+# for them. Everything else is the real pipeline, and nothing is downloaded.
+${python} run.py \
+    --stages create_dataset prepare_features train infer \
+    --training_config conf/training.yaml \
+    --inference_config conf/inference.yaml
+rm -rf exp data downloads
+
+cd "${cwd}" || exit

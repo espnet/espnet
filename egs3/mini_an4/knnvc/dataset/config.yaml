@@ -1,0 +1,9 @@
+builder:
+  dataset_path: downloads
+  archive_path: ./downloads.tar.gz
+  sph_subdir: an4/wav/an4_clstk
+
+dataset:
+  # StubEncoder's frame hop, not WavLM's 320.
+  hop_length: 80
+  sample_rate: 16000
