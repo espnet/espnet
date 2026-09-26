@@ -6,6 +6,7 @@
 import logging
 import multiprocessing as mp
 import random
+from itertools import cycle, islice
 from typing import Dict, List, TypeVar
 
 import torch
@@ -272,6 +273,11 @@ def synchronize_batches(batches: List[List[T]]) -> List[List[T]]:
     Returns:
         Synchronized list of batches with duplicates added if necessary.
 
+    Raises:
+        RuntimeError: If some ranks have batches while others have none. A rank
+            with no batches cannot be padded, so the ranks would keep different
+            numbers of batches.
+
     Notes:
         - If torch.distributed is not initialized, returns unchanged
         - If CUDA is not available, returns batches unchanged
@@ -287,10 +293,28 @@ def synchronize_batches(batches: List[List[T]]) -> List[List[T]]:
         for _ in range(dist.get_world_size())
     ]
     dist.all_gather(n_batches_list, n_batches_tensor)
-    tgt_n_batches = max(t.item() for t in n_batches_list)
+    batch_counts = [t.item() for t in n_batches_list]
+    tgt_n_batches = max(batch_counts)
+
+    # Every rank sees the same batch_counts, so all ranks fail together here and
+    # none of them enters the padding below.
+    if tgt_n_batches > 0 and min(batch_counts) == 0:
+        raise RuntimeError(
+            "synchronize_batches() cannot synchronize a rank with no batches: "
+            f"batch counts per rank are {batch_counts}. Duplicating the last "
+            "batches cannot give an empty rank any batch, so the ranks would keep "
+            "different numbers of batches, or the empty rank would leave its "
+            "training loop while the other ranks wait in a collective. Check the "
+            "dataset sharding and the batch_token limit."
+        )
 
     if tgt_n_batches > n_batches:
-        batches = batches + batches[-(tgt_n_batches - n_batches) :]
+        n_missing = tgt_n_batches - n_batches
+        # `batches[-n_missing:]` is shorter than n_missing when a rank holds fewer
+        # than half of tgt_n_batches batches, which would leave that rank short of
+        # tgt_n_batches; cycle the tail instead.
+        tail = batches[-n_missing:] if n_missing <= n_batches else batches
+        batches = batches + list(islice(cycle(tail), n_missing))
         logger.info("Synchronize sharded dataset across all process")
         logger.info(f"#Batches: {n_batches} -> {tgt_n_batches}")
     else:
