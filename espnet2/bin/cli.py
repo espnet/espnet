@@ -8,6 +8,9 @@
     espnet translate audio.wav --to eng
     espnet synthesize "Hello from ESPnet" -o hello.wav
     espnet enhance noisy.wav -o clean.wav
+    espnet describe recording.wav
+    espnet render "A bell rings twice in an empty stairwell." -o bell.wav
+    espnet describe recording.wav --brief | espnet render - -o again.wav
     espnet demo
     espnet models
 
@@ -24,6 +27,12 @@ to `espnet transcribe` is reported rather than half-loaded.
 
 `espnet demo` is the same OWSM model in a browser instead: it serves the app
 the Hugging Face Space runs, locally, and prints the URL to open.
+
+`describe` and `render` are the two directions of one model, Bagpiper, which
+maps audio to a description of it and a description back to audio. That is
+why they pipe into each other: the third example above asks what a recording
+is, and renders the answer back as sound. They are 8B models, so both take
+`--server` to address one that is already running instead.
 """
 
 import argparse
@@ -34,6 +43,8 @@ import sys
 from pathlib import Path
 from typing import List, Optional
 
+# stdlib-only at import time, so the constant costs nothing here
+from espnet2.bin.speechlm_inference import UNDERSTAND_PROMPT
 from espnet2.utils.pretrained import ModelTagError, build_pretrained
 
 # One flagship per task, so that `espnet transcribe x.wav` works with no
@@ -50,6 +61,11 @@ DEFAULT_MODELS = {
     "translate": "espnet/owsm_ctc_v4_1B",
     "synthesize": "espnet/kan-bayashi_ljspeech_vits",
     "enhance": "espnet/Wangyou_Zhang_universal_train_enh_uses_refch0_2mem_raw",
+    # Bagpiper, which answers about audio and renders it. The general SFT
+    # checkpoint does both directions; --model espnet/bagpiper-tts-sft is the
+    # speech-focused one. Either is an 8B model: --server is the other way.
+    "describe": "espnet/bagpiper-sft",
+    "render": "espnet/bagpiper-sft",
     # the browser demo runs the model `espnet transcribe` runs, so the two agree
     "demo": "espnet/owsm_ctc_v4_1B",
 }
@@ -363,6 +379,72 @@ def cmd_enhance(args) -> int:
     return 0
 
 
+def _speechlm(args):
+    """A SpeechLM, from the server the user named or from a checkpoint.
+
+    A served model is a name the server chose rather than a Hub tag, so
+    `--server` does not read `--model`: it uses the name the server in
+    `egs2/bagpiper/speechlm1/README.md` serves, which `ESPNET_BAGPIPER_MODEL`
+    overrides.
+    """
+    from espnet2.bin import speechlm_inference
+
+    if args.server:
+        return speechlm_inference.from_server(args.server)
+    return speechlm_inference.from_pretrained(args.model, device=args.device)
+
+
+def cmd_describe(args) -> int:
+    _require_file(args.audio)
+    from espnet2.bin.speechlm_inference import split_thinking
+
+    answer = _speechlm(args).describe(args.audio, prompt=args.prompt)
+    if args.brief:
+        # the model reasons before it answers, and a pipe into `render`
+        # wants the answer; where nothing is marked, this changes nothing
+        _, answer = split_thinking(answer)
+    print(answer)
+    return 0
+
+
+def cmd_render(args) -> int:
+    path = _output_path(args.output)
+    from espnet2.bin.speechlm_inference import Decoding
+
+    scene = _text_argument(args.scene)
+    model = _speechlm(args)
+    audio, text = model.render(scene, decoding=Decoding(cfg=args.cfg))
+    print(text)
+    if audio is None:
+        # not a crash: the model picks its own output mode, and stopping
+        # after the text is a legal answer. It is still no file, though.
+        raise CLIError(
+            "the model answered with text and no audio. It renders a "
+            "described scene rather than reading a line out: describe the "
+            "sound, and quote any speech inside the description."
+        )
+    try:
+        path.write_bytes(audio)
+    except OSError as e:
+        raise CLIError(f"cannot write {path}: {e}") from e
+    print(f"wrote {path}", file=sys.stderr)
+    return 0
+
+
+def _text_argument(value: str) -> str:
+    """The argument, or standard input where it is `-`.
+
+    `espnet describe x.wav --brief | espnet render -` is the round trip this
+    model is built around: what it heard, rendered back.
+    """
+    if value != "-":
+        return value
+    text = sys.stdin.read().strip()
+    if not text:
+        raise CLIError("nothing on standard input to render")
+    return text
+
+
 def _require_s2t(model_tag: str) -> None:
     """Stop before the download when the tag is not a speech-to-text model.
 
@@ -433,6 +515,21 @@ def cmd_models(args) -> int:
         "\nworks with --model. The first run downloads it; it is cached after."
     )
     return 0
+
+
+def _add_server(parser) -> None:
+    """`--server`, for the commands whose model can be served instead.
+
+    An 8B checkpoint is a slow thing to load per invocation, so the same
+    model is often left running behind the vLLM fork; pointing at it skips
+    the download and the load entirely.
+    """
+    parser.add_argument(
+        "--server",
+        default=None,
+        help="address a running Bagpiper server (e.g. "
+        "http://127.0.0.1:9811/v1) instead of loading the checkpoint",
+    )
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -538,6 +635,37 @@ def build_parser() -> argparse.ArgumentParser:
     p = add("enhance", "remove noise from an audio file", cmd_enhance)
     p.add_argument("audio", help="audio file, any format soundfile reads")
     p.add_argument("-o", "--output", default="enhanced.wav", help="output wav")
+
+    # 8B models: let the command pick the GPU rather than defaulting to cpu
+    p = add("describe", "say what is in an audio file", cmd_describe, device=None)
+    p.add_argument("audio", help="audio file, any format soundfile reads")
+    p.add_argument(
+        "--prompt",
+        default=UNDERSTAND_PROMPT,
+        help=f"what to ask about it (default: {UNDERSTAND_PROMPT!r})",
+    )
+    p.add_argument(
+        "--brief",
+        action="store_true",
+        help="drop the model's reasoning and print what it concluded",
+    )
+    _add_server(p)
+
+    p = add("render", "render audio from a described scene", cmd_render, device=None)
+    p.add_argument(
+        "scene",
+        help="what the audio should be, as a description, with any speech "
+        "quoted inside it; `-` reads it from standard input",
+    )
+    p.add_argument("-o", "--output", default="rendered.wav", help="output wav")
+    p.add_argument(
+        "--cfg",
+        type=float,
+        default=None,
+        help="classifier-free guidance for the audio (default: the 3 the "
+        "model was published with; 1 turns it off)",
+    )
+    _add_server(p)
 
     p = add("demo", "serve a model in the browser", cmd_demo, device=None)
     p.add_argument(

@@ -36,6 +36,8 @@ def test_tools_are_listed_with_their_docs():
         "align",
         "synthesize",
         "enhance",
+        "describe",
+        "render",
     }
     assert tools["transcribe"].input_schema["required"] == ["audio_path"]
     assert set(tools["transcribe"].input_schema["properties"]) == {
@@ -293,3 +295,79 @@ def test_enhancement_rate_is_validated_at_import(monkeypatch):
         # Reload once more with the runner's own environment restored, so the
         # module globals other tests read match it again.
         importlib.reload(mcp_server)
+
+
+class _FakeBagpiper:
+    """A served Bagpiper, without a server."""
+
+    def __init__(self, text="a bell rings", audio=None):
+        self.text, self.audio = text, audio
+        self.asked = []
+
+    def describe(self, audio, prompt=None, **kwargs):
+        self.asked.append((audio, prompt))
+        return self.text
+
+    def render(self, scene, **kwargs):
+        self.asked.append(scene)
+        return self.audio, self.text
+
+
+def _bagpiper(monkeypatch, model):
+    monkeypatch.setattr(mcp_server, "_bagpiper", lambda: model)
+    return model
+
+
+def test_describe_answers_about_the_audio(monkeypatch, wav):
+    model = _bagpiper(monkeypatch, _FakeBagpiper())
+
+    answer = call(mcp_server.build_server(), "describe", audio_path=str(wav))
+
+    assert answer == "a bell rings"
+    assert model.asked == [(str(wav), "What sound is in this audio?")]
+
+
+def test_describe_refuses_a_missing_file(monkeypatch):
+    _bagpiper(monkeypatch, _FakeBagpiper())
+
+    with pytest.raises(ToolError):
+        mcp_server.describe("/nowhere/missing.wav")
+
+
+def test_render_writes_the_wav_it_was_given(monkeypatch, tmp_path):
+    from test.espnet2.bin.test_speechlm_inference import wav_bytes
+
+    _bagpiper(monkeypatch, _FakeBagpiper(audio=wav_bytes()))
+    out = tmp_path / "made" / "bell.wav"
+
+    written = call(
+        mcp_server.build_server(),
+        "render",
+        scene="A bell rings twice.",
+        output_path=str(out),
+    )
+
+    assert written == str(out.resolve())
+    assert out.read_bytes() == wav_bytes()
+
+
+def test_render_reports_a_text_only_answer(monkeypatch, tmp_path):
+    _bagpiper(monkeypatch, _FakeBagpiper(text="I would render a bell."))
+
+    with pytest.raises(ToolError) as raised:
+        mcp_server.render("read this aloud: hello", str(tmp_path / "x.wav"))
+
+    assert "described scene" in str(raised.value)
+    assert not (tmp_path / "x.wav").exists()
+
+
+def test_a_server_that_is_not_running_is_reported_as_such(monkeypatch):
+    """The other tools download; this one has an address, and says so."""
+    monkeypatch.setattr(mcp_server, "BAGPIPER_URL", "http://127.0.0.1:9/v1")
+    mcp_server._bagpiper.cache_clear()
+
+    with pytest.raises(RuntimeError) as raised:
+        mcp_server._bagpiper().describe(__file__)
+
+    assert "docker run" in str(raised.value) or "README" in str(raised.value)
+    mcp_server._bagpiper.cache_clear()

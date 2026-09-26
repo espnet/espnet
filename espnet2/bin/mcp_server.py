@@ -66,6 +66,8 @@ ENH_FS = int(os.environ.get("ESPNET_MCP_ENH_FS", "16000"))
 if ENH_FS <= 0:
     raise ValueError(f"ESPNET_MCP_ENH_FS must be a positive integer, not {ENH_FS}")
 DEVICE = os.environ.get("ESPNET_MCP_DEVICE", "cpu")
+# Bagpiper is served rather than loaded; see _bagpiper below.
+BAGPIPER_URL = os.environ.get("ESPNET_MCP_BAGPIPER_URL", "http://127.0.0.1:9811/v1")
 
 # Over stdio the protocol owns stdout, so anything a model prints while
 # loading (attention.py reports a missing flash_attn that way) would be read
@@ -117,6 +119,21 @@ def _enh():  # pragma: no cover - downloads the checkpoint
         from espnet2.bin.enh_inference import SeparateSpeech
 
         return SeparateSpeech.from_pretrained(ENH_MODEL, device=DEVICE)
+
+
+@functools.lru_cache(maxsize=None)
+def _bagpiper():
+    """Bagpiper, which is served rather than downloaded.
+
+    The other loaders fetch a checkpoint the first time a tool is called.
+    This one cannot: Bagpiper is 8B with an audio encoder and a codec
+    attached, so a tool call that quietly pulled 18 GB and filled a GPU
+    would be a worse surprise than an error saying where to point it. It
+    addresses a server instead, and `ESPNET_MCP_BAGPIPER_URL` says which.
+    """
+    from espnet2.bin.speechlm_inference import from_server
+
+    return from_server(BAGPIPER_URL)
 
 
 # mcp relays a ToolError's message to the agent word for word and reduces
@@ -338,7 +355,76 @@ def enhance(audio_path: str, output_path: str) -> str:
     return str(out.resolve())
 
 
-TOOLS = (transcribe, translate, phonemize, align, synthesize, enhance)
+def describe(audio_path: str, prompt: str = "What sound is in this audio?") -> str:
+    """Answer a question about what a recording contains, in words.
+
+    This understands audio as a whole - speech, music, environmental sound
+    and mixtures - and answers open-ended questions about it. Use
+    `transcribe` when what is wanted is the words that were said: it is
+    smaller, it is always available, and it does not reason.
+
+    Args:
+        audio_path: An audio file on this machine. Anything soundfile reads.
+            The model was trained on clips of up to 30 seconds.
+        prompt: What to ask about it. Free text, as specific as you like:
+            "how many speakers?", "what instrument is this?", "is the
+            speaker angry?".
+
+    Returns:
+        The answer, which begins with the model's own reasoning about the
+        audio before it concludes. Needs a Bagpiper server: no model is
+        downloaded, and an unreachable server is reported as such.
+    """
+    path = _existing_file(audio_path)
+    with _quiet_stdout():
+        return _bagpiper().describe(str(path), prompt=prompt)
+
+
+def render(scene: str, output_path: str) -> str:
+    """Render a described scene as audio, and save it as a WAV file.
+
+    This is not text-to-speech. It generates the sound of a scene you
+    describe - speech, music, effects or a mixture - so the prompt is a
+    description, with any words to be spoken quoted inside it: "A clear
+    female voice in a quiet room says: 'your package arrives Tuesday'. No
+    background noise." Asking it to "read this aloud: ..." returns audio
+    that is not a faithful reading. Use `synthesize` to have a sentence
+    read out as written.
+
+    Args:
+        scene: The description of the audio to render.
+        output_path: Where to write the WAV file; parent directories are
+            created.
+
+    Returns:
+        The absolute path of the WAV file written. Needs a Bagpiper server.
+        The model chooses its own output mode and may answer with text
+        alone, which is reported rather than written.
+    """
+    audio, text = _bagpiper().render(scene)
+    if audio is None:
+        raise ToolError(
+            "The model answered with text and no audio: "
+            f"{text[:500]!r}. It renders a described scene rather than "
+            "reading a line out - describe the sound, and quote any speech "
+            "inside the description."
+        )
+    out = Path(output_path).expanduser()
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_bytes(audio)
+    return str(out.resolve())
+
+
+TOOLS = (
+    transcribe,
+    translate,
+    phonemize,
+    align,
+    synthesize,
+    enhance,
+    describe,
+    render,
+)
 
 
 def build_server():

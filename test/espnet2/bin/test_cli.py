@@ -420,7 +420,7 @@ def test_enhance_writes_one_file_when_there_is_one_output(monkeypatch, tmp_path)
     assert out.exists()
 
 
-@pytest.mark.parametrize("command", ["asr", "translate", "enhance"])
+@pytest.mark.parametrize("command", ["asr", "translate", "enhance", "describe"])
 def test_a_missing_file_fails_before_a_model_is_fetched(command, capsys, monkeypatch):
     def explode(*a, **k):  # pragma: no cover - the point is that it is not reached
         raise AssertionError("downloaded a model for a file that is not there")
@@ -548,6 +548,8 @@ def test_the_help_lists_every_command(capsys):
         "translate",
         "synthesize",
         "enhance",
+        "describe",
+        "render",
         "demo",
         "models",
     ):
