@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+import librosa
 import numpy as np
 import soundfile as sf
 from torch.utils.data import Dataset as TorchDataset
@@ -17,6 +18,17 @@ _VALID_SPEAKERS = frozenset({"p226", "p287"})
 
 def _speaker_id(utt_id: str) -> str:
     return utt_id.split("_", 1)[0]
+
+
+def _load_wav(path: Path, sample_rate: int) -> np.ndarray:
+    """Read the first channel of ``path`` and resample it to ``sample_rate``."""
+    waveform, rate = sf.read(str(path), dtype="float32", always_2d=False)
+    if waveform.ndim > 1:
+        waveform = waveform[:, 0]
+    if rate != sample_rate:
+        # The corpus is 48 kHz; egs2/vctk_noisy/enh1 downsamples to 16 kHz too.
+        waveform = librosa.resample(waveform, orig_sr=rate, target_sr=sample_rate)
+    return np.asarray(waveform, dtype=np.float32)
 
 
 def _list_pairs(noisy_dir: Path, clean_dir: Path) -> list[tuple[str, Path, Path]]:
@@ -49,6 +61,8 @@ class VCTKNoisyDataset(TorchDataset):
         chunk_length: If set, randomly crop that many samples on train/valid.
             Ignored when ``inference`` is True or the utterance is shorter.
         inference: When True, always return the full utterance (no chunking).
+        sample_rate: Rate the waveforms are resampled to. The official wavs are
+            48 kHz, while the model and the wav writers expect 16 kHz.
     """
 
     def __init__(
@@ -57,12 +71,14 @@ class VCTKNoisyDataset(TorchDataset):
         data_path: str | Path | None = None,
         chunk_length: int | None = None,
         inference: bool = False,
+        sample_rate: int = 16000,
         **_kwargs,
     ) -> None:
         self.split = split
         self.data_path = resolve_dataset_dir(data_path)
         self.chunk_length = None if inference else chunk_length
         self.inference = inference
+        self.sample_rate = sample_rate
 
         if split == "test":
             noisy_dir = self.data_path / "noisy_testset_wav"
@@ -92,14 +108,8 @@ class VCTKNoisyDataset(TorchDataset):
 
     def __getitem__(self, idx: int) -> dict[str, Any]:
         utt_id, noisy_path, clean_path = self._pairs[int(idx)]
-        speech_mix, _ = sf.read(str(noisy_path), dtype="float32", always_2d=False)
-        speech_ref, _ = sf.read(str(clean_path), dtype="float32", always_2d=False)
-        speech_mix = np.asarray(speech_mix, dtype=np.float32)
-        speech_ref = np.asarray(speech_ref, dtype=np.float32)
-        if speech_mix.ndim > 1:
-            speech_mix = speech_mix[:, 0]
-        if speech_ref.ndim > 1:
-            speech_ref = speech_ref[:, 0]
+        speech_mix = _load_wav(noisy_path, self.sample_rate)
+        speech_ref = _load_wav(clean_path, self.sample_rate)
 
         length = min(speech_mix.shape[0], speech_ref.shape[0])
         speech_mix = speech_mix[:length]
