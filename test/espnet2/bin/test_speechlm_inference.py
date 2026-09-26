@@ -534,3 +534,52 @@ def test_a_deployment_can_say_what_its_served_checkpoint_wants(monkeypatch, serv
     monkeypatch.setattr(mod, "SERVED_TTS_SYSTEM", None)
     ServedBagpiper().render("A bell.")
     assert server["payload"]["messages"][0]["content"] == TTS_SYSTEM
+
+
+# --- finding a release on disk -----------------------------------------
+
+
+def _release(tmp_path, checkpoints=("model.pt",), configs=("train_x.yaml",)):
+    for name in checkpoints:
+        (tmp_path / name).write_bytes(b"")
+    for name in configs:
+        (tmp_path / name).write_text("job_type: speechlm\n")
+    (tmp_path / "inference.yaml").write_text("dtype: bfloat16\n")
+    return tmp_path
+
+
+def test_a_downloaded_release_is_used_where_it_is(tmp_path):
+    """A directory is taken as it stands; only a tag is fetched."""
+    assert mod._resolve(_release(tmp_path)) == tmp_path
+
+
+def test_the_one_train_config_and_the_one_checkpoint_are_found(tmp_path):
+    _release(tmp_path)
+
+    assert mod._one_yaml(tmp_path).name == "train_x.yaml"
+    assert mod._one_checkpoint(tmp_path).name == "model.pt"
+
+
+def test_an_ambiguous_release_says_what_to_pass(tmp_path):
+    _release(tmp_path, checkpoints=("model.pt", "base.pt"), configs=())
+
+    with pytest.raises(FileNotFoundError) as raised:
+        mod._one_yaml(tmp_path)
+    assert "train_config=" in str(raised.value)
+
+    with pytest.raises(FileNotFoundError) as raised:
+        mod._one_checkpoint(tmp_path)
+    assert "checkpoint=" in str(raised.value)
+    # and it names what it found, so the choice can be made
+    assert "base.pt" in str(raised.value)
+
+
+def test_stereo_audio_arrives_as_channels_first(tmp_path):
+    """[samples, channels] on disk, [channels, samples] to the model."""
+    path = tmp_path / "stereo.wav"
+    sf.write(path, np.zeros((800, 2), dtype="float32"), 16000)
+
+    _, _, (array, rate) = mod._dialogue_turn(("user", "audio", str(path)))
+
+    assert array.shape == (2, 800)
+    assert rate == 16000
