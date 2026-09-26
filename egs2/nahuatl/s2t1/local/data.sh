@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# Prepare all 9 HF splits into Kaldi data dirs, then merge by set.
+# Prepare all 9 HF splits into Kaldi data dirs, merge by set, and set up the
+# token list / BPE model reused from OWSM (stages 5-6 are skipped, so the recipe
+# must supply them).
 #
 # The dialect is carried by the prompt (text.prev = "nahuatl <region>"), so the
 # per-region data dirs already differ only by that prompt; merging is a plain
@@ -68,20 +70,23 @@ for setname in train valid test; do
         done
         sort -k1 -o "$out/$f" "$out/$f"
     done
-
-    # Rebuild spk2utt from merged utt2spk
-    python3 -c "
-import collections
-from pathlib import Path
-p = Path('$out')
-spk2utt = collections.defaultdict(list)
-for line in (p / 'utt2spk').read_text().splitlines():
-    utt, spk = line.split()
-    spk2utt[spk].append(utt)
-with open(p / 'spk2utt', 'w') as f:
-    for spk, utts in sorted(spk2utt.items()):
-        f.write(spk + ' ' + ' '.join(sorted(utts)) + '\n')
-"
+    utils/utt2spk_to_spk2utt.pl "$out/utt2spk" > "$out/spk2utt"
     echo "  nahuatl_${setname}: $(wc -l < "$out/wav.scp") utterances"
 done
+
+echo "=== Stage 3: OWSM token list + BPE model ==="
+# Fine-tuning reuses OWSM's vocabulary unchanged (no new tokens). Symlink OWSM's
+# BPE model and materialize tokens.txt from the OWSM config's embedded token_list
+# so s2t.sh (stages 5-6 skipped) finds them.
+OWSM_DIR=$(realpath "${MODEL_CACHE_DIR}/owsm_v4_medium_1B")
+OWSM_BPE="$OWSM_DIR/data/token_list/bpe_unigram50000/bpe.model"
+OWSM_CONFIG="$OWSM_DIR/exp/s2t_train_conv2d8_size1024_e18_d18_mel128_raw_bpe50000/config.yaml"
+TOKEN_LIST_DIR="$DATA_DIR/token_list/bpe_unigram50000"
+[ -f "$OWSM_BPE" ] || { echo "ERROR: OWSM BPE model not found at $OWSM_BPE" >&2; exit 1; }
+mkdir -p "$TOKEN_LIST_DIR"
+ln -sf "$(realpath "$OWSM_BPE")" "$TOKEN_LIST_DIR/bpe.model"
+if [ ! -s "$TOKEN_LIST_DIR/tokens.txt" ]; then
+    [ -f "$OWSM_CONFIG" ] || { echo "ERROR: OWSM config not found at $OWSM_CONFIG" >&2; exit 1; }
+    python3 "$RECIPE_DIR/local/owsm_token_list.py" "$OWSM_CONFIG" "$TOKEN_LIST_DIR/tokens.txt"
+fi
 echo "Done."

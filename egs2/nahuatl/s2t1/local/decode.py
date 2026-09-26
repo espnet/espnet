@@ -5,9 +5,9 @@ s2t.sh's decode path (stage 12) feeds only the speech to inference, so it cannot
 supply the dialect prompt this recipe conditions on. This driver decodes each
 test set with Speech2Text, passing each utterance its own ``text.prev``
 ("nahuatl <region>") as the decoder prompt while keeping a single ``<na>``
-language symbol, then scores character CER the same way local/score.sh does
-(strip every ``<...>`` token from both sides, tokenize to characters, run
-sclite). It prints a per-set CER and a combined CER over all test sets.
+language symbol, then scores character CER symmetrically (strip every ``<...>``
+token from both hypothesis and reference, tokenize to characters, run sclite).
+It prints a per-set CER and a combined CER over all test sets.
 
 Usage:
     python local/decode.py --exp_dir exp/s2t_train_owsm_v4_nahuatl_raw_bpe50000 \
@@ -52,9 +52,9 @@ def read_kv(path: Path) -> dict:
     return d
 
 
-def char_tokenize(lines, bpemodel=None):
-    """Char-tokenize a list of 'text' lines via espnet2.bin.tokenize_text,
-    matching local/score.sh so the CER is computed identically."""
+def char_tokenize(lines):
+    """Char-tokenize a list of 'text' lines via espnet2.bin.tokenize_text, the
+    same tokenizer ESPnet's stage-13 scoring uses, so the CER is comparable."""
     proc = subprocess.run(
         [
             sys.executable,
@@ -125,7 +125,11 @@ def score_dir(score_dir: Path, hyp: dict, ref: dict, utt2spk: dict) -> str:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--exp_dir", required=True)
+    ap.add_argument(
+        "--exp_dir",
+        default=None,
+        help="trained model dir; default: the sole exp/s2t_train_owsm_v4_nahuatl_* dir",
+    )
     ap.add_argument("--model_file", default="valid.acc.ave.pth")
     ap.add_argument("--decode_config", default="conf/decode.yaml")
     ap.add_argument("--data_root", default="data")
@@ -139,7 +143,18 @@ def main() -> None:
     from espnet2.bin.s2t_inference import Speech2Text
 
     cfg = yaml.safe_load(open(args.decode_config)) or {}
-    exp = Path(args.exp_dir)
+    if args.exp_dir:
+        exp = Path(args.exp_dir)
+    else:
+        # Require exactly one matching exp dir so an unrelated run is never scored.
+        cands = sorted(Path("exp").glob("s2t_train_owsm_v4_nahuatl_raw_bpe50000*"))
+        cands = [c for c in cands if c.is_dir()]
+        if len(cands) != 1:
+            raise SystemExit(
+                "expected exactly one exp/s2t_train_owsm_v4_nahuatl_raw_bpe50000* "
+                f"dir, found {len(cands)}: {[str(c) for c in cands] or '<none>'}"
+            )
+        exp = cands[0]
     out_root = Path(args.out_dir) if args.out_dir else exp / "decode_prompt"
 
     s2t = Speech2Text(
