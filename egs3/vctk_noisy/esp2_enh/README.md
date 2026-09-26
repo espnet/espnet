@@ -50,12 +50,13 @@ python run.py --stages measure \
 
 ## Results
 
-The numbers below are **reference scores from the ESPnet2 recipe**
-`egs2/vctk_noisy/enh1` (Conv-TasNet), not yet re-measured with this ESPnet3
-recipe. After you train and run `measure` here, replace the table with the
-scores from `metrics.json`.
+No model has been trained with this ESPnet3 recipe yet, so there are no
+enhanced scores here. After you train and run `measure`, add the scores from
+`metrics.json`.
 
-| Split | SI-SNR (dB) | PESQ  | STOI  |
-|-------|-------------|-------|-------|
-| test  | 18.73       | 2.551 | 0.937 |
-| valid | 16.15       | 2.270 | 0.865 |
+For reference, the unprocessed noisy input on the test set (824 utterances,
+16 kHz), scored with this recipe's metrics:
+
+| Input         | SI-SNR (dB) | PESQ  | STOI  |
+|---------------|-------------|-------|-------|
+| noisy (test)  | 8.45        | 1.968 | 0.921 |

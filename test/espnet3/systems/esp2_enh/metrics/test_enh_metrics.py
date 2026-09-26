@@ -13,6 +13,8 @@ from espnet3.systems.esp2_enh.metrics.sisnr import load_audio, si_snr
 # A zero-mean reference and a zero-mean noise orthogonal to it, with equal
 # energy per sample. Adding the noise at amplitude `a` gives an SI-SNR of
 # exactly -20 * log10(a) dB, which is where the expected values below come from.
+# SISNRLoss works in float32 like espnet2's scorer, which is good to about 0.005 dB.
+SISNR_TOL = 1e-2
 REF = np.tile([0.5, -0.5, 0.5, -0.5], 4000).astype(np.float32)
 NOISE = np.tile([0.5, 0.5, -0.5, -0.5], 4000).astype(np.float32)
 
@@ -41,19 +43,21 @@ def _write_pairs(tmp_path: Path, pairs, fs: int = 16000) -> dict[str, Path]:
 
 
 def test_si_snr_matches_worked_examples():
-    assert si_snr(REF, REF + NOISE) == pytest.approx(0.0, abs=1e-4)
-    assert si_snr(REF, REF + 0.1 * NOISE) == pytest.approx(20.0, abs=1e-4)
+    assert si_snr(REF, REF + NOISE) == pytest.approx(0.0, abs=SISNR_TOL)
+    assert si_snr(REF, REF + 0.1 * NOISE) == pytest.approx(20.0, abs=SISNR_TOL)
     # Scale invariant: rescaling the estimate does not change the score.
-    assert si_snr(REF, 3.0 * (REF + 0.1 * NOISE)) == pytest.approx(20.0, abs=1e-4)
+    assert si_snr(REF, 3.0 * (REF + 0.1 * NOISE)) == pytest.approx(20.0, abs=SISNR_TOL)
     # The longer signal is cut to the shorter one before scoring.
     padded = np.concatenate([REF + 0.1 * NOISE, np.ones(100, dtype=np.float32)])
-    assert si_snr(REF, padded) == pytest.approx(20.0, abs=1e-4)
+    assert si_snr(REF, padded) == pytest.approx(20.0, abs=SISNR_TOL)
 
 
 def test_sisnr_metric_averages_over_utterances(tmp_path):
     data = _write_pairs(tmp_path, [(REF, REF + NOISE), (REF, REF + 0.1 * NOISE)])
 
-    assert SISNR()(data, "test", tmp_path) == {"SI-SNR": pytest.approx(10.0, abs=1e-3)}
+    assert SISNR()(data, "test", tmp_path) == {
+        "SI-SNR": pytest.approx(10.0, abs=SISNR_TOL)
+    }
 
 
 def test_sisnr_metric_uses_configured_keys(tmp_path):
@@ -62,7 +66,7 @@ def test_sisnr_metric_uses_configured_keys(tmp_path):
 
     result = SISNR(ref_key="clean", hyp_key="denoised")(data, "test", tmp_path)
 
-    assert result == {"SI-SNR": pytest.approx(20.0, abs=1e-3)}
+    assert result == {"SI-SNR": pytest.approx(20.0, abs=SISNR_TOL)}
 
 
 def test_load_audio_takes_first_channel_and_resamples(tmp_path):

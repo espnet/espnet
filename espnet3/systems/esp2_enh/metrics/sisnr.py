@@ -6,7 +6,9 @@ from typing import Dict
 import librosa
 import numpy as np
 import soundfile as sf
+import torch
 
+from espnet2.enh.loss.criterions.time_domain import SISNRLoss
 from espnet3.components.metrics.base_metric import BaseMetric
 
 
@@ -36,17 +38,15 @@ def load_audio(path: str | Path, sample_rate: int | None = None) -> np.ndarray:
 
 
 def si_snr(reference: np.ndarray, estimate: np.ndarray) -> float:
-    """Compute SI-SNR between one reference and estimated waveform."""
+    """Compute SI-SNR between one reference and estimated waveform.
+
+    Uses the same ``SISNRLoss`` as ``espnet2/bin/enh_scoring.py`` so scores match
+    ESPnet2. Both signals are cut to the shorter length first.
+    """
     length = min(len(reference), len(estimate))
-    reference = reference[:length] - reference[:length].mean()
-    estimate = estimate[:length] - estimate[:length].mean()
-    target = (
-        np.dot(estimate, reference) / (np.dot(reference, reference) + 1e-8)
-    ) * reference
-    noise = estimate - target
-    return float(
-        10.0 * np.log10((np.dot(target, target) + 1e-8) / (np.dot(noise, noise) + 1e-8))
-    )
+    reference = torch.from_numpy(np.ascontiguousarray(reference[:length]))
+    estimate = torch.from_numpy(np.ascontiguousarray(estimate[:length]))
+    return -float(SISNRLoss()(reference[None], estimate[None]))
 
 
 class SISNR(BaseMetric):
