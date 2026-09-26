@@ -1,0 +1,126 @@
+##########################################################
+#                    TRAINING SETTING                    #
+##########################################################
+# Quick usage:
+#   python run.py --stages create_dataset --training_config conf/training.yaml
+#   python run.py --stages train          --training_config conf/training.yaml
+#
+# This recipe exists to run every classification stage end to end in CI on a
+# handful of utterances. Nothing here is tuned; see `egs3/meld/esp2_cls` for a
+# recipe meant to produce results.
+#
+##########################################################
+#                  SYSTEM AND PATH SETTING               #
+##########################################################
+task: espnet3.systems.esp2_cls.task.CLSTask
+
+##########################################################
+#              LONG/SHORT FILTERING SETTING              #
+##########################################################
+# The bounds are the MELD recipe's and drop nothing at this size: the
+# utterances run 0.7 s to 2.9 s. The stage is listed so CI covers it.
+# The test split is left unfiltered, as in ESPnet2's `cls.sh`.
+remove_long_short:
+  min_wav_duration: 0.1
+  max_wav_duration: 30
+  splits:
+    - train
+    - valid
+  save_path: ${data_dir}/manifest_filtered
+  manifest_paths:
+    train: ${data_dir}/manifest/train.tsv
+    valid: ${data_dir}/manifest/valid.tsv
+
+##########################################################
+#                  LABEL INVENTORY SETTING               #
+##########################################################
+prepare_labels:
+  save_path: ${data_dir}
+  filename: token_list
+  manifest_path: ${data_dir}/manifest_filtered/train.tsv
+  add_symbol:
+    - "<unk>:-1"
+
+##########################################################
+#                    DATASET DEFINITION                  #
+##########################################################
+dataset:
+  train:
+    - data_src_args:
+        split: train
+  valid:
+    - data_src_args:
+        split: valid
+  preprocessor:
+    _target_: espnet2.train.preprocessor.CommonPreprocessor
+    fs: 16000
+    # Classification stores the class label in the `label` field.
+    text_name: label
+    token_type: word
+    token_list: ${data_dir}/token_list
+
+##########################################################
+#                      MODEL SETTING                     #
+##########################################################
+# Log-mel features and a two-block transformer: no upstream model is
+# downloaded, so CI does not depend on the network.
+model:
+  token_list: ${data_dir}/token_list
+
+  frontend: default
+  frontend_conf:
+    n_fft: 512
+    win_length: 400
+    hop_length: 160
+
+  normalize: utterance_mvn
+  normalize_conf: {}
+
+  encoder: transformer
+  encoder_conf:
+    output_size: 4
+    attention_heads: 2
+    linear_units: 4
+    num_blocks: 2
+    input_layer: linear
+
+  decoder: linear
+  model_conf:
+    classification_type: multi-class
+
+##########################################################
+#                  OPTIMIZATION SETTING                  #
+##########################################################
+optimizer:
+  lr: 0.005
+
+scheduler:
+  warmup_steps: 100
+
+best_model_criterion:
+  - - valid/acc
+    - 1
+    - max
+
+seed: 0
+init: xavier_uniform
+
+##########################################################
+#                   DATALOADER SETTING                   #
+##########################################################
+dataloader:
+  train:
+    iter_factory:
+      batches:
+        type: unsorted
+        batch_size: 2
+
+##########################################################
+#                     TRAINER SETTING                    #
+##########################################################
+trainer:
+  max_epochs: 1
+  limit_train_batches: 1
+  limit_val_batches: 1
+
+  strategy: auto
