@@ -34,8 +34,29 @@ def _instantiate_model(config: DictConfig) -> Any:
     return instantiate(model_config)
 
 
+def _freeze_parameters(model: torch.nn.Module, prefixes) -> None:
+    """Disable gradients for parameters matching ``freeze_param`` prefixes.
+
+    Mirrors ESPnet2's ``--freeze_param``: a prefix ``teacher`` freezes
+    ``teacher`` itself and every parameter under ``teacher.``. Frozen
+    parameters are skipped when the optimizer is built.
+    """
+    for prefix in prefixes or []:
+        matched = False
+        for name, param in model.named_parameters():
+            if name == prefix or name.startswith(prefix + "."):
+                param.requires_grad = False
+                matched = True
+        if not matched:
+            raise ValueError(
+                f"freeze_param entry {prefix!r} does not match any model parameter."
+            )
+        logger.info("Froze parameters under %r", prefix)
+
+
 def _build_trainer(config: DictConfig) -> ESPnet3LightningTrainer:
     model = _instantiate_model(config)
+    _freeze_parameters(model, config.get("freeze_param"))
     lit_model = ESPnetLightningModule(model, config)
     trainer = ESPnet3LightningTrainer(
         model=lit_model,
@@ -80,8 +101,12 @@ def collect_stats(config: DictConfig) -> None:
     )
 
 
-def train(config: DictConfig) -> None:
-    """Run the training loop."""
+def train(config: DictConfig) -> ESPnet3LightningTrainer:
+    """Run the training loop and return the trainer that ran it.
+
+    The returned trainer lets a caller inspect what this fit produced, for
+    example the checkpoints its ``ModelCheckpoint`` callbacks kept.
+    """
     _ensure_directories(config)
     start = time.perf_counter()
 
@@ -114,3 +139,4 @@ def train(config: DictConfig) -> None:
             else None
         ),
     )
+    return trainer

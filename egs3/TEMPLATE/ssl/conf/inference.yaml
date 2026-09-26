@@ -1,0 +1,91 @@
+##########################################################
+#                  TOKENIZATION SETTING                  #
+##########################################################
+# BEATs corpus tokenization: writes the discrete targets that encoder training
+# of the same iteration reads.
+#
+# Quick usage:
+#   python run.py --stages infer \
+#       --training_config conf/training.yaml --inference_config conf/inference.yaml
+#
+# Outputs, one directory per `dataset.test` entry:
+# - `${inference_dir}/<test_name>/target.scp`: `<idx> <id> <id> ...`
+# - `${inference_dir}/<test_name>/target_shape`: `<idx> <num_ids>`
+#
+# run.py copies `exp_tag`/`exp_dir` and `iteration`, `fbank_mean`, `fbank_std`,
+# `waveform_input`, and data paths from `--training_config`.
+
+##########################################################
+#                    PATHS AND INPUTS                    #
+##########################################################
+recipe_dir: .
+exp_tag:
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+data_dir: ${recipe_dir}/data
+dataset_dir: ${data_dir}
+# Must equal `training_config.target_dir`.
+inference_dir: ${exp_dir}/targets
+
+iteration: 0
+fbank_mean: 15.29130
+fbank_std: 5.90532
+waveform_input: true
+
+# Recipes list the splits used for training. The `name` of each entry must
+# match the directory that `training_config` reads targets from
+# (`${target_dir}/<name>/target.scp`), and the dataset arguments must select
+# the same items in the same order as the training entry.
+#
+# dataset:
+#   test:
+#     - name: train
+#       data_src_args:
+#         split: train
+#     - name: valid
+#       data_src_args:
+#         split: eval
+dataset:
+  _target_: espnet3.components.data.data_organizer.DataOrganizer
+  _recursive_: false
+  recipe_dir: ${recipe_dir}
+  test:
+  preprocessor:
+
+##########################################################
+#                  PARALLELIZATION SETTING               #
+##########################################################
+parallel:
+  env: local
+  n_workers: 1
+
+##########################################################
+#                    MODEL AND OUTPUT                    #
+##########################################################
+model:
+  _target_: espnet3.systems.ssl.tokenization_model.BeatsTokenizationModel
+  # null: random-projection tokenizer at iteration 0. At iteration N > 0,
+  # BeatsSystem fills this with `beats_tokenizer_iter<N>.pt` from the tokenizer
+  # training run. Set it explicitly to use an external tokenizer.
+  tokenizer_ckpt_path:
+  tokenizer_config:
+    # Seed of the random-projection tokenizer (egs2 `conf/as2m_inf.yaml`).
+    seed: 45
+  fbank_mean: ${fbank_mean}
+  fbank_std: ${fbank_std}
+  waveform_input: ${waveform_input}
+
+input_key: speech
+output_keys:
+  - target
+# Targets are keyed by dataset index; recipe datasets carry no `utt_id`.
+idx_key: idx
+batch_size: 64
+output_fn: espnet3.systems.ssl.tokenization_model.build_target_output
+
+##########################################################
+#               PROVIDER AND RUNNER SETTING              #
+##########################################################
+provider:
+  _target_: espnet3.systems.base.inference_provider.InferenceProvider
+runner:
+  _target_: espnet3.systems.base.inference_runner.InferenceRunner

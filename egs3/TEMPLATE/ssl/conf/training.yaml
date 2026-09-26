@@ -1,0 +1,234 @@
+##########################################################
+#                    TRAINING SETTING                    #
+##########################################################
+# BEATs encoder pre-training for one iteration (arXiv:2212.09058).
+#
+# Quick usage (iteration 0):
+#   python run.py --stages create_dataset infer collect_stats train \
+#       --training_config conf/training.yaml --inference_config conf/inference.yaml
+#
+# Main stages and what this config is used for:
+# - `create_dataset`: uses `create_dataset` and `dataset`
+# - `collect_stats`: uses `dataset`, `dataloader`, `model`, and `parallel`
+# - `train`: uses most fields in this file
+# - `train_tokenizer` / `infer`: run.py copies the iteration context
+#   (`iteration`, `teacher_ckpt_path`, `fbank_mean`, `fbank_std`,
+#   `waveform_input`, data paths) from this file into those configs.
+
+##########################################################
+#                  SYSTEM AND PATH SETTING               #
+##########################################################
+num_device: 1
+num_nodes: 1
+
+task: espnet2.tasks.beats.BeatsTask
+
+# BEATs iteration trained by this config.
+# - 0: targets come from a random-projection tokenizer.
+# - N > 0: targets come from the tokenizer distilled from the iteration N-1
+#   encoder. Set `teacher_ckpt_path` to that encoder checkpoint.
+iteration: 0
+# Portable encoder checkpoint used as the tokenizer teacher at iteration N > 0.
+# The `train` stage exports `${exp_dir}/beats_encoder_iter<N>.pt`.
+teacher_ckpt_path:
+
+recipe_dir: .
+data_dir: ${recipe_dir}/data
+# Experiment name shared by every iteration of one pre-training run.
+ssl_tag: base
+exp_tag: beats_iter${iteration}_${ssl_tag}
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+# Shape statistics are iteration-invariant, so all iterations share them.
+stats_dir: ${recipe_dir}/exp/stats_${ssl_tag}
+dataset_dir: ${data_dir}
+# Targets for this iteration, written by the `infer` stage.
+# Must equal `inference_config.inference_dir` (checked by BeatsSystem.infer).
+target_dir: ${exp_dir}/targets
+
+# Global fbank normalization statistics shared by the encoder, the tokenizer,
+# the tokenizer's teacher, and tokenization. Recipes override these with
+# corpus statistics. The defaults are the OpenBEATs corpus statistics.
+fbank_mean: 15.29130
+fbank_std: 5.90532
+# Input representation produced by the recipe dataset.
+# - true: 16 kHz mono waveforms of shape (num_samples,) in [-1, 1].
+# - false: 128-bin Kaldi fbank features of shape (num_frames, 128).
+waveform_input: true
+
+##########################################################
+#                 DATASET CREATION SETTING               #
+##########################################################
+create_dataset:
+  recipe_dir: ${recipe_dir}
+
+##########################################################
+#                    DATASET DEFINITION                  #
+##########################################################
+# Recipes fill `train` and `valid`. Each entry must produce `speech` and, via
+# its `target_path`, a `target` string with space-separated token ids:
+#
+# dataset:
+#   train:
+#     - data_src_args:
+#         split: train
+#         target_path: ${target_dir}/train/target.scp
+#   valid:
+#     - data_src_args:
+#         split: eval
+#         target_path: ${target_dir}/valid/target.scp
+dataset:
+  _target_: espnet3.components.data.data_organizer.DataOrganizer
+  _recursive_: false
+  recipe_dir: ${recipe_dir}
+  train:
+  valid:
+  test:
+  # Maps `target` token ids to integer ids through the token list
+  # (`<unk>` + codebook ids), exactly like espnet2 BeatsTask.
+  preprocessor:
+    _target_: espnet2.train.preprocessor.CommonPreprocessor
+    token_type: word
+    token_list: ${model.token_list}
+    text_name: target
+
+##########################################################
+#                      MODEL SETTING                     #
+##########################################################
+# Passed to `espnet2.tasks.beats.BeatsTask.build_model` (BEATs base, 12 layers,
+# 768-dim, 3-layer predictor).
+model:
+  # Written by collect_stats/train when missing: `<unk>` followed by
+  # 0 .. codebook_vocab_size-1.
+  token_list: ${data_dir}/token_list/tokens.txt
+
+  encoder: beats
+  encoder_conf:
+    fbank_mean: ${fbank_mean}
+    fbank_std: ${fbank_std}
+    is_pretraining: true
+    use_weighted_representation: false
+    beats_config:
+      layer_wise_gradient_decay_ratio: 1.0
+      encoder_layerdrop: 0.0
+      dropout: 0.1
+      codebook_vocab_size: 1024
+      decoder_layers: 3
+      deep_norm: true
+      use_flash_attn: false
+      relative_position_embedding: true
+      num_buckets: 320
+      max_distance: 800
+      gru_rel_pos: true
+
+  model: beats
+  model_conf:
+    ignore_id: -2
+    label_smoothing: 0.1
+    waveform_input: ${waveform_input}
+
+##########################################################
+#            OPTIMIZER & SCHEDULER SETTING               #
+##########################################################
+# Equivalent of egs2 `conf/ds_beats.json`: AdamW, linear warmup from 1e-5 to
+# 5e-4 over 32k steps, then linear decay back to 1e-5 at 400k steps (held afterwards).
+optimizer:
+  _target_: torch.optim.AdamW
+  lr: 5.0e-4
+  betas: [0.9, 0.98]
+  eps: 1.0e-12
+  weight_decay: 0.01
+
+scheduler:
+  _target_: espnet2.schedulers.piecewise_linear_warmup_lr.PiecewiseLinearWarmupLR
+  # The last point holds the final LR after 400K steps, like DeepSpeed's
+  # WarmupDecayLR. Without it, PiecewiseLinearWarmupLR switches to an
+  # inverse-sqrt decay from the base LR and the LR jumps ~50x.
+  warmup_steps_list: [0, 32000, 400000, 1000000000]
+  warmup_lr_list: [1.0e-5, 5.0e-4, 1.0e-5, 1.0e-5]
+
+scheduler_interval: step
+scheduler_monitor:
+
+##########################################################
+#                OTHER TRAINING SETTING                  #
+##########################################################
+# The averaged checkpoint of these models is exported as
+# `${exp_dir}/beats_encoder_iter<N>.pt`.
+best_model_criterion:
+  - - valid/loss
+    - 10
+    - min
+
+seed: 0
+
+##########################################################
+#                   PARALLELIZATION SETTING              #
+##########################################################
+parallel:
+  env: local
+  n_workers: 1
+
+##########################################################
+#                   DATALOADER SETTING                   #
+##########################################################
+dataloader:
+  collate_fn:
+    _target_: espnet2.train.collate_fn.CommonCollateFn
+    float_pad_value: 0.0
+    int_pad_value: -1
+  train:
+    iter_factory:
+      _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
+      shuffle: true
+      num_workers: 4
+      collate_fn: ${dataloader.collate_fn}
+      batches:
+        # `length` batches sort by `feats_shape` and count
+        # batch_size * (max feats length + max target length).
+        type: length
+        shape_files:
+          - ${stats_dir}/train/feats_shape
+          - ${target_dir}/train/target_shape
+        batch_size: 1
+        # Per device. ESPnet2 splits each batch across GPUs, so an egs2
+        # `batch_bins` on N GPUs corresponds to `batch_bins / N` here.
+        batch_bins: 210000
+  valid:
+    iter_factory:
+      _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
+      shuffle: false
+      num_workers: ${dataloader.train.iter_factory.num_workers}
+      collate_fn: ${dataloader.collate_fn}
+      batches:
+        type: length
+        shape_files:
+          - ${stats_dir}/valid/feats_shape
+          - ${target_dir}/valid/target_shape
+        batch_size: 1
+        batch_bins: ${dataloader.train.iter_factory.batches.batch_bins}
+
+##########################################################
+#                    TRAINER SETTING                     #
+##########################################################
+trainer:
+  accelerator: auto
+  devices: ${num_device}
+  num_nodes: ${num_nodes}
+  precision: bf16-mixed
+  accumulate_grad_batches: 1
+  check_val_every_n_epoch: 1
+  gradient_clip_val: 1.0
+  log_every_n_steps: 356
+  max_epochs: 56
+
+  logger:
+    - _target_: lightning.pytorch.loggers.TensorBoardLogger
+      save_dir: ${exp_dir}/tensorboard
+      name: tb_logger
+
+  strategy: auto
+
+##########################################################
+#                      FIT SETTING                       #
+##########################################################
+fit: {}

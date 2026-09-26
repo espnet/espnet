@@ -1,0 +1,10 @@
+##########################################################
+#                    TRAINING SETTING                    #
+##########################################################
+# Tiny BEATs iteration 1 for CI.
+defaults:
+  - training
+  - _self_
+
+iteration: 1
+teacher_ckpt_path: ${recipe_dir}/exp/beats_iter0_${ssl_tag}/beats_encoder_iter0.pt

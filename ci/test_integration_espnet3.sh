@@ -50,3 +50,22 @@ run_with_training_config \
     conf/inference_transducer.yaml
 
 cd "${cwd}" || exit
+
+cd ./egs3/mini_an4/ssl || exit
+echo "==== [ESPnet3] SSL (BEATs) ===="
+source path.sh
+# Iteration 0: random-projection targets -> encoder
+${python} run.py \
+    --stages create_dataset infer collect_stats train \
+    --training_config conf/training.yaml \
+    --inference_config conf/inference.yaml
+# Iteration 1: tokenizer distilled from the iteration-0 encoder -> encoder
+${python} run.py \
+    --stages train_tokenizer infer train \
+    --training_config conf/training_iter1.yaml \
+    --train_tokenizer_config conf/training_tokenizer.yaml \
+    --inference_config conf/inference.yaml
+test -f exp/beats_iter1_tiny/beats_encoder_iter1.pt
+rm -rf exp data downloads
+
+cd "${cwd}" || exit

@@ -1,0 +1,56 @@
+##########################################################
+#                    TRAINING SETTING                    #
+##########################################################
+# Tiny BEATs encoder for CI (iteration 0). Only overrides of
+# egs3/TEMPLATE/ssl/conf/training.yaml are listed.
+
+ssl_tag: tiny
+
+dataset:
+  train:
+    - data_src_args:
+        split: train
+        recipe_dir: ${recipe_dir}
+        target_path: ${target_dir}/train/target.scp
+  valid:
+    - data_src_args:
+        split: valid
+        recipe_dir: ${recipe_dir}
+        target_path: ${target_dir}/valid/target.scp
+
+model:
+  encoder_conf:
+    beats_config:
+      encoder_layers: 1
+      encoder_embed_dim: 32
+      encoder_ffn_embed_dim: 64
+      encoder_attention_heads: 2
+      embed_dim: 32
+      conv_pos: 16
+      conv_pos_groups: 2
+      decoder_embed_dim: 32
+      decoder_attention_heads: 2
+      decoder_layers: 1
+      codebook_vocab_size: 16
+      relative_position_embedding: false
+      gru_rel_pos: false
+
+best_model_criterion:
+  - - valid/loss
+    - 1
+    - min
+
+dataloader:
+  train:
+    iter_factory:
+      num_workers: 0
+      batches:
+        batch_bins: 4000
+
+trainer:
+  accelerator: cpu
+  precision: 32
+  max_epochs: 1
+  limit_train_batches: 2
+  limit_val_batches: 1
+  log_every_n_steps: 1
