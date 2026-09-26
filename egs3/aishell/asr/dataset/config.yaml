@@ -1,0 +1,13 @@
+builder:
+  dataset_path: download
+  source_env_var: AISHELL
+  required_splits:
+    - train
+    - dev
+    - test
+
+dataset:
+  supported_splits:
+    - train
+    - dev
+    - test
