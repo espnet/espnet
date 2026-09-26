@@ -51,7 +51,8 @@ doc/vuepress/src/.vuepress/.cache
 dist
 
 # recipe related
-egs*/*/*/data*
+egs*/*/*/data
+egs*/*/*/data_*
 egs*/*/*/manifest*
 egs*/*/*/db
 egs*/*/*/downloads
@@ -128,3 +129,6 @@ tools/condarc
 tools/lightning_constraints.txt
 tools/versa
 tools/ParallelWaveGAN
+# pixi environments
+.pixi/*
+!.pixi/config.toml

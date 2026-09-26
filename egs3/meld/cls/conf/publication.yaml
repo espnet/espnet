@@ -1,0 +1,39 @@
+##########################################################
+#                  PUBLICATION SETTING                   #
+##########################################################
+# Common usage:
+#   python run.py --stages pack_model \
+#       --training_config conf/training.yaml \
+#       --inference_config conf/inference.yaml \
+#       --metrics_config conf/metrics.yaml \
+#       --publication_config conf/publication.yaml
+#
+# Run `infer` and `measure` first: `pack_model` bundles the resulting
+# `metrics.json` and renders it into the model README.
+
+# `token_list` lives next to the converted audio, not under the recipe.
+data_dir: ${oc.env:MELD_OUTPUT,./data}
+
+pack_model:
+  # `epoch*.ckpt` is the ModelCheckpoint output that `AverageCheckpointsCallback`
+  # reads to produce `valid.acc.ave_1best.pth`. Only the `.pth` is referenced by
+  # `conf/inference.yaml`, so shipping both doubles the bundle for nothing.
+  exclude:
+    - inference
+    - inference_*
+    # `pack.out_dir` writes the demo bundle under `${exp_dir}`, which this
+    # stage copies wholesale; the model repo should not carry the demo app.
+    - demo
+    - last.ckpt
+    - "**/step*.ckpt"
+    - "**/epoch*.ckpt"
+    - "**/*.log"
+    - "**/tensorboard/**"
+    - "**/wandb/**"
+
+upload_model:
+  # Match the ESPnet2 model already published as `espnet/meld_cls1_wavlm_base_plus`.
+  hf_repo: espnet/meld_cls_wavlm_base_plus
+  # The first upload carried a `token_list` path that only existed locally, so
+  # the published bundle has to be replaced.
+  update: true
