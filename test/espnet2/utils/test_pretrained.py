@@ -44,9 +44,12 @@ def test_a_missing_model_zoo_is_named(monkeypatch, caplog):
     "tag", ["espnet/bagpiper", "espnet/bagpiper-sft", "espnet/bagpiper-tts-sft"]
 )
 def test_a_speechlm_release_says_which_loader_to_use(monkeypatch, tag):
-    """The Hub labels these `any-to-any` and `text-to-speech`, so a caller
-    who follows the label lands on the wrong class; the message has to be
-    the one that arrives."""
+    """Say which loader to use, before anything is fetched.
+
+    The Hub labels these `any-to-any` and `text-to-speech`, so a caller who
+    follows the label lands on the wrong class; the message is what has to
+    arrive instead.
+    """
 
     def fail(self, model_tag):  # pragma: no cover - the point is it is not called
         raise AssertionError("fetched before saying the loader is wrong")
