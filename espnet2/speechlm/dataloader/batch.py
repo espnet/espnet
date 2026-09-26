@@ -258,6 +258,17 @@ def batchfy(
     return batches
 
 
+def _current_accelerator_device() -> torch.device | None:
+    """Return the device of the current accelerator, or ``None`` on CPU only."""
+    if hasattr(torch, "accelerator"):  # torch >= 2.5
+        if torch.accelerator.is_available():
+            return torch.accelerator.current_accelerator()
+        return None
+    if torch.cuda.is_available():
+        return torch.device("cuda")
+    return None
+
+
 def synchronize_batches(batches: List[List[T]]) -> List[List[T]]:
     """Synchronize batches across all GPU ranks in distributed training.
 
@@ -274,16 +285,30 @@ def synchronize_batches(batches: List[List[T]]) -> List[List[T]]:
 
     Notes:
         - If torch.distributed is not initialized, returns unchanged
-        - If CUDA is not available, returns batches unchanged
+        - If torch.distributed is initialized but no accelerator is available,
+          raises RuntimeError (synchronization cannot be performed)
         - Duplicates are taken from the end of the batch list
     """
-    if not torch.cuda.is_available() or not dist.is_initialized():
+    if not dist.is_initialized():
         return batches
 
+    device = _current_accelerator_device()
+    if device is None:
+        # torch.distributed is initialized, but there is no accelerator to run the
+        # collective on. Returning early would silently let ranks continue with
+        # different numbers of batches, so fail loudly instead.
+        raise RuntimeError(
+            "synchronize_batches() requires an accelerator when torch.distributed "
+            "is initialized, but no accelerator device is available "
+            "(torch.accelerator reports none). Ranks would otherwise continue with "
+            "different numbers of batches without being synchronized. If CPU-only "
+            "distributed training is intended, run the collective on CPU explicitly."
+        )
+
     n_batches = len(batches)
-    n_batches_tensor = torch.tensor([n_batches], dtype=torch.long, device="cuda")
+    n_batches_tensor = torch.tensor([n_batches], dtype=torch.long, device=device)
     n_batches_list = [
-        torch.tensor([0], dtype=torch.long, device="cuda")
+        torch.tensor([0], dtype=torch.long, device=device)
         for _ in range(dist.get_world_size())
     ]
     dist.all_gather(n_batches_list, n_batches_tensor)
