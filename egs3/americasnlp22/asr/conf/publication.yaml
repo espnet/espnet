@@ -1,0 +1,7 @@
+pack_model:
+  include:
+    - ${recipe_dir}/src
+    - ${recipe_dir}/dataset
+    - ${data_dir}/**/unigram.model
+    - ${data_dir}/**/unigram.vocab
+    - ${data_dir}/**/tokens.txt
