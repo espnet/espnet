@@ -29,9 +29,12 @@ scheduler: warmuplr
 scheduler_conf:
     warmup_steps: 500
 
-# ── Patched checkpoint (3 new region-token rows added) ─────────────────────
+# ── Released OWSM checkpoint (no vocabulary surgery; prompt-conditioning) ───
+# Path is relative to the recipe dir and mirrors MODEL_CACHE_DIR in path.sh
+# (<repo_root>/../model_cache). Kept here rather than in run.sh's --s2t_args so
+# it stays out of the experiment tag and the exp dir name is deterministic.
 init_param:
-    - "../../../model_cache/owsm_v4_medium_1B_nahuatl/valid.loss.best.pth"
+    - "../../../../model_cache/owsm_v4_medium_1B/exp/s2t_train_conv2d8_size1024_e18_d18_mel128_raw_bpe50000/valid.total_count.ave_5best.pth"
 
 # ── CTC ────────────────────────────────────────────────────────────────────
 ctc_conf:

@@ -1,13 +1,19 @@
 #!/usr/bin/env python3
 """Convert one HF dataset split to a Kaldi-format data directory.
 
+The recipe conditions OWSM on the regional dialect through the *prompt*
+(``text_prev``) rather than through dedicated vocabulary tokens: ``text`` uses
+OWSM's existing ``<na>`` language slot, and the dialect is written to
+``text.prev`` as ``"nahuatl <region>"``. This needs no checkpoint surgery or
+BPE/token-list patching — fine-tuning starts from the released OWSM checkpoint.
+
 Usage:
     python local/data_prep.py \
         --hf_data_dir /path/to/hf_data \
         --split hidalgo-train \
         --output_dir data/nahuatl_hidalgo_train \
         --wav_dir data/wav/nahuatl_hidalgo_train \
-        --region_token "<nah_hid>" \
+        --lang_prompt "nahuatl hidalgo" \
         [--max_examples 10]
 """
 
@@ -35,7 +41,12 @@ def main() -> None:
     parser.add_argument("--split", required=True)
     parser.add_argument("--output_dir", required=True)
     parser.add_argument("--wav_dir", required=True)
-    parser.add_argument("--region_token", required=True)
+    parser.add_argument(
+        "--lang_prompt",
+        required=True,
+        help='Prompt written to text.prev, e.g. "nahuatl hidalgo". '
+        "The model conditions on the dialect through this prompt.",
+    )
     parser.add_argument(
         "--max_examples", type=int, default=None, help="Truncate dataset for testing"
     )
@@ -92,6 +103,8 @@ def main() -> None:
     with (
         open(os.path.join(args.output_dir, "wav.scp"), "w") as wav_f,
         open(os.path.join(args.output_dir, "text"), "w") as text_f,
+        open(os.path.join(args.output_dir, "text.prev"), "w") as prev_f,
+        open(os.path.join(args.output_dir, "text.ctc"), "w") as ctc_f,
         open(os.path.join(args.output_dir, "utt2spk"), "w") as u2s_f,
     ):
         for utt_id, spk_id, wav_path, text in rows:
@@ -103,7 +116,12 @@ def main() -> None:
                 f"{utt_id} ffmpeg -nostdin -loglevel quiet -i {wav_path} "
                 f"-ar 16000 -ac 1 -f wav - |\n"
             )
-            text_f.write(f"{utt_id} {args.region_token}<asr><notimestamps> {text}\n")
+            # text: OWSM's existing <na> language slot + ASR task, no timestamps.
+            text_f.write(f"{utt_id} <na><asr><notimestamps> {text}\n")
+            # text.prev: dialect prompt the decoder conditions on.
+            prev_f.write(f"{utt_id} {args.lang_prompt}\n")
+            # text.ctc: the plain transcript for the CTC branch.
+            ctc_f.write(f"{utt_id} {text}\n")
             u2s_f.write(f"{utt_id} {spk_id}\n")
             utt2spk[utt_id] = spk_id
 
