@@ -1,0 +1,63 @@
+# In-domain LibriTTS eval: synthesize each valid/test utterance in a different
+# speaker's voice (zero-shot cross-speaker cloning), with a short 1-4s whole
+# utterance as the voice prompt. Useful for sanity-checking a training run
+# mid-flight. For the paper-protocol eval, use conf/inference_f5.yaml instead,
+# which runs LibriSpeech-PC test-clean cross-sentence.
+recipe_dir: .
+
+exp_tag:
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+data_dir: ${recipe_dir}/data
+inference_dir: ${exp_dir}/${self_name:}
+
+dataset:
+  _target_: espnet3.components.data.data_organizer.DataOrganizer
+  recipe_dir: ${recipe_dir}
+  test:
+    - name: valid
+      data_src_args:
+        split: valid
+        manifest_path: ${data_dir}/manifests_filtered/valid.tsv
+        load_speech: false
+        inference: true
+        ref_mode: cross_speaker
+        ref_seed: 0
+    - name: test
+      data_src_args:
+        split: test
+        manifest_path: ${data_dir}/manifests_filtered/test.tsv
+        load_speech: false
+        inference: true
+        ref_mode: cross_speaker
+        ref_seed: 0
+
+parallel:
+  env: local
+  n_workers: 1
+
+model:
+  _target_: espnet2.tts.f5.inference.F5TTSInference
+  train_config: ${recipe_dir}/conf/training_f5_tts_small.yaml
+  ckpt_path: ${exp_dir}/last.ckpt
+  use_ema: true
+  vocoder_name: vocos
+  vocoder_path: null
+  target_sample_rate: 24000
+  nfe_step: 32
+  cfg_strength: 2.0
+  sway_sampling_coef: -1.0
+  speed: 1.0
+  seed: null
+
+input_key: [text, ref_speech, ref_text]
+batch_size: null
+output_fn: src.inference.build_output
+output_artifacts:
+  wav:
+    type: wav
+    sample_rate: 24000
+
+provider:
+  _target_: espnet3.systems.base.inference_provider.InferenceProvider
+runner:
+  _target_: espnet3.systems.base.inference_runner.InferenceRunner
