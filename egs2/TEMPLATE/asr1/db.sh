@@ -150,6 +150,7 @@ BABEL_402=
 BABEL_403=
 BABEL_404=
 PUEBLA_NAHUATL=downloads
+NAHUATL=  # local path to the Nahuatl HF dataset (built by egs2/nahuatl/s2t1; not auto-downloadable)
 TEDLIUM2=downloads
 TEDLIUM3=downloads
 VCTK=downloads
