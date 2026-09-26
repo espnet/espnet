@@ -65,7 +65,7 @@ $ python run.py --stages measure        --metrics_config conf/metrics.yaml
 ```
 
 See [egs3/TEMPLATE](https://github.com/espnet/espnet/tree/master/egs3/TEMPLATE) for the
-recipe layout, and [`egs3/mini_an4/asr`](egs3/mini_an4/asr) for the smallest working
+recipe layout, and [`egs3/mini_an4/esp2_asr`](egs3/mini_an4/esp2_asr) for the smallest working
 example. Packing and uploading a trained model is part of the same interface:
 
 ``` console
@@ -274,7 +274,7 @@ In ESPnet3 the recipe *is* a Python entry point, so the interpreter is used dire
 
 python="coverage run --append"
 
-cd egs3/mini_an4/asr
+cd egs3/mini_an4/esp2_asr
 ${python} run.py \
     --stages create_dataset train_tokenizer collect_stats train infer measure \
     --training_config conf/training.yaml \

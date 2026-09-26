@@ -216,13 +216,15 @@ Each runs top to bottom on a CPU and pins the release it was checked against. Th
 </details>
 
 **Publish your own.** Every ESPnet3 recipe can wrap its trained model in a
-[Gradio](https://www.gradio.app/) app and push it to Hugging Face Spaces — the UI, the Space `README.md` and `requirements.txt` are all generated from [`conf/demo.yaml`](egs3/TEMPLATE/asr/conf/demo.yaml).
+[Gradio](https://www.gradio.app/) app and push it to Hugging Face Spaces — the UI,
+the Space `README.md` and `requirements.txt` are all generated from
+[`conf/demo.yaml`](egs3/TEMPLATE/esp2_asr/conf/demo.yaml).
 
 <details>
 <summary>The three stages</summary>
 
 ```sh
-cd egs3/librispeech_100/asr
+cd egs3/librispeech_100/esp2_asr
 train=conf/tuning/training_e_branchformer.yaml   # the config the model was trained with
 python run.py --stages pack_model  --training_config $train --publication_config conf/publication.yaml  # -> exp/.../model_pack
 python run.py --stages pack_demo   --training_config $train --demo_config conf/demo.yaml                # -> demo/
