@@ -25,11 +25,7 @@ echo "::endgroup::"
 
 # Ruff linting
 echo "::group::=== Run Ruff linting ==="
-# Install Ruff
-pip install ruff
-# Excludes are defined in pyproject.toml; one test fails because it ignores this,
-# so we explicitly exclude here.
-ruff check --fix --extend-exclude "${exclude}"
+ruff check
 echo "::endgroup::"
 
 # test/espnet2/layers/test_create_adapter*.py build an S3prlFrontend at import

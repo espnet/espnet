@@ -331,6 +331,7 @@ test = [
   "playwright",
   # test_mcp_server.py imports mcp outright; macOS CI installs only .[test].
   "mcp>=2.0",
+  "ruff>=0.16.8",
 ]
 
 doc = [
