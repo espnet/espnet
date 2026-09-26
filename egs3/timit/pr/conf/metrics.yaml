@@ -1,0 +1,3 @@
+# PER and PFER are inherited from egs3/TEMPLATE/pr/conf/metrics.yaml; this
+# recipe only needs its own experiment identity for standalone `measure`.
+exp_tag: phoneticxeus
