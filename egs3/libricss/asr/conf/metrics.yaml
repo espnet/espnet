@@ -1,0 +1,28 @@
+##########################################################
+#           LIBRICSS METRIC SETTINGS (SA-WER)            #
+##########################################################
+# Speaker-attributed WER for the diarized flow, ported from
+# egs/libri_css/asr1/local/{multispeaker_score.sh,get_perspeaker_output.py,
+# best_wer_matching.py}. Per recording, hypothesis streams (grouped by the
+# diarizer's speaker labels) are matched to oracle reference speaker streams
+# with the Hungarian algorithm; reported per overlap condition and overall.
+#
+#   python run.py --stages measure --metrics_config conf/metrics.yaml
+#
+# `inputs` selects the sidecar SCP files written by the infer stage:
+#   hyp.scp   transcripts
+#   spk.scp   diarized speaker label per segment
+#   reco.scp  recording (meeting) id per segment
+#   start.scp segment start time in seconds (for chronological ordering)
+
+data_dir: ${recipe_dir}/data
+
+metrics:
+  - metric:
+      _target_: src.metrics.sawer.SAWER
+      data_dir: ${data_dir}
+      # True (default): unmatched reference speakers count as deletions and
+      # unmatched hypothesis speakers as insertions (CHiME-style). The ESPnet1
+      # scoring dropped unmatched speakers instead; set to false to mimic it.
+      pad_missing_speakers: true
+    inputs: [hyp, spk, reco, start]

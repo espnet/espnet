@@ -1,0 +1,27 @@
+##########################################################
+#       CPU SMOKE-RUN CONFIG (DIARIZED FLOW, OPTIONAL)   #
+##########################################################
+# Decodes a handful of short turns from the real diarized dev manifests,
+# trimmed into ${exp_dir}/diarized_smoke/dev/ by
+# src/make_smoke_manifests.py. Validates the full diarized flow
+# (VAD -> x-vector -> NME-SC -> ASR -> SA-WER) on CPU without decoding all
+# turns. Not used by the canonical flow; see the "CPU smoke run" section of
+# readme.md. Its SA-WER is meaningless by construction (a few turns against
+# full reference streams).
+
+dataset:
+  test:
+    - name: dev
+      data_src_args:
+        split: dev
+        manifest_dir: ${exp_dir}/diarized_smoke
+
+model:
+  _target_: espnet2.bin.asr_inference.Speech2Text.from_pretrained
+  model_tag: Shinji Watanabe/librispeech_asr_train_asr_transformer_e18_raw_bpe_sp_valid.acc.best
+  beam_size: 20
+  ctc_weight: 0.3
+
+input_key: speech
+batch_size: 2
+output_fn: src.inference.build_output
