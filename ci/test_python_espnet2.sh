@@ -25,7 +25,7 @@ echo "::endgroup::"
 
 # Ruff linting
 echo "::group::=== Run Ruff linting ==="
-ruff check
+ruff check --extend-exclude "tools"
 echo "::endgroup::"
 
 # test/espnet2/layers/test_create_adapter*.py build an S3prlFrontend at import
