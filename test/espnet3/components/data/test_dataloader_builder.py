@@ -461,6 +461,65 @@ dataloader:
     assert "audio_lengths" in batch[1]
 
 
+@pytest.mark.parametrize("batch_type", ["catbel", "catpow", "catpow_balance_dataset"])
+@pytest.mark.parametrize(
+    "epoch,sampler_epoch,expected_epoch",
+    [(0, None, 1), (3, None, 4), (0, 0, 0), (3, 17, 17)],
+)
+def test_iter_factory_dispatches_category_sampler(
+    monkeypatch, batch_type, epoch, sampler_epoch, expected_epoch
+):
+    import espnet3.components.data.dataloader as dl
+
+    captured = {}
+
+    def _fake_build_category_batch_sampler(**kwargs):
+        captured.update(kwargs)
+        return [["0", "1"], ["2", "3"]], kwargs
+
+    monkeypatch.setattr(
+        dl, "build_category_batch_sampler", _fake_build_category_batch_sampler
+    )
+
+    batch_config = {"type": batch_type, "num_batches": 1}
+    if sampler_epoch is not None:
+        batch_config["epoch"] = sampler_epoch
+    config = OmegaConf.create(
+        {
+            "dataloader": {
+                "train": {
+                    "iter_factory": {
+                        "_target_": (
+                            "test.espnet3.components.data."
+                            "test_dataloader_builder.DummyIterFactory"
+                        ),
+                        "batches": batch_config,
+                    }
+                }
+            }
+        }
+    )
+    organizer = build_organizer(DUMMY_DATASET_TARGET)
+    builder = DataLoaderBuilder(
+        dataset=organizer.train,
+        config=config,
+        collate_fn=None,
+        num_device=1,
+        epoch=epoch,
+    )
+
+    assert list(builder.build("train")) == [["0", "1"]]
+    assert captured == {
+        "type": batch_type,
+        "num_batches": 1,
+        "epoch": expected_epoch,
+    }
+    assert builder.epoch == epoch
+    assert OmegaConf.to_container(config.dataloader.train.iter_factory.batches) == (
+        batch_config
+    )
+
+
 @pytest.mark.parametrize("flag", [True, False])
 def test_multiple_iterator_is_rejected(flag):
     organizer = build_organizer(DUMMY_DATASET_TARGET)

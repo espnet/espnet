@@ -1,0 +1,24 @@
+# LID inference embeddings settings.
+dataset:
+  test:
+    - name: dev
+      data_src_args:
+        split: dev
+        data_dir: ${data_dir}/voxlingua107
+        sample_rate: 16000
+model:
+  _target_: espnet3.systems.esp2_lid.inference.Speech2Language
+  lid_train_config: ${exp_dir}/config.yaml
+  lid_model_file: ${exp_dir}/valid.accuracy.best.pth
+  lang2utt: ${stats_dir}/train/lang2utt
+  dtype: float32
+  extract_embd: true
+input_key: speech
+output_keys:
+  - hyp
+  - ref
+  - embedding
+idx_key: utt_id
+batch_size: 4
+output_fn: src.inference.build_output
+inference_dir: ${exp_dir}/inference_embeddings

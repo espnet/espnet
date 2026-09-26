@@ -424,3 +424,53 @@ def test_metric_to_float_rejects_unsupported_type():
         AssertionError, match="does not support metric values of type dict"
     ):
         _metric_to_float({"loss": 1.0})
+
+
+@pytest.mark.parametrize("max_epochs", [1, 2])
+def test_average_includes_final_checkpoint_after_fit(tmp_path, max_epochs):
+    """Lightning runs ModelCheckpoint after ordinary validation callbacks."""
+    import lightning as L
+    from torch.utils.data import DataLoader, TensorDataset
+
+    class TinyModel(L.LightningModule):
+        def __init__(self):
+            super().__init__()
+            self.weight = torch.nn.Parameter(torch.tensor(1.0))
+
+        def training_step(self, batch, batch_idx):
+            return self.weight.square()
+
+        def validation_step(self, batch, batch_idx):
+            self.log("valid/loss", self.weight.square())
+
+        def configure_optimizers(self):
+            return torch.optim.SGD(self.parameters(), lr=0.1)
+
+    checkpoint = ModelCheckpoint(
+        dirpath=tmp_path,
+        monitor="valid/loss",
+        save_top_k=2,
+        save_on_train_epoch_end=False,
+    )
+    average = AverageCheckpointsCallback(str(tmp_path), [checkpoint])
+    trainer = L.Trainer(
+        accelerator="cpu",
+        devices=1,
+        max_epochs=max_epochs,
+        logger=False,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        num_sanity_val_steps=0,
+        callbacks=[checkpoint, average],
+    )
+    data = DataLoader(TensorDataset(torch.ones(1)), batch_size=1)
+    trainer.fit(TinyModel(), data, data)
+    saved = torch.load(
+        tmp_path / f"valid.loss.ave_{max_epochs}best.pth", weights_only=True
+    )
+    values = [
+        torch.load(p, weights_only=True)["state_dict"]["weight"]
+        for p in checkpoint.best_k_models
+    ]
+    assert len(values) == max_epochs
+    assert torch.allclose(saved["weight"], torch.stack(values).mean(0))
