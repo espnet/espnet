@@ -1,0 +1,84 @@
+##########################################################
+#                  PUBLICATION SETTING                   #
+##########################################################
+#   python run.py --stages pack_model \
+#       --training_config conf/tuning/train_st_conformer.yaml \
+#       --inference_config conf/inference.yaml \
+#       --metrics_config conf/metrics.yaml \
+#       --publication_config conf/publication.yaml
+#
+# --inference_config is passed so pack_model can find metrics.json under that
+# run's inference_dir and render the results table into the bundled README.
+#
+# THE ARTIFACTS THE PACKED CONFIG POINTS AT LIVE OUTSIDE exp_dir.
+# exp/<tag>/config.yaml uses recipe-relative paths:
+#     token_list:     ./data/bpe_tgt_4000/tokens.txt
+#     src_token_list: ./data/bpe_src_4000/tokens.txt
+#     bpemodel:       ./data/bpe_tgt_4000/bpe.model
+#     src_bpemodel:   ./data/bpe_src_4000/bpe.model
+#     stats_file:     ./exp/stats/train/feats_stats.npz
+# stats_dir is ${recipe_dir}/exp/stats, a SIBLING of exp_dir, so the bulk copy
+# of exp_dir does not contain it. All of them are listed under `include`.
+#
+# TWO TOKENIZERS, unlike every ASR recipe here. STTask carries a separate
+# source and target vocabulary (egs2 src_nbpe/tgt_nbpe), so a bundle missing
+# either side cannot be loaded.
+#
+# WHY THE EXCLUDE LIST IS LONG. TEMPLATE's defaults barely dent exp_dir:
+# _matches_ignore_pattern fnmatches the BASENAME, so "**/step*.ckpt" does not
+# match "periodic_step805.ckpt" and "last.ckpt" does not match "last-v1.ckpt".
+# Each full checkpoint here is 660 MB and each averaged .pth is 220 MB, so
+# without this the bundle is tens of GB instead of a few hundred MB.
+
+
+pack_model:
+  include:
+    - ${recipe_dir}/src
+    - ${recipe_dir}/dataset
+    # target-side vocabulary (ST decoder / ST-CTC)
+    - ${data_dir}/bpe_tgt_4000/tokens.txt
+    - ${data_dir}/bpe_tgt_4000/bpe.model
+    - ${data_dir}/bpe_tgt_4000/bpe.vocab
+    # source-side vocabulary (auxiliary ASR decoder / ASR-CTC)
+    - ${data_dir}/bpe_src_4000/tokens.txt
+    - ${data_dir}/bpe_src_4000/bpe.model
+    - ${data_dir}/bpe_src_4000/bpe.vocab
+    # global_mvn statistics referenced by model.normalize_conf.stats_file
+    - ${recipe_dir}/exp/stats/train/feats_stats.npz
+  exclude:
+    # inference outputs (TEMPLATE defaults)
+    - inference
+    - inference_*
+    - infer
+    - infer_*
+    # every raw Lightning checkpoint: periodic_step*, step*, last*, epoch*.
+    # Inference loads the averaged .pth, never these.
+    - "*.ckpt"
+    # keep ONLY valid.acc.ave_10best.pth. "?" is a single character, so this
+    # matches ave_1best..ave_9best but not ave_10best.
+    - "valid.acc.ave_?best.pth"
+    - "valid.acc.ave_10best.snap_*.pth"
+    - "valid.acc.ave_10best.epoch*.pth"
+    # training-time bookkeeping
+    - tensorboard
+    - wandb
+    - curves
+    - "*.log"
+
+##########################################################
+#                   UPLOAD SETTING                       #
+##########################################################
+#   python run.py --stages upload_model \
+#       --training_config conf/tuning/train_st_conformer.yaml \
+#       --inference_config conf/inference.yaml \
+#       --metrics_config conf/metrics.yaml \
+#       --publication_config conf/publication.yaml
+#
+# Uploads ${pack_model.out_dir} as-is, so pack_model must have run first.
+# Requires a token with write access to the namespace below (HF_TOKEN or a
+# cached `huggingface-cli login`).
+# Defaults worth knowing rather than restating: the repo is public, and
+# `update` is false, so re-running this stage against an existing repo fails
+# instead of replacing a published model. Set `update: true` to re-publish.
+upload_model:
+  hf_repo: espnet/must_c_st_train_st_conformer

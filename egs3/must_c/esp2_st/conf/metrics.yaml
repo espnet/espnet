@@ -1,0 +1,44 @@
+##########################################################
+#                 METRIC SCORING SETTING                 #
+##########################################################
+#   python run.py --stages measure \
+#       --training_config conf/tuning/train_st_conformer.yaml \
+#       --inference_config conf/inference.yaml \
+#       --metrics_config conf/metrics.yaml
+#
+# exp_tag / exp_dir / inference_dir are omitted on purpose: run.py copies
+# exp_tag and exp_dir from the training config and inference_dir from the
+# inference config, so `measure` scores exactly what `infer` wrote. Every
+# subdirectory of inference_dir is scored as one test set and results land in
+# ${inference_dir}/metrics.json.
+
+##########################################################
+#                    METRIC DEFINITION                   #
+##########################################################
+# ref_key/hyp_key default to ref/hyp, matching src/inference.py:build_output
+# -> ref.scp and hyp.scp.
+#
+# BOTH SCORING PASSES OF st.sh (egs2/TEMPLATE/st1/st.sh:1551-1620), which runs
+# `sacrebleu -m bleu chrf ter` case-sensitive (st.sh:1604) and then, after
+# scripts/utils/remove_punctuation.pl, `sacrebleu -lc -m bleu chrf ter`
+# (st.sh:1616). Papers quote the case-sensitive BLEU. tokenize 13a is
+# sacreBLEU's default and what egs2 uses.
+#
+# st.sh's word tokenization + Moses detokenizer.perl are omitted: they undo
+# each other, and exist because egs2 stores Moses-tokenized text. This recipe
+# keeps natural text on both sides, so detokenization changes 0 of 3,241
+# reference and 0 of 3,241 hypothesis lines (checked with sacremoses). With
+# that, all 12 numbers reproduce the shell pipeline exactly.
+#
+# No CER/WER: this is translation. The auxiliary ASR decoder's accuracy shows
+# up as valid/acc_asr during training and is not a deliverable of this recipe.
+# ONE entry, not two. espnet3 keys results by metric CLASS PATH
+# (espnet3/systems/base/metric.py:109 `results[get_class_path(metric)]`), so a
+# second BLEU entry would overwrite the first instead of adding a column. The
+# metric reports both passes itself, the second suffixed _lc.
+metrics:
+  - metric:
+      _target_: espnet3.systems.esp2_st.metrics.bleu.BLEU
+      clean_types:
+      tokenize: "13a"
+      also_lowercase: true

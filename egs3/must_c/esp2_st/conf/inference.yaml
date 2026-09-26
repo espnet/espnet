@@ -1,0 +1,67 @@
+##########################################################
+#                   INFERENCE SETTING                    #
+##########################################################
+#   python run.py --stages infer \
+#       --training_config conf/tuning/train_st_conformer.yaml \
+#       --inference_config conf/inference.yaml
+#
+##########################################################
+#                    PATHS AND INPUTS                    #
+##########################################################
+# This recipe omits `exp_tag`, `exp_dir`, and `inference_dir` on purpose.
+# `run.py` copies `training_config.exp_tag` and `training_config.exp_dir` here
+# before resolving `${exp_dir}`.
+
+# Not a TEMPLATE default -- the ST template defines no `cache`, so the Dataset
+# would fall back to scanning the raw corpus and fail without $MUST_C.
+cache:
+  enabled: true
+  backend: hf
+  cache_dir: ${data_dir}/hf/en_de
+
+##########################################################
+#                        DATASET                         #
+##########################################################
+# Each test entry is a dataset reference consumed by `DataOrganizer`.
+# - `name` becomes `${inference_dir}/<name>/`
+# - `data_src` is omitted, so ESPnet3 loads
+#   `${recipe_dir}/dataset/__init__.py`
+# - `data_src_args` is passed directly to `MustCSTDataset(...)`
+#
+# No `preprocessor:` -- text must stay a raw string so src/inference.py can
+# write it as the reference.
+dataset:
+  test:
+    - name: tst-COMMON
+      data_src: must_c/esp2_st
+      data_src_args: &infer_args
+        split: test
+        cache: ${cache}
+        # Dataset defaults tgt_lang to None, which falls back to
+        # dataset/config.yaml's `all` (14 pairs), not en-de.
+        tgt_lang: de
+        return_utt_id: true
+    - name: tst-HE
+      data_src: must_c/esp2_st
+      data_src_args:
+        <<: *infer_args
+        split: tst-HE
+
+##########################################################
+#                    MODEL AND OUTPUT                    #
+##########################################################
+# Speech2TextShortSafe, not Speech2Text: tst-COMMON keeps 54 utterances shorter
+# than conv2d subsampling allows.
+model:
+  _target_: src.inference.Speech2TextShortSafe
+  st_train_config: ${exp_dir}/config.yaml
+  # Weight average over the top-10 `valid/acc` checkpoints, written by
+  # `AverageCheckpointsCallback` (espnet3/components/callbacks/default_callbacks.py).
+  st_model_file: ${exp_dir}/valid.acc.ave_10best.pth
+  beam_size: 10
+
+# null, not TEMPLATE's 4: Speech2Text is @typechecked on a single `speech`
+# array, so each group of 4 raises TypeCheckError and InferenceRunner decodes
+# them one at a time anyway (verified in the epoch-80 run log).
+batch_size: null
+output_fn: src.inference.build_output

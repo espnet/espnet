@@ -181,6 +181,10 @@ s2st = [
 
 st = [
   "editdistance",
+  # 2.x for the scorer API espnet3/systems/st/metrics/bleu.py uses: in 1.x
+  # `sacrebleu.BLEU` is the score namedtuple, not a class, and takes neither
+  # `tokenize` nor `lowercase`.
+  "sacrebleu>=2.0.0",
 ]
 
 s2t = [
