@@ -1,0 +1,140 @@
+##########################################################
+#                    TRAINING SETTING                    #
+##########################################################
+# ECAPA-TDNN on top of the XEUS self-supervised encoder, trained on the
+# VoxCeleb 1 and 2 development sets.
+#
+# Quick usage:
+#   # Download the XEUS checkpoint once (https://huggingface.co/espnet/xeus)
+#   hf download espnet/xeus model/xeus_checkpoint.pth --local-dir download
+#   python run.py --stages create_dataset train \
+#       --training_config conf/tuning/training_xeus_ecapa.yaml
+#
+# Reference training environment:
+# - Number of GPUs: 4
+# - GPU type: NVIDIA A100 (80 GB)
+#
+# XEUS is fine-tuned jointly with the downstream head, which is what makes SSL
+# frontends pay off on speaker verification. The encoder is held frozen for the
+# first `freeze_encoder_steps` updates so the randomly initialized head does
+# not destroy the pretrained representation early on.
+
+##########################################################
+#                  SYSTEM AND PATH SETTING               #
+##########################################################
+num_device: 4
+
+# Local copy of the XEUS checkpoint. A `.pt`/`.pth` path is loaded directly;
+# anything else is treated as an ESPnet model zoo tag.
+xeus_checkpoint: ${recipe_dir}/download/xeus_checkpoint.pth
+
+##########################################################
+#                    DATASET DEFINITION                  #
+##########################################################
+dataset:
+  train:
+    # Both development sets, merged by `CombinedDataset`. Add a corpus by
+    # adding an entry here; there is no combined split to rebuild. The speaker
+    # label space still has to span all of them, which is what
+    # `preprocessor.spk2utt` below points at.
+    - data_src_args:
+        split: voxceleb1_dev
+    - data_src_args:
+        split: voxceleb2_dev
+  valid:
+    - data_src_args:
+        split: voxceleb1_test
+        trials: vox1_o
+        num_trials: 10000
+  preprocessor:
+    spk2utt: ${data_dir}/voxceleb12_dev/spk2utt
+    noise_apply_prob: 0.5
+    noise_info:
+      - [1.0, "${data_dir}/musan_speech.scp", [4, 7], [13, 20]]
+      - [1.0, "${data_dir}/musan_noise.scp", [1, 1], [0, 15]]
+      - [1.0, "${data_dir}/musan_music.scp", [1, 1], [5, 15]]
+    rir_apply_prob: 0.5
+    rir_scp: ${data_dir}/rirs.scp
+
+create_dataset:
+  recipe_dir: ${recipe_dir}
+
+##########################################################
+#                      MODEL SETTING                     #
+##########################################################
+model:
+  spk_num: 7205
+
+  frontend: espnet_ssl
+  frontend_conf:
+    frontend_conf:
+      path_or_url: ${xeus_checkpoint}
+    # Learn a softmax-weighted sum over the encoder layers. Speaker
+    # information is not concentrated in the last layer of an SSL encoder.
+    multilayer_feature: true
+    # SSL masking is a pre-training objective; keep the input intact here.
+    mask_feats: false
+    freeze_encoder_steps: 5000
+
+  normalize: utterance_mvn
+  normalize_conf:
+    norm_vars: false
+
+  encoder: ecapa_tdnn
+  encoder_conf:
+    model_scale: 8
+    ndim: 1024
+    output_size: 1536
+
+  pooling: chn_attn_stat
+
+  projector: rawnet3
+  projector_conf:
+    output_size: 192
+
+  loss: aamsoftmax_sc_topk
+  loss_conf:
+    margin: 0.3
+    scale: 30
+    K: 3
+    mp: 0.06
+    k_top: 5
+
+##########################################################
+#            OPTIMIZER & SCHEDULER SETTING               #
+##########################################################
+# A large SSL encoder needs a gentler learning rate than a from-scratch model.
+optimizer:
+  _target_: torch.optim.Adam
+  lr: 0.0001
+  weight_decay: 0.00005
+  amsgrad: false
+
+scheduler:
+  _target_: espnet2.schedulers.cosine_anneal_warmup_restart.CosineAnnealingWarmupRestarts
+  # One cycle is 10 epochs at an effective batch size of 256, that is
+  # 1,240,651 utterances / (batch_size 32 x accumulate_grad_batches 8).
+  first_cycle_steps: 48460
+  cycle_mult: 1.0
+  max_lr: 0.0001
+  min_lr: 0.000001
+  warmup_steps: 2000
+  gamma: 0.75
+
+##########################################################
+#                   DATALOADER SETTING                   #
+##########################################################
+# Back-propagating through XEUS is memory hungry, so the effective batch size
+# of 256 is reached through gradient accumulation instead.
+dataloader:
+  train:
+    batch_size: 32
+  valid:
+    batch_size: 4
+
+##########################################################
+#                    TRAINER SETTING                     #
+##########################################################
+trainer:
+  accumulate_grad_batches: 8
+  max_epochs: 30

@@ -1,0 +1,28 @@
+##########################################################
+#                  PUBLICATION SETTING                   #
+##########################################################
+# Quick usage:
+#   python run.py --stages pack_model upload_model \
+#       --training_config conf/tuning/training_rawnet3.yaml \
+#       --inference_config conf/inference.yaml \
+#       --metrics_config conf/metrics.yaml \
+#       --publication_config conf/publication.yaml
+#
+# Run `hf auth login` first; `upload_model` reuses that saved token.
+#
+# This file deliberately overrides nothing. Everything comes from
+# `egs3/TEMPLATE/spk/conf/publication.yaml`, and its defaults are already the
+# ones a release wants:
+#
+# - `pack_model` bundles `${exp_dir}` plus the recipe's `src` and `dataset`
+#   modules, excluding the per-epoch and `last` checkpoints, the logs, the
+#   tensorboard traces and the `inference*` output directories, so what ships
+#   is the averaged `*.ave_*best.pth` the inference config points at.
+# - `upload_model.hf_repo` resolves to `espnet/${set_corpus_and_system:}_${exp_tag}`,
+#   that is `espnet/voxceleb_spk_training_rawnet3` for the RawNet3 config.
+# - `private: false`, because a recipe result is meant to be published.
+# - `update: false`, so uploading over an existing repo has to be asked for
+#   rather than happening by accident.
+#
+# Publishing a debug model is the case that needs different settings, and it
+# has its own file: see `conf/publication_debug.yaml`.

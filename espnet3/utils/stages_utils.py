@@ -147,30 +147,34 @@ def run_stages(
 
             stage_log_dirs = system.stage_log_dirs
             log_dir = stage_log_dirs.get(stage) or stage_log_dirs.get("default")
-            filename = f"{stage}.log"
 
-            if stage == "train":
-                # stage_log_mode controls per-rank logging: "rank0" or "per_rank".
-                # rank0 avoids multi-process rotation races;
-                # per_rank writes per-rank logs.
-                stage_log_mode = _get_stage_log_mode(system)
-                rank = _get_process_rank()
-                if stage_log_mode not in {"rank0", "per_rank"}:
-                    log.error(
-                        "Unknown stage_log_mode=%r (expected 'rank0' or 'per_rank'); "
-                        "falling back to 'rank0'.",
-                        stage_log_mode,
-                    )
-                    stage_log_mode = "rank0"
-                if stage_log_mode == "rank0" and rank != 0:
-                    # Non-zero ranks skip file logging in rank0 mode.
-                    log_dir = None
-
-                filename = (
-                    f"{stage}.log"
-                    if stage_log_mode == "rank0"
-                    else f"{stage}_rank{rank}.log"
+            # stage_log_mode controls per-rank logging: "rank0" or "per_rank".
+            # rank0 avoids multi-process rotation races;
+            # per_rank writes per-rank logs.
+            #
+            # This applies to every stage, not just `train`: one `srun python
+            # run.py --stages create_dataset train` launches all ranks through
+            # the earlier stages too, and unguarded rotation there made every
+            # rank but the winner of the `os.replace` race die with
+            # FileNotFoundError.
+            stage_log_mode = _get_stage_log_mode(system)
+            rank = _get_process_rank()
+            if stage_log_mode not in {"rank0", "per_rank"}:
+                log.error(
+                    "Unknown stage_log_mode=%r (expected 'rank0' or 'per_rank'); "
+                    "falling back to 'rank0'.",
+                    stage_log_mode,
                 )
+                stage_log_mode = "rank0"
+            if stage_log_mode == "rank0" and rank != 0:
+                # Non-zero ranks skip file logging in rank0 mode.
+                log_dir = None
+
+            filename = (
+                f"{stage}.log"
+                if stage_log_mode == "rank0"
+                else f"{stage}_rank{rank}.log"
+            )
 
             set_stage_log_handler(
                 Path(log_dir) if log_dir else None,
