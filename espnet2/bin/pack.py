@@ -86,6 +86,11 @@ class CodecPackedContents(PackedContents):
     yaml_files = ["train_config"]
 
 
+class AudioMetricPackedContents(PackedContents):
+    files = ["model_file"]
+    yaml_files = ["train_config"]
+
+
 def add_arguments(parser: argparse.ArgumentParser, contents: Type[PackedContents]):
     parser.add_argument("--outpath", type=str, required=True)
     for key in contents.yaml_files:
@@ -115,6 +120,8 @@ def get_parser() -> argparse.ArgumentParser:
         ("lid", LIDPackedContents),
         ("codec", CodecPackedContents),
         ("cls", ClassificationPackedContents),
+        ("audio_metric", AudioMetricPackedContents),
+        ("universa", AudioMetricPackedContents),
     ]:
         parser_asr = subparsers.add_parser(
             name,
