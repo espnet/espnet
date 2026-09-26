@@ -1,9 +1,8 @@
-from typing import Tuple, Union
+from typing import Tuple
 
 import numpy as np
 import torch
 from torch.nn import functional as F
-from torch_complex.tensor import ComplexTensor
 
 from espnet2.enh.layers.complex_utils import is_complex
 from espnet2.legacy.nets.pytorch_backend.nets_utils import make_pad_mask
@@ -35,7 +34,7 @@ class MaskEstimator(torch.nn.Module):
         self.nonlinear = nonlinear
 
     def forward(
-        self, xs: Union[torch.Tensor, ComplexTensor], ilens: torch.LongTensor
+        self, xs: torch.Tensor, ilens: torch.LongTensor
     ) -> Tuple[Tuple[torch.Tensor, ...], torch.LongTensor]:
         """Mask estimator forward function.
 

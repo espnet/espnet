@@ -1,9 +1,9 @@
 import itertools
-from typing import Dict, List, Union
+from typing import Dict, List
 
 import torch
-from torch_complex.tensor import ComplexTensor
 
+from espnet2.enh.layers.complex_utils import as_native
 from espnet2.enh.layers.complex_utils import einsum as complex_einsum
 from espnet2.enh.layers.complex_utils import stack as complex_stack
 from espnet2.enh.loss.criterions.abs_loss import AbsEnhLoss
@@ -32,15 +32,13 @@ class MixITSolver(AbsLossWrapper):
         return "mixit"
 
     def _complex_einsum(self, equation, *operands):
-        for op in operands:
-            if not isinstance(op, ComplexTensor):
-                op = ComplexTensor(op, torch.zeros_like(op))
+        # complex_einsum promotes a real operand itself
         return complex_einsum(equation, *operands)
 
     def forward(
         self,
-        ref: Union[List[torch.Tensor], List[ComplexTensor]],
-        inf: Union[List[torch.Tensor], List[ComplexTensor]],
+        ref: List[torch.Tensor],
+        inf: List[torch.Tensor],
         others: Dict = {},
     ):
         """MixIT solver.
@@ -57,8 +55,9 @@ class MixITSolver(AbsLossWrapper):
         num_ref = num_inf // 2
         device = ref[0].device
 
-        is_complex = isinstance(ref[0], ComplexTensor)
-        assert is_complex == isinstance(inf[0], ComplexTensor)
+        ref, inf = [as_native(r) for r in ref], [as_native(x) for x in inf]
+        is_complex = torch.is_complex(ref[0])
+        assert is_complex == torch.is_complex(inf[0])
 
         if not is_complex:
             ref_tensor = torch.stack(ref[:num_ref], dim=1)  # (batch, num_ref, ...)

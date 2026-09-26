@@ -2,14 +2,14 @@
 # in https://arxiv.org/pdf/2203.17068.pdf
 
 from collections import OrderedDict
-from typing import List, Tuple, Union
+from typing import List, Tuple
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch_complex.tensor import ComplexTensor
 
 from espnet2.diar.layers.abs_mask import AbsMask
+from espnet2.enh.layers.complex_utils import as_native
 
 
 class MultiMask(AbsMask):
@@ -51,11 +51,11 @@ class MultiMask(AbsMask):
 
     def forward(
         self,
-        input: Union[torch.Tensor, ComplexTensor],
+        input: torch.Tensor,
         ilens: torch.Tensor,
         bottleneck_feat: torch.Tensor,
         num_spk: int,
-    ) -> Tuple[List[Union[torch.Tensor, ComplexTensor]], torch.Tensor, OrderedDict]:
+    ) -> Tuple[List[torch.Tensor], torch.Tensor, OrderedDict]:
         """Keep this API same with TasNet.
 
         Args:
@@ -67,7 +67,7 @@ class MultiMask(AbsMask):
             Inference: estimated by other module (e.g, EEND-EDA))
 
         Returns:
-            masked (List[Union(torch.Tensor, ComplexTensor)]): [(M, K, N), ...]
+            masked (List[torch.Tensor]): [(M, K, N), ...]
             ilens (torch.Tensor): (M,)
             others predicted data, e.g. masks: OrderedDict[
                 'mask_spk1': torch.Tensor(Batch, Frames, Freq),
@@ -77,6 +77,7 @@ class MultiMask(AbsMask):
             ]
 
         """
+        input = as_native(input)
         M, K, N = input.size()
         bottleneck_feat = bottleneck_feat.transpose(1, 2)  # [M, B, K]
         score = self.mask_conv1x1[num_spk - 1](

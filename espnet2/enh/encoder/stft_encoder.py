@@ -1,7 +1,9 @@
+import warnings
+
 import torch
-from torch_complex.tensor import ComplexTensor
 
 from espnet2.enh.encoder.abs_encoder import AbsEncoder
+from espnet2.enh.layers.complex_utils import complex_tensor
 from espnet2.layers.stft import Stft
 
 
@@ -35,7 +37,16 @@ class STFTEncoder(AbsEncoder):
         )
 
         self._output_dim = n_fft // 2 + 1 if onesided else n_fft
-        self.use_builtin_complex = use_builtin_complex
+        # Spectra are torch.complex tensors since torch_complex left the
+        # dependencies; the flag stays so that configs written with it load.
+        if not use_builtin_complex:
+            warnings.warn(
+                "use_builtin_complex=False is ignored: STFTEncoder returns "
+                "torch.complex tensors (torch_complex is no longer used).",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+        self.use_builtin_complex = True
         self.win_length = win_length if win_length else n_fft
         self.hop_length = hop_length
         self.window = window
@@ -84,7 +95,7 @@ class STFTEncoder(AbsEncoder):
                 If not None, reconfigure STFT window and hop lengths for a new
                 sampling rate while keeping their duration fixed.
         Returns:
-            spectrum (ComplexTensor): [Batch, T, (C,) F]
+            spectrum (complex tensor): [Batch, T, (C,) F]
             flens (torch.Tensor): [Batch]
         """
         if fs is not None:
@@ -95,10 +106,8 @@ class STFTEncoder(AbsEncoder):
             spectrum = spectrum.to(dtype=input.dtype)
         else:
             spectrum, flens = self.stft(input, ilens)
-        if self.use_builtin_complex:
-            spectrum = torch.complex(spectrum[..., 0], spectrum[..., 1])
-        else:
-            spectrum = ComplexTensor(spectrum[..., 0], spectrum[..., 1])
+        # complex_tensor widens bfloat16 parts, which torch.complex refuses
+        spectrum = complex_tensor(spectrum[..., 0], spectrum[..., 1])
 
         self._reset_config()
 
@@ -149,14 +158,16 @@ class STFTEncoder(AbsEncoder):
             input.dim() == 2
         ), "forward_streaming only support for single-channel input currently."
 
+        if input.dtype in (torch.float16, torch.bfloat16):
+            # the CPU FFT has no half-precision kernels; forward() widens too
+            input = input.float()
+
         windowed = self._apply_window_func(input)
 
         feature = (
             torch.fft.rfft(windowed) if self.stft.onesided else torch.fft.fft(windowed)
         )
         feature = feature.unsqueeze(1)
-        if not self.use_builtin_complex:
-            feature = ComplexTensor(feature.real, feature.imag)
 
         feature = self.spec_transform_func(feature)
 

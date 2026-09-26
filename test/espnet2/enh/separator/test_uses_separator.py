@@ -1,6 +1,5 @@
 import pytest
 import torch
-from torch_complex import ComplexTensor
 
 from espnet2.enh.separator.uses_separator import USESSeparator
 
@@ -35,10 +34,14 @@ def test_uses_separator_forward_backward(
     if use_builtin_complex:
         x = torch.complex(real, imag)
     else:
-        x = ComplexTensor(real, imag)
+        # the separator converts a legacy ComplexTensor at its boundary
+        torch_complex = pytest.importorskip("torch_complex")
+        x = torch_complex.tensor.ComplexTensor(real, imag)
     x_lens = torch.tensor([18, 16], dtype=torch.long)
 
     output, flens, others = model(x, ilens=x_lens)
+    # a legacy ComplexTensor input must still come back native
+    assert torch.is_complex(output[0])
     assert len(output) == num_spk
     sum(output).abs().mean().backward()
 
@@ -72,7 +75,7 @@ def test_uses_separator_mem_tokens(n_mics, num_spk, memory_types, mode, ch_mode)
 
     real = torch.rand(2, 18, n_mics, 33)
     imag = torch.rand(2, 18, n_mics, 33)
-    x = ComplexTensor(real, imag)
+    x = torch.complex(real, imag)
     x_lens = torch.tensor([18, 16], dtype=torch.long)
 
     output, flens, others = model(x, ilens=x_lens, additional={"mode": mode})

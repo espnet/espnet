@@ -1,7 +1,6 @@
 import pytest
 import torch
 import torch.nn.functional as F
-from torch_complex.tensor import ComplexTensor
 
 from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainL1
 from espnet2.enh.loss.criterions.time_domain import TimeDomainL1
@@ -71,7 +70,7 @@ def test_MixITSolver_complex_forward(inf_num, torch_complex):
         ]
     else:
         inf = [
-            ComplexTensor(
+            torch.complex(
                 torch.rand(batch, 100, 10, 10),
                 torch.rand(batch, 100, 10, 10),
             )
@@ -79,7 +78,7 @@ def test_MixITSolver_complex_forward(inf_num, torch_complex):
         ]
         # 2 speaker's reference
         ref = [
-            ComplexTensor(
+            torch.complex(
                 torch.zeros(batch, 100, 10, 10),
                 torch.zeros(batch, 100, 10, 10),
             )
