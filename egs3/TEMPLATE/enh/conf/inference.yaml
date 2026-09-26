@@ -1,0 +1,41 @@
+##########################################################
+#                   INFERENCE SETTING                    #
+##########################################################
+recipe_dir: .
+exp_tag:
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+data_dir: ${recipe_dir}/data
+inference_dir: ${exp_dir}/${self_name:}
+
+dataset:
+  _target_: espnet3.components.data.data_organizer.DataOrganizer
+  _recursive_: false
+  recipe_dir: ${recipe_dir}
+  test:
+  preprocessor:
+
+parallel:
+  env: local
+  n_workers: 1
+
+model:
+
+input_key: speech_mix
+output_fn:
+output_keys:
+  - reference
+  - enhanced
+
+output_artifacts:
+  reference:
+    type: wav
+    sample_rate: 16000
+  enhanced:
+    type: wav
+    sample_rate: 16000
+
+provider:
+  _target_: espnet3.systems.base.inference_provider.InferenceProvider
+runner:
+  _target_: espnet3.systems.base.inference_runner.InferenceRunner
+  batch_size: 1
