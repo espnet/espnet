@@ -46,13 +46,13 @@ dataset:
 #                    MODEL AND OUTPUT                    #
 ##########################################################
 model:
-  _target_: espnet2.bin.asr_inference.Speech2Text
+  _target_: espnet3.systems.asr.inference.Inference
   asr_train_config: ${exp_dir}/config.yaml
   asr_model_file: ${exp_dir}/epoch0_step1_valid.loss.ckpt
   beam_size: 1
   ctc_weight: 0.3
 
-input_key: speech
+copy:
+  text: ref
 # utterances per beam search; `null` decodes one at a time (see TEMPLATE)
 batch_size: 4
-output_fn: src.inference.build_output

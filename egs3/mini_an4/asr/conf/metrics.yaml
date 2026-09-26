@@ -28,8 +28,10 @@
 metrics:
   - metric:
       _target_: espnet3.systems.asr.metrics.wer.WER
+      hyp_key: text
       clean_types:
 
   - metric:
       _target_: espnet3.systems.asr.metrics.cer.CER
+      hyp_key: text
       clean_types:

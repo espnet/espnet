@@ -51,6 +51,18 @@ Whatever `espnet2.bin` class does the work. It takes `model_tag` through
 `from_pretrained`, and `test/espnet2/bin/test_from_pretrained_routing.py`
 holds every such class to one way of fetching a published model.
 
+An ESPnet3 system states the same thing as a contract: its
+`espnet3/systems/<name>/inference.py` defines `Inference`, a subclass of
+`espnet3.api.inference.InferenceAPI` that declares the fields it takes and
+returns, and `espnet3.api.inference.load(tag)` finds it from the bundle's
+`meta.yaml`. The system does not name a verb: `transcribe` is the front
+end's word for "audio in, `text` out", and a model that answers a
+conversation declares one `messages` field rather than a list of the tasks
+a prompt might ask of it. The declaration is checked when the class is
+defined. Inference is a stream - chunks in, chunks out - and the one-shot
+call is the stream of one chunk: a system implements `run_stream` if it
+works online or `run` if it needs the whole input, and gets the other.
+
 ### 2. The command line — `espnet2/bin/cli.py`
 
 - a verb in `DEFAULT_MODELS`, pointing at the flagship checkpoint
