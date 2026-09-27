@@ -23,5 +23,10 @@ def test_text2tokens(char_tokenizer: CharTokenizer):
     ]
 
 
+def test_longer_symbol_wins_over_its_prefix():
+    tokenizer = CharTokenizer(non_linguistic_symbols=["<unk>", "<"])
+    assert tokenizer.text2tokens("<unk>a") == ["<unk>", "a"]
+
+
 def test_token2text(char_tokenizer: CharTokenizer):
     assert char_tokenizer.tokens2text(["a", "b", "c"]) == "abc"
