@@ -11,6 +11,15 @@ from espnet2.bin.audio_metric_inference import UniversaInference, inference
 from espnet2.tasks.audio_metric import AudioMetricTask
 
 
+def test_legacy_cli():
+    from espnet2.bin import universa_inference
+
+    assert universa_inference.UniversaInference is UniversaInference
+    with pytest.raises(SystemExit) as exc:
+        universa_inference.main([])
+    assert exc.value.code == 2
+
+
 @pytest.mark.parametrize("multi_branch", [False, True, "ar"])
 def test_checkpoint_and_cli_inference(tmp_path, multi_branch):
     args = task_args(tmp_path)
