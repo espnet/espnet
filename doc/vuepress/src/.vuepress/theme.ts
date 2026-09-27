@@ -30,6 +30,7 @@ export default hopeTheme({
   editLink: false,
 
   // All features are enabled for demo, only preserve features you need here.
+  // Hope rc.109 moves plugins.mdEnhance here and renames codetabs to codeTabs.
   markdown: {
     align: true,
     attrs: true,
@@ -104,10 +105,12 @@ export default hopeTheme({
 
   plugins: {
 
+    // Hope rc.109 moves iconAssets to plugins.icon.assets.
     icon: {
       assets: "iconify",
     },
 
+    // Hope rc.109 replaces searchPro/autoSuggestions with slimsearch/suggestion.
     slimsearch: {
       indexContent: false,
       suggestion: false,
