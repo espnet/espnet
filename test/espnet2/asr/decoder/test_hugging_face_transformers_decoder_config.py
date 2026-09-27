@@ -12,6 +12,7 @@ from espnet2.asr.decoder.hugging_face_transformers_decoder import (
 @pytest.mark.parametrize("causal_lm", [False, True])
 @pytest.mark.parametrize("as_json", [False, True])
 def test_architecture_override_cannot_enable_custom_code(tmp_path, causal_lm, as_json):
+    """Reject custom model code even when dictionary or JSON overrides enable it."""
     # A local model requiring custom code exercises Transformers' real loader
     # without downloading or running code from a third-party repository.
     model_dir = tmp_path / "custom_model"
@@ -47,6 +48,7 @@ def test_architecture_override_cannot_enable_custom_code(tmp_path, causal_lm, as
 
 @pytest.fixture(params=[False, True], ids=["seq2seq", "causal"])
 def local_hf_model(tmp_path, request):
+    """Save a tiny built-in model and its tokenizer for offline loader tests."""
     from tokenizers import Tokenizer
     from tokenizers.models import WordLevel
     from transformers import (
@@ -88,6 +90,7 @@ def local_hf_model(tmp_path, request):
 def test_safe_architecture_overrides_load_local_model(
     local_hf_model, tmp_path, as_json
 ):
+    """Apply safe overrides without enabling code or changing the caller's dict."""
     model_path, causal_lm = local_hf_model
     overrides = {"use_cache": False, "trust_remote_code": True}
     config = overrides
@@ -111,6 +114,7 @@ def test_safe_architecture_overrides_load_local_model(
 
 
 def test_default_architecture_overrides_disable_custom_code(local_hf_model):
+    """Keep custom code disabled in the configuration reused for model reloads."""
     model_path, causal_lm = local_hf_model
     decoder = HuggingFaceTransformersDecoder(
         vocab_size=16,
@@ -122,11 +126,17 @@ def test_default_architecture_overrides_disable_custom_code(local_hf_model):
 
 
 @pytest.mark.parametrize("local_hf_model", [True], indirect=True, ids=["causal"])
-def test_custom_tokenizer_code_is_disabled(local_hf_model, monkeypatch):
+@pytest.mark.parametrize(
+    "tokenizer_class", ["CustomTokenizer", "PreTrainedTokenizerFast"]
+)
+def test_custom_tokenizer_code_is_disabled(
+    local_hf_model, monkeypatch, tokenizer_class
+):
+    """Allow safe tokenizer loading or trust rejection, never code or prompts."""
     model_path, _ = local_hf_model
     tokenizer_config_path = Path(model_path) / "tokenizer_config.json"
     tokenizer_config = json.loads(tokenizer_config_path.read_text())
-    tokenizer_config["tokenizer_class"] = "CustomTokenizer"
+    tokenizer_config["tokenizer_class"] = tokenizer_class
     tokenizer_config["auto_map"] = {
         "AutoTokenizer": ["custom_tokenizer.CustomTokenizer", None]
     }
@@ -136,13 +146,18 @@ def test_custom_tokenizer_code_is_disabled(local_hf_model, monkeypatch):
     )
 
     def unexpected_prompt(*args):
+        """Fail if Transformers asks for permission to execute custom code."""
         pytest.fail("Model loading must not prompt to execute custom code")
 
     monkeypatch.setattr("builtins.input", unexpected_prompt)
-    with pytest.raises(ValueError, match="trust_remote_code"):
+    # A built-in tokenizer may load safely despite the custom-code auto_map.
+    # Transformers may instead reject a tokenizer requiring custom code.
+    try:
         HuggingFaceTransformersDecoder(
             vocab_size=16,
             encoder_output_size=8,
             model_name_or_path=model_path,
             causal_lm=True,
         )
+    except ValueError as error:
+        assert "trust_remote_code" in str(error)
