@@ -45,11 +45,19 @@ def test_checkpoint_and_cli_inference(tmp_path, multi_branch):
     assert expected.issubset(result)
     if multi_branch == "ar":
         assert result["token_seq"][0][1::2] == [10, 4]
+        with pytest.raises(ValueError, match="ARECHO inference requires batch_size=1"):
+            predict(torch.randn(2, 256))
+    else:
+        config.write_text(yaml.safe_dump({**vars(args), "use_preprocessor": False}))
+        no_preprocess = UniversaInference(config, checkpoint)
+        with pytest.raises(ValueError, match="provide token IDs"):
+            no_preprocess(torch.randn(256), ref_text="reference")
+        config.write_text(yaml.safe_dump(vars(args)))
     wav = tmp_path / "audio.wav"
     soundfile.write(wav, np.random.randn(256).astype(np.float32), 16000)
     scp = tmp_path / "wav.scp"
     scp.write_text(f"a {wav}\n")
-    inference(
+    options = dict(
         output_dir=tmp_path / "output",
         batch_size=1,
         dtype="float32",
@@ -66,6 +74,10 @@ def test_checkpoint_and_cli_inference(tmp_path, multi_branch):
         allow_variable_data_keys=False,
         save_token_seq=True,
     )
+    if multi_branch == "ar":
+        with pytest.raises(ValueError, match="ARECHO inference requires batch_size=1"):
+            inference(**{**options, "batch_size": 2})
+    inference(**options)
     key, scores = (tmp_path / "output/metric.scp").read_text().split(maxsplit=1)
     assert key == "a"
     assert set(json.loads(scores)) == expected

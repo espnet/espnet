@@ -102,6 +102,11 @@ class UniversaInference:
             batch.update(ref_audio=ref_audio, ref_audio_lengths=ref_audio_lengths)
         if ref_text is not None:
             if isinstance(ref_text, str):
+                if self.preprocess_fn is None:
+                    raise ValueError(
+                        "String ref_text requires preprocessing; provide token IDs "
+                        "when use_preprocessor is false."
+                    )
                 ref_text = self.preprocess_fn("<dummy>", dict(ref_text=ref_text))[
                     "ref_text"
                 ]
@@ -120,6 +125,11 @@ class UniversaInference:
                     (value.shape[0],), value.shape[1], dtype=torch.long
                 )
         batch = to_device(batch, device=self.device, dtype=self.dtype)
+        if (
+            getattr(self.universa, "sequential_metrics", False)
+            and batch["audio"].shape[0] != 1
+        ):
+            raise ValueError("ARECHO inference requires batch_size=1.")
 
         # inference
         if self.always_fix_seed:
@@ -217,6 +227,12 @@ def inference(
         use_fixed_order=use_fixed_order,
         fixed_metric_name_order=fixed_metric_name_order,
     )
+
+    if (
+        getattr(universa_inference.universa, "sequential_metrics", False)
+        and batch_size != 1
+    ):
+        raise ValueError("ARECHO inference requires batch_size=1.")
 
     # 3. setup data loader
     loader = AudioMetricTask.build_streaming_iterator(
