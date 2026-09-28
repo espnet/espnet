@@ -16,6 +16,7 @@ def test_VADScpReader(tmp_path: Path):
         assert target[k] == desired[k]
     assert len(target) == len(desired)
     assert tuple(target.keys()) == tuple(desired)
+    assert "zzz" not in target
 
 
 def test_VADScpWriter(tmp_path: Path):

@@ -45,7 +45,7 @@ class VADScpReader(collections.abc.Mapping):
         return vad_info
 
     def __contains__(self, item):
-        return item
+        return item in self.data
 
     def __len__(self):
         return len(self.data)
