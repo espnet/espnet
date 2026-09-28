@@ -256,7 +256,11 @@ class Bagpiper:
         Args:
             audio: A local audio file.
             prompt: What to ask about it.
-            system: The system turn, or None for none.
+            system: The system turn, or None for none. The released
+                understanding data is `[system, user audio, user text,
+                assistant text]`, which is the shape this sends; a
+                benchmark that carries its own system prompt - MMAU uses
+                a multiple-choice one - is passed here.
             decoding: How to sample; the published defaults if None.
 
         Returns:
