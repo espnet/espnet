@@ -17,7 +17,7 @@ class VADScpReader(collections.abc.Mapping):
 
     Examples:
         key1 0:1.2000
-        key2 3.0000:4.5000 7.0000:9:0000
+        key2 3.0000:4.5000 7.0000:9.0000
         ...
 
         >>> reader = VADScpReader('wav.scp')
@@ -61,8 +61,8 @@ class VADScpWriter:
     """Writer class for 'vad.scp'
 
     Examples:
-        key1 0:1.2000
-        key2 3.0000:4.5000 7.0000:9:0000
+        key1 0.0000:1.2000
+        key2 3.0000:4.5000 7.0000:9.0000
         ...
 
         >>> writer = VADScpWriter('./data/vad.scp')
@@ -95,7 +95,7 @@ class VADScpWriter:
             assert (
                 len(v) == 2
             ), "each vad tuple should contains exact the start time and end time"
-            output_str.append("{.4f}:{}".format(v[0], v[1]))
+            output_str.append("{:.4f}:{:.4f}".format(v[0], v[1]))
         output_str = " ".join(output_str)
 
         self.fscp.write(f"{key} {output_str}\n")
