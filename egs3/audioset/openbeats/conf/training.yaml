@@ -41,9 +41,9 @@ dataset:
         target_path: ${target_dir}/valid/target.scp
 
 trainer:
-  # egs2 `--max_epoch 56` and its logging interval (`log_interval: 356`,
-  # ~20 logs per epoch). 56 epochs of AS-2M are ~400K steps, the end of the
-  # LR schedule, so the epoch budget replaces the TEMPLATE `max_steps`.
+  # egs2 `max_epoch: 56`, logged every 356 steps like egs2 (ESPnet2 logs ~20
+  # times per epoch by default). 56 epochs of AS-2M are ~400K steps, the end of
+  # the LR schedule, so the epoch budget replaces the TEMPLATE `max_steps`.
   log_every_n_steps: 356
   max_epochs: 56
   max_steps: -1
