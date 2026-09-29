@@ -170,6 +170,21 @@ def test_run_stages_train_uses_per_rank_log_filename(monkeypatch, tmp_path):
     assert seen["filename"] == "train_rank3.log"
 
 
+@pytest.mark.parametrize(
+    "stage, expected",
+    [
+        ("train", True),
+        ("train_tokenizer", True),
+        ("train_vocoder", True),
+        ("pretrain", False),
+        ("collect_stats", False),
+        ("trainer", False),
+    ],
+)
+def test_is_training_stage_covers_train_prefixed_stages(stage, expected):
+    assert stages_utils._is_training_stage(stage) is expected
+
+
 def test_run_stages_train_tokenizer_skips_file_log_on_nonzero_rank(
     monkeypatch, tmp_path
 ):
