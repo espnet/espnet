@@ -51,8 +51,8 @@ run_with_training_config \
 
 cd "${cwd}" || exit
 
-cd ./egs3/mini_an4/openbeats || exit
-echo "==== [ESPnet3] OpenBEATs ===="
+cd ./egs3/mini_an4/beats || exit
+echo "==== [ESPnet3] BEATs ===="
 source path.sh
 # Iteration 0: random-projection targets -> encoder, then codebook usage and
 # the model bundle.
