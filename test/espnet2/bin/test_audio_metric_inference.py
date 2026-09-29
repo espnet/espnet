@@ -11,6 +11,35 @@ from espnet2.bin.audio_metric_inference import UniversaInference, inference
 from espnet2.tasks.audio_metric import AudioMetricTask
 
 
+@pytest.mark.parametrize("use_ref_text", [False, True])
+def test_string_reference_text(tmp_path, use_ref_text):
+    """Tokenize supported references and clearly reject unsupported strings."""
+    args = task_args(tmp_path)
+    args.use_ref_text = use_ref_text
+    args.token_type = "char"
+    args.token_list = ["<blank>", "<unk>", "a", "b", "<sos/eos>"]
+    args.universa_conf["text_encoder_params"] = dict(
+        num_blocks=1, attention_heads=2, linear_units=16, input_layer="linear"
+    )
+    model = AudioMetricTask.build_model(args)
+    config, checkpoint = tmp_path / "config.yaml", tmp_path / "model.pth"
+    config.write_text(yaml.safe_dump(vars(args)))
+    torch.save(model.state_dict(), checkpoint)
+    predict = UniversaInference(config, checkpoint)
+    audio = torch.randn(256)
+    if not use_ref_text:
+        with pytest.raises(
+            ValueError, match="String ref_text requires use_ref_text=True"
+        ):
+            predict(audio, ref_text="ab")
+        return
+    string_result = predict(audio, ref_text="ab")
+    token_result = predict(audio, ref_text=torch.tensor([2, 3]))
+    for metric in ("mos", "wer"):
+        assert np.isfinite(string_result[metric]).all()
+        np.testing.assert_allclose(string_result[metric], token_result[metric])
+
+
 def test_legacy_cli():
     from espnet2.bin import universa_inference
 

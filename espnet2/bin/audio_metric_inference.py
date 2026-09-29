@@ -85,7 +85,7 @@ class UniversaInference:
         ref_text_lengths: Optional[Union[np.ndarray, torch.Tensor]] = None,
         **kwargs,
     ) -> Dict[str, Any]:
-        "Run universa."
+        """Run Universa inference."""
 
         # check the input type
         if self.model.use_ref_audio and ref_audio is None:
@@ -108,6 +108,8 @@ class UniversaInference:
                         "String ref_text requires preprocessing; provide token IDs "
                         "when use_preprocessor is false."
                     )
+                if not self.use_ref_text:
+                    raise ValueError("String ref_text requires use_ref_text=True.")
                 ref_text = self.preprocess_fn("<dummy>", dict(ref_text=ref_text))[
                     "ref_text"
                 ]
