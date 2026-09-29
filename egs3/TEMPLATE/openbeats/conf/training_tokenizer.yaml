@@ -9,10 +9,13 @@
 #       --training_config conf/training_iter1.yaml \
 #       --train_tokenizer_config conf/training_tokenizer.yaml
 #
-# Used only by the `train_tokenizer` stage. run.py overwrites `iteration`,
-# `teacher_ckpt_path`, `ssl_tag`, `fbank_mean`, `fbank_std`, `waveform_input`,
-# `num_device`, `num_nodes`, and the data/stats paths with the values of
-# `--training_config`, so set those there.
+# Used only by the `train_tokenizer` stage. The values below are the BEATs
+# base tokenizer (the TEMPLATE is BEATs-specific: `espnet3.systems.openbeats`).
+#
+# Keys marked `???` describe the BEATs iteration, not the tokenizer. run.py
+# copies them from `--training_config` (TOKENIZER_CONTEXT_KEYS in run.py), so
+# the tokenizer, its teacher, and tokenization always use the same iteration
+# and fbank statistics. Set them in the encoder training config, not here.
 
 ##########################################################
 #                  SYSTEM AND PATH SETTING               #
@@ -22,24 +25,28 @@ num_nodes: 1
 
 task: espnet2.tasks.beats.BeatsTokenizerTask
 
-iteration: 1
+# Copied from training_config: the iteration N whose tokenizer is trained,
+# and the iteration N-1 encoder checkpoint used as the teacher.
+iteration: ???
 teacher_ckpt_path:
 
 recipe_dir: .
 data_dir: ${recipe_dir}/data
-ssl_tag: base
+ssl_tag: ???
 exp_tag: beats_tokenizer_iter${iteration}_${ssl_tag}
 exp_dir: ${recipe_dir}/exp/${exp_tag}
 stats_dir: ${recipe_dir}/exp/stats_${ssl_tag}
 dataset_dir: ${data_dir}
 
-fbank_mean: 15.29130
-fbank_std: 5.90532
-waveform_input: true
+# Copied from training_config: global fbank normalization statistics and the
+# input representation of the recipe dataset.
+fbank_mean: ???
+fbank_std: ???
+waveform_input: ???
 
-# The teacher encoder only produces regression targets.
-freeze_param:
-  - teacher
+# Portable tokenizer checkpoint written by BeatsCheckpointExport when
+# `train_tokenizer` ends. The `infer` stage of the same iteration loads it.
+export_path: ${exp_dir}/beats_tokenizer_iter${iteration}.pt
 
 ##########################################################
 #                    DATASET DEFINITION                  #
@@ -60,6 +67,9 @@ dataset:
 ##########################################################
 # Passed to `espnet2.tasks.beats.BeatsTokenizerTask.build_model`.
 model:
+  # The teacher encoder only produces regression targets.
+  freeze_param:
+    - teacher
   beats_teacher_ckpt_path: ${teacher_ckpt_path}
   encoder_conf:
     fbank_mean: ${fbank_mean}
@@ -106,8 +116,7 @@ scheduler_monitor:
 ##########################################################
 #                OTHER TRAINING SETTING                  #
 ##########################################################
-# The averaged checkpoint of these models is exported as
-# `${exp_dir}/beats_tokenizer_iter<N>.pt`.
+# The average of these models is exported to `export_path`.
 best_model_criterion:
   - - valid/loss
     - 1
@@ -167,8 +176,15 @@ trainer:
   accumulate_grad_batches: 1
   check_val_every_n_epoch: 1
   gradient_clip_val: 1.0
-  log_every_n_steps: 1000
-  max_epochs: 14
+  log_every_n_steps: 100
+  # 400K updates, the end of the LR schedule above. Recipes may express the
+  # same budget in epochs of their corpus instead.
+  max_steps: 400000
+
+  callbacks:
+    - _target_: espnet3.systems.openbeats.callbacks.BeatsCheckpointExport
+      exp_dir: ${exp_dir}
+      output_path: ${export_path}
 
   logger:
     - _target_: lightning.pytorch.loggers.TensorBoardLogger

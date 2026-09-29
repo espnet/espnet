@@ -15,4 +15,7 @@ dataset:
         split: eval
         recipe_dir: ${recipe_dir}
 
+# egs2 `--tokenizer_inference_batch_size 144`, sized for one H200 (141 GB).
+# Lower it on smaller GPUs (e.g. 32 on a 40 GB A100/A40); it only affects
+# speed and memory, not the targets.
 batch_size: 144

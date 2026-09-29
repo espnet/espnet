@@ -14,3 +14,9 @@ dataset:
     - data_src_args:
         split: eval
         recipe_dir: ${recipe_dir}
+
+trainer:
+  # egs2 `conf/tok_beats_base.yaml`: `max_epoch: 14`, `log_interval: 1000`.
+  log_every_n_steps: 1000
+  max_epochs: 14
+  max_steps: -1

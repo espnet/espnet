@@ -1,0 +1,5 @@
+##########################################################
+#                  PUBLICATION SETTING                   #
+##########################################################
+# Packs the AudioSet-2M encoder of one iteration with the TEMPLATE defaults
+# (egs3/TEMPLATE/openbeats/conf/publication.yaml).

@@ -3,9 +3,12 @@
 ##########################################################
 # BEATs encoder pre-training for one iteration (arXiv:2212.09058).
 #
-# Quick usage (iteration 0):
-#   python run.py --stages create_dataset infer collect_stats train \
+# Quick usage (iteration 0, single device):
+#   python run.py --stages pretrain \
 #       --training_config conf/training.yaml --inference_config conf/inference.yaml
+#
+# `pretrain` runs create_dataset, train_tokenizer, infer, collect_stats, and
+# train. Run those stages one invocation at a time for multi-GPU training.
 #
 # Main stages and what this config is used for:
 # - `create_dataset`: uses `create_dataset` and `dataset`
@@ -28,8 +31,8 @@ task: espnet2.tasks.beats.BeatsTask
 # - N > 0: targets come from the tokenizer distilled from the iteration N-1
 #   encoder. Set `teacher_ckpt_path` to that encoder checkpoint.
 iteration: 0
-# Portable encoder checkpoint used as the tokenizer teacher at iteration N > 0.
-# The `train` stage exports `${exp_dir}/beats_encoder_iter<N>.pt`.
+# Portable encoder checkpoint used as the tokenizer teacher at iteration N > 0,
+# i.e. the `export_path` of the iteration N-1 encoder.
 teacher_ckpt_path:
 
 recipe_dir: .
@@ -44,6 +47,9 @@ dataset_dir: ${data_dir}
 # Targets for this iteration, written by the `infer` stage.
 # Must equal `inference_config.inference_dir` (checked by OpenBeatsSystem.infer).
 target_dir: ${exp_dir}/targets
+# Portable encoder checkpoint written by BeatsCheckpointExport when `train`
+# ends. It is the teacher of the next iteration's tokenizer.
+export_path: ${exp_dir}/beats_encoder_iter${iteration}.pt
 
 # Global fbank normalization statistics shared by the encoder, the tokenizer,
 # the tokenizer's teacher, and tokenization. Recipes override these with
@@ -152,8 +158,7 @@ scheduler_monitor:
 ##########################################################
 #                OTHER TRAINING SETTING                  #
 ##########################################################
-# The averaged checkpoint of these models is exported as
-# `${exp_dir}/beats_encoder_iter<N>.pt`.
+# The average of these models is exported to `export_path`.
 best_model_criterion:
   - - valid/loss
     - 10
@@ -218,8 +223,15 @@ trainer:
   accumulate_grad_batches: 1
   check_val_every_n_epoch: 1
   gradient_clip_val: 1.0
-  log_every_n_steps: 356
-  max_epochs: 56
+  log_every_n_steps: 100
+  # 400K updates, the end of the LR schedule above (the BEATs paper setting).
+  # Recipes may express the same budget in epochs of their corpus instead.
+  max_steps: 400000
+
+  callbacks:
+    - _target_: espnet3.systems.openbeats.callbacks.BeatsCheckpointExport
+      exp_dir: ${exp_dir}
+      output_path: ${export_path}
 
   logger:
     - _target_: lightning.pytorch.loggers.TensorBoardLogger

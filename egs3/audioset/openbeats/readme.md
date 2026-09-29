@@ -1,4 +1,4 @@
-# BEATs pre-training on AudioSet-2M (ESPnet3)
+# OpenBEATs pre-training on AudioSet-2M (ESPnet3)
 
 ESPnet3 port of [`egs2/audioset/ssl1`](../../../egs2/audioset/ssl1): iterative
 [BEATs](https://arxiv.org/abs/2212.09058) pre-training of a Transformer audio
@@ -17,9 +17,11 @@ Ampere-or-newer GPUs (`bf16-mixed`).
 
 ## Run
 
-Each `run.py` invocation trains one BEATs iteration. With `num_device > 1`,
-run the GPU training stages (`train_tokenizer`, `train`) in their own
-invocations, because Lightning re-runs the invoked stages in every rank.
+`--stages pretrain` runs one whole BEATs iteration (`create_dataset`,
+`train_tokenizer`, `infer`, `collect_stats`, `train`) on a single device. This
+recipe trains on 2 GPUs (`num_device: 2`), and Lightning re-runs the invoked
+stages in every rank, so `pretrain` refuses to run and the stages are invoked
+one at a time instead:
 
 ```bash
 . ./path.sh
@@ -41,7 +43,20 @@ python run.py --stages infer \
     --train_tokenizer_config conf/training_tokenizer.yaml \
     --inference_config conf/inference.yaml
 python run.py --stages train --training_config conf/training_iter1.yaml
+
+# Any iteration: codebook usage of its targets, then the model bundle
+python run.py --stages measure pack_model upload_model \
+    --training_config conf/training_iter1.yaml \
+    --inference_config conf/inference.yaml \
+    --metrics_config conf/metrics.yaml \
+    --publication_config conf/publication.yaml
 ```
+
+`measure` reports how the tokenizer uses its codebook on the eval targets
+(`CodebookUsage`: usage, entropy, perplexity), which catches a collapsed
+tokenizer before the encoder is trained on it. `pack_model` bundles the
+exported encoder, the configs, and those numbers; Lightning checkpoints and
+targets are left out.
 
 The exported `beats_encoder_iter<N>.pt` loads directly into the downstream
 classification recipes (`egs2/esc50/asr1`, `egs2/as20k/cls1`) via
@@ -64,7 +79,9 @@ encoder_conf:
 | stage 4: fbank dump + corpus stats | fbank computed on the fly from waveforms (`waveform_input: true`); `fbank_mean`/`fbank_std` in `conf/training.yaml` |
 | stage 5: `audio_tokenization.sh` (`beats_random` / `beats`) | `infer` (`BeatsTokenizationModel`) |
 | stage 6: collect stats | `collect_stats` |
-| stage 7: `train_tokenizer`, `tokenizer_inference`, `train_encoder`, `generate_checkpoint` | `train_tokenizer`, `infer`, `train` (checkpoint export included) |
+| stage 7: `train_tokenizer`, `tokenizer_inference`, `train_encoder`, `generate_checkpoint` | `train_tokenizer`, `infer`, `train`; `generate_checkpoint` is the `BeatsCheckpointExport` callback at the end of training |
+| (all of the above, one iteration) | `pretrain` (single device) |
+| (HF upload, manual) | `measure`, `pack_model`, `upload_model` |
 | `conf/beats_base.yaml` + `conf/ds_beats.json` | `conf/training.yaml` (+ TEMPLATE defaults) |
 | `conf/tok_beats_base.yaml` + `conf/ds_beats_tok.json` | `conf/training_tokenizer.yaml` (+ TEMPLATE defaults) |
 | `conf/as2m_inf.yaml` | `conf/inference.yaml` (+ TEMPLATE defaults) |

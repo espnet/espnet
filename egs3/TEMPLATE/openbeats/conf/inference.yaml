@@ -8,12 +8,15 @@
 #   python run.py --stages infer \
 #       --training_config conf/training.yaml --inference_config conf/inference.yaml
 #
+# `pretrain` also runs this stage, after `train_tokenizer`.
+#
 # Outputs, one directory per `dataset.test` entry:
 # - `${inference_dir}/<test_name>/target.scp`: `<idx> <id> <id> ...`
 # - `${inference_dir}/<test_name>/target_shape`: `<idx> <num_ids>`
 #
-# run.py copies `exp_tag`/`exp_dir` and `iteration`, `fbank_mean`, `fbank_std`,
-# `waveform_input`, and data paths from `--training_config`.
+# run.py copies `exp_tag`/`exp_dir` and the iteration context below (keys
+# marked `???`, INFERENCE_CONTEXT_KEYS in run.py) from `--training_config`, so
+# tokenization always matches the encoder that trains on its targets.
 
 ##########################################################
 #                    PATHS AND INPUTS                    #
@@ -26,10 +29,16 @@ dataset_dir: ${data_dir}
 # Must equal `training_config.target_dir`.
 inference_dir: ${exp_dir}/targets
 
-iteration: 0
-fbank_mean: 15.29130
-fbank_std: 5.90532
-waveform_input: true
+# BEATs iteration of the targets. 0 selects the random-projection tokenizer;
+# N > 0 selects the tokenizer trained by `train_tokenizer` at iteration N.
+iteration: ???
+# Global fbank normalization statistics. They must match the encoder and the
+# tokenizer, since the tokenizer computes fbanks with them.
+fbank_mean: ???
+fbank_std: ???
+# true: the dataset yields 16 kHz waveforms, which the tokenizer turns into
+# fbanks. false: the dataset yields precomputed 128-bin fbanks.
+waveform_input: ???
 
 # Recipes list the splits used for training. The `name` of each entry must
 # match the directory that `training_config` reads targets from
@@ -79,6 +88,7 @@ output_keys:
   - target
 # Targets are keyed by dataset index; recipe datasets carry no `utt_id`.
 idx_key: idx
+# Number of clips tokenized per forward. Only affects speed and GPU memory.
 batch_size: 64
 output_fn: espnet3.systems.openbeats.tokenization_model.build_target_output
 

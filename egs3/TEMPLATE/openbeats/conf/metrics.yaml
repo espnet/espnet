@@ -1,0 +1,47 @@
+##########################################################
+#                 METRIC SCORING SETTING                 #
+##########################################################
+# Quick usage:
+#   python run.py --stages measure \
+#       --training_config conf/training.yaml \
+#       --inference_config conf/inference.yaml \
+#       --metrics_config conf/metrics.yaml
+#
+# Pre-training has no reference labels, so `measure` checks the tokenizer
+# instead: CodebookUsage reads the `target.scp` written by `infer` and reports
+# how many codebook entries the targets use and how evenly (usage, entropy,
+# perplexity). A collapsed tokenizer shows up here before it shows up in the
+# encoder loss or downstream. Iteration 0 (random projection) gives the
+# reference point for later iterations.
+#
+# `measure` writes `${inference_dir}/metrics.json`; `pack_model` renders it in
+# the model README.
+
+##########################################################
+#                    PATHS AND INPUTS                    #
+##########################################################
+recipe_dir: .
+# run.py copies `exp_tag`/`exp_dir` from `--training_config` and
+# `inference_dir` (the target directory) from `--inference_config`.
+exp_tag:
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+
+# Target directories to score. When `dataset.test` is omitted, every
+# subdirectory of `${inference_dir}` is scored. Recipes usually list only the
+# validation split, since the training split can be large:
+#
+# dataset:
+#   test:
+#     - name: valid
+dataset:
+
+##########################################################
+#                    METRIC DEFINITION                   #
+##########################################################
+metrics:
+  - metric:
+      _target_: espnet3.systems.openbeats.metrics.codebook_usage.CodebookUsage
+      # Must equal the tokenizer `codebook_vocab_size`.
+      codebook_size: 1024
+    inputs:
+      target: target      # -> `<test_name>/target.scp`

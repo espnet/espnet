@@ -10,25 +10,32 @@ import espnet3.systems.base.system as base_sysmod
 import espnet3.systems.openbeats.system as sysmod
 from espnet3.systems.openbeats.system import (
     OpenBeatsSystem,
-    write_target_shape,
-    write_token_list,
+    _write_target_shape,
+    _write_token_list,
 )
 
 # ===============================================================
 # Test Case Summary
 # ===============================================================
 #
-# iteration / paths
+# iteration
 # | Test Name                                   | Description                  |
 # |---------------------------------------------|------------------------------|
 # | test_iteration_defaults_to_zero             | Missing iteration -> 0.      |
 # | test_negative_iteration_raises              | iteration < 0 raises.        |
 #
+# pretrain
+# | Test Name                                   | Description                  |
+# |---------------------------------------------|------------------------------|
+# | test_pretrain_runs_iteration_stages_in_order| Five stages, canonical order.|
+# | test_pretrain_skips_existing_shape_stats    | collect_stats reused.        |
+# | test_pretrain_refuses_multiple_devices      | num_device > 1 raises.       |
+#
 # train_tokenizer
 # | Test Name                                   | Description                  |
 # |---------------------------------------------|------------------------------|
 # | test_train_tokenizer_is_noop_at_iteration_0 | No training at iteration 0.  |
-# | test_train_tokenizer_trains_and_exports     | Trains then exports on rank0.|
+# | test_train_tokenizer_trains_its_own_config  | Trains train_tokenizer_config|
 # | test_train_tokenizer_skips_existing_export  | Existing checkpoint skipped. |
 # | test_train_tokenizer_requires_teacher       | Missing teacher raises.      |
 # | test_train_tokenizer_requires_config        | Missing config raises.       |
@@ -44,10 +51,7 @@ from espnet3.systems.openbeats.system import (
 # collect_stats / train
 # | Test Name                                   | Description                  |
 # |---------------------------------------------|------------------------------|
-# | test_train_writes_token_list_and_exports    | Token list + encoder export. |
-# | test_train_exports_checkpoints_of_the_run   | This run's trainer reaches   |
-# |                                             | export.                      |
-# | test_train_skips_export_on_nonzero_rank     | Only rank 0 exports.         |
+# | test_train_writes_token_list                | Token list before training.  |
 # | test_collect_stats_writes_token_list        | Token list before stats.     |
 # | test_stage_rejects_arguments                | Stage args raise TypeError.  |
 #
@@ -60,12 +64,15 @@ from espnet3.systems.openbeats.system import (
 # |                                             | one temporary file.          |
 
 
-def _training_config(tmp_path, iteration=0):
+def _training_config(tmp_path, iteration=0, num_device=1):
     exp_dir = tmp_path / f"exp/beats_iter{iteration}"
     return OmegaConf.create(
         {
             "iteration": iteration,
+            "num_device": num_device,
+            "num_nodes": 1,
             "exp_dir": str(exp_dir),
+            "stats_dir": str(tmp_path / "exp/stats"),
             "target_dir": str(exp_dir / "targets"),
             "model": {
                 "token_list": str(tmp_path / "data/token_list/tokens.txt"),
@@ -76,9 +83,11 @@ def _training_config(tmp_path, iteration=0):
 
 
 def _tokenizer_config(tmp_path, teacher=None):
+    exp_dir = tmp_path / "exp/beats_tokenizer_iter1"
     return OmegaConf.create(
         {
-            "exp_dir": str(tmp_path / "exp/beats_tokenizer_iter1"),
+            "exp_dir": str(exp_dir),
+            "export_path": str(exp_dir / "beats_tokenizer_iter1.pt"),
             "model": {"beats_teacher_ckpt_path": teacher},
         }
     )
@@ -94,21 +103,12 @@ def _inference_config(tmp_path, iteration=0, tokenizer_ckpt_path=None):
     )
 
 
-@pytest.fixture
-def exports(monkeypatch):
-    calls = []
-
-    def fake_export(exp_dir, output_path, trainer=None):
-        calls.append((str(exp_dir), str(output_path), trainer))
-        return output_path
-
-    monkeypatch.setattr(sysmod, "export_beats_checkpoint", fake_export)
-    monkeypatch.setattr(sysmod.rank_zero_only, "rank", 0, raising=False)
-    return calls
+def _no_training(config):
+    pytest.fail("must not train")
 
 
 # ---------------------------------------------------------------
-# iteration / paths
+# iteration
 # ---------------------------------------------------------------
 
 
@@ -116,14 +116,65 @@ def test_iteration_defaults_to_zero(tmp_path):
     config = _training_config(tmp_path)
     del config["iteration"]
 
-    assert OpenBeatsSystem(training_config=config).iteration == 0
+    assert OpenBeatsSystem(training_config=config)._get_iteration() == 0
 
 
 def test_negative_iteration_raises(tmp_path):
     system = OpenBeatsSystem(training_config=_training_config(tmp_path, iteration=-1))
 
     with pytest.raises(ValueError, match=">= 0"):
-        system.iteration
+        system._get_iteration()
+
+
+# ---------------------------------------------------------------
+# pretrain
+# ---------------------------------------------------------------
+
+
+def _record_stages(monkeypatch, system):
+    calls = []
+    for stage in ("create_dataset", "train_tokenizer", "infer", "collect_stats"):
+        monkeypatch.setattr(system, stage, lambda stage=stage: calls.append(stage))
+    monkeypatch.setattr(system, "train", lambda: calls.append("train") or "trained")
+    return calls
+
+
+def test_pretrain_runs_iteration_stages_in_order(tmp_path, monkeypatch):
+    system = OpenBeatsSystem(training_config=_training_config(tmp_path))
+    calls = _record_stages(monkeypatch, system)
+
+    assert system.pretrain() == "trained"
+    assert calls == [
+        "create_dataset",
+        "train_tokenizer",
+        "infer",
+        "collect_stats",
+        "train",
+    ]
+
+
+def test_pretrain_skips_existing_shape_stats(tmp_path, monkeypatch):
+    for mode in ("train", "valid"):
+        shape = tmp_path / f"exp/stats/{mode}/feats_shape"
+        shape.parent.mkdir(parents=True)
+        shape.write_text("0 160000\n")
+    system = OpenBeatsSystem(training_config=_training_config(tmp_path, iteration=1))
+    calls = _record_stages(monkeypatch, system)
+
+    system.pretrain()
+
+    # Shape statistics do not depend on the iteration.
+    assert "collect_stats" not in calls
+    assert calls[-1] == "train"
+
+
+def test_pretrain_refuses_multiple_devices(tmp_path, monkeypatch):
+    system = OpenBeatsSystem(training_config=_training_config(tmp_path, num_device=2))
+    calls = _record_stages(monkeypatch, system)
+
+    with pytest.raises(RuntimeError, match="separate run.py invocations"):
+        system.pretrain()
+    assert calls == []
 
 
 # ---------------------------------------------------------------
@@ -131,21 +182,19 @@ def test_negative_iteration_raises(tmp_path):
 # ---------------------------------------------------------------
 
 
-def test_train_tokenizer_is_noop_at_iteration_0(tmp_path, monkeypatch, exports):
-    monkeypatch.setattr(
-        sysmod, "run_training", lambda config: pytest.fail("must not train")
-    )
+def test_train_tokenizer_is_noop_at_iteration_0(tmp_path, monkeypatch):
+    monkeypatch.setattr(sysmod, "train_model", _no_training)
     system = OpenBeatsSystem(training_config=_training_config(tmp_path))
 
     assert system.train_tokenizer() is None
-    assert exports == []
 
 
-def test_train_tokenizer_trains_and_exports(tmp_path, monkeypatch, exports):
+def test_train_tokenizer_trains_its_own_config(tmp_path, monkeypatch):
     teacher = tmp_path / "beats_encoder_iter0.pt"
     teacher.write_bytes(b"")
     trained = []
-    monkeypatch.setattr(sysmod, "run_training", lambda config: trained.append(config))
+    monkeypatch.setattr(sysmod, "train_model", trained.append)
+    monkeypatch.setattr(base_sysmod, "train", _no_training)
     tokenizer_config = _tokenizer_config(tmp_path, teacher=str(teacher))
     system = OpenBeatsSystem(
         training_config=_training_config(tmp_path, iteration=1),
@@ -154,14 +203,8 @@ def test_train_tokenizer_trains_and_exports(tmp_path, monkeypatch, exports):
 
     system.train_tokenizer()
 
+    # The tokenizer config is trained, not training_config (the encoder).
     assert trained == [tokenizer_config]
-    assert exports == [
-        (
-            tokenizer_config.exp_dir,
-            f"{tokenizer_config.exp_dir}/beats_tokenizer_iter1.pt",
-            None,
-        )
-    ]
     assert (
         system.stage_log_dirs["train_tokenizer"]
         .as_posix()
@@ -169,25 +212,22 @@ def test_train_tokenizer_trains_and_exports(tmp_path, monkeypatch, exports):
     )
 
 
-def test_train_tokenizer_skips_existing_export(tmp_path, monkeypatch, exports):
+def test_train_tokenizer_skips_existing_export(tmp_path, monkeypatch):
     tokenizer_config = _tokenizer_config(tmp_path, teacher="unused")
-    output = tmp_path / "exp/beats_tokenizer_iter1/beats_tokenizer_iter1.pt"
+    output = Path(tokenizer_config.export_path)
     output.parent.mkdir(parents=True)
     output.write_bytes(b"")
-    monkeypatch.setattr(
-        sysmod, "run_training", lambda config: pytest.fail("must not train")
-    )
+    monkeypatch.setattr(sysmod, "train_model", _no_training)
     system = OpenBeatsSystem(
         training_config=_training_config(tmp_path, iteration=1),
         train_tokenizer_config=tokenizer_config,
     )
 
-    system.train_tokenizer()
-
-    assert exports == []
+    assert system.train_tokenizer() is None
 
 
-def test_train_tokenizer_requires_teacher(tmp_path, exports):
+def test_train_tokenizer_requires_teacher(tmp_path, monkeypatch):
+    monkeypatch.setattr(sysmod, "train_model", _no_training)
     system = OpenBeatsSystem(
         training_config=_training_config(tmp_path, iteration=1),
         train_tokenizer_config=_tokenizer_config(tmp_path, teacher="missing.pt"),
@@ -290,46 +330,16 @@ def test_infer_rejects_target_dir_mismatch(tmp_path, monkeypatch):
 # ---------------------------------------------------------------
 
 
-def test_train_writes_token_list_and_exports(tmp_path, monkeypatch, exports):
+def test_train_writes_token_list(tmp_path, monkeypatch):
     trained = []
     monkeypatch.setattr(base_sysmod, "train", trained.append)
     config = _training_config(tmp_path)
-    system = OpenBeatsSystem(training_config=config)
 
-    system.train()
+    OpenBeatsSystem(training_config=config).train()
 
     assert trained == [config]
     tokens = (tmp_path / "data/token_list/tokens.txt").read_text().splitlines()
     assert tokens == ["<unk>", "0", "1", "2", "3"]
-    assert exports == [
-        (config.exp_dir, f"{config.exp_dir}/beats_encoder_iter0.pt", None),
-    ]
-
-
-def test_train_exports_checkpoints_of_the_finished_run(tmp_path, monkeypatch):
-    seen = {}
-    trainer = object()
-
-    def fake_export(exp_dir, output_path, trainer=None):
-        seen["trainer"] = trainer
-
-    monkeypatch.setattr(base_sysmod, "train", lambda config: trainer)
-    monkeypatch.setattr(sysmod, "export_beats_checkpoint", fake_export)
-    monkeypatch.setattr(sysmod.rank_zero_only, "rank", 0, raising=False)
-
-    OpenBeatsSystem(training_config=_training_config(tmp_path)).train()
-
-    # Export must select checkpoints from this run, not from exp_dir contents.
-    assert seen["trainer"] is trainer
-
-
-def test_train_skips_export_on_nonzero_rank(tmp_path, monkeypatch, exports):
-    monkeypatch.setattr(base_sysmod, "train", lambda config: None)
-    monkeypatch.setattr(sysmod.rank_zero_only, "rank", 1, raising=False)
-    system = OpenBeatsSystem(training_config=_training_config(tmp_path))
-
-    assert system.train() is None
-    assert exports == []
 
 
 def test_collect_stats_writes_token_list(tmp_path, monkeypatch):
@@ -347,7 +357,7 @@ def test_collect_stats_writes_token_list(tmp_path, monkeypatch):
 
 
 @pytest.mark.parametrize(
-    "stage", ["train_tokenizer", "infer", "collect_stats", "train"]
+    "stage", ["pretrain", "train_tokenizer", "infer", "collect_stats", "train"]
 )
 def test_stage_rejects_arguments(tmp_path, stage):
     system = OpenBeatsSystem(training_config=_training_config(tmp_path))
@@ -362,11 +372,11 @@ def test_stage_rejects_arguments(tmp_path, stage):
 
 
 def test_write_token_list_validates_existing(tmp_path):
-    path = write_token_list(tmp_path / "tokens.txt", 2)
-    assert write_token_list(path, 2) == path
+    path = _write_token_list(tmp_path / "tokens.txt", 2)
+    assert _write_token_list(path, 2) == path
 
     with pytest.raises(ValueError, match="codebook size 3"):
-        write_token_list(path, 3)
+        _write_token_list(path, 3)
 
 
 def test_writers_use_per_process_temp_names(tmp_path, monkeypatch):
@@ -386,8 +396,8 @@ def test_writers_use_per_process_temp_names(tmp_path, monkeypatch):
     target.write_text("0 5 6\n", encoding="utf-8")
     seen.clear()
 
-    write_token_list(RecordingPath(tmp_path / "tokens.txt"), 2)
-    write_target_shape(target, RecordingPath(tmp_path / "target_shape"))
+    _write_token_list(RecordingPath(tmp_path / "tokens.txt"), 2)
+    _write_target_shape(target, RecordingPath(tmp_path / "target_shape"))
 
     # Every rank writes its own temporary file before the atomic replace.
     temporary = list(dict.fromkeys(name for name in seen if name.endswith(".tmp")))
@@ -401,6 +411,6 @@ def test_write_target_shape_counts_tokens(tmp_path):
     target = tmp_path / "target.scp"
     target.write_text("1 5 6\n0 7\n", encoding="utf-8")
 
-    write_target_shape(target, tmp_path / "target_shape")
+    _write_target_shape(target, tmp_path / "target_shape")
 
     assert (tmp_path / "target_shape").read_text() == "1 2\n0 1\n"

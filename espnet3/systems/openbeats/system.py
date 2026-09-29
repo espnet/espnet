@@ -1,4 +1,4 @@
-"""BEATs iterative self-supervised pre-training system."""
+"""OpenBEATs iterative self-supervised pre-training system."""
 
 from __future__ import annotations
 
@@ -6,12 +6,10 @@ import logging
 import os
 from pathlib import Path
 
-from lightning.pytorch.utilities import rank_zero_only
 from omegaconf import DictConfig
 
 from espnet3.systems.base.system import BaseSystem
-from espnet3.systems.base.training import train as run_training
-from espnet3.systems.openbeats.checkpoint_export import export_beats_checkpoint
+from espnet3.systems.base.training import train as train_model
 
 logger = logging.getLogger(__name__)
 
@@ -19,9 +17,9 @@ UNKNOWN_TOKEN = "<unk>"
 
 
 class OpenBeatsSystem(BaseSystem):
-    """System for BEATs iterative pre-training (arXiv:2212.09058).
+    r"""System for BEATs iterative pre-training (arXiv:2212.09058).
 
-    One ``run.py`` invocation runs one BEATs *iteration*, selected by
+    One ``pretrain`` run trains one BEATs *iteration*, selected by
     ``training_config.iteration``:
 
     - iteration 0: tokenize the corpus with a random-projection tokenizer and
@@ -33,19 +31,23 @@ class OpenBeatsSystem(BaseSystem):
 
     | Stage             | Config                    | What it does                    |
     |---                |---                        |---                              |
+    | `pretrain`        | all of the below          | Runs the next five stages       |
     | `create_dataset`  | `training_config`         | Recipe `DatasetBuilder`         |
     | `train_tokenizer` | `train_tokenizer_config`  | No-op at iteration 0; otherwise |
-    |                   |                           | trains the tokenizer and writes |
-    |                   |                           | `beats_tokenizer_iter<N>.pt`    |
+    |                   |                           | trains the tokenizer            |
     | `infer`           | `inference_config`        | Writes `target.scp` and         |
     |                   |                           | `target_shape` per test set     |
     | `collect_stats`   | `training_config`         | Writes `feats_shape` files      |
-    | `train`           | `training_config`         | Trains the encoder and writes   |
-    |                   |                           | `beats_encoder_iter<N>.pt`      |
+    | `train`           | `training_config`         | Trains the encoder              |
+    | `measure`         | `metrics_config`          | Scores the targets, e.g. with   |
+    |                   |                           | `CodebookUsage`                 |
+    | `pack_model`,     | `publication_config`      | Packs / uploads the exported    |
+    | `upload_model`    |                           | encoder                         |
 
-    ``collect_stats`` and ``train`` also write the token list
-    (``training_config.model.token_list``: ``<unk>`` followed by the codebook
-    ids) when it does not exist yet.
+    The portable checkpoints (``beats_encoder_iter<N>.pt`` and
+    ``beats_tokenizer_iter<N>.pt``) are written at the end of training by
+    :class:`~espnet3.systems.openbeats.callbacks.BeatsCheckpointExport`,
+    configured under ``trainer.callbacks`` of the two training configs.
 
     Config fields read by this class, on top of the ``BaseSystem`` ones:
 
@@ -55,10 +57,11 @@ class OpenBeatsSystem(BaseSystem):
     - ``training_config.target_dir``: must equal
       ``inference_config.inference_dir`` so training reads the targets that
       ``infer`` wrote.
-    - ``train_tokenizer_config.exp_dir`` and
+    - ``train_tokenizer_config.export_path`` and
       ``train_tokenizer_config.model.beats_teacher_ckpt_path`` (iteration > 0).
-    - ``inference_config.model.tokenizer_ckpt_path``: filled with the
-      iteration's tokenizer checkpoint when left ``null`` at iteration > 0.
+    - ``inference_config.model.tokenizer_ckpt_path``: filled with
+      ``train_tokenizer_config.export_path`` when left ``null`` at
+      iteration > 0.
 
     Additional stage log paths:
         | Stage           | Path reference                  |
@@ -68,11 +71,10 @@ class OpenBeatsSystem(BaseSystem):
     Args:
         training_config: Encoder training configuration.
         inference_config: Tokenization configuration for the ``infer`` stage.
-        metrics_config: Unused by BEATs pre-training; accepted for the
-            ``run.py`` protocol.
+        metrics_config: Measurement configuration for the ``measure`` stage.
         publication_config: Publication configuration.
         stage_log_mapping: Optional per-stage log directory overrides.
-        demo_config: Demo configuration.
+        demo_config: Unused; OpenBEATs has no demo stages.
         train_tokenizer_config: Tokenizer training configuration, required for
             ``train_tokenizer`` at iteration > 0.
 
@@ -81,13 +83,15 @@ class OpenBeatsSystem(BaseSystem):
 
         .. code-block:: bash
 
-            python run.py --stages create_dataset infer collect_stats train
-                --training_config conf/training.yaml
-                --inference_config conf/inference.yaml
-            python run.py --stages train_tokenizer infer train
-                --training_config conf/training_iter1.yaml
-                --train_tokenizer_config conf/training_tokenizer.yaml
-                --inference_config conf/inference.yaml
+            python run.py --stages pretrain measure \
+                --training_config conf/training.yaml \
+                --inference_config conf/inference.yaml \
+                --metrics_config conf/metrics.yaml
+            python run.py --stages pretrain measure \
+                --training_config conf/training_iter1.yaml \
+                --train_tokenizer_config conf/training_tokenizer.yaml \
+                --inference_config conf/inference.yaml \
+                --metrics_config conf/metrics.yaml
     """
 
     def __init__(
@@ -100,7 +104,7 @@ class OpenBeatsSystem(BaseSystem):
         demo_config: DictConfig | None = None,
         train_tokenizer_config: DictConfig | None = None,
     ) -> None:
-        """Initialize the BEATs system with the per-stage configs."""
+        """Initialize the OpenBEATs system with the per-stage configs."""
         # Set before BaseSystem.__init__ so the stage log mapping can resolve
         # `train_tokenizer_config.exp_dir`.
         self.train_tokenizer_config = train_tokenizer_config
@@ -116,58 +120,74 @@ class OpenBeatsSystem(BaseSystem):
             demo_config=demo_config,
         )
 
-    @property
-    def iteration(self) -> int:
-        """Return the BEATs iteration selected by ``training_config.iteration``."""
-        if self.training_config is None:
-            return 0
-        iteration = int(self.training_config.get("iteration", 0) or 0)
-        if iteration < 0:
-            raise ValueError(f"training_config.iteration must be >= 0: {iteration}")
-        return iteration
-
-    def get_encoder_checkpoint_path(self) -> Path:
-        """Return the portable encoder checkpoint path of this iteration."""
-        return Path(self.training_config.exp_dir) / (
-            f"beats_encoder_iter{self.iteration}.pt"
-        )
-
-    def get_tokenizer_checkpoint_path(self) -> Path:
-        """Return the portable tokenizer checkpoint path of this iteration."""
-        config = self._get_required_config(
-            {"train_tokenizer_config": self.train_tokenizer_config},
-            "train_tokenizer_config",
-            "--train_tokenizer_config is required at iteration > 0.",
-        )
-        return Path(config.exp_dir) / f"beats_tokenizer_iter{self.iteration}.pt"
-
     # ---------------------------------------------------------
     # Stages
     # ---------------------------------------------------------
+    def pretrain(self, *args, **kwargs):
+        """Run one BEATs iteration end to end.
+
+        Runs ``create_dataset``, ``train_tokenizer``, ``infer``,
+        ``collect_stats``, and ``train`` in that order. ``collect_stats`` is
+        skipped when the shape statistics already exist, because they do not
+        depend on the iteration.
+
+        ``pretrain`` needs a single device. Lightning's DDP launcher re-runs
+        the invoked stages in every rank, so with ``num_device > 1`` the
+        non-training steps (tokenization, statistics) would run once per rank
+        and the second ``fit`` would start a second set of ranks. Run the five
+        stages as separate invocations instead (see the recipe readme).
+
+        Raises:
+            RuntimeError: If ``num_device * num_nodes > 1``.
+        """
+        self._reject_stage_args("pretrain", args, kwargs)
+        num_ranks = int(self.training_config.get("num_device", 1) or 1) * int(
+            self.training_config.get("num_nodes", 1) or 1
+        )
+        if num_ranks > 1:
+            raise RuntimeError(
+                f"pretrain runs on a single device, but num_device * num_nodes = "
+                f"{num_ranks}. Run `create_dataset`, `train_tokenizer`, `infer`, "
+                "`collect_stats`, and `train` as separate run.py invocations; "
+                "see the recipe readme."
+            )
+        self.create_dataset()
+        self.train_tokenizer()
+        self.infer()
+        if self._has_shape_stats():
+            logger.info(
+                "Shape statistics already exist in %s; skipping collect_stats().",
+                self.training_config.stats_dir,
+            )
+        else:
+            self.collect_stats()
+        return self.train()
+
     def train_tokenizer(self, *args, **kwargs):
         """Train the BEATs VQ tokenizer for iterations greater than 0.
 
         The tokenizer is distilled from the teacher encoder at
         ``train_tokenizer_config.model.beats_teacher_ckpt_path`` (normally
-        ``beats_encoder_iter<N-1>.pt``) and exported to
-        ``<train_tokenizer_config.exp_dir>/beats_tokenizer_iter<N>.pt``.
-        Re-running is safe: the stage is skipped when that file exists.
+        ``beats_encoder_iter<N-1>.pt``). The ``BeatsCheckpointExport``
+        callback writes ``train_tokenizer_config.export_path`` when training
+        ends. Re-running is safe: the stage is skipped when that file exists.
 
         Raises:
             RuntimeError: If ``train_tokenizer_config`` is missing.
             FileNotFoundError: If the teacher checkpoint does not exist.
         """
         self._reject_stage_args("train_tokenizer", args, kwargs)
-        if self.iteration == 0:
+        iteration = self._get_iteration()
+        if iteration == 0:
             logger.info(
                 "Iteration 0 uses the random-projection tokenizer; "
                 "skipping train_tokenizer()."
             )
             return None
 
-        output_path = self.get_tokenizer_checkpoint_path()
-        if output_path.exists():
-            logger.info("Tokenizer already exported: %s. Skipping.", output_path)
+        export_path = self._get_tokenizer_checkpoint_path()
+        if export_path.exists():
+            logger.info("Tokenizer already exported: %s. Skipping.", export_path)
             return None
 
         config = self.train_tokenizer_config
@@ -179,25 +199,40 @@ class OpenBeatsSystem(BaseSystem):
         if not Path(teacher).is_file():
             raise FileNotFoundError(
                 f"Teacher checkpoint not found: {teacher}. Run the `train` stage "
-                f"for iteration {self.iteration - 1} first."
+                f"for iteration {iteration - 1} first."
             )
         logger.info(
             "Training BEATs tokenizer | iteration=%d teacher=%s exp_dir=%s",
-            self.iteration,
+            iteration,
             teacher,
             config.exp_dir,
         )
-        trainer = run_training(config)
-        return self._export_on_rank_zero(config.exp_dir, output_path, trainer)
+        # BaseSystem.train() always trains training_config; the tokenizer has
+        # its own config, so call the shared training entrypoint directly.
+        return train_model(config)
 
     def infer(self, *args, **kwargs):
         """Tokenize the configured test sets into BEATs training targets.
 
-        Writes ``<inference_dir>/<test_name>/target.scp`` (``<idx> <ids...>``)
-        and ``<inference_dir>/<test_name>/target_shape`` (``<idx> <length>``,
-        used as a batching shape file) for every ``inference_config.dataset.test``
-        entry. At iteration > 0, ``inference_config.model.tokenizer_ckpt_path``
+        Writes two files per ``inference_config.dataset.test`` entry:
+
+        - ``<inference_dir>/<test_name>/target.scp``: dataset index followed
+          by the token ids of that item.
+        - ``<inference_dir>/<test_name>/target_shape``: dataset index and
+          number of token ids, used as a batching shape file.
+
+        At iteration > 0, ``inference_config.model.tokenizer_ckpt_path``
         defaults to this iteration's exported tokenizer.
+
+        Examples:
+            First lines of ``targets/train/target.scp`` and ``target_shape``
+            for 10 s AudioSet clips (496 patches each)::
+
+                0 886 468 468 468 280 442 ...
+                1 468 874 280 280 418 280 ...
+
+                0 496
+                1 496
 
         Raises:
             ValueError: If ``training_config.target_dir`` and
@@ -207,24 +242,27 @@ class OpenBeatsSystem(BaseSystem):
         self._reject_stage_args("infer", args, kwargs)
         config = self.inference_config
         self._validate_target_dir()
+        iteration = self._get_iteration()
         model_config = config.model
-        if self.iteration > 0 and not model_config.get("tokenizer_ckpt_path"):
-            model_config.tokenizer_ckpt_path = str(self.get_tokenizer_checkpoint_path())
+        if iteration > 0 and not model_config.get("tokenizer_ckpt_path"):
+            model_config.tokenizer_ckpt_path = str(
+                self._get_tokenizer_checkpoint_path()
+            )
         tokenizer_ckpt_path = model_config.get("tokenizer_ckpt_path")
         if tokenizer_ckpt_path and not Path(tokenizer_ckpt_path).is_file():
             raise FileNotFoundError(
                 f"Tokenizer checkpoint not found: {tokenizer_ckpt_path}. Run the "
-                f"`train_tokenizer` stage for iteration {self.iteration} first."
+                f"`train_tokenizer` stage for iteration {iteration} first."
             )
         logger.info(
             "Tokenizing with %s tokenizer | iteration=%d",
             tokenizer_ckpt_path or "random-projection",
-            self.iteration,
+            iteration,
         )
         result = super().infer()
         for test_set in config.dataset.test:
             test_dir = Path(config.inference_dir) / test_set.name
-            write_target_shape(test_dir / "target.scp", test_dir / "target_shape")
+            _write_target_shape(test_dir / "target.scp", test_dir / "target_shape")
         return result
 
     def collect_stats(self, *args, **kwargs):
@@ -234,26 +272,48 @@ class OpenBeatsSystem(BaseSystem):
         return super().collect_stats()
 
     def train(self, *args, **kwargs):
-        """Train the BEATs encoder and export ``beats_encoder_iter<N>.pt``."""
+        """Train the BEATs encoder of this iteration.
+
+        The ``BeatsCheckpointExport`` callback writes
+        ``training_config.export_path`` (``beats_encoder_iter<N>.pt``) when
+        training ends.
+        """
         self._reject_stage_args("train", args, kwargs)
         self._ensure_token_list()
-        trainer = super().train()
-        return self._export_on_rank_zero(
-            self.training_config.exp_dir,
-            self.get_encoder_checkpoint_path(),
-            trainer,
-        )
+        return super().train()
 
     # ---------------------------------------------------------
     # Helpers
     # ---------------------------------------------------------
-    @staticmethod
-    def _export_on_rank_zero(exp_dir, output_path, trainer) -> Path | None:
-        # Lightning's DDP launcher runs this stage in every rank; only the
-        # global rank 0 writes the exported checkpoint.
-        if rank_zero_only.rank != 0:
-            return None
-        return export_beats_checkpoint(exp_dir, output_path, trainer=trainer)
+    def _get_iteration(self) -> int:
+        """Return the BEATs iteration selected by ``training_config.iteration``."""
+        if self.training_config is None:
+            return 0
+        iteration = int(self.training_config.get("iteration", 0) or 0)
+        if iteration < 0:
+            raise ValueError(f"training_config.iteration must be >= 0: {iteration}")
+        return iteration
+
+    def _get_tokenizer_checkpoint_path(self) -> Path:
+        """Return the tokenizer checkpoint exported for this iteration."""
+        config = self._get_required_config(
+            {"train_tokenizer_config": self.train_tokenizer_config},
+            "train_tokenizer_config",
+            "--train_tokenizer_config is required at iteration > 0.",
+        )
+        return Path(
+            self._get_required_config(
+                config,
+                "export_path",
+                "train_tokenizer_config.export_path must be set.",
+            )
+        )
+
+    def _has_shape_stats(self) -> bool:
+        stats_dir = Path(self.training_config.stats_dir)
+        return all(
+            (stats_dir / mode / "feats_shape").is_file() for mode in ("train", "valid")
+        )
 
     def _validate_target_dir(self) -> None:
         if self.training_config is None:
@@ -281,22 +341,23 @@ class OpenBeatsSystem(BaseSystem):
         codebook_size = int(
             model_config.encoder_conf.beats_config.get("codebook_vocab_size", 1024)
         )
-        write_token_list(token_list, codebook_size)
+        _write_token_list(token_list, codebook_size)
 
 
-def write_token_list(output_path: str | Path, codebook_size: int) -> Path:
-    """Write the BEATs token list: ``<unk>`` followed by ``0 .. codebook_size-1``.
+def _write_token_list(output_path: str | Path, codebook_size: int) -> Path:
+    """Write the BEATs token list: ``<unk>`` followed by the codebook ids.
 
-    The ``<unk>`` entry keeps ids 1-based after ``CommonPreprocessor``
-    word tokenization; ``BeatsPretrainModel`` subtracts 1 before the loss.
-    An existing file is kept when it has the expected content.
+    The ``<unk>`` entry keeps ids 1-based after ``CommonPreprocessor`` word
+    tokenization; ``BeatsPretrainModel`` subtracts 1 before the loss. An
+    existing file is kept when it has the expected content.
 
-    Args:
-        output_path: Token list file to write.
-        codebook_size: Number of tokenizer codebook entries.
+    For ``codebook_size=1024`` the file starts with::
 
-    Returns:
-        Path: ``output_path``.
+        <unk>
+        0
+        1
+
+    and ends with ``1023`` (1025 lines).
 
     Raises:
         ValueError: If an existing file does not match ``codebook_size``.
@@ -322,19 +383,22 @@ def write_token_list(output_path: str | Path, codebook_size: int) -> Path:
     return output
 
 
-def write_target_shape(target_path: str | Path, output_path: str | Path) -> Path:
+def _write_target_shape(target_path: str | Path, output_path: str | Path) -> Path:
     """Write a batching shape file (``<idx> <num_tokens>``) from ``target.scp``.
 
-    Args:
-        target_path: Index-keyed ``target.scp`` written by the ``infer`` stage.
-        output_path: Shape file to write. It is used together with
-            ``collect_stats``' ``feats_shape`` by ESPnet's length batch sampler.
+    ESPnet's length batch sampler reads it together with ``collect_stats``'
+    ``feats_shape``. For a ``target.scp`` starting with::
 
-    Returns:
-        Path: ``output_path``.
+        0 886 468 468
+        1 874 280
+
+    the shape file starts with::
+
+        0 3
+        1 2
     """
     output = Path(output_path)
-    # Per-process temporary name, for the same reason as in write_token_list.
+    # Per-process temporary name, for the same reason as in _write_token_list.
     tmp_path = output.with_name(f"{output.name}.{os.getpid()}.tmp")
     with (
         Path(target_path).open("r", encoding="utf-8") as reader,
