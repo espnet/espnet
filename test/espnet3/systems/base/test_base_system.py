@@ -369,3 +369,70 @@ def test_base_system_rejects_subclass_args():
     system = CustomSystem()
     with pytest.raises(TypeError):
         system.train(extra="oops")
+
+
+def _dataset_only_config(tmp_path, **extra):
+    base = {
+        "exp_dir": str(tmp_path / "exp"),
+        "recipe_dir": str(tmp_path / "recipe"),
+        "create_dataset": {"recipe_dir": str(tmp_path / "recipe")},
+        "dataset": {"train": [{"data_src": "mini_an4/asr"}]},
+    }
+    base.update(extra)
+    return OmegaConf.create(base)
+
+
+def _stub_builder_module(monkeypatch):
+    class DummyBuilder:
+        def is_source_prepared(self, **kwargs):
+            return True
+
+        def prepare_source(self, **kwargs):
+            pass
+
+        def is_built(self, **kwargs):
+            return True
+
+        def build(self, **kwargs):
+            pass
+
+    class DummyModule:
+        DatasetBuilder = DummyBuilder
+
+    monkeypatch.setattr(
+        sysmod,
+        "load_dataset_module",
+        lambda data_src=None, recipe_dir=None: DummyModule(),
+    )
+
+
+def test_create_dataset_sets_the_parallel_config(tmp_path, monkeypatch):
+    """Builders do the per-file work, so this is the stage that needs a client."""
+    _stub_builder_module(monkeypatch)
+    parallel = {"env": "local", "n_workers": 4, "options": {}}
+    system = BaseSystem(
+        training_config=_dataset_only_config(tmp_path, parallel=parallel)
+    )
+
+    seen = []
+    import espnet3.parallel.parallel as parmod
+
+    monkeypatch.setattr(parmod, "set_parallel", lambda config: seen.append(config))
+
+    assert system.create_dataset() is None
+    assert len(seen) == 1
+    assert seen[0].env == "local" and seen[0].n_workers == 4
+
+
+def test_create_dataset_without_a_parallel_block_sets_nothing(tmp_path, monkeypatch):
+    """No parallel block must stay a no-op, as in train() and collect_stats()."""
+    _stub_builder_module(monkeypatch)
+    system = BaseSystem(training_config=_dataset_only_config(tmp_path))
+
+    seen = []
+    import espnet3.parallel.parallel as parmod
+
+    monkeypatch.setattr(parmod, "set_parallel", lambda config: seen.append(config))
+
+    assert system.create_dataset() is None
+    assert seen == []

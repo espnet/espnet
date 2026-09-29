@@ -231,6 +231,11 @@ class BaseSystem:
             self.__class__.__name__,
         )
         start = time.perf_counter()
+
+        if self.training_config.get("parallel", None):
+            from espnet3.parallel.parallel import set_parallel
+            set_parallel(self.training_config.parallel)
+
         dataset_config = getattr(self.training_config, "dataset", None)
         recipe_dir = getattr(self.training_config, "recipe_dir", None)
         create_dataset_config = getattr(

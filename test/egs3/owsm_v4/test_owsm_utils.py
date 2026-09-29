@@ -281,3 +281,16 @@ def test_no_builder_imports_its_dataset():
                 if name.split(".")[-1] == "dataset":
                     offenders.append(f"{builder.relative_to(REPO_ROOT)} -> {name}")
     assert not offenders, offenders
+
+
+def test_cache_schema_rejects_a_wrong_row(ours):
+    """Every sub-dataset writes one schema; a drift must fail at build time."""
+    good = {column: "" for column in ours.CACHE_COLUMNS}
+    assert ours.check_cache_row(good) is good
+
+    missing = {k: v for k, v in good.items() if k != "tgt_lang"}
+    with pytest.raises(ValueError, match="missing \\['tgt_lang'\\]"):
+        ours.check_cache_row(missing)
+
+    with pytest.raises(ValueError, match="unexpected \\['speaker'\\]"):
+        ours.check_cache_row({**good, "speaker": "x"})
