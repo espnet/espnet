@@ -1,0 +1,36 @@
+# Every value here is read by builder.py or dataset.py.
+
+# The corpus' splits: each must exist in the source, each is built, each is
+# served. Read by both sections below.
+splits:
+  - train
+  - dev
+
+builder:
+  source_env_var: MUST_C
+  # Every en-X pair carries its own copy of the English side, so the ASR
+  # utterances are produced once per pair and collapsed by utterance id.
+  # Iterating in sorted order is what makes the survivor deterministic.
+  languages:
+    - ar
+    - cs
+    - de
+    - es
+    - fa
+    - fr
+    - it
+    - nl
+    - pt
+    - ro
+    - ru
+    - tr
+    - vi
+    - zh
+
+dataset:
+  # Opens every utterance id, and is not the directory name: the published data
+  # was prepared from a directory spelled MuST-C_v1.2, so deriving it from the
+  # local path would change every id.
+  prefix: MuST-C_v1.2
+  lang: en
+  cache_subdir: must_c_v1.2
