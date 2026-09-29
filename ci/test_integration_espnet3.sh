@@ -51,7 +51,7 @@ run_with_training_config \
 
 cd "${cwd}" || exit
 
-cd ./egs3/mini_an4/ssl || exit
+cd ./egs3/mini_an4/openbeats || exit
 echo "==== [ESPnet3] SSL (BEATs) ===="
 source path.sh
 # Iteration 0: random-projection targets -> encoder
