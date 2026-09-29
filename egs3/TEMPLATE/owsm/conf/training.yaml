@@ -1,0 +1,328 @@
+##########################################################
+#                    TRAINING SETTING                    #
+##########################################################
+# Quick usage:
+#   python run.py --stages create_dataset --training_config conf/training.yaml
+#   python run.py --stages train          --training_config conf/training.yaml
+#
+# Main stages and what this config is used for:
+# - `create_dataset`: uses `create_dataset`
+# - `train_tokenizer`: uses `tokenizer`
+# - `collect_stats`: uses `dataset`, `dataloader`, `model`, and `parallel`
+# - `train`: uses most fields in this file
+
+##########################################################
+#                  SYSTEM AND PATH SETTING               #
+##########################################################
+num_device: 1
+num_nodes: 1
+
+# OWSM trains through S2TTask, whose sample keys are speech / text /
+# text_prev / text_ctc.
+task: espnet2.tasks.s2t.S2TTask
+
+# Path scaffold relative to the recipe root.
+recipe_dir: .
+data_dir: ${recipe_dir}/data
+exp_tag: ${self_name:}
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+stats_dir: ${recipe_dir}/exp/stats
+
+# Where the built caches go. Defaults under the recipe so a fresh clone works
+# with no setup, but the full mixture is far too large for that, so OWSM_CACHE
+# relocates it without editing a committed file:
+#
+#   export OWSM_CACHE=/shared/scratch/owsm_cache
+#
+# writes /shared/scratch/owsm_cache/<corpus>/hf_audio_index/<split> instead of
+# ./data/hf/<corpus>/... -- pointing the build at a large shared filesystem
+# rather than the checkout.
+cache:
+  cache_dir: ${oc.env:OWSM_CACHE,${recipe_dir}/data/hf}
+
+##########################################################
+#                 DATASET CREATION SETTING               #
+##########################################################
+# `create_dataset` dedupes builders by `data_src` and hands this whole block
+# to each one, with nothing in it naming the corpus. Per-corpus options
+# therefore ride on `corpora.<key>`, keyed by the builder's CORPUS attribute,
+# and each builder builds all of its own splits in one call.
+#
+# Every key under a corpus except `source_dir` and `splits` is forwarded to that
+# builder's `iter_rows`, so the available options are whatever it accepts.
+#
+# Example:
+# create_dataset:
+#   corpora:
+#     spgispeech:
+#       # Where the corpus lives. Omitting the key entirely falls back to the
+#       # environment variable the sub-dataset's config.yaml names (SPGISPEECH),
+#       # which is what path.sh documents; spelling it out like this adds a
+#       # recipe-local default for when that variable is unset.
+#       source_dir: ${oc.env:SPGISPEECH,${recipe_dir}/download/spgispeech}
+#       # Which splits to build. Defaults to every split the corpus has;
+#       # narrowing it is useful for a dev-only run.
+#       splits: [val]
+#       # Open every file to confirm the sample rate and width, rather than
+#       # only checking its size against the manifest. Thorough and far slower.
+#       read_headers: true
+#     must_c:
+#       source_dir: ${oc.env:MUST_C,${recipe_dir}/download/must_c}
+#       # Which en-X pairs to read. Defaults to the list in the sub-dataset's
+#       # config.yaml.
+#       languages: [de, ja, zh]
+create_dataset:
+  recipe_dir: ${recipe_dir}
+  cache: ${cache}
+  corpora:
+
+##########################################################
+#                    DATASET DEFINITION                  #
+##########################################################
+# Dataset organizer used across collect_stats/train/infer/measure.
+# Fill `train`, `valid`, and optionally `test` with dataset reference entries.
+#
+# Each dataset entry supports:
+# - `data_src`: optional dataset source reference.
+#   - `<recipe>/<task>` tag, e.g. `mini_an4/asr`
+#   - dotted module path, e.g. `my_project.datasets.foo`
+#   - omitted: load `${recipe_dir}/dataset/__init__.py`
+# - `data_src_args`: kwargs forwarded to `Dataset(...)`
+# - `transform`: optional Hydra-instantiated per-sample transform applied before
+#   `preprocessor`
+# - `name`: mainly useful for `test`; inference uses it as the output
+#   subdirectory name
+#
+# Only `data_src_args` is passed to the recipe `Dataset` constructor.
+# Top-level fields such as `name` and `transform` stay in organizer space.
+#
+# `data_src` is a dotted module path naming one sub-dataset. It cannot be
+# omitted: a mixture has several, and `${recipe_dir}/dataset/` is the shared
+# layer rather than a dataset of its own.
+#
+# Example:
+# dataset:
+#   _target_: espnet3.components.data.data_organizer.DataOrganizer
+#   recipe_dir: ${recipe_dir}
+#   train:
+#     - data_src: egs3.owsm_v4.owsm.dataset.sub_datasets.spgispeech
+#       data_src_args:
+#         split: train
+#         recipe_dir: ${recipe_dir}
+#         cache: ${cache}
+#     - data_src: egs3.owsm_v4.owsm.dataset.sub_datasets.must_c
+#       data_src_args:
+#         split: train
+#         recipe_dir: ${recipe_dir}
+#         cache: ${cache}
+#   valid:
+#     - data_src: egs3.owsm_v4.owsm.dataset.sub_datasets.spgispeech
+#       data_src_args:
+#         split: val
+#         recipe_dir: ${recipe_dir}
+#         cache: ${cache}
+#     - data_src: egs3.owsm_v4.owsm.dataset.sub_datasets.must_c
+#       data_src_args:
+#         split: dev
+#         recipe_dir: ${recipe_dir}
+#         cache: ${cache}
+#   preprocessor:
+# Entries are POSITIONAL. `collect_stats` keys its shape files by position in
+# the combined dataset, so inserting, removing or reordering an entry silently
+# invalidates every shape key after it. Append; do not reorder.
+dataset:
+  _target_: espnet3.components.data.data_organizer.DataOrganizer
+  _recursive_: false
+  recipe_dir: ${recipe_dir}
+  train:
+  valid:
+  test:
+  preprocessor:
+
+##########################################################
+#                   TOKENIZER SETTING                    #
+##########################################################
+# One shared vocabulary over the whole mixture, trained by
+# `espnet3.systems.owsm.system.OWSMSystem`.
+#   nlsyms                the OWSM special symbols, as a list or a file. Without
+#                         them SentencePiece splits <eng> into '<','e','n','g','>'.
+#   text_builder._target_ a callable returning a path or an iterable of strings.
+#   vocab_scaled_shapes   streams whose `<stream>_shape` gets the vocabulary size
+#                         appended, so batch_bins can see the decoder logits.
+#                         Defaults to text and text_prev.
+tokenizer:
+
+##########################################################
+#                      MODEL SETTING                     #
+##########################################################
+# Training model definition.
+# If `task` is set, this block is passed to `get_espnet_model(task, model_conf)`.
+# Thus, you can reuse ESPnet2-style model configs here by setting `task` and
+# filling this block with the per-model config that ESPnet2 used.
+# If `task` is not set, this block is instantiated directly via Hydra.
+model:
+
+##########################################################
+#            OPTIMIZER & SCHEDULER SETTING               #
+##########################################################
+# Single optimizer path:
+optimizer:
+  _target_: torch.optim.Adam
+  lr: 0.002
+  weight_decay: 0.000001
+
+scheduler:
+  _target_: espnet2.schedulers.warmup_lr.WarmupLR
+  warmup_steps: 15000
+
+# Used only in the single optimizer path.
+scheduler_interval: step   # `step` or `epoch`
+scheduler_monitor:         # e.g. `valid/loss` for monitored epoch schedulers
+
+# Multiple-loss / multiple-optimizer path:
+# optimizers:
+#   generator:
+#     optimizer:
+#       _target_: torch.optim.Adam
+#       lr: 0.0002                 # optimizer config for `generator`
+#     params: generator            # substring used to select parameters
+#     accum_grad_steps: 1          # number of backward passes before optimizer.step()
+#     step_every_n_iters: 1        # only step on every N-th training iteration
+#     gradient_clip_val: 1.0       # per-optimizer gradient clipping value
+#     gradient_clip_algorithm: norm  # `norm` or `value`
+#
+#   discriminator:
+#     optimizer:
+#       _target_: torch.optim.Adam
+#       lr: 0.0002                 # optimizer config for `discriminator`
+#     params: discriminator        # substring used to select parameters
+#     accum_grad_steps: 1          # number of backward passes before optimizer.step()
+#     step_every_n_iters: 1        # only step on every N-th training iteration
+#
+# schedulers:
+#   generator:
+#     scheduler:
+#       _target_: torch.optim.lr_scheduler.LinearLR
+#       start_factor: 1.0          # scheduler-specific argument
+#       end_factor: 0.5            # scheduler-specific argument
+#       total_iters: 1000          # scheduler-specific argument
+#     interval: step               # `step` schedulers run after optimizer updates
+#
+#   discriminator:
+#     scheduler:
+#       _target_: torch.optim.lr_scheduler.ReduceLROnPlateau
+#       patience: 2                # scheduler-specific argument
+#       factor: 0.5                # scheduler-specific argument
+#     interval: epoch              # `epoch` schedulers run in `on_train_epoch_end()`
+#     monitor: valid/discriminator/loss  # required for monitored epoch schedulers
+#
+# Note:
+# - In the multiple-optimizer path, do not use trainer-level
+#   `trainer.gradient_clip_val` or `trainer.gradient_clip_algorithm`.
+#   Configure clipping per optimizer as shown above.
+
+##########################################################
+#                OTHER TRAINING SETTING                  #
+##########################################################
+# Checkpoint selection criteria passed to ESPnet3 callbacks.
+# Each item is:
+#   - monitor key
+#   - number of best checkpoints to keep
+#   - direction (`min` or `max`)
+best_model_criterion:
+  - - valid/loss
+    - 3
+    - min
+
+# Optional random seed used by collect_stats/train.
+seed:
+
+# Extra model initialization mode forwarded to ESPnet's initializer.
+# Example: xavier_uniform
+init:
+
+##########################################################
+#                   PARALLELIZATION SETTING              #
+##########################################################
+# Parallel backend used by collect_stats/train.
+parallel:
+  env: local
+  n_workers: 1
+
+##########################################################
+#                   DATALOADER SETTING                   #
+##########################################################
+dataloader:
+  collate_fn:
+    _target_: espnet2.train.collate_fn.CommonCollateFn
+    int_pad_value: -1
+  # Training dataloader / iterator settings.
+  train:
+    # `total_shards` is the total number of dataset shards.
+    # `dist_world_size` is the distributed world size used to rotate shards.
+    # Keep `dist_world_size` equal to the runtime world size.
+    total_shards: 1
+    dist_world_size: 1
+    iter_factory:
+      _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
+      shuffle: true
+      collate_fn: ${dataloader.collate_fn}
+      batches:
+        # Typical batch modes include `unsorted`, `sorted`, and task-specific
+        # iterator/batcher setups. Adjust this to match your dataset.
+        # `numel` sums bins over every shape file but sorts on the first, so
+        # feats_shape leads: batches stay bucketed by audio duration while the
+        # text terms bound the decoder logits.
+        type: numel
+        shape_files:
+          - ${stats_dir}/train/feats_shape
+          - ${stats_dir}/train/text_shape
+          - ${stats_dir}/train/text_prev_shape
+        batch_size: 4
+        batch_bins: 4000000
+
+  # Validation dataloader / iterator settings.
+  valid:
+    # Use the same sharding settings as `train`.
+    total_shards: 1
+    dist_world_size: 1
+    iter_factory:
+      _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
+      shuffle: false
+      collate_fn: ${dataloader.collate_fn}
+      batches:
+        type: ${dataloader.train.iter_factory.batches.type}
+        shape_files:
+          - ${stats_dir}/valid/feats_shape
+          - ${stats_dir}/valid/text_shape
+          - ${stats_dir}/valid/text_prev_shape
+        batch_size: ${dataloader.train.iter_factory.batches.batch_size}
+        batch_bins: ${dataloader.train.iter_factory.batches.batch_bins}
+
+##########################################################
+#                    TRAINER SETTING                     #
+##########################################################
+# These settings map to `lightning.Trainer(...)`.
+trainer:
+  accelerator: auto
+  devices: ${num_device}
+  num_nodes: ${num_nodes}
+  accumulate_grad_batches: 1
+  check_val_every_n_epoch: 1
+  gradient_clip_val: 1.0
+  log_every_n_steps: 100
+  max_epochs: 100
+
+  logger:
+    - _target_: lightning.pytorch.loggers.TensorBoardLogger
+      save_dir: ${exp_dir}/tensorboard
+      name: tb_logger
+
+  strategy: auto
+
+##########################################################
+#                      FIT SETTING                       #
+##########################################################
+# Optional keyword arguments passed directly to `trainer.fit(**fit)`.
+# Leave `{}` for the default flow.
+fit: {}
