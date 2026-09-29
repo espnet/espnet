@@ -26,12 +26,19 @@ def resolve_best_checkpoints(trainer: Any) -> List[Path]:
     Lightning updates the top-K and therefore misses the last validation.
 
     Args:
-        trainer: Trainer returned by :func:`espnet3.systems.base.training.train`,
-            or a ``lightning.Trainer``.
+        trainer: The ``lightning.Trainer`` that ran the fit (as passed to
+            callback hooks), or an ``ESPnet3LightningTrainer`` wrapping one.
 
     Returns:
         List[Path]: Checkpoints of the first monitor in ``valid/loss``,
         ``valid/acc`` that kept any, sorted by name.
+
+    Examples:
+        Inside ``BeatsCheckpointExport.on_train_end``:
+
+        >>> resolve_best_checkpoints(trainer)  # doctest: +SKIP
+        [PosixPath('exp/beats_iter0_base/epoch3_step28552_valid.loss.ckpt'),
+         PosixPath('exp/beats_iter0_base/epoch4_step35690_valid.loss.ckpt')]
 
     Raises:
         FileNotFoundError: If no monitored checkpoint was kept, typically
@@ -61,7 +68,8 @@ def export_beats_checkpoint(
 ) -> Path:
     """Average top-K checkpoints into a portable BEATs checkpoint.
 
-    Used at the end of the OpenBEATs ``train`` and ``train_tokenizer`` stages. The
+    Called by :class:`~espnet3.systems.openbeats.callbacks.BeatsCheckpointExport`
+    when encoder or tokenizer training ends. The
     output has the ``{"model": state_dict, "cfg": config}`` layout expected by
     ``BeatsEncoder(beats_ckpt_path=...)`` (tokenizer teacher, downstream
     fine-tuning) and ``BeatsTokenizer(beats_tokenizer_ckpt_path=...)``
