@@ -57,7 +57,8 @@ class BeatsTokenizationModel:
         .. code-block:: yaml
 
             model:
-              _target_: espnet3.systems.openbeats.tokenization_model.BeatsTokenizationModel
+              _target_: >-
+                espnet3.systems.openbeats.tokenization_model.BeatsTokenizationModel
               tokenizer_ckpt_path: null
               tokenizer_config:
                 seed: 45
@@ -134,6 +135,21 @@ class BeatsTokenizationModel:
             np.ndarray | List[np.ndarray]: ``int64`` code ids of shape
             ``(num_patches,)`` for a single item, or one such array per item
             when ``speech`` is a list.
+
+        Examples:
+            Tokenize 16 kHz waveforms with the iteration-0 random-projection
+            tokenizer. A 10 s clip gives 998 fbank frames, i.e. 62 x 8 = 496
+            patches of 16 frames x 16 mel bins:
+
+            >>> model = BeatsTokenizationModel(
+            ...     tokenizer_config={"seed": 45}, waveform_input=True
+            ... )  # doctest: +SKIP
+            >>> codes = model(np.zeros(160000, dtype=np.float32))  # doctest: +SKIP
+            >>> codes.shape, codes.dtype  # doctest: +SKIP
+            ((496,), dtype('int64'))
+            >>> batch = [np.zeros(160000), np.zeros(80000)]  # doctest: +SKIP
+            >>> [c.shape for c in model(batch)]  # doctest: +SKIP
+            [(496,), (248,)]
         """
         batched = isinstance(speech, (list, tuple))
         items: Sequence[Any] = speech if batched else [speech]

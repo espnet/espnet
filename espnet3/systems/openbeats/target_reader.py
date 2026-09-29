@@ -57,6 +57,28 @@ class BeatsTargetReader:
         self._fd_pid = None
 
     def _build_index(self) -> tuple[np.ndarray, np.ndarray]:
+        r"""Scan ``target_path`` once and locate the token ids of every index.
+
+        Lines may appear in any order (``infer`` shards finish out of order),
+        so the arrays are indexed by the ``<idx>`` key of each line, not by
+        line number. For each index this records where its token ids start
+        (after ``"<idx> "``) and how many bytes they span, including the
+        newline that ``__getitem__`` strips.
+
+        Returns:
+            tuple[np.ndarray, np.ndarray]: ``(offsets, lengths)`` of shape
+            ``(num_items,)``. For the file::
+
+                1 7 8
+                0 5
+
+            they are ``offsets = [8, 2]`` and ``lengths = [2, 4]``: index 0
+            is ``b"5\n"`` at byte 8 and index 1 is ``b"7 8\n"`` at byte 2.
+
+        Raises:
+            ValueError: If a line has a malformed, out-of-range, or duplicate
+                index, or if some index in ``[0, num_items)`` has no line.
+        """
         offsets = np.full(self.num_items, -1, dtype=np.int64)
         lengths = np.zeros(self.num_items, dtype=np.int32)
         offset = 0
@@ -97,7 +119,18 @@ class BeatsTargetReader:
         return self.num_items
 
     def __getitem__(self, idx: int) -> str:
-        """Return the space-separated token ids for dataset item ``idx``."""
+        """Return the space-separated token ids for dataset item ``idx``.
+
+        Examples:
+            With the ``target.scp``::
+
+                1 7 8
+                0 5
+
+            >>> reader = BeatsTargetReader("target.scp", num_items=2)  # doctest: +SKIP
+            >>> reader[0], reader[1]  # doctest: +SKIP
+            ('5', '7 8')
+        """
         pid = os.getpid()
         if self._fd is None or self._fd_pid != pid:
             # A descriptor inherited through fork belongs to the parent; open
