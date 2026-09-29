@@ -2,17 +2,21 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import os
-from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass
 from importlib import resources
 from pathlib import Path
-from typing import Iterable
+from typing import Any, Callable, Dict, Iterable, List, Optional
 
 import soundfile as sf
+from omegaconf import DictConfig
 
 from espnet3.components.data.dataset_builder import DatasetBuilder
+from espnet3.parallel.base_runner import BaseRunner
+from espnet3.parallel.env_provider import EnvironmentProvider
+from espnet3.parallel.parallel import set_parallel
 from espnet3.utils.config_utils import load_config_with_defaults
 
 logger = logging.getLogger(__name__)
@@ -54,12 +58,18 @@ def resolve_source_root(source_dir: str | Path | None = None) -> Path:
     candidate = source_dir if source_dir is not None else os.environ.get(env_var)
     if not candidate:
         raise FileNotFoundError(
-            f"AudioSet root is not set. Pass `create_dataset.source_dir` or set "
-            f"{env_var}."
+            "AudioSet was not found: the AudioSet root is not set. This recipe "
+            "does not download AudioSet; download it first (segment CSVs and "
+            "the `*_wav` clip directories), then pass its root as "
+            f"`create_dataset.source_dir` or set {env_var}."
         )
     source_root = Path(candidate)
     if not source_root.is_dir():
-        raise FileNotFoundError(f"AudioSet root not found: {source_root}")
+        raise FileNotFoundError(
+            f"AudioSet was not found at {source_root}. This recipe does not "
+            "download AudioSet; download it first or fix "
+            f"`create_dataset.source_dir` / {env_var}."
+        )
     return source_root
 
 
@@ -134,6 +144,129 @@ def _prepare_clip(example: AudioSetExample) -> tuple[bool, int]:
     return True, int(info.frames)
 
 
+def _write_clip_list(path: Path, examples: Iterable[AudioSetExample]) -> None:
+    """Write ``source_path<TAB>audio_path<TAB>segment_seconds`` lines.
+
+    The clip list is how the Runner workers receive the examples of one split:
+    each worker reads it once in its setup, instead of receiving ~2M examples
+    through the scheduler.
+    """
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", encoding="utf-8") as writer:
+        for example in examples:
+            writer.write(
+                f"{example.source_path}\t{example.audio_path}\t"
+                f"{example.segment_seconds}\n"
+            )
+
+
+def _read_clip_list(path: str | Path) -> List[AudioSetExample]:
+    """Read the clip list written by :func:`_write_clip_list`."""
+    examples = []
+    with Path(path).open("r", encoding="utf-8") as reader:
+        for line in reader:
+            source_path, audio_path, segment_seconds = line.rstrip("\n").split("\t")
+            examples.append(
+                AudioSetExample(
+                    Path(source_path), Path(audio_path), float(segment_seconds)
+                )
+            )
+    return examples
+
+
+class PrepareClipProvider(EnvironmentProvider):
+    """Provide the clips of one split to :class:`PrepareClipRunner` workers.
+
+    Args:
+        config: ``create_dataset`` config. Unused beyond the base class.
+        clip_list_path: Clip list written by :func:`_write_clip_list`.
+    """
+
+    def __init__(self, config: DictConfig, clip_list_path: str | Path):
+        """Store the clip list path; clips are loaded when the env is built."""
+        super().__init__(config)
+        self.clip_list_path = str(clip_list_path)
+
+    def build_env_local(self) -> Dict[str, Any]:
+        """Load the clip list on the driver for local execution."""
+        return {"examples": _read_clip_list(self.clip_list_path)}
+
+    def build_worker_setup_fn(self) -> Callable[[], Dict[str, Any]]:
+        """Return a setup function that loads the clip list on each worker."""
+        clip_list_path = self.clip_list_path
+
+        def setup() -> Dict[str, Any]:
+            return {"examples": _read_clip_list(clip_list_path)}
+
+        return setup
+
+
+class PrepareClipRunner(BaseRunner):
+    """Cut and inspect AudioSet clips in parallel.
+
+    Each shard writes one JSON line per clip to its ``results.jsonl``, and
+    :meth:`merge` returns the records of all shards sorted by ``idx`` (the
+    position of the clip in the split's clip list), whatever order the shards
+    finished in.
+    """
+
+    @staticmethod
+    def forward(
+        idx: int | Iterable[int], examples: List[AudioSetExample], **env
+    ) -> Dict[str, Any] | List[Dict[str, Any]]:
+        """Prepare the clip(s) at ``idx``.
+
+        Returns:
+            ``{"idx": int, "ok": bool, "num_samples": int}`` for an int index,
+            or a list of them for a batch of indices. See :func:`_prepare_clip`.
+        """
+        if isinstance(idx, int):
+            return PrepareClipRunner._process_one(idx, examples)
+        return [PrepareClipRunner._process_one(i, examples) for i in idx]
+
+    @staticmethod
+    def _process_one(idx: int, examples: List[AudioSetExample]) -> Dict[str, Any]:
+        ok, num_samples = _prepare_clip(examples[idx])
+        return {"idx": idx, "ok": ok, "num_samples": num_samples}
+
+    @staticmethod
+    def open_writers(shard_dir: Optional[Path], **env) -> Dict[str, Any]:
+        """Open the shard-local ``results.jsonl``."""
+        return {"results": (Path(shard_dir) / "results.jsonl").open("w")}
+
+    @staticmethod
+    def write_record(
+        writers: Dict[str, Any], result: Any, state: Dict[str, Any], **env
+    ) -> None:
+        """Append one ``forward`` result (or batch of results)."""
+        records = result if isinstance(result, list) else [result]
+        for record in records:
+            writers["results"].write(json.dumps(record) + "\n")
+
+    @staticmethod
+    def close_writers(
+        writers: Dict[str, Any], state: Dict[str, Any], **env
+    ) -> Dict[str, Any]:
+        """Close the shard-local ``results.jsonl``."""
+        writers["results"].close()
+        return {}
+
+    def merge(self, shard_dirs: List[Path]) -> List[Dict[str, Any]]:
+        """Concatenate shard results in clip-list order.
+
+        Each shard's ``results.jsonl`` holds one JSON object per clip, e.g.::
+
+            {"idx": 0, "ok": true, "num_samples": 160000}
+            {"idx": 1, "ok": false, "num_samples": 0}
+        """
+        records: List[Dict[str, Any]] = []
+        for shard_dir in shard_dirs:
+            with (Path(shard_dir) / "results.jsonl").open("r") as reader:
+                records.extend(json.loads(line) for line in reader if line.strip())
+        records.sort(key=lambda record: record["idx"])
+        return records
+
+
 def _write_manifest(manifest_path: Path, rows: Iterable[tuple[str, Path, int]]) -> int:
     """Atomically write ``utt_id<TAB>audio_path<TAB>num_samples`` lines."""
     manifest_path.parent.mkdir(parents=True, exist_ok=True)
@@ -165,11 +298,25 @@ class AudioSetBuilder(DatasetBuilder):
 
     The corpus itself is never modified; new cut clips go under
     ``<recipe_dir>/data/cut_wav``. Re-running is a no-op once both manifests
-    exist.
+    exist. Step 2-3 run through :class:`PrepareClipRunner`, so they use the
+    ``create_dataset.parallel`` config (e.g. a local Dask cluster or a SLURM
+    cluster) like the other ESPnet3 parallel stages.
 
     Config (``create_dataset`` block of the training config):
         recipe_dir: Recipe root directory.
         source_dir: AudioSet root. Optional when ``AUDIOSET`` is set.
+        parallel: ESPnet3 parallel config used to cut and inspect clips.
+            Clips are processed sequentially on the driver when omitted.
+
+    Examples:
+        .. code-block:: yaml
+
+            create_dataset:
+              recipe_dir: ${recipe_dir}
+              source_dir: /path/to/audioset
+              parallel:
+                env: local
+                n_workers: 16
     """
 
     def is_source_prepared(
@@ -195,7 +342,7 @@ class AudioSetBuilder(DatasetBuilder):
         source_dir: str | Path | None = None,
         **_kwargs,
     ) -> None:
-        """Validate the AudioSet root; downloading AudioSet is out of scope.
+        """Validate the AudioSet root; this recipe does not download AudioSet.
 
         Raises:
             FileNotFoundError: If the root or a segment list is missing.
@@ -209,7 +356,9 @@ class AudioSetBuilder(DatasetBuilder):
         ]
         if missing:
             raise FileNotFoundError(
-                "AudioSet segment lists are missing: " + ", ".join(missing)
+                "AudioSet was not found: segment lists are missing: "
+                + ", ".join(missing)
+                + ". This recipe does not download AudioSet; download it first."
             )
 
     def is_built(self, recipe_dir: str | Path, **_kwargs) -> bool:
@@ -223,7 +372,7 @@ class AudioSetBuilder(DatasetBuilder):
         self,
         recipe_dir: str | Path,
         source_dir: str | Path | None = None,
-        num_workers: int | None = None,
+        parallel: DictConfig | dict | None = None,
         **_kwargs,
     ) -> None:
         """Cut, validate, and filter clips, then write the manifests.
@@ -231,8 +380,7 @@ class AudioSetBuilder(DatasetBuilder):
         Args:
             recipe_dir: Recipe root directory.
             source_dir: AudioSet root. Optional when ``AUDIOSET`` is set.
-            num_workers: Processes used to cut and inspect clips. Defaults to
-                ``builder.num_workers`` in ``dataset/config.yaml``.
+            parallel: ESPnet3 parallel config for :class:`PrepareClipRunner`.
             **_kwargs: Unused extra options for API compatibility.
 
         Raises:
@@ -248,7 +396,9 @@ class AudioSetBuilder(DatasetBuilder):
         sample_rate = int(_CFG["sample_rate"])
         min_samples = float(_CFG["min_wav_duration"]) * sample_rate
         max_samples = float(_CFG["max_wav_duration"]) * sample_rate
-        num_workers = int(num_workers or _CFG["num_workers"])
+        if parallel is not None:
+            set_parallel(DictConfig(parallel))
+        work_dir = data_root / "prepare_clips"
 
         for split, entries in _CFG["segment_lists"].items():
             examples: list[AudioSetExample] = []
@@ -269,15 +419,27 @@ class AudioSetBuilder(DatasetBuilder):
                 )
                 examples.extend(parsed)
 
-            with ProcessPoolExecutor(max_workers=num_workers) as pool:
-                results = list(pool.map(_prepare_clip, examples, chunksize=256))
+            clip_list_path = work_dir / f"{split}_clips.tsv"
+            _write_clip_list(clip_list_path, examples)
+            # resume=False: results depend on the clip list, which changes
+            # whenever more of AudioSet is downloaded.
+            runner = PrepareClipRunner(
+                provider=PrepareClipProvider(DictConfig({}), clip_list_path),
+                batch_size=int(_CFG["batch_size"]),
+                output_dir=work_dir,
+                shard_subdir=split,
+                resume=False,
+            )
+            results = runner(range(len(examples))) if examples else []
             utt_id_prefix = str(_CFG["utt_id_prefixes"][split])
             rows = [
-                (f"{utt_id_prefix}-{position}", example.audio_path, num_samples)
-                for position, (example, (ok, num_samples)) in enumerate(
-                    zip(examples, results)
+                (
+                    f"{utt_id_prefix}-{result['idx']}",
+                    examples[result["idx"]].audio_path,
+                    result["num_samples"],
                 )
-                if ok and min_samples < num_samples < max_samples
+                for result in results
+                if result["ok"] and min_samples < result["num_samples"] < max_samples
             ]
             if not rows:
                 raise RuntimeError(f"No usable AudioSet clips for split '{split}'.")

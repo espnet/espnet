@@ -8,10 +8,12 @@ shared defaults live in [`egs3/TEMPLATE/openbeats`](../../TEMPLATE/openbeats).
 
 ## Setup
 
-Set `AUDIOSET` (or `create_dataset.source_dir` in `conf/training.yaml`) to the
-AudioSet root, which must contain `{eval,balanced_train,unbalanced_train}_segments.csv`
+This recipe does not download AudioSet. Download it first, then set `AUDIOSET`
+(or `create_dataset.source_dir` in `conf/training.yaml`) to the AudioSet root,
+which must contain `{eval,balanced_train,unbalanced_train}_segments.csv`
 and the downloaded clips in `eval_wav/`, `balance_wav/`, and `unbalanced_wav/`
-(16 kHz mono wav). We recommend installing
+(16 kHz mono wav). `create_dataset` cuts and inspects the ~2M clips with the
+workers of `create_dataset.parallel` (16 local workers by default). We recommend installing
 [Flash Attention](https://github.com/Dao-AILab/flash-attention) and training on
 Ampere-or-newer GPUs (`bf16-mixed`).
 

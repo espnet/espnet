@@ -1,13 +1,19 @@
 """Tests for the AudioSet-2M BEATs dataset builder and dataset."""
 
 import builtins
+import json
 
 import numpy as np
 import pytest
 import soundfile as sf
 
+import espnet3.parallel.parallel as parallel_module
 from egs3.audioset.openbeats.dataset import Dataset, DatasetBuilder
-from egs3.audioset.openbeats.dataset.builder import AudioSetExample, _prepare_clip
+from egs3.audioset.openbeats.dataset.builder import (
+    AudioSetExample,
+    PrepareClipRunner,
+    _prepare_clip,
+)
 
 # ===============================================================
 # Test Case Summary
@@ -18,7 +24,10 @@ from egs3.audioset.openbeats.dataset.builder import AudioSetExample, _prepare_cl
 # | test_builder_writes_filtered_manifests       | Cuts short segments, drops     |
 # |                                              | missing/corrupt/long clips,    |
 # |                                              | keeps stable utterance ids.    |
-# | test_builder_requires_source                 | Missing AudioSet root.         |
+# | test_builder_requires_source                 | Missing AudioSet root says it  |
+# |                                              | must be downloaded.            |
+# | test_prepare_clip_runner_merges_in_idx_order | Shard results come back in     |
+# |                                              | clip-list order.               |
 # | test_prepare_clip_drops_unreadable_source    | Corrupt source clip is dropped.|
 # | test_prepare_clip_propagates_write_errors    | A failed cut stops the build   |
 # |                                              | instead of dropping the clip.  |
@@ -71,13 +80,19 @@ def _read_manifest(path):
     return [line.split("\t") for line in path.read_text().splitlines()]
 
 
+@pytest.fixture(autouse=True)
+def no_parallel(monkeypatch):
+    """Run PrepareClipRunner on the driver, whatever other tests configured."""
+    monkeypatch.setattr(parallel_module, "parallel_config", None)
+
+
 def test_builder_writes_filtered_manifests(tmp_path, audioset_root):
     recipe_dir = tmp_path / "recipe"
     builder = DatasetBuilder()
     assert builder.is_source_prepared(recipe_dir, source_dir=audioset_root)
     assert not builder.is_built(recipe_dir)
 
-    builder.build(recipe_dir, source_dir=audioset_root, num_workers=1)
+    builder.build(recipe_dir, source_dir=audioset_root)
 
     assert builder.is_built(recipe_dir)
     train = _read_manifest(recipe_dir / "data/manifest/train.tsv")
@@ -96,8 +111,28 @@ def test_builder_requires_source(tmp_path, monkeypatch):
     builder = DatasetBuilder()
 
     assert not builder.is_source_prepared(tmp_path)
-    with pytest.raises(FileNotFoundError, match="AUDIOSET"):
+    with pytest.raises(FileNotFoundError, match="AudioSet was not found.*AUDIOSET"):
         builder.prepare_source(tmp_path)
+    with pytest.raises(FileNotFoundError, match="download it first"):
+        builder.prepare_source(tmp_path, source_dir=tmp_path / "missing")
+
+
+def test_prepare_clip_runner_merges_in_idx_order(tmp_path):
+    for shard, idxs in (("split.0", [2, 0]), ("split.1", [1])):
+        shard_dir = tmp_path / shard
+        shard_dir.mkdir()
+        (shard_dir / "results.jsonl").write_text(
+            "".join(
+                json.dumps({"idx": i, "ok": True, "num_samples": i}) + "\n"
+                for i in idxs
+            )
+        )
+
+    records = PrepareClipRunner(provider=None).merge(
+        [tmp_path / "split.1", tmp_path / "split.0"]
+    )
+
+    assert [record["idx"] for record in records] == [0, 1, 2]
 
 
 def test_prepare_clip_drops_unreadable_source(tmp_path):

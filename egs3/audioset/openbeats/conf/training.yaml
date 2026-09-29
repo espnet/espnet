@@ -23,6 +23,10 @@ create_dataset:
   # AudioSet root with the segment CSVs and `*_wav` directories.
   # Leave empty to use the AUDIOSET environment variable.
   source_dir:
+  # Workers that cut and inspect the ~2M clips (PrepareClipRunner).
+  parallel:
+    env: local
+    n_workers: 16
 
 dataset:
   train:

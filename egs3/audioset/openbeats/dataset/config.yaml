@@ -27,7 +27,8 @@ builder:
   min_wav_duration: 0.1
   max_wav_duration: 11.0
   sample_rate: 16000
-  num_workers: 16
+  # Clips per PrepareClipRunner forward call.
+  batch_size: 256
   data_path: data
   manifest_paths:
     train: manifest/train.tsv
