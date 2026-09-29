@@ -1,0 +1,28 @@
+# Every value here is read by builder.py or dataset.py.
+
+# The corpus' splits: each must exist in the source, each is built, each is
+# served. Read by both sections below.
+splits:
+  - train
+  - val
+
+builder:
+  source_env_var: SPGISPEECH
+  audio_subdir: spgispeech
+  # The corpus is uniform 16 kHz mono 16-bit PCM, so the csv's wav_filesize
+  # gives the duration. Every file's size is checked against the manifest
+  # before it is used. read_headers additionally opens each file to confirm the
+  # sample rate and width, which is thorough but far slower; override it per
+  # build with create_dataset.corpora.spgispeech.read_headers.
+  audio:
+    header_bytes: 44
+    bytes_per_second: 32000
+    read_headers: false
+
+dataset:
+  # Opens every utterance id. Fixed by the published OWSM data -- deriving it
+  # from the corpus directory name would give "spgispeech" and change every id.
+  prefix: SPGISpeech
+  lang: en
+  task: asr
+  cache_subdir: spgispeech

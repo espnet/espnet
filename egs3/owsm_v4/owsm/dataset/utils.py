@@ -17,8 +17,14 @@ utterance ids must keep using the corpus's own code.
 
 from __future__ import annotations
 
+import logging
+import os
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
+from pathlib import Path
 from typing import List, Optional
+
+logger = logging.getLogger(__name__)
 
 SYMBOL_NA: str = "<na>"
 SYMBOL_NOSPEECH: str = "<nospeech>"
@@ -230,3 +236,83 @@ def generate_long_utterances(
 
     long_utts = [u for u in long_utts if u is not None]
     return long_utts
+
+
+CACHE_COLUMNS = (
+    "utt_id",
+    "wav_path",
+    "start_time",
+    "end_time",
+    "lang",
+    "task",
+    "tgt_lang",
+    "text",
+    "text_prev",
+    "text_ctc",
+)
+
+
+def check_cache_row(row: dict) -> dict:
+    """Return ``row`` unchanged if it carries exactly ``CACHE_COLUMNS``.
+
+    Every sub-dataset writes this one schema, because ``CombinedDataset``
+    refuses a mixture whose entries yield different sample keys and a cache
+    built with the wrong columns would only fail there -- after the build.
+    """
+    missing = sorted(set(CACHE_COLUMNS) - set(row))
+    unexpected = sorted(set(row) - set(CACHE_COLUMNS))
+    if missing or unexpected:
+        raise ValueError(
+            "cache row does not match the shared OWSM schema: "
+            f"missing {missing}, unexpected {unexpected}"
+        )
+    return row
+
+
+def run_parallel(function, tasks, default_workers: int = 16):
+    """Map ``function`` over ``tasks``, fanning out when a cluster is configured.
+
+    It will honour ``espnet3.parallel`` when a recipe has set one, and degrade
+    rather than fail when it has not. ``function`` must be module-level and take
+    only its task, because on a cluster it is pickled to the worker.
+    """
+    tasks = list(tasks)
+    if not tasks:
+        return []
+
+    # Deferred: espnet3.parallel.parallel builds CLUSTER_MAP at module scope, so
+    # importing it pulls in dask. The submodule, not the package, which
+    # re-exports nothing.
+    from espnet3.parallel.parallel import get_client, get_parallel_config
+
+    config = get_parallel_config()
+    env = getattr(config, "env", "local") if config is not None else "local"
+
+    if env != "local":
+        logger.info("running %d tasks on the %s cluster", len(tasks), env)
+        with get_client(config) as client:
+            return list(client.gather(client.map(function, tasks)))
+
+    # espnet3 reads `env: local` as "no Dask cluster" and runs in-process, so
+    # building a LocalCluster here would break that convention.
+    if config is not None:
+        workers = int(getattr(config, "n_workers", 1) or 1)
+    else:
+        slurm_cpus = int(os.environ.get("SLURM_CPUS_PER_TASK", "8"))
+        workers = min(default_workers, 4 * slurm_cpus)
+
+    if workers <= 1:
+        logger.info("running %d tasks serially", len(tasks))
+        return [function(task) for task in tasks]
+
+    logger.info("running %d tasks on %d local threads", len(tasks), workers)
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        return list(pool.map(function, tasks))
+
+
+def cache_root(recipe_dir, cache: dict | None, corpus: str) -> Path:
+    """Return the ``hf_audio_index`` directory holding ``corpus``' splits."""
+    root = Path((cache or {}).get("cache_dir", "data/hf"))
+    if not root.is_absolute():
+        root = Path(recipe_dir) / root
+    return root / corpus / "hf_audio_index"
