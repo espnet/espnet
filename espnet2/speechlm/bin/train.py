@@ -55,8 +55,7 @@ def get_parser() -> argparse.ArgumentParser:
         "--resume-path",
         type=Path,
         default=None,
-        help="Native weight file or DCP directory for weights-only initialization; "
-        "omit to resume the latest complete output checkpoint",
+        help="Path to checkpoint to resume training from",
     )
 
     # Data configuration
