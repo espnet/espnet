@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+"""Discover metric names or copy them from an explicit type vocabulary."""
 
 import argparse
 
