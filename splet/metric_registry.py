@@ -35,6 +35,7 @@ import logging
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple
 
+from splet.corpus_metrics import bleu
 from splet.summary import RESERVED_KEYS, declared_rules
 from splet.utterance_metrics import error_rate
 
@@ -101,6 +102,27 @@ METRIC_CHOICES: Dict[str, MetricSpec] = {
         outputs=error_rate.OUTPUTS,
         requires=("reference",),
         defaults={"tokenizer": "char"},
+    ),
+    "bleu": MetricSpec(
+        tier="corpus",
+        setup=bleu.bleu_setup,
+        metric=bleu.sacrebleu_metric,
+        outputs=bleu.BLEU_OUTPUTS,
+        requires=("reference",),
+    ),
+    "chrf": MetricSpec(
+        tier="corpus",
+        setup=bleu.chrf_setup,
+        metric=bleu.sacrebleu_metric,
+        outputs=bleu.OUTPUTS,
+        requires=("reference",),
+    ),
+    "ter": MetricSpec(
+        tier="corpus",
+        setup=bleu.ter_setup,
+        metric=bleu.sacrebleu_metric,
+        outputs=bleu.OUTPUTS,
+        requires=("reference",),
     ),
 }
 
@@ -214,11 +236,7 @@ def load_corpus_metrics(
     metrics_config: Sequence[Dict[str, Any]],
     normalize: Optional[Sequence[Dict[str, Any]]] = None,
 ) -> Dict[str, Dict[str, Any]]:
-    """Build the corpus-tier metrics.
-
-    None exist yet; :mod:`splet.corpus_metrics` documents the contract they
-    will follow.
-    """
+    """Build the corpus-tier metrics (BLEU, chrF, TER)."""
     return load_metrics(metrics_config, tier="corpus", normalize=normalize)
 
 
@@ -402,16 +420,37 @@ def measure_sessions(*args, **kwargs):
     )
 
 
-def measure_corpus(*args, **kwargs):
-    """Measure the corpus as a whole. No corpus-tier metric exists yet.
+def measure_corpus(
+    pred_texts: Dict[str, str],
+    metrics: Dict[str, Dict[str, Any]],
+    gt_texts: Optional[Dict[str, str]] = None,
+) -> Dict[str, Any]:
+    """Measure the corpus as a whole with every corpus-tier metric.
 
-    When it exists it starts with :func:`validate_requirements` and
-    :func:`require_matching_keys`, as the utterance tier does.
+    Args:
+        pred_texts: Utterance id to hypothesis text.
+        metrics: From :func:`load_corpus_metrics`.
+        gt_texts: Utterance id to reference text.
+
+    Returns:
+        The corpus-level result keys of every metric, merged.
 
     Raises:
-        NotImplementedError: Always. See :mod:`splet.corpus_metrics` for the
-            contract this loop will follow.
+        ValueError: If a metric requires a reference and none was given
+            (:func:`validate_requirements`).
+        KeyError: If a hypothesis has no reference, or a reference has no
+            hypothesis, as in :func:`measure_utterances`. For BLEU the second
+            case matters more than for WER: a dropped utterance does not show
+            up as deletions, it just shrinks the corpus and the score can go
+            up.
     """
-    raise NotImplementedError(
-        "the corpus tier has no metrics yet; see splet/corpus_metrics"
-    )
+    validate_requirements(metrics, gt_texts)
+    require_matching_keys(pred_texts, gt_texts)
+    keys = list(pred_texts)
+    gt_list = None if gt_texts is None else [gt_texts[key] for key in keys]
+    pred_list = [pred_texts[key] for key in keys]
+
+    result: Dict[str, Any] = {}
+    for module in metrics.values():
+        result.update(module["module"](module["state"], pred_list, gt_list))
+    return result

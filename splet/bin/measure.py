@@ -33,7 +33,13 @@ from typing import Optional, Sequence
 import yaml
 
 from splet.metadata import metadata
-from splet.metric_registry import METRIC_CHOICES, load_metrics, measure_utterances
+from splet.metric_registry import (
+    METRIC_CHOICES,
+    load_corpus_metrics,
+    load_metrics,
+    measure_corpus,
+    measure_utterances,
+)
 from splet.summary import summarize
 from splet.utils_shared import IO_CHOICES, text_loader_setup
 
@@ -67,7 +73,8 @@ def get_parser() -> argparse.ArgumentParser:
         "--output_file",
         type=str,
         default=None,
-        help="Path to write per-utterance results as JSON lines.",
+        help="Path to write per-utterance results as JSON lines. Corpus-level "
+        "metrics such as BLEU only appear in the printed summary.",
     )
     parser.add_argument(
         "--io",
@@ -138,18 +145,30 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     logging.info("The number of utterances = %d", len(pred_texts))
 
     metrics = load_metrics(metrics_config, normalize=normalize)
-    if not metrics:
-        logging.error("no utterance-level metric is configured")
+    corpus_metrics = load_corpus_metrics(metrics_config, normalize=normalize)
+    if not metrics and not corpus_metrics:
+        logging.error("no metric is configured")
         return 2
 
-    results = measure_utterances(
-        pred_texts, metrics, gt_texts, output_file=args.output_file
-    )
-    summary = summarize(results, metrics)
+    if metrics:
+        results = measure_utterances(
+            pred_texts, metrics, gt_texts, output_file=args.output_file
+        )
+        summary = summarize(results, metrics)
+    else:
+        summary = {"num_utterances": len(pred_texts)}
+    if corpus_metrics:
+        # One result for the whole corpus. Going through summarize() still
+        # rejects a key the metric did not declare.
+        corpus = summarize(
+            [measure_corpus(pred_texts, corpus_metrics, gt_texts)], corpus_metrics
+        )
+        del corpus["num_utterances"]
+        summary.update(corpus)
     logging.info("Summary: %s", summary)
     # The summary carries what produced it: a number without its
     # normalization, tokenizer and backend cannot be reproduced or compared.
-    summary["metadata"] = metadata(metrics)
+    summary["metadata"] = metadata({**metrics, **corpus_metrics})
     print(json.dumps(summary, ensure_ascii=False, indent=2))
     return 0
 

@@ -1,0 +1,16 @@
+# Speech translation metrics, as egs2/TEMPLATE/st1/st.sh reports it:
+#   sacrebleu ref.trn.detok -i hyp.trn.detok -m bleu chrf ter
+#
+# All three are corpus-level. Options are sacrebleu's own keyword arguments
+# (sacrebleu.metrics.BLEU / CHRF / TER), and the summary's metadata carries
+# sacrebleu's signature so the number can be compared with a published one.
+#
+# st.sh's `sacrebleu -lc` call is `lowercase: true` on bleu only: -lc does not
+# change chrF or TER. st.sh runs remove_punctuation.pl before it, which SPLET
+# does not reproduce exactly (see splet/corpus_metrics/bleu.py).
+
+metrics:
+  - name: bleu
+    tokenize: 13a     # zh / ja-mecab for targets without spaces between words
+  - name: chrf
+  - name: ter
