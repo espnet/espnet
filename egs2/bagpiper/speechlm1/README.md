@@ -128,10 +128,9 @@ Prepare a SpeechLM `dialogue` dataset manifest at `/path/to/requests.json` with
 the user requests and, for understanding, input audio. The dialogue reader expects
 JSONL rows with `example_id` and `messages`, where each message is
 `[role, modality, content]`. For audio messages, `content` is a local audio-file
-path. The [model card](https://huggingface.co/espnet/bagpiper-sft) describes the
-released configurations, and the
-[reproduction guide](../../../espnet2/speechlm/REPRODUCE.md) shows manifest
-preparation and native inference. For text-then-audio generation:
+path. Use the manifest format in [Setup and inputs](#setup-and-inputs).
+The [model card](https://huggingface.co/espnet/bagpiper-sft) describes the
+released configurations. For text-then-audio generation:
 
 ```bash
 python -m espnet2.speechlm.bin.inference \
@@ -180,6 +179,21 @@ Training starts from prepared inputs:
 Convert Hub Parquet data into these manifests and reader inputs before training.
 Consult the [dataset card](https://huggingface.co/datasets/espnet/Bagpiper_SFT_Data)
 for its schema and current release status.
+
+For a dialogue dataset, the manifest names its JSONL reader input and example IDs:
+
+```json
+{
+  "data_entry": [
+    {"name": "dialogue", "reader": "dialogue", "path": "/path/to/dialogues.jsonl"}
+  ],
+  "samples": ["example_001", "example_002"]
+}
+```
+
+Each JSONL row contains `example_id` and `messages`, with messages represented as
+`[role, modality, content]`. Training rows include the assistant's target text/audio;
+inference rows can contain only the user request and any input audio.
 
 Pass space-separated `task:name:dataset.json[:factor]` specifiers. Supported
 tasks are `text_to_audio`, `audio_to_text`, `text_only`, and `dialogue`; use
@@ -279,9 +293,6 @@ For multiple nodes, launch on each node with `--num-nodes N --node-rank R
 --master-addr HOST --master-port PORT` and shared data/output paths. `--ngpu`
 counts GPUs per node. Relative paths resolve from the recipe directory;
 `./run.sh --help` lists the options, and W&B is disabled by default.
-
-The [reproduction guide](../../../espnet2/speechlm/REPRODUCE.md) walks through
-a small LibriSpeech fine-tuning experiment, checkpoint recovery, export, and serving.
 
 ## Citation
 

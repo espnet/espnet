@@ -125,8 +125,8 @@ JSONL rows with `example_id` and `messages`; a single request can be represented
 as `[["user", "text", "Wish Bob a happy new year in a cheerful male voice."]]`.
 See the
 [model card](https://huggingface.co/espnet/bagpiper-tts-sft) for release details and
-the [reproduction guide](../../../espnet2/speechlm/REPRODUCE.md) for examples
-of the manifest and dialogue-reader format.
+the [Bagpiper input format](../../bagpiper/speechlm1/README.md#setup-and-inputs)
+for the manifest structure.
 
 ```bash
 python -m espnet2.speechlm.bin.inference \
@@ -255,9 +255,7 @@ python -m espnet2.speechlm.bin.export_checkpoint \
 ```
 
 Use this `.pt` with your matching model configuration for native inference,
-or convert it for vLLM serving. The
-[reproduction guide](../../../espnet2/speechlm/REPRODUCE.md) provides a small
-public-data experiment covering training, recovery, export, and inference.
+or convert it for vLLM serving.
 
 ## Citation
 
