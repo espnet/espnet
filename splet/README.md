@@ -19,15 +19,31 @@ it.
 
 | | |
 | --- | --- |
-| Implemented | WER, CER; the normalization pipeline; the utterance tier; `splet-score` |
+| Implemented | WER, CER, matching sclite; the normalization pipeline including Whisper; the utterance tier; `splet-score` |
 | Contract only | the session tier (`splet/session_metrics`), the corpus tier (`splet/corpus_metrics`) |
-| Not started | cpWER, ORC-WER, DER, JER, BLEU/chrF/TER, Whisper normalization, structured prediction |
-| Not validated | the S/D/I split against sclite; everything against existing recipe scores |
+| Not started | cpWER, ORC-WER, DER, JER, BLEU/chrF/TER, structured prediction |
+| Not validated | end-to-end against an egs2 recipe's published RESULTS.md |
 
-WER and CER agree with `jiwer` on the corpus figure, which is what espnet3's
-current metrics use (`test/splet/test_error_rate.py::test_matches_jiwer`).
-Nothing here has been checked against SCTK yet, so do not report an S/D/I
-breakdown from SPLET as SCTK-compatible.
+WER and CER reproduce `sclite` exactly, S/D/I and hits, not only the rate:
+checked against committed golden counts, against the binary itself where it
+is built, and by a differential fuzz
+(`test/splet/test_vs_sclite.py`). On 4000 utterances of real spgispeech
+output they give 1297/412/440 at word level and 1029/1994/2018 at character
+level, which is what `sclite` reports for the same data.
+
+One consequence worth knowing before swapping SPLET in anywhere. `sclite`
+minimises a weighted cost rather than an edit count, so the alignment it
+picks can carry more edits than the minimum, and its total is an upper bound
+on `jiwer`'s rather than equal to it. They agree on clean output -- the
+spgispeech run above is 2149 errors either way -- and separate as the error
+rate climbs: on a 60%-CER corpus `sclite` reports 846 character errors where
+`jiwer` reports 831. Pass `costs="unit"` for minimum-edit-distance behaviour,
+which agrees with `jiwer` exactly.
+
+Whisper normalization is openai-whisper's own code, vendored under
+`splet/normalizers/whisper/` because importing it would pull in torch, and
+checked string for string against the upstream package
+(`test/splet/test_whisper_normalizer.py`).
 
 ## Running it
 

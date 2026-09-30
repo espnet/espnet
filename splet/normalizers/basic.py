@@ -31,9 +31,12 @@ def lowercase_setup() -> Callable[[str], str]:
 def uppercase_setup() -> Callable[[str], str]:
     """Uppercase the text.
 
-    sclite's default scoring is case sensitive, and several ESPnet recipes
-    upper-case both sides instead of lower-casing them. Reproducing an
-    existing number sometimes means matching that choice exactly.
+    Note that case folding is usually not a normalization step here: sclite
+    folds case itself unless given ``-s``, so the error-rate metric does it
+    at scoring time and records which it did (``case="fold"``, the default).
+    This step is for pipelines that need the text itself upper-cased, such as
+    a corpus whose reference is upper-case and whose score is reported
+    case-sensitively.
     """
     return lambda text: text.upper()
 

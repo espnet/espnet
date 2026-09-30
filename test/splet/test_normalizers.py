@@ -68,7 +68,12 @@ def test_step_without_a_name_is_rejected():
         build_normalizer([{"keep": "'"}])
 
 
-def test_whisper_normalization_refuses_rather_than_approximating():
-    """A wrong normalizer is worse than a missing one: it moves every score."""
-    with pytest.raises(NotImplementedError, match="not implemented"):
-        build_normalizer([{"name": "whisper"}])
+def test_whisper_normalization_is_the_real_thing_not_an_approximation():
+    """A wrong normalizer is worse than a missing one: it moves every score.
+
+    So the whisper step is openai-whisper's own code, vendored. This checks
+    that it is wired up and behaving; test_whisper_normalizer.py checks it
+    against the upstream package string for string.
+    """
+    normalizer = build_normalizer([{"name": "whisper"}])
+    assert normalizer("Mr. O'Brien paid $1,250.50") == "mister 0 brien paid $1250.50"

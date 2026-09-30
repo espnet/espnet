@@ -59,6 +59,10 @@ ALLOWED_THIRD_PARTY = {
     "scipy",  # optional: the assignment step of speaker-permuted metrics
     "sacrebleu",  # optional: MT metrics, once the corpus tier has them
     "sentencepiece",  # optional: token error rate
+    # optional: grapheme clusters for the vendored Whisper normalizer's
+    # split_letters mode, which is off by default and which no egs2 recipe
+    # turns on. Imported behind a try/except that names it.
+    "regex",
 }
 
 

@@ -118,6 +118,11 @@ include = ["espnet*", "egs3*", "splet*"]
 [tool.setuptools.package-data]
 egs3 = ["egs3/TEMPLATE/**/*.yaml"]
 splet = ["egs/*.yaml"]
+# The Whisper spelling table is loaded relative to __file__, so it has to be
+# installed beside the module or whisper_en normalization fails at import
+# time on an installed copy while working from a checkout. LICENSE ships
+# because the code beside it is vendored MIT.
+"splet.normalizers.whisper" = ["english.json", "LICENSE"]
 
 
 [project.optional-dependencies]

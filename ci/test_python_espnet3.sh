@@ -16,7 +16,12 @@ echo "::group::=== Run test flake8 ==="
 # takes its CI with it. Until then it is still checked on every push. This is
 # the flake8-docstrings pass; test_flake8.sh is not reused because its first,
 # much larger invocation would then run twice.
-flake8 --show-source splet
+# splet/normalizers/whisper/_*.py is openai-whisper's code, copied verbatim
+# so that the normalization matches theirs exactly (see the LICENSE and the
+# README beside it). Linting it would mean editing it, and an edited copy is
+# no longer the thing it is supposed to reproduce.
+vendored="splet/normalizers/whisper/_basic.py,splet/normalizers/whisper/_english.py"
+flake8 --show-source --extend-exclude "${vendored}" splet
 echo "::endgroup::"
 
 # pycodestyle
