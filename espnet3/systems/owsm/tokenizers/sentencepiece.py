@@ -91,6 +91,8 @@ def train_sentencepiece(
     character_coverage: float = 1.0,
     model_type: str = "bpe",
     user_defined_symbols: list = [],
+    input_sentence_size: int = 100000000,
+    shuffle_input_sentence: bool = True,
 ):
     """Train a SentencePiece model.
 
@@ -114,6 +116,10 @@ def train_sentencepiece(
             'char', and 'word'. Defaults to "bpe".
         user_defined_symbols (list, optional): A list of user-defined symbols
             that should be included in the model. Defaults to an empty list.
+        input_sentence_size (int, optional): Maximum sentences SentencePiece
+            reads. Defaults to 100000000.
+        shuffle_input_sentence (bool, optional): Sample those sentences at
+            random rather than taking the first ones. Defaults to True.
 
     Raises:
         FileNotFoundError: If the specified `dump_text_path` does not exist.
@@ -136,6 +142,10 @@ def train_sentencepiece(
         The output directory will be created if it does not already exist.
     """
     # Please prepare sentences before running this function.
+    # shuffle_input_sentence matters whenever the text exceeds
+    # input_sentence_size: without it SentencePiece keeps the *first* N
+    # sentences, which for a mixture written corpus by corpus is a prefix of
+    # whichever corpus came first rather than a sample of the whole.
     spm.SentencePieceTrainer.Train(
         input=dump_text_path,
         model_prefix=model_type,
@@ -143,7 +153,8 @@ def train_sentencepiece(
         vocab_size=vocab_size,
         character_coverage=character_coverage,
         user_defined_symbols=user_defined_symbols,
-        input_sentence_size=100000000,
+        input_sentence_size=input_sentence_size,
+        shuffle_input_sentence=shuffle_input_sentence,
     )
     if not os.path.exists(save_path):
         os.makedirs(save_path)

@@ -43,3 +43,23 @@ dataset:
         split: dev
         recipe_dir: ${recipe_dir}
         cache: ${cache}
+
+# One shared vocabulary over the whole mixture. nbpe follows egs2/owsm_v3.
+tokenizer:
+  vocab_size: 50000
+  model_type: bpe
+  save_path: ${data_dir}/bpe_50000
+  train_file: ${data_dir}/train_tokenizer/train.txt
+  # The 1703 OWSM special symbols
+  nlsyms:
+    _target_: egs3.owsm_v4.owsm.dataset.utils.nlsyms
+  # null keeps every line.
+  sample_size: null
+  sample_seed: 0
+  text_builder:
+    _target_: egs3.owsm_v4.owsm.dataset.dataset.iter_text
+    recipe_dir: ${recipe_dir}
+    cache: ${cache}
+    entries:
+      - {corpus: spgispeech, split: train}
+      - {corpus: must_c_v1.2, split: train}

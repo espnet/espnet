@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterator
 
 import numpy as np
 import soundfile as sf
@@ -87,3 +87,32 @@ class OWSMDataset(TorchDataset):
             "text_prev": row["text_prev"],
             "text_ctc": row["text_ctc"],
         }
+
+
+def iter_text(recipe_dir, cache: dict | None, entries: list) -> Iterator[str]:
+    """Yield the text stream of every row of every ``(corpus, split)`` entry.
+
+    The tokenizer needs exactly what the model will see -- the ``<lang><task>``
+    prefix and the timestamps included -- but not the audio, so this reads the
+    cache columns directly rather than going through :class:`OWSMDataset`.
+    It is a generator: the mixture's text does not fit in memory, and the
+    caller samples from the stream.
+
+    Args:
+        recipe_dir: Recipe root, used to resolve a relative cache dir.
+        cache: The recipe's ``cache`` block, giving ``cache_dir``.
+        entries: ``[{"corpus": <cache_subdir>, "split": <split>}, ...]``.
+    """
+    for entry in entries:
+        corpus, split = entry["corpus"], entry["split"]
+        split_dir = cache_root(recipe_dir, cache, corpus) / split
+        if not split_dir.is_dir():
+            raise FileNotFoundError(
+                f"{corpus} split '{split}' is not built: {split_dir}. "
+                "Run the create_dataset stage first."
+            )
+        rows = load_from_disk(str(split_dir))
+        for row in rows:
+            target = row["tgt_lang"] or None
+            prefix = lang_token(row["lang"]) + task_token(row["task"], target)
+            yield prefix + row["text"]
