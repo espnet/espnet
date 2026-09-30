@@ -9,13 +9,18 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[3]
 DRIVER = ROOT / "egs2/TEMPLATE/audio_metric1/audio_metric.sh"
+# Recipe subprocesses import the toolkit afresh on shared CI workers.
+pytestmark = pytest.mark.execution_timeout(60)
 
 
 @pytest.fixture
 def recipe(tmp_path):
     """Build a minimal recipe without requiring Kaldi or a corpus download."""
-    for name in ("utils", "scripts", "pyscripts"):
-        (tmp_path / name).symlink_to(ROOT / "egs2/TEMPLATE/asr1" / name)
+    (tmp_path / "egs2/test").mkdir(parents=True)
+    (tmp_path / "egs2/TEMPLATE").symlink_to(ROOT / "egs2/TEMPLATE")
+    tmp_path = tmp_path / "egs2/test/audio_metric1"
+    subprocess.run([str(DRIVER.with_name("setup.sh")), str(tmp_path)], check=True)
+    (tmp_path / "path.sh").unlink()
     (tmp_path / "path.sh").write_text("export LC_ALL=C\n")
     (tmp_path / "cmd.sh").write_text(
         "train_cmd=run.pl\ncuda_cmd=run.pl\ndecode_cmd=run.pl\n"
@@ -26,7 +31,7 @@ def recipe(tmp_path):
         result = subprocess.run(
             [
                 "bash",
-                str(DRIVER),
+                str(tmp_path / "audio_metric.sh"),
                 "--stage",
                 str(stage),
                 "--stop_stage",
@@ -43,6 +48,7 @@ def recipe(tmp_path):
             env=env,
             capture_output=True,
             text=True,
+            timeout=45,
         )
         assert result.returncode == 0, result.stdout + result.stderr
 
