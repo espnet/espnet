@@ -166,9 +166,11 @@ speech-generation support for the TTS-SFT checkpoint; see the
 
 Activate the [SpeechLM environment](../../../espnet2/speechlm/INSTALL.md)
 before launching training. `run.sh` uses the active Python environment and
-invokes `torchrun` directly. See the
-[template's training-only layout](../../TEMPLATE/speechlm1/README.md#training-only-recipes)
-for environment activation and scheduler integration.
+invokes `torchrun` directly. This recipe contains its own launcher, configurations,
+and README. Activate your environment first, or pass
+`--python /path/to/env/bin/python`; the launcher adds the repository root to
+`PYTHONPATH`. For a cluster run, allocate GPUs with your scheduler and invoke
+`run.sh` on each node using the multi-node options below.
 
 Training starts from prepared inputs:
 
