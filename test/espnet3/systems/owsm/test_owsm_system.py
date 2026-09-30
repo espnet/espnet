@@ -246,3 +246,70 @@ def test_a_configured_stream_without_a_shape_file_is_rejected(tmp_path):
 
     with pytest.raises(RuntimeError, match="text_prev"):
         system._append_vocab_size_to_text_shapes()
+
+
+def test_sampling_is_seeded_and_spans_the_whole_stream(tmp_path):
+    """A prefix would bias the vocabulary toward whichever corpus is written first."""
+    from espnet3.systems.owsm.system import _reservoir_sample
+
+    lines = [f"line {i}" for i in range(1000)]
+    first, seen = _reservoir_sample(iter(lines), 50, seed=0)
+    again, _ = _reservoir_sample(iter(lines), 50, seed=0)
+    other, _ = _reservoir_sample(iter(lines), 50, seed=1)
+
+    assert seen == 1000 and len(first) == 50
+    assert first == again, "the same seed must give the same vocabulary"
+    assert first != other
+    # Drawn from the whole stream, not the head.
+    indices = [int(line.split()[1]) for line in first]
+    assert max(indices) > 500, indices
+
+
+def test_no_sample_size_keeps_everything(tmp_path):
+    from espnet3.systems.owsm.system import _reservoir_sample
+
+    kept, seen = _reservoir_sample(iter(["a", "b", "c"]), None, seed=0)
+    assert kept == ["a", "b", "c"] and seen == 3
+
+
+def test_gather_samples_and_reports(tmp_path, monkeypatch, caplog):
+    module = tmp_path / "owsm_big_builder.py"
+    module.write_text(
+        "def build():\n    return (f'<eng><asr> line {i}' for i in range(500))\n",
+        encoding="utf-8",
+    )
+    monkeypatch.syspath_prepend(str(tmp_path))
+    config = _config(
+        tmp_path,
+        sample_size=40,
+        sample_seed=7,
+        text_builder={"_target_": "owsm_big_builder.build"},
+    )
+    system = OWSMSystem(training_config=config)
+    train_file = tmp_path / "data" / "train_tokenizer" / "train.txt"
+
+    with caplog.at_level("INFO"):
+        texts = system._gather_text(train_file)
+
+    assert len(texts) == 40
+    assert "Sampled 40 of 500 lines (seed 7)" in caplog.text
+    # Only the sample is written, not the stream it came from.
+    assert len(train_file.read_text(encoding="utf-8").splitlines()) == 40
+
+
+def test_nlsyms_can_be_a_callable(tmp_path):
+    """The OWSM inventory is over 1700 symbols; a config cannot inline it."""
+    module = tmp_path / "owsm_syms.py"
+    module.write_text(
+        "def symbols():\n    return ['<na>', '<nospeech>', '<eng>', '<asr>']\n",
+        encoding="utf-8",
+    )
+    import sys
+
+    sys.path.insert(0, str(tmp_path))
+    try:
+        config = _config(tmp_path, nlsyms={"_target_": "owsm_syms.symbols"})
+        system = OWSMSystem(training_config=config)
+        assert system._special_symbols() == ["<na>", "<nospeech>", "<eng>", "<asr>"]
+    finally:
+        sys.path.remove(str(tmp_path))

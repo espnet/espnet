@@ -2,6 +2,7 @@
 
 import logging
 import os
+import random
 import time
 from pathlib import Path
 from typing import Iterable, List
@@ -13,6 +14,32 @@ from espnet3.systems.base.system import BaseSystem
 from espnet3.systems.owsm.tokenizers.sentencepiece import train_sentencepiece
 
 logger = logging.getLogger(__name__)
+
+
+def _reservoir_sample(lines: Iterable[str], k: int | None, seed: int):
+    """Return ``(sample, seen)``, keeping at most ``k`` lines in memory.
+
+    The mixture's training text is far larger than the vocabulary needs, and
+    materialising it only to hand SentencePiece a prefix wastes the disk twice.
+    Reservoir sampling streams instead, so the cost is the sample rather than
+    the corpus, and a seed keeps the vocabulary reproducible.
+    """
+    if k is None:
+        kept = [line for line in lines]
+        return kept, len(kept)
+
+    rng = random.Random(seed)
+    kept: List[str] = []
+    seen = 0
+    for line in lines:
+        seen += 1
+        if len(kept) < k:
+            kept.append(line)
+            continue
+        index = rng.randrange(seen)
+        if index < k:
+            kept[index] = line
+    return kept, seen
 
 
 class OWSMSystem(BaseSystem):
@@ -174,6 +201,13 @@ class OWSMSystem(BaseSystem):
                 "'<', 'e', 'n', 'g', '>' and the task tokens never survive "
                 "tokenization."
             )
+        # A callable, because the inventory is over 1700 symbols: inlining it in
+        # a config would bury the rest of the file, and writing it to disk first
+        # would give the same list two sources of truth.
+        if isinstance(symbols, DictConfig) or (
+            isinstance(symbols, dict) and "_target_" in symbols
+        ):
+            symbols = instantiate(symbols, _convert_="all")
         if isinstance(symbols, (str, os.PathLike)):
             path = Path(symbols)
             if not path.is_file():
@@ -223,17 +257,31 @@ class OWSMSystem(BaseSystem):
             path = Path(built)
             if not path.is_file():
                 raise RuntimeError(f"Tokenizer text file not found: {path}")
-            texts = path.read_text(encoding="utf-8").splitlines()
+            lines = (line.rstrip("\n") for line in path.open(encoding="utf-8"))
         elif isinstance(built, Iterable):
-            texts = [str(text) for text in built]
+            lines = (str(text) for text in built)
         else:
             raise RuntimeError(
                 "text_builder must return a path or an iterable of strings "
                 f"(got {type(built)})."
             )
+
+        sample_size = getattr(tokenizer_config, "sample_size", None)
+        texts, seen = _reservoir_sample(
+            lines,
+            None if sample_size is None else int(sample_size),
+            int(getattr(tokenizer_config, "sample_seed", 0)),
+        )
         if not texts:
             raise RuntimeError(
                 "text_builder returned no text. Check dataset preparation."
+            )
+        if sample_size is not None and seen > len(texts):
+            logger.info(
+                "Sampled %d of %d lines (seed %d)",
+                len(texts),
+                seen,
+                int(getattr(tokenizer_config, "sample_seed", 0)),
             )
         train_text_path.parent.mkdir(parents=True, exist_ok=True)
         train_text_path.write_text("\n".join(texts), encoding="utf-8")
@@ -277,6 +325,12 @@ class OWSMSystem(BaseSystem):
             character_coverage=getattr(tokenizer_config, "character_coverage", 1.0),
             model_type=tokenizer_config.model_type,
             user_defined_symbols=symbols,
+            input_sentence_size=int(
+                getattr(tokenizer_config, "input_sentence_size", 100000000)
+            ),
+            shuffle_input_sentence=bool(
+                getattr(tokenizer_config, "shuffle_input_sentence", True)
+            ),
         )
         logger.info(
             "Tokenizer training completed in %.2fs", time.perf_counter() - start
