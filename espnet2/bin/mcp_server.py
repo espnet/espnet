@@ -195,7 +195,19 @@ def translate(audio_path: str, to: str, language: str = "auto") -> str:
     """
     _warn_if_untrained_direction(language, to)
     model = _asr()
-    return _decode(audio_path, language, _symbol(model, f"<st_{to}>", "target"))
+    target = f"<st_{to}>"
+    if target not in model.s2t_model.token_list:
+        # Named, as the docstring promises: `kor` is a valid ISO 639-3 code,
+        # so "use ISO 639-3" leaves an agent nothing to try, and the targets
+        # are few - one <st_xxx> each.
+        from espnet2.bin.demo import target_codes
+
+        known = ", ".join(sorted(target_codes(model.s2t_model.token_list)))
+        raise ToolError(
+            f"The model has no translation target {to!r}; it translates into "
+            f"{known or 'nothing: it has no <st_xxx> symbols'}."
+        )
+    return _decode(audio_path, language, target)
 
 
 def phonemize(audio_path: str, language: str = "auto") -> str:
