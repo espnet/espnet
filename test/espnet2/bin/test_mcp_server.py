@@ -114,7 +114,7 @@ def test_transcribe_rejects_what_the_model_cannot_do(monkeypatch, wav, tmp_path)
             server.call_tool("transcribe", {"audio_path": str(wav), "language": "en"})
         )
     # fra is ISO 639-3, so the answer is the targets the model has
-    with pytest.raises(ToolError, match="target 'fra'.*into deu, eng"):
+    with pytest.raises(ToolError, match="target '<st_fra>'.*targets are deu, eng"):
         asyncio.run(
             server.call_tool("translate", {"audio_path": str(wav), "to": "fra"})
         )
