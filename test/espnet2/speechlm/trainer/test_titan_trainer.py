@@ -1,16 +1,17 @@
 """Tests for espnet2/speechlm/trainer/titan_trainer.py.
 
 CPU-only coverage of module-level helpers and TitanTrainer methods that do
-not require a live CUDA device or process group. Heavy paths (the real
-__init__, _save_checkpoint, _load_checkpoint, train, valid) are not
-exercised here — they need distributed init and FSDP2.
+not require a live CUDA device or process group, including checkpoint loading
+into unsharded models. Distributed training paths need separate FSDP2 coverage.
 """
 
 from unittest.mock import patch
 
 import pytest
 import torch
+import torch.distributed.checkpoint as dcp
 import torch.nn as nn
+from torch.distributed.checkpoint.state_dict import get_optimizer_state_dict
 
 from espnet2.speechlm.trainer.titan_trainer import TitanTrainer, reinit_model
 
@@ -63,6 +64,47 @@ class TestNativeInitialization:
         trainer = _make_bare_trainer(model=_SimpleModel(), output_dir=tmp_path)
         with pytest.raises(ValueError, match="nonempty state dict"):
             trainer._load_checkpoint(checkpoint)
+
+
+def test_resume_latest_complete_checkpoint(tmp_path):
+    source = _SimpleModel()
+    source_optimizer = torch.optim.AdamW(source.parameters())
+    source_scheduler = torch.optim.lr_scheduler.LambdaLR(
+        source_optimizer, lambda _: 1.0
+    )
+    target = _SimpleModel()
+    optimizer = torch.optim.AdamW(target.parameters())
+    trainer = _make_bare_trainer(
+        model=target,
+        output_dir=tmp_path,
+        optimizer=optimizer,
+        lr_scheduler=torch.optim.lr_scheduler.LambdaLR(optimizer, lambda _: 1.0),
+        global_step=0,
+    )
+    trainer._load_checkpoint(None)
+    assert trainer.global_step == 0
+
+    for step in (2, 10):
+        dcp.save(
+            {
+                "model": source.state_dict(),
+                "optimizer": get_optimizer_state_dict(source, source_optimizer),
+                "lr_scheduler": source_scheduler.state_dict(),
+                "global_step": step,
+            },
+            checkpoint_id=tmp_path / "checkpoints" / f"step_{step}",
+            no_dist=True,
+        )
+    for name in ("step_11", "step_old"):
+        path = tmp_path / "checkpoints" / name
+        path.mkdir()
+        if name == "step_old":
+            (path / ".metadata").touch()
+
+    trainer._load_checkpoint(None)
+    assert trainer.global_step == 10
+    for name, value in target.state_dict().items():
+        torch.testing.assert_close(value, source.state_dict()[name])
 
 
 # ---------------------------------------------------------------------------

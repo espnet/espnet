@@ -35,7 +35,6 @@ from espnet2.speechlm.model.speechlm.parallel_utils import (
     init_parallel_dims,
     parallel_strategies,
 )
-from espnet2.speechlm.utils.checkpoint import latest_checkpoint
 from espnet2.speechlm.utils.data import to_device
 from espnet2.speechlm.utils.model_summary import model_summary
 from espnet2.torch_utils.safe_torch_load import safe_torch_load
@@ -425,8 +424,14 @@ class TitanTrainer:
                 raise ValueError(f"Not a DCP checkpoint directory: {resume_path}")
             checkpoint_dir = resume_path
         else:
-            checkpoint_dir = latest_checkpoint(self.output_dir)
-            is_resume = checkpoint_dir is not None
+            candidates = []
+            for path in (self.output_dir / "checkpoints").glob("step_*"):
+                step = path.name.removeprefix("step_")
+                if step.isdigit() and (path / ".metadata").is_file():
+                    candidates.append((int(step), path))
+            if candidates:
+                checkpoint_dir = max(candidates)[1]
+                is_resume = True
 
         if checkpoint_dir and checkpoint_dir.is_dir():
             logger.info(
