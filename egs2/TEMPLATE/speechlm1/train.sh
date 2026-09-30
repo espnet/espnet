@@ -48,9 +48,9 @@ All relative paths are resolved from the recipe directory.
   --python PATH                     Python executable (default: python)
 "
 
-recipe_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
-cd "${recipe_dir}"
-. ./utils/parse_options.sh
+# Recipe run.sh enters its directory before calling this shared launcher.
+repo_root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../../.." && pwd)
+. "${repo_root}/egs2/TEMPLATE/asr1/utils/parse_options.sh"
 
 die() {
     echo "$0: $*" >&2
@@ -74,7 +74,6 @@ if [[ -n ${resume_path} ]]; then
         || die "--resume-path must be a weight file or DCP directory containing .metadata: ${resume_path}"
 fi
 
-repo_root=$(cd "${recipe_dir}/../../.." && pwd)
 export PYTHONPATH="${repo_root}${PYTHONPATH:+:${PYTHONPATH}}"
 # Dataset resampling uses Python hashes; keep them consistent across ranks.
 export PYTHONHASHSEED=0

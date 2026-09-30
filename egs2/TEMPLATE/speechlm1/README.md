@@ -15,9 +15,11 @@ the current SpeechLM trainer. The existing `setup.sh` scaffolds the traditional
 ## Training-only recipes
 
 [Bagpiper](../../bagpiper/speechlm1/README.md) and
-[Bagpiper-TTS](../../bagpiper_tts/speechlm1/README.md) contain `run.sh`, `conf/`, a
-README, and symlinks to the shared `train.sh` and `utils`. Their inputs are already
-prepared, so the data-preparation and cluster-launch files are unnecessary:
+[Bagpiper-TTS](../../bagpiper_tts/speechlm1/README.md) contain `run.sh`, `conf/`, and a
+README. Each `run.sh` enters its recipe directory and calls the shared `train.sh`
+directly; the launcher sources the shared option parser without recipe symlinks.
+Their inputs are already prepared, so the data-preparation and cluster-launch
+files are unnecessary:
 
 - **Environment:** there is no `path.sh` to activate `tools/venv`. Activate the
   environment from the [SpeechLM installation guide](../../../espnet2/speechlm/INSTALL.md)
