@@ -1011,8 +1011,11 @@ class ContinuousAudioIO(AbsIO):
 
         # Extract audio features using the encoder
         audio_features = self.model.get_audio_features(
-            batch_data, feature_attention_mask=mask, return_dict=True
-        ).last_hidden_state
+            batch_data, feature_attention_mask=mask
+        )
+        # Qwen encoders can return a tensor or a structured model output.
+        if not isinstance(audio_features, torch.Tensor):
+            audio_features = audio_features.last_hidden_state
         # Calculate output lengths after model's downsampling
         output_length = self.find_length(None, length)
         audio_features = audio_features.split(output_length.tolist(), dim=0)

@@ -553,7 +553,9 @@ class TestContinuousAudioIO:
     @pytest.mark.parametrize(
         "model_tag", ["Qwen/Qwen2.5-Omni-7B", "Qwen/Qwen3-Omni-30B-A3B-Instruct"]
     )
-    def test_encode_batch_extracts_structured_features(self, model_tag):
+    @pytest.mark.parametrize("structured_output", [False, True])
+    def test_encode_batch_extracts_features(self, model_tag, structured_output):
+        """Preserve features from tensor and structured encoder outputs."""
         io = self._make_continuous_io(model_tag)
         lengths = torch.tensor([100, 50])
         output_lengths = io.find_length(None, before_length=lengths)
@@ -561,14 +563,14 @@ class TestContinuousAudioIO:
         batch = torch.randn(2, 100, 80)
 
         class Encoder(torch.nn.Module):
-            def get_audio_features(self, data, feature_attention_mask, return_dict):
+            def get_audio_features(self, data, feature_attention_mask):
                 torch.testing.assert_close(data, batch.transpose(1, 2))
                 expected = torch.arange(100).unsqueeze(0) < lengths.unsqueeze(1)
                 torch.testing.assert_close(feature_attention_mask, expected.int())
                 return (
                     types.SimpleNamespace(last_hidden_state=features)
-                    if return_dict
-                    else (features,)
+                    if structured_output
+                    else features
                 )
 
         io.model = Encoder()
