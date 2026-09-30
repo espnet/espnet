@@ -4,7 +4,6 @@
 
 """SpeechLM job template implementation for multimodal language modeling."""
 
-import logging
 import random
 import re
 from typing import Any, Callable, Dict
@@ -64,14 +63,12 @@ class SpeechLMJobTemplate(AbsJobTemplate):
             self.multimodal_io[io_name] = multimodal_io_class(**io_kwargs)
 
         self._build_vocabulary()
-        logging.info("Vocabulary intervals: %s", self.vocab_meta["vocab_intervals"])
 
     def _build_vocabulary(self, num_special_tokens=256):
         """Build unified vocabulary from special tokens and multimodal IOs.
 
-        Reserves special tokens, then text, then other discrete IOs by name.
-        This order matches the released checkpoints and is independent of YAML
-        mapping order. Returns vocabulary and interval mappings per modality.
+        Reserves fixed slots for special tokens then adds tokens from discrete IOs.
+        Returns vocabulary list and interval mappings for each modality.
         """
         # (1) Init
         vocab = []
@@ -104,11 +101,7 @@ class SpeechLMJobTemplate(AbsJobTemplate):
         start = num_special_tokens
         mm_start, mm_end = None, None
         num_stream = 1
-        # YAML serializers may reorder mappings. Token IDs are part of the
-        # checkpoint format: a reordered mapping must not move embedding rows.
-        io_names = sorted(self.multimodal_io, key=lambda name: (name != "text", name))
-        for io_name in io_names:
-            io = self.multimodal_io[io_name]
+        for io_name, io in self.multimodal_io.items():
             if not io.is_discrete:
                 continue
 

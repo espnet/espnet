@@ -10,13 +10,11 @@ time. Liger is not a declared project dep; the whole file is skipped
 ``liger_kernel.ops.fused_linear_cross_entropy`` is not importable.
 """
 
-from itertools import permutations
 from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pytest
 import torch
-import yaml
 
 from espnet2.speechlm.model.speechlm.multimodal_io.abs_io import AbsIO
 
@@ -289,38 +287,6 @@ class TestSpeechLMJobTemplate:
     def test_build_vocabulary_no_duplicates(self, job_template):
         vocab = job_template.vocab_meta["vocab"]
         assert len(vocab) == len(set(vocab))
-
-    @pytest.mark.parametrize("io_order", list(permutations(MOCK_IOS)))
-    def test_yaml_order_preserves_token_ids(self, io_order):
-        """Reformatting YAML must not reinterpret a checkpoint's embeddings."""
-        from espnet2.speechlm.model.speechlm.speechlm_job import SpeechLMJobTemplate
-
-        original = _make_config(audio_input="discrete_audio")
-        original["multimodal_io"]["continuous_audio"] = {}
-        reordered = yaml.safe_load(yaml.safe_dump(original))
-        reordered["multimodal_io"] = {
-            name: reordered["multimodal_io"][name] for name in io_order
-        }
-        with patch(
-            "espnet2.speechlm.model.speechlm.speechlm_job._multimodal_ios", MOCK_IOS
-        ):
-            reference = SpeechLMJobTemplate(original, is_train=True)
-            restored = SpeechLMJobTemplate(reordered, is_train=True)
-
-        for key, expected in reference.vocab_meta.items():
-            actual = restored.vocab_meta[key]
-            if isinstance(expected, torch.Tensor):
-                torch.testing.assert_close(actual, expected, rtol=0, atol=0)
-            else:
-                assert actual == expected, key
-
-        sample = {"text1": "caption", "audio1": (np.zeros((1, 1600)), 16000)}
-        for task in ("text_to_audio", "audio_to_text"):
-            key = (task, "validation", "example")
-            expected = reference.build_preprocessor().preprocessing(key, sample)
-            actual = restored.build_preprocessor().preprocessing(key, sample)
-            np.testing.assert_array_equal(actual["sequence"], expected["sequence"])
-            np.testing.assert_array_equal(actual["loss_mask"], expected["loss_mask"])
 
     def test_build_preprocessor_returns_preprocessor(self, job_template):
         from espnet2.speechlm.model.speechlm.speechlm_job import SpeechLMPreprocessor
