@@ -154,6 +154,21 @@ def test_a_talk_shorter_than_its_segments_is_dropped(tmp_path):
     assert "segments run to" in failures.getvalue()
 
 
+def test_a_talk_at_the_wrong_sample_rate_is_dropped(tmp_path):
+    """Durations come from the yaml, so a wrong rate shifts nothing visible.
+
+    It would simply hand the frontend audio at the wrong speed, which is why
+    the rate is checked rather than inferred.
+    """
+    root = _corpus(tmp_path, {"de": [("t1.wav", 0.0, 2.0, "hello", "hallo")]})
+    path = root / "en-de" / "data" / "dev" / "wav" / "t1.wav"
+    sf.write(str(path), np.zeros(int(60.0 * 8000), dtype="int16"), 8000, "PCM_16")
+
+    failures = io.StringIO()
+    assert _rows(root, failures=failures) == []
+    assert "sample rate is 8000, expected 16000" in failures.getvalue()
+
+
 def test_mismatched_line_counts_are_rejected(tmp_path):
     root = _two_pairs(tmp_path)
     txt = root / "en-de" / "data" / "dev" / "txt"

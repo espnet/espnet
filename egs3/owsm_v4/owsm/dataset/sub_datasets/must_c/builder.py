@@ -34,6 +34,7 @@ _DATASET_CFG = _CONFIG["dataset"]
 SPLITS = tuple(str(split) for split in _CONFIG["splits"])
 SOURCE_ENV_VAR = str(_BUILDER_CFG["source_env_var"])
 LANGUAGES = tuple(str(lang) for lang in _BUILDER_CFG["languages"])
+EXPECTED_FS = int(_BUILDER_CFG["expected_fs"])
 
 PREFIX = str(_DATASET_CFG["prefix"])
 LANG = str(_DATASET_CFG["lang"])
@@ -82,16 +83,20 @@ def _verify_wav(task):
     Module-level and argument-only so it can be pickled to a worker.
 
     Args:
-        task: ``(wav_path, last_end_time)``.
+        task: ``(wav_path, last_end_time, expected_fs)``.
 
     Returns:
         ``(wav_path, None)`` when usable, otherwise ``(wav_path, error)``.
     """
     import soundfile as sf
 
-    wav_path, last_end = task
+    wav_path, last_end, expected_fs = task
     try:
         info = sf.info(str(wav_path))
+        if info.samplerate != expected_fs:
+            raise ValueError(
+                f"sample rate is {info.samplerate}, expected {expected_fs}"
+            )
         duration = info.frames / info.samplerate
         if duration + 0.05 < last_end:
             raise ValueError(
@@ -183,7 +188,12 @@ class MuSTCBuilder(OWSMBuilder):
                     )
                 )
 
-            errors = dict(run_parallel(_verify_wav, list(last_end.items())))
+            errors = dict(
+                run_parallel(
+                    _verify_wav,
+                    [(p, end, EXPECTED_FS) for p, end in last_end.items()],
+                )
+            )
 
             for group_name, group in groups.items():
                 is_asr = group_name.endswith(".asr")

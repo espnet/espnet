@@ -1,3 +1,7 @@
+defaults:
+  - ../../config
+  - _self_
+
 # Every value here is read by builder.py or dataset.py.
 
 # The corpus' splits: each must exist in the source, each is built, each is

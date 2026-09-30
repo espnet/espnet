@@ -40,6 +40,7 @@ _AUDIO_CFG = _BUILDER_CFG["audio"]
 HEADER_BYTES = int(_AUDIO_CFG["header_bytes"])
 BYTES_PER_SECOND = int(_AUDIO_CFG["bytes_per_second"])
 READ_HEADERS = bool(_AUDIO_CFG["read_headers"])
+EXPECTED_FS = int(_BUILDER_CFG["expected_fs"])
 
 
 def duration_from_filesize(size: int) -> float:
@@ -70,13 +71,13 @@ def _verify_file(task):
     Module-level and argument-only so it can be pickled to a worker.
 
     Args:
-        task: ``(index, path, size, read_header)``.
+        task: ``(index, path, size, read_header, expected_fs)``.
 
     Returns:
         ``(index, None)`` when the file matches, otherwise
         ``(index, "<ExcType>: <message>")``.
     """
-    index, path, size, read_header = task
+    index, path, size, read_header, expected_fs = task
     try:
         on_disk = os.stat(path).st_size
         if on_disk != size:
@@ -85,6 +86,10 @@ def _verify_file(task):
             import soundfile as sf
 
             info = sf.info(str(path))
+            if info.samplerate != expected_fs:
+                raise ValueError(
+                    f"sample rate is {info.samplerate}, expected {expected_fs}"
+                )
             from_header = info.frames / info.samplerate
             from_size = duration_from_filesize(size)
             if round(1000 * from_header) != round(1000 * from_size):
@@ -127,7 +132,7 @@ class SPGISpeechBuilder(OWSMBuilder):
         duration arithmetic assumes.
         """
         tasks = [
-            (index, audio_dir / rel, size, read_headers)
+            (index, audio_dir / rel, size, read_headers, EXPECTED_FS)
             for index, (rel, size, _) in enumerate(manifest)
         ]
         return dict(run_parallel(_verify_file, tasks))

@@ -165,16 +165,16 @@ def test_a_missing_file_is_dropped_not_fatal(tmp_path):
     assert "FileNotFoundError" in failures.getvalue()
 
 
-def test_reading_headers_catches_an_unexpected_audio_format(tmp_path):
-    """Sizes alone cannot show that a file is not 16 kHz mono 16-bit."""
+def test_reading_headers_catches_an_unexpected_sample_rate(tmp_path):
+    """The duration is derived assuming 16 kHz, so another rate is silently wrong."""
     root = _corpus(tmp_path, [("h/1.wav", 2.0, "hello")])
-    # Rewrite the same byte count at half the rate: size matches, duration does not.
+    # The same sample count at half the rate: the file size still matches the
+    # manifest, so only opening it can reveal the problem.
     path = root / "spgispeech" / "val" / "h" / "1.wav"
-    samples = np.zeros(int(2.0 * RATE), dtype="int16")
-    sf.write(str(path), samples, RATE // 2, subtype="PCM_16")
+    sf.write(str(path), np.zeros(int(2.0 * RATE), dtype="int16"), RATE // 2, "PCM_16")
 
-    assert len(_rows(root)) == 1
+    assert len(_rows(root)) == 1, "the size check alone cannot see this"
 
     failures = io.StringIO()
     assert _rows(root, read_headers=True, failures=failures) == []
-    assert "header says" in failures.getvalue()
+    assert "sample rate is 8000, expected 16000" in failures.getvalue()
