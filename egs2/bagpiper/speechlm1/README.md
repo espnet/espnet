@@ -1,92 +1,243 @@
-# Bagpiper
+<div align="center">
 
-Training recipes for [Bagpiper: Solving Open-Ended Audio Tasks via Rich Captions](https://openreview.net/forum?id=FuHs64E3X6),
-an audio foundation model for understanding and generation through rich captions.
+<h1>🎵 Bagpiper</h1>
+<h3>Solving Open-Ended Audio Tasks via Rich Captions</h3>
+<p><strong>One 8B model for understanding and generating speech, music, sound, and their mixtures.</strong></p>
+<p>Carnegie Mellon University · LY Corporation · NVIDIA</p>
 
-[Demo](https://bagpiper-cmu.github.io/) |
-[Models and datasets](https://huggingface.co/collections/espnet/bagpiper) |
-[Bagpiper-TTS recipe](../../bagpiper_tts/speechlm1/README.md)
+<p>
+  <a href="https://arxiv.org/abs/2602.05220"><img src="https://img.shields.io/badge/Paper-COLM%202026-b31b1b?style=for-the-badge" alt="Paper: COLM 2026"></a>
+  <a href="https://huggingface.co/collections/espnet/bagpiper"><img src="https://img.shields.io/badge/Hugging%20Face-Models%20%26%20Data-ffd21e?style=for-the-badge" alt="Hugging Face models and data"></a>
+  <a href="https://bagpiper-web.github.io/"><img src="https://img.shields.io/badge/Demo-Listen%20%26%20Explore-2563eb?style=for-the-badge" alt="Project page and audio demos"></a>
+</p>
+
+<p>
+  <a href="https://openreview.net/forum?id=FuHs64E3X6">COLM paper</a> ·
+  <a href="https://arxiv.org/pdf/2602.05220">PDF</a> ·
+  <a href="https://huggingface.co/espnet/bagpiper-sft">Instruction-tuned model</a> ·
+  <a href="https://huggingface.co/datasets/espnet/Bagpiper_SFT_Data">SFT dataset</a> ·
+  <a href="../../bagpiper_tts/speechlm1/README.md">Bagpiper-TTS</a>
+</p>
+
+<p><a href="#how-bagpiper-works">Overview</a> · <a href="#models-and-data">Releases</a> · <a href="#inference">Inference</a> · <a href="#training">Training</a> · <a href="#citation">Citation</a></p>
+
+</div>
+
+Bagpiper connects audio waveforms with **rich captions**: detailed natural-language
+descriptions of what is said, how it sounds, and what happens in the acoustic
+scene. A caption can describe words, speakers, emotion, prosody, instruments,
+sound events, and their relationships. This shared representation supports
+open-ended questions and generation requests across audio types.
+
+The [COLM 2026 paper](https://openreview.net/forum?id=FuHs64E3X6) introduces
+bidirectional audio–caption pretraining with a **600B-token budget**, followed by
+instruction tuning that teaches the model to describe and reason before answering
+or generating audio. This directory provides its ESPnet SpeechLM training recipe.
+
+## How Bagpiper works
+
+```mermaid
+flowchart LR
+    subgraph U[Audio understanding]
+        direction LR
+        A["Audio + user request"] --> B["Rich caption"] --> C["Reasoning"] --> D["Text answer"]
+    end
+    subgraph G[Audio generation]
+        direction LR
+        E["User request"] --> F["Planning"] --> H["Rich caption"] --> I["Speech · music · sound"]
+    end
+    classDef input fill:#dbeafe,stroke:#2563eb,color:#172554
+    classDef caption fill:#ede9fe,stroke:#7c3aed,color:#2e1065
+    classDef reasoning fill:#fef3c7,stroke:#d97706,color:#451a03
+    classDef output fill:#dcfce7,stroke:#16a34a,color:#052e16
+    class A,E input
+    class B,H caption
+    class C,F reasoning
+    class D,I output
+```
+
+These are two directions of **one end-to-end model**. Bagpiper-Base learns
+`audio ↔ rich caption`; the general SFT model adds instruction following and
+the caption-then-process workflow shown above.
+
+| Capability | What to explore on the [demo page](https://bagpiper-web.github.io/) |
+| --- | --- |
+| **Understand audio** | Transcribe speech, answer questions, and reason about delivery, music, sound events, and scene context. |
+| **Generate audio** | Describe speech, music, environmental sounds, or combinations of them in a natural-language request. |
+| **Compose scenes** | Explore examples combining dialogue, singing, background music, and effects. |
+| **Inspect the caption** | Read the intermediate description and planning alongside the audio examples. |
+
+### Architecture
+
+| Component | Configuration |
+| --- | --- |
+| Language backbone and tokenizer | [Qwen3-8B-Base](https://huggingface.co/Qwen/Qwen3-8B-Base) |
+| Audio input | [Qwen3-Omni audio encoder](https://huggingface.co/Qwen/Qwen3-Omni-30B-A3B-Instruct), connected through an adaptor |
+| Audio output | [X-Codec](https://huggingface.co/hf-audio/xcodec-hubert-general), eight delay-interleaved token streams |
+| Sequence interface | Interleaved text and audio, modeled with next-token prediction |
+
+### Selected paper results
+
+The following results evaluate the **general SFT model** in Table 5 of the paper;
+they are separate from the pretrained Base probes and were not rerun by this recipe.
+
+| Benchmark | Metric | Bagpiper |
+| --- | --- | ---: |
+| LibriSpeech test-clean | Word error rate ↓ | **2.5%** |
+| MMAU-Mini | Accuracy ↑ | **74.5%** |
+| MMAU | Accuracy ↑ | **73.1%** |
+| MMAR | Accuracy ↑ | **57.0%** |
+
+See the [paper](https://arxiv.org/abs/2602.05220) for evaluation protocols, Base
+probes, generation comparisons, and ablations. The
+[audio gallery](https://bagpiper-web.github.io/) showcases the open-ended
+generation behavior beyond these understanding benchmarks.
+
+## Models and data
+
+All releases are grouped in the [ESPnet Bagpiper collection](https://huggingface.co/collections/espnet/bagpiper).
+
+| Release | Use it for | Native weight file |
+| --- | --- | --- |
+| [Bagpiper-Base](https://huggingface.co/espnet/bagpiper) | Audio–caption mapping and downstream fine-tuning initialization | `base.pt` |
+| [Bagpiper SFT](https://huggingface.co/espnet/bagpiper-sft) | Open-ended audio understanding and generation | `model.pt` |
+| [Bagpiper-TTS SFT](https://huggingface.co/espnet/bagpiper-tts-sft) | Natural-language-guided speech synthesis; see the [TTS recipe](../../bagpiper_tts/speechlm1/README.md) | `model.pt` |
+| [Bagpiper SFT Data](https://huggingface.co/datasets/espnet/Bagpiper_SFT_Data) | Generation and understanding conversations | Parquet dataset |
+
+The model repositories include checkpoint-compatible YAML configurations.
+Published `.pt` files contain model weights under `module`; training produces
+PyTorch Distributed Checkpoint (**DCP**) directories with resume state. Native
+ESPnet inference reads a single `.pt` file. Export a trained DCP before inference
+or conversion for vLLM.
+
+## Inference
+
+For a first look, [listen to the demos](https://bagpiper-web.github.io/).
+To run the model locally, activate the environment from the
+[SpeechLM installation guide](../../../espnet2/speechlm/INSTALL.md).
+
+### Native ESPnet
+
+Run from the **ESPnet repository root**. Download the instruction-tuned model:
+
+```bash
+hf download espnet/bagpiper-sft --local-dir models/bagpiper-sft
+```
+
+Prepare a SpeechLM `dialogue` dataset manifest at `/path/to/requests.json` with
+the user requests and, for understanding, input audio. The dialogue reader expects
+JSONL rows with `example_id` and `messages`, where each message is
+`[role, modality, content]`. For audio messages, `content` is a local audio-file
+path. The [model card](https://huggingface.co/espnet/bagpiper-sft) describes the
+released configurations, and the
+[reproduction guide](../../../espnet2/speechlm/REPRODUCE.md) shows manifest
+preparation and native inference. For text-then-audio generation:
+
+```bash
+python -m espnet2.speechlm.bin.inference \
+    --train-config models/bagpiper-sft/train_stage3_qwen3_base.yaml \
+    --inference-config models/bagpiper-sft/inference_audio.yaml \
+    --model-checkpoint models/bagpiper-sft/model.pt \
+    --test-unregistered-specifier "dialogue:demo:/path/to/requests.json" \
+    --output-dir exp/bagpiper-demo
+```
+
+For audio understanding and text answers, use `inference_text.yaml` with an
+audio-containing dialogue manifest. The decoder writes text results and generated
+WAV files under the output directory. Native inference requires CUDA; the default
+is one worker on one GPU. The released generation configuration enforces text
+followed by audio and uses classifier-free guidance (`cfg: 3`) for audio.
+
+### vLLM serving
+
+The [ESPnet vLLM fork](https://github.com/espnet/vllm) provides conversion tools
+and an OpenAI-compatible serving API. Follow its
+[checkpoint conversion guide](https://github.com/espnet/vllm/blob/main/examples/espnet/MODELS.md)
+and [reference clients](https://github.com/espnet/vllm/blob/main/examples/espnet/clients/README.md).
+A native `.pt` file must be converted into a vLLM model directory first.
+
+The fork currently documents **general-SFT audio generation as unsupported**
+because its decoding path does not enforce the text-to-audio transition required
+by that checkpoint. Use native ESPnet for this workflow. The fork documents
+speech-generation support for the TTS-SFT checkpoint; see the
+[Bagpiper-TTS serving instructions](../../bagpiper_tts/speechlm1/README.md#vllm-serving).
 
 ## Setup and inputs
 
-Activate an environment installed with the [SpeechLM installation guide](../../../espnet2/speechlm/INSTALL.md).
-The launcher uses the active Python environment and invokes `torchrun` directly.
-See the [template's training-only layout](../../TEMPLATE/speechlm1/README.md#training-only-recipes)
-for environment activation, scheduler usage, and differences from `speechlm.sh`.
+Activate the [SpeechLM environment](../../../espnet2/speechlm/INSTALL.md)
+before launching training. `run.sh` uses the active Python environment and
+invokes `torchrun` directly. See the
+[template's training-only layout](../../TEMPLATE/speechlm1/README.md#training-only-recipes)
+for environment activation and scheduler integration.
 
-This recipe starts from prepared training and validation data:
+Training starts from prepared inputs:
 
-- SpeechLM dataset JSON manifests containing `data_entry` and `samples`, with
-  paths to the corresponding text, audio, or dialogue files. The Hub Parquet
-  releases are not direct inputs to the trainer.
-- Length statistics in `stats_<task>_<name>.jsonl`, with one
-  `{"example_id": length}` record per line, for each dataset/task combination.
+- **Dataset manifests:** SpeechLM JSON files containing `data_entry` and
+  `samples`, with paths to the corresponding text, audio, or dialogue files.
+- **Length statistics:** `stats_<task>_<name>.jsonl`, with one
+  `{"example_id": length}` record per line for each task/dataset combination.
 
-Data preparation is outside this recipe. Pass datasets as space-separated
-`task:name:dataset.json[:factor]` specifiers. Supported tasks are `text_to_audio`,
-`audio_to_text`, `text_only`, and `dialogue`; use distinct names for training and
-validation splits. Registered datasets can instead use
+Convert Hub Parquet data into these manifests and reader inputs before training.
+Consult the [dataset card](https://huggingface.co/datasets/espnet/Bagpiper_SFT_Data)
+for its schema and current release status.
+
+Pass space-separated `task:name:dataset.json[:factor]` specifiers. Supported
+tasks are `text_to_audio`, `audio_to_text`, `text_only`, and `dialogue`; use
+distinct training and validation names. Registered datasets instead use
 `--train-registered-specifier` / `--valid-registered-specifier` with
 `task:name[:factor]` and `ESPNET_DATASET_REGISTRY`.
 
-The configurations use Qwen3-8B-Base, Xcodec, the Qwen3-Omni audio encoder, and
-TorchTitan FSDP2. FlashAttention-3 is an example for Hopper GPUs such as H100;
-on other GPUs, choose a supported backend for both `model.model_conf.attn_implementation`
-and `multimodal_io.continuous_audio.attn_implementation`.
+The recipe uses BF16 and TorchTitan FSDP2. The default FlashAttention-3 backend
+targets Hopper GPUs such as H100/H800. On other hardware, select a supported
+backend for both `model.model_conf.attn_implementation` and
+`multimodal_io.continuous_audio.attn_implementation`.
+
+**Checkpoint compatibility:** preserve the original `multimodal_io` mapping
+order, tokenizer, codec, and architecture when using existing weights. Vocabulary
+IDs depend on that order. When saving a modified configuration with PyYAML, use
+`yaml.safe_dump(config, sort_keys=False)`.
 
 ## Training
 
-| Stage and configuration | Purpose | Initialization |
-| --- | --- | --- |
-| Warmup: `conf/train.yaml` (default) | Align expanded embeddings and the audio adaptor with the frozen decoder | Qwen3-8B-Base |
-| Pretraining: `conf/tuning/train_pretrain.yaml` | Learn the joint audio/text model | Warmup DCP checkpoint |
-| SFT: `conf/tuning/train_sft.yaml` | Specialize the model for instruction dialogues | Pretraining DCP checkpoint |
+### Curriculum and recipe defaults
 
-The audio encoder and codec stay frozen in every stage. Warmup also freezes
-decoder layers; expanded token embeddings (including text rows), the output head,
-stream embeddings, the audio adaptor, and final norm remain trainable. Pretraining
-and SFT also train the decoder.
+| Stage | Configuration | Initialization | Steps | Peak LR | LR warmup | Accumulation | Min. LR ratio |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: |
+| **Warmup** | [conf/train.yaml](conf/train.yaml) | Qwen3-8B-Base | 10,000 | 5e-4 | 100 | 4 | 1.0 |
+| **Pretraining** | [conf/tuning/train_pretrain.yaml](conf/tuning/train_pretrain.yaml) | Warmup checkpoint | 600,000 | 1e-4 | 5,000 | 4 | 0.3 |
+| **SFT** | [conf/tuning/train_sft.yaml](conf/tuning/train_sft.yaml) | Pretrained checkpoint | 50,000 | 1e-5 | 1,000 | 1 | 0.1 |
 
-| Stage | `max_step` | Peak learning rate | LR warmup steps | Gradient accumulation | `min_lr_ratio` |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| Warmup | 10,000 | 5e-4 | 100 | 4 | 1.0 |
-| Pretraining | 600,000 | 1e-4 | 5,000 | 4 | 0.3 |
-| SFT | 50,000 | 1e-5 | 1,000 | 1 | 0.1 |
+The audio encoder and codec remain frozen throughout. Warmup also freezes the
+decoder layers while training the multimodal interface; pretraining and SFT
+train the decoder. Warmup keeps a constant LR after its initial ramp; the later
+stages use cosine decay.
 
-Warmup keeps the learning rate constant after its first 100 steps
-(`min_lr_ratio: 1.0`). The other stages use cosine decay after LR warmup.
-All stages use a packed-token budget of 8,192 per GPU per micro-batch. At the same
-GPU count, SFT's accumulation of 1 gives one quarter of the effective batch budget
-of warmup/pretraining, which accumulate 4 micro-batches.
+These are **TorchTitan starting configurations**, separate from the paper's
+original training schedule and 600B-token budget. Each stage packs up to 8,192
+tokens per GPU per micro-batch. Adjust the token budget, accumulation, number of
+steps, and LR schedule for your data and hardware. `dp_shard: -1` uses the GPU
+count selected by the launcher.
 
-These schedules are starting settings for this trainer, not a reproduction of the
-original DeepSpeed run. With 8 GPUs, the pretraining budget is approximately
-`8192 × 4 × 8 = 262,144` tokens per optimizer step, or 157.3 billion token slots
-over 600,000 steps; actual packed lengths vary. This recipe has no measured runtime
-yet. After measuring `time/iter` in seconds, estimate training GPU-days as
-`max_step × seconds_per_step × GPU_count / 86400`, plus validation and checkpoint
-overhead. Adjust the token budget, accumulation, `max_step`, and LR schedule for
-your run. `dp_shard: -1` uses the GPU count selected by the launcher.
+### Launch the stages
 
-Run from `egs2/bagpiper/speechlm1`. Replace the example data paths with prepared
-manifests and statistics:
+Run from `egs2/bagpiper/speechlm1`, replacing the paths with prepared manifests
+and statistics. The default launcher starts warmup:
 
 ```bash
 ./run.sh --ngpu 8 \
     --stats-dir /path/to/pretrain_stats \
-    --train-unregistered-specifier "text_to_audio:train:/path/to/train.json audio_to_text:train:/path/to/train.json" \
-    --valid-unregistered-specifier "text_to_audio:valid:/path/to/valid.json audio_to_text:valid:/path/to/valid.json"
+    --train-unregistered-specifier "text_to_audio:train:/path/to/train.json audio_to_text:train:/path/to/train.json text_only:text_train:/path/to/text_train.json" \
+    --valid-unregistered-specifier "text_to_audio:valid:/path/to/valid.json audio_to_text:valid:/path/to/valid.json text_only:text_valid:/path/to/text_valid.json"
 ```
 
-For pretraining, use the same data arguments with
-`--train-config conf/tuning/train_pretrain.yaml --output-dir exp/pretrain` and
-`--resume-path exp/warmup/checkpoints/step_10000`.
-The example checkpoints `step_10000` and `step_600000` are the final checkpoints
-of the default warmup and pretraining schedules; change them if you change the
-schedule or select an earlier checkpoint.
+For pretraining, reuse the data arguments and add
+`--train-config conf/tuning/train_pretrain.yaml --output-dir exp/pretrain
+--resume-path exp/warmup/checkpoints/step_10000`. The paper balances caption-to-audio,
+audio-to-caption, and text-only training through their token budgets; configure
+your data mixture and sampling factors accordingly.
 
-For SFT, use prepared dialogue manifests containing the instruction, rich-caption,
-and audio turns for each task:
+For SFT, use prepared instruction dialogues with rich captions and the
+task-appropriate text/audio turns:
 
 ```bash
 ./run.sh --ngpu 8 \
@@ -97,23 +248,26 @@ and audio turns for each task:
     --valid-unregistered-specifier "dialogue:sft_valid:/path/to/sft_valid.json"
 ```
 
-An explicit `--resume-path` loads model weights from a PyTorch Distributed
-Checkpoint (DCP) directory or a native Hub `base.pt` / `model.pt` file and starts
-a new optimizer, scheduler, and step counter; use a new output directory when
-switching stages. Native files require `pp_degree: 1` and an exactly matching
-model configuration; all model weights must be present. They support multi-GPU
-FSDP initialization. Model construction first loads the pretrained components,
-then replaces their weights with the requested checkpoint.
+The checkpoint step numbers above are the final steps of the recipe defaults;
+replace them with your selected checkpoints if you change the schedules. You can
+also initialize SFT directly from the released Bagpiper-Base `base.pt` with a
+matching model configuration.
 
-To resume an interrupted stage, rerun its command with the same data, configuration,
-and output directory, **omitting `--resume-path`**. The latest checkpoint in
-`output_dir/checkpoints/step_*` restores the model, optimizer, scheduler, and step.
-The launcher saves batch assignments by default (`--save-loader-state true`).
-Keep the gradient accumulation setting unchanged when resuming, since iterator
-progress is measured in micro-batches.
+### Initialize, resume, and export
 
-To use a trained DCP checkpoint with native inference, export only its model
-weights on CPU (allow enough RAM for the full model):
+| Operation | How to run it |
+| --- | --- |
+| Start a new stage from existing weights | Supply `--resume-path` with a complete native `.pt` file or DCP directory, and use a new output directory. The optimizer, scheduler, and step counter start fresh. |
+| Continue an interrupted stage | Reuse its data, configuration, and output directory, **omitting `--resume-path`**. The latest complete DCP restores the model, optimizer, scheduler, and step. |
+| Prepare weights for inference | Export the model from DCP into a single `.pt` file with the command below. |
+
+Native weight initialization requires an exactly matching model configuration
+and `pp_degree: 1`; multi-GPU FSDP initialization is supported. Model construction
+loads the pretrained components before replacing their weights with the selected
+checkpoint. Keep gradient accumulation unchanged across resume, since data
+progress is measured in micro-batches; the launcher saves batch assignments by default.
+
+Export on CPU with enough RAM for the full model:
 
 ```bash
 python -m espnet2.speechlm.bin.export_checkpoint \
@@ -121,43 +275,26 @@ python -m espnet2.speechlm.bin.export_checkpoint \
     --output exp/sft/model.pt --dtype bfloat16
 ```
 
-The [reproduction guide](../../../espnet2/speechlm/REPRODUCE.md) walks through a
-small LibriSpeech experiment, including caption generation, full-parameter
-eight-GPU FSDP fine-tuning, checkpoint export, and vLLM serving.
+For multiple nodes, launch on each node with `--num-nodes N --node-rank R
+--master-addr HOST --master-port PORT` and shared data/output paths. `--ngpu`
+counts GPUs per node. Relative paths resolve from the recipe directory;
+`./run.sh --help` lists the options, and W&B is disabled by default.
 
-For multiple nodes, run the same command on each node with `--num-nodes N`,
-`--node-rank R`, `--master-addr HOST`, and `--master-port PORT`; use the same
-data and a shared output directory. `--ngpu` is the number of GPUs per node.
-All relative paths are resolved from the recipe directory. See `./run.sh --help`
-for options; W&B is disabled by default.
+The [reproduction guide](../../../espnet2/speechlm/REPRODUCE.md) walks through
+a small LibriSpeech fine-tuning experiment, checkpoint recovery, export, and serving.
 
-## Inference
+## Citation
 
-Use the [ESPnet vLLM fork](https://github.com/espnet/vllm) for fast inference
-through an OpenAI-compatible API. The general SFT checkpoint
-[`espnet/bagpiper-sft`](https://huggingface.co/espnet/bagpiper-sft) and the TTS
-checkpoint [`espnet/bagpiper-tts-sft`](https://huggingface.co/espnet/bagpiper-tts-sft)
-share the same conversion and serving workflow.
-
-Download the selected checkpoint and follow the
-[conversion guide](https://github.com/espnet/vllm/blob/main/examples/espnet/MODELS.md)
-to prepare a vLLM model directory. The published `.pt` files require conversion
-before serving. The prebuilt [`espnet/vllm:latest`](https://hub.docker.com/r/espnet/vllm)
-Docker image includes the fork and its runtime dependencies for Linux amd64 and
-arm64. Replace `/path/to/converted-checkpoint` with the converted model directory:
-
-```bash
-docker run --rm --gpus all \
-    -v /path/to/converted-checkpoint:/models/bagpiper \
-    -v ~/.cache/huggingface:/root/.cache/huggingface \
-    -p 127.0.0.1:9811:9811 \
-    --entrypoint bash espnet/vllm:latest \
-    -c 'MODEL_PATH=/models/bagpiper bash /workspace/vllm-fork/examples/espnet/serve_bagpiper.sh'
+```bibtex
+@inproceedings{tian2026bagpiper,
+  title     = {Bagpiper: Solving Open-Ended Audio Tasks via Rich Captions},
+  author    = {Jinchuan Tian and Haoran Wang and Bo-Hao Su and Chien-yu Huang and
+               Qingzheng Wang and Jiatong Shi and William Chen and Xun Gong and
+               Siddhant Arora and Chin-Jou Li and Masao Someki and Takashi Maekaku and
+               Keita Goto and Yusuke Shinohara and Jin Sakuma and
+               Chao-Han Huck Yang and Shinji Watanabe},
+  booktitle = {Third Conference on Language Modeling},
+  year      = {2026},
+  url       = {https://openreview.net/forum?id=FuHs64E3X6}
+}
 ```
-
-The server exposes `http://127.0.0.1:9811/v1/chat/completions` on the Docker host
-with model name `bagpiper`.
-See the [reference clients](https://github.com/espnet/vllm/blob/main/examples/espnet/clients/README.md)
-for task-specific requests and classifier-free guidance, and the
-[Docker guide](https://github.com/espnet/vllm/blob/main/examples/espnet/docker/README.md)
-for GPU requirements and model-cache configuration.
