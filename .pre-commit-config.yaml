@@ -8,6 +8,13 @@ repos:
         exclude: ^(egs2/TEMPLATE/asr1/utils|egs2/TEMPLATE/asr1/steps|egs2/TEMPLATE/tts1/sid|tools/installers/patch_mwerSegmenter)
     -   id: end-of-file-fixer
         exclude: ^(egs2/TEMPLATE/asr1/utils|egs2/TEMPLATE/asr1/steps|egs2/TEMPLATE/tts1/sid|tools/installers/patch_mwerSegmenter)
+    -   id: mixed-line-ending
+        # Everything is LF. A CRLF source file is invisible until a formatter
+        # rewrites every line of it and a two-line change becomes a whole-file
+        # diff. Windows batch files and patches keep their own endings, and
+        # a captured log keeps the carriage returns of its progress bars.
+        args: [--fix=lf]
+        exclude: ^(egs2/TEMPLATE/asr1/utils|egs2/TEMPLATE/asr1/steps|egs2/TEMPLATE/tts1/sid|tools/installers/patch_mwerSegmenter)|\.(bat|patch|log)$
     -   id: check-yaml
         exclude: ^(egs2/TEMPLATE/asr1/utils|egs2/TEMPLATE/asr1/steps|egs2/TEMPLATE/tts1/sid|tools/installers/patch_mwerSegmenter)
     -   id: check-added-large-files

@@ -919,11 +919,11 @@ class ContinuousAudioIO(AbsIO):
                 from transformers import AutoConfig
 
                 if self.encoder_hf_model_tag == "Qwen/Qwen3-Omni-30B-A3B-Instruct":
-                    from transformers.models.qwen3_omni_moe.modeling_qwen3_omni_moe import (
-                        Qwen3OmniMoeAudioEncoder,
+                    from transformers.models.qwen3_omni_moe import (
+                        modeling_qwen3_omni_moe,
                     )
 
-                    encoder_class = Qwen3OmniMoeAudioEncoder
+                    encoder_class = modeling_qwen3_omni_moe.Qwen3OmniMoeAudioEncoder
                 else:
                     from transformers.models.qwen2_5_omni.modeling_qwen2_5_omni import (
                         Qwen2_5OmniAudioEncoder,
@@ -939,7 +939,14 @@ class ContinuousAudioIO(AbsIO):
                     dtype=self.dtype,
                 ).to(self.device)
 
-            # Load processor for audio preprocessing
+            # Load processor for audio preprocessing. AutoFeatureExtractor
+            # rather than AutoProcessor: an omni checkpoint's processor also
+            # builds the image and video ones, and the video processor
+            # imports torchvision, which no espnet extra declares and which
+            # this speech-only path never uses. Both read the same
+            # `feature_extractor_type` out of preprocessor_config.json -
+            # verified equal on Qwen3-Omni-30B-A3B-Instruct: same class,
+            # equal to_dict(), bit-identical input_features.
             from transformers import AutoFeatureExtractor
 
             self.processor = AutoFeatureExtractor.from_pretrained(

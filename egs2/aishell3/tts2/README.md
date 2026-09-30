@@ -4,7 +4,7 @@ This is the recipe of Mandrain multi-speaker TTS2 model with [aishell3](https://
 
 See the following pages for running on clusters. They can help you to set the environment and get familiar with ESPNet's repo structure.
 - [PSC usage tutorial](https://www.wavlab.org/activities/2022/psc-usage/)
-- [Espnet recipe tutorial](https://github.com/espnet/notebook/blob/master/ESPnet2/Course/CMU_SpeechRecognition_Fall2022/recipe_tutorial.ipynb)
+- [Espnet recipe tutorial](https://github.com/espnet/notebook/blob/master/Courses/CMUSpeechRecognition22F/recipe_tutorial.ipynb)
 
 
 ## Brief on TTS2
@@ -124,7 +124,7 @@ We use [PWG repo](https://github.com/kan-bayashi/ParallelWaveGAN/tree/master/egs
   ```shell
   cat path/to/train_hubert.txt path/to/dev_hubert.txt path/to/test_hubert.txt > path/to/newfile_all.txt
   ```
-* Modify the ``hubert_text`` in ./run.sh. Follow instructions in stage 0 to symlink the data(silence trimmed). ``wav`` format is better supported in kaldiio than ``flac``. Notice that aishell3 has unknown speakers, so we don't use sid.
+* Modify the ``hubert_text`` in ./run.sh. Follow instructions in stage 0 to symlink the data(silence trimmed). ``wav`` format is better supported in the Kaldi ark reader than ``flac``. Notice that aishell3 has unknown speakers, so we don't use sid.
 
 * Modify ``num_embs``(equals to the number of k-means clusters), ``batch_max_steps``(as the comment suggested) and custom parameters in the config file ``conf/hifigan_hubert_24k.v1.yaml``.
 
