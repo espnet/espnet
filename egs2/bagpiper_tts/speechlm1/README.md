@@ -176,9 +176,8 @@ the native decoder and serving fork have different prompting and decoding paths.
 
 This is a training-only recipe using prepared SpeechLM dataset manifests and
 length statistics. Follow the
-[Bagpiper setup and input instructions](../../bagpiper/speechlm1/README.md#setup-and-inputs).
-The recipe's `run.sh` launches `torchrun` directly using the active environment;
-you can select another interpreter with `--python /path/to/env/bin/python`.
+[Bagpiper setup and input instructions](../../bagpiper/speechlm1/README.md#setup-and-inputs)
+and the [launcher template](../../TEMPLATE/speechlm1/README.md#training-only-recipes).
 
 The TTS training conversations have the sequence:
 
