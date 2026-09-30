@@ -144,12 +144,25 @@ dataset:
 ##########################################################
 # One shared vocabulary over the whole mixture, trained by
 # `espnet3.systems.owsm.system.OWSMSystem`.
-#   nlsyms                the OWSM special symbols, as a list or a file. Without
-#                         them SentencePiece splits <eng> into '<','e','n','g','>'.
+#   nlsyms                the OWSM special symbols, as a list, a file, or a
+#                         callable. Without them SentencePiece splits <eng> into
+#                         '<','e','n','g','>'.
 #   text_builder._target_ a callable returning a path or an iterable of strings.
+#                         Return a generator: the mixture's text does not fit in
+#                         memory, and only the sample below is written to disk.
+#   sample_size           lines to keep, reservoir-sampled while streaming. null
+#                         keeps every line. Set it once writing the full text
+#                         costs more than the vocabulary gains -- the text runs
+#                         about 210 bytes a line, so 60M rows is ~12 GB.
+#   sample_seed           a vocabulary is an artifact of the text it saw, so the
+#                         sample has to be reproducible.
 #   vocab_scaled_shapes   streams whose `<stream>_shape` gets the vocabulary size
 #                         appended, so batch_bins can see the decoder logits.
 #                         Defaults to text and text_prev.
+#
+# vocab_size has a floor above the reserved symbols: SentencePiece also needs one
+# piece per character, and at character_coverage 1.0 across 14 languages that is
+# another ~1700. 1703 symbols + 3000 vocab_size fails; 50000 is well clear.
 tokenizer:
 
 ##########################################################
