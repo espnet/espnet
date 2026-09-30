@@ -102,9 +102,9 @@ c9917c1237bd44ea0ea8b41746e5ec5aecae92273538c9b6e4040d26f69a6521  base.pt
 ```
 
 Native checkpoints already contain the language model, audio tower, and codec.
-The code constructs their architecture from configuration and strictly loads the
-released weights; it does not need a second download of the full Qwen models.
-Pre-cache only the public configuration/tokenizer assets for an offline run.
+Model construction first loads the pretrained components, then strictly loads
+the released weights over them. Pre-cache the public configuration/tokenizer
+assets and pretrained component weights before enabling offline mode below.
 The following revisions identify the tested tokenizer/config files. Cache their
 `main` references as well, because the recipe resolves these model names offline.
 If `main` has moved, the check stops instead of silently testing different assets:
@@ -120,7 +120,8 @@ sources = {
 }
 for repo, revision in sources.items():
     path = snapshot_download(repo,
-        allow_patterns=["*.json", "*.txt", "*.model", "*.jinja"])
+        allow_patterns=["*.json", "*.txt", "*.model", "*.jinja",
+                        "*.safetensors", "*.bin"])
     assert Path(path).name == revision, (repo, path, revision)
     print(repo, path)
 PY
@@ -256,7 +257,6 @@ Both directions are trained. The configuration trains the full decoder,
 embeddings and adaptor (8.268 billion parameters); the encoder and codec remain
 frozen. It uses FSDP2, eight shards, BF16 compute, FP32 parameter/Adam storage,
 full activation checkpointing, and two micro-batches per optimizer step.
-Validation retains the assistant targets and disables CFG conditioning dropout.
 
 ```bash
 export BAGPIPER_TRAIN="audio_to_text:train:$BAGPIPER_RUN/data/smoke/train.json text_to_audio:train:$BAGPIPER_RUN/data/smoke/train.json"

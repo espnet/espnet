@@ -102,7 +102,8 @@ Checkpoint (DCP) directory or a native Hub `base.pt` / `model.pt` file and start
 a new optimizer, scheduler, and step counter; use a new output directory when
 switching stages. Native files require `pp_degree: 1` and an exactly matching
 model configuration; all model weights must be present. They support multi-GPU
-FSDP initialization without downloading the upstream backbone weights again.
+FSDP initialization. Model construction first loads the pretrained components,
+then replaces their weights with the requested checkpoint.
 
 To resume an interrupted stage, rerun its command with the same data, configuration,
 and output directory, **omitting `--resume-path`**. The latest checkpoint in

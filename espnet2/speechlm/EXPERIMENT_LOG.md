@@ -6,6 +6,13 @@ Results are added only after the corresponding command runs. The
 benchmark. LibriSpeech test-clean is deliberately used for the requested smoke
 fine-tuning; its post-training results must not be reported as held-out scores.
 
+Revision on 2026-09-30: the configuration-only initialization optimization and
+the separate validation preprocessor were removed from the PR. Model construction
+now loads pretrained components before the complete Bagpiper checkpoint replaces
+their weights, and validation uses the existing preprocessor path. The measurements
+and download/validation behavior below describe the original 2026-09-09
+implementation; see the updated reproduction guide for current caching requirements.
+
 ## Workspace and hardware
 
 - Upstream baseline: `4fb9218b9b6427e3c4dc1582958facbf17298e4e`.

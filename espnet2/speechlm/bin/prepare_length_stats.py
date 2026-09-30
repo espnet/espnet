@@ -198,9 +198,7 @@ def main():
     with open(args.train_config) as f:
         config = yaml.safe_load(f)
 
-    job_template = _all_job_types[config["job_type"]](
-        config, is_train=True, load_pretrained=False
-    )
+    job_template = _all_job_types[config["job_type"]](config, is_train=True)
     preprocessor = job_template.build_preprocessor()
 
     # Collect all specifiers to process

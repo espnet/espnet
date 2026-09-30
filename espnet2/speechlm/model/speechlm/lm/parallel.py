@@ -83,16 +83,10 @@ def build_parallel_hf_class(model_hf_tag):
             # (1) Load the base model using parent's from_pretrained
             tie_word_embeddings = kwargs.pop("tie_word_embeddings", False)
             z_loss_weight = kwargs.pop("z_loss_weight", 0.0)
-            load_pretrained = kwargs.pop("load_pretrained", True)
-            if load_pretrained:
-                model = super(ParallelLLM, cls).from_pretrained(
-                    pretrained_model_name_or_path, **kwargs
-                )
-            else:
-                # A complete native checkpoint replaces all weights. Only fetch
-                # the backbone configuration, not another copy of its weights.
-                config = AutoConfig.from_pretrained(pretrained_model_name_or_path)
-                model = cls._from_config(config, **kwargs)
+
+            model = super(ParallelLLM, cls).from_pretrained(
+                pretrained_model_name_or_path, **kwargs
+            )
 
             model.z_loss_weight = z_loss_weight
 

@@ -19,7 +19,6 @@ import yaml
 
 from espnet2.speechlm.dataloader.iterator import DataIteratorFactory
 from espnet2.speechlm.model import _all_job_types
-from espnet2.speechlm.utils.checkpoint import latest_checkpoint
 
 
 def get_parser() -> argparse.ArgumentParser:
@@ -244,18 +243,7 @@ def main():
         logger.info(f"Copied training config to: {config_dest}")
 
     job_template_class = _all_job_types[train_config["job_type"]]
-    job_kwargs = {}
-    native_weights = args.resume_path is not None and args.resume_path.is_file()
-    full_resume = (
-        trainer_type == "titan"
-        and args.resume_path is None
-        and latest_checkpoint(args.output_dir) is not None
-        and train_config.get("trainer", {}).get("titan_config", {}).get("pp_degree", 1)
-        == 1
-    )
-    if native_weights or full_resume:
-        job_kwargs["load_pretrained"] = False
-    job_template = job_template_class(train_config, is_train=True, **job_kwargs)
+    job_template = job_template_class(train_config, is_train=True)
 
     # (3.5) For titan trainer, build ParallelDims early to get DP rank/world
     # for data loading. With PP, all ranks in the same PP group must see the
@@ -283,7 +271,6 @@ def main():
     # (4) build data iterator factory
     loading_config = train_config["data_loading"]
     preprocessor = job_template.build_preprocessor()
-    valid_preprocessor = job_template.build_preprocessor(for_validation=True)
 
     loader_state_dir = args.output_dir / "loader_state"
     loader_state_dir.mkdir(parents=True, exist_ok=True)
@@ -307,7 +294,7 @@ def main():
     valid_iterator_factories = {}
     valid_iterator_args = dict(
         stats_dir=args.stats_dir,
-        collate_fn=valid_preprocessor.collate_fn,
+        collate_fn=preprocessor.collate_fn,
         batchfy_method=loading_config["batchfy_method"],
         batch_size=loading_config["batch_size"],
         num_workers=loading_config["num_workers"],

@@ -328,22 +328,6 @@ class TestSpeechLMJobTemplate:
         preprocessor = job_template.build_preprocessor()
         assert isinstance(preprocessor, SpeechLMPreprocessor)
 
-    def test_validation_keeps_conditioning_and_assistant_targets(self, job_template):
-        """CFG dropout must not turn validation into unconditional generation."""
-        job_template.config["preprocessor"]["audio_cfg"] = 1.0
-        train = job_template.build_preprocessor()
-        valid = job_template.build_preprocessor(for_validation=True)
-        sample = {"text1": "caption", "audio1": (np.zeros((1, 1600)), 16000)}
-        key = ("text_to_audio", "validation", "example")
-        train_data = train.preprocessing(key, sample)
-        valid_data = valid.preprocessing(key, sample)
-        user_id = valid.vocab.index("<|user|>")
-        assistant_id = valid.vocab.index("<|assistant|>")
-        assert user_id not in train_data["sequence"][:, 0]
-        assert user_id in valid_data["sequence"][:, 0]
-        assert assistant_id in valid_data["sequence"][:, 0]
-        assert valid_data["loss_mask"].sum() > 0
-
     def test_build_model_dispatches_parallel(self, job_template):
         """Without parallel_dims, default `parallel` class is selected."""
         mock_model = MagicMock()
