@@ -69,7 +69,6 @@ train_args=""      # Arguments for training, e.g., "--max_epoch 1".
 tag=""             # Suffix for training directory.
 universa_exp=""         # Specify the directory path for experiment. If this option is specified, tag is ignored.
 universa_stats_dir=""   # Specify the directory path for statistics. If empty, automatically decided.
-num_splits=1       # Number of splitting for universa corpus.
 use_ref_wav=true   # Whether use reference wave or not.
 use_ref_text=true  # Whether use reference text or not.
 metric2id=    # File path for metric2id mapping.
@@ -81,11 +80,6 @@ inference_args=""   # Arguments for decoding (e.g., "--threshold 0.75").
                     # Note that it will overwrite args in inference config.
 inference_tag=""    # Suffix for decoding directory.
 inference_model=valid.loss.best.pth # Model path for decoding.
-                                   # e.g.
-                                   # inference_model=train.loss.best.pth
-                                   # inference_model=3epoch.pth
-                                   # inference_model=valid.acc.best.pth
-                                   # inference_model=valid.loss.ave.pth
 download_model=""  # Download a model from Model Zoo and use it for decoding.
 
 # Scoring related
@@ -99,92 +93,51 @@ bpe_train_text=  # Text file path of bpe training set.
 nlsyms_txt=none  # Non-linguistic symbol list if existing.
 cleaner=none     # Text cleaner.
 audio_fold_length=256000 # fold_length for audio data.
+text_fold_length=150     # fold_length for reference text.
 
 # Upload model related
 hf_repo=
 
 help_message=$(cat << EOF
-Usage: $0 --train-set "<train_set_name>" --valid-set "<valid_set_name>" --test_sets "<test_set_names>" --srctexts "<srctexts>"
+Usage: $0 --train-set "<train_set_name>" --valid-set "<valid_set_name>" --test_sets "<test_set_names>"
 
-Options:
-    # General configuration
-    --stage          # Processes starts from the specified stage (default="${stage}").
-    --stop_stage     # Processes is stopped at the specified stage (default="${stop_stage}").
-    --skip_data_prep # Skip data preparation stages (default="${skip_data_prep}").
-    --skip_train     # Skip training stages (default="${skip_train}").
-    --skip_eval      # Skip decoding and evaluation stages (default="${skip_eval}").
-    --skip_upload    # Skip packing and uploading stages (default="${skip_upload}").
-    --ngpu           # The number of gpus ("0" uses cpu, otherwise use gpu, default="${ngpu}").
-    --num_nodes      # The number of nodes (default="${num_nodes}").
-    --nj             # The number of parallel jobs (default="${nj}").
-    --inference_nj   # The number of parallel jobs in decoding (default="${inference_nj}").
-    --gpu_inference  # Whether to perform gpu decoding (default="${gpu_inference}").
-    --dumpdir        # Directory to dump features (default="${dumpdir}").
-    --expdir         # Directory to save experiments (default="${expdir}").
-    --python         # Specify python to execute espnet commands (default="${python}").
+Stages: 1 data preparation, 2 audio formatting, 3 metric IDs, 4 duration filtering,
+        5 text tokens, 6 statistics, 7 training, 8 inference, 9 scoring,
+        10 model packing, 11 upload.
 
-    # Data prep related
-    --local_data_opts # Options to be passed to local/data.sh (default="${local_data_opts}").
-
-    # Feature extraction related
-    --feats_type       # Feature type (default="${feats_type}").
-    --audio_format     # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw, default="${audio_format}").
-    --min_wav_duration # Minimum duration in second (default="${min_wav_duration}").
-    --max_wav_duration # Maximum duration in second (default="${max_wav_duration}").
-    --fs               # Sampling rate (default="${fs}").
-
-    # Tokenization related
-    --oov                     # Out of vocabulary symbol (default="${oov}").
-    --blank                   # CTC blank symbol (default="${blank}").
-    --sos_eos                 # sos and eos symbole (default="${sos_eos}").
-    --token_type=bpe          # Tokenization type (char or bpe) for text. (default="${token_type}").
-    --nbpe=30                 # The number of BPE vocabulary for text. (default="${nbpe}").
-    --bpemode=unigram         # Mode of BPE for text (unigram or bpe). (default="${bpemode}").
-    --bpe_input_sentence_size=100000000 # Size of input sentence for BPE for text. (default="${bpe_input_sentence_size}").
-    --bpe_nlsyms=             # Non-linguistic symbols list, separated by a comma, for BPE of text. (default="${bpe_nlsyms}").
-    --bpe_char_cover=1.0      # Character coverage when modeling BPE for text. (default="${bpe_char_cover}").
-
-
-    # Training related
-    --train_config  # Config for training (default="${train_config}").
-    --train_args    # Arguments for training (default="${train_args}").
-                    # e.g., --train_args "--max_epoch 1"
-                    # Note that it will overwrite args in train config.
-    --tag           # Suffix for training directory (default="${tag}").
-    --universa_exp       # Specify the directory path for experiment.
-                    # If this option is specified, tag is ignored (default="${universa_exp}").
-    --universa_stats_dir # Specify the directory path for statistics.
-                    # If empty, automatically decided (default="${universa_stats_dir}").
-    --num_splits    # Number of splitting for universa corpus (default="${num_splits}").
-    --use_ref_wav   # Whether use reference wave or not. (default="${use_ref_wav}").
-    --use_ref_text  # Whether use reference text or not. (default="${use_ref_text}").
-    --metric2id # File path for metric2id mapping (default="${metric2id}").
-    --metric2type    # Metric type for metric2id mapping (default="${metric2type}").
-
-    # Decoding related
-    --inference_config  # Config for decoding (default="${inference_config}").
-    --inference_args    # Arguments for decoding, (default="${inference_args}").
-                        # e.g., --inference_args "--threshold 0.75"
-                        # Note that it will overwrite args in inference config.
-    --inference_tag     # Suffix for decoding directory (default="${inference_tag}").
-    --inference_model   # Model path for decoding (default=${inference_model}).
-    --download_model    # Download a model from Model Zoo and use it for decoding (default="${download_model}").
-
-    # Scoring related
-    --sys_info       # System information for system-level evaluation (default="${sys_info}").
-
-    # [Task dependent] Set the datadir name created by local/data.sh.
-    --train_set          # Name of training set (required).
-    --valid_set          # Name of validation set used for monitoring/tuning network training (required).
-    --test_sets          # Names of test sets (required).
-                         # Note that multiple items (e.g., both dev and eval sets) can be specified.
-    --bpe_train_text # Text file path of bpe training set.
-    --nlsyms_txt    # Non-linguistic symbol list if existing (default="${nlsyms_txt}").
-    --cleaner       # Text cleaner (default="${cleaner}").
-    --audio_fold_length  # Fold length for audio data (default="${audio_fold_length}").
-
-    # Upload model related
-    ---hf_repo          # Huggingface model tag for huggingface model upload
+Common options (all configuration variables above can be set with --name value):
+    --stage / --stop_stage       First/last stage (${stage}/${stop_stage})
+    --skip_data_prep             Skip stages 1-5 (${skip_data_prep})
+    --skip_train                 Skip stages 6-7 (${skip_train})
+    --skip_eval                  Skip stages 8-9 (${skip_eval})
+    --skip_upload                Skip stages 10-11 (${skip_upload})
+    --train_set / --valid_set    Training and validation data directory names
+    --test_sets                  Space-separated evaluation data directory names
+    --local_data_opts            Arguments for local/data.sh
+    --dumpdir / --expdir         Data/experiment roots (${dumpdir}/${expdir})
+    --python                    Python interpreter (${python})
+    --ngpu / --num_nodes         Training GPUs/nodes (${ngpu}/${num_nodes})
+    --nj / --inference_nj        Statistics/inference jobs (${nj}/${inference_nj})
+    --gpu_inference              Use a GPU for inference (${gpu_inference})
+    --audio_format / --fs        Audio format/rate (${audio_format}/${fs})
+    --min_wav_duration           Minimum duration in seconds (${min_wav_duration})
+    --max_wav_duration           Maximum duration in seconds (${max_wav_duration})
+    --use_ref_wav / --use_ref_text  Enable references (${use_ref_wav}/${use_ref_text})
+    --metric2id / --metric2type  Metric name list / metric type mapping
+    --token_type                Reference text tokens: bpe or char (${token_type})
+    --bpe_train_text             Text used to build the reference vocabulary
+    --train_config / --train_args  Training YAML / overriding arguments
+    --tag / --universa_exp       Experiment suffix / explicit experiment directory
+    --universa_stats_dir         Explicit statistics directory
+    --audio_fold_length / --text_fold_length  Batch fold lengths (${audio_fold_length}/${text_fold_length})
+    --inference_config / --inference_args  Inference YAML / overriding arguments
+    --inference_model           Checkpoint name (${inference_model})
+    --inference_tag             Inference output directory suffix
+    --download_model            Model Zoo tag for inference
+    --sys_info                  Utterance-to-system mapping for system scoring
+    --hf_repo                   Hugging Face repository for upload
+See the configuration section at the top of this script for tokenization options
+and their defaults (nbpe, bpemode, bpe_nlsyms, cleaner, nlsyms_txt, etc.).
 EOF
 )
 
@@ -271,7 +224,6 @@ if [ -z "${universa_exp}" ]; then
     universa_exp="${expdir}/universa_${tag}"
 fi
 
-
 # ========================== Main stages start from here. ==========================
 
 if ! "${skip_data_prep}"; then
@@ -281,17 +233,8 @@ if ! "${skip_data_prep}"; then
         local/data.sh ${local_data_opts}
     fi
 
-
     if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
-        # TODO(kamo): Change kaldi-ark to npy or HDF5?
-        # ====== Recreating "wav.scp" ======
-        # Kaldi-wav.scp, which can describe the file path with unix-pipe, like "cat /some/path |",
-        # shouldn't be used in training process.
-        # "format_wav_scp.sh" dumps such pipe-style-wav to real audio file
-        # and also it can also change the audio-format and sampling rate.
-        # If nothing is need, then format_wav_scp.sh does nothing:
-        # i.e. the input file format and rate is same as the output.
-
+        # Materialize pipes and normalize the sample rate and audio format.
         log "Stage 2: Format wav.scp: data/ -> ${data_feats}/"
         for dset in "${train_set}" "${valid_set}" ${test_sets}; do
             if [ "${dset}" = "${train_set}" ] || [ "${dset}" = "${valid_set}" ]; then
@@ -329,7 +272,7 @@ if ! "${skip_data_prep}"; then
                     "data/${dset}/ref_wav.scp" "${data_feats}${_suf}/${dset}"
 
                 # NOTE(jiatong): align the reference audio with the formulated wav
-                python pyscripts/utils/align_wav_keys.py \
+                "${python}" pyscripts/utils/align_wav_keys.py \
                     "${data_feats}${_suf}/${dset}/wav.scp" \
                     "${data_feats}${_suf}/${dset}/ref_wav.scp" \
                     "${data_feats}${_suf}/${dset}/ref_wav.tmp"
@@ -341,7 +284,7 @@ if ! "${skip_data_prep}"; then
 
             # NOTE(jiatong): some extra treatment for extra files, including sorting and duplication remove
             for utt_extra_file in ${utt_extra_files}; do
-                python pyscripts/utils/remove_duplicate_keys.py ${data_feats}${_suf}/${dset}/${utt_extra_file} \
+                "${python}" pyscripts/utils/remove_duplicate_keys.py ${data_feats}${_suf}/${dset}/${utt_extra_file} \
                     > ${data_feats}${_suf}/${dset}/${utt_extra_file}.tmp
                 mv ${data_feats}${_suf}/${dset}/${utt_extra_file}.tmp ${data_feats}${_suf}/${dset}/${utt_extra_file}
                 sort -o ${data_feats}${_suf}/${dset}/${utt_extra_file} ${data_feats}${_suf}/${dset}/${utt_extra_file}
@@ -358,12 +301,12 @@ if ! "${skip_data_prep}"; then
         if [ -z "${metric2id}" ] ; then
             if [ -z "${metric2type}" ] ; then
                 log "metric2id and metric2type are not specificed. Generate it from metric.scp"
-                python pyscripts/utils/prep_metric_id.py \
+                "${python}" pyscripts/utils/prep_metric_id.py \
                     "${data_feats}/org/${train_set}"/metric.scp \
                     "${data_feats}/org/${train_set}"/metric2id
             else
                 log "metric2id_file is not specificed but metric2type is. Generate it from metric2type"
-                python pyscripts/utils/prep_metric_id.py \
+                "${python}" pyscripts/utils/prep_metric_id.py \
                     "${data_feats}/org/${train_set}"/metric.scp \
                     "${data_feats}/org/${train_set}"/metric2id \
                     --metric2type "${metric2type}"
@@ -388,9 +331,9 @@ if ! "${skip_data_prep}"; then
             cp "${data_feats}/org/${dset}/feats_type" "${data_feats}/${dset}/feats_type"
 
             # Remove short utterances
-            _fs=$(python3 -c "import humanfriendly as h;print(h.parse_size('${fs}'))")
-            _min_length=$(python3 -c "print(int(${min_wav_duration} * ${_fs}))")
-            _max_length=$(python3 -c "print(int(${max_wav_duration} * ${_fs}))")
+            _fs=$("${python}" -c "import humanfriendly as h;print(h.parse_size('${fs}'))")
+            _min_length=$("${python}" -c "print(int(${min_wav_duration} * ${_fs}))")
+            _max_length=$("${python}" -c "print(int(${max_wav_duration} * ${_fs}))")
 
             # utt2num_samples is created by format_wav_scp.sh
             <"${data_feats}/org/${dset}/utt2num_samples" \
@@ -402,30 +345,36 @@ if ! "${skip_data_prep}"; then
                 >"${data_feats}/${dset}/wav.scp"
 
             if [ ${use_ref_wav} = true ]; then
-                <"${data_feats}/org/${dset}/utt2num_samples.ref" \
-                    awk -v min_length="${_min_length}" -v max_length="${_max_length}" \
-                        '{ if ($2 > min_length && $2 < max_length ) print $0; }' \
-                        >"${data_feats}/${dset}/utt2num_samples.ref"
+                {
+                    <"${data_feats}/org/${dset}/utt2num_samples.ref" \
+                        awk -v min_length="${_min_length}" -v max_length="${_max_length}" \
+                            '{ if ($2 > min_length && $2 < max_length) print $0; }'
+                    # Alignment can add missing references without sample counts.
+                    awk '$2 == "None" { print $1, 0 }' "${data_feats}/org/${dset}/ref_wav.scp"
+                } | sort -k1,1 -u > "${data_feats}/${dset}/utt2num_samples.ref"
                 <"${data_feats}/org/${dset}/ref_wav.scp" \
                     utils/filter_scp.pl "${data_feats}/${dset}/utt2num_samples.ref"  \
                     >"${data_feats}/${dset}/ref_wav.scp"
             fi
 
-            # Remove empty text
-            for utt_extra_file in ${utt_extra_files}; do
-                <${data_feats}/org/${dset}/${utt_extra_file} \
-                    awk ' { if( NF != 1 ) print $0; } ' > ${data_feats}/${dset}/${utt_extra_file}
-            done
+            # Reference audio was filtered above; do not overwrite it here.
+            <"${data_feats}/org/${dset}/metric.scp" \
+                awk 'NF > 1' > "${data_feats}/${dset}/metric.scp"
 
-            # fix_data_dir.sh leaves only utts which exist in all files
+            # Extra files are filtered by fix_data_dir.sh, but do not select utts.
+            for utt_extra_file in ${utt_extra_files}; do
+                utils/filter_scp.pl "${data_feats}/${dset}/${utt_extra_file}" \
+                    "${data_feats}/${dset}/wav.scp" > "${data_feats}/${dset}/wav.scp.tmp"
+                mv "${data_feats}/${dset}/wav.scp.tmp" "${data_feats}/${dset}/wav.scp"
+            done
             utils/fix_data_dir.sh --utt_extra_files "${utt_extra_files}" "${data_feats}/${dset}"
 
             # NOTE(jiatong): some extra treatment for extra files, including sorting and duplication remove
             for utt_extra_file in ${utt_extra_files}; do
-                python pyscripts/utils/remove_duplicate_keys.py ${data_feats}/${dset}/${utt_extra_file} \
+                "${python}" pyscripts/utils/remove_duplicate_keys.py ${data_feats}/${dset}/${utt_extra_file} \
                     > ${data_feats}/${dset}/${utt_extra_file}.tmp
                 mv ${data_feats}/${dset}/${utt_extra_file}.tmp ${data_feats}/${dset}/${utt_extra_file}
-		        sort -o ${data_feats}/${dset}/${utt_extra_file} ${data_feats}/${dset}/${utt_extra_file}
+                sort -o ${data_feats}/${dset}/${utt_extra_file} ${data_feats}/${dset}/${utt_extra_file}
             done
 
         done
@@ -470,8 +419,8 @@ if ! "${skip_data_prep}"; then
             echo "${sos_eos}"
             } > "${token_list}"
 
-        elif [ "${token_type}" = char ] || [ "${token_type}" = word ]; then
-            log "Stage 5: Generate character level token_list from ${lm_train_text}"
+        elif [ "${token_type}" = char ]; then
+            log "Stage 5: Generate character level token_list from ${bpe_train_text}"
 
             _opts="--non_linguistic_symbols ${nlsyms_txt}"
 
@@ -479,10 +428,9 @@ if ! "${skip_data_prep}"; then
             # 0 is reserved for CTC-blank for ASR and also used as ignore-index in the other task
             ${python} -m espnet2.bin.tokenize_text  \
                 --token_type "${token_type}" \
-                --input "${data_feats}/lm_train.txt" --output "${token_list}" ${_opts} \
+                --input "${bpe_train_text}" --output "${token_list}" ${_opts} \
                 --field 2- \
                 --cleaner "${cleaner}" \
-                --g2p "${g2p}" \
                 --write_vocabulary true \
                 --add_symbol "${blank}:0" \
                 --add_symbol "${oov}:1" \
@@ -498,7 +446,6 @@ else
     log "Skip the stages for data preparation"
 fi
 # ========================== Data preparation is done here. ==========================
-
 
 if ! "${skip_train}"; then
     if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
@@ -630,12 +577,14 @@ if ! "${skip_train}"; then
         if [ ${use_ref_wav} = true ]; then
             _opts+="--train_data_path_and_name_and_type ${_train_dir}/ref_wav.scp,ref_audio,${_type} "
             _opts+="--train_shape_file ${universa_stats_dir}/train/ref_audio_shape "
+            _opts+="--fold_length ${audio_fold_length} "
             _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/ref_wav.scp,ref_audio,${_type} "
             _opts+="--valid_shape_file ${universa_stats_dir}/valid/ref_audio_shape "
         fi
         if [ ${use_ref_text} = true ]; then
             _opts+="--train_data_path_and_name_and_type ${_train_dir}/text,ref_text,text "
             _opts+="--train_shape_file ${universa_stats_dir}/train/ref_text_shape "
+            _opts+="--fold_length ${text_fold_length} "
             _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/text,ref_text,text "
             _opts+="--valid_shape_file ${universa_stats_dir}/valid/ref_text_shape "
             _opts+="--token_list ${token_list} "
@@ -677,7 +626,6 @@ else
     log "Skip training stages"
 fi
 
-
 if [ -n "${download_model}" ]; then
     log "Use ${download_model} for decoding and evaluation"
     universa_exp="${expdir}/${download_model}"
@@ -697,7 +645,6 @@ if [ -n "${download_model}" ]; then
 
 fi
 
-
 if ! "${skip_eval}"; then
     if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
         log "Stage 8: Decoding: training_dir=${universa_exp}"
@@ -712,7 +659,6 @@ if ! "${skip_eval}"; then
 
         log "Generate '${universa_exp}/${inference_tag}/run.sh'. You can resume the process from stage 8 using this script"
         mkdir -p "${universa_exp}/${inference_tag}"; echo "${run_args} --stage 8 \"\$@\"; exit \$?" > "${universa_exp}/${inference_tag}/run.sh"; chmod +x "${universa_exp}/${inference_tag}/run.sh"
-
 
         for dset in ${test_sets}; do
             _opts=
@@ -779,14 +725,6 @@ if ! "${skip_eval}"; then
     if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
         log "Stage 9: Scoring"
 
-        if ${gpu_inference}; then
-            _cmd="${cuda_cmd}"
-            _ngpu=1
-        else
-            _cmd="${decode_cmd}"
-            _ngpu=0
-        fi
-
         for dset in ${test_sets}; do
             _data="${data_feats}/${dset}"
             _ref_metrics="${_data}/metric.scp"
@@ -796,7 +734,7 @@ if ! "${skip_eval}"; then
             log "Begin evaluation on ${dset}, results are written under ${_dir}"
 
             log "Perform utt-level evaluation, results are written in ${_dir}/utt_result.json"
-            python pyscripts/utils/universa_eval.py \
+            "${python}" pyscripts/utils/universa_eval.py \
                 --level utt \
                 --ref_metrics "${_ref_metrics}" \
                 --pred_metrics "${_pred_metrics}" \
@@ -808,7 +746,7 @@ if ! "${skip_eval}"; then
 
             if [ -n "${sys_info}" ]; then
                 log "Perform system-level evaluation using ${sys_info}, results are written in ${_dir}/sys_result.json"
-                python pyscripts/utils/universa_eval.py \
+                "${python}" pyscripts/utils/universa_eval.py \
                     --level sys \
                     --ref_metrics "${_ref_metrics}" \
                     --pred_metrics "${_pred_metrics}" \
@@ -826,7 +764,6 @@ else
     log "Skip the evaluation stages"
 fi
 
-
 packed_model="${universa_exp}/${universa_exp##*/}_${inference_model%.*}.zip"
 if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ] && ! "${skip_upload}"; then
     log "Stage 10: Packing model: ${packed_model}"
@@ -843,7 +780,6 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ] && ! "${skip_upload}"; then
         log "Skip packing model since ${universa_exp}/${inference_model} does not exist."
     fi
 fi
-
 
 if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ] && ! "${skip_upload}"; then
     log "Stage 11: Uploading to hugging face: ${hf_repo}"
