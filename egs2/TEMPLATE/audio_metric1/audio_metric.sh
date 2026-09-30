@@ -3,8 +3,6 @@
 # Copyright 2024 Jiatong Shi
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-# Set bash to 'debug' mode, it will exit on :
-# -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
 set -e
 set -u
 set -o pipefail
@@ -290,7 +288,6 @@ if ! "${skip_data_prep}"; then
                 sort -o ${data_feats}${_suf}/${dset}/${utt_extra_file} ${data_feats}${_suf}/${dset}/${utt_extra_file}
             done
 
-            # TODO(jiatong): format preference wav.scp
             echo "${feats_type}" > "${data_feats}${_suf}/${dset}/feats_type"
         done
     fi
@@ -324,9 +321,7 @@ if ! "${skip_data_prep}"; then
 
         # NOTE(kamo): Not applying to test_sets to keep original data
         for dset in "${train_set}" "${valid_set}"; do
-            # Copy data dir
             mkdir -p "${data_feats}/${dset}"
-            # Copy data dir
             utils/copy_data_dir.sh --validate_opts --non-print "${data_feats}/org/${dset}" "${data_feats}/${dset}"
             cp "${data_feats}/org/${dset}/feats_type" "${data_feats}/${dset}/feats_type"
 
@@ -455,7 +450,6 @@ if ! "${skip_train}"; then
 
         _opts=
         if [ -n "${train_config}" ]; then
-            # To gen3 -m espnet2.bin.audio_metric_train --print_config --optim adam
             _opts+="--config ${train_config} "
         fi
 
@@ -463,11 +457,9 @@ if ! "${skip_train}"; then
         if [[ "${audio_format}" == *ark* ]]; then
             _type=kaldi_ark
         else
-            # "sound" supports "wav", "flac", etc.
             _type=sound
         fi
 
-        # 1. Split the key file
         _logdir="${universa_stats_dir}/logdir"
         mkdir -p "${_logdir}"
 
@@ -490,14 +482,11 @@ if ! "${skip_train}"; then
         # shellcheck disable=SC2086
         utils/split_scp.pl "${key_file}" ${split_scps}
 
-        # 2. Generate run.sh
         log "Generate '${universa_stats_dir}/run.sh'. You can resume the process from stage 6 using this script"
         mkdir -p "${universa_stats_dir}"; echo "${run_args} --stage 6 \"\$@\"; exit \$?" > "${universa_stats_dir}/run.sh"; chmod +x "${universa_stats_dir}/run.sh"
 
-        # 3. Submit jobs
         log "Universa collect_stats started... log: '${_logdir}/stats.*.log'"
 
-        # Add reference audio and text if required
         if [ ${use_ref_wav} = true ]; then
             _opts+="--train_data_path_and_name_and_type ${_train_dir}/ref_wav.scp,ref_audio,${_type} "
             _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/ref_wav.scp,ref_audio,${_type} "
@@ -532,7 +521,6 @@ if ! "${skip_train}"; then
                 --output_dir "${_logdir}/stats.JOB" \
                 ${_opts} ${train_args} || { cat $(grep -l -i error "${_logdir}"/stats.*.log) ; exit 1; }
 
-        # 4. Aggregate shape files
         _opts=
         for i in $(seq "${_nj}"); do
             _opts+="--input_dir ${_logdir}/stats.${i} "
@@ -547,8 +535,6 @@ if ! "${skip_train}"; then
 
         _opts=
         if [ -n "${train_config}" ]; then
-            # To generate the config file: e.g.
-            #   % python3 -m espnet2.bin.audio_metric_train --print_config --optim adam
             _opts+="--config ${train_config} "
         fi
 
@@ -556,7 +542,6 @@ if ! "${skip_train}"; then
         if [[ "${audio_format}" == *ark* ]]; then
             _type=kaldi_ark
         else
-            # "sound" supports "wav", "flac", etc.
             _type=sound
         fi
 
@@ -573,7 +558,6 @@ if ! "${skip_train}"; then
             jobname="${universa_exp}/train.log"
         fi
 
-        # Add reference audio and text if required
         if [ ${use_ref_wav} = true ]; then
             _opts+="--train_data_path_and_name_and_type ${_train_dir}/ref_wav.scp,ref_audio,${_type} "
             _opts+="--train_shape_file ${universa_stats_dir}/train/ref_audio_shape "
@@ -634,11 +618,9 @@ if [ -n "${download_model}" ]; then
     # If the model already exists, you can skip downloading
     espnet_model_zoo_download --unpack true "${download_model}" > "${universa_exp}/config.txt"
 
-    # Get the path of each file
     _model_file=$(<"${universa_exp}/config.txt" sed -e "s/.*'model_file': '\([^']*\)'.*$/\1/")
     _train_config=$(<"${universa_exp}/config.txt" sed -e "s/.*'train_config': '\([^']*\)'.*$/\1/")
 
-    # Create symbolic links
     ln -sf "${_model_file}" "${universa_exp}"
     ln -sf "${_train_config}" "${universa_exp}"
     inference_model=$(basename "${_model_file}")
@@ -670,7 +652,6 @@ if ! "${skip_eval}"; then
             if [[ "${audio_format}" == *ark* ]]; then
                 _type=kaldi_ark
             else
-                # "sound" supports "wav", "flac", etc.
                 _type=sound
             fi
 
@@ -679,10 +660,8 @@ if ! "${skip_eval}"; then
             _logdir="${_dir}/log"
             mkdir -p "${_logdir}"
 
-            # 0. Copy feats_type
             cp "${_data}/feats_type" "${_dir}/feats_type"
 
-            # 1. Split the key file
             key_file=${_data}/wav.scp
             split_scps=""
             _nj=$(min "${inference_nj}" "$(<${key_file} wc -l)")
@@ -692,10 +671,8 @@ if ! "${skip_eval}"; then
             # shellcheck disable=SC2086
             utils/split_scp.pl "${key_file}" ${split_scps}
 
-            # 2. Submit decoding jobs
             log "Decoding started... log: '${_logdir}/universa_inference.*.log'"
 
-            # Add reference audio and text if required
             if [ ${use_ref_wav} = true ]; then
                 _opts+="--data_path_and_name_and_type ${_data}/ref_wav.scp,ref_audio,${_type} "
             fi
@@ -767,9 +744,7 @@ fi
 packed_model="${universa_exp}/${universa_exp##*/}_${inference_model%.*}.zip"
 if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ] && ! "${skip_upload}"; then
     log "Stage 10: Packing model: ${packed_model}"
-    # Pack model
     if [ -e "${universa_exp}/${inference_model}" ]; then
-        # Pack model
         # shellcheck disable=SC2086
         ${python} -m espnet2.bin.pack audio_metric \
             --model_file "${universa_exp}/${inference_model}" \
@@ -787,7 +762,6 @@ if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ] && ! "${skip_upload}"; then
         log "ERROR: You need to setup the variable hf_repo with the name of the repository located at HuggingFace, follow the following steps described here https://github.com/espnet/espnet/blob/master/CONTRIBUTING.md#132-espnet2-recipes" && \
     exit 1
 
-    # Upload model to hugging face
     if [ -e "${packed_model}" ]; then
 
     gitlfs=$(git lfs --version 2> /dev/null || true)
@@ -811,9 +785,7 @@ if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ] && ! "${skip_upload}"; then
     _corpus="${_task%/*}"
     _model_name="${_creator_name}/${_corpus}_$(basename ${packed_model} .zip)"
 
-    # copy files in ${dir_repo}
     unzip -o ${packed_model} -d ${dir_repo}
-    # Generate description file
     # shellcheck disable=SC2034
     hf_task=universa
     # shellcheck disable=SC2034
