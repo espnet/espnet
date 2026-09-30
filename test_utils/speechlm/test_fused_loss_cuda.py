@@ -7,7 +7,11 @@ import pytest
 import torch
 import torch.nn.functional as F
 
-from espnet2.speechlm.model.speechlm.lm.loss import fused_cross_entropy_loss
+pytest.importorskip("liger_kernel.ops.fused_linear_cross_entropy")
+
+from espnet2.speechlm.model.speechlm.lm.loss import (  # noqa: E402
+    fused_cross_entropy_loss,
+)
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="requires CUDA")
@@ -37,6 +41,7 @@ def test_fused_loss_matches_cross_entropy(streams, z_weight):
         ce_weight=class_weight,
     )
     expected = hidden.new_zeros(())
+    expected_z = hidden.new_zeros(())
     for stream_range, start, end in [(slice(0, 1), 0, 96)] + (
         [(slice(1, None), 64, 96)] if streams > 1 else []
     ):
@@ -50,9 +55,11 @@ def test_fused_loss_matches_cross_entropy(streams, z_weight):
             weight=class_weight[start:end],
             reduction="sum",
         )
-        expected = expected + z_weight * logits[active].logsumexp(-1).square().sum()
+        expected_z = expected_z + z_weight * logits[active].logsumexp(-1).square().sum()
 
+    expected = expected + expected_z
     torch.testing.assert_close(actual, expected, rtol=2e-5, atol=1e-3)
+    torch.testing.assert_close(stats["z_loss"], expected_z, rtol=2e-5, atol=1e-3)
     torch.testing.assert_close(count, mask[:, 1:, 0].sum())
     for value in stats.values():
         assert torch.isfinite(value).all()

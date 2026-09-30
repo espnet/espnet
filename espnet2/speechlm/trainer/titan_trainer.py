@@ -405,15 +405,18 @@ class TitanTrainer:
                             "Expected a nonempty state dict or a checkpoint with model "
                             "tensors under 'module'."
                         )
-                set_model_state_dict(
-                    self.model,
-                    state_dict,
-                    options=StateDictOptions(
-                        full_state_dict=True,
-                        broadcast_from_rank0=dist.is_initialized(),
-                        strict=True,
-                    ),
-                )
+                if dist.is_initialized():
+                    set_model_state_dict(
+                        self.model,
+                        state_dict,
+                        options=StateDictOptions(
+                            full_state_dict=True,
+                            broadcast_from_rank0=True,
+                            strict=True,
+                        ),
+                    )
+                else:
+                    self.model.load_state_dict(state_dict, strict=True)
                 logger.info(
                     "Loaded native model weights from %s; optimizer, scheduler, "
                     "and step start fresh",

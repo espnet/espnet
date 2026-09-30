@@ -21,6 +21,7 @@ def main():
     parser.add_argument("--checkpoint", type=Path, required=True)
     parser.add_argument("--reference", type=Path, required=True)
     parser.add_argument("--expected-step", type=int, required=True)
+    parser.add_argument("--expected-shards", type=int, default=8)
     parser.add_argument(
         "--expect-audio-input-update",
         action="store_true",
@@ -28,6 +29,8 @@ def main():
     )
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
+    if args.expected_step < 1 or args.expected_shards < 1:
+        parser.error("--expected-step and --expected-shards must be positive")
     reference = torch.load(
         args.reference, map_location="cpu", weights_only=True, mmap=True
     )["module"]
@@ -94,8 +97,8 @@ def main():
             "elements": value.numel(),
         }
     shards = len(list(args.checkpoint.glob("*.distcp")))
-    if shards != 8:
-        raise ValueError(f"Expected 8 FSDP smoke shards, found {shards}")
+    if shards != args.expected_shards:
+        raise ValueError(f"Expected {args.expected_shards} FSDP shards, found {shards}")
     result = {
         "checkpoint": str(args.checkpoint),
         "step": state["global_step"],

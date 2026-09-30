@@ -78,3 +78,17 @@ def test_optimizer_and_batch_progress(start, end, expected):
     assert trainer.global_step == end
     assert trainer.model.seen == expected
     assert torch.isfinite(trainer.model.weight)
+
+
+def test_exhausted_iterator_does_not_advance_optimizer():
+    trainer = make_trainer(0, 2)
+    original = trainer.model.weight.detach().clone()
+    with (
+        patch.object(trainer.train_data_factory, "build_iter", return_value=iter(())),
+        patch("espnet2.speechlm.trainer.titan_trainer.dist.all_reduce"),
+    ):
+        with pytest.raises(RuntimeError, match="iterator ended"):
+            trainer.train()
+    assert trainer.global_step == 0
+    assert trainer.lr_scheduler.last_epoch == 0
+    torch.testing.assert_close(trainer.model.weight, original)

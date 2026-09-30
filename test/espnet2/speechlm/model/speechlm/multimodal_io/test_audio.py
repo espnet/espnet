@@ -550,6 +550,32 @@ class TestContinuousAudioIO:
         io = self._make_continuous_io()
         assert io.feature_dim() == 3584
 
+    @pytest.mark.parametrize(
+        "model_tag", ["Qwen/Qwen2.5-Omni-7B", "Qwen/Qwen3-Omni-30B-A3B-Instruct"]
+    )
+    def test_encode_batch_extracts_structured_features(self, model_tag):
+        io = self._make_continuous_io(model_tag)
+        lengths = torch.tensor([100, 50])
+        output_lengths = io.find_length(None, before_length=lengths)
+        features = torch.arange(int(output_lengths.sum()) * 4).reshape(-1, 4)
+        batch = torch.randn(2, 100, 80)
+
+        class Encoder(torch.nn.Module):
+            def get_audio_features(self, data, feature_attention_mask, return_dict):
+                torch.testing.assert_close(data, batch.transpose(1, 2))
+                expected = torch.arange(100).unsqueeze(0) < lengths.unsqueeze(1)
+                torch.testing.assert_close(feature_attention_mask, expected.int())
+                return (
+                    types.SimpleNamespace(last_hidden_state=features)
+                    if return_dict
+                    else (features,)
+                )
+
+        io.model = Encoder()
+        result = io.encode_batch(batch, lengths)
+        assert [value.shape[0] for value in result] == output_lengths.tolist()
+        torch.testing.assert_close(torch.cat(result), features)
+
     def test_find_length_qwen25(self):
         io = self._make_continuous_io("Qwen/Qwen2.5-Omni-7B")
         # before_length=100: layer1=(100-1)//2+1=50, layer2=(50-2)//2+1=25
