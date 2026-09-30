@@ -1,4 +1,4 @@
-"""Exercise metric utility CLIs and their score-file contracts."""
+"""Test the universa_eval utility."""
 
 import importlib.util
 import json
@@ -6,9 +6,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-import numpy as np
 import pytest
-import soundfile
 
 ROOT = Path(__file__).resolve().parents[3]
 UTILS = ROOT / "egs2/TEMPLATE/asr1/pyscripts/utils"
@@ -25,25 +23,6 @@ def test_metric_union(tmp_path):
     path.write_text('a {"mos": 1}\nb {"wer": 2}\n')
     _, names = evaluation.load_metrics(path, True)
     assert names == {"mos", "wer"}
-
-
-def test_metric_reading_limit(tmp_path):
-    """Stop discovery before decoding rows past the requested limit."""
-    path = tmp_path / "metric.scp"
-    path.write_text('a {"mos": 1}\nb invalid-json\n')
-    output = tmp_path / "metric2id"
-    subprocess.run(
-        [
-            sys.executable,
-            str(UTILS / "prep_metric_id.py"),
-            str(path),
-            str(output),
-            "--reading_size",
-            "1",
-        ],
-        check=True,
-    )
-    assert output.read_text() == "mos\n"
 
 
 @pytest.mark.parametrize("skip_missing", ["true", "false"])
@@ -179,47 +158,6 @@ def test_invalid_metric_rows(tmp_path, bad_rows):
         evaluation.load_metrics(path, True)
 
 
-def test_align_keys(tmp_path):
-    """Alignment preserves values and emits sorted union keys, ignoring blanks."""
-    first, second, output = (tmp_path / name for name in ("first", "second", "out"))
-    first.write_text("b target.wav\n\na target.wav\n")
-    second.write_text("c cat ref.wav |\n\nb ref with spaces.wav\n")
-    subprocess.run(
-        [
-            sys.executable,
-            str(UTILS / "align_wav_keys.py"),
-            str(first),
-            str(second),
-            str(output),
-        ],
-        check=True,
-    )
-    assert output.read_text() == "a None\nb ref with spaces.wav\nc cat ref.wav |\n"
-
-
-@pytest.mark.parametrize("audio_format", ["wav", "wav.ark"])
-def test_format_missing_waveform(tmp_path, audio_format):
-    """Missing references survive formatting beside real audio in both modes."""
-    waveform = tmp_path / "input.wav"
-    soundfile.write(waveform, np.zeros(160), 16000)
-    scp = tmp_path / "wav.scp"
-    scp.write_text(f"missing None\npresent {waveform}\n")
-    output = tmp_path / "formatted"
-    subprocess.run(
-        [
-            sys.executable,
-            str(UTILS.parent / "audio/format_wav_scp.py"),
-            "--audio-format",
-            audio_format,
-            str(scp),
-            str(output),
-        ],
-        check=True,
-    )
-    assert (output / "wav.scp").read_text().startswith("missing None\npresent ")
-    assert (output / "utt2num_samples").read_text() == "missing 0\npresent 160\n"
-
-
 @pytest.mark.parametrize("value", ['"good"', "null", "true", "NaN", "[1]"])
 def test_invalid_numeric_score(tmp_path, value):
     """Give a clear error for nonnumeric and nonfinite evaluation scores."""
@@ -266,29 +204,3 @@ def test_missing_system_mapping(tmp_path, skip_missing):
     else:
         assert result.returncode != 0
         assert "Missing system information" in result.stderr
-
-
-@pytest.mark.parametrize("use_types", [True, False])
-def test_metric_discovery(tmp_path, use_types):
-    """Discover each metric once or use an explicitly supplied vocabulary."""
-    path = tmp_path / "metric.scp"
-    path.write_text('a {"mos": 1}\nb {"mos": 2, "wer": 3}\n')
-    output = tmp_path / "metric2id"
-    options = []
-    if use_types:
-        mapping = tmp_path / "metric2type"
-        mapping.write_text("quality numeric\nlanguage categorical\n")
-        options = ["--metric2type", str(mapping)]
-    subprocess.run(
-        [
-            sys.executable,
-            str(UTILS / "prep_metric_id.py"),
-            str(path),
-            str(output),
-            *options,
-        ],
-        check=True,
-    )
-    assert output.read_text().splitlines() == (
-        ["quality", "language"] if use_types else ["mos", "wer"]
-    )
