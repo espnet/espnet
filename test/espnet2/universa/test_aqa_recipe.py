@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[3]
-DRIVER = ROOT / "egs2/TEMPLATE/audio_metric1/audio_metric.sh"
+DRIVER = ROOT / "egs2/TEMPLATE/aqa1/aqa.sh"
 # Recipe subprocesses import the toolkit afresh on shared CI workers.
 pytestmark = pytest.mark.execution_timeout(60)
 
@@ -18,7 +18,7 @@ def recipe(tmp_path):
     """Build a minimal recipe without requiring Kaldi or a corpus download."""
     (tmp_path / "egs2/test").mkdir(parents=True)
     (tmp_path / "egs2/TEMPLATE").symlink_to(ROOT / "egs2/TEMPLATE")
-    tmp_path = tmp_path / "egs2/test/audio_metric1"
+    tmp_path = tmp_path / "egs2/test/aqa1"
     subprocess.run([str(DRIVER.with_name("setup.sh")), str(tmp_path)], check=True)
     (tmp_path / "path.sh").unlink()
     (tmp_path / "path.sh").write_text("export LC_ALL=C\n")
@@ -31,7 +31,7 @@ def recipe(tmp_path):
         result = subprocess.run(
             [
                 "bash",
-                str(tmp_path / "audio_metric.sh"),
+                str(tmp_path / "aqa.sh"),
                 "--stage",
                 str(stage),
                 "--stop_stage",
@@ -111,9 +111,12 @@ def test_metric_ids_and_duration_filter(recipe, use_ref_wav):
 @pytest.mark.parametrize(
     "audio,text", [(False, False), (True, False), (False, True), (True, True)]
 )
-def test_training_reference_shapes(recipe, audio, text):
+@pytest.mark.parametrize("custom_dirs", [False, True])
+def test_training_reference_shapes(recipe, audio, text, custom_dirs):
     """Every optional reference shape gets its corresponding fold length."""
     path, run = recipe
+    exp = "exp/custom" if custom_dirs else "exp/aqa_train_raw"
+    stats = "exp/custom_stats" if custom_dirs else "exp/aqa_stats_raw"
     recorder = path / "record-python"
     recorder.write_text('#!/usr/bin/env bash\nprintf "%s\\n" "$@" > train-args.txt\n')
     recorder.chmod(0o755)
@@ -125,6 +128,7 @@ def test_training_reference_shapes(recipe, audio, text):
         str(audio).lower(),
         "--use_ref_text",
         str(text).lower(),
+        *(["--aqa_exp", exp, "--aqa_stats_dir", stats] if custom_dirs else []),
     )
     args = (path / "train-args.txt").read_text().splitlines()
     shapes = [args[i + 1] for i, arg in enumerate(args) if arg == "--train_shape_file"]
@@ -134,3 +138,6 @@ def test_training_reference_shapes(recipe, audio, text):
         ["ref_audio_shape"] if audio else []
     ) + (["ref_text_shape"] if text else [])
     assert folds == [256000] + ([256000] if audio else []) + ([150] if text else [])
+    assert args[args.index("--output_dir") + 1] == exp
+    assert all(shape.startswith(stats + "/train/") for shape in shapes)
+    assert "aqa.sh" in (path / exp / "run.sh").read_text()

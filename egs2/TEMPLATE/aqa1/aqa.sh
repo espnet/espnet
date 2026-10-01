@@ -65,8 +65,8 @@ train_config=""    # Config for training.
 train_args=""      # Arguments for training, e.g., "--max_epoch 1".
                    # Note that it will overwrite args in train config.
 tag=""             # Suffix for training directory.
-universa_exp=""         # Specify the directory path for experiment. If this option is specified, tag is ignored.
-universa_stats_dir=""   # Specify the directory path for statistics. If empty, automatically decided.
+aqa_exp=""         # Specify the directory path for experiment. If this option is specified, tag is ignored.
+aqa_stats_dir=""   # Specify the directory path for statistics. If empty, automatically decided.
 use_ref_wav=true   # Whether use reference wave or not.
 use_ref_text=true  # Whether use reference text or not.
 metric2id=    # File path for metric2id mapping.
@@ -125,8 +125,8 @@ Common options (all configuration variables above can be set with --name value):
     --token_type                Reference text tokens: bpe or char (${token_type})
     --bpe_train_text             Text used to build the reference vocabulary
     --train_config / --train_args  Training YAML / overriding arguments
-    --tag / --universa_exp       Experiment suffix / explicit experiment directory
-    --universa_stats_dir         Explicit statistics directory
+    --tag / --aqa_exp       Experiment suffix / explicit experiment directory
+    --aqa_stats_dir         Explicit statistics directory
     --audio_fold_length / --text_fold_length  Batch fold lengths (${audio_fold_length}/${text_fold_length})
     --inference_config / --inference_args  Inference YAML / overriding arguments
     --inference_model           Checkpoint name (${inference_model})
@@ -162,7 +162,6 @@ else
     exit 2
 fi
 
-# Extra files for translation/synthesis process
 utt_extra_files="metric.scp"
 if [ ${use_ref_wav} = true ]; then
     utt_extra_files="${utt_extra_files} ref_wav.scp"
@@ -213,13 +212,11 @@ if [ -z "${inference_tag}" ]; then
     inference_tag+="_$(echo "${inference_model}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
 fi
 
-# The directory used for collect-stats mode
-if [ -z "${universa_stats_dir}" ]; then
-    universa_stats_dir="${expdir}/universa_stats_${feats_type}"
+if [ -z "${aqa_stats_dir}" ]; then
+    aqa_stats_dir="${expdir}/aqa_stats_${feats_type}"
 fi
-# The directory used for training commands
-if [ -z "${universa_exp}" ]; then
-    universa_exp="${expdir}/universa_${tag}"
+if [ -z "${aqa_exp}" ]; then
+    aqa_exp="${expdir}/aqa_${tag}"
 fi
 
 # ========================== Main stages start from here. ==========================
@@ -419,8 +416,6 @@ if ! "${skip_data_prep}"; then
 
             _opts="--non_linguistic_symbols ${nlsyms_txt}"
 
-            # The first symbol in token_list must be "<blank>" and the last must be also sos/eos:
-            # 0 is reserved for CTC-blank for ASR and also used as ignore-index in the other task
             ${python} -m espnet2.bin.tokenize_text  \
                 --token_type "${token_type}" \
                 --input "${bpe_train_text}" --output "${token_list}" ${_opts} \
@@ -446,7 +441,7 @@ if ! "${skip_train}"; then
     if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
         _train_dir="${data_feats}/${train_set}"
         _valid_dir="${data_feats}/${valid_set}"
-        log "Stage 6: Universa collect stats: train_set=${_train_dir}, valid_set=${_valid_dir}"
+        log "Stage 6: AQA collect stats: train_set=${_train_dir}, valid_set=${_valid_dir}"
 
         _opts=
         if [ -n "${train_config}" ]; then
@@ -460,7 +455,7 @@ if ! "${skip_train}"; then
             _type=sound
         fi
 
-        _logdir="${universa_stats_dir}/logdir"
+        _logdir="${aqa_stats_dir}/logdir"
         mkdir -p "${_logdir}"
 
         # Get the minimum number among ${nj} and the number lines of input files
@@ -482,10 +477,10 @@ if ! "${skip_train}"; then
         # shellcheck disable=SC2086
         utils/split_scp.pl "${key_file}" ${split_scps}
 
-        log "Generate '${universa_stats_dir}/run.sh'. You can resume the process from stage 6 using this script"
-        mkdir -p "${universa_stats_dir}"; echo "${run_args} --stage 6 \"\$@\"; exit \$?" > "${universa_stats_dir}/run.sh"; chmod +x "${universa_stats_dir}/run.sh"
+        log "Generate '${aqa_stats_dir}/run.sh'. You can resume the process from stage 6 using this script"
+        mkdir -p "${aqa_stats_dir}"; echo "${run_args} --stage 6 \"\$@\"; exit \$?" > "${aqa_stats_dir}/run.sh"; chmod +x "${aqa_stats_dir}/run.sh"
 
-        log "Universa collect_stats started... log: '${_logdir}/stats.*.log'"
+        log "AQA collect_stats started... log: '${_logdir}/stats.*.log'"
 
         if [ ${use_ref_wav} = true ]; then
             _opts+="--train_data_path_and_name_and_type ${_train_dir}/ref_wav.scp,ref_audio,${_type} "
@@ -525,13 +520,13 @@ if ! "${skip_train}"; then
         for i in $(seq "${_nj}"); do
             _opts+="--input_dir ${_logdir}/stats.${i} "
         done
-        ${python} -m espnet2.bin.aggregate_stats_dirs --skip_sum_stats ${_opts} --output_dir "${universa_stats_dir}"
+        ${python} -m espnet2.bin.aggregate_stats_dirs --skip_sum_stats ${_opts} --output_dir "${aqa_stats_dir}"
     fi
 
     if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
         _train_dir="${data_feats}/${train_set}"
         _valid_dir="${data_feats}/${valid_set}"
-        log "Stage 7: Universa Training: train_set=${_train_dir}, valid_set=${_valid_dir}"
+        log "Stage 7: AQA Training: train_set=${_train_dir}, valid_set=${_valid_dir}"
 
         _opts=
         if [ -n "${train_config}" ]; then
@@ -545,32 +540,32 @@ if ! "${skip_train}"; then
             _type=sound
         fi
 
-        log "Generate '${universa_exp}/run.sh'. You can resume the process from stage 7 using this script"
-        mkdir -p "${universa_exp}"; echo "${run_args} --stage 7 \"\$@\"; exit \$?" > "${universa_exp}/run.sh"; chmod +x "${universa_exp}/run.sh"
+        log "Generate '${aqa_exp}/run.sh'. You can resume the process from stage 7 using this script"
+        mkdir -p "${aqa_exp}"; echo "${run_args} --stage 7 \"\$@\"; exit \$?" > "${aqa_exp}/run.sh"; chmod +x "${aqa_exp}/run.sh"
 
         # NOTE(kamo): --fold_length is used only if --batch_type=folded and it's ignored in the other case
 
-        log "Universa training started... log: '${universa_exp}/train.log'"
+        log "AQA training started... log: '${aqa_exp}/train.log'"
         if echo "${cuda_cmd}" | grep -e queue.pl -e queue-freegpu.pl &> /dev/null; then
             # SGE can't include "/" in a job name
-            jobname="$(basename ${universa_exp})"
+            jobname="$(basename ${aqa_exp})"
         else
-            jobname="${universa_exp}/train.log"
+            jobname="${aqa_exp}/train.log"
         fi
 
         if [ ${use_ref_wav} = true ]; then
             _opts+="--train_data_path_and_name_and_type ${_train_dir}/ref_wav.scp,ref_audio,${_type} "
-            _opts+="--train_shape_file ${universa_stats_dir}/train/ref_audio_shape "
+            _opts+="--train_shape_file ${aqa_stats_dir}/train/ref_audio_shape "
             _opts+="--fold_length ${audio_fold_length} "
             _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/ref_wav.scp,ref_audio,${_type} "
-            _opts+="--valid_shape_file ${universa_stats_dir}/valid/ref_audio_shape "
+            _opts+="--valid_shape_file ${aqa_stats_dir}/valid/ref_audio_shape "
         fi
         if [ ${use_ref_text} = true ]; then
             _opts+="--train_data_path_and_name_and_type ${_train_dir}/text,ref_text,text "
-            _opts+="--train_shape_file ${universa_stats_dir}/train/ref_text_shape "
+            _opts+="--train_shape_file ${aqa_stats_dir}/train/ref_text_shape "
             _opts+="--fold_length ${text_fold_length} "
             _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/text,ref_text,text "
-            _opts+="--valid_shape_file ${universa_stats_dir}/valid/ref_text_shape "
+            _opts+="--valid_shape_file ${aqa_stats_dir}/valid/ref_text_shape "
             _opts+="--token_list ${token_list} "
             _opts+="--token_type ${token_type} "
             _opts+="--bpemodel ${bpemodel} "
@@ -584,10 +579,10 @@ if ! "${skip_train}"; then
         # shellcheck disable=SC2086
         ${python} -m espnet2.bin.launch \
             --cmd "${cuda_cmd} --name ${jobname}" \
-            --log "${universa_exp}"/train.log \
+            --log "${aqa_exp}"/train.log \
             --ngpu "${ngpu}" \
             --num_nodes "${num_nodes}" \
-            --init_file_prefix "${universa_exp}"/.dist_init_ \
+            --init_file_prefix "${aqa_exp}"/.dist_init_ \
             --multiprocessing_distributed true -- \
             ${python} -m "espnet2.bin.audio_metric_train" \
                 --use_preprocessor true \
@@ -600,9 +595,9 @@ if ! "${skip_train}"; then
                 --valid_data_path_and_name_and_type "${_valid_dir}/${_scp},audio,${_type}" \
                 --valid_data_path_and_name_and_type "${_valid_dir}/metric.scp,metrics,metric" \
                 --metric2id "${data_feats}/${train_set}/metric2id" \
-                --train_shape_file ${universa_stats_dir}/train/audio_shape \
-                --valid_shape_file ${universa_stats_dir}/valid/audio_shape \
-                --output_dir "${universa_exp}" \
+                --train_shape_file ${aqa_stats_dir}/train/audio_shape \
+                --valid_shape_file ${aqa_stats_dir}/valid/audio_shape \
+                --output_dir "${aqa_exp}" \
                 ${_opts} ${train_args}
 
     fi
@@ -612,24 +607,24 @@ fi
 
 if [ -n "${download_model}" ]; then
     log "Use ${download_model} for decoding and evaluation"
-    universa_exp="${expdir}/${download_model}"
-    mkdir -p "${universa_exp}"
+    aqa_exp="${expdir}/${download_model}"
+    mkdir -p "${aqa_exp}"
 
     # If the model already exists, you can skip downloading
-    espnet_model_zoo_download --unpack true "${download_model}" > "${universa_exp}/config.txt"
+    espnet_model_zoo_download --unpack true "${download_model}" > "${aqa_exp}/config.txt"
 
-    _model_file=$(<"${universa_exp}/config.txt" sed -e "s/.*'model_file': '\([^']*\)'.*$/\1/")
-    _train_config=$(<"${universa_exp}/config.txt" sed -e "s/.*'train_config': '\([^']*\)'.*$/\1/")
+    _model_file=$(<"${aqa_exp}/config.txt" sed -e "s/.*'model_file': '\([^']*\)'.*$/\1/")
+    _train_config=$(<"${aqa_exp}/config.txt" sed -e "s/.*'train_config': '\([^']*\)'.*$/\1/")
 
-    ln -sf "${_model_file}" "${universa_exp}"
-    ln -sf "${_train_config}" "${universa_exp}"
+    ln -sf "${_model_file}" "${aqa_exp}"
+    ln -sf "${_train_config}" "${aqa_exp}"
     inference_model=$(basename "${_model_file}")
 
 fi
 
 if ! "${skip_eval}"; then
     if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
-        log "Stage 8: Decoding: training_dir=${universa_exp}"
+        log "Stage 8: Decoding: training_dir=${aqa_exp}"
 
         if ${gpu_inference}; then
             _cmd="${cuda_cmd}"
@@ -639,8 +634,8 @@ if ! "${skip_eval}"; then
             _ngpu=0
         fi
 
-        log "Generate '${universa_exp}/${inference_tag}/run.sh'. You can resume the process from stage 8 using this script"
-        mkdir -p "${universa_exp}/${inference_tag}"; echo "${run_args} --stage 8 \"\$@\"; exit \$?" > "${universa_exp}/${inference_tag}/run.sh"; chmod +x "${universa_exp}/${inference_tag}/run.sh"
+        log "Generate '${aqa_exp}/${inference_tag}/run.sh'. You can resume the process from stage 8 using this script"
+        mkdir -p "${aqa_exp}/${inference_tag}"; echo "${run_args} --stage 8 \"\$@\"; exit \$?" > "${aqa_exp}/${inference_tag}/run.sh"; chmod +x "${aqa_exp}/${inference_tag}/run.sh"
 
         for dset in ${test_sets}; do
             _opts=
@@ -656,7 +651,7 @@ if ! "${skip_eval}"; then
             fi
 
             _data="${data_feats}/${dset}"
-            _dir="${universa_exp}/${inference_tag}/${dset}"
+            _dir="${aqa_exp}/${inference_tag}/${dset}"
             _logdir="${_dir}/log"
             mkdir -p "${_logdir}"
 
@@ -671,7 +666,7 @@ if ! "${skip_eval}"; then
             # shellcheck disable=SC2086
             utils/split_scp.pl "${key_file}" ${split_scps}
 
-            log "Decoding started... log: '${_logdir}/universa_inference.*.log'"
+            log "Decoding started... log: '${_logdir}/aqa_inference.*.log'"
 
             if [ ${use_ref_wav} = true ]; then
                 _opts+="--data_path_and_name_and_type ${_data}/ref_wav.scp,ref_audio,${_type} "
@@ -681,15 +676,15 @@ if ! "${skip_eval}"; then
             fi
 
             # shellcheck disable=SC2046,SC2086
-            ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/universa_inference.JOB.log \
+            ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/aqa_inference.JOB.log \
                 ${python} -m espnet2.bin.audio_metric_inference \
                     --ngpu "${_ngpu}" \
                     --data_path_and_name_and_type ${_data}/${_scp},audio,${_type} \
                     --key_file "${_logdir}"/keys.JOB.scp \
-                    --model_file "${universa_exp}"/"${inference_model}" \
-                    --train_config "${universa_exp}"/config.yaml \
+                    --model_file "${aqa_exp}"/"${inference_model}" \
+                    --train_config "${aqa_exp}"/config.yaml \
                     --output_dir "${_logdir}"/output.JOB \
-                    ${_opts} ${inference_args} || { cat $(grep -l -i error "${_logdir}"/universa_inference.*.log) ; exit 1; }
+                    ${_opts} ${inference_args} || { cat $(grep -l -i error "${_logdir}"/aqa_inference.*.log) ; exit 1; }
 
             # 3. Concatenates the output files from each jobs
             # shellcheck disable=SC2068
@@ -705,7 +700,7 @@ if ! "${skip_eval}"; then
         for dset in ${test_sets}; do
             _data="${data_feats}/${dset}"
             _ref_metrics="${_data}/metric.scp"
-            _dir="${universa_exp}/${inference_tag}/${dset}"
+            _dir="${aqa_exp}/${inference_tag}/${dset}"
             _pred_metrics="${_dir}/metric.scp"
 
             log "Begin evaluation on ${dset}, results are written under ${_dir}"
@@ -741,18 +736,18 @@ else
     log "Skip the evaluation stages"
 fi
 
-packed_model="${universa_exp}/${universa_exp##*/}_${inference_model%.*}.zip"
+packed_model="${aqa_exp}/${aqa_exp##*/}_${inference_model%.*}.zip"
 if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ] && ! "${skip_upload}"; then
     log "Stage 10: Packing model: ${packed_model}"
-    if [ -e "${universa_exp}/${inference_model}" ]; then
+    if [ -e "${aqa_exp}/${inference_model}" ]; then
         # shellcheck disable=SC2086
         ${python} -m espnet2.bin.pack audio_metric \
-            --model_file "${universa_exp}/${inference_model}" \
-            --train_config "${universa_exp}/config.yaml" \
-            --option "${universa_exp}/images" \
+            --model_file "${aqa_exp}/${inference_model}" \
+            --train_config "${aqa_exp}/config.yaml" \
+            --option "${aqa_exp}/images" \
             --outpath "${packed_model}"
     else
-        log "Skip packing model since ${universa_exp}/${inference_model} does not exist."
+        log "Skip packing model since ${aqa_exp}/${inference_model} does not exist."
     fi
 fi
 
@@ -779,21 +774,21 @@ if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ] && ! "${skip_upload}"; then
         _creator_name="$(whoami)"
         _checkout=""
     fi
-    # /some/where/espnet/egs2/foo/universa1/ -> foo/universa1
-    _task="$(pwd | rev | cut -d/ -f2 | rev)"
-    # foo/asr1 -> foo
+    # /some/where/espnet/egs2/foo/aqa1/ -> foo/aqa1
+    _task="$(pwd | rev | cut -d/ -f1-2 | rev)"
+    # foo/aqa1 -> foo
     _corpus="${_task%/*}"
     _model_name="${_creator_name}/${_corpus}_$(basename ${packed_model} .zip)"
 
     unzip -o ${packed_model} -d ${dir_repo}
     # shellcheck disable=SC2034
-    hf_task=universa
+    hf_task=aqa
     # shellcheck disable=SC2034
-    espnet_task=universa
+    espnet_task=AQA
     # shellcheck disable=SC2034
     lang=multilingual
     # shellcheck disable=SC2034
-    task_exp=${universa_exp}
+    task_exp=${aqa_exp}
     eval "echo \"$(cat scripts/utils/TEMPLATE_HF_Readme.md)\"" > "${dir_repo}"/README.md
 
     this_folder=${PWD}
