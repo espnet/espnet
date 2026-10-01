@@ -31,10 +31,35 @@ exp_dir: ${recipe_dir}/exp/${exp_tag}
 ##########################################################
 #                    METRIC DEFINITION                   #
 ##########################################################
-# OWSM emits both tasks, so a full recipe measures ASR and ST separately:
-# WER/CER over the <asr> rows and BLEU over the <st_*> rows. espnet3 ships those
-# under espnet3/systems/asr/metrics and espnet3/systems/esp2_st/metrics, but the
-# OWSM system is standalone by design -- a test walks its AST to forbid importing
-# another system package -- so espnet3/systems/owsm/metrics/ has to exist before
-# this block can be filled in. Left empty rather than pointing across systems.
+# The three rates egs2/TEMPLATE/s2t1/s2t.sh reports (s2t.sh:1596-1612): char,
+# word and BPE, over EVERY row. s2t.sh does not split by task, so a translation
+# is scored against its translation as if it were a transcript; that is the
+# number the OWSM recipe produces. There is no BLEU here because there is none
+# in any owsm recipe to match.
+#
+# Two normalization details are reproduced because they change the numbers:
+#
+#   remove_tags strips the reference's OWSM tags.
+#
+#   cleaner and hyp_cleaner are separate, as s2t.sh keeps them, and both default
+#   to none. egs2/owsm_v3/s2t1/run.sh:18 suggests whisper_en for both, commented
+#   out; pass cleaner: [whisper_en] to enable it.
 metrics:
+  - metric:
+      _target_: espnet3.systems.owsm.metrics.error_rate.CER
+      cleaner:
+      hyp_cleaner:
+      remove_tags: true
+  - metric:
+      _target_: espnet3.systems.owsm.metrics.error_rate.WER
+      cleaner:
+      hyp_cleaner:
+      remove_tags: true
+  - metric:
+      _target_: espnet3.systems.owsm.metrics.error_rate.TER
+      # BPE-piece error rate, s2t.sh's third pass. Not sacreBLEU's TER
+      # (translation edit rate), which espnet3/systems/esp2_st reports.
+      bpemodel: ${tokenizer.save_path}/${tokenizer.model_type}.model
+      cleaner:
+      hyp_cleaner:
+      remove_tags: true
