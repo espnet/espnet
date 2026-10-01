@@ -66,6 +66,10 @@ def egs2():
     return _load(EGS2_UTILS, "_owsm_egs2")
 
 
+#: Position of each release symbol, for the order check.
+_RELEASE_ORDER: dict = {}
+
+
 @pytest.fixture(scope="module")
 def released_symbols():
     """Special symbols of the published OWSM v4 model, cached between runs."""
@@ -82,13 +86,13 @@ def released_symbols():
             pytest.skip(f"cannot fetch {OWSM_BPE_URL}: {error}")
 
     processor = spm.SentencePieceProcessor(model_file=str(OWSM_BPE_CACHE))
-    return {
-        piece
-        for piece in (
-            processor.id_to_piece(i) for i in range(processor.get_piece_size())
-        )
-        if piece.startswith("<") and piece.endswith(">")
-    }
+    pieces = [
+        processor.id_to_piece(i) for i in range(processor.get_piece_size())
+    ]
+    tagged = [p for p in pieces if p.startswith("<") and p.endswith(">")]
+    _RELEASE_ORDER.update({p: i for i, p in enumerate(tagged)})
+    # <s>, </s> and <unk> are SentencePiece's own, not OWSM symbols.
+    return set(tagged) - {"<s>", "</s>", "<unk>"}
 
 
 def _recording(rng: random.Random, count: int) -> list[dict]:
@@ -128,9 +132,13 @@ def test_constants_match(ours, egs2):
 
 
 def test_language_keys_and_order_match(ours, egs2):
-    # Order matters: generate_nlsyms.py emits tokens in this order, which fixes
-    # the token-id layout.
+    """LANGUAGES no longer feeds the vocabulary, but still bounds the ISO table.
+
+    Its keys are exactly TO_ISO_LANGUAGE_CODE's, so this pins the set of
+    two-letter codes a corpus may use without a new mapping entry.
+    """
     assert list(ours.LANGUAGES) == list(egs2.LANGUAGES)
+    assert set(ours.LANGUAGES) == set(ours.TO_ISO_LANGUAGE_CODE)
 
 
 def test_time2token_matches_over_a_dense_grid(ours, egs2):
@@ -139,40 +147,11 @@ def test_time2token_matches_over_a_dense_grid(ours, egs2):
         assert ours.time2token(value) == egs2.time2token(value), value
 
 
-def test_nlsyms_whisper_matches_the_generator(tmp_path, monkeypatch):
-    """Run egs2's generate_nlsyms.py and diff its output against ours.
-
-    The script writes data/nlsyms.txt relative to the cwd and guards on
-    __main__, so it is executed rather than imported. This covers the
-    whisper-spelled list exactly; the ISO 639-3 spellings v4 actually emits come
-    from filter_lang_id.py applied to the data, are not produced by any script
-    in the repo, and are checked by local/check_iso_table.py against a released
-    model instead.
-    """
-    generator = EGS2_UTILS.parent / "generate_nlsyms.py"
-    if not generator.is_file():
-        pytest.skip(f"egs2 generator not present: {generator}")
-
-    monkeypatch.chdir(tmp_path)
-    (tmp_path / "data").mkdir()
-    monkeypatch.syspath_prepend(str(generator.parent))
-    code = compile(generator.read_text(encoding="utf-8"), str(generator), "exec")
-    exec(code, {"__name__": "__main__", "__file__": str(generator)})
-
-    generated = (tmp_path / "data" / "nlsyms.txt").read_text(
-        encoding="utf-8"
-    ).splitlines()
-
-    ours_module = _load(RECIPE_DIR / "dataset" / "utils.py", "_owsm_ours_nlsyms")
-    assert ours_module.nlsyms(scheme="whisper") == generated
-    assert len(generated) == 1703
-
-
 def test_nlsyms_iso_layout(ours):
     symbols = ours.nlsyms()
-    assert len(symbols) == 1703
+    assert len(symbols) == 1681
     assert symbols[:2] == [ours.SYMBOL_NA, ours.SYMBOL_NOSPEECH]
-    assert symbols[2] == "<eng>"
+    assert symbols[2] == "<abk>"
     assert "<asr>" in symbols
     assert "<st_deu>" in symbols
     assert symbols[-1] == "<30.00>"
@@ -180,10 +159,8 @@ def test_nlsyms_iso_layout(ours):
 
 def test_lang_and_task_tokens_use_iso639_3(ours):
     assert ours.lang_token("en") == "<eng>"
-    assert ours.lang_token("en", scheme="whisper") == "<en>"
     assert ours.task_token("asr") == "<asr>"
     assert ours.task_token("st", "de") == "<st_deu>"
-    assert ours.task_token("st", "de", scheme="whisper") == "<st_de>"
 
 
 def test_unknown_language_is_rejected(ours):
@@ -238,26 +215,39 @@ def test_emitted_task_tokens_are_in_the_release(ours, released_symbols):
     assert not missing, [f"{c} -> {ours.task_token('st', c)}" for c in missing]
 
 
-def test_iso_table_agrees_with_the_release_where_it_overlaps(ours, released_symbols):
-    """The 99-language table against v4's inventory.
+def test_nlsyms_equals_the_release_inventory(ours, released_symbols):
+    """Set equality, not membership.
 
-    Codes absent from the release are reported, not failed: v4 carries the
-    expanded 151-language set, and a code missing from it means that release has
-    no such language rather than that the mapping is wrong. Anything this recipe
-    actually emits is covered by the two tests above.
+    The tests above ask only that what we emit exists in the release. That
+    direction cannot see a vocabulary that is the wrong *size* -- an earlier
+    version of this layer emitted 99 languages and 99 translation directions
+    against the release's 151 and 25, and every membership test passed. A
+    vocabulary sized to today's corpora would have to be rebuilt, and every
+    model retrained, the first time a corpus arrived with an unseen language.
     """
-    absent = [
-        code for code in ours.LANGUAGES if ours.lang_token(code) not in released_symbols
-    ]
-    confirmed = len(ours.LANGUAGES) - len(absent)
-    assert confirmed >= 90, (
-        f"only {confirmed}/{len(ours.LANGUAGES)} codes confirmed; "
-        f"absent: {' '.join(absent)}"
-    )
+    emitted = set(ours.nlsyms())
+    extra = sorted(emitted - released_symbols)
+    missing = sorted(released_symbols - emitted)
+    assert not extra, f"{len(extra)} symbols we emit are not in v4: {extra[:8]}"
+    assert not missing, f"{len(missing)} v4 symbols we never emit: {missing[:8]}"
+
+
+def test_nlsyms_order_matches_the_release(ours, released_symbols):
+    """Token ids follow this order, so a reordering changes every id."""
+    emitted = ours.nlsyms()
+    assert emitted == sorted(emitted, key=_RELEASE_ORDER.__getitem__)
+
+
+def test_iso_codes_pass_through_so_a_corpus_needs_no_shared_edit(ours):
+    """Adding a corpus should mean adding a directory, not editing this file."""
+    assert ours.lang_token("kea") == "<kea>"
+    assert ours.task_token("st", "jpn") == "<st_jpn>"
+    # The two-letter corpus codes still resolve through the table.
+    assert ours.lang_token("en") == "<eng>"
+    assert ours.task_token("st", "de") == "<st_deu>"
     # Norwegian is the one the release actually settles: it ships <nob> and
     # <nno> but not the macrolanguage <nor>.
     assert ours.lang_token("no") == "<nob>"
-    assert "<nor>" not in released_symbols
 
 
 def test_no_builder_imports_its_dataset():

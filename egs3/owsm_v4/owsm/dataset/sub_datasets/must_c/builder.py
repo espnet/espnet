@@ -11,7 +11,6 @@ from __future__ import annotations
 
 import json
 from collections import defaultdict
-from importlib import resources
 from pathlib import Path
 from typing import Iterable, Iterator
 
@@ -22,23 +21,12 @@ from egs3.owsm_v4.owsm.dataset.utils import (
     Utterance,
     generate_long_utterances,
     run_parallel,
+    sub_dataset_config,
 )
-from espnet3.utils.config_utils import load_config_with_defaults
 
-_CONFIG_RESOURCE = resources.files(__package__).joinpath("config.yaml")
-with resources.as_file(_CONFIG_RESOURCE) as _CONFIG_PATH:
-    _CONFIG = load_config_with_defaults(str(_CONFIG_PATH), resolve=False)
-_BUILDER_CFG = _CONFIG["builder"]
-_DATASET_CFG = _CONFIG["dataset"]
+_CONFIG = sub_dataset_config(__name__)
+LANGUAGES = tuple(str(lang) for lang in _CONFIG["builder"]["languages"])
 
-SPLITS = tuple(str(split) for split in _CONFIG["splits"])
-SOURCE_ENV_VAR = str(_BUILDER_CFG["source_env_var"])
-LANGUAGES = tuple(str(lang) for lang in _BUILDER_CFG["languages"])
-EXPECTED_FS = int(_BUILDER_CFG["expected_fs"])
-
-PREFIX = str(_DATASET_CFG["prefix"])
-LANG = str(_DATASET_CFG["lang"])
-CACHE_SUBDIR = str(_DATASET_CFG["cache_subdir"])
 
 try:  # 10x faster on train's multi-hundred-MB yaml
     _YAML_LOADER = yaml.CSafeLoader
@@ -111,9 +99,6 @@ class MuSTCBuilder(OWSMBuilder):
     """Build MuST-C split caches from the released yaml and text files."""
 
     CORPUS = "must_c"
-    CACHE_SUBDIR = CACHE_SUBDIR
-    SPLITS = SPLITS
-    SOURCE_ENV_VAR = SOURCE_ENV_VAR
 
     def is_valid_source_root(self, candidate: Path) -> bool:
         """Expect ``en-<lang>/data/<split>/txt/<split>.yaml`` for every pair."""
@@ -158,7 +143,7 @@ class MuSTCBuilder(OWSMBuilder):
             last_end: dict[Path, float] = {}
             for segment in segments:
                 wav_path = wav_dir / segment["wav"]
-                wav_id = f"{PREFIX}_{segment['wav'].removesuffix('.wav')}"
+                wav_id = f"{self.PREFIX}_{segment['wav'].removesuffix('.wav')}"
                 start = segment["offset"]
                 end = start + segment["duration"]
                 last_end[wav_path] = max(last_end.get(wav_path, 0.0), end)
@@ -169,7 +154,7 @@ class MuSTCBuilder(OWSMBuilder):
                     wav_path=str(wav_path),
                     start_time=start,
                     end_time=end,
-                    lang=f"<{LANG}>",
+                    lang=f"<{self.LANG}>",
                 )
                 groups[f"{segment['wav']}.asr"].append(
                     Utterance(
@@ -191,7 +176,7 @@ class MuSTCBuilder(OWSMBuilder):
             errors = dict(
                 run_parallel(
                     _verify_wav,
-                    [(p, end, EXPECTED_FS) for p, end in last_end.items()],
+                    [(p, end, self.EXPECTED_FS) for p, end in last_end.items()],
                 )
             )
 
@@ -216,7 +201,7 @@ class MuSTCBuilder(OWSMBuilder):
                         "wav_path": span.wav_path,
                         "start_time": span.start_time,
                         "end_time": span.end_time,
-                        "lang": LANG,
+                        "lang": self.LANG,
                         "task": "asr" if is_asr else "st",
                         "tgt_lang": "" if is_asr else lang,
                         "text": span.text_with_time,
