@@ -1,0 +1,38 @@
+##########################################################
+#                 METRIC SCORING SETTING                 #
+##########################################################
+# Common usage:
+#   python run.py --stages measure \
+#       --training_config conf/tuning/train_owsm_v4_medium.yaml \
+#       --inference_config conf/inference.yaml \
+#       --metrics_config conf/metrics.yaml
+#
+# Everything else -- what the three rates are, and why there is no BLEU --
+# is in egs3/TEMPLATE/owsm/conf/metrics.yaml, which this file merges over.
+
+##########################################################
+#                    METRIC DEFINITION                   #
+##########################################################
+# nlsyms is the same inventory the tokenizer was built from, so the scorer
+# strips exactly the symbols the data can contain.
+nlsyms:
+  _target_: egs3.owsm_v4.owsm.dataset.utils.nlsyms
+
+metrics:
+  - metric:
+      _target_: espnet3.systems.owsm.metrics.error_rate.CER
+      nlsyms: ${nlsyms}
+      ref_cleaner:
+      hyp_cleaner:
+  - metric:
+      _target_: espnet3.systems.owsm.metrics.error_rate.WER
+      nlsyms: ${nlsyms}
+      ref_cleaner:
+      hyp_cleaner:
+  - metric:
+      _target_: espnet3.systems.owsm.metrics.error_rate.TER
+      # Must match tokenizer.save_path / model_type in the training config.
+      bpemodel: ${recipe_dir}/data/bpe_50000/bpe.model
+      nlsyms: ${nlsyms}
+      ref_cleaner:
+      hyp_cleaner:

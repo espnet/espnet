@@ -12,6 +12,7 @@ from omegaconf import DictConfig
 
 from espnet3.systems.base.system import BaseSystem
 from espnet3.systems.owsm.tokenizers.sentencepiece import train_sentencepiece
+from espnet3.systems.owsm.symbols import load_symbols
 
 logger = logging.getLogger(__name__)
 
@@ -201,19 +202,7 @@ class OWSMSystem(BaseSystem):
                 "'<', 'e', 'n', 'g', '>' and the task tokens never survive "
                 "tokenization."
             )
-        # A callable, because the inventory is over 1700 symbols: inlining it in
-        # a config would bury the rest of the file, and writing it to disk first
-        # would give the same list two sources of truth.
-        if isinstance(symbols, DictConfig) or (
-            isinstance(symbols, dict) and "_target_" in symbols
-        ):
-            symbols = instantiate(symbols, _convert_="all")
-        if isinstance(symbols, (str, os.PathLike)):
-            path = Path(symbols)
-            if not path.is_file():
-                raise RuntimeError(f"tokenizer.nlsyms file not found: {path}")
-            return path.read_text(encoding="utf-8").split()
-        return [str(symbol) for symbol in symbols]
+        return load_symbols(symbols)
 
     def _training_text_path(self) -> Path:
         tokenizer_config = self.training_config.tokenizer

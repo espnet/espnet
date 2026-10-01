@@ -7,19 +7,20 @@ task-aware scoring -- translation rows are scored against their translations as
 if they were transcripts. These classes reproduce that, with jiwer in place of
 sclite.
 
-* Tags are removed from the referencee.
+* Tags are removed from both sides, using the recipe's own ``nlsyms``
+inventory so that only symbols the data can actually contain are stripped.
 
-* No text cleaner by default. ``cleaner`` and ``hyp_cleaner`` are separate in
-s2t.sh and both default to ``none``. ``egs2/owsm_v3/s2t1/run.sh:18`` carries
+* No text cleaner by default. ``ref_cleaner`` and ``hyp_cleaner`` are separate
+in s2t.sh and both default to ``none``. ``egs2/owsm_v3/s2t1/run.sh:18`` carries
 ``# --cleaner whisper_en --hyp_cleaner whisper_en`` commented out; pass
-``cleaner: [whisper_en]`` to turn it on.
+``ref_cleaner: [whisper_en]`` to turn it on.
 """
 
 from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 try:
     import jiwer
@@ -28,7 +29,8 @@ except ImportError:
 
 from espnet2.text.cleaner import TextCleaner
 from espnet3.components.metrics.base_metric import BaseMetric
-from espnet3.systems.owsm.metrics.normalization import strip_markup
+from espnet3.systems.owsm.metrics.tags import strip_tags, tag_pattern
+from espnet3.systems.owsm.symbols import load_symbols
 
 logger = logging.getLogger(__name__)
 
@@ -41,30 +43,41 @@ class ErrorRate(BaseMetric):
 
     def __init__(
         self,
+        nlsyms: Any = None,
         ref_key: str = "ref",
         hyp_key: str = "hyp",
-        cleaner: Iterable[str] | None = None,
+        ref_cleaner: Iterable[str] | None = None,
         hyp_cleaner: Iterable[str] | None = None,
         remove_tags: bool = True,
     ) -> None:
         """Initialize the metric.
 
         Args:
+            nlsyms: The recipe's OWSM symbols -- the same hydra callable, file
+                or list that ``tokenizer.nlsyms`` names. Required unless
+                ``remove_tags`` is False.
             ref_key: Key name for reference entries.
             hyp_key: Key name for hypothesis entries.
-            cleaner: TextCleaner types for the reference, as s2t.sh's
+            ref_cleaner: TextCleaner types for the reference, as s2t.sh's
                 ``--cleaner``.
             hyp_cleaner: TextCleaner types for the hypothesis, as s2t.sh's
                 ``--hyp_cleaner``. Separate because s2t.sh keeps them separate.
-            remove_tags: Strip OWSM tags from the reference, so both sides
-                are comparable. On by default; False reproduces s2t.sh, whose
-                own removal does not work on OWSM text.
+            remove_tags: Strip OWSM tags from both sides, so they are
+                comparable. On by default; False reproduces s2t.sh, whose own
+                removal does not work on OWSM text.
         """
         self.ref_key = ref_key
         self.hyp_key = hyp_key
-        self.ref_cleaner = TextCleaner(cleaner)
+        self.ref_cleaner = TextCleaner(ref_cleaner)
         self.hyp_cleaner = TextCleaner(hyp_cleaner)
         self.remove_tags = remove_tags
+        if remove_tags and nlsyms is None:
+            raise RuntimeError(
+                "nlsyms is required to remove tags: pass the recipe's symbol "
+                "inventory, the same one tokenizer.nlsyms names. Set "
+                "remove_tags: false to score the tags as text instead."
+            )
+        self.pattern = tag_pattern(load_symbols(nlsyms)) if remove_tags else None
 
     def _ensure_jiwer(self) -> None:
         if jiwer is None:
@@ -78,11 +91,14 @@ class ErrorRate(BaseMetric):
         refs: List[str] = []
         hyps: List[str] = []
         for _, row in self.iter_inputs(data, self.ref_key, self.hyp_key):
-            ref = row[self.ref_key]
-            if self.remove_tags:
-                ref = strip_markup(ref)
+            ref, hyp = row[self.ref_key], row[self.hyp_key]
+            if self.pattern is not None:
+                # Both sides: hyp_key may name the tagged text, and
+                # stripping one side only turns a match into a total miss.
+                ref = strip_tags(ref, self.pattern)
+                hyp = strip_tags(hyp, self.pattern)
             refs.append(self._blank_safe(self.ref_cleaner(ref)))
-            hyps.append(self._blank_safe(self.hyp_cleaner(row[self.hyp_key])))
+            hyps.append(self._blank_safe(self.hyp_cleaner(hyp)))
         return refs, hyps
 
     @staticmethod
@@ -133,9 +149,17 @@ class CER(ErrorRate):
 
     KEY = "CER"
 
+    #: What espnet2's CharTokenizer calls a space, and what s2t.sh's char pass
+    #: therefore counts. Dropping spaces instead would score "thequick fox"
+    #: against "the quick fox" as a perfect match.
+    SPACE = "<space>"
+
     def units(self, texts: List[str]) -> List[str]:
-        """Characters, space-joined so jiwer counts them as its unit."""
-        return [" ".join(text.replace(" ", "")) for text in texts]
+        """Characters, with spaces as their own token, space-joined for jiwer."""
+        return [
+            " ".join(self.SPACE if c == " " else c for c in text)
+            for text in texts
+        ]
 
 
 class TER(ErrorRate):

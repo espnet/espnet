@@ -37,29 +37,41 @@ exp_dir: ${recipe_dir}/exp/${exp_tag}
 # number the OWSM recipe produces. There is no BLEU here because there is none
 # in any owsm recipe to match.
 #
-# Two normalization details are reproduced because they change the numbers:
+# Two preprocessing details are reproduced because they change the numbers:
 #
-#   remove_tags strips the reference's OWSM tags.
+#   remove_tags strips OWSM tags from both sides. The hypothesis normally
+#   arrives as text_nospecial and carries none, but hyp_key may name the
+#   tagged text, and stripping one side only turns a match into a total miss.
+#   The tags come from nlsyms, so only symbols the recipe actually emits are
+#   removed and a transcript reading "5 < 10 > 3" survives. A recipe sets it to
+#   whatever tokenizer.nlsyms names; leaving it unset while remove_tags is true
+#   raises.
 #
-#   cleaner and hyp_cleaner are separate, as s2t.sh keeps them, and both default
-#   to none. egs2/owsm_v3/s2t1/run.sh:18 suggests whisper_en for both, commented
-#   out; pass cleaner: [whisper_en] to enable it.
+#   ref_cleaner and hyp_cleaner are separate, as s2t.sh keeps them, and both
+#   default to none. egs2/owsm_v3/s2t1/run.sh:18 suggests whisper_en for both,
+#   commented out; pass ref_cleaner: [whisper_en] to enable it.
 metrics:
   - metric:
       _target_: espnet3.systems.owsm.metrics.error_rate.CER
-      cleaner:
+      nlsyms:
+      ref_cleaner:
       hyp_cleaner:
       remove_tags: true
   - metric:
       _target_: espnet3.systems.owsm.metrics.error_rate.WER
-      cleaner:
+      nlsyms:
+      ref_cleaner:
       hyp_cleaner:
       remove_tags: true
   - metric:
       _target_: espnet3.systems.owsm.metrics.error_rate.TER
       # BPE-piece error rate, s2t.sh's third pass. Not sacreBLEU's TER
       # (translation edit rate), which espnet3/systems/esp2_st reports.
-      bpemodel: ${tokenizer.save_path}/${tokenizer.model_type}.model
-      cleaner:
+      # Only exp_tag, exp_dir and inference_dir reach this config from the
+      # training one, so the tokenizer path is spelled out and has to match
+      # training's tokenizer.save_path / model_type.
+      bpemodel: ${recipe_dir}/data/bpe_50000/bpe.model
+      nlsyms:
+      ref_cleaner:
       hyp_cleaner:
       remove_tags: true
