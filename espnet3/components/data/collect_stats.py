@@ -95,6 +95,29 @@ def collect_stats_batch(
             stats[feat_key]["count"] += len(seq)
             shape_info[feat_key][uid] = ",".join(map(str, seq.shape))
 
+    # Token streams, recorded as shapes only (no stats): collect_feats returns
+    # acoustic features, but a batch sampler bounded on feats alone cannot see
+    # text length, so batches of short utterances grow without limit. Integer
+    # tensors in the collated batch are the token streams.
+    for key, tensor in tensors.items():
+        if key.endswith("_lengths") or key in feats:
+            continue
+        if not torch.is_tensor(tensor) or torch.is_floating_point(tensor):
+            continue
+        # A padded token stream is [B, L].
+        if tensor.dim() != 2:
+            continue
+        lengths = tensors.get(f"{key}_lengths")
+        # Without a companion length tensor, fall back to counting non-padding
+        # positions.
+        pad_value = getattr(collate_fn, "int_pad_value", -1)
+        for batch_idx, uid in enumerate(list(uids)):
+            if lengths is not None:
+                length = int(lengths[batch_idx])
+            else:
+                length = int((tensor[batch_idx] != pad_value).sum())
+            shape_info[key][uid] = str(length)
+
     if write_collected_feats:
         return stats, shape_info, feats
     else:

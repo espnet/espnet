@@ -1,0 +1,307 @@
+##########################################################
+#                    TRAINING SETTING                    #
+##########################################################
+# Quick usage:
+#   python run.py --stages create_dataset --training_config conf/training.yaml
+#   python run.py --stages train          --training_config conf/training.yaml
+#
+# Reference training environment:
+# - Number of GPUs: 1
+# - GPU type: NVIDIA ? (? GB)
+# - Training time: approximately ? h for ? epochs
+#
+# Note:
+# egs3/TEMPLATE/esp2_st/conf/training.yaml is merged in automatically as
+# the base, so only the fields this recipe changes appear below.
+#
+# MuST-C en-de speech translation, ported from
+#   egs2/must_c/st1/run.sh + conf/tuning/train_st_conformer.yaml
+# egs2 run.sh pins ONE language pair (src_lang=en, tgt_lang=de) and two separate
+# BPE vocabularies:
+#     src_nbpe=4000  src_case=lc.rm    (lowercased, punctuation stripped)
+#     tgt_nbpe=4000  tgt_case=tc       (truecased)
+
+##########################################################
+#                  SYSTEM AND PATH SETTING               #
+##########################################################
+system: espnet3.systems.esp2_st.system.STSystem
+task: espnet2.tasks.st.STTask
+
+cache:
+  enabled: true
+  backend: hf
+  cache_dir: ${data_dir}/hf/en_de
+
+create_dataset:
+  recipe_dir: ${recipe_dir}
+  cache: ${cache}
+
+##########################################################
+#                        DATASET                         #
+##########################################################
+# egs2: train_set=train.en-de, train_dev=dev.en-de,
+#       test_sets="tst-COMMON.en-de tst-HE.en-de"
+dataset:
+  train:
+    - data_src: must_c/esp2_st
+      # `&pair_args` names this block so the valid/test entries below can say
+      # `<<: *pair_args` and override only `split`. It is plain YAML anchor /
+      # merge-key syntax, not an espnet3 feature: every split shares one
+      # language pair and one set of case conventions, and repeating them is
+      # how they drift apart.
+      data_src_args: &pair_args
+        split: train
+        recipe_dir: ${recipe_dir}
+        source_dir: ${data_dir}
+        cache: ${cache}
+        task: st
+        tgt_lang: de
+        src_case: lc.rm
+        tgt_case: tc
+  valid:
+    - data_src: must_c/esp2_st
+      data_src_args:
+        <<: *pair_args
+        split: dev
+  test:
+    - name: tst-COMMON
+      data_src: must_c/esp2_st
+      data_src_args:
+        <<: *pair_args
+        split: test
+    - name: tst-HE
+      data_src: must_c/esp2_st
+      data_src_args:
+        <<: *pair_args
+        split: tst-HE
+  # Two text streams with two different vocabularies, so this must be the
+  # MULTI-tokenizer preprocessor.
+  # Index 0 is the target side (ST decoder / ST-CTC), index 1 the source side
+  # (auxiliary ASR decoder / ASR-CTC), matching `text` / `src_text`.
+  preprocessor:
+    _target_: espnet2.train.preprocessor.MutliTokenizerCommonPreprocessor
+    # No `train:` here. DataOrganizer injects it per split -- True for train,
+    # False for valid and test -- and warns that a config value is ignored
+    # (espnet3/components/data/data_organizer.py:_instantiate_preprocessor_from_config).
+    # Hardcoding it would also read as though validation ran in train mode.
+    token_type:
+      - bpe
+      - bpe
+    bpemodel:
+      - ${tokenizer.tgt.save_path}/bpe.model
+      - ${tokenizer.src.save_path}/bpe.model
+    token_list:
+      - ${tokenizer.tgt.save_path}/tokens.txt
+      - ${tokenizer.src.save_path}/tokens.txt
+    text_name:
+      - text
+      - src_text
+
+##########################################################
+#                       TOKENIZER                        #
+##########################################################
+# Two SentencePiece models; STSystem trains whichever sides are present.
+tokenizer:
+  tgt:
+    vocab_size: 4000            # egs2 tgt_nbpe
+    character_coverage: 1.0
+    model_type: bpe
+    save_path: ${data_dir}/bpe_tgt_4000
+    train_file: ${data_dir}/train_tokenizer/tgt.txt
+    text_builder:
+      _target_: egs3.must_c.esp2_st.dataset.gather_training_text
+      recipe_dir: ${recipe_dir}
+      source_dir: ${data_dir}
+      cache: ${cache}
+      tgt_lang: de
+      side: tgt
+      case: tc
+  src:
+    vocab_size: 4000            # egs2 src_nbpe
+    character_coverage: 1.0
+    model_type: bpe
+    save_path: ${data_dir}/bpe_src_4000
+    train_file: ${data_dir}/train_tokenizer/src.txt
+    text_builder:
+      _target_: egs3.must_c.esp2_st.dataset.gather_training_text
+      recipe_dir: ${recipe_dir}
+      source_dir: ${data_dir}
+      cache: ${cache}
+      tgt_lang: de
+      side: src
+      case: lc.rm
+
+##########################################################
+#                         MODEL                          #
+##########################################################
+model:
+  token_list: ${tokenizer.tgt.save_path}/tokens.txt
+  src_token_list: ${tokenizer.src.save_path}/tokens.txt
+  token_type: bpe
+  src_token_type: bpe
+  bpemodel: ${tokenizer.tgt.save_path}/bpe.model
+  src_bpemodel: ${tokenizer.src.save_path}/bpe.model
+  input_size: null
+
+  frontend: default
+  frontend_conf:
+    n_fft: 400
+    hop_length: 160
+
+  specaug: specaug
+  specaug_conf:
+    apply_time_warp: true
+    time_warp_window: 5
+    time_warp_mode: bicubic
+    apply_freq_mask: true
+    freq_mask_width_range: [0, 27]
+    num_freq_mask: 2
+    apply_time_mask: true
+    time_mask_width_ratio_range: [0.0, 0.05]
+    num_time_mask: 5
+
+  normalize: global_mvn
+  normalize_conf:
+    stats_file: ${stats_dir}/train/feats_stats.npz
+
+  encoder: conformer
+  encoder_conf:
+    output_size: 256
+    attention_heads: 4
+    linear_units: 2048
+    num_blocks: 12
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    attention_dropout_rate: 0.1
+    input_layer: conv2d
+    normalize_before: true
+    macaron_style: true
+    rel_pos_type: latest
+    pos_enc_layer_type: rel_pos
+    selfattention_layer_type: rel_selfattn
+    activation_type: swish
+    use_cnn_module: true
+    cnn_module_kernel: 31
+
+  decoder: transformer
+  decoder_conf:
+    attention_heads: 4
+    linear_units: 2048
+    num_blocks: 6
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    self_attention_dropout_rate: 0.1
+    src_attention_dropout_rate: 0.1
+
+  extra_asr_decoder: transformer
+  extra_asr_decoder_conf:
+    input_layer: embed
+    num_blocks: 6
+    linear_units: 2048
+    dropout_rate: 0.1
+
+  extra_mt_decoder: transformer
+  extra_mt_decoder_conf:
+    input_layer: embed
+    num_blocks: 2
+    linear_units: 2048
+    dropout_rate: 0.1
+
+  model_conf:
+    asr_weight: 0.3
+    mt_weight: 0.0
+    mtlalpha: 0.3
+    lsm_weight: 0.1
+    length_normalized_loss: false
+
+    # [DEVIATION] SentencePiece word boundary, not espnet2's "<space>".
+    # Both error calculators rebuild text as
+    # "".join(tokens).replace(sym_space, " "); neither vocabulary contains
+    # "<space>" (boundaries are U+2581), so at the default the replace is a
+    # no-op and every text metric is measured on a string with no spaces --
+    # valid/wer pinned at 1.000, valid/cer understated, valid/bleu inflated.
+    # sym_space drives cer/wer/cer_ctc, tgt_sym_space drives bleu.
+    # Reporting only: no loss uses these, and best_model_criterion is valid/acc.
+    sym_space: "\u2581"
+    tgt_sym_space: "\u2581"
+
+init:            # egs2 init: none
+
+##########################################################
+#                  OPTIMIZER & SCHEDULER                 #
+##########################################################
+optimizer:
+  _target_: torch.optim.Adam
+  lr: 0.002
+  weight_decay: 0.000001
+
+scheduler:
+  _target_: espnet2.schedulers.warmup_lr.WarmupLR
+  warmup_steps: 25000
+scheduler_interval: step
+
+best_model_criterion:
+  - - valid/acc
+    - 10          # egs2 keep_nbest_models
+    - max
+
+##########################################################
+#                       DATALOADER                       #
+##########################################################
+# batch_bins, egs2 -> espnet3. egs2 bins over THREE shape files
+# (st.sh:1345-1349: speech_shape + text_shape + src_text_shape, the text ones
+# 2-D "L,V" so one token costs 4000 bins). espnet3's collect_stats emits only
+# feats via collect_feats, so STSystem.collect_stats also records the token
+# streams and appends the vocabulary size. Without the text terms a
+# short-utterance batch grows unbounded and OOMs (measured: 1,732 utterances
+# in batch 0, dead on a 40 GB A100).
+#
+# 26,500,000 reproduces egs2's batch: 84.8 utts / 499 s audio, against egs2's
+# 85 / 499. Worst measured peak 28.6 GiB of 39.5 on an A100-40GB, at batch 2581
+# (40 utts x 1946 frames) -- the peak tracks B*max_frames, not the bin total.
+#
+# batch_bins is PER GPU here and was GLOBAL in egs2 (ngpu=1): keep
+# batch_bins * num_device constant, or rescale warmup_steps to match.
+batch_bins: 26500000
+
+dataloader:
+  train:
+    iter_factory:
+      num_workers: 4
+      batches:
+        type: numel
+        shape_files:
+          - ${stats_dir}/train/feats_shape
+          - ${stats_dir}/train/text_shape
+          - ${stats_dir}/train/src_text_shape
+        batch_bins: ${batch_bins}
+  valid:
+    iter_factory:
+      num_workers: 4
+      batches:
+        type: numel
+        shape_files:
+          - ${stats_dir}/valid/feats_shape
+          - ${stats_dir}/valid/text_shape
+          - ${stats_dir}/valid/src_text_shape
+        batch_bins: ${batch_bins}
+
+##########################################################
+#                        TRAINER                         #
+##########################################################
+trainer:
+  max_epochs: 80              # egs2 max_epoch
+  accumulate_grad_batches: 2  # egs2 accum_grad
+
+  # Both loggers listed: OmegaConf replaces lists rather than merging, so
+  # naming `logger` here would otherwise drop TEMPLATE's TensorBoard entry.
+  logger:
+    - _target_: lightning.pytorch.loggers.TensorBoardLogger
+      save_dir: ${exp_dir}/tensorboard
+      name: tb_logger
+  gradient_clip_val: 5.0
+
+parallel:
+  env: local
+  n_workers: 16
+  options: {}

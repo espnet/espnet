@@ -1,0 +1,42 @@
+builder:
+  source_env_var: MUST_C
+  # Where the raw corpus is expected, relative to the recipe. MuST-C is not
+  # downloadable without accepting its licence, so this directory is populated
+  # by hand; $MUST_C or an explicit source_dir overrides it.
+  dataset_path: download
+  version: v1
+  src_lang: en
+  # Aggregate all installed English-to-target language pairs.
+  tgt_lang: all
+  required_splits:
+    - train
+    - dev
+    - tst-COMMON
+    - tst-HE
+
+# egs2 st.sh stage 4, "Remove long/short data" (st.sh:696-745). For en-de this
+# drops train 229,703 -> 220,466 and dev 1,423 -> 1,381 (39.7 h of 400.0 h),
+# and removes a 499 s segment that alone will not fit in 40 GB. Bounds are
+# compared strictly, as st.sh's awk does over utt2num_samples.
+filter:
+  min_wav_duration: 0.1
+  max_wav_duration: 20
+
+  # st.sh: "Not applying to test_sets to keep original data".
+  splits:
+    - train
+    - dev
+
+  # Deliberate egs2 quirk: run.sh:48-49 overrides src/tgt_bpe_train_text to the
+  # UNFILTERED data/${train_set}/, so vocabularies are built over all 229,703
+  # utterances while the model trains on 220,466.
+  apply_to_tokenizer_text: false
+
+dataset:
+  split_aliases:
+    test: tst-COMMON
+  supported_splits:
+    - train
+    - dev
+    - test
+    - tst-HE

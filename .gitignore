@@ -52,6 +52,9 @@ dist
 
 # recipe related
 egs*/*/*/data*
+# `data*` also globs `dataset/`, the recipe Python package; un-exclude the
+# directory itself (git cannot re-include files under an excluded parent).
+!egs*/*/*/dataset/
 egs*/*/*/manifest*
 egs*/*/*/db
 egs*/*/*/downloads

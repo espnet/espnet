@@ -50,3 +50,18 @@ run_with_training_config \
     conf/inference_transducer.yaml
 
 cd "${cwd}" || exit
+
+python3 -m pip install -e '.[st]'
+
+cd ./egs3/mini_an4/esp2_st || exit
+gen_dummy_coverage
+echo "==== [ESPnet3] ST ===="
+source path.sh
+${python} run.py \
+    --stages create_dataset train_tokenizer collect_stats train infer measure \
+    --training_config conf/training.yaml \
+    --inference_config conf/inference.yaml \
+    --metrics_config conf/metrics.yaml
+rm -rf exp data
+
+cd "${cwd}" || exit

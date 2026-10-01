@@ -1,0 +1,171 @@
+##########################################################
+#                    TRAINING SETTING                    #
+##########################################################
+# Quick usage:
+#   python run.py --stages create_dataset --training_config conf/<name>.yaml
+#   python run.py --stages train          --training_config conf/<name>.yaml
+#
+# Integration test only: AN4 audio with a synthetic target side (see
+# dataset/config.yaml). It exists to run every ST stage end to end, not to
+# train a usable model.
+#
+##########################################################
+#                  SYSTEM AND PATH SETTING               #
+##########################################################
+system: espnet3.systems.esp2_st.system.STSystem
+task: espnet2.tasks.st.STTask
+
+##########################################################
+#                    DATASET DEFINITION                  #
+##########################################################
+# Each entry below is a dataset reference consumed by `DataOrganizer`.
+# - `data_src` is omitted, so ESPnet3 loads `${recipe_dir}/dataset/__init__.py`
+#   and instantiates its exported recipe dataset class.
+# - `data_src_args` is passed directly to `Dataset(...)`.
+dataset:
+  train:
+    - data_src_args:
+        split: train
+  valid:
+    - data_src_args:
+        split: valid
+  # Two text streams with two vocabularies, so this must be the MULTI-tokenizer
+  # preprocessor. Index 0 is the target side (ST decoder), index 1 the source
+  # side (auxiliary ASR decoder), matching `text` / `src_text`.
+  #
+  # No `train:` here. DataOrganizer injects it per split.
+  preprocessor:
+    _target_: espnet2.train.preprocessor.MutliTokenizerCommonPreprocessor
+    token_type:
+      - bpe
+      - bpe
+    bpemodel:
+      - ${tokenizer.tgt.save_path}/bpe.model
+      - ${tokenizer.src.save_path}/bpe.model
+    token_list:
+      - ${tokenizer.tgt.save_path}/tokens.txt
+      - ${tokenizer.src.save_path}/tokens.txt
+    text_name:
+      - text
+      - src_text
+
+create_dataset:
+  recipe_dir: ${recipe_dir}
+
+##########################################################
+#                   TOKENIZER SETTING                    #
+##########################################################
+# One SentencePiece model per side. AN4's whole vocabulary is 16 words, so the
+# piece count has to stay far below the 4000 a real recipe would use.
+tokenizer:
+  tgt:
+    vocab_size: 30
+    character_coverage: 1.0
+    model_type: bpe
+    save_path: ${data_dir}/bpe_tgt_${tokenizer.tgt.vocab_size}
+    train_file: ${data_dir}/train_tokenizer/tgt.txt
+    text_builder:
+      _target_: egs3.mini_an4.esp2_st.dataset.gather_training_text
+      recipe_dir: ${recipe_dir}
+      side: tgt
+  src:
+    vocab_size: 30
+    character_coverage: 1.0
+    model_type: bpe
+    save_path: ${data_dir}/bpe_src_${tokenizer.src.vocab_size}
+    train_file: ${data_dir}/train_tokenizer/src.txt
+    text_builder:
+      _target_: egs3.mini_an4.esp2_st.dataset.gather_training_text
+      recipe_dir: ${recipe_dir}
+      side: src
+
+##########################################################
+#                      MODEL SETTING                     #
+##########################################################
+# Tiny transformer encoder/decoder pair to keep CI fast. `extra_asr_decoder`
+# and a non-zero `mtlalpha` are what make `src_text` a training target, so the
+# second vocabulary is exercised rather than merely built.
+model:
+  token_list: ${tokenizer.tgt.save_path}/tokens.txt
+  src_token_list: ${tokenizer.src.save_path}/tokens.txt
+  token_type: bpe
+  src_token_type: bpe
+  bpemodel: ${tokenizer.tgt.save_path}/bpe.model
+  src_bpemodel: ${tokenizer.src.save_path}/bpe.model
+
+  frontend: default
+  frontend_conf:
+    n_fft: 512
+    win_length: 400
+    hop_length: 160
+
+  normalize: utterance_mvn
+  normalize_conf: {}
+
+  encoder: transformer
+  encoder_conf:
+    output_size: 2
+    attention_heads: 2
+    linear_units: 2
+    num_blocks: 2
+    input_layer: conv1d2
+    normalize_before: true
+
+  decoder: transformer
+  decoder_conf:
+    attention_heads: 2
+    linear_units: 2
+    num_blocks: 2
+
+  extra_asr_decoder: transformer
+  extra_asr_decoder_conf:
+    input_layer: embed
+    attention_heads: 2
+    linear_units: 2
+    num_blocks: 2
+
+  model_conf:
+    asr_weight: 0.3
+    mt_weight: 0.0
+    mtlalpha: 0.3
+    lsm_weight: 0.1
+    length_normalized_loss: false
+
+##########################################################
+#            OPTIMIZER & SCHEDULER SETTING               #
+##########################################################
+optimizer:
+  lr: 0.005
+
+scheduler:
+  warmup_steps: 100
+
+##########################################################
+#                OTHER TRAINING SETTING                  #
+##########################################################
+init: xavier_uniform
+
+best_model_criterion:
+  - - valid/loss
+    - 10
+    - min
+
+##########################################################
+#                   DATALOADER SETTING                   #
+##########################################################
+dataloader:
+  train:
+    iter_factory:
+      batches:
+        type: unsorted
+        batch_size: 2
+
+##########################################################
+#                    TRAINER SETTING                     #
+##########################################################
+trainer:
+  max_epochs: 1
+  limit_train_batches: 1
+  limit_val_batches: 1
+
+  strategy: auto
