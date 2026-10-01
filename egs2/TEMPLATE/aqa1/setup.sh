@@ -17,4 +17,4 @@ done
 for f in path.sh db.sh scripts pyscripts steps utils; do
     ln -sfn "../../TEMPLATE/asr1/${f}" "${dir}/${f}"
 done
-ln -sfn ../../TEMPLATE/audio_metric1/audio_metric.sh "${dir}/audio_metric.sh"
+ln -sfn ../../TEMPLATE/aqa1/aqa.sh "${dir}/aqa.sh"
