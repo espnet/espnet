@@ -10,9 +10,10 @@ computation on different tokens. Each result carries its counts next to its
 rate so that the corpus figure is pooled rather than averaged; see
 ``splet/metrics.py`` for why that is not cosmetic.
 
-This is the one metric the skeleton implements, to pin down the contract
-every other metric follows. Its S/D/I split has not yet been checked against
-sclite -- see :mod:`splet.alignment` and espnet/espnet#6760.
+The defaults are the ones that reproduce an egs2 recipe: sclite's cost model
+and sclite's case folding. ``sclite`` compares case-insensitively unless it
+is given ``-s``, which only four corpora in egs2 pass, so a case-sensitive
+default would disagree with almost every published ESPnet number.
 """
 
 from __future__ import annotations
@@ -28,7 +29,9 @@ def _word_tokenizer() -> Callable[[str], List[str]]:
     return lambda text: text.split()
 
 
-def _char_tokenizer(remove_space: bool = False) -> Callable[[str], List[str]]:
+def _char_tokenizer(
+    remove_space: bool = False, space_symbol: Optional[str] = None
+) -> Callable[[str], List[str]]:
     """Split into characters.
 
     Args:
@@ -37,10 +40,39 @@ def _char_tokenizer(remove_space: bool = False) -> Callable[[str], List[str]]:
             therefore what the current espnet3 CER reports. Recipes that
             score CER with spaces removed need this set to True to reproduce
             their published numbers.
+        space_symbol: Emit this token for a space instead of the space
+            character itself. ``"<space>"`` is what ``asr.sh`` scores CER
+            with, via espnet2's CharTokenizer. It is one token either way, so
+            this changes what an alignment looks like, not what it counts.
     """
 
     def _tokenize(text: str) -> List[str]:
-        return list("".join(text.split()) if remove_space else text)
+        if remove_space:
+            return list("".join(text.split()))
+        if space_symbol is None:
+            return list(text)
+        return [space_symbol if char == " " else char for char in text]
+
+    return _tokenize
+
+
+def _noascii_tokenizer() -> Callable[[str], List[str]]:
+    """Split non-ASCII words into characters and keep ASCII words whole.
+
+    This is sclite's ``-c NOASCII``, which egs2/seame scores code-switched
+    Mandarin/English with: a Chinese run is counted per character, because
+    whitespace there is not a word boundary, while an English word stays one
+    token.
+    """
+
+    def _tokenize(text: str) -> List[str]:
+        tokens: List[str] = []
+        for word in text.split():
+            if word.isascii():
+                tokens.append(word)
+            else:
+                tokens.extend(word)
+        return tokens
 
     return _tokenize
 
@@ -48,7 +80,11 @@ def _char_tokenizer(remove_space: bool = False) -> Callable[[str], List[str]]:
 TOKENIZER_CHOICES: Dict[str, Callable[..., Callable[[str], List[str]]]] = {
     "word": _word_tokenizer,
     "char": _char_tokenizer,
+    "noascii": _noascii_tokenizer,
 }
+
+
+CASE_CHOICES = ("fold", "sensitive")
 
 
 def error_rate_setup(
@@ -57,6 +93,9 @@ def error_rate_setup(
     tokenizer_conf: Optional[Dict[str, Any]] = None,
     normalize: Optional[list] = None,
     backend: str = "python",
+    costs: str = "sclite",
+    case: str = "fold",
+    optional_deletion_is_correct: bool = False,
     keep_alignment: bool = False,
 ) -> Dict[str, Any]:
     """Prepare an error-rate scorer.
@@ -68,9 +107,15 @@ def error_rate_setup(
         tokenizer_conf: Keyword arguments for the tokenizer.
         normalize: Normalization pipeline config, applied to both sides.
         backend: Alignment backend. The default is the reference
-            implementation, whose S/D/I split does not depend on which
-            packages happen to be installed; see
+            implementation; see
             :func:`splet.alignment.levenshtein_alignment`.
+        costs: Alignment cost model, ``"sclite"`` (the default) or
+            ``"unit"``. This decides the S/D/I split, and on noisy output it
+            can also move the total; see :mod:`splet.alignment`.
+        case: ``"fold"`` (the default) compares case-insensitively, as sclite
+            does. ``"sensitive"`` is sclite's ``-s``.
+        optional_deletion_is_correct: Score a deleted ``(word)`` as correct.
+            This is sclite's ``-D``.
         keep_alignment: Include the rendered alignment in every result.
             Useful for a handful of utterances, ruinous for a corpus of
             them, so it is off by default.
@@ -79,17 +124,22 @@ def error_rate_setup(
         The scorer state passed back into :func:`error_rate_metric`.
 
     Raises:
-        ValueError: If the tokenizer name is unknown.
+        ValueError: If the tokenizer or case name is unknown.
     """
     if tokenizer not in TOKENIZER_CHOICES:
         raise ValueError(
             f"unknown tokenizer '{tokenizer}'. Available: {sorted(TOKENIZER_CHOICES)}"
         )
+    if case not in CASE_CHOICES:
+        raise ValueError(f"unknown case '{case}'. Available: {sorted(CASE_CHOICES)}")
     return {
         "name": name,
         "tokenizer": TOKENIZER_CHOICES[tokenizer](**(tokenizer_conf or {})),
         "normalizer": build_normalizer(normalize),
         "backend": backend,
+        "costs": costs,
+        "case": case,
+        "optional_deletion_is_correct": optional_deletion_is_correct,
         "keep_alignment": keep_alignment,
     }
 
@@ -114,10 +164,20 @@ def error_rate_metric(
     normalizer = scorer["normalizer"]
     tokenize = scorer["tokenizer"]
 
+    def prepare(text: str) -> List[str]:
+        text = normalizer(text)
+        # After normalization, so that a configured pipeline sees the text as
+        # written; sclite folds case at alignment time, not before cleaning.
+        if scorer["case"] == "fold":
+            text = text.lower()
+        return tokenize(text)
+
     alignment = levenshtein_alignment(
-        tokenize(normalizer(gt_text)),
-        tokenize(normalizer(pred_text)),
+        prepare(gt_text),
+        prepare(pred_text),
         backend=scorer["backend"],
+        costs=scorer["costs"],
+        optional_deletion_is_correct=scorer["optional_deletion_is_correct"],
     )
 
     result: Dict[str, Any] = {

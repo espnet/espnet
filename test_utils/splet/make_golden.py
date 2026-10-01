@@ -33,7 +33,12 @@ CASES = {
     "wer_case_sensitive": ("ref.scp", "hyp_good.scp", ["-s"], "word"),
     "cer_default": ("ref.scp", "hyp_good.scp", [], "char"),
     "cer_poor": ("ref.scp", "hyp_poor.scp", [], "char"),
-    "cs_noascii": ("ref_cs.scp", "hyp_cs.scp", ["-e", "utf-8", "-c", "NOASCII"], "word"),
+    "cs_noascii": (
+        "ref_cs.scp",
+        "hyp_cs.scp",
+        ["-e", "utf-8", "-c", "NOASCII"],
+        "word",
+    ),
 }
 
 SPACE_SYMBOL = "<space>"
@@ -112,19 +117,36 @@ def main():
             write_trn(ref, mode, tmp / "ref.trn")
             write_trn(hyp, mode, tmp / "hyp.trn")
             subprocess.run(
-                [args.sclite, *flags,
-                 "-r", str(tmp / "ref.trn"), "trn",
-                 "-h", str(tmp / "hyp.trn"), "trn",
-                 "-i", "rm", "-o", "dtl", "-O", str(tmp)],
-                check=True, capture_output=True,
+                [
+                    args.sclite,
+                    *flags,
+                    "-r",
+                    str(tmp / "ref.trn"),
+                    "trn",
+                    "-h",
+                    str(tmp / "hyp.trn"),
+                    "trn",
+                    "-i",
+                    "rm",
+                    "-o",
+                    "dtl",
+                    "-O",
+                    str(tmp),
+                ],
+                check=True,
+                capture_output=True,
             )
             counts = parse_sum_avg((tmp / "hyp.trn.dtl").read_text(encoding="utf-8"))
 
         # Derived from sclite's own counts rather than by re-tokenizing here:
         # under -c NOASCII sclite splits non-ASCII words into characters, so a
         # length counted on this side would not be the one it scored against.
-        counts["ref_len"] = counts["hits"] + counts["substitutions"] + counts["deletions"]
-        counts["hyp_len"] = counts["hits"] + counts["substitutions"] + counts["insertions"]
+        counts["ref_len"] = (
+            counts["hits"] + counts["substitutions"] + counts["deletions"]
+        )
+        counts["hyp_len"] = (
+            counts["hits"] + counts["substitutions"] + counts["insertions"]
+        )
         golden[name] = {
             "ref": ref_file,
             "hyp": hyp_file,
@@ -145,7 +167,9 @@ def main():
     )
 
     out = HERE / "sclite_golden.json"
-    out.write_text(json.dumps(golden, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    out.write_text(
+        json.dumps(golden, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
     print(f"wrote {out}", file=sys.stderr)
 
 

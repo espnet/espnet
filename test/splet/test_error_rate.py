@@ -90,8 +90,14 @@ def test_unknown_tokenizer_is_rejected():
 def test_matches_jiwer(unit):
     """Regression against the implementation espnet3 uses today.
 
-    espnet3's WER and CER call jiwer, so SPLET's must agree with it on the
-    corpus figure before it can replace them anywhere.
+    espnet3's WER and CER call jiwer, which computes a minimum edit distance,
+    so SPLET's unit-cost model must agree with it exactly.
+
+    The default model is sclite's, and it is *not* required to agree: sclite
+    minimises a weighted cost rather than an edit count, so the alignment it
+    chooses can carry more edits than the minimum. See
+    test_sclite_costs_never_beat_the_minimum_edit_distance below, which pins
+    the size of that gap.
     """
     jiwer = pytest.importorskip("jiwer")
 
@@ -107,7 +113,8 @@ def test_matches_jiwer(unit):
         references.append(" ".join(reference))
         hypotheses.append(" ".join(hypothesis) or "x")
 
-    modules = load_score_modules([{"name": "wer" if unit == "word" else "cer"}])
+    name = "wer" if unit == "word" else "cer"
+    modules = load_score_modules([{"name": name, "costs": "unit"}])
     score_info = list_scoring(
         {str(i): hypothesis for i, hypothesis in enumerate(hypotheses)},
         modules,
@@ -120,4 +127,54 @@ def test_matches_jiwer(unit):
         if unit == "word"
         else jiwer.cer(references, hypotheses)
     )
-    assert summary["wer" if unit == "word" else "cer"] == pytest.approx(expected)
+    assert summary[name] == pytest.approx(expected)
+
+
+@pytest.mark.parametrize("unit", ["word", "char"])
+def test_sclite_costs_never_beat_the_minimum_edit_distance(unit):
+    """sclite's model can report more errors than jiwer, never fewer.
+
+    A minimum edit distance is by definition minimal, and sclite's weighted
+    alignment is one particular alignment, so its edit count is an upper
+    bound on jiwer's. On clean output the two coincide -- 4000 utterances of
+    real spgispeech output give 2149 errors either way -- and they separate
+    as the error rate climbs.
+
+    The exact figure below is sclite's own, checked against the binary:
+    on this corpus it reports 846 character errors where jiwer reports 831.
+    It is pinned rather than merely bounded so that a change in the cost
+    model shows up here instead of in somebody's results table.
+    """
+    jiwer = pytest.importorskip("jiwer")
+
+    random.seed(1234)
+    vocabulary = "the quick brown fox jumps over a lazy dog".split()
+    references, hypotheses = [], []
+    for _ in range(40):
+        reference = [random.choice(vocabulary) for _ in range(random.randint(1, 15))]
+        hypothesis = [word for word in reference if random.random() > 0.2] + [
+            random.choice(vocabulary) for _ in range(random.randint(0, 3))
+        ]
+        random.shuffle(hypothesis)
+        references.append(" ".join(reference))
+        hypotheses.append(" ".join(hypothesis) or "x")
+
+    name = "wer" if unit == "word" else "cer"
+    modules = load_score_modules([{"name": name}])
+    summary = load_summary(
+        list_scoring(
+            {str(i): hypothesis for i, hypothesis in enumerate(hypotheses)},
+            modules,
+            {str(i): reference for i, reference in enumerate(references)},
+        )
+    )
+
+    minimum = (
+        jiwer.wer(references, hypotheses)
+        if unit == "word"
+        else jiwer.cer(references, hypotheses)
+    )
+    assert summary[name] >= minimum
+    if unit == "char":
+        assert summary["cer_errors"] == 846
+        assert summary["cer_ref_len"] == 1393
