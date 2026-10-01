@@ -58,6 +58,9 @@ RELEVANT = {
     + (
         "espnet3/",
         "egs3/",  # mini_an4, TEMPLATE and integration_test are all small
+        # espnet3's ASR metrics score through splet, so a change confined to
+        # splet/ changes what the recipe reports and has to run the recipe.
+        "splet/",
         "ci/test_integration_espnet3.sh",
         "ci/test_integration_espnet3_publication.sh",
     ),

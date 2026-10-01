@@ -22,7 +22,8 @@ it.
 | Implemented | WER, CER, matching sclite; the normalization pipeline including Whisper; the utterance tier; `splet-score` |
 | Contract only | the session tier (`splet/session_metrics`), the corpus tier (`splet/corpus_metrics`) |
 | Not started | cpWER, ORC-WER, DER, JER, BLEU/chrF/TER, structured prediction |
-| Not validated | end-to-end against an egs2 recipe's published RESULTS.md |
+| Not implemented | sclite's `-F` (fragments as correct) and its `@` token; see `splet/alignment.py` |
+| Not validated | against an egs2 recipe run end to end from audio; the checks below start from an existing hypothesis file |
 
 WER and CER reproduce `sclite` exactly, S/D/I and hits, not only the rate:
 checked against committed golden counts, against the binary itself where it
@@ -30,6 +31,13 @@ is built, and by a differential fuzz
 (`test/splet/test_vs_sclite.py`). On 4000 utterances of real spgispeech
 output they give 1297/412/440 at word level and 1029/1994/2018 at character
 level, which is what `sclite` reports for the same data.
+
+The strongest check is against a number somebody already published. Scoring
+`egs3/owsm_v4`'s MLS_en_test through `espnet2`'s own tokenizers with
+`--cleaner whisper_en`, SPLET reports WER 11.79 with 8.94% substitutions,
+1.27% deletions and 1.58% insertions, against the 11.8 / 8.9 / 1.3 / 1.6 that
+recipe's own `sclite` wrapper committed -- a different code path reaching the
+same answer.
 
 One consequence worth knowing before swapping SPLET in anywhere. `sclite`
 minimises a weighted cost rather than an edit count, so the alignment it
