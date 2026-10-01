@@ -79,6 +79,11 @@ parallel:
 ##########################################################
 #                    MODEL AND OUTPUT                    #
 ##########################################################
+# Filled in by the recipe, which points at its own src/inference.py. The
+# reference implementation is egs3/TEMPLATE/owsm/src/inference.py:
+# Speech2TextOWSM prompts the decoder per utterance from the reference's
+# <lang><task> tags, because one OWSM cache holds every direction and a single
+# fixed task would decode the translation rows as ASR.
 model:
 
 # Key name(s) selected from each dataset sample and passed to the model.
@@ -87,7 +92,8 @@ model:
 # If you set `input_key: [speech, text]`, inference builds
 # `{"speech": dataset[i]["speech"], "text": dataset[i]["text"]}` and calls
 # `model(**...)` with that dict.
-input_key: speech
+# OWSM needs both: speech is decoded, text supplies the prompt tags.
+input_key: [speech, text]
 
 # Optional output key list.
 # These keys must exist in the dict returned by `output_fn`.
@@ -129,6 +135,8 @@ batch_size: 4
 # - `dict` values are serialized as JSON artifacts and the artifact path is
 #   written to SCP.
 # - Bare top-level `list` / `tuple` outputs are not supported.
+# Filled in by the recipe. It must write a `ref` that keeps its OWSM tags,
+# which is how the metrics know which rows are theirs.
 output_fn:
 
 # Optional artifact writers for non-scalar outputs.

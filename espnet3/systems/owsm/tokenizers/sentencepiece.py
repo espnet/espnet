@@ -166,13 +166,18 @@ def train_sentencepiece(
     with open(os.path.join(save_path, f"{model_type}.vocab"), "r") as f:
         lines = f.readlines()
 
+    # S2TTask looks up four separate symbols -- <sos>, <eos>, <sop>, <na> --
+    # where ASR uses one combined <sos/eos>. <na> comes from nlsyms; the other
+    # three are appended here, in the order egs2/TEMPLATE/s2t1/s2t.sh writes
+    # them. The leading three SentencePiece pieces (<unk>, <s>, </s>) are
+    # dropped, again matching that script.
     vocabs = (
         ["<blank>", "<unk>"]
         + [line.split("\t")[0] for line in lines][3:]
-        + ["<sos/eos>"]
+        + ["<sos>", "<eos>", "<sop>"]
     )
     with open(os.path.join(save_path, "tokens.txt"), "w") as f:
-        f.write("\n".join(vocabs))
+        f.write("\n".join(vocabs) + "\n")
 
 
 def add_special_tokens(

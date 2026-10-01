@@ -260,7 +260,7 @@ init:
 # Parallel backend used by collect_stats/train.
 parallel:
   env: local
-  n_workers: 1
+  n_workers: 16
 
 ##########################################################
 #                   DATALOADER SETTING                   #
