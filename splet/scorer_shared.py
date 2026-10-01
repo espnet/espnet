@@ -45,6 +45,15 @@ METRIC_CHOICES: Dict[str, Dict[str, Any]] = {
         "metric": error_rate.error_rate_metric,
         "defaults": {"name": "cer", "tokenizer": "char"},
     },
+    # Spelled out rather than "ter", because sacrebleu calls translation edit
+    # rate TER and this is the subword error rate asr.sh scores with
+    # --token_type bpe. Needs tokenizer_conf: {bpemodel: <path>}.
+    "token_error_rate": {
+        "tier": "utterance",
+        "setup": error_rate.error_rate_setup,
+        "metric": error_rate.error_rate_metric,
+        "defaults": {"name": "token_error_rate", "tokenizer": "sentencepiece"},
+    },
 }
 
 

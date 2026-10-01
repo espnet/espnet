@@ -178,3 +178,53 @@ def test_sclite_costs_never_beat_the_minimum_edit_distance(unit):
     if unit == "char":
         assert summary["cer_errors"] == 846
         assert summary["cer_ref_len"] == 1393
+
+
+@pytest.fixture
+def tiny_bpemodel(tmp_path):
+    """A SentencePiece model small enough to train inside a test."""
+    spm = pytest.importorskip("sentencepiece")
+    corpus = tmp_path / "corpus.txt"
+    corpus.write_text(
+        "\n".join(["hello world", "the cat sat", "a dog ran", "hello there"] * 8),
+        encoding="utf-8",
+    )
+    prefix = tmp_path / "bpe"
+    spm.SentencePieceTrainer.Train(
+        input=str(corpus),
+        model_prefix=str(prefix),
+        vocab_size=40,
+        model_type="bpe",
+        character_coverage=1.0,
+    )
+    return f"{prefix}.model"
+
+
+def _token_error_rate(bpemodel, hypothesis, reference):
+    modules = load_score_modules(
+        [{"name": "token_error_rate", "tokenizer_conf": {"bpemodel": bpemodel}}]
+    )
+    return load_summary(list_scoring({"u": hypothesis}, modules, {"u": reference}))
+
+
+@pytest.mark.execution_timeout(30)
+def test_token_error_rate_counts_subword_pieces(tiny_bpemodel):
+    """The denominator is the SentencePiece tokenization, not words.
+
+    Spelled token_error_rate rather than ter because sacrebleu's TER is
+    translation edit rate, and the two are unrelated.
+    """
+    spm = pytest.importorskip("sentencepiece")
+    processor = spm.SentencePieceProcessor()
+    processor.load(tiny_bpemodel)
+    pieces = processor.EncodeAsPieces("hello world")
+
+    summary = _token_error_rate(tiny_bpemodel, "hello world", "hello world")
+    assert summary["token_error_rate_ref_len"] == len(pieces) > 2
+    assert summary["token_error_rate"] == 0.0
+
+
+@pytest.mark.execution_timeout(30)
+def test_token_error_rate_counts_errors(tiny_bpemodel):
+    summary = _token_error_rate(tiny_bpemodel, "the dog sat", "the cat sat")
+    assert summary["token_error_rate_errors"] > 0

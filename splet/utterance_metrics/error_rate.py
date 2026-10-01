@@ -77,10 +77,39 @@ def _noascii_tokenizer() -> Callable[[str], List[str]]:
     return _tokenize
 
 
+def _sentencepiece_tokenizer(bpemodel: str) -> Callable[[str], List[str]]:
+    """Split into SentencePiece subword pieces.
+
+    This is the unit ``asr.sh`` calls TER, scored with ``--token_type bpe``
+    against the recipe's own ``bpe.model``. Note that ``asr.sh`` passes no
+    non-linguistic symbols on that path, so nothing is removed here either.
+
+    Args:
+        bpemodel: Path to the SentencePiece model.
+
+    Returns:
+        A callable splitting a string into pieces.
+
+    Raises:
+        ImportError: If sentencepiece is not installed.
+    """
+    try:
+        import sentencepiece
+    except ImportError as error:  # pragma: no cover - needs sentencepiece absent
+        raise ImportError(
+            "the token error rate needs sentencepiece: pip install sentencepiece"
+        ) from error
+
+    processor = sentencepiece.SentencePieceProcessor()
+    processor.load(str(bpemodel))
+    return lambda text: list(processor.EncodeAsPieces(text))
+
+
 TOKENIZER_CHOICES: Dict[str, Callable[..., Callable[[str], List[str]]]] = {
     "word": _word_tokenizer,
     "char": _char_tokenizer,
     "noascii": _noascii_tokenizer,
+    "sentencepiece": _sentencepiece_tokenizer,
 }
 
 
