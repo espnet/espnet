@@ -81,4 +81,4 @@ pack_model:
 # `update` is false, so re-running this stage against an existing repo fails
 # instead of replacing a published model. Set `update: true` to re-publish.
 upload_model:
-  hf_repo: espnet/must_c_st_train_st_conformer
+  hf_repo: espnet/must_c_esp2_st_train_st_conformer

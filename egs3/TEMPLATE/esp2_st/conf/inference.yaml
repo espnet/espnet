@@ -106,14 +106,13 @@ input_key: speech
 
 # Number of utterances decoded per model call. Consecutive dataset items form a
 # batch and are passed to the model as a list per input key.
-# `espnet2.bin.asr_inference.Speech2Text` decodes such a list in one beam
-# search, which is 1.5-2.5x faster than one utterance at a time on a GPU.
-# A long utterance next to short ones pads them all, so 4 is a safe default;
-# 8-16 pays off when the test set is roughly sorted by length. A batch that does
-# not fit in memory is split in halves and retried with a warning; a single
-# utterance that does not fit raises an error that names its length.
-# Set to `null` for a model or `output_fn` that only supports one item per call.
-batch_size: 4
+#
+# null, unlike the ASR template's 4: `espnet2.bin.st_inference.Speech2Text` is
+# @typechecked on a single `speech` array and has no `batch_decode`, so a list
+# raises TypeCheckError. InferenceRunner recovers by rerunning the batch one
+# item at a time, but every batch pays the failed call first.
+# Raise it for a model and `output_fn` that do accept a list.
+batch_size: null
 
 # Optional recipe-provided formatter that converts raw model outputs into dicts such as:
 #   {"utt_id": "...", "hyp": "..."}

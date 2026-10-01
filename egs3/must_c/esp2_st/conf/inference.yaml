@@ -60,8 +60,4 @@ model:
   st_model_file: ${exp_dir}/valid.acc.ave_10best.pth
   beam_size: 10
 
-# null, not TEMPLATE's 4: Speech2Text is @typechecked on a single `speech`
-# array, so each group of 4 raises TypeCheckError and InferenceRunner decodes
-# them one at a time anyway (verified in the epoch-80 run log).
-batch_size: null
 output_fn: src.inference.build_output
