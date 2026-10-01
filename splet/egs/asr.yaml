@@ -4,24 +4,71 @@
 # here -- a mapping whose `normalize:` pipeline applies to every metric that
 # does not override it. The pipeline is part of the result: a score reported
 # without the normalization that produced it cannot be reproduced.
+#
+# The defaults already reproduce sclite, so the shortest config that matches
+# an egs2 recipe is `metrics: [{name: wer}, {name: cer}]` with no
+# normalization at all. Everything below is an addition to that, not a
+# correction of it.
+#
+# Note there is no `lowercase` step anywhere here: sclite folds case itself
+# unless given -s, so the error-rate metrics do it at scoring time and record
+# that they did (`case: fold`, the default). Adding one would be redundant and
+# would hide the choice from the result.
 
+# Applied to any metric that does not bring its own pipeline.
 normalize:
   - name: unicode
     form: NFKC
-  - name: remove_tokens
-    tokens: ["<unk>", "<noise>"]
-  - name: lowercase
   - name: remove_punctuation
     keep: "'"        # keeping apostrophes: "don't" must not become "dont"
   - name: whitespace
 
 metrics:
-  # word error rate
+  # Word error rate.
+  #
+  # A metric's own `normalize:` replaces the shared pipeline rather than
+  # extending it, so the shared steps are repeated here. Non-linguistic
+  # symbols are removed the way WordTokenizer removes them -- a whole
+  # whitespace-delimited token at a time -- which is what asr.sh does on the
+  # word path. `tokens_file:` takes an nlsyms_txt directly.
   - name: wer
+    normalize:
+      - name: unicode
+        form: NFKC
+      - name: remove_tokens
+        tokens: ["<unk>", "<noise>"]
+        match: token
+      - name: remove_punctuation
+        keep: "'"
+      - name: whitespace
 
-  # character error rate
-  #  -- spaces are counted as characters, matching jiwer.cer and the current
-  #     espnet3 CER. Recipes that strip spaces need remove_space: true.
+  # Character error rate.
+  #
+  # The same symbols, removed the way CharTokenizer removes them: wherever
+  # they occur, because on the character path a symbol sits inside the stream
+  # rather than between spaces. Using `match: token` here would leave
+  # "<noise>" in the text as seven characters and count every one of them.
+  #
+  # Spaces are counted, as jiwer.cer counts them and as asr.sh counts
+  # CharTokenizer's <space> token. Recipes that strip spaces instead need
+  # remove_space: true.
   - name: cer
+    normalize:
+      - name: unicode
+        form: NFKC
+      - name: remove_tokens
+        tokens: ["<unk>", "<noise>"]
+        match: substring
+      - name: remove_punctuation
+        keep: "'"
+      - name: whitespace
     tokenizer_conf:
-      remove_space: false
+      space_symbol: "<space>"
+
+  # The sclite options egs2 actually passes, should a recipe need them:
+  #
+  #   case: sensitive          # sclite -s   (swbd, spgispeech, libriheavy)
+  #   tokenizer: noascii       # sclite -c NOASCII (seame)
+  #   optional_deletion_is_correct: true    # sclite -D
+  #   costs: unit              # plain Levenshtein instead of sclite's 3/3/4,
+  #                            # which is what jiwer computes

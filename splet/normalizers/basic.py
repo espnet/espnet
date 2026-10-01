@@ -74,14 +74,87 @@ def whitespace_setup() -> Callable[[str], str]:
     return lambda text: re.sub(r"\s+", " ", text).strip()
 
 
-def remove_tokens_setup(tokens: Optional[Iterable[str]] = None) -> Callable[[str], str]:
-    """Delete whole whitespace-separated tokens.
+_DEFAULT_REMOVED_TOKENS = ["<unk>", "<noise>", "<sos>", "<eos>", "<blank>"]
 
-    The usual targets are the non-speech markers a recipe leaves in its
-    references: ``<unk>``, ``<noise>``, ``[laughter]``, and so on.
+MATCH_CHOICES = ("token", "substring")
+
+
+def _read_symbol_file(path: str) -> list:
+    """Read an ESPnet ``nlsyms_txt`` file: one symbol per line.
+
+    espnet2 reads this as ``set(line.rstrip() for line in f)``, which puts an
+    empty string in the set for a blank line. An empty symbol matches at every
+    position, so blank lines are skipped here instead.
     """
-    drop = set(tokens or ["<unk>", "<noise>", "<sos>", "<eos>", "<blank>"])
-    return lambda text: " ".join(t for t in text.split() if t not in drop)
+    with open(path, encoding="utf-8") as handle:
+        return [line.rstrip("\n").rstrip() for line in handle if line.strip()]
+
+
+def remove_tokens_setup(
+    tokens: Optional[Iterable[str]] = None,
+    tokens_file: Optional[str] = None,
+    match: str = "token",
+) -> Callable[[str], str]:
+    """Delete non-linguistic symbols.
+
+    This is what ``asr.sh`` does by passing ``--non_linguistic_symbols
+    ${nlsyms_txt} --remove_non_linguistic_symbols true`` to
+    ``espnet2.bin.tokenize_text``, and 33 egs2 recipes set an ``nlsyms_txt``.
+    espnet2 does the removal inside the tokenizer, and the word and character
+    tokenizers do it differently, so ``match`` picks which one to reproduce.
+
+    Args:
+        tokens: Symbols to remove. Defaults to the common markers when no
+            symbols and no file are given.
+        tokens_file: An ESPnet ``nlsyms_txt`` file, one symbol per line.
+            Combined with ``tokens`` when both are given.
+        match: ``"token"`` drops a whitespace-delimited token when the whole
+            token is a symbol, which is what ``WordTokenizer`` does
+            (``espnet2/text/word_tokenizer.py:44-51``), and is the right mode
+            for WER. ``"substring"`` removes a symbol wherever it occurs,
+            which is what ``CharTokenizer`` does
+            (``espnet2/text/char_tokenizer.py:48-66``), and is the right mode
+            for CER, where a symbol sits inside the character stream.
+
+    Returns:
+        A callable removing the symbols from a string.
+
+    Raises:
+        ValueError: If ``match`` is not one of the two accepted values.
+        FileNotFoundError: If ``tokens_file`` does not exist. espnet2 only
+            warns and carries on with an empty set, which silently scores
+            something other than what was asked for.
+
+    Note:
+        ``CharTokenizer`` iterates a *set* of symbols and takes the first that
+        matches, so where one symbol is a prefix of another its choice depends
+        on set iteration order. This uses longest match first, which is
+        deterministic and agrees with it whenever no symbol is a prefix of
+        another -- true of every nlsyms list in egs2, including the
+        1702-symbol OWSM one, where every symbol is a complete ``<...>``.
+    """
+    if match not in MATCH_CHOICES:
+        raise ValueError(f"unknown match '{match}'. Available: {sorted(MATCH_CHOICES)}")
+
+    symbols = list(tokens) if tokens else []
+    if tokens_file is not None:
+        symbols += _read_symbol_file(tokens_file)
+    if not symbols:
+        symbols = list(_DEFAULT_REMOVED_TOKENS)
+    drop = {symbol for symbol in symbols if symbol}
+
+    if match == "token":
+        return lambda text: " ".join(t for t in text.split() if t not in drop)
+
+    # Longest first, so the alternation prefers the longer symbol where one
+    # is a prefix of another. Whitespace is deliberately left alone: removing
+    # "<noise>" from "a <noise> b" has to leave two spaces, because that is
+    # what CharTokenizer produces and therefore what the CER denominator
+    # counts.
+    pattern = re.compile(
+        "|".join(re.escape(s) for s in sorted(drop, key=len, reverse=True))
+    )
+    return lambda text: pattern.sub("", text)
 
 
 def unicode_setup(form: str = "NFKC") -> Callable[[str], str]:
