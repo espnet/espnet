@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import json
 import os
-from importlib import resources
 from pathlib import Path
 from typing import Iterable, Iterator
 
@@ -18,29 +17,17 @@ from egs3.owsm_v4.owsm.dataset.utils import (
     Utterance,
     generate_long_utterances,
     run_parallel,
+    sub_dataset_config,
 )
-from espnet3.utils.config_utils import load_config_with_defaults
 
-_CONFIG_RESOURCE = resources.files(__package__).joinpath("config.yaml")
-with resources.as_file(_CONFIG_RESOURCE) as _CONFIG_PATH:
-    _CONFIG = load_config_with_defaults(str(_CONFIG_PATH), resolve=False)
-_BUILDER_CFG = _CONFIG["builder"]
-_DATASET_CFG = _CONFIG["dataset"]
+_CONFIG = sub_dataset_config(__name__)
+_AUDIO_CFG = _CONFIG["builder"]["audio"]
 
-SPLITS = tuple(str(split) for split in _CONFIG["splits"])
-AUDIO_SUBDIR = str(_BUILDER_CFG["audio_subdir"])
-SOURCE_ENV_VAR = str(_BUILDER_CFG["source_env_var"])
-
-PREFIX = str(_DATASET_CFG["prefix"])
-LANG = str(_DATASET_CFG["lang"])
-TASK = str(_DATASET_CFG["task"])
-CACHE_SUBDIR = str(_DATASET_CFG["cache_subdir"])
-
-_AUDIO_CFG = _BUILDER_CFG["audio"]
+AUDIO_SUBDIR = str(_CONFIG["builder"]["audio_subdir"])
+TASK = str(_CONFIG["dataset"]["task"])
 HEADER_BYTES = int(_AUDIO_CFG["header_bytes"])
 BYTES_PER_SECOND = int(_AUDIO_CFG["bytes_per_second"])
 READ_HEADERS = bool(_AUDIO_CFG["read_headers"])
-EXPECTED_FS = int(_BUILDER_CFG["expected_fs"])
 
 
 def duration_from_filesize(size: int) -> float:
@@ -105,9 +92,6 @@ class SPGISpeechBuilder(OWSMBuilder):
     """Build SPGISpeech split caches from the raw csv manifests and audio."""
 
     CORPUS = "spgispeech"
-    CACHE_SUBDIR = CACHE_SUBDIR
-    SPLITS = SPLITS
-    SOURCE_ENV_VAR = SOURCE_ENV_VAR
 
     def is_valid_source_root(self, candidate: Path) -> bool:
         """Expect a ``<split>.csv`` and a ``spgispeech/<split>/`` tree per split."""
@@ -132,7 +116,7 @@ class SPGISpeechBuilder(OWSMBuilder):
         duration arithmetic assumes.
         """
         tasks = [
-            (index, audio_dir / rel, size, read_headers, EXPECTED_FS)
+            (index, audio_dir / rel, size, read_headers, self.EXPECTED_FS)
             for index, (rel, size, _) in enumerate(manifest)
         ]
         return dict(run_parallel(_verify_file, tasks))
@@ -164,7 +148,7 @@ class SPGISpeechBuilder(OWSMBuilder):
 
         for index, (rel, size, transcript) in enumerate(manifest):
             stem = rel.removesuffix(".wav").replace("/", "_")
-            wav_id = f"{PREFIX}_{split}_{stem}"
+            wav_id = f"{self.PREFIX}_{split}_{stem}"
             duration = duration_from_filesize(size)
             error = errors.get(index)
             if error is None and (duration <= 0 or not transcript):
@@ -182,7 +166,7 @@ class SPGISpeechBuilder(OWSMBuilder):
                 wav_path=str(audio_dir / rel),
                 start_time=0.0,
                 end_time=duration,
-                lang=f"<{LANG}>",
+                lang=f"<{self.LANG}>",
                 task=f"<{TASK}>",
                 text=transcript,
                 asr_text=transcript,
@@ -193,7 +177,7 @@ class SPGISpeechBuilder(OWSMBuilder):
                     "wav_path": span.wav_path,
                     "start_time": span.start_time,
                     "end_time": span.end_time,
-                    "lang": LANG,
+                    "lang": self.LANG,
                     "task": TASK,
                     "tgt_lang": "",
                     "text": span.text_with_time,

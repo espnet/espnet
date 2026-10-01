@@ -10,7 +10,12 @@ import soundfile as sf
 from datasets import load_from_disk
 from torch.utils.data import Dataset as TorchDataset
 
-from egs3.owsm_v4.owsm.dataset.utils import cache_root, lang_token, task_token
+from egs3.owsm_v4.owsm.dataset.utils import (
+    cache_root,
+    lang_token,
+    sub_dataset_config,
+    task_token,
+)
 
 
 def read_span(wav_path: str, start_time: float, end_time: float) -> np.ndarray:
@@ -26,8 +31,8 @@ class OWSMDataset(TorchDataset):
     """OWSM samples for one split of one corpus.
 
     Every sub-dataset writes the same cache columns, so they differ only in
-    where that cache lives and which splits exist. Subclasses set
-    ``CACHE_SUBDIR`` and ``SPLITS`` from their own ``config.yaml``.
+    where that cache lives and which splits exist, both of which are read
+    from the subclass's own ``config.yaml``.
 
     Rows come back in the order they were written: no filtering, sorting or
     reindexing, so ``__len__`` cannot drift from the shape files that
@@ -43,8 +48,18 @@ class OWSMDataset(TorchDataset):
         FileNotFoundError: If the split has not been built.
     """
 
+    #: Both filled from the sub-dataset's own config.yaml.
     CACHE_SUBDIR: str = ""
     SPLITS: tuple[str, ...] = ()
+
+    def __init_subclass__(cls, **kwargs) -> None:
+        """Read the subclass's ``config.yaml``, as :class:`OWSMBuilder` does."""
+        super().__init_subclass__(**kwargs)
+        config = sub_dataset_config(cls.__module__)
+        if config is None:
+            return
+        cls.SPLITS = tuple(str(split) for split in config["splits"])
+        cls.CACHE_SUBDIR = str(config["dataset"]["cache_subdir"])
 
     def __init__(
         self,

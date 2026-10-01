@@ -12,7 +12,11 @@ import shutil
 from pathlib import Path
 from typing import Iterable, Iterator
 
-from egs3.owsm_v4.owsm.dataset.utils import cache_root, check_cache_row
+from egs3.owsm_v4.owsm.dataset.utils import (
+    cache_root,
+    check_cache_row,
+    sub_dataset_config,
+)
 from espnet3.components.data.dataset_builder import DatasetBuilder
 
 
@@ -27,10 +31,37 @@ class OWSMBuilder(DatasetBuilder):
     builder with nothing in it naming the corpus.
     """
 
+    #: Key under ``create_dataset.corpora``. The only thing a subclass must set.
     CORPUS: str = ""
+
+    #: Filled from the subclass's own config.yaml by __init_subclass__.
+    CONFIG: dict = {}
     CACHE_SUBDIR: str = ""
     SPLITS: tuple[str, ...] = ()
     SOURCE_ENV_VAR: str = ""
+    PREFIX: str = ""
+    LANG: str = ""
+    EXPECTED_FS: int = 0
+
+    def __init_subclass__(cls, **kwargs) -> None:
+        """Read the subclass's ``config.yaml`` and set the shared attributes.
+
+        Every sub-dataset repeated the same dozen lines of resource lookup and
+        key extraction before it could get to its port. The config sits beside
+        the subclass, so the base can find it.
+        """
+        super().__init_subclass__(**kwargs)
+        config = sub_dataset_config(cls.__module__)
+        if config is None:
+            return
+        cls.CONFIG = config
+        builder, dataset = config["builder"], config["dataset"]
+        cls.SPLITS = tuple(str(split) for split in config["splits"])
+        cls.SOURCE_ENV_VAR = str(builder["source_env_var"])
+        cls.EXPECTED_FS = int(builder["expected_fs"])
+        cls.PREFIX = str(dataset["prefix"])
+        cls.LANG = str(dataset["lang"])
+        cls.CACHE_SUBDIR = str(dataset["cache_subdir"])
 
     def is_valid_source_root(self, candidate: Path) -> bool:
         """Return whether ``candidate`` holds this corpus' expected files."""

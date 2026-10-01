@@ -106,22 +106,26 @@ TO_ISO_LANGUAGE_CODE = {
 
 
 def iso3(code: str) -> str:
-    """Return the ISO 639-3 code the text stream uses for ``code``."""
+    """Return the ISO 639-3 code the text stream uses for ``code``.
+
+    An ISO 639-3 code passes straight through, so a sub-dataset whose corpus
+    labels data in ISO form needs no entry in the two-letter table -- which is
+    what keeps a new corpus confined to its own directory.
+    """
+    if code in _ISO_CODES:
+        return code
     try:
         return TO_ISO_LANGUAGE_CODE[code]
     except KeyError:
         raise ValueError(f"No ISO 639-3 code for language {code!r}") from None
 
 
-def lang_token(code: str, scheme: str = "iso639_3") -> str:
-    """``"en"`` -> ``"<eng>"``; ``scheme="whisper"`` gives the v1 spelling."""
-    if scheme == "whisper":
-        return f"<{code}>"
+def lang_token(code: str) -> str:
+    """``"en"`` -> ``"<eng>"``, the spelling the v4 text stream uses."""
     return f"<{iso3(code)}>"
 
 
-def task_token(task: str, target: Optional[str] = None,
-               scheme: str = "iso639_3") -> str:
+def task_token(task: str, target: Optional[str] = None) -> str:
     """``("asr", None)`` -> ``"<asr>"``; ``("st", "de")`` -> ``"<st_deu>"``."""
     if task == "asr":
         return "<asr>"
@@ -129,19 +133,66 @@ def task_token(task: str, target: Optional[str] = None,
         raise ValueError(f"Unknown task {task!r}; expected 'asr' or 'st'")
     if target is None:
         raise ValueError("task='st' requires a target language")
-    if scheme == "whisper":
-        return f"<st_{target}>"
     return f"<st_{iso3(target)}>"
 
 
-def nlsyms(scheme: str = "iso639_3") -> List[str]:
-    """Non-linguistic symbols, in ``local/generate_nlsyms.py`` order."""
+# The languages the published owsm_v4_medium_1B model carries, in its own order
+# (alphabetical by ISO 639-3). Frozen rather than derived: the token ids a model
+# trains with depend on this order, and no script in the repo emits it -- v1's
+# generate_nlsyms.py spells languages with two-letter Whisper keys instead.
+LANGUAGES_ISO: List[str] = [
+    "abk", "afr", "amh", "ara", "asm", "ast", "aze", "bak", "bas", "bel",
+    "ben", "bos", "bre", "bul", "cat", "ceb", "ces", "chv", "ckb", "cmn",
+    "cnh", "cym", "dan", "deu", "dgd", "div", "ell", "eng", "epo", "est",
+    "eus", "fas", "fil", "fin", "fra", "frr", "ful", "gle", "glg", "grn",
+    "guj", "hat", "hau", "heb", "hin", "hrv", "hsb", "hun", "hye", "ibo",
+    "ina", "ind", "isl", "ita", "jav", "jpn", "kab", "kam", "kan", "kat",
+    "kaz", "kea", "khm", "kin", "kir", "kmr", "kor", "lao", "lav", "lga",
+    "lin", "lit", "ltz", "lug", "luo", "mal", "mar", "mas", "mdf", "mhr",
+    "mkd", "mlt", "mon", "mri", "mrj", "mya", "myv", "nan", "nep", "nld",
+    "nno", "nob", "npi", "nso", "nya", "oci", "ori", "orm", "ory", "pan",
+    "pol", "por", "pus", "quy", "roh", "ron", "rus", "sah", "sat", "sin",
+    "skr", "slk", "slv", "sna", "snd", "som", "sot", "spa", "srd", "srp",
+    "sun", "swa", "swe", "swh", "tam", "tat", "tel", "tgk", "tgl", "tha",
+    "tig", "tir", "tok", "tpi", "tsn", "tuk", "tur", "twi", "uig", "ukr",
+    "umb", "urd", "uzb", "vie", "vot", "wol", "xho", "yor", "yue", "zho",
+    "zul",
+]
+
+# The translation directions v4 defines. Far fewer than the languages, because
+# most are source-only. A corpus offering a target outside this list cannot be
+# tokenized by a v4 vocabulary.
+ST_TARGETS_ISO: List[str] = [
+    "ara", "cat", "ces", "cym", "deu", "eng", "est", "fas", "fra", "ind",
+    "ita", "jpn", "lav", "mon", "nld", "por", "ron", "rus", "slv", "spa",
+    "swe", "tam", "tur", "vie", "zho",
+]
+
+
+#: Lets iso3() pass an ISO 639-3 code straight through.
+_ISO_CODES = frozenset(LANGUAGES_ISO)
+
+
+def nlsyms() -> List[str]:
+    """Return the OWSM special symbols, in the order the vocabulary wants them.
+
+    Reproduces the published owsm_v4_medium_1B inventory exactly -- 1681
+    symbols: ``<na>``, ``<nospeech>``, 151 languages, ``<asr>``, 25 translation
+    directions, and 1502 timestamps. A test asserts set equality and ordering
+    against that model, so this cannot drift from it silently.
+
+    Giving the full inventory rather than only what the wired-up corpora emit is
+    deliberate: adding a corpus should mean adding a directory under
+    ``sub_datasets/`` and nothing else. A vocabulary sized to today's corpora
+    would have to be rebuilt, and every model retrained, the first time a corpus
+    arrived with a language it had never seen.
+    """
     return [
         SYMBOL_NA,
         SYMBOL_NOSPEECH,
-        *[lang_token(code, scheme) for code in LANGUAGES],
+        *[f"<{code}>" for code in LANGUAGES_ISO],
         "<asr>",
-        *[task_token("st", code, scheme) for code in LANGUAGES],
+        *[f"<st_{code}>" for code in ST_TARGETS_ISO],
         *SYMBOLS_TIME,
     ]
 
@@ -316,3 +367,28 @@ def cache_root(recipe_dir, cache: dict | None, corpus: str) -> Path:
     if not root.is_absolute():
         root = Path(recipe_dir) / root
     return root / corpus / "hf_audio_index"
+
+
+def sub_dataset_config(module: str):
+    """Return the ``config.yaml`` sitting beside ``module``, or None.
+
+    ``module`` is a dotted name such as
+    ``egs3.owsm_v4.owsm.dataset.sub_datasets.spgispeech.builder``; the config is
+    read from its package. Returns None when there is none, so an intermediate
+    base class can be declared without one.
+    """
+    from importlib import resources
+
+    from espnet3.utils.config_utils import load_config_with_defaults
+
+    package = module.rsplit(".", 1)[0]
+    try:
+        resource = resources.files(package).joinpath("config.yaml")
+    except Exception:  # noqa: BLE001
+        # A subclass defined in __main__, a notebook or a test has no package
+        # to look beside. That is not an error: it just has no config.
+        return None
+    if not resource.is_file():
+        return None
+    with resources.as_file(resource) as path:
+        return load_config_with_defaults(str(path), resolve=False)

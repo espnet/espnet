@@ -4,7 +4,6 @@ A copy of the ASR helpers, so this package stands alone.
 """
 
 import os
-import shutil
 from pathlib import Path
 from typing import List, Union
 
@@ -146,9 +145,14 @@ def train_sentencepiece(
     # input_sentence_size: without it SentencePiece keeps the *first* N
     # sentences, which for a mixture written corpus by corpus is a prefix of
     # whichever corpus came first rather than a sample of the whole.
+    # Written straight into save_path. With a bare prefix SentencePiece emits
+    # <model_type>.model into the *current directory* and relies on the move
+    # below, so two trainings sharing a cwd overwrite each other and a failed
+    # one leaves files behind.
+    os.makedirs(save_path, exist_ok=True)
     spm.SentencePieceTrainer.Train(
         input=dump_text_path,
-        model_prefix=model_type,
+        model_prefix=os.path.join(save_path, model_type),
         model_type=model_type,
         vocab_size=vocab_size,
         character_coverage=character_coverage,
@@ -156,12 +160,6 @@ def train_sentencepiece(
         input_sentence_size=input_sentence_size,
         shuffle_input_sentence=shuffle_input_sentence,
     )
-    if not os.path.exists(save_path):
-        os.makedirs(save_path)
-
-    shutil.move(f"{model_type}.model", save_path)
-    shutil.move(f"{model_type}.vocab", save_path)
-
     # create vocab file
     with open(os.path.join(save_path, f"{model_type}.vocab"), "r") as f:
         lines = f.readlines()
