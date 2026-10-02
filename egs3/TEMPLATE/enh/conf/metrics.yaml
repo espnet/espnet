@@ -1,0 +1,33 @@
+##########################################################
+#                 METRIC SCORING SETTING                 #
+##########################################################
+recipe_dir: .
+exp_tag:
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+
+metrics:
+  - metric:
+      _target_: espnet3.systems.enh.metrics.sisnr.SISNRMetric
+      ref_key: reference
+      hyp_key: enhanced
+    inputs:
+      reference: reference
+      enhanced: enhanced
+
+  - metric:
+      _target_: espnet3.systems.enh.metrics.pesq.PESQMetric
+      ref_key: reference
+      hyp_key: enhanced
+      fs: 16000
+    inputs:
+      reference: reference
+      enhanced: enhanced
+
+  - metric:
+      _target_: espnet3.systems.enh.metrics.stoi.STOIMetric
+      ref_key: reference
+      hyp_key: enhanced
+      fs: 16000
+    inputs:
+      reference: reference
+      enhanced: enhanced
