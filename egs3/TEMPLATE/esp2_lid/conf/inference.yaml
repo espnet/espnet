@@ -1,0 +1,31 @@
+# Default LID inference settings.
+recipe_dir: .
+exp_tag: null
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+data_dir: ${recipe_dir}/data
+inference_dir: ${exp_dir}/${self_name:}
+dataset:
+  _target_: espnet3.components.data.data_organizer.DataOrganizer
+  _recursive_: false
+  recipe_dir: ${recipe_dir}
+  test: null
+  preprocessor: null
+parallel:
+  env: local
+  n_workers: 1
+  # Replace a stale shard lock left by an interrupted run. Do not enable while
+  # another run may still be writing to the same output directory.
+  allow_overwrite_lock: false
+model: null
+input_key: speech
+batch_size: null
+output_fn: null
+provider:
+  _target_: espnet3.systems.base.inference_provider.InferenceProvider
+runner:
+  _target_: espnet3.systems.base.inference_runner.InferenceRunner
+stats_dir: ${recipe_dir}/exp/stats
+output_keys:
+  - hyp
+  - ref
+idx_key: utt_id

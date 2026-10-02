@@ -8,7 +8,11 @@ import torch
 from hydra.utils import instantiate
 from omegaconf import DictConfig, OmegaConf
 
-from espnet2.samplers.build_batch_sampler import build_batch_sampler
+from espnet2.samplers.build_batch_sampler import (
+    CATEGORY_BATCH_TYPES,
+    build_batch_sampler,
+    build_category_batch_sampler,
+)
 from espnet3.components.data.epoch_sync_iterator import EpochSyncIterator
 from espnet3.utils.logging_utils import _dump_attrs, build_qualified_name
 
@@ -256,7 +260,18 @@ class DataLoaderBuilder:
         if dataset is None:
             dataset = self.dataset
 
-        batches = build_batch_sampler(**factory_config.pop("batches"))
+        # espnet2 iter factories count epochs from 1 (their RNGs seed with
+        # epoch - 1), while self.epoch is Lightning's 0-based current_epoch;
+        # _maybe_shard_dataset keeps the 0-based convention.
+        espnet2_epoch = self.epoch + 1
+        batch_config = factory_config.pop("batches")
+        if batch_config.get("type") in CATEGORY_BATCH_TYPES:
+            batch_config.setdefault("epoch", espnet2_epoch)
+            batches, _ = build_category_batch_sampler(**batch_config)
+            if batch_config.get("num_batches") is not None:
+                batches = list(batches)[: batch_config["num_batches"]]
+        else:
+            batches = build_batch_sampler(**batch_config)
 
         if self.num_device > 1:
             batches = list(batches)
@@ -302,10 +317,6 @@ class DataLoaderBuilder:
                 _LOGGED_DISTRIBUTED_BATCHES.add(mode)
 
         iter_factory = instantiate(factory_config, dataset, batches=batches)
-        # espnet2 iter factories count epochs from 1 (their RNGs seed with
-        # epoch - 1), while self.epoch is Lightning's 0-based current_epoch;
-        # _maybe_shard_dataset keeps the 0-based convention.
-        espnet2_epoch = self.epoch + 1
         loader = EpochSyncIterator(partial(iter_factory.build_iter, espnet2_epoch))
         log_dataloader(
             logger,
