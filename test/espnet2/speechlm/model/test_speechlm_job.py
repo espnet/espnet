@@ -724,3 +724,56 @@ class TestApplyCfg:
             if np.any(result_seq[k] != 0):
                 nonzero_segments += 1
         assert nonzero_segments == 1
+
+
+# ---------------------------------------------------------------------------
+# The recorded token layout. Ids follow the order of `multimodal_io`, so a
+# config re-saved with sorted keys loads a checkpoint cleanly and decodes
+# nothing recognisable; the record turns that into a message.
+# ---------------------------------------------------------------------------
+class TestRecordedTokenLayout:
+    def _build(self, config):
+        with patch(
+            "espnet2.speechlm.model.speechlm.speechlm_job._multimodal_ios", MOCK_IOS
+        ):
+            from espnet2.speechlm.model.speechlm.speechlm_job import (
+                SpeechLMJobTemplate,
+            )
+
+            return SpeechLMJobTemplate(config, is_train=True)
+
+    def _recorded(self, job_template):
+        return {
+            name: [[int(start), int(end)] for start, end in pairs]
+            for name, pairs in job_template.vocab_meta["vocab_intervals"].items()
+        }
+
+    def test_a_config_without_a_record_still_loads(self):
+        """Every config written before this existed, the published ones among them."""
+        config = _make_config()
+        assert "vocab_intervals" not in config
+        assert self._build(config) is not None
+
+    def test_a_matching_record_passes(self):
+        layout = self._recorded(self._build(_make_config()))
+
+        config = _make_config()
+        config["vocab_intervals"] = layout
+
+        assert self._build(config) is not None
+
+    def test_a_moved_interval_is_refused(self):
+        layout = self._recorded(self._build(_make_config()))
+        moved = next(name for name in layout if name != "special_token")
+        layout[moved] = [[start + 1, end + 1] for start, end in layout[moved]]
+
+        config = _make_config()
+        config["vocab_intervals"] = layout
+
+        with pytest.raises(ValueError) as raised:
+            self._build(config)
+
+        message = str(raised.value)
+        assert moved in message
+        # and it says what to do about it
+        assert "sort_keys=False" in message
