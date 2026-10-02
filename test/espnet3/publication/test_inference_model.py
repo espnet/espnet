@@ -40,7 +40,10 @@ class BatchEchoModel:
 def _make_pack_dir(
     tmp_path: Path,
     *,
-    model_target: str = "builtins.object",
+    # A real published bundle names an espnet model here, and the loader now
+    # refuses targets outside its allowed namespaces. Tests that reach model
+    # construction mock ``build_model``, so this string is never imported.
+    model_target: str = "espnet2.bin.asr_inference.Speech2Text",
     input_key: str | list = "speech",
     output_fn: str | None = None,
     with_src_module: bool = False,
@@ -616,3 +619,79 @@ def test_forward_batch_falls_back_on_runtime_error(
     args, _ = mock_logger.warning.call_args
     assert "CUDA OOM" in str(args[1])
     assert results == ["cfg:a@cpu", "cfg:b@cpu"]
+
+
+# ---------------------------------------------------------------------------
+# from_packed - hydra _target_ trust gate (issue #6828)
+#
+# The bundled-code check only sees modules shipped inside the bundle, so a
+# config naming a callable that is already installed in the victim environment
+# used to pass it and then be instantiated by hydra. These cases follow the
+# reporter's positive / negative / boundary controls.
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "model_target",
+    [
+        "builtins.dict",
+        "os.system",
+        "pathlib.Path",
+        "torch.load",
+    ],
+)
+def test_from_packed_refuses_installed_callable_targets(tmp_path, model_target):
+    """Refuse targets outside the allowed namespaces without trust."""
+    bundle_root = _make_pack_dir(tmp_path, model_target=model_target)
+    with pytest.raises(ValueError, match="outside the "):
+        InferenceModel.from_packed(bundle_root, trust_user_code=False)
+
+
+def test_from_packed_refuses_nested_target(tmp_path):
+    """Refuse a disallowed target nested in an argument.
+
+    Hydra instantiates recursively, so a `_target_` buried in an argument runs
+    just like the top-level one. This is the shape of the reported PoC: a
+    nested ``pathlib.Path`` feeding ``pathlib.Path.write_text``.
+    """
+    bundle_root = _make_pack_dir(tmp_path)
+    config_path = bundle_root / "conf" / "inference.yaml"
+    config_path.write_text(
+        "\n".join(
+            [
+                "recipe_dir: .",
+                "input_key: speech",
+                "model:",
+                "  _target_: espnet2.bin.asr_inference.Speech2Text",
+                "  nested:",
+                "    _target_: pathlib.Path.write_text",
+                "    self:",
+                "      _target_: pathlib.Path",
+                "      _args_: ['/tmp/espnet3_bundle_gate_probe']",
+                "    data: written",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    probe = Path("/tmp/espnet3_bundle_gate_probe")
+    assert not probe.exists()
+
+    with pytest.raises(ValueError, match="pathlib.Path"):
+        InferenceModel.from_packed(bundle_root, trust_user_code=False)
+
+    # The point of the test: refusing happens before anything is instantiated.
+    assert not probe.exists()
+
+
+def test_from_packed_allows_espnet_targets(tmp_path, mock_build_model):
+    """Keep loading the targets a published bundle legitimately builds."""
+    bundle_root = _make_pack_dir(
+        tmp_path, model_target="espnet2.bin.asr_inference.Speech2Text"
+    )
+    assert InferenceModel.from_packed(bundle_root, trust_user_code=False) is not None
+
+
+def test_from_packed_allows_disallowed_target_with_trust(tmp_path, mock_build_model):
+    """Let an explicitly trusted publisher use any target."""
+    bundle_root = _make_pack_dir(tmp_path, model_target="builtins.dict")
+    assert InferenceModel.from_packed(bundle_root, trust_user_code=True) is not None
