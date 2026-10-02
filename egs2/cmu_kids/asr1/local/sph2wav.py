@@ -47,7 +47,7 @@ def parse_sph_header(fh):
         line = line.decode("latin-1")
         try:
             key, format, value = line.split(None, 3)
-        except (ValueError, KeyError, TypeError) as err:
+        except (ValueError, KeyError, TypeError):
             pass
         else:
             key, format, value = line.split(None, 3)

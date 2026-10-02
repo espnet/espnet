@@ -8,7 +8,6 @@ import glob
 import os
 
 import numpy as np
-import soundfile as sf
 from audiolib import audioread, audiowrite, snr_mixer
 
 

@@ -46,8 +46,8 @@ class ESPnetLanguageModel(AbsESPnetModel):
         # text: (Batch, Length) -> x, y: (Batch, Length + 1)
         x = F.pad(text, [1, 0], "constant", self.eos)
         t = F.pad(text, [0, 1], "constant", self.ignore_id)
-        for i, l in enumerate(text_lengths):
-            t[i, l] = self.sos
+        for i, length in enumerate(text_lengths):
+            t[i, length] = self.sos
         x_lengths = text_lengths + 1
 
         # 2. Forward Language model

@@ -5,11 +5,9 @@ import codecs
 import json
 import os
 import time
-from multiprocessing import Pool
 
 import cv2
 import numpy as np
-from tqdm import tqdm
 
 
 def crop_frame_roi(frame, roi_bound, roi_size=(96, 96)):

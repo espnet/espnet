@@ -10,8 +10,6 @@ import argparse
 import os
 import os.path
 
-import numpy as np
-
 parser = argparse.ArgumentParser(
     description="Process speech commands dataset with 35 commands."
 )

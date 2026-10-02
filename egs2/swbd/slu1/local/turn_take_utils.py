@@ -118,7 +118,6 @@ def remove_backchannel(file_name, backchannel_dict, word_file):
 def clean_dialogue(word_file_A, word_file_B, sentence_dict_sort):
     count_A = 0
     count_B = 0
-    prev_speaker = "NA"
     sentence_dict_sort_clean = {}
     for k in sentence_dict_sort:
         if "A" == sentence_dict_sort[k][0]:

@@ -9,7 +9,7 @@ MuST-C contains data of two tasks:
 from argparse import ArgumentParser
 from collections import defaultdict
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
+from typing import List, Union
 
 import yaml
 
@@ -17,7 +17,6 @@ from utils import (
     SYMBOL_NA,
     SYMBOL_NOSPEECH,
     SYMBOLS_TIME,
-    LongUtterance,
     Utterance,
     generate_long_utterances,
 )

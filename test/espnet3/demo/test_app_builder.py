@@ -43,11 +43,11 @@ def _write_model_pack(
     model_pack_dir = demo_dir / "model_pack"
     (model_pack_dir / "conf").mkdir(parents=True)
     (model_pack_dir / "conf" / "inference.yaml").write_text(
-        "model: {}\n" "provider:\n" f"  _target_: {provider_target}\n",
+        f"model: {{}}\nprovider:\n  _target_: {provider_target}\n",
         encoding="utf-8",
     )
     (model_pack_dir / "meta.yaml").write_text(
-        "yaml_files:\n" "  inference_config: conf/inference.yaml\n",
+        "yaml_files:\n  inference_config: conf/inference.yaml\n",
         encoding="utf-8",
     )
 

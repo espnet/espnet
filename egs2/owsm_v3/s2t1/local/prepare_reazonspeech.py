@@ -1,12 +1,10 @@
 """Prepare ReazonSpeech for Japanese ASR"""
 
-import json
 import logging
 from argparse import ArgumentParser
-from collections import defaultdict
 from multiprocessing import Pool
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
+from typing import List, Union
 
 import librosa
 
@@ -14,7 +12,6 @@ from utils import (
     SYMBOL_NA,
     SYMBOL_NOSPEECH,
     SYMBOLS_TIME,
-    LongUtterance,
     Utterance,
     generate_long_utterances,
 )

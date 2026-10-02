@@ -1,7 +1,6 @@
 import argparse
 import json
 import os
-import sys
 
 from espnet2.utils.types import str2bool
 

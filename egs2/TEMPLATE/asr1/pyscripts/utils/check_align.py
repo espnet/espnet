@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
 import argparse
-import math
 import os
 import re
-import sys
 
 from espnet2.fileio.read_text import read_label
 from espnet2.fileio.score_scp import SingingScoreReader, SingingScoreWriter
@@ -35,6 +33,7 @@ def compare(key, score, label, silence=["<AP>", "<SP>"]):
         g2p_type=args.g2p,
     )
     index = 0
+    pre_phn = None
     for i in range(len(score)):
         syb = score[i][2]
         # multi note in one syllable

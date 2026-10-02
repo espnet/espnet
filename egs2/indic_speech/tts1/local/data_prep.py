@@ -7,7 +7,6 @@
 import argparse
 import csv
 import os
-import subprocess
 
 from tqdm import tqdm
 

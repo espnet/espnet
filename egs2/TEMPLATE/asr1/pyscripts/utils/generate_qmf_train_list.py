@@ -18,7 +18,7 @@ def main(args):
     wav_scp = args[1]
     out_dir = args[2]
     cfg = load_yaml(args[3])
-    utt2spk = args[4]
+    _utt2spk = args[4]
     cohort_list = args[5]
     samp_rate = args[6][:-1]
     print(cfg)

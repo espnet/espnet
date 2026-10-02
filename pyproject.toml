@@ -112,6 +112,56 @@ include = ["espnet*", "egs3*"]
 [tool.setuptools.package-data]
 egs3 = ["egs3/TEMPLATE/**/*.yaml"]
 
+[tool.ruff]
+line-length = 88
+# The single source of truth for what Ruff skips - do not repeat these on the
+# command line, or the two lists drift.
+#
+# "tools" is here because tools/ is where the toolkits get installed, and
+# fifteen of the tools/installers/*.sh scripts `git clone` into it. A clone
+# carries its own .git, and Ruff's .gitignore filtering stops at a repository
+# boundary - so the outer .gitignore entries for tools/ParallelWaveGAN,
+# tools/kaldi*, tools/s3prl and the rest stop applying once the tools are
+# built, and Ruff walks into third-party source. It does not reproduce on a
+# fresh checkout, only after `make`, which is why CI saw it and nobody else
+# did. The cost is that the three tracked Python files under tools/
+# (check_install.py and the two sentencepiece_commands scripts) are not linted.
+extend-exclude = [
+    "egs2/TEMPLATE/asr1/utils", "egs2/TEMPLATE/asr1/steps", "egs2/TEMPLATE/tts1/sid",
+    "tools", "doc",
+    "test_utils/bats-core", "test_utils/bats-support", "test_utils/bats-assert",
+]
+
+[tool.ruff.lint]
+# Do not enable --unsafe-fixes. Every one of them was reviewed by hand when
+# Ruff was introduced and they are not reliable here: F841 drops an unused
+# assignment but keeps the call, which is right only when the call has no
+# side effect worth keeping, and F401 removed `import k2` from the
+# try/except probe in ci/test_import_all.py, which made has_k2
+# unconditionally True.
+select = [
+    "E", # pycodestyle errors
+    "W", # pycodestyle warnings
+    "F", # flake8
+    # "I", # imports (temporarily disabled due to conflicts with isort)
+    "D", # docstrings (ESPnet3 only)
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "pep257"
+
+[tool.ruff.lint.per-file-ignores]
+# Only check ESPnet3 docstrings
+"!espnet3/**" = ["D"]
+
+[tool.ruff.format]
+# NOTE: `ruff format` isn't integrated into CI yet. Until then, use Black instead.
+# Like Black
+quote-style = "double"
+indent-style = "space"
+
+# See PR #6668
+line-ending = "lf"
 
 [project.optional-dependencies]
 # Training, with espnet2 (espnet2/bin/*_train.py, egs2 recipes) or espnet3
@@ -277,6 +327,7 @@ dev = [
   "pytest>=7.0.0,<8.4.0",
   "pytest-cov>=2.7.1",
   "isort",
+  "ruff>=0.16.8",
 ]
 
 test = [
@@ -298,6 +349,7 @@ test = [
   "playwright",
   # test_mcp_server.py imports mcp outright; macOS CI installs only .[test].
   "mcp>=2.0",
+  "ruff>=0.16.8",
 ]
 
 doc = [

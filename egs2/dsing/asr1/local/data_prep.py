@@ -5,7 +5,7 @@ import hashlib
 import json
 import re
 from os import listdir, makedirs
-from os.path import exists, isfile, join
+from os.path import exists, join
 
 
 class DataSet:

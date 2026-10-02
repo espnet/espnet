@@ -4,8 +4,6 @@ import random
 import sys
 import wave
 
-from tqdm import tqdm
-
 microsoft_speech_corpus_path = sys.argv[1]
 lang = sys.argv[2]
 
@@ -74,7 +72,7 @@ def get_train_dev_trs():
                     train_utts.append(utt_id)
                     train_transcriptions.append(line)
                 utt_idx += 1
-            except Exception as e:
+            except Exception:
                 print(f"Cannot process {line}")
     return (
         train_transcriptions,
@@ -102,7 +100,7 @@ def get_test_trs():
                 test_utts.append(utt_id)
                 test_transcriptions.append(line)
                 utt_idx += 1
-            except Exception as e:
+            except Exception:
                 print(f"Cannot process {line}")
     return test_transcriptions, test_fnames, test_utts
 

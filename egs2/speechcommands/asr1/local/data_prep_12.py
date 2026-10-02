@@ -14,7 +14,6 @@ import glob
 import os
 import os.path
 
-import numpy as np
 from scipy.io import wavfile
 
 parser = argparse.ArgumentParser(description="Process speech commands dataset.")

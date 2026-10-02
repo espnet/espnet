@@ -1,3 +1,5 @@
+import sys
+
 dir_arr = [
     "Train_Two_Channel_Label",
     "Val_Two_Channel_Label",

@@ -12,7 +12,6 @@ from tqdm import tqdm
 
 from utils import (
     TO_ISO_LANGUAGE_CODE,
-    LongUtterance,
     Utterance,
     generate_long_utterances,
 )

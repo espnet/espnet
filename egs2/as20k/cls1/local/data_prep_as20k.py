@@ -1,9 +1,7 @@
-import json
 import os
 import random
 import sys
 
-import soundfile as sf
 from tqdm import tqdm
 
 DATA_READ_ROOT = sys.argv[1]

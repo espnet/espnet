@@ -1,6 +1,4 @@
 import argparse
-import glob
-import json
 import logging
 import os
 import pickle
@@ -8,17 +6,11 @@ import string
 import sys
 import unicodedata
 from collections import defaultdict
-from glob import glob
 from pathlib import Path
-from shlex import split
-from tarfile import ReadError
 
 import pandas as pd
 import regex as re
-import webdataset as wds
-from ipatok import tokenise
 from lhotse import CutSet
-from scipy.io import wavfile
 from tqdm import tqdm
 
 
@@ -336,7 +328,7 @@ def text_normalization(orthography):
     # but keep apostrophes and hyphens after normalization
     orthography = unicodedata.normalize("NFKC", str(orthography))
     orthography = orthography.lower().replace("’", "'")
-    pattern = rf"[^\w\s\-']"
+    pattern = r"[^\w\s\-']"
     return re.sub(pattern, "", orthography)
 
 
@@ -373,7 +365,7 @@ def write_dir(target_dir, transcripts):
         open(target_dir / "text.asr", "w", encoding="utf-8") as prompt,
     ):
         for _, row in transcripts.iterrows():
-            utt_id, old_utt_id, path, ipa_original, ipa, ipa_nosup, orthography = (
+            utt_id, _old_utt_id, path, ipa_original, ipa, ipa_nosup, orthography = (
                 row["utt_id"],
                 row["old_utt_id"],
                 row["path"],

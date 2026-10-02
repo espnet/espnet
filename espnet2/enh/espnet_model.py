@@ -496,7 +496,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                 )
                 # for the time domain criterions
                 with torch.no_grad() if zero_weight else contextlib.ExitStack():
-                    l, s, o = loss_wrapper(sref, spre, {**others, **o})
+                    loss_i, s, o = loss_wrapper(sref, spre, {**others, **o})
             elif isinstance(criterion, FrequencyDomainLoss):
                 sref, spre = self._align_ref_pre_channels(
                     signal_ref, signal_pre, ch_dim=2, force_1ch=False
@@ -559,11 +559,11 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                             ]
 
                 with torch.no_grad() if zero_weight else contextlib.ExitStack():
-                    l, s, o = loss_wrapper(tf_ref, tf_pre, {**others, **o})
+                    loss_i, s, o = loss_wrapper(tf_ref, tf_pre, {**others, **o})
             else:
                 raise NotImplementedError("Unsupported loss type: %s" % str(criterion))
 
-            loss += l * loss_wrapper.weight
+            loss += loss_i * loss_wrapper.weight
 
             # rename the loss keys with a category prefix
             if (

@@ -15,7 +15,6 @@ import numpy as np
 import torch
 import torchaudio
 from omniio import kaldi as kaldi_io
-from torch.nn.utils.rnn import pad_sequence
 from tqdm import tqdm
 
 from espnet2.fileio.sound_scp import SoundScpReader

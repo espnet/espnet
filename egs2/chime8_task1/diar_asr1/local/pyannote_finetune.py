@@ -4,7 +4,7 @@ import shutil
 from pathlib import Path
 from types import MethodType
 
-from pyannote.audio import Inference, Model
+from pyannote.audio import Model
 from pyannote.audio.tasks import Segmentation
 from pyannote.database import FileFinder, get_protocol
 from pytorch_lightning import Trainer

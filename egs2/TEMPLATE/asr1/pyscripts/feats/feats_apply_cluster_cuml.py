@@ -15,15 +15,12 @@
 # limitations under the License.
 
 import argparse
-import logging
 import os
 import os.path as osp
 import pickle
-import sys
 
 import numpy as np
 import tqdm
-from cuml.cluster import KMeans
 
 
 def get_parser():

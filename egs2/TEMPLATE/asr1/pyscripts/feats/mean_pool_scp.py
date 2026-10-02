@@ -12,13 +12,11 @@ import argparse
 import math
 import os
 import os.path as osp
-from shutil import copyfile
 
 import numpy as np
 import torch
 import torch.nn.functional as F
 import tqdm
-from npy_append_array import NpyAppendArray
 
 
 def get_parser():
@@ -69,7 +67,6 @@ def main():
     output_dir = f"{save_path}/"
     os.makedirs(output_dir, exist_ok=True)
     scp_file = f"{save_path}/feats.scp"
-    prefix = args.root
     with torch.no_grad():
         with (
             open(save_path + ".lengths", "w") as lengths_out,

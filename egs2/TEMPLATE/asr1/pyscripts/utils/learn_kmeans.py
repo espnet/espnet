@@ -195,8 +195,6 @@ def learn_kmeans(
             "{}total intertia: %.5f".format(f"RVQ_{i} " if RVQ_layers > 1 else ""),
             inertia,
         )
-        c = km_model.predict(feat)
-        r = km_model.cluster_centers_[c]
         feat = feat - km_model.cluster_centers_[km_model.predict(feat)]
     logger.info("finished successfully")
 
