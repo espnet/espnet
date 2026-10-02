@@ -19,8 +19,10 @@ def test_speakers_are_listed_in_order_of_first_appearance():
 
 
 def test_text_can_be_taken_per_speaker():
-    """Per-speaker concatenation lives here because every long-form metric
-    needs it and they must all do it identically."""
+    """Per-speaker concatenation lives in Session.
+
+    Every long-form metric needs it and they must all do it identically.
+    """
     session = Session(
         "meeting",
         [Turn("hello", "A"), Turn("hi there", "B"), Turn("how are you", "A")],

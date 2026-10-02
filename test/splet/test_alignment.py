@@ -87,12 +87,12 @@ def test_backends_agree_on_totals():
 
 
 def test_the_split_is_not_backend_independent():
-    """Pin the disagreement, so that it is a documented fact and not a
-    surprise found later in a results table.
+    """Pin the disagreement as a documented fact.
 
-    If a future change makes the two backends break ties identically, this
-    test fails and should be deleted -- together with the warning in
-    splet/alignment.py and the reason the default backend is not "auto".
+    Otherwise it is a surprise found later in a results table. If a future
+    change makes the two backends break ties identically, this test fails and
+    should be deleted -- together with the warning in splet/alignment.py and
+    the reason the default backend is not "auto".
     """
     pytest.importorskip("rapidfuzz")
     ref = "d a c e d d".split()
