@@ -100,9 +100,6 @@ def add_arguments(parser: argparse.ArgumentParser, contents: Type[PackedContents
     parser.add_argument("--option", type=str, action="append", default=[])
 
 
-AudioMetricPackedContents = AqaPackedContents
-
-
 def get_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Pack input files to archive format")
     subparsers = parser.add_subparsers()
@@ -124,7 +121,6 @@ def get_parser() -> argparse.ArgumentParser:
         ("codec", CodecPackedContents),
         ("cls", ClassificationPackedContents),
         ("aqa", AqaPackedContents),
-        ("audio_metric", AqaPackedContents),
         ("universa", AqaPackedContents),
     ]:
         parser_asr = subparsers.add_parser(

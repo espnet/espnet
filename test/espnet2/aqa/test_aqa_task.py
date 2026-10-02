@@ -116,7 +116,7 @@ def test_base_data_setup(tmp_path):
         )
 
 
-@pytest.mark.parametrize("entry", ["audio_metric_train", "universa_train"])
+@pytest.mark.parametrize("entry", ["aqa_train", "universa_train"])
 def test_training_entry_points(entry):
     """Both entry points expose a usable parser and print task configuration."""
     module = importlib.import_module("espnet2.bin." + entry)

@@ -13,14 +13,11 @@ from espnet2.bin.pack import get_parser
 from espnet2.tasks.aqa import AqaTask
 
 
-@pytest.mark.parametrize("name", ["audio_metric", "universa"])
-def test_task_and_cli_aliases(name):
+def test_task_and_cli_aliases():
     """Legacy names expose the same task, inference class, and train function."""
+    name = "universa"
     task = importlib.import_module(f"espnet2.tasks.{name}")
-    assert (
-        getattr(task, "AudioMetricTask" if name == "audio_metric" else "UniversaTask")
-        is AqaTask
-    )
+    assert task.UniversaTask is AqaTask
     assert importlib.import_module(f"espnet2.bin.{name}_train").main is train_main
     module = importlib.import_module(f"espnet2.bin.{name}_inference")
     assert module.UniversaInference is AqaInference
@@ -52,7 +49,7 @@ def test_model_import_aliases(module, symbol):
     assert getattr(old, symbol) is getattr(new, symbol)
 
 
-@pytest.mark.parametrize("name", ["aqa", "audio_metric", "universa"])
+@pytest.mark.parametrize("name", ["aqa", "universa"])
 def test_pack_aliases(name):
     """All task spellings retain identical model/config archive contents."""
     parser = get_parser()
@@ -69,7 +66,7 @@ def test_pack_aliases(name):
     )
 
 
-@pytest.mark.parametrize("name", ["aqa", "audio_metric", "universa"])
+@pytest.mark.parametrize("name", ["aqa", "universa"])
 @pytest.mark.parametrize("command", ["train", "inference"])
 @pytest.mark.execution_timeout(60)
 def test_cli_help(name, command):
