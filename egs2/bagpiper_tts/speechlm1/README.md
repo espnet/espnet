@@ -128,6 +128,21 @@ See the
 the [Bagpiper input format](../../bagpiper/speechlm1/README.md#setup-and-inputs)
 for the manifest structure.
 
+From the recipe directory, which takes the published weights straight
+through without an export step. `run.sh` resolves relative paths from
+the recipe directory, so the download directory is given in full here:
+
+```bash
+./run.sh --stage infer \
+    --train-config /path/to/bagpiper-tts-sft/train_bagpiper_tts.yaml \
+    --inference-config /path/to/bagpiper-tts-sft/inference.yaml \
+    --export-path /path/to/bagpiper-tts-sft/model.pt \
+    --test-unregistered-specifier "dialogue:demo:/path/to/requests.json" \
+    --inference-output-dir exp/bagpiper-tts-demo
+```
+
+Or call the module directly, from the repository root:
+
 ```bash
 python -m espnet2.speechlm.bin.inference \
     --train-config models/bagpiper-tts-sft/train_bagpiper_tts.yaml \
@@ -246,7 +261,14 @@ and logging options; W&B is disabled by default.
 
 ### Export for inference
 
-Export the trained DCP on CPU, allowing enough RAM for the full model:
+Export the trained DCP on CPU, allowing enough RAM for the full model.
+The recipe takes the latest complete checkpoint:
+
+```bash
+./run.sh --stage export --export-dtype bfloat16
+```
+
+Name another one with `--checkpoint-dir`, or call the module directly:
 
 ```bash
 python -m espnet2.speechlm.bin.export_checkpoint \

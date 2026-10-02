@@ -132,6 +132,21 @@ path. Use the manifest format in [Setup and inputs](#setup-and-inputs).
 The [model card](https://huggingface.co/espnet/bagpiper-sft) describes the
 released configurations. For text-then-audio generation:
 
+From the recipe directory, which takes the published weights straight
+through without an export step. `run.sh` resolves relative paths from
+the recipe directory, so the download directory is given in full here:
+
+```bash
+./run.sh --stage infer \
+    --train-config /path/to/bagpiper-sft/train_stage3_qwen3_base.yaml \
+    --inference-config /path/to/bagpiper-sft/inference_audio.yaml \
+    --export-path /path/to/bagpiper-sft/model.pt \
+    --test-unregistered-specifier "dialogue:demo:/path/to/requests.json" \
+    --inference-output-dir exp/bagpiper-demo
+```
+
+Or call the module directly, from the repository root:
+
 ```bash
 python -m espnet2.speechlm.bin.inference \
     --train-config models/bagpiper-sft/train_stage3_qwen3_base.yaml \
@@ -281,7 +296,14 @@ loads the pretrained components before replacing their weights with the selected
 checkpoint. Keep gradient accumulation unchanged across resume, since data
 progress is measured in micro-batches; the launcher saves batch assignments by default.
 
-Export on CPU with enough RAM for the full model:
+Export on CPU with enough RAM for the full model. The recipe takes the
+latest complete checkpoint:
+
+```bash
+./run.sh --stage export --export-dtype bfloat16
+```
+
+Name another one with `--checkpoint-dir`, or call the module directly:
 
 ```bash
 python -m espnet2.speechlm.bin.export_checkpoint \
