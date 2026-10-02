@@ -156,6 +156,14 @@ asr = [
   "jiwer",
 ]
 
+# Phone recognition (espnet3/systems/pr, egs3/*/pr). panphon supplies the IPA
+# segmenter and the articulatory feature table that PER and PFER score with.
+# PER additionally uses jiwer from the asr extra.
+pr = [
+  "panphon==0.22.2",
+  "jiwer",
+]
+
 tts = [
   "pyworld>=0.3.4",
   "pypinyin<=0.44.0",
@@ -316,6 +324,7 @@ all = [
   "espnet[train]",
   "espnet[asr]",
   "espnet[asr2]",
+  "espnet[pr]",
   "espnet[tts]",
   "espnet[enh]",
   "espnet[st]",
