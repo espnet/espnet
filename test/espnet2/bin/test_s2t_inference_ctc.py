@@ -154,6 +154,26 @@ def test_the_base_class_loads_a_ctc_only_checkpoint(s2t_config_file):
 
 
 @pytest.mark.execution_timeout(10)
+@pytest.mark.parametrize(
+    "option", [{"speaker_change_symbol": "a"}, {"adaptive_timestamp": True}]
+)
+def test_the_base_class_refuses_timestamp_options_on_a_ctc_only_checkpoint(
+    s2t_config_file, option
+):
+    """Both options need a decoder, and a CTC-only checkpoint has none.
+
+    Without the guard the request is not refused but lost. The filter is
+    built and then dropped, because the CTC-only branch gives it no weight
+    and BeamSearch keeps only the scorers that have one, so a user who asked
+    for a speaker change symbol would get an unconstrained decode and no
+    warning. adaptive_timestamp does not even get that far: it reads a
+    decoder that is not there.
+    """
+    with pytest.raises(ValueError, match="CTC-only"):
+        Speech2TextBase(s2t_train_config=s2t_config_file, beam_size=1, **option)
+
+
+@pytest.mark.execution_timeout(10)
 def test_the_base_class_batch_decodes_a_ctc_only_checkpoint(s2t_config_file):
     speech2text = Speech2TextBase(s2t_train_config=s2t_config_file, beam_size=1)
     batched = speech2text.batch_decode(torch.randn(3, 3000))

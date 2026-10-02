@@ -1,0 +1,62 @@
+##########################################################
+#                   Inference SETTING                    #
+##########################################################
+# Quick usage:
+#   python run.py --stages infer measure \
+#       --training_config conf/training.yaml \
+#       --inference_config conf/inference.yaml \
+#       --metrics_config conf/metrics.yaml
+#
+# exp_tag is left empty and inherited from the training config, which run.py
+# copies across, so decode output lands beside the run it came from. Without
+# --training_config nothing fills it and the output path degenerates.
+recipe_dir: .
+exp_tag:
+
+##########################################################
+#                    DATASET DEFINITION                  #
+##########################################################
+# data_src is omitted, so ESPnet3 loads ${recipe_dir}/dataset/__init__.py and
+# instantiates the exported Dataset class with data_src_args.
+dataset:
+  test:
+    - name: test
+      data_src_args:
+        split: test
+
+##########################################################
+#                    MODEL AND OUTPUT                    #
+##########################################################
+# speaker_change_symbol and adaptive_timestamp select the SOT timestamp
+# constraints in espnet2/s2t/whisper_timestamp_scorer.py.
+model:
+  _target_: espnet2.bin.s2t_inference.Speech2Text
+  # Put the checkpoint's config.yaml and model.pth in exp/whisper_sot_s2t
+  # under the recipe directory, or set AMI_SOT_CHECKPOINT_DIR to where they
+  # are. The default is recipe-relative; the inference stage chdirs into
+  # recipe_dir before building the model.
+  s2t_train_config: ${oc.env:AMI_SOT_CHECKPOINT_DIR,exp/whisper_sot_s2t}/config.yaml
+  s2t_model_file: ${oc.env:AMI_SOT_CHECKPOINT_DIR,exp/whisper_sot_s2t}/model.pth
+  beam_size: 5
+  ctc_weight: 0.0
+  # Negative means a constant cap, so 250 tokens rather than a ratio of the
+  # input length. An utterance group is padded to 30 s whatever it holds, so a
+  # ratio would give every group the same budget regardless of how much speech
+  # it has.
+  maxlenratio: -250
+  minlenratio: 0.0
+  lang_sym: "<|en|>"
+  task_sym: "<|transcribe|>"
+  predict_time: true
+  # Must match the builder.separator the checkpoint was trained with, and
+  # must name a row of that checkpoint's token list: Speech2Text resolves it
+  # with token_list.index. src/inference.py reads the same variable.
+  speaker_change_symbol: ${oc.env:AMI_SOT_SPEAKER_CHANGE_SYMBOL,????}
+  adaptive_timestamp: true
+
+input_key: speech
+# One utterance per beam search: the timestamp scorer keeps per-hypothesis
+# bookkeeping scoped to a single seek window.
+batch_size: null
+output_fn: src.inference.build_output
+output_keys: [hyp, ref, hyp_sot, ref_sot]

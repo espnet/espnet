@@ -28,6 +28,10 @@ from espnet2.legacy.nets.scorer_interface import (
 from espnet2.legacy.nets.scorers.ctc import CTCPrefixScorer
 from espnet2.legacy.nets.scorers.length_bonus import LengthBonus
 from espnet2.legacy.utils.cli_utils import get_commandline_args
+from espnet2.s2t.whisper_timestamp_scorer import (
+    WhisperTimestampFilter,
+    wrap_timestamp_decoder,
+)
 from espnet2.tasks.lm import LMTask
 from espnet2.tasks.s2t import S2TTask
 from espnet2.text.build_tokenizer import build_tokenizer
@@ -51,6 +55,29 @@ ListOfHypothesis = List[
         Optional[Hypothesis],
     ]
 ]
+
+
+def _primer_length(primer) -> int:
+    """Return the number of prompt tokens for a timestamp filter.
+
+    ``hyp_primer`` is one sequence for the full batch, or one sequence for
+    each utterance. Beam search moves all hypotheses together. All sequences
+    must therefore have the same length.
+    """
+    if (
+        primer is not None
+        and len(primer) > 0
+        and isinstance(primer[0], (list, tuple, torch.Tensor))
+    ):
+        lengths = {len(p) for p in primer}
+        if len(lengths) != 1:
+            raise ValueError(
+                "the timestamp filter needs a single prompt length for the "
+                f"batch, got {sorted(lengths)}. Decode these utterances with "
+                "--batch_size 1."
+            )
+        return lengths.pop()
+    return len(primer)
 
 
 class ScoreFilter(BatchScorerInterface, torch.nn.Module):
@@ -300,16 +327,50 @@ class Speech2Text:
         # only best-path decoding reports these, and only when asked: the
         # beam search path reports them whenever the model produces them
         generate_interctc_outputs: bool = False,
+        speaker_change_symbol: Optional[str] = None,
+        adaptive_timestamp: bool = False,
     ):
 
         if ctc_weight > 0.0 and predict_time:
             raise ValueError("CTC cannot predict timestamps")
+
+        if adaptive_timestamp and ctc_weight == 1.0:
+            # The adaptive rule rides on the decoder score, whose weight is
+            # 1 - ctc_weight. At zero BeamSearch drops the scorer and the
+            # timestamp rules with it. speaker_change_symbol on its own is
+            # unaffected: it registers as scorefilter, at a fixed weight.
+            raise ValueError(
+                "adaptive_timestamp carries the timestamp rules on the "
+                "decoder score, which ctc_weight=1.0 gives no weight"
+            )
 
         qconfig_spec = set([getattr(torch.nn, q) for q in quantize_modules])
         quantize_dtype: torch.dtype = getattr(torch, quantize_dtype)
 
         # 1. Build S2T model, from whichever task trained it
         self.ctc_only = _is_ctc_only(s2t_train_config)
+        requested = [
+            name
+            for name, asked in (
+                ("speaker_change_symbol", speaker_change_symbol is not None),
+                ("adaptive_timestamp", adaptive_timestamp),
+            )
+            if asked
+        ]
+        if self.ctc_only and requested:
+            # Both options constrain the decoder's timestamp tokens, and a
+            # CTC-only checkpoint has no decoder and emits no timestamps.
+            # Refused here because otherwise the request fails late and
+            # obscurely instead: adaptive_timestamp reads a decoder that is
+            # not there, and building the filter reads timestamp symbols that
+            # a CTC-only preprocessor_conf need not carry. Where it is built
+            # at all it is then dropped without a word, because the CTC-only
+            # branch gives it no weight and BeamSearch keeps only the scorers
+            # that have one.
+            raise ValueError(
+                f"{' and '.join(requested)} needs a decoder with timestamp "
+                "tokens, and this checkpoint is CTC-only"
+            )
         if self.ctc_only:
             from espnet2.tasks.s2t_ctc import S2TTask as S2TCTCTask
 
@@ -423,6 +484,51 @@ class Speech2Text:
                 "frame and collapses once. They can disagree, and the search "
                 "is far slower. Speech2Text.best_path() is best-path decoding."
             )
+
+        # Serialized Output Training needs a different filter. The plain
+        # timestamp rules block the speaker-change token after a closed
+        # timestamp. The rules also make each new speaker start after the end
+        # of the previous speaker. Decoding with timestamps is then not
+        # possible. The SOT filter applies the rules to the current speaker
+        # block only.
+        self.timestamp_filter = None
+        if speaker_change_symbol is not None or adaptive_timestamp:
+            self.timestamp_filter = WhisperTimestampFilter(
+                first_time=token_list.index(
+                    s2t_train_args.preprocessor_conf["first_time_symbol"]
+                ),
+                last_time=token_list.index(
+                    s2t_train_args.preprocessor_conf["last_time_symbol"]
+                ),
+                eos=s2t_model.eos,
+                vocab_size=len(token_list),
+                sample_begin=0,  # set again with each new primer
+                notimestamps=token_list.index(
+                    s2t_train_args.preprocessor_conf["notime_symbol"]
+                ),
+                speaker_change=(
+                    None
+                    if speaker_change_symbol is None
+                    else token_list.index(speaker_change_symbol)
+                ),
+            )
+            if adaptive_timestamp:
+                # The last Whisper timestamp rule compares the total
+                # timestamp probability with the best text token. The rule
+                # needs the model probabilities, so it must hold the decoder.
+                # It also applies the filter. Do not register the filter
+                # again, because the second mask has no effect and costs
+                # time. The mask now rides on the decoder score, weighted by
+                # 1 - ctc_weight instead of the filter's fixed 1.0; -inf
+                # survives any positive weight, so the rules stay hard. At
+                # ctc_weight 1.0 that weight is zero and the scorer would be
+                # dropped, which the guard above refuses.
+                scorers["decoder"] = wrap_timestamp_decoder(
+                    s2t_model.decoder, self.timestamp_filter
+                )
+                scorers.pop("scorefilter", None)
+            else:
+                scorers["scorefilter"] = self.timestamp_filter
 
         # 2. Build language model
         if lm_train_config is not None:
@@ -603,6 +709,15 @@ class Speech2Text:
         task_sym = task_sym if task_sym is not None else self.task_sym
         predict_time = predict_time if predict_time is not None else self.predict_time
 
+        if self.timestamp_filter is not None and not predict_time:
+            # The filter needs a timestamp as the first new token. A prompt
+            # without timestamps ends with the no-timestamp symbol, which
+            # blocks all timestamps. Together they permit no token.
+            raise ValueError(
+                "speaker_change_symbol and adaptive_timestamp constrain the "
+                "timestamp tokens, so they need predict_time=True"
+            )
+
         lang_id = self.converter.token2id[lang_sym]
         task_id = self.converter.token2id[task_sym]
         notime_id = self.converter.token2id[self.preprocessor_conf["notime_symbol"]]
@@ -712,6 +827,8 @@ class Speech2Text:
                 for b in range(n_utt)
             ]
         self.beam_search.set_hyp_primer(primers)
+        if self.timestamp_filter is not None:
+            self.timestamp_filter.set_sample_begin(_primer_length(primers))
 
         speech = self._pad_or_trim(speech).to(getattr(torch, self.dtype))
         lengths = speech.new_full([n_utt], dtype=torch.long, fill_value=speech.size(1))
@@ -967,9 +1084,12 @@ class Speech2Text:
                 return results, self._decode_interctc(intermediate_outs)
             return results
 
-        self.beam_search.set_hyp_primer(
-            self._build_hyp_primer(lang_sym, task_sym, predict_time, text_prev)
+        long_primer = self._build_hyp_primer(
+            lang_sym, task_sym, predict_time, text_prev
         )
+        self.beam_search.set_hyp_primer(long_primer)
+        if self.timestamp_filter is not None:
+            self.timestamp_filter.set_sample_begin(_primer_length(long_primer))
 
         # Preapre speech
         if isinstance(speech, np.ndarray):
@@ -1494,7 +1614,16 @@ class Speech2Text:
                 text_prev = text_prev + utt[-1]
                 utterances.append(utt)
 
-            offset += round((new_start_time_id - first_time_id) * resolution * fs)
+            advance = round((new_start_time_id - first_time_id) * resolution * fs)
+            if advance <= 0:
+                # The window produced no usable closing timestamp, so the next
+                # window would be identical and the loop would never end.
+                logging.warning(
+                    "Long-form decoding cannot advance past %.2f s; stopping.",
+                    offset / fs,
+                )
+                break
+            offset += advance
 
         return utterances
 
@@ -1566,6 +1695,8 @@ def inference(
     threshold_probability: float,
     max_seq_len: int,
     max_mask_parallel: int,
+    speaker_change_symbol: Optional[str] = None,
+    adaptive_timestamp: bool = False,
 ):
     if word_lm_train_config is not None:
         raise NotImplementedError("Word LM is not implemented")
@@ -1616,6 +1747,8 @@ def inference(
         lang_sym=lang_sym,
         task_sym=task_sym,
         predict_time=predict_time,
+        speaker_change_symbol=speaker_change_symbol,
+        adaptive_timestamp=adaptive_timestamp,
         partial_ar=partial_ar,
         threshold_probability=threshold_probability,
         max_seq_len=max_seq_len,
@@ -1813,6 +1946,23 @@ def get_parser():
         type=str2bool,
         default=False,
         help="Predict timestamps.",
+    )
+    group.add_argument(
+        "--speaker_change_symbol",
+        type=str_or_none,
+        default=None,
+        help="Speaker-change token for Serialized Output Training. When given, "
+        "the timestamp rules are scoped to the current speaker block so that "
+        "this token may be emitted between speakers. Leave unset to keep the "
+        "plain timestamp rules.",
+    )
+    group.add_argument(
+        "--adaptive_timestamp",
+        type=str2bool,
+        default=False,
+        help="Also apply Whisper's distribution dependent timestamp rule, "
+        "which forces a timestamp when the summed timestamp probability "
+        "exceeds the best text token. This wraps the decoder scorer.",
     )
 
     group = parser.add_argument_group("Quantization related")
