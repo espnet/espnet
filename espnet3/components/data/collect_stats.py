@@ -39,12 +39,20 @@ def collect_stats_batch(
     structured_items: List[Tuple[str, Any]] = []
     for i in idxs:
         item = dataset[i]
-        # We assume dataset should be DataOrganizer in espnet3.
-        if (
+        # CombinedDataset returns (uid, sample) when use_espnet_collator is
+        # True (set by collect_stats for CommonCollateFn). Some test doubles
+        # also return (uid, sample) when use_espnet_preprocessor is True.
+        # ASR recipes usually have both flags; enhancement often has only the
+        # collator flag, so checking preprocessor alone double-wraps the
+        # sample and CommonCollateFn then fails with
+        # TypeError: unhashable type: 'dict'.
+        already_paired = (
+            hasattr(dataset, "use_espnet_collator") and dataset.use_espnet_collator
+        ) or (
             hasattr(dataset, "use_espnet_preprocessor")
             and dataset.use_espnet_preprocessor
-        ):
-            # Then it is a tuple with (uid, dict) and type(uid) is str.
+        )
+        if already_paired:
             uid, sample = item
         else:
             uid, sample = str(i), item

@@ -168,6 +168,9 @@ tts = [
 enh = [
   "ci_sdr",
   "fast-bss-eval==0.1.3",
+  # Scoring for espnet3 enhancement recipes (espnet3/systems/esp2_enh/metrics).
+  "pesq",
+  "pystoi>=0.2.2",
 ]
 
 asr2 = [

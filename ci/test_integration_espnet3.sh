@@ -50,3 +50,19 @@ run_with_training_config \
     conf/inference_transducer.yaml
 
 cd "${cwd}" || exit
+
+python3 -m pip install -e '.[enh]'
+
+cd ./egs3/mini_an4/esp2_enh || exit
+gen_dummy_coverage
+echo "==== [ESPnet3] ENH ===="
+source path.sh
+# No train_tokenizer: EnhancementSystem does not implement it.
+${python} run.py \
+    --stages create_dataset collect_stats train infer measure \
+    --training_config conf/training.yaml \
+    --inference_config conf/inference.yaml \
+    --metrics_config conf/metrics.yaml
+rm -rf exp data
+
+cd "${cwd}" || exit
