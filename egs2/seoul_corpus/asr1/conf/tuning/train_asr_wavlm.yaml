@@ -1,0 +1,155 @@
+# WavLM-large as a frozen SSL frontend.
+#
+# Based on egs2/aphasiabank/asr1/conf/tuning/train_asr_ebranchformer_small_wavlm_large.yaml,
+# itself from egs2/librispeech/asr1/conf/tuning/train_asr_conformer7_wavlm_large.yaml.
+# Changed for this corpus: batch_bins/accum_grad are the ones the from-scratch
+# runs used, so an epoch is the same 564 steps and the curves are comparable;
+# the preprocessor speed perturbation is kept because 26.6 h is small.
+#
+# Why try this at all: from scratch on the tag data the model never beats a
+# text-only bigram (valid acc 0.200 against a 0.184 bigram floor) while the same
+# model on 17.2 h of short utterances reached acc 0.805 / CER 17.1.  A frozen
+# upstream removes acoustic modelling from the problem, so if the 13.1 s
+# utterances are what the from-scratch encoder cannot align, this is where that
+# shows.  Note WavLM-large is English-only (Libri-Light, VoxPopuli, GigaSpeech);
+# for Korean a multilingual upstream is the fairer comparison.
+#
+# run.sh reads this file's frontend: line and switches --feats_normalize to
+# utt_mvn for an SSL one: the global_mvn statistics are log-mel statistics and
+# mean nothing for these features (espnet/espnet#4006).
+unused_parameters: true
+freeze_param: [
+"frontend.upstream"
+]
+
+frontend: s3prl
+frontend_conf:
+    frontend_conf:
+        upstream: wavlm_large   # change input_size in the preencoder with this
+    download_dir: ./hub
+    multilayer_feature: true
+
+preencoder: linear
+preencoder_conf:
+    input_size: 1024            # wavlm_large hidden size
+    output_size: 80
+
+preprocessor: default
+preprocessor_conf:
+    fs: 16000
+    data_aug_prob: 0.7
+    data_aug_num:
+    - 1
+    - 1
+    data_aug_effects:
+    -   - 1.0
+        -   -   - 0.5
+                - speed_perturb
+                - factor: 0.9
+            -   - 0.5
+                - speed_perturb
+                - factor: 1.1
+
+specaug: specaug
+specaug_conf:
+    apply_time_warp: true
+    time_warp_window: 5
+    time_warp_mode: bicubic
+    apply_freq_mask: true
+    freq_mask_width_range:
+    - 0
+    - 27
+    num_freq_mask: 2
+    apply_time_mask: true
+    time_mask_width_ratio_range:
+    - 0.
+    - 0.05
+    num_time_mask: 5
+
+encoder: e_branchformer
+encoder_conf:
+    output_size: 256
+    attention_heads: 4
+    linear_units: 1024
+    num_blocks: 12
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    attention_dropout_rate: 0.1
+    layer_drop_rate: 0.1
+    input_layer: conv2d2        # 2 (WavLM 20 ms) * 2 = 40 ms, as with conv2d on log-mel
+    macaron_ffn: true
+    pos_enc_layer_type: rel_pos
+    attention_layer_type: rel_selfattn
+    rel_pos_type: latest
+    cgmlp_linear_units: 3072
+    cgmlp_conv_kernel: 31
+    use_linear_after_conv: false
+    gate_activation: identity
+    positionwise_layer_type: linear
+    use_ffn: true
+    merge_conv_kernel: 31
+
+decoder: transformer
+decoder_conf:
+    attention_heads: 4
+    linear_units: 2048
+    num_blocks: 6
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    self_attention_dropout_rate: 0.1
+    src_attention_dropout_rate: 0.1
+    layer_drop_rate: 0.2
+
+model_conf:
+    ctc_weight: 0.5
+    lsm_weight: 0.1
+    length_normalized_loss: false
+    # "false" makes stage 10 write dummy stats instead of running the upstream
+    extract_feats_in_collect_stats: false
+
+seed: 2022
+log_interval: 200
+num_att_plot: 0
+# num_workers is 0 on purpose.  This venv is CPython 3.14, where the default
+# multiprocessing start method on Linux is forkserver rather than fork, and
+# espnet2/iterators/sequence_iter_factory.py builds its DataLoader without
+# passing multiprocessing_context, so worker startup goes through a forkserver.
+# On this filesystem that deadlocks: the trainer blocks in pipe_write sending
+# the worker payload (syscall 1 on the forkserver pipe) while the forkserver
+# child sits in cl_sync_io_wait on Lustre, no worker is ever created, and the
+# GPU stays at 0% -- measured at 0.1% mean over 361 samples across ten minutes
+# of a "running" epoch.  With 0 the loading happens inline in the trainer, which
+# the benchmark puts at 473 ms/batch against 1163 ms/step of forward.
+num_workers: 0   # 4 hung before the first forward: the trainer sat in pipe_write (a DataLoader worker pipe) with the GPU at 0% and only the frozen weights resident.  2 is what every run that worked on this data used.
+sort_in_batch: descending
+sort_batch: descending
+batch_type: numel
+# batch_bins is halved against the from-scratch runs and accum_grad set to 2, so
+# the effective batch and the 564 optimizer steps per epoch are unchanged and
+# warmup_steps still means the same thing -- only the peak memory halves.  At
+# batch_bins 4000000 the first WavLM epoch reported gpu_max_cached_mem_GB=43.994
+# on a 46 GB A40, which leaves nothing for the 40 GB A100 the batch job may
+# equally land on.
+batch_bins: 2000000
+accum_grad: 2
+grad_clip: 5
+max_epoch: 40
+patience: none
+init: none
+best_model_criterion:
+-   - valid
+    - acc
+    - max
+keep_nbest_models: 10
+
+use_amp: true
+cudnn_deterministic: false
+cudnn_benchmark: false
+
+optim: adam
+optim_conf:
+    lr: 0.001
+    weight_decay: 0.000001
+scheduler: warmuplr
+scheduler_conf:
+    warmup_steps: 2500
