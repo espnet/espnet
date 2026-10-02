@@ -35,13 +35,13 @@ metrics:
   - metric:
       _target_: espnet3.systems.asr.metrics.wer.WER
       ref_key: ref        # reference text key -> `<test_name>/ref.scp`
-      hyp_key: hyp        # hypothesis text key -> `<test_name>/hyp.scp`
+      hyp_key: text       # hypothesis text key -> `<test_name>/text.scp`
       clean_types:        # optional TextCleaner pipeline, e.g. [tacotron]
 
   - metric:
       _target_: espnet3.systems.asr.metrics.cer.CER
       ref_key: ref        # reference text key -> `<test_name>/ref.scp`
-      hyp_key: hyp        # hypothesis text key -> `<test_name>/hyp.scp`
+      hyp_key: text       # hypothesis text key -> `<test_name>/text.scp`
       clean_types:        # optional TextCleaner pipeline, e.g. [jaconv]
 
 # TER (token error rate) scores on the model's subword tokens, so it needs the
@@ -51,5 +51,5 @@ metrics:
 #     _target_: espnet3.systems.asr.metrics.ter.TER
 #     bpemodel: exp/bpe_5000/bpe.model  # path to the trained SentencePiece model
 #     ref_key: ref        # reference text key -> `<test_name>/ref.scp`
-#     hyp_key: hyp        # hypothesis text key -> `<test_name>/hyp.scp`
+#     hyp_key: text       # hypothesis text key -> `<test_name>/text.scp`
 #     clean_types:        # optional TextCleaner pipeline
