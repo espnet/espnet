@@ -9,6 +9,9 @@ import torch
 from torch.amp import autocast
 from typeguard import typechecked
 
+from espnet2.aqa.abs_universa import AbsUniversa
+from espnet2.aqa.ar_universa.universa_beam_search import ARUniVERSABeamSearch
+from espnet2.aqa.metric_tokenizer.metric_tokenizer import MetricTokenizer
 from espnet2.asr.decoder.transformer_decoder import TransformerDecoder
 from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
 from espnet2.layers.utterance_mvn import UtteranceMVN
@@ -24,9 +27,6 @@ from espnet2.legacy.nets.pytorch_backend.transformer.label_smoothing_loss import
     LabelSmoothingLoss,
 )
 from espnet2.torch_utils.device_funcs import force_gatherable
-from espnet2.universa.abs_universa import AbsUniversa
-from espnet2.universa.ar_universa.universa_beam_search import ARUniVERSABeamSearch
-from espnet2.universa.metric_tokenizer.metric_tokenizer import MetricTokenizer
 
 
 class ARUniversa(AbsUniversa):

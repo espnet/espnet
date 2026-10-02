@@ -9,9 +9,9 @@ import torch
 from torch.amp import autocast
 from typeguard import typechecked
 
+from espnet2.aqa.abs_universa import AbsUniversa
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.train.abs_espnet_model import AbsESPnetModel
-from espnet2.universa.abs_universa import AbsUniversa
 
 
 class ESPnetUniversaModel(AbsESPnetModel):

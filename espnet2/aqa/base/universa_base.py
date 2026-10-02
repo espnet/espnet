@@ -10,6 +10,8 @@ import torch
 from torch.amp import autocast
 from typeguard import typechecked
 
+from espnet2.aqa.abs_universa import AbsUniversa
+from espnet2.aqa.base.loss import masked_l1_loss, masked_mse_loss
 from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
 from espnet2.layers.utterance_mvn import UtteranceMVN
 from espnet2.legacy.nets.pytorch_backend.nets_utils import make_pad_mask
@@ -20,8 +22,6 @@ from espnet2.spk.pooling.chn_attn_stat_pooling import ChnAttnStatPooling
 from espnet2.spk.pooling.mean_pooling import MeanPooling
 from espnet2.spk.projector.xvector_projector import XvectorProjector
 from espnet2.torch_utils.device_funcs import force_gatherable
-from espnet2.universa.abs_universa import AbsUniversa
-from espnet2.universa.base.loss import masked_l1_loss, masked_mse_loss
 
 
 class UniversaBase(AbsUniversa):
