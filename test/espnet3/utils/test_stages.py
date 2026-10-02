@@ -170,6 +170,54 @@ def test_run_stages_train_uses_per_rank_log_filename(monkeypatch, tmp_path):
     assert seen["filename"] == "train_rank3.log"
 
 
+@pytest.mark.parametrize(
+    "stage, expected",
+    [
+        ("train", True),
+        ("train_tokenizer", True),
+        ("train_vocoder", True),
+        ("pretrain", False),
+        ("collect_stats", False),
+        ("trainer", False),
+    ],
+)
+def test_is_training_stage_covers_train_prefixed_stages(stage, expected):
+    assert stages_utils._is_training_stage(stage) is expected
+
+
+def test_run_stages_train_tokenizer_skips_file_log_on_nonzero_rank(
+    monkeypatch, tmp_path
+):
+    seen = {}
+
+    class TokenizerSystem:
+        def __init__(self):
+            self.stage_log_dirs = {"default": tmp_path, "train_tokenizer": tmp_path}
+            self.training_config = argparse.Namespace(stage_log_mode="rank0")
+
+        def train_tokenizer(self):
+            seen["called"] = True
+
+    monkeypatch.setattr(stages_utils, "log_stage", lambda _: contextlib.nullcontext())
+    monkeypatch.setattr(stages_utils, "log_stage_metadata", lambda *_, **__: None)
+    monkeypatch.setattr(stages_utils, "_get_process_rank", lambda: 1)
+
+    def fake_set_stage_log_handler(log_dir, filename):
+        seen["log_dir"] = log_dir
+        seen["filename"] = filename
+
+    monkeypatch.setattr(
+        stages_utils, "set_stage_log_handler", fake_set_stage_log_handler
+    )
+
+    run_stages(TokenizerSystem(), ["train_tokenizer"])
+
+    # A non-zero rank must not rotate the train_tokenizer.log rank 0 writes.
+    assert seen["called"] is True
+    assert seen["log_dir"] is None
+    assert seen["filename"] == "train_tokenizer.log"
+
+
 def test_run_stages_train_unknown_log_mode_falls_back_to_rank0(
     monkeypatch, tmp_path, caplog
 ):

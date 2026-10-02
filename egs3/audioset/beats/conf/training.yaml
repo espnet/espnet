@@ -1,0 +1,49 @@
+##########################################################
+#                    TRAINING SETTING                    #
+##########################################################
+# BEATs base encoder pre-training on AudioSet-2M, iteration 0
+# (arXiv:2212.09058, Table 4). Only values that differ from
+# egs3/TEMPLATE/beats/conf/training.yaml are listed here.
+#
+# Port of egs2/audioset/ssl1 (`conf/beats_base.yaml` + `conf/ds_beats.json`),
+# trained on 2 GPUs. 2 x 210000 batch bins per step reproduce egs2's global
+# `batch_bins: 420000` (~7.1K steps/epoch; 56 epochs ~ 400K steps).
+
+num_device: 2
+
+ssl_tag: base_as2m
+
+# AudioSet-2M fbank statistics (egs2 stage 4). Downstream fine-tuning of the
+# exported encoder must set the same `encoder_conf.fbank_mean/fbank_std`.
+fbank_mean: 15.66439
+fbank_std: 6.38312
+
+create_dataset:
+  recipe_dir: ${recipe_dir}
+  # AudioSet root with the segment CSVs and `*_wav` directories.
+  # Leave empty to use the AUDIOSET environment variable.
+  source_dir:
+  # Workers that cut and inspect the ~2M clips (PrepareClipRunner).
+  parallel:
+    env: local
+    n_workers: 16
+
+dataset:
+  train:
+    - data_src_args:
+        split: train
+        recipe_dir: ${recipe_dir}
+        target_path: ${target_dir}/train/target.scp
+  valid:
+    - data_src_args:
+        split: eval
+        recipe_dir: ${recipe_dir}
+        target_path: ${target_dir}/valid/target.scp
+
+trainer:
+  # egs2 `max_epoch: 56`, logged every 356 steps like egs2 (ESPnet2 logs ~20
+  # times per epoch by default). 56 epochs of AS-2M are ~400K steps, the end of
+  # the LR schedule, so the epoch budget replaces the TEMPLATE `max_steps`.
+  log_every_n_steps: 356
+  max_epochs: 56
+  max_steps: -1
