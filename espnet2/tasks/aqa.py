@@ -8,6 +8,11 @@ import numpy as np
 import torch
 from typeguard import typechecked
 
+from espnet2.aqa.abs_universa import AbsUniversa
+from espnet2.aqa.ar_universa import ARUniversa
+from espnet2.aqa.ar_universa.data import ARMetricCollateFn, ARMetricProcessor
+from espnet2.aqa.base import UniversaBase
+from espnet2.aqa.espnet_model import ESPnetUniversaModel
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.frontend.default import DefaultFrontend
 from espnet2.asr.frontend.s3prl import S3prlFrontend
@@ -20,11 +25,6 @@ from espnet2.train.class_choices import ClassChoices
 from espnet2.train.collate_fn import UniversaCollateFn
 from espnet2.train.preprocessor import UniversaProcessor
 from espnet2.train.trainer import Trainer
-from espnet2.universa.abs_universa import AbsUniversa
-from espnet2.universa.ar_universa import ARUniversa
-from espnet2.universa.ar_universa.data import ARMetricCollateFn, ARMetricProcessor
-from espnet2.universa.base import UniversaBase
-from espnet2.universa.espnet_model import ESPnetUniversaModel
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import str2bool, str_or_none
@@ -50,7 +50,7 @@ universa_choices = ClassChoices(
 )
 
 
-class AudioMetricTask(AbsTask):
+class AqaTask(AbsTask):
     """Train Uni-VERSA and autoregressive ARECHO audio metric predictors."""
 
     # If you need more than one optimizers, change this value
