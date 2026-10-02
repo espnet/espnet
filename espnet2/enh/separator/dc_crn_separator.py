@@ -1,10 +1,9 @@
 from collections import OrderedDict
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple
 
 import torch
-from torch_complex.tensor import ComplexTensor
 
-from espnet2.enh.layers.complex_utils import is_complex, new_complex_like
+from espnet2.enh.layers.complex_utils import as_native, is_complex, new_complex_like
 from espnet2.enh.layers.dc_crn import DC_CRN
 from espnet2.enh.separator.abs_separator import AbsSeparator
 
@@ -113,19 +112,19 @@ class DC_CRNSeparator(AbsSeparator):
 
     def forward(
         self,
-        input: Union[torch.Tensor, ComplexTensor],
+        input: torch.Tensor,
         ilens: torch.Tensor,
         additional: Optional[Dict] = None,
-    ) -> Tuple[List[Union[torch.Tensor, ComplexTensor]], torch.Tensor, OrderedDict]:
+    ) -> Tuple[List[torch.Tensor], torch.Tensor, OrderedDict]:
         """DC-CRN Separator Forward.
 
         Args:
-            input (torch.Tensor or ComplexTensor): Encoded feature [Batch, T, F]
+            input (complex torch.Tensor): Encoded feature [Batch, T, F]
                                                    or [Batch, T, C, F]
             ilens (torch.Tensor): input lengths [Batch,]
 
         Returns:
-            masked (List[Union(torch.Tensor, ComplexTensor)]): [(Batch, T, F), ...]
+            masked (List[torch.Tensor]): [(Batch, T, F), ...]
             ilens (torch.Tensor): (B,)
             others predicted data, e.g. masks: OrderedDict[
                 'mask_spk1': torch.Tensor(Batch, Frames, Freq),
@@ -134,6 +133,7 @@ class DC_CRNSeparator(AbsSeparator):
                 'mask_spkn': torch.Tensor(Batch, Frames, Freq),
             ]
         """
+        input = as_native(input)
         assert is_complex(input)
         is_multichannel = input.ndim == 4
         if is_multichannel:

@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 import torch
-import torch_complex.functional as FC
-from torch_complex.tensor import ComplexTensor
 
 from espnet2.enh.layers.beamformer import (
     generalized_eigenvalue_decomposition,
@@ -59,12 +57,8 @@ random_speech = torch.tensor(
 @pytest.mark.parametrize("ch", [2, 4, 6, 8])
 @pytest.mark.parametrize("mode", ["power", "evd"])
 def test_get_rtf(ch, mode):
-    if mode == "evd":
-        complex_wrapper = torch.complex
-        complex_module = torch
-    else:
-        complex_wrapper = ComplexTensor
-        complex_module = FC
+    complex_wrapper = torch.complex
+    complex_module = torch
     stft = Stft(
         n_fft=8,
         win_length=None,
@@ -104,23 +98,23 @@ def test_get_rtf(ch, mode):
 def test_signal_framing():
     # tap length = 1
     taps, delay = 0, 1
-    X = ComplexTensor(torch.rand(2, 10, 6, 20), torch.rand(2, 10, 6, 20))
+    X = torch.complex(torch.rand(2, 10, 6, 20), torch.rand(2, 10, 6, 20))
     X2 = signal_framing(X, taps + 1, 1, delay, do_padding=False)
-    assert FC.allclose(X, X2.squeeze(-1))
+    assert torch.allclose(X, X2.squeeze(-1))
 
     # tap length > 1, no padding
     taps, delay = 5, 3
-    X = ComplexTensor(torch.rand(2, 10, 6, 20), torch.rand(2, 10, 6, 20))
+    X = torch.complex(torch.rand(2, 10, 6, 20), torch.rand(2, 10, 6, 20))
     X2 = signal_framing(X, taps + 1, 1, delay, do_padding=False)
     assert X2.shape == torch.Size([2, 10, 6, 20 - taps - delay + 1, taps + 1])
-    assert FC.allclose(X2[..., 0], X[..., : 20 - taps - delay + 1])
+    assert torch.allclose(X2[..., 0], X[..., : 20 - taps - delay + 1])
 
     # tap length > 1, padding
     taps, delay = 5, 3
-    X = ComplexTensor(torch.rand(2, 10, 6, 20), torch.rand(2, 10, 6, 20))
+    X = torch.complex(torch.rand(2, 10, 6, 20), torch.rand(2, 10, 6, 20))
     X2 = signal_framing(X, taps + 1, 1, delay, do_padding=True)
     assert X2.shape == torch.Size([2, 10, 6, 20, taps + 1])
-    assert FC.allclose(X2[..., -1], X)
+    assert torch.allclose(X2[..., -1], X)
 
 
 @pytest.mark.parametrize("ch", [2, 4, 6, 8])
@@ -160,8 +154,33 @@ def test_gevd(ch):
 
 
 def test_gev_phase_correction():
-    mat = ComplexTensor(torch.rand(2, 3, 4), torch.rand(2, 3, 4))
+    mat = torch.complex(torch.rand(2, 3, 4), torch.rand(2, 3, 4))
     mat_th = torch.complex(mat.real, mat.imag)
     norm = gev_phase_correction(mat)
     norm_th = gev_phase_correction(mat_th)
     assert np.allclose(norm.numpy(), norm_th.numpy())
+
+
+def test_signal_framing_accepts_legacy_complextensor():
+    torch_complex = pytest.importorskip("torch_complex")
+    from espnet2.enh.layers.beamformer import signal_framing
+
+    torch.random.manual_seed(0)
+    spec = torch.complex(torch.randn(2, 20, 33), torch.randn(2, 20, 33))
+    legacy = torch_complex.tensor.ComplexTensor(spec.real, spec.imag)
+    framed = signal_framing(legacy, 3, 1, 1)
+    # the legacy form is converted at the boundary and a native tensor comes back
+    assert torch.is_complex(framed)
+    assert torch.allclose(framed, signal_framing(spec, 3, 1, 1))
+
+
+def test_gev_phase_correction_accepts_legacy_complextensor():
+    torch_complex = pytest.importorskip("torch_complex")
+    torch.random.manual_seed(0)
+    mat = torch.complex(torch.randn(2, 6, 3), torch.randn(2, 6, 3))
+    legacy = torch_complex.tensor.ComplexTensor(mat.real, mat.imag)
+    out = gev_phase_correction(legacy)
+    # a legacy vector is converted first; ComplexTensor.__mul__ would otherwise
+    # scale the real and imaginary parts independently
+    assert torch.is_complex(out)
+    assert torch.allclose(out, gev_phase_correction(mat))

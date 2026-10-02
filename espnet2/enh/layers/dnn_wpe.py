@@ -1,9 +1,8 @@
-from typing import Tuple, Union
+from typing import List, Optional, Tuple, Union
 
 import torch
-from torch_complex.tensor import ComplexTensor
 
-from espnet2.enh.layers.complex_utils import to_double, to_float
+from espnet2.enh.layers.complex_utils import as_native, to_double, to_float
 from espnet2.enh.layers.mask_estimator import MaskEstimator
 from espnet2.enh.layers.wpe import wpe_one_iteration
 from espnet2.legacy.nets.pytorch_backend.nets_utils import make_pad_mask
@@ -63,12 +62,11 @@ class DNN_WPE(torch.nn.Module):
         else:
             self.nmask = 1
 
-    def forward(
-        self, data: Union[torch.Tensor, ComplexTensor], ilens: torch.LongTensor
-    ) -> Tuple[
-        Union[torch.Tensor, ComplexTensor],
+    def forward(self, data: torch.Tensor, ilens: torch.LongTensor) -> Tuple[
+        Union[torch.Tensor, List[torch.Tensor]],
         torch.LongTensor,
-        Union[torch.Tensor, ComplexTensor],
+        Optional[Union[torch.Tensor, List[torch.Tensor]]],
+        Optional[List[torch.Tensor]],
     ]:
         """DNN_WPE forward function.
 
@@ -87,6 +85,7 @@ class DNN_WPE(torch.nn.Module):
             masks (torch.Tensor or List[torch.Tensor]): (B, T, C, F)
             power (List[torch.Tensor]): (B, F, T)
         """
+        data = as_native(data)
         # (B, T, C, F) -> (B, F, C, T)
         data = data.permute(0, 3, 2, 1)
         enhanced = [data for i in range(self.nmask)]
@@ -142,12 +141,12 @@ class DNN_WPE(torch.nn.Module):
         return enhanced, ilens, masks, power
 
     def predict_mask(
-        self, data: Union[torch.Tensor, ComplexTensor], ilens: torch.LongTensor
+        self, data: torch.Tensor, ilens: torch.LongTensor
     ) -> Tuple[torch.Tensor, torch.LongTensor]:
         """Predict mask for WPE dereverberation.
 
         Args:
-            data (torch.complex64/ComplexTensor): (B, T, C, F), double precision
+            data (torch.complex64): (B, T, C, F), double precision
             ilens (torch.Tensor): (B,)
         Returns:
             masks (torch.Tensor or List[torch.Tensor]): (B, T, C, F)

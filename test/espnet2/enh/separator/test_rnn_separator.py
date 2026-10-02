@@ -1,7 +1,6 @@
 import pytest
 import torch
 from torch import Tensor
-from torch_complex import ComplexTensor
 
 from espnet2.enh.separator.rnn_separator import RNNSeparator
 
@@ -29,12 +28,12 @@ def test_rnn_separator_forward_backward_complex(
 
     real = torch.rand(2, 10, input_dim)
     imag = torch.rand(2, 10, input_dim)
-    x = ComplexTensor(real, imag)
+    x = torch.complex(real, imag)
     x_lens = torch.tensor([10, 8], dtype=torch.long)
 
     masked, flens, others = model(x, ilens=x_lens)
 
-    assert isinstance(masked[0], ComplexTensor)
+    assert torch.is_complex(masked[0])
     assert len(masked) == num_spk
 
     masked[0].abs().mean().backward()
@@ -108,25 +107,35 @@ def test_rnn_separator_output():
             assert specs[n].shape == others["mask_spk{}".format(n + 1)].shape
 
 
-def test_rnn_streaming():
+@pytest.mark.parametrize("predict_noise", [False, True])
+def test_rnn_streaming(predict_noise):
     SEQ_LEN = 100
     num_spk = 2
     BS = 2
-    separator = RNNSeparator(input_dim=128, rnn_type="lstm", num_spk=num_spk)
+    separator = RNNSeparator(
+        input_dim=128, rnn_type="lstm", num_spk=num_spk, predict_noise=predict_noise
+    )
     separator.eval()
     input_feature = torch.randn((BS, SEQ_LEN, 128))
     ilens = torch.LongTensor([SEQ_LEN] * BS)
     with torch.no_grad():
-        seq_output, _, _ = separator.forward(input_feature, ilens=ilens)
+        seq_output, _, seq_others = separator.forward(input_feature, ilens=ilens)
 
         state = None
         stream_outputs = []
+        stream_noise = []
         for i in range(SEQ_LEN):
             frame = input_feature[:, i : i + 1, :]
-            frame_out, state, _ = separator.forward_streaming(frame, state)
+            frame_out, state, others = separator.forward_streaming(frame, state)
             stream_outputs.append(frame_out)
+            if predict_noise:
+                stream_noise.append(others["noise1"])
         for i in range(SEQ_LEN):
             for s in range(num_spk):
                 torch.testing.assert_allclose(
                     stream_outputs[i][s], seq_output[s][:, i : i + 1, :]
+                )
+            if predict_noise:
+                torch.testing.assert_allclose(
+                    stream_noise[i], seq_others["noise1"][:, i : i + 1, :]
                 )

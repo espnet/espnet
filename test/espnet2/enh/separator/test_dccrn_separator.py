@@ -1,6 +1,5 @@
 import pytest
 import torch
-from torch_complex import ComplexTensor
 
 from espnet2.enh.separator.dccrn_separator import DCCRNSeparator
 
@@ -47,7 +46,7 @@ def test_dccrn_separator_forward_backward_complex(
 
     real = torch.rand(2, 10, input_dim)
     imag = torch.rand(2, 10, input_dim)
-    x = ComplexTensor(real, imag)
+    x = torch.complex(real, imag)
     x_lens = torch.tensor([10, 8], dtype=torch.long)
 
     masked, flens, others = model(x, ilens=x_lens)
@@ -55,7 +54,7 @@ def test_dccrn_separator_forward_backward_complex(
     if use_builtin_complex:
         assert isinstance(masked[0], torch.Tensor)
     else:
-        assert isinstance(masked[0], ComplexTensor)
+        assert torch.is_complex(masked[0])
     assert len(masked) == num_spk
 
     masked[0].abs().mean().backward()
@@ -72,7 +71,7 @@ def test_dccrn_separator_invalid_type():
 def test_rnn_separator_output():
     real = torch.rand(2, 10, 9)
     imag = torch.rand(2, 10, 9)
-    x = ComplexTensor(real, imag)
+    x = torch.complex(real, imag)
     x_lens = torch.tensor([10, 8], dtype=torch.long)
 
     for num_spk in range(1, 3):

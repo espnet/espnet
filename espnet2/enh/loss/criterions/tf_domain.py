@@ -15,13 +15,13 @@ def _create_mask_label(mix_spec, ref_spec, noise_spec=None, mask_type="IAM"):
     """Create mask label.
 
     Args:
-        mix_spec: ComplexTensor(B, T, [C,] F)
-        ref_spec: List[ComplexTensor(B, T, [C,] F), ...]
-        noise_spec: ComplexTensor(B, T, [C,] F)
+        mix_spec: torch.Tensor(B, T, [C,] F)
+        ref_spec: List[complex tensor (B, T, [C,] F), ...]
+        noise_spec: torch.Tensor(B, T, [C,] F)
             only used for IBM and IRM
         mask_type: str
     Returns:
-        labels: List[Tensor(B, T, [C,] F), ...] or List[ComplexTensor(B, T, F), ...]
+        labels: List[Tensor(B, T, [C,] F), ...] or List[complex tensor (B, T, F), ...]
     """
 
     # Must be upper case

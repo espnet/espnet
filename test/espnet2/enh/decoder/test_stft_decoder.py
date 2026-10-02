@@ -1,7 +1,5 @@
 import pytest
 import torch
-import torch_complex
-from torch_complex import ComplexTensor
 
 from espnet2.enh.decoder.stft_decoder import STFTDecoder
 from espnet2.enh.encoder.stft_encoder import STFTEncoder
@@ -38,7 +36,7 @@ def test_STFTDecoder_backward(
 
     real = torch.rand(2, 300, n_fft // 2 + 1 if onesided else n_fft, requires_grad=True)
     imag = torch.rand(2, 300, n_fft // 2 + 1 if onesided else n_fft, requires_grad=True)
-    x = ComplexTensor(real, imag)
+    x = torch.complex(real, imag)
     x_lens = torch.tensor([300 * hop_length, 295 * hop_length], dtype=torch.long)
     y, ilens = decoder(x, x_lens)
     y.sum().backward()
@@ -94,10 +92,7 @@ def test_stft_enc_dec_streaming(n_fft, win_length, hop_length, onesided):
     swavs = [decoder.forward_streaming(s) for s in sframes]
     merged = decoder.streaming_merge(swavs, ilens)
 
-    if not encoder.use_builtin_complex:
-        sframes = torch_complex.cat(sframes, dim=1)
-    else:
-        sframes = torch.cat(sframes, dim=1)
+    sframes = torch.cat(sframes, dim=1)
 
     torch.testing.assert_close(sframes.real, frames.real)
     torch.testing.assert_close(sframes.imag, frames.imag)
@@ -157,3 +152,17 @@ def test_STFTDecoder_reconfig_for_fs():
 
     x = torch.rand(1, 32, 257, dtype=torch.complex64)
     y_16k, _ = decoder(x, ilens * 2)
+
+
+def test_stft_decoder_accepts_legacy_complextensor_spectrum():
+    torch_complex = pytest.importorskip("torch_complex")
+    torch.random.manual_seed(0)
+    x = torch.randn(2, 400)
+    enc = STFTEncoder(n_fft=64, hop_length=16)
+    dec = STFTDecoder(n_fft=64, hop_length=16)
+    spec, flens = enc(x, torch.tensor([400, 400]))
+    legacy = torch_complex.tensor.ComplexTensor(spec.real, spec.imag)
+    # the decoder converts a legacy spectrum and gives the same waveform
+    wav_native, _ = dec(spec, flens)
+    wav_legacy, _ = dec(legacy, flens)
+    assert torch.allclose(wav_native, wav_legacy)

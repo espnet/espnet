@@ -1,11 +1,15 @@
 from collections import OrderedDict
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple
 
 import torch
-from torch_complex.tensor import ComplexTensor
 
 from espnet2.enh.layers.bsrnn import BSRNN
-from espnet2.enh.layers.complex_utils import is_complex, new_complex_like
+from espnet2.enh.layers.complex_utils import (
+    as_native,
+    complex_tensor,
+    is_complex,
+    new_complex_like,
+)
 from espnet2.enh.separator.abs_separator import AbsSeparator
 
 
@@ -70,20 +74,21 @@ class BSRNNSeparator(AbsSeparator):
 
     def forward(
         self,
-        input: Union[torch.Tensor, ComplexTensor],
+        input: torch.Tensor,
         ilens: torch.Tensor,
         additional: Optional[Dict] = None,
-    ) -> Tuple[List[Union[torch.Tensor, ComplexTensor]], torch.Tensor, OrderedDict]:
+    ) -> Tuple[List[torch.Tensor], torch.Tensor, OrderedDict]:
         """BSRNN Forward.
 
         Args:
-            input (torch.Tensor or ComplexTensor): STFT spectrum [B, T, (C,) F (,2)]
+            input (torch.Tensor): STFT spectrum, complex [B, T, (C,) F] or
+                real with real/imag parts stacked last [B, T, (C,) F, 2]
             ilens (torch.Tensor): input lengths [Batch]
             additional (Dict or None): other data included in model.
                 unused in this model.
 
         Returns:
-            masked (List[Union(torch.Tensor, ComplexTensor)]): [(B, T, F), ...]
+            masked (List[torch.Tensor]): [(B, T, F), ...]
             ilens (torch.Tensor): (B,)
             others predicted data, e.g. masks: OrderedDict[
                 'mask_spk1': torch.Tensor(Batch, Frames, Freq),
@@ -93,6 +98,7 @@ class BSRNNSeparator(AbsSeparator):
             ]
         """
         # B, T, (C,) F, 2
+        input = as_native(input)
         if is_complex(input):
             feature = torch.stack([input.real, input.imag], dim=-1)
         else:
@@ -105,7 +111,7 @@ class BSRNNSeparator(AbsSeparator):
         masked = self.bsrnn(feature, **opt)
         # B, num_spk, T, F
         if not is_complex(input):
-            masked = list(ComplexTensor(masked[..., 0], masked[..., 1]).unbind(1))
+            masked = list(complex_tensor(masked[..., 0], masked[..., 1]).unbind(1))
         else:
             masked = list(
                 new_complex_like(input, (masked[..., 0], masked[..., 1])).unbind(1)

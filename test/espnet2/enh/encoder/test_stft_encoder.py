@@ -104,3 +104,21 @@ def test_STFTEncoder_reconfig_for_fs():
     assert y_16k.size(1) == y_8k.size(1) == y_32k.size(1)
     assert y_16k.size(-1) == y_8k.size(-1) * 2 - 1
     assert y_32k.size(-1) == y_16k.size(-1) * 2 - 1
+
+
+@pytest.mark.parametrize("dtype", [torch.bfloat16, torch.float16])
+def test_stft_encoder_widens_half_precision_input(dtype):
+    # torch.complex rejects bfloat16 parts; the encoder must widen them
+    enc = STFTEncoder(n_fft=64, hop_length=16)
+    x = torch.randn(2, 400).to(dtype)
+    spec, flens = enc(x, torch.tensor([400, 400]))
+    assert spec.dtype == torch.complex64
+    frame = enc.forward_streaming(x[:, :64])
+    assert frame.dtype == torch.complex64
+
+
+def test_use_builtin_complex_false_is_deprecated_not_honoured():
+    with pytest.warns(DeprecationWarning, match="use_builtin_complex"):
+        enc = STFTEncoder(n_fft=64, hop_length=16, use_builtin_complex=False)
+    spec, _ = enc(torch.randn(1, 200), torch.tensor([200]))
+    assert torch.is_complex(spec)
