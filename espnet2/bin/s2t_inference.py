@@ -133,6 +133,9 @@ class ScoreFilter(BatchScorerInterface, torch.nn.Module):
     ) -> Tuple[torch.Tensor, List[Any]]:
         """Score new token batch (required).
 
+        The same rules as :meth:`score`, applied to every hypothesis at once
+        with tensor operations instead of a Python loop over the batch.
+
         Args:
             ys (torch.Tensor): torch.int64 prefix tokens (n_batch, ylen).
             states (List[Any]): Scorer states for prefix tokens.
@@ -145,15 +148,52 @@ class ScoreFilter(BatchScorerInterface, torch.nn.Module):
                 and next state list for ys.
 
         """
+        n_batch, ylen = ys.shape
+        device = ys.device
+        neg = -np.inf
+        is_time = (ys >= self.first_time) & (ys <= self.last_time)  # (n, ylen)
 
-        scores = list()
-        outstates = list()
-        for i, (y, state, x) in enumerate(zip(ys, states, xs)):
-            score, outstate = self.score(y, state, x)
-            outstates.append(outstate)
-            scores.append(score)
-        scores = torch.cat(scores, 0).view(ys.shape[0], -1)
-        return scores, outstates
+        # rule 1: no timestamps are predicted -> suppress the timestamp tokens
+        no_time = (ys == self.notimestamps).any(dim=1)  # (n,)
+        # rule 2: right after the prompt the first token must be a timestamp
+        if ylen >= 3:
+            at_start = (ys[:, -3] == self.sos) & ~no_time
+        else:
+            at_start = torch.zeros(n_batch, dtype=torch.bool, device=device)
+        # otherwise the timestamps seen so far decide
+        rest = ~no_time & ~at_start
+        odd = rest & (is_time.sum(dim=1) % 2 == 1)  # a segment is open
+        even = rest & ~odd
+        closing = even & is_time[:, -1]  # a pair just closed: timestamp or eos next
+        illegal = even & ~is_time[:, -1]
+        # value of the last timestamp in each row (only used where odd)
+        positions = torch.arange(ylen, device=device).unsqueeze(0)
+        last_pos = torch.where(is_time, positions, -1).max(dim=1).values.clamp(min=0)
+        last_time_value = ys.gather(1, last_pos.unsqueeze(1))  # (n, 1)
+        last_token = ys[:, -1:]  # (n, 1)
+
+        scores = torch.zeros(
+            n_batch, self.vocab_size, dtype=self.param.dtype, device=self.param.device
+        )
+        # the only per-row masks are inside the timestamp range
+        time_cols = torch.arange(self.first_time, self.last_time + 1, device=device)
+        time_block = (
+            no_time.unsqueeze(1)
+            | (odd.unsqueeze(1) & (time_cols <= last_time_value))
+            | (closing.unsqueeze(1) & (time_cols < last_token))
+        )
+        scores[:, self.first_time : self.last_time + 1].masked_fill_(
+            time_block.to(scores.device), neg
+        )
+        # everything outside the range is banned right after the prompt and after
+        # a closed pair; eos stays allowed after a closed pair
+        outside = (at_start | closing).to(scores.device)
+        scores[outside, : self.first_time] = neg
+        scores[outside, self.last_time + 1 :] = neg
+        scores[closing.to(scores.device), self.eos] = 0.0
+        scores[odd.to(scores.device), self.eos] = neg
+        scores[illegal.to(scores.device)] = neg
+        return scores, [None] * n_batch
 
 
 # espnet2.tasks.s2t and espnet2.tasks.s2t_ctc both write `model:` into the
