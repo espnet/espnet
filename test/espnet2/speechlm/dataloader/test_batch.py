@@ -211,3 +211,18 @@ class TestSynchronizeBatches:
         ):
             result = synchronize_batches(batches)
         assert result == batches
+
+    def test_sync_initialized_but_no_accelerator(self):
+        # torch.distributed is initialized but there is no accelerator to run the
+        # collective on: synchronizing is impossible, so this must not be a silent
+        # no-op (ranks would keep different numbers of batches).
+        batches = [["a", "b"], ["c"]]
+        with (
+            patch("torch.distributed.is_initialized", return_value=True),
+            patch(
+                "espnet2.speechlm.dataloader.batch._current_accelerator_device",
+                return_value=None,
+            ),
+        ):
+            with pytest.raises(RuntimeError, match="requires an accelerator"):
+                synchronize_batches(batches)
