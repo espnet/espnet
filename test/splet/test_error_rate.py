@@ -76,6 +76,21 @@ def test_missing_reference_is_an_error_not_a_skipped_utterance():
         measure_utterances({"utt1": "a", "utt2": "b"}, modules, {"utt1": "a"})
 
 
+def test_missing_hypothesis_is_an_error_not_a_shorter_denominator():
+    """A reference nobody answered must not vanish from the denominator."""
+    modules = load_metrics([{"name": "wer"}])
+    with pytest.raises(KeyError, match="no hypothesis for reference 'utt2'"):
+        measure_utterances({"utt1": "a"}, modules, {"utt1": "a", "utt2": "b c"})
+
+
+def test_empty_hypothesis_counts_every_reference_word_as_deleted():
+    """No output is a legitimate hypothesis, and it is all deletions."""
+    modules = load_metrics([{"name": "wer"}])
+    (result,) = measure_utterances({"utt1": ""}, modules, {"utt1": "a b c"})
+    assert result["wer"] == 1.0
+    assert (result["wer_sub"], result["wer_del"], result["wer_ins"]) == (0, 3, 0)
+
+
 def test_unknown_metric_is_rejected():
     with pytest.raises(ValueError, match="unknown metric"):
         load_metrics([{"name": "no_such_metric"}])

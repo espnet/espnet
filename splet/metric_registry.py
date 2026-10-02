@@ -141,10 +141,22 @@ def measure_utterances(
         One result dict per utterance, each carrying its ``key``.
 
     Raises:
-        KeyError: If a hypothesis has no reference. Measuring the utterances
-            that happen to match and reporting the average would silently
-            answer a different question than the one asked.
+        KeyError: If a hypothesis has no reference, or a reference has no
+            hypothesis. Measuring the utterances that happen to match and
+            reporting the average would silently answer a different question
+            than the one asked. An utterance the system produced nothing for
+            is not a missing hypothesis: it appears in the hypothesis file with
+            an empty text and every reference word counts as deleted.
     """
+    if gt_texts is not None:
+        missing = [key for key in gt_texts if key not in pred_texts]
+        if missing:
+            raise KeyError(
+                f"no hypothesis for reference '{missing[0]}'"
+                f"{f' and {len(missing) - 1} more' if len(missing) > 1 else ''}; "
+                "an utterance the system produced nothing for must still appear "
+                "in the hypothesis file with an empty text"
+            )
     handle = open(output_file, "w", encoding="utf-8") if output_file else None
     try:
         results = []
