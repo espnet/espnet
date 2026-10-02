@@ -186,10 +186,12 @@ class SpeechLMJobTemplate(AbsJobTemplate):
             "The token layout this config records is not the one it builds:\n"
             + "\n".join(differences)
             + "\n\nToken ids follow the order of `multimodal_io`, so this is "
-            "usually a config that was re-saved with its keys sorted. Dump it "
-            "with `yaml.safe_dump(config, sort_keys=False)`, or put the "
-            "original order back. Loading it as it stands would decode "
-            "nothing recognisable from a checkpoint that otherwise loads."
+            "usually a config that was re-saved with its keys sorted. Put the "
+            "original order back first - dumping a sorted config with "
+            "`yaml.safe_dump(config, sort_keys=False)` only keeps it sorted - "
+            "and pass that argument from then on. Loading this config as it "
+            "stands would decode nothing recognisable from a checkpoint that "
+            "otherwise loads."
         )
 
     def build_preprocessor(self) -> Callable:
