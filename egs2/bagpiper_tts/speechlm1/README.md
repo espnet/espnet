@@ -133,7 +133,7 @@ through without an export step. `run.sh` resolves relative paths from
 the recipe directory, so the download directory is given in full here:
 
 ```bash
-./run.sh --stage infer \
+./run.sh --stage 3 \
     --train-config /path/to/bagpiper-tts-sft/train_bagpiper_tts.yaml \
     --inference-config /path/to/bagpiper-tts-sft/inference.yaml \
     --export-path /path/to/bagpiper-tts-sft/model.pt \
@@ -264,7 +264,7 @@ Export the trained DCP on CPU, allowing enough RAM for the full model.
 The recipe takes the latest complete checkpoint:
 
 ```bash
-./run.sh --stage export --export-dtype bfloat16
+./run.sh --stage 2 --stop-stage 2
 ```
 
 Name another one with `--checkpoint-dir`, or call the module directly:

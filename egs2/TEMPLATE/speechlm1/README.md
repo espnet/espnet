@@ -6,7 +6,7 @@ This template contains two drivers for different SpeechLM training interfaces:
 | --- | --- | --- |
 | `speechlm.sh` | `espnet2.bin.speechlm_train` | Existing staged recipes, such as LibriTTS and mini_an4, with the traditional ESPnet environment and job launcher |
 | `train.sh` | `espnet2.speechlm.bin.train` | Bagpiper and Bagpiper-TTS training with TorchTitan, prepared dataset manifests, and length statistics |
-| `run.sh` | the three above in order | The staged entry point those recipes' own `run.sh` calls: training, then `export_checkpoint`, then `espnet2.speechlm.bin.inference` |
+| `stage_utils.sh` | sourced by those recipes' `run.sh` | Finding the latest complete checkpoint, and the rule for where a training stage starts |
 
 The drivers have different configuration and data interfaces. Keep using
 `speechlm.sh` for recipes built around it; `train.sh` provides the entry point for
@@ -17,22 +17,23 @@ the current SpeechLM trainer. The existing `setup.sh` scaffolds the traditional
 
 [Bagpiper](../../bagpiper/speechlm1/README.md) and
 [Bagpiper-TTS](../../bagpiper_tts/speechlm1/README.md) contain `run.sh`, `conf/`, and a
-README. Each `run.sh` enters its recipe directory and calls the shared `run.sh`
-here, which has three stages:
+README. Each `run.sh` enters its recipe directory and writes its stages out in
+the usual egs2 shape, ending in export and inference:
 
-| `--stage` | What it runs |
-| --- | --- |
-| the recipe's training stages, in order | `train.sh` once per stage. A recipe declares them as `--train-stages 'name:config:output_dir ...'`; each starts from the latest complete checkpoint of the one before it, and continues its own output directory once that has one, so repeating a command resumes an interrupted stage rather than restarting it |
-| `export` | `espnet2.speechlm.bin.export_checkpoint` on the latest complete `step_*` DCP under `<output-dir>/checkpoints`, writing `<output-dir>/export/model.pt` |
-| `infer` | `espnet2.speechlm.bin.inference` on those weights, with a decoding YAML and a test manifest |
+| | [Bagpiper](../../bagpiper/speechlm1/run.sh) | [Bagpiper-TTS](../../bagpiper_tts/speechlm1/run.sh) |
+| --- | --- | --- |
+| 1 | warmup | SFT |
+| 2 | pretraining | export |
+| 3 | SFT | inference |
+| 4 | export | |
+| 5 | inference | |
 
-Stages are named, and `--stage` / `--stop-stage` select a range of them.
-`./run.sh` runs the whole sequence and stops after `export`: these recipes
-prepare no data, so a bare run should not end in an error about a test
-manifest. Asking for a later stage carries that default along, so
-`--stage infer` decodes - with `--export-path` and `--train-config` it decodes
-published weights without training anything. Every option the runner does not
-recognise is forwarded to `train.sh` unchanged.
+`./run.sh` runs them in order and `--stage` / `--stop-stage` select part of
+that, so the last stage decodes published weights without training anything
+when it is given `--export-path` and `--train-config`. A training stage
+continues its own output directory once that has checkpoints, and otherwise
+starts from the stage before it; `stage_utils.sh` holds that rule and the
+search for the latest complete checkpoint, so the recipes do not repeat it.
 
 Their inputs are already prepared, so the data-preparation and cluster-launch
 files are unnecessary:

@@ -137,7 +137,7 @@ through without an export step. `run.sh` resolves relative paths from
 the recipe directory, so the download directory is given in full here:
 
 ```bash
-./run.sh --stage infer \
+./run.sh --stage 5 \
     --train-config /path/to/bagpiper-sft/train_stage3_qwen3_base.yaml \
     --inference-config /path/to/bagpiper-sft/inference_audio.yaml \
     --export-path /path/to/bagpiper-sft/model.pt \
@@ -250,9 +250,8 @@ count selected by the launcher.
 ### Launch the stages
 
 Run from `egs2/bagpiper/speechlm1`, replacing the paths with prepared manifests
-and statistics. `./run.sh` runs the three training stages in order and stops
-after export; `--stage` and `--stop-stage` select part of that sequence by
-name (`warmup`, `pretrain`, `sft`, `export`, `infer`):
+and statistics. `./run.sh` runs five stages in order - warmup, pretraining,
+SFT, export, inference - and `--stage` / `--stop-stage` select part of that:
 
 ```bash
 ./run.sh --ngpu 8 \
@@ -261,10 +260,10 @@ name (`warmup`, `pretrain`, `sft`, `export`, `infer`):
     --valid-unregistered-specifier "text_to_audio:valid:/path/to/valid.json audio_to_text:valid:/path/to/valid.json text_only:text_valid:/path/to/text_valid.json"
 ```
 
-Pretraining and SFT read different data, so in practice each is launched with
-its own arguments - `--stage pretrain --stop-stage pretrain`, and so on. Each
-stage takes its configuration, its output directory and its starting weights
-from the recipe: it resumes from the latest complete checkpoint of `exp/warmup`,
+Pretraining and SFT read different data, so each is usually launched on its own
+- `--stage 2 --stop-stage 2`, and so on. The stages are written out in
+`run.sh`: each one's configuration, output directory and starting weights are
+there to read. it resumes from the latest complete checkpoint of `exp/warmup`,
 and continues `exp/pretrain` instead once that has one of its own, so an
 interrupted run is restarted with the same command. The paper balances caption-to-audio,
 audio-to-caption, and text-only training through their token budgets; configure
@@ -274,7 +273,7 @@ For SFT, use prepared instruction dialogues with rich captions and the
 task-appropriate text/audio turns:
 
 ```bash
-./run.sh --stage sft --stop-stage sft --ngpu 8 \
+./run.sh --stage 3 --stop-stage 3 --ngpu 8 \
     --stats-dir /path/to/sft_stats \
     --train-unregistered-specifier "dialogue:sft_train:/path/to/sft_train.json" \
     --valid-unregistered-specifier "dialogue:sft_valid:/path/to/sft_valid.json"
@@ -288,10 +287,10 @@ with a matching model configuration, by passing it as `--resume-path`.
 
 | Operation | How to run it |
 | --- | --- |
-| Run the next stage | `--stage pretrain` or `--stage sft`. The recipe starts it from the latest complete checkpoint of the stage before it, with a fresh optimizer, scheduler and step counter. |
+| Run the next stage | `--stage 2` or `--stage 3`. The recipe starts it from the latest complete checkpoint of the stage before it, with a fresh optimizer, scheduler and step counter. |
 | Continue an interrupted stage | The same command again. Once a stage's own output directory has a checkpoint, the recipe continues from it rather than starting over, and the optimizer, scheduler and step come back with it. |
 | Start from other weights | `--resume-path` with a complete native `.pt` file or DCP directory. It wins over the stage chaining. |
-| Decode without training | `--stage infer` with `--export-path` and `--train-config` pointing at a downloaded model directory. |
+| Decode without training | `--stage 5` with `--export-path` and `--train-config` pointing at a downloaded model directory. |
 | Prepare weights for inference | Export the model from DCP into a single `.pt` file with the command below. |
 
 Native weight initialization requires an exactly matching model configuration
@@ -304,7 +303,7 @@ Export on CPU with enough RAM for the full model. The recipe takes the
 latest complete checkpoint:
 
 ```bash
-./run.sh --stage export --export-dtype bfloat16
+./run.sh --stage 4 --stop-stage 4
 ```
 
 Name another one with `--checkpoint-dir`, or call the module directly:
