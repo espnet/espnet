@@ -22,7 +22,7 @@ here, which has three stages:
 
 | `--stage` | What it runs |
 | --- | --- |
-| `train` | `train.sh`, which is where every training option is documented |
+| `train` | `train.sh`, which is where every training option is documented. `--resume-from DIR` starts this stage from the latest complete checkpoint of another stage's output directory, and is ignored once this stage has one of its own, so an interrupted stage is continued by repeating its command |
 | `export` | `espnet2.speechlm.bin.export_checkpoint` on the latest complete `step_*` DCP under `<output-dir>/checkpoints`, writing `<output-dir>/export/model.pt` |
 | `infer` | `espnet2.speechlm.bin.inference` on those weights, with a decoding YAML and a test manifest |
 

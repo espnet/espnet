@@ -250,18 +250,21 @@ count selected by the launcher.
 ### Launch the stages
 
 Run from `egs2/bagpiper/speechlm1`, replacing the paths with prepared manifests
-and statistics. The default launcher starts warmup:
+and statistics. `--train-stage` selects which of the three to run; it defaults
+to warmup:
 
 ```bash
-./run.sh --ngpu 8 \
+./run.sh --train-stage warmup --ngpu 8 \
     --stats-dir /path/to/pretrain_stats \
     --train-unregistered-specifier "text_to_audio:train:/path/to/train.json audio_to_text:train:/path/to/train.json text_only:text_train:/path/to/text_train.json" \
     --valid-unregistered-specifier "text_to_audio:valid:/path/to/valid.json audio_to_text:valid:/path/to/valid.json text_only:text_valid:/path/to/text_valid.json"
 ```
 
-For pretraining, reuse the data arguments and add
-`--train-config conf/tuning/train_pretrain.yaml --output-dir exp/pretrain
---resume-path exp/warmup/checkpoints/step_10000`. The paper balances caption-to-audio,
+For pretraining, reuse the data arguments with `--train-stage pretrain`. The
+stage takes its configuration, its output directory and its starting weights
+from the recipe: it resumes from the latest complete checkpoint of `exp/warmup`,
+and continues `exp/pretrain` instead once that has one of its own, so an
+interrupted run is restarted with the same command. The paper balances caption-to-audio,
 audio-to-caption, and text-only training through their token budgets; configure
 your data mixture and sampling factors accordingly.
 
@@ -269,25 +272,23 @@ For SFT, use prepared instruction dialogues with rich captions and the
 task-appropriate text/audio turns:
 
 ```bash
-./run.sh --ngpu 8 \
-    --train-config conf/tuning/train_sft.yaml --output-dir exp/sft \
-    --resume-path exp/pretrain/checkpoints/step_600000 \
+./run.sh --train-stage sft --ngpu 8 \
     --stats-dir /path/to/sft_stats \
     --train-unregistered-specifier "dialogue:sft_train:/path/to/sft_train.json" \
     --valid-unregistered-specifier "dialogue:sft_valid:/path/to/sft_valid.json"
 ```
 
 The checkpoint step numbers above are the final steps of the recipe defaults;
-replace them with your selected checkpoints if you change the schedules. You can
-also initialize SFT directly from the released Bagpiper-Base `base.pt` with a
-matching model configuration.
+You can also initialize SFT directly from the released Bagpiper-Base `base.pt`
+with a matching model configuration, by passing it as `--resume-path`.
 
 ### Initialize, resume, and export
 
 | Operation | How to run it |
 | --- | --- |
-| Start a new stage from existing weights | Supply `--resume-path` with a complete native `.pt` file or DCP directory, and use a new output directory. The optimizer, scheduler, and step counter start fresh. |
-| Continue an interrupted stage | Reuse its data, configuration, and output directory, **omitting `--resume-path`**. The latest complete DCP restores the model, optimizer, scheduler, and step. |
+| Run the next stage | `--train-stage pretrain` or `--train-stage sft`. The recipe starts it from the latest complete checkpoint of the stage before it, with a fresh optimizer, scheduler and step counter. |
+| Continue an interrupted stage | The same command again. Once a stage's own output directory has a checkpoint, the recipe continues from it rather than starting over, and the optimizer, scheduler and step come back with it. |
+| Start from other weights | `--resume-path` with a complete native `.pt` file or DCP directory. An explicit `--resume-path` wins over the stage chaining. |
 | Prepare weights for inference | Export the model from DCP into a single `.pt` file with the command below. |
 
 Native weight initialization requires an exactly matching model configuration

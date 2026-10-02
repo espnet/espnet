@@ -2,17 +2,22 @@
 
 # Bagpiper-TTS, from a checkpoint to decoded output.
 #
-# This recipe has three stages, and runs training alone by default: the
-# data it decodes is not prepared here, so a full pass needs a test
-# manifest you provide.
+# One training stage, started from the published Bagpiper base weights:
 #
-#   ./run.sh --ngpu 8 --stats-dir ... --train-unregistered-specifier ...
+#   ./run.sh --ngpu 8 --resume-path /path/to/bagpiper-base/base.pt \
+#       --stats-dir ... --train-unregistered-specifier ...
+#
+# then
+#
 #   ./run.sh --stage export
-#   ./run.sh --stage infer --inference-config inference_audio.yaml \
+#   ./run.sh --stage infer --inference-config inference.yaml \
 #       --test-unregistered-specifier 'dialogue:test:/path/to/test.json'
 #
-# Training options are those of ../../TEMPLATE/speechlm1/train.sh and are
-# passed straight through. See README.md, and --help for the stages.
+# Omit --resume-path to continue an interrupted run: the latest complete
+# checkpoint under exp/sft restores the model, optimizer and step. The data
+# is yours to supply; see README.md. Training options are those of
+# ../../TEMPLATE/speechlm1/train.sh and are passed straight through;
+# ./run.sh --help lists the rest.
 set -euo pipefail
 
 cd -- "$(dirname -- "${BASH_SOURCE[0]}")"

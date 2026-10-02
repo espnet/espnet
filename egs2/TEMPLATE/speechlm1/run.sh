@@ -16,6 +16,8 @@ python=python
 # These two are read here as well, because export and infer need them.
 train_config=
 output_dir=exp/train
+resume_from=
+resume_path_given=
 
 # Stage "export": the DCP that training wrote, as a single .pt file.
 checkpoint_dir=
@@ -49,6 +51,13 @@ runs the three in one go.
  train (see train.sh --help for the rest)
   --train-config PATH           Training YAML
   --output-dir PATH             Checkpoints and logs (default: exp/train)
+  --resume-from DIR             Start this stage from the latest complete
+                                checkpoint of DIR, another stage's output
+                                directory. Ignored once --output-dir has a
+                                checkpoint of its own, so re-running an
+                                interrupted stage continues it rather than
+                                starting it again. An explicit --resume-path
+                                wins.
   (every other option goes to train.sh unchanged)
 
  export
@@ -99,6 +108,8 @@ while (( $# > 0 )); do
         # read by the export and infer stages, and still train.sh's to act on
         --train-config) train_config=$2; forward+=("$1" "$2"); shift 2 ;;
         --output-dir) output_dir=$2; forward+=("$1" "$2"); shift 2 ;;
+        --resume-from) resume_from=$2; shift 2 ;;
+        --resume-path) resume_path_given=1; forward+=("$1" "$2"); shift 2 ;;
         --python) python=$2; forward+=("$1" "$2"); shift 2 ;;
         *) forward+=("$1"); shift ;;
     esac
@@ -143,6 +154,19 @@ latest_dcp() {
 if run_stage train; then
     echo "=== stage train ==="
     [[ -n ${train_config} ]] || die "--train-config is required for the train stage"
+    if [[ -n ${resume_from} && -z ${resume_path_given} ]]; then
+        if latest_dcp "${output_dir}/checkpoints" >/dev/null 2>&1; then
+            # train.sh picks the latest checkpoint up by itself, and restores
+            # the optimizer and step with it; handing it --resume-path here
+            # would start this stage over with a fresh optimizer.
+            echo "${output_dir} already has checkpoints; continuing it"
+        else
+            previous=$(latest_dcp "${resume_from}/checkpoints") \
+                || die "no complete checkpoint under ${resume_from}/checkpoints to start from"
+            echo "starting from ${previous}"
+            forward+=(--resume-path "${previous}")
+        fi
+    fi
     "${here}/train.sh" "${forward[@]}"
 fi
 
