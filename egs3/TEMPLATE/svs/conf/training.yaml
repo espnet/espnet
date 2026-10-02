@@ -1,0 +1,107 @@
+##########################################################
+#                    TRAINING SETTING                    #
+##########################################################
+# Quick usage:
+#   python run.py --stages train --training_config conf/training.yaml
+#
+# This is the shared default merged under every SVS recipe's training config
+# (see `load_and_merge_config` in `run.py`). Kept as empty as possible so it
+# never conflicts with a concrete recipe config -- a recipe directory may host
+# multiple, mutually incompatible architectures (e.g. VISinger vs. a
+# non-GAN model have unrelated `model.svs_conf` shapes), so only generic,
+# non-conflicting
+# path/system scaffolding lives here. Everything architecture-specific is left
+# null for the recipe config to fill in.
+
+##########################################################
+#                  SYSTEM AND PATH SETTING               #
+##########################################################
+num_device: 1
+num_nodes: 1
+
+# Optional ESPnet task class path used by `get_espnet_model(...)`.
+# If unset, `model` is instantiated directly via Hydra.
+task:
+
+recipe_dir: .
+data_dir: ${recipe_dir}/data
+exp_tag: ${self_name:}
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+stats_dir: ${exp_dir}/stats
+inference_dir: ${exp_dir}/inference
+
+##########################################################
+#                    DATASET DEFINITION                  #
+##########################################################
+dataset:
+  _target_: espnet3.components.data.data_organizer.DataOrganizer
+  _recursive_: false
+  recipe_dir: ${recipe_dir}
+  train:
+  valid:
+  test:
+  preprocessor:
+
+##########################################################
+#                      MODEL SETTING                     #
+##########################################################
+model:
+
+##########################################################
+#            OPTIMIZER & SCHEDULER SETTING               #
+##########################################################
+# Single optimizer path:
+optimizer:
+scheduler:
+scheduler_interval:
+scheduler_monitor:
+
+# Multiple-loss / multiple-optimizer path (e.g. GAN-based SVS):
+optimizers:
+schedulers:
+
+##########################################################
+#                OTHER TRAINING SETTING                  #
+##########################################################
+best_model_criterion:
+
+# Optional random seed used by collect_stats/train.
+seed:
+
+# GAN models: update the generator before the discriminator in every batch
+# (see espnet3.systems.svs.gan_lightning_module.GANLightningModule).
+generator_first: false
+
+# Also dump the features returned by `model.collect_feats()` during
+# collect_stats under `${stats_dir}/<split>/collect_feats/`.
+write_collected_feats: false
+
+# Extra model initialization mode forwarded to ESPnet's initializer.
+init:
+
+##########################################################
+#                   PARALLELIZATION SETTING              #
+##########################################################
+parallel:
+  env: local
+  n_workers: 1
+
+##########################################################
+#                   DATALOADER SETTING                   #
+##########################################################
+dataloader:
+
+##########################################################
+#                    TRAINER SETTING                     #
+##########################################################
+# These settings map to `lightning.Trainer(...)`.
+trainer:
+  accelerator: auto
+  devices: ${num_device}
+  num_nodes: ${num_nodes}
+  strategy: auto
+
+##########################################################
+#                      FIT SETTING                       #
+##########################################################
+fit: {}

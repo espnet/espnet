@@ -1,0 +1,25 @@
+##########################################################
+#           ACE-OPENCPOP VISINGER2 METRIC SETTING        #
+##########################################################
+# Merged over egs3/TEMPLATE/svs/conf/metrics.yaml, so only the values this
+# recipe changes are listed here.
+#
+# Quick usage:
+#   python run.py --stages measure \
+#       --training_config conf/training.yaml \
+#       --inference_config conf/inference.yaml \
+#       --metrics_config conf/metrics.yaml
+
+dataset:
+  test:
+    - name: test
+
+# MCD, log-F0 RMSE, semitone accuracy and V/UV error, the objective metrics
+# of egs2/TEMPLATE/svs1, between the synthesized and the reference singing.
+metrics:
+  - metric:
+      _target_: espnet3.systems.svs.metrics.singing.SingingMetrics
+      num_workers: 16
+    inputs:
+      wav: wav
+      ref: ref

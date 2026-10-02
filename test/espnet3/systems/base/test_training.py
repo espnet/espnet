@@ -51,7 +51,7 @@ def test_collect_stats_runs_pipeline(tmp_path, monkeypatch):
     def fake_set_precision(precision):
         calls.setdefault("precision", precision)
 
-    monkeypatch.setattr(train_mod, "_build_trainer", lambda _cfg: trainer)
+    monkeypatch.setattr(train_mod, "_build_trainer", lambda _cfg, *_: trainer)
     monkeypatch.setattr(train_mod, "set_parallel", fake_set_parallel)
     monkeypatch.setattr(train_mod.L, "seed_everything", fake_seed_everything)
     monkeypatch.setattr(
@@ -94,7 +94,7 @@ def test_train_saves_config_and_calls_fit(tmp_path, monkeypatch):
     def fake_save_config(task, cfg_arg, exp_dir):
         calls.setdefault("save", (task, exp_dir))
 
-    monkeypatch.setattr(train_mod, "_build_trainer", lambda _cfg: trainer)
+    monkeypatch.setattr(train_mod, "_build_trainer", lambda _cfg, *_: trainer)
     monkeypatch.setattr(train_mod, "set_parallel", fake_set_parallel)
     monkeypatch.setattr(train_mod.L, "seed_everything", fake_seed_everything)
     monkeypatch.setattr(

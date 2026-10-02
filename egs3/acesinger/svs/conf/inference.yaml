@@ -1,0 +1,47 @@
+##########################################################
+#           ACE-OPENCPOP VISINGER2 INFERENCE SETTING     #
+##########################################################
+# Merged over egs3/TEMPLATE/svs/conf/inference.yaml, so only the values this
+# recipe changes are listed here. `exp_tag`/`exp_dir` are copied from the
+# training config by run.py.
+#
+# Quick usage:
+#   python run.py --stages infer \
+#       --training_config conf/training.yaml \
+#       --inference_config conf/inference.yaml
+
+##########################################################
+#                   DATASET DEFINITION                   #
+##########################################################
+# The score and the singer id are the model inputs; the waveform is only
+# used as the reference for the measure stage.
+dataset:
+  test:
+    - name: test
+      data_src_args:
+        split: test
+        inference: true
+
+##########################################################
+#                     MODEL SETTING                      #
+##########################################################
+# Decoding settings follow egs2/acesinger/svs1/conf/tuning/decode_vits.yaml.
+model:
+  _target_: espnet2.bin.svs_inference.SingingGenerate
+  train_config: ${exp_dir}/config.yaml
+  model_file: ${exp_dir}/valid.generator.loss.ave_5best.pth
+  svs_task: gan_svs
+  noise_scale: 0.667
+  noise_scale_dur: 0.8
+  use_teacher_forcing: false
+  device: cuda
+
+##########################################################
+#                 INPUT / OUTPUT SETTING                 #
+##########################################################
+input_key: [text, sids]
+output_fn: src.inference.build_output
+output_artifacts:
+  wav:
+    type: wav
+    sample_rate: 44100
