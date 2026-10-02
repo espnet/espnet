@@ -24,10 +24,10 @@ repos:
     rev: 26.5.1
     hooks:
     -   id: black
-        exclude: ^(egs2/TEMPLATE/asr1/utils|egs2/TEMPLATE/asr1/steps|egs2/TEMPLATE/tts1/sid|doc)
+        exclude: ^(egs2/TEMPLATE/asr1/utils|egs2/TEMPLATE/asr1/steps|egs2/TEMPLATE/tts1/sid|doc|splet/normalizers/whisper/_)
 
 -   repo: https://github.com/pycqa/isort
     rev: 9.0.1
     hooks:
     -   id: isort
-        exclude: ^(egs2/TEMPLATE/asr1/utils|egs2/TEMPLATE/asr1/steps|egs2/TEMPLATE/tts1/sid|doc)
+        exclude: ^(egs2/TEMPLATE/asr1/utils|egs2/TEMPLATE/asr1/steps|egs2/TEMPLATE/tts1/sid|doc|splet/normalizers/whisper/_)
