@@ -291,7 +291,12 @@ def set_stage_log_handler(
     formatter = logging.Formatter(fmt=LOG_FORMAT, datefmt=DATE_FORMAT)
     if target.exists():
         rotated = _get_next_rotated_log_path(target)
-        os.replace(target, rotated)
+        try:
+            os.replace(target, rotated)
+        except FileNotFoundError:
+            # Another process rotated the same file first; its content is
+            # preserved under `rotated`, so there is nothing left to move.
+            pass
 
     file_handler = logging.FileHandler(target)
     file_handler.setFormatter(formatter)

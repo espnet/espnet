@@ -1,0 +1,36 @@
+##########################################################
+#                   Inference SETTING                    #
+##########################################################
+# Common usage:
+#   python run.py --stages infer \
+#       --training_config conf/tuning/training_rawnet3.yaml \
+#       --inference_config conf/inference.yaml
+#
+##########################################################
+#                    PATHS AND INPUTS                    #
+##########################################################
+# This recipe omits `exp_tag`, `exp_dir`, and `inference_dir` on purpose.
+# `run.py` copies `training_config.exp_tag` and `training_config.exp_dir` here
+# before resolving `${exp_dir}`, so `conf/inference.yaml` writes its results to
+# `${exp_dir}/inference`.
+
+##########################################################
+#                    DATASET DEFINITION                  #
+##########################################################
+# Unlike validation, scoring runs once, so the full Vox1-O list is used.
+dataset:
+  test:
+    - name: vox1_o
+      data_src_args:
+        split: voxceleb1_test
+        trials: vox1_o
+
+##########################################################
+#                    MODEL AND OUTPUT                    #
+##########################################################
+model:
+  # Weight average over the top-3 `valid/eer` checkpoints, written by
+  # `AverageCheckpointsCallback` (espnet3/components/callbacks/default_callbacks.py).
+  model_file: ${exp_dir}/valid.eer.ave_3best.pth
+
+output_fn: src.inference.build_output

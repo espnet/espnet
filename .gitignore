@@ -52,9 +52,16 @@ dist
 
 # recipe related
 egs*/*/*/data*
+# `data*` is meant for the prepared `data/` tree, but it also swallows the
+# `dataset/` python package every egs3 recipe ships, so files added there are
+# invisible to `git status` and `git add` warns.
+!egs*/*/*/dataset/
 egs*/*/*/manifest*
 egs*/*/*/db
 egs*/*/*/downloads
+# `download/` singular: what `egs3/voxceleb/spk` and `egs3/librispeech_100/asr`
+# actually write their trial protocols and corpora into.
+egs*/*/*/download/
 egs*/*/*/dump
 egs*/*/*/enhan
 egs*/*/*/exp
