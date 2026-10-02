@@ -1,0 +1,20 @@
+##########################################################
+#                  PUBLICATION SETTING                   #
+##########################################################
+# Quick usage:
+#   python run.py --stages pack_model \
+#       --training_config conf/tuning/training_conformer.yaml \
+#       --publication_config conf/publication.yaml
+#
+# Only the extra artifacts this recipe needs are listed; everything else comes
+# from `egs3/TEMPLATE/asr/conf/publication.yaml`.
+pack_model:
+  include:
+    # The packed model imports `src.inference` and the recipe dataset module.
+    - ${recipe_dir}/src
+    - ${recipe_dir}/dataset
+    - ${data_dir}/**/bpe.model
+    - ${data_dir}/**/bpe.vocab
+    - ${data_dir}/**/tokens.txt
+    # Intent inventory, so the tokenizer can be rebuilt from the pack.
+    - ${data_dir}/manifest/intents.txt

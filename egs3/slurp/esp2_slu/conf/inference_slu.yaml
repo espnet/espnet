@@ -1,0 +1,74 @@
+##########################################################
+#                   INFERENCE SETTING                    #
+##########################################################
+# Decoding for the ground-truth-transcript deliberation model, the counterpart
+# of stage 12 of `egs2/TEMPLATE/slu1/slu.sh`. `conf/inference.yaml` cannot do
+# this job: it builds `espnet2.bin.asr_inference.Speech2Text`, which takes
+# speech only, so the BERT post-decoder would never see a transcript.
+#
+# Use `conf/inference_slu_asr.yaml` for the model trained on ASR hypotheses --
+# decoding it against the reference transcript would score it under a
+# condition it was never trained for.
+#
+#   python run.py --stages infer,measure \
+#       --training_config conf/tuning/train_slu_bert_conformer_deliberation.yaml \
+#       --inference_config conf/inference_slu.yaml \
+#       --metrics_config conf/metrics.yaml
+#
+# Only values that differ from `egs3/TEMPLATE/asr/conf/inference.yaml` appear
+# here. `parallel.n_workers` is left at the TEMPLATE default of 1, so the stage
+# runs in the calling process; raise it locally to shard across cores, and size
+# it against memory, since each worker builds its own copy of the model, BERT
+# included.
+
+##########################################################
+#                    DATASET DEFINITION                  #
+##########################################################
+# `test` first, then `devel`, as in `test_sets="test devel"` in
+# `egs2/slurp/slu1/run.sh`. `with_transcript` adds the field the deliberation
+# encoder reads; with no `transcript_source` it is the corpus transcript, which
+# is what this model was trained on.
+dataset:
+  test:
+    - name: test
+      data_src_args:
+        split: test
+        with_transcript: true
+    - name: devel
+      data_src_args:
+        split: devel
+        with_transcript: true
+
+##########################################################
+#                     MODEL SETTING                      #
+##########################################################
+# `espnet3.systems.esp2_slu.inference.SLUInference` wraps `Speech2Understand` and tokenizes the
+# transcript, which the `infer` stage would otherwise pass through as a string.
+# `transcript_token_list` must be the file the training config names, or every
+# id shifts.
+#
+# `beam_size` and `ctc_weight` are the defaults of
+# `espnet2.bin.slu_inference`, which is what egs2 decodes with: its `run.sh`
+# passes no `--inference_config`, so `conf/decode_asr.yaml` is never read.
+model:
+  _target_: espnet3.systems.esp2_slu.inference.SLUInference
+  slu_train_config: ${exp_dir}/config.yaml
+  slu_model_file: ${exp_dir}/valid.acc.ave_10best.pth
+  transcript_token_list: ${data_dir}/manifest/transcript_tokens.txt
+  beam_size: 20
+  ctc_weight: 0.5
+
+# Both fields are forwarded as keyword arguments, matching
+# `SLUInference.__call__(speech, transcript)`.
+input_key:
+  - speech
+  - transcript
+
+output_fn: src.inference.build_output
+output_keys:
+  - hyp
+  - ref
+  - hyp_intent
+  - ref_intent
+  - hyp_transcript
+  - ref_transcript

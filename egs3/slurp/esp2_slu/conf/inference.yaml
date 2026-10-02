@@ -1,0 +1,62 @@
+##########################################################
+#                   Inference SETTING                    #
+##########################################################
+# Quick usage:
+#   python run.py --stages infer \
+#       --training_config conf/tuning/training_conformer.yaml \
+#       --inference_config conf/inference.yaml
+#
+# `exp_tag`, `exp_dir` and `inference_dir` are omitted on purpose: `run.py`
+# copies the first two from the training config, and the output directory
+# defaults to `${exp_dir}/inference`, after this file's own name.
+#
+# Only values that differ from `egs3/TEMPLATE/asr/conf/inference.yaml` appear
+# here.
+
+# `parallel.n_workers` is left at the TEMPLATE default of 1, so the stage runs
+# in the calling process. Raise it locally to shard across cores; size it
+# against memory, since each worker builds its own copy of the model.
+
+##########################################################
+#                    DATASET DEFINITION                  #
+##########################################################
+# `name` becomes `${inference_dir}/<name>/`. Samples carry no `utt_id`, so the
+# SCP files are keyed by item index. `test` comes first because it is the split
+# `egs2/slurp/asr1` reports, so a run cut short still yields the headline
+# number.
+dataset:
+  test:
+    - name: test
+      data_src_args:
+        split: test
+    - name: devel
+      data_src_args:
+        split: devel
+
+##########################################################
+#                    MODEL AND OUTPUT                    #
+##########################################################
+# `beam_size` and `ctc_weight` reproduce what `egs2/slurp/asr1` actually ran.
+# That recipe ships a `conf/decode_asr.yaml` holding `beam_size: 1`, but its
+# `run.sh` never passes `--inference_config`, so `asr.sh` leaves the file unused
+# and the espnet2 CLI defaults apply -- beam 20 and CTC weight 0.5. Its
+# published 86.3% intent accuracy is a beam-20 number.
+model:
+  _target_: espnet2.bin.asr_inference.Speech2Text
+  asr_train_config: ${exp_dir}/config.yaml
+  # Weight average over the top-10 `valid/acc` checkpoints, written at the end
+  # of training by `AverageCheckpointsCallback`.
+  asr_model_file: ${exp_dir}/valid.acc.ave_10best.pth
+  beam_size: 20
+  ctc_weight: 0.5
+
+# `build_output` also splits the intent label off the hypothesis, so intent and
+# transcript can be scored separately in `measure`.
+output_fn: src.inference.build_output
+output_keys:
+  - hyp
+  - ref
+  - hyp_intent
+  - ref_intent
+  - hyp_transcript
+  - ref_transcript
