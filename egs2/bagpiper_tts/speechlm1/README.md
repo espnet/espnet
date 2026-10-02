@@ -239,7 +239,6 @@ checkpoint and replace the example paths with your prepared inputs:
 
 ```bash
 ./run.sh --ngpu 8 \
-    --train-config conf/train.yaml --output-dir exp/sft \
     --resume-path /path/to/bagpiper-base/base.pt \
     --stats-dir /path/to/tts_stats \
     --train-unregistered-specifier "dialogue:tts_train:/path/to/tts_train.json" \

@@ -250,17 +250,19 @@ count selected by the launcher.
 ### Launch the stages
 
 Run from `egs2/bagpiper/speechlm1`, replacing the paths with prepared manifests
-and statistics. `--train-stage` selects which of the three to run; it defaults
-to warmup:
+and statistics. `./run.sh` runs the three training stages in order and stops
+after export; `--stage` and `--stop-stage` select part of that sequence by
+name (`warmup`, `pretrain`, `sft`, `export`, `infer`):
 
 ```bash
-./run.sh --train-stage warmup --ngpu 8 \
+./run.sh --ngpu 8 \
     --stats-dir /path/to/pretrain_stats \
     --train-unregistered-specifier "text_to_audio:train:/path/to/train.json audio_to_text:train:/path/to/train.json text_only:text_train:/path/to/text_train.json" \
     --valid-unregistered-specifier "text_to_audio:valid:/path/to/valid.json audio_to_text:valid:/path/to/valid.json text_only:text_valid:/path/to/text_valid.json"
 ```
 
-For pretraining, reuse the data arguments with `--train-stage pretrain`. The
+Pretraining and SFT read different data, so in practice each is launched with
+its own arguments - `--stage pretrain --stop-stage pretrain`, and so on. Each
 stage takes its configuration, its output directory and its starting weights
 from the recipe: it resumes from the latest complete checkpoint of `exp/warmup`,
 and continues `exp/pretrain` instead once that has one of its own, so an
@@ -272,7 +274,7 @@ For SFT, use prepared instruction dialogues with rich captions and the
 task-appropriate text/audio turns:
 
 ```bash
-./run.sh --train-stage sft --ngpu 8 \
+./run.sh --stage sft --stop-stage sft --ngpu 8 \
     --stats-dir /path/to/sft_stats \
     --train-unregistered-specifier "dialogue:sft_train:/path/to/sft_train.json" \
     --valid-unregistered-specifier "dialogue:sft_valid:/path/to/sft_valid.json"
@@ -286,9 +288,10 @@ with a matching model configuration, by passing it as `--resume-path`.
 
 | Operation | How to run it |
 | --- | --- |
-| Run the next stage | `--train-stage pretrain` or `--train-stage sft`. The recipe starts it from the latest complete checkpoint of the stage before it, with a fresh optimizer, scheduler and step counter. |
+| Run the next stage | `--stage pretrain` or `--stage sft`. The recipe starts it from the latest complete checkpoint of the stage before it, with a fresh optimizer, scheduler and step counter. |
 | Continue an interrupted stage | The same command again. Once a stage's own output directory has a checkpoint, the recipe continues from it rather than starting over, and the optimizer, scheduler and step come back with it. |
-| Start from other weights | `--resume-path` with a complete native `.pt` file or DCP directory. An explicit `--resume-path` wins over the stage chaining. |
+| Start from other weights | `--resume-path` with a complete native `.pt` file or DCP directory. It wins over the stage chaining. |
+| Decode without training | `--stage infer` with `--export-path` and `--train-config` pointing at a downloaded model directory. |
 | Prepare weights for inference | Export the model from DCP into a single `.pt` file with the command below. |
 
 Native weight initialization requires an exactly matching model configuration

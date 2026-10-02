@@ -1,82 +1,74 @@
 #!/usr/bin/env bash
 
-# Train, export and decode, for the recipes built on train.sh.
+# Train, export and decode, in order, for the recipes built on train.sh.
 #
-# train.sh launches training and nothing else, which left export and
-# inference as commands to copy out of a README. This runs them as stages,
-# so a recipe's run.sh covers the whole path from a checkpoint to decoded
-# output in one file.
+# train.sh launches one training run and nothing else, which left a
+# recipe's schedule - which configuration, started from which checkpoint,
+# then exported, then decoded - as commands to copy out of a README. A
+# recipe declares its training stages here instead, and this runs them in
+# order, followed by export and inference.
 set -euo pipefail
 
-stage=train
+# "name:config:output_dir name:config:output_dir ...", in the order they run.
+train_stages=
+stage=
 stop_stage=
 python=python
 
-# Stage "train": every option is passed through to train.sh unchanged.
-# These two are read here as well, because export and infer need them.
-train_config=
-output_dir=exp/train
-resume_from=
-resume_path_given=
+# Each training stage starts from the one before it. These override that.
+resume_path=
 
-# Stage "export": the DCP that training wrote, as a single .pt file.
+# Stage "export": the DCP the last training stage wrote, as a single file.
 checkpoint_dir=
 export_path=
 export_dtype=
 
-# Stage "infer": that .pt file, on a test manifest.
+# Stage "infer": that file, on a test manifest.
+train_config=
 inference_config=
 test_unregistered_specifier=
 test_registered_specifier=
 inference_output_dir=
 num_workers=1
 
-help_message="Usage: $0 --stage train|export|infer [options]
+help_message="Usage: $0 --train-stages 'name:config:dir ...' [options]
 
-Run a SpeechLM recipe from training through to decoded output. Stages run
-in order from --stage to --stop-stage. Both default to training alone,
-because the data to decode is not prepared here: a full pass needs a test
-manifest you provide, and then
+Run a recipe in order: its training stages, then export, then inference.
+Stages run from --stage to --stop-stage.
 
-    ./run.sh --stage train --stop-stage infer --inference-config ... \
-        --test-unregistered-specifier ...
+  --stage NAME        First stage (default: the first training stage)
+  --stop-stage NAME   Last stage. The default is export, because a decode
+                      needs a test manifest these recipes do not prepare;
+                      asking for a later stage carries the default along, so
+                      --stage infer decodes
 
-runs the three in one go.
-
-  --stage STAGE                 First stage to run: train, export or infer
-                                (default: train)
-  --stop-stage STAGE            Last stage to run (default: the same stage,
-                                so --stage export runs only the export)
-
- train (see train.sh --help for the rest)
-  --train-config PATH           Training YAML
-  --output-dir PATH             Checkpoints and logs (default: exp/train)
-  --resume-from DIR             Start this stage from the latest complete
-                                checkpoint of DIR, another stage's output
-                                directory. Ignored once --output-dir has a
-                                checkpoint of its own, so re-running an
-                                interrupted stage continues it rather than
-                                starting it again. An explicit --resume-path
-                                wins.
-  (every other option goes to train.sh unchanged)
+Training stages come from the recipe. Each starts from the latest complete
+checkpoint of the stage before it, and continues its own output directory
+once that has one, so repeating a command resumes an interrupted stage
+rather than starting it again. An explicit --resume-path wins over both.
+Every option this script does not recognise goes to train.sh unchanged.
 
  export
-  --checkpoint-dir PATH         DCP directory to export
-                                (default: the latest complete step_* under
-                                <output-dir>/checkpoints)
-  --export-path PATH            Where to write the weights
-                                (default: <output-dir>/export/model.pt)
-  --export-dtype DTYPE          float32, bfloat16 or float16
+  --checkpoint-dir PATH   DCP to export (default: the latest complete one
+                          of the last training stage)
+  --export-path PATH      Where the weights go (default: <last stage>/export/model.pt)
+  --export-dtype DTYPE    float32, bfloat16 or float16
 
  infer
-  --inference-config PATH       Decoding YAML; the model repositories publish
-                                inference_audio.yaml and inference_text.yaml
+  --train-config PATH     The model's configuration (default: the last
+                          training stage's). Give it to decode with weights
+                          this recipe did not train.
+  --inference-config PATH Decoding YAML; the model repositories publish
+                          inference_audio.yaml and inference_text.yaml
   --test-unregistered-specifier SPEC  'task:name:dataset.json[:factor] ...'
   --test-registered-specifier SPEC    'task:name[:factor] ...'
-  --inference-output-dir PATH   Results (default: <output-dir>/inference)
-  --num-workers N               Decoding processes (default: 1)
+  --inference-output-dir PATH         Results (default: <last stage>/inference)
+  --num-workers N                     Decoding processes (default: 1)
 
-  --python PATH                 Python executable (default: python)
+  --python PATH           Python executable (default: python)
+
+Skipping training: --stage infer with --export-path and --train-config
+decodes published weights without training anything.
 "
 
 here=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
@@ -88,58 +80,74 @@ die() {
 }
 
 # Options this script owns are consumed here; everything else is forwarded to
-# train.sh untouched, so a command that worked when run.sh called train.sh
-# directly still works. parse_options.sh cannot do that - it exits on an
-# option it does not know, which is every train.sh option.
+# train.sh untouched. parse_options.sh cannot do that - it exits on an option
+# it does not know, which is every train.sh option.
 forward=()
 while (( $# > 0 )); do
     case $1 in
         --help|-h) echo "${help_message}"; exit 0 ;;
+        --train-stages) train_stages=$2; shift 2 ;;
         --stage) stage=$2; shift 2 ;;
         --stop-stage) stop_stage=$2; shift 2 ;;
+        --resume-path) resume_path=$2; shift 2 ;;
         --checkpoint-dir) checkpoint_dir=$2; shift 2 ;;
         --export-path) export_path=$2; shift 2 ;;
         --export-dtype) export_dtype=$2; shift 2 ;;
+        --train-config) train_config=$2; shift 2 ;;
         --inference-config) inference_config=$2; shift 2 ;;
         --test-unregistered-specifier) test_unregistered_specifier=$2; shift 2 ;;
         --test-registered-specifier) test_registered_specifier=$2; shift 2 ;;
         --inference-output-dir) inference_output_dir=$2; shift 2 ;;
         --num-workers) num_workers=$2; shift 2 ;;
-        # read by the export and infer stages, and still train.sh's to act on
-        --train-config) train_config=$2; forward+=("$1" "$2"); shift 2 ;;
-        --output-dir) output_dir=$2; forward+=("$1" "$2"); shift 2 ;;
-        --resume-from) resume_from=$2; shift 2 ;;
-        --resume-path) resume_path_given=1; forward+=("$1" "$2"); shift 2 ;;
         --python) python=$2; forward+=("$1" "$2"); shift 2 ;;
         *) forward+=("$1"); shift ;;
     esac
 done
 
-stage_index() {
-    case $1 in
-        train) echo 1 ;;
-        export) echo 2 ;;
-        infer) echo 3 ;;
-        *) die "unknown stage '$1'; expected train, export or infer" ;;
-    esac
+[[ -n ${train_stages} ]] || die "the recipe must pass --train-stages"
+
+names=() configs=() outputs=()
+for declaration in ${train_stages}; do
+    IFS=: read -r name config output <<<"${declaration}"
+    [[ -n ${name} && -n ${config} && -n ${output} ]] \
+        || die "a training stage is 'name:config:output_dir', not '${declaration}'"
+    names+=("${name}") configs+=("${config}") outputs+=("${output}")
+done
+# bash 3.2 has no negative index
+last_output=${outputs[${#outputs[@]} - 1]}
+
+order=("${names[@]}" export infer)
+stage=${stage:-${order[0]}}
+
+index_of() {
+    local wanted=$1 position=1 name
+    for name in "${order[@]}"; do
+        if [[ ${name} == "${wanted}" ]]; then
+            echo "${position}"
+            return 0
+        fi
+        (( position++ ))
+    done
+    die "unknown stage '${wanted}'; this recipe has: ${order[*]}"
 }
 
-# Naming one stage runs that stage; run several by naming both ends.
-stop_stage=${stop_stage:-${stage}}
-first=$(stage_index "${stage}")
-last=$(stage_index "${stop_stage}")
-(( first <= last )) || die "--stage ${stage} comes after --stop-stage ${stop_stage}"
-
-run_stage() {
-    local index
-    index=$(stage_index "$1")
-    (( first <= index && index <= last ))
-}
+first=$(index_of "${stage}")
+if [[ -n ${stop_stage} ]]; then
+    last=$(index_of "${stop_stage}")
+    (( first <= last )) \
+        || die "--stage ${stage} comes after --stop-stage ${stop_stage}"
+else
+    # Stop after export by default: decoding needs a test manifest these
+    # recipes do not prepare, so a bare run should not end in an error
+    # about one. Asking for a later stage carries the default along.
+    last=$(index_of export)
+    (( last >= first )) || last=${first}
+fi
 
 latest_dcp() {
-    # The highest step_N that finished writing: a DCP without .metadata is a
-    # checkpoint that was interrupted, and exporting it fails deep inside the
-    # reader rather than here.
+    # The highest step_N that finished writing: a DCP without .metadata is an
+    # interrupted checkpoint, and exporting it fails deep inside the reader
+    # rather than here.
     local directory="$1" candidate best=
     for candidate in "${directory}"/step_*; do
         [[ -f ${candidate}/.metadata ]] || continue
@@ -151,35 +159,45 @@ latest_dcp() {
     echo "${best}"
 }
 
-if run_stage train; then
-    echo "=== stage train ==="
-    [[ -n ${train_config} ]] || die "--train-config is required for the train stage"
-    if [[ -n ${resume_from} && -z ${resume_path_given} ]]; then
-        if latest_dcp "${output_dir}/checkpoints" >/dev/null 2>&1; then
-            # train.sh picks the latest checkpoint up by itself, and restores
-            # the optimizer and step with it; handing it --resume-path here
-            # would start this stage over with a fresh optimizer.
-            echo "${output_dir} already has checkpoints; continuing it"
-        else
-            previous=$(latest_dcp "${resume_from}/checkpoints") \
-                || die "no complete checkpoint under ${resume_from}/checkpoints to start from"
-            echo "starting from ${previous}"
-            forward+=(--resume-path "${previous}")
-        fi
-    fi
-    "${here}/train.sh" "${forward[@]}"
-fi
+position=0
+for name in "${names[@]}"; do
+    (( position++ ))
+    (( first <= position && position <= last )) || continue
 
-if run_stage export; then
+    config=${configs[position - 1]}
+    output=${outputs[position - 1]}
+    echo "=== stage ${name} ==="
+
+    stage_args=(--train-config "${config}" --output-dir "${output}")
+    if [[ -n ${resume_path} ]]; then
+        stage_args+=(--resume-path "${resume_path}")
+    elif latest_dcp "${output}/checkpoints" >/dev/null 2>&1; then
+        # train.sh finds the latest checkpoint itself and restores the
+        # optimizer and step with it; handing it --resume-path here would
+        # start the stage over with a fresh optimizer.
+        echo "${output} already has checkpoints; continuing it"
+    elif (( position > 1 )); then
+        previous=${outputs[position - 2]}
+        started_from=$(latest_dcp "${previous}/checkpoints") \
+            || die "no complete checkpoint under ${previous}/checkpoints to start ${name} from"
+        echo "starting from ${started_from}"
+        stage_args+=(--resume-path "${started_from}")
+    fi
+
+    "${here}/train.sh" "${stage_args[@]}" "${forward[@]+"${forward[@]}"}"
+done
+
+export_path=${export_path:-${last_output}/export/model.pt}
+
+if (( first <= $(index_of export) && $(index_of export) <= last )); then
     echo "=== stage export ==="
     if [[ -z ${checkpoint_dir} ]]; then
-        checkpoint_dir=$(latest_dcp "${output_dir}/checkpoints") \
-            || die "no complete checkpoint under ${output_dir}/checkpoints; pass --checkpoint-dir"
+        checkpoint_dir=$(latest_dcp "${last_output}/checkpoints") \
+            || die "no complete checkpoint under ${last_output}/checkpoints; pass --checkpoint-dir"
         echo "exporting the latest complete checkpoint: ${checkpoint_dir}"
     fi
     [[ -f ${checkpoint_dir}/.metadata ]] \
         || die "${checkpoint_dir} is not a complete DCP directory (no .metadata)"
-    export_path=${export_path:-${output_dir}/export/model.pt}
     mkdir -p "$(dirname -- "${export_path}")"
     if [[ -f ${export_path} ]]; then
         echo "${export_path} exists already; keeping it"
@@ -191,17 +209,18 @@ if run_stage export; then
     fi
 fi
 
-if run_stage infer; then
+if (( first <= $(index_of infer) && $(index_of infer) <= last )); then
     echo "=== stage infer ==="
-    [[ -n ${train_config} ]] || die "--train-config is required for the infer stage"
+    train_config=${train_config:-${configs[${#configs[@]} - 1]}}
+    [[ -f ${train_config} ]] \
+        || die "no model configuration at ${train_config}; pass --train-config"
     [[ -n ${inference_config} ]] \
-        || die "--inference-config is required for the infer stage; the model repositories publish inference_audio.yaml and inference_text.yaml"
+        || die "--inference-config is required to decode; the model repositories publish inference_audio.yaml and inference_text.yaml"
     [[ -n ${test_unregistered_specifier} || -n ${test_registered_specifier} ]] \
         || die "provide --test-unregistered-specifier or --test-registered-specifier; this recipe prepares no test data of its own"
-    export_path=${export_path:-${output_dir}/export/model.pt}
     [[ -f ${export_path} ]] \
-        || die "no exported weights at ${export_path}; run the export stage first"
-    inference_output_dir=${inference_output_dir:-${output_dir}/inference}
+        || die "no weights at ${export_path}; run the export stage, or pass --export-path"
+    inference_output_dir=${inference_output_dir:-${last_output}/inference}
 
     infer_args=(
         --train-config "${train_config}"

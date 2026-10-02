@@ -22,15 +22,17 @@ here, which has three stages:
 
 | `--stage` | What it runs |
 | --- | --- |
-| `train` | `train.sh`, which is where every training option is documented. `--resume-from DIR` starts this stage from the latest complete checkpoint of another stage's output directory, and is ignored once this stage has one of its own, so an interrupted stage is continued by repeating its command |
+| the recipe's training stages, in order | `train.sh` once per stage. A recipe declares them as `--train-stages 'name:config:output_dir ...'`; each starts from the latest complete checkpoint of the one before it, and continues its own output directory once that has one, so repeating a command resumes an interrupted stage rather than restarting it |
 | `export` | `espnet2.speechlm.bin.export_checkpoint` on the latest complete `step_*` DCP under `<output-dir>/checkpoints`, writing `<output-dir>/export/model.pt` |
 | `infer` | `espnet2.speechlm.bin.inference` on those weights, with a decoding YAML and a test manifest |
 
-`--stage` and `--stop-stage` both default to `train`, so `./run.sh` trains and
-stops: these recipes prepare no data, so there is nothing to decode until you
-supply a test manifest. Naming one stage runs that stage alone; name both ends
-to run a range. Every option the staged runner does not recognise is forwarded
-to `train.sh` unchanged.
+Stages are named, and `--stage` / `--stop-stage` select a range of them.
+`./run.sh` runs the whole sequence and stops after `export`: these recipes
+prepare no data, so a bare run should not end in an error about a test
+manifest. Asking for a later stage carries that default along, so
+`--stage infer` decodes - with `--export-path` and `--train-config` it decodes
+published weights without training anything. Every option the runner does not
+recognise is forwarded to `train.sh` unchanged.
 
 Their inputs are already prepared, so the data-preparation and cluster-launch
 files are unnecessary:

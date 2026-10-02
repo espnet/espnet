@@ -1,63 +1,36 @@
 #!/usr/bin/env bash
 
-# Bagpiper, from a checkpoint to decoded output.
+# Bagpiper, in order: warmup, pretraining, SFT, export, inference.
 #
-# Training runs in three stages, each starting from the one before it:
+#   ./run.sh --ngpu 8 --stats-dir ... --train-unregistered-specifier ...
 #
-#   ./run.sh --train-stage warmup   --ngpu 8 --stats-dir ... --train-unregistered-specifier ...
-#   ./run.sh --train-stage pretrain --ngpu 8 ...
-#   ./run.sh --train-stage sft      --ngpu 8 ...
+# runs the schedule and stops after export, because the data to decode is
+# not prepared here. Pick up where you left off, or run one stage, with
+# --stage and --stop-stage:
 #
-# then
-#
+#   ./run.sh --stage sft --stop-stage sft --ngpu 8 ...
 #   ./run.sh --stage export
-#   ./run.sh --stage infer --inference-config inference_audio.yaml \
+#
+# Each training stage starts from the latest complete checkpoint of the one
+# before it, and continues its own output directory once that has one, so
+# repeating a command resumes an interrupted stage rather than restarting
+# it. To decode without training anything, point the inference stage at
+# published weights:
+#
+#   ./run.sh --stage infer \
+#       --export-path /path/to/bagpiper-sft/model.pt \
+#       --train-config /path/to/bagpiper-sft/train_stage3_qwen3_base.yaml \
+#       --inference-config /path/to/bagpiper-sft/inference_audio.yaml \
 #       --test-unregistered-specifier 'dialogue:test:/path/to/test.json'
 #
-# A stage starts from the latest complete checkpoint of the stage before it,
-# and continues its own if it has one, so re-running an interrupted stage
-# picks it up rather than starting it again. The data is yours to supply:
-# see README.md. Training options are those of
-# ../../TEMPLATE/speechlm1/train.sh and are passed straight through;
-# ./run.sh --help lists the rest.
+# Training options are those of ../../TEMPLATE/speechlm1/train.sh and are
+# passed straight through. See README.md, and ./run.sh --help.
 set -euo pipefail
 
 cd -- "$(dirname -- "${BASH_SOURCE[0]}")"
-
-train_stage=warmup
-rest=()
-while (( $# > 0 )); do
-    case $1 in
-        --train-stage) train_stage=$2; shift 2 ;;
-        *) rest+=("$1"); shift ;;
-    esac
-done
-
-case ${train_stage} in
-    warmup)
-        train_config=conf/train.yaml
-        output_dir=exp/warmup
-        resume_from=
-        ;;
-    pretrain)
-        train_config=conf/tuning/train_pretrain.yaml
-        output_dir=exp/pretrain
-        resume_from=exp/warmup
-        ;;
-    sft)
-        train_config=conf/tuning/train_sft.yaml
-        output_dir=exp/sft
-        resume_from=exp/pretrain
-        ;;
-    *)
-        echo "$0: unknown --train-stage '${train_stage}'; expected warmup, pretrain or sft" >&2
-        exit 1
-        ;;
-esac
-
 exec ../../TEMPLATE/speechlm1/run.sh \
-    --train-config "${train_config}" \
-    --output-dir "${output_dir}" \
-    ${resume_from:+--resume-from "${resume_from}"} \
+    --train-stages "warmup:conf/train.yaml:exp/warmup \
+                    pretrain:conf/tuning/train_pretrain.yaml:exp/pretrain \
+                    sft:conf/tuning/train_sft.yaml:exp/sft" \
     --wandb-project bagpiper \
-    "${rest[@]+"${rest[@]}"}"
+    "$@"

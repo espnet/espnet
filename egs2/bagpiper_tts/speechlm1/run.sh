@@ -1,28 +1,31 @@
 #!/usr/bin/env bash
 
-# Bagpiper-TTS, from a checkpoint to decoded output.
-#
-# One training stage, started from the published Bagpiper base weights:
+# Bagpiper-TTS, in order: SFT, export, inference.
 #
 #   ./run.sh --ngpu 8 --resume-path /path/to/bagpiper-base/base.pt \
 #       --stats-dir ... --train-unregistered-specifier ...
 #
-# then
+# trains and exports; the data to decode is not prepared here, so the
+# inference stage is asked for separately. There is one training stage, so
+# it needs starting weights: the published Bagpiper-Base `base.pt`. Repeat
+# the command without --resume-path to continue an interrupted run - the
+# latest complete checkpoint under exp/sft restores the model, optimizer
+# and step.
 #
 #   ./run.sh --stage export
-#   ./run.sh --stage infer --inference-config inference.yaml \
+#   ./run.sh --stage infer \
+#       --inference-config /path/to/bagpiper-tts-sft/inference.yaml \
 #       --test-unregistered-specifier 'dialogue:test:/path/to/test.json'
 #
-# Omit --resume-path to continue an interrupted run: the latest complete
-# checkpoint under exp/sft restores the model, optimizer and step. The data
-# is yours to supply; see README.md. Training options are those of
-# ../../TEMPLATE/speechlm1/train.sh and are passed straight through;
-# ./run.sh --help lists the rest.
+# To decode published weights without training, add --export-path and
+# --train-config pointing into the downloaded model directory.
+#
+# Training options are those of ../../TEMPLATE/speechlm1/train.sh and are
+# passed straight through. See README.md, and ./run.sh --help.
 set -euo pipefail
 
 cd -- "$(dirname -- "${BASH_SOURCE[0]}")"
 exec ../../TEMPLATE/speechlm1/run.sh \
-    --train-config conf/train.yaml \
-    --output-dir exp/sft \
+    --train-stages "sft:conf/train.yaml:exp/sft" \
     --wandb-project bagpiper-tts \
     "$@"
