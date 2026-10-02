@@ -24,7 +24,7 @@ from typing import Any, Mapping, Sequence
 
 import yaml
 from espnet_model_zoo.downloader import ModelDownloader
-from hydra.utils import get_class
+from hydra.utils import get_class, get_object
 from omegaconf import DictConfig, ListConfig, OmegaConf
 
 from espnet3.systems.base.inference_provider import InferenceProvider
@@ -99,6 +99,106 @@ def _uses_bundled_code(
         if isinstance(value, (list, tuple)):
             stack.extend(value)
     return False
+
+
+# Hydra instantiates whatever ``_target_`` names, so an untrusted bundle config
+# is arbitrary code execution unless the targets themselves are constrained.
+# Only the namespaces a published bundle legitimately builds from are allowed;
+# everything else needs ``trust_user_code=True``.
+#
+# ``torch.`` is deliberately NOT allowed wholesale: ``torch.load`` and friends
+# are loaders, not model components, and allowing the whole namespace would put
+# checkpoint deserialization back inside an attacker's reach.
+_ALLOWED_TARGET_PREFIXES = (
+    "espnet2.",
+    "espnet3.",
+    "lightning.",
+    "torch.optim.",
+)
+
+# Refused by name and by resolved identity. The resolved-origin check below
+# already rejects everything outside the allowed namespaces, so this list is
+# defence in depth: it keeps a loader out even if a prefix is widened later or
+# one of these is ever re-exported from an allowed module.
+_DENIED_TARGETS = frozenset(
+    {
+        "torch.load",
+        "torch.jit.load",
+        "torch.serialization.load",
+        "builtins.eval",
+        "builtins.exec",
+        "builtins.__import__",
+        "os.system",
+        "subprocess.run",
+        "subprocess.Popen",
+        "subprocess.call",
+        "subprocess.check_output",
+    }
+)
+
+
+def _iter_target_strings(config: DictConfig) -> list[str]:
+    """Return every ``_target_`` string in the config tree.
+
+    Called by :func:`_disallowed_targets`. Hydra instantiates recursively, so a
+    ``_target_`` nested inside an argument runs just like the top-level one and
+    has to be collected here too.
+    """
+    targets = []
+    stack = [OmegaConf.to_container(config, resolve=False)]
+    while stack:
+        value = stack.pop()
+        if isinstance(value, Mapping):
+            target = value.get("_target_")
+            if isinstance(target, str):
+                targets.append(target)
+            stack.extend(value.values())
+        elif isinstance(value, (list, tuple)):
+            stack.extend(value)
+    return targets
+
+
+def _resolved_origin(target: str) -> str | None:
+    """Return ``"<module>.<qualname>"`` for a target, or None if unresolvable.
+
+    Called by :func:`_disallowed_targets`. A dotted path says where a name was
+    written, not what it resolves to: hydra imports the longest importable
+    prefix and then walks attributes, so an allowed module that does
+    ``import os`` turns ``<allowed module>.os.system`` into :func:`os.system`.
+    Resolving tells us where the callable actually comes from.
+    """
+    try:
+        obj = get_object(target)
+    except Exception:
+        return None
+    module = getattr(obj, "__module__", None)
+    qualname = getattr(obj, "__qualname__", None) or getattr(obj, "__name__", None)
+    if not module or not qualname:
+        return None
+    return f"{module}.{qualname}"
+
+
+def _disallowed_targets(config: DictConfig) -> list[str]:
+    """Return the ``_target_`` values this loader refuses to instantiate.
+
+    Called by :meth:`InferenceModel.from_packed`. Each target is checked twice:
+    once as written, which keeps an untrusted name from being imported at all,
+    and once after resolution, because the written path can reach outside its
+    own namespace through an attribute of an allowed module.
+    """
+    disallowed = set()
+    for target in _iter_target_strings(config):
+        if target in _DENIED_TARGETS or not target.startswith(_ALLOWED_TARGET_PREFIXES):
+            disallowed.add(target)
+            continue
+        origin = _resolved_origin(target)
+        if origin is None:
+            disallowed.add(f"{target} (does not resolve)")
+        elif origin in _DENIED_TARGETS or not origin.startswith(
+            _ALLOWED_TARGET_PREFIXES
+        ):
+            disallowed.add(f"{target} (resolves to {origin})")
+    return sorted(disallowed)
 
 
 class InferenceModel:
@@ -296,6 +396,21 @@ class InferenceModel:
                 inference_config_path,
                 bundle_root=bundle_root,
             )
+
+        # The bundled-code check above only sees modules shipped in the bundle.
+        # A ``_target_`` naming something already installed in this environment
+        # passes it untouched, so constrain the targets themselves as well.
+        if not trust_user_code:
+            disallowed = _disallowed_targets(inference_config)
+            if disallowed:
+                raise ValueError(
+                    "This inference config instantiates targets outside the "
+                    "namespaces a published bundle may build from: "
+                    + ", ".join(disallowed)
+                    + ". Hydra executes every `_target_`, so loading this "
+                    "bundle would run them. Set trust_user_code=True only if "
+                    "you trust the publisher of this bundle."
+                )
 
         return cls(inference_config)
 
