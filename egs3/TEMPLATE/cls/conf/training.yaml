@@ -1,0 +1,191 @@
+##########################################################
+#                    TRAINING SETTING                    #
+##########################################################
+# Quick usage:
+#   python run.py --stages create_dataset --training_config conf/training.yaml
+#   python run.py --stages train          --training_config conf/training.yaml
+#
+# This is the shared default merged under every classification recipe's
+# training config (see `load_and_merge_config` in `run.py`). Kept as empty as
+# possible so it never conflicts with a concrete recipe config: a recipe
+# directory may host several mutually incompatible architectures, so only
+# generic path/system scaffolding lives here. Everything task-specific is left
+# null for the recipe config to fill in.
+#
+# Main stages and what this config is used for:
+# - `create_dataset`: uses `create_dataset` and `dataset`
+# - `remove_long_short`: uses `remove_long_short`
+# - `prepare_labels`: uses `prepare_labels`
+# - `collect_stats`: uses `dataset`, `dataloader`, `model`, and `parallel`
+# - `train`: uses most fields in this file
+
+##########################################################
+#                  SYSTEM AND PATH SETTING               #
+##########################################################
+num_device: 1
+num_nodes: 1
+
+# Optional ESPnet task class path used by `get_espnet_model(...)`.
+# Classification recipes normally set this to `espnet2.tasks.cls.CLSTask`.
+# If unset, `model` is instantiated directly via Hydra.
+task:
+
+# Path scaffold relative to the recipe root.
+recipe_dir: .
+data_dir: ${recipe_dir}/data
+exp_tag: ${self_name:}
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+stats_dir: ${recipe_dir}/exp/stats
+
+##########################################################
+#                 DATASET CREATION SETTING               #
+##########################################################
+# Forwarded as keyword arguments to the recipe `DatasetBuilder` methods.
+create_dataset:
+  recipe_dir: ${recipe_dir}
+
+##########################################################
+#                    DATASET DEFINITION                  #
+##########################################################
+# Dataset organizer used across collect_stats/train/infer/measure.
+# Fill `train`, `valid`, and optionally `test` with dataset reference entries.
+#
+# Each dataset entry supports:
+# - `data_src`: optional dataset source reference.
+#   - `<recipe>/<task>` tag, e.g. `meld/cls`
+#   - dotted module path, e.g. `egs3.meld.cls.dataset`
+#   - omitted: load `${recipe_dir}/dataset/__init__.py`
+# - `data_src_args`: kwargs forwarded to `Dataset(...)`
+# - `transform`: optional Hydra-instantiated per-sample transform applied
+#   before `preprocessor`
+# - `name`: mainly useful for `test`; inference uses it as the output
+#   subdirectory name
+#
+# Classification datasets are expected to yield `speech` and `label`, which is
+# what `espnet2.tasks.cls.CLSTask.required_data_names()` asks for. Remember to
+# set `text_name: label` on the preprocessor.
+dataset:
+  _target_: espnet3.components.data.data_organizer.DataOrganizer
+  _recursive_: false
+  recipe_dir: ${recipe_dir}
+  train:
+  valid:
+  test:
+  preprocessor:
+
+##########################################################
+#              LONG/SHORT FILTERING SETTING              #
+##########################################################
+# Used by the `remove_long_short` stage in
+# `espnet3.systems.cls.system.CLSSystem`. Filtering matters for frontends that
+# reject very short waveforms.
+remove_long_short:
+
+##########################################################
+#                  LABEL INVENTORY SETTING               #
+##########################################################
+# Used by the `prepare_labels` stage in
+# `espnet3.systems.cls.system.CLSSystem`. The stage collects labels from the
+# third column of the training manifest and writes them in descending
+# frequency order, which the model and the preprocessor consume as
+# `token_list`.
+prepare_labels:
+
+##########################################################
+#                      MODEL SETTING                     #
+##########################################################
+# Training model definition.
+# If `task` is set, this block is passed to `get_espnet_model(task, model_conf)`.
+# Thus, you can reuse ESPnet2-style model configs here by setting `task` and
+# filling this block with the per-model config that ESPnet2 used.
+# If `task` is not set, this block is instantiated directly via Hydra.
+model:
+
+##########################################################
+#                  OPTIMIZATION SETTING                  #
+##########################################################
+optimizer:
+  _target_: torch.optim.Adam
+  lr: 0.002
+  weight_decay: 0.000001
+
+scheduler:
+  _target_: espnet2.schedulers.warmup_lr.WarmupLR
+  warmup_steps: 15000
+scheduler_interval: step   # `step` or `epoch`
+scheduler_monitor:         # e.g. `valid/loss` for monitored epoch schedulers
+
+best_model_criterion:
+  - - valid/acc
+    - 3
+    - max
+
+seed:
+init:
+
+parallel:
+  env: local
+  n_workers: 1
+
+##########################################################
+#                   DATALOADER SETTING                   #
+##########################################################
+dataloader:
+  collate_fn:
+    _target_: espnet2.train.collate_fn.CommonCollateFn
+    int_pad_value: -1
+  train:
+    total_shards: 1
+    dist_world_size: 1
+    iter_factory:
+      _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
+      shuffle: true
+      collate_fn: ${dataloader.collate_fn}
+      batches:
+        type: unsorted
+        shape_files:
+          - ${stats_dir}/train/feats_shape
+        batch_size: 4
+        batch_bins: 4000000
+  valid:
+    total_shards: 1
+    dist_world_size: 1
+    iter_factory:
+      _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
+      shuffle: false
+      collate_fn: ${dataloader.collate_fn}
+      batches:
+        type: ${dataloader.train.iter_factory.batches.type}
+        shape_files:
+          - ${stats_dir}/valid/feats_shape
+        batch_size: ${dataloader.train.iter_factory.batches.batch_size}
+        batch_bins: ${dataloader.train.iter_factory.batches.batch_bins}
+
+##########################################################
+#                     TRAINER SETTING                    #
+##########################################################
+trainer:
+  accelerator: auto
+  devices: ${num_device}
+  num_nodes: ${num_nodes}
+  accumulate_grad_batches: 1
+  check_val_every_n_epoch: 1
+  gradient_clip_val: 1.0
+  log_every_n_steps: 100
+  max_epochs: 100
+  logger:
+    - _target_: lightning.pytorch.loggers.TensorBoardLogger
+      save_dir: ${exp_dir}/tensorboard
+      name: tb_logger
+  strategy: auto
+
+  # Any Lightning callback can be appended here; ESPnet3 instantiates the list
+  # on top of its own defaults. Watch the same value as `best_model_criterion`
+  # so early stopping cannot cut off the epoch that would have been saved.
+  # callbacks:
+  #   - _target_: lightning.pytorch.callbacks.EarlyStopping
+  #     monitor: valid/acc
+  #     mode: max
+  #     patience: 5
+
+fit: {}
