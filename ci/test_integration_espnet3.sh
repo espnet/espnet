@@ -15,7 +15,7 @@ gen_dummy_coverage(){
 
 python3 -m pip install -e '.[asr]'
 
-cd ./egs3/mini_an4/asr || exit
+cd ./egs3/mini_an4/esp2_asr || exit
 gen_dummy_coverage
 echo "==== [ESPnet3] ASR ===="
 source path.sh
