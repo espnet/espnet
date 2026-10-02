@@ -1,0 +1,40 @@
+##########################################################
+#         LIBRICSS INFERENCE SETTINGS (DIARIZED)         #
+##########################################################
+# Decodes the speaker turns produced by the `segment` + `diarize` stages.
+# For the oracle-segment flow use conf/inference_oracle.yaml instead.
+#
+#   python run.py --stages infer --inference_config conf/inference.yaml
+#
+# Outputs per split under ${inference_dir}/<split>/:
+#   hyp.scp ref.scp spk.scp reco.scp start.scp end.scp
+# (ref.scp is empty in the diarized flow; the SA-WER metric builds its own
+# reference streams from data/<split>/oracle/.)
+
+dataset:
+  test:
+    - name: dev
+      data_src_args:
+        split: dev
+        manifest_dir: ${exp_dir}/diarized
+    - name: eval
+      data_src_args:
+        split: eval
+        manifest_dir: ${exp_dir}/diarized
+
+model:
+  # LibriSpeech Transformer (e18) from the ESPnet model zoo (zenodo record
+  # 4030677): the ESPnet2-format release of the same acoustic model the
+  # ESPnet1 LibriCSS recipe decoded with. The egs1 recipe additionally
+  # rescored with a Transformer LM; no espnet2-format LM is published for
+  # it, so this recipe decodes ASR-only (expect slightly higher WER than
+  # the egs1 reference numbers). Alternative zoo tag (Conformer, slower):
+  #   kamo-naoyuki/librispeech_asr_train_asr_conformer5_raw_bpe5000_scheduler_confwarmup_steps25000_batch_bins140000000_optim_conflr0.0015_initnone_accum_grad2_sp_valid.acc.ave
+  _target_: espnet2.bin.asr_inference.Speech2Text.from_pretrained
+  model_tag: Shinji Watanabe/librispeech_asr_train_asr_transformer_e18_raw_bpe_sp_valid.acc.best
+  beam_size: 20
+  ctc_weight: 0.3
+
+input_key: speech
+batch_size: 4
+output_fn: src.inference.build_output

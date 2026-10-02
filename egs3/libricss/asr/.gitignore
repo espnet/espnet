@@ -1,0 +1,8 @@
+# Recipe-local ignores.
+# Root .gitignore already covers data*/, dump/, exp/, logs/, downloads/.
+
+# LibriCSS corpus cache: for_release.zip (~6.4 GB), the unpacked tree
+# (~17 GB) and gdown logs (create_dataset.download_dir in the conf/*.yaml).
+# The root .gitignore only covers `downloads/`, not this recipe's
+# `download/`.
+download/
