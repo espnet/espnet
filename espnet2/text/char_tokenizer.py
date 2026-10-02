@@ -47,8 +47,15 @@ class CharTokenizer(AbsTokenizer):
 
     def text2tokens(self, line: str) -> List[str]:
         tokens = []
+        # A shorter symbol can be a prefix of a longer one. Set order is not
+        # stable, so the longer symbol has to be tried first.
+        symbols = sorted(
+            self.non_linguistic_symbols.union(self.nonsplit_symbols),
+            key=len,
+            reverse=True,
+        )
         while len(line) != 0:
-            for w in self.non_linguistic_symbols.union(self.nonsplit_symbols):
+            for w in symbols:
                 if line.startswith(w):
                     if (
                         w in self.nonsplit_symbols
