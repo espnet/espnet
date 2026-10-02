@@ -919,12 +919,19 @@ class ContinuousAudioIO(AbsIO):
             del full_model.thinker.lm_head  # Remove output head
             self.model = full_model.thinker.to(self.device)
 
-            # Load processor for audio preprocessing
-            from transformers import AutoProcessor
+            # Load processor for audio preprocessing. AutoFeatureExtractor
+            # rather than AutoProcessor: an omni checkpoint's processor also
+            # builds the image and video ones, and the video processor
+            # imports torchvision, which no espnet extra declares and which
+            # this speech-only path never uses. Both read the same
+            # `feature_extractor_type` out of preprocessor_config.json -
+            # verified equal on Qwen3-Omni-30B-A3B-Instruct: same class,
+            # equal to_dict(), bit-identical input_features.
+            from transformers import AutoFeatureExtractor
 
-            self.processor = AutoProcessor.from_pretrained(
+            self.processor = AutoFeatureExtractor.from_pretrained(
                 self.encoder_hf_model_tag
-            ).feature_extractor
+            )
 
             # Set model attributes
             self.d_model = self.model.audio_tower.config.output_dim

@@ -374,6 +374,78 @@ def test_translate_requires_a_target():
     assert e.value.code == 2  # argparse's "bad usage"
 
 
+OWSM_TOKENS = ["<blank>", "<unk>", "<na>", "<nolang>", "<eng>", "<jpn>", "<asr>"]
+OWSM_TOKENS += ["<st_deu>", "<st_eng>", "<st_jpn>"]
+
+
+@pytest.mark.parametrize(
+    "argv",
+    [
+        ["transcribe", "--language", "en"],
+        ["translate", "--language", "en", "--to", "eng"],
+        ["phonemize", "--language", "en"],
+    ],
+)
+def test_a_language_the_model_lacks_is_a_sentence_not_a_traceback(
+    monkeypatch, tmp_path, capsys, argv
+):
+    # Speech2Text looks the symbol up in token2id only once decoding starts,
+    # where `en` for `eng` is a KeyError after the checkpoint has loaded
+    audio = tmp_path / "a.wav"
+    audio.write_bytes(b"")
+    rec = _Recorder("x", tokens=OWSM_TOKENS + ["<pr>"])
+    _fake_module(monkeypatch, "espnet2.bin.s2t_inference", "Speech2Text", rec)
+
+    assert cli.main([argv[0], str(audio), *argv[1:]]) == 1
+
+    err = capsys.readouterr().err
+    assert "'en'" in err and "ISO 639-3" in err
+    assert rec.calls == []  # nothing was decoded with a symbol it lacks
+
+
+def test_translate_names_the_targets_when_asked_for_another(
+    monkeypatch, tmp_path, capsys
+):
+    audio = tmp_path / "a.wav"
+    audio.write_bytes(b"")
+    rec = _Recorder("x", tokens=OWSM_TOKENS)
+    _fake_module(monkeypatch, "espnet2.bin.s2t_inference", "Speech2Text", rec)
+
+    # kor is ISO 639-3, so "use ISO 639-3" would not help: the list does
+    assert cli.main(["translate", str(audio), "--to", "kor"]) == 1
+
+    assert "deu, eng, jpn" in capsys.readouterr().err
+    assert rec.calls == []
+
+
+@pytest.mark.parametrize("command", [["transcribe"], ["translate", "--to", "eng"]])
+def test_no_language_is_the_models_own_symbol(monkeypatch, tmp_path, command):
+    # POWSM transcribes too, and its vocabulary has <unk> for "work the
+    # language out" and no <nolang>, which was a KeyError here
+    audio = tmp_path / "a.wav"
+    audio.write_bytes(b"")
+    rec = _Recorder("x", nolang=None, tokens=["<unk>", "<eng>", "<asr>", "<st_eng>"])
+    _fake_module(monkeypatch, "espnet2.bin.s2t_inference", "Speech2Text", rec)
+
+    assert cli.main([command[0], str(audio), *command[1:]]) == 0
+
+    assert rec.calls[0][1]["lang_sym"] == "<unk>"
+
+
+def test_stream_checks_the_language_before_it_starts(monkeypatch, tmp_path, capsys):
+    said = []
+    _stub_live(monkeypatch, [np.zeros(16000, dtype=np.float32)], said)
+    rec = _Recorder([("x", ["x"], [1], "x", None)], tokens=OWSM_TOKENS)
+    _fake_module(monkeypatch, "espnet2.bin.s2t_inference", "Speech2Text", rec)
+    audio = tmp_path / "a.wav"
+    soundfile.write(audio, np.zeros(16000, dtype=np.float32), 16000)
+
+    assert cli.main(["transcribe", str(audio), "--stream", "--language", "en"]) == 1
+
+    assert said == [] and rec.calls == []
+    assert "'en'" in capsys.readouterr().err
+
+
 def test_tts_writes_a_wave(monkeypatch, tmp_path):
     import numpy as np
     import torch
@@ -944,7 +1016,8 @@ def test_demo_menus_come_from_the_checkpoint(monkeypatch):
     # the two dropdowns are this checkpoint's own tokens, not a fixed list
     languages, targets = [call.args[0] for call in gradio.Dropdown.call_args_list]
     assert languages == ["Detect automatically", "English (eng)", "Japanese (jpn)"]
-    assert targets == ["Transcribe", "Translate to German (deu)"]
+    # each task named by the abbreviation its field uses, then glossed
+    assert targets == ["ASR: transcribe", "ST: translate to German (deu)"]
 
 
 def _predict(gradio):

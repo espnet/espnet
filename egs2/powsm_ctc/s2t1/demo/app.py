@@ -64,14 +64,45 @@ demo = build_app(
     title="POWSM-CTC",
     description="""# POWSM-CTC
 
-[POWSM](https://arxiv.org/abs/2510.24992) is a phonetic foundation model:
-speech in, the phones that were said out, in IPA. This is the encoder-only
-variant, trained on [IPAPack++](https://huggingface.co/anyspeech) with
-[ESPnet](https://github.com/espnet/espnet) and released with
-[PRiSM](https://arxiv.org/abs/2601.14046).
+### Model description
 
-It is the model `espnet phonemize` loads. Its encoder-decoder sibling is
-[espnet/powsm](https://huggingface.co/espnet/powsm).
+[POWSM](https://arxiv.org/abs/2510.24992) is the first phonetic foundation
+model: one model for four phone-related tasks — phone recognition (PR),
+speech recognition (ASR), audio-guided grapheme-to-phoneme conversion (G2P)
+and audio-guided phoneme-to-grapheme conversion (P2G). It is built on
+[OWSM](https://www.wavlab.org/activities/2024/owsm/) and trained on
+[IPAPack++](https://huggingface.co/anyspeech), and it matches or beats
+specialised phone-recognition models of its size while doing the other three
+as well.
+
+**POWSM-CTC** is its encoder-only variant. It has the multi-task encoder-CTC
+structure of OWSM-CTC and the same training data, decodes much faster, and
+recognises phones as well or better on domains it was not trained on. It is
+released with [PRiSM](https://arxiv.org/abs/2601.14046), the first
+open-source benchmark for phone recognition.
+
+### User guide
+
+- **Speech** — record or upload a clip, up to two minutes.
+- **Spoken language** — the language being spoken. Naming it gives better
+  phones than leaving it to be detected: told *eng*, the model answers with
+  English diphthongs and r-colouring rather than the nearest general
+  reading.
+- **Task**
+  - **ASR** — speech recognition: speech → the words, written in that
+    language's own script.
+  - **PR** — phone recognition: speech → IPA symbols. This is what the
+    model is built for.
+  - **G2P** — speech-aware grapheme-to-phoneme: words + speech → IPA. It
+    reads the recording as well as the words you type, so the phones are
+    how *this speaker* said them rather than a dictionary's.
+  - **P2G** — speech-aware phoneme-to-grapheme: IPA + speech → words.
+- **Text box** — appears for G2P and P2G, and takes what they read: the
+  words for G2P, the phones for P2G, spaced or in slashes.
+- **Long-form** — for a clip longer than one window, decodes the whole
+  recording instead of its first seconds.
+
+Answers come back as the language the model heard and the text it produced.
 """,
 )
 

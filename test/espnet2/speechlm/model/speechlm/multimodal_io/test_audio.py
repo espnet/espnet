@@ -574,6 +574,79 @@ class TestContinuousAudioIO:
         assert loss_mask.shape == (after_length, 1)
 
 
+# ---------------------------------------------------------------------------
+# What _init_encoder asks transformers for. The encoder itself is 30B, so the
+# two `from_pretrained` calls are replaced and only the asking is checked.
+# ---------------------------------------------------------------------------
+class TestContinuousAudioIOEncoderLoading:
+    TAG = "Qwen/Qwen3-Omni-30B-A3B-Instruct"
+
+    def _fake_omni(self):
+        """A stand-in for the checkpoint, with the parts _init_encoder drops."""
+        thinker = types.SimpleNamespace(
+            model=object(),
+            visual=object(),
+            lm_head=object(),
+            audio_tower=types.SimpleNamespace(
+                config=types.SimpleNamespace(output_dim=2048)
+            ),
+        )
+        thinker.to = lambda device: thinker
+        return types.SimpleNamespace(thinker=thinker)
+
+    def test_the_feature_extractor_comes_without_the_video_one(self):
+        """Ask for the audio feature extractor, not the omni processor.
+
+        An omni processor also builds the video processor, which imports
+        torchvision - a package no espnet extra declares and this
+        speech-only path never uses. AutoFeatureExtractor reads the same
+        `feature_extractor_type` from the same config.
+        """
+        import transformers
+
+        fake = self._fake_omni()
+        extractor = types.SimpleNamespace(sampling_rate=16000, hop_length=160)
+        asked = {}
+
+        def feature_extractor(tag, *args, **kwargs):
+            asked["tag"] = tag
+            return extractor
+
+        def model_class(tag, **kwargs):
+            asked["model_tag"] = tag
+            return fake
+
+        with (
+            patch.object(
+                transformers.AutoFeatureExtractor, "from_pretrained", feature_extractor
+            ),
+            patch.object(
+                transformers.Qwen3OmniMoeForConditionalGeneration,
+                "from_pretrained",
+                model_class,
+            ),
+            patch.object(transformers.AutoProcessor, "from_pretrained", _never_called),
+        ):
+            io = ContinuousAudioIO(
+                encoder_choice="huggingface",
+                encoder_hf_model_tag=self.TAG,
+            )
+
+        assert asked["tag"] == self.TAG
+        assert io.processor is extractor
+        # and the attributes the rest of the class reads off it
+        assert io.sample_rate == 16000
+        assert io.hop_length == 160
+        assert io.d_model == 2048
+
+
+def _never_called(*args, **kwargs):  # pragma: no cover - the point is that it is not
+    raise AssertionError(
+        "AutoProcessor builds the image and video processors too; the audio "
+        "path needs AutoFeatureExtractor"
+    )
+
+
 class TestContinuousAudioIOEncodeBatch:
     """What `get_audio_features` hands back, which is not always a tensor."""
 

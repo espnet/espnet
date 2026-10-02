@@ -146,12 +146,26 @@ def _existing_file(path: str) -> Path:
     return p
 
 
-def _symbol(model, symbol: str, what: str) -> str:
-    if symbol not in model.s2t_model.token_list:
-        raise ToolError(
-            f"{what} {symbol!r} is not in the model's vocabulary. Use an ISO 639-3 "
-            "code such as eng, jpn, deu, zho, fra or spa."
-        )
+def _symbol(model, symbol: str, what: str, candidates=None) -> str:
+    """The symbol, or a ToolError saying what to pass instead.
+
+    ``candidates`` reads the choices off the token list, for when they are
+    few enough to name: the translation targets are one <st_xxx> each, and
+    "use ISO 639-3" does not help there, since `kor` is ISO 639-3 and still
+    not a target.
+    """
+    tokens = model.s2t_model.token_list
+    if symbol not in tokens:
+        if candidates is None:
+            hint = "Use an ISO 639-3 code such as eng, jpn, deu, zho, fra or spa."
+        else:
+            known = sorted(candidates(tokens))
+            hint = (
+                f"Its {what}s are {', '.join(known)}."
+                if known
+                else f"It has no {what} symbols."
+            )
+        raise ToolError(f"{what} {symbol!r} is not in the model's vocabulary. {hint}")
     return symbol
 
 
@@ -210,9 +224,12 @@ def translate(audio_path: str, to: str, language: str = "auto") -> str:
     Returns:
         The translation as plain text.
     """
+    from espnet2.bin.demo import target_codes
+
     _warn_if_untrained_direction(language, to)
     model = _asr()
-    return _decode(audio_path, language, _symbol(model, f"<st_{to}>", "target"))
+    target = _symbol(model, f"<st_{to}>", "target", candidates=target_codes)
+    return _decode(audio_path, language, target)
 
 
 def phonemize(audio_path: str, language: str = "auto") -> str:
