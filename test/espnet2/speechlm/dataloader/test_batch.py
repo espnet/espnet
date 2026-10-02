@@ -1,8 +1,11 @@
 """Tests for espnet2/speechlm/dataloader/batch.py — batching algorithms."""
 
+from contextlib import contextmanager
+from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest
+import torch
 
 from espnet2.speechlm.dataloader.batch import (
     _bfd_worker,
@@ -211,3 +214,53 @@ class TestSynchronizeBatches:
         ):
             result = synchronize_batches(batches)
         assert result == batches
+
+    @staticmethod
+    @contextmanager
+    def _fake_dist(counts):
+        """Fake a distributed run whose per-rank batch counts are `counts`.
+
+        synchronize_batches() allocates its collective tensors on `cuda`, which a
+        CPU-only CI machine cannot do, so the module's `torch` reference is replaced
+        by a shim that only remaps the device. The batch-count logic under test is
+        untouched.
+        """
+        real_tensor = torch.tensor
+
+        def _all_gather(output_list, input_tensor):
+            assert len(output_list) == len(counts)
+            for out, count in zip(output_list, counts):
+                out.fill_(count)
+
+        shim = SimpleNamespace(
+            tensor=lambda data, **kw: real_tensor(data, dtype=kw.get("dtype")),
+            long=torch.long,
+            cuda=SimpleNamespace(is_available=lambda: True),
+        )
+        with (
+            patch("espnet2.speechlm.dataloader.batch.torch", shim),
+            patch("torch.distributed.is_initialized", return_value=True),
+            patch("torch.distributed.get_world_size", return_value=len(counts)),
+            patch("torch.distributed.all_gather", side_effect=_all_gather),
+        ):
+            yield
+
+    def test_sync_pads_short_rank_fully(self):
+        # A rank holding fewer than half of the target used to get
+        # `batches[-n_missing:]`, i.e. fewer than tgt_n_batches batches.
+        batches = [["a"], ["b"]]
+        with self._fake_dist([2, 5]):
+            result = synchronize_batches(batches)
+        assert len(result) == 5
+        assert result[:2] == batches
+
+    def test_sync_zero_batches_on_some_rank(self):
+        batches = [["a"], ["b"], ["c"]]
+        with self._fake_dist([3, 0]):
+            with pytest.raises(RuntimeError, match="rank with no batches"):
+                synchronize_batches(batches)
+
+    def test_sync_all_ranks_empty(self):
+        # Nothing to synchronize: no padding and no error.
+        with self._fake_dist([0, 0]):
+            assert synchronize_batches([]) == []
