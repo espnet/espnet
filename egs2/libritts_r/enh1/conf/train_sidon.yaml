@@ -1,0 +1,40 @@
+# ESPnet-Sidon feature predictor: w2v-BERT 2.0 layer 8
+ssl_encoder: w2v_bert2
+ssl_encoder_conf:
+    model_tag: facebook/w2v-bert-2.0
+    freeze_base: true
+lora_rank: 64
+lora_alpha: 16
+lora_dropout: 0.1
+input_sr: 16000
+
+noise_dir: data/noise_pool
+rir_dir: data/rir_pool
+degrade_prob: 0.5
+online_degradation: true
+max_duration: 20.0
+
+optim: adamw
+optim_conf:
+    lr: 1.0e-4
+    betas: [0.9, 0.999]
+    weight_decay: 0.01
+    eps: 1.0e-8
+scheduler: null
+
+max_epoch: 30
+batch_type: unsorted
+batch_size: 64
+valid_batch_size: 64
+accum_grad: 1
+grad_clip: 1.0
+num_workers: 16
+seed: 42
+best_model_criterion:
+    -   - valid
+        - loss
+        - min
+keep_nbest_models: 3
+log_interval: 200
+use_amp: true
+num_att_plot: 0
