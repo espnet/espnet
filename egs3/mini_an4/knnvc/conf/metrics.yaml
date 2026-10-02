@@ -1,0 +1,26 @@
+##########################################################
+#           METRIC SCORING FOR THE mini_an4 SMOKE        #
+##########################################################
+# Quick usage:
+#   python run.py --stages measure \
+#       --training_config conf/training.yaml \
+#       --inference_config conf/inference.yaml \
+#       --metrics_config conf/metrics.yaml
+#
+# The metric transcribes the converted audio and scores it against the source
+# transcript, as in egs3/librispeech_100/knnvc. Note two things before running
+# it here:
+#
+# - it downloads an ASR model, which is why `measure` is not part of the stage
+#   list ci/test_integration_espnet3.sh runs for this recipe;
+# - this recipe's vocoder is a few seconds of training on a stub encoder, so
+#   the score says nothing about kNN-VC. It checks that the stage runs.
+
+metrics:
+  - metric:
+      _target_: espnet3.systems.knnvc.metrics.intelligibility.ASRIntelligibility
+      asr: espnet/simpleoier_librispeech_asr_train_asr_conformer7_wavlm_large_raw_en_bpe5000_sp
+      device: cpu
+    inputs:
+      wav: wav
+      ref: ref

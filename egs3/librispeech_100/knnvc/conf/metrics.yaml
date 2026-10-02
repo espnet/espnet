@@ -1,0 +1,26 @@
+##########################################################
+#         METRIC SCORING FOR THE kNN-VC RECIPE           #
+##########################################################
+# Quick usage:
+#   python run.py --stages measure \
+#       --training_config conf/training.yaml \
+#       --inference_config conf/inference.yaml \
+#       --metrics_config conf/metrics.yaml
+#
+# Intelligibility: the converted audio written by `infer` (`wav.scp`) is
+# transcribed and scored against the source transcript (`ref.scp`). This is the
+# protocol behind the WER/CER the kNN-VC authors report on dev-clean (6.29 and
+# 2.34 for the prematched vocoder).
+#
+# `asr` is any tag `Speech2Text.from_pretrained` accepts. Scores are only
+# comparable across systems scored by the same ASR. Set `device: cuda` to use a
+# GPU.
+
+metrics:
+  - metric:
+      _target_: espnet3.systems.knnvc.metrics.intelligibility.ASRIntelligibility
+      asr: espnet/simpleoier_librispeech_asr_train_asr_conformer7_wavlm_large_raw_en_bpe5000_sp
+      device: cpu
+    inputs:
+      wav: wav
+      ref: ref

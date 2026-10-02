@@ -1,0 +1,18 @@
+builder:
+  dataset_path: download
+  source_env_var: LIBRISPEECH
+  required_splits:
+    - train-clean-100
+    - dev-clean
+
+dataset:
+  supported_splits:
+    - train-clean-100
+    - dev-clean
+    - dev-other
+    - test-clean
+    - test-other
+  # WavLM frame hop in samples at 16 kHz; feature frame i covers waveform
+  # samples [i * hop_length, (i + 1) * hop_length).
+  hop_length: 320
+  sample_rate: 16000

@@ -1,0 +1,23 @@
+##########################################################
+#                 METRIC SCORING SETTING                 #
+##########################################################
+# Quick usage:
+#   python run.py --stages measure --metrics_config conf/metrics.yaml
+#
+# Shared default merged under every VC recipe's metrics config. The `infer`
+# stage writes `wav.scp` (converted audio), `ref.scp` (source transcript) and
+# `target_speaker.scp` per test set; plug metrics consuming those here, e.g. an
+# ASR-based WER or a speaker-verification EER.
+#
+# `metrics` is null here: which ASR scores a recipe's conversions is a recipe's
+# choice, so each one fills this in. See `egs3/librispeech_100/knnvc` for a
+# worked example using `ASRIntelligibility`, which transcribes `wav.scp` and
+# scores it against `ref.scp` (the kNN-VC authors' WER/CER protocol).
+
+recipe_dir: .
+exp_tag:
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+
+dataset:
+
+metrics:
