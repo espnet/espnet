@@ -35,7 +35,7 @@ def _char_tokenizer(remove_space: bool = False) -> Callable[[str], List[str]]:
         remove_space: Drop spaces instead of counting them as characters.
             The default keeps them, which is what ``jiwer.cer`` does and
             therefore what the current espnet3 CER reports. Recipes that
-            score CER with spaces removed need this set to True to reproduce
+            measure CER with spaces removed need this set to True to reproduce
             their published numbers.
     """
 
@@ -59,7 +59,7 @@ def error_rate_setup(
     backend: str = "python",
     keep_alignment: bool = False,
 ) -> Dict[str, Any]:
-    """Prepare an error-rate scorer.
+    """Prepare an error-rate state.
 
     Args:
         name: Prefix for the reported keys. ``wer`` reports ``wer``,
@@ -76,7 +76,7 @@ def error_rate_setup(
             them, so it is off by default.
 
     Returns:
-        The scorer state passed back into :func:`error_rate_metric`.
+        The state state passed back into :func:`error_rate_metric`.
 
     Raises:
         ValueError: If the tokenizer name is unknown.
@@ -95,29 +95,29 @@ def error_rate_setup(
 
 
 def error_rate_metric(
-    scorer: Dict[str, Any],
+    state: Dict[str, Any],
     pred_text: str,
     gt_text: str,
 ) -> Dict[str, Any]:
-    """Score one hypothesis against one reference.
+    """Measure one hypothesis against one reference.
 
     Args:
-        scorer: State from :func:`error_rate_setup`.
+        state: State from :func:`error_rate_setup`.
         pred_text: Hypothesis text.
         gt_text: Reference text.
 
     Returns:
         The rate, the counts it was computed from, and optionally the
-        rendered alignment. Every key is prefixed with the scorer's name.
+        rendered alignment. Every key is prefixed with the state's name.
     """
-    name: str = scorer["name"]
-    normalizer = scorer["normalizer"]
-    tokenize = scorer["tokenizer"]
+    name: str = state["name"]
+    normalizer = state["normalizer"]
+    tokenize = state["tokenizer"]
 
     alignment = levenshtein_alignment(
         tokenize(normalizer(gt_text)),
         tokenize(normalizer(pred_text)),
-        backend=scorer["backend"],
+        backend=state["backend"],
     )
 
     result: Dict[str, Any] = {
@@ -130,6 +130,6 @@ def error_rate_metric(
         f"{name}_ins": alignment.insertions,
         f"{name}_hit": alignment.hits,
     }
-    if scorer["keep_alignment"]:
+    if state["keep_alignment"]:
         result["alignment"] = alignment.to_string()
     return result

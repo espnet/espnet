@@ -21,7 +21,7 @@ commutative: removing punctuation before collapsing whitespace is not the
 same as doing it after.
 
 The resolved config travels with the pipeline and is written into the
-result, so a score always carries the normalization that produced it. The
+result, so a result always carries the normalization that produced it. The
 issue asks for exactly this, and it is the reason normalization is a first
 class object here rather than a flag on each metric.
 """

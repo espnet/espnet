@@ -18,7 +18,7 @@ therefore reports its counts next to its rate::
     {"wer": 0.25, "wer_errors": 1, "wer_ref_len": 4,
      "wer_sub": 1, "wer_del": 0, "wer_ins": 0}
 
-and :func:`splet.scorer_shared.load_summary` pools any key ``X`` for which
+and :func:`splet.metric_registry.summarize` pools any key ``X`` for which
 both ``X_errors`` and ``X_ref_len`` are present. Nothing has to be registered
 here for that to work, so a new error-rate metric (orc_wer, cpwer, ...) is
 pooled correctly by construction.

@@ -1,10 +1,10 @@
-"""Tests for the splet-score command line interface."""
+"""Tests for the splet-measure command line interface."""
 
 import json
 
 import pytest
 
-from splet.bin.scorer import main
+from splet.bin.measure import main
 
 CONFIG = """
 normalize:
@@ -33,7 +33,7 @@ def corpus(tmp_path):
     return reference, hypothesis, config
 
 
-def test_scores_a_corpus(tmp_path, corpus, capsys):
+def test_measures_a_corpus(tmp_path, corpus, capsys):
     reference, hypothesis, config = corpus
     output = tmp_path / "result.jsonl"
 
@@ -44,7 +44,7 @@ def test_scores_a_corpus(tmp_path, corpus, capsys):
                 str(hypothesis),
                 "--ref",
                 str(reference),
-                "--score_config",
+                "--metrics_config",
                 str(config),
                 "--output_file",
                 str(output),
@@ -78,7 +78,7 @@ def test_pred_and_gt_are_accepted_as_versa_names(tmp_path, corpus, capsys):
                 str(hypothesis),
                 "--gt",
                 str(reference),
-                "--score_config",
+                "--metrics_config",
                 str(config),
             ]
         )
@@ -99,7 +99,7 @@ def test_bare_list_config_is_accepted(tmp_path, corpus, capsys):
                 str(hypothesis),
                 "--gt",
                 str(reference),
-                "--score_config",
+                "--metrics_config",
                 str(config),
             ]
         )
@@ -117,7 +117,7 @@ def test_list_metrics(capsys):
 
 def test_missing_arguments_exit_nonzero(tmp_path, corpus):
     reference, _, config = corpus
-    assert main(["--ref", str(reference), "--score_config", str(config)]) == 2
+    assert main(["--ref", str(reference), "--metrics_config", str(config)]) == 2
 
 
 def test_jsonl_io_reads_turns(tmp_path, capsys):
@@ -151,7 +151,7 @@ def test_jsonl_io_reads_turns(tmp_path, capsys):
                 str(hypothesis),
                 "--gt",
                 str(reference),
-                "--score_config",
+                "--metrics_config",
                 str(config),
                 "--io",
                 "jsonl",

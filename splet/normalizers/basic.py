@@ -8,7 +8,7 @@
 Each step is a factory ``<name>_setup(**kwargs)`` returning a callable
 ``str -> str``, which is the same shape as VERSA's ``<metric>_setup``. A
 step never guesses: everything it does is named in its config, so that the
-config echoed into the result is enough to reproduce the score.
+config echoed into the result is enough to reproduce the result.
 """
 
 from __future__ import annotations
@@ -31,7 +31,7 @@ def lowercase_setup() -> Callable[[str], str]:
 def uppercase_setup() -> Callable[[str], str]:
     """Uppercase the text.
 
-    sclite's default scoring is case sensitive, and several ESPnet recipes
+    sclite's default comparison is case sensitive, and several ESPnet recipes
     upper-case both sides instead of lower-casing them. Reproducing an
     existing number sometimes means matching that choice exactly.
     """

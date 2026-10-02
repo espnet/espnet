@@ -48,7 +48,7 @@ def text_loader_setup(path: str, io: str = "kaldi") -> Dict[str, str]:
                 if len(parts) == 1:
                     # An utterance the system produced nothing for. Dropping
                     # it would quietly remove its reference words from the
-                    # denominator and improve the score.
+                    # denominator and improve the result.
                     entries[parts[0]] = ""
                 else:
                     entries[parts[0]] = parts[1]

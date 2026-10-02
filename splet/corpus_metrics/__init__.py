@@ -7,9 +7,9 @@ summarized. VERSA draws the same line, in ``versa/corpus_metrics``.
 The contract mirrors VERSA's corpus tier::
 
     def bleu_setup(**kwargs) -> Any:
-        '''Build whatever scoring this metric needs.'''
+        '''Build whatever state this metric needs.'''
 
-    def bleu_scoring(scorer, pred_texts, gt_texts) -> dict:
+    def bleu_metric(state, pred_texts, gt_texts) -> dict:
         '''Return a flat dict of corpus-level result keys.'''
 
 For SacreBLEU, chrF and TER the implementation should call sacrebleu rather

@@ -10,7 +10,7 @@ its text-side counterpart.
 | Text / structured text | SPLET |
 
 This is a **skeleton**. It fixes the package layout, the interface and the
-scoring contract, and it implements exactly one metric — word/character error
+metric contract, and it implements exactly one metric — word/character error
 rate — to pin that contract down. Everything else in espnet/espnet#6760 is
 still to be written, and the directories where it goes say what is expected of
 it.
@@ -19,10 +19,10 @@ it.
 
 | | |
 | --- | --- |
-| Implemented | WER, CER; the normalization pipeline; the utterance tier; `splet-score` |
+| Implemented | WER, CER; the normalization pipeline; the utterance tier; `splet-measure` |
 | Contract only | the session tier (`splet/session_metrics`), the corpus tier (`splet/corpus_metrics`) |
 | Not started | cpWER, ORC-WER, DER, JER, BLEU/chrF/TER, Whisper normalization, structured prediction |
-| Not validated | the S/D/I split against sclite; everything against existing recipe scores |
+| Not validated | the S/D/I split against sclite; everything against existing recipe results |
 
 WER and CER agree with `jiwer` on the corpus figure, which is what espnet3's
 current metrics use (`test/splet/test_error_rate.py::test_matches_jiwer`).
@@ -32,16 +32,19 @@ breakdown from SPLET as SCTK-compatible.
 ## Running it
 
 ```bash
-splet-score \
+splet-measure \
     --pred hyp.txt \
     --gt ref.txt \
-    --score_config splet/egs/asr.yaml \
+    --metrics_config splet/egs/asr.yaml \
     --output_file result.jsonl
 ```
 
 `--hyp` and `--ref` are accepted as aliases for `--pred` and `--gt`. The
-canonical names are VERSA's, so that a recipe scores its audio and its text
+canonical names are VERSA's, so that a recipe measures its audio and its text
 with the same shape of command.
+The command itself is `splet-measure`, after espnet3's `measure` stage, not
+`splet-score`: in ESPnet a *scorer* is a beam-search component, so SPLET
+avoids the word.
 
 `--io` chooses how the two files are read: `kaldi` (a Kaldi `text` file),
 `jsonl` (one JSON object per line, with `turns` for speaker-attributed or
@@ -50,7 +53,7 @@ timestamped output), or `dir`. Per-utterance results are written to
 
 ## The interface
 
-A score config is a YAML list of metrics, exactly as in VERSA, optionally
+A metrics config is a YAML list of metrics, exactly as in VERSA, optionally
 wrapped in a mapping that adds a shared normalization pipeline:
 
 ```yaml
@@ -69,16 +72,16 @@ A metric is a pair of plain functions, which is VERSA's contract unchanged:
 
 ```python
 def wer_setup(**kwargs) -> Any: ...            # build whatever state it needs
-def wer_metric(scorer, pred, gt) -> dict: ...  # score one item, flat dict out
+def wer_metric(state, pred, gt) -> dict: ...  # measure one item, flat dict out
 ```
 
-Register it in `METRIC_CHOICES` in `splet/scorer_shared.py` with its tier.
+Register it in `METRIC_CHOICES` in `splet/metric_registry.py` with its tier.
 VERSA dispatches with a long `if config["name"] == ...` chain instead; the
 config, the function signatures and the output are the same either way.
 
 ## Three tiers
 
-| Tier | Scored over | VERSA's equivalent |
+| Tier | Measured over | VERSA's equivalent |
 | --- | --- | --- |
 | `utterance_metrics` | one hypothesis/reference pair | `utterance_metrics` |
 | `session_metrics` | one recording | *(none)* |
@@ -110,7 +113,7 @@ against the tool it replaces, and any unavoidable difference gets written down.
 
 SPLET is meant to be extracted into its own repository and PyPI distribution
 once the design settles, the way VERSA is separate today. Until then it lives
-here, where the recipes and the reference scores it has to match also live.
+here, where the recipes and the reference results it has to match also live.
 
 For that extraction to stay a directory move rather than a porting project,
 nothing inside `splet/` may import ESPnet — which is exactly what the espnet3
@@ -125,7 +128,7 @@ espnet3  ──imports──>  splet
 
 So an espnet3 metric becomes a thin adapter over SPLET -- it keeps the
 `BaseMetric` interface, reads the SCP files espnet3 hands it, and calls
-`load_score_modules` / `list_scoring` / `load_summary` -- rather than SPLET
+`load_metrics` / `measure_utterances` / `summarize` -- rather than SPLET
 growing an understanding of espnet3. No adapter is written yet: replacing the
 existing `espnet3/systems/asr/metrics` is the first milestone of
 espnet/espnet#6760, and it can only happen after SPLET reproduces what those

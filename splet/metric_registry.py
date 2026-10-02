@@ -3,12 +3,12 @@
 # Copyright 2026 ESPnet Developers
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-"""Turning a score config into scores.
+"""Turning a metrics config into results.
 
-The same five-step shape as ``versa/scorer_shared.py``: load the config,
+The same five-step shape as ``versa/metric_registry.py``: load the config,
 build the modules it names, run them over the corpus, write one JSON object
 per utterance, summarize. A metric is a pair of plain functions --
-``*_setup`` builds whatever state it needs, ``*_metric`` scores one item and
+``*_setup`` builds whatever state it needs, ``*_metric`` measures one item and
 returns a flat dict -- which is VERSA's contract unchanged.
 
 One thing is deliberately not copied. VERSA dispatches with a long
@@ -30,7 +30,7 @@ from splet.utterance_metrics import error_rate
 # name -> how to build it and how to call it.
 #   tier:     which loop runs it (utterance, session or corpus)
 #   setup:    factory called with the config entry's keyword arguments
-#   metric:   scorer called per item
+#   metric:   state called per item
 #   defaults: keyword arguments implied by the name itself
 METRIC_CHOICES: Dict[str, Dict[str, Any]] = {
     "wer": {
@@ -48,15 +48,15 @@ METRIC_CHOICES: Dict[str, Dict[str, Any]] = {
 }
 
 
-def load_score_modules(
-    score_config: Sequence[Dict[str, Any]],
+def load_metrics(
+    metrics_config: Sequence[Dict[str, Any]],
     tier: str = "utterance",
     normalize: Optional[Sequence[Dict[str, Any]]] = None,
 ) -> Dict[str, Dict[str, Any]]:
-    """Build the metrics of one tier from a score config.
+    """Build the metrics of one tier from a metrics config.
 
     Args:
-        score_config: The parsed config: a list of ``{"name": ..., **kwargs}``
+        metrics_config: The parsed config: a list of ``{"name": ..., **kwargs}``
             entries, as in VERSA.
         tier: Which tier to build. Entries belonging to another tier are
             skipped, so the same config drives all three loops.
@@ -72,11 +72,11 @@ def load_score_modules(
         ValueError: If an entry has no name, or names an unknown metric.
     """
     modules: Dict[str, Dict[str, Any]] = {}
-    for entry in score_config:
+    for entry in metrics_config:
         entry = dict(entry)
         name = entry.pop("name", None)
         if name is None:
-            raise ValueError(f"score config entry has no name: {entry}")
+            raise ValueError(f"metrics config entry has no name: {entry}")
         if name not in METRIC_CHOICES:
             raise ValueError(
                 f"unknown metric '{name}'. Available: {sorted(METRIC_CHOICES)}"
@@ -90,15 +90,15 @@ def load_score_modules(
         logging.info("Loading %s evaluation...", name)
         modules[name] = {
             "module": choice["metric"],
-            "scorer": choice["setup"](**kwargs),
+            "state": choice["setup"](**kwargs),
             "config": {"name": name, **kwargs},
         }
         logging.info("Initiate %s evaluation successfully.", name)
     return modules
 
 
-def load_session_modules(
-    score_config: Sequence[Dict[str, Any]],
+def load_session_metrics(
+    metrics_config: Sequence[Dict[str, Any]],
     normalize: Optional[Sequence[Dict[str, Any]]] = None,
 ) -> Dict[str, Dict[str, Any]]:
     """Build the session-tier metrics.
@@ -106,11 +106,11 @@ def load_session_modules(
     None exist yet; :mod:`splet.session_metrics` documents the contract they
     will follow.
     """
-    return load_score_modules(score_config, tier="session", normalize=normalize)
+    return load_metrics(metrics_config, tier="session", normalize=normalize)
 
 
-def load_corpus_modules(
-    score_config: Sequence[Dict[str, Any]],
+def load_corpus_metrics(
+    metrics_config: Sequence[Dict[str, Any]],
     normalize: Optional[Sequence[Dict[str, Any]]] = None,
 ) -> Dict[str, Dict[str, Any]]:
     """Build the corpus-tier metrics.
@@ -118,59 +118,59 @@ def load_corpus_modules(
     None exist yet; :mod:`splet.corpus_metrics` documents the contract they
     will follow.
     """
-    return load_score_modules(score_config, tier="corpus", normalize=normalize)
+    return load_metrics(metrics_config, tier="corpus", normalize=normalize)
 
 
-def list_scoring(
+def measure_utterances(
     pred_texts: Dict[str, str],
-    score_modules: Dict[str, Dict[str, Any]],
+    metrics: Dict[str, Dict[str, Any]],
     gt_texts: Optional[Dict[str, str]] = None,
     output_file: Optional[str] = None,
 ) -> List[Dict[str, Any]]:
-    """Score every utterance with every utterance-tier metric.
+    """Measure every utterance with every utterance-tier metric.
 
     Args:
         pred_texts: Utterance id to hypothesis text.
-        score_modules: From :func:`load_score_modules`.
+        metrics: From :func:`load_metrics`.
         gt_texts: Utterance id to reference text.
         output_file: Where to write one JSON object per utterance. The file
-            is written as scoring proceeds, so a crash halfway through still
-            leaves the scores computed so far.
+            is written as measurement proceeds, so a crash halfway through still
+            leaves the results computed so far.
 
     Returns:
         One result dict per utterance, each carrying its ``key``.
 
     Raises:
-        KeyError: If a hypothesis has no reference. Scoring the utterances
+        KeyError: If a hypothesis has no reference. Measuring the utterances
             that happen to match and reporting the average would silently
             answer a different question than the one asked.
     """
     handle = open(output_file, "w", encoding="utf-8") if output_file else None
     try:
-        score_info = []
+        results = []
         for key in pred_texts:
             if gt_texts is not None and key not in gt_texts:
                 raise KeyError(f"no reference for hypothesis '{key}'")
-            utt_score: Dict[str, Any] = {"key": key}
-            for name, module in score_modules.items():
-                utt_score.update(
+            utt_result: Dict[str, Any] = {"key": key}
+            for name, module in metrics.items():
+                utt_result.update(
                     module["module"](
-                        module["scorer"],
+                        module["state"],
                         pred_texts[key],
                         gt_texts[key] if gt_texts is not None else None,
                     )
                 )
-            score_info.append(utt_score)
+            results.append(utt_result)
             if handle is not None:
-                handle.write(json.dumps(utt_score, ensure_ascii=False) + "\n")
-        return score_info
+                handle.write(json.dumps(utt_result, ensure_ascii=False) + "\n")
+        return results
     finally:
         if handle is not None:
             handle.close()
 
 
-def session_scoring(*args, **kwargs):
-    """Score every session. No session-tier metric exists yet.
+def measure_sessions(*args, **kwargs):
+    """Measure every session. No session-tier metric exists yet.
 
     Raises:
         NotImplementedError: Always. See :mod:`splet.session_metrics` for the
@@ -181,8 +181,8 @@ def session_scoring(*args, **kwargs):
     )
 
 
-def corpus_scoring(*args, **kwargs):
-    """Score the corpus as a whole. No corpus-tier metric exists yet.
+def measure_corpus(*args, **kwargs):
+    """Measure the corpus as a whole. No corpus-tier metric exists yet.
 
     Raises:
         NotImplementedError: Always. See :mod:`splet.corpus_metrics` for the
@@ -193,7 +193,7 @@ def corpus_scoring(*args, **kwargs):
     )
 
 
-def load_summary(score_info: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
+def summarize(results: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
     """Summarize per-utterance results into corpus figures.
 
     Counts are summed. An error rate is recomputed from the summed counts --
@@ -202,21 +202,21 @@ def load_summary(score_info: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
     length. Anything else numeric is averaged. Text keys are skipped.
 
     Args:
-        score_info: Per-utterance results from :func:`list_scoring`.
+        results: Per-utterance results from :func:`measure_utterances`.
 
     Returns:
         The corpus figures, plus ``num_utterances``.
     """
-    if not score_info:
+    if not results:
         return {"num_utterances": 0}
 
-    keys = [key for key in score_info[0] if key != "key"]
-    summary: Dict[str, Any] = {"num_utterances": len(score_info)}
+    keys = [key for key in results[0] if key != "key"]
+    summary: Dict[str, Any] = {"num_utterances": len(results)}
 
     for key in keys:
         if metric_keys.is_str_key(key):
             continue
-        values = [score[key] for score in score_info if key in score]
+        values = [result[key] for result in results if key in result]
         if metric_keys.is_count_key(key):
             summary[key] = sum(values)
         elif (
@@ -224,10 +224,10 @@ def load_summary(score_info: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
             and f"{key}{metric_keys.REF_LEN_SUFFIX}" in keys
         ):
             errors = sum(
-                score[f"{key}{metric_keys.ERROR_SUFFIX}"] for score in score_info
+                result[f"{key}{metric_keys.ERROR_SUFFIX}"] for result in results
             )
             ref_len = sum(
-                score[f"{key}{metric_keys.REF_LEN_SUFFIX}"] for score in score_info
+                result[f"{key}{metric_keys.REF_LEN_SUFFIX}"] for result in results
             )
             summary[key] = errors / ref_len if ref_len else 0.0
         else:

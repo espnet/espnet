@@ -10,22 +10,22 @@ own repository and PyPI distribution without changing a single import path.
 See ``splet/README.md``.
 """
 
-from splet.scorer_shared import (  # noqa: F401
-    corpus_scoring,
-    list_scoring,
-    load_corpus_modules,
-    load_score_modules,
-    load_session_modules,
-    load_summary,
-    session_scoring,
+from splet.metric_registry import (  # noqa: F401
+    load_corpus_metrics,
+    load_metrics,
+    load_session_metrics,
+    measure_corpus,
+    measure_sessions,
+    measure_utterances,
+    summarize,
 )
 
 __all__ = [
-    "corpus_scoring",
-    "list_scoring",
-    "load_corpus_modules",
-    "load_score_modules",
-    "load_session_modules",
-    "load_summary",
-    "session_scoring",
+    "measure_corpus",
+    "measure_utterances",
+    "load_corpus_metrics",
+    "load_metrics",
+    "load_session_metrics",
+    "summarize",
+    "measure_sessions",
 ]

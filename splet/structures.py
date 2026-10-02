@@ -3,7 +3,7 @@
 # Copyright 2026 ESPnet Developers
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-"""The structured-text types SPLET scores.
+"""The structured-text types SPLET measures.
 
 VERSA has no equivalent module because audio is always the same shape: a
 waveform and a sample rate. Text is not. A single ESPnet3 system may emit a
@@ -80,7 +80,7 @@ class Session:
             sep: Separator placed between turns.
 
         Returns:
-            The concatenated transcript. This is what cpWER scores, and the
+            The concatenated transcript. This is what cpWER measures, and the
             reason concatenation lives here rather than in a metric: every
             long-form metric needs it and they must all do it identically.
         """

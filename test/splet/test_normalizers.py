@@ -53,7 +53,7 @@ def test_config_is_kept_verbatim():
     normalizer = build_normalizer(config)
     assert normalizer.config == config
     # A copy, so that mutating the caller's config cannot change what a
-    # reported score claims it was produced with.
+    # reported result claims it was produced with.
     config[0]["keep"] = ""
     assert normalizer.config[0]["keep"] == "'"
 
@@ -69,6 +69,6 @@ def test_step_without_a_name_is_rejected():
 
 
 def test_whisper_normalization_refuses_rather_than_approximating():
-    """A wrong normalizer is worse than a missing one: it moves every score."""
+    """A wrong normalizer is worse than a missing one: it moves every result."""
     with pytest.raises(NotImplementedError, match="not implemented"):
         build_normalizer([{"name": "whisper"}])

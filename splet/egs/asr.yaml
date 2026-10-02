@@ -1,8 +1,8 @@
-# Conventional ASR scoring: WER and CER over pre-segmented utterances.
+# Conventional ASR evaluation: WER and CER over pre-segmented utterances.
 #
 # A config is either a bare list of metrics, exactly as in VERSA, or -- as
 # here -- a mapping whose `normalize:` pipeline applies to every metric that
-# does not override it. The pipeline is part of the result: a score reported
+# does not override it. The pipeline is part of the result: a figure reported
 # without the normalization that produced it cannot be reproduced.
 
 normalize:

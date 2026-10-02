@@ -3,10 +3,10 @@
 # Copyright 2026 ESPnet Developers
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-"""The ``splet-score`` command.
+"""The ``splet-measure`` command.
 
 Deliberately the same shape as ``versa-score``: ``--pred`` and ``--gt``
-carry the two sides, ``--score_config`` names a YAML list of metrics,
+carry the two sides, ``--metrics_config`` names a YAML list of metrics,
 ``--output_file`` receives one JSON object per utterance, and ``--io``
 selects how the inputs are read. A recipe that already knows how to call
 VERSA for its audio can call SPLET for its text without learning a second
@@ -14,6 +14,10 @@ convention.
 
 ``--hyp`` and ``--ref`` are accepted as aliases, because that is what the
 text side of the field calls these two files.
+
+The command is ``measure``, after espnet3's stage of the same name, and not
+``score``: in ESPnet a scorer is a beam-search component, and the word is
+avoided throughout SPLET for that reason.
 """
 
 from __future__ import annotations
@@ -26,11 +30,11 @@ from typing import Optional, Sequence
 
 import yaml
 
-from splet.scorer_shared import (
+from splet.metric_registry import (
     METRIC_CHOICES,
-    list_scoring,
-    load_score_modules,
-    load_summary,
+    load_metrics,
+    measure_utterances,
+    summarize,
 )
 from splet.utils_shared import IO_CHOICES, text_loader_setup
 
@@ -54,7 +58,11 @@ def get_parser() -> argparse.ArgumentParser:
         help="Reference text, in the same format as --pred.",
     )
     parser.add_argument(
-        "--score_config", type=str, default=None, help="Configuration of Score Config"
+        "--metrics_config",
+        type=str,
+        default=None,
+        help="YAML list of metrics, optionally under `metrics:` with a shared "
+        "`normalize:` pipeline.",
     )
     parser.add_argument(
         "--output_file",
@@ -95,7 +103,7 @@ def _configure_logging(verbose: int) -> None:
 
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
-    """Score a hypothesis file against a reference file.
+    """Measure a hypothesis file against a reference file.
 
     Args:
         argv: Command line arguments; ``sys.argv[1:]`` when omitted.
@@ -111,33 +119,33 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             print(f"{name}\t{choice['tier']}")
         return 0
 
-    if args.pred is None or args.score_config is None:
-        logging.error("--pred and --score_config are required")
+    if args.pred is None or args.metrics_config is None:
+        logging.error("--pred and --metrics_config are required")
         return 2
 
-    with open(args.score_config, encoding="utf-8") as handle:
+    with open(args.metrics_config, encoding="utf-8") as handle:
         config = yaml.safe_load(handle)
     # A config may be a bare list of metrics, as in VERSA, or a mapping with
     # a shared `normalize:` pipeline and the list under `metrics:`.
     if isinstance(config, dict):
-        score_config = config.get("metrics", [])
+        metrics_config = config.get("metrics", [])
         normalize = config.get("normalize")
     else:
-        score_config, normalize = config, None
+        metrics_config, normalize = config, None
 
     pred_texts = text_loader_setup(args.pred, args.io)
     gt_texts = text_loader_setup(args.gt, args.io) if args.gt else None
     logging.info("The number of utterances = %d", len(pred_texts))
 
-    score_modules = load_score_modules(score_config, normalize=normalize)
-    if not score_modules:
-        logging.error("no utterance-level scoring function is provided")
+    metrics = load_metrics(metrics_config, normalize=normalize)
+    if not metrics:
+        logging.error("no utterance-level metric is configured")
         return 2
 
-    score_info = list_scoring(
-        pred_texts, score_modules, gt_texts, output_file=args.output_file
+    results = measure_utterances(
+        pred_texts, metrics, gt_texts, output_file=args.output_file
     )
-    summary = load_summary(score_info)
+    summary = summarize(results)
     logging.info("Summary: %s", summary)
     print(json.dumps(summary, ensure_ascii=False, indent=2))
     return 0

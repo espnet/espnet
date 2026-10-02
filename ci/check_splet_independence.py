@@ -47,14 +47,14 @@ FORBIDDEN = {
     "pytorch_lightning": "a text evaluator does not need a training framework",
     "hydra": "SPLET is configured by a plain YAML list, as VERSA is",
     "omegaconf": "SPLET is configured by a plain YAML list, as VERSA is",
-    "espnet_model_zoo": "SPLET scores text it is given; it does not load models",
+    "espnet_model_zoo": "SPLET measures text it is given; it does not load models",
 }
 
 # Third-party packages splet may import. Anything here is either in the
 # `splet` extra of pyproject.toml or imported behind a try/except that names
 # the package to install.
 ALLOWED_THIRD_PARTY = {
-    "yaml",  # required: the score config
+    "yaml",  # required: the metrics config
     "rapidfuzz",  # optional: linear-memory alignment
     "scipy",  # optional: the assignment step of speaker-permuted metrics
     "sacrebleu",  # optional: MT metrics, once the corpus tier has them
