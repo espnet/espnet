@@ -645,3 +645,43 @@ def _never_called(*args, **kwargs):  # pragma: no cover - the point is that it i
         "AutoProcessor builds the image and video processors too; the audio "
         "path needs AutoFeatureExtractor"
     )
+
+
+class TestContinuousAudioIOEncodeBatch:
+    """What `get_audio_features` hands back, which is not always a tensor."""
+
+    def _io(self, features):
+        with patch.object(ContinuousAudioIO, "_init_encoder"):
+            io = ContinuousAudioIO(
+                encoder_choice="huggingface",
+                encoder_hf_model_tag="Qwen/Qwen3-Omni-30B-A3B-Instruct",
+            )
+        io.sample_rate = 16000
+        io.hop_length = 160
+        io.model = types.SimpleNamespace(
+            get_audio_features=lambda data, feature_attention_mask: features
+        )
+        io.find_length = lambda _, length: length
+        return io
+
+    def test_a_model_output_is_unwrapped(self):
+        """Qwen3-Omni returns BaseModelOutputWithPooling, not a tensor.
+
+        Calling `.split()` on it raises, which is what stops audio input
+        from reaching the model at all.
+        """
+        states = torch.zeros(6, 8)
+        wrapped = types.SimpleNamespace(last_hidden_state=states)
+        io = self._io(wrapped)
+
+        out = io.encode_batch(torch.zeros(2, 4, 1), torch.tensor([2, 4]))
+
+        assert len(out) == 2
+        assert out[0].shape == (2, 8)
+
+    def test_a_tensor_is_taken_as_it_is(self):
+        io = self._io(torch.zeros(6, 8))
+
+        out = io.encode_batch(torch.zeros(2, 4, 1), torch.tensor([2, 4]))
+
+        assert len(out) == 2

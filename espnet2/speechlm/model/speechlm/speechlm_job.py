@@ -203,6 +203,8 @@ class SpeechLMJobTemplate(AbsJobTemplate):
             model_hf_tag=model_config["model_hf_tag"],
             multimodal_io=self.multimodal_io,
             vocab_meta=self.vocab_meta,
+            # the Flash Attention requirement is training's; see parallel.py
+            is_train=self.is_train,
             **model_config["model_conf"],
         )
         if not pp_enabled:

@@ -1025,6 +1025,12 @@ class ContinuousAudioIO(AbsIO):
             batch_data,
             feature_attention_mask=mask,
         )
+        # Qwen3-Omni returns a BaseModelOutputWithPooling here rather than a
+        # tensor, on the transformers the model cards pin (5.5.4) and on the
+        # one the speechlm extra installs (5.14.1). Take the states out of it
+        # where that is what arrived, so that audio input works on both.
+        if not isinstance(audio_features, torch.Tensor):
+            audio_features = audio_features.last_hidden_state
         # Calculate output lengths after model's downsampling
         output_length = self.find_length(None, length)
         audio_features = audio_features.split(output_length.tolist(), dim=0)

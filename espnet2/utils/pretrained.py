@@ -25,6 +25,8 @@ def download_pretrained(model_tag: str) -> Dict:
     ``<task>_train_config`` / ``<task>_model_file`` pairs these classes take,
     and it has to be loaded through espnet3.
     """
+    _refuse_if_speechlm(model_tag)
+
     try:
         from espnet_model_zoo.downloader import ModelDownloader
     except ImportError:
@@ -42,6 +44,31 @@ def download_pretrained(model_tag: str) -> Dict:
             "its own code)."
         )
     return kwargs
+
+
+def _refuse_if_speechlm(model_tag: str) -> None:
+    """Send a SpeechLM release to the loader that can read it.
+
+    These are published as loose files - a train config, a ``.pt`` holding
+    ``{"module": state_dict}``, decoding configs - rather than as an
+    espnet_model_zoo pack, so the downloader below cannot unpack one and
+    none of these classes can be built from what it would return. Worse,
+    ``espnet/bagpiper-tts-sft`` carries ``text-to-speech`` on the Hub, so
+    ``espnet.load`` infers ``tts`` for it and the failure arrives as a
+    puzzle about Text2Speech. Say so before anything is fetched.
+    """
+    from espnet2.bin.speechlm_inference import RELEASES
+
+    if str(model_tag) not in RELEASES:
+        return
+    raise ModelTagError(
+        f"{model_tag} is a SpeechLM release ("
+        f"{RELEASES[str(model_tag)]['what']}), which is published as loose "
+        "files rather than as an espnet_model_zoo pack. Load it with "
+        "espnet2.bin.speechlm_inference.from_pretrained("
+        f"{str(model_tag)!r}), or address a server with "
+        "espnet2.bin.speechlm_inference.from_server()."
+    )
 
 
 def build_pretrained(
