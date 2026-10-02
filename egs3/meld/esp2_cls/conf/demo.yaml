@@ -1,0 +1,62 @@
+##########################################################
+#                      DEMO SETTING                      #
+##########################################################
+# Common usage:
+#   python run.py --stages pack_demo \
+#       --training_config conf/training.yaml \
+#       --demo_config conf/demo.yaml
+#
+# `pack_model` must have run first: `model.dir_or_tag` points at the bundle it
+# writes.
+
+model:
+  # Point at the published model repo rather than the local `model_pack`: a
+  # local directory is symlinked into the bundle and `upload_demo` resolves it,
+  # which would push the same 366 MB to the Space as well.
+  dir_or_tag: espnet/meld_esp2_cls_wavlm_base_plus
+  # The packed bundle carries this recipe's `dataset/` and `src/` modules, and
+  # loading it imports them.
+  trust_user_code: true
+
+ui:
+  title: MELD speech emotion recognition demo
+  # The TEMPLATE default is `readme.md`, which here is the recipe's own readme
+  # -- download sizes and training commands, not something a demo visitor needs.
+  description: src/demo_description.md
+  outputs:
+    - key: hyp
+      type: text
+      label: "Emotion"
+
+pack:
+  # The TEMPLATE default writes to `demo/` under the recipe, which is not
+  # covered by `.gitignore`'s `egs*/*/*/exp` rule. Keep it beside `model_pack`.
+  out_dir: ${exp_dir}/demo
+  # `train` carries hydra and omegaconf, which espnet3 imports at module
+  # level. The other two are named here rather than taken from the `cls`
+  # extra, because a Space installs espnet from master, where that extra does
+  # not exist yet -- pip drops an unknown extra without saying so.
+  requirements:
+    - espnet[train] @ git+https://github.com/espnet/espnet.git
+    - espnet-s3prl>=2026.5.14
+    - torcheval>=0.0.7
+  readme_context:
+    # `pack_demo` defaults this to the packing interpreter. The dev-setup guide
+    # installs Python 3.11, but `requires-python` is `>=3.12,<3.14`, so a Space
+    # built on 3.11 cannot install espnet at all.
+    python_version: "3.12"
+    emoji: "\U0001f3ad"
+    tags: |-
+      - espnet
+      - espnet3
+      - gradio
+      - audio-classification
+      - speech-emotion-recognition
+
+upload_demo:
+  # Spaces and models are separate namespaces on the Hub, so the Space can
+  # carry the same name as the model it serves.
+  hf_repo: espnet/meld_esp2_cls_wavlm_base_plus
+  # Upload over the Space when it already exists. `delete_patterns` defaults
+  # to ["*"], so a re-run replaces its contents rather than merging into them.
+  update: true

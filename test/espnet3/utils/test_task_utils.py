@@ -1,8 +1,10 @@
 # tests/test_task_utils.py
+import logging
 from argparse import Namespace
 from pathlib import Path
 
 import pytest
+import yaml
 from omegaconf import OmegaConf
 
 from espnet3.utils.config_utils import load_config_with_defaults
@@ -208,3 +210,50 @@ def test_save_espnet_config_flattens_shared_abs_preprocessor(tmp_path):
     assert "dataset: {}" in content
     assert "  preprocessor:" not in content
     assert "text_name: train_text" in content
+
+
+def test_save_espnet_config_inlines_token_list_file(tmp_path):
+    """Ensure a token_list path is replaced by its contents before dumping."""
+    token_list = tmp_path / "token_list"
+    token_list.write_text("neutral\nhappy\n<unk>\n", encoding="utf-8")
+    config = {
+        "model": {"_target_": "espnet2.asr.ctc.CTC"},
+        "token_list": str(token_list),
+    }
+    output_file = tmp_path / "config.yaml"
+
+    save_espnet_config("espnet2.tasks.asr.ASRTask", config, output_file)
+
+    saved = yaml.safe_load(output_file.read_text(encoding="utf-8"))
+    assert saved["token_list"] == ["neutral", "happy", "<unk>"]
+
+
+def test_save_espnet_config_keeps_an_inline_token_list(tmp_path):
+    """Ensure a token_list that is already a list is dumped unchanged."""
+    config = {
+        "model": {"_target_": "espnet2.asr.ctc.CTC"},
+        "token_list": ["<blank>", "a", "b", "c"],
+    }
+    output_file = tmp_path / "config.yaml"
+
+    save_espnet_config("espnet2.tasks.asr.ASRTask", config, output_file)
+
+    saved = yaml.safe_load(output_file.read_text(encoding="utf-8"))
+    assert saved["token_list"] == ["<blank>", "a", "b", "c"]
+
+
+def test_save_espnet_config_warns_on_missing_token_list_file(tmp_path, caplog):
+    """Ensure a path that does not exist warns and is left as it is."""
+    missing = tmp_path / "missing_token_list"
+    config = {
+        "model": {"_target_": "espnet2.asr.ctc.CTC"},
+        "token_list": str(missing),
+    }
+    output_file = tmp_path / "config.yaml"
+
+    with caplog.at_level(logging.WARNING):
+        save_espnet_config("espnet2.tasks.asr.ASRTask", config, output_file)
+
+    assert "token_list path does not exist" in caplog.text
+    saved = yaml.safe_load(output_file.read_text(encoding="utf-8"))
+    assert saved["token_list"] == str(missing)

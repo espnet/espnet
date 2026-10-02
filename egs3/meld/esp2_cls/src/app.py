@@ -7,11 +7,42 @@ import logging
 from pathlib import Path
 
 import gradio as gr
+import librosa
+import numpy as np
 
 from espnet3.publication.demo.session import load_demo_session
 from espnet3.utils.logging_utils import configure_logging
 
 logger = logging.getLogger(__name__)
+
+# The classifier was trained on 16 kHz audio; browsers record at 44.1/48 kHz.
+MODEL_SAMPLING_RATE = 16000
+
+
+def _as_model_audio(value):
+    """Convert one Gradio audio value into a mono 16 kHz float32 waveform.
+
+    ``gr.Audio`` yields ``(sample_rate, samples)`` and the samples are int16
+    for a browser recording, but ``espnet2.bin.cls_inference.Classification``
+    accepts only a float waveform at the model's own rate. Values that are not
+    audio tuples are passed through untouched.
+    """
+    if not (isinstance(value, tuple) and len(value) == 2):
+        return value
+
+    sampling_rate, samples = value
+    samples = np.asarray(samples)
+    if samples.ndim > 1:
+        samples = samples.mean(axis=1)
+    if np.issubdtype(samples.dtype, np.integer):
+        samples = samples.astype(np.float32) / np.iinfo(samples.dtype).max
+    else:
+        samples = samples.astype(np.float32)
+    if sampling_rate != MODEL_SAMPLING_RATE:
+        samples = librosa.resample(
+            samples, orig_sr=sampling_rate, target_sr=MODEL_SAMPLING_RATE
+        )
+    return samples
 
 
 def build_demo(
@@ -32,10 +63,14 @@ def build_demo(
         session.input_specs,
         session.output_specs,
     )
-    inference_fn = session.create_inference_fn(
+    session_inference_fn = session.create_inference_fn(
         session.input_specs,
         session.output_specs,
     )
+
+    def inference_fn(*values):
+        """Normalize Gradio audio values before handing them to the session."""
+        return session_inference_fn(*(_as_model_audio(v) for v in values))
 
     with gr.Blocks(title=session.title) as app:
         if session.title:

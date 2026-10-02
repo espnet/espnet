@@ -227,8 +227,27 @@ def test_demo_main_writes_demo_log(monkeypatch, tmp_path: Path) -> None:
     assert calls["log_dir"] == tmp_path
     assert calls["filename"] == "demo.log"
     assert calls["demo_dir"] == tmp_path
-    assert calls["demo_config_path"] == tmp_path / "demo.yaml"
+    # main() forwards --demo-config untouched. Joining demo_dir here would
+    # prefix a relative --demo-dir twice, since load_demo_session already
+    # resolves a relative config path from demo_dir.
+    assert calls["demo_config_path"] is None
     assert calls["launched"] is True
+
+
+def test_build_demo_default_config_path_stays_relative(monkeypatch) -> None:
+    """The default is relative, so a relative demo_dir is not applied twice."""
+    seen: dict[str, object] = {}
+
+    def fake_load_demo_session(demo_dir, demo_config_path):
+        seen["demo_dir"] = demo_dir
+        seen["demo_config_path"] = demo_config_path
+        raise RuntimeError("stop after the path is resolved")
+
+    monkeypatch.setattr(demo_module, "load_demo_session", fake_load_demo_session)
+    with pytest.raises(RuntimeError, match="stop after"):
+        demo_module.build_demo(Path("bundle"))
+
+    assert seen["demo_config_path"] == Path("demo.yaml")
 
 
 def test_default_text_ui_requires_gradio(monkeypatch) -> None:

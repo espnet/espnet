@@ -48,15 +48,16 @@ model:
 ui:
   app_script: src/app.py
   title: ${set_corpus_and_system:} demo
-  description: README.md
+  description: readme.md
   inputs:
     - key: speech
       type: audio
       label: "Input Audio"
+  # `hyp` is the predicted class label written by the recipe's `build_output`.
   outputs:
     - key: hyp
       type: text
-      label: "Transcription"
+      label: "Predicted class"
 
 ##########################################################
 #                    PACKING SETTING                     #
@@ -96,8 +97,7 @@ pack:
       - espnet
       - espnet3
       - gradio
-      - speech-recognition
-      - automatic-speech-recognition
+      - audio-classification
     hf_repo: ${upload_demo.hf_repo}
     model_ref: ${model.dir_or_tag}
 
