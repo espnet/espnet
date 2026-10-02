@@ -24,7 +24,7 @@ from typing import Any, Mapping, Sequence
 
 import yaml
 from espnet_model_zoo.downloader import ModelDownloader
-from hydra.utils import get_class
+from hydra.utils import get_class, get_object
 from omegaconf import DictConfig, ListConfig, OmegaConf
 
 from espnet3.systems.base.inference_provider import InferenceProvider
@@ -116,9 +116,10 @@ _ALLOWED_TARGET_PREFIXES = (
     "torch.optim.",
 )
 
-# Refused even when a prefix above would admit them. These are redundant while
-# the allowlist stays this narrow; they exist so that widening a prefix later
-# cannot silently re-expose a loader.
+# Refused by name and by resolved identity. The resolved-origin check below
+# already rejects everything outside the allowed namespaces, so this list is
+# defence in depth: it keeps a loader out even if a prefix is widened later or
+# one of these is ever re-exported from an allowed module.
 _DENIED_TARGETS = frozenset(
     {
         "torch.load",
@@ -157,19 +158,46 @@ def _iter_target_strings(config: DictConfig) -> list[str]:
     return targets
 
 
+def _resolved_origin(target: str) -> str | None:
+    """Return ``"<module>.<qualname>"`` for a target, or None if unresolvable.
+
+    Called by :func:`_disallowed_targets`. A dotted path says where a name was
+    written, not what it resolves to: hydra imports the longest importable
+    prefix and then walks attributes, so an allowed module that does
+    ``import os`` turns ``<allowed module>.os.system`` into :func:`os.system`.
+    Resolving tells us where the callable actually comes from.
+    """
+    try:
+        obj = get_object(target)
+    except Exception:
+        return None
+    module = getattr(obj, "__module__", None)
+    qualname = getattr(obj, "__qualname__", None) or getattr(obj, "__name__", None)
+    if not module or not qualname:
+        return None
+    return f"{module}.{qualname}"
+
+
 def _disallowed_targets(config: DictConfig) -> list[str]:
     """Return the ``_target_`` values this loader refuses to instantiate.
 
-    Called by :meth:`InferenceModel.from_packed`. A target is refused when it
-    is explicitly denied, or when it sits outside every allowed namespace --
-    which covers callables already installed in the victim environment, the
-    case a bundled-code check cannot see.
+    Called by :meth:`InferenceModel.from_packed`. Each target is checked twice:
+    once as written, which keeps an untrusted name from being imported at all,
+    and once after resolution, because the written path can reach outside its
+    own namespace through an attribute of an allowed module.
     """
-    disallowed = {
-        target
-        for target in _iter_target_strings(config)
-        if target in _DENIED_TARGETS or not target.startswith(_ALLOWED_TARGET_PREFIXES)
-    }
+    disallowed = set()
+    for target in _iter_target_strings(config):
+        if target in _DENIED_TARGETS or not target.startswith(_ALLOWED_TARGET_PREFIXES):
+            disallowed.add(target)
+            continue
+        origin = _resolved_origin(target)
+        if origin is None:
+            disallowed.add(f"{target} (does not resolve)")
+        elif origin in _DENIED_TARGETS or not origin.startswith(
+            _ALLOWED_TARGET_PREFIXES
+        ):
+            disallowed.add(f"{target} (resolves to {origin})")
     return sorted(disallowed)
 
 

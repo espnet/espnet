@@ -695,3 +695,20 @@ def test_from_packed_allows_disallowed_target_with_trust(tmp_path, mock_build_mo
     """Let an explicitly trusted publisher use any target."""
     bundle_root = _make_pack_dir(tmp_path, model_target="builtins.dict")
     assert InferenceModel.from_packed(bundle_root, trust_user_code=True) is not None
+
+
+def test_from_packed_refuses_alias_through_allowed_module(tmp_path):
+    """Refuse a target that reaches outside its namespace by attribute.
+
+    A dotted path says where a name was written, not what it resolves to.
+    ``espnet3.systems.base.inference_provider`` does ``import os``, so hydra
+    imports that module and walks attributes to reach :func:`os.system` while
+    the written path still starts with an allowed prefix. Checking the text
+    alone is not enough.
+    """
+    bundle_root = _make_pack_dir(
+        tmp_path,
+        model_target="espnet3.systems.base.inference_provider.os.system",
+    )
+    with pytest.raises(ValueError, match="resolves to"):
+        InferenceModel.from_packed(bundle_root, trust_user_code=False)
