@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest
@@ -9,6 +10,7 @@ import yaml
 
 from espnet3.publication import InferenceModel
 from espnet3.publication.inference_model import load_backend
+from espnet3.systems.base import inference_runner
 from espnet3.systems.base.inference_provider import InferenceProvider
 from espnet3.systems.base.inference_runner import InferenceRunner
 
@@ -445,7 +447,7 @@ def test_forward_applies_output_fn(tmp_path, mock_build_model, monkeypatch):
         "espnet3.publication.inference_model._load_output_fn", fake_load
     )
 
-    session = InferenceModel.from_packed(bundle_root)
+    session = InferenceModel.from_packed(bundle_root, trust_user_code=True)
     result = session("hello", idx=42)
 
     assert result["hyp"] == "cfg:hello@cpu"
@@ -472,7 +474,7 @@ def test_forward_passes_idx_to_output_fn(tmp_path, mock_build_model, monkeypatch
         "espnet3.publication.inference_model._load_output_fn", fake_load
     )
 
-    session = InferenceModel.from_packed(bundle_root)
+    session = InferenceModel.from_packed(bundle_root, trust_user_code=True)
     session("x", idx="utt-99")
 
     assert captured == ["utt-99"]
@@ -515,7 +517,7 @@ def test_forward_batch_uses_custom_indices(tmp_path, mock_build_model, monkeypat
         "espnet3.publication.inference_model._load_output_fn", fake_load
     )
 
-    session = InferenceModel.from_packed(bundle_root)
+    session = InferenceModel.from_packed(bundle_root, trust_user_code=True)
     session.forward_batch(["a", "b"], indices=[10, 20])
 
     assert captured == [[10, 20], 10, 20]
@@ -538,7 +540,7 @@ def test_forward_batch_defaults_indices_to_range(
         "espnet3.publication.inference_model._load_output_fn", fake_load
     )
 
-    session = InferenceModel.from_packed(bundle_root)
+    session = InferenceModel.from_packed(bundle_root, trust_user_code=True)
     session.forward_batch(["a", "b", "c"])
 
     assert captured == [[0, 1, 2], 0, 1, 2]
@@ -735,9 +737,7 @@ def test_from_packed_refuses_nested_target(tmp_path):
 
 def test_from_packed_allows_espnet_targets(tmp_path, mock_build_model):
     """Keep loading the targets a published bundle legitimately builds."""
-    bundle_root = _make_pack_dir(
-        tmp_path, model_target="espnet2.bin.asr_inference.Speech2Text"
-    )
+    bundle_root = _make_pack_dir(tmp_path)
     assert InferenceModel.from_packed(bundle_root, trust_user_code=False) is not None
 
 
@@ -793,3 +793,132 @@ def test_load_backend_allows_espnet_targets(tmp_path, mock_build_model):
     """Keep building the models an api system legitimately loads."""
     bundle_root = _make_pack_dir(tmp_path)
     assert load_backend(bundle_root) is not None
+
+
+# ---------------------------------------------------------------------------
+# from_packed - output_fn trust gate (issue #6830)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("output_fn", ["builtins.dict", "os.system", "torch.load"])
+def test_from_packed_refuses_installed_output_fn(tmp_path, mock_build_model, output_fn):
+    """Apply the target policy to an installed output callable."""
+    bundle_root = _make_pack_dir(tmp_path, output_fn=output_fn)
+    with pytest.raises(ValueError, match=output_fn):
+        InferenceModel.from_packed(bundle_root)
+
+
+def test_from_packed_allows_installed_output_fn_with_trust(tmp_path, mock_build_model):
+    """An explicitly trusted output function is loaded and called normally."""
+    bundle_root = _make_pack_dir(tmp_path, output_fn="builtins.dict")
+    session = InferenceModel.from_packed(bundle_root, trust_user_code=True)
+    assert session("hello", idx=42) == {
+        "data": {"speech": "hello"},
+        "model_output": "cfg:hello@cpu",
+        "idx": 42,
+    }
+
+
+def test_from_packed_refuses_output_fn_before_import(
+    tmp_path, mock_build_model, monkeypatch
+):
+    """Do not execute an importable module outside the bundle without trust."""
+    module_name = "publication_output_probe"
+    marker = tmp_path / "imported"
+    (tmp_path / f"{module_name}.py").write_text(
+        "from pathlib import Path\n"
+        f"Path({str(marker)!r}).touch()\n"
+        "def output_fn(*, data, model_output, idx):\n"
+        "    return model_output\n",
+        encoding="utf-8",
+    )
+    monkeypatch.syspath_prepend(str(tmp_path))
+    bundle_root = _make_pack_dir(tmp_path, output_fn=f"{module_name}.output_fn")
+    try:
+        with pytest.raises(ValueError, match=module_name):
+            InferenceModel.from_packed(bundle_root)
+        assert not marker.exists()
+        assert module_name not in sys.modules
+
+        backend = load_backend(bundle_root)
+        assert backend("hello") == "cfg:hello@cpu"
+        assert not marker.exists()
+        assert module_name not in sys.modules
+
+        session = InferenceModel.from_packed(bundle_root, trust_user_code=True)
+        assert marker.exists()
+        assert session("hello") == "cfg:hello@cpu"
+    finally:
+        sys.modules.pop(module_name, None)
+
+
+def test_from_packed_refuses_output_fn_reexported_from_allowed_module(
+    tmp_path, mock_build_model
+):
+    """Check the callable's origin as well as its written namespace."""
+    bundle_root = _make_pack_dir(
+        tmp_path, output_fn="espnet3.systems.base.inference_runner.import_module"
+    )
+    with pytest.raises(ValueError, match="resolves to importlib.import_module"):
+        InferenceModel.from_packed(bundle_root)
+
+
+def test_from_packed_allows_espnet_output_fn(tmp_path, mock_build_model):
+    """Keep loading output functions defined in an allowed namespace."""
+    from espnet3.systems.base.inference_runner import _iter_outputs
+
+    bundle_root = _make_pack_dir(
+        tmp_path, output_fn="espnet3.systems.base.inference_runner._iter_outputs"
+    )
+    session = InferenceModel.from_packed(bundle_root)
+    assert session.output_fn is _iter_outputs
+
+
+@pytest.mark.parametrize("config_key", ["model_target", "output_fn"])
+def test_from_packed_checks_callable_kind_per_key(
+    tmp_path, mock_build_model, monkeypatch, config_key
+):
+    """An allowed function is an output adapter, but not a Hydra component."""
+
+    def build_output(*, data, model_output, idx):
+        return {"input": data, "hyp": model_output, "idx": idx}
+
+    monkeypatch.setattr(build_output, "__module__", inference_runner.__name__)
+    monkeypatch.setattr(
+        inference_runner, "_test_output_fn", build_output, raising=False
+    )
+    path = f"{inference_runner.__name__}._test_output_fn"
+    bundle_root = _make_pack_dir(tmp_path, **{config_key: path})
+
+    if config_key == "model_target":
+        with pytest.raises(ValueError, match="not a class"):
+            InferenceModel.from_packed(bundle_root)
+    else:
+        session = InferenceModel.from_packed(bundle_root)
+        assert session("hello", idx=42) == {
+            "input": {"speech": "hello"},
+            "hyp": "cfg:hello@cpu",
+            "idx": 42,
+        }
+
+
+@pytest.mark.parametrize(
+    "output_fn",
+    [
+        InferenceRunner,
+        SimpleNamespace(
+            __module__=inference_runner.__name__, __name__="non_callable_output"
+        ),
+    ],
+    ids=["class", "non_callable"],
+)
+def test_from_packed_refuses_invalid_output_fn_kind(
+    tmp_path, mock_build_model, monkeypatch, output_fn
+):
+    """An allowed origin does not make classes or non-callable objects adapters."""
+    monkeypatch.setattr(inference_runner, "_test_output_fn", output_fn, raising=False)
+    bundle_root = _make_pack_dir(
+        tmp_path, output_fn=f"{inference_runner.__name__}._test_output_fn"
+    )
+    with pytest.raises(ValueError, match="expected a callable that is not a class"):
+        InferenceModel.from_packed(bundle_root)

@@ -155,7 +155,7 @@ def _iter_target_strings(config: DictConfig) -> list[str]:
 def _resolve_target(target: str):
     """Return ``(object, "<module>.<qualname>")`` for a target, or None.
 
-    Called by :func:`_disallowed_targets`. A dotted path says where a name was
+    Called by :func:`_disallowed_target`. A dotted path says where a name was
     written, not what it resolves to: hydra imports the longest importable
     prefix and then walks attributes, so an allowed module that does
     ``import os`` turns ``<allowed module>.os.system`` into :func:`os.system`.
@@ -173,43 +173,61 @@ def _resolve_target(target: str):
     return obj, f"{module}.{qualname}"
 
 
+def _disallowed_target(target: str, *, require_class: bool) -> str | None:
+    """Return a rejection reason for a path, or None when it is allowed.
+
+    Both kinds of path share the namespace and resolved-origin checks. Check
+    the written name before resolving it, so an untrusted module is never
+    imported. Only the kind check differs: Hydra targets must be classes,
+    while ``output_fn`` must be a callable that is not a class.
+    """
+    if target in _DENIED_TARGETS or not target.startswith(_ALLOWED_TARGET_PREFIXES):
+        return target
+    resolved = _resolve_target(target)
+    if resolved is None:
+        return f"{target} (does not resolve)"
+    obj, origin = resolved
+    if origin in _DENIED_TARGETS or not origin.startswith(_ALLOWED_TARGET_PREFIXES):
+        return f"{target} (resolves to {origin})"
+    if require_class:
+        if not inspect.isclass(obj):
+            return f"{target} (resolves to {origin}, which is not a class)"
+    elif not callable(obj) or inspect.isclass(obj):
+        return (
+            f"{target} (resolves to {origin}, "
+            "expected a callable that is not a class)"
+        )
+    return None
+
+
 def _disallowed_targets(config: DictConfig) -> list[str]:
-    """Return the ``_target_`` values this loader refuses to instantiate.
+    """Return the ``_target_`` and ``output_fn`` paths this loader refuses to load.
 
-    Called by :meth:`InferenceModel.from_packed`. Each target has to clear
-    three things:
-
-    - the name as written, so an untrusted name is never imported at all;
-    - the module the object actually comes from, because the written path can
-      reach outside its own namespace through an attribute of an allowed
-      module (``<allowed module>.os.system``);
-    - being a class.
+    Called by :meth:`InferenceModel.from_packed` and :func:`load_backend`.
+    Each path must pass the same namespace and resolved-origin checks, but
+    ``_target_`` must name a class and ``output_fn`` a non-class callable.
 
     The class requirement is not a claim that every class is safe to
     instantiate. It is narrowing by what published bundles actually do: every
     ``_target_`` in espnet3, egs3 and the tests is a class, so requiring one
     costs nothing in use, while it removes module-level functions as a
     category -- and some of those are not model components at all.
-    ``espnet2.bin.launch.main`` clears both checks above and runs
+    ``espnet2.bin.launch.main`` clears both namespace checks and runs
     ``subprocess.Popen`` with the arguments it is handed.
 
     None of this makes an arbitrary config safe: the arguments passed to an
     allowed class, and OmegaConf resolvers, are a separate surface.
     """
+    targets = [(target, True) for target in _iter_target_strings(config)]
+    output_fn = config.get("output_fn")
+    if isinstance(output_fn, str) and output_fn:
+        targets.append((output_fn, False))
+
     disallowed = set()
-    for target in _iter_target_strings(config):
-        if target in _DENIED_TARGETS or not target.startswith(_ALLOWED_TARGET_PREFIXES):
-            disallowed.add(target)
-            continue
-        resolved = _resolve_target(target)
-        if resolved is None:
-            disallowed.add(f"{target} (does not resolve)")
-            continue
-        obj, origin = resolved
-        if origin in _DENIED_TARGETS or not origin.startswith(_ALLOWED_TARGET_PREFIXES):
-            disallowed.add(f"{target} (resolves to {origin})")
-        elif not inspect.isclass(obj):
-            disallowed.add(f"{target} (resolves to {origin}, which is not a class)")
+    for target, require_class in targets:
+        reason = _disallowed_target(target, require_class=require_class)
+        if reason is not None:
+            disallowed.add(reason)
     return sorted(disallowed)
 
 
@@ -424,9 +442,10 @@ class InferenceModel:
         resolves the inference config against the bundle root, and then
         instantiates :class:`InferenceModel`.
 
-        If the config references modules bundled alongside the model, the load
-        is blocked unless ``trust_user_code=True``. In that case the bundle root
-        is inserted into ``sys.path`` and the config is reloaded so import-based
+        If the config references bundled code, or ``_target_`` or ``output_fn``
+        paths outside the allowed namespaces, the load is blocked unless
+        ``trust_user_code=True``. For trusted bundled code, the bundle root is
+        inserted into ``sys.path`` and the config is reloaded so import-based
         objects resolve against the newly trusted code.
 
         Args:
@@ -434,9 +453,9 @@ class InferenceModel:
                 ``espnet3.utils.publication_utils.pack_model()``. This directory must
                 contain ``conf/inference.yaml`` and any files referenced by
                 that config.
-            trust_user_code: Set to ``True`` to allow importing bundled recipe
-                code from the pack directory. Required when the inference
-                config references modules shipped inside the bundle.
+            trust_user_code: Set to ``True`` to allow bundled recipe code and
+                ``_target_`` or ``output_fn`` paths outside the allowed namespaces.
+                Enable this only if you trust the bundle's publisher.
             device: Where to build the model, such as ``"cpu"`` or
                 ``"cuda:0"``. Takes the place of the packed config's own
                 ``device``; when omitted the provider picks, as the ``infer``
@@ -448,8 +467,9 @@ class InferenceModel:
         Raises:
             FileNotFoundError: If the bundle directory, ``meta.yaml``, or the
                 referenced inference config is missing.
-            ValueError: If the config requires bundled user code but
-                ``trust_user_code`` is ``False``.
+            ValueError: If the config requires bundled code or disallowed
+                ``_target_`` or ``output_fn`` paths, but ``trust_user_code`` is
+                ``False``.
 
         Notes:
             ``meta.yaml`` is treated as the source of truth for locating the
@@ -489,17 +509,17 @@ class InferenceModel:
             )
 
         # The bundled-code check above only sees modules shipped in the bundle.
-        # A ``_target_`` naming something already installed in this environment
-        # passes it untouched, so constrain the targets themselves as well.
+        # A ``_target_`` or ``output_fn`` naming something already installed in
+        # this environment passes it untouched, so constrain those paths as well.
         if not trust_user_code:
             disallowed = _disallowed_targets(inference_config)
             if disallowed:
                 raise ValueError(
-                    "This inference config instantiates targets outside the "
+                    "This inference config references targets outside the "
                     "namespaces a published bundle may build from: "
                     + ", ".join(disallowed)
-                    + ". Hydra executes every `_target_`, so loading this "
-                    "bundle would run them. Set trust_user_code=True only if "
+                    + ". Loading `_target_` or `output_fn` can execute code. "
+                    "Set trust_user_code=True only if "
                     "you trust the publisher of this bundle."
                 )
 
