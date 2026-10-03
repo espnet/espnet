@@ -121,6 +121,42 @@ def load_corpus_metrics(
     return load_metrics(metrics_config, tier="corpus", normalize=normalize)
 
 
+def require_matching_keys(
+    pred_texts: Dict[str, str], gt_texts: Optional[Dict[str, str]]
+) -> None:
+    """Refuse to measure unless every utterance is on both sides.
+
+    Every tier calls this before it looks at any text. A hypothesis without a
+    reference, or a reference without a hypothesis, is a data problem, and
+    dropping either side would change the denominator and improve the result
+    without anyone asking for it. An utterance the system produced nothing for
+    is not a missing hypothesis: it appears in the hypothesis file as its ID
+    with an empty text, and every reference word counts as deleted.
+
+    Args:
+        pred_texts: Utterance id to hypothesis text.
+        gt_texts: Utterance id to reference text, or None when the metrics
+            need no reference.
+
+    Raises:
+        KeyError: Naming the first offending utterance on either side.
+    """
+    if gt_texts is None:
+        return
+    missing = [key for key in gt_texts if key not in pred_texts]
+    if missing:
+        more = f" and {len(missing) - 1} more" if len(missing) > 1 else ""
+        raise KeyError(
+            f"no hypothesis for reference '{missing[0]}'{more}; an utterance the "
+            "system produced nothing for must still appear in the hypothesis "
+            "file with an empty text"
+        )
+    extra = [key for key in pred_texts if key not in gt_texts]
+    if extra:
+        more = f" and {len(extra) - 1} more" if len(extra) > 1 else ""
+        raise KeyError(f"no reference for hypothesis '{extra[0]}'{more}")
+
+
 def measure_utterances(
     pred_texts: Dict[str, str],
     metrics: Dict[str, Dict[str, Any]],
@@ -148,21 +184,11 @@ def measure_utterances(
             is not a missing hypothesis: it appears in the hypothesis file with
             an empty text and every reference word counts as deleted.
     """
-    if gt_texts is not None:
-        missing = [key for key in gt_texts if key not in pred_texts]
-        if missing:
-            raise KeyError(
-                f"no hypothesis for reference '{missing[0]}'"
-                f"{f' and {len(missing) - 1} more' if len(missing) > 1 else ''}; "
-                "an utterance the system produced nothing for must still appear "
-                "in the hypothesis file with an empty text"
-            )
+    require_matching_keys(pred_texts, gt_texts)
     handle = open(output_file, "w", encoding="utf-8") if output_file else None
     try:
         results = []
         for key in pred_texts:
-            if gt_texts is not None and key not in gt_texts:
-                raise KeyError(f"no reference for hypothesis '{key}'")
             utt_result: Dict[str, Any] = {"key": key}
             for name, module in metrics.items():
                 utt_result.update(
@@ -184,6 +210,9 @@ def measure_utterances(
 def measure_sessions(*args, **kwargs):
     """Measure every session. No session-tier metric exists yet.
 
+    When it exists it starts with :func:`require_matching_keys`, as the
+    utterance tier does.
+
     Raises:
         NotImplementedError: Always. See :mod:`splet.session_metrics` for the
             contract this loop will follow.
@@ -195,6 +224,9 @@ def measure_sessions(*args, **kwargs):
 
 def measure_corpus(*args, **kwargs):
     """Measure the corpus as a whole. No corpus-tier metric exists yet.
+
+    When it exists it starts with :func:`require_matching_keys`, as the
+    utterance tier does.
 
     Raises:
         NotImplementedError: Always. See :mod:`splet.corpus_metrics` for the

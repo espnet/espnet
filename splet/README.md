@@ -111,7 +111,7 @@ against the tool it replaces, and any unavoidable difference gets written down.
 
 **Missing is an error; empty is a deletion.** A reference with no hypothesis,
 or a hypothesis with no reference, stops the run with a `KeyError` naming the
-utterance. Dropping either side would change the denominator and improve the
+utterance (`require_matching_keys`, which every tier calls first). Dropping either side would change the denominator and improve the
 result without anyone asking for it. An utterance the system produced nothing
 for is not missing: it appears in the hypothesis file as its ID with an empty
 text (the Kaldi reader accepts that line), and every reference word counts as
