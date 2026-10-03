@@ -1,0 +1,6 @@
+pack_model:
+  include:
+    - ${recipe_dir}/src
+
+upload_model:
+  hf_repo: espnet/librimix_tse_training_td_speakerbeam_16k
