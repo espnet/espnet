@@ -573,7 +573,7 @@ if ! "${skip_upload}"; then
     if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
         log "Stage 10: Upload to huggingface"
         [ -z "${hf_repo}" ] && \
-            log "ERROR: You need to setup the variable hf_repo with the name of the repository located at HuggingFace, follow the following steps described here https://github.com/espnet/espnet/blob/master/CONTRIBUTING.md#132-espnet2-recipes" && \
+            log "ERROR: You need to setup the variable hf_repo with the name of the repository located at HuggingFace, follow the following steps described here https://github.com/espnet/espnet/blob/master/CONTRIBUTING.md#133-publishing-models" && \
         exit 1
         if [ ! -f "${packed_model}" ]; then
             log "ERROR: ${packed_model} does not exist. Please run previous stage first."

@@ -3,7 +3,12 @@ import logging
 import numpy as np
 import pytest
 
-from espnet2.train.preprocessor import CommonPreprocessor, Qwen2AudioPreprocessor
+from espnet2.train.preprocessor import (
+    CommonPreprocessor,
+    Qwen2AudioPreprocessor,
+    S2TCTCPreprocessor,
+    S2TPreprocessor,
+)
 
 
 def _build_preprocessor(**kwargs):
@@ -95,3 +100,30 @@ def test_pretokenized_text_is_passed_through(caplog):
 
     assert out["text"].shape == (600,)
     assert not [r for r in caplog.records if "exceeds" in r.getMessage()]
+
+
+@pytest.mark.parametrize(
+    "preprocessor_class", [S2TPreprocessor, S2TCTCPreprocessor], ids=["s2t", "s2t_ctc"]
+)
+def test_the_s2t_preprocessors_pass_the_augmentation_through(preprocessor_class):
+    # both inherit _speech_process, and neither forwarded the arguments that
+    # turn it on; the CTC one is what OWSM-CTC trains with
+    effects = [[1.0, "speed_perturb", {"factor": 1.1}]]
+    preprocessor = preprocessor_class(
+        train=True,
+        token_type="word",
+        # the symbols these preprocessors look up when they are built
+        token_list=[
+            "<unk>",
+            "hello",
+            "<notimestamps>",
+            "<0.00>",
+            "<30.00>",
+            "<nolang>",
+        ],
+        data_aug_effects=effects,
+        data_aug_num=[1, 1],
+        data_aug_prob=1.0,
+    )
+    assert preprocessor.data_aug is not None
+    assert preprocessor.data_aug_prob == 1.0

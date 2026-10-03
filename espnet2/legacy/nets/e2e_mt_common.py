@@ -8,7 +8,6 @@
 
 from itertools import groupby
 
-import nltk
 import numpy as np
 
 
@@ -79,6 +78,8 @@ class ErrorCalculator(object):
             seq_true_text = "".join(seq_true).replace(self.space, " ")
             seqs_hat.append(seq_hat_text)
             seqs_true.append(seq_true_text)
+        import nltk  # training-time metric; not needed for inference
+
         bleu = nltk.bleu_score.corpus_bleu([[ref] for ref in seqs_true], seqs_hat)
         return bleu * 100
 
@@ -110,6 +111,8 @@ class ErrorCalculator(object):
             seq_true_text = "".join(seq_true).replace(self.space, " ")
             seqs_hat.append(seq_hat_text)
             seqs_true.append(seq_true_text)
+
+        import nltk  # training-time metric; not needed for inference
 
         bleu = nltk.bleu_score.corpus_bleu([[ref] for ref in seqs_true], seqs_hat)
         return bleu

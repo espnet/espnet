@@ -13,11 +13,16 @@ import numpy as np
 import torch
 from omegaconf import ListConfig
 
+from espnet2.torch_utils.device_funcs import is_out_of_memory_error
 from espnet3.parallel.base_runner import BaseRunner, concatenate_shard_files
 from espnet3.parallel.env_provider import EnvironmentProvider
 from espnet3.utils.writer_utils import write_artifact
 
 logger = logging.getLogger(__name__)
+
+# models already reported as not taking a batch, so that a long test set
+# does not repeat the warning once per batch
+_WARNED_UNBATCHED: set = set()
 
 
 def _normalize_key_list(keys) -> List[str]:
@@ -26,6 +31,17 @@ def _normalize_key_list(keys) -> List[str]:
     if isinstance(keys, (list, tuple, ListConfig)):
         return list(keys)
     return [keys]
+
+
+def _input_lengths(inputs_dict: Dict[str, List[Any]]) -> Dict[str, List[Any]]:
+    """Length of every array-like input, per key, for an error message."""
+    lengths = {}
+    for key, values in inputs_dict.items():
+        lengths[key] = [
+            (v.shape[0] if hasattr(v, "shape") and len(v.shape) > 0 else None)
+            for v in values
+        ]
+    return lengths
 
 
 def _iter_outputs(result: Any) -> List[Dict[str, Any]]:
@@ -274,10 +290,42 @@ class InferenceRunner(BaseRunner):
                 return model_output
             return output_fn(data=data_batch, model_output=model_output, idx=indices)
         except Exception as exc:  # noqa: BLE001
-            raise RuntimeError(
-                "Batched inference failed. If your model/output_fn does not "
-                "support batched inputs, set batch_size to None. "
-            ) from exc
+            if is_out_of_memory_error(exc):
+                # the generic advice below would be wrong here: the model does
+                # support batches, the batch was too large
+                raise RuntimeError(
+                    f"Batched inference ran out of memory on {len(indices)} "
+                    f"items (dataset indices {indices}, input lengths "
+                    f"{_input_lengths(inputs_dict)}). Lower `batch_size` in the "
+                    f"inference config (this batch had {len(indices)} items), "
+                    "or sort the test set by length so that long utterances "
+                    "are not padded to each other."
+                ) from exc
+            # Not every model or output_fn takes a list. Before giving up, run
+            # the same items one at a time: that keeps `batch_size` safe to set
+            # for every model, and only the speed differs.
+            try:
+                outputs = [
+                    InferenceRunner.forward(i, dataset=dataset, model=model, **kwargs)
+                    for i in indices
+                ]
+            except Exception:  # noqa: BLE001
+                raise RuntimeError(
+                    "Batched inference failed, and so did running the same items "
+                    "one at a time; the second traceback is the one to read."
+                ) from exc
+            name = type(model).__name__
+            if name not in _WARNED_UNBATCHED:
+                _WARNED_UNBATCHED.add(name)
+                logger.warning(
+                    f"{name} or the output_fn did not accept a batch of "
+                    f"{len(indices)} items ({type(exc).__name__}: {str(exc)[:200]}); "
+                    "the items were run one at a time instead. Set `batch_size` "
+                    "to null in the inference config to skip the failed attempt, "
+                    "or make the model and output_fn accept lists to decode in "
+                    "batches."
+                )
+            return outputs
 
     @staticmethod
     def open_writers(
