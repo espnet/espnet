@@ -1,0 +1,102 @@
+##########################################################
+#                    TRAINING SETTING                    #
+##########################################################
+# Quick usage:
+#   python run.py --stages create_dataset --training_config conf/training.yaml
+#   python run.py --stages train          --training_config conf/training.yaml
+#
+
+##########################################################
+#                  SYSTEM AND PATH SETTING               #
+##########################################################
+# `recipe_dir`, `data_dir`, `exp_tag`, `exp_dir`, and `stats_dir` are inherited
+# from the TEMPLATE config. In particular, `exp_tag` follows `${self_name:}`.
+
+##########################################################
+#                    DATASET DEFINITION                  #
+##########################################################
+# This recipe uses `${recipe_dir}/dataset/__init__.py` in the same way as
+# `mini_an4`, so `data_src` is omitted and only `data_src_args` is forwarded.
+dataset:
+  train:
+    - data_src_args:
+        split: train-clean-100
+  valid:
+    - data_src_args:
+        split: dev-clean
+    - data_src_args:
+        split: dev-other
+
+
+create_dataset:
+  recipe_dir: ${recipe_dir}
+
+##########################################################
+#                      MODEL SETTING                     #
+##########################################################
+model:
+  _target_: egs3.librispeech_100.asr.src.granite_speech.GraniteSpeechModel
+  model_tag_or_path: ibm-granite/granite-speech-4.1-2b
+  user_prompt: "<|audio|>transcribe the speech with proper punctuation and capitalization."
+
+##########################################################
+#            OPTIMIZER & SCHEDULER SETTING               #
+##########################################################
+optimizer:
+  _target_: torch.optim.Adam
+  lr: 3e-5
+  weight_decay: 0.000001
+
+scheduler:
+  _target_: espnet2.schedulers.warmup_lr.WarmupLR
+  warmup_steps: 15000
+
+##########################################################
+#                OTHER TRAINING SETTING                  #
+##########################################################
+best_model_criterion:
+  - - valid/loss
+    - 3
+    - min
+
+##########################################################
+#                   DATALOADER SETTING                   #
+##########################################################
+dataloader:
+  collate_fn:
+    _target_: egs3.librispeech_100.asr.src.granite_speech.GraniteSpeechCollateFn
+    model_tag_or_path: ${model.model_tag_or_path}
+    user_prompt: ${model.user_prompt}
+  train:
+    iter_factory:
+      num_workers: 4
+      batches:
+        type: sorted
+        shape_files:
+          - ${stats_dir}/train/feats_shape
+        batch_size: 8
+        batch_bins: 12000000
+
+##########################################################
+#                    TRAINER SETTING                     #
+##########################################################
+trainer:
+  accumulate_grad_batches: 4
+  check_val_every_n_epoch: 1
+  gradient_clip_val: 1.0
+  log_every_n_steps: 100
+  max_epochs: 200
+  precision: bf16-mixed
+
+  logger:
+    - _target_: lightning.pytorch.loggers.TensorBoardLogger
+      save_dir: ${exp_dir}/tensorboard
+      name: tb_logger
+
+  strategy: auto
+
+  callbacks:
+    - _target_: espnet3.components.callbacks.hf_callbacks.HFCheckpointSaveCallback
+      dirpath: ${exp_dir}/hf
+
+fit: {}

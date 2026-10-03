@@ -2,10 +2,7 @@ import pytest
 import torch
 from omegaconf import OmegaConf
 
-from espnet3.components.modeling.optimization_spec import (
-    OptimizerSpec,
-    SchedulerSpec,
-)
+from espnet3.components.modeling.optimization_spec import OptimizerSpec, SchedulerSpec
 
 
 def test_optimizer_spec_from_config_requires_optimizer():
