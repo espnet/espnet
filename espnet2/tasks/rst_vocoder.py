@@ -223,17 +223,31 @@ class RestorationVocoderTask(AbsTask):
         prefix = "ssl_encoder."
         state = {k[len(prefix) :]: v for k, v in state.items() if k.startswith(prefix)}
         missing, unexpected = encoder.load_state_dict(state, strict=False)
-        # LoRA B is zero-initialised, so a student whose adapter failed to
-        # load is indistinguishable from the base model at run time: it
-        # trains, it just trains against the wrong features. Refuse instead.
-        loaded_lora = [k for k in state if "lora_" in k]
-        missing_lora = [k for k in missing if "lora_" in k]
-        if not loaded_lora or missing_lora:
-            raise RuntimeError(
-                f"{path} does not hold the LoRA adapter this encoder expects "
-                f"(loaded {len(loaded_lora)}, missing {len(missing_lora)}); "
-                f"use the stage-1 checkpoint with matching lora_rank/lora_alpha"
-            )
+        if any("lora_" in k for k in encoder.state_dict()):
+            # LoRA B is zero-initialised, so a student whose adapter failed to
+            # load is indistinguishable from the base model at run time: it
+            # trains, it just trains against the wrong features. Refuse instead.
+            loaded_lora = [k for k in state if "lora_" in k]
+            missing_lora = [k for k in missing if "lora_" in k]
+            if not loaded_lora or missing_lora:
+                raise RuntimeError(
+                    f"{path} does not hold the LoRA adapter this encoder expects "
+                    f"(loaded {len(loaded_lora)}, missing {len(missing_lora)}); "
+                    f"use the stage-1 checkpoint with matching lora_rank/lora_alpha"
+                )
+        else:
+            # lora_rank 0: a merged predictor (rst_merge_lora). With no adapter
+            # to tell a trained student from an untrained one, every student
+            # weight has to come from the checkpoint, and an unmerged
+            # checkpoint must not be half-loaded into it.
+            missing_student = [k for k in missing if k.startswith("student.")]
+            if missing_student or any("lora_" in k for k in state):
+                raise RuntimeError(
+                    f"{path} is not a merged predictor for this lora_rank 0 "
+                    f"encoder ({len(missing_student)} student tensors missing); "
+                    f"merge it with espnet2.bin.rst_merge_lora or set lora_rank "
+                    f"to the one it was trained with"
+                )
         if unexpected:
             logger.warning("ignored %d unexpected tensors in %s", len(unexpected), path)
         logger.info("loaded frozen feature predictor from %s", path)
