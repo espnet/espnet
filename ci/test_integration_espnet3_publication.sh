@@ -46,7 +46,7 @@ class DemoTestProvider:
         _ = config
 
         def model(speech):
-            return {"hyp": f"speech={int(speech is not None)}"}
+            return {"text": f"speech={int(speech is not None)}"}
 
         return model
 EOF
@@ -77,7 +77,7 @@ class DemoTestProvider:
 
         def model(speech, image):
             return {
-                "hyp": (
+                "text": (
                     f"speech={int(speech is not None)} "
                     f"image={int(image is not None)}"
                 )
