@@ -10,7 +10,9 @@ stop_stage=12
 ngpu=4
 nj=64
 python=python3
-config=conf/train.yaml
+# Feature-predictor training config. Not "config": utils/parse_options.sh
+# sources a file passed as --config as shell.
+fp_config=conf/train.yaml
 decode_config=conf/decode.yaml
 expdir=exp/rst_w2v_bert2
 # Stage 6 merges the LoRA adapter into the predictor's weights; the merged
@@ -88,7 +90,7 @@ fi
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     log "Stage 4: collect feature-predictor statistics"
     ${python} -m espnet2.bin.rst_train \
-        --config ${config} \
+        --config ${fp_config} \
         --train_data_path_and_name_and_type data/train_fp_16k/wav.scp,speech_ref1,sound \
         --valid_data_path_and_name_and_type data/dev_fp_16k/wav.scp,speech_ref1,sound \
         --output_dir ${expdir} --collect_stats true --ngpu 0
@@ -98,7 +100,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     log "Stage 5: train feature predictor"
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
         ${python} -m espnet2.bin.rst_train \
-        --config ${config} \
+        --config ${fp_config} \
         --train_data_path_and_name_and_type data/train_fp_16k/wav.scp,speech_ref1,sound \
         --valid_data_path_and_name_and_type data/dev_fp_16k/wav.scp,speech_ref1,sound \
         --train_shape_file ${expdir}/train/speech_ref1_shape \

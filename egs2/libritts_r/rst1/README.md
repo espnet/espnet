@@ -22,7 +22,7 @@ Two SSL backbones are supported (`ssl_encoder` in the config), both 1024-d at
 | `w2v_bert2` (default, paper) | w2v-BERT 2.0 | 8 | `facebook/w2v-bert-2.0` | MIT |
 | `xeus` | XEUS (ESPnet E-Branchformer SSL, [Chen et al. 2024](https://arxiv.org/abs/2407.00837)) | block 10 | `espnet/xeus`, loaded with `SSLTask.build_model_from_file` | **CC-BY-NC-SA-4.0** (non-commercial) |
 
-Select XEUS with `--config conf/tuning/train_rst_xeus.yaml` for stage 5 and
+Select XEUS with `--fp_config conf/tuning/train_rst_xeus.yaml` for stage 5 and
 pass the same `ssl_encoder` / `ssl_encoder_conf` to the vocoder configs (stages
 8-9); inference reads the encoder type from the training config.
 
