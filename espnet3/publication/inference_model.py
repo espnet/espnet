@@ -157,7 +157,13 @@ def _resolve_packed_config(pack_dir: str | Path) -> tuple[Path, Path]:
 
 
 def _provider_class(config: DictConfig):
-    """Return the provider class the packed config names, or the default."""
+    """Return the provider class the packed config names, or the default.
+
+    The default is for backward compatibility: bundles packed before
+    ``provider`` was recorded in ``conf/inference.yaml`` name none, and
+    were built with :class:`InferenceProvider`. A bundle packed today
+    always names its provider.
+    """
     target = getattr(getattr(config, "provider", None), "_target_", None)
     return get_class(target) if target else InferenceProvider
 

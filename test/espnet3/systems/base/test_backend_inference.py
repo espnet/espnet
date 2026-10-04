@@ -29,8 +29,8 @@ def test_a_built_backend_is_kept_and_no_class_is_needed():
 def test_the_rate_is_read_off_the_backend_in_order():
     assert Wrapped(SimpleNamespace(sample_rate=8000)).sample_rate == 8000
     assert Wrapped(SimpleNamespace(fs="22.05k")).sample_rate == 22050
+    # a toolkit's config layout is the system's knowledge, not the base's
     args = SimpleNamespace(frontend_conf={"fs": "16k"})
-    assert Wrapped(SimpleNamespace(tts_train_args=args)).sample_rate == 16000
-    for silent in (SimpleNamespace(), object()):
+    for silent in (SimpleNamespace(), object(), SimpleNamespace(tts_train_args=args)):
         with pytest.raises(TypeError, match="cannot tell the rate"):
             Wrapped(silent).sample_rate

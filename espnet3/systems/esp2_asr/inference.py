@@ -88,7 +88,9 @@ class Inference(BackendInference):
         """
         args = getattr(self.backend, "asr_train_args", None)
         if args is None:
-            return super().sample_rate
+            return (
+                super().sample_rate
+            )  # not a Speech2Text: its own attribute, or an error
         conf = getattr(args, "frontend_conf", None) or {}
         return parse_rate(conf.get("fs", DEFAULT_FRONTEND_RATE))
 

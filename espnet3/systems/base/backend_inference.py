@@ -1,10 +1,13 @@
 """An ``Inference`` over one backend object, with the boilerplate done once.
 
-Most systems wrap a single object that does the work - an ESPnet2
-``Speech2Text``, a ``Text2Speech``, a ``SeparateSpeech`` - and would
-otherwise each repeat the same three things: build that object from its
-own arguments or from a published bundle, find the rate it works at, and
-hand it to ``run``. :class:`BackendInference` does those, so a system's
+Many systems wrap a single object that does the work - an ESPnet2
+``Speech2Text``, a ``Text2Speech``, a ``SeparateSpeech``, an F5-TTS or
+kNN-VC model - and would otherwise each repeat the same things: build that
+object from its own arguments or from a published bundle, keep it for
+``run``, and say the rate it works at. Nothing here is specific to one
+toolkit: what a backend's config looks like is the system's knowledge
+(the ESPnet2 ASR system reads ``frontend_conf``), not this class's.
+:class:`BackendInference` does those, so a system's
 ``inference.py`` is its declaration and ``run``::
 
     class Inference(BackendInference):
@@ -156,30 +159,21 @@ class BackendInference(InferenceAPI):
     def sample_rate(self) -> Optional[int]:
         """The rate the backend works at, read off the backend.
 
-        In order: a ``sample_rate`` or ``fs`` attribute; the ESPnet2
-        training config's ``frontend_conf.fs`` (an int or ``"16k"``) on
-        any ``*_train_args`` the backend keeps. There is no default: a
-        guessed rate would be silently wrong for a model at another, so a
-        system whose backend says it some other way overrides this, and
-        one whose backend takes any rate returns ``None`` (``SeparateSpeech``
-        takes ``fs`` per call, so an enhancement system passes
-        ``speech.rate`` through).
+        A ``sample_rate`` or ``fs`` attribute on the backend, when it has
+        one. There is no default and no knowledge of any toolkit's config
+        here: a guessed rate would be silently wrong for a model at
+        another, so a system whose backend says it some other way
+        overrides this (the ESPnet2 ASR system reads its frontend config),
+        and one whose backend takes any rate returns ``None``.
 
         Raises:
-            TypeError: If nothing on the backend says the rate.
+            TypeError: If the backend has neither attribute.
         """
         backend = self.backend
         for name in ("sample_rate", "fs"):
             rate = getattr(backend, name, None)
             if rate:
                 return parse_rate(rate)
-        for name, value in (
-            list(vars(backend).items()) if hasattr(backend, "__dict__") else []
-        ):
-            if name.endswith("_train_args"):
-                conf = getattr(value, "frontend_conf", None) or {}
-                if conf.get("fs"):
-                    return parse_rate(conf["fs"])
         raise TypeError(
             f"{type(self).__qualname__} cannot tell the rate from its backend "
             f"({type(backend).__name__}); override sample_rate, or return None "
