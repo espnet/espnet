@@ -9,9 +9,9 @@ import pytest
 from omegaconf import OmegaConf
 
 from espnet3.api.inference import Audio
-from espnet3.systems.asr.inference import Inference
 from espnet3.systems.base.inference_provider import InferenceProvider
 from espnet3.systems.base.inference_runner import InferenceRunner
+from espnet3.systems.esp2_asr.inference import Inference
 
 
 class FakeSpeech2Text:
@@ -152,7 +152,7 @@ def test_the_infer_stage_provider_builds_it_from_inference_yaml(monkeypatch):
         {
             "device": "cpu",
             "model": {
-                "_target_": "espnet3.systems.asr.inference.Inference",
+                "_target_": "espnet3.systems.esp2_asr.inference.Inference",
                 "asr_train_config": "exp/config.yaml",
                 "asr_model_file": "exp/model.pth",
             },

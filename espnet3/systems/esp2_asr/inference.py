@@ -11,7 +11,7 @@ loading a bundle and the frontend's rate come from
 Examples:
     From a bundle, by directory or Hub tag::
 
-        >>> from espnet3.systems.asr.inference import Inference
+        >>> from espnet3.systems.esp2_asr.inference import Inference
         >>> model = Inference.from_pretrained("exp/train/model_pack")
         >>> model("utt.wav")
         {'text': 'hello world'}
@@ -26,7 +26,7 @@ Examples:
     that class as ``backend_class`` and set ``return_decoded_hyp: true``::
 
         model:
-          _target_: espnet3.systems.asr.inference.Inference
+          _target_: espnet3.systems.esp2_asr.inference.Inference
           asr_train_config: ${exp_dir}/config.yaml
           asr_model_file: ${exp_dir}/valid.acc.ave.pth
           beam_size: 10

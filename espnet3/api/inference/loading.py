@@ -13,7 +13,9 @@ from espnet3.api.inference.base import InferenceAPI
 # A system renamed after bundles were published under its old name: old name
 # to current directory. ``load`` looks the name in ``meta.yaml`` up here, so a
 # rename is one row and every bundle already on the Hub keeps loading.
-SYSTEM_ALIASES: dict[str, str] = {}
+SYSTEM_ALIASES: dict[str, str] = {
+    "asr": "esp2_asr",  # renamed in #6795; bundles packed before say "asr"
+}
 
 
 def locate_pack(tag_or_dir: str | Path) -> Path:

@@ -566,6 +566,7 @@ def test_load_needs_a_system_name_from_somewhere(tmp_path, monkeypatch):
 
 
 def test_load_follows_a_renamed_system(tmp_path, monkeypatch):
+    assert inference_api.SYSTEM_ALIASES["asr"] == "esp2_asr"  # the rename in #6795
     _install_fake_system(monkeypatch, "esp2_echo", Echo)
     monkeypatch.setitem(inference_api.SYSTEM_ALIASES, "echo", "esp2_echo")
     assert isinstance(load(_pack(tmp_path, "echo")), Echo)

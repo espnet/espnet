@@ -79,7 +79,7 @@ class BackendInference(InferenceAPI):
         backend and keeps its arguments::
 
             model:
-              _target_: espnet3.systems.asr.inference.Inference
+              _target_: espnet3.systems.esp2_asr.inference.Inference
               asr_train_config: ${exp_dir}/config.yaml
               asr_model_file: ${exp_dir}/valid.acc.ave.pth
               beam_size: 10
