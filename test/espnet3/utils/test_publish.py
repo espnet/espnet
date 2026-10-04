@@ -1429,3 +1429,15 @@ def test_upload_model_empty_delete_patterns_passes_none(tmp_path, monkeypatch):
     publish.upload_model(system)
 
     assert upload_calls[0]["delete_patterns"] is None
+
+
+def test_meta_records_a_system_only_when_the_task_path_names_one():
+    from omegaconf import OmegaConf
+
+    from espnet3.utils.publication_utils import _system_for_meta
+
+    named = OmegaConf.create({"task": "espnet3.systems.esp2_asr.task.ASRTask"})
+    assert _system_for_meta(named) == "esp2_asr"
+    for task in ("espnet2.tasks.asr.ASRTask", "", None):
+        assert _system_for_meta(OmegaConf.create({"task": task})) is None
+    assert _system_for_meta(OmegaConf.create({})) is None

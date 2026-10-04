@@ -301,6 +301,25 @@ def _infer_system_name(training_config: DictConfig, recipe_root: Path) -> str:
     return recipe_root.name
 
 
+def _system_for_meta(training_config: DictConfig) -> str | None:
+    """Return the system to record in ``meta.yaml``, or ``None`` when there is none.
+
+    ``espnet3.api.inference.load`` imports ``espnet3.systems.<system>``
+    from this value, so only a task path that names a system
+    (``espnet3.systems.esp2_asr.task.ASRTask`` → ``esp2_asr``) yields one.
+    The README label :func:`_infer_system_name` falls back to a class or
+    directory name, which is not an import target.
+    """
+    task_value = getattr(training_config, "task", None)
+    if isinstance(task_value, str) and task_value:
+        parts = task_value.split(".")
+        if "systems" in parts:
+            index = parts.index("systems")
+            if index + 1 < len(parts) - 1:
+                return parts[index + 1]
+    return None
+
+
 def _instantiate_publication_model(training_config: DictConfig):
     """Instantiate the training model for README metadata generation."""
     task = training_config.get("task")
@@ -672,7 +691,7 @@ def pack_model(
         out_dir,
         files=files,
         yaml_files=yaml_files,
-        system=_infer_system_name(training_config, recipe_root),
+        system=_system_for_meta(training_config),
     )
     logger.info("Packed model to %s", out_dir)
     return out_dir

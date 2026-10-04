@@ -182,7 +182,7 @@ def _forward_inference(
     outputs = model.batch(fields) if batched else [model(**fields[0])]
     records = [
         _record(out, data, i, idx_key, copy)
-        for out, data, i in zip(outputs, items, indices)
+        for out, data, i in zip(outputs, items, indices, strict=True)
     ]
     return records if batched else records[0]
 

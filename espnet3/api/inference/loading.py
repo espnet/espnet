@@ -25,6 +25,7 @@ import importlib
 import logging
 import os
 import sys
+import threading
 from pathlib import Path
 from typing import Any, Mapping, Optional
 
@@ -48,6 +49,8 @@ SYSTEM_ALIASES: dict[str, str] = {
 # The default provider's import path. A bundle that names it, or names none,
 # is built here directly; another provider class builds the model itself.
 _DEFAULT_PROVIDER = "espnet3.systems.base.inference_provider.InferenceProvider"
+
+_BUILD_LOCK = threading.Lock()
 
 
 def locate_pack(tag_or_dir: str | Path) -> Path:
@@ -96,7 +99,8 @@ def read_meta(pack_dir: str | Path) -> dict[str, Any]:
         FileNotFoundError: If ``pack_dir`` is not a directory or has no
             ``meta.yaml``.
         ValueError: If the bundle was written by a newer ``pack_model`` than
-            this installation reads (its ``schema_version`` is higher).
+            this installation reads (its ``schema_version`` is higher). An
+            older version loads with a warning.
 
     Examples:
         >>> read_meta("exp/train/model_pack")["system"]
@@ -122,11 +126,19 @@ def read_meta(pack_dir: str | Path) -> dict[str, Any]:
             "Some features may not be available.",
             bundle_root,
         )
-    elif schema != PACK_SCHEMA_VERSION:
+    elif schema > PACK_SCHEMA_VERSION:
         raise ValueError(
             f"Bundle was produced by a newer pack_model "
             f"(schema_version={schema}) than this installation supports. "
             f"Upgrade espnet3."
+        )
+    elif schema < PACK_SCHEMA_VERSION:
+        logger.warning(
+            "Bundle at %s has schema_version %d; this installation writes %d. "
+            "It loads, but newer features may be missing.",
+            bundle_root,
+            schema,
+            PACK_SCHEMA_VERSION,
         )
     return meta
 
@@ -243,13 +255,16 @@ def build_model(config: DictConfig, *, device: Optional[str] = None) -> Any:
     recipe_dir = config.get("recipe_dir", None)
     if not recipe_dir:
         return instantiate(config.model, device=device)
-    cwd = os.getcwd()
-    os.chdir(str(recipe_dir))
-    try:
-        model = instantiate(config.model, device=device)
-        _absolutise_paths(model)  # while the paths still resolve from here
-    finally:
-        os.chdir(cwd)
+    # the working directory is process-wide: one build at a time while it
+    # is moved, so a threaded worker or a server loading two models is safe
+    with _BUILD_LOCK:
+        cwd = os.getcwd()
+        os.chdir(str(recipe_dir))
+        try:
+            model = instantiate(config.model, device=device)
+            _absolutise_paths(model)  # while the paths still resolve from here
+        finally:
+            os.chdir(cwd)
     return model
 
 

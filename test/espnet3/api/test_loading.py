@@ -117,6 +117,18 @@ def test_read_meta_checks_the_directory_and_the_schema(tmp_path, caplog):
         read_meta(_pack(tmp_path, schema=PACK_SCHEMA_VERSION + 1))
 
 
+def test_read_meta_loads_an_older_schema_with_a_warning(tmp_path, caplog):
+    import logging
+
+    with caplog.at_level(logging.WARNING):
+        read_meta(_pack(tmp_path, schema=0))  # legacy: no version at all
+    caplog.clear()
+    with caplog.at_level(logging.WARNING):
+        read_meta(_pack(tmp_path / "b", schema=PACK_SCHEMA_VERSION - 1 or 0))
+    if PACK_SCHEMA_VERSION > 1:
+        assert "this installation writes" in caplog.text
+
+
 def test_read_meta_warns_about_a_legacy_bundle_only(tmp_path, caplog):
     import logging
 
