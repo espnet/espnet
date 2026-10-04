@@ -230,6 +230,16 @@ def test_measure_reads_the_reference_from_the_test_set(tmp_path):
     assert result["test"] == {"n": 3, "refs": ["ref0", "ref1", "ref2"]}
     written = tmp_path / "test" / "dataset" / "text.scp"
     assert written.read_text().splitlines() == ["utt0 ref0", "utt1 ref1", "utt2 ref2"]
+    # a second run reuses the file rather than reading the set again
+    written.write_text("utt0 edited\nutt1 ref1\nutt2 ref2\n")
+    (result,) = measure(metrics_cfg, inference_config=inference_cfg).values()
+    assert result["test"]["refs"][0] == "edited"
+    # a column the set does not have is named, with what it does have
+    missing = OmegaConf.merge(
+        metrics_cfg, {"metrics": [{"inputs": {"ref": "dataset:nope", "hyp": "text"}}]}
+    )
+    with pytest.raises(KeyError, match="has no 'nope'; it has \\['speech', 'text'"):
+        measure(missing, inference_config=inference_cfg)
     # without the inference config there is no test set to read from
     written.unlink()
     with pytest.raises(ValueError, match="needs the inference config"):
