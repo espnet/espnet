@@ -512,8 +512,10 @@ def _write_meta(
     ``system`` to find the ``Inference`` class that serves the bundle.
 
     """
+    from espnet3.publication.schema import PACK_SCHEMA_VERSION
+
     meta = {
-        "schema_version": 1,
+        "schema_version": PACK_SCHEMA_VERSION,
         "system": system,
         "files": files,
         "yaml_files": yaml_files,

@@ -27,6 +27,7 @@ from espnet_model_zoo.downloader import ModelDownloader
 from hydra.utils import get_class
 from omegaconf import DictConfig, ListConfig, OmegaConf, open_dict
 
+from espnet3.publication.schema import PACK_SCHEMA_VERSION
 from espnet3.systems.base.inference_provider import InferenceProvider
 from espnet3.systems.base.inference_runner import InferenceRunner, _load_output_fn
 from espnet3.utils.config_utils import load_config_with_defaults
@@ -131,7 +132,7 @@ def _resolve_packed_config(pack_dir: str | Path) -> tuple[Path, Path]:
             "Some features may not be available.",
             bundle_root,
         )
-    elif schema == 1:
+    elif schema == PACK_SCHEMA_VERSION:
         pass
     else:
         raise ValueError(

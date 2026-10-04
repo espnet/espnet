@@ -53,7 +53,8 @@ def test_first_speaker_of_a_joint_model():
 def test_sample_rate_comes_from_the_frontend_config():
     assert Inference(FakeSpeech2Text(fs="16k")).sample_rate == 16000
     assert Inference(FakeSpeech2Text(fs=8000)).sample_rate == 8000
-    assert Inference(SimpleNamespace()).sample_rate == 16000
+    with pytest.raises(TypeError, match="cannot tell the rate"):
+        Inference(SimpleNamespace()).sample_rate
 
 
 def test_audio_is_resampled_to_the_frontend_rate():

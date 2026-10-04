@@ -19,7 +19,7 @@ from typing import Any
 import numpy as np
 import soundfile as sf
 
-from espnet3.api.inference import Audio, InferenceAPI, load
+from espnet3.api.inference import Audio, BaseInference, load
 from espnet3.publication import InferenceModel
 
 
@@ -136,7 +136,7 @@ def _run_smoke_check(session: InferenceModel, sample: dict[str, Any]) -> None:
     _validate_output(batch_result[0])
 
 
-def _run_api_check(model: InferenceAPI, sample_path: Path) -> None:
+def _run_api_check(model: BaseInference, sample_path: Path) -> None:
     """Check the contract every front end relies on, on a real bundle."""
     result = model(str(sample_path))
     assert isinstance(result["text"], str), result

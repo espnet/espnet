@@ -41,7 +41,31 @@ from espnet3.systems.base.backend_inference import BackendInference
 
 
 class Inference(BackendInference):
-    """Transcribe with an ESPnet2 ASR model."""
+    """Transcribe with an ESPnet2 ASR model.
+
+    Built three ways, all ending in ``self.backend`` (see
+    :class:`BackendInference`):
+
+    - ``Inference.from_pretrained(tag_or_dir, device=...)`` from a
+      ``pack_model`` bundle or Hub tag;
+    - ``Inference(asr_train_config=..., asr_model_file=..., beam_size=...)``
+      from ``Speech2Text``'s own arguments, which is what ``inference.yaml``
+      does, plus ``backend_class=`` for the transducer ``Speech2Text``;
+    - ``Inference(speech2text)`` around one already built.
+
+    Called with one utterance (a path, a ``(rate, samples)`` pair, an array
+    or an :class:`~espnet3.api.inference.Audio`) it returns ``{"text": str}``;
+    ``model.batch(items)`` decodes several in one beam search.
+
+    Examples:
+        >>> model = Inference.from_pretrained("espnet/some_asr_pack")
+        >>> model("utt.wav")
+        {'text': 'hello world'}
+        >>> model.batch([{"speech": "a.wav"}, {"speech": "b.wav"}])
+        [{'text': '...'}, {'text': '...'}]
+        >>> model.sample_rate       # the frontend's rate, read off the config
+        16000
+    """
 
     backend_class = "espnet2.bin.asr_inference.Speech2Text"
     inputs = (Field("speech", "audio", "Speech"),)

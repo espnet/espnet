@@ -53,7 +53,7 @@ holds every such class to one way of fetching a published model.
 
 An ESPnet3 system states the same thing as a contract: its
 `espnet3/systems/<name>/inference.py` defines `Inference`, a subclass of
-`espnet3.api.inference.InferenceAPI` that declares the fields it takes and
+`espnet3.api.inference.BaseInference` that declares the fields it takes and
 returns, and `espnet3.api.inference.load(tag)` finds it from the bundle's
 `meta.yaml`. The system does not name a verb: `transcribe` is the front
 end's word for "audio in, `text` out", and a model that answers a

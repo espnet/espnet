@@ -18,8 +18,8 @@ import torch
 import espnet3.api.inference as inference_api
 from espnet3.api.inference import (
     Audio,
+    BaseInference,
     Field,
-    InferenceAPI,
     check_contract,
     gather,
     load,
@@ -27,7 +27,7 @@ from espnet3.api.inference import (
 )
 
 
-class Echo(InferenceAPI):
+class Echo(BaseInference):
     """A transcriber that reports what it was given."""
 
     inputs = (Field("speech", "audio"), Field("prompt", "text", optional=True))
@@ -47,7 +47,7 @@ class Echo(InferenceAPI):
 
     def run(self, speech: Audio, prompt: str = "") -> dict:
         self.seen = speech
-        return {"text": f"{speech.seconds:.1f}s@{speech.rate}{prompt}", "n": 1}
+        return {"text": f"{speech.duration:.1f}s@{speech.rate}{prompt}", "n": 1}
 
 
 # --- Field and Audio -------------------------------------------------------
@@ -73,7 +73,7 @@ def test_audio_normalises_pcm_and_keeps_the_first_channel():
     assert audio.array.dtype == np.float32
     assert audio.array.shape == (8,)
     assert audio.array[0] == pytest.approx(16384 / 32767)  # channel 0, not the mean
-    assert audio.seconds == pytest.approx(0.001)
+    assert audio.duration == pytest.approx(0.001)
 
 
 def test_audio_takes_channels_on_either_axis():
@@ -91,10 +91,10 @@ def test_audio_rejects_bad_shapes_and_rates():
         Audio(np.zeros(4), 0)
 
 
-def test_audio_to_resamples_only_when_needed():
+def test_audio_resample_only_when_needed():
     audio = Audio(np.zeros(16000, dtype=np.float32), 16000)
-    assert audio.to(16000) is audio
-    assert len(audio.to(8000).array) == 8000
+    assert audio.resample(16000) is audio
+    assert len(audio.resample(8000).array) == 8000
 
 
 def test_audio_coerce_every_shape_a_caller_holds(tmp_path):
@@ -120,37 +120,37 @@ def test_audio_coerce_every_shape_a_caller_holds(tmp_path):
 def test_contract_is_checked_when_the_class_is_defined():
     with pytest.raises(TypeError, match="tuple of Field"):
 
-        class NotFields(InferenceAPI):
+        class NotFields(BaseInference):
             inputs = ["speech"]
             outputs = (Field("text", "text"),)
 
     with pytest.raises(TypeError, match="at least one field"):
 
-        class Nothing(InferenceAPI):
+        class Nothing(BaseInference):
             inputs = ()
             outputs = (Field("text", "text"),)
 
     with pytest.raises(TypeError, match="required fields before optional"):
 
-        class OptionalFirst(InferenceAPI):
+        class OptionalFirst(BaseInference):
             inputs = (Field("prompt", "text", optional=True), Field("speech", "audio"))
             outputs = (Field("text", "text"),)
 
     with pytest.raises(TypeError, match="repeats"):
 
-        class Twice(InferenceAPI):
+        class Twice(BaseInference):
             inputs = (Field("speech", "audio"), Field("speech", "audio", optional=True))
             outputs = (Field("text", "text"),)
 
     with pytest.raises(TypeError, match="optional"):
 
-        class OptionalOut(InferenceAPI):
+        class OptionalOut(BaseInference):
             inputs = (Field("speech", "audio"),)
             outputs = (Field("text", "text", optional=True),)
 
 
 def test_an_intermediate_base_that_declares_nothing_is_allowed():
-    class Base(InferenceAPI):
+    class Base(BaseInference):
         pass
 
     with pytest.raises(TypeError):
@@ -158,7 +158,7 @@ def test_an_intermediate_base_that_declares_nothing_is_allowed():
 
 
 def test_a_conversation_model_declares_no_task():
-    class Chat(InferenceAPI):
+    class Chat(BaseInference):
         inputs = (Field("messages", "text"),)
         outputs = (Field("messages", "text"),)
 
@@ -219,7 +219,7 @@ def test_call_checks_what_run_returns():
 
 
 def test_audio_output_is_wrapped_at_the_model_rate():
-    class Enhancer(InferenceAPI):
+    class Enhancer(BaseInference):
         inputs = (Field("speech", "audio"),)
         outputs = (Field("speech", "audio"),)
 
@@ -238,7 +238,7 @@ def test_audio_output_is_wrapped_at_the_model_rate():
 
 
 def test_segments_output_is_checked():
-    class Aligner(InferenceAPI):
+    class Aligner(BaseInference):
         inputs = (Field("speech", "audio"), Field("text", "text"))
         outputs = (Field("segments", "segments"),)
 
@@ -264,7 +264,7 @@ def test_segments_output_is_checked():
 # --- streaming -------------------------------------------------------------
 
 
-class Counter(InferenceAPI):
+class Counter(BaseInference):
     """An online model: one text piece per audio chunk, and a tail at the end."""
 
     inputs = (Field("speech", "audio"),)
@@ -290,7 +290,7 @@ def test_a_whole_input_model_streams_by_gathering():
     pieces = [{"speech": (8000, np.zeros(4000, dtype=np.float32))} for _ in range(4)]
     out = list(model.stream(pieces))
     assert out == [{"text": "2.0s@8000", "n": 1}]
-    assert model.seen.seconds == 2.0
+    assert model.seen.duration == 2.0
 
 
 def test_an_online_model_answers_a_one_shot_call_by_gathering_its_stream():
@@ -328,7 +328,7 @@ def test_stream_checks_what_run_stream_yields():
 def test_a_system_must_implement_one_of_the_hooks():
     with pytest.raises(TypeError, match="run_stream .* or run"):
 
-        class Neither(InferenceAPI):
+        class Neither(BaseInference):
             inputs = (Field("speech", "audio"),)
             outputs = (Field("text", "text"),)
 
@@ -362,7 +362,7 @@ def test_gather_joins_pieces_by_kind():
 # --- a model that takes any rate -------------------------------------------
 
 
-class AnyRate(InferenceAPI):
+class AnyRate(BaseInference):
     """An enhancer that works at whatever rate the audio comes."""
 
     inputs = (Field("speech", "audio"),)
@@ -398,17 +398,25 @@ def test_a_model_with_no_fixed_rate_sees_each_audio_at_its_own(tmp_path):
 
 
 def test_a_new_kind_is_one_registered_subclass(monkeypatch):
-    from espnet3.api.inference import KINDS, Kind
+    from espnet3.api.inference import KINDS, BaseKind, register_kind
 
-    class Turns(Kind):
+    class Turns(BaseKind):
         def check(self, value, field, model, *, output):
             if not isinstance(value, list):
                 raise TypeError(f"{field.name} must be a list of turns")
             return value
 
-    monkeypatch.setitem(KINDS, "messages", Turns())
+    monkeypatch.delitem(KINDS, "messages", raising=False)
+    register_kind("messages", Turns())
+    with pytest.raises(ValueError, match="already registered"):
+        register_kind("messages", Turns())
+    register_kind("messages", Turns(), replace=True)
+    with pytest.raises(TypeError, match="BaseKind instance"):
+        register_kind("bad", object())
+    monkeypatch.delitem(KINDS, "messages")
+    register_kind("messages", Turns())
 
-    class Chat(InferenceAPI):
+    class Chat(BaseInference):
         inputs = (Field("messages", "messages"),)
         outputs = (Field("messages", "messages"),)
 

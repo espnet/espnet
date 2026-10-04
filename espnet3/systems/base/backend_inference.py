@@ -26,27 +26,19 @@ That class is built three ways, all ending in ``self.backend``:
 - ``Inference(backend)``: one already built.
 
 A system whose model is not one object - a SpeechLM behind a server, a
-pipeline of several - subclasses :class:`InferenceAPI` directly instead.
+pipeline of several - subclasses :class:`BaseInference` directly instead.
 """
 
 from __future__ import annotations
 
-import importlib
 from pathlib import Path
 from typing import Any, ClassVar, Optional
 
 import humanfriendly
+from hydra.utils import get_class
 
-from espnet3.api.inference import InferenceAPI, locate_pack
+from espnet3.api.inference import BaseInference, locate_pack
 from espnet3.publication.inference_model import load_backend
-
-DEFAULT_RATE = 16000
-
-
-def _resolve(dotted: str) -> type:
-    """Import ``package.module.Class`` and return the class."""
-    module_name, _, class_name = dotted.rpartition(".")
-    return getattr(importlib.import_module(module_name), class_name)
 
 
 def _rate(value: Any) -> int:
@@ -56,11 +48,11 @@ def _rate(value: Any) -> int:
     return int(value)
 
 
-class BackendInference(InferenceAPI):
+class BackendInference(BaseInference):
     """The base for a system that wraps one backend object.
 
     A subclass declares ``backend_class``, ``inputs`` and ``outputs`` and
-    implements :meth:`InferenceAPI.run` (or ``run_stream``) over
+    implements :meth:`BaseInference.run` (or ``run_stream``) over
     ``self.backend``; building, loading and the rate are done here.
 
     Args:
@@ -111,7 +103,7 @@ class BackendInference(InferenceAPI):
                     f"{type(self).__qualname__} declares no backend_class; "
                     "pass a built backend or set backend_class"
                 )
-            backend = _resolve(path)(device=device, **kwargs)
+            backend = get_class(path)(device=device, **kwargs)
         elif kwargs or backend_class:
             raise TypeError(
                 f"arguments {sorted(kwargs)} given for building a backend, "
@@ -150,7 +142,7 @@ class BackendInference(InferenceAPI):
         if kwargs:
             raise TypeError(f"unexpected arguments {sorted(kwargs)}")
         built = load_backend(locate_pack(tag_or_dir), device=device)
-        if isinstance(built, InferenceAPI):
+        if isinstance(built, BaseInference):
             # the bundle's inference.yaml names the Inference itself, as a
             # recipe on the APIRunner does: it is the model, not a backend
             if not isinstance(built, cls):
@@ -166,10 +158,15 @@ class BackendInference(InferenceAPI):
 
         In order: a ``sample_rate`` or ``fs`` attribute; the ESPnet2
         training config's ``frontend_conf.fs`` (an int or ``"16k"``) on
-        any ``*_train_args`` the backend keeps; else 16 kHz. Override when
-        the backend says it some other way, and return ``None`` for a
-        backend that takes any rate (``SeparateSpeech`` takes ``fs`` per
-        call, so an enhancement system passes ``speech.rate`` through).
+        any ``*_train_args`` the backend keeps. There is no default: a
+        guessed rate would be silently wrong for a model at another, so a
+        system whose backend says it some other way overrides this, and
+        one whose backend takes any rate returns ``None`` (``SeparateSpeech``
+        takes ``fs`` per call, so an enhancement system passes
+        ``speech.rate`` through).
+
+        Raises:
+            TypeError: If nothing on the backend says the rate.
         """
         backend = self.backend
         for name in ("sample_rate", "fs"):
@@ -183,4 +180,8 @@ class BackendInference(InferenceAPI):
                 conf = getattr(value, "frontend_conf", None) or {}
                 if conf.get("fs"):
                     return _rate(conf["fs"])
-        return DEFAULT_RATE
+        raise TypeError(
+            f"{type(self).__qualname__} cannot tell the rate from its backend "
+            f"({type(backend).__name__}); override sample_rate, or return None "
+            "for a backend that takes any rate"
+        )
