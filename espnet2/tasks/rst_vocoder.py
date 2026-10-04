@@ -1,4 +1,4 @@
-"""Task definition for training the restoration vocoder (recipe stages 7 and 8)."""
+"""Task definition for training the restoration vocoder (recipe stages 8 and 9)."""
 
 import logging
 import random
@@ -34,7 +34,7 @@ class RestorationVocoderCollateFn:
     model resamples on the GPU.
 
     With ``stats_only`` the reference passes through untouched so the shape
-    file collected in stage 6 records true utterance lengths.
+    file collected in stage 7 records true utterance lengths.
     """
 
     def __init__(

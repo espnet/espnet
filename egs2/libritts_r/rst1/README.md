@@ -11,7 +11,7 @@ an `EnhancementTask` model and does not go through the standard `enh.sh`
 driver. The feature predictor is trained by `espnet2.bin.rst_train`
 (`RestorationTask`), which scores predicted SSL features rather than
 waveforms, and the vocoder by `espnet2.bin.rst_vocoder_train`
-(`RestorationVocoderTask`); `run.sh` drives the 11 stages directly because
+(`RestorationVocoderTask`); `run.sh` drives the 12 stages directly because
 the vocoder pretrain/finetune stages sit in the middle of the pipeline.
 
 Two SSL backbones are supported (`ssl_encoder` in the config), both 1024-d at
@@ -24,7 +24,7 @@ Two SSL backbones are supported (`ssl_encoder` in the config), both 1024-d at
 
 Select XEUS with `--config conf/tuning/train_rst_xeus.yaml` for stage 5 and
 pass the same `ssl_encoder` / `ssl_encoder_conf` to the vocoder configs (stages
-7-8); inference reads the encoder type from the training config.
+8-9); inference reads the encoder type from the training config.
 
 ## Extra dependencies
 
@@ -33,14 +33,14 @@ pass the same `ssl_encoder` / `ssl_encoder_conf` to the vocoder configs (stages
 
 | Package | Needed by | Install |
 |---|---|---|
-| `peft` | LoRA adapters on the SSL student (stages 4-5) | `pip install "espnet[rst]"` |
+| `peft` | LoRA adapters on the SSL student (stages 4-6) | `pip install "espnet[rst]"` |
 | `pyroomacoustics` | RIR pool generation (stage 3) | `pip install "espnet[rst]"` |
-| `versa` | VERSA scoring (stage 11) | `tools/installers/install_versa.sh` |
+| `versa` | VERSA scoring (stage 12) | `tools/installers/install_versa.sh` |
 | NISQA *(optional)* | `local/score.py --nisqa_model` | clone [NISQA](https://github.com/gabrielmittag/NISQA), add to `PYTHONPATH` |
 
 `transformers` supplies the w2v-BERT 2.0 backbone, `WavLMForXVector` for
 speaker similarity, and `facebook/mms-1b-all` for WER. All three are fetched
-from the Hub on first use, so stages 4-10 need network access (or a pre-warmed
+from the Hub on first use, so stages 4-11 need network access (or a pre-warmed
 `HF_HOME`) on whichever node runs them.
 
 ## Data
@@ -58,23 +58,32 @@ Set the paths in `db.sh`. `DATASET_LIBRITTS_R` and `LIBRITTS` are mandatory;
 | 3 | Pre-generate the RIR pool (needs `pyroomacoustics`) |
 | 4 | Collect feature-predictor statistics |
 | 5 | Train the feature predictor |
-| 6 | Collect vocoder statistics (48 kHz sets) |
-| 7 | Pretrain the vocoder on ground-truth SSL features of clean speech |
-| 8 | Finetune the vocoder on the stage-5 predictor's features of degraded speech |
-| 9 | Inference with the stage-8 vocoder, or an externally released one (`--external_vocoder`, e.g. the Sidon v0.1 decoder) |
-| 10 | Paper's four metrics: DNSMOS, NISQA, SpkSim, WER (`local/score.py`, dependency-light) |
-| 11 | VERSA scoring, reference-free and reference-based (recommended: same metrics plus UTMOS, SQUIM, PESQ, STOI, SDR/SI-SNR and more in one pass) |
+| 6 | Merge the LoRA adapter into the predictor's weights (`--merge_lora`, default true) |
+| 7 | Collect vocoder statistics (48 kHz sets) |
+| 8 | Pretrain the vocoder on ground-truth SSL features of clean speech |
+| 9 | Finetune the vocoder on the predictor's features of degraded speech |
+| 10 | Inference with the stage-9 vocoder, or an externally released one (`--external_vocoder`, e.g. the Sidon v0.1 decoder) |
+| 11 | Paper's four metrics: DNSMOS, NISQA, SpkSim, WER (`local/score.py`, dependency-light) |
+| 12 | VERSA scoring, reference-free and reference-based (recommended: same metrics plus UTMOS, SQUIM, PESQ, STOI, SDR/SI-SNR and more in one pass) |
 
 ```bash
-./run.sh --stage 1 --stop_stage 8 --ngpu 4 --nj 64     # predictor + vocoder
-./run.sh --stage 9 --stop_stage 11                      # uses exp/rst_vocoder_dac_finetune
+./run.sh --stage 1 --stop_stage 9 --ngpu 4 --nj 64     # predictor + vocoder
+./run.sh --stage 10 --stop_stage 12                     # uses exp/rst_vocoder_dac_finetune
 # or skip vocoder training and use the official decoder
-./run.sh --stage 9 --stop_stage 11 --external_vocoder /path/to/decoder_cuda.pt
+./run.sh --stage 10 --stop_stage 12 --external_vocoder /path/to/decoder_cuda.pt
 ```
+
+Stage 6 runs `espnet2.bin.rst_merge_lora`: it folds the trained LoRA adapter
+into the student's weights, checks on a random input that the merged predictor
+reproduces the adapted one, and writes `exp/rst_w2v_bert2/merged/config.yaml`
+(`lora_rank: 0`) and `model.pth`. Vocoder finetuning (stage 9) and inference
+(stage 10) then load the merged predictor, which computes the same features
+without the adapter's two extra matmuls at every adapted layer. Pass
+`--merge_lora false` to use the stage-5 checkpoint as trained.
 
 ## Vocoder
 
-Stages 7-8 train the same DAC decoder as the official release (52.4M
+Stages 8-9 train the same DAC decoder as the official release (52.4M
 parameters, strides 8-5-4-3-2 = 960x, one 20 ms feature frame to 960 samples
 at 48 kHz) with ESPnet's `GANTrainer`, the multi-period + multi-band STFT
 discriminator from `espnet2.gan_codec` and the mel / adversarial / feature
@@ -83,22 +92,22 @@ sub-discriminators as in DAC). The encoder is frozen in both stages; the
 generator and discriminators run on a 1 s excerpt whose features were computed
 with 8 s of context (`segment_duration`, `context_duration`).
 
-Two vocoders share the stage-7/8 data path and the inference loader; the
+Two vocoders share the stage-8/9 data path and the inference loader; the
 config's `vocoder_type` selects one and `vocoder_conf` configures it.
 
-| `vocoder_type` | Model | Training | Config (stage 7) |
+| `vocoder_type` | Model | Training | Config (stage 8) |
 |---|---|---|---|
 | `dac` (default) | DAC decoder as in the official release, 52.4M | GAN, `rst_vocoder_train` | `train_rst_vocoder_dac_pretrain.yaml` |
 | `hifigan` | ESPnet `HiFiGANGenerator`, 512 channels, 17M | GAN, `rst_vocoder_train` | `train_rst_vocoder_hifigan_pretrain.yaml` |
 
 All models in this recipe are trained from scratch (the SSL backbone is the
 public w2v-BERT 2.0; the LoRA adapter, the vocoder and its discriminator start
-from random initialisation, and stage 8 starts from the recipe's own stage-7
+from random initialisation, and stage 9 starts from the recipe's own stage-8
 checkpoint). The published Sidon weights are never used for training. They can
 be run through the same inference and scoring path for comparison:
 `local/convert_official_sidon.py` and `local/convert_official_sidon_vocoder.py`
 convert the released adapter and the released TorchScript vocoder into
-checkpoints that stage 9 loads like a trained one.
+checkpoints that stage 10 loads like a trained one.
 
 ## Configs
 

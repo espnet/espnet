@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Run an ESPnet restoration model: a feature predictor followed by a vocoder.
 
-The predictor is the stage-5 model (w2v-BERT 2.0 or XEUS student). The vocoder
-is any one trained by recipe stages 7-8 (DAC or HiFi-GAN; --vocoder_train_config,
+The predictor is the stage-5 model (w2v-BERT 2.0 or XEUS student), with its LoRA
+adapter merged by stage 6 (rst_merge_lora) or as trained. The vocoder
+is any one trained by recipe stages 8-9 (DAC or HiFi-GAN; --vocoder_train_config,
 --vocoder_model_file) or a TorchScript decoder such as the released Sidon one
 (--external_vocoder), which is used for comparison only.
 """
@@ -118,7 +119,7 @@ def get_parser():
     parser.add_argument(
         "--vocoder_train_config",
         default=None,
-        help="config.yaml of a vocoder trained by stages 7-8 "
+        help="config.yaml of a vocoder trained by stages 8-9 "
         "(alternative to --external_vocoder)",
     )
     parser.add_argument(
@@ -147,7 +148,7 @@ def _load_vocoder(args, input_dim, device):
     if not all(espnet_args):
         raise ValueError(
             "a vocoder is required: --external_vocoder (released TorchScript) or "
-            "--vocoder_train_config and --vocoder_model_file (stages 7-8)"
+            "--vocoder_train_config and --vocoder_model_file (stages 8-9)"
         )
     import yaml
 

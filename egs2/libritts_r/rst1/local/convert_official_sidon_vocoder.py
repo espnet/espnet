@@ -5,7 +5,7 @@ The release (``sarulab-speech/sidon-v0.1``, MIT) ships the vocoder only as a
 frozen TorchScript graph, ``decoder_{cpu,cuda}.pt``. This script recovers
 the weights into the recipe's ``DACVocoder`` -- the same DAC decoder, so the
 recovery is exact and is verified by running both on the same input -- and
-writes them in the layout of a stage-7/8 checkpoint.
+writes them in the layout of a stage-8/9 checkpoint.
 
 Evaluation only: the converted checkpoint runs the official vocoder through
 the same inference path as a trained one (--vocoder_train_config /
