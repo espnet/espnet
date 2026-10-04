@@ -6,7 +6,7 @@ set -euo pipefail
 . ./db.sh
 
 stage=1
-stop_stage=12
+stop_stage=11
 ngpu=4
 nj=64
 python=python3
@@ -15,25 +15,20 @@ python=python3
 fp_config=conf/train.yaml
 decode_config=conf/decode.yaml
 expdir=exp/rst_w2v_bert2
-# Stage 6 merges the LoRA adapter into the predictor's weights; the merged
-# predictor computes the same features without the adapter's extra matmuls at
-# every adapted layer, and stages 9-10 use it. With false they use the stage-5
-# checkpoint as trained.
-merge_lora=true
-# Vocoder (stages 7-9). Stage 8 pretrains on ground-truth features, stage 9
-# finetunes on the predictor's features. The config's vocoder_type
+# Vocoder (stages 6-8). Stage 7 pretrains on ground-truth features, stage 8
+# finetunes on the stage-5 predictor's features. The config's vocoder_type
 # picks the DAC decoder (default) or ESPnet's HiFi-GAN generator.
 voc_pretrain_config=conf/tuning/train_rst_vocoder_dac_pretrain.yaml
 voc_finetune_config=conf/tuning/train_rst_vocoder_dac_finetune.yaml
 voc_pretrain_exp=exp/rst_vocoder_dac_pretrain
 voc_finetune_exp=exp/rst_vocoder_dac_finetune
-# Stage 9 initialises the generator and the discriminator from the stage-8
+# Stage 8 initialises the generator and the discriminator from the stage-7
 # best checkpoint (this recipe's own run); --vocoder_init/--discriminator_init
 # only point it at a different stage-7 run. Nothing is initialised from the
 # published Sidon weights.
 vocoder_init=
 discriminator_init=
-# Vocoder used at inference: an ESPnet-trained one (default the stage-9
+# Vocoder used at inference: an ESPnet-trained one (default the stage-8
 # best) or, if --external_vocoder is set, an externally released TorchScript
 # decoder such as the Sidon v0.1 one (comparison only).
 vocoder_exp=
@@ -51,17 +46,6 @@ ref_wav_scp=
 . utils/parse_options.sh
 
 log() { echo "[$(date '+%Y-%m-%dT%H:%M:%S')] $*"; }
-
-# The predictor that stages 9 and 10 load.
-if "${merge_lora}"; then
-    predictor_config=${expdir}/merged/config.yaml
-    predictor_model_file=${expdir}/merged/model.pth
-    predictor_lora_opts=(--lora_rank 0)
-else
-    predictor_config=${expdir}/config.yaml
-    predictor_model_file=${expdir}/valid.loss.best.pth
-    predictor_lora_opts=()
-fi
 
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
@@ -112,19 +96,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
 fi
 
 if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
-    if "${merge_lora}"; then
-        log "Stage 6: merge the LoRA adapter into the feature predictor"
-        ${python} -m espnet2.bin.rst_merge_lora \
-            --train_config ${expdir}/config.yaml \
-            --model_file ${expdir}/valid.loss.best.pth \
-            --output_dir ${expdir}/merged
-    else
-        log "Stage 6: skipped (--merge_lora false)"
-    fi
-fi
-
-if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
-    log "Stage 7: collect vocoder statistics"
+    log "Stage 6: collect vocoder statistics"
     ${python} -m espnet2.bin.rst_vocoder_train \
         --config ${voc_pretrain_config} \
         --train_data_path_and_name_and_type data/train_voc/wav.scp,speech_ref1,sound \
@@ -132,8 +104,8 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
         --output_dir ${voc_pretrain_exp} --collect_stats true --ngpu 0
 fi
 
-if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
-    log "Stage 8: pretrain vocoder on ground-truth SSL features"
+if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
+    log "Stage 7: pretrain vocoder on ground-truth SSL features"
     ${cuda_cmd} --gpu ${ngpu} ${voc_pretrain_exp}/train.log \
         ${python} -m espnet2.bin.rst_vocoder_train \
         --config ${voc_pretrain_config} \
@@ -145,19 +117,19 @@ if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
         --multiprocessing_distributed true --unused_parameters true --resume true
 fi
 
-if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
-    log "Stage 9: finetune vocoder on predicted SSL features"
+if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
+    log "Stage 8: finetune vocoder on predicted SSL features"
     vocoder_init=${vocoder_init:-${voc_pretrain_exp}/valid.loss_mel.best.pth}
     discriminator_init=${discriminator_init-${vocoder_init}}
     init_opts=(--init_param "${vocoder_init}:vocoder:vocoder")
     if [ -n "${discriminator_init}" ]; then
         init_opts+=(--init_param "${discriminator_init}:discriminator:discriminator")
     fi
-    # Same utterances as stage 8, so its shape files are reused.
+    # Same utterances as stage 7, so its shape files are reused.
     ${cuda_cmd} --gpu ${ngpu} ${voc_finetune_exp}/train.log \
         ${python} -m espnet2.bin.rst_vocoder_train \
         --config ${voc_finetune_config} \
-        --fp_model_path ${predictor_model_file} "${predictor_lora_opts[@]}" \
+        --fp_model_path ${expdir}/valid.loss.best.pth \
         "${init_opts[@]}" \
         --train_data_path_and_name_and_type data/train_voc/wav.scp,speech_ref1,sound \
         --valid_data_path_and_name_and_type data/dev_voc/wav.scp,speech_ref1,sound \
@@ -167,7 +139,7 @@ if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
         --multiprocessing_distributed true --unused_parameters true --resume true
 fi
 
-if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
+if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
     if [ -n "${external_vocoder}" ]; then
         vocoder_opts=(--external_vocoder "${external_vocoder}")
     else
@@ -175,7 +147,7 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
         vocoder_model_file=${vocoder_model_file:-${vocoder_exp}/valid.loss_mel.best.pth}
         for required_file in "${vocoder_exp}/config.yaml" "${vocoder_model_file}"; do
             [ -f "${required_file}" ] || {
-                log "Missing vocoder file ${required_file}: train one (stages 7-9) or set --external_vocoder"
+                log "Missing vocoder file ${required_file}: train one (stages 6-8) or set --external_vocoder"
                 exit 1
             }
         done
@@ -183,22 +155,22 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
                       --vocoder_model_file "${vocoder_model_file}")
     fi
     for test_set in ${test_sets}; do
-        log "Stage 10: inference (${test_set})"
+        log "Stage 9: inference (${test_set})"
         ${python} -m espnet2.bin.rst_inference \
             --config ${decode_config} \
-            --train_config ${predictor_config} \
-            --model_file ${predictor_model_file} \
+            --train_config ${expdir}/config.yaml \
+            --model_file ${expdir}/valid.loss.best.pth \
             "${vocoder_opts[@]}" \
             --wav_scp data/${test_set}_16k/wav.scp \
             --output_dir ${expdir}/inference_${test_set}
     done
 fi
 
-if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ]; then
+if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
     for test_set in ${test_sets}; do
-        # The paper's four metrics without VERSA; stage 12 (VERSA) covers them
+        # The paper's four metrics without VERSA; stage 11 (VERSA) covers them
         # and more, so this stage can be skipped when VERSA is installed.
-        log "Stage 11: scoring (${test_set})"
+        log "Stage 10: scoring (${test_set})"
         text_opt=()
         if [ -f "data/${test_set}/text" ]; then
             text_opt=(--text "data/${test_set}/text")
@@ -212,13 +184,13 @@ if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ]; then
     done
 fi
 
-if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ]; then
+if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ]; then
     ${python} -c "import versa" || {
-        log "VERSA is required for stage 12; run tools/installers/install_versa.sh"
+        log "VERSA is required for stage 11; run tools/installers/install_versa.sh"
         exit 1
     }
     for test_set in ${test_sets}; do
-        log "Stage 12: VERSA scoring (${test_set})"
+        log "Stage 11: VERSA scoring (${test_set})"
         inf_dir=${expdir}/inference_${test_set}
         eval_dir=${inf_dir}/scoring/versa_eval
         pred_scp=${inf_dir}/wav.scp

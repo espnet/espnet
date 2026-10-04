@@ -7,7 +7,7 @@ Metrics following the paper:
   NISQA   — neural speech quality assessment
   SpkSim  — cosine similarity of speaker embeddings (wavlm-base-plus-sv)
 
-VERSA (recipe stage 12, ``conf/versa_enh.yaml`` reference-free and
+VERSA (recipe stage 11, ``conf/versa_enh.yaml`` reference-free and
 ``conf/versa_enh_ref_based.yaml`` reference-based) scores the same
 restorations with these metrics and many more variants (UTMOS, SQUIM, PESQ,
 STOI, SDR/SI-SNR, ...) in one pass and is the recommended scorer. Keep this
@@ -115,7 +115,7 @@ def compute_nisqa(
     not callable on a path -- and one ``predict_dir`` pass over the directory
     is far cheaper than reloading the model per utterance.
 
-    Returns an empty dict when NISQA is unavailable. VERSA (stage 12) already
+    Returns an empty dict when NISQA is unavailable. VERSA (stage 11) already
     reports neural MOS predictors, so NISQA here is strictly optional.
     """
     if not nisqa_model:

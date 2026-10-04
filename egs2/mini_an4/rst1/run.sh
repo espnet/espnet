@@ -6,7 +6,7 @@ set -u
 set -o pipefail
 
 # The restoration recipe (rst.sh -> egs2/libritts_r/rst1/run.sh) on mini_an4
-# with tiny models, for CI. Stages 11-12 (scoring) download large evaluation
+# with tiny models, for CI. Stages 10-11 (scoring) download large evaluation
 # models and are left out by default.
 ./rst.sh \
     --ngpu 0 \
@@ -20,4 +20,4 @@ set -o pipefail
     --voc_pretrain_exp exp/rst_vocoder_pretrain_debug \
     --voc_finetune_exp exp/rst_vocoder_finetune_debug \
     --test_sets "test" \
-    --stop_stage 10 "$@"
+    --stop_stage 9 "$@"

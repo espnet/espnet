@@ -2,8 +2,8 @@
 """Run an ESPnet restoration model: a feature predictor followed by a vocoder.
 
 The predictor is the stage-5 model (w2v-BERT 2.0 or XEUS student), with its LoRA
-adapter merged by stage 6 (rst_merge_lora) or as trained. The vocoder
-is any one trained by recipe stages 8-9 (DAC or HiFi-GAN; --vocoder_train_config,
+adapter merged into the weights when loaded. The vocoder
+is any one trained by recipe stages 7-8 (DAC or HiFi-GAN; --vocoder_train_config,
 --vocoder_model_file) or a TorchScript decoder such as the released Sidon one
 (--external_vocoder), which is used for comparison only.
 """
@@ -19,6 +19,7 @@ import numpy as np
 import soundfile as sf
 import torch
 
+from espnet2.rst.rst_model import merge_lora_adapters
 from espnet2.tasks.rst import RestorationTask
 
 logger = logging.getLogger(__name__)
@@ -96,6 +97,9 @@ def _load_feature_predictor(config_path, model_path, device):
             len(unused),
             len(missing),
         )
+    # The LoRA adapter only matters for training: merge it into the weights so
+    # inference runs without its extra matmuls (same output).
+    merge_lora_adapters(model.ssl_encoder.student)
     return model.eval().to(device)
 
 
@@ -119,7 +123,7 @@ def get_parser():
     parser.add_argument(
         "--vocoder_train_config",
         default=None,
-        help="config.yaml of a vocoder trained by stages 8-9 "
+        help="config.yaml of a vocoder trained by stages 7-8 "
         "(alternative to --external_vocoder)",
     )
     parser.add_argument(
@@ -148,7 +152,7 @@ def _load_vocoder(args, input_dim, device):
     if not all(espnet_args):
         raise ValueError(
             "a vocoder is required: --external_vocoder (released TorchScript) or "
-            "--vocoder_train_config and --vocoder_model_file (stages 8-9)"
+            "--vocoder_train_config and --vocoder_model_file (stages 7-8)"
         )
     import yaml
 

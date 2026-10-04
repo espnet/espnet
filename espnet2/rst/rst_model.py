@@ -52,8 +52,6 @@ class W2VBert2Encoder(nn.Module):
     The *teacher* is a frozen copy that extracts the target features from clean
     speech; the *student* is a LoRA-adapted copy trained to produce the same
     features from degraded speech. Both are truncated at ``target_layer``.
-    ``lora_rank=0`` builds the student without an adapter, the layout of a
-    checkpoint whose adapter has been merged (``rst_merge_lora``).
     """
 
     def __init__(
@@ -83,17 +81,16 @@ class W2VBert2Encoder(nn.Module):
         self.student = Wav2Vec2BertModel.from_pretrained(model_tag, **model_conf)
         if freeze_base:
             self.student.requires_grad_(False)
-        if lora_rank > 0:
-            self.student = inject_adapter_in_model(
-                LoraConfig(
-                    lora_alpha=lora_alpha,
-                    lora_dropout=lora_dropout,
-                    r=lora_rank,
-                    bias="lora_only",
-                    target_modules=["output_dense"],
-                ),
-                self.student,
-            )
+        self.student = inject_adapter_in_model(
+            LoraConfig(
+                lora_alpha=lora_alpha,
+                lora_dropout=lora_dropout,
+                r=lora_rank,
+                bias="lora_only",
+                target_modules=["output_dense"],
+            ),
+            self.student,
+        )
         self._ssl_dim = self.student.config.hidden_size
         trainable = sum(p.numel() for p in self.student.parameters() if p.requires_grad)
         logger.info(
@@ -209,8 +206,7 @@ class XeusEncoder(nn.Module):
     E-Branchformer blocks above ``target_layer`` are dropped from both copies
     since only the block-``target_layer`` output is used, and the LoRA adapter
     goes on the second linear of every feed-forward module (``w_2``, both the
-    macaron and the main FFN) of the remaining blocks. ``lora_rank=0`` builds
-    the student without an adapter, for a merged checkpoint (``rst_merge_lora``).
+    macaron and the main FFN) of the remaining blocks.
 
     The release is CC-BY-NC-SA-4.0; see the recipe README.
     """
@@ -247,17 +243,16 @@ class XeusEncoder(nn.Module):
         self.student = self._load(config_path, checkpoint_path, target_layer)
         if freeze_base:
             self.student.requires_grad_(False)
-        if lora_rank > 0:
-            self.student = inject_adapter_in_model(
-                LoraConfig(
-                    lora_alpha=lora_alpha,
-                    lora_dropout=lora_dropout,
-                    r=lora_rank,
-                    bias="lora_only",
-                    target_modules=list(lora_target_modules),
-                ),
-                self.student,
-            )
+        self.student = inject_adapter_in_model(
+            LoraConfig(
+                lora_alpha=lora_alpha,
+                lora_dropout=lora_dropout,
+                r=lora_rank,
+                bias="lora_only",
+                target_modules=list(lora_target_modules),
+            ),
+            self.student,
+        )
         self._ssl_dim = self.student.encoder.output_size()
         trainable = sum(p.numel() for p in self.student.parameters() if p.requires_grad)
         logger.info(
@@ -370,13 +365,15 @@ def build_ssl_encoder(
 def merge_lora_adapters(module: nn.Module) -> int:
     """Fold every LoRA adapter in ``module`` into its base layer, in place.
 
-    The adapters are added with ``peft.inject_adapter_in_model``, not through a
-    ``PeftModel``, so ``merge_and_unload`` is not available; this is its
-    equivalent for that layout. Each adapted layer gets ``W + scale * B A`` as
-    its weight and is then replaced by that base layer, so the merged module
-    computes the same function without the adapter's extra matmuls. The bias of
-    a ``bias="lora_only"`` adapter already is the base layer's bias. A module
-    merged this way loads into an encoder built with ``lora_rank=0``.
+    The adapter only matters for training; once a trained predictor is loaded
+    for use, its weights never change again, so the predictor loaders call this
+    to compute ``W + scale * B A`` once per adapted layer and replace the adapter
+    wrapper with that base layer. The output is unchanged and the adapter's two
+    extra matmuls per layer are gone. The adapters are added with
+    ``peft.inject_adapter_in_model``, not through a ``PeftModel``, so
+    ``merge_and_unload`` is not available; this is its equivalent for that
+    layout. The bias of a ``bias="lora_only"`` adapter already is the base
+    layer's bias.
 
     Returns the number of layers merged.
     """

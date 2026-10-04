@@ -1,4 +1,4 @@
-"""Task definition for training the restoration vocoder (recipe stages 8 and 9)."""
+"""Task definition for training the restoration vocoder (recipe stages 7 and 8)."""
 
 import logging
 import random
@@ -12,7 +12,11 @@ from espnet2.gan_codec.shared.discriminator.msmpmb_discriminator import (
     MultiScaleMultiPeriodMultiBandDiscriminator,
 )
 from espnet2.rst.decoder.dac_vocoder import VOCODERS, build_vocoder
-from espnet2.rst.rst_model import SSL_ENCODERS, build_ssl_encoder
+from espnet2.rst.rst_model import (
+    SSL_ENCODERS,
+    build_ssl_encoder,
+    merge_lora_adapters,
+)
 from espnet2.rst.rst_vocoder_model import SSL_FRAME_RATE, ESPnetRestorationVocoderModel
 from espnet2.tasks.abs_task import AbsTask, optim_classes
 from espnet2.tasks.rst import _audio_files, degrade_waveform
@@ -34,7 +38,7 @@ class RestorationVocoderCollateFn:
     model resamples on the GPU.
 
     With ``stats_only`` the reference passes through untouched so the shape
-    file collected in stage 7 records true utterance lengths.
+    file collected in stage 6 records true utterance lengths.
     """
 
     def __init__(
@@ -223,33 +227,22 @@ class RestorationVocoderTask(AbsTask):
         prefix = "ssl_encoder."
         state = {k[len(prefix) :]: v for k, v in state.items() if k.startswith(prefix)}
         missing, unexpected = encoder.load_state_dict(state, strict=False)
-        if any("lora_" in k for k in encoder.state_dict()):
-            # LoRA B is zero-initialised, so a student whose adapter failed to
-            # load is indistinguishable from the base model at run time: it
-            # trains, it just trains against the wrong features. Refuse instead.
-            loaded_lora = [k for k in state if "lora_" in k]
-            missing_lora = [k for k in missing if "lora_" in k]
-            if not loaded_lora or missing_lora:
-                raise RuntimeError(
-                    f"{path} does not hold the LoRA adapter this encoder expects "
-                    f"(loaded {len(loaded_lora)}, missing {len(missing_lora)}); "
-                    f"use the stage-1 checkpoint with matching lora_rank/lora_alpha"
-                )
-        else:
-            # lora_rank 0: a merged predictor (rst_merge_lora). With no adapter
-            # to tell a trained student from an untrained one, every student
-            # weight has to come from the checkpoint, and an unmerged
-            # checkpoint must not be half-loaded into it.
-            missing_student = [k for k in missing if k.startswith("student.")]
-            if missing_student or any("lora_" in k for k in state):
-                raise RuntimeError(
-                    f"{path} is not a merged predictor for this lora_rank 0 "
-                    f"encoder ({len(missing_student)} student tensors missing); "
-                    f"merge it with espnet2.bin.rst_merge_lora or set lora_rank "
-                    f"to the one it was trained with"
-                )
+        # LoRA B is zero-initialised, so a student whose adapter failed to
+        # load is indistinguishable from the base model at run time: it
+        # trains, it just trains against the wrong features. Refuse instead.
+        loaded_lora = [k for k in state if "lora_" in k]
+        missing_lora = [k for k in missing if "lora_" in k]
+        if not loaded_lora or missing_lora:
+            raise RuntimeError(
+                f"{path} does not hold the LoRA adapter this encoder expects "
+                f"(loaded {len(loaded_lora)}, missing {len(missing_lora)}); "
+                f"use the stage-1 checkpoint with matching lora_rank/lora_alpha"
+            )
         if unexpected:
             logger.warning("ignored %d unexpected tensors in %s", len(unexpected), path)
+        # The frozen predictor is only run, never trained here: merge its
+        # adapter into the weights so it runs without the extra matmuls.
+        merge_lora_adapters(encoder.student)
         logger.info("loaded frozen feature predictor from %s", path)
 
     @classmethod
