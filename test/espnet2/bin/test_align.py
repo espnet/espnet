@@ -8,6 +8,7 @@ second - because that is what a caller reads.
 
 import sys
 import types
+import warnings
 
 import numpy as np
 import pytest
@@ -19,12 +20,14 @@ from espnet2.utils.pretrained import ModelTagError
 TOKENS = ["<blank>", "a", "b", "c"]
 
 
-def _emissions(path):
+def _emissions(path, tokens=None):
     """Log probabilities that make `path` the obvious alignment.
 
     `path` is one token id a frame; each frame is near-certain about its own.
+    `tokens` is the vocabulary the frames are over, when it is not the small
+    one this file mostly uses.
     """
-    probs = np.full((len(path), len(TOKENS)), 1e-6, dtype=np.float32)
+    probs = np.full((len(path), len(tokens or TOKENS)), 1e-6, dtype=np.float32)
     for frame, token in enumerate(path):
         probs[frame, token] = 1.0
     probs /= probs.sum(axis=1, keepdims=True)
@@ -89,6 +92,78 @@ def test_text_that_cannot_fit_is_refused_by_name():
 
     with pytest.raises(ValueError, match="cannot fit"):
         aligner(np.zeros(16000, dtype=np.float32), ["abcabcabc"])
+
+
+def test_a_repeated_token_needs_the_blank_between_it():
+    """Three frames hold three tokens, unless two of them are the same.
+
+    CTC reads "aa" as one "a" without a blank in between, so the text has to
+    fit the blanks too. Counting only the tokens let a text through to
+    torchaudio, which refused it in its own words.
+    """
+    aligner = _aligner([1, 1, 2])
+
+    with pytest.raises(ValueError, match="blank"):
+        aligner(np.zeros(16000, dtype=np.float32), ["aab"])
+
+    # the same three frames take three different tokens
+    segments = aligner(np.zeros(16000, dtype=np.float32), ["ab"])
+    assert [t.text for t in segments[0].tokens] == ["a", "b"]
+
+
+BPE = ["<blank>", "a", "b", "c", "A", "B", "C", "abc"]
+
+
+class _BPEStub(_Stub):
+    """A vocabulary with one word in it, and the letters of that word.
+
+    Like a real BPE model: the word it was trained on is one token, and the
+    same word in another case is spelled out.
+    """
+
+    def __init__(self, emissions):
+        super().__init__(emissions)
+        self.asr_model.token_list = BPE
+        self.tokenizer = types.SimpleNamespace(
+            text2tokens=lambda text: [text] if text in BPE else list(text)
+        )
+        self.converter = types.SimpleNamespace(
+            tokens2ids=lambda tokens: [BPE.index(t) for t in tokens]
+        )
+
+
+def test_text_spelled_a_way_the_vocabulary_lacks_is_pointed_out():
+    """The times survive the wrong case; the score does not.
+
+    Measured on test_utils/ctc_align_test.wav with espnet/owsm_ctc_v4_1B:
+    "THE SALE OF THE HOTELS" is 18 tokens and scores 0.0000 where "The sale
+    of the hotels" is 6 and scores 0.99. Nothing in the result says why, so
+    the aligner says it.
+    """
+    aligner = ForcedAligner(_BPEStub(_emissions([7, 0, 4, 5, 6], BPE)))
+    aligner.log_probs = lambda speech: aligner.model.emissions
+    audio = np.zeros(16000, dtype=np.float32)
+
+    with pytest.warns(UserWarning, match="vocabulary does not have"):
+        aligner(audio, ["ABC"])
+
+    # the spelling the vocabulary has is not remarked on
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        aligner(audio, ["abc"])
+
+
+def test_the_sample_rate_is_the_models_own():
+    """A caller that reads its own audio has to resample to the same rate.
+
+    The Space draws a waveform and so loads the audio itself; hard-coding
+    16000 there makes a checkpoint trained at another rate quietly wrong.
+    """
+    aligner = _aligner([1, 2, 3])
+    assert aligner.sample_rate == 16000
+
+    aligner.model.sample_rate = 8000
+    assert aligner.sample_rate == 8000
 
 
 def test_nothing_to_align_is_refused():

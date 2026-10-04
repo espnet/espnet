@@ -6,10 +6,10 @@ from pathlib import Path
 import pytest
 from omegaconf import OmegaConf
 
-import egs3.TEMPLATE.asr.src.app as demo_module
+import egs3.TEMPLATE.esp2_asr.src.app as demo_module
 import espnet3.publication.demo.assets as demo_assets_module
 import espnet3.publication.demo.session as demo_session_module
-from egs3.TEMPLATE.asr.src.app import build_demo
+from egs3.TEMPLATE.esp2_asr.src.app import build_demo
 from espnet3.publication.demo.session import load_demo_session
 
 

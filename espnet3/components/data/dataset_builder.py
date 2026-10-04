@@ -10,7 +10,7 @@ class DatasetBuilder(ABC):
 
     This abstract class defines the contract used by the
     ``create_dataset`` stage when a dataset source such as
-    ``data_src: mini_an4/asr`` appears in a training or inference config.
+    ``data_src: mini_an4/esp2_asr`` appears in a training or inference config.
     Concrete builders separate source acquisition from task-specific artifact
     generation so the system can skip work precisely:
 
@@ -37,7 +37,7 @@ class DatasetBuilder(ABC):
         ```yaml
         dataset:
           train:
-            - data_src: mini_an4/asr
+            - data_src: mini_an4/esp2_asr
               data_src_args:
                 split: train
         ```
@@ -115,7 +115,7 @@ class DatasetBuilder(ABC):
 
         Examples:
             ```python
-            builder.prepare_source(recipe_dir="egs3/mini_an4/asr")
+            builder.prepare_source(recipe_dir="egs3/mini_an4/esp2_asr")
             ```
 
             An implementation may extract a bundled archive into ``source/``:
@@ -184,7 +184,7 @@ class DatasetBuilder(ABC):
 
         Examples:
             ```python
-            builder.build(recipe_dir="egs3/mini_an4/asr")
+            builder.build(recipe_dir="egs3/mini_an4/esp2_asr")
             ```
 
             A task-scoped builder can consume shared source assets and emit

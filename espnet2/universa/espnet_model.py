@@ -130,10 +130,14 @@ class ESPnetUniversaModel(AbsESPnetModel):
             feats, feats_lengths = self._extract_feats(audio, audio_lengths)
             batch = dict(audio=feats, audio_lengths=feats_lengths)
             if ref_audio is not None:
+                if ref_audio_lengths is None:
+                    raise ValueError("ref_audio_lengths is required with ref_audio")
                 ref_feats, ref_feats_lengths = self._extract_feats(
                     ref_audio, ref_audio_lengths
                 )
                 batch.update(ref_audio=ref_feats, ref_audio_lengths=ref_feats_lengths)
             if ref_text is not None:
+                if ref_text_lengths is None:
+                    raise ValueError("ref_text_lengths is required with ref_text")
                 batch.update(ref_text=ref_text, ref_text_lengths=ref_text_lengths)
         return batch

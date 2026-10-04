@@ -4,7 +4,7 @@
 """Universa abstract class."""
 
 from abc import ABC, abstractmethod
-from typing import Dict, Tuple, Union
+from typing import Dict, Optional, Tuple, Union
 
 import numpy as np
 import torch
@@ -13,16 +13,19 @@ import torch
 class AbsUniversa(torch.nn.Module, ABC):
     """Universa abstract class."""
 
+    use_ref_audio: bool = False
+    use_ref_text: bool = False
+
     @abstractmethod
     def forward(
         self,
         audio: torch.Tensor,
         audio_lengths: torch.Tensor,
         metrics: Dict[str, torch.Tensor],
-        ref_audio: torch.Tensor,
-        ref_audio_lengths: torch.Tensor,
-        ref_text: torch.Tensor,
-        ref_text_lengths: torch.Tensor,
+        ref_audio: Optional[torch.Tensor] = None,
+        ref_audio_lengths: Optional[torch.Tensor] = None,
+        ref_text: Optional[torch.Tensor] = None,
+        ref_text_lengths: Optional[torch.Tensor] = None,
         **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """Calculate outputs and return the loss tensor."""

@@ -101,16 +101,16 @@ def test_every_default_names_a_model_in_the_espnet_organisation():
         assert tag.startswith("espnet/"), (task, tag)
 
 
-def test_asr_prints_the_transcript(monkeypatch, tmp_path, capsys):
+def test_transcribe_prints_the_transcript(monkeypatch, tmp_path, capsys):
     audio = tmp_path / "a.wav"
     audio.write_bytes(b"")
     rec = _Recorder("hello there")
     _fake_module(monkeypatch, "espnet2.bin.s2t_inference", "Speech2Text", rec)
 
-    assert cli.main(["asr", str(audio)]) == 0
+    assert cli.main(["transcribe", str(audio)]) == 0
 
     assert capsys.readouterr().out.strip() == "hello there"
-    assert rec.tag == cli.DEFAULT_MODELS["asr"]
+    assert rec.tag == cli.DEFAULT_MODELS["transcribe"]
     assert rec.device == "cpu"
     args, kwargs = rec.calls[0]
     assert args == (str(audio),)
@@ -374,6 +374,78 @@ def test_translate_requires_a_target():
     assert e.value.code == 2  # argparse's "bad usage"
 
 
+OWSM_TOKENS = ["<blank>", "<unk>", "<na>", "<nolang>", "<eng>", "<jpn>", "<asr>"]
+OWSM_TOKENS += ["<st_deu>", "<st_eng>", "<st_jpn>"]
+
+
+@pytest.mark.parametrize(
+    "argv",
+    [
+        ["transcribe", "--language", "en"],
+        ["translate", "--language", "en", "--to", "eng"],
+        ["phonemize", "--language", "en"],
+    ],
+)
+def test_a_language_the_model_lacks_is_a_sentence_not_a_traceback(
+    monkeypatch, tmp_path, capsys, argv
+):
+    # Speech2Text looks the symbol up in token2id only once decoding starts,
+    # where `en` for `eng` is a KeyError after the checkpoint has loaded
+    audio = tmp_path / "a.wav"
+    audio.write_bytes(b"")
+    rec = _Recorder("x", tokens=OWSM_TOKENS + ["<pr>"])
+    _fake_module(monkeypatch, "espnet2.bin.s2t_inference", "Speech2Text", rec)
+
+    assert cli.main([argv[0], str(audio), *argv[1:]]) == 1
+
+    err = capsys.readouterr().err
+    assert "'en'" in err and "ISO 639-3" in err
+    assert rec.calls == []  # nothing was decoded with a symbol it lacks
+
+
+def test_translate_names_the_targets_when_asked_for_another(
+    monkeypatch, tmp_path, capsys
+):
+    audio = tmp_path / "a.wav"
+    audio.write_bytes(b"")
+    rec = _Recorder("x", tokens=OWSM_TOKENS)
+    _fake_module(monkeypatch, "espnet2.bin.s2t_inference", "Speech2Text", rec)
+
+    # kor is ISO 639-3, so "use ISO 639-3" would not help: the list does
+    assert cli.main(["translate", str(audio), "--to", "kor"]) == 1
+
+    assert "deu, eng, jpn" in capsys.readouterr().err
+    assert rec.calls == []
+
+
+@pytest.mark.parametrize("command", [["transcribe"], ["translate", "--to", "eng"]])
+def test_no_language_is_the_models_own_symbol(monkeypatch, tmp_path, command):
+    # POWSM transcribes too, and its vocabulary has <unk> for "work the
+    # language out" and no <nolang>, which was a KeyError here
+    audio = tmp_path / "a.wav"
+    audio.write_bytes(b"")
+    rec = _Recorder("x", nolang=None, tokens=["<unk>", "<eng>", "<asr>", "<st_eng>"])
+    _fake_module(monkeypatch, "espnet2.bin.s2t_inference", "Speech2Text", rec)
+
+    assert cli.main([command[0], str(audio), *command[1:]]) == 0
+
+    assert rec.calls[0][1]["lang_sym"] == "<unk>"
+
+
+def test_stream_checks_the_language_before_it_starts(monkeypatch, tmp_path, capsys):
+    said = []
+    _stub_live(monkeypatch, [np.zeros(16000, dtype=np.float32)], said)
+    rec = _Recorder([("x", ["x"], [1], "x", None)], tokens=OWSM_TOKENS)
+    _fake_module(monkeypatch, "espnet2.bin.s2t_inference", "Speech2Text", rec)
+    audio = tmp_path / "a.wav"
+    soundfile.write(audio, np.zeros(16000, dtype=np.float32), 16000)
+
+    assert cli.main(["transcribe", str(audio), "--stream", "--language", "en"]) == 1
+
+    assert said == [] and rec.calls == []
+    assert "'en'" in capsys.readouterr().err
+
+
 def test_tts_writes_a_wave(monkeypatch, tmp_path):
     import numpy as np
     import torch
@@ -541,8 +613,20 @@ def test_the_help_lists_every_command(capsys):
         cli.main(["--help"])
     assert e.value.code == 0
     out = capsys.readouterr().out
-    for command in ("asr", "translate", "tts", "enhance", "demo", "models"):
+    for command in (
+        "transcribe",
+        "phonemize",
+        "align",
+        "translate",
+        "synthesize",
+        "enhance",
+        "demo",
+        "models",
+    ):
         assert command in out
+    # and the names they had in a release, where someone looking for the one
+    # they remember will look
+    assert "(asr)" in out and "(tts)" in out
 
 
 def test_an_output_without_an_extension_is_refused(monkeypatch, tmp_path, capsys):
@@ -591,11 +675,51 @@ def test_a_tag_for_another_task_is_explained(monkeypatch, tmp_path, capsys):
         Mismatch,
     )
 
-    assert cli.main(["asr", str(audio), "--model", "espnet/a-tts-model"]) == 1
+    assert cli.main(["transcribe", str(audio), "--model", "espnet/a-tts-model"]) == 1
 
     err = capsys.readouterr().err
-    assert "does not look like a model for `espnet asr`" in err
+    assert "does not look like a model for `espnet transcribe`" in err
     assert "espnet models" in err
+
+
+def test_the_name_a_release_had_still_works(monkeypatch, tmp_path, capsys):
+    audio = tmp_path / "a.wav"
+    audio.write_bytes(b"")
+    rec = _Recorder("hello there")
+    _fake_module(monkeypatch, "espnet2.bin.s2t_inference", "Speech2Text", rec)
+
+    assert cli.main(["asr", str(audio)]) == 0
+
+    printed = capsys.readouterr()
+    assert printed.out.strip() == "hello there"
+    # and it says where the name went, once, on stderr, so a pipe is unharmed
+    assert "`asr` is now `transcribe`" in printed.err
+
+
+def test_the_new_name_says_nothing_about_the_old_one(monkeypatch, tmp_path, capsys):
+    audio = tmp_path / "a.wav"
+    audio.write_bytes(b"")
+    rec = _Recorder("hello there")
+    _fake_module(monkeypatch, "espnet2.bin.s2t_inference", "Speech2Text", rec)
+
+    assert cli.main(["transcribe", str(audio)]) == 0
+
+    assert capsys.readouterr().err == ""
+
+
+def test_both_names_reach_the_same_command(monkeypatch, tmp_path, capsys):
+    import torch
+
+    out = tmp_path / "out.wav"
+    rec = _Recorder({"wav": torch.from_numpy(np.zeros(160, dtype=np.float32))})
+    _fake_module(monkeypatch, "espnet2.bin.tts_inference", "Text2Speech", rec)
+
+    assert cli.main(["tts", "hello", "-o", str(out)]) == 0
+    assert cli.main(["synthesize", "hello", "-o", str(out)]) == 0
+
+    # one parser, two names: the same model and the same call
+    assert rec.tag == cli.DEFAULT_MODELS["synthesize"]
+    assert len(rec.calls) == 2 and rec.calls[0] == rec.calls[1]
 
 
 def test_multichannel_audio_keeps_its_channels(tmp_path):
@@ -794,9 +918,11 @@ class _FakeOWSM:
     def no_language(self):
         return self.preprocessor_conf["nolang_symbol"]
 
-    def decode_window(self, speech, lang_sym=None, task_sym=None):
+    def decode_window(self, speech, lang_sym=None, task_sym=None, text_prev="<na>"):
         # Speech2Text.decode_window: the checkpoint chooses its own way, and
-        # this one is CTC-only
+        # this one is CTC-only. text_prev is what a task with a written input
+        # is given - POWSM's <g2p> and <p2g> - and what primes the search on a
+        # checkpoint that has one; this fake ignores it, as a CTC head does.
         return self.best_path(speech, lang_sym=lang_sym, task_sym=task_sym)[0][0]
 
     def best_path(self, speech, *args, **kwargs):
@@ -888,7 +1014,8 @@ def test_demo_menus_come_from_the_checkpoint(monkeypatch):
     # the two dropdowns are this checkpoint's own tokens, not a fixed list
     languages, targets = [call.args[0] for call in gradio.Dropdown.call_args_list]
     assert languages == ["Detect automatically", "English (eng)", "Japanese (jpn)"]
-    assert targets == ["Transcribe", "Translate to German (deu)"]
+    # each task named by the abbreviation its field uses, then glossed
+    assert targets == ["ASR: transcribe", "ST: translate to German (deu)"]
 
 
 def _predict(gradio):
