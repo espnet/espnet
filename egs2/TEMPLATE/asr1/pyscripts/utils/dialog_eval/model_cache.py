@@ -17,54 +17,71 @@ than at import time.
 from functools import lru_cache
 
 
-def _import_versa():
-    """Import versa, preserving the error message the helpers already print."""
+@lru_cache(maxsize=None)
+def use_gpu() -> bool:
+    """Whether the scoring models should be placed on GPU.
+
+    versa asserts on a CUDA build when told to use the GPU, so hardcoding this
+    to True makes every metric in this package raise on a CPU-only install.
+    """
+    import torch
+
+    return torch.cuda.is_available()
+
+
+def _import_versa_module(module_name):
+    """Import one versa submodule, keeping the error message the helpers print.
+
+    The setup functions are not re-exported at versa top level, so each one has
+    to be reached through the module that defines it.
+    """
     try:
-        import versa
+        import importlib
+
+        return importlib.import_module(module_name)
     except Exception as e:
         print("Error: Versa is not properly installed.")
         raise e
-    return versa
 
 
 @lru_cache(maxsize=None)
 def espnet_wer_args():
     """Return the cached ESPnet ASR system used for WER and CER."""
-    return _import_versa().espnet_wer_setup(
+    return _import_versa_module("versa.corpus_metrics.espnet_wer").espnet_wer_setup(
         model_tag="default",
         beam_size=1,
         text_cleaner="whisper_en",
-        use_gpu=True,
+        use_gpu=use_gpu(),
     )
 
 
 @lru_cache(maxsize=None)
 def owsm_wer_args():
     """Return the cached OWSM ASR system used for WER and CER."""
-    return _import_versa().owsm_wer_setup(
+    return _import_versa_module("versa.corpus_metrics.owsm_wer").owsm_wer_setup(
         model_tag="default",
         beam_size=1,
         text_cleaner="whisper_en",
-        use_gpu=True,
+        use_gpu=use_gpu(),
     )
 
 
 @lru_cache(maxsize=None)
 def whisper_wer_args():
     """Return the cached Whisper ASR system used for WER and CER."""
-    return _import_versa().whisper_wer_setup(
+    return _import_versa_module("versa.corpus_metrics.whisper_wer").whisper_wer_setup(
         model_tag="default",
         beam_size=1,
         text_cleaner="whisper_en",
-        use_gpu=True,
+        use_gpu=use_gpu(),
     )
 
 
 @lru_cache(maxsize=None)
 def pseudo_mos_args():
     """Return the cached (predictor_dict, predictor_fs) for utmos/dnsmos/plcmos."""
-    return _import_versa().pseudo_mos_setup(
-        use_gpu=True,
+    return _import_versa_module("versa.utterance_metrics.pseudo_mos").pseudo_mos_setup(
+        use_gpu=use_gpu(),
         predictor_types=["utmos", "dnsmos", "plcmos"],
         predictor_args={
             "utmos": {"fs": 16000},
@@ -77,9 +94,9 @@ def pseudo_mos_args():
 @lru_cache(maxsize=None)
 def sheet_ssqa_model():
     """Return the cached SHEET SSQA model."""
-    return _import_versa().sheet_ssqa_setup(
+    return _import_versa_module("versa.utterance_metrics.sheet_ssqa").sheet_ssqa_setup(
         model_tag="default",
         model_path=None,
         model_config=None,
-        use_gpu=True,
+        use_gpu=use_gpu(),
     )

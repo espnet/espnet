@@ -121,8 +121,14 @@ class Archiver:
 
     def extract(self, info, path=None):
         if self.type == "tar":
-            return self.fopen.extract(info, path)
+            # filter="data" refuses members whose name escapes ``path`` (absolute
+            # paths, "..", links pointing outside) and drops device files and
+            # setuid/setgid bits. Without it tarfile defaults to "fully_trusted"
+            # on Python < 3.14, which allows arbitrary file write (tar-slip).
+            return self.fopen.extract(info, path, filter="data")
         elif self.type == "zip":
+            # zipfile.extract already sanitizes "..", absolute paths and drive
+            # letters, and never materializes symlinks.
             return self.fopen.extract(info, path)
         else:
             raise ValueError(f"Not supported: type={self.type}")
@@ -140,6 +146,41 @@ class Archiver:
             return self.fopen.open(info, mode)
         else:
             raise ValueError(f"Not supported: type={self.type}")
+
+
+class UnsafeArchiveMemberError(RuntimeError):
+    """Raised when an archive member would be written outside the output dir."""
+
+
+def _resolve_within(outpath: Path, name: str) -> Path:
+    """Join ``name`` onto ``outpath`` and refuse to escape it.
+
+    ``tarfile.extract(..., filter="data")`` guards the extraction sink, but
+    ``unpack`` also joins member names by hand to rewrite yaml files and to
+    build its return value. Those joins bypass tarfile entirely, so they need
+    the same check. An absolute ``name`` replaces ``outpath`` under pathlib
+    semantics and is rejected here as well.
+
+    Args:
+        outpath: Directory the archive is being unpacked into.
+        name: Member name taken from the archive or from its ``meta.yaml``.
+
+    Returns:
+        Path: ``outpath / name`` unchanged, once it is known to stay at or
+        below ``outpath``. The plain join is returned rather than the resolved
+        path so that callers keep receiving the relative paths they always did.
+
+    Raises:
+        UnsafeArchiveMemberError: If the name resolves outside ``outpath``.
+    """
+    base = outpath.resolve()
+    target = (base / name).resolve()
+    if target != base and base not in target.parents:
+        raise UnsafeArchiveMemberError(
+            f"Refusing to unpack {name!r}: it resolves to {target}, "
+            f"which is outside {base}"
+        )
+    return outpath / name
 
 
 def find_path_and_change_it_recursive(value, src: str, tgt: str):
@@ -199,13 +240,9 @@ def unpack(
     with Archiver(input_archive) as archive:
         for info in archive:
             if Path(archive.get_name_from_info(info)).name == "meta.yaml":
-                if (
-                    use_cache
-                    and (outpath / Path(archive.get_name_from_info(info))).exists()
-                ):
-                    retval = get_dict_from_cache(
-                        outpath / Path(archive.get_name_from_info(info))
-                    )
+                meta_path = _resolve_within(outpath, archive.get_name_from_info(info))
+                if use_cache and meta_path.exists():
+                    retval = get_dict_from_cache(meta_path)
                     if retval is not None:
                         return retval
                 d = yaml.safe_load(archive.extractfile(info))
@@ -220,7 +257,9 @@ def unpack(
 
         for info in archive:
             fname = archive.get_name_from_info(info)
-            outname = outpath / fname
+            # Checked even for the tarfile branch below: the yaml-rewrite path
+            # writes through this join without going through tarfile at all.
+            outname = _resolve_within(outpath, fname)
             outname.parent.mkdir(parents=True, exist_ok=True)
             if fname in set(yaml_files.values()):
                 d = yaml.safe_load(archive.extractfile(info))
@@ -235,6 +274,11 @@ def unpack(
 
         retval = {}
         for key, value in list(yaml_files.items()) + list(files.items()):
+            # Deliberately NOT passed through _resolve_within: pack() records
+            # absolute paths in meta.yaml whenever the packed file lived outside
+            # the CWD, so this join legitimately resolves outside outpath for
+            # such archives. These are returned strings, not a write sink - the
+            # two write sinks above are what the traversal guard protects.
             retval[key] = str(outpath / value)
         return retval
 

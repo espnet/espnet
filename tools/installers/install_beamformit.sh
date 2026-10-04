@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
+# shellcheck source=tools/installers/download_with_retry.sh
+. "$(dirname "$0")"/download_with_retry.sh
 
 LIBSNDFILE_VERSION=1.0.25
 
 GIT=${GIT:-git}
-WGET=${WGET:-wget}
 
 # Installs beamformit from the location https://github.com/xanguera/BeamformIt
 
@@ -12,7 +13,9 @@ if [ ! -f libsndfile-$LIBSNDFILE_VERSION.tar.gz ]; then
   if [ -d "$DOWNLOAD_DIR" ]; then
     cp -p "$DOWNLOAD_DIR/libsndfile-$LIBSNDFILE_VERSION.tar.gz" . || exit 1
   else
-    $WGET http://www.mega-nerd.com/libsndfile/files/libsndfile-$LIBSNDFILE_VERSION.tar.gz || exit 1
+    download_with_retry \
+      http://www.mega-nerd.com/libsndfile/files/libsndfile-$LIBSNDFILE_VERSION.tar.gz \
+      libsndfile-$LIBSNDFILE_VERSION.tar.gz || exit 1
   fi
 fi
 [ ! -d libsndfile-$LIBSNDFILE_VERSION ] && \

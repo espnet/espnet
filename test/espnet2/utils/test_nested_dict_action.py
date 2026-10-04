@@ -42,3 +42,23 @@ def test_NestedDictAction_exception():
 
     with pytest.raises(SystemExit):
         parser.parse_args(["--conf", "[cd, e, aaa]"])
+
+
+def test_NestedDictAction_does_not_execute_code(tmp_path):
+    """The value is parsed, never executed.
+
+    This action reads values from the command line and, through
+    configargparse, from a ``--config`` file, so an expression arriving here
+    must not run. ``ast.literal_eval`` rejects it; the old ``eval`` ran it.
+    """
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--conf", action=NestedDictAction, default={})
+    marker = tmp_path / "pwned"
+    payload = f"__import__('pathlib').Path({str(marker)!r}).touch()"
+
+    # Not a dict by either parser, so argparse still rejects the value ...
+    with pytest.raises(SystemExit):
+        parser.parse_args(["--conf", payload])
+
+    # ... and, the point of this test, nothing ran on the way there.
+    assert not marker.exists()

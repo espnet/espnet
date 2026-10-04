@@ -17,7 +17,10 @@ import torch.distributed as dist
 import torch.nn as nn
 from transformers import AutoConfig, AutoModelForCausalLM
 
-from espnet2.speechlm.model.speechlm.lm.parallel import build_parallel_hf_class
+from espnet2.speechlm.model.speechlm.lm.parallel import (
+    build_parallel_hf_class,
+    configure_moe_model,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -269,7 +272,7 @@ def build_parallel_pp_hf_class(model_hf_tag):
                             config.hidden_size,
                         )
 
-            return model
+            return configure_moe_model(model)
 
         @staticmethod
         def _prune_to_stage(
@@ -436,10 +439,8 @@ def build_parallel_pp_hf_class(model_hf_tag):
             General helper that works for any HF decoder model whose layers
             accept ``(hidden_states, position_ids=, position_embeddings=)``.
 
-            For MoE models, router_logits are collected from
-            ``GroupedMoeBlock._last_router_logits`` after each layer call.
-            HF decoder layers discard router_logits internally, so we
-            cannot rely on the layer return value.
+            Native HF MoE blocks return only hidden states. Router hooks
+            preserve the logits needed for the load-balancing loss.
 
             Args:
                 hidden_states: [batch, seq_len, hidden_dim].
@@ -455,6 +456,8 @@ def build_parallel_pp_hf_class(model_hf_tag):
             """
             if attn_args is None:
                 attn_args = {}
+
+            self._ensure_router_logit_hooks()
 
             position_embeddings = self.model.rotary_emb(
                 hidden_states,
@@ -477,11 +480,7 @@ def build_parallel_pp_hf_class(model_hf_tag):
                 else:
                     hidden_states = layer_output
 
-                # HF decoder layers discard router_logits from the MoE
-                # block's return value. Retrieve them from the stashed
-                # attribute on GroupedMoeBlock instead. Use .clone() to
-                # detach from the stash so activation checkpointing
-                # recomputation cannot overwrite our copy.
+                # Read the logits captured by the native router hook.
                 mlp = getattr(layer, "mlp", None)
                 # Unwrap CheckpointWrapper from AC mode="moe"/"moe_and_full"
                 if mlp is not None and hasattr(mlp, "_checkpoint_wrapped_module"):
@@ -495,6 +494,33 @@ def build_parallel_pp_hf_class(model_hf_tag):
             if router_logits_list:
                 return hidden_states, torch.cat(router_logits_list, dim=0)
             return hidden_states, None
+
+        def _ensure_router_logit_hooks(self) -> None:
+            """Capture native router logits once per forward, including under AC."""
+            if getattr(self, "_router_hooks_registered", False):
+                return
+
+            for layer in self.model.layers:
+                if isinstance(layer, nn.Identity):
+                    continue
+                mlp = getattr(layer, "mlp", None)
+                if mlp is not None and hasattr(mlp, "_checkpoint_wrapped_module"):
+                    mlp = mlp._checkpoint_wrapped_module
+                gate = getattr(mlp, "gate", None)
+                if gate is None or not hasattr(mlp, "experts"):
+                    continue
+
+                def make_hook(block):
+                    def capture_logits(_module, _inputs, output):
+                        logits = output[0] if isinstance(output, tuple) else output
+                        block._last_router_logits = logits
+
+                    return capture_logits
+
+                mlp._last_router_logits = None
+                gate.register_forward_hook(make_hook(mlp))
+
+            self._router_hooks_registered = True
 
     return ParallelPPLLM
 

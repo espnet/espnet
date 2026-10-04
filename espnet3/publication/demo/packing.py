@@ -431,7 +431,7 @@ def _build_demo_readme_context(demo_cfg) -> dict[str, str]:
 
     All other README variables (title, hf_repo, model_ref, emoji, sdk, license,
     tags, app_file, pinned, …) are defined under ``pack.readme_context`` in
-    ``TEMPLATE/asr/conf/demo.yaml`` and are already merged into ``demo_cfg``
+    ``TEMPLATE/esp2_asr/conf/demo.yaml`` and are already merged into ``demo_cfg``
     by ``load_and_merge_config``. They are applied in ``_write_demo_readme``
     via ``context.update(pack_cfg.readme_context)``.
     """

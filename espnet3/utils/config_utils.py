@@ -67,9 +67,13 @@ def self_name(path):
     Examples:
         In a config file named `training.yaml`:
 
+        .. code-block:: yaml
+
             exp_tag: ${self_name:}
 
         The expression is rewritten during loading to:
+
+        .. code-block:: text
 
             training
     """
@@ -93,6 +97,8 @@ def config_path(path):
     Examples:
         In a config file at ``conf/demo.yaml``:
 
+        .. code-block:: yaml
+
             pack:
               readme: ${config_path:../src/hf_demo_readme.md}
 
@@ -108,7 +114,7 @@ def set_corpus_and_system(value: str) -> str:
     This resolver is used as ``${set_corpus_and_system:}`` in YAML configs.
     ``_normalize_relative_resolver_paths`` rewrites it to
     ``${set_corpus_and_system:<corpus>_<system>}`` (e.g.
-    ``${set_corpus_and_system:mini_an4_asr}``) by extracting the corpus and
+    ``${set_corpus_and_system:mini_an4_esp2_asr}``) by extracting the corpus and
     system names from the ``egs3/<corpus>/<system>/`` portion of the config
     file path. The resolver itself simply returns that injected value.
 
@@ -127,14 +133,14 @@ def set_corpus_and_system(value: str) -> str:
             not run before OmegaConf resolution.
 
     Examples:
-        In ``egs3/mini_an4/asr/conf/publication.yaml``:
+        In ``egs3/mini_an4/esp2_asr/conf/publication.yaml``:
 
             upload_model:
               hf_repo: espnet/${set_corpus_and_system:}_${exp_tag}
 
         After loading via ``load_and_merge_config``, resolves to::
 
-            espnet/mini_an4_asr_<exp_tag>
+            espnet/mini_an4_esp2_asr_<exp_tag>
     """
     if not value:
         raise RuntimeError(
@@ -266,16 +272,16 @@ def load_config_with_defaults(path: str, resolve: bool = True) -> OmegaConf:
     - `"_self_"` → appends the current config in-place
 
     Example:
-        # config.yaml
-        defaults:
-          - model: conformer
-          - optim: adam
-          - _self_
+        .. code-block:: yaml
 
-        # This will recursively load:
-        #   model/conformer.yaml
-        #   optim/adam.yaml
-        # and merge them with config.yaml itself at the end.
+            # config.yaml
+            defaults:
+              - model: conformer
+              - optim: adam
+              - _self_
+
+            # This recursively loads model/conformer.yaml and optim/adam.yaml,
+            # then merges them with config.yaml itself at the end.
 
     Args:
         path (str): Path to the main YAML config file.
@@ -308,29 +314,33 @@ def load_default_config(
 
     This helper reads a default config bundled in an ESPnet recipe package.
     The default package is typically an `egs3` recipe package such as
-    `egs3.TEMPLATE.asr`, but any installed recipe package with a `conf/`
+    `egs3.TEMPLATE.esp2_asr`, but any installed recipe package with a `conf/`
     directory can be used as the source of default values. The loaded config
     is intended to be merged later with a user-provided config via
     `load_and_merge_config()`.
 
     Example:
-        If `default_package` is `egs3.TEMPLATE.asr` and
+        If `default_package` is `egs3.TEMPLATE.esp2_asr` and
         `config_name` is `training.yaml`, this loads:
 
-            egs3/TEMPLATE/asr/conf/training.yaml
+        .. code-block:: text
+
+            egs3/TEMPLATE/esp2_asr/conf/training.yaml
 
         If you want to base a new recipe on an existing one, you can also
         point `default_package` to that recipe package. For example, using
-        `egs3.librispeech.asr` with `training.yaml` would load:
+        `egs3.librispeech.esp2_asr` with `training.yaml` would load:
 
-            egs3/librispeech/asr/conf/training.yaml
+        .. code-block:: text
+
+            egs3/librispeech/esp2_asr/conf/training.yaml
 
     Args:
         config_name (str): Config filename under `conf/`, such as
             `training.yaml`, `inference.yaml`, or `metrics.yaml`.
         default_package (str): Python package that contains the default
-            recipe resources. For example, `egs3.TEMPLATE.asr` points to files
-            under `egs3/TEMPLATE/asr/`. Other installed recipe packages can
+            recipe resources. For example, `egs3.TEMPLATE.esp2_asr` points to files
+            under `egs3/TEMPLATE/esp2_asr/`. Other installed recipe packages can
             also be used as long as they provide `conf/<config_name>`.
 
     Returns:
@@ -366,16 +376,22 @@ def load_and_merge_config(
     Example:
         If a recipe config lives at:
 
-            egs3/mini_an4/asr/conf/training.yaml
+        .. code-block:: text
+
+            egs3/mini_an4/esp2_asr/conf/training.yaml
 
         and `config_name` is `training.yaml`, this function can infer
-        `default_package="egs3.TEMPLATE.asr"` and merge:
+        `default_package="egs3.TEMPLATE.esp2_asr"` and merge:
 
-            egs3/TEMPLATE/asr/conf/training.yaml
+        .. code-block:: text
+
+            egs3/TEMPLATE/esp2_asr/conf/training.yaml
 
         with:
 
-            egs3/mini_an4/asr/conf/training.yaml
+        .. code-block:: text
+
+            egs3/mini_an4/esp2_asr/conf/training.yaml
 
     Args:
         config_path (Path | None): Path to the user config. If `None`, this
@@ -384,8 +400,8 @@ def load_and_merge_config(
             `training.yaml`, `inference.yaml`, or `metrics.yaml`.
         default_package (str | None): Python package that contains the default
             recipe resources. If omitted, it is inferred from `config_path`.
-            For example, a config under `egs3/<recipe>/asr/conf/` maps to
-            `egs3.TEMPLATE.asr`.
+            For example, a config under `egs3/<recipe>/esp2_asr/conf/` maps to
+            `egs3.TEMPLATE.esp2_asr`.
 
     Returns:
         OmegaConf.DictConfig | None: The merged config. Interpolations are
@@ -443,9 +459,9 @@ def _resolve_egs3_path(path: Path, as_package: bool = False) -> str | None:
     Args:
         path (Path): Config file path or the ``conf/`` directory.
         as_package (bool): When ``False`` (default) returns
-            ``"<corpus>_<system>"`` (e.g. ``"mini_an4_asr"``). When ``True``
+            ``"<corpus>_<system>"`` (e.g. ``"mini_an4_esp2_asr"``). When ``True``
             returns the TEMPLATE package import path
-            (e.g. ``"egs3.TEMPLATE.asr"``).
+            (e.g. ``"egs3.TEMPLATE.esp2_asr"``).
 
     Returns:
         str | None: The derived string, or ``None`` when ``egs3/`` is not in

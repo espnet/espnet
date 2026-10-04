@@ -1,8 +1,5 @@
-import sys
-
 import pytest
 import torch
-from packaging.version import parse as V
 from typeguard import TypeCheckError
 
 from espnet2.asr.decoder.transformer_decoder import TransformerDecoder
@@ -14,9 +11,6 @@ from espnet2.layers.houlsby_adapter_layer import (  # Houlsby_Adapter,
 
 pytest.importorskip("transformers")
 pytest.importorskip("s3prl")
-is_python_3_8_plus = sys.version_info >= (3, 8)
-is_torch_2_6_plus = V(torch.__version__) >= V("2.6.0")
-is_torch_2_9_plus = V(torch.__version__) >= V("2.9.0")
 
 
 def init_S3prl_model(frontend_conf={"upstream": "hubert_base"}):
@@ -42,19 +36,22 @@ def init_decoder_model():
 
 
 # =========================================Houlsby================================================
-@pytest.mark.execution_timeout(20)
-@pytest.mark.skipif(
-    not is_torch_2_6_plus or not is_python_3_8_plus or is_torch_2_9_plus,
-    reason="Not supported",
-)
+# These four tests build an s3prl frontend, and the first one to run downloads
+# the upstream it asks for - hubert_base is a few hundred MB. The 20 s budget
+# they carried predates that being on the clock: the tests spent six months
+# skipped behind a torch version check, and were re-enabled in #6678. Two
+# consecutive CI runs then failed here, one on a connection reset mid-download
+# and one on the 20 s timeout itself, on a change that touches none of this.
+# 120 s covers a cold cache on a slow morning. If it still flakes, the answer is
+# to fetch the upstream when the CI image is built rather than to keep raising
+# this number.
+@pytest.mark.execution_timeout(120)
 @pytest.mark.parametrize("model, bottleneck, target_layers", [("s3prl", 64, [])])
 def test_create_houlsby_adapter_bottleneck(
     model,
     bottleneck,
     target_layers,
 ):
-    if not is_torch_2_6_plus:
-        pytest.skip("Due to vulnerabilities, this test will be skipped.")
     assert model == "s3prl"
     model = init_S3prl_model()
     create_houlsby_adapter(
@@ -66,11 +63,7 @@ def test_create_houlsby_adapter_bottleneck(
     )
 
 
-@pytest.mark.execution_timeout(20)
-@pytest.mark.skipif(
-    not is_torch_2_6_plus or not is_python_3_8_plus or is_torch_2_9_plus,
-    reason="Not supported",
-)
+@pytest.mark.execution_timeout(120)
 @pytest.mark.parametrize(
     "model, bottleneck, target_layers",
     [
@@ -86,8 +79,6 @@ def test_create_houlsby_adapter_hf_wav2vec2_custom_bottleneck(
     bottleneck,
     target_layers,
 ):
-    if not is_torch_2_6_plus:
-        pytest.skip("Due to vulnerabilities, this test will be skipped.")
     assert model == "s3prl"
     model = init_S3prl_model(
         frontend_conf={
@@ -104,19 +95,13 @@ def test_create_houlsby_adapter_hf_wav2vec2_custom_bottleneck(
     )
 
 
-@pytest.mark.execution_timeout(20)
-@pytest.mark.skipif(
-    not is_torch_2_6_plus or not is_python_3_8_plus or is_torch_2_9_plus,
-    reason="Not supported",
-)
+@pytest.mark.execution_timeout(120)
 @pytest.mark.parametrize("model, bottleneck, target_layers", [("s3prl", 64, [1, 2])])
 def test_create_houlsby_adapter_target_layers(
     model,
     bottleneck,
     target_layers,
 ):
-    if not is_torch_2_6_plus:
-        pytest.skip("Due to vulnerabilities, this test will be skipped.")
     assert model == "s3prl"
     model = init_S3prl_model()
     create_houlsby_adapter(
@@ -140,19 +125,13 @@ def test_create_houlsby_adapter_target_layers(
     ), type(model.frontend.upstream.upstream.model.encoder.layers[3])
 
 
-@pytest.mark.execution_timeout(20)
+@pytest.mark.execution_timeout(120)
 @pytest.mark.parametrize("model, bottleneck, target_layers", [("s3prl", 64, [200])])
 def test_create_houlsby_adapter_invalid_target_layers(
     model,
     bottleneck,
     target_layers,
 ):
-    if not is_torch_2_6_plus:
-        pytest.skip("Due to vulnerabilities, this test will be skipped.")
-    if is_torch_2_9_plus:
-        pytest.skip(
-            "Due to S3PRL does not support torchaudio 2.9, this test will be skipped."
-        )
     assert model == "s3prl"
     model = init_S3prl_model()
     with pytest.raises(ValueError):
@@ -176,9 +155,6 @@ def test_create_houlsby_adapter_invalid_model(
 
 
 # =========================================LORA================================================
-@pytest.mark.skipif(
-    not is_torch_2_6_plus or not is_python_3_8_plus, reason="Not supported"
-)
 @pytest.mark.parametrize("rank, alpha, target_modules", [(2, 4, ["linear_q"])])
 def test_create_lora_adapter_linear(rank, alpha, target_modules):
     model = init_decoder_model()
@@ -190,9 +166,6 @@ def test_create_lora_adapter_linear(rank, alpha, target_modules):
     assert model.decoders[0].self_attn.linear_q.lora_B.shape[1] == rank
 
 
-@pytest.mark.skipif(
-    not is_torch_2_6_plus or not is_python_3_8_plus, reason="Not supported"
-)
 @pytest.mark.parametrize("rank, alpha, target_modules", [(2, 4, ["embed.0"])])
 def test_create_lora_adapter_embedding(rank, alpha, target_modules):
     model = init_decoder_model()
@@ -204,9 +177,6 @@ def test_create_lora_adapter_embedding(rank, alpha, target_modules):
     assert model.embed[0].lora_B.shape[1] == rank
 
 
-@pytest.mark.skipif(
-    not is_torch_2_6_plus or not is_python_3_8_plus, reason="Not supported"
-)
 @pytest.mark.parametrize("rank, alpha, target_modules", [(2, 4, ["query_proj"])])
 def test_create_lora_adapter_invalid_target(rank, alpha, target_modules):
     model = init_decoder_model()
@@ -216,9 +186,6 @@ def test_create_lora_adapter_invalid_target(rank, alpha, target_modules):
         )
 
 
-@pytest.mark.skipif(
-    not is_torch_2_6_plus or not is_python_3_8_plus, reason="Not supported"
-)
 @pytest.mark.parametrize("rank, alpha, target_modules", [(2, 4, ["norm1"])])
 def test_create_lora_adapter_unsupport_target(rank, alpha, target_modules):
     model = init_decoder_model()
@@ -228,9 +195,6 @@ def test_create_lora_adapter_unsupport_target(rank, alpha, target_modules):
         )
 
 
-@pytest.mark.skipif(
-    not is_torch_2_6_plus or not is_python_3_8_plus, reason="Not supported"
-)
 @pytest.mark.parametrize("rank, alpha, target_modules", [(2, 4, 5)])
 def test_create_lora_adapter_invalid_type(rank, alpha, target_modules):
     model = init_decoder_model()
