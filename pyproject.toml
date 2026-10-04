@@ -171,6 +171,11 @@ enh = [
   "ci_sdr",
   "fast-bss-eval==0.1.3",
 ]
+rst = [
+  "peft",
+  "pyroomacoustics",
+  "transformers",  # the w2v-BERT 2.0 backbone
+]
 
 asr2 = [
   "editdistance",
@@ -320,6 +325,7 @@ all = [
   "espnet[asr2]",
   "espnet[tts]",
   "espnet[enh]",
+  "espnet[rst]",
   "espnet[st]",
   "espnet[s2t]",
   "espnet[s2st]",
