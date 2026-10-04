@@ -1,0 +1,30 @@
+##########################################################
+#                 METRIC SCORING SETTING                 #
+##########################################################
+# Quick usage:
+#   python run.py --stages measure --training_config conf/training.yaml \
+#       --inference_config conf/inference.yaml --metrics_config conf/metrics.yaml
+#
+# Shared default merged under every SVS recipe's metrics config.
+
+recipe_dir: .
+exp_tag:
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+
+dataset:
+
+# VERSA's SVS metrics: MCD, F0 RMSE (Hz) and F0 correlation from `mcd_f0`, and
+# SingMOS. See https://github.com/wavlab-speech/versa/blob/main/egs/demo/svs.yaml
+metrics:
+  - metric:
+      _target_: espnet3.systems.esp2_svs.metrics.versa.VersaMetric
+      score_config:
+        - name: mcd_f0
+          f0min: 40
+          f0max: 800
+          dtw: true
+        - name: pseudo_mos
+          predictor_types: [singmos]
+    inputs:
+      wav: wav
+      ref: ref

@@ -1,0 +1,136 @@
+##########################################################
+#                    TRAINING SETTING                    #
+##########################################################
+# Quick usage:
+#   python run.py --stages train --training_config conf/training.yaml
+#
+# This is the shared default merged under every SVS recipe's training config
+# (see `load_and_merge_config` in `run.py`). The model is left to the recipe;
+# the optimizer and scheduler defaults are those of the egs2 GAN SVS configs
+# (e.g. egs2/acesinger/svs1/conf/tuning/train_visinger2.yaml).
+
+##########################################################
+#                  SYSTEM AND PATH SETTING               #
+##########################################################
+num_device: 1
+num_nodes: 1
+
+# Optional ESPnet task class path used by `get_espnet_model(...)`.
+# If unset, `model` is instantiated directly via Hydra.
+task:
+
+recipe_dir: .
+data_dir: ${recipe_dir}/data
+exp_tag: ${self_name:}
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+stats_dir: ${exp_dir}/stats
+inference_dir: ${exp_dir}/inference
+
+##########################################################
+#                    DATASET DEFINITION                  #
+##########################################################
+dataset:
+  _target_: espnet3.components.data.data_organizer.DataOrganizer
+  _recursive_: false
+  recipe_dir: ${recipe_dir}
+  train:
+  valid:
+  test:
+  preprocessor:
+
+##########################################################
+#                      MODEL SETTING                     #
+##########################################################
+model:
+
+##########################################################
+#            OPTIMIZER & SCHEDULER SETTING               #
+##########################################################
+# Single optimizer path:
+optimizer:
+scheduler:
+scheduler_interval:
+scheduler_monitor:
+
+# Multiple-loss / multiple-optimizer path, used by GAN SVS models (VISinger).
+# A non-GAN recipe sets `optimizers: null` / `schedulers: null` and fills in
+# the single-optimizer path above instead.
+optimizers:
+  generator:
+    optimizer:
+      _target_: torch.optim.AdamW
+      lr: 2.0e-4
+      betas: [0.8, 0.99]
+      eps: 1.0e-9
+      weight_decay: 0.0
+    params: generator
+  discriminator:
+    optimizer:
+      _target_: torch.optim.AdamW
+      lr: 2.0e-4
+      betas: [0.8, 0.99]
+      eps: 1.0e-9
+      weight_decay: 0.0
+    params: discriminator
+schedulers:
+  generator:
+    scheduler:
+      _target_: torch.optim.lr_scheduler.ExponentialLR
+      gamma: 0.998
+    interval: epoch
+  discriminator:
+    scheduler:
+      _target_: torch.optim.lr_scheduler.ExponentialLR
+      gamma: 0.998
+    interval: epoch
+
+##########################################################
+#                OTHER TRAINING SETTING                  #
+##########################################################
+# Keep the 5 checkpoints with the best validation generator loss; their
+# average is written as `valid.generator.loss.ave_5best.pth`.
+best_model_criterion:
+  - - valid/generator/loss
+    - 5
+    - min
+
+# Random seed used by collect_stats/train.
+seed: 777
+
+# GAN models: set true to update the generator before the discriminator in
+# every batch (see espnet3.systems.esp2_svs.gan_lightning_module).
+generator_first: false
+
+# Also dump the features returned by `model.collect_feats()` during
+# collect_stats under `${stats_dir}/<split>/collect_feats/`.
+write_collected_feats: false
+
+# Extra model initialization mode forwarded to ESPnet's initializer.
+init:
+
+##########################################################
+#                   PARALLELIZATION SETTING              #
+##########################################################
+parallel:
+  env: local
+  n_workers: 1
+
+##########################################################
+#                   DATALOADER SETTING                   #
+##########################################################
+dataloader:
+
+##########################################################
+#                    TRAINER SETTING                     #
+##########################################################
+# These settings map to `lightning.Trainer(...)`.
+trainer:
+  accelerator: auto
+  devices: ${num_device}
+  num_nodes: ${num_nodes}
+  strategy: auto
+
+##########################################################
+#                      FIT SETTING                       #
+##########################################################
+fit: {}

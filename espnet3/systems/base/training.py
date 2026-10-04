@@ -34,7 +34,9 @@ def _instantiate_model(config: DictConfig) -> Any:
     return instantiate(model_config)
 
 
-def _build_trainer(config: DictConfig, module_cls=None) -> ESPnet3LightningTrainer:
+def _build_trainer(
+    config: DictConfig, module_cls: type[ESPnetLightningModule] | None = None
+) -> ESPnet3LightningTrainer:
     if module_cls is None:
         module_cls = ESPnetLightningModule
     model = _instantiate_model(config)
@@ -82,15 +84,21 @@ def collect_stats(config: DictConfig) -> None:
     )
 
 
-def train(config: DictConfig, module_cls=None) -> None:
+def train(
+    config: DictConfig, module_cls: type[ESPnetLightningModule] | None = None
+) -> None:
     """Run the training loop.
 
     Args:
         config: Training configuration.
-        module_cls: ``ESPnetLightningModule`` subclass that wraps the model;
-            the base module when ``None``. Systems whose models need a
-            different step, such as the GAN generator/discriminator turns of
-            SVS, pass their own class here.
+        module_cls: Lightning module class that wraps the model.
+            Defaults to ``ESPnetLightningModule``.
+
+    Example:
+        .. code-block:: python
+
+            train(training_config)
+            train(training_config, module_cls=GANLightningModule)
     """
     _ensure_directories(config)
     start = time.perf_counter()
