@@ -235,9 +235,8 @@ def test_measure_reads_the_reference_from_the_test_set(tmp_path):
     (result,) = measure(metrics_cfg, inference_config=inference_cfg).values()
     assert result["test"]["refs"][0] == "edited"
     # a column the set does not have is named, with what it does have
-    missing = OmegaConf.merge(
-        metrics_cfg, {"metrics": [{"inputs": {"ref": "dataset:nope", "hyp": "text"}}]}
-    )
+    missing = OmegaConf.create(OmegaConf.to_container(metrics_cfg))
+    missing.metrics[0].inputs = {"ref": "dataset:nope", "hyp": "text"}
     with pytest.raises(KeyError, match="has no 'nope'; it has \\['speech', 'text'"):
         measure(missing, inference_config=inference_cfg)
     # without the inference config there is no test set to read from
