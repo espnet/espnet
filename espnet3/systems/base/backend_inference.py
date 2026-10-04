@@ -41,7 +41,7 @@ from espnet3.api.inference import InferenceAPI, locate_pack
 from espnet3.publication.inference_model import load_backend
 
 
-def _rate(value: Any) -> int:
+def parse_rate(value: Any) -> int:
     """Return an int rate from an int or ESPnet2's ``"16k"`` spelling."""
     if isinstance(value, str):
         value = humanfriendly.parse_size(value)
@@ -172,14 +172,14 @@ class BackendInference(InferenceAPI):
         for name in ("sample_rate", "fs"):
             rate = getattr(backend, name, None)
             if rate:
-                return _rate(rate)
+                return parse_rate(rate)
         for name, value in (
             list(vars(backend).items()) if hasattr(backend, "__dict__") else []
         ):
             if name.endswith("_train_args"):
                 conf = getattr(value, "frontend_conf", None) or {}
                 if conf.get("fs"):
-                    return _rate(conf["fs"])
+                    return parse_rate(conf["fs"])
         raise TypeError(
             f"{type(self).__qualname__} cannot tell the rate from its backend "
             f"({type(backend).__name__}); override sample_rate, or return None "

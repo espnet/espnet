@@ -37,7 +37,11 @@ from __future__ import annotations
 from typing import Any, Mapping, Sequence
 
 from espnet3.api.inference import Audio, Field
-from espnet3.systems.base.backend_inference import BackendInference
+from espnet3.systems.base.backend_inference import BackendInference, parse_rate
+
+# espnet2.asr.frontend.default.DefaultFrontend(fs=16000): what an ESPnet2
+# model runs at when its training config says nothing about the rate.
+DEFAULT_FRONTEND_RATE = 16000
 
 
 class Inference(BackendInference):
@@ -70,6 +74,23 @@ class Inference(BackendInference):
     backend_class = "espnet2.bin.asr_inference.Speech2Text"
     inputs = (Field("speech", "audio", "Speech"),)
     outputs = (Field("text", "text", "Transcription"),)
+
+    @property
+    def sample_rate(self) -> int:
+        """The frontend's rate: ``frontend_conf.fs``, else ESPnet2's 16 kHz.
+
+        An ESPnet2 training config may leave ``frontend_conf`` empty, as the
+        mini_an4 recipe does; the frontend it builds then runs at
+        :class:`~espnet2.asr.frontend.default.DefaultFrontend`'s own default
+        of 16 kHz, so that is the rate, not a guess. A backend that is not a
+        ``Speech2Text`` (no ``asr_train_args``) falls back to the base
+        class, which raises.
+        """
+        args = getattr(self.backend, "asr_train_args", None)
+        if args is None:
+            return super().sample_rate
+        conf = getattr(args, "frontend_conf", None) or {}
+        return parse_rate(conf.get("fs", DEFAULT_FRONTEND_RATE))
 
     def run(self, speech: Audio) -> Mapping[str, Any]:
         """Return the best hypothesis' text.
