@@ -41,4 +41,6 @@ def test_RttmReader(rttm_file):
     for k in desired:
         np.testing.assert_array_equal(target[k], desired[k])
     assert len(target) == len(desired)
+    assert "abc" in target
+    assert "zzz" not in target
     assert tuple(target.keys()) == tuple(desired)
