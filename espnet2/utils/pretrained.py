@@ -64,7 +64,7 @@ def build_pretrained(
         model_tag: The tag to load.
         device: Passed to the constructor.
         what: How the caller names itself in the message, e.g.
-            ``"`espnet tts`"`` or ``"espnet.load(task='tts')"``.
+            ``"`espnet synthesize`"`` or ``"espnet.load(task='tts')"``.
         remedy: One sentence telling the user how to pick another tag.
         **kwargs: Further constructor arguments.
     """
