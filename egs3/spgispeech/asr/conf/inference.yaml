@@ -100,14 +100,20 @@ model:
 input_key: speech
 output_fn: src.inference.build_output
 
+# Pinned explicitly rather than left to inherit egs3/TEMPLATE/asr's default
+# (also 4, as of espnet/espnet#6658): consecutive utterances are decoded
+# together in one `Speech2Text.batch_decode` call, 2.8x faster on dev_4k than
+# batch_size: null (31.3 min vs 88.75 min, 1 GPU) with WER/CER unchanged
+# within noise -- see readme.md's Results section. `src/inference.py`'s
+# `build_output` handles the resulting list-of-samples call.
+batch_size: 4
+
 ##########################################################
 #                  PARALLELIZATION SETTING               #
 ##########################################################
-# `env: local` yields exactly ONE shard regardless of n_workers:
-# BaseRunner._plan_shards only reads n_workers when env is not "local", so
-# inference runs as a single process here. Since shards are also the unit of
-# resume (each writes a `done` sentinel), a large test set is better served by
-# a cluster backend -- set `env: slurm` and supply your scheduler's options.
+# `env: local` uses a Dask LocalCluster with `n_workers` workers. To dispatch
+# workers through a scheduler instead, set `env: slurm` and supply the
+# site-specific scheduler options.
 parallel:
   env: local
   n_workers: 1

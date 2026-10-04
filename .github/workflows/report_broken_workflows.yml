@@ -16,9 +16,18 @@ name: report broken workflows
 
 on:
   schedule:
-    # 06:00 UTC daily. Away from the docker publish (Monday 00:00) and the CI
-    # image rebuild (03:00), so a failure of those is already visible here.
-    - cron: "0 6 * * *"
+    # 09:00 UTC daily, and deliberately the last daily schedule in the
+    # repository. This job reports the *latest* run of every workflow, so a
+    # workflow scheduled after it is reported a day late: at 06:00 it was
+    # filing check_demo_links (07:00) and assign_milestone (06:30) results
+    # from the previous morning, which is how issue #6800 named a demo-link
+    # failure that had already passed by the time anyone read it.
+    #
+    # Two hours after the last of them, because GitHub delays scheduled runs -
+    # this one's 06:00 cron has fired as late as 06:29.
+    # ci/check_ci_image_config.py fails if another daily schedule moves past
+    # it.
+    - cron: "0 9 * * *"
   workflow_dispatch:
 
 permissions:
@@ -66,9 +75,13 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TITLE: "CI: workflows failing where no pull request shows it"
+          MARKER: 'Maintained by `.github/workflows/report_broken_workflows.yml`.'
         run: |
+          # -e and pipefail: a failed lookup must stop the step rather than
+          # leave "existing" empty, which would file a second issue.
+          set -euo pipefail
           {
-            echo "Maintained by \`.github/workflows/report_broken_workflows.yml\`."
+            echo "$MARKER"
             echo "Edited in place each day; close it once the runs are green."
             echo
             echo '```'
@@ -77,9 +90,13 @@ jobs:
             echo
             echo "Last checked: $(date -u '+%Y-%m-%d %H:%M UTC')"
           } > body.md
+          # `first(...)` inside gh rather than `head -1`: head can close the
+          # pipe before gh has finished writing, and with pipefail that broken
+          # pipe would fail the step. The marker keeps this from editing or
+          # closing an unrelated issue that happens to share the title.
           existing=$(gh issue list --state open --search "$TITLE in:title" \
-            --json number,title \
-            --jq ".[] | select(.title == \"$TITLE\") | .number" | head -1)
+            --json number,title,body \
+            --jq "first(.[] | select(.title == env.TITLE and ((.body // \"\") | contains(env.MARKER))) | .number)")
           if [ -n "${existing}" ]; then
             gh issue edit "${existing}" --body-file body.md
             echo "updated #${existing}"
@@ -92,10 +109,18 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TITLE: "CI: workflows failing where no pull request shows it"
+          MARKER: 'Maintained by `.github/workflows/report_broken_workflows.yml`.'
         run: |
+          # here too: a failed lookup must not read as "no issue open",
+          # which would leave a stale report behind.
+          set -euo pipefail
+          # `first(...)` inside gh rather than `head -1`: head can close the
+          # pipe before gh has finished writing, and with pipefail that broken
+          # pipe would fail the step. The marker keeps this from editing or
+          # closing an unrelated issue that happens to share the title.
           existing=$(gh issue list --state open --search "$TITLE in:title" \
-            --json number,title \
-            --jq ".[] | select(.title == \"$TITLE\") | .number" | head -1)
+            --json number,title,body \
+            --jq "first(.[] | select(.title == env.TITLE and ((.body // \"\") | contains(env.MARKER))) | .number)")
           if [ -n "${existing}" ]; then
             gh issue close "${existing}" \
               --comment "Every workflow's latest run is green outside pull requests."

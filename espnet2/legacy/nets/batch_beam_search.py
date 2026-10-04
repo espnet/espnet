@@ -41,7 +41,6 @@ import torch
 from torch.nn.utils.rnn import pad_sequence
 
 from espnet2.legacy.nets.beam_search import BeamSearch, Hypothesis
-from espnet2.legacy.nets.e2e_asr_common import end_detect
 from espnet2.legacy.nets.pytorch_backend.nets_utils import make_pad_mask
 
 logger = logging.getLogger(__name__)
@@ -894,9 +893,7 @@ class BatchBeamSearch(BeamSearch):
             if at_maxlen or not any(active[lo:hi]):
                 done[b] = True
                 active[lo:hi] = [False] * n_hyp_per_utt
-            elif maxlenratio == 0.0 and end_detect(
-                [h.asdict() for h in ended_per_utt[b]], i
-            ):
+            elif maxlenratio == 0.0 and self.end_detected(ended_per_utt[b], i):
                 logger.info(f"end detected at {i}")
                 done[b] = True
                 active[lo:hi] = [False] * n_hyp_per_utt
