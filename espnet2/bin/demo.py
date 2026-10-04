@@ -43,24 +43,32 @@ WINDOW_SECS = 30
 # this; `espnet demo` decodes the first two minutes and says so.
 MAX_SECS = 120
 DETECT = "Detect automatically"
-ASR_LABEL = "Transcribe"
+# Every task is named by the abbreviation its field uses, then glossed, so
+# that the menu and any paper or README a reader arrives from agree on the
+# word. The gloss is what makes the abbreviation usable by someone meeting
+# it for the first time.
+ASR_LABEL = "ASR: transcribe"
 # POWSM, the phonetic model built on OWSM, answers <pr> with the phones it
 # hears. A checkpoint that has the symbol gets the option; OWSM does not have
 # it and its menu is unchanged.
-PHONES_LABEL = "Recognise phones"
+PHONES_LABEL = "PR: recognise phones"
 PHONE_TASK = "<pr>"
 # POWSM's other two tasks take the audio and something written with it: the
 # words that were said, to be answered with phones, or the phones, to be
 # answered with words. A checkpoint that has the symbol gets the entry, and
-# the box to type the input into.
-G2P_LABEL = "Phones for text you give (G2P)"
+# the box to type the input into. Both are audio-guided: the recording is
+# read as well as what you type, which is what makes them more than a
+# dictionary lookup.
+G2P_LABEL = "G2P: phones for the words you give"
 G2P_TASK = "<g2p>"
-P2G_LABEL = "Text for phones you give (P2G)"
+P2G_LABEL = "P2G: words for the phones you give"
 P2G_TASK = "<p2g>"
 PROMPT_TASKS = {G2P_LABEL: G2P_TASK, P2G_LABEL: P2G_TASK}
+# With an example each: the input is the part of this page someone can get
+# wrong, and IPA between slashes is not a spelling anyone guesses.
 PROMPT_LABELS = {
-    G2P_LABEL: "The words that were said",
-    P2G_LABEL: "The phones, spaced or between slashes",
+    G2P_LABEL: 'The words that were said, e.g. "pat"',
+    P2G_LABEL: 'The phones that were said, e.g. "p a t" or "/p//a//t/"',
 }
 # A decoder can be primed with text before it searches - what was said
 # before, a name to expect. A CTC head cannot: there is no search to prime,
@@ -71,7 +79,7 @@ PROMPT_LABELS = {
 # checkpoint. POWSM's author asked for it on #6792: <g2p> and <p2g> are
 # encoder-decoder work, and an encoder-CTC model is less stable at them.
 PROMPT_TASK_NOTE = (
-    "**Phones from text** and **text from phones** read what you type, and "
+    "**G2P** and **P2G** read what you type, and "
     "this checkpoint is encoder-CTC: it answers them, less reliably than the "
     "encoder-decoder [POWSM](https://huggingface.co/espnet/powsm), which is "
     "what to reach for if you need them. Its own recognition - the audio "
@@ -90,7 +98,7 @@ NO_PROMPT_NOTE = (
 # weak - a text normalisation problem the authors have since retrained - and
 # a page that offers the button without the caveat invites the wrong reading.
 PHONE_MODEL_NOTE = (
-    "This checkpoint is a phonetic model. **Recognise phones** is what it is "
+    "This checkpoint is a phonetic model. **PR** is what it is "
     "for; its transcription is weaker than a model trained for text, and on "
     "[POWSM](https://huggingface.co/espnet/powsm) in particular the English "
     "ASR suffers from a text normalisation problem — the authors have since "
@@ -265,7 +273,7 @@ def menus(tokens: Sequence[str]) -> Tuple[List[Tuple[str, str]], List[Tuple[str,
     """
     languages = _named(language_codes(tokens))
     targets = [
-        (f"Translate to {LANGUAGE_NAMES.get(c, c)} ({c})", c)
+        (f"ST: translate to {LANGUAGE_NAMES.get(c, c)} ({c})", c)
         for _, c in _named(target_codes(tokens))
     ]
     return languages, targets

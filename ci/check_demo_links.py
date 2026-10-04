@@ -181,7 +181,8 @@ def retry_delay(headers) -> Optional[float]:
 def _get_json(url: str, sleep=time.sleep):
     request = urllib.request.Request(url)
     token = os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")
-    if token and url.startswith("https://api.github.com/"):
+    authenticated = bool(token) and url.startswith("https://api.github.com/")
+    if authenticated:
         # unauthenticated GitHub allows 60 requests an hour per address, which
         # a shared runner can exhaust; the workflow's own token lifts that
         request.add_header("Authorization", f"Bearer {token}")
@@ -193,7 +194,12 @@ def _get_json(url: str, sleep=time.sleep):
             if e.code == 404:
                 return None
             wait = retry_delay(e.headers) if e.code in RATE_LIMITED else None
-            if attempt == 1 and e.code in TRANSIENT:
+            # A 401 is only worth retrying where no credentials were sent.
+            # Retrying a rejected token sends the same rejected token again.
+            retryable = e.code in RATE_LIMITED or (
+                e.code in DECLINED and not authenticated
+            )
+            if attempt == 1 and retryable:
                 # a server that throttles without saying for how long still
                 # deserves the one retry; only a wait it named and that is
                 # longer than a window skips it
@@ -209,8 +215,16 @@ def _get_json(url: str, sleep=time.sleep):
                     f"{url}: HTTP {e.code} - rate limited{said}, not a broken link"
                 ) from e
             if e.code in DECLINED:
+                if authenticated:
+                    # this one *did* send credentials, so it is an
+                    # authentication failure and saying "not a broken link"
+                    # would hide the thing worth acting on
+                    raise ScanError(
+                        f"{url}: HTTP {e.code} - the token this request sent "
+                        "was rejected; check GH_TOKEN"
+                    ) from e
                 # not "rate limited", which it does not say it is, and not a
-                # broken link either - the request carried no credentials to
+                # broken link either - this request carried no credentials to
                 # be wrong about
                 raise ScanError(
                     f"{url}: HTTP {e.code} - the request was declined, "
@@ -708,6 +722,46 @@ def self_check() -> None:
         raise AssertionError("a 401 that does not clear must fail the scan")
     finally:
         urllib.request.urlopen = real_urlopen
+
+    # a 401 on a request that *did* send a token is an authentication
+    # failure, not the Hub declining an anonymous caller: retrying sends the
+    # same rejected token again, and "not a broken link" would hide the thing
+    # worth acting on
+    authed = []
+
+    def rejects_token(request, **_):
+        # the Authorization header itself, not just the fact that a token was
+        # in the environment: without this the case passes with the
+        # add_header call deleted, which is the one thing it is here to check
+        authed.append(request.get_header("Authorization"))
+        raise urllib.error.HTTPError(
+            request.full_url, 401, "Unauthorized", email.message_from_string(""), None
+        )
+
+    real_urlopen = urllib.request.urlopen
+    urllib.request.urlopen = rejects_token
+    had = os.environ.get("GH_TOKEN")
+    os.environ["GH_TOKEN"] = "not-a-real-token"
+    slept_on_auth = []
+    try:
+        _get_json(
+            "https://api.github.com/repos/espnet/notebook/git/trees/master",
+            sleep=slept_on_auth.append,
+        )
+    except ScanError as e:
+        assert "token" in str(e) and "GH_TOKEN" in str(e), e
+        assert "not a broken link" not in str(e), e
+    else:  # pragma: no cover - the raise above is the expected path
+        raise AssertionError("a rejected token must fail the scan")
+    finally:
+        urllib.request.urlopen = real_urlopen
+        if had is None:
+            del os.environ["GH_TOKEN"]
+        else:
+            os.environ["GH_TOKEN"] = had
+    assert len(authed) == 1, authed
+    assert authed[0] == "Bearer not-a-real-token", authed
+    assert slept_on_auth == [], slept_on_auth
 
     # a 403 is not in either set: it gets no retry and no reassurance
     forbidden = []
