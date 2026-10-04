@@ -29,10 +29,7 @@ from espnet2.text.build_tokenizer import build_tokenizer
 from espnet2.text.cleaner import TextCleaner
 from espnet2.text.token_id_converter import TokenIDConverter
 from espnet2.torch_utils.safe_torch_load import safe_torch_load
-from espnet3.systems.f5tts import (
-    BIGVGAN_DEFAULT_MODEL,
-    VOCOS_DEFAULT_MODEL,
-)
+from espnet3.systems.f5tts import VOCOS_DEFAULT_MODEL
 from espnet3.utils.config_utils import load_config_with_defaults
 
 logger = logging.getLogger(__name__)
@@ -158,7 +155,6 @@ class F5TTSInference:
         checkpoint_path: str,
         device: str = "cpu",
         use_ema: bool = True,
-        vocoder_name: str = "vocos",
         vocoder_path: Optional[str] = None,
         target_sample_rate: int = 24000,
         ode_solver_steps: int = 32,
@@ -167,7 +163,6 @@ class F5TTSInference:
         speed: float = 1.0,
         target_rms: float = 0.1,
         cross_fade_duration: float = 0.15,
-        native_f5: bool = False,
         seed: Optional[int] = None,
     ):
         """Build the model, tokenizer and vocoder for inference.
@@ -180,7 +175,9 @@ class F5TTSInference:
             device: Torch device string.
             use_ema: Load EMA-averaged weights (``ema_model_state_dict``) when
                 present; otherwise the raw ``state_dict``.
-            vocoder_name / vocoder_path: ``"vocos"`` (default) or ``"bigvgan"``.
+            vocoder_path: Local directory holding the Vocos ``config.yaml``
+                and ``pytorch_model.bin``. When unset the default checkpoint is
+                fetched from the Hugging Face Hub.
             target_sample_rate: Output/vocoder sample rate.
             ode_solver_steps: Number of ODE solver steps, upstream's
                 ``nfe_step`` (number of function evaluations).
@@ -188,19 +185,10 @@ class F5TTSInference:
                 ``cfg_strength``.
             sway_sampling_coefficient / speed / seed: Remaining sampling
                 hyperparameters forwarded to ``CFM.sample``.
-            native_f5: Load an OFFICIAL SWivid/F5-TTS checkpoint (``.pt`` or
-                ``.safetensors``) instead of an espnet/Lightning ckpt. The weights
-                are loaded straight into the ported CFM (``model.cfm``), so
-                the architecture and the pinyin ``token_list`` in
-                ``train_config`` MUST match the pretrained model (F5TTS_Base +
-                ``Emilia_ZH_EN_pinyin/vocab.txt``). Use this to sanity-check the
-                inference + tokenization path against known-good weights.
 
         Raises:
-            ValueError: If ``train_config`` has no ``model._target_``, if its
-                ``dataset.preprocessor.token_list`` is missing, or if
-                ``vocoder_name`` is neither ``"vocos"`` nor ``"bigvgan"``.
-            ImportError: If the selected vocoder package is not installed.
+            ValueError: If ``train_config`` has no ``model._target_`` or if
+                its ``dataset.preprocessor.token_list`` is missing.
 
         Example:
             .. code-block:: yaml
@@ -237,20 +225,18 @@ class F5TTSInference:
             "feats_extract_config"
         ) or {}
         self.hop_length = int(feats_extract_config.get("hop_length", 256))
-        model = self._build_model(config, checkpoint_path, use_ema, native_f5)
+        model = self._build_model(config, checkpoint_path, use_ema)
         # F5TTS components used for generation.
         self.feats_extract = model.feats_extract
         self.cfm = model.cfm
         self.model = model
 
         self._build_tokenizer(config)
-        self.vocoder = self._load_vocoder(vocoder_name, vocoder_path)
+        self.vocoder = self._load_vocoder(vocoder_path)
 
     # ------------------------------------------------------------------ build
 
-    def _build_model(
-        self, config: dict, checkpoint_path: str, use_ema: bool, native_f5: bool = False
-    ):
+    def _build_model(self, config: dict, checkpoint_path: str, use_ema: bool):
         model_config = config.get("model")
         if not model_config or not model_config.get("_target_"):
             raise ValueError(
@@ -258,19 +244,6 @@ class F5TTSInference:
             )
         logger.info("Building TTS model via %s", model_config["_target_"])
         model = instantiate(model_config)
-
-        if native_f5:
-            # Official SWivid/F5-TTS checkpoint: CFM-level keys (transformer.* /
-            # mel_spec.*, EMA prefixed ema_model.). Load straight into the ported
-            # CFM so the enclosing model's prefixes (cfm.) don't matter.
-            cfm_state_dict = self._load_native_f5_state(checkpoint_path, use_ema)
-            missing, unexpected = model.cfm.load_state_dict(
-                cfm_state_dict, strict=False
-            )
-            self._log_model_loading(
-                "F5-native -> model.cfm", checkpoint_path, missing, unexpected
-            )
-            return model.to(self.device).eval()
 
         checkpoint = safe_torch_load(checkpoint_path, map_location="cpu")
         if use_ema and "ema_model_state_dict" in checkpoint:
@@ -288,34 +261,6 @@ class F5TTSInference:
         missing, unexpected = model.load_state_dict(state_dict, strict=False)
         self._log_model_loading("espnet", checkpoint_path, missing, unexpected)
         return model.to(self.device).eval()
-
-    @staticmethod
-    def _load_native_f5_state(checkpoint_path: str, use_ema: bool) -> dict:
-        """CFM-level state dict from an official F5-TTS checkpoint.
-
-        Handles ``.pt`` (``torch.load`` -> ``model_state_dict`` /
-        ``ema_model_state_dict``) and ``.safetensors`` (a flat EMA tensor dict).
-        Returns keys at CFM level (``transformer.*``, ``mel_spec.*``): the
-        ``ema_model.`` prefix is stripped and the ``initted`` / ``step``
-        bookkeeping tensors are dropped, mirroring F5's own ``load_checkpoint``.
-        """
-        if str(checkpoint_path).endswith(".safetensors"):
-            from safetensors.torch import load_file
-
-            raw = load_file(checkpoint_path)  # flat: ema_model.* (+ initted/step)
-        else:
-            checkpoint = safe_torch_load(checkpoint_path, map_location="cpu")
-            if use_ema and "ema_model_state_dict" in checkpoint:
-                raw = checkpoint["ema_model_state_dict"]
-            elif "model_state_dict" in checkpoint:
-                raw = checkpoint["model_state_dict"]
-            else:
-                raw = checkpoint
-        return {
-            key.replace("ema_model.", "", 1): value
-            for key, value in raw.items()
-            if key not in ("initted", "step")
-        }
 
     @staticmethod
     def _log_model_loading(tag: str, checkpoint_path: str, missing, unexpected) -> None:
@@ -371,49 +316,24 @@ class F5TTSInference:
             dtype=np.int64,
         )
 
-    def _load_vocoder(self, vocoder_name: str, vocoder_path: Optional[str]):
-        if vocoder_name == "vocos":
-            try:
-                from vocos import Vocos
-            except ImportError as error:
-                raise ImportError(
-                    "vocos is required for vocoder_name='vocos'. Install with "
-                    "`pip install vocos`."
-                ) from error
-            if vocoder_path:
-                vocoder = Vocos.from_hparams(f"{vocoder_path}/config.yaml")
-                state = safe_torch_load(
-                    f"{vocoder_path}/pytorch_model.bin", map_location="cpu"
-                )
-                vocoder.load_state_dict(state)
-            else:
-                vocoder = Vocos.from_pretrained(VOCOS_DEFAULT_MODEL)
-        elif vocoder_name == "bigvgan":
-            try:
-                import bigvgan
-            except ImportError as error:
-                raise ImportError(
-                    "bigvgan is required for vocoder_name='bigvgan'. See "
-                    "https://github.com/NVIDIA/BigVGAN."
-                ) from error
-            repo = vocoder_path or BIGVGAN_DEFAULT_MODEL
-            vocoder = bigvgan.BigVGAN.from_pretrained(repo, use_cuda_kernel=False)
-            vocoder.remove_weight_norm()
+    def _load_vocoder(self, vocoder_path: Optional[str]):
+        from vocos import Vocos
+
+        if vocoder_path:
+            vocoder = Vocos.from_hparams(f"{vocoder_path}/config.yaml")
+            state = safe_torch_load(
+                f"{vocoder_path}/pytorch_model.bin", map_location="cpu"
+            )
+            vocoder.load_state_dict(state)
         else:
-            raise ValueError(f"Unsupported vocoder: {vocoder_name!r}.")
+            vocoder = Vocos.from_pretrained(VOCOS_DEFAULT_MODEL)
         return vocoder.to(self.device).eval()
 
     # -------------------------------------------------------------- inference
 
     def _vocode(self, mel: torch.Tensor) -> torch.Tensor:
-        """Vocode mel ``[1, d, n]`` to waveform ``[nw]``.
-
-        Vocos exposes ``decode``; bigvgan is a plain ``nn.Module``.
-        """
-        if hasattr(self.vocoder, "decode"):
-            wav = self.vocoder.decode(mel)
-        else:  # bigvgan is a plain nn.Module
-            wav = self.vocoder(mel)
+        """Vocode mel ``[1, d, n]`` to waveform ``[nw]``."""
+        wav = self.vocoder.decode(mel)
         return wav.squeeze().detach().cpu()
 
     @torch.no_grad()

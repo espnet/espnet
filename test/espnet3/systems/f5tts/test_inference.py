@@ -38,7 +38,6 @@ FEATS_CONF = dict(
     hop_length=256,
     win_length=1024,
     n_mels=100,
-    mel_spec_type="vocos",
 )
 
 
@@ -46,13 +45,6 @@ class _StubVocos:
     """Stands in for Vocos: exposes ``decode``, upsamples by the hop length."""
 
     def decode(self, mel):
-        return torch.zeros(1, mel.shape[-1] * 256)
-
-
-class _StubBigVGAN:
-    """Stands in for BigVGAN: a plain callable with no ``decode``."""
-
-    def __call__(self, mel):
         return torch.zeros(1, mel.shape[-1] * 256)
 
 
@@ -225,7 +217,7 @@ def checkpoint_path(tmp_path, reference_model):
 @pytest.fixture
 def stub_vocoder(monkeypatch):
     monkeypatch.setattr(
-        F5TTSInference, "_load_vocoder", lambda self, name, path: _StubVocos()
+        F5TTSInference, "_load_vocoder", lambda self, path: _StubVocos()
     )
 
 
@@ -342,53 +334,6 @@ def test_a_vocab_file_selects_the_pinyin_tokenizer(
     assert callable(engine._tokenize)
 
 
-# ------------------------------------------------------------------- vocoder
-
-
-def test_an_unknown_vocoder_name_is_rejected(train_config, checkpoint_path):
-    with pytest.raises(ValueError, match="Unsupported vocoder"):
-        F5TTSInference(
-            train_config=str(train_config),
-            checkpoint_path=str(checkpoint_path),
-            vocoder_name="griffin_lim",
-        )
-
-
-def test_vocoders_without_decode_are_called_directly(engine):
-    """Vocos exposes ``decode``; BigVGAN is a plain module."""
-    engine.vocoder = _StubBigVGAN()
-
-    assert engine._vocode(torch.zeros(1, 100, 3)).shape == (3 * 256,)
-
-
-# ----------------------------------------------------------------- native F5
-
-
-def test_native_f5_state_is_flattened_to_cfm_level(tmp_path, reference_model):
-    """The official checkpoint nests EMA weights and adds bookkeeping tensors."""
-    cfm_state_dict = reference_model.cfm.state_dict()
-    raw = {"ema_model." + k: v for k, v in cfm_state_dict.items()}
-    raw["initted"] = torch.tensor(True)
-    raw["step"] = torch.tensor(7)
-    path = tmp_path / "model.pt"
-    torch.save({"ema_model_state_dict": raw}, path)
-
-    out = F5TTSInference._load_native_f5_state(str(path), use_ema=True)
-
-    assert set(out) == set(cfm_state_dict)
-    assert "initted" not in out and "step" not in out
-
-
-def test_native_f5_falls_back_to_the_non_ema_state(tmp_path, reference_model):
-    cfm_state_dict = reference_model.cfm.state_dict()
-    path = tmp_path / "model.pt"
-    torch.save({"model_state_dict": dict(cfm_state_dict)}, path)
-
-    out = F5TTSInference._load_native_f5_state(str(path), use_ema=True)
-
-    assert set(out) == set(cfm_state_dict)
-
-
 # ----------------------------------------------------------------- generation
 
 
@@ -441,9 +386,8 @@ def test_call_without_a_reference_is_refused(engine):
 # ------------------------------------------------------- vocoder construction
 #
 # These exercise the real ``_load_vocoder`` (the ``engine`` fixture stubs the
-# whole method out) by standing fake vocoder packages up in ``sys.modules``.
-# Neither vocos nor bigvgan is an espnet dependency, and both would otherwise
-# reach for the network.
+# whole method out) by standing a fake vocos package up in ``sys.modules``,
+# since the real one would otherwise reach for the network.
 
 
 class _FakeVocosModel:
@@ -511,72 +455,7 @@ def test_a_local_vocoder_path_is_loaded_from_disk(
     assert engine.vocoder.loaded_state is not None
 
 
-def test_bigvgan_weight_norm_is_removed_at_load(
-    monkeypatch, train_config, checkpoint_path
-):
-    """BigVGAN must be switched to its inference form before sampling."""
-    calls = []
-    module = types.ModuleType("bigvgan")
-
-    class _FakeBigVGAN:
-        def remove_weight_norm(self):
-            calls.append("remove_weight_norm")
-
-        def to(self, device):
-            return self
-
-        def eval(self):
-            return self
-
-    class BigVGAN:
-        @staticmethod
-        def from_pretrained(repo, use_cuda_kernel=False):
-            calls.append(repo)
-            return _FakeBigVGAN()
-
-    module.BigVGAN = BigVGAN
-    monkeypatch.setitem(sys.modules, "bigvgan", module)
-
-    F5TTSInference(
-        train_config=str(train_config),
-        checkpoint_path=str(checkpoint_path),
-        vocoder_name="bigvgan",
-    )
-
-    assert calls == ["nvidia/bigvgan_v2_24khz_100band_256x", "remove_weight_norm"]
-
-
-def test_a_missing_vocoder_package_is_reported_clearly(
-    monkeypatch, train_config, checkpoint_path
-):
-    """vocos is optional, so the failure must name the install."""
-    monkeypatch.setitem(sys.modules, "vocos", None)
-
-    with pytest.raises(ImportError, match="pip install vocos"):
-        F5TTSInference(
-            train_config=str(train_config), checkpoint_path=str(checkpoint_path)
-        )
-
-
-# ------------------------------------------------- native F5 checkpoint loading
-
-
-def test_a_native_f5_checkpoint_loads_into_the_cfm(
-    tmp_path, train_config, reference_model, stub_vocoder
-):
-    """Official SWivid weights sit at CFM level, below the espnet model."""
-    cfm_state_dict = reference_model.cfm.state_dict()
-    zeros = {"ema_model." + k: torch.zeros_like(v) for k, v in cfm_state_dict.items()}
-    path = tmp_path / "native.pt"
-    torch.save({"ema_model_state_dict": zeros}, path)
-
-    engine = F5TTSInference(
-        train_config=str(train_config), checkpoint_path=str(path), native_f5=True
-    )
-
-    for value in engine.cfm.state_dict().values():
-        if value.is_floating_point():
-            assert torch.all(value == 0)
+# ------------------------------------------------------------ checkpoint loading
 
 
 def test_a_partial_checkpoint_still_loads(
@@ -597,31 +476,6 @@ def test_a_partial_checkpoint_still_loads(
 
 
 # ------------------------------------------------------ remaining load paths
-
-
-def test_a_safetensors_checkpoint_is_read_as_a_flat_ema_dict(tmp_path, reference_model):
-    """The official release ships .safetensors with no nesting."""
-    safetensors_torch = pytest.importorskip("safetensors.torch")
-    cfm_state_dict = reference_model.cfm.state_dict()
-    flat = {"ema_model." + k: v.contiguous() for k, v in cfm_state_dict.items()}
-    flat["initted"] = torch.tensor(True)
-    path = tmp_path / "model.safetensors"
-    safetensors_torch.save_file(flat, str(path))
-
-    out = F5TTSInference._load_native_f5_state(str(path), use_ema=True)
-
-    assert set(out) == set(cfm_state_dict)
-
-
-def test_a_bare_state_dict_checkpoint_is_used_as_is(tmp_path, reference_model):
-    """Neither ema_model_state_dict nor model_state_dict: take the whole file."""
-    cfm_state_dict = reference_model.cfm.state_dict()
-    path = tmp_path / "bare.pt"
-    torch.save(dict(cfm_state_dict), path)
-
-    out = F5TTSInference._load_native_f5_state(str(path), use_ema=True)
-
-    assert set(out) == set(cfm_state_dict)
 
 
 @pytest.fixture
@@ -659,19 +513,6 @@ def test_the_f5_pinyin_g2p_is_registered_when_the_config_asks_for_it(
     F5TTSInference(train_config=str(path), checkpoint_path=str(checkpoint_path))
 
     assert "f5_pinyin" in pt.g2p_choices
-
-
-def test_a_missing_bigvgan_package_is_reported_clearly(
-    monkeypatch, train_config, checkpoint_path
-):
-    monkeypatch.setitem(sys.modules, "bigvgan", None)
-
-    with pytest.raises(ImportError, match="bigvgan is required"):
-        F5TTSInference(
-            train_config=str(train_config),
-            checkpoint_path=str(checkpoint_path),
-            vocoder_name="bigvgan",
-        )
 
 
 # ----------------------------------------------------- degenerate generation

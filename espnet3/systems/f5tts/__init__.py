@@ -17,6 +17,3 @@ If you use this model in your research, please cite the paper above.
 
 #: Default Vocos checkpoint used when ``vocoder_path`` is unset.
 VOCOS_DEFAULT_MODEL = "charactr/vocos-mel-24khz"
-
-#: Default BigVGAN checkpoint used when ``vocoder_path`` is unset.
-BIGVGAN_DEFAULT_MODEL = "nvidia/bigvgan_v2_24khz_100band_256x"

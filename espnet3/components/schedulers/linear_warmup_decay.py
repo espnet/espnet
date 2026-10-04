@@ -152,38 +152,3 @@ start_factor=1e-08, end_factor=1e-08)'
         delta = self.end_factor - 1.0
         factor = 1.0 + delta / (self.decay_steps * 1.0 + (decay_step - 1) * delta)
         return [group["lr"] * factor for group in param_groups]
-
-
-def linear_warmup_decay(
-    optimizer,
-    warmup_steps: int,
-    total_steps: int,
-    start_factor: float = 1e-8,
-    end_factor: float = 1e-8,
-):
-    """Build a LinearWarmupDecayLR.
-
-    Retained for compatibility with configs that target this factory by its
-    dotted path. New configs should target ``LinearWarmupDecayLR`` directly.
-
-    Args:
-        optimizer: Optimizer whose learning rates are scheduled.
-        warmup_steps: Updates spent ramping ``start_factor`` up to 1.0.
-        total_steps: Planned training length in optimizer updates.
-        start_factor: Multiplier applied to the base lr at step 0.
-        end_factor: Multiplier the lr decays to, and is clamped at.
-
-    Returns:
-        The constructed :class:`LinearWarmupDecayLR`.
-
-    Note:
-        A thin factory, kept only so older configs keep resolving. It exposes no
-        ``last_epoch``, so resuming mid-run needs the class directly.
-    """
-    return LinearWarmupDecayLR(
-        optimizer,
-        warmup_steps=warmup_steps,
-        total_steps=total_steps,
-        start_factor=start_factor,
-        end_factor=end_factor,
-    )

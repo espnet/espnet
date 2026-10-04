@@ -20,7 +20,6 @@ FEATS_CONF = dict(
     hop_length=256,
     win_length=1024,
     n_mels=100,
-    mel_spec_type="vocos",
 )
 
 
@@ -147,7 +146,6 @@ def test_cfm_mel_defaults_follow_the_feature_extractor(token_file):
         hop_length=512,
         win_length=2048,
         n_mels=100,
-        mel_spec_type="vocos",
     )
     model = F5TTS(token_list=token_file, feats_extract_config=feats, **MODEL_CONF)
 

@@ -27,7 +27,6 @@ FEATS_CONF = dict(
     hop_length=256,
     win_length=1024,
     n_mels=100,
-    mel_spec_type="vocos",
 )
 
 

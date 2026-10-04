@@ -21,15 +21,20 @@
 # SOFTWARE.
 """F5-TTS zh+en pinyin tokenization.
 
-Adapted from F5-TTS's ``convert_char_to_pinyin``
-(https://github.com/SWivid/F5-TTS, ``src/f5_tts/model/utils.py``),
-which is MIT-licensed; the notice above is that project's own. ``is_chinese`` is
-carried over unchanged, while ``convert_char_to_pinyin`` was reworked for this
-recipe, so this is an adaptation rather than a copy. Behaviour: Chinese
-characters become pinyin syllables (``Style.TONE3`` + tone sandhi, segmented with
-``rjieba``), while English / letters / symbols are kept and split into individual
-characters. This is exactly F5's "Emilia_ZH_EN_pinyin" scheme. Note it is *not*
-"pinyin for English"; English stays char-level.
+``convert_char_to_pinyin`` is F5-TTS's own function
+(https://github.com/SWivid/F5-TTS, ``src/f5_tts/model/utils.py``), which is
+MIT-licensed; the notice above is that project's own. Its logic is unchanged:
+only a docstring and type annotations were added, and the ``rjieba`` /
+``pypinyin`` imports were moved inside the function. What ESPnet adds is the
+g2p / vocab plumbing around it: ``f5_pinyin_g2p``, ``register_f5_pinyin_g2p``,
+``load_vocab_char_map``, ``text_to_pinyin_ids`` and ``build_pinyin_vocab``
+here, plus ``F5PinyinPreprocessor`` in ``preprocessor.py``.
+
+Behaviour: Chinese characters become pinyin syllables (``Style.TONE3`` + tone
+sandhi, segmented with ``rjieba``), while English / letters / symbols are kept
+and split into individual characters. This is exactly F5's
+"Emilia_ZH_EN_pinyin" scheme. Note it is *not* "pinyin for English"; English
+stays char-level.
 
 Provides three ways to use it:
   * ``f5_pinyin_g2p`` + ``register_f5_pinyin_g2p``: expose it as an ESPnet g2p

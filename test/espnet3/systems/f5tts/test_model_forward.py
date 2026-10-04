@@ -25,7 +25,6 @@ FEATS_CONF = dict(
     hop_length=256,
     win_length=1024,
     n_mels=N_MELS,
-    mel_spec_type="vocos",
 )
 VOCAB = ["<blank>", "<unk>", "a", "b", "c", "<sos/eos>"]
 

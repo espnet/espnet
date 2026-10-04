@@ -2,9 +2,8 @@
 
 Wraps F5-TTS's ``MelSpec`` so :class:`~espnet3.systems.f5tts.f5tts.F5TTS`
 can use it as its ``feats_extract``. Using F5's own mel, rather than
-``LogMelFbank``, keeps training features bit-compatible with the neural vocoder
-used at inference. ``mel_spec_type`` selects which vocoder family the mel
-targets: ``"vocos"`` or ``"bigvgan"`` (hence the vocoder-agnostic name).
+``LogMelFbank``, keeps training features bit-compatible with Vocos, the neural
+vocoder used at inference.
 
 Output layout is ``[B, T, n_mels]`` (time-first), the layout the flow-matching
 stack expects.
@@ -21,7 +20,7 @@ from espnet3.systems.f5tts.modules import MelSpec
 
 
 class VocoderMelSpec(AbsFeatsExtract):
-    """F5-TTS mel spectrogram (vocos/bigvgan target) as an AbsFeatsExtract."""
+    """F5-TTS mel spectrogram (Vocos target) as an AbsFeatsExtract."""
 
     def __init__(
         self,
@@ -30,7 +29,6 @@ class VocoderMelSpec(AbsFeatsExtract):
         hop_length: int = 256,
         win_length: int = 1024,
         n_mels: int = 100,
-        mel_spec_type: str = "vocos",
     ):
         """Configure the mel front end.
 
@@ -41,8 +39,6 @@ class VocoderMelSpec(AbsFeatsExtract):
             win_length: STFT window length in samples.
             n_mels: Number of mel bins, which becomes the model's mel
                 dimension.
-            mel_spec_type: Vocoder family this mel targets, ``"vocos"`` or
-                ``"bigvgan"``.
 
         Example:
             .. code-block:: yaml
@@ -53,7 +49,6 @@ class VocoderMelSpec(AbsFeatsExtract):
                   hop_length: 256
                   win_length: 1024
                   n_mels: 100
-                  mel_spec_type: vocos
 
         Note:
             The mel must match the vocoder used at inference, so these values
@@ -66,7 +61,6 @@ class VocoderMelSpec(AbsFeatsExtract):
         self.hop_length = hop_length
         self.win_length = win_length
         self.n_mels = n_mels
-        self.mel_spec_type = mel_spec_type
 
         self.mel = MelSpec(
             n_fft=n_fft,
@@ -74,7 +68,6 @@ class VocoderMelSpec(AbsFeatsExtract):
             win_length=win_length,
             n_mel_channels=n_mels,
             target_sample_rate=fs,
-            mel_spec_type=mel_spec_type,
         )
 
     def output_size(self) -> int:
@@ -102,14 +95,14 @@ class VocoderMelSpec(AbsFeatsExtract):
         """Parameters a vocoder needs to reconstruct waveforms from these feats.
 
         Returns:
-            Dict with ``fs``, ``n_fft``, ``n_shift``, ``win_length``, ``n_mels``
-            and ``mel_spec_type``.
+            Dict with ``fs``, ``n_fft``, ``n_shift``, ``win_length`` and
+            ``n_mels``.
 
         Example:
             .. code-block:: python
 
                 >>> sorted(VocoderMelSpec().get_parameters())
-                ['fs', 'mel_spec_type', 'n_fft', 'n_mels', 'n_shift', 'win_length']
+                ['fs', 'n_fft', 'n_mels', 'n_shift', 'win_length']
 
         Note:
             The hop is reported as ``n_shift``, espnet2's name for it, not as
@@ -121,7 +114,6 @@ class VocoderMelSpec(AbsFeatsExtract):
             n_shift=self.hop_length,
             win_length=self.win_length,
             n_mels=self.n_mels,
-            mel_spec_type=self.mel_spec_type,
         )
 
     def forward(
@@ -129,10 +121,8 @@ class VocoderMelSpec(AbsFeatsExtract):
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Turn waveform ``[B, T_wav]`` into mel ``[B, T, n_mels]`` and lengths.
 
-        ``feats_lengths`` follows the frame count of the selected mel: the
-        centre-padded ``T_wav // hop + 1`` for ``vocos`` (the same formula
-        espnet2's ``Stft`` uses), and ``T_wav // hop`` for ``bigvgan``, which
-        pads by hand and runs ``center=False``.
+        ``feats_lengths`` follows the frame count of the centre-padded STFT,
+        ``T_wav // hop + 1`` (the same formula espnet2's ``Stft`` uses).
 
         Args:
             input: Waveform batch ``[B, T_wav]``.
@@ -162,10 +152,7 @@ class VocoderMelSpec(AbsFeatsExtract):
                 (feats.shape[0],), feats.shape[1], dtype=torch.long
             )
         else:
-            frames = input_lengths.div(self.hop_length, rounding_mode="floor")
-            if self.mel_spec_type != "bigvgan":
-                # vocos uses a centre-padded STFT: T_wav // hop + 1 frames.
-                # bigvgan pads by hand and runs center=False, giving one fewer.
-                frames = frames + 1
+            # The STFT is centre-padded: T_wav // hop + 1 frames.
+            frames = input_lengths.div(self.hop_length, rounding_mode="floor") + 1
             feats_lengths = frames.clamp(max=feats.shape[1])
         return feats, feats_lengths

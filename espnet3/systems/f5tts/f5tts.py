@@ -133,7 +133,6 @@ class F5TTS(torch.nn.Module):
                     hop_length: 256
                     win_length: 1024
                     n_mels: 100
-                    mel_spec_type: vocos
                   hidden_size: 768
                   depth: 18
                   attention_heads: 12
@@ -180,7 +179,6 @@ class F5TTS(torch.nn.Module):
             win_length=self.feats_extract.win_length,
             n_mel_channels=self.feats_extract.n_mels,
             target_sample_rate=self.feats_extract.fs,
-            mel_spec_type=self.feats_extract.mel_spec_type,
         )
         self.cfm = CFM(
             transformer=backbone,
