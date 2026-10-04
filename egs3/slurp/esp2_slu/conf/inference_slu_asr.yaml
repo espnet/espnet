@@ -56,7 +56,7 @@ model:
   _target_: espnet3.systems.esp2_slu.inference.SLUInference
   slu_train_config: ${exp_dir}/config.yaml
   slu_model_file: ${exp_dir}/valid.acc.ave_10best.pth
-  transcript_token_list: ${data_dir}/manifest/transcript_tokens_asr.txt
+  transcript_token_list: ${data_dir}/manifest/transcript_tokens.txt
   beam_size: 20
   ctc_weight: 0.5
 

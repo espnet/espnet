@@ -31,18 +31,27 @@ exp_dir: ${recipe_dir}/exp/${exp_tag}
 ##########################################################
 #                    METRIC DEFINITION                   #
 ##########################################################
+# The headline number is intent accuracy; WER and CER score the transcript on
+# its own. They read the `*_transcript` fields rather than the raw hypothesis,
+# so the intent label does not contaminate the word error rate -- a recipe's
+# `output_fn` is expected to split the decoded sequence into those fields.
 metrics:
   - metric:
+      _target_: espnet3.systems.esp2_slu.metrics.intent_accuracy.IntentAccuracy
+      ref_key: ref_intent   # -> `<test_name>/ref_intent.scp`
+      hyp_key: hyp_intent   # -> `<test_name>/hyp_intent.scp`
+
+  - metric:
       _target_: espnet3.systems.asr.metrics.wer.WER
-      ref_key: ref        # reference text key -> `<test_name>/ref.scp`
-      hyp_key: hyp        # hypothesis text key -> `<test_name>/hyp.scp`
-      clean_types:        # optional TextCleaner pipeline, e.g. [tacotron]
+      ref_key: ref_transcript
+      hyp_key: hyp_transcript
+      clean_types:          # optional TextCleaner pipeline, e.g. [tacotron]
 
   - metric:
       _target_: espnet3.systems.asr.metrics.cer.CER
-      ref_key: ref        # reference text key -> `<test_name>/ref.scp`
-      hyp_key: hyp        # hypothesis text key -> `<test_name>/hyp.scp`
-      clean_types:        # optional TextCleaner pipeline, e.g. [jaconv]
+      ref_key: ref_transcript
+      hyp_key: hyp_transcript
+      clean_types:          # optional TextCleaner pipeline, e.g. [jaconv]
 
 # TER (token error rate) scores on the model's subword tokens, so it needs the
 # recipe's trained SentencePiece model. It is recipe-specific and off by default.

@@ -17,10 +17,7 @@
 num_device: 1
 num_nodes: 1
 
-# The espnet2 task this system is built on. `SLUTask` predicts the intent as a
-# label prefixed to the transcript, and optionally reads a transcript as a
-# second input for its post-decoder.
-task: espnet2.tasks.slu.SLUTask
+task: espnet3.systems.esp2_slu.task.SLUTask
 
 # Path scaffold relative to the recipe root.
 recipe_dir: .

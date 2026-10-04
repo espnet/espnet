@@ -182,9 +182,5 @@ trainer:
 ##########################################################
 #                      FIT SETTING                       #
 ##########################################################
-# Resume from the last checkpoint when one exists. Lightning treats
-# `ckpt_path: last` as set-and-forget -- with no checkpoint yet it warns and
-# starts from scratch -- so a run stopped by a scheduler wall clock can be
-# continued by resubmitting the same command.
 fit:
   ckpt_path: last

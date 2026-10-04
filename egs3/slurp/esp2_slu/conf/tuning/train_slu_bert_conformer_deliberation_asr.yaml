@@ -53,7 +53,7 @@ dataset:
     _target_: espnet2.train.preprocessor.SLUPreprocessor
     token_type: bpe
     token_list: ${tokenizer.save_path}/tokens.txt
-    transcript_token_list: ${data_dir}/manifest/transcript_tokens_asr.txt
+    transcript_token_list: ${data_dir}/manifest/transcript_tokens.txt
     bpemodel: ${tokenizer.save_path}/bpe.model
     text_cleaner:
     fs: 16000
@@ -81,12 +81,12 @@ tokenizer:
   user_defined_symbols_builder:
     func: src.tokenizer.read_intent_labels
     recipe_dir: ${recipe_dir}
-  # As in the ground-truth config, except that the vocabulary is collected from
-  # the first-pass hypotheses -- the text this config actually trains on. egs2
-  # does the same: under `--gt false` its `data/train/transcript` already holds
-  # hypotheses when stage 5 reads it.
+  # The same list the ground-truth config builds, from the reference
+  # transcripts. Collecting it from the first-pass hypotheses instead would
+  # match what egs2 reads under `--gt false`, and would cover the words this
+  # model's own first pass emits.
   transcript_token_list:
-    path: ${data_dir}/manifest/transcript_tokens_asr.txt
+    path: ${data_dir}/manifest/transcript_tokens.txt
     text_builder:
       func: src.tokenizer.gather_transcript_text
       recipe_dir: ${recipe_dir}
@@ -101,7 +101,7 @@ tokenizer:
 model:
   vocab_size: ${tokenizer.vocab_size}
   token_list: ${tokenizer.save_path}/tokens.txt
-  transcript_token_list: ${data_dir}/manifest/transcript_tokens_asr.txt
+  transcript_token_list: ${data_dir}/manifest/transcript_tokens.txt
 
   # Frozen; loaded from the first-pass ASR model by the callback below.
   encoder: conformer
@@ -193,18 +193,11 @@ model:
 ##########################################################
 #            OPTIMIZER & SCHEDULER SETTING               #
 ##########################################################
-# egs2's learning rate, but not its `warmup_steps: 25000`, which counts
-# optimizer steps and so does not carry over: egs2 batches with espnet2's
-# default `batch_type: folded, batch_size: 20`, giving ~5994 steps per epoch
-# and ~300k over the 50 epochs, of which 25000 is 8%. The `batch_bins` batching
-# below gives ~1222 steps per epoch and ~61k in total, where the same 25000
-# would spend 41% of the run still ramping the learning rate up. 5000 keeps
-# egs2's proportion. Rescale it with `batch_bins` if that is changed.
 optimizer:
   lr: 0.0002
 
 scheduler:
-  warmup_steps: 5000
+  warmup_steps: 25000
 
 ##########################################################
 #                OTHER TRAINING SETTING                  #

@@ -138,7 +138,7 @@ def resolve_source_root(
         + "\n"
         + f"Place the corpus under <recipe_dir>/{_BUILDER_CONFIG['dataset_path']}/slurp"
         + f" or set {_BUILDER_CONFIG['source_env_var']} to the corpus root."
-        + " See readme.md for how to obtain SLURP."
+        + " See README.md for how to obtain SLURP."
     )
 
 
@@ -351,7 +351,7 @@ class SlurpBuilder(DatasetBuilder):
 
         SLURP ships its metadata as a git repository and its audio as separate
         archives fetched by a script inside that repository, so there is no
-        single URL to hand to ``espnet3.utils.download_utils``. ``readme.md``
+        single URL to hand to ``espnet3.utils.download_utils``. ``README.md``
         documents the two commands.
 
         Args:
@@ -371,7 +371,7 @@ class SlurpBuilder(DatasetBuilder):
             raise FileNotFoundError(
                 f"SLURP source at {source_root} is incomplete. Missing: "
                 + ", ".join(missing)
-                + "\nSee readme.md for how to obtain the metadata and the audio."
+                + "\nSee README.md for how to obtain the metadata and the audio."
             )
 
     def is_built(

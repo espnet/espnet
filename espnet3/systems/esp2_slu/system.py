@@ -126,10 +126,10 @@ class Esp2SluSystem(ASRSystem):
         missing ``transcript_token_list`` unless ``train_tokenizer`` happened
         to be run explicitly first.
 
-        ``write_transcript_token_list`` returns early once the file exists, so
+        ``_write_transcript_token_list`` returns early once the file exists, so
         reaching it from both entry points costs nothing.
         """
-        self.write_transcript_token_list()
+        self._write_transcript_token_list()
         return super().train(*args, **kwargs)
 
     def train_tokenizer(self, *args, **kwargs):
@@ -147,7 +147,7 @@ class Esp2SluSystem(ASRSystem):
         """
         self._reject_stage_args("train_tokenizer", args, kwargs)
 
-        self.write_transcript_token_list()
+        self._write_transcript_token_list()
 
         if self._has_tokenizer():
             logger.info("Tokenizer already exists. Skipping train_tokenizer().")
@@ -196,7 +196,7 @@ class Esp2SluSystem(ASRSystem):
             user_defined_symbols=user_defined_symbols,
         )
 
-    def write_transcript_token_list(self) -> Path | None:
+    def _write_transcript_token_list(self) -> Path | None:
         """Write the transcript token list, if this config asks for one.
 
         Returns:

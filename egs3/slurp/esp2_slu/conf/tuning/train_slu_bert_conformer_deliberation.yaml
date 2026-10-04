@@ -183,18 +183,11 @@ model:
 ##########################################################
 #            OPTIMIZER & SCHEDULER SETTING               #
 ##########################################################
-# egs2's learning rate, but not its `warmup_steps: 25000`, which counts
-# optimizer steps and so does not carry over: egs2 batches with espnet2's
-# default `batch_type: folded, batch_size: 20`, giving ~5994 steps per epoch
-# and ~300k over the 50 epochs, of which 25000 is 8%. The `batch_bins` batching
-# below gives ~1222 steps per epoch and ~61k in total, where the same 25000
-# would spend 41% of the run still ramping the learning rate up. 5000 keeps
-# egs2's proportion. Rescale it with `batch_bins` if that is changed.
 optimizer:
   lr: 0.0002
 
 scheduler:
-  warmup_steps: 5000
+  warmup_steps: 25000
 
 ##########################################################
 #                OTHER TRAINING SETTING                  #
