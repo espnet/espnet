@@ -9,9 +9,9 @@ import pytest
 from omegaconf import OmegaConf
 
 from espnet3.api.inference import Audio, Field, InferenceAPI
-from espnet3.systems.base.inference_runner import InferenceRunner, declared_input_names
 from espnet3.systems.base.inference import infer
 from espnet3.systems.base.inference_provider import InferenceProvider
+from espnet3.systems.base.inference_runner import InferenceRunner, declared_input_names
 
 RUNNER = "espnet3.systems.base.inference_runner.InferenceRunner"
 
