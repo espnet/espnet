@@ -269,7 +269,9 @@ class InferenceAPI(ABC):
         When every given value is a list that is not itself a value of its
         kind (see :meth:`Kind.is_batch`), they are a batch - one entry per
         sample, as ``InferenceRunner`` passes one - and the result is a
-        list of outputs, as from :meth:`batch`.
+        list of outputs, as from :meth:`batch`. A value of ``None`` counts
+        as not given: an optional field is then left out of the hook's
+        arguments, a required one raises ``TypeError``.
 
         Returns:
             The declared outputs, converted and checked, plus whatever else

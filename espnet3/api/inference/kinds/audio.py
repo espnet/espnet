@@ -57,7 +57,11 @@ class Audio:
     def __post_init__(self) -> None:
         """Bring the samples to float32, channels first, and check shape and rate."""
         array = np.asarray(self.array)
-        if np.issubdtype(array.dtype, np.integer):
+        if np.issubdtype(array.dtype, np.unsignedinteger):
+            # 8-bit WAV: unsigned, centred on 128, not on zero
+            mid = (np.iinfo(array.dtype).max + 1) / 2
+            array = (array.astype(np.float64) - mid) / mid
+        elif np.issubdtype(array.dtype, np.integer):
             # PCM as the file or the microphone delivered it
             array = array / np.iinfo(array.dtype).max
         array = array.astype(np.float32, copy=False)

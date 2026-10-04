@@ -65,6 +65,11 @@ def test_field_label_defaults_to_spaced_name():
     assert Field("speech", "audio", "Mic").label == "Mic"
 
 
+def test_audio_scales_unsigned_pcm_around_its_midpoint():
+    u8 = Audio(np.array([0, 128, 255], dtype=np.uint8), 8000).array
+    assert u8[1] == 0.0 and u8[0] == -1.0 and u8[2] == pytest.approx(127 / 128)
+
+
 def test_audio_keeps_every_channel_and_scales_pcm():
     pcm = np.stack(
         [np.full(8, 16384, dtype=np.int16), np.zeros(8, dtype=np.int16)], axis=1
