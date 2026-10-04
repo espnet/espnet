@@ -92,8 +92,10 @@ model:
   # beam_size: 10
 
 # Dataset columns written beside the outputs, source -> file name. The
-# reference for scoring is the usual one; `measure` reads it with
-# `ref_key: ref` and the hypothesis with `hyp_key: text`.
+# reference for scoring is the usual one: the dataset's `text` column (the
+# transcript) is written as `ref.scp`, while the model's `text` output (the
+# hypothesis) is written as `text.scp` - same word, two files - and `measure`
+# reads them with `ref_key: ref` and `hyp_key: text`.
 copy:
   text: ref
 
