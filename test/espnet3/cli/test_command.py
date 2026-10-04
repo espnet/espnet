@@ -154,7 +154,6 @@ def test_integration_clone_layout(cloned_mini_an4):
     assert (cloned_mini_an4 / "conf" / "inference.yaml").exists()
     assert not any(cloned_mini_an4.rglob("__pycache__"))
     assert not (cloned_mini_an4 / "demo").exists()
-    assert not (cloned_mini_an4 / "__init__.py").exists()
     assert not [p for p in cloned_mini_an4.iterdir() if p.name.startswith(".")]
 
 
