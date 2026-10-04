@@ -18,8 +18,8 @@ import torch
 import espnet3.api.inference as inference_api
 from espnet3.api.inference import (
     Audio,
-    BaseInference,
     Field,
+    InferenceAPI,
     check_contract,
     gather,
     load,
@@ -27,7 +27,7 @@ from espnet3.api.inference import (
 )
 
 
-class Echo(BaseInference):
+class Echo(InferenceAPI):
     """A transcriber that reports what it was given."""
 
     inputs = (Field("speech", "audio"), Field("prompt", "text", optional=True))
@@ -65,15 +65,23 @@ def test_field_label_defaults_to_spaced_name():
     assert Field("speech", "audio", "Mic").label == "Mic"
 
 
-def test_audio_normalises_pcm_and_keeps_the_first_channel():
+def test_audio_keeps_every_channel_and_scales_pcm():
     pcm = np.stack(
         [np.full(8, 16384, dtype=np.int16), np.zeros(8, dtype=np.int16)], axis=1
     )
     audio = Audio(pcm, 8000)
     assert audio.array.dtype == np.float32
-    assert audio.array.shape == (8,)
-    assert audio.array[0] == pytest.approx(16384 / 32767)  # channel 0, not the mean
-    assert audio.duration == pytest.approx(0.001)
+    assert audio.array.shape == (2, 8) and audio.channels == 2
+    assert audio.mono().array.shape == (8,)
+    assert audio.mono().array[0] == pytest.approx(
+        16384 / 32767
+    )  # channel 0, not the mean
+    assert audio.mono(1).array[0] == 0.0
+    assert audio.multichannel() is audio
+    mono = Audio(np.zeros(8, dtype=np.float32), 8000)
+    assert mono.channels == 1 and mono.mono() is mono
+    assert mono.multichannel().array.shape == (1, 8)
+    assert Audio(np.zeros((1, 8), dtype=np.float32), 8000).array.shape == (8,)
 
 
 def test_audio_takes_channels_on_either_axis():
@@ -81,7 +89,7 @@ def test_audio_takes_channels_on_either_axis():
     by_row = np.stack([np.ones(100), np.zeros(100)])  # torchaudio
     for layout in (by_column, by_row):
         audio = Audio(layout, 8000)
-        assert len(audio.array) == 100 and audio.array[0] == 1.0
+        assert audio.array.shape == (2, 100) and audio.array[0, 0] == 1.0
 
 
 def test_audio_rejects_bad_shapes_and_rates():
@@ -95,6 +103,8 @@ def test_audio_resample_only_when_needed():
     audio = Audio(np.zeros(16000, dtype=np.float32), 16000)
     assert audio.resample(16000) is audio
     assert len(audio.resample(8000).array) == 8000
+    stereo = Audio(np.zeros((2, 16000), dtype=np.float32), 16000)
+    assert stereo.resample(8000).array.shape == (2, 8000)
 
 
 def test_audio_coerce_every_shape_a_caller_holds(tmp_path):
@@ -108,7 +118,8 @@ def test_audio_coerce_every_shape_a_caller_holds(tmp_path):
     from_array = Audio.coerce(samples, 8000)
 
     for audio in (from_path, from_gradio, from_tensor):
-        assert audio.rate == 16000 and len(audio.array) == 16000
+        assert audio.rate == 16000 and audio.duration == 1.0
+    assert from_path.channels == 2  # the stereo file keeps both channels
     assert from_array.rate == 8000 and len(from_array.array) == 8000
     with pytest.raises(TypeError, match="audio must be"):
         Audio.coerce(42, 16000)
@@ -120,37 +131,37 @@ def test_audio_coerce_every_shape_a_caller_holds(tmp_path):
 def test_contract_is_checked_when_the_class_is_defined():
     with pytest.raises(TypeError, match="tuple of Field"):
 
-        class NotFields(BaseInference):
+        class NotFields(InferenceAPI):
             inputs = ["speech"]
             outputs = (Field("text", "text"),)
 
     with pytest.raises(TypeError, match="at least one field"):
 
-        class Nothing(BaseInference):
+        class Nothing(InferenceAPI):
             inputs = ()
             outputs = (Field("text", "text"),)
 
     with pytest.raises(TypeError, match="required fields before optional"):
 
-        class OptionalFirst(BaseInference):
+        class OptionalFirst(InferenceAPI):
             inputs = (Field("prompt", "text", optional=True), Field("speech", "audio"))
             outputs = (Field("text", "text"),)
 
     with pytest.raises(TypeError, match="repeats"):
 
-        class Twice(BaseInference):
+        class Twice(InferenceAPI):
             inputs = (Field("speech", "audio"), Field("speech", "audio", optional=True))
             outputs = (Field("text", "text"),)
 
     with pytest.raises(TypeError, match="optional"):
 
-        class OptionalOut(BaseInference):
+        class OptionalOut(InferenceAPI):
             inputs = (Field("speech", "audio"),)
             outputs = (Field("text", "text", optional=True),)
 
 
 def test_an_intermediate_base_that_declares_nothing_is_allowed():
-    class Base(BaseInference):
+    class Base(InferenceAPI):
         pass
 
     with pytest.raises(TypeError):
@@ -158,7 +169,7 @@ def test_an_intermediate_base_that_declares_nothing_is_allowed():
 
 
 def test_a_conversation_model_declares_no_task():
-    class Chat(BaseInference):
+    class Chat(InferenceAPI):
         inputs = (Field("messages", "text"),)
         outputs = (Field("messages", "text"),)
 
@@ -219,7 +230,7 @@ def test_call_checks_what_run_returns():
 
 
 def test_audio_output_is_wrapped_at_the_model_rate():
-    class Enhancer(BaseInference):
+    class Enhancer(InferenceAPI):
         inputs = (Field("speech", "audio"),)
         outputs = (Field("speech", "audio"),)
 
@@ -238,7 +249,7 @@ def test_audio_output_is_wrapped_at_the_model_rate():
 
 
 def test_segments_output_is_checked():
-    class Aligner(BaseInference):
+    class Aligner(InferenceAPI):
         inputs = (Field("speech", "audio"), Field("text", "text"))
         outputs = (Field("segments", "segments"),)
 
@@ -264,7 +275,7 @@ def test_segments_output_is_checked():
 # --- streaming -------------------------------------------------------------
 
 
-class Counter(BaseInference):
+class Counter(InferenceAPI):
     """An online model: one text piece per audio chunk, and a tail at the end."""
 
     inputs = (Field("speech", "audio"),)
@@ -328,7 +339,7 @@ def test_stream_checks_what_run_stream_yields():
 def test_a_system_must_implement_one_of_the_hooks():
     with pytest.raises(TypeError, match="run_stream .* or run"):
 
-        class Neither(BaseInference):
+        class Neither(InferenceAPI):
             inputs = (Field("speech", "audio"),)
             outputs = (Field("text", "text"),)
 
@@ -357,12 +368,55 @@ def test_gather_joins_pieces_by_kind():
     assert out["text"] == "abcd" and out["segments"] == [1, 2] and out["extra"] == 2
     with pytest.raises(ValueError, match="rates"):
         Audio.concat([a, Audio(np.ones(4, dtype=np.float32), 16000)])
+    stereo = Audio(np.ones((2, 4), dtype=np.float32), 8000)
+    assert Audio.concat([stereo, stereo]).array.shape == (2, 8)
+    with pytest.raises(ValueError, match="channels"):
+        Audio.concat([a, stereo])
+
+
+# --- channels --------------------------------------------------------------
+
+
+def test_the_field_decides_how_many_channels_the_hook_sees():
+    class Mixer(InferenceAPI):
+        inputs = (
+            Field("speech", "audio"),
+            Field("mixture", "audio", channels=None, optional=True),
+            Field("pair", "audio", channels=2, optional=True),
+        )
+        outputs = (Field("text", "text"),)
+
+        @classmethod
+        def from_pretrained(cls, tag_or_dir, *, device="cpu", **kwargs):
+            return cls()
+
+        sample_rate = 8000
+
+        def run(self, speech, mixture=None, pair=None):
+            shapes = [speech.array.shape]
+            for a in (mixture, pair):
+                if a is not None:
+                    shapes.append(a.array.shape)
+            return {"text": str(shapes)}
+
+    stereo = np.zeros((2, 80), dtype=np.float32)
+    mono = np.zeros(80, dtype=np.float32)
+    model = Mixer()
+    assert model(stereo)["text"] == "[(80,)]"  # channels=1: the reference channel
+    assert model(mono, mixture=mono)["text"] == "[(80,), (1, 80)]"  # None: one row
+    assert (
+        model(mono, mixture=stereo, pair=stereo)["text"] == "[(80,), (2, 80), (2, 80)]"
+    )
+    with pytest.raises(TypeError, match="'pair' given with 1 channel\\(s\\), needs 2"):
+        model(mono, pair=mono)
+    with pytest.raises(ValueError, match="channels must be None or >= 1"):
+        Field("x", "audio", channels=0)
 
 
 # --- a model that takes any rate -------------------------------------------
 
 
-class AnyRate(BaseInference):
+class AnyRate(InferenceAPI):
     """An enhancer that works at whatever rate the audio comes."""
 
     inputs = (Field("speech", "audio"),)
@@ -398,9 +452,9 @@ def test_a_model_with_no_fixed_rate_sees_each_audio_at_its_own(tmp_path):
 
 
 def test_a_new_kind_is_one_registered_subclass(monkeypatch):
-    from espnet3.api.inference import KINDS, BaseKind, register_kind
+    from espnet3.api.inference import KINDS, Kind, register_kind
 
-    class Turns(BaseKind):
+    class Turns(Kind):
         def check(self, value, field, model, *, output):
             if not isinstance(value, list):
                 raise TypeError(f"{field.name} must be a list of turns")
@@ -411,12 +465,12 @@ def test_a_new_kind_is_one_registered_subclass(monkeypatch):
     with pytest.raises(ValueError, match="already registered"):
         register_kind("messages", Turns())
     register_kind("messages", Turns(), replace=True)
-    with pytest.raises(TypeError, match="BaseKind instance"):
+    with pytest.raises(TypeError, match="Kind instance"):
         register_kind("bad", object())
     monkeypatch.delitem(KINDS, "messages")
     register_kind("messages", Turns())
 
-    class Chat(BaseInference):
+    class Chat(InferenceAPI):
         inputs = (Field("messages", "messages"),)
         outputs = (Field("messages", "messages"),)
 
