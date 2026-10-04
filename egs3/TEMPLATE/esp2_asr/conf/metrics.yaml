@@ -31,6 +31,16 @@ recipe_dir: .
 exp_tag:
 exp_dir: ${recipe_dir}/exp/${exp_tag}
 
+# A `dataset:<column>` input that is not a scalar (a reference waveform for
+# an audio metric, say) is written as an artifact under
+# `<test_name>/dataset/<column>/<id>.<ext>` and the .scp holds its path.
+# Say how, per column, in the form of inference.yaml's `output_artifacts`;
+# an array becomes `.npy` and a dict JSON when nothing is said.
+# dataset_artifacts:
+#   speech:
+#     type: wav
+#     sample_rate: 16000
+
 
 ##########################################################
 #                    METRIC DEFINITION                   #

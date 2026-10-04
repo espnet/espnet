@@ -405,10 +405,18 @@ def _load_inference_config(config_path: Path, bundle_root: Path) -> DictConfig:
 
 
 def _bundled_module_names(bundle_root: Path) -> set[str]:
-    """Top-level module and package names shipped at the bundle root."""
+    """Top-level module and package names shipped at the bundle root.
+
+    A directory counts when it holds any Python file, not only when it has
+    an ``__init__.py``: Python imports a directory of modules as a namespace
+    package, so ``src/code.py`` without ``src/__init__.py`` is still code
+    that ``src.code.Local`` would run.
+    """
     names = set()
     for child in bundle_root.iterdir():
-        if child.is_dir() and (child / "__init__.py").exists():
+        if child.is_dir() and (
+            (child / "__init__.py").exists() or any(child.rglob("*.py"))
+        ):
             names.add(child.name)
         elif child.is_file() and child.suffix == ".py":
             names.add(child.stem)

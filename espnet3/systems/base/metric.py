@@ -9,8 +9,9 @@ from omegaconf import DictConfig, OmegaConf, open_dict
 
 from espnet3.components.metrics.base_metric import BaseMetric
 from espnet3.systems.base.inference_provider import InferenceProvider
+from espnet3.systems.base.inference_runner import _materialize_output_value
 from espnet3.utils.logging_utils import log_component
-from espnet3.utils.scp_utils import get_class_path, load_scp_paths
+from espnet3.utils.scp_utils import check_utt_id, get_class_path, load_scp_paths
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +50,7 @@ def _dataset_column_scp(
     test_name: str,
     column: str,
     idx_key: str,
+    artifact_config: dict | None = None,
 ) -> Path:
     """Write a test set's column as ``<inference_dir>/<test>/dataset/<column>.scp``.
 
@@ -67,14 +69,22 @@ def _dataset_column_scp(
         column: The dataset field to write, such as ``text``.
         idx_key: The item field holding the utterance id; the item's index
             when absent, as the ``infer`` stage does.
+        artifact_config: How a value that is not a scalar is written (the
+            ``infer`` stage's ``output_artifacts`` form: ``type: wav`` with
+            ``sample_rate``, ``npy``, ``pickle``, or a custom ``writer``);
+            by default an array becomes ``.npy`` and a dict JSON.
 
     Returns:
         The written ``.scp``, one ``<id> <value>`` line per item in dataset
-        order.
+        order. A scalar is the value itself; anything else - a reference
+        waveform, say - is written as an artifact under
+        ``<inference_dir>/<test>/dataset/<column>/<id>.<ext>`` and the line
+        holds its path, exactly as the ``infer`` stage records its own
+        artifacts.
 
     Raises:
-        ValueError: If no inference config was given, or an item's column is
-            not a scalar.
+        ValueError: If no inference config was given, or an id is not a plain
+            token.
     """
     path = inference_dir / test_name / "dataset" / f"{column}.scp"
     if path.exists():
@@ -104,13 +114,15 @@ def _dataset_column_scp(
                     f"test set {test_name!r} item {idx} has no {column!r}; "
                     f"it has {sorted(item)}"
                 )
-            value = item[column]
-            if not isinstance(value, (str, int, float, bool)):
-                raise ValueError(
-                    f"`{DATASET_PREFIX}{column}` must be a scalar column, "
-                    f"got {type(value).__name__} at item {idx}"
-                )
-            handle.write(f"{item.get(idx_key, str(idx))} {value}\n")
+            utt_id = check_utt_id(item.get(idx_key, str(idx)))
+            value = _materialize_output_value(
+                idx_value=utt_id,
+                field_key=column,
+                value=item[column],
+                output_dir=path.parent,
+                artifact_config=artifact_config,
+            )
+            handle.write(f"{utt_id} {value}\n")
     return path
 
 
@@ -140,14 +152,22 @@ def _resolve_inputs(
         if inference_config is not None
         else "utt_id"
     )
+    artifacts = metrics_config.get("dataset_artifacts") or {}
     for alias, source in input_map.items():
         if str(source).startswith(DATASET_PREFIX):
+            column = str(source)[len(DATASET_PREFIX) :]
+            artifact_config = artifacts.get(column)
             data[alias] = _dataset_column_scp(
                 inference_config,
                 inference_dir,
                 test_name,
-                str(source)[len(DATASET_PREFIX) :],
+                column,
                 idx_key,
+                (
+                    OmegaConf.to_container(artifact_config, resolve=True)
+                    if OmegaConf.is_config(artifact_config)
+                    else artifact_config
+                ),
             )
     return data
 
@@ -179,7 +199,10 @@ def measure(metrics_config: DictConfig, inference_config: DictConfig | None = No
     the test set itself, named ``dataset:<column>`` (``ref_key: dataset:text``
     reads the transcript from the data and writes it to
     ``<test_name>/dataset/text.scp`` on first use). The reference is the
-    data's, so it comes from the data, not from what inference wrote.
+    data's, so it comes from the data, not from what inference wrote. A
+    column that is not a scalar - a reference waveform for an audio metric -
+    is written as an artifact beside it, as ``dataset_artifacts:
+    {<column>: {type: wav, sample_rate: ...}}`` says, ``.npy`` by default.
 
     Args:
         metrics_config: Omegaconf configuration with inference and metric settings.

@@ -248,6 +248,14 @@ def test_load_model_drops_output_fn_and_runner_before_the_trust_check(tmp_path):
     assert isinstance(model, Backend) and model.device == "cuda:0"
 
 
+def test_read_bundle_counts_a_namespace_package_as_bundled_code(tmp_path):
+    """`src/code.py` with no `src/__init__.py` is still code the target runs."""
+    root = _pack(tmp_path, model_target="src.code.Local", bundled=True)
+    (root / "src" / "__init__.py").unlink()
+    with pytest.raises(ValueError, match="trust_user_code"):
+        read_bundle(root)
+
+
 def test_load_model_refuses_a_model_that_is_bundled_code(tmp_path):
     root = _pack(tmp_path, model_target="src.code.Local", bundled=True)
     with pytest.raises(ValueError, match="trust_user_code"):

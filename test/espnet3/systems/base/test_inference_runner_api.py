@@ -186,15 +186,18 @@ def test_infer_runs_end_to_end_from_the_declaration(tmp_path):
     assert len((out / "segments.scp").read_text().splitlines()) == 5
 
 
-def test_write_record_refuses_an_id_that_is_a_path(tmp_path):
+@pytest.mark.parametrize("utt_id", ["../escape", "a/b", "", "..", "utt 1", "utt\\n1"])
+def test_write_record_refuses_an_id_that_is_a_path_or_breaks_a_line(tmp_path, utt_id):
     writers = InferenceRunner.open_writers(tmp_path)
-    data = [{"utt_id": "../escape", "speech": np.zeros(8, dtype=np.float32)}]
+    data = [{"utt_id": utt_id, "speech": np.zeros(8, dtype=np.float32)}]
     result = InferenceRunner.forward(0, dataset=data, model=Echo())
-    with pytest.raises(ValueError, match="cannot name an artifact file"):
+    with pytest.raises(ValueError, match="plain token"):
         InferenceRunner.write_record(writers, result, {}, idx_key="utt_id")
     InferenceRunner.close_writers(writers, {})
+    # nothing was written: no line, no artifact, nowhere
     assert not (tmp_path.parent / "escape.wav").exists()
-    assert not (tmp_path / "echo" / "escape.wav").exists()
+    assert not (tmp_path / "text.scp").exists()
+    assert not (tmp_path / "echo").exists()
 
 
 def test_measure_reads_the_reference_from_the_test_set(tmp_path):
@@ -231,6 +234,57 @@ def test_measure_reads_the_reference_from_the_test_set(tmp_path):
     written.unlink()
     with pytest.raises(ValueError, match="needs the inference config"):
         measure(metrics_cfg)
+
+
+def test_measure_writes_a_dataset_waveform_as_an_artifact(tmp_path):
+    """A `dataset:` column that is not a scalar lands beside the .scp, as told."""
+    import shutil
+
+    import soundfile
+
+    inference_cfg = OmegaConf.create(
+        {
+            "inference_dir": str(tmp_path),
+            "dataset": {"test": [{"name": "test"}], "size": 2},
+            "model": {"_target_": f"{__name__}.Echo"},
+            "provider": {"_target_": f"{__name__}.EchoProvider"},
+            "runner": {"_target_": RUNNER},
+            "parallel": {"env": "local", "n_workers": 1},
+        }
+    )
+    infer(inference_cfg)
+    metrics_cfg = OmegaConf.create(
+        {
+            "inference_dir": str(tmp_path),
+            "dataset": {"test": [{"name": "test"}]},
+            "dataset_artifacts": {"speech": {"type": "wav", "sample_rate": 8000}},
+            "metrics": [
+                {
+                    "metric": {"_target_": f"{__name__}.Match"},
+                    "inputs": {"ref": "dataset:speech", "hyp": "echo"},
+                }
+            ],
+        }
+    )
+    (result,) = measure(metrics_cfg, inference_config=inference_cfg).values()
+    assert result["test"]["n"] == 2
+    ref0 = Path(result["test"]["refs"][0])
+    assert ref0 == tmp_path / "test" / "dataset" / "speech" / "utt0.wav"
+    array, rate = soundfile.read(ref0)
+    assert array.shape == (100,) and rate == 8000
+    # with nothing said, an array is .npy
+    plain_dir = tmp_path / "plain"
+    (plain_dir / "test").mkdir(parents=True)
+    shutil.copy(tmp_path / "test" / "echo.scp", plain_dir / "test")
+    plain = OmegaConf.create(
+        {
+            "inference_dir": str(plain_dir),
+            "dataset": {"test": [{"name": "test"}]},
+            "metrics": metrics_cfg.metrics,
+        }
+    )
+    (result,) = measure(plain, inference_config=inference_cfg).values()
+    assert result["test"]["refs"][0].endswith("dataset/speech/utt0.npy")
 
 
 def test_infer_still_wants_input_key_for_a_bare_model(tmp_path):

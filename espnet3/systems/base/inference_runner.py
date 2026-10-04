@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-import os
 from collections.abc import Mapping
 from functools import lru_cache
 from importlib import import_module
@@ -19,6 +18,7 @@ from espnet2.torch_utils.device_funcs import is_out_of_memory_error
 from espnet3.api.inference import Audio, InferenceAPI
 from espnet3.parallel.base_runner import BaseRunner, concatenate_shard_files
 from espnet3.parallel.env_provider import EnvironmentProvider
+from espnet3.utils.scp_utils import check_utt_id
 from espnet3.utils.writer_utils import write_artifact
 
 logger = logging.getLogger(__name__)
@@ -174,21 +174,6 @@ def _forward_inference(
     return records if batched else records[0]
 
 
-def _artifact_name(idx_value) -> str:
-    """Return the file name an utterance id gives its artifacts.
-
-    An id that is a path (``../x``, ``a/b``) or nothing would write outside
-    the shard directory or on top of it, so it is refused.
-    """
-    name = str(idx_value)
-    if not name or name in (".", "..") or "/" in name or os.sep in name or "\\" in name:
-        raise ValueError(
-            f"utterance id {name!r} cannot name an artifact file; it must be a "
-            "plain name with no path separators"
-        )
-    return name
-
-
 def _materialize_output_value(
     idx_value,
     field_key: str,
@@ -198,7 +183,7 @@ def _materialize_output_value(
 ):
     if isinstance(value, (str, int, float, bool)):
         return value
-    idx_value = _artifact_name(idx_value)
+    idx_value = check_utt_id(idx_value)
 
     if isinstance(value, np.generic):
         return value.item()
@@ -525,7 +510,8 @@ class InferenceRunner(BaseRunner):
             )
             writers["field_keys"].update(field_keys)
 
-            idx_value = output[idx_key]
+            # the id heads every SCP line and names every artifact file
+            idx_value = check_utt_id(output[idx_key])
             for field_key in field_keys:
                 value = _materialize_output_value(
                     idx_value=idx_value,
