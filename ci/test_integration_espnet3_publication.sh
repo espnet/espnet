@@ -105,7 +105,7 @@ from espnet3.utils.config_utils import load_and_merge_config
 config = load_and_merge_config(
     Path(sys.argv[1]),
     config_name="publication.yaml",
-    default_package="egs3.TEMPLATE.asr",
+    default_package="egs3.TEMPLATE.esp2_asr",
     resolve=True,
 )
 print(getattr(getattr(config, "upload_model", None), "hf_repo", ""))
@@ -114,7 +114,7 @@ PY
 
 python3 -m pip install -e '.[asr]'
 
-cd ./egs3/mini_an4/asr || exit
+cd ./egs3/mini_an4/esp2_asr || exit
 gen_dummy_coverage
 echo "==== [ESPnet3] Publication ===="
 source path.sh
@@ -139,7 +139,7 @@ ${python} run.py \
 
 pack_dir=$(find exp -mindepth 2 -maxdepth 2 -type d -name model_pack | sort | head -n 1)
 if [ -z "${pack_dir}" ]; then
-    echo "Packed model directory not found under egs3/mini_an4/asr/exp" >&2
+    echo "Packed model directory not found under egs3/mini_an4/esp2_asr/exp" >&2
     exit 1
 fi
 
@@ -169,7 +169,7 @@ fi
 ${python} run.py \
     --stages pack_demo \
     --training_config "${training_config}" \
-    --demo_config "${cwd}/test_utils/egs3/integration_test/asr/conf/demo_integration_default.yaml"
+    --demo_config "${cwd}/test_utils/egs3/integration_test/esp2_asr/conf/demo_integration_default.yaml"
 
 write_demo_test_model_pack_default
 
@@ -193,7 +193,7 @@ write_demo_test_model_pack_custom
 ${python} run.py \
     --stages pack_demo \
     --training_config "${training_config}" \
-    --demo_config "${cwd}/test_utils/egs3/integration_test/asr/conf/demo_integration_custom.yaml"
+    --demo_config "${cwd}/test_utils/egs3/integration_test/esp2_asr/conf/demo_integration_custom.yaml"
 
 python - "$(pwd)/exp/demo_ui_custom" "$(pwd)/exp/demo_test_model_pack" <<'PY'
 from pathlib import Path

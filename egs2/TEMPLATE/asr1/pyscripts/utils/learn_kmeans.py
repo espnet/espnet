@@ -94,12 +94,32 @@ def get_km_model(
 
 
 def load_feature_shard(rspecifier, in_filetype, percent):
-    feats = []
-    for utt, feat in file_reader_helper(rspecifier, in_filetype):
-        feats.append(feat)
     if percent < 0:
-        return np.concatenate(feats, axis=0)
+        # Two-pass load: first scan shapes only to size a single output
+        # buffer, then fill it directly. This avoids accumulating every
+        # per-utterance array in a Python list and then concatenating
+        # (which needs ~2x the final array size in peak memory, on top of
+        # the list itself, for large corpora).
+        total_frames = 0
+        feat_dim = None
+        dtype = None
+        for utt, feat in file_reader_helper(rspecifier, in_filetype):
+            total_frames += feat.shape[0]
+            if feat_dim is None:
+                feat_dim = feat.shape[1]
+                dtype = feat.dtype
+
+        out = np.empty((total_frames, feat_dim), dtype=dtype)
+        offset = 0
+        for utt, feat in file_reader_helper(rspecifier, in_filetype):
+            n = feat.shape[0]
+            out[offset : offset + n] = feat
+            offset += n
+        return out
     else:
+        feats = []
+        for utt, feat in file_reader_helper(rspecifier, in_filetype):
+            feats.append(feat)
         nsample = int(np.ceil(len(feats) * percent))
         sampled_feat = random.sample(feats, nsample)
         sampled_feat = np.concatenate(
@@ -119,13 +139,17 @@ def load_feature(rspecifiers, in_filetype, percent):
     assert percent <= 1.0
     if not isinstance(rspecifiers, list):
         rspecifiers = [rspecifiers]
-    feat = np.concatenate(
-        [
-            load_feature_shard(rspecifier, in_filetype, percent)
-            for rspecifier in rspecifiers
-        ],
-        axis=0,
-    )
+    if len(rspecifiers) == 1:
+        # Avoid an extra full-size copy from concatenating a single shard.
+        feat = load_feature_shard(rspecifiers[0], in_filetype, percent)
+    else:
+        feat = np.concatenate(
+            [
+                load_feature_shard(rspecifier, in_filetype, percent)
+                for rspecifier in rspecifiers
+            ],
+            axis=0,
+        )
     logging.info(f"loaded feature with dimension {feat.shape}")
     return feat
 

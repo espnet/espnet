@@ -36,17 +36,6 @@ uninstall_extra_deps(){
     echo "::endgroup::"
 }
 
-pytorch_plus(){
-    python3 <<EOF
-from packaging.version import parse as L
-import torch
-if L(torch.__version__) >= L('$1'):
-    print("true")
-else:
-    print("false")
-EOF
-}
-
 # First uninstall all espnet-related dependencies including all extras.
 # I use toml and load the pyproject.toml
 python3 -m pip install toml
@@ -131,6 +120,25 @@ if [ "${task}" == "asr" ] || [ "${task}" == "all" ]; then
             --train_set raw/train_nodev --valid_set raw/train_dev --test_sets raw/test --python "${python}" --asr-args "--num_workers 0"
         echo "::endgroup::"
     done
+
+    # Decoding several utterances in one beam search. Needs a decoder whose
+    # scorers are all batch scorers, so the RNN decoder that the other asr1
+    # cases use will not do. inference_nj=1 keeps the test sets in one job, so
+    # that a batch really holds more than one utterance.
+    # NOTE: this only checks that batch decoding runs and writes a result for
+    # every key. The output is deliberately not compared against --batch_size 1:
+    # an utterance's encoder output length depends on the longest utterance
+    # beside it, because Conv1dSubsampling* subsamples the padding mask
+    # relative to the padded width of the batch.
+    echo "::group::==== batch decoding, feats_type=raw, token_types=bpe ==="
+    ./run.sh --ngpu 0 --stage 10 --stop-stage 13 --skip-packing false --feats-type "raw" --token-type "bpe" \
+        --python "${python}" \
+        --asr_config "conf/train_asr_transformer_debug.yaml" \
+        --asr-tag "train_raw_bpe_batch_decode" \
+        --asr-args "--num_workers 0" \
+        --inference_nj 1 \
+        --inference_args "--batch_size 2"
+    echo "::endgroup::"
     finish_asr
 fi
 
@@ -160,15 +168,22 @@ if [ "${task}" == "asr_transducer" ] || [ "${task}" == "all" ]; then
         fi
     fi
 
-    # k2 is not installed in CI, so neither of these runs today - "use_k2" does
-    # not appear in any current log. Noting it because they are the one place the
-    # split leaves a latent cross-task dependency: they decode at stage 12 only,
-    # and the model they load (feats_normalize=utterance_mvn,
-    # extract_feats_in_collect_stats=false) is trained by the asr_misc task, not
-    # this one. Whoever installs k2 will have to train it here first.
+    # These two decode with the utterance_mvn / extract_feats_in_collect_stats=false
+    # model. In the single asr job that model came from a training run earlier in
+    # the same job; after the split that run lives in asr_misc, so the first of
+    # these starts at stage 10 and trains it, and the second decodes at stage 12
+    # against what the first left behind.
+    #
+    # The note that used to sit here said a latent cross-task dependency was
+    # harmless because k2 was never installed, and that whoever installed it would
+    # have to train the model here. That happened, and it failed exactly as
+    # described:
+    #
+    #   FileNotFoundError: exp/asr_train_asr_rnn_debug_raw_en_bpe30_model_conf...
+    #                      /config.yaml
     if python3 -c "import k2" &> /dev/null; then
         echo "::group::==== use_k2, num_paths > nll_batch_size, feats_type=raw, token_types=bpe, model_conf.extract_feats_in_collect_stats=False, normalize=utt_mvn ==="
-        ./run.sh --num_paths 4 --nll_batch_size 2 --use_k2 true --ngpu 0 --stage 12 --stop-stage 13 --skip-packing false --feats-type "raw" --token-type "bpe" \
+        ./run.sh --num_paths 4 --nll_batch_size 2 --use_k2 true --ngpu 0 --stage 10 --stop-stage 13 --skip-packing false --feats-type "raw" --token-type "bpe" \
             --feats_normalize "utterance_mvn" --python "${python}" --asr-args "--model_conf extract_feats_in_collect_stats=false --num_workers 0"
         echo "::endgroup::"
 
@@ -500,21 +515,13 @@ if [ "${task}" == "s2st" ] || [ "${task}" == "all" ]; then
     # # Install s2st dependency
     python3 -m pip install -e '.[s2st]'
 
-    if pytorch_plus 2.9.0; then
-        # TODO(Nelson): Remove this once s3prl supports torchaudio 2.9.0
-        echo "WARN: Currently, S3prl does not support pytorch/torchaudio 2.9.0. CI test related to s3prl has been disabled."
-    else
-        # [ESPnet2] test s2st1 recipe
-        cd ./egs2/mini_an4/s2st1
-        gen_dummy_coverage
-        echo "==== [ESPnet2] S2ST ==="
-        ./run.sh --ngpu 0 --stage 1 --stop_stage 8 --use_discrete_unit false --s2st_config conf/s2st_spec_debug.yaml --python "${python}"
-        if python3 -c "import s3prl" &> /dev/null; then
-            ./run.sh --ngpu 0 --stage 1 --stop_stage 8 --python "${python}" --use_discrete_unit true --s2st_config conf/train_s2st_discrete_unit_debug.yaml --clustering_num_threads 2 --feature_num_clusters 5
-        fi
-        # Remove generated files in order to reduce the disk usage
-        rm -rf exp dump data ckpt .cache
-        cd "${cwd}"
+    # [ESPnet2] test s2st1 recipe
+    cd ./egs2/mini_an4/s2st1
+    gen_dummy_coverage
+    echo "==== [ESPnet2] S2ST ==="
+    ./run.sh --ngpu 0 --stage 1 --stop_stage 8 --use_discrete_unit false --s2st_config conf/s2st_spec_debug.yaml --python "${python}"
+    if python3 -c "import s3prl" &> /dev/null; then
+        ./run.sh --ngpu 0 --stage 1 --stop_stage 8 --python "${python}" --use_discrete_unit true --s2st_config conf/train_s2st_discrete_unit_debug.yaml --clustering_num_threads 2 --feature_num_clusters 5
     fi
     # Remove generated files in order to reduce the disk usage
     rm -rf exp dump data ckpt .cache
@@ -542,6 +549,21 @@ if [ "${task}" == "codec" ] || [ "${task}" == "all" ]; then
     ./run.sh --ngpu 0 --stage 1 --stop_stage 6 --python "${python}"
     # Remove generated files in order to reduce the disk usage
     rm -rf exp dump data
+    cd "${cwd}"
+fi
+
+if [ "${task}" == "rst" ] || [ "${task}" == "all" ]; then
+    # [ESPnet2] test rst1 recipe: feature predictor, vocoder pretraining and
+    # finetuning, and inference, with a tiny w2v-BERT 2.0
+    echo "::group::Installing RST dependencies ==="
+    python3 -m pip install -e '.[rst]'
+    echo "::endgroup::"
+    cd ./egs2/mini_an4/rst1
+    gen_dummy_coverage
+    echo "==== [ESPnet2] RST ==="
+    ./run.sh --stage 1 --stop_stage 9 --python "${python}"
+    # Remove generated files in order to reduce the disk usage
+    rm -rf exp dump data downloads
     cd "${cwd}"
 fi
 

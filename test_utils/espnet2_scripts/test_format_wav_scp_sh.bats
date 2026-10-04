@@ -37,14 +37,14 @@ EOF
         python << EOF
 import numpy as np
 import soundfile
-import kaldiio
+from omniio import kaldi as kaldi_io
 with open("${tmpdir}/wav.scp", "r") as f, open("${tmpdir}/outs_${audio_format}/wav.scp", "r") as fout:
     for line, line2 in zip(f, fout):
         k, v = line.rstrip().split()
         k2, v2 = line2.rstrip().split()
         array, rate = soundfile.read(v)
         if "ark" in  v2:
-            rate2, array2 = kaldiio.load_mat(v2)
+            rate2, array2 = kaldi_io.load_mat(v2)
         else:
             array2, rate2 = soundfile.read(v2)
 

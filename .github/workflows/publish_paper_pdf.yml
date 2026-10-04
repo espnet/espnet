@@ -32,6 +32,13 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+# The default on this repository is write on almost everything (see #6583).
+# Builds the JOSS paper and uploads it as a workflow artifact, which the
+# actions token does not need write for. Runs on pull requests, so this one
+# was inheriting write while running pull request code.
+permissions:
+  contents: read
+
 jobs:
   generate_and_upload_paper_pdf:
     runs-on: ubuntu-latest
