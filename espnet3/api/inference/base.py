@@ -82,19 +82,25 @@ class InferenceAPI(ABC):
     A system with audio fields also sets :attr:`sample_rate`, the rate they
     are resampled to; a system without audio leaves it alone.
 
-    Callers use the entry points, never the hooks: the one-shot call
-    ``model(...)``, :meth:`stream` and :meth:`batch`. They bind arguments
-    to the declared fields, convert and check every value, and check what
-    comes back, so a hook sees :class:`Audio` at :attr:`sample_rate` for
-    every audio field, ``str`` for every text field, and never a required
-    field missing.
+    Two surfaces, one for each side. Callers - a notebook, the command
+    line, a demo, the ``infer`` stage - use the entry points and nothing
+    else: the one-shot call ``model(...)``, :meth:`stream` and
+    :meth:`batch`. They bind arguments to the declared fields, convert and
+    check every value (a file name becomes :class:`Audio` at
+    :attr:`sample_rate`, a list means a batch), and check what comes back.
+    Authors implement the hooks :meth:`run`, :meth:`run_stream` and
+    :meth:`run_batch`, which therefore see :class:`Audio` at
+    :attr:`sample_rate` for every audio field, ``str`` for every text
+    field, and never a required field missing. Calling a hook directly
+    skips those checks, which is why the hooks are not the API.
 
     Notes:
-        ``model(**fields)`` returning a mapping of the declared outputs is
-        exactly what the ``infer`` stage's ``InferenceRunner`` expects of a
-        model, and a list per field is how that runner passes a batch; so
-        an instance serves the recipe's ``infer`` stage as it is, with
-        ``input_key`` naming the dataset fields and no ``output_fn``.
+        The ``infer`` stage's ``InferenceRunner`` calls the same entry
+        points: ``model(**fields)`` for one dataset item, ``model.batch``
+        for several, picking the declared inputs out of each item and
+        writing each declared output by its kind. An instance serves the
+        recipe's ``infer`` stage as it is, with no ``input_key`` and no
+        ``output_fn``.
 
     Examples:
         A system whose model needs the whole input::
