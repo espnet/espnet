@@ -5,12 +5,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from espnet2.bin.s2t_ctc_align import (
-    CTCSegmentation,
-    CTCSegmentationTask,
-    get_parser,
-    main,
-)
+from espnet2.bin.s2t_align import CTCSegmentation, CTCSegmentationTask, get_parser, main
 from espnet2.tasks.s2t_ctc import S2TTask
 
 
@@ -140,3 +135,47 @@ def test_CTCSegmentation(s2t_config_file):
     segments_str = str(segments)
     first_line = segments_str.splitlines()[0]
     assert "foo_0000" == first_line.split(" ")[0]
+
+
+def test_the_old_module_name_still_aligns(s2t_config_file):
+    """`espnet2.bin.s2t_ctc_align` was this module until 202610.
+
+    The recipes in this repository import the new name, but a script
+    someone else wrote does not, so the old path forwards and says so.
+    """
+    from espnet2.bin.s2t_ctc_align import CTCSegmentation as Moved
+    from espnet2.bin.s2t_ctc_align import CTCSegmentationTask as MovedTask
+
+    assert issubclass(Moved, CTCSegmentation)
+    assert MovedTask is CTCSegmentationTask
+
+    with pytest.warns(DeprecationWarning, match="espnet2.bin.s2t_align"):
+        aligner = Moved(
+            s2t_train_config=s2t_config_file,
+            fs=16000,
+            context_len_in_secs=1,
+            kaldi_style_text=True,
+            min_window_size=10,
+        )
+
+    speech = np.random.randn(200000)
+    segments = aligner(speech, "utt_a HOTELS\nutt_b ASSETS\n", fs=16000)
+    assert isinstance(segments, CTCSegmentationTask)
+    assert str(segments).splitlines()[0].split(" ")[0] == "utt_a"
+
+
+def test_the_old_script_path_still_runs():
+    """`python espnet2/bin/s2t_ctc_align.py` keeps working, and says so."""
+    from espnet2.bin import s2t_ctc_align
+
+    parser = s2t_ctc_align.get_parser()
+    assert isinstance(parser, ArgumentParser)
+    assert "moved" in parser.description
+    # the arguments are the new module's, so a recipe calling the script
+    # does not have to change either
+    options = {a.option_strings[0] for a in parser._actions}
+    assert "--s2t_train_config" in options
+
+    with pytest.raises(SystemExit):
+        with pytest.warns(DeprecationWarning, match="espnet2.bin.s2t_align"):
+            s2t_ctc_align.main()

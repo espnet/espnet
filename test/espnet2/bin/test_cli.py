@@ -50,6 +50,20 @@ class _Recorder:
         # two windows of the length above, so that a test can see both
         return np.zeros(20 * 16000 * 2, dtype=np.float32)
 
+    def no_language(self):
+        # Speech2Text.no_language, which the command line only rewords: the
+        # config's symbol, then either spelling, each checked against the
+        # token list
+        tokens = set(self.s2t_model.token_list or ())
+        for candidate in (
+            self.preprocessor_conf.get("nolang_symbol"),
+            "<nolang>",
+            "<unk>",
+        ):
+            if candidate and (not tokens or candidate in tokens):
+                return candidate
+        raise ValueError("this model has no symbol for an unknown language")
+
     def from_pretrained(self, model_tag=None, device=None, **kwargs):
         self.tag, self.device = model_tag, device
         return self
@@ -87,16 +101,16 @@ def test_every_default_names_a_model_in_the_espnet_organisation():
         assert tag.startswith("espnet/"), (task, tag)
 
 
-def test_asr_prints_the_transcript(monkeypatch, tmp_path, capsys):
+def test_transcribe_prints_the_transcript(monkeypatch, tmp_path, capsys):
     audio = tmp_path / "a.wav"
     audio.write_bytes(b"")
     rec = _Recorder("hello there")
     _fake_module(monkeypatch, "espnet2.bin.s2t_inference", "Speech2Text", rec)
 
-    assert cli.main(["asr", str(audio)]) == 0
+    assert cli.main(["transcribe", str(audio)]) == 0
 
     assert capsys.readouterr().out.strip() == "hello there"
-    assert rec.tag == cli.DEFAULT_MODELS["asr"]
+    assert rec.tag == cli.DEFAULT_MODELS["transcribe"]
     assert rec.device == "cpu"
     args, kwargs = rec.calls[0]
     assert args == (str(audio),)
@@ -229,6 +243,120 @@ def test_phonemize_prints_what_a_model_said_when_there_are_no_slashes(
     assert capsys.readouterr().out.strip() == "hello there"
 
 
+class _FakeSegment:
+    """What ForcedAligner returns: an utterance, when it was said, and how sure.
+
+    A token has the same four fields, which is what lets the command print
+    both with one line of formatting.
+    """
+
+    def __init__(self, text, start, end, score=0.9, tokens=None):
+        self.text, self.start, self.end, self.score = text, start, end, score
+        self.tokens = (
+            tokens
+            if tokens is not None
+            else [_FakeSegment(text.split()[0], start, start + 0.1, 0.8, tokens=[])]
+        )
+
+
+class _FakeAligner:
+    def __init__(self, **kwargs):
+        self.kwargs = kwargs
+        self.calls = []
+
+    def from_pretrained(self, model_tag=None, device=None, **kwargs):
+        self.tag, self.device = model_tag, device
+        return self
+
+    def __call__(self, speech, utterances):
+        self.calls.append((speech, list(utterances)))
+        return [
+            _FakeSegment(text, i * 1.0, i * 1.0 + 0.5)
+            for i, text in enumerate(utterances)
+        ]
+
+
+def _fake_aligner(monkeypatch, aligner=None):
+    aligner = aligner or _FakeAligner()
+    _fake_module(monkeypatch, "espnet2.bin.align", "ForcedAligner", aligner)
+    return aligner
+
+
+def test_align_prints_a_line_an_utterance(monkeypatch, tmp_path, capsys):
+    audio = tmp_path / "a.wav"
+    audio.write_bytes(b"")
+    rec = _fake_aligner(monkeypatch)
+
+    assert cli.main(["align", str(audio), "--text", "one", "--text", "two"]) == 0
+
+    lines = capsys.readouterr().out.strip().split("\n")
+    assert [line.split("\t")[-1] for line in lines] == ["one", "two"]
+    assert lines[0].startswith("0.00\t0.50\t")
+    assert rec.tag == cli.DEFAULT_MODELS["align"]
+    assert rec.calls == [(str(audio), ["one", "two"])]
+
+
+def test_align_can_print_each_token(monkeypatch, tmp_path, capsys):
+    audio = tmp_path / "a.wav"
+    audio.write_bytes(b"")
+    _fake_aligner(monkeypatch)
+
+    assert cli.main(["align", str(audio), "--text", "one two", "--tokens"]) == 0
+
+    lines = capsys.readouterr().out.strip().split("\n")
+    # the utterance, then the tokens it was made of, indented
+    assert len(lines) == 2 and lines[1].startswith("  ")
+
+
+def test_align_reads_a_file_of_utterances(monkeypatch, tmp_path, capsys):
+    audio = tmp_path / "a.wav"
+    audio.write_bytes(b"")
+    utterances = tmp_path / "utts.txt"
+    utterances.write_text("one\n\ntwo\n")  # blank lines are not utterances
+    rec = _fake_aligner(monkeypatch)
+
+    assert cli.main(["align", str(audio), "--text-file", str(utterances)]) == 0
+
+    assert rec.calls[0][1] == ["one", "two"]
+
+
+def test_align_passes_the_device_it_was_given(monkeypatch, tmp_path):
+    audio = tmp_path / "a.wav"
+    audio.write_bytes(b"")
+    rec = _fake_aligner(monkeypatch)
+
+    assert cli.main(["align", str(audio), "--text", "one", "--device", "mps"]) == 0
+
+    assert rec.device == "mps"
+
+
+def test_align_reports_text_that_cannot_fit(monkeypatch, tmp_path, capsys):
+    audio = tmp_path / "a.wav"
+    audio.write_bytes(b"")
+
+    class _TooMuch(_FakeAligner):
+        def __call__(self, speech, utterances):
+            raise ValueError("120 tokens to align against 40 frames")
+
+    _fake_aligner(monkeypatch, _TooMuch())
+
+    assert cli.main(["align", str(audio), "--text", "one"]) == 1
+
+    # the aligner's own sentence, not a traceback
+    assert "120 tokens to align against 40 frames" in capsys.readouterr().err
+
+
+def test_align_needs_text_and_only_one_way_of_giving_it(monkeypatch, tmp_path, capsys):
+    audio = tmp_path / "a.wav"
+    audio.write_bytes(b"")
+
+    assert cli.main(["align", str(audio)]) == 1
+    assert "--text" in capsys.readouterr().err
+
+    assert cli.main(["align", str(audio), "--text", "one", "--text-file", "f.txt"]) == 1
+    assert "not both" in capsys.readouterr().err
+
+
 def test_translate_builds_the_target_token(monkeypatch, tmp_path):
     audio = tmp_path / "a.wav"
     audio.write_bytes(b"")
@@ -244,6 +372,78 @@ def test_translate_requires_a_target():
     with pytest.raises(SystemExit) as e:
         cli.main(["translate", "a.wav"])
     assert e.value.code == 2  # argparse's "bad usage"
+
+
+OWSM_TOKENS = ["<blank>", "<unk>", "<na>", "<nolang>", "<eng>", "<jpn>", "<asr>"]
+OWSM_TOKENS += ["<st_deu>", "<st_eng>", "<st_jpn>"]
+
+
+@pytest.mark.parametrize(
+    "argv",
+    [
+        ["transcribe", "--language", "en"],
+        ["translate", "--language", "en", "--to", "eng"],
+        ["phonemize", "--language", "en"],
+    ],
+)
+def test_a_language_the_model_lacks_is_a_sentence_not_a_traceback(
+    monkeypatch, tmp_path, capsys, argv
+):
+    # Speech2Text looks the symbol up in token2id only once decoding starts,
+    # where `en` for `eng` is a KeyError after the checkpoint has loaded
+    audio = tmp_path / "a.wav"
+    audio.write_bytes(b"")
+    rec = _Recorder("x", tokens=OWSM_TOKENS + ["<pr>"])
+    _fake_module(monkeypatch, "espnet2.bin.s2t_inference", "Speech2Text", rec)
+
+    assert cli.main([argv[0], str(audio), *argv[1:]]) == 1
+
+    err = capsys.readouterr().err
+    assert "'en'" in err and "ISO 639-3" in err
+    assert rec.calls == []  # nothing was decoded with a symbol it lacks
+
+
+def test_translate_names_the_targets_when_asked_for_another(
+    monkeypatch, tmp_path, capsys
+):
+    audio = tmp_path / "a.wav"
+    audio.write_bytes(b"")
+    rec = _Recorder("x", tokens=OWSM_TOKENS)
+    _fake_module(monkeypatch, "espnet2.bin.s2t_inference", "Speech2Text", rec)
+
+    # kor is ISO 639-3, so "use ISO 639-3" would not help: the list does
+    assert cli.main(["translate", str(audio), "--to", "kor"]) == 1
+
+    assert "deu, eng, jpn" in capsys.readouterr().err
+    assert rec.calls == []
+
+
+@pytest.mark.parametrize("command", [["transcribe"], ["translate", "--to", "eng"]])
+def test_no_language_is_the_models_own_symbol(monkeypatch, tmp_path, command):
+    # POWSM transcribes too, and its vocabulary has <unk> for "work the
+    # language out" and no <nolang>, which was a KeyError here
+    audio = tmp_path / "a.wav"
+    audio.write_bytes(b"")
+    rec = _Recorder("x", nolang=None, tokens=["<unk>", "<eng>", "<asr>", "<st_eng>"])
+    _fake_module(monkeypatch, "espnet2.bin.s2t_inference", "Speech2Text", rec)
+
+    assert cli.main([command[0], str(audio), *command[1:]]) == 0
+
+    assert rec.calls[0][1]["lang_sym"] == "<unk>"
+
+
+def test_stream_checks_the_language_before_it_starts(monkeypatch, tmp_path, capsys):
+    said = []
+    _stub_live(monkeypatch, [np.zeros(16000, dtype=np.float32)], said)
+    rec = _Recorder([("x", ["x"], [1], "x", None)], tokens=OWSM_TOKENS)
+    _fake_module(monkeypatch, "espnet2.bin.s2t_inference", "Speech2Text", rec)
+    audio = tmp_path / "a.wav"
+    soundfile.write(audio, np.zeros(16000, dtype=np.float32), 16000)
+
+    assert cli.main(["transcribe", str(audio), "--stream", "--language", "en"]) == 1
+
+    assert said == [] and rec.calls == []
+    assert "'en'" in capsys.readouterr().err
 
 
 def test_tts_writes_a_wave(monkeypatch, tmp_path):
@@ -413,8 +613,20 @@ def test_the_help_lists_every_command(capsys):
         cli.main(["--help"])
     assert e.value.code == 0
     out = capsys.readouterr().out
-    for command in ("asr", "translate", "tts", "enhance", "demo", "models"):
+    for command in (
+        "transcribe",
+        "phonemize",
+        "align",
+        "translate",
+        "synthesize",
+        "enhance",
+        "demo",
+        "models",
+    ):
         assert command in out
+    # and the names they had in a release, where someone looking for the one
+    # they remember will look
+    assert "(asr)" in out and "(tts)" in out
 
 
 def test_an_output_without_an_extension_is_refused(monkeypatch, tmp_path, capsys):
@@ -463,11 +675,51 @@ def test_a_tag_for_another_task_is_explained(monkeypatch, tmp_path, capsys):
         Mismatch,
     )
 
-    assert cli.main(["asr", str(audio), "--model", "espnet/a-tts-model"]) == 1
+    assert cli.main(["transcribe", str(audio), "--model", "espnet/a-tts-model"]) == 1
 
     err = capsys.readouterr().err
-    assert "does not look like a model for `espnet asr`" in err
+    assert "does not look like a model for `espnet transcribe`" in err
     assert "espnet models" in err
+
+
+def test_the_name_a_release_had_still_works(monkeypatch, tmp_path, capsys):
+    audio = tmp_path / "a.wav"
+    audio.write_bytes(b"")
+    rec = _Recorder("hello there")
+    _fake_module(monkeypatch, "espnet2.bin.s2t_inference", "Speech2Text", rec)
+
+    assert cli.main(["asr", str(audio)]) == 0
+
+    printed = capsys.readouterr()
+    assert printed.out.strip() == "hello there"
+    # and it says where the name went, once, on stderr, so a pipe is unharmed
+    assert "`asr` is now `transcribe`" in printed.err
+
+
+def test_the_new_name_says_nothing_about_the_old_one(monkeypatch, tmp_path, capsys):
+    audio = tmp_path / "a.wav"
+    audio.write_bytes(b"")
+    rec = _Recorder("hello there")
+    _fake_module(monkeypatch, "espnet2.bin.s2t_inference", "Speech2Text", rec)
+
+    assert cli.main(["transcribe", str(audio)]) == 0
+
+    assert capsys.readouterr().err == ""
+
+
+def test_both_names_reach_the_same_command(monkeypatch, tmp_path, capsys):
+    import torch
+
+    out = tmp_path / "out.wav"
+    rec = _Recorder({"wav": torch.from_numpy(np.zeros(160, dtype=np.float32))})
+    _fake_module(monkeypatch, "espnet2.bin.tts_inference", "Text2Speech", rec)
+
+    assert cli.main(["tts", "hello", "-o", str(out)]) == 0
+    assert cli.main(["synthesize", "hello", "-o", str(out)]) == 0
+
+    # one parser, two names: the same model and the same call
+    assert rec.tag == cli.DEFAULT_MODELS["synthesize"]
+    assert len(rec.calls) == 2 and rec.calls[0] == rec.calls[1]
 
 
 def test_multichannel_audio_keeps_its_channels(tmp_path):
@@ -655,9 +907,23 @@ class _FakeOWSM:
             ]
         )
 
+    preprocessor_conf = {"speech_length": 30, "nolang_symbol": "<nolang>"}
+    # OWSM-CTC: read off the CTC head, no decoder to search over
+    ctc_only = True
+
     def from_pretrained(self, model_tag=None, device=None, **kwargs):
         self.tag, self.device = model_tag, device
         return self
+
+    def no_language(self):
+        return self.preprocessor_conf["nolang_symbol"]
+
+    def decode_window(self, speech, lang_sym=None, task_sym=None, text_prev="<na>"):
+        # Speech2Text.decode_window: the checkpoint chooses its own way, and
+        # this one is CTC-only. text_prev is what a task with a written input
+        # is given - POWSM's <g2p> and <p2g> - and what primes the search on a
+        # checkpoint that has one; this fake ignores it, as a CTC head does.
+        return self.best_path(speech, lang_sym=lang_sym, task_sym=task_sym)[0][0]
 
     def best_path(self, speech, *args, **kwargs):
         # what the page calls for a single window: the CTC head, no search
@@ -748,7 +1014,8 @@ def test_demo_menus_come_from_the_checkpoint(monkeypatch):
     # the two dropdowns are this checkpoint's own tokens, not a fixed list
     languages, targets = [call.args[0] for call in gradio.Dropdown.call_args_list]
     assert languages == ["Detect automatically", "English (eng)", "Japanese (jpn)"]
-    assert targets == ["Transcribe", "Translate to German (deu)"]
+    # each task named by the abbreviation its field uses, then glossed
+    assert targets == ["ASR: transcribe", "ST: translate to German (deu)"]
 
 
 def _predict(gradio):
@@ -762,7 +1029,9 @@ def test_the_demo_decodes_a_short_recording(monkeypatch):
     from espnet2.bin import demo
 
     gradio, s2t = _fake_demo(monkeypatch)
-    monkeypatch.setattr(demo, "read_audio", lambda path: np.zeros(16000 * 5, "float32"))
+    monkeypatch.setattr(
+        demo, "read_audio", lambda path, rate=16000: np.zeros(16000 * 5, "float32")
+    )
     assert cli.main(["demo"]) == 0
 
     language, text = _predict(gradio)("a.wav", demo.DETECT, demo.ASR_LABEL, False)
@@ -781,7 +1050,7 @@ def test_the_demo_trims_audio_past_the_cap_and_says_so(monkeypatch):
 
     gradio, s2t = _fake_demo(monkeypatch)
     long_audio = np.zeros(16000 * (demo.MAX_SECS + 30), "float32")
-    monkeypatch.setattr(demo, "read_audio", lambda path: long_audio)
+    monkeypatch.setattr(demo, "read_audio", lambda path, rate=16000: long_audio)
     assert cli.main(["demo"]) == 0
 
     _predict(gradio)("a.wav", "English (eng)", demo.ASR_LABEL, True)
