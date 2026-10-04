@@ -11,7 +11,7 @@ So an ``inference.yaml`` needs no ``input_key``, ``output_fn`` or
 ``output_artifacts``::
 
     model:
-      _target_: espnet3.systems.asr.inference.Inference
+      _target_: espnet3.systems.esp2_asr.inference.Inference
       asr_train_config: ${exp_dir}/config.yaml
       asr_model_file: ${exp_dir}/valid.acc.ave.pth
     copy:
@@ -62,7 +62,7 @@ def declared_input_names(config: DictConfig) -> Optional[List[str]]:
 
     Examples:
         >>> cfg = OmegaConf.create(
-        ...     {"model": {"_target_": "espnet3.systems.asr.inference.Inference"}}
+        ...     {"model": {"_target_": "espnet3.systems.esp2_asr.inference.Inference"}}
         ... )
         >>> declared_input_names(cfg)
         ['speech']
