@@ -1,0 +1,1 @@
+../../libritts_r/rst1/cmd.sh

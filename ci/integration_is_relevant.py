@@ -52,6 +52,8 @@ RELEVANT = {
     + (
         "egs2/TEMPLATE/",  # the recipe scripts mini_an4 symlinks to
         "egs2/mini_an4/",  # the recipes themselves
+        # mini_an4/rst1 runs this recipe's run.sh (its rst.sh is a symlink to it)
+        "egs2/libritts_r/rst1/",
         "ci/test_integration_espnet2.sh",
     ),
     "espnet3": SHARED

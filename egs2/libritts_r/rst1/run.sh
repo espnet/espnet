@@ -40,6 +40,8 @@ vocoder_exp=
 vocoder_model_file=
 external_vocoder=
 test_sets="test-clean test-other"
+# Stage 3: number of simulated room impulse responses in data/rir_pool.
+n_rirs=50000
 versa_config=conf/versa_enh.yaml
 versa_ref_config=conf/versa_enh_ref_based.yaml
 # Optional clean reference for synthetically degraded inputs.  The placeholder
@@ -84,7 +86,7 @@ fi
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     log "Stage 3: generate RIR pool"
     ${python} local/prepare_rir_pool.py \
-        --out_dir data/rir_pool --n_rirs 50000 --nj ${nj}
+        --out_dir data/rir_pool --n_rirs ${n_rirs} --nj ${nj}
 fi
 
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
