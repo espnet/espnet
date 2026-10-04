@@ -45,9 +45,27 @@ def _warn_if_torch_torchaudio_skewed() -> None:
         # not something this can usefully say anything about.
         return
 
-    # Compare major.minor only: torchaudio has tracked torch's minor exactly,
-    # and the local version suffix ("2.9.1+cu126") is not part of the pairing.
-    if torch_version.split(".")[:2] == torchaudio_version.split(".")[:2]:
+    # Compare major.minor only: the local version suffix ("2.11.0+cu126") is
+    # not part of the pairing.
+    torch_minor = torch_version.split(".")[:2]
+    torchaudio_minor = torchaudio_version.split(".")[:2]
+    if torch_minor == torchaudio_minor:
+        return
+
+    # torchaudio tracked torch's minor exactly up to 2.11.0, which is its last
+    # release and the first built against PyTorch's stable ABI - its libraries
+    # import only the aoti_torch_* C API, no mangled C++ torch symbols, so one
+    # build keeps working as torch moves on. It is therefore the matched pair
+    # for every torch from 2.11 on, and the pair install_torch.sh installs
+    # above 2.11.0, there being no later torchaudio to install. Checked on
+    # torch 2.13.0 and 2.14.0: resample, MelSpectrogram, Spectrogram and
+    # compliance.kaldi.fbank all work.
+    try:
+        torch_pair = tuple(int(part) for part in torch_minor)
+    except ValueError:
+        # A version this cannot parse is not one to reassure anyone about.
+        torch_pair = ()
+    if torchaudio_minor == ["2", "11"] and torch_pair >= (2, 11):
         return
 
     warnings.warn(
