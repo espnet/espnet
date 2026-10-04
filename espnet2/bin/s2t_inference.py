@@ -880,6 +880,7 @@ class Speech2Text:
         speech: Union[torch.Tensor, np.ndarray],
         lang_sym: Optional[str] = None,
         task_sym: Optional[str] = None,
+        text_prev: Union[torch.Tensor, np.ndarray, str, List] = "<na>",
     ) -> str:
         """One window of audio, decoded the way this checkpoint has to be.
 
@@ -896,12 +897,19 @@ class Speech2Text:
         Args:
             speech: One window, no longer than the model's own.
             lang_sym, task_sym: As for `best_path` and `__call__`.
+            text_prev: What the model is given to condition on, for a task
+                that has an input besides the audio. POWSM's `<g2p>` takes
+                the words that were said and answers with phones, and its
+                `<p2g>` takes phones and answers with words; `<asr>` and
+                `<pr>` take `<na>`, which is the default.
 
         Returns:
             The decoded text, with whatever symbols the model wrote.
         """
         decode = self.best_path if self.ctc_only else self.__call__
-        return decode(speech, lang_sym=lang_sym, task_sym=task_sym)[0][0]
+        return decode(
+            speech, text_prev=text_prev, lang_sym=lang_sym, task_sym=task_sym
+        )[0][0]
 
     @torch.no_grad()
     @typechecked
