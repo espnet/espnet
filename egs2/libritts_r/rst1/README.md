@@ -11,8 +11,9 @@ an `EnhancementTask` model and does not go through the standard `enh.sh`
 driver. The feature predictor is trained by `espnet2.bin.rst_train`
 (`RestorationTask`), which scores predicted SSL features rather than
 waveforms, and the vocoder by `espnet2.bin.rst_vocoder_train`
-(`RestorationVocoderTask`); `run.sh` drives the 11 stages directly because
-the vocoder pretrain/finetune stages sit in the middle of the pipeline.
+(`RestorationVocoderTask`). The 11 stages are in `egs2/TEMPLATE/rst1/rst.sh`,
+which `egs2/mini_an4/rst1` (the CI test) also runs; `run.sh` passes this
+recipe's configs to it.
 
 Two SSL backbones are supported (`ssl_encoder` in the config), both 1024-d at
 50 Hz so the vocoder stages are identical:

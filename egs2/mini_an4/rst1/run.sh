@@ -5,7 +5,7 @@ set -e
 set -u
 set -o pipefail
 
-# The restoration recipe (rst.sh -> egs2/libritts_r/rst1/run.sh) on mini_an4
+# The restoration recipe (egs2/TEMPLATE/rst1/rst.sh) on mini_an4
 # with tiny models, for CI. Stages 10-11 (scoring) download large evaluation
 # models and are left out by default.
 ./rst.sh \

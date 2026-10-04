@@ -1,1 +1,1 @@
-../../libritts_r/rst1/path.sh
+../../TEMPLATE/rst1/path.sh
