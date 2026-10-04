@@ -33,7 +33,7 @@ class Echo(InferenceAPI):
         return {
             "text": f"{len(speech.array)}{prompt}",
             "echo": speech,
-            "segments": [{"text": "x", "start": 0.0, "end": speech.seconds}],
+            "segments": [{"text": "x", "start": 0.0, "end": speech.duration}],
         }
 
 
@@ -134,6 +134,28 @@ def test_write_record_writes_audio_as_wav_and_lists_as_json(tmp_path):
     segments = (tmp_path / "segments.scp").read_text().splitlines()[1]
     assert segments.endswith("segments/utt1.json")
     assert writers["artifact_configs"]["echo"] == {"type": "wav", "sample_rate": 8000}
+
+
+def test_write_record_writes_multichannel_audio_channels_last(tmp_path):
+    import soundfile
+
+    class Stereo(Echo):
+        inputs = (Field("speech", "audio", channels=None),)
+        outputs = (Field("text", "text"), Field("echo", "audio", channels=None))
+
+        def run(self, speech, prompt=""):
+            return {"text": str(speech.channels), "echo": speech}
+
+    data = [{"utt_id": "s", "speech": np.zeros((2, 100), dtype=np.float32)}]
+    writers = APIRunner.open_writers(tmp_path)
+    APIRunner.write_record(
+        writers, APIRunner.forward(0, dataset=data, model=Stereo()), {}
+    )
+    APIRunner.close_writers(writers, {})
+    path = (tmp_path / "echo.scp").read_text().split(" ", 1)[1].strip()
+    array, rate = soundfile.read(path)
+    assert array.shape == (100, 2) and rate == 8000
+    assert (tmp_path / "text.scp").read_text() == "s 2\n"
 
 
 def test_infer_runs_end_to_end_from_the_declaration(tmp_path):

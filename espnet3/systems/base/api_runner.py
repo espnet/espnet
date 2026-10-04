@@ -124,7 +124,8 @@ def _writable(output: Mapping[str, Any], artifact_configs: Dict[str, dict]) -> d
     for key, value in output.items():
         if isinstance(value, Audio):
             artifact_configs.setdefault(key, {"type": "wav", "sample_rate": value.rate})
-            value = value.array
+            # soundfile writes (samples, channels); Audio keeps channels first
+            value = value.array.T if value.array.ndim == 2 else value.array
         elif isinstance(value, list):
             # the writers take no top-level list; a JSON document does
             value = {key: value}
