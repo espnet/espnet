@@ -172,6 +172,7 @@ enh = [
 rst = [
   "peft",
   "pyroomacoustics",
+  "transformers",  # the w2v-BERT 2.0 backbone
 ]
 
 asr2 = [
