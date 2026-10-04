@@ -69,17 +69,18 @@ def check_contract(cls: type) -> None:
 class InferenceAPI(ABC):
     """What a system implements to be callable from every front end.
 
-    A subclass declares two class attributes and implements three members:
+    A subclass declares two class attributes and implements two members:
 
     - ``inputs`` / ``outputs``: tuples of :class:`Field`; required inputs
       first, so a call by position means one thing.
     - :meth:`from_pretrained`: build one from a packed model directory or a
       Hub tag.
-    - :attr:`sample_rate`: the rate the model takes audio at, or ``None``
-      to take any.
     - one of :meth:`run_stream` (online) and :meth:`run` (the whole input
       at once); the base class derives the other. :meth:`run_batch` may be
       overridden when the model decodes several inputs faster together.
+
+    A system with audio fields also sets :attr:`sample_rate`, the rate they
+    are resampled to; a system without audio leaves it alone.
 
     Callers use the entry points, never the hooks: the one-shot call
     ``model(...)``, :meth:`stream` and :meth:`batch`. They bind arguments
@@ -172,17 +173,27 @@ class InferenceAPI(ABC):
         """
 
     @property
-    @abstractmethod
     def sample_rate(self) -> Optional[int]:
         """The rate every audio input is resampled to before a hook sees it.
 
-        ``None`` for a model that takes audio at whatever rate it comes -
-        an enhancement model that adapts to the input, a test set mixing
-        rates as the URGENT challenge does. Each :class:`Audio` then keeps
-        its own rate for the hook to read, a bare array is refused for
-        carrying none, and an audio output must be returned as an
-        :class:`Audio`, since nothing else says its rate.
+        Only the ``audio`` kind reads this, so only a system with audio
+        fields sets it; a text-only system leaves the default. The default,
+        ``None``, means the model takes audio at whatever rate it comes -
+        right for an enhancement model that adapts to its input, or a test
+        set mixing rates as the URGENT challenge does. Each :class:`Audio`
+        then keeps its own rate for the hook to read, a bare array is
+        refused for carrying none, and an audio output must be returned as
+        an :class:`Audio`, since nothing else says its rate.
+
+        Examples:
+            >>> class Inference(InferenceAPI):
+            ...     sample_rate = 16000          # a fixed-rate frontend
+            >>> class Inference(InferenceAPI):
+            ...     @property
+            ...     def sample_rate(self):       # read off the model
+            ...         return self.backend.fs
         """
+        return None
 
     # -- the hooks a system implements; each has the other as its default --
 

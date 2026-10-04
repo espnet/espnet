@@ -173,7 +173,7 @@ def test_an_intermediate_base_that_declares_nothing_is_allowed():
         check_contract(Base)
 
 
-def test_a_conversation_model_declares_no_task():
+def test_a_text_only_model_declares_no_task_and_no_sample_rate():
     class Chat(InferenceAPI):
         inputs = (Field("messages", "text"),)
         outputs = (Field("messages", "text"),)
@@ -182,12 +182,11 @@ def test_a_conversation_model_declares_no_task():
         def from_pretrained(cls, tag_or_dir, *, device="cpu", **kwargs):
             return cls()
 
-        sample_rate = 16000
-
         def run(self, messages):
             return {"messages": messages + " and reply"}
 
     assert Chat()("hi")["messages"] == "hi and reply"
+    assert Chat().sample_rate is None  # audio-specific: not asked of a text model
 
 
 # --- calling ---------------------------------------------------------------
