@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from espnet3.api.inference.kinds.base import BaseKind
+from espnet3.api.inference.kinds.base import Kind
 
 
-class TextKind(BaseKind):
+class TextKind(Kind):
     """``text``: a ``str``; pieces append."""
 
     def check(self, value, field, model, *, output):

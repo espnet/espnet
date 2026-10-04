@@ -1,4 +1,4 @@
-"""The contract itself: :class:`BaseInference`, its check, and :func:`gather`."""
+"""The contract itself: :class:`InferenceAPI`, its check, and :func:`gather`."""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ from espnet3.api.inference.kinds import KINDS
 def check_contract(cls: type) -> None:
     """Raise ``TypeError`` unless ``cls`` is a usable system declaration.
 
-    Run on every concrete subclass of :class:`BaseInference` as it is
+    Run on every concrete subclass of :class:`InferenceAPI` as it is
     defined, so a system that gets the declaration wrong fails at import,
     not in a Space at runtime. The rules:
 
@@ -22,7 +22,7 @@ def check_contract(cls: type) -> None:
     - required inputs come before optional ones, so a call by position
       means one thing;
     - no output is optional;
-    - :meth:`BaseInference.run_stream` or :meth:`BaseInference.run` is
+    - :meth:`InferenceAPI.run_stream` or :meth:`InferenceAPI.run` is
       implemented, since each is the other's default.
 
     Args:
@@ -32,7 +32,7 @@ def check_contract(cls: type) -> None:
         TypeError: With the rule that was broken.
 
     Examples:
-        >>> class Bad(BaseInference):
+        >>> class Bad(InferenceAPI):
         ...     inputs = (Field("prompt", "text", optional=True),
         ...               Field("speech", "audio"))
         ...     outputs = (Field("text", "text"),)
@@ -59,14 +59,14 @@ def check_contract(cls: type) -> None:
     for f in cls.outputs:
         if f.optional:
             raise TypeError(f"{cls.__qualname__}: outputs cannot be optional")
-    if cls.run is BaseInference.run and cls.run_stream is BaseInference.run_stream:
+    if cls.run is InferenceAPI.run and cls.run_stream is InferenceAPI.run_stream:
         raise TypeError(
             f"{cls.__qualname__} must implement run_stream (online) or run "
             "(the whole input at once); each is the other's default"
         )
 
 
-class BaseInference(ABC):
+class InferenceAPI(ABC):
     """What a system implements to be callable from every front end.
 
     A subclass declares two class attributes and implements three members:
@@ -98,7 +98,7 @@ class BaseInference(ABC):
     Examples:
         A system whose model needs the whole input::
 
-            class Inference(BaseInference):
+            class Inference(InferenceAPI):
                 inputs = (Field("speech", "audio"),)
                 outputs = (Field("text", "text"),)
 
@@ -116,7 +116,7 @@ class BaseInference(ABC):
         A system whose model works online yields as it goes; the one-shot
         call then gathers what it yields::
 
-            class Inference(BaseInference):
+            class Inference(InferenceAPI):
                 inputs = (Field("speech", "audio"),)
                 outputs = (Field("text", "text"),)
                 ...
@@ -152,7 +152,7 @@ class BaseInference(ABC):
     @abstractmethod
     def from_pretrained(
         cls, tag_or_dir: str | Path, *, device: str = "cpu", **kwargs: Any
-    ) -> "BaseInference":
+    ) -> "InferenceAPI":
         """Load a published model.
 
         Args:
@@ -267,7 +267,7 @@ class BaseInference(ABC):
         Positional values fill ``inputs`` in order, so ``model(audio)`` is
         ``model(speech=audio)`` for any model whose first input is audio.
         When every given value is a list that is not itself a value of its
-        kind (see :meth:`BaseKind.is_batch`), they are a batch - one entry per
+        kind (see :meth:`Kind.is_batch`), they are a batch - one entry per
         sample, as ``InferenceRunner`` passes one - and the result is a
         list of outputs, as from :meth:`batch`.
 
@@ -431,13 +431,13 @@ def gather(fields: tuple[Field, ...], chunks: Iterable[Mapping[str, Any]]) -> di
     """Join a stream of chunks into the one value each field would have had.
 
     This is what makes a one-shot call the special case of a stream, in
-    both directions: the default :meth:`BaseInference.run_stream` gathers
-    the input for :meth:`BaseInference.run`, and the default ``run`` gathers
+    both directions: the default :meth:`InferenceAPI.run_stream` gathers
+    the input for :meth:`InferenceAPI.run`, and the default ``run`` gathers
     what ``run_stream`` yields.
 
     Args:
         fields: The declarations that say how each name joins, through
-            its kind's :meth:`BaseKind.join`: audio concatenated, text and
+            its kind's :meth:`Kind.join`: audio concatenated, text and
             segments appended.
         chunks: The pieces, in order. A name outside ``fields`` keeps its
             last value.

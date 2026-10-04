@@ -6,11 +6,11 @@ from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from espnet3.api.inference.base import BaseInference
+    from espnet3.api.inference.base import InferenceAPI
     from espnet3.api.inference.field import Field
 
 
-class BaseKind(ABC):
+class Kind(ABC):
     """What a field's ``kind`` means: how a value is converted, checked and joined.
 
     A kind turns what a caller gives into what a hook receives, checks
@@ -18,10 +18,10 @@ class BaseKind(ABC):
     built-in kinds are ``audio``, ``text`` and ``segments``; a new
     modality - a conversation, a multichannel signal, video, a JSON
     document - is a subclass passed to :func:`register_kind`, and needs no
-    change to :class:`BaseInference`.
+    change to :class:`InferenceAPI`.
 
     Examples:
-        >>> class Messages(BaseKind):
+        >>> class Messages(Kind):
         ...     def check(self, value, field, model, *, output):
         ...         if not isinstance(value, list):
         ...             raise TypeError(f"{field.name} must be a list of turns")
@@ -33,7 +33,7 @@ class BaseKind(ABC):
 
     @abstractmethod
     def check(
-        self, value: Any, field: Field, model: "BaseInference", *, output: bool
+        self, value: Any, field: Field, model: "InferenceAPI", *, output: bool
     ) -> Any:
         """Return ``value`` as this kind holds it, or raise ``TypeError``.
 
@@ -53,7 +53,7 @@ class BaseKind(ABC):
         """Join two consecutive pieces of one field; the default is ``+``."""
         return first + second
 
-    def is_batch(self, value: Any, field: Field, model: "BaseInference") -> bool:
+    def is_batch(self, value: Any, field: Field, model: "InferenceAPI") -> bool:
         """Tell one entry per sample from one value of this kind.
 
         A list that is not itself a valid value of the kind is a batch:

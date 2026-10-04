@@ -26,7 +26,7 @@ That class is built three ways, all ending in ``self.backend``:
 - ``Inference(backend)``: one already built.
 
 A system whose model is not one object - a SpeechLM behind a server, a
-pipeline of several - subclasses :class:`BaseInference` directly instead.
+pipeline of several - subclasses :class:`InferenceAPI` directly instead.
 """
 
 from __future__ import annotations
@@ -37,7 +37,7 @@ from typing import Any, ClassVar, Optional
 import humanfriendly
 from hydra.utils import get_class
 
-from espnet3.api.inference import BaseInference, locate_pack
+from espnet3.api.inference import InferenceAPI, locate_pack
 from espnet3.publication.inference_model import load_backend
 
 
@@ -48,11 +48,11 @@ def _rate(value: Any) -> int:
     return int(value)
 
 
-class BackendInference(BaseInference):
+class BackendInference(InferenceAPI):
     """The base for a system that wraps one backend object.
 
     A subclass declares ``backend_class``, ``inputs`` and ``outputs`` and
-    implements :meth:`BaseInference.run` (or ``run_stream``) over
+    implements :meth:`InferenceAPI.run` (or ``run_stream``) over
     ``self.backend``; building, loading and the rate are done here.
 
     Args:
@@ -142,7 +142,7 @@ class BackendInference(BaseInference):
         if kwargs:
             raise TypeError(f"unexpected arguments {sorted(kwargs)}")
         built = load_backend(locate_pack(tag_or_dir), device=device)
-        if isinstance(built, BaseInference):
+        if isinstance(built, InferenceAPI):
             # the bundle's inference.yaml names the Inference itself, as a
             # recipe on the APIRunner does: it is the model, not a backend
             if not isinstance(built, cls):

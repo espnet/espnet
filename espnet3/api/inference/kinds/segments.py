@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from typing import Mapping
 
-from espnet3.api.inference.kinds.base import BaseKind
+from espnet3.api.inference.kinds.base import Kind
 
 
-class SegmentsKind(BaseKind):
+class SegmentsKind(Kind):
     """``segments``: dicts with ``text``, ``start`` and ``end`` in seconds.
 
     The shape ``espnet align`` prints; ``score`` is optional. Pieces append.

@@ -8,7 +8,7 @@ from typing import Any
 
 import yaml
 
-from espnet3.api.inference.base import BaseInference
+from espnet3.api.inference.base import InferenceAPI
 
 # A system renamed after bundles were published under its old name: old name
 # to current directory. ``load`` looks the name in ``meta.yaml`` up here, so a
@@ -55,8 +55,8 @@ def load(
     device: str = "cpu",
     system: str | None = None,
     **kwargs: Any,
-) -> BaseInference:
-    """Load a published model behind its system's :class:`BaseInference`.
+) -> InferenceAPI:
+    """Load a published model behind its system's :class:`InferenceAPI`.
 
     The bundle's ``meta.yaml`` names the system that trained it
     (``system: esp2_asr``, written by ``pack_model``); this imports
@@ -109,8 +109,8 @@ def load(
             "names the wrong system. Pass system=<name>."
         ) from e
     cls = getattr(module, "Inference", None)
-    if not isinstance(cls, type) or not issubclass(cls, BaseInference):
+    if not isinstance(cls, type) or not issubclass(cls, InferenceAPI):
         raise ImportError(
-            f"espnet3.systems.{system}.inference defines no Inference(BaseInference)"
+            f"espnet3.systems.{system}.inference defines no Inference(InferenceAPI)"
         )
     return cls.from_pretrained(tag_or_dir, device=device, **kwargs)
