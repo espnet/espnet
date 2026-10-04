@@ -45,8 +45,10 @@ class LinearWarmupDecayLR(_LRScheduler, AbsBatchStepScheduler):
                 ``0`` starts at the base lr and decays immediately.
             total_steps: Planned training length in optimizer updates. Must be
                 greater than ``warmup_steps``.
-            start_factor: Multiplier applied to the base lr at step 0.
-            end_factor: Multiplier the lr decays to, and is clamped at.
+            start_factor: Multiplier applied to the base lr at step 0. Must be
+                in ``(0, 1]``.
+            end_factor: Multiplier the lr decays to, and is clamped at. Must be
+                in ``[0, 1]``.
             last_epoch: Index of the last update, ``-1`` to start fresh.
 
         Example:
@@ -60,8 +62,9 @@ class LinearWarmupDecayLR(_LRScheduler, AbsBatchStepScheduler):
                 scheduler_interval: step
 
         Raises:
-            ValueError: If ``warmup_steps`` is negative, or if ``total_steps``
-                is not greater than ``warmup_steps``.
+            ValueError: If ``warmup_steps`` is negative, if ``total_steps`` is
+                not greater than ``warmup_steps``, if ``start_factor`` is not
+                in ``(0, 1]``, or if ``end_factor`` is not in ``[0, 1]``.
 
         Note:
             ``total_steps`` is the planned horizon, not a stopping condition:
@@ -81,6 +84,13 @@ class LinearWarmupDecayLR(_LRScheduler, AbsBatchStepScheduler):
                 f"warmup_steps={self.warmup_steps}: the warmup peak would fall "
                 "at or after the end of the planned horizon."
             )
+        if not 0.0 < start_factor <= 1.0:
+            raise ValueError(
+                "start_factor must be greater than 0 and less than or equal "
+                f"to 1, got {start_factor}."
+            )
+        if not 0.0 <= end_factor <= 1.0:
+            raise ValueError(f"end_factor must be between 0 and 1, got {end_factor}.")
         self.start_factor = start_factor
         self.end_factor = end_factor
         self.decay_steps = max(self.total_steps - self.warmup_steps, 1)

@@ -118,3 +118,44 @@ def test_a_horizon_shorter_than_the_warmup_is_rejected(warmup_steps, total_steps
         LinearWarmupDecayLR(
             optimizer, warmup_steps=warmup_steps, total_steps=total_steps
         )
+
+
+@pytest.mark.parametrize("start_factor", [0.0, -0.1, 1.5, float("nan"), float("inf")])
+def test_a_start_factor_outside_zero_to_one_is_rejected(start_factor):
+    """A zero start_factor would divide by zero on the first warmup step."""
+    with pytest.raises(ValueError, match="start_factor"):
+        _make(start_factor=start_factor)
+
+
+@pytest.mark.parametrize("end_factor", [-0.5, 1.5, float("nan"), float("inf")])
+def test_an_end_factor_outside_zero_to_one_is_rejected(end_factor):
+    """A negative end_factor would drive the decay denominator through zero."""
+    with pytest.raises(ValueError, match="end_factor"):
+        _make(end_factor=end_factor)
+
+
+def test_the_factor_boundaries_are_accepted():
+    """start_factor=1 means no warmup ramp; end_factor=0 decays to exactly 0."""
+    optimizer, scheduler = _make(start_factor=1.0, end_factor=0.0)
+
+    lrs = []
+    for _ in range(TOTAL + 5):
+        lrs.append(optimizer.param_groups[0]["lr"])
+        optimizer.step()
+        scheduler.step()
+
+    assert lrs[:WARMUP] == pytest.approx([BASE_LR] * WARMUP)
+    assert lrs[WARMUP] == BASE_LR
+    assert lrs[TOTAL] == pytest.approx(0.0, abs=1e-12)
+    assert lrs[-1] == pytest.approx(0.0, abs=1e-12)
+    assert min(lrs) >= 0.0
+
+
+def test_an_end_factor_of_one_holds_the_base_lr():
+    optimizer, scheduler = _make(end_factor=1.0)
+
+    for _ in range(TOTAL + 5):
+        optimizer.step()
+        scheduler.step()
+
+    assert optimizer.param_groups[0]["lr"] == pytest.approx(BASE_LR)
