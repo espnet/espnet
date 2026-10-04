@@ -1,0 +1,104 @@
+# ESPnet3 LibriTTS VITS recipe
+
+Multi-speaker English TTS on LibriTTS using VITS with x-vector speaker
+conditioning, run through `espnet3.systems.esp2_gan_tts.system.GANTTSSystem`.
+The configs under `conf/` are merged over
+`egs3/TEMPLATE/esp2_gan_tts/conf/`, so they only list what this recipe
+changes.
+
+## Quick start
+
+```bash
+# 0) Edit configs to set paths.
+
+# 1) Download LibriTTS and build per-split TSV manifests (run once)
+python run.py --stages create_dataset --training_config conf/training.yaml
+
+# 2) Extract x-vector speaker embeddings (one .pt file per utterance)
+python run.py --stages compute_xvectors --training_config conf/training.yaml
+
+# 3) Filter utterances by duration
+python run.py --stages remove_long_short --training_config conf/training.yaml
+
+# 4) Build the phoneme token list
+python run.py --stages create_token_list --training_config conf/training.yaml
+
+# 5) Collect feature statistics (resumable: set collect_stats.num_shards>1)
+python run.py --stages collect_stats --training_config conf/training.yaml
+
+# 6) Train VITS
+python run.py --stages train --training_config conf/training.yaml
+
+# 7) Synthesize from test text
+python run.py --stages infer \
+    --training_config conf/training.yaml \
+    --inference_config conf/inference.yaml
+
+# 8) Compute the metrics
+python run.py --stages measure \
+    --training_config conf/training.yaml \
+    --inference_config conf/inference.yaml \
+    --metrics_config conf/metrics.yaml
+
+# 9) Bundle the trained model for release (packs the phoneme token list too)
+python run.py --stages pack_model \
+    --training_config conf/training.yaml \
+    --publication_config conf/publication.yaml
+
+# 10) Upload it to the Hugging Face Hub (run `hf auth login` first)
+python run.py --stages upload_model \
+    --training_config conf/training.yaml \
+    --publication_config conf/publication.yaml
+
+# 11) Pack the Gradio demo, then upload it as a Space
+python run.py --stages pack_demo   --demo_config conf/demo.yaml
+python run.py --stages upload_demo --demo_config conf/demo.yaml
+```
+
+Stages always execute in this order, whatever order `--stages` lists them
+in, so `--stages all` runs the whole pipeline.
+
+## Data
+
+`create_dataset` downloads the OpenSLR subsets listed in
+`dataset/config.yaml` into `downloads/LibriTTS/` and marks each finished
+extraction with `downloads/LibriTTS/<subset>/.complete`. If you already have
+LibriTTS on disk, symlink or copy it to `downloads/LibriTTS/` and create that
+marker for every subset yourself (for example
+`touch downloads/LibriTTS/train-clean-100/.complete`); without it the stage
+treats the subset as unfinished and downloads it again.
+
+LibriTTS is published at 24 kHz, but this recipe trains at 22.05 kHz like the
+espnet2 LibriTTS VITS recipe (`run.sh --fs 22050`). The same stage therefore
+writes a resampled PCM_16 copy of every wav under `data/wav/` (about 90 GB
+for the full corpus) and points the manifests at it; the preprocessor,
+`mel_loss_params.fs` and `tts_conf.sampling_rate` all assume that rate, and
+the dataset refuses a wav at any other rate. Resampling ~375k files is slow
+in one process, so set `create_dataset.num_workers` in `conf/training.yaml`
+on a multi-core node. A checkout built before this change has manifests that
+point at the originals and no `data/wav/.complete` marker, so `create_dataset`
+rebuilds it automatically; re-run `remove_long_short` afterwards because the
+filtered manifests also carry wav paths. The x-vector `.pt` files are keyed
+by utterance id and were extracted at 16 kHz internally, so they can stay.
+
+## Speaker embeddings
+
+This model was trained against SpeechBrain ECAPA-TDNN embeddings, so
+`conf/training.yaml` pins `xvector.toolkit: speechbrain` (needs
+`pip install speechbrain`). The template default is espnet's own
+`espnet/voxcelebs12_rawnet3` extractor, which needs no extra dependency;
+switching requires retraining with a matching `spk_embed_dim`.
+
+## Demo
+
+`pack_demo` builds a Gradio app from `src/app.py`. Because this recipe trains a
+multi-speaker VITS, the demo takes **text plus a reference audio clip**: it runs
+the same SpeechBrain ECAPA extractor as the `compute_xvectors` stage to turn
+that clip into the `spembs` the model needs, then synthesizes the text in that
+voice.
+
+`src/app.py` defaults to the same ECAPA model the `compute_xvectors` stage
+uses, so `conf/demo.yaml` carries no x-vector settings. If you retrain against
+a different embedding model, override `xvector.pretrained_model` in
+`conf/demo.yaml` to match, or the embedding the demo builds will not match the
+space the model was trained in.
