@@ -9,8 +9,11 @@ PACKAGE = "egs3.TEMPLATE.esp2_gan_tts"
 
 
 def test_default_stages_run_manifest_consumers_after_create_dataset() -> None:
-    """Stages execute in list order, so the x-vector/filter/token stages must
-    come after create_dataset and before collect_stats."""
+    """Manifest-consuming stages run after create_dataset, before collect_stats.
+
+    Execution always follows list order, whatever order ``--stages`` is
+    given in, so ``--stages all`` must not reach compute_xvectors first.
+    """
     order = {stage: idx for idx, stage in enumerate(DEFAULT_STAGES)}
     assert order["create_dataset"] < order["compute_xvectors"]
     assert order["compute_xvectors"] < order["remove_long_short"]
