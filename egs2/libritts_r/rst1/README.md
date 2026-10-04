@@ -46,9 +46,9 @@ from the Hub on first use, so stages 4-10 need network access (or a pre-warmed
 
 ## Data
 
-Set the paths in `db.sh`. `DATASET_LIBRITTS_R` and `LIBRITTS` are mandatory;
-`DATASET_EARS` and `DATASET_VCTK_DEMAND` supply the 48 kHz material. Any
-`NOISE_*` variable that points at a real directory is added to the noise pool.
+Set the paths in `db.sh` (the shared `egs2/TEMPLATE/asr1/db.sh`). `LIBRITTS_R`,
+`LIBRITTS`, `EARS` and `VCTK_DEMAND` are required (EARS and VCTK_DEMAND supply
+the 48 kHz material); `WHAM_NOISE` fills the noise pool for online degradation.
 
 ## Stages
 

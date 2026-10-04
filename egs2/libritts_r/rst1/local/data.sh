@@ -2,17 +2,19 @@
 # local/data.sh — Speech Cleaner data preparation (Samsung PC)
 #
 # Required (set in db.sh):
-#   DATASET_LIBRITTS_R  /DB/LibriTTS_R    24kHz
-#   LIBRITTS            /DB/LibriTTS      original test input
-#   DATASET_EARS        /DB/ears          48kHz  p001-p107
-#   DATASET_VCTK_DEMAND /DB/VCTK_DEMAND   48kHz  clean dirs only
+#   LIBRITTS_R   /DB/LibriTTS_R    24kHz
+#   LIBRITTS     /DB/LibriTTS      original test input
+#   EARS         /DB/ears          48kHz  p001-p107
+#   VCTK_DEMAND  /DB/VCTK_DEMAND   48kHz  clean dirs only
+# Optional:
+#   WHAM_NOISE   /DB/wham_noise    noise for online degradation
 #
 # Outputs:
 #   data/train_fp   LibriTTS-R train + EARS p001-p096 + VCTK clean train
 #   data/dev_fp     LibriTTS-R dev  + EARS p097-p107 + VCTK clean test
 #   data/train_voc  EARS p001-p096  + VCTK clean train  (48kHz only, no LibriTTS-R)
 #   data/dev_voc    EARS p097-p107  + VCTK clean test   (48kHz only, no LibriTTS-R)
-#   data/noise_pool symlinks from all NOISE_* dirs
+#   data/noise_pool symlinks to the WHAM_NOISE audio
 
 set -euo pipefail
 log() { echo "[data.sh $(date '+%H:%M:%S')] $*"; }
@@ -20,7 +22,7 @@ log() { echo "[data.sh $(date '+%H:%M:%S')] $*"; }
 . ./db.sh || exit 1
 
 # ── Validate required variables ────────────────────────────────────────────
-for _var in DATASET_LIBRITTS_R DATASET_EARS DATASET_VCTK_DEMAND LIBRITTS; do
+for _var in LIBRITTS_R EARS VCTK_DEMAND LIBRITTS; do
     _val="${!_var:-}"
     if [ -z "${_val}" ] || [ ! -d "${_val}" ]; then
         log "ERROR: ${_var} not set or not a directory (value: '${_val:-<unset>}')"
@@ -54,7 +56,7 @@ _make_kaldi() {
 # ─────────────────────────────────────────────────────────────────────────
 _collect_libritts_r() {
     for sub in "$@"; do
-        local d="${DATASET_LIBRITTS_R}/${sub}"
+        local d="${LIBRITTS_R}/${sub}"
         [ -d "${d}" ] || { log "  SKIP LibriTTS-R/${sub}"; continue; }
         find "${d}" \( -name "*.wav" -o -name "*.flac" \) | sort
     done | awk '{
@@ -103,7 +105,7 @@ _collect_libritts_text() {
 # ─────────────────────────────────────────────────────────────────────────
 _collect_ears() {
     local split=$1
-    find "${DATASET_EARS}" -mindepth 1 -maxdepth 1 -type d -name 'p[0-9][0-9][0-9]' | \
+    find "${EARS}" -mindepth 1 -maxdepth 1 -type d -name 'p[0-9][0-9][0-9]' | \
     sort | while IFS= read -r spk_dir; do
         spk=$(basename "${spk_dir}")
         # awk converts "097" → 97 (no octal), safe for leading-zero speaker nums
@@ -133,7 +135,7 @@ _collect_vctk_clean() {
             noisy_*|mix_*)
                 log "ERROR: noisy/mix dir '${sub}' must not be included"; exit 1 ;;
         esac
-        local d="${DATASET_VCTK_DEMAND}/${sub}"
+        local d="${VCTK_DEMAND}/${sub}"
         [ -d "${d}" ] || { log "  SKIP VCTK_DEMAND/${sub}"; continue; }
         find "${d}" \( -name "*.wav" -o -name "*.flac" \) | sort
     done | awk '{
@@ -225,19 +227,15 @@ _make_kaldi "${tmp}/voc_dev" data/dev_voc
 log "Building data/noise_pool ..."
 rm -rf data/noise_pool
 mkdir -p data/noise_pool
-_noise_found=0
-for _var in $(compgen -v | grep '^NOISE_' | sort); do
-    _dir="${!_var:-}"
-    [ -z "${_dir}" ] && continue
-    [ -d "${_dir}" ] || { log "  SKIP ${_var}: not found"; continue; }
-    log "  ${_var}: ${_dir}"
-    find "${_dir}" \( -name "*.wav" -o -name "*.flac" \) | \
+if [ -n "${WHAM_NOISE:-}" ] && [ -d "${WHAM_NOISE}" ]; then
+    log "  WHAM_NOISE: ${WHAM_NOISE}"
+    find "${WHAM_NOISE}" \( -name "*.wav" -o -name "*.flac" \) | \
         while IFS= read -r f; do
-            ln -sf "${f}" "data/noise_pool/${_var}_$(basename "${f}")" 2>/dev/null || true
+            ln -sf "${f}" "data/noise_pool/WHAM_NOISE_$(basename "${f}")" 2>/dev/null || true
         done
-    _noise_found=1
-done
-[ "${_noise_found}" -eq 0 ] && log "WARNING: No NOISE_* variables set."
+else
+    log "WARNING: WHAM_NOISE not set or not a directory; the noise pool is empty."
+fi
 log "  $(find data/noise_pool -mindepth 1 -maxdepth 1 | wc -l) noise files"
 
 # ─────────────────────────────────────────────────────────────────────────
