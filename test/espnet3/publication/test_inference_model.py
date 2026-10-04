@@ -41,7 +41,10 @@ class BatchEchoModel:
 def _make_pack_dir(
     tmp_path: Path,
     *,
-    model_target: str = "builtins.object",
+    # A real published bundle names an espnet model here, and the loader now
+    # refuses targets outside its allowed namespaces. The gate resolves this
+    # string even when ``build_model`` is mocked, so keep it light.
+    model_target: str = "espnet2.spk.encoder.identity_encoder.IdentityEncoder",
     input_key: str | list = "speech",
     output_fn: str | None = None,
     with_src_module: bool = False,
@@ -664,3 +667,129 @@ def test_load_backend_ignores_a_bundled_runner(tmp_path, mock_build_model):
     with pytest.raises(ValueError, match="trust_user_code"):
         InferenceModel.from_packed(bundle_root)
     assert isinstance(load_backend(bundle_root), EchoModel)
+
+
+# ---------------------------------------------------------------------------
+# from_packed - hydra _target_ trust gate (issue #6828)
+#
+# The bundled-code check only sees modules shipped inside the bundle, so a
+# config naming a callable that is already installed in the victim environment
+# used to pass it and then be instantiated by hydra. These cases follow the
+# reporter's positive / negative / boundary controls.
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "model_target",
+    [
+        "builtins.dict",
+        "os.system",
+        "pathlib.Path",
+        "torch.load",
+    ],
+)
+def test_from_packed_refuses_installed_callable_targets(tmp_path, model_target):
+    """Refuse targets outside the allowed namespaces without trust."""
+    bundle_root = _make_pack_dir(tmp_path, model_target=model_target)
+    with pytest.raises(ValueError, match="outside the "):
+        InferenceModel.from_packed(bundle_root, trust_user_code=False)
+
+
+def test_from_packed_refuses_nested_target(tmp_path):
+    """Refuse a disallowed target nested in an argument.
+
+    Hydra instantiates recursively, so a `_target_` buried in an argument runs
+    just like the top-level one. This is the shape of the reported PoC: a
+    nested ``pathlib.Path`` feeding ``pathlib.Path.write_text``.
+    """
+    bundle_root = _make_pack_dir(tmp_path)
+    # Under tmp_path, not /tmp: parallel runs must not collide on one shared
+    # path, and a failed run must not leave a file behind.
+    probe = tmp_path / "gate_probe"
+    config_path = bundle_root / "conf" / "inference.yaml"
+    config_path.write_text(
+        "\n".join(
+            [
+                "recipe_dir: .",
+                "input_key: speech",
+                "model:",
+                "  _target_: espnet2.bin.asr_inference.Speech2Text",
+                "  nested:",
+                "    _target_: pathlib.Path.write_text",
+                "    self:",
+                "      _target_: pathlib.Path",
+                f"      _args_: ['{probe}']",
+                "    data: written",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    assert not probe.exists()
+
+    with pytest.raises(ValueError, match="pathlib.Path"):
+        InferenceModel.from_packed(bundle_root, trust_user_code=False)
+
+    # The point of the test: refusing happens before anything is instantiated.
+    assert not probe.exists()
+
+
+def test_from_packed_allows_espnet_targets(tmp_path, mock_build_model):
+    """Keep loading the targets a published bundle legitimately builds."""
+    bundle_root = _make_pack_dir(
+        tmp_path, model_target="espnet2.bin.asr_inference.Speech2Text"
+    )
+    assert InferenceModel.from_packed(bundle_root, trust_user_code=False) is not None
+
+
+def test_from_packed_allows_disallowed_target_with_trust(tmp_path, mock_build_model):
+    """Let an explicitly trusted publisher use any target."""
+    bundle_root = _make_pack_dir(tmp_path, model_target="builtins.dict")
+    assert InferenceModel.from_packed(bundle_root, trust_user_code=True) is not None
+
+
+def test_from_packed_refuses_alias_through_allowed_module(tmp_path):
+    """Refuse a target that reaches outside its namespace by attribute.
+
+    A dotted path says where a name was written, not what it resolves to.
+    ``espnet3.systems.base.inference_provider`` does ``import os``, so hydra
+    imports that module and walks attributes to reach :func:`os.system` while
+    the written path still starts with an allowed prefix. Checking the text
+    alone is not enough.
+    """
+    bundle_root = _make_pack_dir(
+        tmp_path,
+        model_target="espnet3.systems.base.inference_provider.os.system",
+    )
+    with pytest.raises(ValueError, match="resolves to"):
+        InferenceModel.from_packed(bundle_root, trust_user_code=False)
+
+
+def test_from_packed_refuses_function_in_allowed_namespace(tmp_path):
+    """Refuse a module-level function even inside an allowed namespace.
+
+    A published bundle builds components, which are classes. A function in the
+    same namespace may do something else entirely: ``espnet2.bin.launch.main``
+    runs ``subprocess.Popen`` with the arguments it is given, so allowing it
+    would leave command execution reachable from an untrusted bundle.
+    """
+    bundle_root = _make_pack_dir(tmp_path, model_target="espnet2.bin.launch.main")
+    with pytest.raises(ValueError, match="not a class"):
+        InferenceModel.from_packed(bundle_root, trust_user_code=False)
+
+
+def test_load_backend_refuses_disallowed_targets(tmp_path):
+    """Apply the same policy to the API loader, which trusts nothing.
+
+    ``load_backend`` has no ``trust_user_code`` escape hatch -- it states that
+    it imports no bundled code -- so a target outside the allowed namespaces is
+    simply refused rather than gated behind an opt-in.
+    """
+    bundle_root = _make_pack_dir(tmp_path, model_target="os.system")
+    with pytest.raises(ValueError, match="outside the namespaces"):
+        load_backend(bundle_root)
+
+
+def test_load_backend_allows_espnet_targets(tmp_path, mock_build_model):
+    """Keep building the models an api system legitimately loads."""
+    bundle_root = _make_pack_dir(tmp_path)
+    assert load_backend(bundle_root) is not None

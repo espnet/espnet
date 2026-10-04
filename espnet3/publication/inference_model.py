@@ -18,13 +18,14 @@ Typical call flow:
 
 from __future__ import annotations
 
+import inspect
 import sys
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
 import yaml
 from espnet_model_zoo.downloader import ModelDownloader
-from hydra.utils import get_class
+from hydra.utils import get_class, get_object
 from omegaconf import DictConfig, ListConfig, OmegaConf, open_dict
 
 from espnet3.publication.schema import PACK_SCHEMA_VERSION
@@ -100,6 +101,116 @@ def _uses_bundled_code(
         if isinstance(value, (list, tuple)):
             stack.extend(value)
     return False
+
+
+_ALLOWED_TARGET_PREFIXES = (
+    "espnet2.",
+    "espnet3.",
+    "lightning.",
+    "torch.optim.",
+)
+
+# Refused by name and by resolved identity. The resolved-origin check below
+# already rejects everything outside the allowed namespaces, so this list is
+# defence in depth: it keeps a loader out even if a prefix is widened later or
+# one of these is ever re-exported from an allowed module.
+_DENIED_TARGETS = frozenset(
+    {
+        "torch.load",
+        "torch.jit.load",
+        "torch.serialization.load",
+        "builtins.eval",
+        "builtins.exec",
+        "builtins.__import__",
+        "os.system",
+        "subprocess.run",
+        "subprocess.Popen",
+        "subprocess.call",
+        "subprocess.check_output",
+    }
+)
+
+
+def _iter_target_strings(config: DictConfig) -> list[str]:
+    """Return every ``_target_`` string in the config tree.
+
+    Called by :func:`_disallowed_targets`. Hydra instantiates recursively, so a
+    ``_target_`` nested inside an argument runs just like the top-level one and
+    has to be collected here too.
+    """
+    targets = []
+    stack = [OmegaConf.to_container(config, resolve=False)]
+    while stack:
+        value = stack.pop()
+        if isinstance(value, Mapping):
+            target = value.get("_target_")
+            if isinstance(target, str):
+                targets.append(target)
+            stack.extend(value.values())
+        elif isinstance(value, (list, tuple)):
+            stack.extend(value)
+    return targets
+
+
+def _resolve_target(target: str):
+    """Return ``(object, "<module>.<qualname>")`` for a target, or None.
+
+    Called by :func:`_disallowed_targets`. A dotted path says where a name was
+    written, not what it resolves to: hydra imports the longest importable
+    prefix and then walks attributes, so an allowed module that does
+    ``import os`` turns ``<allowed module>.os.system`` into :func:`os.system`.
+    Resolving tells us both where the callable really comes from and what kind
+    of object it is.
+    """
+    try:
+        obj = get_object(target)
+    except Exception:
+        return None
+    module = getattr(obj, "__module__", None)
+    qualname = getattr(obj, "__qualname__", None) or getattr(obj, "__name__", None)
+    if not module or not qualname:
+        return None
+    return obj, f"{module}.{qualname}"
+
+
+def _disallowed_targets(config: DictConfig) -> list[str]:
+    """Return the ``_target_`` values this loader refuses to instantiate.
+
+    Called by :meth:`InferenceModel.from_packed`. Each target has to clear
+    three things:
+
+    - the name as written, so an untrusted name is never imported at all;
+    - the module the object actually comes from, because the written path can
+      reach outside its own namespace through an attribute of an allowed
+      module (``<allowed module>.os.system``);
+    - being a class.
+
+    The class requirement is not a claim that every class is safe to
+    instantiate. It is narrowing by what published bundles actually do: every
+    ``_target_`` in espnet3, egs3 and the tests is a class, so requiring one
+    costs nothing in use, while it removes module-level functions as a
+    category -- and some of those are not model components at all.
+    ``espnet2.bin.launch.main`` clears both checks above and runs
+    ``subprocess.Popen`` with the arguments it is handed.
+
+    None of this makes an arbitrary config safe: the arguments passed to an
+    allowed class, and OmegaConf resolvers, are a separate surface.
+    """
+    disallowed = set()
+    for target in _iter_target_strings(config):
+        if target in _DENIED_TARGETS or not target.startswith(_ALLOWED_TARGET_PREFIXES):
+            disallowed.add(target)
+            continue
+        resolved = _resolve_target(target)
+        if resolved is None:
+            disallowed.add(f"{target} (does not resolve)")
+            continue
+        obj, origin = resolved
+        if origin in _DENIED_TARGETS or not origin.startswith(_ALLOWED_TARGET_PREFIXES):
+            disallowed.add(f"{target} (resolves to {origin})")
+        elif not inspect.isclass(obj):
+            disallowed.add(f"{target} (resolves to {origin}, which is not a class)")
+    return sorted(disallowed)
 
 
 def _resolve_packed_config(pack_dir: str | Path) -> tuple[Path, Path]:
@@ -208,6 +319,18 @@ def load_backend(pack_dir: str | Path, *, device: str | None = None):
             f"The model in {bundle_root} needs the bundle's own code to build, "
             "which an espnet3.api system does not import. Load it with "
             "InferenceModel.from_packed(..., trust_user_code=True) instead."
+        )
+    # The check above only sees code shipped in the bundle. A `_target_` naming
+    # something already installed here passes it untouched and is then built,
+    # so constrain the targets too. This caller trusts none, so there is
+    # nothing to opt into: a disallowed target is simply refused.
+    disallowed = _disallowed_targets(config)
+    if disallowed:
+        raise ValueError(
+            f"The model in {bundle_root} builds targets outside the namespaces "
+            "a published bundle may build from: " + ", ".join(disallowed) + ". "
+            "Load it with InferenceModel.from_packed(..., trust_user_code=True) "
+            "if you trust the publisher of this bundle."
         )
     return _provider_class(config).build_model(config)
 
@@ -364,6 +487,22 @@ class InferenceModel:
                 inference_config_path,
                 bundle_root=bundle_root,
             )
+
+        # The bundled-code check above only sees modules shipped in the bundle.
+        # A ``_target_`` naming something already installed in this environment
+        # passes it untouched, so constrain the targets themselves as well.
+        if not trust_user_code:
+            disallowed = _disallowed_targets(inference_config)
+            if disallowed:
+                raise ValueError(
+                    "This inference config instantiates targets outside the "
+                    "namespaces a published bundle may build from: "
+                    + ", ".join(disallowed)
+                    + ". Hydra executes every `_target_`, so loading this "
+                    "bundle would run them. Set trust_user_code=True only if "
+                    "you trust the publisher of this bundle."
+                )
+
         if device is not None:
             with open_dict(inference_config):
                 inference_config.device = device
