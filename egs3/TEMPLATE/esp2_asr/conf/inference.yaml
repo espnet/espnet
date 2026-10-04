@@ -131,14 +131,17 @@ copy:
 # 8-16 pays off when the test set is roughly sorted by length. A batch that does
 # not fit in memory is split in halves and retried with a warning; a single
 # utterance that does not fit raises an error that names its length.
-# Set to `null` for a model or `output_fn` that only supports one item per call.
+# Set to `null` for a model or `output_fn` that only supports one item per call;
+# an `Inference` decodes a batch together only when its system says so
+# (`run_batch`), and one at a time otherwise, so any value is safe.
 batch_size: 4
 
-# Only for a model that is not an `Inference`, or for a column the contract
-# does not produce: a recipe function converting raw model outputs into dicts
-# such as {"utt_id": "...", "hyp": "..."}. With an `Inference`, the declared
-# outputs are written as they are (`text.scp`) and `copy` adds the reference,
-# so this stays unset.
+# Only for a model that is not an `Inference`: a recipe function converting
+# raw model outputs into dicts such as {"utt_id": "...", "hyp": "..."}. With an
+# `Inference` there is nothing to declare here - what it outputs is in the
+# class (`text` for ASR), the runner writes it as it is (`text.scp`), and
+# `copy` above adds dataset columns such as the reference. Setting this
+# together with an `Inference` is an error, not ignored.
 #
 # Each output field must be a single value.
 # - Primitive values (`str`, `int`, `float`, `bool`) are written directly to SCP.
