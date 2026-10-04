@@ -136,9 +136,9 @@ batch_size: 4
 
 # Only for a model that is not an `Inference`, or for a column the contract
 # does not produce: a recipe function converting raw model outputs into dicts
-# such as {"utt_id": "...", "hyp": "..."}. With an `Inference` and the
-# APIRunner below, the declared outputs are written as they are (`text.scp`)
-# and `copy` adds the reference, so this stays unset.
+# such as {"utt_id": "...", "hyp": "..."}. With an `Inference`, the declared
+# outputs are written as they are (`text.scp`) and `copy` adds the reference,
+# so this stays unset.
 #
 # Each output field must be a single value.
 # - Primitive values (`str`, `int`, `float`, `bool`) are written directly to SCP.
@@ -184,10 +184,11 @@ batch_size: 4
 ##########################################################
 #               PROVIDER AND RUNNER SETTING              #
 ##########################################################
-# The provider builds `model` on the device it picks. APIRunner runs an
-# `Inference` over the dataset shards and writes what it declares; use
-# InferenceRunner (with `input_key` and `output_fn`) for a model that is not one.
+# The provider builds `model` on the device it picks; the runner runs it
+# over the dataset shards. For an `Inference` the runner writes what the
+# declaration says; for any other model it needs `input_key` (and an
+# `output_fn` to shape the result).
 provider:
   _target_: espnet3.systems.base.inference_provider.InferenceProvider
 runner:
-  _target_: espnet3.systems.base.api_runner.APIRunner
+  _target_: espnet3.systems.base.inference_runner.InferenceRunner

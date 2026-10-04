@@ -40,8 +40,7 @@ from typing import Any, ClassVar, Optional
 import humanfriendly
 from hydra.utils import get_class
 
-from espnet3.api.inference import InferenceAPI, locate_pack
-from espnet3.publication.inference_model import load_backend
+from espnet3.api.inference import InferenceAPI, load_model, locate_pack
 
 
 def parse_rate(value: Any) -> int:
@@ -144,10 +143,10 @@ class BackendInference(InferenceAPI):
         """
         if kwargs:
             raise TypeError(f"unexpected arguments {sorted(kwargs)}")
-        built = load_backend(locate_pack(tag_or_dir), device=device)
+        built = load_model(locate_pack(tag_or_dir), device=device)
         if isinstance(built, InferenceAPI):
             # the bundle's inference.yaml names the Inference itself, as a
-            # recipe on the APIRunner does: it is the model, not a backend
+            # recipe names its Inference as the model: it is the model, not a backend
             if not isinstance(built, cls):
                 raise TypeError(
                     f"the bundle builds {type(built).__name__}, not {cls.__name__}"

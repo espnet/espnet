@@ -427,12 +427,9 @@ def _build_readme_context(
     results_section = _build_results_table(results_path)
     hf_repo = getattr(getattr(publication_config, "upload_model", None), "hf_repo", "")
     usage_load_call = (
-        f'model = InferenceModel.from_pretrained("{hf_repo}", trust_user_code=True)'
+        f'model = load("{hf_repo}")'
         if hf_repo
-        else (
-            "model = InferenceModel.from_packed("
-            '"/path/to/packed_model", trust_user_code=True)'
-        )
+        else 'model = load("/path/to/packed_model")'
     )
     model_summary_section = ""
     model_detail_section = ""
@@ -507,9 +504,9 @@ def _write_meta(
     """Write meta.yaml into the bundle output directory.
 
     Called at the end of ``pack_model`` to record all bundled artifact paths
-    and environment versions. ``InferenceModel.from_packed`` reads this file
-    to locate the inference config, and ``espnet3.api.inference.load`` reads
-    ``system`` to find the ``Inference`` class that serves the bundle.
+    and environment versions. ``espnet3.api.inference.load`` reads this file
+    to locate the inference config and the ``system`` whose ``Inference``
+    class serves the bundle.
 
     """
     from espnet3.publication.schema import PACK_SCHEMA_VERSION

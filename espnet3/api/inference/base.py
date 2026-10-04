@@ -105,7 +105,7 @@ class InferenceAPI(ABC):
 
                 @classmethod
                 def from_pretrained(cls, tag_or_dir, *, device="cpu", **kwargs):
-                    return cls(load_backend(locate_pack(tag_or_dir), device=device))
+                    return cls(load_model(locate_pack(tag_or_dir), device=device))
 
                 @property
                 def sample_rate(self):

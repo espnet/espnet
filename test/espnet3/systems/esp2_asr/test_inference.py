@@ -77,12 +77,12 @@ def test_from_pretrained_takes_a_directory_or_a_tag(tmp_path, monkeypatch):
         calls.append(("locate", str(tag_or_dir)))
         return tmp_path
 
-    def load_backend(pack_dir, *, device=None):
+    def load_model(pack_dir, *, device=None):
         calls.append(("build", str(pack_dir), device))
         return backend
 
     monkeypatch.setattr(base, "locate_pack", locate_pack)
-    monkeypatch.setattr(base, "load_backend", load_backend)
+    monkeypatch.setattr(base, "load_model", load_model)
 
     assert Inference.from_pretrained(tmp_path, device="cpu").backend is backend
     assert Inference.from_pretrained("org/model", device="cuda:0").backend is backend
@@ -135,13 +135,15 @@ def test_the_infer_stage_runner_calls_it_as_it_is():
     dataset = {
         i: {"speech": np.zeros(160, dtype=np.float32), "text": "ref"} for i in range(3)
     }
-    assert InferenceRunner.forward(
-        0, dataset=dataset, model=model, input_key="speech"
-    ) == {"text": "hello world"}
-    batched = InferenceRunner.forward(
-        [1, 2], dataset=dataset, model=model, input_key="speech"
-    )
-    assert batched == [{"text": "utt0"}, {"text": "utt1"}]  # one batch_decode
+    assert InferenceRunner.forward(0, dataset=dataset, model=model) == {
+        "utt_id": "0",
+        "text": "hello world",
+    }
+    batched = InferenceRunner.forward([1, 2], dataset=dataset, model=model)
+    assert batched == [  # one batch_decode, ids from the index
+        {"utt_id": "1", "text": "utt0"},
+        {"utt_id": "2", "text": "utt1"},
+    ]
 
 
 def test_the_infer_stage_provider_builds_it_from_inference_yaml(monkeypatch):
@@ -182,7 +184,7 @@ def test_from_pretrained_returns_the_bundles_own_inference(tmp_path, monkeypatch
 
     monkeypatch.setattr(base, "locate_pack", lambda t: tmp_path)
     ready = Inference(FakeSpeech2Text())
-    monkeypatch.setattr(base, "load_backend", lambda p, *, device=None: ready)
+    monkeypatch.setattr(base, "load_model", lambda p, *, device=None: ready)
     assert Inference.from_pretrained(tmp_path) is ready
 
     from espnet3.api.inference import Field
@@ -195,6 +197,6 @@ def test_from_pretrained_returns_the_bundles_own_inference(tmp_path, monkeypatch
         def run(self, text):
             return {}
 
-    monkeypatch.setattr(base, "load_backend", lambda p, *, device=None: Other(object()))
+    monkeypatch.setattr(base, "load_model", lambda p, *, device=None: Other(object()))
     with pytest.raises(TypeError, match="builds Other, not Inference"):
         Inference.from_pretrained(tmp_path)

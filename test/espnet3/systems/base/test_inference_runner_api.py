@@ -1,4 +1,4 @@
-"""APIRunner: the infer stage driven by an Inference's declaration."""
+"""InferenceRunner with an Inference: the infer stage driven by the declaration."""
 
 from __future__ import annotations
 
@@ -9,12 +9,11 @@ import pytest
 from omegaconf import OmegaConf
 
 from espnet3.api.inference import Audio, Field, InferenceAPI
-from espnet3.systems.base.api_runner import (
-    APIRunner,
-    declared_input_names,
-)
+from espnet3.systems.base.inference_runner import InferenceRunner, declared_input_names
 from espnet3.systems.base.inference import infer
 from espnet3.systems.base.inference_provider import InferenceProvider
+
+RUNNER = "espnet3.systems.base.inference_runner.InferenceRunner"
 
 
 class Echo(InferenceAPI):
@@ -78,7 +77,7 @@ def test_declared_input_names_reads_the_class_without_building_it():
 
 def test_forward_one_item_adds_the_id_and_copied_columns():
     data = _items()
-    out = APIRunner.forward(1, dataset=data, model=Echo(), copy={"text": "ref"})
+    out = InferenceRunner.forward(1, dataset=data, model=Echo(), copy={"text": "ref"})
     assert list(out) == ["utt_id", "text", "echo", "segments", "ref"]
     assert out["utt_id"] == "utt1" and out["text"] == "200" and out["ref"] == "ref1"
     assert isinstance(out["echo"], Audio)
@@ -86,43 +85,47 @@ def test_forward_one_item_adds_the_id_and_copied_columns():
 
 def test_forward_a_batch_goes_through_the_model_batch():
     data = _items()
-    out = APIRunner.forward([0, 2], dataset=data, model=Echo())
+    out = InferenceRunner.forward([0, 2], dataset=data, model=Echo())
     assert [o["utt_id"] for o in out] == ["utt0", "utt2"]
     assert [o["text"] for o in out] == ["100", "300"]
 
 
 def test_forward_optional_inputs_and_the_index_as_id():
     data = [{"speech": np.zeros(8, dtype=np.float32), "prompt": "!"}]
-    assert APIRunner.forward(0, dataset=data, model=Echo())["text"] == "8!"
-    assert APIRunner.forward(0, dataset=data, model=Echo())["utt_id"] == "0"
+    assert InferenceRunner.forward(0, dataset=data, model=Echo())["text"] == "8!"
+    assert InferenceRunner.forward(0, dataset=data, model=Echo())["utt_id"] == "0"
 
 
 def test_forward_says_what_is_missing_or_wrong():
     with pytest.raises(KeyError, match="has no 'speech', which Echo needs"):
-        APIRunner.forward(0, dataset=[{"utt_id": "a"}], model=Echo())
+        InferenceRunner.forward(0, dataset=[{"utt_id": "a"}], model=Echo())
     with pytest.raises(KeyError, match="has no 'text' to write as 'ref'"):
-        APIRunner.forward(
+        InferenceRunner.forward(
             0, dataset=[{"speech": np.zeros(8)}], model=Echo(), copy={"text": "ref"}
         )
-    with pytest.raises(TypeError, match="runs an Inference, not function"):
-        APIRunner.forward(0, dataset=_items(), model=lambda speech: {"text": ""})
+    with pytest.raises(RuntimeError, match="input_key must be provided"):
+        InferenceRunner.forward(0, dataset=_items(), model=lambda speech: {"text": ""})
     with pytest.raises(TypeError, match="no call-time arguments"):
-        APIRunner.forward(
+        InferenceRunner.forward(
             0, dataset=_items(), model=Echo(), model_kwargs={"beam_size": 3}
         )
     with pytest.raises(TypeError, match="applies no output_fn"):
-        APIRunner.forward(0, dataset=_items(), model=Echo(), output_fn_path="src.x.f")
+        InferenceRunner.forward(
+            0, dataset=_items(), model=Echo(), output_fn_path="src.x.f"
+        )
     with pytest.raises(KeyError, match="'text' is already an output"):
-        APIRunner.forward(0, dataset=_items(), model=Echo(), copy={"text": "text"})
+        InferenceRunner.forward(
+            0, dataset=_items(), model=Echo(), copy={"text": "text"}
+        )
 
 
 def test_write_record_writes_audio_as_wav_and_lists_as_json(tmp_path):
-    writers = APIRunner.open_writers(tmp_path)
-    result = APIRunner.forward(
+    writers = InferenceRunner.open_writers(tmp_path)
+    result = InferenceRunner.forward(
         [0, 1], dataset=_items(), model=Echo(), copy={"text": "ref"}
     )
-    APIRunner.write_record(writers, result, {}, idx_key="utt_id")
-    APIRunner.close_writers(writers, {})
+    InferenceRunner.write_record(writers, result, {}, idx_key="utt_id")
+    InferenceRunner.close_writers(writers, {})
     assert (tmp_path / "text.scp").read_text() == "utt0 100\nutt1 200\n"
     assert (tmp_path / "ref.scp").read_text() == "utt0 ref0\nutt1 ref1\n"
     echo = (tmp_path / "echo.scp").read_text().splitlines()
@@ -147,11 +150,11 @@ def test_write_record_writes_multichannel_audio_channels_last(tmp_path):
             return {"text": str(speech.channels), "echo": speech}
 
     data = [{"utt_id": "s", "speech": np.zeros((2, 100), dtype=np.float32)}]
-    writers = APIRunner.open_writers(tmp_path)
-    APIRunner.write_record(
-        writers, APIRunner.forward(0, dataset=data, model=Stereo()), {}
+    writers = InferenceRunner.open_writers(tmp_path)
+    InferenceRunner.write_record(
+        writers, InferenceRunner.forward(0, dataset=data, model=Stereo()), {}
     )
-    APIRunner.close_writers(writers, {})
+    InferenceRunner.close_writers(writers, {})
     path = (tmp_path / "echo.scp").read_text().split(" ", 1)[1].strip()
     array, rate = soundfile.read(path)
     assert array.shape == (100, 2) and rate == 8000
@@ -167,7 +170,7 @@ def test_infer_runs_end_to_end_from_the_declaration(tmp_path):
             "copy": {"text": "ref"},
             "batch_size": 2,
             "provider": {"_target_": f"{__name__}.EchoProvider"},
-            "runner": {"_target_": "espnet3.systems.base.api_runner.APIRunner"},
+            "runner": {"_target_": RUNNER},
             "parallel": {"env": "local", "n_workers": 1},
         }
     )
@@ -190,7 +193,7 @@ def test_infer_still_wants_input_key_for_a_bare_model(tmp_path):
             "dataset": {"test": [{"name": "test"}], "size": 1},
             "model": {"_target_": "builtins.object"},
             "provider": {"_target_": f"{__name__}.EchoProvider"},
-            "runner": {"_target_": "espnet3.systems.base.api_runner.APIRunner"},
+            "runner": {"_target_": RUNNER},
             "parallel": {"env": "local", "n_workers": 1},
         }
     )

@@ -577,7 +577,9 @@ def test_load_finds_the_system_named_in_meta(tmp_path, monkeypatch):
 
 def test_load_needs_a_system_name_from_somewhere(tmp_path, monkeypatch):
     _install_fake_system(monkeypatch, "echo", Echo)
-    with pytest.raises(ValueError, match="does not name its system"):
+    with pytest.raises(
+        ValueError, match="does not name its system, and the bundle builds no model"
+    ):
         load(_pack(tmp_path, None))
     assert isinstance(load(_pack(tmp_path, None), system="echo"), Echo)
 

@@ -536,7 +536,7 @@ def test_pack_model_excludes_inference_dir_and_copies_metrics_json(tmp_path):
     assert "| dataset | WER |" in readme
     assert "| test | 5.0 |" in readme
     assert "Metrics were not bundled." not in readme
-    assert 'from_pretrained("espnet/test-repo", trust_user_code=True)' in readme
+    assert 'model = load("espnet/test-repo")' in readme
 
 
 def test_pack_model_excludes_recursive_log_and_tensorboard_patterns(tmp_path):
@@ -657,10 +657,7 @@ def test_pack_model_writes_readme_with_full_context(tmp_path):
     assert "language: en" in readme
     assert "license: apache-2.0" in readme
     assert "My model." in readme
-    assert (
-        'model = InferenceModel.from_packed("/path/to/packed_model", '
-        "trust_user_code=True)" in readme
-    )
+    assert 'model = load("/path/to/packed_model")' in readme
 
 
 def test_pack_model_drops_readme_lines_for_missing_context(

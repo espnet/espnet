@@ -29,7 +29,7 @@ def test_an_espnet3_pack_says_which_loader_to_use(monkeypatch, key):
     with pytest.raises(RuntimeError) as e:
         download_pretrained("espnet/some_espnet3_model")
     assert "espnet3" in str(e.value)
-    assert "InferenceModel.from_pretrained" in str(e.value)
+    assert "espnet3.api.inference.load" in str(e.value)
 
 
 def test_a_missing_model_zoo_is_named(monkeypatch, caplog):

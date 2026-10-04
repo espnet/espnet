@@ -8,8 +8,10 @@ from hydra.utils import instantiate
 from omegaconf import DictConfig, OmegaConf
 
 from espnet3.parallel.parallel import set_parallel
-from espnet3.systems.base.api_runner import declared_input_names
-from espnet3.systems.base.inference_runner import _load_output_fn
+from espnet3.systems.base.inference_runner import (
+    _load_output_fn,
+    declared_input_names,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -83,10 +85,9 @@ def infer(config: DictConfig):
 
     When ``model`` names an :class:`espnet3.api.inference.InferenceAPI`
     subclass, ``input_key`` may be omitted - the declared inputs are used -
-    and with :class:`espnet3.systems.base.api_runner.APIRunner` as the
-    runner, no ``output_fn`` is needed either: the declared outputs are
-    written by what they are, and ``copy: {text: ref}`` writes a dataset
-    column beside them.
+    and no ``output_fn`` is needed: the runner writes the declared outputs
+    by what they are, and ``copy: {text: ref}`` writes a dataset column
+    beside them.
 
     Args:
         config: Hydra/OmegaConf configuration containing the dataset,

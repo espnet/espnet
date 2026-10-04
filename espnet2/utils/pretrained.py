@@ -37,9 +37,7 @@ def download_pretrained(model_tag: str) -> Dict:
     if "inference_config" in kwargs or "training_config" in kwargs:
         raise RuntimeError(
             f"{model_tag} was published with espnet3's pack_model; load it with "
-            "espnet3.publication.inference_model.InferenceModel.from_pretrained("
-            f"{model_tag!r}) instead (trust_user_code=True if the bundle ships "
-            "its own code)."
+            f"espnet3.api.inference.load({model_tag!r}) instead."
         )
     return kwargs
 
