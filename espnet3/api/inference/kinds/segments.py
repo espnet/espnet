@@ -48,3 +48,7 @@ class SegmentsKind(Kind):
                 "with text, start and end"
             )
         return value
+
+    def join(self, first, second):
+        """Append the segments."""
+        return first + second

@@ -460,6 +460,9 @@ def test_a_new_kind_is_one_registered_subclass(monkeypatch):
                 raise TypeError(f"{field.name} must be a list of turns")
             return value
 
+        def join(self, first, second):
+            return first + second
+
     monkeypatch.delitem(KINDS, "messages", raising=False)
     register_kind("messages", Turns())
     with pytest.raises(ValueError, match="already registered"):
@@ -487,10 +490,20 @@ def test_a_new_kind_is_one_registered_subclass(monkeypatch):
     assert Chat()(turns)["messages"][-1] == ("assistant", "text", "hi")
     with pytest.raises(TypeError, match="list of turns"):
         Chat()("hello")
-    # gather joins through the kind: the default join is +
+    # gather joins through the kind's own join
     assert gather(Chat.inputs, [{"messages": turns}, {"messages": turns}])[
         "messages"
     ] == (turns * 2)
+
+    class Opaque(Kind):  # says how to check, not how to join: cannot be streamed
+        def check(self, value, field, model, *, output):
+            return value
+
+    monkeypatch.setitem(KINDS, "opaque", Opaque())
+    fields = (Field("blob", "opaque"),)
+    assert gather(fields, [{"blob": 1}]) == {"blob": 1}  # one piece needs no join
+    with pytest.raises(NotImplementedError, match="does not say how two pieces join"):
+        gather(fields, [{"blob": 1}, {"blob": 2}])
 
 
 # --- batches ---------------------------------------------------------------

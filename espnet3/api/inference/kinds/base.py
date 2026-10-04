@@ -50,8 +50,27 @@ class Kind(ABC):
         """
 
     def join(self, first: Any, second: Any) -> Any:
-        """Join two consecutive pieces of one field; the default is ``+``."""
-        return first + second
+        """Join two consecutive pieces of one field, for :func:`gather`.
+
+        Each kind says how its pieces join - text appends, audio
+        concatenates in time - and a kind that does not say cannot be
+        streamed: there is no default, since ``+`` on two arrays would
+        silently add them.
+
+        Args:
+            first: The piece gathered so far.
+            second: The piece that follows it.
+
+        Returns:
+            The two as one piece.
+
+        Raises:
+            NotImplementedError: Always, unless the kind overrides it.
+        """
+        raise NotImplementedError(
+            f"{type(self).__name__} does not say how two pieces join; "
+            "override join() to stream this kind"
+        )
 
     def is_batch(self, value: Any, field: Field, model: "InferenceAPI") -> bool:
         """Tell one entry per sample from one value of this kind.

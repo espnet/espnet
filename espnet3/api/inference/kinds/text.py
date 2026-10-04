@@ -36,3 +36,7 @@ class TextKind(Kind):
                 f"{field.name!r} {where} as {type(value).__name__}, must be str"
             )
         return value
+
+    def join(self, first, second):
+        """Append the text."""
+        return first + second
