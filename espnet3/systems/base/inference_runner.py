@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import os
 from collections.abc import Mapping
 from functools import lru_cache
 from importlib import import_module
@@ -102,27 +103,11 @@ def _declared_fields(model: InferenceAPI, data: Mapping[str, Any]) -> Dict[str, 
 
 
 def _record(
-    output: Mapping[str, Any],
-    data: Mapping[str, Any],
-    idx: Any,
-    idx_key: str,
-    copy: Optional[Mapping[str, str]],
+    output: Mapping[str, Any], data: Mapping[str, Any], idx: Any, idx_key: str
 ) -> Dict[str, Any]:
-    """One result as the writers take it: id first, outputs, copied columns."""
+    """One result as the writers take it: the id first, then the outputs."""
     record: Dict[str, Any] = {idx_key: data.get(idx_key, str(idx))}
     record.update(output)
-    for source, target in (copy or {}).items():
-        if target in record:
-            raise KeyError(
-                f"copy: {target!r} is already an output (or the id); "
-                "a copied column cannot replace one"
-            )
-        if source not in data:
-            raise KeyError(
-                f"copy: dataset item {record[idx_key]!r} has no {source!r} "
-                f"to write as {target!r}"
-            )
-        record[target] = data[source]
     return record
 
 
@@ -152,7 +137,6 @@ def _forward_inference(
     model: InferenceAPI,
     *,
     idx_key: str,
-    copy: Optional[Mapping[str, str]],
     model_kwargs: Mapping[str, Any],
     output_fn: Any,
 ):
@@ -161,9 +145,11 @@ def _forward_inference(
     The declared inputs are picked out of each item (optional ones when
     present), the model is called through its own entry points -
     ``model(**fields)`` for one item, ``model.batch(items)`` for a batch -
-    the sample id comes from the item (``idx_key``, else the index) and
-    ``copy`` adds dataset columns. A configured ``output_fn`` is refused
-    rather than ignored: the declaration fixes the outputs.
+    and the sample id comes from the item (``idx_key``, else the index).
+    Only what the model produced is written; a reference for scoring is
+    read from the data by ``measure`` (``ref_key: dataset:text``). A
+    configured ``output_fn`` is refused rather than ignored: the
+    declaration fixes the outputs.
     """
     if model_kwargs:
         raise TypeError(
@@ -173,7 +159,8 @@ def _forward_inference(
     if output_fn:
         raise TypeError(
             "an Inference writes its declared outputs and applies no output_fn; "
-            "drop output_fn, or use `copy` for a dataset column"
+            "drop output_fn (a reference for scoring is read by measure with "
+            "`ref_key: dataset:<column>`)"
         )
     batched = isinstance(idx, (list, tuple))
     indices = list(idx) if batched else [idx]
@@ -181,10 +168,25 @@ def _forward_inference(
     fields = [_declared_fields(model, data) for data in items]
     outputs = model.batch(fields) if batched else [model(**fields[0])]
     records = [
-        _record(out, data, i, idx_key, copy)
+        _record(out, data, i, idx_key)
         for out, data, i in zip(outputs, items, indices, strict=True)
     ]
     return records if batched else records[0]
+
+
+def _artifact_name(idx_value) -> str:
+    """Return the file name an utterance id gives its artifacts.
+
+    An id that is a path (``../x``, ``a/b``) or nothing would write outside
+    the shard directory or on top of it, so it is refused.
+    """
+    name = str(idx_value)
+    if not name or name in (".", "..") or "/" in name or os.sep in name or "\\" in name:
+        raise ValueError(
+            f"utterance id {name!r} cannot name an artifact file; it must be a "
+            "plain name with no path separators"
+        )
+    return name
 
 
 def _materialize_output_value(
@@ -196,6 +198,7 @@ def _materialize_output_value(
 ):
     if isinstance(value, (str, int, float, bool)):
         return value
+    idx_value = _artifact_name(idx_value)
 
     if isinstance(value, np.generic):
         return value.item()
@@ -390,7 +393,6 @@ class InferenceRunner(BaseRunner):
                 dataset,
                 model,
                 idx_key=kwargs.get("idx_key") or "utt_id",
-                copy=kwargs.get("copy"),
                 model_kwargs=model_kwargs,
                 output_fn=kwargs.get("output_fn") or kwargs.get("output_fn_path"),
             )

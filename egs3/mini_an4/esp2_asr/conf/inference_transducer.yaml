@@ -52,6 +52,3 @@ model:
   asr_model_file: ${exp_dir}/last.ckpt
   beam_size: 1
   return_decoded_hyp: true
-
-copy:
-  text: ref

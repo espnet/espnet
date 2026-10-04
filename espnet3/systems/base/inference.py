@@ -86,8 +86,8 @@ def infer(config: DictConfig):
     When ``model`` names an :class:`espnet3.api.inference.InferenceAPI`
     subclass, ``input_key`` may be omitted - the declared inputs are used -
     and no ``output_fn`` is needed: the runner writes the declared outputs
-    by what they are, and ``copy: {text: ref}`` writes a dataset column
-    beside them.
+    by what they are. A reference for scoring is not written here at all;
+    ``measure`` reads it from the data (``ref_key: dataset:text``).
 
     Args:
         config: Hydra/OmegaConf configuration containing the dataset,
@@ -161,14 +161,6 @@ def infer(config: DictConfig):
         provider_params["output_keys"] = output_keys
         if output_fn_path:
             provider_params["output_fn_path"] = output_fn_path
-        # config.get, not getattr: a DictConfig has a copy() method
-        copy = config.get("copy", None)
-        if copy:
-            provider_params["copy"] = (
-                OmegaConf.to_container(copy, resolve=True)
-                if OmegaConf.is_config(copy)
-                else dict(copy)
-            )
         artifact_configs = getattr(config, "output_artifacts", {}) or {}
         if OmegaConf.is_config(artifact_configs):
             artifact_configs = OmegaConf.to_container(artifact_configs, resolve=True)

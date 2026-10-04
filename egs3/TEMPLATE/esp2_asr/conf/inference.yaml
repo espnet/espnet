@@ -91,13 +91,10 @@ model:
   # asr_model_file: ${exp_dir}/valid.acc.ave.pth
   # beam_size: 10
 
-# Dataset columns written beside the outputs, source -> file name. The
-# reference for scoring is the usual one: the dataset's `text` column (the
-# transcript) is written as `ref.scp`, while the model's `text` output (the
-# hypothesis) is written as `text.scp` - same word, two files - and `measure`
-# reads them with `ref_key: ref` and `hyp_key: text`.
-copy:
-  text: ref
+# Nothing but the model's outputs is written here: `text.scp` is what the
+# model said. The reference for scoring is the dataset's `text` column, and
+# `measure` reads it from the data (`ref_key: dataset:text` in metrics.yaml),
+# so it is not copied by this stage.
 
 # Only for a model that is not an `Inference`: the dataset field(s) passed to
 # it. If `dataset[i]` returns `{"speech": ..., "text": ..., "utt_id": ...}` and
@@ -141,9 +138,8 @@ batch_size: 4
 # Only for a model that is not an `Inference`: a recipe function converting
 # raw model outputs into dicts such as {"utt_id": "...", "hyp": "..."}. With an
 # `Inference` there is nothing to declare here - what it outputs is in the
-# class (`text` for ASR), the runner writes it as it is (`text.scp`), and
-# `copy` above adds dataset columns such as the reference. Setting this
-# together with an `Inference` is an error, not ignored.
+# class (`text` for ASR) and the runner writes it as it is (`text.scp`).
+# Setting this together with an `Inference` is an error, not ignored.
 #
 # Each output field must be a single value.
 # - Primitive values (`str`, `int`, `float`, `bool`) are written directly to SCP.

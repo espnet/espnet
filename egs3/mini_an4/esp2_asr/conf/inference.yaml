@@ -52,7 +52,5 @@ model:
   beam_size: 1
   ctc_weight: 0.3
 
-copy:
-  text: ref
 # utterances per beam search; `null` decodes one at a time (see TEMPLATE)
 batch_size: 4
