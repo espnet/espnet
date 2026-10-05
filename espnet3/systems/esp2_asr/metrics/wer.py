@@ -11,6 +11,7 @@ except ImportError:
     jiwer = None
 
 from espnet2.text.cleaner import TextCleaner
+from espnet3.components.contract import Field
 from espnet3.components.metrics.base_metric import BaseMetric
 
 
@@ -20,6 +21,9 @@ class WER(BaseMetric):
     This metric expects hypothesis and reference strings and produces a
     percentage score along with alignment visualization output.
     """
+
+    inputs = (Field("ref", "text"), Field("hyp", "text"))
+    outputs = (Field("WER", "number"),)
 
     def __init__(
         self,
@@ -37,6 +41,10 @@ class WER(BaseMetric):
         self.cleaner = TextCleaner(clean_types)
         self.ref_key = ref_key
         self.hyp_key = hyp_key
+
+    def input_fields(self):
+        """Return the declared inputs, renamed to this instance's ref_key/hyp_key."""
+        return (Field(self.ref_key, "text"), Field(self.hyp_key, "text"))
 
     def _clean(self, text: str) -> str:
         """Clean text and provide a placeholder for empty strings.

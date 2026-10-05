@@ -5,6 +5,7 @@ import sentencepiece as spm
 
 import espnet3.systems.esp2_asr.metrics.cer as cer_module
 import espnet3.systems.esp2_asr.metrics.wer as wer_module
+from espnet3.components.contract import Field
 from espnet3.systems.esp2_asr.metrics.cer import CER
 from espnet3.systems.esp2_asr.metrics.ter import TER
 from espnet3.systems.esp2_asr.metrics.wer import WER
@@ -141,3 +142,43 @@ def test_ter_requires_jiwer(tmp_path: Path, tiny_bpemodel: str, monkeypatch):
     data = _build_inputs(tmp_path, ["utt1 hello"], ["utt1 hello"])
     with pytest.raises(RuntimeError, match=r"espnet\[asr\]"):
         metric(data, "test-clean", tmp_path)
+
+
+# ---------------------------------------------------------------------------
+# declared inputs/outputs
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "cls, kwargs, output_name",
+    [
+        (WER, {}, "WER"),
+        (CER, {}, "CER"),
+    ],
+)
+def test_declares_text_inputs_and_number_output(cls, kwargs, output_name):
+    assert cls.inputs == (Field("ref", "text"), Field("hyp", "text"))
+    assert cls.outputs[0].name == output_name
+    assert cls.outputs[0].kind == "number"
+
+
+def test_ter_declares_text_inputs_and_number_output():
+    assert TER.outputs[0].name == "TER"
+    assert TER.outputs[0].kind == "number"
+    assert [f.kind for f in TER.inputs] == ["text", "text"]
+
+
+def test_wer_input_fields_follows_renamed_keys():
+    metric = WER(ref_key="transcript", hyp_key="prediction")
+    assert [f.name for f in metric.input_fields()] == ["transcript", "prediction"]
+    assert [f.kind for f in metric.input_fields()] == ["text", "text"]
+
+
+def test_cer_input_fields_follows_renamed_keys():
+    metric = CER(ref_key="transcript", hyp_key="prediction")
+    assert [f.name for f in metric.input_fields()] == ["transcript", "prediction"]
+
+
+def test_ter_input_fields_follows_renamed_keys(tiny_bpemodel: str):
+    metric = TER(bpemodel=tiny_bpemodel, ref_key="transcript", hyp_key="prediction")
+    assert [f.name for f in metric.input_fields()] == ["transcript", "prediction"]
