@@ -6,7 +6,8 @@ conversation, a multichannel signal, video, a JSON document - is a
 or from a recipe's own ``src/``; :class:`~espnet3.api.inference.base.InferenceAPI`
 needs no change for it::
 
-    from espnet3.api.inference import InferenceAPI, Kind, Field, register_kind
+    from espnet3.api.inference import InferenceAPI
+    from espnet3.components.contract import Field, Kind, register_kind
 
     class Messages(Kind):
         def check(self, value, field, model, *, output):

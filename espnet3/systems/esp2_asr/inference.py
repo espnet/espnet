@@ -36,7 +36,7 @@ from __future__ import annotations
 
 from typing import Any, Mapping, Sequence
 
-from espnet3.api.inference import Audio, Field
+from espnet3.components.contract import Audio, Field
 from espnet3.systems.base.backend_inference import BackendInference, parse_rate
 
 # espnet2.asr.frontend.default.DefaultFrontend(fs=16000): what an ESPnet2

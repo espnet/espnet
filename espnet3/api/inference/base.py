@@ -6,9 +6,9 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any, ClassVar, Iterable, Iterator, Mapping, Optional, Sequence
 
-from espnet3.api.inference.field import Field
-from espnet3.api.inference.kinds import KINDS
 from espnet3.components.contract.check import check_declaration
+from espnet3.components.contract.field import Field
+from espnet3.components.contract.kinds import KINDS
 
 
 def check_contract(cls: type) -> None:

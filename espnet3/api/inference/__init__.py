@@ -91,8 +91,9 @@ resume and writers. The contract and that pair divide the work like this:
 from __future__ import annotations
 
 from espnet3.api.inference.base import InferenceAPI, check_contract, gather
-from espnet3.api.inference.field import Field
-from espnet3.api.inference.kinds import (
+from espnet3.api.inference.loading import SYSTEM_ALIASES, load, locate_pack
+from espnet3.components.contract.field import Field
+from espnet3.components.contract.kinds import (
     KINDS,
     Audio,
     AudioKind,
@@ -101,7 +102,6 @@ from espnet3.api.inference.kinds import (
     TextKind,
     register_kind,
 )
-from espnet3.api.inference.loading import SYSTEM_ALIASES, load, locate_pack
 
 __all__ = [
     "KINDS",
