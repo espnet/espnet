@@ -776,6 +776,34 @@ def test_collect_stats_raises_without_stats_dir(
         model.collect_stats()
 
 
+def test_collect_stats_forwards_write_collected_feats(
+    tmp_path, dummy_model, dummy_dataset_config, monkeypatch
+):
+    written = []
+
+    def fake_collect_stats(**kwargs):
+        written.append(kwargs["write_collected_feats"])
+
+    monkeypatch.setattr(
+        "espnet3.components.modeling.lightning_module.collect_stats",
+        fake_collect_stats,
+    )
+    base_config = {
+        "exp_dir": str(tmp_path / "exp"),
+        "stats_dir": str(tmp_path / "stats"),
+        "model": {},
+        "dataset": dummy_dataset_config,
+        "dataloader": make_standard_dataloader_config(),
+        "num_device": 1,
+    }
+    for extra in ({"write_collected_feats": True}, {}):
+        config = OmegaConf.create({**base_config, **extra})
+        ESPnetLightningModule(dummy_model, config).collect_stats()
+
+    # One call each for train and valid; the flag is false unless set.
+    assert written == [True, True, False, False]
+
+
 def test_configure_optimizers_single_path_happy(
     tmp_path, dummy_model, dummy_dataset_config
 ):

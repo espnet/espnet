@@ -167,6 +167,12 @@ tts = [
   "jaconv",
 ]
 
+# Singing voice synthesis (espnet2/svs, espnet2/gan_svs, egs3/*/esp2_svs).
+svs = [
+  "pyworld>=0.3.4",  # pitch extraction (espnet2/tts/feats_extract/dio.py)
+  "pyarrow",  # reads the Hub's parquet shards in egs3/acesinger/esp2_svs
+]
+
 enh = [
   "ci_sdr",
   "fast-bss-eval==0.1.3",
@@ -324,6 +330,7 @@ all = [
   "espnet[asr]",
   "espnet[asr2]",
   "espnet[tts]",
+  "espnet[svs]",
   "espnet[enh]",
   "espnet[rst]",
   "espnet[st]",

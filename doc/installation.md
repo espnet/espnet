@@ -232,6 +232,7 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
         | `asr`      | ASR-specific dependencies     |
         | `asr2`     | ASR2-specific dependencies    |
         | `tts`      | TTS-specific dependencies     |
+        | `svs`      | Singing voice synthesis       |
         | `enh`      | Speech enhancement            |
         | `st`       | Speech Translation            |
         | `s2t`      | Speech to Text (e.g., OWSM)   |

@@ -1,0 +1,37 @@
+##########################################################
+#           ACE-OPENCPOP VISINGER2 METRIC SETTING        #
+##########################################################
+# Merged over egs3/TEMPLATE/esp2_svs/conf/metrics.yaml, so only the values this
+# recipe changes are listed here.
+#
+# Quick usage:
+#   python run.py --stages measure \
+#       --training_config conf/tuning/train_visinger2.yaml \
+#       --inference_config conf/inference.yaml \
+#       --metrics_config conf/metrics.yaml
+
+# [DEVIATION] egs2 also decodes `dev`; here it is the 50-utterance validation
+# set, so only `test` is scored.
+dataset:
+  test:
+    - name: test
+
+# The template's VERSA metrics, scored by 32 processes on the GPUs: the test
+# set has 5,400 utterances and `mcd_f0` takes a few seconds per utterance.
+# [DEVIATION] egs2 stage 8 also reports semitone accuracy and V/UV error from
+# pyscripts/utils/evaluate_{semitone,vuv}.py.
+metrics:
+  - metric:
+      _target_: espnet3.systems.esp2_svs.metrics.versa.VersaMetric
+      score_config:
+        - name: mcd_f0
+          f0min: 40
+          f0max: 800
+          dtw: true
+        - name: pseudo_mos
+          predictor_types: [singmos]
+      nj: 32
+      use_gpu: true
+    inputs:
+      wav: wav
+      ref: ref

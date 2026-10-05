@@ -198,6 +198,8 @@ Music:
           - "test/espnet2/svs/**"
           - "egs2/*/svs1/**"
           - "egs2/*/svs2/**"
+          - "espnet3/systems/esp2_svs/**"
+          - "egs3/*/esp2_svs/**"
 
 # s2t is the OWSM family, which is what the s2t1 recipes train.
 OWSM:

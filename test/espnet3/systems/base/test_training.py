@@ -94,7 +94,10 @@ def test_train_saves_config_and_calls_fit(tmp_path, monkeypatch):
     def fake_save_config(task, cfg_arg, exp_dir):
         calls.setdefault("save", (task, exp_dir))
 
-    monkeypatch.setattr(train_mod, "_build_trainer", lambda _cfg: trainer)
+    def fake_build_trainer(config, module_cls=None):
+        return trainer
+
+    monkeypatch.setattr(train_mod, "_build_trainer", fake_build_trainer)
     monkeypatch.setattr(train_mod, "set_parallel", fake_set_parallel)
     monkeypatch.setattr(train_mod.L, "seed_everything", fake_seed_everything)
     monkeypatch.setattr(
@@ -196,3 +199,34 @@ def test_build_trainer_assembles_components(tmp_path, monkeypatch):
     assert calls["model"] == "dummy_model"
     assert calls["trainer_args"]["model"] == "lit_model"
     assert calls["trainer_args"]["exp_dir"] == str(tmp_path / "exp")
+
+
+def test_train_uses_custom_lightning_module(tmp_path, monkeypatch):
+    cfg = OmegaConf.create(
+        {
+            "exp_dir": str(tmp_path / "exp"),
+            "trainer": {"max_epochs": 1},
+            "best_model_criterion": [],
+            "model": {"_target_": "dummy.Model"},
+        }
+    )
+    seen = {}
+
+    class CustomModule:
+        def __init__(self, model, config):
+            seen["model"] = model
+
+    def fake_instantiate_model(config):
+        return "dummy_model"
+
+    def fake_trainer(*, model, exp_dir, config, best_model_criterion):
+        seen["lit_model"] = model
+        return DummyTrainer()
+
+    monkeypatch.setattr(train_mod, "_instantiate_model", fake_instantiate_model)
+    monkeypatch.setattr(train_mod, "ESPnet3LightningTrainer", fake_trainer)
+
+    train_mod.train(cfg, module_cls=CustomModule)
+
+    assert isinstance(seen["lit_model"], CustomModule)
+    assert seen["model"] == "dummy_model"
