@@ -12,6 +12,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Sequence, Set, Tuple, Union
 
+import gc
+
 import humanfriendly
 import numpy as np
 import torch
@@ -2519,13 +2521,17 @@ class AbsTask(ABC):
             # only when a checkpoint is about to overwrite the parameters;
             # with none, the initialization is all the model will have
             _drop_init_this_version_removed(args)
-        model = cls.build_model(args)
+        if device != "mps":
+            with torch.device(device):
+                model = cls.build_model(args)
+            model.to(device)
+        else:
+            model = cls.build_model(args)
+            
         if not isinstance(model, AbsESPnetModel):
             raise RuntimeError(
                 f"model must inherit {AbsESPnetModel.__name__}, but got {type(model)}"
             )
-        if device != "mps":
-            model.to(device)
 
         # For finetuned model, create adapter
         use_adapter = getattr(args, "use_adapter", False)
@@ -2552,7 +2558,8 @@ class AbsTask(ABC):
                 model.load_state_dict(
                     state_dict,
                     strict=False,
-                )
+                    assign=False
+                )                   
             except UnsafeLoadRefusedError:
                 raise
             except RuntimeError:
@@ -2595,6 +2602,13 @@ class AbsTask(ABC):
                         )
                     else:
                         raise
+            finally:
+                del state_dict
+
+                gc.collect()
+
+                if torch.cuda.is_available():
+                   torch.cuda.empty_cache() 
 
         if device == "mps":
             model.to("mps", dtype=torch.float32)
