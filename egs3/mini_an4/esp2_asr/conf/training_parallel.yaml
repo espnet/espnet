@@ -3,6 +3,9 @@
 # into shards, runs them in separate worker processes and merges the
 # statistics. CI checks the result is training_serial.yaml's
 # (ci/check_espnet3_parallel_workers.py).
+# `defaults` is a CI-only exception: recipe configs do not inherit from one
+# another, but these test configs must run the recipe's own settings and
+# change only what they name.
 defaults:
   - training_serial
   - _self_

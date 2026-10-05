@@ -5,6 +5,9 @@
 # shorter utterance padded in a batch gets different features in its last
 # frames, so the statistics depend on it. CI points conf/training.yaml at a
 # config without random augmentation, so the statistics are deterministic.
+# `defaults` is a CI-only exception: recipe configs do not inherit from one
+# another, but these test configs must run the recipe's own settings and
+# change only what they name.
 defaults:
   - training
   - _self_

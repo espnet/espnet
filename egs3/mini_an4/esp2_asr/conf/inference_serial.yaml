@@ -3,6 +3,9 @@
 # model (ci/test_integration_espnet3.sh). One utterance per batch is what
 # lets mini_an4's two-utterance test set split into two shards at all, and
 # the reference must batch the same way for the results to be comparable.
+# `defaults` is a CI-only exception: recipe configs do not inherit from one
+# another, but these test configs must run the recipe's own settings and
+# change only what they name.
 defaults:
   - inference
   - _self_
