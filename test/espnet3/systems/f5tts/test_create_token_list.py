@@ -31,8 +31,10 @@ from espnet3.systems.f5tts.create_token_list import create_token_list
 # |                                             | cutoff count are dropped.    |
 # | test_create_token_list_warns_on_empty_manifest | A manifest yielding no    |
 # |                                             | tokens logs a warning.       |
-# | test_create_token_list_skips_rows_without_text | Blank and short rows do   |
-# |                                             | not crash either code path.  |
+# | test_create_token_list_skips_blank_lines_and_empty_transcripts | Blank    |
+# |                       | lines and empty transcripts contribute no tokens.  |
+# | test_create_token_list_rejects_a_row_without_a_transcript_column | A row  |
+# |                       | with fewer than three columns raises RuntimeError. |
 # | test_create_token_list_default_manifest_location | Without manifest_path   |
 # |                       | the stage reads data/manifest/train.tsv.           |
 
@@ -189,18 +191,42 @@ def test_create_token_list_warns_on_empty_manifest(tmp_path, caplog):
 
 
 @pytest.mark.parametrize("vocab_builder", [None, "builtins.sorted"])
-def test_create_token_list_skips_rows_without_text(tmp_path, vocab_builder):
-    """Blank lines and rows with fewer than three columns carry no transcript."""
+def test_create_token_list_skips_blank_lines_and_empty_transcripts(
+    tmp_path, vocab_builder
+):
+    """A blank line or an empty transcript column contributes no tokens."""
     manifest = _write_manifest(
         tmp_path,
         "train.tsv",
-        ["u1\t/x.wav\tab\tspk1\n", "\n", "u2\t/y.wav\n", "u3\t/z.wav\tab\n"],
+        [
+            "u1\t/x.wav\tab\tspk1\n",
+            "\n",
+            "u2\t/y.wav\t\tspk1\n",  # transcript column present but empty
+            "u3\t/z.wav\t\n",  # same, without a speaker column
+            "u4\t/w.wav\tab\n",
+        ],
     )
     overrides = {"vocab_builder": vocab_builder} if vocab_builder else {}
     create_token_list(_build_stage_config(tmp_path, manifest, **overrides))
 
     expected = ["ab", "ab"] if vocab_builder else ["a", "b"]
     assert _read_tokens(tmp_path) == expected
+
+
+@pytest.mark.parametrize("vocab_builder", [None, "builtins.sorted"])
+def test_create_token_list_rejects_a_row_without_a_transcript_column(
+    tmp_path, vocab_builder
+):
+    """A row with fewer than three columns is a malformed manifest."""
+    manifest = _write_manifest(
+        tmp_path,
+        "train.tsv",
+        ["u1\t/x.wav\tab\tspk1\n", "\n", "u2\t/y.wav\n"],
+    )
+    overrides = {"vocab_builder": vocab_builder} if vocab_builder else {}
+
+    with pytest.raises(RuntimeError, match=r"train\.tsv:3: expected at least three"):
+        create_token_list(_build_stage_config(tmp_path, manifest, **overrides))
 
 
 def test_create_token_list_default_manifest_location(tmp_path, monkeypatch):

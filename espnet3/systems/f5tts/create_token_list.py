@@ -24,12 +24,22 @@ logger = logging.getLogger(__name__)
 def _iter_transcripts(manifest_path: Union[str, Path]) -> Iterator[str]:
     r"""Yield the transcript of every manifest row that has one.
 
-    Rows are ``utt_id\twav_path\ttext[\tspeaker_id]``. Rows with fewer than
-    three columns or an empty transcript are skipped, the same rows the
-    ``remove_long_short`` stage drops.
+    Rows are ``utt_id\twav_path\ttext[\tspeaker_id]``. Blank lines and rows
+    whose transcript column is empty are skipped. A row without a transcript
+    column at all (fewer than three tab-separated columns) is a malformed
+    manifest and raises ``RuntimeError`` naming the file and line.
     """
     with open(manifest_path, "r", encoding="utf-8") as manifest_file:
-        for line in manifest_file:
+        for line_number, line in enumerate(manifest_file, start=1):
+            if not line.strip():
+                continue
+            num_columns = line.rstrip("\r\n").count("\t") + 1
+            if num_columns < 3:
+                raise RuntimeError(
+                    f"{manifest_path}:{line_number}: expected at least three "
+                    "tab-separated columns (utt_id, wav_path, text), got "
+                    f"{num_columns}."
+                )
             parts = line.rstrip().split("\t")
             if len(parts) > 2 and parts[2].strip():
                 yield parts[2]
@@ -75,7 +85,8 @@ def create_token_list(config: DictConfig) -> None:
 
     Raises:
         RuntimeError: If the ``create_token_list`` block, ``save_path`` or
-            ``filename`` is missing, the manifest does not exist,
+            ``filename`` is missing, the manifest does not exist, a manifest
+            row has fewer than three tab-separated columns,
             ``vocabulary_size`` is smaller than the number of ``add_symbol``
             entries, or a special symbol is not written ``"<symbol>:<index>"``.
 
@@ -112,9 +123,10 @@ def create_token_list(config: DictConfig) -> None:
              '<sos/eos>']
 
     Note:
-        Running the stage again overwrites the token list. Manifest rows with
-        fewer than three columns or an empty transcript contribute no tokens;
-        they are the rows ``remove_long_short`` drops.
+        Running the stage again overwrites the token list. Blank lines and
+        rows whose transcript column is empty contribute no tokens. A row
+        with no transcript column is reported as an error with its line
+        number instead of being skipped, so a malformed manifest is noticed.
     """
     create_token_list_config = BaseSystem._get_required_config(
         config,
