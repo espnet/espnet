@@ -4,7 +4,7 @@
 # Quick usage:
 #   python run.py --stages measure --metrics_config conf/metrics.yaml
 #
-# Shared default merged under every TTS recipe's metrics config.
+# Shared default merged under every F5-TTS recipe's metrics config.
 
 recipe_dir: .
 exp_tag:

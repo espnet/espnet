@@ -5,6 +5,8 @@ Self-contained package: the model (``f5tts``, ``cfm``, ``dit``, ``modules``,
 zh+en tokenizer (``pinyin``, ``preprocessor``) and the inference engine
 (``inference``). ``f5tts.F5TTS`` is the ESPnet3 model itself, which training
 configs reach through ``model._target_`` with ``task:`` left unset.
+``system.F5TTSSystem`` is the staged pipeline a recipe under
+``egs3/<corpus_name>/f5tts/`` runs.
 
 The model is described in:
 

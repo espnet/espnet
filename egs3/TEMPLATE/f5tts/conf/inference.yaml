@@ -4,7 +4,7 @@
 # Quick usage:
 #   python run.py --stages infer --inference_config conf/inference.yaml
 #
-# Shared default merged under every TTS recipe's inference config.
+# Shared default merged under every F5-TTS recipe's inference config.
 
 recipe_dir: .
 exp_tag:
