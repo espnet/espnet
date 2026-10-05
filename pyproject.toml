@@ -69,9 +69,13 @@ dependencies = [
     # conf/inference.yaml and hydra instantiates the model it names, so
     # without them `pip install espnet` cannot load an espnet3 model at all.
     # Pure Python, and imported only when such a bundle is loaded; they bring
-    # antlr4-python3-runtime==4.9.* (omegaconf pins it).
-    "hydra-core",
-    "omegaconf",
+    # antlr4-python3-runtime==4.9.* (omegaconf pins it). The floors are what
+    # espnet3 uses (hydra.utils.get_object is 1.3) and CI runs (omegaconf
+    # 2.3); the caps are the next minor release, since hydra's minor releases
+    # have changed how configs are composed and instantiated, and hydra-core
+    # 1.3 itself caps omegaconf below 2.4.
+    "hydra-core>=1.3,<1.4",
+    "omegaconf>=2.3,<2.4",
     # The supported set is exactly {2.11.0, 2.13.0, 2.14.0}, and three places
     # have to agree on it: ci/image_variants.json, which is what CI builds
     # images for; tools/installers/install_torch.sh, which exits 1 on anything
