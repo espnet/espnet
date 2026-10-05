@@ -146,9 +146,5 @@ intent accuracy only.
 - Decoding is beam-search bound rather than GPU bound -- about 8.6 s per
   utterance either way. Shard it with `parallel.n_workers`, which the shipped
   configs leave at 1.
-- **Check the size of `valid.acc.ave_*.pth` after training.** Averaging writes
-  the file even when it ends up empty, and an empty average decodes as a
-  randomly initialised model: fluent-looking nonsense and near-zero intent
-  accuracy. A healthy average here is ~1.2 GB.
 - Samples hold `speech`, `text` and optionally `transcript`. SCP files are
   keyed by item index, because recipe samples must not carry a `utt_id` field.
