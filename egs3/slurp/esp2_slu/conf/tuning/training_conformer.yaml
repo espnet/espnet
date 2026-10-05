@@ -9,10 +9,10 @@
 # Transformer decoder trained to emit `<scenario>_<action> <transcript>`, so one
 # autoregressive decoder does intent classification and ASR at once.
 #
-# Only values that differ from `egs3/TEMPLATE/asr/conf/training.yaml` appear
+# Only values that differ from `egs3/TEMPLATE/esp2_slu/conf/training.yaml` appear
 # here; everything else is inherited from those defaults.
 
-task: espnet3.systems.asr.task.ASRTask
+task: espnet3.systems.esp2_asr.task.ASRTask
 
 ##########################################################
 #                    DATASET DEFINITION                  #

@@ -42,13 +42,13 @@ metrics:
       hyp_key: hyp_intent   # -> `<test_name>/hyp_intent.scp`
 
   - metric:
-      _target_: espnet3.systems.asr.metrics.wer.WER
+      _target_: espnet3.systems.esp2_asr.metrics.wer.WER
       ref_key: ref_transcript
       hyp_key: hyp_transcript
       clean_types:          # optional TextCleaner pipeline, e.g. [tacotron]
 
   - metric:
-      _target_: espnet3.systems.asr.metrics.cer.CER
+      _target_: espnet3.systems.esp2_asr.metrics.cer.CER
       ref_key: ref_transcript
       hyp_key: hyp_transcript
       clean_types:          # optional TextCleaner pipeline, e.g. [jaconv]
@@ -57,7 +57,7 @@ metrics:
 # recipe's trained SentencePiece model. It is recipe-specific and off by default.
 # To enable it, uncomment below and point `bpemodel` at your trained model:
 # - metric:
-#     _target_: espnet3.systems.asr.metrics.ter.TER
+#     _target_: espnet3.systems.esp2_asr.metrics.ter.TER
 #     bpemodel: exp/bpe_5000/bpe.model  # path to the trained SentencePiece model
 #     ref_key: ref        # reference text key -> `<test_name>/ref.scp`
 #     hyp_key: hyp        # hypothesis text key -> `<test_name>/hyp.scp`

@@ -10,7 +10,7 @@
 # copies the first two from the training config, and the output directory
 # defaults to `${exp_dir}/inference`, after this file's own name.
 #
-# Only values that differ from `egs3/TEMPLATE/asr/conf/inference.yaml` appear
+# Only values that differ from `egs3/TEMPLATE/esp2_slu/conf/inference.yaml` appear
 # here.
 
 # `parallel.n_workers` is left at the TEMPLATE default of 1, so the stage runs

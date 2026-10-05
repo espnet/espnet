@@ -7,8 +7,8 @@ from importlib import import_module
 from pathlib import Path
 from typing import Callable, Iterable, List
 
-from espnet3.systems.asr.system import ASRSystem
-from espnet3.systems.asr.tokenizers.sentencepiece import train_sentencepiece
+from espnet3.systems.esp2_asr.system import ASRSystem
+from espnet3.systems.esp2_asr.tokenizers.sentencepiece import train_sentencepiece
 
 logger = logging.getLogger(__name__)
 

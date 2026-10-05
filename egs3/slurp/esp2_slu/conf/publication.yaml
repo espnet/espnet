@@ -7,7 +7,7 @@
 #       --publication_config conf/publication.yaml
 #
 # Only the extra artifacts this recipe needs are listed; everything else comes
-# from `egs3/TEMPLATE/asr/conf/publication.yaml`.
+# from `egs3/TEMPLATE/esp2_slu/conf/publication.yaml`.
 pack_model:
   include:
     # The packed model imports `src.inference` and the recipe dataset module.

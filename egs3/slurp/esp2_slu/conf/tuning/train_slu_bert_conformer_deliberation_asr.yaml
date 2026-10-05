@@ -19,7 +19,7 @@
 # `conf/tuning/training_conformer.yaml` run, so that config has to have been
 # trained first -- the two are stages of one pipeline, not alternatives.
 #
-# Only values that differ from `egs3/TEMPLATE/asr/conf/training.yaml` appear
+# Only values that differ from `egs3/TEMPLATE/esp2_slu/conf/training.yaml` appear
 # here.
 
 # `task` is not repeated here: `egs3/TEMPLATE/esp2_slu/conf/training.yaml`

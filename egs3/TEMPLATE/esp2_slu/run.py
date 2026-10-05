@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Runner template for esp2_slu experiments.
 
-A copy of `egs3/TEMPLATE/asr/run.py`. It exists so that `__package__`,
+A copy of `egs3/TEMPLATE/esp2_asr/run.py`. It exists so that `__package__`,
 which `main()` passes as `default_package`, resolves to this package and
 the defaults come from `egs3/TEMPLATE/esp2_slu/conf/` rather than the ASR
 ones.
@@ -249,7 +249,7 @@ if __name__ == "__main__":
 
     # Here you should replace `YourSystemClass` with the actual system class
     # you want to use for your experiment.
-    from espnet3.systems.asr.system import ASRSystem
+    from espnet3.systems.esp2_asr.system import ASRSystem
 
     main(
         args=args,

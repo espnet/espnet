@@ -15,7 +15,7 @@
 #       --inference_config conf/inference_slu.yaml \
 #       --metrics_config conf/metrics.yaml
 #
-# Only values that differ from `egs3/TEMPLATE/asr/conf/inference.yaml` appear
+# Only values that differ from `egs3/TEMPLATE/esp2_slu/conf/inference.yaml` appear
 # here. `parallel.n_workers` is left at the TEMPLATE default of 1, so the stage
 # runs in the calling process; raise it locally to shard across cores, and size
 # it against memory, since each worker builds its own copy of the model, BERT
