@@ -31,6 +31,18 @@ exp_dir: ${recipe_dir}/exp/${exp_tag}
 ##########################################################
 #                    METRIC DEFINITION                   #
 ##########################################################
+# WER/CER/TER declare the SCP inputs they read (`ref`, `hyp`, both kind
+# `text`) and the output key they return (kind `number`). `infer` writes a
+# `fields.json` alongside the SCP files naming each field's kind where it is
+# known; `measure` checks a metric's declared inputs against it before
+# running the metric, and explains a missing or wrong-kind input instead of
+# a bare "Missing SCP file" assertion.
+#
+# A metric's own `ref_key`/`hyp_key` constructor arguments still rename which
+# SCP key it reads (as below); to point a declared input at a differently
+# named SCP file without renaming the metric's own key, add an `inputs:`
+# mapping here, e.g. `inputs: {ref: transcript}` reads `transcript.scp` for
+# the metric's `ref` input.
 metrics:
   - metric:
       _target_: espnet3.systems.esp2_asr.metrics.wer.WER
