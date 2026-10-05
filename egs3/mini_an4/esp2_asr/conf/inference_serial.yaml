@@ -1,13 +1,65 @@
-# conf/inference.yaml with one utterance per batch: the reference that
-# inference_parallel.yaml must reproduce exactly. CI runs both on the same
-# model (ci/test_integration_espnet3.sh). One utterance per batch is what
-# lets mini_an4's two-utterance test set split into two shards at all, and
-# the reference must batch the same way for the results to be comparable.
-# `defaults` is a CI-only exception: recipe configs do not inherit from one
-# another, but these test configs must run the recipe's own settings and
-# change only what they name.
-defaults:
-  - inference
-  - _self_
+# CI only (ci/test_integration_espnet3.sh): conf/inference.yaml with one
+# utterance per batch, the reference that inference_parallel.yaml must
+# reproduce byte for byte (ci/check_espnet3_parallel_workers.py). One
+# utterance per batch is what lets mini_an4's two-utterance test set split
+# into two shards at all, and the reference must batch the same way. Kept
+# in step with conf/inference.yaml by hand; only batch_size differs.
 
+##########################################################
+#                   Inference SETTING                    #
+##########################################################
+# Common usage:
+#   python run.py --stages infer \
+#       --training_config conf/training_asr_transformer.yaml \
+#       --inference_config conf/inference.yaml
+#
+##########################################################
+#                    PATHS AND INPUTS                    #
+##########################################################
+# This recipe omits `exp_tag`, `exp_dir`, and `inference_dir` on purpose.
+# `run.py` copies `training_config.exp_tag` and `training_config.exp_dir` here
+# before resolving `${exp_dir}`.
+#
+# The default output directory uses the stem of the file passed to
+# `--inference_config`.
+# If `inference_dir` is omitted, `conf/<name>.yaml` becomes `${exp_dir}/<name>`.
+# Override `inference_dir` only when you want a different output location.
+
+##########################################################
+#                    DATASET DEFINITION                  #
+##########################################################
+# Each test entry is a dataset reference consumed by `DataOrganizer`.
+# - `name` becomes `${inference_dir}/<name>/`
+# - `data_src` is omitted, so ESPnet3 loads
+#   `${recipe_dir}/dataset/__init__.py`
+# - `data_src_args` is passed directly to `MiniAn4Dataset(...)`
+#
+# Dataset splits:
+#   test:
+#     - split="valid" from `MiniAn4Dataset`
+#     - split="test" from `MiniAn4Dataset`
+# Notes:
+#   - actual data sources are defined via `${recipe_dir}`
+dataset:
+  test:
+    - name: valid
+      data_src_args:
+        split: valid
+    - name: test
+      data_src_args:
+        split: test
+
+##########################################################
+#                    MODEL AND OUTPUT                    #
+##########################################################
+model:
+  _target_: espnet2.bin.asr_inference.Speech2Text
+  asr_train_config: ${exp_dir}/config.yaml
+  asr_model_file: ${exp_dir}/epoch0_step1_valid.loss.ckpt
+  beam_size: 1
+  ctc_weight: 0.3
+
+input_key: speech
+# utterances per beam search; `null` decodes one at a time (see TEMPLATE)
 batch_size: 1
+output_fn: src.inference.build_output
