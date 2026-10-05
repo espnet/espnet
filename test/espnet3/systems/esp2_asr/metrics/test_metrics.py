@@ -5,7 +5,7 @@ import sentencepiece as spm
 
 import espnet3.systems.esp2_asr.metrics.cer as cer_module
 import espnet3.systems.esp2_asr.metrics.wer as wer_module
-from espnet3.components.contract import Field
+from espnet3.api.inference import Field  # re-exported; exists on upstream/master too
 from espnet3.systems.esp2_asr.metrics.cer import CER
 from espnet3.systems.esp2_asr.metrics.ter import TER
 from espnet3.systems.esp2_asr.metrics.wer import WER

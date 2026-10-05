@@ -4,8 +4,8 @@ from types import SimpleNamespace
 
 import pytest
 
+from espnet3.api.inference import Field  # re-exported; exists on upstream/master too
 from espnet3.api.inference.base import InferenceAPI
-from espnet3.components.contract import Field
 from espnet3.systems.base.inference_runner import InferenceRunner, _load_output_fn
 
 

@@ -4,9 +4,8 @@ from pathlib import Path
 import pytest
 from omegaconf import OmegaConf
 
-from espnet3.components.contract import Field
+from espnet3.api.inference import Field  # re-exported; exists on upstream/master too
 from espnet3.components.metrics.base_metric import BaseMetric
-from espnet3.components.metrics.contract import MetricContractError
 from espnet3.systems.base.metric import _resolve_test_sets, measure
 from espnet3.utils.scp_utils import get_class_path
 
@@ -22,26 +21,6 @@ class DummyMetric(BaseMetric):
 class NoKeyMetric(BaseMetric):
     def __call__(self, data, test_name, inference_dir):
         return {"ok": True}
-
-
-class DeclaredMetric(BaseMetric):
-    """A metric with a declared contract, for measure()'s wiring."""
-
-    inputs = (Field("ref", "text"), Field("hyp", "text"))
-    outputs = (Field("X", "number"),)
-
-    def __call__(self, data, test_name, inference_dir):
-        return {"X": sum(1 for _ in self.iter_inputs(data, "ref"))}
-
-
-class BadOutputMetric(BaseMetric):
-    """A declared metric whose __call__ breaks its own output contract."""
-
-    inputs = (Field("ref", "text"), Field("hyp", "text"))
-    outputs = (Field("X", "number"),)
-
-    def __call__(self, data, test_name, inference_dir):
-        return {"X": "not-a-number"}
 
 
 class PathMetric(BaseMetric):
@@ -295,6 +274,13 @@ def test_metric_requires_test_sets_from_config_or_inference_dir(tmp_path):
 
 # ---------------------------------------------------------------------------
 # declared metric contract, wired through measure()
+#
+# M1 uses the real WER metric (declared in espnet3/systems/esp2_asr/metrics/
+# wer.py, not redeclared here) rather than a local fixture, specifically so
+# this file stays importable when copied alone onto a tree that predates
+# this change: that tree's wer.py has no contract, so these two tests are
+# the only ones affected, and fail for the predates-this-change reason
+# (a bare "Missing SCP file" assertion) rather than at import time.
 # ---------------------------------------------------------------------------
 
 
@@ -309,34 +295,72 @@ def test_measure_explains_missing_metric_input(tmp_path):
         {
             "inference_dir": str(inference_dir),
             "dataset": {"test": [{"name": test_name}]},
-            "metrics": [{"metric": {"_target_": f"{__name__}.DeclaredMetric"}}],
+            "metrics": [
+                {"metric": {"_target_": "espnet3.systems.esp2_asr.metrics.wer.WER"}}
+            ],
         }
     )
 
-    with pytest.raises(MetricContractError, match="input 'ref' .* ref.scp is missing"):
+    with pytest.raises(ValueError, match="input 'ref' .* ref.scp is missing"):
         measure(cfg)
 
 
 def test_measure_succeeds_for_declared_metric_with_all_inputs(tmp_path):
+    from espnet3.systems.esp2_asr.metrics.wer import WER
+
+    try:
+        import jiwer  # noqa: F401
+    except ImportError:
+        pytest.skip("jiwer not installed")
+
     inference_dir = tmp_path / "infer"
     test_name = "test-clean"
     task_dir = inference_dir / test_name
     task_dir.mkdir(parents=True)
-    _write_scp(task_dir / "ref.scp", ["utt1 r1", "utt2 r2"])
-    _write_scp(task_dir / "hyp.scp", ["utt1 h1", "utt2 h2"])
+    _write_scp(task_dir / "ref.scp", ["utt1 hello world"])
+    _write_scp(task_dir / "hyp.scp", ["utt1 hello world"])
 
     cfg = OmegaConf.create(
         {
             "inference_dir": str(inference_dir),
             "dataset": {"test": [{"name": test_name}]},
-            "metrics": [{"metric": {"_target_": f"{__name__}.DeclaredMetric"}}],
+            "metrics": [
+                {"metric": {"_target_": "espnet3.systems.esp2_asr.metrics.wer.WER"}}
+            ],
         }
     )
 
     results = measure(cfg)
 
-    expected_key = get_class_path(DeclaredMetric())
-    assert results[expected_key][test_name] == {"X": 2}
+    expected_key = get_class_path(WER())
+    assert results[expected_key][test_name] == {"WER": 0.0}
+
+
+# BadOutputMetric's `outputs` is set only when the "number" kind this PR adds
+# is actually registered, so this file still collects (and every other test
+# in it still runs) when copied alone onto a tree that predates this change;
+# there, BadOutputMetric is simply undeclared, like NoKeyMetric above, and
+# measure() does not check its return value at all.
+try:
+    _bad_output_outputs = (Field("X", "number"),)
+except ValueError:
+    _bad_output_outputs = None
+
+
+class BadOutputMetric(BaseMetric):
+    """A declared metric whose __call__ breaks its own output contract."""
+
+    # Also set directly (not just via `inputs`), so the pre-this-change
+    # fallback path in measure() (no input_fields(), no metric_config.inputs)
+    # can still resolve ref.scp/hyp.scp and reach __call__.
+    ref_key = "ref"
+    hyp_key = "hyp"
+    inputs = (Field("ref", "text"), Field("hyp", "text"))
+    if _bad_output_outputs is not None:
+        outputs = _bad_output_outputs
+
+    def __call__(self, data, test_name, inference_dir):
+        return {"X": "not-a-number"}
 
 
 def test_measure_rejects_non_number_metric_output(tmp_path):
