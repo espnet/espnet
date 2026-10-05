@@ -61,7 +61,9 @@ ${python} run.py \
     --training_config conf/training.yaml \
     --inference_config conf/inference_serial.yaml \
     --metrics_config conf/metrics.yaml
-for training_config in conf/training_serial.yaml conf/training_parallel.yaml; do
+for training_config in \
+    conf/training_asr_streaming_serial.yaml \
+    conf/training_asr_streaming_parallel.yaml; do
     ${python} run.py --stages collect_stats --training_config "${training_config}"
 done
 ${python} run.py \

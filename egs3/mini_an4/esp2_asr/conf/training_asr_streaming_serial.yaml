@@ -1,8 +1,11 @@
-# CI only (ci/test_integration_espnet3.sh): training_serial.yaml with
-# collect_stats on two CPU workers (Dask LocalCluster), so mini_an4's few
-# utterances split into two shards; CI checks the statistics are the
-# serial run's. Kept in step with training_serial.yaml by hand; only
-# stats_dir and `parallel` differ.
+# CI only (ci/test_integration_espnet3.sh): training_asr_streaming.yaml,
+# which applies no random augmentation, with collect_stats taking one item
+# per batch into its own stats_dir - the reference that
+# training_asr_streaming_parallel.yaml must reproduce
+# (ci/check_espnet3_parallel_workers.py). The batch size has to match: a
+# shorter utterance padded in a batch gets different features in its last
+# frames. Kept in step with training_asr_streaming.yaml by hand; only the
+# settings at the end differ.
 
 ##########################################################
 #                    TRAINING SETTING                    #
@@ -150,10 +153,7 @@ trainer:
   strategy: auto
 
 ##########################################################
-#           CI: ONE ITEM PER BATCH, TWO WORKERS          #
+#                 CI: ONE ITEM PER BATCH                 #
 ##########################################################
-stats_dir: ${recipe_dir}/exp/stats_parallel
+stats_dir: ${recipe_dir}/exp/stats_serial
 collect_stats_batch_size: 1
-parallel:
-  env: local
-  n_workers: 2
