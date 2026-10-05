@@ -159,6 +159,14 @@ def load(
         and ``s2t`` have one of their own), ``Text2Speech``,
         ``SeparateSpeech``, ``Speech2Embedding`` or ``DiarizeSpeech``.
 
+        A model published with espnet3's ``pack_model`` is loaded by
+        ``espnet3.api.inference.load`` instead, and what comes back is its
+        system's ``Inference``: ``model(speech)["text"]`` rather than
+        ``Speech2Text``'s n-best list. That contract is where every model
+        is headed; for now the two kinds of tag return the two kinds of
+        object. Loading an espnet3 bundle needs omegaconf and hydra-core,
+        which ``pip install "espnet[train]"`` brings.
+
         Calling an ``s2t`` object runs a search, which on a CTC-only
         checkpoint such as OWSM-CTC is a CTC prefix beam search and is slow;
         its ``best_path()`` is the argmax decoding that was
@@ -168,8 +176,12 @@ def load(
     Raises:
         ValueError: ``task`` is not an espnet task, or none was given and the
             model's metadata does not name one.
-        ModelTagError: the tag names a model this task cannot load.
+        ModelTagError: the tag names a model this task cannot load, or an
+            espnet3 bundle of a system other than the ``task`` given.
+        ImportError: the tag is an espnet3 bundle and the [train] extra is
+            not installed.
     """
+    explicit = task is not None
     if task is None:
         task = _infer_task(model_tag)
     elif task not in TASKS:
@@ -179,16 +191,58 @@ def load(
 
     import importlib
 
-    from espnet2.utils.pretrained import build_pretrained
+    from espnet2.utils.pretrained import Espnet3BundleError, build_pretrained
 
     module_name, class_name = TASKS[task]
     loader = getattr(importlib.import_module(module_name), class_name)
-    return build_pretrained(
-        loader,
-        model_tag,
-        device,
-        f"espnet.load(task={task!r})",
-        f"Pass a {task} model, or name the task the tag really serves: "
-        f"espnet.load({model_tag!r}, task=...) takes {_task_names()}.",
-        **kwargs,
-    )
+    try:
+        return build_pretrained(
+            loader,
+            model_tag,
+            device,
+            f"espnet.load(task={task!r})",
+            f"Pass a {task} model, or name the task the tag really serves: "
+            f"espnet.load({model_tag!r}, task=...) takes {_task_names()}.",
+            **kwargs,
+        )
+    except Espnet3BundleError:
+        # found only once downloaded, so this costs no extra request, and
+        # espnet3 reads the bundle from the cache the download just filled
+        return _load_espnet3(model_tag, task if explicit else None, device, kwargs)
+
+
+def _load_espnet3(
+    model_tag: str, task: Optional[str], device: str, kwargs: Dict[str, Any]
+):
+    """Load an espnet3 bundle through ``espnet3.api.inference.load``.
+
+    An explicit ``task`` is checked against the system ``meta.yaml`` names
+    (an espnet2 task name such as ``asr`` is the name its espnet3 system
+    went by, through ``SYSTEM_ALIASES``); an inferred one is not, since the
+    bundle's own ``meta.yaml`` says more than the Hub labels it was guessed
+    from.
+    """
+    try:
+        from espnet3.api.inference import (
+            SYSTEM_ALIASES,
+            load,
+            locate_pack,
+            read_meta,
+        )
+    except ImportError as e:
+        raise ImportError(
+            f"{model_tag} is an espnet3 bundle, and loading one needs omegaconf "
+            f'and hydra-core: pip install "espnet[train]" ({e})'
+        ) from e
+    from espnet2.utils.pretrained import ModelTagError
+
+    if task is not None:
+        system = read_meta(locate_pack(model_tag)).get("system")
+        if system and SYSTEM_ALIASES.get(task, task) != SYSTEM_ALIASES.get(
+            system, system
+        ):
+            raise ModelTagError(
+                f"{model_tag} is an espnet3 {system} bundle, not a {task} model. "
+                f"Leave task out to load it as what it is: espnet.load({model_tag!r})."
+            )
+    return load(model_tag, device=device, **kwargs)

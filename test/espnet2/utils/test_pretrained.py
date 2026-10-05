@@ -26,9 +26,13 @@ def test_espnet2_pack_returns_the_constructor_kwargs(monkeypatch):
 @pytest.mark.parametrize("key", ["inference_config", "training_config"])
 def test_an_espnet3_pack_says_which_loader_to_use(monkeypatch, key):
     _fake_downloader(monkeypatch, {key: "conf/x.yaml"})
-    with pytest.raises(RuntimeError) as e:
+    from espnet2.utils.pretrained import Espnet3BundleError, ModelTagError
+
+    with pytest.raises(Espnet3BundleError) as e:
         download_pretrained("espnet/some_espnet3_model")
-    assert "espnet3" in str(e.value)
+    assert isinstance(e.value, ModelTagError)  # the CLI reports it as a choice
+    assert e.value.model_tag == "espnet/some_espnet3_model"
+    assert "espnet.load('espnet/some_espnet3_model')" in str(e.value)
     assert "espnet3.api.inference.load" in str(e.value)
 
 
