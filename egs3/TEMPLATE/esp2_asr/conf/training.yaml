@@ -214,6 +214,11 @@ parallel:
   # another run may still be writing to the same output directory.
   allow_overwrite_lock: false
 
+# Items per collect_stats batch (4 when unset). The work is split into shards
+# of whole batches, one per worker, so a set of N items keeps at most
+# N / collect_stats_batch_size workers busy.
+collect_stats_batch_size: 4
+
 ##########################################################
 #                   DATALOADER SETTING                   #
 ##########################################################

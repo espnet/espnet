@@ -1275,4 +1275,7 @@ class ESPnetLightningModule(lightning.LightningModule):
                     else self.config.parallel
                 ),
                 write_collected_feats=False,
+                # items per batch, and so how many shards the workers can
+                # share: a set of N items splits into at most N / batch_size
+                batch_size=int(self.config.get("collect_stats_batch_size", None) or 4),
             )

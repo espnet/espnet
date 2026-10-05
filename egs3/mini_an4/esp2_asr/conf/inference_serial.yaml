@@ -1,0 +1,10 @@
+# conf/inference.yaml with one utterance per batch: the reference that
+# inference_parallel.yaml must reproduce exactly. CI runs both on the same
+# model (ci/test_integration_espnet3.sh). One utterance per batch is what
+# lets mini_an4's two-utterance test set split into two shards at all, and
+# the reference must batch the same way for the results to be comparable.
+defaults:
+  - inference
+  - _self_
+
+batch_size: 1

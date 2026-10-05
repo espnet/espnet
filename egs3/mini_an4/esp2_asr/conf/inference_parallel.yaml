@@ -1,0 +1,11 @@
+# conf/inference_serial.yaml on two CPU workers (Dask LocalCluster). With
+# one worker there is one shard, so only this run splits the test set into
+# shards, builds the model in separate worker processes and merges the
+# shard outputs; CI checks the result is the serial run's, byte for byte
+# (ci/check_espnet3_parallel_workers.py).
+defaults:
+  - inference_serial
+  - _self_
+
+parallel:
+  n_workers: 2

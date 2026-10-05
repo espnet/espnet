@@ -1,0 +1,13 @@
+# conf/training.yaml with collect_stats taking one item per batch, into its
+# own stats_dir: the reference that training_parallel.yaml must reproduce.
+# CI runs both (ci/test_integration_espnet3.sh) and compares the statistics
+# (ci/check_espnet3_parallel_workers.py). The batch size has to match: a
+# shorter utterance padded in a batch gets different features in its last
+# frames, so the statistics depend on it. CI points conf/training.yaml at a
+# config without random augmentation, so the statistics are deterministic.
+defaults:
+  - training
+  - _self_
+
+stats_dir: ${recipe_dir}/exp/stats_serial
+collect_stats_batch_size: 1
