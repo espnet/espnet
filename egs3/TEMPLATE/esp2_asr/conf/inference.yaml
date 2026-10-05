@@ -83,8 +83,8 @@ parallel:
 # what it takes and returns, so nothing below needs to say. Its arguments are
 # the ones `espnet2.bin.asr_inference.Speech2Text` takes; `device` is added by
 # the provider. For a transducer, set
-# `backend_class: espnet2.bin.asr_transducer_inference.Speech2Text` and
-# `return_decoded_hyp: true`.
+# `backend_class: espnet2.bin.asr_transducer_inference.Speech2Text`; the
+# `Inference` asks it for decoded text itself.
 model:
   _target_: espnet3.systems.esp2_asr.inference.Inference
   # asr_train_config: ${exp_dir}/config.yaml

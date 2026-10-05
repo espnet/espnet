@@ -15,6 +15,7 @@ import espnet3.api.inference.loading as loading
 from espnet3.api.inference import (
     Field,
     InferenceAPI,
+    ModelTagError,
     build_model,
     load,
     load_model,
@@ -287,8 +288,43 @@ def test_load_returns_the_bundles_own_inference_when_no_system_is_named(tmp_path
 
 
 def test_load_says_when_neither_a_system_nor_an_inference_is_there(tmp_path):
-    with pytest.raises(ValueError, match="not an Inference. Pass system=<name>"):
+    with pytest.raises(ModelTagError, match="not an Inference. Pass system=<name>"):
         load(_pack(tmp_path))
+
+
+def test_load_passes_constructor_arguments_over_the_packed_ones(tmp_path):
+    """`load(tag, beam_size=1)`, as ESPnet2's `from_pretrained` takes it."""
+    root = _pack(tmp_path, model_target=f"{__name__}.Echo")
+    model = load(root, prefix="mine:")
+    assert model.prefix == "mine:"
+    assert model(np.zeros(8000, dtype=np.float32))["text"] == "mine:1.0s@cpu"
+    # nothing is kept: the next load reads the bundle as packed
+    assert load(root).prefix == "cfg:"
+
+
+def test_load_model_overrides_are_constructor_arguments_only(tmp_path):
+    root = _pack(tmp_path)
+    assert load_model(root, overrides={"prefix": "over:"}).prefix == "over:"
+    assert load_model(root, overrides={}).prefix == "cfg:"
+    with pytest.raises(ValueError, match=r"\['_target_'\] cannot be overridden"):
+        load_model(root, overrides={"_target_": "builtins.dict"})
+    with pytest.raises(TypeError, match="nope=1: the bundle's model .* takes no"):
+        load_model(root, overrides={"nope": 1})
+
+
+def test_a_tag_that_is_not_a_pack_is_a_model_tag_error(monkeypatch):
+    """The type ESPnet2's loaders raise, so a front end reports it the same way."""
+    module = types.ModuleType("espnet_model_zoo.downloader")
+
+    class ModelDownloader:
+        def download_and_unpack(self, tag):
+            return {"asr_train_config": "c.yaml", "asr_model_file": "m.pth"}
+
+    module.ModelDownloader = ModelDownloader
+    monkeypatch.setitem(sys.modules, "espnet_model_zoo.downloader", module)
+    with pytest.raises(ModelTagError, match="not a pack_model bundle"):
+        loading.locate_pack("espnet/an_espnet2_model")
+    assert issubclass(ModelTagError, RuntimeError)
 
 
 def test_load_trusts_a_bundles_own_inference_only_when_told(tmp_path):
@@ -303,7 +339,7 @@ def test_load_follows_an_alias_and_names_a_missing_system(tmp_path, monkeypatch)
     monkeypatch.setitem(loading.SYSTEM_ALIASES, "echo", "esp2_echo")
     assert isinstance(load(_pack(tmp_path, system="echo")), Echo)
     assert loading.SYSTEM_ALIASES["asr"] == "esp2_asr"
-    with pytest.raises(ImportError, match="system 'nosuch' has no Inference yet"):
+    with pytest.raises(ModelTagError, match="system 'nosuch' has no Inference yet"):
         load(_pack(tmp_path / "b", system="nosuch"))
     _install_fake_system(monkeypatch, "blank", None)
     with pytest.raises(ImportError, match="defines no Inference"):

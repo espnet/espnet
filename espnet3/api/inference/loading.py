@@ -24,6 +24,7 @@ from __future__ import annotations
 import importlib
 import logging
 import os
+import re
 import sys
 import threading
 from pathlib import Path
@@ -33,6 +34,7 @@ import yaml
 from hydra.utils import get_class, instantiate
 from omegaconf import DictConfig, OmegaConf, open_dict
 
+from espnet2.utils.pretrained import ModelTagError
 from espnet3.api.inference.base import InferenceAPI
 from espnet3.publication.schema import PACK_SCHEMA_VERSION
 from espnet3.utils.config_utils import load_config_with_defaults
@@ -64,8 +66,9 @@ def locate_pack(tag_or_dir: str | Path) -> Path:
         The directory holding ``meta.yaml``.
 
     Raises:
-        RuntimeError: If the download holds no ``inference_config``, so is
-            not a ``pack_model`` bundle.
+        ModelTagError: If the download holds no ``inference_config``, so is
+            not a ``pack_model`` bundle (a ``RuntimeError``, the type
+            ESPnet2's loaders raise for a tag they cannot serve).
 
     Examples:
         >>> locate_pack("exp/train/model_pack")
@@ -80,7 +83,7 @@ def locate_pack(tag_or_dir: str | Path) -> Path:
 
     artifacts = ModelDownloader().download_and_unpack(str(tag_or_dir))
     if "inference_config" not in artifacts:
-        raise RuntimeError(
+        raise ModelTagError(
             f"{tag_or_dir} is not a pack_model bundle: it has no inference_config"
         )
     return Path(artifacts["inference_config"]).resolve().parent.parent
@@ -273,6 +276,7 @@ def load_model(
     *,
     device: Optional[str] = None,
     trust_user_code: bool = False,
+    overrides: Optional[Mapping[str, Any]] = None,
 ) -> Any:
     """Build a bundle's model, without the ``infer`` stage's trimmings.
 
@@ -288,6 +292,12 @@ def load_model(
             omitted.
         trust_user_code: Allow the bundle's model or provider to be its own
             bundled code.
+        overrides: Constructor arguments of the packed ``model`` that
+            replace the packed values, such as ``{"beam_size": 1}`` - what
+            ESPnet2's ``from_pretrained(tag, beam_size=1)`` does. A key
+            starting with ``_`` (``_target_``) is refused: an override
+            changes how the model is built, not which model it is. One the
+            model does not take is a ``TypeError`` naming it.
 
     Returns:
         The bundle's model: an ``Inference`` when the recipe names one as
@@ -304,10 +314,56 @@ def load_model(
     config, _ = read_bundle(
         pack_dir, trust_user_code=trust_user_code, drop=("output_fn", "runner")
     )
+    apply_overrides(config, overrides)
     if device is not None:
         with open_dict(config):
             config.device = device
-    return build_model(config, device=device)
+    try:
+        return build_model(config, device=device)
+    except Exception as e:
+        name = _unexpected_argument(e)
+        if not overrides or name not in overrides:
+            raise
+        # hydra wraps the constructor's TypeError; the caller named this
+        # argument, so the error is theirs and says so, as in ESPnet2
+        raise TypeError(
+            f"{name}={overrides[name]!r}: the bundle's model "
+            f"({config.model.get('_target_')}) takes no argument {name!r}"
+        ) from e
+
+
+def apply_overrides(config: DictConfig, overrides: Optional[Mapping[str, Any]]) -> None:
+    """Merge constructor arguments into a bundle's ``model``, in place.
+
+    Args:
+        config: An inference config, as :func:`read_bundle` returns it.
+        overrides: Keyword arguments for the model's constructor; nothing
+            to do when empty.
+
+    Raises:
+        ValueError: If a key starts with ``_``, or the config has no
+            ``model`` to pass them to.
+
+    Examples:
+        >>> config, _ = read_bundle("exp/train/model_pack")
+        >>> apply_overrides(config, {"beam_size": 1})
+        >>> config.model.beam_size
+        1
+    """
+    if not overrides:
+        return
+    hidden = sorted(k for k in overrides if str(k).startswith("_"))
+    if hidden:
+        raise ValueError(
+            f"{hidden} cannot be overridden: an override is a constructor "
+            "argument of the packed model, not a change of model"
+        )
+    if config.get("model", None) is None:
+        raise ValueError(
+            f"inference config has no `model` to pass {sorted(overrides)} to"
+        )
+    with open_dict(config):
+        config.model = OmegaConf.merge(config.model, dict(overrides))
 
 
 def load(
@@ -338,15 +394,21 @@ def load(
             ``model`` is an ``Inference`` of its own, shipped as bundled
             code: allow importing it. A bundle served by an installed
             system never needs this.
-        **kwargs: Forwarded to ``from_pretrained``.
+        **kwargs: Constructor arguments that replace the packed ones, such
+            as ``beam_size=1``; forwarded to ``from_pretrained``, or applied
+            to the bundle's ``model`` when it is an ``Inference`` itself
+            (:func:`apply_overrides`).
 
     Returns:
         The system's ``Inference`` instance.
 
     Raises:
-        ValueError: If ``meta.yaml`` names no system, none is given, and the
-            bundle's model is not an ``Inference`` itself.
-        ImportError: If the system has no ``inference.Inference``.
+        ModelTagError: If ``meta.yaml`` names no system, none is given, and
+            the bundle's model is not an ``Inference`` itself; or it names a
+            system with no ``inference`` module. Both say the tag cannot be
+            served as asked, as ESPnet2's loaders do.
+        ImportError: If the system's ``inference`` module defines no
+            ``Inference``.
 
     Examples:
         >>> model = load("espnet/some_pack")
@@ -363,6 +425,7 @@ def load(
                 trust_user_code=trust_user_code,
                 drop=("output_fn", "runner"),
             )
+            apply_overrides(config, kwargs)
             model = (
                 build_model(config, device=device)
                 if config.get("model", None) is not None
@@ -371,7 +434,7 @@ def load(
             if isinstance(model, InferenceAPI):
                 return model
             what = "no model" if model is None else f"a {type(model).__name__}"
-            raise ValueError(
+            raise ModelTagError(
                 f"{tag_or_dir}/meta.yaml does not name its system, and the bundle "
                 f"builds {what}, not an Inference. Pass system=<name>."
             )
@@ -384,7 +447,7 @@ def load(
         # imports missing is another, and stays the error it was
         if e.name is None or not (e.name == name or name.startswith(e.name + ".")):
             raise
-        raise ImportError(
+        raise ModelTagError(
             f"no {name}: system {system!r} has no Inference yet, or meta.yaml "
             "names the wrong system. Pass system=<name>."
         ) from e
@@ -394,6 +457,18 @@ def load(
             f"espnet3.systems.{system}.inference defines no Inference(InferenceAPI)"
         )
     return cls.from_pretrained(tag_or_dir, device=device, **kwargs)
+
+
+def _unexpected_argument(error: BaseException) -> Optional[str]:
+    """Return the keyword a constructor refused, through hydra's wrapping."""
+    seen = set()
+    while error is not None and id(error) not in seen:
+        seen.add(id(error))
+        found = re.search(r"unexpected keyword argument '([^']+)'", str(error))
+        if isinstance(error, TypeError) and found:
+            return found.group(1)
+        error = error.__cause__ or error.__context__
+    return None
 
 
 def _load_inference_config(config_path: Path, bundle_root: Path) -> DictConfig:

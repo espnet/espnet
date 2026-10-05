@@ -103,6 +103,8 @@ from espnet3.api.inference.kinds import (
 )
 from espnet3.api.inference.loading import (
     SYSTEM_ALIASES,
+    ModelTagError,
+    apply_overrides,
     build_model,
     load,
     load_model,
@@ -119,6 +121,8 @@ __all__ = [
     "InferenceAPI",
     "Kind",
     "Field",
+    "ModelTagError",
+    "apply_overrides",
     "build_model",
     "load_model",
     "read_bundle",

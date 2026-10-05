@@ -28,6 +28,13 @@ That class is built three ways, all ending in ``self.backend``:
   for the ``infer`` stage (the provider adds ``device``).
 - ``Inference(backend)``: one already built.
 
+A hook receives audio channels-first, as :class:`Audio` keeps it:
+``(samples,)`` for one channel and ``(channels, samples)`` for several. An
+ESPnet2 backend takes several channels the other way round, as
+``soundfile`` reads them, so a system passing several channels to one
+hands it ``speech.array.T``; the ESPnet2 ASR system does this for a model
+whose frontend uses every channel.
+
 A system whose model is not one object - a SpeechLM behind a server, a
 pipeline of several - subclasses :class:`InferenceAPI` directly instead.
 """
@@ -40,7 +47,7 @@ from typing import Any, ClassVar, Optional
 import humanfriendly
 from hydra.utils import get_class
 
-from espnet3.api.inference import InferenceAPI, load_model, locate_pack
+from espnet3.api.inference import InferenceAPI, ModelTagError, load_model, locate_pack
 
 
 def parse_rate(value: Any) -> int:
@@ -130,25 +137,27 @@ class BackendInference(InferenceAPI):
         Args:
             tag_or_dir: A ``pack_model`` output directory, or a Hub tag.
             device: Where to build the backend.
-            **kwargs: None are taken; a bundle is complete as packed.
+            **kwargs: Constructor arguments that replace the packed ones,
+                such as ``beam_size=1``, as ESPnet2's ``from_pretrained``
+                takes them; an argument the model does not take is the
+                constructor's ``TypeError``.
 
         Raises:
-            TypeError: If ``kwargs`` are given, or the bundle builds an
-                ``Inference`` of another class.
+            ModelTagError: If the tag is not a ``pack_model`` bundle, or the
+                bundle builds an ``Inference`` of another class.
             ValueError: If the bundle's model needs the bundle's own code.
 
         Examples:
             >>> Inference.from_pretrained("exp/train/model_pack")
             >>> Inference.from_pretrained("espnet/some_pack", device="cuda:0")
+            >>> Inference.from_pretrained("espnet/some_pack", beam_size=1)
         """
-        if kwargs:
-            raise TypeError(f"unexpected arguments {sorted(kwargs)}")
-        built = load_model(locate_pack(tag_or_dir), device=device)
+        built = load_model(locate_pack(tag_or_dir), device=device, overrides=kwargs)
         if isinstance(built, InferenceAPI):
             # the bundle's inference.yaml names the Inference itself, as a
             # recipe names its Inference as the model: it is the model, not a backend
             if not isinstance(built, cls):
-                raise TypeError(
+                raise ModelTagError(
                     f"the bundle builds {type(built).__name__}, not {cls.__name__}"
                 )
             return built

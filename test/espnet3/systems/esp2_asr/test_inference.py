@@ -77,8 +77,8 @@ def test_from_pretrained_takes_a_directory_or_a_tag(tmp_path, monkeypatch):
         calls.append(("locate", str(tag_or_dir)))
         return tmp_path
 
-    def load_model(pack_dir, *, device=None):
-        calls.append(("build", str(pack_dir), device))
+    def load_model(pack_dir, *, device=None, overrides=None):
+        calls.append(("build", str(pack_dir), device, overrides))
         return backend
 
     monkeypatch.setattr(base, "locate_pack", locate_pack)
@@ -86,14 +86,16 @@ def test_from_pretrained_takes_a_directory_or_a_tag(tmp_path, monkeypatch):
 
     assert Inference.from_pretrained(tmp_path, device="cpu").backend is backend
     assert Inference.from_pretrained("org/model", device="cuda:0").backend is backend
+    # constructor arguments replace the packed ones, as in ESPnet2
+    assert Inference.from_pretrained(tmp_path, beam_size=1).backend is backend
     assert calls == [
         ("locate", str(tmp_path)),
-        ("build", str(tmp_path), "cpu"),
+        ("build", str(tmp_path), "cpu", {}),
         ("locate", "org/model"),
-        ("build", str(tmp_path), "cuda:0"),
+        ("build", str(tmp_path), "cuda:0", {}),
+        ("locate", str(tmp_path)),
+        ("build", str(tmp_path), "cpu", {"beam_size": 1}),
     ]
-    with pytest.raises(TypeError, match="unexpected arguments"):
-        Inference.from_pretrained(tmp_path, beam_size=3)
 
 
 def test_builds_a_speech2text_from_its_own_arguments(monkeypatch):
@@ -184,7 +186,7 @@ def test_from_pretrained_returns_the_bundles_own_inference(tmp_path, monkeypatch
 
     monkeypatch.setattr(base, "locate_pack", lambda t: tmp_path)
     ready = Inference(FakeSpeech2Text())
-    monkeypatch.setattr(base, "load_model", lambda p, *, device=None: ready)
+    monkeypatch.setattr(base, "load_model", lambda p, **kw: ready)
     assert Inference.from_pretrained(tmp_path) is ready
 
     from espnet3.api.inference import Field
@@ -197,6 +199,102 @@ def test_from_pretrained_returns_the_bundles_own_inference(tmp_path, monkeypatch
         def run(self, text):
             return {}
 
-    monkeypatch.setattr(base, "load_model", lambda p, *, device=None: Other(object()))
-    with pytest.raises(TypeError, match="builds Other, not Inference"):
+    monkeypatch.setattr(base, "load_model", lambda p, **kw: Other(object()))
+    from espnet3.api.inference import ModelTagError
+
+    with pytest.raises(ModelTagError, match="builds Other, not Inference"):
         Inference.from_pretrained(tmp_path)
+
+
+class FakeTransducer(FakeSpeech2Text):
+    """The transducer Speech2Text: raw hypotheses unless asked for text."""
+
+    def __init__(self, fs="16k", return_decoded_hyp=False, **kwargs):
+        super().__init__(fs=fs, **kwargs)
+        self.return_decoded_hyp = return_decoded_hyp
+
+    def __call__(self, speech):
+        if self.return_decoded_hyp:
+            return super().__call__(speech)
+        return [SimpleNamespace(score=0.0, yseq=[1, 2])]  # a Hypothesis
+
+    batch_decode = None
+
+
+def test_a_built_transducer_is_asked_for_decoded_text(monkeypatch):
+    import espnet2.bin.asr_transducer_inference as transducer
+
+    monkeypatch.setattr(transducer, "Speech2Text", FakeTransducer)
+    path = "espnet2.bin.asr_transducer_inference.Speech2Text"
+    model = Inference(backend_class=path, asr_train_config="c.yaml")
+    assert model.backend.return_decoded_hyp is True
+    assert model(np.zeros(16))["text"] == "hello world"
+    with pytest.raises(ValueError, match="return_decoded_hyp=False"):
+        Inference(backend_class=path, return_decoded_hyp=False)
+    # one built elsewhere without it is named, not a bare TypeError
+    with pytest.raises(TypeError, match="needs return_decoded_hyp=True"):
+        Inference(FakeTransducer())(np.zeros(16))
+
+
+def _enhancing(use_wpe=False, use_beamformer=False, enh_s2t=False):
+    backend = FakeSpeech2Text()
+    enhancer = SimpleNamespace(use_wpe=use_wpe, use_beamformer=use_beamformer)
+    backend.asr_model = SimpleNamespace(frontend=SimpleNamespace(frontend=enhancer))
+    backend.enh_s2t_task = enh_s2t
+    return backend
+
+
+def test_channels_reach_a_model_that_uses_them_as_espnet2_lays_them_out():
+    stereo = np.stack([np.ones(160), -np.ones(160)]).astype(np.float32)  # (C, T)
+    for backend in (
+        _enhancing(use_beamformer=True),
+        _enhancing(use_wpe=True),
+        _enhancing(enh_s2t=True),
+    ):
+        model = Inference(backend)
+        assert model.takes_channels
+        model(Audio(stereo, 16000))
+        assert backend.seen.shape == (160, 2)  # (samples, channels), as soundfile
+        assert (backend.seen[:, 1] == -1).all()
+
+
+def test_other_models_get_channel_zero_as_default_frontend_would_pick():
+    stereo = np.stack([np.ones(160), -np.ones(160)]).astype(np.float32)
+    for backend in (FakeSpeech2Text(), _enhancing()):
+        model = Inference(backend)
+        assert not model.takes_channels
+        model(Audio(stereo, 16000))
+        assert backend.seen.shape == (160,) and (backend.seen == 1).all()
+    mono = FakeSpeech2Text()
+    Inference(mono)(np.zeros(160, dtype=np.float32))
+    assert mono.seen.ndim == 1
+
+
+def test_a_batch_with_channels_for_a_model_that_uses_them_goes_one_by_one():
+    backend = _enhancing(use_beamformer=True)
+    stereo = np.zeros((2, 160), dtype=np.float32)
+    items = [{"speech": Audio(stereo, 16000)}] * 2
+    assert [o["text"] for o in Inference(backend).batch(items)] == ["hello world"] * 2
+    assert not hasattr(backend, "batches")  # batch_decode reads one channel
+    # a mono batch for the same model is still one beam search
+    mono = [{"speech": np.zeros(160, dtype=np.float32)}] * 2
+    assert [o["text"] for o in Inference(backend).batch(mono)] == ["utt0", "utt1"]
+    assert backend.batches == [2]
+
+
+def test_takes_channels_reads_a_real_default_frontend():
+    """Count only WPE or a beamformer, not the stage DefaultFrontend always builds.
+
+    The default stage enables neither and lets channels through to channel 0.
+    """
+    from espnet2.asr.frontend.default import DefaultFrontend
+
+    for conf, uses in [
+        (None, False),
+        ({"use_wpe": True}, True),
+        ({"use_beamformer": True}, True),
+    ]:
+        backend = FakeSpeech2Text()
+        kwargs = {} if conf is None else {"frontend_conf": conf}
+        backend.asr_model = SimpleNamespace(frontend=DefaultFrontend(**kwargs))
+        assert Inference(backend).takes_channels is uses, conf
