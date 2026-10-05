@@ -8,6 +8,10 @@ from hydra.utils import instantiate
 from omegaconf import DictConfig, OmegaConf
 
 from espnet3.components.metrics.base_metric import BaseMetric
+from espnet3.components.metrics.contract import (
+    check_metric_inputs,
+    check_metric_output,
+)
 from espnet3.utils.logging_utils import log_component
 from espnet3.utils.scp_utils import get_class_path, load_scp_paths
 
@@ -88,9 +92,25 @@ def measure(metrics_config: DictConfig):
             max_depth=2,
         )
         results[get_class_path(metric)] = {}
+        declared_inputs = (
+            metric.input_fields() if hasattr(metric, "input_fields") else ()
+        )
         for test_name in test_sets:
-            if hasattr(metric_config, "inputs"):
+            if declared_inputs:
+                data = check_metric_inputs(
+                    metric,
+                    metric_config,
+                    Path(metrics_config.inference_dir),
+                    test_name,
+                )
+            elif hasattr(metric_config, "inputs"):
                 inputs = OmegaConf.to_container(metric_config.inputs, resolve=True)
+                data = load_scp_paths(
+                    inference_dir=Path(metrics_config.inference_dir),
+                    test_name=test_name,
+                    inputs=inputs,
+                    file_suffix=".scp",
+                )
             else:
                 ref_key = getattr(metric, "ref_key", None)
                 hyp_key = getattr(metric, "hyp_key", None)
@@ -98,14 +118,14 @@ def measure(metrics_config: DictConfig):
                     raise ValueError(
                         f"Metric {get_class_path(metric)} requires inputs in config"
                     )
-                inputs = [ref_key, hyp_key]
-            data = load_scp_paths(
-                inference_dir=Path(metrics_config.inference_dir),
-                test_name=test_name,
-                inputs=inputs,
-                file_suffix=".scp",
-            )
+                data = load_scp_paths(
+                    inference_dir=Path(metrics_config.inference_dir),
+                    test_name=test_name,
+                    inputs=[ref_key, hyp_key],
+                    file_suffix=".scp",
+                )
             metric_result = metric(data, test_name, metrics_config.inference_dir)
+            check_metric_output(metric, metric_result)
             results[get_class_path(metric)].update({test_name: metric_result})
 
     out_path = Path(metrics_config.inference_dir) / "metrics.json"

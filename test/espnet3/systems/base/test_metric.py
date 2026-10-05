@@ -4,7 +4,9 @@ from pathlib import Path
 import pytest
 from omegaconf import OmegaConf
 
+from espnet3.components.contract import Field
 from espnet3.components.metrics.base_metric import BaseMetric
+from espnet3.components.metrics.contract import MetricContractError
 from espnet3.systems.base.metric import _resolve_test_sets, measure
 from espnet3.utils.scp_utils import get_class_path
 
@@ -20,6 +22,26 @@ class DummyMetric(BaseMetric):
 class NoKeyMetric(BaseMetric):
     def __call__(self, data, test_name, inference_dir):
         return {"ok": True}
+
+
+class DeclaredMetric(BaseMetric):
+    """A metric with a declared contract, for measure()'s wiring."""
+
+    inputs = (Field("ref", "text"), Field("hyp", "text"))
+    outputs = (Field("X", "number"),)
+
+    def __call__(self, data, test_name, inference_dir):
+        return {"X": sum(1 for _ in self.iter_inputs(data, "ref"))}
+
+
+class BadOutputMetric(BaseMetric):
+    """A declared metric whose __call__ breaks its own output contract."""
+
+    inputs = (Field("ref", "text"), Field("hyp", "text"))
+    outputs = (Field("X", "number"),)
+
+    def __call__(self, data, test_name, inference_dir):
+        return {"X": "not-a-number"}
 
 
 class PathMetric(BaseMetric):
@@ -268,4 +290,70 @@ def test_metric_requires_test_sets_from_config_or_inference_dir(tmp_path):
 
     (tmp_path / "infer").mkdir()
     with pytest.raises(ValueError, match="No test sets found"):
+        measure(cfg)
+
+
+# ---------------------------------------------------------------------------
+# declared metric contract, wired through measure()
+# ---------------------------------------------------------------------------
+
+
+def test_measure_explains_missing_metric_input(tmp_path):
+    inference_dir = tmp_path / "infer"
+    test_name = "test-clean"
+    task_dir = inference_dir / test_name
+    task_dir.mkdir(parents=True)
+    _write_scp(task_dir / "hyp.scp", ["utt1 h1"])  # ref.scp is missing
+
+    cfg = OmegaConf.create(
+        {
+            "inference_dir": str(inference_dir),
+            "dataset": {"test": [{"name": test_name}]},
+            "metrics": [{"metric": {"_target_": f"{__name__}.DeclaredMetric"}}],
+        }
+    )
+
+    with pytest.raises(MetricContractError, match="input 'ref' .* ref.scp is missing"):
+        measure(cfg)
+
+
+def test_measure_succeeds_for_declared_metric_with_all_inputs(tmp_path):
+    inference_dir = tmp_path / "infer"
+    test_name = "test-clean"
+    task_dir = inference_dir / test_name
+    task_dir.mkdir(parents=True)
+    _write_scp(task_dir / "ref.scp", ["utt1 r1", "utt2 r2"])
+    _write_scp(task_dir / "hyp.scp", ["utt1 h1", "utt2 h2"])
+
+    cfg = OmegaConf.create(
+        {
+            "inference_dir": str(inference_dir),
+            "dataset": {"test": [{"name": test_name}]},
+            "metrics": [{"metric": {"_target_": f"{__name__}.DeclaredMetric"}}],
+        }
+    )
+
+    results = measure(cfg)
+
+    expected_key = get_class_path(DeclaredMetric())
+    assert results[expected_key][test_name] == {"X": 2}
+
+
+def test_measure_rejects_non_number_metric_output(tmp_path):
+    inference_dir = tmp_path / "infer"
+    test_name = "test-clean"
+    task_dir = inference_dir / test_name
+    task_dir.mkdir(parents=True)
+    _write_scp(task_dir / "ref.scp", ["utt1 r1"])
+    _write_scp(task_dir / "hyp.scp", ["utt1 h1"])
+
+    cfg = OmegaConf.create(
+        {
+            "inference_dir": str(inference_dir),
+            "dataset": {"test": [{"name": test_name}]},
+            "metrics": [{"metric": {"_target_": f"{__name__}.BadOutputMetric"}}],
+        }
+    )
+
+    with pytest.raises(ValueError, match="number"):
         measure(cfg)
