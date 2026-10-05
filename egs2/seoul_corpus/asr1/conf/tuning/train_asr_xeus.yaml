@@ -88,17 +88,9 @@ model_conf:
 seed: 2022
 log_interval: 200
 num_att_plot: 0
-# num_workers is 0 on purpose.  This venv is CPython 3.14, where the default
-# multiprocessing start method on Linux is forkserver rather than fork, and
-# espnet2/iterators/sequence_iter_factory.py builds its DataLoader without
-# passing multiprocessing_context, so worker startup goes through a forkserver.
-# On this filesystem that deadlocks: the trainer blocks in pipe_write sending
-# the worker payload (syscall 1 on the forkserver pipe) while the forkserver
-# child sits in cl_sync_io_wait on Lustre, no worker is ever created, and the
-# GPU stays at 0% -- measured at 0.1% mean over 361 samples across ten minutes
-# of a "running" epoch.  With 0 the loading happens inline in the trainer, which
-# the benchmark puts at 473 ms/batch against 1163 ms/step of forward.
-num_workers: 0   # 4 hung before the first forward: the trainer sat in pipe_write (a DataLoader worker pipe) with the GPU at 0% and only the frozen weights resident.  2 is what every run that worked on this data used.
+# 4 can hang before the first forward on a filesystem where DataLoader
+# workers start through a forkserver; set 0 there.
+num_workers: 4
 sort_in_batch: descending
 sort_batch: descending
 batch_type: numel

@@ -13,28 +13,13 @@ asr_config=conf/tuning/train_asr_xeus.yaml
 lm_config=conf/train_lm.yaml
 inference_config=conf/decode_asr.yaml
 
-# Both configs put a frozen SSL model in front of the encoder, and the
-# global_mvn statistics asr.sh collects are log-mel statistics -- meaningless
-# for those features.  See espnet/espnet#4006.  The config is read rather than
-# matched on its name, so renaming one cannot silently normalise SSL features
-# with log-mel statistics; asr_config may also arrive on the command line, which
-# is appended after these defaults, so look there too.
-_asr_config="${asr_config}"
-_prev=
-for _arg in "$@"; do
-    [ "${_prev}" = --asr_config ] && _asr_config="${_arg}"
-    _prev="${_arg}"
-done
-if grep -qE '^frontend:[[:space:]]*(s3prl|espnet_ssl|huggingface)' "${_asr_config}"; then
-    feats_normalize=utt_mvn
-else
-    feats_normalize=global_mvn
-fi
-
 # Use "--local_data_opts '--tier utt.prono.'" to train on the pronounced
 # (colloquial) transcription instead of the orthographic one.
 local_data_opts=""
 
+# Both shipped configs use an SSL frontend, and the global_mvn statistics
+# asr.sh would collect are log-mel statistics (espnet/espnet#4006), hence
+# --feats_normalize utt_mvn.
 ./asr.sh \
     --lang ko \
     --audio_format flac.ark \
@@ -42,7 +27,7 @@ local_data_opts=""
     --bpe_nlsyms data/nlsyms.txt \
     --nlsyms_txt data/nlsyms.txt \
     --use_lm false \
-    --feats_normalize "${feats_normalize}" \
+    --feats_normalize utt_mvn \
     --min_wav_duration 1.0 \
     --max_wav_duration 30 \
     --local_data_opts "${local_data_opts}" \

@@ -288,6 +288,11 @@ def parse_recording_id(rec_id):
 
 
 def get_parser():
+    """Build the command-line parser.
+
+    Returns:
+        The configured ``argparse.ArgumentParser``.
+    """
     parser = argparse.ArgumentParser(
         description="Prepare Kaldi data directories for the Seoul Corpus",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
@@ -326,6 +331,7 @@ def get_parser():
 
 
 def main():
+    """Write the Kaldi data directory for one split."""
     args = get_parser().parse_args()
     if args.print_special_tags:
         print("\n".join(SPECIAL_TAGS))
