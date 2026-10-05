@@ -1,9 +1,9 @@
 """Tests for the LibriTTS recipe's builder (resampling) and dataset adapter."""
 
+import logging
 from pathlib import Path
 
 import numpy as np
-import pytest
 import soundfile as sf
 from omegaconf import OmegaConf
 
@@ -126,30 +126,45 @@ def test_dataset_reads_resampled_audio(tmp_path: Path) -> None:
     assert str(sample["utt_id"]) == "103_203_000001_000000"
 
 
-def test_dataset_rejects_wrong_sample_rate(tmp_path: Path) -> None:
-    """A manifest pointing at the 24 kHz originals must not feed the model."""
+def test_dataset_resamples_mismatched_audio_with_warning(
+    tmp_path: Path, caplog
+) -> None:
+    """A manifest still pointing at the 24 kHz originals is resampled on the fly.
+
+    Same semantics as the F5-TTS LibriTTS dataset: ``fs`` is a target rate,
+    not an assertion. The warning fires once so the slow path is visible.
+    """
     _make_libritts_tree(tmp_path)
     LibriTTSBuilder().build(recipe_dir=tmp_path)
-    original = next((tmp_path / "downloads").rglob("*.wav"))
+    originals = sorted((tmp_path / "downloads").rglob("*.wav"))[:2]
     manifest = tmp_path / "stale.tsv"
-    manifest.write_text(f"u0\t{original}\thello\t0\n", encoding="utf-8")
-
+    manifest.write_text(
+        "".join(f"u{i}\t{p}\thello\t0\n" for i, p in enumerate(originals)),
+        encoding="utf-8",
+    )
     dataset = LibriTTSDataset(
         "train", recipe_dir=tmp_path, manifest_path=manifest, load_xvector=False
     )
 
-    with pytest.raises(ValueError, match="24000 Hz but this recipe expects 22050"):
-        dataset[0]
+    with caplog.at_level(logging.WARNING):
+        first = dataset[0]["speech"]
+        second = dataset[1]["speech"]
 
-    # Opting into the file's own rate works, so the check is about consistency.
-    tolerant = LibriTTSDataset(
+    assert abs(len(first) - round(0.1 * TARGET_FS)) <= 1
+    assert abs(len(second) - round(0.1 * TARGET_FS)) <= 1
+    assert first.dtype == np.float32
+    warnings = [r for r in caplog.records if "resampling to 22050 Hz" in r.message]
+    assert len(warnings) == 1
+
+    # fs=None keeps each file's own rate, like the F5 dataset's default.
+    native = LibriTTSDataset(
         "train",
         recipe_dir=tmp_path,
         manifest_path=manifest,
         load_xvector=False,
-        fs=SOURCE_FS,
+        fs=None,
     )
-    assert tolerant[0]["speech"].shape == (round(0.1 * SOURCE_FS),)
+    assert native[0]["speech"].shape == (round(0.1 * SOURCE_FS),)
 
 
 def test_template_preprocessor_rate_matches_builder() -> None:

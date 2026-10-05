@@ -68,19 +68,6 @@ marker for every subset yourself (for example
 `touch downloads/LibriTTS/train-clean-100/.complete`); without it the stage
 treats the subset as unfinished and downloads it again.
 
-LibriTTS is published at 24 kHz, but this recipe trains at 22.05 kHz like the
-espnet2 LibriTTS VITS recipe (`run.sh --fs 22050`). The same stage therefore
-writes a resampled PCM_16 copy of every wav under `data/wav/` (about 90 GB
-for the full corpus) and points the manifests at it; the preprocessor,
-`mel_loss_params.fs` and `tts_conf.sampling_rate` all assume that rate, and
-the dataset refuses a wav at any other rate. Resampling ~375k files is slow
-in one process, so set `create_dataset.num_workers` in `conf/training.yaml`
-on a multi-core node. A checkout built before this change has manifests that
-point at the originals and no `data/wav/.complete` marker, so `create_dataset`
-rebuilds it automatically; re-run `remove_long_short` afterwards because the
-filtered manifests also carry wav paths. The x-vector `.pt` files are keyed
-by utterance id and were extracted at 16 kHz internally, so they can stay.
-
 ## Speaker embeddings
 
 This model was trained against SpeechBrain ECAPA-TDNN embeddings, so
