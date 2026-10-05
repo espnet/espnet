@@ -207,7 +207,7 @@ def test_the_infer_stage_provider_builds_through_the_same_function(monkeypatch):
 
     import espnet3.systems.base.inference_provider as provider_mod
 
-    monkeypatch.setattr(provider_mod, "build_model", fake)
+    monkeypatch.setattr(provider_mod, "instantiate_model", fake)
     cfg = OmegaConf.create({"device": "cpu", "model": {"_target_": "x.Y"}})
     assert InferenceProvider.build_model(cfg) == "built"
     assert seen["device"] == "cpu"
@@ -344,3 +344,24 @@ def test_load_follows_an_alias_and_names_a_missing_system(tmp_path, monkeypatch)
     _install_fake_system(monkeypatch, "blank", None)
     with pytest.raises(ImportError, match="defines no Inference"):
         load(_pack(tmp_path / "c", system="blank"))
+
+
+class DataOnlyProvider(InferenceProvider):
+    """A recipe provider that changes only the dataset, as most will."""
+
+    @staticmethod
+    def build_dataset(config):
+        return []
+
+
+def test_a_provider_that_only_builds_the_dataset_builds_the_model_once(tmp_path):
+    """No loop: the inherited build_model instantiates, it does not dispatch."""
+    config = OmegaConf.create(
+        {
+            "recipe_dir": str(tmp_path),
+            "provider": {"_target_": f"{__name__}.DataOnlyProvider"},
+            "model": {"_target_": f"{__name__}.Backend", "prefix": "p:"},
+        }
+    )
+    for model in (build_model(config), DataOnlyProvider.build_model(config)):
+        assert isinstance(model, Backend) and model.prefix == "p:"

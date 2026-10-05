@@ -223,7 +223,10 @@ def build_model(config: DictConfig, *, device: Optional[str] = None) -> Any:
     arguments; while it builds, the working directory is ``recipe_dir`` so
     the bare relative paths ESPnet2 training configs carry resolve from the
     bundle or recipe root. A config naming a provider other than the
-    default has that provider's ``build_model`` build the model instead.
+    default has that provider's ``build_model`` build the model instead;
+    a provider that does not override it inherits the default one, which
+    calls :func:`instantiate_model` rather than this function, so there is
+    no loop back here.
 
     Args:
         config: An inference config with ``model`` (and perhaps
@@ -250,6 +253,31 @@ def build_model(config: DictConfig, *, device: Optional[str] = None) -> Any:
     if provider_target and provider_target != _DEFAULT_PROVIDER:
         # a bundle may ship its own way of building, such as a test's stub
         return get_class(provider_target).build_model(config)
+    return instantiate_model(config, device=device)
+
+
+def instantiate_model(config: DictConfig, *, device: str) -> Any:
+    """Instantiate ``config.model`` on ``device``, from ``recipe_dir``.
+
+    What :func:`build_model` does once it has decided no provider of the
+    config's own builds the model, and what the default provider's
+    ``build_model`` calls: it never consults ``config.provider``, so a
+    provider subclass that overrides only ``build_dataset`` builds its
+    model here instead of being asked again.
+
+    Args:
+        config: An inference config with ``model`` (and perhaps
+            ``recipe_dir``).
+        device: Where to build, such as ``"cpu"`` or ``"cuda:0"``.
+
+    Returns:
+        The instantiated model.
+
+    Raises:
+        ValueError: If the config has no ``model``.
+    """
+    if isinstance(config, Mapping) and not isinstance(config, DictConfig):
+        config = OmegaConf.create(dict(config))
     if config.get("model", None) is None:
         raise ValueError("inference config has no `model` to build")
     logger.info(
