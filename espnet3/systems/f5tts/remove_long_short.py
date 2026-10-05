@@ -20,21 +20,9 @@ from omegaconf import DictConfig
 from espnet3.parallel.base_runner import BaseRunner
 from espnet3.parallel.env_provider import EnvironmentProvider
 from espnet3.parallel.parallel import set_parallel
+from espnet3.systems.base.system import BaseSystem
 
 logger = logging.getLogger(__name__)
-
-
-def _get_required_config(config, key: str, error_message: str):
-    """Return ``config[key]``, raising ``RuntimeError`` when it is missing.
-
-    Same contract as ``BaseSystem._get_required_config``, kept here so the
-    stage function can be called without a system instance. A ``None``
-    config and a ``None`` value both count as missing.
-    """
-    value = config.get(key, None) if config is not None else None
-    if value is None:
-        raise RuntimeError(error_message)
-    return value
 
 
 def load_manifest_entries(
@@ -435,13 +423,13 @@ def remove_long_short(config: DictConfig) -> None:
         results from an earlier run are never reused, because the keep/drop
         decisions depend on the duration bounds.
     """
-    remove_long_short_config = _get_required_config(
+    remove_long_short_config = BaseSystem._get_required_config(
         config,
         "remove_long_short",
         "training_config.remove_long_short must be set for remove_long_short stage.",
     )
     save_dir = Path(
-        _get_required_config(
+        BaseSystem._get_required_config(
             remove_long_short_config,
             "save_path",
             "training_config.remove_long_short.save_path must be set "
@@ -453,10 +441,10 @@ def remove_long_short(config: DictConfig) -> None:
         "training_config.remove_long_short.min_wav_duration and "
         "max_wav_duration must be set for remove_long_short stage."
     )
-    min_duration = _get_required_config(
+    min_duration = BaseSystem._get_required_config(
         remove_long_short_config, "min_wav_duration", duration_error
     )
-    max_duration = _get_required_config(
+    max_duration = BaseSystem._get_required_config(
         remove_long_short_config, "max_wav_duration", duration_error
     )
 

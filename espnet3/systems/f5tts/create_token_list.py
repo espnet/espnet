@@ -16,21 +16,9 @@ from omegaconf import DictConfig, OmegaConf
 
 from espnet2.text.build_tokenizer import build_tokenizer
 from espnet2.text.cleaner import TextCleaner
+from espnet3.systems.base.system import BaseSystem
 
 logger = logging.getLogger(__name__)
-
-
-def _get_required_config(config, key: str, error_message: str):
-    """Return ``config[key]``, raising ``RuntimeError`` when it is missing.
-
-    Same contract as ``BaseSystem._get_required_config``, kept here so the
-    stage function can be called without a system instance. A ``None``
-    config and a ``None`` value both count as missing.
-    """
-    value = config.get(key, None) if config is not None else None
-    if value is None:
-        raise RuntimeError(error_message)
-    return value
 
 
 def _iter_transcripts(manifest_path: Union[str, Path]) -> Iterator[str]:
@@ -128,20 +116,20 @@ def create_token_list(config: DictConfig) -> None:
         fewer than three columns or an empty transcript contribute no tokens;
         they are the rows ``remove_long_short`` drops.
     """
-    create_token_list_config = _get_required_config(
+    create_token_list_config = BaseSystem._get_required_config(
         config,
         "create_token_list",
         "training_config.create_token_list must be set for create_token_list stage.",
     )
     save_dir = Path(
-        _get_required_config(
+        BaseSystem._get_required_config(
             create_token_list_config,
             "save_path",
             "training_config.create_token_list.save_path must be set "
             "for create_token_list stage.",
         )
     )
-    filename = _get_required_config(
+    filename = BaseSystem._get_required_config(
         create_token_list_config,
         "filename",
         "training_config.create_token_list.filename must be set "
