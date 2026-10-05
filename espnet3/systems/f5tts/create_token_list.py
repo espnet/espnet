@@ -1,9 +1,9 @@
 """The ``create_token_list`` stage: build a token list from a manifest.
 
-A system exposes this stage through a thin method that calls
-:func:`create_token_list` with its training config. The stage is not tied
-to one system: any recipe whose ``create_dataset`` stage writes TSV
-manifests with the transcript in the third column can use it.
+``F5TTSSystem.create_token_list`` is a thin method that calls
+:func:`create_token_list` with the training config. The stage reads the TSV
+manifest an F5-TTS recipe's ``create_dataset`` stage writes, with the
+transcript in the third column.
 """
 
 import logging
@@ -16,9 +16,20 @@ from omegaconf import DictConfig, OmegaConf
 
 from espnet2.text.build_tokenizer import build_tokenizer
 from espnet2.text.cleaner import TextCleaner
-from espnet3.utils.config_utils import get_required_config
 
 logger = logging.getLogger(__name__)
+
+
+def _get_required_config(config, key: str, error_message: str):
+    """Return ``config[key]``, raising ``RuntimeError`` when it is missing.
+
+    Same contract as ``BaseSystem._get_required_config``, kept here so the
+    stage function can be called without a system instance.
+    """
+    value = config.get(key, None) if config is not None else None
+    if value is None:
+        raise RuntimeError(error_message)
+    return value
 
 
 def _iter_transcripts(manifest_path: Union[str, Path]) -> Iterator[str]:
@@ -79,7 +90,7 @@ def create_token_list(config: DictConfig) -> None:
             ``vocabulary_size`` is smaller than the number of ``add_symbol``
             entries, or a special symbol is not written ``"<symbol>:<index>"``.
 
-    Example:
+    Examples:
         .. code-block:: yaml
 
             create_token_list:
@@ -106,20 +117,20 @@ def create_token_list(config: DictConfig) -> None:
 
             >>> create_token_list(training_config)  # doctest: +SKIP
     """
-    create_token_list_config = get_required_config(
+    create_token_list_config = _get_required_config(
         config,
         "create_token_list",
         "training_config.create_token_list must be set for create_token_list stage.",
     )
     save_dir = Path(
-        get_required_config(
+        _get_required_config(
             create_token_list_config,
             "save_path",
             "training_config.create_token_list.save_path must be set "
             "for create_token_list stage.",
         )
     )
-    filename = get_required_config(
+    filename = _get_required_config(
         create_token_list_config,
         "filename",
         "training_config.create_token_list.filename must be set "

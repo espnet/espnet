@@ -15,7 +15,6 @@ from espnet3.utils.config_utils import (
 from espnet3.utils.config_utils import config_path as config_path_resolver
 from espnet3.utils.config_utils import (
     convert_to_dict,
-    get_required_config,
     load_and_merge_config,
     load_config_with_defaults,
     load_default_config,
@@ -865,20 +864,3 @@ def test_convert_to_dict_returns_a_plain_dict_unchanged():
 def test_convert_to_dict_passes_non_omegaconf_values_through(value):
     """`token_list` reaches the helper as a path string or a plain list."""
     assert convert_to_dict(value) is value
-
-
-def test_get_required_config_returns_the_value():
-    config = OmegaConf.create({"save_path": "data/out", "cutoff": 0})
-
-    assert get_required_config(config, "save_path", "message") == "data/out"
-    # A falsy value is still a value; only a missing or null field is refused.
-    assert get_required_config(config, "cutoff", "message") == 0
-
-
-@pytest.mark.parametrize(
-    "config",
-    [OmegaConf.create({"other": 1}), OmegaConf.create({"save_path": None}), None],
-)
-def test_get_required_config_raises_when_the_field_is_missing(config):
-    with pytest.raises(RuntimeError, match="save_path must be set"):
-        get_required_config(config, "save_path", "save_path must be set")

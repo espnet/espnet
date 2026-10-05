@@ -1,11 +1,9 @@
 """The ``remove_long_short`` stage: filter manifests by audio duration.
 
-A system exposes this stage through a thin method that calls
-:func:`remove_long_short` with its training config, the same way
-``BaseSystem.collect_stats`` calls
-:func:`espnet3.components.data.collect_stats.collect_stats`. The stage is
-not tied to one system: any recipe whose ``create_dataset`` stage writes
-TSV manifests can use it.
+``F5TTSSystem.remove_long_short`` is a thin method that calls
+:func:`remove_long_short` with the training config. The stage reads the TSV
+manifests an F5-TTS recipe's ``create_dataset`` stage writes, one row per
+utterance: ``utt_id``, ``wav_path``, ``text``, then any further columns.
 
 Durations are read from audio headers in parallel through the
 :class:`RemoveLongShortProvider` / :class:`RemoveLongShortRunner` pair.
@@ -22,16 +20,25 @@ from omegaconf import DictConfig
 from espnet3.parallel.base_runner import BaseRunner
 from espnet3.parallel.env_provider import EnvironmentProvider
 from espnet3.parallel.parallel import set_parallel
-from espnet3.utils.config_utils import get_required_config
 
 logger = logging.getLogger(__name__)
 
-ManifestEntry = Tuple[str, str, str]
+
+def _get_required_config(config, key: str, error_message: str):
+    """Return ``config[key]``, raising ``RuntimeError`` when it is missing.
+
+    Same contract as ``BaseSystem._get_required_config``, kept here so the
+    stage function can be called without a system instance.
+    """
+    value = config.get(key, None) if config is not None else None
+    if value is None:
+        raise RuntimeError(error_message)
+    return value
 
 
 def load_manifest_entries(
     manifest_path: Union[str, Path],
-) -> Tuple[List[ManifestEntry], int]:
+) -> Tuple[List[Tuple[str, str, str]], int]:
     r"""Parse a TSV manifest into its usable rows.
 
     Each line is expected to be ``utt_id\twav_path\ttext\tspeaker_id``; any
@@ -60,14 +67,14 @@ def load_manifest_entries(
         ('103_1241_000000_000001', '/corpus/103/a.wav',
          '103_1241_000000_000001\t/corpus/103/a.wav\thello\t103\n')
     """
-    entries: List[ManifestEntry] = []
+    entries: List[Tuple[str, str, str]] = []
     num_dropped_empty = 0
     with open(manifest_path, "r", encoding="utf-8") as manifest_file:
         for line in manifest_file:
-            stripped = line.rstrip("\n")
-            if not stripped:
+            stripped_line = line.rstrip("\n")
+            if not stripped_line:
                 continue
-            parts = stripped.split("\t")
+            parts = stripped_line.split("\t")
             if len(parts) < 3 or parts[2].strip() == "":
                 num_dropped_empty += 1
                 continue
@@ -131,10 +138,10 @@ class RemoveLongShortProvider(EnvironmentProvider):
         """
         params = self.params
 
-        def setup() -> Dict[str, Any]:
+        def build_worker_env() -> Dict[str, Any]:
             return RemoveLongShortProvider._build_env(params)
 
-        return setup
+        return build_worker_env
 
     @staticmethod
     def _build_env(params: Dict[str, Any]) -> Dict[str, Any]:
@@ -185,7 +192,7 @@ class RemoveLongShortRunner(BaseRunner):
     @staticmethod
     def forward(
         idx: Union[int, Iterable[int]],
-        entries: List[ManifestEntry],
+        entries: List[Tuple[str, str, str]],
         min_duration: float,
         max_duration: float,
         **env,
@@ -205,20 +212,20 @@ class RemoveLongShortRunner(BaseRunner):
             ``{"idx": int, "utt_id": str, "keep": bool}``.
         """
         if isinstance(idx, int):
-            return RemoveLongShortRunner._check_duration(
+            return RemoveLongShortRunner._process_one(
                 idx, entries, min_duration, max_duration
             )
         return [
-            RemoveLongShortRunner._check_duration(
+            RemoveLongShortRunner._process_one(
                 one_idx, entries, min_duration, max_duration
             )
             for one_idx in idx
         ]
 
     @staticmethod
-    def _check_duration(
+    def _process_one(
         idx: int,
-        entries: List[ManifestEntry],
+        entries: List[Tuple[str, str, str]],
         min_duration: float,
         max_duration: float,
     ) -> Dict[str, Any]:
@@ -301,7 +308,7 @@ def remove_long_short(config: DictConfig) -> None:
         RuntimeError: If the ``remove_long_short`` block, ``save_path`` or a
             duration bound is missing, or a split's manifest does not exist.
 
-    Example:
+    Examples:
         .. code-block:: yaml
 
             remove_long_short:
@@ -316,13 +323,13 @@ def remove_long_short(config: DictConfig) -> None:
 
             >>> remove_long_short(training_config)  # doctest: +SKIP
     """
-    remove_long_short_config = get_required_config(
+    remove_long_short_config = _get_required_config(
         config,
         "remove_long_short",
         "training_config.remove_long_short must be set for remove_long_short stage.",
     )
-    save_path = Path(
-        get_required_config(
+    save_dir = Path(
+        _get_required_config(
             remove_long_short_config,
             "save_path",
             "training_config.remove_long_short.save_path must be set "
@@ -334,10 +341,10 @@ def remove_long_short(config: DictConfig) -> None:
         "training_config.remove_long_short.min_wav_duration and "
         "max_wav_duration must be set for remove_long_short stage."
     )
-    min_duration = get_required_config(
+    min_duration = _get_required_config(
         remove_long_short_config, "min_wav_duration", duration_error
     )
-    max_duration = get_required_config(
+    max_duration = _get_required_config(
         remove_long_short_config, "max_wav_duration", duration_error
     )
 
@@ -352,7 +359,7 @@ def remove_long_short(config: DictConfig) -> None:
     manifest_paths = remove_long_short_config.get("manifest_paths", {})
     batch_size = remove_long_short_config.get("batch_size", None)
 
-    save_path.mkdir(parents=True, exist_ok=True)
+    save_dir.mkdir(parents=True, exist_ok=True)
     logger.info(
         "Removing long-short utterances with min_duration=%ss, max_duration=%ss",
         min_duration,
@@ -366,7 +373,7 @@ def remove_long_short(config: DictConfig) -> None:
         if manifest_path is None:
             manifest_path = f"data/manifest/{split}.tsv"
         manifest_path = Path(manifest_path).resolve()
-        filtered_manifest_path = save_path / manifest_path.name
+        filtered_manifest_path = save_dir / manifest_path.name
         if not manifest_path.exists():
             raise RuntimeError(
                 f"Manifest file not found for split '{split}': "
@@ -392,7 +399,7 @@ def remove_long_short(config: DictConfig) -> None:
         runner = RemoveLongShortRunner(
             provider=provider,
             batch_size=batch_size,
-            output_dir=save_path / "shards",
+            output_dir=save_dir / "shards",
             shard_subdir=split,
             resume=False,
         )
@@ -426,5 +433,5 @@ def remove_long_short(config: DictConfig) -> None:
 
     logger.info(
         "Long-short utterance removal completed. Filtered manifests saved to: %s",
-        save_path,
+        save_dir,
     )

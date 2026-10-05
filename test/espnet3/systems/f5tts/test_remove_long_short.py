@@ -7,9 +7,9 @@ import pytest
 import soundfile as sf
 from omegaconf import OmegaConf
 
-import espnet3.components.data.remove_long_short as stage_module
 import espnet3.parallel.parallel as parallel_module
-from espnet3.components.data.remove_long_short import (
+import espnet3.systems.f5tts.remove_long_short as stage_module
+from espnet3.systems.f5tts.remove_long_short import (
     RemoveLongShortProvider,
     RemoveLongShortRunner,
     load_manifest_entries,
@@ -88,7 +88,7 @@ def manifest(tmp_path):
     return manifest_path
 
 
-def _params(manifest_path, min_duration=1.0, max_duration=4.0):
+def _build_params(manifest_path, min_duration=1.0, max_duration=4.0):
     return {
         "manifest_path": str(manifest_path),
         "min_duration": min_duration,
@@ -96,9 +96,9 @@ def _params(manifest_path, min_duration=1.0, max_duration=4.0):
     }
 
 
-def _runner(manifest_path, tmp_path, **kwargs):
+def _build_runner(manifest_path, tmp_path, **kwargs):
     provider = RemoveLongShortProvider(
-        config=OmegaConf.create({}), params=_params(manifest_path)
+        config=OmegaConf.create({}), params=_build_params(manifest_path)
     )
     return RemoveLongShortRunner(
         provider=provider,
@@ -127,7 +127,7 @@ def test_load_manifest_entries_filters_empty_text(manifest):
 
 def test_build_env_local_returns_entries_and_bounds(manifest):
     provider = RemoveLongShortProvider(
-        config=OmegaConf.create({}), params=_params(manifest)
+        config=OmegaConf.create({}), params=_build_params(manifest)
     )
     env = provider.build_env_local()
 
@@ -139,7 +139,7 @@ def test_build_env_local_returns_entries_and_bounds(manifest):
 
 def test_build_worker_setup_fn_matches_local(manifest):
     provider = RemoveLongShortProvider(
-        config=OmegaConf.create({}), params=_params(manifest)
+        config=OmegaConf.create({}), params=_build_params(manifest)
     )
     setup = provider.build_worker_setup_fn()
     assert setup() == provider.build_env_local()
@@ -190,7 +190,7 @@ def test_forward_boundary_durations_are_dropped(tmp_path):
 
 
 def test_runner_call_end_to_end(manifest, tmp_path):
-    runner = _runner(manifest, tmp_path)
+    runner = _build_runner(manifest, tmp_path)
     records = runner(range(3))
 
     assert [record["idx"] for record in records] == [0, 1, 2]
@@ -210,13 +210,13 @@ def test_runner_call_end_to_end(manifest, tmp_path):
 
 
 def test_runner_call_with_batch_size(manifest, tmp_path):
-    records = _runner(manifest, tmp_path, batch_size=2)(range(3))
+    records = _build_runner(manifest, tmp_path, batch_size=2)(range(3))
     assert [record["idx"] for record in records] == [0, 1, 2]
     assert [record["keep"] for record in records] == [False, True, False]
 
 
 def test_merge_restores_index_order(manifest, tmp_path):
-    runner = _runner(manifest, tmp_path)
+    runner = _build_runner(manifest, tmp_path)
     shard_a = tmp_path / "a"
     shard_b = tmp_path / "b"
     shard_empty = tmp_path / "c"  # no results.jsonl: skipped by merge
@@ -282,7 +282,7 @@ def duration_manifests(tmp_path):
     return manifests
 
 
-def _stage_config(tmp_path, manifests, **overrides):
+def _build_stage_config(tmp_path, manifests, **overrides):
     remove_long_short_config = {
         "save_path": str(tmp_path / "filtered"),
         "min_wav_duration": 1.0,
@@ -299,18 +299,20 @@ def _stage_config(tmp_path, manifests, **overrides):
     )
 
 
-def _kept_ids(filtered_manifest_path):
+def _read_kept_ids(filtered_manifest_path):
     lines = filtered_manifest_path.read_text().splitlines()
     return [line.split("\t")[0] for line in lines]
 
 
 def test_remove_long_short_filters_manifest(tmp_path, duration_manifests):
-    remove_long_short(_stage_config(tmp_path, duration_manifests))
+    remove_long_short(_build_stage_config(tmp_path, duration_manifests))
 
     for split in ("train", "valid"):
         # Only the 2s utterance is inside (1.0, 4.0); the empty-text row and
         # the out-of-range wavs are gone.
-        assert _kept_ids(tmp_path / "filtered" / f"{split}.tsv") == [f"{split}_mid"]
+        assert _read_kept_ids(tmp_path / "filtered" / f"{split}.tsv") == [
+            f"{split}_mid"
+        ]
     # Kept rows are written back unchanged, extra columns included.
     filtered = (tmp_path / "filtered" / "train.tsv").read_text()
     assert filtered.endswith("\thello\tspk1\n")
@@ -318,9 +320,9 @@ def test_remove_long_short_filters_manifest(tmp_path, duration_manifests):
 
 def test_remove_long_short_accepts_single_split_string(tmp_path, duration_manifests):
     manifests = {"train": duration_manifests["train"]}
-    remove_long_short(_stage_config(tmp_path, manifests, splits="train"))
+    remove_long_short(_build_stage_config(tmp_path, manifests, splits="train"))
 
-    assert _kept_ids(tmp_path / "filtered" / "train.tsv") == ["train_mid"]
+    assert _read_kept_ids(tmp_path / "filtered" / "train.tsv") == ["train_mid"]
 
 
 def test_remove_long_short_requires_config(tmp_path):
@@ -347,7 +349,7 @@ def test_remove_long_short_requires_config(tmp_path):
 def test_remove_long_short_missing_manifest(tmp_path):
     manifests = {"train": str(tmp_path / "missing.tsv")}
     with pytest.raises(RuntimeError, match="Manifest file not found"):
-        remove_long_short(_stage_config(tmp_path, manifests))
+        remove_long_short(_build_stage_config(tmp_path, manifests))
 
 
 def test_remove_long_short_sets_parallel(tmp_path, duration_manifests, monkeypatch):
@@ -357,14 +359,14 @@ def test_remove_long_short_sets_parallel(tmp_path, duration_manifests, monkeypat
     )
 
     manifests = {"train": duration_manifests["train"]}
-    config = _stage_config(tmp_path, manifests, splits=["train"])
+    config = _build_stage_config(tmp_path, manifests, splits=["train"])
     config.parallel = OmegaConf.create({"env": "local"})
     remove_long_short(config)
 
     assert calls == [config.parallel]
 
 
-def _default_location_config(tmp_path, monkeypatch, **overrides):
+def _build_default_location_config(tmp_path, monkeypatch, **overrides):
     """Config without manifest_paths, run from a cwd holding data/manifest."""
     monkeypatch.chdir(tmp_path)
     manifest_dir = tmp_path / "data" / "manifest"
@@ -390,13 +392,13 @@ def _default_location_config(tmp_path, monkeypatch, **overrides):
 
 
 def test_remove_long_short_default_manifest_location(tmp_path, monkeypatch):
-    remove_long_short(_default_location_config(tmp_path, monkeypatch))
+    remove_long_short(_build_default_location_config(tmp_path, monkeypatch))
 
-    assert _kept_ids(tmp_path / "filtered" / "train.tsv") == ["utt_mid"]
+    assert _read_kept_ids(tmp_path / "filtered" / "train.tsv") == ["utt_mid"]
 
 
 def test_remove_long_short_tolerates_null_manifest_paths(tmp_path, monkeypatch):
-    config = _default_location_config(tmp_path, monkeypatch, manifest_paths=None)
+    config = _build_default_location_config(tmp_path, monkeypatch, manifest_paths=None)
     remove_long_short(config)
 
-    assert _kept_ids(tmp_path / "filtered" / "train.tsv") == ["utt_mid"]
+    assert _read_kept_ids(tmp_path / "filtered" / "train.tsv") == ["utt_mid"]

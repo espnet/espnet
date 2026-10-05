@@ -43,7 +43,7 @@ def no_leftover_parallel_config(monkeypatch):
     monkeypatch.setattr(parallel_module, "parallel_config", None)
 
 
-def _training_config(tmp_path):
+def _build_training_config(tmp_path):
     return OmegaConf.create(
         {
             "exp_dir": str(tmp_path / "exp"),
@@ -54,12 +54,14 @@ def _training_config(tmp_path):
 
 
 @pytest.mark.parametrize("stage", STAGES)
-def test_stage_runs_its_function_on_the_training_config(tmp_path, monkeypatch, stage):
+def test_stage_runs_its_function_on_the_build_training_config(
+    tmp_path, monkeypatch, stage
+):
     calls = []
     monkeypatch.setattr(
         system_module, stage, lambda config: calls.append(config) or "done"
     )
-    system = F5TTSSystem(training_config=_training_config(tmp_path))
+    system = F5TTSSystem(training_config=_build_training_config(tmp_path))
 
     assert getattr(system, stage)() == "done"
     assert calls == [system.training_config]
@@ -68,7 +70,7 @@ def test_stage_runs_its_function_on_the_training_config(tmp_path, monkeypatch, s
 @pytest.mark.parametrize("stage", STAGES)
 def test_stage_rejects_stage_args(tmp_path, monkeypatch, stage):
     monkeypatch.setattr(system_module, stage, lambda config: None)
-    system = F5TTSSystem(training_config=_training_config(tmp_path))
+    system = F5TTSSystem(training_config=_build_training_config(tmp_path))
 
     with pytest.raises(TypeError):
         getattr(system, stage)("unexpected")
@@ -77,7 +79,7 @@ def test_stage_rejects_stage_args(tmp_path, monkeypatch, stage):
 
 
 def test_stage_logs_go_under_the_stage_save_path(tmp_path):
-    system = F5TTSSystem(training_config=_training_config(tmp_path))
+    system = F5TTSSystem(training_config=_build_training_config(tmp_path))
 
     assert system.stage_log_dirs["remove_long_short"] == tmp_path / "filtered"
     assert system.stage_log_dirs["create_token_list"] == tmp_path / "tokens"
@@ -85,7 +87,7 @@ def test_stage_logs_go_under_the_stage_save_path(tmp_path):
 
 def test_stage_log_mapping_overrides_are_merged(tmp_path):
     system = F5TTSSystem(
-        training_config=_training_config(tmp_path),
+        training_config=_build_training_config(tmp_path),
         stage_log_mapping={
             "create_token_list": "training_config.exp_dir",
             "export_onnx": "training_config.exp_dir",
@@ -99,7 +101,7 @@ def test_stage_log_mapping_overrides_are_merged(tmp_path):
 
 def test_all_stage_configs_are_stored(tmp_path):
     configs = {
-        "training_config": _training_config(tmp_path),
+        "training_config": _build_training_config(tmp_path),
         "inference_config": OmegaConf.create({"inference_dir": str(tmp_path)}),
         "metrics_config": OmegaConf.create({"metrics": []}),
         "publication_config": OmegaConf.create({"pack_model": {}}),

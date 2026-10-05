@@ -5,7 +5,7 @@ import logging
 import pytest
 from omegaconf import OmegaConf
 
-from espnet3.components.data.create_token_list import create_token_list
+from espnet3.systems.f5tts.create_token_list import create_token_list
 
 # ===============================================================
 # Test Case Summary
@@ -43,7 +43,7 @@ def _write_manifest(tmp_path, name, rows):
     return manifest_path
 
 
-def _stage_config(tmp_path, manifest_path, **overrides):
+def _build_stage_config(tmp_path, manifest_path, **overrides):
     create_token_list_config = {
         "save_path": str(tmp_path / "tokens"),
         "filename": "tokens.txt",
@@ -67,7 +67,7 @@ def test_create_token_list_char_tokens(tmp_path):
     manifest = _write_manifest(
         tmp_path, "train.tsv", ["u1\t/x.wav\taab\tspk1\n", "u2\t/y.wav\tab\tspk1\n"]
     )
-    config = _stage_config(
+    config = _build_stage_config(
         tmp_path,
         manifest,
         add_symbol=["<blank>:0", "<unk>:1", "<sos/eos>:-1"],
@@ -85,7 +85,7 @@ def test_create_token_list_custom_vocab_builder(tmp_path):
     # builtins.sorted acts as builder(texts) -> ordered token list, fully
     # replacing the frequency-count construction.
     create_token_list(
-        _stage_config(tmp_path, manifest, vocab_builder="builtins.sorted")
+        _build_stage_config(tmp_path, manifest, vocab_builder="builtins.sorted")
     )
 
     assert _read_tokens(tmp_path) == ["alpha", "beta"]
@@ -97,7 +97,7 @@ def test_create_token_list_vocab_builder_conf(tmp_path):
         "train.tsv",
         ["u1\t/x.wav\tbeta\tspk1\n", "u2\t/y.wav\talpha\tspk1\n"],
     )
-    config = _stage_config(
+    config = _build_stage_config(
         tmp_path,
         manifest,
         vocab_builder="builtins.sorted",
@@ -110,7 +110,7 @@ def test_create_token_list_vocab_builder_conf(tmp_path):
 
 def test_create_token_list_vocab_builder_gets_cleaned_text(tmp_path):
     manifest = _write_manifest(tmp_path, "train.tsv", ["u1\t/x.wav\tHello\tspk1\n"])
-    config = _stage_config(
+    config = _build_stage_config(
         tmp_path, manifest, vocab_builder="builtins.sorted", cleaner="tacotron"
     )
     create_token_list(config)
@@ -139,14 +139,14 @@ def test_create_token_list_requires_config(tmp_path):
     with pytest.raises(RuntimeError, match="filename must be set"):
         create_token_list(config)
 
-    config = _stage_config(tmp_path, tmp_path / "missing.tsv")
+    config = _build_stage_config(tmp_path, tmp_path / "missing.tsv")
     with pytest.raises(RuntimeError, match="Manifest file not found"):
         create_token_list(config)
 
 
 def test_create_token_list_bad_add_symbol(tmp_path):
     manifest = _write_manifest(tmp_path, "train.tsv", ["u1\t/x.wav\tab\tspk1\n"])
-    config = _stage_config(tmp_path, manifest, add_symbol=["<blank>"])
+    config = _build_stage_config(tmp_path, manifest, add_symbol=["<blank>"])
     with pytest.raises(RuntimeError, match="Format error"):
         create_token_list(config)
 
@@ -155,13 +155,13 @@ def test_create_token_list_vocabulary_size(tmp_path):
     manifest = _write_manifest(
         tmp_path, "train.tsv", ["u1\t/x.wav\taab\tspk1\n", "u2\t/y.wav\tabc\tspk1\n"]
     )
-    config = _stage_config(
+    config = _build_stage_config(
         tmp_path, manifest, add_symbol=["<blank>:0"], vocabulary_size=2
     )
     create_token_list(config)
     assert _read_tokens(tmp_path) == ["<blank>", "a"]  # top-1 token + the symbol
 
-    config = _stage_config(
+    config = _build_stage_config(
         tmp_path, manifest, add_symbol=["<blank>:0", "<unk>:1"], vocabulary_size=1
     )
     with pytest.raises(RuntimeError, match="vocabulary_size is too small"):
@@ -172,7 +172,7 @@ def test_create_token_list_cutoff(tmp_path):
     manifest = _write_manifest(
         tmp_path, "train.tsv", ["u1\t/x.wav\taab\tspk1\n", "u2\t/y.wav\tabc\tspk1\n"]
     )
-    create_token_list(_stage_config(tmp_path, manifest, cutoff=1))
+    create_token_list(_build_stage_config(tmp_path, manifest, cutoff=1))
 
     # 'a' x3 and 'b' x2 survive; 'c' was seen once, which is not above 1.
     assert _read_tokens(tmp_path) == ["a", "b"]
@@ -182,7 +182,7 @@ def test_create_token_list_warns_on_empty_manifest(tmp_path, caplog):
     manifest = _write_manifest(tmp_path, "train.tsv", ["u1\t/x.wav\t\tspk1\n"])
 
     with caplog.at_level(logging.WARNING):
-        create_token_list(_stage_config(tmp_path, manifest))
+        create_token_list(_build_stage_config(tmp_path, manifest))
 
     assert "manifest contained no tokens" in caplog.text
     assert (tmp_path / "tokens" / "tokens.txt").read_text() == ""
@@ -197,7 +197,7 @@ def test_create_token_list_skips_rows_without_text(tmp_path, vocab_builder):
         ["u1\t/x.wav\tab\tspk1\n", "\n", "u2\t/y.wav\n", "u3\t/z.wav\tab\n"],
     )
     overrides = {"vocab_builder": vocab_builder} if vocab_builder else {}
-    create_token_list(_stage_config(tmp_path, manifest, **overrides))
+    create_token_list(_build_stage_config(tmp_path, manifest, **overrides))
 
     expected = ["ab", "ab"] if vocab_builder else ["a", "b"]
     assert _read_tokens(tmp_path) == expected

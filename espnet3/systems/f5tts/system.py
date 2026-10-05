@@ -10,9 +10,9 @@ import logging
 
 from omegaconf import DictConfig
 
-from espnet3.components.data.create_token_list import create_token_list
-from espnet3.components.data.remove_long_short import remove_long_short
 from espnet3.systems.base.system import BaseSystem
+from espnet3.systems.f5tts.create_token_list import create_token_list
+from espnet3.systems.f5tts.remove_long_short import remove_long_short
 
 logger = logging.getLogger(__name__)
 
@@ -86,7 +86,7 @@ class F5TTSSystem(BaseSystem):
         """Filter the recipe's manifests by audio duration.
 
         Runs the ``remove_long_short`` stage on ``training_config``. See
-        :func:`espnet3.components.data.remove_long_short.remove_long_short`
+        :func:`espnet3.systems.f5tts.remove_long_short.remove_long_short`
         for the ``training_config.remove_long_short`` fields and the files
         written.
 
@@ -103,7 +103,7 @@ class F5TTSSystem(BaseSystem):
         """Build the token list from the training manifest.
 
         Runs the ``create_token_list`` stage on ``training_config``. See
-        :func:`espnet3.components.data.create_token_list.create_token_list`
+        :func:`espnet3.systems.f5tts.create_token_list.create_token_list`
         for the ``training_config.create_token_list`` fields and the file
         written.
 

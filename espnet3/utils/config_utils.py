@@ -577,41 +577,6 @@ def _build_config_path(base_path: Path, entry: str) -> Path:
     return base_path / entry
 
 
-def get_required_config(config: Any, key: str, error_message: str) -> Any:
-    """Return ``config[key]``, raising ``RuntimeError`` when it is missing.
-
-    Stage implementations use this to read a config field they cannot run
-    without, so a misconfigured recipe fails with a message that names the
-    field instead of an ``AttributeError`` partway through the stage.
-
-    Args:
-        config: Dict-like config (e.g. ``DictConfig``) to read from.
-            ``None`` is treated the same as a missing key.
-        key: Field name to extract.
-        error_message: Message for the ``RuntimeError`` raised when the
-            field is absent or ``None``.
-
-    Returns:
-        The value stored under ``key``.
-
-    Raises:
-        RuntimeError: If ``config`` is ``None`` or ``config[key]`` is
-            missing or ``None``.
-
-    Examples:
-        >>> config = OmegaConf.create({"save_path": "data/token_list"})
-        >>> get_required_config(config, "save_path", "save_path must be set")
-        'data/token_list'
-        >>> get_required_config(config, "filename", "filename must be set")
-        Traceback (most recent call last):
-        RuntimeError: filename must be set
-    """
-    value = config.get(key, None) if config is not None else None
-    if value is None:
-        raise RuntimeError(error_message)
-    return value
-
-
 def convert_to_dict(value: Any) -> Any:
     """Return ``value`` with any OmegaConf container turned into plain Python.
 

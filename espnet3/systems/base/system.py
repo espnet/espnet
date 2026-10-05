@@ -15,7 +15,6 @@ from espnet3.publication.demo.packing import upload_demo as _upload_demo
 from espnet3.systems.base.inference import infer
 from espnet3.systems.base.metric import measure
 from espnet3.systems.base.training import collect_stats, train
-from espnet3.utils.config_utils import get_required_config
 from espnet3.utils.publication_utils import pack_model as _pack_model
 from espnet3.utils.publication_utils import upload_model as _upload_model
 
@@ -216,7 +215,10 @@ class BaseSystem:
             RuntimeError: If ``config`` is ``None`` or ``config[key]`` is
                 missing or ``None``.
         """
-        return get_required_config(config, key, error_message)
+        value = config.get(key, None) if config is not None else None
+        if value is None:
+            raise RuntimeError(error_message)
+        return value
 
     # ---------------------------------------------------------
     # Stage stubs (override in subclasses if needed)
