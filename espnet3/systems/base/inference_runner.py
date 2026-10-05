@@ -134,13 +134,10 @@ def _writable(
                 own[key] = {**configured, "sample_rate": value.rate}
             # soundfile writes (samples, channels); Audio keeps channels first
             value = value.array.T if value.array.ndim == 2 else value.array
-        elif (
-            isinstance(value, list)
-            and value
-            and all(isinstance(v, Mapping) for v in value)
-        ):
+        elif isinstance(value, list) and all(isinstance(v, Mapping) for v in value):
             # segments, as the contract shapes them: the writers take no
-            # top-level list, so they become one JSON document
+            # top-level list, so they become one JSON document - an empty
+            # one too, which is what a silent utterance gives
             value = {key: value}
         out[key] = value
     return out, own

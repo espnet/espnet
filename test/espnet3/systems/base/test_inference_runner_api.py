@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import numpy as np
@@ -328,3 +329,20 @@ def test_infer_still_wants_input_key_for_a_bare_model(tmp_path):
     )
     with pytest.raises(RuntimeError, match="input_key must be set"):
         infer(cfg)
+
+
+class Silent(Echo):
+    """No speech found: the segments output is an empty list."""
+
+    def run(self, speech, prompt=""):
+        return {"text": "", "echo": speech, "segments": []}
+
+
+def test_write_record_writes_an_empty_segments_list(tmp_path):
+    """A silent utterance's `[]` is a JSON document, not an unsupported list."""
+    writers = InferenceRunner.open_writers(tmp_path)
+    result = InferenceRunner.forward(0, dataset=_items(1), model=Silent())
+    InferenceRunner.write_record(writers, result, {}, idx_key="utt_id")
+    InferenceRunner.close_writers(writers, {})
+    path = (tmp_path / "segments.scp").read_text().split(" ", 1)[1].strip()
+    assert json.loads(Path(path).read_text()) == {"segments": []}
