@@ -240,6 +240,9 @@ EDACC=downloads
 IPAPACK_PLUS=downloads
 GALAXY=
 EMILIA=downloads
+EARS=  # local path to EARS (48 kHz studio speech)
+VCTK_DEMAND=  # local path to VoiceBank+DEMAND (its clean speech)
+WHAM_NOISE=  # local path to the WHAM! noise corpus
 
 
 # For only CMU TIR environment
