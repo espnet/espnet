@@ -297,12 +297,13 @@ def load_model(
             omitted, else ``"cpu"``.
         trust_user_code: Allow the bundle's model to be its own bundled
             code.
-        overrides: Constructor arguments of the packed ``model`` that
-            replace the packed values, such as ``{"beam_size": 1}`` - what
-            ESPnet2's ``from_pretrained(tag, beam_size=1)`` does. A key
-            starting with ``_`` (``_target_``) is refused: an override
-            changes how the model is built, not which model it is. One the
-            model does not take is a ``TypeError`` naming it.
+        overrides: Arguments of the packed ``model``'s constructor that
+            replace the packed values, any number and any of them, such as
+            ``{"beam_size": 5, "ctc_weight": 0.3}`` - what ESPnet2's
+            ``from_pretrained(tag, **kwargs)`` does. A key starting with
+            ``_`` (``_target_``) is refused: an override changes how the
+            model is built, not which model it is. One the model does not
+            take is a ``TypeError`` naming it.
 
     Returns:
         The bundle's model: an ``Inference`` when the recipe names one as
@@ -349,9 +350,9 @@ def apply_overrides(config: DictConfig, overrides: Optional[Mapping[str, Any]]) 
 
     Examples:
         >>> config, _ = read_bundle("exp/train/model_pack")
-        >>> apply_overrides(config, {"beam_size": 1})
-        >>> config.model.beam_size
-        1
+        >>> apply_overrides(config, {"beam_size": 5, "ctc_weight": 0.3})
+        >>> config.model.beam_size, config.model.ctc_weight
+        (5, 0.3)
     """
     if not overrides:
         return
@@ -397,9 +398,11 @@ def load(
             ``model`` is an ``Inference`` of its own, shipped as bundled
             code: allow importing it. A bundle served by an installed
             system never needs this.
-        **kwargs: Constructor arguments that replace the packed ones, such
-            as ``beam_size=1``; forwarded to ``from_pretrained``, or applied
-            to the bundle's ``model`` when it is an ``Inference`` itself
+        **kwargs: Any arguments of the packed model's constructor, replacing
+            the packed values - for ESPnet2 ASR, any ``Speech2Text``
+            argument, such as ``beam_size=5, ctc_weight=0.3, nbest=3``.
+            Forwarded to ``from_pretrained``, or applied to the bundle's
+            ``model`` when it is an ``Inference`` itself
             (:func:`apply_overrides`).
 
     Returns:

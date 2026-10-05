@@ -152,7 +152,9 @@ def load(
             constructor arguments. An explicit ``task`` always wins and skips
             the lookup entirely.
         device: ``cpu``, ``mps``, ``cuda`` or ``cuda:<n>``.
-        **kwargs: Passed on to the inference class, e.g. ``beam_size=1``.
+        **kwargs: Any constructor argument of the inference class, e.g.
+            ``beam_size=5, ctc_weight=0.3`` for ``Speech2Text``; for an
+            espnet3 bundle they replace the packed values.
 
     Returns:
         The espnet2 inference object for the task: ``Speech2Text`` (``asr``

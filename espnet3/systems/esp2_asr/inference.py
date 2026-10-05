@@ -21,6 +21,11 @@ Examples:
         >>> from espnet3.api.inference import load
         >>> load("espnet/some_asr_pack", device="cuda:0")("utt.wav")["text"]
 
+    Any ``Speech2Text`` argument replaces the packed one, as ESPnet2's
+    ``from_pretrained`` takes it - decoding settings or anything else::
+
+        >>> load("espnet/some_asr_pack", beam_size=5, ctc_weight=0.3, nbest=3)
+
     In the ``infer`` stage, ``inference.yaml`` names this class where it
     named ``Speech2Text``, with the same arguments; for a transducer, name
     that class as ``backend_class``::

@@ -298,3 +298,87 @@ def test_takes_channels_reads_a_real_default_frontend():
         kwargs = {} if conf is None else {"frontend_conf": conf}
         backend.asr_model = SimpleNamespace(frontend=DefaultFrontend(**kwargs))
         assert Inference(backend).takes_channels is uses, conf
+
+
+@pytest.fixture()
+def tiny_asr_pack(tmp_path):
+    """A pack_model-shaped bundle around a real, randomly initialised Speech2Text."""
+    import string
+
+    import yaml
+
+    from espnet2.tasks.asr import ASRTask
+
+    tokens = tmp_path / "tokens.txt"
+    tokens.write_text(
+        "\n".join(["<blank>", *string.ascii_lowercase, "<unk>", "<sos/eos>"]) + "\n"
+    )
+    ASRTask.main(
+        cmd=[
+            "--dry_run",
+            "true",
+            "--output_dir",
+            str(tmp_path / "asr"),
+            "--token_list",
+            str(tokens),
+            "--token_type",
+            "char",
+            "--decoder",
+            "rnn",
+        ]
+    )
+    pack = tmp_path / "pack"
+    (pack / "conf").mkdir(parents=True)
+    (pack / "meta.yaml").write_text(
+        yaml.safe_dump(
+            {
+                "schema_version": 1,
+                "system": "esp2_asr",
+                "yaml_files": {"inference_config": "conf/inference.yaml"},
+            }
+        )
+    )
+    (pack / "conf" / "inference.yaml").write_text(
+        yaml.safe_dump(
+            {
+                "model": {
+                    "_target_": "espnet3.systems.esp2_asr.inference.Inference",
+                    "asr_train_config": str(tmp_path / "asr" / "config.yaml"),
+                    "beam_size": 1,
+                    "ctc_weight": 0.3,
+                    "nbest": 1,
+                }
+            }
+        )
+    )
+    return pack
+
+
+def test_any_speech2text_argument_overrides_the_packed_one(tiny_asr_pack):
+    """Several at once, decoding or not, reach the real Speech2Text."""
+    from espnet3.api.inference import load
+
+    packed = load(tiny_asr_pack)
+    assert packed.backend.beam_search.beam_size == 1
+    assert packed.backend.beam_search.weights["ctc"] == 0.3
+    assert packed.backend.nbest == 1
+
+    model = load(
+        tiny_asr_pack,
+        beam_size=3,
+        ctc_weight=0.5,
+        penalty=0.2,
+        nbest=2,
+        maxlenratio=0.5,
+    )
+    search = model.backend.beam_search
+    assert search.beam_size == 3
+    assert search.weights["ctc"] == 0.5 and search.weights["decoder"] == 0.5
+    assert search.weights["length_bonus"] == 0.2
+    assert model.backend.nbest == 2 and model.backend.maxlenratio == 0.5
+    assert isinstance(model(np.zeros(1600, dtype=np.float32))["text"], str)
+
+    # the bundle is unchanged: the next load reads it as packed
+    assert load(tiny_asr_pack).backend.beam_search.beam_size == 1
+    with pytest.raises(TypeError, match="beam_width=4: the bundle's model"):
+        load(tiny_asr_pack, beam_width=4)

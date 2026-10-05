@@ -137,10 +137,15 @@ class BackendInference(InferenceAPI):
         Args:
             tag_or_dir: A ``pack_model`` output directory, or a Hub tag.
             device: Where to build the backend.
-            **kwargs: Constructor arguments that replace the packed ones,
-                such as ``beam_size=1``, as ESPnet2's ``from_pretrained``
-                takes them; an argument the model does not take is the
-                constructor's ``TypeError``.
+            **kwargs: Any argument the packed model's constructor takes,
+                replacing the packed value, as ESPnet2's ``from_pretrained``
+                takes them. Nothing is singled out: for an ESPnet2 ASR
+                bundle that is every ``Speech2Text`` argument - the
+                decoding ones (``beam_size``, ``ctc_weight``,
+                ``lm_weight``, ``penalty``, ``nbest``, ``maxlenratio``,
+                ...) and the rest (``lm_file``, ``dtype``, ...). An
+                argument the model does not take is a ``TypeError``
+                naming it.
 
         Raises:
             ModelTagError: If the tag is not a ``pack_model`` bundle, or the
@@ -150,7 +155,9 @@ class BackendInference(InferenceAPI):
         Examples:
             >>> Inference.from_pretrained("exp/train/model_pack")
             >>> Inference.from_pretrained("espnet/some_pack", device="cuda:0")
-            >>> Inference.from_pretrained("espnet/some_pack", beam_size=1)
+            >>> Inference.from_pretrained(
+            ...     "espnet/some_pack", beam_size=5, ctc_weight=0.3, nbest=3
+            ... )
         """
         built = load_model(locate_pack(tag_or_dir), device=device, overrides=kwargs)
         if isinstance(built, InferenceAPI):
