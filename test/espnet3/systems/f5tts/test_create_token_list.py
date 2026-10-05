@@ -7,45 +7,16 @@ from omegaconf import OmegaConf
 
 from espnet3.systems.f5tts.create_token_list import create_token_list
 
-# ===============================================================
-# Test Case Summary
-# ===============================================================
-#
-# | Test Name                                   | Description                  |
-# |---------------------------------------------|------------------------------|
-# | test_create_token_list_char_tokens          | Char tokens sorted by        |
-# |                          | frequency with add_symbol positions honored.    |
-# | test_create_token_list_custom_vocab_builder | vocab_builder dotted path    |
-# |                                             | fully replaces the default.  |
-# | test_create_token_list_vocab_builder_conf   | DictConfig builder kwargs    |
-# |                                             | are converted and forwarded. |
-# | test_create_token_list_vocab_builder_gets_cleaned_text | The cleaner runs  |
-# |                                             | before the custom builder.   |
-# | test_create_token_list_requires_config      | Missing config sections      |
-# |                                             | raise RuntimeError.          |
-# | test_create_token_list_bad_add_symbol       | Malformed add_symbol raises  |
-# |                                             | RuntimeError.                |
-# | test_create_token_list_vocabulary_size      | Vocabulary truncation and    |
-# |                                             | the too-small error.         |
-# | test_create_token_list_cutoff               | Tokens at or below the       |
-# |                                             | cutoff count are dropped.    |
-# | test_create_token_list_warns_on_empty_manifest | A manifest yielding no    |
-# |                                             | tokens logs a warning.       |
-# | test_create_token_list_skips_blank_lines_and_empty_transcripts | Blank    |
-# |                       | lines and empty transcripts contribute no tokens.  |
-# | test_create_token_list_rejects_a_row_without_a_transcript_column | A row  |
-# |                       | with fewer than three columns raises RuntimeError. |
-# | test_create_token_list_default_manifest_location | Without manifest_path   |
-# |                       | the stage reads data/manifest/train.tsv.           |
-
 
 def _write_manifest(tmp_path, name, rows):
+    """Write the given rows as a manifest file and return its path."""
     manifest_path = tmp_path / name
     manifest_path.write_text("".join(rows), encoding="utf-8")
     return manifest_path
 
 
 def _build_stage_config(tmp_path, manifest_path, **overrides):
+    """Build a training config whose stage block carries the given overrides."""
     create_token_list_config = {
         "save_path": str(tmp_path / "tokens"),
         "filename": "tokens.txt",
@@ -62,10 +33,12 @@ def _build_stage_config(tmp_path, manifest_path, **overrides):
 
 
 def _read_tokens(tmp_path):
+    """Return the token list the stage wrote."""
     return (tmp_path / "tokens" / "tokens.txt").read_text().splitlines()
 
 
 def test_create_token_list_char_tokens(tmp_path):
+    """Char tokens are sorted by frequency with ``add_symbol`` positions honoured."""
     manifest = _write_manifest(
         tmp_path, "train.tsv", ["u1\t/x.wav\taab\tspk1\n", "u2\t/y.wav\tab\tspk1\n"]
     )
@@ -81,6 +54,7 @@ def test_create_token_list_char_tokens(tmp_path):
 
 
 def test_create_token_list_custom_vocab_builder(tmp_path):
+    """A ``vocab_builder`` dotted path fully replaces the default construction."""
     manifest = _write_manifest(
         tmp_path, "train.tsv", ["u1\t/x.wav\tbeta\tspk1\n", "u2\t/y.wav\talpha\tspk1\n"]
     )
@@ -94,6 +68,7 @@ def test_create_token_list_custom_vocab_builder(tmp_path):
 
 
 def test_create_token_list_vocab_builder_conf(tmp_path):
+    """``vocab_builder_conf`` is converted and forwarded to the builder."""
     manifest = _write_manifest(
         tmp_path,
         "train.tsv",
@@ -111,6 +86,7 @@ def test_create_token_list_vocab_builder_conf(tmp_path):
 
 
 def test_create_token_list_vocab_builder_gets_cleaned_text(tmp_path):
+    """The text cleaner runs before a custom builder sees the transcripts."""
     manifest = _write_manifest(tmp_path, "train.tsv", ["u1\t/x.wav\tHello\tspk1\n"])
     config = _build_stage_config(
         tmp_path, manifest, vocab_builder="builtins.sorted", cleaner="tacotron"
@@ -122,6 +98,7 @@ def test_create_token_list_vocab_builder_gets_cleaned_text(tmp_path):
 
 
 def test_create_token_list_requires_config(tmp_path):
+    """Missing config sections and a missing manifest raise ``RuntimeError``."""
     config = OmegaConf.create({"exp_dir": str(tmp_path / "exp")})
     with pytest.raises(RuntimeError, match="create_token_list must be set"):
         create_token_list(config)
@@ -147,6 +124,7 @@ def test_create_token_list_requires_config(tmp_path):
 
 
 def test_create_token_list_bad_add_symbol(tmp_path):
+    """A malformed ``add_symbol`` entry raises ``RuntimeError``."""
     manifest = _write_manifest(tmp_path, "train.tsv", ["u1\t/x.wav\tab\tspk1\n"])
     config = _build_stage_config(tmp_path, manifest, add_symbol=["<blank>"])
     with pytest.raises(RuntimeError, match="Format error"):
@@ -154,6 +132,7 @@ def test_create_token_list_bad_add_symbol(tmp_path):
 
 
 def test_create_token_list_vocabulary_size(tmp_path):
+    """``vocabulary_size`` truncates the list; too small for the symbols is an error."""
     manifest = _write_manifest(
         tmp_path, "train.tsv", ["u1\t/x.wav\taab\tspk1\n", "u2\t/y.wav\tabc\tspk1\n"]
     )
@@ -171,6 +150,7 @@ def test_create_token_list_vocabulary_size(tmp_path):
 
 
 def test_create_token_list_cutoff(tmp_path):
+    """Tokens seen ``cutoff`` times or fewer are dropped."""
     manifest = _write_manifest(
         tmp_path, "train.tsv", ["u1\t/x.wav\taab\tspk1\n", "u2\t/y.wav\tabc\tspk1\n"]
     )
@@ -181,6 +161,7 @@ def test_create_token_list_cutoff(tmp_path):
 
 
 def test_create_token_list_warns_on_empty_manifest(tmp_path, caplog):
+    """A manifest yielding no tokens logs a warning and writes an empty file."""
     manifest = _write_manifest(tmp_path, "train.tsv", ["u1\t/x.wav\t\tspk1\n"])
 
     with caplog.at_level(logging.WARNING):
@@ -230,6 +211,7 @@ def test_create_token_list_rejects_a_row_without_a_transcript_column(
 
 
 def test_create_token_list_default_manifest_location(tmp_path, monkeypatch):
+    """Without ``manifest_path`` the stage reads ``data/manifest/train.tsv``."""
     monkeypatch.chdir(tmp_path)
     manifest_dir = tmp_path / "data" / "manifest"
     manifest_dir.mkdir(parents=True)

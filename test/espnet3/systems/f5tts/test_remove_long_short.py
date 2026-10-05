@@ -16,43 +16,8 @@ from espnet3.systems.f5tts.remove_long_short import (
     remove_long_short,
 )
 
-# ===============================================================
-# Test Case Summary
-# ===============================================================
 #
-# load_manifest_entries
-# | Test Name                                   | Description                  |
-# |---------------------------------------------|------------------------------|
-# | test_load_manifest_entries_filters_empty_text | Rows without text and    |
-# |                    | blank lines are dropped and counted separately.       |
 #
-# RemoveLongShortProvider
-# | Test Name                                   | Description                  |
-# |---------------------------------------------|------------------------------|
-# | test_build_env_local_returns_entries_and_bounds | build_env_local exposes  |
-# |                          | entries, duration bounds and drop count.        |
-# | test_build_worker_setup_fn_matches_local    | The worker setup fn builds   |
-# |                                             | the same environment.        |
-# | test_build_env_requires_manifest_path       | Missing manifest_path raises |
-# |                                             | RuntimeError.                |
-# | test_build_env_requires_duration_bounds     | Missing min/max duration     |
-# |                                             | raises RuntimeError.         |
-#
-# RemoveLongShortRunner
-# | Test Name                                   | Description                  |
-# |---------------------------------------------|------------------------------|
-# | test_forward_single_index                   | Single int idx returns one   |
-# |                                             | status dict.                 |
-# | test_forward_batch_of_indices               | Iterable idx returns a list  |
-# |                                             | of status dicts.             |
-# | test_forward_boundary_durations_are_dropped | Durations exactly at the     |
-# |                          | bounds are dropped (strict inequalities).       |
-# | test_runner_call_end_to_end                 | __call__ shards, persists    |
-# |                          | results.jsonl and merges in idx order.          |
-# | test_runner_call_with_batch_size            | Batched dispatch produces    |
-# |                                             | the same merged records.     |
-# | test_merge_restores_index_order             | merge() re-sorts records     |
-# |                                             | scattered across shards.     |
 
 
 @pytest.fixture(autouse=True)
@@ -68,6 +33,7 @@ def no_leftover_parallel_config(monkeypatch):
 
 
 def _write_wav(path, seconds, sample_rate=16000):
+    """Write a silent wav of the given length."""
     frames = int(seconds * sample_rate)
     sf.write(path, np.zeros(frames, dtype=np.float32), sample_rate)
 
@@ -89,6 +55,7 @@ def manifest(tmp_path):
 
 
 def _build_params(manifest_path, min_duration=1.0, max_duration=4.0):
+    """Build the provider params for ``manifest_path`` and the duration bounds."""
     return {
         "manifest_path": str(manifest_path),
         "min_duration": min_duration,
@@ -97,6 +64,7 @@ def _build_params(manifest_path, min_duration=1.0, max_duration=4.0):
 
 
 def _build_runner(manifest_path, tmp_path, **kwargs):
+    """Build a local, non-resuming runner over the manifest."""
     provider = RemoveLongShortProvider(
         config=OmegaConf.create({}), params=_build_params(manifest_path)
     )
@@ -114,6 +82,7 @@ def _build_runner(manifest_path, tmp_path, **kwargs):
 
 
 def test_load_manifest_entries_filters_empty_text(manifest):
+    """Rows without text and blank lines are dropped and counted separately."""
     entries, num_dropped_empty = load_manifest_entries(manifest)
 
     assert [utt_id for utt_id, _, _ in entries] == [
@@ -126,6 +95,7 @@ def test_load_manifest_entries_filters_empty_text(manifest):
 
 
 def test_build_env_local_returns_entries_and_bounds(manifest):
+    """``build_env_local`` exposes entries, duration bounds and the drop count."""
     provider = RemoveLongShortProvider(
         config=OmegaConf.create({}), params=_build_params(manifest)
     )
@@ -138,6 +108,7 @@ def test_build_env_local_returns_entries_and_bounds(manifest):
 
 
 def test_build_worker_setup_fn_matches_local(manifest):
+    """The worker setup function builds the same environment as the driver."""
     provider = RemoveLongShortProvider(
         config=OmegaConf.create({}), params=_build_params(manifest)
     )
@@ -146,12 +117,14 @@ def test_build_worker_setup_fn_matches_local(manifest):
 
 
 def test_build_env_requires_manifest_path():
+    """A missing ``manifest_path`` raises ``RuntimeError``."""
     provider = RemoveLongShortProvider(config=OmegaConf.create({}), params={})
     with pytest.raises(RuntimeError, match="manifest_path"):
         provider.build_env_local()
 
 
 def test_build_env_requires_duration_bounds(manifest):
+    """A missing duration bound raises ``RuntimeError``."""
     provider = RemoveLongShortProvider(
         config=OmegaConf.create({}),
         params={"manifest_path": str(manifest)},
@@ -166,18 +139,21 @@ def test_build_env_requires_duration_bounds(manifest):
 
 
 def test_forward_single_index(manifest):
+    """A single int index returns one status dict."""
     entries, _ = load_manifest_entries(manifest)
     result = RemoveLongShortRunner.forward(1, entries, 1.0, 4.0)
     assert result == {"idx": 1, "utt_id": "utt_mid", "keep": True}
 
 
 def test_forward_batch_of_indices(manifest):
+    """An iterable of indices returns a list of status dicts."""
     entries, _ = load_manifest_entries(manifest)
     results = RemoveLongShortRunner.forward([0, 1, 2], entries, 1.0, 4.0)
     assert [record["keep"] for record in results] == [False, True, False]
 
 
 def test_forward_boundary_durations_are_dropped(tmp_path):
+    """Durations exactly at a bound are dropped, since both bounds are exclusive."""
     wav_path = tmp_path / "exact.wav"
     _write_wav(wav_path, 1.0)  # duration == min_duration exactly
     entries = [("utt_exact", str(wav_path), "utt_exact\tx\ty\tz\n")]
@@ -190,6 +166,7 @@ def test_forward_boundary_durations_are_dropped(tmp_path):
 
 
 def test_runner_call_end_to_end(manifest, tmp_path):
+    """``__call__`` shards, persists ``results.jsonl`` and merges in ``idx`` order."""
     runner = _build_runner(manifest, tmp_path)
     records = runner(range(3))
 
@@ -210,12 +187,14 @@ def test_runner_call_end_to_end(manifest, tmp_path):
 
 
 def test_runner_call_with_batch_size(manifest, tmp_path):
+    """Batched dispatch produces the same merged records."""
     records = _build_runner(manifest, tmp_path, batch_size=2)(range(3))
     assert [record["idx"] for record in records] == [0, 1, 2]
     assert [record["keep"] for record in records] == [False, True, False]
 
 
 def test_merge_restores_index_order(manifest, tmp_path):
+    """``merge`` re-sorts records scattered across shards and skips empty shards."""
     runner = _build_runner(manifest, tmp_path)
     shard_a = tmp_path / "a"
     shard_b = tmp_path / "b"
@@ -238,26 +217,10 @@ def test_merge_restores_index_order(manifest, tmp_path):
 # ---------------------------------------------------------------
 # remove_long_short (the stage function)
 # ---------------------------------------------------------------
-#
-# | Test Name                                   | Description                  |
-# |---------------------------------------------|------------------------------|
-# | test_remove_long_short_filters_manifest     | End-to-end duration filter   |
-# |                          | keeps in-range rows and drops empty text.       |
-# | test_remove_long_short_accepts_single_split_string | splits: "train" is    |
-# |                                             | treated as ["train"].        |
-# | test_remove_long_short_requires_config      | Missing config sections      |
-# |                                             | raise RuntimeError.          |
-# | test_remove_long_short_missing_manifest     | Nonexistent manifest raises  |
-# |                                             | RuntimeError.                |
-# | test_remove_long_short_sets_parallel        | A parallel config section is |
-# |                                             | forwarded to set_parallel.   |
-# | test_remove_long_short_default_manifest_location | Without manifest_paths  |
-# |                       | the stage reads data/manifest/{split}.tsv.         |
-# | test_remove_long_short_tolerates_null_manifest_paths | manifest_paths:    |
-# |                       | null falls back to the default location.           |
 
 
 def _write_manifest(tmp_path, name, rows):
+    """Write the given rows as a manifest file and return its path."""
     manifest_path = tmp_path / name
     manifest_path.write_text("".join(rows), encoding="utf-8")
     return manifest_path
@@ -283,6 +246,7 @@ def duration_manifests(tmp_path):
 
 
 def _build_stage_config(tmp_path, manifests, **overrides):
+    """Build a training config whose stage block carries the given overrides."""
     remove_long_short_config = {
         "save_path": str(tmp_path / "filtered"),
         "min_wav_duration": 1.0,
@@ -300,11 +264,13 @@ def _build_stage_config(tmp_path, manifests, **overrides):
 
 
 def _read_kept_ids(filtered_manifest_path):
+    """Return the utterance ids kept in a filtered manifest."""
     lines = filtered_manifest_path.read_text().splitlines()
     return [line.split("\t")[0] for line in lines]
 
 
 def test_remove_long_short_filters_manifest(tmp_path, duration_manifests):
+    """The stage keeps in-range rows unchanged and drops empty-text rows."""
     remove_long_short(_build_stage_config(tmp_path, duration_manifests))
 
     for split in ("train", "valid"):
@@ -319,6 +285,7 @@ def test_remove_long_short_filters_manifest(tmp_path, duration_manifests):
 
 
 def test_remove_long_short_accepts_single_split_string(tmp_path, duration_manifests):
+    """``splits: train`` is treated as ``[train]``."""
     manifests = {"train": duration_manifests["train"]}
     remove_long_short(_build_stage_config(tmp_path, manifests, splits="train"))
 
@@ -326,6 +293,7 @@ def test_remove_long_short_accepts_single_split_string(tmp_path, duration_manife
 
 
 def test_remove_long_short_requires_config(tmp_path):
+    """Missing config sections raise ``RuntimeError`` naming the field."""
     config = OmegaConf.create({"exp_dir": str(tmp_path / "exp")})
     with pytest.raises(RuntimeError, match="remove_long_short must be set"):
         remove_long_short(config)
@@ -347,12 +315,14 @@ def test_remove_long_short_requires_config(tmp_path):
 
 
 def test_remove_long_short_missing_manifest(tmp_path):
+    """A nonexistent manifest raises ``RuntimeError``."""
     manifests = {"train": str(tmp_path / "missing.tsv")}
     with pytest.raises(RuntimeError, match="Manifest file not found"):
         remove_long_short(_build_stage_config(tmp_path, manifests))
 
 
 def test_remove_long_short_sets_parallel(tmp_path, duration_manifests, monkeypatch):
+    """A ``parallel`` config section is forwarded to ``set_parallel``."""
     calls = []
     monkeypatch.setattr(
         stage_module, "set_parallel", lambda parallel: calls.append(parallel)
@@ -392,12 +362,14 @@ def _build_default_location_config(tmp_path, monkeypatch, **overrides):
 
 
 def test_remove_long_short_default_manifest_location(tmp_path, monkeypatch):
+    """Without ``manifest_paths`` the stage reads ``data/manifest/<split>.tsv``."""
     remove_long_short(_build_default_location_config(tmp_path, monkeypatch))
 
     assert _read_kept_ids(tmp_path / "filtered" / "train.tsv") == ["utt_mid"]
 
 
 def test_remove_long_short_tolerates_null_manifest_paths(tmp_path, monkeypatch):
+    """``manifest_paths: null`` falls back to the default location."""
     config = _build_default_location_config(tmp_path, monkeypatch, manifest_paths=None)
     remove_long_short(config)
 

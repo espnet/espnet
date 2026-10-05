@@ -8,27 +8,6 @@ import espnet3.systems.f5tts.system as system_module
 from espnet3.systems.base.system import BaseSystem
 from espnet3.systems.f5tts.system import F5TTSSystem
 
-# ===============================================================
-# Test Case Summary
-# ===============================================================
-#
-# | Test Name                                   | Description                  |
-# |---------------------------------------------|------------------------------|
-# | test_stage_runs_its_function_on_the_training_config | Each added stage is  |
-# |                          | a thin dispatcher over its free function.       |
-# | test_stage_rejects_stage_args               | Stage arguments raise        |
-# |                                             | TypeError.                   |
-# | test_stage_logs_go_under_the_stage_save_path | Each added stage logs next  |
-# |                                             | to the files it writes.      |
-# | test_stage_log_mapping_overrides_are_merged | A caller's mapping extends   |
-# |                                             | and overrides the defaults.  |
-# | test_all_stage_configs_are_stored           | The five stage configs reach |
-# |                                             | BaseSystem.                  |
-# | test_collect_stats_and_train_are_inherited  | No training-stage override   |
-# |                                             | is left on the system.       |
-# | test_stages_run_end_to_end                  | The real stage functions run |
-# |                                             | through the system.          |
-
 STAGES = ["remove_long_short", "create_token_list"]
 
 
@@ -44,6 +23,7 @@ def no_leftover_parallel_config(monkeypatch):
 
 
 def _build_training_config(tmp_path):
+    """Build a training config with the two stage blocks the system logs under."""
     return OmegaConf.create(
         {
             "exp_dir": str(tmp_path / "exp"),
@@ -54,9 +34,8 @@ def _build_training_config(tmp_path):
 
 
 @pytest.mark.parametrize("stage", STAGES)
-def test_stage_runs_its_function_on_the_build_training_config(
-    tmp_path, monkeypatch, stage
-):
+def test_stage_runs_its_function_on_the_training_config(tmp_path, monkeypatch, stage):
+    """Each added stage is a thin dispatcher over its free function."""
     calls = []
     monkeypatch.setattr(
         system_module, stage, lambda config: calls.append(config) or "done"
@@ -69,6 +48,7 @@ def test_stage_runs_its_function_on_the_build_training_config(
 
 @pytest.mark.parametrize("stage", STAGES)
 def test_stage_rejects_stage_args(tmp_path, monkeypatch, stage):
+    """Positional or keyword stage arguments raise ``TypeError``."""
     monkeypatch.setattr(system_module, stage, lambda config: None)
     system = F5TTSSystem(training_config=_build_training_config(tmp_path))
 
@@ -79,6 +59,7 @@ def test_stage_rejects_stage_args(tmp_path, monkeypatch, stage):
 
 
 def test_stage_logs_go_under_the_stage_save_path(tmp_path):
+    """Each added stage logs next to the files it writes."""
     system = F5TTSSystem(training_config=_build_training_config(tmp_path))
 
     assert system.stage_log_dirs["remove_long_short"] == tmp_path / "filtered"
@@ -86,6 +67,7 @@ def test_stage_logs_go_under_the_stage_save_path(tmp_path):
 
 
 def test_stage_log_mapping_overrides_are_merged(tmp_path):
+    """A caller's ``stage_log_mapping`` extends and overrides the defaults."""
     system = F5TTSSystem(
         training_config=_build_training_config(tmp_path),
         stage_log_mapping={
@@ -100,6 +82,7 @@ def test_stage_log_mapping_overrides_are_merged(tmp_path):
 
 
 def test_all_stage_configs_are_stored(tmp_path):
+    """The five stage configs reach ``BaseSystem`` unchanged."""
     configs = {
         "training_config": _build_training_config(tmp_path),
         "inference_config": OmegaConf.create({"inference_dir": str(tmp_path)}),
