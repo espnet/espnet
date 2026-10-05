@@ -2,11 +2,57 @@
 
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Dict, Iterator, Tuple
+from typing import ClassVar, Dict, Iterator, Tuple
+
+from espnet3.components.contract import Field, check_declaration
+from espnet3.components.metrics.contract import (
+    check_metric_declaration,
+    warn_undeclared,
+)
 
 
 class BaseMetric(ABC):
-    """Base class for metrics that consume inference output paths."""
+    """Base class for metrics that consume inference output paths.
+
+    A subclass may declare ``inputs``/``outputs`` class attributes (the
+    same :class:`~espnet3.components.contract.Field` declaration
+    :class:`~espnet3.api.inference.InferenceAPI` uses) to opt into
+    contract checking: ``inputs`` names the SCP inputs the metric reads
+    (checked against what inference wrote, via
+    ``espnet3.components.metrics.contract.check_metric_inputs``), and
+    ``outputs`` names the keys of the result dict, each of kind
+    ``"number"``.
+
+    A metric that does not declare them keeps working exactly as today
+    (a one-time warning is logged per class; ``ESPNET3_STRICT_CONTRACTS=1``
+    turns that into an error instead).
+    """
+
+    #: What this metric reads: one Field per SCP input. The name is the
+    #: key of ``data`` (and the default SCP file name); the kind says what
+    #: the SCP values hold (``text``: the value itself, ``audio``: a path).
+    inputs: ClassVar[Tuple[Field, ...]]
+    #: What this metric returns: one Field per key of the result dict, all
+    #: of kind ``number``.
+    outputs: ClassVar[Tuple[Field, ...]]
+
+    def __init_subclass__(cls, **kwargs) -> None:
+        """Check a declared contract, or warn once that there is none."""
+        super().__init_subclass__(**kwargs)
+        if hasattr(cls, "inputs") or hasattr(cls, "outputs"):
+            check_declaration(cls)
+            check_metric_declaration(cls)
+        else:
+            warn_undeclared(cls, "inputs/outputs")
+
+    def input_fields(self) -> Tuple[Field, ...]:
+        """Return the declared inputs as this instance actually reads them.
+
+        Defaults to ``type(self).inputs``; override when constructor
+        arguments rename an input (e.g. ``WER``'s ``ref_key``/``hyp_key``),
+        so contract checking follows the renamed key.
+        """
+        return getattr(type(self), "inputs", ())
 
     @abstractmethod
     def __call__(
