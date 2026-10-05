@@ -2559,7 +2559,8 @@ class AbsTask(ABC):
                     state_dict,
                     strict=False,
                     assign=False
-                )                   
+                )   
+                                
             except UnsafeLoadRefusedError:
                 raise
             except RuntimeError:
