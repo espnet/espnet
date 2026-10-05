@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 from collections.abc import Mapping
 from functools import lru_cache
@@ -11,12 +12,18 @@ from typing import Any, Dict, Iterable, List, Optional, Sequence
 
 import numpy as np
 import torch
+from hydra.utils import get_class
 from omegaconf import ListConfig
 
 from espnet2.torch_utils.device_funcs import is_out_of_memory_error
+from espnet3.api.inference.base import InferenceAPI
 from espnet3.parallel.base_runner import BaseRunner, concatenate_shard_files
 from espnet3.parallel.env_provider import EnvironmentProvider
 from espnet3.utils.writer_utils import write_artifact
+
+#: output_artifacts.<field>.type -> the kind it corresponds to.
+_ARTIFACT_KIND = {"wav": "audio", "json": "segments"}
+_FIELDS_JSON_SCHEMA_VERSION = 1
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +38,48 @@ def _normalize_key_list(keys) -> List[str]:
     if isinstance(keys, (list, tuple, ListConfig)):
         return list(keys)
     return [keys]
+
+
+def _model_output_kind(model_target: Optional[str], field_name: str) -> Optional[str]:
+    """Return the kind ``field_name`` has in the model's own ``outputs``.
+
+    ``None`` when ``model_target`` is unset, cannot be imported, is not an
+    :class:`~espnet3.api.inference.base.InferenceAPI` subclass, or that
+    subclass's ``outputs`` does not declare ``field_name``. Importing the
+    class (not instantiating it) is enough, since ``outputs`` is a class
+    attribute.
+    """
+    if not model_target:
+        return None
+    try:
+        model_cls = get_class(model_target)
+    except Exception:
+        return None
+    if not (isinstance(model_cls, type) and issubclass(model_cls, InferenceAPI)):
+        return None
+    for f in getattr(model_cls, "outputs", ()):
+        if f.name == field_name:
+            return f.kind
+    return None
+
+
+def _field_kind(
+    field_name: str,
+    artifact_configs: Mapping[str, Any],
+    model_target: Optional[str],
+) -> Dict[str, Any]:
+    """Resolve one ``fields.json`` entry.
+
+    Returns ``{"kind": ...}``, plus ``artifact`` when the kind came from an
+    output artifact's type.
+    """
+    artifact_config = artifact_configs.get(field_name) or {}
+    artifact_type = (
+        artifact_config.get("type") if isinstance(artifact_config, Mapping) else None
+    )
+    if artifact_type in _ARTIFACT_KIND:
+        return {"kind": _ARTIFACT_KIND[artifact_type], "artifact": artifact_type}
+    return {"kind": _model_output_kind(model_target, field_name)}
 
 
 def _input_lengths(inputs_dict: Dict[str, List[Any]]) -> Dict[str, List[Any]]:
@@ -452,6 +501,38 @@ class InferenceRunner(BaseRunner):
                 f"{field_key}.scp",
                 base_dir / f"{field_key}.scp",
             )
+        self._write_fields_json(field_keys, base_dir)
+
+    def _write_fields_json(self, field_keys: List[str], base_dir: Path) -> None:
+        """Write ``fields.json``: the kind of each output field, where known.
+
+        A field's kind comes from, in order: its ``output_artifacts`` entry
+        (``wav`` -> ``audio``, ``json`` -> ``segments``), or the model's own
+        declared ``outputs`` when it is an
+        :class:`~espnet3.api.inference.base.InferenceAPI`. Neither source
+        may know a given field (the common case for a recipe's own
+        ``output_fn``-added fields, like a scoring ``ref``) -- that field's
+        kind is then ``null``, and a metric checking it is only checked for
+        presence, not kind (``check_metric_inputs``).
+        """
+        provider = getattr(self, "provider", None)
+        params = getattr(provider, "params", {}) or {}
+        artifact_configs = params.get("output_artifacts") or {}
+        config = getattr(provider, "config", None)
+        model_config = getattr(config, "model", None) if config is not None else None
+        model_target = getattr(model_config, "_target_", None)
+
+        payload = {
+            "schema_version": _FIELDS_JSON_SCHEMA_VERSION,
+            "idx_key": self.idx_key,
+            "fields": {
+                field_key: _field_kind(field_key, artifact_configs, model_target)
+                for field_key in field_keys
+            },
+        }
+        (base_dir / "fields.json").write_text(
+            json.dumps(payload, indent=2) + "\n", encoding="utf-8"
+        )
 
     def __call__(self, indices: Iterable[int]) -> bool:
         """Run inference, write SCP outputs, and validate output formats.
