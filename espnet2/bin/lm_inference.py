@@ -22,6 +22,7 @@ from espnet2.text.token_id_converter import TokenIDConverter
 from espnet2.text.whisper_token_id_converter import OpenAIWhisperTokenIDConverter
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
+from espnet2.utils.pretrained import download_pretrained
 from espnet2.utils.types import str2bool, str2triple_str, str_or_none
 
 # Alias for typing
@@ -262,17 +263,7 @@ class GenerateText:
 
         """
         if model_tag is not None:
-            try:
-                from espnet_model_zoo.downloader import ModelDownloader
-
-            except ImportError:
-                logging.error(
-                    "`espnet_model_zoo` is not installed. "
-                    "Please install via `pip install -U espnet_model_zoo`."
-                )
-                raise
-            d = ModelDownloader()
-            kwargs.update(**d.download_and_unpack(model_tag))
+            kwargs.update(download_pretrained(model_tag))
 
         return GenerateText(**kwargs)
 

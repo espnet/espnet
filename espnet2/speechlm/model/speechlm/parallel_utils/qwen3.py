@@ -3,8 +3,8 @@
 
 """Parallelization utilities for HuggingFace Qwen3 models.
 
-This module provides grouped MoE replacement, activation checkpointing,
-torch.compile, and FSDP2 wrapping for HuggingFace Qwen3 (dense and MoE)
+This module provides activation checkpointing, torch.compile, and FSDP2
+wrapping for HuggingFace Qwen3 (dense and MoE)
 models used in the SpeechLM framework. It follows TorchTitan's
 parallelization patterns adapted for the HuggingFace model structure.
 
@@ -16,8 +16,8 @@ HuggingFace Qwen3 model structure:
 
 For MoE models (e.g., Qwen3-30B-A3B), some layers have:
     layer.mlp = Qwen3MoeSparseMoeBlock
-        .gate: nn.Linear(hidden_size, num_experts)   # Router
-        .experts: nn.ModuleList of Qwen3MoeMLP        # Individual experts
+        .gate: Qwen3MoeTopKRouter   # Router
+        .experts: Qwen3MoeExperts  # Native Transformers grouped MM experts
 
 Additional multimodal components (added by ParallelHFModel):
     model.multimodal_io_dict  - Dict of multimodal IO handlers
@@ -30,17 +30,11 @@ from typing import Any, Dict, List, Union
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
     checkpoint_wrapper,
 )
 from torch.distributed.fsdp import MixedPrecisionPolicy, fully_shard
 from torchtitan.distributed import ParallelDims
-
-from espnet2.speechlm.model.speechlm.parallel_utils.grouped_moe import (
-    GroupedMoeBlock,
-    GroupedMoeBlockEP,
-)
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +56,7 @@ def parallelize_qwen3_hf(
 ) -> nn.Module:
     """Apply parallelization to HuggingFace Qwen3 model.
 
-    Order: Grouped MoE -> AC -> torch.compile -> FSDP
+    Order: AC -> torch.compile -> FSDP
     (following TorchTitan's convention)
 
     Args:
@@ -82,10 +76,7 @@ def parallelize_qwen3_hf(
         Parallelized model
     """
 
-    # 1. Grouped MoE (must come first — replaces MoE blocks with fused grouped_mm)
-    model = apply_grouped_moe_qwen3(model, parallel_dims)
-
-    # 2. Activation Checkpointing
+    # 1. Activation Checkpointing
     ac_config = titan_config.get("activation_checkpoint", 0.0)
     ac_mode = titan_config.get("activation_checkpoint_mode", "full")
     model = apply_activation_checkpoint_qwen3(
@@ -95,102 +86,15 @@ def parallelize_qwen3_hf(
         vpp_index=vpp_index,
     )
 
-    # 3. Torch Compile
+    # 2. Torch Compile
     if titan_config.get("compile", False):
         model = apply_torch_compile_qwen3(model, titan_config)
 
-    # 4. FSDP
+    # 3. FSDP
     if parallel_dims.fsdp_enabled:
         model = apply_fsdp_qwen3(model, parallel_dims, titan_config)
-
-    return model
-
-
-def memory_efficient_load_balancing_loss(
-    gate_logits,
-    num_experts=None,
-    top_k=2,
-):
-    """Memory-efficient load balancing loss — numerically identical to HF version.
-
-    Eliminates the massive one_hot tensor (N_total, K, E) by using bincount.
-    Processes per-layer to avoid concatenating all router logits.
-
-    Memory: O(E) instead of O(N_total * K * E).
-    """
-    if (
-        gate_logits is None
-        or not isinstance(gate_logits, tuple)
-        or len(gate_logits) == 0
-    ):
-        return torch.tensor(0.0)
-
-    device = gate_logits[0].device
-    total_tokens = 0
-    expert_counts = torch.zeros(num_experts, device=device)
-    router_prob_sum = torch.zeros(num_experts, device=device)
-
-    for layer_gate in gate_logits:
-        total_tokens += layer_gate.shape[0]
-
-        routing_weights = F.softmax(layer_gate, dim=-1, dtype=torch.float)
-        _, selected_experts = torch.topk(routing_weights, top_k, dim=-1)
-
-        expert_counts = (
-            expert_counts
-            + torch.bincount(
-                selected_experts.reshape(-1), minlength=num_experts
-            ).float()
-        )
-        router_prob_sum = router_prob_sum + routing_weights.sum(dim=0)
-
-    tokens_per_expert = expert_counts / total_tokens
-    router_prob_per_expert = router_prob_sum / total_tokens
-
-    return torch.dot(tokens_per_expert, router_prob_per_expert) * num_experts
-
-
-def apply_grouped_moe_qwen3(
-    model: nn.Module,
-    parallel_dims: ParallelDims = None,
-) -> nn.Module:
-    """Replace MoE blocks with GroupedMoeBlock (EP=1) or GroupedMoeBlockEP (EP>1).
-
-    Iterates through transformer layers, detects MoE layers, and replaces
-    each Qwen3MoeSparseMoeBlock with a fused grouped_mm implementation.
-
-    When ``parallel_dims.ep > 1``, uses ``GroupedMoeBlockEP`` which stacks
-    all experts (sharded later via distribute_tensor) and uses DeepEP for
-    token dispatch/combine.
-
-    Must be applied BEFORE activation checkpointing, compile, and FSDP.
-
-    Args:
-        model: HuggingFace Qwen3 MoE model
-        parallel_dims: TorchTitan ParallelDims. When ep > 1, the EP mesh
-            is used to partition experts across ranks.
-
-    Returns:
-        Model with MoE blocks replaced
-    """
-    ep_enabled = parallel_dims is not None and parallel_dims.ep_enabled
-
-    has_moe = False
-    for idx, layer in enumerate(model.model.layers):
-        if isinstance(layer, nn.Identity):
-            continue
-        layer = layer.cuda()
-        if _is_moe_layer(layer) and not isinstance(
-            layer.mlp, (GroupedMoeBlock, GroupedMoeBlockEP)
-        ):
-            if ep_enabled:
-                layer.mlp = GroupedMoeBlockEP(layer.mlp, parallel_dims)
-            else:
-                layer.mlp = GroupedMoeBlock(layer.mlp)
-            has_moe = True
-
-    if has_moe:
-        model.load_balancing_loss_func = memory_efficient_load_balancing_loss
+    else:
+        model = model.cuda()
 
     return model
 
@@ -207,12 +111,6 @@ def apply_fsdp_qwen3(
     (which would waste ~60GB for a 30B model). Peak GPU memory during
     init is ~1 transformer layer instead of the entire model.
 
-    When EP is enabled (``parallel_dims.ep > 1``), MoE expert parameters
-    are wrapped with a separate ``edp_mesh`` (expert data-parallel mesh)
-    before the full layer is wrapped with the dense ``dp_mesh``. This
-    ensures expert gradients are only reduced within the efsdp dimension,
-    not across EP ranks (which hold different experts).
-
     Tolerates pruned PP stage models where some modules (embed_tokens,
     lm_head, norm, stream_emb, multimodal_io_dict, adaptor) may be None.
 
@@ -227,7 +125,7 @@ def apply_fsdp_qwen3(
     """
     device = torch.device(f"cuda:{torch.cuda.current_device()}")
 
-    # (1) Build FSDP config for dense parameters
+    # (1) Build FSDP config
     param_dtype = getattr(torch, titan_config.get("mixed_precision_param", "bfloat16"))
     reduce_dtype = getattr(torch, titan_config.get("mixed_precision_reduce", "float32"))
     pp_enabled = parallel_dims.pp_enabled
@@ -250,51 +148,10 @@ def apply_fsdp_qwen3(
         "reshard_after_forward": reshard_after_forward,
     }
 
-    # (1b) Build FSDP config for expert parameters (EP > 1)
-    ep_degree = parallel_dims.ep
-    ep_enabled = parallel_dims.ep_enabled
-    edp_mesh = None
-    fsdp_ep_config = None
-
-    if ep_enabled:
-        edp_mesh_names = (
-            ["dp_replicate", "efsdp"]
-            if parallel_dims.dp_replicate_enabled
-            else ["efsdp"]
-        )
-        edp_mesh = parallel_dims.get_optional_mesh(edp_mesh_names)
-        fsdp_ep_config = {
-            "mesh": edp_mesh,
-            "mp_policy": MixedPrecisionPolicy(
-                param_dtype=param_dtype, reduce_dtype=reduce_dtype
-            ),
-            "reshard_after_forward": reshard_after_forward,
-        }
-        logger.info(
-            f"EP FSDP: edp_mesh={edp_mesh_names}, ep_degree={ep_degree}, "
-            f"efsdp_size={edp_mesh['efsdp'].size() if edp_mesh is not None else 'N/A'}"
-        )
-
     def _move_and_shard(module: nn.Module):
         """Move module to GPU and immediately shard via FSDP."""
         module.to(device)
         fully_shard(module, **fsdp_config)
-
-    def _move_and_shard_layer(layer: nn.Module):
-        """Move a transformer layer to GPU and shard.
-
-        When EP is enabled and the layer is MoE, wraps the
-        already-sharded experts with FSDP on edp_mesh before wrapping
-        the full layer on dp_mesh.
-        """
-        layer.to(device)
-
-        if ep_enabled and getattr(layer.mlp, "ep_enabled", False):
-            efsdp_size = edp_mesh["efsdp"].size()
-            assert efsdp_size == 1, "FSDP on experts is not supported yet."
-            fully_shard(layer.mlp.experts, **fsdp_ep_config)
-
-        fully_shard(layer, **fsdp_config)
 
     # (2.1) input embeddings
     has_embed = model.model.embed_tokens is not None
@@ -318,7 +175,7 @@ def apply_fsdp_qwen3(
     for idx, layer in enumerate(model.model.layers):
         if isinstance(layer, nn.Identity):
             continue
-        _move_and_shard_layer(layer)
+        _move_and_shard(layer)
 
     # (2.3) norm, lm_head (if untied), stream_emb
     if model.model.norm is not None:
@@ -341,7 +198,7 @@ def apply_fsdp_qwen3(
     )
 
     # (2.5) Multi-layer FSDP prefetch (must be after all modules are sharded)
-    _setup_fsdp_prefetch(model, titan_config, ep_enabled)
+    _setup_fsdp_prefetch(model)
 
     return model
 
@@ -402,8 +259,8 @@ def apply_activation_checkpoint_qwen3(
             count < num_to_checkpoint
             and (pos + 1) * num_to_checkpoint > count * num_real
         ):
-            if mode in ["moe", "moe_and_full"] and isinstance(
-                model.model.layers[idx].mlp, (GroupedMoeBlock, GroupedMoeBlockEP)
+            if mode in ["moe", "moe_and_full"] and _is_moe_layer(
+                model.model.layers[idx]
             ):
                 model.model.layers[idx].mlp = checkpoint_wrapper(
                     model.model.layers[idx].mlp
@@ -465,23 +322,12 @@ def apply_torch_compile_qwen3(
     return model
 
 
-def _setup_fsdp_prefetch(
-    model: nn.Module,
-    titan_config: Dict[str, Any],
-    ep_enabled: bool = False,
-) -> None:
+def _setup_fsdp_prefetch(model: nn.Module) -> None:
     """Set up 1-layer-ahead FSDP prefetch for forward and backward passes.
 
     After each layer's all-gather copy-out, FSDP will immediately issue
     the all-gather for the next layer, overlapping communication with
     the current layer's compute.
-
-    When EP is enabled, explicit prefetch is always activated because
-    EP's device-to-host syncs (for token count exchange) can interfere
-    with FSDP's implicit prefetching. Additionally, MoE layers have an
-    inner FSDP unit for experts (on edp_mesh) that is NOT automatically
-    prefetched when the outer layer is prefetched. We explicitly include
-    ``layer.mlp.experts`` in the prefetch list for MoE layers.
 
     Tolerates pruned PP stage models where embed_tokens, norm, lm_head,
     or stream_emb may be None.
@@ -490,8 +336,6 @@ def _setup_fsdp_prefetch(
 
     Args:
         model: FSDP-wrapped HuggingFace Qwen3 model (full or PP stage)
-        titan_config: Set ``prefetch`` to true to enable (default: false).
-        ep_enabled: When True, forces prefetch on regardless of config.
     """
 
     layers = [
@@ -501,27 +345,11 @@ def _setup_fsdp_prefetch(
     if num_layers == 0:
         return
 
-    def _prefetch_targets(layer):
-        """Return prefetch targets for a layer.
-
-        For MoE-EP layers, includes both the layer itself and its inner
-        experts FSDP unit (which lives on a separate edp_mesh). The
-        inner experts unit is not automatically prefetched by FSDP when
-        the outer layer is prefetched, so we must list it explicitly.
-        """
-        targets = [layer]
-        if ep_enabled and hasattr(layer, "mlp") and hasattr(layer.mlp, "experts"):
-            if getattr(layer.mlp, "ep_enabled", False):
-                targets.append(layer.mlp.experts)
-        return targets
-
     # Forward: each module prefetches the next one in execution order
     if model.model.embed_tokens is not None:
-        model.model.embed_tokens.set_modules_to_forward_prefetch(
-            _prefetch_targets(layers[0])
-        )
+        model.model.embed_tokens.set_modules_to_forward_prefetch([layers[0]])
     for i in range(num_layers - 1):
-        layers[i].set_modules_to_forward_prefetch(_prefetch_targets(layers[i + 1]))
+        layers[i].set_modules_to_forward_prefetch([layers[i + 1]])
     last_layer_fwd_prefetch = [
         m
         for m in [model.model.norm, model.lm_head, getattr(model, "stream_emb", None)]
@@ -532,15 +360,12 @@ def _setup_fsdp_prefetch(
 
     # Backward: layers execute in reverse; each prefetches the previous one
     if model.lm_head is not None:
-        model.lm_head.set_modules_to_backward_prefetch(_prefetch_targets(layers[-1]))
+        model.lm_head.set_modules_to_backward_prefetch([layers[-1]])
     if getattr(model, "stream_emb", None) is not None:
-        model.stream_emb.set_modules_to_backward_prefetch(_prefetch_targets(layers[-1]))
+        model.stream_emb.set_modules_to_backward_prefetch([layers[-1]])
     for i in range(num_layers - 1, 0, -1):
-        layers[i].set_modules_to_backward_prefetch(_prefetch_targets(layers[i - 1]))
+        layers[i].set_modules_to_backward_prefetch([layers[i - 1]])
     if model.model.embed_tokens is not None:
         layers[0].set_modules_to_backward_prefetch([model.model.embed_tokens])
 
-    logger.info(
-        f"Set up 1-layer FSDP prefetch on {num_layers} layers"
-        f"{' (with EP expert prefetch)' if ep_enabled else ''}"
-    )
+    logger.info(f"Set up 1-layer FSDP prefetch on {num_layers} layers")

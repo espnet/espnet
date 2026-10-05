@@ -1,9 +1,19 @@
 name: publish docker image
 
 on:
+  # This only ever ran on a schedule, so when it broke - in April 2026 - no pull
+  # request went red and nobody saw it for five months. Dispatch exists so a fix
+  # can be tested without waiting for Monday.
+  workflow_dispatch:
   schedule:
     # Runs every Monday at midnight UTC
     - cron: "0 0 * * 1"
+
+# The default on this repository is write on almost everything (see #6583).
+# Pushes to DockerHub with DOCKERHUB_USERNAME/DOCKERHUB_TOKEN, so it needs
+# nothing from GitHub beyond the checkout.
+permissions:
+  contents: read
 
 jobs:
   docker-build:
@@ -14,36 +24,105 @@ jobs:
     if: github.repository == 'espnet/espnet' && github.ref == 'refs/heads/master'
     strategy:
       matrix:
+        # Two dockerfiles, so every row carries its own -f and its own flags
+        # rather than the build step growing a conditional per variant.
+        # build_flags is pasted into the `run:` script, so a `$(...)` in it is
+        # evaluated by that shell, in the docker/ directory.
         include:
           - variant: cpu
-            from_tag: runtime-latest
+            dockerfile: prebuilt/devel.dockerfile
             image_tag: espnet/espnet:cpu-latest
-            cuda_arg: ""
+            build_flags: >-
+              --build-arg FROM_TAG=runtime-latest
+              --build-arg TH_VERSION=2.11.0
+              --target devel
           - variant: gpu
-            from_tag: cuda-latest
+            dockerfile: prebuilt/devel.dockerfile
             image_tag: espnet/espnet:gpu-latest
-            cuda_arg: "--build-arg CUDA_VER=11.1"
+            build_flags: >-
+              --build-arg FROM_TAG=cuda-latest
+              --build-arg TH_VERSION=2.11.0
+              --build-arg CUDA_VER=12.6
+              --target devel
+          # Both inference images come out of one dockerfile; only which
+          # torch goes in differs. They install a published release from PyPI
+          # rather than this checkout, so each is told which one: version.txt
+          # is what the branch being published says it is, and passing it here
+          # means the image cannot lag a release even if the dockerfile's own
+          # default does.
+          - variant: inference-cpu
+            dockerfile: inference.dockerfile
+            image_tag: espnet/espnet:inference-cpu-latest
+            build_flags: >-
+              --build-arg ESPNET_VERSION="$(cat ../version.txt)"
+              --build-arg TORCH_INDEX_URL=https://download.pytorch.org/whl/cpu
+            smoke: true
+          - variant: inference-gpu
+            dockerfile: inference.dockerfile
+            image_tag: espnet/espnet:inference-gpu-latest
+            # CUDA 12.6, the same toolkit the gpu development image is built
+            # against. The wheels carry the CUDA runtime, so the image needs
+            # no CUDA base image, only a host driver.
+            build_flags: >-
+              --build-arg ESPNET_VERSION="$(cat ../version.txt)"
+              --build-arg TORCH_INDEX_URL=https://download.pytorch.org/whl/cu126
+            smoke: true
     steps:
-      - uses: actions/checkout@master
+      # See ci_on_ubuntu.yml: the default persists GITHUB_TOKEN in .git/config.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v4
+        uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
 
       - name: Login to DockerHub
-        uses: docker/login-action@v4
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and push ${{ matrix.variant }} container
+      - name: Build ${{ matrix.variant }} container
         run: |
           cd docker
-          docker build --build-arg FROM_TAG=${{ matrix.from_tag }} \
-            ${{ matrix.cuda_arg }} \
-            -f prebuilt/devel.dockerfile \
-            --target devel \
+          docker build ${{ matrix.build_flags }} \
+            -f ${{ matrix.dockerfile }} \
             -t ${{ matrix.image_tag }} .
-          docker push ${{ matrix.image_tag }}
+
+      # A build that succeeds says the wheels installed, not that the image
+      # runs: soundfile and sentencepiece carry native libraries, the
+      # entrypoint is a console script pip generated, and the cache
+      # directories are only wrong at runtime. Each of those is a green build
+      # and a broken `docker run`, which is how a user meets it.
+      #
+      # Only the inference images have this. The two devel images are entered
+      # as a shell with the toolkit's own conda environment, and what to run
+      # in them is a question this workflow should not be guessing at.
+      - name: Check ${{ matrix.variant }} container runs
+        if: matrix.smoke
+        run: |
+          # The entrypoint, the way a user first meets the image, and the
+          # subcommand list it prints. Nothing newer than the release in the
+          # image can be asked of it: it installs espnet from PyPI, so a flag
+          # that exists on master and not in the release is not there yet -
+          # `espnet --version`, at the time of writing.
+          docker run --rm ${{ matrix.image_tag }} --help
+          docker run --rm ${{ matrix.image_tag }} models
+          # the native libraries, which a build never exercises. The GPU
+          # image is checked on this CPU runner too: importing torch does
+          # not need a device, and a missing driver is the host's business.
+          docker run --rm --entrypoint python ${{ matrix.image_tag }} -c \
+            "import torch, soundfile, sentencepiece, librosa, espnet; \
+             print(torch.__version__, espnet.__version__)"
+          # the cache directory a non-root `docker run --user` writes to
+          docker run --rm --user 12345:12345 --entrypoint python \
+            ${{ matrix.image_tag }} -c \
+            "import pathlib, os; \
+             p = pathlib.Path(os.environ['HF_HOME']) / 'probe'; \
+             p.write_text('ok'); p.unlink()"
+
+      - name: Push ${{ matrix.variant }} container
+        run: docker push ${{ matrix.image_tag }}

@@ -8,6 +8,7 @@
 
 import logging
 import math
+import sys
 
 import torch
 from torch import nn
@@ -18,7 +19,9 @@ try:
     from flash_attn import flash_attn_func, flash_attn_varlen_func
     from flash_attn.bert_padding import pad_input, unpad_input
 except Exception as e:
-    print(f"Failed to import Flash Attention, using ESPnet default: {e}")
+    print(
+        f"Failed to import Flash Attention, using ESPnet default: {e}", file=sys.stderr
+    )
 
 
 class MultiHeadedAttention(nn.Module):

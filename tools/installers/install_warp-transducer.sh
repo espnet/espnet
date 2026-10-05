@@ -45,7 +45,41 @@ git clone https://github.com/ljn7/warp-transducer.git
 
     (
         set -euo pipefail
-        cd pytorch_binding && python3 -m pip install --no-build-isolation -e .
+        # --use-pep517 as well as --no-build-isolation. Without it, a project
+        # with only a setup.py takes pip's legacy editable path, `setup.py
+        # develop` - and setuptools>=80 has turned that command into a wrapper
+        # that re-invokes `pip install -e . --use-pep517 --no-deps` on its own,
+        # in a fresh isolated environment. The isolation this line asks for is
+        # lost there, so this setup.py's `import torch` fails with
+        # ModuleNotFoundError and the whole install dies. With --use-pep517 the
+        # build runs in this environment, where torch is, and no legacy command
+        # is involved.
+        # The binding hardcodes the C++ standard - "-std=c++17" for torch>=2.1
+        # - and torch's own extension builder fills one in only when none is
+        # given (append_std17_if_no_std_present, which despite the name appends
+        # -std=c++20 now). The binding's flag lands last on the command line, so
+        # it wins, and torch 2.14's headers use C++20 `requires` clauses:
+        # compiled at C++17 the build dies with "'requires' does not name a
+        # type" in ATen/core/TensorBase.h. Take the flag out and let torch
+        # choose the standard its own headers need, this version and the next.
+        python3 - <<'PATCH'
+import pathlib, re
+
+path = pathlib.Path("pytorch_binding/setup.py")
+before = path.read_text()
+after, replaced = re.subn(
+    r"extra_compile_args \+= \['-std=c\+\+\d+'\]",
+    "pass  # espnet: let torch.utils.cpp_extension pick the standard",
+    before,
+)
+if not replaced:
+    raise SystemExit(
+        "warp-transducer's setup.py no longer sets -std=; check whether it now "
+        "leaves the standard to torch, and drop this patch if so"
+    )
+path.write_text(after)
+PATCH
+        cd pytorch_binding && python3 -m pip install --use-pep517 --no-build-isolation -e .
     )
 )
 

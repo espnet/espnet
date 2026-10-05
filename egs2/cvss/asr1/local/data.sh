@@ -12,11 +12,13 @@ stage=0       # start from 0 if you need to start from data preparation
 stop_stage=100
 SECONDS=0
 src_lang=es # ar ca cy de et es fa fr id it ja lv mn nl pt ru sl sv ta tr zh
+# CommonVoice is not distributed through a public URL anymore. Set this to the
+# (time-limited, signed) link obtained after accepting the terms on
+# https://commonvoice.mozilla.org/en/datasets to download it automatically,
+# or see the message printed by local/download_commonvoice.sh.
+cv_data_url=
 
  . utils/parse_options.sh || exit 1;
-
-# base url for download commonvoice
-cv_data_url=https://voice-prod-bundler-ee1969a6ce8178826482b88e843c335139bd3fb4.s3.amazonaws.com/cv-corpus-4-2019-12-10/${src_lang}.tar.gz
 
 
 log() {
@@ -41,9 +43,8 @@ log "data preparation started"
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "stage1: Download data to ${CVSS}"
     log "Prepare source data from commonvoice 4.0"
-    mkdir -p ${CVSS}/commonvoice4
-    local/download_and_untar.sh ${CVSS} ${cv_data_url} ${src_lang}.tar.gz
-    mv ${CVSS}/cv-corpus-4-2019-12-10 ${CVSS}/commonvoice4/${src_lang}
+    local/download_commonvoice.sh \
+        "${CVSS}/commonvoice4/${src_lang}" "${src_lang}" cv-corpus-4-2019-12-10 "${cv_data_url}"
 fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then

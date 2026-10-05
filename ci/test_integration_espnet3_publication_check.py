@@ -1,6 +1,12 @@
 #!/usr/bin/env python3
 
-"""Validate a packed ESPnet3 publication bundle with InferenceModel."""
+"""Validate a packed ESPnet3 publication bundle.
+
+Once through ``InferenceModel``, the way the recipe's own ``output_fn`` sees
+it, and once through ``espnet3.api.inference.load``, the way every front end
+does: without trusting bundled code, from a file path, expecting the
+contract's ``text``.
+"""
 
 from __future__ import annotations
 
@@ -13,6 +19,7 @@ from typing import Any
 import numpy as np
 import soundfile as sf
 
+from espnet3.api.inference import Audio, InferenceAPI, load
 from espnet3.publication import InferenceModel
 
 
@@ -59,8 +66,8 @@ def _download_sample_audio(tmp_dir: Path) -> Path:
     return sample_path
 
 
-def _load_sample_audio() -> dict[str, Any]:
-    """Return a minimal ASR-friendly sample dict."""
+def _load_sample_audio() -> tuple[dict[str, Any], Path]:
+    """Return a minimal ASR-friendly sample dict, and the file it came from."""
     temp_root = Path(
         os.environ.get("TMPDIR")
         or os.environ.get("TEMP")
@@ -69,7 +76,7 @@ def _load_sample_audio() -> dict[str, Any]:
     )
     sample_path = _download_sample_audio(temp_root / "espnet3-publication-assets")
     speech, _sample_rate = sf.read(str(sample_path), dtype="float32")
-    return {"speech": np.asarray(speech, dtype=np.float32)}
+    return {"speech": np.asarray(speech, dtype=np.float32)}, sample_path
 
 
 def _is_nonempty_value(value: Any) -> bool:
@@ -129,6 +136,14 @@ def _run_smoke_check(session: InferenceModel, sample: dict[str, Any]) -> None:
     _validate_output(batch_result[0])
 
 
+def _run_api_check(model: InferenceAPI, sample_path: Path) -> None:
+    """Check the contract every front end relies on, on a real bundle."""
+    result = model(str(sample_path))
+    assert isinstance(result["text"], str), result
+    same = model(Audio.read(sample_path, model.sample_rate))
+    assert same["text"] == result["text"], (same, result)
+
+
 def main() -> None:
     args = _parse_args()
     pack_dir = Path(os.environ["PACK_DIR"]).resolve()
@@ -142,14 +157,16 @@ def main() -> None:
     if not meta_path.is_file():
         raise FileNotFoundError(f"Packed metadata not found: {meta_path}")
 
-    sample = _load_sample_audio()
+    sample, sample_path = _load_sample_audio()
     _run_smoke_check(InferenceModel.from_packed(pack_dir, trust_user_code=True), sample)
+    _run_api_check(load(pack_dir), sample_path)
 
     if args.model_tag:
         _run_smoke_check(
             InferenceModel.from_pretrained(args.model_tag, trust_user_code=True),
             sample,
         )
+        _run_api_check(load(args.model_tag), sample_path)
 
 
 if __name__ == "__main__":

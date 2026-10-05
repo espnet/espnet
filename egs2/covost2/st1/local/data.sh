@@ -13,6 +13,11 @@ stop_stage=100
 SECONDS=0
 src_lang=es
 tgt_lang=en
+# CommonVoice is not distributed through a public URL anymore. Set this to the
+# (time-limited, signed) link obtained after accepting the terms on
+# https://commonvoice.mozilla.org/en/datasets to download it automatically,
+# or see the message printed by local/download_commonvoice.sh.
+cv_data_url=
 
  . utils/parse_options.sh || exit 1;
 
@@ -45,12 +50,9 @@ set -o pipefail
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     log "stage 0: Data Downloading"
 
-    # base url for downloads.
-    data_url=https://voice-prod-bundler-ee1969a6ce8178826482b88e843c335139bd3fb4.s3.amazonaws.com/cv-corpus-4-2019-12-10/${src_lang}.tar.gz
-
-    # Download CommonVoice
-    mkdir -p ${COMMONVOICE}/${src_lang}
-    local/download_and_untar_commonvoice.sh ${COMMONVOICE}/${src_lang} ${data_url} ${src_lang}.tar.gz
+    # Download CommonVoice (v4.0, the release CoVoST2 is built on)
+    local/download_commonvoice.sh \
+        "${COMMONVOICE}/${src_lang}" "${src_lang}" cv-corpus-4-2019-12-10 "${cv_data_url}"
 
     # Download translation
     if [[ ${src_lang} != en ]]; then

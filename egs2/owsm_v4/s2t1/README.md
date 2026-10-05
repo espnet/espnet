@@ -5,7 +5,7 @@ The [Open Whisper-style Speech Model (OWSM)](https://www.wavlab.org/activities/2
 OWSM v4 significantly outperforms previous versions in multilingual tasks. It is trained on a [clean version of YODAS](https://huggingface.co/datasets/espnet/yodas_owsmv4) along with previous OWSM data. Please refer to our paper for more details about the training process: https://arxiv.org/abs/2506.00338
 
 Note: OWSM v4 applies 8 times subsampling (instead of 4 times in OWSM v3.1) to the log Mel features, leading to a final resolution of 80 ms in the encoder.
-When running inference, we recommend setting `maxlenratio=1.0` (default) instead of smaller values.
+When running inference, keep `maxlenratio` at its default of `0.0` and avoid smaller positive values such as `0.5`, which can truncate the output. `0.0` gives the same maximum output length as `1.0` (the number of encoder frames), and it also enables the end detection of the beam search, so decoding stops early once the search has converged instead of running to the maximum length.
 
 ## Results
 

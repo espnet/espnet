@@ -52,9 +52,12 @@ class LengthBonus(BatchScorerInterface):
                 and next state list for ys.
 
         """
-        return (
-            torch.tensor([1.0], device=xs.device, dtype=xs.dtype).expand(
-                ys.shape[0], self.n
-            ),
-            None,
-        )
+        # NOTE: cached. Building this from a Python float every step is a
+        # host-to-device transfer, which on an accelerator drains the queued
+        # work before it can return.
+        key = (xs.device, xs.dtype)
+        one = getattr(self, "_one", None)
+        if one is None or getattr(self, "_one_key", None) != key:
+            one = torch.tensor([1.0], device=xs.device, dtype=xs.dtype)
+            self._one, self._one_key = one, key
+        return one.expand(ys.shape[0], self.n), None

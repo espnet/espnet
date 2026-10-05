@@ -1,0 +1,25 @@
+builder:
+  dataset_path: download
+  source_env_var: SPGISPEECH
+  audio_subdir: spgispeech
+  csv_files:
+    train: train.csv
+    val: val.csv
+  required_splits:
+    - train
+    - val
+
+dataset:
+  # dev_4k / train_nodev mirror egs2/spgispeech/asr1/local/data.sh: the first
+  # 4000 utterances (in utt-id sorted order, matching the Kaldi wav.scp/text
+  # produced by data_prep.sh) become the dev set, the remainder is train.
+  dev_size: 4000
+  supported_splits:
+    - train
+    - val
+    - dev_4k
+    - train_nodev
+    - train_unnorm
+    - val_unnorm
+    - dev_4k_unnorm
+    - train_nodev_unnorm
