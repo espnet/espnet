@@ -62,12 +62,34 @@ def _unfinished_shards(directory: Path) -> list[str]:
     )
 
 
+def _same_names(what: str, serial: list[str], parallel: list[str]) -> list[str]:
+    """Return a failure when the two runs wrote different sets of names.
+
+    Both directions count: an output only the parallel run wrote would
+    otherwise never be compared with anything.
+    """
+    if sorted(serial) == sorted(parallel):
+        return []
+    return [
+        f"{what}: one worker wrote {sorted(serial)}, two workers {sorted(parallel)}"
+    ]
+
+
+def _test_sets(directory: Path) -> list[str]:
+    """Return the test sets an inference run wrote (those with a manifest)."""
+    if not directory.is_dir():
+        return []
+    return sorted(
+        p.name for p in directory.iterdir() if (p / "manifest.json").is_file()
+    )
+
+
 def check_inference(serial: Path, parallel: Path) -> list[str]:
     """Compare two inference directories; return the failures."""
-    failures = []
-    sets = sorted(p.name for p in serial.iterdir() if (p / "manifest.json").is_file())
+    sets = _test_sets(serial)
     if not sets:
         return [f"{serial}: no test set with a manifest.json"]
+    failures = _same_names("test sets", sets, _test_sets(parallel))
     split = []
     for name in sets:
         a, b = serial / name, parallel / name
@@ -125,6 +147,9 @@ def check_stats(serial: Path, parallel: Path) -> list[str]:
         shape_files = sorted(p.name for p in a.glob("*_shape"))
         if not shape_files:
             failures.append(f"{a}: no shape files written")
+        failures += _same_names(
+            f"{mode} shape files", shape_files, [p.name for p in b.glob("*_shape")]
+        )
         for name in shape_files:
             if not (b / name).is_file():
                 failures.append(f"{b / name}: missing")
@@ -133,6 +158,11 @@ def check_stats(serial: Path, parallel: Path) -> list[str]:
         stats_files = sorted(p.name for p in a.glob("*_stats.npz"))
         if not stats_files:
             failures.append(f"{a}: no statistics written")
+        failures += _same_names(
+            f"{mode} statistics files",
+            stats_files,
+            [p.name for p in b.glob("*_stats.npz")],
+        )
         for name in stats_files:
             if not (b / name).is_file():
                 failures.append(f"{b / name}: missing")
