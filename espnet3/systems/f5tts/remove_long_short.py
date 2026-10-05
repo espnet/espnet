@@ -28,7 +28,8 @@ def _get_required_config(config, key: str, error_message: str):
     """Return ``config[key]``, raising ``RuntimeError`` when it is missing.
 
     Same contract as ``BaseSystem._get_required_config``, kept here so the
-    stage function can be called without a system instance.
+    stage function can be called without a system instance. A ``None``
+    config and a ``None`` value both count as missing.
     """
     value = config.get(key, None) if config is not None else None
     if value is None:
@@ -43,8 +44,7 @@ def load_manifest_entries(
 
     Each line is expected to be ``utt_id\twav_path\ttext\tspeaker_id``; any
     columns after the third are carried along untouched. Blank lines are
-    skipped. Rows without text are dropped here, mirroring espnet2's
-    ``NF != 1`` filter, so they never reach duration filtering.
+    skipped.
 
     Args:
         manifest_path: Manifest written by the recipe's ``create_dataset``
@@ -59,13 +59,22 @@ def load_manifest_entries(
     Raises:
         FileNotFoundError: If ``manifest_path`` does not exist.
 
-    Examples:
-        >>> entries, num_dropped_empty = load_manifest_entries(
-        ...     "data/manifest/train.tsv"
-        ... )
-        >>> entries[0]
-        ('103_1241_000000_000001', '/corpus/103/a.wav',
-         '103_1241_000000_000001\t/corpus/103/a.wav\thello\t103\n')
+    Example:
+        .. code-block:: python
+
+            >>> entries, num_dropped_empty = load_manifest_entries(
+            ...     "data/manifest/train.tsv"
+            ... )
+            >>> [utt_id for utt_id, _, _ in entries], num_dropped_empty
+            (['utt_a', 'utt_b'], 1)
+            >>> entries[0]
+            ('utt_a', 'corpus/utt_a.wav',
+             'utt_a\tcorpus/utt_a.wav\thello world\tspk1\n')
+
+    Note:
+        Rows with fewer than three columns or an empty transcript are dropped
+        here, mirroring espnet2's ``NF != 1`` filter, so they never reach
+        duration filtering and their audio file is never opened.
     """
     entries: List[Tuple[str, str, str]] = []
     num_dropped_empty = 0
@@ -91,28 +100,33 @@ class RemoveLongShortProvider(EnvironmentProvider):
     Builds the manifest entries and duration bounds shared by
     :class:`RemoveLongShortRunner` workers. No model is loaded: duration
     filtering only reads audio headers.
-
-    Args:
-        config: Training config. Kept for the ``EnvironmentProvider``
-            contract; the stage settings travel in ``params``.
-        params: ``manifest_path``, ``min_duration`` and ``max_duration``,
-            forwarded from the driver to every worker.
-
-    Examples:
-        >>> provider = RemoveLongShortProvider(
-        ...     config=training_config,
-        ...     params={
-        ...         "manifest_path": "data/manifest/train.tsv",
-        ...         "min_duration": 1.0,
-        ...         "max_duration": 20.0,
-        ...     },
-        ... )
-        >>> sorted(provider.build_env_local())
-        ['entries', 'max_duration', 'min_duration', 'num_dropped_empty']
     """
 
     def __init__(self, config: DictConfig, params: Optional[Dict[str, Any]] = None):
-        """Store the stage parameters handed to every worker."""
+        """Store the stage parameters handed to every worker.
+
+        Args:
+            config: Training config. Kept for the ``EnvironmentProvider``
+                contract; the stage settings travel in ``params``.
+            params: ``manifest_path``, ``min_duration`` and ``max_duration``,
+                forwarded from the driver to every worker.
+
+        Example:
+            .. code-block:: python
+
+                >>> provider = RemoveLongShortProvider(
+                ...     config=training_config,
+                ...     params={
+                ...         "manifest_path": "data/manifest/train.tsv",
+                ...         "min_duration": 1.0,
+                ...         "max_duration": 20.0,
+                ...     },
+                ... )
+
+        Note:
+            Nothing is read or checked here. The manifest is parsed, and a
+            missing parameter reported, when the environment is built.
+        """
         super().__init__(config)
         self.params = params or {}
 
@@ -120,12 +134,22 @@ class RemoveLongShortProvider(EnvironmentProvider):
         """Build the environment once on the driver for local execution.
 
         Returns:
-            The manifest entries and duration bounds consumed by
-            :meth:`RemoveLongShortRunner.forward`.
+            Dict with ``entries``, ``min_duration``, ``max_duration`` and
+            ``num_dropped_empty``, which :meth:`RemoveLongShortRunner.forward`
+            receives as keyword arguments.
 
         Raises:
             RuntimeError: If ``manifest_path`` or a duration bound is missing
                 from ``params``.
+
+        Example:
+            .. code-block:: python
+
+                >>> env = provider.build_env_local()
+                >>> sorted(env)
+                ['entries', 'max_duration', 'min_duration', 'num_dropped_empty']
+                >>> len(env["entries"]), env["num_dropped_empty"]
+                (2, 1)
         """
         return RemoveLongShortProvider._build_env(self.params)
 
@@ -135,16 +159,35 @@ class RemoveLongShortProvider(EnvironmentProvider):
         Returns:
             A zero-argument callable, run once per worker, that returns the
             same environment as :meth:`build_env_local`.
+
+        Example:
+            .. code-block:: python
+
+                >>> setup_fn = provider.build_worker_setup_fn()
+                >>> setup_fn() == provider.build_env_local()
+                True
+
+        Note:
+            The callable closes over ``params`` only, never over the provider,
+            so it can be pickled and sent to a Dask worker.
         """
         params = self.params
 
         def build_worker_env() -> Dict[str, Any]:
+            """Build the environment inside one worker process."""
             return RemoveLongShortProvider._build_env(params)
 
         return build_worker_env
 
     @staticmethod
     def _build_env(params: Dict[str, Any]) -> Dict[str, Any]:
+        """Check the stage parameters and load the manifest they point at.
+
+        Shared by :meth:`build_env_local` and the worker setup function, so
+        the driver and every worker build the same environment. Raises
+        ``RuntimeError`` when ``manifest_path`` or a duration bound is
+        missing.
+        """
         manifest_path = params.get("manifest_path", None)
         if manifest_path is None:
             raise RuntimeError(
@@ -176,17 +219,6 @@ class RemoveLongShortRunner(BaseRunner):
     file, and :meth:`merge` reads every shard file back and re-sorts by
     ``idx``, so callers receive results in manifest order regardless of
     shard completion order.
-
-    Examples:
-        >>> runner = RemoveLongShortRunner(
-        ...     provider=provider,
-        ...     output_dir="data/manifest_filtered/shards",
-        ...     shard_subdir="train",
-        ...     resume=False,
-        ... )
-        >>> runner([0, 1])
-        [{'idx': 0, 'utt_id': 'utt_a', 'keep': True},
-         {'idx': 1, 'utt_id': 'utt_b', 'keep': False}]
     """
 
     @staticmethod
@@ -210,6 +242,20 @@ class RemoveLongShortRunner(BaseRunner):
             A status dict for an int index, or a list of status dicts for an
             iterable. Each entry is
             ``{"idx": int, "utt_id": str, "keep": bool}``.
+
+        Example:
+            .. code-block:: python
+
+                >>> RemoveLongShortRunner.forward(0, entries, 1.0, 20.0)
+                {'idx': 0, 'utt_id': 'utt_a', 'keep': True}
+                >>> RemoveLongShortRunner.forward([0, 1], entries, 1.0, 20.0)
+                [{'idx': 0, 'utt_id': 'utt_a', 'keep': True},
+                 {'idx': 1, 'utt_id': 'utt_b', 'keep': False}]
+
+        Note:
+            Both bounds are exclusive: an utterance lasting exactly
+            ``min_duration`` or ``max_duration`` seconds is dropped, matching
+            the awk filter in espnet2's ``tts.sh``.
         """
         if isinstance(idx, int):
             return RemoveLongShortRunner._process_one(
@@ -229,6 +275,12 @@ class RemoveLongShortRunner(BaseRunner):
         min_duration: float,
         max_duration: float,
     ) -> Dict[str, Any]:
+        """Read one utterance's duration and decide whether to keep it.
+
+        Only the audio header is read. Returns the status dict
+        ``{"idx": int, "utt_id": str, "keep": bool}`` described in
+        :meth:`forward`.
+        """
         utt_id, wav_path, _ = entries[idx]
         duration = sf.info(wav_path).duration
 
@@ -238,7 +290,29 @@ class RemoveLongShortRunner(BaseRunner):
 
     @staticmethod
     def open_writers(shard_dir: Optional[Path], **env) -> Dict[str, Any]:
-        """Open the shard-local JSONL results file."""
+        """Open the shard-local JSONL results file.
+
+        Args:
+            shard_dir: Directory of the shard being processed.
+            **env: Environment entries, unused.
+
+        Returns:
+            ``{"results": file}``, where ``file`` is
+            ``shard_dir/results.jsonl`` opened for writing.
+
+        Example:
+            .. code-block:: python
+
+                >>> writers = RemoveLongShortRunner.open_writers(
+                ...     Path("data/shards/train/split.0")
+                ... )
+                >>> sorted(writers)
+                ['results']
+
+        Note:
+            The file is opened with mode ``"w"``, so a shard that is run
+            again starts from an empty results file.
+        """
         results_path = Path(shard_dir) / "results.jsonl"
         return {"results": results_path.open("w", encoding="utf-8")}
 
@@ -249,7 +323,25 @@ class RemoveLongShortRunner(BaseRunner):
         state: Dict[str, Any],
         **env,
     ) -> None:
-        """Append one ``forward`` result (or batch of results) to the shard file."""
+        """Append one ``forward`` result (or batch of results) to the shard file.
+
+        Args:
+            writers: The dict returned by :meth:`open_writers`.
+            result: A status dict, or a list of them for a batched call.
+            state: Per-shard mutable state, unused.
+            **env: Environment entries, unused.
+
+        Example:
+            .. code-block:: python
+
+                >>> RemoveLongShortRunner.write_record(
+                ...     writers, {"idx": 0, "utt_id": "utt_a", "keep": True}, state={}
+                ... )
+
+            which appends this line to ``results.jsonl``::
+
+                {"idx": 0, "utt_id": "utt_a", "keep": true}
+        """
         records = result if isinstance(result, list) else [result]
         for record in records:
             writers["results"].write(json.dumps(record) + "\n")
@@ -257,11 +349,27 @@ class RemoveLongShortRunner(BaseRunner):
     def merge(self, shard_dirs: List[Path]) -> List[Dict[str, Any]]:
         """Concatenate shard results and restore manifest (``idx``) order.
 
-        Each shard's ``results.jsonl`` holds one JSON object per line, e.g.::
+        Args:
+            shard_dirs: Directories of every shard of the run.
 
-            {"idx": 0, "utt_id": "103_1241_000000_000001", "keep": true}
-            {"idx": 1, "utt_id": "103_1241_000000_000002", "keep": false}
-            {"idx": 2, "utt_id": "103_1241_000001_000000", "keep": true}
+        Returns:
+            All status dicts, sorted by ``idx``.
+
+        Example:
+            Each shard's ``results.jsonl`` holds one JSON object per line::
+
+                {"idx": 0, "utt_id": "103_1241_000000_000001", "keep": true}
+                {"idx": 1, "utt_id": "103_1241_000000_000002", "keep": false}
+                {"idx": 2, "utt_id": "103_1241_000001_000000", "keep": true}
+
+            .. code-block:: python
+
+                >>> runner.merge([Path("data/shards/train/split.0")])
+                [{'idx': 0, 'utt_id': 'utt_a', 'keep': True}]
+
+        Note:
+            A shard directory without a ``results.jsonl`` is skipped rather
+            than treated as an error.
         """
         records: List[Dict[str, Any]] = []
         for shard_dir in shard_dirs:
@@ -284,7 +392,6 @@ def remove_long_short(config: DictConfig) -> None:
     text, checks each remaining utterance's duration from its audio header
     (in parallel, honouring ``config.parallel``), and writes the surviving
     rows, unchanged and in order, to ``save_path/<manifest file name>``.
-    Re-running the stage overwrites the filtered manifests.
 
     Configuration should include (under ``remove_long_short``):
 
@@ -308,7 +415,7 @@ def remove_long_short(config: DictConfig) -> None:
         RuntimeError: If the ``remove_long_short`` block, ``save_path`` or a
             duration bound is missing, or a split's manifest does not exist.
 
-    Examples:
+    Example:
         .. code-block:: yaml
 
             remove_long_short:
@@ -321,7 +428,12 @@ def remove_long_short(config: DictConfig) -> None:
 
         .. code-block:: python
 
-            >>> remove_long_short(training_config)  # doctest: +SKIP
+            >>> remove_long_short(training_config)
+
+    Note:
+        Running the stage again overwrites the filtered manifests. Shard
+        results from an earlier run are never reused, because the keep/drop
+        decisions depend on the duration bounds.
     """
     remove_long_short_config = _get_required_config(
         config,

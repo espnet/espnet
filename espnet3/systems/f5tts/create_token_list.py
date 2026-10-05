@@ -24,7 +24,8 @@ def _get_required_config(config, key: str, error_message: str):
     """Return ``config[key]``, raising ``RuntimeError`` when it is missing.
 
     Same contract as ``BaseSystem._get_required_config``, kept here so the
-    stage function can be called without a system instance.
+    stage function can be called without a system instance. A ``None``
+    config and a ``None`` value both count as missing.
     """
     value = config.get(key, None) if config is not None else None
     if value is None:
@@ -53,7 +54,7 @@ def create_token_list(config: DictConfig) -> None:
     column of the training manifest, cleans and tokenizes it with ESPnet2's
     text front end, and writes one token per line to
     ``save_path/filename``, most frequent first with the configured special
-    symbols inserted. Re-running the stage overwrites the file.
+    symbols inserted.
 
     Configuration should include (under ``create_token_list``):
 
@@ -90,7 +91,7 @@ def create_token_list(config: DictConfig) -> None:
             ``vocabulary_size`` is smaller than the number of ``add_symbol``
             entries, or a special symbol is not written ``"<symbol>:<index>"``.
 
-    Examples:
+    Example:
         .. code-block:: yaml
 
             create_token_list:
@@ -98,7 +99,6 @@ def create_token_list(config: DictConfig) -> None:
               filename: tokens.txt
               manifest_path: ${data_dir}/manifest_filtered/train.tsv
               token_type: char
-              cleaner: tacotron
               add_symbol:
                 - "<blank>:0"
                 - "<unk>:1"
@@ -113,9 +113,20 @@ def create_token_list(config: DictConfig) -> None:
               filename: vocab.txt
               vocab_builder: espnet3.systems.f5tts.pinyin.build_pinyin_vocab
 
+        With the first config and a training manifest whose only transcript
+        is ``hello world``:
+
         .. code-block:: python
 
-            >>> create_token_list(training_config)  # doctest: +SKIP
+            >>> create_token_list(training_config)
+            >>> Path("data/token_list/tokens.txt").read_text().splitlines()
+            ['<blank>', '<unk>', 'l', 'o', 'h', 'e', '<space>', 'w', 'r', 'd',
+             '<sos/eos>']
+
+    Note:
+        Running the stage again overwrites the token list. Manifest rows with
+        fewer than three columns or an empty transcript contribute no tokens;
+        they are the rows ``remove_long_short`` drops.
     """
     create_token_list_config = _get_required_config(
         config,
