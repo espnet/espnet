@@ -111,12 +111,27 @@ def _record(
     return record
 
 
-def _writable(output: Mapping[str, Any], artifact_configs: Dict[str, dict]) -> dict:
-    """Turn contract values into what the writers take; audio brings its rate."""
-    out = {}
+def _writable(
+    output: Mapping[str, Any], artifact_configs: Mapping[str, Any]
+) -> tuple[dict, dict]:
+    """Turn contract values into what the writers take; audio brings its rate.
+
+    Returns:
+        The record's values, and the artifact configs this record's audio
+        needs: WAV at each value's own rate, unless ``output_artifacts``
+        says otherwise. They are per record, never written back into the
+        shard's shared configs, so one item's rate is not every item's.
+    """
+    out, own = {}, {}
     for key, value in output.items():
         if isinstance(value, Audio):
-            artifact_configs.setdefault(key, {"type": "wav", "sample_rate": value.rate})
+            configured = artifact_configs.get(key)
+            if configured is None:
+                own[key] = {"type": "wav", "sample_rate": value.rate}
+            elif configured.get("type", "wav") == "wav" and (
+                configured.get("sample_rate") is None
+            ):
+                own[key] = {**configured, "sample_rate": value.rate}
             # soundfile writes (samples, channels); Audio keeps channels first
             value = value.array.T if value.array.ndim == 2 else value.array
         elif (
@@ -128,7 +143,7 @@ def _writable(output: Mapping[str, Any], artifact_configs: Dict[str, dict]) -> d
             # top-level list, so they become one JSON document
             value = {key: value}
         out[key] = value
-    return out
+    return out, own
 
 
 def _forward_inference(
@@ -495,7 +510,7 @@ class InferenceRunner(BaseRunner):
 
         shard_dir = writers.get("shard_dir")
         for output in _iter_outputs(result):
-            output = _writable(output, writers["artifact_configs"])
+            output, own_configs = _writable(output, writers["artifact_configs"])
             InferenceRunner._validate_output_with_keys(
                 output,
                 idx_key=idx_key,
@@ -518,7 +533,8 @@ class InferenceRunner(BaseRunner):
                     field_key=field_key,
                     value=output[field_key],
                     output_dir=shard_dir,
-                    artifact_config=writers["artifact_configs"].get(field_key),
+                    artifact_config=own_configs.get(field_key)
+                    or writers["artifact_configs"].get(field_key),
                 )
                 handle = writers["scp_handles"].get(field_key)
                 if handle is None:

@@ -139,7 +139,24 @@ def test_write_record_writes_audio_as_wav_and_lists_as_json(tmp_path):
     assert rate == 8000 and len(array) == 100
     segments = (tmp_path / "segments.scp").read_text().splitlines()[1]
     assert segments.endswith("segments/utt1.json")
-    assert writers["artifact_configs"]["echo"] == {"type": "wav", "sample_rate": 8000}
+    assert "echo" not in writers["artifact_configs"]  # per record, not shared
+
+
+def test_write_record_writes_each_audio_at_its_own_rate(tmp_path):
+    import soundfile
+
+    writers = InferenceRunner.open_writers(tmp_path)
+    records = [
+        {"utt_id": "a", "echo": Audio(np.zeros(80, dtype=np.float32), 8000)},
+        {"utt_id": "b", "echo": Audio(np.zeros(160, dtype=np.float32), 16000)},
+    ]
+    InferenceRunner.write_record(writers, records, {}, idx_key="utt_id")
+    InferenceRunner.close_writers(writers, {})
+    rates = [
+        soundfile.read(line.split(" ", 1)[1])[1]
+        for line in (tmp_path / "echo.scp").read_text().splitlines()
+    ]
+    assert rates == [8000, 16000]
 
 
 def test_write_record_writes_multichannel_audio_channels_last(tmp_path):
@@ -239,6 +256,8 @@ def test_measure_reads_the_reference_from_the_test_set(tmp_path):
     missing.metrics[0].inputs = {"ref": "dataset:nope", "hyp": "text"}
     with pytest.raises(KeyError, match="has no 'nope'; it has \\['speech', 'text'"):
         measure(missing, inference_config=inference_cfg)
+    # the failed run left nothing a later run would take as finished
+    assert not (tmp_path / "test" / "dataset" / "nope.scp").exists()
     # without the inference config there is no test set to read from
     written.unlink()
     with pytest.raises(ValueError, match="needs the inference config"):

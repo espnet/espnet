@@ -106,7 +106,10 @@ def _dataset_column_scp(
         "Writing %s from the %s test set (%d items)", path, test_name, len(dataset)
     )
     path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8") as handle:
+    # written aside and renamed once complete: a run that fails part way
+    # leaves no file for the next run to take as finished
+    partial = path.with_name(path.name + ".partial")
+    with partial.open("w", encoding="utf-8") as handle:
         for idx in range(len(dataset)):
             item = dataset[idx]
             if column not in item:
@@ -123,6 +126,7 @@ def _dataset_column_scp(
                 artifact_config=artifact_config,
             )
             handle.write(f"{utt_id} {value}\n")
+    partial.replace(path)
     return path
 
 
