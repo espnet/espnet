@@ -185,17 +185,26 @@ def test_build_model_instantiates_on_the_device():
         build_model(OmegaConf.create({}))
 
 
-def test_build_model_honours_a_bundles_own_provider():
+def test_build_model_reads_the_model_and_never_a_provider():
+    """Calls go one way: a provider calls build_model, never the reverse."""
     cfg = OmegaConf.create(
         {
-            "model": {"_target_": "builtins.object"},
+            "model": {"_target_": f"{__name__}.Backend", "prefix": "model:"},
             "provider": {"_target_": f"{__name__}.StubProvider"},
         }
     )
-    assert build_model(cfg).prefix == "provider:"
-    cfg.provider._target_ = loading._DEFAULT_PROVIDER
-    cfg.model = {"_target_": f"{__name__}.Backend"}
-    assert isinstance(build_model(cfg), Backend)  # the default provider: built here
+    assert build_model(cfg).prefix == "model:"  # not StubProvider's "provider:"
+
+
+def test_a_bundles_own_provider_needs_no_trust_since_loading_never_runs_it(
+    tmp_path,
+):
+    root = _pack(
+        tmp_path, extra="provider:\n  _target_: src.code.Provider\n", bundled=True
+    )
+    with pytest.raises(ValueError, match="trust_user_code"):
+        read_bundle(root)  # it is bundled code
+    assert isinstance(load_model(root), Backend)  # and load_model drops it
 
 
 def test_the_infer_stage_provider_builds_through_the_same_function(monkeypatch):
@@ -207,7 +216,7 @@ def test_the_infer_stage_provider_builds_through_the_same_function(monkeypatch):
 
     import espnet3.systems.base.inference_provider as provider_mod
 
-    monkeypatch.setattr(provider_mod, "instantiate_model", fake)
+    monkeypatch.setattr(provider_mod, "build_model", fake)
     cfg = OmegaConf.create({"device": "cpu", "model": {"_target_": "x.Y"}})
     assert InferenceProvider.build_model(cfg) == "built"
     assert seen["device"] == "cpu"
@@ -355,7 +364,7 @@ class DataOnlyProvider(InferenceProvider):
 
 
 def test_a_provider_that_only_builds_the_dataset_builds_the_model_once(tmp_path):
-    """No loop: the inherited build_model instantiates, it does not dispatch."""
+    """popcornell's case on #6806: it used to recurse until RecursionError."""
     config = OmegaConf.create(
         {
             "recipe_dir": str(tmp_path),

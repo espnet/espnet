@@ -9,7 +9,7 @@ import torch
 from hydra.utils import instantiate
 from omegaconf import DictConfig, OmegaConf
 
-from espnet3.api.inference.loading import instantiate_model
+from espnet3.api.inference.loading import build_model
 from espnet3.parallel.env_provider import EnvironmentProvider
 from espnet3.utils.logging_utils import log_instance_dict
 
@@ -220,10 +220,9 @@ class InferenceProvider(EnvironmentProvider, ABC):
             torch.cuda.device_count() if torch.cuda.is_available() else 0,
         )
         # One way to build a model from an inference config, shared with
-        # loading a published bundle. instantiate_model, not build_model: a
-        # subclass that inherits this method is the configured provider, and
-        # build_model would hand the call straight back to it.
-        return instantiate_model(config, device=device)
+        # loading a published bundle; it reads only config.model and never
+        # calls a provider, so this cannot be called back.
+        return build_model(config, device=device)
 
     @staticmethod
     def _resolve_device(config: DictConfig) -> str:

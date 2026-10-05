@@ -17,6 +17,12 @@ wraps one backend builds it with :func:`load_model`, which reads the bundle
 without importing the recipe's own code. The ``infer`` stage's provider
 builds through the same :func:`build_model`, so a model is built one way
 everywhere.
+
+Calls go one way: the ``infer`` stage's provider and the systems call this
+module, and nothing here calls a provider back. A bundle's ``provider``,
+``runner`` and ``output_fn`` are the stage's business; loading reads only
+its ``model``. A system whose model needs building beyond its constructor
+does it in its ``Inference``.
 """
 
 from __future__ import annotations
@@ -31,7 +37,7 @@ from pathlib import Path
 from typing import Any, Mapping, Optional
 
 import yaml
-from hydra.utils import get_class, instantiate
+from hydra.utils import instantiate
 from omegaconf import DictConfig, OmegaConf, open_dict
 
 from espnet2.utils.pretrained import ModelTagError
@@ -48,9 +54,11 @@ SYSTEM_ALIASES: dict[str, str] = {
     "asr": "esp2_asr",  # renamed in #6795; bundles packed before say "asr"
 }
 
-# The default provider's import path. A bundle that names it, or names none,
-# is built here directly; another provider class builds the model itself.
-_DEFAULT_PROVIDER = "espnet3.systems.base.inference_provider.InferenceProvider"
+
+# What the infer stage runs a model with, not part of the model: loading
+# drops them before the bundled-code check, so a bundle whose only own code
+# is one of these loads without trusting anything.
+_STAGE_KEYS = ("output_fn", "runner", "provider")
 
 _BUILD_LOCK = threading.Lock()
 
@@ -222,15 +230,13 @@ def build_model(config: DictConfig, *, device: Optional[str] = None) -> Any:
     this). ``model._target_`` is instantiated with ``device`` added to its
     arguments; while it builds, the working directory is ``recipe_dir`` so
     the bare relative paths ESPnet2 training configs carry resolve from the
-    bundle or recipe root. A config naming a provider other than the
-    default has that provider's ``build_model`` build the model instead;
-    a provider that does not override it inherits the default one, which
-    calls :func:`instantiate_model` rather than this function, so there is
-    no loop back here.
+    bundle or recipe root. Only ``model`` is read: ``config.provider`` is
+    the ``infer`` stage's, and this never calls one, so a provider calling
+    this cannot be called back.
 
     Args:
         config: An inference config with ``model`` (and perhaps
-            ``recipe_dir``, ``provider``, ``device``).
+            ``recipe_dir``, ``device``).
         device: Where to build, such as ``"cpu"`` or ``"cuda:0"``; the
             config's own ``device`` when omitted, else ``"cpu"``.
 
@@ -249,35 +255,6 @@ def build_model(config: DictConfig, *, device: Optional[str] = None) -> Any:
         config = OmegaConf.create(dict(config))
     if device is None:
         device = config.get("device", None) or "cpu"
-    provider_target = getattr(getattr(config, "provider", None), "_target_", None)
-    if provider_target and provider_target != _DEFAULT_PROVIDER:
-        # a bundle may ship its own way of building, such as a test's stub
-        return get_class(provider_target).build_model(config)
-    return instantiate_model(config, device=device)
-
-
-def instantiate_model(config: DictConfig, *, device: str) -> Any:
-    """Instantiate ``config.model`` on ``device``, from ``recipe_dir``.
-
-    What :func:`build_model` does once it has decided no provider of the
-    config's own builds the model, and what the default provider's
-    ``build_model`` calls: it never consults ``config.provider``, so a
-    provider subclass that overrides only ``build_dataset`` builds its
-    model here instead of being asked again.
-
-    Args:
-        config: An inference config with ``model`` (and perhaps
-            ``recipe_dir``).
-        device: Where to build, such as ``"cpu"`` or ``"cuda:0"``.
-
-    Returns:
-        The instantiated model.
-
-    Raises:
-        ValueError: If the config has no ``model``.
-    """
-    if isinstance(config, Mapping) and not isinstance(config, DictConfig):
-        config = OmegaConf.create(dict(config))
     if config.get("model", None) is None:
         raise ValueError("inference config has no `model` to build")
     logger.info(
@@ -309,17 +286,17 @@ def load_model(
     """Build a bundle's model, without the ``infer`` stage's trimmings.
 
     Reads the bundle (:func:`read_bundle`) and builds its ``model``
-    (:func:`build_model`). The recipe's ``output_fn`` and ``runner`` are
-    dropped first: neither is needed to build, and an ``Inference`` fixes
-    its own output, so a bundle whose only bundled code is its
-    ``output_fn`` loads without trusting anything.
+    (:func:`build_model`). The ``infer`` stage's ``output_fn``, ``runner``
+    and ``provider`` are dropped first: none is needed to build, and an
+    ``Inference`` fixes its own output, so a bundle whose only bundled code
+    is one of them loads without trusting anything.
 
     Args:
         pack_dir: The output directory of ``pack_model()``.
-        device: Where to build the model; the provider's default when
-            omitted.
-        trust_user_code: Allow the bundle's model or provider to be its own
-            bundled code.
+        device: Where to build the model; the config's own ``device`` when
+            omitted, else ``"cpu"``.
+        trust_user_code: Allow the bundle's model to be its own bundled
+            code.
         overrides: Constructor arguments of the packed ``model`` that
             replace the packed values, such as ``{"beam_size": 1}`` - what
             ESPnet2's ``from_pretrained(tag, beam_size=1)`` does. A key
@@ -339,9 +316,7 @@ def load_model(
         >>> load_model("exp/train/model_pack")                 # an Inference
         >>> load_model("exp/old_pack", device="cuda:0")        # a Speech2Text
     """
-    config, _ = read_bundle(
-        pack_dir, trust_user_code=trust_user_code, drop=("output_fn", "runner")
-    )
+    config, _ = read_bundle(pack_dir, trust_user_code=trust_user_code, drop=_STAGE_KEYS)
     apply_overrides(config, overrides)
     if device is not None:
         with open_dict(config):
@@ -451,7 +426,7 @@ def load(
             config, _ = read_bundle(
                 tag_or_dir,
                 trust_user_code=trust_user_code,
-                drop=("output_fn", "runner"),
+                drop=_STAGE_KEYS,
             )
             apply_overrides(config, kwargs)
             model = (
