@@ -275,12 +275,13 @@ def test_metric_requires_test_sets_from_config_or_inference_dir(tmp_path):
 # ---------------------------------------------------------------------------
 # declared metric contract, wired through measure()
 #
-# M1 uses the real WER metric (declared in espnet3/systems/esp2_asr/metrics/
-# wer.py, not redeclared here) rather than a local fixture, specifically so
-# this file stays importable when copied alone onto a tree that predates
-# this change: that tree's wer.py has no contract, so these two tests are
-# the only ones affected, and fail for the predates-this-change reason
-# (a bare "Missing SCP file" assertion) rather than at import time.
+# The missing-input test below uses the real WER metric (declared in
+# espnet3/systems/esp2_asr/metrics/wer.py, not redeclared here) rather than a
+# local fixture, specifically so this file stays importable when copied
+# alone onto a tree that predates this change: that tree's wer.py has no
+# contract, so these two tests are the only ones affected, and fail for the
+# predates-this-change reason (a bare "Missing SCP file" assertion) rather
+# than at import time.
 # ---------------------------------------------------------------------------
 
 
