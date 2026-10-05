@@ -1,6 +1,6 @@
 """The kinds a field can hold, and the registry a new one is added to.
 
-``audio``, ``text`` and ``segments`` are built in. A new modality - a
+``audio``, ``text``, ``segments`` and ``number`` are built in. A new modality - a
 conversation, a multichannel signal, video, a JSON document - is a
 :class:`Kind` subclass passed to :func:`register_kind`, from a system
 or from a recipe's own ``src/``; :class:`~espnet3.api.inference.base.InferenceAPI`
@@ -26,6 +26,7 @@ from __future__ import annotations
 
 from espnet3.components.contract.kinds.audio import Audio, AudioKind
 from espnet3.components.contract.kinds.base import Kind
+from espnet3.components.contract.kinds.number import NumberKind
 from espnet3.components.contract.kinds.segments import SegmentsKind
 from espnet3.components.contract.kinds.text import TextKind
 
@@ -34,6 +35,7 @@ KINDS: dict[str, Kind] = {
     "audio": AudioKind(),
     "text": TextKind(),
     "segments": SegmentsKind(),
+    "number": NumberKind(),
 }
 
 
@@ -69,6 +71,7 @@ __all__ = [
     "Audio",
     "AudioKind",
     "Kind",
+    "NumberKind",
     "SegmentsKind",
     "TextKind",
     "register_kind",
