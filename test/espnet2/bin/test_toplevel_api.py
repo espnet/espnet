@@ -319,3 +319,69 @@ def test_a_meta_yaml_that_cannot_be_fetched_asks_for_the_task(monkeypatch):
         espnet.load("espnet/hand-uploaded")
 
     assert "espnet/hand-uploaded" in str(e.value)
+
+
+class _Espnet3Bundle:
+    """An espnet2 class that downloads a tag and finds an espnet3 bundle."""
+
+    __name__ = "Speech2Text"
+
+    def __init__(self, device="cpu"):
+        pass
+
+    @staticmethod
+    def from_pretrained(model_tag=None, device=None, **kwargs):
+        from espnet2.utils.pretrained import Espnet3BundleError
+
+        raise Espnet3BundleError(model_tag)
+
+
+def _fake_espnet3(monkeypatch, system="esp2_asr"):
+    """Record what espnet3's loader is asked, with the bundle naming `system`."""
+    import espnet3.api.inference as api
+
+    calls = []
+
+    def load(tag, *, device="cpu", **kwargs):
+        calls.append((tag, device, kwargs))
+        return "an espnet3 Inference"
+
+    monkeypatch.setattr(api, "load", load)
+    monkeypatch.setattr(api, "locate_pack", lambda tag: tag)
+    monkeypatch.setattr(api, "read_meta", lambda pack: {"system": system})
+    return calls
+
+
+def test_an_espnet3_bundle_is_handed_to_espnet3s_loader(monkeypatch):
+    _fake_class(monkeypatch, "asr", _Espnet3Bundle)
+    calls = _fake_espnet3(monkeypatch)
+    model = espnet.load(
+        "espnet/an_espnet3_pack", task="asr", device="cuda", beam_size=1
+    )
+    assert model == "an espnet3 Inference"
+    assert calls == [("espnet/an_espnet3_pack", "cuda", {"beam_size": 1})]
+
+
+def test_an_inferred_task_does_not_overrule_the_bundles_own_system(monkeypatch):
+    _fake_class(monkeypatch, "tts", _Espnet3Bundle)
+    calls = _fake_espnet3(monkeypatch, system="esp2_asr")
+    monkeypatch.setattr(espnet, "_infer_task", lambda tag: "tts")
+    assert espnet.load("espnet/mislabelled_pack") == "an espnet3 Inference"
+    assert len(calls) == 1
+
+
+def test_an_explicit_task_that_is_not_the_bundles_system_is_explained(monkeypatch):
+    from espnet2.utils.pretrained import ModelTagError
+
+    _fake_class(monkeypatch, "tts", _Espnet3Bundle)
+    calls = _fake_espnet3(monkeypatch, system="esp2_asr")
+    with pytest.raises(ModelTagError, match="espnet3 esp2_asr bundle, not a tts"):
+        espnet.load("espnet/an_asr_pack", task="tts")
+    assert calls == []
+
+
+def test_an_espnet3_bundle_without_the_train_extra_says_what_to_install(monkeypatch):
+    _fake_class(monkeypatch, "asr", _Espnet3Bundle)
+    monkeypatch.setitem(sys.modules, "espnet3.api.inference", None)
+    with pytest.raises(ImportError, match=r'pip install "espnet\[train\]"'):
+        espnet.load("espnet/an_espnet3_pack", task="asr")

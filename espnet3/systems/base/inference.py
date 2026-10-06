@@ -8,7 +8,10 @@ from hydra.utils import instantiate
 from omegaconf import DictConfig, OmegaConf
 
 from espnet3.parallel.parallel import set_parallel
-from espnet3.systems.base.inference_runner import _load_output_fn
+from espnet3.systems.base.inference_runner import (
+    _load_output_fn,
+    declared_input_names,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -80,6 +83,12 @@ def infer(config: DictConfig):
     field must be a single value. If you need structured content, return a
     ``dict`` and let it be serialized as JSON.
 
+    When ``model`` names an :class:`espnet3.api.inference.InferenceAPI`
+    subclass, ``input_key`` may be omitted - the declared inputs are used -
+    and no ``output_fn`` is needed: the runner writes the declared outputs
+    by what they are. A reference for scoring is not written here at all;
+    ``measure`` reads it from the data (``ref_key: dataset:text``).
+
     Args:
         config: Hydra/OmegaConf configuration containing the dataset,
             inference directory, provider/runner definitions, and optional
@@ -115,6 +124,9 @@ def infer(config: DictConfig):
             _load_output_fn(output_fn_path)
 
         input_key = getattr(config, "input_key", None)
+        if input_key is None:
+            # an Inference declares its inputs; a bare model must be told
+            input_key = declared_input_names(config)
         if input_key is None:
             raise RuntimeError("inference_config.input_key must be set.")
 

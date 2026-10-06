@@ -102,7 +102,17 @@ from espnet3.api.inference.kinds import (
     TextKind,
     register_kind,
 )
-from espnet3.api.inference.loading import SYSTEM_ALIASES, load, locate_pack
+from espnet3.api.inference.loading import (
+    SYSTEM_ALIASES,
+    ModelTagError,
+    apply_overrides,
+    build_model,
+    load,
+    load_model,
+    locate_pack,
+    read_bundle,
+    read_meta,
+)
 
 __all__ = [
     "KINDS",
@@ -112,12 +122,18 @@ __all__ = [
     "InferenceAPI",
     "Kind",
     "Field",
+    "ModelTagError",
     "NumberKind",
     "SegmentsKind",
     "TextKind",
+    "apply_overrides",
+    "build_model",
     "check_contract",
     "gather",
     "load",
+    "load_model",
     "locate_pack",
+    "read_bundle",
+    "read_meta",
     "register_kind",
 ]
