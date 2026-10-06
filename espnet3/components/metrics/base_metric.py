@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import ClassVar, Dict, Iterator, Tuple
 
 from espnet3.components.contract import Field, check_declaration
-from espnet3.components.metrics.contract import (
+from espnet3.components.contract.metrics import (
     check_metric_declaration,
     warn_undeclared,
 )
@@ -19,7 +19,7 @@ class BaseMetric(ABC):
     :class:`~espnet3.api.inference.InferenceAPI` uses) to opt into
     contract checking: ``inputs`` names the SCP inputs the metric reads
     (checked against what inference wrote, via
-    ``espnet3.components.metrics.contract.check_metric_inputs``), and
+    ``espnet3.components.contract.metrics.check_metric_inputs``), and
     ``outputs`` names the keys of the result dict, each of kind
     ``"number"``.
 

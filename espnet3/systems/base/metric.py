@@ -7,11 +7,11 @@ from pathlib import Path
 from hydra.utils import instantiate
 from omegaconf import DictConfig, OmegaConf
 
-from espnet3.components.metrics.base_metric import BaseMetric
-from espnet3.components.metrics.contract import (
+from espnet3.components.contract.metrics import (
     check_metric_inputs,
     check_metric_output,
 )
+from espnet3.components.metrics.base_metric import BaseMetric
 from espnet3.utils.logging_utils import log_component
 from espnet3.utils.scp_utils import get_class_path, load_scp_paths
 
