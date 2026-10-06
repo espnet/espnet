@@ -88,9 +88,7 @@ def test_csv_header_is_skipped_and_transcripts_keep_inner_spacing(tmp_path):
 
 
 def test_limit_reads_only_the_first_rows(tmp_path):
-    root = _corpus(
-        tmp_path, [(f"h/{i}.wav", 1.0, f"line {i}") for i in range(5)]
-    )
+    root = _corpus(tmp_path, [(f"h/{i}.wav", 1.0, f"line {i}") for i in range(5)])
     assert [r["text_ctc"] for r in _rows(root, limit=2)] == ["line 0", "line 1"]
 
 

@@ -75,7 +75,8 @@ class OWSMDataset(TorchDataset):
             )
 
         recipe_root = (
-            Path(recipe_dir) if recipe_dir is not None
+            Path(recipe_dir)
+            if recipe_dir is not None
             else Path(__file__).resolve().parents[1]
         )
         split_dir = cache_root(recipe_root, cache, self.CACHE_SUBDIR) / self.split

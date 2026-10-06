@@ -41,8 +41,20 @@ OWSM_BPE_CACHE = Path.home() / ".cache" / "espnet3" / "owsm_v4_bpe.model"
 # MuST-C is English ASR plus its 14 translation directions.
 REQUIRED_LANGS = ["en"]
 REQUIRED_ST_TARGETS = [
-    "ar", "cs", "de", "es", "fa", "fr", "it", "nl", "pt", "ro", "ru", "tr",
-    "vi", "zh",
+    "ar",
+    "cs",
+    "de",
+    "es",
+    "fa",
+    "fr",
+    "it",
+    "nl",
+    "pt",
+    "ro",
+    "ru",
+    "tr",
+    "vi",
+    "zh",
 ]
 
 
@@ -86,9 +98,7 @@ def released_symbols():
             pytest.skip(f"cannot fetch {OWSM_BPE_URL}: {error}")
 
     processor = spm.SentencePieceProcessor(model_file=str(OWSM_BPE_CACHE))
-    pieces = [
-        processor.id_to_piece(i) for i in range(processor.get_piece_size())
-    ]
+    pieces = [processor.id_to_piece(i) for i in range(processor.get_piece_size())]
     tagged = [p for p in pieces if p.startswith("<") and p.endswith(">")]
     _RELEASE_ORDER.update({p: i for i, p in enumerate(tagged)})
     # <s>, </s> and <unk> are SentencePiece's own, not OWSM symbols.

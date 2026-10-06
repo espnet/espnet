@@ -11,8 +11,8 @@ from hydra.utils import instantiate
 from omegaconf import DictConfig
 
 from espnet3.systems.base.system import BaseSystem
-from espnet3.systems.owsm.tokenizers.sentencepiece import train_sentencepiece
 from espnet3.systems.owsm.symbols import load_symbols
+from espnet3.systems.owsm.tokenizers.sentencepiece import train_sentencepiece
 
 logger = logging.getLogger(__name__)
 

@@ -156,10 +156,7 @@ class CER(ErrorRate):
 
     def units(self, texts: List[str]) -> List[str]:
         """Characters, with spaces as their own token, space-joined for jiwer."""
-        return [
-            " ".join(self.SPACE if c == " " else c for c in text)
-            for text in texts
-        ]
+        return [" ".join(self.SPACE if c == " " else c for c in text) for text in texts]
 
 
 class TER(ErrorRate):
@@ -193,7 +190,5 @@ class TER(ErrorRate):
         if self._tokenizer is None:
             from espnet2.text.build_tokenizer import build_tokenizer
 
-            self._tokenizer = build_tokenizer(
-                token_type="bpe", bpemodel=self.bpemodel
-            )
+            self._tokenizer = build_tokenizer(token_type="bpe", bpemodel=self.bpemodel)
         return [" ".join(self._tokenizer.text2tokens(text)) for text in texts]
