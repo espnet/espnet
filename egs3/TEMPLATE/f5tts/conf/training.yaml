@@ -4,13 +4,10 @@
 # Quick usage:
 #   python run.py --stages train --training_config conf/training.yaml
 #
-# This is the shared default merged under every TTS recipe's training config
-# (see `load_and_merge_config` in `run.py`). Kept as empty as possible so it
-# never conflicts with a concrete recipe config -- a recipe directory may host
-# multiple, mutually incompatible architectures (e.g. VITS vs. F5-TTS have
-# unrelated `model.tts_conf` shapes), so only generic, non-conflicting
-# path/system scaffolding lives here. Everything architecture-specific is left
-# null for the recipe config to fill in.
+# This is the shared default merged under every F5-TTS recipe's training
+# config (see `load_and_merge_config` in `run.py`). Only path/system
+# scaffolding lives here; the dataset, model, optimizer and dataloader blocks
+# are left null for the recipe config to fill in.
 
 ##########################################################
 #                  SYSTEM AND PATH SETTING               #
@@ -18,8 +15,8 @@
 num_device: 1
 num_nodes: 1
 
-# Optional ESPnet task class path used by `get_espnet_model(...)`.
-# If unset, `model` is instantiated directly via Hydra.
+# F5-TTS is an ESPnet3-native model: `model` is instantiated directly via
+# Hydra, so the ESPnet2 `task` bridge stays unset.
 task:
 
 recipe_dir: .
