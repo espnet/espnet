@@ -227,8 +227,7 @@ def _build_demo_model(
         raise ValueError("demo config must contain model.dir_or_tag.")
     model_trust_user_code = bool(model_cfg.get("trust_user_code", False))
     logger.info(
-        "Building demo inference model | dir_or_tag=%s trust_user_code=%s "
-        "base_dir=%s",
+        "Building demo inference model | dir_or_tag=%s trust_user_code=%s base_dir=%s",
         dir_or_tag,
         model_trust_user_code,
         demo_dir,

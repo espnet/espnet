@@ -7,10 +7,7 @@
 
 import argparse
 import os
-import re
-import sys
 
-import pandas as pd
 from sklearn.metrics import classification_report, f1_score
 
 
@@ -18,7 +15,6 @@ def get_classification_result(hyp_file, ref_file):
     hyp_lines = [line for line in hyp_file]
     ref_lines = [line for line in ref_file]
 
-    error = 0
     hyp_intent_arr = []
     ref_intent_arr = []
     for line_count in range(len(hyp_lines)):

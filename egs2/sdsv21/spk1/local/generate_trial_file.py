@@ -4,8 +4,6 @@
 #  use as a test/dev set
 
 import argparse
-import os
-import sys
 from itertools import combinations
 
 

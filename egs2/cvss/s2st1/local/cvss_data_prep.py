@@ -1,8 +1,6 @@
 import argparse
 import os
 
-from espnet2.utils.types import str2bool
-
 TGT_LANG = "en"
 
 

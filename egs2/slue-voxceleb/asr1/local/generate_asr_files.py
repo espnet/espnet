@@ -7,10 +7,6 @@
 
 import argparse
 import os
-import re
-import sys
-
-import pandas as pd
 
 
 def generate_asr_files(txt_file, transcript_file):

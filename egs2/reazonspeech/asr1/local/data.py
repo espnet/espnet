@@ -1,5 +1,3 @@
-import getopt
-import glob
 import os
 import random
 import shlex

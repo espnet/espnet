@@ -238,7 +238,7 @@ class ESPnetExtractionModel(AbsESPnetModel):
                 )
                 # for the time domain criterions
                 with torch.no_grad() if zero_weight else contextlib.ExitStack():
-                    l, s, o = loss_wrapper(sref, spre, {**others, **o})
+                    loss_i, s, o = loss_wrapper(sref, spre, {**others, **o})
             elif isinstance(criterion, FrequencyDomainLoss):
                 sref, spre = self._align_ref_pre_channels(
                     speech_ref, speech_pre, ch_dim=2, force_1ch=False
@@ -261,11 +261,11 @@ class ESPnetExtractionModel(AbsESPnetModel):
                     tf_pre = [self.encoder(sp, speech_lengths)[0] for sp in spre]
 
                 with torch.no_grad() if zero_weight else contextlib.ExitStack():
-                    l, s, o = loss_wrapper(tf_ref, tf_pre, {**others, **o})
+                    loss_i, s, o = loss_wrapper(tf_ref, tf_pre, {**others, **o})
             else:
                 raise NotImplementedError("Unsupported loss type: %s" % str(criterion))
 
-            loss += l * loss_wrapper.weight
+            loss += loss_i * loss_wrapper.weight
             stats.update(s)
 
             if perm is None and "perm" in o:

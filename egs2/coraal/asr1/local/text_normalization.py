@@ -1,6 +1,3 @@
-import collections
-import glob
-import math
 import re
 import sys
 

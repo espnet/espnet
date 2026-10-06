@@ -17,7 +17,6 @@
 
 import argparse
 import os
-import os.path as osp
 import pickle
 
 import numpy as np

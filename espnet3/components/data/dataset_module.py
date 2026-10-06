@@ -160,7 +160,6 @@ def load_dataset_module(
         # Local recipe mode: load <recipe_dir>/dataset/__init__.py directly.
         return _load_local_dataset_module(recipe_dir)
     if _is_tag(data_src):
-
         # Tag mode: "mini_an4/esp2_asr" -> "egs3.mini_an4.esp2_asr.dataset"
         return import_module(resolve_dataset_module_name(data_src))
 

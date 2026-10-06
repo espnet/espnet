@@ -65,6 +65,6 @@ if __name__ == "__main__":
     final_bitrates = np.mean(bitrates)
     if args.bitrate_result is not None:
         bitrate_result_f = open(args.bitrate_result, "w", encoding="utf-8")
-        bitrate_results_f.write("bitrate: {}".format(final_bitrates))
+        bitrate_result_f.write("bitrate: {}".format(final_bitrates))
 
     print("final bitrates for the data: {}".format(final_bitrates))

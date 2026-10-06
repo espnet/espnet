@@ -32,7 +32,6 @@ def main(cmd=None):
                 + "*.wav"
             ):
                 id = f.split("/")[-1][:-4]
-                full_id = f[:-4]
                 utt2spk.write(id + " " + id + "\n")
                 wavscp.write(id + " " + f + "\n")
                 txt = transcriptions[id]

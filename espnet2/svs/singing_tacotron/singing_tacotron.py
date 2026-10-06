@@ -402,10 +402,10 @@ class singing_tacotron(AbsSVS):
         label = F.pad(label, [0, 1], "constant", self.padding_idx)
         midi = F.pad(midi, [0, 1], "constant", self.padding_idx)
         duration = F.pad(duration, [0, 1], "constant", self.padding_idx)
-        for i, l in enumerate(label_lengths):
-            label[i, l] = self.eos
-            midi[i, l] = self.midi_eos
-            duration[i, l] = self.duration_eos
+        for i, length in enumerate(label_lengths):
+            label[i, length] = self.eos
+            midi[i, length] = self.midi_eos
+            duration[i, length] = self.duration_eos
 
         # Add sos at the last of sequence
         label = F.pad(label, [1, 0], "constant", self.eos)

@@ -12,7 +12,6 @@ Speedups over local/data_prep_as2m.py:
 
 import argparse
 import os
-import sys
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from multiprocessing import Pool
 

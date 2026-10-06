@@ -2,7 +2,6 @@
 
 import glob
 import os
-import random
 import sys
 from string import punctuation
 

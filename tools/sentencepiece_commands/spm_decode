@@ -26,13 +26,13 @@ def main():
 
     if args.input_format == "piece":
 
-        def decode(l):
-            return "".join(sp.DecodePieces(l))
+        def decode(line):
+            return "".join(sp.DecodePieces(line))
 
     elif args.input_format == "id":
 
-        def decode(l):
-            return "".join(sp.DecodeIds(l))
+        def decode(line):
+            return "".join(sp.DecodeIds(line))
 
     else:
         raise NotImplementedError

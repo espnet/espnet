@@ -36,7 +36,7 @@ def init_decoder_model():
     )
 
 
-# =========================================Houlsby================================================
+# ====================================Houlsby===========================================
 # These four tests build an s3prl frontend, and the first one to run downloads
 # the upstream it asks for - hubert_base is a few hundred MB. The 20 s budget
 # they carried predates that being on the clock: the tests spent six months
@@ -155,7 +155,7 @@ def test_create_houlsby_adapter_invalid_model(
         )
 
 
-# =========================================LORA================================================
+# ====================================LORA===========================================
 @pytest.mark.parametrize("rank, alpha, target_modules", [(2, 4, ["linear_q"])])
 def test_create_lora_adapter_linear(rank, alpha, target_modules):
     model = init_decoder_model()

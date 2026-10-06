@@ -19,13 +19,7 @@ def generate_output(source_dir, output_dir, input_file):
         # Extract speaker, session, and (optional) subsession from the path
         parts = path.split("/")
         spk = parts[0]
-        session = parts[1]
-        if len(parts) > 3:  # Check if subsession exists
-            subsession = parts[2]
-            utt_id = "/".join(parts)
-        else:
-            subsession = None
-            utt_id = "/".join(parts)
+        utt_id = "/".join(parts)
 
         # Add WAV file path to wav_list
         wav_path = os.path.join(source_dir, f"{path}.wav")

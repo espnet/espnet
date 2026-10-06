@@ -10,7 +10,6 @@ import argparse
 import math
 import os
 import os.path as osp
-from shutil import copyfile
 
 import numpy as np
 import torch

@@ -8,7 +8,6 @@ import os
 import re
 
 import librosa
-import numpy as np
 import soundfile as sf
 
 from espnet2.fileio.score_scp import SingingScoreWriter

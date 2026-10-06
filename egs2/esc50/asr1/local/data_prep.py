@@ -4,15 +4,12 @@
 #           2023  Carnegie Mellon University
 # Apache 2.0
 
-import json
 import os
-import pickle
 import sys
 from pathlib import Path
 
 import pandas as pd
 from sklearn.model_selection import train_test_split
-from torch.utils.data import random_split
 
 if len(sys.argv) != 2:
     print("Usage: python data_prep.py [ASVSpoof_root]")

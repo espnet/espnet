@@ -53,19 +53,19 @@ DUMMY_DATASET_TARGET = (
     "test.espnet3.components.data.test_dataloader_builder.DummyDataset"
 )
 DUMMY_SAME_LENGTH_DATASET_TARGET = (
-    "test.espnet3.components.data.test_dataloader_builder." "DummyDatasetSameLength"
+    "test.espnet3.components.data.test_dataloader_builder.DummyDatasetSameLength"
 )
 DUMMY_SAMPLER_TARGET = (
-    "test.espnet3.components.data.test_dataloader_builder." "DummySampler"
+    "test.espnet3.components.data.test_dataloader_builder.DummySampler"
 )
 DUMMY_BATCH_SAMPLER_TARGET = (
-    "test.espnet3.components.data.test_dataloader_builder." "DummyBatchSampler"
+    "test.espnet3.components.data.test_dataloader_builder.DummyBatchSampler"
 )
 DUMMY_SHARDED_DATASET_TARGET = (
     "test.espnet3.components.data.test_dataloader_builder.DummyShardedDataset"
 )
 DUMMY_MISSING_SHARD_TARGET = (
-    "test.espnet3.components.data.test_dataloader_builder." "DummyMissingShardMethod"
+    "test.espnet3.components.data.test_dataloader_builder.DummyMissingShardMethod"
 )
 DUMMY_SHARDED_DATA_SRC = "dummy/sharded"
 
@@ -1088,8 +1088,7 @@ def test_build_iter_factory_defaults_to_the_builder_dataset(monkeypatch):
     )
     factory_config = {
         "_target_": (
-            "test.espnet3.components.data."
-            "test_dataloader_builder.GeneratorIterFactory"
+            "test.espnet3.components.data.test_dataloader_builder.GeneratorIterFactory"
         ),
         "batches": {"dummy": 1},
     }

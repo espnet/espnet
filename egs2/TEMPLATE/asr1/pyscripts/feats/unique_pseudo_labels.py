@@ -2,7 +2,6 @@
 import argparse
 import logging
 
-import numpy as np
 import torch
 
 from espnet2.fileio.read_text import load_num_sequence_text

@@ -12,7 +12,6 @@ import argparse
 import os
 import os.path as osp
 import random
-from shutil import copyfile
 
 import numpy as np
 import torch

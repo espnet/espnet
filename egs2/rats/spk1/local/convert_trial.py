@@ -16,8 +16,6 @@ def main(args):
     scp_dict = dict()
     for scp in lines_scp:
         utt_id, path = scp.strip().split(" ")
-        f_name = utt_id.split("/")[-1]
-        spk = d_src2spk[f_name.split("_")[0]]
         scp_dict[utt_id] = path
     trial_set = set()
 

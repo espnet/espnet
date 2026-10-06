@@ -155,7 +155,7 @@ def dump_label(
     writers = [
         file_writer_helper(
             (
-                wspecifier.replace(f"_km", f"_RVQ_{i}_km")
+                wspecifier.replace("_km", f"_RVQ_{i}_km")
                 if RVQ_layers > 1
                 else wspecifier
             ),

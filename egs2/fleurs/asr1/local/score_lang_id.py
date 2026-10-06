@@ -36,7 +36,7 @@ def scoring(exp_folder, decode_folder, out):
         output_file = open(
             f"{exp_decode_folder}/{folder}/lang_id_refs.tsv", "w", encoding="utf-8"
         )
-        output_file.write(f"utt_id\tref_lid\thyp_lid\n")
+        output_file.write("utt_id\tref_lid\thyp_lid\n")
 
         try:
             decode_file = codecs.open(decode_file_name, "r", encoding="utf-8")

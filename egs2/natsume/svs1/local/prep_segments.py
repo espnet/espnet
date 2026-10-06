@@ -352,7 +352,6 @@ class NatsumeDataHandler(DataHandler):
 
             fileline = file_line.strip().split(" ")
             recording_id = fileline[0]
-            path = " ".join(fileline[1:])
             phn_info = label_line.strip().split()[1:]
             temp_info = []
             for i in range(len(phn_info) // 3):
@@ -380,7 +379,6 @@ class NatsumeDataHandler(DataHandler):
         for xml_line in self.file_scp:
             xmlline = xml_line.strip().split(" ")
             recording_id = xmlline[0]
-            path = xmlline[1]
 
             # for natsume
             tempo, temp_info = self.fix_dataset4(

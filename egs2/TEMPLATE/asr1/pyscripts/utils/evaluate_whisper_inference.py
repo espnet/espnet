@@ -3,9 +3,7 @@ import argparse
 import logging
 import os
 import sys
-from distutils.version import LooseVersion
-from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Dict, Optional, Union
 
 import torch
 import whisper
@@ -16,7 +14,7 @@ from espnet2.legacy.utils.cli_utils import get_commandline_args
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
 from espnet2.utils.nested_dict_action import NestedDictAction
-from espnet2.utils.types import str2bool, str2triple_str, str_or_none
+from espnet2.utils.types import str2bool, str_or_none
 
 
 class Speech2Text:
@@ -103,7 +101,7 @@ def inference(
             results = speech2text(os.path.abspath(audio_file.strip()), **decode_options)
 
             # Normal ASR
-            ibest_writer = writer[f"1best_recog"]
+            ibest_writer = writer["1best_recog"]
 
             # Write the result to each file
             ibest_writer["text"][key] = results

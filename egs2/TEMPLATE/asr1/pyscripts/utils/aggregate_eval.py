@@ -50,7 +50,7 @@ def aggregate_results(logdir: str, scoredir: str, nj: int) -> None:
                     line.strip()
                     .replace("'", '"')
                     .replace("inf", "Infinity")
-                    .replace(f"nan", "0.0")
+                    .replace("nan", "0.0")
                 )
                 score_info.append(json.loads(line))
     # score cer, wer
